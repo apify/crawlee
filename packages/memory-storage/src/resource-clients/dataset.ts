@@ -1,16 +1,10 @@
-/* eslint-disable import/no-duplicates */
 import { randomUUID } from 'node:crypto';
-import { rm } from 'node:fs/promises';
-import { resolve } from 'node:path';
 
 import type * as storage from '@crawlee/types';
 import type { Dictionary } from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
 
-import { scheduleBackgroundTask } from '../background-handler/index.js';
-import type { StorageImplementation } from '../fs/common.js';
-import { createDatasetStorageImplementation } from '../fs/dataset/index.js';
-import type { MemoryStorage } from '../index.js';
+import type { MemoryStorageClient } from '../index.js';
 import { BaseClient } from './common/base-client.js';
 
 /**
@@ -20,8 +14,8 @@ import { BaseClient } from './common/base-client.js';
 const LIST_ITEMS_LIMIT = 999_999_999_999;
 
 /**
- * Number of characters of the dataset item file names.
- * E.g.: 000000019.json - 9 digits
+ * Number of characters of the dataset item entry names.
+ * E.g.: 000000019 - 9 digits
  */
 const LOCAL_ENTRY_NAME_DIGITS = 9;
 
@@ -29,13 +23,12 @@ export interface DatasetClientOptions {
     id?: string;
     name?: string;
     /**
-     * The directory name to use on disk. When provided, takes precedence over `name` and `id`
-     * for the directory path. This allows alias-opened storages to have a directory name
-     * that differs from their metadata `name` (which is `undefined` for unnamed storages).
+     * The key used for cache lookup. When provided, takes precedence over `name` and `id`.
+     * This allows alias-opened storages to have a cache key that differs from their
+     * metadata `name` (which is `undefined` for unnamed storages).
      */
-    directoryName?: string;
-    baseStorageDirectory: string;
-    client: MemoryStorage;
+    cacheKey?: string;
+    client: MemoryStorageClient;
 }
 
 export class DatasetClient<Data extends Dictionary = Dictionary>
@@ -44,24 +37,22 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
 {
     name?: string;
     /**
-     * The key used for directory naming and cache lookup. For named storages, this equals
-     * the name. For alias (unnamed) storages, this is the alias string. Falls back to id.
+     * The key used for cache lookup. For named storages, this equals the name. For alias (unnamed)
+     * storages, this is the alias string. Falls back to id.
      */
-    directoryName: string;
+    cacheKey: string;
     createdAt = new Date();
     accessedAt = new Date();
     modifiedAt = new Date();
     itemCount = 0;
-    datasetDirectory: string;
 
-    private readonly datasetEntries = new Map<string, StorageImplementation<Data>>();
-    private readonly client: MemoryStorage;
+    private readonly datasetEntries = new Map<string, Data>();
+    private readonly client: MemoryStorageClient;
 
     constructor(options: DatasetClientOptions) {
         super(options.id ?? randomUUID());
         this.name = options.name;
-        this.directoryName = options.directoryName ?? this.name ?? this.id;
-        this.datasetDirectory = resolve(options.baseStorageDirectory, this.directoryName);
+        this.cacheKey = options.cacheKey ?? this.name ?? this.id;
         this.client = options.client;
     }
 
@@ -77,25 +68,12 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
             const [oldClient] = this.client.datasetClientCache.splice(storeIndex, 1);
             oldClient.itemCount = 0;
             oldClient.datasetEntries.clear();
-
-            await rm(oldClient.datasetDirectory, { recursive: true, force: true });
         }
     }
 
     async purge(): Promise<void> {
         this.itemCount = 0;
         this.datasetEntries.clear();
-
-        // Remove item files from disk but keep the directory
-        if (this.client.persistStorage) {
-            const { readdir } = await import('node:fs/promises');
-            const entries = await readdir(this.datasetDirectory).catch(() => []);
-            for (const entry of entries) {
-                if (entry !== '__metadata__.json') {
-                    await rm(resolve(this.datasetDirectory, entry), { force: true });
-                }
-            }
-        }
 
         this.updateTimestamps(true);
     }
@@ -128,7 +106,7 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
 
         for (let idx = start; idx < end; idx++) {
             const entryNumber = this.generateLocalEntryName(idx);
-            items.push(await this.datasetEntries.get(entryNumber)!.get());
+            items.push(this.datasetEntries.get(entryNumber)!);
         }
 
         this.updateTimestamps(false);
@@ -146,15 +124,7 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
     async pushData(items: Data[]): Promise<void> {
         for (const entry of items) {
             const idx = this.generateLocalEntryName(++this.itemCount);
-            const storageEntry = createDatasetStorageImplementation({
-                entityId: idx,
-                persistStorage: this.client.persistStorage,
-                storeDirectory: this.datasetDirectory,
-            });
-
-            await storageEntry.update(entry);
-
-            this.datasetEntries.set(idx, storageEntry);
+            this.datasetEntries.set(idx, entry);
         }
 
         this.updateTimestamps(true);
@@ -187,19 +157,5 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
         if (hasBeenModified) {
             this.modifiedAt = new Date();
         }
-
-        const data = this.toDatasetInfo();
-        scheduleBackgroundTask(
-            {
-                action: 'update-metadata',
-                data,
-                entityType: 'datasets',
-                entityDirectory: this.datasetDirectory,
-                id: this.name ?? this.id,
-                writeMetadata: this.client.writeMetadata,
-                persistStorage: this.client.persistStorage,
-            },
-            this.client.logger,
-        );
     }
 }

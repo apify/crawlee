@@ -431,14 +431,14 @@ The new `ServiceLocator` supports per-crawler service isolation, allowing you to
 
 ```typescript
 import { BasicCrawler, Configuration, LocalEventManager } from 'crawlee';
-import { MemoryStorage } from '@crawlee/memory-storage';
+import { MemoryStorageClient } from '@crawlee/memory-storage';
 
 const crawler = new BasicCrawler({
     requestHandler: async ({ request, log }) => {
         log.info(`Processing ${request.url}`);
     },
     configuration: new Configuration({ headless: false }),
-    storageClient: new MemoryStorage(),
+    storageClient: new MemoryStorageClient(),
     eventManager: LocalEventManager.fromConfig(),
 });
 
@@ -451,10 +451,10 @@ For most use cases, the global `serviceLocator` singleton works well:
 
 ```typescript
 import { serviceLocator, BasicCrawler } from 'crawlee';
-import { MemoryStorage } from '@crawlee/memory-storage';
+import { MemoryStorageClient } from '@crawlee/memory-storage';
 
 // Configure global services (optional)
-serviceLocator.setStorageClient(new MemoryStorage());
+serviceLocator.setStorageClient(new MemoryStorageClient());
 
 // All crawlers will use the global service locator by default
 const crawler = new BasicCrawler({
@@ -560,11 +560,58 @@ The sub-client interfaces (`DatasetClient`, `KeyValueStoreClient`, `RequestQueue
 
 **`RequestQueueClient`:**
 
+The request queue client was reduced from 12 methods to 10. The distributed-locking protocol (`listAndLockHead` → `prolongRequestLock` → `deleteRequestLock`) and the queue-head/consistency bookkeeping that used to live in the `RequestQueue` frontend have been removed from the interface; coordinating multiple clients accessing the same queue (e.g. request locking on the Apify platform) is now an internal concern of the client implementation.
+
 | Before (v3) | After (v4) |
 |---|---|
+| `addRequest(request, opts?)` | `addBatchOfRequests([request], opts?)` |
+| `batchAddRequests(requests, opts?)` | `addBatchOfRequests(requests, opts?)` |
+| `getRequest(id)` | `getRequest(uniqueKey)` |
+| `updateRequest(request, opts?)` | `markRequestAsHandled(request)` / `reclaimRequest(request, opts?)` |
+| `listHead(opts?)` | `fetchNextRequest()` (returns a single request, marks it in progress) |
+| `listAndLockHead(opts)` | Removed (locking is internal to the client) |
+| `prolongRequestLock(id, opts)` | Removed |
+| `deleteRequestLock(id, opts?)` | Removed |
 | `deleteRequest(id)` | Removed |
+| _(n/a)_ | `isEmpty()` (new — `true` when no pending requests are left to fetch) |
+| _(n/a)_ | `isFinished()` (new — `true` when no pending **and** no in-progress requests remain) |
 
-**Removed types** from `@crawlee/types`: `DatasetClientUpdateOptions`, `KeyValueStoreClientUpdateOptions`, `KeyValueStoreRecordOptions`, `KeyValueStoreClientListData`, `KeyValueStoreClientGetRecordOptions`. `KeyValueStoreClientListOptions` was renamed to `KeyValueStoreListKeysOptions`.
+The lifecycle is now: `fetchNextRequest()` hands out a pending request and marks it in progress; once processed, call `markRequestAsHandled(request)`; on failure call `reclaimRequest(request, { forefront? })` to return it to the queue.
+
+`RequestQueueClient.isEmpty()` and `RequestQueueClient.isFinished()` answer two different questions:
+
+- `isEmpty()` is the weak check — `true` when the next `fetchNextRequest()` would return `null`, i.e. there is nothing left to fetch right now. Requests that are currently in progress (fetched but not yet handled or reclaimed) are **not** counted, because they are not fetchable. This is what drives the crawler's task scheduling.
+- `isFinished()` is the strong check — `true` only when there are no pending requests **and** no requests currently in progress (including those locked by other clients sharing the queue). This is what determines whether crawling is actually done. An in-progress request keeps the queue *empty but not finished*, which is what stops a crawler from shutting down while a request is still being processed.
+
+The separate `RequestQueueV1`/`RequestQueueV2` classes (and the `RequestProvider` base class) have been removed. They no longer differ in behavior — request coordination is now internal to the storage client — so they are merged into a single `RequestQueue` class. Replace any `RequestQueueV1`, `RequestQueueV2`, or `RequestProvider` imports with `RequestQueue`.
+
+The `requestLocking` crawler experiment has been removed, along with the `experiments` crawler option and the `CrawlerExperiments` type that contained it. Request locking has been the default since v3.10 and there is no longer an alternative implementation to opt out to, so the flag did nothing. Delete any `experiments: { requestLocking: ... }` from your crawler options:
+
+```diff
+ const crawler = new CheerioCrawler({
+     async requestHandler({ $, request }) {
+         // ...
+     },
+-    experiments: {
+-        requestLocking: true,
+-    },
+ });
+```
+
+The `RequestQueue.requestLockSecs` property has been removed. Because request locking is now internal to the storage client, the lock duration is no longer configured on the queue. When you run a crawler, it automatically tells the queue how long it expects to hold a request (based on `requestHandlerTimeoutMillis`), so a long-running request handler will not have its request handed out a second time — you usually don't need to configure anything.
+
+If you use a `RequestQueue` outside of a crawler and your processing may exceed the 3-minute default lock, call `setExpectedRequestProcessingTimeSecs(secs)` on the queue to raise it:
+
+```ts
+import { RequestQueue } from 'crawlee';
+
+const queue = await RequestQueue.open();
+queue.setExpectedRequestProcessingTimeSecs(600);
+```
+
+The `RequestQueue.internalTimeoutMillis` property and the associated "stuck queue" self-recovery have been removed. In v3 the `RequestQueue` frontend kept its own copy of the queue head and in-progress set, which could drift out of sync with the backing storage (an eventual-consistency hazard on the Apify platform); `isFinished()` watched for inactivity exceeding `internalTimeoutMillis` and reset that frontend state to recover. In v4 the frontend no longer holds any such bookkeeping — the storage client is the single source of truth — so there is nothing for a reset to fix, and stuck request locks now self-heal on expiry. Any consistency-recovery logic that is genuinely specific to the Apify platform's distributed storage belongs in the Apify SDK's client implementation instead, and is tracked in [apify/crawlee#3328](https://github.com/apify/crawlee/issues/3328).
+
+**Removed types** from `@crawlee/types`: `DatasetClientUpdateOptions`, `KeyValueStoreClientUpdateOptions`, `KeyValueStoreRecordOptions`, `KeyValueStoreClientListData`, `KeyValueStoreClientGetRecordOptions`, `QueueHead`, `RequestQueueHeadItem`, `ListOptions`, `ListAndLockOptions`, `ListAndLockHeadResult`, `ProlongRequestLockOptions`, `ProlongRequestLockResult`, `DeleteRequestLockOptions`. `KeyValueStoreClientListOptions` was renamed to `KeyValueStoreListKeysOptions`.
 
 The high-level storage classes (`Dataset`, `KeyValueStore`, `RequestQueue`) now receive their sub-client directly in the constructor options instead of receiving a `StorageClient` and calling its methods.
 
@@ -596,6 +643,52 @@ If you implemented a custom `StorageClient`, you need to:
 2. Replace the six getter methods (`dataset`, `datasets`, `keyValueStore`, `keyValueStores`, `requestQueue`, `requestQueues`) with three async factory methods (`createDatasetClient`, `createKeyValueStoreClient`, `createRequestQueueClient`). Each factory should handle both opening an existing storage and creating a new one.
 3. Apply the sub-client renames listed above (`get` → `getMetadata`, `delete` → `drop`, etc.) and implement the new `purge()` method.
 
+## `MemoryStorage` split into `FileSystemStorageClient` and `MemoryStorageClient`
+
+In v3, the single `MemoryStorage` class from `@crawlee/memory-storage` did double duty: it kept everything in memory *and*, by default, mirrored it to disk (toggled via the `persistStorage` option / `CRAWLEE_PERSIST_STORAGE` environment variable). In v4 these two responsibilities are split into two independent classes, and the default storage client now persists to disk.
+
+- **`FileSystemStorageClient`** (new, in the new `@crawlee/fs-storage` package) — always persists storage to the local directory (`CRAWLEE_STORAGE_DIR`, default `./storage`). This is what you get implicitly when you don't configure a storage client, and it is the behavior the old `MemoryStorage` had with its default `persistStorage: true`.
+- **`MemoryStorageClient`** (the renamed `MemoryStorage`, still in `@crawlee/memory-storage`) — now keeps everything purely in memory and **never touches the disk**. This matches the old `MemoryStorage` with `persistStorage: false`.
+
+Both classes are re-exported from the `crawlee` meta-package.
+
+### The default storage client now persists to disk
+
+Which client backs the implicit default is decided by `Configuration.persistStorage` (still controllable via the `CRAWLEE_PERSIST_STORAGE` environment variable): `true` (the default) selects `FileSystemStorageClient`, `false` selects `MemoryStorageClient`. If you relied on the default and never set `persistStorage`, your storage is persisted to disk exactly as before — no change.
+
+### `MemoryStorage` is renamed and is now memory-only
+
+If you constructed the storage client explicitly, two things changed:
+
+1. **The class is renamed** `MemoryStorage` → `MemoryStorageClient`.
+2. **It no longer writes to disk.** A bare `new MemoryStorage()` in v3 persisted to disk by default; `new MemoryStorageClient()` in v4 does not. If you want persistence, use `FileSystemStorageClient` instead.
+
+**Before:**
+```typescript
+import { MemoryStorage } from '@crawlee/memory-storage';
+
+// Persisted to disk by default in v3.
+const storageClient = new MemoryStorage();
+```
+
+**After:**
+```typescript
+import { FileSystemStorageClient } from '@crawlee/fs-storage';
+import { MemoryStorageClient } from '@crawlee/memory-storage';
+
+// Persists to disk (the old default behavior):
+const storageClient = new FileSystemStorageClient();
+
+// Or keep everything in memory only (the old `persistStorage: false`):
+const inMemory = new MemoryStorageClient();
+```
+
+The `localDataDirectory`, `persistStorage`, and `writeMetadata` options are still accepted by `MemoryStorageClient` for source compatibility, but they are ignored — in-memory storage has nowhere to write. `FileSystemStorageClient` honors `localDataDirectory` and `writeMetadata`; it always persists, so it has no `persistStorage` option.
+
+### No request lock expiry in `MemoryStorageClient`
+
+Because the in-memory queue lives entirely within a single process and is never shared with another consumer, `MemoryStorageClient`'s request queue no longer uses an expiring, cross-process lock. A fetched request simply stays *in progress* until it is handled or reclaimed; it never becomes fetchable again on its own after a timeout. `setExpectedRequestProcessingTimeSecs()` is therefore a no-op for in-memory storage. (Disk-backed `FileSystemStorageClient` keeps the lock-with-expiry behavior.)
+
 ## Multiple crawler instances use separate default request queues
 
 In v3, every `BasicCrawler` (or subclass) that didn't receive an explicit `requestQueue` option would open the same default request queue. If you created two crawlers in the same process, they would silently share a queue — leading to request collisions and hard-to-debug deduplication issues.
@@ -608,7 +701,7 @@ If you explicitly pass a `requestQueue` (or `requestManager`) to the crawler, th
 
 When calling `crawler.run()` multiple times on the same crawler instance, v3 would drop the default request queue and create a fresh one between runs. In v4, the crawler **purges** the queue instead — clearing all requests and resetting internal counters, but keeping the same queue object. This is more efficient and avoids edge cases around stale references.
 
-The new `purge()` method is available on `RequestProvider` (the base class for `RequestQueue`) and is also defined as an optional method on the `IRequestManager` interface.
+The new `purge()` method is available on `RequestQueue` and is also defined as an optional method on the `IRequestManager` interface.
 
 By default, only queues that the crawler created itself (the "owned" queue) are purged between runs — a user-supplied queue is never touched unless you explicitly opt in. The `purgeRequestQueue` option in `CrawlerRunOptions` controls this behavior:
 
@@ -697,12 +790,15 @@ The harmonized loader interface differs from the old `IRequestList` in a few way
 | `length(): number` | `getTotalCount(): Promise<number>` (renamed and now async) |
 | _(n/a)_ | `getPendingCount(): Promise<number>` (new) |
 | `handledCount(): number` | `getHandledCount(): Promise<number>` (renamed and now async) |
+| `markRequestHandled(request)` | `markRequestAsHandled(request)` (renamed) |
 | `reclaimRequest()` on the interface | Removed from the read-only loaders entirely; reclaiming is a write operation that lives only on `IRequestManager` (e.g. `RequestQueue`, `RequestManagerTandem`) |
 | `inProgress: Set<string>` on the interface | Removed from the interface |
 | `persistState(): Promise<void>` (required) | `persistState?(): Promise<void>` (optional) |
 | _(n/a)_ | `toTandem?(requestManager?)` (new) |
 
 `RequestList.length()` and `RequestList.handledCount()` (and their `SitemapRequestLoader` counterparts) were renamed to `getTotalCount()` and `getHandledCount()` and are now `async` — `await` them.
+
+`markRequestHandled()` was renamed to `markRequestAsHandled()` across the loader and manager interfaces (`RequestList`, `SitemapRequestLoader`, `RequestQueue`, `RequestManagerTandem`) to match the storage client method of the same name (and the Python `mark_request_as_handled`). Rename any calls accordingly.
 
 **Before:**
 ```typescript
@@ -775,7 +871,7 @@ The public `requestList` and `requestQueue` instance fields are gone. The crawle
 
 ### `getRequestQueue()` deprecated in favor of `getRequestManager()`
 
-`BasicCrawler.getRequestQueue()` is deprecated. It still works as an alias, but now returns an `IRequestManager` that is no longer guaranteed to be a `RequestProvider`/`RequestQueue` (it may be a `RequestManagerTandem`). Use `getRequestManager()` instead.
+`BasicCrawler.getRequestQueue()` is deprecated. It still works as an alias, but now returns an `IRequestManager` that is no longer guaranteed to be a `RequestQueue` (it may be a `RequestManagerTandem`). Use `getRequestManager()` instead.
 
 **Before:**
 ```typescript

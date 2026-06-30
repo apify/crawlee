@@ -49,9 +49,7 @@ import {
     purgeDefaultStorages,
     RequestHandlerError,
     RequestManagerTandem,
-    RequestProvider,
     RequestQueue,
-    RequestQueueV1,
     RequestState,
     RetryRequestError,
     Router,
@@ -202,7 +200,7 @@ export interface BasicCrawlerOptions<
      * @deprecated Use the `requestManager` option instead. A `RequestQueue` is itself a request manager, so you can
      * pass it directly as `requestManager`.
      */
-    requestQueue?: RequestProvider;
+    requestQueue?: RequestQueue;
 
     /**
      * Manager of requests that should be processed by the crawler. Mutually exclusive with the deprecated
@@ -372,12 +370,6 @@ export interface BasicCrawlerOptions<
     onSkippedRequest?: SkippedRequestCallback;
 
     /**
-     * Enables experimental features of Crawlee, which can alter the behavior of the crawler.
-     * WARNING: these options are not guaranteed to be stable and may change or be removed at any time.
-     */
-    experiments?: CrawlerExperiments;
-
-    /**
      * Customize the way statistics collecting works, such as logging interval or
      * whether to output them to the Key-Value store.
      */
@@ -443,22 +435,6 @@ export interface BasicCrawlerOptions<
      * By default, status codes >= 500 trigger errors.
      */
     additionalHttpErrorStatusCodes?: number[];
-}
-
-/**
- * A set of options that you can toggle to enable experimental features in Crawlee.
- *
- * NOTE: These options will not respect semantic versioning and may be removed or changed at any time. Use at your own risk.
- * If you do use these and encounter issues, please report them to us.
- */
-export interface CrawlerExperiments {
-    /**
-     * @deprecated This experiment is now enabled by default, and this flag will be removed in a future release.
-     * If you encounter issues due to this change, please:
-     * - report it to us: https://github.com/apify/crawlee
-     * - set `requestLocking` to `false` in the `experiments` option of the crawler
-     */
-    requestLocking?: boolean;
 }
 
 /**
@@ -667,9 +643,7 @@ export class BasicCrawler<
     protected onSkippedRequest?: SkippedRequestCallback;
     private _closeEvents?: boolean;
     private loggedPerRun = new Set<string>();
-    private experiments: CrawlerExperiments;
     private readonly robotsTxtFileCache: LruCache<RobotsTxtFile>;
-    private _experimentWarnings: Partial<Record<keyof CrawlerExperiments, boolean>> = {};
     private readonly crawlerId: string;
     private readonly hasExplicitId: boolean;
     private readonly crawlerInstanceIndex: number;
@@ -721,9 +695,6 @@ export class BasicCrawler<
         maxConcurrency: ow.optional.number,
         maxRequestsPerMinute: ow.optional.number.integerOrInfinite.positive.greaterThanOrEqual(1),
         keepAlive: ow.optional.boolean,
-
-        // internal
-        experiments: ow.optional.object,
 
         statisticsOptions: ow.optional.object,
 
@@ -780,9 +751,6 @@ export class BasicCrawler<
             statusMessageCallback,
             statisticsOptions,
             httpClient,
-
-            // internal
-            experiments = {},
 
             id,
         } = options;
@@ -844,7 +812,6 @@ export class BasicCrawler<
             this.statusMessageLoggingInterval = statusMessageLoggingInterval;
             this.statusMessageCallback = statusMessageCallback as StatusMessageCallback;
             this.domainAccessedTime = new Map();
-            this.experiments = experiments;
             this.robotsTxtFileCache = new LruCache({ maxLength: 1000 });
             this.handleSkippedRequest = this.handleSkippedRequest.bind(this);
 
@@ -871,8 +838,8 @@ export class BasicCrawler<
                 tryEnv(process.env.CRAWLEE_INTERNAL_TIMEOUT) ?? Math.max(this.requestHandlerTimeoutMillis * 2, 300e3);
 
             // override the default internal timeout of request queue to respect `requestHandlerTimeoutMillis`
-            if (this.requestManager instanceof RequestProvider) {
-                this.applyRequestQueueTimeouts(this.requestManager);
+            if (this.requestManager !== undefined) {
+                this.applyRequestManagerTimeouts(this.requestManager);
             }
 
             this.maxRequestRetries = maxRequestRetries;
@@ -958,7 +925,7 @@ export class BasicCrawler<
                         // (e.g., doesn't match enqueue strategy after redirect). Just return gracefully.
                         if (error instanceof ContextPipelineInterruptedError) {
                             await this._timeoutAndRetry(
-                                async () => this.requestManager?.markRequestHandled(request),
+                                async () => this.requestManager?.markRequestAsHandled(request),
                                 this.internalTimeoutMillis,
                                 `Marking request ${crawlingContext.request.url} (${crawlingContext.request.id}) as handled timed out after ${
                                     this.internalTimeoutMillis / 1e3
@@ -1452,32 +1419,40 @@ export class BasicCrawler<
 
     /**
      * @deprecated Use {@apilink BasicCrawler.getRequestManager|`getRequestManager()`} instead. This returns the
-     * crawler's request manager, which is no longer guaranteed to be a {@apilink RequestProvider}.
+     * crawler's request manager, which is no longer guaranteed to be a {@apilink RequestQueue}.
      */
     async getRequestQueue(): Promise<IRequestManager> {
         return this.getRequestManager();
     }
 
     /**
-     * Opens the default {@apilink RequestQueue}, applies the crawler's internal timeouts and records it as the
+     * Opens the default {@apilink RequestQueue}, applies the crawler's timeouts to it and records it as the
      * crawler-owned manager (so it gets purged between repeated `run()` calls).
      * @private
      */
     private async openOwnedRequestQueue(): Promise<IRequestManager> {
-        const requestQueue = await this._getRequestQueue();
-        this.applyRequestQueueTimeouts(requestQueue);
+        // The first crawler instance uses the default queue (null identifier);
+        // subsequent instances get their own queue via a unique alias so they don't collide.
+        const identifier =
+            this.crawlerInstanceIndex === 0 ? null : { alias: `__default_${this.crawlerInstanceIndex}__` };
+
+        const requestQueue = await RequestQueue.open(identifier, { config: serviceLocator.getConfiguration() });
+        this.applyRequestManagerTimeouts(requestQueue);
         this.ownedRequestManager = requestQueue;
         return requestQueue;
     }
 
     /**
-     * Overrides the default internal timeouts of a {@apilink RequestProvider} to respect `requestHandlerTimeoutMillis`.
+     * Tells a request manager how long we expect to hold a fetched request, so that one backed by a
+     * locking storage client keeps it reserved for slightly longer than the request handler timeout
+     * (with some padding for overhead), but never for less than a minute. This prevents a long-running
+     * request from being handed out a second time while it is still being processed — and it works
+     * regardless of whether the manager is a plain {@apilink RequestQueue} or a `RequestManagerTandem`.
      */
-    private applyRequestQueueTimeouts(requestQueue: RequestProvider): void {
-        requestQueue.internalTimeoutMillis = this.internalTimeoutMillis;
-        // for request queue v2, we want to lock requests for slightly longer than the request handler timeout so that
-        // there is some padding for locking-related overhead, but never for less than a minute
-        requestQueue.requestLockSecs = Math.max(this.requestHandlerTimeoutMillis / 1000 + 5, 60);
+    private applyRequestManagerTimeouts(requestManager: IRequestManager): void {
+        requestManager.setExpectedRequestProcessingTimeSecs?.(
+            Math.max(this.requestHandlerTimeoutMillis / 1000 + 5, 60),
+        );
     }
 
     async useState<State extends Dictionary = Dictionary>(defaultValue = {} as State): Promise<State> {
@@ -1851,7 +1826,7 @@ export class BasicCrawler<
      * adding it back to the queue after the timeout passes. Returns `true` if the request
      * should be ignored and will be reclaimed to the queue once ready.
      */
-    protected delayRequest(request: Request, source: RequestProvider | IRequestManager) {
+    protected delayRequest(request: Request, source: IRequestManager) {
         const domain = getDomain(request.url);
 
         if (!domain || !request) {
@@ -1866,22 +1841,12 @@ export class BasicCrawler<
             return false;
         }
 
-        if (source instanceof RequestQueueV1) {
-            // eslint-disable-next-line dot-notation
-            source['inProgress']?.delete(request.id!);
-        }
-
         const delay = lastAccessTime + this.sameDomainDelayMillis - now;
         this.log.debug(
             `Request ${request.url} (${request.id}) will be reclaimed after ${delay} milliseconds due to same domain delay`,
         );
         setTimeout(async () => {
             this.log.debug(`Adding request ${request.url} (${request.id}) back to the queue`);
-
-            if (source instanceof RequestQueueV1) {
-                // eslint-disable-next-line dot-notation
-                source['inProgress'].add(request.id!);
-            }
 
             await source.reclaimRequest(request, { forefront: request.userData?.__crawlee?.forefront });
         }, delay);
@@ -1901,13 +1866,13 @@ export class BasicCrawler<
             await this.runRequestHandler(crawlingContext);
 
             await this._timeoutAndRetry(
-                async () => requestSource.markRequestHandled(request!),
+                async () => requestSource.markRequestAsHandled(request!),
                 this.internalTimeoutMillis,
                 `Marking request ${request.url} (${request.id}) as handled timed out after ${
                     this.internalTimeoutMillis / 1e3
                 } seconds.`,
             );
-            isRequestLocked = false; // markRequestHandled succeeded and unlocked the request
+            isRequestLocked = false; // markRequestAsHandled succeeded and unlocked the request
 
             this.stats.finishJob(statisticsId, request.retryCount);
             this.handledRequestsCount++;
@@ -1928,7 +1893,7 @@ export class BasicCrawler<
                     } seconds.`,
                 );
                 if (!(err instanceof CriticalError)) {
-                    isRequestLocked = false; // _requestFunctionErrorHandler calls either markRequestHandled or reclaimRequest
+                    isRequestLocked = false; // _requestFunctionErrorHandler calls either markRequestAsHandled or reclaimRequest
                 }
                 request.state = RequestState.DONE;
             } catch (secondaryError: any) {
@@ -1957,12 +1922,14 @@ export class BasicCrawler<
                 crawlingContext.session.markBad();
             }
         } finally {
-            // Safety net - release the lock if nobody managed to do it before
-            if (isRequestLocked && requestSource instanceof RequestProvider) {
+            // Safety net - return the request to the queue if nobody managed to mark it as handled
+            // or reclaim it before (e.g. after a CriticalError). Reclaiming a request that is no longer
+            // in progress is a harmless no-op on the storage client.
+            if (isRequestLocked && requestSource instanceof RequestQueue) {
                 try {
-                    await requestSource.client.deleteRequestLock(request.id!);
+                    await requestSource.reclaimRequest(request);
                 } catch {
-                    // We don't have the lock, or the request was never locked. Either way it's fine
+                    // The request was never in progress, or could not be reclaimed. Either way it's fine.
                 }
             }
         }
@@ -2162,7 +2129,7 @@ export class BasicCrawler<
         // or failed more than retryCount times and will not be retried anymore.
         // Mark the request as failed and do not retry.
         this.handledRequestsCount++;
-        await source.markRequestHandled(request);
+        await source.markRequestAsHandled(request);
         this.stats.failJob(request.id || request.uniqueKey, request.retryCount);
 
         await this._handleFailedRequestHandler(crawlingContext, error); // This function prints an error message.
@@ -2269,28 +2236,6 @@ export class BasicCrawler<
         }
 
         return request.headers?.Cookie || request.headers?.cookie || '';
-    }
-
-    private async _getRequestQueue() {
-        // The first crawler instance uses the default queue (null identifier);
-        // subsequent instances get their own queue via a unique alias so they don't collide.
-        const identifier =
-            this.crawlerInstanceIndex === 0 ? null : { alias: `__default_${this.crawlerInstanceIndex}__` };
-
-        // Check if it's explicitly disabled
-        // oxlint-disable-next-line typescript/no-deprecated -- still honored for opt-out until the flag is removed
-        if (this.experiments.requestLocking === false) {
-            // oxlint-disable-next-line typescript/no-deprecated
-            if (!this._experimentWarnings.requestLocking) {
-                this.log.info('Using the old RequestQueue implementation without request locking.');
-                // oxlint-disable-next-line typescript/no-deprecated
-                this._experimentWarnings.requestLocking = true;
-            }
-
-            return RequestQueueV1.open(identifier, { config: serviceLocator.getConfiguration() });
-        }
-
-        return RequestQueue.open(identifier, { config: serviceLocator.getConfiguration() });
     }
 
     private requestMatchesEnqueueStrategy(request: Request) {
