@@ -339,7 +339,7 @@ export interface RequestQueueClient {
      * {@link fetchNextRequest}); reclaiming releases its lock rather than inserting it. A `null` result
      * is a no-op, not an error: the request is simply not something this client is currently processing,
      * so nothing is changed and the request is never added to the queue as a side effect. Use
-     * {@link addRequest} to insert a new request.
+     * {@link addBatchOfRequests} to insert a new request.
      */
     reclaimRequest(request: UpdateRequestSchema, options?: RequestOptions): Promise<QueueOperationInfo | null>;
 
