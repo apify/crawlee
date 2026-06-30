@@ -21,6 +21,14 @@ describe('parseOpenGraph', () => {
     const case6 = `<meta property="og:title" content="My Website"/>
     <meta property="og:type" content="website"/>`;
 
+    const case7 = load(`<meta property="og:type" content="article"/>
+    <meta property="article:published_time" content="2024-01-01T00:00:00Z"/>
+    <meta property="article:modified_time" content="2024-01-02T00:00:00Z"/>
+    <meta property="article:expiration_time" content="2024-01-03T00:00:00Z"/>
+    <meta property="article:author" content="Jane Doe"/>
+    <meta property="article:section" content="Tech"/>
+    <meta property="article:tag" content="ai"/>`);
+
     it('Should scrape properties', () => {
         expect(parseOpenGraph(case1)).toEqual({
             title: 'Under Pressure',
@@ -75,6 +83,20 @@ describe('parseOpenGraph', () => {
         expect(parseOpenGraph(case6)).toEqual({
             title: 'My Website',
             type: 'website',
+        });
+    });
+
+    it('Should parse article properties into articleInfo', () => {
+        expect(parseOpenGraph(case7)).toEqual({
+            type: 'article',
+            articleInfo: {
+                publishedTime: '2024-01-01T00:00:00Z',
+                modifiedTime: '2024-01-02T00:00:00Z',
+                expirationTime: '2024-01-03T00:00:00Z',
+                author: 'Jane Doe',
+                section: 'Tech',
+                tag: 'ai',
+            },
         });
     });
 });
