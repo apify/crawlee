@@ -208,7 +208,6 @@ export abstract class BrowserController<
             this.log.debug(`Could not close browser.\nCause: ${(error as Error).message}`, { id: this.id });
         }
 
-        await this._releaseRemoteBrowser();
         this.emit(BROWSER_CONTROLLER_EVENTS.BROWSER_CLOSED, this);
 
         setTimeout(() => {
@@ -226,23 +225,7 @@ export abstract class BrowserController<
     async kill(): Promise<void> {
         await this.hasBrowserPromise;
         await this._kill();
-        await this._releaseRemoteBrowser();
         this.emit(BROWSER_CONTROLLER_EVENTS.BROWSER_CLOSED, this);
-    }
-
-    /**
-     * Releases the remote browser session (if this controller serves a remote browser) via the plugin's
-     * {@apilink RemoteConnection}. Safe to call multiple times — the token is cleared after the first call
-     * and the pool's registry also dedupes, so `release()` fires at most once across close()/kill().
-     */
-    private async _releaseRemoteBrowser(): Promise<void> {
-        const token = this.launchContext?._remoteToken;
-        if (token === undefined) return;
-
-        // Clear so release only fires once (close() schedules kill() after a timeout).
-        this.launchContext._remoteToken = undefined;
-
-        await this.browserPlugin.remoteConnection?.release(token);
     }
 
     /**

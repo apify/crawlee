@@ -87,7 +87,7 @@ export class LaunchContext<
 
     /**
      * Token identifying the remote browser session this context connected to, set by the plugin and read by
-     * the {@apilink BrowserController} to release the session on close. Only present for remote connections.
+     * the {@apilink RemoteBrowserPool} to release the session on close. Only present for remote connections.
      * @internal
      */
     _remoteToken?: number;

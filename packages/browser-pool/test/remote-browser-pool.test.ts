@@ -3,7 +3,9 @@ import { vi } from 'vitest';
 import { serviceLocator } from '@crawlee/core';
 import type { CrawleeLogger } from '@crawlee/core';
 
-import { BROWSER_POOL_EVENTS } from '../src/events.js';
+import { EventEmitter } from 'node:events';
+
+import { BROWSER_CONTROLLER_EVENTS, BROWSER_POOL_EVENTS } from '../src/events.js';
 import type { RemoteConnection } from '../src/remote-browser-pool.js';
 import { RemoteBrowserPool } from '../src/remote-browser-pool.js';
 import { RemoteBrowserProvider } from '../src/remote-browser-provider.js';
@@ -103,6 +105,24 @@ describe('RemoteBrowserPool — release lifecycle', () => {
 
         expect(release).toHaveBeenCalledTimes(1);
         expect(release).toHaveBeenCalledWith({ endpoint: 'wss://remote:9222', context: { id: 'sess-1' } });
+        await pool.destroy();
+    });
+
+    it('releases a browser session when its controller closes', async () => {
+        const release = vi.fn();
+        const { plugin, getConnection } = createCapturingPlugin();
+        const pool = new RemoteBrowserPool({ browserPlugins: [plugin], endpoint: 'wss://remote:9222', release });
+
+        const { token } = await getConnection().resolve();
+
+        // Mimic the inner pool launching a controller, then that controller closing.
+        const controller: any = new EventEmitter();
+        controller.launchContext = { _remoteToken: token };
+        pool.browserPool.emit(BROWSER_POOL_EVENTS.BROWSER_LAUNCHED, controller);
+        controller.emit(BROWSER_CONTROLLER_EVENTS.BROWSER_CLOSED, controller);
+
+        expect(release).toHaveBeenCalledTimes(1);
+        expect(release).toHaveBeenCalledWith({ endpoint: 'wss://remote:9222', context: undefined });
         await pool.destroy();
     });
 

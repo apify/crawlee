@@ -1,10 +1,11 @@
 import { type CrawleeLogger, serviceLocator } from '@crawlee/core';
 import type { IBrowserPool, NewPageOptions, PageState } from '@crawlee/types';
 
+import type { BrowserController } from './abstract-classes/browser-controller.js';
 import type { BrowserPlugin } from './abstract-classes/browser-plugin.js';
 import { BrowserPool } from './browser-pool.js';
 import type { BrowserPoolHooks, BrowserPoolOptions } from './browser-pool.js';
-import { BROWSER_POOL_EVENTS } from './events.js';
+import { BROWSER_CONTROLLER_EVENTS, BROWSER_POOL_EVENTS } from './events.js';
 import { RemoteBrowserProvider } from './remote-browser-provider.js';
 
 /**
@@ -242,6 +243,15 @@ export class RemoteBrowserPool<Page = unknown> implements IBrowserPool<Page> {
 
         this.browserPool = new BrowserPool({ ...browserPoolOptions, browserPlugins }) as unknown as BrowserPool;
         this.pool = this.browserPool as unknown as IBrowserPool<Page>;
+
+        // Release a browser's remote session once it closes. The registry dedupes (close() schedules a delayed
+        // kill(), so BROWSER_CLOSED can fire twice), and destroy()'s releaseAll() backstops any that never close.
+        this.browserPool.on(BROWSER_POOL_EVENTS.BROWSER_LAUNCHED, (controller: BrowserController) => {
+            controller.once(BROWSER_CONTROLLER_EVENTS.BROWSER_CLOSED, () => {
+                const token = controller.launchContext._remoteToken;
+                if (token !== undefined) void this.registry.release(token);
+            });
+        });
 
         if (resolvedMax !== undefined) {
             this.browserPool.maxOpenBrowsers = resolvedMax;
