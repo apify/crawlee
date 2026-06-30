@@ -6,14 +6,14 @@ import { setTimeout } from 'node:timers/promises';
  * and does not support URLs containing commas or spaces. The URLs also may contain Unicode letters (not symbols).
  */
 export const URL_NO_COMMAS_REGEX =
-    /https?:\/\/(www\.)?([\p{L}0-9]|[\p{L}0-9][-\p{L}0-9@:%._+~#=]{0,254}[\p{L}0-9])\.[a-z]{2,63}(:\d{1,5})?(\/[-\p{L}0-9@:%_+.~#?&/=()]*)?/giu;
+    /https?:\/\/(www\.)?([\p{L}0-9]|[\p{L}0-9][-\p{L}0-9@:%._+~#=]{0,254}[\p{L}0-9])\.[a-z]{2,63}(:\d{1,5})?(\/[-\p{L}0-9@:%_+.~#?&/=()'*]*)?/giu;
 
 /**
  * Regular expression that, in addition to the default regular expression `URL_NO_COMMAS_REGEX`, supports matching commas in URL path and query.
  * Note, however, that this may prevent parsing URLs from comma delimited lists, or the URLs may become malformed.
  */
 export const URL_WITH_COMMAS_REGEX =
-    /https?:\/\/(www\.)?([\p{L}0-9]|[\p{L}0-9][-\p{L}0-9@:%._+~#=]{0,254}[\p{L}0-9])\.[a-z]{2,63}(:\d{1,5})?(\/[-\p{L}0-9@:%_+,.~#?&/=()]*)?/giu;
+    /https?:\/\/(www\.)?([\p{L}0-9]|[\p{L}0-9][-\p{L}0-9@:%._+~#=]{0,254}[\p{L}0-9])\.[a-z]{2,63}(:\d{1,5})?(\/[-\p{L}0-9@:%_+,.~#?&/=()'*]*)?/giu;
 
 let isDockerPromiseCache: Promise<boolean> | undefined;
 
