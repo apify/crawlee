@@ -1,18 +1,10 @@
-import { KeyValueStore, Request } from '@crawlee/core';
+import { KeyValueStore, MemoryStorageClient, Request, serviceLocator } from '@crawlee/core';
 import { RenderingTypePredictor } from '@crawlee/playwright';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-
-import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 describe('RenderingTypePredictor', () => {
-    const localStorageEmulator = new MemoryStorageEmulator();
-
     beforeEach(async () => {
-        await localStorageEmulator.init();
-    });
-
-    afterEach(async () => {
-        await localStorageEmulator.destroy();
+        serviceLocator.setStorageClient(new MemoryStorageClient());
     });
 
     describe('persistence', () => {

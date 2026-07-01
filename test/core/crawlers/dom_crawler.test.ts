@@ -1,8 +1,8 @@
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 
+import { MemoryStorageClient, serviceLocator } from '@crawlee/core';
 import { JSDOMCrawler } from '@crawlee/jsdom';
-import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
 
 const router = new Map<string, http.RequestListener>();
 router.set('/', (req, res) => {
@@ -35,14 +35,8 @@ afterAll(async () => {
     await new Promise((resolve) => server.close(resolve));
 });
 
-const localStorageEmulator = new MemoryStorageEmulator();
-
 beforeEach(async () => {
-    await localStorageEmulator.init();
-});
-
-afterAll(async () => {
-    await localStorageEmulator.destroy();
+    serviceLocator.setStorageClient(new MemoryStorageClient());
 });
 
 test('works', async () => {
