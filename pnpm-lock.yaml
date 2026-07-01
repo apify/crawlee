@@ -434,9 +434,6 @@ importers:
       '@crawlee/fs-storage':
         specifier: workspace:*
         version: link:../fs-storage
-      '@crawlee/memory-storage':
-        specifier: workspace:*
-        version: link:../memory-storage
       '@crawlee/types':
         specifier: workspace:*
         version: link:../types
@@ -446,6 +443,9 @@ importers:
       '@sapphire/async-queue':
         specifier: ^1.5.5
         version: 1.5.5
+      '@sapphire/shapeshift':
+        specifier: ^4.0.0
+        version: 4.0.0
       '@vladfrangu/async_event_emitter':
         specifier: ^2.4.6
         version: 2.4.7
@@ -458,6 +458,9 @@ importers:
       json5:
         specifier: ^2.2.3
         version: 2.2.3
+      mime-types:
+        specifier: ^3.0.1
+        version: 3.0.2
       minimatch:
         specifier: ^9.0.0
         version: 9.0.9
@@ -518,9 +521,6 @@ importers:
       '@crawlee/linkedom':
         specifier: workspace:*
         version: link:../linkedom-crawler
-      '@crawlee/memory-storage':
-        specifier: workspace:*
-        version: link:../memory-storage
       '@crawlee/playwright':
         specifier: workspace:*
         version: link:../playwright-crawler
@@ -722,33 +722,6 @@ importers:
       ow:
         specifier: ^2.0.0
         version: 2.0.0
-      tslib:
-        specifier: ^2.8.1
-        version: 2.8.1
-
-  packages/memory-storage:
-    dependencies:
-      '@crawlee/types':
-        specifier: workspace:*
-        version: link:../types
-      '@crawlee/utils':
-        specifier: workspace:*
-        version: link:../utils
-      '@sapphire/async-queue':
-        specifier: ^1.5.5
-        version: 1.5.5
-      '@sapphire/shapeshift':
-        specifier: ^4.0.0
-        version: 4.0.0
-      content-type:
-        specifier: ^1.0.5
-        version: 1.0.5
-      json5:
-        specifier: ^2.2.3
-        version: 2.2.3
-      mime-types:
-        specifier: ^3.0.1
-        version: 3.0.2
       tslib:
         specifier: ^2.8.1
         version: 2.8.1

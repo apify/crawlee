@@ -1,6 +1,6 @@
 import { Readable } from 'node:stream';
 
-import { MemoryStorageClient } from '@crawlee/memory-storage';
+import { MemoryStorageClient } from '@crawlee/core';
 
 describe('KeyValueStore should drain streams when setting records', () => {
     const storage = new MemoryStorageClient();
