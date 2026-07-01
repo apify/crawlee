@@ -375,7 +375,7 @@ export interface RequestQueueClient {
      * this long, so that a long-running consumer does not have its request handed out again while it is
      * still being processed. Clients that do not lock may ignore it.
      */
-    setExpectedRequestProcessingTimeSecs?(secs: number): void;
+    setExpectedRequestProcessingTimeSecs?(secs: number): Promise<void>;
 }
 
 export interface SetStatusMessageOptions {
