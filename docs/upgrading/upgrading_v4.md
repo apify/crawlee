@@ -430,8 +430,7 @@ const eventManager = serviceLocator.getEventManager();
 The new `ServiceLocator` supports per-crawler service isolation, allowing you to use different storage clients or event managers for different crawlers by passing them via options:
 
 ```typescript
-import { BasicCrawler, Configuration, LocalEventManager } from 'crawlee';
-import { MemoryStorageClient } from '@crawlee/memory-storage';
+import { BasicCrawler, Configuration, LocalEventManager, MemoryStorageClient } from 'crawlee';
 
 const crawler = new BasicCrawler({
     requestHandler: async ({ request, log }) => {
@@ -450,8 +449,7 @@ await crawler.run(['https://example.com']);
 For most use cases, the global `serviceLocator` singleton works well:
 
 ```typescript
-import { serviceLocator, BasicCrawler } from 'crawlee';
-import { MemoryStorageClient } from '@crawlee/memory-storage';
+import { serviceLocator, BasicCrawler, MemoryStorageClient } from 'crawlee';
 
 // Configure global services (optional)
 serviceLocator.setStorageClient(new MemoryStorageClient());
@@ -503,6 +501,10 @@ The protected `HttpCrawler._applyCookies` method is removed. If you were overrid
 ## `persistCookiesPerSession` renamed to `saveResponseCookies`
 
 The `persistCookiesPerSession` crawler option has been renamed to `saveResponseCookies` on both `HttpCrawler` (and its subclasses like `CheerioCrawler`, `JSDOMCrawler`, etc.) and `BrowserCrawler`. The behavior is unchanged - when enabled (the default), response `Set-Cookie` headers are stored in the session's cookie jar so they're sent on subsequent requests using the same session. Rename the option in your crawler constructor options to migrate.
+
+## Internal KVS keys renamed
+
+Several internal Crawlee keys were prefixed with the `SDK_` prefix for legacy reasons - these keys now start with `CRAWLEE_` instead. These are, e.g., `CRAWLEE_SESSION_POOL_STATE` or `CRAWLEE_CRAWLER_STATISTICS_{n}`.
 
 ## `StorageClient` interface simplified
 
@@ -652,7 +654,7 @@ If you implemented a custom `StorageClient`, you need to:
 In v3, the single `MemoryStorage` class from `@crawlee/memory-storage` did double duty: it kept everything in memory *and*, by default, mirrored it to disk (toggled via the `persistStorage` option / `CRAWLEE_PERSIST_STORAGE` environment variable). In v4 these two responsibilities are split into two independent classes, and the default storage client now persists to disk.
 
 - **`FileSystemStorageClient`** (new, in the new `@crawlee/fs-storage` package) — always persists storage to the local directory (`CRAWLEE_STORAGE_DIR`, default `./storage`). This is what you get implicitly when you don't configure a storage client, and it is the behavior the old `MemoryStorage` had with its default `persistStorage: true`.
-- **`MemoryStorageClient`** (the renamed `MemoryStorage`, still in `@crawlee/memory-storage`) — now keeps everything purely in memory and **never touches the disk**. This matches the old `MemoryStorage` with `persistStorage: false`.
+- **`MemoryStorageClient`** (the renamed `MemoryStorage`, now part of `@crawlee/core`) — keeps everything purely in memory and **never touches the disk**. This matches the old `MemoryStorage` with `persistStorage: false`. The standalone `@crawlee/memory-storage` package no longer exists; its code was merged into `@crawlee/core`.
 
 Both classes are re-exported from the `crawlee` meta-package.
 
@@ -678,7 +680,7 @@ const storageClient = new MemoryStorage();
 **After:**
 ```typescript
 import { FileSystemStorageClient } from '@crawlee/fs-storage';
-import { MemoryStorageClient } from '@crawlee/memory-storage';
+import { MemoryStorageClient } from '@crawlee/core';
 
 // Persists to disk (the old default behavior):
 const storageClient = new FileSystemStorageClient();

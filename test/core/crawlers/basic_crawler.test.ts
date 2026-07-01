@@ -19,8 +19,7 @@ import {
     serviceLocator,
     SessionPool,
 } from '@crawlee/basic';
-import { RequestState } from '@crawlee/core';
-import { MemoryStorageClient } from '@crawlee/memory-storage';
+import { Dataset, MemoryStorageClient, RequestState } from '@crawlee/core';
 import type { ISession, ProxyInfo } from '@crawlee/types';
 import type { Dictionary } from '@crawlee/utils';
 import { RobotsTxtFile, sleep } from '@crawlee/utils';
@@ -1285,6 +1284,34 @@ describe('BasicCrawler', () => {
         expect(results).toHaveLength(1);
         expect(results[0].url).toEqual(url);
         results[0].errorMessages.forEach((msg) => expect(msg).toMatch('requestHandler timed out'));
+    });
+
+    test('timeouted request should not access storages', async () => {
+        const url = 'https://example.com';
+        const requestList = await RequestList.open({ sources: [{ url }] });
+
+        const results: Request[] = [];
+        const crawler = new BasicCrawler({
+            requestList,
+            requestHandlerTimeoutSecs: 0.01,
+            maxRequestRetries: 0,
+            requestHandler: async ({ pushData }) => {
+                await sleep(10);
+                await pushData({ foo: 'bar' });
+            },
+            failedRequestHandler: async ({ request }) => {
+                results.push(request);
+                await sleep(100);
+            },
+        });
+
+        await crawler.run();
+        expect(results).toHaveLength(1);
+        expect(results[0].url).toEqual(url);
+        results[0].errorMessages.forEach((msg) => expect(msg).toMatch('requestHandler timed out'));
+
+        const dataset = await crawler.getDataset();
+        expect((await dataset.getInfo()).itemCount).toBe(0);
     });
 
     test('limits requestHandlerTimeoutSecs and derived vars to a valid value', async () => {

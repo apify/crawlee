@@ -3,12 +3,12 @@ import {
     ApifyLogAdapter,
     Configuration,
     LocalEventManager,
+    MemoryStorageClient,
     ServiceConflictError,
     ServiceLocator,
     serviceLocator,
 } from '@crawlee/core';
 import { FileSystemStorageClient } from '@crawlee/fs-storage';
-import { MemoryStorageClient } from '@crawlee/memory-storage';
 
 function makeMockLogger(overrides: Partial<CrawleeLogger> = {}): CrawleeLogger {
     const logger: CrawleeLogger = {
