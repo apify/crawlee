@@ -224,9 +224,13 @@ export interface RequestQueueInfo {
     pendingRequestCount: number;
 }
 
-export interface RequestOptions {
+/**
+ * Options for request-queue operations that add or return requests to the queue
+ * ({@link RequestQueueClient.addBatchOfRequests}, {@link RequestQueueClient.reclaimRequest}).
+ */
+export interface RequestQueueOperationOptions {
+    /** Place the affected request(s) at the beginning of the queue so they are processed sooner. */
     forefront?: boolean;
-    [k: string]: unknown;
 }
 
 export interface RequestSchema {
@@ -297,12 +301,15 @@ export interface RequestQueueClient {
      * but not re-added. With `forefront`, requests are placed at the beginning of the queue so
      * they are processed sooner.
      */
-    addBatchOfRequests(requests: RequestSchema[], options?: RequestOptions): Promise<BatchAddRequestsResult>;
+    addBatchOfRequests(
+        requests: RequestSchema[],
+        options?: RequestQueueOperationOptions,
+    ): Promise<BatchAddRequestsResult>;
 
     /**
      * Retrieve a request from the queue by its `uniqueKey`, or `undefined` if it does not exist.
      */
-    getRequest(uniqueKey: string): Promise<RequestOptions | undefined>;
+    getRequest(uniqueKey: string): Promise<UpdateRequestSchema | undefined>;
 
     /**
      * Return the next request in the queue to be processed, or `undefined` if there are currently no
@@ -315,7 +322,7 @@ export interface RequestQueueClient {
      * requests right now. Use {@link isEmpty} (together with the frontend's knowledge of pending
      * add operations) to determine whether the queue is truly finished.
      */
-    fetchNextRequest(): Promise<RequestOptions | undefined>;
+    fetchNextRequest(): Promise<UpdateRequestSchema | undefined>;
 
     /**
      * Mark a request previously returned by {@link fetchNextRequest} as handled.
@@ -341,7 +348,10 @@ export interface RequestQueueClient {
      * so nothing is changed and the request is never added to the queue as a side effect. Use
      * {@link addBatchOfRequests} to insert a new request.
      */
-    reclaimRequest(request: UpdateRequestSchema, options?: RequestOptions): Promise<QueueOperationInfo | undefined>;
+    reclaimRequest(
+        request: UpdateRequestSchema,
+        options?: RequestQueueOperationOptions,
+    ): Promise<QueueOperationInfo | undefined>;
 
     /**
      * Resolves to `true` if the next call to {@link fetchNextRequest} would return `undefined` — i.e. there
