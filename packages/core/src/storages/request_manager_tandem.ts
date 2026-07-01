@@ -153,7 +153,8 @@ export class RequestManagerTandem implements IRequestManager {
         const requestManager = await this.getRequestManager();
         const [managerTotal, loaderTotal] = await Promise.all([
             requestManager.getTotalCount(),
-            this.requestLoader.getTotalCount(),
+            // count only pending to avoid double counting, requests marked as "handled" have been moved to requestManager
+            this.requestLoader.getPendingCount(),
         ]);
         return managerTotal + loaderTotal;
     }
