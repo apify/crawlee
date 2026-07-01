@@ -4,7 +4,7 @@ import type * as storage from '@crawlee/types';
 import type { Dictionary } from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
 
-import type { MemoryStorageClient } from '../index.js';
+import type { MemoryStorageClient } from '../memory-storage.js';
 import { BaseClient } from './common/base-client.js';
 
 /**

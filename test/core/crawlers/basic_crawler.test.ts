@@ -19,8 +19,7 @@ import {
     serviceLocator,
     SessionPool,
 } from '@crawlee/basic';
-import { Dataset, RequestState } from '@crawlee/core';
-import { MemoryStorageClient } from '@crawlee/memory-storage';
+import { Dataset, MemoryStorageClient, RequestState } from '@crawlee/core';
 import type { ISession, ProxyInfo } from '@crawlee/types';
 import type { Dictionary } from '@crawlee/utils';
 import { RobotsTxtFile, sleep } from '@crawlee/utils';
