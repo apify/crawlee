@@ -1,17 +1,10 @@
 import type { Dictionary } from '@crawlee/core';
-import { Configuration, KeyValueStore, serviceLocator, useState } from '@crawlee/core';
-import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
+import { Configuration, KeyValueStore, MemoryStorageClient, serviceLocator, useState } from '@crawlee/core';
 
 describe('useState', () => {
-    const emulator = new MemoryStorageEmulator();
-
     beforeEach(async () => {
-        await emulator.init();
+        serviceLocator.setStorageClient(new MemoryStorageClient());
         serviceLocator.setConfiguration(new Configuration({ persistStateIntervalMillis: 1e3 }));
-    });
-
-    afterAll(async () => {
-        await emulator.destroy();
     });
 
     it('Should initialize with the provided value', async () => {

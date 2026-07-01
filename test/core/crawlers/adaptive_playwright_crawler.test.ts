@@ -1,7 +1,7 @@
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
-import { type Dictionary, EventType, KeyValueStore, serviceLocator } from '@crawlee/core';
+import { Dataset, type Dictionary, EventType, KeyValueStore, MemoryStorageClient, serviceLocator } from '@crawlee/core';
 import type {
     AdaptivePlaywrightCrawlerContext,
     AdaptivePlaywrightCrawlerOptions,
@@ -12,7 +12,6 @@ import { AdaptivePlaywrightCrawler, RenderingTypePredictor, RequestList } from '
 import { sleep } from 'crawlee';
 import express from 'express';
 import { startExpressAppPromise } from '../../shared/_helper.js';
-import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
 
 describe('AdaptivePlaywrightCrawler', () => {
     // Set up an express server that will serve test pages
@@ -95,14 +94,8 @@ describe('AdaptivePlaywrightCrawler', () => {
         server.close();
     });
 
-    // Set up local storage emulator
-    const localStorageEmulator = new MemoryStorageEmulator();
-
     beforeEach(async () => {
-        await localStorageEmulator.init();
-    });
-    afterAll(async () => {
-        await localStorageEmulator.destroy();
+        serviceLocator.setStorageClient(new MemoryStorageClient());
     });
 
     // Test setup helpers
@@ -171,7 +164,7 @@ describe('AdaptivePlaywrightCrawler', () => {
             expect(requestHandler).toHaveBeenCalledTimes(2);
 
             // Check if only one item was added to the dataset
-            expect(await localStorageEmulator.getDatasetItems()).toEqual([{ heading: 'Heading' }]);
+            expect((await Dataset.getData()).items).toEqual([{ heading: 'Heading' }]);
         });
     });
 
@@ -384,8 +377,8 @@ describe('AdaptivePlaywrightCrawler', () => {
         );
 
         await crawler.run();
-        // getState reads through the frontend, so the value is already parsed.
-        expect(await localStorageEmulator.getState()).toEqual({ count: 3 });
+        // Reading through the KeyValueStore frontend parses the JSON value for us.
+        expect(await (await KeyValueStore.open()).getValue('CRAWLEE_STATE')).toEqual({ count: 3 });
     });
 
     test('should return deeply equal but not identical state objects across handler runs', async () => {
@@ -494,7 +487,7 @@ describe('AdaptivePlaywrightCrawler', () => {
             'Directly accessing storage in a request handler is not allowed in AdaptivePlaywrightCrawler',
         );
 
-        const store = await localStorageEmulator.getKeyValueStore();
+        const store = await KeyValueStore.open();
         expect(await store.getValue('1')).toBeUndefined();
     });
 

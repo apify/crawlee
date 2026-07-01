@@ -1,17 +1,10 @@
-import { assertJsonSerializable, Dataset, KeyValueStore, serviceLocator } from '@crawlee/core';
+import { assertJsonSerializable, Dataset, KeyValueStore, MemoryStorageClient, serviceLocator } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
-import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
 
 import { MAX_PAYLOAD_SIZE_BYTES } from '@apify/consts';
 
-const localStorageEmulator = new MemoryStorageEmulator();
-
 beforeEach(async () => {
-    await localStorageEmulator.init();
-});
-
-afterAll(async () => {
-    await localStorageEmulator.destroy();
+    serviceLocator.setStorageClient(new MemoryStorageClient());
 });
 
 describe('dataset', () => {

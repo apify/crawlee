@@ -458,6 +458,26 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         }
     }
 
+    /**
+     * Returns all pending (not yet handled, not currently in progress) requests in the queue, ordered
+     * the same way {@link fetchNextRequest} would hand them out. This does not mutate the queue,
+     * nothing is marked in progress.
+     */
+    async listItems(): Promise<storage.RequestOptions[]> {
+        this.updateTimestamps(false);
+
+        // `listPendingHead` prunes `forefrontRequestIds` as it scans, so we must hold the queue-state
+        // mutex to avoid racing a concurrent mutator at its `await` points.
+        await this.queueStateMutex.wait();
+
+        try {
+            const { items } = await this.listPendingHead(Number.POSITIVE_INFINITY);
+            return items.map((request) => this._jsonToRequest<storage.RequestOptions>(request.json)!);
+        } finally {
+            this.queueStateMutex.shift();
+        }
+    }
+
     toRequestQueueInfo(): storage.RequestQueueInfo {
         return {
             accessedAt: this.accessedAt,
