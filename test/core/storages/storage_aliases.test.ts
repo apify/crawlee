@@ -170,6 +170,23 @@ describe('storage aliases', () => {
                 /Cannot open storage with name "on-disk" because an alias storage with the same identifier already exists\. If you meant to open the alias storage, use \{ alias: "on-disk" \} instead\./,
             );
         });
+
+        test('legacy open(idOrName) re-opens the named storage on a subsequent run', async () => {
+            const first = await Dataset.open('named-storage');
+            await first.pushData({ run: 1 });
+
+            // Simulate a fresh process: only the on-disk directory survives.
+            serviceLocator.reset();
+            const client = new FileSystemStorageClient({ localDataDirectory: localStorageDir });
+            serviceLocator.setStorageClient(client);
+
+            // 'named-storage' is the storage's name, not its id, so it must not be resolved as an id.
+            await expect(client.storageExists('named-storage', 'Dataset')).resolves.toBe(false);
+
+            const second = await Dataset.open('named-storage');
+            expect(second.name).toBe('named-storage');
+            await expect(second.getData()).resolves.toMatchObject({ items: [{ run: 1 }] });
+        });
     });
 
     describe('resolveStorageIdentifier', () => {
