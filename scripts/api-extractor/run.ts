@@ -15,6 +15,9 @@ import { globbySync } from 'globby';
  * the run and restore them afterwards. A few packages re-export such a member across a
  * package boundary and crash anyway; those are retried against a sanitized mirror of the
  * dist tree with `@crawlee/*` deps remapped via tsconfig `paths`, which dodges the bug.
+ *
+ * When running under GitHub Actions (or with `--github`), failures are additionally emitted
+ * as workflow commands (`::error::`) so they show up as inline annotations in the CI run.
  */
 
 const root = resolve(import.meta.dirname, '..', '..');
@@ -23,6 +26,19 @@ const baseConfig = JSON.parse(readFileSync(baseConfigPath, 'utf8')) as IConfigFi
 const reportFolder = resolve(root, 'docs', 'public-api');
 const mirrorRoot = resolve(root, 'node_modules', '.cache', 'api-extractor-dts');
 const verify = process.argv.includes('--verify');
+
+// Emit GitHub Actions workflow commands (annotations) when running in CI, so out-of-date
+// reports and crashes surface as inline warnings/errors. Opt in with `--github` or force
+// off with `--no-github` (auto-detected via the runner-set GITHUB_ACTIONS env var otherwise).
+const github = process.argv.includes('--github')
+    || (process.env.GITHUB_ACTIONS === 'true' && !process.argv.includes('--no-github'));
+
+// GitHub workflow commands must escape `%`, `\r` and `\n` in the message. See
+// https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-commands
+const ghEscape = (message: string) => message.replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A');
+const ghCommand = (kind: 'error' | 'warning', message: string) => {
+    if (github) console.log(`::${kind}::${ghEscape(message)}`);
+};
 
 const TS_IGNORE_LINE = /^\s*\/\/ @ts-ignore optional peer dependency or compatibility with es2022\s*$/;
 // CLI binary and project scaffolding are tooling, not an importable API where we promise BC.
@@ -120,7 +136,9 @@ function main() {
             const pkgDir = dirname(pkgJsonPath);
             const entry = dtsEntry(pkgDir, pkg);
             if (!entry) {
-                console.error(`✗ ${pkg.name}: no built dist/index.d.ts — run "pnpm build" first`);
+                const message = `${pkg.name}: no built dist/index.d.ts — run "pnpm build" first`;
+                console.error(`✗ ${message}`);
+                ghCommand('error', message);
                 failed++;
                 continue;
             }
@@ -129,7 +147,9 @@ function main() {
             // diagnostics, not BC-surface changes, so we key success on apiReportChanged.
             const ok = (result: { apiReportChanged: boolean }, via = '') => {
                 if (verify && result.apiReportChanged) {
+                    const message = `${pkg.name}: report out of date${via} — run "pnpm api:extract" and commit the changes in docs/public-api/`;
                     console.error(`✗ ${pkg.name}: report out of date${via}`);
+                    ghCommand('error', message);
                     failed++;
                 } else {
                     console.log(`✓ ${pkg.name}${via}`);
@@ -147,7 +167,9 @@ function main() {
                     const { [pkg.name]: _self, ...deps } = paths;
                     ok(extract(pkgDir, pkgJsonPath, mirrorEntry, deps), ' (via mirror)');
                 } catch (err) {
-                    console.error(`✗ ${pkg.name}: api-extractor crashed: ${(err as Error).message}`);
+                    const message = `${pkg.name}: api-extractor crashed: ${(err as Error).message}`;
+                    console.error(`✗ ${message}`);
+                    ghCommand('error', message);
                     failed++;
                 }
             }
