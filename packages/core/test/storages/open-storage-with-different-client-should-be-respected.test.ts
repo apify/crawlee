@@ -1,4 +1,4 @@
-import { MemoryStorageClient } from '@crawlee/memory-storage';
+import { MemoryStorageClient } from '@crawlee/core';
 import { RequestQueue, serviceLocator } from 'crawlee';
 
 let newClient: MemoryStorageClient;

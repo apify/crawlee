@@ -1,7 +1,6 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 
 import { FileSystemStorageClient } from '@crawlee/fs-storage';
-import { MemoryStorageClient } from '@crawlee/memory-storage';
 import type { StorageClient } from '@crawlee/types';
 
 import log from '@apify/log';
@@ -12,6 +11,7 @@ import type { EventManager } from './events/event_manager.js';
 import { LocalEventManager } from './events/local_event_manager.js';
 import type { CrawleeLogger } from './log.js';
 import { ApifyLogAdapter } from './log.js';
+import { MemoryStorageClient } from './memory-storage/index.js';
 import { StorageInstanceManager } from './storages/storage_instance_manager.js';
 
 interface ServiceLocatorInterface {
@@ -111,8 +111,7 @@ interface ServiceLocatorInterface {
  *
  * **2. Per-crawler services (recommended for isolation):**
  * ```typescript
- * import { BasicCrawler, Configuration, LocalEventManager } from 'crawlee';
- * import { MemoryStorageClient } from '@crawlee/memory-storage';
+ * import { BasicCrawler, Configuration, LocalEventManager, MemoryStorageClient } from 'crawlee';
  *
  * const crawler = new BasicCrawler({
  *     requestHandler: async ({ request }) => { ... },

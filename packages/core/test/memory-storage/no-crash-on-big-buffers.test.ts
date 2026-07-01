@@ -1,7 +1,7 @@
 // https://github.com/apify/crawlee/issues/1732
 // https://github.com/apify/crawlee/issues/1710
 
-import { MemoryStorageClient } from '@crawlee/memory-storage';
+import { MemoryStorageClient } from '@crawlee/core';
 import type { KeyValueStoreClient } from '@crawlee/types';
 
 describe('MemoryStorageClient should not crash when saving a big buffer', () => {

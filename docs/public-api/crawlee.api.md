@@ -35,7 +35,6 @@ export * from "@crawlee/fs-storage";
 export * from "@crawlee/http";
 export * from "@crawlee/jsdom";
 export * from "@crawlee/linkedom";
-export * from "@crawlee/memory-storage";
 export * from "@crawlee/playwright";
 export * from "@crawlee/puppeteer";
 export * from "@crawlee/utils";

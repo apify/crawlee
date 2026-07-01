@@ -402,3 +402,42 @@ build their file path from internally-generated, non-user-controlled IDs
 (sequential entity index, hashed request ID), which is exactly what master's
 original fix (`a04c29766`) called out as already safe, so left them as
 plain `resolve()`.
+
+**Commit `3365b2d0e` (Dissolve @crawlee/memory-storage into @crawlee/core)
+— rewrote two stale master-only security-regression tests that referenced a
+long-gone API**: this commit folds `@crawlee/memory-storage` (the pure
+in-memory client) into `@crawlee/core`. Git flagged two master-only test
+files (`packages/memory-storage/test/key-value-store/record-key-path-traversal.test.ts`
+and `packages/memory-storage/test/storage-name-path-traversal.test.ts` — the
+regression tests for the `resolveWithinDirectory` path-traversal fix,
+`a04c29766`) as "file location" conflicts, suggesting they move to
+`packages/core/test/memory-storage/...` alongside the dissolved package's
+other tests. That location is wrong: both tests exercise disk-escape
+prevention (`persistStorage: true`, checking files on disk), but
+`MemoryStorageClient` (the class that lands in `@crawlee/core`) is pure
+in-memory post-split and never touches the filesystem — the vulnerability
+and its fix now live entirely in `@crawlee/fs-storage`. Moved both to
+`packages/fs-storage/test/` instead.
+
+Their content was also fully stale — written against the pre-rebase API
+(`new MemoryStorage(...)`, `.keyValueStores().getOrCreate()`,
+`client.setRecord()`, `client.update({ name })` for renaming) that no longer
+exists anywhere in this branch after ~30 commits of refactors applied earlier
+in this rebase (Python-alignment renames, ServiceLocator, the fs-storage
+split, KVS value-semantics centralization). Rewrote both against the current
+`FileSystemStorageClient` API (`createKeyValueStoreClient({ name })` /
+`createDatasetClient({ name })` / `createRequestQueueClient({ name })`,
+`client.setValue({ key, value, contentType })`, `client.getMetadata()`).
+Dropped the "rename via update rejects escaping names" test in
+`storage-name-path-traversal.test.ts` — `update()`/rename support was removed
+entirely earlier in this rebase (commit `e00aa9419`), so there is no longer
+an operation to test here.
+
+While in there, also found and fixed the same class of staleness in
+`packages/core/test/memory-storage/request-queue/handledRequestCount-should-update.test.ts`
+(this one auto-merged cleanly, no conflict, so it would have silently landed
+broken): its third test called `requestQueue.updateRequest(...)`, an API that
+no longer exists. The equivalent already-migrated test in
+`packages/fs-storage/test/request-queue/handledRequestCount-should-update.test.ts`
+(from an earlier commit in this same rebase) had already dropped this exact
+test for the same reason — did the same here for consistency.
