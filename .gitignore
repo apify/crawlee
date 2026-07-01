@@ -33,3 +33,6 @@ test/e2e/**/packages
 
 # Local vitest config overrides
 vitest.config.local.mts
+
+# API Extractor intermediate reports (the committed reports live in docs/public-api/*.api.md)
+docs/public-api/temp
