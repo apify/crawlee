@@ -1,13 +1,17 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 
 import type { Awaitable } from '../typedefs.js';
+import { tryCancel } from '@apify/timeout';
 
 const storage = new AsyncLocalStorage<{ checkFunction: () => void }>();
 
 /**
  * Invoke a storage access checker function defined using {@link withCheckedStorageAccess} higher up in the call stack.
  */
-export const checkStorageAccess = () => storage.getStore()?.checkFunction();
+export const checkStorageAccess = () => {
+    tryCancel();
+    return storage.getStore()?.checkFunction();
+};
 
 /**
  * Define a storage access checker function that should be used by calls to {@link checkStorageAccess} in the callbacks.
