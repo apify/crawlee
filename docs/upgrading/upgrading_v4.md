@@ -683,7 +683,7 @@ import { FileSystemStorageClient } from '@crawlee/fs-storage';
 import { MemoryStorageClient } from '@crawlee/core';
 
 // Persists to disk (the old default behavior):
-const storageClient = new FileSystemStorageClient();
+const storageClient = new FileSystemStorageClient({ localDataDirectory: './storage' });
 
 // Or keep everything in memory only (the old `persistStorage: false`):
 const inMemory = new MemoryStorageClient();

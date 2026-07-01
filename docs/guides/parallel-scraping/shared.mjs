@@ -7,9 +7,12 @@ let queue;
 // The `shop-urls` queue is opened concurrently by every worker process, so it must use the
 // concurrency-safe locking behavior. With `requestQueueAccess: 'shared'`, a request another worker
 // is still processing is treated as a live peer's lock and is not handed out again until that lock
-// expires — so two workers never scrape the same URL at once. (We point at the default `./storage`
+// expires — so two workers never scrape the same URL at once. (We point at the `./storage`
 // location, which is where this shared queue lives.)
-const sharedStorageClient = new FileSystemStorageClient({ requestQueueAccess: 'shared' });
+const sharedStorageClient = new FileSystemStorageClient({
+    localDataDirectory: './storage',
+    requestQueueAccess: 'shared',
+});
 
 /**
  * @param {boolean} makeFresh Whether the queue should be cleared before returning it
