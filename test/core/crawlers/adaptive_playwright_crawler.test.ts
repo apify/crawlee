@@ -1,7 +1,15 @@
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
-import { type Dictionary, EventType, KeyValueStore, serviceLocator } from '@crawlee/core';
+import {
+    BaseCrawleeLogger,
+    type CrawleeLogger,
+    type CrawleeLoggerOptions,
+    type Dictionary,
+    EventType,
+    KeyValueStore,
+    serviceLocator,
+} from '@crawlee/core';
 import type {
     AdaptivePlaywrightCrawlerContext,
     AdaptivePlaywrightCrawlerOptions,
@@ -21,6 +29,22 @@ import { z } from 'zod';
 
 import { startExpressAppPromise } from 'test/shared/_helper.js';
 import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
+
+// A minimal logger that records every message into a shared array. Child loggers share the same
+// array, so messages emitted by the crawler's prefixed child logger are captured as well.
+class RecordingLogger extends BaseCrawleeLogger {
+    constructor(private readonly messages: string[]) {
+        super();
+    }
+
+    logWithLevel(_level: number, message: string): void {
+        this.messages.push(message);
+    }
+
+    protected createChild(_options: Partial<CrawleeLoggerOptions>): CrawleeLogger {
+        return new RecordingLogger(this.messages);
+    }
+}
 
 describe('AdaptivePlaywrightCrawler', () => {
     // Set up an express server that will serve test pages
@@ -182,6 +206,36 @@ describe('AdaptivePlaywrightCrawler', () => {
             expect(await localStorageEmulator.getDatasetItems()).toEqual([{ heading: 'Heading' }]);
         });
     });
+
+    test.each([['static'], ['clientOnly']] as const)(
+        'should replay request handler logs (%s)',
+        async (renderingType) => {
+            const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                detectionProbabilityRecommendation: 0,
+                renderingType,
+            });
+            const url = new URL(`http://${HOSTNAME}:${port}/static`);
+
+            const messages: string[] = [];
+            const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(async ({ log }) => {
+                log.info('handler log message');
+            });
+
+            const crawler = await makeOneshotCrawler(
+                {
+                    requestHandler,
+                    renderingTypePredictor,
+                    logger: new RecordingLogger(messages),
+                },
+                [url.toString()],
+            );
+
+            await crawler.run();
+
+            expect(requestHandler).toHaveBeenCalled();
+            expect(messages).toContain('handler log message');
+        },
+    );
 
     test('should not store detection results on non-detection runs', async () => {
         const renderingTypePredictor = makeRiggedRenderingTypePredictor({
