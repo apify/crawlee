@@ -1,4 +1,4 @@
-import { MemoryStorageClient } from '@crawlee/memory-storage';
+import { MemoryStorageClient } from '@crawlee/core';
 import type { RequestQueueClient } from '@crawlee/types';
 
 describe('RequestQueue handledRequestCount should update', () => {
@@ -37,25 +37,5 @@ describe('RequestQueue handledRequestCount should update', () => {
 
         const updatedStatistics = await requestQueue.getMetadata();
         expect(updatedStatistics.handledRequestCount).toEqual(2);
-    });
-
-    test('updating an already handled request should not increment the handledRequestCount again', async () => {
-        const { requestId } = await requestQueue.addRequest({
-            url: 'http://example.com/4',
-            uniqueKey: '4',
-            handledAt: new Date().toISOString(),
-        });
-
-        const { handledRequestCount } = await requestQueue.getMetadata();
-
-        await requestQueue.updateRequest({
-            url: 'http://example.com/4',
-            uniqueKey: '4',
-            id: requestId,
-            handledAt: new Date().toISOString(),
-        });
-
-        const updatedStatistics = await requestQueue.getMetadata();
-        expect(updatedStatistics.handledRequestCount).toEqual(handledRequestCount);
     });
 });

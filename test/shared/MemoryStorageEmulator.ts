@@ -1,6 +1,6 @@
 import { resolve } from 'node:path';
 
-import { MemoryStorageClient } from '@crawlee/memory-storage';
+import { MemoryStorageClient } from '@crawlee/core';
 import { Configuration, KeyValueStore, serviceLocator } from 'crawlee';
 import { ensureDir } from 'fs-extra';
 
@@ -31,7 +31,7 @@ export class MemoryStorageEmulator extends StorageEmulator {
     }
 
     static override toString() {
-        return '@crawlee/memory-storage';
+        return 'MemoryStorageClient';
     }
 
     getDataset(id?: string) {
