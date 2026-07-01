@@ -3,7 +3,7 @@
     "version": "0.0.1",
     "description": "Autoscaling Pool Test - Max Tasks per Minute",
     "dependencies": {
-        "apify": "next",
+        "apify": "next-v4",
         "@apify/storage-local": "^2.3.0",
         "@crawlee/basic": "file:./packages/basic-crawler",
         "@crawlee/core": "file:./packages/core",
