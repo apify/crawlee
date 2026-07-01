@@ -305,46 +305,46 @@ export interface RequestQueueClient {
     getRequest(uniqueKey: string): Promise<RequestOptions | undefined>;
 
     /**
-     * Return the next request in the queue to be processed, or `null` if there are currently no
+     * Return the next request in the queue to be processed, or `undefined` if there are currently no
      * pending requests.
      *
      * The returned request is marked as in-progress; it will not be returned again until it is
      * either reclaimed via {@link reclaimRequest} or marked as handled via {@link markRequestAsHandled}.
      *
-     * A `null` return value does not mean processing is finished — only that there are no pending
+     * An `undefined` return value does not mean processing is finished — only that there are no pending
      * requests right now. Use {@link isEmpty} (together with the frontend's knowledge of pending
      * add operations) to determine whether the queue is truly finished.
      */
-    fetchNextRequest(): Promise<RequestOptions | null>;
+    fetchNextRequest(): Promise<RequestOptions | undefined>;
 
     /**
      * Mark a request previously returned by {@link fetchNextRequest} as handled.
      *
      * Handled requests are never returned again by {@link fetchNextRequest}. Returns information
-     * about the operation, or `null` if the request was not in progress.
+     * about the operation, or `undefined` if the request was not in progress.
      *
-     * A `null` result is a no-op, not an error: the request is simply not something this client is
+     * An `undefined` result is a no-op, not an error: the request is simply not something this client is
      * currently processing, so nothing is changed and the request is never added to the queue as a side
      * effect. (Marking an already-handled request is idempotent and still returns operation info with
-     * `wasAlreadyHandled: true` rather than `null`.)
+     * `wasAlreadyHandled: true` rather than `undefined`.)
      */
-    markRequestAsHandled(request: UpdateRequestSchema): Promise<QueueOperationInfo | null>;
+    markRequestAsHandled(request: UpdateRequestSchema): Promise<QueueOperationInfo | undefined>;
 
     /**
      * Reclaim a failed request back to the queue so it can be processed again by a later call to
      * {@link fetchNextRequest}. With `forefront`, the request is returned to the beginning of the
-     * queue. Returns information about the operation, or `null` if the request was not in progress.
+     * queue. Returns information about the operation, or `undefined` if the request was not in progress.
      *
      * The request is expected to already be present in the queue (it should have been obtained via
-     * {@link fetchNextRequest}); reclaiming releases its lock rather than inserting it. A `null` result
+     * {@link fetchNextRequest}); reclaiming releases its lock rather than inserting it. An `undefined` result
      * is a no-op, not an error: the request is simply not something this client is currently processing,
      * so nothing is changed and the request is never added to the queue as a side effect. Use
      * {@link addBatchOfRequests} to insert a new request.
      */
-    reclaimRequest(request: UpdateRequestSchema, options?: RequestOptions): Promise<QueueOperationInfo | null>;
+    reclaimRequest(request: UpdateRequestSchema, options?: RequestOptions): Promise<QueueOperationInfo | undefined>;
 
     /**
-     * Resolves to `true` if the next call to {@link fetchNextRequest} would return `null` — i.e. there
+     * Resolves to `true` if the next call to {@link fetchNextRequest} would return `undefined` — i.e. there
      * are no pending requests to fetch right now.
      *
      * Requests that are currently in progress (fetched but not yet handled or reclaimed, including
