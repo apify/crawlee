@@ -58,6 +58,7 @@
         "@apify/oxlint-config": "^0.2.5",
         "@apify/tsconfig": "^0.1.2",
         "@commitlint/config-conventional": "^20.0.0",
+        "@crawlee/utils": "workspace:*",
         "@microsoft/api-extractor": "^7.58.9",
         "@playwright/browser-chromium": "1.60.0",
         "@playwright/browser-firefox": "1.60.0",

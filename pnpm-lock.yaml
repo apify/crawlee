@@ -30,6 +30,9 @@ importers:
       '@commitlint/config-conventional':
         specifier: ^20.0.0
         version: 20.5.0
+      '@crawlee/utils':
+        specifier: workspace:*
+        version: link:packages/utils
       '@microsoft/api-extractor':
         specifier: ^7.58.9
         version: 7.58.9(@types/node@24.12.2)
