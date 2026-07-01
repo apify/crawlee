@@ -67,6 +67,37 @@ jobs:
             -   name: Tests
                 run: pnpm test
 
+    api_surface:
+        name: Public API surface
+        runs-on: ubuntu-22.04
+
+        steps:
+            -   name: Checkout repository
+                uses: actions/checkout@v6
+
+            -   name: Use Node.js 24
+                uses: actions/setup-node@v6
+                with:
+                    node-version: 24
+                    package-manager-cache: false
+
+            -   name: Turbo cache
+                id: turbo-cache
+                uses: actions/cache@v5
+                with:
+                    path: .turbo
+                    key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
+                    restore-keys: |
+                        turbo-${{ github.job }}-${{ github.ref_name }}-
+
+            -   uses: apify/workflows/pnpm-install@main
+
+            -   name: Build
+                run: pnpm ci:build
+
+            -   name: Check public API surface
+                run: pnpm api:check
+
     docs:
         name: Docs build
         if: (!contains(github.event.head_commit.message, '[skip ci]') && github.ref != 'refs/heads/master' && github.ref != 'refs/heads/v4')
