@@ -1,4 +1,4 @@
-import { MemoryStorageClient } from '@crawlee/memory-storage';
+import { MemoryStorageClient } from '@crawlee/core';
 import type { KeyValueStoreClient } from '@crawlee/types';
 
 describe('MemoryStorageClient.purge preserves the default key-value store input', () => {
