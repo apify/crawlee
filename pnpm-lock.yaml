@@ -30,6 +30,33 @@ importers:
       '@commitlint/config-conventional':
         specifier: ^20.0.0
         version: 20.5.0
+      '@crawlee/basic':
+        specifier: workspace:*
+        version: link:packages/basic-crawler
+      '@crawlee/cheerio':
+        specifier: workspace:*
+        version: link:packages/cheerio-crawler
+      '@crawlee/core':
+        specifier: workspace:*
+        version: link:packages/core
+      '@crawlee/impit-client':
+        specifier: workspace:*
+        version: link:packages/impit-client
+      '@crawlee/jsdom':
+        specifier: workspace:*
+        version: link:packages/jsdom-crawler
+      '@crawlee/linkedom':
+        specifier: workspace:*
+        version: link:packages/linkedom-crawler
+      '@crawlee/playwright':
+        specifier: workspace:*
+        version: link:packages/playwright-crawler
+      '@crawlee/puppeteer':
+        specifier: workspace:*
+        version: link:packages/puppeteer-crawler
+      '@crawlee/stagehand':
+        specifier: workspace:*
+        version: link:packages/stagehand-crawler
       '@crawlee/utils':
         specifier: workspace:*
         version: link:packages/utils
@@ -123,6 +150,9 @@ importers:
       commitlint:
         specifier: ^20.0.0
         version: 20.5.0(@types/node@24.12.2)(conventional-commits-parser@6.4.0)(typescript@5.9.3)
+      crawlee:
+        specifier: workspace:*
+        version: link:packages/crawlee
       cross-env:
         specifier: ^10.0.0
         version: 10.1.0
