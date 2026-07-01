@@ -15,6 +15,8 @@ import type { Browser as PuppeteerBrowser, Page as PuppeteerPage } from 'puppete
 
 import log from '@apify/log';
 
+import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
+
 const HTML = `
 <html>
     <head>
@@ -60,14 +62,20 @@ async function createRequestQueueMock() {
 }
 
 describe('enqueueLinks()', () => {
+    const localStorageEmulator = new MemoryStorageEmulator();
     let ll: number;
     beforeAll(() => {
         ll = log.getLevel();
         log.setLevel(log.LEVELS.ERROR);
     });
 
-    afterAll(() => {
+    beforeEach(async () => {
+        await localStorageEmulator.init();
+    });
+
+    afterAll(async () => {
         log.setLevel(ll);
+        await localStorageEmulator.destroy();
     });
 
     describe.each([[launchPuppeteer], [launchPlaywright]] as const)('using %s', (method) => {
