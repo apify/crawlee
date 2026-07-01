@@ -25,7 +25,7 @@ import { Sitemap } from './sitemap.js';
  */
 export class RobotsTxtFile {
     private constructor(
-        private robots: Pick<Robot, 'isAllowed' | 'getSitemaps'>,
+        private robots: Pick<Robot, 'isAllowed' | 'getSitemaps' | 'getCrawlDelay'>,
         private proxyUrl?: string,
         private logger?: CrawleeLogger,
     ) {}
@@ -97,6 +97,9 @@ export class RobotsTxtFile {
                     getSitemaps() {
                         return [];
                     },
+                    getCrawlDelay() {
+                        return undefined;
+                    },
                 },
                 proxyUrl,
                 logger,
@@ -105,6 +108,14 @@ export class RobotsTxtFile {
 
         // @ts-ignore
         return new RobotsTxtFile(robotsParser(url.toString(), await response.text()), proxyUrl, logger);
+    }
+
+    /**
+     * Get crawl delay for a given user agent.
+     * @param [userAgent] relevant user agent, default to `*`
+     */
+    getCrawlDelay(userAgent = '*'): number | undefined {
+        return this.robots.getCrawlDelay(userAgent);
     }
 
     /**

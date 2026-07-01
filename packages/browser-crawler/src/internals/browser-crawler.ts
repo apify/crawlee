@@ -27,6 +27,7 @@ import {
     toughCookieToBrowserPoolCookie,
     tryAbsoluteURL,
     validators,
+    parseRetryAfterHeader,
 } from '@crawlee/basic';
 import type {
     BrowserController,
@@ -699,6 +700,35 @@ export abstract class BrowserCrawler<
                 }
 
                 throw new Error(`${status} - Internal Server Error`);
+            }
+
+            if (status === 429) {
+                const headers = typeof (response as any).headers === 'function' ? (response as any).headers() : {};
+                let retryAfterHeader: string | undefined;
+                for (const key of Object.keys(headers)) {
+                    if (key.toLowerCase() === 'retry-after') {
+                        retryAfterHeader = headers[key];
+                        break;
+                    }
+                }
+                const retryAfterStr = Array.isArray(retryAfterHeader) ? retryAfterHeader[0] : retryAfterHeader;
+                const retryAfterMs = parseRetryAfterHeader(retryAfterStr);
+                const requestManager = this.requestManager;
+                if (
+                    requestManager &&
+                    'recordDomainDelay' in requestManager &&
+                    typeof (requestManager as any).recordDomainDelay === 'function'
+                ) {
+                    const recorded = (requestManager as any).recordDomainDelay(
+                        crawlingContext.request.url,
+                        retryAfterMs,
+                    );
+                    if (recorded) {
+                        throw new Error(
+                            `Request to ${crawlingContext.request.url} failed with 429. Domain is throttled.`,
+                        );
+                    }
+                }
             }
         }
 

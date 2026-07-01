@@ -21,7 +21,7 @@ import {
     Router,
     SessionError,
 } from '@crawlee/basic';
-import { type LoadedRequest, getCookiesFromResponse } from '@crawlee/core';
+import { type LoadedRequest, getCookiesFromResponse, parseRetryAfterHeader } from '@crawlee/core';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import type { Awaitable, Dictionary, ISession } from '@crawlee/types';
 import { type CheerioRoot, RETRY_CSS_SELECTORS } from '@crawlee/utils';
@@ -527,6 +527,22 @@ export class HttpCrawler<
 
             return $;
         };
+
+        if (response.status === 429) {
+            const retryAfterHeader = response.headers.get('retry-after');
+            const retryAfterMs = parseRetryAfterHeader(retryAfterHeader);
+            const requestManager = this.requestManager;
+            if (
+                requestManager &&
+                'recordDomainDelay' in requestManager &&
+                typeof (requestManager as any).recordDomainDelay === 'function'
+            ) {
+                const recorded = (requestManager as any).recordDomainDelay(crawlingContext.request.url, retryAfterMs);
+                if (recorded) {
+                    throw new Error(`Request to ${crawlingContext.request.url} failed with 429. Domain is throttled.`);
+                }
+            }
+        }
 
         this._throwOnBlockedRequest(response.status);
 

@@ -51,6 +51,7 @@ import {
     RequestHandlerError,
     RequestManagerTandem,
     RequestQueue,
+    ThrottlingRequestManager,
     RequestState,
     RetryRequestError,
     Router,
@@ -679,6 +680,7 @@ export class BasicCrawler<
 
         requestList: ow.optional.object.validate(validators.requestList),
         requestQueue: ow.optional.object.validate(validators.requestQueue),
+        requestManager: ow.optional.object,
         // Subclasses override this function instead of passing it
         // in constructor, so this validation needs to apply only
         // if the user creates an instance of BasicCrawler directly.
@@ -1735,6 +1737,25 @@ export class BasicCrawler<
 
         await this.getRequestManager();
         await this._loadHandledRequestCount();
+
+        if (this.respectRobotsTxtFile) {
+            let isThrottling = false;
+            let currentManager = this.requestManager;
+            if (currentManager instanceof RequestManagerTandem) {
+                currentManager = (currentManager as any).resolvedRequestManager;
+            }
+            if (currentManager instanceof ThrottlingRequestManager) {
+                isThrottling = true;
+            }
+
+            if (!isThrottling) {
+                this.log.warning(
+                    'The `respectRobotsTxtFile` option is enabled, but the crawler is not using a `ThrottlingRequestManager`. ' +
+                        'Crawl delays defined in robots.txt will NOT be respected. ' +
+                        'To respect crawl delays, wrap your request queue in a `ThrottlingRequestManager`.',
+                );
+            }
+        }
     }
 
     protected async runRequestHandler(crawlingContext: ExtendedContext): Promise<void> {
@@ -1763,6 +1784,19 @@ export class BasicCrawler<
 
         const robotsTxtFile = await this.getRobotsTxtFileForUrl(url);
         const userAgent = typeof this.respectRobotsTxtFile === 'object' ? this.respectRobotsTxtFile?.userAgent : '*';
+
+        if (robotsTxtFile) {
+            if (
+                this.requestManager &&
+                'setCrawlDelay' in this.requestManager &&
+                typeof (this.requestManager as any).setCrawlDelay === 'function'
+            ) {
+                const crawlDelay = robotsTxtFile.getCrawlDelay(userAgent);
+                if (crawlDelay !== undefined) {
+                    (this.requestManager as any).setCrawlDelay(url, crawlDelay);
+                }
+            }
+        }
 
         return !robotsTxtFile || robotsTxtFile.isAllowed(url, userAgent);
     }
