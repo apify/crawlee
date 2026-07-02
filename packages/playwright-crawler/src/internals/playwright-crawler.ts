@@ -88,7 +88,7 @@ export interface PlaywrightCrawlerOptions<
      * ]
      * ```
      */
-    preNavigationHooks?: PlaywrightHook[];
+    preNavigationHooks?: BrowserHook<ExtendedContext>[];
 
     /**
      * Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
@@ -106,7 +106,7 @@ export interface PlaywrightCrawlerOptions<
      * ]
      * ```
      */
-    postNavigationHooks?: PlaywrightHook[];
+    postNavigationHooks?: BrowserHook<ExtendedContext>[];
 }
 
 /**

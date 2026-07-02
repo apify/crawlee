@@ -3,7 +3,7 @@ import { isDeepStrictEqual } from 'node:util';
 import { BasicCrawler } from '@crawlee/basic';
 import type { BasicCrawlerOptions, BrowserHook, LoadedRequest, Request } from '@crawlee/browser';
 import { extractUrlsFromPage } from '@crawlee/browser';
-import type { CheerioCrawlingContext } from '@crawlee/cheerio';
+import type { CheerioHook, CheerioCrawlingContext } from '@crawlee/cheerio';
 import { CheerioCrawler } from '@crawlee/cheerio';
 import type {
     ContextPipeline,
@@ -154,17 +154,20 @@ export interface AdaptivePlaywrightCrawlerContext<
     enqueueLinks(options?: EnqueueLinksOptions): Promise<unknown>;
 }
 
-interface AdaptiveHookContext extends Pick<AdaptivePlaywrightCrawlerContext, 'id' | 'session' | 'proxyInfo' | 'log'> {
+interface AdaptiveHookContext<UserData extends Dictionary = Dictionary> extends Pick<
+    AdaptivePlaywrightCrawlerContext<UserData>,
+    'id' | 'session' | 'proxyInfo' | 'log'
+> {
     page?: Page;
-    request: Request;
+    request: Request<UserData>;
     gotoOptions?: PlaywrightGotoOptions;
 }
 
-interface AdaptiveHook extends BrowserHook<AdaptiveHookContext> {}
+type AdaptiveHook<UserData extends Dictionary = Dictionary> = BrowserHook<AdaptiveHookContext<UserData>>;
 
-interface AdaptivePostNavigationHook extends BrowserHook<
-    Omit<AdaptiveHookContext, 'request'> & { request: LoadedRequest<Request> }
-> {}
+type AdaptivePostNavigationHook<UserData extends Dictionary = Dictionary> = BrowserHook<
+    Omit<AdaptiveHookContext<UserData>, 'request'> & { request: LoadedRequest<Request<UserData>> }
+>;
 
 export interface AdaptivePlaywrightCrawlerOptions<
     ExtendedContext extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext,
@@ -180,7 +183,7 @@ export interface AdaptivePlaywrightCrawlerOptions<
      * A hook may optionally return a partial object whose properties are merged into the crawling context,
      * allowing the hook to override context members for subsequent hooks and pipeline stages.
      */
-    preNavigationHooks?: AdaptiveHook[];
+    preNavigationHooks?: AdaptiveHook<GetUserDataFromRequest<ExtendedContext['request']>>[];
 
     /**
      * Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
@@ -190,7 +193,7 @@ export interface AdaptivePlaywrightCrawlerOptions<
      * A hook may optionally return a partial object whose properties are merged into the crawling context
      * (e.g. to override `response` after solving a challenge).
      */
-    postNavigationHooks?: AdaptivePostNavigationHook[];
+    postNavigationHooks?: AdaptivePostNavigationHook<GetUserDataFromRequest<ExtendedContext['request']>>[];
 
     /**
      * Specifies the frequency of rendering type detection checks - 0.1 means roughly 10% of requests.
@@ -340,16 +343,16 @@ export class AdaptivePlaywrightCrawler<
         // `ContextPipeline` handles override merging between hooks for free. The hook signatures
         // are structurally compatible with the underlying crawlers' contexts (subset of fields);
         // the casts just relax the nominal type difference.
-        const staticCrawler = new CheerioCrawler({
+        const staticCrawler = new CheerioCrawler<Dictionary<never>, CheerioCrawlingContext<any, any>>({
             ...rest,
             statisticsOptions: {
                 persistenceOptions: { enable: false },
             },
-            preNavigationHooks,
-            postNavigationHooks,
+            preNavigationHooks: preNavigationHooks as unknown as CheerioHook[],
+            postNavigationHooks: postNavigationHooks as unknown as CheerioHook[],
         });
 
-        const browserCrawler = new PlaywrightCrawler({
+        const browserCrawler = new PlaywrightCrawler<Dictionary<never>, PlaywrightCrawlingContext>({
             ...rest,
             statisticsOptions: {
                 persistenceOptions: { enable: false },

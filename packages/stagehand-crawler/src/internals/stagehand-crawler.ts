@@ -315,12 +315,12 @@ export interface StagehandCrawlerOptions<
     /**
      * Async functions that are sequentially evaluated before the navigation.
      */
-    preNavigationHooks?: StagehandHook[];
+    preNavigationHooks?: BrowserHook<ExtendedContext>[];
 
     /**
      * Async functions that are sequentially evaluated after the navigation.
      */
-    postNavigationHooks?: StagehandHook[];
+    postNavigationHooks?: BrowserHook<ExtendedContext>[];
 }
 
 /**
