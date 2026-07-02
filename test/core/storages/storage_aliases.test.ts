@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 import { FileSystemStorageClient } from '@crawlee/fs-storage';
@@ -186,6 +187,44 @@ describe('storage aliases', () => {
             const second = await Dataset.open('named-storage');
             expect(second.name).toBe('named-storage');
             await expect(second.getData()).resolves.toMatchObject({ items: [{ run: 1 }] });
+        });
+
+        test('a storage opened by name can be re-opened by its auto-assigned id after a reset', async () => {
+            // `writeMetadata` persists the auto-assigned id to disk so it survives a reset. The
+            // directory is named after the storage's name, not its id.
+            serviceLocator.reset();
+            const firstClient = new FileSystemStorageClient({
+                localDataDirectory: localStorageDir,
+                writeMetadata: true,
+            });
+            serviceLocator.setStorageClient(firstClient);
+
+            const created = await Dataset.open('some-name');
+            const assignedId = created.id;
+            await created.pushData({ run: 1 });
+
+            // Flush background metadata writes to disk (as a real process shutdown would).
+            await firstClient.teardown();
+
+            // The id lives inside `some-name/__metadata__.json`, not in the directory name.
+            const metadata = JSON.parse(
+                await readFile(resolve(localStorageDir, 'datasets', 'some-name', '__metadata__.json'), 'utf8'),
+            );
+            expect(metadata.id).toBe(assignedId);
+
+            // Simulate a fresh process: only the on-disk directory survives.
+            serviceLocator.reset();
+            const client = new FileSystemStorageClient({ localDataDirectory: localStorageDir, writeMetadata: true });
+            serviceLocator.setStorageClient(client);
+
+            // Opening by the persisted id must find the storage, even though its directory is named
+            // after the name.
+            await expect(client.storageExists(assignedId, 'Dataset')).resolves.toBe(true);
+
+            const reopened = await Dataset.open(assignedId);
+            expect(reopened.id).toBe(assignedId);
+            expect(reopened.name).toBe('some-name');
+            await expect(reopened.getData()).resolves.toMatchObject({ items: [{ run: 1 }] });
         });
     });
 
