@@ -46,7 +46,6 @@ import type { SendRequestOptions } from '@crawlee/types';
 import type { SessionFingerprint } from '@crawlee/types';
 import { SessionState } from '@crawlee/types';
 import type { SetRequired } from 'type-fest';
-import type * as storage from '@crawlee/types';
 import { StorageClient } from '@crawlee/types';
 import { StorageIdentifier } from '@crawlee/types';
 import { tryAbsoluteURL } from '@crawlee/utils';
@@ -867,37 +866,6 @@ export const MAX_POOL_SIZE = 1000;
 
 // @internal
 export const MAX_QUERIES_FOR_CONSISTENCY = 6;
-
-// @public (undocumented)
-export class MemoryStorageClient implements storage.StorageClient {
-    constructor(options?: MemoryStorageOptions);
-    // (undocumented)
-    createDatasetClient(options?: storage.CreateDatasetClientOptions): Promise<storage.DatasetClient>;
-    // (undocumented)
-    createKeyValueStoreClient(options?: storage.CreateKeyValueStoreClientOptions): Promise<storage.KeyValueStoreClient>;
-    // (undocumented)
-    createRequestQueueClient(options?: storage.CreateRequestQueueClientOptions): Promise<storage.RequestQueueClient>;
-    // (undocumented)
-    readonly datasetClientCache: DatasetClient_2[];
-    getStorageClientCacheKey(): string;
-    // (undocumented)
-    readonly keyValueStoreCache: KeyValueStoreClient_2[];
-    // (undocumented)
-    readonly logger?: CrawleeLogger;
-    purge(): Promise<void>;
-    // (undocumented)
-    readonly requestQueueCache: RequestQueueClient_2[];
-    // (undocumented)
-    setStatusMessage(message: string, options?: storage.SetStatusMessageOptions): Promise<void>;
-    // (undocumented)
-    storageExists(id: string, type: 'Dataset' | 'KeyValueStore' | 'RequestQueue'): Promise<boolean>;
-    teardown(): Promise<void>;
-}
-
-// @public (undocumented)
-export interface MemoryStorageOptions {
-    logger?: CrawleeLogger;
-}
 
 // @internal
 export function mergeCookies(url: string, sourceCookies: string[]): string;
