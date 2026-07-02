@@ -743,4 +743,38 @@ describe('KeyValueStore', () => {
             ]);
         });
     });
+
+    describe('stats', () => {
+        test('start at zero', async () => {
+            const store = await createKeyValueStore();
+            expect(store.stats).toEqual({ readCount: 0, writeCount: 0, deleteCount: 0, listCount: 0 });
+        });
+
+        test('count reads, writes and deletes per client call', async () => {
+            const store = await createKeyValueStore();
+
+            await store.setValue('foo', { a: 1 });
+            await store.setValue('bar', { b: 2 });
+            expect(store.stats).toMatchObject({ writeCount: 2, readCount: 0, deleteCount: 0 });
+
+            await store.getValue('foo');
+            expect(store.stats).toMatchObject({ writeCount: 2, readCount: 1 });
+
+            // Setting a value to null deletes it.
+            await store.setValue('bar', null);
+            expect(store.stats).toMatchObject({ writeCount: 2, deleteCount: 1 });
+        });
+
+        test('count list operations when iterating keys', async () => {
+            const store = await createKeyValueStore();
+
+            await store.setValue('key1', { value: 1 });
+            await store.setValue('key2', { value: 2 });
+
+            const listCountBefore = store.stats.listCount;
+            await store.forEachKey(() => {});
+
+            expect(store.stats.listCount).toBeGreaterThan(listCountBefore);
+        });
+    });
 });

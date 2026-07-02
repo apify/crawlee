@@ -8,6 +8,8 @@ import { serviceLocator } from '../service_locator.js';
 import type { Awaitable } from '../typedefs.js';
 import { checkStorageAccess } from './access_checking.js';
 import { KeyValueStore } from './key_value_store.js';
+import type { DatasetStats } from './storage_stats.js';
+import { StorageStatsTracker } from './storage_stats.js';
 import type { StorageIdentifier } from './storage_instance_manager.js';
 import type { StorageOpenOptions } from './utils.js';
 import { resolveStorageIdentifier } from './storage_instance_manager.js';
@@ -188,6 +190,11 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     client: DatasetClient<Data>;
     log: CrawleeLogger;
 
+    private readonly statsTracker = new StorageStatsTracker<DatasetStats>({
+        readCount: 0,
+        writeCount: 0,
+    });
+
     /**
      * @internal
      */
@@ -199,6 +206,14 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         this.name = options.name;
         this.client = options.client;
         this.log = serviceLocator.getLogger().child({ prefix: 'Dataset' });
+    }
+
+    /**
+     * Backend-independent usage counters tracked for this dataset (read / write operations issued to
+     * the underlying storage client). Counted per client call.
+     */
+    get stats(): DatasetStats {
+        return this.statsTracker.current;
     }
 
     /**
@@ -223,6 +238,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
             assertJsonSerializable(items[i], i);
         }
 
+        this.statsTracker.add('writeCount');
         await this.client.pushData(items);
     }
 
@@ -233,6 +249,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         checkStorageAccess();
 
         try {
+            this.statsTracker.add('readCount');
             return await this.client.getData(options);
         } catch (e) {
             const error = e as Error;
@@ -537,6 +554,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
             const fetchLimit = totalLimit !== undefined ? Math.min(pageSize, totalLimit - yielded) : pageSize;
             if (fetchLimit <= 0) break;
 
+            this.statsTracker.add('readCount');
             const page = await this.client.getData({ ...options, offset, limit: fetchLimit });
             yield page;
 

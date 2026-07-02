@@ -35,6 +35,8 @@ import { Request } from '../request.js';
 import { serviceLocator } from '../service_locator.js';
 import { checkStorageAccess } from './access_checking.js';
 import type { IRequestManager, RequestsLike } from './request_manager.js';
+import type { RequestQueueStats } from './storage_stats.js';
+import { StorageStatsTracker } from './storage_stats.js';
 import type { IStorage, StorageIdentifier } from './storage_instance_manager.js';
 import type { StorageOpenOptions } from './utils.js';
 import { resolveStorageIdentifier } from './storage_instance_manager.js';
@@ -108,6 +110,19 @@ export class RequestQueue implements IStorage, IRequestManager {
     protected httpClient?: BaseHttpClient;
 
     protected readonly events: EventManager;
+
+    private readonly statsTracker = new StorageStatsTracker<RequestQueueStats>({
+        writeCount: 0,
+        headItemReadCount: 0,
+    });
+
+    /**
+     * Backend-independent usage counters tracked for this request queue (write operations and
+     * queue-head reads issued to the underlying storage client). Counted per client call.
+     */
+    get stats(): RequestQueueStats {
+        return this.statsTracker.current;
+    }
 
     /**
      * @internal
@@ -214,6 +229,7 @@ export class RequestQueue implements IStorage, IRequestManager {
             };
         }
 
+        this.statsTracker.add('writeCount');
         const { processedRequests } = await this.client.addBatchOfRequests([request], { forefront });
         const queueOperationInfo = {
             ...processedRequests[0],
@@ -320,6 +336,7 @@ export class RequestQueue implements IStorage, IRequestManager {
             return results;
         }
 
+        this.statsTracker.add('writeCount');
         const apiResults = await this.client.addBatchOfRequests([...requestsToAdd.values()], { forefront });
 
         // Report unprocessed requests
@@ -523,6 +540,7 @@ export class RequestQueue implements IStorage, IRequestManager {
             return null;
         }
 
+        this.statsTracker.add('headItemReadCount');
         const requestOptions = await this.client.fetchNextRequest();
         if (!requestOptions) return null;
 
@@ -550,6 +568,7 @@ export class RequestQueue implements IStorage, IRequestManager {
         const forefront = this.requestCache.get(getRequestId(request.uniqueKey))?.forefront ?? false;
 
         const handledAt = request.handledAt ?? new Date().toISOString();
+        this.statsTracker.add('writeCount');
         const processedRequest = await this.client.markRequestAsHandled({
             ...request,
             handledAt,
@@ -601,6 +620,7 @@ export class RequestQueue implements IStorage, IRequestManager {
 
         const { forefront = false } = options;
 
+        this.statsTracker.add('writeCount');
         const processedRequest = await this.client.reclaimRequest(request, { forefront });
 
         // The request was not in progress — nothing to reclaim.
