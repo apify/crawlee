@@ -34,6 +34,14 @@ export class GotScrapingHttpClient implements BaseHttpClient {
 
         return {
             ...gotResult,
+            complete: gotResult.complete,
+            headers: gotResult.headers,
+            ip: gotResult.ip,
+            redirectUrls: gotResult.redirectUrls,
+            statusCode: gotResult.statusCode,
+            statusMessage: gotResult.statusMessage,
+            trailers: gotResult.trailers,
+            url: gotResult.url,
             body: gotResult.body as ResponseTypes[TResponseType],
             request: { url: request.url, ...gotResult.request },
         };
