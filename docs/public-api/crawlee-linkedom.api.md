@@ -20,16 +20,24 @@ import type { InternalHttpHook } from '@crawlee/http';
 import { IRequestManager } from '@crawlee/http';
 import type { RequestHandler } from '@crawlee/http';
 import { RobotsTxtFile } from '@crawlee/utils';
-import { RouterHandler } from '@crawlee/http';
+import type { RouterHandler } from '@crawlee/http';
 import type { RouterRoutes } from '@crawlee/http';
+import type { RouteSchemas } from '@crawlee/http';
+import type { RoutesFromSchemas } from '@crawlee/http';
 import type { SkippedRequestCallback } from '@crawlee/http';
 
 // @public
-export function createLinkeDOMRouter<Context extends LinkeDOMCrawlingContext = LinkeDOMCrawlingContext, UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(routes?: RouterRoutes<Context, UserData>): RouterHandler<Context>;
+export function createLinkeDOMRouter<Context extends LinkeDOMCrawlingContext = LinkeDOMCrawlingContext, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
+
+// @public (undocumented)
+export function createLinkeDOMRouter<Context extends LinkeDOMCrawlingContext = LinkeDOMCrawlingContext, UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
+
+// @public (undocumented)
+export function createLinkeDOMRouter<Context extends LinkeDOMCrawlingContext = LinkeDOMCrawlingContext, const Schemas extends RouteSchemas = RouteSchemas>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
 
 // @public
-export class LinkeDOMCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends LinkeDOMCrawlingContext = LinkeDOMCrawlingContext & ContextExtension> extends HttpCrawler<LinkeDOMCrawlingContext, ContextExtension, ExtendedContext> {
-    constructor(options: LinkeDOMCrawlerOptions<ContextExtension, ExtendedContext>);
+export class LinkeDOMCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends LinkeDOMCrawlingContext = LinkeDOMCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<LinkeDOMCrawlingContext['request']>>> extends HttpCrawler<LinkeDOMCrawlingContext, ContextExtension, ExtendedContext, Routes> {
+    constructor(options: LinkeDOMCrawlerOptions<ContextExtension, ExtendedContext, any, any, Routes>);
     // (undocumented)
     protected buildContextPipeline(): ContextPipeline<CrawlingContext<Dictionary>, InternalHttpCrawlingContext<any, any> & {
     readonly window: Window;
@@ -51,7 +59,8 @@ export interface LinkeDOMCrawlerEnqueueLinksOptions extends Omit<EnqueueLinksOpt
 
 // @public (undocumented)
 export interface LinkeDOMCrawlerOptions<ContextExtension = Dictionary<never>, ExtendedContext extends LinkeDOMCrawlingContext = LinkeDOMCrawlingContext & ContextExtension, UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-JSONData extends Dictionary = any> extends HttpCrawlerOptions<LinkeDOMCrawlingContext<UserData, JSONData>, ContextExtension, ExtendedContext> {
+JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
+Routes extends Record<keyof Routes, Dictionary> = Record<string, UserData>> extends HttpCrawlerOptions<LinkeDOMCrawlingContext<UserData, JSONData>, ContextExtension, ExtendedContext, Routes> {
 }
 
 // @public (undocumented)
