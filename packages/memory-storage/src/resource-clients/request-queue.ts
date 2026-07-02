@@ -43,7 +43,7 @@ export interface InternalRequest {
     orderNo: number | null;
     url: string;
     uniqueKey: string;
-    method: Exclude<storage.RequestOptions['method'], undefined>;
+    method: storage.RequestSchema['method'];
     retryCount: number;
     json: string;
 }
@@ -219,7 +219,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         };
     }
 
-    async fetchNextRequest(): Promise<storage.RequestOptions | undefined> {
+    async fetchNextRequest(): Promise<storage.UpdateRequestSchema | undefined> {
         this.updateTimestamps(false);
 
         await this.queueStateMutex.wait();
@@ -245,7 +245,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
 
     async addBatchOfRequests(
         requests: storage.RequestSchema[],
-        options: storage.RequestOptions = {},
+        options: storage.RequestQueueOperationOptions = {},
     ): Promise<storage.BatchAddRequestsResult> {
         batchRequestShapeWithoutId.parse(requests);
         requestOptionsShape.parse(options);
@@ -307,7 +307,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         }
     }
 
-    async getRequest(uniqueKey: string): Promise<storage.RequestOptions | undefined> {
+    async getRequest(uniqueKey: string): Promise<storage.UpdateRequestSchema | undefined> {
         s.string().parse(uniqueKey);
         this.updateTimestamps(false);
         const id = uniqueKeyToRequestId(uniqueKey);
@@ -366,7 +366,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
 
     async reclaimRequest(
         request: storage.UpdateRequestSchema,
-        options: storage.RequestOptions = {},
+        options: storage.RequestQueueOperationOptions = {},
     ): Promise<storage.QueueOperationInfo | undefined> {
         requestShape.parse(request);
         requestOptionsShape.parse(options);
