@@ -6,7 +6,7 @@ const crawler = new PuppeteerCrawler({
         log.info(`Title of ${request.url}: ${title}`);
 
         await enqueueLinks({
-            globs: ['http?(s)://www.iana.org/**'],
+            include: ['http?(s)://www.iana.org/**'],
         });
     },
     maxRequestsPerCrawl: 10,

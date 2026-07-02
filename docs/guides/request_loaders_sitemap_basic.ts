@@ -5,7 +5,7 @@ import { SitemapRequestLoader } from 'crawlee';
 const sitemapRequestLoader = await SitemapRequestLoader.open({
     sitemapUrls: ['https://crawlee.dev/sitemap.xml'],
     // Optionally filter the URLs read from the sitemap:
-    // globs: ['https://crawlee.dev/docs/**'],
+    // include: ['https://crawlee.dev/docs/**'],
 });
 
 for await (const request of sitemapRequestLoader) {

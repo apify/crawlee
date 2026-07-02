@@ -903,14 +903,37 @@ await enqueueLinks({ urls, requestQueue });
 await enqueueLinks({ urls, requestManager });
 ```
 
+### `globs`, `regexps`, and `pseudoUrls` replaced by `include`
+
+To align with the Crawlee for Python API, the separate `globs`, `regexps`, and `pseudoUrls` URL-filtering options of `enqueueLinks()`, the click-elements enqueue helpers, and `SitemapRequestLoader` have been collapsed into a single `include` option (mirroring the already-unified `exclude` option). Each entry of `include`/`exclude` can be a glob string, a `RegExp`, or a `{ glob }` / `{ regexp }` object.
+
+The `PseudoUrl` class is no longer exported and the `@apify/pseudo_url` dependency has been dropped. Rewrite any pseudo-URL patterns as globs or regular expressions.
+
+Per-pattern request options (`label`, `userData`, `method`, `payload`, `headers` set directly on a pattern object) are no longer supported. Use the top-level `label` / `userData` options, or `transformRequestFunction`, to set request options for the enqueued requests.
+
+**Before:**
+```typescript
+await enqueueLinks({
+    globs: ['https://crawlee.dev/docs/**'],
+    regexps: [/\/blog\//],
+    pseudoUrls: ['https://crawlee.dev/[.*]'],
+});
+```
+
+**After:**
+```typescript
+await enqueueLinks({
+    include: ['https://crawlee.dev/docs/**', /\/blog\//, 'https://crawlee.dev/**'],
+});
+```
+
 ## `transformRequestFunction` precedence in `enqueueLinks`
 
-The `transformRequestFunction` callback in `enqueueLinks` now runs **after** URL pattern filtering (`globs`, `regexps`, `pseudoUrls`) instead of before. This means it has the highest priority and can overwrite any request options set by patterns or the global `label` option.
+The `transformRequestFunction` callback in `enqueueLinks` now runs **after** URL pattern filtering (`include`, `exclude`) instead of before. This means it has the highest priority and can overwrite any request options set by the global `label` / `userData` options.
 
 The priority order is now (lowest to highest):
 1. Global `label` / `userData` options
-2. Pattern-specific options from `globs`, `regexps`, or `pseudoUrls` objects
-3. `transformRequestFunction`
+2. `transformRequestFunction`
 
 The `transformRequestFunction` callback receives a `RequestOptions` object and can return either:
 - The modified `RequestOptions` object
