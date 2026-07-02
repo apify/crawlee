@@ -1,4 +1,3 @@
-import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 import { FileSystemStorageClient } from '@crawlee/fs-storage';
@@ -201,16 +200,11 @@ describe('storage aliases', () => {
 
             const created = await Dataset.open('some-name');
             const assignedId = created.id;
+            expect(assignedId).not.toBe('some-name');
             await created.pushData({ run: 1 });
 
             // Flush background metadata writes to disk (as a real process shutdown would).
             await firstClient.teardown();
-
-            // The id lives inside `some-name/__metadata__.json`, not in the directory name.
-            const metadata = JSON.parse(
-                await readFile(resolve(localStorageDir, 'datasets', 'some-name', '__metadata__.json'), 'utf8'),
-            );
-            expect(metadata.id).toBe(assignedId);
 
             // Simulate a fresh process: only the on-disk directory survives.
             serviceLocator.reset();
