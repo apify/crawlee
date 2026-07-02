@@ -6,7 +6,8 @@ import type {
     RouterRoutes,
 } from '@crawlee/browser';
 import { BrowserCrawler, RequestState, Router } from '@crawlee/browser';
-import type { BrowserPoolOptions, PuppeteerPlugin } from '@crawlee/browser-pool';
+import { BrowserPool } from '@crawlee/browser-pool';
+import type { PuppeteerPlugin } from '@crawlee/browser-pool';
 import { serviceLocator } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/types';
 import ow from 'ow';
@@ -164,7 +165,6 @@ export class PuppeteerCrawler<
 > {
     protected static override optionsShape = {
         ...BrowserCrawler.optionsShape,
-        browserPoolOptions: ow.optional.object,
     };
 
     /**
@@ -181,10 +181,6 @@ export class PuppeteerCrawler<
             ...browserCrawlerOptions
         } = options;
 
-        const browserPoolOptions = {
-            ...options.browserPoolOptions,
-        } as BrowserPoolOptions;
-
         if (launchContext.proxyUrl) {
             throw new Error(
                 'PuppeteerCrawlerOptions.launchContext.proxyUrl is not allowed in PuppeteerCrawler.' +
@@ -194,18 +190,22 @@ export class PuppeteerCrawler<
 
         // `browserPlugins` is working when it's not overridden by `launchContext`,
         // which for crawlers it is always overridden. Hence the error to use the other option.
-        if (browserPoolOptions.browserPlugins) {
-            throw new Error('browserPoolOptions.browserPlugins is disallowed. Use launchContext.launcher instead.');
+        let browserPool = options.browserPool;
+
+        if (!browserPool) {
+            const puppeteerLauncher = new PuppeteerLauncher(
+                launchContext,
+                options.configuration,
+            );
+            browserPool = new BrowserPool({
+                browserPlugins: [puppeteerLauncher.createBrowserPlugin()],
+            });
         }
 
         if (headless != null) {
             launchContext.launchOptions ??= {} as LaunchOptions;
             launchContext.launchOptions.headless = headless as boolean;
         }
-
-        const puppeteerLauncher = new PuppeteerLauncher(launchContext, options.configuration);
-
-        browserPoolOptions.browserPlugins = [puppeteerLauncher.createBrowserPlugin()];
 
         super({
             ...(browserCrawlerOptions as BrowserCrawlerOptions<
@@ -217,7 +217,7 @@ export class PuppeteerCrawler<
             >),
             launchContext,
             proxyConfiguration,
-            browserPoolOptions,
+            browserPool,
             contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),
         });
     }
