@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import type * as storage from '@crawlee/types';
 import { AsyncQueue } from '@sapphire/async-queue';
 import { s } from '@sapphire/shapeshift';
-import type { MemoryStorageClient } from '../index.js';
+import type { MemoryStorageClient } from '../memory-storage.js';
 import { purgeNullsFromObject, uniqueKeyToRequestId } from '../utils.js';
 import { BaseClient } from './common/base-client.js';
 

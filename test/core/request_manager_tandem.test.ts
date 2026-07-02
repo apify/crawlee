@@ -115,6 +115,29 @@ describe('RequestManagerTandem', () => {
         await expect(tandem.getHandledCount()).resolves.toBe(2);
     });
 
+    test('getTotalCount returns correct count', async () => {
+        const requestList = await RequestList.open(null, [
+            { url: 'https://example.com/1' },
+            { url: 'https://example.com/2' },
+        ]);
+        const requestQueue = await RequestQueue.open();
+        const tandem = new RequestManagerTandem(requestList, requestQueue);
+
+        await expect(tandem.getTotalCount()).resolves.toBe(2);
+
+        const req = await tandem.fetchNextRequest();
+
+        await expect(tandem.getTotalCount()).resolves.toBe(2);
+
+        await tandem.reclaimRequest(req!);
+
+        await expect(tandem.getTotalCount()).resolves.toBe(2);
+
+        await tandem.addRequest({ url: 'https://example.com/3' });
+
+        await expect(tandem.getTotalCount()).resolves.toBe(3);
+    });
+
     test('isFinished returns true only when both list and queue are finished', async () => {
         const requestList = await RequestList.open(null, [{ url: 'https://example.com/1' }]);
         const requestQueue = await RequestQueue.open();

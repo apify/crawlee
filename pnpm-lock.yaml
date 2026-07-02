@@ -10,6 +10,10 @@ overrides:
   '@browserbasehq/stagehand': 3.0.7
   minimatch: ^9.0.0
   lerna>minimatch: ^3.1.4
+  apify: 4.0.0-beta.19
+  apify>@crawlee/core: workspace:*
+  apify>@crawlee/types: workspace:*
+  apify>@crawlee/utils: workspace:*
 
 patchedDependencies:
   '@docusaurus/core@3.9.2': 7e95e0e59f770d24c0e51e1e2635b0a25edf33b38938162fa8c69ab42d38b1fb
@@ -30,6 +34,39 @@ importers:
       '@commitlint/config-conventional':
         specifier: ^20.0.0
         version: 20.5.0
+      '@crawlee/basic':
+        specifier: workspace:*
+        version: link:packages/basic-crawler
+      '@crawlee/cheerio':
+        specifier: workspace:*
+        version: link:packages/cheerio-crawler
+      '@crawlee/core':
+        specifier: workspace:*
+        version: link:packages/core
+      '@crawlee/impit-client':
+        specifier: workspace:*
+        version: link:packages/impit-client
+      '@crawlee/jsdom':
+        specifier: workspace:*
+        version: link:packages/jsdom-crawler
+      '@crawlee/linkedom':
+        specifier: workspace:*
+        version: link:packages/linkedom-crawler
+      '@crawlee/playwright':
+        specifier: workspace:*
+        version: link:packages/playwright-crawler
+      '@crawlee/puppeteer':
+        specifier: workspace:*
+        version: link:packages/puppeteer-crawler
+      '@crawlee/stagehand':
+        specifier: workspace:*
+        version: link:packages/stagehand-crawler
+      '@crawlee/utils':
+        specifier: workspace:*
+        version: link:packages/utils
+      '@microsoft/api-extractor':
+        specifier: ^7.58.9
+        version: 7.58.9(@types/node@24.12.2)
       '@playwright/browser-chromium':
         specifier: 1.60.0
         version: 1.60.0
@@ -100,8 +137,8 @@ importers:
         specifier: ^4.0.16
         version: 4.1.4(vitest@4.1.4)
       apify:
-        specifier: '*'
-        version: 3.7.0(bufferutil@4.1.0)
+        specifier: 4.0.0-beta.19
+        version: 4.0.0-beta.19(bufferutil@4.1.0)
       apify-node-curl-impersonate:
         specifier: ^1.0.23
         version: 1.0.29
@@ -117,6 +154,9 @@ importers:
       commitlint:
         specifier: ^20.0.0
         version: 20.5.0(@types/node@24.12.2)(conventional-commits-parser@6.4.0)(typescript@5.9.3)
+      crawlee:
+        specifier: workspace:*
+        version: link:packages/crawlee
       cross-env:
         specifier: ^10.0.0
         version: 10.1.0
@@ -217,8 +257,8 @@ importers:
         specifier: workspace:*
         version: link:../packages/stagehand-crawler
       apify:
-        specifier: '*'
-        version: 3.7.0(bufferutil@4.1.0)
+        specifier: 4.0.0-beta.19
+        version: 4.0.0-beta.19(bufferutil@4.1.0)
       crawlee:
         specifier: workspace:*
         version: link:../packages/crawlee
@@ -434,9 +474,6 @@ importers:
       '@crawlee/fs-storage':
         specifier: workspace:*
         version: link:../fs-storage
-      '@crawlee/memory-storage':
-        specifier: workspace:*
-        version: link:../memory-storage
       '@crawlee/types':
         specifier: workspace:*
         version: link:../types
@@ -446,6 +483,9 @@ importers:
       '@sapphire/async-queue':
         specifier: ^1.5.5
         version: 1.5.5
+      '@sapphire/shapeshift':
+        specifier: ^4.0.0
+        version: 4.0.0
       '@vladfrangu/async_event_emitter':
         specifier: ^2.4.6
         version: 2.4.7
@@ -458,6 +498,9 @@ importers:
       json5:
         specifier: ^2.2.3
         version: 2.2.3
+      mime-types:
+        specifier: ^3.0.1
+        version: 3.0.2
       minimatch:
         specifier: ^9.0.0
         version: 9.0.9
@@ -518,9 +561,6 @@ importers:
       '@crawlee/linkedom':
         specifier: workspace:*
         version: link:../linkedom-crawler
-      '@crawlee/memory-storage':
-        specifier: workspace:*
-        version: link:../memory-storage
       '@crawlee/playwright':
         specifier: workspace:*
         version: link:../playwright-crawler
@@ -722,33 +762,6 @@ importers:
       ow:
         specifier: ^2.0.0
         version: 2.0.0
-      tslib:
-        specifier: ^2.8.1
-        version: 2.8.1
-
-  packages/memory-storage:
-    dependencies:
-      '@crawlee/types':
-        specifier: workspace:*
-        version: link:../types
-      '@crawlee/utils':
-        specifier: workspace:*
-        version: link:../utils
-      '@sapphire/async-queue':
-        specifier: ^1.5.5
-        version: 1.5.5
-      '@sapphire/shapeshift':
-        specifier: ^4.0.0
-        version: 4.0.0
-      content-type:
-        specifier: ^1.0.5
-        version: 1.0.5
-      json5:
-        specifier: ^2.2.3
-        version: 2.2.3
-      mime-types:
-        specifier: ^3.0.1
-        version: 3.0.2
       tslib:
         specifier: ^2.8.1
         version: 2.8.1
@@ -2022,20 +2035,8 @@ packages:
       conventional-commits-parser:
         optional: true
 
-  '@crawlee/core@3.16.0':
-    resolution: {integrity: sha512-Yn32E5IdmENLITg36XN1ty4OLPMcqzDjkEvSdZ0dRV5jcJR89sKi47FOs2eXpW+n7IGhbzPDkGKUirPPRrRkjg==}
-    engines: {node: '>=16.0.0'}
-
-  '@crawlee/memory-storage@3.16.0':
-    resolution: {integrity: sha512-ol1PSWj5LL1ALjEZ+zJdLaZx4bGPIP6vXly4AmbtyFg2iq+m1BudtXL+dWFdv/qN8f+N8ljPF5VwKAVxg2uy3Q==}
-    engines: {node: '>= 16'}
-
   '@crawlee/types@3.16.0':
     resolution: {integrity: sha512-CcIM+JDVx4gzQzMPl+9RJiEeqdzTrx2RLPA7y4IMJSyfZm3J/VrEunielKA3NQrk095j9OuvS/rQL2y8mBV1qw==}
-    engines: {node: '>=16.0.0'}
-
-  '@crawlee/utils@3.16.0':
-    resolution: {integrity: sha512-rfVx/3hsFZjiD4AwT8IoQsuNLiawrsdhc893Nha22mWQMxJ0Z/KUzh8FyJDnNOHuxWGIJP96I7nBikxYeSdw5A==}
     engines: {node: '>=16.0.0'}
 
   '@csstools/cascade-layer-name-parser@2.0.5':
@@ -3166,6 +3167,19 @@ packages:
   '@mermaid-js/parser@1.1.0':
     resolution: {integrity: sha512-gxK9ZX2+Fex5zu8LhRQoMeMPEHbc73UKZ0FQ54YrQtUxE1VVhMwzeNtKRPAu5aXks4FasbMe4xB4bWrmq6Jlxw==}
 
+  '@microsoft/api-extractor-model@7.33.8':
+    resolution: {integrity: sha512-aIcoQggPyer3B6Ze3usz0YWC/oBwUHfRH5ETUsr+oT2BRA6SfTJl7IKPcPZkX4UR+PohowzW4uMxsvjrn8vm+w==}
+
+  '@microsoft/api-extractor@7.58.9':
+    resolution: {integrity: sha512-S2UF4yza5GoxCmf7hJQNxJNZN9ltOVuOQv8Dy+Z21aol5ERoBNMdWcQHm4MJMPPItW4H/4rZD906iaf4mUojJA==}
+    hasBin: true
+
+  '@microsoft/tsdoc-config@0.18.1':
+    resolution: {integrity: sha512-9brPoVdfN9k9g0dcWkFeA7IH9bbcttzDJlXvkf8b2OBzd5MueR1V2wkKBL0abn0otvmkHJC6aapBOTJDDeMCZg==}
+
+  '@microsoft/tsdoc@0.16.0':
+    resolution: {integrity: sha512-xgAyonlVVS+q7Vc7qLW0UrJU7rSFcETRWsqdXZtjzRU8dF+6CkozTK4V4y1LwOX7j8r/vHphjDeMeGI4tNGeGA==}
+
   '@modelcontextprotocol/sdk@1.29.0':
     resolution: {integrity: sha512-zo37mZA9hJWpULgkRpowewez1y6ML5GsXJPY8FI0tBBCd77HEvza4jDqRKOXgHNn867PVGCyTdzqpz0izu5ZjQ==}
     engines: {node: '>=18'}
@@ -3997,13 +4011,39 @@ packages:
   '@rtsao/scc@1.1.0':
     resolution: {integrity: sha512-zt6OdqaDoOnJ1ZYsCYGt9YmWzDXl4vQdKTyJev62gFhRGKdx7mcT54V9KIjg+d2wi9EXsPvAPKe7i7WjfVWB8g==}
 
+  '@rushstack/node-core-library@5.23.1':
+    resolution: {integrity: sha512-wlKmIKIYCKuCASbITvOxLZXepPbwXvrv7S6ig6XNWFchSyhL/E2txmVXspHY49Wu2dzf7nI27a2k/yV5BA3EiA==}
+    peerDependencies:
+      '@types/node': '*'
+    peerDependenciesMeta:
+      '@types/node':
+        optional: true
+
+  '@rushstack/problem-matcher@0.2.1':
+    resolution: {integrity: sha512-gulfhBs6n+I5b7DvjKRfhMGyUejtSgOHTclF/eONr8hcgF1APEDjhxIsfdUYYMzC3rvLwGluqLjbwCFZ8nxrog==}
+    peerDependencies:
+      '@types/node': '*'
+    peerDependenciesMeta:
+      '@types/node':
+        optional: true
+
+  '@rushstack/rig-package@0.7.3':
+    resolution: {integrity: sha512-aAA518n6wxxjCfnTAOjQnm7ngNE0FVHxHAw2pxKlIhxrMn0XQjGcXKF0oKWpjBgJOmsaJpVob/v+zr3zxgPWuA==}
+
+  '@rushstack/terminal@0.24.0':
+    resolution: {integrity: sha512-8ZQS4MMaGsv27EXCBiH7WMPkRZrffeDoIevs6z9TM5dzqiY6+Hn4evfK/G+gvgBTjfvfkHIZPQQmalmI2sM4TQ==}
+    peerDependencies:
+      '@types/node': '*'
+    peerDependenciesMeta:
+      '@types/node':
+        optional: true
+
+  '@rushstack/ts-command-line@5.3.10':
+    resolution: {integrity: sha512-fwI076HYknC0IrMXdY6UmjDv+PH7NHhNJX3/pY2UblSE5XrXgndXZPiOe/6ZtuFpn6DvVDVNhtkIzQ+Qu/MhVQ==}
+
   '@sapphire/async-queue@1.5.5':
     resolution: {integrity: sha512-cvGzxbba6sav2zZkH8GPf2oGk9yYoD5qrNWdu9fRehifgnFZJMV+nuy2nON2roRO4yQQ+v7MK/Pktl/HgfsUXg==}
     engines: {node: '>=v14.0.0', npm: '>=7.0.0'}
-
-  '@sapphire/shapeshift@3.9.7':
-    resolution: {integrity: sha512-4It2mxPSr4OGn4HSQWGmhFMsNFGfFVhWeRPCRwbH972Ek2pzfGRZtb0pJ4Ze6oIzcyh2jw7nUDa6qGlWofgd9g==}
-    engines: {node: '>=v16'}
 
   '@sapphire/shapeshift@4.0.0':
     resolution: {integrity: sha512-d9dUmWVA7MMiKobL3VpLF8P2aeanRTu6ypG2OIaEv/ZHH/SUQ2iHOVyi5wAPjQ+HmnMuL0whK9ez8I/raWbtIg==}
@@ -4378,10 +4418,6 @@ packages:
     resolution: {integrity: sha512-+PmQX0PiAYPMeVYe237LJAYvOMYW1j2rH5YROyS3b4CTVJum34HfRvKvAzozHAQG0TnHNdUfY9nCeUyRAs//cw==}
     engines: {node: '>=14.16'}
 
-  '@tokenizer/inflate@0.2.7':
-    resolution: {integrity: sha512-MADQgmZT1eKjp06jpI2yozxaU9uVs4GzzgSL+uEq7bVcJ9V1ZXQkeGNql1fsSI0gMy1vhvNTNbUqrx+pZfJVmg==}
-    engines: {node: '>=18'}
-
   '@tokenizer/inflate@0.4.1':
     resolution: {integrity: sha512-2mAv+8pkG6GIZiF1kNg1jAjh27IDxEPKwdGul3snfztFerfPGI1LjDezZp3i7BElXompqEtPmoPx6c2wgtWsOA==}
     engines: {node: '>=18'}
@@ -4435,6 +4471,9 @@ packages:
 
   '@tybys/wasm-util@0.9.0':
     resolution: {integrity: sha512-6+7nlbMVX/PVDCwaIQ8nTOPveOcFLSt8GcXdx8hD0bt39uWxYT88uXzqTd4fTvqta7oeUJqudepapKNt2DYJFw==}
+
+  '@types/argparse@1.0.38':
+    resolution: {integrity: sha512-ebDJ9b0e702Yr7pWgB0jzm+CX4Srzz8RcXtLJDJB+BSccqMa36uyH/zUsSYao5+BD1ytv3k3rPYCq4mAE1hsXA==}
 
   '@types/body-parser@1.19.6':
     resolution: {integrity: sha512-HLFeCYgz89uk22N5Qg3dvGvsv46B8GLvKKo1zKG4NybA8U2DiEO3w9lqGg29t/tfLRJpJ6iQxnVw4OnB7MoM9g==}
@@ -5117,6 +5156,10 @@ packages:
     resolution: {integrity: sha512-+Ut8d9LLqwEvHHJl1+PIHqoyDxFgVN847JTVM3Izi3xHDWPE4UtzzXysMZQs64DMcrJfBeS/uoEP4AD3HQHnQQ==}
     engines: {node: '>=12.0'}
 
+  agent-base@6.0.2:
+    resolution: {integrity: sha512-RZNwNclF7+MS/8bDg70amg32dyeZGZxiDuQmZxKLAlQjr3jGyLx+4Kkk58UO7D2QdgFIQCovuSuZESne6RG6XQ==}
+    engines: {node: '>= 6.0.0'}
+
   agent-base@7.1.4:
     resolution: {integrity: sha512-MnA+YT8fwfJPgBx3m60MNqakm30XOkyIoH1y6huTQvC0PwZG7ki8NacLBcrPbNoo8vEZy7Jpuk7+jMO+CUovTQ==}
     engines: {node: '>= 14'}
@@ -5134,6 +5177,14 @@ packages:
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
+
+  ajv-draft-04@1.0.0:
+    resolution: {integrity: sha512-mv00Te6nmYbRp5DCwclxtt7yV/joXJPGS7nM+97GdxvuttCOfgI3K4U25zboyeX0O+myI8ERluxQe5wljMmVIw==}
+    peerDependencies:
+      ajv: ^8.5.0
+    peerDependenciesMeta:
+      ajv:
+        optional: true
 
   ajv-formats@2.1.1:
     resolution: {integrity: sha512-Wx0Kx52hxE7C18hkMEggYlEifqWZtYaRgouJor+WMdPnQyEK13vgEWyVNup7SoeeoLMsr4kf5h6dOW11I15MUA==}
@@ -5224,15 +5275,15 @@ packages:
     resolution: {integrity: sha512-KMReFUr0B4t+D+OBkjR3KYqvocp2XaSzO55UcB6mgQMd3KbcE+mWTyvVV7D/zsdEbNnV6acZUutkiHQXvTr1Rw==}
     engines: {node: '>= 8'}
 
-  apify-client@2.23.0:
-    resolution: {integrity: sha512-nkWYiI/938tPXtj51YdA38EUcNKePgsB+e7IkYSy4+4OMPHCHNk3PpV1UODcoeKU3dtG4CSxuqt1ehAljQiYmw==}
+  apify-client@2.23.4:
+    resolution: {integrity: sha512-Uw2cZXfR9iQw1jyQBonSqL/QJhp154YTB070m6A6aCYAIrklOqKfNnqXIIWKCkyTWqEqwNJ1784OJL5ZnB8tTQ==}
 
   apify-node-curl-impersonate@1.0.29:
     resolution: {integrity: sha512-5Oa9VE5rpDBdRgg71Vl09bqraw5RV0nyL6+rnOzIrVe+YCFCOyjj1KwsCz92gPNjGXGQG53w005la3dCTTrgdw==}
 
-  apify@3.7.0:
-    resolution: {integrity: sha512-2WeMeI6BIH2ql5dtnsreKcWxE+OGqsj9LKEe1c0b7kaQpqlEHXN63OqPfDmX1EFjuGo5Z1I3uVYBx3BTQZ9+Ag==}
-    engines: {node: '>=16.0.0'}
+  apify@4.0.0-beta.19:
+    resolution: {integrity: sha512-p6fgxlqOqwtYX77u6MZiWjvNlcJwjkGGDJ9HVt56UEBC88q+n5igZgWgPpgj/WHp9yajTf7WtAdZUO16qKa75A==}
+    engines: {node: '>=22.0.0'}
 
   aproba@2.0.0:
     resolution: {integrity: sha512-lYe4Gx7QT+MKGbDsA+Z+he/Wtef0BiwDOlK/XkBrdfsh9J/jPPXbX0tE9x9cl27Tmu5gg3QUbUrQYa/y+KOHPQ==}
@@ -5366,6 +5417,9 @@ packages:
 
   axios@1.15.0:
     resolution: {integrity: sha512-wWyJDlAatxk30ZJer+GeCWS209sA42X+N5jU2jy6oHTp7ufw8uzUTVFBX9+wTfAlhiJXGS0Bq7X6efruWjuK9Q==}
+
+  axios@1.18.1:
+    resolution: {integrity: sha512-3nTvFlvpn9Zu/RkHUqtc7/+al4UpRW5az71ap5zccp6e8RAYEzhMTecX8Dz1wWDYrPpUoB1HAQEGEAEvUr7S9g==}
 
   axobject-query@4.1.0:
     resolution: {integrity: sha512-qIj0G9wZbMGNLjLmg1PT6v2mE9AH2zlnADJD/2tC6E00hgmhUOfEB6greHPAfLRSufHqROIUTkw6E+M3lH0PTQ==}
@@ -6619,6 +6673,10 @@ packages:
   devtools-protocol@0.0.1612613:
     resolution: {integrity: sha512-hp32aOyalF3vGZiTPA3CiKCgpIH7QOj+S0dRVMmEReagtmWQYigiCQWp7OGWrgaW2IHNlSzCwfDneZe16DlBCQ==}
 
+  diff@8.0.4:
+    resolution: {integrity: sha512-DPi0FmjiSU5EvQV0++GFDOJ9ASQUVFh5kD+OzOnYdi7n3Wpm9hWWGfB/O2blfHcMVTL5WkQXSnRiK9makhrcnw==}
+    engines: {node: '>=0.3.1'}
+
   diffie-hellman@5.0.3:
     resolution: {integrity: sha512-kqag/Nl+f3GwyK25fhUMYj81BUOrZ9IuJsjIcDE5icNM9FJHAVm3VcUDxdLPoQtTuUylWm6ZIknYJwwaPxsUzg==}
 
@@ -7190,9 +7248,6 @@ packages:
   fetch-cookie@3.2.0:
     resolution: {integrity: sha512-n61pQIxP25C6DRhcJxn7BDzgHP/+S56Urowb5WFxtcRMpU6drqXD90xjyAsVQYsNSNNVbaCcYY1DuHsdkZLuiA==}
 
-  fflate@0.8.2:
-    resolution: {integrity: sha512-cPJU47OaAoCbg0pBvzsgpTPhmhqI5eJjh/JIu8tPj5q+T7iLvW/JAYUqmE7KOB4R1ZyEhzBaIQpQpardBF5z8A==}
-
   figures@3.2.0:
     resolution: {integrity: sha512-yaduQFRKLXYOGgEn6AZau90j3ggSOyiqXU0F9JZfeXYhNa+Jk4X+s45A2zg5jns87GAFa34BBm2kXw4XpNcbdg==}
     engines: {node: '>=8'}
@@ -7206,10 +7261,6 @@ packages:
     engines: {node: '>= 10.13.0'}
     peerDependencies:
       webpack: ^4.0.0 || ^5.0.0
-
-  file-type@20.5.0:
-    resolution: {integrity: sha512-BfHZtG/l9iMm4Ecianu7P8HRD2tBHLtjXinm4X62XBOYzi7CYA7jyqfJzOvXHqzVrVPYqBo2/GvbARMaaJkKVg==}
-    engines: {node: '>=18'}
 
   file-type@21.3.4:
     resolution: {integrity: sha512-Ievi/yy8DS3ygGvT47PjSfdFoX+2isQueoYP1cntFW1JLYAuS4GD7NUPGg4zv2iZfV52uDyk5w5Z0TdpRS6Q1g==}
@@ -7875,6 +7926,10 @@ packages:
     resolution: {integrity: sha512-V5nVw1PAOgfI3Lmeaj2Exmeg7fenjhRUgz1lPSezy1CuhPYbgQtbQj4jZfEAEMlaL+vupsvhjqCyjzob0yxsmQ==}
     engines: {node: '>=10.19.0'}
 
+  https-proxy-agent@5.0.1:
+    resolution: {integrity: sha512-dFcAjpTQFgoLMzC2VwU+C/CbS7uRL0lWmxDITmqm7C+7F0Odmj6s9l6alZc6AELXhrnggM2CeWSXHGOdX2YtwA==}
+    engines: {node: '>= 6'}
+
   https-proxy-agent@7.0.6:
     resolution: {integrity: sha512-vK9P5/iUfdl95AI+JVyUuIcVtd4ofvtrOr3HNtM2yxC9bnMbEdp3x01OhQNnjb8IJYi38VlTE3mBXwcfvywuSw==}
     engines: {node: '>= 14'}
@@ -8494,6 +8549,9 @@ packages:
   jiti@2.6.1:
     resolution: {integrity: sha512-ekilCSN1jwRvIbgeg/57YFh8qQDNbwDb9xT/qu2DAHbFFZUicIl4ygVaAvzveMhMVr3LnpSKTNnwt8PoOfmKhQ==}
     hasBin: true
+
+  jju@1.4.0:
+    resolution: {integrity: sha512-8wb9Yw966OSxApiCt0K3yNJL8pnNeIv+OEq2YMidz4FKP6nonSRoOXc80iXY4JaN2FC11B9qsNmDsm+ZOfMROA==}
 
   joi@17.13.3:
     resolution: {integrity: sha512-otDA4ldcIx+ZXsKHWmp0YizCweVRZG96J10b0FevjfuncLO1oX59THoAmHkNubYJ+9gWsYsp5k8v4ib6oDv1fA==}
@@ -14026,66 +14084,9 @@ snapshots:
     optionalDependencies:
       conventional-commits-parser: 6.4.0
 
-  '@crawlee/core@3.16.0':
-    dependencies:
-      '@apify/consts': 2.52.1
-      '@apify/datastructures': 2.0.4
-      '@apify/log': 2.5.35
-      '@apify/pseudo_url': 2.0.76
-      '@apify/timeout': 0.3.3
-      '@apify/utilities': 2.27.0
-      '@crawlee/memory-storage': 3.16.0
-      '@crawlee/types': 3.16.0
-      '@crawlee/utils': 3.16.0
-      '@sapphire/async-queue': 1.5.5
-      '@vladfrangu/async_event_emitter': 2.4.7
-      csv-stringify: 6.7.0
-      fs-extra: 11.3.4
-      got-scraping: 4.2.1
-      json5: 2.2.3
-      minimatch: 9.0.9
-      ow: 0.28.2
-      stream-json: 1.9.1
-      tldts: 7.0.28
-      tough-cookie: 6.0.1
-      tslib: 2.8.1
-      type-fest: 4.41.0
-    transitivePeerDependencies:
-      - supports-color
-
-  '@crawlee/memory-storage@3.16.0':
-    dependencies:
-      '@apify/log': 2.5.35
-      '@crawlee/types': 3.16.0
-      '@sapphire/async-queue': 1.5.5
-      '@sapphire/shapeshift': 3.9.7
-      content-type: 1.0.5
-      fs-extra: 11.3.4
-      json5: 2.2.3
-      mime-types: 2.1.35
-      proper-lockfile: 4.1.2
-      tslib: 2.8.1
-
   '@crawlee/types@3.16.0':
     dependencies:
       tslib: 2.8.1
-
-  '@crawlee/utils@3.16.0':
-    dependencies:
-      '@apify/log': 2.5.35
-      '@apify/ps-tree': 1.2.0
-      '@crawlee/types': 3.16.0
-      '@types/sax': 1.2.7
-      cheerio: 1.0.0-rc.12
-      file-type: 20.5.0
-      got-scraping: 4.2.1
-      ow: 0.28.2
-      robots-parser: 3.0.1
-      sax: 1.6.0
-      tslib: 2.8.1
-      whatwg-mimetype: 4.0.0
-    transitivePeerDependencies:
-      - supports-color
 
   '@csstools/cascade-layer-name-parser@2.0.5(@csstools/css-parser-algorithms@3.0.5(@csstools/css-tokenizer@3.0.4))(@csstools/css-tokenizer@3.0.4)':
     dependencies:
@@ -15881,6 +15882,41 @@ snapshots:
     dependencies:
       langium: 4.2.2
 
+  '@microsoft/api-extractor-model@7.33.8(@types/node@24.12.2)':
+    dependencies:
+      '@microsoft/tsdoc': 0.16.0
+      '@microsoft/tsdoc-config': 0.18.1
+      '@rushstack/node-core-library': 5.23.1(@types/node@24.12.2)
+    transitivePeerDependencies:
+      - '@types/node'
+
+  '@microsoft/api-extractor@7.58.9(@types/node@24.12.2)':
+    dependencies:
+      '@microsoft/api-extractor-model': 7.33.8(@types/node@24.12.2)
+      '@microsoft/tsdoc': 0.16.0
+      '@microsoft/tsdoc-config': 0.18.1
+      '@rushstack/node-core-library': 5.23.1(@types/node@24.12.2)
+      '@rushstack/rig-package': 0.7.3
+      '@rushstack/terminal': 0.24.0(@types/node@24.12.2)
+      '@rushstack/ts-command-line': 5.3.10(@types/node@24.12.2)
+      diff: 8.0.4
+      minimatch: 9.0.9
+      resolve: 1.22.12
+      semver: 7.7.4
+      source-map: 0.6.1
+      typescript: 5.9.3
+    transitivePeerDependencies:
+      - '@types/node'
+
+  '@microsoft/tsdoc-config@0.18.1':
+    dependencies:
+      '@microsoft/tsdoc': 0.16.0
+      ajv: 8.18.0
+      jju: 1.4.0
+      resolve: 1.22.12
+
+  '@microsoft/tsdoc@0.16.0': {}
+
   '@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@4.3.6)':
     dependencies:
       '@hono/node-server': 1.19.14(hono@4.12.12)
@@ -16635,12 +16671,46 @@ snapshots:
 
   '@rtsao/scc@1.1.0': {}
 
-  '@sapphire/async-queue@1.5.5': {}
-
-  '@sapphire/shapeshift@3.9.7':
+  '@rushstack/node-core-library@5.23.1(@types/node@24.12.2)':
     dependencies:
-      fast-deep-equal: 3.1.3
-      lodash: 4.18.1
+      ajv: 8.18.0
+      ajv-draft-04: 1.0.0(ajv@8.18.0)
+      ajv-formats: 3.0.1(ajv@8.18.0)
+      fs-extra: 11.3.4
+      import-lazy: 4.0.0
+      jju: 1.4.0
+      resolve: 1.22.12
+      semver: 7.7.4
+    optionalDependencies:
+      '@types/node': 24.12.2
+
+  '@rushstack/problem-matcher@0.2.1(@types/node@24.12.2)':
+    optionalDependencies:
+      '@types/node': 24.12.2
+
+  '@rushstack/rig-package@0.7.3':
+    dependencies:
+      jju: 1.4.0
+      resolve: 1.22.12
+
+  '@rushstack/terminal@0.24.0(@types/node@24.12.2)':
+    dependencies:
+      '@rushstack/node-core-library': 5.23.1(@types/node@24.12.2)
+      '@rushstack/problem-matcher': 0.2.1(@types/node@24.12.2)
+      supports-color: 8.1.1
+    optionalDependencies:
+      '@types/node': 24.12.2
+
+  '@rushstack/ts-command-line@5.3.10(@types/node@24.12.2)':
+    dependencies:
+      '@rushstack/terminal': 0.24.0(@types/node@24.12.2)
+      '@types/argparse': 1.0.38
+      argparse: 1.0.10
+      string-argv: 0.3.2
+    transitivePeerDependencies:
+      - '@types/node'
+
+  '@sapphire/async-queue@1.5.5': {}
 
   '@sapphire/shapeshift@4.0.0':
     dependencies:
@@ -16995,14 +17065,6 @@ snapshots:
     dependencies:
       defer-to-connect: 2.0.1
 
-  '@tokenizer/inflate@0.2.7':
-    dependencies:
-      debug: 4.4.3
-      fflate: 0.8.2
-      token-types: 6.1.2
-    transitivePeerDependencies:
-      - supports-color
-
   '@tokenizer/inflate@0.4.1':
     dependencies:
       debug: 4.4.3
@@ -17047,6 +17109,8 @@ snapshots:
   '@tybys/wasm-util@0.9.0':
     dependencies:
       tslib: 2.8.1
+
+  '@types/argparse@1.0.38': {}
 
   '@types/body-parser@1.19.6':
     dependencies:
@@ -17800,6 +17864,12 @@ snapshots:
 
   adm-zip@0.5.17: {}
 
+  agent-base@6.0.2:
+    dependencies:
+      debug: 4.4.3
+    transitivePeerDependencies:
+      - supports-color
+
   agent-base@7.1.4: {}
 
   agentkeepalive@4.6.0:
@@ -17818,6 +17888,10 @@ snapshots:
       '@ai-sdk/provider-utils': 3.0.23(zod@4.3.6)
       '@opentelemetry/api': 1.9.0
       zod: 4.3.6
+
+  ajv-draft-04@1.0.0(ajv@8.18.0):
+    optionalDependencies:
+      ajv: 8.18.0
 
   ajv-formats@2.1.1(ajv@8.18.0):
     optionalDependencies:
@@ -17909,7 +17983,7 @@ snapshots:
       normalize-path: 3.0.0
       picomatch: 2.3.2
 
-  apify-client@2.23.0:
+  apify-client@2.23.4:
     dependencies:
       '@apify/consts': 2.52.1
       '@apify/log': 2.5.35
@@ -17917,7 +17991,7 @@ snapshots:
       '@crawlee/types': 3.16.0
       ansi-colors: 4.1.3
       async-retry: 1.3.3
-      axios: 1.15.0
+      axios: 1.18.1
       content-type: 1.0.5
       ow: 0.28.2
       proxy-agent: 6.5.0
@@ -17929,22 +18003,21 @@ snapshots:
 
   apify-node-curl-impersonate@1.0.29: {}
 
-  apify@3.7.0(bufferutil@4.1.0):
+  apify@4.0.0-beta.19(bufferutil@4.1.0):
     dependencies:
       '@apify/consts': 2.52.1
       '@apify/input_secrets': 1.2.30
       '@apify/log': 2.5.35
       '@apify/timeout': 0.3.3
       '@apify/utilities': 2.27.0
-      '@crawlee/core': 3.16.0
-      '@crawlee/types': 3.16.0
-      '@crawlee/utils': 3.16.0
-      apify-client: 2.23.0
-      fs-extra: 11.3.4
-      ow: 0.28.2
+      '@crawlee/core': link:packages/core
+      '@crawlee/types': link:packages/types
+      '@crawlee/utils': link:packages/utils
+      apify-client: 2.23.4
       semver: 7.7.4
       tslib: 2.8.1
       ws: 8.20.0(bufferutil@4.1.0)
+      zod: 4.3.6
     transitivePeerDependencies:
       - bufferutil
       - debug
@@ -18114,6 +18187,16 @@ snapshots:
       proxy-from-env: 2.1.0
     transitivePeerDependencies:
       - debug
+
+  axios@1.18.1:
+    dependencies:
+      follow-redirects: 1.16.0
+      form-data: 4.0.5
+      https-proxy-agent: 5.0.1
+      proxy-from-env: 2.1.0
+    transitivePeerDependencies:
+      - debug
+      - supports-color
 
   axobject-query@4.1.0: {}
 
@@ -19535,6 +19618,8 @@ snapshots:
 
   devtools-protocol@0.0.1612613: {}
 
+  diff@8.0.4: {}
+
   diffie-hellman@5.0.3:
     dependencies:
       bn.js: 4.12.3
@@ -20406,8 +20491,6 @@ snapshots:
       set-cookie-parser: 2.7.2
       tough-cookie: 6.0.1
 
-  fflate@0.8.2: {}
-
   figures@3.2.0:
     dependencies:
       escape-string-regexp: 1.0.5
@@ -20421,15 +20504,6 @@ snapshots:
       loader-utils: 2.0.4
       schema-utils: 3.3.0
       webpack: 5.106.1(@swc/core@1.15.24)(esbuild@0.27.7)
-
-  file-type@20.5.0:
-    dependencies:
-      '@tokenizer/inflate': 0.2.7
-      strtok3: 10.3.5
-      token-types: 6.1.2
-      uint8array-extras: 1.5.0
-    transitivePeerDependencies:
-      - supports-color
 
   file-type@21.3.4:
     dependencies:
@@ -21341,6 +21415,13 @@ snapshots:
       quick-lru: 5.1.1
       resolve-alpn: 1.2.1
 
+  https-proxy-agent@5.0.1:
+    dependencies:
+      agent-base: 6.0.2
+      debug: 4.4.3
+    transitivePeerDependencies:
+      - supports-color
+
   https-proxy-agent@7.0.6:
     dependencies:
       agent-base: 7.1.4
@@ -21858,6 +21939,8 @@ snapshots:
   jiti@1.21.7: {}
 
   jiti@2.6.1: {}
+
+  jju@1.4.0: {}
 
   joi@17.13.3:
     dependencies:
