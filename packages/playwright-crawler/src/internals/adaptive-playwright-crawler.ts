@@ -13,7 +13,10 @@ import type {
     GetUserDataFromRequest,
     RequestQueue,
     RestrictedCrawlingContext,
+    RouterHandler,
     RouterRoutes,
+    RouteSchemas,
+    RoutesFromSchemas,
     StatisticPersistedState,
     StatisticsOptions,
     StatisticState,
@@ -168,8 +171,17 @@ interface AdaptivePostNavigationHook extends BrowserHook<
 
 export interface AdaptivePlaywrightCrawlerOptions<
     ExtendedContext extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext,
+    Routes extends Record<keyof Routes, Dictionary> = Record<
+        string,
+        GetUserDataFromRequest<AdaptivePlaywrightCrawlerContext['request']>
+    >,
 > extends Omit<
-    BasicCrawlerOptions<AdaptivePlaywrightCrawlerContext, ExtendedContext>,
+    BasicCrawlerOptions<
+        AdaptivePlaywrightCrawlerContext,
+        ExtendedContext,
+        AdaptivePlaywrightCrawlerContext & ExtendedContext,
+        Routes
+    >,
     'preNavigationHooks' | 'postNavigationHooks'
 > {
     /**
@@ -275,7 +287,16 @@ type LogProxyCall = [log: CrawleeLogger, method: (typeof proxyLogMethods)[number
  */
 export class AdaptivePlaywrightCrawler<
     ExtendedContext extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext,
-> extends BasicCrawler<AdaptivePlaywrightCrawlerContext, ExtendedContext> {
+    Routes extends Record<keyof Routes, Dictionary> = Record<
+        string,
+        GetUserDataFromRequest<AdaptivePlaywrightCrawlerContext['request']>
+    >,
+> extends BasicCrawler<
+    AdaptivePlaywrightCrawlerContext,
+    ExtendedContext,
+    AdaptivePlaywrightCrawlerContext & ExtendedContext,
+    Routes
+> {
     private renderingTypePredictor: NonNullable<AdaptivePlaywrightCrawlerOptions['renderingTypePredictor']>;
     private resultChecker: NonNullable<AdaptivePlaywrightCrawlerOptions['resultChecker']>;
     private resultComparator: NonNullable<AdaptivePlaywrightCrawlerOptions['resultComparator']>;
@@ -289,7 +310,7 @@ export class AdaptivePlaywrightCrawler<
 
     private teardownHooks: (() => Promise<unknown>)[] = [];
 
-    constructor(options: AdaptivePlaywrightCrawlerOptions<ExtendedContext> = {}) {
+    constructor(options: AdaptivePlaywrightCrawlerOptions<ExtendedContext, Routes> = {}) {
         const {
             requestHandler,
             renderingTypeDetectionRatio = 0.1,
@@ -782,7 +803,16 @@ export class AdaptivePlaywrightCrawler<
 
 export function createAdaptivePlaywrightRouter<
     Context extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext,
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
+>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
+export function createAdaptivePlaywrightRouter<
+    Context extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext,
     UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
->(routes?: RouterRoutes<Context, UserData>) {
-    return Router.create<Context>(routes);
+>(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
+export function createAdaptivePlaywrightRouter<
+    Context extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext,
+    const Schemas extends RouteSchemas = RouteSchemas,
+>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
+export function createAdaptivePlaywrightRouter(routesOrSchemas?: any): any {
+    return Router.create(routesOrSchemas);
 }

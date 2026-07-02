@@ -17,6 +17,32 @@ export class CriticalError extends NonRetryableError {}
 export class MissingRouteError extends CriticalError {}
 
 /**
+ * Thrown when a request's `userData` does not match the {@apilink RouteSchemas|Standard Schema} registered for its label.
+ *
+ * As the `userData` does not change between attempts, this error is non-retryable.
+ */
+export class RequestValidationError extends NonRetryableError {
+    constructor(
+        readonly label: string | symbol,
+        readonly issues: readonly {
+            readonly message: string;
+            readonly path?: readonly (PropertyKey | { key: PropertyKey })[];
+        }[],
+    ) {
+        const details = issues
+            .map((issue) => {
+                const path = (issue.path ?? [])
+                    .map((segment) => (typeof segment === 'object' ? segment.key : segment))
+                    .join('.');
+                return `- ${path ? `${path}: ` : ''}${issue.message}`;
+            })
+            .join('\n');
+
+        super(`Request userData for label '${String(label)}' failed schema validation:\n${details}`);
+    }
+}
+
+/**
  * Errors of `RetryRequestError` type will always be retried by the crawler.
  *
  * *This error overrides the `maxRequestRetries` option, i.e. the request can be retried indefinitely until it succeeds.*

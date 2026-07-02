@@ -11,7 +11,10 @@ import type {
     Request as CrawleeRequest,
     RequestHandler,
     RequireContextPipeline,
+    RouterHandler,
     RouterRoutes,
+    RouteSchemas,
+    RoutesFromSchemas,
 } from '@crawlee/basic';
 import {
     BasicCrawler,
@@ -61,7 +64,8 @@ export interface HttpCrawlerOptions<
     Context extends InternalHttpCrawlingContext = InternalHttpCrawlingContext,
     ContextExtension = Dictionary<never>,
     ExtendedContext extends Context = Context & ContextExtension,
-> extends BasicCrawlerOptions<Context, ContextExtension, ExtendedContext> {
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
+> extends BasicCrawlerOptions<Context, ContextExtension, ExtendedContext, Routes> {
     /**
      * Timeout in which the HTTP request to the resource needs to finish, given in seconds.
      */
@@ -312,7 +316,8 @@ export class HttpCrawler<
     Context extends InternalHttpCrawlingContext<any, any> = InternalHttpCrawlingContext,
     ContextExtension = Dictionary<never>,
     ExtendedContext extends Context = Context & ContextExtension,
-> extends BasicCrawler<Context, ContextExtension, ExtendedContext> {
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
+> extends BasicCrawler<Context, ContextExtension, ExtendedContext, Routes> {
     protected preNavigationHooks: InternalHttpHook<CrawlingContext>[];
     protected postNavigationHooks: ((
         crawlingContext: CrawlingContextWithResponse,
@@ -849,7 +854,16 @@ interface RequestFunctionOptions {
  */
 export function createHttpRouter<
     Context extends HttpCrawlingContext = HttpCrawlingContext,
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
+>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
+export function createHttpRouter<
+    Context extends HttpCrawlingContext = HttpCrawlingContext,
     UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
->(routes?: RouterRoutes<Context, UserData>) {
-    return Router.create<Context>(routes);
+>(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
+export function createHttpRouter<
+    Context extends HttpCrawlingContext = HttpCrawlingContext,
+    const Schemas extends RouteSchemas = RouteSchemas,
+>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
+export function createHttpRouter(routesOrSchemas?: any): any {
+    return Router.create(routesOrSchemas);
 }
