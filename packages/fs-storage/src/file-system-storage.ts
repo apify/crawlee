@@ -1,5 +1,5 @@
 /* eslint-disable import/no-duplicates */
-import { access, readdir, rm } from 'node:fs/promises';
+import { readdir, rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 import type * as storage from '@crawlee/types';
@@ -213,20 +213,23 @@ export class FileSystemStorageClient implements storage.StorageClient {
 
     async storageExists(id: string, type: 'Dataset' | 'KeyValueStore' | 'RequestQueue'): Promise<boolean> {
         let clients: { id: string }[];
-        let baseDir: string;
+        let findByPossibleId: (
+            client: FileSystemStorageClient,
+            entryNameOrId: string,
+        ) => Promise<{ id: string } | undefined>;
 
         switch (type) {
             case 'Dataset':
                 clients = this.datasetClientCache;
-                baseDir = this.datasetsDirectory;
+                findByPossibleId = findOrCacheDatasetByPossibleId;
                 break;
             case 'KeyValueStore':
                 clients = this.keyValueStoreCache;
-                baseDir = this.keyValueStoresDirectory;
+                findByPossibleId = findOrCacheKeyValueStoreByPossibleId;
                 break;
             case 'RequestQueue':
                 clients = this.requestQueueCache;
-                baseDir = this.requestQueuesDirectory;
+                findByPossibleId = findRequestQueueByPossibleId;
                 break;
             default:
                 return false;
@@ -237,25 +240,14 @@ export class FileSystemStorageClient implements storage.StorageClient {
             return true;
         }
 
-        // Check if a directory with that ID exists on disk.
-        // Only consider directories whose name matches the queried ID — this avoids
-        // false positives for alias-created directories (e.g. a directory named 'asdf'
-        // created via `{ alias: 'asdf' }` should not make `storageExists('asdf')` return true,
-        // since the actual storage ID is a UUID, not the alias string).
-        try {
-            await access(resolve(baseDir, id));
-
-            // If the directory exists but a cached client already owns this directory
-            // under a different ID, this is not a match.
-            const cachedClients = clients as { id: string; directoryName?: string }[];
-            if (cachedClients.some((store) => store.directoryName === id && store.id !== id)) {
-                return false;
-            }
-
-            return true;
-        } catch {
-            return false;
-        }
+        // Resolve any on-disk directory that matches the queried string (by directory name).
+        // The directory is named after the storage's `name ?? id`, so a match does not by itself
+        // prove that the string is the storage's ID — it could just be its name (or an alias).
+        // Read the actual stored metadata and only treat the string as an ID if it equals the
+        // resolved storage's real ID. This prevents a named storage opened via the legacy
+        // `open(idOrName)` signature from being re-resolved as `{ id: name }` on a subsequent run.
+        const resolved = await findByPossibleId(this, id);
+        return resolved?.id === id;
     }
 
     async setStatusMessage(message: string, options: storage.SetStatusMessageOptions = {}): Promise<void> {
