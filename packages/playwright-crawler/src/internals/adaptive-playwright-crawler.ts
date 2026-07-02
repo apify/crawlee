@@ -669,6 +669,7 @@ export class AdaptivePlaywrightCrawler<
                 throw browserRun.error;
             }
 
+            browserRun.logs?.forEach(([log, method, ...args]) => log[method](...(args as [any, any])));
             await this.commitResult(crawlingContext, browserRun.result);
 
             if (shouldDetectRenderingType) {

@@ -19,8 +19,7 @@ import {
     serviceLocator,
     SessionPool,
 } from '@crawlee/basic';
-import { RequestState } from '@crawlee/core';
-import { MemoryStorage } from '@crawlee/memory-storage';
+import { Dataset, MemoryStorageClient, RequestState } from '@crawlee/core';
 import type { ISession, ProxyInfo } from '@crawlee/types';
 import type { Dictionary } from '@crawlee/utils';
 import { RobotsTxtFile, sleep } from '@crawlee/utils';
@@ -1287,6 +1286,34 @@ describe('BasicCrawler', () => {
         results[0].errorMessages.forEach((msg) => expect(msg).toMatch('requestHandler timed out'));
     });
 
+    test('timeouted request should not access storages', async () => {
+        const url = 'https://example.com';
+        const requestList = await RequestList.open({ sources: [{ url }] });
+
+        const results: Request[] = [];
+        const crawler = new BasicCrawler({
+            requestList,
+            requestHandlerTimeoutSecs: 0.01,
+            maxRequestRetries: 0,
+            requestHandler: async ({ pushData }) => {
+                await sleep(10);
+                await pushData({ foo: 'bar' });
+            },
+            failedRequestHandler: async ({ request }) => {
+                results.push(request);
+                await sleep(100);
+            },
+        });
+
+        await crawler.run();
+        expect(results).toHaveLength(1);
+        expect(results[0].url).toEqual(url);
+        results[0].errorMessages.forEach((msg) => expect(msg).toMatch('requestHandler timed out'));
+
+        const dataset = await crawler.getDataset();
+        expect((await dataset.getInfo()).itemCount).toBe(0);
+    });
+
     test('limits requestHandlerTimeoutSecs and derived vars to a valid value', async () => {
         const url = 'https://example.com';
         const requestList = await RequestList.open({ sources: [{ url }] });
@@ -2186,10 +2213,10 @@ describe('BasicCrawler', () => {
         });
 
         test("Crawlers with different storage clients don't share Datasets", async () => {
-            // Each crawler gets its own MemoryStorage with a different localDataDirectory,
-            // producing different clientCacheKeys and thus separate cache partitions.
-            const storageA = new MemoryStorage({ persistStorage: false, localDataDirectory: `${tmpDir}/storageA` });
-            const storageB = new MemoryStorage({ persistStorage: false, localDataDirectory: `${tmpDir}/storageB` });
+            // Each crawler gets its own MemoryStorageClient instance; every instance has a unique
+            // per-instance cache key, so they end up in separate cache partitions.
+            const storageA = new MemoryStorageClient();
+            const storageB = new MemoryStorageClient();
 
             const crawlerA = new BasicCrawler({ storageClient: storageA });
             const crawlerB = new BasicCrawler({ storageClient: storageB });
@@ -2203,8 +2230,8 @@ describe('BasicCrawler', () => {
         });
 
         test('Crawlers with different storage clients run separately', async () => {
-            const storageA = new MemoryStorage({ persistStorage: false, localDataDirectory: `${tmpDir}/storageA` });
-            const storageB = new MemoryStorage({ persistStorage: false, localDataDirectory: `${tmpDir}/storageB` });
+            const storageA = new MemoryStorageClient();
+            const storageB = new MemoryStorageClient();
 
             const crawlerA = new BasicCrawler({
                 requestHandler: () => {},

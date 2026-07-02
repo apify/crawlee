@@ -1,7 +1,7 @@
 import { resolve } from 'node:path';
 
-import { MemoryStorage } from '@crawlee/memory-storage';
-import { Configuration, serviceLocator } from 'crawlee';
+import { MemoryStorageClient } from '@crawlee/core';
+import { Configuration, KeyValueStore, serviceLocator } from 'crawlee';
 import { ensureDir } from 'fs-extra';
 
 import log from '@apify/log';
@@ -12,7 +12,7 @@ import { StorageEmulator } from './StorageEmulator.js';
 const LOCAL_EMULATION_DIR = resolve(import.meta.dirname, '..', 'tmp', 'memory-emulation-dir');
 
 export class MemoryStorageEmulator extends StorageEmulator {
-    private storage!: MemoryStorage;
+    private storage!: MemoryStorageClient;
 
     override async init({ dirName = cryptoRandomObjectId(10), persistStorage = false }: MemoryEmulatorOptions = {}) {
         await super.init();
@@ -20,14 +20,18 @@ export class MemoryStorageEmulator extends StorageEmulator {
         this.localStorageDirectories.push(localStorageDir);
         await ensureDir(localStorageDir);
 
-        this.storage = new MemoryStorage({ localDataDirectory: localStorageDir, persistStorage, writeMetadata: false });
+        // `MemoryStorageClient` is purely in-memory and ignores any disk-related options, so they are
+        // not passed here. `persistStorage` is accepted for API compatibility with the emulator options
+        // but has no effect on the in-memory storage.
+        void persistStorage;
+        this.storage = new MemoryStorageClient();
 
         serviceLocator.setStorageClient(this.storage);
         log.debug(`Initialized emulated memory storage in folder ${localStorageDir}`);
     }
 
     static override toString() {
-        return '@crawlee/memory-storage';
+        return 'MemoryStorageClient';
     }
 
     getDataset(id?: string) {
@@ -73,8 +77,12 @@ export class MemoryStorageEmulator extends StorageEmulator {
         return this.storage.createKeyValueStoreClient(id ? { id } : { alias: '__default__' });
     }
 
-    async getState() {
-        return await (await this.getKeyValueStore()).getValue('CRAWLEE_STATE');
+    /**
+     * Reads the crawler state through the `KeyValueStore` frontend, so the JSON value is parsed for
+     * you (the raw client returns bytes — parsing is the frontend's job).
+     */
+    async getState<T = unknown>() {
+        return (await KeyValueStore.open()).getValue<T>('CRAWLEE_STATE');
     }
 }
 

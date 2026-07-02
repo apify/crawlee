@@ -7,6 +7,7 @@ import bodyParser from 'body-parser';
 import { entries } from 'crawlee';
 import type { Application } from 'express';
 import express from 'express';
+import iconv from 'iconv-lite';
 
 export const startExpressAppPromise = async (app: Application, port: number) => {
     return new Promise<Server>((resolve) => {
@@ -330,6 +331,13 @@ export async function runExampleComServer(): Promise<[Server, number]> {
 
         special.get('/html-entities', (_req, res) => {
             res.type('html').send('&quot;&lt;&gt;"<>');
+        });
+
+        special.get('/meta-charset', (_req, res) => {
+            const text = 'Žluťoučký kůň';
+            const html = `<html><head><meta http-equiv="Content-Type" content="text/html; charset=windows-1250"></head><body>${text}</body></html>`;
+            res.setHeader('content-type', 'text/html');
+            res.end(iconv.encode(html, 'windows-1250'));
         });
 
         special.get('/set-cookie', (req, res) => {

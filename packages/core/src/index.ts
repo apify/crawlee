@@ -12,6 +12,7 @@ export * from './router.js';
 export * from './serialization.js';
 export * from './session_pool/index.js';
 export * from './storages/index.js';
+export * from './memory-storage/index.js';
 export * from './validators.js';
 export * from './cookie_utils.js';
 export * from './recoverable_state.js';

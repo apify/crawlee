@@ -96,9 +96,41 @@ export interface KeyValueStoreInfo {
     stats?: KeyValueStoreStats;
 }
 
+/**
+ * The value a serialized record carries on the way *into* a storage client (`setValue`).
+ *
+ * The `KeyValueStore` frontend has already serialized by this point, so it is a pre-serialized
+ * string, raw bytes (`Buffer` / `ArrayBuffer` / typed array), or a stream the client drains.
+ */
+export type KeyValueStoreRecordInputValue =
+    | Buffer
+    | ArrayBuffer
+    | ArrayBufferView
+    | string
+    | NodeJS.ReadableStream
+    | ReadableStream;
+
+/**
+ * A record as returned by a storage client (`getValue`).
+ *
+ * Storage clients are byte transports: they persist and return bytes verbatim and never serialize
+ * or parse. Interpretation is the `KeyValueStore` frontend's job (it parses according to the content
+ * type via `parseValue`). The value is therefore always raw bytes — a `Buffer` (Node) or an
+ * `ArrayBuffer` (browser backends).
+ */
 export interface KeyValueStoreRecord {
     key: string;
-    value: any;
+    value: Buffer | ArrayBuffer;
+    contentType?: string;
+}
+
+/**
+ * A record passed to a storage client for writing (`setValue`). Like {@link KeyValueStoreRecord} but
+ * with the lenient, pre-serialized {@link KeyValueStoreRecordInputValue} for the value.
+ */
+export interface KeyValueStoreInputRecord {
+    key: string;
+    value: KeyValueStoreRecordInputValue;
     contentType?: string;
 }
 
@@ -135,11 +167,16 @@ export interface KeyValueStoreClient {
     /** Remove all records from the store but keep the store itself. */
     purge(): Promise<void>;
 
-    /** Get a record value by key. Returns the parsed value or `undefined` if not found. */
+    /**
+     * Get a record by key. Returns the raw bytes plus content type, or `undefined` if not found.
+     *
+     * Clients are byte transports and must not parse the body — the `KeyValueStore` frontend
+     * interprets it according to the content type.
+     */
     getValue(key: string): Promise<KeyValueStoreRecord | undefined>;
 
     /** Set a record value. */
-    setValue(record: KeyValueStoreRecord): Promise<void>;
+    setValue(record: KeyValueStoreInputRecord): Promise<void>;
 
     /** Delete a record by key. */
     deleteValue(key: string): Promise<void>;
@@ -430,7 +467,7 @@ export interface StorageClient {
      *
      * The key is used by `StorageInstanceManager` to partition the storage cache per-backend,
      * so that two storages with the same name but backed by different clients
-     * (e.g. a local `MemoryStorage` and a cloud `ApifyClient`) are cached as separate instances.
+     * (e.g. a local `MemoryStorageClient` and a cloud `ApifyClient`) are cached as separate instances.
      *
      * When not provided, the fallback uses the client's constructor name, so different
      * `StorageClient` implementations automatically get separate cache partitions.

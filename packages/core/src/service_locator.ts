@@ -1,6 +1,6 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 
-import { MemoryStorage } from '@crawlee/memory-storage';
+import { FileSystemStorageClient } from '@crawlee/fs-storage';
 import type { StorageClient } from '@crawlee/types';
 
 import log from '@apify/log';
@@ -11,6 +11,7 @@ import type { EventManager } from './events/event_manager.js';
 import { LocalEventManager } from './events/local_event_manager.js';
 import type { CrawleeLogger } from './log.js';
 import { ApifyLogAdapter } from './log.js';
+import { MemoryStorageClient } from './memory-storage/index.js';
 import { StorageInstanceManager } from './storages/storage_instance_manager.js';
 
 interface ServiceLocatorInterface {
@@ -44,7 +45,8 @@ interface ServiceLocatorInterface {
 
     /**
      * Get the storage client.
-     * Creates a default MemoryStorage instance if none has been set.
+     * Creates a default storage client if none has been set — `FileSystemStorageClient` when
+     * `persistStorage` is enabled (the default), `MemoryStorageClient` otherwise.
      */
     getStorageClient(): StorageClient;
 
@@ -109,13 +111,12 @@ interface ServiceLocatorInterface {
  *
  * **2. Per-crawler services (recommended for isolation):**
  * ```typescript
- * import { BasicCrawler, Configuration, LocalEventManager } from 'crawlee';
- * import { MemoryStorage } from '@crawlee/memory-storage';
+ * import { BasicCrawler, Configuration, LocalEventManager, MemoryStorageClient } from 'crawlee';
  *
  * const crawler = new BasicCrawler({
  *     requestHandler: async ({ request }) => { ... },
  *     configuration: new Configuration({ ... }),  // custom config
- *     storageClient: new MemoryStorage(),          // custom storage
+ *     storageClient: new MemoryStorageClient(),          // custom storage
  *     eventManager: LocalEventManager.fromConfig(),  // custom events
  * });
  * // Crawler has its own isolated ServiceLocator instance
@@ -206,7 +207,10 @@ export class ServiceLocator implements ServiceLocatorInterface {
 
     getStorageClient(): StorageClient {
         if (!this.storageClient) {
-            this.getLogger().debug('No storage client set, implicitly creating and using default MemoryStorage.');
+            this.getLogger().debug(
+                'No storage client set, implicitly creating and using the default storage client ' +
+                    '(FileSystemStorageClient when persistStorage is enabled, MemoryStorageClient otherwise).',
+            );
             if (!this.configuration) {
                 this.getLogger().warning(
                     'Implicit creation of storage client will implicitly set configuration as side effect. ' +
@@ -214,10 +218,13 @@ export class ServiceLocator implements ServiceLocatorInterface {
                 );
             }
             const config = this.getConfiguration();
-            this.storageClient = new MemoryStorage({
-                persistStorage: config.persistStorage,
-                logger: this.getLogger().child({ prefix: 'MemoryStorage' }),
-            });
+            this.storageClient = config.persistStorage
+                ? new FileSystemStorageClient({
+                      logger: this.getLogger().child({ prefix: 'FileSystemStorageClient' }),
+                  })
+                : new MemoryStorageClient({
+                      logger: this.getLogger().child({ prefix: 'MemoryStorageClient' }),
+                  });
         }
         return this.storageClient;
     }

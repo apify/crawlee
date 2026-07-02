@@ -1,0 +1,82 @@
+import { readdir, rm } from 'node:fs/promises';
+import { resolve } from 'node:path';
+
+import { FileSystemStorageClient } from '@crawlee/fs-storage';
+
+import { waitTillWrittenToDisk } from './__shared__.js';
+
+describe('writeMetadata option', () => {
+    const tmpLocation = resolve(import.meta.dirname, './tmp/write-metadata-tests');
+
+    afterAll(async () => {
+        await rm(tmpLocation, { force: true, recursive: true });
+    });
+
+    describe('when false', () => {
+        const localDataDirectory = resolve(tmpLocation, './no-metadata');
+        const storage = new FileSystemStorageClient({
+            localDataDirectory,
+            writeMetadata: false,
+        });
+
+        test('creating a data store should not write __metadata__.json file', async () => {
+            const keyValueStore = await storage.createKeyValueStoreClient();
+            const info = await keyValueStore.getMetadata();
+            const expectedPath = resolve(storage.keyValueStoresDirectory, info.id);
+
+            // We check that reading the directory for the store throws an error, which means it wasn't created on disk
+            await expect(async () => readdir(expectedPath)).rejects.toThrow();
+        });
+
+        test('creating a key-value pair in a key-value store should not write __metadata__.json file for the value', async () => {
+            const keyValueStore = await storage.createKeyValueStoreClient();
+            // The client is a byte-transport: pass the content type so the on-disk extension is `txt`.
+            await keyValueStore.setValue({ key: 'foo', value: 'test', contentType: 'text/plain; charset=utf-8' });
+
+            const keyValueStoreInfo = await keyValueStore.getMetadata();
+            const expectedFilePath = resolve(storage.keyValueStoresDirectory, `${keyValueStoreInfo.id}/foo.txt`);
+            await waitTillWrittenToDisk(expectedFilePath);
+
+            const directoryFiles = await readdir(resolve(storage.keyValueStoresDirectory, keyValueStoreInfo.id));
+
+            expect(directoryFiles).toHaveLength(1);
+        });
+    });
+
+    describe('when true', () => {
+        const localDataDirectory = resolve(tmpLocation, './metadata');
+        const storage = new FileSystemStorageClient({
+            localDataDirectory,
+            writeMetadata: true,
+        });
+
+        test('creating a data store should write __metadata__.json file', async () => {
+            const keyValueStore = await storage.createKeyValueStoreClient();
+            const info = await keyValueStore.getMetadata();
+            const expectedPath = resolve(storage.keyValueStoresDirectory, info.id);
+            await waitTillWrittenToDisk(expectedPath);
+
+            const directoryFiles = await readdir(expectedPath);
+
+            expect(directoryFiles).toHaveLength(1);
+        });
+
+        test('creating a key-value pair in a key-value store should write __metadata__.json file for the value', async () => {
+            const keyValueStore = await storage.createKeyValueStoreClient();
+            // The client is a byte-transport: pass the content type so the on-disk extension is `txt`.
+            await keyValueStore.setValue({ key: 'foo', value: 'test', contentType: 'text/plain; charset=utf-8' });
+
+            const keyValueStoreInfo = await keyValueStore.getMetadata();
+            const expectedFilePath = resolve(storage.keyValueStoresDirectory, `${keyValueStoreInfo.id}/foo.txt`);
+            const expectedMetadataPath = resolve(
+                storage.keyValueStoresDirectory,
+                `${keyValueStoreInfo.id}/foo.__metadata__.json`,
+            );
+            await Promise.all([waitTillWrittenToDisk(expectedFilePath), waitTillWrittenToDisk(expectedMetadataPath)]);
+
+            const directoryFiles = await readdir(resolve(storage.keyValueStoresDirectory, keyValueStoreInfo.id));
+
+            expect(directoryFiles).toHaveLength(3);
+        });
+    });
+});

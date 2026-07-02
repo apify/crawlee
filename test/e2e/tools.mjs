@@ -22,7 +22,7 @@ function execSync(command, options) {
 /**
  * @param {string} name
  */
-const isPrivateEntry = (name) => name === 'SDK_CRAWLER_STATISTICS_0' || name === 'SDK_SESSION_POOL_STATE';
+const isPrivateEntry = (name) => name === 'CRAWLEE_CRAWLER_STATISTICS_0' || name === 'CRAWLEE_SESSION_POOL_STATE';
 
 export const SKIPPED_TEST_CLOSE_CODE = 404;
 
@@ -49,7 +49,7 @@ export function getStorage(dirName) {
  */
 export async function getStats(dirName) {
     const dir = getStorage(dirName);
-    const path = join(dir, `key_value_stores/default/SDK_CRAWLER_STATISTICS_0.json`);
+    const path = join(dir, `key_value_stores/default/CRAWLEE_CRAWLER_STATISTICS_0.json`);
 
     if (!existsSync(path)) {
         return false;
@@ -208,7 +208,9 @@ export async function runActor(dirName, memory = 4096) {
         const runTook = (runFinishedAt.getTime() - runStartedAt.getTime()) / 1000;
         console.log(`[run] View run: https://console.apify.com/view/runs/${runId} [run took ${runTook}s]`);
 
-        const statsRecord = await client.keyValueStore(defaultKeyValueStoreId).getRecord('SDK_CRAWLER_STATISTICS_0');
+        const statsRecord = await client
+            .keyValueStore(defaultKeyValueStoreId)
+            .getRecord('CRAWLEE_CRAWLER_STATISTICS_0');
         stats = statsRecord?.value;
 
         const { items } = await client.dataset(defaultDatasetId).listItems();
@@ -286,18 +288,65 @@ async function copyPackages(dirName) {
         Object.assign(dependencies, overrides.apify);
     }
 
-    for (const dependency of Object.values(dependencies)) {
-        if (!dependency.startsWith('file:')) {
-            continue;
+    // Build a map of `@crawlee/*` package name -> its directory name under `packages/`.
+    // The two don't always match (e.g. `@crawlee/basic` lives in `basic-crawler`).
+    const packageNameToDir = new Map();
+    for (const entry of await readdir(srcPackagesDir, { withFileTypes: true })) {
+        if (!entry.isDirectory()) continue;
+        try {
+            const { name } = await fs.readJSON(join(srcPackagesDir, entry.name, 'package.json'));
+            if (name) packageNameToDir.set(name, entry.name);
+        } catch {
+            // ignore directories without a readable package.json
         }
+    }
 
-        const packageDirName = dependency.split('/').pop();
+    // Seed the copy queue with the packages referenced by the actor via `file:` deps,
+    // then transitively pull in every `@crawlee/*` dependency they need.
+    const queue = [];
+    for (const dependency of Object.values(dependencies)) {
+        if (typeof dependency === 'string' && dependency.startsWith('file:')) {
+            queue.push(dependency.split('/').pop());
+        }
+    }
+
+    const copied = new Set();
+    while (queue.length > 0) {
+        const packageDirName = queue.shift();
+        if (copied.has(packageDirName)) continue;
+        copied.add(packageDirName);
+
         const srcDir = join(srcPackagesDir, packageDirName, 'dist');
         const destDir = join(destPackagesDir, packageDirName, 'dist');
         await fs.copy(srcDir, destDir);
+
         const srcPackageFile = join(srcPackagesDir, packageDirName, 'package.json');
+        const pkg = await fs.readJSON(srcPackageFile);
+
+        // npm (used when building the actor on the platform) does not understand pnpm's
+        // `workspace:` protocol, so rewrite internal `@crawlee/*` deps to sibling `file:`
+        // references and make sure those packages get copied as well.
+        for (const depGroup of ['dependencies', 'optionalDependencies', 'peerDependencies']) {
+            const deps = pkg[depGroup];
+            if (!deps) continue;
+
+            for (const [depName, depVersion] of Object.entries(deps)) {
+                if (typeof depVersion !== 'string' || !depVersion.startsWith('workspace:')) {
+                    continue;
+                }
+
+                const depDir = packageNameToDir.get(depName);
+                if (!depDir) {
+                    throw new Error(`Cannot resolve workspace dependency "${depName}" for package "${packageDirName}"`);
+                }
+
+                deps[depName] = `file:../${depDir}`;
+                queue.push(depDir);
+            }
+        }
+
         const destPackageFile = join(destPackagesDir, packageDirName, 'package.json');
-        await fs.copy(srcPackageFile, destPackageFile);
+        await fs.writeJSON(destPackageFile, pkg, { spaces: 4 });
     }
 }
 

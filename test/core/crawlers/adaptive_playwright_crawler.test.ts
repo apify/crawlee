@@ -1,7 +1,15 @@
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
-import { Configuration, type Dictionary, EventType, KeyValueStore, serviceLocator } from '@crawlee/core';
+import {
+    BaseCrawleeLogger,
+    type CrawleeLogger,
+    type CrawleeLoggerOptions,
+    type Dictionary,
+    EventType,
+    KeyValueStore,
+    serviceLocator,
+} from '@crawlee/core';
 import type {
     AdaptivePlaywrightCrawlerContext,
     AdaptivePlaywrightCrawlerOptions,
@@ -13,6 +21,22 @@ import { sleep } from 'crawlee';
 import express from 'express';
 import { startExpressAppPromise } from '../../shared/_helper.js';
 import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
+
+// A minimal logger that records every message into a shared array. Child loggers share the same
+// array, so messages emitted by the crawler's prefixed child logger are captured as well.
+class RecordingLogger extends BaseCrawleeLogger {
+    constructor(private readonly messages: string[]) {
+        super();
+    }
+
+    logWithLevel(_level: number, message: string): void {
+        this.messages.push(message);
+    }
+
+    protected createChild(_options: Partial<CrawleeLoggerOptions>): CrawleeLogger {
+        return new RecordingLogger(this.messages);
+    }
+}
 
 describe('AdaptivePlaywrightCrawler', () => {
     // Set up an express server that will serve test pages
@@ -174,6 +198,36 @@ describe('AdaptivePlaywrightCrawler', () => {
             expect(await localStorageEmulator.getDatasetItems()).toEqual([{ heading: 'Heading' }]);
         });
     });
+
+    test.each([['static'], ['clientOnly']] as const)(
+        'should replay request handler logs (%s)',
+        async (renderingType) => {
+            const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                detectionProbabilityRecommendation: 0,
+                renderingType,
+            });
+            const url = new URL(`http://${HOSTNAME}:${port}/static`);
+
+            const messages: string[] = [];
+            const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(async ({ log }) => {
+                log.info('handler log message');
+            });
+
+            const crawler = await makeOneshotCrawler(
+                {
+                    requestHandler,
+                    renderingTypePredictor,
+                    logger: new RecordingLogger(messages),
+                },
+                [url.toString()],
+            );
+
+            await crawler.run();
+
+            expect(requestHandler).toHaveBeenCalled();
+            expect(messages).toContain('handler log message');
+        },
+    );
 
     test('should not store detection results on non-detection runs', async () => {
         const renderingTypePredictor = makeRiggedRenderingTypePredictor({
@@ -384,8 +438,8 @@ describe('AdaptivePlaywrightCrawler', () => {
         );
 
         await crawler.run();
-        const state = await localStorageEmulator.getState();
-        expect(state!.value).toEqual({ count: 3 });
+        // getState reads through the frontend, so the value is already parsed.
+        expect(await localStorageEmulator.getState()).toEqual({ count: 3 });
     });
 
     test('should return deeply equal but not identical state objects across handler runs', async () => {
@@ -456,11 +510,12 @@ describe('AdaptivePlaywrightCrawler', () => {
         );
 
         await crawler.run();
-        const store = await localStorageEmulator.getKeyValueStore();
 
-        expect((await store.getValue('1'))!.value).toEqual({ content: 42 });
-        expect((await store.getValue('2'))!.value).toEqual({ content: 42 });
-        expect((await store.getValue('3'))!.value).toEqual({ content: 42 });
+        const store = await KeyValueStore.open();
+
+        await expect(store.getValue('1')).resolves.toEqual({ content: 42 });
+        await expect(store.getValue('2')).resolves.toEqual({ content: 42 });
+        await expect(store.getValue('3')).resolves.toEqual({ content: 42 });
     });
 
     test('should not allow direct key-value store manipulation', async () => {
