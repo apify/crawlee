@@ -683,13 +683,13 @@ export class RequestQueue implements IStorage, IRequestManager {
      * ever raise the reservation duration, never lower it — otherwise a short-lived consumer could cut
      * short the reservation of a long-lived one and have its in-flight request stolen.
      */
-    setExpectedRequestProcessingTimeSecs(secs: number): void {
+    async setExpectedRequestProcessingTimeSecs(secs: number): Promise<void> {
         if (secs <= this.expectedRequestProcessingSecs) {
             return;
         }
 
         this.expectedRequestProcessingSecs = secs;
-        this.client.setExpectedRequestProcessingTimeSecs?.(secs);
+        await this.client.setExpectedRequestProcessingTimeSecs?.(secs);
     }
 
     /**

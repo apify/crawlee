@@ -40,5 +40,5 @@ export interface IRequestManager extends IRequestLoader {
      * the same request out again while it is still being processed. Implementations that do not need
      * this hint may leave it `undefined`.
      */
-    setExpectedRequestProcessingTimeSecs?(secs: number): void;
+    setExpectedRequestProcessingTimeSecs?(secs: number): Promise<void>;
 }

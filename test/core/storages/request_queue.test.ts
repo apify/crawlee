@@ -318,16 +318,16 @@ describe('RequestQueue remote', () => {
             (queue.client as any).setExpectedRequestProcessingTimeSecs = spy;
 
             // First hint is forwarded.
-            queue.setExpectedRequestProcessingTimeSecs(60);
+            await queue.setExpectedRequestProcessingTimeSecs(60);
             expect(spy).toHaveBeenLastCalledWith(60);
 
             // A larger hint is forwarded.
-            queue.setExpectedRequestProcessingTimeSecs(120);
+            await queue.setExpectedRequestProcessingTimeSecs(120);
             expect(spy).toHaveBeenLastCalledWith(120);
 
             // A smaller (or equal) hint must not shorten the reservation, so it is not forwarded.
-            queue.setExpectedRequestProcessingTimeSecs(30);
-            queue.setExpectedRequestProcessingTimeSecs(120);
+            await queue.setExpectedRequestProcessingTimeSecs(30);
+            await queue.setExpectedRequestProcessingTimeSecs(120);
             expect(spy).toHaveBeenCalledTimes(2);
         });
     });
