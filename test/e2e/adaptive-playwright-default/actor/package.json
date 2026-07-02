@@ -3,7 +3,7 @@
     "version": "0.0.1",
     "description": "Adaptive Playwright Test - Default",
     "dependencies": {
-        "apify": "next",
+        "apify": "next-v4",
         "@apify/storage-local": "^3.0.0",
         "@crawlee/basic": "file:./packages/basic-crawler",
         "@crawlee/browser": "file:./packages/browser-crawler",
