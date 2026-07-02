@@ -12,6 +12,39 @@ import { type FileSystemStorageClient } from './file-system-storage.js';
 
 const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
 
+/**
+ * A named storage is persisted in a directory named after its *name*, while its *id* lives inside
+ * that directory's `__metadata__.json`. Looking a storage up by id therefore cannot rely on the
+ * directory name — this scans the sibling directories under `baseDirectory` and returns the name of
+ * the directory whose metadata `id` matches, so callers can resolve `Dataset.open("<id>")` (and
+ * `storageExists("<id>")`) for a storage that was originally opened by name.
+ */
+async function resolveDirNameByMetadataId(baseDirectory: string, id: string): Promise<string | undefined> {
+    let directories;
+    try {
+        directories = await opendir(baseDirectory);
+    } catch {
+        return undefined;
+    }
+
+    for await (const directory of directories) {
+        if (!directory.isDirectory()) {
+            continue;
+        }
+
+        try {
+            const fileContent = await readFile(resolve(baseDirectory, directory.name, '__metadata__.json'), 'utf8');
+            if ((JSON.parse(fileContent) as { id?: string }).id === id) {
+                return directory.name;
+            }
+        } catch {
+            // No metadata file (or unreadable) — this directory can't be matched by id.
+        }
+    }
+
+    return undefined;
+}
+
 export async function findOrCacheDatasetByPossibleId(client: FileSystemStorageClient, entryNameOrId: string) {
     // First check memory cache — match by id, name, or directoryName (which covers alias lookups)
     const found = client.datasetClientCache.find(
@@ -25,13 +58,19 @@ export async function findOrCacheDatasetByPossibleId(client: FileSystemStorageCl
         return found;
     }
 
-    const datasetDir = resolve(client.datasetsDirectory, entryNameOrId);
+    let datasetDir = resolve(client.datasetsDirectory, entryNameOrId);
 
     try {
         // Check if directory exists
         await access(datasetDir);
     } catch {
-        return undefined;
+        // No directory named after the string — it may be an id of a storage opened by name, whose
+        // directory is named after the name. Fall back to matching the id inside the metadata files.
+        const dirName = await resolveDirNameByMetadataId(client.datasetsDirectory, entryNameOrId);
+        if (dirName === undefined) {
+            return undefined;
+        }
+        datasetDir = resolve(client.datasetsDirectory, dirName);
     }
 
     // Access the dataset folder
@@ -130,13 +169,19 @@ export async function findOrCacheKeyValueStoreByPossibleId(client: FileSystemSto
         return found;
     }
 
-    const keyValueStoreDir = resolve(client.keyValueStoresDirectory, entryNameOrId);
+    let keyValueStoreDir = resolve(client.keyValueStoresDirectory, entryNameOrId);
 
     try {
         // Check if directory exists
         await access(keyValueStoreDir);
     } catch {
-        return undefined;
+        // No directory named after the string — it may be an id of a storage opened by name, whose
+        // directory is named after the name. Fall back to matching the id inside the metadata files.
+        const dirName = await resolveDirNameByMetadataId(client.keyValueStoresDirectory, entryNameOrId);
+        if (dirName === undefined) {
+            return undefined;
+        }
+        keyValueStoreDir = resolve(client.keyValueStoresDirectory, dirName);
     }
 
     // Access the key value store folder
@@ -286,13 +331,19 @@ export async function findRequestQueueByPossibleId(client: FileSystemStorageClie
         return found;
     }
 
-    const requestQueueDir = resolve(client.requestQueuesDirectory, entryNameOrId);
+    let requestQueueDir = resolve(client.requestQueuesDirectory, entryNameOrId);
 
     try {
         // Check if directory exists
         await access(requestQueueDir);
     } catch {
-        return undefined;
+        // No directory named after the string — it may be an id of a storage opened by name, whose
+        // directory is named after the name. Fall back to matching the id inside the metadata files.
+        const dirName = await resolveDirNameByMetadataId(client.requestQueuesDirectory, entryNameOrId);
+        if (dirName === undefined) {
+            return undefined;
+        }
+        requestQueueDir = resolve(client.requestQueuesDirectory, dirName);
     }
 
     // Access the request queue folder
