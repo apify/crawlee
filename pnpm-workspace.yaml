@@ -22,6 +22,15 @@ overrides:
   # step to silently report 0 changed packages.
   minimatch: "^9.0.0"
   "lerna>minimatch": "^3.1.4"
+  # The e2e tests run the `apify` SDK against the local 4.x workspace packages.
+  # The default `latest`/`next` tags are the 3.x SDK, which is not runtime
+  # compatible with `@crawlee/core@4` (e.g. `Configuration.INTEGER_VARS` was
+  # removed), so pin the v4 SDK and force it to use the workspace `@crawlee/*`
+  # packages (mirroring the per-actor `overrides.apify` used for PLATFORM tests).
+  apify: "4.0.0-beta.19"
+  "apify>@crawlee/core": "workspace:*"
+  "apify>@crawlee/types": "workspace:*"
+  "apify>@crawlee/utils": "workspace:*"
 
 # pnpm 11 replaces `onlyBuiltDependencies` with an explicit `allowBuilds` map.
 # Each entry must be true (build allowed) or false (build skipped) — pnpm 11
