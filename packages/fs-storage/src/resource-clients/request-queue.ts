@@ -125,7 +125,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
      * caller (the `RequestQueue` frontend) owns the policy of what this value should be — this method
      * just applies it.
      */
-    setExpectedRequestProcessingTimeSecs(secs: number): void {
+    async setExpectedRequestProcessingTimeSecs(secs: number): Promise<void> {
         this.lockSecs = secs;
     }
 
