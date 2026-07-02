@@ -193,6 +193,69 @@ beforeAll(async () => {
 
         res.end();
     });
+
+    // --- Fixtures for the enqueue-strategy filtering tests ---
+    // The server answers on both `localhost` and `127.0.0.1` (distinct hostnames), so the `127.0.0.1`
+    // variant is a reachable "cross-host" target — a dropped entry is distinguishable from a failed fetch.
+
+    // urlset mixing a same-host and a cross-host URL entry
+    app.get('/cross-host-content.xml', async (req, res) => {
+        const cross = url.replace('localhost', '127.0.0.1');
+        res.setHeader('content-type', 'text/xml');
+        res.end(
+            [
+                '<?xml version="1.0" encoding="UTF-8"?>',
+                '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+                `<url><loc>${url}/same-host-page</loc></url>`,
+                `<url><loc>${cross}/cross-host-page</loc></url>`,
+                '</urlset>',
+            ].join('\n'),
+        );
+    });
+
+    // sitemap index pointing at a cross-host nested sitemap
+    app.get('/cross-host-index.xml', async (req, res) => {
+        const cross = url.replace('localhost', '127.0.0.1');
+        res.setHeader('content-type', 'text/xml');
+        res.end(
+            [
+                '<?xml version="1.0" encoding="UTF-8"?>',
+                '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+                `<sitemap><loc>${cross}/cross-host-child.xml</loc></sitemap>`,
+                '</sitemapindex>',
+            ].join('\n'),
+        );
+    });
+
+    // nested sitemap referenced by the cross-host index; its URL appears only if the index is followed
+    app.get('/cross-host-child.xml', async (req, res) => {
+        const cross = url.replace('localhost', '127.0.0.1');
+        res.setHeader('content-type', 'text/xml');
+        res.end(
+            [
+                '<?xml version="1.0" encoding="UTF-8"?>',
+                '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+                `<url><loc>${cross}/child-page</loc></url>`,
+                '</urlset>',
+            ].join('\n'),
+        );
+    });
+
+    // urlset mixing a valid http URL with non-http(s) schemes
+    app.get('/mixed-scheme.xml', async (req, res) => {
+        res.setHeader('content-type', 'text/xml');
+        res.end(
+            [
+                '<?xml version="1.0" encoding="UTF-8"?>',
+                '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+                `<url><loc>${url}/ok</loc></url>`,
+                '<url><loc>mailto:foo@bar.com</loc></url>',
+                '<url><loc>javascript:alert(1)</loc></url>',
+                '<url><loc>ftp://example.com/file.txt</loc></url>',
+                '</urlset>',
+            ].join('\n'),
+        );
+    });
 });
 
 afterAll(async () => {
@@ -212,7 +275,10 @@ afterAll(async () => {
 
 describe('SitemapRequestList', () => {
     test('requests are available before the sitemap is fully loaded', async () => {
-        const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/sitemap-stream.xml`] });
+        const list = await SitemapRequestList.open({
+            sitemapUrls: [`${url}/sitemap-stream.xml`],
+            enqueueStrategy: 'all',
+        });
 
         while (await list.isEmpty()) {
             await sleep(20);
@@ -232,7 +298,10 @@ describe('SitemapRequestList', () => {
     });
 
     test('retry sitemap load on error', async () => {
-        const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/sitemap-unreliable.xml`] });
+        const list = await SitemapRequestList.open({
+            sitemapUrls: [`${url}/sitemap-unreliable.xml`],
+            enqueueStrategy: 'all',
+        });
 
         for await (const request of list) {
             await list.markRequestHandled(request);
@@ -242,7 +311,10 @@ describe('SitemapRequestList', () => {
     });
 
     test('broken off sitemap load resurrects correctly and does not duplicate / lose requests', async () => {
-        const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/sitemap-unreliable-break-off.xml`] });
+        const list = await SitemapRequestList.open({
+            sitemapUrls: [`${url}/sitemap-unreliable-break-off.xml`],
+            enqueueStrategy: 'all',
+        });
 
         const urls = new Set<string>();
 
@@ -264,7 +336,10 @@ describe('SitemapRequestList', () => {
     });
 
     test('teardown works', async () => {
-        const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/sitemap-index.xml`] });
+        const list = await SitemapRequestList.open({
+            sitemapUrls: [`${url}/sitemap-index.xml`],
+            enqueueStrategy: 'all',
+        });
 
         for await (const request of list) {
             await list.markRequestHandled(request);
@@ -283,6 +358,7 @@ describe('SitemapRequestList', () => {
         const list = await SitemapRequestList.open({
             sitemapUrls: [`${url}/sitemap.xml`],
             globs: ['http://not-exists.com/catalog**'],
+            enqueueStrategy: 'all',
         });
 
         for await (const request of list) {
@@ -296,6 +372,7 @@ describe('SitemapRequestList', () => {
         const list = await SitemapRequestList.open({
             sitemapUrls: [`${url}/sitemap.xml`],
             regexps: [/desc=vacation_new.+/],
+            enqueueStrategy: 'all',
         });
 
         for await (const request of list) {
@@ -309,6 +386,7 @@ describe('SitemapRequestList', () => {
         const list = await SitemapRequestList.open({
             sitemapUrls: [`${url}/sitemap.xml`],
             exclude: [/desc=vacation_new/],
+            enqueueStrategy: 'all',
         });
 
         for await (const request of list) {
@@ -319,7 +397,10 @@ describe('SitemapRequestList', () => {
     });
 
     test('draining the request list between sitemaps', async () => {
-        const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/sitemap-index.xml`] });
+        const list = await SitemapRequestList.open({
+            sitemapUrls: [`${url}/sitemap-index.xml`],
+            enqueueStrategy: 'all',
+        });
 
         while (await list.isEmpty()) {
             await sleep(20);
@@ -354,7 +435,10 @@ describe('SitemapRequestList', () => {
     });
 
     test('for..await syntax works with SitemapRequestList', async () => {
-        const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/sitemap-index.xml`] });
+        const list = await SitemapRequestList.open({
+            sitemapUrls: [`${url}/sitemap-index.xml`],
+            enqueueStrategy: 'all',
+        });
 
         for await (const request of list) {
             await list.markRequestHandled(request);
@@ -370,6 +454,7 @@ describe('SitemapRequestList', () => {
         const list = await SitemapRequestList.open({
             sitemapUrls: [`${url}/sitemap-index.xml`],
             signal: controller.signal,
+            enqueueStrategy: 'all',
         });
 
         await sleep(50); // Loads the first sub-sitemap, but not the second
@@ -388,6 +473,7 @@ describe('SitemapRequestList', () => {
         const list = await SitemapRequestList.open({
             sitemapUrls: [`${url}/sitemap-index.xml`],
             timeoutMillis: 50, // Loads the first sub-sitemap, but not the second
+            enqueueStrategy: 'all',
         });
 
         for await (const request of list) {
@@ -404,6 +490,7 @@ describe('SitemapRequestList', () => {
             sitemapUrls: [`${url}/sitemap-index.xml`],
             persistStateKey: 'resurrection-abort',
             timeoutMillis: 50,
+            enqueueStrategy: 'all' as const,
         };
 
         {
@@ -424,7 +511,7 @@ describe('SitemapRequestList', () => {
     });
 
     test('processing the whole list', async () => {
-        const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/sitemap.xml`] });
+        const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/sitemap.xml`], enqueueStrategy: 'all' });
         const requests: Request[] = [];
 
         await expect(list.isFinished()).resolves.toBe(false);
@@ -448,7 +535,7 @@ describe('SitemapRequestList', () => {
     });
 
     test('processing the whole list with reclaiming', async () => {
-        const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/sitemap.xml`] });
+        const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/sitemap.xml`], enqueueStrategy: 'all' });
         const requests: Request[] = [];
 
         await expect(list.isFinished()).resolves.toBe(false);
@@ -482,7 +569,11 @@ describe('SitemapRequestList', () => {
     });
 
     test('persists state', async () => {
-        const options = { sitemapUrls: [`${url}/sitemap-stream.xml`], persistStateKey: 'some-key' };
+        const options = {
+            sitemapUrls: [`${url}/sitemap-stream.xml`],
+            persistStateKey: 'some-key',
+            enqueueStrategy: 'all' as const,
+        };
         const list = await SitemapRequestList.open(options);
 
         const firstRequest = await list.fetchNextRequest();
@@ -503,7 +594,7 @@ describe('SitemapRequestList', () => {
     });
 
     test("calling `persistState` doesn't throw", async () => {
-        const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/sitemap.xml`] });
+        const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/sitemap.xml`], enqueueStrategy: 'all' });
 
         for await (const request of list) {
             await list.markRequestHandled(request);
@@ -518,6 +609,7 @@ describe('SitemapRequestList', () => {
         const options = {
             sitemapUrls: [`${url}/sitemap-stream.xml`],
             persistStateKey: 'persist-user-changes',
+            enqueueStrategy: 'all' as const,
         };
 
         const userDataPayload = { some: 'data' };
@@ -538,6 +630,64 @@ describe('SitemapRequestList', () => {
         const restoredRequest = await newList.fetchNextRequest();
 
         expect(restoredRequest!.url).toEqual(firstLoadedUrl);
-        expect(restoredRequest!.userData).toEqual(userDataPayload);
+        // `toMatchObject` (not `toEqual`): the request also carries internal `__crawlee` bookkeeping (the stamped strategy).
+        expect(restoredRequest!.userData).toMatchObject(userDataPayload);
+    });
+
+    async function collectUrls(list: SitemapRequestList): Promise<string[]> {
+        const urls: string[] = [];
+        for await (const request of list) {
+            urls.push(request.url);
+            await list.markRequestHandled(request);
+        }
+        return urls;
+    }
+
+    test('default `same-hostname` strategy drops cross-host URL entries', async () => {
+        const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/cross-host-content.xml`] });
+        expect(await collectUrls(list)).toEqual([`${url}/same-host-page`]);
+    });
+
+    test('`enqueueStrategy: all` keeps cross-host URL entries', async () => {
+        const cross = url.replace('localhost', '127.0.0.1');
+        const list = await SitemapRequestList.open({
+            sitemapUrls: [`${url}/cross-host-content.xml`],
+            enqueueStrategy: 'all',
+        });
+        expect(new Set(await collectUrls(list))).toEqual(
+            new Set([`${url}/same-host-page`, `${cross}/cross-host-page`]),
+        );
+    });
+
+    test('default `same-hostname` strategy drops cross-host nested sitemaps before fetching them', async () => {
+        const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/cross-host-index.xml`] });
+        // The cross-host nested sitemap is never fetched, so its `child-page` URL is absent.
+        expect(await collectUrls(list)).toEqual([]);
+    });
+
+    test('`enqueueStrategy: all` follows cross-host nested sitemaps', async () => {
+        const cross = url.replace('localhost', '127.0.0.1');
+        const list = await SitemapRequestList.open({
+            sitemapUrls: [`${url}/cross-host-index.xml`],
+            enqueueStrategy: 'all',
+        });
+        expect(await collectUrls(list)).toEqual([`${cross}/child-page`]);
+    });
+
+    test('non-http(s) schemes are dropped even with `enqueueStrategy: all`', async () => {
+        const list = await SitemapRequestList.open({
+            sitemapUrls: [`${url}/mixed-scheme.xml`],
+            enqueueStrategy: 'all',
+        });
+        expect(await collectUrls(list)).toEqual([`${url}/ok`]);
+    });
+
+    test('the selected enqueue strategy is stamped onto emitted requests', async () => {
+        const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/cross-host-content.xml`] });
+        const request = await list.fetchNextRequest();
+
+        expect(request).not.toBe(null);
+        // The strategy is persisted on the request so it keeps being enforced after navigation.
+        expect((request as any).enqueueStrategy).toBe('same-hostname');
     });
 });

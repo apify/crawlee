@@ -9,7 +9,7 @@ import defaultLog from '@apify/log';
 
 import { Configuration } from '../configuration';
 import type { GlobInput, RegExpInput, UrlPatternObject } from '../enqueue_links';
-import { constructGlobObjectsFromGlobs, constructRegExpObjectsFromRegExps } from '../enqueue_links';
+import { constructGlobObjectsFromGlobs, constructRegExpObjectsFromRegExps, EnqueueStrategy } from '../enqueue_links';
 import { type EventManager, EventType } from '../events/event_manager';
 import { Request } from '../request';
 import { KeyValueStore } from './key_value_store';
@@ -95,6 +95,13 @@ export interface SitemapRequestListOptions extends UrlConstraints {
      * @default 200
      */
     maxBufferSize?: number;
+    /**
+     * Keep only sitemap-derived URLs matching this strategy relative to the parent sitemap URL; non-`http(s)`
+     * schemes are always dropped. The strategy is also stamped onto emitted `Request`s, so it stays enforced
+     * after navigation (e.g. across redirects). Pass `'all'` to disable host filtering.
+     * @default EnqueueStrategy.SameHostname
+     */
+    enqueueStrategy?: EnqueueStrategy | `${EnqueueStrategy}`;
     /**
      * Advanced options for the underlying `parseSitemap` call.
      */
@@ -193,6 +200,11 @@ export class SitemapRequestList implements IRequestList {
     private proxyUrl: string | undefined;
 
     /**
+     * Enqueue strategy applied to sitemap-derived URLs and stamped onto the emitted `Request` objects.
+     */
+    private enqueueStrategy: EnqueueStrategy | `${EnqueueStrategy}`;
+
+    /**
      * Logger instance.
      */
     private log = defaultLog.child({ prefix: 'SitemapRequestList' });
@@ -216,6 +228,7 @@ export class SitemapRequestList implements IRequestList {
                 signal: ow.optional.any(),
                 timeoutMillis: ow.optional.number,
                 maxBufferSize: ow.optional.number,
+                enqueueStrategy: ow.optional.string.oneOf(Object.values(EnqueueStrategy)),
                 parseSitemapOptions: ow.optional.object,
                 globs: ow.optional.array.ofType(ow.any(ow.string, ow.object.hasKeys('glob'))),
                 exclude: ow.optional.array.ofType(
@@ -251,6 +264,7 @@ export class SitemapRequestList implements IRequestList {
         this.persistenceOptions = { enable: true, ...options.persistenceOptions };
 
         this.proxyUrl = options.proxyUrl;
+        this.enqueueStrategy = options.enqueueStrategy ?? EnqueueStrategy.SameHostname;
 
         this.urlQueueStream = this.createNewStream(options.maxBufferSize ?? 200);
 
@@ -382,6 +396,7 @@ export class SitemapRequestList implements IRequestList {
                     ...parseSitemapOptions,
                     maxDepth: 0,
                     emitNestedSitemaps: true,
+                    enqueueStrategy: this.enqueueStrategy,
                 })) {
                     if (!item.originSitemapUrl) {
                         // This is a nested sitemap
@@ -561,7 +576,7 @@ export class SitemapRequestList implements IRequestList {
             if (!nextUrl) {
                 return null;
             }
-            this.requestData.set(nextUrl, new Request({ url: nextUrl }));
+            this.requestData.set(nextUrl, new Request({ url: nextUrl, enqueueStrategy: this.enqueueStrategy }));
         }
 
         this.inProgress.add(nextUrl);

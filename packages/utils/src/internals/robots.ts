@@ -3,8 +3,11 @@ import type { HTTPError as HTTPErrorClass } from 'got-scraping';
 import type { Robot } from 'robots-parser';
 import robotsParser from 'robots-parser';
 
+import log from '@apify/log';
+
 import { gotScraping } from './gotScraping';
 import { Sitemap } from './sitemap';
+import { type EnqueueStrategyValue, filterUrl } from './url';
 
 let HTTPError: typeof HTTPErrorClass;
 
@@ -28,6 +31,7 @@ let HTTPError: typeof HTTPErrorClass;
  */
 export class RobotsTxtFile {
     private constructor(
+        private url: string,
         private robots: Pick<Robot, 'isAllowed' | 'getSitemaps'>,
         private proxyUrl?: string,
     ) {}
@@ -59,7 +63,7 @@ export class RobotsTxtFile {
      * @param [proxyUrl] a proxy to be used for fetching the robots.txt file
      */
     static from(url: string, content: string, proxyUrl?: string): RobotsTxtFile {
-        return new RobotsTxtFile(robotsParser(url, content), proxyUrl);
+        return new RobotsTxtFile(url, robotsParser(url, content), proxyUrl);
     }
 
     protected static async load(
@@ -81,10 +85,11 @@ export class RobotsTxtFile {
                 ...(options?.timeoutMillis ? { timeout: { request: options.timeoutMillis } } : {}),
             });
 
-            return new RobotsTxtFile(robotsParser(url.toString(), response.body), proxyUrl);
+            return new RobotsTxtFile(url, robotsParser(url.toString(), response.body), proxyUrl);
         } catch (e) {
             if (e instanceof HTTPError && e.response.statusCode === 404) {
                 return new RobotsTxtFile(
+                    url,
                     {
                         isAllowed() {
                             return true;
@@ -110,24 +115,39 @@ export class RobotsTxtFile {
     }
 
     /**
-     * Get URLs of sitemaps referenced in the robots file.
+     * Get URLs of sitemaps referenced in the robots file, filtered by `enqueueStrategy` relative to the
+     * robots.txt host (default `'same-hostname'`; pass `'all'` to disable). Non-`http(s)` schemes are always dropped.
      */
-    getSitemaps(): string[] {
-        return this.robots.getSitemaps();
+    getSitemaps(enqueueStrategy: EnqueueStrategyValue = 'same-hostname'): string[] {
+        const sitemaps: string[] = [];
+
+        for (const sitemapUrl of this.robots.getSitemaps()) {
+            // `filterUrl` tolerates an unparseable origin (returns not-allowed) rather than throwing.
+            const { allowed, reason } = filterUrl(sitemapUrl, this.url, enqueueStrategy);
+            if (!allowed) {
+                log.warning(`Skipping sitemap ${sitemapUrl} listed in robots.txt at ${this.url}: ${reason}.`);
+                continue;
+            }
+            sitemaps.push(sitemapUrl);
+        }
+
+        return sitemaps;
     }
 
     /**
-     * Parse all the sitemaps referenced in the robots file.
+     * Parse all the sitemaps referenced in the robots file. `enqueueStrategy` is forwarded to `getSitemaps`
+     * and the sitemap parser.
      */
-    async parseSitemaps(): Promise<Sitemap> {
-        return Sitemap.load(this.robots.getSitemaps(), this.proxyUrl);
+    async parseSitemaps(enqueueStrategy: EnqueueStrategyValue = 'same-hostname'): Promise<Sitemap> {
+        return Sitemap.load(this.getSitemaps(enqueueStrategy), this.proxyUrl, { enqueueStrategy });
     }
 
     /**
      * Get all URLs from all the sitemaps referenced in the robots file. A shorthand for `(await robots.parseSitemaps()).urls`.
+     * `enqueueStrategy` is forwarded to `parseSitemaps`.
      */
-    async parseUrlsFromSitemaps(): Promise<string[]> {
-        return (await this.parseSitemaps()).urls;
+    async parseUrlsFromSitemaps(enqueueStrategy: EnqueueStrategyValue = 'same-hostname'): Promise<string[]> {
+        return (await this.parseSitemaps(enqueueStrategy)).urls;
     }
 }
 
