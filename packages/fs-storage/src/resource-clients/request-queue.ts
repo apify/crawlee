@@ -609,15 +609,12 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         return {
             accessedAt: this.accessedAt,
             createdAt: this.createdAt,
-            hadMultipleClients: false,
             handledRequestCount: this.handledRequestCount,
             id: this.id,
             modifiedAt: this.modifiedAt,
             name: this.name,
             pendingRequestCount: this.pendingRequestCount,
-            stats: {},
             totalRequestCount: this.requests.size,
-            userId: '1',
         };
     }
 
