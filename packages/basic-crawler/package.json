@@ -45,6 +45,7 @@
         "access": "public"
     },
     "dependencies": {
+        "@apify/datastructures": "^2.0.0",
         "@apify/log": "^2.4.0",
         "@apify/timeout": "^0.3.0",
         "@apify/utilities": "^2.7.10",
