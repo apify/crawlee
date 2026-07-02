@@ -3,7 +3,7 @@
     "version": "0.0.1",
     "description": "Stagehand Test - Concurrent browsers",
     "dependencies": {
-        "apify": "next",
+        "apify": "next-v4",
         "@apify/storage-local": "^3.0.0",
         "@browserbasehq/stagehand": "^3.0.7",
         "@crawlee/basic": "file:./packages/basic-crawler",
