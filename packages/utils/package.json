@@ -61,6 +61,8 @@
         "whatwg-mimetype": "^4.0.0"
     },
     "devDependencies": {
-        "@types/whatwg-mimetype": "^3.0.2"
+        "@types/whatwg-mimetype": "^3.0.2",
+        "nock": "^14.0.16",
+        "vitest": "^4.1.9"
     }
 }

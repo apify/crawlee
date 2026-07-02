@@ -59,5 +59,8 @@
         "cheerio": "1.0.0-rc.12",
         "htmlparser2": "^9.0.0",
         "tslib": "^2.4.0"
+    },
+    "devDependencies": {
+        "@apify/log": "^2.5.41"
     }
 }

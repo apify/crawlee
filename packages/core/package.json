@@ -75,5 +75,8 @@
         "tough-cookie": "^6.0.0",
         "tslib": "^2.4.0",
         "type-fest": "^4.0.0"
+    },
+    "devDependencies": {
+        "cheerio": "^1.2.0"
     }
 }

@@ -33,7 +33,6 @@ export default [
             'no-void': 'off',
             'no-underscore-dangle': 'off',
             'no-console': 'off',
-            'import/no-extraneous-dependencies': 'off',
             'import/extensions': 'off',
             'import/no-default-export': 'off',
             '@typescript-eslint/array-type': 'error',

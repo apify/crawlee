@@ -59,5 +59,9 @@
         "p-limit": "^3.1.0",
         "proper-lockfile": "^4.1.2",
         "tslib": "^2.4.0"
+    },
+    "devDependencies": {
+        "nock": "^14.0.16",
+        "vitest": "^4.1.9"
     }
 }
