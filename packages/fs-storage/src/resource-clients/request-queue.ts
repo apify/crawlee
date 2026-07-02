@@ -292,7 +292,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         };
     }
 
-    async fetchNextRequest(): Promise<storage.RequestOptions | null> {
+    async fetchNextRequest(): Promise<storage.RequestOptions | undefined> {
         this.updateTimestamps(false);
 
         await this.queueStateMutex.wait();
@@ -303,7 +303,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             } = await this.listPendingHead(1);
 
             if (!head) {
-                return null;
+                return undefined;
             }
 
             // Lock the request by pushing its `orderNo` beyond the lock expiry, preserving the sign so
@@ -317,7 +317,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             // (see `releaseOwnLocks`) instead of leaving the request stuck until the lock expires.
             this.inProgressRequestIds.add(head.id);
 
-            return this._jsonToRequest(head.json) ?? null;
+            return this._jsonToRequest(head.json) ?? undefined;
         } finally {
             this.queueStateMutex.shift();
         }
@@ -404,7 +404,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         return this._jsonToRequest(json);
     }
 
-    async markRequestAsHandled(request: storage.UpdateRequestSchema): Promise<storage.QueueOperationInfo | null> {
+    async markRequestAsHandled(request: storage.UpdateRequestSchema): Promise<storage.QueueOperationInfo | undefined> {
         requestShape.parse(request);
         this.updateTimestamps(false);
 
@@ -424,7 +424,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             // a low `setExpectedRequestProcessingTimeSecs`) must still be able to mark its request handled,
             // otherwise the request would be handed out again forever and the queue would never finish.
             if (!existingRequest) {
-                return null;
+                return undefined;
             }
 
             // A handled request has `orderNo === null`. Marking it again is an idempotent no-op.
@@ -463,7 +463,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
     async reclaimRequest(
         request: storage.UpdateRequestSchema,
         options: storage.RequestOptions = {},
-    ): Promise<storage.QueueOperationInfo | null> {
+    ): Promise<storage.QueueOperationInfo | undefined> {
         requestShape.parse(request);
         requestOptionsShape.parse(options);
         this.updateTimestamps(false);
@@ -484,7 +484,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             // after its lock expired must still be able to return the request to the queue (e.g. to honor
             // a `forefront` reorder), rather than have the reclaim silently dropped.
             if (!existingRequest || existingRequest.orderNo === null) {
-                return null;
+                return undefined;
             }
 
             // Reclaiming resets the `orderNo` to a fresh timestamp, releasing the lock and restoring the
