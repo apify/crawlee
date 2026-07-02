@@ -543,13 +543,18 @@ describe('KeyValueStore', () => {
 
             // @ts-expect-error Accessing private property
             const mockListKeys = vitest.spyOn(store.client, 'listKeys');
-            mockListKeys.mockResolvedValueOnce([
-                { key: 'key1', size: 1 },
-                { key: 'key2', size: 2 },
-                { key: 'key3', size: 3 },
-                { key: 'key4', size: 4 },
-                { key: 'key5', size: 5 },
-            ]);
+            mockListKeys.mockResolvedValueOnce({
+                items: [
+                    { key: 'key1', size: 1, contentType: 'application/octet-stream' },
+                    { key: 'key2', size: 2, contentType: 'application/octet-stream' },
+                    { key: 'key3', size: 3, contentType: 'application/octet-stream' },
+                    { key: 'key4', size: 4, contentType: 'application/octet-stream' },
+                    { key: 'key5', size: 5, contentType: 'application/octet-stream' },
+                ],
+                count: 5,
+                limit: 5,
+                isTruncated: false,
+            });
 
             const results: [string, number, { size: number }][] = [];
             await store.forEachKey(

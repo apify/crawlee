@@ -331,10 +331,14 @@ export class KeyValueStore {
         let exclusiveStartKey: string | undefined;
 
         while (true) {
-            const items = await this.client.listKeys({ ...options, exclusiveStartKey, limit });
+            const { items, isTruncated, nextExclusiveStartKey } = await this.client.listKeys({
+                ...options,
+                exclusiveStartKey,
+                limit,
+            });
             yield items;
-            if (items.length < limit) break;
-            exclusiveStartKey = items[items.length - 1].key;
+            if (!isTruncated) break;
+            exclusiveStartKey = nextExclusiveStartKey;
         }
     }
 
