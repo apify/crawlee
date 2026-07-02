@@ -193,6 +193,90 @@ beforeAll(async () => {
 
         res.end();
     });
+
+    // Sitemaps for concurrency testing
+    const concurrencyLoadTimes: Record<string, number> = {};
+
+    app.get('/sitemap-slow-1.xml', async (req, res) => {
+        concurrencyLoadTimes['slow-1-start'] = Date.now();
+        res.setHeader('content-type', 'text/xml');
+        await sleep(100);
+        res.write(
+            [
+                '<?xml version="1.0" encoding="UTF-8"?>',
+                '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+                '<url><loc>http://not-exists.com/slow-1-page-1</loc></url>',
+                '<url><loc>http://not-exists.com/slow-1-page-2</loc></url>',
+                '</urlset>',
+            ].join('\n'),
+        );
+        concurrencyLoadTimes['slow-1-end'] = Date.now();
+        res.end();
+    });
+
+    app.get('/sitemap-slow-2.xml', async (req, res) => {
+        concurrencyLoadTimes['slow-2-start'] = Date.now();
+        res.setHeader('content-type', 'text/xml');
+        await sleep(100);
+        res.write(
+            [
+                '<?xml version="1.0" encoding="UTF-8"?>',
+                '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+                '<url><loc>http://not-exists.com/slow-2-page-1</loc></url>',
+                '<url><loc>http://not-exists.com/slow-2-page-2</loc></url>',
+                '</urlset>',
+            ].join('\n'),
+        );
+        concurrencyLoadTimes['slow-2-end'] = Date.now();
+        res.end();
+    });
+
+    app.get('/sitemap-slow-3.xml', async (req, res) => {
+        concurrencyLoadTimes['slow-3-start'] = Date.now();
+        res.setHeader('content-type', 'text/xml');
+        await sleep(100);
+        res.write(
+            [
+                '<?xml version="1.0" encoding="UTF-8"?>',
+                '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+                '<url><loc>http://not-exists.com/slow-3-page-1</loc></url>',
+                '<url><loc>http://not-exists.com/slow-3-page-2</loc></url>',
+                '</urlset>',
+            ].join('\n'),
+        );
+        concurrencyLoadTimes['slow-3-end'] = Date.now();
+        res.end();
+    });
+
+    app.get('/sitemap-index-slow.xml', async (req, res) => {
+        res.setHeader('content-type', 'text/xml');
+        res.write(
+            [
+                '<?xml version="1.0" encoding="UTF-8"?>',
+                '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+                '<sitemap>',
+                `<loc>${url}/sitemap-slow-1.xml</loc>`,
+                '</sitemap>',
+                '<sitemap>',
+                `<loc>${url}/sitemap-slow-2.xml</loc>`,
+                '</sitemap>',
+                '<sitemap>',
+                `<loc>${url}/sitemap-slow-3.xml</loc>`,
+                '</sitemap>',
+                '</sitemapindex>',
+            ].join('\n'),
+        );
+        res.end();
+    });
+
+    app.get('/concurrency-load-times', (req, res) => {
+        res.json(concurrencyLoadTimes);
+    });
+
+    app.delete('/concurrency-load-times', (req, res) => {
+        Object.keys(concurrencyLoadTimes).forEach((key) => delete concurrencyLoadTimes[key]);
+        res.status(204).end();
+    });
 });
 
 afterAll(async () => {
@@ -539,5 +623,162 @@ describe('SitemapRequestList', () => {
 
         expect(restoredRequest!.url).toEqual(firstLoadedUrl);
         expect(restoredRequest!.userData).toEqual(userDataPayload);
+    });
+
+    describe('concurrency', () => {
+        beforeEach(async () => {
+            // Reset concurrency load times before each test
+            await fetch(`${url}/concurrency-load-times`, { method: 'DELETE' });
+        });
+
+        test('concurrency option loads multiple sitemaps in parallel', async () => {
+            const list = await SitemapRequestList.open({
+                sitemapUrls: [`${url}/sitemap-index-slow.xml`],
+                concurrency: 3,
+            });
+
+            for await (const request of list) {
+                await list.markRequestHandled(request);
+            }
+
+            expect(list.handledCount()).toBe(6);
+
+            // Verify that sitemaps were loaded in parallel by checking timestamps
+            const loadTimes = await fetch(`${url}/concurrency-load-times`).then((r) => r.json());
+
+            // With concurrency=3, all three slow sitemaps should start roughly at the same time
+            // (within a small window, accounting for the index sitemap being parsed first)
+            const startTimes = [loadTimes['slow-1-start'], loadTimes['slow-2-start'], loadTimes['slow-3-start']];
+            const maxStartDiff = Math.max(...startTimes) - Math.min(...startTimes);
+
+            // If loaded in parallel, start times should be within ~50ms of each other
+            // If loaded sequentially, they would be ~100ms apart
+            expect(maxStartDiff).toBeLessThan(80);
+        });
+
+        test('concurrency=1 loads sitemaps sequentially (default behavior)', async () => {
+            const list = await SitemapRequestList.open({
+                sitemapUrls: [`${url}/sitemap-index-slow.xml`],
+                concurrency: 1,
+            });
+
+            for await (const request of list) {
+                await list.markRequestHandled(request);
+            }
+
+            expect(list.handledCount()).toBe(6);
+
+            // Verify sequential loading
+            const loadTimes = await fetch(`${url}/concurrency-load-times`).then((r) => r.json());
+
+            // With concurrency=1, each sitemap should start after the previous one ends
+            // Check that slow-2 started after slow-1 ended (or close to it)
+            if (loadTimes['slow-1-end'] && loadTimes['slow-2-start']) {
+                expect(loadTimes['slow-2-start']).toBeGreaterThanOrEqual(loadTimes['slow-1-end'] - 20);
+            }
+        });
+
+        test('concurrency respects the limit', async () => {
+            const list = await SitemapRequestList.open({
+                sitemapUrls: [`${url}/sitemap-index-slow.xml`],
+                concurrency: 2, // Only 2 at a time, but 3 sub-sitemaps
+            });
+
+            for await (const request of list) {
+                await list.markRequestHandled(request);
+            }
+
+            expect(list.handledCount()).toBe(6);
+
+            const loadTimes = await fetch(`${url}/concurrency-load-times`).then((r) => r.json());
+
+            // With concurrency=2, two sitemaps start in parallel, third waits
+            const startTimes = [loadTimes['slow-1-start'], loadTimes['slow-2-start'], loadTimes['slow-3-start']];
+
+            // Sort to find which two started first
+            startTimes.sort((a, b) => a - b);
+
+            // First two should be close together
+            expect(startTimes[1] - startTimes[0]).toBeLessThan(50);
+
+            // Third should be delayed (started after one of the first two finished)
+            expect(startTimes[2] - startTimes[0]).toBeGreaterThan(80);
+        });
+
+        test('concurrent loading collects all URLs without duplicates', async () => {
+            const list = await SitemapRequestList.open({
+                sitemapUrls: [`${url}/sitemap-index-slow.xml`],
+                concurrency: 3,
+            });
+
+            const urls = new Set<string>();
+
+            for await (const request of list) {
+                urls.add(request.url);
+                await list.markRequestHandled(request);
+            }
+
+            expect(urls.size).toBe(6);
+            expect(urls).toContain('http://not-exists.com/slow-1-page-1');
+            expect(urls).toContain('http://not-exists.com/slow-1-page-2');
+            expect(urls).toContain('http://not-exists.com/slow-2-page-1');
+            expect(urls).toContain('http://not-exists.com/slow-2-page-2');
+            expect(urls).toContain('http://not-exists.com/slow-3-page-1');
+            expect(urls).toContain('http://not-exists.com/slow-3-page-2');
+        });
+
+        test('concurrent loading with abort signal', async () => {
+            const controller = new AbortController();
+
+            const list = await SitemapRequestList.open({
+                sitemapUrls: [`${url}/sitemap-index-slow.xml`],
+                concurrency: 3,
+                signal: controller.signal,
+            });
+
+            // Abort quickly, before all sitemaps finish loading
+            await sleep(50);
+            controller.abort();
+
+            for await (const request of list) {
+                await list.markRequestHandled(request);
+            }
+
+            // Should have stopped early
+            expect(list.isSitemapFullyLoaded()).toBe(false);
+            expect(list.isFinished()).resolves.toBe(true);
+        });
+
+        test('state persistence works with concurrency', async () => {
+            const options = {
+                sitemapUrls: [`${url}/sitemap-index-slow.xml`],
+                persistStateKey: 'concurrency-persist',
+                concurrency: 2,
+            };
+
+            {
+                const list = await SitemapRequestList.open(options);
+
+                // Wait for some URLs to be loaded
+                while (await list.isEmpty()) {
+                    await sleep(20);
+                }
+
+                const request = await list.fetchNextRequest();
+                await list.markRequestHandled(request!);
+
+                await list.persistState();
+            }
+
+            // Restore and continue
+            const newList = await SitemapRequestList.open(options);
+
+            for await (const request of newList) {
+                await newList.markRequestHandled(request);
+            }
+
+            // Total handled should be 6 (minus whatever was handled before persist, plus new list)
+            expect(newList.handledCount()).toBeGreaterThanOrEqual(5);
+        });
     });
 });
