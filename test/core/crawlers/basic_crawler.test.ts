@@ -2020,7 +2020,10 @@ describe('BasicCrawler', () => {
                 yield { url: 'http://example.com/e' };
             }
 
-            const result = await queue.addRequestsBatched(urls(), { maxNewRequests: 2 });
+            const result = await queue.addRequestsBatched(urls(), {
+                maxNewRequests: 2,
+                waitForAllRequestsToBeAdded: true,
+            });
 
             const addedUrls = result.addedRequests.filter((r) => !r.wasAlreadyPresent).map((r) => r.uniqueKey);
 
@@ -2028,6 +2031,65 @@ describe('BasicCrawler', () => {
 
             expect(addedUrls).toHaveLength(2);
             expect(overLimitUrls).toHaveLength(3);
+        });
+
+        test('addRequestsBatched with maxNewRequests should not wait for an async iterable beyond the remaining budget', async () => {
+            const queue = await RequestQueue.open();
+            let consumed = 0;
+            let releaseBlockedRequest = () => {};
+            const blockedRequest = new Promise<void>((resolve) => {
+                releaseBlockedRequest = resolve;
+            });
+
+            async function* urls() {
+                consumed += 1;
+                yield { url: 'http://example.com/a' };
+
+                consumed += 1;
+                await blockedRequest;
+                yield { url: 'http://example.com/b' };
+            }
+
+            const pendingResult = queue.addRequestsBatched(urls(), {
+                maxNewRequests: 1,
+                waitBetweenBatchesMillis: 0,
+            });
+
+            const raced = await Promise.race([
+                pendingResult.then(() => 'resolved'),
+                new Promise<'timeout'>((resolve) => setTimeout(() => resolve('timeout'), 100)),
+            ]);
+
+            expect(raced).toBe('resolved');
+            expect(consumed).toBe(1);
+
+            releaseBlockedRequest();
+            await pendingResult;
+        });
+
+        test('addRequests should still report skipped requests for maxRequestsPerCrawl when the source is async', async () => {
+            const requestQueue = await RequestQueue.open();
+            const onSkippedRequestMock = vitest.fn();
+
+            const crawler = new BasicCrawler({
+                requestQueue,
+                maxRequestsPerCrawl: 2,
+                onSkippedRequest: onSkippedRequestMock,
+                requestHandler: async () => {},
+            });
+
+            async function* urls() {
+                yield 'http://example.com/a';
+                yield 'http://example.com/b';
+                yield 'http://example.com/c';
+            }
+
+            await crawler.addRequests(urls());
+
+            expect(onSkippedRequestMock).toHaveBeenCalledWith({
+                url: 'http://example.com/c',
+                reason: 'limit',
+            });
         });
 
         test('should not count duplicate URLs toward maxRequestsPerCrawl limit (enqueueLinks)', async () => {
