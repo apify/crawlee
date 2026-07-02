@@ -57,6 +57,8 @@
         "@apify/utilities": "^2.7.10",
         "@crawlee/http": "3.17.0",
         "@crawlee/types": "3.17.0",
+        "@crawlee/utils": "3.17.0",
+        "cheerio": "^1.2.0",
         "linkedom": "^0.18.0",
         "ow": "^0.28.2",
         "tslib": "^2.4.0"

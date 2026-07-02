@@ -81,5 +81,8 @@
         "playwright": {
             "optional": true
         }
+    },
+    "devDependencies": {
+        "type-fest": "^5.7.0"
     }
 }
