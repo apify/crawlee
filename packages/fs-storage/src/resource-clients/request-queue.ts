@@ -48,14 +48,12 @@ export class RequestQueueClient extends CachedIdClient implements storage.Reques
     readonly cacheKey: string;
 
     private readonly nativeClient: NativeFileSystemRequestQueueClient;
-    private readonly logger?: CrawleeLogger;
 
     constructor(options: RequestQueueClientOptions) {
         super();
         this.name = options.name;
         this.cacheKey = options.cacheKey;
         this.nativeClient = options.nativeClient;
-        this.logger = options.logger;
     }
 
     get requestQueueDirectory(): string {
@@ -70,15 +68,10 @@ export class RequestQueueClient extends CachedIdClient implements storage.Reques
 
     /**
      * Tells the native client how long (in seconds) a fetched request stays locked before it becomes
-     * available again. The `@crawlee/types` interface declares this as synchronous (fire-and-forget),
-     * while the native call is asynchronous; we kick it off and let it settle in the background.
+     * available again.
      */
-    setExpectedRequestProcessingTimeSecs(secs: number): void {
-        // Kick off the async native call and let it settle in the background, but swallow any
-        // rejection so it doesn't surface as an unhandled promise rejection.
-        this.nativeClient.setExpectedRequestProcessingTime(secs).catch((error) => {
-            this.logger?.warning?.('Failed to set the expected request processing time', { error });
-        });
+    async setExpectedRequestProcessingTimeSecs(secs: number): Promise<void> {
+        await this.nativeClient.setExpectedRequestProcessingTime(secs);
     }
 
     async getMetadata(): Promise<storage.RequestQueueInfo> {
@@ -95,7 +88,7 @@ export class RequestQueueClient extends CachedIdClient implements storage.Reques
 
     async addBatchOfRequests(
         requests: storage.RequestSchema[],
-        options: storage.RequestOptions = {},
+        options: storage.RequestQueueOperationOptions = {},
     ): Promise<storage.BatchAddRequestsResult> {
         batchRequestShapeWithoutId.parse(requests);
         requestOptionsShape.parse(options);
@@ -114,32 +107,36 @@ export class RequestQueueClient extends CachedIdClient implements storage.Reques
         };
     }
 
-    async getRequest(uniqueKey: string): Promise<storage.RequestOptions | undefined> {
+    async getRequest(uniqueKey: string): Promise<storage.UpdateRequestSchema | undefined> {
         s.string().parse(uniqueKey);
         // The native client tags requests with an internal `orderNo`; it's harmless to leak, so we
         // hand the request back as-is rather than copying it just to drop one undeclared property.
-        // It returns `null` for a missing request, but this method's contract is `undefined`.
-        return ((await this.nativeClient.getRequest(uniqueKey)) as storage.RequestOptions | null) ?? undefined;
+        // The native client already returns `undefined` for a missing request, matching this contract.
+        return (await this.nativeClient.getRequest(uniqueKey)) as storage.UpdateRequestSchema | undefined;
     }
 
-    async fetchNextRequest(): Promise<storage.RequestOptions | null> {
-        return (await this.nativeClient.fetchNextRequest()) as storage.RequestOptions | null;
+    async fetchNextRequest(): Promise<storage.UpdateRequestSchema | undefined> {
+        return (await this.nativeClient.fetchNextRequest()) as storage.UpdateRequestSchema | undefined;
     }
 
-    async markRequestAsHandled(request: storage.UpdateRequestSchema): Promise<storage.QueueOperationInfo | null> {
+    async markRequestAsHandled(request: storage.UpdateRequestSchema): Promise<storage.QueueOperationInfo | undefined> {
         requestShape.parse(request);
-        return await this.nativeClient.markRequestAsHandled(request as unknown as Record<string, unknown>);
+        return (
+            (await this.nativeClient.markRequestAsHandled(request as unknown as Record<string, unknown>)) ?? undefined
+        );
     }
 
     async reclaimRequest(
         request: storage.UpdateRequestSchema,
-        options: storage.RequestOptions = {},
-    ): Promise<storage.QueueOperationInfo | null> {
+        options: storage.RequestQueueOperationOptions = {},
+    ): Promise<storage.QueueOperationInfo | undefined> {
         requestShape.parse(request);
         requestOptionsShape.parse(options);
-        return await this.nativeClient.reclaimRequest(
-            request as unknown as Record<string, unknown>,
-            options.forefront ?? false,
+        return (
+            (await this.nativeClient.reclaimRequest(
+                request as unknown as Record<string, unknown>,
+                options.forefront ?? false,
+            )) ?? undefined
         );
     }
 

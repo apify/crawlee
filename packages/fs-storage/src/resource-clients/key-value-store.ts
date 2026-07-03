@@ -30,7 +30,7 @@ const BARE_FILE_FALLBACKS: { extension: string; contentType: string }[] = [
 const ALLOWED_BARE_FILES = ['INPUT'];
 
 /**
- * The out-of-band ("bare") files to surface from the native `listKeys`/`iterateKeys`, derived from
+ * The out-of-band ("bare") files to surface from the native `listKeys`, derived from
  * {@link ALLOWED_BARE_FILES} × {@link BARE_FILE_FALLBACKS}. Each native {@link ListBareFallback}
  * `name` is the literal on-disk filename to probe (e.g. `INPUT.json`), and the native lists a match
  * under that same `name` — which is exactly the key we return, so a listed bare file round-trips
@@ -128,7 +128,7 @@ export class KeyValueStoreClient extends CachedIdClient implements storage.KeyVa
         await this.nativeClient.purge(BARE_FILE_FALLBACKS.flatMap(({ extension }) => `INPUT${extension}`));
     }
 
-    async listKeys(options: storage.KeyValueStoreListKeysOptions = {}): Promise<storage.KeyValueStoreItemData[]> {
+    async listKeys(options: storage.KeyValueStoreListKeysOptions = {}): Promise<storage.KeyValueStoreListKeysResult> {
         const { prefix, exclusiveStartKey, limit } = s
             .object({
                 prefix: s.string().optional(),
@@ -140,30 +140,31 @@ export class KeyValueStoreClient extends CachedIdClient implements storage.KeyVa
         // Pass the bare-file fallbacks so out-of-band value files (e.g. a hand-placed `INPUT.json`)
         // are enumerated alongside tracked records, under their actual on-disk name. The native reads
         // everything it needs off the filesystem index — no per-file reads — so this stays cheap.
-        const records: storage.KeyValueStoreItemData[] = [];
-        const presentKeys = new Set<string>();
-        const iterator = await this.nativeClient.iterateKeys(
-            exclusiveStartKey,
-            limit,
-            undefined,
-            prefix,
-            LIST_BARE_FALLBACKS,
-        );
-        for await (const record of iterator) {
-            records.push(record);
-            presentKeys.add(record.key);
-        }
+        // The native `listKeys` already returns a self-describing page (items + pagination cursors)
+        // matching the `KeyValueStoreListKeysResult` contract, so we only post-process the items.
+        const page = await this.nativeClient.listKeys(exclusiveStartKey, limit, prefix, LIST_BARE_FALLBACKS);
+
+        const presentKeys = new Set(page.items.map((record) => record.key));
 
         // A bare value file is listed under its actual name (`INPUT.json`), which already round-trips
         // through `getValue`/`recordExists`. The only collision is a tracked record occupying the
         // logical key itself (`INPUT`): it shadows the extension-bearing bare variants (`INPUT.json`
         // etc.) for the same logical key, so drop those. The extensionless bare file *is* the logical
         // key, so it is never a separate duplicate.
-        return records.filter((record) => {
+        const items = page.items.filter((record) => {
             const logicalKey = BARE_FILE_LOGICAL_KEYS.get(record.key);
             const isExtensionBearingBareFile = logicalKey !== undefined && logicalKey !== record.key;
             return !(isExtensionBearingBareFile && presentKeys.has(logicalKey));
         });
+
+        return {
+            items,
+            count: items.length,
+            limit: page.limit,
+            exclusiveStartKey: page.exclusiveStartKey,
+            isTruncated: page.isTruncated,
+            nextExclusiveStartKey: page.nextExclusiveStartKey,
+        };
     }
 
     /**

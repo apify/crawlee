@@ -146,8 +146,8 @@ describe('fallback to fs for reading', () => {
         expect(url).toMatch(/^file:\/\/.*INPUT\.json$/);
 
         // A bare `INPUT.json` is enumerated under its actual on-disk name, not the logical `INPUT`.
-        const keys = await otherStore.listKeys();
-        expect(keys.map((item) => item.key)).toContain('INPUT.json');
+        const { items } = await otherStore.listKeys();
+        expect(items.map((item) => item.key)).toContain('INPUT.json');
     });
 
     test('a listed bare key round-trips through getValue / recordExists / getPublicUrl', async () => {
@@ -155,7 +155,7 @@ describe('fallback to fs for reading', () => {
 
         // The key `listKeys` reports for a bare file must be readable back verbatim, while the logical
         // `INPUT` lookup keeps resolving the same bare file (matching how Crawlee reads run input).
-        const [listed] = (await otherStore.listKeys()).map((item) => item.key);
+        const [listed] = (await otherStore.listKeys()).items.map((item) => item.key);
         expect(listed).toBe('INPUT.json');
 
         const expected: KeyValueStoreRecord = {
@@ -182,8 +182,8 @@ describe('fallback to fs for reading', () => {
         expect(await nonInputStore.getPublicUrl('some-key')).toBeUndefined();
 
         // `listKeys` only surfaces bare files for the run-input keys, so `some-key` is not enumerated.
-        const keys = await nonInputStore.listKeys();
-        expect(keys.map((item) => item.key)).not.toContain('some-key');
+        const { items } = await nonInputStore.listKeys();
+        expect(items.map((item) => item.key)).not.toContain('some-key');
     });
 
     test('a tracked INPUT record shadows the bare INPUT.json variant in listKeys', async () => {
@@ -198,7 +198,7 @@ describe('fallback to fs for reading', () => {
             JSON.stringify({ foo: 'bare' }),
         );
 
-        const keys = (await collisionStore.listKeys()).map((item) => item.key);
+        const keys = (await collisionStore.listKeys()).items.map((item) => item.key);
         expect(keys).toContain('INPUT');
         expect(keys).not.toContain('INPUT.json');
     });

@@ -34,8 +34,8 @@ describe('KeyValueStore handles keys with file-name-unsafe characters', () => {
         expect(record?.contentType).toBe('text/html');
 
         expect(await store.recordExists('jibberish2.html')).toBe(true);
-        const keys = await store.listKeys();
-        expect(keys.map((item) => item.key)).toContain('jibberish2.html');
+        const { items } = await store.listKeys();
+        expect(items.map((item) => item.key)).toContain('jibberish2.html');
     });
 
     test('round-trips a key containing a slash', async () => {
@@ -49,7 +49,7 @@ describe('KeyValueStore handles keys with file-name-unsafe characters', () => {
         expect(record?.value).toStrictEqual(Buffer.from(body));
 
         expect(await store.recordExists('nested/key')).toBe(true);
-        const keys = await store.listKeys();
-        expect(keys.map((item) => item.key)).toContain('nested/key');
+        const { items } = await store.listKeys();
+        expect(items.map((item) => item.key)).toContain('nested/key');
     });
 });

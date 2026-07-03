@@ -43,7 +43,7 @@ export interface InternalRequest {
     orderNo: number | null;
     url: string;
     uniqueKey: string;
-    method: Exclude<storage.RequestOptions['method'], undefined>;
+    method: storage.RequestSchema['method'];
     retryCount: number;
     json: string;
 }
@@ -219,7 +219,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         };
     }
 
-    async fetchNextRequest(): Promise<storage.RequestOptions | null> {
+    async fetchNextRequest(): Promise<storage.UpdateRequestSchema | undefined> {
         this.updateTimestamps(false);
 
         await this.queueStateMutex.wait();
@@ -230,14 +230,14 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             } = await this.listPendingHead(1);
 
             if (!head) {
-                return null;
+                return undefined;
             }
 
             // Mark the request as in progress so it is not handed out again until it is handled or
             // reclaimed. The request keeps its `orderNo` (and thus its forefront / normal ordering).
             this.inProgressRequestIds.add(head.id);
 
-            return this._jsonToRequest(head.json) ?? null;
+            return this._jsonToRequest(head.json) ?? undefined;
         } finally {
             this.queueStateMutex.shift();
         }
@@ -245,7 +245,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
 
     async addBatchOfRequests(
         requests: storage.RequestSchema[],
-        options: storage.RequestOptions = {},
+        options: storage.RequestQueueOperationOptions = {},
     ): Promise<storage.BatchAddRequestsResult> {
         batchRequestShapeWithoutId.parse(requests);
         requestOptionsShape.parse(options);
@@ -307,7 +307,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         }
     }
 
-    async getRequest(uniqueKey: string): Promise<storage.RequestOptions | undefined> {
+    async getRequest(uniqueKey: string): Promise<storage.UpdateRequestSchema | undefined> {
         s.string().parse(uniqueKey);
         this.updateTimestamps(false);
         const id = uniqueKeyToRequestId(uniqueKey);
@@ -315,7 +315,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         return this._jsonToRequest(json);
     }
 
-    async markRequestAsHandled(request: storage.UpdateRequestSchema): Promise<storage.QueueOperationInfo | null> {
+    async markRequestAsHandled(request: storage.UpdateRequestSchema): Promise<storage.QueueOperationInfo | undefined> {
         requestShape.parse(request);
         this.updateTimestamps(false);
 
@@ -333,7 +333,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             // be in progress: marking an already-released request handled must still succeed, otherwise
             // the request could be handed out again and the queue would never finish.
             if (!existingRequest) {
-                return null;
+                return undefined;
             }
 
             // A handled request has `orderNo === null`. Marking it again is an idempotent no-op.
@@ -366,8 +366,8 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
 
     async reclaimRequest(
         request: storage.UpdateRequestSchema,
-        options: storage.RequestOptions = {},
-    ): Promise<storage.QueueOperationInfo | null> {
+        options: storage.RequestQueueOperationOptions = {},
+    ): Promise<storage.QueueOperationInfo | undefined> {
         requestShape.parse(request);
         requestOptionsShape.parse(options);
         this.updateTimestamps(false);
@@ -387,7 +387,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             // already-released request to the queue (e.g. to honor a `forefront` reorder) must still
             // work, rather than have the reclaim silently dropped.
             if (!existingRequest || existingRequest.orderNo === null) {
-                return null;
+                return undefined;
             }
 
             // Reclaiming resets the `orderNo` to a fresh timestamp, restoring the request to the queue
@@ -462,7 +462,6 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         return {
             accessedAt: this.accessedAt,
             createdAt: this.createdAt,
-            hadMultipleClients: false,
             handledRequestCount: this.handledRequestCount,
             id: this.id,
             modifiedAt: this.modifiedAt,

@@ -38,6 +38,6 @@ describe('Request queue persists across reopen via teardown', () => {
         const second = await reopenedQueue.fetchNextRequest();
 
         expect([first?.url, second?.url].sort()).toStrictEqual(['http://example.com/1', 'http://example.com/2']);
-        expect(await reopenedQueue.fetchNextRequest()).toBeNull();
+        expect(await reopenedQueue.fetchNextRequest()).toBeUndefined();
     });
 });

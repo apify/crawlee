@@ -32,7 +32,7 @@ describe('RequestQueueClient adapter', () => {
 
         const request = await requestQueue.fetchNextRequest();
 
-        expect(request).not.toBeNull();
+        expect(request).toBeDefined();
         expect(request!.url).toBe('http://example.com/1');
         expect(request!.uniqueKey).toBe('1');
         expect(request!.userData).toStrictEqual({ foo: 'bar' });
@@ -91,7 +91,6 @@ describe('RequestQueueClient adapter', () => {
         expect(metadata.accessedAt).toBeInstanceOf(Date);
         // ...and the adapter synthesizes the framework-shape fields.
         expect(metadata.id).toEqual(expect.any(String));
-        expect(metadata.hadMultipleClients).toBe(false);
     });
 
     test('a request added as already-handled counts toward handledRequestCount', async () => {
@@ -124,7 +123,7 @@ describe('RequestQueueClient adapter', () => {
         expect(await requestQueue.isEmpty()).toBe(true);
         expect(await requestQueue.isFinished()).toBe(false);
         // While in progress it is not handed out again.
-        expect(await requestQueue.fetchNextRequest()).toBeNull();
+        expect(await requestQueue.fetchNextRequest()).toBeUndefined();
 
         await requestQueue.markRequestAsHandled({ ...request!, id: request!.id! });
         expect(await requestQueue.isFinished()).toBe(true);

@@ -158,14 +158,14 @@ if (isMainThread) {
     try {
         if (process.env.STORAGE_IMPLEMENTATION === 'LOCAL') {
             console.log('Temporary installing @apify/storage-local');
-            execSync(`yarn add -D "@apify/storage-local@^2.3.1-beta.1"`, { stdio: 'inherit' });
+            execSync(`pnpm add -w -D "@apify/storage-local@^2.3.1-beta.1"`, { stdio: 'inherit' });
         }
         if (process.env.STORAGE_IMPLEMENTATION !== 'PLATFORM') {
             console.log('Fetching Camoufox...');
 
             for (let attempt = 0; attempt < 5; attempt++) {
                 try {
-                    execSync(`npx camoufox-js fetch`, { stdio: 'inherit' });
+                    execSync(`pnpm exec camoufox-js fetch`, { stdio: 'inherit' });
                 } catch (e) {
                     console.error('Failed to fetch Camoufox', e);
                     if (attempt === 4) throw e;
@@ -182,7 +182,7 @@ if (isMainThread) {
     } finally {
         if (process.env.STORAGE_IMPLEMENTATION === 'LOCAL') {
             console.log('Removing temporary installation of @apify/storage-local');
-            execSync(`yarn remove @apify/storage-local`, { stdio: 'inherit' });
+            execSync(`pnpm remove -w @apify/storage-local`, { stdio: 'inherit' });
         }
     }
 

@@ -35,7 +35,7 @@ describe('FileSystemStorageClient requestQueueAccess', () => {
             { url: 'http://example.com/2', uniqueKey: '2' },
         ]);
         const locked = await queue.fetchNextRequest();
-        expect(locked).not.toBeNull();
+        expect(locked).toBeDefined();
         // Intentionally NO markRequestAsHandled and NO teardown/persistState — the lock is left dangling.
         return locked!;
     }
@@ -80,6 +80,6 @@ describe('FileSystemStorageClient requestQueueAccess', () => {
         // ...but only the un-locked request is handed out; the locked one stays in progress.
         const a = await queue.fetchNextRequest();
         expect(a?.uniqueKey).toBe('2');
-        expect(await queue.fetchNextRequest()).toBeNull();
+        expect(await queue.fetchNextRequest()).toBeUndefined();
     });
 });
