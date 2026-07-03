@@ -116,7 +116,8 @@ export function mergeCookies(url: string, sourceCookies: string[]): string {
             // ignore extra spaces
             if (!cookieString) continue;
 
-            const cookie = Cookie.parse(cookieString)!;
+            const cookie = Cookie.parse(cookieString);
+            if (!cookie) throw new CookieParseError(cookieString);
             const similarKeyCookie = jar.getCookiesSync(url).find((c) => {
                 return cookie.key !== c.key && cookie.key.toLowerCase() === c.key.toLowerCase();
             });

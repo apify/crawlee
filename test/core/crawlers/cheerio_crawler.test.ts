@@ -1169,6 +1169,15 @@ describe('CheerioCrawler', () => {
             );
         });
 
+        test('mergeCookies() throws a contextual error for malformed cookie fragments', () => {
+            expect(() => mergeCookies('https://example.com', ['valid=1; brokenfragment'])).toThrow(
+                'Could not parse cookie header string: brokenfragment',
+            );
+            expect(() => mergeCookies('https://example.com', ['sessionid'])).toThrow(
+                'Could not parse cookie header string: sessionid',
+            );
+        });
+
         test('should use sessionId in proxyUrl when the session pool is enabled', async () => {
             const sourcesNew = [{ url: 'http://example.com/?q=1' }];
             const requestListNew = await RequestList.open({ sources: sourcesNew });
