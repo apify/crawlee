@@ -940,6 +940,7 @@ __metadata:
     "@apify/timeout": "npm:^0.3.0"
     "@apify/utilities": "npm:^2.7.10"
     "@crawlee/basic": "npm:3.17.0"
+    "@crawlee/core": "npm:3.17.0"
     "@crawlee/types": "npm:3.17.0"
     "@crawlee/utils": "npm:3.17.0"
     "@types/content-type": "npm:^1.1.5"
@@ -992,6 +993,8 @@ __metadata:
     "@apify/utilities": "npm:^2.7.10"
     "@crawlee/http": "npm:3.17.0"
     "@crawlee/types": "npm:3.17.0"
+    "@crawlee/utils": "npm:3.17.0"
+    cheerio: "npm:1.0.0-rc.12"
     linkedom: "npm:^0.18.0"
     ow: "npm:^0.28.2"
     tslib: "npm:^2.4.0"
@@ -1036,6 +1039,7 @@ __metadata:
     ow: "npm:^0.28.1"
     string-comparison: "npm:^1.3.0"
     tslib: "npm:^2.4.0"
+    type-fest: "npm:^4.0.0"
   peerDependencies:
     idcac-playwright: ^0.2.0
     playwright: "*"
@@ -5525,6 +5529,7 @@ __metadata:
     "@crawlee/http": "npm:3.17.0"
     "@crawlee/jsdom": "npm:3.17.0"
     "@crawlee/linkedom": "npm:3.17.0"
+    "@crawlee/memory-storage": "npm:3.17.0"
     "@crawlee/playwright": "npm:3.17.0"
     "@crawlee/puppeteer": "npm:3.17.0"
     "@crawlee/utils": "npm:3.17.0"
