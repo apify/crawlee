@@ -258,15 +258,6 @@ export class FileSystemStorageClient implements storage.StorageClient {
         }
     }
 
-    async setStatusMessage(message: string, options: storage.SetStatusMessageOptions = {}): Promise<void> {
-        s.string().parse(message);
-        s.object({
-            isStatusMessageTerminal: s.boolean().optional(),
-        }).parse(options);
-
-        return Promise.resolve();
-    }
-
     /**
      * Cleans up the default storage directories before the run starts:
      *  - local directory containing the default dataset;

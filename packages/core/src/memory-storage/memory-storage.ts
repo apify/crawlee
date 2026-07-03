@@ -2,7 +2,6 @@ import { randomUUID } from 'node:crypto';
 
 import type * as storage from '@crawlee/types';
 import type { CrawleeLogger } from '@crawlee/types';
-import { s } from '@sapphire/shapeshift';
 
 import { DatasetClient } from './resource-clients/dataset.js';
 import { KeyValueStoreClient } from './resource-clients/key-value-store.js';
@@ -149,15 +148,6 @@ export class MemoryStorageClient implements storage.StorageClient {
 
         // In-memory storage only knows about clients in its cache.
         return clients.some((store) => store.id === id);
-    }
-
-    async setStatusMessage(message: string, options: storage.SetStatusMessageOptions = {}): Promise<void> {
-        s.string().parse(message);
-        s.object({
-            isStatusMessageTerminal: s.boolean().optional(),
-        }).parse(options);
-
-        return Promise.resolve();
     }
 
     /**

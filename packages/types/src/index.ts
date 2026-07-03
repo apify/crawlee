@@ -1,3 +1,4 @@
+export type * from './status-message.js';
 export type * from './storages.js';
 export type * from './utility-types.js';
 export type * from './browser.js';

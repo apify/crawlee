@@ -11,6 +11,7 @@ import type {
     DatasetExportOptions,
     EnqueueLinksOptions,
     EventManager,
+    EventStatusMessageData,
     FinalStatistics,
     GetUserDataFromRequest,
     IRequestLoader,
@@ -1207,25 +1208,29 @@ export class BasicCrawler<
     }
 
     /**
+     * Sets the status message for the current crawler run.
+     *
      * This method is periodically called by the crawler, every `statusMessageLoggingInterval` seconds.
+     *
+     * The message is logged and broadcast via the {@apilink EventType.STATUS_MESSAGE|`statusMessage`}
+     * event. Integrations such as the Apify SDK subscribe to that event and forward the message to
+     * their status-reporting backend (e.g. the Apify platform).
      */
-    async setStatusMessage(message: string, options: SetStatusMessageOptions = {}) {
+    setStatusMessage(message: string, options: SetStatusMessageOptions = {}) {
         const data =
             options.isStatusMessageTerminal != null ? { terminal: options.isStatusMessageTerminal } : undefined;
         this.log.logWithLevel(LogLevel[(options.level as 'DEBUG') ?? 'DEBUG'], message, data);
 
-        const client = serviceLocator.getStorageClient();
-
-        if (!client.setStatusMessage) {
-            return;
-        }
-
-        // just to be sure, this should be fast
-        await addTimeoutToPromise(
-            async () => client.setStatusMessage!(message, options),
-            1000,
-            'Setting status message timed out after 1s',
-        ).catch((e) => this.log.debug(e.message));
+        // Broadcast the status message through the event system. Consumers (e.g. the Apify SDK) can
+        // subscribe to `EventType.STATUS_MESSAGE` and propagate it to their status-reporting backend.
+        // Setting the status message is not a storage concern, so we intentionally don't route it
+        // through the storage client anymore.
+        serviceLocator.getEventManager().emit(EventType.STATUS_MESSAGE, {
+            crawlerId: this.crawlerId,
+            message,
+            isStatusMessageTerminal: options.isStatusMessageTerminal,
+            level: options.level,
+        } satisfies EventStatusMessageData);
     }
 
     private getPeriodicLogger() {
@@ -1269,7 +1274,7 @@ export class BasicCrawler<
                 return;
             }
 
-            await this.setStatusMessage(message);
+            this.setStatusMessage(message);
         };
 
         const interval = setInterval(log, this.statusMessageLoggingInterval * 1e3);
@@ -1334,8 +1339,7 @@ export class BasicCrawler<
         await this._init();
         await this.stats.startCapturing();
         const periodicLogger = this.getPeriodicLogger();
-        // Don't await, we don't want to block the execution
-        void this.setStatusMessage('Starting the crawler.', { level: 'INFO' });
+        this.setStatusMessage('Starting the crawler.', { level: 'INFO' });
 
         const sigintHandler = async () => {
             this.log.warning(
@@ -1398,8 +1402,7 @@ export class BasicCrawler<
             }
 
             periodicLogger.stop();
-            // Don't await, we don't want to block the execution
-            void this.setStatusMessage(
+            this.setStatusMessage(
                 `Finished! Total ${this.stats.state.requestsFinished + this.stats.state.requestsFailed} requests: ${
                     this.stats.state.requestsFinished
                 } succeeded, ${this.stats.state.requestsFailed} failed.`,
