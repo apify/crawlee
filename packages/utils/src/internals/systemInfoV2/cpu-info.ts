@@ -48,8 +48,9 @@ export function getCurrentCpuTicks() {
         },
         { idle: 0, total: 0 },
     );
-    const idleTicksDelta = ticks.idle - previousTicks!.idle;
-    const totalTicksDelta = ticks.total - previousTicks!.total;
+    const idleTicksDelta = ticks.idle - previousTicks.idle;
+    const totalTicksDelta = ticks.total - previousTicks.total;
+    Object.assign(previousTicks, ticks);
     return totalTicksDelta ? 1 - idleTicksDelta / totalTicksDelta : 0;
 }
 

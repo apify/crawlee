@@ -32,6 +32,20 @@ vitest.mock('node:fs/promises', async (importActual) => {
 const getCgroupsVersionSpy = vitest.mocked(getCgroupsVersion);
 const readFileSpy = vitest.mocked(readFile);
 
+// `getCurrentCpuTicks` keeps a module-level baseline of the previous tick sample.
+// Zero it before each test so the singleton state cannot leak between tests.
+function resetCpuTicksBaseline() {
+    const cpusMock = vitest
+        .spyOn(os, 'cpus')
+        .mockReturnValue([{ times: { user: 0, nice: 0, sys: 0, idle: 0, irq: 0 } }] as os.CpuInfo[]);
+    getCurrentCpuTicks();
+    cpusMock.mockRestore();
+}
+
+beforeEach(() => {
+    resetCpuTicksBaseline();
+});
+
 describe('getCurrentCpuTicks()', () => {
     test('calculates cpu load based on os.cpus', () => {
         // For two CPUs, we simulate:
@@ -47,6 +61,29 @@ describe('getCurrentCpuTicks()', () => {
         const load = getCurrentCpuTicks();
         expect(load).toBeCloseTo(0.75);
         cpusMock.mockRestore();
+    });
+
+    test('measures load between samples, not cumulatively since boot', () => {
+        // First sample establishes the baseline: total = 400, idle = 200.
+        const firstMock = vitest
+            .spyOn(os, 'cpus')
+            .mockReturnValue([{ times: { user: 100, nice: 0, sys: 100, idle: 200, irq: 0 } }] as os.CpuInfo[]);
+        getCurrentCpuTicks();
+        firstMock.mockRestore();
+
+        // Second sample adds 150 busy ticks and 50 idle ticks: total = 600, idle = 250.
+        // Chosen so the inter-sample delta and the cumulative-since-boot ratio differ.
+        const secondMock = vitest
+            .spyOn(os, 'cpus')
+            .mockReturnValue([{ times: { user: 175, nice: 0, sys: 175, idle: 250, irq: 0 } }] as os.CpuInfo[]);
+        const load = getCurrentCpuTicks();
+        secondMock.mockRestore();
+
+        // Delta since the previous sample: idleDelta = 50, totalDelta = 200 -> 1 - 50/200 = 0.75.
+        // The cumulative-since-boot ratio would be 1 - 250/600 ≈ 0.583, which the buggy
+        // (baseline-never-advanced) implementation returned instead.
+        expect(load).toBeCloseTo(0.75);
+        expect(load).not.toBeCloseTo(1 - 250 / 600);
     });
 });
 
