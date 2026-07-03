@@ -232,7 +232,7 @@ export async function enqueueLinksByClickingElements(
             requestQueue: ow.object.hasKeys('fetchNextRequest', 'addRequest'),
             selector: ow.string,
             userData: ow.optional.object,
-            clickOptions: ow.optional.object.hasKeys('clickCount', 'delay'),
+            clickOptions: ow.optional.object,
             pseudoUrls: ow.optional.array.ofType(ow.any(ow.string, ow.object.hasKeys('purl'))),
             globs: ow.optional.array.ofType(ow.any(ow.string, ow.object.hasKeys('glob'))),
             regexps: ow.optional.array.ofType(ow.any(ow.regExp, ow.object.hasKeys('regexp'))),
