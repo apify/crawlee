@@ -3,7 +3,7 @@
     "version": "0.0.1",
     "description": "Puppeteer Test - Store Pagination with jQuery",
     "dependencies": {
-        "apify": "next",
+        "apify": "next-v4",
         "@apify/storage-local": "^2.3.0",
         "@crawlee/basic": "file:./packages/basic-crawler",
         "@crawlee/browser": "file:./packages/browser-crawler",
