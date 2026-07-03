@@ -508,7 +508,8 @@ export class Configuration {
             try {
                 const file = readFileSync(path);
                 const optionsFromFileConfig = JSON.parse(file.toString());
-                Object.assign(options, optionsFromFileConfig);
+                // The file is the baseline, so the constructor options take precedence over it.
+                options = { ...optionsFromFileConfig, ...options };
             } catch {
                 // ignore
             }
