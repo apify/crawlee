@@ -271,6 +271,33 @@ describe('playwrightUtils', () => {
         }
     }, 60_000);
 
+    test('gotoExtended() applies headers natively for GET requests without a payload', async () => {
+        const browser = await chromium.launch({ headless: true });
+
+        try {
+            const page = await browser.newPage();
+            const routeSpy = vitest.spyOn(page, 'route');
+            const deprecatedSpy = vitest.spyOn(log, 'deprecated');
+
+            const request = new Request({
+                url: `${serverAddress}/special/getDebug`,
+                headers: {
+                    'User-Agent': 'Demo UA',
+                },
+            });
+
+            const response = await playwrightUtils.gotoExtended(page, request);
+
+            const { method, headers } = JSON.parse(await response!.text());
+            expect(method).toBe('GET');
+            expect(headers['user-agent']).toBe('Demo UA');
+            expect(routeSpy).not.toHaveBeenCalled();
+            expect(deprecatedSpy).not.toHaveBeenCalled();
+        } finally {
+            await browser.close();
+        }
+    }, 60_000);
+
     describe('shadow root expansion', () => {
         let browser: Browser;
         beforeAll(async () => {
