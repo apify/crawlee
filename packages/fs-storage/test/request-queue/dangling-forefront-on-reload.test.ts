@@ -64,7 +64,7 @@ describe('Request queue reload drops dangling forefront ids without a backing re
         // None of these head scans must throw, and an empty/finished queue must be reported.
         await expect(queue.isEmpty()).resolves.toBe(true);
         await expect(queue.isFinished()).resolves.toBe(true);
-        await expect(queue.fetchNextRequest()).resolves.toBeNull();
+        await expect(queue.fetchNextRequest()).resolves.toBeUndefined();
     });
 
     test('a valid forefront request is still served while a dangling sibling id is dropped', async () => {
@@ -81,6 +81,6 @@ describe('Request queue reload drops dangling forefront ids without a backing re
         expect(first).not.toBeNull();
         expect(first!.url).toEqual('http://example.com');
 
-        expect(await queue.fetchNextRequest()).toBeNull();
+        expect(await queue.fetchNextRequest()).toBeUndefined();
     });
 });
