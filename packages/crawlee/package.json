@@ -63,6 +63,7 @@
         "@crawlee/http": "3.17.0",
         "@crawlee/jsdom": "3.17.0",
         "@crawlee/linkedom": "3.17.0",
+        "@crawlee/memory-storage": "3.17.0",
         "@crawlee/playwright": "3.17.0",
         "@crawlee/puppeteer": "3.17.0",
         "@crawlee/utils": "3.17.0",
