@@ -48,14 +48,14 @@ export interface SnapshotterOptions {
     /**
      * Defines the maximum number of new rate limit errors within
      * the given interval.
-     * @default 1
+     * @default 3
      */
     maxClientErrors?: number;
 
     /**
      * Sets the interval in seconds for which a history of resource snapshots
      * will be kept. Increasing this to very high numbers will affect performance.
-     * @default 60
+     * @default 30
      */
     snapshotHistorySecs?: number;
 
