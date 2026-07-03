@@ -551,7 +551,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
             existingQueueById.pendingRequestCount += requestWasHandledBeforeUpdate ? 1 : -1;
         }
 
-        if (requestIsHandledAfterUpdate) {
+        if (isRequestHandledStateChanging && requestIsHandledAfterUpdate) {
             existingQueueById.handledRequestCount += 1;
         }
 

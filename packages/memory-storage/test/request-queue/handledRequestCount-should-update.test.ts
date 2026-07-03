@@ -50,4 +50,24 @@ describe('RequestQueue handledRequestCount should update', () => {
         const updatedStatistics = await requestQueue.get();
         expect(updatedStatistics?.handledRequestCount).toEqual(2);
     });
+
+    test('updating an already handled request should not increment the handledRequestCount again', async () => {
+        const { requestId } = await requestQueue.addRequest({
+            url: 'http://example.com/4',
+            uniqueKey: '4',
+            handledAt: new Date().toISOString(),
+        });
+
+        const { handledRequestCount } = (await requestQueue.get())!;
+
+        await requestQueue.updateRequest({
+            url: 'http://example.com/4',
+            uniqueKey: '4',
+            id: requestId,
+            handledAt: new Date().toISOString(),
+        });
+
+        const updatedStatistics = await requestQueue.get();
+        expect(updatedStatistics?.handledRequestCount).toEqual(handledRequestCount);
+    });
 });
