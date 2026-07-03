@@ -77,6 +77,16 @@ describe('utils.social', () => {
                 'some.super.long.email.address@some.super.long.domain.name.co.br',
             ]);
         });
+
+        test('does not hang on adversarial input (ReDoS)', () => {
+            // A long dotted local part with no valid domain used to trigger quadratic
+            // backtracking in EMAIL_REGEX_GLOBAL, freezing the event loop for seconds on
+            // scraped text. A long hyphen run in a domain label had the same issue.
+            const started = Date.now();
+            expect(emailsFromText(`x${'.a'.repeat(50000)}@`)).toEqual([]);
+            expect(emailsFromText(`a@${'a-'.repeat(50000)}!`)).toEqual([]);
+            expect(Date.now() - started).toBeLessThan(1000);
+        });
     });
 
     describe('emailsFromUrls()', () => {
