@@ -18,7 +18,7 @@ import type {
     LoadedContext,
     Request,
 } from '@crawlee/playwright';
-import { AdaptivePlaywrightCrawler, RenderingTypePredictor, RequestList } from '@crawlee/playwright';
+import { AdaptivePlaywrightCrawler, BasicCrawler, RenderingTypePredictor, RequestList } from '@crawlee/playwright';
 import { sleep } from 'crawlee';
 import express from 'express';
 import { startExpressAppPromise } from '../../shared/_helper.js';
@@ -121,7 +121,16 @@ describe('AdaptivePlaywrightCrawler', () => {
     });
 
     beforeEach(async () => {
+        // The global test setup (`test/vitest.setup.ts`) already calls `serviceLocator.reset()` before
+        // each test, which clears the storage-instance cache; here we just install a fresh in-memory
+        // storage client for this suite.
         serviceLocator.setStorageClient(new MemoryStorageClient());
+        // `BasicCrawler` keeps a process-global instance counter that assigns each crawler a distinct
+        // default request queue (the first one uses the shared default queue, later ones get their own
+        // `__default_<n>__` alias). Since every test wipes storage and starts fresh, the counter must be
+        // reset too — otherwise later crawlers open aliased queues that are out of sync with the freshly
+        // reset storage, and the crawler restores a stale handled-request count and processes nothing.
+        (BasicCrawler as unknown as { instanceCount: number }).instanceCount = 0;
     });
 
     // Test setup helpers
@@ -544,7 +553,7 @@ describe('AdaptivePlaywrightCrawler', () => {
         );
 
         const store = await KeyValueStore.open();
-        expect(await store.getValue('1')).toBeUndefined();
+        expect(await store.getValue('1')).toBeNull();
     });
 
     test('should persist RenderingTypePredictor state on PERSIST_STATE events', async () => {
