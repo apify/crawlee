@@ -463,7 +463,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
      * the same way {@link fetchNextRequest} would hand them out. This does not mutate the queue,
      * nothing is marked in progress.
      */
-    async listItems(): Promise<storage.RequestOptions[]> {
+    async listItems(): Promise<storage.UpdateRequestSchema[]> {
         this.updateTimestamps(false);
 
         // `listPendingHead` prunes `forefrontRequestIds` as it scans, so we must hold the queue-state
@@ -472,7 +472,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
 
         try {
             const { items } = await this.listPendingHead(Number.POSITIVE_INFINITY);
-            return items.map((request) => this._jsonToRequest<storage.RequestOptions>(request.json)!);
+            return items.map((request) => this._jsonToRequest<storage.UpdateRequestSchema>(request.json)!);
         } finally {
             this.queueStateMutex.shift();
         }
