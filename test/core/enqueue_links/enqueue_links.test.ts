@@ -1,4 +1,9 @@
-import { type AddRequestsBatchedOptions, cheerioCrawlerEnqueueLinks } from '@crawlee/cheerio';
+import {
+    type AddRequestsBatchedOptions,
+    cheerioCrawlerEnqueueLinks,
+    MemoryStorageClient,
+    serviceLocator,
+} from '@crawlee/cheerio';
 import { enqueueLinks } from '@crawlee/core';
 import { launchPlaywright } from '@crawlee/playwright';
 import type { RequestQueueOperationOptions, Source } from '@crawlee/puppeteer';
@@ -16,8 +21,6 @@ import type { Browser as PlaywrightBrowser, Page as PlaywrightPage } from 'playw
 import type { Browser as PuppeteerBrowser, Page as PuppeteerPage } from 'puppeteer';
 
 import log from '@apify/log';
-
-import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
 
 const HTML = `
 <html>
@@ -64,7 +67,6 @@ async function createRequestQueueMock() {
 }
 
 describe('enqueueLinks()', () => {
-    const localStorageEmulator = new MemoryStorageEmulator();
     let ll: number;
     beforeAll(() => {
         ll = log.getLevel();
@@ -72,12 +74,11 @@ describe('enqueueLinks()', () => {
     });
 
     beforeEach(async () => {
-        await localStorageEmulator.init();
+        serviceLocator.setStorageClient(new MemoryStorageClient());
     });
 
     afterAll(async () => {
         log.setLevel(ll);
-        await localStorageEmulator.destroy();
     });
 
     describe.each([[launchPuppeteer], [launchPlaywright]] as const)('using %s', (method) => {
