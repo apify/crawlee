@@ -4,17 +4,18 @@ import type { RequestQueueOperationOptions, Source } from 'crawlee';
 import {
     launchPlaywright,
     launchPuppeteer,
+    MemoryStorageClient,
     playwrightClickElements,
     playwrightUtils,
     puppeteerClickElements,
     puppeteerUtils,
     RequestQueue,
+    serviceLocator,
 } from 'crawlee';
 import type { Browser as PWBrowser, Page as PWPage } from 'playwright';
 // @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
 import type { Browser as PPBrowser, Target } from 'puppeteer';
 import { runExampleComServer } from '../../shared/_helper.js';
-import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
 
 function isPuppeteerBrowser(browser: PPBrowser | PWBrowser): browser is PPBrowser {
     return (browser as PPBrowser).targets !== undefined;
@@ -58,7 +59,6 @@ const testCases = [
 
 testCases.forEach(({ caseName, launchBrowser, clickElements, utils }) => {
     describe(`${caseName}: enqueueLinksByClickingElements()`, () => {
-        const localStorageEmulator = new MemoryStorageEmulator();
         let browser: PPBrowser | PWBrowser;
         let server: Server;
 
@@ -75,12 +75,11 @@ testCases.forEach(({ caseName, launchBrowser, clickElements, utils }) => {
         afterAll(async () => {
             await browser.close();
             server.close();
-            await localStorageEmulator.destroy();
         });
 
         beforeEach(async () => {
-            await localStorageEmulator.init();
             page = await browser.newPage();
+            serviceLocator.setStorageClient(new MemoryStorageClient());
         });
 
         afterEach(async () => {
