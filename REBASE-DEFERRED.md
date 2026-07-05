@@ -441,3 +441,31 @@ no longer exists. The equivalent already-migrated test in
 `packages/fs-storage/test/request-queue/handledRequestCount-should-update.test.ts`
 (from an earlier commit in this same rebase) had already dropped this exact
 test for the same reason — did the same here for consistency.
+
+**Commit `8a422628f` (Rewrite the FilesystemStorageClient to use
+apify/crawlee-storage) — took theirs' side wholesale, dropping my manual
+path-traversal hardening in `@crawlee/fs-storage`**: this commit replaces the
+entire hand-rolled TypeScript filesystem implementation (`cache-helpers.ts`,
+`fs/key-value-store/fs.ts`, and the dataset/kvs/request-queue resource
+clients) with thin adapters around a native Rust extension
+(`@crawlee/fs-storage-native`). `cache-helpers.ts` and `fs/key-value-store/fs.ts`
+are deleted outright — accepted the deletion (`git rm`) since their
+responsibilities (directory resolution, path safety, file I/O) move into the
+native library. For the resource-client content conflicts
+(`dataset.ts`/`key-value-store.ts`/`request-queue.ts`/`utils.ts`), took theirs
+wholesale rather than re-porting the `resolveWithinDirectory` hardening
+(documented earlier in this log, under the `a9b972294` and `39f689f33`
+entries) — checked `v4-reverse` first per the established practice for
+architecture-level collisions, and its equivalent files (a later rename to
+`DatasetBackend`/`FileSystemStorageBackend` etc., but structurally identical)
+also drop the manual TS-level hardening entirely, confirming the native
+package is expected to own path safety internally rather than the TS adapter
+layer re-implementing it.
+
+**Follow-up needed once the rebase is done**: I have not verified that
+`@crawlee/fs-storage-native` actually rejects path-traversal storage
+names/record keys the way `resolveWithinDirectory` did. This should be
+checked directly (either by reading the native crate's source if vendored, or
+by a quick escape-attempt test against the new `FileSystemStorageClient`)
+before considering the `a04c29766` security fix's guarantees intact
+post-rewrite.

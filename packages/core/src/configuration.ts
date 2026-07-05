@@ -82,6 +82,8 @@ export const crawleeConfigFields = {
     logLevel: field(logLevelSchema.optional(), 'CRAWLEE_LOG_LEVEL'),
     /** @default true */
     persistStorage: field(coerceBoolean.default(true), 'CRAWLEE_PERSIST_STORAGE'),
+    /** @default './storage' */
+    storageDir: field(z.string().default('./storage'), 'CRAWLEE_STORAGE_DIR'),
     containerized: field(coerceBoolean.optional(), 'CRAWLEE_CONTAINERIZED'),
 };
 
@@ -155,6 +157,7 @@ export interface Configuration extends ResolvedConfigValues {}
  * `persistStateIntervalMillis` | `CRAWLEE_PERSIST_STATE_INTERVAL_MILLIS` | `60_000`
  * `purgeOnStart` | `CRAWLEE_PURGE_ON_START` | `true`
  * `persistStorage` | `CRAWLEE_PERSIST_STORAGE` | `true`
+ * `storageDir` | `CRAWLEE_STORAGE_DIR` | `'./storage'`
  *
  * ## Advanced Configuration Options
  *

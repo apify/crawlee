@@ -181,12 +181,11 @@ describe('storage aliases', () => {
         });
 
         test('a storage opened by name can be re-opened by its auto-assigned id after a reset', async () => {
-            // `writeMetadata` persists the auto-assigned id to disk so it survives a reset. The
-            // directory is named after the storage's name, not its id.
+            // The native storage always persists the auto-assigned id to disk (in `__metadata__.json`)
+            // so it survives a reset. The directory is named after the storage's name, not its id.
             serviceLocator.reset();
             const firstClient = new FileSystemStorageClient({
                 localDataDirectory: localStorageDir,
-                writeMetadata: true,
             });
             serviceLocator.setStorageClient(firstClient);
 
@@ -200,7 +199,7 @@ describe('storage aliases', () => {
 
             // Simulate a fresh process: only the on-disk directory survives.
             serviceLocator.reset();
-            const client = new FileSystemStorageClient({ localDataDirectory: localStorageDir, writeMetadata: true });
+            const client = new FileSystemStorageClient({ localDataDirectory: localStorageDir });
             serviceLocator.setStorageClient(client);
 
             // Opening by the persisted id must find the storage, even though its directory is named
