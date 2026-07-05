@@ -2,7 +2,7 @@ import type {
     DatasetClient,
     KeyValueStoreClient,
     RequestQueueClient,
-    StorageClient,
+    StorageBackend,
     StorageIdentifier,
 } from '@crawlee/types';
 import { AsyncQueue } from '@sapphire/async-queue';
@@ -323,7 +323,7 @@ export interface DefaultStorageIdentifier {
 /**
  * Decompose a user-provided `identifier` (the `Dataset.open()` / `KeyValueStore.open()` /
  * `RequestQueue.open()` argument) into separate `id`, `name`, and `alias` fields that
- * the `StorageInstanceManager` and `StorageClient.create*Client` expect.
+ * the `StorageInstanceManager` and `StorageBackend.create*Client` expect.
  *
  * - `null` / `undefined` / `{}` → default storage alias
  * - `string` → resolved via `storageExists` (ID-first, then name)
@@ -333,7 +333,7 @@ export interface DefaultStorageIdentifier {
  */
 export async function resolveStorageIdentifier(
     identifier: string | StorageIdentifier | null | undefined,
-    client: StorageClient,
+    client: StorageBackend,
     storageType: 'Dataset' | 'KeyValueStore' | 'RequestQueue',
 ): Promise<ExplicitStorageIdentifier> {
     if (identifier === null || identifier === undefined) {

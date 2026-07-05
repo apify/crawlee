@@ -21,7 +21,7 @@ export interface FileSystemStorageOptions {
     localDataDirectory: string;
 
     /**
-     * Optional logger for FileSystemStorageClient warnings.
+     * Optional logger for FileSystemStorageBackend warnings.
      */
     logger?: CrawleeLogger;
 
@@ -44,14 +44,14 @@ export interface FileSystemStorageOptions {
 }
 
 /**
- * A file-system storage client backed by the native `@crawlee/fs-storage-native` Rust extension.
+ * A file-system storage backend backed by the native `@crawlee/fs-storage-native` Rust extension.
  *
  * The native extension owns the on-disk format, timestamps, item counting, request-queue locking and
  * state persistence. This class is responsible for resolving the user-facing `id` / `name` / `alias`
  * identifiers to native storages, caching the opened clients (so that `storageExists`, `purge` and
  * `teardown` can operate over them), and exposing them through the `@crawlee/types` interfaces.
  */
-export class FileSystemStorageClient implements storage.StorageClient {
+export class FileSystemStorageBackend implements storage.StorageBackend {
     readonly localDataDirectory: string;
     readonly datasetsDirectory: string;
     readonly keyValueStoresDirectory: string;
@@ -80,11 +80,11 @@ export class FileSystemStorageClient implements storage.StorageClient {
 
     /**
      * Return a cache key that includes the resolved storage directory, so that two
-     * `FileSystemStorageClient` instances pointing at different directories get separate cache
+     * `FileSystemStorageBackend` instances pointing at different directories get separate cache
      * partitions, by including the storage directory in the cache key.
      */
-    getStorageClientCacheKey(): string {
-        return `FileSystemStorageClient:${resolve(this.localDataDirectory)}`;
+    getStorageBackendCacheKey(): string {
+        return `FileSystemStorageBackend:${resolve(this.localDataDirectory)}`;
     }
 
     private static resolveStorageKey(options: { id?: string; name?: string; alias?: string }): {
@@ -101,7 +101,7 @@ export class FileSystemStorageClient implements storage.StorageClient {
     }
 
     async createDatasetClient(options: storage.CreateDatasetClientOptions = {}): Promise<storage.DatasetClient> {
-        const { id, name, alias, cacheKey } = FileSystemStorageClient.resolveStorageKey(options);
+        const { id, name, alias, cacheKey } = FileSystemStorageBackend.resolveStorageKey(options);
 
         if (cacheKey) {
             const found = this.datasetClientCache.find(
@@ -130,7 +130,7 @@ export class FileSystemStorageClient implements storage.StorageClient {
     async createKeyValueStoreClient(
         options: storage.CreateKeyValueStoreClientOptions = {},
     ): Promise<storage.KeyValueStoreClient> {
-        const { id, name, alias, cacheKey } = FileSystemStorageClient.resolveStorageKey(options);
+        const { id, name, alias, cacheKey } = FileSystemStorageBackend.resolveStorageKey(options);
 
         if (cacheKey) {
             const found = this.keyValueStoreCache.find(
@@ -159,7 +159,7 @@ export class FileSystemStorageClient implements storage.StorageClient {
     async createRequestQueueClient(
         options: storage.CreateRequestQueueClientOptions = {},
     ): Promise<storage.RequestQueueClient> {
-        const { id, name, alias, cacheKey } = FileSystemStorageClient.resolveStorageKey(options);
+        const { id, name, alias, cacheKey } = FileSystemStorageBackend.resolveStorageKey(options);
 
         if (cacheKey) {
             const found = this.requestQueueCache.find(
@@ -228,7 +228,7 @@ export class FileSystemStorageClient implements storage.StorageClient {
         // has a matching directory. We therefore read the real id from the metadata and only report
         // existence when it equals the queried string. This matches upstream PR #3800/#3808 and
         // prevents a named storage from being re-resolved as `{ id: name }` on a subsequent run.
-        const resolvedId = await FileSystemStorageClient.resolveStorageIdOnDisk(baseDir, id);
+        const resolvedId = await FileSystemStorageBackend.resolveStorageIdOnDisk(baseDir, id);
         return resolvedId === id;
     }
 
@@ -246,7 +246,7 @@ export class FileSystemStorageClient implements storage.StorageClient {
     ): Promise<string | undefined> {
         // Directory named exactly after the string: return its real (metadata) id, which may differ
         // from the string when the string is a name rather than an id.
-        const directId = await FileSystemStorageClient.readMetadataId(resolve(baseDirectory, entryNameOrId));
+        const directId = await FileSystemStorageBackend.readMetadataId(resolve(baseDirectory, entryNameOrId));
         if (directId !== undefined) {
             return directId;
         }
@@ -264,7 +264,7 @@ export class FileSystemStorageClient implements storage.StorageClient {
                 continue;
             }
 
-            const metadataId = await FileSystemStorageClient.readMetadataId(resolve(baseDirectory, directory.name));
+            const metadataId = await FileSystemStorageBackend.readMetadataId(resolve(baseDirectory, directory.name));
             if (metadataId === entryNameOrId) {
                 return metadataId;
             }

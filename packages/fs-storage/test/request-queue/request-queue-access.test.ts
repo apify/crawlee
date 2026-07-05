@@ -1,14 +1,14 @@
 import { rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
-import { FileSystemStorageClient } from '@crawlee/fs-storage';
+import { FileSystemStorageBackend } from '@crawlee/fs-storage';
 
 // `requestQueueAccess` controls how the native `@crawlee/fs-storage-native` extension treats requests
 // left *in progress* by a previous run (a dangling `orderNo` lock on disk) when a queue is reopened.
 // The reclaim/respect-peer-lock semantics are owned by the native extension; these tests verify the
 // adapter's contract on top of it: the option defaults to `'single'`, is honored when set to
 // `'shared'`, and that the resulting behavior reaches all the way down to the native queue.
-describe('FileSystemStorageClient requestQueueAccess', () => {
+describe('FileSystemStorageBackend requestQueueAccess', () => {
     const tmpLocation = resolve(import.meta.dirname, './tmp/request-queue-access');
 
     afterEach(async () => {
@@ -16,19 +16,19 @@ describe('FileSystemStorageClient requestQueueAccess', () => {
     });
 
     test("defaults to 'single'", () => {
-        const storage = new FileSystemStorageClient({ localDataDirectory: tmpLocation });
+        const storage = new FileSystemStorageBackend({ localDataDirectory: tmpLocation });
         expect(storage.requestQueueAccess).toBe('single');
     });
 
     test("respects an explicit 'shared'", () => {
-        const storage = new FileSystemStorageClient({ localDataDirectory: tmpLocation, requestQueueAccess: 'shared' });
+        const storage = new FileSystemStorageBackend({ localDataDirectory: tmpLocation, requestQueueAccess: 'shared' });
         expect(storage.requestQueueAccess).toBe('shared');
     });
 
     // Seed a queue with two requests, fetch (lock) one without handling it or tearing down — leaving a
     // dangling in-progress lock on disk, exactly the "process died mid-flight" situation.
     async function seedQueueWithDanglingLock(dir: string) {
-        const storage = new FileSystemStorageClient({ localDataDirectory: dir });
+        const storage = new FileSystemStorageBackend({ localDataDirectory: dir });
         const queue = await storage.createRequestQueueClient({ name: 'default' });
         await queue.addBatchOfRequests([
             { url: 'http://example.com/1', uniqueKey: '1' },
@@ -45,7 +45,7 @@ describe('FileSystemStorageClient requestQueueAccess', () => {
         const locked = await seedQueueWithDanglingLock(dir);
 
         // Reopen the same directory as sole owner, without purging.
-        const reopened = new FileSystemStorageClient({ localDataDirectory: dir, requestQueueAccess: 'single' });
+        const reopened = new FileSystemStorageBackend({ localDataDirectory: dir, requestQueueAccess: 'single' });
         const queue = await reopened.createRequestQueueClient({ name: 'default' });
 
         // Contents preserved: both requests still present, none handled.
@@ -69,7 +69,7 @@ describe('FileSystemStorageClient requestQueueAccess', () => {
 
         // Reopen in concurrency-safe mode: an in-progress request is treated as a potential live peer's
         // lock and is NOT reclaimed until it expires.
-        const reopened = new FileSystemStorageClient({ localDataDirectory: dir, requestQueueAccess: 'shared' });
+        const reopened = new FileSystemStorageBackend({ localDataDirectory: dir, requestQueueAccess: 'shared' });
         const queue = await reopened.createRequestQueueClient({ name: 'default' });
 
         // Contents are still preserved...

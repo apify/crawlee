@@ -1,8 +1,8 @@
-import { MemoryStorageClient } from '@crawlee/core';
+import { MemoryStorageBackend } from '@crawlee/core';
 import type { DatasetClient, KeyValueStoreClient } from '@crawlee/types';
 
 describe('Async iteration support', () => {
-    const storage = new MemoryStorageClient();
+    const storage = new MemoryStorageBackend();
 
     describe('Dataset.getData', () => {
         const elements = Array.from({ length: 25 }, (_, i) => ({ index: i }));

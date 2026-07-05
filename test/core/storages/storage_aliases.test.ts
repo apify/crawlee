@@ -1,13 +1,13 @@
 import { resolve } from 'node:path';
 
-import { FileSystemStorageClient } from '@crawlee/fs-storage';
-import { Dataset, KeyValueStore, MemoryStorageClient, RequestQueue, serviceLocator } from '@crawlee/core';
+import { FileSystemStorageBackend } from '@crawlee/fs-storage';
+import { Dataset, KeyValueStore, MemoryStorageBackend, RequestQueue, serviceLocator } from '@crawlee/core';
 import { ensureDir, rm } from 'fs-extra';
 
 import { cryptoRandomObjectId } from '@apify/utilities';
 
 beforeEach(async () => {
-    serviceLocator.setStorageClient(new MemoryStorageClient());
+    serviceLocator.setStorageBackend(new MemoryStorageBackend());
 });
 
 describe('storage aliases', () => {
@@ -146,7 +146,7 @@ describe('storage aliases', () => {
         beforeEach(async () => {
             serviceLocator.reset();
             await ensureDir(localStorageDir);
-            serviceLocator.setStorageClient(new FileSystemStorageClient({ localDataDirectory: localStorageDir }));
+            serviceLocator.setStorageBackend(new FileSystemStorageBackend({ localDataDirectory: localStorageDir }));
         });
 
         afterAll(async () => {
@@ -169,8 +169,8 @@ describe('storage aliases', () => {
 
             // Simulate a fresh process: only the on-disk directory survives.
             serviceLocator.reset();
-            const client = new FileSystemStorageClient({ localDataDirectory: localStorageDir });
-            serviceLocator.setStorageClient(client);
+            const client = new FileSystemStorageBackend({ localDataDirectory: localStorageDir });
+            serviceLocator.setStorageBackend(client);
 
             // 'named-storage' is the storage's name, not its id, so it must not be resolved as an id.
             await expect(client.storageExists('named-storage', 'Dataset')).resolves.toBe(false);
@@ -184,10 +184,10 @@ describe('storage aliases', () => {
             // The native storage always persists the auto-assigned id to disk (in `__metadata__.json`)
             // so it survives a reset. The directory is named after the storage's name, not its id.
             serviceLocator.reset();
-            const firstClient = new FileSystemStorageClient({
+            const firstClient = new FileSystemStorageBackend({
                 localDataDirectory: localStorageDir,
             });
-            serviceLocator.setStorageClient(firstClient);
+            serviceLocator.setStorageBackend(firstClient);
 
             const created = await Dataset.open('some-name');
             const assignedId = created.id;
@@ -199,8 +199,8 @@ describe('storage aliases', () => {
 
             // Simulate a fresh process: only the on-disk directory survives.
             serviceLocator.reset();
-            const client = new FileSystemStorageClient({ localDataDirectory: localStorageDir });
-            serviceLocator.setStorageClient(client);
+            const client = new FileSystemStorageBackend({ localDataDirectory: localStorageDir });
+            serviceLocator.setStorageBackend(client);
 
             // Opening by the persisted id must find the storage, even though its directory is named
             // after the name.

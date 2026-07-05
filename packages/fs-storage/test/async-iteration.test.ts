@@ -1,12 +1,12 @@
 import { rm } from 'node:fs/promises';
 import path from 'node:path';
 
-import { FileSystemStorageClient } from '@crawlee/fs-storage';
+import { FileSystemStorageBackend } from '@crawlee/fs-storage';
 import type { DatasetClient, KeyValueStoreClient } from '@crawlee/types';
 
 describe('Async iteration support', () => {
     const localDataDirectory = path.resolve(__dirname, './tmp/async-iteration');
-    const storage = new FileSystemStorageClient({
+    const storage = new FileSystemStorageBackend({
         localDataDirectory,
     });
 

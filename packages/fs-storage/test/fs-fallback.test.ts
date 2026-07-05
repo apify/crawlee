@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
-import { FileSystemStorageClient } from '@crawlee/fs-storage';
+import { FileSystemStorageBackend } from '@crawlee/fs-storage';
 import type { KeyValueStoreRecord } from '@crawlee/types';
 
 // The storage is backed by the native `@crawlee/fs-storage-native` extension, which only serves
@@ -20,7 +20,7 @@ import type { KeyValueStoreRecord } from '@crawlee/types';
 // lookup keeps resolving the same bare file.
 describe('fallback to fs for reading', () => {
     const tmpLocation = resolve(import.meta.dirname, './tmp/fs-fallback');
-    const storage = new FileSystemStorageClient({
+    const storage = new FileSystemStorageBackend({
         localDataDirectory: tmpLocation,
     });
 
@@ -221,7 +221,7 @@ const BARE_VARIANTS = [
 // variant lives in its own store so the logical-`INPUT` lookup resolves it unambiguously.
 describe('run-input bare-file reachability (one variant per store)', () => {
     const tmpLocation = resolve(import.meta.dirname, './tmp/fs-reachability-isolated');
-    const storage = new FileSystemStorageClient({ localDataDirectory: tmpLocation });
+    const storage = new FileSystemStorageBackend({ localDataDirectory: tmpLocation });
 
     const storeNameFor = (file: string) => `reach-${file.toLowerCase().replace('.', '-')}`;
 
@@ -273,7 +273,7 @@ describe('run-input bare-file reachability (one variant per store)', () => {
 // extensionless `INPUT`. This is what fails if literal-name probing ever widens to other extensions.
 describe('run-input bare-file reachability (all variants in one store)', () => {
     const tmpLocation = resolve(import.meta.dirname, './tmp/fs-reachability-shared');
-    const storage = new FileSystemStorageClient({ localDataDirectory: tmpLocation });
+    const storage = new FileSystemStorageBackend({ localDataDirectory: tmpLocation });
 
     beforeAll(async () => {
         const dir = resolve(storage.keyValueStoresDirectory, 'all-variants');

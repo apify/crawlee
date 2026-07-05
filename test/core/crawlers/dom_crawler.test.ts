@@ -1,7 +1,7 @@
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 
-import { MemoryStorageClient, serviceLocator } from '@crawlee/core';
+import { MemoryStorageBackend, serviceLocator } from '@crawlee/core';
 import { JSDOMCrawler } from '@crawlee/jsdom';
 
 const router = new Map<string, http.RequestListener>();
@@ -36,7 +36,7 @@ afterAll(async () => {
 });
 
 beforeEach(async () => {
-    serviceLocator.setStorageClient(new MemoryStorageClient());
+    serviceLocator.setStorageBackend(new MemoryStorageBackend());
 });
 
 test('works', async () => {

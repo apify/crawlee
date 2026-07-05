@@ -10,19 +10,19 @@ import { RequestQueueClient } from './resource-clients/request-queue.js';
 
 export interface MemoryStorageOptions {
     /**
-     * Optional logger for MemoryStorageClient warnings.
+     * Optional logger for MemoryStorageBackend warnings.
      */
     logger?: CrawleeLogger;
 }
 
-export class MemoryStorageClient implements storage.StorageClient {
+export class MemoryStorageBackend implements storage.StorageBackend {
     readonly logger?: CrawleeLogger;
 
     /**
-     * Unique per-instance cache partition key. Mirrors the way `FileSystemStorageClient` partitions its
-     * cache by storage directory: two distinct `MemoryStorageClient` instances must not share cached clients.
+     * Unique per-instance cache partition key. Mirrors the way `FileSystemStorageBackend` partitions its
+     * cache by storage directory: two distinct `MemoryStorageBackend` instances must not share cached clients.
      */
-    private readonly instanceCacheKey = `MemoryStorageClient:${randomUUID()}`;
+    private readonly instanceCacheKey = `MemoryStorageBackend:${randomUUID()}`;
 
     readonly keyValueStoreCache: KeyValueStoreClient[] = [];
     readonly datasetClientCache: DatasetClient[] = [];
@@ -33,10 +33,10 @@ export class MemoryStorageClient implements storage.StorageClient {
     }
 
     /**
-     * Return a per-instance unique cache key so that distinct `MemoryStorageClient` instances get separate
-     * cache partitions in the storage-client cache.
+     * Return a per-instance unique cache key so that distinct `MemoryStorageBackend` instances get separate
+     * cache partitions in the storage backend cache.
      */
-    getStorageClientCacheKey(): string {
+    getStorageBackendCacheKey(): string {
         return this.instanceCacheKey;
     }
 
@@ -52,7 +52,7 @@ export class MemoryStorageClient implements storage.StorageClient {
     }
 
     async createDatasetClient(options: storage.CreateDatasetClientOptions = {}): Promise<storage.DatasetClient> {
-        const { isAlias, cacheKey } = MemoryStorageClient.resolveStorageKey(options);
+        const { isAlias, cacheKey } = MemoryStorageBackend.resolveStorageKey(options);
 
         if (cacheKey) {
             const found = this.datasetClientCache.find(
@@ -79,7 +79,7 @@ export class MemoryStorageClient implements storage.StorageClient {
     async createKeyValueStoreClient(
         options: storage.CreateKeyValueStoreClientOptions = {},
     ): Promise<storage.KeyValueStoreClient> {
-        const { isAlias, cacheKey } = MemoryStorageClient.resolveStorageKey(options);
+        const { isAlias, cacheKey } = MemoryStorageBackend.resolveStorageKey(options);
 
         if (cacheKey) {
             const found = this.keyValueStoreCache.find(
@@ -104,7 +104,7 @@ export class MemoryStorageClient implements storage.StorageClient {
     }
 
     async createRequestQueueClient(options: storage.CreateRequestQueueClientOptions = {}): Promise<RequestQueueClient> {
-        const { isAlias, cacheKey } = MemoryStorageClient.resolveStorageKey(options);
+        const { isAlias, cacheKey } = MemoryStorageBackend.resolveStorageKey(options);
 
         if (cacheKey) {
             const found = this.requestQueueCache.find(
@@ -162,7 +162,7 @@ export class MemoryStorageClient implements storage.StorageClient {
      * Cleans up the default storages before the run starts. For the in-memory storage this simply
      * resets the in-memory state of the cached default dataset, key-value store and request queue.
      *
-     * As with `FileSystemStorageClient`, the run's input (the `INPUT` key in the default key-value
+     * As with `FileSystemStorageBackend`, the run's input (the `INPUT` key in the default key-value
      * store) is preserved — only the rest of the default storages is cleared.
      */
     async purge(): Promise<void> {
@@ -183,7 +183,7 @@ export class MemoryStorageClient implements storage.StorageClient {
 
         await Promise.all([
             // Preserve the run input (INPUT) when purging the default key-value store, matching
-            // `FileSystemStorageClient`.
+            // `FileSystemStorageBackend`.
             purgeDefaults(this.keyValueStoreCache, async (store) => store.purgeExceptInput()),
             purgeDefaults(this.datasetClientCache, async (store) => store.purge()),
             purgeDefaults(this.requestQueueCache, async (store) => store.purge()),

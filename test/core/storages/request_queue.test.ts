@@ -1,6 +1,6 @@
 /* eslint-disable dot-notation */
 
-import { MemoryStorageClient, ProxyConfiguration, Request, RequestQueue, serviceLocator } from '@crawlee/core';
+import { MemoryStorageBackend, ProxyConfiguration, Request, RequestQueue, serviceLocator } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
 
 let mockHttpClient = vitest.mockObject({
@@ -25,12 +25,12 @@ beforeEach(async () => {
 
 describe('RequestQueue remote', () => {
     beforeEach(async () => {
-        serviceLocator.setStorageClient(new MemoryStorageClient());
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
         vitest.clearAllMocks();
     });
 
     async function createRequestQueue(id = 'some-id', name?: string) {
-        const client = await serviceLocator.getStorageClient().createRequestQueueClient(name ? { name } : { id });
+        const client = await serviceLocator.getStorageBackend().createRequestQueueClient(name ? { name } : { id });
         return new RequestQueue({ id, name, client }, serviceLocator.getConfiguration());
     }
 
@@ -357,7 +357,7 @@ describe('RequestQueue remote', () => {
 
 describe('RequestQueue with requestsFromUrl', () => {
     beforeEach(async () => {
-        serviceLocator.setStorageClient(new MemoryStorageClient());
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
         vitest.restoreAllMocks();
     });
 

@@ -467,11 +467,11 @@ export interface SetStatusMessageOptions {
 }
 
 // @public
-export interface StorageClient {
+export interface StorageBackend {
     createDatasetClient(options?: CreateDatasetClientOptions): Promise<DatasetClient>;
     createKeyValueStoreClient(options?: CreateKeyValueStoreClientOptions): Promise<KeyValueStoreClient>;
     createRequestQueueClient(options?: CreateRequestQueueClientOptions): Promise<RequestQueueClient>;
-    getStorageClientCacheKey?(): string;
+    getStorageBackendCacheKey?(): string;
     // (undocumented)
     purge?(): Promise<void>;
     // (undocumented)

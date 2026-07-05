@@ -28,7 +28,7 @@ export interface RequestQueueClientOptions {
     /** The user-facing storage name, or `undefined` for unnamed (alias / default) storages. */
     name?: string;
     /**
-     * The key used for cache lookup in {@link FileSystemStorageClient}. For named storages this equals
+     * The key used for cache lookup in {@link FileSystemStorageBackend}. For named storages this equals
      * the name; for alias (unnamed) storages it is the alias string. Falls back to the storage id.
      */
     cacheKey: string;
@@ -150,7 +150,7 @@ export class RequestQueueClient extends CachedIdClient implements storage.Reques
 
     /**
      * Persist the native client's in-memory state to disk. Called by
-     * {@link FileSystemStorageClient.teardown} so that fetched-but-unhandled requests are not stuck
+     * {@link FileSystemStorageBackend.teardown} so that fetched-but-unhandled requests are not stuck
      * for the next consumer of the same on-disk queue.
      */
     async persistState(): Promise<void> {

@@ -1,15 +1,15 @@
-import { assertJsonSerializable, Dataset, KeyValueStore, MemoryStorageClient, serviceLocator } from '@crawlee/core';
+import { assertJsonSerializable, Dataset, KeyValueStore, MemoryStorageBackend, serviceLocator } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
 
 import { MAX_PAYLOAD_SIZE_BYTES } from '@apify/consts';
 
 beforeEach(async () => {
-    serviceLocator.setStorageClient(new MemoryStorageClient());
+    serviceLocator.setStorageBackend(new MemoryStorageBackend());
 });
 
 describe('dataset', () => {
     async function createDataset(id = 'some-id', name?: string) {
-        const client = await serviceLocator.getStorageClient().createDatasetClient(name ? { name } : { id });
+        const client = await serviceLocator.getStorageBackend().createDatasetClient(name ? { name } : { id });
         return new Dataset({ id, name, client });
     }
 

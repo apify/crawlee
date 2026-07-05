@@ -105,7 +105,7 @@ export class KeyValueStore {
 
     /**
      * Backend-independent usage counters tracked for this key-value store (read / write / delete /
-     * list operations issued to the underlying storage client). Counted per client call.
+     * list operations issued to the underlying storage backend). Counted per client call.
      */
     get stats(): KeyValueStoreStats {
         return this.statsTracker.current;
@@ -220,7 +220,7 @@ export class KeyValueStore {
             return defaultValue ?? null;
         }
 
-        // Storage clients are byte transports — the value is raw bytes; the frontend parses it here.
+        // Storage backends are byte transports — the value is raw bytes; the frontend parses it here.
         return parseValue(record.value, record.contentType ?? null) as T;
     }
 
@@ -671,12 +671,12 @@ export class KeyValueStore {
             options,
             ow.object.exactShape({
                 config: ow.optional.object.instanceOf(Configuration),
-                storageClient: ow.optional.object,
+                storageBackend: ow.optional.object,
             }),
         );
 
         options.config ??= Configuration.getGlobalConfig();
-        const client = options.storageClient ?? serviceLocator.getStorageClient();
+        const client = options.storageBackend ?? serviceLocator.getStorageBackend();
 
         await purgeDefaultStorages({ onlyPurgeOnce: true, client, config: options.config });
 
@@ -685,7 +685,7 @@ export class KeyValueStore {
         return serviceLocator.getStorageInstanceManager().openStorage<KeyValueStore>(this, {
             ...resolved,
             clientOpener: () => client.createKeyValueStoreClient(resolved),
-            clientCacheKey: client.getStorageClientCacheKey?.() ?? client.constructor.name,
+            clientCacheKey: client.getStorageBackendCacheKey?.() ?? client.constructor.name,
         });
     }
 

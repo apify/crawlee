@@ -1,9 +1,9 @@
-import { MemoryStorageClient } from '@crawlee/core';
+import { MemoryStorageBackend } from '@crawlee/core';
 import type { RequestQueueClient } from '@crawlee/types';
 
 describe('RequestQueue in-progress requests', () => {
     test('a fetched request stays in progress until it is handled or reclaimed', async () => {
-        const storage = new MemoryStorageClient();
+        const storage = new MemoryStorageBackend();
         const queue: RequestQueueClient = await storage.createRequestQueueClient({ name: 'in-progress' });
 
         await queue.addBatchOfRequests([{ url: 'http://example.com/1', uniqueKey: '1' }]);
@@ -21,7 +21,7 @@ describe('RequestQueue in-progress requests', () => {
     });
 
     test('a fetched request becomes fetchable again once reclaimed', async () => {
-        const storage = new MemoryStorageClient();
+        const storage = new MemoryStorageBackend();
         const queue: RequestQueueClient = await storage.createRequestQueueClient({ name: 'reclaim' });
 
         await queue.addBatchOfRequests([{ url: 'http://example.com/1', uniqueKey: '1' }]);
@@ -38,7 +38,7 @@ describe('RequestQueue in-progress requests', () => {
     });
 
     test('an in-progress request can be marked as handled', async () => {
-        const storage = new MemoryStorageClient();
+        const storage = new MemoryStorageBackend();
         const queue: RequestQueueClient = await storage.createRequestQueueClient({ name: 'handle' });
 
         await queue.addBatchOfRequests([{ url: 'http://example.com/1', uniqueKey: '1' }]);
@@ -59,7 +59,7 @@ describe('RequestQueue in-progress requests', () => {
     });
 
     test('multiple requests are each handed out only once while in progress', async () => {
-        const storage = new MemoryStorageClient();
+        const storage = new MemoryStorageBackend();
         const queue: RequestQueueClient = await storage.createRequestQueueClient({ name: 'multi' });
 
         await queue.addBatchOfRequests([
@@ -81,7 +81,7 @@ describe('RequestQueue in-progress requests', () => {
     });
 
     test('dropping a queue with a pending forefront request does not corrupt later head scans', async () => {
-        const storage = new MemoryStorageClient();
+        const storage = new MemoryStorageBackend();
         const queue: RequestQueueClient = await storage.createRequestQueueClient({ name: 'drop-forefront' });
 
         // A forefront request leaves an id in `forefrontRequestIds`. `drop` must clear that alongside the

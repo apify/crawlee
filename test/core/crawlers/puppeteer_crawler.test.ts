@@ -22,7 +22,7 @@ import {
     Session,
     SessionPool,
 } from '@crawlee/puppeteer';
-import { MemoryStorageClient, serviceLocator } from '@crawlee/core';
+import { MemoryStorageBackend, serviceLocator } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
 import type { Server as ProxyChainServer } from 'proxy-chain';
 
@@ -73,7 +73,7 @@ describe('PuppeteerCrawler', () => {
     });
 
     beforeEach(async () => {
-        serviceLocator.setStorageClient(new MemoryStorageClient());
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
 
         const sources = [serverUrl];
         requestList = await RequestList.open(`sources-${Math.random() * 10000}`, sources);

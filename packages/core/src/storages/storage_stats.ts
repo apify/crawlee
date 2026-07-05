@@ -2,7 +2,7 @@
  * Backend-independent usage counters tracked by the storage frontend classes
  * ({@apilink Dataset}, {@apilink KeyValueStore}, {@apilink RequestQueue}).
  *
- * These count the operations the frontend issues against its underlying storage client, so they are
+ * These count the operations the frontend issues against its underlying storage backend, so they are
  * meaningful for any storage backend (memory, file system, cloud). They are tallied per client call
  * — e.g. iterating a key-value store increments `readCount` once per record fetched and `listCount`
  * once per listed page. Backend-specific figures that the frontend cannot compute (such as the number

@@ -4,7 +4,7 @@ import type * as storage from '@crawlee/types';
 import type { Dictionary } from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
 
-import type { MemoryStorageClient } from '../memory-storage.js';
+import type { MemoryStorageBackend } from '../memory-storage.js';
 import { BaseClient } from './common/base-client.js';
 
 /**
@@ -28,7 +28,7 @@ export interface DatasetClientOptions {
      * metadata `name` (which is `undefined` for unnamed storages).
      */
     cacheKey?: string;
-    client: MemoryStorageClient;
+    client: MemoryStorageBackend;
 }
 
 export class DatasetClient<Data extends Dictionary = Dictionary>
@@ -47,7 +47,7 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
     itemCount = 0;
 
     private readonly datasetEntries = new Map<string, Data>();
-    private readonly client: MemoryStorageClient;
+    private readonly client: MemoryStorageBackend;
 
     constructor(options: DatasetClientOptions) {
         super(options.id ?? randomUUID());

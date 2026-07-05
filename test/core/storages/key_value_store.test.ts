@@ -1,16 +1,16 @@
 import { PassThrough } from 'node:stream';
 
-import { KeyValueStore, MemoryStorageClient, serviceLocator } from '@crawlee/core';
+import { KeyValueStore, MemoryStorageBackend, serviceLocator } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
 import { toBuffer } from '@crawlee/utils';
 
 beforeEach(async () => {
-    serviceLocator.setStorageClient(new MemoryStorageClient());
+    serviceLocator.setStorageBackend(new MemoryStorageBackend());
 });
 
 describe('KeyValueStore', () => {
     async function createKeyValueStore(id = 'some-id-1', name?: string) {
-        const client = await serviceLocator.getStorageClient().createKeyValueStoreClient(name ? { name } : { id });
+        const client = await serviceLocator.getStorageBackend().createKeyValueStoreClient(name ? { name } : { id });
         return new KeyValueStore({ id, name, client });
     }
 
@@ -349,7 +349,7 @@ describe('KeyValueStore', () => {
         });
     });
 
-    describe('round-trips through the real storage client (no content type)', () => {
+    describe('round-trips through the real storage backend (no content type)', () => {
         test('object: setValue → getValue returns the same object, stored as application/json', async () => {
             const store = await KeyValueStore.open();
             const original = { foo: 'bar', n: 1 };

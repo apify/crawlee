@@ -65,7 +65,7 @@ export interface KeyValueStoreClientOptions {
     /** The user-facing storage name, or `undefined` for unnamed (alias / default) storages. */
     name?: string;
     /**
-     * The key used for cache lookup in {@link FileSystemStorageClient}. For named storages this equals
+     * The key used for cache lookup in {@link FileSystemStorageBackend}. For named storages this equals
      * the name; for alias (unnamed) storages it is the alias string. Falls back to the storage id.
      */
     cacheKey: string;
@@ -118,7 +118,7 @@ export class KeyValueStoreClient extends CachedIdClient implements storage.KeyVa
 
     /**
      * Remove every record from the store except the run input. Used by
-     * {@link FileSystemStorageClient.purge} to clean the default key-value store at the start of a run
+     * {@link FileSystemStorageBackend.purge} to clean the default key-value store at the start of a run
      * while preserving the run's input, matching the historical file-system storage behavior.
      *
      * The native `purge` keep-list matches by exact key with no extension globbing, so we pass every

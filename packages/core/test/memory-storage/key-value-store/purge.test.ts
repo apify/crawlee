@@ -1,9 +1,9 @@
-import { MemoryStorageClient } from '@crawlee/core';
+import { MemoryStorageBackend } from '@crawlee/core';
 import type { KeyValueStoreClient } from '@crawlee/types';
 
-describe('MemoryStorageClient.purge preserves the default key-value store input', () => {
+describe('MemoryStorageBackend.purge preserves the default key-value store input', () => {
     test('purging keeps INPUT in the default store but removes everything else', async () => {
-        const storage = new MemoryStorageClient();
+        const storage = new MemoryStorageBackend();
         const store: KeyValueStoreClient = await storage.createKeyValueStoreClient({ name: 'default' });
 
         await store.setValue({
@@ -19,7 +19,7 @@ describe('MemoryStorageClient.purge preserves the default key-value store input'
 
         await storage.purge();
 
-        // INPUT must survive the purge (parity with FileSystemStorageClient)...
+        // INPUT must survive the purge (parity with FileSystemStorageBackend)...
         const input = await store.getValue('INPUT');
         expect(input?.value.toString()).toBe(JSON.stringify({ hello: 'world' }));
 
@@ -30,7 +30,7 @@ describe('MemoryStorageClient.purge preserves the default key-value store input'
     });
 
     test('purging a non-default store removes INPUT as well', async () => {
-        const storage = new MemoryStorageClient();
+        const storage = new MemoryStorageBackend();
         const store: KeyValueStoreClient = await storage.createKeyValueStoreClient({ name: 'not-default' });
 
         await store.setValue({
@@ -39,7 +39,7 @@ describe('MemoryStorageClient.purge preserves the default key-value store input'
             contentType: 'application/json; charset=utf-8',
         });
 
-        // `purge` on the storage client only touches default storages, so a named store keeps its data.
+        // `purge` on the storage backend only touches default storages, so a named store keeps its data.
         await storage.purge();
         expect((await store.getValue('INPUT'))?.value.toString()).toBe(JSON.stringify({ hello: 'world' }));
 

@@ -5,7 +5,7 @@ import { load } from 'cheerio';
 
 import log from '@apify/log';
 
-const apifyClient = serviceLocator.getStorageClient();
+const apifyClient = serviceLocator.getStorageBackend();
 
 const HTML = `
 <html>

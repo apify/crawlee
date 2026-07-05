@@ -1,7 +1,7 @@
 import { rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
-import { FileSystemStorageClient } from '@crawlee/fs-storage';
+import { FileSystemStorageBackend } from '@crawlee/fs-storage';
 import type { RequestQueueClient } from '@crawlee/types';
 
 // The request-queue ordering, locking and finished-ness semantics are owned (and exhaustively tested)
@@ -17,7 +17,7 @@ describe('RequestQueueClient adapter', () => {
     beforeEach(async () => {
         // Isolate each test with its own storage directory and queue so persisted counts/requests from
         // one test cannot leak into the next.
-        const storage = new FileSystemStorageClient({ localDataDirectory: resolve(tmpLocation, `${testIndex++}`) });
+        const storage = new FileSystemStorageBackend({ localDataDirectory: resolve(tmpLocation, `${testIndex++}`) });
         requestQueue = await storage.createRequestQueueClient({ name: 'adapter' });
     });
 

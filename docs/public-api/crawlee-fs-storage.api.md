@@ -12,7 +12,7 @@ import type { FileSystemRequestQueueClient } from '@crawlee/fs-storage-native';
 import type * as storage from '@crawlee/types';
 
 // @public
-export class FileSystemStorageClient implements storage.StorageClient {
+export class FileSystemStorageBackend implements storage.StorageBackend {
     constructor(options: FileSystemStorageOptions);
     // (undocumented)
     createDatasetClient(options?: storage.CreateDatasetClientOptions): Promise<storage.DatasetClient>;
@@ -24,7 +24,7 @@ export class FileSystemStorageClient implements storage.StorageClient {
     readonly datasetClientCache: DatasetClient[];
     // (undocumented)
     readonly datasetsDirectory: string;
-    getStorageClientCacheKey(): string;
+    getStorageBackendCacheKey(): string;
     // (undocumented)
     readonly keyValueStoreCache: KeyValueStoreClient[];
     // (undocumented)

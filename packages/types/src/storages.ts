@@ -84,7 +84,7 @@ export interface KeyValueStoreInfo {
 }
 
 /**
- * The value a serialized record carries on the way *into* a storage client (`setValue`).
+ * The value a serialized record carries on the way *into* a storage backend (`setValue`).
  *
  * The `KeyValueStore` frontend has already serialized by this point, so it is a pre-serialized
  * string, raw bytes (`Buffer` / `ArrayBuffer` / typed array), or a stream the client drains.
@@ -98,9 +98,9 @@ export type KeyValueStoreRecordInputValue =
     | ReadableStream;
 
 /**
- * A record as returned by a storage client (`getValue`).
+ * A record as returned by a storage backend (`getValue`).
  *
- * Storage clients are byte transports: they persist and return bytes verbatim and never serialize
+ * Storage backends are byte transports: they persist and return bytes verbatim and never serialize
  * or parse. Interpretation is the `KeyValueStore` frontend's job (it parses according to the content
  * type via `parseValue`). The value is therefore always raw bytes — a `Buffer` (Node) or an
  * `ArrayBuffer` (browser backends).
@@ -112,7 +112,7 @@ export interface KeyValueStoreRecord {
 }
 
 /**
- * A record passed to a storage client for writing (`setValue`). Like {@link KeyValueStoreRecord} but
+ * A record passed to a storage backend for writing (`setValue`). Like {@link KeyValueStoreRecord} but
  * with the lenient, pre-serialized {@link KeyValueStoreRecordInputValue} for the value.
  */
 export interface KeyValueStoreInputRecord {
@@ -141,7 +141,7 @@ export interface KeyValueStoreItemData {
  * A single page of keys returned by {@link KeyValueStoreClient.listKeys}.
  *
  * This mirrors {@link PaginatedList} (the shape returned by {@link DatasetClient.getData}) so that
- * both listing operations on the storage-client layer return a self-describing page. The difference
+ * both listing operations on the storage backend layer return a self-describing page. The difference
  * is the pagination model: datasets are offset-based (`total` / `offset`), whereas key-value stores
  * are cursor-based. A frontend assembling all pages should therefore not guess "is this the last
  * page?" from `items.length < limit` — it should rely on {@link isTruncated} and resume from
@@ -410,17 +410,17 @@ export type StorageIdentifier =
     | { id?: never; name?: never; alias?: never };
 
 /**
- * Options for creating a dataset client via {@apilink StorageClient.createDatasetClient}.
+ * Options for creating a dataset client via {@apilink StorageBackend.createDatasetClient}.
  */
 export type CreateDatasetClientOptions = StorageIdentifier;
 
 /**
- * Options for creating a key-value store client via {@apilink StorageClient.createKeyValueStoreClient}.
+ * Options for creating a key-value store client via {@apilink StorageBackend.createKeyValueStoreClient}.
  */
 export type CreateKeyValueStoreClientOptions = StorageIdentifier;
 
 /**
- * Options for creating a request queue client via {@apilink StorageClient.createRequestQueueClient}.
+ * Options for creating a request queue client via {@apilink StorageBackend.createRequestQueueClient}.
  */
 export type CreateRequestQueueClientOptions = StorageIdentifier & {
     /**
@@ -443,15 +443,15 @@ export type CreateRequestQueueClientOptions = StorageIdentifier & {
  * Represents a storage backend capable of working with datasets, key-value stores and request queues.
  *
  * A new storage backend needs to implement 4 classes:
- * - `StorageClient` - the factory that creates sub-clients
+ * - `StorageBackend` - the factory that creates sub-clients
  * - `DatasetClient` - operations on a single dataset
  * - `KeyValueStoreClient` - operations on a single key-value store
  * - `RequestQueueClient` - operations on a single request queue
  *
- * The `StorageClient` acts as an async factory: each `create*` method either opens an existing
+ * The `StorageBackend` acts as an async factory: each `create*` method either opens an existing
  * storage or creates a new one, returning a sub-client bound to that storage instance.
  */
-export interface StorageClient {
+export interface StorageBackend {
     /**
      * Create (or open) a dataset client.
      * If `id` is provided, opens the dataset with that ID.
@@ -485,12 +485,12 @@ export interface StorageClient {
      *
      * The key is used by `StorageInstanceManager` to partition the storage cache per-backend,
      * so that two storages with the same name but backed by different clients
-     * (e.g. a local `MemoryStorageClient` and a cloud `ApifyClient`) are cached as separate instances.
+     * (e.g. a local `MemoryStorageBackend` and a cloud `ApifyClient`) are cached as separate instances.
      *
      * When not provided, the fallback uses the client's constructor name, so different
-     * `StorageClient` implementations automatically get separate cache partitions.
+     * `StorageBackend` implementations automatically get separate cache partitions.
      */
-    getStorageClientCacheKey?(): string;
+    getStorageBackendCacheKey?(): string;
     purge?(): Promise<void>;
     teardown?(): Promise<void>;
     setStatusMessage?(message: string, options?: SetStatusMessageOptions): Promise<void>;

@@ -2,7 +2,7 @@ import { rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 
-import { MemoryStorageClient } from '@crawlee/core';
+import { MemoryStorageBackend } from '@crawlee/core';
 import type { RequestQueueClient } from '@crawlee/types';
 
 /**
@@ -21,7 +21,7 @@ async function fetchOrder(client: RequestQueueClient): Promise<string[]> {
 }
 
 describe('RequestQueue respects `forefront` when fetching requests', () => {
-    const storage = new MemoryStorageClient();
+    const storage = new MemoryStorageBackend();
 
     let requestQueue: RequestQueueClient;
 
@@ -146,7 +146,7 @@ describe('RequestQueue respects `forefront` when fetching requests', () => {
 });
 
 describe('RequestQueue holds fetched requests in progress', () => {
-    const storage = new MemoryStorageClient();
+    const storage = new MemoryStorageBackend();
 
     let requestQueue: RequestQueueClient;
 

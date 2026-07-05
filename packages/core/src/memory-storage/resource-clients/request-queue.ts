@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import type * as storage from '@crawlee/types';
 import { AsyncQueue } from '@sapphire/async-queue';
 import { s } from '@sapphire/shapeshift';
-import type { MemoryStorageClient } from '../memory-storage.js';
+import type { MemoryStorageBackend } from '../memory-storage.js';
 import { purgeNullsFromObject, uniqueKeyToRequestId } from '../utils.js';
 import { BaseClient } from './common/base-client.js';
 
@@ -35,7 +35,7 @@ export interface RequestQueueClientOptions {
      * metadata `name` (which is `undefined` for unnamed storages).
      */
     cacheKey?: string;
-    client: MemoryStorageClient;
+    client: MemoryStorageBackend;
 }
 
 export interface InternalRequest {
@@ -82,7 +82,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
     private readonly inProgressRequestIds = new Set<string>();
 
     private readonly requests = new Map<string, InternalRequest>();
-    private readonly client: MemoryStorageClient;
+    private readonly client: MemoryStorageBackend;
 
     constructor(options: RequestQueueClientOptions) {
         super(options.id ?? randomUUID());

@@ -1,12 +1,12 @@
-import { MemoryStorageClient } from '@crawlee/core';
+import { MemoryStorageBackend } from '@crawlee/core';
 import type { RequestQueueClient } from '@crawlee/types';
 import { RequestQueue, serviceLocator } from 'crawlee';
 
 let rqClient: RequestQueueClient;
 
 beforeEach(async () => {
-    const storage = new MemoryStorageClient();
-    serviceLocator.setStorageClient(storage);
+    const storage = new MemoryStorageBackend();
+    serviceLocator.setStorageBackend(storage);
     rqClient = await storage.createRequestQueueClient({ name: 'test-request-queue-not-called-on-cached-request' });
 });
 

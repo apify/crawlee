@@ -47,7 +47,7 @@ import type { SessionFingerprint } from '@crawlee/types';
 import { SessionState } from '@crawlee/types';
 import type { SetRequired } from 'type-fest';
 import type * as storage from '@crawlee/types';
-import { StorageClient } from '@crawlee/types';
+import { StorageBackend } from '@crawlee/types';
 import { StorageIdentifier } from '@crawlee/types';
 import { tryAbsoluteURL } from '@crawlee/utils';
 import { z } from 'zod';
@@ -886,7 +886,7 @@ export const MAX_POOL_SIZE = 1000;
 export const MAX_QUERIES_FOR_CONSISTENCY = 6;
 
 // @public (undocumented)
-export class MemoryStorageClient implements storage.StorageClient {
+export class MemoryStorageBackend implements storage.StorageBackend {
     constructor(options?: MemoryStorageOptions);
     // (undocumented)
     createDatasetClient(options?: storage.CreateDatasetClientOptions): Promise<storage.DatasetClient>;
@@ -896,7 +896,7 @@ export class MemoryStorageClient implements storage.StorageClient {
     createRequestQueueClient(options?: storage.CreateRequestQueueClientOptions): Promise<RequestQueueClient_2>;
     // (undocumented)
     readonly datasetClientCache: DatasetClient_2[];
-    getStorageClientCacheKey(): string;
+    getStorageBackendCacheKey(): string;
     // (undocumented)
     readonly keyValueStoreCache: KeyValueStoreClient_2[];
     // (undocumented)
@@ -1003,7 +1003,7 @@ export type PseudoUrlObject = {
 export function purgeDefaultStorages(options?: PurgeDefaultStorageOptions): Promise<void>;
 
 // @public
-export function purgeDefaultStorages(config?: Configuration, client?: StorageClient): Promise<void>;
+export function purgeDefaultStorages(config?: Configuration, client?: StorageBackend): Promise<void>;
 
 // @public (undocumented)
 export interface PushErrorMessageOptions {
@@ -1400,7 +1400,7 @@ export function resolveBaseUrlForEnqueueLinksFiltering(input: ResolveBaseUrl): s
 export type ResolvedConfigValues = FieldsOutput<typeof crawleeConfigFields>;
 
 // @public
-export function resolveStorageIdentifier(identifier: string | StorageIdentifier | null | undefined, client: StorageClient, storageType: 'Dataset' | 'KeyValueStore' | 'RequestQueue'): Promise<ExplicitStorageIdentifier>;
+export function resolveStorageIdentifier(identifier: string | StorageIdentifier | null | undefined, client: StorageBackend, storageType: 'Dataset' | 'KeyValueStore' | 'RequestQueue'): Promise<ExplicitStorageIdentifier>;
 
 // @public (undocumented)
 export interface ResponseLike {
@@ -1474,7 +1474,7 @@ export class ServiceConflictError extends Error {
 
 // @public
 export class ServiceLocator implements ServiceLocatorInterface {
-    constructor(configuration?: Configuration, eventManager?: EventManager, storageClient?: StorageClient, logger?: CrawleeLogger);
+    constructor(configuration?: Configuration, eventManager?: EventManager, storageBackend?: StorageBackend, logger?: CrawleeLogger);
     // (undocumented)
     getChildLog(prefix: string): CrawleeLogger;
     // (undocumented)
@@ -1484,7 +1484,7 @@ export class ServiceLocator implements ServiceLocatorInterface {
     // (undocumented)
     getLogger(): CrawleeLogger;
     // (undocumented)
-    getStorageClient(): StorageClient;
+    getStorageBackend(): StorageBackend;
     // (undocumented)
     getStorageInstanceManager(): StorageInstanceManager;
     // (undocumented)
@@ -1496,7 +1496,7 @@ export class ServiceLocator implements ServiceLocatorInterface {
     // (undocumented)
     setLogger(logger: CrawleeLogger): void;
     // (undocumented)
-    setStorageClient(storageClient: StorageClient): void;
+    setStorageBackend(storageBackend: StorageBackend): void;
 }
 
 // @public (undocumented)
@@ -1888,7 +1888,7 @@ export interface StatisticState {
 // @internal
 export const STORAGE_CONSISTENCY_DELAY_MILLIS = 3000;
 
-export { StorageClient }
+export { StorageBackend }
 
 export { StorageIdentifier }
 
@@ -1907,7 +1907,7 @@ export interface StorageOpenOptions {
     config?: Configuration;
     httpClient?: BaseHttpClient;
     proxyConfiguration?: ProxyConfiguration;
-    storageClient?: StorageClient;
+    storageBackend?: StorageBackend;
 }
 
 // @public

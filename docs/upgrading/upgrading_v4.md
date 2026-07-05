@@ -344,7 +344,7 @@ The crawling context in the `FileDownload` crawler no longer includes the `body`
 
 ## `KeyValueStore.getPublicUrl` is now async
 
-The `KeyValueStore.getPublicUrl` method is now asynchronous and reads the public URL directly from the storage client.
+The `KeyValueStore.getPublicUrl` method is now asynchronous and reads the public URL directly from the storage backend.
 
 ## `preNavigationHooks` in `HttpCrawler` no longer accepts `gotOptions` object
 
@@ -392,9 +392,9 @@ The service management functionality has been extracted from `Configuration` int
 
 The following methods and properties have been removed from `Configuration`:
 
-- `Configuration.getStorageClient()` - moved to `ServiceLocator.getStorageClient()`
+- `Configuration.getStorageClient()` - moved to `ServiceLocator.getStorageBackend()`
 - `Configuration.getEventManager()` - moved to `ServiceLocator.getEventManager()`
-- `Configuration.useStorageClient()` - use `ServiceLocator.setStorageClient()` instead
+- `Configuration.useStorageClient()` - use `ServiceLocator.setStorageBackend()` instead
 - `Configuration.useEventManager()` - use `ServiceLocator.setEventManager()` instead
 - `Configuration.resetGlobalState()` - use `serviceLocator.reset()` instead
 - `Configuration.storageManagers` - moved to `ServiceLocator.storageManagers`
@@ -410,34 +410,35 @@ If you were using the removed `Configuration` methods directly, you need to upda
 import { Configuration } from 'crawlee';
 
 const config = Configuration.getGlobalConfig();
-const storageClient = config.getStorageClient();
+const storageBackend = config.getStorageClient();
 const eventManager = config.getEventManager();
 
 // or static methods
-const storageClient = Configuration.getStorageClient();
+const storageBackend = Configuration.getStorageClient();
+// (both of these are the removed v3 APIs)
 ```
 
 **After:**
 ```typescript
 import { serviceLocator } from 'crawlee';
 
-const storageClient = serviceLocator.getStorageClient();
+const storageBackend = serviceLocator.getStorageBackend();
 const eventManager = serviceLocator.getEventManager();
 ```
 
 ### Using per-crawler services (recommended)
 
-The new `ServiceLocator` supports per-crawler service isolation, allowing you to use different storage clients or event managers for different crawlers by passing them via options:
+The new `ServiceLocator` supports per-crawler service isolation, allowing you to use different storage backends or event managers for different crawlers by passing them via options:
 
 ```typescript
-import { BasicCrawler, Configuration, LocalEventManager, MemoryStorageClient } from 'crawlee';
+import { BasicCrawler, Configuration, LocalEventManager, MemoryStorageBackend } from 'crawlee';
 
 const crawler = new BasicCrawler({
     requestHandler: async ({ request, log }) => {
         log.info(`Processing ${request.url}`);
     },
     configuration: new Configuration({ headless: false }),
-    storageClient: new MemoryStorageClient(),
+    storageBackend: new MemoryStorageBackend(),
     eventManager: LocalEventManager.fromConfig(),
 });
 
@@ -449,10 +450,10 @@ await crawler.run(['https://example.com']);
 For most use cases, the global `serviceLocator` singleton works well:
 
 ```typescript
-import { serviceLocator, BasicCrawler, MemoryStorageClient } from 'crawlee';
+import { serviceLocator, BasicCrawler, MemoryStorageBackend } from 'crawlee';
 
 // Configure global services (optional)
-serviceLocator.setStorageClient(new MemoryStorageClient());
+serviceLocator.setStorageBackend(new MemoryStorageBackend());
 
 // All crawlers will use the global service locator by default
 const crawler = new BasicCrawler({
@@ -506,9 +507,9 @@ The `persistCookiesPerSession` crawler option has been renamed to `saveResponseC
 
 Several internal Crawlee keys were prefixed with the `SDK_` prefix for legacy reasons - these keys now start with `CRAWLEE_` instead. These are, e.g., `CRAWLEE_SESSION_POOL_STATE` or `CRAWLEE_CRAWLER_STATISTICS_{n}`.
 
-## `StorageClient` interface simplified
+## `StorageBackend` interface simplified
 
-The `StorageClient` interface (from `@crawlee/types`) has been redesigned to match the simplified architecture from Crawlee for Python. A new storage backend now needs **4 classes** instead of the previous 7.
+The `StorageBackend` interface (from `@crawlee/types`, formerly named `StorageClient`) has been redesigned to match the simplified architecture from Crawlee for Python. A new storage backend now needs **4 classes** instead of the previous 7.
 
 ### What changed
 
@@ -520,7 +521,7 @@ The three **collection client** interfaces have been removed:
 
 Along with their associated types (`DatasetCollectionData`, `DatasetCollectionClientOptions`, and the `Dataset` interface from `@crawlee/types`).
 
-The `StorageClient` interface changed from synchronous sub-client getters to **async factory methods**:
+The `StorageBackend` interface changed from synchronous sub-client getters to **async factory methods**:
 
 | Before (v3) | After (v4) |
 |---|---|
@@ -587,7 +588,7 @@ Methods that may have "nothing" to return now consistently resolve to `undefined
 - `isEmpty()` is the weak check — `true` when the next `fetchNextRequest()` would return `undefined`, i.e. there is nothing left to fetch right now. Requests that are currently in progress (fetched but not yet handled or reclaimed) are **not** counted, because they are not fetchable. This is what drives the crawler's task scheduling.
 - `isFinished()` is the strong check — `true` only when there are no pending requests **and** no requests currently in progress (including those locked by other clients sharing the queue). This is what determines whether crawling is actually done. An in-progress request keeps the queue *empty but not finished*, which is what stops a crawler from shutting down while a request is still being processed.
 
-The separate `RequestQueueV1`/`RequestQueueV2` classes (and the `RequestProvider` base class) have been removed. They no longer differ in behavior — request coordination is now internal to the storage client — so they are merged into a single `RequestQueue` class. Replace any `RequestQueueV1`, `RequestQueueV2`, or `RequestProvider` imports with `RequestQueue`.
+The separate `RequestQueueV1`/`RequestQueueV2` classes (and the `RequestProvider` base class) have been removed. They no longer differ in behavior — request coordination is now internal to the storage backend — so they are merged into a single `RequestQueue` class. Replace any `RequestQueueV1`, `RequestQueueV2`, or `RequestProvider` imports with `RequestQueue`. (Request coordination is now internal to the storage backend.)
 
 The `requestLocking` crawler experiment has been removed, along with the `experiments` crawler option and the `CrawlerExperiments` type that contained it. Request locking has been the default since v3.10 and there is no longer an alternative implementation to opt out to, so the flag did nothing. Delete any `experiments: { requestLocking: ... }` from your crawler options:
 
@@ -602,7 +603,7 @@ The `requestLocking` crawler experiment has been removed, along with the `experi
  });
 ```
 
-The `RequestQueue.requestLockSecs` property has been removed. Because request locking is now internal to the storage client, the lock duration is no longer configured on the queue. When you run a crawler, it automatically tells the queue how long it expects to hold a request (based on `requestHandlerTimeoutMillis`), so a long-running request handler will not have its request handed out a second time — you usually don't need to configure anything.
+The `RequestQueue.requestLockSecs` property has been removed. Because request locking is now internal to the storage backend, the lock duration is no longer configured on the queue. When you run a crawler, it automatically tells the queue how long it expects to hold a request (based on `requestHandlerTimeoutMillis`), so a long-running request handler will not have its request handed out a second time — you usually don't need to configure anything.
 
 If you use a `RequestQueue` outside of a crawler and your processing may exceed the 3-minute default lock, call `setExpectedRequestProcessingTimeSecs(secs)` on the queue to raise it:
 
@@ -613,13 +614,13 @@ const queue = await RequestQueue.open();
 queue.setExpectedRequestProcessingTimeSecs(600);
 ```
 
-The `RequestQueue.internalTimeoutMillis` property and the associated "stuck queue" self-recovery have been removed. In v3 the `RequestQueue` frontend kept its own copy of the queue head and in-progress set, which could drift out of sync with the backing storage (an eventual-consistency hazard on the Apify platform); `isFinished()` watched for inactivity exceeding `internalTimeoutMillis` and reset that frontend state to recover. In v4 the frontend no longer holds any such bookkeeping — the storage client is the single source of truth — so there is nothing for a reset to fix, and stuck request locks now self-heal on expiry. Any consistency-recovery logic that is genuinely specific to the Apify platform's distributed storage belongs in the Apify SDK's client implementation instead, and is tracked in [apify/crawlee#3328](https://github.com/apify/crawlee/issues/3328).
+The `RequestQueue.internalTimeoutMillis` property and the associated "stuck queue" self-recovery have been removed. In v3 the `RequestQueue` frontend kept its own copy of the queue head and in-progress set, which could drift out of sync with the backing storage (an eventual-consistency hazard on the Apify platform); `isFinished()` watched for inactivity exceeding `internalTimeoutMillis` and reset that frontend state to recover. In v4 the frontend no longer holds any such bookkeeping — the storage backend is the single source of truth — so there is nothing for a reset to fix, and stuck request locks now self-heal on expiry. Any consistency-recovery logic that is genuinely specific to the Apify platform's distributed storage belongs in the Apify SDK's client implementation instead, and is tracked in [apify/crawlee#3328](https://github.com/apify/crawlee/issues/3328).
 
-**Apify-specific fields removed from storage metadata.** The metadata returned by `getMetadata()` (`DatasetInfo`, `KeyValueStoreInfo`, `RequestQueueInfo`) has been trimmed to what is meaningful for any storage backend. The following platform-specific fields were dropped: `actId`, `actRunId`, `userId`, and — on `RequestQueueInfo` — `expireAt` and `hadMultipleClients`. The per-storage `stats` field (and its `DatasetStats` / `KeyValueStoreStats` / `RequestQueueStats` types) was removed as well. If you consumed any of these, read them from the Apify API client directly; a custom `StorageClient` should simply stop returning them.
+**Apify-specific fields removed from storage metadata.** The metadata returned by `getMetadata()` (`DatasetInfo`, `KeyValueStoreInfo`, `RequestQueueInfo`) has been trimmed to what is meaningful for any storage backend. The following platform-specific fields were dropped: `actId`, `actRunId`, `userId`, and — on `RequestQueueInfo` — `expireAt` and `hadMultipleClients`. The per-storage `stats` field (and its `DatasetStats` / `KeyValueStoreStats` / `RequestQueueStats` types) was removed as well. If you consumed any of these, read them from the Apify API client directly; a custom `StorageBackend` should simply stop returning them.
 
 **Removed types** from `@crawlee/types`: `DatasetClientUpdateOptions`, `KeyValueStoreClientUpdateOptions`, `KeyValueStoreRecordOptions`, `KeyValueStoreClientListData`, `KeyValueStoreClientGetRecordOptions`, `QueueHead`, `RequestQueueHeadItem`, `ListOptions`, `ListAndLockOptions`, `ListAndLockHeadResult`, `ProlongRequestLockOptions`, `ProlongRequestLockResult`, `DeleteRequestLockOptions`, `DatasetStats`, `KeyValueStoreStats`, `RequestQueueStats`. `KeyValueStoreClientListOptions` was renamed to `KeyValueStoreListKeysOptions`.
 
-The high-level storage classes (`Dataset`, `KeyValueStore`, `RequestQueue`) now receive their sub-client directly in the constructor options instead of receiving a `StorageClient` and calling its methods.
+The high-level storage classes (`Dataset`, `KeyValueStore`, `RequestQueue`) now receive their sub-client directly in the constructor options instead of receiving a `StorageBackend` and calling its methods.
 
 ### `RecordOptions` simplified
 
@@ -627,7 +628,7 @@ The high-level storage classes (`Dataset`, `KeyValueStore`, `RequestQueue`) now 
 
 ### `maybeStringify` is removed
 
-The `maybeStringify` helper exported from `@crawlee/core` has been removed. Value (de)serialization now lives entirely in the `KeyValueStore` frontend: writing serializes the value (and infers its content type), reading parses it back, and the storage client is a plain byte transport. If you imported `maybeStringify` directly, use the `serializeValue` / `parseValue` functions exported from `@crawlee/core` instead.
+The `maybeStringify` helper exported from `@crawlee/core` has been removed. Value (de)serialization now lives entirely in the `KeyValueStore` frontend: writing serializes the value (and infers its content type), reading parses it back, and the storage backend is a plain byte transport. If you imported `maybeStringify` directly, use the `serializeValue` / `parseValue` functions exported from `@crawlee/core` instead.
 
 ### `KeyValueStoreIteratorOptions` simplified
 
@@ -647,76 +648,76 @@ The `list()` method on collection clients (e.g. `client.datasets().list()`) has 
 
 ### Migration guide
 
-If you implemented a custom `StorageClient`, you need to:
+If you implemented a custom `StorageBackend`, you need to:
 
 1. Remove your `*CollectionClient` classes.
 2. Replace the six getter methods (`dataset`, `datasets`, `keyValueStore`, `keyValueStores`, `requestQueue`, `requestQueues`) with three async factory methods (`createDatasetClient`, `createKeyValueStoreClient`, `createRequestQueueClient`). Each factory should handle both opening an existing storage and creating a new one.
 3. Apply the sub-client renames listed above (`get` → `getMetadata`, `delete` → `drop`, etc.) and implement the new `purge()` method.
 
-## `MemoryStorage` split into `FileSystemStorageClient` and `MemoryStorageClient`
+## `MemoryStorage` split into `FileSystemStorageBackend` and `MemoryStorageBackend`
 
-In v3, the single `MemoryStorage` class from `@crawlee/memory-storage` did double duty: it kept everything in memory *and*, by default, mirrored it to disk (toggled via the `persistStorage` option / `CRAWLEE_PERSIST_STORAGE` environment variable). In v4 these two responsibilities are split into two independent classes, and the default storage client now persists to disk.
+In v3, the single `MemoryStorage` class from `@crawlee/memory-storage` did double duty: it kept everything in memory *and*, by default, mirrored it to disk (toggled via the `persistStorage` option / `CRAWLEE_PERSIST_STORAGE` environment variable). In v4 these two responsibilities are split into two independent classes, and the default storage backend now persists to disk.
 
-- **`FileSystemStorageClient`** (new, in the new `@crawlee/fs-storage` package) — always persists storage to the local directory (`CRAWLEE_STORAGE_DIR`, default `./storage`). This is what you get implicitly when you don't configure a storage client, and it is the behavior the old `MemoryStorage` had with its default `persistStorage: true`.
-- **`MemoryStorageClient`** (the renamed `MemoryStorage`, now part of `@crawlee/core`) — keeps everything purely in memory and **never touches the disk**. This matches the old `MemoryStorage` with `persistStorage: false`. The standalone `@crawlee/memory-storage` package no longer exists; its code was merged into `@crawlee/core`.
+- **`FileSystemStorageBackend`** (new, in the new `@crawlee/fs-storage` package) — always persists storage to the local directory (`CRAWLEE_STORAGE_DIR`, default `./storage`). This is what you get implicitly when you don't configure a storage backend, and it is the behavior the old `MemoryStorage` had with its default `persistStorage: true`.
+- **`MemoryStorageBackend`** (the renamed `MemoryStorage`, now part of `@crawlee/core`) — keeps everything purely in memory and **never touches the disk**. This matches the old `MemoryStorage` with `persistStorage: false`. The standalone `@crawlee/memory-storage` package no longer exists; its code was merged into `@crawlee/core`.
 
 Both classes are re-exported from the `crawlee` meta-package.
 
-### The default storage client now persists to disk
+### The default storage backend now persists to disk
 
-Which client backs the implicit default is decided by `Configuration.persistStorage` (still controllable via the `CRAWLEE_PERSIST_STORAGE` environment variable): `true` (the default) selects `FileSystemStorageClient`, `false` selects `MemoryStorageClient`. If you relied on the default and never set `persistStorage`, your storage is persisted to disk exactly as before — no change.
+Which client backs the implicit default is decided by `Configuration.persistStorage` (still controllable via the `CRAWLEE_PERSIST_STORAGE` environment variable): `true` (the default) selects `FileSystemStorageBackend`, `false` selects `MemoryStorageBackend`. If you relied on the default and never set `persistStorage`, your storage is persisted to disk exactly as before — no change.
 
 ### `MemoryStorage` is renamed and is now memory-only
 
-If you constructed the storage client explicitly, two things changed:
+If you constructed the storage backend explicitly, two things changed:
 
-1. **The class is renamed** `MemoryStorage` → `MemoryStorageClient`.
-2. **It no longer writes to disk.** A bare `new MemoryStorage()` in v3 persisted to disk by default; `new MemoryStorageClient()` in v4 does not. If you want persistence, use `FileSystemStorageClient` instead.
+1. **The class is renamed** `MemoryStorage` → `MemoryStorageBackend`.
+2. **It no longer writes to disk.** A bare `new MemoryStorage()` in v3 persisted to disk by default; `new MemoryStorageBackend()` in v4 does not. If you want persistence, use `FileSystemStorageBackend` instead.
 
 **Before:**
 ```typescript
 import { MemoryStorage } from '@crawlee/memory-storage';
 
 // Persisted to disk by default in v3.
-const storageClient = new MemoryStorage();
+const storageBackend = new MemoryStorage();
 ```
 
 **After:**
 ```typescript
-import { FileSystemStorageClient } from '@crawlee/fs-storage';
-import { MemoryStorageClient } from '@crawlee/core';
+import { FileSystemStorageBackend } from '@crawlee/fs-storage';
+import { MemoryStorageBackend } from '@crawlee/core';
 
 // Persists to disk (the old default behavior):
-const storageClient = new FileSystemStorageClient({ localDataDirectory: './storage' });
+const storageBackend = new FileSystemStorageBackend({ localDataDirectory: './storage' });
 
 // Or keep everything in memory only (the old `persistStorage: false`):
-const inMemory = new MemoryStorageClient();
+const inMemory = new MemoryStorageBackend();
 ```
 
-`MemoryStorageClient` no longer takes the `localDataDirectory`, `persistStorage`, or `writeMetadata` options — in-memory storage has nowhere to write, so they had no meaning. `FileSystemStorageClient` honors `localDataDirectory`; it always persists, so it has no `persistStorage` option, and the `writeMetadata` option has been removed there too (see [`writeMetadata` option removed](#writemetadata-option-removed)).
+`MemoryStorageBackend` no longer takes the `localDataDirectory`, `persistStorage`, or `writeMetadata` options — in-memory storage has nowhere to write, so they had no meaning. `FileSystemStorageBackend` honors `localDataDirectory`; it always persists, so it has no `persistStorage` option, and the `writeMetadata` option has been removed there too (see [`writeMetadata` option removed](#writemetadata-option-removed)).
 
-### No request lock expiry in `MemoryStorageClient`
+### No request lock expiry in `MemoryStorageBackend`
 
-Because the in-memory queue lives entirely within a single process and is never shared with another consumer, `MemoryStorageClient`'s request queue no longer uses an expiring, cross-process lock. A fetched request simply stays *in progress* until it is handled or reclaimed; it never becomes fetchable again on its own after a timeout. `setExpectedRequestProcessingTimeSecs()` is therefore a no-op for in-memory storage. (Disk-backed `FileSystemStorageClient` keeps the lock-with-expiry behavior.)
+Because the in-memory queue lives entirely within a single process and is never shared with another consumer, `MemoryStorageBackend`'s request queue no longer uses an expiring, cross-process lock. A fetched request simply stays *in progress* until it is handled or reclaimed; it never becomes fetchable again on its own after a timeout. `setExpectedRequestProcessingTimeSecs()` is therefore a no-op for in-memory storage. (Disk-backed `FileSystemStorageBackend` keeps the lock-with-expiry behavior.)
 
 ### `writeMetadata` option removed
 
-`FileSystemStorageClient` no longer accepts the `writeMetadata` option. The underlying file-system storage now always writes metadata files (`__metadata__.json` for each storage and a `<key>.__metadata__.json` sidecar for each key-value record), so the toggle no longer had any effect. Remove it from your storage client options:
+`FileSystemStorageBackend` no longer accepts the `writeMetadata` option. The underlying file-system storage now always writes metadata files (`__metadata__.json` for each storage and a `<key>.__metadata__.json` sidecar for each key-value record), so the toggle no longer had any effect. Remove it from your storage backend options:
 
 ```diff
- import { FileSystemStorageClient } from '@crawlee/fs-storage';
+ import { FileSystemStorageBackend } from '@crawlee/fs-storage';
 
- const storageClient = new FileSystemStorageClient({
+ const storageBackend = new FileSystemStorageBackend({
      localDataDirectory: './storage',
 -    writeMetadata: true,
  });
 ```
 
-`MemoryStorageClient` never accepted `writeMetadata` (it has no on-disk format to begin with), so there is nothing to change there.
+`MemoryStorageBackend` never accepted `writeMetadata` (it has no on-disk format to begin with), so there is nothing to change there.
 
 ### Out-of-band key-value files (e.g. a hand-placed `INPUT.json`)
 
-`FileSystemStorageClient` only fully tracks records it wrote itself (those have a `<key>.__metadata__.json` sidecar). It still reads a value file placed in the store directory out-of-band — such as a hand-written or platform-provided `INPUT.json` — by probing the requested key plus the `.json` and `.txt` extensions. A few behaviors around these "bare" files changed in v4:
+`FileSystemStorageBackend` only fully tracks records it wrote itself (those have a `<key>.__metadata__.json` sidecar). It still reads a value file placed in the store directory out-of-band — such as a hand-written or platform-provided `INPUT.json` — by probing the requested key plus the `.json` and `.txt` extensions. A few behaviors around these "bare" files changed in v4:
 
 - **Extensionless bare files report `application/octet-stream`.** In v3 a bare value file with no extension was read as `text/plain`. In v4 the client is a plain byte transport and only infers a content type from a real extension, so an extensionless file now comes back as `application/octet-stream`. Give the file a `.json` or `.txt` extension if you need a more specific type.
 - **Malformed bare files are no longer silently swallowed.** In v3 a bare `INPUT.json` containing invalid JSON was treated as a missing record (`getValue` returned `undefined`). In v4 the raw bytes are returned verbatim and parsing happens in the `KeyValueStore` frontend, so a malformed value now surfaces a parse error at read time instead of looking absent.
@@ -831,7 +832,7 @@ The harmonized loader interface differs from the old `IRequestList` in a few way
 
 `RequestList.length()` and `RequestList.handledCount()` (and their `SitemapRequestLoader` counterparts) were renamed to `getTotalCount()` and `getHandledCount()` and are now `async` — `await` them.
 
-`markRequestHandled()` was renamed to `markRequestAsHandled()` across the loader and manager interfaces (`RequestList`, `SitemapRequestLoader`, `RequestQueue`, `RequestManagerTandem`) to match the storage client method of the same name (and the Python `mark_request_as_handled`). Rename any calls accordingly.
+`markRequestHandled()` was renamed to `markRequestAsHandled()` across the loader and manager interfaces (`RequestList`, `SitemapRequestLoader`, `RequestQueue`, `RequestManagerTandem`) to match the storage backend method of the same name (and the Python `mark_request_as_handled`). Rename any calls accordingly.
 
 **Before:**
 ```typescript

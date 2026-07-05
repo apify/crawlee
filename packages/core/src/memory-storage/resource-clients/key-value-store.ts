@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import type * as storage from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
 
-import type { MemoryStorageClient } from '../memory-storage.js';
+import type { MemoryStorageBackend } from '../memory-storage.js';
 import { isStream, toBuffer } from '../utils.js';
 import { BaseClient } from './common/base-client.js';
 import mime from 'mime-types';
@@ -12,7 +12,7 @@ const DEFAULT_LOCAL_FILE_EXTENSION = 'bin';
 
 /**
  * Key under which a run's input is stored in the default key-value store. Matches Crawlee's default
- * `inputKey` (`CRAWLEE_INPUT_KEY`) and the `INPUT` files `FileSystemStorageClient` preserves on purge.
+ * `inputKey` (`CRAWLEE_INPUT_KEY`) and the `INPUT` files `FileSystemStorageBackend` preserves on purge.
  */
 const KEY_VALUE_STORE_INPUT_KEY = 'INPUT';
 
@@ -25,7 +25,7 @@ export interface KeyValueStoreClientOptions {
      * metadata `name` (which is `undefined` for unnamed storages).
      */
     cacheKey?: string;
-    client: MemoryStorageClient;
+    client: MemoryStorageBackend;
 }
 
 export interface InternalKeyRecord {
@@ -47,7 +47,7 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
     modifiedAt = new Date();
 
     private readonly keyValueEntries = new Map<string, InternalKeyRecord>();
-    private readonly client: MemoryStorageClient;
+    private readonly client: MemoryStorageBackend;
 
     constructor(options: KeyValueStoreClientOptions) {
         super(options.id ?? randomUUID());
@@ -76,8 +76,8 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
     }
 
     /**
-     * Purges every record except the run's input. Used by {@link MemoryStorageClient.purge} for the
-     * default key-value store, mirroring `FileSystemStorageClient`, which preserves `INPUT` (and its
+     * Purges every record except the run's input. Used by {@link MemoryStorageBackend.purge} for the
+     * default key-value store, mirroring `FileSystemStorageBackend`, which preserves `INPUT` (and its
      * extension variants) when purging the default store. The in-memory key has no extension, so we
      * preserve the bare `INPUT` key only.
      */

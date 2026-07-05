@@ -210,7 +210,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
 
     /**
      * Backend-independent usage counters tracked for this dataset (read / write operations issued to
-     * the underlying storage client). Counted per client call.
+     * the underlying storage backend). Counted per client call.
      */
     get stats(): DatasetStats {
         return this.statsTracker.current;
@@ -680,13 +680,13 @@ export class Dataset<Data extends Dictionary = Dictionary> {
             options,
             ow.object.exactShape({
                 config: ow.optional.object.instanceOf(Configuration),
-                storageClient: ow.optional.object,
+                storageBackend: ow.optional.object,
             }),
         );
 
         options.config ??= Configuration.getGlobalConfig();
 
-        const client = options.storageClient ?? serviceLocator.getStorageClient();
+        const client = options.storageBackend ?? serviceLocator.getStorageBackend();
 
         await purgeDefaultStorages({ onlyPurgeOnce: true, client, config: options.config });
 
@@ -695,7 +695,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         return serviceLocator.getStorageInstanceManager().openStorage<Dataset<Data>>(this, {
             ...resolved,
             clientOpener: () => client.createDatasetClient(resolved),
-            clientCacheKey: client.getStorageClientCacheKey?.() ?? client.constructor.name,
+            clientCacheKey: client.getStorageBackendCacheKey?.() ?? client.constructor.name,
         });
     }
 

@@ -43,7 +43,7 @@ import { resolveStorageIdentifier } from './storage_instance_manager.js';
 import { getRequestId, purgeDefaultStorages } from './utils.js';
 
 /**
- * The maximum number of requests cached locally to avoid redundant calls to the storage client.
+ * The maximum number of requests cached locally to avoid redundant calls to the storage backend.
  * @internal
  */
 const MAX_CACHED_REQUESTS = 2_000_000;
@@ -103,7 +103,7 @@ export class RequestQueue implements IStorage, IRequestManager {
     /**
      * The largest expected request-processing time (in seconds) seen so far via
      * {@link setExpectedRequestProcessingTimeSecs}. Used to ensure that value is only ever raised, never
-     * lowered, before being forwarded to the storage client.
+     * lowered, before being forwarded to the storage backend.
      */
     protected expectedRequestProcessingSecs = 0;
 
@@ -118,7 +118,7 @@ export class RequestQueue implements IStorage, IRequestManager {
 
     /**
      * Backend-independent usage counters tracked for this request queue (write operations and
-     * queue-head reads issued to the underlying storage client). Counted per client call.
+     * queue-head reads issued to the underlying storage backend). Counted per client call.
      */
     get stats(): RequestQueueStats {
         return this.statsTracker.current;
@@ -675,7 +675,7 @@ export class RequestQueue implements IStorage, IRequestManager {
 
     /**
      * Tells the queue how long a consumer expects to hold a fetched request before marking it handled
-     * or reclaiming it (typically the request-handler timeout plus padding), so that a storage client
+     * or reclaiming it (typically the request-handler timeout plus padding), so that a storage backend
      * that reserves requests via locking does not hand the same request out again while it is still
      * being processed.
      *
@@ -882,13 +882,13 @@ export class RequestQueue implements IStorage, IRequestManager {
             options,
             ow.object.exactShape({
                 config: ow.optional.object.instanceOf(Configuration),
-                storageClient: ow.optional.object,
+                storageBackend: ow.optional.object,
                 proxyConfiguration: ow.optional.object,
                 httpClient: ow.optional.object,
             }),
         );
 
-        const client = options.storageClient ?? serviceLocator.getStorageClient();
+        const client = options.storageBackend ?? serviceLocator.getStorageBackend();
         const config = options.config ?? serviceLocator.getConfiguration();
 
         await purgeDefaultStorages({ onlyPurgeOnce: true, client, config });
@@ -900,7 +900,7 @@ export class RequestQueue implements IStorage, IRequestManager {
             .openStorage<RequestQueue>(this as unknown as Constructor<RequestQueue>, {
                 ...resolved,
                 clientOpener: () => client.createRequestQueueClient(resolved),
-                clientCacheKey: client.getStorageClientCacheKey?.() ?? client.constructor.name,
+                clientCacheKey: client.getStorageBackendCacheKey?.() ?? client.constructor.name,
             });
         queue.proxyConfiguration = options.proxyConfiguration;
         queue.httpClient = options.httpClient;

@@ -19,7 +19,7 @@ import {
     serviceLocator,
     SessionPool,
 } from '@crawlee/basic';
-import { MemoryStorageClient, RequestState } from '@crawlee/core';
+import { MemoryStorageBackend, RequestState } from '@crawlee/core';
 import type { ISession, ProxyInfo } from '@crawlee/types';
 import type { Dictionary } from '@crawlee/utils';
 import { RobotsTxtFile, sleep } from '@crawlee/utils';
@@ -32,7 +32,7 @@ import log from '@apify/log';
 
 import { startExpressAppPromise } from '../../shared/_helper.js';
 
-type MemoryRequestQueueClient = Awaited<ReturnType<MemoryStorageClient['createRequestQueueClient']>>;
+type MemoryRequestQueueClient = Awaited<ReturnType<MemoryStorageBackend['createRequestQueueClient']>>;
 
 describe('BasicCrawler', () => {
     let logLevel: number;
@@ -60,7 +60,7 @@ describe('BasicCrawler', () => {
 
     beforeEach(async () => {
         vitest.clearAllMocks();
-        serviceLocator.setStorageClient(new MemoryStorageClient());
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
         const memoryRequestQueue = await RequestQueue.open();
         requestQueueClient = memoryRequestQueue.client as MemoryRequestQueueClient;
     });
@@ -2213,14 +2213,14 @@ describe('BasicCrawler', () => {
             await rm(`${tmpDir}/result.csv`);
         });
 
-        test("Crawlers with different storage clients don't share Datasets", async () => {
-            // Each crawler gets its own MemoryStorageClient instance; every instance has a unique
+        test("Crawlers with different storage backends don't share Datasets", async () => {
+            // Each crawler gets its own MemoryStorageBackend instance; every instance has a unique
             // per-instance cache key, so they end up in separate cache partitions.
-            const storageA = new MemoryStorageClient();
-            const storageB = new MemoryStorageClient();
+            const storageA = new MemoryStorageBackend();
+            const storageB = new MemoryStorageBackend();
 
-            const crawlerA = new BasicCrawler({ storageClient: storageA });
-            const crawlerB = new BasicCrawler({ storageClient: storageB });
+            const crawlerA = new BasicCrawler({ storageBackend: storageA });
+            const crawlerB = new BasicCrawler({ storageBackend: storageB });
 
             await crawlerA.pushData(getPayload('A'));
             await crawlerB.pushData(getPayload('B'));
@@ -2230,17 +2230,17 @@ describe('BasicCrawler', () => {
             expect((await crawlerB.getData()).items).toEqual(getPayload('B'));
         });
 
-        test('Crawlers with different storage clients run separately', async () => {
-            const storageA = new MemoryStorageClient();
-            const storageB = new MemoryStorageClient();
+        test('Crawlers with different storage backends run separately', async () => {
+            const storageA = new MemoryStorageBackend();
+            const storageB = new MemoryStorageBackend();
 
             const crawlerA = new BasicCrawler({
                 requestHandler: () => {},
-                storageClient: storageA,
+                storageBackend: storageA,
             });
             const crawlerB = new BasicCrawler({
                 requestHandler: () => {},
-                storageClient: storageB,
+                storageBackend: storageB,
             });
 
             await crawlerA.run([{ url: `http://${HOSTNAME}:${port}` }]);
