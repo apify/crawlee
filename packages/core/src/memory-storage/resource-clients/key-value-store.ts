@@ -16,7 +16,7 @@ const DEFAULT_LOCAL_FILE_EXTENSION = 'bin';
  */
 const KEY_VALUE_STORE_INPUT_KEY = 'INPUT';
 
-export interface KeyValueStoreClientOptions {
+export interface KeyValueStoreBackendOptions {
     name?: string;
     id?: string;
     /**
@@ -25,7 +25,7 @@ export interface KeyValueStoreClientOptions {
      * metadata `name` (which is `undefined` for unnamed storages).
      */
     cacheKey?: string;
-    client: MemoryStorageBackend;
+    storageBackend: MemoryStorageBackend;
 }
 
 export interface InternalKeyRecord {
@@ -35,7 +35,7 @@ export interface InternalKeyRecord {
     extension: string;
 }
 
-export class KeyValueStoreClient extends BaseClient implements storage.KeyValueStoreClient {
+export class KeyValueStoreBackend extends BaseClient implements storage.KeyValueStoreBackend {
     name?: string;
     /**
      * The key used for cache lookup. For named storages, this equals the name. For alias (unnamed)
@@ -47,13 +47,13 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
     modifiedAt = new Date();
 
     private readonly keyValueEntries = new Map<string, InternalKeyRecord>();
-    private readonly client: MemoryStorageBackend;
+    private readonly storageBackend: MemoryStorageBackend;
 
-    constructor(options: KeyValueStoreClientOptions) {
+    constructor(options: KeyValueStoreBackendOptions) {
         super(options.id ?? randomUUID());
         this.name = options.name;
         this.cacheKey = options.cacheKey ?? this.name ?? this.id;
-        this.client = options.client;
+        this.storageBackend = options.storageBackend;
     }
 
     async getMetadata(): Promise<storage.KeyValueStoreInfo> {
@@ -62,11 +62,11 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
     }
 
     async drop(): Promise<void> {
-        const storeIndex = this.client.keyValueStoreCache.findIndex((store) => store.id === this.id);
+        const storeIndex = this.storageBackend.keyValueStoreBackendCache.findIndex((store) => store.id === this.id);
 
         if (storeIndex !== -1) {
-            const [oldClient] = this.client.keyValueStoreCache.splice(storeIndex, 1);
-            oldClient.keyValueEntries.clear();
+            const [oldBackend] = this.storageBackend.keyValueStoreBackendCache.splice(storeIndex, 1);
+            oldBackend.keyValueEntries.clear();
         }
     }
 
@@ -209,12 +209,12 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
         const { key } = record;
         let { value } = record;
         // The frontend (KeyValueStore codec) serializes the value and resolves its content type
-        // before it reaches the client. We only need it here for on-disk extension bookkeeping.
+        // before it reaches the backend. We only need it here for on-disk extension bookkeeping.
         const contentType = record.contentType ?? 'application/octet-stream';
 
         const extension = mime.extension(contentType) || DEFAULT_LOCAL_FILE_EXTENSION;
 
-        // Draining a stream into a Buffer for storage is the client's responsibility.
+        // Draining a stream into a Buffer for storage is the backend's responsibility.
         if (isStream(value)) {
             const chunks = [];
             for await (const chunk of value) {
@@ -223,7 +223,7 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
             value = Buffer.concat(chunks);
         }
 
-        // This client is a byte transport: it stores and returns raw bytes regardless of the input
+        // This backend is a byte transport: it stores and returns raw bytes regardless of the input
         // shape. Streams were drained above; encode strings to UTF-8 bytes and normalize
         // ArrayBuffer / typed-array views to a Buffer over the same memory.
         const normalizedValue: Buffer =

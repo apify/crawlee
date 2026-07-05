@@ -29,7 +29,7 @@ describe('FileSystemStorageBackend requestQueueAccess', () => {
     // dangling in-progress lock on disk, exactly the "process died mid-flight" situation.
     async function seedQueueWithDanglingLock(dir: string) {
         const storage = new FileSystemStorageBackend({ localDataDirectory: dir });
-        const queue = await storage.createRequestQueueClient({ name: 'default' });
+        const queue = await storage.createRequestQueueBackend({ name: 'default' });
         await queue.addBatchOfRequests([
             { url: 'http://example.com/1', uniqueKey: '1' },
             { url: 'http://example.com/2', uniqueKey: '2' },
@@ -46,7 +46,7 @@ describe('FileSystemStorageBackend requestQueueAccess', () => {
 
         // Reopen the same directory as sole owner, without purging.
         const reopened = new FileSystemStorageBackend({ localDataDirectory: dir, requestQueueAccess: 'single' });
-        const queue = await reopened.createRequestQueueClient({ name: 'default' });
+        const queue = await reopened.createRequestQueueBackend({ name: 'default' });
 
         // Contents preserved: both requests still present, none handled.
         const metadata = await queue.getMetadata();
@@ -70,7 +70,7 @@ describe('FileSystemStorageBackend requestQueueAccess', () => {
         // Reopen in concurrency-safe mode: an in-progress request is treated as a potential live peer's
         // lock and is NOT reclaimed until it expires.
         const reopened = new FileSystemStorageBackend({ localDataDirectory: dir, requestQueueAccess: 'shared' });
-        const queue = await reopened.createRequestQueueClient({ name: 'default' });
+        const queue = await reopened.createRequestQueueBackend({ name: 'default' });
 
         // Contents are still preserved...
         const metadata = await queue.getMetadata();

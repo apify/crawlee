@@ -20,7 +20,7 @@ describe('KeyValueStore handles keys with file-name-unsafe characters', () => {
 
     test('round-trips a key containing a dot', async () => {
         const storage = new FileSystemStorageBackend({ localDataDirectory: tmpLocation });
-        const store = await storage.createKeyValueStoreClient({ name: 'dotted' });
+        const store = await storage.createKeyValueStoreBackend({ name: 'dotted' });
 
         const body = '<html lang="en"><body>Hi there!</body></html>';
         await store.setValue({
@@ -40,7 +40,7 @@ describe('KeyValueStore handles keys with file-name-unsafe characters', () => {
 
     test('round-trips a key containing a slash', async () => {
         const storage = new FileSystemStorageBackend({ localDataDirectory: tmpLocation });
-        const store = await storage.createKeyValueStoreClient({ name: 'slashed' });
+        const store = await storage.createKeyValueStoreBackend({ name: 'slashed' });
 
         const body = JSON.stringify({ ok: true });
         await store.setValue({ key: 'nested/key', value: body, contentType: 'application/json; charset=utf-8' });

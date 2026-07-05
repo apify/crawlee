@@ -1323,7 +1323,7 @@ export class BasicCrawler<
 
         await purgeDefaultStorages({
             onlyPurgeOnce: true,
-            client: serviceLocator.getStorageBackend(),
+            storageBackend: serviceLocator.getStorageBackend(),
             config: serviceLocator.getConfiguration(),
         });
 

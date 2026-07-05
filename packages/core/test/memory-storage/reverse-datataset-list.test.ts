@@ -1,15 +1,15 @@
 import { MemoryStorageBackend } from '@crawlee/core';
-import type { DatasetClient } from '@crawlee/types';
+import type { DatasetBackend } from '@crawlee/types';
 
 const elements = Array.from({ length: 10 }, (_, i) => ({ number: i }));
 
 describe('Dataset#getData respects the desc option', () => {
     const storage = new MemoryStorageBackend();
 
-    let dataset: DatasetClient;
+    let dataset: DatasetBackend;
 
     beforeAll(async () => {
-        dataset = await storage.createDatasetClient({ name: 'false' });
+        dataset = await storage.createDatasetBackend({ name: 'false' });
 
         await dataset.pushData(elements);
     });

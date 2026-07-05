@@ -2,7 +2,7 @@ import { rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 import { FileSystemStorageBackend } from '@crawlee/fs-storage';
-import type { DatasetClient } from '@crawlee/types';
+import type { DatasetBackend } from '@crawlee/types';
 
 const elements = Array.from({ length: 10 }, (_, i) => ({ number: i }));
 
@@ -12,14 +12,14 @@ describe('Dataset#getData respects the desc option', () => {
         localDataDirectory,
     });
 
-    let dataset: DatasetClient;
+    let dataset: DatasetBackend;
 
     afterAll(async () => {
         await rm(localDataDirectory, { force: true, recursive: true });
     });
 
     beforeAll(async () => {
-        dataset = await storage.createDatasetClient({ name: 'false' });
+        dataset = await storage.createDatasetBackend({ name: 'false' });
 
         await dataset.pushData(elements);
     });

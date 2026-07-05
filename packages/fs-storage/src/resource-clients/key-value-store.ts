@@ -5,7 +5,7 @@ import type { CrawleeLogger } from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
 
 import type {
-    FileSystemKeyValueStoreClient as NativeFileSystemKeyValueStoreClient,
+    FileSystemKeyValueStoreClient as NativeFileSystemKeyValueStoreBackend,
     ListBareFallback,
 } from '@crawlee/fs-storage-native';
 import { isStream } from '../utils.js';
@@ -61,7 +61,7 @@ const BARE_FILE_LOGICAL_KEYS = new Map(
     ),
 );
 
-export interface KeyValueStoreClientOptions {
+export interface KeyValueStoreBackendOptions {
     /** The user-facing storage name, or `undefined` for unnamed (alias / default) storages. */
     name?: string;
     /**
@@ -69,51 +69,51 @@ export interface KeyValueStoreClientOptions {
      * the name; for alias (unnamed) storages it is the alias string. Falls back to the storage id.
      */
     cacheKey: string;
-    nativeClient: NativeFileSystemKeyValueStoreClient;
+    nativeBackend: NativeFileSystemKeyValueStoreBackend;
     logger?: CrawleeLogger;
 }
 
 /**
- * A file-system key-value store client backed by the native `@crawlee/fs-storage-native` Rust
+ * A file-system key-value store backend backed by the native `@crawlee/fs-storage-native` Rust
  * extension.
  *
  * This adapter is a plain byte transport: values are written and read verbatim as `Buffer`s with a
  * content type carried alongside them. Serializing arbitrary values into bytes and parsing them back
- * is the {@apilink KeyValueStore} frontend codec's job, not this client's.
+ * is the {@apilink KeyValueStore} frontend codec's job, not this backend's.
  */
-export class KeyValueStoreClient extends CachedIdClient implements storage.KeyValueStoreClient {
+export class KeyValueStoreBackend extends CachedIdClient implements storage.KeyValueStoreBackend {
     readonly name?: string;
     readonly cacheKey: string;
 
-    private readonly nativeClient: NativeFileSystemKeyValueStoreClient;
+    private readonly nativeBackend: NativeFileSystemKeyValueStoreBackend;
 
-    constructor(options: KeyValueStoreClientOptions) {
+    constructor(options: KeyValueStoreBackendOptions) {
         super();
         this.name = options.name;
         this.cacheKey = options.cacheKey;
-        this.nativeClient = options.nativeClient;
+        this.nativeBackend = options.nativeBackend;
     }
 
     get keyValueStoreDirectory(): string {
-        return this.nativeClient.pathToKvs;
+        return this.nativeBackend.pathToKvs;
     }
 
-    static async create(options: KeyValueStoreClientOptions): Promise<KeyValueStoreClient> {
-        const client = new KeyValueStoreClient(options);
-        client._cachedId = (await options.nativeClient.getMetadata()).id;
-        return client;
+    static async create(options: KeyValueStoreBackendOptions): Promise<KeyValueStoreBackend> {
+        const backend = new KeyValueStoreBackend(options);
+        backend._cachedId = (await options.nativeBackend.getMetadata()).id;
+        return backend;
     }
 
     async getMetadata(): Promise<storage.KeyValueStoreInfo> {
-        return this.nativeClient.getMetadata();
+        return this.nativeBackend.getMetadata();
     }
 
     async drop(): Promise<void> {
-        await this.nativeClient.dropStorage();
+        await this.nativeBackend.dropStorage();
     }
 
     async purge(): Promise<void> {
-        await this.nativeClient.purge();
+        await this.nativeBackend.purge();
     }
 
     /**
@@ -125,7 +125,7 @@ export class KeyValueStoreClient extends CachedIdClient implements storage.KeyVa
      * filename the input might live under (`INPUT`, `INPUT.json`, `INPUT.txt`, `INPUT.bin`).
      */
     async purgeExceptInput(): Promise<void> {
-        await this.nativeClient.purge(BARE_FILE_FALLBACKS.flatMap(({ extension }) => `INPUT${extension}`));
+        await this.nativeBackend.purge(BARE_FILE_FALLBACKS.flatMap(({ extension }) => `INPUT${extension}`));
     }
 
     async listKeys(options: storage.KeyValueStoreListKeysOptions = {}): Promise<storage.KeyValueStoreListKeysResult> {
@@ -142,7 +142,7 @@ export class KeyValueStoreClient extends CachedIdClient implements storage.KeyVa
         // everything it needs off the filesystem index — no per-file reads — so this stays cheap.
         // The native `listKeys` already returns a self-describing page (items + pagination cursors)
         // matching the `KeyValueStoreListKeysResult` contract, so we only post-process the items.
-        const page = await this.nativeClient.listKeys(exclusiveStartKey, limit, prefix, LIST_BARE_FALLBACKS);
+        const page = await this.nativeBackend.listKeys(exclusiveStartKey, limit, prefix, LIST_BARE_FALLBACKS);
 
         const presentKeys = new Set(page.items.map((record) => record.key));
 
@@ -183,7 +183,7 @@ export class KeyValueStoreClient extends CachedIdClient implements storage.KeyVa
         if (resolvedKey === undefined) {
             return undefined;
         }
-        return (await this.nativeClient.getPublicUrl(resolvedKey)) ?? undefined;
+        return (await this.nativeBackend.getPublicUrl(resolvedKey)) ?? undefined;
     }
 
     /**
@@ -202,8 +202,8 @@ export class KeyValueStoreClient extends CachedIdClient implements storage.KeyVa
 
         const fallbacks = this.bareFallbacksFor(key);
         const record = fallbacks
-            ? await this.nativeClient.resolveValue(key, fallbacks)
-            : await this.nativeClient.getValue(key);
+            ? await this.nativeBackend.resolveValue(key, fallbacks)
+            : await this.nativeBackend.getValue(key);
 
         if (record) {
             return {
@@ -217,7 +217,7 @@ export class KeyValueStoreClient extends CachedIdClient implements storage.KeyVa
     }
 
     async setValue(record: storage.KeyValueStoreInputRecord): Promise<void> {
-        // By the time a value reaches the client the frontend (KeyValueStore codec) has already
+        // By the time a value reaches the backend the frontend (KeyValueStore codec) has already
         // serialized it: non-bytes become a `string`, everything else is a `Buffer`/typed array or a
         // stream. So we only accept those shapes here — there is no JSON inference or `String(value)`
         // coercion left to do.
@@ -236,7 +236,7 @@ export class KeyValueStoreClient extends CachedIdClient implements storage.KeyVa
         }).parse(record);
 
         const { key, value } = record;
-        // The frontend resolves the content type before it reaches the client; this client is a plain
+        // The frontend resolves the content type before it reaches the backend; this backend is a plain
         // byte transport and does not infer content types.
         const contentType = record.contentType ?? 'application/octet-stream';
 
@@ -244,7 +244,7 @@ export class KeyValueStoreClient extends CachedIdClient implements storage.KeyVa
         // consumes a Web `ReadableStream`, so convert the Node `Readable` we get from the frontend.
         if (isStream(value)) {
             const webStream = Readable.toWeb(value as Readable) as ReadableStream<Uint8Array>;
-            await this.nativeClient.setValueStream(key, webStream, contentType);
+            await this.nativeBackend.setValueStream(key, webStream, contentType);
             return;
         }
 
@@ -257,12 +257,12 @@ export class KeyValueStoreClient extends CachedIdClient implements storage.KeyVa
                 ? Buffer.from(value.buffer, value.byteOffset, value.byteLength)
                 : Buffer.from(value as string);
 
-        await this.nativeClient.setValue(key, buffer, contentType);
+        await this.nativeBackend.setValue(key, buffer, contentType);
     }
 
     async deleteValue(key: string): Promise<void> {
         s.string().parse(key);
-        await this.nativeClient.deleteValue(key);
+        await this.nativeBackend.deleteValue(key);
     }
 
     /**
@@ -277,13 +277,13 @@ export class KeyValueStoreClient extends CachedIdClient implements storage.KeyVa
         const fallbacks = this.bareFallbacksFor(key);
         if (fallbacks) {
             return (
-                (await this.nativeClient.resolveExistingKey(
+                (await this.nativeBackend.resolveExistingKey(
                     key,
                     fallbacks.map(({ extension }) => extension),
                 )) ?? undefined
             );
         }
-        return (await this.nativeClient.recordExists(key)) ? key : undefined;
+        return (await this.nativeBackend.recordExists(key)) ? key : undefined;
     }
 
     /**

@@ -2,7 +2,7 @@ import type * as storage from '@crawlee/types';
 import type { CrawleeLogger, Dictionary } from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
 
-import type { FileSystemDatasetClient as NativeFileSystemDatasetClient } from '@crawlee/fs-storage-native';
+import type { FileSystemDatasetClient as NativeFileSystemDatasetBackend } from '@crawlee/fs-storage-native';
 
 import { CachedIdClient } from './cached-id-client.js';
 
@@ -16,7 +16,7 @@ import { CachedIdClient } from './cached-id-client.js';
  */
 const UNSUPPORTED_GET_DATA_OPTIONS = ['clean', 'fields', 'omit', 'skipHidden', 'skipEmpty'] as const;
 
-export interface DatasetClientOptions {
+export interface DatasetBackendOptions {
     /** The user-facing storage name, or `undefined` for unnamed (alias / default) storages. */
     name?: string;
     /**
@@ -24,64 +24,64 @@ export interface DatasetClientOptions {
      * the name; for alias (unnamed) storages it is the alias string. Falls back to the storage id.
      */
     cacheKey: string;
-    nativeClient: NativeFileSystemDatasetClient;
+    nativeBackend: NativeFileSystemDatasetBackend;
     logger?: CrawleeLogger;
 }
 
 /**
- * A file-system dataset client backed by the native `@crawlee/fs-storage-native` Rust extension.
+ * A file-system dataset backend backed by the native `@crawlee/fs-storage-native` Rust extension.
  *
  * This class is a thin adapter: it forwards each operation to the native client (which owns the
  * on-disk format, timestamps and item counting) and converts results into the shapes expected by
  * the `@crawlee/types` interfaces.
  */
-export class DatasetClient<Data extends Dictionary = Dictionary>
+export class DatasetBackend<Data extends Dictionary = Dictionary>
     extends CachedIdClient
-    implements storage.DatasetClient<Data>
+    implements storage.DatasetBackend<Data>
 {
     readonly name?: string;
     readonly cacheKey: string;
 
-    private readonly nativeClient: NativeFileSystemDatasetClient;
+    private readonly nativeBackend: NativeFileSystemDatasetBackend;
     private readonly logger?: CrawleeLogger;
 
-    constructor(options: DatasetClientOptions) {
+    constructor(options: DatasetBackendOptions) {
         super();
         this.name = options.name;
         this.cacheKey = options.cacheKey;
-        this.nativeClient = options.nativeClient;
+        this.nativeBackend = options.nativeBackend;
         this.logger = options.logger;
     }
 
     get datasetDirectory(): string {
-        return this.nativeClient.pathToDataset;
+        return this.nativeBackend.pathToDataset;
     }
 
     static async create<Data extends Dictionary = Dictionary>(
-        options: DatasetClientOptions,
-    ): Promise<DatasetClient<Data>> {
-        const client = new DatasetClient<Data>(options);
-        client._cachedId = (await options.nativeClient.getMetadata()).id;
-        return client;
+        options: DatasetBackendOptions,
+    ): Promise<DatasetBackend<Data>> {
+        const backend = new DatasetBackend<Data>(options);
+        backend._cachedId = (await options.nativeBackend.getMetadata()).id;
+        return backend;
     }
 
     async getMetadata(): Promise<storage.DatasetInfo> {
-        return this.nativeClient.getMetadata();
+        return this.nativeBackend.getMetadata();
     }
 
     async drop(): Promise<void> {
-        await this.nativeClient.dropStorage();
+        await this.nativeBackend.dropStorage();
     }
 
     async purge(): Promise<void> {
-        await this.nativeClient.purge();
+        await this.nativeBackend.purge();
     }
 
     async pushData(items: Data[]): Promise<void> {
-        await this.nativeClient.pushData(items);
+        await this.nativeBackend.pushData(items);
     }
 
-    async getData(options: storage.DatasetClientListOptions = {}): Promise<storage.PaginatedList<Data>> {
+    async getData(options: storage.DatasetBackendListOptions = {}): Promise<storage.PaginatedList<Data>> {
         const passedOptions = options as Record<string, unknown>;
         const ignored = UNSUPPORTED_GET_DATA_OPTIONS.filter((key) => passedOptions[key] !== undefined);
         if (ignored.length > 0) {
@@ -99,7 +99,7 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
             })
             .parse(options);
 
-        const page = await this.nativeClient.getData(offset ?? 0, limit, desc ?? false, false);
+        const page = await this.nativeBackend.getData(offset ?? 0, limit, desc ?? false, false);
 
         return {
             count: page.count,

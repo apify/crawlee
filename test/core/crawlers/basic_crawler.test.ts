@@ -32,11 +32,11 @@ import log from '@apify/log';
 
 import { startExpressAppPromise } from '../../shared/_helper.js';
 
-type MemoryRequestQueueClient = Awaited<ReturnType<MemoryStorageBackend['createRequestQueueClient']>>;
+type MemoryRequestQueueBackend = Awaited<ReturnType<MemoryStorageBackend['createRequestQueueBackend']>>;
 
 describe('BasicCrawler', () => {
     let logLevel: number;
-    let requestQueueClient: MemoryRequestQueueClient;
+    let requestQueueBackend: MemoryRequestQueueBackend;
 
     const HOSTNAME = '127.0.0.1';
     let port: number;
@@ -62,7 +62,7 @@ describe('BasicCrawler', () => {
         vitest.clearAllMocks();
         serviceLocator.setStorageBackend(new MemoryStorageBackend());
         const memoryRequestQueue = await RequestQueue.open();
-        requestQueueClient = memoryRequestQueue.client as MemoryRequestQueueClient;
+        requestQueueBackend = memoryRequestQueue.backend as MemoryRequestQueueBackend;
     });
 
     afterAll(async () => {
@@ -156,14 +156,14 @@ describe('BasicCrawler', () => {
         expect(processed).toHaveLength(2);
 
         // Make sure no extra requests were enqueued
-        await expect(requestQueueClient.listItems()).resolves.toEqual([]);
+        await expect(requestQueueBackend.listItems()).resolves.toEqual([]);
 
         // Second run should process 2 more requests
         await crawler.run([...Array(5).keys()].map((index) => `https://example.com/second/${index}`));
         expect(processed).toHaveLength(4);
 
         // Make sure no extra requests were enqueued
-        await expect(requestQueueClient.listItems()).resolves.toEqual([]);
+        await expect(requestQueueBackend.listItems()).resolves.toEqual([]);
 
         const processedUrls = processed.map((p) => p.url);
 
@@ -1789,7 +1789,7 @@ describe('BasicCrawler', () => {
 
             // Should only have added the first 3 requests (since 2 were already processed, limit allows 3 more)
             expect(addRequestsBatchedSpy).toHaveBeenCalledOnce();
-            await expect(requestQueueClient.listItems()).resolves.toMatchObject([
+            await expect(requestQueueBackend.listItems()).resolves.toMatchObject([
                 { url: 'http://example.com/1' },
                 { url: 'http://example.com/2' },
                 { url: 'http://example.com/3' },
@@ -1811,7 +1811,7 @@ describe('BasicCrawler', () => {
             // First call - should add 2 requests (2 more slots to go)
             await crawler.addRequests(['http://example.com/1', 'http://example.com/2']);
 
-            await expect(requestQueueClient.listItems()).resolves.toMatchObject([
+            await expect(requestQueueBackend.listItems()).resolves.toMatchObject([
                 { url: 'http://example.com/1' },
                 { url: 'http://example.com/2' },
             ]);
@@ -1824,7 +1824,7 @@ describe('BasicCrawler', () => {
                 'http://example.com/6', // This should be ignored
             ]);
 
-            await expect(requestQueueClient.listItems()).resolves.toMatchObject([
+            await expect(requestQueueBackend.listItems()).resolves.toMatchObject([
                 { url: 'http://example.com/1' },
                 { url: 'http://example.com/2' },
                 { url: 'http://example.com/3' },
@@ -1834,7 +1834,7 @@ describe('BasicCrawler', () => {
             // Third call - should add no requests (limit already reached)
             await crawler.addRequests(['http://example.com/7', 'http://example.com/8']);
 
-            await expect(requestQueueClient.listItems()).resolves.toMatchObject([
+            await expect(requestQueueBackend.listItems()).resolves.toMatchObject([
                 { url: 'http://example.com/1' },
                 { url: 'http://example.com/2' },
                 { url: 'http://example.com/3' },
@@ -1869,7 +1869,7 @@ describe('BasicCrawler', () => {
                 'http://example.com/4', // Would exceed limit
             ]);
 
-            await expect(requestQueueClient.listItems()).resolves.toMatchObject([
+            await expect(requestQueueBackend.listItems()).resolves.toMatchObject([
                 { url: 'http://example.com/1' },
                 { url: 'http://example.com/3' },
             ]);
@@ -1931,7 +1931,7 @@ describe('BasicCrawler', () => {
                 'http://example.com/my-crawler/anything', // Blocked by robots.txt for all user-agents, but allowed for "MyCrawler"
             ]);
 
-            await expect(requestQueueClient.listItems()).resolves.toMatchObject(visitedUrls);
+            await expect(requestQueueBackend.listItems()).resolves.toMatchObject(visitedUrls);
 
             // Should only have added the first request (allowed by robots.txt and within limit)
             expect(addRequestsBatchedSpy).toHaveBeenCalledOnce();

@@ -1,4 +1,4 @@
-import type { Dictionary, KeyValueStoreClient, KeyValueStoreItemData } from '@crawlee/types';
+import type { Dictionary, KeyValueStoreBackend, KeyValueStoreItemData } from '@crawlee/types';
 import ow, { ArgumentError } from 'ow';
 
 import { KEY_VALUE_STORE_KEY_REGEX } from '@apify/consts';
@@ -78,7 +78,7 @@ const KVS_KEYS_DEFAULT_LIMIT = 1000;
 export class KeyValueStore {
     readonly id: string;
     readonly name?: string;
-    private readonly client: KeyValueStoreClient;
+    private readonly backend: KeyValueStoreBackend;
     private persistStateEventStarted = false;
 
     /** Cache for persistent (auto-saved) values. When we try to set such value, the cache will be updated automatically. */
@@ -100,12 +100,12 @@ export class KeyValueStore {
     ) {
         this.id = options.id;
         this.name = options.name;
-        this.client = options.client;
+        this.backend = options.backend;
     }
 
     /**
      * Backend-independent usage counters tracked for this key-value store (read / write / delete /
-     * list operations issued to the underlying storage backend). Counted per client call.
+     * list operations issued to the underlying storage backend). Counted per backend call.
      */
     get stats(): KeyValueStoreStats {
         return this.statsTracker.current;
@@ -212,7 +212,7 @@ export class KeyValueStore {
 
         ow(key, ow.string.nonEmpty);
         this.statsTracker.add('readCount');
-        const record = await this.client.getValue(key);
+        const record = await this.backend.getValue(key);
 
         // A missing record falls back to the default; a record that parses to a falsy value (including
         // a stored literal `null`) is returned verbatim, so callers can tell "stored null" from "absent".
@@ -255,7 +255,7 @@ export class KeyValueStore {
 
         ow(key, ow.string.nonEmpty);
         this.statsTracker.add('readCount');
-        const record = await this.client.getValue(key);
+        const record = await this.backend.getValue(key);
         if (!record) return null;
 
         return {
@@ -274,7 +274,7 @@ export class KeyValueStore {
         checkStorageAccess();
 
         ow(key, ow.string.nonEmpty);
-        return this.client.recordExists(key);
+        return this.backend.recordExists(key);
     }
 
     async getAutoSavedValue<T extends Dictionary = Dictionary>(key: string, defaultValue = {} as T): Promise<T> {
@@ -330,7 +330,7 @@ export class KeyValueStore {
             const results: T[] = [];
             for (const item of page) {
                 this.statsTracker.add('readCount');
-                const record = await this.client.getValue(item.key);
+                const record = await this.backend.getValue(item.key);
                 if (record) {
                     const parsed = parseValue(record.value, record.contentType ?? null);
                     results.push(mapRecord(item.key, parsed));
@@ -348,7 +348,7 @@ export class KeyValueStore {
 
         while (true) {
             this.statsTracker.add('listCount');
-            const { items, isTruncated, nextExclusiveStartKey } = await this.client.listKeys({
+            const { items, isTruncated, nextExclusiveStartKey } = await this.backend.listKeys({
                 ...options,
                 exclusiveStartKey,
                 limit,
@@ -449,13 +449,13 @@ export class KeyValueStore {
         // In this case delete the record.
         if (value === null) {
             this.statsTracker.add('deleteCount');
-            return this.client.deleteValue(key);
+            return this.backend.deleteValue(key);
         }
 
         const serialized = serializeValue(value, optionsCopy.contentType);
 
         this.statsTracker.add('writeCount');
-        return this.client.setValue({
+        return this.backend.setValue({
             key,
             value: serialized.value,
             contentType: serialized.contentType,
@@ -469,7 +469,7 @@ export class KeyValueStore {
     async drop(): Promise<void> {
         checkStorageAccess();
 
-        await this.client.drop();
+        await this.backend.drop();
         serviceLocator.getStorageInstanceManager().removeFromCache(this);
     }
 
@@ -643,7 +643,7 @@ export class KeyValueStore {
      * @param key The key of the record to generate the public URL for.
      */
     async getPublicUrl(key: string): Promise<string | undefined> {
-        return this.client.getPublicUrl(key);
+        return this.backend.getPublicUrl(key);
     }
 
     /**
@@ -676,16 +676,16 @@ export class KeyValueStore {
         );
 
         options.config ??= Configuration.getGlobalConfig();
-        const client = options.storageBackend ?? serviceLocator.getStorageBackend();
+        const storageBackend = options.storageBackend ?? serviceLocator.getStorageBackend();
 
-        await purgeDefaultStorages({ onlyPurgeOnce: true, client, config: options.config });
+        await purgeDefaultStorages({ onlyPurgeOnce: true, storageBackend, config: options.config });
 
-        const resolved = await resolveStorageIdentifier(identifier, client, 'KeyValueStore');
+        const resolved = await resolveStorageIdentifier(identifier, storageBackend, 'KeyValueStore');
 
         return serviceLocator.getStorageInstanceManager().openStorage<KeyValueStore>(this, {
             ...resolved,
-            clientOpener: () => client.createKeyValueStoreClient(resolved),
-            clientCacheKey: client.getStorageBackendCacheKey?.() ?? client.constructor.name,
+            backendOpener: () => storageBackend.createKeyValueStoreBackend(resolved),
+            backendCacheKey: storageBackend.getStorageBackendCacheKey?.() ?? storageBackend.constructor.name,
         });
     }
 
@@ -891,7 +891,7 @@ export interface KeyConsumer {
 export interface KeyValueStoreOptions {
     id: string;
     name?: string;
-    client: KeyValueStoreClient;
+    backend: KeyValueStoreBackend;
 }
 
 /**

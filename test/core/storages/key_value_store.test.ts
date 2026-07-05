@@ -10,8 +10,8 @@ beforeEach(async () => {
 
 describe('KeyValueStore', () => {
     async function createKeyValueStore(id = 'some-id-1', name?: string) {
-        const client = await serviceLocator.getStorageBackend().createKeyValueStoreClient(name ? { name } : { id });
-        return new KeyValueStore({ id, name, client });
+        const client = await serviceLocator.getStorageBackend().createKeyValueStoreBackend(name ? { name } : { id });
+        return new KeyValueStore({ id, name, backend: client });
     }
 
     beforeEach(async () => {
@@ -28,7 +28,7 @@ describe('KeyValueStore', () => {
         // Set record
         const mockSetValue = vitest
             // @ts-expect-error Accessing private property
-            .spyOn(store.client, 'setValue')
+            .spyOn(store.backend, 'setValue')
             .mockResolvedValueOnce(undefined);
 
         await store.setValue('key-1', record);
@@ -43,7 +43,7 @@ describe('KeyValueStore', () => {
         // Get Record
         const mockGetValue = vitest
             // @ts-expect-error Accessing private property
-            .spyOn(store.client, 'getValue')
+            .spyOn(store.backend, 'getValue')
             .mockResolvedValueOnce({
                 key: 'key-1',
                 // The client now returns raw bytes; the frontend parses them.
@@ -60,7 +60,7 @@ describe('KeyValueStore', () => {
         // Record Exists
         const mockRecordExists = vitest
             // @ts-expect-error Accessing private property
-            .spyOn(store.client, 'recordExists')
+            .spyOn(store.backend, 'recordExists')
             .mockResolvedValueOnce(true);
 
         const exists = await store.recordExists('key-1');
@@ -72,7 +72,7 @@ describe('KeyValueStore', () => {
         // Delete Record
         const mockDeleteValue = vitest
             // @ts-expect-error Accessing private property
-            .spyOn(store.client, 'deleteValue')
+            .spyOn(store.backend, 'deleteValue')
             .mockResolvedValueOnce(undefined);
 
         await store.setValue('key-1', null);
@@ -83,7 +83,7 @@ describe('KeyValueStore', () => {
         // Drop store
         const mockDrop = vitest
             // @ts-expect-error Accessing private property
-            .spyOn(store.client, 'drop')
+            .spyOn(store.backend, 'drop')
             .mockResolvedValueOnce(undefined);
 
         await store.drop();
@@ -255,7 +255,7 @@ describe('KeyValueStore', () => {
 
             const mockSetValue = vitest
                 // @ts-expect-error Accessing private property
-                .spyOn(store.client, 'setValue')
+                .spyOn(store.backend, 'setValue')
                 .mockResolvedValueOnce(undefined);
 
             await store.setValue('key-1', 'xxxx', { contentType: 'text/plain; charset=utf-8' });
@@ -276,7 +276,7 @@ describe('KeyValueStore', () => {
 
             const mockSetValue = vitest
                 // @ts-expect-error Accessing private property
-                .spyOn(store.client, 'setValue')
+                .spyOn(store.backend, 'setValue')
                 .mockResolvedValueOnce(undefined);
 
             await store.setValue('key-1', record);
@@ -294,7 +294,7 @@ describe('KeyValueStore', () => {
 
             const mockSetValue = vitest
                 // @ts-expect-error Accessing private property
-                .spyOn(store.client, 'setValue')
+                .spyOn(store.backend, 'setValue')
                 .mockResolvedValueOnce(undefined);
 
             await store.setValue('key-1', 'xxxx', { contentType: 'text/plain; charset=utf-8' });
@@ -312,7 +312,7 @@ describe('KeyValueStore', () => {
 
             const mockSetValue = vitest
                 // @ts-expect-error Accessing private property
-                .spyOn(store.client, 'setValue')
+                .spyOn(store.backend, 'setValue')
                 .mockResolvedValueOnce(undefined);
 
             const value = Buffer.from('some text value');
@@ -331,7 +331,7 @@ describe('KeyValueStore', () => {
 
             const mockSetValue = vitest
                 // @ts-expect-error Accessing private property
-                .spyOn(store.client, 'setValue')
+                .spyOn(store.backend, 'setValue')
                 .mockResolvedValueOnce(undefined);
 
             const value = new PassThrough();
@@ -535,7 +535,7 @@ describe('KeyValueStore', () => {
             const store = await createKeyValueStore('my-store-id-1');
 
             // @ts-expect-error Accessing private property
-            const mockListKeys = vitest.spyOn(store.client, 'listKeys');
+            const mockListKeys = vitest.spyOn(store.backend, 'listKeys');
             mockListKeys.mockResolvedValueOnce({
                 items: [
                     { key: 'key1', size: 1, contentType: 'application/octet-stream' },

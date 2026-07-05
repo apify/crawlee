@@ -15,18 +15,18 @@ import type * as storage from '@crawlee/types';
 export class FileSystemStorageBackend implements storage.StorageBackend {
     constructor(options: FileSystemStorageOptions);
     // (undocumented)
-    createDatasetClient(options?: storage.CreateDatasetClientOptions): Promise<storage.DatasetClient>;
+    createDatasetBackend(options?: storage.CreateDatasetBackendOptions): Promise<storage.DatasetBackend>;
     // (undocumented)
-    createKeyValueStoreClient(options?: storage.CreateKeyValueStoreClientOptions): Promise<storage.KeyValueStoreClient>;
+    createKeyValueStoreBackend(options?: storage.CreateKeyValueStoreBackendOptions): Promise<storage.KeyValueStoreBackend>;
     // (undocumented)
-    createRequestQueueClient(options?: storage.CreateRequestQueueClientOptions): Promise<storage.RequestQueueClient>;
+    createRequestQueueBackend(options?: storage.CreateRequestQueueBackendOptions): Promise<storage.RequestQueueBackend>;
     // (undocumented)
-    readonly datasetClientCache: DatasetClient[];
+    readonly datasetBackendCache: DatasetBackend[];
     // (undocumented)
     readonly datasetsDirectory: string;
     getStorageBackendCacheKey(): string;
     // (undocumented)
-    readonly keyValueStoreCache: KeyValueStoreClient[];
+    readonly keyValueStoreBackendCache: KeyValueStoreBackend[];
     // (undocumented)
     readonly keyValueStoresDirectory: string;
     // (undocumented)
@@ -37,7 +37,7 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
     // (undocumented)
     readonly requestQueueAccess: 'single' | 'shared';
     // (undocumented)
-    readonly requestQueueCache: RequestQueueClient[];
+    readonly requestQueueBackendCache: RequestQueueBackend[];
     // (undocumented)
     readonly requestQueuesDirectory: string;
     // (undocumented)

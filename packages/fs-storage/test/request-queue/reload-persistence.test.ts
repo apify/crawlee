@@ -16,7 +16,7 @@ describe('Request queue persists across reopen via teardown', () => {
 
     test('requests added and persisted are restored when the queue is reopened', async () => {
         const storage = new FileSystemStorageBackend({ localDataDirectory: tmpLocation });
-        const queue = await storage.createRequestQueueClient({ name: 'default' });
+        const queue = await storage.createRequestQueueBackend({ name: 'default' });
 
         await queue.addBatchOfRequests([
             { url: 'http://example.com/1', uniqueKey: '1' },
@@ -28,7 +28,7 @@ describe('Request queue persists across reopen via teardown', () => {
 
         // Reopen over the same directory, emulating a fresh process.
         const reopenedStorage = new FileSystemStorageBackend({ localDataDirectory: tmpLocation });
-        const reopenedQueue = await reopenedStorage.createRequestQueueClient({ name: 'default' });
+        const reopenedQueue = await reopenedStorage.createRequestQueueBackend({ name: 'default' });
 
         const metadata = await reopenedQueue.getMetadata();
         expect(metadata.pendingRequestCount).toBe(2);

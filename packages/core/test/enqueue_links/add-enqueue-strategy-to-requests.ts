@@ -25,7 +25,7 @@ const HTML = `
 
 function createRequestQueueMock() {
     const enqueued: Source[] = [];
-    const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
+    const requestQueue = new RequestQueue({ id: 'xxx', backend: apifyClient });
 
     // @ts-expect-error Override method for testing
     requestQueue.addRequests = async function (requests) {

@@ -7,7 +7,7 @@ import type { KeyValueStoreRecord } from '@crawlee/types';
 
 // The storage is backed by the native `@crawlee/fs-storage-native` extension, which only serves
 // key-value records it has written itself (tracked via per-record metadata sidecars). The
-// `KeyValueStoreClient` adapter layers a fallback on top so that value files placed into the store
+// `KeyValueStoreBackend` adapter layers a fallback on top so that value files placed into the store
 // directory out-of-band — e.g. a hand-written or platform-provided `INPUT.json` — are still readable.
 // These tests pin both the store-identity metadata fallback and that bare-file fallback.
 //
@@ -76,7 +76,7 @@ describe('fallback to fs for reading', () => {
     });
 
     test('reads store identity from the on-disk metadata, and a bare INPUT.json value', async () => {
-        const defaultStore = await storage.createKeyValueStoreClient({ name: 'default' });
+        const defaultStore = await storage.createKeyValueStoreBackend({ name: 'default' });
         const defaultStoreInfo = await defaultStore.getMetadata();
 
         expect(defaultStoreInfo.name).toEqual('default');
@@ -93,7 +93,7 @@ describe('fallback to fs for reading', () => {
     });
 
     test('reads a bare INPUT.json even with no store metadata present', async () => {
-        const otherStore = await storage.createKeyValueStoreClient({ name: 'other' });
+        const otherStore = await storage.createKeyValueStoreBackend({ name: 'other' });
 
         // Byte transport: raw bytes out, parsing is the frontend's job.
         const input = await otherStore.getValue('INPUT');
@@ -105,13 +105,13 @@ describe('fallback to fs for reading', () => {
     });
 
     test('a store with no data on disk is still accessible after creation', async () => {
-        const default2Store = await storage.createKeyValueStoreClient({ name: 'default_2' });
+        const default2Store = await storage.createKeyValueStoreBackend({ name: 'default_2' });
         const info = await default2Store.getMetadata();
         expect(info.name).toEqual('default_2');
     });
 
     test('loads a value file with no extension as raw bytes with a generic content type', async () => {
-        const noExtStore = await storage.createKeyValueStoreClient({ name: 'no-ext' });
+        const noExtStore = await storage.createKeyValueStoreBackend({ name: 'no-ext' });
 
         // Byte transport: the no-extension fallback returns raw bytes. With no extension to infer a
         // content type from, the native client reports the generic `application/octet-stream`.
@@ -124,7 +124,7 @@ describe('fallback to fs for reading', () => {
     });
 
     test('returns an invalid-JSON bare value file verbatim', async () => {
-        const invalidJsonStore = await storage.createKeyValueStoreClient({ name: 'invalid-json' });
+        const invalidJsonStore = await storage.createKeyValueStoreBackend({ name: 'invalid-json' });
 
         // Byte transport: the client no longer validates parseability. Malformed JSON is returned
         // verbatim as raw bytes; parsing (and any resulting error) is the KeyValueStore frontend's job.
@@ -137,7 +137,7 @@ describe('fallback to fs for reading', () => {
     });
 
     test('bare files are visible to recordExists, getPublicUrl, and listKeys', async () => {
-        const otherStore = await storage.createKeyValueStoreClient({ name: 'other' });
+        const otherStore = await storage.createKeyValueStoreBackend({ name: 'other' });
 
         expect(await otherStore.recordExists('INPUT')).toBe(true);
         expect(await otherStore.recordExists('does-not-exist')).toBe(false);
@@ -151,7 +151,7 @@ describe('fallback to fs for reading', () => {
     });
 
     test('a listed bare key round-trips through getValue / recordExists / getPublicUrl', async () => {
-        const otherStore = await storage.createKeyValueStoreClient({ name: 'other' });
+        const otherStore = await storage.createKeyValueStoreBackend({ name: 'other' });
 
         // The key `listKeys` reports for a bare file must be readable back verbatim, while the logical
         // `INPUT` lookup keeps resolving the same bare file (matching how Crawlee reads run input).
@@ -172,7 +172,7 @@ describe('fallback to fs for reading', () => {
     });
 
     test('the bare-file fallback is scoped to INPUT: a non-INPUT bare file is ignored', async () => {
-        const nonInputStore = await storage.createKeyValueStoreClient({ name: 'non-input' });
+        const nonInputStore = await storage.createKeyValueStoreBackend({ name: 'non-input' });
 
         // `some-key.json` sits on disk with no metadata sidecar. Only `INPUT` keys probe bare files,
         // so this is invisible to every read path: it has no tracked record, and the `.json` extension
@@ -187,7 +187,7 @@ describe('fallback to fs for reading', () => {
     });
 
     test('a tracked INPUT record shadows the bare INPUT.json variant in listKeys', async () => {
-        const collisionStore = await storage.createKeyValueStoreClient({ name: 'input-collision' });
+        const collisionStore = await storage.createKeyValueStoreBackend({ name: 'input-collision' });
 
         // Write a tracked `INPUT` record (value file + metadata sidecar), then drop a sidecar-less bare
         // `INPUT.json` next to it. Both belong to the logical key `INPUT`; the tracked record wins, so
@@ -247,7 +247,7 @@ describe('run-input bare-file reachability (one variant per store)', () => {
         );
 
         test.each(reachableKeys)('is reachable via %s', async (key) => {
-            const store = await storage.createKeyValueStoreClient({ name: storeNameFor(file) });
+            const store = await storage.createKeyValueStoreBackend({ name: storeNameFor(file) });
 
             expect(await store.getValue(key)).toStrictEqual<KeyValueStoreRecord>({
                 key,
@@ -259,7 +259,7 @@ describe('run-input bare-file reachability (one variant per store)', () => {
         });
 
         test.each(unreachableKeys)('is not reachable via %s', async (key) => {
-            const store = await storage.createKeyValueStoreClient({ name: storeNameFor(file) });
+            const store = await storage.createKeyValueStoreBackend({ name: storeNameFor(file) });
 
             expect(await store.getValue(key)).toBeUndefined();
             expect(await store.recordExists(key)).toBe(false);
@@ -290,7 +290,7 @@ describe('run-input bare-file reachability (all variants in one store)', () => {
     test.each(BARE_VARIANTS)(
         'the literal key $literalKey reads its own file, not a sibling',
         async ({ literalKey, contentType, payload }) => {
-            const store = await storage.createKeyValueStoreClient({ name: 'all-variants' });
+            const store = await storage.createKeyValueStoreBackend({ name: 'all-variants' });
 
             expect(await store.getValue(literalKey)).toStrictEqual<KeyValueStoreRecord>({
                 key: literalKey,
@@ -301,7 +301,7 @@ describe('run-input bare-file reachability (all variants in one store)', () => {
     );
 
     test('the logical INPUT key resolves the extensionless file (first ladder match)', async () => {
-        const store = await storage.createKeyValueStoreClient({ name: 'all-variants' });
+        const store = await storage.createKeyValueStoreBackend({ name: 'all-variants' });
 
         const extensionless = BARE_VARIANTS.find((variant) => variant.file === 'INPUT')!;
         expect(await store.getValue('INPUT')).toStrictEqual<KeyValueStoreRecord>({

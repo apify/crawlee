@@ -8,16 +8,16 @@ import { rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 import { FileSystemStorageBackend } from '@crawlee/fs-storage';
-import type { KeyValueStoreClient } from '@crawlee/types';
+import type { KeyValueStoreBackend } from '@crawlee/types';
 
 describe('KeyValueStore round-trips a large binary value', () => {
     const tmpLocation = resolve(import.meta.dirname, './tmp/no-buffer-crash');
     const storage = new FileSystemStorageBackend({ localDataDirectory: tmpLocation });
 
-    let store: KeyValueStoreClient;
+    let store: KeyValueStoreBackend;
 
     beforeAll(async () => {
-        store = await storage.createKeyValueStoreClient();
+        store = await storage.createKeyValueStoreBackend();
     });
 
     afterAll(async () => {

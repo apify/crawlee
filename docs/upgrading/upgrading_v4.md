@@ -525,14 +525,14 @@ The `StorageBackend` interface changed from synchronous sub-client getters to **
 
 | Before (v3) | After (v4) |
 |---|---|
-| `client.dataset(id)` | `client.createDatasetClient({ id?, name? })` |
-| `client.datasets().getOrCreate(name)` | _(absorbed into `createDatasetClient`)_ |
-| `client.keyValueStore(id)` | `client.createKeyValueStoreClient({ id?, name? })` |
-| `client.keyValueStores().getOrCreate(name)` | _(absorbed into `createKeyValueStoreClient`)_ |
-| `client.requestQueue(id, opts)` | `client.createRequestQueueClient({ id?, name?, clientKey?, timeoutSecs? })` |
-| `client.requestQueues().getOrCreate(name)` | _(absorbed into `createRequestQueueClient`)_ |
+| `client.dataset(id)` | `backend.createDatasetBackend({ id?, name? })` |
+| `client.datasets().getOrCreate(name)` | _(absorbed into `createDatasetBackend`)_ |
+| `client.keyValueStore(id)` | `backend.createKeyValueStoreBackend({ id?, name? })` |
+| `client.keyValueStores().getOrCreate(name)` | _(absorbed into `createKeyValueStoreBackend`)_ |
+| `client.requestQueue(id, opts)` | `backend.createRequestQueueBackend({ id?, name?, clientKey?, timeoutSecs? })` |
+| `client.requestQueues().getOrCreate(name)` | _(absorbed into `createRequestQueueBackend`)_ |
 
-The sub-client interfaces (`DatasetClient`, `KeyValueStoreClient`, `RequestQueueClient`) have been aligned with their Python counterparts:
+The sub-backend interfaces (`DatasetBackend`, `KeyValueStoreBackend`, `RequestQueueBackend`, formerly `DatasetClient` / `KeyValueStoreClient` / `RequestQueueClient`) have been aligned with their Python counterparts:
 
 | Before (v3) | After (v4) |
 |---|---|
@@ -541,7 +541,7 @@ The sub-client interfaces (`DatasetClient`, `KeyValueStoreClient`, `RequestQueue
 | `delete()` | `drop()` |
 | _(n/a)_ | `purge()` (new — clears data, keeps storage) |
 
-**`DatasetClient`:**
+**`DatasetBackend`:**
 
 | Before (v3) | After (v4) |
 |---|---|
@@ -550,7 +550,7 @@ The sub-client interfaces (`DatasetClient`, `KeyValueStoreClient`, `RequestQueue
 | `listEntries(options?)` | Removed (handled by `Dataset` frontend) |
 | `downloadItems()` | Removed |
 
-**`KeyValueStoreClient`:**
+**`KeyValueStoreBackend`:**
 
 | Before (v3) | After (v4) |
 |---|---|
@@ -561,9 +561,9 @@ The sub-client interfaces (`DatasetClient`, `KeyValueStoreClient`, `RequestQueue
 | `listKeys(options?)` → `KeyValueStoreClientListData` | `listKeys(options?)` → `KeyValueStoreListKeysResult` (a single self-describing page) |
 | `keys()`, `values()`, `entries()` | Removed (handled by `KeyValueStore` frontend) |
 
-**`RequestQueueClient`:**
+**`RequestQueueBackend`:**
 
-The request queue client was reduced from 12 methods to 10. The distributed-locking protocol (`listAndLockHead` → `prolongRequestLock` → `deleteRequestLock`) and the queue-head/consistency bookkeeping that used to live in the `RequestQueue` frontend have been removed from the interface; coordinating multiple clients accessing the same queue (e.g. request locking on the Apify platform) is now an internal concern of the client implementation.
+The request queue backend was reduced from 12 methods to 10. The distributed-locking protocol (`listAndLockHead` → `prolongRequestLock` → `deleteRequestLock`) and the queue-head/consistency bookkeeping that used to live in the `RequestQueue` frontend have been removed from the interface; coordinating multiple clients accessing the same queue (e.g. request locking on the Apify platform) is now an internal concern of the backend implementation.
 
 | Before (v3) | After (v4) |
 |---|---|
@@ -581,9 +581,9 @@ The request queue client was reduced from 12 methods to 10. The distributed-lock
 
 The lifecycle is now: `fetchNextRequest()` hands out a pending request and marks it in progress; once processed, call `markRequestAsHandled(request)`; on failure call `reclaimRequest(request, { forefront? })` to return it to the queue.
 
-Methods that may have "nothing" to return now consistently resolve to `undefined` rather than `null`. `fetchNextRequest()` resolves to `undefined` when there is nothing to fetch, and `markRequestAsHandled()` / `reclaimRequest()` resolve to `undefined` when the request is not something the client is currently processing (a no-op, not an error). This matches the `undefined` already returned by `getRequest()`, `KeyValueStoreClient.getValue()`, and `getPublicUrl()`, so the whole client family uses a single "absent" sentinel. If you implemented a custom client that returned `null` from these methods, return `undefined` instead.
+Methods that may have "nothing" to return now consistently resolve to `undefined` rather than `null`. `fetchNextRequest()` resolves to `undefined` when there is nothing to fetch, and `markRequestAsHandled()` / `reclaimRequest()` resolve to `undefined` when the request is not something the backend is currently processing (a no-op, not an error). This matches the `undefined` already returned by `getRequest()`, `KeyValueStoreBackend.getValue()`, and `getPublicUrl()`, so the whole backend family uses a single "absent" sentinel. If you implemented a custom backend that returned `null` from these methods, return `undefined` instead.
 
-`RequestQueueClient.isEmpty()` and `RequestQueueClient.isFinished()` answer two different questions:
+`RequestQueueBackend.isEmpty()` and `RequestQueueBackend.isFinished()` answer two different questions:
 
 - `isEmpty()` is the weak check — `true` when the next `fetchNextRequest()` would return `undefined`, i.e. there is nothing left to fetch right now. Requests that are currently in progress (fetched but not yet handled or reclaimed) are **not** counted, because they are not fetchable. This is what drives the crawler's task scheduling.
 - `isFinished()` is the strong check — `true` only when there are no pending requests **and** no requests currently in progress (including those locked by other clients sharing the queue). This is what determines whether crawling is actually done. An in-progress request keeps the queue *empty but not finished*, which is what stops a crawler from shutting down while a request is still being processed.
@@ -620,7 +620,7 @@ The `RequestQueue.internalTimeoutMillis` property and the associated "stuck queu
 
 **Removed types** from `@crawlee/types`: `DatasetClientUpdateOptions`, `KeyValueStoreClientUpdateOptions`, `KeyValueStoreRecordOptions`, `KeyValueStoreClientListData`, `KeyValueStoreClientGetRecordOptions`, `QueueHead`, `RequestQueueHeadItem`, `ListOptions`, `ListAndLockOptions`, `ListAndLockHeadResult`, `ProlongRequestLockOptions`, `ProlongRequestLockResult`, `DeleteRequestLockOptions`, `DatasetStats`, `KeyValueStoreStats`, `RequestQueueStats`. `KeyValueStoreClientListOptions` was renamed to `KeyValueStoreListKeysOptions`.
 
-The high-level storage classes (`Dataset`, `KeyValueStore`, `RequestQueue`) now receive their sub-client directly in the constructor options instead of receiving a `StorageBackend` and calling its methods.
+The high-level storage classes (`Dataset`, `KeyValueStore`, `RequestQueue`) now receive their sub-backend directly in the constructor options (via the `backend` option) instead of receiving a `StorageBackend` and calling its methods.
 
 ### `RecordOptions` simplified
 
@@ -651,8 +651,8 @@ The `list()` method on collection clients (e.g. `client.datasets().list()`) has 
 If you implemented a custom `StorageBackend`, you need to:
 
 1. Remove your `*CollectionClient` classes.
-2. Replace the six getter methods (`dataset`, `datasets`, `keyValueStore`, `keyValueStores`, `requestQueue`, `requestQueues`) with three async factory methods (`createDatasetClient`, `createKeyValueStoreClient`, `createRequestQueueClient`). Each factory should handle both opening an existing storage and creating a new one.
-3. Apply the sub-client renames listed above (`get` → `getMetadata`, `delete` → `drop`, etc.) and implement the new `purge()` method.
+2. Replace the six getter methods (`dataset`, `datasets`, `keyValueStore`, `keyValueStores`, `requestQueue`, `requestQueues`) with three async factory methods (`createDatasetBackend`, `createKeyValueStoreBackend`, `createRequestQueueBackend`). Each factory should handle both opening an existing storage and creating a new one.
+3. Apply the sub-backend renames listed above (`get` → `getMetadata`, `delete` → `drop`, etc.) and implement the new `purge()` method.
 
 ## `MemoryStorage` split into `FileSystemStorageBackend` and `MemoryStorageBackend`
 

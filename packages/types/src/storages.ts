@@ -16,7 +16,7 @@ export interface QueueOperationInfo {
 }
 
 /**
- * A single page of items returned by {@link DatasetClient.getData}.
+ * A single page of items returned by {@link DatasetBackend.getData}.
  *
  * Datasets paginate by offset, so a page is self-describing via `total` / `offset` / `limit`: a
  * frontend assembling all pages knows it has reached the end once `offset + items.length >= total`.
@@ -37,7 +37,7 @@ export interface PaginatedList<Data> {
     items: Data[];
 }
 
-export interface DatasetClientListOptions {
+export interface DatasetBackendListOptions {
     desc?: boolean;
     limit?: number;
     offset?: number;
@@ -52,7 +52,7 @@ export interface DatasetInfo {
     itemCount: number;
 }
 
-export interface DatasetClient<Data extends Dictionary = Dictionary> {
+export interface DatasetBackend<Data extends Dictionary = Dictionary> {
     /**
      * Returns metadata about the dataset (id, name, timestamps, item count, etc.).
      *
@@ -72,7 +72,7 @@ export interface DatasetClient<Data extends Dictionary = Dictionary> {
     pushData(items: Data[]): Promise<void>;
 
     /** Fetch a page of items from the dataset. */
-    getData(options?: DatasetClientListOptions): Promise<PaginatedList<Data>>;
+    getData(options?: DatasetBackendListOptions): Promise<PaginatedList<Data>>;
 }
 
 export interface KeyValueStoreInfo {
@@ -138,9 +138,9 @@ export interface KeyValueStoreItemData {
 }
 
 /**
- * A single page of keys returned by {@link KeyValueStoreClient.listKeys}.
+ * A single page of keys returned by {@link KeyValueStoreBackend.listKeys}.
  *
- * This mirrors {@link PaginatedList} (the shape returned by {@link DatasetClient.getData}) so that
+ * This mirrors {@link PaginatedList} (the shape returned by {@link DatasetBackend.getData}) so that
  * both listing operations on the storage backend layer return a self-describing page. The difference
  * is the pagination model: datasets are offset-based (`total` / `offset`), whereas key-value stores
  * are cursor-based. A frontend assembling all pages should therefore not guess "is this the last
@@ -165,7 +165,7 @@ export interface KeyValueStoreListKeysResult {
 /**
  * Key-value Store client.
  */
-export interface KeyValueStoreClient {
+export interface KeyValueStoreBackend {
     /**
      * Returns metadata about the key-value store (id, name, timestamps, etc.).
      *
@@ -199,7 +199,7 @@ export interface KeyValueStoreClient {
      * List a single page of keys in the store. Returns at most `limit` keys starting after
      * `exclusiveStartKey`, wrapped in a self-describing page.
      *
-     * Like {@link DatasetClient.getData}, this returns one page rather than the whole collection;
+     * Like {@link DatasetBackend.getData}, this returns one page rather than the whole collection;
      * assembling all pages (e.g. for `KeyValueStore.keys()`) is the frontend's job. The result carries
      * a cursor (`isTruncated` / `nextExclusiveStartKey`) so the frontend can paginate deterministically
      * instead of inferring the end from `items.length < limit`.
@@ -226,7 +226,7 @@ export interface RequestQueueInfo {
 
 /**
  * Options for request-queue operations that add or return requests to the queue
- * ({@link RequestQueueClient.addBatchOfRequests}, {@link RequestQueueClient.reclaimRequest}).
+ * ({@link RequestQueueBackend.addBatchOfRequests}, {@link RequestQueueBackend.reclaimRequest}).
  */
 export interface RequestQueueOperationOptions {
     /** Place the affected request(s) at the beginning of the queue so they are processed sooner. */
@@ -278,7 +278,7 @@ export interface BatchAddRequestsResult {
  * locking on the Apify platform) is an internal concern of the implementation and is not exposed on
  * this interface.
  */
-export interface RequestQueueClient {
+export interface RequestQueueBackend {
     /**
      * Returns metadata about the request queue (id, name, timestamps, request counts, etc.).
      *
@@ -410,19 +410,19 @@ export type StorageIdentifier =
     | { id?: never; name?: never; alias?: never };
 
 /**
- * Options for creating a dataset client via {@apilink StorageBackend.createDatasetClient}.
+ * Options for creating a dataset backend via {@apilink StorageBackend.createDatasetBackend}.
  */
-export type CreateDatasetClientOptions = StorageIdentifier;
+export type CreateDatasetBackendOptions = StorageIdentifier;
 
 /**
- * Options for creating a key-value store client via {@apilink StorageBackend.createKeyValueStoreClient}.
+ * Options for creating a key-value store backend via {@apilink StorageBackend.createKeyValueStoreBackend}.
  */
-export type CreateKeyValueStoreClientOptions = StorageIdentifier;
+export type CreateKeyValueStoreBackendOptions = StorageIdentifier;
 
 /**
- * Options for creating a request queue client via {@apilink StorageBackend.createRequestQueueClient}.
+ * Options for creating a request queue backend via {@apilink StorageBackend.createRequestQueueBackend}.
  */
-export type CreateRequestQueueClientOptions = StorageIdentifier & {
+export type CreateRequestQueueBackendOptions = StorageIdentifier & {
     /**
      * Client key for request locking.
      * TODO: This is an Apify-platform concern and should eventually be pushed down
@@ -443,36 +443,36 @@ export type CreateRequestQueueClientOptions = StorageIdentifier & {
  * Represents a storage backend capable of working with datasets, key-value stores and request queues.
  *
  * A new storage backend needs to implement 4 classes:
- * - `StorageBackend` - the factory that creates sub-clients
- * - `DatasetClient` - operations on a single dataset
- * - `KeyValueStoreClient` - operations on a single key-value store
- * - `RequestQueueClient` - operations on a single request queue
+ * - `StorageBackend` - the factory that creates sub-backends
+ * - `DatasetBackend` - operations on a single dataset
+ * - `KeyValueStoreBackend` - operations on a single key-value store
+ * - `RequestQueueBackend` - operations on a single request queue
  *
  * The `StorageBackend` acts as an async factory: each `create*` method either opens an existing
- * storage or creates a new one, returning a sub-client bound to that storage instance.
+ * storage or creates a new one, returning a sub-backend bound to that storage instance.
  */
 export interface StorageBackend {
     /**
-     * Create (or open) a dataset client.
+     * Create (or open) a dataset backend.
      * If `id` is provided, opens the dataset with that ID.
      * If `name` is provided, opens an existing dataset with that name or creates a new one.
      * If neither is provided, opens or creates the default dataset.
      */
-    createDatasetClient(options?: CreateDatasetClientOptions): Promise<DatasetClient>;
+    createDatasetBackend(options?: CreateDatasetBackendOptions): Promise<DatasetBackend>;
     /**
-     * Create (or open) a key-value store client.
+     * Create (or open) a key-value store backend.
      * If `id` is provided, opens the key-value store with that ID.
      * If `name` is provided, opens an existing store with that name or creates a new one.
      * If neither is provided, opens or creates the default key-value store.
      */
-    createKeyValueStoreClient(options?: CreateKeyValueStoreClientOptions): Promise<KeyValueStoreClient>;
+    createKeyValueStoreBackend(options?: CreateKeyValueStoreBackendOptions): Promise<KeyValueStoreBackend>;
     /**
-     * Create (or open) a request queue client.
+     * Create (or open) a request queue backend.
      * If `id` is provided, opens the request queue with that ID.
      * If `name` is provided, opens an existing queue with that name or creates a new one.
      * If neither is provided, opens or creates the default request queue.
      */
-    createRequestQueueClient(options?: CreateRequestQueueClientOptions): Promise<RequestQueueClient>;
+    createRequestQueueBackend(options?: CreateRequestQueueBackendOptions): Promise<RequestQueueBackend>;
     /**
      * Check whether a storage with the given ID exists.
      *

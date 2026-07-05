@@ -1,10 +1,10 @@
 import { MemoryStorageBackend } from '@crawlee/core';
-import type { KeyValueStoreClient } from '@crawlee/types';
+import type { KeyValueStoreBackend } from '@crawlee/types';
 
 describe('MemoryStorageBackend.purge preserves the default key-value store input', () => {
     test('purging keeps INPUT in the default store but removes everything else', async () => {
         const storage = new MemoryStorageBackend();
-        const store: KeyValueStoreClient = await storage.createKeyValueStoreClient({ name: 'default' });
+        const store: KeyValueStoreBackend = await storage.createKeyValueStoreBackend({ name: 'default' });
 
         await store.setValue({
             key: 'INPUT',
@@ -31,7 +31,7 @@ describe('MemoryStorageBackend.purge preserves the default key-value store input
 
     test('purging a non-default store removes INPUT as well', async () => {
         const storage = new MemoryStorageBackend();
-        const store: KeyValueStoreClient = await storage.createKeyValueStoreClient({ name: 'not-default' });
+        const store: KeyValueStoreBackend = await storage.createKeyValueStoreBackend({ name: 'not-default' });
 
         await store.setValue({
             key: 'INPUT',

@@ -1,7 +1,7 @@
 import type {
-    DatasetClient,
-    KeyValueStoreClient,
-    RequestQueueClient,
+    DatasetBackend,
+    KeyValueStoreBackend,
+    RequestQueueBackend,
     StorageBackend,
     StorageIdentifier,
 } from '@crawlee/types';
@@ -29,7 +29,7 @@ type CacheTier = Map<Constructor<IStorage>, Map<string, Map<Hashable, IStorage>>
 /**
  * Three-tier cache for storage instances, modelled after crawlee-python's `_StorageCache`.
  *
- * Each tier maps `[storageClass][key][clientCacheKey] → instance`:
+ * Each tier maps `[storageClass][key][backendCacheKey] → instance`:
  *   - `byId`    — keyed by the backend-assigned storage id
  *   - `byName`  — keyed by the persistent storage name
  *   - `byAlias` — keyed by a run-scoped alias (e.g. `'__default__'` for unnamed storages)
@@ -45,12 +45,12 @@ class StorageCache {
             id,
             name,
             alias,
-            clientCacheKey,
+            backendCacheKey,
         }: (
             | { id: string; name?: string; alias?: undefined }
             | { id?: string; name: string; alias?: undefined }
             | { id?: undefined; name?: undefined; alias: string }
-        ) & { clientCacheKey: Hashable },
+        ) & { backendCacheKey: Hashable },
     ): T | undefined {
         for (const [tier, key] of [
             [this.byId, id],
@@ -58,7 +58,7 @@ class StorageCache {
             [this.byAlias, alias],
         ] as [CacheTier, string | undefined][]) {
             if (key === undefined) continue;
-            const cached = tier.get(cls)?.get(key)?.get(clientCacheKey);
+            const cached = tier.get(cls)?.get(key)?.get(backendCacheKey);
             if (cached) {
                 if (cached instanceof (cls as unknown as abstract new (...args: any[]) => any)) {
                     return cached as T;
@@ -76,29 +76,29 @@ class StorageCache {
         cls: Constructor<T>,
         key: string,
         instance: T,
-        clientCacheKey: Hashable,
+        backendCacheKey: Hashable,
     ): void {
         if (!tier.has(cls)) tier.set(cls, new Map());
         const keyMap = tier.get(cls)!;
         if (!keyMap.has(key)) keyMap.set(key, new Map());
-        keyMap.get(key)!.set(clientCacheKey, instance);
+        keyMap.get(key)!.set(backendCacheKey, instance);
     }
 
     /**
      * Cache an instance under its actual id, name, and an optional alias.
      */
-    set<T extends IStorage>(cls: Constructor<T>, instance: T, clientCacheKey: Hashable, alias?: string): void {
+    set<T extends IStorage>(cls: Constructor<T>, instance: T, backendCacheKey: Hashable, alias?: string): void {
         // Always cache by id.
-        this.setInMap(this.byId, cls, instance.id, instance, clientCacheKey);
+        this.setInMap(this.byId, cls, instance.id, instance, backendCacheKey);
 
         // Cache by name — only for named storages.
         if (instance.name) {
-            this.setInMap(this.byName, cls, instance.name, instance, clientCacheKey);
+            this.setInMap(this.byName, cls, instance.name, instance, backendCacheKey);
         }
 
         // Cache by alias — only for unnamed storages opened via alias.
         if (alias !== undefined) {
-            this.setInMap(this.byAlias, cls, alias, instance, clientCacheKey);
+            this.setInMap(this.byAlias, cls, alias, instance, backendCacheKey);
         }
     }
 
@@ -125,10 +125,10 @@ class StorageCache {
      */
     checkNameAliasConflict<T extends IStorage>(
         cls: Constructor<T>,
-        { name, alias, clientCacheKey }: { name?: string; alias?: string; clientCacheKey: Hashable },
+        { name, alias, backendCacheKey }: { name?: string; alias?: string; backendCacheKey: Hashable },
     ): void {
         if (alias) {
-            const existingByName = this.byName.get(cls)?.get(alias)?.get(clientCacheKey);
+            const existingByName = this.byName.get(cls)?.get(alias)?.get(backendCacheKey);
             if (existingByName) {
                 throw new Error(
                     `Cannot open storage with alias "${alias}" because a named storage with the same identifier already exists.`,
@@ -136,7 +136,7 @@ class StorageCache {
             }
         }
         if (name) {
-            const existingByAlias = this.byAlias.get(cls)?.get(name)?.get(clientCacheKey);
+            const existingByAlias = this.byAlias.get(cls)?.get(name)?.get(backendCacheKey);
             if (existingByAlias) {
                 throw new Error(
                     `Cannot open storage with name "${name}" because an alias storage with the same identifier already exists.` +
@@ -172,10 +172,10 @@ class StorageCache {
  * Unified manager for opening and caching storage instances (Dataset, KeyValueStore, RequestQueue).
  *
  * A single instance manages all storage types. Instances are cached by
- * `(storageClass, id/name/alias, clientCacheKey)` so the same storage is never opened twice.
+ * `(storageClass, id/name/alias, backendCacheKey)` so the same storage is never opened twice.
  *
  * The manager itself does not resolve identifiers — callers pass explicit `id`, `name`, or `alias` (at most one),
- * and a pre-bound `clientOpener` promise. When none of `id`, `name`, `alias` are provided, the manager automatically
+ * and a pre-bound `backendOpener` promise. When none of `id`, `name`, `alias` are provided, the manager automatically
  * assigns a reserved default alias.
  *
  * @ignore
@@ -192,9 +192,9 @@ export class StorageInstanceManager {
      * @param name              Storage name (mutually exclusive with `id` and `alias`).
      * @param alias             Run-scoped alias (mutually exclusive with `id` and `name`).
      *                          Automatically assigned when no identifier is provided.
-     * @param clientOpener      A **lazy** factory that creates the sub-client.
+     * @param backendOpener      A **lazy** factory that creates the sub-backend.
      *                          Only called on a cache miss.
-     * @param clientCacheKey    Opaque key identifying the storage backend, so that the same logical
+     * @param backendCacheKey    Opaque key identifying the storage backend, so that the same logical
      *                          storage opened through different clients is cached separately.
      */
     async openStorage<TStorage extends IStorage>(
@@ -203,11 +203,11 @@ export class StorageInstanceManager {
             id,
             name,
             alias,
-            clientOpener,
-            clientCacheKey,
+            backendOpener,
+            backendCacheKey,
         }: (ExplicitStorageIdentifier | DefaultStorageIdentifier) & {
-            clientOpener: () => Promise<DatasetClient | KeyValueStoreClient | RequestQueueClient>;
-            clientCacheKey: Hashable;
+            backendOpener: () => Promise<DatasetBackend | KeyValueStoreBackend | RequestQueueBackend>;
+            backendCacheKey: Hashable;
         },
     ): Promise<TStorage> {
         // Auto-set alias='__default__' when no parameters are specified (mirrors crawlee-python).
@@ -217,18 +217,18 @@ export class StorageInstanceManager {
 
         // Fast-path cache check (no lock).
         if (alias !== undefined) {
-            const cached = this.cache.get(cls, { alias, clientCacheKey });
+            const cached = this.cache.get(cls, { alias, backendCacheKey });
             if (cached) return cached;
         } else if (id) {
-            const cached = this.cache.get(cls, { id, clientCacheKey });
+            const cached = this.cache.get(cls, { id, backendCacheKey });
             if (cached) return cached;
         } else if (name) {
-            const cached = this.cache.get(cls, { name, clientCacheKey });
+            const cached = this.cache.get(cls, { name, backendCacheKey });
             if (cached) return cached;
         }
 
         const identifierKey = id ?? name ?? alias ?? DEFAULT_STORAGE_ALIAS;
-        const lockKey = `${cls.name}:${identifierKey}:${clientCacheKey}`;
+        const lockKey = `${cls.name}:${identifierKey}:${backendCacheKey}`;
 
         if (!this.openerLocks.has(lockKey)) {
             this.openerLocks.set(lockKey, new AsyncQueue());
@@ -239,33 +239,33 @@ export class StorageInstanceManager {
         try {
             // Double-check cache under lock (another caller may have filled it while we waited).
             if (alias !== undefined) {
-                const cached = this.cache.get(cls, { alias, clientCacheKey });
+                const cached = this.cache.get(cls, { alias, backendCacheKey });
                 if (cached) return cached;
             } else if (id) {
-                const cached = this.cache.get(cls, { id, clientCacheKey });
+                const cached = this.cache.get(cls, { id, backendCacheKey });
                 if (cached) return cached;
             } else if (name) {
-                const cached = this.cache.get(cls, { name, clientCacheKey });
+                const cached = this.cache.get(cls, { name, backendCacheKey });
                 if (cached) return cached;
             }
 
             // Prevent the same string from being used as both a name and an alias.
-            this.cache.checkNameAliasConflict(cls, { name, alias, clientCacheKey });
+            this.cache.checkNameAliasConflict(cls, { name, alias, backendCacheKey });
 
-            // Cache miss — create the sub-client and storage instance.
-            const subClient = await clientOpener();
+            // Cache miss — create the sub-backend and storage instance.
+            const subBackend = await backendOpener();
             const storageInfo = await (
-                subClient as DatasetClient | KeyValueStoreClient | RequestQueueClient
+                subBackend as DatasetBackend | KeyValueStoreBackend | RequestQueueBackend
             ).getMetadata();
 
             const instance = new cls({
                 id: storageInfo.id,
                 name: storageInfo.name,
-                client: subClient,
+                backend: subBackend,
             }) as TStorage;
 
             // Atomic cache writes (no awaits between these).
-            this.cache.set(cls, instance, clientCacheKey, alias);
+            this.cache.set(cls, instance, backendCacheKey, alias);
 
             return instance;
         } finally {
@@ -333,7 +333,7 @@ export interface DefaultStorageIdentifier {
  */
 export async function resolveStorageIdentifier(
     identifier: string | StorageIdentifier | null | undefined,
-    client: StorageBackend,
+    storageBackend: StorageBackend,
     storageType: 'Dataset' | 'KeyValueStore' | 'RequestQueue',
 ): Promise<ExplicitStorageIdentifier> {
     if (identifier === null || identifier === undefined) {
@@ -341,7 +341,7 @@ export async function resolveStorageIdentifier(
     }
 
     if (typeof identifier === 'string') {
-        if (client.storageExists && (await client.storageExists(identifier, storageType))) {
+        if (storageBackend.storageExists && (await storageBackend.storageExists(identifier, storageType))) {
             return { id: identifier };
         }
         return { name: identifier };

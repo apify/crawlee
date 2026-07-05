@@ -16,7 +16,7 @@ interface PurgeDefaultStorageOptions {
      */
     onlyPurgeOnce?: boolean;
     config?: Configuration;
-    client?: StorageBackend;
+    storageBackend?: StorageBackend;
 }
 
 /**
@@ -44,22 +44,22 @@ export async function purgeDefaultStorages(options?: PurgeDefaultStorageOptions)
  * This is a shortcut for running (optional) `purge` method on the StorageBackend interface, in other words
  * it will call the `purge` method of the underlying storage implementation we are currently using.
  */
-export async function purgeDefaultStorages(config?: Configuration, client?: StorageBackend): Promise<void>;
+export async function purgeDefaultStorages(config?: Configuration, storageBackend?: StorageBackend): Promise<void>;
 export async function purgeDefaultStorages(
     configOrOptions?: Configuration | PurgeDefaultStorageOptions,
-    client?: StorageBackend,
+    storageBackend?: StorageBackend,
 ) {
     const options: PurgeDefaultStorageOptions =
         configOrOptions instanceof Configuration
             ? {
-                  client,
+                  storageBackend,
                   config: configOrOptions,
               }
             : (configOrOptions ?? {});
     const { config = serviceLocator.getConfiguration(), onlyPurgeOnce = false } = options;
-    ({ client = serviceLocator.getStorageBackend() } = options);
+    ({ storageBackend = serviceLocator.getStorageBackend() } = options);
 
-    const casted = client as StorageBackend & { __purged?: boolean };
+    const casted = storageBackend as StorageBackend & { __purged?: boolean };
 
     // if `onlyPurgeOnce` is true, will purge anytime this function is called, otherwise - only on start
     if (!onlyPurgeOnce || (config.purgeOnStart && !casted.__purged)) {
