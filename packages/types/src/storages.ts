@@ -15,6 +15,13 @@ export interface QueueOperationInfo {
     requestId: string;
 }
 
+/**
+ * A single page of items returned by {@link DatasetClient.getData}.
+ *
+ * Datasets paginate by offset, so a page is self-describing via `total` / `offset` / `limit`: a
+ * frontend assembling all pages knows it has reached the end once `offset + items.length >= total`.
+ * The cursor-based counterpart for key-value stores is {@link KeyValueStoreListKeysResult}.
+ */
 export interface PaginatedList<Data> {
     /** Total count of entries in the dataset. */
     total: number;
@@ -43,14 +50,6 @@ export interface DatasetInfo {
     modifiedAt: Date;
     accessedAt: Date;
     itemCount: number;
-    actId?: string;
-    actRunId?: string;
-}
-export interface DatasetStats {
-    readCount?: number;
-    writeCount?: number;
-    deleteCount?: number;
-    storageBytes?: number;
 }
 
 export interface DatasetClient<Data extends Dictionary = Dictionary> {
@@ -76,24 +75,12 @@ export interface DatasetClient<Data extends Dictionary = Dictionary> {
     getData(options?: DatasetClientListOptions): Promise<PaginatedList<Data>>;
 }
 
-export interface KeyValueStoreStats {
-    readCount?: number;
-    writeCount?: number;
-    deleteCount?: number;
-    listCount?: number;
-    storageBytes?: number;
-}
-
 export interface KeyValueStoreInfo {
     id: string;
     name?: string;
-    userId?: string;
     createdAt: Date;
     modifiedAt: Date;
     accessedAt: Date;
-    actId?: string;
-    actRunId?: string;
-    stats?: KeyValueStoreStats;
 }
 
 /**
@@ -146,6 +133,33 @@ export interface KeyValueStoreListKeysOptions {
 export interface KeyValueStoreItemData {
     key: string;
     size: number;
+    /** The MIME content type the record was stored with, if known. */
+    contentType: string;
+}
+
+/**
+ * A single page of keys returned by {@link KeyValueStoreClient.listKeys}.
+ *
+ * This mirrors {@link PaginatedList} (the shape returned by {@link DatasetClient.getData}) so that
+ * both listing operations on the storage-client layer return a self-describing page. The difference
+ * is the pagination model: datasets are offset-based (`total` / `offset`), whereas key-value stores
+ * are cursor-based. A frontend assembling all pages should therefore not guess "is this the last
+ * page?" from `items.length < limit` — it should rely on {@link isTruncated} and resume from
+ * {@link nextExclusiveStartKey}.
+ */
+export interface KeyValueStoreListKeysResult {
+    /** Keys returned on this page. */
+    items: KeyValueStoreItemData[];
+    /** Number of keys returned on this page (`items.length`). */
+    count: number;
+    /** Maximum number of keys requested for this page. */
+    limit: number;
+    /** The `exclusiveStartKey` that produced this page, if any. */
+    exclusiveStartKey?: string;
+    /** `true` if there are more keys beyond this page. When `true`, {@link nextExclusiveStartKey} is set. */
+    isTruncated: boolean;
+    /** Cursor to pass as the next call's `exclusiveStartKey`, or `undefined` when {@link isTruncated} is `false`. */
+    nextExclusiveStartKey?: string;
 }
 
 /**
@@ -181,8 +195,16 @@ export interface KeyValueStoreClient {
     /** Delete a record by key. */
     deleteValue(key: string): Promise<void>;
 
-    /** List keys in the store. Returns at most `limit` keys starting after `exclusiveStartKey`. */
-    listKeys(options?: KeyValueStoreListKeysOptions): Promise<KeyValueStoreItemData[]>;
+    /**
+     * List a single page of keys in the store. Returns at most `limit` keys starting after
+     * `exclusiveStartKey`, wrapped in a self-describing page.
+     *
+     * Like {@link DatasetClient.getData}, this returns one page rather than the whole collection;
+     * assembling all pages (e.g. for `KeyValueStore.keys()`) is the frontend's job. The result carries
+     * a cursor (`isTruncated` / `nextExclusiveStartKey`) so the frontend can paginate deterministically
+     * instead of inferring the end from `items.length < limit`.
+     */
+    listKeys(options?: KeyValueStoreListKeysOptions): Promise<KeyValueStoreListKeysResult>;
 
     /** Get the public URL for a record, or `undefined` if unavailable. */
     getPublicUrl(key: string): Promise<string | undefined>;
@@ -191,34 +213,24 @@ export interface KeyValueStoreClient {
     recordExists(key: string): Promise<boolean>;
 }
 
-export interface RequestQueueStats {
-    readCount?: number;
-    writeCount?: number;
-    deleteCount?: number;
-    headItemReadCount?: number;
-    storageBytes?: number;
-}
-
 export interface RequestQueueInfo {
     id: string;
     name?: string;
-    userId?: string;
     createdAt: Date;
     modifiedAt: Date;
     accessedAt: Date;
-    expireAt?: string;
     totalRequestCount: number;
     handledRequestCount: number;
     pendingRequestCount: number;
-    actId?: string;
-    actRunId?: string;
-    hadMultipleClients?: boolean;
-    stats?: RequestQueueStats;
 }
 
-export interface RequestOptions {
+/**
+ * Options for request-queue operations that add or return requests to the queue
+ * ({@link RequestQueueClient.addBatchOfRequests}, {@link RequestQueueClient.reclaimRequest}).
+ */
+export interface RequestQueueOperationOptions {
+    /** Place the affected request(s) at the beginning of the queue so they are processed sooner. */
     forefront?: boolean;
-    [k: string]: unknown;
 }
 
 export interface RequestSchema {
@@ -289,54 +301,60 @@ export interface RequestQueueClient {
      * but not re-added. With `forefront`, requests are placed at the beginning of the queue so
      * they are processed sooner.
      */
-    addBatchOfRequests(requests: RequestSchema[], options?: RequestOptions): Promise<BatchAddRequestsResult>;
+    addBatchOfRequests(
+        requests: RequestSchema[],
+        options?: RequestQueueOperationOptions,
+    ): Promise<BatchAddRequestsResult>;
 
     /**
      * Retrieve a request from the queue by its `uniqueKey`, or `undefined` if it does not exist.
      */
-    getRequest(uniqueKey: string): Promise<RequestOptions | undefined>;
+    getRequest(uniqueKey: string): Promise<UpdateRequestSchema | undefined>;
 
     /**
-     * Return the next request in the queue to be processed, or `null` if there are currently no
+     * Return the next request in the queue to be processed, or `undefined` if there are currently no
      * pending requests.
      *
      * The returned request is marked as in-progress; it will not be returned again until it is
      * either reclaimed via {@link reclaimRequest} or marked as handled via {@link markRequestAsHandled}.
      *
-     * A `null` return value does not mean processing is finished — only that there are no pending
+     * An `undefined` return value does not mean processing is finished — only that there are no pending
      * requests right now. Use {@link isEmpty} (together with the frontend's knowledge of pending
      * add operations) to determine whether the queue is truly finished.
      */
-    fetchNextRequest(): Promise<RequestOptions | null>;
+    fetchNextRequest(): Promise<UpdateRequestSchema | undefined>;
 
     /**
      * Mark a request previously returned by {@link fetchNextRequest} as handled.
      *
      * Handled requests are never returned again by {@link fetchNextRequest}. Returns information
-     * about the operation, or `null` if the request was not in progress.
+     * about the operation, or `undefined` if the request was not in progress.
      *
-     * A `null` result is a no-op, not an error: the request is simply not something this client is
+     * An `undefined` result is a no-op, not an error: the request is simply not something this client is
      * currently processing, so nothing is changed and the request is never added to the queue as a side
      * effect. (Marking an already-handled request is idempotent and still returns operation info with
-     * `wasAlreadyHandled: true` rather than `null`.)
+     * `wasAlreadyHandled: true` rather than `undefined`.)
      */
-    markRequestAsHandled(request: UpdateRequestSchema): Promise<QueueOperationInfo | null>;
+    markRequestAsHandled(request: UpdateRequestSchema): Promise<QueueOperationInfo | undefined>;
 
     /**
      * Reclaim a failed request back to the queue so it can be processed again by a later call to
      * {@link fetchNextRequest}. With `forefront`, the request is returned to the beginning of the
-     * queue. Returns information about the operation, or `null` if the request was not in progress.
+     * queue. Returns information about the operation, or `undefined` if the request was not in progress.
      *
      * The request is expected to already be present in the queue (it should have been obtained via
-     * {@link fetchNextRequest}); reclaiming releases its lock rather than inserting it. A `null` result
+     * {@link fetchNextRequest}); reclaiming releases its lock rather than inserting it. An `undefined` result
      * is a no-op, not an error: the request is simply not something this client is currently processing,
      * so nothing is changed and the request is never added to the queue as a side effect. Use
-     * {@link addRequest} to insert a new request.
+     * {@link addBatchOfRequests} to insert a new request.
      */
-    reclaimRequest(request: UpdateRequestSchema, options?: RequestOptions): Promise<QueueOperationInfo | null>;
+    reclaimRequest(
+        request: UpdateRequestSchema,
+        options?: RequestQueueOperationOptions,
+    ): Promise<QueueOperationInfo | undefined>;
 
     /**
-     * Resolves to `true` if the next call to {@link fetchNextRequest} would return `null` — i.e. there
+     * Resolves to `true` if the next call to {@link fetchNextRequest} would return `undefined` — i.e. there
      * are no pending requests to fetch right now.
      *
      * Requests that are currently in progress (fetched but not yet handled or reclaimed, including
@@ -367,7 +385,7 @@ export interface RequestQueueClient {
      * this long, so that a long-running consumer does not have its request handed out again while it is
      * still being processed. Clients that do not lock may ignore it.
      */
-    setExpectedRequestProcessingTimeSecs?(secs: number): void;
+    setExpectedRequestProcessingTimeSecs?(secs: number): Promise<void>;
 }
 
 export interface SetStatusMessageOptions {

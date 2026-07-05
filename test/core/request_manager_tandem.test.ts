@@ -307,7 +307,7 @@ describe('RequestManagerTandem', () => {
         // Resolve the manager first (the queue was passed eagerly, but make the dependency explicit).
         await tandem.fetchNextRequest();
 
-        tandem.setExpectedRequestProcessingTimeSecs(600);
+        await tandem.setExpectedRequestProcessingTimeSecs(600);
         expect(hintSpy).toHaveBeenCalledWith(600);
     });
 
@@ -320,7 +320,7 @@ describe('RequestManagerTandem', () => {
         const tandem = new RequestManagerTandem(requestList, () => requestQueue);
 
         // Hint arrives before anything resolves the manager — nothing forwarded yet.
-        tandem.setExpectedRequestProcessingTimeSecs(600);
+        await tandem.setExpectedRequestProcessingTimeSecs(600);
         expect(hintSpy).not.toHaveBeenCalled();
 
         // Resolving the manager (via any operation) applies the remembered hint.
