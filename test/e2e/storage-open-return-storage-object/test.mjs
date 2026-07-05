@@ -24,13 +24,11 @@ await expect(
 const datasetStorageObject = parsed.datasetStorageObject;
 const keyValueStorageObject = parsed.keyValueStorageObject;
 
-await expect(datasetStorageObject.id !== null, 'datasetStorageObject contains id');
+await expect(datasetStorageObject.id != null, 'datasetStorageObject contains id');
 await expect(
     [null, 'default'].includes(datasetStorageObject.name),
     'Default dataset\'s name is either "default" or null',
 );
-await expect(datasetStorageObject.userId !== null, 'datasetStorageObject contains userId');
 
-await expect(keyValueStorageObject.id !== null, 'keyValueStorageObject contains id');
+await expect(keyValueStorageObject.id != null, 'keyValueStorageObject contains id');
 await expect([null, 'default'].includes(keyValueStorageObject.name), 'Default KVS\'s name is either "default" or null');
-await expect(keyValueStorageObject.userId !== null, 'keyValueStorageObject contains userId');

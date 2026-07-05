@@ -91,7 +91,7 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
         this.updateTimestamps(true);
     }
 
-    async listKeys(options: storage.KeyValueStoreListKeysOptions = {}): Promise<storage.KeyValueStoreItemData[]> {
+    async listKeys(options: storage.KeyValueStoreListKeysOptions = {}): Promise<storage.KeyValueStoreListKeysResult> {
         const { prefix, exclusiveStartKey, limit } = s
             .object({
                 prefix: s.string().optional(),
@@ -107,6 +107,7 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
             items.push({
                 key: record.key,
                 size,
+                contentType: record.contentType ?? 'application/octet-stream',
             });
         }
 
@@ -126,13 +127,20 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
             filteredItems = filteredItems.slice(keyPos + 1);
         }
 
-        if (limit !== undefined) {
-            filteredItems = filteredItems.slice(0, limit);
-        }
+        const isTruncated = limit !== undefined && filteredItems.length > limit;
+        const pageItems = isTruncated ? filteredItems.slice(0, limit) : filteredItems;
+        const nextExclusiveStartKey = isTruncated ? pageItems[pageItems.length - 1].key : undefined;
 
         this.updateTimestamps(false);
 
-        return filteredItems;
+        return {
+            items: pageItems,
+            count: pageItems.length,
+            limit: limit ?? pageItems.length,
+            exclusiveStartKey,
+            isTruncated,
+            nextExclusiveStartKey,
+        };
     }
 
     /**
@@ -251,7 +259,6 @@ export class KeyValueStoreClient extends BaseClient implements storage.KeyValueS
             accessedAt: this.accessedAt,
             createdAt: this.createdAt,
             modifiedAt: this.modifiedAt,
-            userId: '1',
         };
     }
 

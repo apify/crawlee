@@ -677,5 +677,33 @@ describe('dataset', () => {
                 expect(items).toEqual([]);
             });
         });
+
+        describe('stats', () => {
+            test('start at zero', async () => {
+                const dataset = await createDataset();
+                expect(dataset.stats).toEqual({ readCount: 0, writeCount: 0 });
+            });
+
+            test('count writes and reads per client call', async () => {
+                const dataset = await createDataset();
+
+                await dataset.pushData({ foo: 'bar' });
+                await dataset.pushData([{ foo: 'baz' }, { foo: 'qux' }]);
+                expect(dataset.stats).toEqual({ readCount: 0, writeCount: 2 });
+
+                await dataset.getData();
+                expect(dataset.stats).toEqual({ readCount: 1, writeCount: 2 });
+            });
+
+            test('snapshot is a copy, not a live reference', async () => {
+                const dataset = await createDataset();
+
+                const before = dataset.stats;
+                await dataset.pushData({ foo: 'bar' });
+
+                expect(before.writeCount).toBe(0);
+                expect(dataset.stats.writeCount).toBe(1);
+            });
+        });
     });
 });

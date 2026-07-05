@@ -6,6 +6,7 @@ export type * from './request_loader.js';
 export type * from './request_manager.js';
 export * from './request_queue.js';
 export * from './storage_instance_manager.js';
+export * from './storage_stats.js';
 export * from './utils.js';
 export * from './access_checking.js';
 export * from './sitemap_request_loader.js';
