@@ -5,9 +5,11 @@ import {
     BaseCrawleeLogger,
     type CrawleeLogger,
     type CrawleeLoggerOptions,
+    Dataset,
     type Dictionary,
     EventType,
     KeyValueStore,
+    MemoryStorageClient,
     serviceLocator,
 } from '@crawlee/core';
 import type {
@@ -18,6 +20,7 @@ import type {
 } from '@crawlee/playwright';
 import {
     AdaptivePlaywrightCrawler,
+    BasicCrawler,
     createAdaptivePlaywrightRouter,
     RenderingTypePredictor,
     RequestList,
@@ -28,7 +31,6 @@ import express from 'express';
 import { z } from 'zod';
 
 import { startExpressAppPromise } from 'test/shared/_helper.js';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
 
 // A minimal logger that records every message into a shared array. Child loggers share the same
 // array, so messages emitted by the crawler's prefixed child logger are captured as well.
@@ -127,14 +129,17 @@ describe('AdaptivePlaywrightCrawler', () => {
         server.close();
     });
 
-    // Set up local storage emulator
-    const localStorageEmulator = new MemoryStorageEmulator();
-
     beforeEach(async () => {
-        await localStorageEmulator.init();
-    });
-    afterAll(async () => {
-        await localStorageEmulator.destroy();
+        // The global test setup (`test/vitest.setup.ts`) already calls `serviceLocator.reset()` before
+        // each test, which clears the storage-instance cache; here we just install a fresh in-memory
+        // storage client for this suite.
+        serviceLocator.setStorageClient(new MemoryStorageClient());
+        // `BasicCrawler` keeps a process-global instance counter that assigns each crawler a distinct
+        // default request queue (the first one uses the shared default queue, later ones get their own
+        // `__default_<n>__` alias). Since every test wipes storage and starts fresh, the counter must be
+        // reset too — otherwise later crawlers open aliased queues that are out of sync with the freshly
+        // reset storage, and the crawler restores a stale handled-request count and processes nothing.
+        (BasicCrawler as unknown as { instanceCount: number }).instanceCount = 0;
     });
 
     // Test setup helpers
@@ -203,7 +208,7 @@ describe('AdaptivePlaywrightCrawler', () => {
             expect(requestHandler).toHaveBeenCalledTimes(2);
 
             // Check if only one item was added to the dataset
-            expect(await localStorageEmulator.getDatasetItems()).toEqual([{ heading: 'Heading' }]);
+            expect((await Dataset.getData()).items).toEqual([{ heading: 'Heading' }]);
         });
     });
 
@@ -506,8 +511,8 @@ describe('AdaptivePlaywrightCrawler', () => {
         );
 
         await crawler.run();
-        // getState reads through the frontend, so the value is already parsed.
-        expect(await localStorageEmulator.getState()).toEqual({ count: 3 });
+        // Reading through the KeyValueStore frontend parses the JSON value for us.
+        expect(await (await KeyValueStore.open()).getValue('CRAWLEE_STATE')).toEqual({ count: 3 });
     });
 
     test('should return deeply equal but not identical state objects across handler runs', async () => {
@@ -616,8 +621,8 @@ describe('AdaptivePlaywrightCrawler', () => {
             'Directly accessing storage in a request handler is not allowed in AdaptivePlaywrightCrawler',
         );
 
-        const store = await localStorageEmulator.getKeyValueStore();
-        expect(await store.getValue('1')).toBeUndefined();
+        const store = await KeyValueStore.open();
+        expect(await store.getValue('1')).toBeNull();
     });
 
     test('should persist RenderingTypePredictor state on PERSIST_STATE events', async () => {

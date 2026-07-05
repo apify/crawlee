@@ -892,7 +892,7 @@ export class MemoryStorageClient implements storage.StorageClient {
     // (undocumented)
     createKeyValueStoreClient(options?: storage.CreateKeyValueStoreClientOptions): Promise<storage.KeyValueStoreClient>;
     // (undocumented)
-    createRequestQueueClient(options?: storage.CreateRequestQueueClientOptions): Promise<storage.RequestQueueClient>;
+    createRequestQueueClient(options?: storage.CreateRequestQueueClientOptions): Promise<RequestQueueClient_2>;
     // (undocumented)
     readonly datasetClientCache: DatasetClient_2[];
     getStorageClientCacheKey(): string;

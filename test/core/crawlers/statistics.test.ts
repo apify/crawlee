@@ -1,6 +1,5 @@
-import { Configuration, EventType, serviceLocator, Statistics } from '@crawlee/core';
+import { Configuration, EventType, MemoryStorageClient, serviceLocator, Statistics } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
-import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
 
 describe('Statistics', () => {
     const getPerMinute = (jobCount: number, totalTickMillis: number) => {
@@ -8,13 +7,12 @@ describe('Statistics', () => {
     };
 
     let stats: Statistics;
-    const localStorageEmulator = new MemoryStorageEmulator();
     beforeAll(async () => {
         vitest.useFakeTimers();
     });
 
     beforeEach(async () => {
-        await localStorageEmulator.init();
+        serviceLocator.setStorageClient(new MemoryStorageClient());
         stats = new Statistics();
     });
 
@@ -24,7 +22,6 @@ describe('Statistics', () => {
     });
 
     afterAll(async () => {
-        await localStorageEmulator.destroy();
         // eslint-disable-next-line dot-notation
         Statistics['id'] = 0;
     });
