@@ -557,7 +557,7 @@ The sub-client interfaces (`DatasetClient`, `KeyValueStoreClient`, `RequestQueue
 | `setRecord(record, options?)` | `setValue(record)` |
 | `deleteRecord(key)` | `deleteValue(key)` |
 | `getRecordPublicUrl(key)` | `getPublicUrl(key)` |
-| `listKeys(options?)` → `KeyValueStoreClientListData` | `listKeys(options?)` → `KeyValueStoreItemData[]` |
+| `listKeys(options?)` → `KeyValueStoreClientListData` | `listKeys(options?)` → `KeyValueStoreListKeysResult` (a single self-describing page) |
 | `keys()`, `values()`, `entries()` | Removed (handled by `KeyValueStore` frontend) |
 
 **`RequestQueueClient`:**
@@ -580,9 +580,11 @@ The request queue client was reduced from 12 methods to 10. The distributed-lock
 
 The lifecycle is now: `fetchNextRequest()` hands out a pending request and marks it in progress; once processed, call `markRequestAsHandled(request)`; on failure call `reclaimRequest(request, { forefront? })` to return it to the queue.
 
+Methods that may have "nothing" to return now consistently resolve to `undefined` rather than `null`. `fetchNextRequest()` resolves to `undefined` when there is nothing to fetch, and `markRequestAsHandled()` / `reclaimRequest()` resolve to `undefined` when the request is not something the client is currently processing (a no-op, not an error). This matches the `undefined` already returned by `getRequest()`, `KeyValueStoreClient.getValue()`, and `getPublicUrl()`, so the whole client family uses a single "absent" sentinel. If you implemented a custom client that returned `null` from these methods, return `undefined` instead.
+
 `RequestQueueClient.isEmpty()` and `RequestQueueClient.isFinished()` answer two different questions:
 
-- `isEmpty()` is the weak check — `true` when the next `fetchNextRequest()` would return `null`, i.e. there is nothing left to fetch right now. Requests that are currently in progress (fetched but not yet handled or reclaimed) are **not** counted, because they are not fetchable. This is what drives the crawler's task scheduling.
+- `isEmpty()` is the weak check — `true` when the next `fetchNextRequest()` would return `undefined`, i.e. there is nothing left to fetch right now. Requests that are currently in progress (fetched but not yet handled or reclaimed) are **not** counted, because they are not fetchable. This is what drives the crawler's task scheduling.
 - `isFinished()` is the strong check — `true` only when there are no pending requests **and** no requests currently in progress (including those locked by other clients sharing the queue). This is what determines whether crawling is actually done. An in-progress request keeps the queue *empty but not finished*, which is what stops a crawler from shutting down while a request is still being processed.
 
 The separate `RequestQueueV1`/`RequestQueueV2` classes (and the `RequestProvider` base class) have been removed. They no longer differ in behavior — request coordination is now internal to the storage client — so they are merged into a single `RequestQueue` class. Replace any `RequestQueueV1`, `RequestQueueV2`, or `RequestProvider` imports with `RequestQueue`.
@@ -613,7 +615,9 @@ queue.setExpectedRequestProcessingTimeSecs(600);
 
 The `RequestQueue.internalTimeoutMillis` property and the associated "stuck queue" self-recovery have been removed. In v3 the `RequestQueue` frontend kept its own copy of the queue head and in-progress set, which could drift out of sync with the backing storage (an eventual-consistency hazard on the Apify platform); `isFinished()` watched for inactivity exceeding `internalTimeoutMillis` and reset that frontend state to recover. In v4 the frontend no longer holds any such bookkeeping — the storage client is the single source of truth — so there is nothing for a reset to fix, and stuck request locks now self-heal on expiry. Any consistency-recovery logic that is genuinely specific to the Apify platform's distributed storage belongs in the Apify SDK's client implementation instead, and is tracked in [apify/crawlee#3328](https://github.com/apify/crawlee/issues/3328).
 
-**Removed types** from `@crawlee/types`: `DatasetClientUpdateOptions`, `KeyValueStoreClientUpdateOptions`, `KeyValueStoreRecordOptions`, `KeyValueStoreClientListData`, `KeyValueStoreClientGetRecordOptions`, `QueueHead`, `RequestQueueHeadItem`, `ListOptions`, `ListAndLockOptions`, `ListAndLockHeadResult`, `ProlongRequestLockOptions`, `ProlongRequestLockResult`, `DeleteRequestLockOptions`. `KeyValueStoreClientListOptions` was renamed to `KeyValueStoreListKeysOptions`.
+**Apify-specific fields removed from storage metadata.** The metadata returned by `getMetadata()` (`DatasetInfo`, `KeyValueStoreInfo`, `RequestQueueInfo`) has been trimmed to what is meaningful for any storage backend. The following platform-specific fields were dropped: `actId`, `actRunId`, `userId`, and — on `RequestQueueInfo` — `expireAt` and `hadMultipleClients`. The per-storage `stats` field (and its `DatasetStats` / `KeyValueStoreStats` / `RequestQueueStats` types) was removed as well. If you consumed any of these, read them from the Apify API client directly; a custom `StorageClient` should simply stop returning them.
+
+**Removed types** from `@crawlee/types`: `DatasetClientUpdateOptions`, `KeyValueStoreClientUpdateOptions`, `KeyValueStoreRecordOptions`, `KeyValueStoreClientListData`, `KeyValueStoreClientGetRecordOptions`, `QueueHead`, `RequestQueueHeadItem`, `ListOptions`, `ListAndLockOptions`, `ListAndLockHeadResult`, `ProlongRequestLockOptions`, `ProlongRequestLockResult`, `DeleteRequestLockOptions`, `DatasetStats`, `KeyValueStoreStats`, `RequestQueueStats`. `KeyValueStoreClientListOptions` was renamed to `KeyValueStoreListKeysOptions`.
 
 The high-level storage classes (`Dataset`, `KeyValueStore`, `RequestQueue`) now receive their sub-client directly in the constructor options instead of receiving a `StorageClient` and calling its methods.
 

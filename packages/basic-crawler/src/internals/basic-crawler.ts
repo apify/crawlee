@@ -585,6 +585,13 @@ export class BasicCrawler<
     private ownedRequestManager?: IRequestManager;
 
     /**
+     * Whether the request-processing-time hint has already been forwarded to the request manager. The hint
+     * derives only from `requestHandlerTimeoutMillis` (constant for the crawler's lifetime) and is raise-only,
+     * so it only needs to be applied once, at the first async access of the manager.
+     */
+    private requestManagerTimeoutsApplied = false;
+
+    /**
      * A reference to the underlying {@apilink AutoscaledPool} class that manages the concurrency of the crawler.
      * > *NOTE:* This property is only initialized after calling the {@apilink BasicCrawler.run|`crawler.run()`} function.
      * We can use it to change the concurrency settings on the fly,
@@ -871,11 +878,6 @@ export class BasicCrawler<
             // allow at least 5min for internal timeouts
             this.internalTimeoutMillis =
                 tryEnv(process.env.CRAWLEE_INTERNAL_TIMEOUT) ?? Math.max(this.requestHandlerTimeoutMillis * 2, 300e3);
-
-            // override the default internal timeout of request queue to respect `requestHandlerTimeoutMillis`
-            if (this.requestManager !== undefined) {
-                this.applyRequestManagerTimeouts(this.requestManager);
-            }
 
             this.maxRequestRetries = maxRequestRetries;
             this.maxCrawlDepth = maxCrawlDepth;
@@ -1452,6 +1454,14 @@ export class BasicCrawler<
             this.requestManager = await this.openOwnedRequestQueue();
         }
 
+        // Apply the processing-time hint here (an async lifecycle point) rather than in the constructor,
+        // now that `setExpectedRequestProcessingTimeSecs` is async. The hint is raise-only and idempotent,
+        // but guard so we do not re-issue it on every call.
+        if (!this.requestManagerTimeoutsApplied) {
+            this.requestManagerTimeoutsApplied = true;
+            await this.applyRequestManagerTimeouts(this.requestManager);
+        }
+
         return this.requestManager;
     }
 
@@ -1475,7 +1485,6 @@ export class BasicCrawler<
             this.crawlerInstanceIndex === 0 ? null : { alias: `__default_${this.crawlerInstanceIndex}__` };
 
         const requestQueue = await RequestQueue.open(identifier, { config: serviceLocator.getConfiguration() });
-        this.applyRequestManagerTimeouts(requestQueue);
         this.ownedRequestManager = requestQueue;
         return requestQueue;
     }
@@ -1487,8 +1496,8 @@ export class BasicCrawler<
      * request from being handed out a second time while it is still being processed — and it works
      * regardless of whether the manager is a plain {@apilink RequestQueue} or a `RequestManagerTandem`.
      */
-    private applyRequestManagerTimeouts(requestManager: IRequestManager): void {
-        requestManager.setExpectedRequestProcessingTimeSecs?.(
+    private async applyRequestManagerTimeouts(requestManager: IRequestManager): Promise<void> {
+        await requestManager.setExpectedRequestProcessingTimeSecs?.(
             Math.max(this.requestHandlerTimeoutMillis / 1000 + 5, 60),
         );
     }
