@@ -3,13 +3,13 @@ import {
     deserializeArray,
     EventType,
     KeyValueStore,
+    MemoryStorageClient,
     ProxyConfiguration,
     Request,
     RequestList,
     serviceLocator,
 } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
-import { MemoryStorageEmulator } from '../shared/MemoryStorageEmulator.js';
 import { beforeAll, type MockedFunction } from 'vitest';
 
 import log from '@apify/log';
@@ -48,20 +48,18 @@ beforeEach(async () => {
 
 describe('RequestList', () => {
     let ll: number;
-    const emulator = new MemoryStorageEmulator();
     beforeAll(() => {
         ll = log.getLevel();
         log.setLevel(log.LEVELS.ERROR);
     });
 
     beforeEach(async () => {
-        await emulator.init();
+        serviceLocator.setStorageClient(new MemoryStorageClient());
         vitest.restoreAllMocks();
     });
 
     afterAll(async () => {
         log.setLevel(ll);
-        await emulator.destroy();
     });
 
     test('should not accept to pages with same uniqueKey', async () => {

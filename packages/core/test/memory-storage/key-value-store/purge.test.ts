@@ -25,7 +25,7 @@ describe('MemoryStorageClient.purge preserves the default key-value store input'
 
         // ...while every other record is removed.
         expect(await store.getValue('some-other-key')).toBeUndefined();
-        const keys = await store.listKeys();
+        const { items: keys } = await store.listKeys();
         expect(keys.map((item) => item.key)).toEqual(['INPUT']);
     });
 

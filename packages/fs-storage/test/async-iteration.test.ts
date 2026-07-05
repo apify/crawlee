@@ -71,7 +71,8 @@ describe('Async iteration support', () => {
             kvStore = await storage.createKeyValueStoreClient({ name: 'async-iteration-kvs' });
 
             for (const key of keys) {
-                // The client is a byte-transport: pass serialized bytes + content type.
+                // The client is a byte transport: values arrive already serialized from the frontend
+                // codec, so pass a string + content type rather than a raw object.
                 await kvStore.setValue({
                     key,
                     value: JSON.stringify({ data: key }),
@@ -81,7 +82,7 @@ describe('Async iteration support', () => {
         });
 
         test('returns all keys', async () => {
-            const items = await kvStore.listKeys();
+            const { items } = await kvStore.listKeys();
 
             expect(items).toHaveLength(25);
             expect(items.map((i) => i.key)).toStrictEqual(keys);
@@ -89,28 +90,28 @@ describe('Async iteration support', () => {
 
         test('respects prefix option', async () => {
             // Only keys starting with 'key-0' (key-00 to key-09)
-            const items = await kvStore.listKeys({ prefix: 'key-0' });
+            const { items } = await kvStore.listKeys({ prefix: 'key-0' });
 
             expect(items).toHaveLength(10);
             expect(items.map((i) => i.key)).toStrictEqual(keys.slice(0, 10));
         });
 
         test('respects exclusiveStartKey option', async () => {
-            const items = await kvStore.listKeys({ exclusiveStartKey: 'key-09' });
+            const { items } = await kvStore.listKeys({ exclusiveStartKey: 'key-09' });
 
             expect(items).toHaveLength(15);
             expect(items.map((i) => i.key)).toStrictEqual(keys.slice(10));
         });
 
         test('respects limit option', async () => {
-            const items = await kvStore.listKeys({ limit: 5 });
+            const { items } = await kvStore.listKeys({ limit: 5 });
 
             expect(items).toHaveLength(5);
             expect(items.map((i) => i.key)).toStrictEqual(keys.slice(0, 5));
         });
 
         test('respects exclusiveStartKey and limit together', async () => {
-            const items = await kvStore.listKeys({ exclusiveStartKey: 'key-04', limit: 5 });
+            const { items } = await kvStore.listKeys({ exclusiveStartKey: 'key-04', limit: 5 });
 
             expect(items).toHaveLength(5);
             expect(items.map((i) => i.key)).toStrictEqual(keys.slice(5, 10));

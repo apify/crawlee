@@ -9,7 +9,7 @@ import { cryptoRandomObjectId } from '@apify/utilities';
 /**
  * Regression guard for the "centralize KVS value semantics" refactor.
  *
- * The core unit tests run against {@link MemoryStorageEmulator}, so they never exercise the
+ * The core unit tests run against {@link MemoryStorageClient}, so they never exercise the
  * default {@link FileSystemStorageClient} backend. After moving serialize/parse into the
  * `KeyValueStore` frontend, the backend must be a pure byte transport — if a backend still parses
  * the body itself, the frontend would double-parse (`JSON5.parse("[object Object]")`) and throw.

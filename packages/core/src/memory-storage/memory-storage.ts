@@ -102,9 +102,7 @@ export class MemoryStorageClient implements storage.StorageClient {
         return newStore;
     }
 
-    async createRequestQueueClient(
-        options: storage.CreateRequestQueueClientOptions = {},
-    ): Promise<storage.RequestQueueClient> {
+    async createRequestQueueClient(options: storage.CreateRequestQueueClientOptions = {}): Promise<RequestQueueClient> {
         const { isAlias, cacheKey } = MemoryStorageClient.resolveStorageKey(options);
 
         if (cacheKey) {

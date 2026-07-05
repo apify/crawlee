@@ -687,17 +687,40 @@ import { FileSystemStorageClient } from '@crawlee/fs-storage';
 import { MemoryStorageClient } from '@crawlee/core';
 
 // Persists to disk (the old default behavior):
-const storageClient = new FileSystemStorageClient();
+const storageClient = new FileSystemStorageClient({ localDataDirectory: './storage' });
 
 // Or keep everything in memory only (the old `persistStorage: false`):
 const inMemory = new MemoryStorageClient();
 ```
 
-The `localDataDirectory`, `persistStorage`, and `writeMetadata` options are still accepted by `MemoryStorageClient` for source compatibility, but they are ignored — in-memory storage has nowhere to write. `FileSystemStorageClient` honors `localDataDirectory` and `writeMetadata`; it always persists, so it has no `persistStorage` option.
+`MemoryStorageClient` no longer takes the `localDataDirectory`, `persistStorage`, or `writeMetadata` options — in-memory storage has nowhere to write, so they had no meaning. `FileSystemStorageClient` honors `localDataDirectory`; it always persists, so it has no `persistStorage` option, and the `writeMetadata` option has been removed there too (see [`writeMetadata` option removed](#writemetadata-option-removed)).
 
 ### No request lock expiry in `MemoryStorageClient`
 
 Because the in-memory queue lives entirely within a single process and is never shared with another consumer, `MemoryStorageClient`'s request queue no longer uses an expiring, cross-process lock. A fetched request simply stays *in progress* until it is handled or reclaimed; it never becomes fetchable again on its own after a timeout. `setExpectedRequestProcessingTimeSecs()` is therefore a no-op for in-memory storage. (Disk-backed `FileSystemStorageClient` keeps the lock-with-expiry behavior.)
+
+### `writeMetadata` option removed
+
+`FileSystemStorageClient` no longer accepts the `writeMetadata` option. The underlying file-system storage now always writes metadata files (`__metadata__.json` for each storage and a `<key>.__metadata__.json` sidecar for each key-value record), so the toggle no longer had any effect. Remove it from your storage client options:
+
+```diff
+ import { FileSystemStorageClient } from '@crawlee/fs-storage';
+
+ const storageClient = new FileSystemStorageClient({
+     localDataDirectory: './storage',
+-    writeMetadata: true,
+ });
+```
+
+`MemoryStorageClient` never accepted `writeMetadata` (it has no on-disk format to begin with), so there is nothing to change there.
+
+### Out-of-band key-value files (e.g. a hand-placed `INPUT.json`)
+
+`FileSystemStorageClient` only fully tracks records it wrote itself (those have a `<key>.__metadata__.json` sidecar). It still reads a value file placed in the store directory out-of-band — such as a hand-written or platform-provided `INPUT.json` — by probing the requested key plus the `.json` and `.txt` extensions. A few behaviors around these "bare" files changed in v4:
+
+- **Extensionless bare files report `application/octet-stream`.** In v3 a bare value file with no extension was read as `text/plain`. In v4 the client is a plain byte transport and only infers a content type from a real extension, so an extensionless file now comes back as `application/octet-stream`. Give the file a `.json` or `.txt` extension if you need a more specific type.
+- **Malformed bare files are no longer silently swallowed.** In v3 a bare `INPUT.json` containing invalid JSON was treated as a missing record (`getValue` returned `undefined`). In v4 the raw bytes are returned verbatim and parsing happens in the `KeyValueStore` frontend, so a malformed value now surfaces a parse error at read time instead of looking absent.
+- **Bare files are enumerated by `listKeys` under their actual on-disk name.** A bare `INPUT.json` (or `.txt`/`.bin`) shows up in `listKeys` as `INPUT.json` and reads back cleanly under that key via `getValue` / `recordExists` / `getPublicUrl`; the logical `INPUT` lookup keeps resolving the same file as well. An extensionless bare file is listed as `INPUT`. If both a tracked `INPUT` record and a bare `INPUT.json` exist, the tracked record wins and the bare variant is not listed. Everything `listKeys` needs is read from the filesystem index, so this no longer triggers the per-read O(n) directory scans the v3 fallback performed.
 
 ## Multiple crawler instances use separate default request queues
 

@@ -15,7 +15,7 @@ describe('RequestQueue in-progress requests', () => {
         // queue is empty — but the in-progress request means it is not yet finished. Unlike the previous
         // disk-backed implementation, there is no lock expiry: the request never becomes fetchable again
         // on its own.
-        expect(await queue.fetchNextRequest()).toBeNull();
+        expect(await queue.fetchNextRequest()).toBeUndefined();
         expect(await queue.isEmpty()).toBe(true);
         expect(await queue.isFinished()).toBe(false);
     });
@@ -55,7 +55,7 @@ describe('RequestQueue in-progress requests', () => {
         expect(metadata.pendingRequestCount).toBe(0);
         expect(await queue.isEmpty()).toBe(true);
         expect(await queue.isFinished()).toBe(true);
-        expect(await queue.fetchNextRequest()).toBeNull();
+        expect(await queue.fetchNextRequest()).toBeUndefined();
     });
 
     test('multiple requests are each handed out only once while in progress', async () => {
@@ -76,7 +76,7 @@ describe('RequestQueue in-progress requests', () => {
         expect(first!.uniqueKey).not.toBe(second!.uniqueKey);
 
         // Both are now in progress, so nothing more is fetchable.
-        expect(await queue.fetchNextRequest()).toBeNull();
+        expect(await queue.fetchNextRequest()).toBeUndefined();
         expect(await queue.isFinished()).toBe(false);
     });
 
@@ -94,6 +94,6 @@ describe('RequestQueue in-progress requests', () => {
         // A head scan on the dropped client must not throw and must report an empty, finished queue.
         await expect(queue.isEmpty()).resolves.toBe(true);
         await expect(queue.isFinished()).resolves.toBe(true);
-        await expect(queue.fetchNextRequest()).resolves.toBeNull();
+        await expect(queue.fetchNextRequest()).resolves.toBeUndefined();
     });
 });
