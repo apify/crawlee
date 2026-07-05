@@ -45,7 +45,7 @@
         "publish:prod": "lerna publish from-package --contents dist --force-publish --yes",
         "release:prod": "pnpm build && pnpm publish:prod",
         "release:pin-versions": "turbo run copy -- -- --pin-versions",
-        "api:extract": "tsx scripts/api-extractor/run.ts",
+        "api:extract": "pnpm build && tsx scripts/api-extractor/run.ts",
         "api:check": "tsx scripts/api-extractor/run.ts --verify",
         "lint": "oxlint packages test docs --tsconfig=tsconfig.json --type-aware",
         "lint:fix": "oxlint packages test docs --tsconfig=tsconfig.json --type-aware --fix",

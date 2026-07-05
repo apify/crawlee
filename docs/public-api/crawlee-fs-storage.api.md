@@ -6,14 +6,11 @@
 
 import type { CrawleeLogger } from '@crawlee/types';
 import type { Dictionary } from '@crawlee/types';
-import type { FileSystemDatasetClient } from '@crawlee/fs-storage-native';
-import type { FileSystemKeyValueStoreClient } from '@crawlee/fs-storage-native';
-import type { FileSystemRequestQueueClient } from '@crawlee/fs-storage-native';
 import type * as storage from '@crawlee/types';
 
-// @public
+// @public (undocumented)
 export class FileSystemStorageClient implements storage.StorageClient {
-    constructor(options: FileSystemStorageOptions);
+    constructor(options?: FileSystemStorageOptions);
     // (undocumented)
     createDatasetClient(options?: storage.CreateDatasetClientOptions): Promise<storage.DatasetClient>;
     // (undocumented)
@@ -35,8 +32,6 @@ export class FileSystemStorageClient implements storage.StorageClient {
     readonly logger?: CrawleeLogger;
     purge(): Promise<void>;
     // (undocumented)
-    readonly requestQueueAccess: 'single' | 'shared';
-    // (undocumented)
     readonly requestQueueCache: RequestQueueClient[];
     // (undocumented)
     readonly requestQueuesDirectory: string;
@@ -45,13 +40,15 @@ export class FileSystemStorageClient implements storage.StorageClient {
     // (undocumented)
     storageExists(id: string, type: 'Dataset' | 'KeyValueStore' | 'RequestQueue'): Promise<boolean>;
     teardown(): Promise<void>;
+    // (undocumented)
+    readonly writeMetadata: boolean;
 }
 
 // @public (undocumented)
 export interface FileSystemStorageOptions {
-    localDataDirectory: string;
+    localDataDirectory?: string;
     logger?: CrawleeLogger;
-    requestQueueAccess?: 'single' | 'shared';
+    writeMetadata?: boolean;
 }
 
 // (No @packageDocumentation comment for this package)

@@ -113,6 +113,10 @@ export interface DatasetInfo {
     // (undocumented)
     accessedAt: Date;
     // (undocumented)
+    actId?: string;
+    // (undocumented)
+    actRunId?: string;
+    // (undocumented)
     createdAt: Date;
     // (undocumented)
     id: string;
@@ -122,6 +126,18 @@ export interface DatasetInfo {
     modifiedAt: Date;
     // (undocumented)
     name?: string;
+}
+
+// @public (undocumented)
+export interface DatasetStats {
+    // (undocumented)
+    deleteCount?: number;
+    // (undocumented)
+    readCount?: number;
+    // (undocumented)
+    storageBytes?: number;
+    // (undocumented)
+    writeCount?: number;
 }
 
 // @public (undocumented)
@@ -214,7 +230,7 @@ export interface KeyValueStoreClient {
     getMetadata(): Promise<KeyValueStoreInfo>;
     getPublicUrl(key: string): Promise<string | undefined>;
     getValue(key: string): Promise<KeyValueStoreRecord | undefined>;
-    listKeys(options?: KeyValueStoreListKeysOptions): Promise<KeyValueStoreListKeysResult>;
+    listKeys(options?: KeyValueStoreListKeysOptions): Promise<KeyValueStoreItemData[]>;
     purge(): Promise<void>;
     recordExists(key: string): Promise<boolean>;
     setValue(record: KeyValueStoreInputRecord): Promise<void>;
@@ -225,6 +241,10 @@ export interface KeyValueStoreInfo {
     // (undocumented)
     accessedAt: Date;
     // (undocumented)
+    actId?: string;
+    // (undocumented)
+    actRunId?: string;
+    // (undocumented)
     createdAt: Date;
     // (undocumented)
     id: string;
@@ -232,6 +252,10 @@ export interface KeyValueStoreInfo {
     modifiedAt: Date;
     // (undocumented)
     name?: string;
+    // (undocumented)
+    stats?: KeyValueStoreStats;
+    // (undocumented)
+    userId?: string;
 }
 
 // @public
@@ -246,7 +270,6 @@ export interface KeyValueStoreInputRecord {
 
 // @public (undocumented)
 export interface KeyValueStoreItemData {
-    contentType: string;
     // (undocumented)
     key: string;
     // (undocumented)
@@ -258,16 +281,6 @@ export interface KeyValueStoreListKeysOptions {
     exclusiveStartKey?: string;
     limit?: number;
     prefix?: string;
-}
-
-// @public
-export interface KeyValueStoreListKeysResult {
-    count: number;
-    exclusiveStartKey?: string;
-    isTruncated: boolean;
-    items: KeyValueStoreItemData[];
-    limit: number;
-    nextExclusiveStartKey?: string;
 }
 
 // @public
@@ -283,6 +296,20 @@ export interface KeyValueStoreRecord {
 // @public
 export type KeyValueStoreRecordInputValue = Buffer | ArrayBuffer | ArrayBufferView | string | NodeJS.ReadableStream | ReadableStream;
 
+// @public (undocumented)
+export interface KeyValueStoreStats {
+    // (undocumented)
+    deleteCount?: number;
+    // (undocumented)
+    listCount?: number;
+    // (undocumented)
+    readCount?: number;
+    // (undocumented)
+    storageBytes?: number;
+    // (undocumented)
+    writeCount?: number;
+}
+
 // @public
 export interface NewPageOptions {
     id?: string;
@@ -294,7 +321,7 @@ export interface PageState {
     cookies: Cookie[];
 }
 
-// @public
+// @public (undocumented)
 export interface PaginatedList<Data> {
     count: number;
     desc?: boolean;
@@ -339,19 +366,27 @@ export type RedirectHandler = (redirectResponse: Response, updatedRequest: {
     headers: Headers;
 }) => void;
 
+// @public (undocumented)
+export interface RequestOptions {
+    // (undocumented)
+    [k: string]: unknown;
+    // (undocumented)
+    forefront?: boolean;
+}
+
 // @public
 export interface RequestQueueClient {
-    addBatchOfRequests(requests: RequestSchema[], options?: RequestQueueOperationOptions): Promise<BatchAddRequestsResult>;
+    addBatchOfRequests(requests: RequestSchema[], options?: RequestOptions): Promise<BatchAddRequestsResult>;
     drop(): Promise<void>;
-    fetchNextRequest(): Promise<UpdateRequestSchema | undefined>;
+    fetchNextRequest(): Promise<RequestOptions | null>;
     getMetadata(): Promise<RequestQueueInfo>;
-    getRequest(uniqueKey: string): Promise<UpdateRequestSchema | undefined>;
+    getRequest(uniqueKey: string): Promise<RequestOptions | undefined>;
     isEmpty(): Promise<boolean>;
     isFinished(): Promise<boolean>;
-    markRequestAsHandled(request: UpdateRequestSchema): Promise<QueueOperationInfo | undefined>;
+    markRequestAsHandled(request: UpdateRequestSchema): Promise<QueueOperationInfo | null>;
     purge(): Promise<void>;
-    reclaimRequest(request: UpdateRequestSchema, options?: RequestQueueOperationOptions): Promise<QueueOperationInfo | undefined>;
-    setExpectedRequestProcessingTimeSecs?(secs: number): Promise<void>;
+    reclaimRequest(request: UpdateRequestSchema, options?: RequestOptions): Promise<QueueOperationInfo | null>;
+    setExpectedRequestProcessingTimeSecs?(secs: number): void;
 }
 
 // @public (undocumented)
@@ -359,7 +394,15 @@ export interface RequestQueueInfo {
     // (undocumented)
     accessedAt: Date;
     // (undocumented)
+    actId?: string;
+    // (undocumented)
+    actRunId?: string;
+    // (undocumented)
     createdAt: Date;
+    // (undocumented)
+    expireAt?: string;
+    // (undocumented)
+    hadMultipleClients?: boolean;
     // (undocumented)
     handledRequestCount: number;
     // (undocumented)
@@ -371,12 +414,25 @@ export interface RequestQueueInfo {
     // (undocumented)
     pendingRequestCount: number;
     // (undocumented)
+    stats?: RequestQueueStats;
+    // (undocumented)
     totalRequestCount: number;
+    // (undocumented)
+    userId?: string;
 }
 
-// @public
-export interface RequestQueueOperationOptions {
-    forefront?: boolean;
+// @public (undocumented)
+export interface RequestQueueStats {
+    // (undocumented)
+    deleteCount?: number;
+    // (undocumented)
+    headItemReadCount?: number;
+    // (undocumented)
+    readCount?: number;
+    // (undocumented)
+    storageBytes?: number;
+    // (undocumented)
+    writeCount?: number;
 }
 
 // @public (undocumented)

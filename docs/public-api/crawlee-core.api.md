@@ -294,7 +294,6 @@ export const crawleeConfigFields: {
     disableBrowserSandbox: ConfigField<z.ZodDefault<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodBoolean>>>;
     logLevel: ConfigField<z.ZodOptional<z.ZodPipe<z.ZodTransform<{} | null | undefined, unknown>, z.ZodEnum<typeof LogLevel>>>>;
     persistStorage: ConfigField<z.ZodDefault<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodBoolean>>>;
-    storageDir: ConfigField<z.ZodDefault<z.ZodString>>;
     containerized: ConfigField<z.ZodOptional<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodBoolean>>>;
 };
 
@@ -364,7 +363,6 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     reduce(iteratee: DatasetReducer<Data, Data>): Promise<Data | undefined>;
     reduce(iteratee: DatasetReducer<Data, Data>, memo: undefined, options: DatasetIteratorOptions): Promise<Data | undefined>;
     reduce<T>(iteratee: DatasetReducer<T, Data>, memo: T, options?: DatasetIteratorOptions): Promise<T>;
-    get stats(): DatasetStats;
     values(options?: DatasetIteratorOptions): AsyncIterable<Data> & Promise<Data[]>;
 }
 
@@ -447,12 +445,6 @@ export interface DatasetOptions {
 export interface DatasetReducer<T, Data> {
     // (undocumented)
     (memo: T, item: Data, index: number): Awaitable_2<T>;
-}
-
-// @public
-export interface DatasetStats {
-    readCount: number;
-    writeCount: number;
 }
 
 // @public
@@ -748,7 +740,7 @@ export interface IRequestManager extends IRequestLoader {
     addRequestsBatched(requests: RequestsLike, options?: AddRequestsBatchedOptions): Promise<AddRequestsBatchedResult>;
     purge?(): Promise<void>;
     reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
-    setExpectedRequestProcessingTimeSecs?(secs: number): Promise<void>;
+    setExpectedRequestProcessingTimeSecs?(secs: number): void;
 }
 
 // @internal (undocumented)
@@ -804,7 +796,6 @@ export class KeyValueStore {
     static recordExists(key: string): Promise<boolean>;
     setValue<T>(key: string, value: T | null, options?: RecordOptions): Promise<void>;
     static setValue<T>(key: string, value: T | null, options?: RecordOptions): Promise<void>;
-    get stats(): KeyValueStoreStats;
     values<T = unknown>(options?: KeyValueStoreIteratorOptions): AsyncIterable<T> & Promise<T[]>;
 }
 
@@ -829,14 +820,6 @@ export interface KeyValueStoreRawRecord {
     contentType: string | null;
     // (undocumented)
     value: Buffer | ArrayBuffer;
-}
-
-// @public
-export interface KeyValueStoreStats {
-    deleteCount: number;
-    listCount: number;
-    readCount: number;
-    writeCount: number;
 }
 
 // @internal (undocumented)
@@ -893,7 +876,7 @@ export class MemoryStorageClient implements storage.StorageClient {
     // (undocumented)
     createKeyValueStoreClient(options?: storage.CreateKeyValueStoreClientOptions): Promise<storage.KeyValueStoreClient>;
     // (undocumented)
-    createRequestQueueClient(options?: storage.CreateRequestQueueClientOptions): Promise<storage.RequestQueueClient>;
+    createRequestQueueClient(options?: storage.CreateRequestQueueClientOptions): Promise<RequestQueueClient_2>;
     // (undocumented)
     readonly datasetClientCache: DatasetClient_2[];
     getStorageClientCacheKey(): string;
@@ -1230,7 +1213,7 @@ export class RequestManagerTandem implements IRequestManager {
     purge(): Promise<void>;
     // (undocumented)
     reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
-    setExpectedRequestProcessingTimeSecs(secs: number): Promise<void>;
+    setExpectedRequestProcessingTimeSecs(secs: number): void;
 }
 
 // @public
@@ -1311,8 +1294,7 @@ export class RequestQueue implements IStorage, IRequestManager {
     reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
     // (undocumented)
     protected requestCache: LruCache<RequestLruItem>;
-    setExpectedRequestProcessingTimeSecs(secs: number): Promise<void>;
-    get stats(): RequestQueueStats;
+    setExpectedRequestProcessingTimeSecs(secs: number): void;
     // (undocumented)
     timeoutSecs: number;
 }
@@ -1341,12 +1323,6 @@ export interface RequestQueueOptions {
     // (undocumented)
     name?: string;
     proxyConfiguration?: ProxyConfiguration;
-}
-
-// @public
-export interface RequestQueueStats {
-    headItemReadCount: number;
-    writeCount: number;
 }
 
 // @internal (undocumented)
@@ -1908,13 +1884,6 @@ export interface StorageOpenOptions {
     httpClient?: BaseHttpClient;
     proxyConfiguration?: ProxyConfiguration;
     storageClient?: StorageClient;
-}
-
-// @public
-export class StorageStatsTracker<T extends Record<keyof T, number>> {
-    constructor(initial: T);
-    add(key: keyof T, by?: number): void;
-    get current(): T;
 }
 
 // @public
