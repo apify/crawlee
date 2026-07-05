@@ -12,7 +12,7 @@ import type { RequestQueueClient } from '@crawlee/types';
 async function fetchOrder(client: RequestQueueClient): Promise<string[]> {
     const order: string[] = [];
 
-    for (let request = await client.fetchNextRequest(); request !== null; request = await client.fetchNextRequest()) {
+    for (let request = await client.fetchNextRequest(); request != null; request = await client.fetchNextRequest()) {
         order.push(new URL(request.url).pathname);
         await client.markRequestAsHandled({ ...request, id: request.id! });
     }
@@ -124,7 +124,7 @@ describe('RequestQueue respects `forefront` when fetching requests', () => {
         await fetchOrder(requestQueue);
 
         expect(await requestQueue.isEmpty()).toBe(true);
-        expect(await requestQueue.fetchNextRequest()).toBeNull();
+        expect(await requestQueue.fetchNextRequest()).toBeUndefined();
     });
 
     test('a fetched (locked) request leaves the queue empty but unfinished until it is handled', async () => {
@@ -167,7 +167,7 @@ describe('RequestQueue holds fetched requests in progress', () => {
         // While in progress, the request is not handed out again. The in-memory queue lives in a single
         // process, so there is no lock expiry — the request stays in progress until it is explicitly
         // reclaimed (or handled).
-        expect(await requestQueue.fetchNextRequest()).toBeNull();
+        expect(await requestQueue.fetchNextRequest()).toBeUndefined();
 
         await requestQueue.reclaimRequest({ ...first!, id: first!.id as string });
 

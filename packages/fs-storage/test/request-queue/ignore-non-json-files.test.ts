@@ -64,6 +64,6 @@ describe('when falling back to fs, Request queue should ignore non-JSON files', 
         expect(first!.url).toEqual('http://example.com');
 
         const second = await defaultQueue.fetchNextRequest();
-        expect(second).toBeNull();
+        expect(second).toBeUndefined();
     });
 });

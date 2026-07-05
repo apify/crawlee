@@ -57,7 +57,9 @@ export class RequestManagerTandem implements IRequestManager {
 
             // Apply any hint received before the manager was resolved.
             if (this.expectedRequestProcessingSecs !== undefined) {
-                this.resolvedRequestManager.setExpectedRequestProcessingTimeSecs?.(this.expectedRequestProcessingSecs);
+                await this.resolvedRequestManager.setExpectedRequestProcessingTimeSecs?.(
+                    this.expectedRequestProcessingSecs,
+                );
             }
         }
         return this.resolvedRequestManager;
@@ -238,8 +240,8 @@ export class RequestManagerTandem implements IRequestManager {
      * reserved. The manager is opened lazily, so the value is remembered and applied once it resolves.
      * @inheritdoc
      */
-    setExpectedRequestProcessingTimeSecs(secs: number): void {
+    async setExpectedRequestProcessingTimeSecs(secs: number): Promise<void> {
         this.expectedRequestProcessingSecs = secs;
-        this.resolvedRequestManager?.setExpectedRequestProcessingTimeSecs?.(secs);
+        await this.resolvedRequestManager?.setExpectedRequestProcessingTimeSecs?.(secs);
     }
 }

@@ -12,7 +12,7 @@ import type { RequestQueueClient } from '@crawlee/types';
 async function fetchOrder(client: RequestQueueClient): Promise<string[]> {
     const order: string[] = [];
 
-    for (let request = await client.fetchNextRequest(); request !== null; request = await client.fetchNextRequest()) {
+    for (let request = await client.fetchNextRequest(); request != null; request = await client.fetchNextRequest()) {
         order.push(new URL(request.url).pathname);
         await client.markRequestAsHandled({ ...request, id: request.id! });
     }
@@ -124,7 +124,7 @@ describe('RequestQueue respects `forefront` when fetching requests', () => {
         await fetchOrder(requestQueue);
 
         expect(await requestQueue.isEmpty()).toBe(true);
-        expect(await requestQueue.fetchNextRequest()).toBeNull();
+        expect(await requestQueue.fetchNextRequest()).toBeUndefined();
     });
 
     test('a fetched (locked) request leaves the queue empty but unfinished until it is handled', async () => {
@@ -168,7 +168,7 @@ describe('RequestQueue locks fetched requests', () => {
             expect(first!.uniqueKey).toBe('1');
 
             // While locked, the request is not handed out again.
-            expect(await requestQueue.fetchNextRequest()).toBeNull();
+            expect(await requestQueue.fetchNextRequest()).toBeUndefined();
 
             // After the lock expires (default 3 minutes), the request is fetchable again — this is what
             // prevents a crashed consumer from blocking its requests forever.
@@ -210,8 +210,8 @@ describe('RequestQueue locking is visible across clients sharing on-disk storage
         expect(fromA!.uniqueKey).not.toBe(fromB!.uniqueKey);
 
         // Both requests are now locked, so neither client can fetch anything more.
-        expect(await clientA.fetchNextRequest()).toBeNull();
-        expect(await clientB.fetchNextRequest()).toBeNull();
+        expect(await clientA.fetchNextRequest()).toBeUndefined();
+        expect(await clientB.fetchNextRequest()).toBeUndefined();
 
         await clientA.drop();
     });
@@ -227,7 +227,7 @@ describe('RequestQueue locking is visible across clients sharing on-disk storage
         expect(fromA).not.toBeNull();
 
         // Client B has nothing it can fetch right now, so from its point of view the queue is empty...
-        expect(await clientB.fetchNextRequest()).toBeNull();
+        expect(await clientB.fetchNextRequest()).toBeUndefined();
         expect(await clientB.isEmpty()).toBe(true);
         // ...but the request still exists and is merely locked by A, so B must NOT consider the queue
         // finished — otherwise the crawler driving B could shut down while A is still processing.
@@ -251,7 +251,7 @@ describe('RequestQueue locking is visible across clients sharing on-disk storage
 
         const clientB = await storageB.createRequestQueueClient({ name: 'shared-teardown' });
         // While A holds the lock, B cannot fetch the request.
-        expect(await clientB.fetchNextRequest()).toBeNull();
+        expect(await clientB.fetchNextRequest()).toBeUndefined();
 
         // Tearing down A's storage releases its locks (instead of leaving them until the 3-minute
         // expiry), so B can pick the request up right away.
