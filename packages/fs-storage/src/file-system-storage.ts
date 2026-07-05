@@ -1,3 +1,4 @@
+import { opendir, readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 import type * as storage from '@crawlee/types';
@@ -193,7 +194,7 @@ export class FileSystemStorageClient implements storage.StorageClient {
     }
 
     async storageExists(id: string, type: 'Dataset' | 'KeyValueStore' | 'RequestQueue'): Promise<boolean> {
-        let clients: { id: string }[];
+        let clients: (KeyValueStoreClient | DatasetClient | RequestQueueClient)[];
         let baseDir: string;
 
         switch (type) {
@@ -218,21 +219,68 @@ export class FileSystemStorageClient implements storage.StorageClient {
             return true;
         }
 
-        // Otherwise, check whether a directory named exactly after the queried ID exists on disk.
-        // Only an exact directory-name match counts — this avoids false positives for alias-created
-        // directories (e.g. a directory named 'asdf' created via `{ alias: 'asdf' }` should not make
-        // `storageExists('asdf')` return true, since the actual storage ID is a UUID, not the alias).
-        const cachedClients = clients as (KeyValueStoreClient | DatasetClient | RequestQueueClient)[];
-        if (cachedClients.some((store) => store.cacheKey === id && store.id !== id)) {
-            return false;
+        // Otherwise, resolve any on-disk storage that matches the queried string — either by its
+        // directory name, or (for a storage opened by name, whose directory is named after the name)
+        // by scanning the `__metadata__.json` files for a matching id.
+        //
+        // A directory-name match does NOT by itself prove the string is the storage's *id*: the
+        // directory is named after `name ?? id`, so `named-storage`/`on-disk` (a name or alias) also
+        // has a matching directory. We therefore read the real id from the metadata and only report
+        // existence when it equals the queried string. This matches upstream PR #3800/#3808 and
+        // prevents a named storage from being re-resolved as `{ id: name }` on a subsequent run.
+        const resolvedId = await FileSystemStorageClient.resolveStorageIdOnDisk(baseDir, id);
+        return resolvedId === id;
+    }
+
+    /**
+     * Resolve the real `id` of the on-disk storage identified by `entryNameOrId` under `baseDirectory`,
+     * or `undefined` if none matches. The storage's real id lives in its directory's
+     * `__metadata__.json`; the directory itself is named after the storage's `name ?? id`. So this
+     * first tries the directory named exactly `entryNameOrId` (reading its metadata id), then falls
+     * back to scanning sibling directories for one whose metadata id equals `entryNameOrId` (the case
+     * of a storage opened by name and later looked up by its auto-assigned id).
+     */
+    private static async resolveStorageIdOnDisk(
+        baseDirectory: string,
+        entryNameOrId: string,
+    ): Promise<string | undefined> {
+        // Directory named exactly after the string: return its real (metadata) id, which may differ
+        // from the string when the string is a name rather than an id.
+        const directId = await FileSystemStorageClient.readMetadataId(resolve(baseDirectory, entryNameOrId));
+        if (directId !== undefined) {
+            return directId;
         }
 
-        const { access } = await import('node:fs/promises');
+        // No such directory — scan siblings for one whose metadata id matches the string.
+        let directories;
         try {
-            await access(resolve(baseDir, id));
-            return true;
+            directories = await opendir(baseDirectory);
         } catch {
-            return false;
+            return undefined;
+        }
+
+        for await (const directory of directories) {
+            if (!directory.isDirectory()) {
+                continue;
+            }
+
+            const metadataId = await FileSystemStorageClient.readMetadataId(resolve(baseDirectory, directory.name));
+            if (metadataId === entryNameOrId) {
+                return metadataId;
+            }
+        }
+
+        return undefined;
+    }
+
+    /** Read the `id` field from a storage directory's `__metadata__.json`, or `undefined` if absent. */
+    private static async readMetadataId(storageDirectory: string): Promise<string | undefined> {
+        try {
+            const fileContent = await readFile(resolve(storageDirectory, '__metadata__.json'), 'utf8');
+            return (JSON.parse(fileContent) as { id?: string }).id;
+        } catch {
+            // Directory missing, or no/unreadable metadata file — no id to report.
+            return undefined;
         }
     }
 
