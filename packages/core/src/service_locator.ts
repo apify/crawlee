@@ -220,6 +220,7 @@ export class ServiceLocator implements ServiceLocatorInterface {
             const config = this.getConfiguration();
             this.storageClient = config.persistStorage
                 ? new FileSystemStorageClient({
+                      localDataDirectory: config.storageDir,
                       logger: this.getLogger().child({ prefix: 'FileSystemStorageClient' }),
                   })
                 : new MemoryStorageClient({
