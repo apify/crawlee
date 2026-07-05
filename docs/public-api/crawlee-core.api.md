@@ -294,6 +294,7 @@ export const crawleeConfigFields: {
     disableBrowserSandbox: ConfigField<z.ZodDefault<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodBoolean>>>;
     logLevel: ConfigField<z.ZodOptional<z.ZodPipe<z.ZodTransform<{} | null | undefined, unknown>, z.ZodEnum<typeof LogLevel>>>>;
     persistStorage: ConfigField<z.ZodDefault<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodBoolean>>>;
+    storageDir: ConfigField<z.ZodDefault<z.ZodString>>;
     containerized: ConfigField<z.ZodOptional<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodBoolean>>>;
 };
 
