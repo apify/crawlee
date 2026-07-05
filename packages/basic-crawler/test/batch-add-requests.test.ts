@@ -1,17 +1,10 @@
 import { BasicCrawler } from '@crawlee/basic';
 
-import { MemoryStorageEmulator } from '../../../test/shared/MemoryStorageEmulator.js';
-import { SessionPool } from '@crawlee/core';
+import { MemoryStorageClient, serviceLocator, SessionPool } from '@crawlee/core';
 
 describe('BasicCrawler#addRequests with big batch sizes', () => {
-    const localStorageEmulator = new MemoryStorageEmulator();
-
     beforeEach(async () => {
-        await localStorageEmulator.init();
-    });
-
-    afterAll(async () => {
-        await localStorageEmulator.destroy();
+        serviceLocator.setStorageClient(new MemoryStorageClient());
     });
 
     const requestTemplates = Array.from({ length: 2000 }, (_, i) => ({ url: `https://example.com/${i}` }));
@@ -64,14 +57,8 @@ describe('BasicCrawler#addRequests with big batch sizes', () => {
 });
 
 describe('BasicCrawler - request.sessionId', () => {
-    const localStorageEmulator = new MemoryStorageEmulator();
-
     beforeEach(async () => {
-        await localStorageEmulator.init();
-    });
-
-    afterAll(async () => {
-        await localStorageEmulator.destroy();
+        serviceLocator.setStorageClient(new MemoryStorageClient());
     });
 
     test('uses the session matching request.sessionId from the session pool', async () => {

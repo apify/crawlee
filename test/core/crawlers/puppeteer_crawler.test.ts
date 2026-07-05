@@ -24,19 +24,18 @@ import {
     Session,
     SessionPool,
 } from '@crawlee/puppeteer';
+import { MemoryStorageClient, serviceLocator } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
 import type { Server as ProxyChainServer } from 'proxy-chain';
 import { z } from 'zod';
 
 import log from '@apify/log';
 
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
 import { createProxyServer } from '../create-proxy-server.js';
 
 describe('PuppeteerCrawler', () => {
     let prevEnvHeadless: string;
     let logLevel: number;
-    const localStorageEmulator = new MemoryStorageEmulator();
     let requestList: RequestList;
     let servers: ProxyChainServer[];
     let target: Server;
@@ -77,14 +76,10 @@ describe('PuppeteerCrawler', () => {
     });
 
     beforeEach(async () => {
-        await localStorageEmulator.init();
+        serviceLocator.setStorageClient(new MemoryStorageClient());
 
         const sources = [serverUrl];
         requestList = await RequestList.open(`sources-${Math.random() * 10000}`, sources);
-    });
-
-    afterAll(async () => {
-        await localStorageEmulator.destroy();
     });
 
     afterAll(async () => {

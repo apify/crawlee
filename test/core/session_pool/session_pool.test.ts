@@ -1,22 +1,24 @@
-import { BaseCrawleeLogger, EventType, KeyValueStore, serviceLocator, Session, SessionPool } from '@crawlee/core';
+import {
+    BaseCrawleeLogger,
+    EventType,
+    KeyValueStore,
+    MemoryStorageClient,
+    serviceLocator,
+    Session,
+    SessionPool,
+} from '@crawlee/core';
 import { entries } from '@crawlee/utils';
-import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
 
 describe('SessionPool - testing session pool', () => {
     let sessionPool: SessionPool;
-    const localStorageEmulator = new MemoryStorageEmulator();
 
     beforeEach(async () => {
-        await localStorageEmulator.init();
+        serviceLocator.setStorageClient(new MemoryStorageClient());
         sessionPool = new SessionPool();
     });
 
     afterEach(async () => {
         serviceLocator.getEventManager().off(EventType.PERSIST_STATE);
-    });
-
-    afterAll(async () => {
-        await localStorageEmulator.destroy();
     });
 
     test('should initialize with default values for first time', async () => {

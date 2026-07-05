@@ -1,9 +1,7 @@
 /* eslint-disable dot-notation */
 
-import { ProxyConfiguration, Request, RequestQueue, serviceLocator } from '@crawlee/core';
+import { MemoryStorageClient, ProxyConfiguration, Request, RequestQueue, serviceLocator } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
-
-import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
 
 let mockHttpClient = vitest.mockObject({
     async sendRequest(_request: any, _options?: any) {
@@ -26,15 +24,9 @@ beforeEach(async () => {
 });
 
 describe('RequestQueue remote', () => {
-    const emulator = new MemoryStorageEmulator();
-
     beforeEach(async () => {
-        await emulator.init();
+        serviceLocator.setStorageClient(new MemoryStorageClient());
         vitest.clearAllMocks();
-    });
-
-    afterEach(async () => {
-        await emulator.destroy();
     });
 
     async function createRequestQueue(id = 'some-id', name?: string) {
@@ -429,15 +421,9 @@ describe('RequestQueue remote', () => {
 });
 
 describe('RequestQueue with requestsFromUrl', () => {
-    const emulator = new MemoryStorageEmulator();
-
     beforeEach(async () => {
-        await emulator.init();
+        serviceLocator.setStorageClient(new MemoryStorageClient());
         vitest.restoreAllMocks();
-    });
-
-    afterAll(async () => {
-        await emulator.destroy();
     });
 
     test('should correctly load list from hosted files in correct order', async () => {

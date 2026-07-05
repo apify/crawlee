@@ -22,12 +22,11 @@ import {
     serviceLocator,
     SessionPool,
 } from '@crawlee/basic';
-import { Dataset, MemoryStorageClient, RequestState } from '@crawlee/core';
+import { MemoryStorageClient, RequestState } from '@crawlee/core';
 import type { ISession, ProxyInfo } from '@crawlee/types';
 import type { Dictionary } from '@crawlee/utils';
 import { RobotsTxtFile, sleep } from '@crawlee/utils';
 import express from 'express';
-import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
 import type { SetRequired } from 'type-fest';
 import type { Mock } from 'vitest';
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vitest } from 'vitest';
@@ -37,12 +36,16 @@ import { startExpressAppPromise } from 'test/shared/_helper.js';
 
 import log from '@apify/log';
 
+type MemoryRequestQueueClient = Awaited<ReturnType<MemoryStorageClient['createRequestQueueClient']>>;
+
 describe('BasicCrawler', () => {
     let logLevel: number;
-    const localStorageEmulator = new MemoryStorageEmulator();
+    let requestQueueClient: MemoryRequestQueueClient;
+
     const HOSTNAME = '127.0.0.1';
     let port: number;
     let server: Server;
+
     beforeAll(async () => {
         const app = express();
 
@@ -61,11 +64,9 @@ describe('BasicCrawler', () => {
 
     beforeEach(async () => {
         vitest.clearAllMocks();
-        await localStorageEmulator.init();
-    });
-
-    afterAll(async () => {
-        await localStorageEmulator.destroy();
+        serviceLocator.setStorageClient(new MemoryStorageClient());
+        const memoryRequestQueue = await RequestQueue.open();
+        requestQueueClient = memoryRequestQueue.client as MemoryRequestQueueClient;
     });
 
     afterAll(async () => {
@@ -159,14 +160,14 @@ describe('BasicCrawler', () => {
         expect(processed).toHaveLength(2);
 
         // Make sure no extra requests were enqueued
-        expect(await localStorageEmulator.getRequestQueueItems()).toEqual([]);
+        await expect(requestQueueClient.listItems()).resolves.toEqual([]);
 
         // Second run should process 2 more requests
         await crawler.run([...Array(5).keys()].map((index) => `https://example.com/second/${index}`));
         expect(processed).toHaveLength(4);
 
         // Make sure no extra requests were enqueued
-        expect(await localStorageEmulator.getRequestQueueItems()).toEqual([]);
+        await expect(requestQueueClient.listItems()).resolves.toEqual([]);
 
         const processedUrls = processed.map((p) => p.url);
 
@@ -1796,7 +1797,7 @@ describe('BasicCrawler', () => {
 
             // Should only have added the first 3 requests (since 2 were already processed, limit allows 3 more)
             expect(addRequestsBatchedSpy).toHaveBeenCalledOnce();
-            await expect(localStorageEmulator.getRequestQueueItems()).resolves.toMatchObject([
+            await expect(requestQueueClient.listItems()).resolves.toMatchObject([
                 { url: 'http://example.com/1' },
                 { url: 'http://example.com/2' },
                 { url: 'http://example.com/3' },
@@ -1818,7 +1819,7 @@ describe('BasicCrawler', () => {
             // First call - should add 2 requests (2 more slots to go)
             await crawler.addRequests(['http://example.com/1', 'http://example.com/2']);
 
-            await expect(localStorageEmulator.getRequestQueueItems()).resolves.toMatchObject([
+            await expect(requestQueueClient.listItems()).resolves.toMatchObject([
                 { url: 'http://example.com/1' },
                 { url: 'http://example.com/2' },
             ]);
@@ -1831,7 +1832,7 @@ describe('BasicCrawler', () => {
                 'http://example.com/6', // This should be ignored
             ]);
 
-            await expect(localStorageEmulator.getRequestQueueItems()).resolves.toMatchObject([
+            await expect(requestQueueClient.listItems()).resolves.toMatchObject([
                 { url: 'http://example.com/1' },
                 { url: 'http://example.com/2' },
                 { url: 'http://example.com/3' },
@@ -1841,7 +1842,7 @@ describe('BasicCrawler', () => {
             // Third call - should add no requests (limit already reached)
             await crawler.addRequests(['http://example.com/7', 'http://example.com/8']);
 
-            await expect(localStorageEmulator.getRequestQueueItems()).resolves.toMatchObject([
+            await expect(requestQueueClient.listItems()).resolves.toMatchObject([
                 { url: 'http://example.com/1' },
                 { url: 'http://example.com/2' },
                 { url: 'http://example.com/3' },
@@ -1876,7 +1877,7 @@ describe('BasicCrawler', () => {
                 'http://example.com/4', // Would exceed limit
             ]);
 
-            await expect(localStorageEmulator.getRequestQueueItems()).resolves.toMatchObject([
+            await expect(requestQueueClient.listItems()).resolves.toMatchObject([
                 { url: 'http://example.com/1' },
                 { url: 'http://example.com/3' },
             ]);
@@ -1938,7 +1939,7 @@ describe('BasicCrawler', () => {
                 'http://example.com/my-crawler/anything', // Blocked by robots.txt for all user-agents, but allowed for "MyCrawler"
             ]);
 
-            await expect(localStorageEmulator.getRequestQueueItems()).resolves.toMatchObject(visitedUrls);
+            await expect(requestQueueClient.listItems()).resolves.toMatchObject(visitedUrls);
 
             // Should only have added the first request (allowed by robots.txt and within limit)
             expect(addRequestsBatchedSpy).toHaveBeenCalledOnce();
@@ -2203,7 +2204,7 @@ describe('BasicCrawler', () => {
             await crawler.addRequests(requestsToAdd);
 
             // Both unique URLs should have been enqueued — duplicates should not consume the budget
-            await expect(localStorageEmulator.getRequestQueueItems()).resolves.toMatchObject([
+            await expect(requestQueueClient.listItems()).resolves.toMatchObject([
                 { url: 'http://example.com/same' },
                 { url: 'http://example.com/new' },
             ]);
