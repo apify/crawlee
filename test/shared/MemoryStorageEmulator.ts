@@ -59,7 +59,7 @@ export class MemoryStorageEmulator extends StorageEmulator {
         const items = [];
         for (
             let request = await requestQueue.fetchNextRequest();
-            request !== null;
+            request != null;
             request = await requestQueue.fetchNextRequest()
         ) {
             items.push(request);
