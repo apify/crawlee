@@ -1,8 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { KeyValueStore } from '../../packages/core/src/index.js';
+import { KeyValueStore, MemoryStorageClient, serviceLocator } from '../../packages/core/src/index.js';
 import { RecoverableState } from '../../packages/core/src/recoverable_state.js';
-import { MemoryStorageEmulator } from '../shared/MemoryStorageEmulator.js';
 
 interface TestState {
     counter: number;
@@ -11,14 +10,8 @@ interface TestState {
 }
 
 describe('RecoverableState', () => {
-    const localStorageEmulator = new MemoryStorageEmulator();
-
     beforeEach(async () => {
-        await localStorageEmulator.init();
-    });
-
-    afterEach(async () => {
-        await localStorageEmulator.destroy();
+        serviceLocator.setStorageClient(new MemoryStorageClient());
     });
 
     const defaultState: TestState = {

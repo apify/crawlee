@@ -1,21 +1,13 @@
 import { resolve } from 'node:path';
 
 import { FileSystemStorageClient } from '@crawlee/fs-storage';
-import { Dataset, KeyValueStore, RequestQueue, serviceLocator } from '@crawlee/core';
+import { Dataset, KeyValueStore, MemoryStorageClient, RequestQueue, serviceLocator } from '@crawlee/core';
 import { ensureDir, rm } from 'fs-extra';
 
 import { cryptoRandomObjectId } from '@apify/utilities';
 
-import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
-
-const localStorageEmulator = new MemoryStorageEmulator();
-
 beforeEach(async () => {
-    await localStorageEmulator.init();
-});
-
-afterAll(async () => {
-    await localStorageEmulator.destroy();
+    serviceLocator.setStorageClient(new MemoryStorageClient());
 });
 
 describe('storage aliases', () => {
