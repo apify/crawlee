@@ -469,3 +469,18 @@ checked directly (either by reading the native crate's source if vendored, or
 by a quick escape-attempt test against the new `FileSystemStorageClient`)
 before considering the `a04c29766` security fix's guarantees intact
 post-rewrite.
+
+**Commit `9f94f67e2` (Move status message handling from StorageClient to the
+event system)**: `setStatusMessage()` becomes fully synchronous (emits
+`EventType.STATUS_MESSAGE` directly instead of routing through an async
+storage-client call). This makes master's `await Promise.race([this
+.setStatusMessage(...), sleep(1)])` "flush the HTTP" workaround
+(`7aed264f1 fix: make crawler terminal status message reliably delivered
+(#3733)`) look pointless — there's no longer an in-flight HTTP call for a
+tick to flush. Checked `v4-reverse`'s equivalent spot and it kept the
+`Promise.race(...)` wrapper as-is rather than simplifying to a bare call, so
+I matched that instead of "fixing" it myself. It's harmless either way (still
+awaits one microtask via `Promise.resolve(undefined)` racing `sleep(1)`), but
+worth a final look at whether it should be simplified now that the
+underlying async-flush problem it solved no longer applies in this
+architecture.

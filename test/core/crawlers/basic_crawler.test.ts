@@ -91,6 +91,48 @@ describe('BasicCrawler', () => {
         expect(process.listenerCount('SIGINT')).toBe(count - 1);
     });
 
+    test('setStatusMessage emits a STATUS_MESSAGE event', async () => {
+        const events = serviceLocator.getEventManager();
+        const received: any[] = [];
+        const listener = (data: any) => received.push(data);
+        events.on(EventType.STATUS_MESSAGE, listener);
+
+        try {
+            const crawler = new BasicCrawler({
+                id: 'my-crawler',
+                requestHandler: () => {},
+            });
+
+            crawler.setStatusMessage('hello there', { level: 'INFO', isStatusMessageTerminal: true });
+
+            expect(received).toEqual([
+                { crawlerId: 'my-crawler', message: 'hello there', level: 'INFO', isStatusMessageTerminal: true },
+            ]);
+        } finally {
+            events.off(EventType.STATUS_MESSAGE, listener);
+        }
+    });
+
+    test('run() broadcasts start and terminal STATUS_MESSAGE events', async () => {
+        const events = serviceLocator.getEventManager();
+        const messages: string[] = [];
+        const listener = (data: any) => messages.push(data.message);
+        events.on(EventType.STATUS_MESSAGE, listener);
+
+        try {
+            const crawler = new BasicCrawler({
+                requestHandler: () => {},
+            });
+
+            await crawler.run(['https://example.com']);
+
+            expect(messages.some((m) => m === 'Starting the crawler.')).toBe(true);
+            expect(messages.some((m) => m.startsWith('Finished!'))).toBe(true);
+        } finally {
+            events.off(EventType.STATUS_MESSAGE, listener);
+        }
+    });
+
     test('should run in parallel thru all the requests', async () => {
         const sources = [...Array(500).keys()].map((index) => ({ url: `https://example.com/${index}` }));
         const sourcesCopy = JSON.parse(JSON.stringify(sources));
