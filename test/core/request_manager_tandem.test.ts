@@ -1,11 +1,16 @@
-import { log, Request, RequestList, RequestManagerTandem, RequestQueue } from '@crawlee/core';
+import {
+    log,
+    MemoryStorageClient,
+    Request,
+    RequestList,
+    RequestManagerTandem,
+    RequestQueue,
+    serviceLocator,
+} from '@crawlee/core';
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from 'vitest';
-
-import { MemoryStorageEmulator } from '../shared/MemoryStorageEmulator.js';
 
 describe('RequestManagerTandem', () => {
     let logLevel: number;
-    const emulator = new MemoryStorageEmulator();
 
     beforeAll(() => {
         logLevel = log.getLevel();
@@ -13,13 +18,12 @@ describe('RequestManagerTandem', () => {
     });
 
     beforeEach(async () => {
-        await emulator.init();
+        serviceLocator.setStorageClient(new MemoryStorageClient());
         vi.restoreAllMocks();
     });
 
     afterAll(async () => {
         log.setLevel(logLevel);
-        await emulator.destroy();
     });
 
     test('fetchNextRequest transfers from list to queue when queue is empty', async () => {

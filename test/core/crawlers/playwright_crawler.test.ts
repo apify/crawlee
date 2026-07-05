@@ -8,6 +8,7 @@ import type {
     PlaywrightRequestHandler,
     Request,
 } from '@crawlee/playwright';
+import { MemoryStorageClient, serviceLocator } from '@crawlee/core';
 import { createPlaywrightRouter, PlaywrightCrawler, RequestList, RequestValidationError } from '@crawlee/playwright';
 import type { Cheerio, CheerioAPI, CheerioRoot, Element } from '@crawlee/utils';
 import express from 'express';
@@ -17,14 +18,12 @@ import { z } from 'zod';
 import log from '@apify/log';
 
 import { startExpressAppPromise } from 'test/shared/_helper.js';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator.js';
 
 if (os.platform() === 'win32') vitest.setConfig({ testTimeout: 2 * 60 * 1e3 });
 
 describe('PlaywrightCrawler', () => {
     let prevEnvHeadless: string | undefined;
     let logLevel: number;
-    const localStorageEmulator = new MemoryStorageEmulator();
     let requestList: RequestList;
 
     const HOSTNAME = '127.0.0.1';
@@ -59,14 +58,10 @@ describe('PlaywrightCrawler', () => {
     });
 
     beforeEach(async () => {
-        await localStorageEmulator.init();
+        serviceLocator.setStorageClient(new MemoryStorageClient());
 
         const sources = [`http://${HOSTNAME}:${[port]}/`];
         requestList = await RequestList.open(`sources-${Math.random() * 10000}`, sources);
-    });
-
-    afterAll(async () => {
-        await localStorageEmulator.destroy();
     });
 
     afterAll(async () => {
