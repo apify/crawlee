@@ -124,7 +124,7 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
     async pushData(items: Data[]): Promise<void> {
         for (const entry of items) {
             const idx = this.generateLocalEntryName(++this.itemCount);
-            this.datasetEntries.set(idx, entry);
+            this.datasetEntries.set(idx, JSON.parse(JSON.stringify(entry)) as Data);
         }
 
         this.updateTimestamps(true);
