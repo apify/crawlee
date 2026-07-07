@@ -8,7 +8,7 @@ export class DatasetMemoryEntry<Data> implements StorageImplementation<Data> {
     }
 
     update(data: Data) {
-        this.data = data;
+        this.data = JSON.parse(JSON.stringify(data));
     }
 
     delete() {
