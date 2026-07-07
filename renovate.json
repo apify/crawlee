@@ -1,6 +1,6 @@
 {
-	"extends": ["config:base", ":semanticCommitTypeAll(chore)"],
-	"pinVersions": false,
+	"extends": ["config:recommended", ":semanticCommitTypeAll(chore)"],
+	"rangeStrategy": "replace",
 	"separateMajorMinor": false,
 	"dependencyDashboard": false,
 	"semanticCommits": "enabled",
