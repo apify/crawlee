@@ -5,10 +5,10 @@
 	"dependencyDashboard": false,
 	"semanticCommits": "enabled",
 	"lockFileMaintenance": {
-		"enabled": true,
-		"schedule": ["before 2am"],
-		"automerge": true,
-		"automergeType": "branch"
+        "enabled": true,
+        "automerge": true,
+        "automergeType": "pr",
+        "schedule": ["* 0-5 * * 1"]
 	},
 	"constraints": {
 		"npm": "^8.0.0"
@@ -34,9 +34,13 @@
 			],
 			"matchPackageNames": ["playwright"],
 			"enabled": false
-		}
+		},
+        {
+            "matchUpdateTypes": ["lockFileMaintenance"],
+            "minimumReleaseAgeBehaviour": "timestamp-optional"
+        }
 	],
-	"schedule": ["every weekday"],
+    "schedule": ["* 0-5 * * 2-5"],
 	"minimumReleaseAge": "1 day",
 	"internalChecksFilter": "strict",
 	"ignoreDeps": ["crawlee", "cheerio", "yarn", "@browserbasehq/stagehand"]
