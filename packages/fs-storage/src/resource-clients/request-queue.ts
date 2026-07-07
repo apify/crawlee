@@ -6,6 +6,22 @@ import type { FileSystemRequestQueueClient as NativeFileSystemRequestQueueBacken
 
 import { CachedIdClient } from './cached-id-client.js';
 
+/**
+ * Convert a request (either a Crawlee `Request` instance or a plain schema object) into a plain object
+ * whose properties are all enumerable.
+ *
+ * Crawlee's `Request` stores internal metadata (crawl depth, enqueue strategy, session id, ...) in a
+ * *non-enumerable* `userData.__crawlee` bag. The native `@crawlee/fs-storage-native` client reads
+ * request properties directly over the N-API boundary, which only exposes enumerable own properties
+ * and does not honor `toJSON`. Passing a `Request` straight through would therefore silently drop the
+ * `__crawlee` metadata, resetting `crawlDepth` to 0 on the next `fetchNextRequest` (breaking e.g.
+ * `maxCrawlDepth` and enqueue-strategy handling). Round-tripping through JSON invokes the request's
+ * `toJSON`, flattening everything into enumerable properties the native client can persist.
+ */
+function plainifyRequest(request: unknown): Record<string, unknown> {
+    return JSON.parse(JSON.stringify(request)) as Record<string, unknown>;
+}
+
 const requestShape = s
     .object({
         id: s.string(),
@@ -94,7 +110,7 @@ export class RequestQueueBackend extends CachedIdClient implements storage.Reque
         requestOptionsShape.parse(options);
 
         const response = await this.nativeBackend.addBatchOfRequests(
-            requests as unknown as Record<string, unknown>[],
+            requests.map((request) => plainifyRequest(request)),
             options.forefront ?? false,
         );
 
@@ -121,9 +137,7 @@ export class RequestQueueBackend extends CachedIdClient implements storage.Reque
 
     async markRequestAsHandled(request: storage.UpdateRequestSchema): Promise<storage.QueueOperationInfo | undefined> {
         requestShape.parse(request);
-        return (
-            (await this.nativeBackend.markRequestAsHandled(request as unknown as Record<string, unknown>)) ?? undefined
-        );
+        return (await this.nativeBackend.markRequestAsHandled(plainifyRequest(request))) ?? undefined;
     }
 
     async reclaimRequest(
@@ -133,10 +147,7 @@ export class RequestQueueBackend extends CachedIdClient implements storage.Reque
         requestShape.parse(request);
         requestOptionsShape.parse(options);
         return (
-            (await this.nativeBackend.reclaimRequest(
-                request as unknown as Record<string, unknown>,
-                options.forefront ?? false,
-            )) ?? undefined
+            (await this.nativeBackend.reclaimRequest(plainifyRequest(request), options.forefront ?? false)) ?? undefined
         );
     }
 

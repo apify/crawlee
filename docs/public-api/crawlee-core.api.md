@@ -620,6 +620,14 @@ export interface EventManagerOptions {
     persistStateIntervalMillis: number;
 }
 
+// @public
+export interface EventStatusMessageData {
+    crawlerId: string;
+    isStatusMessageTerminal?: boolean;
+    level?: 'DEBUG' | 'INFO' | 'WARNING' | 'ERROR';
+    message: string;
+}
+
 // @public (undocumented)
 export const enum EventType {
     // (undocumented)
@@ -631,11 +639,13 @@ export const enum EventType {
     // (undocumented)
     PERSIST_STATE = "persistState",
     // (undocumented)
+    STATUS_MESSAGE = "statusMessage",
+    // (undocumented)
     SYSTEM_INFO = "systemInfo"
 }
 
 // @public (undocumented)
-export type EventTypeName = EventType | 'systemInfo' | 'persistState' | 'migrating' | 'aborting' | 'exit';
+export type EventTypeName = EventType | 'systemInfo' | 'persistState' | 'migrating' | 'aborting' | 'exit' | 'statusMessage';
 
 // @public
 export type ExplicitStorageIdentifier = {
@@ -904,8 +914,6 @@ export class MemoryStorageBackend implements storage.StorageBackend {
     purge(): Promise<void>;
     // (undocumented)
     readonly requestQueueBackendCache: RequestQueueBackend_2[];
-    // (undocumented)
-    setStatusMessage(message: string, options?: storage.SetStatusMessageOptions): Promise<void>;
     // (undocumented)
     storageExists(id: string, type: 'Dataset' | 'KeyValueStore' | 'RequestQueue'): Promise<boolean>;
     teardown(): Promise<void>;

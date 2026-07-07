@@ -40,6 +40,37 @@ describe('RequestQueueBackend adapter', () => {
         expect(typeof request!.id).toBe('string');
     });
 
+    test('preserves non-enumerable `userData.__crawlee` metadata across the native round-trip', async () => {
+        // Regression guard for a bug where `crawlDepth` (and other internal metadata living in the
+        // non-enumerable `userData.__crawlee` bag) was silently dropped when a request was handed to the
+        // native client, resetting `crawlDepth` to 0 on the next fetch and breaking `maxCrawlDepth` /
+        // enqueue-strategy handling. The native client reads enumerable own properties over N-API and
+        // does not honor `toJSON`, so the adapter must flatten the request before persisting it.
+        const requestWithHiddenMetadata: Record<string, unknown> = {
+            url: 'http://example.com/1',
+            uniqueKey: '1',
+            userData: {},
+        };
+        // Mirror how Crawlee's `Request` stores internal metadata: in a *non-enumerable* `__crawlee` bag
+        // with a `toJSON` that surfaces it. A naive pass-through to the native client would lose this.
+        Object.defineProperty(requestWithHiddenMetadata.userData, '__crawlee', {
+            value: { crawlDepth: 3, enqueueStrategy: 'same-domain' },
+            enumerable: false,
+        });
+        Object.defineProperty(requestWithHiddenMetadata.userData, 'toJSON', {
+            value() {
+                return { __crawlee: (this as any).__crawlee };
+            },
+            enumerable: false,
+        });
+
+        await requestQueue.addBatchOfRequests([requestWithHiddenMetadata as any]);
+
+        const request = await requestQueue.fetchNextRequest();
+
+        expect(request!.userData).toStrictEqual({ __crawlee: { crawlDepth: 3, enqueueStrategy: 'same-domain' } });
+    });
+
     test('getRequest looks up by uniqueKey', async () => {
         await requestQueue.addBatchOfRequests([{ url: 'http://example.com/1', uniqueKey: '1' }]);
 

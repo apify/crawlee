@@ -41,8 +41,6 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
     // (undocumented)
     readonly requestQueuesDirectory: string;
     // (undocumented)
-    setStatusMessage(message: string, options?: storage.SetStatusMessageOptions): Promise<void>;
-    // (undocumented)
     storageExists(id: string, type: 'Dataset' | 'KeyValueStore' | 'RequestQueue'): Promise<boolean>;
     teardown(): Promise<void>;
 }

@@ -388,11 +388,6 @@ export interface RequestQueueBackend {
     setExpectedRequestProcessingTimeSecs?(secs: number): Promise<void>;
 }
 
-export interface SetStatusMessageOptions {
-    isStatusMessageTerminal?: boolean;
-    level?: 'DEBUG' | 'INFO' | 'WARNING' | 'ERROR';
-}
-
 /**
  * Identifies a storage by its ID, name, or alias. At most one may be provided.
  *
@@ -493,6 +488,5 @@ export interface StorageBackend {
     getStorageBackendCacheKey?(): string;
     purge?(): Promise<void>;
     teardown?(): Promise<void>;
-    setStatusMessage?(message: string, options?: SetStatusMessageOptions): Promise<void>;
     stats?: { rateLimitErrors: number[] };
 }

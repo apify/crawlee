@@ -458,11 +458,9 @@ export interface SessionState {
     userData: object;
 }
 
-// @public (undocumented)
+// @public
 export interface SetStatusMessageOptions {
-    // (undocumented)
     isStatusMessageTerminal?: boolean;
-    // (undocumented)
     level?: 'DEBUG' | 'INFO' | 'WARNING' | 'ERROR';
 }
 
@@ -474,8 +472,6 @@ export interface StorageBackend {
     getStorageBackendCacheKey?(): string;
     // (undocumented)
     purge?(): Promise<void>;
-    // (undocumented)
-    setStatusMessage?(message: string, options?: SetStatusMessageOptions): Promise<void>;
     // (undocumented)
     stats?: {
         rateLimitErrors: number[];

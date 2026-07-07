@@ -2,7 +2,6 @@ import { randomUUID } from 'node:crypto';
 
 import type * as storage from '@crawlee/types';
 import type { CrawleeLogger } from '@crawlee/types';
-import { s } from '@sapphire/shapeshift';
 
 import { DatasetBackend } from './resource-clients/dataset.js';
 import { KeyValueStoreBackend } from './resource-clients/key-value-store.js';
@@ -149,15 +148,6 @@ export class MemoryStorageBackend implements storage.StorageBackend {
 
         // In-memory storage only knows about backends in its cache.
         return backends.some((store) => store.id === id);
-    }
-
-    async setStatusMessage(message: string, options: storage.SetStatusMessageOptions = {}): Promise<void> {
-        s.string().parse(message);
-        s.object({
-            isStatusMessageTerminal: s.boolean().optional(),
-        }).parse(options);
-
-        return Promise.resolve();
     }
 
     /**
