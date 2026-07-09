@@ -28,8 +28,8 @@ describe('parseOpenGraph', () => {
         });
     });
 
-    it('Should return a property as an array if there are multiple attributes under the same property name', () => {
-        const parsed = parseOpenGraph(case2) as {
+    it('Should return a property as an array if there are multiple attributes under the same property name', async () => {
+        const parsed = (await parseOpenGraph(case2)) as {
             videoInfo: { actor: { actorValue: string[] } };
         };
 
@@ -38,7 +38,7 @@ describe('parseOpenGraph', () => {
         expect(parsed.videoInfo.actor.actorValue).toContain('bar');
         expect(parsed.videoInfo.actor.actorValue).toContain('baz');
 
-        const parsed2 = parseOpenGraph(case3) as {
+        const parsed2 = (await parseOpenGraph(case3)) as {
             locale: { localeValue: string; alternate: string[] };
         };
 
