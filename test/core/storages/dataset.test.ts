@@ -368,6 +368,30 @@ describe('dataset', () => {
             const jsonErrMsg = 'Converting circular structure to JSON';
             await expect(dataset.pushData(circularObj)).rejects.toThrow(jsonErrMsg);
         });
+
+        test('stores independent snapshots, not object references', async () => {
+            const dataset = await Dataset.open({ name: `test-snapshots-${Date.now()}` });
+            const mutableData = { rand: 0, counter: 0 };
+
+            await dataset.pushData(mutableData);
+            mutableData.rand = Math.random();
+            mutableData.counter = 1;
+            await dataset.pushData(mutableData);
+            mutableData.rand = Math.random();
+            mutableData.counter = 2;
+            await dataset.pushData(mutableData);
+
+            const { items } = await dataset.getData();
+
+            expect(items).toHaveLength(3);
+            expect(items[0]).toEqual({ rand: 0, counter: 0 });
+            expect(items[1].counter).toBe(1);
+            expect(items[2].counter).toBe(2);
+
+            // Each push must store an independent snapshot — items should not be the same reference
+            expect(items[0]).not.toBe(items[1]);
+            expect(items[1]).not.toBe(items[2]);
+        });
     });
 
     describe('utils', () => {
