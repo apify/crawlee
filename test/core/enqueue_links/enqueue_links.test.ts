@@ -1,4 +1,9 @@
-import { type AddRequestsBatchedOptions, cheerioCrawlerEnqueueLinks } from '@crawlee/cheerio';
+import {
+    type AddRequestsBatchedOptions,
+    cheerioCrawlerEnqueueLinks,
+    MemoryStorageClient,
+    serviceLocator,
+} from '@crawlee/cheerio';
 import { launchPlaywright } from '@crawlee/playwright';
 import type { RequestQueueOperationOptions, Source } from '@crawlee/puppeteer';
 import {
@@ -66,7 +71,11 @@ describe('enqueueLinks()', () => {
         log.setLevel(log.LEVELS.ERROR);
     });
 
-    afterAll(() => {
+    beforeEach(async () => {
+        serviceLocator.setStorageClient(new MemoryStorageClient());
+    });
+
+    afterAll(async () => {
         log.setLevel(ll);
     });
 

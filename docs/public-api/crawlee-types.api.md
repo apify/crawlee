@@ -113,10 +113,6 @@ export interface DatasetInfo {
     // (undocumented)
     accessedAt: Date;
     // (undocumented)
-    actId?: string;
-    // (undocumented)
-    actRunId?: string;
-    // (undocumented)
     createdAt: Date;
     // (undocumented)
     id: string;
@@ -126,18 +122,6 @@ export interface DatasetInfo {
     modifiedAt: Date;
     // (undocumented)
     name?: string;
-}
-
-// @public (undocumented)
-export interface DatasetStats {
-    // (undocumented)
-    deleteCount?: number;
-    // (undocumented)
-    readCount?: number;
-    // (undocumented)
-    storageBytes?: number;
-    // (undocumented)
-    writeCount?: number;
 }
 
 // @public (undocumented)
@@ -230,7 +214,7 @@ export interface KeyValueStoreClient {
     getMetadata(): Promise<KeyValueStoreInfo>;
     getPublicUrl(key: string): Promise<string | undefined>;
     getValue(key: string): Promise<KeyValueStoreRecord | undefined>;
-    listKeys(options?: KeyValueStoreListKeysOptions): Promise<KeyValueStoreItemData[]>;
+    listKeys(options?: KeyValueStoreListKeysOptions): Promise<KeyValueStoreListKeysResult>;
     purge(): Promise<void>;
     recordExists(key: string): Promise<boolean>;
     setValue(record: KeyValueStoreInputRecord): Promise<void>;
@@ -241,10 +225,6 @@ export interface KeyValueStoreInfo {
     // (undocumented)
     accessedAt: Date;
     // (undocumented)
-    actId?: string;
-    // (undocumented)
-    actRunId?: string;
-    // (undocumented)
     createdAt: Date;
     // (undocumented)
     id: string;
@@ -252,10 +232,6 @@ export interface KeyValueStoreInfo {
     modifiedAt: Date;
     // (undocumented)
     name?: string;
-    // (undocumented)
-    stats?: KeyValueStoreStats;
-    // (undocumented)
-    userId?: string;
 }
 
 // @public
@@ -270,6 +246,7 @@ export interface KeyValueStoreInputRecord {
 
 // @public (undocumented)
 export interface KeyValueStoreItemData {
+    contentType: string;
     // (undocumented)
     key: string;
     // (undocumented)
@@ -281,6 +258,16 @@ export interface KeyValueStoreListKeysOptions {
     exclusiveStartKey?: string;
     limit?: number;
     prefix?: string;
+}
+
+// @public
+export interface KeyValueStoreListKeysResult {
+    count: number;
+    exclusiveStartKey?: string;
+    isTruncated: boolean;
+    items: KeyValueStoreItemData[];
+    limit: number;
+    nextExclusiveStartKey?: string;
 }
 
 // @public
@@ -296,20 +283,6 @@ export interface KeyValueStoreRecord {
 // @public
 export type KeyValueStoreRecordInputValue = Buffer | ArrayBuffer | ArrayBufferView | string | NodeJS.ReadableStream | ReadableStream;
 
-// @public (undocumented)
-export interface KeyValueStoreStats {
-    // (undocumented)
-    deleteCount?: number;
-    // (undocumented)
-    listCount?: number;
-    // (undocumented)
-    readCount?: number;
-    // (undocumented)
-    storageBytes?: number;
-    // (undocumented)
-    writeCount?: number;
-}
-
 // @public
 export interface NewPageOptions {
     id?: string;
@@ -321,7 +294,7 @@ export interface PageState {
     cookies: Cookie[];
 }
 
-// @public (undocumented)
+// @public
 export interface PaginatedList<Data> {
     count: number;
     desc?: boolean;
@@ -366,27 +339,19 @@ export type RedirectHandler = (redirectResponse: Response, updatedRequest: {
     headers: Headers;
 }) => void;
 
-// @public (undocumented)
-export interface RequestOptions {
-    // (undocumented)
-    [k: string]: unknown;
-    // (undocumented)
-    forefront?: boolean;
-}
-
 // @public
 export interface RequestQueueClient {
-    addBatchOfRequests(requests: RequestSchema[], options?: RequestOptions): Promise<BatchAddRequestsResult>;
+    addBatchOfRequests(requests: RequestSchema[], options?: RequestQueueOperationOptions): Promise<BatchAddRequestsResult>;
     drop(): Promise<void>;
-    fetchNextRequest(): Promise<RequestOptions | null>;
+    fetchNextRequest(): Promise<UpdateRequestSchema | undefined>;
     getMetadata(): Promise<RequestQueueInfo>;
-    getRequest(uniqueKey: string): Promise<RequestOptions | undefined>;
+    getRequest(uniqueKey: string): Promise<UpdateRequestSchema | undefined>;
     isEmpty(): Promise<boolean>;
     isFinished(): Promise<boolean>;
-    markRequestAsHandled(request: UpdateRequestSchema): Promise<QueueOperationInfo | null>;
+    markRequestAsHandled(request: UpdateRequestSchema): Promise<QueueOperationInfo | undefined>;
     purge(): Promise<void>;
-    reclaimRequest(request: UpdateRequestSchema, options?: RequestOptions): Promise<QueueOperationInfo | null>;
-    setExpectedRequestProcessingTimeSecs?(secs: number): void;
+    reclaimRequest(request: UpdateRequestSchema, options?: RequestQueueOperationOptions): Promise<QueueOperationInfo | undefined>;
+    setExpectedRequestProcessingTimeSecs?(secs: number): Promise<void>;
 }
 
 // @public (undocumented)
@@ -394,15 +359,7 @@ export interface RequestQueueInfo {
     // (undocumented)
     accessedAt: Date;
     // (undocumented)
-    actId?: string;
-    // (undocumented)
-    actRunId?: string;
-    // (undocumented)
     createdAt: Date;
-    // (undocumented)
-    expireAt?: string;
-    // (undocumented)
-    hadMultipleClients?: boolean;
     // (undocumented)
     handledRequestCount: number;
     // (undocumented)
@@ -414,25 +371,12 @@ export interface RequestQueueInfo {
     // (undocumented)
     pendingRequestCount: number;
     // (undocumented)
-    stats?: RequestQueueStats;
-    // (undocumented)
     totalRequestCount: number;
-    // (undocumented)
-    userId?: string;
 }
 
-// @public (undocumented)
-export interface RequestQueueStats {
-    // (undocumented)
-    deleteCount?: number;
-    // (undocumented)
-    headItemReadCount?: number;
-    // (undocumented)
-    readCount?: number;
-    // (undocumented)
-    storageBytes?: number;
-    // (undocumented)
-    writeCount?: number;
+// @public
+export interface RequestQueueOperationOptions {
+    forefront?: boolean;
 }
 
 // @public (undocumented)
@@ -514,11 +458,9 @@ export interface SessionState {
     userData: object;
 }
 
-// @public (undocumented)
+// @public
 export interface SetStatusMessageOptions {
-    // (undocumented)
     isStatusMessageTerminal?: boolean;
-    // (undocumented)
     level?: 'DEBUG' | 'INFO' | 'WARNING' | 'ERROR';
 }
 
@@ -530,8 +472,6 @@ export interface StorageClient {
     getStorageClientCacheKey?(): string;
     // (undocumented)
     purge?(): Promise<void>;
-    // (undocumented)
-    setStatusMessage?(message: string, options?: SetStatusMessageOptions): Promise<void>;
     // (undocumented)
     stats?: {
         rateLimitErrors: number[];

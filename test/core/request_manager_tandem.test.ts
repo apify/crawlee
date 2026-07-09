@@ -1,11 +1,16 @@
-import { log, Request, RequestList, RequestManagerTandem, RequestQueue } from '@crawlee/core';
+import {
+    log,
+    MemoryStorageClient,
+    Request,
+    RequestList,
+    RequestManagerTandem,
+    RequestQueue,
+    serviceLocator,
+} from '@crawlee/core';
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from 'vitest';
-
-import { MemoryStorageEmulator } from '../shared/MemoryStorageEmulator.js';
 
 describe('RequestManagerTandem', () => {
     let logLevel: number;
-    const emulator = new MemoryStorageEmulator();
 
     beforeAll(() => {
         logLevel = log.getLevel();
@@ -13,13 +18,12 @@ describe('RequestManagerTandem', () => {
     });
 
     beforeEach(async () => {
-        await emulator.init();
+        serviceLocator.setStorageClient(new MemoryStorageClient());
         vi.restoreAllMocks();
     });
 
     afterAll(async () => {
         log.setLevel(logLevel);
-        await emulator.destroy();
     });
 
     test('fetchNextRequest transfers from list to queue when queue is empty', async () => {
@@ -303,7 +307,7 @@ describe('RequestManagerTandem', () => {
         // Resolve the manager first (the queue was passed eagerly, but make the dependency explicit).
         await tandem.fetchNextRequest();
 
-        tandem.setExpectedRequestProcessingTimeSecs(600);
+        await tandem.setExpectedRequestProcessingTimeSecs(600);
         expect(hintSpy).toHaveBeenCalledWith(600);
     });
 
@@ -316,7 +320,7 @@ describe('RequestManagerTandem', () => {
         const tandem = new RequestManagerTandem(requestList, () => requestQueue);
 
         // Hint arrives before anything resolves the manager — nothing forwarded yet.
-        tandem.setExpectedRequestProcessingTimeSecs(600);
+        await tandem.setExpectedRequestProcessingTimeSecs(600);
         expect(hintSpy).not.toHaveBeenCalled();
 
         // Resolving the manager (via any operation) applies the remembered hint.

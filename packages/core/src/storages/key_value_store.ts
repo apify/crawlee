@@ -1,8 +1,4 @@
-import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
-
 import type { Dictionary, KeyValueStoreClient, KeyValueStoreItemData } from '@crawlee/types';
-import JSON5 from 'json5';
 import ow, { ArgumentError } from 'ow';
 
 import { KEY_VALUE_STORE_KEY_REGEX } from '@apify/consts';
@@ -12,6 +8,8 @@ import { serviceLocator } from '../service_locator.js';
 import type { Awaitable } from '../typedefs.js';
 import { checkStorageAccess } from './access_checking.js';
 import { parseValue, serializeValue } from './key_value_store_codec.js';
+import type { KeyValueStoreStats } from './storage_stats.js';
+import { StorageStatsTracker } from './storage_stats.js';
 import type { StorageIdentifier } from './storage_instance_manager.js';
 import type { StorageOpenOptions } from './utils.js';
 import { resolveStorageIdentifier } from './storage_instance_manager.js';
@@ -86,6 +84,13 @@ export class KeyValueStore {
     /** Cache for persistent (auto-saved) values. When we try to set such value, the cache will be updated automatically. */
     private readonly cache = new Map<string, Dictionary>();
 
+    private readonly statsTracker = new StorageStatsTracker<KeyValueStoreStats>({
+        readCount: 0,
+        writeCount: 0,
+        deleteCount: 0,
+        listCount: 0,
+    });
+
     /**
      * @internal
      */
@@ -96,6 +101,14 @@ export class KeyValueStore {
         this.id = options.id;
         this.name = options.name;
         this.client = options.client;
+    }
+
+    /**
+     * Backend-independent usage counters tracked for this key-value store (read / write / delete /
+     * list operations issued to the underlying storage client). Counted per client call.
+     */
+    get stats(): KeyValueStoreStats {
+        return this.statsTracker.current;
     }
 
     /**
@@ -198,6 +211,7 @@ export class KeyValueStore {
         checkStorageAccess();
 
         ow(key, ow.string.nonEmpty);
+        this.statsTracker.add('readCount');
         const record = await this.client.getValue(key);
 
         // A missing record falls back to the default; a record that parses to a falsy value (including
@@ -240,6 +254,7 @@ export class KeyValueStore {
         checkStorageAccess();
 
         ow(key, ow.string.nonEmpty);
+        this.statsTracker.add('readCount');
         const record = await this.client.getValue(key);
         if (!record) return null;
 
@@ -314,6 +329,7 @@ export class KeyValueStore {
         for await (const page of this.fetchKeyPages(options)) {
             const results: T[] = [];
             for (const item of page) {
+                this.statsTracker.add('readCount');
                 const record = await this.client.getValue(item.key);
                 if (record) {
                     const parsed = parseValue(record.value, record.contentType ?? null);
@@ -331,10 +347,15 @@ export class KeyValueStore {
         let exclusiveStartKey: string | undefined;
 
         while (true) {
-            const items = await this.client.listKeys({ ...options, exclusiveStartKey, limit });
+            this.statsTracker.add('listCount');
+            const { items, isTruncated, nextExclusiveStartKey } = await this.client.listKeys({
+                ...options,
+                exclusiveStartKey,
+                limit,
+            });
             yield items;
-            if (items.length < limit) break;
-            exclusiveStartKey = items[items.length - 1].key;
+            if (!isTruncated) break;
+            exclusiveStartKey = nextExclusiveStartKey;
         }
     }
 
@@ -426,10 +447,14 @@ export class KeyValueStore {
         }
 
         // In this case delete the record.
-        if (value === null) return this.client.deleteValue(key);
+        if (value === null) {
+            this.statsTracker.add('deleteCount');
+            return this.client.deleteValue(key);
+        }
 
         const serialized = serializeValue(value, optionsCopy.contentType);
 
+        this.statsTracker.add('writeCount');
         return this.client.setValue({
             key,
             value: serialized.value,
@@ -826,8 +851,9 @@ export class KeyValueStore {
 
     /**
      * Gets the crawler input value from the default {@apilink KeyValueStore} associated with the current crawler run.
-     * By default, it will try to find root input files (either extension-less, `.json` or `.txt`),
-     * or alternatively read the input from the default {@apilink KeyValueStore}.
+     *
+     * The input is read from the default {@apilink KeyValueStore} under the configured input key
+     * (`CRAWLEE_INPUT_KEY`, default `INPUT`).
      *
      * Note that the `getInput()` function does not cache the value read from the key-value store.
      * If you need to use the input multiple times in your crawler,
@@ -845,32 +871,7 @@ export class KeyValueStore {
      */
     static async getInput<T = Dictionary | string | Buffer>(): Promise<T | null> {
         const store = await this.open();
-        const inputKey = store.config.inputKey;
-
-        const cwd = process.cwd();
-        const possibleExtensions = ['', '.json', '.txt'];
-
-        // Attempt to read input from root file instead of key-value store
-        for (const extension of possibleExtensions) {
-            const inputFile = join(cwd, `${inputKey}${extension}`);
-            let input: Buffer;
-
-            // Try getting the file from the file system
-            try {
-                input = await readFile(inputFile);
-            } catch {
-                continue;
-            }
-
-            // Attempt to parse as JSON, or return the input as is otherwise
-            try {
-                return JSON5.parse(input.toString()) as T;
-            } catch {
-                return input as unknown as T;
-            }
-        }
-
-        return store.getValue<T>(inputKey);
+        return store.getValue<T>(store.config.inputKey);
     }
 }
 

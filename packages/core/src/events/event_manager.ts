@@ -16,9 +16,41 @@ export const enum EventType {
     MIGRATING = 'migrating',
     ABORTING = 'aborting',
     EXIT = 'exit',
+    STATUS_MESSAGE = 'statusMessage',
 }
 
-export type EventTypeName = EventType | 'systemInfo' | 'persistState' | 'migrating' | 'aborting' | 'exit';
+export type EventTypeName =
+    | EventType
+    | 'systemInfo'
+    | 'persistState'
+    | 'migrating'
+    | 'aborting'
+    | 'exit'
+    | 'statusMessage';
+
+/**
+ * Payload emitted with the {@apilink EventType.STATUS_MESSAGE|`statusMessage`} event.
+ *
+ * The crawler broadcasts these whenever it wants to report its progress (e.g. periodically, or on
+ * start/finish). Consumers such as the Apify SDK can listen for the event and propagate the message
+ * to the platform. This keeps the crawler decoupled from any specific status-reporting backend.
+ */
+export interface EventStatusMessageData {
+    /**
+     * Identifies the crawler that emitted the message.
+     *
+     * Either the user-provided `id` from the crawler options, or a randomly generated one.
+     * Since a single event manager may be shared by multiple crawlers, consumers can use this
+     * to attribute the message to a specific crawler instance.
+     */
+    crawlerId: string;
+    /** The human-readable status message. */
+    message: string;
+    /** Whether this is the final status message of the run. */
+    isStatusMessageTerminal?: boolean;
+    /** The log level the message was logged with. */
+    level?: 'DEBUG' | 'INFO' | 'WARNING' | 'ERROR';
+}
 
 interface Intervals {
     persistState?: BetterIntervalID;

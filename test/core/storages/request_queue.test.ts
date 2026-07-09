@@ -1,9 +1,7 @@
 /* eslint-disable dot-notation */
 
-import { ProxyConfiguration, Request, RequestQueue, serviceLocator } from '@crawlee/core';
+import { MemoryStorageClient, ProxyConfiguration, Request, RequestQueue, serviceLocator } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
-
-import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
 
 let mockHttpClient = vitest.mockObject({
     async sendRequest(_request: any, _options?: any) {
@@ -26,15 +24,9 @@ beforeEach(async () => {
 });
 
 describe('RequestQueue remote', () => {
-    const emulator = new MemoryStorageEmulator();
-
     beforeEach(async () => {
-        await emulator.init();
+        serviceLocator.setStorageClient(new MemoryStorageClient());
         vitest.clearAllMocks();
-    });
-
-    afterEach(async () => {
-        await emulator.destroy();
     });
 
     async function createRequestQueue(id = 'some-id', name?: string) {
@@ -318,31 +310,55 @@ describe('RequestQueue remote', () => {
             (queue.client as any).setExpectedRequestProcessingTimeSecs = spy;
 
             // First hint is forwarded.
-            queue.setExpectedRequestProcessingTimeSecs(60);
+            await queue.setExpectedRequestProcessingTimeSecs(60);
             expect(spy).toHaveBeenLastCalledWith(60);
 
             // A larger hint is forwarded.
-            queue.setExpectedRequestProcessingTimeSecs(120);
+            await queue.setExpectedRequestProcessingTimeSecs(120);
             expect(spy).toHaveBeenLastCalledWith(120);
 
             // A smaller (or equal) hint must not shorten the reservation, so it is not forwarded.
-            queue.setExpectedRequestProcessingTimeSecs(30);
-            queue.setExpectedRequestProcessingTimeSecs(120);
+            await queue.setExpectedRequestProcessingTimeSecs(30);
+            await queue.setExpectedRequestProcessingTimeSecs(120);
             expect(spy).toHaveBeenCalledTimes(2);
+        });
+    });
+
+    describe('stats', () => {
+        test('start at zero', async () => {
+            const queue = await createRequestQueue();
+            expect(queue.stats).toEqual({ writeCount: 0, headItemReadCount: 0 });
+        });
+
+        test('count writes on add, handle and reclaim', async () => {
+            const queue = await createRequestQueue();
+
+            await queue.addRequest({ url: 'http://example.com/a' });
+            expect(queue.stats.writeCount).toBe(1);
+
+            const request = await queue.fetchNextRequest();
+            expect(queue.stats.headItemReadCount).toBe(1);
+
+            await queue.markRequestAsHandled(request!);
+            expect(queue.stats.writeCount).toBe(2);
+        });
+
+        test('count head reads on fetchNextRequest', async () => {
+            const queue = await createRequestQueue();
+
+            await queue.addRequest({ url: 'http://example.com/a' });
+
+            const headReadsBefore = queue.stats.headItemReadCount;
+            await queue.fetchNextRequest();
+            expect(queue.stats.headItemReadCount).toBe(headReadsBefore + 1);
         });
     });
 });
 
 describe('RequestQueue with requestsFromUrl', () => {
-    const emulator = new MemoryStorageEmulator();
-
     beforeEach(async () => {
-        await emulator.init();
+        serviceLocator.setStorageClient(new MemoryStorageClient());
         vitest.restoreAllMocks();
-    });
-
-    afterAll(async () => {
-        await emulator.destroy();
     });
 
     test('should correctly load list from hosted files in correct order', async () => {

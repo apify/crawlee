@@ -205,7 +205,7 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
     // (undocumented)
     protected sameDomainDelayMillis: number;
     sessionPool: ISessionPool;
-    setStatusMessage(message: string, options?: SetStatusMessageOptions): Promise<void>;
+    setStatusMessage(message: string, options?: SetStatusMessageOptions): void;
     readonly stats: Statistics;
     // (undocumented)
     protected statusMessageCallback?: StatusMessageCallback;
