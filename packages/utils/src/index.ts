@@ -14,7 +14,7 @@ export * from './internals/robots';
 export * from './internals/sitemap';
 export * from './internals/url';
 
-export { getCurrentCpuTicksV2 } from './internals/systemInfoV2/cpu-info';
+export { getCurrentCpuTicksV2, getCurrentProcessCpuTicks } from './internals/systemInfoV2/cpu-info';
 export { getMemoryInfoV2 } from './internals/systemInfoV2/memory-info';
 
 export { Dictionary, Awaitable, Constructor } from '@crawlee/types';

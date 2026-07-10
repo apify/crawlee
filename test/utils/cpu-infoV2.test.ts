@@ -9,6 +9,7 @@ import {
     getCpuQuota,
     getCurrentCpuTicks,
     getCurrentCpuTicksV2,
+    getCurrentProcessCpuTicks,
     getSystemCpuUsage,
     sampleCpuUsage,
 } from '../../packages/utils/src/internals/systemInfoV2/cpu-info';
@@ -47,6 +48,36 @@ describe('getCurrentCpuTicks()', () => {
         const load = getCurrentCpuTicks();
         expect(load).toBeCloseTo(0.75);
         cpusMock.mockRestore();
+    });
+});
+
+describe('getCurrentProcessCpuTicks()', () => {
+    test('returns 0 on the first call (no previous sample yet)', () => {
+        const cpuUsageMock = vitest.spyOn(process, 'cpuUsage').mockReturnValue({ user: 100_000, system: 0 });
+        const hrtimeMock = vitest.spyOn(process.hrtime, 'bigint').mockReturnValue(0n);
+        expect(getCurrentProcessCpuTicks()).toBe(0);
+        cpuUsageMock.mockRestore();
+        hrtimeMock.mockRestore();
+    });
+
+    test('normalizes process CPU usage to a single core, independent of core count', () => {
+        const cpuUsageMock = vitest.spyOn(process, 'cpuUsage');
+        const hrtimeMock = vitest.spyOn(process.hrtime, 'bigint');
+
+        // Prime the previous sample.
+        cpuUsageMock.mockReturnValueOnce({ user: 0, system: 0 });
+        hrtimeMock.mockReturnValueOnce(0n);
+        getCurrentProcessCpuTicks();
+
+        // 450ms of CPU time (user+system) consumed over a 500ms wall-clock window
+        // -> ~0.9 of a single core, same as a busy-loop pegging one core on any machine.
+        cpuUsageMock.mockReturnValueOnce({ user: 400_000, system: 50_000 });
+        hrtimeMock.mockReturnValueOnce(500_000_000n); // 500ms in nanoseconds
+        const load = getCurrentProcessCpuTicks();
+
+        expect(load).toBeCloseTo(0.9);
+        cpuUsageMock.mockRestore();
+        hrtimeMock.mockRestore();
     });
 });
 

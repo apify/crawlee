@@ -26,6 +26,40 @@ let CLOCK_TICKS_CHECKED = false;
 
 const NANOSECONDS_PER_SECOND = 1e9;
 
+let previousProcessCpuUsage: NodeJS.CpuUsage | null = null;
+let previousProcessCpuUsageTime: bigint | null = null;
+
+/**
+ * Gets the CPU load of the current process only, normalized to a single core, regardless of
+ * how many cores the machine has. Unlike {@apilink getCurrentCpuTicks}, which averages usage
+ * across all cores (diluting the signal for CPU-bound work confined to a single Node.js thread,
+ * e.g. `CheerioCrawler`/`HttpCrawler` parsing), this reflects only the CPU time this process
+ * itself consumed.
+ *
+ * Not suitable for browser-based crawlers, since their CPU-heavy work (rendering) happens in
+ * separate browser processes this does not measure.
+ * @returns a number between 0 and 1 (can exceed 1 if the process uses more than one core, e.g. via worker threads)
+ * @internal
+ */
+export function getCurrentProcessCpuTicks(): number {
+    const usage = process.cpuUsage();
+    const now = process.hrtime.bigint();
+
+    if (previousProcessCpuUsage === null || previousProcessCpuUsageTime === null) {
+        previousProcessCpuUsage = usage;
+        previousProcessCpuUsageTime = now;
+        return 0;
+    }
+
+    const elapsedMicros = Number(now - previousProcessCpuUsageTime) / 1e3;
+    const cpuMicros = usage.user + usage.system - (previousProcessCpuUsage.user + previousProcessCpuUsage.system);
+
+    previousProcessCpuUsage = usage;
+    previousProcessCpuUsageTime = now;
+
+    return elapsedMicros ? cpuMicros / elapsedMicros : 0;
+}
+
 const previousTicks = { idle: 0, total: 0 };
 /**
  * Gets the "bare metal" cpu load.
