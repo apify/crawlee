@@ -3,6 +3,7 @@ export * from './key_value_store';
 export * from './request_list';
 export * from './request_list_adapter';
 export * from './request_provider';
+export * from './request_dedup_cache';
 export { RequestQueueV1 } from './request_queue';
 export { RequestQueue } from './request_queue_v2';
 export { RequestQueue as RequestQueueV2 } from './request_queue_v2';

@@ -20,6 +20,9 @@ import {
 
 const MAX_CACHED_REQUESTS = 1_000_000;
 
+/** Number of slots in the fixed-size `uniqueKey` deduplication cache — see {@apilink RequestDeduplicationCache}. */
+const REQUEST_DEDUP_CACHE_SIZE = 1_000_000;
+
 /**
  * This number must be large enough so that processing of all these requests cannot be done in
  * a time lower than expected maximum latency of DynamoDB, but low enough not to waste too much memory.
@@ -94,6 +97,7 @@ class RequestQueue extends RequestProvider {
                 logPrefix: 'RequestQueue',
                 recentlyHandledRequestsMaxSize: RECENTLY_HANDLED_CACHE_SIZE,
                 requestCacheMaxSize: MAX_CACHED_REQUESTS,
+                requestSeenCacheMaxSize: REQUEST_DEDUP_CACHE_SIZE,
             },
             config,
         );
