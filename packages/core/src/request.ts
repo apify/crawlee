@@ -6,7 +6,7 @@ import type { Dictionary } from '@crawlee/types';
 import type { BasePredicate } from 'ow';
 import ow from 'ow';
 
-import { normalizeUrl } from '@apify/utilities';
+import { cryptoRandomObjectId, normalizeUrl } from '@apify/utilities';
 
 import type { EnqueueLinksOptions } from './enqueue_links/enqueue_links.js';
 import type { SkippedRequestReason } from './enqueue_links/shared.js';
@@ -32,6 +32,7 @@ const requestOptionalPredicates = {
     handledAt: ow.optional.any(ow.string.date, ow.date),
     keepUrlFragment: ow.optional.boolean,
     useExtendedUniqueKey: ow.optional.boolean,
+    alwaysEnqueue: ow.optional.boolean,
     skipNavigation: ow.optional.boolean,
     crawlDepth: ow.optional.number.greaterThanOrEqual(0),
     state: ow.optional.number.greaterThanOrEqual(0).lessThanOrEqual(6),
@@ -178,6 +179,7 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
             handledAt,
             keepUrlFragment = false,
             useExtendedUniqueKey = false,
+            alwaysEnqueue = false,
             skipNavigation,
             enqueueStrategy,
             crawlDepth,
@@ -195,12 +197,23 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
 
         if (method === 'GET' && payload) throw new Error('Request with GET method cannot have a payload.');
 
+        if (uniqueKey && alwaysEnqueue) {
+            throw new Error('`alwaysEnqueue` cannot be used together with a custom `uniqueKey`.');
+        }
+
         this.id = id;
         this.url = url;
         this.loadedUrl = loadedUrl;
         this.uniqueKey =
             uniqueKey ||
-            CrawleeRequest.computeUniqueKey({ url, method, payload, keepUrlFragment, useExtendedUniqueKey });
+            CrawleeRequest.computeUniqueKey({
+                url,
+                method,
+                payload,
+                keepUrlFragment,
+                useExtendedUniqueKey,
+                alwaysEnqueue,
+            });
         this.method = method;
         this.payload = payload;
         this.noRetry = noRetry;
@@ -448,9 +461,13 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
         payload,
         keepUrlFragment = false,
         useExtendedUniqueKey = false,
+        alwaysEnqueue = false,
     }: ComputeUniqueKeyOptions) {
         const normalizedMethod = method.toUpperCase();
         const normalizedUrl = normalizeUrl(url, keepUrlFragment) || url; // It returns null when url is invalid, causing weird errors.
+
+        let uniqueKey: string;
+
         if (!useExtendedUniqueKey) {
             if (normalizedMethod !== 'GET' && payload) {
                 serviceLocator
@@ -461,10 +478,17 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
                             'and differ only in method and payload, you should see the "useExtendedUniqueKey" option of Request constructor.',
                     );
             }
-            return normalizedUrl;
+            uniqueKey = normalizedUrl;
+        } else {
+            const payloadHash = payload ? CrawleeRequest.hashPayload(payload) : '';
+            uniqueKey = `${normalizedMethod}|${payloadHash}|${normalizedUrl}`;
         }
-        const payloadHash = payload ? CrawleeRequest.hashPayload(payload) : '';
-        return `${normalizedMethod}|${payloadHash}|${normalizedUrl}`;
+
+        if (alwaysEnqueue) {
+            uniqueKey = `${cryptoRandomObjectId(17)}|${uniqueKey}`;
+        }
+
+        return uniqueKey;
     }
 
     /** @internal */
@@ -548,6 +572,14 @@ export interface RequestOptions<UserData extends Dictionary = Dictionary> {
     useExtendedUniqueKey?: boolean;
 
     /**
+     * If `true` then a random value is included in the `uniqueKey` computation, ensuring the request
+     * is always enqueued even if a request with the same URL (and method/payload) is already present
+     * in the queue. Cannot be used together with a custom `uniqueKey`.
+     * @default false
+     */
+    alwaysEnqueue?: boolean;
+
+    /**
      * The `true` value indicates that the request will not be automatically retried on error.
      * @default false
      */
@@ -616,6 +648,7 @@ interface ComputeUniqueKeyOptions {
     payload?: string | Buffer;
     keepUrlFragment?: boolean;
     useExtendedUniqueKey?: boolean;
+    alwaysEnqueue?: boolean;
 }
 
 export type Source = (Partial<RequestOptions> & { requestsFromUrl?: string; regex?: RegExp }) | CrawleeRequest;
