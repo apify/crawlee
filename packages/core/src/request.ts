@@ -464,7 +464,7 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
             return normalizedUrl;
         }
         const payloadHash = payload ? CrawleeRequest.hashPayload(payload) : '';
-        return `${normalizedMethod}(${payloadHash}):${normalizedUrl}`;
+        return `${normalizedMethod}|${payloadHash}|${normalizedUrl}`;
     }
 
     /** @internal */
@@ -491,7 +491,7 @@ export interface RequestOptions<UserData extends Dictionary = Dictionary> {
      * The `keepUrlFragment` option determines whether URL hash fragment is included in the `uniqueKey` or not.
      *
      * The `useExtendedUniqueKey` options determines whether method and payload are included in the `uniqueKey`,
-     * producing a `uniqueKey` in the following format: `METHOD(payloadHash):normalizedUrl`. This is useful
+     * producing a `uniqueKey` in the following format: `METHOD|payloadHash|normalizedUrl`. This is useful
      * when requests point to the same URL, but with different methods and payloads. For example: form submits.
      *
      * Pass an arbitrary non-empty text value to the `uniqueKey` property
