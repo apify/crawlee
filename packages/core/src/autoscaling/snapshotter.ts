@@ -59,6 +59,19 @@ export interface SnapshotterOptions {
      */
     snapshotHistorySecs?: number;
 
+    /**
+     * Measures this process's own CPU usage (normalized to a single core) instead of
+     * the whole machine's aggregate CPU usage. Useful when running multiple independent
+     * crawler instances concurrently in the same Node.js process, since the machine-wide
+     * aggregate metric gets diluted by the number of cores and can fail to detect that
+     * the combined load of all instances is overloading Node's single JS thread.
+     *
+     * Not recommended for browser-based crawlers, since their CPU-heavy work (rendering)
+     * happens in separate browser processes this doesn't measure.
+     * @default false
+     */
+    useProcessCpuUsage?: boolean;
+
     /** @internal */
     log?: Log;
 
@@ -144,6 +157,7 @@ export class Snapshotter {
                 maxBlockedMillis: ow.optional.number,
                 maxUsedMemoryRatio: ow.optional.number,
                 maxClientErrors: ow.optional.number,
+                useProcessCpuUsage: ow.optional.boolean,
                 log: ow.optional.object,
                 client: ow.optional.object,
                 config: ow.optional.object,
@@ -157,6 +171,7 @@ export class Snapshotter {
             maxBlockedMillis = 50,
             maxUsedMemoryRatio = 0.9,
             maxClientErrors = 3,
+            useProcessCpuUsage = false,
             log = defaultLog,
             config = Configuration.getGlobalConfig(),
             client = config.getStorageClient(),
@@ -185,6 +200,7 @@ export class Snapshotter {
         this.cpuSignal = createCpuLoadSignal({
             snapshotHistoryMillis,
             config: this.config,
+            useProcessCpuUsage,
         });
 
         this.clientSignal = createClientLoadSignal({
@@ -276,7 +292,7 @@ export class Snapshotter {
      * @deprecated Kept for backward compatibility.
      */
     protected _snapshotCpu(systemInfo: SystemInfo) {
-        this.cpuSignal.handle(systemInfo);
+        (this.cpuSignal.handle as (payload: SystemInfo) => void)(systemInfo);
     }
 
     /**
