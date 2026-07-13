@@ -262,6 +262,7 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
 
         const { requestId, wasAlreadyPresent } = queueOperationInfo;
         this._cacheRequest(cacheKey, queueOperationInfo);
+        this.requestSeenCache.add(cacheKey, requestId);
 
         if (!wasAlreadyPresent && !this.recentlyHandledRequestsCache.get(requestId)) {
             this.assumedTotalCount++;
