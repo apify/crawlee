@@ -1,7 +1,7 @@
 import { expect, getActorTestDir, initialize, runActor } from '../tools.mjs';
 
 /* This test verifies that the storageObject is correctly returned when the KeyValueStore or Dataset is opened.
- * The storageObject is the result of the KeyValueStoreClient.get() or Dataset.get() methods,
+ * The storageObject is the result of the KeyValueStoreBackend.get() or Dataset.get() methods,
  * containing properties such as name, id, and other custom attributes.
  */
 

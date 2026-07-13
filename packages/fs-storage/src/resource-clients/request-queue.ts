@@ -2,7 +2,7 @@ import type * as storage from '@crawlee/types';
 import type { CrawleeLogger } from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
 
-import type { FileSystemRequestQueueClient as NativeFileSystemRequestQueueClient } from '@crawlee/fs-storage-native';
+import type { FileSystemRequestQueueClient as NativeFileSystemRequestQueueBackend } from '@crawlee/fs-storage-native';
 
 import { CachedIdClient } from './cached-id-client.js';
 
@@ -40,46 +40,46 @@ const requestOptionsShape = s.object({
     forefront: s.boolean().optional(),
 });
 
-export interface RequestQueueClientOptions {
+export interface RequestQueueBackendOptions {
     /** The user-facing storage name, or `undefined` for unnamed (alias / default) storages. */
     name?: string;
     /**
-     * The key used for cache lookup in {@link FileSystemStorageClient}. For named storages this equals
+     * The key used for cache lookup in {@link FileSystemStorageBackend}. For named storages this equals
      * the name; for alias (unnamed) storages it is the alias string. Falls back to the storage id.
      */
     cacheKey: string;
-    nativeClient: NativeFileSystemRequestQueueClient;
+    nativeBackend: NativeFileSystemRequestQueueBackend;
     logger?: CrawleeLogger;
 }
 
 /**
- * A file-system request queue client backed by the native `@crawlee/fs-storage-native` Rust
+ * A file-system request queue backend backed by the native `@crawlee/fs-storage-native` Rust
  * extension.
  *
  * Request ordering, in-progress locking and state persistence are all owned by the native client.
  * This adapter forwards each operation and converts result shapes to the `@crawlee/types` interfaces.
  */
-export class RequestQueueClient extends CachedIdClient implements storage.RequestQueueClient {
+export class RequestQueueBackend extends CachedIdClient implements storage.RequestQueueBackend {
     readonly name?: string;
     readonly cacheKey: string;
 
-    private readonly nativeClient: NativeFileSystemRequestQueueClient;
+    private readonly nativeBackend: NativeFileSystemRequestQueueBackend;
 
-    constructor(options: RequestQueueClientOptions) {
+    constructor(options: RequestQueueBackendOptions) {
         super();
         this.name = options.name;
         this.cacheKey = options.cacheKey;
-        this.nativeClient = options.nativeClient;
+        this.nativeBackend = options.nativeBackend;
     }
 
     get requestQueueDirectory(): string {
-        return this.nativeClient.pathToRq;
+        return this.nativeBackend.pathToRq;
     }
 
-    static async create(options: RequestQueueClientOptions): Promise<RequestQueueClient> {
-        const client = new RequestQueueClient(options);
-        client._cachedId = (await options.nativeClient.getMetadata()).id;
-        return client;
+    static async create(options: RequestQueueBackendOptions): Promise<RequestQueueBackend> {
+        const backend = new RequestQueueBackend(options);
+        backend._cachedId = (await options.nativeBackend.getMetadata()).id;
+        return backend;
     }
 
     /**
@@ -87,19 +87,19 @@ export class RequestQueueClient extends CachedIdClient implements storage.Reques
      * available again.
      */
     async setExpectedRequestProcessingTimeSecs(secs: number): Promise<void> {
-        await this.nativeClient.setExpectedRequestProcessingTime(secs);
+        await this.nativeBackend.setExpectedRequestProcessingTime(secs);
     }
 
     async getMetadata(): Promise<storage.RequestQueueInfo> {
-        return this.nativeClient.getMetadata();
+        return this.nativeBackend.getMetadata();
     }
 
     async drop(): Promise<void> {
-        await this.nativeClient.dropStorage();
+        await this.nativeBackend.dropStorage();
     }
 
     async purge(): Promise<void> {
-        await this.nativeClient.purge();
+        await this.nativeBackend.purge();
     }
 
     async addBatchOfRequests(
@@ -109,7 +109,7 @@ export class RequestQueueClient extends CachedIdClient implements storage.Reques
         batchRequestShapeWithoutId.parse(requests);
         requestOptionsShape.parse(options);
 
-        const response = await this.nativeClient.addBatchOfRequests(
+        const response = await this.nativeBackend.addBatchOfRequests(
             requests.map((request) => plainifyRequest(request)),
             options.forefront ?? false,
         );
@@ -128,16 +128,16 @@ export class RequestQueueClient extends CachedIdClient implements storage.Reques
         // The native client tags requests with an internal `orderNo`; it's harmless to leak, so we
         // hand the request back as-is rather than copying it just to drop one undeclared property.
         // The native client already returns `undefined` for a missing request, matching this contract.
-        return (await this.nativeClient.getRequest(uniqueKey)) as storage.UpdateRequestSchema | undefined;
+        return (await this.nativeBackend.getRequest(uniqueKey)) as storage.UpdateRequestSchema | undefined;
     }
 
     async fetchNextRequest(): Promise<storage.UpdateRequestSchema | undefined> {
-        return (await this.nativeClient.fetchNextRequest()) as storage.UpdateRequestSchema | undefined;
+        return (await this.nativeBackend.fetchNextRequest()) as storage.UpdateRequestSchema | undefined;
     }
 
     async markRequestAsHandled(request: storage.UpdateRequestSchema): Promise<storage.QueueOperationInfo | undefined> {
         requestShape.parse(request);
-        return (await this.nativeClient.markRequestAsHandled(plainifyRequest(request))) ?? undefined;
+        return (await this.nativeBackend.markRequestAsHandled(plainifyRequest(request))) ?? undefined;
     }
 
     async reclaimRequest(
@@ -147,24 +147,24 @@ export class RequestQueueClient extends CachedIdClient implements storage.Reques
         requestShape.parse(request);
         requestOptionsShape.parse(options);
         return (
-            (await this.nativeClient.reclaimRequest(plainifyRequest(request), options.forefront ?? false)) ?? undefined
+            (await this.nativeBackend.reclaimRequest(plainifyRequest(request), options.forefront ?? false)) ?? undefined
         );
     }
 
     async isEmpty(): Promise<boolean> {
-        return this.nativeClient.isEmpty();
+        return this.nativeBackend.isEmpty();
     }
 
     async isFinished(): Promise<boolean> {
-        return this.nativeClient.isFinished();
+        return this.nativeBackend.isFinished();
     }
 
     /**
      * Persist the native client's in-memory state to disk. Called by
-     * {@link FileSystemStorageClient.teardown} so that fetched-but-unhandled requests are not stuck
+     * {@link FileSystemStorageBackend.teardown} so that fetched-but-unhandled requests are not stuck
      * for the next consumer of the same on-disk queue.
      */
     async persistState(): Promise<void> {
-        await this.nativeClient.persistState();
+        await this.nativeBackend.persistState();
     }
 }

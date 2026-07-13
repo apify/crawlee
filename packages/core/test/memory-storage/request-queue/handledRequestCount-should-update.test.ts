@@ -1,13 +1,13 @@
-import { MemoryStorageClient } from '@crawlee/core';
-import type { RequestQueueClient } from '@crawlee/types';
+import { MemoryStorageBackend } from '@crawlee/core';
+import type { RequestQueueBackend } from '@crawlee/types';
 
 describe('RequestQueue handledRequestCount should update', () => {
-    const storage = new MemoryStorageClient();
+    const storage = new MemoryStorageBackend();
 
-    let requestQueue: RequestQueueClient;
+    let requestQueue: RequestQueueBackend;
 
     beforeAll(async () => {
-        requestQueue = await storage.createRequestQueueClient({ name: 'handledRequestCount' });
+        requestQueue = await storage.createRequestQueueBackend({ name: 'handledRequestCount' });
     });
 
     test('after marking a request as handled, it should increment the handledRequestCount', async () => {

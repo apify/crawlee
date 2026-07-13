@@ -26,7 +26,7 @@ Each Crawlee project run is associated with a **default request queue**. Typical
 
 In Crawlee, the request queue is represented by the <ApiLink to="core/class/RequestQueue">`RequestQueue`</ApiLink> class.
 
-By default, the request queue is managed by the <ApiLink to="fs-storage/class/FileSystemStorageClient">`FileSystemStorageClient`</ApiLink> class and its data is stored in the local directory specified by the `CRAWLEE_STORAGE_DIR` environment variable as follows:
+By default, the request queue is managed by the <ApiLink to="fs-storage/class/FileSystemStorageBackend">`FileSystemStorageBackend`</ApiLink> class and its data is stored in the local directory specified by the `CRAWLEE_STORAGE_DIR` environment variable as follows:
 
 ```text
 {CRAWLEE_STORAGE_DIR}/request_queues/{QUEUE_ID}/entries.json
@@ -88,4 +88,4 @@ import { purgeDefaultStorages } from 'crawlee';
 await purgeDefaultStorages();
 ```
 
-Calling this function will clean up the default request storage directory (and also the request list stored in default key-value store). This is a shortcut for running (optional) `purge` method on the <ApiLink to="core/interface/StorageClient">`StorageClient`</ApiLink> interface, in other words it will call the `purge` method of the underlying storage implementation we are currently using. You can make sure the storage is purged only once for a given execution context if you set `onlyPurgeOnce` to `true` in the `options` object.
+Calling this function will clean up the default request storage directory (and also the request list stored in default key-value store). This is a shortcut for running (optional) `purge` method on the <ApiLink to="core/interface/StorageBackend">`StorageBackend`</ApiLink> interface, in other words it will call the `purge` method of the underlying storage implementation we are currently using. You can make sure the storage is purged only once for a given execution context if you set `onlyPurgeOnce` to `true` in the `options` object.

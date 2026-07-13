@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 
-import type { BaseHttpClient, Dictionary, StorageClient } from '@crawlee/types';
+import type { BaseHttpClient, Dictionary, StorageBackend } from '@crawlee/types';
 
 import { Configuration } from '../configuration.js';
 import type { ProxyConfiguration } from '../proxy_configuration.js';
@@ -16,7 +16,7 @@ interface PurgeDefaultStorageOptions {
      */
     onlyPurgeOnce?: boolean;
     config?: Configuration;
-    client?: StorageClient;
+    storageBackend?: StorageBackend;
 }
 
 /**
@@ -27,7 +27,7 @@ interface PurgeDefaultStorageOptions {
  * explicitly, e.g. via `RequestList.open()`). We can disable that via `purgeOnStart` {@apilink Configuration}
  * option or by setting `CRAWLEE_PURGE_ON_START` environment variable to `0` or `false`.
  *
- * This is a shortcut for running (optional) `purge` method on the StorageClient interface, in other words
+ * This is a shortcut for running (optional) `purge` method on the StorageBackend interface, in other words
  * it will call the `purge` method of the underlying storage implementation we are currently using. You can
  * make sure the storage is purged only once for a given execution context if you set `onlyPurgeOnce` to `true` in
  * the `options` object
@@ -41,25 +41,25 @@ export async function purgeDefaultStorages(options?: PurgeDefaultStorageOptions)
  * explicitly, e.g. via `RequestList.open()`). We can disable that via `purgeOnStart` {@apilink Configuration}
  * option or by setting `CRAWLEE_PURGE_ON_START` environment variable to `0` or `false`.
  *
- * This is a shortcut for running (optional) `purge` method on the StorageClient interface, in other words
+ * This is a shortcut for running (optional) `purge` method on the StorageBackend interface, in other words
  * it will call the `purge` method of the underlying storage implementation we are currently using.
  */
-export async function purgeDefaultStorages(config?: Configuration, client?: StorageClient): Promise<void>;
+export async function purgeDefaultStorages(config?: Configuration, storageBackend?: StorageBackend): Promise<void>;
 export async function purgeDefaultStorages(
     configOrOptions?: Configuration | PurgeDefaultStorageOptions,
-    client?: StorageClient,
+    storageBackend?: StorageBackend,
 ) {
     const options: PurgeDefaultStorageOptions =
         configOrOptions instanceof Configuration
             ? {
-                  client,
+                  storageBackend,
                   config: configOrOptions,
               }
             : (configOrOptions ?? {});
     const { config = serviceLocator.getConfiguration(), onlyPurgeOnce = false } = options;
-    ({ client = serviceLocator.getStorageClient() } = options);
+    ({ storageBackend = serviceLocator.getStorageBackend() } = options);
 
-    const casted = client as StorageClient & { __purged?: boolean };
+    const casted = storageBackend as StorageBackend & { __purged?: boolean };
 
     // if `onlyPurgeOnce` is true, will purge anytime this function is called, otherwise - only on start
     if (!onlyPurgeOnce || (config.purgeOnStart && !casted.__purged)) {
@@ -222,9 +222,9 @@ export interface StorageOpenOptions {
     config?: Configuration;
 
     /**
-     * Optional storage client that should be used to open storages.
+     * Optional storage backend that should be used to open storages.
      */
-    storageClient?: StorageClient;
+    storageBackend?: StorageBackend;
 
     /**
      * Used to pass the proxy configuration for the `requestsFromUrl` objects.

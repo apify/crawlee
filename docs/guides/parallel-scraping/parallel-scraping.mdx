@@ -62,9 +62,9 @@ The exported function, `getOrInitQueue`, might seem like it does a lot. In essen
 
 :::caution Make the shared queue concurrency-safe with `requestQueueAccess: 'shared'`
 
-Because every worker process opens this same `shop-urls` queue at the same time, it **must** use the concurrency-safe locking behavior of `FileSystemStorageClient`. That's why `getOrInitQueue` opens the queue with a storage client constructed with `requestQueueAccess: 'shared'`.
+Because every worker process opens this same `shop-urls` queue at the same time, it **must** use the concurrency-safe locking behavior of `FileSystemStorageBackend`. That's why `getOrInitQueue` opens the queue with a storage backend constructed with `requestQueueAccess: 'shared'`.
 
-By default, `FileSystemStorageClient` assumes it is the *sole* consumer of a queue (`requestQueueAccess: 'single'`). On open it immediately reclaims any requests left *in progress* — great for a single-process crawl recovering after a crash, but disastrous when workers run side by side: each worker would happily grab requests another worker is still processing, so the same URL gets scraped multiple times.
+By default, `FileSystemStorageBackend` assumes it is the *sole* consumer of a queue (`requestQueueAccess: 'single'`). On open it immediately reclaims any requests left *in progress* — great for a single-process crawl recovering after a crash, but disastrous when workers run side by side: each worker would happily grab requests another worker is still processing, so the same URL gets scraped multiple times.
 
 Setting `requestQueueAccess: 'shared'` tells the client to treat an in-progress request as a potential live peer's lock and only reclaim it once the lock expires on the wall clock, so two workers never process the same request at once.
 
@@ -132,17 +132,17 @@ This will check how the script is executed as. If this value has _any_ value, it
 
 We use this to ensure the parent process stays alive until all the worker processes exit. Otherwise, the worker processes would just get spawned, and lose the ability to communicate with the parent. You might not need this depending on your use case (maybe you just need to spawn workers and let them process).
 
-#### What's with all the `Configuration` and storage client setup?
+#### What's with all the `Configuration` and storage backend setup?
 
 There are two things we want to do for the worker processes:
 
-- get the shared queue from the same location as the parent process (it already comes with the concurrency-safe storage client we set up in `requestQueue.mjs`)
+- get the shared queue from the same location as the parent process (it already comes with the concurrency-safe storage backend we set up in `requestQueue.mjs`)
 - ensure the default storages do **not** get purged on start, as otherwise we'd lose the queue we prepared, and give each worker its own private storage directory for its internal state so the workers don't collide with each other
 
 In order, that's what these lines do:
 
 ```javascript title="src/parallel-scraper.mjs"
-import { FileSystemStorageClient } from '@crawlee/fs-storage';
+import { FileSystemStorageBackend } from '@crawlee/fs-storage';
 
 // Get the shared request queue from the parent process (step 1)
 const requestQueue = await getOrInitQueue(false);
@@ -153,7 +153,7 @@ const config = new Configuration({ purgeOnStart: false });
 // Store the worker's own internal state in a separate directory so workers don't collide (step 2,
 // cont.). This directory is private to a single worker, so we explicitly set
 // `requestQueueAccess: 'single'`.
-const storageClient = new FileSystemStorageClient({
+const storageBackend = new FileSystemStorageBackend({
     localDataDirectory: `./storage/worker-${process.env.WORKER_INDEX}`,
     requestQueueAccess: 'single',
 });
@@ -169,7 +169,7 @@ Each worker's `./storage/worker-N` directory is private to that single worker �
 
 You might have noticed several lines highlighted in the code above. Those show how you provide the shared request queue to the crawler.
 
-You might have also noticed we passed in the `config` and `storageClient` we created earlier to the crawler. These ensure the crawler uses the worker-specific storages for its own internal state (so the workers do not collide with each other), while still consuming the shared, concurrency-safe `shop-urls` queue we provided explicitly.
+You might have also noticed we passed in the `config` and `storageBackend` we created earlier to the crawler. These ensure the crawler uses the worker-specific storages for its own internal state (so the workers do not collide with each other), while still consuming the shared, concurrency-safe `shop-urls` queue we provided explicitly.
 
 #### Why do we use `process.send` instead of `context.pushData`?
 

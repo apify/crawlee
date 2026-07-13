@@ -2,7 +2,7 @@ import {
     BaseCrawleeLogger,
     EventType,
     KeyValueStore,
-    MemoryStorageClient,
+    MemoryStorageBackend,
     serviceLocator,
     Session,
     SessionPool,
@@ -13,7 +13,7 @@ describe('SessionPool - testing session pool', () => {
     let sessionPool: SessionPool;
 
     beforeEach(async () => {
-        serviceLocator.setStorageClient(new MemoryStorageClient());
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
         sessionPool = new SessionPool();
     });
 

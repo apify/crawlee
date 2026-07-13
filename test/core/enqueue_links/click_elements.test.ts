@@ -4,7 +4,7 @@ import type { RequestQueueOperationOptions, Source } from 'crawlee';
 import {
     launchPlaywright,
     launchPuppeteer,
-    MemoryStorageClient,
+    MemoryStorageBackend,
     playwrightClickElements,
     playwrightUtils,
     puppeteerClickElements,
@@ -78,7 +78,7 @@ testCases.forEach(({ caseName, launchBrowser, clickElements, utils }) => {
 
         beforeEach(async () => {
             page = await browser.newPage();
-            serviceLocator.setStorageClient(new MemoryStorageClient());
+            serviceLocator.setStorageBackend(new MemoryStorageBackend());
         });
 
         afterEach(async () => {

@@ -2,14 +2,14 @@ import { rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 
-import { MemoryStorageClient } from '@crawlee/core';
-import type { RequestQueueClient } from '@crawlee/types';
+import { MemoryStorageBackend } from '@crawlee/core';
+import type { RequestQueueBackend } from '@crawlee/types';
 
 /**
  * Drains the queue via `fetchNextRequest`, marking each request as handled, and returns the
  * pathnames in the order they were served.
  */
-async function fetchOrder(client: RequestQueueClient): Promise<string[]> {
+async function fetchOrder(client: RequestQueueBackend): Promise<string[]> {
     const order: string[] = [];
 
     for (let request = await client.fetchNextRequest(); request != null; request = await client.fetchNextRequest()) {
@@ -21,12 +21,12 @@ async function fetchOrder(client: RequestQueueClient): Promise<string[]> {
 }
 
 describe('RequestQueue respects `forefront` when fetching requests', () => {
-    const storage = new MemoryStorageClient();
+    const storage = new MemoryStorageBackend();
 
-    let requestQueue: RequestQueueClient;
+    let requestQueue: RequestQueueBackend;
 
     beforeEach(async () => {
-        requestQueue = await storage.createRequestQueueClient({ name: 'forefront' });
+        requestQueue = await storage.createRequestQueueBackend({ name: 'forefront' });
     });
 
     afterEach(async () => {
@@ -146,12 +146,12 @@ describe('RequestQueue respects `forefront` when fetching requests', () => {
 });
 
 describe('RequestQueue holds fetched requests in progress', () => {
-    const storage = new MemoryStorageClient();
+    const storage = new MemoryStorageBackend();
 
-    let requestQueue: RequestQueueClient;
+    let requestQueue: RequestQueueBackend;
 
     beforeEach(async () => {
-        requestQueue = await storage.createRequestQueueClient({ name: 'in-progress' });
+        requestQueue = await storage.createRequestQueueBackend({ name: 'in-progress' });
     });
 
     afterEach(async () => {

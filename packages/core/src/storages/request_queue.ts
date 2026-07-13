@@ -6,7 +6,7 @@ import type {
     Dictionary,
     ProcessedRequest,
     QueueOperationInfo,
-    RequestQueueClient,
+    RequestQueueBackend,
     RequestQueueInfo,
 } from '@crawlee/types';
 import {
@@ -43,7 +43,7 @@ import { resolveStorageIdentifier } from './storage_instance_manager.js';
 import { getRequestId, purgeDefaultStorages } from './utils.js';
 
 /**
- * The maximum number of requests cached locally to avoid redundant calls to the storage client.
+ * The maximum number of requests cached locally to avoid redundant calls to the storage backend.
  * @internal
  */
 const MAX_CACHED_REQUESTS = 2_000_000;
@@ -87,7 +87,7 @@ export class RequestQueue implements IStorage, IRequestManager {
     name?: string;
     timeoutSecs = 30;
     clientKey = cryptoRandomObjectId();
-    client: RequestQueueClient;
+    backend: RequestQueueBackend;
     protected proxyConfiguration?: ProxyConfiguration;
 
     log: CrawleeLogger;
@@ -103,7 +103,7 @@ export class RequestQueue implements IStorage, IRequestManager {
     /**
      * The largest expected request-processing time (in seconds) seen so far via
      * {@link setExpectedRequestProcessingTimeSecs}. Used to ensure that value is only ever raised, never
-     * lowered, before being forwarded to the storage client.
+     * lowered, before being forwarded to the storage backend.
      */
     protected expectedRequestProcessingSecs = 0;
 
@@ -118,7 +118,7 @@ export class RequestQueue implements IStorage, IRequestManager {
 
     /**
      * Backend-independent usage counters tracked for this request queue (write operations and
-     * queue-head reads issued to the underlying storage client). Counted per client call.
+     * queue-head reads issued to the underlying storage backend). Counted per backend call.
      */
     get stats(): RequestQueueStats {
         return this.statsTracker.current;
@@ -134,7 +134,7 @@ export class RequestQueue implements IStorage, IRequestManager {
         this.id = options.id;
         this.name = options.name;
         this.events = serviceLocator.getEventManager();
-        this.client = options.client;
+        this.backend = options.backend;
 
         this.proxyConfiguration = options.proxyConfiguration;
 
@@ -230,7 +230,7 @@ export class RequestQueue implements IStorage, IRequestManager {
         }
 
         this.statsTracker.add('writeCount');
-        const { processedRequests } = await this.client.addBatchOfRequests([request], { forefront });
+        const { processedRequests } = await this.backend.addBatchOfRequests([request], { forefront });
         const queueOperationInfo = {
             ...processedRequests[0],
             uniqueKey: request.uniqueKey,
@@ -337,7 +337,7 @@ export class RequestQueue implements IStorage, IRequestManager {
         }
 
         this.statsTracker.add('writeCount');
-        const apiResults = await this.client.addBatchOfRequests([...requestsToAdd.values()], { forefront });
+        const apiResults = await this.backend.addBatchOfRequests([...requestsToAdd.values()], { forefront });
 
         // Report unprocessed requests
         results.unprocessedRequests = apiResults.unprocessedRequests;
@@ -510,7 +510,7 @@ export class RequestQueue implements IStorage, IRequestManager {
 
         ow(uniqueKey, ow.string);
 
-        const requestOptions = await this.client.getRequest(uniqueKey);
+        const requestOptions = await this.backend.getRequest(uniqueKey);
         if (!requestOptions) return null;
 
         return new Request(requestOptions as unknown as RequestOptions);
@@ -541,7 +541,7 @@ export class RequestQueue implements IStorage, IRequestManager {
         }
 
         this.statsTracker.add('headItemReadCount');
-        const requestOptions = await this.client.fetchNextRequest();
+        const requestOptions = await this.backend.fetchNextRequest();
         if (!requestOptions) return null;
 
         return new Request(requestOptions as unknown as RequestOptions);
@@ -569,7 +569,7 @@ export class RequestQueue implements IStorage, IRequestManager {
 
         const handledAt = request.handledAt ?? new Date().toISOString();
         this.statsTracker.add('writeCount');
-        const processedRequest = await this.client.markRequestAsHandled({
+        const processedRequest = await this.backend.markRequestAsHandled({
             ...request,
             handledAt,
         });
@@ -621,7 +621,7 @@ export class RequestQueue implements IStorage, IRequestManager {
         const { forefront = false } = options;
 
         this.statsTracker.add('writeCount');
-        const processedRequest = await this.client.reclaimRequest(request, { forefront });
+        const processedRequest = await this.backend.reclaimRequest(request, { forefront });
 
         // The request was not in progress — nothing to reclaim.
         if (!processedRequest) {
@@ -651,7 +651,7 @@ export class RequestQueue implements IStorage, IRequestManager {
     async isEmpty(): Promise<boolean> {
         checkStorageAccess();
 
-        return this.client.isEmpty();
+        return this.backend.isEmpty();
     }
 
     /**
@@ -670,12 +670,12 @@ export class RequestQueue implements IStorage, IRequestManager {
             return false;
         }
 
-        return this.client.isFinished();
+        return this.backend.isFinished();
     }
 
     /**
      * Tells the queue how long a consumer expects to hold a fetched request before marking it handled
-     * or reclaiming it (typically the request-handler timeout plus padding), so that a storage client
+     * or reclaiming it (typically the request-handler timeout plus padding), so that a storage backend
      * that reserves requests via locking does not hand the same request out again while it is still
      * being processed.
      *
@@ -689,7 +689,7 @@ export class RequestQueue implements IStorage, IRequestManager {
         }
 
         this.expectedRequestProcessingSecs = secs;
-        await this.client.setExpectedRequestProcessingTimeSecs?.(secs);
+        await this.backend.setExpectedRequestProcessingTimeSecs?.(secs);
     }
 
     /**
@@ -716,7 +716,7 @@ export class RequestQueue implements IStorage, IRequestManager {
     async drop(): Promise<void> {
         checkStorageAccess();
 
-        await this.client.drop();
+        await this.backend.drop();
         serviceLocator.getStorageInstanceManager().removeFromCache(this);
     }
 
@@ -727,7 +727,7 @@ export class RequestQueue implements IStorage, IRequestManager {
     async purge(): Promise<void> {
         checkStorageAccess();
 
-        await this.client.purge();
+        await this.backend.purge();
 
         // Reset in-memory bookkeeping so the queue behaves as if freshly opened.
         this.requestCache.clear();
@@ -788,7 +788,7 @@ export class RequestQueue implements IStorage, IRequestManager {
     async getInfo(): Promise<RequestQueueInfo> {
         checkStorageAccess();
 
-        return this.client.getMetadata();
+        return this.backend.getMetadata();
     }
 
     /**
@@ -882,36 +882,36 @@ export class RequestQueue implements IStorage, IRequestManager {
             options,
             ow.object.exactShape({
                 config: ow.optional.object.instanceOf(Configuration),
-                storageClient: ow.optional.object,
+                storageBackend: ow.optional.object,
                 proxyConfiguration: ow.optional.object,
                 httpClient: ow.optional.object,
             }),
         );
 
-        const client = options.storageClient ?? serviceLocator.getStorageClient();
+        const storageBackend = options.storageBackend ?? serviceLocator.getStorageBackend();
         const config = options.config ?? serviceLocator.getConfiguration();
 
-        await purgeDefaultStorages({ onlyPurgeOnce: true, client, config });
+        await purgeDefaultStorages({ onlyPurgeOnce: true, storageBackend, config });
 
-        const resolved = await resolveStorageIdentifier(identifier, client, 'RequestQueue');
+        const resolved = await resolveStorageIdentifier(identifier, storageBackend, 'RequestQueue');
 
         const queue = await serviceLocator
             .getStorageInstanceManager()
             .openStorage<RequestQueue>(this as unknown as Constructor<RequestQueue>, {
                 ...resolved,
-                clientOpener: () => client.createRequestQueueClient(resolved),
-                clientCacheKey: client.getStorageClientCacheKey?.() ?? client.constructor.name,
+                backendOpener: () => storageBackend.createRequestQueueBackend(resolved),
+                backendCacheKey: storageBackend.getStorageBackendCacheKey?.() ?? storageBackend.constructor.name,
             });
         queue.proxyConfiguration = options.proxyConfiguration;
         queue.httpClient = options.httpClient;
 
         if (!queue.isInitialized) {
-            // Re-create the request queue client with clientKey and timeoutSecs so that
+            // Re-create the request queue backend with clientKey and timeoutSecs so that
             // request locking works correctly for API-backed implementations.
             // TODO: clientKey/timeoutSecs are Apify-platform concerns and should eventually be pushed
             // down into the Apify SDK's client implementation, aligning with crawlee-python's approach
-            // where locking is handled internally by the client (see crawlee-python PR #1194).
-            queue.client = await client.createRequestQueueClient({
+            // where locking is handled internally by the backend (see crawlee-python PR #1194).
+            queue.backend = await storageBackend.createRequestQueueBackend({
                 id: queue.id,
                 clientKey: queue.clientKey,
                 timeoutSecs: queue.timeoutSecs,
@@ -936,7 +936,7 @@ interface RequestLruItem {
 export interface RequestQueueOptions {
     id: string;
     name?: string;
-    client: RequestQueueClient;
+    backend: RequestQueueBackend;
 
     /**
      * Used to pass the proxy configuration for the `requestsFromUrl` objects.
