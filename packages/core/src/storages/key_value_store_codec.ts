@@ -19,7 +19,7 @@ const STRINGIFIABLE_CONTENT_TYPE_RXS = [new RegExp(`^${CONTENT_TYPE_JSON}$`, 'i'
  * - `string` → `text/plain; charset=utf-8` (passthrough)
  * - anything else → `application/json; charset=utf-8` (serialized via `jsonStringifyExtended`)
  *
- * Does NOT drain streams — that is storage mechanics and stays in the storage client.
+ * Does NOT drain streams — that is storage mechanics and stays in the storage backend.
  *
  * Backend-independent.
  */

@@ -4,7 +4,7 @@ import type * as storage from '@crawlee/types';
 import type { Dictionary } from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
 
-import type { MemoryStorageClient } from '../memory-storage.js';
+import type { MemoryStorageBackend } from '../memory-storage.js';
 import { BaseClient } from './common/base-client.js';
 
 /**
@@ -19,7 +19,7 @@ const LIST_ITEMS_LIMIT = 999_999_999_999;
  */
 const LOCAL_ENTRY_NAME_DIGITS = 9;
 
-export interface DatasetClientOptions {
+export interface DatasetBackendOptions {
     id?: string;
     name?: string;
     /**
@@ -28,12 +28,12 @@ export interface DatasetClientOptions {
      * metadata `name` (which is `undefined` for unnamed storages).
      */
     cacheKey?: string;
-    client: MemoryStorageClient;
+    storageBackend: MemoryStorageBackend;
 }
 
-export class DatasetClient<Data extends Dictionary = Dictionary>
+export class DatasetBackend<Data extends Dictionary = Dictionary>
     extends BaseClient
-    implements storage.DatasetClient<Data>
+    implements storage.DatasetBackend<Data>
 {
     name?: string;
     /**
@@ -47,13 +47,13 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
     itemCount = 0;
 
     private readonly datasetEntries = new Map<string, Data>();
-    private readonly client: MemoryStorageClient;
+    private readonly storageBackend: MemoryStorageBackend;
 
-    constructor(options: DatasetClientOptions) {
+    constructor(options: DatasetBackendOptions) {
         super(options.id ?? randomUUID());
         this.name = options.name;
         this.cacheKey = options.cacheKey ?? this.name ?? this.id;
-        this.client = options.client;
+        this.storageBackend = options.storageBackend;
     }
 
     async getMetadata(): Promise<storage.DatasetInfo> {
@@ -62,12 +62,12 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
     }
 
     async drop(): Promise<void> {
-        const storeIndex = this.client.datasetClientCache.findIndex((store) => store.id === this.id);
+        const storeIndex = this.storageBackend.datasetBackendCache.findIndex((store) => store.id === this.id);
 
         if (storeIndex !== -1) {
-            const [oldClient] = this.client.datasetClientCache.splice(storeIndex, 1);
-            oldClient.itemCount = 0;
-            oldClient.datasetEntries.clear();
+            const [oldBackend] = this.storageBackend.datasetBackendCache.splice(storeIndex, 1);
+            oldBackend.itemCount = 0;
+            oldBackend.datasetEntries.clear();
         }
     }
 
@@ -78,7 +78,7 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
         this.updateTimestamps(true);
     }
 
-    getData(options: storage.DatasetClientListOptions = {}): Promise<storage.PaginatedList<Data>> {
+    getData(options: storage.DatasetBackendListOptions = {}): Promise<storage.PaginatedList<Data>> {
         const { desc, limit, offset } = s
             .object({
                 desc: s.boolean().optional(),
@@ -94,7 +94,7 @@ export class DatasetClient<Data extends Dictionary = Dictionary>
         });
     }
 
-    private async getDataPage(options: storage.DatasetClientListOptions = {}): Promise<storage.PaginatedList<Data>> {
+    private async getDataPage(options: storage.DatasetBackendListOptions = {}): Promise<storage.PaginatedList<Data>> {
         const { limit = LIST_ITEMS_LIMIT, offset = 0, desc } = options;
 
         const [start, end] = this.getStartAndEndIndexes(

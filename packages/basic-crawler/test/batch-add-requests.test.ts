@@ -1,10 +1,10 @@
 import { BasicCrawler } from '@crawlee/basic';
 
-import { MemoryStorageClient, serviceLocator, SessionPool } from '@crawlee/core';
+import { MemoryStorageBackend, serviceLocator, SessionPool } from '@crawlee/core';
 
 describe('BasicCrawler#addRequests with big batch sizes', () => {
     beforeEach(async () => {
-        serviceLocator.setStorageClient(new MemoryStorageClient());
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
     });
 
     const requestTemplates = Array.from({ length: 2000 }, (_, i) => ({ url: `https://example.com/${i}` }));
@@ -58,7 +58,7 @@ describe('BasicCrawler#addRequests with big batch sizes', () => {
 
 describe('BasicCrawler - request.sessionId', () => {
     beforeEach(async () => {
-        serviceLocator.setStorageClient(new MemoryStorageClient());
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
     });
 
     test('uses the session matching request.sessionId from the session pool', async () => {

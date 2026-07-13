@@ -8,7 +8,7 @@ import type {
     PlaywrightRequestHandler,
     Request,
 } from '@crawlee/playwright';
-import { MemoryStorageClient, serviceLocator } from '@crawlee/core';
+import { MemoryStorageBackend, serviceLocator } from '@crawlee/core';
 import { createPlaywrightRouter, PlaywrightCrawler, RequestList, RequestValidationError } from '@crawlee/playwright';
 import type { Cheerio, CheerioAPI, CheerioRoot, Element } from '@crawlee/utils';
 import express from 'express';
@@ -58,7 +58,7 @@ describe('PlaywrightCrawler', () => {
     });
 
     beforeEach(async () => {
-        serviceLocator.setStorageClient(new MemoryStorageClient());
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
 
         const sources = [`http://${HOSTNAME}:${[port]}/`];
         requestList = await RequestList.open(`sources-${Math.random() * 10000}`, sources);

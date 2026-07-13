@@ -8,7 +8,7 @@ import ApiLink from '@site/src/components/ApiLink';
 
 Crawlee has several result storage types that are useful for specific tasks. The data is stored on a local disk to the directory defined by the `CRAWLEE_STORAGE_DIR` environment variable. If this variable is not defined, by default Crawlee sets `CRAWLEE_STORAGE_DIR` to `./storage` in the current working directory.
 
-By default, Crawlee storage is managed by the <ApiLink to="fs-storage/class/FileSystemStorageClient">`FileSystemStorageClient`</ApiLink> class, which stores all information as local files in the respective storage type folders.
+By default, Crawlee storage is managed by the <ApiLink to="fs-storage/class/FileSystemStorageBackend">`FileSystemStorageBackend`</ApiLink> class, which stores all information as local files in the respective storage type folders.
 
 ## Key-value store
 
@@ -110,4 +110,4 @@ import { purgeDefaultStorages } from 'crawlee';
 await purgeDefaultStorages();
 ```
 
-Calling this function will clean up the default results storage directories except the `INPUT` key in default key-value store directory. This is a shortcut for running (optional) `purge` method on the <ApiLink to="core/interface/StorageClient">`StorageClient`</ApiLink> interface, in other words it will call the `purge` method of the underlying storage implementation we are currently using. In addition, this method will make sure the storage is purged only once for a given execution context, so it is safe to call it multiple times.
+Calling this function will clean up the default results storage directories except the `INPUT` key in default key-value store directory. This is a shortcut for running (optional) `purge` method on the <ApiLink to="core/interface/StorageBackend">`StorageBackend`</ApiLink> interface, in other words it will call the `purge` method of the underlying storage implementation we are currently using. In addition, this method will make sure the storage is purged only once for a given execution context, so it is safe to call it multiple times.

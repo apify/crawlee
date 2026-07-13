@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { KeyValueStore, MemoryStorageClient, serviceLocator } from '../../packages/core/src/index.js';
+import { KeyValueStore, MemoryStorageBackend, serviceLocator } from '../../packages/core/src/index.js';
 import { RecoverableState } from '../../packages/core/src/recoverable_state.js';
 
 interface TestState {
@@ -11,7 +11,7 @@ interface TestState {
 
 describe('RecoverableState', () => {
     beforeEach(async () => {
-        serviceLocator.setStorageClient(new MemoryStorageClient());
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
     });
 
     const defaultState: TestState = {

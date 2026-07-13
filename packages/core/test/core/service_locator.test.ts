@@ -3,12 +3,12 @@ import {
     ApifyLogAdapter,
     Configuration,
     LocalEventManager,
-    MemoryStorageClient,
+    MemoryStorageBackend,
     ServiceConflictError,
     ServiceLocator,
     serviceLocator,
 } from '@crawlee/core';
-import { FileSystemStorageClient } from '@crawlee/fs-storage';
+import { FileSystemStorageBackend } from '@crawlee/fs-storage';
 
 function makeMockLogger(overrides: Partial<CrawleeLogger> = {}): CrawleeLogger {
     const logger: CrawleeLogger = {
@@ -130,43 +130,43 @@ describe('ServiceLocator', () => {
         });
     });
 
-    describe('StorageClient', () => {
-        test('default storage client', () => {
-            const defaultStorageClient = serviceLocator.getStorageClient();
-            expect(defaultStorageClient).toBeInstanceOf(FileSystemStorageClient);
+    describe('StorageBackend', () => {
+        test('default storage backend', () => {
+            const defaultStorageBackend = serviceLocator.getStorageBackend();
+            expect(defaultStorageBackend).toBeInstanceOf(FileSystemStorageBackend);
         });
 
-        test('custom storage client', () => {
-            const customStorageClient = new MemoryStorageClient();
-            serviceLocator.setStorageClient(customStorageClient);
-            const storageClient = serviceLocator.getStorageClient();
+        test('custom storage backend', () => {
+            const customStorageBackend = new MemoryStorageBackend();
+            serviceLocator.setStorageBackend(customStorageBackend);
+            const storageBackend = serviceLocator.getStorageBackend();
 
-            expect(storageClient).toBe(customStorageClient);
+            expect(storageBackend).toBe(customStorageBackend);
         });
 
-        test('storage client overwrite not possible', () => {
-            const customStorageClient = new MemoryStorageClient();
-            serviceLocator.setStorageClient(customStorageClient);
+        test('storage backend overwrite not possible', () => {
+            const customStorageBackend = new MemoryStorageBackend();
+            serviceLocator.setStorageBackend(customStorageBackend);
 
-            const anotherCustomStorageClient = new MemoryStorageClient();
+            const anotherCustomStorageBackend = new MemoryStorageBackend();
 
             expect(() => {
-                serviceLocator.setStorageClient(anotherCustomStorageClient);
+                serviceLocator.setStorageBackend(anotherCustomStorageBackend);
             }).toThrow(ServiceConflictError);
         });
 
-        test('storage client conflict', () => {
-            // Retrieve storage client first
-            serviceLocator.getStorageClient();
+        test('storage backend conflict', () => {
+            // Retrieve storage backend first
+            serviceLocator.getStorageBackend();
 
-            const customStorageClient = new MemoryStorageClient();
+            const customStorageBackend = new MemoryStorageBackend();
 
             expect(() => {
-                serviceLocator.setStorageClient(customStorageClient);
+                serviceLocator.setStorageBackend(customStorageBackend);
             }).toThrow(ServiceConflictError);
             expect(() => {
-                serviceLocator.setStorageClient(customStorageClient);
-            }).toThrow(/StorageClient is already in use/);
+                serviceLocator.setStorageBackend(customStorageBackend);
+            }).toThrow(/StorageBackend is already in use/);
         });
     });
 
@@ -206,9 +206,9 @@ describe('ServiceLocator', () => {
             }).toThrow(/Logger is already in use/);
         });
 
-        test('setting logger after getStorageClient throws ServiceConflictError (logger already locked)', () => {
-            // getStorageClient() implicitly calls getLogger(), locking the logger
-            serviceLocator.getStorageClient();
+        test('setting logger after getStorageBackend throws ServiceConflictError (logger already locked)', () => {
+            // getStorageBackend() implicitly calls getLogger(), locking the logger
+            serviceLocator.getStorageBackend();
 
             const customLogger = makeMockLogger();
 
@@ -239,16 +239,16 @@ describe('ServiceLocator', () => {
                 persistStateIntervalMillis: 1000,
                 systemInfoIntervalMillis: 1000,
             });
-            const customStorageClient = new MemoryStorageClient();
+            const customStorageBackend = new MemoryStorageBackend();
 
             serviceLocator.setConfiguration(customConfig);
             serviceLocator.setEventManager(customEventManager);
-            serviceLocator.setStorageClient(customStorageClient);
+            serviceLocator.setStorageBackend(customStorageBackend);
 
             // Verify they're set
             expect(serviceLocator.getConfiguration()).toBe(customConfig);
             expect(serviceLocator.getEventManager()).toBe(customEventManager);
-            expect(serviceLocator.getStorageClient()).toBe(customStorageClient);
+            expect(serviceLocator.getStorageBackend()).toBe(customStorageBackend);
             expect(serviceLocator.getLogger()).toBe(customLogger);
 
             // Reset
@@ -287,14 +287,14 @@ describe('ServiceLocator', () => {
             }).not.toThrow();
         });
 
-        test('setting same storage client instance is allowed', () => {
-            const storageClient = new MemoryStorageClient();
-            serviceLocator.setStorageClient(storageClient);
-            serviceLocator.getStorageClient();
+        test('setting same storage backend instance is allowed', () => {
+            const storageBackend = new MemoryStorageBackend();
+            serviceLocator.setStorageBackend(storageBackend);
+            serviceLocator.getStorageBackend();
 
             // Setting the same instance again should not throw
             expect(() => {
-                serviceLocator.setStorageClient(storageClient);
+                serviceLocator.setStorageBackend(storageBackend);
             }).not.toThrow();
         });
 
@@ -343,7 +343,7 @@ describe('ServiceLocator', () => {
     describe('Per-crawler ServiceLocator', () => {
         test('creating separate service locator for crawler', () => {
             const crawlerConfig = new Configuration({ headless: false });
-            const crawlerStorage = new MemoryStorageClient();
+            const crawlerStorage = new MemoryStorageBackend();
             const crawlerEvents = new LocalEventManager({
                 persistStateIntervalMillis: 1000,
                 systemInfoIntervalMillis: 1000,
@@ -353,7 +353,7 @@ describe('ServiceLocator', () => {
 
             expect(crawlerLocator.getConfiguration()).toBe(crawlerConfig);
             expect(crawlerLocator.getEventManager()).toBe(crawlerEvents);
-            expect(crawlerLocator.getStorageClient()).toBe(crawlerStorage);
+            expect(crawlerLocator.getStorageBackend()).toBe(crawlerStorage);
 
             // Global service locator should remain independent
             expect(serviceLocator.getConfiguration()).not.toBe(crawlerConfig);

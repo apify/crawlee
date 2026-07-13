@@ -1,10 +1,10 @@
-import { KeyValueStore, MemoryStorageClient, Request, serviceLocator } from '@crawlee/core';
+import { KeyValueStore, MemoryStorageBackend, Request, serviceLocator } from '@crawlee/core';
 import { RenderingTypePredictor } from '@crawlee/playwright';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 describe('RenderingTypePredictor', () => {
     beforeEach(async () => {
-        serviceLocator.setStorageClient(new MemoryStorageClient());
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
     });
 
     describe('persistence', () => {

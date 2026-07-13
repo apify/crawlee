@@ -1,12 +1,12 @@
 import { rm } from 'node:fs/promises';
 import path from 'node:path';
 
-import { FileSystemStorageClient } from '@crawlee/fs-storage';
-import type { DatasetClient, KeyValueStoreClient } from '@crawlee/types';
+import { FileSystemStorageBackend } from '@crawlee/fs-storage';
+import type { DatasetBackend, KeyValueStoreBackend } from '@crawlee/types';
 
 describe('Async iteration support', () => {
     const localDataDirectory = path.resolve(__dirname, './tmp/async-iteration');
-    const storage = new FileSystemStorageClient({
+    const storage = new FileSystemStorageBackend({
         localDataDirectory,
     });
 
@@ -16,10 +16,10 @@ describe('Async iteration support', () => {
 
     describe('Dataset.getData', () => {
         const elements = Array.from({ length: 25 }, (_, i) => ({ index: i }));
-        let dataset: DatasetClient<{ index: number }>;
+        let dataset: DatasetBackend<{ index: number }>;
 
         beforeAll(async () => {
-            dataset = (await storage.createDatasetClient({ name: 'async-iteration-dataset' })) as DatasetClient<{
+            dataset = (await storage.createDatasetBackend({ name: 'async-iteration-dataset' })) as DatasetBackend<{
                 index: number;
             }>;
             await dataset.pushData(elements);
@@ -65,10 +65,10 @@ describe('Async iteration support', () => {
 
     describe('KeyValueStore.listKeys', () => {
         const keys = Array.from({ length: 25 }, (_, i) => `key-${String(i).padStart(2, '0')}`);
-        let kvStore: KeyValueStoreClient;
+        let kvStore: KeyValueStoreBackend;
 
         beforeAll(async () => {
-            kvStore = await storage.createKeyValueStoreClient({ name: 'async-iteration-kvs' });
+            kvStore = await storage.createKeyValueStoreBackend({ name: 'async-iteration-kvs' });
 
             for (const key of keys) {
                 // The client is a byte transport: values arrive already serialized from the frontend

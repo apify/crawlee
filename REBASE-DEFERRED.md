@@ -484,3 +484,34 @@ awaits one microtask via `Promise.resolve(undefined)` racing `sleep(1)`), but
 worth a final look at whether it should be simplified now that the
 underlying async-flush problem it solved no longer applies in this
 architecture.
+
+**Commit `eec66ca55` (Rename StorageClient to StorageBackend)**: besides the
+3 flagged conflicts (`snapshotter.ts`, `basic_crawler.test.ts`,
+`playwright_crawler.test.ts`), found several unconflicted-but-broken spots
+this rename missed because they were added by v4-only or my-own-authored code
+after this commit's original point in v4 history:
+- `packages/core/src/autoscaling/client_load_signal.ts` still imported/typed
+  against `StorageClient` (removed from `@crawlee/types` entirely) — fixed to
+  `StorageBackend`.
+- `packages/core/src/autoscaling/snapshotter.ts` had 3 more unconflicted
+  `StorageClient`/`getStorageClient` references outside the merge hunk — fixed.
+- `test/core/storages/storage_manager.test.ts` was untouched by any conflict
+  in this entire 130-commit rebase and had gone fully stale: still imported
+  the deleted `MemoryStorageEmulator` helper (removed 2 commits ago in
+  `a2f9b2646`) and called `Configuration.getStorageClient()`, a method that
+  doesn't exist on `Configuration` at all post the earlier ServiceLocator
+  redesign. Rewrote against the current API
+  (`serviceLocator.setStorageBackend(new MemoryStorageBackend())`,
+  `Dataset.open(id, { storageBackend })`).
+- The two path-traversal regression tests I wrote earlier this session
+  (`packages/fs-storage/test/storage-name-path-traversal.test.ts`,
+  `.../key-value-store/record-key-path-traversal.test.ts`) used the
+  pre-rename `FileSystemStorageClient`/`createXClient` names — updated to
+  `FileSystemStorageBackend`/`createXBackend`. Also removed the now-gone
+  `writeMetadata` constructor option and, in the record-key test, stopped
+  asserting raw on-disk file paths — the previous commit's rewrite
+  (`8a422628f`) delegates file naming/encoding to the native
+  `@crawlee/fs-storage-native` client, and its own `special-keys.test.ts`
+  explicitly treats on-disk names as an implementation detail not to assert
+  on. Both tests still assert the actual security property (escaping key/name
+  rejected) through the public API only.

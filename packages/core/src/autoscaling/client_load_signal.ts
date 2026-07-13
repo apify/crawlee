@@ -1,4 +1,4 @@
-import type { StorageClient } from '@crawlee/types';
+import type { StorageBackend } from '@crawlee/types';
 
 import type { LoadSnapshot } from './load_signal.js';
 import { SnapshotStore } from './load_signal.js';
@@ -10,7 +10,7 @@ export interface ClientSnapshot extends LoadSnapshot {
 }
 
 export interface ClientLoadSignalOptions {
-    client: StorageClient;
+    client: StorageBackend;
     clientSnapshotIntervalSecs?: number;
     maxClientErrors?: number;
     overloadedRatio?: number;
