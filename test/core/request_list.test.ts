@@ -710,3 +710,16 @@ describe('RequestList', () => {
     //     console.log(initMemory, 'MB');
     // });
 });
+
+describe('Request', () => {
+    test('alwaysEnqueue makes requests to the same URL have different unique keys', () => {
+        const request1 = new Request({ url: 'https://example.com', alwaysEnqueue: true });
+        const request2 = new Request({ url: 'https://example.com', alwaysEnqueue: true });
+
+        expect(request1.uniqueKey).not.toBe(request2.uniqueKey);
+    });
+
+    test('alwaysEnqueue throws when combined with a custom uniqueKey', () => {
+        expect(() => new Request({ url: 'https://example.com', uniqueKey: 'custom', alwaysEnqueue: true })).toThrow();
+    });
+});
