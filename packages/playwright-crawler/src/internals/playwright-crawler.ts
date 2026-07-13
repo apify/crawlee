@@ -7,7 +7,8 @@ import type {
     RouterRoutes,
 } from '@crawlee/browser';
 import { BrowserCrawler, RequestState, Router, serviceLocator } from '@crawlee/browser';
-import type { BrowserPoolOptions, PlaywrightPlugin } from '@crawlee/browser-pool';
+import { BrowserPool } from '@crawlee/browser-pool';
+import type { PlaywrightPlugin } from '@crawlee/browser-pool';
 import type { Dictionary } from '@crawlee/types';
 import ow from 'ow';
 import type { LaunchOptions, Page, Response } from 'playwright';
@@ -188,7 +189,6 @@ export class PlaywrightCrawler<
 > {
     protected static override optionsShape = {
         ...BrowserCrawler.optionsShape,
-        browserPoolOptions: ow.optional.object,
         launcher: ow.optional.object,
         ignoreIframes: ow.optional.boolean,
         ignoreShadowRoots: ow.optional.boolean,
@@ -202,10 +202,7 @@ export class PlaywrightCrawler<
 
         const { launchContext = {}, headless, contextPipelineBuilder, ...browserCrawlerOptions } = options;
 
-        const browserPoolOptions = {
-            ...options.browserPoolOptions,
-        } as BrowserPoolOptions;
-
+    
         if (launchContext.proxyUrl) {
             throw new Error(
                 'PlaywrightCrawlerOptions.launchContext.proxyUrl is not allowed in PlaywrightCrawler.' +
@@ -215,23 +212,31 @@ export class PlaywrightCrawler<
 
         // `browserPlugins` is working when it's not overridden by `launchContext`,
         // which for crawlers it is always overridden. Hence the error to use the other option.
-        if (browserPoolOptions.browserPlugins) {
-            throw new Error('browserPoolOptions.browserPlugins is disallowed. Use launchContext.launcher instead.');
-        }
+        
 
         if (headless != null) {
             launchContext.launchOptions ??= {} as LaunchOptions;
             launchContext.launchOptions.headless = headless as boolean;
         }
 
-        const playwrightLauncher = new PlaywrightLauncher(launchContext, options.configuration);
+        let browserPool = options.browserPool;
 
-        browserPoolOptions.browserPlugins = [playwrightLauncher.createBrowserPlugin()];
+        if (!browserPool) {
+            const playwrightLauncher = new PlaywrightLauncher(
+                launchContext,
+                options.configuration,
+            );
+
+            browserPool = new BrowserPool({
+                browserPlugins: [playwrightLauncher.createBrowserPlugin()],
+            });
+        }
+
 
         super({
             ...(browserCrawlerOptions as PlaywrightCrawlerOptions<ExtendedContext>),
             launchContext,
-            browserPoolOptions,
+            browserPool,
             contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),
         });
     }

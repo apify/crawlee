@@ -1,6 +1,7 @@
 // For more information, see https://crawlee.dev/
 import { launchOptions } from 'camoufox-js';
 import { PlaywrightCrawler, ProxyConfiguration } from 'crawlee';
+import { BrowserPool } from '@crawlee/browser-pool';
 import { firefox } from 'playwright';
 
 import { router } from './routes.js';
@@ -12,10 +13,10 @@ const crawler = new PlaywrightCrawler({
     requestHandler: router,
     // Comment this option to scrape the full website.
     maxRequestsPerCrawl: 20,
-    browserPoolOptions: {
-        // Disable the default fingerprint spoofing to avoid conflicts with Camoufox.
+    browserPool: new BrowserPool({
+    // Disable the default fingerprint spoofing to avoid conflicts with Camoufox.
         useFingerprints: false,
-    },
+    }),
     launchContext: {
         launcher: firefox,
         launchOptions: await launchOptions({

@@ -31,13 +31,11 @@ import {
 import type {
     BrowserController,
     BrowserPlugin,
-    BrowserPoolHooks,
     BrowserPoolOptions,
     CommonPage,
     InferBrowserPluginArray,
     LaunchContext,
 } from '@crawlee/browser-pool';
-import { BrowserPool } from '@crawlee/browser-pool';
 import type { BatchAddRequestsResult, Cookie as CookieObject, IBrowserPool, ISession } from '@crawlee/types';
 import type { RobotsTxtFile } from '@crawlee/utils';
 import { CLOUDFLARE_RETRY_CSS_SELECTORS, RETRY_CSS_SELECTORS, sleep } from '@crawlee/utils';
@@ -118,7 +116,7 @@ export interface BrowserCrawlerOptions<
 
     /**
      * An existing browser pool instance to use. When provided, the crawler will use this pool directly instead of
-     * constructing a new one from `browserPoolOptions`, enabling browser sharing across multiple crawlers. The crawler
+     * using an existing browser pool instance, enabling browser sharing across multiple crawlers. The crawler
      * will not tear down a shared pool — the caller is responsible for its lifecycle.
      */
     browserPool?: IBrowserPool<Page>;
@@ -173,13 +171,7 @@ export interface BrowserCrawlerOptions<
      * represents the last error thrown during processing of the request.
      */
     failedRequestHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
-
-    /**
-     * Custom options passed to the underlying {@apilink BrowserPool} constructor.
-     * We can tweak those to fine-tune browser management.
-     */
-    browserPoolOptions?: Partial<BrowserPoolOptions> &
-        Partial<BrowserPoolHooks<__BrowserControllerReturn, __LaunchContextReturn>>;
+    
 
     /**
      * Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies
@@ -327,7 +319,6 @@ export abstract class BrowserCrawler<
      * lifecycle methods (`destroy`) that aren't part of {@apilink IBrowserPool}. A user-supplied pool is
      * never owned and never torn down by the crawler.
      */
-    private ownedBrowserPool?: BrowserPool<InternalBrowserPoolOptions>;
 
     launchContext: BrowserLaunchContext<LaunchOptions, unknown>;
 
@@ -349,7 +340,6 @@ export abstract class BrowserCrawler<
         launchContext: ow.optional.object,
         headless: ow.optional.any(ow.boolean, ow.string),
         browserPool: ow.optional.object.validate(validators.browserPool),
-        browserPoolOptions: ow.optional.object,
         saveResponseCookies: ow.optional.boolean,
         proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
     };
@@ -368,7 +358,6 @@ export abstract class BrowserCrawler<
             saveResponseCookies = true,
             launchContext = {},
             browserPool,
-            browserPoolOptions,
             preNavigationHooks = [],
             postNavigationHooks = [],
             headless,
@@ -422,22 +411,13 @@ export abstract class BrowserCrawler<
 
         this.saveResponseCookies = saveResponseCookies;
 
-        if (browserPool) {
-            this.browserPool = browserPool;
-            return;
+        if (!browserPool) {
+            throw new Error('BrowserCrawler requires a browserPool instance.');
         }
 
-        const resolvedBrowserPoolOptions = browserPoolOptions ?? ({} as Partial<BrowserPoolOptions>);
+        this.browserPool = browserPool;
 
-        if (launchContext?.userAgent) {
-            if (resolvedBrowserPoolOptions.useFingerprints)
-                this.log.info('Custom user agent provided, disabling automatic browser fingerprint injection!');
-            resolvedBrowserPoolOptions.useFingerprints = false;
-        }
-
-        this.ownedBrowserPool = new BrowserPool<InternalBrowserPoolOptions>({
-            ...(resolvedBrowserPoolOptions as any),
-        });
+    
         this.browserPool = this.ownedBrowserPool as IBrowserPool<Page>;
     }
 
@@ -718,7 +698,6 @@ export abstract class BrowserCrawler<
      * @ignore
      */
     override async teardown(): Promise<void> {
-        await this.ownedBrowserPool?.destroy();
         await super.teardown();
     }
 }
