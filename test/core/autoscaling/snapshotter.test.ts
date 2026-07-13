@@ -25,7 +25,7 @@ describe('Snapshotter', () => {
         serviceLocator.setConfiguration(new Configuration({ systemInfoIntervalMillis: 100 }));
 
         // mock client data
-        const apifyClient = serviceLocator.getStorageClient();
+        const apifyClient = serviceLocator.getStorageBackend();
         const oldStats = apifyClient.stats;
         apifyClient.stats = {} as any;
         apifyClient.stats!.rateLimitErrors = [0, 0, 0];
@@ -279,7 +279,7 @@ describe('Snapshotter', () => {
 
     test('correctly marks clientOverloaded', () => {
         // mock client data
-        const apifyClient = serviceLocator.getStorageClient();
+        const apifyClient = serviceLocator.getStorageBackend();
         const oldStats = apifyClient.stats;
         apifyClient.stats = {} as any;
         apifyClient.stats!.rateLimitErrors = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];

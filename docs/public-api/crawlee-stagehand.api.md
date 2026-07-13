@@ -116,7 +116,7 @@ export class StagehandCrawler<ContextExtension = Dictionary<never>, ExtendedCont
         onSkippedRequest: Predicate<Function> & BasePredicate<Function | undefined>;
         httpClient: ObjectPredicate<object> & BasePredicate<object | undefined>;
         configuration: ObjectPredicate<object> & BasePredicate<object | undefined>;
-        storageClient: ObjectPredicate<object> & BasePredicate<object | undefined>;
+        storageBackend: ObjectPredicate<object> & BasePredicate<object | undefined>;
         eventManager: ObjectPredicate<object> & BasePredicate<object | undefined>;
         logger: ObjectPredicate<object> & BasePredicate<object | undefined>;
         minConcurrency: NumberPredicate & BasePredicate<number | undefined>;

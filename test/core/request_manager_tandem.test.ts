@@ -1,6 +1,6 @@
 import {
     log,
-    MemoryStorageClient,
+    MemoryStorageBackend,
     Request,
     RequestList,
     RequestManagerTandem,
@@ -18,7 +18,7 @@ describe('RequestManagerTandem', () => {
     });
 
     beforeEach(async () => {
-        serviceLocator.setStorageClient(new MemoryStorageClient());
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
         vi.restoreAllMocks();
     });
 

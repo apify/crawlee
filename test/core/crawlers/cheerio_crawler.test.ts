@@ -11,7 +11,7 @@ import {
     RequestList,
     Session,
 } from '@crawlee/cheerio';
-import { BaseCrawleeLogger, MemoryStorageClient, serviceLocator, SessionPool } from '@crawlee/core';
+import { BaseCrawleeLogger, MemoryStorageBackend, serviceLocator, SessionPool } from '@crawlee/core';
 import { ImpitHttpClient } from '@crawlee/impit-client';
 import type { ISession, ProxyInfo } from '@crawlee/types';
 import type { Dictionary } from '@crawlee/utils';
@@ -72,7 +72,7 @@ describe('CheerioCrawler', () => {
     });
 
     beforeEach(async () => {
-        serviceLocator.setStorageClient(new MemoryStorageClient());
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
     });
 
     afterAll(async () => {

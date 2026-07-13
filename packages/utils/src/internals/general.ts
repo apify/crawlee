@@ -205,7 +205,7 @@ export function isStream(value: unknown): value is NodeJS.ReadableStream | Reada
 
     // A Node.js Readable is both pipeable and async-iterable; a Web ReadableStream exposes pipeTo.
     // Requiring async-iterability for the `pipe` branch rejects plain `{ pipe }` ducks that would
-    // otherwise blow up later in the storage clients' drain loop with a cryptic TypeError.
+    // otherwise blow up later in the storage backends' drain loop with a cryptic TypeError.
     const isNodeStream =
         typeof (value as any).pipe === 'function' && typeof (value as any)[Symbol.asyncIterator] === 'function';
     const isWebStream = typeof (value as any).pipeTo === 'function';
@@ -231,7 +231,7 @@ export function isBuffer(value: unknown): value is Buffer | ArrayBuffer | ArrayB
 /**
  * Converts a byte-like value (Buffer, ArrayBuffer, or any typed-array / DataView) into a Buffer over
  * the exact same bytes, honoring `byteOffset` / `byteLength` for views. Existing Buffers are returned
- * as-is. Used by storage clients, which persist raw bytes regardless of the input's concrete shape.
+ * as-is. Used by storage backends, which persist raw bytes regardless of the input's concrete shape.
  * @ignore
  */
 export function toBuffer(value: Buffer | ArrayBuffer | ArrayBufferView): Buffer {

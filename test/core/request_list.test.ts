@@ -3,7 +3,7 @@ import {
     deserializeArray,
     EventType,
     KeyValueStore,
-    MemoryStorageClient,
+    MemoryStorageBackend,
     ProxyConfiguration,
     Request,
     RequestList,
@@ -54,7 +54,7 @@ describe('RequestList', () => {
     });
 
     beforeEach(async () => {
-        serviceLocator.setStorageClient(new MemoryStorageClient());
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
         vitest.restoreAllMocks();
     });
 

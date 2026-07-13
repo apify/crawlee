@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import type * as storage from '@crawlee/types';
 import { AsyncQueue } from '@sapphire/async-queue';
 import { s } from '@sapphire/shapeshift';
-import type { MemoryStorageClient } from '../memory-storage.js';
+import type { MemoryStorageBackend } from '../memory-storage.js';
 import { purgeNullsFromObject, uniqueKeyToRequestId } from '../utils.js';
 import { BaseClient } from './common/base-client.js';
 
@@ -26,7 +26,7 @@ const requestOptionsShape = s.object({
     forefront: s.boolean().optional(),
 });
 
-export interface RequestQueueClientOptions {
+export interface RequestQueueBackendOptions {
     name?: string;
     id?: string;
     /**
@@ -35,7 +35,7 @@ export interface RequestQueueClientOptions {
      * metadata `name` (which is `undefined` for unnamed storages).
      */
     cacheKey?: string;
-    client: MemoryStorageClient;
+    storageBackend: MemoryStorageBackend;
 }
 
 export interface InternalRequest {
@@ -48,7 +48,7 @@ export interface InternalRequest {
     json: string;
 }
 
-export class RequestQueueClient extends BaseClient implements storage.RequestQueueClient {
+export class RequestQueueBackend extends BaseClient implements storage.RequestQueueBackend {
     name?: string;
     /**
      * The key used for cache lookup. For named storages, this equals the name. For alias (unnamed)
@@ -61,7 +61,7 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
     handledRequestCount = 0;
     pendingRequestCount = 0;
     /**
-     * Serializes every operation that reads-then-writes this client's shared queue state — the
+     * Serializes every operation that reads-then-writes this backend's shared queue state — the
      * `requests` map, the `forefrontRequestIds` array, the `inProgressRequestIds` set and the request
      * counts. Those mutations span `await` points, so without this mutex a concurrent operation could
      * interleave and corrupt them (e.g. a head scan pruning `forefrontRequestIds` while
@@ -82,13 +82,13 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
     private readonly inProgressRequestIds = new Set<string>();
 
     private readonly requests = new Map<string, InternalRequest>();
-    private readonly client: MemoryStorageClient;
+    private readonly storageBackend: MemoryStorageBackend;
 
-    constructor(options: RequestQueueClientOptions) {
+    constructor(options: RequestQueueBackendOptions) {
         super(options.id ?? randomUUID());
         this.name = options.name;
         this.cacheKey = options.cacheKey ?? this.name ?? this.id;
-        this.client = options.client;
+        this.storageBackend = options.storageBackend;
     }
 
     async getMetadata(): Promise<storage.RequestQueueInfo> {
@@ -103,17 +103,17 @@ export class RequestQueueClient extends BaseClient implements storage.RequestQue
         await this.queueStateMutex.wait();
 
         try {
-            const storeIndex = this.client.requestQueueCache.findIndex((queue) => queue.id === this.id);
+            const storeIndex = this.storageBackend.requestQueueBackendCache.findIndex((queue) => queue.id === this.id);
 
             if (storeIndex !== -1) {
-                const [oldClient] = this.client.requestQueueCache.splice(storeIndex, 1);
-                oldClient.pendingRequestCount = 0;
+                const [oldBackend] = this.storageBackend.requestQueueBackendCache.splice(storeIndex, 1);
+                oldBackend.pendingRequestCount = 0;
                 // Clear all in-memory state, consistent with `purge`. Clearing `requests` alone would
                 // leave dangling ids in `forefrontRequestIds`/`inProgressRequestIds`, which a later head
                 // scan would resolve to a missing request and dereference.
-                oldClient.requests.clear();
-                oldClient.forefrontRequestIds = [];
-                oldClient.inProgressRequestIds.clear();
+                oldBackend.requests.clear();
+                oldBackend.forefrontRequestIds = [];
+                oldBackend.inProgressRequestIds.clear();
             }
         } finally {
             this.queueStateMutex.shift();

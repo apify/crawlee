@@ -1,11 +1,11 @@
 import { rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
-import { FileSystemStorageClient } from '@crawlee/fs-storage';
+import { FileSystemStorageBackend } from '@crawlee/fs-storage';
 
 // The native client owns request-queue persistence; what this test exercises is the *adapter* wiring
-// that drives it: `FileSystemStorageClient.teardown()` must flush every opened queue's state via
-// `persistState()`, and reopening through a fresh `FileSystemStorageClient` over the same directory
+// that drives it: `FileSystemStorageBackend.teardown()` must flush every opened queue's state via
+// `persistState()`, and reopening through a fresh `FileSystemStorageBackend` over the same directory
 // must restore the pending requests (with the adapter's request mapping intact).
 describe('Request queue persists across reopen via teardown', () => {
     const tmpLocation = resolve(import.meta.dirname, './tmp/req-queue-reload');
@@ -15,8 +15,8 @@ describe('Request queue persists across reopen via teardown', () => {
     });
 
     test('requests added and persisted are restored when the queue is reopened', async () => {
-        const storage = new FileSystemStorageClient({ localDataDirectory: tmpLocation });
-        const queue = await storage.createRequestQueueClient({ name: 'default' });
+        const storage = new FileSystemStorageBackend({ localDataDirectory: tmpLocation });
+        const queue = await storage.createRequestQueueBackend({ name: 'default' });
 
         await queue.addBatchOfRequests([
             { url: 'http://example.com/1', uniqueKey: '1' },
@@ -27,8 +27,8 @@ describe('Request queue persists across reopen via teardown', () => {
         await storage.teardown();
 
         // Reopen over the same directory, emulating a fresh process.
-        const reopenedStorage = new FileSystemStorageClient({ localDataDirectory: tmpLocation });
-        const reopenedQueue = await reopenedStorage.createRequestQueueClient({ name: 'default' });
+        const reopenedStorage = new FileSystemStorageBackend({ localDataDirectory: tmpLocation });
+        const reopenedQueue = await reopenedStorage.createRequestQueueBackend({ name: 'default' });
 
         const metadata = await reopenedQueue.getMetadata();
         expect(metadata.pendingRequestCount).toBe(2);

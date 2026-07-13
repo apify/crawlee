@@ -78,28 +78,28 @@ export interface CrawleeLoggerOptions {
 }
 
 // @public
-export type CreateDatasetClientOptions = StorageIdentifier;
+export type CreateDatasetBackendOptions = StorageIdentifier;
 
 // @public
-export type CreateKeyValueStoreClientOptions = StorageIdentifier;
+export type CreateKeyValueStoreBackendOptions = StorageIdentifier;
 
 // @public
-export type CreateRequestQueueClientOptions = StorageIdentifier & {
+export type CreateRequestQueueBackendOptions = StorageIdentifier & {
     clientKey?: string;
     timeoutSecs?: number;
 };
 
 // @public (undocumented)
-export interface DatasetClient<Data extends Dictionary = Dictionary> {
+export interface DatasetBackend<Data extends Dictionary = Dictionary> {
     drop(): Promise<void>;
-    getData(options?: DatasetClientListOptions): Promise<PaginatedList<Data>>;
+    getData(options?: DatasetBackendListOptions): Promise<PaginatedList<Data>>;
     getMetadata(): Promise<DatasetInfo>;
     purge(): Promise<void>;
     pushData(items: Data[]): Promise<void>;
 }
 
 // @public (undocumented)
-export interface DatasetClientListOptions {
+export interface DatasetBackendListOptions {
     // (undocumented)
     desc?: boolean;
     // (undocumented)
@@ -208,7 +208,7 @@ export interface ISessionPool {
 }
 
 // @public
-export interface KeyValueStoreClient {
+export interface KeyValueStoreBackend {
     deleteValue(key: string): Promise<void>;
     drop(): Promise<void>;
     getMetadata(): Promise<KeyValueStoreInfo>;
@@ -340,7 +340,7 @@ export type RedirectHandler = (redirectResponse: Response, updatedRequest: {
 }) => void;
 
 // @public
-export interface RequestQueueClient {
+export interface RequestQueueBackend {
     addBatchOfRequests(requests: RequestSchema[], options?: RequestQueueOperationOptions): Promise<BatchAddRequestsResult>;
     drop(): Promise<void>;
     fetchNextRequest(): Promise<UpdateRequestSchema | undefined>;
@@ -465,11 +465,11 @@ export interface SetStatusMessageOptions {
 }
 
 // @public
-export interface StorageClient {
-    createDatasetClient(options?: CreateDatasetClientOptions): Promise<DatasetClient>;
-    createKeyValueStoreClient(options?: CreateKeyValueStoreClientOptions): Promise<KeyValueStoreClient>;
-    createRequestQueueClient(options?: CreateRequestQueueClientOptions): Promise<RequestQueueClient>;
-    getStorageClientCacheKey?(): string;
+export interface StorageBackend {
+    createDatasetBackend(options?: CreateDatasetBackendOptions): Promise<DatasetBackend>;
+    createKeyValueStoreBackend(options?: CreateKeyValueStoreBackendOptions): Promise<KeyValueStoreBackend>;
+    createRequestQueueBackend(options?: CreateRequestQueueBackendOptions): Promise<RequestQueueBackend>;
+    getStorageBackendCacheKey?(): string;
     // (undocumented)
     purge?(): Promise<void>;
     // (undocumented)
