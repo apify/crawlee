@@ -1,7 +1,7 @@
 import { rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
-import { FileSystemStorageClient } from '@crawlee/fs-storage';
+import { FileSystemStorageBackend } from '@crawlee/fs-storage';
 
 // Keys may contain characters that are unsafe in a file name (e.g. `.` or `/`). The adapter must
 // round-trip such keys correctly through `setValue` / `getValue` / `listKeys` regardless of how the
@@ -19,8 +19,8 @@ describe('KeyValueStore handles keys with file-name-unsafe characters', () => {
     });
 
     test('round-trips a key containing a dot', async () => {
-        const storage = new FileSystemStorageClient({ localDataDirectory: tmpLocation });
-        const store = await storage.createKeyValueStoreClient({ name: 'dotted' });
+        const storage = new FileSystemStorageBackend({ localDataDirectory: tmpLocation });
+        const store = await storage.createKeyValueStoreBackend({ name: 'dotted' });
 
         const body = '<html lang="en"><body>Hi there!</body></html>';
         await store.setValue({
@@ -39,8 +39,8 @@ describe('KeyValueStore handles keys with file-name-unsafe characters', () => {
     });
 
     test('round-trips a key containing a slash', async () => {
-        const storage = new FileSystemStorageClient({ localDataDirectory: tmpLocation });
-        const store = await storage.createKeyValueStoreClient({ name: 'slashed' });
+        const storage = new FileSystemStorageBackend({ localDataDirectory: tmpLocation });
+        const store = await storage.createKeyValueStoreBackend({ name: 'slashed' });
 
         const body = JSON.stringify({ ok: true });
         await store.setValue({ key: 'nested/key', value: body, contentType: 'application/json; charset=utf-8' });

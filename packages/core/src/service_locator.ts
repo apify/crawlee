@@ -1,7 +1,7 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 
-import { FileSystemStorageClient } from '@crawlee/fs-storage';
-import type { StorageClient } from '@crawlee/types';
+import { FileSystemStorageBackend } from '@crawlee/fs-storage';
+import type { StorageBackend } from '@crawlee/types';
 
 import log from '@apify/log';
 
@@ -11,7 +11,7 @@ import type { EventManager } from './events/event_manager.js';
 import { LocalEventManager } from './events/local_event_manager.js';
 import type { CrawleeLogger } from './log.js';
 import { ApifyLogAdapter } from './log.js';
-import { MemoryStorageClient } from './memory-storage/index.js';
+import { MemoryStorageBackend } from './memory-storage/index.js';
 import { StorageInstanceManager } from './storages/storage_instance_manager.js';
 
 interface ServiceLocatorInterface {
@@ -44,19 +44,19 @@ interface ServiceLocatorInterface {
     setEventManager(eventManager: EventManager): void;
 
     /**
-     * Get the storage client.
-     * Creates a default storage client if none has been set — `FileSystemStorageClient` when
-     * `persistStorage` is enabled (the default), `MemoryStorageClient` otherwise.
+     * Get the storage backend.
+     * Creates a default storage backend if none has been set — `FileSystemStorageBackend` when
+     * `persistStorage` is enabled (the default), `MemoryStorageBackend` otherwise.
      */
-    getStorageClient(): StorageClient;
+    getStorageBackend(): StorageBackend;
 
     /**
-     * Set the storage client.
+     * Set the storage backend.
      *
-     * @param storageClient The storage client to set
-     * @throws {ServiceConflictError} If a different storage client has already been retrieved
+     * @param storageBackend The storage backend to set
+     * @throws {ServiceConflictError} If a different storage backend has already been retrieved
      */
-    setStorageClient(storageClient: StorageClient): void;
+    setStorageBackend(storageBackend: StorageBackend): void;
 
     /**
      * Get the logger.
@@ -103,7 +103,7 @@ interface ServiceLocatorInterface {
  * import { serviceLocator, BasicCrawler } from 'crawlee';
  *
  * // Optionally configure global services before creating crawlers
- * serviceLocator.setStorageClient(myCustomClient);
+ * serviceLocator.setStorageBackend(myCustomClient);
  *
  * // Crawler uses global services
  * const crawler = new BasicCrawler({ ... });
@@ -111,12 +111,12 @@ interface ServiceLocatorInterface {
  *
  * **2. Per-crawler services (recommended for isolation):**
  * ```typescript
- * import { BasicCrawler, Configuration, LocalEventManager, MemoryStorageClient } from 'crawlee';
+ * import { BasicCrawler, Configuration, LocalEventManager, MemoryStorageBackend } from 'crawlee';
  *
  * const crawler = new BasicCrawler({
  *     requestHandler: async ({ request }) => { ... },
  *     configuration: new Configuration({ ... }),  // custom config
- *     storageClient: new MemoryStorageClient(),          // custom storage
+ *     storageBackend: new MemoryStorageBackend(),          // custom storage
  *     eventManager: LocalEventManager.fromConfig(),  // custom events
  * });
  * // Crawler has its own isolated ServiceLocator instance
@@ -125,7 +125,7 @@ interface ServiceLocatorInterface {
 export class ServiceLocator implements ServiceLocatorInterface {
     private configuration?: Configuration;
     private eventManager?: EventManager;
-    private storageClient?: StorageClient;
+    private storageBackend?: StorageBackend;
     private logger?: CrawleeLogger;
 
     /**
@@ -140,18 +140,18 @@ export class ServiceLocator implements ServiceLocatorInterface {
      *
      * @param configuration Optional configuration instance to use
      * @param eventManager Optional event manager instance to use
-     * @param storageClient Optional storage client instance to use
+     * @param storageBackend Optional storage backend instance to use
      * @param logger Optional logger instance to use
      */
     constructor(
         configuration?: Configuration,
         eventManager?: EventManager,
-        storageClient?: StorageClient,
+        storageBackend?: StorageBackend,
         logger?: CrawleeLogger,
     ) {
         this.configuration = configuration;
         this.eventManager = eventManager;
-        this.storageClient = storageClient;
+        this.storageBackend = storageBackend;
         this.logger = logger;
     }
 
@@ -205,43 +205,43 @@ export class ServiceLocator implements ServiceLocatorInterface {
         this.eventManager = eventManager;
     }
 
-    getStorageClient(): StorageClient {
-        if (!this.storageClient) {
+    getStorageBackend(): StorageBackend {
+        if (!this.storageBackend) {
             this.getLogger().debug(
-                'No storage client set, implicitly creating and using the default storage client ' +
-                    '(FileSystemStorageClient when persistStorage is enabled, MemoryStorageClient otherwise).',
+                'No storage backend set, implicitly creating and using the default storage backend ' +
+                    '(FileSystemStorageBackend when persistStorage is enabled, MemoryStorageBackend otherwise).',
             );
             if (!this.configuration) {
                 this.getLogger().warning(
-                    'Implicit creation of storage client will implicitly set configuration as side effect. ' +
+                    'Implicit creation of storage backend will implicitly set configuration as side effect. ' +
                         'It is advised to explicitly first set the configuration instead.',
                 );
             }
             const config = this.getConfiguration();
-            this.storageClient = config.persistStorage
-                ? new FileSystemStorageClient({
+            this.storageBackend = config.persistStorage
+                ? new FileSystemStorageBackend({
                       localDataDirectory: config.storageDir,
-                      logger: this.getLogger().child({ prefix: 'FileSystemStorageClient' }),
+                      logger: this.getLogger().child({ prefix: 'FileSystemStorageBackend' }),
                   })
-                : new MemoryStorageClient({
-                      logger: this.getLogger().child({ prefix: 'MemoryStorageClient' }),
+                : new MemoryStorageBackend({
+                      logger: this.getLogger().child({ prefix: 'MemoryStorageBackend' }),
                   });
         }
-        return this.storageClient;
+        return this.storageBackend;
     }
 
-    setStorageClient(storageClient: StorageClient): void {
+    setStorageBackend(storageBackend: StorageBackend): void {
         // Same instance, no need to do anything
-        if (this.storageClient === storageClient) {
+        if (this.storageBackend === storageBackend) {
             return;
         }
 
-        // Already have a different storage client that was retrieved
-        if (this.storageClient) {
-            throw new ServiceConflictError('StorageClient', storageClient, this.storageClient);
+        // Already have a different storage backend that was retrieved
+        if (this.storageBackend) {
+            throw new ServiceConflictError('StorageBackend', storageBackend, this.storageBackend);
         }
 
-        this.storageClient = storageClient;
+        this.storageBackend = storageBackend;
     }
 
     getLogger(): CrawleeLogger {
@@ -277,7 +277,7 @@ export class ServiceLocator implements ServiceLocatorInterface {
     reset(): void {
         this.configuration = undefined;
         this.eventManager = undefined;
-        this.storageClient = undefined;
+        this.storageBackend = undefined;
         this.logger = undefined;
         ServiceLocator.storageInstanceManager?.clearCache();
         ServiceLocator.storageInstanceManager = undefined;
@@ -366,7 +366,7 @@ export const serviceLocator = new Proxy({} as ServiceLocatorInterface, {
     },
     set(_target, prop) {
         throw new TypeError(
-            `Cannot set property '${String(prop)}' on serviceLocator directly. Use the setter methods (e.g. setConfiguration(), setStorageClient()) instead.`,
+            `Cannot set property '${String(prop)}' on serviceLocator directly. Use the setter methods (e.g. setConfiguration(), setStorageBackend()) instead.`,
         );
     },
 });

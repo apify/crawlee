@@ -3,7 +3,7 @@ import type { AddressInfo } from 'node:net';
 import { Readable } from 'node:stream';
 import { finished } from 'node:stream/promises';
 
-import { MemoryStorageClient, type Request, serviceLocator, SitemapRequestLoader } from '@crawlee/core';
+import { MemoryStorageBackend, type Request, serviceLocator, SitemapRequestLoader } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
 import express from 'express';
 import { startExpressAppPromise } from '../shared/_helper.js';
@@ -199,7 +199,7 @@ afterAll(async () => {
 
 // Fresh in-memory storage for each test
 beforeEach(async () => {
-    serviceLocator.setStorageClient(new MemoryStorageClient());
+    serviceLocator.setStorageBackend(new MemoryStorageBackend());
 });
 
 describe('SitemapRequestLoader', () => {

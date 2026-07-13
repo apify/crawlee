@@ -48,7 +48,7 @@ if (workerData !== '#actor') {
             },
         });
 
-        serviceLocator.getStorageClient().__purged = false;
+        serviceLocator.getStorageBackend().__purged = false;
 
         await crawler.run(['https://crawlee.dev']);
     }, mainOptions);

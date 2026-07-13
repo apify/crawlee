@@ -1,24 +1,24 @@
 import { rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
-import { FileSystemStorageClient } from '@crawlee/fs-storage';
-import type { RequestQueueClient } from '@crawlee/types';
+import { FileSystemStorageBackend } from '@crawlee/fs-storage';
+import type { RequestQueueBackend } from '@crawlee/types';
 
 // The request-queue ordering, locking and finished-ness semantics are owned (and exhaustively tested)
 // by the native `@crawlee/fs-storage-native` extension. These tests cover what the *adapter* adds on
 // top: mapping requests and operation results between the native shapes and the `@crawlee/types`
 // interfaces, and a thin lifecycle smoke test to catch wiring regressions.
-describe('RequestQueueClient adapter', () => {
+describe('RequestQueueBackend adapter', () => {
     const tmpLocation = resolve(import.meta.dirname, './tmp/adapter');
 
-    let requestQueue: RequestQueueClient;
+    let requestQueue: RequestQueueBackend;
     let testIndex = 0;
 
     beforeEach(async () => {
         // Isolate each test with its own storage directory and queue so persisted counts/requests from
         // one test cannot leak into the next.
-        const storage = new FileSystemStorageClient({ localDataDirectory: resolve(tmpLocation, `${testIndex++}`) });
-        requestQueue = await storage.createRequestQueueClient({ name: 'adapter' });
+        const storage = new FileSystemStorageBackend({ localDataDirectory: resolve(tmpLocation, `${testIndex++}`) });
+        requestQueue = await storage.createRequestQueueBackend({ name: 'adapter' });
     });
 
     afterAll(async () => {

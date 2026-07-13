@@ -5,7 +5,7 @@ import { load } from 'cheerio';
 
 import log from '@apify/log';
 
-const apifyClient = serviceLocator.getStorageClient();
+const apifyClient = serviceLocator.getStorageBackend();
 
 const HTML = `
 <html>
@@ -23,7 +23,7 @@ const HTML = `
 
 function createRequestQueueMock() {
     const enqueued: Source[] = [];
-    const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient }, serviceLocator.getConfiguration());
+    const requestQueue = new RequestQueue({ id: 'xxx', backend: apifyClient }, serviceLocator.getConfiguration());
 
     // @ts-expect-error Override method for testing
     requestQueue.addRequests = async function (requests) {

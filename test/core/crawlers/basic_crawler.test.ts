@@ -22,7 +22,7 @@ import {
     serviceLocator,
     SessionPool,
 } from '@crawlee/basic';
-import { MemoryStorageClient, RequestState } from '@crawlee/core';
+import { MemoryStorageBackend, RequestState } from '@crawlee/core';
 import type { ISession, ProxyInfo } from '@crawlee/types';
 import type { Dictionary } from '@crawlee/utils';
 import { RobotsTxtFile, sleep } from '@crawlee/utils';
@@ -36,11 +36,11 @@ import { startExpressAppPromise } from 'test/shared/_helper.js';
 
 import log from '@apify/log';
 
-type MemoryRequestQueueClient = Awaited<ReturnType<MemoryStorageClient['createRequestQueueClient']>>;
+type MemoryRequestQueueBackend = Awaited<ReturnType<MemoryStorageBackend['createRequestQueueBackend']>>;
 
 describe('BasicCrawler', () => {
     let logLevel: number;
-    let requestQueueClient: MemoryRequestQueueClient;
+    let requestQueueBackend: MemoryRequestQueueBackend;
 
     const HOSTNAME = '127.0.0.1';
     let port: number;
@@ -64,9 +64,9 @@ describe('BasicCrawler', () => {
 
     beforeEach(async () => {
         vitest.clearAllMocks();
-        serviceLocator.setStorageClient(new MemoryStorageClient());
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
         const memoryRequestQueue = await RequestQueue.open();
-        requestQueueClient = memoryRequestQueue.client as MemoryRequestQueueClient;
+        requestQueueBackend = memoryRequestQueue.backend as MemoryRequestQueueBackend;
     });
 
     afterAll(async () => {
@@ -202,14 +202,14 @@ describe('BasicCrawler', () => {
         expect(processed).toHaveLength(2);
 
         // Make sure no extra requests were enqueued
-        await expect(requestQueueClient.listItems()).resolves.toEqual([]);
+        await expect(requestQueueBackend.listItems()).resolves.toEqual([]);
 
         // Second run should process 2 more requests
         await crawler.run([...Array(5).keys()].map((index) => `https://example.com/second/${index}`));
         expect(processed).toHaveLength(4);
 
         // Make sure no extra requests were enqueued
-        await expect(requestQueueClient.listItems()).resolves.toEqual([]);
+        await expect(requestQueueBackend.listItems()).resolves.toEqual([]);
 
         const processedUrls = processed.map((p) => p.url);
 
@@ -1839,7 +1839,7 @@ describe('BasicCrawler', () => {
 
             // Should only have added the first 3 requests (since 2 were already processed, limit allows 3 more)
             expect(addRequestsBatchedSpy).toHaveBeenCalledOnce();
-            await expect(requestQueueClient.listItems()).resolves.toMatchObject([
+            await expect(requestQueueBackend.listItems()).resolves.toMatchObject([
                 { url: 'http://example.com/1' },
                 { url: 'http://example.com/2' },
                 { url: 'http://example.com/3' },
@@ -1861,7 +1861,7 @@ describe('BasicCrawler', () => {
             // First call - should add 2 requests (2 more slots to go)
             await crawler.addRequests(['http://example.com/1', 'http://example.com/2']);
 
-            await expect(requestQueueClient.listItems()).resolves.toMatchObject([
+            await expect(requestQueueBackend.listItems()).resolves.toMatchObject([
                 { url: 'http://example.com/1' },
                 { url: 'http://example.com/2' },
             ]);
@@ -1874,7 +1874,7 @@ describe('BasicCrawler', () => {
                 'http://example.com/6', // This should be ignored
             ]);
 
-            await expect(requestQueueClient.listItems()).resolves.toMatchObject([
+            await expect(requestQueueBackend.listItems()).resolves.toMatchObject([
                 { url: 'http://example.com/1' },
                 { url: 'http://example.com/2' },
                 { url: 'http://example.com/3' },
@@ -1884,7 +1884,7 @@ describe('BasicCrawler', () => {
             // Third call - should add no requests (limit already reached)
             await crawler.addRequests(['http://example.com/7', 'http://example.com/8']);
 
-            await expect(requestQueueClient.listItems()).resolves.toMatchObject([
+            await expect(requestQueueBackend.listItems()).resolves.toMatchObject([
                 { url: 'http://example.com/1' },
                 { url: 'http://example.com/2' },
                 { url: 'http://example.com/3' },
@@ -1919,7 +1919,7 @@ describe('BasicCrawler', () => {
                 'http://example.com/4', // Would exceed limit
             ]);
 
-            await expect(requestQueueClient.listItems()).resolves.toMatchObject([
+            await expect(requestQueueBackend.listItems()).resolves.toMatchObject([
                 { url: 'http://example.com/1' },
                 { url: 'http://example.com/3' },
             ]);
@@ -1981,7 +1981,7 @@ describe('BasicCrawler', () => {
                 'http://example.com/my-crawler/anything', // Blocked by robots.txt for all user-agents, but allowed for "MyCrawler"
             ]);
 
-            await expect(requestQueueClient.listItems()).resolves.toMatchObject(visitedUrls);
+            await expect(requestQueueBackend.listItems()).resolves.toMatchObject(visitedUrls);
 
             // Should only have added the first request (allowed by robots.txt and within limit)
             expect(addRequestsBatchedSpy).toHaveBeenCalledOnce();
@@ -2246,7 +2246,7 @@ describe('BasicCrawler', () => {
             await crawler.addRequests(requestsToAdd);
 
             // Both unique URLs should have been enqueued — duplicates should not consume the budget
-            await expect(requestQueueClient.listItems()).resolves.toMatchObject([
+            await expect(requestQueueBackend.listItems()).resolves.toMatchObject([
                 { url: 'http://example.com/same' },
                 { url: 'http://example.com/new' },
             ]);
@@ -2432,14 +2432,14 @@ describe('BasicCrawler', () => {
             await rm(`${tmpDir}/result.csv`);
         });
 
-        test("Crawlers with different storage clients don't share Datasets", async () => {
-            // Each crawler gets its own MemoryStorageClient instance; every instance has a unique
+        test("Crawlers with different storage backends don't share Datasets", async () => {
+            // Each crawler gets its own MemoryStorageBackend instance; every instance has a unique
             // per-instance cache key, so they end up in separate cache partitions.
-            const storageA = new MemoryStorageClient();
-            const storageB = new MemoryStorageClient();
+            const storageA = new MemoryStorageBackend();
+            const storageB = new MemoryStorageBackend();
 
-            const crawlerA = new BasicCrawler({ storageClient: storageA });
-            const crawlerB = new BasicCrawler({ storageClient: storageB });
+            const crawlerA = new BasicCrawler({ storageBackend: storageA });
+            const crawlerB = new BasicCrawler({ storageBackend: storageB });
 
             await crawlerA.pushData(getPayload('A'));
             await crawlerB.pushData(getPayload('B'));
@@ -2449,17 +2449,17 @@ describe('BasicCrawler', () => {
             expect((await crawlerB.getData()).items).toEqual(getPayload('B'));
         });
 
-        test('Crawlers with different storage clients run separately', async () => {
-            const storageA = new MemoryStorageClient();
-            const storageB = new MemoryStorageClient();
+        test('Crawlers with different storage backends run separately', async () => {
+            const storageA = new MemoryStorageBackend();
+            const storageB = new MemoryStorageBackend();
 
             const crawlerA = new BasicCrawler({
                 requestHandler: () => {},
-                storageClient: storageA,
+                storageBackend: storageA,
             });
             const crawlerB = new BasicCrawler({
                 requestHandler: () => {},
-                storageClient: storageB,
+                storageBackend: storageB,
             });
 
             await crawlerA.run([{ url: `http://${HOSTNAME}:${port}` }]);

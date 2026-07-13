@@ -1,4 +1,4 @@
-import type { StorageClient } from '@crawlee/types';
+import type { StorageBackend } from '@crawlee/types';
 import ow from 'ow';
 
 import type { Configuration } from '../configuration.js';
@@ -61,7 +61,7 @@ export interface SnapshotterOptions {
     log?: CrawleeLogger;
 
     /** @internal */
-    client?: StorageClient;
+    client?: StorageBackend;
 
     /** @internal */
     config?: Configuration;
@@ -95,7 +95,7 @@ export interface SnapshotterOptions {
  */
 export class Snapshotter {
     log: CrawleeLogger;
-    client: StorageClient;
+    client: StorageBackend;
     config: Configuration;
 
     private readonly memorySignal: MemoryLoadSignal;
@@ -156,7 +156,7 @@ export class Snapshotter {
             maxClientErrors = 3,
             log = serviceLocator.getLogger(),
             config = serviceLocator.getConfiguration(),
-            client = serviceLocator.getStorageClient(),
+            client = serviceLocator.getStorageBackend(),
         } = options;
 
         this.log = log.child({ prefix: 'Snapshotter' });

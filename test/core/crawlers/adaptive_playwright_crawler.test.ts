@@ -9,7 +9,7 @@ import {
     type Dictionary,
     EventType,
     KeyValueStore,
-    MemoryStorageClient,
+    MemoryStorageBackend,
     serviceLocator,
 } from '@crawlee/core';
 import type {
@@ -132,8 +132,8 @@ describe('AdaptivePlaywrightCrawler', () => {
     beforeEach(async () => {
         // The global test setup (`test/vitest.setup.ts`) already calls `serviceLocator.reset()` before
         // each test, which clears the storage-instance cache; here we just install a fresh in-memory
-        // storage client for this suite.
-        serviceLocator.setStorageClient(new MemoryStorageClient());
+        // storage backend for this suite.
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
         // `BasicCrawler` keeps a process-global instance counter that assigns each crawler a distinct
         // default request queue (the first one uses the shared default queue, later ones get their own
         // `__default_<n>__` alias). Since every test wipes storage and starts fresh, the counter must be

@@ -1,16 +1,16 @@
-import { assertJsonSerializable, Dataset, KeyValueStore, MemoryStorageClient, serviceLocator } from '@crawlee/core';
+import { assertJsonSerializable, Dataset, KeyValueStore, MemoryStorageBackend, serviceLocator } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
 
 import { MAX_PAYLOAD_SIZE_BYTES } from '@apify/consts';
 
 beforeEach(async () => {
-    serviceLocator.setStorageClient(new MemoryStorageClient());
+    serviceLocator.setStorageBackend(new MemoryStorageBackend());
 });
 
 describe('dataset', () => {
     async function createDataset(id = 'some-id', name?: string) {
-        const client = await serviceLocator.getStorageClient().createDatasetClient(name ? { name } : { id });
-        return new Dataset({ id, name, client });
+        const client = await serviceLocator.getStorageBackend().createDatasetBackend(name ? { name } : { id });
+        return new Dataset({ id, name, backend: client });
     }
 
     beforeEach(async () => {
@@ -23,7 +23,7 @@ describe('dataset', () => {
         test('should work', async () => {
             const dataset = await createDataset();
 
-            const pushDataSpy = vitest.spyOn(dataset.client, 'pushData');
+            const pushDataSpy = vitest.spyOn(dataset.backend, 'pushData');
 
             const mockPushData = pushDataSpy.mockResolvedValueOnce(undefined);
 
@@ -39,7 +39,7 @@ describe('dataset', () => {
             expect(mockPushData2).toHaveBeenCalledTimes(2);
             expect(mockPushData2).toHaveBeenCalledWith([{ foo: 'hotel;' }, { foo: 'restaurant' }]);
 
-            const mockDrop = vitest.spyOn(dataset.client, 'drop').mockResolvedValueOnce(undefined);
+            const mockDrop = vitest.spyOn(dataset.backend, 'drop').mockResolvedValueOnce(undefined);
 
             await dataset.drop();
 
@@ -52,7 +52,7 @@ describe('dataset', () => {
 
             const dataset = await createDataset();
 
-            const mockPushData = vitest.spyOn(dataset.client, 'pushData');
+            const mockPushData = vitest.spyOn(dataset.backend, 'pushData');
             mockPushData.mockResolvedValueOnce(undefined);
 
             await dataset.pushData([{ foo: half }, { bar: half }]);
@@ -69,7 +69,7 @@ describe('dataset', () => {
 
             const dataset = await createDataset();
 
-            const mockPushData = vitest.spyOn(dataset.client, 'pushData');
+            const mockPushData = vitest.spyOn(dataset.backend, 'pushData');
             mockPushData.mockResolvedValueOnce(undefined);
 
             await dataset.pushData(data);
@@ -90,7 +90,7 @@ describe('dataset', () => {
                 desc: false,
             };
 
-            const mockGetData = vitest.spyOn(dataset.client, 'getData');
+            const mockGetData = vitest.spyOn(dataset.backend, 'getData');
             mockGetData.mockResolvedValueOnce(expected);
 
             const result = await dataset.getData({ limit: 2, offset: 3 });
@@ -102,7 +102,7 @@ describe('dataset', () => {
 
             expect(result).toEqual(expected);
 
-            vitest.spyOn(dataset.client, 'getData').mockImplementation(() => {
+            vitest.spyOn(dataset.backend, 'getData').mockImplementation(() => {
                 throw new Error('Cannot create a string longer than 0x3fffffe7 characters');
             });
             await expect(dataset.getData()).rejects.toThrow(
@@ -122,7 +122,7 @@ describe('dataset', () => {
                 itemCount: 14,
             };
 
-            const mockGetDataset = vitest.spyOn(dataset.client, 'getMetadata');
+            const mockGetDataset = vitest.spyOn(dataset.backend, 'getMetadata');
             mockGetDataset.mockResolvedValueOnce(expected);
 
             const result = await dataset.getInfo();
@@ -151,7 +151,7 @@ describe('dataset', () => {
                 desc: false,
             };
 
-            const mockGetData = vitest.spyOn(dataset.client, 'getData');
+            const mockGetData = vitest.spyOn(dataset.backend, 'getData');
             mockGetData.mockResolvedValueOnce(firstResolve);
             mockGetData.mockResolvedValueOnce(secondResolve);
 
@@ -290,7 +290,7 @@ describe('dataset', () => {
 
         test('reduce() uses first value as memo if no memo is provided', async () => {
             const dataset = await createDataset('some-id', 'some-name');
-            const mockGetData = vitest.spyOn(dataset.client, 'getData');
+            const mockGetData = vitest.spyOn(dataset.backend, 'getData');
             mockGetData.mockResolvedValueOnce({
                 items: [{ foo: 4 }, { foo: 5 }],
                 limit: 2,

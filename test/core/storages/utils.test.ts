@@ -1,9 +1,9 @@
 import type { Dictionary } from '@crawlee/core';
-import { Configuration, KeyValueStore, MemoryStorageClient, serviceLocator, useState } from '@crawlee/core';
+import { Configuration, KeyValueStore, MemoryStorageBackend, serviceLocator, useState } from '@crawlee/core';
 
 describe('useState', () => {
     beforeEach(async () => {
-        serviceLocator.setStorageClient(new MemoryStorageClient());
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
         serviceLocator.setConfiguration(new Configuration({ persistStateIntervalMillis: 1e3 }));
     });
 

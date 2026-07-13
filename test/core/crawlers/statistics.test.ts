@@ -1,4 +1,4 @@
-import { Configuration, EventType, MemoryStorageClient, serviceLocator, Statistics } from '@crawlee/core';
+import { Configuration, EventType, MemoryStorageBackend, serviceLocator, Statistics } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
 
 describe('Statistics', () => {
@@ -12,7 +12,7 @@ describe('Statistics', () => {
     });
 
     beforeEach(async () => {
-        serviceLocator.setStorageClient(new MemoryStorageClient());
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
         stats = new Statistics();
     });
 
