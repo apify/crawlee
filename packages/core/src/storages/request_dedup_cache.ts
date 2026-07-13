@@ -15,7 +15,8 @@ export class RequestDeduplicationCache {
     private keys: (string | undefined)[];
     private ids: (string | undefined)[];
 
-    constructor(private readonly size: number) {
+    // The slot count is the same for every queue, so it's a fixed default rather than a per-consumer option.
+    constructor(private readonly size = 1_000_000) {
         this.keys = new Array<string | undefined>(size);
         this.ids = new Array<string | undefined>(size);
     }

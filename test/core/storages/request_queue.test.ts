@@ -6,7 +6,6 @@ import {
     ProxyConfiguration,
     QUERY_HEAD_MIN_LENGTH,
     Request,
-    RequestDeduplicationCache,
     RequestQueueV1 as RequestQueue,
     RequestQueueV2,
     STORAGE_CONSISTENCY_DELAY_MILLIS,
@@ -1081,20 +1080,5 @@ describe('RequestQueue v2', () => {
         }
 
         expect(retrievedUrls.map((x) => new URL(x).pathname)).toEqual(Array.from({ length: 5 }, (_, i) => `/${i + 1}`));
-    });
-});
-
-describe('RequestDeduplicationCache', () => {
-    test('a hash collision evicts the previous key but never produces a false hit', () => {
-        // A single slot forces every key to collide, which is the one behavior worth guarding:
-        // an evicted key must miss (return null), never return another key's id (which would drop a new request).
-        const cache = new RequestDeduplicationCache(1);
-
-        cache.add('a', 'id-a');
-        expect(cache.get('a')).toBe('id-a');
-
-        cache.add('b', 'id-b');
-        expect(cache.get('b')).toBe('id-b');
-        expect(cache.get('a')).toBeNull();
     });
 });

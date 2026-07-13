@@ -132,7 +132,7 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
     /**
      * Remembers the `requestId` of every request already submitted to the client — including background
      * batches that `requestCache` skips — so overlapping URL sets aren't re-submitted.
-     * See {@apilink RequestDeduplicationCache} for why this is a separate, cheaper cache.
+     * See {@link RequestDeduplicationCache} for why this is a separate, cheaper cache.
      */
     protected requestSeenCache: RequestDeduplicationCache;
 
@@ -160,7 +160,7 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
         this.proxyConfiguration = options.proxyConfiguration;
 
         this.requestCache = new LruCache({ maxLength: options.requestCacheMaxSize });
-        this.requestSeenCache = new RequestDeduplicationCache(options.requestSeenCacheMaxSize);
+        this.requestSeenCache = new RequestDeduplicationCache();
         this.recentlyHandledRequestsCache = new LruCache({ maxLength: options.recentlyHandledRequestsMaxSize });
         this.log = log.child({ prefix: `${options.logPrefix}(${this.id}, ${this.name ?? 'no-name'})` });
 
@@ -1011,7 +1011,6 @@ export interface RequestQueueOptions extends RequestProviderOptions {}
 export interface InternalRequestProviderOptions extends RequestProviderOptions {
     logPrefix: string;
     requestCacheMaxSize: number;
-    requestSeenCacheMaxSize: number;
     recentlyHandledRequestsMaxSize: number;
 }
 
