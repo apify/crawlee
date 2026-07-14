@@ -13,6 +13,8 @@ import type {
     RequestProvider,
     RouterHandler,
     RouterRoutes,
+    RouteSchemas,
+    RoutesFromSchemas,
     SkippedRequestCallback,
 } from '@crawlee/http';
 import {
@@ -457,6 +459,10 @@ export function createJSDOMRouter<
     Context extends JSDOMCrawlingContext = JSDOMCrawlingContext,
     UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
 >(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
-export function createJSDOMRouter(routes?: RouterRoutes<any, any>) {
-    return Router.create<any, any>(routes);
+export function createJSDOMRouter<
+    Context extends JSDOMCrawlingContext = JSDOMCrawlingContext,
+    const Schemas extends RouteSchemas = RouteSchemas,
+>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
+export function createJSDOMRouter(routesOrSchemas?: any): any {
+    return Router.create(routesOrSchemas);
 }

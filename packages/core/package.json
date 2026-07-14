@@ -63,6 +63,7 @@
         "@crawlee/types": "3.17.0",
         "@crawlee/utils": "3.17.0",
         "@sapphire/async-queue": "^1.5.1",
+        "@standard-schema/spec": "^1.0.0",
         "@vladfrangu/async_event_emitter": "^2.2.2",
         "csv-stringify": "^6.2.0",
         "fs-extra": "^11.0.0",

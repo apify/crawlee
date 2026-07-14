@@ -7,6 +7,8 @@ import type {
     LoadedContext,
     RouterHandler,
     RouterRoutes,
+    RouteSchemas,
+    RoutesFromSchemas,
 } from '@crawlee/browser';
 import { BrowserCrawler, Configuration, Router } from '@crawlee/browser';
 import type { BrowserPoolOptions, CommonPage, PlaywrightController, PlaywrightPlugin } from '@crawlee/browser-pool';
@@ -295,6 +297,10 @@ export function createPlaywrightRouter<
     Context extends PlaywrightCrawlingContext = PlaywrightCrawlingContext,
     UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
 >(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
-export function createPlaywrightRouter(routes?: RouterRoutes<any, any>) {
-    return Router.create<any, any>(routes);
+export function createPlaywrightRouter<
+    Context extends PlaywrightCrawlingContext = PlaywrightCrawlingContext,
+    const Schemas extends RouteSchemas = RouteSchemas,
+>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
+export function createPlaywrightRouter(routesOrSchemas?: any): any {
+    return Router.create(routesOrSchemas);
 }

@@ -22,6 +22,8 @@ import {
     Request,
     RequestList,
     RequestQueue,
+    RequestValidationError,
+    Router,
 } from '@crawlee/basic';
 import { RequestState } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
@@ -30,6 +32,7 @@ import express from 'express';
 import type { SetRequired } from 'type-fest';
 import type { Mock } from 'vitest';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
+import { z } from 'zod';
 
 import log from '@apify/log';
 
@@ -2210,6 +2213,69 @@ describe('BasicCrawler', () => {
             expect(getGlobalConfigSpy.mock.calls.length).toBe(0);
             expect(crawlerA.requestQueue?.config).toBe(configA);
             expect(crawlerB.requestQueue?.config).toBe(configB);
+        });
+    });
+
+    describe('schema validation on add', () => {
+        const makeCrawler = () => {
+            const router = Router.create({
+                DETAIL: z.object({ id: z.string() }),
+            });
+            router.addHandler('DETAIL', async () => {});
+
+            return new BasicCrawler({ requestHandler: router });
+        };
+
+        test('crawler.addRequests rejects userData that does not match the label schema', async () => {
+            const crawler = makeCrawler();
+
+            await expect(
+                crawler.addRequests([{ url: 'https://example.com/a', label: 'DETAIL', userData: { id: 123 } }]),
+            ).rejects.toThrow(RequestValidationError);
+        });
+
+        test('crawler.run rejects userData that does not match the label schema', async () => {
+            const crawler = makeCrawler();
+
+            await expect(
+                crawler.run([{ url: 'https://example.com/a', label: 'DETAIL', userData: { id: 123 } }]),
+            ).rejects.toThrow(RequestValidationError);
+        });
+
+        test('crawler.addRequests accepts matching userData', async () => {
+            const crawler = makeCrawler();
+
+            await crawler.addRequests([{ url: 'https://example.com/b', label: 'DETAIL', userData: { id: 'ok' } }]);
+
+            const queue = await crawler.getRequestQueue();
+            expect(await queue.isEmpty()).toBe(false);
+        });
+
+        test('the singular requestQueue.addRequest is validated too', async () => {
+            const crawler = makeCrawler();
+            const queue = await crawler.getRequestQueue();
+
+            await expect(
+                queue.addRequest({ url: 'https://example.com/c', label: 'DETAIL', userData: { id: 5 } }),
+            ).rejects.toThrow(RequestValidationError);
+        });
+
+        test('requests with a label that has no registered schema are not validated', async () => {
+            const crawler = makeCrawler();
+
+            await crawler.addRequests([{ url: 'https://example.com/d', label: 'OTHER', userData: { whatever: true } }]);
+
+            const queue = await crawler.getRequestQueue();
+            expect(await queue.isEmpty()).toBe(false);
+        });
+
+        test('a plain (non-router) requestHandler skips validation entirely', async () => {
+            const crawler = new BasicCrawler({ requestHandler: async () => {} });
+
+            await crawler.addRequests([{ url: 'https://example.com/e', label: 'DETAIL', userData: { id: 123 } }]);
+
+            const queue = await crawler.getRequestQueue();
+            expect(await queue.isEmpty()).toBe(false);
         });
     });
 });

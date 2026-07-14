@@ -4,8 +4,6 @@ title: TypeScript Projects
 description: Stricter, safer, and better development experience
 ---
 
-import ApiLink from '@site/src/components/ApiLink';
-
 Crawlee is built with TypeScript, which means it provides the type definition directly in the package. This allows writing code with auto-completion for TypeScript and JavaScript code alike. Besides that, projects written in TypeScript can take advantage of compile-time type-checking and avoid many coding mistakes, while providing documentation for functions, parameters and return values. It will also help with refactoring a lot, and ensuring the least amount of bugs will sneak through.
 
 ## Setting up a TypeScript project
@@ -154,36 +152,3 @@ Let's wrap it up to. In addition to the scripts we described above, we also need
     }
 }
 ```
-
-## Type-safe router labels and `userData`
-
-When you structure a crawler with a <ApiLink to="core/class/Router">`Router`</ApiLink>, different labels usually carry a different shape of `request.userData` — a `PRODUCT` request might hold `{ sku, price }` while a `CATEGORY` request holds `{ categoryId }`. By default `userData` is loosely typed (`Record<string, unknown>`), so a typo in a label or a wrong `userData` property is only caught at runtime.
-
-You can instead declare a **route map** — an `interface` (or `type`) that maps each label to the shape of `userData` expected for it — and pass it as the second type argument to a `createXRouter` factory (or <ApiLink to="core/class/Router#create">`Router.create`</ApiLink>). Handlers then get `request.userData` typed per label, and unknown labels become a compile-time error:
-
-```ts
-import { createCheerioRouter, type CheerioCrawlingContext } from 'crawlee';
-
-interface Routes {
-    PRODUCT: { sku: string; price: number };
-    CATEGORY: { categoryId: string };
-}
-
-const router = createCheerioRouter<CheerioCrawlingContext, Routes>();
-
-router.addHandler('PRODUCT', async ({ request }) => {
-    request.userData.sku; // string
-    request.userData.price; // number
-});
-
-router.addHandler('CATEGORY', async ({ request }) => {
-    request.userData.categoryId; // string
-});
-
-// ❌ compile error: 'TYPO' is not a label declared in `Routes`
-router.addHandler('TYPO', async () => {});
-```
-
-The default handler registered via `addDefaultHandler` is a fallback for any request (including labels not in the map), so its `request.userData` stays loosely typed (`Record<string, unknown>` by default) — pass an explicit type argument to narrow it.
-
-This is a compile-time-only feature with **no runtime cost**, and it is fully backwards compatible — omitting the route map keeps the original loose typing, and passing a plain `userData` shape (e.g. `createCheerioRouter<CheerioCrawlingContext, { token: string }>()`) still types every handler with that shape, exactly as before.

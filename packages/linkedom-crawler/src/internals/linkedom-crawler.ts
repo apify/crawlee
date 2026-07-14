@@ -12,6 +12,8 @@ import type {
     RequestProvider,
     RouterHandler,
     RouterRoutes,
+    RouteSchemas,
+    RoutesFromSchemas,
     SkippedRequestCallback,
 } from '@crawlee/http';
 import {
@@ -342,6 +344,10 @@ export function createLinkeDOMRouter<
     Context extends LinkeDOMCrawlingContext = LinkeDOMCrawlingContext,
     UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
 >(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
-export function createLinkeDOMRouter(routes?: RouterRoutes<any, any>) {
-    return Router.create<any, any>(routes);
+export function createLinkeDOMRouter<
+    Context extends LinkeDOMCrawlingContext = LinkeDOMCrawlingContext,
+    const Schemas extends RouteSchemas = RouteSchemas,
+>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
+export function createLinkeDOMRouter(routesOrSchemas?: any): any {
+    return Router.create(routesOrSchemas);
 }

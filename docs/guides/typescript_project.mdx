@@ -187,3 +187,29 @@ router.addHandler('TYPO', async () => {});
 The default handler registered via `addDefaultHandler` is a fallback for any request (including labels not in the map), so its `request.userData` stays loosely typed (`Record<string, unknown>` by default) — pass an explicit type argument to narrow it.
 
 This is a compile-time-only feature with **no runtime cost**, and it is fully backwards compatible — omitting the route map keeps the original loose typing, and passing a plain `userData` shape (e.g. `createCheerioRouter<CheerioCrawlingContext, { token: string }>()`) still types every handler with that shape, exactly as before.
+
+### Validating `userData` with a schema
+
+The route map above only exists at the type level. If your `userData` comes from an untyped source — an Actor input, a scraped value, an external API — a wrong shape still slips through at runtime. Instead of a plain type map, you can pass a **schema per label** using any [Standard Schema](https://standardschema.dev)-compliant library ([Zod](https://zod.dev), [Valibot](https://valibot.dev), [ArkType](https://arktype.io), …). A single map then drives both the inferred `userData` **type** and its **runtime validation**:
+
+```ts
+import { createCheerioRouter } from 'crawlee';
+import { z } from 'zod';
+
+const router = createCheerioRouter({
+    PRODUCT: z.object({ sku: z.string(), price: z.coerce.number() }),
+    CATEGORY: z.object({ categoryId: z.string() }),
+});
+
+router.addHandler('PRODUCT', async ({ request }) => {
+    request.userData.sku; // string — inferred from the schema
+    request.userData.price; // number — coerced by the schema before the handler runs
+});
+
+// ❌ compile error: 'TYPO' is not a label declared in the schema map
+router.addHandler('TYPO', async () => {});
+```
+
+When a request is handled, its `userData` is validated against the schema registered for its label and replaced with the parsed (and coerced) value before the handler runs. The same schemas also validate `userData` **when requests are added** — via `crawler.addRequests()`, `crawler.run()`, the `addRequests`/`enqueueLinks` context helpers, or a direct `requestQueue.addRequest()` — so a bad shape fails fast at the point of insertion rather than deep inside a handler. A request whose `userData` does not match its label's schema throws a <ApiLink to="core/class/RequestValidationError">`RequestValidationError`</ApiLink> (a non-retryable error, since re-running it would fail identically). Labels without a registered schema are left untouched.
+
+Like the plain route map, this is opt-in and backwards compatible: a router created without a schema map behaves exactly as before, with no validation.

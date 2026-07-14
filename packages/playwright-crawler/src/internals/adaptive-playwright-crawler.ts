@@ -1,4 +1,12 @@
-import type { BrowserHook, LoadedContext, LoadedRequest, Request, RouterHandler } from '@crawlee/browser';
+import type {
+    BrowserHook,
+    LoadedContext,
+    LoadedRequest,
+    Request,
+    RouterHandler,
+    RouteSchemas,
+    RoutesFromSchemas,
+} from '@crawlee/browser';
 import { extractUrlsFromPage } from '@crawlee/browser';
 import type {
     BaseHttpResponseData,
@@ -760,6 +768,10 @@ export function createAdaptivePlaywrightRouter<
     Context extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext,
     UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
 >(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
-export function createAdaptivePlaywrightRouter(routes?: RouterRoutes<any, any>) {
-    return Router.create<any, any>(routes);
+export function createAdaptivePlaywrightRouter<
+    Context extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext,
+    const Schemas extends RouteSchemas = RouteSchemas,
+>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
+export function createAdaptivePlaywrightRouter(routesOrSchemas?: any): any {
+    return Router.create(routesOrSchemas);
 }

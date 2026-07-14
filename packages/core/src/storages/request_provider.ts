@@ -118,6 +118,17 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
     internalTimeoutMillis = 5 * 60_000; // defaults to 5 minutes, will be overridden by BasicCrawler
     requestLockSecs = 3 * 60; // defaults to 3 minutes, will be overridden by BasicCrawler
 
+    /**
+     * An optional per-request validator, set by the crawler when its `requestHandler` is a router with a
+     * {@apilink RouteSchemas|Standard Schema} map. It validates a request's `userData` against the schema
+     * registered for its label before the request is added, throwing a {@apilink RequestValidationError} on
+     * mismatch. This applies to every add path — {@apilink RequestProvider.addRequest|`addRequest`},
+     * {@apilink RequestProvider.addRequests|`addRequests`} and `addRequestsBatched` (and thus
+     * `crawler.addRequests`, `context.addRequests` and `enqueueLinks`).
+     * @internal
+     */
+    requestSchemaValidator?: (source: Source | string) => Promise<void>;
+
     // We can trust these numbers only in a case that queue is used by a single client.
     // This information is returned by getHead() under the hadMultipleClients property.
     assumedTotalCount = 0;
@@ -218,6 +229,8 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
                 forefront: ow.optional.boolean,
             }),
         );
+
+        await this.requestSchemaValidator?.(requestLike);
 
         const { forefront = false } = options;
 
@@ -332,6 +345,8 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
         const requests: Request<Dictionary>[] = [];
 
         for await (const requestLike of requestsLike) {
+            await this.requestSchemaValidator?.(requestLike);
+
             if (typeof requestLike === 'string') {
                 requests.push(new Request({ url: requestLike }));
             } else if ('requestsFromUrl' in requestLike) {
@@ -438,6 +453,7 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
         );
 
         const addRequest = this.addRequest.bind(this);
+        const requestSchemaValidator = this.requestSchemaValidator;
 
         async function* generateRequests() {
             for await (const opts of requests) {
@@ -466,10 +482,11 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
                 }
 
                 if (opts && typeof opts === 'object' && 'requestsFromUrl' in opts) {
-                    // Handle URL lists right away
+                    // Handle URL lists right away (addRequest runs the schema validator itself)
                     await addRequest(opts, { forefront: options.forefront });
                 } else {
-                    // Yield valid requests
+                    // Yield valid requests, validating their userData against the router's schema first
+                    await requestSchemaValidator?.(opts);
                     yield typeof opts === 'string' ? { url: opts } : (opts as RequestOptions);
                 }
             }

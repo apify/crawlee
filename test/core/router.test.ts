@@ -1,12 +1,13 @@
 import { BasicCrawler } from '@crawlee/basic';
 import type { CrawlingContext } from '@crawlee/core';
-import { MissingRouteError, Router } from '@crawlee/core';
+import { MissingRouteError, RequestValidationError, Router } from '@crawlee/core';
 import {
     type CheerioCrawlingContext,
     createCheerioRouter,
     createPlaywrightRouter,
     type PlaywrightCrawlingContext,
 } from 'crawlee';
+import { z } from 'zod';
 
 describe('Router', () => {
     test('should be callable and route based on the label', async () => {
@@ -248,5 +249,65 @@ describe('Router', () => {
         router.addHandler('anotherLabel', (ctx) => {
             testType<string>(ctx.request.userData.token);
         });
+    });
+
+    test('schema map infers userData types and validates them at dispatch', async () => {
+        const testType = <T>(t: T): void => {};
+
+        const logs: string[] = [];
+        const router = createCheerioRouter({
+            PRODUCT: z.object({ sku: z.string(), price: z.coerce.number() }),
+            CATEGORY: z.object({ categoryId: z.string() }),
+        });
+
+        router.addHandler('PRODUCT', async (ctx) => {
+            // inferred from the schema (note: price is coerced to a number)
+            testType<string>(ctx.request.userData.sku);
+            testType<number>(ctx.request.userData.price);
+            logs.push(`product ${ctx.request.userData.sku} @ ${ctx.request.userData.price}`);
+        });
+
+        // @ts-expect-error unknown labels are still rejected when a schema map is declared
+        router.addHandler('UNKNOWN', () => {});
+
+        const log = { info: vitest.fn(), warn: vitest.fn(), debug: vitest.fn() };
+
+        // valid userData passes and is replaced with the parsed (coerced) value
+        const validRequest = {
+            loadedUrl: 'https://example.com/p',
+            label: 'PRODUCT',
+            userData: { sku: 'A1', price: '42' },
+        };
+        await router({ request: validRequest, log } as any);
+        expect(logs).toEqual(['product A1 @ 42']);
+        expect(validRequest.userData.price).toBe(42);
+
+        // invalid userData throws a RequestValidationError before the handler runs
+        await expect(
+            router({
+                request: { loadedUrl: 'https://example.com/p', label: 'PRODUCT', userData: { sku: 123 } },
+                log,
+            } as any),
+        ).rejects.toThrow(RequestValidationError);
+    });
+
+    test('schema map leaves requests without a registered label untouched', async () => {
+        const logs: string[] = [];
+        const router = createCheerioRouter({
+            PRODUCT: z.object({ sku: z.string() }),
+        });
+
+        router.addDefaultHandler(async (ctx) => {
+            logs.push(`default ${ctx.request.label ?? 'none'}`);
+        });
+
+        const log = { info: vitest.fn(), warn: vitest.fn(), debug: vitest.fn() };
+
+        // a label with no schema is not validated and falls through to the default handler
+        await router({
+            request: { loadedUrl: 'https://example.com/o', label: 'OTHER', userData: { anything: true } },
+            log,
+        } as any);
+        expect(logs).toEqual(['default OTHER']);
     });
 });
