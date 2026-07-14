@@ -32,6 +32,7 @@ import type { InternalSource, RequestOptions, Source } from '../request';
 import { Request } from '../request';
 import type { Constructor } from '../typedefs';
 import { checkStorageAccess } from './access_checking';
+import { RequestDeduplicationCache } from './request_dedup_cache';
 import type { IStorage, StorageManagerOptions } from './storage_manager';
 import { StorageManager } from './storage_manager';
 import { getRequestId, purgeDefaultStorages, QUERY_HEAD_MIN_LENGTH } from './utils';
@@ -128,6 +129,13 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
     protected queueHeadIds = new ListDictionary<string>();
     protected requestCache: LruCache<RequestLruItem>;
 
+    /**
+     * Remembers the `requestId` of every request already submitted to the client — including background
+     * batches that `requestCache` skips — so overlapping URL sets aren't re-submitted.
+     * See {@link RequestDeduplicationCache} for why this is a separate, cheaper cache.
+     */
+    protected requestSeenCache: RequestDeduplicationCache;
+
     protected recentlyHandledRequestsCache: LruCache<boolean>;
 
     protected queuePausedForMigration = false;
@@ -152,6 +160,7 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
         this.proxyConfiguration = options.proxyConfiguration;
 
         this.requestCache = new LruCache({ maxLength: options.requestCacheMaxSize });
+        this.requestSeenCache = new RequestDeduplicationCache();
         this.recentlyHandledRequestsCache = new LruCache({ maxLength: options.recentlyHandledRequestsMaxSize });
         this.log = log.child({ prefix: `${options.logPrefix}(${this.id}, ${this.name ?? 'no-name'})` });
 
@@ -253,6 +262,7 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
 
         const { requestId, wasAlreadyPresent } = queueOperationInfo;
         this._cacheRequest(cacheKey, queueOperationInfo);
+        this.requestSeenCache.add(cacheKey, requestId);
 
         if (!wasAlreadyPresent && !this.recentlyHandledRequestsCache.get(requestId)) {
             this.assumedTotalCount++;
@@ -338,17 +348,18 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
 
         for (const request of requests) {
             const cacheKey = getCachedRequestId(request.uniqueKey);
+            // Prefer the full `requestCache` record; fall back to the dedup cache for background batches it skips.
             const cachedInfo = this.requestCache.get(cacheKey);
+            const knownRequestId = cachedInfo?.id ?? this.requestSeenCache.get(cacheKey);
 
-            if (cachedInfo) {
-                request.id = cachedInfo.id;
+            if (knownRequestId) {
+                request.id = knownRequestId;
                 results.processedRequests.push({
                     wasAlreadyPresent: true,
-                    // We may assume that if request is in local cache then also the information if the
-                    // request was already handled is there because just one client should be using one queue.
-                    wasAlreadyHandled: cachedInfo.isHandled,
-                    requestId: cachedInfo.id,
-                    uniqueKey: cachedInfo.uniqueKey,
+                    // The dedup cache doesn't track the handled state; only the full record does.
+                    wasAlreadyHandled: cachedInfo?.isHandled ?? false,
+                    requestId: knownRequestId,
+                    uniqueKey: request.uniqueKey,
                 });
             } else if (!requestsToAdd.has(request.uniqueKey)) {
                 requestsToAdd.set(request.uniqueKey, request);
@@ -377,6 +388,9 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
             if (cache) {
                 this._cacheRequest(cacheKey, { ...newRequest, forefront });
             }
+
+            // Unlike `requestCache`, populate this on every batch (including background ones).
+            this.requestSeenCache.add(cacheKey, requestId);
 
             if (!wasAlreadyPresent && !this.recentlyHandledRequestsCache.get(requestId)) {
                 this.assumedTotalCount++;
@@ -747,6 +761,7 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
         this.assumedTotalCount = 0;
         this.assumedHandledCount = 0;
         this.requestCache.clear();
+        this.requestSeenCache.clear();
     }
 
     /**

@@ -302,6 +302,47 @@ describe('RequestQueue remote', () => {
         expect(mockAddRequests.mock.calls.length).toBeLessThan(20);
     });
 
+    test('addRequestsBatched does not re-submit already enqueued requests beyond the initial batch (#3120)', async () => {
+        const queue = new RequestQueue({ id: 'dedup-across-batches', client: storageClient });
+        const mockAddRequests = vitest.spyOn(queue.client, 'batchAddRequests');
+
+        // Fake platform: deduplicates server-side by `uniqueKey` and counts every submitted request as a write.
+        const serverSeen = new Set<string>();
+        let submittedCount = 0;
+        mockAddRequests.mockImplementation(async (requests) => {
+            submittedCount += requests.length;
+            return {
+                processedRequests: requests.map((r) => {
+                    const wasAlreadyPresent = serverSeen.has(r.uniqueKey);
+                    serverSeen.add(r.uniqueKey);
+                    return {
+                        requestId: `id-${r.uniqueKey}`,
+                        uniqueKey: r.uniqueKey,
+                        wasAlreadyPresent,
+                        wasAlreadyHandled: false,
+                    };
+                }),
+                unprocessedRequests: [],
+            };
+        });
+
+        // More requests than a single batch, so the tail is added in background batches (the buggy path).
+        const urls = Array.from({ length: 5 }, (_, i) => ({ url: `http://example.com/page-${i}` }));
+        const options = { batchSize: 2, waitBetweenBatchesMillis: 0, waitForAllRequestsToBeAdded: true };
+
+        // First pass: every request is new, so all are submitted once.
+        await queue.addRequestsBatched(urls, options);
+        expect(submittedCount).toBe(5);
+        // The heavy `requestCache` still only remembers the first batch; the background batches are
+        // deduplicated by the lightweight cache instead.
+        expect(queue['requestCache'].length()).toBe(2);
+
+        // Second pass with the same URLs: everything is already enqueued, so nothing is re-submitted.
+        // Before the fix, the 3 requests outside the first batch would be sent again (submittedCount === 8).
+        await queue.addRequestsBatched(urls, options);
+        expect(submittedCount).toBe(5);
+    });
+
     test('should cache new requests locally', async () => {
         const queue = new RequestQueue({ id: 'some-id', client: storageClient });
 
