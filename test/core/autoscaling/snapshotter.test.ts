@@ -144,6 +144,10 @@ describe('Snapshotter', () => {
         // do not initialize the event intervals as we will fire them manually
         const spy = vitest.spyOn(LocalEventManager.prototype, 'init').mockImplementation(async () => {});
         const events = config.getEventManager() as LocalEventManager;
+
+        // Establish a baseline before the Snapshotter starts listening for events.
+        await events.emitSystemInfoEvent(noop);
+        cpusMock.mockClear();
         await snapshotter.start();
 
         await events.emitSystemInfoEvent(noop);
