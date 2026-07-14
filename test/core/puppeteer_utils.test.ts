@@ -395,6 +395,33 @@ describe('puppeteerUtils', () => {
             }
         });
 
+        test('gotoExtended() applies headers natively for GET requests without a payload', async () => {
+            const browser = await launchPuppeteer(launchContext);
+
+            try {
+                const page = await browser.newPage();
+                const interceptionSpy = vitest.spyOn(page, 'setRequestInterception');
+                const deprecatedSpy = vitest.spyOn(log, 'deprecated');
+
+                const request = new Request({
+                    url: `${serverAddress}/special/getDebug`,
+                    headers: {
+                        'User-Agent': 'Demo UA',
+                    },
+                });
+
+                const response = await puppeteerUtils.gotoExtended(page, request, { waitUntil: 'networkidle' });
+
+                const { method, headers } = JSON.parse(await response!.text());
+                expect(method).toBe('GET');
+                expect(headers['user-agent']).toBe('Demo UA');
+                expect(interceptionSpy).not.toHaveBeenCalled();
+                expect(deprecatedSpy).not.toHaveBeenCalled();
+            } finally {
+                await browser.close();
+            }
+        });
+
         describe('infiniteScroll()', () => {
             function isAtBottom() {
                 return window.innerHeight + window.pageYOffset >= document.body.offsetHeight;

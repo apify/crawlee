@@ -205,7 +205,7 @@ export async function gotoExtended(
     const { url, method, headers, payload } = request;
     const isEmpty = (o?: object) => !o || Object.keys(o).length === 0;
 
-    if (method !== 'GET' || payload || !isEmpty(headers)) {
+    if (method !== 'GET' || payload) {
         // This is not deprecated, we use it to log only once.
         log.deprecated(
             'Using other request methods than GET, rewriting headers and adding payloads has a high impact on performance ' +
@@ -235,6 +235,8 @@ export async function gotoExtended(
         };
 
         await page.route('**/*', interceptRequestHandler);
+    } else if (!isEmpty(headers)) {
+        await page.setExtraHTTPHeaders(headers!);
     }
 
     return page.goto(url, gotoOptions);
