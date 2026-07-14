@@ -24,7 +24,9 @@
  */
 export * from './browser-pool.js';
 export * from './playwright/playwright-plugin.js';
+export * from './playwright/remote-playwright-plugin.js';
 export * from './puppeteer/puppeteer-plugin.js';
+export * from './puppeteer/remote-puppeteer-plugin.js';
 export * from './events.js';
 export type {
     BrowserSpecification,
@@ -48,7 +50,8 @@ export type {
     BrowserPluginOptions,
     CreateLaunchContextOptions,
 } from './abstract-classes/browser-plugin.js';
-export { BrowserPlugin, BrowserLaunchError, DEFAULT_USER_AGENT } from './abstract-classes/browser-plugin.js';
+export { BrowserPlugin, DEFAULT_USER_AGENT } from './abstract-classes/browser-plugin.js';
+export { BrowserLaunchError } from './errors.js';
 export type { LaunchContextOptions } from './launch-context.js';
 export { LaunchContext } from './launch-context.js';
 export { RemoteBrowserProvider } from './remote-browser-provider.js';
