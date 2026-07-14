@@ -1146,7 +1146,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * request's label. Applied by the crawler on the add paths it owns — `crawler.addRequests`, `crawler.run`,
      * `context.addRequests` and `context.enqueueLinks`.
      */
-    protected validateRequestUserData = async (source: Source | string): Promise<void> => {
+    protected async validateRequestUserData(source: Source | string): Promise<void> {
         if (typeof source === 'string') {
             return;
         }
@@ -1166,7 +1166,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         }
 
         await validateUserData(requestLabel!, schema, userData ?? {});
-    };
+    }
 
     async useState<State extends Dictionary = Dictionary>(defaultValue = {} as State): Promise<State> {
         const kvs = await KeyValueStore.open(null, { config: this.config });
@@ -1240,7 +1240,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         const isAllowedBasedOnRobotsTxtFile = this.isAllowedBasedOnRobotsTxtFile.bind(this);
         const maxCrawlDepth = this.maxCrawlDepth;
-        const validateRequestUserData = this.validateRequestUserData;
+        const validateRequestUserData = this.validateRequestUserData.bind(this);
 
         ow(
             requests,
