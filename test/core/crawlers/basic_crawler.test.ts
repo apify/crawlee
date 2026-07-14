@@ -2257,7 +2257,9 @@ describe('BasicCrawler', () => {
             const crawler = new BasicCrawler({ requestHandler: router });
 
             // a Request instance stores `label` inside `userData`; it must not trip the strict schema
-            await crawler.addRequests([new Request({ url: 'https://example.com/s', label: 'DETAIL', userData: { id: 'ok' } })]);
+            await crawler.addRequests([
+                new Request({ url: 'https://example.com/s', label: 'DETAIL', userData: { id: 'ok' } }),
+            ]);
 
             const queue = await crawler.getRequestQueue();
             expect(await queue.isEmpty()).toBe(false);
