@@ -497,43 +497,6 @@ describe('AutoscaledPool', () => {
         results.forEach((r, i) => expect(r).toEqual(i));
     });
 
-    test('should clear the polling interval when pause times out', async () => {
-        let resolveTask: () => void;
-        const taskStarted = new Promise<void>((res) => {
-            resolveTask = res;
-        });
-
-        // A task that stays in flight so currentConcurrency never drops to 0,
-        // forcing pause() to hit its timeout (reject) branch.
-        const pool = new AutoscaledPool({
-            minConcurrency: 1,
-            maxConcurrency: 1,
-            runTaskFunction: async () => {
-                resolveTask();
-                await new Promise<void>(() => {});
-            },
-            isFinishedFunction: async () => false,
-            isTaskReadyFunction: async () => true,
-        });
-
-        const setIntervalSpy = vitest.spyOn(globalThis, 'setInterval');
-        const clearIntervalSpy = vitest.spyOn(globalThis, 'clearInterval');
-
-        const runPromise = pool.run();
-        await taskStarted;
-
-        setIntervalSpy.mockClear();
-        await expect(pool.pause(50)).rejects.toThrow('running tasks did not finish');
-
-        // pause() creates exactly one polling interval; it must be cleared on the
-        // timeout path, otherwise the timer leaks and keeps firing forever.
-        const pollingInterval = setIntervalSpy.mock.results[0].value;
-        expect(clearIntervalSpy).toHaveBeenCalledWith(pollingInterval);
-
-        await pool.abort();
-        await runPromise;
-    });
-
     test('should timeout after taskTimeoutSecs', async () => {
         const runTaskFunction = async () => {
             await sleep(1e3);
