@@ -1,0 +1,70 @@
+name: Integration tests
+
+on:
+    pull_request:
+        branches: [ master, v4 ]
+    workflow_dispatch:
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    remote-browser:
+        name: Remote browser integration
+        runs-on: ubuntu-22.04
+
+        # Side-services provide the remote browser and a deterministic HTTP target.
+        services:
+            browserless:
+                image: ghcr.io/browserless/chromium:latest
+                ports:
+                    - 3000:3000
+                env:
+                    CONCURRENT: 4
+                options: >-
+                    --health-cmd "wget -qO- http://localhost:3000/json/version || exit 1"
+                    --health-interval 5s
+                    --health-timeout 5s
+                    --health-retries 12
+            httpbin:
+                # kennethreitz/httpbin is python:3.6-slim and ships without wget/curl,
+                # so no Docker HEALTHCHECK — httpbin starts in <1s and the first test
+                # request will surface any real failure.
+                image: kennethreitz/httpbin:latest
+                ports:
+                    - 8080:80
+
+        steps:
+            -   name: Checkout repository
+                uses: actions/checkout@v6
+
+            -   name: Use Node.js 24
+                uses: actions/setup-node@v6
+                with:
+                    node-version: 24
+                    package-manager-cache: false
+
+            -   name: Turbo cache
+                uses: actions/cache@v5
+                with:
+                    path: .turbo
+                    key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
+                    restore-keys: |
+                        turbo-${{ github.job }}-${{ github.ref_name }}-
+
+            -   uses: apify/workflows/pnpm-install@main
+
+            # No `playwright install` — these tests connect to remote Browserless
+            # over CDP and never launch a local browser binary.
+
+            -   name: Build
+                run: pnpm ci:build
+
+            -   name: Run integration tests
+                run: pnpm test:integration
+                env:
+                    BROWSERLESS_URL: http://localhost:3000
+                    HTTPBIN_URL: http://httpbin
+                    CRAWLEE_DIFFICULT_TESTS: 1
+                    RETRY_TESTS: 1
