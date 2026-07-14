@@ -45,6 +45,11 @@ export class PlaywrightController extends BrowserController<
                 ...contextOptions,
             };
 
+            // Remote browsers handle their own proxy — don't inject local proxy settings into context
+            if (this.launchContext.isRemote) {
+                delete contextOptions?.proxy;
+            }
+
             if (contextOptions?.proxy) {
                 const [anonymizedProxyUrl, closeProxy] = await anonymizeProxySugar(
                     contextOptions.proxy.server,

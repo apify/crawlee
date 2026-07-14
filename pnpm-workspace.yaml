@@ -46,7 +46,7 @@ allowBuilds:
   better-sqlite3: true
   bufferutil: true
   core-js: true
-  core-js-pure: set this to true or false
+  core-js-pure: false
   esbuild: true
   nx: true
   protobufjs: true
