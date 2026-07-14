@@ -118,18 +118,6 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
     internalTimeoutMillis = 5 * 60_000; // defaults to 5 minutes, will be overridden by BasicCrawler
     requestLockSecs = 3 * 60; // defaults to 3 minutes, will be overridden by BasicCrawler
 
-    /**
-     * An optional per-request validator, set by the crawler when its `requestHandler` is a router with a
-     * {@apilink RouteSchemas|Standard Schema} map. It validates a request's `userData` against the schema
-     * registered for its label before the request is added, throwing a {@apilink RequestValidationError} on
-     * mismatch. It runs from {@apilink RequestProvider.addRequest|`addRequest`} and
-     * {@apilink RequestProvider.addRequests|`addRequests`}; since `addRequestsBatched` funnels every request
-     * through one of those, this single hook also covers `crawler.addRequests`, `context.addRequests` and
-     * `enqueueLinks` — validating each request exactly once.
-     * @internal
-     */
-    requestSchemaValidator?: (source: Source | string) => Promise<void>;
-
     // We can trust these numbers only in a case that queue is used by a single client.
     // This information is returned by getHead() under the hadMultipleClients property.
     assumedTotalCount = 0;
@@ -230,8 +218,6 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
                 forefront: ow.optional.boolean,
             }),
         );
-
-        await this.requestSchemaValidator?.(requestLike);
 
         const { forefront = false } = options;
 
@@ -346,8 +332,6 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
         const requests: Request<Dictionary>[] = [];
 
         for await (const requestLike of requestsLike) {
-            await this.requestSchemaValidator?.(requestLike);
-
             if (typeof requestLike === 'string') {
                 requests.push(new Request({ url: requestLike }));
             } else if ('requestsFromUrl' in requestLike) {

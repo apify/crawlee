@@ -2251,13 +2251,21 @@ describe('BasicCrawler', () => {
             expect(await queue.isEmpty()).toBe(false);
         });
 
-        test('the singular requestQueue.addRequest is validated too', async () => {
-            const crawler = makeCrawler();
-            const queue = await crawler.getRequestQueue();
+        test('context.enqueueLinks validates userData against the label schema', async () => {
+            const router = Router.create({ DETAIL: z.object({ id: z.string() }) });
+            let caught: unknown;
+            router.addDefaultHandler(async ({ enqueueLinks }) => {
+                try {
+                    await enqueueLinks({ urls: ['https://example.com/x'], label: 'DETAIL', userData: { id: 123 } });
+                } catch (err) {
+                    caught = err;
+                }
+            });
 
-            await expect(
-                queue.addRequest({ url: 'https://example.com/c', label: 'DETAIL', userData: { id: 5 } }),
-            ).rejects.toThrow(RequestValidationError);
+            const crawler = new BasicCrawler({ requestHandler: router });
+            await crawler.run([`http://${HOSTNAME}:${port}/`]);
+
+            expect(caught).toBeInstanceOf(RequestValidationError);
         });
 
         test('requests with a label that has no registered schema are not validated', async () => {
@@ -2278,46 +2286,39 @@ describe('BasicCrawler', () => {
             expect(await queue.isEmpty()).toBe(false);
         });
 
-        test('userData is validated exactly once per request across the add paths', async () => {
-            const counts: Record<string, number> = {};
-            const countingSchema = (id: string) => ({
+        test('validation runs at the crawler level; direct requestQueue calls bypass it', async () => {
+            let validateCount = 0;
+            const countingSchema = {
                 '~standard': {
                     version: 1,
                     vendor: 'test',
                     validate: (value: unknown) => {
-                        counts[id] = (counts[id] ?? 0) + 1;
+                        validateCount += 1;
                         return { value };
                     },
                 },
-            });
+            };
 
             const makeRouterCrawler = () => {
-                const router = Router.create({
-                    DETAIL: countingSchema('DETAIL') as any,
-                });
+                const router = Router.create({ DETAIL: countingSchema as any });
                 router.addHandler('DETAIL', async () => {});
 
                 return new BasicCrawler({ requestHandler: router });
             };
 
-            // crawler.addRequests (→ requestManager.addRequestsBatched → addRequests)
-            counts.DETAIL = 0;
+            // crawler.addRequests validates each request exactly once
+            validateCount = 0;
             await makeRouterCrawler().addRequests([
                 { url: 'https://example.com/a', label: 'DETAIL', userData: { id: 'a' } },
             ]);
-            expect(counts.DETAIL).toBe(1);
+            expect(validateCount).toBe(1);
 
-            // direct requestQueue.addRequests (plural)
-            counts.DETAIL = 0;
-            const pluralQueue = await makeRouterCrawler().getRequestQueue();
-            await pluralQueue.addRequests([{ url: 'https://example.com/b', label: 'DETAIL', userData: { id: 'b' } }]);
-            expect(counts.DETAIL).toBe(1);
-
-            // direct requestQueue.addRequest (singular)
-            counts.DETAIL = 0;
-            const singularQueue = await makeRouterCrawler().getRequestQueue();
-            await singularQueue.addRequest({ url: 'https://example.com/c', label: 'DETAIL', userData: { id: 'c' } });
-            expect(counts.DETAIL).toBe(1);
+            // a direct requestQueue.addRequest / addRequests bypasses the crawler and is not validated
+            validateCount = 0;
+            const queue = await makeRouterCrawler().getRequestQueue();
+            await queue.addRequest({ url: 'https://example.com/b', label: 'DETAIL', userData: { id: 'b' } });
+            await queue.addRequests([{ url: 'https://example.com/c', label: 'DETAIL', userData: { id: 'c' } }]);
+            expect(validateCount).toBe(0);
         });
     });
 });

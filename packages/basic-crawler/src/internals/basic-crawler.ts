@@ -1136,11 +1136,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                     : new RequestManagerTandem(this.requestList, this.requestQueue);
         }
 
-        // Validate `userData` against the router's schemas on every add path (the tandem delegates
-        // `addRequest`/`addRequestsBatched` to this queue, so this single hook also covers `enqueueLinks`
-        // and direct `requestQueue.addRequest` calls). A no-op unless the `requestHandler` is a schema-router.
-        this.requestQueue.requestSchemaValidator = this.validateRequestUserData;
-
         return this.requestQueue;
     }
 
@@ -1148,8 +1143,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * Validates a request source's `userData` against the {@apilink RouteSchemas|Standard Schema} registered
      * for its label on the crawler's schema-router (if any), throwing a {@apilink RequestValidationError} on
      * mismatch. A no-op when the `requestHandler` is not a schema-router, or no schema is registered for the
-     * request's label. Wired into the request queue so it runs on every add path (`crawler.addRequests`,
-     * `crawler.run`, `context.addRequests`, `context.enqueueLinks`, and direct `requestQueue.addRequest`).
+     * request's label. Applied by the crawler on the add paths it owns — `crawler.addRequests`, `crawler.run`,
+     * `context.addRequests` and `context.enqueueLinks`.
      */
     protected validateRequestUserData = async (source: Source | string): Promise<void> => {
         if (typeof source === 'string') {
@@ -1245,6 +1240,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         const isAllowedBasedOnRobotsTxtFile = this.isAllowedBasedOnRobotsTxtFile.bind(this);
         const maxCrawlDepth = this.maxCrawlDepth;
+        const validateRequestUserData = this.validateRequestUserData;
 
         ow(
             requests,
@@ -1263,6 +1259,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 }
 
                 if (await isAllowedBasedOnRobotsTxtFile(url)) {
+                    await validateRequestUserData(request);
                     yield request;
                 } else {
                     skippedBecauseOfRobots.add(url);
@@ -1769,6 +1766,10 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
             await this.handleSkippedRequest(skippedOptions);
         };
+
+        // `enqueueLinks` applies `options.label`/`options.userData` to every newly enqueued request, so a single
+        // validation against the label's schema covers them all (a no-op unless the router declares a schema).
+        await this.validateRequestUserData({ label: options.label, userData: options.userData });
 
         return enqueueLinks({
             requestQueue,
