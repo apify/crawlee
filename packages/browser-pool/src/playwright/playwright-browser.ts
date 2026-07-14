@@ -21,7 +21,6 @@ export class PlaywrightBrowser extends EventEmitter {
 
         const { browserContext, version } = options;
         this._browserContext = browserContext;
-
         this._version = version;
 
         this._browserContext.once('close', () => {

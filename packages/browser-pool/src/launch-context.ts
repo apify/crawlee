@@ -56,6 +56,12 @@ export interface LaunchContextOptions<
      * This is useful when using HTTPS proxies with self-signed certificates.
      */
     ignoreProxyCertificate?: boolean;
+    /**
+     * Whether this launch context represents a connection to a remote browser
+     * rather than a locally launched one.
+     * @default false
+     */
+    isRemote?: boolean;
 }
 
 export class LaunchContext<
@@ -71,12 +77,21 @@ export class LaunchContext<
     useIncognitoPages: boolean;
     browserPerProxy?: boolean;
     userDataDir: string;
+    readonly isRemote: boolean;
     ignoreProxyCertificate?: boolean;
 
     private _proxyUrl?: string;
     private readonly _reservedFieldNames = [...Reflect.ownKeys(this), 'extend'];
 
     fingerprint?: BrowserFingerprintWithHeaders;
+
+    /**
+     * Token identifying the remote browser session this context connected to, set by the plugin and read by
+     * the {@apilink RemoteBrowserPool} to release the session on close. Only present for remote connections.
+     * @internal
+     */
+    _remoteToken?: number;
+
     [K: PropertyKey]: unknown;
 
     constructor(options: LaunchContextOptions<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>) {
@@ -89,6 +104,7 @@ export class LaunchContext<
             browserPerProxy,
             userDataDir = '',
             ignoreProxyCertificate,
+            isRemote,
         } = options;
 
         this.id = id;
@@ -98,6 +114,7 @@ export class LaunchContext<
         this.useIncognitoPages = useIncognitoPages ?? false;
         this.userDataDir = userDataDir;
         this.ignoreProxyCertificate = ignoreProxyCertificate ?? false;
+        this.isRemote = isRemote ?? false;
 
         this._proxyUrl = proxyUrl;
     }

@@ -51,6 +51,16 @@ export type {
 export { BrowserPlugin, BrowserLaunchError, DEFAULT_USER_AGENT } from './abstract-classes/browser-plugin.js';
 export type { LaunchContextOptions } from './launch-context.js';
 export { LaunchContext } from './launch-context.js';
+export { RemoteBrowserProvider } from './remote-browser-provider.js';
+export { RemoteBrowserPool } from './remote-browser-pool.js';
+export type {
+    RemoteBrowserPoolOptions,
+    CrawlerRemoteBrowserOptions,
+    RemoteBrowserEndpoint,
+    ResolvedRemoteEndpoint,
+    RemoteConnection,
+    RemoteConnectionParameters,
+} from './remote-browser-pool.js';
 export type { InferBrowserPluginArray, UnwrapPromise } from './utils.js';
 export { anonymizeProxySugar, type AnonymizeProxySugarOptions } from './anonymize-proxy.js';
 export type { IBrowserPool, NewPageOptions } from '@crawlee/types';
