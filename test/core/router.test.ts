@@ -1,6 +1,6 @@
 import { BasicCrawler } from '@crawlee/basic';
 import type { CrawlingContext } from '@crawlee/core';
-import { MissingRouteError, RequestValidationError, Router } from '@crawlee/core';
+import { MissingRouteError, Request, RequestValidationError, Router } from '@crawlee/core';
 import {
     type CheerioCrawlingContext,
     createCheerioRouter,
@@ -289,6 +289,32 @@ describe('Router', () => {
                 log,
             } as any),
         ).rejects.toThrow(RequestValidationError);
+    });
+
+    test('schema validation preserves the request label and internal metadata on a real Request', async () => {
+        const router = createCheerioRouter({
+            PRODUCT: z.object({ sku: z.string() }),
+        });
+
+        const handled: { label?: string; sku?: string; crawlDepth?: number } = {};
+        router.addHandler('PRODUCT', async ({ request }) => {
+            handled.label = request.label;
+            handled.sku = request.userData.sku;
+            handled.crawlDepth = request.crawlDepth;
+        });
+
+        const log = { info: vitest.fn(), warn: vitest.fn(), debug: vitest.fn() };
+
+        // a real Request keeps `label` inside `userData` and `crawlDepth` inside the non-enumerable `__crawlee`;
+        // both must survive the schema replacing `userData` with the parsed (label-less) value.
+        const request = new Request({ url: 'https://example.com/p', label: 'PRODUCT', userData: { sku: 'A1' } });
+        request.crawlDepth = 3;
+
+        await router({ request, log } as any);
+
+        expect(handled).toEqual({ label: 'PRODUCT', sku: 'A1', crawlDepth: 3 });
+        expect(request.label).toBe('PRODUCT');
+        expect(request.crawlDepth).toBe(3);
     });
 
     test('schema map leaves requests without a registered label untouched', async () => {

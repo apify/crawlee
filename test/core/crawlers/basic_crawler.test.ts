@@ -2251,6 +2251,18 @@ describe('BasicCrawler', () => {
             expect(await queue.isEmpty()).toBe(false);
         });
 
+        test('crawler.addRequests excludes the Crawlee-managed label when validating (strict schemas)', async () => {
+            const router = Router.create({ DETAIL: z.strictObject({ id: z.string() }) });
+            router.addHandler('DETAIL', async () => {});
+            const crawler = new BasicCrawler({ requestHandler: router });
+
+            // a Request instance stores `label` inside `userData`; it must not trip the strict schema
+            await crawler.addRequests([new Request({ url: 'https://example.com/s', label: 'DETAIL', userData: { id: 'ok' } })]);
+
+            const queue = await crawler.getRequestQueue();
+            expect(await queue.isEmpty()).toBe(false);
+        });
+
         test('context.enqueueLinks validates userData against the label schema', async () => {
             const router = Router.create({ DETAIL: z.object({ id: z.string() }) });
             let caught: unknown;

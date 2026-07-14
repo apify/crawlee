@@ -42,7 +42,10 @@ export async function validateUserData(
     schema: StandardSchemaV1,
     userData: unknown,
 ): Promise<Dictionary> {
-    const result = await schema['~standard'].validate(userData);
+    // `label` is a Crawlee-managed key stored inside `userData`; exclude it from validation so it neither
+    // trips strict schemas nor gets stripped from the parsed value.
+    const { label: _label, ...rest } = (userData ?? {}) as Dictionary;
+    const result = await schema['~standard'].validate(rest);
 
     if (result.issues) {
         throw new RequestValidationError(label, result.issues);
@@ -285,14 +288,16 @@ export class Router<
      * the parsed value. Throws a {@apilink RequestValidationError} when validation fails.
      */
     private async validateRequest(context: Context) {
-        const schema = this.getSchema(context.request.label);
+        const label = context.request.label;
+        const schema = this.getSchema(label);
 
         if (schema) {
-            context.request.userData = (await validateUserData(
-                context.request.label!,
-                schema,
-                context.request.userData,
-            )) as GetUserDataFromRequest<Context['request']>;
+            // `validateUserData` drops the Crawlee-managed `label` key before validating; restore it onto the
+            // parsed value so it survives schemas that strip unknown keys.
+            const parsed = await validateUserData(label!, schema, context.request.userData);
+            parsed.label = label;
+
+            context.request.userData = parsed as GetUserDataFromRequest<Context['request']>;
         }
     }
 
