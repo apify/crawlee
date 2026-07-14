@@ -122,9 +122,10 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
      * An optional per-request validator, set by the crawler when its `requestHandler` is a router with a
      * {@apilink RouteSchemas|Standard Schema} map. It validates a request's `userData` against the schema
      * registered for its label before the request is added, throwing a {@apilink RequestValidationError} on
-     * mismatch. This applies to every add path — {@apilink RequestProvider.addRequest|`addRequest`},
-     * {@apilink RequestProvider.addRequests|`addRequests`} and `addRequestsBatched` (and thus
-     * `crawler.addRequests`, `context.addRequests` and `enqueueLinks`).
+     * mismatch. It runs from {@apilink RequestProvider.addRequest|`addRequest`} and
+     * {@apilink RequestProvider.addRequests|`addRequests`}; since `addRequestsBatched` funnels every request
+     * through one of those, this single hook also covers `crawler.addRequests`, `context.addRequests` and
+     * `enqueueLinks` — validating each request exactly once.
      * @internal
      */
     requestSchemaValidator?: (source: Source | string) => Promise<void>;
@@ -453,7 +454,6 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
         );
 
         const addRequest = this.addRequest.bind(this);
-        const requestSchemaValidator = this.requestSchemaValidator;
 
         async function* generateRequests() {
             for await (const opts of requests) {
@@ -482,11 +482,10 @@ export abstract class RequestProvider implements IStorage, IRequestManager {
                 }
 
                 if (opts && typeof opts === 'object' && 'requestsFromUrl' in opts) {
-                    // Handle URL lists right away (addRequest runs the schema validator itself)
+                    // Handle URL lists right away
                     await addRequest(opts, { forefront: options.forefront });
                 } else {
-                    // Yield valid requests, validating their userData against the router's schema first
-                    await requestSchemaValidator?.(opts);
+                    // Yield valid requests
                     yield typeof opts === 'string' ? { url: opts } : (opts as RequestOptions);
                 }
             }

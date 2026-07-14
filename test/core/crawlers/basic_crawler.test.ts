@@ -2277,5 +2277,47 @@ describe('BasicCrawler', () => {
             const queue = await crawler.getRequestQueue();
             expect(await queue.isEmpty()).toBe(false);
         });
+
+        test('userData is validated exactly once per request across the add paths', async () => {
+            const counts: Record<string, number> = {};
+            const countingSchema = (id: string) => ({
+                '~standard': {
+                    version: 1,
+                    vendor: 'test',
+                    validate: (value: unknown) => {
+                        counts[id] = (counts[id] ?? 0) + 1;
+                        return { value };
+                    },
+                },
+            });
+
+            const makeRouterCrawler = () => {
+                const router = Router.create({
+                    DETAIL: countingSchema('DETAIL') as any,
+                });
+                router.addHandler('DETAIL', async () => {});
+
+                return new BasicCrawler({ requestHandler: router });
+            };
+
+            // crawler.addRequests (→ requestManager.addRequestsBatched → addRequests)
+            counts.DETAIL = 0;
+            await makeRouterCrawler().addRequests([
+                { url: 'https://example.com/a', label: 'DETAIL', userData: { id: 'a' } },
+            ]);
+            expect(counts.DETAIL).toBe(1);
+
+            // direct requestQueue.addRequests (plural)
+            counts.DETAIL = 0;
+            const pluralQueue = await makeRouterCrawler().getRequestQueue();
+            await pluralQueue.addRequests([{ url: 'https://example.com/b', label: 'DETAIL', userData: { id: 'b' } }]);
+            expect(counts.DETAIL).toBe(1);
+
+            // direct requestQueue.addRequest (singular)
+            counts.DETAIL = 0;
+            const singularQueue = await makeRouterCrawler().getRequestQueue();
+            await singularQueue.addRequest({ url: 'https://example.com/c', label: 'DETAIL', userData: { id: 'c' } });
+            expect(counts.DETAIL).toBe(1);
+        });
     });
 });
