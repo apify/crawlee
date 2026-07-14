@@ -430,8 +430,11 @@ export class AutoscaledPool {
         this.isStopped = true;
         await new Promise<void>((resolve, reject) => {
             let timeout: NodeJS.Timeout;
+            let interval: NodeJS.Timeout;
             if (timeoutSecs) {
                 timeout = setTimeout(() => {
+                    // Clean up the polling interval to prevent it from leaking on timeout.
+                    clearInterval(interval);
                     const err = new Error(
                         "The pool's running tasks did not finish" +
                             `in ${timeoutSecs} secs after pool.pause() invocation.`,
@@ -440,7 +443,7 @@ export class AutoscaledPool {
                 }, timeoutSecs);
             }
 
-            const interval = setInterval(() => {
+            interval = setInterval(() => {
                 if (this._currentConcurrency <= 0) {
                     // Clean up timeout and interval to prevent process hanging.
                     if (timeout) clearTimeout(timeout);
