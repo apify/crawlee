@@ -941,9 +941,19 @@ export class BasicCrawler<
 
                     const crawlingContext = { request } as { request: Request } & Partial<CrawlingContext>;
                     try {
-                        await this.basicContextPipeline
-                            .chain(this.contextPipeline)
-                            .call(crawlingContext, (ctx) => this.handleRequest(ctx, source, request));
+                        // Navigation, the navigation hooks and the request handler are timed individually, but the
+                        // phases between them are not, so a request could still get stuck indefinitely. This is the
+                        // backstop for that - it is not any single phase's timeout, and it does not blame one.
+                        //
+                        // Deliberately a bare timer rather than `addTimeoutToPromise`: that shares one `AbortController`
+                        // with everything nested inside it, so the request handler timing out would abort this context
+                        // too, and the error handling that follows it would be cancelled before it could run.
+                        await this.withRequestBackstop(
+                            request,
+                            this.basicContextPipeline
+                                .chain(this.contextPipeline)
+                                .call(crawlingContext, (ctx) => this.handleRequest(ctx, source, request)),
+                        );
                     } catch (error) {
                         // ContextPipelineInterruptedError means the request was intentionally skipped
                         // (e.g., doesn't match enqueue strategy after redirect). Just return gracefully.
@@ -959,9 +969,12 @@ export class BasicCrawler<
                         }
 
                         // If the error happened during pipeline initialization (e.g., navigation timeout, session/proxy error,
-                        // i.e. not in user's requestHandler), handle it through the normal error flow.
+                        // i.e. not in user's requestHandler), handle it through the normal error flow. A bare `TimeoutError`
+                        // here is the internal timeout above firing - anything thrown inside the pipeline arrives wrapped.
                         const isPipelineError =
-                            error instanceof ContextPipelineInitializationError || error instanceof SessionError;
+                            error instanceof ContextPipelineInitializationError ||
+                            error instanceof SessionError ||
+                            error instanceof TimeoutError;
                         if (isPipelineError) {
                             const unwrappedError = this.unwrapError(error);
 
@@ -1747,6 +1760,34 @@ export class BasicCrawler<
 
         await this.getRequestManager();
         await this._loadHandledRequestCount();
+    }
+
+    /**
+     * Races the request against {@apilink BasicCrawler.internalTimeoutMillis|`internalTimeoutMillis`}, so that a
+     * request stuck in a phase that has no timeout of its own (anything that is not the navigation, a navigation
+     * hook or the request handler) still fails instead of stalling the crawler.
+     *
+     * `Promise.race` attaches a handler to both sides, so a late rejection from `work` cannot go unhandled. The
+     * losing side is not cancelled - by definition it is stuck somewhere we do not control.
+     */
+    private async withRequestBackstop(request: Request, work: Promise<void>): Promise<void> {
+        let timer: NodeJS.Timeout | undefined;
+
+        const backstop = new Promise<never>((_, reject) => {
+            timer = setTimeout(() => {
+                reject(
+                    new TimeoutError(
+                        `Request timed out after ${this.internalTimeoutMillis / 1e3} seconds (${request.id}).`,
+                    ),
+                );
+            }, this.internalTimeoutMillis);
+        });
+
+        try {
+            await Promise.race([work, backstop]);
+        } finally {
+            clearTimeout(timer);
+        }
     }
 
     protected async runRequestHandler(crawlingContext: ExtendedContext): Promise<void> {

@@ -1329,6 +1329,53 @@ describe('BasicCrawler', () => {
         results[0].errorMessages.forEach((msg) => expect(msg).toMatch('requestHandler timed out'));
     });
 
+    test('internal timeout catches a request stuck outside the timed phases', async () => {
+        const url = 'https://example.com';
+        const requestList = await RequestList.open({ sources: [{ url }] });
+
+        const previous = process.env.CRAWLEE_INTERNAL_TIMEOUT;
+        process.env.CRAWLEE_INTERNAL_TIMEOUT = '300';
+
+        try {
+            const results: Request[] = [];
+            const requestHandler = vitest.fn();
+
+            const crawler = new BasicCrawler({
+                requestList,
+                maxRequestRetries: 0,
+                // `extendContext` is not the navigation, the hooks or the request handler, so none of their
+                // timeouts apply to it - only the internal one stands between this and a stuck crawler
+                extendContext: async () => {
+                    await sleep(5000);
+                    return {};
+                },
+                requestHandler,
+                failedRequestHandler: async ({ request }) => {
+                    results.push(request);
+                },
+            });
+
+            await crawler.run();
+
+            expect(requestHandler).not.toHaveBeenCalled();
+            expect(results).toHaveLength(1);
+
+            results[0].errorMessages.forEach((msg) => {
+                expect(msg).toMatch('Request timed out');
+                // the request handler never even started, so blaming it would be a lie
+                expect(msg).not.toMatch('requestHandler timed out');
+            });
+        } finally {
+            // assigning `undefined` would set the *string* "undefined", which parses to NaN and would
+            // leave every later test in this file with a NaN internal timeout
+            if (previous === undefined) {
+                delete process.env.CRAWLEE_INTERNAL_TIMEOUT;
+            } else {
+                process.env.CRAWLEE_INTERNAL_TIMEOUT = previous;
+            }
+        }
+    });
+
     test('timeouted request should not access storages', async () => {
         const url = 'https://example.com';
         const requestList = await RequestList.open({ sources: [{ url }] });
