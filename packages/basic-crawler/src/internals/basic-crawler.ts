@@ -1496,9 +1496,13 @@ export class BasicCrawler<
      * regardless of whether the manager is a plain {@apilink RequestQueue} or a `RequestManagerTandem`.
      */
     private async applyRequestManagerTimeouts(requestManager: IRequestManager): Promise<void> {
-        await requestManager.setExpectedRequestProcessingTimeSecs?.(
-            Math.max(this.requestHandlerTimeoutMillis / 1000 + 5, 60),
-        );
+        // A router route may hold a request for longer than the crawler's own timeout, and we cannot know
+        // which routes a run will hit, so reserve for the longest one any route asked for. The hint is
+        // raise-only, so erring high here is safe.
+        const maxRouteTimeoutSecs = (this.requestHandler as Partial<RouterHandler>).getMaxTimeoutSecs?.() ?? 0;
+        const handlerTimeoutSecs = Math.max(this.requestHandlerTimeoutMillis / 1000, maxRouteTimeoutSecs);
+
+        await requestManager.setExpectedRequestProcessingTimeSecs?.(Math.max(handlerTimeoutSecs + 5, 60));
     }
 
     async useState<State extends Dictionary = Dictionary>(defaultValue = {} as State): Promise<State> {
@@ -1771,16 +1775,22 @@ export class BasicCrawler<
      * losing side is not cancelled - by definition it is stuck somewhere we do not control.
      */
     private async withRequestBackstop(request: Request, work: Promise<void>): Promise<void> {
+        // `internalTimeoutMillis` is derived from the crawler's own request handler timeout, so a route asking
+        // for more than that could otherwise be cut short by the backstop while still legitimately running.
+        // Only stretch it for routes that actually override the timeout - an explicitly configured internal
+        // timeout must stay exactly as configured.
+        const routeTimeoutMillis = this.getRouteTimeoutMillis(request);
+        const timeoutMillis =
+            routeTimeoutMillis === undefined
+                ? this.internalTimeoutMillis
+                : Math.max(this.internalTimeoutMillis, routeTimeoutMillis * 2);
+
         let timer: NodeJS.Timeout | undefined;
 
         const backstop = new Promise<never>((_, reject) => {
             timer = setTimeout(() => {
-                reject(
-                    new TimeoutError(
-                        `Request timed out after ${this.internalTimeoutMillis / 1e3} seconds (${request.id}).`,
-                    ),
-                );
-            }, this.internalTimeoutMillis);
+                reject(new TimeoutError(`Request timed out after ${timeoutMillis / 1e3} seconds (${request.id}).`));
+            }, timeoutMillis);
         });
 
         try {
@@ -1790,11 +1800,44 @@ export class BasicCrawler<
         }
     }
 
+    /**
+     * The request handler timeout to apply to this particular request. A router route may override the
+     * crawler's own `requestHandlerTimeoutSecs`; anything else falls back to `fallbackMillis`.
+     *
+     * @param fallbackMillis Timeout to use when no route overrides it. Subclasses that time the handler
+     *   themselves rather than through {@apilink BasicCrawler.runRequestHandler|`runRequestHandler`} pass
+     *   their own, since theirs may differ from the crawler-level one.
+     */
+    protected resolveRequestHandlerTimeoutMillis(
+        request: Request,
+        fallbackMillis = this.requestHandlerTimeoutMillis,
+    ): number {
+        return this.getRouteTimeoutMillis(request) ?? fallbackMillis;
+    }
+
+    /**
+     * The timeout the matching router route asked for, or `undefined` when it did not override one (or the
+     * request handler is not a router at all).
+     */
+    private getRouteTimeoutMillis(request: Request): number | undefined {
+        const getTimeoutSecs = (this.requestHandler as Partial<RouterHandler>).getTimeoutSecs;
+
+        if (typeof getTimeoutSecs !== 'function') {
+            return undefined;
+        }
+
+        const timeoutSecs = getTimeoutSecs(request.label);
+
+        return timeoutSecs === undefined ? undefined : timeoutSecs * 1000;
+    }
+
     protected async runRequestHandler(crawlingContext: ExtendedContext): Promise<void> {
+        const timeoutMillis = this.resolveRequestHandlerTimeoutMillis(crawlingContext.request);
+
         await addTimeoutToPromise(
             async () => this.requestHandler(crawlingContext),
-            this.requestHandlerTimeoutMillis,
-            `requestHandler timed out after ${this.requestHandlerTimeoutMillis / 1000} seconds (${crawlingContext.request.id}).`,
+            timeoutMillis,
+            `requestHandler timed out after ${timeoutMillis / 1000} seconds (${crawlingContext.request.id}).`,
         );
     }
 

@@ -16,6 +16,7 @@ import {
     Request,
     RequestList,
     RequestQueue,
+    Router,
     serviceLocator,
     SessionPool,
 } from '@crawlee/basic';
@@ -1327,6 +1328,52 @@ describe('BasicCrawler', () => {
         expect(results).toHaveLength(1);
         expect(results[0].url).toEqual(url);
         results[0].errorMessages.forEach((msg) => expect(msg).toMatch('requestHandler timed out'));
+    });
+
+    test('a route can override requestHandlerTimeoutSecs, other routes keep the default', async () => {
+        const requestList = await RequestList.open({
+            sources: [
+                { url: 'https://example.com/list', userData: { label: 'LIST' } },
+                { url: 'https://example.com/detail', userData: { label: 'DETAIL' } },
+            ],
+        });
+
+        const processed: Request[] = [];
+        const failed: Request[] = [];
+
+        const router = Router.create();
+        // LIST is allowed to take its time, DETAIL is left on the crawler's default and must not be
+        router.addHandler(
+            'LIST',
+            async ({ request }) => {
+                await sleep(300);
+                processed.push(request as Request);
+            },
+            { requestHandlerTimeoutSecs: 5 },
+        );
+        router.addHandler('DETAIL', async ({ request }) => {
+            await sleep(300);
+            processed.push(request as Request);
+        });
+
+        const crawler = new BasicCrawler({
+            requestList,
+            requestHandlerTimeoutSecs: 0.1,
+            maxRequestRetries: 0,
+            requestHandler: router,
+            failedRequestHandler: async ({ request }) => {
+                failed.push(request);
+            },
+        });
+
+        await crawler.run();
+
+        // only DETAIL is held to the crawler's 0.1s default; LIST got its own 5s and finished
+        // (`processed` alone would not prove it - cancellation is cooperative, so a timed out handler
+        // keeps running to completion and still pushes)
+        expect(failed.map((request) => request.label)).toEqual(['DETAIL']);
+        expect(processed.map((request) => request.label)).toContain('LIST');
+        failed[0].errorMessages.forEach((msg) => expect(msg).toMatch('requestHandler timed out after 0.1 seconds'));
     });
 
     test('internal timeout catches a request stuck outside the timed phases', async () => {
