@@ -89,6 +89,8 @@ router.addDefaultHandler(async ({ request, page, enqueueLinks, log }) => {
 });
 
 const crawler = new PlaywrightCrawler({
+    // The store rate-limits the platform's shared egress IP, so crawl through a proxy.
+    proxyConfiguration: await Actor.createProxyConfiguration(),
     maxRequestsPerCrawl: 15, // so the test runs faster
     // Instead of the long requestHandler with
     // if clauses we provide a router instance.
