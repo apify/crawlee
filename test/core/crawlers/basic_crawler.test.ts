@@ -1360,7 +1360,8 @@ describe('BasicCrawler', () => {
         const requestList = await RequestList.open({ sources: [{ url: 'https://example.com' }] });
 
         const previous = process.env.CRAWLEE_INTERNAL_TIMEOUT;
-        process.env.CRAWLEE_INTERNAL_TIMEOUT = '400';
+        // shorter than the 400ms the handler needs, so an unextended backstop would definitely cut it
+        process.env.CRAWLEE_INTERNAL_TIMEOUT = '250';
 
         try {
             const failed: Request[] = [];

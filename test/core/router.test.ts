@@ -90,6 +90,33 @@ describe('Router', () => {
         ]);
     });
 
+    test('should expose the per-route timeouts, falling back the same way as getHandler', async () => {
+        const router = Router.create();
+
+        router.addHandler('SLOW', async () => {}, { requestHandlerTimeoutSecs: 120 });
+        router.addHandler('PLAIN', async () => {});
+        router.addDefaultHandler(async () => {}, { requestHandlerTimeoutSecs: 30 });
+
+        expect(router.getTimeoutSecs('SLOW')).toBe(120);
+        // a route of its own with no override means the crawler's own timeout, not the default route's
+        expect(router.getTimeoutSecs('PLAIN')).toBeUndefined();
+        // no route of its own, so it inherits the default route - handler and timeout alike
+        expect(router.getTimeoutSecs('UNKNOWN')).toBe(30);
+        expect(router.getTimeoutSecs()).toBe(30);
+
+        expect(router.getMaxTimeoutSecs()).toBe(120);
+    });
+
+    test('getMaxTimeoutSecs is undefined when no route overrides the timeout', async () => {
+        const router = Router.create();
+
+        router.addHandler('A', async () => {});
+        router.addDefaultHandler(async () => {});
+
+        expect(router.getMaxTimeoutSecs()).toBeUndefined();
+        expect(router.getTimeoutSecs('A')).toBeUndefined();
+    });
+
     test('should be possible to define routes when creating router', async () => {
         const logs: string[] = [];
         // it should be possible to define router inline when creating router

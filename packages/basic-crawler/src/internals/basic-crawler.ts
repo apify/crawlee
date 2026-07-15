@@ -981,7 +981,7 @@ export class BasicCrawler<
 
                         // If the error happened during pipeline initialization (e.g., navigation timeout, session/proxy error,
                         // i.e. not in user's requestHandler), handle it through the normal error flow. A bare `TimeoutError`
-                        // here is the internal timeout above firing - anything thrown inside the pipeline arrives wrapped.
+                        // here is the internal timeout above firing - anything else thrown inside the pipeline arrives wrapped.
                         const isPipelineError =
                             error instanceof ContextPipelineInitializationError ||
                             error instanceof SessionError ||
