@@ -1146,12 +1146,25 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * request's label. Applied by the crawler on the add paths it owns — `crawler.addRequests`, `crawler.run`,
      * `context.addRequests` and `context.enqueueLinks`.
      */
+    /**
+     * The request handler exactly as the user supplied it — a {@apilink Router} when one is in use, whether it
+     * was passed as `requestHandler` or auto-wired from {@apilink BasicCrawler.router|`crawler.router`}.
+     *
+     * Router-aware features read per-label metadata off this handler (currently the `userData` schema map), so
+     * it must resolve to the *unwrapped* handler. Subclasses that hand a wrapper to `BasicCrawler` instead of
+     * the user's own function — {@apilink BrowserCrawler} and its descendants do — have to override this, or
+     * those features silently no-op against the wrapper.
+     */
+    protected get userRequestHandler(): RequestHandler<Context> {
+        return this.requestHandler;
+    }
+
     protected async validateRequestUserData(source: Source | string): Promise<void> {
         if (typeof source === 'string') {
             return;
         }
 
-        const getSchema = (this.requestHandler as Partial<RouterHandler>).getSchema;
+        const getSchema = (this.userRequestHandler as Partial<RouterHandler>).getSchema;
 
         if (typeof getSchema !== 'function') {
             return;

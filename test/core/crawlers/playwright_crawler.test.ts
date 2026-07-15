@@ -12,9 +12,10 @@ import type {
     PlaywrightRequestHandler,
     Request,
 } from '@crawlee/playwright';
-import { PlaywrightCrawler, RequestList } from '@crawlee/playwright';
+import { createPlaywrightRouter, PlaywrightCrawler, RequestList, RequestValidationError } from '@crawlee/playwright';
 import express from 'express';
 import playwright from 'playwright';
+import { z } from 'zod';
 
 import log from '@apify/log';
 
@@ -297,5 +298,18 @@ describe('PlaywrightCrawler', () => {
             requestHandler,
         });
         await playwrightCrawler.run();
+    });
+
+    test('validates userData against the router schema when adding requests', async () => {
+        const router = createPlaywrightRouter({
+            DETAIL: z.object({ id: z.string() }),
+        });
+        router.addHandler('DETAIL', async () => {});
+
+        const crawler = new PlaywrightCrawler({ requestHandler: router });
+
+        await expect(
+            crawler.addRequests([{ url: `http://${HOSTNAME}:${port}/`, label: 'DETAIL', userData: { id: 123 } }]),
+        ).rejects.toThrow(RequestValidationError);
     });
 });

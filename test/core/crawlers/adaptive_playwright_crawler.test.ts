@@ -8,9 +8,16 @@ import type {
     LoadedContext,
     Request,
 } from '@crawlee/playwright';
-import { AdaptivePlaywrightCrawler, RenderingTypePredictor, RequestList } from '@crawlee/playwright';
+import {
+    AdaptivePlaywrightCrawler,
+    createAdaptivePlaywrightRouter,
+    RenderingTypePredictor,
+    RequestList,
+    RequestValidationError,
+} from '@crawlee/playwright';
 import { sleep } from 'crawlee';
 import express from 'express';
+import { z } from 'zod';
 
 import { startExpressAppPromise } from '../../shared/_helper';
 import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator';
@@ -599,5 +606,16 @@ describe('AdaptivePlaywrightCrawler', () => {
 
         // This should not throw since we've persisted valid state
         await expect(newPredictor.initialize()).resolves.not.toThrow();
+    });
+
+    test('validates userData against the router schema when adding requests', async () => {
+        const router = createAdaptivePlaywrightRouter({ DETAIL: z.object({ id: z.string() }) });
+        router.addHandler('DETAIL', async () => {});
+
+        const crawler = new AdaptivePlaywrightCrawler({ requestHandler: router });
+
+        await expect(
+            crawler.addRequests([{ url: 'https://example.com/a', label: 'DETAIL', userData: { id: 123 } }]),
+        ).rejects.toThrow(RequestValidationError);
     });
 });

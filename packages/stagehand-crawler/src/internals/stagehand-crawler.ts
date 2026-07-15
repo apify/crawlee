@@ -376,6 +376,13 @@ export class StagehandCrawler extends BrowserCrawler<
         browserPoolOptions: ow.optional.object,
     };
 
+    /** Set while `_runRequestHandler` has swapped `userProvidedRequestHandler` for its page-enhancing wrapper. */
+    private unwrappedRequestHandler?: BrowserRequestHandler<StagehandCrawlingContext>;
+
+    protected override get userRequestHandler(): BrowserRequestHandler<StagehandCrawlingContext> {
+        return this.unwrappedRequestHandler ?? super.userRequestHandler;
+    }
+
     /**
      * Creates a new instance of StagehandCrawler.
      *
@@ -437,6 +444,10 @@ export class StagehandCrawler extends BrowserCrawler<
         // Store the original handler (could be this.requestHandler or this.router)
         const originalHandler = this.userProvidedRequestHandler!;
 
+        // Keep `userRequestHandler` pointing at the unwrapped handler: the swap below is live while the user's
+        // handler runs, which is exactly when `context.addRequests`/`enqueueLinks` resolve router metadata.
+        this.unwrappedRequestHandler = originalHandler;
+
         // Replace with a wrapper that enhances the page before calling the user's handler
         this.userProvidedRequestHandler = async (ctx: any) => {
             // Get Stagehand instance from controller
@@ -456,6 +467,7 @@ export class StagehandCrawler extends BrowserCrawler<
         } finally {
             // Restore original handler
             this.userProvidedRequestHandler = originalHandler;
+            this.unwrappedRequestHandler = undefined;
         }
     }
 

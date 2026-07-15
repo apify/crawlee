@@ -3,6 +3,7 @@ import type {
     LoadedContext,
     LoadedRequest,
     Request,
+    RequestHandler,
     RouterHandler,
     RouteSchemas,
     RoutesFromSchemas,
@@ -300,6 +301,14 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
     // @ts-ignore
     override readonly router: RouterHandler<AdaptivePlaywrightCrawlerContext> =
         Router.create<AdaptivePlaywrightCrawlerContext>();
+
+    /**
+     * The `requestHandler` never reaches `BrowserCrawler` here — it is kept as `adaptiveRequestHandler` and
+     * invoked through a proxy — so router-aware metadata has to resolve against it.
+     */
+    protected override get userRequestHandler() {
+        return this.adaptiveRequestHandler as unknown as RequestHandler<PlaywrightCrawlingContext>;
+    }
 
     constructor(
         options: AdaptivePlaywrightCrawlerOptions = {},
