@@ -127,6 +127,7 @@ export abstract class BrowserPlugin<Library extends CommonLibrary = CommonLibrar
     protected abstract _addProxyToLaunchOptions(launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>): Promise<void>;
     // (undocumented)
     browserPerProxy?: boolean;
+    protected _connectToRemoteBrowser(launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>, connect: (url: string) => Promise<LaunchResult>): Promise<LaunchResult>;
     // (undocumented)
     abstract createController(): BrowserController<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>;
     createLaunchContext(options?: CreateLaunchContextOptions<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>): LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>;
@@ -147,12 +148,18 @@ export abstract class BrowserPlugin<Library extends CommonLibrary = CommonLibrar
     name: string;
     // (undocumented)
     proxyUrl?: string;
+    // @internal
+    remoteConnection?: RemoteConnection;
+    // @internal
+    remoteConnectionParameters?: RemoteConnectionParameters;
     // (undocumented)
     protected _throwAugmentedLaunchError(cause: unknown, executablePath: string | undefined, dockerImage: string, moduleInstallCommand: string): never;
     // (undocumented)
     useIncognitoPages: boolean;
     // (undocumented)
     userDataDir?: string;
+    // @internal
+    useRemoteConnection(connection: RemoteConnection, parameters?: RemoteConnectionParameters): void;
 }
 
 // @public (undocumented)
@@ -191,7 +198,11 @@ export class BrowserPool<Options extends BrowserPoolOptions = BrowserPoolOptions
     getBrowserControllerByPage(page: PageReturn): BrowserControllerReturn | undefined;
     getPage(id: string): PageReturn | undefined;
     getPageId(page: PageReturn): string | undefined;
+    hasActiveBrowserWithFreeCapacity(): boolean;
+    hasFreeBrowserSlot(): boolean;
     injectPageState(page: PageReturn, state: PageState): Promise<void>;
+    // (undocumented)
+    maxOpenBrowsers: number;
     // (undocumented)
     maxOpenPagesPerBrowser: number;
     newPage(options?: BrowserPoolNewPageOptions<PageOptions, BrowserPlugins[number]>): Promise<PageReturn>;
@@ -309,6 +320,9 @@ export interface CommonPage {
     url(): string | Promise<string>;
 }
 
+// @public
+export type CrawlerRemoteBrowserOptions = Omit<RemoteBrowserPoolOptions, 'browserPlugins' | 'browserPoolOptions'>;
+
 // @public (undocumented)
 export interface CreateLaunchContextOptions<Library extends CommonLibrary, LibraryOptions extends Dictionary | undefined = Parameters<Library['launch']>[0], LaunchResult extends CommonBrowser = UnwrapPromise<ReturnType<Library['launch']>>, NewPageOptions = Parameters<LaunchResult['newPage']>[0], NewPageResult = UnwrapPromise<ReturnType<LaunchResult['newPage']>>> extends Partial<Omit<LaunchContextOptions<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>, 'browserPlugin'>> {
 }
@@ -387,9 +401,13 @@ export class LaunchContext<Library extends CommonLibrary = CommonLibrary, Librar
     // (undocumented)
     ignoreProxyCertificate?: boolean;
     // (undocumented)
+    readonly isRemote: boolean;
+    // (undocumented)
     launchOptions: LibraryOptions;
     set proxyUrl(url: string | undefined);
     get proxyUrl(): string | undefined;
+    // @internal
+    _remoteToken?: number;
     // (undocumented)
     useIncognitoPages: boolean;
     // (undocumented)
@@ -402,6 +420,7 @@ export interface LaunchContextOptions<Library extends CommonLibrary = CommonLibr
     browserPlugin: BrowserPlugin<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>;
     id?: string;
     ignoreProxyCertificate?: boolean;
+    isRemote?: boolean;
     launchOptions: LibraryOptions;
     // (undocumented)
     proxyUrl?: string;
@@ -480,6 +499,7 @@ export class PlaywrightPlugin extends BrowserPlugin<BrowserType, SafeParameters<
     protected _isChromiumBasedBrowser(): boolean;
     // (undocumented)
     protected _launch(launchContext: LaunchContext<BrowserType>): Promise<Browser>;
+    useRemoteConnection(connection: RemoteConnection, parameters?: RemoteConnectionParameters): void;
 }
 
 // @public
@@ -526,6 +546,82 @@ export class PuppeteerPlugin extends BrowserPlugin<typeof Puppeteer, PuppeteerTy
     protected _isChromiumBasedBrowser(_launchContext: LaunchContext<typeof Puppeteer, PuppeteerTypes.LaunchOptions, PuppeteerTypes.Browser, PuppeteerNewPageOptions>): boolean;
     // (undocumented)
     protected _launch(launchContext: LaunchContext<typeof Puppeteer, PuppeteerTypes.LaunchOptions, PuppeteerTypes.Browser, PuppeteerNewPageOptions>): Promise<PuppeteerTypes.Browser>;
+    useRemoteConnection(connection: RemoteConnection, parameters?: RemoteConnectionParameters): void;
+}
+
+// @public
+export type RemoteBrowserEndpoint = string | ((options?: {
+    proxyUrl?: string;
+}) => string | ResolvedRemoteEndpoint | Promise<string | ResolvedRemoteEndpoint>);
+
+// @public
+export class RemoteBrowserPool<Page = unknown> implements IBrowserPool<Page> {
+    constructor(options: RemoteBrowserPoolOptions);
+    readonly browserPool: BrowserPool;
+    // (undocumented)
+    closePage(page: Page, options?: {
+        error?: Error;
+    }): Promise<void>;
+    destroy(): Promise<void>;
+    // (undocumented)
+    extractPageState(page: Page): Promise<PageState>;
+    // (undocumented)
+    injectPageState(page: Page, state: PageState): Promise<void>;
+    get maxOpenBrowsers(): number;
+    set maxOpenBrowsers(value: number);
+    newPage(options?: NewPageOptions): Promise<Page>;
+}
+
+// @public (undocumented)
+export interface RemoteBrowserPoolOptions {
+    browserPlugins: BrowserPlugin[];
+    browserPoolOptions?: Omit<BrowserPoolOptions, 'browserPlugins'> & BrowserPoolHooks<any, any, any>;
+    connection?: RemoteConnectionParameters;
+    endpoint: RemoteBrowserEndpoint | RemoteBrowserProvider<any>;
+    maxOpenBrowsers?: number;
+    release?: (info: {
+        endpoint: string;
+        context?: Record<string, unknown>;
+    }) => unknown;
+    slotPollIntervalMillis?: number;
+}
+
+// @public
+export abstract class RemoteBrowserProvider<TContext extends Record<string, unknown> = Record<string, unknown>> {
+    abstract connect(options?: {
+        proxyUrl?: string;
+    }): Promise<{
+        url: string;
+        context?: TContext;
+    }> | {
+        url: string;
+        context?: TContext;
+    };
+    maxOpenBrowsers?: number;
+    release(_context: TContext): Promise<void>;
+}
+
+// @internal
+export interface RemoteConnection {
+    release(token: number): Promise<void>;
+    resolve(options?: {
+        proxyUrl?: string;
+    }): Promise<{
+        url: string;
+        token: number;
+    }>;
+}
+
+// @public
+export interface RemoteConnectionParameters {
+    connectOptions?: Record<string, unknown>;
+    protocol?: 'cdp' | 'playwright';
+}
+
+// @public
+export interface ResolvedRemoteEndpoint {
+    context?: Record<string, unknown>;
+    url: string;
 }
 
 // @public (undocumented)
