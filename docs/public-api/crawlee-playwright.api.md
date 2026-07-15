@@ -290,6 +290,7 @@ export class PlaywrightCrawler<ContextExtension = Dictionary_2<never>, ExtendedC
         launchContext: ObjectPredicate<object> & BasePredicate<object | undefined>;
         headless: AnyPredicate<string | boolean>;
         browserPool: ObjectPredicate<object> & BasePredicate<object | undefined>;
+        remoteBrowser: ObjectPredicate<object> & BasePredicate<object | undefined>;
         saveResponseCookies: BooleanPredicate & BasePredicate<boolean | undefined>;
         proxyConfiguration: ObjectPredicate<object> & BasePredicate<object | undefined>;
         contextPipelineBuilder: ObjectPredicate<object> & BasePredicate<object | undefined>;
