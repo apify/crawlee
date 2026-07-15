@@ -32,11 +32,6 @@ export type RoutesFromSchemas<Schemas extends RouteSchemas> = {
         : Dictionary;
 };
 
-/**
- * Validates `userData` against a {@apilink RouteSchemas|Standard Schema}, returning the parsed (and coerced)
- * value. Throws a {@apilink RequestValidationError} when validation fails.
- * @internal
- */
 /** Whether a validation issue points at the top-level `label` key. */
 function isLabelIssue(issue: StandardSchemaV1.Issue): boolean {
     if (issue.path?.length !== 1) {
@@ -48,6 +43,11 @@ function isLabelIssue(issue: StandardSchemaV1.Issue): boolean {
     return (typeof segment === 'object' ? segment.key : segment) === 'label';
 }
 
+/**
+ * Validates `userData` against a {@apilink RouteSchemas|Standard Schema}, returning the parsed (and coerced)
+ * value. Throws a {@apilink RequestValidationError} when validation fails.
+ * @internal
+ */
 export async function validateUserData(
     label: string | symbol,
     schema: StandardSchemaV1,
