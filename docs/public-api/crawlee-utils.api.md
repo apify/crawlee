@@ -140,7 +140,7 @@ export function getMemoryInfo(options?: {
 export function getObjectType(value: unknown): string;
 
 // @public
-export function htmlToText(htmlOrCheerioElement: string | CheerioRoot): string;
+export function htmlToText(htmlOrCheerioElement: string | CheerioRoot): Promise<string>;
 
 // @internal
 export function inspectValue(value: unknown): string;
@@ -204,13 +204,13 @@ export interface OpenGraphProperty {
 }
 
 // @public
-function parseHandlesFromHtml(html: string, data?: Record<string, unknown> | null): SocialHandles;
+function parseHandlesFromHtml(html: string, data?: Record<string, unknown> | null): Promise<SocialHandles>;
 
 // @public
-export function parseOpenGraph(raw: string, additionalProperties?: OpenGraphProperty[]): Dictionary<OpenGraphResult>;
+export function parseOpenGraph(raw: string, additionalProperties?: OpenGraphProperty[]): Promise<Dictionary<OpenGraphResult>>;
 
 // @public (undocumented)
-export function parseOpenGraph($: CheerioAPI, additionalProperties?: OpenGraphProperty[]): Dictionary<OpenGraphResult>;
+export function parseOpenGraph($: CheerioAPI, additionalProperties?: OpenGraphProperty[]): Promise<Dictionary<OpenGraphResult>>;
 
 // @public (undocumented)
 export function parseSitemap<T extends ParseSitemapOptions>(initialSources: SitemapSource[], proxyUrl?: string, options?: T): AsyncIterable<T['emitNestedSitemaps'] extends true ? SitemapUrl | NestedSitemap : SitemapUrl>;

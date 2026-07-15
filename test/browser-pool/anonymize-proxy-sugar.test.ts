@@ -8,6 +8,7 @@ describe('anonymizeProxySugar', () => {
     beforeEach(() => {
         vi.mock('proxy-chain', () => ({
             anonymizeProxy: vi.fn((opts) => Promise.resolve(`anonymized-${opts.url}`)),
+            closeAnonymizedProxy: vi.fn(() => Promise.resolve()),
         }));
     });
 
