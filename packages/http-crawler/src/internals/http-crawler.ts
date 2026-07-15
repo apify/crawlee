@@ -67,6 +67,14 @@ export interface HttpCrawlerOptions<
     navigationTimeoutSecs?: number;
 
     /**
+     * Timeout in which a single `preNavigationHooks` or `postNavigationHooks` function needs to finish,
+     * given in seconds. Each hook gets its own window, separate from {@apilink HttpCrawlerOptions.navigationTimeoutSecs|`navigationTimeoutSecs`}
+     * and {@apilink BasicCrawlerOptions.requestHandlerTimeoutSecs|`requestHandlerTimeoutSecs`}.
+     * @default 30
+     */
+    navigationHooksTimeoutSecs?: number;
+
+    /**
      * If set to true, SSL certificate errors will be ignored.
      */
     ignoreSslErrors?: boolean;
@@ -318,6 +326,7 @@ export class HttpCrawler<
     ) => Awaitable<void | Partial<CrawlingContextWithResponse>>)[];
     protected saveResponseCookies: boolean;
     protected navigationTimeoutMillis: number;
+    protected navigationHooksTimeoutMillis: number;
     protected ignoreSslErrors: boolean;
     protected suggestResponseEncoding?: string;
     protected forceResponseEncoding?: string;
@@ -327,6 +336,7 @@ export class HttpCrawler<
         ...BasicCrawler.optionsShape,
 
         navigationTimeoutSecs: ow.optional.number,
+        navigationHooksTimeoutSecs: ow.optional.number,
         ignoreSslErrors: ow.optional.boolean,
         additionalMimeTypes: ow.optional.array.ofType(ow.string),
         suggestResponseEncoding: ow.optional.string,
@@ -348,6 +358,7 @@ export class HttpCrawler<
 
         const {
             navigationTimeoutSecs = 30,
+            navigationHooksTimeoutSecs = 30,
             ignoreSslErrors = true,
             additionalMimeTypes = [],
             suggestResponseEncoding,
@@ -380,6 +391,7 @@ export class HttpCrawler<
         }
 
         this.navigationTimeoutMillis = navigationTimeoutSecs * 1000;
+        this.navigationHooksTimeoutMillis = navigationHooksTimeoutSecs * 1000;
         this.ignoreSslErrors = ignoreSslErrors;
         this.suggestResponseEncoding = suggestResponseEncoding;
         this.forceResponseEncoding = forceResponseEncoding;
@@ -401,18 +413,31 @@ export class HttpCrawler<
             action: async (ctx) => (ctx.request.skipNavigation ? {} : ((await action(ctx)) ?? {})) as Ext,
         });
 
+        // each hook gets its own window, so a hook that hangs is reported as such instead of stalling the
+        // request forever - navigation and the request handler are timed separately, by their own options
+        const hookGuard = <Ctx extends CrawlingContext, Ext>(
+            hook: (ctx: Ctx) => Awaitable<void | Ext>,
+        ): ContextMiddleware<Ctx, Ext> =>
+            skipGuard(async (ctx: Ctx) =>
+                addTimeoutToPromise(
+                    async () => hook(ctx),
+                    this.navigationHooksTimeoutMillis,
+                    `navigationHook timed out after ${this.navigationHooksTimeoutMillis / 1000} seconds.`,
+                ),
+            );
+
         let pipeline = ContextPipeline.create<CrawlingContext>().compose({
             action: this.prepareHttpRequest.bind(this),
         });
 
         for (const hook of this.preNavigationHooks) {
-            pipeline = pipeline.compose(skipGuard(hook));
+            pipeline = pipeline.compose(hookGuard(hook));
         }
 
         let pipelineWithNavigation = pipeline.compose(skipGuard(this.makeHttpRequest.bind(this)));
 
         for (const hook of this.postNavigationHooks) {
-            pipelineWithNavigation = pipelineWithNavigation.compose(skipGuard(hook));
+            pipelineWithNavigation = pipelineWithNavigation.compose(hookGuard(hook));
         }
 
         return pipelineWithNavigation
