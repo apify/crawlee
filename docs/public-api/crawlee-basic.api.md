@@ -159,6 +159,7 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
     // (undocumented)
     protected readonly requestHandler: RequestHandler<ExtendedContext>;
     protected requestManager?: IRequestManager;
+    protected resolveRequestHandlerTimeoutMillis(request: Request_2, fallbackMillis?: number): number;
     // (undocumented)
     protected readonly retryOnBlocked: boolean;
     readonly router: RouterHandler<Context>;
