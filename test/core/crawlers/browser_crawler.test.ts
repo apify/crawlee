@@ -172,28 +172,19 @@ describe('BrowserCrawler', () => {
     });
 
     test.concurrent('builds and owns a RemoteBrowserPool from the remoteBrowser option', async () => {
-        const localStorageEmulator = new MemoryStorageEmulator();
-        await localStorageEmulator.init();
+        const crawler = new BrowserCrawlerTest({
+            remoteBrowser: { endpoint: 'ws://remote:9222', maxOpenBrowsers: 2 },
+            browserPoolOptions: { browserPlugins: [new PuppeteerPlugin(puppeteer)] },
+            requestHandler: async () => {},
+        });
 
-        try {
-            const crawler = new BrowserCrawlerTest({
-                remoteBrowser: { endpoint: 'ws://remote:9222', maxOpenBrowsers: 2 },
-                browserPoolOptions: { browserPlugins: [new PuppeteerPlugin(puppeteer)] },
-                requestHandler: async () => {},
-            });
+        expect(crawler.browserPool).toBeInstanceOf(RemoteBrowserPool);
+        expect((crawler.browserPool as RemoteBrowserPool).maxOpenBrowsers).toBe(2);
 
-            expect(crawler.browserPool).toBeInstanceOf(RemoteBrowserPool);
-            expect((crawler.browserPool as RemoteBrowserPool).maxOpenBrowsers).toBe(2);
-
-            await (crawler.browserPool as RemoteBrowserPool).destroy();
-        } finally {
-            await localStorageEmulator.destroy();
-        }
+        await (crawler.browserPool as RemoteBrowserPool).destroy();
     });
 
     test.concurrent('uses browserPool and ignores remoteBrowser when both are set', async () => {
-        const localStorageEmulator = new MemoryStorageEmulator();
-        await localStorageEmulator.init();
         const externalPool = new BrowserPoolClass({ browserPlugins: [new PuppeteerPlugin(puppeteer)] });
 
         try {
@@ -206,7 +197,6 @@ describe('BrowserCrawler', () => {
             expect(crawler.browserPool).toBe(externalPool);
         } finally {
             await externalPool.destroy();
-            await localStorageEmulator.destroy();
         }
     });
 
