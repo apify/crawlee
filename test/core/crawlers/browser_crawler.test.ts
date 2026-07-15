@@ -53,7 +53,7 @@ describe('BrowserCrawler', () => {
         serviceLocator.setStorageBackend(new MemoryStorageBackend());
     });
 
-    test('should work', async () => {
+    test.concurrent('should work', async () => {
         const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
 
         const sources = [
@@ -101,7 +101,7 @@ describe('BrowserCrawler', () => {
         });
     });
 
-    test('should teardown browser pool', async () => {
+    test.concurrent('should teardown browser pool', async () => {
         const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
 
         const requestList = await RequestList.open({
@@ -130,7 +130,7 @@ describe('BrowserCrawler', () => {
         expect(destroyCalled).toBe(true);
     });
 
-    test('should not tear down a user-supplied browser pool', async () => {
+    test.concurrent('should not tear down a user-supplied browser pool', async () => {
         const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
         const externalPool = new BrowserPoolClass({ browserPlugins: [puppeteerPlugin] });
 
@@ -161,7 +161,7 @@ describe('BrowserCrawler', () => {
         }
     });
 
-    test('builds and owns a RemoteBrowserPool from the remoteBrowser option', async () => {
+    test.concurrent('builds and owns a RemoteBrowserPool from the remoteBrowser option', async () => {
         const crawler = new BrowserCrawlerTest({
             remoteBrowser: { endpoint: 'ws://remote:9222', maxOpenBrowsers: 2 },
             browserPoolOptions: { browserPlugins: [new PuppeteerPlugin(puppeteer)] },
@@ -174,7 +174,7 @@ describe('BrowserCrawler', () => {
         await (crawler.browserPool as RemoteBrowserPool).destroy();
     });
 
-    test('uses browserPool and ignores remoteBrowser when both are set', async () => {
+    test.concurrent('uses browserPool and ignores remoteBrowser when both are set', async () => {
         const externalPool = new BrowserPoolClass({ browserPlugins: [new PuppeteerPlugin(puppeteer)] });
 
         try {
@@ -190,7 +190,7 @@ describe('BrowserCrawler', () => {
         }
     });
 
-    test('should retire session after TimeoutError', async () => {
+    test.concurrent('should retire session after TimeoutError', async () => {
         const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
 
         const requestList = await RequestList.open({
@@ -225,7 +225,7 @@ describe('BrowserCrawler', () => {
         expect(markBadCalled).toBe(true);
     });
 
-    test('should evaluate preNavigationHooks', async () => {
+    test.concurrent('should evaluate preNavigationHooks', async () => {
         const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
 
         const requestList = await RequestList.open({
@@ -252,7 +252,7 @@ describe('BrowserCrawler', () => {
         expect(hook).toHaveBeenCalled();
     });
 
-    test('should evaluate postNavigationHooks', async () => {
+    test.concurrent('should evaluate postNavigationHooks', async () => {
         const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
 
         const requestList = await RequestList.open({
@@ -279,7 +279,7 @@ describe('BrowserCrawler', () => {
         expect(hook).toHaveBeenCalled();
     });
 
-    test('postNavigationHooks can override response, observed downstream', async () => {
+    test.concurrent('postNavigationHooks can override response, observed downstream', async () => {
         const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
 
         const requestList = await RequestList.open({
@@ -319,7 +319,7 @@ describe('BrowserCrawler', () => {
         expect(observed.fromHandler).toBe(fakeStatus);
     });
 
-    test('errorHandler has open page', async () => {
+    test.concurrent('errorHandler has open page', async () => {
         const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
 
         const requestList = await RequestList.open({
@@ -349,7 +349,7 @@ describe('BrowserCrawler', () => {
     });
 
     // see https://github.com/apify/crawlee/issues/3873
-    test('errorHandler has open page after non-timeout navigation error', async () => {
+    test.concurrent('errorHandler has open page after non-timeout navigation error', async () => {
         const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
 
         const requestList = await RequestList.open({
@@ -380,7 +380,7 @@ describe('BrowserCrawler', () => {
         expect(pageClosedStates[0]).toBe(false);
     });
 
-    test('should correctly track request.state', async () => {
+    test.concurrent('should correctly track request.state', async () => {
         const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
 
         const sources = [{ url: `${serverAddress}/?q=1` }];
@@ -425,7 +425,7 @@ describe('BrowserCrawler', () => {
         ]);
     });
 
-    test('should allow modifying gotoOptions by pre navigation hooks', async () => {
+    test.concurrent('should allow modifying gotoOptions by pre navigation hooks', async () => {
         const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
 
         const requestList = await RequestList.open({
@@ -460,7 +460,7 @@ describe('BrowserCrawler', () => {
         expect(optionsGoto!.timeout).toEqual(60000);
     });
 
-    test('should ignore errors in Page.close()', async () => {
+    test.concurrent('should ignore errors in Page.close()', async () => {
         const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
 
         for (let i = 0; i < 2; i++) {
@@ -493,7 +493,7 @@ describe('BrowserCrawler', () => {
         }
     });
 
-    test('should respect the requestHandlerTimeoutSecs option', async () => {
+    test.concurrent('should respect the requestHandlerTimeoutSecs option', async () => {
         const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
 
         const requestList = await RequestList.open({
@@ -523,7 +523,7 @@ describe('BrowserCrawler', () => {
         expect(callSpy).toBeCalledWith('good');
     });
 
-    test('should not throw without SessionPool', async () => {
+    test.concurrent('should not throw without SessionPool', async () => {
         const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
 
         const requestList = await RequestList.open({
@@ -541,7 +541,7 @@ describe('BrowserCrawler', () => {
         expect(browserCrawler).toBeDefined();
     });
 
-    test('should correctly set session pool options', async () => {
+    test.concurrent('should correctly set session pool options', async () => {
         const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
 
         const requestList = await RequestList.open({
@@ -625,7 +625,7 @@ describe('BrowserCrawler', () => {
         });
     });
 
-    test('should throw on "blocked" status codes', async () => {
+    test.concurrent('should throw on "blocked" status codes', async () => {
         const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
 
         const baseUrl = 'https://example.com/';
@@ -670,7 +670,7 @@ describe('BrowserCrawler', () => {
         expect(called).toBe(false);
     });
 
-    test('retryOnBlocked should retry on Cloudflare challenge', async () => {
+    test.concurrent('retryOnBlocked should retry on Cloudflare challenge', async () => {
         const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
 
         const urls = [new URL('/special/cloudflareBlocking', serverAddress).href];
@@ -700,7 +700,7 @@ describe('BrowserCrawler', () => {
         expect(processed).toBe(false);
     });
 
-    test('retryOnBlocked throws on "blocked" status codes', async () => {
+    test.concurrent('retryOnBlocked throws on "blocked" status codes', async () => {
         const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
 
         const baseUrl = 'https://example.com/';
@@ -742,7 +742,7 @@ describe('BrowserCrawler', () => {
         expect(processed).toBe(false);
     });
 
-    test('should throw on "blocked" status codes (retire session)', async () => {
+    test.concurrent('should throw on "blocked" status codes (retire session)', async () => {
         const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
 
         const baseUrl = 'https://example.com/';
@@ -787,7 +787,7 @@ describe('BrowserCrawler', () => {
         expect(called).toBe(false);
     });
 
-    test('should retire browser with session', async () => {
+    test.concurrent('should retire browser with session', async () => {
         const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
 
         const requestList = await RequestList.open({
@@ -814,7 +814,7 @@ describe('BrowserCrawler', () => {
         expect(retiredBrowserCount).toBeGreaterThan(0);
     });
 
-    test('should increment session usage correctly', async () => {
+    test.concurrent('should increment session usage correctly', async () => {
         const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
 
         const sessionUsageHistory: number[] = [];
@@ -843,7 +843,7 @@ describe('BrowserCrawler', () => {
         expect(sessionUsageHistory).toEqual([0, 1, 2, 3, 4, 5]);
     });
 
-    test('should allow using fingerprints from browser pool', async () => {
+    test.concurrent('should allow using fingerprints from browser pool', async () => {
         const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
 
         const pool = new BrowserPoolClass({
@@ -926,7 +926,7 @@ describe('BrowserCrawler', () => {
             delete process.env[ENV_VARS.PROXY_PASSWORD];
         });
 
-        test('proxy rotation on error works as expected', async () => {
+        test.concurrent('proxy rotation on error works as expected', async () => {
             const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
 
             const requestList = await RequestList.open({
@@ -973,7 +973,7 @@ describe('BrowserCrawler', () => {
             expect(requestHandler).toHaveBeenCalledTimes(4);
         });
 
-        test('proxy rotation on error respects maxRequestRetries, calls failedRequestHandler', async () => {
+        test.concurrent('proxy rotation on error respects maxRequestRetries, calls failedRequestHandler', async () => {
             const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
 
             const requestList = await RequestList.open({
@@ -1025,7 +1025,7 @@ describe('BrowserCrawler', () => {
             expect(numberOfRotations).toBe(4 * 5);
         });
 
-        test('proxy rotation logs the original proxy error', async () => {
+        test.concurrent('proxy rotation logs the original proxy error', async () => {
             const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
 
             const requestList = await RequestList.open({

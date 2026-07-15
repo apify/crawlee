@@ -286,8 +286,13 @@ export class ServiceLocator implements ServiceLocatorInterface {
 
 /**
  * Used as the default service provider when crawlers don't specify custom services.
+ *
+ * Prefer the `serviceLocator` proxy below, which resolves to the scoped locator when one is active.
+ * This is exported only so that test setup can reset global state without touching a scoped locator.
+ *
+ * @internal
  */
-const globalServiceLocator = new ServiceLocator();
+export const globalServiceLocator = new ServiceLocator();
 
 const serviceLocatorStorage = new AsyncLocalStorage<ServiceLocatorInterface>();
 
