@@ -4,3 +4,4 @@ export * from './crawler_utils';
 export * from './statistics';
 export * from './error_tracker';
 export * from './error_snapshotter';
+export * from './monitor';
