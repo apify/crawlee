@@ -1,0 +1,256 @@
+diff --git a/cjs/index.cjs b/cjs/index.cjs
+index 2587e35981627da21e71fca68dc6a242a04e96e9..fb5d954adf946641e793415b5652143dca8fdf28 100644
+--- a/cjs/index.cjs
++++ b/cjs/index.cjs
+@@ -23,6 +23,7 @@ var index_exports = {};
+ __export(index_exports, {
+   TimeoutError: () => TimeoutError,
+   addTimeoutToPromise: () => addTimeoutToPromise,
++  extendTimeout: () => extendTimeout,
+   storage: () => storage,
+   tryCancel: () => tryCancel
+ });
+@@ -45,9 +46,10 @@ function tryCancel() {
+ }
+ __name(tryCancel, "tryCancel");
+ async function addTimeoutToPromise(handler, timeoutMillis, errorMessage) {
+-  const context = storage.getStore() ?? {
+-    cancelTask: new AbortController()
+-  };
++  const parent = storage.getStore();
++  const context = Object.create(parent ?? Object.prototype);
++  context.cancelTask = parent?.cancelTask ?? new AbortController();
++  context.parent = parent;
+   let returnValue;
+   const wrap = /* @__PURE__ */ __name(async () => {
+     try {
+@@ -59,21 +61,52 @@ async function addTimeoutToPromise(handler, timeoutMillis, errorMessage) {
+     }
+   }, "wrap");
+   return new Promise((resolve, reject) => {
+-    const timeout = setTimeout(() => {
++    let deadline = Date.now() + timeoutMillis;
++    let settled = false;
++    const fire = /* @__PURE__ */ __name(() => {
++      settled = true;
+       context.cancelTask.abort();
+       const error = errorMessage instanceof Error ? errorMessage : new TimeoutError(errorMessage);
+       reject(error);
+-    }, timeoutMillis);
++    }, "fire");
++    let timeout = setTimeout(() => fire(), timeoutMillis);
++    context.extend = (extraMillis) => {
++      if (settled) {
++        return false;
++      }
++      clearTimeout(timeout);
++      deadline += extraMillis;
++      timeout = setTimeout(() => fire(), Math.max(deadline - Date.now(), 0));
++      return true;
++    };
+     storage.run(context, () => {
+-      wrap().then(() => resolve(returnValue)).catch(reject).finally(() => clearTimeout(timeout));
++      wrap().then(() => resolve(returnValue)).catch(reject).finally(() => {
++        settled = true;
++        clearTimeout(timeout);
++      });
+     });
+   });
+ }
+ __name(addTimeoutToPromise, "addTimeoutToPromise");
++function extendTimeout(extraMillis, options = {}) {
++  const { propagate = true } = options;
++  let frame = storage.getStore();
++  while (frame) {
++    if (frame.extend?.(extraMillis) === false) {
++      return;
++    }
++    if (!propagate) {
++      return;
++    }
++    frame = frame.parent;
++  }
++}
++__name(extendTimeout, "extendTimeout");
+ // Annotate the CommonJS export names for ESM import in node:
+ 0 && (module.exports = {
+   TimeoutError,
+   addTimeoutToPromise,
++  extendTimeout,
+   storage,
+   tryCancel
+ });
+diff --git a/cjs/index.cjs.map b/cjs/index.cjs.map
+index 032d64c77905301be2eb84e7846961f30de03c97..59901a551c3e31d7f0fdaef81be55af9bcadf83c 100644
+--- a/cjs/index.cjs.map
++++ b/cjs/index.cjs.map
+@@ -1 +1 @@
+-{"version":3,"sources":["../../src/index.ts"],"sourcesContent":["import { AsyncLocalStorage } from 'node:async_hooks';\n\nexport interface AbortContext {\n    cancelTask: AbortController;\n}\n\n/**\n * `AsyncLocalStorage` instance that is used for baring the AbortContext inside user provided handler.\n * We can use it to access the `AbortContext` instance via `storage.getStore()`, and there we can access\n * `cancelTask` instance of `AbortController`.\n */\nexport const storage = new AsyncLocalStorage<AbortContext>();\n\n/**\n * Custom error class that will be used for timeout error.\n */\nexport class TimeoutError extends Error {\n}\n\n/**\n * Custom error class to handle `tryCancel()` checks.\n * This should not be exposed to user land, as it will be caught in.\n */\nclass InternalTimeoutError extends TimeoutError {\n}\n\n/**\n * Checks whether we are inside timeout handler created by this package, and cancels current\n * task execution by throwing `TimeoutError`. This error will be ignored if the promise timed\n * out already, or explicitly skipped in `addTimeoutToPromise`.\n *\n * Use this function after every async call that runs inside the timeout handler:\n *\n * ```ts\n * async function doSomething() {\n *     await doSomethingTimeConsuming();\n *     tryCancel();\n *     await doSomethingElse();\n *     tryCancel();\n * }\n * ```\n */\nexport function tryCancel(): void {\n    const signal = storage.getStore()?.cancelTask.signal;\n\n    if (signal?.aborted) {\n        throw new InternalTimeoutError('Promise handler has been canceled due to a timeout');\n    }\n}\n\n/**\n * Runs given handler and rejects with the given `errorMessage` (or `Error` instance)\n * after given `timeoutMillis`, unless the original promise resolves or rejects earlier.\n * Use `tryCancel()` function inside the handler after each await to finish its execution\n * early when the timeout appears.\n *\n * ```ts\n * const res = await addTimeoutToPromise(\n *   () => handler(),\n *   200,\n *   'Handler timed out after 200ms!',\n * );\n * ```\n */\nexport async function addTimeoutToPromise<T>(handler: () => Promise<T>, timeoutMillis: number, errorMessage: string | Error): Promise<T> {\n    // respect existing context to support nesting\n    const context = storage.getStore() ?? {\n        cancelTask: new AbortController(),\n    };\n    let returnValue: T;\n\n    // calls handler, skips internal `TimeoutError`s that might have been thrown\n    // via `tryCancel()` and aborts the timeout promise after the handler finishes\n    const wrap = async () => {\n        try {\n            returnValue = await handler();\n        } catch (e) {\n            if (!(e instanceof InternalTimeoutError)) {\n                throw e;\n            }\n        }\n    };\n\n    return new Promise((resolve, reject) => {\n        const timeout = setTimeout(() => {\n            context.cancelTask.abort();\n            const error = errorMessage instanceof Error ? errorMessage : new TimeoutError(errorMessage);\n            reject(error);\n        }, timeoutMillis);\n\n        storage.run(context, () => {\n            wrap()\n                .then(() => resolve(returnValue))\n                .catch(reject)\n                .finally(() => clearTimeout(timeout));\n        });\n    });\n}\n"],"mappings":";;;;;;;;;;;;;;;;;;;;;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA,8BAAkC;AAW3B,IAAM,UAAU,IAAI,0CAAgC;AAKpD,IAAM,gBAAN,MAAM,sBAAqB,MAAM;AACxC;AADwC;AAAjC,IAAM,eAAN;AAOP,IAAM,wBAAN,MAAM,8BAA6B,aAAa;AAChD;AADgD;AAAhD,IAAM,uBAAN;AAmBO,SAAS,YAAkB;AAC9B,QAAM,SAAS,QAAQ,SAAS,GAAG,WAAW;AAE9C,MAAI,QAAQ,SAAS;AACjB,UAAM,IAAI,qBAAqB,oDAAoD;AAAA,EACvF;AACJ;AANgB;AAsBhB,eAAsB,oBAAuB,SAA2B,eAAuB,cAA0C;AAErI,QAAM,UAAU,QAAQ,SAAS,KAAK;AAAA,IAClC,YAAY,IAAI,gBAAgB;AAAA,EACpC;AACA,MAAI;AAIJ,QAAM,OAAO,mCAAY;AACrB,QAAI;AACA,oBAAc,MAAM,QAAQ;AAAA,IAChC,SAAS,GAAG;AACR,UAAI,EAAE,aAAa,uBAAuB;AACtC,cAAM;AAAA,MACV;AAAA,IACJ;AAAA,EACJ,GARa;AAUb,SAAO,IAAI,QAAQ,CAAC,SAAS,WAAW;AACpC,UAAM,UAAU,WAAW,MAAM;AAC7B,cAAQ,WAAW,MAAM;AACzB,YAAM,QAAQ,wBAAwB,QAAQ,eAAe,IAAI,aAAa,YAAY;AAC1F,aAAO,KAAK;AAAA,IAChB,GAAG,aAAa;AAEhB,YAAQ,IAAI,SAAS,MAAM;AACvB,WAAK,EACA,KAAK,MAAM,QAAQ,WAAW,CAAC,EAC/B,MAAM,MAAM,EACZ,QAAQ,MAAM,aAAa,OAAO,CAAC;AAAA,IAC5C,CAAC;AAAA,EACL,CAAC;AACL;AAjCsB;","names":[]}
+\ No newline at end of file
++{"version":3,"sources":["../../src/index.ts"],"sourcesContent":["import { AsyncLocalStorage } from 'node:async_hooks';\n\nexport interface AbortContext {\n    cancelTask: AbortController;\n}\n\n/**\n * A single `addTimeoutToPromise` call. Nested calls share the `cancelTask` controller of the\n * enclosing frame (so `tryCancel()` behaves the same at any depth), but each call gets its own\n * frame, which is what lets {@link extendTimeout} tell the layers apart.\n */\ninterface TimeoutFrame extends AbortContext {\n    /** The enclosing frame, when this call is nested inside another `addTimeoutToPromise`. */\n    parent?: TimeoutFrame;\n    /** Pushes this frame's deadline back. Returns `false` once the frame timed out or settled. */\n    extend?: (extraMillis: number) => boolean;\n}\n\n/**\n * `AsyncLocalStorage` instance that is used for baring the AbortContext inside user provided handler.\n * We can use it to access the `AbortContext` instance via `storage.getStore()`, and there we can access\n * `cancelTask` instance of `AbortController`.\n */\nexport const storage = new AsyncLocalStorage<AbortContext>();\n\n/**\n * Custom error class that will be used for timeout error.\n */\nexport class TimeoutError extends Error {}\n\n/**\n * Custom error class to handle `tryCancel()` checks.\n * This should not be exposed to user land, as it will be caught in.\n */\nclass InternalTimeoutError extends TimeoutError {}\n\n/**\n * Checks whether we are inside timeout handler created by this package, and cancels current\n * task execution by throwing `TimeoutError`. This error will be ignored if the promise timed\n * out already, or explicitly skipped in `addTimeoutToPromise`.\n *\n * Use this function after every async call that runs inside the timeout handler:\n *\n * ```ts\n * async function doSomething() {\n *     await doSomethingTimeConsuming();\n *     tryCancel();\n *     await doSomethingElse();\n *     tryCancel();\n * }\n * ```\n */\nexport function tryCancel(): void {\n    const signal = storage.getStore()?.cancelTask.signal;\n\n    if (signal?.aborted) {\n        throw new InternalTimeoutError('Promise handler has been canceled due to a timeout');\n    }\n}\n\n/**\n * Runs given handler and rejects with the given `errorMessage` (or `Error` instance)\n * after given `timeoutMillis`, unless the original promise resolves or rejects earlier.\n * Use `tryCancel()` function inside the handler after each await to finish its execution\n * early when the timeout appears.\n *\n * ```ts\n * const res = await addTimeoutToPromise(\n *   () => handler(),\n *   200,\n *   'Handler timed out after 200ms!',\n * );\n * ```\n */\nexport async function addTimeoutToPromise<T>(\n    handler: () => Promise<T>,\n    timeoutMillis: number,\n    errorMessage: string | Error,\n): Promise<T> {\n    // respect existing context to support nesting - every call needs a store of its own for\n    // `extendTimeout` to be able to tell the layers apart, but we keep prototypally inheriting from\n    // the enclosing one, so that reads of anything stashed on an outer context still resolve\n    const parent = storage.getStore() as TimeoutFrame | undefined;\n    const context: TimeoutFrame = Object.create(parent ?? Object.prototype);\n    // shared with the enclosing frame, so cancellation still propagates across the whole chain at once\n    context.cancelTask = parent?.cancelTask ?? new AbortController();\n    context.parent = parent;\n    let returnValue: T;\n\n    // calls handler, skips internal `TimeoutError`s that might have been thrown\n    // via `tryCancel()` and aborts the timeout promise after the handler finishes\n    const wrap = async () => {\n        try {\n            returnValue = await handler();\n        } catch (e) {\n            if (!(e instanceof InternalTimeoutError)) {\n                throw e;\n            }\n        }\n    };\n\n    return new Promise((resolve, reject) => {\n        let deadline = Date.now() + timeoutMillis;\n        let settled = false;\n\n        const fire = () => {\n            settled = true;\n            context.cancelTask.abort();\n            const error = errorMessage instanceof Error ? errorMessage : new TimeoutError(errorMessage);\n            reject(error);\n        };\n\n        // the callback is kept anonymous on purpose - a named one would show up in the stack trace of\n        // the `TimeoutError` instead of the `Timeout._onTimeout` frame consumers match against\n        let timeout = setTimeout(() => fire(), timeoutMillis);\n\n        // the `settled` guard matters for handlers that keep running after they timed out (i.e. those\n        // that don't call `tryCancel()`) - without it they could schedule a timer that never fires\n        // anything useful, but still keeps the event loop alive\n        context.extend = (extraMillis: number) => {\n            if (settled) {\n                return false;\n            }\n\n            clearTimeout(timeout);\n            deadline += extraMillis;\n            timeout = setTimeout(() => fire(), Math.max(deadline - Date.now(), 0));\n\n            return true;\n        };\n\n        storage.run(context, () => {\n            wrap()\n                .then(() => resolve(returnValue))\n                .catch(reject)\n                .finally(() => {\n                    settled = true;\n                    clearTimeout(timeout);\n                });\n        });\n    });\n}\n\nexport interface ExtendTimeoutOptions {\n    /**\n     * Whether to extend the enclosing timeouts by the same amount as well. Keep this enabled (the\n     * default) unless an enclosing timeout is meant to be a hard limit on the total time - with it\n     * disabled, a nested handler can be killed by an outer timeout right after extending its own.\n     * @default true\n     */\n    propagate?: boolean;\n}\n\n/**\n * Pushes the deadline of the currently running timeout back by `extraMillis`, for cases where the\n * required time is only known once the handler is already running. Call it from inside a handler\n * wrapped in {@link addTimeoutToPromise}; outside of one it is a no-op.\n *\n * ```ts\n * await addTimeoutToPromise(async () => {\n *     const pageCount = await countPages();\n *     tryCancel();\n *     // we only now know this page is a big one, so ask for 10 more seconds per page\n *     extendTimeout(pageCount * 10_000);\n *     await scrapeAllPages();\n * }, 30_000, 'Handler timed out!');\n * ```\n *\n * Enclosing timeouts are extended by the same amount by default, so that a nested handler asking for\n * more time is not killed moments later by an outer timeout it cannot see. Pass `propagate: false` to\n * extend only the innermost timeout, leaving any enclosing ones as a hard limit on the total time.\n *\n * Extending an already timed out (or already finished) handler does nothing.\n */\nexport function extendTimeout(extraMillis: number, options: ExtendTimeoutOptions = {}): void {\n    const { propagate = true } = options;\n    let frame = storage.getStore() as TimeoutFrame | undefined;\n\n    while (frame) {\n        // a frame that already timed out means the caller is running past its deadline - it must not\n        // push back the enclosing ones either, those are what still bounds it\n        if (frame.extend?.(extraMillis) === false) {\n            return;\n        }\n\n        if (!propagate) {\n            return;\n        }\n\n        frame = frame.parent;\n    }\n}\n"],"mappings":";;;;;;;;;;;;;;;;;;;;;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA,8BAAkC;AAuB3B,IAAM,UAAU,IAAI,0CAAgC;AAKpD,IAAM,gBAAN,MAAM,sBAAqB,MAAM;AAAC;AAAD;AAAjC,IAAM,eAAN;AAMP,IAAM,wBAAN,MAAM,8BAA6B,aAAa;AAAC;AAAD;AAAhD,IAAM,uBAAN;AAkBO,SAAS,YAAkB;AAC9B,QAAM,SAAS,QAAQ,SAAS,GAAG,WAAW;AAE9C,MAAI,QAAQ,SAAS;AACjB,UAAM,IAAI,qBAAqB,oDAAoD;AAAA,EACvF;AACJ;AANgB;AAsBhB,eAAsB,oBAClB,SACA,eACA,cACU;AAIV,QAAM,SAAS,QAAQ,SAAS;AAChC,QAAM,UAAwB,OAAO,OAAO,UAAU,OAAO,SAAS;AAEtE,UAAQ,aAAa,QAAQ,cAAc,IAAI,gBAAgB;AAC/D,UAAQ,SAAS;AACjB,MAAI;AAIJ,QAAM,OAAO,mCAAY;AACrB,QAAI;AACA,oBAAc,MAAM,QAAQ;AAAA,IAChC,SAAS,GAAG;AACR,UAAI,EAAE,aAAa,uBAAuB;AACtC,cAAM;AAAA,MACV;AAAA,IACJ;AAAA,EACJ,GARa;AAUb,SAAO,IAAI,QAAQ,CAAC,SAAS,WAAW;AACpC,QAAI,WAAW,KAAK,IAAI,IAAI;AAC5B,QAAI,UAAU;AAEd,UAAM,OAAO,6BAAM;AACf,gBAAU;AACV,cAAQ,WAAW,MAAM;AACzB,YAAM,QAAQ,wBAAwB,QAAQ,eAAe,IAAI,aAAa,YAAY;AAC1F,aAAO,KAAK;AAAA,IAChB,GALa;AASb,QAAI,UAAU,WAAW,MAAM,KAAK,GAAG,aAAa;AAKpD,YAAQ,SAAS,CAAC,gBAAwB;AACtC,UAAI,SAAS;AACT,eAAO;AAAA,MACX;AAEA,mBAAa,OAAO;AACpB,kBAAY;AACZ,gBAAU,WAAW,MAAM,KAAK,GAAG,KAAK,IAAI,WAAW,KAAK,IAAI,GAAG,CAAC,CAAC;AAErE,aAAO;AAAA,IACX;AAEA,YAAQ,IAAI,SAAS,MAAM;AACvB,WAAK,EACA,KAAK,MAAM,QAAQ,WAAW,CAAC,EAC/B,MAAM,MAAM,EACZ,QAAQ,MAAM;AACX,kBAAU;AACV,qBAAa,OAAO;AAAA,MACxB,CAAC;AAAA,IACT,CAAC;AAAA,EACL,CAAC;AACL;AAnEsB;AAoGf,SAAS,cAAc,aAAqB,UAAgC,CAAC,GAAS;AACzF,QAAM,EAAE,YAAY,KAAK,IAAI;AAC7B,MAAI,QAAQ,QAAQ,SAAS;AAE7B,SAAO,OAAO;AAGV,QAAI,MAAM,SAAS,WAAW,MAAM,OAAO;AACvC;AAAA,IACJ;AAEA,QAAI,CAAC,WAAW;AACZ;AAAA,IACJ;AAEA,YAAQ,MAAM;AAAA,EAClB;AACJ;AAjBgB;","names":[]}
+\ No newline at end of file
+diff --git a/cjs/index.d.ts b/cjs/index.d.ts
+index 9da1f4ab35fbf3cdd5d4521bd6f691d267adf63e..461e8c098abc60e323d408c338fe11f43524ec3c 100644
+--- a/cjs/index.d.ts
++++ b/cjs/index.d.ts
+@@ -46,5 +46,36 @@ declare function tryCancel(): void;
+  * ```
+  */
+ declare function addTimeoutToPromise<T>(handler: () => Promise<T>, timeoutMillis: number, errorMessage: string | Error): Promise<T>;
++interface ExtendTimeoutOptions {
++    /**
++     * Whether to extend the enclosing timeouts by the same amount as well. Keep this enabled (the
++     * default) unless an enclosing timeout is meant to be a hard limit on the total time - with it
++     * disabled, a nested handler can be killed by an outer timeout right after extending its own.
++     * @default true
++     */
++    propagate?: boolean;
++}
++/**
++ * Pushes the deadline of the currently running timeout back by `extraMillis`, for cases where the
++ * required time is only known once the handler is already running. Call it from inside a handler
++ * wrapped in {@link addTimeoutToPromise}; outside of one it is a no-op.
++ *
++ * ```ts
++ * await addTimeoutToPromise(async () => {
++ *     const pageCount = await countPages();
++ *     tryCancel();
++ *     // we only now know this page is a big one, so ask for 10 more seconds per page
++ *     extendTimeout(pageCount * 10_000);
++ *     await scrapeAllPages();
++ * }, 30_000, 'Handler timed out!');
++ * ```
++ *
++ * Enclosing timeouts are extended by the same amount by default, so that a nested handler asking for
++ * more time is not killed moments later by an outer timeout it cannot see. Pass `propagate: false` to
++ * extend only the innermost timeout, leaving any enclosing ones as a hard limit on the total time.
++ *
++ * Extending an already timed out (or already finished) handler does nothing.
++ */
++declare function extendTimeout(extraMillis: number, options?: ExtendTimeoutOptions): void;
+ 
+-export { type AbortContext, TimeoutError, addTimeoutToPromise, storage, tryCancel };
++export { type AbortContext, type ExtendTimeoutOptions, TimeoutError, addTimeoutToPromise, extendTimeout, storage, tryCancel };
+diff --git a/esm/index.d.mts b/esm/index.d.mts
+index 9da1f4ab35fbf3cdd5d4521bd6f691d267adf63e..461e8c098abc60e323d408c338fe11f43524ec3c 100644
+--- a/esm/index.d.mts
++++ b/esm/index.d.mts
+@@ -46,5 +46,36 @@ declare function tryCancel(): void;
+  * ```
+  */
+ declare function addTimeoutToPromise<T>(handler: () => Promise<T>, timeoutMillis: number, errorMessage: string | Error): Promise<T>;
++interface ExtendTimeoutOptions {
++    /**
++     * Whether to extend the enclosing timeouts by the same amount as well. Keep this enabled (the
++     * default) unless an enclosing timeout is meant to be a hard limit on the total time - with it
++     * disabled, a nested handler can be killed by an outer timeout right after extending its own.
++     * @default true
++     */
++    propagate?: boolean;
++}
++/**
++ * Pushes the deadline of the currently running timeout back by `extraMillis`, for cases where the
++ * required time is only known once the handler is already running. Call it from inside a handler
++ * wrapped in {@link addTimeoutToPromise}; outside of one it is a no-op.
++ *
++ * ```ts
++ * await addTimeoutToPromise(async () => {
++ *     const pageCount = await countPages();
++ *     tryCancel();
++ *     // we only now know this page is a big one, so ask for 10 more seconds per page
++ *     extendTimeout(pageCount * 10_000);
++ *     await scrapeAllPages();
++ * }, 30_000, 'Handler timed out!');
++ * ```
++ *
++ * Enclosing timeouts are extended by the same amount by default, so that a nested handler asking for
++ * more time is not killed moments later by an outer timeout it cannot see. Pass `propagate: false` to
++ * extend only the innermost timeout, leaving any enclosing ones as a hard limit on the total time.
++ *
++ * Extending an already timed out (or already finished) handler does nothing.
++ */
++declare function extendTimeout(extraMillis: number, options?: ExtendTimeoutOptions): void;
+ 
+-export { type AbortContext, TimeoutError, addTimeoutToPromise, storage, tryCancel };
++export { type AbortContext, type ExtendTimeoutOptions, TimeoutError, addTimeoutToPromise, extendTimeout, storage, tryCancel };
+diff --git a/esm/index.mjs b/esm/index.mjs
+index a4c0975fa2591e3b3f15a87e990e6b1d90588293..4b79b8dbd9c7feb38fdc6418f3074c163e75f18e 100644
+--- a/esm/index.mjs
++++ b/esm/index.mjs
+@@ -20,9 +20,10 @@ function tryCancel() {
+ }
+ __name(tryCancel, "tryCancel");
+ async function addTimeoutToPromise(handler, timeoutMillis, errorMessage) {
+-  const context = storage.getStore() ?? {
+-    cancelTask: new AbortController()
+-  };
++  const parent = storage.getStore();
++  const context = Object.create(parent ?? Object.prototype);
++  context.cancelTask = parent?.cancelTask ?? new AbortController();
++  context.parent = parent;
+   let returnValue;
+   const wrap = /* @__PURE__ */ __name(async () => {
+     try {
+@@ -34,20 +35,51 @@ async function addTimeoutToPromise(handler, timeoutMillis, errorMessage) {
+     }
+   }, "wrap");
+   return new Promise((resolve, reject) => {
+-    const timeout = setTimeout(() => {
++    let deadline = Date.now() + timeoutMillis;
++    let settled = false;
++    const fire = /* @__PURE__ */ __name(() => {
++      settled = true;
+       context.cancelTask.abort();
+       const error = errorMessage instanceof Error ? errorMessage : new TimeoutError(errorMessage);
+       reject(error);
+-    }, timeoutMillis);
++    }, "fire");
++    let timeout = setTimeout(() => fire(), timeoutMillis);
++    context.extend = (extraMillis) => {
++      if (settled) {
++        return false;
++      }
++      clearTimeout(timeout);
++      deadline += extraMillis;
++      timeout = setTimeout(() => fire(), Math.max(deadline - Date.now(), 0));
++      return true;
++    };
+     storage.run(context, () => {
+-      wrap().then(() => resolve(returnValue)).catch(reject).finally(() => clearTimeout(timeout));
++      wrap().then(() => resolve(returnValue)).catch(reject).finally(() => {
++        settled = true;
++        clearTimeout(timeout);
++      });
+     });
+   });
+ }
+ __name(addTimeoutToPromise, "addTimeoutToPromise");
++function extendTimeout(extraMillis, options = {}) {
++  const { propagate = true } = options;
++  let frame = storage.getStore();
++  while (frame) {
++    if (frame.extend?.(extraMillis) === false) {
++      return;
++    }
++    if (!propagate) {
++      return;
++    }
++    frame = frame.parent;
++  }
++}
++__name(extendTimeout, "extendTimeout");
+ export {
+   TimeoutError,
+   addTimeoutToPromise,
++  extendTimeout,
+   storage,
+   tryCancel
+ };
+diff --git a/esm/index.mjs.map b/esm/index.mjs.map
+index ed76209cf556624d9b5890c5141664aeb603d93e..afaf06efa4119023435c07e1d801906c2e58799e 100644
+--- a/esm/index.mjs.map
++++ b/esm/index.mjs.map
+@@ -1 +1 @@
+-{"version":3,"sources":["../../src/index.ts"],"sourcesContent":["import { AsyncLocalStorage } from 'node:async_hooks';\n\nexport interface AbortContext {\n    cancelTask: AbortController;\n}\n\n/**\n * `AsyncLocalStorage` instance that is used for baring the AbortContext inside user provided handler.\n * We can use it to access the `AbortContext` instance via `storage.getStore()`, and there we can access\n * `cancelTask` instance of `AbortController`.\n */\nexport const storage = new AsyncLocalStorage<AbortContext>();\n\n/**\n * Custom error class that will be used for timeout error.\n */\nexport class TimeoutError extends Error {\n}\n\n/**\n * Custom error class to handle `tryCancel()` checks.\n * This should not be exposed to user land, as it will be caught in.\n */\nclass InternalTimeoutError extends TimeoutError {\n}\n\n/**\n * Checks whether we are inside timeout handler created by this package, and cancels current\n * task execution by throwing `TimeoutError`. This error will be ignored if the promise timed\n * out already, or explicitly skipped in `addTimeoutToPromise`.\n *\n * Use this function after every async call that runs inside the timeout handler:\n *\n * ```ts\n * async function doSomething() {\n *     await doSomethingTimeConsuming();\n *     tryCancel();\n *     await doSomethingElse();\n *     tryCancel();\n * }\n * ```\n */\nexport function tryCancel(): void {\n    const signal = storage.getStore()?.cancelTask.signal;\n\n    if (signal?.aborted) {\n        throw new InternalTimeoutError('Promise handler has been canceled due to a timeout');\n    }\n}\n\n/**\n * Runs given handler and rejects with the given `errorMessage` (or `Error` instance)\n * after given `timeoutMillis`, unless the original promise resolves or rejects earlier.\n * Use `tryCancel()` function inside the handler after each await to finish its execution\n * early when the timeout appears.\n *\n * ```ts\n * const res = await addTimeoutToPromise(\n *   () => handler(),\n *   200,\n *   'Handler timed out after 200ms!',\n * );\n * ```\n */\nexport async function addTimeoutToPromise<T>(handler: () => Promise<T>, timeoutMillis: number, errorMessage: string | Error): Promise<T> {\n    // respect existing context to support nesting\n    const context = storage.getStore() ?? {\n        cancelTask: new AbortController(),\n    };\n    let returnValue: T;\n\n    // calls handler, skips internal `TimeoutError`s that might have been thrown\n    // via `tryCancel()` and aborts the timeout promise after the handler finishes\n    const wrap = async () => {\n        try {\n            returnValue = await handler();\n        } catch (e) {\n            if (!(e instanceof InternalTimeoutError)) {\n                throw e;\n            }\n        }\n    };\n\n    return new Promise((resolve, reject) => {\n        const timeout = setTimeout(() => {\n            context.cancelTask.abort();\n            const error = errorMessage instanceof Error ? errorMessage : new TimeoutError(errorMessage);\n            reject(error);\n        }, timeoutMillis);\n\n        storage.run(context, () => {\n            wrap()\n                .then(() => resolve(returnValue))\n                .catch(reject)\n                .finally(() => clearTimeout(timeout));\n        });\n    });\n}\n"],"mappings":";;;;AAAA,SAAS,yBAAyB;AAW3B,IAAM,UAAU,IAAI,kBAAgC;AAKpD,IAAM,gBAAN,MAAM,sBAAqB,MAAM;AACxC;AADwC;AAAjC,IAAM,eAAN;AAOP,IAAM,wBAAN,MAAM,8BAA6B,aAAa;AAChD;AADgD;AAAhD,IAAM,uBAAN;AAmBO,SAAS,YAAkB;AAC9B,QAAM,SAAS,QAAQ,SAAS,GAAG,WAAW;AAE9C,MAAI,QAAQ,SAAS;AACjB,UAAM,IAAI,qBAAqB,oDAAoD;AAAA,EACvF;AACJ;AANgB;AAsBhB,eAAsB,oBAAuB,SAA2B,eAAuB,cAA0C;AAErI,QAAM,UAAU,QAAQ,SAAS,KAAK;AAAA,IAClC,YAAY,IAAI,gBAAgB;AAAA,EACpC;AACA,MAAI;AAIJ,QAAM,OAAO,mCAAY;AACrB,QAAI;AACA,oBAAc,MAAM,QAAQ;AAAA,IAChC,SAAS,GAAG;AACR,UAAI,EAAE,aAAa,uBAAuB;AACtC,cAAM;AAAA,MACV;AAAA,IACJ;AAAA,EACJ,GARa;AAUb,SAAO,IAAI,QAAQ,CAAC,SAAS,WAAW;AACpC,UAAM,UAAU,WAAW,MAAM;AAC7B,cAAQ,WAAW,MAAM;AACzB,YAAM,QAAQ,wBAAwB,QAAQ,eAAe,IAAI,aAAa,YAAY;AAC1F,aAAO,KAAK;AAAA,IAChB,GAAG,aAAa;AAEhB,YAAQ,IAAI,SAAS,MAAM;AACvB,WAAK,EACA,KAAK,MAAM,QAAQ,WAAW,CAAC,EAC/B,MAAM,MAAM,EACZ,QAAQ,MAAM,aAAa,OAAO,CAAC;AAAA,IAC5C,CAAC;AAAA,EACL,CAAC;AACL;AAjCsB;","names":[]}
+\ No newline at end of file
++{"version":3,"sources":["../../src/index.ts"],"sourcesContent":["import { AsyncLocalStorage } from 'node:async_hooks';\n\nexport interface AbortContext {\n    cancelTask: AbortController;\n}\n\n/**\n * A single `addTimeoutToPromise` call. Nested calls share the `cancelTask` controller of the\n * enclosing frame (so `tryCancel()` behaves the same at any depth), but each call gets its own\n * frame, which is what lets {@link extendTimeout} tell the layers apart.\n */\ninterface TimeoutFrame extends AbortContext {\n    /** The enclosing frame, when this call is nested inside another `addTimeoutToPromise`. */\n    parent?: TimeoutFrame;\n    /** Pushes this frame's deadline back. Returns `false` once the frame timed out or settled. */\n    extend?: (extraMillis: number) => boolean;\n}\n\n/**\n * `AsyncLocalStorage` instance that is used for baring the AbortContext inside user provided handler.\n * We can use it to access the `AbortContext` instance via `storage.getStore()`, and there we can access\n * `cancelTask` instance of `AbortController`.\n */\nexport const storage = new AsyncLocalStorage<AbortContext>();\n\n/**\n * Custom error class that will be used for timeout error.\n */\nexport class TimeoutError extends Error {}\n\n/**\n * Custom error class to handle `tryCancel()` checks.\n * This should not be exposed to user land, as it will be caught in.\n */\nclass InternalTimeoutError extends TimeoutError {}\n\n/**\n * Checks whether we are inside timeout handler created by this package, and cancels current\n * task execution by throwing `TimeoutError`. This error will be ignored if the promise timed\n * out already, or explicitly skipped in `addTimeoutToPromise`.\n *\n * Use this function after every async call that runs inside the timeout handler:\n *\n * ```ts\n * async function doSomething() {\n *     await doSomethingTimeConsuming();\n *     tryCancel();\n *     await doSomethingElse();\n *     tryCancel();\n * }\n * ```\n */\nexport function tryCancel(): void {\n    const signal = storage.getStore()?.cancelTask.signal;\n\n    if (signal?.aborted) {\n        throw new InternalTimeoutError('Promise handler has been canceled due to a timeout');\n    }\n}\n\n/**\n * Runs given handler and rejects with the given `errorMessage` (or `Error` instance)\n * after given `timeoutMillis`, unless the original promise resolves or rejects earlier.\n * Use `tryCancel()` function inside the handler after each await to finish its execution\n * early when the timeout appears.\n *\n * ```ts\n * const res = await addTimeoutToPromise(\n *   () => handler(),\n *   200,\n *   'Handler timed out after 200ms!',\n * );\n * ```\n */\nexport async function addTimeoutToPromise<T>(\n    handler: () => Promise<T>,\n    timeoutMillis: number,\n    errorMessage: string | Error,\n): Promise<T> {\n    // respect existing context to support nesting - every call needs a store of its own for\n    // `extendTimeout` to be able to tell the layers apart, but we keep prototypally inheriting from\n    // the enclosing one, so that reads of anything stashed on an outer context still resolve\n    const parent = storage.getStore() as TimeoutFrame | undefined;\n    const context: TimeoutFrame = Object.create(parent ?? Object.prototype);\n    // shared with the enclosing frame, so cancellation still propagates across the whole chain at once\n    context.cancelTask = parent?.cancelTask ?? new AbortController();\n    context.parent = parent;\n    let returnValue: T;\n\n    // calls handler, skips internal `TimeoutError`s that might have been thrown\n    // via `tryCancel()` and aborts the timeout promise after the handler finishes\n    const wrap = async () => {\n        try {\n            returnValue = await handler();\n        } catch (e) {\n            if (!(e instanceof InternalTimeoutError)) {\n                throw e;\n            }\n        }\n    };\n\n    return new Promise((resolve, reject) => {\n        let deadline = Date.now() + timeoutMillis;\n        let settled = false;\n\n        const fire = () => {\n            settled = true;\n            context.cancelTask.abort();\n            const error = errorMessage instanceof Error ? errorMessage : new TimeoutError(errorMessage);\n            reject(error);\n        };\n\n        // the callback is kept anonymous on purpose - a named one would show up in the stack trace of\n        // the `TimeoutError` instead of the `Timeout._onTimeout` frame consumers match against\n        let timeout = setTimeout(() => fire(), timeoutMillis);\n\n        // the `settled` guard matters for handlers that keep running after they timed out (i.e. those\n        // that don't call `tryCancel()`) - without it they could schedule a timer that never fires\n        // anything useful, but still keeps the event loop alive\n        context.extend = (extraMillis: number) => {\n            if (settled) {\n                return false;\n            }\n\n            clearTimeout(timeout);\n            deadline += extraMillis;\n            timeout = setTimeout(() => fire(), Math.max(deadline - Date.now(), 0));\n\n            return true;\n        };\n\n        storage.run(context, () => {\n            wrap()\n                .then(() => resolve(returnValue))\n                .catch(reject)\n                .finally(() => {\n                    settled = true;\n                    clearTimeout(timeout);\n                });\n        });\n    });\n}\n\nexport interface ExtendTimeoutOptions {\n    /**\n     * Whether to extend the enclosing timeouts by the same amount as well. Keep this enabled (the\n     * default) unless an enclosing timeout is meant to be a hard limit on the total time - with it\n     * disabled, a nested handler can be killed by an outer timeout right after extending its own.\n     * @default true\n     */\n    propagate?: boolean;\n}\n\n/**\n * Pushes the deadline of the currently running timeout back by `extraMillis`, for cases where the\n * required time is only known once the handler is already running. Call it from inside a handler\n * wrapped in {@link addTimeoutToPromise}; outside of one it is a no-op.\n *\n * ```ts\n * await addTimeoutToPromise(async () => {\n *     const pageCount = await countPages();\n *     tryCancel();\n *     // we only now know this page is a big one, so ask for 10 more seconds per page\n *     extendTimeout(pageCount * 10_000);\n *     await scrapeAllPages();\n * }, 30_000, 'Handler timed out!');\n * ```\n *\n * Enclosing timeouts are extended by the same amount by default, so that a nested handler asking for\n * more time is not killed moments later by an outer timeout it cannot see. Pass `propagate: false` to\n * extend only the innermost timeout, leaving any enclosing ones as a hard limit on the total time.\n *\n * Extending an already timed out (or already finished) handler does nothing.\n */\nexport function extendTimeout(extraMillis: number, options: ExtendTimeoutOptions = {}): void {\n    const { propagate = true } = options;\n    let frame = storage.getStore() as TimeoutFrame | undefined;\n\n    while (frame) {\n        // a frame that already timed out means the caller is running past its deadline - it must not\n        // push back the enclosing ones either, those are what still bounds it\n        if (frame.extend?.(extraMillis) === false) {\n            return;\n        }\n\n        if (!propagate) {\n            return;\n        }\n\n        frame = frame.parent;\n    }\n}\n"],"mappings":";;;;AAAA,SAAS,yBAAyB;AAuB3B,IAAM,UAAU,IAAI,kBAAgC;AAKpD,IAAM,gBAAN,MAAM,sBAAqB,MAAM;AAAC;AAAD;AAAjC,IAAM,eAAN;AAMP,IAAM,wBAAN,MAAM,8BAA6B,aAAa;AAAC;AAAD;AAAhD,IAAM,uBAAN;AAkBO,SAAS,YAAkB;AAC9B,QAAM,SAAS,QAAQ,SAAS,GAAG,WAAW;AAE9C,MAAI,QAAQ,SAAS;AACjB,UAAM,IAAI,qBAAqB,oDAAoD;AAAA,EACvF;AACJ;AANgB;AAsBhB,eAAsB,oBAClB,SACA,eACA,cACU;AAIV,QAAM,SAAS,QAAQ,SAAS;AAChC,QAAM,UAAwB,OAAO,OAAO,UAAU,OAAO,SAAS;AAEtE,UAAQ,aAAa,QAAQ,cAAc,IAAI,gBAAgB;AAC/D,UAAQ,SAAS;AACjB,MAAI;AAIJ,QAAM,OAAO,mCAAY;AACrB,QAAI;AACA,oBAAc,MAAM,QAAQ;AAAA,IAChC,SAAS,GAAG;AACR,UAAI,EAAE,aAAa,uBAAuB;AACtC,cAAM;AAAA,MACV;AAAA,IACJ;AAAA,EACJ,GARa;AAUb,SAAO,IAAI,QAAQ,CAAC,SAAS,WAAW;AACpC,QAAI,WAAW,KAAK,IAAI,IAAI;AAC5B,QAAI,UAAU;AAEd,UAAM,OAAO,6BAAM;AACf,gBAAU;AACV,cAAQ,WAAW,MAAM;AACzB,YAAM,QAAQ,wBAAwB,QAAQ,eAAe,IAAI,aAAa,YAAY;AAC1F,aAAO,KAAK;AAAA,IAChB,GALa;AASb,QAAI,UAAU,WAAW,MAAM,KAAK,GAAG,aAAa;AAKpD,YAAQ,SAAS,CAAC,gBAAwB;AACtC,UAAI,SAAS;AACT,eAAO;AAAA,MACX;AAEA,mBAAa,OAAO;AACpB,kBAAY;AACZ,gBAAU,WAAW,MAAM,KAAK,GAAG,KAAK,IAAI,WAAW,KAAK,IAAI,GAAG,CAAC,CAAC;AAErE,aAAO;AAAA,IACX;AAEA,YAAQ,IAAI,SAAS,MAAM;AACvB,WAAK,EACA,KAAK,MAAM,QAAQ,WAAW,CAAC,EAC/B,MAAM,MAAM,EACZ,QAAQ,MAAM;AACX,kBAAU;AACV,qBAAa,OAAO;AAAA,MACxB,CAAC;AAAA,IACT,CAAC;AAAA,EACL,CAAC;AACL;AAnEsB;AAoGf,SAAS,cAAc,aAAqB,UAAgC,CAAC,GAAS;AACzF,QAAM,EAAE,YAAY,KAAK,IAAI;AAC7B,MAAI,QAAQ,QAAQ,SAAS;AAE7B,SAAO,OAAO;AAGV,QAAI,MAAM,SAAS,WAAW,MAAM,OAAO;AACvC;AAAA,IACJ;AAEA,QAAI,CAAC,WAAW;AACZ;AAAA,IACJ;AAEA,YAAQ,MAAM;AAAA,EAClB;AACJ;AAjBgB;","names":[]}

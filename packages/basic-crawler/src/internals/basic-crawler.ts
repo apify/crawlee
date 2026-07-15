@@ -83,7 +83,7 @@ import { getDomain } from 'tldts';
 import type { ReadonlyDeep, SetRequired } from 'type-fest';
 
 import { LruCache } from '@apify/datastructures';
-import { addTimeoutToPromise, TimeoutError } from '@apify/timeout';
+import { addTimeoutToPromise, extendTimeout, TimeoutError } from '@apify/timeout';
 import { cryptoRandomObjectId } from '@apify/utilities';
 
 import { createSendRequest } from './send-request.js';
@@ -122,6 +122,17 @@ export interface BasicCrawlingContext<UserData extends Dictionary = Dictionary> 
 const SAFE_MIGRATION_WAIT_MILLIS = 20000;
 
 const deferredCleanupKey = Symbol('deferredCleanup');
+
+/**
+ * Lets `context.extendTimeout` push back the internal backstop as well. The backstop is a bare timer rather
+ * than an `addTimeoutToPromise` frame, so `extendTimeout` from `@apify/timeout` cannot reach it on its own.
+ */
+const extendBackstopKey = Symbol('extendBackstop');
+
+/** The in-flight context, carrying the backstop extender that {@apilink BasicCrawler.withRequestBackstop} hangs on it. */
+type PendingCrawlingContext = { request: Request } & Partial<CrawlingContext> & {
+        [extendBackstopKey]?: (extraMillis: number) => void;
+    };
 
 export type RequestHandler<Context extends CrawlingContext = CrawlingContext> = (inputs: Context) => Awaitable<void>;
 
@@ -949,7 +960,7 @@ export class BasicCrawler<
                         // with everything nested inside it, so the request handler timing out would abort this context
                         // too, and the error handling that follows it would be cancelled before it could run.
                         await this.withRequestBackstop(
-                            request,
+                            crawlingContext,
                             this.basicContextPipeline
                                 .chain(this.contextPipeline)
                                 .call(crawlingContext, (ctx) => this.handleRequest(ctx, source, request)),
@@ -1075,7 +1086,7 @@ export class BasicCrawler<
         return ContextPipeline.create<{ request: Request }>()
             .compose({ action: this.checkRobotsTxt.bind(this) })
             .compose({
-                action: () => this.createBaseContext(),
+                action: (context) => this.createBaseContext(context),
                 cleanup: async (context) => {
                     await Promise.all(context[deferredCleanupKey].map((fn) => fn()));
                 },
@@ -1110,7 +1121,7 @@ export class BasicCrawler<
         return ContextPipeline.create<CrawlingContext>();
     }
 
-    private createBaseContext() {
+    private createBaseContext(context: PendingCrawlingContext) {
         const deferredCleanup: (() => Promise<unknown>)[] = [];
 
         return {
@@ -1121,6 +1132,14 @@ export class BasicCrawler<
             getKeyValueStore: async (identifier?: string | StorageIdentifier) => KeyValueStore.open(identifier),
             registerDeferredCleanup: (cleanup: () => Promise<unknown>) => {
                 deferredCleanup.push(cleanup);
+            },
+            extendTimeout: (secs: number) => {
+                const extraMillis = secs * 1000;
+
+                // the request handler's own window...
+                extendTimeout(extraMillis);
+                // ...and the backstop around the whole request, which is not an `addTimeoutToPromise` frame
+                context[extendBackstopKey]?.(extraMillis);
             },
             [deferredCleanupKey]: deferredCleanup,
         };
@@ -1774,7 +1793,8 @@ export class BasicCrawler<
      * `Promise.race` attaches a handler to both sides, so a late rejection from `work` cannot go unhandled. The
      * losing side is not cancelled - by definition it is stuck somewhere we do not control.
      */
-    private async withRequestBackstop(request: Request, work: Promise<void>): Promise<void> {
+    private async withRequestBackstop(crawlingContext: PendingCrawlingContext, work: Promise<void>): Promise<void> {
+        const { request } = crawlingContext;
         // `internalTimeoutMillis` is derived from the crawler's own request handler timeout, so a route asking
         // for more than that could otherwise be cut short by the backstop while still legitimately running.
         // Only stretch it for routes that actually override the timeout - an explicitly configured internal
@@ -1786,16 +1806,34 @@ export class BasicCrawler<
                 : Math.max(this.internalTimeoutMillis, routeTimeoutMillis * 2);
 
         let timer: NodeJS.Timeout | undefined;
+        let deadline = Date.now() + timeoutMillis;
+        let settled = false;
 
         const backstop = new Promise<never>((_, reject) => {
-            timer = setTimeout(() => {
+            const fire = () => {
+                settled = true;
                 reject(new TimeoutError(`Request timed out after ${timeoutMillis / 1e3} seconds (${request.id}).`));
-            }, timeoutMillis);
+            };
+
+            timer = setTimeout(fire, timeoutMillis);
+
+            // `context.extendTimeout` extends the handler's own window; without this the backstop would cut
+            // the request down anyway, and the extension would have bought nothing
+            crawlingContext[extendBackstopKey] = (extraMillis: number) => {
+                if (settled) {
+                    return;
+                }
+
+                clearTimeout(timer);
+                deadline += extraMillis;
+                timer = setTimeout(fire, Math.max(deadline - Date.now(), 0));
+            };
         });
 
         try {
             await Promise.race([work, backstop]);
         } finally {
+            settled = true;
             clearTimeout(timer);
         }
     }

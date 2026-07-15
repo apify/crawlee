@@ -1330,6 +1330,68 @@ describe('BasicCrawler', () => {
         results[0].errorMessages.forEach((msg) => expect(msg).toMatch('requestHandler timed out'));
     });
 
+    test('context.extendTimeout buys a running handler more time', async () => {
+        const requestList = await RequestList.open({ sources: [{ url: 'https://example.com' }] });
+
+        const failed: Request[] = [];
+
+        const crawler = new BasicCrawler({
+            requestList,
+            requestHandlerTimeoutSecs: 0.2,
+            maxRequestRetries: 0,
+            requestHandler: async ({ extendTimeout }) => {
+                await sleep(100);
+                // only now do we know we need longer than the 0.2s we were given
+                extendTimeout(5);
+                await sleep(300);
+            },
+            failedRequestHandler: async ({ request }) => {
+                failed.push(request);
+            },
+        });
+
+        await crawler.run();
+
+        // the handler needs 400ms in total, so without the extension it would have timed out
+        expect(failed).toHaveLength(0);
+    });
+
+    test('context.extendTimeout also holds off the internal timeout', async () => {
+        const requestList = await RequestList.open({ sources: [{ url: 'https://example.com' }] });
+
+        const previous = process.env.CRAWLEE_INTERNAL_TIMEOUT;
+        process.env.CRAWLEE_INTERNAL_TIMEOUT = '400';
+
+        try {
+            const failed: Request[] = [];
+
+            const crawler = new BasicCrawler({
+                requestList,
+                requestHandlerTimeoutSecs: 0.2,
+                maxRequestRetries: 0,
+                requestHandler: async ({ extendTimeout }) => {
+                    await sleep(100);
+                    extendTimeout(5);
+                    await sleep(300);
+                },
+                failedRequestHandler: async ({ request }) => {
+                    failed.push(request);
+                },
+            });
+
+            await crawler.run();
+
+            // extending only the handler would be pointless if the backstop cut it down anyway
+            expect(failed).toHaveLength(0);
+        } finally {
+            if (previous === undefined) {
+                delete process.env.CRAWLEE_INTERNAL_TIMEOUT;
+            } else {
+                process.env.CRAWLEE_INTERNAL_TIMEOUT = previous;
+            }
+        }
+    });
+
     test('a route can override requestHandlerTimeoutSecs, other routes keep the default', async () => {
         const requestList = await RequestList.open({
             sources: [

@@ -73,4 +73,5 @@ publicHoistPattern:
   - "*"
 
 patchedDependencies:
+  '@apify/timeout@0.3.3': patches/@apify__timeout@0.3.3.patch
   "@docusaurus/core@3.9.2": patches/@docusaurus__core@3.9.2.patch
