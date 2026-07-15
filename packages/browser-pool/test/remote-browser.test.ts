@@ -83,7 +83,10 @@ function createMockLogger(): CrawleeLogger & { warning: ReturnType<typeof vi.fn>
 }
 
 /** A fake {@link RemoteConnection} that resolves to a fixed URL and records release() calls. */
-function createConnection(url = 'wss://remote:9222', context?: Record<string, unknown>): RemoteConnection & {
+function createConnection(
+    url = 'wss://remote:9222',
+    context?: Record<string, unknown>,
+): RemoteConnection & {
     resolve: ReturnType<typeof vi.fn>;
     release: ReturnType<typeof vi.fn>;
 } {
@@ -147,7 +150,9 @@ describe('Remote connection — PlaywrightPlugin', () => {
         const connection = createConnection();
         plugin.useRemoteConnection(connection);
 
-        await expect(plugin.launch(plugin.createLaunchContext())).rejects.toThrow(/Failed to connect to remote browser/);
+        await expect(plugin.launch(plugin.createLaunchContext())).rejects.toThrow(
+            /Failed to connect to remote browser/,
+        );
         expect(connection.release).toHaveBeenCalledWith(42);
     });
 
@@ -158,7 +163,9 @@ describe('Remote connection — PlaywrightPlugin', () => {
         connection.resolve.mockRejectedValueOnce(new Error('no session'));
         plugin.useRemoteConnection(connection);
 
-        await expect(plugin.launch(plugin.createLaunchContext())).rejects.toThrow(/resolve the remote browser endpoint/);
+        await expect(plugin.launch(plugin.createLaunchContext())).rejects.toThrow(
+            /resolve the remote browser endpoint/,
+        );
         expect(lib.connectOverCDP).not.toHaveBeenCalled();
         expect(connection.release).not.toHaveBeenCalled();
     });
@@ -198,7 +205,9 @@ describe('Remote connection — PuppeteerPlugin', () => {
         const connection = createConnection();
         plugin.useRemoteConnection(connection);
 
-        await expect(plugin.launch(plugin.createLaunchContext())).rejects.toThrow(/Failed to connect to remote browser/);
+        await expect(plugin.launch(plugin.createLaunchContext())).rejects.toThrow(
+            /Failed to connect to remote browser/,
+        );
         expect(connection.release).toHaveBeenCalledWith(42);
     });
 
