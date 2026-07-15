@@ -10,7 +10,7 @@ import { ArrayPredicate } from 'ow';
 import type { Awaitable } from '@crawlee/types';
 import { BasePredicate } from 'ow';
 import { BasicCrawler } from '@crawlee/basic';
-import type { BasicCrawlerOptions } from '@crawlee/basic';
+import { BasicCrawlerOptions } from '@crawlee/basic';
 import { BooleanPredicate } from 'ow';
 import { CheerioRoot } from '@crawlee/utils';
 import { ContextPipeline } from '@crawlee/basic';
@@ -117,10 +117,13 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any> =
     // (undocumented)
     protected isRequestBlocked(crawlingContext: InternalHttpCrawlingContext): Promise<string | false>;
     // (undocumented)
+    protected navigationHooksTimeoutMillis: number;
+    // (undocumented)
     protected navigationTimeoutMillis: number;
     // (undocumented)
     protected static optionsShape: {
         navigationTimeoutSecs: NumberPredicate & BasePredicate<number | undefined>;
+        navigationHooksTimeoutSecs: NumberPredicate & BasePredicate<number | undefined>;
         ignoreSslErrors: BooleanPredicate & BasePredicate<boolean | undefined>;
         additionalMimeTypes: ArrayPredicate<string>;
         suggestResponseEncoding: StringPredicate & BasePredicate<string | undefined>;
@@ -196,6 +199,7 @@ export interface HttpCrawlerOptions<Context extends InternalHttpCrawlingContext 
     additionalMimeTypes?: string[];
     forceResponseEncoding?: string;
     ignoreSslErrors?: boolean;
+    navigationHooksTimeoutSecs?: number;
     navigationTimeoutSecs?: number;
     postNavigationHooks?: ((crawlingContext: CrawlingContextWithResponse) => Awaitable<void | Partial<CrawlingContextWithResponse>>)[];
     preNavigationHooks?: InternalHttpHook<CrawlingContext>[];
