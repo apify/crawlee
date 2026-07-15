@@ -587,6 +587,13 @@ export class AdaptivePlaywrightCrawler<
                 }
             };
 
+            // this crawler overrides `runRequestHandler` and times each rendering-type run itself, so it has
+            // to resolve any per-route override too - otherwise routes would be silently ignored here
+            const timeoutMillis = this.resolveRequestHandlerTimeoutMillis(
+                context.request,
+                this.individualRequestHandlerTimeoutMillis,
+            );
+
             await addTimeoutToPromise(
                 async () =>
                     withCheckedStorageAccess(() => {
@@ -596,7 +603,7 @@ export class AdaptivePlaywrightCrawler<
                             );
                         }
                     }, callAdaptiveRequestHandler),
-                this.individualRequestHandlerTimeoutMillis,
+                timeoutMillis,
                 'Request handler timed out',
             );
 

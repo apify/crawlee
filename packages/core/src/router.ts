@@ -101,6 +101,21 @@ export interface RouterHandler<
 
 export type GetUserDataFromRequest<T> = T extends Request<infer Y> ? Y : never;
 
+/**
+ * Per-route overrides, passed as the last argument of {@apilink Router.addHandler|`addHandler`} and
+ * {@apilink Router.addDefaultHandler|`addDefaultHandler`}.
+ */
+export interface RouteOptions {
+    /**
+     * Overrides the crawler's `requestHandlerTimeoutSecs` for this route only. Useful when one kind of page
+     * needs markedly more time than the rest - a listing page behind an infinite scroll, say - and you do not
+     * want to raise the timeout for every other page to accommodate it.
+     *
+     * Applies only to this route's handler. The navigation and the navigation hooks keep their own timeouts.
+     */
+    requestHandlerTimeoutSecs?: number;
+}
+
 export type RouterRoutes<Context, Routes extends Record<keyof Routes, Dictionary>> = {
     [Label in keyof Routes]: (ctx: Omit<Context, 'request'> & { request: Request<Routes[Label]> }) => Awaitable<void>;
 };
@@ -217,6 +232,7 @@ export class Router<
 > {
     private readonly routes: Map<string | symbol, (ctx: any) => Awaitable<void>> = new Map();
     private readonly schemas: Map<string | symbol, StandardSchemaV1> = new Map();
+    private readonly timeouts: Map<string | symbol, number> = new Map();
     private readonly middlewares: ((ctx: Context) => Awaitable<void>)[] = [];
 
     /**
@@ -232,6 +248,7 @@ export class Router<
     addHandler<Label extends keyof Routes & string>(
         label: Label,
         handler: (ctx: RouterHandlerContext<Context, Routes[Label]>) => Awaitable<void>,
+        options?: RouteOptions,
     ): void;
 
     /**
@@ -242,11 +259,16 @@ export class Router<
     addHandler<UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(
         label: RouterLabel<Routes>,
         handler: (ctx: RouterHandlerContext<Context, UserData>) => Awaitable<void>,
+        options?: RouteOptions,
     ): void;
 
-    addHandler(label: string | symbol, handler: (ctx: any) => Awaitable<void>): void {
+    addHandler(label: string | symbol, handler: (ctx: any) => Awaitable<void>, options: RouteOptions = {}): void {
         this.validate(label);
         this.routes.set(label, handler);
+
+        if (options.requestHandlerTimeoutSecs !== undefined) {
+            this.timeouts.set(label, options.requestHandlerTimeoutSecs);
+        }
     }
 
     /**
@@ -256,9 +278,14 @@ export class Router<
      */
     addDefaultHandler<UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(
         handler: (ctx: RouterHandlerContext<Context, UserData>) => Awaitable<void>,
+        options: RouteOptions = {},
     ) {
         this.validate(defaultRoute);
         this.routes.set(defaultRoute, handler);
+
+        if (options.requestHandlerTimeoutSecs !== undefined) {
+            this.timeouts.set(defaultRoute, options.requestHandlerTimeoutSecs);
+        }
     }
 
     /**
@@ -291,6 +318,28 @@ export class Router<
      */
     use(middleware: (ctx: Context) => Awaitable<void>) {
         this.middlewares.push(middleware);
+    }
+
+    /**
+     * Returns the `requestHandlerTimeoutSecs` registered for a label, or `undefined` when the route did not
+     * override it and the crawler's own timeout should apply. Falls back to the default route the same way
+     * {@apilink Router.getHandler|`getHandler`} does, so a label with no route of its own inherits whatever
+     * the default route asked for. Used by the crawler; not meant to be called directly.
+     */
+    getTimeoutSecs(label?: string | symbol): number | undefined {
+        if (label && this.routes.has(label)) {
+            return this.timeouts.get(label);
+        }
+
+        return this.timeouts.get(defaultRoute);
+    }
+
+    /**
+     * The longest `requestHandlerTimeoutSecs` any route asked for, or `undefined` when no route overrides it.
+     * The crawler needs an upper bound up front, before it knows which routes a run will actually hit.
+     */
+    getMaxTimeoutSecs(): number | undefined {
+        return this.timeouts.size > 0 ? Math.max(...this.timeouts.values()) : undefined;
     }
 
     /**
@@ -392,6 +441,8 @@ export class Router<
         obj.addDefaultHandler = router.addDefaultHandler.bind(router);
         obj.getSchema = router.getSchema.bind(router);
         obj.getHandler = router.getHandler.bind(router);
+        obj.getTimeoutSecs = router.getTimeoutSecs.bind(router);
+        obj.getMaxTimeoutSecs = router.getMaxTimeoutSecs.bind(router);
         obj.use = router.use.bind(router);
 
         // `Reflect.ownKeys` (unlike `Object.entries`) also yields the `defaultRoute` symbol key.
