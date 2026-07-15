@@ -1140,13 +1140,6 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     }
 
     /**
-     * Validates a request source's `userData` against the {@apilink RouteSchemas|Standard Schema} registered
-     * for its label on the crawler's schema-router (if any), throwing a {@apilink RequestValidationError} on
-     * mismatch. A no-op when the `requestHandler` is not a schema-router, or no schema is registered for the
-     * request's label. Applied by the crawler on the add paths it owns — `crawler.addRequests`, `crawler.run`,
-     * `context.addRequests` and `context.enqueueLinks`.
-     */
-    /**
      * The request handler exactly as the user supplied it — a {@apilink Router} when one is in use, whether it
      * was passed as `requestHandler` or auto-wired from {@apilink BasicCrawler.router|`crawler.router`}.
      *
@@ -1159,6 +1152,13 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         return this.requestHandler;
     }
 
+    /**
+     * Validates a request source's `userData` against the {@apilink RouteSchemas|Standard Schema} registered
+     * for its label on the crawler's schema-router (if any), throwing a {@apilink RequestValidationError} on
+     * mismatch. A no-op when the user's request handler is not a schema-router, or no schema is registered for
+     * the request's label. Applied by the crawler on the add paths it owns — `crawler.addRequests`,
+     * `crawler.run`, `context.addRequests` and `context.enqueueLinks`.
+     */
     protected async validateRequestUserData(source: Source | string): Promise<void> {
         if (typeof source === 'string') {
             return;
