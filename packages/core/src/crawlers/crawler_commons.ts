@@ -166,6 +166,26 @@ export interface CrawlingContext<UserData extends Dictionary = Dictionary> exten
      * Register a function to be called at the very end of the request handling process. This is useful for resources that should be accessible to error handlers, for instance.
      */
     registerDeferredCleanup(cleanup: () => Promise<unknown>): void;
+
+    /**
+     * Gives the current request `secs` more seconds to finish, for when how long it needs is only apparent
+     * once it is already running - a listing page that turns out to have far more to scroll through than
+     * usual, say. Prefer `requestHandlerTimeoutSecs`, or a per-route override via
+     * {@apilink Router.addHandler|`router.addHandler`}, whenever the time needed is known up front.
+     *
+     * ```ts
+     * router.addHandler('LIST', async ({ extendTimeout, page }) => {
+     *     const pageCount = await countPages(page);
+     *     extendTimeout(pageCount * 10);
+     *     await scrapeAllPages(page);
+     * });
+     * ```
+     *
+     * Extends the request handler's own timeout and the crawler's internal one together, so the extension
+     * is not immediately undone by the latter. Calling it from a handler that has already timed out does
+     * nothing.
+     */
+    extendTimeout(secs: number): void;
 }
 
 /**
