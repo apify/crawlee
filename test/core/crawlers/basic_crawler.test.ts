@@ -2265,6 +2265,55 @@ describe('BasicCrawler', () => {
             expect(await queue.isEmpty()).toBe(false);
         });
 
+        test('a schema that declares the label opts into validating it', async () => {
+            const router = Router.create({
+                DETAIL: z.object({ label: z.literal('DETAIL'), id: z.string() }),
+            });
+            router.addHandler('DETAIL', async () => {});
+            const crawler = new BasicCrawler({ requestHandler: router });
+
+            // the label is not part of the source's `userData`, yet a schema declaring it still validates
+            await crawler.addRequests([{ url: 'https://example.com/l', label: 'DETAIL', userData: { id: 'ok' } }]);
+
+            const queue = await crawler.getRequestQueue();
+            expect((await queue.fetchNextRequest())?.userData).toMatchObject({ label: 'DETAIL', id: 'ok' });
+        });
+
+        test('a schema declaring the label reports only genuine issues', async () => {
+            const router = Router.create({
+                DETAIL: z.object({ label: z.literal('DETAIL'), id: z.string() }),
+            });
+            router.addHandler('DETAIL', async () => {});
+            const crawler = new BasicCrawler({ requestHandler: router });
+
+            // the label matches, so the only reported issue must be the bad `id` — not a spurious label one
+            const error = await crawler
+                .addRequests([{ url: 'https://example.com/m', label: 'DETAIL', userData: { id: 123 } }])
+                .catch((err: Error) => err);
+
+            expect(error).toBeInstanceOf(RequestValidationError);
+            expect((error as Error).message).toContain('id:');
+            expect((error as Error).message).not.toContain('label:');
+        });
+
+        test('the parsed (coerced) userData is what gets stored in the queue', async () => {
+            const router = Router.create({
+                DETAIL: z.object({ id: z.string(), price: z.coerce.number() }),
+            });
+            router.addHandler('DETAIL', async () => {});
+            const crawler = new BasicCrawler({ requestHandler: router });
+
+            await crawler.addRequests([
+                { url: 'https://example.com/c', label: 'DETAIL', userData: { id: 'ok', price: '42' } },
+            ]);
+
+            const queue = await crawler.getRequestQueue();
+            const request = await queue.fetchNextRequest();
+
+            // the queue holds the coerced number, not the raw '42' string that was passed in
+            expect(request?.userData.price).toBe(42);
+        });
+
         test('context.enqueueLinks validates userData against the label schema', async () => {
             const router = Router.create({ DETAIL: z.object({ id: z.string() }) });
             let caught: unknown;

@@ -37,21 +37,40 @@ export type RoutesFromSchemas<Schemas extends RouteSchemas> = {
  * value. Throws a {@apilink RequestValidationError} when validation fails.
  * @internal
  */
+/** Whether a validation issue points at the top-level `label` key. */
+function isLabelIssue(issue: StandardSchemaV1.Issue): boolean {
+    if (issue.path?.length !== 1) {
+        return false;
+    }
+
+    const [segment] = issue.path;
+
+    return (typeof segment === 'object' ? segment.key : segment) === 'label';
+}
+
 export async function validateUserData(
     label: string | symbol,
     schema: StandardSchemaV1,
     userData: unknown,
 ): Promise<Dictionary> {
-    // `label` is a Crawlee-managed key stored inside `userData`; exclude it from validation so it neither
-    // trips strict schemas nor gets stripped from the parsed value.
     const { label: _label, ...rest } = (userData ?? {}) as Dictionary;
-    const result = await schema['~standard'].validate(rest);
+
+    // `label` is a Crawlee-managed key that lives inside `userData`, so validating it is opt-in: we validate
+    // without it first, letting schemas that don't describe it pass (including `.strict()` ones). A schema that
+    // *does* declare `label` reports an issue for the now-missing key — so we re-validate with it included,
+    // honouring the declaration. Unlike `userData.__crawlee`, `label` is enumerable, so schemas do see it.
+    let result = await schema['~standard'].validate(rest);
+
+    if (result.issues?.some(isLabelIssue)) {
+        result = await schema['~standard'].validate({ ...rest, label });
+    }
 
     if (result.issues) {
         throw new RequestValidationError(label, result.issues);
     }
 
-    return result.value as Dictionary;
+    // Restore the label so it survives schemas that strip undeclared keys.
+    return { ...(result.value as Dictionary), label };
 }
 
 /**
@@ -292,12 +311,11 @@ export class Router<
         const schema = this.getSchema(label);
 
         if (schema) {
-            // `validateUserData` drops the Crawlee-managed `label` key before validating; restore it onto the
-            // parsed value so it survives schemas that strip unknown keys.
-            const parsed = await validateUserData(label!, schema, context.request.userData);
-            parsed.label = label;
-
-            context.request.userData = parsed as GetUserDataFromRequest<Context['request']>;
+            context.request.userData = (await validateUserData(
+                label!,
+                schema,
+                context.request.userData,
+            )) as GetUserDataFromRequest<Context['request']>;
         }
     }
 

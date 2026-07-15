@@ -1157,15 +1157,17 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             return;
         }
 
-        const { label, userData } = source as { label?: string; userData?: Dictionary };
-        const requestLabel = label ?? userData?.label;
+        const target = source as { label?: string; userData?: Dictionary };
+        const requestLabel = target.label ?? target.userData?.label;
         const schema = getSchema(requestLabel);
 
         if (!schema) {
             return;
         }
 
-        await validateUserData(requestLabel!, schema, userData ?? {});
+        // Store the parsed value rather than the raw input, so the queue holds the same coerced `userData` the
+        // handler will see. Assigning through a `Request` instance's setter keeps its internal `__crawlee` meta.
+        target.userData = await validateUserData(requestLabel!, schema, target.userData ?? {});
     }
 
     async useState<State extends Dictionary = Dictionary>(defaultValue = {} as State): Promise<State> {
