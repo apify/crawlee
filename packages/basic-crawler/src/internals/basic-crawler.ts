@@ -73,7 +73,7 @@ import type {
     ISessionPool,
     ProxyInfo,
     SetStatusMessageOptions,
-    StorageClient,
+    StorageBackend,
 } from '@crawlee/types';
 import { getObjectType, isAsyncIterable, isIterable, RobotsTxtFile, ROTATE_PROXY_ERRORS } from '@crawlee/utils';
 import { stringify } from 'csv-stringify/sync';
@@ -416,10 +416,10 @@ export interface BasicCrawlerOptions<
     configuration?: Configuration;
 
     /**
-     * Custom storage client to use for this crawler.
+     * Custom storage backend to use for this crawler.
      * If provided, the crawler will use its own ServiceLocator instance instead of the global one.
      */
-    storageClient?: StorageClient;
+    storageBackend?: StorageBackend;
 
     /**
      * Custom event manager to use for this crawler.
@@ -715,7 +715,7 @@ export class BasicCrawler<
         httpClient: ow.optional.object,
 
         configuration: ow.optional.object,
-        storageClient: ow.optional.object,
+        storageBackend: ow.optional.object,
         eventManager: ow.optional.object,
         logger: ow.optional.object,
 
@@ -759,7 +759,7 @@ export class BasicCrawler<
 
             // Service locator options
             configuration,
-            storageClient,
+            storageBackend,
             eventManager,
             logger,
 
@@ -792,12 +792,12 @@ export class BasicCrawler<
         let serviceLocatorScope = { enterScope: () => {}, exitScope: () => {} };
 
         if (
-            storageClient ||
+            storageBackend ||
             eventManager ||
             logger ||
             (configuration !== undefined && configuration !== serviceLocator.getConfiguration())
         ) {
-            const scopedServiceLocator = new ServiceLocator(configuration, eventManager, storageClient, logger);
+            const scopedServiceLocator = new ServiceLocator(configuration, eventManager, storageBackend, logger);
             serviceLocatorScope = bindMethodsToServiceLocator(scopedServiceLocator, this);
         }
 
@@ -1328,7 +1328,7 @@ export class BasicCrawler<
 
         await purgeDefaultStorages({
             onlyPurgeOnce: true,
-            client: serviceLocator.getStorageClient(),
+            storageBackend: serviceLocator.getStorageBackend(),
             config: serviceLocator.getConfiguration(),
         });
 
@@ -1388,7 +1388,7 @@ export class BasicCrawler<
                 });
             }
 
-            const client = serviceLocator.getStorageClient();
+            const client = serviceLocator.getStorageBackend();
 
             if (client.teardown) {
                 let finished = false;
@@ -1477,7 +1477,7 @@ export class BasicCrawler<
 
     /**
      * Tells a request manager how long we expect to hold a fetched request, so that one backed by a
-     * locking storage client keeps it reserved for slightly longer than the request handler timeout
+     * locking storage backend keeps it reserved for slightly longer than the request handler timeout
      * (with some padding for overhead), but never for less than a minute. This prevents a long-running
      * request from being handed out a second time while it is still being processed — and it works
      * regardless of whether the manager is a plain {@apilink RequestQueue} or a `RequestManagerTandem`.
@@ -1957,7 +1957,7 @@ export class BasicCrawler<
         } finally {
             // Safety net - return the request to the queue if nobody managed to mark it as handled
             // or reclaim it before (e.g. after a CriticalError). Reclaiming a request that is no longer
-            // in progress is a harmless no-op on the storage client.
+            // in progress is a harmless no-op on the storage backend.
             if (isRequestLocked && requestSource instanceof RequestQueue) {
                 try {
                     await requestSource.reclaimRequest(request);

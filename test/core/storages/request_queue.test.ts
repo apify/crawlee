@@ -1,6 +1,6 @@
 /* eslint-disable dot-notation */
 
-import { MemoryStorageClient, ProxyConfiguration, Request, RequestQueue, serviceLocator } from '@crawlee/core';
+import { MemoryStorageBackend, ProxyConfiguration, Request, RequestQueue, serviceLocator } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
 
 let mockHttpClient = vitest.mockObject({
@@ -25,13 +25,13 @@ beforeEach(async () => {
 
 describe('RequestQueue remote', () => {
     beforeEach(async () => {
-        serviceLocator.setStorageClient(new MemoryStorageClient());
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
         vitest.clearAllMocks();
     });
 
     async function createRequestQueue(id = 'some-id', name?: string) {
-        const client = await serviceLocator.getStorageClient().createRequestQueueClient(name ? { name } : { id });
-        return new RequestQueue({ id, name, client }, serviceLocator.getConfiguration());
+        const client = await serviceLocator.getStorageBackend().createRequestQueueBackend(name ? { name } : { id });
+        return new RequestQueue({ id, name, backend: client }, serviceLocator.getConfiguration());
     }
 
     test('adding a request makes it fetchable; fetching again returns null while in progress', async () => {
@@ -60,7 +60,7 @@ describe('RequestQueue remote', () => {
         expect(first.wasAlreadyPresent).toBe(false);
 
         // Spy on the client only AFTER the first add so we can assert the cache prevents a second call.
-        const addBatchSpy = vitest.spyOn(queue.client, 'addBatchOfRequests');
+        const addBatchSpy = vitest.spyOn(queue.backend, 'addBatchOfRequests');
 
         const second = await queue.addRequest(requestB);
         expect(second).toEqual({
@@ -215,7 +215,7 @@ describe('RequestQueue remote', () => {
 
     test('should return correct handledCount', async () => {
         const queue = await createRequestQueue('id');
-        const getMock = vitest.spyOn(queue.client, 'getMetadata');
+        const getMock = vitest.spyOn(queue.backend, 'getMetadata');
         getMock.mockResolvedValueOnce({
             handledRequestCount: 33,
         } as never);
@@ -242,7 +242,7 @@ describe('RequestQueue remote', () => {
             hadMultipleClients: false,
         };
 
-        const getMock = vitest.spyOn(queue.client, 'getMetadata').mockResolvedValueOnce(expected);
+        const getMock = vitest.spyOn(queue.backend, 'getMetadata').mockResolvedValueOnce(expected);
 
         const result = await queue.getInfo();
         expect(result).toEqual(expected);
@@ -252,7 +252,7 @@ describe('RequestQueue remote', () => {
 
     test('drop() works', async () => {
         const queue = await createRequestQueue('some-id', 'some-name');
-        const dropMock = vitest.spyOn(queue.client, 'drop').mockResolvedValueOnce(undefined);
+        const dropMock = vitest.spyOn(queue.backend, 'drop').mockResolvedValueOnce(undefined);
 
         await queue.drop();
         expect(dropMock).toHaveBeenCalledTimes(1);
@@ -307,7 +307,7 @@ describe('RequestQueue remote', () => {
             // The in-memory client does not implement this optional hint (it has no request locking to
             // tune), so attach a stub to verify the frontend's raise-only forwarding logic in isolation.
             const spy = vitest.fn();
-            (queue.client as any).setExpectedRequestProcessingTimeSecs = spy;
+            (queue.backend as any).setExpectedRequestProcessingTimeSecs = spy;
 
             // First hint is forwarded.
             await queue.setExpectedRequestProcessingTimeSecs(60);
@@ -357,7 +357,7 @@ describe('RequestQueue remote', () => {
 
 describe('RequestQueue with requestsFromUrl', () => {
     beforeEach(async () => {
-        serviceLocator.setStorageClient(new MemoryStorageClient());
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
         vitest.restoreAllMocks();
     });
 

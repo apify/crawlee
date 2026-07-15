@@ -1,7 +1,7 @@
 import type { Server } from 'node:http';
 import path from 'node:path';
 
-import { MemoryStorageClient, serviceLocator } from '@crawlee/core';
+import { MemoryStorageBackend, serviceLocator } from '@crawlee/core';
 import { KeyValueStore, launchPlaywright, playwrightUtils, Request } from '@crawlee/playwright';
 import type { Browser, Page } from 'playwright';
 import { chromium } from 'playwright';
@@ -33,7 +33,7 @@ describe('playwrightUtils', () => {
     });
 
     beforeEach(async () => {
-        serviceLocator.setStorageClient(new MemoryStorageClient());
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
     });
 
     afterAll(async () => {

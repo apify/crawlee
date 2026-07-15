@@ -6,13 +6,13 @@ import type { CrawleeLogger } from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
 
 import {
-    FileSystemDatasetClient as NativeDatasetClient,
-    FileSystemKeyValueStoreClient as NativeKeyValueStoreClient,
-    FileSystemRequestQueueClient as NativeRequestQueueClient,
+    FileSystemDatasetClient as NativeDatasetBackend,
+    FileSystemKeyValueStoreClient as NativeKeyValueStoreBackend,
+    FileSystemRequestQueueClient as NativeRequestQueueBackend,
 } from '@crawlee/fs-storage-native';
-import { DatasetClient } from './resource-clients/dataset.js';
-import { KeyValueStoreClient } from './resource-clients/key-value-store.js';
-import { RequestQueueClient } from './resource-clients/request-queue.js';
+import { DatasetBackend } from './resource-clients/dataset.js';
+import { KeyValueStoreBackend } from './resource-clients/key-value-store.js';
+import { RequestQueueBackend } from './resource-clients/request-queue.js';
 
 export interface FileSystemStorageOptions {
     /**
@@ -21,12 +21,12 @@ export interface FileSystemStorageOptions {
     localDataDirectory: string;
 
     /**
-     * Optional logger for FileSystemStorageClient warnings.
+     * Optional logger for FileSystemStorageBackend warnings.
      */
     logger?: CrawleeLogger;
 
     /**
-     * How the on-disk request queues opened by this client are expected to be accessed.
+     * How the on-disk request queues opened by this backend are expected to be accessed.
      *
      * With `'single'` (the default), this process asserts it is the *sole* consumer of every request
      * queue it opens: on open, any requests that a previous run left *in progress* (e.g. after a
@@ -44,14 +44,14 @@ export interface FileSystemStorageOptions {
 }
 
 /**
- * A file-system storage client backed by the native `@crawlee/fs-storage-native` Rust extension.
+ * A file-system storage backend backed by the native `@crawlee/fs-storage-native` Rust extension.
  *
  * The native extension owns the on-disk format, timestamps, item counting, request-queue locking and
  * state persistence. This class is responsible for resolving the user-facing `id` / `name` / `alias`
- * identifiers to native storages, caching the opened clients (so that `storageExists`, `purge` and
+ * identifiers to native storages, caching the opened backends (so that `storageExists`, `purge` and
  * `teardown` can operate over them), and exposing them through the `@crawlee/types` interfaces.
  */
-export class FileSystemStorageClient implements storage.StorageClient {
+export class FileSystemStorageBackend implements storage.StorageBackend {
     readonly localDataDirectory: string;
     readonly datasetsDirectory: string;
     readonly keyValueStoresDirectory: string;
@@ -59,9 +59,9 @@ export class FileSystemStorageClient implements storage.StorageClient {
     readonly logger?: CrawleeLogger;
     readonly requestQueueAccess: 'single' | 'shared';
 
-    readonly keyValueStoreCache: KeyValueStoreClient[] = [];
-    readonly datasetClientCache: DatasetClient[] = [];
-    readonly requestQueueCache: RequestQueueClient[] = [];
+    readonly keyValueStoreBackendCache: KeyValueStoreBackend[] = [];
+    readonly datasetBackendCache: DatasetBackend[] = [];
+    readonly requestQueueBackendCache: RequestQueueBackend[] = [];
 
     constructor(options: FileSystemStorageOptions) {
         s.object({
@@ -80,11 +80,11 @@ export class FileSystemStorageClient implements storage.StorageClient {
 
     /**
      * Return a cache key that includes the resolved storage directory, so that two
-     * `FileSystemStorageClient` instances pointing at different directories get separate cache
+     * `FileSystemStorageBackend` instances pointing at different directories get separate cache
      * partitions, by including the storage directory in the cache key.
      */
-    getStorageClientCacheKey(): string {
-        return `FileSystemStorageClient:${resolve(this.localDataDirectory)}`;
+    getStorageBackendCacheKey(): string {
+        return `FileSystemStorageBackend:${resolve(this.localDataDirectory)}`;
     }
 
     private static resolveStorageKey(options: { id?: string; name?: string; alias?: string }): {
@@ -100,11 +100,11 @@ export class FileSystemStorageClient implements storage.StorageClient {
         return { id: options.id, name: options.name, alias: options.alias, cacheKey };
     }
 
-    async createDatasetClient(options: storage.CreateDatasetClientOptions = {}): Promise<storage.DatasetClient> {
-        const { id, name, alias, cacheKey } = FileSystemStorageClient.resolveStorageKey(options);
+    async createDatasetBackend(options: storage.CreateDatasetBackendOptions = {}): Promise<storage.DatasetBackend> {
+        const { id, name, alias, cacheKey } = FileSystemStorageBackend.resolveStorageKey(options);
 
         if (cacheKey) {
-            const found = this.datasetClientCache.find(
+            const found = this.datasetBackendCache.find(
                 (store) =>
                     store.id === cacheKey ||
                     store.name?.toLowerCase() === cacheKey.toLowerCase() ||
@@ -115,25 +115,25 @@ export class FileSystemStorageClient implements storage.StorageClient {
             }
         }
 
-        const nativeClient = await NativeDatasetClient.open(id, name, alias, this.localDataDirectory);
-        const newStore = await DatasetClient.create({
+        const nativeBackend = await NativeDatasetBackend.open(id, name, alias, this.localDataDirectory);
+        const newStore = await DatasetBackend.create({
             name: alias ? undefined : (name ?? cacheKey),
             cacheKey: cacheKey ?? '',
-            nativeClient,
+            nativeBackend,
             logger: this.logger,
         });
-        this.datasetClientCache.push(newStore);
+        this.datasetBackendCache.push(newStore);
 
         return newStore;
     }
 
-    async createKeyValueStoreClient(
-        options: storage.CreateKeyValueStoreClientOptions = {},
-    ): Promise<storage.KeyValueStoreClient> {
-        const { id, name, alias, cacheKey } = FileSystemStorageClient.resolveStorageKey(options);
+    async createKeyValueStoreBackend(
+        options: storage.CreateKeyValueStoreBackendOptions = {},
+    ): Promise<storage.KeyValueStoreBackend> {
+        const { id, name, alias, cacheKey } = FileSystemStorageBackend.resolveStorageKey(options);
 
         if (cacheKey) {
-            const found = this.keyValueStoreCache.find(
+            const found = this.keyValueStoreBackendCache.find(
                 (store) =>
                     store.id === cacheKey ||
                     store.name?.toLowerCase() === cacheKey.toLowerCase() ||
@@ -144,25 +144,25 @@ export class FileSystemStorageClient implements storage.StorageClient {
             }
         }
 
-        const nativeClient = await NativeKeyValueStoreClient.open(id, name, alias, this.localDataDirectory);
-        const newStore = await KeyValueStoreClient.create({
+        const nativeBackend = await NativeKeyValueStoreBackend.open(id, name, alias, this.localDataDirectory);
+        const newStore = await KeyValueStoreBackend.create({
             name: alias ? undefined : (name ?? cacheKey),
             cacheKey: cacheKey ?? '',
-            nativeClient,
+            nativeBackend,
             logger: this.logger,
         });
-        this.keyValueStoreCache.push(newStore);
+        this.keyValueStoreBackendCache.push(newStore);
 
         return newStore;
     }
 
-    async createRequestQueueClient(
-        options: storage.CreateRequestQueueClientOptions = {},
-    ): Promise<storage.RequestQueueClient> {
-        const { id, name, alias, cacheKey } = FileSystemStorageClient.resolveStorageKey(options);
+    async createRequestQueueBackend(
+        options: storage.CreateRequestQueueBackendOptions = {},
+    ): Promise<storage.RequestQueueBackend> {
+        const { id, name, alias, cacheKey } = FileSystemStorageBackend.resolveStorageKey(options);
 
         if (cacheKey) {
-            const found = this.requestQueueCache.find(
+            const found = this.requestQueueBackendCache.find(
                 (queue) =>
                     queue.id === cacheKey ||
                     queue.name?.toLowerCase() === cacheKey.toLowerCase() ||
@@ -173,7 +173,7 @@ export class FileSystemStorageClient implements storage.StorageClient {
             }
         }
 
-        const nativeClient = await NativeRequestQueueClient.open(
+        const nativeBackend = await NativeRequestQueueBackend.open(
             id,
             name,
             alias,
@@ -182,32 +182,32 @@ export class FileSystemStorageClient implements storage.StorageClient {
             undefined,
             this.requestQueueAccess,
         );
-        const newStore = await RequestQueueClient.create({
+        const newStore = await RequestQueueBackend.create({
             name: alias ? undefined : (name ?? cacheKey),
             cacheKey: cacheKey ?? '',
-            nativeClient,
+            nativeBackend,
             logger: this.logger,
         });
-        this.requestQueueCache.push(newStore);
+        this.requestQueueBackendCache.push(newStore);
 
         return newStore;
     }
 
     async storageExists(id: string, type: 'Dataset' | 'KeyValueStore' | 'RequestQueue'): Promise<boolean> {
-        let clients: (KeyValueStoreClient | DatasetClient | RequestQueueClient)[];
+        let backends: (KeyValueStoreBackend | DatasetBackend | RequestQueueBackend)[];
         let baseDir: string;
 
         switch (type) {
             case 'Dataset':
-                clients = this.datasetClientCache;
+                backends = this.datasetBackendCache;
                 baseDir = this.datasetsDirectory;
                 break;
             case 'KeyValueStore':
-                clients = this.keyValueStoreCache;
+                backends = this.keyValueStoreBackendCache;
                 baseDir = this.keyValueStoresDirectory;
                 break;
             case 'RequestQueue':
-                clients = this.requestQueueCache;
+                backends = this.requestQueueBackendCache;
                 baseDir = this.requestQueuesDirectory;
                 break;
             default:
@@ -215,7 +215,7 @@ export class FileSystemStorageClient implements storage.StorageClient {
         }
 
         // Check the in-memory cache by actual storage ID first.
-        if (clients.some((store) => store.id === id)) {
+        if (backends.some((store) => store.id === id)) {
             return true;
         }
 
@@ -228,7 +228,7 @@ export class FileSystemStorageClient implements storage.StorageClient {
         // has a matching directory. We therefore read the real id from the metadata and only report
         // existence when it equals the queried string. This matches upstream PR #3800/#3808 and
         // prevents a named storage from being re-resolved as `{ id: name }` on a subsequent run.
-        const resolvedId = await FileSystemStorageClient.resolveStorageIdOnDisk(baseDir, id);
+        const resolvedId = await FileSystemStorageBackend.resolveStorageIdOnDisk(baseDir, id);
         return resolvedId === id;
     }
 
@@ -246,7 +246,7 @@ export class FileSystemStorageClient implements storage.StorageClient {
     ): Promise<string | undefined> {
         // Directory named exactly after the string: return its real (metadata) id, which may differ
         // from the string when the string is a name rather than an id.
-        const directId = await FileSystemStorageClient.readMetadataId(resolve(baseDirectory, entryNameOrId));
+        const directId = await FileSystemStorageBackend.readMetadataId(resolve(baseDirectory, entryNameOrId));
         if (directId !== undefined) {
             return directId;
         }
@@ -264,7 +264,7 @@ export class FileSystemStorageClient implements storage.StorageClient {
                 continue;
             }
 
-            const metadataId = await FileSystemStorageClient.readMetadataId(resolve(baseDirectory, directory.name));
+            const metadataId = await FileSystemStorageBackend.readMetadataId(resolve(baseDirectory, directory.name));
             if (metadataId === entryNameOrId) {
                 return metadataId;
             }
@@ -293,14 +293,14 @@ export class FileSystemStorageClient implements storage.StorageClient {
     async purge(): Promise<void> {
         // Resolve the default stores up front so leftover on-disk records are purged even when the
         // store has not been opened in this process yet (e.g. a fresh run over a pre-existing
-        // directory). Opening caches the client, so the subsequent purge operates on a real client.
+        // directory). Opening caches the backend, so the subsequent purge operates on a real backend.
         // The default store is opened via the internal `__default__` alias (see resolveStorageIdentifier
         // in @crawlee/core), which resolves to the `default` cache key — match that here so we purge the
-        // very client the default open would return rather than creating a divergent one.
+        // very backend the default open would return rather than creating a divergent one.
         const [defaultKeyValueStore, defaultDataset, defaultRequestQueue] = await Promise.all([
-            this.createKeyValueStoreClient({ alias: '__default__' }) as Promise<KeyValueStoreClient>,
-            this.createDatasetClient({ alias: '__default__' }) as Promise<DatasetClient>,
-            this.createRequestQueueClient({ alias: '__default__' }) as Promise<RequestQueueClient>,
+            this.createKeyValueStoreBackend({ alias: '__default__' }) as Promise<KeyValueStoreBackend>,
+            this.createDatasetBackend({ alias: '__default__' }) as Promise<DatasetBackend>,
+            this.createRequestQueueBackend({ alias: '__default__' }) as Promise<RequestQueueBackend>,
         ]);
 
         await Promise.all([
@@ -318,6 +318,6 @@ export class FileSystemStorageClient implements storage.StorageClient {
      * are not stuck (until their lock expires) for the next consumer of the same on-disk queue.
      */
     async teardown(): Promise<void> {
-        await Promise.all(this.requestQueueCache.map(async (queue) => queue.persistState()));
+        await Promise.all(this.requestQueueBackendCache.map(async (queue) => queue.persistState()));
     }
 }

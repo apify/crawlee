@@ -1,6 +1,6 @@
 import { fork } from 'node:child_process';
 
-import { FileSystemStorageClient } from '@crawlee/fs-storage';
+import { FileSystemStorageBackend } from '@crawlee/fs-storage';
 import { Configuration, Dataset, PlaywrightCrawler, log } from 'crawlee';
 
 import { router } from './routes.mjs';
@@ -85,8 +85,8 @@ if (!process.env.IN_WORKER_THREAD) {
     // Store the worker's own internal state (its default dataset, key-value store, etc.) in a separate
     // directory so the workers don't collide with each other. This directory is private to a single
     // worker, so we set `requestQueueAccess: 'single'` — the concurrency-safe locking only matters for
-    // the shared `shop-urls` queue, which gets its own storage client in `requestQueue.mjs`.
-    const storageClient = new FileSystemStorageClient({
+    // the shared `shop-urls` queue, which gets its own storage backend in `requestQueue.mjs`.
+    const storageBackend = new FileSystemStorageBackend({
         localDataDirectory: `./storage/worker-${process.env.WORKER_INDEX}`,
         requestQueueAccess: 'single',
     });
@@ -104,9 +104,9 @@ if (!process.env.IN_WORKER_THREAD) {
             // highlight-end
             // Let's also limit the crawler's concurrency, we don't want to overload a single process 🐌
             maxConcurrency: 5,
-            // Use the worker-specific, concurrency-safe storage client we created above
+            // Use the worker-specific, concurrency-safe storage backend we created above
             // highlight-start
-            storageClient,
+            storageBackend,
             // highlight-end
         },
         config,

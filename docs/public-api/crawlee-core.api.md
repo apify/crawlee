@@ -17,13 +17,13 @@ import { Cookie as Cookie_2 } from 'tough-cookie';
 import { CookieJar } from 'tough-cookie';
 import { CrawleeLogger } from '@crawlee/types';
 import type { CrawleeLoggerOptions } from '@crawlee/types';
-import type { DatasetClient } from '@crawlee/types';
+import type { DatasetBackend } from '@crawlee/types';
 import type { DatasetInfo } from '@crawlee/types';
 import { Dictionary } from '@crawlee/types';
 import type { HttpRequestOptions } from '@crawlee/types';
 import type { ISession } from '@crawlee/types';
 import type { ISessionPool } from '@crawlee/types';
-import type { KeyValueStoreClient } from '@crawlee/types';
+import type { KeyValueStoreBackend } from '@crawlee/types';
 import { Log } from '@apify/log';
 import log from '@apify/log';
 import { Logger } from '@apify/log';
@@ -39,7 +39,7 @@ import { PseudoUrl } from '@apify/pseudo_url';
 import { QueueOperationInfo } from '@crawlee/types';
 import { Readable } from 'node:stream';
 import type { ReadonlyDeep } from 'type-fest';
-import type { RequestQueueClient } from '@crawlee/types';
+import type { RequestQueueBackend } from '@crawlee/types';
 import type { RequestQueueInfo } from '@crawlee/types';
 import { RobotsTxtFile } from '@crawlee/utils';
 import type { SendRequestOptions } from '@crawlee/types';
@@ -47,7 +47,7 @@ import type { SessionFingerprint } from '@crawlee/types';
 import { SessionState } from '@crawlee/types';
 import type { SetRequired } from 'type-fest';
 import type * as storage from '@crawlee/types';
-import { StorageClient } from '@crawlee/types';
+import { StorageBackend } from '@crawlee/types';
 import { StorageIdentifier } from '@crawlee/types';
 import { tryAbsoluteURL } from '@crawlee/utils';
 import { z } from 'zod';
@@ -336,7 +336,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     // @internal
     constructor(options: DatasetOptions, config?: Configuration);
     // (undocumented)
-    client: DatasetClient<Data>;
+    backend: DatasetBackend<Data>;
     // (undocumented)
     readonly config: Configuration;
     drop(): Promise<void>;
@@ -436,7 +436,7 @@ export interface DatasetMapper<Data, R> {
 // @public (undocumented)
 export interface DatasetOptions {
     // (undocumented)
-    client: DatasetClient;
+    backend: DatasetBackend;
     // (undocumented)
     id: string;
     // (undocumented)
@@ -826,7 +826,7 @@ export interface KeyValueStoreIteratorOptions {
 // @public (undocumented)
 export interface KeyValueStoreOptions {
     // (undocumented)
-    client: KeyValueStoreClient;
+    backend: KeyValueStoreBackend;
     // (undocumented)
     id: string;
     // (undocumented)
@@ -896,24 +896,24 @@ export const MAX_POOL_SIZE = 1000;
 export const MAX_QUERIES_FOR_CONSISTENCY = 6;
 
 // @public (undocumented)
-export class MemoryStorageClient implements storage.StorageClient {
+export class MemoryStorageBackend implements storage.StorageBackend {
     constructor(options?: MemoryStorageOptions);
     // (undocumented)
-    createDatasetClient(options?: storage.CreateDatasetClientOptions): Promise<storage.DatasetClient>;
+    createDatasetBackend(options?: storage.CreateDatasetBackendOptions): Promise<storage.DatasetBackend>;
     // (undocumented)
-    createKeyValueStoreClient(options?: storage.CreateKeyValueStoreClientOptions): Promise<storage.KeyValueStoreClient>;
+    createKeyValueStoreBackend(options?: storage.CreateKeyValueStoreBackendOptions): Promise<storage.KeyValueStoreBackend>;
     // (undocumented)
-    createRequestQueueClient(options?: storage.CreateRequestQueueClientOptions): Promise<RequestQueueClient_2>;
+    createRequestQueueBackend(options?: storage.CreateRequestQueueBackendOptions): Promise<RequestQueueBackend_2>;
     // (undocumented)
-    readonly datasetClientCache: DatasetClient_2[];
-    getStorageClientCacheKey(): string;
+    readonly datasetBackendCache: DatasetBackend_2[];
+    getStorageBackendCacheKey(): string;
     // (undocumented)
-    readonly keyValueStoreCache: KeyValueStoreClient_2[];
+    readonly keyValueStoreBackendCache: KeyValueStoreBackend_2[];
     // (undocumented)
     readonly logger?: CrawleeLogger;
     purge(): Promise<void>;
     // (undocumented)
-    readonly requestQueueCache: RequestQueueClient_2[];
+    readonly requestQueueBackendCache: RequestQueueBackend_2[];
     // (undocumented)
     storageExists(id: string, type: 'Dataset' | 'KeyValueStore' | 'RequestQueue'): Promise<boolean>;
     teardown(): Promise<void>;
@@ -1011,7 +1011,7 @@ export type PseudoUrlObject = {
 export function purgeDefaultStorages(options?: PurgeDefaultStorageOptions): Promise<void>;
 
 // @public
-export function purgeDefaultStorages(config?: Configuration, client?: StorageClient): Promise<void>;
+export function purgeDefaultStorages(config?: Configuration, storageBackend?: StorageBackend): Promise<void>;
 
 // @public (undocumented)
 export interface PushErrorMessageOptions {
@@ -1243,6 +1243,7 @@ export class RequestManagerTandem implements IRequestManager {
 
 // @public
 export interface RequestOptions<UserData extends Dictionary = Dictionary> {
+    alwaysEnqueue?: boolean;
     crawlDepth?: number;
     // @internal (undocumented)
     enqueueStrategy?: EnqueueLinksOptions['strategy'];
@@ -1279,9 +1280,9 @@ export class RequestQueue implements IStorage, IRequestManager {
     addRequest(requestLike: Source, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo>;
     addRequests(requestsLike: RequestsLike, options?: RequestQueueOperationOptions): Promise<BatchAddRequestsResult>;
     addRequestsBatched(requests: ReadonlyDeep<RequestsLike>, options?: AddRequestsBatchedOptions): Promise<AddRequestsBatchedResult>;
-    protected _cacheRequest(cacheKey: string, queueOperationInfo: RequestQueueOperationInfo): void;
     // (undocumented)
-    client: RequestQueueClient;
+    backend: RequestQueueBackend;
+    protected _cacheRequest(cacheKey: string, queueOperationInfo: RequestQueueOperationInfo): void;
     // (undocumented)
     clientKey: string;
     // (undocumented)
@@ -1343,7 +1344,7 @@ export interface RequestQueueOperationOptions {
 // @public (undocumented)
 export interface RequestQueueOptions {
     // (undocumented)
-    client: RequestQueueClient;
+    backend: RequestQueueBackend;
     // (undocumented)
     id: string;
     // (undocumented)
@@ -1408,7 +1409,7 @@ export function resolveBaseUrlForEnqueueLinksFiltering(input: ResolveBaseUrl): s
 export type ResolvedConfigValues = FieldsOutput<typeof crawleeConfigFields>;
 
 // @public
-export function resolveStorageIdentifier(identifier: string | StorageIdentifier | null | undefined, client: StorageClient, storageType: 'Dataset' | 'KeyValueStore' | 'RequestQueue'): Promise<ExplicitStorageIdentifier>;
+export function resolveStorageIdentifier(identifier: string | StorageIdentifier | null | undefined, storageBackend: StorageBackend, storageType: 'Dataset' | 'KeyValueStore' | 'RequestQueue'): Promise<ExplicitStorageIdentifier>;
 
 // @public (undocumented)
 export interface ResponseLike {
@@ -1482,7 +1483,7 @@ export class ServiceConflictError extends Error {
 
 // @public
 export class ServiceLocator implements ServiceLocatorInterface {
-    constructor(configuration?: Configuration, eventManager?: EventManager, storageClient?: StorageClient, logger?: CrawleeLogger);
+    constructor(configuration?: Configuration, eventManager?: EventManager, storageBackend?: StorageBackend, logger?: CrawleeLogger);
     // (undocumented)
     getChildLog(prefix: string): CrawleeLogger;
     // (undocumented)
@@ -1492,7 +1493,7 @@ export class ServiceLocator implements ServiceLocatorInterface {
     // (undocumented)
     getLogger(): CrawleeLogger;
     // (undocumented)
-    getStorageClient(): StorageClient;
+    getStorageBackend(): StorageBackend;
     // (undocumented)
     getStorageInstanceManager(): StorageInstanceManager;
     // (undocumented)
@@ -1504,7 +1505,7 @@ export class ServiceLocator implements ServiceLocatorInterface {
     // (undocumented)
     setLogger(logger: CrawleeLogger): void;
     // (undocumented)
-    setStorageClient(storageClient: StorageClient): void;
+    setStorageBackend(storageBackend: StorageBackend): void;
 }
 
 // @public (undocumented)
@@ -1896,7 +1897,7 @@ export interface StatisticState {
 // @internal
 export const STORAGE_CONSISTENCY_DELAY_MILLIS = 3000;
 
-export { StorageClient }
+export { StorageBackend }
 
 export { StorageIdentifier }
 
@@ -1904,8 +1905,8 @@ export { StorageIdentifier }
 export class StorageInstanceManager {
     clearCache(): void;
     openStorage<TStorage extends IStorage>(cls: Constructor_2<TStorage>, input: (ExplicitStorageIdentifier | DefaultStorageIdentifier) & {
-        clientOpener: () => Promise<DatasetClient | KeyValueStoreClient | RequestQueueClient>;
-        clientCacheKey: Hashable;
+        backendOpener: () => Promise<DatasetBackend | KeyValueStoreBackend | RequestQueueBackend>;
+        backendCacheKey: Hashable;
     }): Promise<TStorage>;
     removeFromCache(instance: IStorage): void;
 }
@@ -1915,7 +1916,7 @@ export interface StorageOpenOptions {
     config?: Configuration;
     httpClient?: BaseHttpClient;
     proxyConfiguration?: ProxyConfiguration;
-    storageClient?: StorageClient;
+    storageBackend?: StorageBackend;
 }
 
 // @public

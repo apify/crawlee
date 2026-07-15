@@ -110,7 +110,7 @@ if (options.canary) {
     pkgJson.version = nextVersion;
 
     for (const dep of Object.keys(pkgJson.dependencies)) {
-        if (dep.startsWith('@crawlee/') || dep === 'crawlee') {
+        if ((dep.startsWith('@crawlee/') && dep !== '@crawlee/fs-storage-native') || dep === 'crawlee') {
             const prefix = pkgJson.dependencies[dep].startsWith('^') ? '^' : '';
             pkgJson.dependencies[dep] = prefix + nextVersion;
         }
@@ -126,7 +126,7 @@ if (options['pin-versions']) {
     const version = getRootVersion(false);
 
     for (const dep of Object.keys(pkgJson.dependencies ?? {})) {
-        if (dep.startsWith('@crawlee/') || dep === 'crawlee') {
+        if ((dep.startsWith('@crawlee/') && dep !== '@crawlee/fs-storage-native') || dep === 'crawlee') {
             pkgJson.dependencies[dep] = version;
         }
     }

@@ -212,6 +212,7 @@ export class PuppeteerCrawler<ContextExtension = Dictionary<never>, ExtendedCont
         launchContext: ObjectPredicate<object> & BasePredicate<object | undefined>;
         headless: AnyPredicate<string | boolean>;
         browserPool: ObjectPredicate<object> & BasePredicate<object | undefined>;
+        remoteBrowser: ObjectPredicate<object> & BasePredicate<object | undefined>;
         saveResponseCookies: BooleanPredicate & BasePredicate<boolean | undefined>;
         proxyConfiguration: ObjectPredicate<object> & BasePredicate<object | undefined>;
         contextPipelineBuilder: ObjectPredicate<object> & BasePredicate<object | undefined>;
@@ -238,7 +239,7 @@ export class PuppeteerCrawler<ContextExtension = Dictionary<never>, ExtendedCont
         onSkippedRequest: Predicate<Function> & BasePredicate<Function | undefined>;
         httpClient: ObjectPredicate<object> & BasePredicate<object | undefined>;
         configuration: ObjectPredicate<object> & BasePredicate<object | undefined>;
-        storageClient: ObjectPredicate<object> & BasePredicate<object | undefined>;
+        storageBackend: ObjectPredicate<object> & BasePredicate<object | undefined>;
         eventManager: ObjectPredicate<object> & BasePredicate<object | undefined>;
         logger: ObjectPredicate<object> & BasePredicate<object | undefined>;
         minConcurrency: NumberPredicate & BasePredicate<number | undefined>;

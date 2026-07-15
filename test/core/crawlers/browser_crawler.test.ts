@@ -6,11 +6,12 @@ import {
     BrowserPool as BrowserPoolClass,
     OperatingSystemsName,
     PuppeteerPlugin,
+    RemoteBrowserPool,
 } from '@crawlee/browser-pool';
 import {
     bindMethodsToServiceLocator,
     BLOCKED_STATUS_CODES,
-    MemoryStorageClient,
+    MemoryStorageBackend,
     ServiceLocator,
     SessionPool,
 } from '@crawlee/core';
@@ -54,7 +55,7 @@ describe('BrowserCrawler', () => {
 
     aroundEach(async (t) => {
         const scopedServiceLocator = new ServiceLocator();
-        scopedServiceLocator.setStorageClient(new MemoryStorageClient());
+        scopedServiceLocator.setStorageBackend(new MemoryStorageBackend());
         const { run } = bindMethodsToServiceLocator(scopedServiceLocator, {});
 
         await run(t);
@@ -163,6 +164,35 @@ describe('BrowserCrawler', () => {
 
             await browserCrawler.run();
             expect(destroyCalled).toBe(false);
+        } finally {
+            await externalPool.destroy();
+        }
+    });
+
+    test.concurrent('builds and owns a RemoteBrowserPool from the remoteBrowser option', async () => {
+        const crawler = new BrowserCrawlerTest({
+            remoteBrowser: { endpoint: 'ws://remote:9222', maxOpenBrowsers: 2 },
+            browserPoolOptions: { browserPlugins: [new PuppeteerPlugin(puppeteer)] },
+            requestHandler: async () => {},
+        });
+
+        expect(crawler.browserPool).toBeInstanceOf(RemoteBrowserPool);
+        expect((crawler.browserPool as RemoteBrowserPool).maxOpenBrowsers).toBe(2);
+
+        await (crawler.browserPool as RemoteBrowserPool).destroy();
+    });
+
+    test.concurrent('uses browserPool and ignores remoteBrowser when both are set', async () => {
+        const externalPool = new BrowserPoolClass({ browserPlugins: [new PuppeteerPlugin(puppeteer)] });
+
+        try {
+            const crawler = new BrowserCrawlerTest({
+                browserPool: externalPool,
+                remoteBrowser: { endpoint: 'ws://remote:9222' },
+                requestHandler: async () => {},
+            });
+
+            expect(crawler.browserPool).toBe(externalPool);
         } finally {
             await externalPool.destroy();
         }

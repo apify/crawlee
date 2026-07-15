@@ -1,7 +1,7 @@
 import { resolve } from 'node:path';
 
 import { KeyValueStore, serviceLocator } from '@crawlee/core';
-import { FileSystemStorageClient } from '@crawlee/fs-storage';
+import { FileSystemStorageBackend } from '@crawlee/fs-storage';
 import { ensureDir, rm } from 'fs-extra';
 
 import { cryptoRandomObjectId } from '@apify/utilities';
@@ -9,20 +9,20 @@ import { cryptoRandomObjectId } from '@apify/utilities';
 /**
  * Regression guard for the "centralize KVS value semantics" refactor.
  *
- * The core unit tests run against {@link MemoryStorageClient}, so they never exercise the
- * default {@link FileSystemStorageClient} backend. After moving serialize/parse into the
+ * The core unit tests run against {@link MemoryStorageBackend}, so they never exercise the
+ * default {@link FileSystemStorageBackend} backend. After moving serialize/parse into the
  * `KeyValueStore` frontend, the backend must be a pure byte transport — if a backend still parses
  * the body itself, the frontend would double-parse (`JSON5.parse("[object Object]")`) and throw.
  *
  * These tests wire the real frontend to the real fs-storage backend and assert a clean round-trip.
  */
-describe('KeyValueStore frontend over FileSystemStorageClient (byte-transport contract)', () => {
+describe('KeyValueStore frontend over FileSystemStorageBackend (byte-transport contract)', () => {
     const localStorageDir = resolve(import.meta.dirname, '..', 'tmp', 'fs-kvs-roundtrip', cryptoRandomObjectId(10));
 
     beforeEach(async () => {
         serviceLocator.reset();
         await ensureDir(localStorageDir);
-        serviceLocator.setStorageClient(new FileSystemStorageClient({ localDataDirectory: localStorageDir }));
+        serviceLocator.setStorageBackend(new FileSystemStorageBackend({ localDataDirectory: localStorageDir }));
     });
 
     afterAll(async () => {

@@ -2,7 +2,7 @@ import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { Readable } from 'node:stream';
 
-import { MemoryStorageClient, serviceLocator } from '@crawlee/core';
+import { MemoryStorageBackend, serviceLocator } from '@crawlee/core';
 import { HttpCrawler, SessionPool } from '@crawlee/http';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import iconv from 'iconv-lite';
@@ -101,7 +101,7 @@ afterAll(async () => {
 });
 
 beforeEach(async () => {
-    serviceLocator.setStorageClient(new MemoryStorageClient());
+    serviceLocator.setStorageBackend(new MemoryStorageBackend());
 });
 
 test('works', async () => {

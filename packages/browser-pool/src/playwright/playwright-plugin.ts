@@ -7,6 +7,7 @@ import { anonymizeProxySugar } from '../anonymize-proxy.js';
 import type { createProxyServerForContainers } from '../container-proxy-server.js';
 import type { LaunchContext } from '../launch-context.js';
 import { getLocalProxyAddress } from '../proxy-server.js';
+import type { RemoteConnection, RemoteConnectionParameters } from '../remote-browser-pool.js';
 import type { SafeParameters } from '../utils.js';
 import { PlaywrightBrowser as PlaywrightBrowserWithPersistentContext } from './playwright-browser.js';
 import { PlaywrightController } from './playwright-controller.js';
@@ -19,7 +20,34 @@ export class PlaywrightPlugin extends BrowserPlugin<
     private _browserVersion?: string;
     _containerProxyServer?: Awaited<ReturnType<typeof createProxyServerForContainers>>;
 
+    /**
+     * Playwright remote connections only support incognito pages — `connect()` / `connectOverCDP()` don't
+     * accept persistent contexts. Force it on (and inform the user) when wired for a remote connection.
+     */
+    override useRemoteConnection(connection: RemoteConnection, parameters: RemoteConnectionParameters = {}): void {
+        super.useRemoteConnection(connection, parameters);
+
+        if (!this.useIncognitoPages) {
+            this.log.info(
+                'Remote Playwright connection — useIncognitoPages forced to true. ' +
+                    'Pages will not share cookies/storage between each other; use the SessionPool for shared state.',
+            );
+        }
+        this.useIncognitoPages = true;
+    }
+
     protected async _launch(launchContext: LaunchContext<BrowserType>): Promise<PlaywrightBrowser> {
+        if (this.remoteConnection) {
+            return this._connectToRemoteBrowser(launchContext, async (url) => {
+                const connectOptions = (this.remoteConnectionParameters?.connectOptions ?? {}) as any;
+                if (this.remoteConnectionParameters?.protocol === 'playwright') {
+                    this.log.info('Connecting to remote browser via connect (Playwright WebSocket).');
+                    return this.library.connect(url, connectOptions);
+                }
+                this.log.info('Connecting to remote browser via connectOverCDP.');
+                return this.library.connectOverCDP(url, connectOptions);
+            });
+        }
         const { launchOptions, useIncognitoPages, userDataDir, proxyUrl } = launchContext;
         let browser: PlaywrightBrowser;
 
