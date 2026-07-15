@@ -53,7 +53,7 @@
         "lint": "oxlint packages test docs --tsconfig=tsconfig.json --type-aware",
         "lint:fix": "oxlint packages test docs --tsconfig=tsconfig.json --type-aware --fix",
         "format": "oxfmt packages test docs --write",
-        "format:check": "oxfmt packages test docs",
+        "format:check": "oxfmt packages test docs --check",
         "prepare": "husky"
     },
     "devDependencies": {

@@ -288,5 +288,4 @@ describe('launchPlaywright()', () => {
             recursive: true,
         });
     });
-
 });
