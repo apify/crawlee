@@ -46,6 +46,7 @@ import type { SendRequestOptions } from '@crawlee/types';
 import type { SessionFingerprint } from '@crawlee/types';
 import { SessionState } from '@crawlee/types';
 import type { SetRequired } from 'type-fest';
+import type { StandardSchemaV1 } from '@standard-schema/spec';
 import type * as storage from '@crawlee/types';
 import { StorageBackend } from '@crawlee/types';
 import { StorageIdentifier } from '@crawlee/types';
@@ -849,6 +850,18 @@ export interface KeyValueStoreStats {
     writeCount: number;
 }
 
+// @public
+export type LabeledSource<Routes extends Record<keyof Routes, Dictionary>> = string extends keyof Routes ? string | Source : string | Request_2 | ({
+    requestsFromUrl?: string;
+    regex?: RegExp;
+} & ({
+    [Label in keyof Routes & string]: Omit<Partial<RequestOptions<Routes[Label]>>, 'label'> & {
+        label: Label;
+    };
+}[keyof Routes & string] | (Omit<Partial<RequestOptions>, 'label'> & {
+    label?: undefined;
+})));
+
 // @internal (undocumented)
 export type LoadedContext<Context extends RestrictedCrawlingContext> = IsAny<Context> extends true ? Context : {
     request: LoadedRequest<Context['request']>;
@@ -1390,6 +1403,25 @@ export interface RequestTransform {
     (original: RequestOptions): RequestOptions | false | undefined | null | 'skip' | 'unchanged';
 }
 
+// @public
+export class RequestValidationError extends NonRetryableError {
+    constructor(label: string | symbol, issues: readonly {
+        readonly message: string;
+        readonly path?: readonly (PropertyKey | {
+            key: PropertyKey;
+        })[];
+    }[]);
+    // (undocumented)
+    readonly issues: readonly {
+        readonly message: string;
+        readonly path?: readonly (PropertyKey | {
+            key: PropertyKey;
+        })[];
+    }[];
+    // (undocumented)
+    readonly label: string | symbol;
+}
+
 // @internal (undocumented)
 export interface ResolveBaseUrl {
     // (undocumented)
@@ -1441,30 +1473,53 @@ export class RetryRequestError extends Error {
 }
 
 // @public
-export class Router<Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'>> {
+export class Router<Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'>, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>> {
     protected constructor();
-    addDefaultHandler<UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(handler: (ctx: Omit<Context, 'request'> & {
-        request: LoadedRequest<Request_2<UserData>>;
-    }) => Awaitable_2<void>): void;
-    addHandler<UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(label: string | symbol, handler: (ctx: Omit<Context, 'request'> & {
-        request: LoadedRequest<Request_2<UserData>>;
-    }) => Awaitable_2<void>): void;
-    static create<Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'> = CrawlingContext, UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(routes?: RouterRoutes<Context, UserData>): RouterHandler<Context>;
+    addDefaultHandler<UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(handler: (ctx: RouterHandlerContext<Context, UserData, Routes>) => Awaitable_2<void>): void;
+    addHandler<Label extends keyof Routes & string>(label: Label, handler: (ctx: RouterHandlerContext<Context, Routes[Label], Routes>) => Awaitable_2<void>): void;
+    addHandler<UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(label: RouterLabel<Routes>, handler: (ctx: RouterHandlerContext<Context, UserData, Routes>) => Awaitable_2<void>): void;
+    addSchemas(schemas: Partial<Record<keyof Routes & string, StandardSchemaV1>>): void;
+    static create<Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'> = CrawlingContext, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
+    // (undocumented)
+    static create<Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'> = CrawlingContext, UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
+    // (undocumented)
+    static create<Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'> = CrawlingContext, const Schemas extends RouteSchemas = RouteSchemas>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
     getHandler(label?: string | symbol): (ctx: Context) => Awaitable_2<void>;
     use(middleware: (ctx: Context) => Awaitable_2<void>): void;
 }
 
 // @public (undocumented)
-export interface RouterHandler<Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'> = CrawlingContext> extends Router<Context> {
+export interface RouterHandler<Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'> = CrawlingContext, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>> extends Router<Context, Routes> {
     // (undocumented)
     (ctx: Context): Awaitable_2<void>;
 }
 
+// @public
+export type RouterHandlerContext<Context, UserData extends Dictionary, Routes extends Record<keyof Routes, Dictionary>> = Omit<Context, 'request' | 'addRequests' | 'enqueueLinks'> & {
+    request: LoadedRequest<Request_2<UserData>>;
+    addRequests: TypedContextAddRequests<Routes>;
+} & (Context extends {
+    enqueueLinks: infer EnqueueLinks;
+} ? {
+    enqueueLinks: TypedContextEnqueueLinks<EnqueueLinks, Routes>;
+} : {});
+
+// @public
+export type RouterLabel<Routes extends Record<keyof Routes, Dictionary>> = string extends keyof Routes ? string | symbol : (keyof Routes & string) | symbol;
+
 // @public (undocumented)
-export type RouterRoutes<Context, UserData extends Dictionary> = {
-    [label in string | symbol]: (ctx: Omit<Context, 'request'> & {
-        request: Request_2<UserData>;
+export type RouterRoutes<Context, Routes extends Record<keyof Routes, Dictionary>> = {
+    [Label in keyof Routes]: (ctx: Omit<Context, 'request'> & {
+        request: Request_2<Routes[Label]>;
     }) => Awaitable_2<void>;
+};
+
+// @public
+export type RouteSchemas = Record<string, StandardSchemaV1>;
+
+// @public
+export type RoutesFromSchemas<Schemas extends RouteSchemas> = {
+    [Label in keyof Schemas]: StandardSchemaV1.InferOutput<Schemas[Label]> extends Dictionary ? StandardSchemaV1.InferOutput<Schemas[Label]> : Dictionary;
 };
 
 // @internal
@@ -1977,6 +2032,15 @@ export interface SystemStatusOptions {
 export function toughCookieToBrowserPoolCookie(toughCookie: Cookie_2): Cookie;
 
 export { tryAbsoluteURL }
+
+// @public
+export type TypedContextAddRequests<Routes extends Record<keyof Routes, Dictionary>> = (requestsLike: ReadonlyDeep<LabeledSource<Routes>[]>, options?: ReadonlyDeep<RequestQueueOperationOptions>) => Promise<void>;
+
+// @public
+export type TypedContextEnqueueLinks<EnqueueLinks, Routes extends Record<keyof Routes, Dictionary>> = EnqueueLinks extends (options?: infer Options) => infer Result ? (options?: TypedEnqueueLinksOptions<Options, Routes>) => Result : EnqueueLinks extends (options: infer Options) => infer Result ? (options: TypedEnqueueLinksOptions<Options, Routes>) => Result : EnqueueLinks;
+
+// @public
+export type TypedRequestsLike<Routes extends Record<keyof Routes, Dictionary>> = AsyncIterable<LabeledSource<Routes>> | Iterable<LabeledSource<Routes>> | LabeledSource<Routes>[];
 
 // @public (undocumented)
 export function updateEnqueueLinksPatternCache(item: GlobInput | RegExpInput | PseudoUrlInput, pattern: RegExpObject | GlobObject): void;

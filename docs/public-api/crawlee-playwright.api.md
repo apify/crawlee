@@ -52,10 +52,14 @@ import { RequestHandlerResult } from '@crawlee/core';
 import type { RequestTransform } from '@crawlee/browser';
 import type { Response as Response_2 } from 'playwright';
 import type { RestrictedCrawlingContext } from '@crawlee/core';
-import { RouterHandler } from '@crawlee/browser';
-import { RouterHandler as RouterHandler_2 } from '@crawlee/basic';
+import type { RouterHandler } from '@crawlee/browser';
+import type { RouterHandler as RouterHandler_2 } from '@crawlee/core';
 import type { RouterRoutes } from '@crawlee/browser';
 import type { RouterRoutes as RouterRoutes_2 } from '@crawlee/core';
+import type { RouteSchemas } from '@crawlee/browser';
+import type { RouteSchemas as RouteSchemas_2 } from '@crawlee/core';
+import type { RoutesFromSchemas } from '@crawlee/browser';
+import type { RoutesFromSchemas as RoutesFromSchemas_2 } from '@crawlee/core';
 import type { SetRequired } from 'type-fest';
 import type { SkippedRequestCallback } from '@crawlee/browser';
 import { Statistics } from '@crawlee/core';
@@ -64,8 +68,8 @@ import type { StatisticState } from '@crawlee/core';
 import { StringPredicate } from 'ow';
 
 // @public
-export class AdaptivePlaywrightCrawler<ExtendedContext extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext> extends BasicCrawler<AdaptivePlaywrightCrawlerContext, ExtendedContext> {
-    constructor(options?: AdaptivePlaywrightCrawlerOptions<ExtendedContext>);
+export class AdaptivePlaywrightCrawler<ExtendedContext extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext, Routes extends Record<keyof Routes, Dictionary_2> = Record<string, GetUserDataFromRequest_2<AdaptivePlaywrightCrawlerContext['request']>>> extends BasicCrawler<AdaptivePlaywrightCrawlerContext, ExtendedContext, AdaptivePlaywrightCrawlerContext & ExtendedContext, Routes> {
+    constructor(options?: AdaptivePlaywrightCrawlerOptions<ExtendedContext, Routes>);
     // (undocumented)
     protected allowStorageAccess<R, TArgs extends any[]>(func: (...args: TArgs) => Promise<R>): (...args: TArgs) => Promise<R>;
     // (undocumented)
@@ -106,7 +110,7 @@ export interface AdaptivePlaywrightCrawlerContext<UserData extends Dictionary_2 
 }
 
 // @public (undocumented)
-export interface AdaptivePlaywrightCrawlerOptions<ExtendedContext extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext> extends Omit<BasicCrawlerOptions<AdaptivePlaywrightCrawlerContext, ExtendedContext>, 'preNavigationHooks' | 'postNavigationHooks'> {
+export interface AdaptivePlaywrightCrawlerOptions<ExtendedContext extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext, Routes extends Record<keyof Routes, Dictionary_2> = Record<string, GetUserDataFromRequest_2<AdaptivePlaywrightCrawlerContext['request']>>> extends Omit<BasicCrawlerOptions<AdaptivePlaywrightCrawlerContext, ExtendedContext, AdaptivePlaywrightCrawlerContext & ExtendedContext, Routes>, 'preNavigationHooks' | 'postNavigationHooks'> {
     postNavigationHooks?: AdaptivePostNavigationHook[];
     preNavigationHooks?: AdaptiveHook[];
     preventDirectStorageAccess?: boolean;
@@ -149,10 +153,22 @@ interface CompiledScriptParams {
 function compileScript(scriptString: string, context?: Dictionary): CompiledScriptFunction;
 
 // @public (undocumented)
-export function createAdaptivePlaywrightRouter<Context extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext, UserData extends Dictionary_2 = GetUserDataFromRequest_2<Context['request']>>(routes?: RouterRoutes_2<Context, UserData>): RouterHandler_2<Context>;
+export function createAdaptivePlaywrightRouter<Context extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext, Routes extends Record<keyof Routes, Dictionary_2> = Record<string, GetUserDataFromRequest_2<Context['request']>>>(routes?: RouterRoutes_2<Context, Routes>): RouterHandler_2<Context, Routes>;
+
+// @public (undocumented)
+export function createAdaptivePlaywrightRouter<Context extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext, UserData extends Dictionary_2 = GetUserDataFromRequest_2<Context['request']>>(routes?: RouterRoutes_2<Context, Record<string, UserData>>): RouterHandler_2<Context, Record<string, UserData>>;
+
+// @public (undocumented)
+export function createAdaptivePlaywrightRouter<Context extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext, const Schemas extends RouteSchemas_2 = RouteSchemas_2>(schemas: Schemas): RouterHandler_2<Context, RoutesFromSchemas_2<Schemas>>;
 
 // @public
-export function createPlaywrightRouter<Context extends PlaywrightCrawlingContext = PlaywrightCrawlingContext, UserData extends Dictionary_2 = GetUserDataFromRequest<Context['request']>>(routes?: RouterRoutes<Context, UserData>): RouterHandler<Context>;
+export function createPlaywrightRouter<Context extends PlaywrightCrawlingContext = PlaywrightCrawlingContext, Routes extends Record<keyof Routes, Dictionary_2> = Record<string, GetUserDataFromRequest<Context['request']>>>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
+
+// @public (undocumented)
+export function createPlaywrightRouter<Context extends PlaywrightCrawlingContext = PlaywrightCrawlingContext, UserData extends Dictionary_2 = GetUserDataFromRequest<Context['request']>>(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
+
+// @public (undocumented)
+export function createPlaywrightRouter<Context extends PlaywrightCrawlingContext = PlaywrightCrawlingContext, const Schemas extends RouteSchemas = RouteSchemas>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
 
 // @public
 function enqueueLinksByClickingElements(options: EnqueueLinksByClickingElementsOptions): Promise<BatchAddRequestsResult>;
@@ -258,10 +274,10 @@ interface PlaywrightContextUtils {
 }
 
 // @public
-export class PlaywrightCrawler<ContextExtension = Dictionary_2<never>, ExtendedContext extends PlaywrightCrawlingContext = PlaywrightCrawlingContext & ContextExtension> extends BrowserCrawler<Page, Response_2, {
+export class PlaywrightCrawler<ContextExtension = Dictionary_2<never>, ExtendedContext extends PlaywrightCrawlingContext = PlaywrightCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary_2> = Record<string, GetUserDataFromRequest<PlaywrightCrawlingContext['request']>>> extends BrowserCrawler<Page, Response_2, {
     browserPlugins: [PlaywrightPlugin];
-}, LaunchOptions, PlaywrightCrawlingContext, ContextExtension, ExtendedContext> {
-    constructor(options?: PlaywrightCrawlerOptions<ExtendedContext>);
+}, LaunchOptions, PlaywrightCrawlingContext, ContextExtension, ExtendedContext, Routes> {
+    constructor(options?: PlaywrightCrawlerOptions<ContextExtension, ExtendedContext, Routes>);
     // (undocumented)
     protected buildContextPipeline(): ContextPipeline<CrawlingContext<Dictionary_2>, BrowserCrawlingContext<Page, Response_2, Dictionary_2, Dictionary_2> & {
     injectFile: (filePath: string, options?: InjectFileOptions) => Promise<unknown>;
@@ -329,13 +345,13 @@ export class PlaywrightCrawler<ContextExtension = Dictionary_2<never>, ExtendedC
 }
 
 // @public (undocumented)
-export interface PlaywrightCrawlerOptions<ContextExtension = Dictionary_2<never>, ExtendedContext extends PlaywrightCrawlingContext = PlaywrightCrawlingContext & ContextExtension> extends BrowserCrawlerOptions<Page, Response_2, PlaywrightCrawlingContext, ContextExtension, ExtendedContext, {
+export interface PlaywrightCrawlerOptions<ContextExtension = Dictionary_2<never>, ExtendedContext extends PlaywrightCrawlingContext = PlaywrightCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary_2> = Record<string, GetUserDataFromRequest<PlaywrightCrawlingContext['request']>>> extends BrowserCrawlerOptions<Page, Response_2, PlaywrightCrawlingContext, ContextExtension, ExtendedContext, {
     browserPlugins: [PlaywrightPlugin];
-}> {
+}, Routes> {
     launchContext?: PlaywrightLaunchContext;
     postNavigationHooks?: PlaywrightHook[];
     preNavigationHooks?: PlaywrightHook[];
-    requestHandler?: RequestHandler<ExtendedContext>;
+    requestHandler?: RouterHandler<ExtendedContext, Routes> | RequestHandler<ExtendedContext>;
 }
 
 // @public (undocumented)

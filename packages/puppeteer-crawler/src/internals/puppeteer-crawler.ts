@@ -3,7 +3,10 @@ import type {
     BrowserCrawlingContext,
     BrowserHook,
     GetUserDataFromRequest,
+    RouterHandler,
     RouterRoutes,
+    RouteSchemas,
+    RoutesFromSchemas,
 } from '@crawlee/browser';
 import { BrowserCrawler, RequestState, Router } from '@crawlee/browser';
 import type { BrowserPoolOptions, PuppeteerPlugin } from '@crawlee/browser-pool';
@@ -35,13 +38,18 @@ export interface PuppeteerHook extends BrowserHook<PuppeteerCrawlingContext> {}
 export interface PuppeteerCrawlerOptions<
     ContextExtension = Dictionary<never>,
     ExtendedContext extends PuppeteerCrawlingContext = PuppeteerCrawlingContext & ContextExtension,
+    Routes extends Record<keyof Routes, Dictionary> = Record<
+        string,
+        GetUserDataFromRequest<PuppeteerCrawlingContext['request']>
+    >,
 > extends BrowserCrawlerOptions<
     Page,
     HTTPResponse,
     PuppeteerCrawlingContext,
     ContextExtension,
     ExtendedContext,
-    { browserPlugins: [PuppeteerPlugin] }
+    { browserPlugins: [PuppeteerPlugin] },
+    Routes
 > {
     /**
      * Options used by {@apilink launchPuppeteer} to start new Puppeteer instances.
@@ -153,6 +161,10 @@ export interface PuppeteerCrawlerOptions<
 export class PuppeteerCrawler<
     ContextExtension = Dictionary<never>,
     ExtendedContext extends PuppeteerCrawlingContext = PuppeteerCrawlingContext & ContextExtension,
+    Routes extends Record<keyof Routes, Dictionary> = Record<
+        string,
+        GetUserDataFromRequest<PuppeteerCrawlingContext['request']>
+    >,
 > extends BrowserCrawler<
     Page,
     HTTPResponse,
@@ -160,7 +172,8 @@ export class PuppeteerCrawler<
     LaunchOptions,
     PuppeteerCrawlingContext,
     ContextExtension,
-    ExtendedContext
+    ExtendedContext,
+    Routes
 > {
     protected static override optionsShape = {
         ...BrowserCrawler.optionsShape,
@@ -170,7 +183,7 @@ export class PuppeteerCrawler<
     /**
      * All `PuppeteerCrawler` parameters are passed via an options object.
      */
-    constructor(options: PuppeteerCrawlerOptions<ContextExtension, ExtendedContext> = {}) {
+    constructor(options: PuppeteerCrawlerOptions<ContextExtension, ExtendedContext, Routes> = {}) {
         ow(options, 'PuppeteerCrawlerOptions', ow.object.exactShape(PuppeteerCrawler.optionsShape));
 
         const {
@@ -309,7 +322,16 @@ export class PuppeteerCrawler<
  */
 export function createPuppeteerRouter<
     Context extends PuppeteerCrawlingContext = PuppeteerCrawlingContext,
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
+>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
+export function createPuppeteerRouter<
+    Context extends PuppeteerCrawlingContext = PuppeteerCrawlingContext,
     UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
->(routes?: RouterRoutes<Context, UserData>) {
-    return Router.create<Context>(routes);
+>(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
+export function createPuppeteerRouter<
+    Context extends PuppeteerCrawlingContext = PuppeteerCrawlingContext,
+    const Schemas extends RouteSchemas = RouteSchemas,
+>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
+export function createPuppeteerRouter(routesOrSchemas?: any): any {
+    return Router.create(routesOrSchemas);
 }

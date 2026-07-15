@@ -20,7 +20,10 @@ import type {
     GetUserDataFromRequest,
     LoadedContext,
     RequestHandler,
+    RouterHandler,
     RouterRoutes,
+    RouteSchemas,
+    RoutesFromSchemas,
 } from '@crawlee/browser';
 import { BrowserCrawler, Router } from '@crawlee/browser';
 import type { BrowserPoolOptions } from '@crawlee/browser-pool';
@@ -247,13 +250,18 @@ export interface StagehandRequestHandler extends RequestHandler<LoadedContext<St
 export interface StagehandCrawlerOptions<
     ContextExtension = Dictionary<never>,
     ExtendedContext extends StagehandCrawlingContext = StagehandCrawlingContext & ContextExtension,
+    Routes extends Record<keyof Routes, Dictionary> = Record<
+        string,
+        GetUserDataFromRequest<StagehandCrawlingContext['request']>
+    >,
 > extends BrowserCrawlerOptions<
     StagehandPage,
     Response,
     StagehandCrawlingContext,
     ContextExtension,
     ExtendedContext,
-    { browserPlugins: [StagehandPlugin] }
+    { browserPlugins: [StagehandPlugin] },
+    Routes
 > {
     /**
      * Stagehand-specific configuration options.
@@ -310,7 +318,11 @@ export interface StagehandCrawlerOptions<
      * }
      * ```
      */
-    requestHandler?: StagehandRequestHandler;
+    // Both union members must share the exact same call signature, otherwise TS cannot contextually type
+    // an inline `requestHandler({ page, request, ... })`. `StagehandRequestHandler` wraps the context in
+    // `LoadedContext`, while the router member uses `ExtendedContext`; since `StagehandCrawlingContext`
+    // already carries a `LoadedRequest`, using `ExtendedContext` for both keeps the signatures identical.
+    requestHandler?: RouterHandler<ExtendedContext, Routes> | RequestHandler<ExtendedContext>;
 
     /**
      * Async functions that are sequentially evaluated before the navigation.
@@ -375,6 +387,10 @@ export interface StagehandCrawlerOptions<
 export class StagehandCrawler<
     ContextExtension = Dictionary<never>,
     ExtendedContext extends StagehandCrawlingContext = StagehandCrawlingContext & ContextExtension,
+    Routes extends Record<keyof Routes, Dictionary> = Record<
+        string,
+        GetUserDataFromRequest<StagehandCrawlingContext['request']>
+    >,
 > extends BrowserCrawler<
     StagehandPage,
     Response,
@@ -382,7 +398,8 @@ export class StagehandCrawler<
     LaunchOptions,
     StagehandCrawlingContext,
     ContextExtension,
-    ExtendedContext
+    ExtendedContext,
+    Routes
 > {
     protected static override optionsShape = {
         ...BrowserCrawler.optionsShape,
@@ -395,7 +412,7 @@ export class StagehandCrawler<
      *
      * @param options - Crawler configuration options
      */
-    constructor(options: StagehandCrawlerOptions<ContextExtension, ExtendedContext> = {}) {
+    constructor(options: StagehandCrawlerOptions<ContextExtension, ExtendedContext, Routes> = {}) {
         ow(options, 'StagehandCrawlerOptions', ow.object.exactShape(StagehandCrawler.optionsShape));
 
         const { stagehandOptions = {}, launchContext = {}, contextPipelineBuilder, ...browserCrawlerOptions } = options;
@@ -507,7 +524,16 @@ export class StagehandCrawler<
  */
 export function createStagehandRouter<
     Context extends StagehandCrawlingContext = StagehandCrawlingContext,
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
+>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
+export function createStagehandRouter<
+    Context extends StagehandCrawlingContext = StagehandCrawlingContext,
     UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
->(routes?: RouterRoutes<Context, UserData>) {
-    return Router.create<Context>(routes);
+>(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
+export function createStagehandRouter<
+    Context extends StagehandCrawlingContext = StagehandCrawlingContext,
+    const Schemas extends RouteSchemas = RouteSchemas,
+>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
+export function createStagehandRouter(routesOrSchemas?: any): any {
+    return Router.create(routesOrSchemas);
 }

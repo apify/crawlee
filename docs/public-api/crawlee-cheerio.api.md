@@ -22,13 +22,15 @@ import type { InternalHttpHook } from '@crawlee/http';
 import { IRequestManager } from '@crawlee/http';
 import type { RequestHandler } from '@crawlee/http';
 import { RobotsTxtFile } from '@crawlee/utils';
-import { RouterHandler } from '@crawlee/http';
+import type { RouterHandler } from '@crawlee/http';
 import type { RouterRoutes } from '@crawlee/http';
+import type { RouteSchemas } from '@crawlee/http';
+import type { RoutesFromSchemas } from '@crawlee/http';
 import type { SkippedRequestCallback } from '@crawlee/http';
 
 // @public
-export class CheerioCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends CheerioCrawlingContext = CheerioCrawlingContext & ContextExtension> extends HttpCrawler<CheerioCrawlingContext, ContextExtension, ExtendedContext> {
-    constructor(options?: CheerioCrawlerOptions<ContextExtension, ExtendedContext>);
+export class CheerioCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends CheerioCrawlingContext = CheerioCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<CheerioCrawlingContext['request']>>> extends HttpCrawler<CheerioCrawlingContext, ContextExtension, ExtendedContext, Routes> {
+    constructor(options?: CheerioCrawlerOptions<ContextExtension, ExtendedContext, any, any, Routes>);
     // (undocumented)
     protected buildContextPipeline(): ContextPipeline<CrawlingContext<Dictionary>, InternalHttpCrawlingContext<any, any> & {
     readonly body: string;
@@ -45,7 +47,8 @@ export function cheerioCrawlerEnqueueLinks(options: EnqueueLinksInternalOptions 
 
 // @public (undocumented)
 export interface CheerioCrawlerOptions<ContextExtension = Dictionary<never>, ExtendedContext extends CheerioCrawlingContext = CheerioCrawlingContext & ContextExtension, UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-JSONData extends Dictionary = any> extends HttpCrawlerOptions<CheerioCrawlingContext<UserData, JSONData>, ContextExtension, ExtendedContext> {
+JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
+Routes extends Record<keyof Routes, Dictionary> = Record<string, UserData>> extends HttpCrawlerOptions<CheerioCrawlingContext<UserData, JSONData>, ContextExtension, ExtendedContext, Routes> {
 }
 
 // @public (undocumented)
@@ -71,7 +74,13 @@ export type CheerioRequestHandler<UserData extends Dictionary = any, // with def
 JSONData extends Dictionary = any> = RequestHandler<CheerioCrawlingContext<UserData, JSONData>>;
 
 // @public
-export function createCheerioRouter<Context extends CheerioCrawlingContext = CheerioCrawlingContext, UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(routes?: RouterRoutes<Context, UserData>): RouterHandler<Context>;
+export function createCheerioRouter<Context extends CheerioCrawlingContext = CheerioCrawlingContext, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
+
+// @public (undocumented)
+export function createCheerioRouter<Context extends CheerioCrawlingContext = CheerioCrawlingContext, UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
+
+// @public (undocumented)
+export function createCheerioRouter<Context extends CheerioCrawlingContext = CheerioCrawlingContext, const Schemas extends RouteSchemas = RouteSchemas>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
 
 
 export * from "@crawlee/http";

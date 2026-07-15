@@ -46,6 +46,8 @@ import type { RequestsLike } from '@crawlee/core';
 import { RobotsTxtFile } from '@crawlee/utils';
 import type { RouterHandler } from '@crawlee/core';
 import type { RouterRoutes } from '@crawlee/core';
+import type { RouteSchemas } from '@crawlee/core';
+import type { RoutesFromSchemas } from '@crawlee/core';
 import type { SetRequired } from 'type-fest';
 import type { SetStatusMessageOptions } from '@crawlee/types';
 import type { SkippedRequestCallback } from '@crawlee/core';
@@ -57,15 +59,16 @@ import type { StorageBackend } from '@crawlee/types';
 import type { StorageIdentifier } from '@crawlee/core';
 import { StringPredicate } from 'ow';
 import { TimeoutError } from '@apify/timeout';
+import type { TypedRequestsLike } from '@crawlee/core';
 
 // @public
-export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension> {
-    constructor(options?: BasicCrawlerOptions<Context, ContextExtension, ExtendedContext> & RequireContextPipeline<CrawlingContext, Context>);
+export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>> {
+    constructor(options?: BasicCrawlerOptions<Context, ContextExtension, ExtendedContext, Routes> & RequireContextPipeline<CrawlingContext, Context>);
     // @internal
     protected addCrawlDepthRequestGenerator(requests: RequestsLike, newRequestDepth: number): AsyncGenerator<Source, void, undefined>;
     // (undocumented)
     protected additionalHttpErrorStatusCodes: Set<number>;
-    addRequests(requests: ReadonlyDeep<RequestsLike>, options?: CrawlerAddRequestsOptions): Promise<CrawlerAddRequestsResult>;
+    addRequests(requests: ReadonlyDeep<TypedRequestsLike<Routes>>, options?: CrawlerAddRequestsOptions): Promise<CrawlerAddRequestsResult>;
     autoscaledPool?: AutoscaledPool;
     // (undocumented)
     protected autoscaledPoolOptions: AutoscaledPoolOptions;
@@ -193,8 +196,8 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
     };
     // (undocumented)
     protected retryOnBlocked: boolean;
-    readonly router: RouterHandler<Context>;
-    run(requests?: RequestsLike, options?: CrawlerRunOptions): Promise<FinalStatistics>;
+    readonly router: RouterHandler<Context, Routes>;
+    run(requests?: TypedRequestsLike<Routes>, options?: CrawlerRunOptions): Promise<FinalStatistics>;
     // (undocumented)
     running: boolean;
     // (undocumented)
@@ -221,7 +224,7 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
 }
 
 // @public (undocumented)
-export interface BasicCrawlerOptions<Context extends CrawlingContext = CrawlingContext, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension> {
+export interface BasicCrawlerOptions<Context extends CrawlingContext = CrawlingContext, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>> {
     additionalHttpErrorStatusCodes?: number[];
     autoscaledPoolOptions?: AutoscaledPoolOptions;
     blockedStatusCodes?: number[];
@@ -244,7 +247,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = CrawlingC
     minConcurrency?: number;
     onSkippedRequest?: SkippedRequestCallback;
     proxyConfiguration?: ProxyConfiguration;
-    requestHandler?: RequestHandler<ExtendedContext>;
+    requestHandler?: RouterHandler<ExtendedContext, Routes> | RequestHandler<ExtendedContext>;
     requestHandlerTimeoutSecs?: number;
     // @deprecated
     requestList?: IRequestLoader;
@@ -287,7 +290,13 @@ export interface CrawlerRunOptions extends CrawlerAddRequestsOptions {
 }
 
 // @public
-export function createBasicRouter<Context extends BasicCrawlingContext = BasicCrawlingContext, UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(routes?: RouterRoutes<Context, UserData>): RouterHandler<Context>;
+export function createBasicRouter<Context extends BasicCrawlingContext = BasicCrawlingContext, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
+
+// @public (undocumented)
+export function createBasicRouter<Context extends BasicCrawlingContext = BasicCrawlingContext, UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
+
+// @public (undocumented)
+export function createBasicRouter<Context extends BasicCrawlingContext = BasicCrawlingContext, const Schemas extends RouteSchemas = RouteSchemas>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
 
 // @public (undocumented)
 export interface CreateContextOptions {
@@ -313,10 +322,10 @@ export type RequireContextPipeline<DefaultContextType extends CrawlingContext, F
 };
 
 // @public (undocumented)
-export type StatusMessageCallback<Context extends CrawlingContext = BasicCrawlingContext, Crawler extends BasicCrawler<any> = BasicCrawler<Context>> = (params: StatusMessageCallbackParams<Context, Crawler>) => Awaitable<void>;
+export type StatusMessageCallback<Context extends CrawlingContext = BasicCrawlingContext, Crawler extends BasicCrawler<any, any, any, any> = BasicCrawler<Context>> = (params: StatusMessageCallbackParams<Context, Crawler>) => Awaitable<void>;
 
 // @public (undocumented)
-export interface StatusMessageCallbackParams<Context extends CrawlingContext = BasicCrawlingContext, Crawler extends BasicCrawler<any> = BasicCrawler<Context>> {
+export interface StatusMessageCallbackParams<Context extends CrawlingContext = BasicCrawlingContext, Crawler extends BasicCrawler<any, any, any, any> = BasicCrawler<Context>> {
     // (undocumented)
     crawler: Crawler;
     // (undocumented)

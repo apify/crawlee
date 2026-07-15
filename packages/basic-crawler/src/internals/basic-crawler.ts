@@ -22,11 +22,14 @@ import type {
     RequestTransform,
     RouterHandler,
     RouterRoutes,
+    RouteSchemas,
+    RoutesFromSchemas,
     SkippedRequestCallback,
     Source,
     StatisticsOptions,
     StatisticState,
     StorageIdentifier,
+    TypedRequestsLike,
 } from '@crawlee/core';
 import {
     AutoscaledPool,
@@ -132,7 +135,7 @@ export type ErrorHandler<
 
 export interface StatusMessageCallbackParams<
     Context extends CrawlingContext = BasicCrawlingContext,
-    Crawler extends BasicCrawler<any> = BasicCrawler<Context>,
+    Crawler extends BasicCrawler<any, any, any, any> = BasicCrawler<Context>,
 > {
     state: StatisticState;
     crawler: Crawler;
@@ -142,7 +145,7 @@ export interface StatusMessageCallbackParams<
 
 export type StatusMessageCallback<
     Context extends CrawlingContext = BasicCrawlingContext,
-    Crawler extends BasicCrawler<any> = BasicCrawler<Context>,
+    Crawler extends BasicCrawler<any, any, any, any> = BasicCrawler<Context>,
 > = (params: StatusMessageCallbackParams<Context, Crawler>) => Awaitable<void>;
 
 export type RequireContextPipeline<
@@ -156,6 +159,7 @@ export interface BasicCrawlerOptions<
     Context extends CrawlingContext = CrawlingContext,
     ContextExtension = Dictionary<never>,
     ExtendedContext extends Context = Context & ContextExtension,
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
 > {
     /**
      * User-provided function that performs the logic of the crawler. It is called for each URL to crawl.
@@ -174,7 +178,7 @@ export interface BasicCrawlerOptions<
      * The exceptions are logged to the request using the
      * {@apilink Request.pushErrorMessage|`Request.pushErrorMessage()`} function.
      */
-    requestHandler?: RequestHandler<ExtendedContext>;
+    requestHandler?: RouterHandler<ExtendedContext, Routes> | RequestHandler<ExtendedContext>;
 
     /**
      * Allows the user to extend the crawling context passed to the request handler with custom functionality.
@@ -534,6 +538,7 @@ export class BasicCrawler<
     Context extends CrawlingContext = CrawlingContext,
     ContextExtension = Dictionary<never>,
     ExtendedContext extends Context = Context & ContextExtension,
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
 > {
     protected static readonly CRAWLEE_STATE_KEY = 'CRAWLEE_STATE';
 
@@ -609,7 +614,10 @@ export class BasicCrawler<
      * Default {@apilink Router} instance that will be used if we don't specify any {@apilink BasicCrawlerOptions.requestHandler|`requestHandler`}.
      * See {@apilink Router.addHandler|`router.addHandler()`} and {@apilink Router.addDefaultHandler|`router.addDefaultHandler()`}.
      */
-    readonly router: RouterHandler<Context> = Router.create<Context>();
+    readonly router: RouterHandler<Context, Routes> = Router.create<Context>() as unknown as RouterHandler<
+        Context,
+        Routes
+    >;
 
     private _basicContextPipeline?: ContextPipeline<{ request: Request }, CrawlingContext>;
 
@@ -734,7 +742,7 @@ export class BasicCrawler<
      * All `BasicCrawler` parameters are passed via an options object.
      */
     constructor(
-        options: BasicCrawlerOptions<Context, ContextExtension, ExtendedContext> &
+        options: BasicCrawlerOptions<Context, ContextExtension, ExtendedContext, Routes> &
             RequireContextPipeline<CrawlingContext, Context> = {} as any, // cast because the constructor logic handles missing `contextPipelineBuilder` - the type is just for DX
     ) {
         ow(options, 'BasicCrawlerOptions', ow.object.exactShape(BasicCrawler.optionsShape));
@@ -1291,7 +1299,7 @@ export class BasicCrawler<
      * @param [requests] The requests to add.
      * @param [options] Options for the request queue.
      */
-    async run(requests?: RequestsLike, options?: CrawlerRunOptions): Promise<FinalStatistics> {
+    async run(requests?: TypedRequestsLike<Routes>, options?: CrawlerRunOptions): Promise<FinalStatistics> {
         if (this.running) {
             throw new Error(
                 'This crawler instance is already running, you can add more requests to it via `crawler.addRequests()`.',
@@ -1567,7 +1575,7 @@ export class BasicCrawler<
      * @param options Options for the request queue
      */
     async addRequests(
-        requests: ReadonlyDeep<RequestsLike>,
+        requests: ReadonlyDeep<TypedRequestsLike<Routes>>,
         options: CrawlerAddRequestsOptions = {},
     ): Promise<CrawlerAddRequestsResult> {
         await this.getRequestManager();
@@ -2380,7 +2388,16 @@ export interface CrawlerRunOptions extends CrawlerAddRequestsOptions {
  */
 export function createBasicRouter<
     Context extends BasicCrawlingContext = BasicCrawlingContext,
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
+>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
+export function createBasicRouter<
+    Context extends BasicCrawlingContext = BasicCrawlingContext,
     UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
->(routes?: RouterRoutes<Context, UserData>) {
-    return Router.create<Context>(routes);
+>(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
+export function createBasicRouter<
+    Context extends BasicCrawlingContext = BasicCrawlingContext,
+    const Schemas extends RouteSchemas = RouteSchemas,
+>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
+export function createBasicRouter(routesOrSchemas?: any): any {
+    return Router.create(routesOrSchemas);
 }

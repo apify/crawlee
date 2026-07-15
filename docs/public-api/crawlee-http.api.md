@@ -34,6 +34,8 @@ import type { ResponseLike } from 'content-type';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import { RouterHandler } from '@crawlee/basic';
 import { RouterRoutes } from '@crawlee/basic';
+import { RouteSchemas } from '@crawlee/basic';
+import { RoutesFromSchemas } from '@crawlee/basic';
 import { StringPredicate } from 'ow';
 import { Transform } from 'node:stream';
 
@@ -44,10 +46,22 @@ export function ByteCounterStream(input: {
 }): Transform;
 
 // @public
-export function createFileRouter<Context extends FileDownloadCrawlingContext = FileDownloadCrawlingContext, UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(routes?: RouterRoutes<Context, UserData>): RouterHandler<Context>;
+export function createFileRouter<Context extends FileDownloadCrawlingContext = FileDownloadCrawlingContext, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
+
+// @public (undocumented)
+export function createFileRouter<Context extends FileDownloadCrawlingContext = FileDownloadCrawlingContext, UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
+
+// @public (undocumented)
+export function createFileRouter<Context extends FileDownloadCrawlingContext = FileDownloadCrawlingContext, const Schemas extends RouteSchemas = RouteSchemas>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
 
 // @public
-export function createHttpRouter<Context extends HttpCrawlingContext = HttpCrawlingContext, UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(routes?: RouterRoutes<Context, UserData>): RouterHandler<Context>;
+export function createHttpRouter<Context extends HttpCrawlingContext = HttpCrawlingContext, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
+
+// @public (undocumented)
+export function createHttpRouter<Context extends HttpCrawlingContext = HttpCrawlingContext, UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
+
+// @public (undocumented)
+export function createHttpRouter<Context extends HttpCrawlingContext = HttpCrawlingContext, const Schemas extends RouteSchemas = RouteSchemas>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
 
 // @public
 export class FileDownload extends BasicCrawler<FileDownloadCrawlingContext> {
@@ -87,7 +101,7 @@ export type FileDownloadHook<UserData extends Dictionary = any> = InternalHttpHo
 export type FileDownloadRequestHandler<UserData extends Dictionary = any> = RequestHandler<FileDownloadCrawlingContext<UserData>>;
 
 // @public
-export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any> = InternalHttpCrawlingContext, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension> extends BasicCrawler<Context, ContextExtension, ExtendedContext> {
+export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any> = InternalHttpCrawlingContext, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>> extends BasicCrawler<Context, ContextExtension, ExtendedContext, Routes> {
     constructor(options?: HttpCrawlerOptions<Context, ContextExtension, ExtendedContext> & RequireContextPipeline<InternalHttpCrawlingContext, Context>);
     // (undocumented)
     protected buildContextPipeline(): ContextPipeline<CrawlingContext, InternalHttpCrawlingContext>;
@@ -192,7 +206,7 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any> =
 }
 
 // @public (undocumented)
-export interface HttpCrawlerOptions<Context extends InternalHttpCrawlingContext = InternalHttpCrawlingContext, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension> extends BasicCrawlerOptions<Context, ContextExtension, ExtendedContext> {
+export interface HttpCrawlerOptions<Context extends InternalHttpCrawlingContext = InternalHttpCrawlingContext, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>> extends BasicCrawlerOptions<Context, ContextExtension, ExtendedContext, Routes> {
     additionalMimeTypes?: string[];
     forceResponseEncoding?: string;
     ignoreSslErrors?: boolean;
