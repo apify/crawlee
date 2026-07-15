@@ -9,7 +9,7 @@ import { ArrayPredicate } from 'ow';
 import { BasePredicate } from 'ow';
 import type { BasicCrawlingContext } from '@crawlee/http';
 import { BooleanPredicate } from 'ow';
-import * as cheerio from 'cheerio';
+import { CheerioAPI } from 'cheerio';
 import { CheerioRoot } from '@crawlee/utils';
 import { ContextPipeline } from '@crawlee/http';
 import { CrawlingContext } from '@crawlee/http';
@@ -51,7 +51,7 @@ export class JSDOMCrawler<ContextExtension = Dictionary<never>, ExtendedContext 
     } & {
     enqueueLinks: (enqueueOptions?: EnqueueLinksOptions) => Promise<unknown>;
     waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
-    parseWithCheerio(selector?: string, _timeoutMs?: number): Promise<cheerio.CheerioAPI>;
+    parseWithCheerio(selector?: string, _timeoutMs?: number): Promise<CheerioAPI>;
     }>;
     getVirtualConsole(): VirtualConsole;
     // (undocumented)

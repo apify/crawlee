@@ -28,7 +28,6 @@ import { type LoadedRequest, getCookiesFromResponse } from '@crawlee/core';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import type { Awaitable, Dictionary, ISession } from '@crawlee/types';
 import { type CheerioRoot, RETRY_CSS_SELECTORS } from '@crawlee/utils';
-import * as cheerio from 'cheerio';
 import type { RequestLike, ResponseLike } from 'content-type';
 import contentTypeParser from 'content-type';
 import iconv from 'iconv-lite';
@@ -515,6 +514,7 @@ export class HttpCrawler<
         const contentType = parsed.contentType!;
 
         const waitForSelector = async (selector: string, _timeoutMs?: number) => {
+            const cheerio = await import('cheerio');
             const $ = cheerio.load(parsed.body!.toString());
 
             if ($(selector).get().length === 0) {
@@ -522,6 +522,7 @@ export class HttpCrawler<
             }
         };
         const parseWithCheerio = async (selector?: string, timeoutMs?: number) => {
+            const cheerio = await import('cheerio');
             const $ = cheerio.load(parsed.body!.toString());
 
             if (selector) {

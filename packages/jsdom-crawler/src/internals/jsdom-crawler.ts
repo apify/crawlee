@@ -24,7 +24,6 @@ import {
 } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
 import { type CheerioRoot, type RobotsTxtFile, sleep } from '@crawlee/utils';
-import * as cheerio from 'cheerio';
 import type { DOMWindow } from 'jsdom';
 import { JSDOM, ResourceLoader, VirtualConsole } from 'jsdom';
 import ow from 'ow';
@@ -365,6 +364,7 @@ export class JSDOMCrawler<
                 });
             },
             async waitForSelector(selector: string, timeoutMs = 5_000) {
+                const cheerio = await import('cheerio');
                 const $ = cheerio.load(crawlingContext.body);
 
                 if ($(selector).get().length === 0) {
@@ -378,6 +378,7 @@ export class JSDOMCrawler<
                 }
             },
             async parseWithCheerio(selector?: string, _timeoutMs = 5_000) {
+                const cheerio = await import('cheerio');
                 const $ = cheerio.load(crawlingContext.body);
 
                 if (selector && $(selector).get().length === 0) {

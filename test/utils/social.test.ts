@@ -378,24 +378,24 @@ describe('utils.social', () => {
 
         test('handles invalid arg', () => {
             // @ts-expect-error invalid input type
-            expect(parseHandlesFromHtml()).toEqual(EMPTY_RESULT);
+            expect(parseHandlesFromHtml()).resolves.toEqual(EMPTY_RESULT);
             // @ts-expect-error invalid input type
-            expect(parseHandlesFromHtml(undefined)).toEqual(EMPTY_RESULT);
+            expect(parseHandlesFromHtml(undefined)).resolves.toEqual(EMPTY_RESULT);
             // @ts-expect-error invalid input type
-            expect(parseHandlesFromHtml(null)).toEqual(EMPTY_RESULT);
+            expect(parseHandlesFromHtml(null)).resolves.toEqual(EMPTY_RESULT);
             // @ts-expect-error invalid input type
-            expect(parseHandlesFromHtml({})).toEqual(EMPTY_RESULT);
+            expect(parseHandlesFromHtml({})).resolves.toEqual(EMPTY_RESULT);
             // @ts-expect-error invalid input type
-            expect(parseHandlesFromHtml(1234)).toEqual(EMPTY_RESULT);
+            expect(parseHandlesFromHtml(1234)).resolves.toEqual(EMPTY_RESULT);
         });
 
         test('works', () => {
-            expect(parseHandlesFromHtml('')).toEqual(EMPTY_RESULT);
-            expect(parseHandlesFromHtml('         ')).toEqual(EMPTY_RESULT);
+            expect(parseHandlesFromHtml('')).resolves.toEqual(EMPTY_RESULT);
+            expect(parseHandlesFromHtml('         ')).resolves.toEqual(EMPTY_RESULT);
             const html =
                 'use the data in this [YouTube Video](https://www.youtube.com/watch?v=BsidLZKdYWQ).\\n\\n## Sample result\\n' +
                 'use the data in this [YouTube Video](https://www.youtube.com/watch?v=BsidLZKd123).\\\\n\\\\n## Sample result\\\\n';
-            expect(parseHandlesFromHtml(html)).toMatchObject({
+            expect(parseHandlesFromHtml(html)).resolves.toMatchObject({
                 youtubes: [
                     'https://www.youtube.com/watch?v=BsidLZKd123',
                     'https://www.youtube.com/watch?v=BsidLZKdYWQ',
@@ -479,7 +479,7 @@ describe('utils.social', () => {
                     </body>
                 </html>
             `),
-            ).toEqual({
+            ).resolves.toEqual({
                 discords: ['discord.gg/discord-developers', 'https://discord.com/invite/jyEM2PRvMU/'],
                 emails: [
                     'alice@example.com',
@@ -547,9 +547,9 @@ describe('utils.social', () => {
             });
         });
 
-        test('data is set correctly', () => {
+        test('data is set correctly', async () => {
             const data = {} as any;
-            parseHandlesFromHtml(
+            await parseHandlesFromHtml(
                 `
                 <html>
                     <head>
