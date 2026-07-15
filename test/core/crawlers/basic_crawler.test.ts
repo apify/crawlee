@@ -2351,9 +2351,10 @@ describe('BasicCrawler', () => {
 
         test('validation runs at the crawler level; direct requestQueue calls bypass it', async () => {
             let validateCount = 0;
+            // `version` has to stay the literal `1` the spec declares; an object literal widens it to `number`
             const countingSchema = {
                 '~standard': {
-                    version: 1,
+                    version: 1 as const,
                     vendor: 'test',
                     validate: (value: unknown) => {
                         validateCount += 1;
@@ -2363,7 +2364,7 @@ describe('BasicCrawler', () => {
             };
 
             const makeRouterCrawler = () => {
-                const router = Router.create({ DETAIL: countingSchema as any });
+                const router = Router.create({ DETAIL: countingSchema });
                 router.addHandler('DETAIL', async () => {});
 
                 return new BasicCrawler({ requestHandler: router });
