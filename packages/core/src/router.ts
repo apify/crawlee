@@ -253,20 +253,6 @@ export class Router<
     }
 
     /**
-     * Registers {@apilink RouteSchemas|Standard Schema} validators for the given labels. Before a matching
-     * route handler runs, `request.userData` is validated against the label's schema and replaced with the
-     * parsed value; a failing request throws a {@apilink RequestValidationError}. The same schemas are also
-     * used to validate `userData` when requests are added to the crawler.
-     */
-    addSchemas(schemas: Partial<Record<keyof Routes & string, StandardSchemaV1>>) {
-        for (const [label, schema] of Object.entries(schemas)) {
-            if (schema) {
-                this.schemas.set(label, schema as StandardSchemaV1);
-            }
-        }
-    }
-
-    /**
      * Returns the {@apilink RouteSchemas|Standard Schema} registered for a label, if any. Used by the crawler
      * to validate `request.userData` when requests are added.
      * @internal
@@ -380,7 +366,6 @@ export class Router<
 
         obj.addHandler = router.addHandler.bind(router);
         obj.addDefaultHandler = router.addDefaultHandler.bind(router);
-        obj.addSchemas = router.addSchemas.bind(router);
         obj.getSchema = router.getSchema.bind(router);
         obj.getHandler = router.getHandler.bind(router);
         obj.use = router.use.bind(router);
