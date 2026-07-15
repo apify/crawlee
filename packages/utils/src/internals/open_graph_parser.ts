@@ -1,6 +1,5 @@
 import type { Dictionary } from '@crawlee/types';
 import type { CheerioAPI } from 'cheerio';
-import { load } from 'cheerio';
 
 export interface OpenGraphProperty {
     name: string;
@@ -395,9 +394,16 @@ const parseOpenGraphProperty = (property: OpenGraphProperty, $: CheerioAPI): str
  * Currently existing properties are kept up to date.
  * @returns Scraped OpenGraph properties as an object.
  */
-export function parseOpenGraph(raw: string, additionalProperties?: OpenGraphProperty[]): Dictionary<OpenGraphResult>;
-export function parseOpenGraph($: CheerioAPI, additionalProperties?: OpenGraphProperty[]): Dictionary<OpenGraphResult>;
-export function parseOpenGraph(item: CheerioAPI | string, additionalProperties?: OpenGraphProperty[]) {
+export async function parseOpenGraph(
+    raw: string,
+    additionalProperties?: OpenGraphProperty[],
+): Promise<Dictionary<OpenGraphResult>>;
+export async function parseOpenGraph(
+    $: CheerioAPI,
+    additionalProperties?: OpenGraphProperty[],
+): Promise<Dictionary<OpenGraphResult>>;
+export async function parseOpenGraph(item: CheerioAPI | string, additionalProperties?: OpenGraphProperty[]) {
+    const { load } = await import('cheerio');
     const $ = typeof item === 'string' ? load(item) : item;
 
     return [...(additionalProperties || []), ...OPEN_GRAPH_PROPERTIES].reduce((acc, curr) => {

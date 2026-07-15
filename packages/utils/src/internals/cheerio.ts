@@ -1,6 +1,5 @@
 import type { Dictionary } from '@crawlee/types';
 import type { CheerioAPI } from 'cheerio';
-import * as cheerio from 'cheerio';
 
 import { tryAbsoluteURL } from './extract-urls.js';
 
@@ -40,10 +39,12 @@ const BLOCK_TAGS_REGEX =
  * @param htmlOrCheerioElement HTML text or parsed HTML represented using a [cheerio](https://www.npmjs.com/package/cheerio) function.
  * @return Plain text
  */
-export function htmlToText(htmlOrCheerioElement: string | CheerioRoot): string {
+export async function htmlToText(htmlOrCheerioElement: string | CheerioRoot): Promise<string> {
+    const { load } = await import('cheerio');
+
     if (!htmlOrCheerioElement) return '';
 
-    const $ = typeof htmlOrCheerioElement === 'function' ? htmlOrCheerioElement : cheerio.load(htmlOrCheerioElement);
+    const $ = typeof htmlOrCheerioElement === 'function' ? htmlOrCheerioElement : load(htmlOrCheerioElement);
     let text = '';
 
     const process = (elems: Dictionary) => {
