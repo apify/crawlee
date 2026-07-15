@@ -339,6 +339,15 @@ export async function getApifyToken() {
     }
 
     const { token } = await fs.readJSON(authPath);
+
+    // Newer CLI versions keep the token in the OS keyring, leaving auth.json without it.
+    if (!token) {
+        throw new Error(
+            'Your Apify token is not stored in auth.json (the CLI likely saved it in the OS keyring). ' +
+                'Set the "APIFY_TOKEN" environment variable, or re-run "apify login" with "APIFY_DISABLE_KEYRING=1".',
+        );
+    }
+
     return token;
 }
 

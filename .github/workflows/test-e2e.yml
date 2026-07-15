@@ -87,6 +87,8 @@ jobs:
                 run: yarn test:e2e
                 env:
                     STORAGE_IMPLEMENTATION: ${{ matrix.storage }}
+                    # Provided explicitly: the CLI may store the token in the OS keyring, where the tests can't read it.
+                    APIFY_TOKEN: ${{ secrets.APIFY_SCRAPER_TESTS_API_TOKEN }}
                     APIFY_HTTPBIN_TOKEN: ${{ secrets.APIFY_HTTPBIN_TOKEN }}
                     ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
                     GITHUB_TOKEN: ${{ github.token }}
