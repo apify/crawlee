@@ -1,4 +1,5 @@
 import { CheerioCrawler } from '@crawlee/cheerio';
+import { Browser, ImpitHttpClient } from '@crawlee/impit-client';
 import { Actor } from 'apify';
 
 await Actor.init({
@@ -9,8 +10,9 @@ await Actor.init({
 });
 
 const crawler = new CheerioCrawler({
-    // The store rate-limits the platform's shared egress IP, so crawl through a proxy.
     proxyConfiguration: await Actor.createProxyConfiguration(),
+    // The store 429s plain HTTP clients; impersonating a browser gets us through.
+    httpClient: new ImpitHttpClient({ browser: Browser.Firefox }),
     maxRequestsPerCrawl: 10,
     respectRobotsTxtFile: true,
 });
