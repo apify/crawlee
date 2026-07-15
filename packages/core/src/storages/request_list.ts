@@ -403,6 +403,8 @@ export class RequestList implements IRequestList {
 
         // The proxy configuration used for `requestsFromUrl` requests.
         this.proxyConfiguration = proxyConfiguration;
+
+        this.persistState = this.persistState.bind(this);
     }
 
     /**
@@ -431,7 +433,7 @@ export class RequestList implements IRequestList {
         this.isInitialized = true;
         if (this.persistRequestsKey && !this.areRequestsPersisted) await this._persistRequests();
         if (this.persistStateKey) {
-            this.events.on(EventType.PERSIST_STATE, this.persistState.bind(this));
+            this.events.on(EventType.PERSIST_STATE, this.persistState);
         }
 
         return this;
@@ -516,6 +518,19 @@ export class RequestList implements IRequestList {
         } catch (e) {
             const err = e as Error;
             this.log.exception(err, 'Attempted to persist state, but failed.');
+        }
+    }
+
+    /**
+     * Removes the `PERSIST_STATE` event listener registered during initialization and persists
+     * the current state one last time. Call this when you are done with the `RequestList` to avoid
+     * leaking the listener (and the requests it retains) on the shared event manager.
+     */
+    async teardown(): Promise<void> {
+        this.events.off(EventType.PERSIST_STATE, this.persistState);
+
+        if (this.persistStateKey) {
+            await this.persistState();
         }
     }
 

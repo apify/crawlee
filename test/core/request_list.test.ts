@@ -505,6 +505,21 @@ describe('RequestList', () => {
         expect(requestList2.getState()).toEqual(requestList.getState());
     });
 
+    test('teardown removes the persist state listener when persistStateKey is set', async () => {
+        const listenerCountBefore = events.listenerCount(EventType.PERSIST_STATE);
+
+        const requestList = await RequestList.open({
+            sources: [{ url: 'https://example.com/1' }],
+            persistStateKey: 'teardown-key',
+        });
+
+        expect(events.listenerCount(EventType.PERSIST_STATE)).toBe(listenerCountBefore + 1);
+
+        await requestList.teardown();
+
+        expect(events.listenerCount(EventType.PERSIST_STATE)).toBe(listenerCountBefore);
+    });
+
     test('should correctly persist its sources when persistRequestsKey is set', async () => {
         const PERSIST_REQUESTS_KEY = 'some-key';
         const getValueSpy = vitest.spyOn(KeyValueStore.prototype, 'getValue');
