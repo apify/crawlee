@@ -815,6 +815,9 @@ export function getRequestId(uniqueKey: string): string;
 // @public (undocumented)
 export type GetUserDataFromRequest<T> = T extends Request_2<infer Y> ? Y : never;
 
+// @internal
+export const globalServiceLocator: ServiceLocator;
+
 // @public (undocumented)
 export type GlobInput = string | GlobObject;
 
