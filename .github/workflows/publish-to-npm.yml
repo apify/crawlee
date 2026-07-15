@@ -44,7 +44,7 @@ jobs:
                   fetch-depth: 0
 
             - name: Use Node.js 24
-              uses: actions/setup-node@v6
+              uses: actions/setup-node@v7
               with:
                   node-version: 24
                   package-manager-cache: false
@@ -55,7 +55,7 @@ jobs:
                   corepack prepare yarn@stable --activate
 
             - name: Activate cache for Node.js 24
-              uses: actions/setup-node@v6
+              uses: actions/setup-node@v7
               with:
                   cache: 'yarn'
 
