@@ -1243,6 +1243,7 @@ export class RequestManagerTandem implements IRequestManager {
 
 // @public
 export interface RequestOptions<UserData extends Dictionary = Dictionary> {
+    alwaysEnqueue?: boolean;
     crawlDepth?: number;
     // @internal (undocumented)
     enqueueStrategy?: EnqueueLinksOptions['strategy'];
