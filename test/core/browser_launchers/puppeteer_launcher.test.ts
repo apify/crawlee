@@ -308,5 +308,4 @@ describe('launchPuppeteer()', () => {
             recursive: true,
         });
     });
-
 });
