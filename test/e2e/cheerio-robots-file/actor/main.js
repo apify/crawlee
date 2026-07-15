@@ -9,6 +9,8 @@ await Actor.init({
 });
 
 const crawler = new CheerioCrawler({
+    // The store rate-limits the platform's shared egress IP, so crawl through a proxy.
+    proxyConfiguration: await Actor.createProxyConfiguration(),
     maxRequestsPerCrawl: 10,
     respectRobotsTxtFile: true,
 });

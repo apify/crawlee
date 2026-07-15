@@ -9,6 +9,8 @@ await Actor.init({
 });
 
 const crawler = new PuppeteerCrawler({
+    // The store rate-limits the platform's shared egress IP, so crawl through a proxy.
+    proxyConfiguration: await Actor.createProxyConfiguration(),
     maxRequestsPerCrawl: 10,
     preNavigationHooks: [
         async ({ page }, goToOptions) => {
