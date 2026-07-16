@@ -225,6 +225,26 @@ export type RouterRoutes<Context, Routes extends Record<keyof Routes, Dictionary
  *     request.userData.price; // number, inferred from the schema and validated at runtime
  * });
  * ```
+ *
+ * A single route can take longer than the rest without raising the crawler-wide
+ * `requestHandlerTimeoutSecs` for everything - pass a per-route timeout as the last argument:
+ *
+ * ```ts
+ * // LIST pages scroll through a lot of content, DETAIL pages are quick
+ * router.addHandler('LIST', async (ctx) => { ... }, { requestHandlerTimeoutSecs: 120 });
+ * router.addHandler('DETAIL', async (ctx) => { ... }); // keeps the crawler's default
+ * ```
+ *
+ * When the time a route needs is only apparent once it is already running, call
+ * {@apilink CrawlingContext.extendTimeout|`context.extendTimeout`} from inside the handler:
+ *
+ * ```ts
+ * router.addHandler('LIST', async ({ page, extendTimeout }) => {
+ *     const pageCount = await countPages(page);
+ *     extendTimeout(pageCount * 10); // ask for 10 more seconds per page
+ *     await scrapeAllPages(page);
+ * });
+ * ```
  */
 export class Router<
     Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'>,
@@ -243,7 +263,9 @@ export class Router<
 
     /**
      * Registers new route handler for given label. When the router declares a route map, the
-     * `label` is restricted to the declared labels and `request.userData` is typed accordingly.
+     * `label` is restricted to the declared labels and `request.userData` is typed accordingly. Pass
+     * {@apilink RouteOptions|`options`} to give this route its own `requestHandlerTimeoutSecs`,
+     * overriding the crawler's default for requests with this label.
      */
     addHandler<Label extends keyof Routes & string>(
         label: Label,
@@ -274,7 +296,9 @@ export class Router<
     /**
      * Registers default route handler. As a fallback it can receive any request (including labels not
      * declared in the route map), so `request.userData` defaults to the context's `userData` type
-     * (loosely typed by default). Pass an explicit `UserData` type argument to narrow it.
+     * (loosely typed by default). Pass an explicit `UserData` type argument to narrow it. Pass
+     * {@apilink RouteOptions|`options`} to give the default route its own `requestHandlerTimeoutSecs`,
+     * overriding the crawler's default for requests that fall through to it.
      */
     addDefaultHandler<UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(
         handler: (ctx: RouterHandlerContext<Context, UserData>) => Awaitable<void>,
