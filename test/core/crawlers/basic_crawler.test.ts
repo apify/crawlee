@@ -15,6 +15,7 @@ import {
     BasicCrawler,
     Configuration,
     CriticalError,
+    defaultRoute,
     EventType,
     KeyValueStore,
     MissingRouteError,
@@ -22,6 +23,8 @@ import {
     Request,
     RequestList,
     RequestQueue,
+    RequestValidationError,
+    Router,
 } from '@crawlee/basic';
 import { RequestState } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
@@ -30,6 +33,7 @@ import express from 'express';
 import type { SetRequired } from 'type-fest';
 import type { Mock } from 'vitest';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
+import { z } from 'zod';
 
 import log from '@apify/log';
 
@@ -2210,6 +2214,199 @@ describe('BasicCrawler', () => {
             expect(getGlobalConfigSpy.mock.calls.length).toBe(0);
             expect(crawlerA.requestQueue?.config).toBe(configA);
             expect(crawlerB.requestQueue?.config).toBe(configB);
+        });
+    });
+
+    describe('schema validation on add', () => {
+        const makeCrawler = () => {
+            const router = Router.create({
+                DETAIL: z.object({ id: z.string() }),
+            });
+            router.addHandler('DETAIL', async () => {});
+
+            return new BasicCrawler({ requestHandler: router });
+        };
+
+        test('crawler.addRequests rejects userData that does not match the label schema', async () => {
+            const crawler = makeCrawler();
+
+            await expect(
+                crawler.addRequests([{ url: 'https://example.com/a', label: 'DETAIL', userData: { id: 123 } }]),
+            ).rejects.toThrow(RequestValidationError);
+        });
+
+        test('crawler.run rejects userData that does not match the label schema', async () => {
+            const crawler = makeCrawler();
+
+            await expect(
+                crawler.run([{ url: 'https://example.com/a', label: 'DETAIL', userData: { id: 123 } }]),
+            ).rejects.toThrow(RequestValidationError);
+        });
+
+        test('crawler.addRequests accepts matching userData', async () => {
+            const crawler = makeCrawler();
+
+            await crawler.addRequests([{ url: 'https://example.com/b', label: 'DETAIL', userData: { id: 'ok' } }]);
+
+            const queue = await crawler.getRequestQueue();
+            expect(await queue.isEmpty()).toBe(false);
+        });
+
+        test('crawler.addRequests excludes the Crawlee-managed label when validating (strict schemas)', async () => {
+            const router = Router.create({ DETAIL: z.strictObject({ id: z.string() }) });
+            router.addHandler('DETAIL', async () => {});
+            const crawler = new BasicCrawler({ requestHandler: router });
+
+            // a Request instance stores `label` inside `userData`; it must not trip the strict schema
+            await crawler.addRequests([
+                new Request({ url: 'https://example.com/s', label: 'DETAIL', userData: { id: 'ok' } }),
+            ]);
+
+            const queue = await crawler.getRequestQueue();
+            expect(await queue.isEmpty()).toBe(false);
+        });
+
+        test('a schema that declares the label opts into validating it', async () => {
+            const router = Router.create({
+                DETAIL: z.object({ label: z.literal('DETAIL'), id: z.string() }),
+            });
+            router.addHandler('DETAIL', async () => {});
+            const crawler = new BasicCrawler({ requestHandler: router });
+
+            // the label is not part of the source's `userData`, yet a schema declaring it still validates
+            await crawler.addRequests([{ url: 'https://example.com/l', label: 'DETAIL', userData: { id: 'ok' } }]);
+
+            const queue = await crawler.getRequestQueue();
+            expect((await queue.fetchNextRequest())?.userData).toMatchObject({ label: 'DETAIL', id: 'ok' });
+        });
+
+        test('a schema declaring the label reports only genuine issues', async () => {
+            const router = Router.create({
+                DETAIL: z.object({ label: z.literal('DETAIL'), id: z.string() }),
+            });
+            router.addHandler('DETAIL', async () => {});
+            const crawler = new BasicCrawler({ requestHandler: router });
+
+            // the label matches, so the only reported issue must be the bad `id` — not a spurious label one
+            const error = await crawler
+                .addRequests([{ url: 'https://example.com/m', label: 'DETAIL', userData: { id: 123 } }])
+                .catch((err: Error) => err);
+
+            expect(error).toBeInstanceOf(RequestValidationError);
+            expect((error as Error).message).toContain('id:');
+            expect((error as Error).message).not.toContain('label:');
+        });
+
+        test('the parsed (coerced) userData is what gets stored in the queue', async () => {
+            const router = Router.create({
+                DETAIL: z.object({ id: z.string(), price: z.coerce.number() }),
+            });
+            router.addHandler('DETAIL', async () => {});
+            const crawler = new BasicCrawler({ requestHandler: router });
+
+            await crawler.addRequests([
+                { url: 'https://example.com/c', label: 'DETAIL', userData: { id: 'ok', price: '42' } },
+            ]);
+
+            const queue = await crawler.getRequestQueue();
+            const request = await queue.fetchNextRequest();
+
+            // the queue holds the coerced number, not the raw '42' string that was passed in
+            expect(request?.userData.price).toBe(42);
+        });
+
+        test('a defaultRoute schema validates userData added for unregistered labels', async () => {
+            const router = Router.create({
+                DETAIL: z.object({ id: z.string() }),
+                [defaultRoute]: z.object({ page: z.number() }),
+            });
+            router.addHandler('DETAIL', async () => {});
+            router.addDefaultHandler(async () => {});
+            const crawler = new BasicCrawler({ requestHandler: router });
+
+            // an unregistered label is validated against the default-route schema on add
+            await expect(
+                crawler.addRequests([{ url: 'https://example.com/l', label: 'LIST', userData: { page: 'nope' } }]),
+            ).rejects.toThrow(RequestValidationError);
+
+            // a registered label uses its own schema, and a matching default-route request is accepted
+            await crawler.addRequests([
+                { url: 'https://example.com/d', label: 'DETAIL', userData: { id: 'ok' } },
+                { url: 'https://example.com/p', label: 'LIST', userData: { page: 2 } },
+            ]);
+            const queue = await crawler.getRequestQueue();
+            expect(await queue.isEmpty()).toBe(false);
+        });
+
+        test('context.enqueueLinks validates userData against the label schema', async () => {
+            const router = Router.create({ DETAIL: z.object({ id: z.string() }) });
+            let caught: unknown;
+            router.addDefaultHandler(async ({ enqueueLinks }) => {
+                try {
+                    await enqueueLinks({ urls: ['https://example.com/x'], label: 'DETAIL', userData: { id: 123 } });
+                } catch (err) {
+                    caught = err;
+                }
+            });
+
+            const crawler = new BasicCrawler({ requestHandler: router });
+            await crawler.run([`http://${HOSTNAME}:${port}/`]);
+
+            expect(caught).toBeInstanceOf(RequestValidationError);
+        });
+
+        test('requests with a label that has no registered schema are not validated', async () => {
+            const crawler = makeCrawler();
+
+            await crawler.addRequests([{ url: 'https://example.com/d', label: 'OTHER', userData: { whatever: true } }]);
+
+            const queue = await crawler.getRequestQueue();
+            expect(await queue.isEmpty()).toBe(false);
+        });
+
+        test('a plain (non-router) requestHandler skips validation entirely', async () => {
+            const crawler = new BasicCrawler({ requestHandler: async () => {} });
+
+            await crawler.addRequests([{ url: 'https://example.com/e', label: 'DETAIL', userData: { id: 123 } }]);
+
+            const queue = await crawler.getRequestQueue();
+            expect(await queue.isEmpty()).toBe(false);
+        });
+
+        test('validation runs at the crawler level; direct requestQueue calls bypass it', async () => {
+            let validateCount = 0;
+            // `version` has to stay the literal `1` the spec declares; an object literal widens it to `number`
+            const countingSchema = {
+                '~standard': {
+                    version: 1 as const,
+                    vendor: 'test',
+                    validate: (value: unknown) => {
+                        validateCount += 1;
+                        return { value };
+                    },
+                },
+            };
+
+            const makeRouterCrawler = () => {
+                const router = Router.create({ DETAIL: countingSchema });
+                router.addHandler('DETAIL', async () => {});
+
+                return new BasicCrawler({ requestHandler: router });
+            };
+
+            // crawler.addRequests validates each request exactly once
+            validateCount = 0;
+            await makeRouterCrawler().addRequests([
+                { url: 'https://example.com/a', label: 'DETAIL', userData: { id: 'a' } },
+            ]);
+            expect(validateCount).toBe(1);
+
+            // a direct requestQueue.addRequest / addRequests bypasses the crawler and is not validated
+            validateCount = 0;
+            const queue = await makeRouterCrawler().getRequestQueue();
+            await queue.addRequest({ url: 'https://example.com/b', label: 'DETAIL', userData: { id: 'b' } });
+            await queue.addRequests([{ url: 'https://example.com/c', label: 'DETAIL', userData: { id: 'c' } }]);
+            expect(validateCount).toBe(0);
         });
     });
 });

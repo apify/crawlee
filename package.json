@@ -113,7 +113,8 @@
         "turbo": "^2.1.0",
         "typescript": "^6.0.0",
         "typescript-eslint": "8.46.4",
-        "vitest": "^4.0.16"
+        "vitest": "^4.0.16",
+        "zod": "^4.0.0"
     },
     "lint-staged": {
         "**/*.{js,ts,mjs,mts,cjs,cts,json,css}": "biome format --write --no-errors-on-unmatched"

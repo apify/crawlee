@@ -506,6 +506,14 @@ export abstract class BrowserCrawler<
     }
 
     /**
+     * `BrowserCrawler` hands `BasicCrawler` a wrapper that opens a page before delegating, and keeps the user's
+     * own handler in `userProvidedRequestHandler` — so resolve router-aware metadata against that instead.
+     */
+    protected override get userRequestHandler(): RequestHandler<Context> {
+        return this.userProvidedRequestHandler as RequestHandler<Context>;
+    }
+
+    /**
      * Wrapper around requestHandler that opens and closes pages etc.
      */
     protected override async _runRequestHandler(crawlingContext: Context) {

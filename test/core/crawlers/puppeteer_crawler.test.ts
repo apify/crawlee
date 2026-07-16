@@ -14,10 +14,19 @@ import type {
     PuppeteerGoToOptions,
     Request,
 } from '@crawlee/puppeteer';
-import { ProxyConfiguration, PuppeteerCrawler, RequestList, RequestQueue, Session } from '@crawlee/puppeteer';
+import {
+    createPuppeteerRouter,
+    ProxyConfiguration,
+    PuppeteerCrawler,
+    RequestList,
+    RequestQueue,
+    RequestValidationError,
+    Session,
+} from '@crawlee/puppeteer';
 import type { Cookie } from '@crawlee/types';
 import { sleep } from '@crawlee/utils';
 import type { Server as ProxyChainServer } from 'proxy-chain';
+import { z } from 'zod';
 
 import log from '@apify/log';
 
@@ -462,5 +471,16 @@ describe('PuppeteerCrawler', () => {
             requestHandler,
         });
         await puppeteerCrawler.run();
+    });
+
+    test('validates userData against the router schema when adding requests', async () => {
+        const router = createPuppeteerRouter({ DETAIL: z.object({ id: z.string() }) });
+        router.addHandler('DETAIL', async () => {});
+
+        const crawler = new PuppeteerCrawler({ requestHandler: router });
+
+        await expect(
+            crawler.addRequests([{ url: 'https://example.com/a', label: 'DETAIL', userData: { id: 123 } }]),
+        ).rejects.toThrow(RequestValidationError);
     });
 });

@@ -918,6 +918,7 @@ __metadata:
     "@crawlee/types": "npm:3.17.0"
     "@crawlee/utils": "npm:3.17.0"
     "@sapphire/async-queue": "npm:^1.5.1"
+    "@standard-schema/spec": "npm:^1.0.0"
     "@vladfrangu/async_event_emitter": "npm:^2.2.2"
     csv-stringify: "npm:^6.2.0"
     fs-extra: "npm:^11.0.0"
@@ -1141,6 +1142,7 @@ __metadata:
     typescript: "npm:^6.0.0"
     typescript-eslint: "npm:8.46.4"
     vitest: "npm:^4.0.16"
+    zod: "npm:^4.0.0"
   languageName: unknown
   linkType: soft
 
@@ -14962,7 +14964,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"zod@npm:^3.25 || ^4.0, zod@npm:^4.3.5":
+"zod@npm:^3.25 || ^4.0, zod@npm:^4.0.0, zod@npm:^4.3.5":
   version: 4.4.3
   resolution: "zod@npm:4.4.3"
   checksum: 10c0/7ea31b558e88f9faf44f31dd185e2e1cbf51fed3081787fb96cc2534749b50c0acfc6da7f0922a7353ed092dd358c7d50c28ea96c94d04af64191bd33152eca3

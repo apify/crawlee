@@ -14,6 +14,8 @@ import type {
     RequestProvider,
     RouterHandler,
     RouterRoutes,
+    RouteSchemas,
+    RoutesFromSchemas,
     SkippedRequestCallback,
 } from '@crawlee/http';
 import { enqueueLinks, HttpCrawler, resolveBaseUrlForEnqueueLinksFiltering, Router } from '@crawlee/http';
@@ -338,6 +340,10 @@ export function createCheerioRouter<
     Context extends CheerioCrawlingContext = CheerioCrawlingContext,
     UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
 >(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
-export function createCheerioRouter(routes?: RouterRoutes<any, any>) {
-    return Router.create<any, any>(routes);
+export function createCheerioRouter<
+    Context extends CheerioCrawlingContext = CheerioCrawlingContext,
+    const Schemas extends RouteSchemas = RouteSchemas,
+>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
+export function createCheerioRouter(routesOrSchemas?: any): any {
+    return Router.create(routesOrSchemas);
 }
