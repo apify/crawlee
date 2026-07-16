@@ -6,6 +6,10 @@ import type { BrowserPlugin } from './abstract-classes/browser-plugin.js';
 import { BrowserPool } from './browser-pool.js';
 import type { BrowserPoolHooks, BrowserPoolOptions } from './browser-pool.js';
 import { BROWSER_CONTROLLER_EVENTS, BROWSER_POOL_EVENTS } from './events.js';
+import { PlaywrightPlugin } from './playwright/playwright-plugin.js';
+import { RemotePlaywrightPlugin } from './playwright/remote-playwright-plugin.js';
+import { PuppeteerPlugin } from './puppeteer/puppeteer-plugin.js';
+import { RemotePuppeteerPlugin } from './puppeteer/remote-puppeteer-plugin.js';
 import { RemoteBrowserProvider } from './remote-browser-provider.js';
 
 /**
@@ -31,13 +35,13 @@ export type RemoteBrowserEndpoint =
     | ((options?: { proxyUrl?: string }) => string | ResolvedRemoteEndpoint | Promise<string | ResolvedRemoteEndpoint>);
 
 /**
- * The bridge a {@apilink RemoteBrowserPool} injects into a {@apilink BrowserPlugin} so the plugin can
+ * The bridge a {@apilink RemoteBrowserPool} injects into its remote browser plugins so they can
  * connect to a remote browser without owning any remote-session policy.
  *
  * The plugin only knows how to make the library-specific `connect()` call; everything else — resolving
  * the endpoint, calling the user's `release()`, and guaranteeing release fires at most once — lives in
  * the pool. The plugin calls {@apilink RemoteConnection.resolve|resolve} before connecting, stores the
- * returned `token` on its launch context, and the controller later calls
+ * returned `token` on its launch context, and the pool later calls
  * {@apilink RemoteConnection.release|release} with that token when the browser closes.
  *
  * @internal
@@ -110,9 +114,8 @@ class RemoteSessionRegistry implements RemoteConnection {
 }
 
 /**
- * Per-plugin remote connection parameters, passed to {@apilink BrowserPlugin.useRemoteConnection}.
- * The endpoint is supplied per-launch via {@apilink RemoteConnection}; these are the static connect()
- * parameters (protocol, headers, timeouts, …).
+ * Per-plugin remote connection parameters. The endpoint is supplied per-launch via
+ * {@apilink RemoteConnection}; these are the static connect() parameters (protocol, headers, timeouts, …).
  */
 export interface RemoteConnectionParameters {
     /**
@@ -236,12 +239,13 @@ export class RemoteBrowserPool<Page = unknown> implements IBrowserPool<Page> {
 
         this.registry = new RemoteSessionRegistry(resolvedEndpoint, resolvedRelease, this.log);
 
-        // Wire every plugin for remote connection.
-        for (const plugin of browserPlugins) {
-            plugin.useRemoteConnection(this.registry, connection);
-        }
+        // Swap every plugin for its remote variant, wired to this pool's session registry.
+        const remotePlugins = browserPlugins.map((plugin) => this._toRemotePlugin(plugin, connection));
 
-        this.browserPool = new BrowserPool({ ...browserPoolOptions, browserPlugins }) as unknown as BrowserPool;
+        this.browserPool = new BrowserPool({
+            ...browserPoolOptions,
+            browserPlugins: remotePlugins,
+        }) as unknown as BrowserPool;
         this.pool = this.browserPool as unknown as IBrowserPool<Page>;
 
         // Release a browser's remote session once it closes. The registry dedupes (close() schedules a delayed
@@ -256,6 +260,15 @@ export class RemoteBrowserPool<Page = unknown> implements IBrowserPool<Page> {
         if (resolvedMax !== undefined) {
             this.browserPool.maxOpenBrowsers = resolvedMax;
         }
+    }
+
+    /** Creates the remote variant of a user-supplied plugin, injecting this pool's session registry. */
+    private _toRemotePlugin(plugin: BrowserPlugin, parameters: RemoteConnectionParameters): BrowserPlugin {
+        if (plugin instanceof PlaywrightPlugin) return new RemotePlaywrightPlugin(plugin, this.registry, parameters);
+        if (plugin instanceof PuppeteerPlugin) return new RemotePuppeteerPlugin(plugin, this.registry, parameters);
+        throw new Error(
+            `RemoteBrowserPool supports only PlaywrightPlugin and PuppeteerPlugin, got "${plugin.constructor.name}".`,
+        );
     }
 
     /** Maximum number of remote browsers that may be open at the same time. */

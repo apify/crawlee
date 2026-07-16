@@ -6,6 +6,7 @@ import type { CrawleeLogger } from '@crawlee/core';
 import { EventEmitter } from 'node:events';
 
 import { BROWSER_CONTROLLER_EVENTS, BROWSER_POOL_EVENTS } from '../src/events.js';
+import { PlaywrightPlugin } from '../src/playwright/playwright-plugin.js';
 import type { RemoteConnection } from '../src/remote-browser-pool.js';
 import { RemoteBrowserPool } from '../src/remote-browser-pool.js';
 import { RemoteBrowserProvider } from '../src/remote-browser-provider.js';
@@ -30,30 +31,38 @@ function createMockLogger(): CrawleeLogger {
     return logger;
 }
 
-/**
- * A stand-in plugin that captures the {@link RemoteConnection} the pool injects, so tests can drive
- * endpoint resolution / release directly without launching a real browser.
- */
-function createCapturingPlugin() {
-    let connection: RemoteConnection | undefined;
-    const plugin: any = {
-        useRemoteConnection: (conn: RemoteConnection) => {
-            connection = conn;
-        },
+function createPlugin() {
+    const library: any = {
+        launch: vi.fn(),
+        connect: vi.fn(),
+        connectOverCDP: vi.fn(),
+        name: vi.fn(() => 'chromium'),
     };
-    return { plugin, getConnection: () => connection! };
+    return new PlaywrightPlugin(library);
+}
+
+/** Extracts the pool's internal session registry so tests can drive endpoint resolution / release directly. */
+function getConnection(pool: RemoteBrowserPool): RemoteConnection {
+    return (pool as any).registry;
 }
 
 beforeEach(() => {
     serviceLocator.setLogger(createMockLogger());
 });
 
+describe('RemoteBrowserPool — plugin wiring', () => {
+    it('rejects plugins that have no remote variant', () => {
+        expect(() => new RemoteBrowserPool({ browserPlugins: [{} as any], endpoint: 'wss://remote:9222' })).toThrow(
+            /supports only PlaywrightPlugin and PuppeteerPlugin/,
+        );
+    });
+});
+
 describe('RemoteBrowserPool — endpoint resolution', () => {
     it('resolves a static string endpoint', async () => {
-        const { plugin, getConnection } = createCapturingPlugin();
-        const pool = new RemoteBrowserPool({ browserPlugins: [plugin], endpoint: 'wss://remote:9222' });
+        const pool = new RemoteBrowserPool({ browserPlugins: [createPlugin()], endpoint: 'wss://remote:9222' });
 
-        const { url, token } = await getConnection().resolve();
+        const { url, token } = await getConnection(pool).resolve();
 
         expect(url).toBe('wss://remote:9222');
         expect(typeof token).toBe('number');
@@ -62,10 +71,9 @@ describe('RemoteBrowserPool — endpoint resolution', () => {
 
     it('resolves a function endpoint and forwards proxyUrl', async () => {
         const endpoint = vi.fn(() => 'wss://dynamic:9222');
-        const { plugin, getConnection } = createCapturingPlugin();
-        const pool = new RemoteBrowserPool({ browserPlugins: [plugin], endpoint });
+        const pool = new RemoteBrowserPool({ browserPlugins: [createPlugin()], endpoint });
 
-        const { url } = await getConnection().resolve({ proxyUrl: 'http://proxy:8080' });
+        const { url } = await getConnection(pool).resolve({ proxyUrl: 'http://proxy:8080' });
 
         expect(url).toBe('wss://dynamic:9222');
         expect(endpoint).toHaveBeenCalledWith({ proxyUrl: 'http://proxy:8080' });
@@ -73,18 +81,16 @@ describe('RemoteBrowserPool — endpoint resolution', () => {
     });
 
     it('throws when an endpoint resolves to an empty string', async () => {
-        const { plugin, getConnection } = createCapturingPlugin();
-        const pool = new RemoteBrowserPool({ browserPlugins: [plugin], endpoint: () => '' });
+        const pool = new RemoteBrowserPool({ browserPlugins: [createPlugin()], endpoint: () => '' });
 
-        await expect(getConnection().resolve()).rejects.toThrow(/empty string/);
+        await expect(getConnection(pool).resolve()).rejects.toThrow(/empty string/);
         await pool.destroy();
     });
 
     it('throws when a function endpoint returns an object without a url', async () => {
-        const { plugin, getConnection } = createCapturingPlugin();
-        const pool = new RemoteBrowserPool({ browserPlugins: [plugin], endpoint: () => ({}) as any });
+        const pool = new RemoteBrowserPool({ browserPlugins: [createPlugin()], endpoint: () => ({}) as any });
 
-        await expect(getConnection().resolve()).rejects.toThrow(/non-empty 'url'/);
+        await expect(getConnection(pool).resolve()).rejects.toThrow(/non-empty 'url'/);
         await pool.destroy();
     });
 });
@@ -92,16 +98,15 @@ describe('RemoteBrowserPool — endpoint resolution', () => {
 describe('RemoteBrowserPool — release lifecycle', () => {
     it('calls release with the context from a function endpoint, exactly once', async () => {
         const release = vi.fn();
-        const { plugin, getConnection } = createCapturingPlugin();
         const pool = new RemoteBrowserPool({
-            browserPlugins: [plugin],
+            browserPlugins: [createPlugin()],
             endpoint: () => ({ url: 'wss://remote:9222', context: { id: 'sess-1' } }),
             release,
         });
 
-        const { token } = await getConnection().resolve();
-        await getConnection().release(token);
-        await getConnection().release(token); // second call must be a no-op (close()+kill())
+        const { token } = await getConnection(pool).resolve();
+        await getConnection(pool).release(token);
+        await getConnection(pool).release(token); // second call must be a no-op (close()+kill())
 
         expect(release).toHaveBeenCalledTimes(1);
         expect(release).toHaveBeenCalledWith({ endpoint: 'wss://remote:9222', context: { id: 'sess-1' } });
@@ -110,10 +115,13 @@ describe('RemoteBrowserPool — release lifecycle', () => {
 
     it('releases a browser session when its controller closes', async () => {
         const release = vi.fn();
-        const { plugin, getConnection } = createCapturingPlugin();
-        const pool = new RemoteBrowserPool({ browserPlugins: [plugin], endpoint: 'wss://remote:9222', release });
+        const pool = new RemoteBrowserPool({
+            browserPlugins: [createPlugin()],
+            endpoint: 'wss://remote:9222',
+            release,
+        });
 
-        const { token } = await getConnection().resolve();
+        const { token } = await getConnection(pool).resolve();
 
         // Mimic the inner pool launching a controller, then that controller closing.
         const controller: any = new EventEmitter();
@@ -128,11 +136,14 @@ describe('RemoteBrowserPool — release lifecycle', () => {
 
     it('releases all still-open sessions on destroy()', async () => {
         const release = vi.fn();
-        const { plugin, getConnection } = createCapturingPlugin();
-        const pool = new RemoteBrowserPool({ browserPlugins: [plugin], endpoint: 'wss://remote:9222', release });
+        const pool = new RemoteBrowserPool({
+            browserPlugins: [createPlugin()],
+            endpoint: 'wss://remote:9222',
+            release,
+        });
 
-        await getConnection().resolve();
-        await getConnection().resolve();
+        await getConnection(pool).resolve();
+        await getConnection(pool).resolve();
 
         await pool.destroy();
 
@@ -143,11 +154,14 @@ describe('RemoteBrowserPool — release lifecycle', () => {
         const release = vi.fn(() => {
             throw new Error('release boom');
         });
-        const { plugin, getConnection } = createCapturingPlugin();
-        const pool = new RemoteBrowserPool({ browserPlugins: [plugin], endpoint: 'wss://remote:9222', release });
+        const pool = new RemoteBrowserPool({
+            browserPlugins: [createPlugin()],
+            endpoint: 'wss://remote:9222',
+            release,
+        });
 
-        const { token } = await getConnection().resolve();
-        await expect(getConnection().release(token)).resolves.toBeUndefined();
+        const { token } = await getConnection(pool).resolve();
+        await expect(getConnection(pool).release(token)).resolves.toBeUndefined();
         await pool.destroy();
     });
 });
@@ -161,24 +175,22 @@ describe('RemoteBrowserPool — RemoteBrowserProvider endpoint', () => {
 
     it('wires connect/release and adopts the provider maxOpenBrowsers', async () => {
         const provider = new TestProvider();
-        const { plugin, getConnection } = createCapturingPlugin();
-        const pool = new RemoteBrowserPool({ browserPlugins: [plugin], endpoint: provider });
+        const pool = new RemoteBrowserPool({ browserPlugins: [createPlugin()], endpoint: provider });
 
         expect(pool.maxOpenBrowsers).toBe(3);
 
-        const { url, token } = await getConnection().resolve({ proxyUrl: 'http://proxy:8080' });
+        const { url, token } = await getConnection(pool).resolve({ proxyUrl: 'http://proxy:8080' });
         expect(url).toBe('wss://provider:9222');
         expect(provider.connect).toHaveBeenCalledWith({ proxyUrl: 'http://proxy:8080' });
 
-        await getConnection().release(token);
+        await getConnection(pool).release(token);
         expect(provider.release).toHaveBeenCalledWith({ id: 'sess-1' });
         await pool.destroy();
     });
 
     it('an explicit maxOpenBrowsers overrides the provider value', async () => {
-        const { plugin } = createCapturingPlugin();
         const pool = new RemoteBrowserPool({
-            browserPlugins: [plugin],
+            browserPlugins: [createPlugin()],
             endpoint: new TestProvider(),
             maxOpenBrowsers: 7,
         });
@@ -190,9 +202,8 @@ describe('RemoteBrowserPool — RemoteBrowserProvider endpoint', () => {
 
 describe('RemoteBrowserPool — maxOpenBrowsers throttle', () => {
     it('proxies maxOpenBrowsers to the wrapped pool', async () => {
-        const { plugin } = createCapturingPlugin();
         const pool = new RemoteBrowserPool({
-            browserPlugins: [plugin],
+            browserPlugins: [createPlugin()],
             endpoint: 'wss://remote:9222',
             maxOpenBrowsers: 2,
         });
@@ -204,9 +215,8 @@ describe('RemoteBrowserPool — maxOpenBrowsers throttle', () => {
     });
 
     it('opens immediately when a browser slot is free', async () => {
-        const { plugin } = createCapturingPlugin();
         const pool = new RemoteBrowserPool({
-            browserPlugins: [plugin],
+            browserPlugins: [createPlugin()],
             endpoint: 'wss://remote:9222',
             maxOpenBrowsers: 2,
         });
@@ -222,9 +232,8 @@ describe('RemoteBrowserPool — maxOpenBrowsers throttle', () => {
     });
 
     it('waits while at capacity, then opens once a browser is retired', async () => {
-        const { plugin } = createCapturingPlugin();
         const pool = new RemoteBrowserPool({
-            browserPlugins: [plugin],
+            browserPlugins: [createPlugin()],
             endpoint: 'wss://remote:9222',
             maxOpenBrowsers: 1,
             slotPollIntervalMillis: 50,
