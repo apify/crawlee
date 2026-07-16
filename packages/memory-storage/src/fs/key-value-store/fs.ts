@@ -1,6 +1,5 @@
 import { readFile, rm } from 'node:fs/promises';
-import { dirname } from 'node:path';
-import { basename } from 'node:path/win32';
+import { basename, dirname } from 'node:path';
 
 import { AsyncQueue } from '@sapphire/async-queue';
 import { ensureDir } from 'fs-extra';
