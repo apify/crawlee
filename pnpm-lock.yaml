@@ -16,6 +16,7 @@ overrides:
   apify>@crawlee/utils: workspace:*
 
 patchedDependencies:
+  '@apify/timeout@0.3.3': c16d1f0a4d52349e629159046f9dcdf9aa338f02a6d19c2e4e28d50602570baf
   '@docusaurus/core@3.9.2': 7e95e0e59f770d24c0e51e1e2635b0a25edf33b38938162fa8c69ab42d38b1fb
 
 importers:
@@ -289,7 +290,7 @@ importers:
     dependencies:
       '@apify/timeout':
         specifier: ^0.3.2
-        version: 0.3.3
+        version: 0.3.3(patch_hash=c16d1f0a4d52349e629159046f9dcdf9aa338f02a6d19c2e4e28d50602570baf)
       '@apify/utilities':
         specifier: ^2.15.5
         version: 2.27.0
@@ -332,7 +333,7 @@ importers:
     dependencies:
       '@apify/timeout':
         specifier: ^0.3.2
-        version: 0.3.3
+        version: 0.3.3(patch_hash=c16d1f0a4d52349e629159046f9dcdf9aa338f02a6d19c2e4e28d50602570baf)
       '@crawlee/basic':
         specifier: workspace:*
         version: link:../basic-crawler
@@ -365,7 +366,7 @@ importers:
     dependencies:
       '@apify/timeout':
         specifier: ^0.3.2
-        version: 0.3.3
+        version: 0.3.3(patch_hash=c16d1f0a4d52349e629159046f9dcdf9aa338f02a6d19c2e4e28d50602570baf)
       '@crawlee/core':
         specifier: workspace:*
         version: link:../core
@@ -467,7 +468,7 @@ importers:
         version: 2.0.76
       '@apify/timeout':
         specifier: ^0.3.2
-        version: 0.3.3
+        version: 0.3.3(patch_hash=c16d1f0a4d52349e629159046f9dcdf9aa338f02a6d19c2e4e28d50602570baf)
       '@apify/utilities':
         specifier: ^2.15.5
         version: 2.27.0
@@ -620,7 +621,7 @@ importers:
     dependencies:
       '@apify/timeout':
         specifier: ^0.3.2
-        version: 0.3.3
+        version: 0.3.3(patch_hash=c16d1f0a4d52349e629159046f9dcdf9aa338f02a6d19c2e4e28d50602570baf)
       '@apify/utilities':
         specifier: ^2.15.5
         version: 2.27.0
@@ -686,7 +687,7 @@ importers:
     dependencies:
       '@apify/timeout':
         specifier: ^0.3.0
-        version: 0.3.3
+        version: 0.3.3(patch_hash=c16d1f0a4d52349e629159046f9dcdf9aa338f02a6d19c2e4e28d50602570baf)
       '@apify/utilities':
         specifier: ^2.7.10
         version: 2.27.0
@@ -719,7 +720,7 @@ importers:
     dependencies:
       '@apify/timeout':
         specifier: ^0.3.2
-        version: 0.3.3
+        version: 0.3.3(patch_hash=c16d1f0a4d52349e629159046f9dcdf9aa338f02a6d19c2e4e28d50602570baf)
       '@apify/utilities':
         specifier: ^2.15.5
         version: 2.27.0
@@ -752,7 +753,7 @@ importers:
         version: 2.0.4
       '@apify/timeout':
         specifier: ^0.3.2
-        version: 0.3.3
+        version: 0.3.3(patch_hash=c16d1f0a4d52349e629159046f9dcdf9aa338f02a6d19c2e4e28d50602570baf)
       '@crawlee/basic':
         specifier: workspace:*
         version: link:../basic-crawler
@@ -848,7 +849,7 @@ importers:
     dependencies:
       '@apify/timeout':
         specifier: ^0.3.2
-        version: 0.3.3
+        version: 0.3.3(patch_hash=c16d1f0a4d52349e629159046f9dcdf9aa338f02a6d19c2e4e28d50602570baf)
       '@crawlee/browser':
         specifier: workspace:*
         version: link:../browser-crawler
@@ -13100,7 +13101,7 @@ snapshots:
     dependencies:
       '@apify/log': 2.5.35
 
-  '@apify/timeout@0.3.3': {}
+  '@apify/timeout@0.3.3(patch_hash=c16d1f0a4d52349e629159046f9dcdf9aa338f02a6d19c2e4e28d50602570baf)': {}
 
   '@apify/tsconfig@0.1.2': {}
 
@@ -18032,7 +18033,7 @@ snapshots:
       '@apify/consts': 2.52.1
       '@apify/input_secrets': 1.2.30
       '@apify/log': 2.5.35
-      '@apify/timeout': 0.3.3
+      '@apify/timeout': 0.3.3(patch_hash=c16d1f0a4d52349e629159046f9dcdf9aa338f02a6d19c2e4e28d50602570baf)
       '@apify/utilities': 2.27.0
       '@crawlee/core': link:packages/core
       '@crawlee/types': link:packages/types

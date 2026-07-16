@@ -85,6 +85,7 @@ export class StagehandCrawler<ContextExtension = Dictionary<never>, ExtendedCont
         stagehandOptions: ObjectPredicate<object> & BasePredicate<object | undefined>;
         browserPoolOptions: ObjectPredicate<object> & BasePredicate<object | undefined>;
         navigationTimeoutSecs: NumberPredicate & BasePredicate<number | undefined>;
+        navigationHooksTimeoutSecs: NumberPredicate & BasePredicate<number | undefined>;
         preNavigationHooks: ArrayPredicate<unknown> & BasePredicate<unknown[] | undefined>;
         postNavigationHooks: ArrayPredicate<unknown> & BasePredicate<unknown[] | undefined>;
         launchContext: ObjectPredicate<object> & BasePredicate<object | undefined>;

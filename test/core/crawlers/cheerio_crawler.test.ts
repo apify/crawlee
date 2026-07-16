@@ -387,6 +387,96 @@ describe('CheerioCrawler', () => {
                 );
             });
         });
+
+        test('after navigationHooksTimeoutSecs in a pre-navigation hook', async () => {
+            const failed: Request[] = [];
+            const requestList = await getExampleRequestList();
+            const requestHandler = vi.fn();
+
+            const cheerioCrawler = new CheerioCrawler({
+                requestList,
+                navigationHooksTimeoutSecs: 0.1,
+                maxRequestRetries: 1,
+                minConcurrency: 2,
+                maxConcurrency: 2,
+                preNavigationHooks: [async () => sleep(2000)],
+                requestHandler,
+                failedRequestHandler: ({ request }) => {
+                    failed.push(request);
+                },
+            });
+
+            await cheerioCrawler.run();
+
+            expect(requestHandler).not.toHaveBeenCalled();
+            expect(failed).toHaveLength(4);
+
+            failed.forEach((request) => {
+                expect(request.errorMessages).toHaveLength(2);
+
+                request.errorMessages.forEach((message) => {
+                    expect(message).toMatch('navigationHook timed out');
+                    // the hook is not the handler, and it is not the navigation either
+                    expect(message).not.toMatch('requestHandler timed out');
+                    expect(message).not.toMatch('request timed out');
+                });
+            });
+        });
+
+        test('after navigationHooksTimeoutSecs in a post-navigation hook', async () => {
+            const failed: Request[] = [];
+            const requestList = await getExampleRequestList();
+            const requestHandler = vi.fn();
+
+            const cheerioCrawler = new CheerioCrawler({
+                requestList,
+                navigationHooksTimeoutSecs: 0.1,
+                maxRequestRetries: 1,
+                minConcurrency: 2,
+                maxConcurrency: 2,
+                postNavigationHooks: [async () => sleep(2000)],
+                requestHandler,
+                failedRequestHandler: ({ request }) => {
+                    failed.push(request);
+                },
+            });
+
+            await cheerioCrawler.run();
+
+            expect(requestHandler).not.toHaveBeenCalled();
+            expect(failed).toHaveLength(4);
+
+            failed.forEach((request) => {
+                request.errorMessages.forEach((message) => {
+                    expect(message).toMatch('navigationHook timed out');
+                });
+            });
+        });
+
+        test('navigation hooks that finish in time do not affect the handler timeout', async () => {
+            const processed: Request[] = [];
+            const requestList = await getExampleRequestList();
+
+            const cheerioCrawler = new CheerioCrawler({
+                requestList,
+                // the hooks eat 300ms in total, which must not be charged to the 1s handler window
+                navigationHooksTimeoutSecs: 1,
+                requestHandlerTimeoutSecs: 1,
+                maxRequestRetries: 0,
+                minConcurrency: 2,
+                maxConcurrency: 2,
+                preNavigationHooks: [async () => sleep(150)],
+                postNavigationHooks: [async () => sleep(150)],
+                requestHandler: async ({ request }) => {
+                    await sleep(700);
+                    processed.push(request);
+                },
+            });
+
+            await cheerioCrawler.run();
+
+            expect(processed).toHaveLength(4);
+        });
     });
 
     describe('should not timeout by the default httpRequest timeoutSecs', () => {

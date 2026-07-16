@@ -313,6 +313,11 @@ export class AdaptivePlaywrightCrawler<
             errorHandler,
             failedRequestHandler,
             requestHandler,
+            // one request can run the handler twice in sequence - the static attempt falling through to the
+            // browser, or the browser run followed by a rendering type detection - and each run gets its own
+            // window. The base class only uses this to size the timeouts that bound the request as a whole, so
+            // it has to account for both runs; the individual window is applied in `runRequestHandler` below.
+            requestHandlerTimeoutSecs: requestHandlerTimeoutSecs * 2,
             contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),
         });
         this.individualRequestHandlerTimeoutMillis = requestHandlerTimeoutSecs * 1000;
@@ -544,6 +549,13 @@ export class AdaptivePlaywrightCrawler<
                 }
             };
 
+            // this crawler overrides `runRequestHandler` and times each rendering-type run itself, so it has
+            // to resolve any per-route override too - otherwise routes would be silently ignored here
+            const timeoutMillis = this.resolveRequestHandlerTimeoutMillis(
+                context.request,
+                this.individualRequestHandlerTimeoutMillis,
+            );
+
             await addTimeoutToPromise(
                 async () =>
                     withCheckedStorageAccess(() => {
@@ -553,7 +565,7 @@ export class AdaptivePlaywrightCrawler<
                             );
                         }
                     }, callAdaptiveRequestHandler),
-                this.individualRequestHandlerTimeoutMillis,
+                timeoutMillis,
                 'Request handler timed out',
             );
 

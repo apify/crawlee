@@ -187,6 +187,7 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
     // (undocumented)
     protected requestHandlerTimeoutMillis: number;
     protected requestManager?: IRequestManager;
+    protected resolveRequestHandlerTimeoutMillis(request: Request_2, fallbackMillis?: number): number;
     // (undocumented)
     protected respectRobotsTxtFile: boolean | {
         userAgent?: string;

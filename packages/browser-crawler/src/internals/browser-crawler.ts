@@ -45,7 +45,7 @@ import { CLOUDFLARE_RETRY_CSS_SELECTORS, RETRY_CSS_SELECTORS, sleep } from '@cra
 import ow from 'ow';
 import type { ReadonlyDeep } from 'type-fest';
 
-import { tryCancel } from '@apify/timeout';
+import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 
 import type { BrowserLaunchContext } from './browser-launcher.js';
 
@@ -250,6 +250,14 @@ export interface BrowserCrawlerOptions<
     navigationTimeoutSecs?: number;
 
     /**
+     * Timeout in which a single `preNavigationHooks` or `postNavigationHooks` function needs to finish,
+     * given in seconds. Each hook gets its own window, separate from {@apilink BrowserCrawlerOptions.navigationTimeoutSecs|`navigationTimeoutSecs`}
+     * and {@apilink BasicCrawlerOptions.requestHandlerTimeoutSecs|`requestHandlerTimeoutSecs`}.
+     * @default 60
+     */
+    navigationHooksTimeoutSecs?: number;
+
+    /**
      * Defines whether the cookies should be persisted for sessions. Enabled by default.
      */
     saveResponseCookies?: boolean;
@@ -348,6 +356,7 @@ export abstract class BrowserCrawler<
     protected readonly ignoreIframes: boolean;
 
     protected navigationTimeoutMillis: number;
+    protected navigationHooksTimeoutMillis: number;
     protected preNavigationHooks: BrowserHook<Context>[];
     protected postNavigationHooks: BrowserHook<Context>[];
     protected saveResponseCookies: boolean;
@@ -356,6 +365,7 @@ export abstract class BrowserCrawler<
         ...BasicCrawler.optionsShape,
 
         navigationTimeoutSecs: ow.optional.number.greaterThan(0),
+        navigationHooksTimeoutSecs: ow.optional.number.greaterThan(0),
         preNavigationHooks: ow.optional.array,
         postNavigationHooks: ow.optional.array,
 
@@ -379,6 +389,7 @@ export abstract class BrowserCrawler<
         ow(options, 'BrowserCrawlerOptions', ow.object.exactShape(BrowserCrawler.optionsShape));
         const {
             navigationTimeoutSecs = 60,
+            navigationHooksTimeoutSecs = 60,
             saveResponseCookies = true,
             launchContext = {},
             browserPool,
@@ -403,16 +414,29 @@ export abstract class BrowserCrawler<
         super({
             ...basicCrawlerOptions,
             contextPipelineBuilder: () => {
+                // each hook gets its own window, so a hook that hangs is reported as such instead of stalling
+                // the request forever - navigation and the request handler are timed separately
+                const hookGuard = <Ctx extends Context>(
+                    hook: (ctx: Ctx) => Awaitable<void | Partial<Ctx>>,
+                ): ContextMiddleware<Ctx, Partial<Ctx>> =>
+                    skipGuard(async (ctx: Ctx) =>
+                        addTimeoutToPromise(
+                            async () => hook(ctx),
+                            this.navigationHooksTimeoutMillis,
+                            `navigationHook timed out after ${this.navigationHooksTimeoutMillis / 1000} seconds.`,
+                        ),
+                    );
+
                 let pipeline = contextPipelineBuilder().compose({ action: this.prepareNavigation.bind(this) });
 
                 for (const hook of this.preNavigationHooks) {
-                    pipeline = pipeline.compose(skipGuard(hook));
+                    pipeline = pipeline.compose(hookGuard(hook));
                 }
 
                 pipeline = pipeline.compose(skipGuard(this.navigate.bind(this)));
 
                 for (const hook of this.postNavigationHooks) {
-                    pipeline = pipeline.compose(skipGuard(hook));
+                    pipeline = pipeline.compose(hookGuard(hook));
                 }
 
                 return pipeline
@@ -425,6 +449,7 @@ export abstract class BrowserCrawler<
 
         this.launchContext = launchContext;
         this.navigationTimeoutMillis = navigationTimeoutSecs * 1000;
+        this.navigationHooksTimeoutMillis = navigationHooksTimeoutSecs * 1000;
         this.preNavigationHooks = preNavigationHooks;
         this.postNavigationHooks = postNavigationHooks;
         this.ignoreIframes = ignoreIframes;

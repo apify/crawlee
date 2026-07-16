@@ -15,6 +15,21 @@ export interface RouterHandler<
 
 export type GetUserDataFromRequest<T> = T extends Request<infer Y> ? Y : never;
 
+/**
+ * Per-route overrides, passed as the last argument of {@apilink Router.addHandler|`addHandler`} and
+ * {@apilink Router.addDefaultHandler|`addDefaultHandler`}.
+ */
+export interface RouteOptions {
+    /**
+     * Overrides the crawler's `requestHandlerTimeoutSecs` for this route only. Useful when one kind of page
+     * needs markedly more time than the rest - a listing page behind an infinite scroll, say - and you do not
+     * want to raise the timeout for every other page to accommodate it.
+     *
+     * Applies only to this route's handler. The navigation and the navigation hooks keep their own timeouts.
+     */
+    requestHandlerTimeoutSecs?: number;
+}
+
 export type RouterRoutes<Context, UserData extends Dictionary> = {
     [label in string | symbol]: (ctx: Omit<Context, 'request'> & { request: Request<UserData> }) => Awaitable<void>;
 };
@@ -83,9 +98,30 @@ export type RouterRoutes<Context, UserData extends Dictionary> = {
  *    ctx.log.info('...');
  * });
  * ```
+ *
+ * A single route can take longer than the rest without raising the crawler-wide
+ * `requestHandlerTimeoutSecs` for everything - pass a per-route timeout as the last argument:
+ *
+ * ```ts
+ * // LIST pages scroll through a lot of content, DETAIL pages are quick
+ * router.addHandler('LIST', async (ctx) => { ... }, { requestHandlerTimeoutSecs: 120 });
+ * router.addHandler('DETAIL', async (ctx) => { ... }); // keeps the crawler's default
+ * ```
+ *
+ * When the time a route needs is only apparent once it is already running, call
+ * {@apilink CrawlingContext.extendTimeout|`context.extendTimeout`} from inside the handler:
+ *
+ * ```ts
+ * router.addHandler('LIST', async ({ page, extendTimeout }) => {
+ *     const pageCount = await countPages(page);
+ *     extendTimeout(pageCount * 10); // ask for 10 more seconds per page
+ *     await scrapeAllPages(page);
+ * });
+ * ```
  */
 export class Router<Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'>> {
     private readonly routes: Map<string | symbol, (ctx: any) => Awaitable<void>> = new Map();
+    private readonly timeouts: Map<string | symbol, number> = new Map();
     private readonly middlewares: ((ctx: Context) => Awaitable<void>)[] = [];
 
     /**
@@ -95,24 +131,36 @@ export class Router<Context extends Omit<RestrictedCrawlingContext, 'enqueueLink
     protected constructor() {}
 
     /**
-     * Registers new route handler for given label.
+     * Registers new route handler for given label. Pass {@apilink RouteOptions|`options`} to give this route
+     * its own `requestHandlerTimeoutSecs`, overriding the crawler's default for requests with this label.
      */
     addHandler<UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(
         label: string | symbol,
         handler: (ctx: Omit<Context, 'request'> & { request: LoadedRequest<Request<UserData>> }) => Awaitable<void>,
+        options: RouteOptions = {},
     ) {
         this.validate(label);
         this.routes.set(label, handler);
+
+        if (options.requestHandlerTimeoutSecs !== undefined) {
+            this.timeouts.set(label, options.requestHandlerTimeoutSecs);
+        }
     }
 
     /**
-     * Registers default route handler.
+     * Registers default route handler. Pass {@apilink RouteOptions|`options`} to give the default route its
+     * own `requestHandlerTimeoutSecs`, overriding the crawler's default for requests that fall through to it.
      */
     addDefaultHandler<UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(
         handler: (ctx: Omit<Context, 'request'> & { request: LoadedRequest<Request<UserData>> }) => Awaitable<void>,
+        options: RouteOptions = {},
     ) {
         this.validate(defaultRoute);
         this.routes.set(defaultRoute, handler);
+
+        if (options.requestHandlerTimeoutSecs !== undefined) {
+            this.timeouts.set(defaultRoute, options.requestHandlerTimeoutSecs);
+        }
     }
 
     /**
@@ -121,6 +169,28 @@ export class Router<Context extends Omit<RestrictedCrawlingContext, 'enqueueLink
      */
     use(middleware: (ctx: Context) => Awaitable<void>) {
         this.middlewares.push(middleware);
+    }
+
+    /**
+     * Returns the `requestHandlerTimeoutSecs` registered for a label, or `undefined` when the route did not
+     * override it and the crawler's own timeout should apply. Falls back to the default route the same way
+     * {@apilink Router.getHandler|`getHandler`} does, so a label with no route of its own inherits whatever
+     * the default route asked for. Used by the crawler; not meant to be called directly.
+     */
+    getTimeoutSecs(label?: string | symbol): number | undefined {
+        if (label && this.routes.has(label)) {
+            return this.timeouts.get(label);
+        }
+
+        return this.timeouts.get(defaultRoute);
+    }
+
+    /**
+     * The longest `requestHandlerTimeoutSecs` any route asked for, or `undefined` when no route overrides it.
+     * The crawler needs an upper bound up front, before it knows which routes a run will actually hit.
+     */
+    getMaxTimeoutSecs(): number | undefined {
+        return this.timeouts.size > 0 ? Math.max(...this.timeouts.values()) : undefined;
     }
 
     /**
@@ -185,6 +255,8 @@ export class Router<Context extends Omit<RestrictedCrawlingContext, 'enqueueLink
         obj.addHandler = router.addHandler.bind(router);
         obj.addDefaultHandler = router.addDefaultHandler.bind(router);
         obj.getHandler = router.getHandler.bind(router);
+        obj.getTimeoutSecs = router.getTimeoutSecs.bind(router);
+        obj.getMaxTimeoutSecs = router.getMaxTimeoutSecs.bind(router);
         obj.use = router.use.bind(router);
 
         for (const [label, handler] of Object.entries(routes ?? {})) {

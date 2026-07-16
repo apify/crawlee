@@ -83,7 +83,7 @@ import { getDomain } from 'tldts';
 import type { ReadonlyDeep, SetRequired } from 'type-fest';
 
 import { LruCache } from '@apify/datastructures';
-import { addTimeoutToPromise, TimeoutError } from '@apify/timeout';
+import { addTimeoutToPromise, extendTimeout, TimeoutError } from '@apify/timeout';
 import { cryptoRandomObjectId } from '@apify/utilities';
 
 import { createSendRequest } from './send-request.js';
@@ -122,6 +122,17 @@ export interface BasicCrawlingContext<UserData extends Dictionary = Dictionary> 
 const SAFE_MIGRATION_WAIT_MILLIS = 20000;
 
 const deferredCleanupKey = Symbol('deferredCleanup');
+
+/**
+ * Lets `context.extendTimeout` push back the internal backstop as well. The backstop is a bare timer rather
+ * than an `addTimeoutToPromise` frame, so `extendTimeout` from `@apify/timeout` cannot reach it on its own.
+ */
+const extendBackstopKey = Symbol('extendBackstop');
+
+/** The in-flight context, carrying the backstop extender that {@apilink BasicCrawler.withRequestBackstop} hangs on it. */
+type PendingCrawlingContext = { request: Request } & Partial<CrawlingContext> & {
+        [extendBackstopKey]?: (extraMillis: number) => void;
+    };
 
 export type RequestHandler<Context extends CrawlingContext = CrawlingContext> = (inputs: Context) => Awaitable<void>;
 
@@ -941,9 +952,19 @@ export class BasicCrawler<
 
                     const crawlingContext = { request } as { request: Request } & Partial<CrawlingContext>;
                     try {
-                        await this.basicContextPipeline
-                            .chain(this.contextPipeline)
-                            .call(crawlingContext, (ctx) => this.handleRequest(ctx, source, request));
+                        // Navigation, the navigation hooks and the request handler are timed individually, but the
+                        // phases between them are not, so a request could still get stuck indefinitely. This is the
+                        // backstop for that - it is not any single phase's timeout, and it does not blame one.
+                        //
+                        // Deliberately a bare timer rather than `addTimeoutToPromise`: that shares one `AbortController`
+                        // with everything nested inside it, so the request handler timing out would abort this context
+                        // too, and the error handling that follows it would be cancelled before it could run.
+                        await this.withRequestBackstop(
+                            crawlingContext,
+                            this.basicContextPipeline
+                                .chain(this.contextPipeline)
+                                .call(crawlingContext, (ctx) => this.handleRequest(ctx, source, request)),
+                        );
                     } catch (error) {
                         // ContextPipelineInterruptedError means the request was intentionally skipped
                         // (e.g., doesn't match enqueue strategy after redirect). Just return gracefully.
@@ -959,9 +980,12 @@ export class BasicCrawler<
                         }
 
                         // If the error happened during pipeline initialization (e.g., navigation timeout, session/proxy error,
-                        // i.e. not in user's requestHandler), handle it through the normal error flow.
+                        // i.e. not in user's requestHandler), handle it through the normal error flow. A bare `TimeoutError`
+                        // here is the internal timeout above firing - anything else thrown inside the pipeline arrives wrapped.
                         const isPipelineError =
-                            error instanceof ContextPipelineInitializationError || error instanceof SessionError;
+                            error instanceof ContextPipelineInitializationError ||
+                            error instanceof SessionError ||
+                            error instanceof TimeoutError;
                         if (isPipelineError) {
                             const unwrappedError = this.unwrapError(error);
 
@@ -1062,7 +1086,7 @@ export class BasicCrawler<
         return ContextPipeline.create<{ request: Request }>()
             .compose({ action: this.checkRobotsTxt.bind(this) })
             .compose({
-                action: () => this.createBaseContext(),
+                action: (context) => this.createBaseContext(context),
                 cleanup: async (context) => {
                     await Promise.all(context[deferredCleanupKey].map((fn) => fn()));
                 },
@@ -1097,7 +1121,7 @@ export class BasicCrawler<
         return ContextPipeline.create<CrawlingContext>();
     }
 
-    private createBaseContext() {
+    private createBaseContext(context: PendingCrawlingContext) {
         const deferredCleanup: (() => Promise<unknown>)[] = [];
 
         return {
@@ -1108,6 +1132,14 @@ export class BasicCrawler<
             getKeyValueStore: async (identifier?: string | StorageIdentifier) => KeyValueStore.open(identifier),
             registerDeferredCleanup: (cleanup: () => Promise<unknown>) => {
                 deferredCleanup.push(cleanup);
+            },
+            extendTimeout: (secs: number) => {
+                const extraMillis = secs * 1000;
+
+                // the request handler's own window...
+                extendTimeout(extraMillis);
+                // ...and the backstop around the whole request, which is not an `addTimeoutToPromise` frame
+                context[extendBackstopKey]?.(extraMillis);
             },
             [deferredCleanupKey]: deferredCleanup,
         };
@@ -1483,9 +1515,13 @@ export class BasicCrawler<
      * regardless of whether the manager is a plain {@apilink RequestQueue} or a `RequestManagerTandem`.
      */
     private async applyRequestManagerTimeouts(requestManager: IRequestManager): Promise<void> {
-        await requestManager.setExpectedRequestProcessingTimeSecs?.(
-            Math.max(this.requestHandlerTimeoutMillis / 1000 + 5, 60),
-        );
+        // A router route may hold a request for longer than the crawler's own timeout, and we cannot know
+        // which routes a run will hit, so reserve for the longest one any route asked for. The hint is
+        // raise-only, so erring high here is safe.
+        const maxRouteTimeoutSecs = (this.requestHandler as Partial<RouterHandler>).getMaxTimeoutSecs?.() ?? 0;
+        const handlerTimeoutSecs = Math.max(this.requestHandlerTimeoutMillis / 1000, maxRouteTimeoutSecs);
+
+        await requestManager.setExpectedRequestProcessingTimeSecs?.(Math.max(handlerTimeoutSecs + 5, 60));
     }
 
     async useState<State extends Dictionary = Dictionary>(defaultValue = {} as State): Promise<State> {
@@ -1749,11 +1785,97 @@ export class BasicCrawler<
         await this._loadHandledRequestCount();
     }
 
+    /**
+     * Races the request against {@apilink BasicCrawler.internalTimeoutMillis|`internalTimeoutMillis`}, so that a
+     * request stuck in a phase that has no timeout of its own (anything that is not the navigation, a navigation
+     * hook or the request handler) still fails instead of stalling the crawler.
+     *
+     * `Promise.race` attaches a handler to both sides, so a late rejection from `work` cannot go unhandled. The
+     * losing side is not cancelled - by definition it is stuck somewhere we do not control.
+     */
+    private async withRequestBackstop(crawlingContext: PendingCrawlingContext, work: Promise<void>): Promise<void> {
+        const { request } = crawlingContext;
+        // `internalTimeoutMillis` is derived from the crawler's own request handler timeout, so a route asking
+        // for more than that could otherwise be cut short by the backstop while still legitimately running.
+        // Only stretch it for routes that actually override the timeout - an explicitly configured internal
+        // timeout must stay exactly as configured.
+        const routeTimeoutMillis = this.getRouteTimeoutMillis(request);
+        const timeoutMillis =
+            routeTimeoutMillis === undefined
+                ? this.internalTimeoutMillis
+                : Math.max(this.internalTimeoutMillis, routeTimeoutMillis * 2);
+
+        let timer: NodeJS.Timeout | undefined;
+        let deadline = Date.now() + timeoutMillis;
+        let settled = false;
+
+        const backstop = new Promise<never>((_, reject) => {
+            const fire = () => {
+                settled = true;
+                reject(new TimeoutError(`Request timed out after ${timeoutMillis / 1e3} seconds (${request.id}).`));
+            };
+
+            timer = setTimeout(fire, timeoutMillis);
+
+            // `context.extendTimeout` extends the handler's own window; without this the backstop would cut
+            // the request down anyway, and the extension would have bought nothing
+            crawlingContext[extendBackstopKey] = (extraMillis: number) => {
+                if (settled) {
+                    return;
+                }
+
+                clearTimeout(timer);
+                deadline += extraMillis;
+                timer = setTimeout(fire, Math.max(deadline - Date.now(), 0));
+            };
+        });
+
+        try {
+            await Promise.race([work, backstop]);
+        } finally {
+            settled = true;
+            clearTimeout(timer);
+        }
+    }
+
+    /**
+     * The request handler timeout to apply to this particular request. A router route may override the
+     * crawler's own `requestHandlerTimeoutSecs`; anything else falls back to `fallbackMillis`.
+     *
+     * @param fallbackMillis Timeout to use when no route overrides it. Subclasses that time the handler
+     *   themselves rather than through {@apilink BasicCrawler.runRequestHandler|`runRequestHandler`} pass
+     *   their own, since theirs may differ from the crawler-level one.
+     */
+    protected resolveRequestHandlerTimeoutMillis(
+        request: Request,
+        fallbackMillis = this.requestHandlerTimeoutMillis,
+    ): number {
+        return this.getRouteTimeoutMillis(request) ?? fallbackMillis;
+    }
+
+    /**
+     * The timeout the matching router route asked for, or `undefined` when it did not override one (or the
+     * request handler is not a router at all).
+     */
+    private getRouteTimeoutMillis(request: Request): number | undefined {
+        const getTimeoutSecs = (this.requestHandler as Partial<RouterHandler>).getTimeoutSecs;
+
+        if (typeof getTimeoutSecs !== 'function') {
+            return undefined;
+        }
+
+        const timeoutSecs = getTimeoutSecs(request.label);
+
+        return timeoutSecs === undefined ? undefined : timeoutSecs * 1000;
+    }
+
     protected async runRequestHandler(crawlingContext: ExtendedContext): Promise<void> {
+        const timeoutMillis = this.resolveRequestHandlerTimeoutMillis(crawlingContext.request);
+
         await addTimeoutToPromise(
             async () => this.requestHandler(crawlingContext),
-            this.requestHandlerTimeoutMillis,
-            `requestHandler timed out after ${this.requestHandlerTimeoutMillis / 1000} seconds (${crawlingContext.request.id}).`,
+            timeoutMillis,
+            `requestHandler timed out after ${timeoutMillis / 1000} seconds (${crawlingContext.request.id}).`,
         );
     }
 

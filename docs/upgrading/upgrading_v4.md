@@ -354,6 +354,44 @@ The `KeyValueStore.getPublicUrl` method is now asynchronous and reads the public
 
 The `preNavigationHooks` option in `HttpCrawler` subclasses no longer accepts the `gotOptions` object as a second parameter. Modify the `crawlingContext` fields (e.g. `.request`) directly instead.
 
+## Each phase of a request is timed separately
+
+In v3, navigation ran inside the request handler's time window, and the two options were summed (plus an undocumented 10 second buffer) to form the actual limit. Setting `requestHandlerTimeoutSecs: 60` on a `PlaywrightCrawler` therefore produced errors complaining about 130 seconds.
+
+Each phase is now timed on its own, and each reports itself:
+
+| Option | Covers | Default |
+| --- | --- | --- |
+| `requestHandlerTimeoutSecs` | your `requestHandler` only | 60 |
+| `navigationTimeoutSecs` | the navigation only | 30 (HTTP), 60 (browser) |
+| `navigationHooksTimeoutSecs` | each `preNavigationHooks` / `postNavigationHooks` function | 30 (HTTP), 60 (browser) |
+
+Note the hook timeout is a separate option, not derived from `navigationTimeoutSecs` — raising the navigation timeout does not raise it.
+
+Two things to watch for when upgrading:
+
+- **Navigation hooks are now bounded.** They had no timeout of their own before, so a hook that legitimately takes longer than `navigationHooksTimeoutSecs` will now fail the request. Raise the option if you have a slow hook.
+- **A request can no longer hang forever.** An internal timeout now bounds the whole request, covering the phases that have no timeout of their own (`extendContext`, the robots.txt check, response processing). By default it is deliberately generous — twice the request handler timeout, and never less than 5 minutes — so it only fires when a request is genuinely stuck. Set `CRAWLEE_INTERNAL_TIMEOUT` (in milliseconds) to override it.
+
+## Per-route and per-request handler timeouts
+
+`requestHandlerTimeoutSecs` still applies to every request alike, but a single route can now opt out of it — useful when one page type needs markedly more time than the rest, and you do not want to raise the timeout for everything else to accommodate it:
+
+```ts
+router.addHandler('LIST', async ({ enqueueLinks }) => { ... }, { requestHandlerTimeoutSecs: 120 });
+router.addHandler('DETAIL', async ({ pushData }) => { ... }); // keeps the crawler's default
+```
+
+When the time needed is only apparent once the handler is already running, `context.extendTimeout()` buys it more:
+
+```ts
+router.addHandler('LIST', async ({ page, extendTimeout }) => {
+    const pageCount = await countPages(page);
+    extendTimeout(pageCount * 10);
+    await scrapeAllPages(page);
+});
+```
+
 ## Configuration class redesign
 
 The `Configuration` class has been redesigned for v4. The main changes are:
