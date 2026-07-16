@@ -1170,9 +1170,10 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             return;
         }
 
+        // Resolve the label via its public accessors only — the top-level `label` of a `RequestOptions` or the
+        // `Request.label` getter — rather than reaching into `userData`, where the request happens to store it.
         const target = source as { label?: string; userData?: Dictionary };
-        const requestLabel = target.label ?? target.userData?.label;
-        const schema = getSchema(requestLabel);
+        const schema = getSchema(target.label);
 
         if (!schema) {
             return;
@@ -1180,7 +1181,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         // Store the parsed value rather than the raw input, so the queue holds the same coerced `userData` the
         // handler will see. Assigning through a `Request` instance's setter keeps its internal `__crawlee` meta.
-        target.userData = await validateUserData(requestLabel!, schema, target.userData ?? {});
+        target.userData = await validateUserData(target.label!, schema, target.userData ?? {});
     }
 
     async useState<State extends Dictionary = Dictionary>(defaultValue = {} as State): Promise<State> {
