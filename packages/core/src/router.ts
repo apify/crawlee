@@ -98,6 +98,26 @@ export type RouterRoutes<Context, UserData extends Dictionary> = {
  *    ctx.log.info('...');
  * });
  * ```
+ *
+ * A single route can take longer than the rest without raising the crawler-wide
+ * `requestHandlerTimeoutSecs` for everything - pass a per-route timeout as the last argument:
+ *
+ * ```ts
+ * // LIST pages scroll through a lot of content, DETAIL pages are quick
+ * router.addHandler('LIST', async (ctx) => { ... }, { requestHandlerTimeoutSecs: 120 });
+ * router.addHandler('DETAIL', async (ctx) => { ... }); // keeps the crawler's default
+ * ```
+ *
+ * When the time a route needs is only apparent once it is already running, call
+ * {@apilink CrawlingContext.extendTimeout|`context.extendTimeout`} from inside the handler:
+ *
+ * ```ts
+ * router.addHandler('LIST', async ({ page, extendTimeout }) => {
+ *     const pageCount = await countPages(page);
+ *     extendTimeout(pageCount * 10); // ask for 10 more seconds per page
+ *     await scrapeAllPages(page);
+ * });
+ * ```
  */
 export class Router<Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'>> {
     private readonly routes: Map<string | symbol, (ctx: any) => Awaitable<void>> = new Map();
@@ -111,7 +131,8 @@ export class Router<Context extends Omit<RestrictedCrawlingContext, 'enqueueLink
     protected constructor() {}
 
     /**
-     * Registers new route handler for given label.
+     * Registers new route handler for given label. Pass {@apilink RouteOptions|`options`} to give this route
+     * its own `requestHandlerTimeoutSecs`, overriding the crawler's default for requests with this label.
      */
     addHandler<UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(
         label: string | symbol,
@@ -127,7 +148,8 @@ export class Router<Context extends Omit<RestrictedCrawlingContext, 'enqueueLink
     }
 
     /**
-     * Registers default route handler.
+     * Registers default route handler. Pass {@apilink RouteOptions|`options`} to give the default route its
+     * own `requestHandlerTimeoutSecs`, overriding the crawler's default for requests that fall through to it.
      */
     addDefaultHandler<UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(
         handler: (ctx: Omit<Context, 'request'> & { request: LoadedRequest<Request<UserData>> }) => Awaitable<void>,
