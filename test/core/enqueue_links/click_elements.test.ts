@@ -12,6 +12,7 @@ import {
     RequestQueue,
 } from 'crawlee';
 import type { Browser as PWBrowser, Page as PWPage } from 'playwright';
+// @ts-expect-error This throws a compilation error due to puppeteer 25+ being ESM only but we only import types, so its alllll gooooood
 import type { Browser as PPBrowser, Target } from 'puppeteer';
 
 import { runExampleComServer } from '../../shared/_helper';

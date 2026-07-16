@@ -12,6 +12,7 @@ import {
 import { type CheerioRoot, RobotsTxtFile } from '@crawlee/utils';
 import { load } from 'cheerio';
 import type { Browser as PlaywrightBrowser, Page as PlaywrightPage } from 'playwright';
+// @ts-expect-error This throws a compilation error due to puppeteer 25+ being ESM only but we only import types, so its alllll gooooood
 import type { Browser as PuppeteerBrowser, Page as PuppeteerPage } from 'puppeteer';
 
 import log from '@apify/log';
