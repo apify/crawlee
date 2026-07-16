@@ -49,7 +49,7 @@ export type RegExpInput = RegExp | RegExpObject;
 
 export type SkippedRequestReason = 'robotsTxt' | 'limit' | 'enqueueLimit' | 'filters' | 'redirect' | 'depth';
 
-export type SkippedRequestCallback = (args: { url: string; reason: SkippedRequestReason }) => Awaitable<void>;
+export type SkippedRequestCallback = (args: { request: Request; reason: SkippedRequestReason }) => Awaitable<void>;
 
 /**
  * @ignore
@@ -171,18 +171,18 @@ export function createRequests(
     urlPatternObjects?: UrlPatternObject[],
     excludePatternObjects: UrlPatternObject[] = [],
     strategy?: EnqueueLinksOptions['strategy'],
-    onSkippedUrl?: (url: string) => void,
+    onSkippedRequest?: (request: Request) => void,
 ): Request[] {
     const excludePatternObjectMatchers = excludePatternObjects.map(createPatternObjectMatcher);
     const urlPatternObjectMatchers = urlPatternObjects?.map(createPatternObjectMatcher);
 
     return requestOptions
         .map((opts) => ({ url: typeof opts === 'string' ? opts : opts.url, opts }))
-        .filter(({ url }) => {
+        .filter(({ url, opts }) => {
             const matchesExcludePatterns = excludePatternObjectMatchers.some(({ match }) => match(url));
 
             if (matchesExcludePatterns) {
-                onSkippedUrl?.(url);
+                onSkippedRequest?.(new Request(typeof opts === 'string' ? { url: opts, enqueueStrategy: strategy } : opts));
             }
 
             return !matchesExcludePatterns;
@@ -205,7 +205,7 @@ export function createRequests(
             }
 
             // didn't match any positive pattern
-            onSkippedUrl?.(url);
+            onSkippedRequest?.(new Request(typeof opts === 'string' ? { url: opts, enqueueStrategy: strategy } : opts));
             return null;
         })
         .filter((request) => request) as Request[];
@@ -214,7 +214,7 @@ export function createRequests(
 export function filterRequestsByPatterns(
     requests: Request[],
     patterns?: UrlPatternObject[],
-    onSkippedUrl?: (url: string) => void,
+    onSkippedRequest?: (request: Request) => void,
 ): Request[] {
     if (!patterns?.length) {
         return requests;
@@ -229,7 +229,7 @@ export function filterRequestsByPatterns(
         if (matchingPattern !== undefined) {
             filtered.push(request);
         } else {
-            onSkippedUrl?.(request.url);
+            onSkippedRequest?.(request);
         }
     }
 
