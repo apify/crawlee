@@ -1,8 +1,7 @@
-import { setTimeout } from 'node:timers/promises';
-
 import type { Stagehand } from '@browserbasehq/stagehand';
 import { BrowserController } from '@crawlee/browser-pool';
 import type { Cookie } from '@crawlee/types';
+import { sleep } from '@crawlee/utils';
 import type { Browser as PlaywrightBrowser, BrowserType, LaunchOptions, Page } from 'playwright';
 
 import log from '@apify/log';
@@ -98,7 +97,7 @@ export class StagehandController extends BrowserController<BrowserType, LaunchOp
                 return;
             }
 
-            await setTimeout(25);
+            await sleep(25);
         }
 
         // Stagehand skips registration entirely when it cannot install its helper script into the page's CDP
