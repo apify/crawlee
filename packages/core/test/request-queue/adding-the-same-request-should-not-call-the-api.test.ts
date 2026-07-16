@@ -1,22 +1,22 @@
-import { MemoryStorageClient } from '@crawlee/memory-storage';
-import type { RequestQueueClient } from '@crawlee/types';
+import { MemoryStorageBackend } from '@crawlee/core';
+import type { RequestQueueBackend } from '@crawlee/types';
 import { RequestQueue, serviceLocator } from 'crawlee';
 
-let rqClient: RequestQueueClient;
+let rqClient: RequestQueueBackend;
 
 beforeEach(async () => {
-    const storage = new MemoryStorageClient();
-    serviceLocator.setStorageClient(storage);
-    rqClient = await storage.createRequestQueueClient({ name: 'test-request-queue-not-called-on-cached-request' });
+    const storage = new MemoryStorageBackend();
+    serviceLocator.setStorageBackend(storage);
+    rqClient = await storage.createRequestQueueBackend({ name: 'test-request-queue-not-called-on-cached-request' });
 });
 
 describe('RequestQueue#addRequest should not call the API if the request is already in the queue', () => {
     test('should not call the API if the request is already in the queue', async () => {
         const config = serviceLocator.getConfiguration();
         const rqInfo = await rqClient.getMetadata();
-        const requestQueue = new RequestQueue({ id: rqInfo.id, client: rqClient }, config);
+        const requestQueue = new RequestQueue({ id: rqInfo.id, backend: rqClient }, config);
 
-        const clientSpy = vitest.spyOn(requestQueue.client, 'addBatchOfRequests');
+        const clientSpy = vitest.spyOn(requestQueue.backend, 'addBatchOfRequests');
 
         await requestQueue.addRequest({ url: 'https://example.com' });
 
@@ -37,9 +37,9 @@ describe('RequestQueue#addRequests should not call the API if the request is alr
     test('should not call the API if the request is already in the queue', async () => {
         const config = serviceLocator.getConfiguration();
         const rqInfo = await rqClient.getMetadata();
-        const requestQueue = new RequestQueue({ id: rqInfo.id, client: rqClient }, config);
+        const requestQueue = new RequestQueue({ id: rqInfo.id, backend: rqClient }, config);
 
-        const clientSpy = vitest.spyOn(requestQueue.client, 'addBatchOfRequests');
+        const clientSpy = vitest.spyOn(requestQueue.backend, 'addBatchOfRequests');
 
         await requestQueue.addRequests([{ url: 'https://example2.com' }]);
 

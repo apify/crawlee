@@ -57,7 +57,7 @@ crawler.router.addDefaultHandler(async ({ request }) => {
 await crawler.run(['https://www.example.com/1']);
 ```
 
-If you run this example (assuming you placed the `crawlee.json` file with `persistStateIntervalMillis` and `logLevel` specified there in the root of your project), you will find the `SDK_CRAWLER_STATISTICS` file in default Key-Value store,
+If you run this example (assuming you placed the `crawlee.json` file with `persistStateIntervalMillis` and `logLevel` specified there in the root of your project), you will find the `CRAWLEE_CRAWLER_STATISTICS` file in default Key-Value store,
 which would show, that there's 1 finished request and crawler runtime was ~10 seconds.
 This confirms that the state was persisted after 10 seconds, as it was set in `crawlee.json`.
 Besides, you should see `DEBUG` logs in addition to `INFO` ones in your terminal, as `logLevel` was set to `DEBUG` in the `crawlee.json`, meaning Crawlee picked both provided options correctly.
@@ -137,7 +137,7 @@ The last option to adjust Crawlee configuration is to use the <ApiLink to="core/
 
 ### Global Configuration
 
-By default, there is a global singleton instance of `Configuration` class, it is used by the crawlers and some other classes that depend on a configurable behavior. In most cases you don't need to adjust any options there, but if needed - you can access it via <ApiLink to="core/class/Configuration#getGlobalConfig">`Configuration.getGlobalConfig()`</ApiLink>, which delegates to the global <ApiLink to="core/class/ServiceLocator">`serviceLocator`</ApiLink> — the single source of truth for Crawlee's shared services (for example the configuration, event manager, storage client, and logger). You can also reach the same instance directly via `serviceLocator.getConfiguration()` or swap services globally with `serviceLocator.setConfiguration(...)` before any crawler is created. Configuration values are accessible directly as properties on the instance.
+By default, there is a global singleton instance of `Configuration` class, it is used by the crawlers and some other classes that depend on a configurable behavior. In most cases you don't need to adjust any options there, but if needed - you can access it via <ApiLink to="core/class/Configuration#getGlobalConfig">`Configuration.getGlobalConfig()`</ApiLink>, which delegates to the global <ApiLink to="core/class/ServiceLocator">`serviceLocator`</ApiLink> — the single source of truth for Crawlee's shared services (for example the configuration, event manager, storage backend, and logger). You can also reach the same instance directly via `serviceLocator.getConfiguration()` or swap services globally with `serviceLocator.setConfiguration(...)` before any crawler is created. Configuration values are accessible directly as properties on the instance.
 
 ```js
 import { CheerioCrawler, Configuration, sleep } from 'crawlee';
@@ -174,14 +174,14 @@ crawler.router.addDefaultHandler(async ({ request }) => {
 await crawler.run(['https://www.example.com/1']);
 ```
 
-If you run this example - you will find the `SDK_CRAWLER_STATISTICS` file in default Key-Value store,
+If you run this example - you will find the `CRAWLEE_CRAWLER_STATISTICS` file in default Key-Value store,
 which would show the same number of finished requests (one) and the same crawler runtime (~10 seconds).
 This confirms that provided parameters worked: the state was persisted after 10 seconds, as it was set in the configuration.
 
 :::note
 
 After running the same example without the custom configuration, there will be
-no `SDK_CRAWLER_STATISTICS` file stored in the default Key-Value store:
+no `CRAWLEE_CRAWLER_STATISTICS` file stored in the default Key-Value store:
 as we did not change the `persistStateIntervalMillis`, Crawlee used the default value of 60 seconds,
 and the crawler was forcefully aborted after ~15 seconds of run time before it persisted the state for the first time.
 
@@ -222,13 +222,13 @@ await crawler.run(['https://www.example.com/1']);
 ```
 
 If you run this example - it would work exactly the same as before,
-with the same `SDK_CRAWLER_STATISTICS` file in default Key-Value store after the run,
+with the same `CRAWLEE_CRAWLER_STATISTICS` file in default Key-Value store after the run,
 showing the same number of finished requests and the same crawler run time.
 
 :::note
 
 If you would not pass the configuration to the crawler, there again will be
-no `SDK_CRAWLER_STATISTICS` file stored in the default Key-Value store, this time for a different reason though.
+no `CRAWLEE_CRAWLER_STATISTICS` file stored in the default Key-Value store, this time for a different reason though.
 Since we did not pass the configuration to the crawler,
 the crawler will use the global configuration, which is using the default `persistStateIntervalMillis`.
 So again, the run was aborted before the state was persisted for the first time.

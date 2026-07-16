@@ -3,13 +3,13 @@ import {
     deserializeArray,
     EventType,
     KeyValueStore,
+    MemoryStorageBackend,
     ProxyConfiguration,
     Request,
     RequestList,
     serviceLocator,
 } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
-import { MemoryStorageEmulator } from '../shared/MemoryStorageEmulator.js';
 import { beforeAll, type MockedFunction } from 'vitest';
 
 import log from '@apify/log';
@@ -48,20 +48,18 @@ beforeEach(async () => {
 
 describe('RequestList', () => {
     let ll: number;
-    const emulator = new MemoryStorageEmulator();
     beforeAll(() => {
         ll = log.getLevel();
         log.setLevel(log.LEVELS.ERROR);
     });
 
     beforeEach(async () => {
-        await emulator.init();
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
         vitest.restoreAllMocks();
     });
 
     afterAll(async () => {
         log.setLevel(ll);
-        await emulator.destroy();
     });
 
     test('should not accept to pages with same uniqueKey', async () => {
@@ -566,15 +564,15 @@ describe('RequestList', () => {
             const setValueSpy = vitest.spyOn(KeyValueStore.prototype, 'setValue');
 
             const name = 'xxx';
-            const SDK_KEY = `SDK_${name}`;
+            const CRAWLEE_KEY = `CRAWLEE_${name}`;
             const sources = [{ url: 'https://example.com' }];
 
             const rl = await RequestList.open(name, sources);
             expect(rl).toBeInstanceOf(RequestList);
             // @ts-expect-error accessing private var
-            expect(rl.persistStateKey.startsWith(SDK_KEY)).toBe(true);
+            expect(rl.persistStateKey.startsWith(CRAWLEE_KEY)).toBe(true);
             // @ts-expect-error accessing private var
-            expect(rl.persistRequestsKey.startsWith(SDK_KEY)).toBe(true);
+            expect(rl.persistRequestsKey.startsWith(CRAWLEE_KEY)).toBe(true);
             // @ts-expect-error accessing private var
             expect(rl.sources).toEqual([]);
             // @ts-expect-error accessing private var
@@ -589,16 +587,16 @@ describe('RequestList', () => {
             const setValueSpy = vitest.spyOn(KeyValueStore.prototype, 'setValue');
 
             const name = 'xxx';
-            const SDK_KEY = `SDK_${name}`;
+            const CRAWLEE_KEY = `CRAWLEE_${name}`;
             const sources = ['https://example.com'];
             const requests = sources.map((url) => ({ url, uniqueKey: url }));
 
             const rl = await RequestList.open(name, sources);
             expect(rl).toBeInstanceOf(RequestList);
             // @ts-expect-error accessing private var
-            expect(rl.persistStateKey.startsWith(SDK_KEY)).toBe(true);
+            expect(rl.persistStateKey.startsWith(CRAWLEE_KEY)).toBe(true);
             // @ts-expect-error accessing private var
-            expect(rl.persistRequestsKey.startsWith(SDK_KEY)).toBe(true);
+            expect(rl.persistRequestsKey.startsWith(CRAWLEE_KEY)).toBe(true);
             expect(rl.requests).toEqual(requests);
             // @ts-expect-error accessing private var
             expect(rl.isInitialized).toBe(true);
@@ -612,7 +610,7 @@ describe('RequestList', () => {
             const setValueSpy = vitest.spyOn(KeyValueStore.prototype, 'setValue');
 
             const name = 'xxx';
-            const SDK_KEY = `SDK_${name}`;
+            const CRAWLEE_KEY = `CRAWLEE_${name}`;
             let counter = 0;
             const sources = [{ url: 'https://example.com' }];
             const requests = sources.map(({ url }) => ({ url, uniqueKey: `${url}-${counter++}` }));
@@ -624,9 +622,9 @@ describe('RequestList', () => {
             const rl = await RequestList.open(name, sources, options);
             expect(rl).toBeInstanceOf(RequestList);
             // @ts-expect-error accessing private var
-            expect(rl.persistStateKey.startsWith(SDK_KEY)).toBe(true);
+            expect(rl.persistStateKey.startsWith(CRAWLEE_KEY)).toBe(true);
             // @ts-expect-error accessing private var
-            expect(rl.persistRequestsKey.startsWith(SDK_KEY)).toBe(true);
+            expect(rl.persistRequestsKey.startsWith(CRAWLEE_KEY)).toBe(true);
             expect(rl.requests).toEqual(requests);
             // @ts-expect-error accessing private var
             expect(rl.isInitialized).toBe(true);
@@ -711,4 +709,17 @@ describe('RequestList', () => {
     //     const initMemory = getMemoryInMbytes();
     //     console.log(initMemory, 'MB');
     // });
+});
+
+describe('Request', () => {
+    test('alwaysEnqueue makes requests to the same URL have different unique keys', () => {
+        const request1 = new Request({ url: 'https://example.com', alwaysEnqueue: true });
+        const request2 = new Request({ url: 'https://example.com', alwaysEnqueue: true });
+
+        expect(request1.uniqueKey).not.toBe(request2.uniqueKey);
+    });
+
+    test('alwaysEnqueue throws when combined with a custom uniqueKey', () => {
+        expect(() => new Request({ url: 'https://example.com', uniqueKey: 'custom', alwaysEnqueue: true })).toThrow();
+    });
 });

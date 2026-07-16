@@ -1,23 +1,23 @@
 <h1 align="center">
     <a href="https://crawlee.dev">
         <picture>
-          <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/apify/crawlee/master/website/static/img/crawlee-dark.svg?sanitize=true">
-          <img alt="Crawlee" src="https://raw.githubusercontent.com/apify/crawlee/master/website/static/img/crawlee-light.svg?sanitize=true" width="500">
+          <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/apify/crawlee/master/website/static/img/crawlee-dark.svg?sanitize=true" />
+          <img alt="Crawlee" src="https://raw.githubusercontent.com/apify/crawlee/master/website/static/img/crawlee-light.svg?sanitize=true" width="500" />
         </picture>
     </a>
-    <br>
+    <br />
     <small>A web scraping and browser automation library</small>
 </h1>
 
-<p align=center>
-    <a href="https://trendshift.io/repositories/5179" target="_blank"><img src="https://trendshift.io/api/badge/repositories/5179" alt="apify%2Fcrawlee | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
+<p align="center">
+    <a href="https://trendshift.io/repositories/5179" target="_blank"><img src="https://trendshift.io/api/badge/repositories/5179" alt="apify%2Fcrawlee | Trendshift" width="250" height="55"/></a>
 </p>
 
-<p align=center>
-    <a href="https://www.npmjs.com/package/@crawlee/core" rel="nofollow"><img src="https://img.shields.io/npm/v/@crawlee/core.svg" alt="NPM latest version" data-canonical-src="https://img.shields.io/npm/v/@crawlee/core/next.svg" style="max-width: 100%;"></a>
-    <a href="https://www.npmjs.com/package/@crawlee/core" rel="nofollow"><img src="https://img.shields.io/npm/dm/@crawlee/core.svg" alt="Downloads" data-canonical-src="https://img.shields.io/npm/dm/@crawlee/core.svg" style="max-width: 100%;"></a>
-    <a href="https://discord.gg/jyEM2PRvMU" rel="nofollow"><img src="https://img.shields.io/discord/801163717915574323?label=discord" alt="Chat on discord" data-canonical-src="https://img.shields.io/discord/801163717915574323?label=discord" style="max-width: 100%;"></a>
-    <a href="https://github.com/apify/crawlee/actions/workflows/test-ci.yml"><img src="https://github.com/apify/crawlee/actions/workflows/test-ci.yml/badge.svg?branch=master" alt="Build Status" style="max-width: 100%;"></a>
+<p align="center">
+    <a href="https://www.npmjs.com/package/@crawlee/core" rel="nofollow"><img src="https://img.shields.io/npm/v/@crawlee/core.svg" alt="NPM latest version" data-canonical-src="https://img.shields.io/npm/v/@crawlee/core/next.svg" /></a>
+    <a href="https://www.npmjs.com/package/@crawlee/core" rel="nofollow"><img src="https://img.shields.io/npm/dm/@crawlee/core.svg" alt="Downloads" data-canonical-src="https://img.shields.io/npm/dm/@crawlee/core.svg" /></a>
+    <a href="https://discord.gg/jyEM2PRvMU" rel="nofollow"><img src="https://img.shields.io/discord/801163717915574323?label=discord" alt="Chat on discord" data-canonical-src="https://img.shields.io/discord/801163717915574323?label=discord" /></a>
+    <a href="https://github.com/apify/crawlee/actions/workflows/test-ci.yml"><img src="https://github.com/apify/crawlee/actions/workflows/test-ci.yml/badge.svg?branch=master" alt="Build Status" /></a>
 </p>
 
 Crawlee covers your crawling and scraping end-to-end and **helps you build reliable scrapers. Fast.**

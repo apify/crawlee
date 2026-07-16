@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
+import { KeyValueStore, MemoryStorageBackend, serviceLocator } from '../../packages/core/src/index.js';
 import { RecoverableState } from '../../packages/core/src/recoverable_state.js';
-import { MemoryStorageEmulator } from '../shared/MemoryStorageEmulator.js';
 
 interface TestState {
     counter: number;
@@ -10,14 +10,8 @@ interface TestState {
 }
 
 describe('RecoverableState', () => {
-    const localStorageEmulator = new MemoryStorageEmulator();
-
     beforeEach(async () => {
-        await localStorageEmulator.init();
-    });
-
-    afterEach(async () => {
-        await localStorageEmulator.destroy();
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
     });
 
     const defaultState: TestState = {
@@ -179,10 +173,10 @@ describe('RecoverableState', () => {
         recoverableState.currentValue.data.value = 'updated';
         await recoverableState.persistState();
 
-        const persistedState = JSON.parse(
-            (await (await localStorageEmulator.getKeyValueStore()).getValue('test-key'))?.value,
-        );
-        expect(persistedState).toMatchObject({
+        // RecoverableState persists with a `text/plain` content type on purpose (it owns
+        // (de)serialization), so the frontend hands back the raw serialized string here.
+        const persistedState = await (await KeyValueStore.open()).getValue<string>('test-key');
+        expect(JSON.parse(persistedState!)).toMatchObject({
             data: { value: 'updated' },
         });
 

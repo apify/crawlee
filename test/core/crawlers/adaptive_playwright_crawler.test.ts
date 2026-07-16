@@ -1,18 +1,43 @@
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
-import { Configuration, type Dictionary, EventType, KeyValueStore, serviceLocator } from '@crawlee/core';
+import {
+    BaseCrawleeLogger,
+    type CrawleeLogger,
+    type CrawleeLoggerOptions,
+    Dataset,
+    type Dictionary,
+    EventType,
+    KeyValueStore,
+    MemoryStorageBackend,
+    serviceLocator,
+} from '@crawlee/core';
 import type {
     AdaptivePlaywrightCrawlerContext,
     AdaptivePlaywrightCrawlerOptions,
     LoadedContext,
     Request,
 } from '@crawlee/playwright';
-import { AdaptivePlaywrightCrawler, RenderingTypePredictor, RequestList } from '@crawlee/playwright';
+import { AdaptivePlaywrightCrawler, BasicCrawler, RenderingTypePredictor, RequestList } from '@crawlee/playwright';
 import { sleep } from 'crawlee';
 import express from 'express';
 import { startExpressAppPromise } from '../../shared/_helper.js';
-import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
+
+// A minimal logger that records every message into a shared array. Child loggers share the same
+// array, so messages emitted by the crawler's prefixed child logger are captured as well.
+class RecordingLogger extends BaseCrawleeLogger {
+    constructor(private readonly messages: string[]) {
+        super();
+    }
+
+    logWithLevel(_level: number, message: string): void {
+        this.messages.push(message);
+    }
+
+    protected createChild(_options: Partial<CrawleeLoggerOptions>): CrawleeLogger {
+        return new RecordingLogger(this.messages);
+    }
+}
 
 describe('AdaptivePlaywrightCrawler', () => {
     // Set up an express server that will serve test pages
@@ -95,14 +120,17 @@ describe('AdaptivePlaywrightCrawler', () => {
         server.close();
     });
 
-    // Set up local storage emulator
-    const localStorageEmulator = new MemoryStorageEmulator();
-
     beforeEach(async () => {
-        await localStorageEmulator.init();
-    });
-    afterAll(async () => {
-        await localStorageEmulator.destroy();
+        // The global test setup (`test/vitest.setup.ts`) already calls `serviceLocator.reset()` before
+        // each test, which clears the storage-instance cache; here we just install a fresh in-memory
+        // storage backend for this suite.
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
+        // `BasicCrawler` keeps a process-global instance counter that assigns each crawler a distinct
+        // default request queue (the first one uses the shared default queue, later ones get their own
+        // `__default_<n>__` alias). Since every test wipes storage and starts fresh, the counter must be
+        // reset too — otherwise later crawlers open aliased queues that are out of sync with the freshly
+        // reset storage, and the crawler restores a stale handled-request count and processes nothing.
+        (BasicCrawler as unknown as { instanceCount: number }).instanceCount = 0;
     });
 
     // Test setup helpers
@@ -171,9 +199,39 @@ describe('AdaptivePlaywrightCrawler', () => {
             expect(requestHandler).toHaveBeenCalledTimes(2);
 
             // Check if only one item was added to the dataset
-            expect(await localStorageEmulator.getDatasetItems()).toEqual([{ heading: 'Heading' }]);
+            expect((await Dataset.getData()).items).toEqual([{ heading: 'Heading' }]);
         });
     });
+
+    test.each([['static'], ['clientOnly']] as const)(
+        'should replay request handler logs (%s)',
+        async (renderingType) => {
+            const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                detectionProbabilityRecommendation: 0,
+                renderingType,
+            });
+            const url = new URL(`http://${HOSTNAME}:${port}/static`);
+
+            const messages: string[] = [];
+            const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(async ({ log }) => {
+                log.info('handler log message');
+            });
+
+            const crawler = await makeOneshotCrawler(
+                {
+                    requestHandler,
+                    renderingTypePredictor,
+                    logger: new RecordingLogger(messages),
+                },
+                [url.toString()],
+            );
+
+            await crawler.run();
+
+            expect(requestHandler).toHaveBeenCalled();
+            expect(messages).toContain('handler log message');
+        },
+    );
 
     test('should not store detection results on non-detection runs', async () => {
         const renderingTypePredictor = makeRiggedRenderingTypePredictor({
@@ -384,8 +442,8 @@ describe('AdaptivePlaywrightCrawler', () => {
         );
 
         await crawler.run();
-        const state = await localStorageEmulator.getState();
-        expect(state!.value).toEqual({ count: 3 });
+        // Reading through the KeyValueStore frontend parses the JSON value for us.
+        expect(await (await KeyValueStore.open()).getValue('CRAWLEE_STATE')).toEqual({ count: 3 });
     });
 
     test('should return deeply equal but not identical state objects across handler runs', async () => {
@@ -456,11 +514,12 @@ describe('AdaptivePlaywrightCrawler', () => {
         );
 
         await crawler.run();
-        const store = await localStorageEmulator.getKeyValueStore();
 
-        expect((await store.getValue('1'))!.value).toEqual({ content: 42 });
-        expect((await store.getValue('2'))!.value).toEqual({ content: 42 });
-        expect((await store.getValue('3'))!.value).toEqual({ content: 42 });
+        const store = await KeyValueStore.open();
+
+        await expect(store.getValue('1')).resolves.toEqual({ content: 42 });
+        await expect(store.getValue('2')).resolves.toEqual({ content: 42 });
+        await expect(store.getValue('3')).resolves.toEqual({ content: 42 });
     });
 
     test('should not allow direct key-value store manipulation', async () => {
@@ -493,8 +552,8 @@ describe('AdaptivePlaywrightCrawler', () => {
             'Directly accessing storage in a request handler is not allowed in AdaptivePlaywrightCrawler',
         );
 
-        const store = await localStorageEmulator.getKeyValueStore();
-        expect(await store.getValue('1')).toBeUndefined();
+        const store = await KeyValueStore.open();
+        expect(await store.getValue('1')).toBeNull();
     });
 
     test('should persist RenderingTypePredictor state on PERSIST_STATE events', async () => {

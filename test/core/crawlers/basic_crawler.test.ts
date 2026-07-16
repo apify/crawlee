@@ -19,13 +19,11 @@ import {
     serviceLocator,
     SessionPool,
 } from '@crawlee/basic';
-import { RequestState } from '@crawlee/core';
-import { MemoryStorageClient } from '@crawlee/memory-storage';
+import { MemoryStorageBackend, RequestState } from '@crawlee/core';
 import type { ISession, ProxyInfo } from '@crawlee/types';
 import type { Dictionary } from '@crawlee/utils';
 import { RobotsTxtFile, sleep } from '@crawlee/utils';
 import express from 'express';
-import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
 import type { SetRequired } from 'type-fest';
 import type { Mock } from 'vitest';
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vitest } from 'vitest';
@@ -34,12 +32,16 @@ import log from '@apify/log';
 
 import { startExpressAppPromise } from '../../shared/_helper.js';
 
+type MemoryRequestQueueBackend = Awaited<ReturnType<MemoryStorageBackend['createRequestQueueBackend']>>;
+
 describe('BasicCrawler', () => {
     let logLevel: number;
-    const localStorageEmulator = new MemoryStorageEmulator();
+    let requestQueueBackend: MemoryRequestQueueBackend;
+
     const HOSTNAME = '127.0.0.1';
     let port: number;
     let server: Server;
+
     beforeAll(async () => {
         const app = express();
 
@@ -58,11 +60,9 @@ describe('BasicCrawler', () => {
 
     beforeEach(async () => {
         vitest.clearAllMocks();
-        await localStorageEmulator.init();
-    });
-
-    afterAll(async () => {
-        await localStorageEmulator.destroy();
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
+        const memoryRequestQueue = await RequestQueue.open();
+        requestQueueBackend = memoryRequestQueue.backend as MemoryRequestQueueBackend;
     });
 
     afterAll(async () => {
@@ -85,6 +85,48 @@ describe('BasicCrawler', () => {
         await crawler.run(['https://example.com']);
 
         expect(process.listenerCount('SIGINT')).toBe(count - 1);
+    });
+
+    test('setStatusMessage emits a STATUS_MESSAGE event', async () => {
+        const events = serviceLocator.getEventManager();
+        const received: any[] = [];
+        const listener = (data: any) => received.push(data);
+        events.on(EventType.STATUS_MESSAGE, listener);
+
+        try {
+            const crawler = new BasicCrawler({
+                id: 'my-crawler',
+                requestHandler: () => {},
+            });
+
+            crawler.setStatusMessage('hello there', { level: 'INFO', isStatusMessageTerminal: true });
+
+            expect(received).toEqual([
+                { crawlerId: 'my-crawler', message: 'hello there', level: 'INFO', isStatusMessageTerminal: true },
+            ]);
+        } finally {
+            events.off(EventType.STATUS_MESSAGE, listener);
+        }
+    });
+
+    test('run() broadcasts start and terminal STATUS_MESSAGE events', async () => {
+        const events = serviceLocator.getEventManager();
+        const messages: string[] = [];
+        const listener = (data: any) => messages.push(data.message);
+        events.on(EventType.STATUS_MESSAGE, listener);
+
+        try {
+            const crawler = new BasicCrawler({
+                requestHandler: () => {},
+            });
+
+            await crawler.run(['https://example.com']);
+
+            expect(messages.some((m) => m === 'Starting the crawler.')).toBe(true);
+            expect(messages.some((m) => m.startsWith('Finished!'))).toBe(true);
+        } finally {
+            events.off(EventType.STATUS_MESSAGE, listener);
+        }
     });
 
     test('should run in parallel thru all the requests', async () => {
@@ -156,14 +198,14 @@ describe('BasicCrawler', () => {
         expect(processed).toHaveLength(2);
 
         // Make sure no extra requests were enqueued
-        expect(await localStorageEmulator.getRequestQueueItems()).toEqual([]);
+        await expect(requestQueueBackend.listItems()).resolves.toEqual([]);
 
         // Second run should process 2 more requests
         await crawler.run([...Array(5).keys()].map((index) => `https://example.com/second/${index}`));
         expect(processed).toHaveLength(4);
 
         // Make sure no extra requests were enqueued
-        expect(await localStorageEmulator.getRequestQueueItems()).toEqual([]);
+        await expect(requestQueueBackend.listItems()).resolves.toEqual([]);
 
         const processedUrls = processed.map((p) => p.url);
 
@@ -1287,6 +1329,34 @@ describe('BasicCrawler', () => {
         results[0].errorMessages.forEach((msg) => expect(msg).toMatch('requestHandler timed out'));
     });
 
+    test('timeouted request should not access storages', async () => {
+        const url = 'https://example.com';
+        const requestList = await RequestList.open({ sources: [{ url }] });
+
+        const results: Request[] = [];
+        const crawler = new BasicCrawler({
+            requestList,
+            requestHandlerTimeoutSecs: 0.01,
+            maxRequestRetries: 0,
+            requestHandler: async ({ pushData }) => {
+                await sleep(10);
+                await pushData({ foo: 'bar' });
+            },
+            failedRequestHandler: async ({ request }) => {
+                results.push(request);
+                await sleep(100);
+            },
+        });
+
+        await crawler.run();
+        expect(results).toHaveLength(1);
+        expect(results[0].url).toEqual(url);
+        results[0].errorMessages.forEach((msg) => expect(msg).toMatch('requestHandler timed out'));
+
+        const dataset = await crawler.getDataset();
+        expect((await dataset.getInfo()).itemCount).toBe(0);
+    });
+
     test('limits requestHandlerTimeoutSecs and derived vars to a valid value', async () => {
         const url = 'https://example.com';
         const requestList = await RequestList.open({ sources: [{ url }] });
@@ -1761,7 +1831,7 @@ describe('BasicCrawler', () => {
 
             // Should only have added the first 3 requests (since 2 were already processed, limit allows 3 more)
             expect(addRequestsBatchedSpy).toHaveBeenCalledOnce();
-            await expect(localStorageEmulator.getRequestQueueItems()).resolves.toMatchObject([
+            await expect(requestQueueBackend.listItems()).resolves.toMatchObject([
                 { url: 'http://example.com/1' },
                 { url: 'http://example.com/2' },
                 { url: 'http://example.com/3' },
@@ -1783,7 +1853,7 @@ describe('BasicCrawler', () => {
             // First call - should add 2 requests (2 more slots to go)
             await crawler.addRequests(['http://example.com/1', 'http://example.com/2']);
 
-            await expect(localStorageEmulator.getRequestQueueItems()).resolves.toMatchObject([
+            await expect(requestQueueBackend.listItems()).resolves.toMatchObject([
                 { url: 'http://example.com/1' },
                 { url: 'http://example.com/2' },
             ]);
@@ -1796,7 +1866,7 @@ describe('BasicCrawler', () => {
                 'http://example.com/6', // This should be ignored
             ]);
 
-            await expect(localStorageEmulator.getRequestQueueItems()).resolves.toMatchObject([
+            await expect(requestQueueBackend.listItems()).resolves.toMatchObject([
                 { url: 'http://example.com/1' },
                 { url: 'http://example.com/2' },
                 { url: 'http://example.com/3' },
@@ -1806,7 +1876,7 @@ describe('BasicCrawler', () => {
             // Third call - should add no requests (limit already reached)
             await crawler.addRequests(['http://example.com/7', 'http://example.com/8']);
 
-            await expect(localStorageEmulator.getRequestQueueItems()).resolves.toMatchObject([
+            await expect(requestQueueBackend.listItems()).resolves.toMatchObject([
                 { url: 'http://example.com/1' },
                 { url: 'http://example.com/2' },
                 { url: 'http://example.com/3' },
@@ -1841,7 +1911,7 @@ describe('BasicCrawler', () => {
                 'http://example.com/4', // Would exceed limit
             ]);
 
-            await expect(localStorageEmulator.getRequestQueueItems()).resolves.toMatchObject([
+            await expect(requestQueueBackend.listItems()).resolves.toMatchObject([
                 { url: 'http://example.com/1' },
                 { url: 'http://example.com/3' },
             ]);
@@ -1903,7 +1973,7 @@ describe('BasicCrawler', () => {
                 'http://example.com/my-crawler/anything', // Blocked by robots.txt for all user-agents, but allowed for "MyCrawler"
             ]);
 
-            await expect(localStorageEmulator.getRequestQueueItems()).resolves.toMatchObject(visitedUrls);
+            await expect(requestQueueBackend.listItems()).resolves.toMatchObject(visitedUrls);
 
             // Should only have added the first request (allowed by robots.txt and within limit)
             expect(addRequestsBatchedSpy).toHaveBeenCalledOnce();
@@ -2185,14 +2255,14 @@ describe('BasicCrawler', () => {
             await rm(`${tmpDir}/result.csv`);
         });
 
-        test("Crawlers with different storage clients don't share Datasets", async () => {
-            // Each crawler gets its own MemoryStorageClient instance; every instance has a unique
+        test("Crawlers with different storage backends don't share Datasets", async () => {
+            // Each crawler gets its own MemoryStorageBackend instance; every instance has a unique
             // per-instance cache key, so they end up in separate cache partitions.
-            const storageA = new MemoryStorageClient();
-            const storageB = new MemoryStorageClient();
+            const storageA = new MemoryStorageBackend();
+            const storageB = new MemoryStorageBackend();
 
-            const crawlerA = new BasicCrawler({ storageClient: storageA });
-            const crawlerB = new BasicCrawler({ storageClient: storageB });
+            const crawlerA = new BasicCrawler({ storageBackend: storageA });
+            const crawlerB = new BasicCrawler({ storageBackend: storageB });
 
             await crawlerA.pushData(getPayload('A'));
             await crawlerB.pushData(getPayload('B'));
@@ -2202,17 +2272,17 @@ describe('BasicCrawler', () => {
             expect((await crawlerB.getData()).items).toEqual(getPayload('B'));
         });
 
-        test('Crawlers with different storage clients run separately', async () => {
-            const storageA = new MemoryStorageClient();
-            const storageB = new MemoryStorageClient();
+        test('Crawlers with different storage backends run separately', async () => {
+            const storageA = new MemoryStorageBackend();
+            const storageB = new MemoryStorageBackend();
 
             const crawlerA = new BasicCrawler({
                 requestHandler: () => {},
-                storageClient: storageA,
+                storageBackend: storageA,
             });
             const crawlerB = new BasicCrawler({
                 requestHandler: () => {},
-                storageClient: storageB,
+                storageBackend: storageB,
             });
 
             await crawlerA.run([{ url: `http://${HOSTNAME}:${port}` }]);

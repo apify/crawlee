@@ -1,9 +1,7 @@
 /* eslint-disable dot-notation */
 
-import { ProxyConfiguration, Request, RequestQueue, serviceLocator } from '@crawlee/core';
+import { MemoryStorageBackend, ProxyConfiguration, Request, RequestQueue, serviceLocator } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
-
-import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
 
 let mockHttpClient = vitest.mockObject({
     async sendRequest(_request: any, _options?: any) {
@@ -26,20 +24,14 @@ beforeEach(async () => {
 });
 
 describe('RequestQueue remote', () => {
-    const emulator = new MemoryStorageEmulator();
-
     beforeEach(async () => {
-        await emulator.init();
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
         vitest.clearAllMocks();
     });
 
-    afterEach(async () => {
-        await emulator.destroy();
-    });
-
     async function createRequestQueue(id = 'some-id', name?: string) {
-        const client = await serviceLocator.getStorageClient().createRequestQueueClient(name ? { name } : { id });
-        return new RequestQueue({ id, name, client }, serviceLocator.getConfiguration());
+        const client = await serviceLocator.getStorageBackend().createRequestQueueBackend(name ? { name } : { id });
+        return new RequestQueue({ id, name, backend: client }, serviceLocator.getConfiguration());
     }
 
     test('adding a request makes it fetchable; fetching again returns null while in progress', async () => {
@@ -68,7 +60,7 @@ describe('RequestQueue remote', () => {
         expect(first.wasAlreadyPresent).toBe(false);
 
         // Spy on the client only AFTER the first add so we can assert the cache prevents a second call.
-        const addBatchSpy = vitest.spyOn(queue.client, 'addBatchOfRequests');
+        const addBatchSpy = vitest.spyOn(queue.backend, 'addBatchOfRequests');
 
         const second = await queue.addRequest(requestB);
         expect(second).toEqual({
@@ -223,7 +215,7 @@ describe('RequestQueue remote', () => {
 
     test('should return correct handledCount', async () => {
         const queue = await createRequestQueue('id');
-        const getMock = vitest.spyOn(queue.client, 'getMetadata');
+        const getMock = vitest.spyOn(queue.backend, 'getMetadata');
         getMock.mockResolvedValueOnce({
             handledRequestCount: 33,
         } as never);
@@ -250,7 +242,7 @@ describe('RequestQueue remote', () => {
             hadMultipleClients: false,
         };
 
-        const getMock = vitest.spyOn(queue.client, 'getMetadata').mockResolvedValueOnce(expected);
+        const getMock = vitest.spyOn(queue.backend, 'getMetadata').mockResolvedValueOnce(expected);
 
         const result = await queue.getInfo();
         expect(result).toEqual(expected);
@@ -260,7 +252,7 @@ describe('RequestQueue remote', () => {
 
     test('drop() works', async () => {
         const queue = await createRequestQueue('some-id', 'some-name');
-        const dropMock = vitest.spyOn(queue.client, 'drop').mockResolvedValueOnce(undefined);
+        const dropMock = vitest.spyOn(queue.backend, 'drop').mockResolvedValueOnce(undefined);
 
         await queue.drop();
         expect(dropMock).toHaveBeenCalledTimes(1);
@@ -315,34 +307,58 @@ describe('RequestQueue remote', () => {
             // The in-memory client does not implement this optional hint (it has no request locking to
             // tune), so attach a stub to verify the frontend's raise-only forwarding logic in isolation.
             const spy = vitest.fn();
-            (queue.client as any).setExpectedRequestProcessingTimeSecs = spy;
+            (queue.backend as any).setExpectedRequestProcessingTimeSecs = spy;
 
             // First hint is forwarded.
-            queue.setExpectedRequestProcessingTimeSecs(60);
+            await queue.setExpectedRequestProcessingTimeSecs(60);
             expect(spy).toHaveBeenLastCalledWith(60);
 
             // A larger hint is forwarded.
-            queue.setExpectedRequestProcessingTimeSecs(120);
+            await queue.setExpectedRequestProcessingTimeSecs(120);
             expect(spy).toHaveBeenLastCalledWith(120);
 
             // A smaller (or equal) hint must not shorten the reservation, so it is not forwarded.
-            queue.setExpectedRequestProcessingTimeSecs(30);
-            queue.setExpectedRequestProcessingTimeSecs(120);
+            await queue.setExpectedRequestProcessingTimeSecs(30);
+            await queue.setExpectedRequestProcessingTimeSecs(120);
             expect(spy).toHaveBeenCalledTimes(2);
+        });
+    });
+
+    describe('stats', () => {
+        test('start at zero', async () => {
+            const queue = await createRequestQueue();
+            expect(queue.stats).toEqual({ writeCount: 0, headItemReadCount: 0 });
+        });
+
+        test('count writes on add, handle and reclaim', async () => {
+            const queue = await createRequestQueue();
+
+            await queue.addRequest({ url: 'http://example.com/a' });
+            expect(queue.stats.writeCount).toBe(1);
+
+            const request = await queue.fetchNextRequest();
+            expect(queue.stats.headItemReadCount).toBe(1);
+
+            await queue.markRequestAsHandled(request!);
+            expect(queue.stats.writeCount).toBe(2);
+        });
+
+        test('count head reads on fetchNextRequest', async () => {
+            const queue = await createRequestQueue();
+
+            await queue.addRequest({ url: 'http://example.com/a' });
+
+            const headReadsBefore = queue.stats.headItemReadCount;
+            await queue.fetchNextRequest();
+            expect(queue.stats.headItemReadCount).toBe(headReadsBefore + 1);
         });
     });
 });
 
 describe('RequestQueue with requestsFromUrl', () => {
-    const emulator = new MemoryStorageEmulator();
-
     beforeEach(async () => {
-        await emulator.init();
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
         vitest.restoreAllMocks();
-    });
-
-    afterAll(async () => {
-        await emulator.destroy();
     });
 
     test('should correctly load list from hosted files in correct order', async () => {

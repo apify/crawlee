@@ -1,11 +1,11 @@
 import type { Server } from 'node:http';
 import path from 'node:path';
 
+import { MemoryStorageBackend, serviceLocator } from '@crawlee/core';
 import { KeyValueStore, launchPlaywright, playwrightUtils, Request } from '@crawlee/playwright';
 import type { Browser, Page } from 'playwright';
 import { chromium } from 'playwright';
 import { runExampleComServer } from '../shared/_helper.js';
-import { MemoryStorageEmulator } from '../shared/MemoryStorageEmulator.js';
 
 import log from '@apify/log';
 
@@ -26,7 +26,6 @@ afterAll(() => {
 
 describe('playwrightUtils', () => {
     let ll: number;
-    const localStorageEmulator = new MemoryStorageEmulator();
 
     beforeAll(async () => {
         ll = log.getLevel();
@@ -34,12 +33,11 @@ describe('playwrightUtils', () => {
     });
 
     beforeEach(async () => {
-        await localStorageEmulator.init();
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
     });
 
     afterAll(async () => {
         log.setLevel(ll);
-        await localStorageEmulator.destroy();
     });
 
     test('injectFile()', async () => {

@@ -1,23 +1,17 @@
 import { PassThrough } from 'node:stream';
 
-import { KeyValueStore, maybeStringify, serviceLocator } from '@crawlee/core';
+import { KeyValueStore, MemoryStorageBackend, serviceLocator } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
-import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
-
-const localStorageEmulator = new MemoryStorageEmulator();
+import { toBuffer } from '@crawlee/utils';
 
 beforeEach(async () => {
-    await localStorageEmulator.init();
-});
-
-afterAll(async () => {
-    await localStorageEmulator.destroy();
+    serviceLocator.setStorageBackend(new MemoryStorageBackend());
 });
 
 describe('KeyValueStore', () => {
     async function createKeyValueStore(id = 'some-id-1', name?: string) {
-        const client = await serviceLocator.getStorageClient().createKeyValueStoreClient(name ? { name } : { id });
-        return new KeyValueStore({ id, name, client });
+        const client = await serviceLocator.getStorageBackend().createKeyValueStoreBackend(name ? { name } : { id });
+        return new KeyValueStore({ id, name, backend: client });
     }
 
     beforeEach(async () => {
@@ -34,7 +28,7 @@ describe('KeyValueStore', () => {
         // Set record
         const mockSetValue = vitest
             // @ts-expect-error Accessing private property
-            .spyOn(store.client, 'setValue')
+            .spyOn(store.backend, 'setValue')
             .mockResolvedValueOnce(undefined);
 
         await store.setValue('key-1', record);
@@ -49,10 +43,11 @@ describe('KeyValueStore', () => {
         // Get Record
         const mockGetValue = vitest
             // @ts-expect-error Accessing private property
-            .spyOn(store.client, 'getValue')
+            .spyOn(store.backend, 'getValue')
             .mockResolvedValueOnce({
                 key: 'key-1',
-                value: record,
+                // The client now returns raw bytes; the frontend parses them.
+                value: Buffer.from(recordStr),
                 contentType: 'application/json; charset=utf-8',
             });
 
@@ -65,7 +60,7 @@ describe('KeyValueStore', () => {
         // Record Exists
         const mockRecordExists = vitest
             // @ts-expect-error Accessing private property
-            .spyOn(store.client, 'recordExists')
+            .spyOn(store.backend, 'recordExists')
             .mockResolvedValueOnce(true);
 
         const exists = await store.recordExists('key-1');
@@ -77,7 +72,7 @@ describe('KeyValueStore', () => {
         // Delete Record
         const mockDeleteValue = vitest
             // @ts-expect-error Accessing private property
-            .spyOn(store.client, 'deleteValue')
+            .spyOn(store.backend, 'deleteValue')
             .mockResolvedValueOnce(undefined);
 
         await store.setValue('key-1', null);
@@ -88,7 +83,7 @@ describe('KeyValueStore', () => {
         // Drop store
         const mockDrop = vitest
             // @ts-expect-error Accessing private property
-            .spyOn(store.client, 'drop')
+            .spyOn(store.backend, 'drop')
             .mockResolvedValueOnce(undefined);
 
         await store.drop();
@@ -182,7 +177,7 @@ describe('KeyValueStore', () => {
             );
 
             const valueErrMsg =
-                'The "value" parameter must be a String, Buffer or Stream when "options.contentType" is specified';
+                'The "value" parameter must be a String, Buffer, ArrayBuffer, TypedArray, or Stream when "options.contentType" is specified';
             await expect(store.setValue('key', {}, { contentType: 'image/png' })).rejects.toThrow(valueErrMsg);
             await expect(store.setValue('key', 12345, { contentType: 'image/png' })).rejects.toThrow(valueErrMsg);
             await expect(store.setValue('key', () => {}, { contentType: 'image/png' })).rejects.toThrow(valueErrMsg);
@@ -214,12 +209,12 @@ describe('KeyValueStore', () => {
 
             const contTypeRedundantErrMsg = 'Expected property string `contentType` to not be empty in object';
             await expect(store.setValue('key', null, { contentType: 'image/png' })).rejects.toThrow(
-                'The "value" parameter must be a String, Buffer or Stream when "options.contentType" is specified.',
+                'The "value" parameter must be a String, Buffer, ArrayBuffer, TypedArray, or Stream when "options.contentType" is specified.',
             );
             await expect(store.setValue('key', null, { contentType: '' })).rejects.toThrow(contTypeRedundantErrMsg);
             // @ts-expect-error Type '{}' is not assignable to type 'string'.
             await expect(store.setValue('key', null, { contentType: {} })).rejects.toThrow(
-                'The "value" parameter must be a String, Buffer or Stream when "options.contentType" is specified.',
+                'The "value" parameter must be a String, Buffer, ArrayBuffer, TypedArray, or Stream when "options.contentType" is specified.',
             );
 
             // @ts-expect-error Type 'number' is not assignable to type 'string'.
@@ -260,7 +255,7 @@ describe('KeyValueStore', () => {
 
             const mockSetValue = vitest
                 // @ts-expect-error Accessing private property
-                .spyOn(store.client, 'setValue')
+                .spyOn(store.backend, 'setValue')
                 .mockResolvedValueOnce(undefined);
 
             await store.setValue('key-1', 'xxxx', { contentType: 'text/plain; charset=utf-8' });
@@ -281,7 +276,7 @@ describe('KeyValueStore', () => {
 
             const mockSetValue = vitest
                 // @ts-expect-error Accessing private property
-                .spyOn(store.client, 'setValue')
+                .spyOn(store.backend, 'setValue')
                 .mockResolvedValueOnce(undefined);
 
             await store.setValue('key-1', record);
@@ -299,7 +294,7 @@ describe('KeyValueStore', () => {
 
             const mockSetValue = vitest
                 // @ts-expect-error Accessing private property
-                .spyOn(store.client, 'setValue')
+                .spyOn(store.backend, 'setValue')
                 .mockResolvedValueOnce(undefined);
 
             await store.setValue('key-1', 'xxxx', { contentType: 'text/plain; charset=utf-8' });
@@ -317,7 +312,7 @@ describe('KeyValueStore', () => {
 
             const mockSetValue = vitest
                 // @ts-expect-error Accessing private property
-                .spyOn(store.client, 'setValue')
+                .spyOn(store.backend, 'setValue')
                 .mockResolvedValueOnce(undefined);
 
             const value = Buffer.from('some text value');
@@ -336,7 +331,7 @@ describe('KeyValueStore', () => {
 
             const mockSetValue = vitest
                 // @ts-expect-error Accessing private property
-                .spyOn(store.client, 'setValue')
+                .spyOn(store.backend, 'setValue')
                 .mockResolvedValueOnce(undefined);
 
             const value = new PassThrough();
@@ -351,6 +346,112 @@ describe('KeyValueStore', () => {
                 value,
                 contentType: 'plain/text',
             });
+        });
+    });
+
+    describe('round-trips through the real storage backend (no content type)', () => {
+        test('object: setValue → getValue returns the same object, stored as application/json', async () => {
+            const store = await KeyValueStore.open();
+            const original = { foo: 'bar', n: 1 };
+            await store.setValue('obj', original);
+
+            await expect(store.getValue('obj')).resolves.toEqual(original);
+            const record = await store.getRecord('obj');
+            expect(record!.contentType).toBe('application/json; charset=utf-8');
+        });
+
+        test('string: setValue → getValue returns the same string, stored as text/plain (not JSON-wrapped)', async () => {
+            const store = await KeyValueStore.open();
+            await store.setValue('str', 'hello world');
+
+            await expect(store.getValue('str')).resolves.toBe('hello world');
+            const record = await store.getRecord('str');
+            expect(record!.contentType).toBe('text/plain; charset=utf-8');
+            // Bytes are the raw string, not the JSON-wrapped `'"hello world"'` the old code produced.
+            expect(record!.value.toString()).toBe('hello world');
+        });
+
+        test('Buffer: setValue → getValue returns the same Buffer, stored as octet-stream (not JSON-mangled)', async () => {
+            const store = await KeyValueStore.open();
+            const original = Buffer.from([0xde, 0xad, 0xbe, 0xef]);
+            await store.setValue('buf', original);
+
+            const value = await store.getValue('buf');
+            expect(Buffer.isBuffer(value)).toBe(true);
+            expect((value as Buffer).equals(original)).toBe(true);
+
+            const record = await store.getRecord('buf');
+            expect(record!.contentType).toBe('application/octet-stream');
+            expect(toBuffer(record!.value).equals(original)).toBe(true);
+        });
+    });
+
+    describe('pre-serialized JSON via setValue (caller owns the bytes)', () => {
+        test('Buffer containing JSON + explicit application/json CT round-trips as a parsed object', async () => {
+            const store = await KeyValueStore.open();
+            const original = { foo: 'bar', n: 1 };
+            const preSerialized = Buffer.from(JSON.stringify(original));
+
+            await store.setValue('k', preSerialized, { contentType: 'application/json; charset=utf-8' });
+
+            // getValue parses the bytes back into the original object.
+            expect(await store.getValue('k')).toEqual(original);
+        });
+
+        test('string containing JSON + explicit application/json CT round-trips as a parsed object', async () => {
+            const store = await KeyValueStore.open();
+            const original = [1, 2, 3];
+
+            await store.setValue('k', JSON.stringify(original), {
+                contentType: 'application/json; charset=utf-8',
+            });
+
+            expect(await store.getValue('k')).toEqual(original);
+        });
+    });
+
+    describe('getRecord', () => {
+        test('returns null for a missing key', async () => {
+            const store = await KeyValueStore.open();
+            expect(await store.getRecord('missing')).toBeNull();
+        });
+
+        test('returns raw bytes + content type without parsing JSON', async () => {
+            const store = await KeyValueStore.open();
+            const original = { foo: 'bar', n: 1 };
+            await store.setValue('obj', original);
+
+            const record = await store.getRecord('obj');
+            expect(record).not.toBeNull();
+            expect(record!.contentType).toMatch(/^application\/json/);
+            // Bytes are the serialized JSON, not the parsed object — the caller does the parsing.
+            const asText = toBuffer(record!.value).toString('utf-8');
+            expect(JSON.parse(asText)).toEqual(original);
+        });
+
+        test('returns the exact bytes a caller wrote with an explicit content type', async () => {
+            const store = await KeyValueStore.open();
+            const preSerialized = Buffer.from(JSON.stringify({ a: 1 }));
+
+            await store.setValue('k', preSerialized, { contentType: 'application/json; charset=utf-8' });
+
+            const record = await store.getRecord('k');
+            expect(record).not.toBeNull();
+            expect(record!.contentType).toBe('application/json; charset=utf-8');
+            const asText = toBuffer(record!.value).toString('utf-8');
+            expect(asText).toBe(preSerialized.toString());
+        });
+
+        test('returns a Buffer for octet-stream records', async () => {
+            const store = await KeyValueStore.open();
+            const original = Buffer.from([0xde, 0xad, 0xbe, 0xef]);
+            await store.setValue('buf', original);
+
+            const record = await store.getRecord('buf');
+            expect(record).not.toBeNull();
+            expect(record!.contentType).toBe('application/octet-stream');
+            expect(Buffer.isBuffer(record!.value)).toBe(true);
+            expect((record!.value as Buffer).equals(original)).toBe(true);
         });
     });
 
@@ -370,22 +471,6 @@ describe('KeyValueStore', () => {
     //         delete process.env[ENV_VARS.TOKEN];
     //     });
     // });
-
-    describe('maybeStringify()', () => {
-        test('should work', () => {
-            expect(maybeStringify({ foo: 'bar' }, { contentType: null as any })).toBe('{\n  "foo": "bar"\n}');
-            expect(maybeStringify({ foo: 'bar' }, { contentType: undefined })).toBe('{\n  "foo": "bar"\n}');
-
-            expect(maybeStringify('xxx', { contentType: undefined })).toBe('"xxx"');
-            expect(maybeStringify('xxx', { contentType: 'something' })).toBe('xxx');
-
-            const obj = {} as Dictionary;
-            obj.self = obj;
-            expect(() => maybeStringify(obj, { contentType: null as any })).toThrow(
-                'The "value" parameter cannot be stringified to JSON: Converting circular structure to JSON',
-            );
-        });
-    });
 
     describe('getFileNameRegexp()', () => {
         const getFileNameRegexp = (key: string) => {
@@ -450,14 +535,19 @@ describe('KeyValueStore', () => {
             const store = await createKeyValueStore('my-store-id-1');
 
             // @ts-expect-error Accessing private property
-            const mockListKeys = vitest.spyOn(store.client, 'listKeys');
-            mockListKeys.mockResolvedValueOnce([
-                { key: 'key1', size: 1 },
-                { key: 'key2', size: 2 },
-                { key: 'key3', size: 3 },
-                { key: 'key4', size: 4 },
-                { key: 'key5', size: 5 },
-            ]);
+            const mockListKeys = vitest.spyOn(store.backend, 'listKeys');
+            mockListKeys.mockResolvedValueOnce({
+                items: [
+                    { key: 'key1', size: 1, contentType: 'application/octet-stream' },
+                    { key: 'key2', size: 2, contentType: 'application/octet-stream' },
+                    { key: 'key3', size: 3, contentType: 'application/octet-stream' },
+                    { key: 'key4', size: 4, contentType: 'application/octet-stream' },
+                    { key: 'key5', size: 5, contentType: 'application/octet-stream' },
+                ],
+                count: 5,
+                limit: 5,
+                isTruncated: false,
+            });
 
             const results: [string, number, { size: number }][] = [];
             await store.forEachKey(
@@ -644,6 +734,40 @@ describe('KeyValueStore', () => {
                 ['key2', { value: 2 }],
                 ['key3', { value: 3 }],
             ]);
+        });
+    });
+
+    describe('stats', () => {
+        test('start at zero', async () => {
+            const store = await createKeyValueStore();
+            expect(store.stats).toEqual({ readCount: 0, writeCount: 0, deleteCount: 0, listCount: 0 });
+        });
+
+        test('count reads, writes and deletes per client call', async () => {
+            const store = await createKeyValueStore();
+
+            await store.setValue('foo', { a: 1 });
+            await store.setValue('bar', { b: 2 });
+            expect(store.stats).toMatchObject({ writeCount: 2, readCount: 0, deleteCount: 0 });
+
+            await store.getValue('foo');
+            expect(store.stats).toMatchObject({ writeCount: 2, readCount: 1 });
+
+            // Setting a value to null deletes it.
+            await store.setValue('bar', null);
+            expect(store.stats).toMatchObject({ writeCount: 2, deleteCount: 1 });
+        });
+
+        test('count list operations when iterating keys', async () => {
+            const store = await createKeyValueStore();
+
+            await store.setValue('key1', { value: 1 });
+            await store.setValue('key2', { value: 2 });
+
+            const listCountBefore = store.stats.listCount;
+            await store.forEachKey(() => {});
+
+            expect(store.stats.listCount).toBeGreaterThan(listCountBefore);
         });
     });
 });

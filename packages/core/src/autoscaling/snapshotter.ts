@@ -375,7 +375,7 @@ export class Snapshotter {
         const now = new Date();
         this._pruneSnapshots(this.clientSnapshots, now);
 
-        const allErrorCounts = serviceLocator.getStorageClient().stats?.rateLimitErrors ?? []; // storage client might not support this
+        const allErrorCounts = serviceLocator.getStorageBackend().stats?.rateLimitErrors ?? []; // storage backend might not support this
         const currentErrCount = allErrorCounts[CLIENT_RATE_LIMIT_ERROR_RETRY_COUNT] || 0;
 
         // Handle empty snapshots array

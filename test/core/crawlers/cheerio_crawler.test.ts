@@ -11,7 +11,7 @@ import {
     RequestList,
     Session,
 } from '@crawlee/cheerio';
-import { BaseCrawleeLogger, SessionPool } from '@crawlee/core';
+import { BaseCrawleeLogger, MemoryStorageBackend, serviceLocator, SessionPool } from '@crawlee/core';
 import { ImpitHttpClient } from '@crawlee/impit-client';
 import type { ISession, ProxyInfo } from '@crawlee/types';
 import type { Dictionary } from '@crawlee/utils';
@@ -19,7 +19,6 @@ import { sleep } from '@crawlee/utils';
 import iconv from 'iconv-lite';
 import { CookieJar } from 'tough-cookie';
 import { responseSamples, runExampleComServer } from '../../shared/_helper.js';
-import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
 
 import log from '@apify/log';
 
@@ -66,7 +65,6 @@ afterAll(() => {
 
 describe('CheerioCrawler', () => {
     let logLevel: number;
-    const localStorageEmulator = new MemoryStorageEmulator();
 
     beforeAll(async () => {
         logLevel = log.getLevel();
@@ -74,11 +72,7 @@ describe('CheerioCrawler', () => {
     });
 
     beforeEach(async () => {
-        await localStorageEmulator.init();
-    });
-
-    afterAll(async () => {
-        await localStorageEmulator.destroy();
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
     });
 
     afterAll(async () => {
@@ -693,6 +687,22 @@ describe('CheerioCrawler', () => {
             const { response, encoding } = crawler._encodeResponse({}, new Response(new Uint8Array(buf)), 'ascii');
             expect(encoding).toBe('utf8');
             expect(await response.text()).toBe(html);
+        });
+
+        test('via http-equiv meta tag when no charset in HTTP header', async () => {
+            let context: CheerioCrawlingContext | null = null;
+
+            const crawler = new CheerioCrawler({
+                requestHandler: (ctx) => {
+                    context = ctx;
+                },
+            });
+
+            await crawler.run([`${serverAddress}/special/meta-charset`]);
+
+            context = context as unknown as CheerioCrawlingContext;
+            expect(context?.body).toContain('Žluťoučký kůň');
+            expect(context?.$('body').text()).toContain('Žluťoučký kůň');
         });
 
         test('Cheerio decodes html entities', async () => {

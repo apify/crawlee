@@ -25,7 +25,6 @@ import { type LoadedRequest, getCookiesFromResponse } from '@crawlee/core';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import type { Awaitable, Dictionary, ISession } from '@crawlee/types';
 import { type CheerioRoot, RETRY_CSS_SELECTORS } from '@crawlee/utils';
-import * as cheerio from 'cheerio';
 import type { RequestLike, ResponseLike } from 'content-type';
 import contentTypeParser from 'content-type';
 import iconv from 'iconv-lite';
@@ -34,7 +33,7 @@ import type { JsonValue } from 'type-fest';
 
 import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 
-import { parseContentTypeFromResponse, processHttpRequestOptions } from './utils.js';
+import { extractCharsetFromHtmlBytes, parseContentTypeFromResponse, processHttpRequestOptions } from './utils.js';
 
 /**
  * Default mime types, which HttpScraper supports.
@@ -512,6 +511,7 @@ export class HttpCrawler<
         const contentType = parsed.contentType!;
 
         const waitForSelector = async (selector: string, _timeoutMs?: number) => {
+            const cheerio = await import('cheerio');
             const $ = cheerio.load(parsed.body!.toString());
 
             if ($(selector).get().length === 0) {
@@ -519,6 +519,7 @@ export class HttpCrawler<
             }
         };
         const parseWithCheerio = async (selector?: string, timeoutMs?: number) => {
+            const cheerio = await import('cheerio');
             const $ = cheerio.load(parsed.body!.toString());
 
             if (selector) {
@@ -640,6 +641,15 @@ export class HttpCrawler<
             // It's not a JSON, so it's probably some text. Get the first 100 chars of it.
             throw new Error(`${status} - Internal Server Error: ${body.slice(0, 100)}`);
         } else if (HTML_AND_XML_MIME_TYPES.includes(type)) {
+            if (!charset && !this.forceResponseEncoding) {
+                const rawBytes = Buffer.from(await response.arrayBuffer());
+                const metaCharset = extractCharsetFromHtmlBytes(rawBytes);
+                const charsetToUse = metaCharset ?? this.suggestResponseEncoding ?? 'utf-8';
+                const body = iconv.encodingExists(charsetToUse)
+                    ? iconv.decode(rawBytes, charsetToUse)
+                    : rawBytes.toString('utf8');
+                return { response, contentType: { type, encoding: 'utf-8' as BufferEncoding }, body };
+            }
             return { response, contentType, body: await reencodedResponse.text() };
         } else {
             const body = Buffer.from(await reencodedResponse.bytes());

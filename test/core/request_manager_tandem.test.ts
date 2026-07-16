@@ -1,11 +1,16 @@
-import { log, Request, RequestList, RequestManagerTandem, RequestQueue } from '@crawlee/core';
+import {
+    log,
+    MemoryStorageBackend,
+    Request,
+    RequestList,
+    RequestManagerTandem,
+    RequestQueue,
+    serviceLocator,
+} from '@crawlee/core';
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from 'vitest';
-
-import { MemoryStorageEmulator } from '../shared/MemoryStorageEmulator.js';
 
 describe('RequestManagerTandem', () => {
     let logLevel: number;
-    const emulator = new MemoryStorageEmulator();
 
     beforeAll(() => {
         logLevel = log.getLevel();
@@ -13,13 +18,12 @@ describe('RequestManagerTandem', () => {
     });
 
     beforeEach(async () => {
-        await emulator.init();
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
         vi.restoreAllMocks();
     });
 
     afterAll(async () => {
         log.setLevel(logLevel);
-        await emulator.destroy();
     });
 
     test('fetchNextRequest transfers from list to queue when queue is empty', async () => {
@@ -113,6 +117,29 @@ describe('RequestManagerTandem', () => {
 
         // Only the request queue counts
         await expect(tandem.getHandledCount()).resolves.toBe(2);
+    });
+
+    test('getTotalCount returns correct count', async () => {
+        const requestList = await RequestList.open(null, [
+            { url: 'https://example.com/1' },
+            { url: 'https://example.com/2' },
+        ]);
+        const requestQueue = await RequestQueue.open();
+        const tandem = new RequestManagerTandem(requestList, requestQueue);
+
+        await expect(tandem.getTotalCount()).resolves.toBe(2);
+
+        const req = await tandem.fetchNextRequest();
+
+        await expect(tandem.getTotalCount()).resolves.toBe(2);
+
+        await tandem.reclaimRequest(req!);
+
+        await expect(tandem.getTotalCount()).resolves.toBe(2);
+
+        await tandem.addRequest({ url: 'https://example.com/3' });
+
+        await expect(tandem.getTotalCount()).resolves.toBe(3);
     });
 
     test('isFinished returns true only when both list and queue are finished', async () => {
@@ -280,7 +307,7 @@ describe('RequestManagerTandem', () => {
         // Resolve the manager first (the queue was passed eagerly, but make the dependency explicit).
         await tandem.fetchNextRequest();
 
-        tandem.setExpectedRequestProcessingTimeSecs(600);
+        await tandem.setExpectedRequestProcessingTimeSecs(600);
         expect(hintSpy).toHaveBeenCalledWith(600);
     });
 
@@ -293,7 +320,7 @@ describe('RequestManagerTandem', () => {
         const tandem = new RequestManagerTandem(requestList, () => requestQueue);
 
         // Hint arrives before anything resolves the manager — nothing forwarded yet.
-        tandem.setExpectedRequestProcessingTimeSecs(600);
+        await tandem.setExpectedRequestProcessingTimeSecs(600);
         expect(hintSpy).not.toHaveBeenCalled();
 
         // Resolving the manager (via any operation) applies the remembered hint.

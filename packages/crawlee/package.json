@@ -49,6 +49,7 @@
     },
     "dependencies": {
         "@crawlee/basic": "workspace:*",
+        "@crawlee/impit-client": "workspace:*",
         "@crawlee/browser": "workspace:*",
         "@crawlee/browser-pool": "workspace:*",
         "@crawlee/cheerio": "workspace:*",
@@ -58,7 +59,6 @@
         "@crawlee/http": "workspace:*",
         "@crawlee/jsdom": "workspace:*",
         "@crawlee/linkedom": "workspace:*",
-        "@crawlee/memory-storage": "workspace:*",
         "@crawlee/playwright": "workspace:*",
         "@crawlee/puppeteer": "workspace:*",
         "@crawlee/utils": "workspace:*",

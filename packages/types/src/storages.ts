@@ -15,6 +15,13 @@ export interface QueueOperationInfo {
     requestId: string;
 }
 
+/**
+ * A single page of items returned by {@link DatasetBackend.getData}.
+ *
+ * Datasets paginate by offset, so a page is self-describing via `total` / `offset` / `limit`: a
+ * frontend assembling all pages knows it has reached the end once `offset + items.length >= total`.
+ * The cursor-based counterpart for key-value stores is {@link KeyValueStoreListKeysResult}.
+ */
 export interface PaginatedList<Data> {
     /** Total count of entries in the dataset. */
     total: number;
@@ -30,7 +37,7 @@ export interface PaginatedList<Data> {
     items: Data[];
 }
 
-export interface DatasetClientListOptions {
+export interface DatasetBackendListOptions {
     desc?: boolean;
     limit?: number;
     offset?: number;
@@ -43,17 +50,9 @@ export interface DatasetInfo {
     modifiedAt: Date;
     accessedAt: Date;
     itemCount: number;
-    actId?: string;
-    actRunId?: string;
-}
-export interface DatasetStats {
-    readCount?: number;
-    writeCount?: number;
-    deleteCount?: number;
-    storageBytes?: number;
 }
 
-export interface DatasetClient<Data extends Dictionary = Dictionary> {
+export interface DatasetBackend<Data extends Dictionary = Dictionary> {
     /**
      * Returns metadata about the dataset (id, name, timestamps, item count, etc.).
      *
@@ -73,32 +72,52 @@ export interface DatasetClient<Data extends Dictionary = Dictionary> {
     pushData(items: Data[]): Promise<void>;
 
     /** Fetch a page of items from the dataset. */
-    getData(options?: DatasetClientListOptions): Promise<PaginatedList<Data>>;
-}
-
-export interface KeyValueStoreStats {
-    readCount?: number;
-    writeCount?: number;
-    deleteCount?: number;
-    listCount?: number;
-    storageBytes?: number;
+    getData(options?: DatasetBackendListOptions): Promise<PaginatedList<Data>>;
 }
 
 export interface KeyValueStoreInfo {
     id: string;
     name?: string;
-    userId?: string;
     createdAt: Date;
     modifiedAt: Date;
     accessedAt: Date;
-    actId?: string;
-    actRunId?: string;
-    stats?: KeyValueStoreStats;
 }
 
+/**
+ * The value a serialized record carries on the way *into* a storage backend (`setValue`).
+ *
+ * The `KeyValueStore` frontend has already serialized by this point, so it is a pre-serialized
+ * string, raw bytes (`Buffer` / `ArrayBuffer` / typed array), or a stream the client drains.
+ */
+export type KeyValueStoreRecordInputValue =
+    | Buffer
+    | ArrayBuffer
+    | ArrayBufferView
+    | string
+    | NodeJS.ReadableStream
+    | ReadableStream;
+
+/**
+ * A record as returned by a storage backend (`getValue`).
+ *
+ * Storage backends are byte transports: they persist and return bytes verbatim and never serialize
+ * or parse. Interpretation is the `KeyValueStore` frontend's job (it parses according to the content
+ * type via `parseValue`). The value is therefore always raw bytes — a `Buffer` (Node) or an
+ * `ArrayBuffer` (browser backends).
+ */
 export interface KeyValueStoreRecord {
     key: string;
-    value: any;
+    value: Buffer | ArrayBuffer;
+    contentType?: string;
+}
+
+/**
+ * A record passed to a storage backend for writing (`setValue`). Like {@link KeyValueStoreRecord} but
+ * with the lenient, pre-serialized {@link KeyValueStoreRecordInputValue} for the value.
+ */
+export interface KeyValueStoreInputRecord {
+    key: string;
+    value: KeyValueStoreRecordInputValue;
     contentType?: string;
 }
 
@@ -114,12 +133,39 @@ export interface KeyValueStoreListKeysOptions {
 export interface KeyValueStoreItemData {
     key: string;
     size: number;
+    /** The MIME content type the record was stored with, if known. */
+    contentType: string;
+}
+
+/**
+ * A single page of keys returned by {@link KeyValueStoreBackend.listKeys}.
+ *
+ * This mirrors {@link PaginatedList} (the shape returned by {@link DatasetBackend.getData}) so that
+ * both listing operations on the storage backend layer return a self-describing page. The difference
+ * is the pagination model: datasets are offset-based (`total` / `offset`), whereas key-value stores
+ * are cursor-based. A frontend assembling all pages should therefore not guess "is this the last
+ * page?" from `items.length < limit` — it should rely on {@link isTruncated} and resume from
+ * {@link nextExclusiveStartKey}.
+ */
+export interface KeyValueStoreListKeysResult {
+    /** Keys returned on this page. */
+    items: KeyValueStoreItemData[];
+    /** Number of keys returned on this page (`items.length`). */
+    count: number;
+    /** Maximum number of keys requested for this page. */
+    limit: number;
+    /** The `exclusiveStartKey` that produced this page, if any. */
+    exclusiveStartKey?: string;
+    /** `true` if there are more keys beyond this page. When `true`, {@link nextExclusiveStartKey} is set. */
+    isTruncated: boolean;
+    /** Cursor to pass as the next call's `exclusiveStartKey`, or `undefined` when {@link isTruncated} is `false`. */
+    nextExclusiveStartKey?: string;
 }
 
 /**
  * Key-value Store client.
  */
-export interface KeyValueStoreClient {
+export interface KeyValueStoreBackend {
     /**
      * Returns metadata about the key-value store (id, name, timestamps, etc.).
      *
@@ -135,17 +181,30 @@ export interface KeyValueStoreClient {
     /** Remove all records from the store but keep the store itself. */
     purge(): Promise<void>;
 
-    /** Get a record value by key. Returns the parsed value or `undefined` if not found. */
+    /**
+     * Get a record by key. Returns the raw bytes plus content type, or `undefined` if not found.
+     *
+     * Clients are byte transports and must not parse the body — the `KeyValueStore` frontend
+     * interprets it according to the content type.
+     */
     getValue(key: string): Promise<KeyValueStoreRecord | undefined>;
 
     /** Set a record value. */
-    setValue(record: KeyValueStoreRecord): Promise<void>;
+    setValue(record: KeyValueStoreInputRecord): Promise<void>;
 
     /** Delete a record by key. */
     deleteValue(key: string): Promise<void>;
 
-    /** List keys in the store. Returns at most `limit` keys starting after `exclusiveStartKey`. */
-    listKeys(options?: KeyValueStoreListKeysOptions): Promise<KeyValueStoreItemData[]>;
+    /**
+     * List a single page of keys in the store. Returns at most `limit` keys starting after
+     * `exclusiveStartKey`, wrapped in a self-describing page.
+     *
+     * Like {@link DatasetBackend.getData}, this returns one page rather than the whole collection;
+     * assembling all pages (e.g. for `KeyValueStore.keys()`) is the frontend's job. The result carries
+     * a cursor (`isTruncated` / `nextExclusiveStartKey`) so the frontend can paginate deterministically
+     * instead of inferring the end from `items.length < limit`.
+     */
+    listKeys(options?: KeyValueStoreListKeysOptions): Promise<KeyValueStoreListKeysResult>;
 
     /** Get the public URL for a record, or `undefined` if unavailable. */
     getPublicUrl(key: string): Promise<string | undefined>;
@@ -154,34 +213,24 @@ export interface KeyValueStoreClient {
     recordExists(key: string): Promise<boolean>;
 }
 
-export interface RequestQueueStats {
-    readCount?: number;
-    writeCount?: number;
-    deleteCount?: number;
-    headItemReadCount?: number;
-    storageBytes?: number;
-}
-
 export interface RequestQueueInfo {
     id: string;
     name?: string;
-    userId?: string;
     createdAt: Date;
     modifiedAt: Date;
     accessedAt: Date;
-    expireAt?: string;
     totalRequestCount: number;
     handledRequestCount: number;
     pendingRequestCount: number;
-    actId?: string;
-    actRunId?: string;
-    hadMultipleClients?: boolean;
-    stats?: RequestQueueStats;
 }
 
-export interface RequestOptions {
+/**
+ * Options for request-queue operations that add or return requests to the queue
+ * ({@link RequestQueueBackend.addBatchOfRequests}, {@link RequestQueueBackend.reclaimRequest}).
+ */
+export interface RequestQueueOperationOptions {
+    /** Place the affected request(s) at the beginning of the queue so they are processed sooner. */
     forefront?: boolean;
-    [k: string]: unknown;
 }
 
 export interface RequestSchema {
@@ -229,7 +278,7 @@ export interface BatchAddRequestsResult {
  * locking on the Apify platform) is an internal concern of the implementation and is not exposed on
  * this interface.
  */
-export interface RequestQueueClient {
+export interface RequestQueueBackend {
     /**
      * Returns metadata about the request queue (id, name, timestamps, request counts, etc.).
      *
@@ -252,54 +301,60 @@ export interface RequestQueueClient {
      * but not re-added. With `forefront`, requests are placed at the beginning of the queue so
      * they are processed sooner.
      */
-    addBatchOfRequests(requests: RequestSchema[], options?: RequestOptions): Promise<BatchAddRequestsResult>;
+    addBatchOfRequests(
+        requests: RequestSchema[],
+        options?: RequestQueueOperationOptions,
+    ): Promise<BatchAddRequestsResult>;
 
     /**
      * Retrieve a request from the queue by its `uniqueKey`, or `undefined` if it does not exist.
      */
-    getRequest(uniqueKey: string): Promise<RequestOptions | undefined>;
+    getRequest(uniqueKey: string): Promise<UpdateRequestSchema | undefined>;
 
     /**
-     * Return the next request in the queue to be processed, or `null` if there are currently no
+     * Return the next request in the queue to be processed, or `undefined` if there are currently no
      * pending requests.
      *
      * The returned request is marked as in-progress; it will not be returned again until it is
      * either reclaimed via {@link reclaimRequest} or marked as handled via {@link markRequestAsHandled}.
      *
-     * A `null` return value does not mean processing is finished — only that there are no pending
+     * An `undefined` return value does not mean processing is finished — only that there are no pending
      * requests right now. Use {@link isEmpty} (together with the frontend's knowledge of pending
      * add operations) to determine whether the queue is truly finished.
      */
-    fetchNextRequest(): Promise<RequestOptions | null>;
+    fetchNextRequest(): Promise<UpdateRequestSchema | undefined>;
 
     /**
      * Mark a request previously returned by {@link fetchNextRequest} as handled.
      *
      * Handled requests are never returned again by {@link fetchNextRequest}. Returns information
-     * about the operation, or `null` if the request was not in progress.
+     * about the operation, or `undefined` if the request was not in progress.
      *
-     * A `null` result is a no-op, not an error: the request is simply not something this client is
+     * An `undefined` result is a no-op, not an error: the request is simply not something this client is
      * currently processing, so nothing is changed and the request is never added to the queue as a side
      * effect. (Marking an already-handled request is idempotent and still returns operation info with
-     * `wasAlreadyHandled: true` rather than `null`.)
+     * `wasAlreadyHandled: true` rather than `undefined`.)
      */
-    markRequestAsHandled(request: UpdateRequestSchema): Promise<QueueOperationInfo | null>;
+    markRequestAsHandled(request: UpdateRequestSchema): Promise<QueueOperationInfo | undefined>;
 
     /**
      * Reclaim a failed request back to the queue so it can be processed again by a later call to
      * {@link fetchNextRequest}. With `forefront`, the request is returned to the beginning of the
-     * queue. Returns information about the operation, or `null` if the request was not in progress.
+     * queue. Returns information about the operation, or `undefined` if the request was not in progress.
      *
      * The request is expected to already be present in the queue (it should have been obtained via
-     * {@link fetchNextRequest}); reclaiming releases its lock rather than inserting it. A `null` result
+     * {@link fetchNextRequest}); reclaiming releases its lock rather than inserting it. An `undefined` result
      * is a no-op, not an error: the request is simply not something this client is currently processing,
      * so nothing is changed and the request is never added to the queue as a side effect. Use
-     * {@link addRequest} to insert a new request.
+     * {@link addBatchOfRequests} to insert a new request.
      */
-    reclaimRequest(request: UpdateRequestSchema, options?: RequestOptions): Promise<QueueOperationInfo | null>;
+    reclaimRequest(
+        request: UpdateRequestSchema,
+        options?: RequestQueueOperationOptions,
+    ): Promise<QueueOperationInfo | undefined>;
 
     /**
-     * Resolves to `true` if the next call to {@link fetchNextRequest} would return `null` — i.e. there
+     * Resolves to `true` if the next call to {@link fetchNextRequest} would return `undefined` — i.e. there
      * are no pending requests to fetch right now.
      *
      * Requests that are currently in progress (fetched but not yet handled or reclaimed, including
@@ -330,12 +385,7 @@ export interface RequestQueueClient {
      * this long, so that a long-running consumer does not have its request handed out again while it is
      * still being processed. Clients that do not lock may ignore it.
      */
-    setExpectedRequestProcessingTimeSecs?(secs: number): void;
-}
-
-export interface SetStatusMessageOptions {
-    isStatusMessageTerminal?: boolean;
-    level?: 'DEBUG' | 'INFO' | 'WARNING' | 'ERROR';
+    setExpectedRequestProcessingTimeSecs?(secs: number): Promise<void>;
 }
 
 /**
@@ -355,19 +405,19 @@ export type StorageIdentifier =
     | { id?: never; name?: never; alias?: never };
 
 /**
- * Options for creating a dataset client via {@apilink StorageClient.createDatasetClient}.
+ * Options for creating a dataset backend via {@apilink StorageBackend.createDatasetBackend}.
  */
-export type CreateDatasetClientOptions = StorageIdentifier;
+export type CreateDatasetBackendOptions = StorageIdentifier;
 
 /**
- * Options for creating a key-value store client via {@apilink StorageClient.createKeyValueStoreClient}.
+ * Options for creating a key-value store backend via {@apilink StorageBackend.createKeyValueStoreBackend}.
  */
-export type CreateKeyValueStoreClientOptions = StorageIdentifier;
+export type CreateKeyValueStoreBackendOptions = StorageIdentifier;
 
 /**
- * Options for creating a request queue client via {@apilink StorageClient.createRequestQueueClient}.
+ * Options for creating a request queue backend via {@apilink StorageBackend.createRequestQueueBackend}.
  */
-export type CreateRequestQueueClientOptions = StorageIdentifier & {
+export type CreateRequestQueueBackendOptions = StorageIdentifier & {
     /**
      * Client key for request locking.
      * TODO: This is an Apify-platform concern and should eventually be pushed down
@@ -388,36 +438,36 @@ export type CreateRequestQueueClientOptions = StorageIdentifier & {
  * Represents a storage backend capable of working with datasets, key-value stores and request queues.
  *
  * A new storage backend needs to implement 4 classes:
- * - `StorageClient` - the factory that creates sub-clients
- * - `DatasetClient` - operations on a single dataset
- * - `KeyValueStoreClient` - operations on a single key-value store
- * - `RequestQueueClient` - operations on a single request queue
+ * - `StorageBackend` - the factory that creates sub-backends
+ * - `DatasetBackend` - operations on a single dataset
+ * - `KeyValueStoreBackend` - operations on a single key-value store
+ * - `RequestQueueBackend` - operations on a single request queue
  *
- * The `StorageClient` acts as an async factory: each `create*` method either opens an existing
- * storage or creates a new one, returning a sub-client bound to that storage instance.
+ * The `StorageBackend` acts as an async factory: each `create*` method either opens an existing
+ * storage or creates a new one, returning a sub-backend bound to that storage instance.
  */
-export interface StorageClient {
+export interface StorageBackend {
     /**
-     * Create (or open) a dataset client.
+     * Create (or open) a dataset backend.
      * If `id` is provided, opens the dataset with that ID.
      * If `name` is provided, opens an existing dataset with that name or creates a new one.
      * If neither is provided, opens or creates the default dataset.
      */
-    createDatasetClient(options?: CreateDatasetClientOptions): Promise<DatasetClient>;
+    createDatasetBackend(options?: CreateDatasetBackendOptions): Promise<DatasetBackend>;
     /**
-     * Create (or open) a key-value store client.
+     * Create (or open) a key-value store backend.
      * If `id` is provided, opens the key-value store with that ID.
      * If `name` is provided, opens an existing store with that name or creates a new one.
      * If neither is provided, opens or creates the default key-value store.
      */
-    createKeyValueStoreClient(options?: CreateKeyValueStoreClientOptions): Promise<KeyValueStoreClient>;
+    createKeyValueStoreBackend(options?: CreateKeyValueStoreBackendOptions): Promise<KeyValueStoreBackend>;
     /**
-     * Create (or open) a request queue client.
+     * Create (or open) a request queue backend.
      * If `id` is provided, opens the request queue with that ID.
      * If `name` is provided, opens an existing queue with that name or creates a new one.
      * If neither is provided, opens or creates the default request queue.
      */
-    createRequestQueueClient(options?: CreateRequestQueueClientOptions): Promise<RequestQueueClient>;
+    createRequestQueueBackend(options?: CreateRequestQueueBackendOptions): Promise<RequestQueueBackend>;
     /**
      * Check whether a storage with the given ID exists.
      *
@@ -430,14 +480,13 @@ export interface StorageClient {
      *
      * The key is used by `StorageInstanceManager` to partition the storage cache per-backend,
      * so that two storages with the same name but backed by different clients
-     * (e.g. a local `MemoryStorageClient` and a cloud `ApifyClient`) are cached as separate instances.
+     * (e.g. a local `MemoryStorageBackend` and a cloud `ApifyClient`) are cached as separate instances.
      *
      * When not provided, the fallback uses the client's constructor name, so different
-     * `StorageClient` implementations automatically get separate cache partitions.
+     * `StorageBackend` implementations automatically get separate cache partitions.
      */
-    getStorageClientCacheKey?(): string;
+    getStorageBackendCacheKey?(): string;
     purge?(): Promise<void>;
     teardown?(): Promise<void>;
-    setStatusMessage?(message: string, options?: SetStatusMessageOptions): Promise<void>;
     stats?: { rateLimitErrors: number[] };
 }

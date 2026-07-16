@@ -1,4 +1,4 @@
-import type { DatasetClient, DatasetInfo, Dictionary, PaginatedList } from '@crawlee/types';
+import type { DatasetBackend, DatasetInfo, Dictionary, PaginatedList } from '@crawlee/types';
 import { stringify } from 'csv-stringify/sync';
 import ow from 'ow';
 
@@ -8,6 +8,8 @@ import { serviceLocator } from '../service_locator.js';
 import type { Awaitable } from '../typedefs.js';
 import { checkStorageAccess } from './access_checking.js';
 import { KeyValueStore } from './key_value_store.js';
+import type { DatasetStats } from './storage_stats.js';
+import { StorageStatsTracker } from './storage_stats.js';
 import type { StorageIdentifier } from './storage_instance_manager.js';
 import type { StorageOpenOptions } from './utils.js';
 import { resolveStorageIdentifier } from './storage_instance_manager.js';
@@ -185,8 +187,13 @@ export interface DatasetExportToOptions extends DatasetExportOptions {
 export class Dataset<Data extends Dictionary = Dictionary> {
     id: string;
     name?: string;
-    client: DatasetClient<Data>;
+    backend: DatasetBackend<Data>;
     log: CrawleeLogger;
+
+    private readonly statsTracker = new StorageStatsTracker<DatasetStats>({
+        readCount: 0,
+        writeCount: 0,
+    });
 
     /**
      * @internal
@@ -197,8 +204,16 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     ) {
         this.id = options.id;
         this.name = options.name;
-        this.client = options.client;
+        this.backend = options.backend;
         this.log = serviceLocator.getLogger().child({ prefix: 'Dataset' });
+    }
+
+    /**
+     * Backend-independent usage counters tracked for this dataset (read / write operations issued to
+     * the underlying storage backend). Counted per backend call.
+     */
+    get stats(): DatasetStats {
+        return this.statsTracker.current;
     }
 
     /**
@@ -223,7 +238,8 @@ export class Dataset<Data extends Dictionary = Dictionary> {
             assertJsonSerializable(items[i], i);
         }
 
-        await this.client.pushData(items);
+        this.statsTracker.add('writeCount');
+        await this.backend.pushData(items);
     }
 
     /**
@@ -233,7 +249,8 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         checkStorageAccess();
 
         try {
-            return await this.client.getData(options);
+            this.statsTracker.add('readCount');
+            return await this.backend.getData(options);
         } catch (e) {
             const error = e as Error;
             if (error.message.includes('Cannot create a string longer than')) {
@@ -367,7 +384,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     async getInfo(): Promise<DatasetInfo> {
         checkStorageAccess();
 
-        return this.client.getMetadata();
+        return this.backend.getMetadata();
     }
 
     /**
@@ -537,7 +554,8 @@ export class Dataset<Data extends Dictionary = Dictionary> {
             const fetchLimit = totalLimit !== undefined ? Math.min(pageSize, totalLimit - yielded) : pageSize;
             if (fetchLimit <= 0) break;
 
-            const page = await this.client.getData({ ...options, offset, limit: fetchLimit });
+            this.statsTracker.add('readCount');
+            const page = await this.backend.getData({ ...options, offset, limit: fetchLimit });
             yield page;
 
             yielded += page.items.length;
@@ -633,7 +651,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     async drop(): Promise<void> {
         checkStorageAccess();
 
-        await this.client.drop();
+        await this.backend.drop();
         serviceLocator.getStorageInstanceManager().removeFromCache(this);
     }
 
@@ -662,22 +680,22 @@ export class Dataset<Data extends Dictionary = Dictionary> {
             options,
             ow.object.exactShape({
                 config: ow.optional.object.instanceOf(Configuration),
-                storageClient: ow.optional.object,
+                storageBackend: ow.optional.object,
             }),
         );
 
         options.config ??= Configuration.getGlobalConfig();
 
-        const client = options.storageClient ?? serviceLocator.getStorageClient();
+        const storageBackend = options.storageBackend ?? serviceLocator.getStorageBackend();
 
-        await purgeDefaultStorages({ onlyPurgeOnce: true, client, config: options.config });
+        await purgeDefaultStorages({ onlyPurgeOnce: true, storageBackend, config: options.config });
 
-        const resolved = await resolveStorageIdentifier(identifier, client, 'Dataset');
+        const resolved = await resolveStorageIdentifier(identifier, storageBackend, 'Dataset');
 
         return serviceLocator.getStorageInstanceManager().openStorage<Dataset<Data>>(this, {
             ...resolved,
-            clientOpener: () => client.createDatasetClient(resolved),
-            clientCacheKey: client.getStorageClientCacheKey?.() ?? client.constructor.name,
+            backendOpener: () => storageBackend.createDatasetBackend(resolved),
+            backendCacheKey: storageBackend.getStorageBackendCacheKey?.() ?? storageBackend.constructor.name,
         });
     }
 
@@ -759,7 +777,7 @@ export interface DatasetReducer<T, Data> {
 export interface DatasetOptions {
     id: string;
     name?: string;
-    client: DatasetClient;
+    backend: DatasetBackend;
 }
 
 export interface DatasetContent<Data> {

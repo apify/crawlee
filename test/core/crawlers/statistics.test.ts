@@ -1,6 +1,5 @@
-import { Configuration, EventType, serviceLocator, Statistics } from '@crawlee/core';
+import { Configuration, EventType, MemoryStorageBackend, serviceLocator, Statistics } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
-import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
 
 describe('Statistics', () => {
     const getPerMinute = (jobCount: number, totalTickMillis: number) => {
@@ -8,13 +7,12 @@ describe('Statistics', () => {
     };
 
     let stats: Statistics;
-    const localStorageEmulator = new MemoryStorageEmulator();
     beforeAll(async () => {
         vitest.useFakeTimers();
     });
 
     beforeEach(async () => {
-        await localStorageEmulator.init();
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
         stats = new Statistics();
     });
 
@@ -24,7 +22,6 @@ describe('Statistics', () => {
     });
 
     afterAll(async () => {
-        await localStorageEmulator.destroy();
         // eslint-disable-next-line dot-notation
         Statistics['id'] = 0;
     });
@@ -36,7 +33,7 @@ describe('Statistics', () => {
             // @ts-expect-error Accessing private prop
             expect(Statistics.id).toEqual(1);
             // @ts-expect-error Accessing private prop
-            expect(stats.persistStateKey).toEqual('SDK_CRAWLER_STATISTICS_0');
+            expect(stats.persistStateKey).toEqual('CRAWLEE_CRAWLER_STATISTICS_0');
             const [n1, n2] = [new Statistics(), new Statistics()];
             expect(n1.id).toEqual('1');
             expect(n2.id).toEqual('2');

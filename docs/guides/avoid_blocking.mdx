@@ -4,6 +4,8 @@ title: Avoid getting blocked
 description: How to avoid getting blocked when scraping
 ---
 
+import ApiLink from '@site/src/components/ApiLink';
+
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 import CodeBlock from '@theme/CodeBlock';
@@ -17,6 +19,8 @@ import PlaywrightCamoufox from '!!raw-loader!./avoid_blocking_camoufox.ts';
 A scraper might get blocked for numerous reasons. Let's narrow it down to the two main ones. The first is a bad or blocked IP address. You can learn about this topic in the [proxy management guide](./proxy-management). The second reason is [browser fingerprints](https://pixelprivacy.com/resources/browser-fingerprinting/) (or signatures), which we will explore more in this guide. Check the [Apify Academy anti-scraping course](https://docs.apify.com/academy/anti-scraping) to gain a deeper theoretical understanding of blocking and learn a few tips and tricks.
 
 Browser fingerprint is a collection of browser attributes and significant features that can show if our browser is a bot or a real user. Moreover, most browsers have these unique features that allow the website to track the browser even within different IP addresses. This is the main reason why scrapers should change browser fingerprints while doing browser-based scraping. In return, it should significantly reduce the blocking.
+
+The two are not handled separately. In Crawlee a <ApiLink to="core/class/Session">`Session`</ApiLink> ties an IP, a cookie jar, and a fingerprint together into one consistent identity, and the <ApiLink to="core/class/SessionPool">`SessionPool`</ApiLink> rotates those identities as a unit — so a fresh fingerprint always arrives with a fresh IP. This guide covers the fingerprint half; see the [session management guide](./session-management) for how to control the rotation, and the [proxy management guide](./proxy-management) for the IP half.
 
 ## Using browser fingerprints
 
@@ -55,6 +59,35 @@ On the contrary, sometimes we want to entirely disable the usage of browser fing
         </CodeBlock>
     </TabItem>
 </Tabs>
+
+## Fingerprints for HTTP crawlers
+
+Every session carries a lightweight fingerprint hint — a `browser`, `platform`, and `device` triple — that the request's HTTP client receives and applies on a best-effort basis.
+By default each session is given a realistic, randomized fingerprint (the host operating system as `platform`, with a plausible `browser`/`device` for it), and it rotates with the session just like the IP and cookies do.
+
+How much of the hint is used depends on the client. The [`impit`](impit-http-client) HTTP client maps the session's `browser` hint to a matching TLS and HTTP impersonation profile,
+so the connection's low-level signature lines up with the headers being sent.
+
+The *same* hint also drives browser crawlers, where it seeds the generated browser fingerprint. The hint only fixes the broad strokes — the browser family, operating system, and device — so a session presents a coherent profile, but it does not make the two backends produce byte-identical fingerprints: `impit` and a real browser will still differ in the finer details (a slightly different user-agent string, for example).
+
+You can pin the fingerprint explicitly through `sessionOptions` when you need a specific profile:
+
+```js
+import { CheerioCrawler, SessionPool } from 'crawlee';
+import { ImpitHttpClient } from '@crawlee/impit-client';
+
+const crawler = new CheerioCrawler({
+    httpClient: new ImpitHttpClient(),
+    sessionPool: new SessionPool({
+        sessionOptions: {
+            fingerprint: { browser: 'firefox', platform: 'windows', device: 'desktop' },
+        },
+    }),
+    requestHandler: async ({ $ }) => {
+        // requests impersonate desktop Firefox on Windows
+    },
+});
+```
 
 ## Camoufox
 

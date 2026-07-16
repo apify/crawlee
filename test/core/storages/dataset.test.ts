@@ -1,23 +1,16 @@
-import { assertJsonSerializable, Dataset, KeyValueStore, serviceLocator } from '@crawlee/core';
+import { assertJsonSerializable, Dataset, KeyValueStore, MemoryStorageBackend, serviceLocator } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
-import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
 
 import { MAX_PAYLOAD_SIZE_BYTES } from '@apify/consts';
 
-const localStorageEmulator = new MemoryStorageEmulator();
-
 beforeEach(async () => {
-    await localStorageEmulator.init();
-});
-
-afterAll(async () => {
-    await localStorageEmulator.destroy();
+    serviceLocator.setStorageBackend(new MemoryStorageBackend());
 });
 
 describe('dataset', () => {
     async function createDataset(id = 'some-id', name?: string) {
-        const client = await serviceLocator.getStorageClient().createDatasetClient(name ? { name } : { id });
-        return new Dataset({ id, name, client });
+        const client = await serviceLocator.getStorageBackend().createDatasetBackend(name ? { name } : { id });
+        return new Dataset({ id, name, backend: client });
     }
 
     beforeEach(async () => {
@@ -30,7 +23,7 @@ describe('dataset', () => {
         test('should work', async () => {
             const dataset = await createDataset();
 
-            const pushDataSpy = vitest.spyOn(dataset.client, 'pushData');
+            const pushDataSpy = vitest.spyOn(dataset.backend, 'pushData');
 
             const mockPushData = pushDataSpy.mockResolvedValueOnce(undefined);
 
@@ -46,7 +39,7 @@ describe('dataset', () => {
             expect(mockPushData2).toHaveBeenCalledTimes(2);
             expect(mockPushData2).toHaveBeenCalledWith([{ foo: 'hotel;' }, { foo: 'restaurant' }]);
 
-            const mockDrop = vitest.spyOn(dataset.client, 'drop').mockResolvedValueOnce(undefined);
+            const mockDrop = vitest.spyOn(dataset.backend, 'drop').mockResolvedValueOnce(undefined);
 
             await dataset.drop();
 
@@ -59,7 +52,7 @@ describe('dataset', () => {
 
             const dataset = await createDataset();
 
-            const mockPushData = vitest.spyOn(dataset.client, 'pushData');
+            const mockPushData = vitest.spyOn(dataset.backend, 'pushData');
             mockPushData.mockResolvedValueOnce(undefined);
 
             await dataset.pushData([{ foo: half }, { bar: half }]);
@@ -76,7 +69,7 @@ describe('dataset', () => {
 
             const dataset = await createDataset();
 
-            const mockPushData = vitest.spyOn(dataset.client, 'pushData');
+            const mockPushData = vitest.spyOn(dataset.backend, 'pushData');
             mockPushData.mockResolvedValueOnce(undefined);
 
             await dataset.pushData(data);
@@ -97,7 +90,7 @@ describe('dataset', () => {
                 desc: false,
             };
 
-            const mockGetData = vitest.spyOn(dataset.client, 'getData');
+            const mockGetData = vitest.spyOn(dataset.backend, 'getData');
             mockGetData.mockResolvedValueOnce(expected);
 
             const result = await dataset.getData({ limit: 2, offset: 3 });
@@ -109,7 +102,7 @@ describe('dataset', () => {
 
             expect(result).toEqual(expected);
 
-            vitest.spyOn(dataset.client, 'getData').mockImplementation(() => {
+            vitest.spyOn(dataset.backend, 'getData').mockImplementation(() => {
                 throw new Error('Cannot create a string longer than 0x3fffffe7 characters');
             });
             await expect(dataset.getData()).rejects.toThrow(
@@ -129,7 +122,7 @@ describe('dataset', () => {
                 itemCount: 14,
             };
 
-            const mockGetDataset = vitest.spyOn(dataset.client, 'getMetadata');
+            const mockGetDataset = vitest.spyOn(dataset.backend, 'getMetadata');
             mockGetDataset.mockResolvedValueOnce(expected);
 
             const result = await dataset.getInfo();
@@ -158,7 +151,7 @@ describe('dataset', () => {
                 desc: false,
             };
 
-            const mockGetData = vitest.spyOn(dataset.client, 'getData');
+            const mockGetData = vitest.spyOn(dataset.backend, 'getData');
             mockGetData.mockResolvedValueOnce(firstResolve);
             mockGetData.mockResolvedValueOnce(secondResolve);
 
@@ -297,7 +290,7 @@ describe('dataset', () => {
 
         test('reduce() uses first value as memo if no memo is provided', async () => {
             const dataset = await createDataset('some-id', 'some-name');
-            const mockGetData = vitest.spyOn(dataset.client, 'getData');
+            const mockGetData = vitest.spyOn(dataset.backend, 'getData');
             mockGetData.mockResolvedValueOnce({
                 items: [{ foo: 4 }, { foo: 5 }],
                 limit: 2,
@@ -374,6 +367,30 @@ describe('dataset', () => {
             circularObj.xxx = circularObj;
             const jsonErrMsg = 'Converting circular structure to JSON';
             await expect(dataset.pushData(circularObj)).rejects.toThrow(jsonErrMsg);
+        });
+
+        test('stores independent snapshots, not object references', async () => {
+            const dataset = await Dataset.open({ name: `test-snapshots-${Date.now()}` });
+            const mutableData = { rand: 0, counter: 0 };
+
+            await dataset.pushData(mutableData);
+            mutableData.rand = Math.random();
+            mutableData.counter = 1;
+            await dataset.pushData(mutableData);
+            mutableData.rand = Math.random();
+            mutableData.counter = 2;
+            await dataset.pushData(mutableData);
+
+            const { items } = await dataset.getData();
+
+            expect(items).toHaveLength(3);
+            expect(items[0]).toEqual({ rand: 0, counter: 0 });
+            expect(items[1].counter).toBe(1);
+            expect(items[2].counter).toBe(2);
+
+            // Each push must store an independent snapshot — items should not be the same reference
+            expect(items[0]).not.toBe(items[1]);
+            expect(items[1]).not.toBe(items[2]);
         });
     });
 
@@ -675,6 +692,34 @@ describe('dataset', () => {
                 const items = await dataset.values();
 
                 expect(items).toEqual([]);
+            });
+        });
+
+        describe('stats', () => {
+            test('start at zero', async () => {
+                const dataset = await createDataset();
+                expect(dataset.stats).toEqual({ readCount: 0, writeCount: 0 });
+            });
+
+            test('count writes and reads per client call', async () => {
+                const dataset = await createDataset();
+
+                await dataset.pushData({ foo: 'bar' });
+                await dataset.pushData([{ foo: 'baz' }, { foo: 'qux' }]);
+                expect(dataset.stats).toEqual({ readCount: 0, writeCount: 2 });
+
+                await dataset.getData();
+                expect(dataset.stats).toEqual({ readCount: 1, writeCount: 2 });
+            });
+
+            test('snapshot is a copy, not a live reference', async () => {
+                const dataset = await createDataset();
+
+                const before = dataset.stats;
+                await dataset.pushData({ foo: 'bar' });
+
+                expect(before.writeCount).toBe(0);
+                expect(dataset.stats.writeCount).toBe(1);
             });
         });
     });

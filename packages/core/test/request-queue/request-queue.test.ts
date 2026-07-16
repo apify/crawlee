@@ -1,14 +1,14 @@
-import { MemoryStorageClient } from '@crawlee/memory-storage';
+import { MemoryStorageBackend } from '@crawlee/core';
 import { RequestQueue } from 'crawlee';
 import type { MockInstance } from 'vitest';
 
-const storage = new MemoryStorageClient();
+const storage = new MemoryStorageBackend();
 
 async function makeQueue(name: string, numOfRequestsToAdd = 0) {
-    const rqClient = await storage.createRequestQueueClient({ name });
+    const rqClient = await storage.createRequestQueueBackend({ name });
     const rqInfo = await rqClient.getMetadata();
 
-    const queue = new RequestQueue({ id: rqInfo.id, client: rqClient });
+    const queue = new RequestQueue({ id: rqInfo.id, backend: rqClient });
 
     if (numOfRequestsToAdd) {
         await queue.addRequests(
@@ -23,11 +23,11 @@ vitest.setConfig({ restoreMocks: false });
 
 describe('RequestQueue#fetchNextRequest delegates to the client', () => {
     let queue: RequestQueue;
-    let clientFetchNextSpy: MockInstance<typeof queue.client.fetchNextRequest>;
+    let clientFetchNextSpy: MockInstance<typeof queue.backend.fetchNextRequest>;
 
     beforeAll(async () => {
         queue = await makeQueue('fetch-next-request', 1);
-        clientFetchNextSpy = vitest.spyOn(queue.client, 'fetchNextRequest');
+        clientFetchNextSpy = vitest.spyOn(queue.backend, 'fetchNextRequest');
     });
 
     test('returns the first request via the client', async () => {

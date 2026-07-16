@@ -1,434 +1,323 @@
-/* eslint-disable import/no-duplicates */
-import { access, readdir, rm } from 'node:fs/promises';
+import { opendir, readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 import type * as storage from '@crawlee/types';
 import type { CrawleeLogger } from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
-import { ensureDirSync, move, moveSync, pathExistsSync } from 'fs-extra/esm';
 
-import { promiseMap, scheduleBackgroundTask } from './background-handler/index.js';
 import {
-    findOrCacheDatasetByPossibleId,
-    findOrCacheKeyValueStoreByPossibleId,
-    findRequestQueueByPossibleId,
-} from './cache-helpers.js';
-import { DatasetClient } from './resource-clients/dataset.js';
-import { KeyValueStoreClient } from './resource-clients/key-value-store.js';
-import { RequestQueueClient } from './resource-clients/request-queue.js';
+    FileSystemDatasetClient as NativeDatasetBackend,
+    FileSystemKeyValueStoreClient as NativeKeyValueStoreBackend,
+    FileSystemRequestQueueClient as NativeRequestQueueBackend,
+} from '@crawlee/fs-storage-native';
+import { DatasetBackend } from './resource-clients/dataset.js';
+import { KeyValueStoreBackend } from './resource-clients/key-value-store.js';
+import { RequestQueueBackend } from './resource-clients/request-queue.js';
 
 export interface FileSystemStorageOptions {
     /**
      * Path to directory where the data will be saved.
-     * @default process.env.CRAWLEE_STORAGE_DIR ?? './storage'
      */
-    localDataDirectory?: string;
+    localDataDirectory: string;
 
     /**
-     * Whether to also write optional metadata files when storing to disk.
-     * @default process.env.DEBUG?.includes('*') ?? process.env.DEBUG?.includes('crawlee:memory-storage') ?? false
-     */
-    writeMetadata?: boolean;
-
-    /**
-     * Optional logger for FileSystemStorageClient warnings.
+     * Optional logger for FileSystemStorageBackend warnings.
      */
     logger?: CrawleeLogger;
+
+    /**
+     * How the on-disk request queues opened by this backend are expected to be accessed.
+     *
+     * With `'single'` (the default), this process asserts it is the *sole* consumer of every request
+     * queue it opens: on open, any requests that a previous run left *in progress* (e.g. after a
+     * crash) are reclaimed immediately, so they become fetchable again right away. This is the right
+     * behavior for the common single-process crawl.
+     *
+     * Use `'shared'` if multiple processes share the same on-disk request queue concurrently (for
+     * example, the {@apilink parallel scraping setup | "Parallel Scraping Guide"}). In that mode an
+     * in-progress request is treated as a potential live peer's lock and is only reclaimed once that
+     * lock expires on the wall clock, so two workers won't process the same request at once.
+     *
+     * @default 'single'
+     */
+    requestQueueAccess?: 'single' | 'shared';
 }
 
-export class FileSystemStorageClient implements storage.StorageClient {
+/**
+ * A file-system storage backend backed by the native `@crawlee/fs-storage-native` Rust extension.
+ *
+ * The native extension owns the on-disk format, timestamps, item counting, request-queue locking and
+ * state persistence. This class is responsible for resolving the user-facing `id` / `name` / `alias`
+ * identifiers to native storages, caching the opened backends (so that `storageExists`, `purge` and
+ * `teardown` can operate over them), and exposing them through the `@crawlee/types` interfaces.
+ */
+export class FileSystemStorageBackend implements storage.StorageBackend {
     readonly localDataDirectory: string;
     readonly datasetsDirectory: string;
     readonly keyValueStoresDirectory: string;
     readonly requestQueuesDirectory: string;
-    readonly writeMetadata: boolean;
     readonly logger?: CrawleeLogger;
+    readonly requestQueueAccess: 'single' | 'shared';
 
-    readonly keyValueStoreCache: KeyValueStoreClient[] = [];
-    readonly datasetClientCache: DatasetClient[] = [];
-    readonly requestQueueCache: RequestQueueClient[] = [];
+    readonly keyValueStoreBackendCache: KeyValueStoreBackend[] = [];
+    readonly datasetBackendCache: DatasetBackend[] = [];
+    readonly requestQueueBackendCache: RequestQueueBackend[] = [];
 
-    constructor(options: FileSystemStorageOptions = {}) {
+    constructor(options: FileSystemStorageOptions) {
         s.object({
-            localDataDirectory: s.string().optional(),
-            writeMetadata: s.boolean().optional(),
+            localDataDirectory: s.string(),
+            requestQueueAccess: s.enum(['single', 'shared']).optional(),
         }).parse(options);
 
         this.logger = options.logger;
+        this.requestQueueAccess = options.requestQueueAccess ?? 'single';
 
-        // v3.0.0 used `crawlee_storage` as the default, we changed this in v3.0.1 to just `storage`,
-        // this function handles it without making BC breaks - it respects existing `crawlee_storage`
-        // directories, and uses the `storage` only if it's not there.
-        const defaultStorageDir = () => {
-            if (pathExistsSync(resolve('./crawlee_storage'))) {
-                return './crawlee_storage';
-            }
-
-            return './storage';
-        };
-
-        this.localDataDirectory = options.localDataDirectory ?? process.env.CRAWLEE_STORAGE_DIR ?? defaultStorageDir();
+        this.localDataDirectory = options.localDataDirectory;
         this.datasetsDirectory = resolve(this.localDataDirectory, 'datasets');
         this.keyValueStoresDirectory = resolve(this.localDataDirectory, 'key_value_stores');
         this.requestQueuesDirectory = resolve(this.localDataDirectory, 'request_queues');
-        this.writeMetadata =
-            options.writeMetadata ??
-            process.env.DEBUG?.includes('*') ??
-            process.env.DEBUG?.includes('crawlee:memory-storage') ??
-            false;
     }
 
     /**
-     * Return a cache key that includes the resolved storage directory, so that
-     * two `FileSystemStorageClient` instances pointing at different directories get separate
-     * cache partitions. Mirrors crawlee-python's `FileSystemStorageClient` which
-     * includes `configuration.storage_dir` in its cache key.
+     * Return a cache key that includes the resolved storage directory, so that two
+     * `FileSystemStorageBackend` instances pointing at different directories get separate cache
+     * partitions, by including the storage directory in the cache key.
      */
-    getStorageClientCacheKey(): string {
-        return `FileSystemStorageClient:${resolve(this.localDataDirectory)}`;
+    getStorageBackendCacheKey(): string {
+        return `FileSystemStorageBackend:${resolve(this.localDataDirectory)}`;
     }
 
     private static resolveStorageKey(options: { id?: string; name?: string; alias?: string }): {
-        isAlias: boolean;
-        directoryKey: string | undefined;
+        id?: string;
+        name?: string;
+        alias?: string;
+        cacheKey: string | undefined;
     } {
         const isAlias = 'alias' in options && !!options.alias;
         const rawKey = isAlias ? options.alias : (options.name ?? options.id);
         // Normalize the internal __default__ alias to the user-facing 'default' name.
-        const directoryKey = rawKey === '__default__' ? 'default' : rawKey;
-        return { isAlias, directoryKey };
+        const cacheKey = rawKey === '__default__' ? 'default' : rawKey;
+        return { id: options.id, name: options.name, alias: options.alias, cacheKey };
     }
 
-    async createDatasetClient(options: storage.CreateDatasetClientOptions = {}): Promise<storage.DatasetClient> {
-        const { isAlias, directoryKey } = FileSystemStorageClient.resolveStorageKey(options);
+    async createDatasetBackend(options: storage.CreateDatasetBackendOptions = {}): Promise<storage.DatasetBackend> {
+        const { id, name, alias, cacheKey } = FileSystemStorageBackend.resolveStorageKey(options);
 
-        if (directoryKey) {
-            const found = await findOrCacheDatasetByPossibleId(this, directoryKey);
+        if (cacheKey) {
+            const found = this.datasetBackendCache.find(
+                (store) =>
+                    store.id === cacheKey ||
+                    store.name?.toLowerCase() === cacheKey.toLowerCase() ||
+                    store.cacheKey.toLowerCase() === cacheKey.toLowerCase(),
+            );
             if (found) {
                 return found;
             }
         }
 
-        const newStore = new DatasetClient({
-            name: isAlias ? undefined : directoryKey,
-            directoryName: directoryKey,
-            baseStorageDirectory: this.datasetsDirectory,
-            client: this,
+        const nativeBackend = await NativeDatasetBackend.open(id, name, alias, this.localDataDirectory);
+        const newStore = await DatasetBackend.create({
+            name: alias ? undefined : (name ?? cacheKey),
+            cacheKey: cacheKey ?? '',
+            nativeBackend,
+            logger: this.logger,
         });
-        this.datasetClientCache.push(newStore);
-
-        // Schedule the worker to write to the disk
-        const datasetInfo = newStore.toDatasetInfo();
-
-        scheduleBackgroundTask(
-            {
-                action: 'update-metadata',
-                entityType: 'datasets',
-                entityDirectory: newStore.datasetDirectory,
-                id: datasetInfo.name ?? datasetInfo.id,
-                data: datasetInfo,
-                writeMetadata: this.writeMetadata,
-            },
-            this.logger,
-        );
+        this.datasetBackendCache.push(newStore);
 
         return newStore;
     }
 
-    async createKeyValueStoreClient(
-        options: storage.CreateKeyValueStoreClientOptions = {},
-    ): Promise<storage.KeyValueStoreClient> {
-        const { isAlias, directoryKey } = FileSystemStorageClient.resolveStorageKey(options);
+    async createKeyValueStoreBackend(
+        options: storage.CreateKeyValueStoreBackendOptions = {},
+    ): Promise<storage.KeyValueStoreBackend> {
+        const { id, name, alias, cacheKey } = FileSystemStorageBackend.resolveStorageKey(options);
 
-        if (directoryKey) {
-            const found = await findOrCacheKeyValueStoreByPossibleId(this, directoryKey);
+        if (cacheKey) {
+            const found = this.keyValueStoreBackendCache.find(
+                (store) =>
+                    store.id === cacheKey ||
+                    store.name?.toLowerCase() === cacheKey.toLowerCase() ||
+                    store.cacheKey.toLowerCase() === cacheKey.toLowerCase(),
+            );
             if (found) {
                 return found;
             }
         }
 
-        const newStore = new KeyValueStoreClient({
-            name: isAlias ? undefined : directoryKey,
-            directoryName: directoryKey,
-            baseStorageDirectory: this.keyValueStoresDirectory,
-            client: this,
+        const nativeBackend = await NativeKeyValueStoreBackend.open(id, name, alias, this.localDataDirectory);
+        const newStore = await KeyValueStoreBackend.create({
+            name: alias ? undefined : (name ?? cacheKey),
+            cacheKey: cacheKey ?? '',
+            nativeBackend,
+            logger: this.logger,
         });
-        this.keyValueStoreCache.push(newStore);
-
-        // Schedule the worker to write to the disk
-        const kvStoreInfo = newStore.toKeyValueStoreInfo();
-
-        scheduleBackgroundTask(
-            {
-                action: 'update-metadata',
-                entityType: 'keyValueStores',
-                entityDirectory: newStore.keyValueStoreDirectory,
-                id: kvStoreInfo.name ?? kvStoreInfo.id,
-                data: kvStoreInfo,
-                writeMetadata: this.writeMetadata,
-            },
-            this.logger,
-        );
+        this.keyValueStoreBackendCache.push(newStore);
 
         return newStore;
     }
 
-    async createRequestQueueClient(
-        options: storage.CreateRequestQueueClientOptions = {},
-    ): Promise<storage.RequestQueueClient> {
-        const { isAlias, directoryKey } = FileSystemStorageClient.resolveStorageKey(options);
+    async createRequestQueueBackend(
+        options: storage.CreateRequestQueueBackendOptions = {},
+    ): Promise<storage.RequestQueueBackend> {
+        const { id, name, alias, cacheKey } = FileSystemStorageBackend.resolveStorageKey(options);
 
-        if (directoryKey) {
-            const found = await findRequestQueueByPossibleId(this, directoryKey);
+        if (cacheKey) {
+            const found = this.requestQueueBackendCache.find(
+                (queue) =>
+                    queue.id === cacheKey ||
+                    queue.name?.toLowerCase() === cacheKey.toLowerCase() ||
+                    queue.cacheKey.toLowerCase() === cacheKey.toLowerCase(),
+            );
             if (found) {
                 return found;
             }
         }
 
-        const newStore = new RequestQueueClient({
-            name: isAlias ? undefined : directoryKey,
-            directoryName: directoryKey,
-            baseStorageDirectory: this.requestQueuesDirectory,
-            client: this,
-        });
-        this.requestQueueCache.push(newStore);
-
-        // Schedule the worker to write to the disk
-        const queueInfo = newStore.toRequestQueueInfo();
-
-        scheduleBackgroundTask(
-            {
-                action: 'update-metadata',
-                entityType: 'requestQueues',
-                entityDirectory: newStore.requestQueueDirectory,
-                id: queueInfo.name ?? queueInfo.id,
-                data: queueInfo,
-                writeMetadata: this.writeMetadata,
-            },
-            this.logger,
+        const nativeBackend = await NativeRequestQueueBackend.open(
+            id,
+            name,
+            alias,
+            this.localDataDirectory,
+            // useTestClock — always real wall-clock outside of native tests.
+            undefined,
+            this.requestQueueAccess,
         );
+        const newStore = await RequestQueueBackend.create({
+            name: alias ? undefined : (name ?? cacheKey),
+            cacheKey: cacheKey ?? '',
+            nativeBackend,
+            logger: this.logger,
+        });
+        this.requestQueueBackendCache.push(newStore);
 
         return newStore;
     }
 
     async storageExists(id: string, type: 'Dataset' | 'KeyValueStore' | 'RequestQueue'): Promise<boolean> {
-        let clients: { id: string }[];
+        let backends: (KeyValueStoreBackend | DatasetBackend | RequestQueueBackend)[];
         let baseDir: string;
 
         switch (type) {
             case 'Dataset':
-                clients = this.datasetClientCache;
+                backends = this.datasetBackendCache;
                 baseDir = this.datasetsDirectory;
                 break;
             case 'KeyValueStore':
-                clients = this.keyValueStoreCache;
+                backends = this.keyValueStoreBackendCache;
                 baseDir = this.keyValueStoresDirectory;
                 break;
             case 'RequestQueue':
-                clients = this.requestQueueCache;
+                backends = this.requestQueueBackendCache;
                 baseDir = this.requestQueuesDirectory;
                 break;
             default:
                 return false;
         }
 
-        // Check in-memory cache by actual storage ID
-        if (clients.some((store) => store.id === id)) {
+        // Check the in-memory cache by actual storage ID first.
+        if (backends.some((store) => store.id === id)) {
             return true;
         }
 
-        // Check if a directory with that ID exists on disk.
-        // Only consider directories whose name matches the queried ID — this avoids
-        // false positives for alias-created directories (e.g. a directory named 'asdf'
-        // created via `{ alias: 'asdf' }` should not make `storageExists('asdf')` return true,
-        // since the actual storage ID is a UUID, not the alias string).
-        try {
-            await access(resolve(baseDir, id));
-
-            // If the directory exists but a cached client already owns this directory
-            // under a different ID, this is not a match.
-            const cachedClients = clients as { id: string; directoryName?: string }[];
-            if (cachedClients.some((store) => store.directoryName === id && store.id !== id)) {
-                return false;
-            }
-
-            return true;
-        } catch {
-            return false;
-        }
-    }
-
-    async setStatusMessage(message: string, options: storage.SetStatusMessageOptions = {}): Promise<void> {
-        s.string().parse(message);
-        s.object({
-            isStatusMessageTerminal: s.boolean().optional(),
-        }).parse(options);
-
-        return Promise.resolve();
+        // Otherwise, resolve any on-disk storage that matches the queried string — either by its
+        // directory name, or (for a storage opened by name, whose directory is named after the name)
+        // by scanning the `__metadata__.json` files for a matching id.
+        //
+        // A directory-name match does NOT by itself prove the string is the storage's *id*: the
+        // directory is named after `name ?? id`, so `named-storage`/`on-disk` (a name or alias) also
+        // has a matching directory. We therefore read the real id from the metadata and only report
+        // existence when it equals the queried string. This matches upstream PR #3800/#3808 and
+        // prevents a named storage from being re-resolved as `{ id: name }` on a subsequent run.
+        const resolvedId = await FileSystemStorageBackend.resolveStorageIdOnDisk(baseDir, id);
+        return resolvedId === id;
     }
 
     /**
-     * Cleans up the default storage directories before the run starts:
-     *  - local directory containing the default dataset;
-     *  - all records from the default key-value store in the local directory, except for the "INPUT" key;
-     *  - local directory containing the default request queue.
+     * Resolve the real `id` of the on-disk storage identified by `entryNameOrId` under `baseDirectory`,
+     * or `undefined` if none matches. The storage's real id lives in its directory's
+     * `__metadata__.json`; the directory itself is named after the storage's `name ?? id`. So this
+     * first tries the directory named exactly `entryNameOrId` (reading its metadata id), then falls
+     * back to scanning sibling directories for one whose metadata id equals `entryNameOrId` (the case
+     * of a storage opened by name and later looked up by its auto-assigned id).
+     */
+    private static async resolveStorageIdOnDisk(
+        baseDirectory: string,
+        entryNameOrId: string,
+    ): Promise<string | undefined> {
+        // Directory named exactly after the string: return its real (metadata) id, which may differ
+        // from the string when the string is a name rather than an id.
+        const directId = await FileSystemStorageBackend.readMetadataId(resolve(baseDirectory, entryNameOrId));
+        if (directId !== undefined) {
+            return directId;
+        }
+
+        // No such directory — scan siblings for one whose metadata id matches the string.
+        let directories;
+        try {
+            directories = await opendir(baseDirectory);
+        } catch {
+            return undefined;
+        }
+
+        for await (const directory of directories) {
+            if (!directory.isDirectory()) {
+                continue;
+            }
+
+            const metadataId = await FileSystemStorageBackend.readMetadataId(resolve(baseDirectory, directory.name));
+            if (metadataId === entryNameOrId) {
+                return metadataId;
+            }
+        }
+
+        return undefined;
+    }
+
+    /** Read the `id` field from a storage directory's `__metadata__.json`, or `undefined` if absent. */
+    private static async readMetadataId(storageDirectory: string): Promise<string | undefined> {
+        try {
+            const fileContent = await readFile(resolve(storageDirectory, '__metadata__.json'), 'utf8');
+            return (JSON.parse(fileContent) as { id?: string }).id;
+        } catch {
+            // Directory missing, or no/unreadable metadata file — no id to report.
+            return undefined;
+        }
+    }
+
+    /**
+     * Cleans up the default storages before the run starts:
+     *  - the default dataset;
+     *  - all records from the default key-value store, except for the "INPUT" key;
+     *  - the default request queue.
      */
     async purge(): Promise<void> {
-        // Key-value stores
-        const keyValueStores = await readdir(this.keyValueStoresDirectory).catch(() => []);
-        const keyValueStorePromises: Promise<void>[] = [];
+        // Resolve the default stores up front so leftover on-disk records are purged even when the
+        // store has not been opened in this process yet (e.g. a fresh run over a pre-existing
+        // directory). Opening caches the backend, so the subsequent purge operates on a real backend.
+        // The default store is opened via the internal `__default__` alias (see resolveStorageIdentifier
+        // in @crawlee/core), which resolves to the `default` cache key — match that here so we purge the
+        // very backend the default open would return rather than creating a divergent one.
+        const [defaultKeyValueStore, defaultDataset, defaultRequestQueue] = await Promise.all([
+            this.createKeyValueStoreBackend({ alias: '__default__' }) as Promise<KeyValueStoreBackend>,
+            this.createDatasetBackend({ alias: '__default__' }) as Promise<DatasetBackend>,
+            this.createRequestQueueBackend({ alias: '__default__' }) as Promise<RequestQueueBackend>,
+        ]);
 
-        for (const keyValueStoreFolder of keyValueStores) {
-            if (keyValueStoreFolder.startsWith('__CRAWLEE_TEMPORARY') || keyValueStoreFolder.startsWith('__OLD')) {
-                keyValueStorePromises.push(
-                    (await this.batchRemoveFiles(resolve(this.keyValueStoresDirectory, keyValueStoreFolder)))(),
-                );
-            } else if (keyValueStoreFolder === 'default' || keyValueStoreFolder === '__default__') {
-                keyValueStorePromises.push(
-                    this.handleDefaultKeyValueStore(resolve(this.keyValueStoresDirectory, keyValueStoreFolder))(),
-                );
-            }
-        }
-
-        void Promise.allSettled(keyValueStorePromises);
-
-        // Datasets
-        const datasets = await readdir(this.datasetsDirectory).catch(() => []);
-        const datasetPromises: Promise<void>[] = [];
-
-        for (const datasetFolder of datasets) {
-            if (
-                datasetFolder === 'default' ||
-                datasetFolder === '__default__' ||
-                datasetFolder.startsWith('__CRAWLEE_TEMPORARY')
-            ) {
-                datasetPromises.push((await this.batchRemoveFiles(resolve(this.datasetsDirectory, datasetFolder)))());
-            }
-        }
-
-        void Promise.allSettled(datasetPromises);
-
-        // Request queues
-        const requestQueues = await readdir(this.requestQueuesDirectory).catch(() => []);
-        const requestQueuePromises: Promise<void>[] = [];
-
-        for (const requestQueueFolder of requestQueues) {
-            if (
-                requestQueueFolder === 'default' ||
-                requestQueueFolder === '__default__' ||
-                requestQueueFolder.startsWith('__CRAWLEE_TEMPORARY')
-            ) {
-                requestQueuePromises.push(
-                    (await this.batchRemoveFiles(resolve(this.requestQueuesDirectory, requestQueueFolder)))(),
-                );
-            }
-        }
-
-        void Promise.allSettled(requestQueuePromises);
+        await Promise.all([
+            // Preserve the run input (INPUT) when purging the default key-value store.
+            defaultKeyValueStore.purgeExceptInput(),
+            defaultDataset.purge(),
+            defaultRequestQueue.purge(),
+        ]);
     }
 
     /**
      * This method should be called at the end of the process, to ensure all data is saved.
+     *
+     * It persists the state of every opened request queue so that requests fetched but not yet handled
+     * are not stuck (until their lock expires) for the next consumer of the same on-disk queue.
      */
     async teardown(): Promise<void> {
-        // Release any request locks this process still holds so that requests fetched but not yet
-        // handled are not stuck (until their lock expires) for the next consumer of the same on-disk
-        // queue. Other storage backends don't need this: the Apify platform releases a run's locks
-        // automatically, and the file-system storage doesn't lock at all.
-        await Promise.all(this.requestQueueCache.map(async (queue) => queue.releaseOwnLocks()));
-
-        const promises = [...promiseMap.values()].map(async ({ promise }) => promise);
-
-        await Promise.all(promises);
-    }
-
-    private handleDefaultKeyValueStore(folder: string): () => Promise<void> {
-        const storagePathExists = pathExistsSync(folder);
-        const temporaryPath = resolve(folder, '../__CRAWLEE_MIGRATING_KEY_VALUE_STORE__');
-
-        // For optimization, we want to only attempt to copy a few files from the default key-value store
-        const possibleInputKeys = ['INPUT', 'INPUT.json', 'INPUT.bin', 'INPUT.txt'];
-
-        if (storagePathExists) {
-            // Create temporary folder to save important files in
-            ensureDirSync(temporaryPath);
-
-            // Go through each file and save the ones that are important
-            for (const entity of possibleInputKeys) {
-                const originalFilePath = resolve(folder, entity);
-                const tempFilePath = resolve(temporaryPath, entity);
-
-                try {
-                    moveSync(originalFilePath, tempFilePath);
-                } catch {
-                    // Ignore
-                }
-            }
-
-            // Remove the original folder and all its content
-            let counter = 0;
-            let tempPathForOldFolder = resolve(folder, `../__OLD_DEFAULT_${counter}__`);
-            let done = false;
-
-            while (!done) {
-                try {
-                    moveSync(folder, tempPathForOldFolder);
-                    done = true;
-                } catch {
-                    tempPathForOldFolder = resolve(folder, `../__OLD_DEFAULT_${++counter}__`);
-                }
-            }
-
-            // Replace the temporary folder with the original folder
-            moveSync(temporaryPath, folder);
-
-            // Remove the old folder
-            return async () => (await this.batchRemoveFiles(tempPathForOldFolder))();
-        }
-
-        return async () => Promise.resolve();
-    }
-
-    private async batchRemoveFiles(folder: string, counter = 0): Promise<() => Promise<void>> {
-        const folderExists = pathExistsSync(folder);
-
-        if (folderExists) {
-            const temporaryFolder = resolve(folder, `../__CRAWLEE_TEMPORARY_${counter}__`);
-
-            try {
-                // Rename the old folder to the new one to allow background deletions
-                await move(folder, temporaryFolder);
-            } catch {
-                // Folder exists already, try again with an incremented counter
-                return this.batchRemoveFiles(folder, ++counter);
-            }
-
-            return async () => {
-                // Read all files in the folder
-                const entries = await readdir(temporaryFolder);
-
-                let processed = 0;
-                let promises: Promise<void>[] = [];
-
-                for (const entry of entries) {
-                    processed++;
-                    promises.push(rm(resolve(temporaryFolder, entry), { force: true }));
-
-                    // Every 2000 files, delete them
-                    if (processed % 2000 === 0) {
-                        await Promise.allSettled(promises);
-                        promises = [];
-                    }
-                }
-
-                // Ensure last promises are handled
-                await Promise.allSettled(promises);
-
-                // Delete the folder itself
-                await rm(temporaryFolder, { force: true, recursive: true });
-            };
-        }
-
-        return async () => Promise.resolve();
+        await Promise.all(this.requestQueueBackendCache.map(async (queue) => queue.persistState()));
     }
 }

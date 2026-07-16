@@ -1,0 +1,70 @@
+---
+id: remote-browser
+title: "Remote browser services"
+sidebar_label: "Remote browsers"
+description: Connect Crawlee crawlers to remote browser services like Browserbase, Browserless, or Steel.
+---
+
+import ApiLink from '@site/src/components/ApiLink';
+import CodeBlock from '@theme/CodeBlock';
+
+import RemoteBrowserConfigSource from '!!raw-loader!./remote_browser_config.ts';
+import RemoteBrowserProviderSource from '!!raw-loader!./remote_browser_provider.ts';
+import RemoteBrowserPuppeteerSource from '!!raw-loader!./remote_browser_puppeteer.ts';
+
+Instead of launching a local browser, Crawlee can connect to a remote browser service like [Browserbase](https://browserbase.com/), [Browserless](https://browserless.io/), [Steel](https://steel.dev/), or any service that exposes a WebSocket/CDP endpoint. The crawler manages session rotation and the request lifecycle the same way it does locally — only the browser itself runs elsewhere.
+
+Use this when you need IPs in specific regions, want to offload CPU/memory from your runner, or need stealth features the service provides.
+
+## How it works
+
+Set the crawler's `remoteBrowser` option with the connection details. The crawler builds a <ApiLink to="browser-pool/class/RemoteBrowserPool">`RemoteBrowserPool`</ApiLink> around its own browser plugin, so the connection is always for the matching browser — there's no plugin to construct and no way to mismatch the pool with the crawler. The pool (an <ApiLink to="browser-pool/interface/IBrowserPool">`IBrowserPool`</ApiLink> wrapping the regular <ApiLink to="browser-pool/class/BrowserPool">`BrowserPool`</ApiLink>) owns everything remote: resolving the endpoint, releasing sessions when browsers close, and capping how many remote browsers run at once.
+
+## Basic usage
+
+The simplest form is a static connection URL. Use this when the service exposes a single endpoint and doesn't need per-session setup.
+
+<CodeBlock language="ts" title="src/main.ts">{RemoteBrowserConfigSource}</CodeBlock>
+
+`endpoint` can also be a function returning `{ url, context }`, called once per browser launch. Pair it with a `release` callback (it receives the `context`) to clean up sessions on the service side when the browser closes, crashes, or the pool is destroyed.
+
+`maxOpenBrowsers` caps the number of concurrent remote browsers — set it to the service's concurrent-session limit to avoid 429 errors. The pool enforces it inside `newPage()`, which waits for a free slot rather than overshooting.
+
+### Self-hosted
+
+Some services ship a Docker image you can run locally or on your own infrastructure. For example, [Browserless](https://www.browserless.io/) has an open-source Chromium image:
+
+```bash
+docker run -p 3000:3000 -e CONCURRENT=4 ghcr.io/browserless/chromium
+```
+
+Point the pool at the local endpoint with `endpoint: 'ws://localhost:3000'`.
+
+## Custom provider
+
+For services with a session-create / session-release lifecycle, extend <ApiLink to="browser-pool/class/RemoteBrowserProvider">`RemoteBrowserProvider`</ApiLink> and pass the instance as the pool's `endpoint`. `connect()` runs once per browser launch and returns the connection URL plus an optional `context` object passed back to `release()`. `maxOpenBrowsers` set on the provider is adopted by the pool.
+
+<CodeBlock language="ts" title="src/main.ts">{RemoteBrowserProviderSource}</CodeBlock>
+
+## Puppeteer
+
+<ApiLink to="puppeteer-crawler/class/PuppeteerCrawler">`PuppeteerCrawler`</ApiLink> works the same way — build the pool with a `PuppeteerPlugin`. Puppeteer connects over CDP:
+
+<CodeBlock language="ts" title="src/main.ts">{RemoteBrowserPuppeteerSource}</CodeBlock>
+
+For Playwright you can choose the protocol via the `remoteBrowser.connection.protocol` option: `'cdp'` (default, `connectOverCDP()`) or `'playwright'` (`connect()`, Playwright's own WebSocket protocol).
+
+## Sharing a pool across crawlers
+
+`remoteBrowser` builds a pool the crawler owns and tears down. To share one remote pool across multiple crawlers, construct a <ApiLink to="browser-pool/class/RemoteBrowserPool">`RemoteBrowserPool`</ApiLink> yourself and pass it as the `browserPool` option instead — a pool supplied that way is never destroyed by the crawler, so you control its lifecycle. Use `remoteBrowser` *or* `browserPool`, not both.
+
+## Limitations
+
+- **`headless` and `launchOptions` don't apply.** The remote service controls headless mode and browser flags; configure them on the service side.
+- **`useIncognitoPages` is forced to `true`** for Playwright remote connections — `connect()` / `connectOverCDP()` don't accept persistent contexts. For state shared across requests, use the `SessionPool`.
+- **`userDataDir` has no effect** — there's no local profile when the browser runs remotely. Use the service's persistence API (e.g. Browserbase Contexts, Steel Profiles).
+
+## Further reading
+
+- <ApiLink to="browser-pool/class/RemoteBrowserPool">`RemoteBrowserPool` API reference</ApiLink>
+- <ApiLink to="browser-pool/class/RemoteBrowserProvider">`RemoteBrowserProvider` API reference</ApiLink>

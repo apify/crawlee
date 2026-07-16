@@ -42,14 +42,8 @@
         "access": "public"
     },
     "dependencies": {
+        "@crawlee/fs-storage-native": "0.1.5-beta.18",
         "@crawlee/types": "workspace:*",
-        "@sapphire/async-queue": "^1.5.5",
-        "@sapphire/shapeshift": "^4.0.0",
-        "content-type": "^1.0.5",
-        "fs-extra": "^11.3.0",
-        "json5": "^2.2.3",
-        "mime-types": "^3.0.1",
-        "proper-lockfile": "^4.1.2",
-        "tslib": "^2.8.1"
+        "@sapphire/shapeshift": "^4.0.0"
     }
 }

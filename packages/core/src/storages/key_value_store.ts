@@ -1,57 +1,23 @@
-import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
-
-import type { Dictionary, KeyValueStoreClient, KeyValueStoreItemData } from '@crawlee/types';
-import JSON5 from 'json5';
+import type { Dictionary, KeyValueStoreBackend, KeyValueStoreItemData } from '@crawlee/types';
 import ow, { ArgumentError } from 'ow';
 
 import { KEY_VALUE_STORE_KEY_REGEX } from '@apify/consts';
-import { jsonStringifyExtended } from '@apify/utilities';
 
 import { Configuration } from '../configuration.js';
 import { serviceLocator } from '../service_locator.js';
 import type { Awaitable } from '../typedefs.js';
 import { checkStorageAccess } from './access_checking.js';
+import { parseValue, serializeValue } from './key_value_store_codec.js';
+import type { KeyValueStoreStats } from './storage_stats.js';
+import { StorageStatsTracker } from './storage_stats.js';
 import type { StorageIdentifier } from './storage_instance_manager.js';
 import type { StorageOpenOptions } from './utils.js';
 import { resolveStorageIdentifier } from './storage_instance_manager.js';
 import { createDualIterable, purgeDefaultStorages } from './utils.js';
+import { isBuffer, isStream } from '@crawlee/utils';
 
 /** @internal */
 const KVS_KEYS_DEFAULT_LIMIT = 1000;
-
-/**
- * Helper function to possibly stringify value if options.contentType is not set.
- *
- * @ignore
- */
-export const maybeStringify = <T>(value: T, options: { contentType?: string }) => {
-    // If contentType is missing, value will be stringified to JSON
-    if (options.contentType === null || options.contentType === undefined) {
-        options.contentType = 'application/json; charset=utf-8';
-
-        try {
-            // Format JSON to simplify debugging, the overheads with compression is negligible
-            value = jsonStringifyExtended(value as Dictionary, null, 2) as unknown as T;
-        } catch (e) {
-            const error = e as Error;
-            // Give more meaningful error message
-            if (error.message?.includes('Invalid string length')) {
-                error.message = 'Object is too large';
-            }
-            throw new Error(`The "value" parameter cannot be stringified to JSON: ${error.message}`);
-        }
-
-        if (value === undefined) {
-            throw new Error(
-                'The "value" parameter was stringified to JSON and returned undefined. ' +
-                    "Make sure you're not trying to stringify an undefined value.",
-            );
-        }
-    }
-
-    return value;
-};
 
 /**
  * The `KeyValueStore` class represents a key-value store, a simple data storage that is used
@@ -112,11 +78,18 @@ export const maybeStringify = <T>(value: T, options: { contentType?: string }) =
 export class KeyValueStore {
     readonly id: string;
     readonly name?: string;
-    private readonly client: KeyValueStoreClient;
+    private readonly backend: KeyValueStoreBackend;
     private persistStateEventStarted = false;
 
     /** Cache for persistent (auto-saved) values. When we try to set such value, the cache will be updated automatically. */
     private readonly cache = new Map<string, Dictionary>();
+
+    private readonly statsTracker = new StorageStatsTracker<KeyValueStoreStats>({
+        readCount: 0,
+        writeCount: 0,
+        deleteCount: 0,
+        listCount: 0,
+    });
 
     /**
      * @internal
@@ -127,7 +100,15 @@ export class KeyValueStore {
     ) {
         this.id = options.id;
         this.name = options.name;
-        this.client = options.client;
+        this.backend = options.backend;
+    }
+
+    /**
+     * Backend-independent usage counters tracked for this key-value store (read / write / delete /
+     * list operations issued to the underlying storage backend). Counted per backend call.
+     */
+    get stats(): KeyValueStoreStats {
+        return this.statsTracker.current;
     }
 
     /**
@@ -230,9 +211,57 @@ export class KeyValueStore {
         checkStorageAccess();
 
         ow(key, ow.string.nonEmpty);
-        const record = await this.client.getValue(key);
+        this.statsTracker.add('readCount');
+        const record = await this.backend.getValue(key);
 
-        return (record?.value as T) ?? defaultValue ?? null;
+        // A missing record falls back to the default; a record that parses to a falsy value (including
+        // a stored literal `null`) is returned verbatim, so callers can tell "stored null" from "absent".
+        if (!record) {
+            return defaultValue ?? null;
+        }
+
+        // Storage backends are byte transports — the value is raw bytes; the frontend parses it here.
+        return parseValue(record.value, record.contentType ?? null) as T;
+    }
+
+    /**
+     * Reads a record from the key-value store without parsing the value.
+     *
+     * Use this when you need the raw bytes and the content type — for example, to run your own
+     * parser (`simdjson`, a custom XML library, etc.) or to forward the bytes verbatim.
+     *
+     * There is no symmetric `setRecord` method, because {@apilink KeyValueStore.setValue} already
+     * passes a `Buffer` (or `string` / `Stream`) through unchanged when an explicit `contentType`
+     * is provided. To write pre-serialized bytes, call
+     * `setValue(key, buffer, { contentType: 'application/json; charset=utf-8' })`.
+     *
+     * Returns `null` if the record does not exist.
+     *
+     * **Example usage:**
+     * ```javascript
+     * const store = await KeyValueStore.open();
+     * const record = await store.getRecord('huge.json');
+     * if (record) {
+     *     const data = simdjson.parse(record.value);
+     * }
+     * ```
+     *
+     * @param key
+     *   Unique key of the record. It can be at most 256 characters long and only consist
+     *   of the following characters: `a`-`z`, `A`-`Z`, `0`-`9` and `!-_.'()`
+     */
+    async getRecord(key: string): Promise<KeyValueStoreRawRecord | null> {
+        checkStorageAccess();
+
+        ow(key, ow.string.nonEmpty);
+        this.statsTracker.add('readCount');
+        const record = await this.backend.getValue(key);
+        if (!record) return null;
+
+        return {
+            value: record.value,
+            contentType: record.contentType ?? null,
+        };
     }
 
     /**
@@ -245,7 +274,7 @@ export class KeyValueStore {
         checkStorageAccess();
 
         ow(key, ow.string.nonEmpty);
-        return this.client.recordExists(key);
+        return this.backend.recordExists(key);
     }
 
     async getAutoSavedValue<T extends Dictionary = Dictionary>(key: string, defaultValue = {} as T): Promise<T> {
@@ -300,8 +329,12 @@ export class KeyValueStore {
         for await (const page of this.fetchKeyPages(options)) {
             const results: T[] = [];
             for (const item of page) {
-                const record = await this.client.getValue(item.key);
-                if (record) results.push(mapRecord(item.key, record.value));
+                this.statsTracker.add('readCount');
+                const record = await this.backend.getValue(item.key);
+                if (record) {
+                    const parsed = parseValue(record.value, record.contentType ?? null);
+                    results.push(mapRecord(item.key, parsed));
+                }
             }
             yield results;
         }
@@ -314,10 +347,15 @@ export class KeyValueStore {
         let exclusiveStartKey: string | undefined;
 
         while (true) {
-            const items = await this.client.listKeys({ ...options, exclusiveStartKey, limit });
+            this.statsTracker.add('listCount');
+            const { items, isTruncated, nextExclusiveStartKey } = await this.backend.listKeys({
+                ...options,
+                exclusiveStartKey,
+                limit,
+            });
             yield items;
-            if (items.length < limit) break;
-            exclusiveStartKey = items[items.length - 1].key;
+            if (!isTruncated) break;
+            exclusiveStartKey = nextExclusiveStartKey;
         }
     }
 
@@ -375,15 +413,9 @@ export class KeyValueStore {
                 message: `The "key" argument "${key}" must be at most 256 characters long and only contain the following characters: a-zA-Z0-9!-_.'()`,
             })),
         );
-        if (
-            options.contentType &&
-            !(
-                ow.isValid(value, ow.any(ow.string, ow.uint8Array)) ||
-                (ow.isValid(value, ow.object) && typeof (value as Dictionary).pipe === 'function')
-            )
-        ) {
+        if (options.contentType && !(typeof value === 'string' || isBuffer(value) || isStream(value))) {
             throw new ArgumentError(
-                'The "value" parameter must be a String, Buffer or Stream when "options.contentType" is specified.',
+                'The "value" parameter must be a String, Buffer, ArrayBuffer, TypedArray, or Stream when "options.contentType" is specified.',
                 this.setValue,
             );
         }
@@ -415,14 +447,18 @@ export class KeyValueStore {
         }
 
         // In this case delete the record.
-        if (value === null) return this.client.deleteValue(key);
+        if (value === null) {
+            this.statsTracker.add('deleteCount');
+            return this.backend.deleteValue(key);
+        }
 
-        value = maybeStringify(value, optionsCopy);
+        const serialized = serializeValue(value, optionsCopy.contentType);
 
-        return this.client.setValue({
+        this.statsTracker.add('writeCount');
+        return this.backend.setValue({
             key,
-            value,
-            contentType: optionsCopy.contentType,
+            value: serialized.value,
+            contentType: serialized.contentType,
         });
     }
 
@@ -433,7 +469,7 @@ export class KeyValueStore {
     async drop(): Promise<void> {
         checkStorageAccess();
 
-        await this.client.drop();
+        await this.backend.drop();
         serviceLocator.getStorageInstanceManager().removeFromCache(this);
     }
 
@@ -607,7 +643,7 @@ export class KeyValueStore {
      * @param key The key of the record to generate the public URL for.
      */
     async getPublicUrl(key: string): Promise<string | undefined> {
-        return this.client.getPublicUrl(key);
+        return this.backend.getPublicUrl(key);
     }
 
     /**
@@ -635,21 +671,21 @@ export class KeyValueStore {
             options,
             ow.object.exactShape({
                 config: ow.optional.object.instanceOf(Configuration),
-                storageClient: ow.optional.object,
+                storageBackend: ow.optional.object,
             }),
         );
 
         options.config ??= Configuration.getGlobalConfig();
-        const client = options.storageClient ?? serviceLocator.getStorageClient();
+        const storageBackend = options.storageBackend ?? serviceLocator.getStorageBackend();
 
-        await purgeDefaultStorages({ onlyPurgeOnce: true, client, config: options.config });
+        await purgeDefaultStorages({ onlyPurgeOnce: true, storageBackend, config: options.config });
 
-        const resolved = await resolveStorageIdentifier(identifier, client, 'KeyValueStore');
+        const resolved = await resolveStorageIdentifier(identifier, storageBackend, 'KeyValueStore');
 
         return serviceLocator.getStorageInstanceManager().openStorage<KeyValueStore>(this, {
             ...resolved,
-            clientOpener: () => client.createKeyValueStoreClient(resolved),
-            clientCacheKey: client.getStorageClientCacheKey?.() ?? client.constructor.name,
+            backendOpener: () => storageBackend.createKeyValueStoreBackend(resolved),
+            backendCacheKey: storageBackend.getStorageBackendCacheKey?.() ?? storageBackend.constructor.name,
         });
     }
 
@@ -746,6 +782,23 @@ export class KeyValueStore {
     }
 
     /**
+     * Reads a record from the default {@apilink KeyValueStore} associated with the current crawler run
+     * without parsing the value.
+     *
+     * This is just a convenient shortcut for {@apilink KeyValueStore.getRecord}. Returns `null` if the
+     * record does not exist.
+     *
+     * @param key
+     *   Unique key of the record. It can be at most 256 characters long and only consist
+     *   of the following characters: `a`-`z`, `A`-`Z`, `0`-`9` and `!-_.'()`
+     * @ignore
+     */
+    static async getRecord(key: string): Promise<KeyValueStoreRawRecord | null> {
+        const store = await this.open();
+        return store.getRecord(key);
+    }
+
+    /**
      * Tests whether a record with the given key exists in the default {@apilink KeyValueStore} associated with the current crawler run.
      * @param key The queried record key.
      * @returns `true` if the record exists, `false` if it does not.
@@ -798,8 +851,9 @@ export class KeyValueStore {
 
     /**
      * Gets the crawler input value from the default {@apilink KeyValueStore} associated with the current crawler run.
-     * By default, it will try to find root input files (either extension-less, `.json` or `.txt`),
-     * or alternatively read the input from the default {@apilink KeyValueStore}.
+     *
+     * The input is read from the default {@apilink KeyValueStore} under the configured input key
+     * (`CRAWLEE_INPUT_KEY`, default `INPUT`).
      *
      * Note that the `getInput()` function does not cache the value read from the key-value store.
      * If you need to use the input multiple times in your crawler,
@@ -817,32 +871,7 @@ export class KeyValueStore {
      */
     static async getInput<T = Dictionary | string | Buffer>(): Promise<T | null> {
         const store = await this.open();
-        const inputKey = store.config.inputKey;
-
-        const cwd = process.cwd();
-        const possibleExtensions = ['', '.json', '.txt'];
-
-        // Attempt to read input from root file instead of key-value store
-        for (const extension of possibleExtensions) {
-            const inputFile = join(cwd, `${inputKey}${extension}`);
-            let input: Buffer;
-
-            // Try getting the file from the file system
-            try {
-                input = await readFile(inputFile);
-            } catch {
-                continue;
-            }
-
-            // Attempt to parse as JSON, or return the input as is otherwise
-            try {
-                return JSON5.parse(input.toString()) as T;
-            } catch {
-                return input as unknown as T;
-            }
-        }
-
-        return store.getValue<T>(inputKey);
+        return store.getValue<T>(store.config.inputKey);
     }
 }
 
@@ -862,7 +891,16 @@ export interface KeyConsumer {
 export interface KeyValueStoreOptions {
     id: string;
     name?: string;
-    client: KeyValueStoreClient;
+    backend: KeyValueStoreBackend;
+}
+
+/**
+ * A raw, unparsed key-value store record as returned by {@apilink KeyValueStore.getRecord}: the
+ * verbatim bytes plus the content type, with parsing left to the caller.
+ */
+export interface KeyValueStoreRawRecord {
+    value: Buffer | ArrayBuffer;
+    contentType: string | null;
 }
 
 export interface RecordOptions {

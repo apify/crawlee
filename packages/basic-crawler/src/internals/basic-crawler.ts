@@ -11,6 +11,7 @@ import type {
     DatasetExportOptions,
     EnqueueLinksOptions,
     EventManager,
+    EventStatusMessageData,
     FinalStatistics,
     GetUserDataFromRequest,
     IRequestLoader,
@@ -41,6 +42,7 @@ import {
     EnqueueStrategy,
     EventType,
     KeyValueStore,
+    log,
     LogLevel,
     mergeCookies,
     MissingSessionError,
@@ -61,7 +63,7 @@ import {
     Statistics,
     validators,
 } from '@crawlee/core';
-import { GotScrapingHttpClient } from '@crawlee/got-scraping-client';
+import { FetchHttpClient } from '@crawlee/http-client';
 import type {
     Awaitable,
     BaseHttpClient,
@@ -71,7 +73,7 @@ import type {
     ISessionPool,
     ProxyInfo,
     SetStatusMessageOptions,
-    StorageClient,
+    StorageBackend,
 } from '@crawlee/types';
 import { getObjectType, isAsyncIterable, isIterable, RobotsTxtFile, ROTATE_PROXY_ERRORS } from '@crawlee/utils';
 import { stringify } from 'csv-stringify/sync';
@@ -85,6 +87,26 @@ import { addTimeoutToPromise, TimeoutError } from '@apify/timeout';
 import { cryptoRandomObjectId } from '@apify/utilities';
 
 import { createSendRequest } from './send-request.js';
+
+class LazyDefaultHttpClient implements BaseHttpClient {
+    private readonly _delegatePromise: Promise<BaseHttpClient>;
+
+    constructor(options?: { logger?: CrawleeLogger }) {
+        this._delegatePromise = import('@crawlee/impit-client')
+            .then(({ ImpitHttpClient }) => new ImpitHttpClient(options))
+            .catch(() => {
+                (options?.logger ?? log).warning(
+                    'Optional dependency @crawlee/impit-client is not installed. ' +
+                        'Falling back to native fetch — proxy support and browser fingerprinting are unavailable.',
+                );
+                return new FetchHttpClient(options);
+            });
+    }
+
+    async sendRequest(...args: Parameters<BaseHttpClient['sendRequest']>): Promise<Response> {
+        return (await this._delegatePromise).sendRequest(...args);
+    }
+}
 
 export interface BasicCrawlingContext<UserData extends Dictionary = Dictionary> extends CrawlingContext<UserData> {}
 
@@ -377,7 +399,7 @@ export interface BasicCrawlerOptions<
 
     /**
      * HTTP client implementation for the `sendRequest` context helper and for plain HTTP crawling.
-     * Defaults to a new instance of {@apilink GotScrapingHttpClient}
+     * Defaults to {@apilink ImpitHttpClient} when `@crawlee/impit-client` is installed, otherwise {@apilink FetchHttpClient}.
      */
     httpClient?: BaseHttpClient;
 
@@ -394,10 +416,10 @@ export interface BasicCrawlerOptions<
     configuration?: Configuration;
 
     /**
-     * Custom storage client to use for this crawler.
+     * Custom storage backend to use for this crawler.
      * If provided, the crawler will use its own ServiceLocator instance instead of the global one.
      */
-    storageClient?: StorageClient;
+    storageBackend?: StorageBackend;
 
     /**
      * Custom event manager to use for this crawler.
@@ -562,6 +584,13 @@ export class BasicCrawler<
     private ownedRequestManager?: IRequestManager;
 
     /**
+     * Whether the request-processing-time hint has already been forwarded to the request manager. The hint
+     * derives only from `requestHandlerTimeoutMillis` (constant for the crawler's lifetime) and is raise-only,
+     * so it only needs to be applied once, at the first async access of the manager.
+     */
+    private requestManagerTimeoutsApplied = false;
+
+    /**
      * A reference to the underlying {@apilink AutoscaledPool} class that manages the concurrency of the crawler.
      * > *NOTE:* This property is only initialized after calling the {@apilink BasicCrawler.run|`crawler.run()`} function.
      * We can use it to change the concurrency settings on the fly,
@@ -686,7 +715,7 @@ export class BasicCrawler<
         httpClient: ow.optional.object,
 
         configuration: ow.optional.object,
-        storageClient: ow.optional.object,
+        storageBackend: ow.optional.object,
         eventManager: ow.optional.object,
         logger: ow.optional.object,
 
@@ -730,7 +759,7 @@ export class BasicCrawler<
 
             // Service locator options
             configuration,
-            storageClient,
+            storageBackend,
             eventManager,
             logger,
 
@@ -763,12 +792,12 @@ export class BasicCrawler<
         let serviceLocatorScope = { enterScope: () => {}, exitScope: () => {} };
 
         if (
-            storageClient ||
+            storageBackend ||
             eventManager ||
             logger ||
             (configuration !== undefined && configuration !== serviceLocator.getConfiguration())
         ) {
-            const scopedServiceLocator = new ServiceLocator(configuration, eventManager, storageClient, logger);
+            const scopedServiceLocator = new ServiceLocator(configuration, eventManager, storageBackend, logger);
             serviceLocatorScope = bindMethodsToServiceLocator(scopedServiceLocator, this);
         }
 
@@ -807,7 +836,7 @@ export class BasicCrawler<
                 this.requestManager = new RequestManagerTandem(requestList, () => this.openOwnedRequestQueue());
             }
 
-            this.httpClient = httpClient ?? new GotScrapingHttpClient({ logger: this.log });
+            this.httpClient = httpClient ?? new LazyDefaultHttpClient({ logger: this.log });
             this.proxyConfiguration = proxyConfiguration;
             this.statusMessageLoggingInterval = statusMessageLoggingInterval;
             this.statusMessageCallback = statusMessageCallback as StatusMessageCallback;
@@ -836,11 +865,6 @@ export class BasicCrawler<
             // allow at least 5min for internal timeouts
             this.internalTimeoutMillis =
                 tryEnv(process.env.CRAWLEE_INTERNAL_TIMEOUT) ?? Math.max(this.requestHandlerTimeoutMillis * 2, 300e3);
-
-            // override the default internal timeout of request queue to respect `requestHandlerTimeoutMillis`
-            if (this.requestManager !== undefined) {
-                this.applyRequestManagerTimeouts(this.requestManager);
-            }
 
             this.maxRequestRetries = maxRequestRetries;
             this.maxCrawlDepth = maxCrawlDepth;
@@ -1184,25 +1208,29 @@ export class BasicCrawler<
     }
 
     /**
+     * Sets the status message for the current crawler run.
+     *
      * This method is periodically called by the crawler, every `statusMessageLoggingInterval` seconds.
+     *
+     * The message is logged and broadcast via the {@apilink EventType.STATUS_MESSAGE|`statusMessage`}
+     * event. Integrations such as the Apify SDK subscribe to that event and forward the message to
+     * their status-reporting backend (e.g. the Apify platform).
      */
-    async setStatusMessage(message: string, options: SetStatusMessageOptions = {}) {
+    setStatusMessage(message: string, options: SetStatusMessageOptions = {}) {
         const data =
             options.isStatusMessageTerminal != null ? { terminal: options.isStatusMessageTerminal } : undefined;
         this.log.logWithLevel(LogLevel[(options.level as 'DEBUG') ?? 'DEBUG'], message, data);
 
-        const client = serviceLocator.getStorageClient();
-
-        if (!client.setStatusMessage) {
-            return;
-        }
-
-        // just to be sure, this should be fast
-        await addTimeoutToPromise(
-            async () => client.setStatusMessage!(message, options),
-            1000,
-            'Setting status message timed out after 1s',
-        ).catch((e) => this.log.debug(e.message));
+        // Broadcast the status message through the event system. Consumers (e.g. the Apify SDK) can
+        // subscribe to `EventType.STATUS_MESSAGE` and propagate it to their status-reporting backend.
+        // Setting the status message is not a storage concern, so we intentionally don't route it
+        // through the storage client anymore.
+        serviceLocator.getEventManager().emit(EventType.STATUS_MESSAGE, {
+            crawlerId: this.crawlerId,
+            message,
+            isStatusMessageTerminal: options.isStatusMessageTerminal,
+            level: options.level,
+        } satisfies EventStatusMessageData);
     }
 
     private getPeriodicLogger() {
@@ -1246,7 +1274,7 @@ export class BasicCrawler<
                 return;
             }
 
-            await this.setStatusMessage(message);
+            this.setStatusMessage(message);
         };
 
         const interval = setInterval(log, this.statusMessageLoggingInterval * 1e3);
@@ -1300,7 +1328,7 @@ export class BasicCrawler<
 
         await purgeDefaultStorages({
             onlyPurgeOnce: true,
-            client: serviceLocator.getStorageClient(),
+            storageBackend: serviceLocator.getStorageBackend(),
             config: serviceLocator.getConfiguration(),
         });
 
@@ -1311,8 +1339,7 @@ export class BasicCrawler<
         await this._init();
         await this.stats.startCapturing();
         const periodicLogger = this.getPeriodicLogger();
-        // Don't await, we don't want to block the execution
-        void this.setStatusMessage('Starting the crawler.', { level: 'INFO' });
+        this.setStatusMessage('Starting the crawler.', { level: 'INFO' });
 
         const sigintHandler = async () => {
             this.log.warning(
@@ -1361,7 +1388,7 @@ export class BasicCrawler<
                 });
             }
 
-            const client = serviceLocator.getStorageClient();
+            const client = serviceLocator.getStorageBackend();
 
             if (client.teardown) {
                 let finished = false;
@@ -1375,8 +1402,7 @@ export class BasicCrawler<
             }
 
             periodicLogger.stop();
-            // Don't await, we don't want to block the execution
-            void this.setStatusMessage(
+            this.setStatusMessage(
                 `Finished! Total ${this.stats.state.requestsFinished + this.stats.state.requestsFailed} requests: ${
                     this.stats.state.requestsFinished
                 } succeeded, ${this.stats.state.requestsFailed} failed.`,
@@ -1414,6 +1440,14 @@ export class BasicCrawler<
             this.requestManager = await this.openOwnedRequestQueue();
         }
 
+        // Apply the processing-time hint here (an async lifecycle point) rather than in the constructor,
+        // now that `setExpectedRequestProcessingTimeSecs` is async. The hint is raise-only and idempotent,
+        // but guard so we do not re-issue it on every call.
+        if (!this.requestManagerTimeoutsApplied) {
+            this.requestManagerTimeoutsApplied = true;
+            await this.applyRequestManagerTimeouts(this.requestManager);
+        }
+
         return this.requestManager;
     }
 
@@ -1437,20 +1471,19 @@ export class BasicCrawler<
             this.crawlerInstanceIndex === 0 ? null : { alias: `__default_${this.crawlerInstanceIndex}__` };
 
         const requestQueue = await RequestQueue.open(identifier, { config: serviceLocator.getConfiguration() });
-        this.applyRequestManagerTimeouts(requestQueue);
         this.ownedRequestManager = requestQueue;
         return requestQueue;
     }
 
     /**
      * Tells a request manager how long we expect to hold a fetched request, so that one backed by a
-     * locking storage client keeps it reserved for slightly longer than the request handler timeout
+     * locking storage backend keeps it reserved for slightly longer than the request handler timeout
      * (with some padding for overhead), but never for less than a minute. This prevents a long-running
      * request from being handed out a second time while it is still being processed — and it works
      * regardless of whether the manager is a plain {@apilink RequestQueue} or a `RequestManagerTandem`.
      */
-    private applyRequestManagerTimeouts(requestManager: IRequestManager): void {
-        requestManager.setExpectedRequestProcessingTimeSecs?.(
+    private async applyRequestManagerTimeouts(requestManager: IRequestManager): Promise<void> {
+        await requestManager.setExpectedRequestProcessingTimeSecs?.(
             Math.max(this.requestHandlerTimeoutMillis / 1000 + 5, 60),
         );
     }
@@ -1924,7 +1957,7 @@ export class BasicCrawler<
         } finally {
             // Safety net - return the request to the queue if nobody managed to mark it as handled
             // or reclaim it before (e.g. after a CriticalError). Reclaiming a request that is no longer
-            // in progress is a harmless no-op on the storage client.
+            // in progress is a harmless no-op on the storage backend.
             if (isRequestLocked && requestSource instanceof RequestQueue) {
                 try {
                     await requestSource.reclaimRequest(request);

@@ -1,7 +1,7 @@
 import { expect, getActorTestDir, initialize, runActor } from '../tools.mjs';
 
 /* This test verifies that the storageObject is correctly returned when the KeyValueStore or Dataset is opened.
- * The storageObject is the result of the KeyValueStoreClient.get() or Dataset.get() methods,
+ * The storageObject is the result of the KeyValueStoreBackend.get() or Dataset.get() methods,
  * containing properties such as name, id, and other custom attributes.
  */
 
@@ -24,13 +24,11 @@ await expect(
 const datasetStorageObject = parsed.datasetStorageObject;
 const keyValueStorageObject = parsed.keyValueStorageObject;
 
-await expect(datasetStorageObject.id !== null, 'datasetStorageObject contains id');
+await expect(datasetStorageObject.id != null, 'datasetStorageObject contains id');
 await expect(
     [null, 'default'].includes(datasetStorageObject.name),
     'Default dataset\'s name is either "default" or null',
 );
-await expect(datasetStorageObject.userId !== null, 'datasetStorageObject contains userId');
 
-await expect(keyValueStorageObject.id !== null, 'keyValueStorageObject contains id');
+await expect(keyValueStorageObject.id != null, 'keyValueStorageObject contains id');
 await expect([null, 'default'].includes(keyValueStorageObject.name), 'Default KVS\'s name is either "default" or null');
-await expect(keyValueStorageObject.userId !== null, 'keyValueStorageObject contains userId');

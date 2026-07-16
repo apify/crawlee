@@ -1,29 +1,29 @@
-import { MemoryStorageClient } from '@crawlee/memory-storage';
+import { MemoryStorageBackend } from '@crawlee/core';
 import { RequestQueue, serviceLocator } from 'crawlee';
 
-let newClient: MemoryStorageClient;
+let newClient: MemoryStorageBackend;
 
 beforeEach(() => {
-    newClient = new MemoryStorageClient();
-    serviceLocator.setStorageClient(newClient);
+    newClient = new MemoryStorageBackend();
+    serviceLocator.setStorageBackend(newClient);
 });
 
-describe('Opening a storage with a different storage client should be respected', () => {
+describe('Opening a storage with a different storage backend should be respected', () => {
     test('opening a RequestQueue with default client from Configuration', async () => {
         const queue = await RequestQueue.open({ name: 'test-rq-open-client-from-config' });
 
-        // The sub-client should have been created by newClient (MemoryStorageClient),
-        // so its internal `client` field should reference newClient.
-        expect((queue.client as any).client).toBe(newClient);
+        // The sub-backend should have been created by newClient (MemoryStorageBackend),
+        // so its internal `storageBackend` field should reference newClient.
+        expect((queue.backend as any).storageBackend).toBe(newClient);
     });
 
     test('opening a RequestQueue with a different client', async () => {
-        const thirdClient = new MemoryStorageClient();
+        const thirdClient = new MemoryStorageBackend();
         // @ts-expect-error Using this to ensure the test/impl works
         thirdClient._name = 'third-client';
 
-        const queue = await RequestQueue.open({ name: 'test-rq-open-custom-client' }, { storageClient: thirdClient });
+        const queue = await RequestQueue.open({ name: 'test-rq-open-custom-client' }, { storageBackend: thirdClient });
 
-        expect((queue.client as any).client).toBe(thirdClient);
+        expect((queue.backend as any).storageBackend).toBe(thirdClient);
     });
 });

@@ -1,18 +1,10 @@
-import { Request } from '@crawlee/core';
+import { KeyValueStore, MemoryStorageBackend, Request, serviceLocator } from '@crawlee/core';
 import { RenderingTypePredictor } from '@crawlee/playwright';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-
-import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator.js';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 describe('RenderingTypePredictor', () => {
-    const localStorageEmulator = new MemoryStorageEmulator();
-
     beforeEach(async () => {
-        await localStorageEmulator.init();
-    });
-
-    afterEach(async () => {
-        await localStorageEmulator.destroy();
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
     });
 
     describe('persistence', () => {
@@ -34,16 +26,15 @@ describe('RenderingTypePredictor', () => {
             predictor.storeResult(clientRequest, 'clientOnly');
 
             // Persist the state
-            const store = await localStorageEmulator.getKeyValueStore();
+            const store = await KeyValueStore.open();
             // eslint-disable-next-line dot-notation
             await predictor['state'].persistState(); // Access private state for persistence
 
-            // Verify state was persisted
-            const persistedRecord = await store.getValue(persistStateKey);
-            expect(persistedRecord).not.toBeNull();
-            expect(persistedRecord?.value).toBeDefined();
-
-            const parsedState = JSON.parse(persistedRecord!.value as string);
+            // RecoverableState persists with a `text/plain` content type on purpose (it owns
+            // (de)serialization), so the frontend hands back the raw serialized string here.
+            const serializedState = await store.getValue<string>(persistStateKey);
+            expect(serializedState).not.toBeNull();
+            const parsedState = JSON.parse(serializedState!);
             expect(parsedState).toHaveProperty('logreg');
             expect(parsedState).toHaveProperty('detectionResults');
 
