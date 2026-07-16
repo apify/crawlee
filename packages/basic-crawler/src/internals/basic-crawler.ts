@@ -1041,8 +1041,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         try {
             await this.autoscaledPool!.run();
         } finally {
-            await this.teardown();
             await this.stats.stopCapturing();
+            await this.teardown();
 
             process.off('SIGINT', sigintHandler);
             this.events.off(EventType.MIGRATING, boundPauseOnMigration);
@@ -1979,10 +1979,15 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * To stop the crawler gracefully (waiting for all running requests to finish), use {@apilink BasicCrawler.stop|`crawler.stop()`} instead.
      */
     async teardown(): Promise<void> {
-        this.events.emit(EventType.PERSIST_STATE, { isMigrating: false });
+        // When this crawler initialized the event manager, its close() call emits
+        // the final persistence event after the crawler-specific state has been
+        // saved. External event managers still need an explicit event here.
+        if (!this._closeEvents) {
+            this.events.emit(EventType.PERSIST_STATE, { isMigrating: false });
+        }
 
         if (this.useSessionPool) {
-            await this.sessionPool!.teardown();
+            await this.sessionPool!.teardown({ persistState: this._closeEvents === true });
         }
 
         if (this._closeEvents) {

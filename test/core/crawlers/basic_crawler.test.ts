@@ -23,7 +23,7 @@ import {
     RequestList,
     RequestQueue,
 } from '@crawlee/basic';
-import { RequestState } from '@crawlee/core';
+import { RequestState, SessionPool, Statistics } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
 import { RobotsTxtFile, sleep } from '@crawlee/utils';
 import express from 'express';
@@ -1333,6 +1333,52 @@ describe('BasicCrawler', () => {
     });
 
     describe('Uses SessionPool', () => {
+        it('persists statistics and the session pool once when finishing', async () => {
+            const persistStatistics = vitest.spyOn(Statistics.prototype, 'persistState');
+            const persistSessionPool = vitest.spyOn(SessionPool.prototype, 'persistState');
+            const config = new Configuration();
+            const crawler = new BasicCrawler(
+                {
+                    useSessionPool: true,
+                    requestHandler: async () => {
+                        persistStatistics.mockClear();
+                        persistSessionPool.mockClear();
+                    },
+                },
+                config,
+            );
+
+            await crawler.run(['https://example.com']);
+
+            expect(persistStatistics).toHaveBeenCalledTimes(1);
+            expect(persistSessionPool).toHaveBeenCalledTimes(1);
+        });
+
+        it('persists the session pool once with a shared event manager', async () => {
+            const persistStatistics = vitest.spyOn(Statistics.prototype, 'persistState');
+            const persistSessionPool = vitest.spyOn(SessionPool.prototype, 'persistState');
+            const config = new Configuration();
+            await config.getEventManager().init();
+            const crawler = new BasicCrawler(
+                {
+                    useSessionPool: true,
+                    requestHandler: async () => {
+                        persistStatistics.mockClear();
+                        persistSessionPool.mockClear();
+                    },
+                },
+                config,
+            );
+
+            await crawler.run(['https://example.com']);
+            expect(config.getEventManager().listenerCount(EventType.PERSIST_STATE)).toBe(0);
+            expect(persistSessionPool).toHaveBeenCalledTimes(1);
+            await config.getEventManager().close();
+
+            expect(persistStatistics).toHaveBeenCalledTimes(1);
+            expect(persistSessionPool).toHaveBeenCalledTimes(1);
+        });
+
         it('should use SessionPool when useSessionPool is true ', async () => {
             const url = 'https://example.com';
             const requestList = await RequestList.open({ sources: [{ url }] });
