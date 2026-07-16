@@ -13,7 +13,9 @@ import {
     Session,
 } from '@crawlee/puppeteer';
 import { sleep } from '@crawlee/utils';
+// @ts-expect-error This throws a compilation error due to puppeteer 25+ being ESM only but we only import types, so its alllll gooooood
 import type { HTTPResponse } from 'puppeteer';
+// @ts-expect-error This throws a compilation error due to puppeteer 25+ being ESM only, but vitest executes tests as ESM, so its alllll gooooood
 import puppeteer from 'puppeteer';
 
 import { ENV_VARS } from '@apify/consts';

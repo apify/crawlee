@@ -2,6 +2,7 @@ import type { BrowserLaunchContext } from '@crawlee/browser';
 import { BrowserLauncher, Configuration } from '@crawlee/browser';
 import { PuppeteerPlugin } from '@crawlee/browser-pool';
 import ow from 'ow';
+// @ts-expect-error This throws a compilation error due to puppeteer 25+ being ESM only but we only import types, so its alllll gooooood
 import type { Browser } from 'puppeteer';
 
 /**

@@ -2,6 +2,7 @@ import type { Server } from 'node:http';
 
 import { sleep } from '@crawlee/utils';
 import { launchPuppeteer, utils } from 'crawlee';
+// @ts-expect-error This throws a compilation error due to puppeteer 25+ being ESM only but we only import types, so its alllll gooooood
 import type { HTTPRequest } from 'puppeteer';
 
 import { runExampleComServer } from '../shared/_helper';
