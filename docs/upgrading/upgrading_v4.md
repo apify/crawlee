@@ -948,6 +948,23 @@ Per-pattern request options (`label`, `userData`, `method`, `payload`, `headers`
 await enqueueLinks({
     globs: ['https://crawlee.dev/docs/**'],
     regexps: [/\/blog\//],
+});
+```
+
+**After:**
+```typescript
+await enqueueLinks({
+    include: ['https://crawlee.dev/docs/**', /\/blog\//],
+});
+```
+
+#### Migrating `pseudoUrls`
+
+A `PseudoUrl` is equivalent to an anchored regular expression: the text inside `[ ]` is the pattern (a wildcard), everything outside it is matched literally, and the whole URL is anchored. Translate each pseudo-URL to a `RegExp` (or a glob, if the pattern is simple enough):
+
+**Before:**
+```typescript
+await enqueueLinks({
     pseudoUrls: ['https://crawlee.dev/[.*]'],
 });
 ```
@@ -955,7 +972,10 @@ await enqueueLinks({
 **After:**
 ```typescript
 await enqueueLinks({
-    include: ['https://crawlee.dev/docs/**', /\/blog\//, 'https://crawlee.dev/**'],
+    // faithful translation — [.*] becomes .*, literal text is escaped and anchored
+    include: [/^https:\/\/crawlee\.dev\/.*$/],
+    // or, when the pattern is simple, an equivalent glob:
+    // include: ['https://crawlee.dev/**'],
 });
 ```
 
