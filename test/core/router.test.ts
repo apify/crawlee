@@ -1,6 +1,6 @@
 import { BasicCrawler } from '@crawlee/basic';
 import type { CrawlingContext } from '@crawlee/core';
-import { MissingRouteError, Request, RequestValidationError, Router } from '@crawlee/core';
+import { defaultRoute, MissingRouteError, Request, RequestValidationError, Router } from '@crawlee/core';
 import {
     type CheerioCrawlingContext,
     createCheerioRouter,
@@ -335,5 +335,46 @@ describe('Router', () => {
             log,
         } as any);
         expect(logs).toEqual(['default OTHER']);
+    });
+
+    test('a defaultRoute schema validates requests that fall through to the default handler', async () => {
+        const seen: [string, Record<string, unknown>][] = [];
+        const router = createCheerioRouter({
+            PRODUCT: z.object({ sku: z.string() }),
+            [defaultRoute]: z.object({ page: z.coerce.number() }),
+        });
+
+        router.addHandler('PRODUCT', async ({ request }) => {
+            seen.push(['PRODUCT', request.userData]);
+        });
+        router.addDefaultHandler(async ({ request }) => {
+            seen.push(['default', request.userData]);
+        });
+
+        const log = { info: vitest.fn(), warn: vitest.fn(), debug: vitest.fn() };
+
+        // an unregistered label falls through to the default handler and is validated + coerced by its schema
+        await router({
+            request: { loadedUrl: 'https://example.com/l', label: 'LIST', userData: { page: '2' } },
+            log,
+        } as any);
+        // a registered label keeps using its own schema, not the default one
+        await router({
+            request: { loadedUrl: 'https://example.com/p', label: 'PRODUCT', userData: { sku: 'x' } },
+            log,
+        } as any);
+
+        expect(seen).toEqual([
+            ['default', { page: 2, label: 'LIST' }],
+            ['PRODUCT', { sku: 'x', label: 'PRODUCT' }],
+        ]);
+
+        // a default-route request whose userData violates the default schema throws
+        await expect(
+            router({
+                request: { loadedUrl: 'https://example.com/x', label: 'X', userData: { page: 'not-a-number' } },
+                log,
+            } as any),
+        ).rejects.toThrow(RequestValidationError);
     });
 });

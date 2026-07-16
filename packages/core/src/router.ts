@@ -6,7 +6,12 @@ import { MissingRouteError, RequestValidationError } from './errors';
 import type { Request } from './request';
 import type { Awaitable } from './typedefs';
 
-const defaultRoute = Symbol('default-route');
+/**
+ * The key of the default route — the fallback handler registered via {@apilink Router.addDefaultHandler}.
+ * Use it in a {@apilink RouteSchemas} map to register a schema that validates the `userData` of every request
+ * that falls through to the default handler (i.e. whose label has no route of its own).
+ */
+export const defaultRoute: unique symbol = Symbol('default-route');
 
 /**
  * The crawling context received by a route handler, with `request.userData` narrowed to `UserData`.
@@ -18,16 +23,20 @@ export type RouterHandlerContext<Context, UserData extends Dictionary> = Omit<Co
 /**
  * A map of request labels to a [Standard Schema](https://standardschema.dev) (Zod, Valibot, ArkType, …)
  * validating that label's `request.userData`. Pass it to {@apilink Router.create} or a `createXRouter`
- * factory to derive the per-label `request.userData` types *and* validate them at runtime.
+ * factory to derive the per-label `request.userData` types *and* validate them at runtime. The optional
+ * {@apilink defaultRoute} key registers a schema for requests handled by the default route.
  */
-export type RouteSchemas = Record<string, StandardSchemaV1>;
+export type RouteSchemas = Record<string, StandardSchemaV1> & {
+    [defaultRoute]?: StandardSchemaV1;
+};
 
 /**
  * Derives a route map (label → `userData` type) from a {@apilink RouteSchemas} map by inferring each
- * schema's output type. Outputs that are not object-shaped fall back to a plain {@apilink Dictionary}.
+ * schema's output type. Outputs that are not object-shaped fall back to a plain {@apilink Dictionary}. The
+ * {@apilink defaultRoute} schema drives runtime validation only, so it is excluded from the typed route map.
  */
 export type RoutesFromSchemas<Schemas extends RouteSchemas> = {
-    [Label in keyof Schemas]: StandardSchemaV1.InferOutput<Schemas[Label]> extends Dictionary
+    [Label in Extract<keyof Schemas, string>]: StandardSchemaV1.InferOutput<Schemas[Label]> extends Dictionary
         ? StandardSchemaV1.InferOutput<Schemas[Label]>
         : Dictionary;
 };
@@ -258,7 +267,22 @@ export class Router<
      * @internal
      */
     getSchema(label?: string | symbol): StandardSchemaV1 | undefined {
-        return label != null ? this.schemas.get(label) : undefined;
+        if (label != null) {
+            const schema = this.schemas.get(label);
+
+            if (schema) {
+                return schema;
+            }
+
+            // A label with its own route is fully specified; don't fall back to the default-route schema.
+            if (this.routes.has(label)) {
+                return undefined;
+            }
+        }
+
+        // Requests with no route of their own fall through to the default handler, so validate their
+        // `userData` against the default-route schema, if one was registered.
+        return this.schemas.get(defaultRoute);
     }
 
     /**
@@ -359,7 +383,7 @@ export class Router<
     >(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
 
     static create<Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'> = CrawlingContext>(
-        routesOrSchemas?: Record<string, ((ctx: any) => Awaitable<void>) | StandardSchemaV1>,
+        routesOrSchemas?: Record<string | symbol, ((ctx: any) => Awaitable<void>) | StandardSchemaV1>,
     ): RouterHandler<Context, any> {
         const router = new Router<Context, any>();
         const obj = Object.create(Function.prototype);
@@ -370,9 +394,12 @@ export class Router<
         obj.getHandler = router.getHandler.bind(router);
         obj.use = router.use.bind(router);
 
-        for (const [label, value] of Object.entries(routesOrSchemas ?? {})) {
+        // `Reflect.ownKeys` (unlike `Object.entries`) also yields the `defaultRoute` symbol key.
+        for (const label of Reflect.ownKeys(routesOrSchemas ?? {})) {
+            const value = routesOrSchemas![label];
+
             if (typeof value === 'function') {
-                router.addHandler(label, value as (ctx: any) => Awaitable<void>);
+                router.addHandler(label as string, value as (ctx: any) => Awaitable<void>);
             } else {
                 router.schemas.set(label, value);
             }

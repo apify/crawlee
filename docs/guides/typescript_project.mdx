@@ -221,4 +221,26 @@ const router = createCheerioRouter({
 });
 ```
 
+To validate requests handled by the **default route** — those whose label has no route of its own — register a schema under the exported `defaultRoute` key. It is used only for validation, so it does not add a label to the inferred route map:
+
+```ts
+import { createCheerioRouter, defaultRoute } from 'crawlee';
+import { z } from 'zod';
+
+const router = createCheerioRouter({
+    PRODUCT: z.object({ sku: z.string() }),
+    [defaultRoute]: z.object({ page: z.coerce.number() }),
+});
+
+router.addDefaultHandler(async ({ request }) => {
+    request.userData.page; // validated (and coerced) by the defaultRoute schema
+});
+```
+
 Like the plain route map, this is opt-in and backwards compatible: a router created without a schema map behaves exactly as before, with no validation.
+
+:::note
+
+The schema map and the type-only route map are two alternative styles — a schema map already infers the `userData` types, so you don't also pass a `<Context, Routes>` type argument. Pick one: `createCheerioRouter<Context, Routes>()` for compile-time typing only, or `createCheerioRouter({ LABEL: schema })` for typing plus runtime validation.
+
+:::

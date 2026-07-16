@@ -15,6 +15,7 @@ import {
     BasicCrawler,
     Configuration,
     CriticalError,
+    defaultRoute,
     EventType,
     KeyValueStore,
     MissingRouteError,
@@ -2312,6 +2313,29 @@ describe('BasicCrawler', () => {
 
             // the queue holds the coerced number, not the raw '42' string that was passed in
             expect(request?.userData.price).toBe(42);
+        });
+
+        test('a defaultRoute schema validates userData added for unregistered labels', async () => {
+            const router = Router.create({
+                DETAIL: z.object({ id: z.string() }),
+                [defaultRoute]: z.object({ page: z.number() }),
+            });
+            router.addHandler('DETAIL', async () => {});
+            router.addDefaultHandler(async () => {});
+            const crawler = new BasicCrawler({ requestHandler: router });
+
+            // an unregistered label is validated against the default-route schema on add
+            await expect(
+                crawler.addRequests([{ url: 'https://example.com/l', label: 'LIST', userData: { page: 'nope' } }]),
+            ).rejects.toThrow(RequestValidationError);
+
+            // a registered label uses its own schema, and a matching default-route request is accepted
+            await crawler.addRequests([
+                { url: 'https://example.com/d', label: 'DETAIL', userData: { id: 'ok' } },
+                { url: 'https://example.com/p', label: 'LIST', userData: { page: 2 } },
+            ]);
+            const queue = await crawler.getRequestQueue();
+            expect(await queue.isEmpty()).toBe(false);
         });
 
         test('context.enqueueLinks validates userData against the label schema', async () => {
