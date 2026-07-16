@@ -49,6 +49,8 @@ import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 
 import type { BrowserLaunchContext } from './browser-launcher';
 
+const PAGE_CLOSE_TIMEOUT_MILLIS = 5000;
+
 export interface BrowserCrawlingContext<
     Crawler = unknown,
     Page extends CommonPage = CommonPage,
@@ -462,7 +464,12 @@ export abstract class BrowserCrawler<
 
         // Page creation may be aborted
         if (page) {
-            await page.close().catch((error: Error) => this.log.debug('Error while closing page', { error }));
+            // Puppeteer 25+ can hang `page.close()` indefinitely when the page's navigation was aborted, don't let it block the crawler.
+            await addTimeoutToPromise(
+                async () => page.close(),
+                PAGE_CLOSE_TIMEOUT_MILLIS,
+                `page.close() timed out after ${PAGE_CLOSE_TIMEOUT_MILLIS / 1000} seconds`,
+            ).catch((error: Error) => this.log.debug('Error while closing page', { error }));
         }
     }
 
