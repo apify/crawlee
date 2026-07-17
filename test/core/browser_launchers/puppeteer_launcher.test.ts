@@ -13,6 +13,7 @@ import basicAuthParser from 'basic-auth-parser';
 import portastic from 'portastic';
 // @ts-expect-error no types
 import proxy from 'proxy';
+// @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
 import type { Browser, Page } from 'puppeteer';
 
 import { runExampleComServer } from '../../shared/_helper';

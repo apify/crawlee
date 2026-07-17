@@ -1,5 +1,7 @@
 import type { Cookie } from '@crawlee/types';
+// @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
 import type Puppeteer from 'puppeteer';
+// @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
 import type * as PuppeteerTypes from 'puppeteer';
 
 import { tryCancel } from '@apify/timeout';
@@ -143,7 +145,12 @@ export class PuppeteerController extends BrowserController<
     }
 
     protected async _getCookies(page: PuppeteerTypes.Page): Promise<Cookie[]> {
-        return page.cookies();
+        const cookies = await page.cookies();
+        // Puppeteer 25+ can report `sameSite: 'Default'`, which means the attribute is unspecified.
+        return cookies.map(({ sameSite, ...rest }) => ({
+            ...rest,
+            sameSite: (sameSite as string | undefined) === 'Default' ? undefined : (sameSite as Cookie['sameSite']),
+        }));
     }
 
     protected async _setCookies(page: PuppeteerTypes.Page, cookies: Cookie[]): Promise<void> {
