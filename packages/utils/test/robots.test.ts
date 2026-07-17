@@ -120,7 +120,7 @@ describe('RobotsTxtFile', () => {
             'Sitemap: ftp://not-exists.com/cross.xml',
         ].join('\n');
         const robots = RobotsTxtFile.from('http://not-exists.com/robots.txt', content);
-        expect(new Set(robots.getSitemaps('all'))).toEqual(
+        expect(new Set(robots.getSitemaps({ enqueueStrategy: 'all' }))).toEqual(
             new Set(['http://not-exists.com/legit.xml', 'http://other.test/cross.xml']),
         );
     });

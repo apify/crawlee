@@ -97,8 +97,8 @@ export interface SitemapRequestListOptions extends UrlConstraints {
     maxBufferSize?: number;
     /**
      * Keep only sitemap-derived URLs matching this strategy relative to the parent sitemap URL; non-`http(s)`
-     * schemes are always dropped. The strategy is also stamped onto emitted `Request`s, so it stays enforced
-     * after navigation (e.g. across redirects). Pass `'all'` to disable host filtering.
+     * schemes are always dropped. The filtering stays enforced after navigation (e.g. across redirects).
+     * Pass `'all'` to disable host filtering.
      * @default EnqueueStrategy.SameHostname
      */
     enqueueStrategy?: EnqueueStrategy | `${EnqueueStrategy}`;

@@ -7,9 +7,18 @@ import log from '@apify/log';
 
 import { gotScraping } from './gotScraping';
 import { Sitemap } from './sitemap';
-import { type EnqueueStrategyValue, filterUrl } from './url';
+import { type EnqueueStrategy, filterUrl } from './url';
 
 let HTTPError: typeof HTTPErrorClass;
+
+export interface RobotsTxtFileSitemapsOptions {
+    /**
+     * Keep only sitemap URLs matching this strategy relative to the robots.txt host; non-`http(s)` schemes
+     * are always dropped. Pass `'all'` to disable host filtering.
+     * @default 'same-hostname'
+     */
+    enqueueStrategy?: EnqueueStrategy | `${EnqueueStrategy}`;
+}
 
 /**
  * Loads and queries information from a [robots.txt file](https://en.wikipedia.org/wiki/Robots.txt).
@@ -115,10 +124,12 @@ export class RobotsTxtFile {
     }
 
     /**
-     * Get URLs of sitemaps referenced in the robots file, filtered by `enqueueStrategy` relative to the
-     * robots.txt host (default `'same-hostname'`; pass `'all'` to disable). Non-`http(s)` schemes are always dropped.
+     * Get URLs of sitemaps referenced in the robots file, filtered by `options.enqueueStrategy` relative to
+     * the robots.txt host (default `'same-hostname'`; pass `'all'` to disable). Non-`http(s)` schemes are
+     * always dropped.
      */
-    getSitemaps(enqueueStrategy: EnqueueStrategyValue = 'same-hostname'): string[] {
+    getSitemaps(options: RobotsTxtFileSitemapsOptions = {}): string[] {
+        const { enqueueStrategy = 'same-hostname' } = options;
         const sitemaps: string[] = [];
 
         for (const sitemapUrl of this.robots.getSitemaps()) {
@@ -135,19 +146,19 @@ export class RobotsTxtFile {
     }
 
     /**
-     * Parse all the sitemaps referenced in the robots file. `enqueueStrategy` is forwarded to `getSitemaps`
+     * Parse all the sitemaps referenced in the robots file. `options` are forwarded to `getSitemaps`
      * and the sitemap parser.
      */
-    async parseSitemaps(enqueueStrategy: EnqueueStrategyValue = 'same-hostname'): Promise<Sitemap> {
-        return Sitemap.load(this.getSitemaps(enqueueStrategy), this.proxyUrl, { enqueueStrategy });
+    async parseSitemaps(options: RobotsTxtFileSitemapsOptions = {}): Promise<Sitemap> {
+        return Sitemap.load(this.getSitemaps(options), this.proxyUrl, options);
     }
 
     /**
      * Get all URLs from all the sitemaps referenced in the robots file. A shorthand for `(await robots.parseSitemaps()).urls`.
-     * `enqueueStrategy` is forwarded to `parseSitemaps`.
+     * `options` are forwarded to `parseSitemaps`.
      */
-    async parseUrlsFromSitemaps(enqueueStrategy: EnqueueStrategyValue = 'same-hostname'): Promise<string[]> {
-        return (await this.parseSitemaps(enqueueStrategy)).urls;
+    async parseUrlsFromSitemaps(options: RobotsTxtFileSitemapsOptions = {}): Promise<string[]> {
+        return (await this.parseSitemaps(options)).urls;
     }
 }
 

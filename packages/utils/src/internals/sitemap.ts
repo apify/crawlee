@@ -13,7 +13,7 @@ import log from '@apify/log';
 
 import { mergeAsyncIterables } from './iterables';
 import { RobotsFile } from './robots';
-import { type EnqueueStrategyValue, filterUrl } from './url';
+import { type EnqueueStrategy, filterUrl } from './url';
 
 interface SitemapUrlData {
     loc: string;
@@ -208,7 +208,7 @@ export interface ParseSitemapOptions {
      * sources (no parent URL). Pass `'all'` to disable host filtering.
      * @default 'same-hostname'
      */
-    enqueueStrategy?: EnqueueStrategyValue;
+    enqueueStrategy?: EnqueueStrategy | `${EnqueueStrategy}`;
 }
 
 export async function* parseSitemap<T extends ParseSitemapOptions>(
@@ -584,7 +584,7 @@ export async function* discoverValidSitemaps(
                 signal,
             });
             // Surface all referenced sitemaps, including cross-host; scoping happens at load time.
-            for (const sitemapUrl of robotsFile.getSitemaps('all')) {
+            for (const sitemapUrl of robotsFile.getSitemaps({ enqueueStrategy: 'all' })) {
                 if (addSitemapUrl(sitemapUrl)) {
                     yield sitemapUrl;
                 }
