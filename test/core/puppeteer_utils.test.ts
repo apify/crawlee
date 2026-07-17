@@ -381,6 +381,7 @@ describe('puppeteerUtils', () => {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json; charset=utf-8',
+                        'User-Agent': 'Demo UA',
                     },
                     payload: '{ "foo": "bar" }',
                 });
@@ -391,6 +392,7 @@ describe('puppeteerUtils', () => {
                 expect(method).toBe('POST');
                 expect(bodyLength).toBe(16);
                 expect(headers['content-type']).toBe('application/json; charset=utf-8');
+                expect(headers['user-agent']).toBe('Demo UA');
             } finally {
                 await browser.close();
             }
