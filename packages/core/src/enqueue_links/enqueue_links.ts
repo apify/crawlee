@@ -12,7 +12,11 @@ import type {
     AddRequestsBatchedResult,
     RequestQueueOperationOptions,
 } from '../storages/request_queue.js';
+import { serviceLocator } from '../service_locator.js';
 import type {
+    LegacyGlobInput,
+    LegacyRegExpInput,
+    PseudoUrlInput,
     RequestTransform,
     SkippedRequestCallback,
     SkippedRequestReason,
@@ -24,6 +28,7 @@ import {
     constructUrlPatternObjects,
     createRequestOptions,
     filterRequestOptionsByPatterns,
+    normalizeDeprecatedPatternOptions,
 } from './shared.js';
 
 export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
@@ -90,6 +95,31 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
      * If you need case-sensitive matching, use a `RegExp`.
      */
     exclude?: readonly UrlPatternInput[];
+
+    /**
+     * An array of glob pattern strings or `{ glob: string }` objects matching the URLs to be enqueued.
+     *
+     * @deprecated Use {@apilink EnqueueLinksOptions.include|`include`} instead. Accepted as a
+     * backwards-compatibility alias during the v3 → v4 migration and mapped onto `include`; any per-pattern
+     * request options (`method`, `payload`, `label`, `userData`, `headers`) are ignored. Will be removed in a
+     * future major version.
+     */
+    globs?: readonly LegacyGlobInput[];
+
+    /**
+     * An array of regular expressions or `{ regexp: RegExp }` objects matching the URLs to be enqueued.
+     *
+     * @deprecated Use {@apilink EnqueueLinksOptions.include|`include`} instead. See `globs` for migration notes.
+     */
+    regexps?: readonly LegacyRegExpInput[];
+
+    /**
+     * An array of {@apilink PseudoUrl} strings or `{ purl: string }` objects matching the URLs to be enqueued.
+     *
+     * @deprecated Use {@apilink EnqueueLinksOptions.include|`include`} with glob or regexp patterns instead.
+     * See `globs` for migration notes.
+     */
+    pseudoUrls?: readonly PseudoUrlInput[];
 
     /**
      * After request options are filtered by `include`/`exclude` patterns, this function can be used
@@ -279,6 +309,10 @@ export async function enqueueLinks(
             label: ow.optional.string,
             include: ow.optional.array.minLength(1).ofType(urlPatternValidator),
             exclude: ow.optional.array.ofType(urlPatternValidator),
+            // Deprecated aliases, mapped onto `include` for backwards compatibility.
+            globs: ow.optional.array.ofType(ow.any(ow.string, ow.object.hasKeys('glob'))),
+            regexps: ow.optional.array.ofType(ow.any(ow.regExp, ow.object.hasKeys('regexp'))),
+            pseudoUrls: ow.optional.array.ofType(ow.any(ow.string, ow.object.hasKeys('purl'))),
             transformRequestFunction: ow.optional.function,
             strategy: ow.optional.string.oneOf(Object.values(EnqueueStrategy)),
             waitForAllRequestsToBeAdded: ow.optional.boolean,
@@ -291,6 +325,9 @@ export async function enqueueLinks(
         urls,
         include,
         exclude,
+        globs,
+        regexps,
+        pseudoUrls,
         transformRequestFunction,
         forefront,
         waitForAllRequestsToBeAdded,
@@ -298,8 +335,16 @@ export async function enqueueLinks(
         onSkippedRequest,
     } = options;
 
+    // Backwards-compatibility: fold the deprecated `globs`/`regexps`/`pseudoUrls` aliases into `include`.
+    const deprecatedInclude = normalizeDeprecatedPatternOptions({ globs, regexps, pseudoUrls }, (message) =>
+        serviceLocator.getLogger().deprecated(message),
+    );
+    const combinedInclude: UrlPatternInput[] = [...(include ?? []), ...deprecatedInclude];
+
     const urlExcludePatternObjects: UrlPatternObject[] = exclude?.length ? constructUrlPatternObjects(exclude) : [];
-    const urlPatternObjects: UrlPatternObject[] = include?.length ? constructUrlPatternObjects(include) : [];
+    const urlPatternObjects: UrlPatternObject[] = combinedInclude.length
+        ? constructUrlPatternObjects(combinedInclude)
+        : [];
 
     // The strategy always applies, even when `include` patterns are provided - the two are AND-ed together
     // (a URL must match an `include` pattern *and* satisfy the strategy). This mirrors crawlee-python.
