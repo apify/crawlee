@@ -535,6 +535,17 @@ describe('Sitemap', () => {
         expect(sitemap.urls).toEqual(['http://not-exists.com/local-page']);
     });
 
+    it('logs one aggregated warning per sitemap for dropped URL entries', async () => {
+        const spy = vi.spyOn(log, 'warning');
+
+        await Sitemap.load('http://not-exists.com/cross_host_urls.xml');
+
+        expect(spy).toHaveBeenCalledTimes(1);
+        expect(spy).toHaveBeenCalledWith(
+            expect.stringContaining('Skipped 1 URL(s) from sitemap http://not-exists.com/cross_host_urls.xml'),
+        );
+    });
+
     it('keeps cross-host URL entries when enqueueStrategy is "all"', async () => {
         const sitemap = await Sitemap.load('http://not-exists.com/cross_host_urls.xml', undefined, {
             enqueueStrategy: 'all',

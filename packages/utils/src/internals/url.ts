@@ -30,6 +30,10 @@ function normalizeHostname(hostname: string): string {
 /**
  * Check whether `target` matches `origin` under the given enqueue `strategy`. The URL scheme is not
  * considered here (use {@apilink filterUrl} for the combined scheme + strategy check).
+ *
+ * Reimplements the `EnqueueStrategy` semantics of `@crawlee/core` (which matches via glob patterns in
+ * `packages/core/src/enqueue_links/enqueue_links.ts` and can't be imported from here) as a boolean
+ * predicate — keep the two in sync when changing either.
  */
 export function matchesEnqueueStrategy(strategy: EnqueueStrategyValue, target: URL, origin: URL): boolean {
     switch (strategy) {
@@ -76,7 +80,11 @@ export function filterUrl(
 
     const originUrl = toUrl(origin);
 
-    if (originUrl === null || !matchesEnqueueStrategy(strategy, targetUrl, originUrl)) {
+    if (originUrl === null) {
+        return { allowed: false, reason: 'invalid origin URL' };
+    }
+
+    if (!matchesEnqueueStrategy(strategy, targetUrl, originUrl)) {
         return { allowed: false, reason: `does not match enqueue strategy '${strategy}'` };
     }
 

@@ -358,6 +358,10 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
             continue;
         }
 
+        // URL entries dropped by the enqueue strategy filter, reported in one warning per sitemap after
+        // the loop (per-entry warnings could flood the log; individual drops are logged at debug level).
+        let droppedUrlEntries = 0;
+
         for await (const item of items) {
             if (item.type === 'sitemapUrl' && !visitedSitemapUrls.has(item.url)) {
                 if (nestedSitemapFilter && !nestedSitemapFilter(item.url)) {
@@ -386,6 +390,7 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
                 if (source.type === 'url') {
                     const { allowed, reason } = filterUrl(item.loc, sitemapUrl!, enqueueStrategy);
                     if (!allowed) {
+                        droppedUrlEntries++;
                         log.debug(`Skipping sitemap URL ${item.loc} (parent ${source.url}): ${reason}.`);
                         continue;
                     }
@@ -399,6 +404,12 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
                             : `raw://${createHash('sha256').update(source.content).digest('base64')}`,
                 };
             }
+        }
+
+        if (droppedUrlEntries > 0 && source.type === 'url') {
+            log.warning(
+                `Skipped ${droppedUrlEntries} URL(s) from sitemap ${source.url} not matching enqueue strategy '${enqueueStrategy}' (or using a non-http(s) scheme). Enable debug logs to see each skipped URL.`,
+            );
         }
     }
 }

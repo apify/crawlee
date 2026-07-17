@@ -41,6 +41,9 @@ describe('filterUrl', () => {
 
     it('drops gracefully (no throw) when the origin is not parseable', () => {
         expect(() => filterUrl('http://example.com/a', 'not-a-url', 'same-hostname')).not.toThrow();
-        expect(filterUrl('http://example.com/a', 'not-a-url', 'same-hostname').allowed).toBe(false);
+        expect(filterUrl('http://example.com/a', 'not-a-url', 'same-hostname')).toEqual({
+            allowed: false,
+            reason: 'invalid origin URL',
+        });
     });
 });
