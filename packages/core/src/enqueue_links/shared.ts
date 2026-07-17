@@ -3,6 +3,8 @@ import { URL } from 'node:url';
 import type { Awaitable } from '@crawlee/types';
 import { Minimatch } from 'minimatch';
 
+import { purlToRegExp } from '@apify/pseudo_url';
+
 import type { RequestOptions } from '../request.js';
 import type { EnqueueLinksOptions } from './enqueue_links.js';
 
@@ -37,6 +39,25 @@ export type RegExpInput = RegExp | RegExpObject;
 
 /** Unified URL pattern input — accepts glob strings, glob objects, RegExp instances, or regexp objects. */
 export type UrlPatternInput = GlobInput | RegExpInput;
+
+/**
+ * Request-option keys that used to be accepted inline on `globs`/`regexps`/`pseudoUrls` pattern objects.
+ * These are no longer supported - `transformRequestFunction` is now the only way to customize per-request options.
+ */
+type LegacyPatternRequestOptions = Partial<
+    Pick<RequestOptions, 'method' | 'payload' | 'label' | 'userData' | 'headers'>
+>;
+
+/** @deprecated Legacy input for the deprecated `globs` alias. Use {@apilink UrlPatternInput} via `include`/`exclude`. */
+export type LegacyGlobInput = string | ({ glob: string } & LegacyPatternRequestOptions);
+
+/** @deprecated Legacy input for the deprecated `regexps` alias. Use {@apilink UrlPatternInput} via `include`/`exclude`. */
+export type LegacyRegExpInput = RegExp | ({ regexp: RegExp } & LegacyPatternRequestOptions);
+
+/** @deprecated Legacy input for the deprecated `pseudoUrls` alias. Use {@apilink UrlPatternInput} via `include`/`exclude`. */
+export type PseudoUrlInput = string | ({ purl: string } & LegacyPatternRequestOptions);
+
+const LEGACY_PATTERN_REQUEST_OPTION_KEYS = ['method', 'payload', 'label', 'userData', 'headers'] as const;
 
 export type SkippedRequestReason =
     | 'robotsTxt'
@@ -153,6 +174,64 @@ export function constructUrlPatternObjects(patterns: readonly UrlPatternInput[])
     }
 
     return result;
+}
+
+/**
+ * Backwards-compatibility shim used by `enqueueLinks()`: converts the deprecated `globs`, `regexps`, and
+ * `pseudoUrls` options into unified {@apilink UrlPatternInput} entries that can be merged into `include`.
+ *
+ * Kept as an alias during the v3 → v4 migration window so that input generated for v3 (e.g. by the Apify
+ * Console input components) keeps working on v4. Per-pattern request options (method/payload/label/userData/
+ * headers) are no longer supported and are ignored with a warning - use `transformRequestFunction` instead.
+ * @ignore
+ */
+export function normalizeDeprecatedPatternOptions(
+    options: {
+        globs?: readonly LegacyGlobInput[];
+        regexps?: readonly LegacyRegExpInput[];
+        pseudoUrls?: readonly PseudoUrlInput[];
+    },
+    warn: (message: string) => void,
+): UrlPatternInput[] {
+    const include: UrlPatternInput[] = [];
+    let droppedRequestOptions = false;
+
+    const hasRequestOptions = (item: unknown): boolean =>
+        !!item && typeof item === 'object' && LEGACY_PATTERN_REQUEST_OPTION_KEYS.some((key) => key in item);
+
+    if (options.globs?.length) {
+        warn('`globs` option is deprecated, use `include` instead.');
+        for (const glob of options.globs) {
+            droppedRequestOptions ||= hasRequestOptions(glob);
+            include.push(typeof glob === 'string' ? glob : { glob: glob.glob });
+        }
+    }
+
+    if (options.regexps?.length) {
+        warn('`regexps` option is deprecated, use `include` instead.');
+        for (const regexp of options.regexps) {
+            droppedRequestOptions ||= hasRequestOptions(regexp);
+            include.push(regexp instanceof RegExp ? regexp : { regexp: regexp.regexp });
+        }
+    }
+
+    if (options.pseudoUrls?.length) {
+        warn('`pseudoUrls` option is deprecated, use `include` with glob or regexp patterns instead.');
+        for (const pseudoUrl of options.pseudoUrls) {
+            droppedRequestOptions ||= hasRequestOptions(pseudoUrl);
+            const purl = typeof pseudoUrl === 'string' ? pseudoUrl : pseudoUrl.purl;
+            include.push({ regexp: purlToRegExp(purl) });
+        }
+    }
+
+    if (droppedRequestOptions) {
+        warn(
+            'Per-pattern request options (method, payload, label, userData, headers) are no longer supported ' +
+                'on `globs`/`regexps`/`pseudoUrls` and were ignored. Use `transformRequestFunction` instead.',
+        );
+    }
+
+    return include;
 }
 
 /**

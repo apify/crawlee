@@ -625,6 +625,102 @@ describe('enqueueLinks()', () => {
             ).rejects.toThrow();
         });
 
+        describe('backwards compatibility (deprecated pattern options)', () => {
+            test('`globs` alias is mapped onto `include`', async () => {
+                const { enqueued, requestQueue } = await createRequestQueueMock();
+
+                await cheerioCrawlerEnqueueLinks({
+                    options: {
+                        selector: '.click',
+                        strategy: EnqueueStrategy.All,
+                        globs: ['https://example.com/**/*', '?(http|https)://cool.com/'],
+                    },
+                    $,
+                    requestManager: requestQueue,
+                    originalRequestUrl: 'https://example.com',
+                });
+
+                expect(enqueued).toHaveLength(3);
+                expect(enqueued[0].url).toBe('https://example.com/a/b/first');
+                expect(enqueued[1].url).toBe('https://example.com/a/b/third');
+                expect(enqueued[2].url).toBe('http://cool.com/');
+            });
+
+            test('`regexps` alias is mapped onto `include`', async () => {
+                const { enqueued, requestQueue } = await createRequestQueueMock();
+
+                await cheerioCrawlerEnqueueLinks({
+                    options: {
+                        selector: '.click',
+                        regexps: [/^https:\/\/example\.com\//],
+                    },
+                    $,
+                    requestManager: requestQueue,
+                    originalRequestUrl: 'https://example.com',
+                });
+
+                expect(enqueued).toHaveLength(2);
+                expect(enqueued[0].url).toBe('https://example.com/a/b/first');
+                expect(enqueued[1].url).toBe('https://example.com/a/b/third');
+            });
+
+            test('`pseudoUrls` alias is mapped onto `include`', async () => {
+                const { enqueued, requestQueue } = await createRequestQueueMock();
+
+                await cheerioCrawlerEnqueueLinks({
+                    options: {
+                        selector: '.click',
+                        pseudoUrls: ['https://example.com/[.*]'],
+                    },
+                    $,
+                    requestManager: requestQueue,
+                    originalRequestUrl: 'https://example.com',
+                });
+
+                expect(enqueued).toHaveLength(2);
+                expect(enqueued[0].url).toBe('https://example.com/a/b/first');
+                expect(enqueued[1].url).toBe('https://example.com/a/b/third');
+            });
+
+            test('per-pattern request options on deprecated aliases are ignored', async () => {
+                const { enqueued, requestQueue } = await createRequestQueueMock();
+
+                await cheerioCrawlerEnqueueLinks({
+                    options: {
+                        selector: '.click',
+                        globs: [{ glob: 'https://example.com/**/*', userData: { foo: 'bar' }, method: 'POST' }],
+                    },
+                    $,
+                    requestManager: requestQueue,
+                    originalRequestUrl: 'https://example.com',
+                });
+
+                expect(enqueued).toHaveLength(2);
+                // The inline request options must NOT be applied - patterns are pure URL matchers now.
+                expect(enqueued[0].method).toBe('GET');
+                expect(enqueued[0].userData).toEqual({});
+            });
+
+            test('deprecated aliases are combined with `include`', async () => {
+                const { enqueued, requestQueue } = await createRequestQueueMock();
+
+                await cheerioCrawlerEnqueueLinks({
+                    options: {
+                        selector: '.click',
+                        strategy: EnqueueStrategy.All,
+                        include: ['https://example.com/**/*'],
+                        globs: ['?(http|https)://cool.com/'],
+                    },
+                    $,
+                    requestManager: requestQueue,
+                    originalRequestUrl: 'https://example.com',
+                });
+
+                expect(enqueued).toHaveLength(3);
+                expect(enqueued[2].url).toBe('http://cool.com/');
+            });
+        });
+
         test('works with no include/exclude filters (enqueues all matching strategy)', async () => {
             const { enqueued, requestQueue } = await createRequestQueueMock();
             await cheerioCrawlerEnqueueLinks({
