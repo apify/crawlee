@@ -301,10 +301,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apify/timeout@npm:^0.3.0, @apify/timeout@npm:^0.3.1":
+"@apify/timeout@npm:^0.3.0":
   version: 0.3.5
   resolution: "@apify/timeout@npm:0.3.5"
   checksum: 10c0/6fd0d788a16bee23e32a58a60cb654d9e43a660de16141763cf38981695e1656951bccf9984d51a9ded8ae977020d546289b69050f73879d4e85fb8b72dc1144
+  languageName: node
+  linkType: hard
+
+"@apify/timeout@npm:^0.4.0":
+  version: 0.4.1
+  resolution: "@apify/timeout@npm:0.4.1"
+  checksum: 10c0/d74a171b2905ddbbbe9ec7a2e6e673413f4dad06889feb881ac89e75bdd2a12fbc586dd991e0411f9b8f8a0384428d272e7030e65c044ca83124d17310a3f6ab
   languageName: node
   linkType: hard
 
@@ -808,7 +815,7 @@ __metadata:
   dependencies:
     "@apify/datastructures": "npm:^2.0.0"
     "@apify/log": "npm:^2.4.0"
-    "@apify/timeout": "npm:^0.3.0"
+    "@apify/timeout": "npm:^0.4.0"
     "@apify/utilities": "npm:^2.7.10"
     "@crawlee/core": "npm:3.17.0"
     "@crawlee/types": "npm:3.17.0"
@@ -828,7 +835,7 @@ __metadata:
   resolution: "@crawlee/browser-pool@workspace:packages/browser-pool"
   dependencies:
     "@apify/log": "npm:^2.4.0"
-    "@apify/timeout": "npm:^0.3.0"
+    "@apify/timeout": "npm:^0.4.0"
     "@crawlee/core": "npm:3.17.0"
     "@crawlee/types": "npm:3.17.0"
     fingerprint-generator: "npm:^2.1.68"
@@ -856,7 +863,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@crawlee/browser@workspace:packages/browser-crawler"
   dependencies:
-    "@apify/timeout": "npm:^0.3.0"
+    "@apify/timeout": "npm:^0.4.0"
     "@crawlee/basic": "npm:3.17.0"
     "@crawlee/browser-pool": "npm:3.17.0"
     "@crawlee/types": "npm:3.17.0"
@@ -912,7 +919,7 @@ __metadata:
     "@apify/datastructures": "npm:^2.0.0"
     "@apify/log": "npm:^2.4.0"
     "@apify/pseudo_url": "npm:^2.0.30"
-    "@apify/timeout": "npm:^0.3.0"
+    "@apify/timeout": "npm:^0.4.0"
     "@apify/utilities": "npm:^2.7.10"
     "@crawlee/memory-storage": "npm:3.17.0"
     "@crawlee/types": "npm:3.17.0"
@@ -938,7 +945,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@crawlee/http@workspace:packages/http-crawler"
   dependencies:
-    "@apify/timeout": "npm:^0.3.0"
+    "@apify/timeout": "npm:^0.4.0"
     "@apify/utilities": "npm:^2.7.10"
     "@crawlee/basic": "npm:3.17.0"
     "@crawlee/core": "npm:3.17.0"
@@ -973,7 +980,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@crawlee/jsdom@workspace:packages/jsdom-crawler"
   dependencies:
-    "@apify/timeout": "npm:^0.3.0"
+    "@apify/timeout": "npm:^0.4.0"
     "@apify/utilities": "npm:^2.7.10"
     "@crawlee/http": "npm:3.17.0"
     "@crawlee/types": "npm:3.17.0"
@@ -990,7 +997,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@crawlee/linkedom@workspace:packages/linkedom-crawler"
   dependencies:
-    "@apify/timeout": "npm:^0.3.0"
+    "@apify/timeout": "npm:^0.4.0"
     "@apify/utilities": "npm:^2.7.10"
     "@crawlee/http": "npm:3.17.0"
     "@crawlee/types": "npm:3.17.0"
@@ -1026,7 +1033,7 @@ __metadata:
   dependencies:
     "@apify/datastructures": "npm:^2.0.0"
     "@apify/log": "npm:^2.4.0"
-    "@apify/timeout": "npm:^0.3.1"
+    "@apify/timeout": "npm:^0.4.0"
     "@crawlee/browser": "npm:3.17.0"
     "@crawlee/browser-pool": "npm:3.17.0"
     "@crawlee/core": "npm:3.17.0"
@@ -1151,7 +1158,7 @@ __metadata:
   resolution: "@crawlee/stagehand@workspace:packages/stagehand-crawler"
   dependencies:
     "@apify/log": "npm:^2.4.0"
-    "@apify/timeout": "npm:^0.3.1"
+    "@apify/timeout": "npm:^0.4.0"
     "@browserbasehq/stagehand": "npm:3.0.7"
     "@crawlee/browser": "npm:3.17.0"
     "@crawlee/browser-pool": "npm:3.17.0"

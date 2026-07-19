@@ -57,7 +57,7 @@
     },
     "dependencies": {
         "@apify/log": "^2.4.0",
-        "@apify/timeout": "^0.3.1",
+        "@apify/timeout": "^0.4.0",
         "@crawlee/browser": "3.17.0",
         "@crawlee/browser-pool": "3.17.0",
         "@crawlee/core": "3.17.0",
