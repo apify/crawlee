@@ -18,6 +18,7 @@ export const Browser: {
 // @public
 export class ImpitHttpClient extends BaseHttpClient {
     constructor(options?: Omit<ImpitOptions, 'proxyUrl' | 'timeout'> & {
+        cacheClients?: boolean;
         logger?: CrawleeLogger;
     });
     // (undocumented)

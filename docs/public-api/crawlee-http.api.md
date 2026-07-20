@@ -34,6 +34,8 @@ import type { ResponseLike } from 'content-type';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import { RouterHandler } from '@crawlee/basic';
 import { RouterRoutes } from '@crawlee/basic';
+import type { RouteSchemas } from '@crawlee/basic';
+import type { RoutesFromSchemas } from '@crawlee/basic';
 import { StringPredicate } from 'ow';
 import { Transform } from 'node:stream';
 
@@ -44,10 +46,16 @@ export function ByteCounterStream(input: {
 }): Transform;
 
 // @public
-export function createFileRouter<Context extends FileDownloadCrawlingContext = FileDownloadCrawlingContext, UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(routes?: RouterRoutes<Context, UserData>): RouterHandler<Context>;
+export function createFileRouter<Context extends FileDownloadCrawlingContext = FileDownloadCrawlingContext, UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(routes?: RouterRoutes<Context, UserData>): RouterHandler<Context, Record<string, GetUserDataFromRequest<Context["request"]>>>;
 
 // @public
-export function createHttpRouter<Context extends HttpCrawlingContext = HttpCrawlingContext, UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(routes?: RouterRoutes<Context, UserData>): RouterHandler<Context>;
+export function createHttpRouter<Context extends HttpCrawlingContext = HttpCrawlingContext, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
+
+// @public (undocumented)
+export function createHttpRouter<Context extends HttpCrawlingContext = HttpCrawlingContext, UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
+
+// @public (undocumented)
+export function createHttpRouter<Context extends HttpCrawlingContext = HttpCrawlingContext, const Schemas extends RouteSchemas = RouteSchemas>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
 
 // @public
 export class FileDownload extends BasicCrawler<FileDownloadCrawlingContext> {

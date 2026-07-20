@@ -40,8 +40,10 @@ import type { RegExpInput } from '@crawlee/browser';
 import { Request as Request_2 } from '@crawlee/browser';
 import type { RequestTransform } from '@crawlee/browser';
 import type { ResponseForRequest } from 'puppeteer';
-import { RouterHandler } from '@crawlee/browser';
+import type { RouterHandler } from '@crawlee/browser';
 import type { RouterRoutes } from '@crawlee/browser';
+import type { RouteSchemas } from '@crawlee/browser';
+import type { RoutesFromSchemas } from '@crawlee/browser';
 import type { SkippedRequestCallback } from '@crawlee/browser';
 import { StringPredicate } from 'ow';
 import type { Target } from 'puppeteer';
@@ -65,7 +67,9 @@ const blockResources: (page: Page, resourceTypes?: string[]) => Promise<void>;
 function cacheResponses(page: Page, cache: Dictionary<Partial<ResponseForRequest>>, responseUrlRules: (string | RegExp)[]): Promise<void>;
 
 // @public
-function clickElements(page: Page, selector: string, clickOptions?: ClickOptions): Promise<void>;
+function clickElements(page: Page, selector: string, clickOptions?: ClickOptions & {
+    clickCount?: number;
+}): Promise<void>;
 
 // @public
 function clickElementsAndInterceptNavigationRequests(options: ClickElementsAndInterceptNavigationRequestsOptions): Promise<Dictionary[]>;
@@ -88,7 +92,13 @@ export interface CompiledScriptParams {
 function compileScript(scriptString: string, context?: Dictionary): CompiledScriptFunction;
 
 // @public
-export function createPuppeteerRouter<Context extends PuppeteerCrawlingContext = PuppeteerCrawlingContext, UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(routes?: RouterRoutes<Context, UserData>): RouterHandler<Context>;
+export function createPuppeteerRouter<Context extends PuppeteerCrawlingContext = PuppeteerCrawlingContext, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
+
+// @public (undocumented)
+export function createPuppeteerRouter<Context extends PuppeteerCrawlingContext = PuppeteerCrawlingContext, UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
+
+// @public (undocumented)
+export function createPuppeteerRouter<Context extends PuppeteerCrawlingContext = PuppeteerCrawlingContext, const Schemas extends RouteSchemas = RouteSchemas>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
 
 // @public
 function enqueueLinksByClickingElements(options: EnqueueLinksByClickingElementsOptions): Promise<BatchAddRequestsResult>;

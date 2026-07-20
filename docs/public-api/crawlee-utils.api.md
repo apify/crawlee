@@ -35,7 +35,7 @@ export type CheerioRoot = CheerioAPI;
 export function chunk<T>(array: readonly T[], chunkSize: number): T[][];
 
 // @internal
-export function chunkedAsyncIterable<T>(iterable: AsyncIterable<T> | Iterable<T>, chunkSize: number): AsyncIterable<T[]>;
+export function chunkedAsyncIterable<T>(iterable: AsyncIterable<T> | Iterable<T>, chunkSize: number | (() => number)): AsyncIterable<T[]>;
 
 // @public (undocumented)
 export const CLOUDFLARE_RETRY_CSS_SELECTORS: string[];
@@ -221,6 +221,7 @@ export interface ParseSitemapOptions {
     httpClient?: BaseHttpClient;
     logger?: CrawleeLogger;
     maxDepth?: number;
+    nestedSitemapFilter?: (sitemapUrl: string) => boolean;
     reportNetworkErrors?: boolean;
     sitemapRetries?: number;
     timeoutMillis?: number;

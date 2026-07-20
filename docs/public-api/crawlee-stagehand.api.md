@@ -41,8 +41,10 @@ import type { Page } from 'playwright';
 import { Predicate } from 'ow';
 import type { RequestHandler } from '@crawlee/browser';
 import type { Response as Response_2 } from 'playwright';
-import { RouterHandler } from '@crawlee/browser';
+import type { RouterHandler } from '@crawlee/browser';
 import type { RouterRoutes } from '@crawlee/browser';
+import type { RouteSchemas } from '@crawlee/browser';
+import type { RoutesFromSchemas } from '@crawlee/browser';
 import { Stagehand } from '@browserbasehq/stagehand';
 import type { StreamingAgentInstance } from '@browserbasehq/stagehand';
 import { StringPredicate } from 'ow';
@@ -59,7 +61,13 @@ export { AgentConfig }
 export { AgentResult }
 
 // @public
-export function createStagehandRouter<Context extends StagehandCrawlingContext = StagehandCrawlingContext, UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(routes?: RouterRoutes<Context, UserData>): RouterHandler<Context>;
+export function createStagehandRouter<Context extends StagehandCrawlingContext = StagehandCrawlingContext, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
+
+// @public (undocumented)
+export function createStagehandRouter<Context extends StagehandCrawlingContext = StagehandCrawlingContext, UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
+
+// @public (undocumented)
+export function createStagehandRouter<Context extends StagehandCrawlingContext = StagehandCrawlingContext, const Schemas extends RouteSchemas = RouteSchemas>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
 
 // @public
 function enhancePageWithStagehand(page: Page, stagehand: Stagehand): StagehandPage;
