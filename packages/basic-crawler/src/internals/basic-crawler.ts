@@ -76,7 +76,7 @@ import type {
     SetStatusMessageOptions,
     StorageBackend,
 } from '@crawlee/types';
-import { getObjectType, isAsyncIterable, isIterable, RobotsTxtFile, ROTATE_PROXY_ERRORS, sleep } from '@crawlee/utils';
+import { getObjectType, isAsyncIterable, isIterable, RobotsTxtFile, ROTATE_PROXY_ERRORS } from '@crawlee/utils';
 import { stringify } from 'csv-stringify/sync';
 import { ensureDir, writeJSON } from 'fs-extra/esm';
 import ow from 'ow';
@@ -1420,17 +1420,12 @@ export class BasicCrawler<
             }
 
             periodicLogger.stop();
-            // Give the event loop a single tick to flush the HTTP
-            // 1ms is enough because we already have a keep-alive connection to the API
-            await Promise.race([
-                this.setStatusMessage(
-                    `Finished! Total ${this.stats.state.requestsFinished + this.stats.state.requestsFailed} requests: ${
-                        this.stats.state.requestsFinished
-                    } succeeded, ${this.stats.state.requestsFailed} failed.`,
-                    { isStatusMessageTerminal: true, level: 'INFO' },
-                ),
-                sleep(1),
-            ]);
+            this.setStatusMessage(
+                `Finished! Total ${this.stats.state.requestsFinished + this.stats.state.requestsFailed} requests: ${
+                    this.stats.state.requestsFinished
+                } succeeded, ${this.stats.state.requestsFailed} failed.`,
+                { isStatusMessageTerminal: true, level: 'INFO' },
+            );
 
             this.running = false;
             this.hasFinishedBefore = true;

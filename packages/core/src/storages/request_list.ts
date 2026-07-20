@@ -436,6 +436,7 @@ export class RequestList implements IRequestLoader {
                 const sourcesFromFunctionCount = sourcesFromFunction.length;
                 for (let i = 0; i < sourcesFromFunctionCount; i++) {
                     const source = sourcesFromFunction[i];
+                    // oxlint-disable-next-line typescript/no-array-delete -- intentional, drop the slot so V8 can collect the object
                     delete sourcesFromFunction[i];
                     this._addRequest(source);
                 }
