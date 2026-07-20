@@ -57,6 +57,7 @@
         "ow": "^0.28.1",
         "robots-parser": "^3.0.1",
         "sax": "^1.4.1",
+        "tldts": "^7.0.0",
         "tslib": "^2.4.0",
         "whatwg-mimetype": "^4.0.0"
     },

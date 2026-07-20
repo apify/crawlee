@@ -13,6 +13,7 @@ import log from '@apify/log';
 
 import { mergeAsyncIterables } from './iterables';
 import { RobotsFile } from './robots';
+import { type EnqueueStrategy, filterUrl } from './url';
 
 interface SitemapUrlData {
     loc: string;
@@ -206,6 +207,13 @@ export interface ParseSitemapOptions {
      * If not provided, all nested sitemaps are followed.
      */
     nestedSitemapFilter?: (sitemapUrl: string) => boolean;
+    /**
+     * Keep only sitemap-derived URLs (nested `<sitemap>` and `<url>` entries) matching this strategy
+     * relative to the parent sitemap URL; non-`http(s)` schemes are always dropped. Skipped for raw string
+     * sources (no parent URL). Pass `'all'` to disable host filtering.
+     * @default 'same-hostname'
+     */
+    enqueueStrategy?: EnqueueStrategy | `${EnqueueStrategy}`;
 }
 
 export async function* parseSitemap<T extends ParseSitemapOptions>(
@@ -222,6 +230,7 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
         networkTimeouts,
         reportNetworkErrors = true,
         nestedSitemapFilter,
+        enqueueStrategy = 'same-hostname',
     } = options ?? {};
 
     const sources = [...initialSources];
@@ -259,8 +268,11 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
 
         let items: AsyncIterable<SitemapItem> | null = null;
 
+        // Parent URL, parsed once and reused as the origin for the strategy checks below.
+        let sitemapUrl: URL | undefined;
+
         if (source.type === 'url') {
-            const sitemapUrl = new URL(source.url);
+            sitemapUrl = new URL(source.url);
             visitedSitemapUrls.add(sitemapUrl.toString());
             let retriesLeft = sitemapRetries + 1;
 
@@ -351,11 +363,25 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
             continue;
         }
 
+        // URL entries dropped by the enqueue strategy filter, reported in one warning per sitemap after
+        // the loop (per-entry warnings could flood the log; individual drops are logged at debug level).
+        let droppedUrlEntries = 0;
+
         for await (const item of items) {
             if (item.type === 'sitemapUrl' && !visitedSitemapUrls.has(item.url)) {
                 if (nestedSitemapFilter && !nestedSitemapFilter(item.url)) {
                     log.debug(`Skipping sitemap ${item.url} due to nestedSitemapFilter.`);
                     continue;
+                }
+
+                // Keep only nested sitemaps matching the strategy (and using http(s)) relative to the
+                // parent. Raw string sources have no parent URL, so the check is skipped.
+                if (source.type === 'url') {
+                    const { allowed, reason } = filterUrl(item.url, sitemapUrl!, enqueueStrategy);
+                    if (!allowed) {
+                        log.warning(`Skipping nested sitemap ${item.url} (parent ${source.url}): ${reason}.`);
+                        continue;
+                    }
                 }
 
                 sources.push({ type: 'url', url: item.url, depth: (source.depth ?? 0) + 1 });
@@ -365,6 +391,16 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
             }
 
             if (item.type === 'url') {
+                // Keep only URL entries that match the enqueue strategy relative to the parent (see above).
+                if (source.type === 'url') {
+                    const { allowed, reason } = filterUrl(item.loc, sitemapUrl!, enqueueStrategy);
+                    if (!allowed) {
+                        droppedUrlEntries++;
+                        log.debug(`Skipping sitemap URL ${item.loc} (parent ${source.url}): ${reason}.`);
+                        continue;
+                    }
+                }
+
                 yield {
                     ...item,
                     originSitemapUrl:
@@ -373,6 +409,12 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
                             : `raw://${createHash('sha256').update(source.content).digest('base64')}`,
                 };
             }
+        }
+
+        if (droppedUrlEntries > 0 && source.type === 'url') {
+            log.warning(
+                `Skipped ${droppedUrlEntries} URL(s) from sitemap ${source.url} not matching enqueue strategy '${enqueueStrategy}' (or using a non-http(s) scheme). Enable debug logs to see each skipped URL.`,
+            );
         }
     }
 }
@@ -546,7 +588,8 @@ export async function* discoverValidSitemaps(
                 timeoutMillis: requestTimeoutMillis,
                 signal,
             });
-            for (const sitemapUrl of robotsFile.getSitemaps()) {
+            // Surface all referenced sitemaps, including cross-host; scoping happens at load time.
+            for (const sitemapUrl of robotsFile.getSitemaps({ enqueueStrategy: 'all' })) {
                 if (addSitemapUrl(sitemapUrl)) {
                     yield sitemapUrl;
                 }
