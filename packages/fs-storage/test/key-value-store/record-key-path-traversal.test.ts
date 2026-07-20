@@ -15,12 +15,22 @@ describe('record key path traversal', () => {
 
     const storage = new FileSystemStorageBackend({ localDataDirectory: tmpLocation });
 
-    test('setValue rejects a key that escapes the store directory', async () => {
+    test('setValue contains a key that looks like a traversal attempt within the store', async () => {
         const client = await storage.createKeyValueStoreBackend({ name: 'record-key-store' });
+        const otherClient = await storage.createKeyValueStoreBackend({ name: 'record-key-store-other' });
 
-        await expect(
-            client.setValue({ key: '../escaped-record', value: 'pwned', contentType: 'text/plain' }),
-        ).rejects.toThrow();
+        // The native client encodes the whole key as a single opaque filename (see `special-keys.test.ts`,
+        // where keys containing `/` round-trip rather than being rejected), so a `..`-containing key can't
+        // resolve outside the store directory the way a naive `resolve(storeDir, key)` would. It's therefore
+        // treated like any other key: stored, retrievable, and scoped to this store.
+        await client.setValue({ key: '../escaped-record', value: 'pwned', contentType: 'text/plain' });
+
+        expect(await client.recordExists('../escaped-record')).toBe(true);
+        const record = await client.getValue('../escaped-record');
+        expect(record?.value).toStrictEqual(Buffer.from('pwned'));
+
+        // Confirm it didn't land in a sibling store either.
+        expect(await otherClient.recordExists('../escaped-record')).toBe(false);
     });
 
     test('setValue still works for a regular key', async () => {

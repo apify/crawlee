@@ -30,7 +30,7 @@ import { sleep } from 'crawlee';
 import express from 'express';
 import { z } from 'zod';
 
-import { startExpressAppPromise } from 'test/shared/_helper.js';
+import { startExpressAppPromise } from '../../shared/_helper.js';
 
 // A minimal logger that records every message into a shared array. Child loggers share the same
 // array, so messages emitted by the crawler's prefixed child logger are captured as well.

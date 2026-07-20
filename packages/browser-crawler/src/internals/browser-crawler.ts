@@ -530,14 +530,6 @@ export abstract class BrowserCrawler<
         return false;
     }
 
-    /**
-     * `BrowserCrawler` hands `BasicCrawler` a wrapper that opens a page before delegating, and keeps the user's
-     * own handler in `userProvidedRequestHandler` — so resolve router-aware metadata against that instead.
-     */
-    protected override get userRequestHandler(): RequestHandler<Context> {
-        return this.userProvidedRequestHandler as RequestHandler<Context>;
-    }
-
     private async preparePage(
         crawlingContext: CrawlingContext,
     ): Promise<ContextDifference<CrawlingContext, BrowserCrawlingContext<Page, Response, Dictionary>>> {

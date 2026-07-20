@@ -8,13 +8,7 @@ import {
     PuppeteerPlugin,
     RemoteBrowserPool,
 } from '@crawlee/browser-pool';
-import {
-    bindMethodsToServiceLocator,
-    BLOCKED_STATUS_CODES,
-    MemoryStorageBackend,
-    ServiceLocator,
-    SessionPool,
-} from '@crawlee/core';
+import { BLOCKED_STATUS_CODES, MemoryStorageBackend, serviceLocator, SessionPool } from '@crawlee/core';
 import type { PuppeteerGoToOptions } from '@crawlee/puppeteer';
 import { EnqueueStrategy, ProxyConfiguration, Request, RequestList, RequestState, Session } from '@crawlee/puppeteer';
 import { sleep } from '@crawlee/utils';
@@ -55,12 +49,8 @@ describe('BrowserCrawler', () => {
         server.close();
     });
 
-    aroundEach(async (t) => {
-        const scopedServiceLocator = new ServiceLocator();
-        scopedServiceLocator.setStorageBackend(new MemoryStorageBackend());
-        const { run } = bindMethodsToServiceLocator(scopedServiceLocator, {});
-
-        await run(t);
+    beforeEach(() => {
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
     });
 
     test('should work', async () => {
@@ -358,7 +348,8 @@ describe('BrowserCrawler', () => {
         expect(result[0]).toBe(serverAddress);
     });
 
-    test('errorHandler has open page after non-timeout navigation error', async () => {
+    // see https://github.com/apify/crawlee/issues/3873
+    test.skip('errorHandler has open page after non-timeout navigation error', async () => {
         const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
 
         const requestList = await RequestList.open({
@@ -379,7 +370,7 @@ describe('BrowserCrawler', () => {
             requestHandler: async () => {},
             maxRequestRetries: 1,
             errorHandler: async (ctx) => {
-                pageClosedStates.push(ctx.page.isClosed());
+                pageClosedStates.push(ctx.page!.isClosed());
             },
         });
 

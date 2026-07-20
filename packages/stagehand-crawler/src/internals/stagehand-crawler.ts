@@ -393,13 +393,6 @@ export class StagehandCrawler<
         browserPoolOptions: ow.optional.object,
     };
 
-    /** Set while `_runRequestHandler` has swapped `userProvidedRequestHandler` for its page-enhancing wrapper. */
-    private unwrappedRequestHandler?: BrowserRequestHandler<StagehandCrawlingContext>;
-
-    protected override get userRequestHandler(): BrowserRequestHandler<StagehandCrawlingContext> {
-        return this.unwrappedRequestHandler ?? super.userRequestHandler;
-    }
-
     /**
      * Creates a new instance of StagehandCrawler.
      *

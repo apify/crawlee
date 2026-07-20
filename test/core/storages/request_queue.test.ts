@@ -141,8 +141,11 @@ describe('RequestQueue remote', () => {
     });
 
     test('addRequestsBatched does not retry permanently unprocessed requests forever', async () => {
-        const queue = new RequestQueue({ id: 'unprocessed-requests', client: storageClient });
-        const mockAddRequests = vitest.spyOn(queue.client, 'batchAddRequests');
+        const queue = new RequestQueue({
+            id: 'unprocessed-requests',
+            backend: { addBatchOfRequests: async () => ({ processedRequests: [], unprocessedRequests: [] }) } as any,
+        });
+        const mockAddRequests = vitest.spyOn(queue.backend, 'addBatchOfRequests');
 
         const requestOptions = { url: 'http://example.com/bad' };
         const request = new Request(requestOptions);
@@ -165,8 +168,11 @@ describe('RequestQueue remote', () => {
     });
 
     test('addRequestsBatched does not re-submit already enqueued requests beyond the initial batch (#3120)', async () => {
-        const queue = new RequestQueue({ id: 'dedup-across-batches', client: storageClient });
-        const mockAddRequests = vitest.spyOn(queue.client, 'batchAddRequests');
+        const queue = new RequestQueue({
+            id: 'dedup-across-batches',
+            backend: { addBatchOfRequests: async () => ({ processedRequests: [], unprocessedRequests: [] }) } as any,
+        });
+        const mockAddRequests = vitest.spyOn(queue.backend, 'addBatchOfRequests');
 
         // Fake platform: deduplicates server-side by `uniqueKey` and counts every submitted request as a write.
         const serverSeen = new Set<string>();

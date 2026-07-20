@@ -2,12 +2,7 @@ import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import os from 'node:os';
 
-import type {
-    PlaywrightCrawlingContext,
-    PlaywrightGotoOptions,
-    PlaywrightRequestHandler,
-    Request,
-} from '@crawlee/playwright';
+import type { PlaywrightCrawlingContext, PlaywrightGotoOptions, Request } from '@crawlee/playwright';
 import { MemoryStorageBackend, serviceLocator } from '@crawlee/core';
 import { createPlaywrightRouter, PlaywrightCrawler, RequestList, RequestValidationError } from '@crawlee/playwright';
 import type { Cheerio, CheerioAPI, CheerioRoot, Element } from '@crawlee/utils';
@@ -17,7 +12,7 @@ import { z } from 'zod';
 
 import log from '@apify/log';
 
-import { startExpressAppPromise } from 'test/shared/_helper.js';
+import { startExpressAppPromise } from '../../shared/_helper.js';
 
 if (os.platform() === 'win32') vitest.setConfig({ testTimeout: 2 * 60 * 1e3 });
 
