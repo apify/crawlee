@@ -1,17 +1,15 @@
 import type {
     BrowserHook,
-    LoadedContext,
     LoadedRequest,
     Request,
-    RequestHandler,
     RouterHandler,
     RouteSchemas,
     RoutesFromSchemas,
 } from '@crawlee/browser';
 import { isDeepStrictEqual } from 'node:util';
 
+import type { BasicCrawlerOptions } from '@crawlee/basic';
 import { BasicCrawler } from '@crawlee/basic';
-import type { BasicCrawlerOptions, BrowserHook, LoadedRequest, Request } from '@crawlee/browser';
 import { extractUrlsFromPage } from '@crawlee/browser';
 import type { CheerioCrawlingContext } from '@crawlee/cheerio';
 import { CheerioCrawler } from '@crawlee/cheerio';
@@ -37,7 +35,7 @@ import {
     Statistics,
     withCheckedStorageAccess,
 } from '@crawlee/core';
-import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
+import type { BatchAddRequestsResult, Dictionary, Awaitable } from '@crawlee/types';
 import { type CheerioRoot, extractUrlsFromCheerio } from '@crawlee/utils';
 import { type Cheerio } from 'cheerio';
 import type { AnyNode } from 'domhandler';
@@ -311,14 +309,6 @@ export class AdaptivePlaywrightCrawler<
     private inFlightRenderingTypeDetections = 0;
 
     private teardownHooks: (() => Promise<unknown>)[] = [];
-
-    /**
-     * The `requestHandler` never reaches `BrowserCrawler` here — it is kept as `adaptiveRequestHandler` and
-     * invoked through a proxy — so router-aware metadata has to resolve against it.
-     */
-    protected override get userRequestHandler() {
-        return this.adaptiveRequestHandler as unknown as RequestHandler<PlaywrightCrawlingContext>;
-    }
 
     constructor(options: AdaptivePlaywrightCrawlerOptions<ExtendedContext> = {}) {
         const {
@@ -633,7 +623,7 @@ export class AdaptivePlaywrightCrawler<
                             ? (plainHTTPRun.error.cause as Error)
                             : (plainHTTPRun.error as Error);
 
-                    if (await this.shouldPropagateError(actualError, crawlingContext)) {
+                    if (await this.shouldPropagateError(actualError, crawlingContext as any)) {
                         throw actualError;
                     }
 

@@ -219,9 +219,13 @@ describe('launchPlaywright()', () => {
 
         test('works without default path', async () => {
             delete process.env.CRAWLEE_DEFAULT_BROWSER_PATH;
+            // `Configuration` resolves env vars once at construction time, so the outer `beforeEach`'s
+            // config (built while `CRAWLEE_DEFAULT_BROWSER_PATH` was still set by this describe's
+            // `beforeAll`) wouldn't see the deletion above — build a fresh one and pass it explicitly
+            // rather than going through `serviceLocator`, which already holds the stale instance.
             let browser;
             try {
-                browser = await launchPlaywright();
+                browser = await launchPlaywright(undefined, new Configuration({ headless: true }));
                 const page = await browser.newPage();
 
                 await page.goto(serverAddress);

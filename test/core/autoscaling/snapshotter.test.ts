@@ -248,7 +248,19 @@ describe('Snapshotter', () => {
     });
 
     test('correctly logs critical memory overload', async () => {
-        vitest.spyOn(utils, 'getMemoryInfo').mockResolvedValueOnce({ totalBytes: toBytes(10000) } as MemoryInfo);
+        const initialMemory = toBytes(10000);
+        const usageRatio1 = 0.75; // below warning usage
+        const usageRatio2 = 0.76; // above warning usage
+        const memoryData: MemoryInfo = {
+            totalBytes: initialMemory,
+            freeBytes: initialMemory * (1 - usageRatio1),
+            usedBytes: initialMemory * usageRatio1,
+            mainProcessBytes: initialMemory * usageRatio1,
+            childProcessesBytes: 0,
+        };
+
+        // Mock memory info to be able to inject custom memory measurement data.
+        vitest.spyOn(utils, 'getMemoryInfo').mockResolvedValue(memoryData);
         serviceLocator.setConfiguration(new Configuration({ availableMemoryRatio: 1 }));
         const snapshotter = new Snapshotter({ maxUsedMemoryRatio: 0.5 });
 
@@ -379,7 +391,7 @@ describe('Snapshotter', () => {
 
             const snapshotter = new Snapshotter({ config });
             vitest.spyOn(LocalEventManager.prototype, 'init').mockImplementation(async () => {});
-            const eventManager = config.getEventManager() as LocalEventManager;
+            const eventManager = serviceLocator.getEventManager() as LocalEventManager;
             await snapshotter.start();
 
             // First snapshot - full usage of the memory, should be overloaded in both modes

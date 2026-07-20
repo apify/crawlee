@@ -35,6 +35,14 @@ overrides:
   "apify>@crawlee/core": "workspace:*"
   "apify>@crawlee/types": "workspace:*"
   "apify>@crawlee/utils": "workspace:*"
+  # header-generator (via fingerprint-generator, a direct dependency of @crawlee/browser-pool)
+  # bundles its own ow@0.28.2, while all @crawlee/* packages depend on ow@2.0.0 directly. The two
+  # copies' predicate types are nominally distinct (branded symbols), so a type built with one
+  # doesn't satisfy a shape built with the other — this broke `@crawlee/stagehand`'s build with
+  # `optionsShape`/`exactShape` mismatches. header-generator's ow usage is limited to the
+  # long-stable basic predicate API (string/number/object.exactShape/oneOf/ofType), so it's safe
+  # to dedupe onto the same major version everyone else uses.
+  "header-generator>ow": "^2.0.0"
 
 # pnpm 11 replaces `onlyBuiltDependencies` with an explicit `allowBuilds` map.
 # Each entry must be true (build allowed) or false (build skipped) — pnpm 11
@@ -77,5 +85,5 @@ publicHoistPattern:
   - "*"
 
 patchedDependencies:
-  "@docusaurus/core@3.9.2": patches/@docusaurus__core@3.9.2.patch
-  "@signalwire/docusaurus-plugin-llms-txt@1.2.2": patches/@signalwire+docusaurus-plugin-llms-txt+1.2.2.patch
+  '@docusaurus/core@3.10.2': patches/@docusaurus__core@3.10.2.patch
+  '@signalwire/docusaurus-plugin-llms-txt@1.2.2': patches/@signalwire__docusaurus-plugin-llms-txt@1.2.2.patch
