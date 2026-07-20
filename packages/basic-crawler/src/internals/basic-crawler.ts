@@ -61,7 +61,6 @@ import {
     SessionError,
     SessionPool,
     Statistics,
-    serviceLocator,
     validateUserData,
     validators,
 } from '@crawlee/core';
@@ -953,6 +952,11 @@ export class BasicCrawler<
                         return;
                     }
 
+                    // Started here, rather than in `handleRequest`, so that a failure during context pipeline
+                    // initialization (e.g. a browser page timing out before the request handler ever runs) is
+                    // still accounted for by `failJob` below - which is a no-op without a matching `startJob`.
+                    this.stats.startJob(request.id || request.uniqueKey);
+
                     const crawlingContext = { request } as { request: Request } & Partial<CrawlingContext>;
                     try {
                         await this.basicContextPipeline
@@ -962,6 +966,7 @@ export class BasicCrawler<
                         // ContextPipelineInterruptedError means the request was intentionally skipped
                         // (e.g., doesn't match enqueue strategy after redirect). Just return gracefully.
                         if (error instanceof ContextPipelineInterruptedError) {
+                            this.stats.discardJob(request.id || request.uniqueKey);
                             await this._timeoutAndRetry(
                                 async () => this.requestManager?.markRequestAsHandled(request),
                                 this.internalTimeoutMillis,
@@ -1507,19 +1512,6 @@ export class BasicCrawler<
     }
 
     /**
-     * The request handler exactly as the user supplied it — a {@apilink Router} when one is in use, whether it
-     * was passed as `requestHandler` or auto-wired from {@apilink BasicCrawler.router|`crawler.router`}.
-     *
-     * Router-aware features read per-label metadata off this handler (currently the `userData` schema map), so
-     * it must resolve to the *unwrapped* handler. Subclasses that hand a wrapper to `BasicCrawler` instead of
-     * the user's own function — {@apilink BrowserCrawler} and its descendants do — have to override this, or
-     * those features silently no-op against the wrapper.
-     */
-    protected get userRequestHandler(): RequestHandler<Context> {
-        return this.requestHandler;
-    }
-
-    /**
      * Validates a request source's `userData` against the {@apilink RouteSchemas|Standard Schema} registered
      * for its label on the crawler's schema-router (if any), throwing a {@apilink RequestValidationError} on
      * mismatch. A no-op when the user's request handler is not a schema-router, or no schema is registered for
@@ -1531,7 +1523,7 @@ export class BasicCrawler<
             return;
         }
 
-        const getSchema = (this.userRequestHandler as Partial<RouterHandler>).getSchema;
+        const getSchema = (this.requestHandler as Partial<RouterHandler>).getSchema;
 
         if (typeof getSchema !== 'function') {
             return;
@@ -1949,7 +1941,6 @@ export class BasicCrawler<
     /** Handles a single request - runs the request handler with retries, error handling, and lifecycle management. */
     protected async handleRequest(crawlingContext: ExtendedContext, requestSource: IRequestManager, request: Request) {
         const statisticsId = request.id || request.uniqueKey;
-        this.stats.startJob(statisticsId);
 
         let isRequestLocked = true;
 

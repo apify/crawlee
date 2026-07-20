@@ -1323,19 +1323,19 @@ describe('enqueueLinks()', () => {
         ];
 
         test('defaults to the catch-all user-agent when not provided', async () => {
-            const { enqueued, requestQueue } = createRequestQueueMock();
+            const { enqueued, requestQueue } = await createRequestQueueMock();
 
-            await enqueueLinks({ urls, requestQueue, robotsTxtFile });
+            await enqueueLinks({ urls, requestManager: requestQueue, robotsTxtFile });
 
             expect(enqueued.map((r) => r.url)).toEqual(['http://example.com/yes']);
         });
 
         test('applies rules for the configured user-agent', async () => {
-            const { enqueued, requestQueue } = createRequestQueueMock();
+            const { enqueued, requestQueue } = await createRequestQueueMock();
 
             await enqueueLinks({
                 urls,
-                requestQueue,
+                requestManager: requestQueue,
                 robotsTxtFile,
                 respectRobotsTxtFile: { userAgent: 'MyCrawler' },
             });
@@ -1347,11 +1347,11 @@ describe('enqueueLinks()', () => {
         });
 
         test('skips filtering when set to false even if robotsTxtFile is provided', async () => {
-            const { enqueued, requestQueue } = createRequestQueueMock();
+            const { enqueued, requestQueue } = await createRequestQueueMock();
 
             await enqueueLinks({
                 urls,
-                requestQueue,
+                requestManager: requestQueue,
                 robotsTxtFile,
                 respectRobotsTxtFile: false,
             });

@@ -249,6 +249,15 @@ export class Statistics {
     }
 
     /**
+     * Discards a started job without affecting the finished/failed counters, e.g. when a request
+     * turns out to be skipped (robots.txt, enqueue strategy) after `startJob` was already called for it.
+     * @ignore
+     */
+    discardJob(id: number | string) {
+        this.requestsInProgress.delete(id);
+    }
+
+    /**
      * Calculate the current statistics
      */
     calculate() {

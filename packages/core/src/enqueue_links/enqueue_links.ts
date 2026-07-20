@@ -508,18 +508,14 @@ export async function enqueueLinks(
         return filteredOptions.map((opts) => new Request(opts));
     }
 
-    let requests = await createFilteredRequests();
-
-    if (typeof limit === 'number' && limit < requests.length) {
-        await reportSkippedRequests(requests.slice(limit), 'enqueueLimit');
-        requests = requests.slice(0, limit);
-    }
-
-    const { addedRequests, requestsOverLimit } = await requestManager.addRequestsBatched(requests, {
-        forefront,
-        waitForAllRequestsToBeAdded,
-        maxNewRequests: limit,
-    });
+    const { addedRequests, requestsOverLimit } = await requestManager.addRequestsBatched(
+        await createFilteredRequests(),
+        {
+            forefront,
+            waitForAllRequestsToBeAdded,
+            maxNewRequests: limit,
+        },
+    );
 
     if (requestsOverLimit?.length !== undefined && requestsOverLimit.length > 0) {
         await reportSkippedRequests(

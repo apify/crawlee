@@ -372,6 +372,7 @@ describe('RequestList', () => {
     });
 
     test('teardown removes the persist state listener when persistStateKey is set', async () => {
+        const events = serviceLocator.getEventManager();
         const listenerCountBefore = events.listenerCount(EventType.PERSIST_STATE);
 
         const requestList = await RequestList.open({

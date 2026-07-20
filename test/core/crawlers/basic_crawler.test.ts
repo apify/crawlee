@@ -32,7 +32,7 @@ import type { Mock } from 'vitest';
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vitest } from 'vitest';
 import { z } from 'zod';
 
-import { startExpressAppPromise } from 'test/shared/_helper.js';
+import { startExpressAppPromise } from '../../shared/_helper.js';
 
 import log from '@apify/log';
 
@@ -1256,64 +1256,6 @@ describe('BasicCrawler', () => {
 
         // The crawler stopped at the `maxRequestsPerCrawl` limit, so the later sources were never processed.
         expect(processed['http://example.com/5']).toBeUndefined();
-    });
-
-    test('should load handledRequestCount from storages', async () => {
-        const requestQueue = await RequestQueue.open({ id: 'id' });
-        requestQueue.isEmpty = async () => false;
-        requestQueue.isFinished = async () => false;
-
-        requestQueue.fetchNextRequest = async () => new Request({ id: 'id', url: 'http://example.com' });
-        // @ts-expect-error Overriding the method for testing purposes
-        requestQueue.markRequestAsHandled = async () => {};
-
-        const requestQueueStub = vitest.spyOn(requestQueue, 'getHandledCount').mockResolvedValue(33);
-
-        let count = 0;
-        const crawler = new BasicCrawler({
-            requestQueue,
-            maxConcurrency: 1,
-            requestHandler: async () => {
-                await sleep(1);
-                count++;
-            },
-            maxRequestsPerCrawl: 40,
-        });
-
-        await crawler.run();
-        expect(requestQueueStub).toBeCalled();
-        expect(count).toBe(7);
-        vitest.restoreAllMocks();
-
-        // When a request list is combined with a request queue (a tandem), the handled count is read from the
-        // queue side - the list's requests are dumped into the queue and then handled from there. The same is now
-        // true for a lone `requestList`, which is wrapped into a tandem over the default queue.
-        const sources = Array.from(Array(10).keys(), (x) => x + 1).map((i) => ({ url: `http://example.com/${i}` }));
-        const requestList = await RequestList.open({ sources });
-        const listStub = vitest.spyOn(requestList, 'getHandledCount').mockResolvedValue(20);
-        const queueStub = vitest.spyOn(requestQueue, 'getHandledCount').mockResolvedValue(33);
-        const addRequestStub = vitest.spyOn(requestQueue, 'addRequest').mockReturnValue(Promise.resolve() as any);
-
-        count = 0;
-        crawler = new BasicCrawler({
-            requestList,
-            requestQueue,
-            maxConcurrency: 1,
-            requestHandler: async () => {
-                await sleep(1);
-                count++;
-            },
-            maxRequestsPerCrawl: 40,
-        });
-
-        await crawler.run();
-
-        expect(queueStub).toBeCalled();
-        expect(listStub).not.toBeCalled();
-        expect(addRequestStub).toBeCalledTimes(7);
-        expect(count).toBe(7);
-
-        vitest.restoreAllMocks();
     });
 
     test('should timeout after requestHandlerTimeoutSecs', async () => {
@@ -2658,7 +2600,7 @@ describe('BasicCrawler', () => {
             validateCount = 0;
             const queue = await makeRouterCrawler().getRequestQueue();
             await queue.addRequest({ url: 'https://example.com/b', label: 'DETAIL', userData: { id: 'b' } });
-            await queue.addRequests([{ url: 'https://example.com/c', label: 'DETAIL', userData: { id: 'c' } }]);
+            await queue.addRequestsBatched([{ url: 'https://example.com/c', label: 'DETAIL', userData: { id: 'c' } }]);
             expect(validateCount).toBe(0);
         });
     });

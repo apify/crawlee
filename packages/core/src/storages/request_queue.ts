@@ -41,6 +41,7 @@ import type { IStorage, StorageIdentifier } from './storage_instance_manager.js'
 import type { StorageOpenOptions } from './utils.js';
 import { resolveStorageIdentifier } from './storage_instance_manager.js';
 import { getRequestId, purgeDefaultStorages } from './utils.js';
+import { RequestDeduplicationCache } from './request_dedup_cache.js';
 
 /**
  * The maximum number of requests cached locally to avoid redundant calls to the storage backend.
@@ -102,6 +103,13 @@ export class RequestQueue implements IStorage, IRequestManager {
 
     protected requestCache: LruCache<RequestLruItem>;
 
+    /**
+     * Remembers the `requestId` of every request already submitted to the client — including background
+     * batches that `requestCache` skips — so overlapping URL sets aren't re-submitted.
+     * See {@link RequestDeduplicationCache} for why this is a separate, cheaper cache.
+     */
+    protected requestSeenCache: RequestDeduplicationCache;
+
     protected queuePausedForMigration = false;
 
     protected inProgressRequestBatchCount = 0;
@@ -145,6 +153,7 @@ export class RequestQueue implements IStorage, IRequestManager {
         this.proxyConfiguration = options.proxyConfiguration;
 
         this.requestCache = new LruCache({ maxLength: MAX_CACHED_REQUESTS });
+        this.requestSeenCache = new RequestDeduplicationCache();
         this.log = serviceLocator.getLogger().child({ prefix: `RequestQueue(${this.id}, ${this.name ?? 'no-name'})` });
 
         this.events.on(EventType.MIGRATING, async () => {
@@ -244,6 +253,7 @@ export class RequestQueue implements IStorage, IRequestManager {
         } satisfies RequestQueueOperationInfo;
 
         this._cacheRequest(cacheKey, queueOperationInfo);
+        this.requestSeenCache.add(cacheKey, request.id!);
 
         return queueOperationInfo;
     }
@@ -320,17 +330,18 @@ export class RequestQueue implements IStorage, IRequestManager {
 
         for (const request of requests) {
             const cacheKey = getCachedRequestId(request.uniqueKey);
+            // Prefer the full `requestCache` record; fall back to the dedup cache for background batches it skips.
             const cachedInfo = this.requestCache.get(cacheKey);
+            const knownRequestId = cachedInfo?.id ?? this.requestSeenCache.get(cacheKey);
 
-            if (cachedInfo) {
-                request.id = cachedInfo.id;
+            if (knownRequestId) {
+                request.id = knownRequestId;
                 results.processedRequests.push({
                     wasAlreadyPresent: true,
-                    // We may assume that if request is in local cache then also the information if the
-                    // request was already handled is there because just one client should be using one queue.
-                    wasAlreadyHandled: cachedInfo.isHandled,
-                    requestId: cachedInfo.id,
-                    uniqueKey: cachedInfo.uniqueKey,
+                    // The dedup cache doesn't track the handled state; only the full record does.
+                    wasAlreadyHandled: cachedInfo?.isHandled ?? false,
+                    requestId: knownRequestId,
+                    uniqueKey: request.uniqueKey,
                 });
             } else if (!requestsToAdd.has(request.uniqueKey)) {
                 requestsToAdd.set(request.uniqueKey, request);
@@ -358,6 +369,9 @@ export class RequestQueue implements IStorage, IRequestManager {
             if (cache) {
                 this._cacheRequest(cacheKey, { ...newRequest, forefront });
             }
+
+            // Unlike `requestCache`, populate this on every batch (including background ones).
+            this.requestSeenCache.add(cacheKey, newRequest.requestId!);
         }
 
         return results;
@@ -798,6 +812,7 @@ export class RequestQueue implements IStorage, IRequestManager {
 
         // Reset in-memory bookkeeping so the queue behaves as if freshly opened.
         this.requestCache.clear();
+        this.requestSeenCache.clear();
         this.inProgressRequestBatchCount = 0;
 
         // Reset the expected-processing-time high-water mark too, otherwise the monotonic-raise guard

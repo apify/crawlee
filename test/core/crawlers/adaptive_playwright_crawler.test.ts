@@ -30,7 +30,7 @@ import { sleep } from 'crawlee';
 import express from 'express';
 import { z } from 'zod';
 
-import { startExpressAppPromise } from 'test/shared/_helper.js';
+import { startExpressAppPromise } from '../../shared/_helper.js';
 
 // A minimal logger that records every message into a shared array. Child loggers share the same
 // array, so messages emitted by the crawler's prefixed child logger are captured as well.
@@ -361,34 +361,34 @@ describe('AdaptivePlaywrightCrawler', () => {
         });
     });
 
-    test.each([
-        ['static'],
-        ['clientOnly'],
-    ] as const)('crawlingContext.addRequests() should add requests correctly (%s)', async (renderingType) => {
-        const renderingTypePredictor = makeRiggedRenderingTypePredictor({
-            detectionProbabilityRecommendation: 0,
-            renderingType,
-        });
-        const url = new URL(`http://${HOSTNAME}:${port}`).toString();
+    test.each([['static'], ['clientOnly']] as const)(
+        'crawlingContext.addRequests() should add requests correctly (%s)',
+        async (renderingType) => {
+            const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                detectionProbabilityRecommendation: 0,
+                renderingType,
+            });
+            const url = new URL(`http://${HOSTNAME}:${port}`).toString();
 
-        let requestContext: LoadedContext<AdaptivePlaywrightCrawlerContext> | undefined;
-        const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = async (context) => {
-            const isStartUrl = context.request.url === url;
+            let requestContext: LoadedContext<AdaptivePlaywrightCrawlerContext> | undefined;
+            const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = async (context) => {
+                const isStartUrl = context.request.url === url;
 
-            if (isStartUrl) await context.addRequests([`${url}/1`]);
-            else requestContext = context;
-        };
+                if (isStartUrl) await context.addRequests([`${url}/1`]);
+                else requestContext = context;
+            };
 
-        const crawler = await makeOneshotCrawler(
-            { requestHandler, renderingTypePredictor, maxRequestsPerCrawl: 10 },
-            [],
-        );
+            const crawler = await makeOneshotCrawler(
+                { requestHandler, renderingTypePredictor, maxRequestsPerCrawl: 10 },
+                [],
+            );
 
-        await crawler.run([{ url, crawlDepth: 2 }]);
+            await crawler.run([{ url, crawlDepth: 2 }]);
 
-        assert(requestContext);
-        expect(requestContext.request).toMatchObject({ url: `${url}/1`, crawlDepth: 3 });
-    });
+            assert(requestContext);
+            expect(requestContext.request).toMatchObject({ url: `${url}/1`, crawlDepth: 3 });
+        },
+    );
 
     describe('should enqueue links correctly', () => {
         test.each([
