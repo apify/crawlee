@@ -7,9 +7,10 @@
 import type { AnyNode } from 'domhandler';
 import { AnyPredicate } from 'ow';
 import { ArrayPredicate } from 'ow';
+import type { Awaitable } from '@crawlee/types';
 import { BasePredicate } from 'ow';
 import { BasicCrawler } from '@crawlee/basic';
-import type { BasicCrawlerOptions } from '@crawlee/browser';
+import type { BasicCrawlerOptions } from '@crawlee/basic';
 import { BatchAddRequestsResult } from '@crawlee/types';
 import { BooleanPredicate } from 'ow';
 import type { Browser } from 'playwright';
@@ -30,6 +31,7 @@ import { CrawlingContext } from '@crawlee/browser';
 import type { CrawlingContext as CrawlingContext_2 } from '@crawlee/core';
 import { Dictionary } from '@crawlee/utils';
 import type { Dictionary as Dictionary_2 } from '@crawlee/types';
+import type { Download } from 'playwright';
 import type { EnqueueLinksOptions } from '@crawlee/core';
 import type { GetUserDataFromRequest } from '@crawlee/browser';
 import type { GetUserDataFromRequest as GetUserDataFromRequest_2 } from '@crawlee/core';
@@ -52,10 +54,11 @@ import { RequestHandlerResult } from '@crawlee/core';
 import type { RequestTransform } from '@crawlee/browser';
 import type { Response as Response_2 } from 'playwright';
 import type { RestrictedCrawlingContext } from '@crawlee/core';
-import { RouterHandler } from '@crawlee/browser';
-import { RouterHandler as RouterHandler_2 } from '@crawlee/basic';
+import type { RouterHandler } from '@crawlee/browser';
 import type { RouterRoutes } from '@crawlee/browser';
 import type { RouterRoutes as RouterRoutes_2 } from '@crawlee/core';
+import type { RouteSchemas } from '@crawlee/browser';
+import type { RoutesFromSchemas } from '@crawlee/browser';
 import type { SetRequired } from 'type-fest';
 import type { SkippedRequestCallback } from '@crawlee/browser';
 import { Statistics } from '@crawlee/core';
@@ -114,6 +117,7 @@ export interface AdaptivePlaywrightCrawlerOptions<ExtendedContext extends Adapti
     renderingTypePredictor?: Pick<RenderingTypePredictor, 'predict' | 'storeResult' | 'initialize'>;
     resultChecker?: (result: RequestHandlerResult) => boolean;
     resultComparator?: (resultA: RequestHandlerResult, resultB: RequestHandlerResult) => boolean | 'equal' | 'different' | 'inconclusive';
+    shouldPropagateError?: (error: Error, context: PlaywrightCrawlingContext) => Awaitable<boolean>;
 }
 
 // @public
@@ -149,10 +153,22 @@ interface CompiledScriptParams {
 function compileScript(scriptString: string, context?: Dictionary): CompiledScriptFunction;
 
 // @public (undocumented)
-export function createAdaptivePlaywrightRouter<Context extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext, UserData extends Dictionary_2 = GetUserDataFromRequest_2<Context['request']>>(routes?: RouterRoutes_2<Context, UserData>): RouterHandler_2<Context>;
+export function createAdaptivePlaywrightRouter<Context extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext, Routes extends Record<keyof Routes, Dictionary_2> = Record<string, GetUserDataFromRequest_2<Context['request']>>>(routes?: RouterRoutes_2<Context, Routes>): RouterHandler<Context, Routes>;
+
+// @public (undocumented)
+export function createAdaptivePlaywrightRouter<Context extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext, UserData extends Dictionary_2 = GetUserDataFromRequest_2<Context['request']>>(routes?: RouterRoutes_2<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
+
+// @public (undocumented)
+export function createAdaptivePlaywrightRouter<Context extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext, const Schemas extends RouteSchemas = RouteSchemas>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
 
 // @public
-export function createPlaywrightRouter<Context extends PlaywrightCrawlingContext = PlaywrightCrawlingContext, UserData extends Dictionary_2 = GetUserDataFromRequest<Context['request']>>(routes?: RouterRoutes<Context, UserData>): RouterHandler<Context>;
+export function createPlaywrightRouter<Context extends PlaywrightCrawlingContext = PlaywrightCrawlingContext, Routes extends Record<keyof Routes, Dictionary_2> = Record<string, GetUserDataFromRequest<Context['request']>>>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
+
+// @public (undocumented)
+export function createPlaywrightRouter<Context extends PlaywrightCrawlingContext = PlaywrightCrawlingContext, UserData extends Dictionary_2 = GetUserDataFromRequest<Context['request']>>(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
+
+// @public (undocumented)
+export function createPlaywrightRouter<Context extends PlaywrightCrawlingContext = PlaywrightCrawlingContext, const Schemas extends RouteSchemas = RouteSchemas>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
 
 // @public
 function enqueueLinksByClickingElements(options: EnqueueLinksByClickingElementsOptions): Promise<BatchAddRequestsResult>;
@@ -252,6 +268,7 @@ interface PlaywrightContextUtils {
     infiniteScroll(options?: InfiniteScrollOptions): Promise<void>;
     injectFile(filePath: string, options?: InjectFileOptions): Promise<unknown>;
     injectJQuery(): Promise<unknown>;
+    listDownloads(): Promise<Download[]>;
     parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
     saveSnapshot(options?: SaveSnapshotOptions): Promise<void>;
     waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
@@ -270,6 +287,7 @@ export class PlaywrightCrawler<ContextExtension = Dictionary_2<never>, ExtendedC
     waitForSelector: (selector: string, timeoutMs?: number) => Promise<void>;
     parseWithCheerio: (selector?: string, timeoutMs?: number) => Promise<CheerioAPI>;
     infiniteScroll: (options?: InfiniteScrollOptions) => Promise<void>;
+    listDownloads: () => Promise<Download[]>;
     saveSnapshot: (options?: SaveSnapshotOptions) => Promise<void>;
     enqueueLinksByClickingElements: (options: Omit<EnqueueLinksByClickingElementsOptions, "page" | "requestManager">) => Promise<BatchAddRequestsResult>;
     compileScript: (scriptString: string, ctx?: Dictionary_2) => CompiledScriptFunction;

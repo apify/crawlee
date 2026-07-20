@@ -28,14 +28,22 @@ import { ObjectPredicate } from 'ow';
 import { Predicate } from 'ow';
 import type { RequestHandler } from '@crawlee/http';
 import { RobotsTxtFile } from '@crawlee/utils';
-import { RouterHandler } from '@crawlee/http';
+import type { RouterHandler } from '@crawlee/http';
 import type { RouterRoutes } from '@crawlee/http';
+import type { RouteSchemas } from '@crawlee/http';
+import type { RoutesFromSchemas } from '@crawlee/http';
 import type { SkippedRequestCallback } from '@crawlee/http';
 import { StringPredicate } from 'ow';
 import { VirtualConsole } from 'jsdom';
 
 // @public
-export function createJSDOMRouter<Context extends JSDOMCrawlingContext = JSDOMCrawlingContext, UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(routes?: RouterRoutes<Context, UserData>): RouterHandler<Context>;
+export function createJSDOMRouter<Context extends JSDOMCrawlingContext = JSDOMCrawlingContext, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
+
+// @public (undocumented)
+export function createJSDOMRouter<Context extends JSDOMCrawlingContext = JSDOMCrawlingContext, UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
+
+// @public (undocumented)
+export function createJSDOMRouter<Context extends JSDOMCrawlingContext = JSDOMCrawlingContext, const Schemas extends RouteSchemas = RouteSchemas>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
 
 // @internal (undocumented)
 export function domCrawlerEnqueueLinks(options: EnqueueLinksInternalOptions | BoundEnqueueLinksInternalOptions): Promise<unknown>;

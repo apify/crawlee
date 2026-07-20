@@ -22,8 +22,10 @@ import type { InternalHttpHook } from '@crawlee/http';
 import { IRequestManager } from '@crawlee/http';
 import type { RequestHandler } from '@crawlee/http';
 import { RobotsTxtFile } from '@crawlee/utils';
-import { RouterHandler } from '@crawlee/http';
+import type { RouterHandler } from '@crawlee/http';
 import type { RouterRoutes } from '@crawlee/http';
+import type { RouteSchemas } from '@crawlee/http';
+import type { RoutesFromSchemas } from '@crawlee/http';
 import type { SkippedRequestCallback } from '@crawlee/http';
 
 // @public
@@ -71,7 +73,13 @@ export type CheerioRequestHandler<UserData extends Dictionary = any, // with def
 JSONData extends Dictionary = any> = RequestHandler<CheerioCrawlingContext<UserData, JSONData>>;
 
 // @public
-export function createCheerioRouter<Context extends CheerioCrawlingContext = CheerioCrawlingContext, UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(routes?: RouterRoutes<Context, UserData>): RouterHandler<Context>;
+export function createCheerioRouter<Context extends CheerioCrawlingContext = CheerioCrawlingContext, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
+
+// @public (undocumented)
+export function createCheerioRouter<Context extends CheerioCrawlingContext = CheerioCrawlingContext, UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
+
+// @public (undocumented)
+export function createCheerioRouter<Context extends CheerioCrawlingContext = CheerioCrawlingContext, const Schemas extends RouteSchemas = RouteSchemas>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
 
 
 export * from "@crawlee/http";

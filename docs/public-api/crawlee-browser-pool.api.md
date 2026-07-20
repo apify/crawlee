@@ -317,6 +317,8 @@ export interface CommonPage {
     // (undocumented)
     close(...args: unknown[]): Promise<unknown>;
     // (undocumented)
+    evaluate(pageFunction: ((...args: any[]) => unknown) | string, ...args: unknown[]): Promise<unknown>;
+    // (undocumented)
     url(): string | Promise<string>;
 }
 
