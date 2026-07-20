@@ -111,7 +111,8 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
     // (undocumented)
     protected getRobotsTxtFileForUrl(url: string): Promise<RobotsTxtFile | undefined>;
     // (undocumented)
-    protected handledRequestsCount: number;
+    protected get handledRequestsCount(): number;
+    protected set handledRequestsCount(_value: number);
     // (undocumented)
     protected _handleFailedRequestHandler(crawlingContext: CrawlingContext, error: Error): Promise<void>;
     protected handleRequest(crawlingContext: ExtendedContext, requestSource: IRequestManager, request: Request_2): Promise<void>;
@@ -129,7 +130,6 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
     protected isErrorStatusCode(status: number): boolean;
     protected isProxyError(error: Error): boolean;
     protected _isTaskReadyFunction(): Promise<boolean>;
-    protected _loadHandledRequestCount(): Promise<void>;
     // (undocumented)
     get log(): CrawleeLogger;
     // (undocumented)
@@ -218,6 +218,7 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
     protected unexpectedStop: boolean;
     // (undocumented)
     useState<State extends Dictionary = Dictionary>(defaultValue?: State): Promise<State>;
+    protected validateRequestUserData(source: Source | string): Promise<void>;
 }
 
 // @public (undocumented)
@@ -287,7 +288,10 @@ export interface CrawlerRunOptions extends CrawlerAddRequestsOptions {
 }
 
 // @public
-export function createBasicRouter<Context extends BasicCrawlingContext = BasicCrawlingContext, UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(routes?: RouterRoutes<Context, UserData>): RouterHandler<Context>;
+export function createBasicRouter<Context extends BasicCrawlingContext = BasicCrawlingContext, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
+
+// @public (undocumented)
+export function createBasicRouter<Context extends BasicCrawlingContext = BasicCrawlingContext, UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
 
 // @public (undocumented)
 export interface CreateContextOptions {
