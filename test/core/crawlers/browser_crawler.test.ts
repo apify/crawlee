@@ -349,7 +349,7 @@ describe('BrowserCrawler', () => {
     });
 
     // see https://github.com/apify/crawlee/issues/3873
-    test.skip('errorHandler has open page after non-timeout navigation error', async () => {
+    test('errorHandler has open page after non-timeout navigation error', async () => {
         const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
 
         const requestList = await RequestList.open({
