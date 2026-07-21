@@ -4,7 +4,7 @@ import os from 'node:os';
 
 import type { CrawleeLogger } from '@crawlee/types';
 
-import { getCgroupsVersion } from '../general.js';
+import { getCgroupsVersion } from './runtime.js';
 
 const CPU_FILE_PATHS = {
     STAT: {
