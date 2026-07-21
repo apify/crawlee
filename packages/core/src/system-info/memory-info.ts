@@ -4,7 +4,7 @@ import { freemem, totalmem } from 'node:os';
 
 import type { CrawleeLogger } from '@crawlee/types';
 
-import { getCgroupsVersion, isLambda } from '../general.js';
+import { getCgroupsVersion, isLambda } from './runtime.js';
 import { psTree } from './ps-tree.js';
 
 const MEMORY_FILE_PATHS = {

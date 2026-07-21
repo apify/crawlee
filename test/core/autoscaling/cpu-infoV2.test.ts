@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import os from 'node:os';
 
-import { getCgroupsVersion } from '@crawlee/utils';
+import { getCgroupsVersion } from '../../../packages/core/src/system-info/runtime.js';
 
 import {
     getContainerCpuUsage,
@@ -11,10 +11,10 @@ import {
     getCurrentCpuTicksV2,
     getSystemCpuUsage,
     sampleCpuUsage,
-} from '../../packages/utils/src/internals/system-info/cpu-info.js';
+} from '../../../packages/core/src/system-info/cpu-info.js';
 
-vitest.mock('@crawlee/utils/src/internals/general', async (importActual) => {
-    const original: typeof import('@crawlee/utils') = await importActual();
+vitest.mock('../../../packages/core/src/system-info/runtime.js', async (importActual) => {
+    const original: typeof import('../../../packages/core/src/system-info/runtime.js') = await importActual();
     return {
         ...original,
         getCgroupsVersion: vitest.fn(),
