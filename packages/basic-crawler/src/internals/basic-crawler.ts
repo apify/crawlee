@@ -823,9 +823,7 @@ export class BasicCrawler<
 
             this.#log = serviceLocator.getLogger().child({ prefix: this.constructor.name });
 
-            // Resolve the configuration eagerly so it's already set once the storage backend and event
-            // manager are lazily created later, avoiding their "implicit configuration" warning in the
-            // common case where the crawler is used without any explicit services.
+            // Initialize the Configuration instance to avoid lazy loading in the components
             serviceLocator.getConfiguration();
 
             // Store whether the user explicitly provided an ID
