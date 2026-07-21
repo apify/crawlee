@@ -1,10 +1,10 @@
-import { getMemoryInfo, isContainerized } from '@crawlee/utils';
-
 import type { Configuration } from '../configuration.js';
 import type { EventManager } from '../events/event_manager.js';
 import { EventType } from '../events/event_manager.js';
 import type { CrawleeLogger } from '../log.js';
 import { serviceLocator } from '../service_locator.js';
+import { getMemoryInfo } from '../system-info/memory-info.js';
+import { isContainerized } from '../system-info/runtime.js';
 import type { LoadSignal, LoadSnapshot } from './load_signal.js';
 import { SnapshotStore } from './load_signal.js';
 import type { SystemInfo } from './system_status.js';
