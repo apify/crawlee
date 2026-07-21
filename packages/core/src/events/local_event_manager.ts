@@ -76,7 +76,7 @@ export class LocalEventManager extends EventManager {
      * @internal
      */
     async isContainerizedWrapper() {
-        const { isContainerized } = await import('@crawlee/utils');
+        const { isContainerized } = await import('../system-info/runtime.js');
         return serviceLocator.getConfiguration().containerized ?? (await isContainerized());
     }
 
@@ -92,7 +92,7 @@ export class LocalEventManager extends EventManager {
     }
 
     private async createCpuInfo(options: { maxUsedCpuRatio: number }) {
-        const { getCurrentCpuTicksV2 } = await import('@crawlee/utils');
+        const { getCurrentCpuTicksV2 } = await import('../system-info/cpu-info.js');
         const usedCpuRatio = await getCurrentCpuTicksV2({
             containerized: await this.isContainerizedWrapper(),
             logger: serviceLocator.getLogger(),
@@ -117,7 +117,7 @@ export class LocalEventManager extends EventManager {
     }
 
     private async getMemoryInfo() {
-        const { getMemoryInfo } = await import('@crawlee/utils');
+        const { getMemoryInfo } = await import('../system-info/memory-info.js');
         return getMemoryInfo({
             containerized: await this.isContainerizedWrapper(),
             logger: serviceLocator.getLogger(),
