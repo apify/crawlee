@@ -128,6 +128,25 @@ describe('ServiceLocator', () => {
                 serviceLocator.setEventManager(customEventManager);
             }).toThrow(/EventManager is already in use/);
         });
+
+        test('warns about implicit configuration when configuration was not set beforehand', () => {
+            const warningSpy = vi.fn();
+            serviceLocator.setLogger(makeMockLogger({ warning: warningSpy }));
+
+            serviceLocator.getEventManager();
+
+            expect(warningSpy).toHaveBeenCalledWith(expect.stringMatching(/implicitly set configuration/));
+        });
+
+        test('does not warn about implicit configuration when configuration was already set', () => {
+            const warningSpy = vi.fn();
+            serviceLocator.setLogger(makeMockLogger({ warning: warningSpy }));
+            serviceLocator.setConfiguration(new Configuration());
+
+            serviceLocator.getEventManager();
+
+            expect(warningSpy).not.toHaveBeenCalled();
+        });
     });
 
     describe('StorageBackend', () => {
@@ -167,6 +186,25 @@ describe('ServiceLocator', () => {
             expect(() => {
                 serviceLocator.setStorageBackend(customStorageBackend);
             }).toThrow(/StorageBackend is already in use/);
+        });
+
+        test('warns about implicit configuration when configuration was not set beforehand', () => {
+            const warningSpy = vi.fn();
+            serviceLocator.setLogger(makeMockLogger({ warning: warningSpy }));
+
+            serviceLocator.getStorageBackend();
+
+            expect(warningSpy).toHaveBeenCalledWith(expect.stringMatching(/implicitly set configuration/));
+        });
+
+        test('does not warn about implicit configuration when configuration was already set', () => {
+            const warningSpy = vi.fn();
+            serviceLocator.setLogger(makeMockLogger({ warning: warningSpy }));
+            serviceLocator.setConfiguration(new Configuration());
+
+            serviceLocator.getStorageBackend();
+
+            expect(warningSpy).not.toHaveBeenCalled();
         });
     });
 
