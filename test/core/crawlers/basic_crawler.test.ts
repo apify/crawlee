@@ -77,6 +77,20 @@ describe('BasicCrawler', () => {
         server.close();
     });
 
+    test('constructor eagerly resolves the configuration, avoiding a later implicit-configuration warning', () => {
+        serviceLocator.reset();
+        const warningSpy = vitest.spyOn(serviceLocator.getLogger(), 'warning');
+
+        new BasicCrawler({ requestHandler: async () => {} });
+        serviceLocator.getStorageBackend();
+
+        expect(warningSpy).not.toHaveBeenCalledWith(expect.stringMatching(/implicitly set configuration/));
+
+        // restore the shared storage backend expected by the other tests' beforeEach
+        serviceLocator.reset();
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
+    });
+
     test('does not leak sigint events', async () => {
         let count = 0;
 
