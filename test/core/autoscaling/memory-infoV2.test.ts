@@ -2,7 +2,8 @@ import { access, readFile } from 'node:fs/promises';
 import { freemem, totalmem } from 'node:os';
 
 import { launchPuppeteer } from '@crawlee/puppeteer';
-import { getCgroupsVersion, getMemoryInfo } from '@crawlee/utils';
+import { getMemoryInfo } from '../../../packages/core/src/system-info/memory-info.js';
+import { getCgroupsVersion } from '../../../packages/core/src/system-info/runtime.js';
 
 vitest.mock('node:os', async (importActual) => {
     const originalOs: typeof import('node:os') = await importActual();
@@ -13,8 +14,8 @@ vitest.mock('node:os', async (importActual) => {
     };
 });
 
-vitest.mock('@crawlee/utils/src/internals/general', async (importActual) => {
-    const original: typeof import('@crawlee/utils') = await importActual();
+vitest.mock('../../../packages/core/src/system-info/runtime.js', async (importActual) => {
+    const original: typeof import('../../../packages/core/src/system-info/runtime.js') = await importActual();
 
     return {
         ...original,
