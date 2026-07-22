@@ -22,7 +22,6 @@ import ow from 'ow';
 import type { ReadonlyDeep } from 'type-fest';
 
 import { LruCache } from '@apify/datastructures';
-import { cryptoRandomObjectId } from '@apify/utilities';
 
 import { Configuration } from '../configuration.js';
 import type { Constructor } from '../typedefs.js';
@@ -92,14 +91,10 @@ const MAX_UNPROCESSED_REQUESTS_RETRIES = 3;
 export class RequestQueue implements IStorage, IRequestManager {
     id: string;
     name?: string;
-    timeoutSecs = 30;
-    clientKey = cryptoRandomObjectId();
     backend: RequestQueueBackend;
     protected proxyConfiguration?: ProxyConfiguration;
 
     log: CrawleeLogger;
-
-    private isInitialized = false;
 
     protected requestCache: LruCache<RequestLruItem>;
 
@@ -145,8 +140,8 @@ export class RequestQueue implements IStorage, IRequestManager {
         options: RequestQueueOptions,
         protected readonly config: Configuration = Configuration.getGlobalConfig(),
     ) {
-        this.id = options.id;
-        this.name = options.name;
+        this.id = options.metadata.id;
+        this.name = options.metadata.name;
         this.events = serviceLocator.getEventManager();
         this.backend = options.backend;
 
@@ -987,21 +982,6 @@ export class RequestQueue implements IStorage, IRequestManager {
         queue.proxyConfiguration = options.proxyConfiguration;
         queue.httpClient = options.httpClient;
 
-        if (!queue.isInitialized) {
-            // Re-create the request queue backend with clientKey and timeoutSecs so that
-            // request locking works correctly for API-backed implementations.
-            // TODO: clientKey/timeoutSecs are Apify-platform concerns and should eventually be pushed
-            // down into the Apify SDK's client implementation, aligning with crawlee-python's approach
-            // where locking is handled internally by the backend (see crawlee-python PR #1194).
-            queue.backend = await storageBackend.createRequestQueueBackend({
-                id: queue.id,
-                clientKey: queue.clientKey,
-                timeoutSecs: queue.timeoutSecs,
-            });
-
-            queue.isInitialized = true;
-        }
-
         return queue;
     }
 }
@@ -1016,8 +996,8 @@ interface RequestLruItem {
 }
 
 export interface RequestQueueOptions {
-    id: string;
-    name?: string;
+    /** Resolved metadata for the request queue, as returned by the backend's `getMetadata()`. */
+    metadata: RequestQueueInfo;
     backend: RequestQueueBackend;
 
     /**

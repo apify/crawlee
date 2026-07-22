@@ -258,11 +258,9 @@ export class StorageInstanceManager {
                 subBackend as DatasetBackend | KeyValueStoreBackend | RequestQueueBackend
             ).getMetadata();
 
-            const instance = new cls({
-                id: storageInfo.id,
-                name: storageInfo.name,
-                backend: subBackend,
-            }) as TStorage;
+            // Storage frontends are thin wrappers over the backend. We hand them the resolved metadata
+            // we just fetched (so `id`/`name` etc. are available synchronously) along with the backend.
+            const instance = new cls({ metadata: storageInfo, backend: subBackend });
 
             // Atomic cache writes (no awaits between these).
             this.cache.set(cls, instance, backendCacheKey, alias);

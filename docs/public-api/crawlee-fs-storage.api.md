@@ -15,11 +15,11 @@ import type * as storage from '@crawlee/types';
 export class FileSystemStorageBackend implements storage.StorageBackend {
     constructor(options: FileSystemStorageOptions);
     // (undocumented)
-    createDatasetBackend(options?: storage.CreateDatasetBackendOptions): Promise<storage.DatasetBackend>;
+    createDatasetBackend(options?: storage.StorageIdentifier): Promise<storage.DatasetBackend>;
     // (undocumented)
-    createKeyValueStoreBackend(options?: storage.CreateKeyValueStoreBackendOptions): Promise<storage.KeyValueStoreBackend>;
+    createKeyValueStoreBackend(options?: storage.StorageIdentifier): Promise<storage.KeyValueStoreBackend>;
     // (undocumented)
-    createRequestQueueBackend(options?: storage.CreateRequestQueueBackendOptions): Promise<storage.RequestQueueBackend>;
+    createRequestQueueBackend(options?: storage.StorageIdentifier): Promise<storage.RequestQueueBackend>;
     // (undocumented)
     readonly datasetBackendCache: DatasetBackend[];
     // (undocumented)

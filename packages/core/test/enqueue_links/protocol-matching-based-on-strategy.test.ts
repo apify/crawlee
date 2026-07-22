@@ -1,10 +1,12 @@
 import { load } from 'cheerio';
-import type { CheerioRoot, Source } from 'crawlee';
-import { cheerioCrawlerEnqueueLinks, EnqueueStrategy, RequestQueue, serviceLocator } from 'crawlee';
-
-import log from '@apify/log';
-
-const apifyClient = serviceLocator.getStorageBackend();
+import type { CheerioRoot } from 'crawlee';
+import {
+    cheerioCrawlerEnqueueLinks,
+    EnqueueStrategy,
+    MemoryStorageBackend,
+    RequestQueue,
+    serviceLocator,
+} from 'crawlee';
 
 const HTML = `
 <html>
@@ -20,37 +22,23 @@ const HTML = `
 </html>
 `;
 
-function createRequestQueueMock() {
-    const enqueued: Source[] = [];
-    const requestQueue = new RequestQueue({ id: 'xxx', backend: apifyClient }, serviceLocator.getConfiguration());
+type MemoryRequestQueueBackend = Awaited<ReturnType<MemoryStorageBackend['createRequestQueueBackend']>>;
 
-    // @ts-expect-error Override method for testing
-    requestQueue.addRequests = async function (requests) {
-        enqueued.push(...requests);
-        return { processedRequests: requests, unprocessedRequests: [] as never[] };
-    };
-
-    return { enqueued, requestQueue };
+/** Collect the URLs of all requests in the queue, regardless of order. */
+async function enqueuedUrls(requestQueue: RequestQueue): Promise<Set<string>> {
+    const items = await (requestQueue.backend as MemoryRequestQueueBackend).listItems();
+    return new Set(items.map((item) => item.url));
 }
 
 describe('enqueueLinks() - matching and ignoring http/https protocol differences', () => {
-    let ll: number;
-    beforeAll(() => {
-        ll = log.getLevel();
-        log.setLevel(log.LEVELS.ERROR);
-    });
-
-    afterAll(() => {
-        log.setLevel(ll);
-    });
-
     let $: CheerioRoot;
     beforeEach(() => {
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
         $ = load(HTML);
     });
 
     test('SameHostname should ignore protocol difference', async () => {
-        const { enqueued, requestQueue } = createRequestQueueMock();
+        const requestQueue = await RequestQueue.open();
 
         await cheerioCrawlerEnqueueLinks({
             options: { selector: 'a', strategy: EnqueueStrategy.SameHostname },
@@ -59,13 +47,13 @@ describe('enqueueLinks() - matching and ignoring http/https protocol differences
             originalRequestUrl: 'https://example.com',
         });
 
-        expect(enqueued).toHaveLength(2);
-        expect(enqueued[0].url).toBe('https://example.com/first');
-        expect(enqueued[1].url).toBe('http://example.com/second');
+        expect(await enqueuedUrls(requestQueue)).toEqual(
+            new Set(['https://example.com/first', 'http://example.com/second']),
+        );
     });
 
     test('SameDomain should ignore protocol difference', async () => {
-        const { enqueued, requestQueue } = createRequestQueueMock();
+        const requestQueue = await RequestQueue.open();
 
         await cheerioCrawlerEnqueueLinks({
             options: { selector: 'a', strategy: EnqueueStrategy.SameDomain },
@@ -74,13 +62,13 @@ describe('enqueueLinks() - matching and ignoring http/https protocol differences
             originalRequestUrl: 'http://example.com',
         });
 
-        expect(enqueued).toHaveLength(2);
-        expect(enqueued[0].url).toBe('https://example.com/first');
-        expect(enqueued[1].url).toBe('http://example.com/second');
+        expect(await enqueuedUrls(requestQueue)).toEqual(
+            new Set(['https://example.com/first', 'http://example.com/second']),
+        );
     });
 
     test('SameOrigin should respect protocol', async () => {
-        const { enqueued, requestQueue } = createRequestQueueMock();
+        const requestQueue = await RequestQueue.open();
 
         await cheerioCrawlerEnqueueLinks({
             options: { selector: 'a', strategy: EnqueueStrategy.SameOrigin },
@@ -89,7 +77,6 @@ describe('enqueueLinks() - matching and ignoring http/https protocol differences
             originalRequestUrl: 'https://example.com',
         });
 
-        expect(enqueued).toHaveLength(1);
-        expect(enqueued[0].url).toBe('https://example.com/first');
+        expect(await enqueuedUrls(requestQueue)).toEqual(new Set(['https://example.com/first']));
     });
 });

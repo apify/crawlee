@@ -1,4 +1,4 @@
-import type { Dictionary, KeyValueStoreBackend, KeyValueStoreItemData } from '@crawlee/types';
+import type { Dictionary, KeyValueStoreBackend, KeyValueStoreInfo, KeyValueStoreItemData } from '@crawlee/types';
 import ow, { ArgumentError } from 'ow';
 
 import { KEY_VALUE_STORE_KEY_REGEX } from '@apify/consts';
@@ -98,8 +98,8 @@ export class KeyValueStore {
         options: KeyValueStoreOptions,
         readonly config = Configuration.getGlobalConfig(),
     ) {
-        this.id = options.id;
-        this.name = options.name;
+        this.id = options.metadata.id;
+        this.name = options.metadata.name;
         this.backend = options.backend;
     }
 
@@ -889,8 +889,8 @@ export interface KeyConsumer {
 }
 
 export interface KeyValueStoreOptions {
-    id: string;
-    name?: string;
+    /** Resolved metadata for the key-value store, as returned by the backend's `getMetadata()`. */
+    metadata: KeyValueStoreInfo;
     backend: KeyValueStoreBackend;
 }
 

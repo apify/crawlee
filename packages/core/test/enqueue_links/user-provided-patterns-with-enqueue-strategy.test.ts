@@ -1,10 +1,12 @@
 import { load } from 'cheerio';
-import type { CheerioRoot, Source } from 'crawlee';
-import { cheerioCrawlerEnqueueLinks, EnqueueStrategy, RequestQueue, serviceLocator } from 'crawlee';
-
-import log from '@apify/log';
-
-const apifyClient = serviceLocator.getStorageBackend();
+import type { CheerioRoot } from 'crawlee';
+import {
+    cheerioCrawlerEnqueueLinks,
+    EnqueueStrategy,
+    MemoryStorageBackend,
+    RequestQueue,
+    serviceLocator,
+} from 'crawlee';
 
 const HTML = `
 <html>
@@ -32,37 +34,23 @@ const HTML = `
 </html>
 `;
 
-function createRequestQueueMock() {
-    const enqueued: Source[] = [];
-    const requestQueue = new RequestQueue({ id: 'xxx', backend: apifyClient }, serviceLocator.getConfiguration());
+type MemoryRequestQueueBackend = Awaited<ReturnType<MemoryStorageBackend['createRequestQueueBackend']>>;
 
-    // @ts-expect-error Override method for testing
-    requestQueue.addRequests = async function (requests) {
-        enqueued.push(...requests);
-        return { processedRequests: requests, unprocessedRequests: [] as never[] };
-    };
-
-    return { enqueued, requestQueue };
+/** Collect the URLs of all requests in the queue, regardless of order. */
+async function enqueuedUrls(requestQueue: RequestQueue): Promise<Set<string>> {
+    const items = await (requestQueue.backend as MemoryRequestQueueBackend).listItems();
+    return new Set(items.map((item) => item.url));
 }
 
 describe('enqueueLinks() - combining user patterns with enqueue strategies', () => {
-    let ll: number;
-    beforeAll(() => {
-        ll = log.getLevel();
-        log.setLevel(log.LEVELS.ERROR);
-    });
-
-    afterAll(() => {
-        log.setLevel(ll);
-    });
-
     let $: CheerioRoot;
     beforeEach(() => {
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
         $ = load(HTML);
     });
 
     test('works with globs and same domain strategy', async () => {
-        const { enqueued, requestQueue } = createRequestQueueMock();
+        const requestQueue = await RequestQueue.open();
 
         const globs = ['**/first'];
 
@@ -77,13 +65,11 @@ describe('enqueueLinks() - combining user patterns with enqueue strategies', () 
             originalRequestUrl: 'https://example.com',
         });
 
-        expect(enqueued).toHaveLength(1);
-
-        expect(enqueued[0].url).toBe('https://example.com/a/b/first');
+        expect(await enqueuedUrls(requestQueue)).toEqual(new Set(['https://example.com/a/b/first']));
     });
 
     test('works with globs and all domains strategy', async () => {
-        const { enqueued, requestQueue } = createRequestQueueMock();
+        const requestQueue = await RequestQueue.open();
 
         const globs = ['**/first'];
 
@@ -98,14 +84,13 @@ describe('enqueueLinks() - combining user patterns with enqueue strategies', () 
             originalRequestUrl: 'https://example.com',
         });
 
-        expect(enqueued).toHaveLength(2);
-
-        expect(enqueued[0].url).toBe('https://example.com/a/b/first');
-        expect(enqueued[1].url).toBe('https://another.com/a/first');
+        expect(await enqueuedUrls(requestQueue)).toEqual(
+            new Set(['https://example.com/a/b/first', 'https://another.com/a/first']),
+        );
     });
 
     test('works with no user provided patterns but with same domain strategy', async () => {
-        const { enqueued, requestQueue } = createRequestQueueMock();
+        const requestQueue = await RequestQueue.open();
 
         await cheerioCrawlerEnqueueLinks({
             options: {
@@ -117,13 +102,13 @@ describe('enqueueLinks() - combining user patterns with enqueue strategies', () 
             originalRequestUrl: 'https://example.com',
         });
 
-        expect(enqueued).toHaveLength(2);
-        expect(enqueued[0].url).toBe('https://example.com/a/b/first');
-        expect(enqueued[1].url).toBe('https://example.com/a/b/third');
+        expect(await enqueuedUrls(requestQueue)).toEqual(
+            new Set(['https://example.com/a/b/first', 'https://example.com/a/b/third']),
+        );
     });
 
     test('works with globs and exclude', async () => {
-        const { enqueued, requestQueue } = createRequestQueueMock();
+        const requestQueue = await RequestQueue.open();
 
         const globs = ['**/first'];
         const exclude = ['**/first'];
@@ -139,11 +124,11 @@ describe('enqueueLinks() - combining user patterns with enqueue strategies', () 
             originalRequestUrl: 'https://example.com',
         });
 
-        expect(enqueued).toHaveLength(0);
+        expect(await enqueuedUrls(requestQueue)).toEqual(new Set());
     });
 
     test('works with exclude only', async () => {
-        const { enqueued, requestQueue } = createRequestQueueMock();
+        const requestQueue = await RequestQueue.open();
 
         const exclude = ['**/second', '**/third', 'https://another.com/**'];
 
@@ -158,8 +143,8 @@ describe('enqueueLinks() - combining user patterns with enqueue strategies', () 
             originalRequestUrl: 'https://example.com',
         });
 
-        expect(enqueued).toHaveLength(2);
-        expect(enqueued[0].url).toBe('https://example.com/a/b/first');
-        expect(enqueued[1].url).toBe('http://cool.com/');
+        expect(await enqueuedUrls(requestQueue)).toEqual(
+            new Set(['https://example.com/a/b/first', 'http://cool.com/']),
+        );
     });
 });
