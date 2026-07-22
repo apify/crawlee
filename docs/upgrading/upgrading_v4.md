@@ -533,7 +533,7 @@ The `StorageBackend` interface changed from synchronous sub-client getters to **
 | `client.datasets().getOrCreate(name)` | _(absorbed into `createDatasetBackend`)_ |
 | `client.keyValueStore(id)` | `backend.createKeyValueStoreBackend({ id?, name? })` |
 | `client.keyValueStores().getOrCreate(name)` | _(absorbed into `createKeyValueStoreBackend`)_ |
-| `client.requestQueue(id, opts)` | `backend.createRequestQueueBackend({ id?, name?, clientKey?, timeoutSecs? })` |
+| `client.requestQueue(id, opts)` | `backend.createRequestQueueBackend({ id?, name? })` |
 | `client.requestQueues().getOrCreate(name)` | _(absorbed into `createRequestQueueBackend`)_ |
 
 The sub-backend interfaces (`DatasetBackend`, `KeyValueStoreBackend`, `RequestQueueBackend`, formerly `DatasetClient` / `KeyValueStoreClient` / `RequestQueueClient`) have been aligned with their Python counterparts:

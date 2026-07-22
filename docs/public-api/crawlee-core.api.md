@@ -1443,8 +1443,6 @@ export class RequestQueue implements IStorage, IRequestManager {
     backend: RequestQueueBackend;
     protected _cacheRequest(cacheKey: string, queueOperationInfo: RequestQueueOperationInfo): void;
     // (undocumented)
-    clientKey: string;
-    // (undocumented)
     protected readonly config: Configuration;
     drop(): Promise<void>;
     // (undocumented)
