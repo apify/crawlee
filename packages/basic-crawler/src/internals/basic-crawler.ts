@@ -575,7 +575,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected retryOnBlocked: boolean;
     protected respectRobotsTxtFile: boolean | { userAgent?: string };
     protected onSkippedRequest?: SkippedRequestCallback;
-    private _closeEvents?: boolean;
+    private _ownsEventManager = false;
     private loggedPerRun = new Set<string>();
     private experiments: CrawlerExperiments;
     private readonly robotsTxtFileCache: LruCache<RobotsTxtFile>;
@@ -1042,8 +1042,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         try {
             await this.autoscaledPool!.run();
         } finally {
-            await this.teardown();
             await this.stats.stopCapturing();
+            await this.teardown();
 
             process.off('SIGINT', sigintHandler);
             this.events.off(EventType.MIGRATING, boundPauseOnMigration);
@@ -1406,7 +1406,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected async _init(): Promise<void> {
         if (!this.events.isInitialized()) {
             await this.events.init();
-            this._closeEvents = true;
+            this._ownsEventManager = true;
         }
 
         this.autoscaledPool = new AutoscaledPool(this.autoscaledPoolOptions, this.config);
@@ -2031,13 +2031,18 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * To stop the crawler gracefully (waiting for all running requests to finish), use {@apilink BasicCrawler.stop|`crawler.stop()`} instead.
      */
     async teardown(): Promise<void> {
-        this.events.emit(EventType.PERSIST_STATE, { isMigrating: false });
-
-        if (this.useSessionPool) {
-            await this.sessionPool!.teardown();
+        // When this crawler initialized the event manager, its close() call emits
+        // the final persistence event after the crawler-specific state has been
+        // saved. External event managers still need an explicit event here.
+        if (!this._ownsEventManager) {
+            this.events.emit(EventType.PERSIST_STATE, { isMigrating: false });
         }
 
-        if (this._closeEvents) {
+        if (this.useSessionPool) {
+            await this.sessionPool!.teardown({ persistState: this._ownsEventManager });
+        }
+
+        if (this._ownsEventManager) {
             await this.events.close();
         }
 
