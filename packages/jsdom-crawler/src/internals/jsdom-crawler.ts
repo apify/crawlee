@@ -1,5 +1,6 @@
 import type {
     BasicCrawlingContext,
+    CrawlingContext,
     EnqueueLinksOptions,
     ErrorHandler,
     GetUserDataFromRequest,
@@ -33,7 +34,8 @@ import { addTimeoutToPromise } from '@apify/timeout';
 export type JSDOMErrorHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-> = ErrorHandler<JSDOMCrawlingContext<UserData, JSONData>>;
+    ContextExtension = Dictionary<never>,
+> = ErrorHandler<CrawlingContext, JSDOMCrawlingContext<UserData, JSONData> & ContextExtension>;
 
 export interface JSDOMCrawlerOptions<
     ContextExtension = Dictionary<never>,
