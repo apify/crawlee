@@ -1,11 +1,6 @@
-import type { Source } from '@crawlee/cheerio';
-import { cheerioCrawlerEnqueueLinks, RequestQueue, serviceLocator } from '@crawlee/cheerio';
+import { cheerioCrawlerEnqueueLinks, MemoryStorageBackend, RequestQueue, serviceLocator } from '@crawlee/cheerio';
 import type { CheerioAPI } from 'cheerio';
 import { load } from 'cheerio';
-
-import log from '@apify/log';
-
-const apifyClient = serviceLocator.getStorageBackend();
 
 const HTML = `
 <html>
@@ -21,37 +16,22 @@ const HTML = `
 </html>
 `;
 
-function createRequestQueueMock() {
-    const enqueued: Source[] = [];
-    const requestQueue = new RequestQueue({ id: 'xxx', backend: apifyClient }, serviceLocator.getConfiguration());
+type MemoryRequestQueueBackend = Awaited<ReturnType<MemoryStorageBackend['createRequestQueueBackend']>>;
 
-    // @ts-expect-error Override method for testing
-    requestQueue.addRequests = async function (requests) {
-        enqueued.push(...requests);
-        return { processedRequests: requests, unprocessedRequests: [] as never[] };
-    };
-
-    return { enqueued, requestQueue };
+/** Collect all requests currently in the queue (order not significant). */
+async function collect(requestQueue: RequestQueue) {
+    return (requestQueue.backend as MemoryRequestQueueBackend).listItems();
 }
 
 describe("enqueueLinks() - userData shouldn't be changed and outer label must take priority", () => {
-    let ll: number;
-    beforeAll(() => {
-        ll = log.getLevel();
-        log.setLevel(log.LEVELS.ERROR);
-    });
-
-    afterAll(() => {
-        log.setLevel(ll);
-    });
-
     let $: CheerioAPI;
     beforeEach(() => {
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
         $ = load(HTML);
     });
 
     test('multiple enqueues with different labels', async () => {
-        const { enqueued, requestQueue } = createRequestQueueMock();
+        const requestQueue = await RequestQueue.open();
 
         const userData = { foo: 'bar' };
         await cheerioCrawlerEnqueueLinks({
@@ -76,16 +56,16 @@ describe("enqueueLinks() - userData shouldn't be changed and outer label must ta
             originalRequestUrl: 'https://example.com',
         });
 
-        expect(enqueued).toHaveLength(2);
-
-        expect(enqueued[0].url).toBe('https://example.com/first');
-        expect(enqueued[0].userData.label).toBe('first');
-        expect(enqueued[1].url).toBe('https://example.com/second');
-        expect(enqueued[1].userData.label).toBe('second');
+        const enqueued = await collect(requestQueue);
+        const byUrl = Object.fromEntries(enqueued.map((r) => [r.url, r.userData?.label]));
+        expect(byUrl).toEqual({
+            'https://example.com/first': 'first',
+            'https://example.com/second': 'second',
+        });
     });
 
     test("JSON string of userData shouldn't change, but enqueued label should be different", async () => {
-        const { enqueued, requestQueue } = createRequestQueueMock();
+        const requestQueue = await RequestQueue.open();
 
         const userData = { foo: 'bar', label: 'bogus' };
         const originalUserData = JSON.stringify(userData);
@@ -101,13 +81,15 @@ describe("enqueueLinks() - userData shouldn't be changed and outer label must ta
         });
         const userDataAfterEnqueue = JSON.stringify(userData);
         expect(userDataAfterEnqueue).toEqual(originalUserData);
+
+        const enqueued = await collect(requestQueue);
         expect(enqueued).toHaveLength(1);
         expect(enqueued[0].url).toBe('https://example.com/first');
-        expect(enqueued[0].label).toBe('first');
+        expect(enqueued[0].userData?.label).toBe('first');
     });
 
     test('sets sessionId on all enqueued requests', async () => {
-        const { enqueued, requestQueue } = createRequestQueueMock();
+        const requestQueue = await RequestQueue.open();
 
         await cheerioCrawlerEnqueueLinks({
             options: {
@@ -118,13 +100,13 @@ describe("enqueueLinks() - userData shouldn't be changed and outer label must ta
             originalRequestUrl: 'https://example.com',
         });
 
+        const enqueued = await collect(requestQueue);
         expect(enqueued).toHaveLength(2);
-        expect(enqueued[0].userData?.__crawlee?.sessionId).toBe('my-session');
-        expect(enqueued[1].userData?.__crawlee?.sessionId).toBe('my-session');
+        expect(enqueued.every((r) => r.userData?.__crawlee?.sessionId === 'my-session')).toBe(true);
     });
 
     test('does not set sessionId when option is not provided', async () => {
-        const { enqueued, requestQueue } = createRequestQueueMock();
+        const requestQueue = await RequestQueue.open();
 
         await cheerioCrawlerEnqueueLinks({
             options: {},
@@ -133,8 +115,8 @@ describe("enqueueLinks() - userData shouldn't be changed and outer label must ta
             originalRequestUrl: 'https://example.com',
         });
 
+        const enqueued = await collect(requestQueue);
         expect(enqueued).toHaveLength(2);
-        expect(enqueued[0].userData?.__crawlee?.sessionId).toBeUndefined();
-        expect(enqueued[1].userData?.__crawlee?.sessionId).toBeUndefined();
+        expect(enqueued.every((r) => r.userData?.__crawlee?.sessionId === undefined)).toBe(true);
     });
 });

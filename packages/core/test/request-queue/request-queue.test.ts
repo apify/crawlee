@@ -8,7 +8,7 @@ async function makeQueue(name: string, numOfRequestsToAdd = 0) {
     const rqClient = await storage.createRequestQueueBackend({ name });
     const rqInfo = await rqClient.getMetadata();
 
-    const queue = new RequestQueue({ id: rqInfo.id, backend: rqClient });
+    const queue = new RequestQueue({ metadata: rqInfo, backend: rqClient });
 
     if (numOfRequestsToAdd) {
         await queue.addRequests(
