@@ -574,7 +574,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected retryOnBlocked: boolean;
     protected respectRobotsTxtFile: boolean | { userAgent?: string };
     protected onSkippedRequest?: SkippedRequestCallback;
-    private _ownsEventManager: boolean = false;
+    private _ownsEventManager = false;
     private loggedPerRun = new Set<string>();
     private experiments: CrawlerExperiments;
     private readonly robotsTxtFileCache: LruCache<RobotsTxtFile>;
