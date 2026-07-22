@@ -962,47 +962,45 @@ export class BasicCrawler<
 
                     const crawlingContext = { request } as { request: Request } & Partial<CrawlingContext>;
                     try {
-                        try {
-                            await this.basicContextPipeline
-                                .chain(this.contextPipeline)
-                                .call(crawlingContext, (ctx) => this.handleRequest(ctx, source, request));
-                        } catch (error) {
-                            // ContextPipelineInterruptedError means the request was intentionally skipped
-                            // (e.g., doesn't match enqueue strategy after redirect). Just return gracefully.
-                            if (error instanceof ContextPipelineInterruptedError) {
-                                this.stats.discardJob(request.id || request.uniqueKey);
-                                await this._timeoutAndRetry(
-                                    async () => this.requestManager?.markRequestAsHandled(request),
-                                    this.internalTimeoutMillis,
-                                    `Marking request ${crawlingContext.request.url} (${crawlingContext.request.id}) as handled timed out after ${
-                                        this.internalTimeoutMillis / 1e3
-                                    } seconds.`,
-                                );
-                                return;
-                            }
-
-                            // If the error happened during pipeline initialization (e.g., navigation timeout, session/proxy error,
-                            // i.e. not in user's requestHandler), handle it through the normal error flow.
-                            const isPipelineError =
-                                error instanceof ContextPipelineInitializationError || error instanceof SessionError;
-                            if (isPipelineError) {
-                                const unwrappedError = this.unwrapError(error);
-
-                                await this._requestFunctionErrorHandler(
-                                    unwrappedError,
-                                    crawlingContext as CrawlingContext,
-                                    request,
-                                    this.requestManager!,
-                                );
-                                // SessionError already retired the session in `_requestFunctionErrorHandler`;
-                                // skip `markBad` to avoid double-counting usage/error score.
-                                if (!(unwrappedError instanceof SessionError)) {
-                                    crawlingContext.session?.markBad();
-                                }
-                                return;
-                            }
-                            throw this.unwrapError(error);
+                        await this.basicContextPipeline
+                            .chain(this.contextPipeline)
+                            .call(crawlingContext, (ctx) => this.handleRequest(ctx, source, request));
+                    } catch (error) {
+                        // ContextPipelineInterruptedError means the request was intentionally skipped
+                        // (e.g., doesn't match enqueue strategy after redirect). Just return gracefully.
+                        if (error instanceof ContextPipelineInterruptedError) {
+                            this.stats.discardJob(request.id || request.uniqueKey);
+                            await this._timeoutAndRetry(
+                                async () => this.requestManager?.markRequestAsHandled(request),
+                                this.internalTimeoutMillis,
+                                `Marking request ${crawlingContext.request.url} (${crawlingContext.request.id}) as handled timed out after ${
+                                    this.internalTimeoutMillis / 1e3
+                                } seconds.`,
+                            );
+                            return;
                         }
+
+                        // If the error happened during pipeline initialization (e.g., navigation timeout, session/proxy error,
+                        // i.e. not in user's requestHandler), handle it through the normal error flow.
+                        const isPipelineError =
+                            error instanceof ContextPipelineInitializationError || error instanceof SessionError;
+                        if (isPipelineError) {
+                            const unwrappedError = this.unwrapError(error);
+
+                            await this._requestFunctionErrorHandler(
+                                unwrappedError,
+                                crawlingContext as CrawlingContext,
+                                request,
+                                this.requestManager!,
+                            );
+                            // SessionError already retired the session in `_requestFunctionErrorHandler`;
+                            // skip `markBad` to avoid double-counting usage/error score.
+                            if (!(unwrappedError instanceof SessionError)) {
+                                crawlingContext.session?.markBad();
+                            }
+                            return;
+                        }
+                        throw this.unwrapError(error);
                     } finally {
                         // Run request-scoped deferred cleanups only after the whole request lifecycle - including the user's error handler - has finished.
                         const deferredCleanup =
