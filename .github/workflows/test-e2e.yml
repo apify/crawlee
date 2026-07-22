@@ -10,10 +10,6 @@ concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}
     cancel-in-progress: true
 
-concurrency:
-    group: ${{ github.workflow }}-${{ github.ref }}
-    cancel-in-progress: true
-
 jobs:
     build_and_test:
         name: Build & Test
@@ -60,7 +56,7 @@ jobs:
                 uses: actions/cache@v6
                 with:
                     path: ~/.cache/ms-playwright
-                    key: playwright-${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
+                    key: playwright-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
                     restore-keys: |
                         playwright-${{ runner.os }}-
 

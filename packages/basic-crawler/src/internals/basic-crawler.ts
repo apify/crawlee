@@ -823,6 +823,9 @@ export class BasicCrawler<
 
             this.#log = serviceLocator.getLogger().child({ prefix: this.constructor.name });
 
+            // Initialize the Configuration instance to avoid lazy loading in the components
+            serviceLocator.getConfiguration();
+
             // Store whether the user explicitly provided an ID
             this.hasExplicitId = id !== undefined;
             // Store the user-provided ID, or generate a unique one for tracking purposes (not for state key)
