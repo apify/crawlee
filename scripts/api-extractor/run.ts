@@ -24,6 +24,10 @@ const root = resolve(import.meta.dirname, '..', '..');
 const baseConfigPath = resolve(import.meta.dirname, 'api-extractor.base.json');
 const baseConfig = JSON.parse(readFileSync(baseConfigPath, 'utf8')) as IConfigFile;
 const reportFolder = resolve(root, 'docs', 'public-api');
+// API Extractor writes the "public" variant to a `.public.api.md` staging file here; we then
+// promote it onto the committed `<name>.api.md` ourselves (see `extract`), so the committed
+// filenames stay stable while the report content is @public-only (no @internal symbols).
+const stagingFolder = resolve(reportFolder, 'temp');
 const mirrorRoot = resolve(root, 'node_modules', '.cache', 'api-extractor-dts');
 const verify = process.argv.includes('--verify');
 
@@ -70,7 +74,11 @@ const stripTsIgnore = (content: string) =>
         .filter((line) => !TS_IGNORE_LINE.test(line))
         .join('\n');
 
-const reportFileName = (name: string) => `${name.replace('@', '').replace('/', '-')}.api.md`;
+const reportBaseName = (name: string) => name.replace('@', '').replace('/', '-');
+const reportFileName = (name: string) => `${reportBaseName(name)}.api.md`;
+// With `reportVariants: ['public']`, API Extractor appends the variant kind to the file name,
+// producing `<base>.public.api.md`. We stage that, then promote it to `<base>.api.md`.
+const stagedFileName = (name: string) => `${reportBaseName(name)}.public.api.md`;
 
 /** Lazily built sanitized mirror of the dist tree, with a `@crawlee/*` -> mirror paths map. */
 let mirror: { packages: string; paths: Record<string, string[]> } | undefined;
@@ -93,6 +101,7 @@ function getMirror() {
 }
 
 function extract(pkgDir: string, pkgJsonPath: string, entry: string, paths?: Record<string, string[]>) {
+    const name = manifest(pkgJsonPath).name;
     const config = ExtractorConfig.prepare({
         configObjectFullPath: baseConfigPath,
         packageJsonFullPath: pkgJsonPath,
@@ -105,13 +114,26 @@ function extract(pkgDir: string, pkgJsonPath: string, entry: string, paths?: Rec
                 : baseConfig.compiler,
             apiReport: {
                 enabled: true,
-                reportFileName: reportFileName(manifest(pkgJsonPath).name),
-                reportFolder,
-                reportTempFolder: resolve(reportFolder, 'temp'),
+                // @public-only: drops @internal/@alpha/@beta symbols from the surface map.
+                reportVariants: ['public'],
+                reportFileName: reportFileName(name),
+                // Stage into temp; we promote the `.public.api.md` output onto the committed
+                // `<base>.api.md` ourselves so the tracked filenames don't change.
+                reportFolder: stagingFolder,
+                reportTempFolder: stagingFolder,
             },
         },
     });
-    return Extractor.invoke(config, { localBuild: !verify, showVerboseMessages: false });
+    // Let API Extractor always write the staged report (localBuild), then diff it against the
+    // committed report ourselves so `--verify` keys off the stable `<base>.api.md` name.
+    Extractor.invoke(config, { localBuild: true, showVerboseMessages: false });
+
+    const staged = readFileSync(resolve(stagingFolder, stagedFileName(name)), 'utf8');
+    const committedPath = resolve(reportFolder, reportFileName(name));
+    const committed = existsSync(committedPath) ? readFileSync(committedPath, 'utf8') : undefined;
+    const apiReportChanged = staged !== committed;
+    if (apiReportChanged && !verify) writeFileSync(committedPath, staged);
+    return { apiReportChanged };
 }
 
 function main() {
