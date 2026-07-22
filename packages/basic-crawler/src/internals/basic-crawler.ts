@@ -574,7 +574,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected retryOnBlocked: boolean;
     protected respectRobotsTxtFile: boolean | { userAgent?: string };
     protected onSkippedRequest?: SkippedRequestCallback;
-    private _closeEvents?: boolean;
+    private _ownsEventManager: boolean = false;
     private loggedPerRun = new Set<string>();
     private experiments: CrawlerExperiments;
     private readonly robotsTxtFileCache: LruCache<RobotsTxtFile>;
@@ -1358,7 +1358,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected async _init(): Promise<void> {
         if (!this.events.isInitialized()) {
             await this.events.init();
-            this._closeEvents = true;
+            this._ownsEventManager = true;
         }
 
         this.autoscaledPool = new AutoscaledPool(this.autoscaledPoolOptions, this.config);
@@ -1982,15 +1982,15 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         // When this crawler initialized the event manager, its close() call emits
         // the final persistence event after the crawler-specific state has been
         // saved. External event managers still need an explicit event here.
-        if (!this._closeEvents) {
+        if (!this._ownsEventManager) {
             this.events.emit(EventType.PERSIST_STATE, { isMigrating: false });
         }
 
         if (this.useSessionPool) {
-            await this.sessionPool!.teardown({ persistState: this._closeEvents === true });
+            await this.sessionPool!.teardown({ persistState: this._ownsEventManager });
         }
 
-        if (this._closeEvents) {
+        if (this._ownsEventManager) {
             await this.events.close();
         }
 
