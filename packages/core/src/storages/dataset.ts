@@ -202,8 +202,8 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         options: DatasetOptions,
         readonly config = Configuration.getGlobalConfig(),
     ) {
-        this.id = options.id;
-        this.name = options.name;
+        this.id = options.metadata.id;
+        this.name = options.metadata.name;
         this.backend = options.backend;
         this.log = serviceLocator.getLogger().child({ prefix: 'Dataset' });
     }
@@ -775,8 +775,8 @@ export interface DatasetReducer<T, Data> {
 }
 
 export interface DatasetOptions {
-    id: string;
-    name?: string;
+    /** Resolved metadata for the dataset, as returned by the backend's `getMetadata()`. */
+    metadata: DatasetInfo;
     backend: DatasetBackend;
 }
 

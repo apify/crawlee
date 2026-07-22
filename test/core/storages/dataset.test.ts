@@ -8,11 +8,6 @@ beforeEach(async () => {
 });
 
 describe('dataset', () => {
-    async function createDataset(id = 'some-id', name?: string) {
-        const client = await serviceLocator.getStorageBackend().createDatasetBackend(name ? { name } : { id });
-        return new Dataset({ id, name, backend: client });
-    }
-
     beforeEach(async () => {
         vitest.clearAllMocks();
     });
@@ -21,7 +16,7 @@ describe('dataset', () => {
         const mockData = (bytes: number) => 'x'.repeat(bytes);
 
         test('should work', async () => {
-            const dataset = await createDataset();
+            const dataset = await Dataset.open();
 
             const pushDataSpy = vitest.spyOn(dataset.backend, 'pushData');
 
@@ -50,7 +45,7 @@ describe('dataset', () => {
         test('should successfully save large data', async () => {
             const half = mockData(MAX_PAYLOAD_SIZE_BYTES / 2);
 
-            const dataset = await createDataset();
+            const dataset = await Dataset.open();
 
             const mockPushData = vitest.spyOn(dataset.backend, 'pushData');
             mockPushData.mockResolvedValueOnce(undefined);
@@ -67,7 +62,7 @@ describe('dataset', () => {
             const chunk = { foo: string, bar: 'baz' };
             const data = Array(count).fill(chunk);
 
-            const dataset = await createDataset();
+            const dataset = await Dataset.open();
 
             const mockPushData = vitest.spyOn(dataset.backend, 'pushData');
             mockPushData.mockResolvedValueOnce(undefined);
@@ -79,7 +74,7 @@ describe('dataset', () => {
         });
 
         test('getData() should work', async () => {
-            const dataset = await createDataset();
+            const dataset = await Dataset.open();
 
             const expected = {
                 items: [{ foo: 'bar' }, { foo: 'hotel' }],
@@ -111,7 +106,7 @@ describe('dataset', () => {
         });
 
         test('getInfo() should work', async () => {
-            const dataset = await createDataset();
+            const dataset = await Dataset.open();
 
             const expected: Awaited<ReturnType<Dataset['getInfo']>> = {
                 id: 'WkzbQMuFYuamGv3YF',
@@ -131,7 +126,7 @@ describe('dataset', () => {
         });
 
         const getRemoteDataset = async () => {
-            const dataset = await createDataset();
+            const dataset = await Dataset.open();
 
             const firstResolve = {
                 items: [{ foo: 'a' }, { foo: 'b' }],
@@ -289,7 +284,7 @@ describe('dataset', () => {
         });
 
         test('reduce() uses first value as memo if no memo is provided', async () => {
-            const dataset = await createDataset('some-id', 'some-name');
+            const dataset = await Dataset.open();
             const mockGetData = vitest.spyOn(dataset.backend, 'getData');
             mockGetData.mockResolvedValueOnce({
                 items: [{ foo: 4 }, { foo: 5 }],
@@ -338,7 +333,7 @@ describe('dataset', () => {
 
     describe('pushData', () => {
         test('throws on invalid args', async () => {
-            const dataset = await createDataset();
+            const dataset = await Dataset.open();
             // @ts-expect-error JS-side validation
             await expect(dataset.pushData()).rejects.toThrow(
                 'Expected `data` to be of type `object` but received type `undefined`',
@@ -697,12 +692,12 @@ describe('dataset', () => {
 
         describe('stats', () => {
             test('start at zero', async () => {
-                const dataset = await createDataset();
+                const dataset = await Dataset.open();
                 expect(dataset.stats).toEqual({ readCount: 0, writeCount: 0 });
             });
 
             test('count writes and reads per client call', async () => {
-                const dataset = await createDataset();
+                const dataset = await Dataset.open();
 
                 await dataset.pushData({ foo: 'bar' });
                 await dataset.pushData([{ foo: 'baz' }, { foo: 'qux' }]);
@@ -713,7 +708,7 @@ describe('dataset', () => {
             });
 
             test('snapshot is a copy, not a live reference', async () => {
-                const dataset = await createDataset();
+                const dataset = await Dataset.open();
 
                 const before = dataset.stats;
                 await dataset.pushData({ foo: 'bar' });
