@@ -12,6 +12,7 @@ import {
     bindMethodsToServiceLocator,
     BLOCKED_STATUS_CODES,
     MemoryStorageBackend,
+    serviceLocator,
     ServiceLocator,
     SessionPool,
 } from '@crawlee/core';
@@ -57,10 +58,15 @@ describe('BrowserCrawler', () => {
 
     aroundEach(async (t) => {
         const scopedServiceLocator = new ServiceLocator();
-        scopedServiceLocator.setStorageBackend(new MemoryStorageBackend());
         const { run } = bindMethodsToServiceLocator(scopedServiceLocator, {});
 
         await run(t);
+    });
+
+    // Runs inside the `aroundEach` scope, after the global setup's `serviceLocator.reset()`,
+    // so it can't be clobbered by it.
+    beforeEach(() => {
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
     });
 
     test.concurrent('should work', async () => {
