@@ -50,7 +50,7 @@ export class MemoryStorageBackend implements storage.StorageBackend {
         return { isAlias, cacheKey };
     }
 
-    async createDatasetBackend(options: storage.CreateDatasetBackendOptions = {}): Promise<storage.DatasetBackend> {
+    async createDatasetBackend(options: storage.StorageIdentifier = {}): Promise<storage.DatasetBackend> {
         const { isAlias, cacheKey } = MemoryStorageBackend.resolveStorageKey(options);
 
         if (cacheKey) {
@@ -75,9 +75,7 @@ export class MemoryStorageBackend implements storage.StorageBackend {
         return newStore;
     }
 
-    async createKeyValueStoreBackend(
-        options: storage.CreateKeyValueStoreBackendOptions = {},
-    ): Promise<storage.KeyValueStoreBackend> {
+    async createKeyValueStoreBackend(options: storage.StorageIdentifier = {}): Promise<storage.KeyValueStoreBackend> {
         const { isAlias, cacheKey } = MemoryStorageBackend.resolveStorageKey(options);
 
         if (cacheKey) {
@@ -102,9 +100,7 @@ export class MemoryStorageBackend implements storage.StorageBackend {
         return newStore;
     }
 
-    async createRequestQueueBackend(
-        options: storage.CreateRequestQueueBackendOptions = {},
-    ): Promise<RequestQueueBackend> {
+    async createRequestQueueBackend(options: storage.StorageIdentifier = {}): Promise<RequestQueueBackend> {
         const { isAlias, cacheKey } = MemoryStorageBackend.resolveStorageKey(options);
 
         if (cacheKey) {

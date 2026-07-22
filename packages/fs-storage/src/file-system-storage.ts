@@ -100,7 +100,7 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
         return { id: options.id, name: options.name, alias: options.alias, cacheKey };
     }
 
-    async createDatasetBackend(options: storage.CreateDatasetBackendOptions = {}): Promise<storage.DatasetBackend> {
+    async createDatasetBackend(options: storage.StorageIdentifier = {}): Promise<storage.DatasetBackend> {
         const { id, name, alias, cacheKey } = FileSystemStorageBackend.resolveStorageKey(options);
 
         if (cacheKey) {
@@ -127,9 +127,7 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
         return newStore;
     }
 
-    async createKeyValueStoreBackend(
-        options: storage.CreateKeyValueStoreBackendOptions = {},
-    ): Promise<storage.KeyValueStoreBackend> {
+    async createKeyValueStoreBackend(options: storage.StorageIdentifier = {}): Promise<storage.KeyValueStoreBackend> {
         const { id, name, alias, cacheKey } = FileSystemStorageBackend.resolveStorageKey(options);
 
         if (cacheKey) {
@@ -156,9 +154,7 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
         return newStore;
     }
 
-    async createRequestQueueBackend(
-        options: storage.CreateRequestQueueBackendOptions = {},
-    ): Promise<storage.RequestQueueBackend> {
+    async createRequestQueueBackend(options: storage.StorageIdentifier = {}): Promise<storage.RequestQueueBackend> {
         const { id, name, alias, cacheKey } = FileSystemStorageBackend.resolveStorageKey(options);
 
         if (cacheKey) {
