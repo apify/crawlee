@@ -1172,13 +1172,12 @@ describe('CheerioCrawler', () => {
             expect(warningSpy).toBeCalledWith(`Found cookies with similar name during cookie merging: 'coo' and 'Coo'`);
         });
 
-        test('mergeCookies() throws a contextual error for malformed cookie fragments', () => {
-            expect(() => mergeCookies('https://example.com', ['valid=1; brokenfragment'])).toThrow(
-                'Could not parse cookie header string: brokenfragment',
-            );
-            expect(() => mergeCookies('https://example.com', ['sessionid'])).toThrow(
-                'Could not parse cookie header string: sessionid',
-            );
+        test('mergeCookies() skips malformed cookie fragments instead of throwing', () => {
+            const warningSpy = vitest.spyOn(BaseCrawleeLogger.prototype, 'warning');
+            expect(mergeCookies('https://example.com', ['valid=1; brokenfragment'])).toBe('valid=1');
+            expect(mergeCookies('https://example.com', ['a=b', 'c'])).toBe('a=b');
+            expect(mergeCookies('https://example.com', ['sessionid'])).toBe('');
+            expect(warningSpy).toBeCalled();
         });
 
         test('sendRequest and main request should share the same session cookie jar', async () => {
