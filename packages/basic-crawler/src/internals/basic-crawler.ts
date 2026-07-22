@@ -1001,6 +1001,19 @@ export class BasicCrawler<
                             return;
                         }
                         throw this.unwrapError(error);
+                    } finally {
+                        // Run request-scoped deferred cleanups only after the whole request lifecycle - including the user's error handler - has finished.
+                        const deferredCleanup =
+                            (crawlingContext as Partial<Record<typeof deferredCleanupKey, (() => Promise<unknown>)[]>>)[
+                                deferredCleanupKey
+                            ] ?? [];
+                        await Promise.all(
+                            deferredCleanup.map((fn) =>
+                                fn().catch((cleanupError) =>
+                                    this.log.debug('Error in deferred cleanup', { error: cleanupError }),
+                                ),
+                            ),
+                        );
                     }
                 },
                 isTaskReadyFunction: async () => {
@@ -1083,12 +1096,7 @@ export class BasicCrawler<
     protected buildBasicContextPipeline(): ContextPipeline<{ request: Request }, CrawlingContext> {
         return ContextPipeline.create<{ request: Request }>()
             .compose({ action: this.checkRobotsTxt.bind(this) })
-            .compose({
-                action: () => this.createBaseContext(),
-                cleanup: async (context) => {
-                    await Promise.all(context[deferredCleanupKey].map((fn) => fn()));
-                },
-            })
+            .compose({ action: () => this.createBaseContext() })
             .compose({ action: this.resolveSession.bind(this) })
             .compose({ action: this.createContextHelpers.bind(this) });
     }
