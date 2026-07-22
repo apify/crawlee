@@ -24,6 +24,7 @@ import type { HttpRequestOptions } from '@crawlee/types';
 import type { ISession } from '@crawlee/types';
 import type { ISessionPool } from '@crawlee/types';
 import type { KeyValueStoreBackend } from '@crawlee/types';
+import type { KeyValueStoreInfo } from '@crawlee/types';
 import { Log } from '@apify/log';
 import log from '@apify/log';
 import { Logger } from '@apify/log';
@@ -508,10 +509,7 @@ export interface DatasetMapper<Data, R> {
 export interface DatasetOptions {
     // (undocumented)
     backend: DatasetBackend;
-    // (undocumented)
-    id: string;
-    // (undocumented)
-    name?: string;
+    metadata: DatasetInfo;
 }
 
 // @public
@@ -928,10 +926,7 @@ export interface KeyValueStoreIteratorOptions {
 export interface KeyValueStoreOptions {
     // (undocumented)
     backend: KeyValueStoreBackend;
-    // (undocumented)
-    id: string;
-    // (undocumented)
-    name?: string;
+    metadata: KeyValueStoreInfo;
 }
 
 // @public
@@ -1480,8 +1475,6 @@ export class RequestQueue implements IStorage, IRequestManager {
     protected requestSeenCache: RequestDeduplicationCache;
     setExpectedRequestProcessingTimeSecs(secs: number): Promise<void>;
     get stats(): RequestQueueStats;
-    // (undocumented)
-    timeoutSecs: number;
 }
 
 // @internal (undocumented)
@@ -1503,10 +1496,7 @@ export interface RequestQueueOperationOptions {
 export interface RequestQueueOptions {
     // (undocumented)
     backend: RequestQueueBackend;
-    // (undocumented)
-    id: string;
-    // (undocumented)
-    name?: string;
+    metadata: RequestQueueInfo;
     proxyConfiguration?: ProxyConfiguration;
 }
 

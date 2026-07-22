@@ -140,8 +140,8 @@ export class RequestQueue implements IStorage, IRequestManager {
         options: RequestQueueOptions,
         protected readonly config: Configuration = Configuration.getGlobalConfig(),
     ) {
-        this.id = options.id;
-        this.name = options.name;
+        this.id = options.metadata.id;
+        this.name = options.metadata.name;
         this.events = serviceLocator.getEventManager();
         this.backend = options.backend;
 
@@ -996,8 +996,8 @@ interface RequestLruItem {
 }
 
 export interface RequestQueueOptions {
-    id: string;
-    name?: string;
+    /** Resolved metadata for the request queue, as returned by the backend's `getMetadata()`. */
+    metadata: RequestQueueInfo;
     backend: RequestQueueBackend;
 
     /**
