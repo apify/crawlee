@@ -1,4 +1,7 @@
 {
+    "resolutions": {
+        "brace-expansion@^5.0.5": "^5.0.7"
+    },
     "scripts": {
         "examples": "docusaurus-examples",
         "postinstall": "npx patch-package",
