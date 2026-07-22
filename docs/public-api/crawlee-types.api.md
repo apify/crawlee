@@ -77,18 +77,6 @@ export interface CrawleeLoggerOptions {
     prefix?: string | null;
 }
 
-// @public
-export type CreateDatasetBackendOptions = StorageIdentifier;
-
-// @public
-export type CreateKeyValueStoreBackendOptions = StorageIdentifier;
-
-// @public
-export type CreateRequestQueueBackendOptions = StorageIdentifier & {
-    clientKey?: string;
-    timeoutSecs?: number;
-};
-
 // @public (undocumented)
 export interface DatasetBackend<Data extends Dictionary = Dictionary> {
     drop(): Promise<void>;
@@ -466,9 +454,9 @@ export interface SetStatusMessageOptions {
 
 // @public
 export interface StorageBackend {
-    createDatasetBackend(options?: CreateDatasetBackendOptions): Promise<DatasetBackend>;
-    createKeyValueStoreBackend(options?: CreateKeyValueStoreBackendOptions): Promise<KeyValueStoreBackend>;
-    createRequestQueueBackend(options?: CreateRequestQueueBackendOptions): Promise<RequestQueueBackend>;
+    createDatasetBackend(options?: StorageIdentifier): Promise<DatasetBackend>;
+    createKeyValueStoreBackend(options?: StorageIdentifier): Promise<KeyValueStoreBackend>;
+    createRequestQueueBackend(options?: StorageIdentifier): Promise<RequestQueueBackend>;
     getStorageBackendCacheKey?(): string;
     // (undocumented)
     purge?(): Promise<void>;

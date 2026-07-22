@@ -1052,11 +1052,11 @@ export interface MemorySnapshot extends LoadSnapshot {
 export class MemoryStorageBackend implements storage.StorageBackend {
     constructor(options?: MemoryStorageOptions);
     // (undocumented)
-    createDatasetBackend(options?: storage.CreateDatasetBackendOptions): Promise<storage.DatasetBackend>;
+    createDatasetBackend(options?: storage.StorageIdentifier): Promise<storage.DatasetBackend>;
     // (undocumented)
-    createKeyValueStoreBackend(options?: storage.CreateKeyValueStoreBackendOptions): Promise<storage.KeyValueStoreBackend>;
+    createKeyValueStoreBackend(options?: storage.StorageIdentifier): Promise<storage.KeyValueStoreBackend>;
     // (undocumented)
-    createRequestQueueBackend(options?: storage.CreateRequestQueueBackendOptions): Promise<RequestQueueBackend_2>;
+    createRequestQueueBackend(options?: storage.StorageIdentifier): Promise<RequestQueueBackend_2>;
     // (undocumented)
     readonly datasetBackendCache: DatasetBackend_2[];
     getStorageBackendCacheKey(): string;
