@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { dirname, relative, resolve } from 'node:path';
+import { basename, dirname, relative, resolve } from 'node:path';
 
 import { Extractor, ExtractorConfig, type IConfigFile } from '@microsoft/api-extractor';
 import { globbySync } from 'globby';
@@ -139,6 +139,17 @@ function extract(pkgDir: string, pkgJsonPath: string, entry: string, paths?: Rec
 function main() {
     let failed = 0;
 
+    // Report filenames owned by an in-scope package. Any committed `*.api.md` not in this set
+    // is orphaned (e.g. its package was removed or renamed) and gets pruned in extract mode.
+    // Keyed off package existence, not per-run success, so a transient build/extract failure
+    // never deletes an otherwise-valid report.
+    const expectedReports = new Set(
+        packageJsonPaths
+            .map(manifest)
+            .filter((pkg) => !pkg.private && !EXCLUDED.has(pkg.name))
+            .map((pkg) => reportFileName(pkg.name)),
+    );
+
     // The build injects `// @ts-ignore` lines into the `.d.ts` files that crash API
     // Extractor's AST walker, so strip them for the duration of the run and restore after.
     const originals = new Map<string, string>();
@@ -199,6 +210,21 @@ function main() {
     } finally {
         for (const [file, content] of originals) writeFileSync(file, content);
         rmSync(mirrorRoot, { recursive: true, force: true });
+    }
+
+    // Prune orphaned reports: committed `*.api.md` files with no owning in-scope package
+    // (e.g. a removed/renamed package). Delete them in extract mode; flag them in verify mode.
+    for (const file of globbySync('*.api.md', { cwd: reportFolder, absolute: true })) {
+        if (expectedReports.has(basename(file))) continue;
+        if (verify) {
+            const message = `${basename(file)}: orphaned report (no matching package) — run "pnpm api:extract" to remove it`;
+            console.error(`✗ ${message}`);
+            ghCommand('error', message);
+            failed++;
+        } else {
+            rmSync(file);
+            console.log(`✓ removed orphaned report ${basename(file)}`);
+        }
     }
 
     if (failed > 0) {
