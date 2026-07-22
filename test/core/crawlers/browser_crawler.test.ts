@@ -8,7 +8,13 @@ import {
     PuppeteerPlugin,
     RemoteBrowserPool,
 } from '@crawlee/browser-pool';
-import { BLOCKED_STATUS_CODES, MemoryStorageBackend, serviceLocator, SessionPool } from '@crawlee/core';
+import {
+    bindMethodsToServiceLocator,
+    BLOCKED_STATUS_CODES,
+    MemoryStorageBackend,
+    ServiceLocator,
+    SessionPool,
+} from '@crawlee/core';
 import type { PuppeteerGoToOptions } from '@crawlee/puppeteer';
 import { EnqueueStrategy, ProxyConfiguration, Request, RequestList, RequestState, Session } from '@crawlee/puppeteer';
 import { sleep } from '@crawlee/utils';
@@ -49,8 +55,12 @@ describe('BrowserCrawler', () => {
         server.close();
     });
 
-    beforeEach(() => {
-        serviceLocator.setStorageBackend(new MemoryStorageBackend());
+    aroundEach(async (t) => {
+        const scopedServiceLocator = new ServiceLocator();
+        scopedServiceLocator.setStorageBackend(new MemoryStorageBackend());
+        const { run } = bindMethodsToServiceLocator(scopedServiceLocator, {});
+
+        await run(t);
     });
 
     test.concurrent('should work', async () => {
