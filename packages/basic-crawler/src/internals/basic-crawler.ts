@@ -575,7 +575,7 @@ export class BasicCrawler<
      * A reference to the underlying session pool that manages the crawler's {@apilink Session|sessions}. Typed as
      * {@apilink ISessionPool} so custom implementations can be plugged in via the `sessionPool` constructor option.
      */
-    sessionPool: ISessionPool;
+    readonly sessionPool: ISessionPool;
 
     /**
      * Set when the crawler constructed its own {@apilink SessionPool} (no `sessionPool` option was provided).
@@ -612,7 +612,7 @@ export class BasicCrawler<
      * A reference to the underlying {@apilink ProxyConfiguration} class that manages the crawler's proxies.
      * Only available if used by the crawler.
      */
-    proxyConfiguration?: ProxyConfiguration;
+    readonly proxyConfiguration?: ProxyConfiguration;
 
     /**
      * Default {@apilink Router} instance that will be used if we don't specify any {@apilink BasicCrawlerOptions.requestHandler|`requestHandler`}.
@@ -658,16 +658,16 @@ export class BasicCrawler<
         return this.#log;
     }
 
-    protected requestHandler!: RequestHandler<ExtendedContext>;
-    protected errorHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
-    protected failedRequestHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
+    protected readonly requestHandler!: RequestHandler<ExtendedContext>;
+    protected readonly errorHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
+    protected readonly failedRequestHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
     private requestHandlerTimeoutMillis!: number;
-    protected internalTimeoutMillis: number;
-    protected maxRequestRetries: number;
-    protected maxCrawlDepth?: number;
+    protected readonly internalTimeoutMillis: number;
+    protected readonly maxRequestRetries: number;
+    protected readonly maxCrawlDepth?: number;
     private sameDomainDelayMillis: number;
     private domainAccessedTime: Map<string, number>;
-    protected maxRequestsPerCrawl?: number;
+    protected readonly maxRequestsPerCrawl?: number;
 
     private get handledRequestsCount(): number {
         return this.stats.state.requestsFinished + this.stats.state.requestsFailed;
@@ -684,13 +684,13 @@ export class BasicCrawler<
     private statusMessageLoggingInterval: number;
     private statusMessageCallback?: StatusMessageCallback;
     protected blockedStatusCodes = new Set<number>();
-    protected additionalHttpErrorStatusCodes: Set<number>;
+    protected readonly additionalHttpErrorStatusCodes: Set<number>;
     private ignoreHttpErrorStatusCodes: Set<number>;
     private autoscaledPoolOptions: AutoscaledPoolOptions;
-    protected httpClient: BaseHttpClient;
-    protected retryOnBlocked: boolean;
+    protected readonly httpClient: BaseHttpClient;
+    protected readonly retryOnBlocked: boolean;
     private respectRobotsTxtFile: boolean | { userAgent?: string };
-    protected onSkippedRequest?: SkippedRequestCallback;
+    protected readonly onSkippedRequest?: SkippedRequestCallback;
     private _closeEvents?: boolean;
     private loggedPerRun = new Set<string>();
     private readonly robotsTxtFileCache: LruCache<RobotsTxtFile>;

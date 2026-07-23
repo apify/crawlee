@@ -89,12 +89,12 @@ const MAX_UNPROCESSED_REQUESTS_RETRIES = 3;
  * @category Sources
  */
 export class RequestQueue implements IStorage, IRequestManager {
-    id: string;
-    name?: string;
-    backend: RequestQueueBackend;
+    readonly id: string;
+    readonly name?: string;
+    readonly backend: RequestQueueBackend;
     private proxyConfiguration?: ProxyConfiguration;
 
-    log: CrawleeLogger;
+    readonly log: CrawleeLogger;
 
     private requestCache: LruCache<RequestLruItem>;
 

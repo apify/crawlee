@@ -93,9 +93,9 @@ export interface SnapshotterOptions {
  * @category Scaling
  */
 export class Snapshotter {
-    log: CrawleeLogger;
-    client: StorageBackend;
-    config: Configuration;
+    readonly log: CrawleeLogger;
+    readonly client: StorageBackend;
+    readonly config: Configuration;
 
     private readonly memorySignal: MemoryLoadSignal;
     private readonly eventLoopSignal: EventLoopLoadSignal;

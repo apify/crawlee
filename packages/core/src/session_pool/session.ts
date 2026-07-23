@@ -85,7 +85,7 @@ export interface SessionOptions {
  */
 export class Session implements ISession {
     readonly id: string;
-    userData: Dictionary;
+    readonly userData: Dictionary;
     private _maxErrorScore: number;
     private _errorScoreDecrement: number;
     private _createdAt: Date;

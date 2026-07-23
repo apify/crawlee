@@ -60,12 +60,12 @@ export class Statistics {
     /**
      * An error tracker for final retry errors.
      */
-    errorTracker: ErrorTracker;
+    readonly errorTracker: ErrorTracker;
 
     /**
      * An error tracker for retry errors prior to the final retry.
      */
-    errorTrackerRetry: ErrorTracker;
+    readonly errorTrackerRetry: ErrorTracker;
 
     /**
      * Statistic instance id.
@@ -83,7 +83,7 @@ export class Statistics {
     readonly requestRetryHistogram: number[] = [];
 
     protected keyValueStore?: KeyValueStore = undefined;
-    protected persistStateKey: string;
+    protected readonly persistStateKey: string;
     private logIntervalMillis: number;
     private logMessage: string;
     private listener: () => Promise<void>;

@@ -59,7 +59,7 @@ interface NewUrlOptions {
  * @category Scaling
  */
 export class ProxyConfiguration {
-    isManInTheMiddle = false;
+    readonly isManInTheMiddle = false;
     private nextCustomUrlIndex = 0;
     private proxyUrls?: UrlList;
     private newUrlFunction?: ProxyConfigurationFunction;

@@ -246,7 +246,7 @@ export class RequestList implements IRequestLoader {
      * All requests in the array have distinct uniqueKey!
      * @internal
      */
-    requests: (Request | RequestOptions)[] = [];
+    readonly requests: (Request | RequestOptions)[] = [];
 
     /** Index to the next item in requests array to fetch. All previous requests are either handled or in progress. */
     private nextIndex = 0;
