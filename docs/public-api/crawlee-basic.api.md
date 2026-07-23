@@ -65,35 +65,23 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
     protected additionalHttpErrorStatusCodes: Set<number>;
     addRequests(requests: ReadonlyDeep<RequestsLike>, options?: CrawlerAddRequestsOptions): Promise<CrawlerAddRequestsResult>;
     autoscaledPool?: AutoscaledPool;
-    // (undocumented)
-    protected autoscaledPoolOptions: AutoscaledPoolOptions;
     get basicContextPipeline(): ContextPipeline<{
         request: Request_2;
     }, CrawlingContext>;
     // (undocumented)
     protected blockedStatusCodes: Set<number>;
-    protected buildBasicContextPipeline(): ContextPipeline<{
-        request: Request_2;
-    }, CrawlingContext>;
     protected buildContextPipeline(): ContextPipeline<CrawlingContext, CrawlingContext>;
     // (undocumented)
     protected calculateEnqueuedRequestLimit(explicitLimit?: number): Promise<number | undefined>;
     // (undocumented)
-    protected _canRequestBeRetried(request: Request_2, error: Error): boolean;
-    // (undocumented)
     get contextPipeline(): ContextPipeline<CrawlingContext, ExtendedContext>;
     // (undocumented)
     protected static readonly CRAWLEE_STATE_KEY = "CRAWLEE_STATE";
-    protected _defaultIsFinishedFunction(): Promise<boolean>;
-    protected delayRequest(request: Request_2, source: IRequestManager): boolean;
-    // (undocumented)
-    protected domainAccessedTime: Map<string, number>;
     // (undocumented)
     protected errorHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
     exportData<Data>(path: string, format?: 'json' | 'csv', options?: DatasetExportOptions): Promise<Data[]>;
     // (undocumented)
     protected failedRequestHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
-    protected _fetchNextRequest(): Promise<Request_2<Dictionary> | null>;
     // (undocumented)
     protected _getCookieHeaderFromRequest(request: Request_2): string;
     getData(...args: Parameters<Dataset['getData']>): ReturnType<Dataset['getData']>;
@@ -107,25 +95,16 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
     // (undocumented)
     protected getRobotsTxtFileForUrl(url: string): Promise<RobotsTxtFile | undefined>;
     // (undocumented)
-    protected get handledRequestsCount(): number;
-    protected set handledRequestsCount(_value: number);
-    // (undocumented)
-    protected _handleFailedRequestHandler(crawlingContext: CrawlingContext, error: Error): Promise<void>;
-    protected handleRequest(crawlingContext: ExtendedContext, requestSource: IRequestManager, request: Request_2): Promise<void>;
-    // (undocumented)
     protected handleSkippedRequest(options: Parameters<SkippedRequestCallback>[0]): Promise<void>;
     // (undocumented)
     hasFinishedBefore: boolean;
     // (undocumented)
     protected httpClient: BaseHttpClient;
-    // (undocumented)
-    protected ignoreHttpErrorStatusCodes: Set<number>;
     protected _init(): Promise<void>;
     // (undocumented)
     protected internalTimeoutMillis: number;
     protected isErrorStatusCode(status: number): boolean;
     protected isProxyError(error: Error): boolean;
-    protected _isTaskReadyFunction(): Promise<boolean>;
     // (undocumented)
     get log(): CrawleeLogger;
     // (undocumented)
@@ -173,20 +152,11 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
         statisticsOptions: ObjectPredicate<object> & BasePredicate<object | undefined>;
         id: StringPredicate & BasePredicate<string | undefined>;
     };
-    // (undocumented)
-    protected _pauseOnMigration(): Promise<void>;
     proxyConfiguration?: ProxyConfiguration;
     pushData(data: Parameters<Dataset['pushData']>[0], datasetIdentifier?: string | StorageIdentifier): Promise<void>;
-    protected _requestFunctionErrorHandler(error: Error, crawlingContext: CrawlingContext, request: Request_2, source: IRequestManager): Promise<void>;
     // (undocumented)
     protected requestHandler: RequestHandler<ExtendedContext>;
-    // (undocumented)
-    protected requestHandlerTimeoutMillis: number;
     protected requestManager?: IRequestManager;
-    // (undocumented)
-    protected respectRobotsTxtFile: boolean | {
-        userAgent?: string;
-    };
     // (undocumented)
     protected retryOnBlocked: boolean;
     readonly router: RouterHandler<Context>;
@@ -195,26 +165,14 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
     running: boolean;
     // (undocumented)
     protected runRequestHandler(crawlingContext: ExtendedContext): Promise<void>;
-    // (undocumented)
-    protected sameDomainDelayMillis: number;
     sessionPool: ISessionPool;
     setStatusMessage(message: string, options?: SetStatusMessageOptions): void;
     readonly stats: Statistics;
-    // (undocumented)
-    protected statusMessageCallback?: StatusMessageCallback;
-    // (undocumented)
-    protected statusMessageLoggingInterval: number;
     stop(reason?: string): void;
-    // (undocumented)
-    protected _tagUserHandlerError<T>(cb: () => unknown): Promise<T>;
     teardown(): Promise<void>;
     protected _throwOnBlockedRequest(statusCode: number): void;
-    protected _timeoutAndRetry<T>(handler: () => Promise<T>, timeout: number, error: Error | string, maxRetries?: number, retried?: number): Promise<T>;
-    // (undocumented)
-    protected unexpectedStop: boolean;
     // (undocumented)
     useState<State extends Dictionary = Dictionary>(defaultValue?: State): Promise<State>;
-    protected validateRequestUserData(source: Source | string): Promise<void>;
 }
 
 // @public (undocumented)

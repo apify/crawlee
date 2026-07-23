@@ -16,8 +16,6 @@ export abstract class BaseHttpClient implements BaseHttpClient_2 {
         logger?: CrawleeLogger;
     });
     protected abstract fetch(input: Request, init?: RequestInit & CustomFetchOptions): Promise<Response>;
-    // (undocumented)
-    protected log?: CrawleeLogger;
     sendRequest(initialRequest: Request, options?: SendRequestOptions): Promise<Response>;
 }
 
