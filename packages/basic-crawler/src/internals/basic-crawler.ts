@@ -126,10 +126,18 @@ const deferredCleanupKey = Symbol('deferredCleanup');
 
 export type RequestHandler<Context extends CrawlingContext = CrawlingContext> = (inputs: Context) => Awaitable<void>;
 
+/**
+ * An error handler receives the crawling context and the error that was thrown while processing the request.
+ *
+ * Unlike the {@apilink RequestHandler}, an error handler may run before the context pipeline has finished
+ * building the full context (e.g. when navigation or session setup fails). Therefore only `BaseContext` is
+ * guaranteed to be present, while the extra properties added by the pipeline and `extendContext` (the
+ * difference between `BaseContext` and `ExtendedContext`) are only available as a `Partial`.
+ */
 export type ErrorHandler<
-    Context extends CrawlingContext = CrawlingContext,
-    ExtendedContext extends Context = Context,
-> = (inputs: Context & Partial<ExtendedContext>, error: Error) => Awaitable<void>;
+    BaseContext extends CrawlingContext = CrawlingContext,
+    ExtendedContext extends BaseContext = BaseContext,
+> = (inputs: BaseContext & Partial<ExtendedContext>, error: Error) => Awaitable<void>;
 
 export interface StatusMessageCallbackParams<
     Context extends CrawlingContext = BasicCrawlingContext,

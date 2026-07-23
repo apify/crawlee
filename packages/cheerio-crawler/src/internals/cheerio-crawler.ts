@@ -1,5 +1,6 @@
 import type {
     BasicCrawlingContext,
+    CrawlingContext,
     EnqueueLinksOptions,
     ErrorHandler,
     GetUserDataFromRequest,
@@ -30,7 +31,8 @@ import { parseDocument } from 'htmlparser2';
 export type CheerioErrorHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-> = ErrorHandler<CheerioCrawlingContext<UserData, JSONData>>;
+    ContextExtension = Dictionary<never>,
+> = ErrorHandler<CrawlingContext, CheerioCrawlingContext<UserData, JSONData> & ContextExtension>;
 
 export interface CheerioCrawlerOptions<
     ContextExtension = Dictionary<never>,
