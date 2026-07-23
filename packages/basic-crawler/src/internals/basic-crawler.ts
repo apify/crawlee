@@ -532,16 +532,10 @@ export interface BasicCrawlerOptions<
  * @category Crawlers
  */
 
-/**
- * Identifies a crawler instance for storage aliasing, `useState()` and status-message events.
- */
 interface CrawlerIdentity {
-    /** 0-based instantiation order across all crawlers in the process. Used only for legacy default-storage aliasing. */
-    readonly instantiationIndex: number;
-    /** The user-supplied `id` option, or a fallback derived from `instantiationIndex`. */
+    readonly instanceIndex: number;
     readonly id: string;
-    /** Whether `id` came from the user (as opposed to being derived from `instantiationIndex`). */
-    readonly explicit: boolean;
+    readonly hasExplicitId: boolean;
 }
 
 export class BasicCrawler<
@@ -834,8 +828,8 @@ export class BasicCrawler<
 
             this.#log = serviceLocator.getLogger().child({ prefix: this.constructor.name });
 
-            const instantiationIndex = BasicCrawler.instanceCount++;
-            this.identity = { instantiationIndex, explicit: id !== undefined, id: id ?? String(instantiationIndex) };
+            const instanceIndex = BasicCrawler.instanceCount++;
+            this.identity = { instanceIndex, hasExplicitId: id !== undefined, id: id ?? String(instanceIndex) };
 
             if (requestManager !== undefined) {
                 if (requestList !== undefined || requestQueue !== undefined) {
@@ -1493,7 +1487,7 @@ export class BasicCrawler<
     private async openOwnedRequestQueue(): Promise<IRequestManager> {
         // The first crawler instance uses the default queue (null identifier);
         // subsequent instances get their own queue via a unique alias so they don't collide.
-        const identifier = this.identity.instantiationIndex === 0 ? null : { alias: `__default_${this.identity.id}__` };
+        const identifier = this.identity.instanceIndex === 0 ? null : { alias: `__default_${this.identity.id}__` };
 
         const requestQueue = await RequestQueue.open(identifier, { config: serviceLocator.getConfiguration() });
         this.ownedRequestManager = requestQueue;
@@ -1548,12 +1542,12 @@ export class BasicCrawler<
     async useState<State extends Dictionary = Dictionary>(defaultValue = {} as State): Promise<State> {
         const kvs = await KeyValueStore.open(null, { config: serviceLocator.getConfiguration() });
 
-        if (this.identity.explicit) {
+        if (this.identity.hasExplicitId) {
             const stateKey = `${BasicCrawler.CRAWLEE_STATE_KEY}_${this.identity.id}`;
             return kvs.getAutoSavedValue<State>(stateKey, defaultValue);
         }
 
-        BasicCrawler.useStateAnonymousIndices.add(this.identity.instantiationIndex);
+        BasicCrawler.useStateAnonymousIndices.add(this.identity.instanceIndex);
 
         if (BasicCrawler.useStateAnonymousIndices.size > 1) {
             serviceLocator
