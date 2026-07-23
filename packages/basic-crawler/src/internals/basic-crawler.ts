@@ -544,7 +544,10 @@ export interface BasicCrawlerOptions<
  * Identifies a crawler instance for storage aliasing, `useState()` and status-message events.
  */
 interface CrawlerIdentity {
-    /** 0-based instantiation order across all crawlers in the process. Used only for legacy default-storage aliasing. */
+    /**
+     * 0-based instantiation order across all crawlers in the process.
+     * Note that the value can be subject to race conditions between different script invocations.
+     */
     readonly instanceIndex: number;
     /** The user-supplied `id` option, or a fallback derived from `instanceIndex`. */
     readonly id: string;
