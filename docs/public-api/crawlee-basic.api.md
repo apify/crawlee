@@ -58,7 +58,7 @@ import type { StorageIdentifier } from '@crawlee/core';
 import { StringPredicate } from 'ow';
 import { TimeoutError } from '@apify/timeout';
 
-// @public
+// @public (undocumented)
 export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension> {
     constructor(options?: BasicCrawlerOptions<Context, ContextExtension, ExtendedContext> & RequireContextPipeline<CrawlingContext, Context>);
     // (undocumented)
@@ -118,6 +118,8 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
     hasFinishedBefore: boolean;
     // (undocumented)
     protected httpClient: BaseHttpClient;
+    // (undocumented)
+    protected readonly identity: CrawlerIdentity;
     // (undocumented)
     protected ignoreHttpErrorStatusCodes: Set<number>;
     protected _init(): Promise<void>;
