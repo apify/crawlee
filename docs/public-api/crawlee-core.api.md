@@ -986,7 +986,7 @@ export interface PersistenceOptions {
 export class ProxyConfiguration {
     constructor(options?: ProxyConfigurationOptions);
     // (undocumented)
-    isManInTheMiddle: boolean;
+    readonly isManInTheMiddle = false;
     newProxyInfo(options?: NewUrlOptions): Promise<ProxyInfo | undefined>;
     newUrl(options?: NewUrlOptions): Promise<string | undefined>;
 }
@@ -1244,7 +1244,7 @@ export class RequestQueue implements IStorage, IRequestManager {
     addRequests(requestsLike: RequestsLike, options?: RequestQueueOperationOptions): Promise<BatchAddRequestsResult>;
     addRequestsBatched(requests: ReadonlyDeep<RequestsLike>, options?: AddRequestsBatchedOptions): Promise<AddRequestsBatchedResult>;
     // (undocumented)
-    backend: RequestQueueBackend;
+    readonly backend: RequestQueueBackend;
     drop(): Promise<void>;
     fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request_2<T> | null>;
     getHandledCount(): Promise<number>;
@@ -1253,14 +1253,14 @@ export class RequestQueue implements IStorage, IRequestManager {
     getRequest<T extends Dictionary = Dictionary>(uniqueKey: string): Promise<Request_2<T> | null>;
     getTotalCount(): Promise<number>;
     // (undocumented)
-    id: string;
+    readonly id: string;
     isEmpty(): Promise<boolean>;
     isFinished(): Promise<boolean>;
     // (undocumented)
-    log: CrawleeLogger;
+    readonly log: CrawleeLogger;
     markRequestAsHandled(request: Request_2): Promise<RequestQueueOperationInfo | null>;
     // (undocumented)
-    name?: string;
+    readonly name?: string;
     static open(identifier?: string | StorageIdentifier | null, options?: StorageOpenOptions): Promise<RequestQueue>;
     purge(): Promise<void>;
     reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
@@ -1494,7 +1494,7 @@ export class Session implements ISession {
     // (undocumented)
     get usageCount(): number;
     // (undocumented)
-    userData: Dictionary;
+    readonly userData: Dictionary;
 }
 
 // @public
@@ -1654,11 +1654,11 @@ export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
 export class Snapshotter {
     constructor(options?: SnapshotterOptions);
     // (undocumented)
-    client: StorageBackend;
+    readonly client: StorageBackend;
     // (undocumented)
     get clientSnapshots(): ClientSnapshot[];
     // (undocumented)
-    config: Configuration;
+    readonly config: Configuration;
     // (undocumented)
     get cpuSnapshots(): CpuSnapshot[];
     // (undocumented)
@@ -1669,7 +1669,7 @@ export class Snapshotter {
     getLoadSignals(): LoadSignal[];
     getMemorySample(sampleDurationMillis?: number): MemorySnapshot[];
     // (undocumented)
-    log: CrawleeLogger;
+    readonly log: CrawleeLogger;
     // (undocumented)
     get memorySnapshots(): MemorySnapshot[];
     start(): Promise<void>;
@@ -1724,8 +1724,8 @@ export class Statistics {
         crawlerRuntimeMillis: number;
     };
     discardJob(id: number | string): void;
-    errorTracker: ErrorTracker;
-    errorTrackerRetry: ErrorTracker;
+    readonly errorTracker: ErrorTracker;
+    readonly errorTrackerRetry: ErrorTracker;
     failJob(id: number | string, retryCount: number): void;
     finishJob(id: number | string, retryCount: number): void;
     readonly id: string;
@@ -1734,7 +1734,7 @@ export class Statistics {
     protected _maybeLoadStatistics(): Promise<void>;
     persistState(options?: PersistenceOptions): Promise<void>;
     // (undocumented)
-    protected persistStateKey: string;
+    protected readonly persistStateKey: string;
     registerStatusCode(code: number): void;
     readonly requestRetryHistogram: number[];
     reset(): void;

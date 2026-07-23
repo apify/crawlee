@@ -62,7 +62,7 @@ import { TimeoutError } from '@apify/timeout';
 export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension> {
     constructor(options?: BasicCrawlerOptions<Context, ContextExtension, ExtendedContext> & RequireContextPipeline<CrawlingContext, Context>);
     // (undocumented)
-    protected additionalHttpErrorStatusCodes: Set<number>;
+    protected readonly additionalHttpErrorStatusCodes: Set<number>;
     addRequests(requests: ReadonlyDeep<RequestsLike>, options?: CrawlerAddRequestsOptions): Promise<CrawlerAddRequestsResult>;
     autoscaledPool?: AutoscaledPool;
     get basicContextPipeline(): ContextPipeline<{
@@ -78,10 +78,10 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
     // (undocumented)
     protected static readonly CRAWLEE_STATE_KEY = "CRAWLEE_STATE";
     // (undocumented)
-    protected errorHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
+    protected readonly errorHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
     exportData<Data>(path: string, format?: 'json' | 'csv', options?: DatasetExportOptions): Promise<Data[]>;
     // (undocumented)
-    protected failedRequestHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
+    protected readonly failedRequestHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
     // (undocumented)
     protected _getCookieHeaderFromRequest(request: Request_2): string;
     getData(...args: Parameters<Dataset['getData']>): ReturnType<Dataset['getData']>;
@@ -99,22 +99,22 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
     // (undocumented)
     hasFinishedBefore: boolean;
     // (undocumented)
-    protected httpClient: BaseHttpClient;
+    protected readonly httpClient: BaseHttpClient;
     protected _init(): Promise<void>;
     // (undocumented)
-    protected internalTimeoutMillis: number;
+    protected readonly internalTimeoutMillis: number;
     protected isErrorStatusCode(status: number): boolean;
     protected isProxyError(error: Error): boolean;
     // (undocumented)
     get log(): CrawleeLogger;
     // (undocumented)
-    protected maxCrawlDepth?: number;
+    protected readonly maxCrawlDepth?: number;
     // (undocumented)
-    protected maxRequestRetries: number;
+    protected readonly maxRequestRetries: number;
     // (undocumented)
-    protected maxRequestsPerCrawl?: number;
+    protected readonly maxRequestsPerCrawl?: number;
     // (undocumented)
-    protected onSkippedRequest?: SkippedRequestCallback;
+    protected readonly onSkippedRequest?: SkippedRequestCallback;
     // (undocumented)
     protected static optionsShape: {
         contextPipelineBuilder: ObjectPredicate<object> & BasePredicate<object | undefined>;
@@ -152,20 +152,20 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
         statisticsOptions: ObjectPredicate<object> & BasePredicate<object | undefined>;
         id: StringPredicate & BasePredicate<string | undefined>;
     };
-    proxyConfiguration?: ProxyConfiguration;
+    readonly proxyConfiguration?: ProxyConfiguration;
     pushData(data: Parameters<Dataset['pushData']>[0], datasetIdentifier?: string | StorageIdentifier): Promise<void>;
     // (undocumented)
-    protected requestHandler: RequestHandler<ExtendedContext>;
+    protected readonly requestHandler: RequestHandler<ExtendedContext>;
     protected requestManager?: IRequestManager;
     // (undocumented)
-    protected retryOnBlocked: boolean;
+    protected readonly retryOnBlocked: boolean;
     readonly router: RouterHandler<Context>;
     run(requests?: RequestsLike, options?: CrawlerRunOptions): Promise<FinalStatistics>;
     // (undocumented)
     running: boolean;
     // (undocumented)
     protected runRequestHandler(crawlingContext: ExtendedContext): Promise<void>;
-    sessionPool: ISessionPool;
+    readonly sessionPool: ISessionPool;
     setStatusMessage(message: string, options?: SetStatusMessageOptions): void;
     readonly stats: Statistics;
     stop(reason?: string): void;
