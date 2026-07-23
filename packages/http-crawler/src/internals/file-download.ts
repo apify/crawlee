@@ -14,7 +14,8 @@ const kBodyDrained = Symbol('bodyDrained');
 
 export type FileDownloadErrorHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-> = ErrorHandler<FileDownloadCrawlingContext<UserData>>;
+    ContextExtension = Dictionary<never>,
+> = ErrorHandler<CrawlingContext, FileDownloadCrawlingContext<UserData> & ContextExtension>;
 
 export type FileDownloadHook<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
