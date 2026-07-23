@@ -6,6 +6,7 @@ export * from './crawlers/index.js';
 export * from './enqueue_links/index.js';
 export * from './events/index.js';
 export * from './log.js';
+export * from './owned_or_injected.js';
 export * from './proxy_configuration.js';
 export * from './request.js';
 export * from './router.js';

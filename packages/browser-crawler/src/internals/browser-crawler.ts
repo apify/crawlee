@@ -21,6 +21,7 @@ import {
     enqueueLinks,
     handleRequestTimeout,
     NavigationSkippedError,
+    OwnedOrInjected,
     RequestState,
     resolveBaseUrlForEnqueueLinksFiltering,
     SessionError,
@@ -52,6 +53,13 @@ import type { BrowserLaunchContext } from './browser-launcher.js';
 interface BaseResponse {
     status(): number;
 }
+
+/**
+ * The type of a browser pool the crawler builds (and therefore owns) for itself. It's an {@apilink IBrowserPool} that
+ * additionally exposes `destroy()` — the crawler only ever tears down pools it created, which is why {@apilink IBrowserPool}
+ * itself intentionally omits `destroy`.
+ */
+type OwnedBrowserPool<Page> = IBrowserPool<Page> & { destroy: () => Promise<void> };
 
 type ContextDifference<T, U> = Omit<U, keyof T> & Partial<U>;
 
@@ -329,18 +337,16 @@ export abstract class BrowserCrawler<
     ExtendedContext extends Context = Context & ContextExtension,
     GoToOptions extends Dictionary = Dictionary,
 > extends BasicCrawler<Context, ContextExtension, ExtendedContext> {
+    /** Backs the {@apilink BrowserCrawler.browserPool|`browserPool`} getter. */
+    private browserPoolDep: OwnedOrInjected<IBrowserPool<Page>, OwnedBrowserPool<Page>>;
+
     /**
      * A reference to the underlying browser pool that manages the crawler's browsers. Typed as
      * {@apilink IBrowserPool} so custom implementations can be plugged in via the `browserPool` constructor option.
      */
-    browserPool: IBrowserPool<Page>;
-
-    /**
-     * Set when the crawler constructed its own pool (a {@apilink BrowserPool}, or a {@apilink RemoteBrowserPool}
-     * built from the `remoteBrowser` option). Holds the same instance as `browserPool` but is the only reference
-     * the crawler tears down — a user-supplied `browserPool` is never owned and never destroyed by the crawler.
-     */
-    private ownedBrowserPool?: { destroy: () => Promise<void> };
+    get browserPool(): IBrowserPool<Page> {
+        return this.browserPoolDep.value;
+    }
 
     launchContext: BrowserLaunchContext<LaunchOptions, unknown>;
 
@@ -437,39 +443,33 @@ export abstract class BrowserCrawler<
 
         this.saveResponseCookies = saveResponseCookies;
 
-        // `browserPool` wins over `remoteBrowser` — a passed-in pool is used as-is, the sugar is ignored.
-        if (browserPool) {
-            this.browserPool = browserPool;
-            return;
-        }
+        // `browserPool` wins over `remoteBrowser` — a passed-in pool is used as-is (borrowed), the sugar is ignored.
+        // The default is only built when no pool was injected, so all the option/launchContext fiddling below stays
+        // inside the factory.
+        this.browserPoolDep = OwnedOrInjected.resolve(browserPool, () => {
+            const resolvedBrowserPoolOptions = browserPoolOptions ?? ({} as Partial<BrowserPoolOptions>);
 
-        const resolvedBrowserPoolOptions = browserPoolOptions ?? ({} as Partial<BrowserPoolOptions>);
+            if (launchContext?.userAgent) {
+                if (resolvedBrowserPoolOptions.useFingerprints)
+                    this.log.info('Custom user agent provided, disabling automatic browser fingerprint injection!');
+                resolvedBrowserPoolOptions.useFingerprints = false;
+            }
 
-        if (launchContext?.userAgent) {
-            if (resolvedBrowserPoolOptions.useFingerprints)
-                this.log.info('Custom user agent provided, disabling automatic browser fingerprint injection!');
-            resolvedBrowserPoolOptions.useFingerprints = false;
-        }
+            if (remoteBrowser) {
+                // The crawler already built the right plugin for its browser — hand it to a RemoteBrowserPool so the
+                // remote connection is always for the matching browser (no plugin to construct, no way to mismatch).
+                const { browserPlugins, ...remoteBrowserPoolOptions } = resolvedBrowserPoolOptions;
+                return new RemoteBrowserPool({
+                    browserPlugins: browserPlugins as BrowserPlugin[],
+                    ...remoteBrowser,
+                    browserPoolOptions: remoteBrowserPoolOptions as any,
+                }) as OwnedBrowserPool<Page>;
+            }
 
-        if (remoteBrowser) {
-            // The crawler already built the right plugin for its browser — hand it to a RemoteBrowserPool so the
-            // remote connection is always for the matching browser (no plugin to construct, no way to mismatch).
-            const { browserPlugins, ...remoteBrowserPoolOptions } = resolvedBrowserPoolOptions;
-            const remotePool = new RemoteBrowserPool({
-                browserPlugins: browserPlugins as BrowserPlugin[],
-                ...remoteBrowser,
-                browserPoolOptions: remoteBrowserPoolOptions as any,
-            });
-            this.ownedBrowserPool = remotePool;
-            this.browserPool = remotePool as IBrowserPool<Page>;
-            return;
-        }
-
-        const ownedBrowserPool = new BrowserPool<InternalBrowserPoolOptions>({
-            ...(resolvedBrowserPoolOptions as any),
+            return new BrowserPool<InternalBrowserPoolOptions>({
+                ...(resolvedBrowserPoolOptions as any),
+            }) as unknown as OwnedBrowserPool<Page>;
         });
-        this.ownedBrowserPool = ownedBrowserPool;
-        this.browserPool = ownedBrowserPool as IBrowserPool<Page>;
     }
 
     protected override buildContextPipeline(): ContextPipeline<
@@ -751,7 +751,7 @@ export abstract class BrowserCrawler<
      * @ignore
      */
     override async teardown(): Promise<void> {
-        await this.ownedBrowserPool?.destroy();
+        await this.browserPoolDep.ifOwned((pool) => pool.destroy());
         await super.teardown();
     }
 }
