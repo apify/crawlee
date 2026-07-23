@@ -747,6 +747,11 @@ export type GlobObject = {
 } & Pick<RequestOptions, 'method' | 'payload' | 'label' | 'userData' | 'headers'>;
 
 // @public
+export interface IProxyConfiguration {
+    newProxyInfo(options?: NewUrlOptions): Promise<ProxyInfo | undefined>;
+}
+
+// @public
 export interface IRequestLoader {
     [Symbol.asyncIterator](): AsyncGenerator<Request_2>;
     fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request_2<T> | null>;
@@ -994,7 +999,7 @@ export interface PersistenceOptions {
 }
 
 // @public
-export class ProxyConfiguration {
+export class ProxyConfiguration implements IProxyConfiguration {
     constructor(options?: ProxyConfigurationOptions);
     protected _callNewUrlFunction(options?: {
         request?: Request_2;
