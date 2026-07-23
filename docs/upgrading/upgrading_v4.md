@@ -34,7 +34,39 @@ The crawler following options are removed:
 
 ## Underscore prefix is removed from many protected and private methods
 
+The leading underscore was dropped from protected and private class members across the codebase. The most visible rename is:
+
 - `BasicCrawler._runRequestHandler` -> `BasicCrawler.runRequestHandler`
+
+Members that were also made `private` in the same pass are listed under [Unintentionally exposed internals are now private](#unintentionally-exposed-internals-are-now-private) below.
+
+## Unintentionally exposed internals are now private
+
+A number of class members were `public` or `protected` only by accident — they were never meant to be part of the extension surface, are not used by any subclass, and in most cases also carried a leading underscore to signal that. In v4 they are `private` (and where it applies, `readonly`). If you were reaching into any of these — either to read internal state or to override a helper in a subclass — that no longer compiles.
+
+This is intentional: these were never a supported API. If you relied on overriding one of the now-private helpers, the supported extension points (the `requestHandler`, `errorHandler`, `failedRequestHandler`, `preNavigationHooks`/`postNavigationHooks`, `ContextPipeline` composition, and the `ISessionPool` / `IBrowserPool` / `IRequestManager` interfaces) should cover the same use cases. If something you genuinely need is missing, open an issue.
+
+The change spans, among others:
+
+- **`BasicCrawler`** — `unexpectedStop`, `requestHandlerTimeoutMillis`, `sameDomainDelayMillis`, `domainAccessedTime`, `handledRequestsCount`, `statusMessageLoggingInterval`, `statusMessageCallback`, `ignoreHttpErrorStatusCodes`, `autoscaledPoolOptions`, `respectRobotsTxtFile`, and the helpers `buildBasicContextPipeline`, `validateRequestUserData`, `pauseOnMigration`, `fetchNextRequest`, `delayRequest`, `handleRequest`, `timeoutAndRetry`, `isTaskReadyFunction`, `defaultIsFinishedFunction`, `requestFunctionErrorHandler`, `handleFailedRequestHandler`, `canRequestBeRetried`
+- **`HttpCrawler`** — `preNavigationHooks`, `postNavigationHooks`, `saveResponseCookies`, `navigationTimeoutMillis`, `ignoreSslErrors`, `suggestResponseEncoding`, `forceResponseEncoding`, `supportedMimeTypes`, and the helpers `requestFunction`, `parseResponse`, `getRequestOptions`, `encodeResponse`, `extendSupportedMimeTypes`, `handleRequestTimeout`
+- **`AutoscaledPool`** — `autoscale`, `maybeRunTask`, `incrementTasksDonePerSecond`, `maybeFinish`, `destroy`, `scaleUp`, `scaleDown`, `isOverMaxRequestLimit`
+- **`SessionPool`** — all pool internals (`log`, `maxPoolSize`, `createSessionFunction`, `keyValueStore`, `sessions`, `sessionMap`, `sessionOptions`, `persistStateKey`, `persistStateKeyValueStoreId`, `events`, `persistenceOptions`, `sessionReuseStrategy`, and the helpers `ensureInitialized`, `maybeLoadSessionPool`, `registerSession`, `createSession`, `hasSpaceForSession`, `pickSession`, `removeRetiredSessions`, `getRandomIndex`, `defaultCreateSessionFunction`)
+- **`Session`** — `maybeSelfRetire` (`userData` is now `readonly`)
+- **`RequestList`** — all `_`-prefixed helpers (`addFetchedRequests`, `addPersistedRequests`, `addRequest`, `addRequestsFromSources`, `ensureInProgress`, `ensureIsInitialized`, `ensureUniqueKeyValid`, `fetchRequestsFromUrl`, `getPersistedState`, `loadStateAndPersistedRequests`, `persistRequests`, `restoreState`)
+- **`RequestQueue`** — `proxyConfiguration`, `requestCache`, `requestSeenCache`, `queuePausedForMigration`, `inProgressRequestBatchCount`, `expectedRequestProcessingSecs`, `httpClient`, `events`, and the helpers `cacheRequest`, `fetchRequestsFromUrl`, `addFetchedRequests` (`id`, `name`, `backend`, `log` are now `readonly`)
+- **`ProxyConfiguration`** — `nextCustomUrlIndex`, `proxyUrls`, `newUrlFunction`, and the helpers `handleProxyUrlsList`, `callNewUrlFunction`, `throwCannotCombineCustomMethods`, `throwNoOptionsProvided` (the internal `log` field and `usedProxyUrls` map are removed; `isManInTheMiddle` is now `readonly`)
+- **`Statistics`** — `saveRetryCountForJob`, `teardown` (`errorTracker`, `errorTrackerRetry` are now `readonly`)
+- **`SystemStatus`** — `isSystemIdle`
+- **`Router`** — the constructor is now `private`; use the static `Router.create()` factory
+- **`BaseHttpClient`** — `log` (subclasses receive it via the constructor `logger` option instead of reading `this.log`)
+- **`JSDOMCrawler`** — `runScripts`, `hideInternalConsole`, `virtualConsole`
+- **`AdaptivePlaywrightCrawler`** — `commitResult`, `allowStorageAccess`, `enqueueLinks`
+- **`RenderingTypePredictor`** — `calculateFeatureVector`, `retrain`
+
+## The `RequestQueue` constructor no longer takes a `Configuration`
+
+The internal `RequestQueue` constructor dropped its second `config: Configuration` parameter (it also stopped exposing a `protected config` field). You should not be constructing `RequestQueue` directly anyway — use `RequestQueue.open()`, which resolves configuration for you.
 
 ## Removed symbols
 
@@ -50,8 +82,9 @@ The crawler following options are removed:
 - `HttpCrawler._handleNavigation` (protected)
 - `HttpCrawler._applyCookies` (protected) - cookie merging is now handled by `BaseHttpClient`
 - `HttpCrawler._parseHTML` (protected)
-- `HttpCrawler._parseResponse` (protected) - made private
 - `HttpCrawler.use` and the `CrawlerExtension` class (experimental) - the `ContextPipeline` should be used for extending the crawler
+- `BasicCrawler._tagUserHandlerError` (protected) - internal error-tagging helper, no longer part of the crawler surface
+- `Snapshotter._snapshotMemory`, `Snapshotter._memoryOverloadWarning`, `Snapshotter._snapshotEventLoop`, `Snapshotter._snapshotCpu`, `Snapshotter._snapshotClient`, `Snapshotter._pruneSnapshots` (all `@deprecated` protected stubs) - snapshotting is handled by the individual load signals, use `Snapshotter.getMemorySample()` / `getEventLoopSample()` / `getCpuSample()` / `getClientSample()` instead
 - `FileDownloadOptions.streamHandler` - streaming should now be handled directly in the `requestHandler` instead
 - `playwrightUtils.registerUtilsToContext` and `puppeteerUtils.registerUtilsToContext` - this is now added to the context via `ContextPipeline` composition
 - `puppeteerUtils.blockResources` and `puppeteerUtils.cacheResponses` (deprecated)
