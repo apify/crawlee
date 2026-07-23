@@ -125,7 +125,12 @@
         "playwright-core": "1.61.1",
         "form-data": "^4.0.6",
         "tar": "^7.5.16",
-        "lerna/js-yaml": "^4.2.0"
+        "lerna/js-yaml": "^4.2.0",
+        "axios": "^1.18.0",
+        "protobufjs": "^7.6.5",
+        "adm-zip": "^0.6.0",
+        "brace-expansion@^5.0.5": "^5.0.7",
+        "brace-expansion@5.0.6": "^5.0.7"
     },
     "packageManager": "yarn@4.10.3",
     "volta": {
