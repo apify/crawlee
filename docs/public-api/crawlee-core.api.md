@@ -24,6 +24,7 @@ import type { HttpRequestOptions } from '@crawlee/types';
 import type { ISession } from '@crawlee/types';
 import type { ISessionPool } from '@crawlee/types';
 import type { KeyValueStoreBackend } from '@crawlee/types';
+import type { KeyValueStoreInfo } from '@crawlee/types';
 import { Log } from '@apify/log';
 import log from '@apify/log';
 import { Logger } from '@apify/log';
@@ -460,10 +461,7 @@ export interface DatasetMapper<Data, R> {
 export interface DatasetOptions {
     // (undocumented)
     backend: DatasetBackend;
-    // (undocumented)
-    id: string;
-    // (undocumented)
-    name?: string;
+    metadata: DatasetInfo;
 }
 
 // @public
@@ -832,10 +830,7 @@ export interface KeyValueStoreIteratorOptions {
 export interface KeyValueStoreOptions {
     // (undocumented)
     backend: KeyValueStoreBackend;
-    // (undocumented)
-    id: string;
-    // (undocumented)
-    name?: string;
+    metadata: KeyValueStoreInfo;
 }
 
 // @public
@@ -945,11 +940,11 @@ export interface MemorySnapshot extends LoadSnapshot {
 export class MemoryStorageBackend implements storage.StorageBackend {
     constructor(options?: MemoryStorageOptions);
     // (undocumented)
-    createDatasetBackend(options?: storage.CreateDatasetBackendOptions): Promise<storage.DatasetBackend>;
+    createDatasetBackend(options?: storage.StorageIdentifier): Promise<storage.DatasetBackend>;
     // (undocumented)
-    createKeyValueStoreBackend(options?: storage.CreateKeyValueStoreBackendOptions): Promise<storage.KeyValueStoreBackend>;
+    createKeyValueStoreBackend(options?: storage.StorageIdentifier): Promise<storage.KeyValueStoreBackend>;
     // (undocumented)
-    createRequestQueueBackend(options?: storage.CreateRequestQueueBackendOptions): Promise<RequestQueueBackend_2>;
+    createRequestQueueBackend(options?: storage.StorageIdentifier): Promise<RequestQueueBackend_2>;
     // (undocumented)
     readonly datasetBackendCache: DatasetBackend_2[];
     getStorageBackendCacheKey(): string;
@@ -1296,8 +1291,6 @@ export class RequestQueue implements IStorage, IRequestManager {
     backend: RequestQueueBackend;
     protected _cacheRequest(cacheKey: string, queueOperationInfo: RequestQueueOperationInfo): void;
     // (undocumented)
-    clientKey: string;
-    // (undocumented)
     protected readonly config: Configuration;
     drop(): Promise<void>;
     // (undocumented)
@@ -1335,8 +1328,6 @@ export class RequestQueue implements IStorage, IRequestManager {
     protected requestSeenCache: RequestDeduplicationCache;
     setExpectedRequestProcessingTimeSecs(secs: number): Promise<void>;
     get stats(): RequestQueueStats;
-    // (undocumented)
-    timeoutSecs: number;
 }
 
 // @public (undocumented)
@@ -1348,10 +1339,7 @@ export interface RequestQueueOperationOptions {
 export interface RequestQueueOptions {
     // (undocumented)
     backend: RequestQueueBackend;
-    // (undocumented)
-    id: string;
-    // (undocumented)
-    name?: string;
+    metadata: RequestQueueInfo;
     proxyConfiguration?: ProxyConfiguration;
 }
 
