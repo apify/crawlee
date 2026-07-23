@@ -1,4 +1,4 @@
-import { gotScraping } from '@crawlee/utils';
+import { gotScraping, warnIfBunRuntime } from '@crawlee/utils';
 // @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types, so its alllll gooooood
 import type { Options, PlainResponse } from 'got-scraping';
 
@@ -15,6 +15,10 @@ import type {
  * A HTTP client implementation based on the `got-scraping` library.
  */
 export class GotScrapingHttpClient implements BaseHttpClient {
+    constructor() {
+        warnIfBunRuntime();
+    }
+
     /**
      * @inheritDoc
      */
