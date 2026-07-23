@@ -301,8 +301,8 @@ export interface CreateContextOptions {
 
 export { Element_2 as Element }
 
-// @public (undocumented)
-export type ErrorHandler<Context extends CrawlingContext = CrawlingContext, ExtendedContext extends Context = Context> = (inputs: Context & Partial<ExtendedContext>, error: Error) => Awaitable<void>;
+// @public
+export type ErrorHandler<BaseContext extends CrawlingContext = CrawlingContext, ExtendedContext extends BaseContext = BaseContext> = (inputs: BaseContext & Partial<ExtendedContext>, error: Error) => Awaitable<void>;
 
 // @public (undocumented)
 export type RequestHandler<Context extends CrawlingContext = CrawlingContext> = (inputs: Context) => Awaitable<void>;
