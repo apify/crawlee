@@ -6,7 +6,7 @@ import type { SetRequired } from 'type-fest';
 
 import log from '@apify/log';
 
-import type { Request, RequestOptions } from '../request';
+import { Request, type RequestOptions, type Source } from '../request';
 import type {
     AddRequestsBatchedOptions,
     AddRequestsBatchedResult,
@@ -359,16 +359,16 @@ export async function enqueueLinks(
         }
     }
 
-    async function reportSkippedRequests(
-        skippedRequests: { url: string; skippedReason?: SkippedRequestReason }[],
-        reason: SkippedRequestReason,
-    ) {
+    async function reportSkippedRequests(skippedRequests: (Request | Source)[], reason: SkippedRequestReason) {
         if (onSkippedRequest && skippedRequests.length > 0) {
             await Promise.all(
                 skippedRequests.map((request) => {
                     return onSkippedRequest({
-                        url: request.url,
-                        reason: request.skippedReason ?? reason,
+                        request:
+                            request instanceof Request
+                                ? request
+                                : new Request(typeof request === 'string' ? { url: request } : { ...request, url: request.url! }),
+                        reason: (request as { skippedReason?: SkippedRequestReason }).skippedReason ?? reason,
                     }) as Promise<void>;
                 }),
             );
@@ -411,7 +411,7 @@ export async function enqueueLinks(
     }
 
     async function createFilteredRequests() {
-        const skippedRequests: string[] = [];
+        const skippedRequests: Request[] = [];
 
         // No user provided patterns means we can skip an extra filtering step
         if (urlPatternObjects.length === 0) {
@@ -420,7 +420,7 @@ export async function enqueueLinks(
                 enqueueStrategyPatterns,
                 urlExcludePatternObjects,
                 options.strategy,
-                (url) => skippedRequests.push(url),
+                (request) => skippedRequests.push(request),
             );
         }
 
@@ -430,17 +430,14 @@ export async function enqueueLinks(
             urlPatternObjects,
             urlExcludePatternObjects,
             options.strategy,
-            (url) => skippedRequests.push(url),
+            (request) => skippedRequests.push(request),
         );
         // ...then filter them by the enqueue links strategy (making this an AND check)
-        const filtered = filterRequestsByPatterns(generatedRequestsFromUserFilters, enqueueStrategyPatterns, (url) =>
-            skippedRequests.push(url),
+        const filtered = filterRequestsByPatterns(generatedRequestsFromUserFilters, enqueueStrategyPatterns, (request) =>
+            skippedRequests.push(request),
         );
 
-        await reportSkippedRequests(
-            skippedRequests.map((url) => ({ url })),
-            'filters',
-        );
+        await reportSkippedRequests(skippedRequests, 'filters');
 
         return filtered;
     }
@@ -453,7 +450,7 @@ export async function enqueueLinks(
 
     if (requestsOverLimit?.length !== undefined && requestsOverLimit.length > 0) {
         await reportSkippedRequests(
-            requestsOverLimit.map((r) => ({ url: typeof r === 'string' ? r : r.url! })),
+            requestsOverLimit.map((request) => (typeof request === 'string' ? { url: request } : request)),
             'enqueueLimit',
         );
     }

@@ -562,7 +562,7 @@ export class HttpCrawler<
                 request.noRetry = true;
                 request.state = RequestState.SKIPPED;
 
-                await this.handleSkippedRequest({ url: request.url, reason: 'redirect' });
+                await this.handleSkippedRequest({ request, reason: 'redirect' });
 
                 return;
             }

@@ -15,7 +15,6 @@ import type {
     IRequestManager,
     LoadedContext,
     ProxyInfo,
-    Request,
     RequestsLike,
     RequestTransform,
     RestrictedCrawlingContext,
@@ -41,6 +40,7 @@ import {
     mergeCookies,
     NonRetryableError,
     purgeDefaultStorages,
+    Request,
     RequestListAdapter,
     RequestManagerTandem,
     RequestProvider,
@@ -1251,8 +1251,14 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         const requestLimit = this.calculateEnqueuedRequestLimit();
 
-        const skippedBecauseOfRobots = new Set<string>();
-        const skippedBecauseOfMaxCrawlDepth = new Set<string>();
+        const skippedBecauseOfRobots = new Map<string, Request>();
+        const skippedBecauseOfMaxCrawlDepth = new Map<string, Request>();
+
+        const normalizeSkippedRequest = (request: string | Source): Request => {
+            return request instanceof Request
+                ? request
+                : new Request(typeof request === 'string' ? { url: request } : { ...request, url: request.url! });
+        };
 
         const isAllowedBasedOnRobotsTxtFile = this.isAllowedBasedOnRobotsTxtFile.bind(this);
         const maxCrawlDepth = this.maxCrawlDepth;
@@ -1268,9 +1274,10 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         async function* filteredRequests() {
             for await (const request of requests) {
                 const url = typeof request === 'string' ? request : request.url!;
+                const skippedRequest = normalizeSkippedRequest(request);
 
                 if (maxCrawlDepth !== undefined && (request as any).crawlDepth > maxCrawlDepth) {
-                    skippedBecauseOfMaxCrawlDepth.add(url);
+                    skippedBecauseOfMaxCrawlDepth.set(url, skippedRequest);
                     continue;
                 }
 
@@ -1278,7 +1285,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                     await validateRequestUserData(request);
                     yield request;
                 } else {
-                    skippedBecauseOfRobots.add(url);
+                    skippedBecauseOfRobots.set(url, skippedRequest);
                 }
             }
         }
@@ -1303,17 +1310,19 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             skippedBecauseOfMaxCrawlDepth.size > 0
         ) {
             await Promise.all(
-                [...skippedBecauseOfRobots]
-                    .map((url) => {
-                        return this.handleSkippedRequest({ url, reason: 'robotsTxt' });
+                [...skippedBecauseOfRobots.values()]
+                    .map((request) => {
+                        return this.handleSkippedRequest({ request, reason: 'robotsTxt' });
                     })
                     .concat(
                         skippedBecauseOfLimit.map((request) => {
-                            const url = typeof request === 'string' ? request : request.url!;
-                            return this.handleSkippedRequest({ url, reason: 'limit' });
+                            return this.handleSkippedRequest({
+                                request: normalizeSkippedRequest(request),
+                                reason: 'limit',
+                            });
                         }),
-                        [...skippedBecauseOfMaxCrawlDepth].map((url) => {
-                            return this.handleSkippedRequest({ url, reason: 'depth' });
+                        [...skippedBecauseOfMaxCrawlDepth.values()].map((request) => {
+                            return this.handleSkippedRequest({ request, reason: 'depth' });
                         }),
                     ),
             );
@@ -1629,7 +1638,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             request.noRetry = true;
             await source.markRequestHandled(request);
             await this.handleSkippedRequest({
-                url: request.url,
+                request,
                 reason: 'robotsTxt',
             });
             return;
