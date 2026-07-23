@@ -199,7 +199,7 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
     protected runRequestHandler(crawlingContext: ExtendedContext): Promise<void>;
     // (undocumented)
     protected sameDomainDelayMillis: number;
-    sessionPool: ISessionPool;
+    get sessionPool(): ISessionPool;
     setStatusMessage(message: string, options?: SetStatusMessageOptions): void;
     readonly stats: Statistics;
     // (undocumented)

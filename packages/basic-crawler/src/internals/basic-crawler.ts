@@ -48,6 +48,7 @@ import {
     MissingSessionError,
     NavigationSkippedError,
     NonRetryableError,
+    OwnedOrInjected,
     purgeDefaultStorages,
     RequestHandlerError,
     RequestManagerTandem,
@@ -587,26 +588,23 @@ export class BasicCrawler<
      */
     protected requestManager?: IRequestManager;
 
+    /** Backs the {@apilink BasicCrawler.sessionPool|`sessionPool`} getter. */
+    private sessionPoolDep: OwnedOrInjected<ISessionPool, SessionPool>;
+
     /**
      * A reference to the underlying session pool that manages the crawler's {@apilink Session|sessions}. Typed as
      * {@apilink ISessionPool} so custom implementations can be plugged in via the `sessionPool` constructor option.
      */
-    sessionPool: ISessionPool;
+    get sessionPool(): ISessionPool {
+        return this.sessionPoolDep.value;
+    }
 
     /**
-     * Set when the crawler constructed its own {@apilink SessionPool} (no `sessionPool` option was provided).
-     * Holds the same instance as `sessionPool`, but typed as the concrete class so the crawler can call
-     * lifecycle methods (`resetStore`, `teardown`) that aren't part of {@apilink ISessionPool}. A user-supplied
-     * pool is never owned and never torn down by the crawler.
+     * Tracks **only** the queue the crawler opens for itself — not the {@apilink RequestManagerTandem} that may wrap it
+     * around a user-supplied `requestList` — so the owned-only purge between repeated `run()` calls never reaches
+     * through to a borrowed loader. Filled lazily in {@apilink BasicCrawler.openOwnedRequestQueue|`openOwnedRequestQueue()`}.
      */
-    private ownedSessionPool?: SessionPool;
-
-    /**
-     * Set when the crawler constructed its own request manager (no `requestManager`, `requestQueue`, or `requestList`
-     * option was provided). The owned manager is purged (not dropped) between repeated `run()` calls.
-     * A user-supplied manager is never purged by the crawler.
-     */
-    private ownedRequestManager?: IRequestManager;
+    private ownedRequestQueue = OwnedOrInjected.resolve<RequestQueue>();
 
     /**
      * Whether the request-processing-time hint has already been forwarded to the request manager. The hint
@@ -920,19 +918,18 @@ export class BasicCrawler<
                 );
             }
 
-            if (sessionPool) {
-                this.sessionPool = sessionPool;
-            } else {
-                this.ownedSessionPool = new SessionPool({
-                    createSessionFunction: async (opts) =>
-                        new Session({
-                            ...opts?.sessionOptions,
-                            proxyInfo:
-                                opts?.sessionOptions?.proxyInfo ?? (await this.proxyConfiguration?.newProxyInfo()),
-                        }),
-                });
-                this.sessionPool = this.ownedSessionPool;
-            }
+            this.sessionPoolDep = OwnedOrInjected.resolve(
+                sessionPool,
+                () =>
+                    new SessionPool({
+                        createSessionFunction: async (opts) =>
+                            new Session({
+                                ...opts?.sessionOptions,
+                                proxyInfo:
+                                    opts?.sessionOptions?.proxyInfo ?? (await this.proxyConfiguration?.newProxyInfo()),
+                            }),
+                    }),
+            );
 
             this.blockedStatusCodes = new Set(blockedStatusCodesInput ?? BLOCKED_STATUS_CODES);
 
@@ -1354,12 +1351,12 @@ export class BasicCrawler<
             // we need to purge the RQ to allow processing the same requests again — this is important so users can
             // pass in failed requests back to the `crawler.run()`, otherwise they would be considered as handled and
             // ignored — as a failed request is still handled.
-            // By default (purgeRequestQueue unset or true), only the manager we created ourselves (ownedRequestManager) is purged.
+            // By default (purgeRequestQueue unset or true), only the queue we opened ourselves is purged.
             // When `purgeRequestQueue` is explicitly `true`, we also purge a user-supplied manager.
             // When `purgeRequestQueue` is explicitly `false`, nothing is purged.
             const shouldPurge = purgeRequestQueue !== false;
             const managerToPurge =
-                this.ownedRequestManager ?? (purgeRequestQueue === true ? this.requestManager : undefined);
+                this.ownedRequestQueue.maybeValue ?? (purgeRequestQueue === true ? this.requestManager : undefined);
 
             if (managerToPurge?.purge && shouldPurge) {
                 await managerToPurge.purge();
@@ -1367,7 +1364,7 @@ export class BasicCrawler<
 
             this.stats.reset();
             await this.stats.resetStore();
-            await this.ownedSessionPool?.resetStore();
+            await this.sessionPoolDep.ifOwned((pool) => pool.resetStore());
         }
 
         this.unexpectedStop = false;
@@ -1509,17 +1506,16 @@ export class BasicCrawler<
 
     /**
      * Opens the default {@apilink RequestQueue}, applies the crawler's timeouts to it and records it as the
-     * crawler-owned manager (so it gets purged between repeated `run()` calls).
+     * crawler-owned queue (so it gets purged between repeated `run()` calls).
      * @private
      */
-    private async openOwnedRequestQueue(): Promise<IRequestManager> {
+    private async openOwnedRequestQueue(): Promise<RequestQueue> {
         // The first crawler instance uses the default queue (null identifier);
         // subsequent instances get their own queue via a unique alias so they don't collide.
         const identifier = this.identity.instanceIndex === 0 ? null : { alias: `__default_${this.identity.id}__` };
 
         const requestQueue = await RequestQueue.open(identifier, { config: serviceLocator.getConfiguration() });
-        this.ownedRequestManager = requestQueue;
-        return requestQueue;
+        return this.ownedRequestQueue.set(requestQueue);
     }
 
     /**
@@ -2323,7 +2319,7 @@ export class BasicCrawler<
             await serviceLocator.getEventManager().close();
         }
 
-        await this.ownedSessionPool?.teardown();
+        await this.sessionPoolDep.ifOwned((pool) => pool.teardown());
 
         await this.autoscaledPool?.abort();
     }

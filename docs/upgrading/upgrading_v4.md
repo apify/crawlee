@@ -193,6 +193,8 @@ const crawler = new BasicCrawler({
 
 The returned objects must be `Session` instances — the rest of the crawler relies on `session.markGood()`, `session.cookieJar`, `session.proxyInfo`, and the rest of the concrete `Session` API.
 
+The `crawler.sessionPool` property is now **read-only** (a getter). It was previously a writable field, so any code that reassigned it after construction (`crawler.sessionPool = myPool`) no longer works — pass your pool via the `sessionPool` constructor option instead.
+
 ## `retireOnBlockedStatusCodes` is removed from `Session`
 
 `Session.retireOnBlockedStatusCodes` is removed. Blocked status code handling is now internal to the crawler. Configure blocked status codes via the `blockedStatusCodes` crawler option (moved from `sessionPoolOptions`).
@@ -243,6 +245,8 @@ const crawler = new PuppeteerCrawler({
 await crawler.run();
 await sharedPool.destroy();
 ```
+
+The `crawler.browserPool` property is now **read-only** (a getter). It was previously a writable field, so any code that reassigned it after construction (`crawler.browserPool = myPool`) no longer works — pass your pool via the `browserPool` constructor option instead.
 
 ## `BrowserCrawlingContext.browserController` has been removed
 
