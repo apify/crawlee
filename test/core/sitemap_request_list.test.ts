@@ -690,4 +690,40 @@ describe('SitemapRequestList', () => {
         // The strategy is persisted on the request so it keeps being enforced after navigation.
         expect((request as any).enqueueStrategy).toBe('same-hostname');
     });
+
+    test('persistState does not deadlock a backpressured sitemap load', async () => {
+        // `maxBufferSize: 1` makes the background loader block on backpressure right after
+        // pushing the first URL. Persisting the state at that moment swaps the underlying stream,
+        // which used to orphan the pending push and hang the loading indefinitely.
+        const list = await SitemapRequestList.open({
+            sitemapUrls: [`${url}/sitemap.xml`],
+            persistStateKey: 'backpressure-persist',
+            maxBufferSize: 1,
+        });
+
+        // Wait until the first URL is buffered, i.e. the loader is parked on backpressure.
+        while (await list.isEmpty()) {
+            await sleep(20);
+        }
+
+        await list.persistState();
+
+        const urls = new Set<string>();
+        for await (const request of list) {
+            await list.markRequestHandled(request);
+            urls.add(request.url);
+        }
+
+        expect(list.isSitemapFullyLoaded()).toBe(true);
+        await expect(list.isFinished()).resolves.toBe(true);
+        expect(urls).toEqual(
+            new Set([
+                'http://not-exists.com/',
+                'http://not-exists.com/catalog?item=12&desc=vacation_hawaii',
+                'http://not-exists.com/catalog?item=73&desc=vacation_new_zealand',
+                'http://not-exists.com/catalog?item=74&desc=vacation_newfoundland',
+                'http://not-exists.com/catalog?item=83&desc=vacation_usa',
+            ]),
+        );
+    }, 10_000);
 });

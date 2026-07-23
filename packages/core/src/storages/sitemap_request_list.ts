@@ -505,17 +505,25 @@ export class SitemapRequestList implements IRequestList {
 
         // Create a new stream, as we have read all the URLs from the current one.
         // Pushing the urls back to the original stream might not be possible if it has been ended.
-        const newStream = this.createNewStream(this.urlQueueStream.readableHighWaterMark);
+        const previousStream = this.urlQueueStream;
+        const newStream = this.createNewStream(previousStream.readableHighWaterMark);
 
         for (const url of urlQueue) {
             newStream.push(url);
         }
 
-        if (this.urlQueueStream.writableEnded) {
+        if (previousStream.writableEnded) {
             newStream.end();
         }
 
         this.urlQueueStream = newStream;
+
+        // A `pushNextUrl()` call may be blocked on backpressure, waiting for a `readdata` event on the
+        // previous stream. That event is only ever emitted by `readNextUrl()` on the current stream, so
+        // after the swap the waiter would never be notified and the background sitemap loading would hang.
+        // Re-emit `readdata` on the previous stream to release any such pending waiter (its URL has already
+        // been transferred to the new stream above).
+        previousStream.emit('readdata');
 
         await this.store.setValue(this.persistStateKey, {
             sitemapParsingProgress: {
