@@ -405,36 +405,6 @@ export type StorageIdentifier =
     | { id?: never; name?: never; alias?: never };
 
 /**
- * Options for creating a dataset backend via {@apilink StorageBackend.createDatasetBackend}.
- */
-export type CreateDatasetBackendOptions = StorageIdentifier;
-
-/**
- * Options for creating a key-value store backend via {@apilink StorageBackend.createKeyValueStoreBackend}.
- */
-export type CreateKeyValueStoreBackendOptions = StorageIdentifier;
-
-/**
- * Options for creating a request queue backend via {@apilink StorageBackend.createRequestQueueBackend}.
- */
-export type CreateRequestQueueBackendOptions = StorageIdentifier & {
-    /**
-     * Client key for request locking.
-     * TODO: This is an Apify-platform concern and should eventually be pushed down
-     * into the Apify SDK's client implementation (aligning with crawlee-python).
-     * https://github.com/apify/crawlee/issues/3328
-     */
-    clientKey?: string;
-    /**
-     * Timeout in seconds for request queue operations.
-     * TODO: This is an Apify-platform concern and should eventually be pushed down
-     * into the Apify SDK's client implementation (aligning with crawlee-python).
-     * https://github.com/apify/crawlee/issues/3328
-     */
-    timeoutSecs?: number;
-};
-
-/**
  * Represents a storage backend capable of working with datasets, key-value stores and request queues.
  *
  * A new storage backend needs to implement 4 classes:
@@ -453,21 +423,21 @@ export interface StorageBackend {
      * If `name` is provided, opens an existing dataset with that name or creates a new one.
      * If neither is provided, opens or creates the default dataset.
      */
-    createDatasetBackend(options?: CreateDatasetBackendOptions): Promise<DatasetBackend>;
+    createDatasetBackend(options?: StorageIdentifier): Promise<DatasetBackend>;
     /**
      * Create (or open) a key-value store backend.
      * If `id` is provided, opens the key-value store with that ID.
      * If `name` is provided, opens an existing store with that name or creates a new one.
      * If neither is provided, opens or creates the default key-value store.
      */
-    createKeyValueStoreBackend(options?: CreateKeyValueStoreBackendOptions): Promise<KeyValueStoreBackend>;
+    createKeyValueStoreBackend(options?: StorageIdentifier): Promise<KeyValueStoreBackend>;
     /**
      * Create (or open) a request queue backend.
      * If `id` is provided, opens the request queue with that ID.
      * If `name` is provided, opens an existing queue with that name or creates a new one.
      * If neither is provided, opens or creates the default request queue.
      */
-    createRequestQueueBackend(options?: CreateRequestQueueBackendOptions): Promise<RequestQueueBackend>;
+    createRequestQueueBackend(options?: StorageIdentifier): Promise<RequestQueueBackend>;
     /**
      * Check whether a storage with the given ID exists.
      *

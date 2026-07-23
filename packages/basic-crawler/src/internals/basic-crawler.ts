@@ -126,10 +126,18 @@ const deferredCleanupKey = Symbol('deferredCleanup');
 
 export type RequestHandler<Context extends CrawlingContext = CrawlingContext> = (inputs: Context) => Awaitable<void>;
 
+/**
+ * An error handler receives the crawling context and the error that was thrown while processing the request.
+ *
+ * Unlike the {@apilink RequestHandler}, an error handler may run before the context pipeline has finished
+ * building the full context (e.g. when navigation or session setup fails). Therefore only `BaseContext` is
+ * guaranteed to be present, while the extra properties added by the pipeline and `extendContext` (the
+ * difference between `BaseContext` and `ExtendedContext`) are only available as a `Partial`.
+ */
 export type ErrorHandler<
-    Context extends CrawlingContext = CrawlingContext,
-    ExtendedContext extends Context = Context,
-> = (inputs: Context & Partial<ExtendedContext>, error: Error) => Awaitable<void>;
+    BaseContext extends CrawlingContext = CrawlingContext,
+    ExtendedContext extends BaseContext = BaseContext,
+> = (inputs: BaseContext & Partial<ExtendedContext>, error: Error) => Awaitable<void>;
 
 export interface StatusMessageCallbackParams<
     Context extends CrawlingContext = BasicCrawlingContext,
@@ -834,6 +842,9 @@ export class BasicCrawler<
 
             this.#log = serviceLocator.getLogger().child({ prefix: this.constructor.name });
 
+            // Initialize the Configuration instance to avoid lazy loading in the components
+            serviceLocator.getConfiguration();
+
             const instanceIndex = BasicCrawler.instanceCount++;
             this.identity = { instanceIndex, hasExplicitId: id !== undefined, id: id ?? String(instanceIndex) };
 
@@ -1006,6 +1017,19 @@ export class BasicCrawler<
                             return;
                         }
                         throw this.unwrapError(error);
+                    } finally {
+                        // Run request-scoped deferred cleanups only after the whole request lifecycle - including the user's error handler - has finished.
+                        const deferredCleanup =
+                            (crawlingContext as Partial<Record<typeof deferredCleanupKey, (() => Promise<unknown>)[]>>)[
+                                deferredCleanupKey
+                            ] ?? [];
+                        await Promise.all(
+                            deferredCleanup.map((fn) =>
+                                fn().catch((cleanupError) =>
+                                    this.log.debug('Error in deferred cleanup', { error: cleanupError }),
+                                ),
+                            ),
+                        );
                     }
                 },
                 isTaskReadyFunction: async () => {
@@ -1088,12 +1112,7 @@ export class BasicCrawler<
     protected buildBasicContextPipeline(): ContextPipeline<{ request: Request }, CrawlingContext> {
         return ContextPipeline.create<{ request: Request }>()
             .compose({ action: this.checkRobotsTxt.bind(this) })
-            .compose({
-                action: () => this.createBaseContext(),
-                cleanup: async (context) => {
-                    await Promise.all(context[deferredCleanupKey].map((fn) => fn()));
-                },
-            })
+            .compose({ action: () => this.createBaseContext() })
             .compose({ action: this.resolveSession.bind(this) })
             .compose({ action: this.createContextHelpers.bind(this) });
     }
