@@ -98,6 +98,16 @@ describe('OwnedOrInjected', () => {
             expect(dep.isOwned).toBe(true);
         });
 
+        it('exposes maybeValue as undefined while unset and the value once set', () => {
+            const dep = OwnedOrInjected.resolve<{ name: string }>();
+            expect(dep.maybeValue).toBeUndefined();
+
+            const built = { name: 'default' };
+            dep.set(built);
+
+            expect(dep.maybeValue).toBe(built);
+        });
+
         it('cannot be set() twice', () => {
             const dep = OwnedOrInjected.resolve<{ name: string }>();
             dep.set({ name: 'default' });

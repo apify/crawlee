@@ -61,7 +61,7 @@ export class OwnedOrInjected<Injected, Owned extends Injected = Injected> {
 
     /**
      * The resolved instance, typed as the public `Injected` type. Throws if the value is not present yet — callers that
-     * expect a lazily-filled owned slot should guard with {@apilink OwnedOrInjected.isPresent|`isPresent`} first.
+     * expect a lazily-filled owned slot should read {@apilink OwnedOrInjected.maybeValue|`maybeValue`} instead.
      */
     get value(): Injected {
         if (!this._present) {
@@ -69,6 +69,15 @@ export class OwnedOrInjected<Injected, Owned extends Injected = Injected> {
         }
 
         return this._value as Injected;
+    }
+
+    /**
+     * The resolved instance, or `undefined` when a lazily-filled owned slot hasn't been built yet. The non-throwing
+     * counterpart to {@apilink OwnedOrInjected.value|`value`} — pairs naturally with `?? fallback` so callers can read
+     * a possibly-empty slot without the `isPresent ? value : …` dance.
+     */
+    get maybeValue(): Injected | undefined {
+        return this._present ? (this._value as Injected) : undefined;
     }
 
     /**

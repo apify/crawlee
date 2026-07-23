@@ -987,6 +987,7 @@ export class OwnedOrInjected<Injected, Owned extends Injected = Injected> {
     ifOwned<R>(fn: (value: Owned) => R | Promise<R>): Promise<R | undefined>;
     get isOwned(): boolean;
     get isPresent(): boolean;
+    get maybeValue(): Injected | undefined;
     static resolve<Injected, Owned extends Injected = Injected>(injected?: Injected, buildDefault?: () => Owned): OwnedOrInjected<Injected, Owned>;
     set(value: Owned): Owned;
     get value(): Injected;

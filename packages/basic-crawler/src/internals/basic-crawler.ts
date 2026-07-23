@@ -1344,11 +1344,8 @@ export class BasicCrawler<
             // When `purgeRequestQueue` is explicitly `true`, we also purge a user-supplied manager.
             // When `purgeRequestQueue` is explicitly `false`, nothing is purged.
             const shouldPurge = purgeRequestQueue !== false;
-            const managerToPurge = this.ownedRequestQueue.isPresent
-                ? this.ownedRequestQueue.value
-                : purgeRequestQueue === true
-                  ? this.requestManager
-                  : undefined;
+            const managerToPurge =
+                this.ownedRequestQueue.maybeValue ?? (purgeRequestQueue === true ? this.requestManager : undefined);
 
             if (managerToPurge?.purge && shouldPurge) {
                 await managerToPurge.purge();
