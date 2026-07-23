@@ -258,7 +258,7 @@ export class Session implements ISession {
             this._errorScore -= this._errorScoreDecrement;
         }
 
-        this._maybeSelfRetire();
+        this.maybeSelfRetire();
     }
 
     /**
@@ -305,7 +305,7 @@ export class Session implements ISession {
         this._errorScore += 1;
         this._usageCount += 1;
 
-        this._maybeSelfRetire();
+        this.maybeSelfRetire();
     }
 
     /**
@@ -332,7 +332,7 @@ export class Session implements ISession {
     /**
      * Checks if session is not usable. if it is not retires the session.
      */
-    protected _maybeSelfRetire(): void {
+    private maybeSelfRetire(): void {
         if (!this.isUsable()) {
             this.retire();
         }

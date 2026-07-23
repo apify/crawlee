@@ -718,7 +718,7 @@ export class AdaptivePlaywrightCrawler<
         }
     }
 
-    protected async commitResult(
+    private async commitResult(
         crawlingContext: CrawlingContext,
         { calls, keyValueStoreChanges }: RequestHandlerResult,
     ): Promise<void> {
@@ -736,7 +736,7 @@ export class AdaptivePlaywrightCrawler<
         ]);
     }
 
-    protected allowStorageAccess<R, TArgs extends any[]>(
+    private allowStorageAccess<R, TArgs extends any[]>(
         func: (...args: TArgs) => Promise<R>,
     ): (...args: TArgs) => Promise<R> {
         return async (...args: TArgs) =>
@@ -755,7 +755,7 @@ export class AdaptivePlaywrightCrawler<
         return this.allowStorageAccess(() => super.getPendingRequestCountApproximation())();
     }
 
-    protected async enqueueLinks(
+    private async enqueueLinks(
         options: SetRequired<EnqueueLinksOptions, 'urls'>,
         request: RestrictedCrawlingContext['request'],
         result: RequestHandlerResult,

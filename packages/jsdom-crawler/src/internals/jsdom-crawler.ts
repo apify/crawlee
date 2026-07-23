@@ -194,9 +194,9 @@ export class JSDOMCrawler<
         hideInternalConsole: ow.optional.boolean,
     };
 
-    protected runScripts: boolean;
-    protected hideInternalConsole: boolean;
-    protected virtualConsole: VirtualConsole | null = null;
+    private runScripts: boolean;
+    private hideInternalConsole: boolean;
+    private virtualConsole: VirtualConsole | null = null;
 
     constructor(options: JSDOMCrawlerOptions<ContextExtension, ExtendedContext> = {}) {
         const { runScripts = false, hideInternalConsole = false, contextPipelineBuilder, ...httpOptions } = options;

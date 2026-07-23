@@ -2,7 +2,6 @@ import type { Dictionary, ProxyInfo } from '@crawlee/types';
 import ow from 'ow';
 
 import type { Request } from './request.js';
-import { serviceLocator } from './service_locator.js';
 
 export interface ProxyConfigurationFunction {
     (options?: { request?: Request }): string | null | Promise<string | null>;
@@ -61,11 +60,9 @@ interface NewUrlOptions {
  */
 export class ProxyConfiguration {
     isManInTheMiddle = false;
-    protected nextCustomUrlIndex = 0;
-    protected proxyUrls?: UrlList;
-    protected usedProxyUrls = new Map<string, string | null>();
-    protected newUrlFunction?: ProxyConfigurationFunction;
-    protected log = serviceLocator.getLogger().child({ prefix: 'ProxyConfiguration' });
+    private nextCustomUrlIndex = 0;
+    private proxyUrls?: UrlList;
+    private newUrlFunction?: ProxyConfigurationFunction;
 
     /**
      * Creates a {@apilink ProxyConfiguration} instance based on the provided options. Proxy servers are used to prevent target websites from
@@ -107,8 +104,8 @@ export class ProxyConfiguration {
 
         const { proxyUrls, newUrlFunction } = options;
 
-        if (proxyUrls && newUrlFunction) this._throwCannotCombineCustomMethods();
-        if (!proxyUrls && !newUrlFunction && validateRequired) this._throwNoOptionsProvided();
+        if (proxyUrls && newUrlFunction) this.throwCannotCombineCustomMethods();
+        if (!proxyUrls && !newUrlFunction && validateRequired) this.throwNoOptionsProvided();
 
         this.proxyUrls = proxyUrls;
         this.newUrlFunction = newUrlFunction;
@@ -146,20 +143,20 @@ export class ProxyConfiguration {
      */
     async newUrl(options?: NewUrlOptions): Promise<string | undefined> {
         if (this.newUrlFunction) {
-            return (await this._callNewUrlFunction({ request: options?.request })) ?? undefined;
+            return (await this.callNewUrlFunction({ request: options?.request })) ?? undefined;
         }
 
-        return this._handleProxyUrlsList() ?? undefined;
+        return this.handleProxyUrlsList() ?? undefined;
     }
 
-    protected _handleProxyUrlsList(): string | null {
+    private handleProxyUrlsList(): string | null {
         return this.proxyUrls![this.nextCustomUrlIndex++ % this.proxyUrls!.length];
     }
 
     /**
      * Calls the custom newUrlFunction and checks format of its return value
      */
-    protected async _callNewUrlFunction(options?: { request?: Request }) {
+    private async callNewUrlFunction(options?: { request?: Request }) {
         const proxyUrl = await this.newUrlFunction!(options);
         try {
             if (proxyUrl) {
@@ -173,13 +170,13 @@ export class ProxyConfiguration {
         }
     }
 
-    protected _throwCannotCombineCustomMethods(): never {
+    private throwCannotCombineCustomMethods(): never {
         throw new Error(
             'Cannot combine custom proxies "options.proxyUrls" with custom generating function "options.newUrlFunction".',
         );
     }
 
-    protected _throwNoOptionsProvided(): never {
+    private throwNoOptionsProvided(): never {
         throw new Error('One of "options.proxyUrls" or "options.newUrlFunction" needs to be provided.');
     }
 }

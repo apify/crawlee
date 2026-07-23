@@ -175,7 +175,7 @@ export class Statistics {
         this.requestsInProgress.clear();
         this.instanceStart = Date.now();
 
-        this._teardown();
+        this.teardown();
     }
 
     /**
@@ -227,7 +227,7 @@ export class Statistics {
         const jobDurationMillis = job.finish();
         this.state.requestsFinished++;
         this.state.requestTotalFinishedDurationMillis += jobDurationMillis;
-        this._saveRetryCountForJob(retryCount);
+        this.saveRetryCountForJob(retryCount);
         if (jobDurationMillis < this.state.requestMinDurationMillis)
             this.state.requestMinDurationMillis = jobDurationMillis;
         if (jobDurationMillis > this.state.requestMaxDurationMillis)
@@ -244,7 +244,7 @@ export class Statistics {
         if (!job) return;
         this.state.requestTotalFailedDurationMillis += job.finish();
         this.state.requestsFailed++;
-        this._saveRetryCountForJob(retryCount);
+        this.saveRetryCountForJob(retryCount);
         this.requestsInProgress.delete(id);
     }
 
@@ -310,14 +310,14 @@ export class Statistics {
      * Stops logging and remove event listeners, then persist
      */
     async stopCapturing() {
-        this._teardown();
+        this.teardown();
 
         this.state.crawlerFinishedAt = new Date();
 
         await this.persistState();
     }
 
-    protected _saveRetryCountForJob(retryCount: number) {
+    private saveRetryCountForJob(retryCount: number) {
         if (retryCount > 0) this.state.requestsRetries++;
         this.requestRetryHistogram[retryCount] ??= 0;
         this.requestRetryHistogram[retryCount]++;
@@ -391,7 +391,7 @@ export class Statistics {
         this.log.debug('Loaded from KeyValueStore');
     }
 
-    protected _teardown(): void {
+    private teardown(): void {
         // this can be called before a call to startCapturing happens (or in a 'finally' block)
         // Only unsubscribe if event manager was already resolved — avoid eagerly resolving it
         // (e.g. during the constructor's reset() call, which would capture the wrong context)

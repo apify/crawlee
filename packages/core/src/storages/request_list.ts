@@ -362,19 +362,19 @@ export class RequestList implements IRequestLoader {
         this.isLoading = true;
         await purgeDefaultStorages({ onlyPurgeOnce: true });
 
-        const [state, persistedRequests] = await this._loadStateAndPersistedRequests();
+        const [state, persistedRequests] = await this.loadStateAndPersistedRequests();
 
         // Add persisted requests / new sources in a memory efficient way because with very
         // large lists, we were running out of memory.
         if (persistedRequests) {
-            await this._addPersistedRequests(persistedRequests as Buffer);
+            await this.addPersistedRequests(persistedRequests as Buffer);
         } else {
-            await this._addRequestsFromSources();
+            await this.addRequestsFromSources();
         }
 
-        this._restoreState(state as RequestListState);
+        this.restoreState(state as RequestListState);
         this.isInitialized = true;
-        if (this.persistRequestsKey && !this.areRequestsPersisted) await this._persistRequests();
+        if (this.persistRequestsKey && !this.areRequestsPersisted) await this.persistRequests();
         if (this.persistStateKey) {
             serviceLocator.getEventManager().on(EventType.PERSIST_STATE, this.persistState);
         }
@@ -387,7 +387,7 @@ export class RequestList implements IRequestLoader {
      * This needs to be done in a memory efficient way. We should update the input
      * to a Stream once apify-client supports streams.
      */
-    protected async _addPersistedRequests(persistedRequests: Buffer): Promise<void> {
+    private async addPersistedRequests(persistedRequests: Buffer): Promise<void> {
         // We don't need the sources so we purge them to
         // prevent them from hanging in memory.
         for (let i = 0; i < this.sources.length; i++) {
@@ -399,7 +399,7 @@ export class RequestList implements IRequestLoader {
         this.areRequestsPersisted = true;
         const requestStream = createDeserialize(persistedRequests);
         for await (const request of requestStream) {
-            this._addRequest(request);
+            this.addRequest(request);
         }
     }
 
@@ -409,7 +409,7 @@ export class RequestList implements IRequestLoader {
      * We need to avoid keeping both sources and requests in memory
      * to reduce memory footprint with very large sources.
      */
-    protected async _addRequestsFromSources(): Promise<void> {
+    private async addRequestsFromSources(): Promise<void> {
         // We'll load all sources in sequence to ensure that they get loaded in the right order.
         const sourcesCount = this.sources.length;
         for (let i = 0; i < sourcesCount; i++) {
@@ -420,10 +420,10 @@ export class RequestList implements IRequestLoader {
             delete this.sources[i];
 
             if (typeof source === 'object' && (source as Dictionary).requestsFromUrl) {
-                const fetchedRequests = await this._fetchRequestsFromUrl(source as InternalSource);
-                await this._addFetchedRequests(source as InternalSource, fetchedRequests);
+                const fetchedRequests = await this.fetchRequestsFromUrl(source as InternalSource);
+                await this.addFetchedRequests(source as InternalSource, fetchedRequests);
             } else {
-                this._addRequest(source);
+                this.addRequest(source);
             }
         }
 
@@ -438,7 +438,7 @@ export class RequestList implements IRequestLoader {
                     const source = sourcesFromFunction[i];
                     // oxlint-disable-next-line typescript/no-array-delete -- intentional, drop the slot so V8 can collect the object
                     delete sourcesFromFunction[i];
-                    this._addRequest(source);
+                    this.addRequest(source);
                 }
 
                 sourcesFromFunction.length = 0;
@@ -485,7 +485,7 @@ export class RequestList implements IRequestLoader {
      * are automatically persisted at RequestList initialization (if the persistRequestsKey is set),
      * but there's no reason to persist it again afterwards, because RequestList is immutable.
      */
-    protected async _persistRequests(): Promise<void> {
+    private async persistRequests(): Promise<void> {
         const serializedRequests = await serializeArray(this.requests);
         this.store ??= await KeyValueStore.open();
         await this.store.setValue(this.persistRequestsKey!, serializedRequests, { contentType: CONTENT_TYPE_BINARY });
@@ -495,7 +495,7 @@ export class RequestList implements IRequestLoader {
     /**
      * Restores RequestList state from a state object.
      */
-    protected _restoreState(state?: RequestListState): void {
+    private restoreState(state?: RequestListState): void {
         // If there's no state it means we've not persisted any (yet).
         if (!state) return;
         // Restore previous state.
@@ -563,7 +563,7 @@ export class RequestList implements IRequestLoader {
      * Attempts to load state and requests using the `RequestList` configuration
      * and returns a tuple of [state, requests] where each may be null if not loaded.
      */
-    protected async _loadStateAndPersistedRequests(): Promise<[RequestListState, Buffer]> {
+    private async loadStateAndPersistedRequests(): Promise<[RequestListState, Buffer]> {
         let state!: RequestListState;
         let persistedRequests!: Buffer;
 
@@ -571,12 +571,12 @@ export class RequestList implements IRequestLoader {
             state = this.initialState;
             this.log.debug('Loaded state from options.state argument.');
         } else if (this.persistStateKey) {
-            state = await this._getPersistedState(this.persistStateKey);
+            state = await this.getPersistedState(this.persistStateKey);
             if (state) this.log.debug('Loaded state from key value store using the persistStateKey.');
         }
 
         if (this.persistRequestsKey) {
-            persistedRequests = await this._getPersistedState(this.persistRequestsKey);
+            persistedRequests = await this.getPersistedState(this.persistRequestsKey);
             if (persistedRequests) this.log.debug('Loaded requests from key value store using the persistRequestsKey.');
         }
 
@@ -588,7 +588,7 @@ export class RequestList implements IRequestLoader {
      * Note that the object's fields can change in future releases.
      */
     getState(): RequestListState {
-        this._ensureIsInitialized();
+        this.ensureIsInitialized();
 
         return {
             nextIndex: this.nextIndex,
@@ -601,7 +601,7 @@ export class RequestList implements IRequestLoader {
      * @inheritDoc
      */
     async isEmpty(): Promise<boolean> {
-        this._ensureIsInitialized();
+        this.ensureIsInitialized();
 
         return this.requestsToRetry.length === 0 && this.nextIndex >= this.requests.length;
     }
@@ -610,7 +610,7 @@ export class RequestList implements IRequestLoader {
      * @inheritDoc
      */
     async isFinished(): Promise<boolean> {
-        this._ensureIsInitialized();
+        this.ensureIsInitialized();
 
         return this.inProgress.size === 0 && this.nextIndex >= this.requests.length;
     }
@@ -619,7 +619,7 @@ export class RequestList implements IRequestLoader {
      * @inheritDoc
      */
     async fetchNextRequest(): Promise<Request | null> {
-        this._ensureIsInitialized();
+        this.ensureIsInitialized();
 
         // First re-serve any requests that were interrupted before the last state persist.
         const uniqueKey = this.requestsToRetry.shift();
@@ -667,9 +667,9 @@ export class RequestList implements IRequestLoader {
     async markRequestAsHandled(request: Request): Promise<void> {
         const { uniqueKey } = request;
 
-        this._ensureUniqueKeyValid(uniqueKey);
-        this._ensureInProgress(uniqueKey);
-        this._ensureIsInitialized();
+        this.ensureUniqueKeyValid(uniqueKey);
+        this.ensureInProgress(uniqueKey);
+        this.ensureIsInitialized();
 
         this.inProgress.delete(uniqueKey);
         this.isStatePersisted = false;
@@ -678,11 +678,11 @@ export class RequestList implements IRequestLoader {
     /**
      * Adds all fetched requests from a URL from a remote resource.
      */
-    protected async _addFetchedRequests(source: InternalSource, fetchedRequests: RequestOptions[]) {
+    private async addFetchedRequests(source: InternalSource, fetchedRequests: RequestOptions[]) {
         const { requestsFromUrl, regex } = source;
         const originalLength = this.requests.length;
 
-        fetchedRequests.forEach((request) => this._addRequest(request));
+        fetchedRequests.forEach((request) => this.addRequest(request));
 
         const fetchedCount = fetchedRequests.length;
         const importedCount = this.requests.length - originalLength;
@@ -697,7 +697,7 @@ export class RequestList implements IRequestLoader {
         });
     }
 
-    protected async _getPersistedState<T>(key: string): Promise<T> {
+    private async getPersistedState<T>(key: string): Promise<T> {
         this.store ??= await KeyValueStore.open();
         const state = await this.store.getValue<T>(key);
 
@@ -707,7 +707,7 @@ export class RequestList implements IRequestLoader {
     /**
      * Fetches URLs from requestsFromUrl and returns them in format of list of requests
      */
-    protected async _fetchRequestsFromUrl(source: InternalSource): Promise<RequestOptions[]> {
+    private async fetchRequestsFromUrl(source: InternalSource): Promise<RequestOptions[]> {
         const { requestsFromUrl, regex, ...sharedOpts } = source;
 
         // Download remote resource and parse URLs.
@@ -736,7 +736,7 @@ export class RequestList implements IRequestLoader {
      * If the `source` parameter is a string or plain object and not an instance
      * of a `Request`, then the function creates a `Request` instance.
      */
-    protected _addRequest(source: RequestListSource) {
+    private addRequest(source: RequestListSource) {
         let request: Request | RequestOptions;
         const type = typeof source;
 
@@ -759,7 +759,7 @@ export class RequestList implements IRequestLoader {
         }
 
         const { uniqueKey } = request;
-        this._ensureUniqueKeyValid(uniqueKey);
+        this.ensureUniqueKeyValid(uniqueKey);
 
         // Skip requests with duplicate uniqueKey
         if (!Object.hasOwn(this.uniqueKeyToIndex, uniqueKey)) {
@@ -776,7 +776,7 @@ export class RequestList implements IRequestLoader {
      * Helper function that validates unique key.
      * Throws an error if uniqueKey is not a non-empty string.
      */
-    protected _ensureUniqueKeyValid(uniqueKey: string): void {
+    private ensureUniqueKeyValid(uniqueKey: string): void {
         if (typeof uniqueKey !== 'string' || !uniqueKey) {
             throw new Error("Request object's uniqueKey must be a non-empty string");
         }
@@ -785,7 +785,7 @@ export class RequestList implements IRequestLoader {
     /**
      * Checks that a request is currently being processed and throws an error if not.
      */
-    protected _ensureInProgress(uniqueKey: string): void {
+    private ensureInProgress(uniqueKey: string): void {
         if (!this.inProgress.has(uniqueKey)) {
             throw new Error(`The request is not being processed (uniqueKey: ${uniqueKey})`);
         }
@@ -794,7 +794,7 @@ export class RequestList implements IRequestLoader {
     /**
      * Throws an error if request list wasn't initialized.
      */
-    protected _ensureIsInitialized(): void {
+    private ensureIsInitialized(): void {
         if (!this.isInitialized) {
             throw new Error(
                 'RequestList is not initialized; you must call "await requestList.initialize()" before using it!',
@@ -806,7 +806,7 @@ export class RequestList implements IRequestLoader {
      * Returns the total number of unique requests present in the `RequestList`.
      */
     async getTotalCount(): Promise<number> {
-        this._ensureIsInitialized();
+        this.ensureIsInitialized();
 
         return this.requests.length;
     }
@@ -815,7 +815,7 @@ export class RequestList implements IRequestLoader {
      * Returns the number of pending requests in the `RequestList`.
      */
     async getPendingCount(): Promise<number> {
-        this._ensureIsInitialized();
+        this.ensureIsInitialized();
 
         return this.requests.length - (this.nextIndex - this.inProgress.size);
     }
@@ -837,7 +837,7 @@ export class RequestList implements IRequestLoader {
      * @inheritDoc
      */
     async getHandledCount(): Promise<number> {
-        this._ensureIsInitialized();
+        this.ensureIsInitialized();
 
         return this.nextIndex - this.inProgress.size;
     }
