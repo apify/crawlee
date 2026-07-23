@@ -29,13 +29,8 @@ describe('RequestQueue remote', () => {
         vitest.clearAllMocks();
     });
 
-    async function createRequestQueue(id = 'some-id', name?: string) {
-        const client = await serviceLocator.getStorageBackend().createRequestQueueBackend(name ? { name } : { id });
-        return new RequestQueue({ id, name, backend: client }, serviceLocator.getConfiguration());
-    }
-
     test('adding a request makes it fetchable; fetching again returns null while in progress', async () => {
-        const queue = await createRequestQueue();
+        const queue = await RequestQueue.open();
 
         const info = await queue.addRequest({ url: 'http://example.com/a' });
         expect(info.wasAlreadyPresent).toBe(false);
@@ -51,7 +46,7 @@ describe('RequestQueue remote', () => {
     });
 
     test('adding the same uniqueKey twice does not duplicate and is served from the local cache', async () => {
-        const queue = await createRequestQueue();
+        const queue = await RequestQueue.open();
 
         const requestA = new Request({ url: 'http://example.com/a' });
         const requestB = new Request({ url: 'http://example.com/a' }); // Has the same uniqueKey as A.
@@ -81,7 +76,7 @@ describe('RequestQueue remote', () => {
     });
 
     test('a handled request is not fetched again and isFinished() becomes true', async () => {
-        const queue = await createRequestQueue();
+        const queue = await RequestQueue.open();
 
         await queue.addRequest({ url: 'http://example.com/a' });
 
@@ -95,7 +90,7 @@ describe('RequestQueue remote', () => {
     });
 
     test('a reclaimed request is fetched again; reclaim with forefront returns it to the front', async () => {
-        const queue = await createRequestQueue();
+        const queue = await RequestQueue.open();
 
         await queue.addRequest({ url: 'http://example.com/a' });
         await sleep(5);
@@ -114,7 +109,7 @@ describe('RequestQueue remote', () => {
     });
 
     test('addRequests processes requests and reports processed/unprocessed', async () => {
-        const queue = await createRequestQueue('batch-requests');
+        const queue = await RequestQueue.open();
 
         const result = await queue.addRequests([{ url: 'http://example.com/a' }, { url: 'http://example.com/b' }]);
 
@@ -141,10 +136,7 @@ describe('RequestQueue remote', () => {
     });
 
     test('addRequestsBatched does not retry permanently unprocessed requests forever', async () => {
-        const queue = new RequestQueue({
-            id: 'unprocessed-requests',
-            backend: { addBatchOfRequests: async () => ({ processedRequests: [], unprocessedRequests: [] }) } as any,
-        });
+        const queue = await RequestQueue.open();
         const mockAddRequests = vitest.spyOn(queue.backend, 'addBatchOfRequests');
 
         const requestOptions = { url: 'http://example.com/bad' };
@@ -168,30 +160,15 @@ describe('RequestQueue remote', () => {
     });
 
     test('addRequestsBatched does not re-submit already enqueued requests beyond the initial batch (#3120)', async () => {
-        const queue = new RequestQueue({
-            id: 'dedup-across-batches',
-            backend: { addBatchOfRequests: async () => ({ processedRequests: [], unprocessedRequests: [] }) } as any,
-        });
-        const mockAddRequests = vitest.spyOn(queue.backend, 'addBatchOfRequests');
+        const queue = await RequestQueue.open();
 
-        // Fake platform: deduplicates server-side by `uniqueKey` and counts every submitted request as a write.
-        const serverSeen = new Set<string>();
+        // The real memory backend already deduplicates server-side by `uniqueKey`; we only need to count
+        // how many requests are actually submitted to it (calling through to the real implementation).
         let submittedCount = 0;
-        mockAddRequests.mockImplementation(async (requests) => {
+        const addBatchOfRequests = queue.backend.addBatchOfRequests.bind(queue.backend);
+        vitest.spyOn(queue.backend, 'addBatchOfRequests').mockImplementation(async (requests, options) => {
             submittedCount += requests.length;
-            return {
-                processedRequests: requests.map((r) => {
-                    const wasAlreadyPresent = serverSeen.has(r.uniqueKey);
-                    serverSeen.add(r.uniqueKey);
-                    return {
-                        requestId: `id-${r.uniqueKey}`,
-                        uniqueKey: r.uniqueKey,
-                        wasAlreadyPresent,
-                        wasAlreadyHandled: false,
-                    };
-                }),
-                unprocessedRequests: [],
-            };
+            return addBatchOfRequests(requests, options);
         });
 
         // More requests than a single batch, so the tail is added in background batches (the buggy path).
@@ -212,7 +189,7 @@ describe('RequestQueue remote', () => {
     });
 
     test('fetchNextRequest order respects forefront enqueues', async () => {
-        const queue = await createRequestQueue('forefront-order');
+        const queue = await RequestQueue.open();
 
         // Add some non-forefront requests (sleep between adds to keep orderNo deterministic).
         await queue.addRequest({ url: 'http://example.com/1' });
@@ -247,7 +224,7 @@ describe('RequestQueue remote', () => {
     });
 
     test('isEmpty() reflects fetchable requests while isFinished() accounts for in-progress ones', async () => {
-        const queue = await createRequestQueue();
+        const queue = await RequestQueue.open();
 
         await queue.addRequest({ url: 'http://example.com/a' });
         // There is a pending request, so the queue is neither empty nor finished.
@@ -268,7 +245,7 @@ describe('RequestQueue remote', () => {
     });
 
     test('should accept plain object in addRequest()', async () => {
-        const queue = await createRequestQueue();
+        const queue = await RequestQueue.open();
 
         const requestOpts = { url: 'http://example.com/a' };
         const info = await queue.addRequest(requestOpts);
@@ -285,7 +262,7 @@ describe('RequestQueue remote', () => {
     });
 
     test('should return correct handledCount', async () => {
-        const queue = await createRequestQueue('id');
+        const queue = await RequestQueue.open();
         const getMock = vitest.spyOn(queue.backend, 'getMetadata');
         getMock.mockResolvedValueOnce({
             handledRequestCount: 33,
@@ -297,7 +274,7 @@ describe('RequestQueue remote', () => {
     });
 
     test('getInfo() should work', async () => {
-        const queue = await createRequestQueue('some-id', 'some-name');
+        const queue = await RequestQueue.open();
 
         const expected = {
             id: 'WkzbQMuFYuamGv3YF',
@@ -322,7 +299,7 @@ describe('RequestQueue remote', () => {
     });
 
     test('drop() works', async () => {
-        const queue = await createRequestQueue('some-id', 'some-name');
+        const queue = await RequestQueue.open();
         const dropMock = vitest.spyOn(queue.backend, 'drop').mockResolvedValueOnce(undefined);
 
         await queue.drop();
@@ -374,7 +351,7 @@ describe('RequestQueue remote', () => {
 
     describe('setExpectedRequestProcessingTimeSecs', () => {
         test('forwards the value to the client, but only ever raises it', async () => {
-            const queue = await createRequestQueue();
+            const queue = await RequestQueue.open();
             // The in-memory client does not implement this optional hint (it has no request locking to
             // tune), so attach a stub to verify the frontend's raise-only forwarding logic in isolation.
             const spy = vitest.fn();
@@ -397,12 +374,12 @@ describe('RequestQueue remote', () => {
 
     describe('stats', () => {
         test('start at zero', async () => {
-            const queue = await createRequestQueue();
+            const queue = await RequestQueue.open();
             expect(queue.stats).toEqual({ writeCount: 0, headItemReadCount: 0 });
         });
 
         test('count writes on add, handle and reclaim', async () => {
-            const queue = await createRequestQueue();
+            const queue = await RequestQueue.open();
 
             await queue.addRequest({ url: 'http://example.com/a' });
             expect(queue.stats.writeCount).toBe(1);
@@ -415,7 +392,7 @@ describe('RequestQueue remote', () => {
         });
 
         test('count head reads on fetchNextRequest', async () => {
-            const queue = await createRequestQueue();
+            const queue = await RequestQueue.open();
 
             await queue.addRequest({ url: 'http://example.com/a' });
 
