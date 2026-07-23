@@ -1220,7 +1220,7 @@ export interface RequestListOptions {
     keepDuplicateUrls?: boolean;
     persistRequestsKey?: string;
     persistStateKey?: string;
-    proxyConfiguration?: ProxyConfiguration;
+    proxyConfiguration?: IProxyConfiguration;
     sources?: RequestListSource[];
     sourcesFunction?: RequestListSourcesFunction;
     state?: RequestListState;
@@ -1323,7 +1323,7 @@ export class RequestQueue implements IStorage, IRequestManager {
     name?: string;
     static open(identifier?: string | StorageIdentifier | null, options?: StorageOpenOptions): Promise<RequestQueue>;
     // (undocumented)
-    protected proxyConfiguration?: ProxyConfiguration;
+    protected proxyConfiguration?: IProxyConfiguration;
     purge(): Promise<void>;
     // (undocumented)
     protected queuePausedForMigration: boolean;
@@ -1345,7 +1345,7 @@ export interface RequestQueueOptions {
     // (undocumented)
     backend: RequestQueueBackend;
     metadata: RequestQueueInfo;
-    proxyConfiguration?: ProxyConfiguration;
+    proxyConfiguration?: IProxyConfiguration;
 }
 
 // @public
@@ -1934,7 +1934,7 @@ export class StorageInstanceManager {
 export interface StorageOpenOptions {
     config?: Configuration;
     httpClient?: BaseHttpClient;
-    proxyConfiguration?: ProxyConfiguration;
+    proxyConfiguration?: IProxyConfiguration;
     storageBackend?: StorageBackend;
 }
 
