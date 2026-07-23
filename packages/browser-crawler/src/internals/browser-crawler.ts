@@ -466,6 +466,10 @@ export abstract class BrowserCrawler<
                 }) as OwnedBrowserPool<Page>;
             }
 
+            // Double cast: `BrowserPool` implements `IBrowserPool<PageReturn>`, where `PageReturn` is derived from the
+            // plugin/controller generics and doesn't overlap with the crawler's free `Page` type param, so TS won't
+            // narrow it directly. The concrete pool does satisfy the `Page`/`destroy` contract at runtime — this is the
+            // long-standing `Page` variance gap, not a `destroy`-related hole.
             return new BrowserPool<InternalBrowserPoolOptions>({
                 ...(resolvedBrowserPoolOptions as any),
             }) as unknown as OwnedBrowserPool<Page>;
