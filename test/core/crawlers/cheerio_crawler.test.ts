@@ -335,7 +335,7 @@ describe('CheerioCrawler', () => {
             });
 
             // @ts-expect-error Overriding private method
-            cheerioCrawler._requestFunction = async () => {
+            cheerioCrawler.requestFunction = async () => {
                 await sleep(300);
                 return '<html><head></head><body>Body</body></html>';
             };
@@ -663,7 +663,7 @@ describe('CheerioCrawler', () => {
             });
 
             // @ts-expect-error Using private method
-            const { response, encoding } = crawler._encodeResponse({}, new Response(new Uint8Array(buf)));
+            const { response, encoding } = crawler.encodeResponse({}, new Response(new Uint8Array(buf)));
             expect(encoding).toBe('utf8');
             expect(await response.text()).toBe(html);
         });
@@ -684,7 +684,7 @@ describe('CheerioCrawler', () => {
             });
 
             // @ts-expect-error Using private method
-            const { response, encoding } = crawler._encodeResponse({}, new Response(new Uint8Array(buf)), 'ascii');
+            const { response, encoding } = crawler.encodeResponse({}, new Response(new Uint8Array(buf)), 'ascii');
             expect(encoding).toBe('utf8');
             expect(await response.text()).toBe(html);
         });
