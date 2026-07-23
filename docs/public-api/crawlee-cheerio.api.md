@@ -10,7 +10,7 @@ import * as cheerio from 'cheerio';
 import type { CheerioAPI } from 'cheerio';
 import { CheerioRoot } from '@crawlee/utils';
 import { ContextPipeline } from '@crawlee/http';
-import { CrawlingContext } from '@crawlee/http';
+import type { CrawlingContext } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
 import type { EnqueueLinksOptions } from '@crawlee/http';
 import type { ErrorHandler } from '@crawlee/http';
@@ -59,7 +59,8 @@ JSONData extends Dictionary = any> extends InternalHttpCrawlingContext<UserData,
 
 // @public (undocumented)
 export type CheerioErrorHandler<UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-JSONData extends Dictionary = any> = ErrorHandler<CheerioCrawlingContext<UserData, JSONData>>;
+JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
+ContextExtension = Dictionary<never>> = ErrorHandler<CrawlingContext, CheerioCrawlingContext<UserData, JSONData> & ContextExtension>;
 
 // @public (undocumented)
 export type CheerioHook<UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler

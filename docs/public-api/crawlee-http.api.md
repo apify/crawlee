@@ -86,7 +86,8 @@ export interface FileDownloadCrawlingContext<UserData extends Dictionary = any> 
 }
 
 // @public (undocumented)
-export type FileDownloadErrorHandler<UserData extends Dictionary = any> = ErrorHandler<FileDownloadCrawlingContext<UserData>>;
+export type FileDownloadErrorHandler<UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
+ContextExtension = Dictionary<never>> = ErrorHandler<CrawlingContext_2, FileDownloadCrawlingContext<UserData> & ContextExtension>;
 
 // @public (undocumented)
 export type FileDownloadHook<UserData extends Dictionary = any> = InternalHttpHook<FileDownloadCrawlingContext<UserData>>;
@@ -217,7 +218,8 @@ export interface HttpCrawlingContext<UserData extends Dictionary = any, JSONData
 
 // @public (undocumented)
 export type HttpErrorHandler<UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-JSONData extends JsonValue = any> = ErrorHandler<HttpCrawlingContext<UserData, JSONData>>;
+JSONData extends JsonValue = any, // with default to Dictionary we cant use a typed router in untyped crawler
+ContextExtension = Dictionary<never>> = ErrorHandler<CrawlingContext, HttpCrawlingContext<UserData, JSONData> & ContextExtension>;
 
 // @public (undocumented)
 export type HttpHook<UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
