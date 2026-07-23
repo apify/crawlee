@@ -699,6 +699,7 @@ describe('SitemapRequestList', () => {
             sitemapUrls: [`${url}/sitemap.xml`],
             persistStateKey: 'backpressure-persist',
             maxBufferSize: 1,
+            enqueueStrategy: 'all',
         });
 
         // Wait until the first URL is buffered, i.e. the loader is parked on backpressure.
