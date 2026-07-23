@@ -34,14 +34,6 @@ export const CLOUDFLARE_RETRY_CSS_SELECTORS: string[];
 export { Constructor }
 
 // @public
-export interface CpuSample {
-    // (undocumented)
-    containerUsage: number;
-    // (undocumented)
-    systemUsage: number;
-}
-
-// @public
 export function createRequestDebugInfo(request: Request_2, response?: IncomingMessage | Partial<BrowserResponseLike>, additionalFields?: Dictionary): Dictionary;
 
 export { Dictionary }
@@ -112,9 +104,6 @@ const FACEBOOK_REGEX: RegExp;
 // @public
 const FACEBOOK_REGEX_GLOBAL: RegExp;
 
-// @public
-export function getCgroupsVersion(forceReset?: boolean): Promise<"V1" | "V2" | null>;
-
 // @public (undocumented)
 export function getObjectType(value: unknown): string;
 
@@ -131,15 +120,6 @@ const INSTAGRAM_REGEX_GLOBAL: RegExp;
 export function isBuffer(value: unknown): value is Buffer | ArrayBuffer | ArrayBufferView;
 
 // @public
-export function isContainerized(): Promise<boolean>;
-
-// @public
-export function isDocker(forceReset?: boolean): Promise<boolean>;
-
-// @public (undocumented)
-export function isLambda(): boolean;
-
-// @public
 export function isStream(value: unknown): value is NodeJS.ReadableStream | ReadableStream;
 
 // @public (undocumented)
@@ -150,15 +130,6 @@ const LINKEDIN_REGEX: RegExp;
 
 // @public
 const LINKEDIN_REGEX_GLOBAL: RegExp;
-
-// @public
-export interface MemoryInfo {
-    childProcessesBytes: number;
-    freeBytes: number;
-    mainProcessBytes: number;
-    totalBytes: number;
-    usedBytes: number;
-}
 
 // @public
 export function mergeAsyncIterables<T>(...iterables: AsyncIterable<T>[]): AsyncIterable<T>;
