@@ -531,6 +531,19 @@ export interface BasicCrawlerOptions<
  * ```
  * @category Crawlers
  */
+
+/**
+ * Identifies a crawler instance for storage aliasing, `useState()` and status-message events.
+ */
+interface CrawlerIdentity {
+    /** 0-based instantiation order across all crawlers in the process. Used only for legacy default-storage aliasing. */
+    readonly instantiationIndex: number;
+    /** The user-supplied `id` option, or a fallback derived from `instantiationIndex`. */
+    readonly id: string;
+    /** Whether `id` came from the user (as opposed to being derived from `instantiationIndex`). */
+    readonly explicit: boolean;
+}
+
 export class BasicCrawler<
     Context extends CrawlingContext = CrawlingContext,
     ContextExtension = Dictionary<never>,
@@ -539,17 +552,17 @@ export class BasicCrawler<
     protected static readonly CRAWLEE_STATE_KEY = 'CRAWLEE_STATE';
 
     /**
-     * Tracks crawler instances that accessed shared state without having an explicit id.
-     * Used to detect and warn about multiple crawlers sharing the same state.
-     */
-    private static useStateCrawlerIds = new Set<string>();
-
-    /**
      * Tracks the number of crawler instances created. The first crawler uses the default
      * request queue; subsequent ones get their own queue via a unique alias so they don't
      * collide.
      */
     private static instanceCount = 0;
+
+    /**
+     * Tracks crawler instances that accessed shared state without having an explicit id.
+     * Used to detect and warn about multiple crawlers sharing the same state.
+     */
+    private static useStateAnonymousIndices = new Set<number>();
 
     /**
      * A reference to the underlying {@apilink Statistics} class that collects and logs run statistics for requests.
@@ -686,9 +699,7 @@ export class BasicCrawler<
     private _closeEvents?: boolean;
     private loggedPerRun = new Set<string>();
     private readonly robotsTxtFileCache: LruCache<RobotsTxtFile>;
-    private readonly crawlerId: string;
-    private readonly hasExplicitId: boolean;
-    private readonly crawlerInstanceIndex: number;
+    protected readonly identity: CrawlerIdentity;
     private readonly contextPipelineOptions: {
         contextPipelineBuilder?: () => ContextPipeline<CrawlingContext, Context>;
         extendContext?: (context: Context) => Awaitable<ContextExtension>;
@@ -823,11 +834,8 @@ export class BasicCrawler<
 
             this.#log = serviceLocator.getLogger().child({ prefix: this.constructor.name });
 
-            // Store whether the user explicitly provided an ID
-            this.hasExplicitId = id !== undefined;
-            // Store the user-provided ID, or generate a unique one for tracking purposes (not for state key)
-            this.crawlerInstanceIndex = BasicCrawler.instanceCount++;
-            this.crawlerId = id ?? this.crawlerInstanceIndex.toString();
+            const instantiationIndex = BasicCrawler.instanceCount++;
+            this.identity = { instantiationIndex, explicit: id !== undefined, id: id ?? String(instantiationIndex) };
 
             if (requestManager !== undefined) {
                 if (requestList !== undefined || requestQueue !== undefined) {
@@ -885,7 +893,7 @@ export class BasicCrawler<
             this.stats = new Statistics({
                 logMessage: `${this.constructor.name} request statistics:`,
                 log: this.log,
-                id: this.crawlerId,
+                id: this.identity.id,
                 ...statisticsOptions,
             });
 
@@ -1245,7 +1253,7 @@ export class BasicCrawler<
         // Setting the status message is not a storage concern, so we intentionally don't route it
         // through the storage client anymore.
         serviceLocator.getEventManager().emit(EventType.STATUS_MESSAGE, {
-            crawlerId: this.crawlerId,
+            crawlerId: this.identity.id,
             message,
             isStatusMessageTerminal: options.isStatusMessageTerminal,
             level: options.level,
@@ -1485,7 +1493,7 @@ export class BasicCrawler<
     private async openOwnedRequestQueue(): Promise<IRequestManager> {
         // The first crawler instance uses the default queue (null identifier);
         // subsequent instances get their own queue via a unique alias so they don't collide.
-        const identifier = this.crawlerInstanceIndex === 0 ? null : { alias: `__default_${this.crawlerId}__` };
+        const identifier = this.identity.instantiationIndex === 0 ? null : { alias: `__default_${this.identity.id}__` };
 
         const requestQueue = await RequestQueue.open(identifier, { config: serviceLocator.getConfiguration() });
         this.ownedRequestManager = requestQueue;
@@ -1540,14 +1548,14 @@ export class BasicCrawler<
     async useState<State extends Dictionary = Dictionary>(defaultValue = {} as State): Promise<State> {
         const kvs = await KeyValueStore.open(null, { config: serviceLocator.getConfiguration() });
 
-        if (this.hasExplicitId) {
-            const stateKey = `${BasicCrawler.CRAWLEE_STATE_KEY}_${this.crawlerId}`;
+        if (this.identity.explicit) {
+            const stateKey = `${BasicCrawler.CRAWLEE_STATE_KEY}_${this.identity.id}`;
             return kvs.getAutoSavedValue<State>(stateKey, defaultValue);
         }
 
-        BasicCrawler.useStateCrawlerIds.add(this.crawlerId);
+        BasicCrawler.useStateAnonymousIndices.add(this.identity.instantiationIndex);
 
-        if (BasicCrawler.useStateCrawlerIds.size > 1) {
+        if (BasicCrawler.useStateAnonymousIndices.size > 1) {
             serviceLocator
                 .getLogger()
                 .warningOnce(
