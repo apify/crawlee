@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { dirname, relative, resolve } from 'node:path';
+import { basename, dirname, relative, resolve } from 'node:path';
 
 import { Extractor, ExtractorConfig, type IConfigFile } from '@microsoft/api-extractor';
 import { globbySync } from 'globby';
@@ -24,6 +24,10 @@ const root = resolve(import.meta.dirname, '..', '..');
 const baseConfigPath = resolve(import.meta.dirname, 'api-extractor.base.json');
 const baseConfig = JSON.parse(readFileSync(baseConfigPath, 'utf8')) as IConfigFile;
 const reportFolder = resolve(root, 'docs', 'public-api');
+// API Extractor writes the "public" variant to a `.public.api.md` staging file here; we then
+// promote it onto the committed `<name>.api.md` ourselves (see `extract`), so the committed
+// filenames stay stable while the report content is @public-only (no @internal symbols).
+const stagingFolder = resolve(reportFolder, 'temp');
 const mirrorRoot = resolve(root, 'node_modules', '.cache', 'api-extractor-dts');
 const verify = process.argv.includes('--verify');
 
@@ -70,7 +74,11 @@ const stripTsIgnore = (content: string) =>
         .filter((line) => !TS_IGNORE_LINE.test(line))
         .join('\n');
 
-const reportFileName = (name: string) => `${name.replace('@', '').replace('/', '-')}.api.md`;
+const reportBaseName = (name: string) => name.replace('@', '').replace('/', '-');
+const reportFileName = (name: string) => `${reportBaseName(name)}.api.md`;
+// With `reportVariants: ['public']`, API Extractor appends the variant kind to the file name,
+// producing `<base>.public.api.md`. We stage that, then promote it to `<base>.api.md`.
+const stagedFileName = (name: string) => `${reportBaseName(name)}.public.api.md`;
 
 /** Lazily built sanitized mirror of the dist tree, with a `@crawlee/*` -> mirror paths map. */
 let mirror: { packages: string; paths: Record<string, string[]> } | undefined;
@@ -93,6 +101,7 @@ function getMirror() {
 }
 
 function extract(pkgDir: string, pkgJsonPath: string, entry: string, paths?: Record<string, string[]>) {
+    const name = manifest(pkgJsonPath).name;
     const config = ExtractorConfig.prepare({
         configObjectFullPath: baseConfigPath,
         packageJsonFullPath: pkgJsonPath,
@@ -105,17 +114,41 @@ function extract(pkgDir: string, pkgJsonPath: string, entry: string, paths?: Rec
                 : baseConfig.compiler,
             apiReport: {
                 enabled: true,
-                reportFileName: reportFileName(manifest(pkgJsonPath).name),
-                reportFolder,
-                reportTempFolder: resolve(reportFolder, 'temp'),
+                // @public-only: drops @internal/@alpha/@beta symbols from the surface map.
+                reportVariants: ['public'],
+                reportFileName: reportFileName(name),
+                // Stage into temp; we promote the `.public.api.md` output onto the committed
+                // `<base>.api.md` ourselves so the tracked filenames don't change.
+                reportFolder: stagingFolder,
+                reportTempFolder: stagingFolder,
             },
         },
     });
-    return Extractor.invoke(config, { localBuild: !verify, showVerboseMessages: false });
+    // Let API Extractor always write the staged report (localBuild), then diff it against the
+    // committed report ourselves so `--verify` keys off the stable `<base>.api.md` name.
+    Extractor.invoke(config, { localBuild: true, showVerboseMessages: false });
+
+    const staged = readFileSync(resolve(stagingFolder, stagedFileName(name)), 'utf8');
+    const committedPath = resolve(reportFolder, reportFileName(name));
+    const committed = existsSync(committedPath) ? readFileSync(committedPath, 'utf8') : undefined;
+    const apiReportChanged = staged !== committed;
+    if (apiReportChanged && !verify) writeFileSync(committedPath, staged);
+    return { apiReportChanged };
 }
 
 function main() {
     let failed = 0;
+
+    // Report filenames owned by an in-scope package. Any committed `*.api.md` not in this set
+    // is orphaned (e.g. its package was removed or renamed) and gets pruned in extract mode.
+    // Keyed off package existence, not per-run success, so a transient build/extract failure
+    // never deletes an otherwise-valid report.
+    const expectedReports = new Set(
+        packageJsonPaths
+            .map(manifest)
+            .filter((pkg) => !pkg.private && !EXCLUDED.has(pkg.name))
+            .map((pkg) => reportFileName(pkg.name)),
+    );
 
     // The build injects `// @ts-ignore` lines into the `.d.ts` files that crash API
     // Extractor's AST walker, so strip them for the duration of the run and restore after.
@@ -177,6 +210,21 @@ function main() {
     } finally {
         for (const [file, content] of originals) writeFileSync(file, content);
         rmSync(mirrorRoot, { recursive: true, force: true });
+    }
+
+    // Prune orphaned reports: committed `*.api.md` files with no owning in-scope package
+    // (e.g. a removed/renamed package). Delete them in extract mode; flag them in verify mode.
+    for (const file of globbySync('*.api.md', { cwd: reportFolder, absolute: true })) {
+        if (expectedReports.has(basename(file))) continue;
+        if (verify) {
+            const message = `${basename(file)}: orphaned report (no matching package) — run "pnpm api:extract" to remove it`;
+            console.error(`✗ ${message}`);
+            ghCommand('error', message);
+            failed++;
+        } else {
+            rmSync(file);
+            console.log(`✓ removed orphaned report ${basename(file)}`);
+        }
     }
 
     if (failed > 0) {
