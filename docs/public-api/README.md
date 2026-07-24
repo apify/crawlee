@@ -23,7 +23,12 @@ They are produced by [API Extractor](https://api-extractor.com/) from the built
 
 ## Notes
 
-- `docs/public-api/temp/` holds intermediate reports and is git-ignored.
+- The reports are generated as API Extractor's **`public`** variant, so symbols tagged
+  `@internal` (`@alpha`/`@beta` too) are excluded — only `@public` surface is tracked.
+  The generator stages the variant as `<name>.public.api.md` under `temp/` and promotes it
+  onto the committed `<name>.api.md`, so the tracked filenames stay stable.
+- `docs/public-api/temp/` holds intermediate reports (including the staged `.public.api.md`
+  files) and is git-ignored.
 - `@crawlee/cli` and `@crawlee/templates` are deliberately excluded — they are tooling
   (a CLI binary and project scaffolding), not an importable API where we promise BC. The
   exclude list lives in `scripts/api-extractor/run.ts`.
@@ -32,6 +37,6 @@ They are produced by [API Extractor](https://api-extractor.com/) from the built
   afterwards) because API Extractor's AST walker trips over some of them; a small number
   of packages additionally need a sanitized-mirror fallback. See the comments in
   `scripts/api-extractor/run.ts` for details.
-- Symbols tagged `@internal` still show up here if they are exported. Shrinking these
-  reports (hiding internals, e.g. via `@internal` + a trimmed rollup, or by not exporting
-  them at all) is the goal tracked in issue #3109.
+- These reports now cover only the `@public` surface. Further shrinking them — genuinely
+  hiding class internals (untagged `protected`/`_`-prefixed members) rather than merely
+  tagging them — is the goal tracked in issue #3109.

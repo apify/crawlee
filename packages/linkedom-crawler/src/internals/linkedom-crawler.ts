@@ -1,5 +1,6 @@
 import type {
     BasicCrawlingContext,
+    CrawlingContext,
     EnqueueLinksOptions,
     ErrorHandler,
     GetUserDataFromRequest,
@@ -30,7 +31,8 @@ import { DOMParser } from 'linkedom/cached';
 export type LinkeDOMErrorHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-> = ErrorHandler<LinkeDOMCrawlingContext<UserData, JSONData>>;
+    ContextExtension = Dictionary<never>,
+> = ErrorHandler<CrawlingContext, LinkeDOMCrawlingContext<UserData, JSONData> & ContextExtension>;
 
 export interface LinkeDOMCrawlerOptions<
     ContextExtension = Dictionary<never>,

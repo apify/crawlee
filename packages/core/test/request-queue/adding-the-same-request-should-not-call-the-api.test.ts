@@ -12,9 +12,8 @@ beforeEach(async () => {
 
 describe('RequestQueue#addRequest should not call the API if the request is already in the queue', () => {
     test('should not call the API if the request is already in the queue', async () => {
-        const config = serviceLocator.getConfiguration();
         const rqInfo = await rqClient.getMetadata();
-        const requestQueue = new RequestQueue({ id: rqInfo.id, backend: rqClient }, config);
+        const requestQueue = new RequestQueue({ metadata: rqInfo, backend: rqClient });
 
         const clientSpy = vitest.spyOn(requestQueue.backend, 'addBatchOfRequests');
 
@@ -35,9 +34,8 @@ describe('RequestQueue#addRequest should not call the API if the request is alre
 
 describe('RequestQueue#addRequests should not call the API if the request is already in the queue', () => {
     test('should not call the API if the request is already in the queue', async () => {
-        const config = serviceLocator.getConfiguration();
         const rqInfo = await rqClient.getMetadata();
-        const requestQueue = new RequestQueue({ id: rqInfo.id, backend: rqClient }, config);
+        const requestQueue = new RequestQueue({ metadata: rqInfo, backend: rqClient });
 
         const clientSpy = vitest.spyOn(requestQueue.backend, 'addBatchOfRequests');
 

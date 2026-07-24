@@ -13,7 +13,6 @@ import { createEventLoopLoadSignal } from './event_loop_load_signal.js';
 import type { LoadSignal } from './load_signal.js';
 import type { MemorySnapshot } from './memory_load_signal.js';
 import { MemoryLoadSignal } from './memory_load_signal.js';
-import type { SystemInfo } from './system_status.js';
 
 export interface SnapshotterOptions {
     /**
@@ -94,9 +93,9 @@ export interface SnapshotterOptions {
  * @category Scaling
  */
 export class Snapshotter {
-    log: CrawleeLogger;
-    client: StorageBackend;
-    config: Configuration;
+    readonly log: CrawleeLogger;
+    readonly client: StorageBackend;
+    readonly config: Configuration;
 
     private readonly memorySignal: MemoryLoadSignal;
     private readonly eventLoopSignal: EventLoopLoadSignal;
@@ -245,47 +244,5 @@ export class Snapshotter {
      */
     getClientSample(sampleDurationMillis?: number): ClientSnapshot[] {
         return this.clientSignal.getSample(sampleDurationMillis);
-    }
-
-    /**
-     * @deprecated Kept for backward compatibility.
-     */
-    protected _snapshotMemory(systemInfo: SystemInfo) {
-        this.memorySignal._onSystemInfo(systemInfo);
-    }
-
-    /**
-     * @deprecated Kept for backward compatibility.
-     */
-    protected _memoryOverloadWarning(systemInfo: SystemInfo) {
-        this.memorySignal._memoryOverloadWarning(systemInfo);
-    }
-
-    /**
-     * @deprecated Kept for backward compatibility.
-     */
-    protected _snapshotEventLoop(intervalCallback: () => unknown) {
-        this.eventLoopSignal.handle(intervalCallback);
-    }
-
-    /**
-     * @deprecated Kept for backward compatibility.
-     */
-    protected _snapshotCpu(systemInfo: SystemInfo) {
-        this.cpuSignal.handle(systemInfo);
-    }
-
-    /**
-     * @deprecated Kept for backward compatibility.
-     */
-    protected _snapshotClient(intervalCallback: () => unknown) {
-        this.clientSignal.handle(intervalCallback);
-    }
-
-    /**
-     * @deprecated Pruning is now handled by individual signals.
-     */
-    protected _pruneSnapshots(_snapshots: any[], _now: Date) {
-        // no-op — signals prune themselves
     }
 }

@@ -184,20 +184,17 @@ describe('Snapshotter', () => {
         const clock = vitest.useFakeTimers();
         try {
             const snapshotter = new Snapshotter({ maxBlockedMillis: 5, eventLoopSnapshotIntervalSecs: 0 });
-            // @ts-expect-error Calling protected method
-            snapshotter._snapshotEventLoop(noop);
+            // @ts-expect-error Accessing private property
+            const eventLoopSignal = snapshotter.eventLoopSignal;
+            eventLoopSignal.handle(noop);
             clock.advanceTimersByTime(1);
-            // @ts-expect-error Calling protected method
-            snapshotter._snapshotEventLoop(noop);
+            eventLoopSignal.handle(noop);
             clock.advanceTimersByTime(2);
-            // @ts-expect-error Calling protected method
-            snapshotter._snapshotEventLoop(noop);
+            eventLoopSignal.handle(noop);
             clock.advanceTimersByTime(7);
-            // @ts-expect-error Calling protected method
-            snapshotter._snapshotEventLoop(noop);
+            eventLoopSignal.handle(noop);
             clock.advanceTimersByTime(3);
-            // @ts-expect-error Calling protected method
-            snapshotter._snapshotEventLoop(noop);
+            eventLoopSignal.handle(noop);
             const loopSnapshots = snapshotter.getEventLoopSample();
 
             expect(loopSnapshots.length).toBe(5);
@@ -297,17 +294,15 @@ describe('Snapshotter', () => {
         apifyClient.stats!.rateLimitErrors = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 
         const snapshotter = new Snapshotter({ maxClientErrors: 1 });
-        // @ts-expect-error Calling protected method
-        snapshotter._snapshotClient(noop);
+        // @ts-expect-error Accessing private property
+        const clientSignal = snapshotter.clientSignal;
+        clientSignal.handle(noop);
         apifyClient.stats!.rateLimitErrors = [1, 1, 1, 0, 0, 0, 0, 0, 0, 0];
-        // @ts-expect-error Calling protected method
-        snapshotter._snapshotClient(noop);
+        clientSignal.handle(noop);
         apifyClient.stats!.rateLimitErrors = [10, 5, 2, 0, 0, 0, 0, 0, 0, 0];
-        // @ts-expect-error Calling protected method
-        snapshotter._snapshotClient(noop);
+        clientSignal.handle(noop);
         apifyClient.stats!.rateLimitErrors = [100, 24, 4, 2, 0, 0, 0, 0, 0, 0];
-        // @ts-expect-error Calling protected method
-        snapshotter._snapshotClient(noop);
+        clientSignal.handle(noop);
 
         const clientSnapshots = snapshotter.getClientSample();
 

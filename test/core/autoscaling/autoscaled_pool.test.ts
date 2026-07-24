@@ -157,29 +157,29 @@ describe('AutoscaledPool', () => {
 
         test('works with low values', () => {
             // @ts-expect-error Calling private method
-            pool._autoscale(cb);
+            pool.autoscale(cb);
             expect(pool.desiredConcurrency).toBe(2);
 
             // @ts-expect-error Calling private method
-            pool._autoscale(cb);
+            pool.autoscale(cb);
             expect(pool.desiredConcurrency).toBe(2); // because currentConcurrency is not high enough;
 
             // @ts-expect-error Overwriting readonly private prop
             pool._currentConcurrency = 2;
             // @ts-expect-error Calling private method
-            pool._autoscale(cb);
+            pool.autoscale(cb);
             expect(pool.desiredConcurrency).toBe(3);
 
             systemStatus.okNow = false; // this should have no effect
             // @ts-expect-error Overwriting readonly private prop
             pool._currentConcurrency = 3;
             // @ts-expect-error Calling private method
-            pool._autoscale(cb);
+            pool.autoscale(cb);
             expect(pool.desiredConcurrency).toBe(4);
 
             systemStatus.okLately = false;
             // @ts-expect-error Calling private method
-            pool._autoscale(cb);
+            pool.autoscale(cb);
             expect(pool.desiredConcurrency).toBe(3);
         });
 
@@ -190,7 +190,7 @@ describe('AutoscaledPool', () => {
             pool._currentConcurrency = Math.floor(pool.desiredConcurrency * pool.desiredConcurrencyRatio) - 1;
             systemStatus.okLately = true;
             // @ts-expect-error Calling private method
-            pool._autoscale(cb);
+            pool.autoscale(cb);
             expect(pool.desiredConcurrency).toBe(50);
 
             // Should scale because we bumped up current concurrency.
@@ -199,7 +199,7 @@ describe('AutoscaledPool', () => {
             // @ts-expect-error Accessing private prop
             let newConcurrency = pool.desiredConcurrency + Math.ceil(pool.desiredConcurrency * pool.scaleUpStepRatio);
             // @ts-expect-error Calling private method
-            pool._autoscale(cb);
+            pool.autoscale(cb);
             expect(pool.desiredConcurrency).toEqual(newConcurrency);
 
             // Should scale down.
@@ -207,7 +207,7 @@ describe('AutoscaledPool', () => {
             // @ts-expect-error Accessing private prop
             newConcurrency = pool.desiredConcurrency - Math.ceil(pool.desiredConcurrency * pool.scaleDownStepRatio);
             // @ts-expect-error Calling private method
-            pool._autoscale(cb);
+            pool.autoscale(cb);
             expect(pool.desiredConcurrency).toEqual(newConcurrency);
         });
 
@@ -408,7 +408,7 @@ describe('AutoscaledPool', () => {
             loggingIntervalSecs: null,
         });
         // @ts-expect-error Calling private method
-        pool._autoscale(() => {});
+        pool.autoscale(() => {});
         expect(pool.desiredConcurrency).toBe(2);
     });
 

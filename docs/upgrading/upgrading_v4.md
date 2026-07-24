@@ -34,7 +34,46 @@ The crawler following options are removed:
 
 ## Underscore prefix is removed from many protected and private methods
 
+The leading underscore was dropped from protected and private class members across the codebase. The most visible rename is:
+
 - `BasicCrawler._runRequestHandler` -> `BasicCrawler.runRequestHandler`
+
+The file-system storage backends' shared `CachedIdClient._cachedId` protected field was also renamed to `cachedId` (this only affects custom `@crawlee/fs-storage` backends that subclass it).
+
+Members that were also made `private` in the same pass are listed under [Unintentionally exposed internals are now private](#unintentionally-exposed-internals-are-now-private) below.
+
+## Unintentionally exposed internals are now private
+
+A number of class members were `public` or `protected` only by accident — they were never meant to be part of the extension surface, are not used by any subclass, and in most cases also carried a leading underscore to signal that. In v4 they are `private` (and where it applies, `readonly`). If you were reaching into any of these — either to read internal state or to override a helper in a subclass — that no longer compiles.
+
+This is intentional: these were never a supported API. If you relied on overriding one of the now-private helpers, the supported extension points (the `requestHandler`, `errorHandler`, `failedRequestHandler`, `preNavigationHooks`/`postNavigationHooks`, `ContextPipeline` composition, and the `ISessionPool` / `IBrowserPool` / `IRequestManager` interfaces) should cover the same use cases. If something you genuinely need is missing, open an issue.
+
+The change spans, among others:
+
+- **`BasicCrawler`** — `unexpectedStop`, `requestHandlerTimeoutMillis`, `sameDomainDelayMillis`, `domainAccessedTime`, `handledRequestsCount`, `statusMessageLoggingInterval`, `statusMessageCallback`, `ignoreHttpErrorStatusCodes`, `autoscaledPoolOptions`, `respectRobotsTxtFile`, and the helpers `buildBasicContextPipeline`, `validateRequestUserData`, `pauseOnMigration`, `fetchNextRequest`, `delayRequest`, `handleRequest`, `timeoutAndRetry`, `isTaskReadyFunction`, `defaultIsFinishedFunction`, `requestFunctionErrorHandler`, `handleFailedRequestHandler`, `canRequestBeRetried`
+- **`HttpCrawler`** — `preNavigationHooks`, `postNavigationHooks`, `saveResponseCookies`, `navigationTimeoutMillis`, `ignoreSslErrors`, `suggestResponseEncoding`, `forceResponseEncoding`, `supportedMimeTypes`, and the helpers `requestFunction`, `parseResponse`, `getRequestOptions`, `encodeResponse`, `extendSupportedMimeTypes`, `handleRequestTimeout`
+- **`AutoscaledPool`** — `autoscale`, `maybeRunTask`, `incrementTasksDonePerSecond`, `maybeFinish`, `destroy`, `scaleUp`, `scaleDown`, `isOverMaxRequestLimit`
+- **`SessionPool`** — all pool internals (`log`, `maxPoolSize`, `createSessionFunction`, `keyValueStore`, `sessions`, `sessionMap`, `sessionOptions`, `persistStateKey`, `persistStateKeyValueStoreId`, `events`, `persistenceOptions`, `sessionReuseStrategy`, and the helpers `ensureInitialized`, `maybeLoadSessionPool`, `registerSession`, `createSession`, `hasSpaceForSession`, `pickSession`, `removeRetiredSessions`, `getRandomIndex`, `defaultCreateSessionFunction`)
+- **`Session`** — `maybeSelfRetire` (`userData` is now `readonly`)
+- **`RequestList`** — all `_`-prefixed helpers (`addFetchedRequests`, `addPersistedRequests`, `addRequest`, `addRequestsFromSources`, `ensureInProgress`, `ensureIsInitialized`, `ensureUniqueKeyValid`, `fetchRequestsFromUrl`, `getPersistedState`, `loadStateAndPersistedRequests`, `persistRequests`, `restoreState`)
+- **`RequestQueue`** — `proxyConfiguration`, `requestCache`, `requestSeenCache`, `queuePausedForMigration`, `inProgressRequestBatchCount`, `expectedRequestProcessingSecs`, `httpClient`, `events`, and the helpers `cacheRequest`, `fetchRequestsFromUrl`, `addFetchedRequests` (`id`, `name`, `backend`, `log` are now `readonly`)
+- **`ProxyConfiguration`** — `nextCustomUrlIndex`, `proxyUrls`, `newUrlFunction`, and the helpers `handleProxyUrlsList`, `callNewUrlFunction`, `throwCannotCombineCustomMethods`, `throwNoOptionsProvided` (the internal `log` field and `usedProxyUrls` map are removed; `isManInTheMiddle` is now `readonly`)
+- **`Statistics`** — `saveRetryCountForJob`, `teardown` (`errorTracker`, `errorTrackerRetry` are now `readonly`)
+- **`SystemStatus`** — `isSystemIdle`
+- **`Router`** — the constructor is now `private`; use the static `Router.create()` factory
+- **`BaseHttpClient`** — `log` (subclasses receive it via the constructor `logger` option instead of reading `this.log`)
+- **`JSDOMCrawler`** — `runScripts`, `hideInternalConsole`, `virtualConsole`
+- **`AdaptivePlaywrightCrawler`** — `commitResult`, `allowStorageAccess`, `enqueueLinks`
+- **`RenderingTypePredictor`** — `calculateFeatureVector`, `retrain`
+- **`BrowserCrawler`** — `navigationTimeoutMillis`, `preNavigationHooks`, `postNavigationHooks`, `saveResponseCookies` (now `private readonly`; configure them through the constructor options as before), and the helpers `isRequestBlocked`, `applyCookies` (was `_applyCookies`), `handleNavigationTimeout` (was `_handleNavigationTimeout`), `throwIfProxyError` (was `_throwIfProxyError`)
+- **`BrowserLauncher`** — the helpers `getChromeExecutablePath`, `getTypicalChromeExecutablePath`, `validateProxyUrlProtocol` (were `_`-prefixed). `getDefaultHeadlessOption` (was `_getDefaultHeadlessOption`) stays `protected` — it is an override point (`PuppeteerLauncher` overrides it) — but lost its underscore prefix
+- **`Statistics.maybeLoadStatistics`** (was `_maybeLoadStatistics`) — stays `protected` (it is overridden by `AdaptivePlaywrightCrawler`'s statistics), but lost its underscore prefix; rename any `super._maybeLoadStatistics()` overrides accordingly
+- **`RobotsTxtFile.load` and `Sitemap.parse`** — internal static factory helpers, now `private` (use the public `RobotsTxtFile.from` / `Sitemap.load` / `Sitemap.fromXmlString` entry points)
+- Various internal fields on `BrowserController` (`id`, `browserPlugin`, `log`) and `BrowserPlugin` (`name`, `library`, `launchOptions`, `proxyUrl`, `userDataDir`, `browserPerProxy`, `ignoreProxyCertificate`, `log`) are now `readonly`
+
+## The `RequestQueue` constructor no longer takes a `Configuration`
+
+The internal `RequestQueue` constructor dropped its second `config: Configuration` parameter (it also stopped exposing a `protected config` field). You should not be constructing `RequestQueue` directly anyway — use `RequestQueue.open()`, which resolves configuration for you.
 
 ## Removed symbols
 
@@ -50,8 +89,11 @@ The crawler following options are removed:
 - `HttpCrawler._handleNavigation` (protected)
 - `HttpCrawler._applyCookies` (protected) - cookie merging is now handled by `BaseHttpClient`
 - `HttpCrawler._parseHTML` (protected)
-- `HttpCrawler._parseResponse` (protected) - made private
 - `HttpCrawler.use` and the `CrawlerExtension` class (experimental) - the `ContextPipeline` should be used for extending the crawler
+- `BasicCrawler._tagUserHandlerError` (protected) - internal error-tagging helper, no longer part of the crawler surface
+- `BasicCrawler.handledRequestsCount` setter (`@deprecated`) - the throw-on-assign guard is gone; the getter is now internal-only and the count is derived from `this.stats`
+- `PlaywrightPlugin._containerProxyServer` (public) - was an unused, never-populated field
+- `Snapshotter._snapshotMemory`, `Snapshotter._memoryOverloadWarning`, `Snapshotter._snapshotEventLoop`, `Snapshotter._snapshotCpu`, `Snapshotter._snapshotClient`, `Snapshotter._pruneSnapshots` (all `@deprecated` protected stubs) - snapshotting is handled by the individual load signals, use `Snapshotter.getMemorySample()` / `getEventLoopSample()` / `getCpuSample()` / `getClientSample()` instead
 - `FileDownloadOptions.streamHandler` - streaming should now be handled directly in the `requestHandler` instead
 - `playwrightUtils.registerUtilsToContext` and `puppeteerUtils.registerUtilsToContext` - this is now added to the context via `ContextPipeline` composition
 - `puppeteerUtils.blockResources` and `puppeteerUtils.cacheResponses` (deprecated)
@@ -535,7 +577,7 @@ The `StorageBackend` interface changed from synchronous sub-client getters to **
 | `client.datasets().getOrCreate(name)` | _(absorbed into `createDatasetBackend`)_ |
 | `client.keyValueStore(id)` | `backend.createKeyValueStoreBackend({ id?, name? })` |
 | `client.keyValueStores().getOrCreate(name)` | _(absorbed into `createKeyValueStoreBackend`)_ |
-| `client.requestQueue(id, opts)` | `backend.createRequestQueueBackend({ id?, name?, clientKey?, timeoutSecs? })` |
+| `client.requestQueue(id, opts)` | `backend.createRequestQueueBackend({ id?, name? })` |
 | `client.requestQueues().getOrCreate(name)` | _(absorbed into `createRequestQueueBackend`)_ |
 
 The sub-backend interfaces (`DatasetBackend`, `KeyValueStoreBackend`, `RequestQueueBackend`, formerly `DatasetClient` / `KeyValueStoreClient` / `RequestQueueClient`) have been aligned with their Python counterparts:
@@ -624,9 +666,11 @@ The `RequestQueue.internalTimeoutMillis` property and the associated "stuck queu
 
 **Apify-specific fields removed from storage metadata.** The metadata returned by `getMetadata()` (`DatasetInfo`, `KeyValueStoreInfo`, `RequestQueueInfo`) has been trimmed to what is meaningful for any storage backend. The following platform-specific fields were dropped: `actId`, `actRunId`, `userId`, and — on `RequestQueueInfo` — `expireAt` and `hadMultipleClients`. The per-storage `stats` field (and its `DatasetStats` / `KeyValueStoreStats` / `RequestQueueStats` types) was removed as well. If you consumed any of these, read them from the Apify API client directly; a custom `StorageBackend` should simply stop returning them.
 
-**Removed types** from `@crawlee/types`: `DatasetClientUpdateOptions`, `KeyValueStoreClientUpdateOptions`, `KeyValueStoreRecordOptions`, `KeyValueStoreClientListData`, `KeyValueStoreClientGetRecordOptions`, `QueueHead`, `RequestQueueHeadItem`, `ListOptions`, `ListAndLockOptions`, `ListAndLockHeadResult`, `ProlongRequestLockOptions`, `ProlongRequestLockResult`, `DeleteRequestLockOptions`, `DatasetStats`, `KeyValueStoreStats`, `RequestQueueStats`. `KeyValueStoreClientListOptions` was renamed to `KeyValueStoreListKeysOptions`.
+**Removed types** from `@crawlee/types`: `DatasetClientUpdateOptions`, `KeyValueStoreClientUpdateOptions`, `KeyValueStoreRecordOptions`, `KeyValueStoreClientListData`, `KeyValueStoreClientGetRecordOptions`, `QueueHead`, `RequestQueueHeadItem`, `ListOptions`, `ListAndLockOptions`, `ListAndLockHeadResult`, `ProlongRequestLockOptions`, `ProlongRequestLockResult`, `DeleteRequestLockOptions`, `DatasetStats`, `KeyValueStoreStats`, `RequestQueueStats`. `KeyValueStoreClientListOptions` was renamed to `KeyValueStoreListKeysOptions`. The `CreateDatasetBackendOptions`, `CreateKeyValueStoreBackendOptions`, and `CreateRequestQueueBackendOptions` aliases were removed — the `create*Backend` methods now take `StorageIdentifier` directly.
 
-The high-level storage classes (`Dataset`, `KeyValueStore`, `RequestQueue`) now receive their sub-backend directly in the constructor options (via the `backend` option) instead of receiving a `StorageBackend` and calling its methods.
+The high-level storage classes (`Dataset`, `KeyValueStore`, `RequestQueue`) are now thin wrappers over a single sub-backend, which they receive directly in the constructor options. The constructor takes `{ metadata, backend }`, where `backend` is the sub-backend and `metadata` is the resolved storage info (as returned by the backend's `getMetadata()`) that the storage derives its `id` and `name` from — instead of receiving separate `id` / `name` arguments (or a `StorageBackend` and calling its methods). In practice you never call these constructors yourself; use `Dataset.open()` / `KeyValueStore.open()` / `RequestQueue.open()`, which resolve the metadata and open the backend for you.
+
+`RequestQueue` no longer accepts (or stores) `clientKey` / `timeoutSecs`. These are request-locking concerns that are now internal to the storage backend implementation (see [apify/crawlee#3328](https://github.com/apify/crawlee/issues/3328)); they are also no longer part of the `createRequestQueueBackend` options — all three `create*Backend` methods now take a plain `StorageIdentifier` (`{ id?, name?, alias? }`). The now-redundant `CreateDatasetBackendOptions`, `CreateKeyValueStoreBackendOptions`, and `CreateRequestQueueBackendOptions` type aliases have been removed from `@crawlee/types`; use `StorageIdentifier` instead.
 
 ### `RecordOptions` simplified
 

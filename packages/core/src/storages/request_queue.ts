@@ -22,14 +22,13 @@ import ow from 'ow';
 import type { ReadonlyDeep } from 'type-fest';
 
 import { LruCache } from '@apify/datastructures';
-import { cryptoRandomObjectId } from '@apify/utilities';
 
 import { Configuration } from '../configuration.js';
 import type { Constructor } from '../typedefs.js';
 import type { EventManager } from '../events/event_manager.js';
 import { EventType } from '../events/event_manager.js';
 import type { CrawleeLogger } from '../log.js';
-import type { ProxyConfiguration } from '../proxy_configuration.js';
+import type { IProxyConfiguration } from '../proxy_configuration.js';
 import type { InternalSource, RequestOptions, Source } from '../request.js';
 import { Request } from '../request.js';
 import { serviceLocator } from '../service_locator.js';
@@ -90,40 +89,36 @@ const MAX_UNPROCESSED_REQUESTS_RETRIES = 3;
  * @category Sources
  */
 export class RequestQueue implements IStorage, IRequestManager {
-    id: string;
-    name?: string;
-    timeoutSecs = 30;
-    clientKey = cryptoRandomObjectId();
-    backend: RequestQueueBackend;
-    protected proxyConfiguration?: ProxyConfiguration;
+    readonly id: string;
+    readonly name?: string;
+    readonly backend: RequestQueueBackend;
+    private proxyConfiguration?: IProxyConfiguration;
 
-    log: CrawleeLogger;
+    readonly log: CrawleeLogger;
 
-    private isInitialized = false;
-
-    protected requestCache: LruCache<RequestLruItem>;
+    private requestCache: LruCache<RequestLruItem>;
 
     /**
      * Remembers the `requestId` of every request already submitted to the client — including background
      * batches that `requestCache` skips — so overlapping URL sets aren't re-submitted.
      * See {@link RequestDeduplicationCache} for why this is a separate, cheaper cache.
      */
-    protected requestSeenCache: RequestDeduplicationCache;
+    private requestSeenCache: RequestDeduplicationCache;
 
-    protected queuePausedForMigration = false;
+    private queuePausedForMigration = false;
 
-    protected inProgressRequestBatchCount = 0;
+    private inProgressRequestBatchCount = 0;
 
     /**
      * The largest expected request-processing time (in seconds) seen so far via
      * {@link setExpectedRequestProcessingTimeSecs}. Used to ensure that value is only ever raised, never
      * lowered, before being forwarded to the storage backend.
      */
-    protected expectedRequestProcessingSecs = 0;
+    private expectedRequestProcessingSecs = 0;
 
-    protected httpClient?: BaseHttpClient;
+    private httpClient?: BaseHttpClient;
 
-    protected readonly events: EventManager;
+    private readonly events: EventManager;
 
     private readonly statsTracker = new StorageStatsTracker<RequestQueueStats>({
         writeCount: 0,
@@ -141,12 +136,9 @@ export class RequestQueue implements IStorage, IRequestManager {
     /**
      * @internal
      */
-    constructor(
-        options: RequestQueueOptions,
-        protected readonly config: Configuration = Configuration.getGlobalConfig(),
-    ) {
-        this.id = options.id;
-        this.name = options.name;
+    constructor(options: RequestQueueOptions) {
+        this.id = options.metadata.id;
+        this.name = options.metadata.name;
         this.events = serviceLocator.getEventManager();
         this.backend = options.backend;
 
@@ -212,8 +204,8 @@ export class RequestQueue implements IStorage, IRequestManager {
         const { forefront = false } = options;
 
         if ('requestsFromUrl' in requestLike) {
-            const requests = await this._fetchRequestsFromUrl(requestLike as InternalSource);
-            const processedRequests = await this._addFetchedRequests(requestLike as InternalSource, requests, options);
+            const requests = await this.fetchRequestsFromUrl(requestLike as InternalSource);
+            const processedRequests = await this.addFetchedRequests(requestLike as InternalSource, requests, options);
 
             return { ...processedRequests[0], forefront };
         }
@@ -252,7 +244,7 @@ export class RequestQueue implements IStorage, IRequestManager {
             forefront,
         } satisfies RequestQueueOperationInfo;
 
-        this._cacheRequest(cacheKey, queueOperationInfo);
+        this.cacheRequest(cacheKey, queueOperationInfo);
         this.requestSeenCache.add(cacheKey, request.id!);
 
         return queueOperationInfo;
@@ -317,8 +309,8 @@ export class RequestQueue implements IStorage, IRequestManager {
             if (typeof requestLike === 'string') {
                 requests.push(new Request({ url: requestLike }));
             } else if ('requestsFromUrl' in requestLike) {
-                const fetchedRequests = await this._fetchRequestsFromUrl(requestLike as InternalSource);
-                await this._addFetchedRequests(requestLike as InternalSource, fetchedRequests, options);
+                const fetchedRequests = await this.fetchRequestsFromUrl(requestLike as InternalSource);
+                await this.addFetchedRequests(requestLike as InternalSource, fetchedRequests, options);
             } else {
                 requests.push(
                     requestLike instanceof Request ? requestLike : new Request(requestLike as RequestOptions),
@@ -367,7 +359,7 @@ export class RequestQueue implements IStorage, IRequestManager {
             const cacheKey = getCachedRequestId(newRequest.uniqueKey);
 
             if (cache) {
-                this._cacheRequest(cacheKey, { ...newRequest, forefront });
+                this.cacheRequest(cacheKey, { ...newRequest, forefront });
             }
 
             // Unlike `requestCache`, populate this on every batch (including background ones).
@@ -668,7 +660,7 @@ export class RequestQueue implements IStorage, IRequestManager {
             forefront,
         } satisfies RequestQueueOperationInfo;
 
-        this._cacheRequest(getRequestId(request.uniqueKey), queueOperationInfo);
+        this.cacheRequest(getRequestId(request.uniqueKey), queueOperationInfo);
 
         return queueOperationInfo;
     }
@@ -714,7 +706,7 @@ export class RequestQueue implements IStorage, IRequestManager {
             uniqueKey: request.uniqueKey,
             forefront,
         } satisfies RequestQueueOperationInfo;
-        this._cacheRequest(getRequestId(request.uniqueKey), queueOperationInfo);
+        this.cacheRequest(getRequestId(request.uniqueKey), queueOperationInfo);
 
         return queueOperationInfo;
     }
@@ -776,7 +768,7 @@ export class RequestQueue implements IStorage, IRequestManager {
     /**
      * Caches information about request to beware of unneeded addRequest() calls.
      */
-    protected _cacheRequest(cacheKey: string, queueOperationInfo: RequestQueueOperationInfo): void {
+    private cacheRequest(cacheKey: string, queueOperationInfo: RequestQueueOperationInfo): void {
         // Remove the previous entry, as otherwise our cache will never update 👀
         this.requestCache.remove(cacheKey);
 
@@ -876,7 +868,7 @@ export class RequestQueue implements IStorage, IRequestManager {
     /**
      * Fetches URLs from requestsFromUrl and returns them in format of list of requests
      */
-    protected async _fetchRequestsFromUrl(source: InternalSource): Promise<RequestOptions[]> {
+    private async fetchRequestsFromUrl(source: InternalSource): Promise<RequestOptions[]> {
         const { requestsFromUrl, regex, ...sharedOpts } = source;
 
         // Download remote resource and parse URLs.
@@ -885,7 +877,7 @@ export class RequestQueue implements IStorage, IRequestManager {
             urlsArr = await this._downloadListOfUrls({
                 url: requestsFromUrl,
                 urlRegExp: regex,
-                proxyUrl: await this.proxyConfiguration?.newUrl(),
+                proxyUrl: (await this.proxyConfiguration?.newProxyInfo())?.url,
             });
         } catch (err) {
             throw new Error(`Cannot fetch a request list from ${requestsFromUrl}: ${err}`);
@@ -903,7 +895,7 @@ export class RequestQueue implements IStorage, IRequestManager {
     /**
      * Adds all fetched requests from a URL from a remote resource.
      */
-    protected async _addFetchedRequests(
+    private async addFetchedRequests(
         source: InternalSource,
         fetchedRequests: RequestOptions[],
         options: RequestQueueOperationOptions,
@@ -987,21 +979,6 @@ export class RequestQueue implements IStorage, IRequestManager {
         queue.proxyConfiguration = options.proxyConfiguration;
         queue.httpClient = options.httpClient;
 
-        if (!queue.isInitialized) {
-            // Re-create the request queue backend with clientKey and timeoutSecs so that
-            // request locking works correctly for API-backed implementations.
-            // TODO: clientKey/timeoutSecs are Apify-platform concerns and should eventually be pushed
-            // down into the Apify SDK's client implementation, aligning with crawlee-python's approach
-            // where locking is handled internally by the backend (see crawlee-python PR #1194).
-            queue.backend = await storageBackend.createRequestQueueBackend({
-                id: queue.id,
-                clientKey: queue.clientKey,
-                timeoutSecs: queue.timeoutSecs,
-            });
-
-            queue.isInitialized = true;
-        }
-
         return queue;
     }
 }
@@ -1016,8 +993,8 @@ interface RequestLruItem {
 }
 
 export interface RequestQueueOptions {
-    id: string;
-    name?: string;
+    /** Resolved metadata for the request queue, as returned by the backend's `getMetadata()`. */
+    metadata: RequestQueueInfo;
     backend: RequestQueueBackend;
 
     /**
@@ -1025,7 +1002,7 @@ export interface RequestQueueOptions {
      * Takes advantage of the internal address rotation and authentication process.
      * If undefined, the `requestsFromUrl` requests will be made without proxy.
      */
-    proxyConfiguration?: ProxyConfiguration;
+    proxyConfiguration?: IProxyConfiguration;
 }
 
 export interface RequestQueueOperationOptions {
