@@ -598,7 +598,7 @@ export async function* discoverValidSitemaps(
             log.warning(`Failed to fetch robots.txt file for ${hostname}`, { error: err });
         }
 
-        const sitemapUrl = domainUrls.find((url) => /sitemap\.(?:xml|txt)(?:\.gz)?$/i.test(url));
+        const sitemapUrl = domainUrls.find((url) => /sitemap(?:_index)?\.(?:xml|txt)(?:\.gz)?$/i.test(url));
 
         if (sitemapUrl !== undefined) {
             if (addSitemapUrl(sitemapUrl)) {
