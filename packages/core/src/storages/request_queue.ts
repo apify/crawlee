@@ -28,7 +28,7 @@ import type { Constructor } from '../typedefs.js';
 import type { EventManager } from '../events/event_manager.js';
 import { EventType } from '../events/event_manager.js';
 import type { CrawleeLogger } from '../log.js';
-import type { ProxyConfiguration } from '../proxy_configuration.js';
+import type { IProxyConfiguration } from '../proxy_configuration.js';
 import type { InternalSource, RequestOptions, Source } from '../request.js';
 import { Request } from '../request.js';
 import { serviceLocator } from '../service_locator.js';
@@ -92,7 +92,7 @@ export class RequestQueue implements IStorage, IRequestManager {
     readonly id: string;
     readonly name?: string;
     readonly backend: RequestQueueBackend;
-    private proxyConfiguration?: ProxyConfiguration;
+    private proxyConfiguration?: IProxyConfiguration;
 
     readonly log: CrawleeLogger;
 
@@ -877,7 +877,7 @@ export class RequestQueue implements IStorage, IRequestManager {
             urlsArr = await this._downloadListOfUrls({
                 url: requestsFromUrl,
                 urlRegExp: regex,
-                proxyUrl: await this.proxyConfiguration?.newUrl(),
+                proxyUrl: (await this.proxyConfiguration?.newProxyInfo())?.url,
             });
         } catch (err) {
             throw new Error(`Cannot fetch a request list from ${requestsFromUrl}: ${err}`);
@@ -1002,7 +1002,7 @@ export interface RequestQueueOptions {
      * Takes advantage of the internal address rotation and authentication process.
      * If undefined, the `requestsFromUrl` requests will be made without proxy.
      */
-    proxyConfiguration?: ProxyConfiguration;
+    proxyConfiguration?: IProxyConfiguration;
 }
 
 export interface RequestQueueOperationOptions {
