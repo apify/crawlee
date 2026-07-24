@@ -1894,6 +1894,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
             if (!request.noRetry) {
                 request.retryCount++;
+                this.stats.registerRetry(request.retryCount);
 
                 const { url, retryCount, id } = request;
 
