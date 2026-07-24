@@ -125,10 +125,16 @@ export interface AdaptivePlaywrightCrawlerContext<
     page: Page;
 
     /**
-     * Wait for an element matching the selector to appear and return a Cheerio object of matched elements.
+     * Wait for an element matching the selector to appear and return a Cheerio object of the first matched element.
      * Timeout defaults to 5s.
      */
     querySelector(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
+
+    /**
+     * Wait for an element matching the selector to appear and return a Cheerio object of all matched elements.
+     * Timeout defaults to 5s.
+     */
+    querySelectorAll(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
 
     /**
      * Wait for an element matching the selector to appear.
@@ -432,6 +438,9 @@ export class AdaptivePlaywrightCrawler<
                 get querySelector(): AdaptivePlaywrightCrawlerContext['querySelector'] {
                     throw new Error(errorMessage('querySelector'));
                 },
+                get querySelectorAll(): AdaptivePlaywrightCrawlerContext['querySelectorAll'] {
+                    throw new Error(errorMessage('querySelectorAll'));
+                },
                 get waitForSelector(): AdaptivePlaywrightCrawlerContext['waitForSelector'] {
                     throw new Error(errorMessage('waitForSelector'));
                 },
@@ -454,6 +463,9 @@ export class AdaptivePlaywrightCrawler<
                 throw new Error('Page object was used in HTTP-only request handler');
             },
             async querySelector(selector: string) {
+                return cheerioContext.$(selector).first();
+            },
+            async querySelectorAll(selector: string) {
                 return cheerioContext.$(selector);
             },
             enqueueLinks: async (options: EnqueueLinksOptions = {}) => {
@@ -489,6 +501,13 @@ export class AdaptivePlaywrightCrawler<
                 statusText: originalResponse.statusText(),
             }),
             async querySelector(selector: string, timeoutMs = 5000) {
+                const locator = playwrightContext.page.locator(selector).first();
+                await locator.waitFor({ timeout: timeoutMs, state: 'attached' });
+                const $ = await playwrightContext.parseWithCheerio();
+
+                return $(selector).first() as Cheerio<any>;
+            },
+            async querySelectorAll(selector: string, timeoutMs = 5000) {
                 const locator = playwrightContext.page.locator(selector).first();
                 await locator.waitFor({ timeout: timeoutMs, state: 'attached' });
                 const $ = await playwrightContext.parseWithCheerio();

@@ -212,6 +212,44 @@ describe('AdaptivePlaywrightCrawler', () => {
         });
     });
 
+    describe('querySelector and querySelectorAll', () => {
+        test.each([
+            ['/static', 'static'],
+            ['/dynamic', 'clientOnly'],
+        ] as const)('return first vs. all matched elements (%s)', async (path, renderingType) => {
+            const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                detectionProbabilityRecommendation: 0,
+                renderingType,
+            });
+            const url = new URL(`http://${HOSTNAME}:${port}${path}`);
+
+            const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(
+                async ({ pushData, querySelector, querySelectorAll }) => {
+                    const first = await querySelector('a');
+                    const all = await querySelectorAll('a');
+                    await pushData({
+                        firstCount: first.length,
+                        firstText: first.text(),
+                        allCount: all.length,
+                    });
+                },
+            );
+
+            const crawler = await makeOneshotCrawler(
+                {
+                    requestHandler,
+                    renderingTypePredictor,
+                },
+                [url.toString()],
+            );
+
+            await crawler.run();
+
+            // `querySelector` returns only the first match, `querySelectorAll` returns the whole collection.
+            expect((await Dataset.getData()).items).toEqual([{ firstCount: 1, firstText: 'Link 1', allCount: 5 }]);
+        });
+    });
+
     test.each([['static'], ['clientOnly']] as const)(
         'should replay request handler logs (%s)',
         async (renderingType) => {
