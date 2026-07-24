@@ -30,6 +30,7 @@ import type { EnqueueLinksOptions } from '@crawlee/core';
 import type { EventManager } from '@crawlee/core';
 import type { FinalStatistics } from '@crawlee/core';
 import type { GetUserDataFromRequest } from '@crawlee/core';
+import { IProxyConfiguration } from '@crawlee/core';
 import { IRequestLoader } from '@crawlee/core';
 import { IRequestManager } from '@crawlee/core';
 import type { ISession } from '@crawlee/types';
@@ -37,7 +38,6 @@ import type { ISessionPool } from '@crawlee/types';
 import { NumberPredicate } from 'ow';
 import { ObjectPredicate } from 'ow';
 import { Predicate } from 'ow';
-import { ProxyConfiguration } from '@crawlee/core';
 import type { ProxyInfo } from '@crawlee/types';
 import type { ReadonlyDeep } from 'type-fest';
 import { Request as Request_2 } from '@crawlee/core';
@@ -58,7 +58,7 @@ import type { StorageIdentifier } from '@crawlee/core';
 import { StringPredicate } from 'ow';
 import { TimeoutError } from '@apify/timeout';
 
-// @public
+// @public (undocumented)
 export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension> {
     constructor(options?: BasicCrawlerOptions<Context, ContextExtension, ExtendedContext> & RequireContextPipeline<CrawlingContext, Context>);
     // (undocumented)
@@ -100,6 +100,8 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
     hasFinishedBefore: boolean;
     // (undocumented)
     protected readonly httpClient: BaseHttpClient;
+    // (undocumented)
+    protected readonly identity: CrawlerIdentity;
     protected _init(): Promise<void>;
     // (undocumented)
     protected readonly internalTimeoutMillis: number;
@@ -152,7 +154,7 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
         statisticsOptions: ObjectPredicate<object> & BasePredicate<object | undefined>;
         id: StringPredicate & BasePredicate<string | undefined>;
     };
-    readonly proxyConfiguration?: ProxyConfiguration;
+    readonly proxyConfiguration?: IProxyConfiguration;
     pushData(data: Parameters<Dataset['pushData']>[0], datasetIdentifier?: string | StorageIdentifier): Promise<void>;
     // (undocumented)
     protected readonly requestHandler: RequestHandler<ExtendedContext>;
@@ -198,7 +200,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = CrawlingC
     maxRequestsPerMinute?: number;
     minConcurrency?: number;
     onSkippedRequest?: SkippedRequestCallback;
-    proxyConfiguration?: ProxyConfiguration;
+    proxyConfiguration?: IProxyConfiguration;
     requestHandler?: RequestHandler<ExtendedContext>;
     requestHandlerTimeoutSecs?: number;
     // @deprecated
