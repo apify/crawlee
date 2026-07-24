@@ -125,10 +125,16 @@ export interface AdaptivePlaywrightCrawlerContext<
     page: Page;
 
     /**
-     * Wait for an element matching the selector to appear and return a Cheerio object of matched elements.
+     * Wait for an element matching the selector to appear and return a Cheerio object of the first matched element.
      * Timeout defaults to 5s.
      */
     querySelector(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
+
+    /**
+     * Wait for an element matching the selector to appear and return a Cheerio object of all matched elements.
+     * Timeout defaults to 5s.
+     */
+    querySelectorAll(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
 
     /**
      * Wait for an element matching the selector to appear.
@@ -233,6 +239,8 @@ export interface AdaptivePlaywrightCrawlerOptions<
      *   If it returns 'inconclusive', the detection result won't be used.
      * If no result comparator is specified, but there is a `resultChecker`, any site where the `resultChecker` returns true is considered static.
      * If neither `resultComparator` nor `resultChecker` are specified, a deep comparison of returned dataset items is used as a default.
+     *
+     * For a stricter, ready-made comparator that also takes enqueued requests and key-value store changes into account, see {@apilink fullResultComparator}.
      */
     resultComparator?: (
         resultA: RequestHandlerResult,
@@ -432,6 +440,9 @@ export class AdaptivePlaywrightCrawler<
                 get querySelector(): AdaptivePlaywrightCrawlerContext['querySelector'] {
                     throw new Error(errorMessage('querySelector'));
                 },
+                get querySelectorAll(): AdaptivePlaywrightCrawlerContext['querySelectorAll'] {
+                    throw new Error(errorMessage('querySelectorAll'));
+                },
                 get waitForSelector(): AdaptivePlaywrightCrawlerContext['waitForSelector'] {
                     throw new Error(errorMessage('waitForSelector'));
                 },
@@ -454,6 +465,9 @@ export class AdaptivePlaywrightCrawler<
                 throw new Error('Page object was used in HTTP-only request handler');
             },
             async querySelector(selector: string) {
+                return cheerioContext.$(selector).first();
+            },
+            async querySelectorAll(selector: string) {
                 return cheerioContext.$(selector);
             },
             enqueueLinks: async (options: EnqueueLinksOptions = {}) => {
@@ -489,6 +503,13 @@ export class AdaptivePlaywrightCrawler<
                 statusText: originalResponse.statusText(),
             }),
             async querySelector(selector: string, timeoutMs = 5000) {
+                const locator = playwrightContext.page.locator(selector).first();
+                await locator.waitFor({ timeout: timeoutMs, state: 'attached' });
+                const $ = await playwrightContext.parseWithCheerio();
+
+                return $(selector).first() as Cheerio<any>;
+            },
+            async querySelectorAll(selector: string, timeoutMs = 5000) {
                 const locator = playwrightContext.page.locator(selector).first();
                 await locator.waitFor({ timeout: timeoutMs, state: 'attached' });
                 const $ = await playwrightContext.parseWithCheerio();
@@ -822,4 +843,36 @@ export function createAdaptivePlaywrightRouter<
 >(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
 export function createAdaptivePlaywrightRouter(routesOrSchemas?: any): any {
     return Router.create(routesOrSchemas);
+}
+
+/**
+ * An opt-in {@apilink AdaptivePlaywrightCrawlerOptions.resultComparator|`resultComparator`} that considers two
+ * request handler results equal only if *all* of their observable effects match - the pushed dataset items, the
+ * enqueued requests, and the key-value store changes. This is stricter than the default comparator, which only
+ * compares dataset items.
+ *
+ * **Beware:** enqueued URLs are compared exactly. The same page rendered in a browser and via plain HTTP often
+ * yields links that differ only in tracking query parameters, for example:
+ * - `https://sdk.apify.com/docs/guides/getting-started`
+ * - `https://sdk.apify.com/docs/guides/getting-started?__hsfp=1136113150&__hssc=7591405.1.173549427712`
+ *
+ * Such links are treated as *different*, which will make the crawler favor browser rendering for those pages.
+ *
+ * **Example usage:**
+ * ```ts
+ * const crawler = new AdaptivePlaywrightCrawler({
+ *     resultComparator: fullResultComparator,
+ *     async requestHandler({ pushData, enqueueLinks }) {
+ *         // ...
+ *     },
+ * });
+ * ```
+ */
+export function fullResultComparator(resultA: RequestHandlerResult, resultB: RequestHandlerResult): boolean {
+    return (
+        isDeepStrictEqual(resultA.datasetItems, resultB.datasetItems) &&
+        isDeepStrictEqual(resultA.enqueuedUrls, resultB.enqueuedUrls) &&
+        isDeepStrictEqual(resultA.enqueuedUrlLists, resultB.enqueuedUrlLists) &&
+        isDeepStrictEqual(resultA.keyValueStoreChanges, resultB.keyValueStoreChanges)
+    );
 }
