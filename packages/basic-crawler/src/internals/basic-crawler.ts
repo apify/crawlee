@@ -178,7 +178,13 @@ export interface BasicCrawlerOptions<
     requestHandler?: RequestHandler<ExtendedContext>;
 
     /**
-     * Allows the user to extend the crawling context passed to the request handler with custom functionality.
+     * Allows the user to extend the crawling context with custom functionality (helpers, references, etc.).
+     *
+     * `extendContext` runs *before* navigation, so the returned members are visible to the
+     * `preNavigationHooks`, `postNavigationHooks`, and the `requestHandler` alike. As a consequence,
+     * the `context` passed to `extendContext` is the pre-navigation {@apilink CrawlingContext} and does
+     * **not** include navigation-dependent members (e.g. `page`, `response`, `$`, `body`). If you need
+     * those, use a `postNavigationHook` or the `requestHandler` instead.
      *
      * **Example usage:**
      *
@@ -198,7 +204,7 @@ export interface BasicCrawlerOptions<
      * });
      * ```
      */
-    extendContext?: (context: Context) => Awaitable<ContextExtension>;
+    extendContext?: (context: CrawlingContext) => Awaitable<ContextExtension>;
 
     /**
      * *Intended for BasicCrawler subclasses*. Prepares a context pipeline that transforms the initial crawling context into the shape given by the `Context` type parameter.
@@ -691,7 +697,7 @@ export class BasicCrawler<
     private readonly crawlerInstanceIndex: number;
     private readonly contextPipelineOptions: {
         contextPipelineBuilder?: () => ContextPipeline<CrawlingContext, Context>;
-        extendContext?: (context: Context) => Awaitable<ContextExtension>;
+        extendContext?: (context: CrawlingContext) => Awaitable<ContextExtension>;
     };
 
     protected static optionsShape = {
@@ -1195,14 +1201,32 @@ export class BasicCrawler<
     }
 
     private buildFinalContextPipeline(): ContextPipeline<CrawlingContext, ExtendedContext> {
-        let contextPipeline = (this.contextPipelineOptions.contextPipelineBuilder?.() ??
+        const subclassPipeline = (this.contextPipelineOptions.contextPipelineBuilder?.() ??
             this.buildContextPipeline()) as ContextPipeline<CrawlingContext, Context>;
 
+        // `extendContext` runs *before* the subclass navigation pipeline (which includes the
+        // pre/post-navigation hooks). This makes the extension visible to those hooks and to the
+        // request handler alike. The trade-off is that `extendContext` cannot access
+        // navigation-dependent context members (e.g. `page`, `response`, `$`, `body`), as those
+        // don't exist yet at this point in the pipeline.
+        // The `extendContext` output (`ContextExtension`) is carried through the subclass pipeline at
+        // runtime (the pipeline copies each middleware's returned members onto the shared context), but
+        // TypeScript cannot express that `Context` transitively includes `ContextExtension` here. The
+        // casts below are sound because `buildFinalContextPipeline` is declared to return the fully
+        // resolved `ExtendedContext` (= `Context & ContextExtension`).
         const { extendContext } = this.contextPipelineOptions;
+        let contextPipeline: ContextPipeline<CrawlingContext, Context>;
         if (extendContext !== undefined) {
-            contextPipeline = contextPipeline.compose({
-                action: async (context) => await extendContext(context),
-            });
+            contextPipeline = ContextPipeline.create<CrawlingContext>()
+                .compose({ action: async (context) => await extendContext(context) })
+                .chain(
+                    subclassPipeline as unknown as ContextPipeline<
+                        CrawlingContext & ContextExtension,
+                        CrawlingContext & ContextExtension
+                    >,
+                ) as unknown as ContextPipeline<CrawlingContext, Context>;
+        } else {
+            contextPipeline = subclassPipeline;
         }
 
         contextPipeline = contextPipeline.compose({

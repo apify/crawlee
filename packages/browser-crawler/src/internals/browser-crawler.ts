@@ -88,8 +88,8 @@ export interface BrowserCrawlingContext<
     enqueueLinks: (options?: EnqueueLinksOptions) => Promise<BatchAddRequestsResult>;
 }
 
-export type BrowserHook<Context = BrowserCrawlingContext> = (
-    crawlingContext: Context,
+export type BrowserHook<Context = BrowserCrawlingContext, ContextExtension = {}> = (
+    crawlingContext: Context & ContextExtension,
 ) => Awaitable<void | Partial<Context>>;
 
 const COOKIES_BEFORE_HOOKS = Symbol('cookiesBeforeHooks');
@@ -111,7 +111,7 @@ export interface BrowserCrawlerOptions<
     __BrowserControllerReturn extends BrowserController = ReturnType<__BrowserPlugins[number]['createController']>,
     __LaunchContextReturn extends LaunchContext = ReturnType<__BrowserPlugins[number]['createLaunchContext']>,
 > extends Omit<
-    BasicCrawlerOptions<Context, ExtendedContext>,
+    BasicCrawlerOptions<Context, ContextExtension, ExtendedContext>,
     // Overridden with browser context
     'requestHandler' | 'failedRequestHandler' | 'errorHandler'
 > {
@@ -214,8 +214,13 @@ export interface BrowserCrawlerOptions<
      *
      * A hook may optionally return a partial object whose properties are merged into the crawling context,
      * allowing the hook to override context members for subsequent hooks and pipeline stages.
+     *
+     * The context is built up in the following order: base context (`request`, `session`, helpers, ...) ->
+     * `extendContext` -> `preNavigationHooks` -> navigation -> `postNavigationHooks` -> `requestHandler`.
+     * This means the members added by `extendContext` are already available here, but navigation-dependent
+     * members (e.g. `page`, `response`) are not.
      */
-    preNavigationHooks?: BrowserHook<Context>[];
+    preNavigationHooks?: BrowserHook<Context, ContextExtension>[];
 
     /**
      * Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
@@ -242,7 +247,7 @@ export interface BrowserCrawlerOptions<
      * ]
      * ```
      */
-    postNavigationHooks?: BrowserHook<Context>[];
+    postNavigationHooks?: BrowserHook<Context, ContextExtension>[];
 
     /**
      * Timeout in which page navigation needs to finish, in seconds.
@@ -420,13 +425,16 @@ export abstract class BrowserCrawler<
                     .compose({ action: this.handleBlockedRequestByContent.bind(this) })
                     .compose({ action: this.restoreRequestState.bind(this) });
             },
-            extendContext: extendContext as (context: Context) => Awaitable<ContextExtension>,
+            extendContext,
         });
 
         this.launchContext = launchContext;
         this.navigationTimeoutMillis = navigationTimeoutSecs * 1000;
-        this.preNavigationHooks = preNavigationHooks;
-        this.postNavigationHooks = postNavigationHooks;
+        // The public option hooks are extension-aware; internal storage uses the base context type
+        // (the pipeline composes hooks against the concrete context, which does not statically carry
+        // `ContextExtension`). The extension members are present at runtime regardless.
+        this.preNavigationHooks = preNavigationHooks as BrowserHook<Context>[];
+        this.postNavigationHooks = postNavigationHooks as BrowserHook<Context>[];
         this.ignoreIframes = ignoreIframes;
         this.ignoreShadowRoots = ignoreShadowRoots;
 

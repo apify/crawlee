@@ -82,6 +82,8 @@ const crawler = new CheerioCrawler({
 })
 ```
 
+`extendContext` runs **before navigation**, so the members it returns are visible to the `preNavigationHooks`, `postNavigationHooks`, and the `requestHandler` alike. As a consequence, the `context` passed to `extendContext` is the pre-navigation context and does **not** include navigation-dependent members (e.g. `page`, `response`, `$`, `body`). If your extension needs to read those, do it in a `postNavigationHook` or the `requestHandler` instead.
+
 ## Crawling context is strictly typed
 
 Previously, the crawling context extended a `Record` type, allowing to access any property. This was changed to a strict type, which means that you can only access properties that are defined in the context.

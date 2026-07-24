@@ -448,6 +448,34 @@ test('navigation hooks can override context members via return value', async () 
     expect(observedBody).toContain('overridden body');
 });
 
+test('extendContext is visible to pre/post-navigation hooks and the request handler', async () => {
+    const seenIn: Record<string, unknown> = {};
+
+    const crawler = new HttpCrawler({
+        maxRequestRetries: 0,
+        extendContext: () => ({ injected: 'from-extend-context' }),
+        preNavigationHooks: [
+            async (context) => {
+                seenIn.preNavigation = context.injected;
+            },
+        ],
+        postNavigationHooks: [
+            async (context) => {
+                seenIn.postNavigation = context.injected;
+            },
+        ],
+        requestHandler: async (context) => {
+            seenIn.requestHandler = context.injected;
+        },
+    });
+
+    await crawler.run([url]);
+
+    expect(seenIn.preNavigation).toBe('from-extend-context');
+    expect(seenIn.postNavigation).toBe('from-extend-context');
+    expect(seenIn.requestHandler).toBe('from-extend-context');
+});
+
 test('works with a custom HttpClient', async () => {
     const results: string[] = [];
 

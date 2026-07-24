@@ -166,6 +166,53 @@ describe('AdaptivePlaywrightCrawler', () => {
         storeResult: vi.fn((_request: Request, _renderingType: string) => {}),
     });
 
+    test.each([
+        ['/static', 'static'],
+        ['/dynamic', 'clientOnly'],
+    ] as const)(
+        'extendContext is visible to pre/post-navigation hooks and the request handler (%s)',
+        async (path, renderingType) => {
+            const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                detectionProbabilityRecommendation: 0,
+                renderingType,
+            });
+            const url = new URL(`http://${HOSTNAME}:${port}${path}`);
+
+            const seenIn: Record<string, unknown> = {};
+
+            // Instantiated directly (rather than via `makeOneshotCrawler`) so that the `ContextExtension`
+            // generic is inferred from `extendContext` and the hooks/handler see it without casts.
+            const crawler = new AdaptivePlaywrightCrawler({
+                renderingTypeDetectionRatio: 0.1,
+                maxConcurrency: 1,
+                maxRequestRetries: 0,
+                maxRequestsPerCrawl: 1,
+                requestList: await RequestList.open({ sources: [url.toString()] }),
+                renderingTypePredictor,
+                extendContext: () => ({ injected: 'from-extend-context' }),
+                preNavigationHooks: [
+                    async (context) => {
+                        seenIn.preNavigation = context.injected;
+                    },
+                ],
+                postNavigationHooks: [
+                    async (context) => {
+                        seenIn.postNavigation = context.injected;
+                    },
+                ],
+                requestHandler: async (context) => {
+                    seenIn.requestHandler = context.injected;
+                },
+            });
+
+            await crawler.run();
+
+            expect(seenIn.preNavigation).toBe('from-extend-context');
+            expect(seenIn.postNavigation).toBe('from-extend-context');
+            expect(seenIn.requestHandler).toBe('from-extend-context');
+        },
+    );
+
     describe('should detect page rendering type', () => {
         test.each([
             ['/static', 'static'],
