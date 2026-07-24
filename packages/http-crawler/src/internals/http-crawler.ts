@@ -82,6 +82,11 @@ export interface HttpCrawlerOptions<
      *
      * A hook may optionally return a partial object whose properties are merged into the crawling context,
      * allowing the hook to override context members for subsequent hooks and pipeline stages.
+     *
+     * The context is built up in the following order: base context (`request`, `session`, helpers, ...) ->
+     * `extendContext` -> `preNavigationHooks` -> navigation -> `postNavigationHooks` -> `requestHandler`.
+     * This means the members added by `extendContext` are already available here, but navigation-dependent
+     * members (e.g. `response`, `body`, `$`) are not.
      * Example:
      * ```
      * preNavigationHooks: [
@@ -91,7 +96,7 @@ export interface HttpCrawlerOptions<
      * ]
      * ```
      */
-    preNavigationHooks?: InternalHttpHook<CrawlingContext>[];
+    preNavigationHooks?: InternalHttpHook<CrawlingContext, ContextExtension>[];
 
     /**
      * Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
@@ -111,7 +116,7 @@ export interface HttpCrawlerOptions<
      * ```
      */
     postNavigationHooks?: ((
-        crawlingContext: CrawlingContextWithResponse,
+        crawlingContext: CrawlingContextWithResponse & ContextExtension,
     ) => Awaitable<void | Partial<CrawlingContextWithResponse>>)[];
 
     /**
@@ -157,7 +162,9 @@ export interface HttpCrawlerOptions<
 /**
  * @internal
  */
-export type InternalHttpHook<Context> = (crawlingContext: Context) => Awaitable<void | Partial<Context>>;
+export type InternalHttpHook<Context, ContextExtension = {}> = (
+    crawlingContext: Context & ContextExtension,
+) => Awaitable<void | Partial<Context>>;
 
 export type HttpHook<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -316,6 +323,10 @@ export class HttpCrawler<
     ContextExtension = Dictionary<never>,
     ExtendedContext extends Context = Context & ContextExtension,
 > extends BasicCrawler<Context, ContextExtension, ExtendedContext> {
+    // Internal storage uses the base (non-extended) context types. The public option types are
+    // extension-aware for consumer DX, but internally the pipeline composes hooks against the
+    // concrete crawling context, which does not statically carry `ContextExtension`. The members
+    // added by `extendContext` are present at runtime regardless.
     private preNavigationHooks: InternalHttpHook<CrawlingContext>[];
     private postNavigationHooks: ((
         crawlingContext: CrawlingContextWithResponse,
@@ -387,10 +398,13 @@ export class HttpCrawler<
         this.ignoreSslErrors = ignoreSslErrors;
         this.suggestResponseEncoding = suggestResponseEncoding;
         this.forceResponseEncoding = forceResponseEncoding;
-        this.preNavigationHooks = preNavigationHooks;
+        // Cast away the extension-aware option types to the base internal storage types (see the field
+        // declarations above). This is sound - the hooks only ever receive the base context plus the
+        // members `extendContext` added at runtime.
+        this.preNavigationHooks = preNavigationHooks as InternalHttpHook<CrawlingContext>[];
         this.postNavigationHooks = [
             ({ request, response }) => this._abortDownloadOfBody(request, response!),
-            ...postNavigationHooks,
+            ...(postNavigationHooks as typeof this.postNavigationHooks),
         ];
 
         this.saveResponseCookies = saveResponseCookies;

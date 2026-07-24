@@ -21,7 +21,7 @@ import { CheerioRoot } from '@crawlee/utils';
 import type { Configuration } from '@crawlee/core';
 import { ContextPipeline } from '@crawlee/core';
 import type { CrawleeLogger } from '@crawlee/core';
-import type { CrawlingContext } from '@crawlee/core';
+import { CrawlingContext } from '@crawlee/core';
 import { Dataset } from '@crawlee/core';
 import type { DatasetExportOptions } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/types';
@@ -186,7 +186,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = CrawlingC
     contextPipelineBuilder?: () => ContextPipeline<CrawlingContext, Context>;
     errorHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
     eventManager?: EventManager;
-    extendContext?: (context: Context) => Awaitable<ContextExtension>;
+    extendContext?: (context: CrawlingContext) => Awaitable<ContextExtension>;
     failedRequestHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
     httpClient?: BaseHttpClient;
     id?: string;

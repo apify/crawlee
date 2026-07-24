@@ -174,16 +174,18 @@ interface AdaptiveHookContext extends Pick<AdaptivePlaywrightCrawlerContext, 'id
     gotoOptions?: PlaywrightGotoOptions;
 }
 
-interface AdaptiveHook extends BrowserHook<AdaptiveHookContext> {}
+type AdaptiveHook<ContextExtension = Dictionary<never>> = BrowserHook<AdaptiveHookContext, ContextExtension>;
 
-interface AdaptivePostNavigationHook extends BrowserHook<
-    Omit<AdaptiveHookContext, 'request'> & { request: LoadedRequest<Request> }
-> {}
+type AdaptivePostNavigationHook<ContextExtension = Dictionary<never>> = BrowserHook<
+    Omit<AdaptiveHookContext, 'request'> & { request: LoadedRequest<Request> },
+    ContextExtension
+>;
 
 export interface AdaptivePlaywrightCrawlerOptions<
-    ExtendedContext extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext,
+    ContextExtension = Dictionary<never>,
+    ExtendedContext extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext & ContextExtension,
 > extends Omit<
-    BasicCrawlerOptions<AdaptivePlaywrightCrawlerContext, ExtendedContext>,
+    BasicCrawlerOptions<AdaptivePlaywrightCrawlerContext, ContextExtension, ExtendedContext>,
     'preNavigationHooks' | 'postNavigationHooks'
 > {
     /**
@@ -194,7 +196,7 @@ export interface AdaptivePlaywrightCrawlerOptions<
      * A hook may optionally return a partial object whose properties are merged into the crawling context,
      * allowing the hook to override context members for subsequent hooks and pipeline stages.
      */
-    preNavigationHooks?: AdaptiveHook[];
+    preNavigationHooks?: AdaptiveHook<ContextExtension>[];
 
     /**
      * Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
@@ -204,7 +206,7 @@ export interface AdaptivePlaywrightCrawlerOptions<
      * A hook may optionally return a partial object whose properties are merged into the crawling context
      * (e.g. to override `response` after solving a challenge).
      */
-    postNavigationHooks?: AdaptivePostNavigationHook[];
+    postNavigationHooks?: AdaptivePostNavigationHook<ContextExtension>[];
 
     /**
      * Specifies the frequency of rendering type detection checks - 0.1 means roughly 10% of requests.
@@ -302,8 +304,9 @@ type LogProxyCall = [log: CrawleeLogger, method: (typeof proxyLogMethods)[number
  * @experimental
  */
 export class AdaptivePlaywrightCrawler<
-    ExtendedContext extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext,
-> extends BasicCrawler<AdaptivePlaywrightCrawlerContext, ExtendedContext> {
+    ContextExtension = Dictionary<never>,
+    ExtendedContext extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext & ContextExtension,
+> extends BasicCrawler<AdaptivePlaywrightCrawlerContext, ContextExtension, ExtendedContext> {
     private renderingTypePredictor: NonNullable<AdaptivePlaywrightCrawlerOptions['renderingTypePredictor']>;
     private resultChecker: NonNullable<AdaptivePlaywrightCrawlerOptions['resultChecker']>;
     private shouldPropagateError: NonNullable<AdaptivePlaywrightCrawlerOptions['shouldPropagateError']>;
@@ -318,7 +321,7 @@ export class AdaptivePlaywrightCrawler<
 
     private teardownHooks: (() => Promise<unknown>)[] = [];
 
-    constructor(options: AdaptivePlaywrightCrawlerOptions<ExtendedContext> = {}) {
+    constructor(options: AdaptivePlaywrightCrawlerOptions<ContextExtension, ExtendedContext> = {}) {
         const {
             requestHandler,
             renderingTypeDetectionRatio = 0.1,
@@ -367,10 +370,14 @@ export class AdaptivePlaywrightCrawler<
                 );
             };
         }
-        // Each adaptive hook is registered as its own static/browser hook so the underlying
-        // `ContextPipeline` handles override merging between hooks for free. The hook signatures
-        // are structurally compatible with the underlying crawlers' contexts (subset of fields);
-        // the casts just relax the nominal type difference.
+        // `extendContext` is forwarded to the inner crawlers, which run it *before* navigation (see
+        // `BasicCrawler`), keeping the behavior consistent with the non-adaptive crawlers: the
+        // extension is visible to the pre/post-navigation hooks and the request handler, but cannot
+        // access navigation-dependent members (`page`, `response`, `$`, ...).
+        //
+        // The adaptive hooks target a subset context (`AdaptiveHookContext`); the casts to the inner
+        // crawlers' `PlaywrightHook` type relax that nominal difference. The `ContextPipeline` merges
+        // each hook's overrides at runtime regardless of the static type.
         const staticCrawler = new CheerioCrawler({
             ...rest,
             statisticsOptions: {
@@ -378,6 +385,7 @@ export class AdaptivePlaywrightCrawler<
             },
             preNavigationHooks,
             postNavigationHooks,
+            extendContext,
         });
 
         const browserCrawler = new PlaywrightCrawler({
@@ -387,27 +395,18 @@ export class AdaptivePlaywrightCrawler<
             },
             preNavigationHooks: preNavigationHooks as unknown as PlaywrightHook[],
             postNavigationHooks: postNavigationHooks as unknown as PlaywrightHook[],
+            extendContext,
         });
 
         this.teardownHooks.push(browserCrawler.teardown.bind(browserCrawler));
 
-        this.staticContextPipeline = staticCrawler.contextPipeline
-            .compose({
-                action: this.adaptCheerioContext.bind(this),
-            })
-            .compose({
-                action: async (context) =>
-                    extendContext ? await extendContext(context) : (context as unknown as ExtendedContext),
-            });
+        this.staticContextPipeline = staticCrawler.contextPipeline.compose({
+            action: this.adaptCheerioContext.bind(this),
+        }) as unknown as ContextPipeline<CrawlingContext, ExtendedContext>;
 
-        this.browserContextPipeline = browserCrawler.contextPipeline
-            .compose({
-                action: this.adaptPlaywrightContext.bind(this),
-            })
-            .compose({
-                action: async (context) =>
-                    extendContext ? await extendContext(context) : (context as unknown as ExtendedContext),
-            });
+        this.browserContextPipeline = browserCrawler.contextPipeline.compose({
+            action: this.adaptPlaywrightContext.bind(this),
+        }) as unknown as ContextPipeline<CrawlingContext, ExtendedContext>;
 
         this.stats = new AdaptivePlaywrightCrawlerStatistics({
             logMessage: `${this.log.getOptions().prefix} request statistics:`,
