@@ -35,7 +35,6 @@ import type { Download } from 'playwright';
 import type { EnqueueLinksOptions } from '@crawlee/core';
 import type { GetUserDataFromRequest } from '@crawlee/browser';
 import type { GetUserDataFromRequest as GetUserDataFromRequest_2 } from '@crawlee/core';
-import type { GlobInput } from '@crawlee/browser';
 import { IRequestManager } from '@crawlee/browser';
 import type { LaunchOptions } from 'playwright';
 import type { LoadedRequest } from '@crawlee/browser';
@@ -44,9 +43,7 @@ import { ObjectPredicate } from 'ow';
 import type { Page } from 'playwright';
 import { PlaywrightPlugin } from '@crawlee/browser-pool';
 import { Predicate } from 'ow';
-import type { PseudoUrlInput } from '@crawlee/browser';
 import type { RecoverableStatePersistenceOptions } from '@crawlee/core';
-import type { RegExpInput } from '@crawlee/browser';
 import type { Request as Request_2 } from '@crawlee/core';
 import { Request as Request_3 } from '@crawlee/browser';
 import type { RequestHandler } from '@crawlee/browser';
@@ -63,6 +60,7 @@ import { Statistics } from '@crawlee/core';
 import type { StatisticsOptions } from '@crawlee/core';
 import type { StatisticState } from '@crawlee/core';
 import { StringPredicate } from 'ow';
+import type { UrlPatternInput } from '@crawlee/browser';
 
 // @public
 export class AdaptivePlaywrightCrawler<ContextExtension = Dictionary_2<never>, ExtendedContext extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext & ContextExtension> extends BasicCrawler<AdaptivePlaywrightCrawlerContext, ContextExtension, ExtendedContext> {
@@ -170,16 +168,13 @@ function enqueueLinksByClickingElements(options: EnqueueLinksByClickingElementsO
 // @public (undocumented)
 interface EnqueueLinksByClickingElementsOptions {
     clickOptions?: ClickOptions;
-    exclude?: readonly (GlobInput | RegExpInput)[];
+    exclude?: readonly UrlPatternInput[];
     forefront?: boolean;
-    globs?: GlobInput[];
+    include?: UrlPatternInput[];
     label?: string;
     maxWaitForPageIdleSecs?: number;
     onSkippedRequest?: SkippedRequestCallback;
     page: Page;
-    // @deprecated
-    pseudoUrls?: PseudoUrlInput[];
-    regexps?: RegExpInput[];
     requestManager: IRequestManager;
     selector: string;
     skipNavigation?: boolean;

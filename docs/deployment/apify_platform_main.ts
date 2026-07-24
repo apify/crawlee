@@ -12,7 +12,7 @@ await Actor.main(async () => {
 
             // Add URLs that match the provided pattern.
             await enqueueLinks({
-                globs: ['https://www.iana.org/*'],
+                include: ['https://www.iana.org/*'],
             });
 
             // Save extracted data to dataset.

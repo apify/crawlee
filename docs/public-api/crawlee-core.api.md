@@ -35,7 +35,6 @@ import { LogLevel } from '@apify/log';
 import { ParseSitemapOptions } from '@crawlee/utils';
 import type { ProcessedRequest } from '@crawlee/types';
 import type { ProxyInfo } from '@crawlee/types';
-import { PseudoUrl } from '@apify/pseudo_url';
 import { QueueOperationInfo } from '@crawlee/types';
 import { Readable } from 'node:stream';
 import type { ReadonlyDeep } from 'type-fest';
@@ -226,10 +225,10 @@ export function constructGlobObjectsFromGlobs(globs: readonly GlobInput[]): Glob
 export { Constructor }
 
 // @public
-export function constructRegExpObjectsFromPseudoUrls(pseudoUrls: readonly PseudoUrlInput[]): RegExpObject[];
+export function constructRegExpObjectsFromRegExps(regexps: readonly RegExpInput[]): RegExpObject[];
 
 // @public
-export function constructRegExpObjectsFromRegExps(regexps: readonly RegExpInput[]): RegExpObject[];
+export function constructUrlPatternObjects(patterns: readonly UrlPatternInput[]): UrlPatternObject[];
 
 // @public
 export interface ContextMiddleware<TCrawlingContext, TCrawlingContextExtension> {
@@ -490,14 +489,11 @@ export function enqueueLinks(options: SetRequired<Omit<EnqueueLinksOptions, 'req
 // @public (undocumented)
 export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
     baseUrl?: string;
-    exclude?: readonly (GlobInput | RegExpInput)[];
-    globs?: readonly GlobInput[];
+    exclude?: readonly UrlPatternInput[];
+    include?: readonly UrlPatternInput[];
     label?: string;
     limit?: number;
     onSkippedRequest?: SkippedRequestCallback;
-    // @deprecated
-    pseudoUrls?: readonly PseudoUrlInput[];
-    regexps?: readonly RegExpInput[];
     requestManager?: IRequestManager;
     respectRobotsTxtFile?: boolean | {
         userAgent?: string;
@@ -731,9 +727,10 @@ export type GetUserDataFromRequest<T> = T extends Request_2<infer Y> ? Y : never
 export type GlobInput = string | GlobObject;
 
 // @public (undocumented)
-export type GlobObject = {
+export interface GlobObject {
+    // (undocumented)
     glob: string;
-} & Pick<RequestOptions, 'method' | 'payload' | 'label' | 'userData' | 'headers'>;
+}
 
 // @public
 export interface IProxyConfiguration {
@@ -1010,16 +1007,6 @@ export interface ProxyConfigurationOptions {
     proxyUrls?: UrlList;
 }
 
-export { PseudoUrl }
-
-// @public (undocumented)
-export type PseudoUrlInput = string | PseudoUrlObject;
-
-// @public (undocumented)
-export type PseudoUrlObject = {
-    purl: string;
-} & Pick<RequestOptions, 'method' | 'payload' | 'label' | 'userData' | 'headers'>;
-
 // @public
 export function purgeDefaultStorages(options?: PurgeDefaultStorageOptions): Promise<void>;
 
@@ -1071,9 +1058,10 @@ export interface RecoverableStatePersistenceOptions {
 export type RegExpInput = RegExp | RegExpObject;
 
 // @public (undocumented)
-export type RegExpObject = {
+export interface RegExpObject {
+    // (undocumented)
     regexp: RegExp;
-} & Pick<RequestOptions, 'method' | 'payload' | 'label' | 'userData' | 'headers'>;
+}
 
 // @public
 class Request_2<UserData extends Dictionary = Dictionary> {
@@ -1867,13 +1855,18 @@ export interface SystemStatusOptions {
 export { tryAbsoluteURL }
 
 // @public (undocumented)
-export function updateEnqueueLinksPatternCache(item: GlobInput | RegExpInput | PseudoUrlInput, pattern: RegExpObject | GlobObject): void;
+export function updateEnqueueLinksPatternCache(item: GlobInput | RegExpInput, pattern: RegExpObject | GlobObject): void;
+
+// @public
+export type UrlPatternInput = GlobInput | RegExpInput;
 
 // @public (undocumented)
-export type UrlPatternObject = {
+export interface UrlPatternObject {
+    // (undocumented)
     glob?: string;
+    // (undocumented)
     regexp?: RegExp;
-} & Pick<RequestOptions, 'method' | 'payload' | 'label' | 'userData' | 'headers'>;
+}
 
 // @public
 export function useState<State extends Dictionary = Dictionary>(name?: string, defaultValue?: State, options?: UseStateOptions): Promise<State>;

@@ -24,7 +24,6 @@ import { ContextPipeline } from '@crawlee/browser';
 import { CrawlingContext } from '@crawlee/browser';
 import type { Dictionary } from '@crawlee/types';
 import type { GetUserDataFromRequest } from '@crawlee/browser';
-import type { GlobInput } from '@crawlee/browser';
 import type { HTTPRequest } from 'puppeteer';
 import type { HTTPResponse } from 'puppeteer';
 import { IRequestManager } from '@crawlee/browser';
@@ -34,9 +33,7 @@ import { ObjectPredicate } from 'ow';
 import type { Page } from 'puppeteer';
 import { Predicate } from 'ow';
 import type { ProtocolMapping } from 'devtools-protocol/types/protocol-mapping.js';
-import type { PseudoUrlInput } from '@crawlee/browser';
 import { PuppeteerPlugin } from '@crawlee/browser-pool';
-import type { RegExpInput } from '@crawlee/browser';
 import { Request as Request_2 } from '@crawlee/browser';
 import type { RequestTransform } from '@crawlee/browser';
 import type { ResponseForRequest } from 'puppeteer';
@@ -47,6 +44,7 @@ import type { RoutesFromSchemas } from '@crawlee/browser';
 import type { SkippedRequestCallback } from '@crawlee/browser';
 import { StringPredicate } from 'ow';
 import type { Target } from 'puppeteer';
+import type { UrlPatternInput } from '@crawlee/browser';
 
 // @public
 function addInterceptRequestHandler(page: Page, handler: InterceptHandler): Promise<void>;
@@ -106,16 +104,13 @@ function enqueueLinksByClickingElements(options: EnqueueLinksByClickingElementsO
 // @public (undocumented)
 export interface EnqueueLinksByClickingElementsOptions {
     clickOptions?: ClickOptions;
-    exclude?: readonly (GlobInput | RegExpInput)[];
+    exclude?: readonly UrlPatternInput[];
     forefront?: boolean;
-    globs?: GlobInput[];
+    include?: UrlPatternInput[];
     label?: string;
     maxWaitForPageIdleSecs?: number;
     onSkippedRequest?: SkippedRequestCallback;
     page: Page;
-    // @deprecated
-    pseudoUrls?: PseudoUrlInput[];
-    regexps?: RegExpInput[];
     requestManager: IRequestManager;
     selector: string;
     skipNavigation?: boolean;

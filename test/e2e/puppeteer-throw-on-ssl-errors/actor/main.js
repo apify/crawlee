@@ -26,7 +26,8 @@ await Actor.main(async () => {
             if (label === 'START') {
                 log.info('Bad ssl page opened!');
                 await enqueueLinks({
-                    globs: [{ glob: 'https://*.badssl.com/', userData: { label: 'DETAIL' } }],
+                    include: ['https://*.badssl.com/'],
+                    label: 'DETAIL',
                     selector: '.group a.bad',
                 });
             } else if (label === 'DETAIL') {
