@@ -31,7 +31,7 @@ describe('SessionPool - testing session pool', () => {
         // @ts-expect-error private symbol
         expect(sessionPool.persistStateKey).toBeDefined();
         // @ts-expect-error private symbol
-        expect(sessionPool.createSessionFunction).toEqual(sessionPool._defaultCreateSessionFunction);
+        expect(sessionPool.createSessionFunction).toEqual(sessionPool.defaultCreateSessionFunction);
     });
 
     test('should override default values', async () => {
@@ -82,10 +82,10 @@ describe('SessionPool - testing session pool', () => {
             await sessionPool.getSession();
             let isCalled = false;
             // @ts-expect-error Accessing private property
-            const oldPick = sessionPool._pickSession;
+            const oldPick = sessionPool.pickSession;
 
             // @ts-expect-error Overriding private property
-            sessionPool._pickSession = () => {
+            sessionPool.pickSession = () => {
                 isCalled = true;
                 return oldPick.bind(sessionPool)();
             };
@@ -190,7 +190,7 @@ describe('SessionPool - testing session pool', () => {
         // @ts-expect-error Accessing protected method
         await sessionPool.ensureInitialized();
         // @ts-expect-error private symbol
-        await sessionPool._createSession();
+        await sessionPool.createSession();
         // @ts-expect-error private symbol
         expect(sessionPool.sessions.length).toBe(1);
         // @ts-expect-error private symbol

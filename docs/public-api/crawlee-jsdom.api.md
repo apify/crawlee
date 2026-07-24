@@ -60,8 +60,6 @@ export class JSDOMCrawler<ContextExtension = Dictionary<never>, ExtendedContext 
     }>;
     getVirtualConsole(): VirtualConsole;
     // (undocumented)
-    protected hideInternalConsole: boolean;
-    // (undocumented)
     protected static optionsShape: {
         runScripts: BooleanPredicate & BasePredicate<boolean | undefined>;
         hideInternalConsole: BooleanPredicate & BasePredicate<boolean | undefined>;
@@ -108,10 +106,6 @@ export class JSDOMCrawler<ContextExtension = Dictionary<never>, ExtendedContext 
         statisticsOptions: ObjectPredicate<object> & BasePredicate<object | undefined>;
         id: StringPredicate & BasePredicate<string | undefined>;
     };
-    // (undocumented)
-    protected runScripts: boolean;
-    // (undocumented)
-    protected virtualConsole: VirtualConsole | null;
 }
 
 // @public (undocumented)

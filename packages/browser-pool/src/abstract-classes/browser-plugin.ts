@@ -108,16 +108,16 @@ export abstract class BrowserPlugin<
     NewPageOptions = Parameters<LaunchResult['newPage']>[0],
     NewPageResult = UnwrapPromise<ReturnType<LaunchResult['newPage']>>,
 > {
-    name = this.constructor.name;
-    protected log!: CrawleeLogger;
-    library: Library;
-    launchOptions: LibraryOptions;
-    proxyUrl?: string;
-    userDataDir?: string;
+    readonly name = this.constructor.name;
+    protected readonly log!: CrawleeLogger;
+    readonly library: Library;
+    readonly launchOptions: LibraryOptions;
+    readonly proxyUrl?: string;
+    readonly userDataDir?: string;
     useIncognitoPages: boolean;
-    browserPerProxy?: boolean;
+    readonly browserPerProxy?: boolean;
 
-    ignoreProxyCertificate?: boolean;
+    readonly ignoreProxyCertificate?: boolean;
 
     /**
      * Set by {@apilink RemoteBrowserPool} when this plugin connects to a remote browser service instead of

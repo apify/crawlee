@@ -4,7 +4,6 @@
 
 ```ts
 
-import { AllowedHttpMethods } from '@crawlee/types';
 import { AnyPredicate } from 'ow';
 import { ArrayPredicate } from 'ow';
 import type { Awaitable } from '@crawlee/types';
@@ -19,7 +18,6 @@ import type { CrawlingContext as CrawlingContext_2 } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/types';
 import { ErrorHandler } from '@crawlee/basic';
 import { GetUserDataFromRequest } from '@crawlee/basic';
-import type { ISession } from '@crawlee/types';
 import type { JsonValue } from 'type-fest';
 import { LoadedRequest } from '@crawlee/core';
 import { NumberPredicate } from 'ow';
@@ -28,9 +26,7 @@ import { Predicate } from 'ow';
 import { Request as Request_2 } from '@crawlee/basic';
 import type { Request as Request_3 } from '@crawlee/core';
 import { RequestHandler } from '@crawlee/basic';
-import type { RequestLike } from 'content-type';
 import type { RequireContextPipeline } from '@crawlee/basic';
-import type { ResponseLike } from 'content-type';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import { RouterHandler } from '@crawlee/basic';
 import { RouterRoutes } from '@crawlee/basic';
@@ -101,32 +97,7 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any> =
     // (undocumented)
     protected buildContextPipeline(): ContextPipeline<CrawlingContext, InternalHttpCrawlingContext>;
     // (undocumented)
-    protected _encodeResponse(request: Request_2, response: Response, encoding: BufferEncoding): {
-        encoding: BufferEncoding;
-        response: Response;
-    };
-    protected _extendSupportedMimeTypes(additionalMimeTypes: (string | RequestLike | ResponseLike)[]): void;
-    // (undocumented)
-    protected forceResponseEncoding?: string;
-    protected _getRequestOptions(request: Request_2, session: ISession, proxyUrl?: string): {
-        url: string;
-        method: AllowedHttpMethods;
-        proxyUrl: string | undefined;
-        timeout: number;
-        sessionToken: ISession;
-        headers: Record<string, string> | undefined;
-        https: {
-            rejectUnauthorized: boolean;
-        };
-        body: string | undefined;
-    };
-    protected _handleRequestTimeout(session: ISession): void;
-    // (undocumented)
-    protected ignoreSslErrors: boolean;
-    // (undocumented)
     protected isRequestBlocked(crawlingContext: InternalHttpCrawlingContext): Promise<string | false>;
-    // (undocumented)
-    protected navigationTimeoutMillis: number;
     // (undocumented)
     protected static optionsShape: {
         navigationTimeoutSecs: NumberPredicate & BasePredicate<number | undefined>;
@@ -172,32 +143,6 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any> =
         statisticsOptions: ObjectPredicate<object> & BasePredicate<object | undefined>;
         id: StringPredicate & BasePredicate<string | undefined>;
     };
-    protected _parseResponse(request: Request_2, response: Response): Promise<{
-        response: Response;
-        contentType: {
-            type: string;
-            encoding: BufferEncoding;
-        };
-        body: string;
-    } | {
-        body: Buffer<ArrayBuffer>;
-        response: Response;
-        contentType: {
-            type: string;
-            encoding: BufferEncoding;
-        };
-    }>;
-    // (undocumented)
-    protected postNavigationHooks: ((crawlingContext: CrawlingContextWithResponse) => Awaitable<void | Partial<CrawlingContextWithResponse>>)[];
-    // (undocumented)
-    protected preNavigationHooks: InternalHttpHook<CrawlingContext>[];
-    protected _requestFunction(input: RequestFunctionOptions): Promise<Response>;
-    // (undocumented)
-    protected saveResponseCookies: boolean;
-    // (undocumented)
-    protected suggestResponseEncoding?: string;
-    // (undocumented)
-    protected readonly supportedMimeTypes: Set<string>;
 }
 
 // @public (undocumented)

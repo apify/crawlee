@@ -5,10 +5,10 @@
  */
 export abstract class CachedIdClient {
     /** The storage id assigned by the native client. Set once by the subclass `create()`. */
-    protected _cachedId!: string;
+    protected cachedId!: string;
 
     /** The storage id assigned by the native client. */
     get id(): string {
-        return this._cachedId;
+        return this.cachedId;
     }
 }

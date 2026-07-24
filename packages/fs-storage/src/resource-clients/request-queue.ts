@@ -78,7 +78,7 @@ export class RequestQueueBackend extends CachedIdClient implements storage.Reque
 
     static async create(options: RequestQueueBackendOptions): Promise<RequestQueueBackend> {
         const backend = new RequestQueueBackend(options);
-        backend._cachedId = (await options.nativeBackend.getMetadata()).id;
+        backend.cachedId = (await options.nativeBackend.getMetadata()).id;
         return backend;
     }
 

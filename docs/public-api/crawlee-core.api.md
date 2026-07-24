@@ -32,7 +32,6 @@ import { LoggerJson } from '@apify/log';
 import type { LoggerOptions } from '@apify/log';
 import { LoggerText } from '@apify/log';
 import { LogLevel } from '@apify/log';
-import { LruCache } from '@apify/datastructures';
 import { ParseSitemapOptions } from '@crawlee/utils';
 import type { ProcessedRequest } from '@crawlee/types';
 import type { ProxyInfo } from '@crawlee/types';
@@ -86,27 +85,17 @@ export function assertJsonSerializable<T>(item: T, index?: number): void;
 export class AutoscaledPool {
     constructor(options: AutoscaledPoolOptions);
     abort(): Promise<void>;
-    protected _autoscale(intervalCallback: () => void): void;
     get currentConcurrency(): number;
     get desiredConcurrency(): number;
     set desiredConcurrency(value: number);
-    protected _destroy(): Promise<void>;
-    // (undocumented)
-    protected _incrementTasksDonePerSecond(intervalCallback: () => void): void;
-    // (undocumented)
-    protected get _isOverMaxRequestLimit(): boolean;
     get maxConcurrency(): number;
     set maxConcurrency(value: number);
-    protected _maybeFinish(): Promise<void>;
-    protected _maybeRunTask(intervalCallback?: () => void): Promise<void>;
     get minConcurrency(): number;
     set minConcurrency(value: number);
     notify(): Promise<void>;
     pause(timeoutSecs?: number): Promise<void>;
     resume(): void;
     run(): Promise<void>;
-    protected _scaleDown(systemStatus: SystemInfo): void;
-    protected _scaleUp(systemStatus: SystemInfo): void;
 }
 
 // @public (undocumented)
@@ -1001,29 +990,10 @@ export interface PersistenceOptions {
 // @public
 export class ProxyConfiguration implements IProxyConfiguration {
     constructor(options?: ProxyConfigurationOptions);
-    protected _callNewUrlFunction(options?: {
-        request?: Request_2;
-    }): Promise<string | null>;
     // (undocumented)
-    protected _handleProxyUrlsList(): string | null;
-    // (undocumented)
-    isManInTheMiddle: boolean;
-    // (undocumented)
-    protected log: CrawleeLogger;
+    readonly isManInTheMiddle = false;
     newProxyInfo(options?: NewUrlOptions): Promise<ProxyInfo | undefined>;
     newUrl(options?: NewUrlOptions): Promise<string | undefined>;
-    // (undocumented)
-    protected newUrlFunction?: ProxyConfigurationFunction;
-    // (undocumented)
-    protected nextCustomUrlIndex: number;
-    // (undocumented)
-    protected proxyUrls?: UrlList;
-    // (undocumented)
-    protected _throwCannotCombineCustomMethods(): never;
-    // (undocumented)
-    protected _throwNoOptionsProvided(): never;
-    // (undocumented)
-    protected usedProxyUrls: Map<string, string | null>;
 }
 
 // @public (undocumented)
@@ -1181,35 +1151,22 @@ export class RequestHandlerResult {
 export class RequestList implements IRequestLoader {
     // (undocumented)
     [Symbol.asyncIterator](): AsyncGenerator<Request_2<Dictionary>, void, unknown>;
-    protected _addFetchedRequests(source: InternalSource, fetchedRequests: RequestOptions[]): Promise<void>;
-    protected _addPersistedRequests(persistedRequests: Buffer): Promise<void>;
-    protected _addRequest(source: RequestListSource): void;
-    protected _addRequestsFromSources(): Promise<void>;
-    protected _ensureInProgress(uniqueKey: string): void;
-    protected _ensureIsInitialized(): void;
-    protected _ensureUniqueKeyValid(uniqueKey: string): void;
     // (undocumented)
     fetchNextRequest(): Promise<Request_2 | null>;
-    protected _fetchRequestsFromUrl(source: InternalSource): Promise<RequestOptions[]>;
     // (undocumented)
     getHandledCount(): Promise<number>;
     getPendingCount(): Promise<number>;
-    // (undocumented)
-    protected _getPersistedState<T>(key: string): Promise<T>;
     getState(): RequestListState;
     getTotalCount(): Promise<number>;
     // (undocumented)
     isEmpty(): Promise<boolean>;
     // (undocumented)
     isFinished(): Promise<boolean>;
-    protected _loadStateAndPersistedRequests(): Promise<[RequestListState, Buffer]>;
     // (undocumented)
     markRequestAsHandled(request: Request_2): Promise<void>;
     static open(listNameOrOptions: string | null | RequestListOptions, sources?: RequestListSource[], options?: RequestListOptions): Promise<RequestList>;
-    protected _persistRequests(): Promise<void>;
     // (undocumented)
     persistState(): Promise<void>;
-    protected _restoreState(state?: RequestListState): void;
     teardown(): Promise<void>;
     toTandem(requestManager?: IRequestManager): Promise<IRequestManager>;
 }
@@ -1288,49 +1245,30 @@ export interface RequestOptions<UserData extends Dictionary = Dictionary> {
 export class RequestQueue implements IStorage, IRequestManager {
     // (undocumented)
     [Symbol.asyncIterator](): AsyncGenerator<Request_2<Dictionary>, void, unknown>;
-    protected _addFetchedRequests(source: InternalSource, fetchedRequests: RequestOptions[], options: RequestQueueOperationOptions): Promise<ProcessedRequest[]>;
     addRequest(requestLike: Source, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo>;
     addRequests(requestsLike: RequestsLike, options?: RequestQueueOperationOptions): Promise<BatchAddRequestsResult>;
     addRequestsBatched(requests: ReadonlyDeep<RequestsLike>, options?: AddRequestsBatchedOptions): Promise<AddRequestsBatchedResult>;
     // (undocumented)
-    backend: RequestQueueBackend;
-    protected _cacheRequest(cacheKey: string, queueOperationInfo: RequestQueueOperationInfo): void;
-    // (undocumented)
-    protected readonly config: Configuration;
+    readonly backend: RequestQueueBackend;
     drop(): Promise<void>;
-    // (undocumented)
-    protected readonly events: EventManager;
-    protected expectedRequestProcessingSecs: number;
     fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request_2<T> | null>;
-    protected _fetchRequestsFromUrl(source: InternalSource): Promise<RequestOptions[]>;
     getHandledCount(): Promise<number>;
     getInfo(): Promise<RequestQueueInfo>;
     getPendingCount(): Promise<number>;
     getRequest<T extends Dictionary = Dictionary>(uniqueKey: string): Promise<Request_2<T> | null>;
     getTotalCount(): Promise<number>;
     // (undocumented)
-    protected httpClient?: BaseHttpClient;
-    // (undocumented)
-    id: string;
-    // (undocumented)
-    protected inProgressRequestBatchCount: number;
+    readonly id: string;
     isEmpty(): Promise<boolean>;
     isFinished(): Promise<boolean>;
     // (undocumented)
-    log: CrawleeLogger;
+    readonly log: CrawleeLogger;
     markRequestAsHandled(request: Request_2): Promise<RequestQueueOperationInfo | null>;
     // (undocumented)
-    name?: string;
+    readonly name?: string;
     static open(identifier?: string | StorageIdentifier | null, options?: StorageOpenOptions): Promise<RequestQueue>;
-    // (undocumented)
-    protected proxyConfiguration?: IProxyConfiguration;
     purge(): Promise<void>;
-    // (undocumented)
-    protected queuePausedForMigration: boolean;
     reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
-    // (undocumented)
-    protected requestCache: LruCache<RequestLruItem>;
-    protected requestSeenCache: RequestDeduplicationCache;
     setExpectedRequestProcessingTimeSecs(secs: number): Promise<void>;
     get stats(): RequestQueueStats;
 }
@@ -1439,7 +1377,6 @@ export class RetryRequestError extends Error {
 
 // @public
 export class Router<Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'>, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>> {
-    protected constructor();
     addDefaultHandler<UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(handler: (ctx: RouterHandlerContext<Context, UserData>) => Awaitable_2<void>): void;
     addHandler<Label extends keyof Routes & string>(label: Label, handler: (ctx: RouterHandlerContext<Context, Routes[Label]>) => Awaitable_2<void>): void;
     addHandler<UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(label: RouterLabel<Routes>, handler: (ctx: RouterHandlerContext<Context, UserData>) => Awaitable_2<void>): void;
@@ -1554,7 +1491,6 @@ export class Session implements ISession {
     get maxErrorScore(): number;
     // (undocumented)
     get maxUsageCount(): number;
-    protected _maybeSelfRetire(): void;
     // (undocumented)
     get proxyInfo(): ProxyInfo | undefined;
     retire(): void;
@@ -1563,7 +1499,7 @@ export class Session implements ISession {
     // (undocumented)
     get usageCount(): number;
     // (undocumented)
-    userData: Dictionary;
+    readonly userData: Dictionary;
 }
 
 // @public
@@ -1598,56 +1534,19 @@ export interface SessionOptions {
 export class SessionPool implements ISessionPool {
     constructor(options?: SessionPoolOptions);
     addSession(options?: Session | SessionOptions): Promise<void>;
-    protected _addSession(newSession: Session): void;
-    protected _createSession(): Promise<Session>;
-    // (undocumented)
-    protected createSessionFunction: CreateSession;
-    protected _defaultCreateSessionFunction(options?: {
-        sessionOptions?: SessionOptions;
-    }): Promise<Session>;
-    protected ensureInitialized(): Promise<void>;
-    // (undocumented)
-    protected events: EventManager;
-    protected _getRandomIndex(): number;
     getSession(sessionId?: string): Promise<Session | undefined>;
     getState(): Promise<{
         usableSessionsCount: number;
         retiredSessionsCount: number;
         sessions: SessionState[];
     }>;
-    protected _hasSpaceForSession(): boolean;
     // (undocumented)
     readonly id: string;
-    // (undocumented)
-    protected keyValueStore?: KeyValueStore;
-    // (undocumented)
-    protected _listener?: () => Promise<void>;
-    // (undocumented)
-    protected log: CrawleeLogger;
-    // (undocumented)
-    protected maxPoolSize: number;
-    protected _maybeLoadSessionPool(): Promise<void>;
     newSession(sessionOptions?: SessionOptions): Promise<Session>;
-    // (undocumented)
-    protected persistenceOptions: PersistenceOptions;
     persistState(options?: PersistenceOptions): Promise<void>;
-    // (undocumented)
-    protected persistStateKey: string;
-    // (undocumented)
-    protected persistStateKeyValueStoreId?: string;
-    protected _pickSession(): Session | undefined;
-    protected _removeRetiredSessions(): void;
     // (undocumented)
     resetStore(options?: PersistenceOptions): Promise<void>;
     retiredSessionsCount(): Promise<number>;
-    // (undocumented)
-    protected sessionMap: Map<string, Session>;
-    // (undocumented)
-    protected sessionOptions: SessionOptions;
-    // (undocumented)
-    protected sessionReuseStrategy: SessionReuseStrategy;
-    // (undocumented)
-    protected sessions: Session[];
     teardown(): Promise<void>;
     usableSessionsCount(): Promise<number>;
 }
@@ -1760,11 +1659,11 @@ export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
 export class Snapshotter {
     constructor(options?: SnapshotterOptions);
     // (undocumented)
-    client: StorageBackend;
+    readonly client: StorageBackend;
     // (undocumented)
     get clientSnapshots(): ClientSnapshot[];
     // (undocumented)
-    config: Configuration;
+    readonly config: Configuration;
     // (undocumented)
     get cpuSnapshots(): CpuSnapshot[];
     // (undocumented)
@@ -1775,21 +1674,9 @@ export class Snapshotter {
     getLoadSignals(): LoadSignal[];
     getMemorySample(sampleDurationMillis?: number): MemorySnapshot[];
     // (undocumented)
-    log: CrawleeLogger;
-    // @deprecated (undocumented)
-    protected _memoryOverloadWarning(systemInfo: SystemInfo): void;
+    readonly log: CrawleeLogger;
     // (undocumented)
     get memorySnapshots(): MemorySnapshot[];
-    // @deprecated (undocumented)
-    protected _pruneSnapshots(_snapshots: any[], _now: Date): void;
-    // @deprecated (undocumented)
-    protected _snapshotClient(intervalCallback: () => unknown): void;
-    // @deprecated (undocumented)
-    protected _snapshotCpu(systemInfo: SystemInfo): void;
-    // @deprecated (undocumented)
-    protected _snapshotEventLoop(intervalCallback: () => unknown): void;
-    // @deprecated (undocumented)
-    protected _snapshotMemory(systemInfo: SystemInfo): void;
     start(): Promise<void>;
     stop(): Promise<void>;
 }
@@ -1842,30 +1729,26 @@ export class Statistics {
         crawlerRuntimeMillis: number;
     };
     discardJob(id: number | string): void;
-    errorTracker: ErrorTracker;
-    errorTrackerRetry: ErrorTracker;
+    readonly errorTracker: ErrorTracker;
+    readonly errorTrackerRetry: ErrorTracker;
     failJob(id: number | string, retryCount: number): void;
     finishJob(id: number | string, retryCount: number): void;
     readonly id: string;
     // (undocumented)
     protected keyValueStore?: KeyValueStore;
-    protected _maybeLoadStatistics(): Promise<void>;
+    protected maybeLoadStatistics(): Promise<void>;
     persistState(options?: PersistenceOptions): Promise<void>;
     // (undocumented)
-    protected persistStateKey: string;
+    protected readonly persistStateKey: string;
     registerStatusCode(code: number): void;
     readonly requestRetryHistogram: number[];
     reset(): void;
     // (undocumented)
     resetStore(options?: PersistenceOptions): Promise<void>;
-    // (undocumented)
-    protected _saveRetryCountForJob(retryCount: number): void;
     startCapturing(): Promise<void>;
     startJob(id: number | string): void;
     state: StatisticState;
     stopCapturing(): Promise<void>;
-    // (undocumented)
-    protected _teardown(): void;
     toJSON(): StatisticPersistedState;
 }
 
@@ -1968,7 +1851,6 @@ export class SystemStatus {
     constructor(options?: SystemStatusOptions);
     getCurrentStatus(): SystemInfo;
     getHistoricalStatus(): SystemInfo;
-    protected _isSystemIdle(sampleDurationMillis?: number): SystemInfo;
 }
 
 // @public (undocumented)
