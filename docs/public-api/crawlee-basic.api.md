@@ -30,6 +30,7 @@ import type { EnqueueLinksOptions } from '@crawlee/core';
 import type { EventManager } from '@crawlee/core';
 import type { FinalStatistics } from '@crawlee/core';
 import type { GetUserDataFromRequest } from '@crawlee/core';
+import { IProxyConfiguration } from '@crawlee/core';
 import { IRequestLoader } from '@crawlee/core';
 import { IRequestManager } from '@crawlee/core';
 import type { ISession } from '@crawlee/types';
@@ -37,7 +38,6 @@ import type { ISessionPool } from '@crawlee/types';
 import { NumberPredicate } from 'ow';
 import { ObjectPredicate } from 'ow';
 import { Predicate } from 'ow';
-import { ProxyConfiguration } from '@crawlee/core';
 import type { ProxyInfo } from '@crawlee/types';
 import type { ReadonlyDeep } from 'type-fest';
 import { Request as Request_2 } from '@crawlee/core';
@@ -177,7 +177,7 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
     };
     // (undocumented)
     protected _pauseOnMigration(): Promise<void>;
-    proxyConfiguration?: ProxyConfiguration;
+    proxyConfiguration?: IProxyConfiguration;
     pushData(data: Parameters<Dataset['pushData']>[0], datasetIdentifier?: string | StorageIdentifier): Promise<void>;
     protected _requestFunctionErrorHandler(error: Error, crawlingContext: CrawlingContext, request: Request_2, source: IRequestManager): Promise<void>;
     // (undocumented)
@@ -242,7 +242,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = CrawlingC
     maxRequestsPerMinute?: number;
     minConcurrency?: number;
     onSkippedRequest?: SkippedRequestCallback;
-    proxyConfiguration?: ProxyConfiguration;
+    proxyConfiguration?: IProxyConfiguration;
     requestHandler?: RequestHandler<ExtendedContext>;
     requestHandlerTimeoutSecs?: number;
     // @deprecated

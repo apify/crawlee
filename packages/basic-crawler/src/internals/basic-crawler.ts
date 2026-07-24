@@ -14,9 +14,9 @@ import type {
     EventStatusMessageData,
     FinalStatistics,
     GetUserDataFromRequest,
+    IProxyConfiguration,
     IRequestLoader,
     IRequestManager,
-    ProxyConfiguration,
     Request,
     RequestsLike,
     RequestTransform,
@@ -416,7 +416,7 @@ export interface BasicCrawlerOptions<
      * If set, the crawler will be configured for all connections to use
      * the Proxy URLs provided and rotated according to the configuration.
      */
-    proxyConfiguration?: ProxyConfiguration;
+    proxyConfiguration?: IProxyConfiguration;
 
     /**
      * Custom configuration to use for this crawler.
@@ -625,10 +625,10 @@ export class BasicCrawler<
     autoscaledPool?: AutoscaledPool;
 
     /**
-     * A reference to the underlying {@apilink ProxyConfiguration} class that manages the crawler's proxies.
+     * A reference to the underlying {@apilink IProxyConfiguration} instance that manages the crawler's proxies.
      * Only available if used by the crawler.
      */
-    proxyConfiguration?: ProxyConfiguration;
+    proxyConfiguration?: IProxyConfiguration;
 
     /**
      * Default {@apilink Router} instance that will be used if we don't specify any {@apilink BasicCrawlerOptions.requestHandler|`requestHandler`}.
