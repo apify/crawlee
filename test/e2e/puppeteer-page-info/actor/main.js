@@ -23,7 +23,7 @@ await Actor.main(async () => {
 
             if (label === 'START') {
                 await enqueueLinks({
-                    globs: ['**/examples/accept-user-input'],
+                    include: ['**/examples/accept-user-input'],
                     userData: { label: 'DETAIL' },
                 });
             }

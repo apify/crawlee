@@ -58,7 +58,7 @@ await Actor.main(async () => {
             // and any unresolved relative URLs (which would land at /a, /b, /c
             // without base-href handling) are filtered out by the glob.
             await enqueueLinks({
-                globs: [`${baseUrl}/sub/**`],
+                include: [`${baseUrl}/sub/**`],
             });
         },
     });

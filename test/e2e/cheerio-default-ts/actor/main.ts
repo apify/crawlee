@@ -13,7 +13,7 @@ const crawler = new CheerioCrawler();
 crawler.router.addDefaultHandler(async ({ $, enqueueLinks, request, log }) => {
     const { url } = request;
     await enqueueLinks({
-        globs: ['https://crawlee.dev/js/docs/**'],
+        include: ['https://crawlee.dev/js/docs/**'],
     });
 
     const pageTitle = $('title').first().text();

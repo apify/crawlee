@@ -6,7 +6,6 @@ import type { SetRequired } from 'type-fest';
 
 import type { RequestOptions } from '../request.js';
 import { Request } from '../request.js';
-import { serviceLocator } from '../service_locator.js';
 import type { IRequestManager } from '../storages/request_manager.js';
 import type {
     AddRequestsBatchedOptions,
@@ -14,19 +13,15 @@ import type {
     RequestQueueOperationOptions,
 } from '../storages/request_queue.js';
 import type {
-    GlobInput,
-    PseudoUrlInput,
-    RegExpInput,
     RequestTransform,
     SkippedRequestCallback,
     SkippedRequestReason,
+    UrlPatternInput,
     UrlPatternObject,
 } from './shared.js';
 import {
     applyRequestTransform,
-    constructGlobObjectsFromGlobs,
-    constructRegExpObjectsFromPseudoUrls,
-    constructRegExpObjectsFromRegExps,
+    constructUrlPatternObjects,
     createRequestOptions,
     filterRequestOptionsByPatterns,
 } from './shared.js';
@@ -50,8 +45,7 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
     /**
      * Sets {@apilink Request.label} for newly enqueued requests.
      *
-     * This option has the lowest priority and can be overwritten by request options
-     * specified in `globs`, `regexps`, or `pseudoUrls` objects, as well as by `transformRequestFunction`.
+     * Can be overwritten by `transformRequestFunction`.
      */
     label?: string;
 
@@ -71,65 +65,34 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
     baseUrl?: string;
 
     /**
-     * An array of glob pattern strings or plain objects
-     * containing glob pattern strings matching the URLs to be enqueued.
+     * An array of URL patterns that URLs must match to be enqueued.
      *
-     * The plain objects must include at least the `glob` property, which holds the glob pattern string.
-     * All remaining keys will be used as request options for the corresponding enqueued {@apilink Request} objects.
-     *
-     * The matching is always case-insensitive.
-     * If you need case-sensitive matching, use `regexps` property directly.
-     *
-     * If `globs` is an empty array or `undefined`, and `regexps` are also not defined, then the function
-     * enqueues the links with the same subdomain.
-     */
-    globs?: readonly GlobInput[];
-
-    /**
-     * An array of glob pattern strings, regexp patterns or plain objects
-     * containing patterns matching URLs that will **never** be enqueued.
-     *
-     * The plain objects must include either the `glob` property or the `regexp` property.
+     * Accepts glob pattern strings, `{ glob: string }` objects, `RegExp` instances, or `{ regexp: RegExp }` objects.
      *
      * Glob matching is always case-insensitive.
-     * If you need case-sensitive matching, provide a regexp.
+     * If you need case-sensitive matching, use a `RegExp`.
+     *
+     * The patterns are combined with the {@apilink EnqueueLinksOptions.strategy|`strategy`} using AND logic - a URL
+     * must match at least one `include` pattern **and** satisfy the strategy to be enqueued. To match URLs across
+     * hostnames, pass an explicit {@apilink EnqueueStrategy.All} strategy.
+     *
+     * If `undefined`, the links are enqueued based on the {@apilink EnqueueLinksOptions.strategy|`strategy`} alone.
+     * Passing an empty array is not allowed.
      */
-    exclude?: readonly (GlobInput | RegExpInput)[];
+    include?: readonly UrlPatternInput[];
 
     /**
-     * An array of regular expressions or plain objects
-     * containing regular expressions matching the URLs to be enqueued.
+     * An array of URL patterns. Matching URLs will **not** be enqueued.
      *
-     * The plain objects must include at least the `regexp` property, which holds the regular expression.
-     * All remaining keys will be used as request options for the corresponding enqueued {@apilink Request} objects.
+     * Accepts glob pattern strings, `{ glob: string }` objects, `RegExp` instances, or `{ regexp: RegExp }` objects.
      *
-     * If `regexps` is an empty array or `undefined`, and `globs` are also not defined, then the function
-     * enqueues the links with the same subdomain.
+     * Glob matching is always case-insensitive.
+     * If you need case-sensitive matching, use a `RegExp`.
      */
-    regexps?: readonly RegExpInput[];
+    exclude?: readonly UrlPatternInput[];
 
     /**
-     * *NOTE:* In future versions of SDK the options will be removed.
-     * Please use `globs` or `regexps` instead.
-     *
-     * An array of {@apilink PseudoUrl} strings or plain objects
-     * containing {@apilink PseudoUrl} strings matching the URLs to be enqueued.
-     *
-     * The plain objects must include at least the `purl` property, which holds the pseudo-URL string.
-     * All remaining keys will be used as request options for the corresponding enqueued {@apilink Request} objects.
-     *
-     * With a pseudo-URL string, the matching is always case-insensitive.
-     * If you need case-sensitive matching, use `regexps` property directly.
-     *
-     * If `pseudoUrls` is an empty array or `undefined`, then the function
-     * enqueues the links with the same subdomain.
-     *
-     * @deprecated prefer using `globs` or `regexps` instead
-     */
-    pseudoUrls?: readonly PseudoUrlInput[];
-
-    /**
-     * After request options are filtered by patterns, this function can be used
+     * After request options are filtered by `include`/`exclude` patterns, this function can be used
      * to remove them or modify their contents such as `userData`, `payload` or, most importantly `uniqueKey`. This is useful
      * when you need to enqueue multiple `Requests` to the queue that share the same URL, but differ in methods or payloads,
      * or to dynamically update or create `userData`.
@@ -148,8 +111,8 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
      * }
      * ```
      *
-     * Note that `transformRequestFunction` has the highest priority and can overwrite request options
-     * specified in `globs`, `regexps`, or `pseudoUrls` objects, as well as the global `label` option.
+     * Note that `transformRequestFunction` has the highest priority and can overwrite
+     * the global `label` option.
      *
      * The function receives a {@apilink RequestOptions} object and can return either:
      * - The modified {@apilink RequestOptions} object
@@ -266,8 +229,7 @@ export enum EnqueueStrategy {
  * This function enqueues the urls provided to the {@apilink RequestQueue} provided. If you want to automatically find and enqueue links,
  * you should use the context-aware `enqueueLinks` function provided on the crawler contexts.
  *
- * Optionally, the function allows you to filter the target links' URLs using an array of globs or regular expressions
- * and override settings of the enqueued {@apilink Request} objects.
+ * Optionally, the function allows you to filter the target links' URLs using an array of glob or regexp patterns.
  *
  * **Example usage**
  *
@@ -276,7 +238,7 @@ export enum EnqueueStrategy {
  *   urls: aListOfFoundUrls,
  *   requestManager,
  *   selector: 'a.product-detail',
- *   globs: [
+ *   include: [
  *       'https://www.example.com/handbags/*',
  *       'https://www.example.com/purses/*'
  *   ],
@@ -305,6 +267,8 @@ export async function enqueueLinks(
         );
     }
 
+    const urlPatternValidator = ow.any(ow.string, ow.regExp, ow.object.hasKeys('glob'), ow.object.hasKeys('regexp'));
+
     ow(
         options as any,
         ow.object.exactShape({
@@ -321,12 +285,8 @@ export async function enqueueLinks(
             baseUrl: ow.optional.string,
             userData: ow.optional.object,
             label: ow.optional.string,
-            pseudoUrls: ow.optional.array.ofType(ow.any(ow.string, ow.object.hasKeys('purl'))),
-            globs: ow.optional.array.ofType(ow.any(ow.string, ow.object.hasKeys('glob'))),
-            exclude: ow.optional.array.ofType(
-                ow.any(ow.string, ow.regExp, ow.object.hasKeys('glob'), ow.object.hasKeys('regexp')),
-            ),
-            regexps: ow.optional.array.ofType(ow.any(ow.regExp, ow.object.hasKeys('regexp'))),
+            include: ow.optional.array.minLength(1).ofType(urlPatternValidator),
+            exclude: ow.optional.array.ofType(urlPatternValidator),
             transformRequestFunction: ow.optional.function,
             strategy: ow.optional.string.oneOf(Object.values(EnqueueStrategy)),
             waitForAllRequestsToBeAdded: ow.optional.boolean,
@@ -337,11 +297,8 @@ export async function enqueueLinks(
         requestManager,
         limit,
         urls,
-        // oxlint-disable-next-line typescript/no-deprecated -- still accepted for backwards compat
-        pseudoUrls,
+        include,
         exclude,
-        globs,
-        regexps,
         transformRequestFunction,
         forefront,
         waitForAllRequestsToBeAdded,
@@ -349,35 +306,12 @@ export async function enqueueLinks(
         onSkippedRequest,
     } = options;
 
-    const urlExcludePatternObjects: UrlPatternObject[] = [];
-    const urlPatternObjects: UrlPatternObject[] = [];
+    const urlExcludePatternObjects: UrlPatternObject[] = exclude?.length ? constructUrlPatternObjects(exclude) : [];
+    const urlPatternObjects: UrlPatternObject[] = include?.length ? constructUrlPatternObjects(include) : [];
 
-    if (exclude?.length) {
-        for (const excl of exclude) {
-            if (typeof excl === 'string' || 'glob' in excl) {
-                urlExcludePatternObjects.push(...constructGlobObjectsFromGlobs([excl]));
-            } else if (excl instanceof RegExp || 'regexp' in excl) {
-                urlExcludePatternObjects.push(...constructRegExpObjectsFromRegExps([excl]));
-            }
-        }
-    }
-
-    if (pseudoUrls?.length) {
-        serviceLocator.getLogger().deprecated('`pseudoUrls` option is deprecated, use `globs` or `regexps` instead');
-        urlPatternObjects.push(...constructRegExpObjectsFromPseudoUrls(pseudoUrls));
-    }
-
-    if (globs?.length) {
-        urlPatternObjects.push(...constructGlobObjectsFromGlobs(globs));
-    }
-
-    if (regexps?.length) {
-        urlPatternObjects.push(...constructRegExpObjectsFromRegExps(regexps));
-    }
-
-    if (!urlPatternObjects.length) {
-        options.strategy ??= EnqueueStrategy.SameHostname;
-    }
+    // The strategy always applies, even when `include` patterns are provided - the two are AND-ed together
+    // (a URL must match an `include` pattern *and* satisfy the strategy). This mirrors crawlee-python.
+    options.strategy ??= EnqueueStrategy.SameHostname;
 
     const enqueueStrategyPatterns: UrlPatternObject[] = [];
 
@@ -460,8 +394,7 @@ export async function enqueueLinks(
     async function createFilteredRequests() {
         const skippedRequests: string[] = [];
 
-        // Step 1: Filter request options by exclude patterns, user patterns (globs/regexps), and strategy patterns.
-        // Pattern-level options (label, userData, method, etc.) are merged during this step.
+        // Step 1: Filter request options by exclude patterns, user include patterns, and strategy patterns.
         let filteredOptions: RequestOptions[];
         if (urlPatternObjects.length === 0) {
             filteredOptions = filterRequestOptionsByPatterns(
@@ -584,7 +517,7 @@ export interface ResolveBaseUrl {
 }
 
 /**
- * Internal function that changes the enqueue globs to match both http and https
+ * Internal function that changes the enqueue glob patterns to match both http and https
  */
 function ignoreHttpSchema(pattern: string): string {
     return pattern.replace(/^(https?):\/\//, 'http{s,}://');
