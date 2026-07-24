@@ -65,8 +65,8 @@ import type { StatisticState } from '@crawlee/core';
 import { StringPredicate } from 'ow';
 
 // @public
-export class AdaptivePlaywrightCrawler<ExtendedContext extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext> extends BasicCrawler<AdaptivePlaywrightCrawlerContext, ExtendedContext> {
-    constructor(options?: AdaptivePlaywrightCrawlerOptions<ExtendedContext>);
+export class AdaptivePlaywrightCrawler<ContextExtension = Dictionary_2<never>, ExtendedContext extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext & ContextExtension> extends BasicCrawler<AdaptivePlaywrightCrawlerContext, ContextExtension, ExtendedContext> {
+    constructor(options?: AdaptivePlaywrightCrawlerOptions<ContextExtension, ExtendedContext>);
     // (undocumented)
     protected buildContextPipeline(): ContextPipeline_2<CrawlingContext_2<Dictionary_2>, CrawlingContext_2<Dictionary_2> & {
         readonly request: LoadedRequest<Request_3<Dictionary_2>>;
@@ -103,9 +103,9 @@ export interface AdaptivePlaywrightCrawlerContext<UserData extends Dictionary_2 
 }
 
 // @public (undocumented)
-export interface AdaptivePlaywrightCrawlerOptions<ExtendedContext extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext> extends Omit<BasicCrawlerOptions<AdaptivePlaywrightCrawlerContext, ExtendedContext>, 'preNavigationHooks' | 'postNavigationHooks'> {
-    postNavigationHooks?: AdaptivePostNavigationHook[];
-    preNavigationHooks?: AdaptiveHook[];
+export interface AdaptivePlaywrightCrawlerOptions<ContextExtension = Dictionary_2<never>, ExtendedContext extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext & ContextExtension> extends Omit<BasicCrawlerOptions<AdaptivePlaywrightCrawlerContext, ContextExtension, ExtendedContext>, 'preNavigationHooks' | 'postNavigationHooks'> {
+    postNavigationHooks?: AdaptivePostNavigationHook<ContextExtension>[];
+    preNavigationHooks?: AdaptiveHook<ContextExtension>[];
     preventDirectStorageAccess?: boolean;
     renderingTypeDetectionRatio?: number;
     renderingTypePredictor?: Pick<RenderingTypePredictor, 'predict' | 'storeResult' | 'initialize'>;
@@ -259,7 +259,7 @@ declare namespace playwrightClickElements {
 export class PlaywrightCrawler<ContextExtension = Dictionary_2<never>, ExtendedContext extends PlaywrightCrawlingContext = PlaywrightCrawlingContext & ContextExtension> extends BrowserCrawler<Page, Response_2, {
     browserPlugins: [PlaywrightPlugin];
 }, LaunchOptions, PlaywrightCrawlingContext, ContextExtension, ExtendedContext> {
-    constructor(options?: PlaywrightCrawlerOptions<ExtendedContext>);
+    constructor(options?: PlaywrightCrawlerOptions<ContextExtension, ExtendedContext>);
     // (undocumented)
     protected buildContextPipeline(): ContextPipeline<CrawlingContext<Dictionary_2>, BrowserCrawlingContext<Page, Response_2, Dictionary_2, Dictionary_2> & {
     injectFile: (filePath: string, options?: InjectFileOptions) => Promise<unknown>;
@@ -333,8 +333,8 @@ export interface PlaywrightCrawlerOptions<ContextExtension = Dictionary_2<never>
     browserPlugins: [PlaywrightPlugin];
 }> {
     launchContext?: PlaywrightLaunchContext;
-    postNavigationHooks?: PlaywrightHook[];
-    preNavigationHooks?: PlaywrightHook[];
+    postNavigationHooks?: BrowserHook<PlaywrightCrawlingContext, ContextExtension>[];
+    preNavigationHooks?: BrowserHook<PlaywrightCrawlingContext, ContextExtension>[];
     requestHandler?: RequestHandler<ExtendedContext>;
 }
 
