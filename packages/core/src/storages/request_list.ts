@@ -5,7 +5,7 @@ import ow, { ArgumentError } from 'ow';
 import type { Configuration } from '../configuration.js';
 import { EventType } from '../events/event_manager.js';
 import type { CrawleeLogger } from '../log.js';
-import type { ProxyConfiguration } from '../proxy_configuration.js';
+import type { IProxyConfiguration } from '../proxy_configuration.js';
 import { type InternalSource, Request, type RequestOptions, type Source } from '../request.js';
 import { createDeserialize, serializeArray } from '../serialization.js';
 import { serviceLocator } from '../service_locator.js';
@@ -103,7 +103,7 @@ export interface RequestListOptions {
      * Takes advantage of the internal address rotation and authentication process.
      * If undefined, the `requestsFromUrl` requests will be made without proxy.
      */
-    proxyConfiguration?: ProxyConfiguration;
+    proxyConfiguration?: IProxyConfiguration;
 
     /**
      * Identifies the key in the default key-value store under which `RequestList` periodically stores its
@@ -288,7 +288,7 @@ export class RequestList implements IRequestLoader {
     private keepDuplicateUrls: boolean;
     private sources: RequestListSource[];
     private sourcesFunction?: RequestListSourcesFunction;
-    private proxyConfiguration?: ProxyConfiguration;
+    private proxyConfiguration?: IProxyConfiguration;
     private httpClient?: BaseHttpClient;
 
     /**
@@ -716,7 +716,7 @@ export class RequestList implements IRequestLoader {
             urlsArr = await this._downloadListOfUrls({
                 url: requestsFromUrl,
                 urlRegExp: regex,
-                proxyUrl: await this.proxyConfiguration?.newUrl(),
+                proxyUrl: (await this.proxyConfiguration?.newProxyInfo())?.url,
             });
         } catch (err) {
             throw new Error(`Cannot fetch a request list from ${requestsFromUrl}: ${err}`);

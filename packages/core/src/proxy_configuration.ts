@@ -32,6 +32,24 @@ interface NewUrlOptions {
 }
 
 /**
+ * Minimal contract that any object passed to a crawler as its `proxyConfiguration`
+ * option must satisfy.
+ *
+ * Implement this interface to plug a custom proxy-provisioning strategy into any Crawlee
+ * crawler — for example a remote proxy service or a thin wrapper around the built-in
+ * `ProxyConfiguration` with different rotation rules. *
+ *
+ * @category Scaling
+ */
+export interface IProxyConfiguration {
+    /**
+     * Creates a new {@apilink ProxyInfo} object describing the proxy to use for the given
+     * request. Returns `undefined` when no proxy should be used.
+     */
+    newProxyInfo(options?: NewUrlOptions): Promise<ProxyInfo | undefined>;
+}
+
+/**
  * Configures connection to a proxy server with the provided options. Proxy servers are used to prevent target websites from blocking
  * your crawlers based on IP address rate limits or blacklists. Setting proxy configuration in your crawlers automatically configures
  * them to use the selected proxies for all connections. You can get information about the currently used proxy by inspecting
@@ -59,7 +77,7 @@ interface NewUrlOptions {
  * ```
  * @category Scaling
  */
-export class ProxyConfiguration {
+export class ProxyConfiguration implements IProxyConfiguration {
     isManInTheMiddle = false;
     protected nextCustomUrlIndex = 0;
     protected proxyUrls?: UrlList;
