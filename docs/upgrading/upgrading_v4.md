@@ -38,6 +38,8 @@ The leading underscore was dropped from protected and private class members acro
 
 - `BasicCrawler._runRequestHandler` -> `BasicCrawler.runRequestHandler`
 
+The file-system storage backends' shared `CachedIdClient._cachedId` protected field was also renamed to `cachedId` (this only affects custom `@crawlee/fs-storage` backends that subclass it).
+
 Members that were also made `private` in the same pass are listed under [Unintentionally exposed internals are now private](#unintentionally-exposed-internals-are-now-private) below.
 
 ## Unintentionally exposed internals are now private
@@ -63,6 +65,11 @@ The change spans, among others:
 - **`JSDOMCrawler`** — `runScripts`, `hideInternalConsole`, `virtualConsole`
 - **`AdaptivePlaywrightCrawler`** — `commitResult`, `allowStorageAccess`, `enqueueLinks`
 - **`RenderingTypePredictor`** — `calculateFeatureVector`, `retrain`
+- **`BrowserCrawler`** — `navigationTimeoutMillis`, `preNavigationHooks`, `postNavigationHooks`, `saveResponseCookies` (now `private readonly`; configure them through the constructor options as before), and the helpers `isRequestBlocked`, `applyCookies` (was `_applyCookies`), `handleNavigationTimeout` (was `_handleNavigationTimeout`), `throwIfProxyError` (was `_throwIfProxyError`)
+- **`BrowserLauncher`** — the helpers `getChromeExecutablePath`, `getTypicalChromeExecutablePath`, `validateProxyUrlProtocol` (were `_`-prefixed). `getDefaultHeadlessOption` (was `_getDefaultHeadlessOption`) stays `protected` — it is an override point (`PuppeteerLauncher` overrides it) — but lost its underscore prefix
+- **`Statistics.maybeLoadStatistics`** (was `_maybeLoadStatistics`) — stays `protected` (it is overridden by `AdaptivePlaywrightCrawler`'s statistics), but lost its underscore prefix; rename any `super._maybeLoadStatistics()` overrides accordingly
+- **`RobotsTxtFile.load` and `Sitemap.parse`** — internal static factory helpers, now `private` (use the public `RobotsTxtFile.from` / `Sitemap.load` / `Sitemap.fromXmlString` entry points)
+- Various internal fields on `BrowserController` (`id`, `browserPlugin`, `log`) and `BrowserPlugin` (`name`, `library`, `launchOptions`, `proxyUrl`, `userDataDir`, `browserPerProxy`, `ignoreProxyCertificate`, `log`) are now `readonly`
 
 ## The `RequestQueue` constructor no longer takes a `Configuration`
 
@@ -84,6 +91,7 @@ The internal `RequestQueue` constructor dropped its second `config: Configuratio
 - `HttpCrawler._parseHTML` (protected)
 - `HttpCrawler.use` and the `CrawlerExtension` class (experimental) - the `ContextPipeline` should be used for extending the crawler
 - `BasicCrawler._tagUserHandlerError` (protected) - internal error-tagging helper, no longer part of the crawler surface
+- `PlaywrightPlugin._containerProxyServer` (public) - was an unused, never-populated field
 - `Snapshotter._snapshotMemory`, `Snapshotter._memoryOverloadWarning`, `Snapshotter._snapshotEventLoop`, `Snapshotter._snapshotCpu`, `Snapshotter._snapshotClient`, `Snapshotter._pruneSnapshots` (all `@deprecated` protected stubs) - snapshotting is handled by the individual load signals, use `Snapshotter.getMemorySample()` / `getEventLoopSample()` / `getCpuSample()` / `getClientSample()` instead
 - `FileDownloadOptions.streamHandler` - streaming should now be handled directly in the `requestHandler` instead
 - `playwrightUtils.registerUtilsToContext` and `puppeteerUtils.registerUtilsToContext` - this is now added to the context via `ContextPipeline` composition

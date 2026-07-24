@@ -79,8 +79,8 @@ class AdaptivePlaywrightCrawlerStatistics extends Statistics {
         this.state.renderingTypeMispredictions = 0;
     }
 
-    protected override async _maybeLoadStatistics(): Promise<void> {
-        await super._maybeLoadStatistics();
+    protected override async maybeLoadStatistics(): Promise<void> {
+        await super.maybeLoadStatistics();
         const savedState = await this.keyValueStore?.getValue<AdaptivePlaywrightCrawlerPersistedStatisticState>(
             this.persistStateKey,
         );

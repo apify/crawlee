@@ -347,10 +347,10 @@ export abstract class BrowserCrawler<
     protected readonly ignoreShadowRoots: boolean;
     protected readonly ignoreIframes: boolean;
 
-    protected navigationTimeoutMillis: number;
-    protected preNavigationHooks: BrowserHook<Context>[];
-    protected postNavigationHooks: BrowserHook<Context>[];
-    protected saveResponseCookies: boolean;
+    private readonly navigationTimeoutMillis: number;
+    private readonly preNavigationHooks: BrowserHook<Context>[];
+    private readonly postNavigationHooks: BrowserHook<Context>[];
+    private readonly saveResponseCookies: boolean;
 
     protected static override optionsShape = {
         ...BasicCrawler.optionsShape,
@@ -507,7 +507,7 @@ export abstract class BrowserCrawler<
         return foundSelectors.length > 0 ? foundSelectors : null;
     }
 
-    protected async isRequestBlocked(crawlingContext: BrowserCrawlingContext<Page, Response>): Promise<string | false> {
+    private async isRequestBlocked(crawlingContext: BrowserCrawlingContext<Page, Response>): Promise<string | false> {
         const { page, response } = crawlingContext;
 
         // Cloudflare specific heuristic - wait 5 seconds if we get a 403 for the JS challenge to load / resolve.
@@ -605,15 +605,15 @@ export abstract class BrowserCrawler<
         const cookiesBeforeHooks = readContextField<string>(crawlingContext, COOKIES_BEFORE_HOOKS);
         const cookiesAfterHooks = this._getCookieHeaderFromRequest(crawlingContext.request);
 
-        await this._applyCookies(crawlingContext, cookiesBeforeHooks, cookiesAfterHooks);
+        await this.applyCookies(crawlingContext, cookiesBeforeHooks, cookiesAfterHooks);
 
         let response: Response | undefined;
         try {
             response = (await this._navigationHandler(crawlingContext, gotoOptions)) ?? undefined;
         } catch (error) {
-            await this._handleNavigationTimeout(crawlingContext, error as Error);
+            await this.handleNavigationTimeout(crawlingContext, error as Error);
             crawlingContext.request.state = RequestState.ERROR;
-            this._throwIfProxyError(error as Error);
+            this.throwIfProxyError(error as Error);
             throw error;
         }
         tryCancel();
@@ -670,7 +670,7 @@ export abstract class BrowserCrawler<
         return {};
     }
 
-    protected async _applyCookies(
+    private async applyCookies(
         { session, request, page }: BrowserCrawlingContext<Page, Response>,
         preHooksCookies: string,
         postHooksCookies: string,
@@ -689,7 +689,7 @@ export abstract class BrowserCrawler<
     /**
      * Marks session bad on navigation timeout, and stops in-flight page loading on any navigation error.
      */
-    protected async _handleNavigationTimeout(crawlingContext: BrowserCrawlingContext, error: Error): Promise<void> {
+    private async handleNavigationTimeout(crawlingContext: BrowserCrawlingContext, error: Error): Promise<void> {
         const { session, page } = crawlingContext;
 
         if (error?.constructor.name === 'TimeoutError') {
@@ -704,7 +704,7 @@ export abstract class BrowserCrawler<
     /**
      * Transforms proxy-related errors to `SessionError`.
      */
-    protected _throwIfProxyError(error: Error) {
+    private throwIfProxyError(error: Error) {
         if (this.isProxyError(error)) {
             throw new SessionError(this._getMessageFromError(error) as string);
         }

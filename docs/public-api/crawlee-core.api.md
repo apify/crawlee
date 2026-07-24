@@ -1731,7 +1731,7 @@ export class Statistics {
     readonly id: string;
     // (undocumented)
     protected keyValueStore?: KeyValueStore;
-    protected _maybeLoadStatistics(): Promise<void>;
+    protected maybeLoadStatistics(): Promise<void>;
     persistState(options?: PersistenceOptions): Promise<void>;
     // (undocumented)
     protected readonly persistStateKey: string;

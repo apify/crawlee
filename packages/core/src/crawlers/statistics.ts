@@ -294,7 +294,7 @@ export class Statistics {
         }
 
         if (this.persistenceOptions.enable) {
-            await this._maybeLoadStatistics();
+            await this.maybeLoadStatistics();
             this.events.on(EventType.PERSIST_STATE, this.listener);
         }
 
@@ -349,7 +349,7 @@ export class Statistics {
     /**
      * Loads the current statistic from the key value store if any
      */
-    protected async _maybeLoadStatistics() {
+    protected async maybeLoadStatistics() {
         // this might be called before startCapturing was called without using await, should not crash
         if (!this.keyValueStore) {
             return;

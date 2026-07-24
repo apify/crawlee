@@ -100,7 +100,7 @@ export class KeyValueStoreBackend extends CachedIdClient implements storage.KeyV
 
     static async create(options: KeyValueStoreBackendOptions): Promise<KeyValueStoreBackend> {
         const backend = new KeyValueStoreBackend(options);
-        backend._cachedId = (await options.nativeBackend.getMetadata()).id;
+        backend.cachedId = (await options.nativeBackend.getMetadata()).id;
         return backend;
     }
 
