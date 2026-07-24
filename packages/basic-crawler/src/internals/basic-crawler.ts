@@ -673,14 +673,6 @@ export class BasicCrawler<
         return this.stats.state.requestsFinished + this.stats.state.requestsFailed;
     }
 
-    /** @deprecated Setting `handledRequestsCount` directly is no longer supported. The count is now derived from `this.stats`. */
-    private set handledRequestsCount(_value: number) {
-        throw new Error(
-            'Setting `handledRequestsCount` directly is no longer supported. ' +
-                'The count is now derived from `this.stats.state.requestsFinished` and `this.stats.state.requestsFailed`.',
-        );
-    }
-
     private statusMessageLoggingInterval: number;
     private statusMessageCallback?: StatusMessageCallback;
     protected blockedStatusCodes = new Set<number>();

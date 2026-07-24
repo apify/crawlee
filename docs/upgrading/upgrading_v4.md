@@ -91,6 +91,7 @@ The internal `RequestQueue` constructor dropped its second `config: Configuratio
 - `HttpCrawler._parseHTML` (protected)
 - `HttpCrawler.use` and the `CrawlerExtension` class (experimental) - the `ContextPipeline` should be used for extending the crawler
 - `BasicCrawler._tagUserHandlerError` (protected) - internal error-tagging helper, no longer part of the crawler surface
+- `BasicCrawler.handledRequestsCount` setter (`@deprecated`) - the throw-on-assign guard is gone; the getter is now internal-only and the count is derived from `this.stats`
 - `PlaywrightPlugin._containerProxyServer` (public) - was an unused, never-populated field
 - `Snapshotter._snapshotMemory`, `Snapshotter._memoryOverloadWarning`, `Snapshotter._snapshotEventLoop`, `Snapshotter._snapshotCpu`, `Snapshotter._snapshotClient`, `Snapshotter._pruneSnapshots` (all `@deprecated` protected stubs) - snapshotting is handled by the individual load signals, use `Snapshotter.getMemorySample()` / `getEventLoopSample()` / `getCpuSample()` / `getClientSample()` instead
 - `FileDownloadOptions.streamHandler` - streaming should now be handled directly in the `requestHandler` instead
