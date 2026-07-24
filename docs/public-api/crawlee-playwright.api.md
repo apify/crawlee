@@ -53,13 +53,11 @@ import type { RequestHandler } from '@crawlee/browser';
 import { RequestHandlerResult } from '@crawlee/core';
 import type { RequestTransform } from '@crawlee/browser';
 import type { Response as Response_2 } from 'playwright';
-import type { RestrictedCrawlingContext } from '@crawlee/core';
 import type { RouterHandler } from '@crawlee/browser';
 import type { RouterRoutes } from '@crawlee/browser';
 import type { RouterRoutes as RouterRoutes_2 } from '@crawlee/core';
 import type { RouteSchemas } from '@crawlee/browser';
 import type { RoutesFromSchemas } from '@crawlee/browser';
-import type { SetRequired } from 'type-fest';
 import type { SkippedRequestCallback } from '@crawlee/browser';
 import { Statistics } from '@crawlee/core';
 import type { StatisticsOptions } from '@crawlee/core';
@@ -70,8 +68,6 @@ import { StringPredicate } from 'ow';
 export class AdaptivePlaywrightCrawler<ExtendedContext extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext> extends BasicCrawler<AdaptivePlaywrightCrawlerContext, ExtendedContext> {
     constructor(options?: AdaptivePlaywrightCrawlerOptions<ExtendedContext>);
     // (undocumented)
-    protected allowStorageAccess<R, TArgs extends any[]>(func: (...args: TArgs) => Promise<R>): (...args: TArgs) => Promise<R>;
-    // (undocumented)
     protected buildContextPipeline(): ContextPipeline_2<CrawlingContext_2<Dictionary_2>, CrawlingContext_2<Dictionary_2> & {
         readonly request: LoadedRequest<Request_3<Dictionary_2>>;
         readonly response: Response;
@@ -80,10 +76,6 @@ export class AdaptivePlaywrightCrawler<ExtendedContext extends AdaptivePlaywrigh
         readonly waitForSelector: AdaptivePlaywrightCrawlerContext["waitForSelector"];
         readonly parseWithCheerio: AdaptivePlaywrightCrawlerContext["parseWithCheerio"];
     }>;
-    // (undocumented)
-    protected commitResult(crawlingContext: CrawlingContext_2, input: RequestHandlerResult): Promise<void>;
-    // (undocumented)
-    protected enqueueLinks(options: SetRequired<EnqueueLinksOptions, 'urls'>, request: RestrictedCrawlingContext['request'], result: RequestHandlerResult): Promise<BatchAddRequestsResult>;
     protected getPendingRequestCountApproximation(): Promise<number>;
     // (undocumented)
     protected _init(): Promise<void>;
@@ -420,15 +412,11 @@ export type RenderingType = 'clientOnly' | 'static';
 // @public
 export class RenderingTypePredictor {
     constructor(input: RenderingTypePredictorOptions);
-    // (undocumented)
-    protected calculateFeatureVector(url: URLComponents, label: string | undefined): FeatureVector;
     initialize(): Promise<void>;
     predict(input: Request_2): {
         renderingType: RenderingType;
         detectionProbabilityRecommendation: number;
     };
-    // (undocumented)
-    protected retrain(): void;
     storeResult(requests: Request_2 | Request_2[], renderingType: RenderingType): void;
 }
 

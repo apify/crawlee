@@ -499,7 +499,7 @@ export class Sitemap {
         return await this.parse([{ type: 'raw', content }], proxyUrl, parseSitemapOptions);
     }
 
-    protected static async parse(
+    private static async parse(
         sources: SitemapSource[],
         proxyUrl?: string,
         parseSitemapOptions?: ParseSitemapOptions,

@@ -238,7 +238,7 @@ export class Router<
      * use Router.create() instead!
      * @ignore
      */
-    protected constructor() {}
+    private constructor() {}
 
     /**
      * Registers new route handler for given label. When the router declares a route map, the

@@ -76,7 +76,7 @@ export class RobotsTxtFile {
         return new RobotsTxtFile(url, robotsParser(url, content), proxyUrl);
     }
 
-    protected static async load(
+    private static async load(
         url: string,
         options?: {
             signal?: AbortSignal;

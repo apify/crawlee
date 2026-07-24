@@ -112,13 +112,13 @@ export abstract class BrowserController<
     extends TypedEmitter<BrowserControllerEvents<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>>
     implements IBrowserController<NewPageResult>
 {
-    id = nanoid();
-    protected log!: CrawleeLogger;
+    readonly id = nanoid();
+    protected readonly log!: CrawleeLogger;
 
     /**
      * The `BrowserPlugin` instance used to launch the browser.
      */
-    browserPlugin: BrowserPlugin<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>;
+    readonly browserPlugin: BrowserPlugin<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>;
 
     /**
      * Browser representation of the underlying automation library.
