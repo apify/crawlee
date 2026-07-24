@@ -91,7 +91,7 @@ export interface PlaywrightCrawlerOptions<
      * ]
      * ```
      */
-    preNavigationHooks?: PlaywrightHook[];
+    preNavigationHooks?: BrowserHook<PlaywrightCrawlingContext, ContextExtension>[];
 
     /**
      * Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
@@ -109,7 +109,7 @@ export interface PlaywrightCrawlerOptions<
      * ]
      * ```
      */
-    postNavigationHooks?: PlaywrightHook[];
+    postNavigationHooks?: BrowserHook<PlaywrightCrawlingContext, ContextExtension>[];
 }
 
 /**
@@ -200,7 +200,7 @@ export class PlaywrightCrawler<
     /**
      * All `PlaywrightCrawler` parameters are passed via an options object.
      */
-    constructor(options: PlaywrightCrawlerOptions<ExtendedContext> = {}) {
+    constructor(options: PlaywrightCrawlerOptions<ContextExtension, ExtendedContext> = {}) {
         ow(options, 'PlaywrightCrawlerOptions', ow.object.exactShape(PlaywrightCrawler.optionsShape));
 
         const { launchContext = {}, headless, contextPipelineBuilder, ...browserCrawlerOptions } = options;
@@ -232,7 +232,7 @@ export class PlaywrightCrawler<
         browserPoolOptions.browserPlugins = [playwrightLauncher.createBrowserPlugin()];
 
         super({
-            ...(browserCrawlerOptions as PlaywrightCrawlerOptions<ExtendedContext>),
+            ...(browserCrawlerOptions as unknown as PlaywrightCrawlerOptions<ContextExtension, ExtendedContext>),
             launchContext,
             browserPoolOptions,
             contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),

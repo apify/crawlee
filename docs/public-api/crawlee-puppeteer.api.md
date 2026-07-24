@@ -250,8 +250,8 @@ export interface PuppeteerCrawlerOptions<ContextExtension = Dictionary<never>, E
     browserPlugins: [PuppeteerPlugin];
 }> {
     launchContext?: PuppeteerLaunchContext;
-    postNavigationHooks?: PuppeteerHook[];
-    preNavigationHooks?: PuppeteerHook[];
+    postNavigationHooks?: BrowserHook<PuppeteerCrawlingContext, ContextExtension>[];
+    preNavigationHooks?: BrowserHook<PuppeteerCrawlingContext, ContextExtension>[];
 }
 
 // @public (undocumented)
