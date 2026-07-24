@@ -77,6 +77,7 @@ export class AdaptivePlaywrightCrawler<ExtendedContext extends AdaptivePlaywrigh
         readonly response: Response;
         readonly page: Page;
         readonly querySelector: AdaptivePlaywrightCrawlerContext["querySelector"];
+        readonly querySelectorAll: AdaptivePlaywrightCrawlerContext["querySelectorAll"];
         readonly waitForSelector: AdaptivePlaywrightCrawlerContext["waitForSelector"];
         readonly parseWithCheerio: AdaptivePlaywrightCrawlerContext["parseWithCheerio"];
     }>;
@@ -102,6 +103,7 @@ export interface AdaptivePlaywrightCrawlerContext<UserData extends Dictionary_2 
     page: Page;
     parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
     querySelector(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
+    querySelectorAll(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
     // (undocumented)
     request: LoadedRequest<Request_3<UserData>>;
     response: Response;
@@ -193,6 +195,9 @@ interface EnqueueLinksByClickingElementsOptions {
     userData?: Dictionary_2;
     waitForPageIdleSecs?: number;
 }
+
+// @public
+export function fullResultComparator(resultA: RequestHandlerResult, resultB: RequestHandlerResult): boolean;
 
 // @public
 function gotoExtended(page: Page, request: Request_3, gotoOptions?: PlaywrightDirectNavigationOptions): Promise<Response_2 | null>;
