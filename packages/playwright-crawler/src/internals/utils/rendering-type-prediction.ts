@@ -151,7 +151,7 @@ export class RenderingTypePredictor {
             .reduce((acc, value) => acc + value, 0);
     }
 
-    protected calculateFeatureVector(url: URLComponents, label: string | undefined): FeatureVector {
+    private calculateFeatureVector(url: URLComponents, label: string | undefined): FeatureVector {
         return [
             mean(
                 (this.state.currentValue.detectionResults.get('static')?.get(label) ?? []).map(
@@ -166,7 +166,7 @@ export class RenderingTypePredictor {
         ];
     }
 
-    protected retrain(): void {
+    private retrain(): void {
         const X: FeatureVector[] = [
             [0, 1],
             [1, 0],

@@ -103,8 +103,8 @@ export class PuppeteerLauncher extends BrowserLauncher<PuppeteerPlugin, unknown>
         this.Plugin = PuppeteerPlugin;
     }
 
-    protected override _getDefaultHeadlessOption(): boolean {
-        const headless = super._getDefaultHeadlessOption();
+    protected override getDefaultHeadlessOption(): boolean {
+        const headless = super.getDefaultHeadlessOption();
         return headless ? ('new' as any) : headless;
     }
 }

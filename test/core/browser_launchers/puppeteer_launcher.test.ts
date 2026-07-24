@@ -199,7 +199,7 @@ describe('launchPuppeteer()', () => {
     });
 
     test('supports useChrome option', async () => {
-        const spy = vitest.spyOn(BrowserLauncher.prototype as any, '_getTypicalChromeExecutablePath');
+        const spy = vitest.spyOn(BrowserLauncher.prototype as any, 'getTypicalChromeExecutablePath');
 
         let browser;
         const opts = {

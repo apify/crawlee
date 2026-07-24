@@ -195,14 +195,6 @@ class RobotsTxtFile {
     static from(url: string, content: string, proxyUrl?: string): RobotsTxtFile;
     getSitemaps(): string[];
     isAllowed(url: string, userAgent?: string): boolean;
-    // (undocumented)
-    protected static load(url: string, options?: {
-        signal?: AbortSignal;
-        timeoutMillis?: number;
-        proxyUrl?: string;
-        httpClient?: BaseHttpClient;
-        logger?: CrawleeLogger;
-    }): Promise<RobotsTxtFile>;
     parseSitemaps(): Promise<Sitemap>;
     parseUrlsFromSitemaps(): Promise<string[]>;
 }
@@ -217,8 +209,6 @@ export class Sitemap {
     constructor(urls: string[]);
     static fromXmlString(content: string, proxyUrl?: string, parseSitemapOptions?: ParseSitemapOptions): Promise<Sitemap>;
     static load(urls: string | string[], proxyUrl?: string, parseSitemapOptions?: ParseSitemapOptions): Promise<Sitemap>;
-    // (undocumented)
-    protected static parse(sources: SitemapSource[], proxyUrl?: string, parseSitemapOptions?: ParseSitemapOptions): Promise<Sitemap>;
     static tryCommonNames(url: string, proxyUrl?: string, parseSitemapOptions?: ParseSitemapOptions): Promise<Sitemap>;
     // (undocumented)
     readonly urls: string[];

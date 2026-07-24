@@ -89,36 +89,36 @@ const MAX_UNPROCESSED_REQUESTS_RETRIES = 3;
  * @category Sources
  */
 export class RequestQueue implements IStorage, IRequestManager {
-    id: string;
-    name?: string;
-    backend: RequestQueueBackend;
-    protected proxyConfiguration?: IProxyConfiguration;
+    readonly id: string;
+    readonly name?: string;
+    readonly backend: RequestQueueBackend;
+    private proxyConfiguration?: IProxyConfiguration;
 
-    log: CrawleeLogger;
+    readonly log: CrawleeLogger;
 
-    protected requestCache: LruCache<RequestLruItem>;
+    private requestCache: LruCache<RequestLruItem>;
 
     /**
      * Remembers the `requestId` of every request already submitted to the client — including background
      * batches that `requestCache` skips — so overlapping URL sets aren't re-submitted.
      * See {@link RequestDeduplicationCache} for why this is a separate, cheaper cache.
      */
-    protected requestSeenCache: RequestDeduplicationCache;
+    private requestSeenCache: RequestDeduplicationCache;
 
-    protected queuePausedForMigration = false;
+    private queuePausedForMigration = false;
 
-    protected inProgressRequestBatchCount = 0;
+    private inProgressRequestBatchCount = 0;
 
     /**
      * The largest expected request-processing time (in seconds) seen so far via
      * {@link setExpectedRequestProcessingTimeSecs}. Used to ensure that value is only ever raised, never
      * lowered, before being forwarded to the storage backend.
      */
-    protected expectedRequestProcessingSecs = 0;
+    private expectedRequestProcessingSecs = 0;
 
-    protected httpClient?: BaseHttpClient;
+    private httpClient?: BaseHttpClient;
 
-    protected readonly events: EventManager;
+    private readonly events: EventManager;
 
     private readonly statsTracker = new StorageStatsTracker<RequestQueueStats>({
         writeCount: 0,
@@ -136,10 +136,7 @@ export class RequestQueue implements IStorage, IRequestManager {
     /**
      * @internal
      */
-    constructor(
-        options: RequestQueueOptions,
-        protected readonly config: Configuration = Configuration.getGlobalConfig(),
-    ) {
+    constructor(options: RequestQueueOptions) {
         this.id = options.metadata.id;
         this.name = options.metadata.name;
         this.events = serviceLocator.getEventManager();
@@ -207,8 +204,8 @@ export class RequestQueue implements IStorage, IRequestManager {
         const { forefront = false } = options;
 
         if ('requestsFromUrl' in requestLike) {
-            const requests = await this._fetchRequestsFromUrl(requestLike as InternalSource);
-            const processedRequests = await this._addFetchedRequests(requestLike as InternalSource, requests, options);
+            const requests = await this.fetchRequestsFromUrl(requestLike as InternalSource);
+            const processedRequests = await this.addFetchedRequests(requestLike as InternalSource, requests, options);
 
             return { ...processedRequests[0], forefront };
         }
@@ -247,7 +244,7 @@ export class RequestQueue implements IStorage, IRequestManager {
             forefront,
         } satisfies RequestQueueOperationInfo;
 
-        this._cacheRequest(cacheKey, queueOperationInfo);
+        this.cacheRequest(cacheKey, queueOperationInfo);
         this.requestSeenCache.add(cacheKey, request.id!);
 
         return queueOperationInfo;
@@ -312,8 +309,8 @@ export class RequestQueue implements IStorage, IRequestManager {
             if (typeof requestLike === 'string') {
                 requests.push(new Request({ url: requestLike }));
             } else if ('requestsFromUrl' in requestLike) {
-                const fetchedRequests = await this._fetchRequestsFromUrl(requestLike as InternalSource);
-                await this._addFetchedRequests(requestLike as InternalSource, fetchedRequests, options);
+                const fetchedRequests = await this.fetchRequestsFromUrl(requestLike as InternalSource);
+                await this.addFetchedRequests(requestLike as InternalSource, fetchedRequests, options);
             } else {
                 requests.push(
                     requestLike instanceof Request ? requestLike : new Request(requestLike as RequestOptions),
@@ -362,7 +359,7 @@ export class RequestQueue implements IStorage, IRequestManager {
             const cacheKey = getCachedRequestId(newRequest.uniqueKey);
 
             if (cache) {
-                this._cacheRequest(cacheKey, { ...newRequest, forefront });
+                this.cacheRequest(cacheKey, { ...newRequest, forefront });
             }
 
             // Unlike `requestCache`, populate this on every batch (including background ones).
@@ -663,7 +660,7 @@ export class RequestQueue implements IStorage, IRequestManager {
             forefront,
         } satisfies RequestQueueOperationInfo;
 
-        this._cacheRequest(getRequestId(request.uniqueKey), queueOperationInfo);
+        this.cacheRequest(getRequestId(request.uniqueKey), queueOperationInfo);
 
         return queueOperationInfo;
     }
@@ -709,7 +706,7 @@ export class RequestQueue implements IStorage, IRequestManager {
             uniqueKey: request.uniqueKey,
             forefront,
         } satisfies RequestQueueOperationInfo;
-        this._cacheRequest(getRequestId(request.uniqueKey), queueOperationInfo);
+        this.cacheRequest(getRequestId(request.uniqueKey), queueOperationInfo);
 
         return queueOperationInfo;
     }
@@ -771,7 +768,7 @@ export class RequestQueue implements IStorage, IRequestManager {
     /**
      * Caches information about request to beware of unneeded addRequest() calls.
      */
-    protected _cacheRequest(cacheKey: string, queueOperationInfo: RequestQueueOperationInfo): void {
+    private cacheRequest(cacheKey: string, queueOperationInfo: RequestQueueOperationInfo): void {
         // Remove the previous entry, as otherwise our cache will never update 👀
         this.requestCache.remove(cacheKey);
 
@@ -871,7 +868,7 @@ export class RequestQueue implements IStorage, IRequestManager {
     /**
      * Fetches URLs from requestsFromUrl and returns them in format of list of requests
      */
-    protected async _fetchRequestsFromUrl(source: InternalSource): Promise<RequestOptions[]> {
+    private async fetchRequestsFromUrl(source: InternalSource): Promise<RequestOptions[]> {
         const { requestsFromUrl, regex, ...sharedOpts } = source;
 
         // Download remote resource and parse URLs.
@@ -898,7 +895,7 @@ export class RequestQueue implements IStorage, IRequestManager {
     /**
      * Adds all fetched requests from a URL from a remote resource.
      */
-    protected async _addFetchedRequests(
+    private async addFetchedRequests(
         source: InternalSource,
         fetchedRequests: RequestOptions[],
         options: RequestQueueOperationOptions,

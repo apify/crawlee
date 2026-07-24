@@ -4,7 +4,6 @@ import type { Browser as PlaywrightBrowser, BrowserType } from 'playwright';
 
 import { BrowserPlugin } from '../abstract-classes/browser-plugin.js';
 import { anonymizeProxySugar } from '../anonymize-proxy.js';
-import type { createProxyServerForContainers } from '../container-proxy-server.js';
 import type { LaunchContext } from '../launch-context.js';
 import { getLocalProxyAddress } from '../proxy-server.js';
 import type { RemoteConnection, RemoteConnectionParameters } from '../remote-browser-pool.js';
@@ -18,7 +17,6 @@ export class PlaywrightPlugin extends BrowserPlugin<
     PlaywrightBrowser
 > {
     private _browserVersion?: string;
-    _containerProxyServer?: Awaited<ReturnType<typeof createProxyServerForContainers>>;
 
     /**
      * Playwright remote connections only support incognito pages — `connect()` / `connectOverCDP()` don't

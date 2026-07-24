@@ -282,9 +282,9 @@ export class AutoscaledPool {
         this.isStopped = false;
         this.resolve = null;
         this.reject = null;
-        this._autoscale = this._autoscale.bind(this);
-        this._maybeRunTask = this._maybeRunTask.bind(this);
-        this._incrementTasksDonePerSecond = this._incrementTasksDonePerSecond.bind(this);
+        this.autoscale = this.autoscale.bind(this);
+        this.maybeRunTask = this.maybeRunTask.bind(this);
+        this.incrementTasksDonePerSecond = this.incrementTasksDonePerSecond.bind(this);
 
         // Create instances with correct options.
         const ssoCopy = { ...systemStatusOptions };
@@ -368,23 +368,23 @@ export class AutoscaledPool {
         await Promise.all(this.loadSignals.map((s) => s.start()));
 
         // This interval checks the system status and updates the desired concurrency accordingly.
-        this.autoscaleInterval = betterSetInterval(this._autoscale, this.autoscaleIntervalMillis);
+        this.autoscaleInterval = betterSetInterval(this.autoscale, this.autoscaleIntervalMillis);
 
         // This is here because if we scale down to let's say 1, then after each promise is finished
-        // this._maybeRunTask() doesn't trigger another one. So if that 1 instance gets stuck it results
+        // this.maybeRunTask() doesn't trigger another one. So if that 1 instance gets stuck it results
         // in the crawler getting stuck and even after scaling up it never triggers another promise.
-        this.maybeRunInterval = betterSetInterval(this._maybeRunTask, this.maybeRunIntervalMillis);
+        this.maybeRunInterval = betterSetInterval(this.maybeRunTask, this.maybeRunIntervalMillis);
 
         if (this.maxTasksPerMinute !== Infinity) {
             // Start the interval that resets the counter of tasks per minute.
-            this.tasksDonePerSecondInterval = betterSetInterval(this._incrementTasksDonePerSecond, 1000);
+            this.tasksDonePerSecondInterval = betterSetInterval(this.incrementTasksDonePerSecond, 1000);
         }
 
         try {
             await poolPromise;
         } finally {
             // If resolve is null, the pool is already destroyed.
-            if (this.resolve) await this._destroy();
+            if (this.resolve) await this.destroy();
         }
     }
 
@@ -403,7 +403,7 @@ export class AutoscaledPool {
         this.isStopped = true;
         if (this.resolve) {
             this.resolve();
-            await this._destroy();
+            await this.destroy();
         }
     }
 
@@ -462,7 +462,7 @@ export class AutoscaledPool {
      * every `maybeRunIntervalSecs` seconds. If you want to trigger the processing immediately, use this method.
      */
     async notify(): Promise<void> {
-        setImmediate(this._maybeRunTask);
+        setImmediate(this.maybeRunTask);
     }
 
     /**
@@ -473,7 +473,7 @@ export class AutoscaledPool {
      *
      * It doesn't allow multiple concurrent runs of this method.
      */
-    protected async _maybeRunTask(intervalCallback?: () => void): Promise<void> {
+    private async maybeRunTask(intervalCallback?: () => void): Promise<void> {
         this.log.perf('Attempting to run a task.');
         // Check if the function was invoked by the maybeRunInterval and use an empty function if not.
         const done = intervalCallback || (() => {});
@@ -526,13 +526,13 @@ export class AutoscaledPool {
             this.log.perf('Task will not run. No tasks are ready.');
             done();
             // No tasks could mean that we're finished with all tasks.
-            return this._maybeFinish();
+            return this.maybeFinish();
         }
 
         // - we have already reached the maximum tasks per minute
         // we need to check this *after* checking if a task is ready to prevent hanging the pool
         // for an extra minute if there are no more tasks
-        if (this._isOverMaxRequestLimit) {
+        if (this.isOverMaxRequestLimit) {
             this.log.perf('Task will not run. Maximum tasks per minute reached.');
             return done();
         }
@@ -543,7 +543,7 @@ export class AutoscaledPool {
             this._tasksPerMinute[0]++;
             // Try to run next task to build up concurrency,
             // but defer it so it doesn't create a cycle.
-            setImmediate(this._maybeRunTask);
+            setImmediate(this.maybeRunTask);
 
             // We need to restart interval here, so that it doesn't get blocked by a stalled task.
             done();
@@ -564,7 +564,7 @@ export class AutoscaledPool {
             this.log.perf('Task finished.');
             this._currentConcurrency--;
             // Run task after the previous one finished.
-            setImmediate(this._maybeRunTask);
+            setImmediate(this.maybeRunTask);
         } catch (e) {
             const err = e as Error;
             this.log.perf('Running a task failed.');
@@ -589,12 +589,12 @@ export class AutoscaledPool {
      * If the system IS NOT overloaded and the settings allow it, it scales up.
      * If the system IS overloaded and the settings allow it, it scales down.
      */
-    protected _autoscale(intervalCallback: () => void) {
+    private autoscale(intervalCallback: () => void) {
         // Don't scale if paused.
         if (this.isStopped) return intervalCallback();
 
         // Don't scale if we've hit the maximum requests per minute
-        if (this._isOverMaxRequestLimit) return intervalCallback();
+        if (this.isOverMaxRequestLimit) return intervalCallback();
 
         // Only scale up if:
         // - system has not been overloaded lately.
@@ -606,7 +606,7 @@ export class AutoscaledPool {
         const minCurrentConcurrency = Math.floor(this._desiredConcurrency * this.desiredConcurrencyRatio);
         const weAreReachingDesiredConcurrency = this._currentConcurrency >= minCurrentConcurrency;
 
-        if (isSystemIdle && weAreNotAtMax && weAreReachingDesiredConcurrency) this._scaleUp(systemStatus);
+        if (isSystemIdle && weAreNotAtMax && weAreReachingDesiredConcurrency) this.scaleUp(systemStatus);
 
         // Always scale down if:
         // - the system has been overloaded lately.
@@ -614,7 +614,7 @@ export class AutoscaledPool {
         // - we're over min concurrency.
         const weAreNotAtMin = this._desiredConcurrency > this._minConcurrency;
 
-        if (isSystemOverloaded && weAreNotAtMin) this._scaleDown(systemStatus);
+        if (isSystemOverloaded && weAreNotAtMin) this.scaleDown(systemStatus);
 
         // On periodic intervals, print comprehensive log information
         if (this.loggingIntervalMillis > 0) {
@@ -642,7 +642,7 @@ export class AutoscaledPool {
      *
      * @param systemStatus for logging
      */
-    protected _scaleUp(systemStatus: SystemInfo): void {
+    private scaleUp(systemStatus: SystemInfo): void {
         const step = Math.ceil(this._desiredConcurrency * this.scaleUpStepRatio);
         this._desiredConcurrency = Math.min(this._maxConcurrency, this._desiredConcurrency + step);
         this.log.debug('scaling up', {
@@ -658,7 +658,7 @@ export class AutoscaledPool {
      *
      * @param systemStatus for logging
      */
-    protected _scaleDown(systemStatus: SystemInfo): void {
+    private scaleDown(systemStatus: SystemInfo): void {
         const step = Math.ceil(this._desiredConcurrency * this.scaleDownStepRatio);
         this._desiredConcurrency = Math.max(this._minConcurrency, this._desiredConcurrency - step);
         this.log.debug('scaling down', {
@@ -674,7 +674,7 @@ export class AutoscaledPool {
      *
      * It doesn't allow multiple concurrent runs of this method.
      */
-    protected async _maybeFinish(): Promise<void> {
+    private async maybeFinish(): Promise<void> {
         if (this.queryingIsFinished) return;
         if (this._currentConcurrency > 0) return;
 
@@ -697,7 +697,7 @@ export class AutoscaledPool {
     /**
      * Cleans up resources.
      */
-    protected async _destroy(): Promise<void> {
+    private async destroy(): Promise<void> {
         this.resolve = null;
         this.reject = null;
 
@@ -708,7 +708,7 @@ export class AutoscaledPool {
         await Promise.all(this.loadSignals.map((s) => s.stop()));
     }
 
-    protected _incrementTasksDonePerSecond(intervalCallback: () => void) {
+    private incrementTasksDonePerSecond(intervalCallback: () => void) {
         this._tasksPerMinute.unshift(0);
 
         this._tasksPerMinute.pop();
@@ -716,7 +716,7 @@ export class AutoscaledPool {
         return intervalCallback();
     }
 
-    protected get _isOverMaxRequestLimit() {
+    private get isOverMaxRequestLimit() {
         if (this.maxTasksPerMinute === Infinity) {
             return false;
         }
