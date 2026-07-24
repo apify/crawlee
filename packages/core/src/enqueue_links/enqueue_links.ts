@@ -72,8 +72,12 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
      * Glob matching is always case-insensitive.
      * If you need case-sensitive matching, use a `RegExp`.
      *
-     * If `include` is an empty array or `undefined`, then the function
-     * enqueues the links with the same subdomain.
+     * The patterns are combined with the {@apilink EnqueueLinksOptions.strategy|`strategy`} using AND logic - a URL
+     * must match at least one `include` pattern **and** satisfy the strategy to be enqueued. To match URLs across
+     * hostnames, pass an explicit {@apilink EnqueueStrategy.All} strategy.
+     *
+     * If `undefined`, the links are enqueued based on the {@apilink EnqueueLinksOptions.strategy|`strategy`} alone.
+     * Passing an empty array is not allowed.
      */
     include?: readonly UrlPatternInput[];
 
@@ -281,7 +285,7 @@ export async function enqueueLinks(
             baseUrl: ow.optional.string,
             userData: ow.optional.object,
             label: ow.optional.string,
-            include: ow.optional.array.ofType(urlPatternValidator),
+            include: ow.optional.array.minLength(1).ofType(urlPatternValidator),
             exclude: ow.optional.array.ofType(urlPatternValidator),
             transformRequestFunction: ow.optional.function,
             strategy: ow.optional.string.oneOf(Object.values(EnqueueStrategy)),
@@ -305,9 +309,9 @@ export async function enqueueLinks(
     const urlExcludePatternObjects: UrlPatternObject[] = exclude?.length ? constructUrlPatternObjects(exclude) : [];
     const urlPatternObjects: UrlPatternObject[] = include?.length ? constructUrlPatternObjects(include) : [];
 
-    if (!urlPatternObjects.length) {
-        options.strategy ??= EnqueueStrategy.SameHostname;
-    }
+    // The strategy always applies, even when `include` patterns are provided - the two are AND-ed together
+    // (a URL must match an `include` pattern *and* satisfy the strategy). This mirrors crawlee-python.
+    options.strategy ??= EnqueueStrategy.SameHostname;
 
     const enqueueStrategyPatterns: UrlPatternObject[] = [];
 

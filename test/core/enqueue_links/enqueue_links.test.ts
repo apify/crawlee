@@ -130,6 +130,7 @@ describe('enqueueLinks()', () => {
             await browserCrawlerEnqueueLinks({
                 options: {
                     selector: '.click',
+                    strategy: EnqueueStrategy.All,
                     label: 'COOL',
                     include,
                     transformRequestFunction: (request) => {
@@ -172,7 +173,7 @@ describe('enqueueLinks()', () => {
 
             await expect(
                 browserCrawlerEnqueueLinks({
-                    options: { selector: '.click', include },
+                    options: { selector: '.click', include, strategy: EnqueueStrategy.All },
                     page,
                     requestManager: requestQueue,
                     originalRequestUrl: 'https://example.com',
@@ -189,6 +190,7 @@ describe('enqueueLinks()', () => {
             await browserCrawlerEnqueueLinks({
                 options: {
                     selector: '.click',
+                    strategy: EnqueueStrategy.All,
                     include,
                     transformRequestFunction: (request) => {
                         if (/example\.com\/a\/b\/third/.exec(request.url)) {
@@ -246,6 +248,7 @@ describe('enqueueLinks()', () => {
             await browserCrawlerEnqueueLinks({
                 options: {
                     selector: '.click',
+                    strategy: EnqueueStrategy.All,
                     label: 'COOL',
                     include,
                     exclude,
@@ -284,6 +287,7 @@ describe('enqueueLinks()', () => {
             await browserCrawlerEnqueueLinks({
                 options: {
                     selector: '.click',
+                    strategy: EnqueueStrategy.All,
                     label: 'COOL',
                     include,
                     exclude,
@@ -438,6 +442,7 @@ describe('enqueueLinks()', () => {
             await browserCrawlerEnqueueLinks({
                 options: {
                     selector: '.click',
+                    strategy: EnqueueStrategy.All,
                     include,
                     transformRequestFunction: (request) => {
                         if (request.url.includes('example.com')) {
@@ -487,6 +492,7 @@ describe('enqueueLinks()', () => {
             await cheerioCrawlerEnqueueLinks({
                 options: {
                     selector: '.click',
+                    strategy: EnqueueStrategy.All,
                     include,
                     transformRequestFunction: (request) => {
                         if (/example\.com\/a\/b\/third/.exec(request.url)) {
@@ -521,7 +527,7 @@ describe('enqueueLinks()', () => {
 
             await expect(
                 cheerioCrawlerEnqueueLinks({
-                    options: { selector: '.click', include },
+                    options: { selector: '.click', include, strategy: EnqueueStrategy.All },
                     $,
                     requestManager: requestQueue,
                     originalRequestUrl: 'https://example.com',
@@ -538,6 +544,7 @@ describe('enqueueLinks()', () => {
             await cheerioCrawlerEnqueueLinks({
                 options: {
                     selector: '.click',
+                    strategy: EnqueueStrategy.All,
                     include,
                     transformRequestFunction: (request) => {
                         if (/example\.com\/a\/b\/third/.exec(request.url)) {
@@ -573,6 +580,7 @@ describe('enqueueLinks()', () => {
             await cheerioCrawlerEnqueueLinks({
                 options: {
                     selector: '.click',
+                    strategy: EnqueueStrategy.All,
                     include,
                 },
                 $,
@@ -585,6 +593,38 @@ describe('enqueueLinks()', () => {
             expect(enqueued[0].url).toBe('https://example.com/a/b/first');
             expect(enqueued[1].url).toBe('https://example.com/a/b/third');
             expect(enqueued[2].url).toBe('http://cool.com/');
+        });
+
+        test('include patterns are AND-ed with the default same-hostname strategy', async () => {
+            const { enqueued, requestQueue } = await createRequestQueueMock();
+            // `cool.com` matches the include pattern but lives on a different hostname than the page
+            // (`example.com`). With no explicit strategy, the default `same-hostname` strategy still
+            // applies, so the cross-hostname URL is filtered out (aligned with crawlee-python).
+            const include = ['https://example.com/**/*', '?(http|https)://cool.com/'];
+
+            await cheerioCrawlerEnqueueLinks({
+                options: { selector: '.click', include },
+                $,
+                requestManager: requestQueue,
+                originalRequestUrl: 'https://example.com',
+            });
+
+            expect(enqueued).toHaveLength(2);
+            expect(enqueued[0].url).toBe('https://example.com/a/b/first');
+            expect(enqueued[1].url).toBe('https://example.com/a/b/third');
+        });
+
+        test('throws when include is an empty array', async () => {
+            const { requestQueue } = await createRequestQueueMock();
+
+            await expect(
+                cheerioCrawlerEnqueueLinks({
+                    options: { selector: '.click', include: [] },
+                    $,
+                    requestManager: requestQueue,
+                    originalRequestUrl: 'https://example.com',
+                }),
+            ).rejects.toThrow();
         });
 
         test('works with no include/exclude filters (enqueues all matching strategy)', async () => {
@@ -733,6 +773,7 @@ describe('enqueueLinks()', () => {
             await cheerioCrawlerEnqueueLinks({
                 options: {
                     selector: '.click',
+                    strategy: EnqueueStrategy.All,
                     include,
                     transformRequestFunction: (request) => {
                         if (request.url.includes('example.com')) {
@@ -877,6 +918,7 @@ describe('enqueueLinks()', () => {
                 await cheerioCrawlerEnqueueLinks({
                     options: {
                         selector: '.click',
+                        strategy: EnqueueStrategy.All,
                         label: 'global-label',
                         include: ['https://example.com/a/b/first', 'https://example.com/a/b/third', 'http://cool.com/'],
                         transformRequestFunction: (request) => {
