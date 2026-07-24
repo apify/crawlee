@@ -22,6 +22,7 @@ import {
     AdaptivePlaywrightCrawler,
     BasicCrawler,
     createAdaptivePlaywrightRouter,
+    fullResultComparator,
     RenderingTypePredictor,
     RequestList,
     RequestValidationError,
@@ -209,6 +210,89 @@ describe('AdaptivePlaywrightCrawler', () => {
 
             // Check if only one item was added to the dataset
             expect((await Dataset.getData()).items).toEqual([{ heading: 'Heading' }]);
+        });
+    });
+
+    describe('querySelector and querySelectorAll', () => {
+        test.each([
+            ['/static', 'static'],
+            ['/dynamic', 'clientOnly'],
+        ] as const)('return first vs. all matched elements (%s)', async (path, renderingType) => {
+            const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                detectionProbabilityRecommendation: 0,
+                renderingType,
+            });
+            const url = new URL(`http://${HOSTNAME}:${port}${path}`);
+
+            const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(
+                async ({ pushData, querySelector, querySelectorAll }) => {
+                    const first = await querySelector('a');
+                    const all = await querySelectorAll('a');
+                    await pushData({
+                        firstCount: first.length,
+                        firstText: first.text(),
+                        allCount: all.length,
+                    });
+                },
+            );
+
+            const crawler = await makeOneshotCrawler(
+                {
+                    requestHandler,
+                    renderingTypePredictor,
+                },
+                [url.toString()],
+            );
+
+            await crawler.run();
+
+            // `querySelector` returns only the first match, `querySelectorAll` returns the whole collection.
+            expect((await Dataset.getData()).items).toEqual([{ firstCount: 1, firstText: 'Link 1', allCount: 5 }]);
+        });
+    });
+
+    describe('fullResultComparator', () => {
+        // The `/dynamic` page renders its links only after JS runs, so the static (plain HTTP) run enqueues
+        // no links while the browser run enqueues five. The pushed dataset item is constant in both runs.
+        const makeCrawler = async (options: Partial<AdaptivePlaywrightCrawlerOptions>) => {
+            const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                detectionProbabilityRecommendation: 1, // always run detection
+                renderingType: 'clientOnly',
+            });
+            const url = new URL(`http://${HOSTNAME}:${port}/dynamic`);
+
+            const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(
+                async ({ pushData, enqueueLinks }) => {
+                    await pushData({ heading: 'Heading' }); // identical in both runs
+                    await enqueueLinks(); // differs between static (0 links) and browser (5 links)
+                },
+            );
+
+            const crawler = await makeOneshotCrawler({ requestHandler, renderingTypePredictor, ...options }, [
+                url.toString(),
+            ]);
+
+            return { crawler, renderingTypePredictor };
+        };
+
+        test('default comparator ignores enqueued links and detects the page as static', async () => {
+            const { crawler, renderingTypePredictor } = await makeCrawler({});
+
+            await crawler.run();
+
+            expect(renderingTypePredictor.storeResult).toHaveBeenCalledOnce();
+            expect(renderingTypePredictor.storeResult.mock.lastCall?.[1]).toEqual('static');
+        });
+
+        test('fullResultComparator takes enqueued links into account and detects the page as clientOnly', async () => {
+            const { crawler, renderingTypePredictor } = await makeCrawler({
+                resultComparator: fullResultComparator,
+            });
+
+            await crawler.run();
+
+            expect(renderingTypePredictor.storeResult).toHaveBeenCalledOnce();
+            expect(renderingTypePredictor.storeResult.mock.lastCall?.[1]).toEqual('clientOnly');
         });
     });
 
