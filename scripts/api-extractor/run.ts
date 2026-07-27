@@ -1,4 +1,5 @@
 /* eslint-disable no-console */
+import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, dirname, relative, resolve } from 'node:path';
 
@@ -143,12 +144,38 @@ function extract(pkgDir: string, pkgJsonPath: string, entry: string, paths?: Rec
     // committed report ourselves so `--verify` keys off the stable `<base>.api.md` name.
     Extractor.invoke(config, { localBuild: true, showVerboseMessages: false });
 
-    const staged = readFileSync(resolve(stagingFolder, stagedFileName(name)), 'utf8');
+    const stagedPath = resolve(stagingFolder, stagedFileName(name));
+    const staged = readFileSync(stagedPath, 'utf8');
     const committedPath = resolve(reportFolder, reportFileName(name));
     const committed = existsSync(committedPath) ? readFileSync(committedPath, 'utf8') : undefined;
     const apiReportChanged = staged !== committed;
     if (apiReportChanged && !verify) writeFileSync(committedPath, staged);
-    return { apiReportChanged };
+    return { apiReportChanged, committedPath, stagedPath };
+}
+
+// Render the surface diff between the committed report and the freshly staged one, so a
+// failing `--verify` shows *what* changed rather than only telling you to re-run `api:extract`.
+// Uses `git diff --no-index` (git is always present in CI) to avoid a diffing dependency. Runs
+// from `root` with repo-relative paths and `committed`/`extracted` prefixes so the diff header
+// reads cleanly instead of dumping absolute, machine-specific paths.
+function reportDiff(committedPath: string, stagedPath: string): string {
+    const result = spawnSync(
+        'git',
+        [
+            '--no-pager',
+            'diff',
+            '--no-index',
+            '--no-color',
+            '--src-prefix=committed/',
+            '--dst-prefix=extracted/',
+            '--',
+            relative(root, committedPath),
+            relative(root, stagedPath),
+        ],
+        { cwd: root, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 },
+    );
+    // `git diff --no-index` exits 1 when files differ (expected here); only bail on a real error.
+    return (result.stdout ?? '').trim() || (result.stderr ?? '').trim();
 }
 
 function main() {
@@ -195,10 +222,14 @@ function main() {
 
             // Up to date iff the committed report didn't change. Extractor warnings are
             // diagnostics, not BC-surface changes, so we key success on apiReportChanged.
-            const ok = (result: { apiReportChanged: boolean }, via = '') => {
+            const ok = (result: { apiReportChanged: boolean; committedPath: string; stagedPath: string }, via = '') => {
                 if (verify && result.apiReportChanged) {
                     const message = `${pkg.name}: report out of date${via} — run "pnpm api:extract" and commit the changes in docs/public-api/`;
                     console.error(`✗ ${pkg.name}: report out of date${via}`);
+                    // Print the actual surface diff so the failure is self-explanatory in the CI
+                    // log; keep the concise message for the inline GitHub annotation.
+                    const diff = reportDiff(result.committedPath, result.stagedPath);
+                    if (diff) console.error(`${diff}\n`);
                     ghCommand('error', message);
                     failed++;
                 } else {
