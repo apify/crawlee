@@ -1367,7 +1367,7 @@ export class BasicCrawler<
             // we need to purge the RQ to allow processing the same requests again — this is important so users can
             // pass in failed requests back to the `crawler.run()`, otherwise they would be considered as handled and
             // ignored — as a failed request is still handled.
-            // By default (purgeRequestQueue unset or true), only the queue we opened ourselves is purged.
+            // By default (`purgeRequestQueue` unset), only the queue we opened ourselves is purged.
             // When `purgeRequestQueue` is explicitly `true`, we also purge a user-supplied manager.
             // When `purgeRequestQueue` is explicitly `false`, nothing is purged.
             const shouldPurge = purgeRequestQueue !== false;
