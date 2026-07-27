@@ -12,6 +12,8 @@ import { BasicCrawler } from '@crawlee/basic';
 import type { BasicCrawlerOptions } from '@crawlee/basic';
 import { BooleanPredicate } from 'ow';
 import { CheerioRoot } from '@crawlee/utils';
+import { ConcurrencySystem } from '@crawlee/basic';
+import type { ConcurrencySystemOptions } from '@crawlee/basic';
 import { ContextPipeline } from '@crawlee/basic';
 import type { CrawlingContext } from '@crawlee/basic';
 import type { CrawlingContext as CrawlingContext_2 } from '@crawlee/core';
@@ -96,6 +98,7 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any> =
     constructor(options?: HttpCrawlerOptions<Context, ContextExtension, ExtendedContext> & RequireContextPipeline<InternalHttpCrawlingContext, Context>);
     // (undocumented)
     protected buildContextPipeline(): ContextPipeline<CrawlingContext, InternalHttpCrawlingContext>;
+    protected createDefaultConcurrencySystem(options: ConcurrencySystemOptions): ConcurrencySystem;
     // (undocumented)
     protected isRequestBlocked(crawlingContext: InternalHttpCrawlingContext): Promise<string | false>;
     // (undocumented)

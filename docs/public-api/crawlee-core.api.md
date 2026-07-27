@@ -204,25 +204,20 @@ export const coerceNumber: z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodNumb
 // @public
 export class ConcurrencySystem {
     constructor(options?: ConcurrencySystemOptions);
-    protected _autoscale(intervalCallback: () => void): void;
     get currentConcurrency(): number;
     get desiredConcurrency(): number;
     set desiredConcurrency(value: number);
     getCurrentStatus(): SystemInfo;
     hasCapacityForTask(): boolean;
-    // (undocumented)
-    protected _incrementTasksDonePerSecond(intervalCallback: () => void): void;
     get isOverMaxRequestLimit(): boolean;
     get maxConcurrency(): number;
     set maxConcurrency(value: number);
     get minConcurrency(): number;
     set minConcurrency(value: number);
     registerTaskEnd(): void;
-    registerTaskStart(): void;
-    protected _scaleDown(systemStatus: SystemInfo): void;
-    protected _scaleUp(systemStatus: SystemInfo): void;
     start(): Promise<void>;
     stop(): Promise<void>;
+    tryRegisterTaskStart(): boolean;
 }
 
 // @public (undocumented)

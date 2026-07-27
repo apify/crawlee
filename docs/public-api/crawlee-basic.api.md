@@ -19,6 +19,7 @@ import { Cheerio } from '@crawlee/utils';
 import { CheerioAPI } from '@crawlee/utils';
 import { CheerioRoot } from '@crawlee/utils';
 import { ConcurrencySystem } from '@crawlee/core';
+import { ConcurrencySystemOptions } from '@crawlee/core';
 import type { Configuration } from '@crawlee/core';
 import { ContextPipeline } from '@crawlee/core';
 import type { CrawleeLogger } from '@crawlee/core';
@@ -78,6 +79,7 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
     get contextPipeline(): ContextPipeline<CrawlingContext, ExtendedContext>;
     // (undocumented)
     protected static readonly CRAWLEE_STATE_KEY = "CRAWLEE_STATE";
+    protected createDefaultConcurrencySystem(options: ConcurrencySystemOptions): ConcurrencySystem;
     // (undocumented)
     protected readonly errorHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
     exportData<Data>(path: string, format?: 'json' | 'csv', options?: DatasetExportOptions): Promise<Data[]>;
