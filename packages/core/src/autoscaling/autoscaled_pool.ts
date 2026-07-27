@@ -306,6 +306,11 @@ export class AutoscaledPool {
      *
      * The promise returned from the {@apilink AutoscaledPool.run} function will not resolve
      * when `.pause()` is invoked (unlike abort, which resolves it).
+     *
+     * > *NOTE:* Pausing the pool does not suspend the (possibly shared) {@apilink ConcurrencySystem} — its
+     * autoscaling and resource monitoring keep running, since other pools borrowing the same system may still be
+     * active. To silence the system entirely during a long pause, its owner can `stop()` it and `start()` it again
+     * before resuming.
      */
     async pause(timeoutSecs?: number): Promise<void> {
         if (this.isStopped) return;

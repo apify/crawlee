@@ -1177,6 +1177,8 @@ All scaling/snapshotter options were **removed** from `AutoscaledPoolOptions` an
 
 `AutoscaledPool` also no longer manages the system's lifecycle: it assumes the `ConcurrencySystem` is already running. Whoever owns the system must `start()` it before `pool.run()` and `stop()` it afterwards. (Within Crawlee this is handled by the crawler for the pool it builds; you only need to care about this if you drive an `AutoscaledPool` directly.)
 
+One subtle behavioral consequence: pausing no longer suspends autoscaling. Previously, `pool.pause()` also stopped the pool's autoscaling loop ("don't scale if paused"). The autoscaling interval now lives on the `ConcurrencySystem`, which has no knowledge of its borrowing pools' pause state — deliberately so, since with a shared system other pools may still be running and need scaling. As a result, a running system keeps evaluating (and possibly scaling down) the desired concurrency and keeps emitting its periodic state log even while every pool that consults it is paused. Scaling *up* remains effectively blocked while paused, because the current concurrency drains below the required ratio of the desired concurrency. If you pause for extended periods and want the system fully quiet, `stop()` the system (if you own it) and `start()` it again before resuming.
+
 **Before:**
 ```typescript
 const pool = new AutoscaledPool({
