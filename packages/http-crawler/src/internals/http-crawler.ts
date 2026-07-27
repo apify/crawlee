@@ -2,7 +2,6 @@ import { Readable } from 'node:stream';
 import util from 'node:util';
 
 import type {
-    AutoscaledPoolOptions,
     BasicCrawlerOptions,
     ContextMiddleware,
     CrawlingContext,
@@ -18,6 +17,7 @@ import type {
 } from '@crawlee/basic';
 import {
     BasicCrawler,
+    ConcurrencySystem,
     ContextPipeline,
     NavigationSkippedError,
     RequestState,
@@ -43,16 +43,24 @@ import { extractCharsetFromHtmlBytes, parseContentTypeFromResponse, processHttpR
  */
 const HTML_AND_XML_MIME_TYPES = ['text/html', 'text/xml', 'application/xhtml+xml', 'application/xml'];
 const APPLICATION_JSON_MIME_TYPE = 'application/json';
-const HTTP_OPTIMIZED_AUTOSCALED_POOL_OPTIONS: AutoscaledPoolOptions = {
-    desiredConcurrency: 10,
-    snapshotterOptions: {
-        eventLoopSnapshotIntervalSecs: 2,
-        maxBlockedMillis: 100,
-    },
-    systemStatusOptions: {
-        maxEventLoopOverloadedRatio: 0.7,
-    },
-};
+/**
+ * Builds the HTTP-optimized default {@apilink ConcurrencySystem}: a higher starting concurrency and a relaxed event
+ * loop signal (HTTP-only crawling barely touches the event loop). Each crawler gets its own instance, since a
+ * `ConcurrencySystem` is stateful. Only used when the caller supplies neither a `concurrencySystem` nor any of the
+ * concurrency shortcuts.
+ */
+function createHttpOptimizedConcurrencySystem(): ConcurrencySystem {
+    return new ConcurrencySystem({
+        desiredConcurrency: 10,
+        snapshotterOptions: {
+            eventLoop: {
+                snapshotIntervalSecs: 2,
+                maxBlockedMillis: 100,
+                overloadedRatio: 0.7,
+            },
+        },
+    });
+}
 
 export type HttpErrorHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -372,14 +380,23 @@ export class HttpCrawler<
             postNavigationHooks = [],
 
             // BasicCrawler
-            autoscaledPoolOptions = HTTP_OPTIMIZED_AUTOSCALED_POOL_OPTIONS,
             contextPipelineBuilder,
             ...basicCrawlerOptions
         } = options;
 
+        // Apply the HTTP-optimized default governor only when the caller hasn't configured concurrency themselves —
+        // an injected `concurrencySystem` or any of the shortcuts take precedence and are left untouched.
+        const usesCustomConcurrency =
+            basicCrawlerOptions.concurrencySystem !== undefined ||
+            basicCrawlerOptions.minConcurrency !== undefined ||
+            basicCrawlerOptions.maxConcurrency !== undefined ||
+            basicCrawlerOptions.maxRequestsPerMinute !== undefined;
+
         super({
             ...basicCrawlerOptions,
-            autoscaledPoolOptions,
+            concurrencySystem: usesCustomConcurrency
+                ? basicCrawlerOptions.concurrencySystem
+                : createHttpOptimizedConcurrencySystem(),
             contextPipelineBuilder:
                 contextPipelineBuilder ??
                 (() => this.buildContextPipeline() as ContextPipeline<CrawlingContext, Context>),

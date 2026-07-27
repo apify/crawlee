@@ -1,5 +1,5 @@
 import { Actor } from 'apify';
-import { CheerioCrawler, Dataset } from '@crawlee/cheerio';
+import { CheerioCrawler, ConcurrencySystem, Dataset } from '@crawlee/cheerio';
 
 const mainOptions = {
     exit: Actor.isAtHome(),
@@ -12,7 +12,7 @@ const mainOptions = {
 await Actor.main(async () => {
     const crawler = new CheerioCrawler({
         maxRequestsPerCrawl: 10,
-        autoscaledPoolOptions: { desiredConcurrency: 2 },
+        concurrencySystem: new ConcurrencySystem({ desiredConcurrency: 2 }),
         async requestHandler({ $, request }) {
             const {
                 url,
