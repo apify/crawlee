@@ -328,11 +328,23 @@ export class ConcurrencySystem {
     }
 
     /**
-     * Books a task against the shared budget. Call right before the task actually runs.
+     * Atomically books a task against the shared budget: re-checks
+     * {@apilink ConcurrencySystem.hasCapacityForTask|`hasCapacityForTask()`} and increments the current concurrency in
+     * one synchronous step, returning `false` (without booking) when the budget is spent. Call right before the task
+     * actually runs, and only run it if this returns `true`.
+     *
+     * The check-and-book must be a single operation — with several pools borrowing one system, a capacity check
+     * followed by an `await` (e.g. a task-readiness query) and only then a booking would let two pools book the last
+     * free slot at once, overshooting the shared budget.
      */
-    registerTaskStart(): void {
+    tryRegisterTaskStart(): boolean {
+        if (!this.hasCapacityForTask()) {
+            return false;
+        }
+
         this._currentConcurrency++;
         this._tasksPerMinute[0]++;
+        return true;
     }
 
     /**

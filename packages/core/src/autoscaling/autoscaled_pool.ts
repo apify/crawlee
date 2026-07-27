@@ -415,9 +415,16 @@ export class AutoscaledPool {
             return done();
         }
 
+        // - the shared budget may have been spent while we awaited `isTaskReadyFunction` — with several pools
+        // borrowing one ConcurrencySystem, another pool can book the last free slot during that gap. The booking
+        // is therefore an atomic re-check-and-increment on the system; the `hasCapacityForTask()` call above is
+        // only a cheap early-out that avoids querying task readiness in vain.
+        if (!this.concurrencySystem.tryRegisterTaskStart()) {
+            return done();
+        }
+
         try {
             // Everything's fine. Run task.
-            this.concurrencySystem.registerTaskStart();
             this.ownConcurrency++;
             // Try to run next task to build up concurrency,
             // but defer it so it doesn't create a cycle.
