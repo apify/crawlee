@@ -1,4 +1,5 @@
 /* eslint-disable no-console */
+import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, dirname, relative, resolve } from 'node:path';
 
@@ -10,11 +11,16 @@ import { globbySync } from 'globby';
  * each publishable `@crawlee/*` package, committed to `docs/public-api/<package>.api.md`.
  * These reports define where we promise backwards compatibility; changes must be reviewed.
  *
- * The build (`scripts/typescript_fixes.mjs`) injects `// @ts-ignore` comment lines into the
- * `.d.ts` files that crash API Extractor's AST walker, so we strip them for the duration of
- * the run and restore them afterwards. A few packages re-export such a member across a
- * package boundary and crash anyway; those are retried against a sanitized mirror of the
- * dist tree with `@crawlee/*` deps remapped via tsconfig `paths`, which dodges the bug.
+ * Before extraction we sanitize the `.d.ts` files (for the duration of the run, restoring them
+ * afterwards): (1) the build (`scripts/typescript_fixes.mjs`) injects `// @ts-ignore` comment
+ * lines that crash API Extractor's AST walker, so we strip them; (2) we rewrite the legacy
+ * JSDoc `@ignore` tag to `@internal`, since API Extractor only trims by release tag and would
+ * otherwise leak `@ignore`-d members into the `public` report. Rewriting `@ignore` also trims
+ * the members that were crashing API Extractor's AST walker (e.g. `BrowserLauncher`'s inline
+ * `import("ow")` `optionsShape`), so the affected packages now extract cleanly on the primary
+ * pass. A few packages may still re-export a comment-injected member across a package boundary
+ * and crash anyway; those are retried against a sanitized mirror of the dist tree with
+ * `@crawlee/*` deps remapped via tsconfig `paths`.
  *
  * When running under GitHub Actions (or with `--github`), failures are additionally emitted
  * as workflow commands (`::error::`) so they show up as inline annotations in the CI run.
@@ -45,6 +51,15 @@ const ghCommand = (kind: 'error' | 'warning', message: string) => {
 };
 
 const TS_IGNORE_LINE = /^\s*\/\/ @ts-ignore optional peer dependency or compatibility with es2022\s*$/;
+// `@ignore` is a legacy JSDoc/TypeDoc tag that API Extractor does not act on — unlike the
+// release tags (`@internal`/`@alpha`/`@beta`), it does NOT trim the member from the report,
+// so `@ignore`-d symbols wrongly leak into the `public` variant. There is no config knob for
+// this, so we rewrite the tag to `@internal` in the (transient) `.d.ts`, letting API
+// Extractor's real release-tag trimming drop them from the public surface map. We only rewrite
+// `@ignore` when it sits directly behind a JSDoc gutter (`/**` or a leading `*`), which covers
+// both the single-line `/** @ignore */` and multi-line ` * @ignore` forms while leaving prose
+// or string literals that merely mention "@ignore" untouched.
+const IGNORE_TAG = /(\/\*\*|\*)(\s*)@ignore\b/g;
 // CLI binary and project scaffolding are tooling, not an importable API where we promise BC.
 const EXCLUDED = new Set(['@crawlee/cli', '@crawlee/templates']);
 
@@ -68,11 +83,12 @@ function dtsEntry(pkgDir: string, pkg: PackageManifest): string | undefined {
     return existsSync(full) ? full : undefined;
 }
 
-const stripTsIgnore = (content: string) =>
+const sanitizeDts = (content: string) =>
     content
         .split('\n')
         .filter((line) => !TS_IGNORE_LINE.test(line))
-        .join('\n');
+        .join('\n')
+        .replace(IGNORE_TAG, '$1$2@internal');
 
 const reportBaseName = (name: string) => name.replace('@', '').replace('/', '-');
 const reportFileName = (name: string) => `${reportBaseName(name)}.api.md`;
@@ -88,7 +104,7 @@ function getMirror() {
     for (const file of globbySync('packages/*/dist/**/*.d.ts', { cwd: root, absolute: true })) {
         const target = resolve(mirrorRoot, relative(root, file));
         mkdirSync(dirname(target), { recursive: true });
-        writeFileSync(target, stripTsIgnore(readFileSync(file, 'utf8')));
+        writeFileSync(target, sanitizeDts(readFileSync(file, 'utf8')));
     }
     const packages = resolve(mirrorRoot, 'packages');
     const paths: Record<string, string[]> = {};
@@ -128,12 +144,38 @@ function extract(pkgDir: string, pkgJsonPath: string, entry: string, paths?: Rec
     // committed report ourselves so `--verify` keys off the stable `<base>.api.md` name.
     Extractor.invoke(config, { localBuild: true, showVerboseMessages: false });
 
-    const staged = readFileSync(resolve(stagingFolder, stagedFileName(name)), 'utf8');
+    const stagedPath = resolve(stagingFolder, stagedFileName(name));
+    const staged = readFileSync(stagedPath, 'utf8');
     const committedPath = resolve(reportFolder, reportFileName(name));
     const committed = existsSync(committedPath) ? readFileSync(committedPath, 'utf8') : undefined;
     const apiReportChanged = staged !== committed;
     if (apiReportChanged && !verify) writeFileSync(committedPath, staged);
-    return { apiReportChanged };
+    return { apiReportChanged, committedPath, stagedPath };
+}
+
+// Render the surface diff between the committed report and the freshly staged one, so a
+// failing `--verify` shows *what* changed rather than only telling you to re-run `api:extract`.
+// Uses `git diff --no-index` (git is always present in CI) to avoid a diffing dependency. Runs
+// from `root` with repo-relative paths and `committed`/`extracted` prefixes so the diff header
+// reads cleanly instead of dumping absolute, machine-specific paths.
+function reportDiff(committedPath: string, stagedPath: string): string {
+    const result = spawnSync(
+        'git',
+        [
+            '--no-pager',
+            'diff',
+            '--no-index',
+            '--no-color',
+            '--src-prefix=committed/',
+            '--dst-prefix=extracted/',
+            '--',
+            relative(root, committedPath),
+            relative(root, stagedPath),
+        ],
+        { cwd: root, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 },
+    );
+    // `git diff --no-index` exits 1 when files differ (expected here); only bail on a real error.
+    return (result.stdout ?? '').trim() || (result.stderr ?? '').trim();
 }
 
 function main() {
@@ -150,14 +192,16 @@ function main() {
             .map((pkg) => reportFileName(pkg.name)),
     );
 
-    // The build injects `// @ts-ignore` lines into the `.d.ts` files that crash API
-    // Extractor's AST walker, so strip them for the duration of the run and restore after.
+    // We rewrite the `.d.ts` files in place for the duration of the run (restored after) to:
+    //   1. strip the `// @ts-ignore` lines the build injects, which crash Extractor's AST walker;
+    //   2. rewrite `@ignore` -> `@internal` so those members get trimmed from the public report.
     const originals = new Map<string, string>();
     for (const file of globbySync('packages/*/dist/**/*.d.ts', { cwd: root, absolute: true })) {
         const content = readFileSync(file, 'utf8');
-        if (content.includes('@ts-ignore optional peer dependency')) {
+        const sanitized = sanitizeDts(content);
+        if (sanitized !== content) {
             originals.set(file, content);
-            writeFileSync(file, stripTsIgnore(content));
+            writeFileSync(file, sanitized);
         }
     }
 
@@ -178,10 +222,14 @@ function main() {
 
             // Up to date iff the committed report didn't change. Extractor warnings are
             // diagnostics, not BC-surface changes, so we key success on apiReportChanged.
-            const ok = (result: { apiReportChanged: boolean }, via = '') => {
+            const ok = (result: { apiReportChanged: boolean; committedPath: string; stagedPath: string }, via = '') => {
                 if (verify && result.apiReportChanged) {
                     const message = `${pkg.name}: report out of date${via} — run "pnpm api:extract" and commit the changes in docs/public-api/`;
                     console.error(`✗ ${pkg.name}: report out of date${via}`);
+                    // Print the actual surface diff so the failure is self-explanatory in the CI
+                    // log; keep the concise message for the inline GitHub annotation.
+                    const diff = reportDiff(result.committedPath, result.stagedPath);
+                    if (diff) console.error(`${diff}\n`);
                     ghCommand('error', message);
                     failed++;
                 } else {
@@ -189,16 +237,20 @@ function main() {
                 }
             };
 
+            // Fallback: retry against the sanitized mirror (dodges an API Extractor crash on
+            // cross-package re-exports of comment-injected members).
+            const viaMirror = () => {
+                const { packages, paths } = getMirror();
+                const mirrorEntry = resolve(packages, relative(resolve(root, 'packages'), pkgDir), relative(pkgDir, entry));
+                const { [pkg.name]: _self, ...deps } = paths;
+                return extract(pkgDir, pkgJsonPath, mirrorEntry, deps);
+            };
+
             try {
                 ok(extract(pkgDir, pkgJsonPath, entry));
             } catch {
-                // Fallback: retry against the sanitized mirror (dodges an API Extractor crash
-                // on cross-package re-exports of comment-injected members, e.g. @crawlee/browser).
                 try {
-                    const { packages, paths } = getMirror();
-                    const mirrorEntry = resolve(packages, relative(resolve(root, 'packages'), pkgDir), relative(pkgDir, entry));
-                    const { [pkg.name]: _self, ...deps } = paths;
-                    ok(extract(pkgDir, pkgJsonPath, mirrorEntry, deps), ' (via mirror)');
+                    ok(viaMirror(), ' (via mirror)');
                 } catch (err) {
                     const message = `${pkg.name}: api-extractor crashed: ${(err as Error).message}`;
                     console.error(`✗ ${message}`);

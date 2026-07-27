@@ -4,9 +4,153 @@
 
 ```ts
 
+import { AnyPredicate } from 'ow';
+import { ArrayPredicate } from 'ow';
+import type { Awaitable } from '@crawlee/basic';
+import { BasePredicate } from 'ow';
+import { BasicCrawler } from '@crawlee/basic';
+import type { BasicCrawlerOptions } from '@crawlee/basic';
+import type { BasicCrawlingContext } from '@crawlee/basic';
+import type { BatchAddRequestsResult } from '@crawlee/types';
+import { BooleanPredicate } from 'ow';
+import type { BrowserController } from '@crawlee/browser-pool';
+import type { BrowserPlugin } from '@crawlee/browser-pool';
+import type { BrowserPluginOptions } from '@crawlee/browser-pool';
+import type { BrowserPoolHooks } from '@crawlee/browser-pool';
+import type { BrowserPoolOptions } from '@crawlee/browser-pool';
+import type { CommonPage } from '@crawlee/browser-pool';
+import { Configuration } from '@crawlee/basic';
+import type { Constructor } from '@crawlee/utils';
+import { ContextPipeline } from '@crawlee/basic';
+import type { CrawlerRemoteBrowserOptions } from '@crawlee/browser-pool';
+import type { CrawlingContext } from '@crawlee/basic';
+import type { Dictionary } from '@crawlee/basic';
+import type { Dictionary as Dictionary_2 } from '@crawlee/utils';
+import type { EnqueueLinksOptions } from '@crawlee/basic';
+import type { ErrorHandler } from '@crawlee/basic';
+import type { IBrowserPool } from '@crawlee/types';
+import type { InferBrowserPluginArray } from '@crawlee/browser-pool';
+import { IRequestManager } from '@crawlee/basic';
+import type { LaunchContext } from '@crawlee/browser-pool';
+import type { LoadedRequest } from '@crawlee/basic';
+import { NumberPredicate } from 'ow';
+import { ObjectPredicate } from 'ow';
+import { Predicate } from 'ow';
+import type { ReadonlyDeep } from 'type-fest';
+import { Request as Request_2 } from '@crawlee/basic';
+import type { RequestHandler } from '@crawlee/basic';
+import type { RobotsTxtFile } from '@crawlee/utils';
+import type { SkippedRequestCallback } from '@crawlee/basic';
+import { StringPredicate } from 'ow';
 
-export * from "./internals/browser-crawler.js";
-export * from "./internals/browser-launcher.js";
+// @public
+export abstract class BrowserCrawler<Page extends CommonPage = CommonPage, Response extends BaseResponse = BaseResponse, InternalBrowserPoolOptions extends BrowserPoolOptions = BrowserPoolOptions, LaunchOptions extends Dictionary | undefined = Dictionary, Context extends BrowserCrawlingContext<Page, Response, Dictionary> = BrowserCrawlingContext<Page, Response, Dictionary>, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension, GoToOptions extends Dictionary = Dictionary> extends BasicCrawler<Context, ContextExtension, ExtendedContext> {
+    protected constructor(options: BrowserCrawlerOptions<Page, Response, Context, ContextExtension, ExtendedContext> & {
+        contextPipelineBuilder: () => ContextPipeline<CrawlingContext, Context>;
+    });
+    get browserPool(): IBrowserPool<Page>;
+    // (undocumented)
+    protected buildContextPipeline(): ContextPipeline<CrawlingContext, BrowserCrawlingContext<Page, Response, Dictionary>>;
+    // (undocumented)
+    protected readonly ignoreIframes: boolean;
+    // (undocumented)
+    protected readonly ignoreShadowRoots: boolean;
+    // (undocumented)
+    launchContext: BrowserLaunchContext<LaunchOptions, unknown>;
+    // (undocumented)
+    protected abstract _navigationHandler(crawlingContext: BrowserCrawlingContext<Page, Response>, gotoOptions: GoToOptions): Promise<Context['response'] | null | undefined>;
+    // (undocumented)
+    protected static optionsShape: {
+        navigationTimeoutSecs: NumberPredicate & BasePredicate<number | undefined>;
+        preNavigationHooks: ArrayPredicate<unknown> & BasePredicate<unknown[] | undefined>;
+        postNavigationHooks: ArrayPredicate<unknown> & BasePredicate<unknown[] | undefined>;
+        launchContext: ObjectPredicate<object> & BasePredicate<object | undefined>;
+        headless: AnyPredicate<string | boolean>;
+        browserPool: ObjectPredicate<object> & BasePredicate<object | undefined>;
+        remoteBrowser: ObjectPredicate<object> & BasePredicate<object | undefined>;
+        browserPoolOptions: ObjectPredicate<object> & BasePredicate<object | undefined>;
+        saveResponseCookies: BooleanPredicate & BasePredicate<boolean | undefined>;
+        proxyConfiguration: ObjectPredicate<object> & BasePredicate<object | undefined>;
+        contextPipelineBuilder: ObjectPredicate<object> & BasePredicate<object | undefined>;
+        extendContext: Predicate<Function> & BasePredicate<Function | undefined>;
+        requestList: ObjectPredicate<object> & BasePredicate<object | undefined>;
+        requestQueue: ObjectPredicate<object> & BasePredicate<object | undefined>;
+        requestHandler: Predicate<Function> & BasePredicate<Function | undefined>;
+        requestHandlerTimeoutSecs: NumberPredicate & BasePredicate<number | undefined>;
+        errorHandler: Predicate<Function> & BasePredicate<Function | undefined>;
+        failedRequestHandler: Predicate<Function> & BasePredicate<Function | undefined>;
+        maxRequestRetries: NumberPredicate & BasePredicate<number | undefined>;
+        sameDomainDelaySecs: NumberPredicate & BasePredicate<number | undefined>;
+        maxRequestsPerCrawl: NumberPredicate & BasePredicate<number | undefined>;
+        maxCrawlDepth: NumberPredicate & BasePredicate<number | undefined>;
+        autoscaledPoolOptions: ObjectPredicate<object> & BasePredicate<object | undefined>;
+        sessionPool: ObjectPredicate<object> & BasePredicate<object | undefined>;
+        statusMessageLoggingInterval: NumberPredicate & BasePredicate<number | undefined>;
+        statusMessageCallback: Predicate<Function> & BasePredicate<Function | undefined>;
+        additionalHttpErrorStatusCodes: ArrayPredicate<number>;
+        ignoreHttpErrorStatusCodes: ArrayPredicate<number>;
+        blockedStatusCodes: ArrayPredicate<number>;
+        retryOnBlocked: BooleanPredicate & BasePredicate<boolean | undefined>;
+        respectRobotsTxtFile: AnyPredicate<boolean | object>;
+        onSkippedRequest: Predicate<Function> & BasePredicate<Function | undefined>;
+        httpClient: ObjectPredicate<object> & BasePredicate<object | undefined>;
+        configuration: ObjectPredicate<object> & BasePredicate<object | undefined>;
+        storageBackend: ObjectPredicate<object> & BasePredicate<object | undefined>;
+        eventManager: ObjectPredicate<object> & BasePredicate<object | undefined>;
+        logger: ObjectPredicate<object> & BasePredicate<object | undefined>;
+        minConcurrency: NumberPredicate & BasePredicate<number | undefined>;
+        maxConcurrency: NumberPredicate & BasePredicate<number | undefined>;
+        maxRequestsPerMinute: NumberPredicate & BasePredicate<number | undefined>;
+        keepAlive: BooleanPredicate & BasePredicate<boolean | undefined>;
+        statisticsOptions: ObjectPredicate<object> & BasePredicate<object | undefined>;
+        id: StringPredicate & BasePredicate<string | undefined>;
+    };
+}
+
+// @public (undocumented)
+export interface BrowserCrawlerOptions<Page extends CommonPage = CommonPage, Response extends BaseResponse = BaseResponse, Context extends BrowserCrawlingContext<Page, Response, Dictionary> = BrowserCrawlingContext<Page, Response, Dictionary>, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension, InternalBrowserPoolOptions extends BrowserPoolOptions = BrowserPoolOptions, __BrowserPlugins extends BrowserPlugin[] = InferBrowserPluginArray<InternalBrowserPoolOptions['browserPlugins']>, __BrowserControllerReturn extends BrowserController = ReturnType<__BrowserPlugins[number]['createController']>, __LaunchContextReturn extends LaunchContext = ReturnType<__BrowserPlugins[number]['createLaunchContext']>> extends Omit<BasicCrawlerOptions<Context, ContextExtension, ExtendedContext>, 'requestHandler' | 'failedRequestHandler' | 'errorHandler'> {
+    browserPool?: IBrowserPool<Page>;
+    browserPoolOptions?: Partial<BrowserPoolOptions> & Partial<BrowserPoolHooks<__BrowserControllerReturn, __LaunchContextReturn>>;
+    errorHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
+    failedRequestHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
+    headless?: boolean | 'new' | 'old';
+    ignoreIframes?: boolean;
+    ignoreShadowRoots?: boolean;
+    // (undocumented)
+    launchContext?: BrowserLaunchContext<any, any>;
+    navigationTimeoutSecs?: number;
+    postNavigationHooks?: BrowserHook<Context, ContextExtension>[];
+    preNavigationHooks?: BrowserHook<Context, ContextExtension>[];
+    remoteBrowser?: CrawlerRemoteBrowserOptions;
+    requestHandler?: RequestHandler<ExtendedContext>;
+    saveResponseCookies?: boolean;
+}
+
+// @public (undocumented)
+export interface BrowserCrawlingContext<Page extends CommonPage = CommonPage, Response extends BaseResponse = BaseResponse, UserData extends Dictionary = Dictionary, GoToOptions extends Dictionary = Dictionary> extends CrawlingContext<UserData> {
+    enqueueLinks: (options?: EnqueueLinksOptions) => Promise<BatchAddRequestsResult>;
+    gotoOptions: GoToOptions;
+    page: Page;
+    request: LoadedRequest<Request_2<UserData>>;
+    response: Response;
+}
+
+// @public (undocumented)
+export type BrowserHook<Context = BrowserCrawlingContext, ContextExtension = {}> = (crawlingContext: Context & ContextExtension) => Awaitable<void | Partial<Context>>;
+
+// @public (undocumented)
+export interface BrowserLaunchContext<TOptions, Launcher> extends BrowserPluginOptions<TOptions> {
+    browserPerProxy?: boolean;
+    ignoreProxyCertificate?: boolean;
+    launcher?: Launcher;
+    proxyUrl?: string;
+    useChrome?: boolean;
+    useIncognitoPages?: boolean;
+    userAgent?: string;
+    userDataDir?: string;
+}
+
+
 export * from "@crawlee/basic";
 
 // (No @packageDocumentation comment for this package)
