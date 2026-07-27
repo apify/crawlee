@@ -267,6 +267,27 @@ describe('BasicCrawler', () => {
         expect(processed).toHaveLength(sourcesCopy.length * 3);
     });
 
+    test('builds a fresh owned ConcurrencySystem for every run', async () => {
+        const crawler = new BasicCrawler({
+            requestHandler: async () => {},
+        });
+
+        await crawler.run(['https://example.com/1']);
+        const firstSystem = crawler.autoscaledPool!.system;
+        // Simulate scaling state left behind by the first run.
+        firstSystem.desiredConcurrency = 42;
+
+        await crawler.run(['https://example.com/2']);
+        const secondSystem = crawler.autoscaledPool!.system;
+
+        // The crawler-owned governor is rebuilt per run, so no previous-run state (resource snapshots,
+        // autoscaled desired concurrency, per-minute task counts) can distort the next run's scaling.
+        expect(secondSystem).not.toBe(firstSystem);
+        // The rebuilt governor starts over from the default desired concurrency (the immediate autoscale tick on
+        // start may already have nudged it up a step) instead of inheriting the previous run's value.
+        expect(secondSystem.desiredConcurrency).toBeLessThanOrEqual(2);
+    });
+
     test('should process 4 requests total when calling run() twice with maxRequestsPerCrawl: 2', async () => {
         const processed: { url: string }[] = [];
 

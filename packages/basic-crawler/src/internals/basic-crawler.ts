@@ -644,11 +644,20 @@ export class BasicCrawler<
     /**
      * Backs the crawler's shared {@apilink ConcurrencySystem}: borrowed when one is supplied via
      * {@apilink BasicCrawlerOptions.concurrencySystem|`concurrencySystem`} (never torn down by the crawler), or an
-     * owned default built from the concurrency options and folded into the pool the crawler constructs in
+     * owned default built freshly for every run and folded into the pool the crawler constructs in
      * {@apilink BasicCrawler._init|`_init()`}. Owned-only lifecycle is gated through
      * {@apilink OwnedOrInjected.ifOwned|`ifOwned()`}.
      */
     private concurrencySystemDep: OwnedOrInjected<ConcurrencySystem>;
+
+    /**
+     * Builds the crawler-owned default {@apilink ConcurrencySystem} with the resolved concurrency shortcuts folded
+     * in. Invoked once per {@apilink BasicCrawler.run|`run()`} (from {@apilink BasicCrawler._init|`_init()`}), so
+     * every run starts from a clean governor — no resource snapshots, per-minute task counts or autoscaled desired
+     * concurrency leak over from the previous run, matching the fresh pool the crawler builds each time. Unused when
+     * a `concurrencySystem` is injected.
+     */
+    private readonly buildDefaultConcurrencySystem?: () => ConcurrencySystem;
 
     /**
      * A reference to the underlying {@apilink AutoscaledPool} class that manages the concurrency of the crawler.
@@ -1131,16 +1140,19 @@ export class BasicCrawler<
             }
 
             // Borrowed if supplied (its scaling config lives on the instance, and the caller owns its lifecycle);
-            // otherwise a default governor built from the concurrency shortcuts. Anything finer than the shortcuts
-            // requires injecting a pre-configured `ConcurrencySystem`. Folded into the pool the crawler builds in `_init()`.
-            this.concurrencySystemDep = OwnedOrInjected.resolve<ConcurrencySystem>(concurrencySystem, () =>
-                this.createDefaultConcurrencySystem({
-                    minConcurrency,
-                    maxConcurrency,
-                    maxTasksPerMinute: maxRequestsPerMinute,
-                    log: this.log,
-                }),
-            );
+            // otherwise a default governor built from the concurrency shortcuts — freshly for each run, in `_init()`,
+            // so no state leaks between runs. Anything finer than the shortcuts requires injecting a pre-configured
+            // `ConcurrencySystem`. Folded into the pool the crawler builds in `_init()`.
+            if (concurrencySystem === undefined) {
+                this.buildDefaultConcurrencySystem = () =>
+                    this.createDefaultConcurrencySystem({
+                        minConcurrency,
+                        maxConcurrency,
+                        maxTasksPerMinute: maxRequestsPerMinute,
+                        log: this.log,
+                    });
+            }
+            this.concurrencySystemDep = OwnedOrInjected.resolve<ConcurrencySystem>(concurrencySystem);
         } finally {
             serviceLocatorScope.exitScope();
         }
@@ -1898,6 +1910,16 @@ export class BasicCrawler<
         if (!eventManager.isInitialized()) {
             await eventManager.init();
             this._closeEvents = true;
+        }
+
+        // An owned governor is rebuilt for every run, so it always starts from a clean slate — stale resource
+        // snapshots or a previous run's scaled desired concurrency would otherwise distort this run's scaling
+        // (an injected system's state is intentionally long-lived and belongs to the caller).
+        if (this.concurrencySystemDep.isOwned) {
+            this.concurrencySystemDep = OwnedOrInjected.resolve<ConcurrencySystem>(
+                undefined,
+                this.buildDefaultConcurrencySystem,
+            );
         }
 
         // Boot the governor only if we own it — a supplied (shared) system's lifecycle belongs to the caller, who is
