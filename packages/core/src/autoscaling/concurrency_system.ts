@@ -101,9 +101,11 @@ export interface ConcurrencySystemOptions {
  * machine. Everything task-source specific — the `runTaskFunction`, the ready/finished checks, the `run()` promise —
  * stays in the pool; only the load-and-budget accounting lives here.
  *
- * A shared instance is reference-counted: {@apilink ConcurrencySystem.start|`start()`} boots the snapshotter on the
- * first borrower and {@apilink ConcurrencySystem.stop|`stop()`} tears it down only once the last borrower leaves, so
- * an injected system outlives any single pool's run.
+ * A system has a single lifecycle owner, not per-borrower reference counting: whoever built the instance calls
+ * {@apilink ConcurrencySystem.start|`start()`} before any borrowing pool runs and
+ * {@apilink ConcurrencySystem.stop|`stop()`} once they are all done (crawlers do this for the default system they
+ * build, and never for an injected one). Both calls are idempotent, but the first `stop()` tears the snapshotter down
+ * for every borrower — borrowers must not manage a shared system's lifecycle themselves.
  * @category Scaling
  */
 export class ConcurrencySystem {
