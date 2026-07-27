@@ -1132,7 +1132,10 @@ export class BasicCrawler<
 
             this.autoscaledPoolOptions = { ...autoscaledPoolOptions, ...basicCrawlerAutoscaledPoolConfiguration };
 
-            if (concurrencySystem !== undefined && (minConcurrency ?? maxConcurrency ?? maxRequestsPerMinute)) {
+            if (
+                concurrencySystem !== undefined &&
+                (minConcurrency !== undefined || maxConcurrency !== undefined || maxRequestsPerMinute !== undefined)
+            ) {
                 this.log.info(
                     'A `concurrencySystem` was provided; the `minConcurrency`/`maxConcurrency`/`maxRequestsPerMinute` ' +
                         'shortcuts are ignored in favour of the configuration on the supplied system.',
