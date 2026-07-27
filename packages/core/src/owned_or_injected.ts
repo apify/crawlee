@@ -6,6 +6,8 @@
  *
  * This is the deliberate complement to the {@apilink ServiceLocator}: ambient infrastructure (config/events/storage/
  * logger) stays in the locator, while crawler-scoped stateful collaborators the crawler sequences go through this.
+ *
+ * @internal
  */
 export class OwnedOrInjected<Injected, Owned extends Injected = Injected> {
     private _value: Injected | undefined;
