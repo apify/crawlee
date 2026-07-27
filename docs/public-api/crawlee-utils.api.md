@@ -80,12 +80,6 @@ function emailsFromText(text: string): string[];
 // @public
 function emailsFromUrls(urls: string[]): string[];
 
-// @public (undocumented)
-export function entries<T extends {}>(obj: T): [keyof T, T[keyof T]][];
-
-// @public
-export function expandShadowRoots(document: Document): string;
-
 // @public
 export function extractUrls(options: ExtractUrlsOptions): string[];
 
@@ -115,15 +109,6 @@ const INSTAGRAM_REGEX: RegExp;
 
 // @public
 const INSTAGRAM_REGEX_GLOBAL: RegExp;
-
-// @public
-export function isBuffer(value: unknown): value is Buffer | ArrayBuffer | ArrayBufferView;
-
-// @public
-export function isStream(value: unknown): value is NodeJS.ReadableStream | ReadableStream;
-
-// @public (undocumented)
-export function keys<T extends {}>(obj: T): (keyof T)[];
 
 // @public
 const LINKEDIN_REGEX: RegExp;
@@ -222,9 +207,6 @@ export type SitemapUrl = SitemapUrlData & {
 // @public
 export function sleep(millis?: number): Promise<void>;
 
-// @public
-export function snakeCaseToCamelCase(snakeCaseStr: string): string;
-
 declare namespace social {
     export {
         emailsFromText,
@@ -287,9 +269,6 @@ const TIKTOK_REGEX: RegExp;
 const TIKTOK_REGEX_GLOBAL: RegExp;
 
 // @public
-export function toBuffer(value: Buffer | ArrayBuffer | ArrayBufferView): Buffer;
-
-// @public
 export function tryAbsoluteURL(href: string, baseUrl: string): string | undefined;
 
 // @public
@@ -303,9 +282,6 @@ export const URL_NO_COMMAS_REGEX: RegExp;
 
 // @public
 export const URL_WITH_COMMAS_REGEX: RegExp;
-
-// @public
-export function weightedAvg(arrValues: number[], arrWeights: number[]): number;
 
 // @public
 const YOUTUBE_REGEX: RegExp;
