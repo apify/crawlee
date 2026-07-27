@@ -1095,9 +1095,9 @@ __metadata:
     "@apify/tsconfig": "npm:^0.2.0"
     "@biomejs/biome": "npm:^2.3.11"
     "@commitlint/config-conventional": "npm:^21.0.0"
-    "@playwright/browser-chromium": "npm:1.61.1"
-    "@playwright/browser-firefox": "npm:1.61.1"
-    "@playwright/browser-webkit": "npm:1.61.1"
+    "@playwright/browser-chromium": "npm:1.62.0"
+    "@playwright/browser-firefox": "npm:1.62.0"
+    "@playwright/browser-webkit": "npm:1.62.0"
     "@stylistic/eslint-plugin": "npm:5.7.1"
     "@types/content-type": "npm:^1.1.5"
     "@types/deep-equal": "npm:^1.0.1"
@@ -1139,7 +1139,7 @@ __metadata:
     lerna: "npm:^9.0.7"
     lint-staged: "npm:^17.0.0"
     nock: "npm:^13.4.0"
-    playwright: "npm:1.61.1"
+    playwright: "npm:1.62.0"
     portastic: "npm:^1.0.1"
     proxy: "npm:^1.0.2"
     puppeteer: "npm:25.3.0"
@@ -2681,30 +2681,30 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@playwright/browser-chromium@npm:1.61.1":
-  version: 1.61.1
-  resolution: "@playwright/browser-chromium@npm:1.61.1"
+"@playwright/browser-chromium@npm:1.62.0":
+  version: 1.62.0
+  resolution: "@playwright/browser-chromium@npm:1.62.0"
   dependencies:
-    playwright-core: "npm:1.61.1"
-  checksum: 10c0/2d3a47f4474180a1e78ff294c6040af7322b0e66051c899e84a809dc2d94650d92d77c324abc003e769b61d458afef94f7d2288769f3b3a8da396e089cafcce5
+    playwright-core: "npm:1.62.0"
+  checksum: 10c0/e66b7b6d10e5eb0265379b5a8c09e2cedbb064a1e05c5c3e001b62b1203f35c23733769695c29c1240b9131c09c075622521c58723e0bd998645bc3f3184db00
   languageName: node
   linkType: hard
 
-"@playwright/browser-firefox@npm:1.61.1":
-  version: 1.61.1
-  resolution: "@playwright/browser-firefox@npm:1.61.1"
+"@playwright/browser-firefox@npm:1.62.0":
+  version: 1.62.0
+  resolution: "@playwright/browser-firefox@npm:1.62.0"
   dependencies:
-    playwright-core: "npm:1.61.1"
-  checksum: 10c0/db02372addf80e117c0a8d30dd6dc65eafe5a084bf18d66bc7fb19991c1d563a9fc27be6d9770d15a778a50828e3640de133cfd58f82514737e37a9c85cb929e
+    playwright-core: "npm:1.62.0"
+  checksum: 10c0/47356ccbe5d6b21864fee8a9ede6f7b5a6e966d380ab5b186d7e3d8e84a2b5b1b60951b256fc97fcdc55c7f08bdafac0375eca0bc73db35a83e2efb6f3089e61
   languageName: node
   linkType: hard
 
-"@playwright/browser-webkit@npm:1.61.1":
-  version: 1.61.1
-  resolution: "@playwright/browser-webkit@npm:1.61.1"
+"@playwright/browser-webkit@npm:1.62.0":
+  version: 1.62.0
+  resolution: "@playwright/browser-webkit@npm:1.62.0"
   dependencies:
-    playwright-core: "npm:1.61.1"
-  checksum: 10c0/77788d9124284feedc6ce7da79a68dec3429d2caaa0b02156ec153d85f2e85668d0b2c6eb0191d19455455bbc4ddc02a9d302a9bb8c30d07ad4976f7069305c3
+    playwright-core: "npm:1.62.0"
+  checksum: 10c0/be2feb5cf9321270844aa9d246d323ee081a3412992fb4431dd6cc5d7b6254be5b83df7ad112ea7312477acf9bf709d5da7a0a91f2ab62597b7c8e22f7cde19c
   languageName: node
   linkType: hard
 
@@ -11804,16 +11804,31 @@ __metadata:
   languageName: node
   linkType: hard
 
-"playwright-core@npm:1.61.1":
-  version: 1.61.1
-  resolution: "playwright-core@npm:1.61.1"
+"playwright-core@npm:1.62.0":
+  version: 1.62.0
+  resolution: "playwright-core@npm:1.62.0"
   bin:
     playwright-core: cli.js
-  checksum: 10c0/c28896ba82a602182e240ed4f9c467fb0dd9cb57d510f8aba9f25183fe1cde3a0105725a29baffa4157fe885bbb11e228032a2aad0424111584fde45303f07bd
+  checksum: 10c0/bc7c770cc4118a7ea65d2c357fc271aaef49af6b5b8964aa19d765d4ea3473e56af926f693123fd63ed6e580830059905722ac68fbf22a31a5b1533e11600228
   languageName: node
   linkType: hard
 
-"playwright@npm:1.61.1, playwright@npm:^1.52.0, playwright@npm:^1.60.0":
+"playwright@npm:1.62.0":
+  version: 1.62.0
+  resolution: "playwright@npm:1.62.0"
+  dependencies:
+    fsevents: "npm:2.3.2"
+    playwright-core: "npm:1.62.0"
+  dependenciesMeta:
+    fsevents:
+      optional: true
+  bin:
+    playwright: cli.js
+  checksum: 10c0/14d2d2c35e4ef88cf69d9e6c5bf351ff47fe9cd00da09da9f48da8aaf75ebdb266330c073cb217821785fb35d7e5d9d89789220b208329e4934aaaa43da260f3
+  languageName: node
+  linkType: hard
+
+"playwright@npm:^1.52.0, playwright@npm:^1.60.0":
   version: 1.61.1
   resolution: "playwright@npm:1.61.1"
   dependencies:
