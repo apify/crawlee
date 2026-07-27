@@ -1165,6 +1165,160 @@ If you rely on Crawlee's default configuration (one browser context per session,
 
 The `log` property exposed throughout the public API (on the crawling context, `AutoscaledPool`, `Statistics`, `EventManager`, `SessionOptions`, `Dataset`, etc.) is now typed as the `CrawleeLogger` interface (from `@crawlee/types`) rather than the concrete `Log` class from `@apify/log`. If you consume it structurally — calling `log.info(...)`, `log.debug(...)`, `log.child(...)` — nothing changes. You only need to act if you explicitly annotated a variable or parameter with the `Log` type from `@apify/log` and assigned `context.log` to it; type it as `CrawleeLogger` instead.
 
+## Autoscaling split into `AutoscaledPool` + `ConcurrencySystem`
+
+The autoscaling logic was split in two. The load-and-budget "governor" — the part that decides whether there is free compute for one more task (the snapshotter, the system-status evaluation, the concurrency budget, and the scaling logic) — moved into a new `ConcurrencySystem` class. `AutoscaledPool` keeps only the *task loop*: `runTaskFunction`, `isTaskReadyFunction`, `isFinishedFunction`, `maybeRunIntervalSecs`, `taskTimeoutSecs`, and `log`.
+
+The motivation is sharing: inject a single `ConcurrencySystem` into several pools (and therefore several crawlers) to cap their **combined** concurrency against one budget, instead of each crawler scaling independently and oversubscribing the host.
+
+### `AutoscaledPool` requires a `concurrencySystem` and no longer takes scaling options
+
+All scaling/snapshotter options were **removed** from `AutoscaledPoolOptions` and now live on `ConcurrencySystemOptions`: `minConcurrency`, `maxConcurrency`, `desiredConcurrency`, `desiredConcurrencyRatio`, `scaleUpStepRatio`, `scaleDownStepRatio`, `loggingIntervalSecs`, `autoscaleIntervalSecs`, `maxTasksPerMinute`, `snapshotterOptions`, and `systemStatusOptions`. In their place `AutoscaledPoolOptions` gained a **required** `concurrencySystem`.
+
+`AutoscaledPool` also no longer manages the system's lifecycle: it assumes the `ConcurrencySystem` is already running. Whoever owns the system must `start()` it before `pool.run()` and `stop()` it afterwards. (Within Crawlee this is handled by the crawler for the pool it builds; you only need to care about this if you drive an `AutoscaledPool` directly.)
+
+**Before:**
+```typescript
+const pool = new AutoscaledPool({
+    minConcurrency: 5,
+    maxConcurrency: 50,
+    maxTasksPerMinute: 120,
+    runTaskFunction: async () => { /* ... */ },
+    isTaskReadyFunction: async () => true,
+    isFinishedFunction: async () => false,
+});
+await pool.run();
+```
+
+**After:**
+```typescript
+import { AutoscaledPool, ConcurrencySystem } from '@crawlee/core';
+
+const concurrencySystem = new ConcurrencySystem({
+    minConcurrency: 5,
+    maxConcurrency: 50,
+    maxTasksPerMinute: 120,
+});
+await concurrencySystem.start();
+
+const pool = new AutoscaledPool({
+    concurrencySystem,
+    runTaskFunction: async () => { /* ... */ },
+    isTaskReadyFunction: async () => true,
+    isFinishedFunction: async () => false,
+});
+
+try {
+    await pool.run();
+} finally {
+    await concurrencySystem.stop();
+}
+```
+
+The concurrency getters/setters on `AutoscaledPool` (`minConcurrency`, `maxConcurrency`, `desiredConcurrency`, `currentConcurrency`) are unchanged — they now read/write through the underlying system, which is also reachable via the new `pool.system` getter.
+
+### `BasicCrawlerOptions.autoscaledPoolOptions` no longer carries concurrency config
+
+`autoscaledPoolOptions` now accepts **only** the task-loop predicates `isFinishedFunction` and `isTaskReadyFunction`. All concurrency/scaling configuration must go through either the existing `minConcurrency` / `maxConcurrency` / `maxRequestsPerMinute` shortcuts (which build the crawler's default `ConcurrencySystem`), or — for anything finer — an injected `concurrencySystem`.
+
+**Before:**
+```typescript
+const crawler = new CheerioCrawler({
+    autoscaledPoolOptions: {
+        desiredConcurrency: 10,
+        maxTasksPerMinute: 120,
+        systemStatusOptions: { currentHistorySecs: 10 },
+    },
+    requestHandler,
+});
+```
+
+**After:**
+```typescript
+import { ConcurrencySystem } from '@crawlee/core';
+
+const crawler = new CheerioCrawler({
+    concurrencySystem: new ConcurrencySystem({
+        desiredConcurrency: 10,
+        maxTasksPerMinute: 120,
+        systemStatusOptions: { currentHistorySecs: 10 },
+    }),
+    requestHandler,
+});
+```
+
+For the common case, the shortcuts are enough and need no `ConcurrencySystem`:
+
+```typescript
+const crawler = new CheerioCrawler({
+    minConcurrency: 5,
+    maxConcurrency: 50,
+    maxRequestsPerMinute: 120,
+    requestHandler,
+});
+```
+
+### Sharing a `ConcurrencySystem` across crawlers
+
+Inject the same instance into multiple crawlers to cap their combined concurrency. You own the shared system's lifecycle — `start()` it before running the crawlers and `stop()` it once they are all done (the crawlers never start or stop a supplied system):
+
+```typescript
+import { CheerioCrawler, ConcurrencySystem } from 'crawlee';
+
+const concurrencySystem = new ConcurrencySystem({ maxConcurrency: 20 });
+await concurrencySystem.start();
+
+const a = new CheerioCrawler({ concurrencySystem, requestHandler });
+const b = new CheerioCrawler({ concurrencySystem, requestHandler });
+
+try {
+    await Promise.all([a.run(), b.run()]);
+} finally {
+    await concurrencySystem.stop();
+}
+```
+
+When a `concurrencySystem` is supplied, the `minConcurrency` / `maxConcurrency` / `maxRequestsPerMinute` shortcuts are ignored in its favour.
+
+## `Snapshotter` and `SystemStatus` load-signal options restructured
+
+The per-resource load-signal configuration was consolidated. Previously it was split awkwardly between flat `SnapshotterOptions` fields and the `max*OverloadedRatio` options on `SystemStatusOptions`; now each built-in signal has a single cohesive options bag on `SnapshotterOptions`.
+
+`SnapshotterOptions` — the flat fields `eventLoopSnapshotIntervalSecs`, `clientSnapshotIntervalSecs`, `maxBlockedMillis`, `maxUsedMemoryRatio`, and `maxClientErrors` were **removed** in favour of the per-signal bags `memory`, `eventLoop`, `cpu`, and `client`, each of which also carries its own `overloadedRatio`:
+
+**Before:**
+```typescript
+new ConcurrencySystem({
+    snapshotterOptions: {
+        maxUsedMemoryRatio: 0.8,
+        eventLoopSnapshotIntervalSecs: 2,
+        maxBlockedMillis: 100,
+        clientSnapshotIntervalSecs: 1,
+        maxClientErrors: 3,
+    },
+    systemStatusOptions: {
+        maxMemoryOverloadedRatio: 0.2,
+        maxEventLoopOverloadedRatio: 0.7,
+        maxCpuOverloadedRatio: 0.4,
+        maxClientOverloadedRatio: 0.3,
+    },
+});
+```
+
+**After:**
+```typescript
+new ConcurrencySystem({
+    snapshotterOptions: {
+        memory: { maxUsedRatio: 0.8, overloadedRatio: 0.2 },
+        eventLoop: { snapshotIntervalSecs: 2, maxBlockedMillis: 100, overloadedRatio: 0.7 },
+        cpu: { overloadedRatio: 0.4 },
+        client: { snapshotIntervalSecs: 1, maxErrors: 3, overloadedRatio: 0.3 },
+    },
+});
+```
+
+`SystemStatusOptions` — the four `maxMemoryOverloadedRatio`, `maxEventLoopOverloadedRatio`, `maxCpuOverloadedRatio`, and `maxClientOverloadedRatio` options were **removed**. Each signal now owns its overload ratio (set it via the corresponding `snapshotterOptions` bag above). `SystemStatusOptions` keeps only `currentHistorySecs`, `snapshotter`, and `loadSignals`.
+
 ## Stagehand type narrowings
 
 A few Stagehand-specific option types were tightened:
