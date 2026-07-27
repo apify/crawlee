@@ -54,11 +54,8 @@ export const enum BROWSER_POOL_EVENTS {
 // @public
 export abstract class BrowserController<Library extends CommonLibrary = CommonLibrary, LibraryOptions extends Dictionary | undefined = Parameters<Library['launch']>[0], LaunchResult extends CommonBrowser = UnwrapPromise<ReturnType<Library['launch']>>, NewPageOptions = Parameters<LaunchResult['newPage']>[0], NewPageResult = UnwrapPromise<ReturnType<LaunchResult['newPage']>>> extends TypedEmitter<BrowserControllerEvents<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>> implements IBrowserController<NewPageResult> {
     constructor(browserPlugin: BrowserPlugin<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>);
-    activate(): void;
     // (undocumented)
     activePages: number;
-    // (undocumented)
-    assignBrowser(browser: LaunchResult, launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>): void;
     browser: LaunchResult;
     readonly browserPlugin: BrowserPlugin<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>;
     close(): Promise<void>;
@@ -80,7 +77,6 @@ export abstract class BrowserController<Library extends CommonLibrary = CommonLi
     launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>;
     // (undocumented)
     protected readonly log: CrawleeLogger;
-    newPage(pageOptions?: NewPageOptions): Promise<NewPageResult>;
     // (undocumented)
     protected abstract _newPage(pageOptions?: NewPageOptions): Promise<NewPageResult>;
     // (undocumented)
