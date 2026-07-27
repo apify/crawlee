@@ -14,9 +14,12 @@ import { globbySync } from 'globby';
  * afterwards): (1) the build (`scripts/typescript_fixes.mjs`) injects `// @ts-ignore` comment
  * lines that crash API Extractor's AST walker, so we strip them; (2) we rewrite the legacy
  * JSDoc `@ignore` tag to `@internal`, since API Extractor only trims by release tag and would
- * otherwise leak `@ignore`-d members into the `public` report. A few packages re-export a
- * comment-injected member across a package boundary and crash anyway; those are retried against
- * a sanitized mirror of the dist tree with `@crawlee/*` deps remapped via tsconfig `paths`.
+ * otherwise leak `@ignore`-d members into the `public` report. Rewriting `@ignore` also trims
+ * the members that were crashing API Extractor's AST walker (e.g. `BrowserLauncher`'s inline
+ * `import("ow")` `optionsShape`), so the affected packages now extract cleanly on the primary
+ * pass. A few packages may still re-export a comment-injected member across a package boundary
+ * and crash anyway; those are retried against a sanitized mirror of the dist tree with
+ * `@crawlee/*` deps remapped via tsconfig `paths`.
  *
  * When running under GitHub Actions (or with `--github`), failures are additionally emitted
  * as workflow commands (`::error::`) so they show up as inline annotations in the CI run.
@@ -203,16 +206,20 @@ function main() {
                 }
             };
 
+            // Fallback: retry against the sanitized mirror (dodges an API Extractor crash on
+            // cross-package re-exports of comment-injected members).
+            const viaMirror = () => {
+                const { packages, paths } = getMirror();
+                const mirrorEntry = resolve(packages, relative(resolve(root, 'packages'), pkgDir), relative(pkgDir, entry));
+                const { [pkg.name]: _self, ...deps } = paths;
+                return extract(pkgDir, pkgJsonPath, mirrorEntry, deps);
+            };
+
             try {
                 ok(extract(pkgDir, pkgJsonPath, entry));
             } catch {
-                // Fallback: retry against the sanitized mirror (dodges an API Extractor crash
-                // on cross-package re-exports of comment-injected members, e.g. @crawlee/browser).
                 try {
-                    const { packages, paths } = getMirror();
-                    const mirrorEntry = resolve(packages, relative(resolve(root, 'packages'), pkgDir), relative(pkgDir, entry));
-                    const { [pkg.name]: _self, ...deps } = paths;
-                    ok(extract(pkgDir, pkgJsonPath, mirrorEntry, deps), ' (via mirror)');
+                    ok(viaMirror(), ' (via mirror)');
                 } catch (err) {
                     const message = `${pkg.name}: api-extractor crashed: ${(err as Error).message}`;
                     console.error(`✗ ${message}`);
