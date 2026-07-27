@@ -167,7 +167,7 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
     running: boolean;
     // (undocumented)
     protected runRequestHandler(crawlingContext: ExtendedContext): Promise<void>;
-    readonly sessionPool: ISessionPool;
+    get sessionPool(): ISessionPool;
     setStatusMessage(message: string, options?: SetStatusMessageOptions): void;
     readonly stats: Statistics;
     stop(reason?: string): void;
