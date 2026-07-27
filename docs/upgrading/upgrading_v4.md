@@ -75,6 +75,25 @@ The change spans, among others:
 
 The internal `RequestQueue` constructor dropped its second `config: Configuration` parameter (it also stopped exposing a `protected config` field). You should not be constructing `RequestQueue` directly anyway — use `RequestQueue.open()`, which resolves configuration for you.
 
+## Crawler constructors no longer take a `Configuration` argument
+
+The crawler classes dropped the optional second `config?: Configuration` constructor parameter: `PlaywrightCrawler`, `PuppeteerCrawler`, and `AdaptivePlaywrightCrawler` (the same applies to the other crawlers, which never advertised it publicly). `AdaptivePlaywrightCrawler` additionally now extends `BasicCrawler` rather than `PlaywrightCrawler`. Pass a `Configuration` via the `configuration` option instead (see [Using per-crawler services](#using-per-crawler-services-recommended)).
+
+**Before:**
+```typescript
+const crawler = new PlaywrightCrawler({ requestHandler }, new Configuration({ headless: false }));
+```
+
+**After:**
+```typescript
+const crawler = new PlaywrightCrawler({
+    requestHandler,
+    configuration: new Configuration({ headless: false }),
+});
+```
+
+The browser *launchers* (`PlaywrightLauncher`, `PuppeteerLauncher`) keep their `(launchContext?, config?)` constructor signature — this change is only about the crawler classes.
+
 ## Removed symbols
 
 - `BasicCrawler._cleanupContext` (protected) - this is now handled by the `ContextPipeline`
@@ -96,8 +115,12 @@ The internal `RequestQueue` constructor dropped its second `config: Configuratio
 - `Snapshotter._snapshotMemory`, `Snapshotter._memoryOverloadWarning`, `Snapshotter._snapshotEventLoop`, `Snapshotter._snapshotCpu`, `Snapshotter._snapshotClient`, `Snapshotter._pruneSnapshots` (all `@deprecated` protected stubs) - snapshotting is handled by the individual load signals, use `Snapshotter.getMemorySample()` / `getEventLoopSample()` / `getCpuSample()` / `getClientSample()` instead
 - `FileDownloadOptions.streamHandler` - streaming should now be handled directly in the `requestHandler` instead
 - `playwrightUtils.registerUtilsToContext` and `puppeteerUtils.registerUtilsToContext` - this is now added to the context via `ContextPipeline` composition
-- `puppeteerUtils.blockResources` and `puppeteerUtils.cacheResponses` (deprecated)
+- `context.blockResources` and `context.cacheResponses` — no longer attached to the crawling context. The functionality is still available as deprecated functions, accessible both via the `puppeteerUtils` namespace (`puppeteerUtils.blockResources`, `puppeteerUtils.cacheResponses`) and as top-level exports from `@crawlee/puppeteer` (`import { blockResources, cacheResponses } from '@crawlee/puppeteer'`). Unlike the old context helpers, these take an explicit `page` argument — e.g. `await blockResources(page)`. Both are `@deprecated` and will be removed in a future release, so migrate away from them.
 - `Configuration.systemInfoV2` / `CRAWLEE_SYSTEM_INFO_V2` environment variable — the v2 behavior is now the default (see [Available resource detection](#available-resource-detection))
+- `checkAndSerialize` and `chunkBySize` functions (from `@crawlee/core`) — value (de)serialization now lives in the `KeyValueStore` frontend; use `serializeValue` / `parseValue` (see [`maybeStringify` is removed](#maybestringify-is-removed))
+- `BASIC_CRAWLER_TIMEOUT_BUFFER_SECS` constant (from `@crawlee/basic`) — was an internal timeout buffer, no longer exported
+- `HttpResponse`, `HttpResponseWithoutBody`, `StreamingHttpResponse`, `ResponseTypes`, `BaseHttpResponseData`, `SimpleHeaders`, `processHttpRequestOptions`, and `GotScrapingHttpClient` (from `@crawlee/core`) — the HTTP client surface moved to `@crawlee/http-client` / `@crawlee/got-scraping-client` (see [HTTP client packages and `BaseHttpClient` reshaped](#http-client-packages-and-basehttpclient-reshaped))
+- `StreamHandlerContext` and `FileDownloadOptions` types (from `@crawlee/http`) — see [`FileDownload` now extends `BasicCrawler`](#filedownload-now-extends-basiccrawler-and-no-longer-takes-filedownloadoptions)
 
 ### The protected `BasicCrawler.crawlingContexts` map is removed
 
@@ -129,6 +152,12 @@ const crawler = new CheerioCrawler({
 ## Crawling context is strictly typed
 
 Previously, the crawling context extended a `Record` type, allowing to access any property. This was changed to a strict type, which means that you can only access properties that are defined in the context.
+
+## Crawler generic parameters and handler types changed
+
+To support the new `ContextPipeline` / `extendContext` composition, the crawler classes gained additional generic type parameters. `BasicCrawler<Context>` is now `BasicCrawler<Context, ContextExtension, ExtendedContext>`, and the same pattern was propagated to `HttpCrawler`, `CheerioCrawler`, `JSDOMCrawler`, `LinkeDOMCrawler`, `PuppeteerCrawler`, `PlaywrightCrawler`, `StagehandCrawler`, and their `*Options` interfaces. This only affects you if you **explicitly annotated** crawler generics or **subclassed** a crawler while narrowing its `Context` — in that case the compiler now expects the extra parameters (and a matching `contextPipelineBuilder`). Most users, who let the types be inferred, are unaffected.
+
+The exported handler types were reshaped accordingly. `ErrorHandler` and `RequestHandler` no longer wrap their context in `LoadedContext<...>`; `ErrorHandler` now takes two type parameters (`ErrorHandler<BaseContext, ExtendedContext>`), receiving `inputs: BaseContext & Partial<ExtendedContext>`. The `RestrictedCrawlingContext` and `LoadedContext` types are no longer exported from `@crawlee/basic`. If you imported or annotated these directly, update the references; if you only used the crawler options' `requestHandler` / `errorHandler` / `failedRequestHandler` callbacks with inferred parameter types, nothing changes.
 
 ## `SessionPool` is now lazy-initialized
 
@@ -362,6 +391,26 @@ await crawler.run([{ url: 'https://example.com', sessionId: 'basic' }]);
 
 More complex routing (more tiers, weighted draws, sticky assignment, cooldowns) can be expressed with additional named sessions and custom `errorHandler` logic.
 
+### `ProxyConfiguration.newUrl` / `newProxyInfo` signatures changed
+
+Because proxy tiers are gone, the leading `sessionId` positional argument was dropped from `ProxyConfiguration.newUrl()` and `ProxyConfiguration.newProxyInfo()`. Both now take a single optional options object instead of `(sessionId?, options?)`. The `ProxyConfigurationFunction` callback (the `newUrlFunction` option) was likewise simplified — it no longer receives a `sessionId` as its first argument; it now receives an optional `{ request }` object. The `TieredProxy` interface and the `TieredProxyOptions` type have been removed.
+
+**Before:**
+```typescript
+const proxyConfiguration = new ProxyConfiguration({
+    newUrlFunction: (sessionId, options) => pickProxyFor(sessionId),
+});
+const url = await proxyConfiguration.newUrl(sessionId);
+```
+
+**After:**
+```typescript
+const proxyConfiguration = new ProxyConfiguration({
+    newUrlFunction: ({ request } = {}) => pickProxyFor(request),
+});
+const url = await proxyConfiguration.newUrl();
+```
+
 ## `maxSessionRotations` and `request.sessionRotationCount` are removed
 
 Session errors no longer have their own retry budget. The `maxSessionRotations` crawler option, the `Request.sessionRotationCount` property, and the special-case retry logic for `SessionError` are all gone. A `SessionError` now retires the session and counts toward `maxRequestRetries` like any other failure, so configure a single retry limit via `maxRequestRetries` (default `3`). `SessionError` also no longer extends `RetryRequestError` - if you were catching `RetryRequestError` to detect a session-triggered retry, branch on `SessionError` directly instead.
@@ -374,9 +423,82 @@ This experimental option relied on an outdated manifest version for browser exte
 
 In v3, we introduced a new way to detect available resources for the crawler, available via `systemInfoV2` flag. In v4, this is the default way to detect available resources. The old way is removed completely together with the `systemInfoV2` flag.
 
+As part of this change, the low-level resource- and environment-detection helpers exported from `@crawlee/utils` were **removed**: `getMemoryInfo()` (and the `MemoryInfo` interface), `isContainerized()`, `isDocker()`, `isLambda()`, and `getCgroupsVersion()`. These backed the old detection path and are no longer part of the public API. Resource detection is now handled internally by the crawler's autoscaling; if you called any of these directly, read the equivalent values from the OS (`node:os`) or the relevant cgroup files yourself.
+
+## Removed and relocated `@crawlee/utils` exports
+
+Besides the resource-detection helpers above, several other `@crawlee/utils` exports were removed or moved:
+
+- **Removed URL helpers:** `filterUrl(target, origin, strategy)`, `matchesEnqueueStrategy(strategy, target, origin)`, and the `UNSUPPORTED_SCHEME_MESSAGE` constant. URL filtering by enqueue strategy is now internal to `enqueueLinks`.
+- **Relocated enums/types:** `EnqueueStrategy` now lives in `@crawlee/core` and `SearchParams` in `@crawlee/types`. They are no longer re-exported from `@crawlee/utils`, so `import { EnqueueStrategy } from '@crawlee/utils'` breaks — import them from `crawlee` (the meta-package) or from `@crawlee/core` / `@crawlee/types` instead.
+
+### `RobotsTxtFile.find` signature changed; sitemap options removed
+
+The `proxyUrl` argument of `RobotsTxtFile.find()` moved from a positional parameter into the options bag, which also gained `httpClient` and `logger`:
+
+**Before:**
+```typescript
+const robots = await RobotsTxtFile.find(url, proxyUrl, { timeoutMillis: 5000 });
+```
+
+**After:**
+```typescript
+const robots = await RobotsTxtFile.find(url, { proxyUrl, timeoutMillis: 5000 });
+```
+
+Relatedly, `RobotsTxtFile.getSitemaps()`, `parseSitemaps()`, and `parseUrlsFromSitemaps()` no longer take a `RobotsTxtFileSitemapsOptions` argument (the type is removed), and the `enqueueStrategy` / `networkTimeouts` options were dropped from `ParseSitemapOptions` — robots/sitemap parsing no longer filters by enqueue strategy.
+
 ## `HttpClient` instances return `Response` objects
 
 The interface of `HttpClient` instances was changed to return the [native `Response` objects](https://developer.mozilla.org/en-US/docs/Web/API/Response) instead of custom `HttpResponse` objects.
+
+## HTTP client packages and `BaseHttpClient` reshaped
+
+The HTTP client abstraction moved out of `@crawlee/core` into two new packages, and its shape changed to match the native `fetch` model.
+
+- **`@crawlee/http-client`** (new) now owns the `BaseHttpClient` abstract base class, along with `FetchHttpClient`, `ResponseWithUrl` / `IResponseWithUrl`, and `CustomFetchOptions`.
+- **`@crawlee/got-scraping-client`** (new) provides `GotScrapingHttpClient` — the `got-scraping`-backed client — as an opt-in dependency, so `got-scraping` is no longer pulled into every install.
+
+`BaseHttpClient` was redesigned around `fetch`. In v3 it declared `sendRequest<TResponseType>(request): Promise<HttpResponse>` and `stream(request): Promise<StreamingHttpResponse>`; in v4 subclasses implement a single `protected abstract fetch(input: Request, init?): Promise<Response>` and the base class provides `sendRequest(request, options?): Promise<Response>`. There is no `stream()` method anymore — a `Response` already exposes `body` as a stream. The following symbols that were part of the old `@crawlee/core` HTTP surface are **removed**: `HttpResponse`, `HttpResponseWithoutBody`, `StreamingHttpResponse`, `ResponseTypes`, `BaseHttpResponseData`, `SimpleHeaders`, and `processHttpRequestOptions`.
+
+If you implemented a custom HTTP client:
+
+**Before:**
+```typescript
+import { BaseHttpClient, HttpRequest, HttpResponse } from '@crawlee/core';
+
+class MyClient implements BaseHttpClient {
+    async sendRequest<T>(request: HttpRequest<T>): Promise<HttpResponse<T>> { /* ... */ }
+    async stream(request: HttpRequest) { /* ... */ }
+}
+```
+
+**After:**
+```typescript
+import { BaseHttpClient, type CustomFetchOptions } from '@crawlee/http-client';
+
+class MyClient extends BaseHttpClient {
+    protected async fetch(input: Request, init?: RequestInit & CustomFetchOptions): Promise<Response> {
+        // return a native Response; sendRequest() is inherited from BaseHttpClient
+    }
+}
+```
+
+### `gotScraping` is no longer exported from `@crawlee/utils`
+
+The `gotScraping` singleton previously exported from `@crawlee/utils` has been removed. If you used it as the crawler's HTTP client, use the new `GotScrapingHttpClient` instead:
+
+```typescript
+import { CheerioCrawler } from 'crawlee';
+import { GotScrapingHttpClient } from '@crawlee/got-scraping-client';
+
+const crawler = new CheerioCrawler({
+    httpClient: new GotScrapingHttpClient(),
+    requestHandler: async ({ $ }) => { /* ... */ },
+});
+```
+
+If you called `gotScraping(...)` directly for one-off requests unrelated to Crawlee, depend on the [`got-scraping`](https://www.npmjs.com/package/got-scraping) package directly instead.
 
 ## `CrawlingContext.response` is now of type `Response`
 
@@ -385,6 +507,10 @@ The `CrawlingContext.response` property is now of type [`Response`](https://deve
 ## Crawling context in the `FileDownload` crawler no longer includes `body` and `stream` properties
 
 The crawling context in the `FileDownload` crawler no longer includes the `body` and `stream` properties. These can be accessed directly via the `response` property instead, e.g. `context.response.bytes()` or `context.response.body`.
+
+## `FileDownload` now extends `BasicCrawler` and no longer takes `FileDownloadOptions`
+
+`FileDownload` was re-based from `HttpCrawler` onto `BasicCrawler`. Its constructor now accepts `BasicCrawlerOptions<FileDownloadCrawlingContext>` instead of the dedicated `FileDownloadOptions` type, which — together with `StreamHandlerContext` — has been **removed** from `@crawlee/http`. In practice this means the HTTP-crawler-specific options (`navigationTimeoutSecs`, `additionalMimeTypes`, `suggestResponseEncoding`, `forceResponseEncoding`, the `gotOptions`-style `preNavigationHooks`, etc.) are no longer accepted by `FileDownload`; downloading is a thin layer over `BasicCrawler` and the request is performed via `sendRequest` / the configured `httpClient`. If you passed any of those HTTP-only options to `FileDownload`, drop them and configure the `httpClient` (or the request itself) directly. The `FileDownloadCrawlingContext` type also lost its extra type parameter and no longer extends the internal HTTP crawling context — it now extends the common `CrawlingContext` with `contentType`, `request`, and `response`.
 
 ## HTML-parsing helper functions are now asynchronous
 
@@ -546,6 +672,27 @@ const response = await sendRequest({ url: '...' }, { cookieJar: jar });
 ```
 
 The protected `HttpCrawler._applyCookies` method is removed. If you were overriding it in a subclass, move your logic to a `preNavigationHook` that sets cookies on `request.headers.Cookie` or on the `session` cookie jar directly.
+
+### `Session.getCookies`, `setCookies` and `setCookiesFromResponse` are removed
+
+The public cookie helper methods on `Session` — `getCookies(url)`, `setCookies(cookies, url)`, and `setCookiesFromResponse(response)` — have been removed as part of centralizing cookie assembly in `BaseHttpClient`. Work with the session's `cookieJar` directly, or use the new `Session.getCookieString(url)` to read the assembled `Cookie` header value.
+
+**Before:**
+```typescript
+const cookies = session.getCookies(url);
+session.setCookies([{ name: 'foo', value: 'bar' }], url);
+session.setCookiesFromResponse(response);
+```
+
+**After:**
+```typescript
+// Read the Cookie header string for a URL:
+const cookieHeader = session.getCookieString(url);
+
+// Set / read cookies via the jar directly:
+await session.cookieJar.setCookie('foo=bar', url);
+const cookieHeader2 = await session.cookieJar.getCookieString(url);
+```
 
 ## `persistCookiesPerSession` renamed to `saveResponseCookies`
 
@@ -1009,3 +1156,15 @@ This aligns the Puppeteer controller with the Playwright controller, which has a
 If you rely on Crawlee's default configuration (one browser context per session, which is the `useIncognitoPages` / `newContextPerSession` behavior used by `PuppeteerCrawler`), you should not notice any difference — each session already owns its own context.
 
 **Cookie `url` field** — the old `page.setCookie()` auto-filled a missing `url` on each cookie with the page's current URL. The new `browserContext().setCookie()` does not; Chromium rejects cookies that carry neither `url` nor `domain`. Crawlee's internal `_setCookies` keeps the old behavior by back-filling `page.url()` for any cookie that has neither field set, but if you call `browserContext().setCookie()` directly (outside of Crawlee) you need to provide one of them yourself.
+
+## The `log` property is typed as `CrawleeLogger`
+
+The `log` property exposed throughout the public API (on the crawling context, `AutoscaledPool`, `Statistics`, `EventManager`, `SessionOptions`, `Dataset`, etc.) is now typed as the `CrawleeLogger` interface (from `@crawlee/types`) rather than the concrete `Log` class from `@apify/log`. If you consume it structurally — calling `log.info(...)`, `log.debug(...)`, `log.child(...)` — nothing changes. You only need to act if you explicitly annotated a variable or parameter with the `Log` type from `@apify/log` and assigned `context.log` to it; type it as `CrawleeLogger` instead.
+
+## Stagehand type narrowings
+
+A few Stagehand-specific option types were tightened:
+
+- `StagehandGotoOptions` dropped its `Dictionary &` intersection — it is now exactly `NonNullable<Parameters<Page['goto']>[1]>`, so arbitrary extra keys are no longer accepted.
+- The explicit `failedRequestHandler` field was removed from `StagehandCrawlerOptions` (it is inherited from the base crawler options generically, so passing `failedRequestHandler` still works).
+- The `ignoreShadowRoots` and `ignoreIframes` options were removed from `StagehandCrawler`.
