@@ -3,7 +3,7 @@ import type { AddressInfo } from 'node:net';
 import { Readable } from 'node:stream';
 
 import { MemoryStorageBackend, serviceLocator } from '@crawlee/core';
-import { HttpCrawler, SessionPool } from '@crawlee/http';
+import { ConcurrencySystem, HttpCrawler, SessionPool } from '@crawlee/http';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import iconv from 'iconv-lite';
 
@@ -117,6 +117,44 @@ test('works', async () => {
     await crawler.run([url]);
 
     expect(results[0].includes('Example Domain')).toBeTruthy();
+});
+
+test('builds an HTTP-optimized default ConcurrencySystem and owns its lifecycle', async () => {
+    const startSpy = vitest.spyOn(ConcurrencySystem.prototype, 'start');
+    const stopSpy = vitest.spyOn(ConcurrencySystem.prototype, 'stop');
+
+    try {
+        const crawler = new HttpCrawler({
+            maxRequestRetries: 0,
+            requestHandler: () => {},
+        });
+
+        await crawler.run([url]);
+
+        // The HTTP-optimized starting concurrency made it into the default system...
+        expect(crawler.autoscaledPool!.desiredConcurrency).toBe(10);
+        // ...and the crawler owns the default system, so it drives its lifecycle.
+        expect(startSpy).toHaveBeenCalledTimes(1);
+        expect(stopSpy).toHaveBeenCalledTimes(1);
+    } finally {
+        startSpy.mockRestore();
+        stopSpy.mockRestore();
+    }
+});
+
+test('concurrency shortcuts coexist with the HTTP-optimized defaults', async () => {
+    const crawler = new HttpCrawler({
+        maxConcurrency: 5,
+        maxRequestRetries: 0,
+        requestHandler: () => {},
+    });
+
+    await crawler.run([url]);
+
+    // The shortcut applies...
+    expect(crawler.autoscaledPool!.maxConcurrency).toBe(5);
+    // ...without discarding the HTTP-optimized starting concurrency (which the max then caps).
+    expect(crawler.autoscaledPool!.desiredConcurrency).toBe(5);
 });
 
 test('parseWithCheerio works', async () => {

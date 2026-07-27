@@ -3,6 +3,8 @@ import util from 'node:util';
 
 import type {
     BasicCrawlerOptions,
+    ConcurrencySystem,
+    ConcurrencySystemOptions,
     ContextMiddleware,
     CrawlingContext,
     ErrorHandler,
@@ -17,7 +19,6 @@ import type {
 } from '@crawlee/basic';
 import {
     BasicCrawler,
-    ConcurrencySystem,
     ContextPipeline,
     NavigationSkippedError,
     RequestState,
@@ -44,23 +45,20 @@ import { extractCharsetFromHtmlBytes, parseContentTypeFromResponse, processHttpR
 const HTML_AND_XML_MIME_TYPES = ['text/html', 'text/xml', 'application/xhtml+xml', 'application/xml'];
 const APPLICATION_JSON_MIME_TYPE = 'application/json';
 /**
- * Builds the HTTP-optimized default {@apilink ConcurrencySystem}: a higher starting concurrency and a relaxed event
- * loop signal (HTTP-only crawling barely touches the event loop). Each crawler gets its own instance, since a
- * `ConcurrencySystem` is stateful. Only used when the caller supplies neither a `concurrencySystem` nor any of the
- * concurrency shortcuts.
+ * The HTTP-optimized tuning for the crawler's default {@apilink ConcurrencySystem}: a higher starting concurrency
+ * and a relaxed event loop signal (HTTP-only crawling barely touches the event loop). Folded into the crawler-owned
+ * default system alongside the user's concurrency shortcuts; an injected `concurrencySystem` bypasses it entirely.
  */
-function createHttpOptimizedConcurrencySystem(): ConcurrencySystem {
-    return new ConcurrencySystem({
-        desiredConcurrency: 10,
-        snapshotterOptions: {
-            eventLoop: {
-                snapshotIntervalSecs: 2,
-                maxBlockedMillis: 100,
-                overloadedRatio: 0.7,
-            },
+const HTTP_OPTIMIZED_CONCURRENCY_SYSTEM_OPTIONS: ConcurrencySystemOptions = {
+    desiredConcurrency: 10,
+    snapshotterOptions: {
+        eventLoop: {
+            snapshotIntervalSecs: 2,
+            maxBlockedMillis: 100,
+            overloadedRatio: 0.7,
         },
-    });
-}
+    },
+};
 
 export type HttpErrorHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -384,19 +382,8 @@ export class HttpCrawler<
             ...basicCrawlerOptions
         } = options;
 
-        // Apply the HTTP-optimized default governor only when the caller hasn't configured concurrency themselves —
-        // an injected `concurrencySystem` or any of the shortcuts take precedence and are left untouched.
-        const usesCustomConcurrency =
-            basicCrawlerOptions.concurrencySystem !== undefined ||
-            basicCrawlerOptions.minConcurrency !== undefined ||
-            basicCrawlerOptions.maxConcurrency !== undefined ||
-            basicCrawlerOptions.maxRequestsPerMinute !== undefined;
-
         super({
             ...basicCrawlerOptions,
-            concurrencySystem: usesCustomConcurrency
-                ? basicCrawlerOptions.concurrencySystem
-                : createHttpOptimizedConcurrencySystem(),
             contextPipelineBuilder:
                 contextPipelineBuilder ??
                 (() => this.buildContextPipeline() as ContextPipeline<CrawlingContext, Context>),
@@ -425,6 +412,18 @@ export class HttpCrawler<
         ];
 
         this.saveResponseCookies = saveResponseCookies;
+    }
+
+    /**
+     * Folds the HTTP-optimized tuning into the crawler-owned default {@apilink ConcurrencySystem}, on top of which
+     * the user's `minConcurrency`/`maxConcurrency`/`maxRequestsPerMinute` shortcuts still apply. Not consulted when
+     * a `concurrencySystem` is injected — that instance carries its own complete configuration.
+     */
+    protected override createDefaultConcurrencySystem(options: ConcurrencySystemOptions): ConcurrencySystem {
+        return super.createDefaultConcurrencySystem({
+            ...HTTP_OPTIMIZED_CONCURRENCY_SYSTEM_OPTIONS,
+            ...options,
+        });
     }
 
     protected override buildContextPipeline(): ContextPipeline<CrawlingContext, InternalHttpCrawlingContext> {

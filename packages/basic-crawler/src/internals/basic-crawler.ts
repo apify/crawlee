@@ -6,6 +6,7 @@ import type {
     AddRequestsBatchedResult,
     AutoscaledPoolPredicateOptions,
     AutoscaledPoolTaskLoopOptions,
+    ConcurrencySystemOptions,
     Configuration,
     CrawleeLogger,
     CrawlingContext,
@@ -1132,19 +1133,30 @@ export class BasicCrawler<
             // Borrowed if supplied (its scaling config lives on the instance, and the caller owns its lifecycle);
             // otherwise a default governor built from the concurrency shortcuts. Anything finer than the shortcuts
             // requires injecting a pre-configured `ConcurrencySystem`. Folded into the pool the crawler builds in `_init()`.
-            this.concurrencySystemDep = OwnedOrInjected.resolve<ConcurrencySystem>(
-                concurrencySystem,
-                () =>
-                    new ConcurrencySystem({
-                        minConcurrency,
-                        maxConcurrency,
-                        maxTasksPerMinute: maxRequestsPerMinute,
-                        log: this.log,
-                    }),
+            this.concurrencySystemDep = OwnedOrInjected.resolve<ConcurrencySystem>(concurrencySystem, () =>
+                this.createDefaultConcurrencySystem({
+                    minConcurrency,
+                    maxConcurrency,
+                    maxTasksPerMinute: maxRequestsPerMinute,
+                    log: this.log,
+                }),
             );
         } finally {
             serviceLocatorScope.exitScope();
         }
+    }
+
+    /**
+     * Builds the crawler-owned default {@apilink ConcurrencySystem} — only called when no
+     * {@apilink BasicCrawlerOptions.concurrencySystem|`concurrencySystem`} was injected. `options` carries the
+     * resolved `minConcurrency`/`maxConcurrency`/`maxRequestsPerMinute` shortcuts (and the crawler's log).
+     *
+     * Subclasses may override this to tune the default system (e.g. {@apilink HttpCrawler} raises the starting
+     * concurrency and relaxes the event loop signal) while still honouring the user's shortcuts — the crawler owns
+     * (and therefore starts/stops) the result either way, unlike an injected system.
+     */
+    protected createDefaultConcurrencySystem(options: ConcurrencySystemOptions): ConcurrencySystem {
+        return new ConcurrencySystem(options);
     }
 
     /**
