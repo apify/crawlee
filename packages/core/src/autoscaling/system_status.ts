@@ -47,34 +47,6 @@ export interface SystemStatusOptions {
     currentHistorySecs?: number;
 
     /**
-     * Sets the maximum ratio of overloaded snapshots in a memory sample.
-     * If the sample exceeds this ratio, the system will be overloaded.
-     * @default 0.2
-     */
-    maxMemoryOverloadedRatio?: number;
-
-    /**
-     * Sets the maximum ratio of overloaded snapshots in an event loop sample.
-     * If the sample exceeds this ratio, the system will be overloaded.
-     * @default 0.6
-     */
-    maxEventLoopOverloadedRatio?: number;
-
-    /**
-     * Sets the maximum ratio of overloaded snapshots in a CPU sample.
-     * If the sample exceeds this ratio, the system will be overloaded.
-     * @default 0.4
-     */
-    maxCpuOverloadedRatio?: number;
-
-    /**
-     * Sets the maximum ratio of overloaded snapshots in a Client sample.
-     * If the sample exceeds this ratio, the system will be overloaded.
-     * @default 0.3
-     */
-    maxClientOverloadedRatio?: number;
-
-    /**
      * The `Snapshotter` instance to be queried for `SystemStatus`.
      */
     snapshotter?: Snapshotter;
@@ -84,6 +56,9 @@ export interface SystemStatusOptions {
      * These are evaluated alongside the built-in memory, CPU, event loop,
      * and client signals. If any signal reports overload, the system is
      * considered overloaded.
+     *
+     * > *NOTE:* Per-resource overload ratios are configured on the signals themselves (built-in signals via the
+     * > {@apilink Snapshotter}'s per-signal option bags), not here.
      */
     loadSignals?: LoadSignal[];
 }
@@ -137,50 +112,23 @@ export class SystemStatus {
     private readonly snapshotter: Snapshotter;
     private readonly signals: LoadSignal[];
 
-    /**
-     * Per-signal ratio overrides. The built-in four get their overrides from
-     * the legacy `max*OverloadedRatio` options; custom signals use their own
-     * `overloadedRatio`.
-     */
-    private ratioOverrides: Record<string, number>;
-
     constructor(options: SystemStatusOptions = {}) {
         ow(
             options,
             ow.object.exactShape({
                 currentHistorySecs: ow.optional.number,
-                maxMemoryOverloadedRatio: ow.optional.number,
-                maxEventLoopOverloadedRatio: ow.optional.number,
-                maxCpuOverloadedRatio: ow.optional.number,
-                maxClientOverloadedRatio: ow.optional.number,
                 snapshotter: ow.optional.object,
                 loadSignals: ow.optional.array,
             }),
         );
 
-        const {
-            currentHistorySecs = 5,
-            maxMemoryOverloadedRatio = 0.2,
-            maxEventLoopOverloadedRatio = 0.6,
-            maxCpuOverloadedRatio = 0.4,
-            maxClientOverloadedRatio = 0.3,
-            snapshotter,
-            loadSignals = [],
-        } = options;
+        const { currentHistorySecs = 5, snapshotter, loadSignals = [] } = options;
 
         this.currentHistoryMillis = currentHistorySecs * 1000;
         this.snapshotter = snapshotter || new Snapshotter();
 
-        // Built-in signals from the snapshotter + any custom signals
+        // Built-in signals from the snapshotter + any custom signals. Each signal owns its own `overloadedRatio`.
         this.signals = [...this.snapshotter.getLoadSignals(), ...loadSignals];
-
-        // Allow legacy options to override the built-in signal ratios
-        this.ratioOverrides = {
-            memInfo: maxMemoryOverloadedRatio,
-            eventLoopInfo: maxEventLoopOverloadedRatio,
-            cpuInfo: maxCpuOverloadedRatio,
-            clientInfo: maxClientOverloadedRatio,
-        };
     }
 
     /**
@@ -238,9 +186,8 @@ export class SystemStatus {
         let loadSignalInfo: Record<string, ClientInfo> | undefined;
 
         for (const signal of this.signals) {
-            const ratio = this.ratioOverrides[signal.name] ?? signal.overloadedRatio;
             const sample = signal.getSample(sampleDurationMillis);
-            const info = evaluateLoadSignalSample(sample, ratio);
+            const info = evaluateLoadSignalSample(sample, signal.overloadedRatio);
 
             if (info.isOverloaded) {
                 result.isSystemIdle = false;

@@ -13,10 +13,12 @@ describe('SystemStatus', () => {
         log.setLevel(logLevel);
     });
 
-    function mockSignal(name: string, snapshots: any[]) {
+    // The per-signal overloaded ratio now lives on the signal itself (SystemStatus no longer overrides it), so the
+    // mock signal carries it directly. Default 0 means "any overloaded snapshot trips it", matching the earlier tests.
+    function mockSignal(name: string, snapshots: any[], overloadedRatio = 0) {
         return {
             name,
-            overloadedRatio: 0, // overridden by SystemStatusOptions anyway
+            overloadedRatio,
             getSample(sampleDurationMillis?: number) {
                 return sampleDurationMillis ? snapshots.slice(-sampleDurationMillis) : snapshots;
             },
@@ -31,14 +33,17 @@ describe('SystemStatus', () => {
             readonly loopSnapshots: any[],
             readonly cpuSnapshots: any[],
             readonly clientSnapshots: any[],
+            readonly overloadedRatios: Partial<
+                Record<'memInfo' | 'eventLoopInfo' | 'cpuInfo' | 'clientInfo', number>
+            > = {},
         ) {}
 
         getLoadSignals() {
             return [
-                mockSignal('memInfo', this.memSnapshots),
-                mockSignal('eventLoopInfo', this.loopSnapshots),
-                mockSignal('cpuInfo', this.cpuSnapshots),
-                mockSignal('clientInfo', this.clientSnapshots),
+                mockSignal('memInfo', this.memSnapshots, this.overloadedRatios.memInfo),
+                mockSignal('eventLoopInfo', this.loopSnapshots, this.overloadedRatios.eventLoopInfo),
+                mockSignal('cpuInfo', this.cpuSnapshots, this.overloadedRatios.cpuInfo),
+                mockSignal('clientInfo', this.clientSnapshots, this.overloadedRatios.clientInfo),
             ];
         }
 
@@ -140,61 +145,47 @@ describe('SystemStatus', () => {
 
     test('should overload when threshold is crossed', () => {
         const snaps = generateSnapsSync(50, true);
-        const mock = new MockSnapshotter(snaps, snaps, snaps, snaps) as any;
+        const ratios = (r: number) => ({ memInfo: r, eventLoopInfo: r, cpuInfo: r, clientInfo: r });
 
         // At exactly 0.5, the 50% overloaded sample should NOT trigger (uses >)
         let systemStatus = new SystemStatus({
-            snapshotter: mock,
-            maxMemoryOverloadedRatio: 0.5,
-            maxEventLoopOverloadedRatio: 0.5,
-            maxCpuOverloadedRatio: 0.5,
-            maxClientOverloadedRatio: 0.5,
+            snapshotter: new MockSnapshotter(snaps, snaps, snaps, snaps, ratios(0.5)) as any,
         });
         expect(systemStatus.getCurrentStatus().isSystemIdle).toBe(true);
         expect(systemStatus.getHistoricalStatus().isSystemIdle).toBe(true);
 
         // Drop all thresholds below 0.5 → all four overloaded
         systemStatus = new SystemStatus({
-            snapshotter: mock,
-            maxMemoryOverloadedRatio: 0.49,
-            maxEventLoopOverloadedRatio: 0.49,
-            maxCpuOverloadedRatio: 0.49,
-            maxClientOverloadedRatio: 0.49,
+            snapshotter: new MockSnapshotter(snaps, snaps, snaps, snaps, ratios(0.49)) as any,
         });
         expect(systemStatus.getCurrentStatus().isSystemIdle).toBe(false);
         expect(systemStatus.getHistoricalStatus().isSystemIdle).toBe(false);
 
         // Memory & eventLoop at threshold, CPU & client below → still overloaded
         systemStatus = new SystemStatus({
-            snapshotter: mock,
-            maxMemoryOverloadedRatio: 0.5,
-            maxEventLoopOverloadedRatio: 0.5,
-            maxCpuOverloadedRatio: 0.49,
-            maxClientOverloadedRatio: 0.49,
+            snapshotter: new MockSnapshotter(snaps, snaps, snaps, snaps, {
+                memInfo: 0.5,
+                eventLoopInfo: 0.5,
+                cpuInfo: 0.49,
+                clientInfo: 0.49,
+            }) as any,
         });
         expect(systemStatus.getCurrentStatus().isSystemIdle).toBe(false);
         expect(systemStatus.getHistoricalStatus().isSystemIdle).toBe(false);
 
         // All thresholds well above → idle
         systemStatus = new SystemStatus({
-            snapshotter: mock,
-            maxMemoryOverloadedRatio: 1,
-            maxEventLoopOverloadedRatio: 1,
-            maxCpuOverloadedRatio: 1,
-            maxClientOverloadedRatio: 1,
+            snapshotter: new MockSnapshotter(snaps, snaps, snaps, snaps, ratios(1)) as any,
         });
         expect(systemStatus.getCurrentStatus().isSystemIdle).toBe(true);
         expect(systemStatus.getHistoricalStatus().isSystemIdle).toBe(true);
     });
 
     test('should show different values for now and lately', () => {
+        const ratios = { memInfo: 0.5, eventLoopInfo: 0.5, cpuInfo: 0.5, clientInfo: 0.5 };
         let snaps = generateSnapsSync(95, false);
         let systemStatus = new SystemStatus({
-            snapshotter: new MockSnapshotter(snaps, snaps, snaps, snaps) as any,
-            maxMemoryOverloadedRatio: 0.5,
-            maxEventLoopOverloadedRatio: 0.5,
-            maxCpuOverloadedRatio: 0.5,
-            maxClientOverloadedRatio: 0.5,
+            snapshotter: new MockSnapshotter(snaps, snaps, snaps, snaps, ratios) as any,
         });
 
         // @ts-expect-error Overwriting readonly private prop
@@ -214,11 +205,7 @@ describe('SystemStatus', () => {
 
         snaps = generateSnapsSync(95, true);
         systemStatus = new SystemStatus({
-            snapshotter: new MockSnapshotter(snaps, snaps, snaps, snaps) as any,
-            maxMemoryOverloadedRatio: 0.5,
-            maxEventLoopOverloadedRatio: 0.5,
-            maxCpuOverloadedRatio: 0.5,
-            maxClientOverloadedRatio: 0.5,
+            snapshotter: new MockSnapshotter(snaps, snaps, snaps, snaps, ratios) as any,
         });
 
         // @ts-expect-error Overwriting readonly private prop

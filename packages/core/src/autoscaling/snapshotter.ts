@@ -14,19 +14,33 @@ import type { LoadSignal } from './load_signal.js';
 import type { MemorySnapshot } from './memory_load_signal.js';
 import { MemoryLoadSignal } from './memory_load_signal.js';
 
-export interface SnapshotterOptions {
+/**
+ * Per-signal tuning for the built-in **memory** load signal.
+ */
+export interface MemorySignalOptions {
     /**
-     * Defines the interval of measuring the event loop response time.
-     * @default 0.5
+     * Defines the maximum ratio of total memory that can be used.
+     * Exceeding this limit overloads the memory.
+     * @default 0.9
      */
-    eventLoopSnapshotIntervalSecs?: number;
+    maxUsedRatio?: number;
 
     /**
-     * Defines the interval of checking the current state
-     * of the remote API client.
-     * @default 1
+     * Maximum ratio of overloaded snapshots in a sample before memory counts as overloaded.
+     * @default 0.2
      */
-    clientSnapshotIntervalSecs?: number;
+    overloadedRatio?: number;
+}
+
+/**
+ * Per-signal tuning for the built-in **event loop** load signal.
+ */
+export interface EventLoopSignalOptions {
+    /**
+     * Defines the interval of measuring the event loop response time, in seconds.
+     * @default 0.5
+     */
+    snapshotIntervalSecs?: number;
 
     /**
      * Maximum allowed delay of the event loop in milliseconds.
@@ -36,18 +50,66 @@ export interface SnapshotterOptions {
     maxBlockedMillis?: number;
 
     /**
-     * Defines the maximum ratio of total memory that can be used.
-     * Exceeding this limit overloads the memory.
-     * @default 0.9
+     * Maximum ratio of overloaded snapshots in a sample before the event loop counts as overloaded.
+     * @default 0.6
      */
-    maxUsedMemoryRatio?: number;
+    overloadedRatio?: number;
+}
+
+/**
+ * Per-signal tuning for the built-in **CPU** load signal.
+ */
+export interface CpuSignalOptions {
+    /**
+     * Maximum ratio of overloaded snapshots in a sample before the CPU counts as overloaded.
+     * @default 0.4
+     */
+    overloadedRatio?: number;
+}
+
+/**
+ * Per-signal tuning for the built-in **client** (rate-limit) load signal.
+ */
+export interface ClientSignalOptions {
+    /**
+     * Defines the interval of checking the current state of the remote API client, in seconds.
+     * @default 1
+     */
+    snapshotIntervalSecs?: number;
 
     /**
-     * Defines the maximum number of new rate limit errors within
-     * the given interval.
+     * Defines the maximum number of new rate limit errors within the given interval.
      * @default 3
      */
-    maxClientErrors?: number;
+    maxErrors?: number;
+
+    /**
+     * Maximum ratio of overloaded snapshots in a sample before the client counts as overloaded.
+     * @default 0.3
+     */
+    overloadedRatio?: number;
+}
+
+export interface SnapshotterOptions {
+    /**
+     * Tuning for the built-in memory load signal (used-memory limit + overload ratio).
+     */
+    memory?: MemorySignalOptions;
+
+    /**
+     * Tuning for the built-in event loop load signal (snapshot interval + blocked-millis limit + overload ratio).
+     */
+    eventLoop?: EventLoopSignalOptions;
+
+    /**
+     * Tuning for the built-in CPU load signal (overload ratio).
+     */
+    cpu?: CpuSignalOptions;
+
+    /**
+     * Tuning for the built-in client (rate-limit) load signal (snapshot interval + error limit + overload ratio).
+     */
+    client?: ClientSignalOptions;
 
     /**
      * Sets the interval in seconds for which a history of resource snapshots
@@ -60,7 +122,7 @@ export interface SnapshotterOptions {
     log?: CrawleeLogger;
 
     /** @internal */
-    client?: StorageBackend;
+    storageClient?: StorageBackend;
 
     /** @internal */
     config?: Configuration;
@@ -134,58 +196,62 @@ export class Snapshotter {
         ow(
             options,
             ow.object.exactShape({
-                eventLoopSnapshotIntervalSecs: ow.optional.number,
-                clientSnapshotIntervalSecs: ow.optional.number,
-                snapshotHistorySecs: ow.optional.number,
-                maxBlockedMillis: ow.optional.number,
-                maxUsedMemoryRatio: ow.optional.number,
-                maxClientErrors: ow.optional.number,
-                log: ow.optional.object,
+                memory: ow.optional.object,
+                eventLoop: ow.optional.object,
+                cpu: ow.optional.object,
                 client: ow.optional.object,
+                snapshotHistorySecs: ow.optional.number,
+                log: ow.optional.object,
+                storageClient: ow.optional.object,
                 config: ow.optional.object,
             }),
         );
 
         const {
-            eventLoopSnapshotIntervalSecs = 0.5,
-            clientSnapshotIntervalSecs = 1,
+            memory = {},
+            eventLoop = {},
+            cpu = {},
+            client = {},
             snapshotHistorySecs = 30,
-            maxBlockedMillis = 50,
-            maxUsedMemoryRatio = 0.9,
-            maxClientErrors = 3,
             log = serviceLocator.getLogger(),
             config = serviceLocator.getConfiguration(),
-            client = serviceLocator.getStorageBackend(),
+            storageClient = serviceLocator.getStorageBackend(),
         } = options;
 
         this.log = log.child({ prefix: 'Snapshotter' });
-        this.client = client;
+        this.client = storageClient;
         this.config = config;
 
         const snapshotHistoryMillis = snapshotHistorySecs * 1000;
 
+        // Each built-in signal owns its full tuning (limits + overloadedRatio); the Snapshotter just wires the
+        // per-signal option bags straight through.
         this.memorySignal = new MemoryLoadSignal({
-            maxUsedMemoryRatio,
+            maxUsedMemoryRatio: memory.maxUsedRatio,
+            overloadedRatio: memory.overloadedRatio,
             snapshotHistoryMillis,
             config: this.config,
             log: this.log,
         });
 
         this.eventLoopSignal = createEventLoopLoadSignal({
-            eventLoopSnapshotIntervalSecs,
-            maxBlockedMillis,
+            eventLoopSnapshotIntervalSecs: eventLoop.snapshotIntervalSecs,
+            maxBlockedMillis: eventLoop.maxBlockedMillis,
+            overloadedRatio: eventLoop.overloadedRatio,
             snapshotHistoryMillis,
         });
 
         this.cpuSignal = createCpuLoadSignal({
+            overloadedRatio: cpu.overloadedRatio,
             snapshotHistoryMillis,
             config: this.config,
         });
 
         this.clientSignal = createClientLoadSignal({
             client: this.client,
-            clientSnapshotIntervalSecs,
-            maxClientErrors,
+            clientSnapshotIntervalSecs: client.snapshotIntervalSecs,
+            maxClientErrors: client.maxErrors,
+            overloadedRatio: client.overloadedRatio,
             snapshotHistoryMillis,
         });
     }

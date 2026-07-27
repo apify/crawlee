@@ -82,7 +82,7 @@ describe('Snapshotter', () => {
 
     test('should override default timers', async () => {
         serviceLocator.setConfiguration(new Configuration({ systemInfoIntervalMillis: 0.1 }));
-        const snapshotter = new Snapshotter({ eventLoopSnapshotIntervalSecs: 0.05 });
+        const snapshotter = new Snapshotter({ eventLoop: { snapshotIntervalSecs: 0.05 } });
         await serviceLocator.getEventManager().init();
         await snapshotter.start();
         await sleep(3 * 1e3);
@@ -183,7 +183,7 @@ describe('Snapshotter', () => {
     test('correctly marks eventLoopOverloaded', () => {
         const clock = vitest.useFakeTimers();
         try {
-            const snapshotter = new Snapshotter({ maxBlockedMillis: 5, eventLoopSnapshotIntervalSecs: 0 });
+            const snapshotter = new Snapshotter({ eventLoop: { maxBlockedMillis: 5, snapshotIntervalSecs: 0 } });
             // @ts-expect-error Accessing private property
             const eventLoopSignal = snapshotter.eventLoopSignal;
             eventLoopSignal.handle(noop);
@@ -216,7 +216,7 @@ describe('Snapshotter', () => {
         } as MemoryInfo;
         vitest.spyOn(utils, 'getMemoryInfo').mockResolvedValue(memoryData);
         serviceLocator.setConfiguration(new Configuration({ availableMemoryRatio: 1 }));
-        const snapshotter = new Snapshotter({ maxUsedMemoryRatio: 0.5 });
+        const snapshotter = new Snapshotter({ memory: { maxUsedRatio: 0.5 } });
         // do not initialize the event intervals as we will fire them manually
         vitest.spyOn(LocalEventManager.prototype, 'init').mockImplementation(async () => {});
         const events = serviceLocator.getEventManager() as LocalEventManager;
@@ -259,7 +259,7 @@ describe('Snapshotter', () => {
         // Mock memory info to be able to inject custom memory measurement data.
         vitest.spyOn(utils, 'getMemoryInfo').mockResolvedValue(memoryData);
         serviceLocator.setConfiguration(new Configuration({ availableMemoryRatio: 1 }));
-        const snapshotter = new Snapshotter({ maxUsedMemoryRatio: 0.5 });
+        const snapshotter = new Snapshotter({ memory: { maxUsedRatio: 0.5 } });
 
         const eventManager = serviceLocator.getEventManager() as LocalEventManager;
         await snapshotter.start();
@@ -293,7 +293,7 @@ describe('Snapshotter', () => {
         apifyClient.stats = {} as any;
         apifyClient.stats!.rateLimitErrors = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 
-        const snapshotter = new Snapshotter({ maxClientErrors: 1 });
+        const snapshotter = new Snapshotter({ client: { maxErrors: 1 } });
         // @ts-expect-error Accessing private property
         const clientSignal = snapshotter.clientSignal;
         clientSignal.handle(noop);
@@ -319,7 +319,7 @@ describe('Snapshotter', () => {
         const SAMPLE_SIZE_MILLIS = 120;
         serviceLocator.setConfiguration(new Configuration({ systemInfoIntervalMillis: 10 }));
         const snapshotter = new Snapshotter({
-            eventLoopSnapshotIntervalSecs: 0.01,
+            eventLoop: { snapshotIntervalSecs: 0.01 },
         });
         await snapshotter.start();
         await serviceLocator.getEventManager().init();
