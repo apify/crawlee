@@ -4,7 +4,8 @@ import { dirname } from 'node:path';
 import type {
     AddRequestsBatchedOptions,
     AddRequestsBatchedResult,
-    AutoscaledPoolOptions,
+    AutoscaledPoolPredicateOptions,
+    AutoscaledPoolTaskLoopOptions,
     Configuration,
     CrawleeLogger,
     CrawlingContext,
@@ -32,6 +33,7 @@ import {
     AutoscaledPool,
     bindMethodsToServiceLocator,
     BLOCKED_STATUS_CODES,
+    ConcurrencySystem,
     ContextPipeline,
     ContextPipelineCleanupError,
     ContextPipelineInitializationError,
@@ -304,17 +306,35 @@ export interface BasicCrawlerOptions<
     maxCrawlDepth?: number;
 
     /**
-     * Custom options passed to the underlying {@apilink AutoscaledPool} constructor.
-     * > *NOTE:* The {@apilink AutoscaledPoolOptions.runTaskFunction|`runTaskFunction`}
-     * option is provided by the crawler and cannot be overridden.
-     * However, we can provide custom implementations of {@apilink AutoscaledPoolOptions.isFinishedFunction|`isFinishedFunction`}
-     * and {@apilink AutoscaledPoolOptions.isTaskReadyFunction|`isTaskReadyFunction`}.
+     * Lets you override the task-loop predicates (`isFinishedFunction`, `isTaskReadyFunction`) of the crawler's
+     * underlying {@apilink AutoscaledPool}. The `runTaskFunction` is owned by the crawler and cannot be overridden.
+     * > *NOTE:* This no longer carries concurrency/scaling configuration. Use the `minConcurrency`/`maxConcurrency`/
+     * `maxRequestsPerMinute` shortcuts for the common case, or inject a fully-configured
+     * {@apilink BasicCrawlerOptions.concurrencySystem|`concurrencySystem`} for finer control.
      */
-    autoscaledPoolOptions?: AutoscaledPoolOptions;
+    autoscaledPoolOptions?: AutoscaledPoolPredicateOptions;
+
+    /**
+     * A pre-configured {@apilink ConcurrencySystem} — the load-and-budget "governor" that decides whether there is
+     * free compute for one more task. Configure all scaling on the instance itself (min/max/desired concurrency,
+     * scaling ratios, `maxTasksPerMinute`, snapshotter and system-status tuning) rather than through separate option
+     * bags.
+     *
+     * Inject the *same* instance into several concurrent crawlers to cap their **combined** concurrency against a
+     * single budget, instead of each crawler scaling independently and oversubscribing the host. Each crawler still
+     * builds and drives its own {@apilink AutoscaledPool} (its request-processing loop is private); only the
+     * load/scaling accounting is shared.
+     *
+     * When supplied, the `minConcurrency`/`maxConcurrency`/`maxRequestsPerMinute` shortcuts are ignored (they'd
+     * otherwise duplicate what the instance already carries). The crawler never starts or tears down a supplied
+     * system — the caller owns its lifecycle.
+     */
+    concurrencySystem?: ConcurrencySystem;
 
     /**
      * Sets the minimum concurrency (parallelism) for the crawl. Shortcut for the
-     * AutoscaledPool {@apilink AutoscaledPoolOptions.minConcurrency|`minConcurrency`} option.
+     * {@apilink ConcurrencySystemOptions.minConcurrency|`minConcurrency`} option of the crawler's default
+     * {@apilink ConcurrencySystem}.
      * > *WARNING:* If we set this value too high with respect to the available system memory and CPU, our crawler will run extremely slow or crash.
      * If not sure, it's better to keep the default value and the concurrency will scale up automatically.
      */
@@ -322,14 +342,16 @@ export interface BasicCrawlerOptions<
 
     /**
      * Sets the maximum concurrency (parallelism) for the crawl. Shortcut for the
-     * AutoscaledPool {@apilink AutoscaledPoolOptions.maxConcurrency|`maxConcurrency`} option.
+     * {@apilink ConcurrencySystemOptions.maxConcurrency|`maxConcurrency`} option of the crawler's default
+     * {@apilink ConcurrencySystem}.
      */
     maxConcurrency?: number;
 
     /**
      * The maximum number of requests per minute the crawler should run.
      * By default, this is set to `Infinity`, but we can pass any positive, non-zero integer.
-     * Shortcut for the AutoscaledPool {@apilink AutoscaledPoolOptions.maxTasksPerMinute|`maxTasksPerMinute`} option.
+     * Shortcut for the {@apilink ConcurrencySystemOptions.maxTasksPerMinute|`maxTasksPerMinute`} option of the
+     * crawler's default {@apilink ConcurrencySystem}.
      */
     maxRequestsPerMinute?: number;
 
@@ -508,11 +530,10 @@ export interface BasicCrawlerOptions<
  *
  * New requests are only dispatched when there is enough free CPU and memory available,
  * using the functionality provided by the {@apilink AutoscaledPool} class.
- * All {@apilink AutoscaledPool} configuration options can be passed to the {@apilink BasicCrawlerOptions.autoscaledPoolOptions|`autoscaledPoolOptions`}
- * parameter of the `BasicCrawler` constructor.
- * For user convenience, the {@apilink AutoscaledPoolOptions.minConcurrency|`minConcurrency`} and
- * {@apilink AutoscaledPoolOptions.maxConcurrency|`maxConcurrency`} options of the
- * underlying {@apilink AutoscaledPool} constructor are available directly in the `BasicCrawler` constructor.
+ * Concurrency is tuned via the {@apilink BasicCrawlerOptions.minConcurrency|`minConcurrency`},
+ * {@apilink BasicCrawlerOptions.maxConcurrency|`maxConcurrency`} and
+ * {@apilink BasicCrawlerOptions.maxRequestsPerMinute|`maxRequestsPerMinute`} shortcuts, or, for finer control, by
+ * injecting a pre-configured {@apilink BasicCrawlerOptions.concurrencySystem|`concurrencySystem`}.
  *
  * **Example usage:**
  *
@@ -620,6 +641,15 @@ export class BasicCrawler<
     private requestManagerTimeoutsApplied = false;
 
     /**
+     * Backs the crawler's shared {@apilink ConcurrencySystem}: borrowed when one is supplied via
+     * {@apilink BasicCrawlerOptions.concurrencySystem|`concurrencySystem`} (never torn down by the crawler), or an
+     * owned default built from the concurrency options and folded into the pool the crawler constructs in
+     * {@apilink BasicCrawler._init|`_init()`}. Owned-only lifecycle is gated through
+     * {@apilink OwnedOrInjected.ifOwned|`ifOwned()`}.
+     */
+    private concurrencySystemDep: OwnedOrInjected<ConcurrencySystem>;
+
+    /**
      * A reference to the underlying {@apilink AutoscaledPool} class that manages the concurrency of the crawler.
      * > *NOTE:* This property is only initialized after calling the {@apilink BasicCrawler.run|`crawler.run()`} function.
      * We can use it to change the concurrency settings on the fly,
@@ -698,7 +728,14 @@ export class BasicCrawler<
     protected blockedStatusCodes = new Set<number>();
     protected readonly additionalHttpErrorStatusCodes: Set<number>;
     private ignoreHttpErrorStatusCodes: Set<number>;
-    private autoscaledPoolOptions: AutoscaledPoolOptions;
+    /**
+     * The resolved task-loop options for the crawler's own {@apilink AutoscaledPool}: the crawler-owned
+     * `runTaskFunction`, the (possibly user-overridden) ready/finished predicates, and cadence/logging. All
+     * concurrency/scaling config lives on the {@apilink ConcurrencySystem} instead — see
+     * {@apilink BasicCrawler.concurrencySystemDep|`concurrencySystemDep`}. Fed to the pool in
+     * {@apilink BasicCrawler._init|`_init()`}.
+     */
+    private autoscaledPoolOptions: AutoscaledPoolTaskLoopOptions;
     protected readonly httpClient: BaseHttpClient;
     protected readonly retryOnBlocked: boolean;
     private respectRobotsTxtFile: boolean | { userAgent?: string };
@@ -730,6 +767,7 @@ export class BasicCrawler<
         maxRequestsPerCrawl: ow.optional.number,
         maxCrawlDepth: ow.optional.number,
         autoscaledPoolOptions: ow.optional.object,
+        concurrencySystem: ow.optional.object,
         sessionPool: ow.optional.object.validate(validators.sessionPool),
         proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
 
@@ -781,6 +819,7 @@ export class BasicCrawler<
             maxRequestsPerCrawl,
             maxCrawlDepth,
             autoscaledPoolOptions = {},
+            concurrencySystem,
             keepAlive,
             sessionPool,
             proxyConfiguration,
@@ -956,10 +995,7 @@ export class BasicCrawler<
                 isFinishedFunction = async () => false;
             }
 
-            const basicCrawlerAutoscaledPoolConfiguration: Partial<AutoscaledPoolOptions> = {
-                minConcurrency: minConcurrency ?? autoscaledPoolOptions?.minConcurrency,
-                maxConcurrency: maxConcurrency ?? autoscaledPoolOptions?.maxConcurrency,
-                maxTasksPerMinute: maxRequestsPerMinute ?? autoscaledPoolOptions?.maxTasksPerMinute,
+            const basicCrawlerAutoscaledPoolConfiguration: Partial<typeof this.autoscaledPoolOptions> = {
                 runTaskFunction: async () => {
                     const source = this.requestManager;
                     if (!source) throw new Error('Request provider is not initialized!');
@@ -1085,6 +1121,27 @@ export class BasicCrawler<
             };
 
             this.autoscaledPoolOptions = { ...autoscaledPoolOptions, ...basicCrawlerAutoscaledPoolConfiguration };
+
+            if (concurrencySystem !== undefined && (minConcurrency ?? maxConcurrency ?? maxRequestsPerMinute)) {
+                this.log.info(
+                    'A `concurrencySystem` was provided; the `minConcurrency`/`maxConcurrency`/`maxRequestsPerMinute` ' +
+                        'shortcuts are ignored in favour of the configuration on the supplied system.',
+                );
+            }
+
+            // Borrowed if supplied (its scaling config lives on the instance, and the caller owns its lifecycle);
+            // otherwise a default governor built from the concurrency shortcuts. Anything finer than the shortcuts
+            // requires injecting a pre-configured `ConcurrencySystem`. Folded into the pool the crawler builds in `_init()`.
+            this.concurrencySystemDep = OwnedOrInjected.resolve<ConcurrencySystem>(
+                concurrencySystem,
+                () =>
+                    new ConcurrencySystem({
+                        minConcurrency,
+                        maxConcurrency,
+                        maxTasksPerMinute: maxRequestsPerMinute,
+                        log: this.log,
+                    }),
+            );
         } finally {
             serviceLocatorScope.exitScope();
         }
@@ -1831,7 +1888,22 @@ export class BasicCrawler<
             this._closeEvents = true;
         }
 
-        this.autoscaledPool = new AutoscaledPool(this.autoscaledPoolOptions);
+        // Boot the governor only if we own it — a supplied (shared) system's lifecycle belongs to the caller, who is
+        // responsible for starting it before running crawlers and stopping it afterwards.
+        await this.concurrencySystemDep.ifOwned((system) => system.start());
+
+        // The crawler always builds and owns its own pool (its request-processing loop is private and can't be
+        // borrowed); only the load-and-budget governor is shareable, so it's folded in here. The pool takes just the
+        // task-loop bits — all concurrency/scaling config lives on the (owned-or-injected) ConcurrencySystem.
+        this.autoscaledPool = new AutoscaledPool({
+            runTaskFunction: this.autoscaledPoolOptions.runTaskFunction,
+            isTaskReadyFunction: this.autoscaledPoolOptions.isTaskReadyFunction,
+            isFinishedFunction: this.autoscaledPoolOptions.isFinishedFunction,
+            maybeRunIntervalSecs: this.autoscaledPoolOptions.maybeRunIntervalSecs,
+            taskTimeoutSecs: this.autoscaledPoolOptions.taskTimeoutSecs,
+            log: this.autoscaledPoolOptions.log,
+            concurrencySystem: this.concurrencySystemDep.value,
+        });
 
         await this.getRequestManager();
     }
@@ -2328,7 +2400,11 @@ export class BasicCrawler<
 
         await this.sessionPoolDep.ifOwned((pool) => pool.teardown());
 
+        // The crawler always owns its pool, so it always aborts it.
         await this.autoscaledPool?.abort();
+
+        // Tear the governor down only if we built it — a supplied (shared) system's lifecycle belongs to the caller.
+        await this.concurrencySystemDep.ifOwned((system) => system.stop());
     }
 
     protected _getCookieHeaderFromRequest(request: Request) {
