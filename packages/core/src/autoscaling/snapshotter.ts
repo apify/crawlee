@@ -132,25 +132,29 @@ export interface SnapshotterOptions {
  * Creates snapshots of system resources at given intervals and marks the resource
  * as either overloaded or not during the last interval. Keeps a history of the snapshots.
  * It tracks the following resources: Memory, EventLoop, API and CPU.
- * The class is used by the {@apilink AutoscaledPool} class.
+ * The class is used by the {@apilink ConcurrencySystem} class.
  *
  * When running on the Apify platform, the CPU and memory statistics are provided by the platform,
  * as collected from the running Docker container. When running locally, `Snapshotter`
  * makes its own statistics by querying the OS.
  *
- * CPU becomes overloaded locally when its current use exceeds the `maxUsedCpuRatio` option or
- * when Apify platform marks it as overloaded.
+ * CPU becomes overloaded locally when its current use exceeds the `maxUsedCpuRatio` {@apilink Configuration}
+ * option or when the Apify platform marks it as overloaded.
  *
- * Memory becomes overloaded if its current use exceeds the `maxUsedMemoryRatio` option.
+ * Memory becomes overloaded if its current use exceeds the {@apilink MemorySignalOptions.maxUsedRatio|`maxUsedRatio`}
+ * option of the {@apilink SnapshotterOptions.memory|`memory`} signal bag.
  * It's computed using the total memory available to the container when running on
  * the Apify platform and a quarter of total system memory when running locally.
  * Max total memory when running locally may be overridden by using the `CRAWLEE_MEMORY_MBYTES`
  * environment variable.
  *
- * Event loop becomes overloaded if it slows down by more than the `maxBlockedMillis` option.
+ * Event loop becomes overloaded if it slows down by more than the
+ * {@apilink EventLoopSignalOptions.maxBlockedMillis|`maxBlockedMillis`} option of the
+ * {@apilink SnapshotterOptions.eventLoop|`eventLoop`} signal bag.
  *
  * Client becomes overloaded when rate limit errors (429 - Too Many Requests),
- * typically received from the request queue, exceed the set limit within the set interval.
+ * typically received from the request queue, exceed the {@apilink ClientSignalOptions.maxErrors|`maxErrors`}
+ * option of the {@apilink SnapshotterOptions.client|`client`} signal bag within the set interval.
  *
  * @category Scaling
  */

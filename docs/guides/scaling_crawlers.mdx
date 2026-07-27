@@ -10,7 +10,7 @@ import CodeBlock from '@theme/CodeBlock';
 
 import MinMaxConcurrencySource from '!!raw-loader!./scaling_crawlers_minMaxConcurrency.ts';
 import MaxRequestsPerMinuteSource from '!!raw-loader!./scaling_crawlers_maxRequestsPerMinute.ts';
-import AutoscaledPoolOptionsSource from '!!raw-loader!./scaling_crawlers_autoscaledPoolOptions.ts';
+import ConcurrencySystemSource from '!!raw-loader!./scaling_crawlers_concurrencySystem.ts';
 
 As we build our crawler, we might want to control how many requests we do to the website at a time. Crawlee provides several options to fine tune how many parallel requests should be made at any time, how many requests should be done per minute, and how should scaling work based on the available system resources.
 
@@ -45,7 +45,7 @@ It's recommended to leave it at the default value that is provided and letting t
 
 ## Advanced options
 
-While the options above should be enough for most users, if we wanted to get super deep into the configuration of the autoscaling pool (the internal utility in Crawlee that helps us allow crawlers to scale up and down), we can do so through the <ApiLink to="cheerio-crawler/interface/CheerioCrawlerOptions#autoscaledPoolOptions">`autoscaledPoolOptions`</ApiLink> object available on crawler options.
+While the options above should be enough for most users, if we wanted to get super deep into the configuration of autoscaling (the internal machinery in Crawlee that helps us allow crawlers to scale up and down), we can do so by injecting a pre-configured <ApiLink to="core/class/ConcurrencySystem">`ConcurrencySystem`</ApiLink> through the <ApiLink to="cheerio-crawler/interface/CheerioCrawlerOptions#concurrencySystem">`concurrencySystem`</ApiLink> crawler option. All the fine-grained scaling configuration lives on that instance (see <ApiLink to="core/interface/ConcurrencySystemOptions">`ConcurrencySystemOptions`</ApiLink>).
 
 :::danger Complex options up ahead!
 
@@ -53,11 +53,17 @@ This section is super advanced and, unless you test the changes extensively and 
 
 :::
 
-With that warning aside, if we're feeling adventurous, this is how we would pass these options when using a crawler:
+With that warning aside, if we're feeling adventurous, this is how we would pass these options when using a crawler. Note that when we inject a `ConcurrencySystem`, we own its lifecycle — we `start()` it before running the crawler and `stop()` it once we're done (and the `minConcurrency`/`maxConcurrency`/`maxRequestsPerMinute` shortcuts are ignored in favour of the injected configuration):
 
 <CodeBlock language="js">
-	{AutoscaledPoolOptionsSource}
+	{ConcurrencySystemSource}
 </CodeBlock>
+
+:::tip Capping the combined concurrency of several crawlers
+
+Injecting the *same* `ConcurrencySystem` instance into several crawlers makes them share a single concurrency budget, capping their combined parallelism instead of letting each crawler scale independently.
+
+:::
 
 ### `desiredConcurrency`
 
@@ -65,35 +71,25 @@ This option specifies the amount of requests that should be running in parallel 
 
 ### `desiredConcurrencyRatio`
 
-The minimum ratio of concurrency to reach before more scaling up is allowed (a number between `0` and `1`). By default, it is set to `0.95`.
+The minimum ratio of concurrency to reach before more scaling up is allowed (a number between `0` and `1`). By default, it is set to `0.9`.
 
-We can think of this as the point where the autoscaling pool can attempt to scale up (or down), monitor if there's any changes, and correct them if necessary.
+We can think of this as the point where the concurrency system can attempt to scale up (or down), monitor if there's any changes, and correct them if necessary.
 
 ### `scaleUpStepRatio` and `scaleDownStepRatio`
 
-These values define the fractional amount of desired concurrency to be added or subtracted as the autoscaling pool scales up or down. Both of these values default to `0.05`.
+These values define the fractional amount of desired concurrency to be added or subtracted as the concurrency system scales up or down. Both of these values default to `0.05`.
 
-Every time the autoscaled pool attempts to scale up or down, this value will be added or subtracted from the current concurrency, and, based on the [`desiredConcurrencyRatio`](#desiredconcurrencyratio) and [`maxConcurrency`](#minconcurrency-and-maxconcurrency), determines how many requests can run concurrently.
-
-### `maybeRunIntervalSecs`
-
-Indicates how often the autoscaling pool should check if more requests can be started and, if that's true, starts a new request if there are any available. This value is represented in seconds, and defaults to `0.5`.
-
-:::info
-
-Changing this has no effect for requests that are fired immediately after the previous ones are finished. However, it will influence how fast new requests will be started after the autoscaled pool scales up.
-
-:::
+Every time the concurrency system attempts to scale up or down, this value will be added or subtracted from the current concurrency, and, based on the [`desiredConcurrencyRatio`](#desiredconcurrencyratio) and [`maxConcurrency`](#minconcurrency-and-maxconcurrency), determines how many requests can run concurrently.
 
 ### `loggingIntervalSecs`
 
-This option lets us control how often the autoscaled pool should log its current state (the current concurrency ratio, desired ratios, if the system is overloaded and so on).
+This option lets us control how often the concurrency system should log its current state (the current concurrency ratio, desired ratios, if the system is overloaded and so on).
 
 We can disable logging altogether by setting this to `null`. By default, it is set to `60` seconds.
 
 ### `autoscaleIntervalSecs`
 
-This option lets us control how often the autoscaling pool should check if it can and should scale up or down. This value is represented in seconds, and defaults to `10`.
+This option lets us control how often the concurrency system should check if it can and should scale up or down. This value is represented in seconds, and defaults to `10`.
 
 :::tip
 
