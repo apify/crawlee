@@ -11,9 +11,6 @@ import type { SerializedCookieJar } from 'tough-cookie';
 // @public (undocumented)
 export type AllowedHttpMethods = 'GET' | 'HEAD' | 'POST' | 'PUT' | 'DELETE' | 'TRACE' | 'OPTIONS' | 'CONNECT' | 'PATCH' | 'get' | 'head' | 'post' | 'put' | 'delete' | 'trace' | 'options' | 'connect' | 'patch';
 
-// @public (undocumented)
-export type Awaitable<T> = T | PromiseLike<T>;
-
 // @public
 export interface BaseHttpClient {
     sendRequest(request: Request, options?: SendRequestOptions): Promise<Response>;
@@ -34,9 +31,6 @@ export interface BrowserLikeResponse {
     // (undocumented)
     url(): string;
 }
-
-// @public (undocumented)
-export type Constructor<T = unknown> = new (...args: any[]) => T;
 
 // @public (undocumented)
 export interface Cookie {
@@ -111,9 +105,6 @@ export interface DatasetInfo {
     // (undocumented)
     name?: string;
 }
-
-// @public (undocumented)
-export type Dictionary<T = any> = Record<PropertyKey, T>;
 
 // @public
 export interface HttpRequest {

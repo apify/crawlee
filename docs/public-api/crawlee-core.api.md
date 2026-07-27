@@ -79,9 +79,6 @@ export class ApifyLogAdapter extends BaseCrawleeLogger {
 }
 
 // @public
-export function assertJsonSerializable<T>(item: T, index?: number): void;
-
-// @public
 export class AutoscaledPool {
     constructor(options: AutoscaledPoolOptions);
     abort(): Promise<void>;
@@ -220,16 +217,7 @@ export type ConfigurationInput = FieldsInput<typeof crawleeConfigFields>;
 // @public @deprecated (undocumented)
 export type ConfigurationOptions = ConfigurationInput;
 
-// @public
-export function constructGlobObjectsFromGlobs(globs: readonly GlobInput[]): GlobObject[];
-
 export { Constructor }
-
-// @public
-export function constructRegExpObjectsFromPseudoUrls(pseudoUrls: readonly PseudoUrlInput[]): RegExpObject[];
-
-// @public
-export function constructRegExpObjectsFromRegExps(regexps: readonly RegExpInput[]): RegExpObject[];
 
 // @public
 export interface ContextMiddleware<TCrawlingContext, TCrawlingContextExtension> {
@@ -261,13 +249,6 @@ export class ContextPipelineInterruptedError extends Error {
 }
 
 export { Cookie }
-
-// @public (undocumented)
-export class CookieParseError extends Error {
-    constructor(cookieHeaderString: unknown);
-    // (undocumented)
-    readonly cookieHeaderString: unknown;
-}
 
 // @public (undocumented)
 export interface CpuLoadSignalOptions {
@@ -345,9 +326,6 @@ export function createEventLoopLoadSignal(options?: EventLoopLoadSignalOptions):
     getSample(sampleDurationMillis?: number): EventLoopSnapshot[];
 };
 
-// @public (undocumented)
-export function createRequestOptions(sources: readonly (string | Record<string, unknown>)[], options?: Pick<EnqueueLinksOptions, 'label' | 'userData' | 'baseUrl' | 'skipNavigation' | 'sessionId' | 'strategy'>): RequestOptions[];
-
 // @public
 export interface CreateSession {
     // (undocumented)
@@ -388,7 +366,6 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     name?: string;
     static open<Data extends Dictionary = Dictionary>(identifier?: string | StorageIdentifier | null, options?: StorageOpenOptions): Promise<Dataset<Data>>;
     pushData(data: Data | Data[]): Promise<void>;
-    static pushData<Data extends Dictionary = Dictionary>(item: Data | Data[]): Promise<void>;
     reduce(iteratee: DatasetReducer<Data, Data>): Promise<Data | undefined>;
     reduce(iteratee: DatasetReducer<Data, Data>, memo: undefined, options: DatasetIteratorOptions): Promise<Data | undefined>;
     reduce<T>(iteratee: DatasetReducer<T, Data>, memo: T, options?: DatasetIteratorOptions): Promise<T>;
@@ -697,9 +674,6 @@ export type FieldsOutput<F extends Record<string, ConfigField>> = {
     [K in keyof F]: z.output<F[K]['schema']>;
 };
 
-// @public
-export function filterRequestOptionsByPatterns(requestOptions: RequestOptions[], includePatterns: UrlPatternObject[] | undefined, excludePatterns?: UrlPatternObject[], strategy?: EnqueueLinksOptions['strategy'], onSkippedUrl?: (url: string) => void): RequestOptions[];
-
 // @public (undocumented)
 export interface FinalStatistics {
     // (undocumented)
@@ -793,14 +767,10 @@ export class KeyValueStore {
     getAutoSavedValue<T extends Dictionary = Dictionary>(key: string, defaultValue?: T): Promise<T>;
     // (undocumented)
     static getAutoSavedValue<T extends Dictionary = Dictionary>(key: string, defaultValue?: T): Promise<T>;
-    static getInput<T = Dictionary | string | Buffer>(): Promise<T | null>;
     getPublicUrl(key: string): Promise<string | undefined>;
     getRecord(key: string): Promise<KeyValueStoreRawRecord | null>;
-    static getRecord(key: string): Promise<KeyValueStoreRawRecord | null>;
     getValue<T = unknown>(key: string): Promise<T | null>;
     getValue<T = unknown>(key: string, defaultValue: T): Promise<T>;
-    static getValue<T = unknown>(key: string): Promise<T | null>;
-    static getValue<T = unknown>(key: string, defaultValue: T): Promise<T>;
     // (undocumented)
     readonly id: string;
     keys(options?: KeyValueStoreIteratorOptions): AsyncIterable<string> & Promise<string[]>;
@@ -810,7 +780,6 @@ export class KeyValueStore {
     recordExists(key: string): Promise<boolean>;
     static recordExists(key: string): Promise<boolean>;
     setValue<T>(key: string, value: T | null, options?: RecordOptions): Promise<void>;
-    static setValue<T>(key: string, value: T | null, options?: RecordOptions): Promise<void>;
     get stats(): KeyValueStoreStats;
     values<T = unknown>(options?: KeyValueStoreIteratorOptions): AsyncIterable<T> & Promise<T[]>;
 }
@@ -957,10 +926,6 @@ export class MemoryStorageBackend implements storage.StorageBackend {
 // @public (undocumented)
 export interface MemoryStorageOptions {
     logger?: CrawleeLogger;
-}
-
-// @public (undocumented)
-export class MissingRouteError extends CriticalError {
 }
 
 // @public
@@ -1728,11 +1693,8 @@ export class Statistics {
         requestsTotal: number;
         crawlerRuntimeMillis: number;
     };
-    discardJob(id: number | string): void;
     readonly errorTracker: ErrorTracker;
     readonly errorTrackerRetry: ErrorTracker;
-    failJob(id: number | string, retryCount: number): void;
-    finishJob(id: number | string, retryCount: number): void;
     readonly id: string;
     // (undocumented)
     protected keyValueStore?: KeyValueStore;
@@ -1746,7 +1708,6 @@ export class Statistics {
     // (undocumented)
     resetStore(options?: PersistenceOptions): Promise<void>;
     startCapturing(): Promise<void>;
-    startJob(id: number | string): void;
     state: StatisticState;
     stopCapturing(): Promise<void>;
     toJSON(): StatisticPersistedState;
@@ -1804,16 +1765,6 @@ export { StorageBackend }
 export { StorageIdentifier }
 
 // @public
-export class StorageInstanceManager {
-    clearCache(): void;
-    openStorage<TStorage extends IStorage>(cls: Constructor_2<TStorage>, input: (ExplicitStorageIdentifier | DefaultStorageIdentifier) & {
-        backendOpener: () => Promise<DatasetBackend | KeyValueStoreBackend | RequestQueueBackend>;
-        backendCacheKey: Hashable;
-    }): Promise<TStorage>;
-    removeFromCache(instance: IStorage): void;
-}
-
-// @public
 export interface StorageOpenOptions {
     config?: Configuration;
     httpClient?: BaseHttpClient;
@@ -1865,9 +1816,6 @@ export interface SystemStatusOptions {
 }
 
 export { tryAbsoluteURL }
-
-// @public (undocumented)
-export function updateEnqueueLinksPatternCache(item: GlobInput | RegExpInput | PseudoUrlInput, pattern: RegExpObject | GlobObject): void;
 
 // @public (undocumented)
 export type UrlPatternObject = {

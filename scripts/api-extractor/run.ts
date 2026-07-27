@@ -10,11 +10,13 @@ import { globbySync } from 'globby';
  * each publishable `@crawlee/*` package, committed to `docs/public-api/<package>.api.md`.
  * These reports define where we promise backwards compatibility; changes must be reviewed.
  *
- * The build (`scripts/typescript_fixes.mjs`) injects `// @ts-ignore` comment lines into the
- * `.d.ts` files that crash API Extractor's AST walker, so we strip them for the duration of
- * the run and restore them afterwards. A few packages re-export such a member across a
- * package boundary and crash anyway; those are retried against a sanitized mirror of the
- * dist tree with `@crawlee/*` deps remapped via tsconfig `paths`, which dodges the bug.
+ * Before extraction we sanitize the `.d.ts` files (for the duration of the run, restoring them
+ * afterwards): (1) the build (`scripts/typescript_fixes.mjs`) injects `// @ts-ignore` comment
+ * lines that crash API Extractor's AST walker, so we strip them; (2) we rewrite the legacy
+ * JSDoc `@ignore` tag to `@internal`, since API Extractor only trims by release tag and would
+ * otherwise leak `@ignore`-d members into the `public` report. A few packages re-export a
+ * comment-injected member across a package boundary and crash anyway; those are retried against
+ * a sanitized mirror of the dist tree with `@crawlee/*` deps remapped via tsconfig `paths`.
  *
  * When running under GitHub Actions (or with `--github`), failures are additionally emitted
  * as workflow commands (`::error::`) so they show up as inline annotations in the CI run.
@@ -45,6 +47,15 @@ const ghCommand = (kind: 'error' | 'warning', message: string) => {
 };
 
 const TS_IGNORE_LINE = /^\s*\/\/ @ts-ignore optional peer dependency or compatibility with es2022\s*$/;
+// `@ignore` is a legacy JSDoc/TypeDoc tag that API Extractor does not act on — unlike the
+// release tags (`@internal`/`@alpha`/`@beta`), it does NOT trim the member from the report,
+// so `@ignore`-d symbols wrongly leak into the `public` variant. There is no config knob for
+// this, so we rewrite the tag to `@internal` in the (transient) `.d.ts`, letting API
+// Extractor's real release-tag trimming drop them from the public surface map. We only rewrite
+// `@ignore` when it sits directly behind a JSDoc gutter (`/**` or a leading `*`), which covers
+// both the single-line `/** @ignore */` and multi-line ` * @ignore` forms while leaving prose
+// or string literals that merely mention "@ignore" untouched.
+const IGNORE_TAG = /(\/\*\*|\*)(\s*)@ignore\b/g;
 // CLI binary and project scaffolding are tooling, not an importable API where we promise BC.
 const EXCLUDED = new Set(['@crawlee/cli', '@crawlee/templates']);
 
@@ -68,11 +79,12 @@ function dtsEntry(pkgDir: string, pkg: PackageManifest): string | undefined {
     return existsSync(full) ? full : undefined;
 }
 
-const stripTsIgnore = (content: string) =>
+const sanitizeDts = (content: string) =>
     content
         .split('\n')
         .filter((line) => !TS_IGNORE_LINE.test(line))
-        .join('\n');
+        .join('\n')
+        .replace(IGNORE_TAG, '$1$2@internal');
 
 const reportBaseName = (name: string) => name.replace('@', '').replace('/', '-');
 const reportFileName = (name: string) => `${reportBaseName(name)}.api.md`;
@@ -88,7 +100,7 @@ function getMirror() {
     for (const file of globbySync('packages/*/dist/**/*.d.ts', { cwd: root, absolute: true })) {
         const target = resolve(mirrorRoot, relative(root, file));
         mkdirSync(dirname(target), { recursive: true });
-        writeFileSync(target, stripTsIgnore(readFileSync(file, 'utf8')));
+        writeFileSync(target, sanitizeDts(readFileSync(file, 'utf8')));
     }
     const packages = resolve(mirrorRoot, 'packages');
     const paths: Record<string, string[]> = {};
@@ -150,14 +162,16 @@ function main() {
             .map((pkg) => reportFileName(pkg.name)),
     );
 
-    // The build injects `// @ts-ignore` lines into the `.d.ts` files that crash API
-    // Extractor's AST walker, so strip them for the duration of the run and restore after.
+    // We rewrite the `.d.ts` files in place for the duration of the run (restored after) to:
+    //   1. strip the `// @ts-ignore` lines the build injects, which crash Extractor's AST walker;
+    //   2. rewrite `@ignore` -> `@internal` so those members get trimmed from the public report.
     const originals = new Map<string, string>();
     for (const file of globbySync('packages/*/dist/**/*.d.ts', { cwd: root, absolute: true })) {
         const content = readFileSync(file, 'utf8');
-        if (content.includes('@ts-ignore optional peer dependency')) {
+        const sanitized = sanitizeDts(content);
+        if (sanitized !== content) {
             originals.set(file, content);
-            writeFileSync(file, stripTsIgnore(content));
+            writeFileSync(file, sanitized);
         }
     }
 
