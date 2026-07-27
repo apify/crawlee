@@ -48,7 +48,7 @@ export abstract class BrowserCrawler<Page extends CommonPage = CommonPage, Respo
     protected constructor(options: BrowserCrawlerOptions<Page, Response, Context, ContextExtension, ExtendedContext> & {
         contextPipelineBuilder: () => ContextPipeline<CrawlingContext, Context>;
     });
-    browserPool: IBrowserPool<Page>;
+    get browserPool(): IBrowserPool<Page>;
     // (undocumented)
     protected buildContextPipeline(): ContextPipeline<CrawlingContext, BrowserCrawlingContext<Page, Response, Dictionary>>;
     // (undocumented)
