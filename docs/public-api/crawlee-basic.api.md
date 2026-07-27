@@ -9,7 +9,7 @@ import type { AddRequestsBatchedResult } from '@crawlee/core';
 import { AnyPredicate } from 'ow';
 import { ArrayPredicate } from 'ow';
 import { AutoscaledPool } from '@crawlee/core';
-import { AutoscaledPoolOptions } from '@crawlee/core';
+import type { AutoscaledPoolPredicateOptions } from '@crawlee/core';
 import type { Awaitable } from '@crawlee/types';
 import type { BaseHttpClient } from '@crawlee/types';
 import { BasePredicate } from 'ow';
@@ -18,6 +18,7 @@ import { BooleanPredicate } from 'ow';
 import { Cheerio } from '@crawlee/utils';
 import { CheerioAPI } from '@crawlee/utils';
 import { CheerioRoot } from '@crawlee/utils';
+import { ConcurrencySystem } from '@crawlee/core';
 import type { Configuration } from '@crawlee/core';
 import { ContextPipeline } from '@crawlee/core';
 import type { CrawleeLogger } from '@crawlee/core';
@@ -132,6 +133,7 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
         maxRequestsPerCrawl: NumberPredicate & BasePredicate<number | undefined>;
         maxCrawlDepth: NumberPredicate & BasePredicate<number | undefined>;
         autoscaledPoolOptions: ObjectPredicate<object> & BasePredicate<object | undefined>;
+        concurrencySystem: ObjectPredicate<object> & BasePredicate<object | undefined>;
         sessionPool: ObjectPredicate<object> & BasePredicate<object | undefined>;
         proxyConfiguration: ObjectPredicate<object> & BasePredicate<object | undefined>;
         statusMessageLoggingInterval: NumberPredicate & BasePredicate<number | undefined>;
@@ -180,8 +182,9 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
 // @public (undocumented)
 export interface BasicCrawlerOptions<Context extends CrawlingContext = CrawlingContext, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension> {
     additionalHttpErrorStatusCodes?: number[];
-    autoscaledPoolOptions?: AutoscaledPoolOptions;
+    autoscaledPoolOptions?: AutoscaledPoolPredicateOptions;
     blockedStatusCodes?: number[];
+    concurrencySystem?: ConcurrencySystem;
     configuration?: Configuration;
     contextPipelineBuilder?: () => ContextPipeline<CrawlingContext, Context>;
     errorHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;

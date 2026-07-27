@@ -96,27 +96,26 @@ export class AutoscaledPool {
     pause(timeoutSecs?: number): Promise<void>;
     resume(): void;
     run(): Promise<void>;
+    get system(): ConcurrencySystem;
 }
 
 // @public (undocumented)
-export interface AutoscaledPoolOptions {
-    autoscaleIntervalSecs?: number;
-    desiredConcurrency?: number;
-    desiredConcurrencyRatio?: number;
+export interface AutoscaledPoolOptions extends AutoscaledPoolTaskLoopOptions {
+    concurrencySystem: ConcurrencySystem;
+}
+
+// @public
+export interface AutoscaledPoolPredicateOptions {
     isFinishedFunction?: () => Promise<boolean>;
     isTaskReadyFunction?: () => Promise<boolean>;
+}
+
+// @public
+export interface AutoscaledPoolTaskLoopOptions extends AutoscaledPoolPredicateOptions {
     // (undocumented)
     log?: CrawleeLogger;
-    loggingIntervalSecs?: number | null;
-    maxConcurrency?: number;
-    maxTasksPerMinute?: number;
     maybeRunIntervalSecs?: number;
-    minConcurrency?: number;
     runTaskFunction?: () => Promise<unknown>;
-    scaleDownStepRatio?: number;
-    scaleUpStepRatio?: number;
-    snapshotterOptions?: SnapshotterOptions;
-    systemStatusOptions?: SystemStatusOptions;
     taskTimeoutSecs?: number;
 }
 
@@ -183,6 +182,13 @@ export interface ClientLoadSignalOptions {
     snapshotHistoryMillis?: number;
 }
 
+// @public
+export interface ClientSignalOptions {
+    maxErrors?: number;
+    overloadedRatio?: number;
+    snapshotIntervalSecs?: number;
+}
+
 // @public (undocumented)
 export interface ClientSnapshot extends LoadSnapshot {
     // (undocumented)
@@ -194,6 +200,47 @@ export const coerceBoolean: z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodBoo
 
 // @public (undocumented)
 export const coerceNumber: z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodNumber>;
+
+// @public
+export class ConcurrencySystem {
+    constructor(options?: ConcurrencySystemOptions);
+    protected _autoscale(intervalCallback: () => void): void;
+    get currentConcurrency(): number;
+    get desiredConcurrency(): number;
+    set desiredConcurrency(value: number);
+    getCurrentStatus(): SystemInfo;
+    hasCapacityForTask(): boolean;
+    // (undocumented)
+    protected _incrementTasksDonePerSecond(intervalCallback: () => void): void;
+    get isOverMaxRequestLimit(): boolean;
+    get maxConcurrency(): number;
+    set maxConcurrency(value: number);
+    get minConcurrency(): number;
+    set minConcurrency(value: number);
+    registerTaskEnd(): void;
+    registerTaskStart(): void;
+    protected _scaleDown(systemStatus: SystemInfo): void;
+    protected _scaleUp(systemStatus: SystemInfo): void;
+    start(): Promise<void>;
+    stop(): Promise<void>;
+}
+
+// @public (undocumented)
+export interface ConcurrencySystemOptions {
+    autoscaleIntervalSecs?: number;
+    desiredConcurrency?: number;
+    desiredConcurrencyRatio?: number;
+    // (undocumented)
+    log?: CrawleeLogger;
+    loggingIntervalSecs?: number | null;
+    maxConcurrency?: number;
+    maxTasksPerMinute?: number;
+    minConcurrency?: number;
+    scaleDownStepRatio?: number;
+    scaleUpStepRatio?: number;
+    snapshotterOptions?: SnapshotterOptions;
+    systemStatusOptions?: SystemStatusOptions;
+}
 
 // @public (undocumented)
 export interface ConfigField<T extends z.ZodType = z.ZodType> {
@@ -277,6 +324,11 @@ export interface CpuLoadSignalOptions {
     overloadedRatio?: number;
     // (undocumented)
     snapshotHistoryMillis?: number;
+}
+
+// @public
+export interface CpuSignalOptions {
+    overloadedRatio?: number;
 }
 
 // @public (undocumented)
@@ -608,6 +660,13 @@ export interface EventLoopLoadSignalOptions {
     snapshotHistoryMillis?: number;
 }
 
+// @public
+export interface EventLoopSignalOptions {
+    maxBlockedMillis?: number;
+    overloadedRatio?: number;
+    snapshotIntervalSecs?: number;
+}
+
 // @public (undocumented)
 export interface EventLoopSnapshot extends LoadSnapshot {
     // (undocumented)
@@ -922,6 +981,12 @@ export interface MemoryLoadSignalOptions {
     overloadedRatio?: number;
     // (undocumented)
     snapshotHistoryMillis?: number;
+}
+
+// @public
+export interface MemorySignalOptions {
+    maxUsedRatio?: number;
+    overloadedRatio?: number;
 }
 
 // @public (undocumented)
@@ -1683,11 +1748,10 @@ export class Snapshotter {
 
 // @public (undocumented)
 export interface SnapshotterOptions {
-    clientSnapshotIntervalSecs?: number;
-    eventLoopSnapshotIntervalSecs?: number;
-    maxBlockedMillis?: number;
-    maxClientErrors?: number;
-    maxUsedMemoryRatio?: number;
+    client?: ClientSignalOptions;
+    cpu?: CpuSignalOptions;
+    eventLoop?: EventLoopSignalOptions;
+    memory?: MemorySignalOptions;
     snapshotHistorySecs?: number;
 }
 
@@ -1857,10 +1921,6 @@ export class SystemStatus {
 export interface SystemStatusOptions {
     currentHistorySecs?: number;
     loadSignals?: LoadSignal[];
-    maxClientOverloadedRatio?: number;
-    maxCpuOverloadedRatio?: number;
-    maxEventLoopOverloadedRatio?: number;
-    maxMemoryOverloadedRatio?: number;
     snapshotter?: Snapshotter;
 }
 
