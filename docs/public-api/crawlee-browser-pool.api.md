@@ -60,7 +60,7 @@ export abstract class BrowserController<Library extends CommonLibrary = CommonLi
     // (undocumented)
     assignBrowser(browser: LaunchResult, launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>): void;
     browser: LaunchResult;
-    browserPlugin: BrowserPlugin<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>;
+    readonly browserPlugin: BrowserPlugin<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>;
     close(): Promise<void>;
     // (undocumented)
     protected abstract _close(): Promise<void>;
@@ -69,7 +69,7 @@ export abstract class BrowserController<Library extends CommonLibrary = CommonLi
     // (undocumented)
     protected abstract _getCookies(page: NewPageResult): Promise<Cookie[]>;
     // (undocumented)
-    id: string;
+    readonly id: string;
     // (undocumented)
     isActive: boolean;
     kill(): Promise<void>;
@@ -79,7 +79,7 @@ export abstract class BrowserController<Library extends CommonLibrary = CommonLi
     lastPageOpenedAt: number;
     launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>;
     // (undocumented)
-    protected log: CrawleeLogger;
+    protected readonly log: CrawleeLogger;
     newPage(pageOptions?: NewPageOptions): Promise<NewPageResult>;
     // (undocumented)
     protected abstract _newPage(pageOptions?: NewPageOptions): Promise<NewPageResult>;
@@ -123,34 +123,34 @@ export abstract class BrowserPlugin<Library extends CommonLibrary = CommonLibrar
     // (undocumented)
     protected abstract _addProxyToLaunchOptions(launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>): Promise<void>;
     // (undocumented)
-    browserPerProxy?: boolean;
+    readonly browserPerProxy?: boolean;
     protected _connectToRemoteBrowser(launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>, connect: (url: string) => Promise<LaunchResult>): Promise<LaunchResult>;
     // (undocumented)
     abstract createController(): BrowserController<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>;
     createLaunchContext(options?: CreateLaunchContextOptions<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>): LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>;
     // (undocumented)
-    ignoreProxyCertificate?: boolean;
+    readonly ignoreProxyCertificate?: boolean;
     // (undocumented)
     protected abstract _isChromiumBasedBrowser(launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>): boolean;
     launch(launchContext?: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>): Promise<LaunchResult>;
     // (undocumented)
     protected abstract _launch(launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>): Promise<LaunchResult>;
     // (undocumented)
-    launchOptions: LibraryOptions;
+    readonly launchOptions: LibraryOptions;
     // (undocumented)
-    library: Library;
+    readonly library: Library;
     // (undocumented)
-    protected log: CrawleeLogger;
+    protected readonly log: CrawleeLogger;
     // (undocumented)
-    name: string;
+    readonly name: string;
     // (undocumented)
-    proxyUrl?: string;
+    readonly proxyUrl?: string;
     // (undocumented)
     protected _throwAugmentedLaunchError(cause: unknown, executablePath: string | undefined, dockerImage: string, moduleInstallCommand: string): never;
     // (undocumented)
     useIncognitoPages: boolean;
     // (undocumented)
-    userDataDir?: string;
+    readonly userDataDir?: string;
 }
 
 // @public (undocumented)
@@ -470,8 +470,6 @@ export class PlaywrightController extends BrowserController<BrowserType, SafePar
 export class PlaywrightPlugin extends BrowserPlugin<BrowserType, SafeParameters<BrowserType['launch']>[0], Browser> {
     // (undocumented)
     protected _addProxyToLaunchOptions(launchContext: LaunchContext<BrowserType>): Promise<void>;
-    // (undocumented)
-    _containerProxyServer?: Awaited<ReturnType<typeof createProxyServerForContainers>>;
     // (undocumented)
     createController(): PlaywrightController;
     // (undocumented)

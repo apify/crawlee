@@ -19,11 +19,20 @@ const calculateUrlSimilarity = (a: URLComponents, b: URLComponents): number | un
         return 0;
     }
 
-    for (let i = 1; i < Math.max(a.length, b.length); i++) {
+    const maxLength = Math.max(a.length, b.length);
+
+    // Only the hostname is present (no path components to compare) - the hosts already match.
+    if (maxLength <= 1) {
+        return 1;
+    }
+
+    for (let i = 1; i < maxLength; i++) {
         values.push(stringComparison.jaroWinkler.similarity(a[i] ?? '', b[i] ?? '') > 0.8 ? 1 : 0);
     }
 
-    return sum(values) / Math.max(a.length, b.length);
+    // The first component (index 0, the hostname) is excluded from the comparison above,
+    // so it must also be excluded from the denominator of the weighted average.
+    return sum(values) / (maxLength - 1);
 };
 
 const sum = (values: number[]) => values.reduce((acc, value) => acc + value);
@@ -151,7 +160,7 @@ export class RenderingTypePredictor {
             .reduce((acc, value) => acc + value, 0);
     }
 
-    protected calculateFeatureVector(url: URLComponents, label: string | undefined): FeatureVector {
+    private calculateFeatureVector(url: URLComponents, label: string | undefined): FeatureVector {
         return [
             mean(
                 (this.state.currentValue.detectionResults.get('static')?.get(label) ?? []).map(
@@ -166,7 +175,7 @@ export class RenderingTypePredictor {
         ];
     }
 
-    protected retrain(): void {
+    private retrain(): void {
         const X: FeatureVector[] = [
             [0, 1],
             [1, 0],

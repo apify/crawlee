@@ -60,12 +60,12 @@ export class Statistics {
     /**
      * An error tracker for final retry errors.
      */
-    errorTracker: ErrorTracker;
+    readonly errorTracker: ErrorTracker;
 
     /**
      * An error tracker for retry errors prior to the final retry.
      */
-    errorTrackerRetry: ErrorTracker;
+    readonly errorTrackerRetry: ErrorTracker;
 
     /**
      * Statistic instance id.
@@ -83,7 +83,7 @@ export class Statistics {
     readonly requestRetryHistogram: number[] = [];
 
     protected keyValueStore?: KeyValueStore = undefined;
-    protected persistStateKey: string;
+    protected readonly persistStateKey: string;
     private logIntervalMillis: number;
     private logMessage: string;
     private listener: () => Promise<void>;
@@ -175,7 +175,7 @@ export class Statistics {
         this.requestsInProgress.clear();
         this.instanceStart = Date.now();
 
-        this._teardown();
+        this.teardown();
     }
 
     /**
@@ -227,7 +227,7 @@ export class Statistics {
         const jobDurationMillis = job.finish();
         this.state.requestsFinished++;
         this.state.requestTotalFinishedDurationMillis += jobDurationMillis;
-        this._saveRetryCountForJob(retryCount);
+        this.saveRetryCountForJob(retryCount);
         if (jobDurationMillis < this.state.requestMinDurationMillis)
             this.state.requestMinDurationMillis = jobDurationMillis;
         if (jobDurationMillis > this.state.requestMaxDurationMillis)
@@ -244,7 +244,7 @@ export class Statistics {
         if (!job) return;
         this.state.requestTotalFailedDurationMillis += job.finish();
         this.state.requestsFailed++;
-        this._saveRetryCountForJob(retryCount);
+        this.saveRetryCountForJob(retryCount);
         this.requestsInProgress.delete(id);
     }
 
@@ -294,7 +294,7 @@ export class Statistics {
         }
 
         if (this.persistenceOptions.enable) {
-            await this._maybeLoadStatistics();
+            await this.maybeLoadStatistics();
             this.events.on(EventType.PERSIST_STATE, this.listener);
         }
 
@@ -310,14 +310,14 @@ export class Statistics {
      * Stops logging and remove event listeners, then persist
      */
     async stopCapturing() {
-        this._teardown();
+        this.teardown();
 
         this.state.crawlerFinishedAt = new Date();
 
         await this.persistState();
     }
 
-    protected _saveRetryCountForJob(retryCount: number) {
+    private saveRetryCountForJob(retryCount: number) {
         if (retryCount > 0) this.state.requestsRetries++;
         this.requestRetryHistogram[retryCount] ??= 0;
         this.requestRetryHistogram[retryCount]++;
@@ -349,7 +349,7 @@ export class Statistics {
     /**
      * Loads the current statistic from the key value store if any
      */
-    protected async _maybeLoadStatistics() {
+    protected async maybeLoadStatistics() {
         // this might be called before startCapturing was called without using await, should not crash
         if (!this.keyValueStore) {
             return;
@@ -391,7 +391,7 @@ export class Statistics {
         this.log.debug('Loaded from KeyValueStore');
     }
 
-    protected _teardown(): void {
+    private teardown(): void {
         // this can be called before a call to startCapturing happens (or in a 'finally' block)
         // Only unsubscribe if event manager was already resolved — avoid eagerly resolving it
         // (e.g. during the constructor's reset() call, which would capture the wrong context)

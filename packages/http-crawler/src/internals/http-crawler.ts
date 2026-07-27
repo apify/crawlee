@@ -82,6 +82,11 @@ export interface HttpCrawlerOptions<
      *
      * A hook may optionally return a partial object whose properties are merged into the crawling context,
      * allowing the hook to override context members for subsequent hooks and pipeline stages.
+     *
+     * The context is built up in the following order: base context (`request`, `session`, helpers, ...) ->
+     * `extendContext` -> `preNavigationHooks` -> navigation -> `postNavigationHooks` -> `requestHandler`.
+     * This means the members added by `extendContext` are already available here, but navigation-dependent
+     * members (e.g. `response`, `body`, `$`) are not.
      * Example:
      * ```
      * preNavigationHooks: [
@@ -91,7 +96,7 @@ export interface HttpCrawlerOptions<
      * ]
      * ```
      */
-    preNavigationHooks?: InternalHttpHook<CrawlingContext>[];
+    preNavigationHooks?: InternalHttpHook<CrawlingContext, ContextExtension>[];
 
     /**
      * Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
@@ -111,7 +116,7 @@ export interface HttpCrawlerOptions<
      * ```
      */
     postNavigationHooks?: ((
-        crawlingContext: CrawlingContextWithResponse,
+        crawlingContext: CrawlingContextWithResponse & ContextExtension,
     ) => Awaitable<void | Partial<CrawlingContextWithResponse>>)[];
 
     /**
@@ -157,7 +162,9 @@ export interface HttpCrawlerOptions<
 /**
  * @internal
  */
-export type InternalHttpHook<Context> = (crawlingContext: Context) => Awaitable<void | Partial<Context>>;
+export type InternalHttpHook<Context, ContextExtension = {}> = (
+    crawlingContext: Context & ContextExtension,
+) => Awaitable<void | Partial<Context>>;
 
 export type HttpHook<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -316,16 +323,20 @@ export class HttpCrawler<
     ContextExtension = Dictionary<never>,
     ExtendedContext extends Context = Context & ContextExtension,
 > extends BasicCrawler<Context, ContextExtension, ExtendedContext> {
-    protected preNavigationHooks: InternalHttpHook<CrawlingContext>[];
-    protected postNavigationHooks: ((
+    // Internal storage uses the base (non-extended) context types. The public option types are
+    // extension-aware for consumer DX, but internally the pipeline composes hooks against the
+    // concrete crawling context, which does not statically carry `ContextExtension`. The members
+    // added by `extendContext` are present at runtime regardless.
+    private preNavigationHooks: InternalHttpHook<CrawlingContext>[];
+    private postNavigationHooks: ((
         crawlingContext: CrawlingContextWithResponse,
     ) => Awaitable<void | Partial<CrawlingContextWithResponse>>)[];
-    protected saveResponseCookies: boolean;
-    protected navigationTimeoutMillis: number;
-    protected ignoreSslErrors: boolean;
-    protected suggestResponseEncoding?: string;
-    protected forceResponseEncoding?: string;
-    protected readonly supportedMimeTypes: Set<string>;
+    private saveResponseCookies: boolean;
+    private navigationTimeoutMillis: number;
+    private ignoreSslErrors: boolean;
+    private suggestResponseEncoding?: string;
+    private forceResponseEncoding?: string;
+    private readonly supportedMimeTypes: Set<string>;
 
     protected static override optionsShape = {
         ...BasicCrawler.optionsShape,
@@ -375,7 +386,7 @@ export class HttpCrawler<
         });
 
         this.supportedMimeTypes = new Set([...HTML_AND_XML_MIME_TYPES, APPLICATION_JSON_MIME_TYPE]);
-        if (additionalMimeTypes.length) this._extendSupportedMimeTypes(additionalMimeTypes);
+        if (additionalMimeTypes.length) this.extendSupportedMimeTypes(additionalMimeTypes);
 
         if (suggestResponseEncoding && forceResponseEncoding) {
             this.log.warning(
@@ -387,10 +398,13 @@ export class HttpCrawler<
         this.ignoreSslErrors = ignoreSslErrors;
         this.suggestResponseEncoding = suggestResponseEncoding;
         this.forceResponseEncoding = forceResponseEncoding;
-        this.preNavigationHooks = preNavigationHooks;
+        // Cast away the extension-aware option types to the base internal storage types (see the field
+        // declarations above). This is sound - the hooks only ever receive the base context plus the
+        // members `extendContext` added at runtime.
+        this.preNavigationHooks = preNavigationHooks as InternalHttpHook<CrawlingContext>[];
         this.postNavigationHooks = [
             ({ request, response }) => this._abortDownloadOfBody(request, response!),
-            ...postNavigationHooks,
+            ...(postNavigationHooks as typeof this.postNavigationHooks),
         ];
 
         this.saveResponseCookies = saveResponseCookies;
@@ -460,7 +474,7 @@ export class HttpCrawler<
         const proxyUrl = crawlingContext.proxyInfo?.url;
 
         const httpResponse = await addTimeoutToPromise(
-            async () => this._requestFunction({ request, session, proxyUrl }),
+            async () => this.requestFunction({ request, session, proxyUrl }),
             this.navigationTimeoutMillis,
             `request timed out after ${this.navigationTimeoutMillis / 1000} seconds.`,
         );
@@ -509,7 +523,7 @@ export class HttpCrawler<
 
         tryCancel();
 
-        const parsed = await this._parseResponse(crawlingContext.request, crawlingContext.response);
+        const parsed = await this.parseResponse(crawlingContext.request, crawlingContext.response);
         tryCancel();
         const response = parsed.response!;
         const contentType = parsed.contentType!;
@@ -594,15 +608,15 @@ export class HttpCrawler<
      * on the request such as only downloading the request body if the
      * received content type matches text/html, application/xml, application/xhtml+xml.
      */
-    protected async _requestFunction({ request, session, proxyUrl }: RequestFunctionOptions): Promise<Response> {
-        const opts = this._getRequestOptions(request, session, proxyUrl);
+    private async requestFunction({ request, session, proxyUrl }: RequestFunctionOptions): Promise<Response> {
+        const opts = this.getRequestOptions(request, session, proxyUrl);
 
         try {
             return await this._requestAsBrowser(opts, session);
         } catch (e) {
             if (e instanceof Error && e.constructor.name === 'TimeoutError') {
-                this._handleRequestTimeout(session);
-                return new Response(); // this will never happen, as _handleRequestTimeout always throws
+                this.handleRequestTimeout(session);
+                return new Response(); // this will never happen, as handleRequestTimeout always throws
             }
 
             if (this.isProxyError(e as Error)) {
@@ -616,10 +630,10 @@ export class HttpCrawler<
     /**
      * Encodes and parses response according to the provided content type
      */
-    protected async _parseResponse(request: CrawleeRequest, response: Response) {
+    private async parseResponse(request: CrawleeRequest, response: Response) {
         const { status } = response;
         const { type, charset } = parseContentTypeFromResponse(response);
-        const { response: reencodedResponse, encoding } = this._encodeResponse(request, response, charset);
+        const { response: reencodedResponse, encoding } = this.encodeResponse(request, response, charset);
         const contentType = { type, encoding };
 
         if (status >= 400 && status <= 599) {
@@ -668,7 +682,7 @@ export class HttpCrawler<
     /**
      * Combines the provided `requestOptions` with mandatory (non-overridable) values.
      */
-    protected _getRequestOptions(request: CrawleeRequest, session: ISession, proxyUrl?: string) {
+    private getRequestOptions(request: CrawleeRequest, session: ISession, proxyUrl?: string) {
         const requestOptions = {
             url: request.url,
             method: request.method,
@@ -700,7 +714,7 @@ export class HttpCrawler<
         return requestOptions;
     }
 
-    protected _encodeResponse(
+    private encodeResponse(
         request: CrawleeRequest,
         response: Response,
         encoding: BufferEncoding,
@@ -750,7 +764,7 @@ export class HttpCrawler<
     /**
      * Checks and extends supported mime types
      */
-    protected _extendSupportedMimeTypes(additionalMimeTypes: (string | RequestLike | ResponseLike)[]) {
+    private extendSupportedMimeTypes(additionalMimeTypes: (string | RequestLike | ResponseLike)[]) {
         for (const mimeType of additionalMimeTypes) {
             if (mimeType === '*/*') {
                 this.supportedMimeTypes.add(mimeType);
@@ -769,7 +783,7 @@ export class HttpCrawler<
     /**
      * Handles timeout request
      */
-    protected _handleRequestTimeout(session: ISession) {
+    private handleRequestTimeout(session: ISession) {
         session.markBad();
         throw new Error(`request timed out after ${this.navigationTimeoutMillis / 1000} seconds.`);
     }

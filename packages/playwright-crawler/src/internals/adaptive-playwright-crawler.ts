@@ -79,8 +79,8 @@ class AdaptivePlaywrightCrawlerStatistics extends Statistics {
         this.state.renderingTypeMispredictions = 0;
     }
 
-    protected override async _maybeLoadStatistics(): Promise<void> {
-        await super._maybeLoadStatistics();
+    protected override async maybeLoadStatistics(): Promise<void> {
+        await super.maybeLoadStatistics();
         const savedState = await this.keyValueStore?.getValue<AdaptivePlaywrightCrawlerPersistedStatisticState>(
             this.persistStateKey,
         );
@@ -125,10 +125,16 @@ export interface AdaptivePlaywrightCrawlerContext<
     page: Page;
 
     /**
-     * Wait for an element matching the selector to appear and return a Cheerio object of matched elements.
+     * Wait for an element matching the selector to appear and return a Cheerio object of the first matched element.
      * Timeout defaults to 5s.
      */
     querySelector(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
+
+    /**
+     * Wait for an element matching the selector to appear and return a Cheerio object of all matched elements.
+     * Timeout defaults to 5s.
+     */
+    querySelectorAll(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
 
     /**
      * Wait for an element matching the selector to appear.
@@ -168,16 +174,18 @@ interface AdaptiveHookContext extends Pick<AdaptivePlaywrightCrawlerContext, 'id
     gotoOptions?: PlaywrightGotoOptions;
 }
 
-interface AdaptiveHook extends BrowserHook<AdaptiveHookContext> {}
+type AdaptiveHook<ContextExtension = Dictionary<never>> = BrowserHook<AdaptiveHookContext, ContextExtension>;
 
-interface AdaptivePostNavigationHook extends BrowserHook<
-    Omit<AdaptiveHookContext, 'request'> & { request: LoadedRequest<Request> }
-> {}
+type AdaptivePostNavigationHook<ContextExtension = Dictionary<never>> = BrowserHook<
+    Omit<AdaptiveHookContext, 'request'> & { request: LoadedRequest<Request> },
+    ContextExtension
+>;
 
 export interface AdaptivePlaywrightCrawlerOptions<
-    ExtendedContext extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext,
+    ContextExtension = Dictionary<never>,
+    ExtendedContext extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext & ContextExtension,
 > extends Omit<
-    BasicCrawlerOptions<AdaptivePlaywrightCrawlerContext, ExtendedContext>,
+    BasicCrawlerOptions<AdaptivePlaywrightCrawlerContext, ContextExtension, ExtendedContext>,
     'preNavigationHooks' | 'postNavigationHooks'
 > {
     /**
@@ -188,7 +196,7 @@ export interface AdaptivePlaywrightCrawlerOptions<
      * A hook may optionally return a partial object whose properties are merged into the crawling context,
      * allowing the hook to override context members for subsequent hooks and pipeline stages.
      */
-    preNavigationHooks?: AdaptiveHook[];
+    preNavigationHooks?: AdaptiveHook<ContextExtension>[];
 
     /**
      * Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
@@ -198,7 +206,7 @@ export interface AdaptivePlaywrightCrawlerOptions<
      * A hook may optionally return a partial object whose properties are merged into the crawling context
      * (e.g. to override `response` after solving a challenge).
      */
-    postNavigationHooks?: AdaptivePostNavigationHook[];
+    postNavigationHooks?: AdaptivePostNavigationHook<ContextExtension>[];
 
     /**
      * Specifies the frequency of rendering type detection checks - 0.1 means roughly 10% of requests.
@@ -233,6 +241,8 @@ export interface AdaptivePlaywrightCrawlerOptions<
      *   If it returns 'inconclusive', the detection result won't be used.
      * If no result comparator is specified, but there is a `resultChecker`, any site where the `resultChecker` returns true is considered static.
      * If neither `resultComparator` nor `resultChecker` are specified, a deep comparison of returned dataset items is used as a default.
+     *
+     * For a stricter, ready-made comparator that also takes enqueued requests and key-value store changes into account, see {@apilink fullResultComparator}.
      */
     resultComparator?: (
         resultA: RequestHandlerResult,
@@ -294,8 +304,9 @@ type LogProxyCall = [log: CrawleeLogger, method: (typeof proxyLogMethods)[number
  * @experimental
  */
 export class AdaptivePlaywrightCrawler<
-    ExtendedContext extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext,
-> extends BasicCrawler<AdaptivePlaywrightCrawlerContext, ExtendedContext> {
+    ContextExtension = Dictionary<never>,
+    ExtendedContext extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext & ContextExtension,
+> extends BasicCrawler<AdaptivePlaywrightCrawlerContext, ContextExtension, ExtendedContext> {
     private renderingTypePredictor: NonNullable<AdaptivePlaywrightCrawlerOptions['renderingTypePredictor']>;
     private resultChecker: NonNullable<AdaptivePlaywrightCrawlerOptions['resultChecker']>;
     private shouldPropagateError: NonNullable<AdaptivePlaywrightCrawlerOptions['shouldPropagateError']>;
@@ -310,7 +321,7 @@ export class AdaptivePlaywrightCrawler<
 
     private teardownHooks: (() => Promise<unknown>)[] = [];
 
-    constructor(options: AdaptivePlaywrightCrawlerOptions<ExtendedContext> = {}) {
+    constructor(options: AdaptivePlaywrightCrawlerOptions<ContextExtension, ExtendedContext> = {}) {
         const {
             requestHandler,
             renderingTypeDetectionRatio = 0.1,
@@ -359,10 +370,14 @@ export class AdaptivePlaywrightCrawler<
                 );
             };
         }
-        // Each adaptive hook is registered as its own static/browser hook so the underlying
-        // `ContextPipeline` handles override merging between hooks for free. The hook signatures
-        // are structurally compatible with the underlying crawlers' contexts (subset of fields);
-        // the casts just relax the nominal type difference.
+        // `extendContext` is forwarded to the inner crawlers, which run it *before* navigation (see
+        // `BasicCrawler`), keeping the behavior consistent with the non-adaptive crawlers: the
+        // extension is visible to the pre/post-navigation hooks and the request handler, but cannot
+        // access navigation-dependent members (`page`, `response`, `$`, ...).
+        //
+        // The adaptive hooks target a subset context (`AdaptiveHookContext`); the casts to the inner
+        // crawlers' `PlaywrightHook` type relax that nominal difference. The `ContextPipeline` merges
+        // each hook's overrides at runtime regardless of the static type.
         const staticCrawler = new CheerioCrawler({
             ...rest,
             statisticsOptions: {
@@ -370,6 +385,7 @@ export class AdaptivePlaywrightCrawler<
             },
             preNavigationHooks,
             postNavigationHooks,
+            extendContext,
         });
 
         const browserCrawler = new PlaywrightCrawler({
@@ -379,27 +395,18 @@ export class AdaptivePlaywrightCrawler<
             },
             preNavigationHooks: preNavigationHooks as unknown as PlaywrightHook[],
             postNavigationHooks: postNavigationHooks as unknown as PlaywrightHook[],
+            extendContext,
         });
 
         this.teardownHooks.push(browserCrawler.teardown.bind(browserCrawler));
 
-        this.staticContextPipeline = staticCrawler.contextPipeline
-            .compose({
-                action: this.adaptCheerioContext.bind(this),
-            })
-            .compose({
-                action: async (context) =>
-                    extendContext ? await extendContext(context) : (context as unknown as ExtendedContext),
-            });
+        this.staticContextPipeline = staticCrawler.contextPipeline.compose({
+            action: this.adaptCheerioContext.bind(this),
+        }) as unknown as ContextPipeline<CrawlingContext, ExtendedContext>;
 
-        this.browserContextPipeline = browserCrawler.contextPipeline
-            .compose({
-                action: this.adaptPlaywrightContext.bind(this),
-            })
-            .compose({
-                action: async (context) =>
-                    extendContext ? await extendContext(context) : (context as unknown as ExtendedContext),
-            });
+        this.browserContextPipeline = browserCrawler.contextPipeline.compose({
+            action: this.adaptPlaywrightContext.bind(this),
+        }) as unknown as ContextPipeline<CrawlingContext, ExtendedContext>;
 
         this.stats = new AdaptivePlaywrightCrawlerStatistics({
             logMessage: `${this.log.getOptions().prefix} request statistics:`,
@@ -432,6 +439,9 @@ export class AdaptivePlaywrightCrawler<
                 get querySelector(): AdaptivePlaywrightCrawlerContext['querySelector'] {
                     throw new Error(errorMessage('querySelector'));
                 },
+                get querySelectorAll(): AdaptivePlaywrightCrawlerContext['querySelectorAll'] {
+                    throw new Error(errorMessage('querySelectorAll'));
+                },
                 get waitForSelector(): AdaptivePlaywrightCrawlerContext['waitForSelector'] {
                     throw new Error(errorMessage('waitForSelector'));
                 },
@@ -454,6 +464,9 @@ export class AdaptivePlaywrightCrawler<
                 throw new Error('Page object was used in HTTP-only request handler');
             },
             async querySelector(selector: string) {
+                return cheerioContext.$(selector).first();
+            },
+            async querySelectorAll(selector: string) {
                 return cheerioContext.$(selector);
             },
             enqueueLinks: async (options: EnqueueLinksOptions = {}) => {
@@ -489,6 +502,13 @@ export class AdaptivePlaywrightCrawler<
                 statusText: originalResponse.statusText(),
             }),
             async querySelector(selector: string, timeoutMs = 5000) {
+                const locator = playwrightContext.page.locator(selector).first();
+                await locator.waitFor({ timeout: timeoutMs, state: 'attached' });
+                const $ = await playwrightContext.parseWithCheerio();
+
+                return $(selector).first() as Cheerio<any>;
+            },
+            async querySelectorAll(selector: string, timeoutMs = 5000) {
                 const locator = playwrightContext.page.locator(selector).first();
                 await locator.waitFor({ timeout: timeoutMs, state: 'attached' });
                 const $ = await playwrightContext.parseWithCheerio();
@@ -718,7 +738,7 @@ export class AdaptivePlaywrightCrawler<
         }
     }
 
-    protected async commitResult(
+    private async commitResult(
         crawlingContext: CrawlingContext,
         { calls, keyValueStoreChanges }: RequestHandlerResult,
     ): Promise<void> {
@@ -736,7 +756,7 @@ export class AdaptivePlaywrightCrawler<
         ]);
     }
 
-    protected allowStorageAccess<R, TArgs extends any[]>(
+    private allowStorageAccess<R, TArgs extends any[]>(
         func: (...args: TArgs) => Promise<R>,
     ): (...args: TArgs) => Promise<R> {
         return async (...args: TArgs) =>
@@ -755,7 +775,7 @@ export class AdaptivePlaywrightCrawler<
         return this.allowStorageAccess(() => super.getPendingRequestCountApproximation())();
     }
 
-    protected async enqueueLinks(
+    private async enqueueLinks(
         options: SetRequired<EnqueueLinksOptions, 'urls'>,
         request: RestrictedCrawlingContext['request'],
         result: RequestHandlerResult,
@@ -822,4 +842,36 @@ export function createAdaptivePlaywrightRouter<
 >(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
 export function createAdaptivePlaywrightRouter(routesOrSchemas?: any): any {
     return Router.create(routesOrSchemas);
+}
+
+/**
+ * An opt-in {@apilink AdaptivePlaywrightCrawlerOptions.resultComparator|`resultComparator`} that considers two
+ * request handler results equal only if *all* of their observable effects match - the pushed dataset items, the
+ * enqueued requests, and the key-value store changes. This is stricter than the default comparator, which only
+ * compares dataset items.
+ *
+ * **Beware:** enqueued URLs are compared exactly. The same page rendered in a browser and via plain HTTP often
+ * yields links that differ only in tracking query parameters, for example:
+ * - `https://sdk.apify.com/docs/guides/getting-started`
+ * - `https://sdk.apify.com/docs/guides/getting-started?__hsfp=1136113150&__hssc=7591405.1.173549427712`
+ *
+ * Such links are treated as *different*, which will make the crawler favor browser rendering for those pages.
+ *
+ * **Example usage:**
+ * ```ts
+ * const crawler = new AdaptivePlaywrightCrawler({
+ *     resultComparator: fullResultComparator,
+ *     async requestHandler({ pushData, enqueueLinks }) {
+ *         // ...
+ *     },
+ * });
+ * ```
+ */
+export function fullResultComparator(resultA: RequestHandlerResult, resultB: RequestHandlerResult): boolean {
+    return (
+        isDeepStrictEqual(resultA.datasetItems, resultB.datasetItems) &&
+        isDeepStrictEqual(resultA.enqueuedUrls, resultB.enqueuedUrls) &&
+        isDeepStrictEqual(resultA.enqueuedUrlLists, resultB.enqueuedUrlLists) &&
+        isDeepStrictEqual(resultA.keyValueStoreChanges, resultB.keyValueStoreChanges)
+    );
 }

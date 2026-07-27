@@ -639,7 +639,7 @@ describe('BasicCrawler', () => {
 
             // clean up
             // @ts-expect-error Accessing private method
-            await basicCrawler.autoscaledPool!._destroy();
+            await basicCrawler.autoscaledPool!.destroy();
         },
     );
 
@@ -1092,7 +1092,7 @@ describe('BasicCrawler', () => {
         });
 
         // @ts-expect-error Accessing private prop
-        expect(await crawler._isTaskReadyFunction()).toBe(false);
+        expect(await crawler.isTaskReadyFunction()).toBe(false);
     });
 
     test('should be possible to override isFinishedFunction and isTaskReadyFunction of underlying AutoscaledPool', async () => {

@@ -250,8 +250,8 @@ export interface PuppeteerCrawlerOptions<ContextExtension = Dictionary<never>, E
     browserPlugins: [PuppeteerPlugin];
 }> {
     launchContext?: PuppeteerLaunchContext;
-    postNavigationHooks?: PuppeteerHook[];
-    preNavigationHooks?: PuppeteerHook[];
+    postNavigationHooks?: BrowserHook<PuppeteerCrawlingContext, ContextExtension>[];
+    preNavigationHooks?: BrowserHook<PuppeteerCrawlingContext, ContextExtension>[];
 }
 
 // @public (undocumented)
@@ -287,7 +287,7 @@ export class PuppeteerLauncher extends BrowserLauncher<PuppeteerPlugin, unknown>
     // (undocumented)
     readonly config: Configuration;
     // (undocumented)
-    protected _getDefaultHeadlessOption(): boolean;
+    protected getDefaultHeadlessOption(): boolean;
     // (undocumented)
     protected static optionsShape: {
         launcher: ObjectPredicate<object> & BasePredicate<object | undefined>;

@@ -200,7 +200,7 @@ export class SystemStatus {
      * and `true` otherwise.
      */
     getCurrentStatus(): SystemInfo {
-        return this._isSystemIdle(this.currentHistoryMillis);
+        return this.isSystemIdle(this.currentHistoryMillis);
     }
 
     /**
@@ -220,13 +220,13 @@ export class SystemStatus {
      * (which is configurable in the {@apilink Snapshotter}) and `true` otherwise.
      */
     getHistoricalStatus(): SystemInfo {
-        return this._isSystemIdle();
+        return this.isSystemIdle();
     }
 
     /**
      * Returns a system status object.
      */
-    protected _isSystemIdle(sampleDurationMillis?: number): SystemInfo {
+    private isSystemIdle(sampleDurationMillis?: number): SystemInfo {
         const result: SystemInfo = {
             isSystemIdle: true,
             memInfo: { isOverloaded: false, limitRatio: 0, actualRatio: 0 },

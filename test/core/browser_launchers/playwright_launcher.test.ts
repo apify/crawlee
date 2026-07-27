@@ -147,7 +147,7 @@ describe('launchPlaywright()', () => {
     });
 
     test('supports useChrome option', async () => {
-        const spy = vitest.spyOn(BrowserLauncher.prototype as any, '_getTypicalChromeExecutablePath');
+        const spy = vitest.spyOn(BrowserLauncher.prototype as any, 'getTypicalChromeExecutablePath');
         let browser;
         const opts = {
             useChrome: true,
@@ -200,7 +200,7 @@ describe('launchPlaywright()', () => {
             const plugin = launcher.createBrowserPlugin();
 
             // @ts-expect-error private method
-            expect(plugin.launchOptions.executablePath).toBe(launcher._getTypicalChromeExecutablePath());
+            expect(plugin.launchOptions.executablePath).toBe(launcher.getTypicalChromeExecutablePath());
         }, 60e3);
 
         test('allows to be overridden', () => {

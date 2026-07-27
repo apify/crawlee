@@ -80,8 +80,6 @@ describe('Session - testing session behaviour', () => {
     });
 
     test('should retire session after marking bad', () => {
-        // @ts-expect-error Private property
-        vitest.spyOn(session, '_maybeSelfRetire');
         vitest.spyOn(session, 'retire');
         session.markBad();
         expect(session.retire).toBeCalledTimes(0);
@@ -91,8 +89,6 @@ describe('Session - testing session behaviour', () => {
     });
 
     test('should retire session after marking good', () => {
-        // @ts-expect-error Private property
-        vitest.spyOn(session, '_maybeSelfRetire');
         vitest.spyOn(session, 'retire');
 
         session.markGood();
@@ -104,14 +100,18 @@ describe('Session - testing session behaviour', () => {
     });
 
     test('should reevaluate usability of session after marking the session', () => {
-        // @ts-expect-error Private property
-        vitest.spyOn(session, '_maybeSelfRetire');
+        vitest.spyOn(session, 'retire');
+
+        // A usable session is not retired when marked.
         session.markGood();
-        // @ts-expect-error Private property
-        expect(session._maybeSelfRetire).toBeCalledTimes(1);
+        expect(session.retire).toBeCalledTimes(0);
+
+        // Once the session becomes unusable, marking it (good or bad) retires it.
+        session.isUsable = () => false;
+        session.markGood();
+        expect(session.retire).toBeCalledTimes(1);
         session.markBad();
-        // @ts-expect-error Private property
-        expect(session._maybeSelfRetire).toBeCalledTimes(2);
+        expect(session.retire).toBeCalledTimes(2);
     });
 
     test('should get state', () => {
