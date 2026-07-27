@@ -367,7 +367,7 @@ export class ConcurrencySystem {
      * Evaluates the current historical system status and scales the shared desired concurrency up or down
      * accordingly. Driven by the autoscaling interval started in {@apilink ConcurrencySystem.start|`start()`}.
      */
-    protected _autoscale(intervalCallback: () => void): void {
+    private _autoscale(intervalCallback: () => void): void {
         if (this.isOverMaxRequestLimit) return intervalCallback();
 
         const systemStatus = this.systemStatus.getHistoricalStatus();
@@ -404,7 +404,7 @@ export class ConcurrencySystem {
     /**
      * Scales the system up by increasing the desired concurrency by the scaleUpStepRatio.
      */
-    protected _scaleUp(systemStatus: SystemInfo): void {
+    private _scaleUp(systemStatus: SystemInfo): void {
         const step = Math.ceil(this._desiredConcurrency * this.scaleUpStepRatio);
         this._desiredConcurrency = Math.min(this._maxConcurrency, this._desiredConcurrency + step);
         this.log.debug('scaling up', {
@@ -417,7 +417,7 @@ export class ConcurrencySystem {
     /**
      * Scales the system down by decreasing the desired concurrency by the scaleDownStepRatio.
      */
-    protected _scaleDown(systemStatus: SystemInfo): void {
+    private _scaleDown(systemStatus: SystemInfo): void {
         const step = Math.ceil(this._desiredConcurrency * this.scaleDownStepRatio);
         this._desiredConcurrency = Math.max(this._minConcurrency, this._desiredConcurrency - step);
         this.log.debug('scaling down', {
@@ -427,7 +427,7 @@ export class ConcurrencySystem {
         });
     }
 
-    protected _incrementTasksDonePerSecond(intervalCallback: () => void): void {
+    private _incrementTasksDonePerSecond(intervalCallback: () => void): void {
         this._tasksPerMinute.unshift(0);
         this._tasksPerMinute.pop();
 
