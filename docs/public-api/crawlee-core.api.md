@@ -446,6 +446,11 @@ export interface DatasetStats {
 export const defaultRoute: unique symbol;
 
 // @public
+export type DefaultRouteUserData<Routes, Fallback extends Dictionary> = Routes extends {
+    [defaultRoute]: infer DefaultUserData extends Dictionary;
+} ? DefaultUserData : Fallback;
+
+// @public
 export interface DefaultStorageIdentifier {
     // (undocumented)
     alias?: never;
@@ -1354,7 +1359,7 @@ export class RetryRequestError extends Error {
 
 // @public
 export class Router<Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'>, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>> {
-    addDefaultHandler<UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(handler: (ctx: RouterHandlerContext<Context, UserData, Routes>) => Awaitable_2<void>): void;
+    addDefaultHandler<UserData extends Dictionary = DefaultRouteUserData<Routes, GetUserDataFromRequest<Context['request']>>>(handler: (ctx: RouterHandlerContext<Context, UserData, Routes>) => Awaitable_2<void>): void;
     addHandler<Label extends keyof Routes & string>(label: Label, handler: (ctx: RouterHandlerContext<Context, Routes[Label], Routes>) => Awaitable_2<void>): void;
     addHandler<UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(label: RouterLabel<Routes>, handler: (ctx: RouterHandlerContext<Context, UserData, Routes>) => Awaitable_2<void>): void;
     static create<Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'> = CrawlingContext, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
@@ -1399,8 +1404,12 @@ export type RouteSchemas = Record<string, StandardSchemaV1> & {
 
 // @public
 export type RoutesFromSchemas<Schemas extends RouteSchemas> = {
-    [Label in Extract<keyof Schemas, string>]: StandardSchemaV1.InferOutput<Schemas[Label]> extends Dictionary ? StandardSchemaV1.InferOutput<Schemas[Label]> : Dictionary;
-};
+    [Label in Extract<keyof Schemas, string>]: SchemaUserData<Schemas[Label]>;
+} & (Schemas extends {
+    [defaultRoute]: StandardSchemaV1;
+} ? {
+    [defaultRoute]: SchemaUserData<Schemas[typeof defaultRoute]>;
+} : {});
 
 // @public
 export function serializeValue(value: unknown, contentType?: string): {
