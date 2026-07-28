@@ -188,13 +188,14 @@ One common helper that received more attention is the `enqueueLinks`. As mention
 
 This means we can even call `enqueueLinks()` without any parameters. By default, it will go through all the links found on current page and filter only those targeting the same subdomain.
 
-Moreover, we can specify patterns the URL should match via `include`:
+Moreover, we can specify patterns the URL should match via globs:
 
 ```ts
 const crawler = new PlaywrightCrawler({
     async requestHandler({ enqueueLinks }) {
         await enqueueLinks({
-            include: ['https://crawlee.dev/*/*'],
+            globs: ['https://crawlee.dev/*/*'],
+            // we can also use `regexps` and `pseudoUrls` keys here
         });
     },
 });
@@ -230,7 +231,7 @@ Labeling requests used to work via the `Request.userData` object. With Crawlee, 
 async requestHandler({ request, enqueueLinks }) {
     if (request.label !== 'DETAIL') {
         await enqueueLinks({
-            include: ['...'],
+            globs: ['...'],
             label: 'DETAIL',
         });
     }

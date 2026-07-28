@@ -1134,7 +1134,7 @@ await enqueueLinks({ urls, requestManager });
 
 ### `globs`, `regexps`, and `pseudoUrls` replaced by `include`
 
-To align with the Crawlee for Python API, the separate `globs`, `regexps`, and `pseudoUrls` URL-filtering options of `enqueueLinks()`, the click-elements enqueue helpers, and `SitemapRequestLoader` have been collapsed into a single `include` option (mirroring the already-unified `exclude` option). Each entry of `include`/`exclude` can be a glob string, a `RegExp`, or a `{ glob }` / `{ regexp }` object.
+To align with the Crawlee for Python API, the separate `globs`, `regexps`, and `pseudoUrls` URL-filtering options of `enqueueLinks()`, the click-elements enqueue helpers, and `SitemapRequestLoader` have been collapsed into a single `include` option (mirroring the already-unified `exclude` option).
 
 The `PseudoUrl` class is no longer exported and the `@apify/pseudo_url` dependency has been dropped. Rewrite any pseudo-URL patterns as globs or regular expressions.
 
