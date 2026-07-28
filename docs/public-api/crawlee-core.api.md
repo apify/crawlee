@@ -1554,7 +1554,6 @@ export interface SnapshotResult {
 
 // @public
 export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
-    constructor(historyMillis?: number);
     static fromEvent<T extends LoadSnapshot, E>(options: {
         name: string;
         overloadedRatio: number;

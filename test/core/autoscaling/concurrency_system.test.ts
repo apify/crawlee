@@ -146,9 +146,9 @@ describe('ConcurrencySystem', () => {
 
         test('a SnapshotStore-based signal sizes its retention from the start context', async () => {
             const store = new SnapshotStore();
-            // Before starting, the store falls back to its own default.
+            // Before starting, retention is unbounded so nothing is pruned until the store learns its real window.
             // @ts-expect-error Accessing private prop
-            expect(store.historyMillis).toBe(30_000);
+            expect(store.historyMillis).toBe(Infinity);
 
             const system = new ConcurrencySystem({
                 loadSignals: {

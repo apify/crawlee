@@ -72,11 +72,13 @@ export interface LoadSignal {
  */
 export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
     private snapshots: T[] = [];
-    private historyMillis: number;
 
-    constructor(historyMillis = 30_000) {
-        this.historyMillis = historyMillis;
-    }
+    /**
+     * Retention window in milliseconds. Starts unbounded so nothing is pruned before the store learns the window it
+     * will actually be sampled over; {@apilink SnapshotStore.useSampleWindow|`useSampleWindow()`} narrows it to that
+     * window when the owning signal starts.
+     */
+    private historyMillis = Infinity;
 
     /**
      * Sizes retention to the window the signal will be sampled over, as handed to it in
