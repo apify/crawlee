@@ -125,21 +125,21 @@ export interface IConcurrencySystem {
     readonly currentConcurrency: number;
 
     /**
-     * Whether the per-minute task cap has been reached. Consulted by the pool only after a task is known to be
-     * ready, so an empty queue never blocks it for a whole extra minute.
-     */
-    readonly isOverMaxRequestLimit: boolean;
-
-    /**
      * The core, shareable decision: may **one more** task start right now? A cheap pre-check the pool consults
      * before querying task readiness; the actual booking happens through
      * {@apilink IConcurrencySystem.tryRegisterTaskStart|`tryRegisterTaskStart()`}.
+     *
+     * This pre-check must **not** enforce rate limits that only make sense for ready tasks (e.g. a per-minute task
+     * cap) — the pool calls it before knowing whether any task is ready, and a rate-limit refusal here would stall
+     * an already-empty queue. Enforce such limits in `tryRegisterTaskStart()` instead.
      */
     hasCapacityForTask(): boolean;
 
     /**
-     * Atomically books a task against the budget, returning `false` (without booking) when it has no room. Must be
-     * synchronous — see the interface docs for why.
+     * Atomically books a task against the budget, returning `false` (without booking) when it has no room — because
+     * the concurrency budget is spent, or because an implementation-specific rate limit (such as
+     * {@apilink ConcurrencySystemOptions.maxTasksPerMinute|`maxTasksPerMinute`}) was reached. Must be synchronous —
+     * see the interface docs for why.
      */
     tryRegisterTaskStart(): boolean;
 
@@ -376,10 +376,12 @@ export class ConcurrencySystem implements IConcurrencySystem {
     }
 
     /**
-     * Whether the per-minute task cap has been reached. Checked after a task is known to be ready, so an empty queue
-     * never blocks the pool for a whole extra minute.
+     * Whether the per-minute task cap has been reached. Deliberately *not* part of
+     * {@apilink ConcurrencySystem.hasCapacityForTask|`hasCapacityForTask()`} — the cap is only enforced in
+     * {@apilink ConcurrencySystem.tryRegisterTaskStart|`tryRegisterTaskStart()`}, i.e. once a task is known to be
+     * ready, so an empty queue never blocks the pool for a whole extra minute.
      */
-    get isOverMaxRequestLimit(): boolean {
+    private get isOverMaxRequestLimit(): boolean {
         if (this.maxTasksPerMinute === Infinity) {
             return false;
         }
@@ -389,16 +391,21 @@ export class ConcurrencySystem implements IConcurrencySystem {
 
     /**
      * Atomically books a task against the shared budget: re-checks
-     * {@apilink ConcurrencySystem.hasCapacityForTask|`hasCapacityForTask()`} and increments the current concurrency in
-     * one synchronous step, returning `false` (without booking) when the budget is spent. Call right before the task
-     * actually runs, and only run it if this returns `true`.
+     * {@apilink ConcurrencySystem.hasCapacityForTask|`hasCapacityForTask()`} and the per-minute task cap, and
+     * increments the current concurrency in one synchronous step, returning `false` (without booking) when there is
+     * no room. Call right before the task actually runs, and only run it if this returns `true`.
      *
      * The check-and-book must be a single operation — with several pools borrowing one system, a capacity check
      * followed by an `await` (e.g. a task-readiness query) and only then a booking would let two pools book the last
-     * free slot at once, overshooting the shared budget.
+     * free slot at once, overshooting the shared budget (or the per-minute cap).
      */
     tryRegisterTaskStart(): boolean {
         if (!this.hasCapacityForTask()) {
+            return false;
+        }
+
+        if (this.isOverMaxRequestLimit) {
+            this.log.perf('Task will not run. Maximum tasks per minute reached.');
             return false;
         }
 

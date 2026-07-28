@@ -46,15 +46,17 @@ describe('ConcurrencySystem', () => {
             expect(system.currentConcurrency).toBe(1);
         });
 
-        test('isOverMaxRequestLimit reflects maxTasksPerMinute', () => {
+        test('tryRegisterTaskStart() enforces maxTasksPerMinute', () => {
             const system = new ConcurrencySystem({ minConcurrency: 5, maxTasksPerMinute: 2 });
 
-            expect(system.isOverMaxRequestLimit).toBe(false);
             expect(system.tryRegisterTaskStart()).toBe(true);
-            expect(system.isOverMaxRequestLimit).toBe(false);
             expect(system.tryRegisterTaskStart()).toBe(true);
-            // Two starts within the current minute reaches the cap.
-            expect(system.isOverMaxRequestLimit).toBe(true);
+            // Two starts within the current minute reach the cap - further bookings are refused even though there
+            // is concurrency budget to spare, and ending a task changes nothing (the cap counts starts, not slots).
+            expect(system.tryRegisterTaskStart()).toBe(false);
+            system.registerTaskEnd();
+            expect(system.tryRegisterTaskStart()).toBe(false);
+            expect(system.currentConcurrency).toBe(1);
         });
 
         test('maxTasksPerMinute === Infinity never limits', () => {
@@ -64,7 +66,6 @@ describe('ConcurrencySystem', () => {
                 maxTasksPerMinute: Infinity,
             });
             for (let i = 0; i < 1000; i++) expect(system.tryRegisterTaskStart()).toBe(true);
-            expect(system.isOverMaxRequestLimit).toBe(false);
         });
     });
 

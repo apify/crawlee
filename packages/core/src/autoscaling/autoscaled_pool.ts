@@ -413,18 +413,12 @@ export class AutoscaledPool {
             return this.maybeFinish();
         }
 
-        // - we have already reached the maximum tasks per minute
-        // we need to check this *after* checking if a task is ready to prevent hanging the pool
-        // for an extra minute if there are no more tasks
-        if (this.concurrencySystem.isOverMaxRequestLimit) {
-            this.log.perf('Task will not run. Maximum tasks per minute reached.');
-            return done();
-        }
-
         // - the shared budget may have been spent while we awaited `isTaskReadyFunction` — with several pools
         // borrowing one ConcurrencySystem, another pool can book the last free slot during that gap. The booking
         // is therefore an atomic re-check-and-increment on the system; the `hasCapacityForTask()` call above is
-        // only a cheap early-out that avoids querying task readiness in vain.
+        // only a cheap early-out that avoids querying task readiness in vain. The governor also enforces any rate
+        // limit (e.g. max tasks per minute) here rather than in the pre-check, deliberately *after* the readiness
+        // query — refusing before knowing a task is ready would hang the pool for an extra minute on an empty queue.
         if (!this.concurrencySystem.tryRegisterTaskStart()) {
             return done();
         }
