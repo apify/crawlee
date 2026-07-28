@@ -9,7 +9,7 @@ import { ArrayPredicate } from 'ow';
 import type { Awaitable } from '@crawlee/basic';
 import { BasePredicate } from 'ow';
 import { BasicCrawler } from '@crawlee/basic';
-import type { BasicCrawlerOptions } from '@crawlee/basic';
+import { BasicCrawlerOptions } from '@crawlee/basic';
 import type { BasicCrawlingContext } from '@crawlee/basic';
 import type { BatchAddRequestsResult } from '@crawlee/types';
 import { BooleanPredicate } from 'ow';
@@ -62,6 +62,7 @@ export abstract class BrowserCrawler<Page extends CommonPage = CommonPage, Respo
     // (undocumented)
     protected static optionsShape: {
         navigationTimeoutSecs: NumberPredicate & BasePredicate<number | undefined>;
+        navigationHooksTimeoutSecs: NumberPredicate & BasePredicate<number | undefined>;
         preNavigationHooks: ArrayPredicate<unknown> & BasePredicate<unknown[] | undefined>;
         postNavigationHooks: ArrayPredicate<unknown> & BasePredicate<unknown[] | undefined>;
         launchContext: ObjectPredicate<object> & BasePredicate<object | undefined>;
@@ -118,6 +119,7 @@ export interface BrowserCrawlerOptions<Page extends CommonPage = CommonPage, Res
     ignoreShadowRoots?: boolean;
     // (undocumented)
     launchContext?: BrowserLaunchContext<any, any>;
+    navigationHooksTimeoutSecs?: number;
     navigationTimeoutSecs?: number;
     postNavigationHooks?: BrowserHook<Context, ContextExtension>[];
     preNavigationHooks?: BrowserHook<Context, ContextExtension>[];
