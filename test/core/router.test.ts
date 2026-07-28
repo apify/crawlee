@@ -377,4 +377,31 @@ describe('Router', () => {
             } as any),
         ).rejects.toThrow(RequestValidationError);
     });
+
+    test('a defaultRoute schema also types the default handler userData', () => {
+        // type-level only: never executed, it just has to type-check
+        const typeOnly = () => {
+            const testType = <T>(_v: T): void => {};
+
+            const router = createCheerioRouter({
+                PRODUCT: z.object({ sku: z.string() }),
+                [defaultRoute]: z.object({ page: z.coerce.number() }),
+            });
+
+            router.addDefaultHandler(({ request }) => {
+                // inferred from the defaultRoute schema
+                testType<number>(request.userData.page);
+                // @ts-expect-error page is a number, not a string — proves it is not typed as `any`
+                testType<string>(request.userData.page);
+            });
+
+            // without a defaultRoute schema, the default handler stays loosely typed as before
+            const plain = createCheerioRouter({ PRODUCT: z.object({ sku: z.string() }) });
+            plain.addDefaultHandler(({ request }) => {
+                testType<unknown>(request.userData.anything);
+            });
+        };
+
+        expect(typeof typeOnly).toBe('function');
+    });
 });
