@@ -294,8 +294,8 @@ export async function cheerioCrawlerEnqueueLinks(
     if (containsEnqueueLinks(options)) {
         return options.enqueueLinks({
             urls,
-            baseUrl,
             ...enqueueLinksOptions,
+            baseUrl,
         });
     }
     return enqueueLinks({
@@ -303,8 +303,8 @@ export async function cheerioCrawlerEnqueueLinks(
         robotsTxtFile: options.robotsTxtFile,
         onSkippedRequest: options.onSkippedRequest,
         urls,
-        baseUrl,
         ...enqueueLinksOptions,
+        baseUrl,
     });
 }
 

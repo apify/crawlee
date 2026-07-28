@@ -859,8 +859,8 @@ export async function browserCrawlerEnqueueLinks(
     if (containsEnqueueLinks(options)) {
         return options.enqueueLinks({
             urls,
-            baseUrl,
             ...enqueueLinksOptions,
+            baseUrl,
         });
     }
     return enqueueLinks({
@@ -868,8 +868,8 @@ export async function browserCrawlerEnqueueLinks(
         robotsTxtFile: options.robotsTxtFile,
         onSkippedRequest: options.onSkippedRequest,
         urls,
-        baseUrl,
         ...(enqueueLinksOptions as EnqueueLinksOptions),
+        baseUrl,
     });
 }
 
