@@ -191,7 +191,7 @@ describe('Snapshotter', () => {
         try {
             const snapshotter = new Snapshotter({ eventLoop: { maxBlockedMillis: 5, snapshotIntervalSecs: 0 } });
             // @ts-expect-error Accessing private property
-            const eventLoopSignal = snapshotter.eventLoopSignal;
+            const eventLoopSignal = snapshotter.eventLoopSignal!;
             eventLoopSignal.handle(noop);
             clock.advanceTimersByTime(1);
             eventLoopSignal.handle(noop);
@@ -301,7 +301,7 @@ describe('Snapshotter', () => {
 
         const snapshotter = new Snapshotter({ client: { maxErrors: 1 } });
         // @ts-expect-error Accessing private property
-        const clientSignal = snapshotter.clientSignal;
+        const clientSignal = snapshotter.clientSignal!;
         clientSignal.handle(noop);
         apifyClient.stats!.rateLimitErrors = [1, 1, 1, 0, 0, 0, 0, 0, 0, 0];
         clientSignal.handle(noop);

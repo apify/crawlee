@@ -1347,6 +1347,20 @@ new ConcurrencySystem({
 
 In detail: the four `max*OverloadedRatio` options of `SystemStatusOptions` were **removed** (each signal now owns its overload ratio, set in its bag above), custom signals moved from `systemStatusOptions.loadSignals` to `loadSignals.custom`, and the two evaluation windows — `snapshotHistorySecs` (autoscaling) and `currentHistorySecs` (task gating) — are now plain options on `ConcurrencySystemOptions`, since they apply to every signal alike rather than to any one of them.
 
+New in the process: a built-in signal can be switched off by passing `false` instead of its options bag, which was previously impossible — all four always ran, and the closest you could get was neutering a signal's verdict with `overloadedRatio: 1` while it kept collecting snapshots regardless:
+
+```typescript
+new ConcurrencySystem({
+    loadSignals: {
+        // The storage backend reports no rate-limit statistics, so stop polling it every second.
+        client: false,
+        eventLoop: { maxBlockedMillis: 100 },
+    },
+});
+```
+
+A disabled signal simply stops being collected and evaluated; its entry in `SystemInfo` reports as not overloaded, so nothing reading the status has to special-case it.
+
 The `Snapshotter` and `SystemStatus` classes are now internal, along with their options types (`SnapshotterOptions`, `SystemStatusOptions`) — they are implementation details of the `ConcurrencySystem`, which is the sole public entry point to load monitoring and autoscaling. What stays public is the configuration (`LoadSignalsOptions` and the four per-signal bags) and the extension surface: the `LoadSignal` interface, the `SnapshotStore` helper, and `LoadSignalStartContext`.
 
 ### Custom load signals are now sampled over the same window as the built-in ones

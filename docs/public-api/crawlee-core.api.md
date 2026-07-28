@@ -805,11 +805,11 @@ export interface LoadSignal {
 
 // @public
 export interface LoadSignalsOptions {
-    client?: ClientSignalOptions;
-    cpu?: CpuSignalOptions;
+    client?: ClientSignalOptions | false;
+    cpu?: CpuSignalOptions | false;
     custom?: LoadSignal[];
-    eventLoop?: EventLoopSignalOptions;
-    memory?: MemorySignalOptions;
+    eventLoop?: EventLoopSignalOptions | false;
+    memory?: MemorySignalOptions | false;
 }
 
 // @public

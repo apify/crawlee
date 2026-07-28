@@ -106,6 +106,44 @@ describe('ConcurrencySystem', () => {
             expect(contexts[1]).toEqual({ maxSampleWindowMillis: 60_000 });
         });
 
+        test('built-in signals can be switched off with `false`', async () => {
+            const system = new ConcurrencySystem({
+                loadSignals: { client: false, eventLoop: false },
+            });
+
+            // @ts-expect-error Accessing private prop
+            const names = system.snapshotter.getLoadSignals().map((signal: LoadSignal) => signal.name);
+            expect(names).toEqual(['memInfo', 'cpuInfo']);
+
+            await system.start();
+            try {
+                // A disabled signal cannot report overload, so the status shows it as idle rather than omitting it.
+                const status = system.getCurrentStatus();
+                expect(status.clientInfo).toEqual({ isOverloaded: false, limitRatio: 0, actualRatio: 0 });
+                expect(status.eventLoopInfo).toEqual({ isOverloaded: false, limitRatio: 0, actualRatio: 0 });
+                expect(status.isSystemIdle).toBe(true);
+            } finally {
+                await system.stop();
+            }
+        });
+
+        test('switching every built-in signal off leaves the system permanently idle', async () => {
+            const system = new ConcurrencySystem({
+                loadSignals: { memory: false, eventLoop: false, cpu: false, client: false },
+            });
+
+            // @ts-expect-error Accessing private prop
+            expect(system.snapshotter.getLoadSignals()).toEqual([]);
+
+            await system.start();
+            try {
+                expect(system.getCurrentStatus().isSystemIdle).toBe(true);
+                expect(system.hasCapacityForTask()).toBe(true);
+            } finally {
+                await system.stop();
+            }
+        });
+
         test('a SnapshotStore-based signal sizes its retention from the start context', async () => {
             const store = new SnapshotStore();
             // Before starting, the store falls back to its own default.

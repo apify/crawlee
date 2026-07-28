@@ -109,24 +109,27 @@ export interface ClientSignalOptions {
  */
 export interface LoadSignalsOptions {
     /**
-     * Tuning for the built-in memory load signal (used-memory limit + overload ratio).
+     * Tuning for the built-in memory load signal (used-memory limit + overload ratio), or `false` to switch it off.
      */
-    memory?: MemorySignalOptions;
+    memory?: MemorySignalOptions | false;
 
     /**
-     * Tuning for the built-in event loop load signal (snapshot interval + blocked-millis limit + overload ratio).
+     * Tuning for the built-in event loop load signal (snapshot interval + blocked-millis limit + overload ratio), or
+     * `false` to switch it off — which also stops its measuring interval.
      */
-    eventLoop?: EventLoopSignalOptions;
+    eventLoop?: EventLoopSignalOptions | false;
 
     /**
-     * Tuning for the built-in CPU load signal (overload ratio).
+     * Tuning for the built-in CPU load signal (overload ratio), or `false` to switch it off.
      */
-    cpu?: CpuSignalOptions;
+    cpu?: CpuSignalOptions | false;
 
     /**
-     * Tuning for the built-in client (rate-limit) load signal (snapshot interval + error limit + overload ratio).
+     * Tuning for the built-in client (rate-limit) load signal (snapshot interval + error limit + overload ratio), or
+     * `false` to switch it off — worth doing when the storage backend reports no rate-limit statistics, since the
+     * signal otherwise polls it every second to no purpose.
      */
-    client?: ClientSignalOptions;
+    client?: ClientSignalOptions | false;
 
     /**
      * Additional {@apilink LoadSignal} implementations — e.g. navigation timeouts or proxy health — evaluated
@@ -192,47 +195,60 @@ export class Snapshotter {
     readonly client: StorageBackend;
     readonly config: Configuration;
 
-    private readonly memorySignal: MemoryLoadSignal;
-    private readonly eventLoopSignal: EventLoopLoadSignal;
-    private readonly cpuSignal: CpuLoadSignal;
-    private readonly clientSignal: ClientLoadSignal;
+    // Absent when switched off through the corresponding option (e.g. `client: false`).
+    private readonly memorySignal?: MemoryLoadSignal;
+    private readonly eventLoopSignal?: EventLoopLoadSignal;
+    private readonly cpuSignal?: CpuLoadSignal;
+    private readonly clientSignal?: ClientLoadSignal;
 
     /**
-     * Returns the four built-in signals as an array, so `SystemStatus` can
-     * iterate them alongside any custom `LoadSignal` instances.
+     * Returns the enabled built-in signals, so `SystemStatus` can iterate them alongside any custom `LoadSignal`
+     * instances. Signals switched off through the options are simply absent — the system status reports them as
+     * not overloaded.
      */
     getLoadSignals(): LoadSignal[] {
-        return [this.memorySignal, this.eventLoopSignal, this.cpuSignal, this.clientSignal];
+        const builtin: (LoadSignal | undefined)[] = [
+            this.memorySignal,
+            this.eventLoopSignal,
+            this.cpuSignal,
+            this.clientSignal,
+        ];
+
+        return builtin.filter((signal): signal is LoadSignal => signal !== undefined);
     }
 
     // Legacy public properties kept for backward compat (tests read these directly)
     get cpuSnapshots(): CpuSnapshot[] {
-        return this.cpuSignal.store.getAll();
+        return this.cpuSignal?.store.getAll() ?? [];
     }
 
     get eventLoopSnapshots(): EventLoopSnapshot[] {
-        return this.eventLoopSignal.store.getAll();
+        return this.eventLoopSignal?.store.getAll() ?? [];
     }
 
     get memorySnapshots(): MemorySnapshot[] {
-        return this.memorySignal.getMemorySnapshots();
+        return this.memorySignal?.getMemorySnapshots() ?? [];
     }
 
     get clientSnapshots(): ClientSnapshot[] {
-        return this.clientSignal.store.getAll();
+        return this.clientSignal?.store.getAll() ?? [];
     }
 
     /**
      * @param [options] All `Snapshotter` configuration options.
      */
     constructor(options: SnapshotterOptions = {}) {
+        // Read the per-signal options before `ow` narrows `options` to the validator's own shape, which would erase
+        // the `| false` in their declared types.
+        const { memory = {}, eventLoop = {}, cpu = {}, client = {} } = options;
+
         ow(
             options,
             ow.object.exactShape({
-                memory: ow.optional.object,
-                eventLoop: ow.optional.object,
-                cpu: ow.optional.object,
-                client: ow.optional.object,
+                memory: ow.any(ow.object, ow.boolean, ow.undefined),
+                eventLoop: ow.any(ow.object, ow.boolean, ow.undefined),
+                cpu: ow.any(ow.object, ow.boolean, ow.undefined),
+                client: ow.any(ow.object, ow.boolean, ow.undefined),
                 log: ow.optional.object,
                 storageClient: ow.optional.object,
                 config: ow.optional.object,
@@ -240,10 +256,6 @@ export class Snapshotter {
         );
 
         const {
-            memory = {},
-            eventLoop = {},
-            cpu = {},
-            client = {},
             log = serviceLocator.getLogger(),
             config = serviceLocator.getConfiguration(),
             storageClient = serviceLocator.getStorageBackend(),
@@ -255,30 +267,38 @@ export class Snapshotter {
 
         // Snapshot retention is not configured here - each signal is told the window it will be sampled over when it
         // starts, and keeps exactly that much history.
-        this.memorySignal = new MemoryLoadSignal({
-            maxUsedMemoryRatio: memory.maxUsedRatio,
-            overloadedRatio: memory.overloadedRatio,
-            config: this.config,
-            log: this.log,
-        });
+        if (memory !== false) {
+            this.memorySignal = new MemoryLoadSignal({
+                maxUsedMemoryRatio: memory.maxUsedRatio,
+                overloadedRatio: memory.overloadedRatio,
+                config: this.config,
+                log: this.log,
+            });
+        }
 
-        this.eventLoopSignal = createEventLoopLoadSignal({
-            eventLoopSnapshotIntervalSecs: eventLoop.snapshotIntervalSecs,
-            maxBlockedMillis: eventLoop.maxBlockedMillis,
-            overloadedRatio: eventLoop.overloadedRatio,
-        });
+        if (eventLoop !== false) {
+            this.eventLoopSignal = createEventLoopLoadSignal({
+                eventLoopSnapshotIntervalSecs: eventLoop.snapshotIntervalSecs,
+                maxBlockedMillis: eventLoop.maxBlockedMillis,
+                overloadedRatio: eventLoop.overloadedRatio,
+            });
+        }
 
-        this.cpuSignal = createCpuLoadSignal({
-            overloadedRatio: cpu.overloadedRatio,
-            config: this.config,
-        });
+        if (cpu !== false) {
+            this.cpuSignal = createCpuLoadSignal({
+                overloadedRatio: cpu.overloadedRatio,
+                config: this.config,
+            });
+        }
 
-        this.clientSignal = createClientLoadSignal({
-            client: this.client,
-            clientSnapshotIntervalSecs: client.snapshotIntervalSecs,
-            maxClientErrors: client.maxErrors,
-            overloadedRatio: client.overloadedRatio,
-        });
+        if (client !== false) {
+            this.clientSignal = createClientLoadSignal({
+                client: this.client,
+                clientSnapshotIntervalSecs: client.snapshotIntervalSecs,
+                maxClientErrors: client.maxErrors,
+                overloadedRatio: client.overloadedRatio,
+            });
+        }
     }
 
     /**
@@ -286,20 +306,14 @@ export class Snapshotter {
      * be queried with, which is also how much history they retain.
      */
     async start(context: LoadSignalStartContext): Promise<void> {
-        await this.memorySignal.start(context);
-        await this.eventLoopSignal.start(context);
-        await this.cpuSignal.start(context);
-        await this.clientSignal.start(context);
+        await Promise.all(this.getLoadSignals().map(async (signal) => signal.start(context)));
     }
 
     /**
      * Stops all resource capturing.
      */
     async stop(): Promise<void> {
-        await this.memorySignal.stop();
-        await this.eventLoopSignal.stop();
-        await this.cpuSignal.stop();
-        await this.clientSignal.stop();
+        await Promise.all(this.getLoadSignals().map(async (signal) => signal.stop()));
         // Allow microtask queue to unwind before stop returns.
         await new Promise((resolve) => {
             setImmediate(resolve);
@@ -311,7 +325,7 @@ export class Snapshotter {
      * by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
      */
     getMemorySample(sampleDurationMillis?: number): MemorySnapshot[] {
-        return this.memorySignal.getSample(sampleDurationMillis);
+        return this.memorySignal?.getSample(sampleDurationMillis) ?? [];
     }
 
     /**
@@ -319,7 +333,7 @@ export class Snapshotter {
      * by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
      */
     getEventLoopSample(sampleDurationMillis?: number): EventLoopSnapshot[] {
-        return this.eventLoopSignal.getSample(sampleDurationMillis);
+        return this.eventLoopSignal?.getSample(sampleDurationMillis) ?? [];
     }
 
     /**
@@ -327,7 +341,7 @@ export class Snapshotter {
      * by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
      */
     getCpuSample(sampleDurationMillis?: number): CpuSnapshot[] {
-        return this.cpuSignal.getSample(sampleDurationMillis);
+        return this.cpuSignal?.getSample(sampleDurationMillis) ?? [];
     }
 
     /**
@@ -335,6 +349,6 @@ export class Snapshotter {
      * by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
      */
     getClientSample(sampleDurationMillis?: number): ClientSnapshot[] {
-        return this.clientSignal.getSample(sampleDurationMillis);
+        return this.clientSignal?.getSample(sampleDurationMillis) ?? [];
     }
 }
