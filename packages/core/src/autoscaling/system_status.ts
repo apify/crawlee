@@ -60,10 +60,7 @@ export interface SystemStatusOptions {
      * Additional load signals to include in the system status evaluation.
      * These are evaluated alongside the built-in memory, CPU, event loop,
      * and client signals. If any signal reports overload, the system is
-     * considered overloaded.
-     *
-     * > *NOTE:* Per-resource overload ratios are configured on the signals themselves (built-in signals via the
-     * > {@apilink Snapshotter}'s per-signal option bags), not here.
+     * considered overloaded. Each signal carries its own overload ratio.
      */
     loadSignals?: LoadSignal[];
 }
@@ -111,8 +108,7 @@ const BUILTIN_SIGNAL_NAMES = new Set(['memInfo', 'eventLoopInfo', 'cpuInfo', 'cl
  * of the system. It considers the full snapshot history available
  * in the {@apilink Snapshotter} instance.
  *
- * An implementation detail of the {@apilink ConcurrencySystem}, which is the public face of system-load evaluation —
- * configure it through {@apilink ConcurrencySystemOptions}.
+ * Configured through {@apilink ConcurrencySystemOptions}.
  * @category Scaling
  * @internal
  */
@@ -136,7 +132,6 @@ export class SystemStatus {
         this.currentHistoryMillis = currentHistorySecs * 1000;
         this.snapshotter = snapshotter || new Snapshotter();
 
-        // Built-in signals from the snapshotter + any custom signals. Each signal owns its own `overloadedRatio`.
         this.signals = [...this.snapshotter.getLoadSignals(), ...loadSignals];
     }
 

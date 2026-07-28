@@ -156,8 +156,7 @@ export interface SnapshotterOptions {
  * typically received from the request queue, exceed the {@apilink ClientSignalOptions.maxErrors|`maxErrors`}
  * option of the {@apilink SnapshotterOptions.client|`client`} signal bag within the set interval.
  *
- * An implementation detail of the {@apilink ConcurrencySystem}, which builds its own instance — configure it
- * through the (public) {@apilink SnapshotterOptions} passed via
+ * Configured through the {@apilink SnapshotterOptions} passed to
  * {@apilink ConcurrencySystemOptions.snapshotterOptions|`snapshotterOptions`}.
  *
  * @category Scaling
@@ -233,8 +232,6 @@ export class Snapshotter {
 
         const snapshotHistoryMillis = snapshotHistorySecs * 1000;
 
-        // Each built-in signal owns its full tuning (limits + overloadedRatio); the Snapshotter just wires the
-        // per-signal option bags straight through.
         this.memorySignal = new MemoryLoadSignal({
             maxUsedMemoryRatio: memory.maxUsedRatio,
             overloadedRatio: memory.overloadedRatio,

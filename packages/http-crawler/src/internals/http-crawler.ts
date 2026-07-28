@@ -45,9 +45,8 @@ import { extractCharsetFromHtmlBytes, parseContentTypeFromResponse, processHttpR
 const HTML_AND_XML_MIME_TYPES = ['text/html', 'text/xml', 'application/xhtml+xml', 'application/xml'];
 const APPLICATION_JSON_MIME_TYPE = 'application/json';
 /**
- * The HTTP-optimized tuning for the crawler's default {@apilink ConcurrencySystem}: a higher starting concurrency
- * and a relaxed event loop signal (HTTP-only crawling barely touches the event loop). Folded into the crawler-owned
- * default system alongside the user's concurrency shortcuts; an injected `concurrencySystem` bypasses it entirely.
+ * A higher starting concurrency and a relaxed event loop signal, since HTTP-only crawling barely touches the event
+ * loop.
  */
 const HTTP_OPTIMIZED_CONCURRENCY_SYSTEM_OPTIONS: ConcurrencySystemOptions = {
     desiredConcurrency: 10,
@@ -297,9 +296,9 @@ export type HttpRequestHandler<
  *
  * New requests are only dispatched when there is enough free CPU and memory available,
  * using the functionality provided by the {@apilink AutoscaledPool} class.
- * All {@apilink AutoscaledPool} configuration options can be passed to the `autoscaledPoolOptions`
- * parameter of the constructor. For user convenience, the `minConcurrency` and `maxConcurrency`
- * {@apilink AutoscaledPool} options are available directly in the constructor.
+ * Concurrency is tuned via the `minConcurrency`, `maxConcurrency` and `maxRequestsPerMinute` options of the
+ * constructor, or, for finer control, by injecting a pre-configured
+ * {@apilink ConcurrencySystem|`concurrencySystem`}.
  *
  * **Example usage:**
  *
@@ -414,11 +413,7 @@ export class HttpCrawler<
         this.saveResponseCookies = saveResponseCookies;
     }
 
-    /**
-     * Folds the HTTP-optimized tuning into the crawler-owned default {@apilink ConcurrencySystem}, on top of which
-     * the user's `minConcurrency`/`maxConcurrency`/`maxRequestsPerMinute` shortcuts still apply. Not consulted when
-     * a `concurrencySystem` is injected — that instance carries its own complete configuration.
-     */
+    /** Folds the HTTP-optimized tuning into the default system, keeping the user's concurrency shortcuts on top. */
     protected override createDefaultConcurrencySystem(options: ConcurrencySystemOptions): ConcurrencySystem {
         return super.createDefaultConcurrencySystem({
             ...HTTP_OPTIMIZED_CONCURRENCY_SYSTEM_OPTIONS,

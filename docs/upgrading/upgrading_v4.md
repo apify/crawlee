@@ -1171,7 +1171,7 @@ The autoscaling logic was split in two. The load-and-budget "governor" — the p
 
 The motivation is sharing: inject a single `ConcurrencySystem` into several pools (and therefore several crawlers) to cap their **combined** concurrency against one budget, instead of each crawler scaling independently and oversubscribing the host.
 
-Both the pool and the crawlers depend only on the `IConcurrencySystem` interface — the minimal, read-only governor contract (current/desired concurrency plus the atomic task-booking protocol). `ConcurrencySystem` is the canonical implementation and the one crawlers build by default; you only need to care about the interface if you want to supply an alternate governor.
+Both the pool and the crawlers depend only on the `IConcurrencySystem` interface — the minimal, read-only governor contract. `ConcurrencySystem` is the canonical implementation and the one crawlers build by default; the interface only matters if you want to supply an alternate governor.
 
 ### `AutoscaledPool` requires a `concurrencySystem` and no longer takes scaling options
 
@@ -1179,7 +1179,7 @@ All scaling/snapshotter options were **removed** from `AutoscaledPoolOptions` an
 
 `AutoscaledPool` also no longer manages the system's lifecycle: it requires the `ConcurrencySystem` to be running already. Whoever owns the system must `start()` it before `pool.run()` and `stop()` it afterwards — `pool.run()` throws if the system it borrows was never started, instead of running a whole crawl with load monitoring and autoscaling switched off. (Within Crawlee this is handled by the crawler for the pool it builds; you only need to care about this if you inject a system or drive an `AutoscaledPool` directly.)
 
-One subtle behavioral consequence: pausing no longer suspends autoscaling. Previously, `pool.pause()` also stopped the pool's autoscaling loop ("don't scale if paused"). The autoscaling interval now lives on the `ConcurrencySystem`, which has no knowledge of its borrowing pools' pause state — deliberately so, since with a shared system other pools may still be running and need scaling. As a result, a running system keeps evaluating (and possibly scaling down) the desired concurrency and keeps emitting its periodic state log even while every pool that consults it is paused. Scaling *up* remains effectively blocked while paused, because the current concurrency drains below the required ratio of the desired concurrency. If you pause for extended periods and want the system fully quiet, `stop()` the system (if you own it) and `start()` it again before resuming.
+One subtle behavioral consequence: `pool.pause()` no longer suspends autoscaling. The autoscaling interval now lives on the `ConcurrencySystem`, which knows nothing about its borrowing pools' pause state — deliberately so, since other pools sharing it may still need scaling. A paused pool's system therefore keeps evaluating (and possibly scaling down) the desired concurrency and keeps emitting its periodic state log. Scaling *up* stays effectively blocked, as the current concurrency drains below the ratio of desired concurrency required for a scale-up. To silence the system during a long pause, `stop()` it (if you own it) and `start()` it again before resuming.
 
 **Before:**
 ```typescript
@@ -1267,7 +1267,7 @@ try {
 }
 ```
 
-Note that an injected system is **yours to run**: the crawler never starts or stops a system it did not build, since it cannot know when the last crawler sharing it is done. A system you forget to `start()` would monitor no load and never rescale, so rather than silently running at a fixed concurrency, `run()` **throws** — check `isRunning` if you need to know whether some other owner already started a system handed to you.
+Note that an injected system is **yours to run**: the crawler never starts or stops a system it did not build, since it cannot know when the last crawler sharing it is done. Forgetting to `start()` it makes `run()` **throw**, rather than silently crawling at a fixed concurrency with no load monitoring — check `isRunning` if you need to know whether another owner already started a system handed to you.
 
 For the common case, the shortcuts are enough and need no `ConcurrencySystem`:
 
@@ -1339,7 +1339,7 @@ new ConcurrencySystem({
 });
 ```
 
-`SystemStatusOptions` is gone from the public API altogether. The four `maxMemoryOverloadedRatio`, `maxEventLoopOverloadedRatio`, `maxCpuOverloadedRatio`, and `maxClientOverloadedRatio` options were **removed** — each signal now owns its overload ratio (set it via the corresponding `snapshotterOptions` bag above) — and the remaining useful members moved to `ConcurrencySystemOptions`: pass custom signals via `loadSignals` and tune the "current" status window via `currentHistorySecs`, both directly on the system's options.
+`SystemStatusOptions` is gone from the public API altogether. Its four `max*OverloadedRatio` options were **removed** — each signal now owns its overload ratio, set via the corresponding `snapshotterOptions` bag above — and its remaining useful members moved onto `ConcurrencySystemOptions` as `loadSignals` (custom signals) and `currentHistorySecs` (the "current" status window).
 
 The `Snapshotter` and `SystemStatus` classes themselves are now internal — they are implementation details of the `ConcurrencySystem`, which is the sole public entry point to load monitoring and autoscaling. The configuration surface (`SnapshotterOptions` and its per-signal bags) remains public, as does the `LoadSignal` interface (with the `SnapshotStore` helper) for implementing custom signals.
 

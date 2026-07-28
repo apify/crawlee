@@ -310,26 +310,24 @@ export interface BasicCrawlerOptions<
     /**
      * Lets you override the task-loop predicates (`isFinishedFunction`, `isTaskReadyFunction`) of the crawler's
      * underlying {@apilink AutoscaledPool}. The `runTaskFunction` is owned by the crawler and cannot be overridden.
-     * > *NOTE:* This no longer carries concurrency/scaling configuration. Use the `minConcurrency`/`maxConcurrency`/
-     * `maxRequestsPerMinute` shortcuts for the common case, or inject a fully-configured
-     * {@apilink BasicCrawlerOptions.concurrencySystem|`concurrencySystem`} for finer control.
+     *
+     * Concurrency is configured elsewhere — through the `minConcurrency`/`maxConcurrency`/`maxRequestsPerMinute`
+     * shortcuts, or a {@apilink BasicCrawlerOptions.concurrencySystem|`concurrencySystem`} for finer control.
      */
     autoscaledPoolOptions?: AutoscaledPoolPredicateOptions;
 
     /**
      * A pre-configured concurrency governor — the component that decides whether there is free compute for one more
-     * task. Typically a {@apilink ConcurrencySystem} (the canonical implementation), though any
-     * {@apilink IConcurrencySystem} is accepted. Configure all scaling on the instance itself (min/max/desired
-     * concurrency, scaling ratios, `maxTasksPerMinute`, snapshotter tuning) rather than through separate option bags.
+     * task. Typically a {@apilink ConcurrencySystem}, though any {@apilink IConcurrencySystem} is accepted. All
+     * scaling configuration (min/max/desired concurrency, scaling ratios, `maxTasksPerMinute`, snapshotter tuning)
+     * lives on the instance itself.
      *
      * Inject the *same* instance into several concurrent crawlers to cap their **combined** concurrency against a
-     * single budget, instead of each crawler scaling independently and oversubscribing the host. Each crawler still
-     * builds and drives its own {@apilink AutoscaledPool} (its request-processing loop is private); only the
-     * load/scaling accounting is shared.
+     * single budget. Each crawler still builds and drives its own {@apilink AutoscaledPool}; only the load/scaling
+     * accounting is shared.
      *
-     * When supplied, the `minConcurrency`/`maxConcurrency`/`maxRequestsPerMinute` shortcuts are ignored (they'd
-     * otherwise duplicate what the instance already carries). The crawler never starts or tears down a supplied
-     * system — the caller owns its lifecycle.
+     * When supplied, the `minConcurrency`/`maxConcurrency`/`maxRequestsPerMinute` shortcuts are ignored, and the
+     * crawler neither starts nor tears the system down — the caller owns its lifecycle.
      */
     concurrencySystem?: IConcurrencySystem;
 
@@ -643,22 +641,16 @@ export class BasicCrawler<
     private requestManagerTimeoutsApplied = false;
 
     /**
-     * Backs the crawler's shared {@apilink ConcurrencySystem}: borrowed when one is supplied via
-     * {@apilink BasicCrawlerOptions.concurrencySystem|`concurrencySystem`} (never torn down by the crawler), or an
-     * owned default built freshly for every run and folded into the pool the crawler constructs in
-     * {@apilink BasicCrawler._init|`_init()`}. Owned-only lifecycle is gated through
-     * {@apilink OwnedOrInjected.ifOwned|`ifOwned()`}.
+     * The governor backing the crawler's {@apilink AutoscaledPool}: either the injected
+     * {@apilink BasicCrawlerOptions.concurrencySystem|`concurrencySystem`} (borrowed — the caller owns its lifecycle)
+     * or a default that {@apilink BasicCrawler._init|`_init()`} builds and starts for each run.
      */
     private concurrencySystemDep: OwnedOrInjected<IConcurrencySystem, ConcurrencySystem>;
 
-    /**
-     * Builds the crawler-owned default {@apilink ConcurrencySystem} with the resolved concurrency shortcuts folded
-     * in. Invoked once per {@apilink BasicCrawler.run|`run()`} (from {@apilink BasicCrawler._init|`_init()`}), so
-     * every run starts from a clean governor — no resource snapshots, per-minute task counts or autoscaled desired
-     * concurrency leak over from the previous run, matching the fresh pool the crawler builds each time. Unused when
-     * a `concurrencySystem` is injected.
-     */
-    private readonly buildDefaultConcurrencySystem?: () => ConcurrencySystem;
+    private readonly injectedConcurrencySystem?: IConcurrencySystem;
+
+    /** Builds the crawler-owned default governor with the concurrency shortcuts folded in. */
+    private readonly buildDefaultConcurrencySystem: () => ConcurrencySystem;
 
     /**
      * A reference to the underlying {@apilink AutoscaledPool} class that runs the crawler's task loop.
@@ -666,9 +658,9 @@ export class BasicCrawler<
      * We can use it to pause the crawler by calling {@apilink AutoscaledPool.pause|`autoscaledPool.pause()`}
      * or to abort it by calling {@apilink AutoscaledPool.abort|`autoscaledPool.abort()`}.
      *
-     * To tune concurrency at runtime, build a {@apilink ConcurrencySystem}, keep a reference to it and inject it via
-     * {@apilink BasicCrawlerOptions.concurrencySystem|`concurrencySystem`} — the pool only exposes the governor's
-     * read-only telemetry.
+     * The pool only exposes read-only concurrency telemetry. To tune concurrency at runtime, keep a reference to a
+     * {@apilink ConcurrencySystem} and inject it via
+     * {@apilink BasicCrawlerOptions.concurrencySystem|`concurrencySystem`}.
      */
     autoscaledPool?: AutoscaledPool;
 
@@ -743,11 +735,9 @@ export class BasicCrawler<
     protected readonly additionalHttpErrorStatusCodes: Set<number>;
     private ignoreHttpErrorStatusCodes: Set<number>;
     /**
-     * The resolved task-loop options for the crawler's own {@apilink AutoscaledPool}: the crawler-owned
-     * `runTaskFunction`, the (possibly user-overridden) ready/finished predicates, and cadence/logging. All
-     * concurrency/scaling config lives on the {@apilink ConcurrencySystem} instead — see
-     * {@apilink BasicCrawler.concurrencySystemDep|`concurrencySystemDep`}. Fed to the pool in
-     * {@apilink BasicCrawler._init|`_init()`}.
+     * The resolved task-loop options for the crawler's own {@apilink AutoscaledPool} — the crawler-owned
+     * `runTaskFunction`, the (possibly user-overridden) ready/finished predicates and cadence/logging. Concurrency
+     * configuration lives on the {@apilink ConcurrencySystem} instead.
      */
     private autoscaledPoolOptions: AutoscaledPoolTaskLoopOptions;
     protected readonly httpClient: BaseHttpClient;
@@ -1146,19 +1136,17 @@ export class BasicCrawler<
                 );
             }
 
-            // Borrowed if supplied (its scaling config lives on the instance, and the caller owns its lifecycle);
-            // otherwise a default governor built from the concurrency shortcuts — freshly for each run, in `_init()`,
-            // so no state leaks between runs. Anything finer than the shortcuts requires injecting a pre-configured
-            // `ConcurrencySystem`. Folded into the pool the crawler builds in `_init()`.
-            if (concurrencySystem === undefined) {
-                this.buildDefaultConcurrencySystem = () =>
-                    this.createDefaultConcurrencySystem({
-                        minConcurrency,
-                        maxConcurrency,
-                        maxTasksPerMinute: maxRequestsPerMinute,
-                        log: this.log,
-                    });
-            }
+            this.injectedConcurrencySystem = concurrencySystem;
+            this.buildDefaultConcurrencySystem = () =>
+                this.createDefaultConcurrencySystem({
+                    minConcurrency,
+                    maxConcurrency,
+                    maxTasksPerMinute: maxRequestsPerMinute,
+                    log: this.log,
+                });
+
+            // An empty owned slot until `_init()` builds the default, so that a `teardown()` before the first `run()`
+            // stays a no-op.
             this.concurrencySystemDep = OwnedOrInjected.resolve<IConcurrencySystem, ConcurrencySystem>(
                 concurrencySystem,
             );
@@ -1168,13 +1156,12 @@ export class BasicCrawler<
     }
 
     /**
-     * Builds the crawler-owned default {@apilink ConcurrencySystem} — only called when no
-     * {@apilink BasicCrawlerOptions.concurrencySystem|`concurrencySystem`} was injected. `options` carries the
-     * resolved `minConcurrency`/`maxConcurrency`/`maxRequestsPerMinute` shortcuts (and the crawler's log).
+     * Builds the crawler-owned default {@apilink ConcurrencySystem} from the resolved
+     * `minConcurrency`/`maxConcurrency`/`maxRequestsPerMinute` shortcuts. Not called when a
+     * {@apilink BasicCrawlerOptions.concurrencySystem|`concurrencySystem`} was injected.
      *
      * Subclasses may override this to tune the default system (e.g. {@apilink HttpCrawler} raises the starting
-     * concurrency and relaxes the event loop signal) while still honouring the user's shortcuts — the crawler owns
-     * (and therefore starts/stops) the result either way, unlike an injected system.
+     * concurrency and relaxes the event loop signal) while still honouring the user's shortcuts.
      */
     protected createDefaultConcurrencySystem(options: ConcurrencySystemOptions): ConcurrencySystem {
         return new ConcurrencySystem(options);
@@ -1921,30 +1908,17 @@ export class BasicCrawler<
             this._closeEvents = true;
         }
 
-        // An owned governor is rebuilt for every run, so it always starts from a clean slate — stale resource
-        // snapshots or a previous run's scaled desired concurrency would otherwise distort this run's scaling
-        // (an injected system's state is intentionally long-lived and belongs to the caller).
-        if (this.concurrencySystemDep.isOwned) {
-            this.concurrencySystemDep = OwnedOrInjected.resolve<IConcurrencySystem, ConcurrencySystem>(
-                undefined,
-                this.buildDefaultConcurrencySystem,
-            );
-        }
-
-        // Boot the governor only if we own it — a supplied (shared) system's lifecycle belongs to the caller, who is
-        // responsible for starting it before running crawlers and stopping it afterwards.
+        // An owned governor is rebuilt (and started) for every run, so it always starts from a clean slate — stale
+        // resource snapshots or a previous run's scaled desired concurrency would otherwise distort this run's
+        // scaling. An injected one is long-lived and its lifecycle belongs to the caller.
+        this.concurrencySystemDep = OwnedOrInjected.resolve<IConcurrencySystem, ConcurrencySystem>(
+            this.injectedConcurrencySystem,
+            this.buildDefaultConcurrencySystem,
+        );
         await this.concurrencySystemDep.ifOwned((system) => system.start());
 
-        // The crawler always builds and owns its own pool (its request-processing loop is private and can't be
-        // borrowed); only the load-and-budget governor is shareable, so it's folded in here. The pool takes just the
-        // task-loop bits — all concurrency/scaling config lives on the (owned-or-injected) ConcurrencySystem.
         this.autoscaledPool = new AutoscaledPool({
-            runTaskFunction: this.autoscaledPoolOptions.runTaskFunction,
-            isTaskReadyFunction: this.autoscaledPoolOptions.isTaskReadyFunction,
-            isFinishedFunction: this.autoscaledPoolOptions.isFinishedFunction,
-            maybeRunIntervalSecs: this.autoscaledPoolOptions.maybeRunIntervalSecs,
-            taskTimeoutSecs: this.autoscaledPoolOptions.taskTimeoutSecs,
-            log: this.autoscaledPoolOptions.log,
+            ...this.autoscaledPoolOptions,
             concurrencySystem: this.concurrencySystemDep.value,
         });
 
@@ -2443,10 +2417,7 @@ export class BasicCrawler<
 
         await this.sessionPoolDep.ifOwned((pool) => pool.teardown());
 
-        // The crawler always owns its pool, so it always aborts it.
         await this.autoscaledPool?.abort();
-
-        // Tear the governor down only if we built it — a supplied (shared) system's lifecycle belongs to the caller.
         await this.concurrencySystemDep.ifOwned((system) => system.stop());
     }
 

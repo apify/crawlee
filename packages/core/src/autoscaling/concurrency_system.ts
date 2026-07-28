@@ -100,56 +100,48 @@ export interface ConcurrencySystemOptions {
 
 /**
  * The contract between an {@apilink AutoscaledPool} and its concurrency "governor" — the object that answers *is
- * there free compute for one more task?* and tracks the budget that tasks are booked against. This is exactly what
- * the pool (and therefore a crawler) consumes; {@apilink ConcurrencySystem} is the canonical implementation, and the
- * interface exists so alternate governors can be substituted without depending on its internals (snapshotting,
- * system-status evaluation, autoscaling).
+ * there free compute for one more task?* and tracks the budget that tasks are booked against.
+ * {@apilink ConcurrencySystem} is the canonical implementation; the interface lets alternate governors be substituted
+ * without depending on its internals.
  *
- * Implementations must keep {@apilink IConcurrencySystem.tryRegisterTaskStart|`tryRegisterTaskStart()`} an *atomic*
- * (synchronous) check-and-book — several pools may share one governor, and a check separated from the booking by an
- * `await` lets two pools claim the last free slot at once.
+ * {@apilink IConcurrencySystem.tryRegisterTaskStart|`tryRegisterTaskStart()`} must be an *atomic* (synchronous)
+ * check-and-book — several pools may share one governor, and a check separated from the booking by an `await` lets two
+ * of them claim the last free slot at once.
  * @category Scaling
  */
 export interface IConcurrencySystem {
     /**
-     * The number of tasks that should currently be running in parallel, assuming a sufficient supply of them —
-     * the governor's current *output*. How it is derived (autoscaling, fixed configuration, an external signal) is
-     * entirely up to the implementation, which is also why the contract exposes it read-only: tuning knobs like
-     * {@apilink ConcurrencySystem}'s `minConcurrency`/`maxConcurrency` are implementation policy, and mutating them
-     * belongs on the concrete instance its owner holds.
+     * The number of tasks that should currently be running in parallel, assuming a sufficient supply of them. How it
+     * is derived (autoscaling, fixed configuration, an external signal) is up to the implementation — which is why it
+     * is read-only here: tuning knobs live on the concrete instance its owner holds.
      */
     readonly desiredConcurrency: number;
 
     /**
-     * The number of parallel tasks currently booked against this governor (summed across every borrowing pool).
+     * The number of parallel tasks currently booked against this governor, regardless of which pool booked them.
      */
     readonly currentConcurrency: number;
 
     /**
      * Whether a governor that needs starting has actually been started. {@apilink AutoscaledPool.run|`pool.run()`}
-     * refuses to run against a governor that reports `false`, since a governor nobody started monitors nothing and
-     * never rescales — the run would silently proceed at a fixed concurrency. Omit this member entirely (leaving it
-     * `undefined`) if the implementation has no startup lifecycle and is always ready; only an explicit `false` is
-     * treated as an error.
+     * refuses to run when this is `false`, rather than proceed against a governor that is not yet functional. Omit the
+     * member entirely if the implementation has no startup lifecycle; only an explicit `false` is treated as an error.
      */
     readonly isRunning?: boolean;
 
     /**
-     * The core, shareable decision: may **one more** task start right now? A cheap pre-check the pool consults
-     * before querying task readiness; the actual booking happens through
-     * {@apilink IConcurrencySystem.tryRegisterTaskStart|`tryRegisterTaskStart()`}.
+     * May **one more** task start right now? A cheap pre-check the pool consults before querying task readiness; the
+     * booking itself happens in {@apilink IConcurrencySystem.tryRegisterTaskStart|`tryRegisterTaskStart()`}.
      *
-     * This pre-check must **not** enforce rate limits that only make sense for ready tasks (e.g. a per-minute task
-     * cap) — the pool calls it before knowing whether any task is ready, and a rate-limit refusal here would stall
-     * an already-empty queue. Enforce such limits in `tryRegisterTaskStart()` instead.
+     * Must **not** enforce rate limits that only make sense for ready tasks (e.g. a per-minute task cap) — the pool
+     * calls this before knowing whether any task is ready, so a refusal here would stall an already-empty queue.
      */
     hasCapacityForTask(): boolean;
 
     /**
-     * Atomically books a task against the budget, returning `false` (without booking) when it has no room — because
-     * the concurrency budget is spent, or because an implementation-specific rate limit (such as
-     * {@apilink ConcurrencySystemOptions.maxTasksPerMinute|`maxTasksPerMinute`}) was reached. Must be synchronous —
-     * see the interface docs for why.
+     * Atomically books a task against the budget, returning `false` (without booking) when there is no room — either
+     * the concurrency budget is spent, or an implementation-specific rate limit (e.g. a cap on tasks per minute) was
+     * reached.
      */
     tryRegisterTaskStart(): boolean;
 
@@ -160,20 +152,17 @@ export interface IConcurrencySystem {
 }
 
 /**
- * The shareable "governor" behind an {@apilink AutoscaledPool}. It answers the single question that decides whether
- * more work may start right now — *is there free compute for one more task?* — by combining live system load (via a
- * {@apilink Snapshotter}/{@apilink SystemStatus}) with a concurrency budget it autoscales over time.
+ * The shareable "governor" behind an {@apilink AutoscaledPool}: it decides whether there is free compute for one more
+ * task by combining live system load (via an internal {@apilink Snapshotter}) with a concurrency budget it autoscales
+ * over time.
  *
- * Splitting this out of {@apilink AutoscaledPool} lets several pools (and therefore several crawlers) share **one**
- * budget so their *combined* compute is capped, instead of each crawler scaling independently and oversubscribing the
- * machine. Everything task-source specific — the `runTaskFunction`, the ready/finished checks, the `run()` promise —
- * stays in the pool; only the load-and-budget accounting lives here.
+ * Sharing one instance between several pools (and therefore several crawlers) caps their *combined* compute, instead
+ * of letting each scale independently and oversubscribe the machine.
  *
- * A system has a single lifecycle owner, not per-borrower reference counting: whoever built the instance calls
- * {@apilink ConcurrencySystem.start|`start()`} before any borrowing pool runs and
- * {@apilink ConcurrencySystem.stop|`stop()`} once they are all done (crawlers do this for the default system they
- * build, and never for an injected one). Both calls are idempotent, but the first `stop()` tears the snapshotter down
- * for every borrower — borrowers must not manage a shared system's lifecycle themselves.
+ * Whoever builds the instance owns its lifecycle: call {@apilink ConcurrencySystem.start|`start()`} before any
+ * borrowing pool runs and {@apilink ConcurrencySystem.stop|`stop()`} once they are all done (crawlers do this for the
+ * default system they build, never for an injected one). Both calls are idempotent, and the first `stop()` tears the
+ * system down for every borrower.
  * @category Scaling
  */
 export class ConcurrencySystem implements IConcurrencySystem {
@@ -200,12 +189,7 @@ export class ConcurrencySystem implements IConcurrencySystem {
     private autoscaleInterval?: BetterIntervalID;
     private tasksDonePerSecondInterval?: BetterIntervalID;
 
-    /**
-     * Whether the snapshotter and autoscaling intervals are currently running. Guards against a redundant
-     * {@apilink ConcurrencySystem.start|`start()`}/{@apilink ConcurrencySystem.stop|`stop()`} pair being a problem, so
-     * whoever owns the system (a crawler for its default, or the caller for a shared/injected one) can bracket its
-     * lifecycle without bookkeeping.
-     */
+    /** Whether the snapshotter and autoscaling intervals are currently running. */
     private running = false;
 
     constructor(options: ConcurrencySystemOptions = {}) {
@@ -260,9 +244,6 @@ export class ConcurrencySystem implements IConcurrencySystem {
         this._autoscale = this._autoscale.bind(this);
         this._incrementTasksDonePerSecond = this._incrementTasksDonePerSecond.bind(this);
 
-        // The snapshotter and the status evaluation are implementation details of this class — the only
-        // configuration they take from the outside is the data-only `snapshotterOptions` bag, the custom
-        // `loadSignals` and the `currentHistorySecs` window.
         this.snapshotter = new Snapshotter({
             ...snapshotterOptions,
             log: this.log,
@@ -325,25 +306,18 @@ export class ConcurrencySystem implements IConcurrencySystem {
         this._desiredConcurrency = value;
     }
 
-    /**
-     * Gets the number of parallel tasks currently running against this system (summed across every borrowing pool).
-     */
     get currentConcurrency(): number {
         return this._currentConcurrency;
     }
 
-    /**
-     * Whether the system is currently started, i.e. monitoring load and autoscaling the budget. Borrowing pools read
-     * this to refuse to run against a system nobody started — see {@apilink IConcurrencySystem.isRunning}.
-     */
+    /** Whether the system is currently monitoring load and autoscaling the budget. */
     get isRunning(): boolean {
         return this.running;
     }
 
     /**
-     * Boots the underlying snapshotter and the autoscaling interval. Idempotent — calling it on an
-     * already-running system is a no-op, so a shared system started by its owner isn't restarted when handed to
-     * another consumer.
+     * Boots the underlying snapshotter and the autoscaling interval. Idempotent, so a shared system isn't restarted
+     * when handed to another consumer.
      */
     async start(): Promise<void> {
         if (this.running) {
@@ -377,9 +351,8 @@ export class ConcurrencySystem implements IConcurrencySystem {
     }
 
     /**
-     * The core, shareable decision: may **one more** task start right now? Returns `false` when the shared budget is
-     * spent (desired concurrency reached), when the machine is overloaded past `minConcurrency`, or when the
-     * per-minute task cap is hit — the exact gate {@apilink AutoscaledPool} consults before dispatching a task.
+     * May **one more** task start right now? Returns `false` when the shared budget is spent (desired concurrency
+     * reached) or when the machine is overloaded past `minConcurrency`.
      */
     hasCapacityForTask(): boolean {
         if (this._currentConcurrency >= this._desiredConcurrency) {
@@ -400,12 +373,7 @@ export class ConcurrencySystem implements IConcurrencySystem {
         return true;
     }
 
-    /**
-     * Whether the per-minute task cap has been reached. Deliberately *not* part of
-     * {@apilink ConcurrencySystem.hasCapacityForTask|`hasCapacityForTask()`} — the cap is only enforced in
-     * {@apilink ConcurrencySystem.tryRegisterTaskStart|`tryRegisterTaskStart()`}, i.e. once a task is known to be
-     * ready, so an empty queue never blocks the pool for a whole extra minute.
-     */
+    /** Whether the per-minute task cap has been reached. */
     private get isOverMaxRequestLimit(): boolean {
         if (this.maxTasksPerMinute === Infinity) {
             return false;
@@ -416,13 +384,12 @@ export class ConcurrencySystem implements IConcurrencySystem {
 
     /**
      * Atomically books a task against the shared budget: re-checks
-     * {@apilink ConcurrencySystem.hasCapacityForTask|`hasCapacityForTask()`} and the per-minute task cap, and
-     * increments the current concurrency in one synchronous step, returning `false` (without booking) when there is
-     * no room. Call right before the task actually runs, and only run it if this returns `true`.
+     * {@apilink ConcurrencySystem.hasCapacityForTask|`hasCapacityForTask()`} plus the per-minute task cap and
+     * increments the current concurrency in one synchronous step, returning `false` (without booking) when there is no
+     * room. Call right before the task actually runs.
      *
-     * The check-and-book must be a single operation — with several pools borrowing one system, a capacity check
-     * followed by an `await` (e.g. a task-readiness query) and only then a booking would let two pools book the last
-     * free slot at once, overshooting the shared budget (or the per-minute cap).
+     * The cap is enforced here rather than in the pre-check so that an empty queue never blocks the pool for a whole
+     * extra minute.
      */
     tryRegisterTaskStart(): boolean {
         if (!this.hasCapacityForTask()) {
@@ -439,23 +406,18 @@ export class ConcurrencySystem implements IConcurrencySystem {
         return true;
     }
 
-    /**
-     * Returns a task's slot to the shared budget. Call once the task settles (resolve or reject).
-     */
     registerTaskEnd(): void {
         this._currentConcurrency--;
     }
 
-    /**
-     * Reads the current live system status (used by the pool for logging/telemetry).
-     */
+    /** Reads the current live system status (used by the pool for logging/telemetry). */
     getCurrentStatus(): SystemInfo {
         return this.systemStatus.getCurrentStatus();
     }
 
     /**
-     * Evaluates the current historical system status and scales the shared desired concurrency up or down
-     * accordingly. Driven by the autoscaling interval started in {@apilink ConcurrencySystem.start|`start()`}.
+     * Evaluates the historical system status and scales the shared desired concurrency up or down accordingly. Driven
+     * by the autoscaling interval started in {@apilink ConcurrencySystem.start|`start()`}.
      */
     private _autoscale(intervalCallback: () => void): void {
         if (this.isOverMaxRequestLimit) return intervalCallback();

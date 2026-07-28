@@ -10,9 +10,9 @@ import type { CrawleeLogger } from '../log.js';
 import { serviceLocator } from '../service_locator.js';
 
 /**
- * The task-readiness predicates a consumer may supply to steer an {@apilink AutoscaledPool}'s run loop. These are the
- * parts of the loop a higher-level driver (e.g. a crawler) legitimately overrides, as opposed to the crawler-owned
- * `runTaskFunction`. Kept as its own interface so such drivers can expose exactly this subset without utility types.
+ * The task-readiness predicates a consumer may supply to steer an {@apilink AutoscaledPool}'s run loop — the parts of
+ * the loop a higher-level driver (e.g. a crawler) legitimately overrides, as opposed to the crawler-owned
+ * `runTaskFunction`.
  */
 export interface AutoscaledPoolPredicateOptions {
     /**
@@ -34,9 +34,8 @@ export interface AutoscaledPoolPredicateOptions {
 }
 
 /**
- * Everything that describes the pool's *task loop* — the work it runs and how often — without the (injected)
- * {@apilink ConcurrencySystem} governor. A driver that builds the pool but supplies the governor separately (e.g.
- * {@apilink BasicCrawler}) holds exactly this, so it needs no `Omit`/`Pick` gymnastics.
+ * Everything that describes the pool's *task loop* — the work it runs and how often — without the
+ * {@apilink ConcurrencySystem} governor, which a driver like {@apilink BasicCrawler} supplies separately.
  */
 export interface AutoscaledPoolTaskLoopOptions extends AutoscaledPoolPredicateOptions {
     /**
@@ -63,39 +62,31 @@ export interface AutoscaledPoolTaskLoopOptions extends AutoscaledPoolPredicateOp
 
 export interface AutoscaledPoolOptions extends AutoscaledPoolTaskLoopOptions {
     /**
-     * The governor that decides how much this pool may scale — whether there is free compute for one more task.
-     * **Required.** Typically a {@apilink ConcurrencySystem} (the canonical implementation), but any
-     * {@apilink IConcurrencySystem} works — the pool depends only on the interface. Share a single instance across
-     * multiple pools (and therefore multiple crawlers) to cap their *combined* concurrency against one budget instead
-     * of each pool scaling independently.
+     * The governor that decides whether there is free compute for one more task. Typically a
+     * {@apilink ConcurrencySystem}, but any {@apilink IConcurrencySystem} works. Share a single instance across
+     * multiple pools (and therefore multiple crawlers) to cap their *combined* concurrency against one budget.
      *
-     * All concurrency/scaling/snapshotter configuration (min/max/desired concurrency, scaling ratios, `maxTasksPerMinute`,
-     * snapshotter tuning) lives on the governor, not here — the pool only owns the task loop
-     * (`runTaskFunction`/`isTaskReadyFunction`/`isFinishedFunction`) and its cadence.
+     * All concurrency/scaling/snapshotter configuration lives on the governor — the pool only owns the task loop and
+     * its cadence.
      */
     concurrencySystem: IConcurrencySystem;
 }
 
 /**
  * Manages a pool of asynchronous resource-intensive tasks that are executed in parallel.
- * The pool only starts new tasks if there is enough free CPU and memory available
- * and the Javascript event loop is not blocked.
- *
- * The information about the CPU and memory usage is obtained by the {@apilink Snapshotter} class,
- * which makes regular snapshots of system resources that may be either local
- * or from the Apify cloud infrastructure in case the process is running on the Apify platform.
- * Meaningful data gathered from these snapshots is provided to `AutoscaledPool` by the {@apilink SystemStatus} class.
+ * The pool only starts new tasks while its {@apilink IConcurrencySystem|concurrency system} reports free capacity —
+ * that governor is what monitors CPU, memory and event loop load and autoscales the concurrency budget.
  *
  * Before running the pool, you need to implement the following three functions:
- * {@apilink AutoscaledPoolOptions.runTaskFunction},
- * {@apilink AutoscaledPoolOptions.isTaskReadyFunction} and
- * {@apilink AutoscaledPoolOptions.isFinishedFunction}.
+ * {@apilink AutoscaledPoolTaskLoopOptions.runTaskFunction|`runTaskFunction`},
+ * {@apilink AutoscaledPoolPredicateOptions.isTaskReadyFunction|`isTaskReadyFunction`} and
+ * {@apilink AutoscaledPoolPredicateOptions.isFinishedFunction|`isFinishedFunction`}.
  *
  * The auto-scaled pool is started by calling the {@apilink AutoscaledPool.run} function.
- * The pool periodically queries the {@apilink AutoscaledPoolOptions.isTaskReadyFunction} function
- * for more tasks, managing optimal concurrency, until the function resolves to `false`. The pool then queries
- * the {@apilink AutoscaledPoolOptions.isFinishedFunction}. If it resolves to `true`, the run finishes after all running tasks complete.
- * If it resolves to `false`, it assumes there will be more tasks available later and keeps periodically querying for tasks.
+ * The pool periodically queries `isTaskReadyFunction` for more tasks, managing optimal concurrency, until the function
+ * resolves to `false`. The pool then queries `isFinishedFunction`. If it resolves to `true`, the run finishes after all
+ * running tasks complete. If it resolves to `false`, it assumes there will be more tasks available later and keeps
+ * periodically querying for tasks.
  * If any of the tasks throws then the {@apilink AutoscaledPool.run} function rejects the promise with an error.
  *
  * The pool evaluates whether it should start a new task every time one of the tasks finishes
@@ -152,9 +143,8 @@ export class AutoscaledPool {
     private queryingIsFinished!: boolean;
 
     /**
-     * This pool's *own* in-flight task count. Distinct from {@apilink AutoscaledPool.currentConcurrency}, which reflects
-     * the (possibly shared) governor's total across every borrowing pool — `pause()` and `maybeFinish()` care only
-     * about this pool draining, not about work happening in other pools sharing the same budget.
+     * This pool's *own* in-flight task count, as opposed to {@apilink AutoscaledPool.currentConcurrency}, which is the
+     * (possibly shared) governor's total. `pause()` and `maybeFinish()` care only about this pool draining.
      */
     private ownConcurrency = 0;
 
@@ -209,17 +199,16 @@ export class AutoscaledPool {
     }
 
     /**
-     * Gets the desired concurrency of the governor backing this pool — an estimated number of parallel tasks the
-     * system can currently support. Read-only telemetry: concurrency limits are configured (and, for the canonical
-     * {@apilink ConcurrencySystem}, tuned at runtime) on the governor instance its owner holds, not through the pool.
+     * The estimated number of parallel tasks the governor backing this pool can currently support. Read-only
+     * telemetry — concurrency limits are configured and tuned on the governor instance its owner holds.
      */
     get desiredConcurrency(): number {
         return this.concurrencySystem.desiredConcurrency;
     }
 
     /**
-     * Gets the number of parallel tasks currently booked against the governor backing this pool. When the governor
-     * is shared, this includes tasks of every borrowing pool, not just this one.
+     * The number of parallel tasks currently booked against the governor backing this pool. When the governor is
+     * shared, this includes tasks of every borrowing pool, not just this one.
      */
     get currentConcurrency(): number {
         return this.concurrencySystem.currentConcurrency;
@@ -233,10 +222,8 @@ export class AutoscaledPool {
      * a running governor and cannot start one it does not own.
      */
     async run(): Promise<void> {
-        // Fail fast rather than run against a dead governor: without a running snapshotter and autoscaling interval
-        // the desired concurrency never moves, so the whole run would silently proceed at a fixed concurrency. This
-        // has to be checked here, on an awaited path — the capacity queries inside the task loop are driven by
-        // intervals and `setImmediate`, where a throw would become an unhandled rejection and hang `run()` forever.
+        // Checked here, on an awaited path — the capacity queries inside the task loop run from intervals and
+        // `setImmediate`, where a throw would become an unhandled rejection and hang `run()` forever.
         if (this.concurrencySystem.isRunning === false) {
             throw new CriticalError(
                 'The ConcurrencySystem this AutoscaledPool borrows has not been started, so system load would not be ' +
@@ -370,7 +357,7 @@ export class AutoscaledPool {
             this.log.perf('Task will not run. Waiting for a ready task.');
             return done();
         }
-        // - the shared budget has no room (desired concurrency reached, or system overloaded past minConcurrency).
+        // - the budget has room.
         if (!this.concurrencySystem.hasCapacityForTask()) {
             return done();
         }
@@ -399,12 +386,8 @@ export class AutoscaledPool {
             return this.maybeFinish();
         }
 
-        // - the shared budget may have been spent while we awaited `isTaskReadyFunction` — with several pools
-        // borrowing one ConcurrencySystem, another pool can book the last free slot during that gap. The booking
-        // is therefore an atomic re-check-and-increment on the system; the `hasCapacityForTask()` call above is
-        // only a cheap early-out that avoids querying task readiness in vain. The governor also enforces any rate
-        // limit (e.g. max tasks per minute) here rather than in the pre-check, deliberately *after* the readiness
-        // query — refusing before knowing a task is ready would hang the pool for an extra minute on an empty queue.
+        // - the budget still has room. Re-checked atomically, because another pool sharing the governor may have taken
+        // the last free slot while we awaited `isTaskReadyFunction` above.
         if (!this.concurrencySystem.tryRegisterTaskStart()) {
             return done();
         }
