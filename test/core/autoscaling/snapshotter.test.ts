@@ -16,6 +16,13 @@ const noop = () => {};
  */
 const START_CONTEXT = { maxSampleWindowMillis: 30_000 };
 
+/** Reads a signal's sample by name, the same way production (`SystemStatus`) does. */
+const sampleOf = (snapshotter: Snapshotter, name: string, sampleDurationMillis?: number): any[] =>
+    snapshotter
+        .getLoadSignals()
+        .find((signal) => signal.name === name)!
+        .getSample(sampleDurationMillis);
+
 describe('Snapshotter', () => {
     let logLevel: number;
     beforeAll(() => {
@@ -46,10 +53,10 @@ describe('Snapshotter', () => {
 
         await snapshotter.stop();
         await events.close();
-        const memorySnapshots = snapshotter.getMemorySample();
-        const eventLoopSnapshots = snapshotter.getEventLoopSample();
-        const cpuSnapshots = snapshotter.getCpuSample();
-        const clientSnapshots = snapshotter.getClientSample();
+        const memorySnapshots = sampleOf(snapshotter, 'memInfo');
+        const eventLoopSnapshots = sampleOf(snapshotter, 'eventLoopInfo');
+        const cpuSnapshots = sampleOf(snapshotter, 'cpuInfo');
+        const clientSnapshots = sampleOf(snapshotter, 'clientInfo');
 
         expect(Array.isArray(cpuSnapshots)).toBe(true);
         expect(cpuSnapshots.length).toBeGreaterThanOrEqual(1);
@@ -94,9 +101,9 @@ describe('Snapshotter', () => {
         await sleep(3 * 1e3);
         await snapshotter.stop();
         await serviceLocator.getEventManager().close();
-        const memorySnapshots = snapshotter.getMemorySample();
-        const eventLoopSnapshots = snapshotter.getEventLoopSample();
-        const cpuSnapshots = snapshotter.getCpuSample();
+        const memorySnapshots = sampleOf(snapshotter, 'memInfo');
+        const eventLoopSnapshots = sampleOf(snapshotter, 'eventLoopInfo');
+        const cpuSnapshots = sampleOf(snapshotter, 'cpuInfo');
 
         expect(cpuSnapshots.length).toBeGreaterThanOrEqual(5);
         expect(memorySnapshots.length).toBeGreaterThanOrEqual(5);
@@ -122,7 +129,7 @@ describe('Snapshotter', () => {
         await emitAndWait(10);
         await emitAndWait(0);
         await snapshotter.stop();
-        const cpuSnapshots = snapshotter.getCpuSample();
+        const cpuSnapshots = sampleOf(snapshotter, 'cpuInfo');
 
         expect(cpuSnapshots).toHaveLength(4);
         cpuSnapshots.forEach((ss, i) => {
@@ -173,7 +180,7 @@ describe('Snapshotter', () => {
         times.other += 4;
         await events.emitSystemInfoEvent(noop);
 
-        const loopSnapshots = snapshotter.getCpuSample();
+        const loopSnapshots = sampleOf(snapshotter, 'cpuInfo');
 
         expect(loopSnapshots.length).toBe(5);
         expect(loopSnapshots[0].isOverloaded).toBe(false);
@@ -201,7 +208,7 @@ describe('Snapshotter', () => {
             eventLoopSignal.handle(noop);
             clock.advanceTimersByTime(3);
             eventLoopSignal.handle(noop);
-            const loopSnapshots = snapshotter.getEventLoopSample();
+            const loopSnapshots = sampleOf(snapshotter, 'eventLoopInfo');
 
             expect(loopSnapshots.length).toBe(5);
             expect(loopSnapshots[0].isOverloaded).toBe(false);
@@ -237,7 +244,7 @@ describe('Snapshotter', () => {
         await events.emitSystemInfoEvent(noop);
         memoryData.childProcessesBytes = toBytes(1999);
         await events.emitSystemInfoEvent(noop);
-        const memorySnapshots = snapshotter.getMemorySample();
+        const memorySnapshots = sampleOf(snapshotter, 'memInfo');
 
         expect(memorySnapshots.length).toBe(5);
         expect(memorySnapshots[0].isOverloaded).toBe(false);
@@ -310,7 +317,7 @@ describe('Snapshotter', () => {
         apifyClient.stats!.rateLimitErrors = [100, 24, 4, 2, 0, 0, 0, 0, 0, 0];
         clientSignal.handle(noop);
 
-        const clientSnapshots = snapshotter.getClientSample();
+        const clientSnapshots = sampleOf(snapshotter, 'clientInfo');
 
         expect(clientSnapshots.length).toBe(4);
         expect(clientSnapshots[0].isOverloaded).toBe(false);
@@ -321,7 +328,7 @@ describe('Snapshotter', () => {
         apifyClient.stats = oldStats;
     });
 
-    test('.get[.*]Sample limits amount of samples', async () => {
+    test('a signal sample is limited by the requested duration', async () => {
         const SAMPLE_SIZE_MILLIS = 120;
         serviceLocator.setConfiguration(new Configuration({ systemInfoIntervalMillis: 10 }));
         const snapshotter = new Snapshotter({
@@ -332,10 +339,10 @@ describe('Snapshotter', () => {
         await sleep(1.5e3);
         await snapshotter.stop();
         await serviceLocator.getEventManager().close();
-        const memorySnapshots = snapshotter.getMemorySample();
-        const eventLoopSnapshots = snapshotter.getEventLoopSample();
-        const memorySample = snapshotter.getMemorySample(SAMPLE_SIZE_MILLIS);
-        const eventLoopSample = snapshotter.getEventLoopSample(SAMPLE_SIZE_MILLIS);
+        const memorySnapshots = sampleOf(snapshotter, 'memInfo');
+        const eventLoopSnapshots = sampleOf(snapshotter, 'eventLoopInfo');
+        const memorySample = sampleOf(snapshotter, 'memInfo', SAMPLE_SIZE_MILLIS);
+        const eventLoopSample = sampleOf(snapshotter, 'eventLoopInfo', SAMPLE_SIZE_MILLIS);
 
         expect(memorySnapshots.length).toBeGreaterThan(memorySample.length);
         expect(eventLoopSnapshots.length).toBeGreaterThan(eventLoopSample.length);
@@ -403,7 +410,7 @@ describe('Snapshotter', () => {
             memoryData.freeBytes = memoryData.totalBytes - actualMemoryUsage;
             await eventManager.emitSystemInfoEvent(noop);
 
-            const memorySnapshots = snapshotter.getMemorySample();
+            const memorySnapshots = sampleOf(snapshotter, 'memInfo');
             expect(memorySnapshots).toHaveLength(2);
             expect(memorySnapshots[0].isOverloaded).toBe(true);
             expect(memorySnapshots[1].isOverloaded).toBe(!dynamic);

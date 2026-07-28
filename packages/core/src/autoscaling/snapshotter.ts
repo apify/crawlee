@@ -4,14 +4,13 @@ import ow from 'ow';
 import type { Configuration } from '../configuration.js';
 import type { CrawleeLogger } from '../log.js';
 import { serviceLocator } from '../service_locator.js';
-import type { ClientLoadSignal, ClientSnapshot } from './client_load_signal.js';
+import type { ClientLoadSignal } from './client_load_signal.js';
 import { createClientLoadSignal } from './client_load_signal.js';
-import type { CpuLoadSignal, CpuSnapshot } from './cpu_load_signal.js';
+import type { CpuLoadSignal } from './cpu_load_signal.js';
 import { createCpuLoadSignal } from './cpu_load_signal.js';
-import type { EventLoopLoadSignal, EventLoopSnapshot } from './event_loop_load_signal.js';
+import type { EventLoopLoadSignal } from './event_loop_load_signal.js';
 import { createEventLoopLoadSignal } from './event_loop_load_signal.js';
 import type { LoadSignal, LoadSignalStartContext } from './load_signal.js';
-import type { MemorySnapshot } from './memory_load_signal.js';
 import { MemoryLoadSignal } from './memory_load_signal.js';
 
 /**
@@ -301,37 +300,5 @@ export class Snapshotter {
         await new Promise((resolve) => {
             setImmediate(resolve);
         });
-    }
-
-    /**
-     * Returns a sample of latest memory snapshots, with the size of the sample defined
-     * by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
-     */
-    getMemorySample(sampleDurationMillis?: number): MemorySnapshot[] {
-        return this.memorySignal?.getSample(sampleDurationMillis) ?? [];
-    }
-
-    /**
-     * Returns a sample of latest event loop snapshots, with the size of the sample defined
-     * by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
-     */
-    getEventLoopSample(sampleDurationMillis?: number): EventLoopSnapshot[] {
-        return this.eventLoopSignal?.getSample(sampleDurationMillis) ?? [];
-    }
-
-    /**
-     * Returns a sample of latest CPU snapshots, with the size of the sample defined
-     * by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
-     */
-    getCpuSample(sampleDurationMillis?: number): CpuSnapshot[] {
-        return this.cpuSignal?.getSample(sampleDurationMillis) ?? [];
-    }
-
-    /**
-     * Returns a sample of latest Client snapshots, with the size of the sample defined
-     * by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
-     */
-    getClientSample(sampleDurationMillis?: number): ClientSnapshot[] {
-        return this.clientSignal?.getSample(sampleDurationMillis) ?? [];
     }
 }
