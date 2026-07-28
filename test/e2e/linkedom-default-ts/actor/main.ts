@@ -15,7 +15,7 @@ const crawler = new LinkeDOMCrawler();
 crawler.router.addDefaultHandler(async ({ document, enqueueLinks, request, log }) => {
     const { url } = request;
     await enqueueLinks({
-        globs: ['https://crawlee.dev/js/docs/**'],
+        include: ['https://crawlee.dev/js/docs/**'],
     });
 
     const pageTitle = document.querySelector('title')?.textContent ?? '';

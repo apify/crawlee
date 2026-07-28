@@ -40,7 +40,7 @@ const crawler = new AdaptivePlaywrightCrawler({
         await context.pushData({ url, heading, requestHandlerMode });
 
         await context.enqueueLinks({
-            globs: ['**/next/examples/*'],
+            include: ['**/next/examples/*'],
         });
     },
 });
