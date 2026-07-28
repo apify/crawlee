@@ -10,7 +10,7 @@ import type { CpuLoadSignal, CpuSnapshot } from './cpu_load_signal.js';
 import { createCpuLoadSignal } from './cpu_load_signal.js';
 import type { EventLoopLoadSignal, EventLoopSnapshot } from './event_loop_load_signal.js';
 import { createEventLoopLoadSignal } from './event_loop_load_signal.js';
-import type { LoadSignal } from './load_signal.js';
+import type { LoadSignal, LoadSignalStartContext } from './load_signal.js';
 import type { MemorySnapshot } from './memory_load_signal.js';
 import { MemoryLoadSignal } from './memory_load_signal.js';
 
@@ -119,8 +119,9 @@ export interface SnapshotterOptions {
     client?: ClientSignalOptions;
 
     /**
-     * Sets the interval in seconds for which a history of resource snapshots
-     * will be kept. Increasing this to very high numbers will affect performance.
+     * How far back the autoscaling decisions look, in seconds — the window the historical system status is evaluated
+     * over. Signals retain exactly this much history (the memory cost of raising it), and every signal is sampled
+     * over the same window, custom ones included.
      * @default 30
      */
     snapshotHistorySecs?: number;
@@ -227,7 +228,6 @@ export class Snapshotter {
             eventLoop = {},
             cpu = {},
             client = {},
-            snapshotHistorySecs = DEFAULT_SNAPSHOT_HISTORY_SECS,
             log = serviceLocator.getLogger(),
             config = serviceLocator.getConfiguration(),
             storageClient = serviceLocator.getStorageBackend(),
@@ -237,12 +237,11 @@ export class Snapshotter {
         this.client = storageClient;
         this.config = config;
 
-        const snapshotHistoryMillis = snapshotHistorySecs * 1000;
-
+        // Snapshot retention is not configured here - each signal is told the window it will be sampled over when it
+        // starts, and keeps exactly that much history.
         this.memorySignal = new MemoryLoadSignal({
             maxUsedMemoryRatio: memory.maxUsedRatio,
             overloadedRatio: memory.overloadedRatio,
-            snapshotHistoryMillis,
             config: this.config,
             log: this.log,
         });
@@ -251,12 +250,10 @@ export class Snapshotter {
             eventLoopSnapshotIntervalSecs: eventLoop.snapshotIntervalSecs,
             maxBlockedMillis: eventLoop.maxBlockedMillis,
             overloadedRatio: eventLoop.overloadedRatio,
-            snapshotHistoryMillis,
         });
 
         this.cpuSignal = createCpuLoadSignal({
             overloadedRatio: cpu.overloadedRatio,
-            snapshotHistoryMillis,
             config: this.config,
         });
 
@@ -265,18 +262,18 @@ export class Snapshotter {
             clientSnapshotIntervalSecs: client.snapshotIntervalSecs,
             maxClientErrors: client.maxErrors,
             overloadedRatio: client.overloadedRatio,
-            snapshotHistoryMillis,
         });
     }
 
     /**
-     * Starts capturing snapshots at configured intervals.
+     * Starts capturing snapshots at configured intervals. The `context` carries the sample window the signals will
+     * be queried with, which is also how much history they retain.
      */
-    async start(): Promise<void> {
-        await this.memorySignal.start();
-        await this.eventLoopSignal.start();
-        await this.cpuSignal.start();
-        await this.clientSignal.start();
+    async start(context: LoadSignalStartContext): Promise<void> {
+        await this.memorySignal.start(context);
+        await this.eventLoopSignal.start(context);
+        await this.cpuSignal.start(context);
+        await this.clientSignal.start(context);
     }
 
     /**

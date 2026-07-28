@@ -6,10 +6,10 @@ import { betterClearInterval, betterSetInterval } from '@apify/utilities';
 import type { CrawleeLogger } from '../log.js';
 import { serviceLocator } from '../service_locator.js';
 import type { LoadSignal } from './load_signal.js';
-import { Snapshotter } from './snapshotter.js';
+import { DEFAULT_SNAPSHOT_HISTORY_SECS, Snapshotter } from './snapshotter.js';
 import type { SnapshotterOptions } from './snapshotter.js';
 import type { SystemInfo } from './system_status.js';
-import { SystemStatus } from './system_status.js';
+import { DEFAULT_CURRENT_HISTORY_SECS, SystemStatus } from './system_status.js';
 
 export interface ConcurrencySystemOptions {
     /**
@@ -184,6 +184,12 @@ export class ConcurrencySystem implements IConcurrencySystem {
 
     private readonly snapshotter: Snapshotter;
     private readonly loadSignals: LoadSignal[];
+
+    /**
+     * The longest window any signal will be sampled over, handed to each of them at
+     * {@apilink ConcurrencySystem.start|`start()`} so they retain exactly that much history.
+     */
+    private readonly maxSampleWindowMillis: number;
     private readonly systemStatus: SystemStatus;
 
     private autoscaleInterval?: BetterIntervalID;
@@ -253,10 +259,18 @@ export class ConcurrencySystem implements IConcurrencySystem {
             snapshotter: this.snapshotter,
             loadSignals,
             currentHistorySecs,
-            // The historical (autoscaling) window matches what the built-in signals retain, and is requested
-            // explicitly so custom signals with a longer memory don't widen it.
+            // Both windows are requested from the signals explicitly, so a signal's own retention can neither widen
+            // nor (given the start context below) narrow what it contributes.
             historySecs: snapshotterOptions?.snapshotHistorySecs,
         });
+
+        // Signals are told how much history to keep when they start: exactly the longest window they will be sampled
+        // over, so nobody has to guess a retention value that matches this system's configuration.
+        this.maxSampleWindowMillis =
+            Math.max(
+                currentHistorySecs ?? DEFAULT_CURRENT_HISTORY_SECS,
+                snapshotterOptions?.snapshotHistorySecs ?? DEFAULT_SNAPSHOT_HISTORY_SECS,
+            ) * 1000;
     }
 
     /**
@@ -328,8 +342,9 @@ export class ConcurrencySystem implements IConcurrencySystem {
         }
         this.running = true;
 
-        await this.snapshotter.start();
-        await Promise.all(this.loadSignals.map(async (s) => s.start()));
+        const startContext = { maxSampleWindowMillis: this.maxSampleWindowMillis };
+        await this.snapshotter.start(startContext);
+        await Promise.all(this.loadSignals.map(async (s) => s.start(startContext)));
 
         this.autoscaleInterval = betterSetInterval(this._autoscale, this.autoscaleIntervalMillis);
 

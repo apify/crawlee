@@ -5,7 +5,7 @@ import type { CrawleeLogger } from '../log.js';
 import { serviceLocator } from '../service_locator.js';
 import { getMemoryInfo } from '../system-info/memory-info.js';
 import { isContainerized } from '../system-info/runtime.js';
-import type { LoadSignal, LoadSnapshot } from './load_signal.js';
+import type { LoadSignal, LoadSignalStartContext, LoadSnapshot } from './load_signal.js';
 import { SnapshotStore } from './load_signal.js';
 import type { SystemInfo } from './system_status.js';
 
@@ -27,7 +27,6 @@ export interface MemorySnapshot extends LoadSnapshot {
 export interface MemoryLoadSignalOptions {
     maxUsedMemoryRatio?: number;
     overloadedRatio?: number;
-    snapshotHistoryMillis?: number;
     config: Configuration;
     log?: CrawleeLogger;
 }
@@ -51,7 +50,7 @@ export class MemoryLoadSignal implements LoadSignal {
     private lastLoggedCriticalMemoryOverloadAt: Date | null = null;
 
     constructor(options: MemoryLoadSignalOptions) {
-        this.store = new SnapshotStore(options.snapshotHistoryMillis);
+        this.store = new SnapshotStore();
         this.config = options.config;
         this.events = serviceLocator.getEventManager();
         this.log = options.log ?? serviceLocator.getLogger().child({ prefix: 'MemoryLoadSignal' });
@@ -60,7 +59,9 @@ export class MemoryLoadSignal implements LoadSignal {
         this._onSystemInfo = this._onSystemInfo.bind(this);
     }
 
-    async start(): Promise<void> {
+    async start({ maxSampleWindowMillis }: LoadSignalStartContext): Promise<void> {
+        this.store.useSampleWindow(maxSampleWindowMillis);
+
         const memoryMbytes = this.config.memoryMbytes ?? 0;
 
         if (memoryMbytes > 0) {

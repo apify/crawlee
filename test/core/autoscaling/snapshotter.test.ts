@@ -10,6 +10,12 @@ import log from '@apify/log';
 const toBytes = (x: number) => x * 1024 * 1024;
 const noop = () => {};
 
+/**
+ * Signals are told how much history to retain when they start; the ConcurrencySystem derives this from its configured
+ * evaluation windows. These tests drive the Snapshotter directly, so they pass the default window explicitly.
+ */
+const START_CONTEXT = { maxSampleWindowMillis: 30_000 };
+
 describe('Snapshotter', () => {
     let logLevel: number;
     beforeAll(() => {
@@ -32,7 +38,7 @@ describe('Snapshotter', () => {
         const snapshotter = new Snapshotter();
         const events = serviceLocator.getEventManager();
         await events.init();
-        await snapshotter.start();
+        await snapshotter.start(START_CONTEXT);
 
         await sleep(625);
         apifyClient.stats!.rateLimitErrors = [0, 0, 2];
@@ -84,7 +90,7 @@ describe('Snapshotter', () => {
         serviceLocator.setConfiguration(new Configuration({ systemInfoIntervalMillis: 0.1 }));
         const snapshotter = new Snapshotter({ eventLoop: { snapshotIntervalSecs: 0.05 } });
         await serviceLocator.getEventManager().init();
-        await snapshotter.start();
+        await snapshotter.start(START_CONTEXT);
         await sleep(3 * 1e3);
         await snapshotter.stop();
         await serviceLocator.getEventManager().close();
@@ -110,7 +116,7 @@ describe('Snapshotter', () => {
         };
 
         const snapshotter = new Snapshotter();
-        await snapshotter.start();
+        await snapshotter.start(START_CONTEXT);
         await emitAndWait(10);
         await emitAndWait(10);
         await emitAndWait(10);
@@ -150,7 +156,7 @@ describe('Snapshotter', () => {
         // Establish a baseline before the Snapshotter starts listening for events.
         await events.emitSystemInfoEvent(noop);
         cpusMock.mockClear();
-        await snapshotter.start();
+        await snapshotter.start(START_CONTEXT);
 
         await events.emitSystemInfoEvent(noop);
 
@@ -220,7 +226,7 @@ describe('Snapshotter', () => {
         // do not initialize the event intervals as we will fire them manually
         vitest.spyOn(LocalEventManager.prototype, 'init').mockImplementation(async () => {});
         const events = serviceLocator.getEventManager() as LocalEventManager;
-        await snapshotter.start();
+        await snapshotter.start(START_CONTEXT);
 
         await events.emitSystemInfoEvent(noop);
         memoryData.mainProcessBytes = toBytes(2000);
@@ -262,7 +268,7 @@ describe('Snapshotter', () => {
         const snapshotter = new Snapshotter({ memory: { maxUsedRatio: 0.5 } });
 
         const eventManager = serviceLocator.getEventManager() as LocalEventManager;
-        await snapshotter.start();
+        await snapshotter.start(START_CONTEXT);
         const warningSpy = vitest.spyOn(snapshotter.log, 'warning').mockImplementation(() => {});
 
         // First snapshot - below warning usage
@@ -321,7 +327,7 @@ describe('Snapshotter', () => {
         const snapshotter = new Snapshotter({
             eventLoop: { snapshotIntervalSecs: 0.01 },
         });
-        await snapshotter.start();
+        await snapshotter.start(START_CONTEXT);
         await serviceLocator.getEventManager().init();
         await sleep(1.5e3);
         await snapshotter.stop();
@@ -387,7 +393,7 @@ describe('Snapshotter', () => {
             const snapshotter = new Snapshotter({ config });
             vitest.spyOn(LocalEventManager.prototype, 'init').mockImplementation(async () => {});
             const eventManager = serviceLocator.getEventManager() as LocalEventManager;
-            await snapshotter.start();
+            await snapshotter.start(START_CONTEXT);
 
             // First snapshot - full usage of the memory, should be overloaded in both modes
             await eventManager.emitSystemInfoEvent(noop);

@@ -20,7 +20,6 @@ export interface CpuSnapshot extends LoadSnapshot {
  */
 export interface CpuLoadSignalOptions {
     overloadedRatio?: number;
-    snapshotHistoryMillis?: number;
     config: Configuration;
 }
 
@@ -35,7 +34,6 @@ export function createCpuLoadSignal(options: CpuLoadSignalOptions) {
         overloadedRatio: options.overloadedRatio ?? 0.4,
         events: serviceLocator.getEventManager(),
         event: EventType.SYSTEM_INFO,
-        snapshotHistoryMillis: options.snapshotHistoryMillis,
         handler(store, systemInfo) {
             const { cpuCurrentUsage, isCpuOverloaded } = systemInfo;
             const createdAt = systemInfo.createdAt ? new Date(systemInfo.createdAt) : new Date();

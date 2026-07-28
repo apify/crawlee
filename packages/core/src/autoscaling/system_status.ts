@@ -40,6 +40,12 @@ export interface SystemInfo {
 }
 
 /**
+ * How far back the *current* system status looks by default — the window that gates task dispatch.
+ * @internal
+ */
+export const DEFAULT_CURRENT_HISTORY_SECS = 5;
+
+/**
  * An implementation detail of the {@apilink ConcurrencySystem} — configure it through
  * {@apilink ConcurrencySystemOptions} (`loadSignals`, `currentHistorySecs` and the `snapshotterOptions` bag).
  * @internal
@@ -138,7 +144,7 @@ export class SystemStatus {
         );
 
         const {
-            currentHistorySecs = 5,
+            currentHistorySecs = DEFAULT_CURRENT_HISTORY_SECS,
             historySecs = DEFAULT_SNAPSHOT_HISTORY_SECS,
             snapshotter,
             loadSignals = [],

@@ -15,6 +15,21 @@ export interface LoadSnapshot {
 }
 
 /**
+ * Handed to a {@apilink LoadSignal} when it starts, so it can size its snapshot retention to what it will actually
+ * be asked for — without having to know how the {@apilink ConcurrencySystem} that drives it is configured.
+ */
+export interface LoadSignalStartContext {
+    /**
+     * The longest sample window the signal will be queried with (the wider of the task-gating and autoscaling
+     * windows). Keeping less history than this means contributing a narrower view of the resource than the other
+     * signals; keeping more is wasted memory, as the extra snapshots are never sampled.
+     *
+     * Signals built on {@apilink SnapshotStore} get this applied automatically.
+     */
+    maxSampleWindowMillis: number;
+}
+
+/**
  * A signal that reports whether a particular resource is overloaded.
  *
  * The {@apilink ConcurrencySystem} aggregates multiple `LoadSignal` instances to determine
@@ -34,10 +49,14 @@ export interface LoadSignal {
      */
     readonly overloadedRatio: number;
 
-    /** Start collecting snapshots. Called when the pool starts. */
-    start(): Promise<void>;
+    /**
+     * Start collecting snapshots. Called when the {@apilink ConcurrencySystem} starts, with the sample window the
+     * signal should retain at least as much history as. Implementations that manage their own storage may ignore the
+     * argument, at the cost of contributing a window that doesn't match the other signals.
+     */
+    start(context: LoadSignalStartContext): Promise<void>;
 
-    /** Stop collecting snapshots. Called when the pool shuts down. */
+    /** Stop collecting snapshots. Called when the {@apilink ConcurrencySystem} shuts down. */
     stop(): Promise<void>;
 
     /**
@@ -53,10 +72,20 @@ export interface LoadSignal {
  */
 export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
     private snapshots: T[] = [];
-    private readonly historyMillis: number;
+    private historyMillis: number;
 
     constructor(historyMillis = 30_000) {
         this.historyMillis = historyMillis;
+    }
+
+    /**
+     * Sizes retention to the window the signal will be sampled over, as handed to it in
+     * {@apilink LoadSignal.start|`start()`} — keep exactly what will be asked for, no more. Signals created through
+     * {@apilink SnapshotStore.fromInterval|`fromInterval()`}/{@apilink SnapshotStore.fromEvent|`fromEvent()`} call
+     * this for you; call it yourself when composing a store into a hand-written signal.
+     */
+    useSampleWindow(maxSampleWindowMillis: number): void {
+        this.historyMillis = maxSampleWindowMillis;
     }
 
     /**
@@ -116,14 +145,13 @@ export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
         name: string;
         overloadedRatio: number;
         intervalMillis: number;
-        snapshotHistoryMillis?: number;
         handler: (store: SnapshotStore<T>, intervalCallback: () => unknown) => void;
     }): Omit<LoadSignal, 'getSample'> & {
         store: SnapshotStore<T>;
         handle: (cb: () => unknown) => void;
         getSample(sampleDurationMillis?: number): T[];
     } {
-        const store = new SnapshotStore<T>(options.snapshotHistoryMillis);
+        const store = new SnapshotStore<T>();
         let interval: BetterIntervalID = null!;
 
         const handle = (cb: () => unknown) => options.handler(store, cb);
@@ -134,7 +162,8 @@ export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
             store,
             handle,
             getSample: (ms) => store.getSample(ms),
-            async start() {
+            async start({ maxSampleWindowMillis }) {
+                store.useSampleWindow(maxSampleWindowMillis);
                 interval = betterSetInterval(handle, options.intervalMillis);
             },
             async stop() {
@@ -154,14 +183,13 @@ export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
         overloadedRatio: number;
         events: EventManager;
         event: EventTypeName;
-        snapshotHistoryMillis?: number;
         handler: (store: SnapshotStore<T>, payload: E) => void;
     }): Omit<LoadSignal, 'getSample'> & {
         store: SnapshotStore<T>;
         handle: (payload: E) => void;
         getSample(sampleDurationMillis?: number): T[];
     } {
-        const store = new SnapshotStore<T>(options.snapshotHistoryMillis);
+        const store = new SnapshotStore<T>();
 
         const handle = (payload: E) => options.handler(store, payload);
 
@@ -171,7 +199,8 @@ export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
             store,
             handle,
             getSample: (ms) => store.getSample(ms),
-            async start() {
+            async start({ maxSampleWindowMillis }) {
+                store.useSampleWindow(maxSampleWindowMillis);
                 options.events.on(options.event, handle);
             },
             async stop() {

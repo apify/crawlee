@@ -1,4 +1,5 @@
-import { AutoscaledPool, ConcurrencySystem } from '@crawlee/core';
+import type { LoadSignal, LoadSignalStartContext } from '@crawlee/core';
+import { AutoscaledPool, ConcurrencySystem, SnapshotStore } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
 
 import log from '@apify/log';
@@ -66,6 +67,71 @@ describe('ConcurrencySystem', () => {
                 maxTasksPerMinute: Infinity,
             });
             for (let i = 0; i < 1000; i++) expect(system.tryRegisterTaskStart()).toBe(true);
+        });
+    });
+
+    describe('load signals', () => {
+        test('signals are told the widest window they will be sampled over', async () => {
+            const contexts: LoadSignalStartContext[] = [];
+            const signal: LoadSignal = {
+                name: 'proxyHealth',
+                overloadedRatio: 0.3,
+                async start(context) {
+                    contexts.push(context);
+                },
+                async stop() {},
+                getSample: () => [],
+            };
+
+            // The autoscaling window is the wider of the two here.
+            const system = new ConcurrencySystem({
+                loadSignals: [signal],
+                currentHistorySecs: 5,
+                snapshotterOptions: { snapshotHistorySecs: 45 },
+            });
+            await system.start();
+            await system.stop();
+
+            expect(contexts).toEqual([{ maxSampleWindowMillis: 45_000 }]);
+
+            // ...and when the gating window is the wider one, retention has to cover that instead.
+            const gatingHeavy = new ConcurrencySystem({
+                loadSignals: [signal],
+                currentHistorySecs: 60,
+                snapshotterOptions: { snapshotHistorySecs: 30 },
+            });
+            await gatingHeavy.start();
+            await gatingHeavy.stop();
+
+            expect(contexts[1]).toEqual({ maxSampleWindowMillis: 60_000 });
+        });
+
+        test('a SnapshotStore-based signal sizes its retention from the start context', async () => {
+            const store = new SnapshotStore();
+            // Before starting, the store falls back to its own default.
+            // @ts-expect-error Accessing private prop
+            expect(store.historyMillis).toBe(30_000);
+
+            const system = new ConcurrencySystem({
+                loadSignals: [
+                    {
+                        name: 'custom',
+                        overloadedRatio: 0.3,
+                        async start({ maxSampleWindowMillis }) {
+                            store.useSampleWindow(maxSampleWindowMillis);
+                        },
+                        async stop() {},
+                        getSample: (ms) => store.getSample(ms),
+                    },
+                ],
+                snapshotterOptions: { snapshotHistorySecs: 90 },
+            });
+            await system.start();
+            await system.stop();
+
+            // No out-of-band knowledge needed - the window came from the system that drives the signal.
+            // @ts-expect-error Accessing private prop
+            expect(store.historyMillis).toBe(90_000);
         });
     });
 

@@ -1349,6 +1349,31 @@ Overload is evaluated over two windows: a short one (`currentHistorySecs`, defau
 
 Both windows are now requested explicitly from every signal, so `snapshotHistorySecs` bounds the autoscaling window uniformly, custom signals included. With default settings nothing changes (the built-in signals retain exactly the 30s they are evaluated over, and `SnapshotStore` defaults to the same). You are only affected if a custom signal retains **more** history than `snapshotHistorySecs` — its stale snapshots no longer influence scaling — or if your custom `getSample()` implementation ignores its `sampleDurationMillis` argument, in which case it still contributes everything it has. Honour that argument (as `SnapshotStore` does) if you want the window respected.
 
+### `LoadSignal.start()` receives the sample window
+
+Retention used to be something a custom signal had to guess: you passed a millisecond value to `new SnapshotStore(...)` (or rolled your own storage) and hoped it matched the windows of the `ConcurrencySystem` that would end up driving it. Keeping less than the system samples meant silently contributing a narrower view of your resource than every other signal, with nothing to warn you.
+
+`start()` now receives a context carrying the widest window the signal will be queried with, so retention can be derived instead of guessed:
+
+```typescript
+import { SnapshotStore, type LoadSignal } from 'crawlee';
+
+const store = new SnapshotStore();
+
+const proxyHealthSignal: LoadSignal = {
+    name: 'proxyHealth',
+    overloadedRatio: 0.3,
+    async start({ maxSampleWindowMillis }) {
+        store.useSampleWindow(maxSampleWindowMillis);
+        // ...start collecting, calling store.push() per measurement
+    },
+    async stop() { /* ... */ },
+    getSample: (sampleDurationMillis) => store.getSample(sampleDurationMillis),
+};
+```
+
+Signals built through `SnapshotStore.fromInterval()` / `SnapshotStore.fromEvent()` do this for you. Existing implementations keep compiling — a `start()` that declares no parameters still satisfies the interface — they just retain whatever they chose to. Correspondingly, the `snapshotHistoryMillis` option was removed from the internal per-signal option types, and `SnapshotterOptions.snapshotHistorySecs` now means "the autoscaling window" (which signals size their retention to) rather than a separately configured retention.
+
 ## Stagehand type narrowings
 
 A few Stagehand-specific option types were tightened:

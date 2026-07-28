@@ -799,8 +799,13 @@ export interface LoadSignal {
     getSample(sampleDurationMillis?: number): LoadSnapshot[];
     readonly name: string;
     readonly overloadedRatio: number;
-    start(): Promise<void>;
+    start(context: LoadSignalStartContext): Promise<void>;
     stop(): Promise<void>;
+}
+
+// @public
+export interface LoadSignalStartContext {
+    maxSampleWindowMillis: number;
 }
 
 // @public
@@ -1546,7 +1551,6 @@ export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
         overloadedRatio: number;
         events: EventManager;
         event: EventTypeName;
-        snapshotHistoryMillis?: number;
         handler: (store: SnapshotStore<T>, payload: E) => void;
     }): Omit<LoadSignal, 'getSample'> & {
         store: SnapshotStore<T>;
@@ -1557,7 +1561,6 @@ export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
         name: string;
         overloadedRatio: number;
         intervalMillis: number;
-        snapshotHistoryMillis?: number;
         handler: (store: SnapshotStore<T>, intervalCallback: () => unknown) => void;
     }): Omit<LoadSignal, 'getSample'> & {
         store: SnapshotStore<T>;
@@ -1567,6 +1570,7 @@ export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
     getAll(): T[];
     getSample(sampleDurationMillis?: number): T[];
     push(snapshot: T, now?: Date): void;
+    useSampleWindow(maxSampleWindowMillis: number): void;
 }
 
 // @public (undocumented)

@@ -17,7 +17,6 @@ export interface EventLoopLoadSignalOptions {
     eventLoopSnapshotIntervalSecs?: number;
     maxBlockedMillis?: number;
     overloadedRatio?: number;
-    snapshotHistoryMillis?: number;
 }
 
 /**
@@ -33,7 +32,6 @@ export function createEventLoopLoadSignal(options: EventLoopLoadSignalOptions = 
         name: 'eventLoopInfo',
         overloadedRatio: options.overloadedRatio ?? 0.6,
         intervalMillis,
-        snapshotHistoryMillis: options.snapshotHistoryMillis,
         handler(store, intervalCallback) {
             const now = new Date();
 

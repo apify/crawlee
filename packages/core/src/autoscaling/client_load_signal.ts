@@ -22,7 +22,6 @@ export interface ClientLoadSignalOptions {
     clientSnapshotIntervalSecs?: number;
     maxClientErrors?: number;
     overloadedRatio?: number;
-    snapshotHistoryMillis?: number;
 }
 
 /**
@@ -37,7 +36,6 @@ export function createClientLoadSignal(options: ClientLoadSignalOptions) {
         name: 'clientInfo',
         overloadedRatio: options.overloadedRatio ?? 0.3,
         intervalMillis: (options.clientSnapshotIntervalSecs ?? 1) * 1000,
-        snapshotHistoryMillis: options.snapshotHistoryMillis,
         handler(store, intervalCallback) {
             const now = new Date();
 
