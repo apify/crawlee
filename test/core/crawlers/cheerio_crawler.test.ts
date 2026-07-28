@@ -477,6 +477,71 @@ describe('CheerioCrawler', () => {
 
             expect(processed).toHaveLength(4);
         });
+
+        test('extendTimeout from a pre-navigation hook keeps it from timing out', async () => {
+            const processed: Request[] = [];
+            const failed: Request[] = [];
+            const requestList = await getExampleRequestList();
+
+            const cheerioCrawler = new CheerioCrawler({
+                requestList,
+                navigationHooksTimeoutSecs: 0.2,
+                maxRequestRetries: 0,
+                minConcurrency: 2,
+                maxConcurrency: 2,
+                // 400ms total, past the 0.2s window - only survives because the hook asks for more time
+                preNavigationHooks: [
+                    async ({ extendTimeout }) => {
+                        await sleep(100);
+                        extendTimeout(5);
+                        await sleep(300);
+                    },
+                ],
+                requestHandler: async ({ request }) => {
+                    processed.push(request);
+                },
+                failedRequestHandler: ({ request }) => {
+                    failed.push(request);
+                },
+            });
+
+            await cheerioCrawler.run();
+
+            expect(failed).toHaveLength(0);
+            expect(processed).toHaveLength(4);
+        });
+
+        test('extendTimeout from a post-navigation hook keeps it from timing out', async () => {
+            const processed: Request[] = [];
+            const failed: Request[] = [];
+            const requestList = await getExampleRequestList();
+
+            const cheerioCrawler = new CheerioCrawler({
+                requestList,
+                navigationHooksTimeoutSecs: 0.2,
+                maxRequestRetries: 0,
+                minConcurrency: 2,
+                maxConcurrency: 2,
+                postNavigationHooks: [
+                    async ({ extendTimeout }) => {
+                        await sleep(100);
+                        extendTimeout(5);
+                        await sleep(300);
+                    },
+                ],
+                requestHandler: async ({ request }) => {
+                    processed.push(request);
+                },
+                failedRequestHandler: ({ request }) => {
+                    failed.push(request);
+                },
+            });
+
+            await cheerioCrawler.run();
+
+            expect(failed).toHaveLength(0);
+            expect(processed).toHaveLength(4);
+        });
     });
 
     describe('should not timeout by the default httpRequest timeoutSecs', () => {
