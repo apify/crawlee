@@ -749,7 +749,7 @@ describe('AutoscaledPool', () => {
                     isFinishedFunction: async () => count >= 50,
                     isTaskReadyFunction: async () => count < 50,
                 },
-                { minConcurrency: 1, maxConcurrency: 10, loadSignals: [signal] },
+                { minConcurrency: 1, maxConcurrency: 10, loadSignals: { custom: [signal] } },
             );
 
             await pool.run();
@@ -770,7 +770,7 @@ describe('AutoscaledPool', () => {
                     isFinishedFunction: async () => count >= 10,
                     isTaskReadyFunction: async () => count < 10,
                 },
-                { minConcurrency: 1, maxConcurrency: 10, loadSignals: [signal] },
+                { minConcurrency: 1, maxConcurrency: 10, loadSignals: { custom: [signal] } },
             );
 
             // `getCurrentStatus()` is telemetry on the concrete governor, not part of the pool-facing interface.

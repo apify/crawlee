@@ -200,7 +200,7 @@ export interface ConcurrencySystemOptions {
     currentHistorySecs?: number;
     desiredConcurrency?: number;
     desiredConcurrencyRatio?: number;
-    loadSignals?: LoadSignal[];
+    loadSignals?: LoadSignalsOptions;
     // (undocumented)
     log?: CrawleeLogger;
     loggingIntervalSecs?: number | null;
@@ -209,7 +209,7 @@ export interface ConcurrencySystemOptions {
     minConcurrency?: number;
     scaleDownStepRatio?: number;
     scaleUpStepRatio?: number;
-    snapshotterOptions?: SnapshotterOptions;
+    snapshotHistorySecs?: number;
 }
 
 // @public (undocumented)
@@ -801,6 +801,15 @@ export interface LoadSignal {
     readonly overloadedRatio: number;
     start(context: LoadSignalStartContext): Promise<void>;
     stop(): Promise<void>;
+}
+
+// @public
+export interface LoadSignalsOptions {
+    client?: ClientSignalOptions;
+    cpu?: CpuSignalOptions;
+    custom?: LoadSignal[];
+    eventLoop?: EventLoopSignalOptions;
+    memory?: MemorySignalOptions;
 }
 
 // @public
@@ -1571,15 +1580,6 @@ export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
     getSample(sampleDurationMillis?: number): T[];
     push(snapshot: T, now?: Date): void;
     useSampleWindow(maxSampleWindowMillis: number): void;
-}
-
-// @public (undocumented)
-export interface SnapshotterOptions {
-    client?: ClientSignalOptions;
-    cpu?: CpuSignalOptions;
-    eventLoop?: EventLoopSignalOptions;
-    memory?: MemorySignalOptions;
-    snapshotHistorySecs?: number;
 }
 
 // @public (undocumented)

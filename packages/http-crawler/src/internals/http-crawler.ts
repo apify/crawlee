@@ -50,7 +50,7 @@ const APPLICATION_JSON_MIME_TYPE = 'application/json';
  */
 const HTTP_OPTIMIZED_CONCURRENCY_SYSTEM_OPTIONS: ConcurrencySystemOptions = {
     desiredConcurrency: 10,
-    snapshotterOptions: {
+    loadSignals: {
         eventLoop: {
             snapshotIntervalSecs: 2,
             maxBlockedMillis: 100,

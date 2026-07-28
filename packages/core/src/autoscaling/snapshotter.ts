@@ -97,7 +97,17 @@ export interface ClientSignalOptions {
     overloadedRatio?: number;
 }
 
-export interface SnapshotterOptions {
+/**
+ * Tuning for the built-in load signals — the resources a {@apilink ConcurrencySystem} watches to decide whether the
+ * machine is overloaded. Each of the four has its own bag of limits and its own `overloadedRatio`; anything else you
+ * want taken into account goes into {@apilink LoadSignalsOptions.custom|`custom`}.
+ *
+ * How far back the signals are evaluated is not set here — that's the
+ * {@apilink ConcurrencySystemOptions.snapshotHistorySecs|`snapshotHistorySecs`} /
+ * {@apilink ConcurrencySystemOptions.currentHistorySecs|`currentHistorySecs`} pair, which applies to every signal
+ * alike (and which signals size their snapshot retention to).
+ */
+export interface LoadSignalsOptions {
     /**
      * Tuning for the built-in memory load signal (used-memory limit + overload ratio).
      */
@@ -119,13 +129,20 @@ export interface SnapshotterOptions {
     client?: ClientSignalOptions;
 
     /**
-     * How far back the autoscaling decisions look, in seconds — the window the historical system status is evaluated
-     * over. Signals retain exactly this much history (the memory cost of raising it), and every signal is sampled
-     * over the same window, custom ones included.
-     * @default 30
+     * Additional {@apilink LoadSignal} implementations — e.g. navigation timeouts or proxy health — evaluated
+     * alongside the built-in four. If any signal reports overload, the system counts as overloaded. Their lifecycle
+     * is driven by the {@apilink ConcurrencySystem} they are given to.
      */
-    snapshotHistorySecs?: number;
+    custom?: LoadSignal[];
+}
 
+/**
+ * An implementation detail of the {@apilink ConcurrencySystem}: the built-in signal tuning from
+ * {@apilink LoadSignalsOptions} (custom signals are evaluated by the system, not collected by the snapshotter),
+ * plus ambient dependencies.
+ * @internal
+ */
+export interface SnapshotterOptions extends Omit<LoadSignalsOptions, 'custom'> {
     /** @internal */
     log?: CrawleeLogger;
 
@@ -216,7 +233,6 @@ export class Snapshotter {
                 eventLoop: ow.optional.object,
                 cpu: ow.optional.object,
                 client: ow.optional.object,
-                snapshotHistorySecs: ow.optional.number,
                 log: ow.optional.object,
                 storageClient: ow.optional.object,
                 config: ow.optional.object,

@@ -85,9 +85,9 @@ describe('ConcurrencySystem', () => {
 
             // The autoscaling window is the wider of the two here.
             const system = new ConcurrencySystem({
-                loadSignals: [signal],
+                loadSignals: { custom: [signal] },
                 currentHistorySecs: 5,
-                snapshotterOptions: { snapshotHistorySecs: 45 },
+                snapshotHistorySecs: 45,
             });
             await system.start();
             await system.stop();
@@ -96,9 +96,9 @@ describe('ConcurrencySystem', () => {
 
             // ...and when the gating window is the wider one, retention has to cover that instead.
             const gatingHeavy = new ConcurrencySystem({
-                loadSignals: [signal],
+                loadSignals: { custom: [signal] },
                 currentHistorySecs: 60,
-                snapshotterOptions: { snapshotHistorySecs: 30 },
+                snapshotHistorySecs: 30,
             });
             await gatingHeavy.start();
             await gatingHeavy.stop();
@@ -113,18 +113,20 @@ describe('ConcurrencySystem', () => {
             expect(store.historyMillis).toBe(30_000);
 
             const system = new ConcurrencySystem({
-                loadSignals: [
-                    {
-                        name: 'custom',
-                        overloadedRatio: 0.3,
-                        async start({ maxSampleWindowMillis }) {
-                            store.useSampleWindow(maxSampleWindowMillis);
+                loadSignals: {
+                    custom: [
+                        {
+                            name: 'custom',
+                            overloadedRatio: 0.3,
+                            async start({ maxSampleWindowMillis }) {
+                                store.useSampleWindow(maxSampleWindowMillis);
+                            },
+                            async stop() {},
+                            getSample: (ms) => store.getSample(ms),
                         },
-                        async stop() {},
-                        getSample: (ms) => store.getSample(ms),
-                    },
-                ],
-                snapshotterOptions: { snapshotHistorySecs: 90 },
+                    ],
+                },
+                snapshotHistorySecs: 90,
             });
             await system.start();
             await system.stop();

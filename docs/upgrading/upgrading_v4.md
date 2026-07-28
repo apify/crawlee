@@ -1175,7 +1175,7 @@ Both the pool and the crawlers depend only on the `IConcurrencySystem` interface
 
 ### `AutoscaledPool` requires a `concurrencySystem` and no longer takes scaling options
 
-All scaling/snapshotter options were **removed** from `AutoscaledPoolOptions` and now live on `ConcurrencySystemOptions`: `minConcurrency`, `maxConcurrency`, `desiredConcurrency`, `desiredConcurrencyRatio`, `scaleUpStepRatio`, `scaleDownStepRatio`, `loggingIntervalSecs`, `autoscaleIntervalSecs`, `maxTasksPerMinute`, and `snapshotterOptions`. The `systemStatusOptions` bag is gone entirely — its two useful members were hoisted onto `ConcurrencySystemOptions` directly as `loadSignals` (custom load signals) and `currentHistorySecs`. In place of all this, `AutoscaledPoolOptions` gained a **required** `concurrencySystem`.
+All scaling and load-monitoring options were **removed** from `AutoscaledPoolOptions` and now live on `ConcurrencySystemOptions`: `minConcurrency`, `maxConcurrency`, `desiredConcurrency`, `desiredConcurrencyRatio`, `scaleUpStepRatio`, `scaleDownStepRatio`, `loggingIntervalSecs`, `autoscaleIntervalSecs`, and `maxTasksPerMinute`, plus the load-signal configuration described [below](#snapshotter-and-systemstatus-load-signal-options-restructured). The `snapshotterOptions` and `systemStatusOptions` bags are both gone. In place of all this, `AutoscaledPoolOptions` gained a **required** `concurrencySystem`.
 
 `AutoscaledPool` also no longer manages the system's lifecycle: it requires the `ConcurrencySystem` to be running already. Whoever owns the system must `start()` it before `pool.run()` and `stop()` it afterwards — `pool.run()` throws if the system it borrows was never started, instead of running a whole crawl with load monitoring and autoscaling switched off. (Within Crawlee this is handled by the crawler for the pool it builds; you only need to care about this if you inject a system or drive an `AutoscaledPool` directly.)
 
@@ -1304,44 +1304,50 @@ When a `concurrencySystem` is supplied, the `minConcurrency` / `maxConcurrency` 
 
 ## `Snapshotter` and `SystemStatus` load-signal options restructured
 
-The per-resource load-signal configuration was consolidated. Previously it was split awkwardly between flat `SnapshotterOptions` fields and the `max*OverloadedRatio` options on `SystemStatusOptions`; now each built-in signal has a single cohesive options bag on `SnapshotterOptions`.
-
-`SnapshotterOptions` — the flat fields `eventLoopSnapshotIntervalSecs`, `clientSnapshotIntervalSecs`, `maxBlockedMillis`, `maxUsedMemoryRatio`, and `maxClientErrors` were **removed** in favour of the per-signal bags `memory`, `eventLoop`, `cpu`, and `client`, each of which also carries its own `overloadedRatio`:
+The per-resource load-signal configuration was consolidated. Previously it was spread across flat `SnapshotterOptions` fields, the `max*OverloadedRatio` options on `SystemStatusOptions`, and a separate `loadSignals` array — three places, two of them named after classes that are now internal. All of it now lives in a single `loadSignals` bag on `ConcurrencySystemOptions`: one options bag per built-in signal (each carrying its own limits *and* its `overloadedRatio`), plus `custom` for your own implementations.
 
 **Before:**
 ```typescript
-new ConcurrencySystem({
+new AutoscaledPool({
     snapshotterOptions: {
         maxUsedMemoryRatio: 0.8,
         eventLoopSnapshotIntervalSecs: 2,
         maxBlockedMillis: 100,
         clientSnapshotIntervalSecs: 1,
         maxClientErrors: 3,
+        snapshotHistorySecs: 60,
     },
     systemStatusOptions: {
         maxMemoryOverloadedRatio: 0.2,
         maxEventLoopOverloadedRatio: 0.7,
         maxCpuOverloadedRatio: 0.4,
         maxClientOverloadedRatio: 0.3,
+        currentHistorySecs: 10,
+        loadSignals: [myProxyHealthSignal],
     },
+    // ...
 });
 ```
 
 **After:**
 ```typescript
 new ConcurrencySystem({
-    snapshotterOptions: {
+    loadSignals: {
         memory: { maxUsedRatio: 0.8, overloadedRatio: 0.2 },
         eventLoop: { snapshotIntervalSecs: 2, maxBlockedMillis: 100, overloadedRatio: 0.7 },
         cpu: { overloadedRatio: 0.4 },
         client: { snapshotIntervalSecs: 1, maxErrors: 3, overloadedRatio: 0.3 },
+        custom: [myProxyHealthSignal],
     },
+    // the two evaluation windows are policy, alongside the scaling options
+    snapshotHistorySecs: 60,
+    currentHistorySecs: 10,
 });
 ```
 
-`SystemStatusOptions` is gone from the public API altogether. Its four `max*OverloadedRatio` options were **removed** — each signal now owns its overload ratio, set via the corresponding `snapshotterOptions` bag above — and its remaining useful members moved onto `ConcurrencySystemOptions` as `loadSignals` (custom signals) and `currentHistorySecs` (the "current" status window).
+In detail: the four `max*OverloadedRatio` options of `SystemStatusOptions` were **removed** (each signal now owns its overload ratio, set in its bag above), custom signals moved from `systemStatusOptions.loadSignals` to `loadSignals.custom`, and the two evaluation windows — `snapshotHistorySecs` (autoscaling) and `currentHistorySecs` (task gating) — are now plain options on `ConcurrencySystemOptions`, since they apply to every signal alike rather than to any one of them.
 
-The `Snapshotter` and `SystemStatus` classes themselves are now internal — they are implementation details of the `ConcurrencySystem`, which is the sole public entry point to load monitoring and autoscaling. The configuration surface (`SnapshotterOptions` and its per-signal bags) remains public, as does the `LoadSignal` interface (with the `SnapshotStore` helper) for implementing custom signals.
+The `Snapshotter` and `SystemStatus` classes are now internal, along with their options types (`SnapshotterOptions`, `SystemStatusOptions`) — they are implementation details of the `ConcurrencySystem`, which is the sole public entry point to load monitoring and autoscaling. What stays public is the configuration (`LoadSignalsOptions` and the four per-signal bags) and the extension surface: the `LoadSignal` interface, the `SnapshotStore` helper, and `LoadSignalStartContext`.
 
 ### Custom load signals are now sampled over the same window as the built-in ones
 

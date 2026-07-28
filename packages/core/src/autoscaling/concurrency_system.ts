@@ -7,7 +7,7 @@ import type { CrawleeLogger } from '../log.js';
 import { serviceLocator } from '../service_locator.js';
 import type { LoadSignal } from './load_signal.js';
 import { DEFAULT_SNAPSHOT_HISTORY_SECS, Snapshotter } from './snapshotter.js';
-import type { SnapshotterOptions } from './snapshotter.js';
+import type { LoadSignalsOptions } from './snapshotter.js';
 import type { SystemInfo } from './system_status.js';
 import { DEFAULT_CURRENT_HISTORY_SECS, SystemStatus } from './system_status.js';
 
@@ -70,21 +70,24 @@ export interface ConcurrencySystemOptions {
     autoscaleIntervalSecs?: number;
 
     /**
-     * Fine-tuning of the built-in resource monitoring (per-signal snapshot intervals, overload limits and ratios,
-     * and the snapshot history window). See {@apilink SnapshotterOptions}.
+     * The signals that tell the system whether the machine is overloaded: per-resource tuning for the built-in four
+     * (memory, event loop, CPU, client) plus any {@apilink LoadSignalsOptions.custom|`custom`} implementations of
+     * your own. See {@apilink LoadSignalsOptions}.
      */
-    snapshotterOptions?: SnapshotterOptions;
+    loadSignals?: LoadSignalsOptions;
 
     /**
-     * Custom {@apilink LoadSignal} implementations, evaluated alongside the built-in memory, CPU, event loop and
-     * client signals. If any signal reports overload, the system is considered overloaded. The system drives the
-     * lifecycle of the supplied signals (they are started and stopped together with it).
+     * How far back the **autoscaling** decisions look, in seconds — the window the historical system status is
+     * evaluated over, and therefore how much history the signals retain (the memory cost of raising it).
+     * @default 30
      */
-    loadSignals?: LoadSignal[];
+    snapshotHistorySecs?: number;
 
     /**
-     * How far back the current system status looks when deciding whether the system is overloaded *right now*
-     * (as opposed to the full snapshot history the autoscaling decisions use), in seconds.
+     * How far back the **task-gating** decision looks, in seconds — the window used to judge whether the system is
+     * overloaded *right now*, before dispatching one more task. Deliberately shorter than
+     * {@apilink ConcurrencySystemOptions.snapshotHistorySecs|`snapshotHistorySecs`}, so that dispatch reacts to
+     * spikes quickly while scaling stays stable.
      * @default 5
      */
     currentHistorySecs?: number;
@@ -210,8 +213,8 @@ export class ConcurrencySystem implements IConcurrencySystem {
                 scaleDownStepRatio: ow.optional.number.greaterThan(0).lessThan(1),
                 loggingIntervalSecs: ow.any(ow.number.greaterThan(0), ow.nullOrUndefined),
                 autoscaleIntervalSecs: ow.optional.number.greaterThan(0),
-                snapshotterOptions: ow.optional.object,
-                loadSignals: ow.optional.array,
+                loadSignals: ow.optional.object,
+                snapshotHistorySecs: ow.optional.number.greaterThan(0),
                 currentHistorySecs: ow.optional.number.greaterThan(0),
                 log: ow.optional.object,
                 maxTasksPerMinute: ow.optional.number.integerOrInfinite.greaterThanOrEqual(1),
@@ -227,8 +230,8 @@ export class ConcurrencySystem implements IConcurrencySystem {
             scaleDownStepRatio = 0.05,
             loggingIntervalSecs = 60,
             autoscaleIntervalSecs = 10,
-            snapshotterOptions,
-            loadSignals = [],
+            loadSignals = {},
+            snapshotHistorySecs,
             currentHistorySecs,
             log = serviceLocator.getLogger(),
             maxTasksPerMinute = Infinity,
@@ -250,18 +253,21 @@ export class ConcurrencySystem implements IConcurrencySystem {
         this._autoscale = this._autoscale.bind(this);
         this._incrementTasksDonePerSecond = this._incrementTasksDonePerSecond.bind(this);
 
+        // The built-in signals are collected by the snapshotter; custom ones are simply evaluated alongside them.
+        const { custom: customLoadSignals = [], ...builtinSignalOptions } = loadSignals;
+
         this.snapshotter = new Snapshotter({
-            ...snapshotterOptions,
+            ...builtinSignalOptions,
             log: this.log,
         });
-        this.loadSignals = loadSignals;
+        this.loadSignals = customLoadSignals;
         this.systemStatus = new SystemStatus({
             snapshotter: this.snapshotter,
-            loadSignals,
+            loadSignals: customLoadSignals,
             currentHistorySecs,
             // Both windows are requested from the signals explicitly, so a signal's own retention can neither widen
             // nor (given the start context below) narrow what it contributes.
-            historySecs: snapshotterOptions?.snapshotHistorySecs,
+            historySecs: snapshotHistorySecs,
         });
 
         // Signals are told how much history to keep when they start: exactly the longest window they will be sampled
@@ -269,7 +275,7 @@ export class ConcurrencySystem implements IConcurrencySystem {
         this.maxSampleWindowMillis =
             Math.max(
                 currentHistorySecs ?? DEFAULT_CURRENT_HISTORY_SECS,
-                snapshotterOptions?.snapshotHistorySecs ?? DEFAULT_SNAPSHOT_HISTORY_SECS,
+                snapshotHistorySecs ?? DEFAULT_SNAPSHOT_HISTORY_SECS,
             ) * 1000;
     }
 
