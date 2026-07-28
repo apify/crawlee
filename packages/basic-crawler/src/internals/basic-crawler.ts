@@ -16,6 +16,7 @@ import type {
     EventStatusMessageData,
     FinalStatistics,
     GetUserDataFromRequest,
+    IConcurrencySystem,
     IProxyConfiguration,
     IRequestLoader,
     IRequestManager,
@@ -316,10 +317,10 @@ export interface BasicCrawlerOptions<
     autoscaledPoolOptions?: AutoscaledPoolPredicateOptions;
 
     /**
-     * A pre-configured {@apilink ConcurrencySystem} — the load-and-budget "governor" that decides whether there is
-     * free compute for one more task. Configure all scaling on the instance itself (min/max/desired concurrency,
-     * scaling ratios, `maxTasksPerMinute`, snapshotter and system-status tuning) rather than through separate option
-     * bags.
+     * A pre-configured concurrency governor — the component that decides whether there is free compute for one more
+     * task. Typically a {@apilink ConcurrencySystem} (the canonical implementation), though any
+     * {@apilink IConcurrencySystem} is accepted. Configure all scaling on the instance itself (min/max/desired
+     * concurrency, scaling ratios, `maxTasksPerMinute`, snapshotter tuning) rather than through separate option bags.
      *
      * Inject the *same* instance into several concurrent crawlers to cap their **combined** concurrency against a
      * single budget, instead of each crawler scaling independently and oversubscribing the host. Each crawler still
@@ -330,7 +331,7 @@ export interface BasicCrawlerOptions<
      * otherwise duplicate what the instance already carries). The crawler never starts or tears down a supplied
      * system — the caller owns its lifecycle.
      */
-    concurrencySystem?: ConcurrencySystem;
+    concurrencySystem?: IConcurrencySystem;
 
     /**
      * Sets the minimum concurrency (parallelism) for the crawl. Shortcut for the
@@ -648,7 +649,7 @@ export class BasicCrawler<
      * {@apilink BasicCrawler._init|`_init()`}. Owned-only lifecycle is gated through
      * {@apilink OwnedOrInjected.ifOwned|`ifOwned()`}.
      */
-    private concurrencySystemDep: OwnedOrInjected<ConcurrencySystem>;
+    private concurrencySystemDep: OwnedOrInjected<IConcurrencySystem, ConcurrencySystem>;
 
     /**
      * Builds the crawler-owned default {@apilink ConcurrencySystem} with the resolved concurrency shortcuts folded
@@ -1155,7 +1156,9 @@ export class BasicCrawler<
                         log: this.log,
                     });
             }
-            this.concurrencySystemDep = OwnedOrInjected.resolve<ConcurrencySystem>(concurrencySystem);
+            this.concurrencySystemDep = OwnedOrInjected.resolve<IConcurrencySystem, ConcurrencySystem>(
+                concurrencySystem,
+            );
         } finally {
             serviceLocatorScope.exitScope();
         }
@@ -1919,7 +1922,7 @@ export class BasicCrawler<
         // snapshots or a previous run's scaled desired concurrency would otherwise distort this run's scaling
         // (an injected system's state is intentionally long-lived and belongs to the caller).
         if (this.concurrencySystemDep.isOwned) {
-            this.concurrencySystemDep = OwnedOrInjected.resolve<ConcurrencySystem>(
+            this.concurrencySystemDep = OwnedOrInjected.resolve<IConcurrencySystem, ConcurrencySystem>(
                 undefined,
                 this.buildDefaultConcurrencySystem,
             );

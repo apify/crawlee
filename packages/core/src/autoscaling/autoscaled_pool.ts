@@ -4,7 +4,7 @@ import { addTimeoutToPromise } from '@apify/timeout';
 import type { BetterIntervalID } from '@apify/utilities';
 import { betterClearInterval, betterSetInterval } from '@apify/utilities';
 
-import type { ConcurrencySystem } from './concurrency_system.js';
+import type { IConcurrencySystem } from './concurrency_system.js';
 import { CriticalError } from '../errors.js';
 import type { CrawleeLogger } from '../log.js';
 import { serviceLocator } from '../service_locator.js';
@@ -63,16 +63,17 @@ export interface AutoscaledPoolTaskLoopOptions extends AutoscaledPoolPredicateOp
 
 export interface AutoscaledPoolOptions extends AutoscaledPoolTaskLoopOptions {
     /**
-     * The {@apilink ConcurrencySystem} that governs how much this pool may scale — the load-and-budget "governor"
-     * that decides whether there is free compute for one more task. **Required.** Share a single instance across
+     * The governor that decides how much this pool may scale — whether there is free compute for one more task.
+     * **Required.** Typically a {@apilink ConcurrencySystem} (the canonical implementation), but any
+     * {@apilink IConcurrencySystem} works — the pool depends only on the interface. Share a single instance across
      * multiple pools (and therefore multiple crawlers) to cap their *combined* concurrency against one budget instead
      * of each pool scaling independently.
      *
      * All concurrency/scaling/snapshotter configuration (min/max/desired concurrency, scaling ratios, `maxTasksPerMinute`,
-     * snapshotter and system-status tuning) lives on the {@apilink ConcurrencySystem}, not here — the pool only owns the
-     * task loop (`runTaskFunction`/`isTaskReadyFunction`/`isFinishedFunction`) and its cadence.
+     * snapshotter tuning) lives on the governor, not here — the pool only owns the task loop
+     * (`runTaskFunction`/`isTaskReadyFunction`/`isFinishedFunction`) and its cadence.
      */
-    concurrencySystem: ConcurrencySystem;
+    concurrencySystem: IConcurrencySystem;
 }
 
 /**
@@ -133,7 +134,7 @@ export class AutoscaledPool {
     private readonly isFinishedFunction: () => Promise<boolean>;
     private readonly isTaskReadyFunction: () => Promise<boolean>;
 
-    private readonly concurrencySystem: ConcurrencySystem;
+    private readonly concurrencySystem: IConcurrencySystem;
 
     // Internal properties.
     private isStopped = false;
@@ -196,7 +197,7 @@ export class AutoscaledPool {
      * The load-and-budget governor backing this pool. Read it to inject the *same* budget into another pool
      * (see {@apilink AutoscaledPoolOptions.concurrencySystem}) so their combined compute is capped.
      */
-    get system(): ConcurrencySystem {
+    get system(): IConcurrencySystem {
         return this.concurrencySystem;
     }
 

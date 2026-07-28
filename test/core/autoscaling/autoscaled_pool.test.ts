@@ -667,7 +667,8 @@ describe('AutoscaledPool', () => {
                 { minConcurrency: 1, maxConcurrency: 10, systemStatusOptions: { loadSignals: [signal] } },
             );
 
-            const status = pool.system.getCurrentStatus();
+            // `getCurrentStatus()` is telemetry on the concrete governor, not part of the pool-facing interface.
+            const status = (pool.system as ConcurrencySystem).getCurrentStatus();
             expect(status.loadSignalInfo?.navTimeout?.isOverloaded).toBe(true);
 
             await pool.run();

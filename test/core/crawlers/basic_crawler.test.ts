@@ -508,7 +508,7 @@ describe('BasicCrawler', () => {
             minConcurrency: crawler.autoscaledPool!.minConcurrency,
             maxConcurrency: crawler.autoscaledPool!.maxConcurrency,
             // eslint-disable-next-line dot-notation -- private member on the governor
-            maxTasksPerMinute: crawler.autoscaledPool!.system['maxTasksPerMinute'],
+            maxTasksPerMinute: (crawler.autoscaledPool!.system as ConcurrencySystem)['maxTasksPerMinute'],
         });
 
         // Shortcuts feed the default ConcurrencySystem the crawler builds.

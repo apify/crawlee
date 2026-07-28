@@ -92,6 +92,64 @@ export interface ConcurrencySystemOptions {
 }
 
 /**
+ * The contract between an {@apilink AutoscaledPool} and its concurrency "governor" — the object that answers *is
+ * there free compute for one more task?* and tracks the budget that tasks are booked against. This is exactly what
+ * the pool (and therefore a crawler) consumes; {@apilink ConcurrencySystem} is the canonical implementation, and the
+ * interface exists so alternate governors can be substituted without depending on its internals (snapshotting,
+ * system-status evaluation, autoscaling).
+ *
+ * Implementations must keep {@apilink IConcurrencySystem.tryRegisterTaskStart|`tryRegisterTaskStart()`} an *atomic*
+ * (synchronous) check-and-book — several pools may share one governor, and a check separated from the booking by an
+ * `await` lets two pools claim the last free slot at once.
+ * @category Scaling
+ */
+export interface IConcurrencySystem {
+    /**
+     * The minimum number of tasks running in parallel.
+     */
+    minConcurrency: number;
+
+    /**
+     * The maximum number of tasks running in parallel.
+     */
+    maxConcurrency: number;
+
+    /**
+     * The number of tasks that should currently be running in parallel, assuming a sufficient supply of them.
+     */
+    desiredConcurrency: number;
+
+    /**
+     * The number of parallel tasks currently booked against this governor (summed across every borrowing pool).
+     */
+    readonly currentConcurrency: number;
+
+    /**
+     * Whether the per-minute task cap has been reached. Consulted by the pool only after a task is known to be
+     * ready, so an empty queue never blocks it for a whole extra minute.
+     */
+    readonly isOverMaxRequestLimit: boolean;
+
+    /**
+     * The core, shareable decision: may **one more** task start right now? A cheap pre-check the pool consults
+     * before querying task readiness; the actual booking happens through
+     * {@apilink IConcurrencySystem.tryRegisterTaskStart|`tryRegisterTaskStart()`}.
+     */
+    hasCapacityForTask(): boolean;
+
+    /**
+     * Atomically books a task against the budget, returning `false` (without booking) when it has no room. Must be
+     * synchronous — see the interface docs for why.
+     */
+    tryRegisterTaskStart(): boolean;
+
+    /**
+     * Returns a task's slot to the budget. Called once the task settles (resolve or reject).
+     */
+    registerTaskEnd(): void;
+}
+
+/**
  * The shareable "governor" behind an {@apilink AutoscaledPool}. It answers the single question that decides whether
  * more work may start right now — *is there free compute for one more task?* — by combining live system load (via a
  * {@apilink Snapshotter}/{@apilink SystemStatus}) with a concurrency budget it autoscales over time.
@@ -108,7 +166,7 @@ export interface ConcurrencySystemOptions {
  * for every borrower — borrowers must not manage a shared system's lifecycle themselves.
  * @category Scaling
  */
-export class ConcurrencySystem {
+export class ConcurrencySystem implements IConcurrencySystem {
     private readonly log: CrawleeLogger;
 
     private readonly desiredConcurrencyRatio: number;
