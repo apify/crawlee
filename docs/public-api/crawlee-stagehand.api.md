@@ -69,9 +69,6 @@ export function createStagehandRouter<Context extends StagehandCrawlingContext =
 // @public (undocumented)
 export function createStagehandRouter<Context extends StagehandCrawlingContext = StagehandCrawlingContext, const Schemas extends RouteSchemas = RouteSchemas>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
 
-// @public
-function enhancePageWithStagehand(page: Page, stagehand: Stagehand): StagehandPage;
-
 export { ExtractOptions }
 
 export { ModelConfiguration }

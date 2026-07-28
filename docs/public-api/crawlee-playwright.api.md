@@ -123,12 +123,6 @@ interface BlockRequestsOptions {
     urlPatterns?: string[];
 }
 
-// @public
-function clickElements(page: Page, selector: string, clickOptions?: ClickOptions): Promise<void>;
-
-// @public
-function clickElementsAndInterceptNavigationRequests(options: ClickElementsAndInterceptNavigationRequestsOptions): Promise<Dictionary_2[]>;
-
 // @public (undocumented)
 function closeCookieModals(page: Page): Promise<void>;
 
@@ -365,26 +359,6 @@ export interface PlaywrightLaunchContext extends BrowserLaunchContext<LaunchOpti
     useChrome?: boolean;
     useIncognitoPages?: boolean;
     userDataDir?: string;
-}
-
-// @public
-export class PlaywrightLauncher extends BrowserLauncher<PlaywrightPlugin> {
-    constructor(launchContext?: PlaywrightLaunchContext, config?: Configuration);
-    // (undocumented)
-    readonly config: Configuration;
-    // (undocumented)
-    protected static optionsShape: {
-        launcher: ObjectPredicate<object> & BasePredicate<object | undefined>;
-        launchContextOptions: ObjectPredicate<object> & BasePredicate<object | undefined>;
-        proxyUrl: StringPredicate & BasePredicate<string | undefined>;
-        useChrome: BooleanPredicate & BasePredicate<boolean | undefined>;
-        useIncognitoPages: BooleanPredicate & BasePredicate<boolean | undefined>;
-        browserPerProxy: BooleanPredicate & BasePredicate<boolean | undefined>;
-        ignoreProxyCertificate: BooleanPredicate & BasePredicate<boolean | undefined>;
-        userDataDir: StringPredicate & BasePredicate<string | undefined>;
-        launchOptions: ObjectPredicate<object> & BasePredicate<object | undefined>;
-        userAgent: StringPredicate & BasePredicate<string | undefined>;
-    };
 }
 
 declare namespace playwrightUtils {

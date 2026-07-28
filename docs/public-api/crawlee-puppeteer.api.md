@@ -66,14 +66,6 @@ const blockResources: (page: Page, resourceTypes?: string[]) => Promise<void>;
 // @public @deprecated
 function cacheResponses(page: Page, cache: Dictionary<Partial<ResponseForRequest>>, responseUrlRules: (string | RegExp)[]): Promise<void>;
 
-// @public
-function clickElements(page: Page, selector: string, clickOptions?: ClickOptions & {
-    clickCount?: number;
-}): Promise<void>;
-
-// @public
-function clickElementsAndInterceptNavigationRequests(options: ClickElementsAndInterceptNavigationRequestsOptions): Promise<Dictionary[]>;
-
 // @public (undocumented)
 function closeCookieModals(page: Page): Promise<void>;
 
@@ -280,27 +272,6 @@ export interface PuppeteerLaunchContext extends BrowserLaunchContext<PuppeteerPl
     proxyUrl?: string;
     useChrome?: boolean;
     useIncognitoPages?: boolean;
-}
-
-// @public
-export class PuppeteerLauncher extends BrowserLauncher<PuppeteerPlugin, unknown> {
-    constructor(launchContext?: PuppeteerLaunchContext, config?: Configuration);
-    // (undocumented)
-    readonly config: Configuration;
-    // (undocumented)
-    protected getDefaultHeadlessOption(): boolean;
-    // (undocumented)
-    protected static optionsShape: {
-        launcher: ObjectPredicate<object> & BasePredicate<object | undefined>;
-        proxyUrl: StringPredicate & BasePredicate<string | undefined>;
-        useChrome: BooleanPredicate & BasePredicate<boolean | undefined>;
-        useIncognitoPages: BooleanPredicate & BasePredicate<boolean | undefined>;
-        browserPerProxy: BooleanPredicate & BasePredicate<boolean | undefined>;
-        ignoreProxyCertificate: BooleanPredicate & BasePredicate<boolean | undefined>;
-        userDataDir: StringPredicate & BasePredicate<string | undefined>;
-        launchOptions: ObjectPredicate<object> & BasePredicate<object | undefined>;
-        userAgent: StringPredicate & BasePredicate<string | undefined>;
-    };
 }
 
 declare namespace puppeteerRequestInterception {
