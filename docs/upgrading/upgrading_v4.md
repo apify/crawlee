@@ -52,7 +52,7 @@ The change spans, among others:
 
 - **`BasicCrawler`** — `unexpectedStop`, `requestHandlerTimeoutMillis`, `sameDomainDelayMillis`, `domainAccessedTime`, `handledRequestsCount`, `statusMessageLoggingInterval`, `statusMessageCallback`, `ignoreHttpErrorStatusCodes`, `autoscaledPoolOptions`, `respectRobotsTxtFile`, and the helpers `buildBasicContextPipeline`, `validateRequestUserData`, `pauseOnMigration`, `fetchNextRequest`, `delayRequest`, `handleRequest`, `timeoutAndRetry`, `isTaskReadyFunction`, `defaultIsFinishedFunction`, `requestFunctionErrorHandler`, `handleFailedRequestHandler`, `canRequestBeRetried`
 - **`HttpCrawler`** — `preNavigationHooks`, `postNavigationHooks`, `saveResponseCookies`, `navigationTimeoutMillis`, `ignoreSslErrors`, `suggestResponseEncoding`, `forceResponseEncoding`, `supportedMimeTypes`, and the helpers `requestFunction`, `parseResponse`, `getRequestOptions`, `encodeResponse`, `extendSupportedMimeTypes`, `handleRequestTimeout`
-- **`AutoscaledPool`** — `autoscale`, `maybeRunTask`, `incrementTasksDonePerSecond`, `maybeFinish`, `destroy`, `scaleUp`, `scaleDown`, `isOverMaxRequestLimit`
+- **`AutoscaledPool`** — `maybeRunTask`, `maybeFinish`, `destroy` (the scaling internals `autoscale`, `scaleUp`, `scaleDown`, `incrementTasksDonePerSecond` and `isOverMaxRequestLimit` are private too, but they now live on the `ConcurrencySystem` the pool delegates to — see [below](#autoscaling-split-into-autoscaledpool--concurrencysystem))
 - **`SessionPool`** — all pool internals (`log`, `maxPoolSize`, `createSessionFunction`, `keyValueStore`, `sessions`, `sessionMap`, `sessionOptions`, `persistStateKey`, `persistStateKeyValueStoreId`, `events`, `persistenceOptions`, `sessionReuseStrategy`, and the helpers `ensureInitialized`, `maybeLoadSessionPool`, `registerSession`, `createSession`, `hasSpaceForSession`, `pickSession`, `removeRetiredSessions`, `getRandomIndex`, `defaultCreateSessionFunction`)
 - **`Session`** — `maybeSelfRetire` (`userData` is now `readonly`)
 - **`RequestList`** — all `_`-prefixed helpers (`addFetchedRequests`, `addPersistedRequests`, `addRequest`, `addRequestsFromSources`, `ensureInProgress`, `ensureIsInitialized`, `ensureUniqueKeyValid`, `fetchRequestsFromUrl`, `getPersistedState`, `loadStateAndPersistedRequests`, `persistRequests`, `restoreState`)
@@ -1392,7 +1392,7 @@ const proxyHealthSignal: LoadSignal = {
 };
 ```
 
-Signals built through `SnapshotStore.fromInterval()` / `SnapshotStore.fromEvent()` do this for you. Existing implementations keep compiling — a `start()` that declares no parameters still satisfies the interface — they just retain whatever they chose to. Correspondingly, the `snapshotHistoryMillis` option was removed from the internal per-signal option types, and `SnapshotterOptions.snapshotHistorySecs` now means "the autoscaling window" (which signals size their retention to) rather than a separately configured retention.
+Signals built through `SnapshotStore.fromInterval()` / `SnapshotStore.fromEvent()` do this for you. Existing implementations keep compiling — a `start()` that declares no parameters still satisfies the interface — they just retain whatever they chose to. Correspondingly, the `snapshotHistoryMillis` option was removed from the internal per-signal option types, and retention is no longer configured anywhere: `ConcurrencySystemOptions.snapshotHistorySecs` sets the autoscaling window, and signals size their retention to it.
 
 ## Stagehand type narrowings
 
