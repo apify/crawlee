@@ -15,6 +15,13 @@ import type { MemorySnapshot } from './memory_load_signal.js';
 import { MemoryLoadSignal } from './memory_load_signal.js';
 
 /**
+ * How long the built-in signals retain snapshots, and — since the historical status is evaluated over the same
+ * window — how far back autoscaling decisions look by default.
+ * @internal
+ */
+export const DEFAULT_SNAPSHOT_HISTORY_SECS = 30;
+
+/**
  * Per-signal tuning for the built-in **memory** load signal.
  */
 export interface MemorySignalOptions {
@@ -220,7 +227,7 @@ export class Snapshotter {
             eventLoop = {},
             cpu = {},
             client = {},
-            snapshotHistorySecs = 30,
+            snapshotHistorySecs = DEFAULT_SNAPSHOT_HISTORY_SECS,
             log = serviceLocator.getLogger(),
             config = serviceLocator.getConfiguration(),
             storageClient = serviceLocator.getStorageBackend(),

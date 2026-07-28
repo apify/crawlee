@@ -1343,6 +1343,12 @@ new ConcurrencySystem({
 
 The `Snapshotter` and `SystemStatus` classes themselves are now internal — they are implementation details of the `ConcurrencySystem`, which is the sole public entry point to load monitoring and autoscaling. The configuration surface (`SnapshotterOptions` and its per-signal bags) remains public, as does the `LoadSignal` interface (with the `SnapshotStore` helper) for implementing custom signals.
 
+### Custom load signals are now sampled over the same window as the built-in ones
+
+Overload is evaluated over two windows: a short one (`currentHistorySecs`, default 5s) that gates whether another task may start, and a long one (`snapshotHistorySecs`, default 30s) that drives autoscaling decisions. Previously the long window was implicit — `getHistoricalStatus()` asked each signal for *everything it had retained*, so a custom signal that kept, say, five minutes of snapshots silently made autoscaling reason over five minutes of history for that resource, while the built-in signals used 30 seconds.
+
+Both windows are now requested explicitly from every signal, so `snapshotHistorySecs` bounds the autoscaling window uniformly, custom signals included. With default settings nothing changes (the built-in signals retain exactly the 30s they are evaluated over, and `SnapshotStore` defaults to the same). You are only affected if a custom signal retains **more** history than `snapshotHistorySecs` — its stale snapshots no longer influence scaling — or if your custom `getSample()` implementation ignores its `sampleDurationMillis` argument, in which case it still contributes everything it has. Honour that argument (as `SnapshotStore` does) if you want the window respected.
+
 ## Stagehand type narrowings
 
 A few Stagehand-specific option types were tightened:

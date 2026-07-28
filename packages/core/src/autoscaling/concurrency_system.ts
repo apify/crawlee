@@ -253,6 +253,9 @@ export class ConcurrencySystem implements IConcurrencySystem {
             snapshotter: this.snapshotter,
             loadSignals,
             currentHistorySecs,
+            // The historical (autoscaling) window matches what the built-in signals retain, and is requested
+            // explicitly so custom signals with a longer memory don't widen it.
+            historySecs: snapshotterOptions?.snapshotHistorySecs,
         });
     }
 

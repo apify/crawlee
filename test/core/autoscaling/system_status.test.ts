@@ -1,3 +1,4 @@
+import type { LoadSignal, LoadSnapshot } from '@crawlee/core';
 import { Snapshotter, SystemStatus } from '@crawlee/core';
 
 import log from '@apify/log';
@@ -228,5 +229,48 @@ describe('SystemStatus', () => {
         const systemStatus = new SystemStatus();
         // @ts-expect-error Accessing private prop
         expect(systemStatus.snapshotter).toBeInstanceOf(Snapshotter);
+    });
+
+    test('the historical window is requested explicitly, so a long-memory custom signal cannot widen it', () => {
+        const now = Date.now();
+        // A custom signal that remembers far more than the configured window: overloaded a minute ago, fine since.
+        const timestampedSignal: LoadSignal = {
+            name: 'proxyHealth',
+            overloadedRatio: 0,
+            async start() {},
+            async stop() {},
+            getSample(sampleDurationMillis?: number) {
+                // A sustained overload about a minute ago, healthy ever since. (The sample evaluation weights each
+                // interval by the flag of the snapshot that ends it, so the overload needs more than one snapshot.)
+                const snapshots: LoadSnapshot[] = [
+                    { createdAt: new Date(now - 60_000), isOverloaded: true },
+                    { createdAt: new Date(now - 59_000), isOverloaded: true },
+                    { createdAt: new Date(now - 58_000), isOverloaded: true },
+                    { createdAt: new Date(now - 1_000), isOverloaded: false },
+                ];
+
+                if (!sampleDurationMillis) return snapshots;
+                const cutoff = now - sampleDurationMillis;
+                return snapshots.filter((snapshot) => +snapshot.createdAt >= cutoff);
+            },
+        };
+
+        const fine = generateSnapsSync(100, false);
+        const systemStatus = new SystemStatus({
+            snapshotter: new MockSnapshotter(fine, fine, fine, fine, {}) as any,
+            loadSignals: [timestampedSignal],
+            historySecs: 30,
+        });
+
+        // The minute-old overload falls outside the 30s window, so it must not drag the historical status down.
+        expect(systemStatus.getHistoricalStatus().isSystemIdle).toBe(true);
+
+        // Widening the window past the old snapshot brings the overload back into view.
+        const widened = new SystemStatus({
+            snapshotter: new MockSnapshotter(fine, fine, fine, fine, {}) as any,
+            loadSignals: [timestampedSignal],
+            historySecs: 120,
+        });
+        expect(widened.getHistoricalStatus().isSystemIdle).toBe(false);
     });
 });

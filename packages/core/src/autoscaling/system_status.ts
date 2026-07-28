@@ -2,7 +2,7 @@ import ow from 'ow';
 
 import type { LoadSignal } from './load_signal.js';
 import { evaluateLoadSignalSample } from './load_signal.js';
-import { Snapshotter } from './snapshotter.js';
+import { DEFAULT_SNAPSHOT_HISTORY_SECS, Snapshotter } from './snapshotter.js';
 
 /**
  * Represents the current status of the system.
@@ -50,6 +50,14 @@ export interface SystemStatusOptions {
      * @default 5
      */
     currentHistorySecs?: number;
+
+    /**
+     * Defines max age of snapshots used in the {@apilink SystemStatus.getHistoricalStatus} measurement — the window
+     * autoscaling decisions are based on. Applied uniformly to every signal, built-in or custom, so that a signal's
+     * private retention cannot silently widen the window.
+     * @default 30
+     */
+    historySecs?: number;
 
     /**
      * The `Snapshotter` instance to be queried for `SystemStatus`.
@@ -105,8 +113,8 @@ const BUILTIN_SIGNAL_NAMES = new Set(['memInfo', 'eventLoopInfo', 'cpuInfo', 'cl
  *
  * {@apilink SystemStatus.getHistoricalStatus}
  * returns a boolean that represents the long-term status
- * of the system. It considers the full snapshot history available
- * in the {@apilink Snapshotter} instance.
+ * of the system, over the longer `historySecs` timeframe. Both windows are requested explicitly from every signal,
+ * built-in or custom, so a signal's private snapshot retention cannot widen the window it contributes to.
  *
  * Configured through {@apilink ConcurrencySystemOptions}.
  * @category Scaling
@@ -114,6 +122,7 @@ const BUILTIN_SIGNAL_NAMES = new Set(['memInfo', 'eventLoopInfo', 'cpuInfo', 'cl
  */
 export class SystemStatus {
     private readonly currentHistoryMillis: number;
+    private readonly historyMillis: number;
     private readonly snapshotter: Snapshotter;
     private readonly signals: LoadSignal[];
 
@@ -122,14 +131,21 @@ export class SystemStatus {
             options,
             ow.object.exactShape({
                 currentHistorySecs: ow.optional.number,
+                historySecs: ow.optional.number,
                 snapshotter: ow.optional.object,
                 loadSignals: ow.optional.array,
             }),
         );
 
-        const { currentHistorySecs = 5, snapshotter, loadSignals = [] } = options;
+        const {
+            currentHistorySecs = 5,
+            historySecs = DEFAULT_SNAPSHOT_HISTORY_SECS,
+            snapshotter,
+            loadSignals = [],
+        } = options;
 
         this.currentHistoryMillis = currentHistorySecs * 1000;
+        this.historyMillis = historySecs * 1000;
         this.snapshotter = snapshotter || new Snapshotter();
 
         this.signals = [...this.snapshotter.getLoadSignals(), ...loadSignals];
@@ -167,12 +183,11 @@ export class SystemStatus {
      * }
      * ```
      *
-     * Where the `isSystemIdle` property is set to `false` if the system
-     * has been overloaded in the full history of the {@apilink Snapshotter}
-     * (which is configurable in the {@apilink Snapshotter}) and `true` otherwise.
+     * Where the `isSystemIdle` property is set to `false` if the system has been overloaded within the last
+     * `historySecs` seconds and `true` otherwise.
      */
     getHistoricalStatus(): SystemInfo {
-        return this.isSystemIdle();
+        return this.isSystemIdle(this.historyMillis);
     }
 
     /**
