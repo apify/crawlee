@@ -30,16 +30,31 @@ export type RouteSchemas = Record<string, StandardSchemaV1> & {
     [defaultRoute]?: StandardSchemaV1;
 };
 
+/** Infers a label's `userData` type from its schema, falling back to a plain {@apilink Dictionary}. */
+type SchemaUserData<Schema extends StandardSchemaV1> =
+    StandardSchemaV1.InferOutput<Schema> extends Dictionary ? StandardSchemaV1.InferOutput<Schema> : Dictionary;
+
 /**
- * Derives a route map (label → `userData` type) from a {@apilink RouteSchemas} map by inferring each
- * schema's output type. Outputs that are not object-shaped fall back to a plain {@apilink Dictionary}. The
- * {@apilink defaultRoute} schema drives runtime validation only, so it is excluded from the typed route map.
+ * Derives a route map (label → `userData` type) from a {@apilink RouteSchemas} map by inferring each schema's
+ * output type. Outputs that are not object-shaped fall back to a plain {@apilink Dictionary}. The
+ * {@apilink defaultRoute} schema is kept under its symbol key so {@apilink Router.addDefaultHandler} can pick it
+ * up; string labels (the ones {@apilink Router.addHandler} accepts) ignore it.
  */
 export type RoutesFromSchemas<Schemas extends RouteSchemas> = {
-    [Label in Extract<keyof Schemas, string>]: StandardSchemaV1.InferOutput<Schemas[Label]> extends Dictionary
-        ? StandardSchemaV1.InferOutput<Schemas[Label]>
-        : Dictionary;
-};
+    [Label in Extract<keyof Schemas, string>]: SchemaUserData<Schemas[Label]>;
+} & (Schemas extends { [defaultRoute]: StandardSchemaV1 }
+    ? { [defaultRoute]: SchemaUserData<Schemas[typeof defaultRoute]> }
+    : {});
+
+/**
+ * The `userData` type of the default route: inferred from the {@apilink defaultRoute} schema when the route map
+ * carries one, otherwise the provided `Fallback`.
+ */
+export type DefaultRouteUserData<Routes, Fallback extends Dictionary> = Routes extends {
+    [defaultRoute]: infer DefaultUserData extends Dictionary;
+}
+    ? DefaultUserData
+    : Fallback;
 
 /** Whether a validation issue points at the top-level `label` key. */
 function isLabelIssue(issue: StandardSchemaV1.Issue): boolean {
@@ -251,12 +266,13 @@ export class Router<
 
     /**
      * Registers default route handler. As a fallback it can receive any request (including labels not
-     * declared in the route map), so `request.userData` defaults to the context's `userData` type
-     * (loosely typed by default). Pass an explicit `UserData` type argument to narrow it.
+     * declared in the route map). When the router was created with a {@apilink defaultRoute} schema,
+     * `request.userData` is typed from it; otherwise it defaults to the context's (loosely typed) `userData`.
+     * Pass an explicit `UserData` type argument to narrow it.
      */
-    addDefaultHandler<UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(
-        handler: (ctx: RouterHandlerContext<Context, UserData>) => Awaitable<void>,
-    ) {
+    addDefaultHandler<
+        UserData extends Dictionary = DefaultRouteUserData<Routes, GetUserDataFromRequest<Context['request']>>,
+    >(handler: (ctx: RouterHandlerContext<Context, UserData>) => Awaitable<void>) {
         this.validate(defaultRoute);
         this.routes.set(defaultRoute, handler);
     }
