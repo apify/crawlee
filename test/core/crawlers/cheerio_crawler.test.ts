@@ -347,8 +347,8 @@ describe('CheerioCrawler', () => {
 
             failed.forEach((request) => {
                 expect(request.errorMessages).toHaveLength(2);
-                expect(request.errorMessages[0]).toMatch('request timed out');
-                expect(request.errorMessages[1]).toMatch('request timed out');
+                expect(request.errorMessages[0]).toMatch('navigation timed out');
+                expect(request.errorMessages[1]).toMatch('navigation timed out');
             });
         });
 
@@ -388,14 +388,14 @@ describe('CheerioCrawler', () => {
             });
         });
 
-        test('after navigationHooksTimeoutSecs in a pre-navigation hook', async () => {
+        test('when a pre-navigation hook exceeds the navigation window', async () => {
             const failed: Request[] = [];
             const requestList = await getExampleRequestList();
             const requestHandler = vi.fn();
 
             const cheerioCrawler = new CheerioCrawler({
                 requestList,
-                navigationHooksTimeoutSecs: 0.1,
+                navigationTimeoutSecs: 0.1,
                 maxRequestRetries: 1,
                 minConcurrency: 2,
                 maxConcurrency: 2,
@@ -415,22 +415,22 @@ describe('CheerioCrawler', () => {
                 expect(request.errorMessages).toHaveLength(2);
 
                 request.errorMessages.forEach((message) => {
-                    expect(message).toMatch('navigationHook timed out');
-                    // the hook is not the handler, and it is not the navigation either
+                    // a hook overrunning shares the navigation window, so it reads as a navigation timeout
+                    expect(message).toMatch('navigation timed out');
+                    // ...not the request handler, which is timed separately
                     expect(message).not.toMatch('requestHandler timed out');
-                    expect(message).not.toMatch('request timed out');
                 });
             });
         });
 
-        test('after navigationHooksTimeoutSecs in a post-navigation hook', async () => {
+        test('after navigationTimeoutSecs in a post-navigation hook', async () => {
             const failed: Request[] = [];
             const requestList = await getExampleRequestList();
             const requestHandler = vi.fn();
 
             const cheerioCrawler = new CheerioCrawler({
                 requestList,
-                navigationHooksTimeoutSecs: 0.1,
+                navigationTimeoutSecs: 0.1,
                 maxRequestRetries: 1,
                 minConcurrency: 2,
                 maxConcurrency: 2,
@@ -448,7 +448,7 @@ describe('CheerioCrawler', () => {
 
             failed.forEach((request) => {
                 request.errorMessages.forEach((message) => {
-                    expect(message).toMatch('navigationHook timed out');
+                    expect(message).toMatch('navigation timed out');
                 });
             });
         });
@@ -460,7 +460,7 @@ describe('CheerioCrawler', () => {
             const cheerioCrawler = new CheerioCrawler({
                 requestList,
                 // the hooks eat 300ms in total, which must not be charged to the 1s handler window
-                navigationHooksTimeoutSecs: 1,
+                navigationTimeoutSecs: 1,
                 requestHandlerTimeoutSecs: 1,
                 maxRequestRetries: 0,
                 minConcurrency: 2,
@@ -485,7 +485,7 @@ describe('CheerioCrawler', () => {
 
             const cheerioCrawler = new CheerioCrawler({
                 requestList,
-                navigationHooksTimeoutSecs: 0.2,
+                navigationTimeoutSecs: 0.2,
                 maxRequestRetries: 0,
                 minConcurrency: 2,
                 maxConcurrency: 2,
@@ -518,15 +518,17 @@ describe('CheerioCrawler', () => {
 
             const cheerioCrawler = new CheerioCrawler({
                 requestList,
-                navigationHooksTimeoutSecs: 0.2,
+                // enough for the (fast, local) navigation, but far short of the hook below
+                navigationTimeoutSecs: 1,
                 maxRequestRetries: 0,
                 minConcurrency: 2,
                 maxConcurrency: 2,
                 postNavigationHooks: [
                     async ({ extendTimeout }) => {
-                        await sleep(100);
+                        // the navigation already spent part of the shared window, so ask for more up front,
+                        // then take far longer than the window would otherwise have allowed
                         extendTimeout(5);
-                        await sleep(300);
+                        await sleep(2000);
                     },
                 ],
                 requestHandler: async ({ request }) => {

@@ -297,13 +297,13 @@ describe('PlaywrightCrawler', () => {
     });
 
     describe('timeouts', () => {
-        test('a hanging preNavigationHook times out after navigationHooksTimeoutSecs', async () => {
+        test('a hanging preNavigationHook times out after navigationTimeoutSecs', async () => {
             const failed: Request[] = [];
             const requestHandler = vitest.fn();
 
             const crawler = new PlaywrightCrawler({
                 requestList,
-                navigationHooksTimeoutSecs: 0.1,
+                navigationTimeoutSecs: 0.1,
                 maxRequestRetries: 0,
                 preNavigationHooks: [async () => sleep(3000)],
                 requestHandler,
@@ -316,7 +316,7 @@ describe('PlaywrightCrawler', () => {
 
             expect(requestHandler).not.toHaveBeenCalled();
             expect(failed).toHaveLength(1);
-            expect(failed[0].errorMessages[0]).toMatch('navigationHook timed out');
+            expect(failed[0].errorMessages[0]).toMatch('navigation timed out');
             // the hook is neither the navigation nor the request handler
             expect(failed[0].errorMessages[0]).not.toMatch('requestHandler timed out');
         });
@@ -327,7 +327,7 @@ describe('PlaywrightCrawler', () => {
 
             const crawler = new PlaywrightCrawler({
                 requestList,
-                navigationHooksTimeoutSecs: 0.3,
+                navigationTimeoutSecs: 0.3,
                 maxRequestRetries: 0,
                 // 600ms total, past the 0.3s window - only survives because the hook asks for more time
                 preNavigationHooks: [
@@ -335,6 +335,37 @@ describe('PlaywrightCrawler', () => {
                         await sleep(150);
                         extendTimeout(5);
                         await sleep(450);
+                    },
+                ],
+                requestHandler: ({ request }) => {
+                    processed.push(request);
+                },
+                failedRequestHandler: ({ request }) => {
+                    failed.push(request);
+                },
+            });
+
+            await crawler.run();
+
+            expect(failed).toHaveLength(0);
+            expect(processed).toHaveLength(1);
+        });
+
+        test('extendTimeout from a postNavigationHook keeps it from timing out', async () => {
+            const processed: Request[] = [];
+            const failed: Request[] = [];
+
+            const crawler = new PlaywrightCrawler({
+                requestList,
+                // enough for the navigation, but far short of the hook below
+                navigationTimeoutSecs: 1,
+                maxRequestRetries: 0,
+                postNavigationHooks: [
+                    async ({ extendTimeout }) => {
+                        // the navigation already spent part of the shared window, so ask for more up front,
+                        // then take far longer than the window would otherwise have allowed
+                        extendTimeout(5);
+                        await sleep(2000);
                     },
                 ],
                 requestHandler: ({ request }) => {

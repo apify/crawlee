@@ -20,6 +20,7 @@ import {
     BasicCrawler,
     ContextPipeline,
     NavigationSkippedError,
+    remainingNavigationWindowMillis,
     RequestState,
     Router,
     SessionError,
@@ -34,7 +35,7 @@ import iconv from 'iconv-lite';
 import ow from 'ow';
 import type { JsonValue } from 'type-fest';
 
-import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
+import { addTimeoutToPromise, storage, TimeoutError, tryCancel } from '@apify/timeout';
 
 import { extractCharsetFromHtmlBytes, parseContentTypeFromResponse, processHttpRequestOptions } from './utils.js';
 
@@ -66,19 +67,13 @@ export interface HttpCrawlerOptions<
     ExtendedContext extends Context = Context & ContextExtension,
 > extends BasicCrawlerOptions<Context, ContextExtension, ExtendedContext> {
     /**
-     * Timeout in which the HTTP request to the resource needs to finish, given in seconds.
+     * Timeout for the whole navigation phase, given in seconds. A single window shared by the
+     * `preNavigationHooks`, the navigation (the HTTP request to the resource), and the `postNavigationHooks` -
+     * so a slow hook eats into the same budget the navigation uses. Separate from the
+     * {@apilink BasicCrawlerOptions.requestHandlerTimeoutSecs|`requestHandlerTimeoutSecs`}, which times only the
+     * request handler.
      */
     navigationTimeoutSecs?: number;
-
-    /**
-     * Timeout for a single `preNavigationHooks` or `postNavigationHooks` function, in seconds. Applied to
-     * each hook individually, not shared across all of them, and separate from
-     * {@apilink HttpCrawlerOptions.navigationTimeoutSecs|`navigationTimeoutSecs`} and
-     * {@apilink BasicCrawlerOptions.requestHandlerTimeoutSecs|`requestHandlerTimeoutSecs`} - so a slow hook is
-     * reported as a slow hook rather than being charged to a phase it does not belong to.
-     * @default 30
-     */
-    navigationHooksTimeoutSecs?: number;
 
     /**
      * If set to true, SSL certificate errors will be ignored.
@@ -343,7 +338,6 @@ export class HttpCrawler<
     ) => Awaitable<void | Partial<CrawlingContextWithResponse>>)[];
     private saveResponseCookies: boolean;
     private navigationTimeoutMillis: number;
-    private navigationHooksTimeoutMillis: number;
     private ignoreSslErrors: boolean;
     private suggestResponseEncoding?: string;
     private forceResponseEncoding?: string;
@@ -353,7 +347,6 @@ export class HttpCrawler<
         ...BasicCrawler.optionsShape,
 
         navigationTimeoutSecs: ow.optional.number,
-        navigationHooksTimeoutSecs: ow.optional.number,
         ignoreSslErrors: ow.optional.boolean,
         additionalMimeTypes: ow.optional.array.ofType(ow.string),
         suggestResponseEncoding: ow.optional.string,
@@ -375,7 +368,6 @@ export class HttpCrawler<
 
         const {
             navigationTimeoutSecs = 30,
-            navigationHooksTimeoutSecs = 30,
             ignoreSslErrors = true,
             additionalMimeTypes = [],
             suggestResponseEncoding,
@@ -408,7 +400,6 @@ export class HttpCrawler<
         }
 
         this.navigationTimeoutMillis = navigationTimeoutSecs * 1000;
-        this.navigationHooksTimeoutMillis = navigationHooksTimeoutSecs * 1000;
         this.ignoreSslErrors = ignoreSslErrors;
         this.suggestResponseEncoding = suggestResponseEncoding;
         this.forceResponseEncoding = forceResponseEncoding;
@@ -433,31 +424,33 @@ export class HttpCrawler<
             action: async (ctx) => (ctx.request.skipNavigation ? {} : ((await action(ctx)) ?? {})) as Ext,
         });
 
-        // each hook gets its own window, so a hook that hangs is reported as such instead of stalling the
-        // request forever - navigation and the request handler are timed separately, by their own options
-        const hookGuard = <Ctx extends CrawlingContext, Ext>(
-            hook: (ctx: Ctx) => Awaitable<void | Ext>,
+        // A single navigation window covers the pre-navigation hooks, the navigation, and the post-navigation
+        // hooks: the whole phase shares one `navigationTimeoutSecs` budget (matching crawlee for Python), so a
+        // slow hook eats into the same window the navigation uses instead of each step being timed on its own.
+        const navigationTimedOut = `navigation timed out after ${this.navigationTimeoutMillis / 1000} seconds.`;
+        const windowGuard = <Ctx extends CrawlingContext, Ext>(
+            step: (ctx: Ctx) => Awaitable<void | Ext>,
         ): ContextMiddleware<Ctx, Ext> =>
-            skipGuard(async (ctx: Ctx) =>
-                addTimeoutToPromise(
-                    async () => hook(ctx),
-                    this.navigationHooksTimeoutMillis,
-                    `navigationHook timed out after ${this.navigationHooksTimeoutMillis / 1000} seconds.`,
-                ),
-            );
+            skipGuard(async (ctx: Ctx) => {
+                const remaining = remainingNavigationWindowMillis(ctx, this.navigationTimeoutMillis);
+                if (remaining <= 0) {
+                    throw new TimeoutError(navigationTimedOut);
+                }
+                return addTimeoutToPromise(async () => step(ctx), remaining, navigationTimedOut);
+            });
 
         let pipeline = ContextPipeline.create<CrawlingContext>().compose({
             action: this.prepareHttpRequest.bind(this),
         });
 
         for (const hook of this.preNavigationHooks) {
-            pipeline = pipeline.compose(hookGuard(hook));
+            pipeline = pipeline.compose(windowGuard(hook));
         }
 
         let pipelineWithNavigation = pipeline.compose(skipGuard(this.makeHttpRequest.bind(this)));
 
         for (const hook of this.postNavigationHooks) {
-            pipelineWithNavigation = pipelineWithNavigation.compose(hookGuard(hook));
+            pipelineWithNavigation = pipelineWithNavigation.compose(windowGuard(hook));
         }
 
         return pipelineWithNavigation
@@ -500,10 +493,13 @@ export class HttpCrawler<
         const { request, session } = crawlingContext;
         const proxyUrl = crawlingContext.proxyInfo?.url;
 
+        // Bound the request by whatever is left of the shared navigation window (the pre-navigation hooks may
+        // have already spent part of it), so it produces a clean navigation-timeout error rather than the raw
+        // client abort.
         const httpResponse = await addTimeoutToPromise(
             async () => this.requestFunction({ request, session, proxyUrl }),
-            this.navigationTimeoutMillis,
-            `request timed out after ${this.navigationTimeoutMillis / 1000} seconds.`,
+            Math.max(1, remainingNavigationWindowMillis(crawlingContext, this.navigationTimeoutMillis)),
+            `navigation timed out after ${this.navigationTimeoutMillis / 1000} seconds.`,
         );
         tryCancel();
 
@@ -844,6 +840,12 @@ export class HttpCrawler<
         // hooks keeps working) but a per-request clone is passed in so writes are discarded.
         const cookieJar = this.saveResponseCookies ? session.cookieJar : await session.cookieJar.clone();
 
+        // Bind the request to the shared navigation window instead of a fixed per-request timeout: the
+        // `@apify/timeout` frame around the navigation aborts this signal when the window runs out, and
+        // `extendTimeout()` (even from a post-navigation hook, before the body is read) pushes that deadline
+        // back. A fixed `AbortSignal.timeout` would fire on its own and kill the lazily-read response body.
+        const cancelSignal = storage.getStore()?.cancelTask.signal;
+
         const response = await this.httpClient.sendRequest(
             new Request(opts.url, {
                 body: opts.body ? (Readable.toWeb(opts.body) as any) : undefined,
@@ -855,7 +857,8 @@ export class HttpCrawler<
             {
                 session,
                 cookieJar,
-                timeoutMillis: opts.timeout,
+                signal: cancelSignal,
+                timeoutMillis: cancelSignal ? undefined : opts.timeout,
             },
         );
 

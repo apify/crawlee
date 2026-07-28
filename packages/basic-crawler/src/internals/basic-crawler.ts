@@ -131,9 +131,28 @@ const deferredCleanupKey = Symbol('deferredCleanup');
  */
 const extendBackstopKey = Symbol('extendBackstop');
 
+/**
+ * The shared navigation-window deadline (epoch millis), stored on the in-flight context so the pre- and
+ * post-navigation hooks and the navigation itself all draw from one budget - and so `context.extendTimeout`
+ * can push the whole window, not just the current step.
+ * @internal
+ */
+export const navigationDeadlineKey = Symbol('navigationDeadline');
+
+/**
+ * Milliseconds left in the shared navigation window for `ctx`, lazily starting the window on first use.
+ * @internal
+ */
+export function remainingNavigationWindowMillis(ctx: object, windowMillis: number): number {
+    const store = ctx as Record<symbol, number>;
+    store[navigationDeadlineKey] ??= Date.now() + windowMillis;
+    return store[navigationDeadlineKey] - Date.now();
+}
+
 /** The in-flight context, carrying the backstop extender that {@apilink BasicCrawler.withRequestBackstop} hangs on it. */
 type PendingCrawlingContext = { request: Request } & Partial<CrawlingContext> & {
         [extendBackstopKey]?: (extraMillis: number) => void;
+        [navigationDeadlineKey]?: number;
     };
 
 export type RequestHandler<Context extends CrawlingContext = CrawlingContext> = (inputs: Context) => Awaitable<void>;
@@ -1180,10 +1199,15 @@ export class BasicCrawler<
             extendTimeout: (secs: number) => {
                 const extraMillis = secs * 1000;
 
-                // the request handler's own window...
+                // the current `addTimeoutToPromise` window (the request handler, or a navigation hook)...
                 extendTimeout(extraMillis);
-                // ...and the backstop around the whole request, which is not an `addTimeoutToPromise` frame
+                // ...the backstop around the whole request, which is not an `addTimeoutToPromise` frame...
                 context[extendBackstopKey]?.(extraMillis);
+                // ...and, when called from within the navigation phase, its shared window, so extending a hook
+                // extends the whole navigation budget rather than just that hook's step.
+                if (context[navigationDeadlineKey] !== undefined) {
+                    context[navigationDeadlineKey] += extraMillis;
+                }
             },
             [deferredCleanupKey]: deferredCleanup,
         };

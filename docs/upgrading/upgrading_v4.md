@@ -528,23 +528,22 @@ The `KeyValueStore.getPublicUrl` method is now asynchronous and reads the public
 
 The `preNavigationHooks` option in `HttpCrawler` subclasses no longer accepts the `gotOptions` object as a second parameter. Modify the `crawlingContext` fields (e.g. `.request`) directly instead.
 
-## Each phase of a request is timed separately
+## Navigation and the request handler are timed separately
 
 In v3, navigation ran inside the request handler's time window, and the two options were summed (plus an undocumented 10 second buffer) to form the actual limit. Setting `requestHandlerTimeoutSecs: 60` on a `PlaywrightCrawler` therefore produced errors complaining about 130 seconds.
 
-Each phase is now timed on its own, and each reports itself:
+Navigation and the request handler are now timed independently, and each reports itself:
 
 | Option | Covers | Default |
 | --- | --- | --- |
 | `requestHandlerTimeoutSecs` | your `requestHandler` only | 60 |
-| `navigationTimeoutSecs` | the navigation only | 30 (HTTP), 60 (browser) |
-| `navigationHooksTimeoutSecs` | each `preNavigationHooks` / `postNavigationHooks` function | 30 (HTTP), 60 (browser) |
+| `navigationTimeoutSecs` | the `preNavigationHooks`, the navigation, and the `postNavigationHooks` together | 30 (HTTP), 60 (browser) |
 
-Note the hook timeout is a separate option, not derived from `navigationTimeoutSecs` — raising the navigation timeout does not raise it.
+`navigationTimeoutSecs` is a single budget shared by the whole navigation phase (matching Crawlee for Python), so a slow hook eats into the same window the navigation uses. The separate `navigationHooksTimeoutSecs` option has been removed.
 
 Two things to watch for when upgrading:
 
-- **Navigation hooks are now bounded.** They had no timeout of their own before, so a hook that legitimately takes longer than `navigationHooksTimeoutSecs` will now fail the request. Raise the option if you have a slow hook.
+- **Navigation hooks are now bounded.** They had no timeout of their own before, so a `preNavigationHooks` / `postNavigationHooks` function that pushes the whole phase past `navigationTimeoutSecs` will now fail the request. Raise `navigationTimeoutSecs`, or call `context.extendTimeout()` from inside the hook when the extra time is only needed occasionally.
 - **A request can no longer hang forever.** An internal timeout now bounds the whole request, covering the phases that have no timeout of their own (`extendContext`, the robots.txt check, response processing). By default it is deliberately generous — twice the request handler timeout, and never less than 5 minutes — so it only fires when a request is genuinely stuck. Set `CRAWLEE_INTERNAL_TIMEOUT` (in milliseconds) to override it.
 
 ## Per-route and per-request handler timeouts

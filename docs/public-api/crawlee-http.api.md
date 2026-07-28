@@ -101,7 +101,6 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any> =
     // (undocumented)
     protected static optionsShape: {
         navigationTimeoutSecs: NumberPredicate & BasePredicate<number | undefined>;
-        navigationHooksTimeoutSecs: NumberPredicate & BasePredicate<number | undefined>;
         ignoreSslErrors: BooleanPredicate & BasePredicate<boolean | undefined>;
         additionalMimeTypes: ArrayPredicate<string>;
         suggestResponseEncoding: StringPredicate & BasePredicate<string | undefined>;
@@ -151,7 +150,6 @@ export interface HttpCrawlerOptions<Context extends InternalHttpCrawlingContext 
     additionalMimeTypes?: string[];
     forceResponseEncoding?: string;
     ignoreSslErrors?: boolean;
-    navigationHooksTimeoutSecs?: number;
     navigationTimeoutSecs?: number;
     postNavigationHooks?: ((crawlingContext: CrawlingContextWithResponse & ContextExtension) => Awaitable<void | Partial<CrawlingContextWithResponse>>)[];
     preNavigationHooks?: InternalHttpHook<CrawlingContext, ContextExtension>[];

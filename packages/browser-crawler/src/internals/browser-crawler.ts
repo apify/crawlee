@@ -22,6 +22,7 @@ import {
     handleRequestTimeout,
     NavigationSkippedError,
     OwnedOrInjected,
+    remainingNavigationWindowMillis,
     RequestState,
     resolveBaseUrlForEnqueueLinksFiltering,
     SessionError,
@@ -46,7 +47,7 @@ import { CLOUDFLARE_RETRY_CSS_SELECTORS, RETRY_CSS_SELECTORS, sleep } from '@cra
 import ow from 'ow';
 import type { ReadonlyDeep } from 'type-fest';
 
-import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
+import { addTimeoutToPromise, TimeoutError, tryCancel } from '@apify/timeout';
 
 import type { BrowserLaunchContext } from './browser-launcher.js';
 
@@ -258,19 +259,13 @@ export interface BrowserCrawlerOptions<
     postNavigationHooks?: BrowserHook<Context, ContextExtension>[];
 
     /**
-     * Timeout in which page navigation needs to finish, in seconds.
+     * Timeout for the whole navigation phase, in seconds. A single window shared by the `preNavigationHooks`,
+     * the page navigation, and the `postNavigationHooks` - so a slow hook eats into the same budget the
+     * navigation uses. Separate from the
+     * {@apilink BasicCrawlerOptions.requestHandlerTimeoutSecs|`requestHandlerTimeoutSecs`}, which times only the
+     * request handler.
      */
     navigationTimeoutSecs?: number;
-
-    /**
-     * Timeout for a single `preNavigationHooks` or `postNavigationHooks` function, in seconds. Applied to
-     * each hook individually, not shared across all of them, and separate from
-     * {@apilink BrowserCrawlerOptions.navigationTimeoutSecs|`navigationTimeoutSecs`} and
-     * {@apilink BasicCrawlerOptions.requestHandlerTimeoutSecs|`requestHandlerTimeoutSecs`} - so a slow hook is
-     * reported as a slow hook rather than being charged to a phase it does not belong to.
-     * @default 60
-     */
-    navigationHooksTimeoutSecs?: number;
 
     /**
      * Defines whether the cookies should be persisted for sessions. Enabled by default.
@@ -369,7 +364,7 @@ export abstract class BrowserCrawler<
     protected readonly ignoreIframes: boolean;
 
     private readonly navigationTimeoutMillis: number;
-    private readonly navigationHooksTimeoutMillis: number;
+
     private readonly preNavigationHooks: BrowserHook<Context>[];
     private readonly postNavigationHooks: BrowserHook<Context>[];
     private readonly saveResponseCookies: boolean;
@@ -378,7 +373,6 @@ export abstract class BrowserCrawler<
         ...BasicCrawler.optionsShape,
 
         navigationTimeoutSecs: ow.optional.number.greaterThan(0),
-        navigationHooksTimeoutSecs: ow.optional.number.greaterThan(0),
         preNavigationHooks: ow.optional.array,
         postNavigationHooks: ow.optional.array,
 
@@ -402,7 +396,6 @@ export abstract class BrowserCrawler<
         ow(options, 'BrowserCrawlerOptions', ow.object.exactShape(BrowserCrawler.optionsShape));
         const {
             navigationTimeoutSecs = 60,
-            navigationHooksTimeoutSecs = 60,
             saveResponseCookies = true,
             launchContext = {},
             browserPool,
@@ -427,29 +420,37 @@ export abstract class BrowserCrawler<
         super({
             ...basicCrawlerOptions,
             contextPipelineBuilder: () => {
-                // each hook gets its own window, so a hook that hangs is reported as such instead of stalling
-                // the request forever - navigation and the request handler are timed separately
-                const hookGuard = <Ctx extends Context>(
-                    hook: (ctx: Ctx) => Awaitable<void | Partial<Ctx>>,
+                // A single navigation window covers the pre-navigation hooks, the navigation, and the
+                // post-navigation hooks: the whole phase shares one `navigationTimeoutSecs` budget (matching
+                // crawlee for Python), so a slow hook eats into the same window the navigation uses. The
+                // navigation itself is bounded by capping its `gotoOptions.timeout` to the remaining budget.
+                const windowGuard = <Ctx extends Context>(
+                    step: (ctx: Ctx) => Awaitable<void | Partial<Ctx>>,
                 ): ContextMiddleware<Ctx, Partial<Ctx>> =>
-                    skipGuard(async (ctx: Ctx) =>
-                        addTimeoutToPromise(
-                            async () => hook(ctx),
-                            this.navigationHooksTimeoutMillis,
-                            `navigationHook timed out after ${this.navigationHooksTimeoutMillis / 1000} seconds.`,
-                        ),
-                    );
+                    skipGuard(async (ctx: Ctx) => {
+                        const remaining = remainingNavigationWindowMillis(ctx, this.navigationTimeoutMillis);
+                        if (remaining <= 0) {
+                            throw new TimeoutError(
+                                `navigation timed out after ${this.navigationTimeoutMillis / 1000} seconds.`,
+                            );
+                        }
+                        return addTimeoutToPromise(
+                            async () => step(ctx),
+                            remaining,
+                            `navigation timed out after ${this.navigationTimeoutMillis / 1000} seconds.`,
+                        );
+                    });
 
                 let pipeline = contextPipelineBuilder().compose({ action: this.prepareNavigation.bind(this) });
 
                 for (const hook of this.preNavigationHooks) {
-                    pipeline = pipeline.compose(hookGuard(hook));
+                    pipeline = pipeline.compose(windowGuard(hook));
                 }
 
                 pipeline = pipeline.compose(skipGuard(this.navigate.bind(this)));
 
                 for (const hook of this.postNavigationHooks) {
-                    pipeline = pipeline.compose(hookGuard(hook));
+                    pipeline = pipeline.compose(windowGuard(hook));
                 }
 
                 return pipeline
@@ -462,7 +463,6 @@ export abstract class BrowserCrawler<
 
         this.launchContext = launchContext;
         this.navigationTimeoutMillis = navigationTimeoutSecs * 1000;
-        this.navigationHooksTimeoutMillis = navigationHooksTimeoutSecs * 1000;
         // The public option hooks are extension-aware; internal storage uses the base context type
         // (the pipeline composes hooks against the concrete context, which does not statically carry
         // `ContextExtension`). The extension members are present at runtime regardless.
@@ -641,6 +641,12 @@ export abstract class BrowserCrawler<
         tryCancel();
 
         const gotoOptions = crawlingContext.gotoOptions as GoToOptions;
+        // Bound the navigation by whatever is left of the shared navigation window - pre-navigation hooks may
+        // have already consumed part of it - so the goto never runs past the window (a hook's own override is
+        // still honoured when it asks for less).
+        const remaining = remainingNavigationWindowMillis(crawlingContext, this.navigationTimeoutMillis);
+        const gotoTimeout = gotoOptions as { timeout?: number };
+        gotoTimeout.timeout = Math.max(1, Math.min(gotoTimeout.timeout ?? remaining, remaining));
         const cookiesBeforeHooks = readContextField<string>(crawlingContext, COOKIES_BEFORE_HOOKS);
         const cookiesAfterHooks = this._getCookieHeaderFromRequest(crawlingContext.request);
 

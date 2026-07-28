@@ -268,7 +268,7 @@ describe('BrowserCrawler', () => {
         expect(hook).toHaveBeenCalled();
     });
 
-    test.concurrent('should time out a hanging preNavigationHook after navigationHooksTimeoutSecs', async () => {
+    test.concurrent('should time out a hanging preNavigationHook after navigationTimeoutSecs', async () => {
         const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
 
         const requestList = await RequestList.open({
@@ -283,7 +283,7 @@ describe('BrowserCrawler', () => {
                 browserPlugins: [puppeteerPlugin],
             },
             requestList,
-            navigationHooksTimeoutSecs: 0.1,
+            navigationTimeoutSecs: 0.1,
             maxRequestRetries: 0,
             preNavigationHooks: [async () => sleep(5000)],
             requestHandler,
@@ -296,7 +296,7 @@ describe('BrowserCrawler', () => {
 
         expect(requestHandler).not.toHaveBeenCalled();
         expect(failed).toHaveLength(1);
-        expect(failed[0].errorMessages[0]).toMatch('navigationHook timed out');
+        expect(failed[0].errorMessages[0]).toMatch('navigation timed out');
         expect(failed[0].errorMessages[0]).not.toMatch('requestHandler timed out');
     });
 
