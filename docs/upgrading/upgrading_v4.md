@@ -1177,7 +1177,7 @@ Both the pool and the crawlers depend only on the `IConcurrencySystem` interface
 
 All scaling/snapshotter options were **removed** from `AutoscaledPoolOptions` and now live on `ConcurrencySystemOptions`: `minConcurrency`, `maxConcurrency`, `desiredConcurrency`, `desiredConcurrencyRatio`, `scaleUpStepRatio`, `scaleDownStepRatio`, `loggingIntervalSecs`, `autoscaleIntervalSecs`, `maxTasksPerMinute`, and `snapshotterOptions`. The `systemStatusOptions` bag is gone entirely — its two useful members were hoisted onto `ConcurrencySystemOptions` directly as `loadSignals` (custom load signals) and `currentHistorySecs`. In place of all this, `AutoscaledPoolOptions` gained a **required** `concurrencySystem`.
 
-`AutoscaledPool` also no longer manages the system's lifecycle: it assumes the `ConcurrencySystem` is already running. Whoever owns the system must `start()` it before `pool.run()` and `stop()` it afterwards. (Within Crawlee this is handled by the crawler for the pool it builds; you only need to care about this if you drive an `AutoscaledPool` directly.)
+`AutoscaledPool` also no longer manages the system's lifecycle: it requires the `ConcurrencySystem` to be running already. Whoever owns the system must `start()` it before `pool.run()` and `stop()` it afterwards — `pool.run()` throws if the system it borrows was never started, instead of running a whole crawl with load monitoring and autoscaling switched off. (Within Crawlee this is handled by the crawler for the pool it builds; you only need to care about this if you inject a system or drive an `AutoscaledPool` directly.)
 
 One subtle behavioral consequence: pausing no longer suspends autoscaling. Previously, `pool.pause()` also stopped the pool's autoscaling loop ("don't scale if paused"). The autoscaling interval now lives on the `ConcurrencySystem`, which has no knowledge of its borrowing pools' pause state — deliberately so, since with a shared system other pools may still be running and need scaling. As a result, a running system keeps evaluating (and possibly scaling down) the desired concurrency and keeps emitting its periodic state log even while every pool that consults it is paused. Scaling *up* remains effectively blocked while paused, because the current concurrency drains below the required ratio of the desired concurrency. If you pause for extended periods and want the system fully quiet, `stop()` the system (if you own it) and `start()` it again before resuming.
 
@@ -1251,15 +1251,23 @@ const crawler = new CheerioCrawler({
 ```typescript
 import { ConcurrencySystem } from '@crawlee/core';
 
-const crawler = new CheerioCrawler({
-    concurrencySystem: new ConcurrencySystem({
-        desiredConcurrency: 10,
-        maxTasksPerMinute: 120,
-        currentHistorySecs: 10,
-    }),
-    requestHandler,
+const concurrencySystem = new ConcurrencySystem({
+    desiredConcurrency: 10,
+    maxTasksPerMinute: 120,
+    currentHistorySecs: 10,
 });
+await concurrencySystem.start();
+
+const crawler = new CheerioCrawler({ concurrencySystem, requestHandler });
+
+try {
+    await crawler.run();
+} finally {
+    await concurrencySystem.stop();
+}
 ```
+
+Note that an injected system is **yours to run**: the crawler never starts or stops a system it did not build, since it cannot know when the last crawler sharing it is done. A system you forget to `start()` would monitor no load and never rescale, so rather than silently running at a fixed concurrency, `run()` **throws** — check `isRunning` if you need to know whether some other owner already started a system handed to you.
 
 For the common case, the shortcuts are enough and need no `ConcurrencySystem`:
 

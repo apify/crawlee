@@ -126,6 +126,15 @@ export interface IConcurrencySystem {
     readonly currentConcurrency: number;
 
     /**
+     * Whether a governor that needs starting has actually been started. {@apilink AutoscaledPool.run|`pool.run()`}
+     * refuses to run against a governor that reports `false`, since a governor nobody started monitors nothing and
+     * never rescales — the run would silently proceed at a fixed concurrency. Omit this member entirely (leaving it
+     * `undefined`) if the implementation has no startup lifecycle and is always ready; only an explicit `false` is
+     * treated as an error.
+     */
+    readonly isRunning?: boolean;
+
+    /**
      * The core, shareable decision: may **one more** task start right now? A cheap pre-check the pool consults
      * before querying task readiness; the actual booking happens through
      * {@apilink IConcurrencySystem.tryRegisterTaskStart|`tryRegisterTaskStart()`}.
@@ -321,6 +330,14 @@ export class ConcurrencySystem implements IConcurrencySystem {
      */
     get currentConcurrency(): number {
         return this._currentConcurrency;
+    }
+
+    /**
+     * Whether the system is currently started, i.e. monitoring load and autoscaling the budget. Borrowing pools read
+     * this to refuse to run against a system nobody started — see {@apilink IConcurrencySystem.isRunning}.
+     */
+    get isRunning(): boolean {
+        return this.running;
     }
 
     /**

@@ -531,7 +531,10 @@ describe('BasicCrawler', () => {
             maxRequestsPerMinute: 789,
         });
 
+        // An injected system is ours to run - the crawler refuses to run against one that was never started.
+        await injectedSystem.start();
         await Promise.all([shortcuts.run(), injected.run()]);
+        await injectedSystem.stop();
 
         expect(collect(shortcuts)).toEqual({ minConcurrency: 123, maxConcurrency: 456, maxTasksPerMinute: 789 });
         expect(collect(injected)).toEqual({ minConcurrency: 16, maxConcurrency: 32, maxTasksPerMinute: 64 });

@@ -95,6 +95,74 @@ describe('ConcurrencySystem', () => {
             await system.stop();
             expect(stopSpy).not.toHaveBeenCalled();
         });
+
+        test('isRunning reflects the lifecycle', async () => {
+            const system = new ConcurrencySystem();
+            expect(system.isRunning).toBe(false);
+
+            await system.start();
+            expect(system.isRunning).toBe(true);
+
+            await system.stop();
+            expect(system.isRunning).toBe(false);
+        });
+
+        test('a pool refuses to run against a system that was never started', async () => {
+            const system = new ConcurrencySystem();
+            const runTaskFunction = vitest.fn(async () => {});
+
+            const pool = new AutoscaledPool({
+                concurrencySystem: system,
+                runTaskFunction,
+                isFinishedFunction: async () => false,
+                isTaskReadyFunction: async () => true,
+            });
+
+            // Forgetting to start an injected system would pin concurrency for the whole run, so fail loudly
+            // before any work happens instead of silently misbehaving.
+            await expect(pool.run()).rejects.toThrow(/has not been started/);
+            expect(runTaskFunction).not.toHaveBeenCalled();
+        });
+
+        test('a pool runs happily against a started system', async () => {
+            const system = new ConcurrencySystem();
+            await system.start();
+
+            let done = 0;
+            const pool = new AutoscaledPool({
+                concurrencySystem: system,
+                runTaskFunction: async () => {
+                    done++;
+                },
+                isFinishedFunction: async () => done > 0,
+                isTaskReadyFunction: async () => done === 0,
+            });
+
+            await expect(pool.run()).resolves.toBeUndefined();
+            await system.stop();
+        });
+
+        test('a governor with no startup lifecycle is accepted', async () => {
+            // `isRunning` is optional in the IConcurrencySystem contract - a governor that needs no starting simply
+            // omits it, and only an explicit `false` is treated as an error.
+            let done = 0;
+            const pool = new AutoscaledPool({
+                concurrencySystem: {
+                    desiredConcurrency: 1,
+                    currentConcurrency: 0,
+                    hasCapacityForTask: () => true,
+                    tryRegisterTaskStart: () => true,
+                    registerTaskEnd: () => {},
+                },
+                runTaskFunction: async () => {
+                    done++;
+                },
+                isFinishedFunction: async () => done > 0,
+                isTaskReadyFunction: async () => done === 0,
+            });
+
+            await expect(pool.run()).resolves.toBeUndefined();
+        });
     });
 
     describe('shared across pools', () => {

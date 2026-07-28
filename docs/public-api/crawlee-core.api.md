@@ -184,6 +184,7 @@ export class ConcurrencySystem implements IConcurrencySystem {
     set desiredConcurrency(value: number);
     getCurrentStatus(): SystemInfo;
     hasCapacityForTask(): boolean;
+    get isRunning(): boolean;
     get maxConcurrency(): number;
     set maxConcurrency(value: number);
     get minConcurrency(): number;
@@ -706,6 +707,7 @@ export interface IConcurrencySystem {
     readonly currentConcurrency: number;
     readonly desiredConcurrency: number;
     hasCapacityForTask(): boolean;
+    readonly isRunning?: boolean;
     registerTaskEnd(): void;
     tryRegisterTaskStart(): boolean;
 }

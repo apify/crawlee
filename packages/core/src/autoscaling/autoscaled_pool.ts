@@ -228,8 +228,24 @@ export class AutoscaledPool {
     /**
      * Runs the auto-scaled pool. Returns a promise that gets resolved or rejected once
      * all the tasks are finished or one of them fails.
+     *
+     * Throws if the {@apilink IConcurrencySystem|concurrency system} it borrows was never started — the pool assumes
+     * a running governor and cannot start one it does not own.
      */
     async run(): Promise<void> {
+        // Fail fast rather than run against a dead governor: without a running snapshotter and autoscaling interval
+        // the desired concurrency never moves, so the whole run would silently proceed at a fixed concurrency. This
+        // has to be checked here, on an awaited path — the capacity queries inside the task loop are driven by
+        // intervals and `setImmediate`, where a throw would become an unhandled rejection and hang `run()` forever.
+        if (this.concurrencySystem.isRunning === false) {
+            throw new CriticalError(
+                'The ConcurrencySystem this AutoscaledPool borrows has not been started, so system load would not be ' +
+                    'monitored and the concurrency would never be adjusted. Whoever creates a ConcurrencySystem owns ' +
+                    'its lifecycle: call `await concurrencySystem.start()` before running the pools or crawlers that ' +
+                    'use it, and `await concurrencySystem.stop()` once they are all done.',
+            );
+        }
+
         const poolPromise = new Promise((resolve, reject) => {
             this.resolve = resolve;
             this.reject = reject;
