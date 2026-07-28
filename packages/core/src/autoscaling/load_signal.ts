@@ -128,7 +128,8 @@ export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
     }
 
     /**
-     * Direct access to the underlying array (for backward-compat getters).
+     * Direct, unwindowed access to the underlying array — used by signals whose handler needs the previous snapshot
+     * to compute a delta (e.g. the event loop and client signals read the last entry to measure change since it).
      */
     getAll(): T[] {
         return this.snapshots;

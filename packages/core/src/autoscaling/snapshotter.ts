@@ -184,8 +184,8 @@ export interface SnapshotterOptions extends Omit<LoadSignalsOptions, 'custom'> {
  * typically received from the request queue, exceed the {@apilink ClientSignalOptions.maxErrors|`maxErrors`}
  * option of the {@apilink SnapshotterOptions.client|`client`} signal bag within the set interval.
  *
- * Configured through the {@apilink SnapshotterOptions} passed to
- * {@apilink ConcurrencySystemOptions.snapshotterOptions|`snapshotterOptions`}.
+ * Configured indirectly through {@apilink ConcurrencySystemOptions.loadSignals|`loadSignals`}, which the
+ * {@apilink ConcurrencySystem} unpacks into the per-signal {@apilink SnapshotterOptions} bags below.
  *
  * @category Scaling
  * @internal
@@ -215,23 +215,6 @@ export class Snapshotter {
         ];
 
         return builtin.filter((signal): signal is LoadSignal => signal !== undefined);
-    }
-
-    // Legacy public properties kept for backward compat (tests read these directly)
-    get cpuSnapshots(): CpuSnapshot[] {
-        return this.cpuSignal?.store.getAll() ?? [];
-    }
-
-    get eventLoopSnapshots(): EventLoopSnapshot[] {
-        return this.eventLoopSignal?.store.getAll() ?? [];
-    }
-
-    get memorySnapshots(): MemorySnapshot[] {
-        return this.memorySignal?.getMemorySnapshots() ?? [];
-    }
-
-    get clientSnapshots(): ClientSnapshot[] {
-        return this.clientSignal?.store.getAll() ?? [];
     }
 
     /**

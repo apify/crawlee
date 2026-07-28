@@ -47,7 +47,7 @@ export const DEFAULT_CURRENT_HISTORY_SECS = 5;
 
 /**
  * An implementation detail of the {@apilink ConcurrencySystem} — configure it through
- * {@apilink ConcurrencySystemOptions} (`loadSignals`, `currentHistorySecs` and the `snapshotterOptions` bag).
+ * {@apilink ConcurrencySystemOptions} (`loadSignals`, `currentHistorySecs` and `snapshotHistorySecs`).
  * @internal
  */
 export interface SystemStatusOptions {

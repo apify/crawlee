@@ -91,13 +91,6 @@ export class MemoryLoadSignal implements LoadSignal {
         return this.store.getSample(sampleDurationMillis);
     }
 
-    /**
-     * Returns typed memory snapshots for backward compatibility with `Snapshotter`.
-     */
-    getMemorySnapshots(): MemorySnapshot[] {
-        return this.store.getAll();
-    }
-
     /** @internal */
     _onSystemInfo(systemInfo: SystemInfo): void {
         const createdAt = systemInfo.createdAt ? new Date(systemInfo.createdAt) : new Date();
