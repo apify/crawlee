@@ -911,6 +911,23 @@ describe('enqueueLinks()', () => {
             expect(enqueued[2].userData).toEqual({});
         });
 
+        test('keeps filtering by the original domain with the strategy of same-domain after an off-domain redirect', async () => {
+            const { enqueued, requestQueue } = createRequestQueueMock();
+            await cheerioCrawlerEnqueueLinks({
+                options: { strategy: EnqueueStrategy.SameDomain },
+                $,
+                requestQueue,
+                originalRequestUrl: 'https://example.com',
+                finalRequestUrl: 'https://another.com/',
+            });
+
+            expect(enqueued).toHaveLength(3);
+
+            expect(enqueued[0].url).toBe('https://example.com/a/b/first');
+            expect(enqueued[1].url).toBe('https://example.com/a/second');
+            expect(enqueued[2].url).toBe('https://example.com/a/b/third');
+        });
+
         test('correctly resolves relative URLs with `urls` option', async () => {
             const { enqueued, requestQueue } = createRequestQueueMock();
             await cheerioCrawlerEnqueueLinks({
