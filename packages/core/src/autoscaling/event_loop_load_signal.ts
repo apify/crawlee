@@ -1,10 +1,18 @@
 import type { LoadSnapshot } from './load_signal.js';
 import { SnapshotStore } from './load_signal.js';
 
+/**
+ * A snapshot produced by the built-in event loop signal.
+ * @internal
+ */
 export interface EventLoopSnapshot extends LoadSnapshot {
     exceededMillis: number;
 }
 
+/**
+ * Configured through the {@apilink SnapshotterOptions.eventLoop|`eventLoop`} bag on {@apilink SnapshotterOptions}.
+ * @internal
+ */
 export interface EventLoopLoadSignalOptions {
     eventLoopSnapshotIntervalSecs?: number;
     maxBlockedMillis?: number;
@@ -15,6 +23,7 @@ export interface EventLoopLoadSignalOptions {
 /**
  * Periodically measures event loop delay and reports overload when the
  * delay exceeds a configured threshold.
+ * @internal
  */
 export function createEventLoopLoadSignal(options: EventLoopLoadSignalOptions = {}) {
     const intervalMillis = (options.eventLoopSnapshotIntervalSecs ?? 0.5) * 1000;

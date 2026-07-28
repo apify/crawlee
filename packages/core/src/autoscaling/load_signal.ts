@@ -17,10 +17,11 @@ export interface LoadSnapshot {
 /**
  * A signal that reports whether a particular resource is overloaded.
  *
- * `SystemStatus` aggregates multiple `LoadSignal` instances to determine
+ * The {@apilink ConcurrencySystem} aggregates multiple `LoadSignal` instances to determine
  * overall system health. The built-in signals cover memory, CPU, event loop,
  * and API client rate limits. You can implement this interface to add
- * custom overload signals (e.g. navigation timeouts, proxy health).
+ * custom overload signals (e.g. navigation timeouts, proxy health) and pass them via
+ * {@apilink ConcurrencySystemOptions.loadSignals|`loadSignals`}.
  */
 export interface LoadSignal {
     /** Human-readable name used in logging and `SystemInfo` keys. */
@@ -184,6 +185,7 @@ export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
  * Evaluate whether a sample of `LoadSnapshot` values exceeds the given
  * overloaded ratio, using a time-weighted average. This is the shared
  * evaluation logic used by `SystemStatus` for all signal types.
+ * @internal
  */
 export function evaluateLoadSignalSample(sample: LoadSnapshot[], overloadedRatio: number): ClientInfo {
     if (sample.length === 0) {

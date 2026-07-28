@@ -12,10 +12,18 @@ import type { SystemInfo } from './system_status.js';
 const RESERVE_MEMORY_RATIO = 0.5;
 const CRITICAL_OVERLOAD_RATE_LIMIT_MILLIS = 10_000;
 
+/**
+ * A snapshot produced by the built-in memory signal.
+ * @internal
+ */
 export interface MemorySnapshot extends LoadSnapshot {
     usedBytes?: number;
 }
 
+/**
+ * Configured through the {@apilink SnapshotterOptions.memory|`memory`} bag on {@apilink SnapshotterOptions}.
+ * @internal
+ */
 export interface MemoryLoadSignalOptions {
     maxUsedMemoryRatio?: number;
     overloadedRatio?: number;
@@ -27,6 +35,7 @@ export interface MemoryLoadSignalOptions {
 /**
  * Tracks memory usage via `SYSTEM_INFO` events and reports overload when
  * the used-to-available memory ratio exceeds a threshold.
+ * @internal
  */
 export class MemoryLoadSignal implements LoadSignal {
     readonly name = 'memInfo';

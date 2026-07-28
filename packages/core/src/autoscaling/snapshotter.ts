@@ -156,7 +156,12 @@ export interface SnapshotterOptions {
  * typically received from the request queue, exceed the {@apilink ClientSignalOptions.maxErrors|`maxErrors`}
  * option of the {@apilink SnapshotterOptions.client|`client`} signal bag within the set interval.
  *
+ * An implementation detail of the {@apilink ConcurrencySystem}, which builds its own instance — configure it
+ * through the (public) {@apilink SnapshotterOptions} passed via
+ * {@apilink ConcurrencySystemOptions.snapshotterOptions|`snapshotterOptions`}.
+ *
  * @category Scaling
+ * @internal
  */
 export class Snapshotter {
     readonly log: CrawleeLogger;

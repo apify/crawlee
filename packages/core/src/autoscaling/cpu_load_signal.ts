@@ -5,11 +5,19 @@ import type { LoadSnapshot } from './load_signal.js';
 import { SnapshotStore } from './load_signal.js';
 import type { SystemInfo } from './system_status.js';
 
+/**
+ * A snapshot produced by the built-in CPU signal.
+ * @internal
+ */
 export interface CpuSnapshot extends LoadSnapshot {
     usedRatio: number;
     ticks?: { idle: number; total: number };
 }
 
+/**
+ * Configured through the {@apilink SnapshotterOptions.cpu|`cpu`} bag on {@apilink SnapshotterOptions}.
+ * @internal
+ */
 export interface CpuLoadSignalOptions {
     overloadedRatio?: number;
     snapshotHistoryMillis?: number;
@@ -19,6 +27,7 @@ export interface CpuLoadSignalOptions {
 /**
  * Tracks CPU usage via `SYSTEM_INFO` events and reports overload when
  * the platform or local OS metrics indicate the CPU is overloaded.
+ * @internal
  */
 export function createCpuLoadSignal(options: CpuLoadSignalOptions) {
     return SnapshotStore.fromEvent<CpuSnapshot, SystemInfo>({

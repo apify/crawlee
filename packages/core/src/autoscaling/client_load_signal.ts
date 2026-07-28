@@ -5,10 +5,18 @@ import { SnapshotStore } from './load_signal.js';
 
 const CLIENT_RATE_LIMIT_ERROR_RETRY_COUNT = 2;
 
+/**
+ * A snapshot produced by the built-in client (rate-limit) signal.
+ * @internal
+ */
 export interface ClientSnapshot extends LoadSnapshot {
     rateLimitErrorCount: number;
 }
 
+/**
+ * Configured through the {@apilink SnapshotterOptions.client|`client`} bag on {@apilink SnapshotterOptions}.
+ * @internal
+ */
 export interface ClientLoadSignalOptions {
     client: StorageBackend;
     clientSnapshotIntervalSecs?: number;
@@ -20,6 +28,7 @@ export interface ClientLoadSignalOptions {
 /**
  * Periodically checks the storage client for rate-limit errors (HTTP 429)
  * and reports overload when the error delta exceeds a threshold.
+ * @internal
  */
 export function createClientLoadSignal(options: ClientLoadSignalOptions) {
     const maxClientErrors = options.maxClientErrors ?? 3;
