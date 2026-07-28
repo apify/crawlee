@@ -1175,7 +1175,7 @@ Both the pool and the crawlers depend only on the `IConcurrencySystem` interface
 
 ### `AutoscaledPool` requires a `concurrencySystem` and no longer takes scaling options
 
-All scaling/snapshotter options were **removed** from `AutoscaledPoolOptions` and now live on `ConcurrencySystemOptions`: `minConcurrency`, `maxConcurrency`, `desiredConcurrency`, `desiredConcurrencyRatio`, `scaleUpStepRatio`, `scaleDownStepRatio`, `loggingIntervalSecs`, `autoscaleIntervalSecs`, `maxTasksPerMinute`, `snapshotterOptions`, and `systemStatusOptions`. In their place `AutoscaledPoolOptions` gained a **required** `concurrencySystem`.
+All scaling/snapshotter options were **removed** from `AutoscaledPoolOptions` and now live on `ConcurrencySystemOptions`: `minConcurrency`, `maxConcurrency`, `desiredConcurrency`, `desiredConcurrencyRatio`, `scaleUpStepRatio`, `scaleDownStepRatio`, `loggingIntervalSecs`, `autoscaleIntervalSecs`, `maxTasksPerMinute`, and `snapshotterOptions`. The `systemStatusOptions` bag is gone entirely — its two useful members were hoisted onto `ConcurrencySystemOptions` directly as `loadSignals` (custom load signals) and `currentHistorySecs`. In place of all this, `AutoscaledPoolOptions` gained a **required** `concurrencySystem`.
 
 `AutoscaledPool` also no longer manages the system's lifecycle: it assumes the `ConcurrencySystem` is already running. Whoever owns the system must `start()` it before `pool.run()` and `stop()` it afterwards. (Within Crawlee this is handled by the crawler for the pool it builds; you only need to care about this if you drive an `AutoscaledPool` directly.)
 
@@ -1255,7 +1255,7 @@ const crawler = new CheerioCrawler({
     concurrencySystem: new ConcurrencySystem({
         desiredConcurrency: 10,
         maxTasksPerMinute: 120,
-        systemStatusOptions: { currentHistorySecs: 10 },
+        currentHistorySecs: 10,
     }),
     requestHandler,
 });
@@ -1331,7 +1331,9 @@ new ConcurrencySystem({
 });
 ```
 
-`SystemStatusOptions` — the four `maxMemoryOverloadedRatio`, `maxEventLoopOverloadedRatio`, `maxCpuOverloadedRatio`, and `maxClientOverloadedRatio` options were **removed**. Each signal now owns its overload ratio (set it via the corresponding `snapshotterOptions` bag above). `SystemStatusOptions` keeps only `currentHistorySecs`, `snapshotter`, and `loadSignals`.
+`SystemStatusOptions` is gone from the public API altogether. The four `maxMemoryOverloadedRatio`, `maxEventLoopOverloadedRatio`, `maxCpuOverloadedRatio`, and `maxClientOverloadedRatio` options were **removed** — each signal now owns its overload ratio (set it via the corresponding `snapshotterOptions` bag above) — and the remaining useful members moved to `ConcurrencySystemOptions`: pass custom signals via `loadSignals` and tune the "current" status window via `currentHistorySecs`, both directly on the system's options.
+
+The `Snapshotter` and `SystemStatus` classes themselves are now internal — they are implementation details of the `ConcurrencySystem`, which is the sole public entry point to load monitoring and autoscaling. The configuration surface (`SnapshotterOptions` and its per-signal bags) remains public, as does the `LoadSignal` interface (with the `SnapshotStore` helper) for implementing custom signals.
 
 ## Stagehand type narrowings
 

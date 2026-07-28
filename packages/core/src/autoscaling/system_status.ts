@@ -39,6 +39,11 @@ export interface SystemInfo {
     loadSignalInfo?: Record<string, ClientInfo>;
 }
 
+/**
+ * An implementation detail of the {@apilink ConcurrencySystem} — configure it through
+ * {@apilink ConcurrencySystemOptions} (`loadSignals`, `currentHistorySecs` and the `snapshotterOptions` bag).
+ * @internal
+ */
 export interface SystemStatusOptions {
     /**
      * Defines max age of snapshots used in the {@apilink SystemStatus.getCurrentStatus} measurement.
@@ -93,7 +98,7 @@ const BUILTIN_SIGNAL_NAMES = new Set(['memInfo', 'eventLoopInfo', 'cpuInfo', 'cl
  * messages in the snapshots, with the weights being the time intervals
  * between the snapshots. Each resource is calculated separately
  * and the system is overloaded whenever at least one resource is overloaded.
- * The class is used by the {@apilink AutoscaledPool} class.
+ * The class is used by the {@apilink ConcurrencySystem} class.
  *
  * {@apilink SystemStatus.getCurrentStatus}
  * returns a boolean that represents the current status of the system.
@@ -105,7 +110,11 @@ const BUILTIN_SIGNAL_NAMES = new Set(['memInfo', 'eventLoopInfo', 'cpuInfo', 'cl
  * returns a boolean that represents the long-term status
  * of the system. It considers the full snapshot history available
  * in the {@apilink Snapshotter} instance.
+ *
+ * An implementation detail of the {@apilink ConcurrencySystem}, which is the public face of system-load evaluation —
+ * configure it through {@apilink ConcurrencySystemOptions}.
  * @category Scaling
+ * @internal
  */
 export class SystemStatus {
     private readonly currentHistoryMillis: number;

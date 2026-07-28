@@ -8,7 +8,7 @@ import { serviceLocator } from '../service_locator.js';
 import type { LoadSignal } from './load_signal.js';
 import { Snapshotter } from './snapshotter.js';
 import type { SnapshotterOptions } from './snapshotter.js';
-import type { SystemInfo, SystemStatusOptions } from './system_status.js';
+import type { SystemInfo } from './system_status.js';
 import { SystemStatus } from './system_status.js';
 
 export interface ConcurrencySystemOptions {
@@ -70,17 +70,24 @@ export interface ConcurrencySystemOptions {
     autoscaleIntervalSecs?: number;
 
     /**
-     * Options to be passed down to the {@apilink Snapshotter} constructor. This is useful for fine-tuning
-     * the snapshot intervals and history.
+     * Fine-tuning of the built-in resource monitoring (per-signal snapshot intervals, overload limits and ratios,
+     * and the snapshot history window). See {@apilink SnapshotterOptions}.
      */
     snapshotterOptions?: SnapshotterOptions;
 
     /**
-     * Options to be passed down to the {@apilink SystemStatus} constructor. This is useful for fine-tuning
-     * the system status reports. If a custom snapshotter is set in the options, it will be used
-     * by the pool.
+     * Custom {@apilink LoadSignal} implementations, evaluated alongside the built-in memory, CPU, event loop and
+     * client signals. If any signal reports overload, the system is considered overloaded. The system drives the
+     * lifecycle of the supplied signals (they are started and stopped together with it).
      */
-    systemStatusOptions?: SystemStatusOptions;
+    loadSignals?: LoadSignal[];
+
+    /**
+     * How far back the current system status looks when deciding whether the system is overloaded *right now*
+     * (as opposed to the full snapshot history the autoscaling decisions use), in seconds.
+     * @default 5
+     */
+    currentHistorySecs?: number;
 
     /**
      * The maximum number of tasks per minute the system can run.
@@ -204,8 +211,9 @@ export class ConcurrencySystem implements IConcurrencySystem {
                 scaleDownStepRatio: ow.optional.number.greaterThan(0).lessThan(1),
                 loggingIntervalSecs: ow.any(ow.number.greaterThan(0), ow.nullOrUndefined),
                 autoscaleIntervalSecs: ow.optional.number.greaterThan(0),
-                systemStatusOptions: ow.optional.object,
                 snapshotterOptions: ow.optional.object,
+                loadSignals: ow.optional.array,
+                currentHistorySecs: ow.optional.number.greaterThan(0),
                 log: ow.optional.object,
                 maxTasksPerMinute: ow.optional.number.integerOrInfinite.greaterThanOrEqual(1),
             }),
@@ -220,8 +228,9 @@ export class ConcurrencySystem implements IConcurrencySystem {
             scaleDownStepRatio = 0.05,
             loggingIntervalSecs = 60,
             autoscaleIntervalSecs = 10,
-            systemStatusOptions,
             snapshotterOptions,
+            loadSignals = [],
+            currentHistorySecs,
             log = serviceLocator.getLogger(),
             maxTasksPerMinute = Infinity,
         } = options;
@@ -242,14 +251,19 @@ export class ConcurrencySystem implements IConcurrencySystem {
         this._autoscale = this._autoscale.bind(this);
         this._incrementTasksDonePerSecond = this._incrementTasksDonePerSecond.bind(this);
 
-        const ssoCopy: SystemStatusOptions = { ...systemStatusOptions };
-        ssoCopy.snapshotter ??= new Snapshotter({
+        // The snapshotter and the status evaluation are implementation details of this class — the only
+        // configuration they take from the outside is the data-only `snapshotterOptions` bag, the custom
+        // `loadSignals` and the `currentHistorySecs` window.
+        this.snapshotter = new Snapshotter({
             ...snapshotterOptions,
             log: this.log,
         });
-        this.snapshotter = ssoCopy.snapshotter;
-        this.loadSignals = ssoCopy.loadSignals ?? [];
-        this.systemStatus = new SystemStatus(ssoCopy);
+        this.loadSignals = loadSignals;
+        this.systemStatus = new SystemStatus({
+            snapshotter: this.snapshotter,
+            loadSignals,
+            currentHistorySecs,
+        });
     }
 
     /**
