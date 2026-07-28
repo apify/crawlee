@@ -46,9 +46,8 @@ export type RouteSchemas = Record<string, StandardSchemaV1> & {
 };
 
 /** Infers a label's `userData` type from its schema, falling back to a plain {@apilink Dictionary}. */
-type SchemaUserData<Schema extends StandardSchemaV1> = StandardSchemaV1.InferOutput<Schema> extends Dictionary
-    ? StandardSchemaV1.InferOutput<Schema>
-    : Dictionary;
+type SchemaUserData<Schema extends StandardSchemaV1> =
+    StandardSchemaV1.InferOutput<Schema> extends Dictionary ? StandardSchemaV1.InferOutput<Schema> : Dictionary;
 
 /**
  * Derives a route map (label → `userData` type) from a {@apilink RouteSchemas} map by inferring each schema's
