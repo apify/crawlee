@@ -71,9 +71,11 @@ export interface HttpCrawlerOptions<
     navigationTimeoutSecs?: number;
 
     /**
-     * Timeout in which a single `preNavigationHooks` or `postNavigationHooks` function needs to finish,
-     * given in seconds. Each hook gets its own window, separate from {@apilink HttpCrawlerOptions.navigationTimeoutSecs|`navigationTimeoutSecs`}
-     * and {@apilink BasicCrawlerOptions.requestHandlerTimeoutSecs|`requestHandlerTimeoutSecs`}.
+     * Timeout for a single `preNavigationHooks` or `postNavigationHooks` function, in seconds. Applied to
+     * each hook individually, not shared across all of them, and separate from
+     * {@apilink HttpCrawlerOptions.navigationTimeoutSecs|`navigationTimeoutSecs`} and
+     * {@apilink BasicCrawlerOptions.requestHandlerTimeoutSecs|`requestHandlerTimeoutSecs`} - so a slow hook is
+     * reported as a slow hook rather than being charged to a phase it does not belong to.
      * @default 30
      */
     navigationHooksTimeoutSecs?: number;
