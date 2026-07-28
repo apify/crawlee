@@ -32,6 +32,7 @@ import type { EnqueueLinksOptions } from '@crawlee/core';
 import type { EventManager } from '@crawlee/core';
 import type { FinalStatistics } from '@crawlee/core';
 import type { GetUserDataFromRequest } from '@crawlee/core';
+import { IConcurrencySystem } from '@crawlee/core';
 import { IProxyConfiguration } from '@crawlee/core';
 import { IRequestLoader } from '@crawlee/core';
 import { IRequestManager } from '@crawlee/core';
@@ -186,7 +187,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = CrawlingC
     additionalHttpErrorStatusCodes?: number[];
     autoscaledPoolOptions?: AutoscaledPoolPredicateOptions;
     blockedStatusCodes?: number[];
-    concurrencySystem?: ConcurrencySystem;
+    concurrencySystem?: IConcurrencySystem;
     configuration?: Configuration;
     contextPipelineBuilder?: () => ContextPipeline<CrawlingContext, Context>;
     errorHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
