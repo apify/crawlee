@@ -409,9 +409,10 @@ export class AutoscaledPool {
             return done();
         }
 
+        this.ownConcurrency++;
+
         try {
             // Everything's fine. Run task.
-            this.ownConcurrency++;
             // Try to run next task to build up concurrency,
             // but defer it so it doesn't create a cycle.
             setImmediate(this.maybeRunTask);
@@ -433,9 +434,8 @@ export class AutoscaledPool {
             }
 
             this.log.perf('Task finished.');
-            this.concurrencySystem.registerTaskEnd();
-            this.ownConcurrency--;
-            // Run task after the previous one finished.
+            // Run task after the previous one finished. Only on success: a failed task rejects the pool, and
+            // nudging the loop afterwards could start work on an already destroyed pool.
             setImmediate(this.maybeRunTask);
         } catch (e) {
             const err = e as Error;
@@ -451,6 +451,9 @@ export class AutoscaledPool {
                 }
                 this.reject(err);
             }
+        } finally {
+            this.concurrencySystem.registerTaskEnd();
+            this.ownConcurrency--;
         }
 
         return undefined;

@@ -1,5 +1,5 @@
 import type { AutoscaledPoolTaskLoopOptions, ConcurrencySystemOptions, LoadSignal, LoadSnapshot } from '@crawlee/core';
-import { AutoscaledPool, ConcurrencySystem } from '@crawlee/core';
+import { AutoscaledPool, ConcurrencySystem, CriticalError } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
 
 import log from '@apify/log';
@@ -343,6 +343,103 @@ describe('AutoscaledPool', () => {
             );
 
             await expect(pool.run()).rejects.toThrow('some-runtask-error');
+        });
+
+        test('and still returns the failed task’s slot to the governor', async () => {
+            const pool = await makePool(
+                {
+                    runTaskFunction: async () => {
+                        await sleep(1);
+                        throw new Error('some-runtask-error');
+                    },
+                    isFinishedFunction: async () => false,
+                    isTaskReadyFunction: async () => true,
+                },
+                { minConcurrency: 1, maxConcurrency: 1, desiredConcurrency: 1 },
+            );
+
+            await expect(pool.run()).rejects.toThrow('some-runtask-error');
+
+            // A slot leaked on the error path is never recovered - with a shared ConcurrencySystem it permanently
+            // shrinks the budget of every other pool borrowing it.
+            expect(systemOf(pool).currentConcurrency).toBe(0);
+            expect(systemOf(pool).hasCapacityForTask()).toBe(true);
+        });
+
+        test('and still returns the slot when the task throws a CriticalError', async () => {
+            // CriticalError takes a different branch out of the task loop (it is deliberately not logged), which is
+            // exactly where the slot used to leak.
+            const pool = await makePool(
+                {
+                    runTaskFunction: async () => {
+                        await sleep(1);
+                        throw new CriticalError('some-critical-error');
+                    },
+                    isFinishedFunction: async () => false,
+                    isTaskReadyFunction: async () => true,
+                },
+                { minConcurrency: 1, maxConcurrency: 1, desiredConcurrency: 1 },
+            );
+
+            await expect(pool.run()).rejects.toThrow('some-critical-error');
+
+            expect(pool.currentConcurrency).toBe(0);
+            expect(systemOf(pool).currentConcurrency).toBe(0);
+        });
+
+        test('and still returns the slot when the task times out', async () => {
+            const pool = await makePool(
+                {
+                    runTaskFunction: async () => sleep(1e3),
+                    taskTimeoutSecs: 0.05,
+                    isFinishedFunction: async () => false,
+                    isTaskReadyFunction: async () => true,
+                },
+                { minConcurrency: 1, maxConcurrency: 1, desiredConcurrency: 1 },
+            );
+
+            await expect(pool.run()).rejects.toThrow('runTaskFunction timed out');
+
+            // The abandoned task is left to its own devices, but its slot is not.
+            expect(systemOf(pool).currentConcurrency).toBe(0);
+        });
+
+        test('and a failing pool does not shrink a shared budget', async () => {
+            const system = new ConcurrencySystem({ minConcurrency: 2, maxConcurrency: 2, desiredConcurrency: 2 });
+            await system.start();
+            onTestFinished(async () => system.stop());
+
+            const failing = new AutoscaledPool({
+                concurrencySystem: system,
+                runTaskFunction: async () => {
+                    await sleep(1);
+                    throw new Error('some-runtask-error');
+                },
+                isFinishedFunction: async () => false,
+                isTaskReadyFunction: async () => true,
+            });
+
+            await expect(failing.run()).rejects.toThrow('some-runtask-error');
+
+            // The survivor must still be able to reach the full shared concurrency of 2.
+            let done = 0;
+            let peak = 0;
+            let current = 0;
+            const survivor = new AutoscaledPool({
+                concurrencySystem: system,
+                runTaskFunction: async () => {
+                    current++;
+                    peak = Math.max(peak, current);
+                    await sleep(5);
+                    done++;
+                    current--;
+                },
+                isFinishedFunction: async () => done >= 10,
+                isTaskReadyFunction: async () => done < 10,
+            });
+
+            await survivor.run();
+            expect(peak).toBe(2);
         });
 
         test('when isFinishedFunction throws', async () => {
