@@ -85,6 +85,5 @@ publicHoistPattern:
   - "*"
 
 patchedDependencies:
-  '@apify/timeout@0.3.3': patches/@apify__timeout@0.3.3.patch
   '@docusaurus/core@3.10.2': patches/@docusaurus__core@3.10.2.patch
   '@signalwire/docusaurus-plugin-llms-txt@1.2.2': patches/@signalwire__docusaurus-plugin-llms-txt@1.2.2.patch
