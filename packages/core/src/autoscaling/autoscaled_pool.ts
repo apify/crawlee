@@ -104,8 +104,11 @@ export interface AutoscaledPoolOptions extends AutoscaledPoolTaskLoopOptions {
  * **Example usage:**
  *
  * ```javascript
+ * const concurrencySystem = new ConcurrencySystem({ maxConcurrency: 50 });
+ * await concurrencySystem.start();
+ *
  * const pool = new AutoscaledPool({
- *     maxConcurrency: 50,
+ *     concurrencySystem,
  *     runTaskFunction: async () => {
  *         // Run some resource-intensive asynchronous operation here.
  *     },
@@ -120,7 +123,11 @@ export interface AutoscaledPoolOptions extends AutoscaledPoolTaskLoopOptions {
  *     }
  * });
  *
- * await pool.run();
+ * try {
+ *     await pool.run();
+ * } finally {
+ *     await concurrencySystem.stop();
+ * }
  * ```
  * @category Scaling
  */
@@ -202,54 +209,17 @@ export class AutoscaledPool {
     }
 
     /**
-     * Gets the minimum number of tasks running in parallel.
-     */
-    get minConcurrency(): number {
-        return this.concurrencySystem.minConcurrency;
-    }
-
-    /**
-     * Sets the minimum number of tasks running in parallel.
-     *
-     * *WARNING:* If you set this value too high with respect to the available system memory and CPU, your code might run extremely slow or crash.
-     * If you're not sure, just keep the default value and the concurrency will scale up automatically.
-     */
-    set minConcurrency(value: number) {
-        this.concurrencySystem.minConcurrency = value;
-    }
-
-    /**
-     * Gets the maximum number of tasks running in parallel.
-     */
-    get maxConcurrency(): number {
-        return this.concurrencySystem.maxConcurrency;
-    }
-
-    /**
-     * Sets the maximum number of tasks running in parallel.
-     */
-    set maxConcurrency(value: number) {
-        this.concurrencySystem.maxConcurrency = value;
-    }
-
-    /**
-     * Gets the desired concurrency for the pool,
-     * which is an estimated number of parallel tasks that the system can currently support.
+     * Gets the desired concurrency of the governor backing this pool — an estimated number of parallel tasks the
+     * system can currently support. Read-only telemetry: concurrency limits are configured (and, for the canonical
+     * {@apilink ConcurrencySystem}, tuned at runtime) on the governor instance its owner holds, not through the pool.
      */
     get desiredConcurrency(): number {
         return this.concurrencySystem.desiredConcurrency;
     }
 
     /**
-     * Sets the desired concurrency for the pool, i.e. the number of tasks that should be running
-     * in parallel if there's large enough supply of tasks.
-     */
-    set desiredConcurrency(value: number) {
-        this.concurrencySystem.desiredConcurrency = value;
-    }
-
-    /**
-     * Gets the number of parallel tasks currently running in the pool.
+     * Gets the number of parallel tasks currently booked against the governor backing this pool. When the governor
+     * is shared, this includes tasks of every borrowing pool, not just this one.
      */
     get currentConcurrency(): number {
         return this.concurrencySystem.currentConcurrency;

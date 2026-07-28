@@ -661,11 +661,14 @@ export class BasicCrawler<
     private readonly buildDefaultConcurrencySystem?: () => ConcurrencySystem;
 
     /**
-     * A reference to the underlying {@apilink AutoscaledPool} class that manages the concurrency of the crawler.
+     * A reference to the underlying {@apilink AutoscaledPool} class that runs the crawler's task loop.
      * > *NOTE:* This property is only initialized after calling the {@apilink BasicCrawler.run|`crawler.run()`} function.
-     * We can use it to change the concurrency settings on the fly,
-     * to pause the crawler by calling {@apilink AutoscaledPool.pause|`autoscaledPool.pause()`}
+     * We can use it to pause the crawler by calling {@apilink AutoscaledPool.pause|`autoscaledPool.pause()`}
      * or to abort it by calling {@apilink AutoscaledPool.abort|`autoscaledPool.abort()`}.
+     *
+     * To tune concurrency at runtime, build a {@apilink ConcurrencySystem}, keep a reference to it and inject it via
+     * {@apilink BasicCrawlerOptions.concurrencySystem|`concurrencySystem`} — the pool only exposes the governor's
+     * read-only telemetry.
      */
     autoscaledPool?: AutoscaledPool;
 

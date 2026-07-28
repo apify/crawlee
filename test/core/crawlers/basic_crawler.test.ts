@@ -167,7 +167,7 @@ describe('BasicCrawler', () => {
 
         await basicCrawler.run();
 
-        expect(basicCrawler.autoscaledPool!.minConcurrency).toBe(25);
+        expect((basicCrawler.autoscaledPool!.system as ConcurrencySystem).minConcurrency).toBe(25);
         expect(processed).toEqual(sourcesCopy);
         expect(await requestList.isFinished()).toBe(true);
         expect(await requestList.isEmpty()).toBe(true);
@@ -203,7 +203,7 @@ describe('BasicCrawler', () => {
 
         // The crawler built its own pool but wired the shared governor into it.
         expect(basicCrawler.autoscaledPool!.system).toBe(system);
-        expect(basicCrawler.autoscaledPool!.minConcurrency).toBe(7);
+        expect((basicCrawler.autoscaledPool!.system as ConcurrencySystem).minConcurrency).toBe(7);
         // Work actually ran (the crawler kept its own task loop).
         expect(processed).toHaveLength(20);
         // The crawler never touched the borrowed system's lifecycle — only our two explicit calls did.
@@ -273,7 +273,7 @@ describe('BasicCrawler', () => {
         });
 
         await crawler.run(['https://example.com/1']);
-        const firstSystem = crawler.autoscaledPool!.system;
+        const firstSystem = crawler.autoscaledPool!.system as ConcurrencySystem;
         // Simulate scaling state left behind by the first run.
         firstSystem.desiredConcurrency = 42;
 
@@ -505,8 +505,8 @@ describe('BasicCrawler', () => {
         const requestHandler = async () => {};
 
         const collect = (crawler: BasicCrawler) => ({
-            minConcurrency: crawler.autoscaledPool!.minConcurrency,
-            maxConcurrency: crawler.autoscaledPool!.maxConcurrency,
+            minConcurrency: (crawler.autoscaledPool!.system as ConcurrencySystem).minConcurrency,
+            maxConcurrency: (crawler.autoscaledPool!.system as ConcurrencySystem).maxConcurrency,
             // eslint-disable-next-line dot-notation -- private member on the governor
             maxTasksPerMinute: (crawler.autoscaledPool!.system as ConcurrencySystem)['maxTasksPerMinute'],
         });

@@ -1171,6 +1171,8 @@ The autoscaling logic was split in two. The load-and-budget "governor" — the p
 
 The motivation is sharing: inject a single `ConcurrencySystem` into several pools (and therefore several crawlers) to cap their **combined** concurrency against one budget, instead of each crawler scaling independently and oversubscribing the host.
 
+Both the pool and the crawlers depend only on the `IConcurrencySystem` interface — the minimal, read-only governor contract (current/desired concurrency plus the atomic task-booking protocol). `ConcurrencySystem` is the canonical implementation and the one crawlers build by default; you only need to care about the interface if you want to supply an alternate governor.
+
 ### `AutoscaledPool` requires a `concurrencySystem` and no longer takes scaling options
 
 All scaling/snapshotter options were **removed** from `AutoscaledPoolOptions` and now live on `ConcurrencySystemOptions`: `minConcurrency`, `maxConcurrency`, `desiredConcurrency`, `desiredConcurrencyRatio`, `scaleUpStepRatio`, `scaleDownStepRatio`, `loggingIntervalSecs`, `autoscaleIntervalSecs`, `maxTasksPerMinute`, `snapshotterOptions`, and `systemStatusOptions`. In their place `AutoscaledPoolOptions` gained a **required** `concurrencySystem`.
@@ -1217,7 +1219,17 @@ try {
 }
 ```
 
-The concurrency getters/setters on `AutoscaledPool` (`minConcurrency`, `maxConcurrency`, `desiredConcurrency`, `currentConcurrency`) are unchanged — they now read/write through the underlying system, which is also reachable via the new `pool.system` getter.
+The concurrency accessors on `AutoscaledPool` were slimmed down to read-only telemetry: `desiredConcurrency` and `currentConcurrency` remain as getters (reading through the underlying system, which is also reachable via the new `pool.system` getter), while the `minConcurrency`/`maxConcurrency` accessors and all setters were **removed**. Changing concurrency at runtime (e.g. `crawler.autoscaledPool.maxConcurrency = 10` as a reaction to rate limiting) is now done on the `ConcurrencySystem` instance instead — build it yourself, keep the reference, and inject it:
+
+```typescript
+const concurrencySystem = new ConcurrencySystem({ maxConcurrency: 50 });
+await concurrencySystem.start();
+
+const crawler = new CheerioCrawler({ concurrencySystem, requestHandler });
+
+// later, e.g. in an error handler:
+concurrencySystem.maxConcurrency = 10;
+```
 
 ### `BasicCrawlerOptions.autoscaledPoolOptions` no longer carries concurrency config
 

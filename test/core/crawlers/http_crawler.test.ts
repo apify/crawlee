@@ -152,7 +152,7 @@ test('concurrency shortcuts coexist with the HTTP-optimized defaults', async () 
     await crawler.run([url]);
 
     // The shortcut applies...
-    expect(crawler.autoscaledPool!.maxConcurrency).toBe(5);
+    expect((crawler.autoscaledPool!.system as ConcurrencySystem).maxConcurrency).toBe(5);
     // ...without discarding the HTTP-optimized starting concurrency (which the max then caps).
     expect(crawler.autoscaledPool!.desiredConcurrency).toBe(5);
 });
@@ -379,7 +379,7 @@ test('should ignore http error status codes set by user', async () => {
 
     await crawler.run([`${url}/500Error`]);
 
-    expect(crawler.autoscaledPool!.minConcurrency).toBe(2);
+    expect((crawler.autoscaledPool!.system as ConcurrencySystem).minConcurrency).toBe(2);
     expect(failed).toHaveLength(0);
 });
 
@@ -398,7 +398,7 @@ test('should throw an error on http error status codes set by user', async () =>
 
     await crawler.run([`${url}/hello.html`]);
 
-    expect(crawler.autoscaledPool!.minConcurrency).toBe(2);
+    expect((crawler.autoscaledPool!.system as ConcurrencySystem).minConcurrency).toBe(2);
     expect(failed).toHaveLength(1);
 });
 

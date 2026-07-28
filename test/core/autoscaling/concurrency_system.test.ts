@@ -133,8 +133,10 @@ describe('ConcurrencySystem', () => {
         });
 
         test('AutoscaledPool exposes its governor via `system` for re-injection', () => {
+            const system = new ConcurrencySystem();
+
             const first = new AutoscaledPool({
-                concurrencySystem: new ConcurrencySystem(),
+                concurrencySystem: system,
                 runTaskFunction: async () => {},
                 isFinishedFunction: async () => true,
                 isTaskReadyFunction: async () => false,
@@ -147,11 +149,12 @@ describe('ConcurrencySystem', () => {
                 isTaskReadyFunction: async () => false,
             });
 
-            expect(second.system).toBe(first.system);
+            expect(second.system).toBe(system);
 
-            // Concurrency getters/setters delegate to the shared governor.
-            first.maxConcurrency = 42;
-            expect(second.maxConcurrency).toBe(42);
+            // Tuning happens on the (shared) governor; every borrowing pool reflects it read-only.
+            system.desiredConcurrency = 42;
+            expect(first.desiredConcurrency).toBe(42);
+            expect(second.desiredConcurrency).toBe(42);
         });
     });
 });

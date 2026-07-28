@@ -105,19 +105,13 @@ export interface ConcurrencySystemOptions {
  */
 export interface IConcurrencySystem {
     /**
-     * The minimum number of tasks running in parallel.
+     * The number of tasks that should currently be running in parallel, assuming a sufficient supply of them —
+     * the governor's current *output*. How it is derived (autoscaling, fixed configuration, an external signal) is
+     * entirely up to the implementation, which is also why the contract exposes it read-only: tuning knobs like
+     * {@apilink ConcurrencySystem}'s `minConcurrency`/`maxConcurrency` are implementation policy, and mutating them
+     * belongs on the concrete instance its owner holds.
      */
-    minConcurrency: number;
-
-    /**
-     * The maximum number of tasks running in parallel.
-     */
-    maxConcurrency: number;
-
-    /**
-     * The number of tasks that should currently be running in parallel, assuming a sufficient supply of them.
-     */
-    desiredConcurrency: number;
+    readonly desiredConcurrency: number;
 
     /**
      * The number of parallel tasks currently booked against this governor (summed across every borrowing pool).
