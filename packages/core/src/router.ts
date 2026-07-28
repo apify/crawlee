@@ -64,6 +64,7 @@ export type RoutesFromSchemas<Schemas extends RouteSchemas> = {
 /**
  * The `userData` type of the default route: inferred from the {@apilink defaultRoute} schema when the route map
  * carries one, otherwise the provided `Fallback`.
+ * @internal
  */
 export type DefaultRouteUserData<Routes, Fallback extends Dictionary> = Routes extends {
     [defaultRoute]: infer DefaultUserData extends Dictionary;

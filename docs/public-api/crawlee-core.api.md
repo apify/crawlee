@@ -446,11 +446,6 @@ export interface DatasetStats {
 export const defaultRoute: unique symbol;
 
 // @public
-export type DefaultRouteUserData<Routes, Fallback extends Dictionary> = Routes extends {
-    [defaultRoute]: infer DefaultUserData extends Dictionary;
-} ? DefaultUserData : Fallback;
-
-// @public
 export interface DefaultStorageIdentifier {
     // (undocumented)
     alias?: never;
@@ -816,18 +811,6 @@ export interface KeyValueStoreStats {
     readCount: number;
     writeCount: number;
 }
-
-// @public
-export type LabeledSource<Routes extends Record<keyof Routes, Dictionary>> = string extends keyof Routes ? string | Source : string | Request_2 | ({
-    requestsFromUrl?: string;
-    regex?: RegExp;
-} & ({
-    [Label in keyof Routes & string]: Omit<Partial<RequestOptions<Routes[Label]>>, 'label'> & {
-        label: Label;
-    };
-}[keyof Routes & string] | (Omit<Partial<RequestOptions>, 'label'> & {
-    label?: undefined;
-})));
 
 // @public (undocumented)
 export type LoadedRequest<R extends Request_2> = WithRequired<R, 'id' | 'loadedUrl'>;
@@ -1842,15 +1825,6 @@ export interface SystemStatusOptions {
 }
 
 export { tryAbsoluteURL }
-
-// @public
-export type TypedContextAddRequests<Routes extends Record<keyof Routes, Dictionary>> = (requestsLike: ReadonlyDeep<LabeledSource<Routes>[]>, options?: ReadonlyDeep<RequestQueueOperationOptions>) => Promise<void>;
-
-// @public
-export type TypedContextEnqueueLinks<EnqueueLinks, Routes extends Record<keyof Routes, Dictionary>> = EnqueueLinks extends (options?: infer Options) => infer Result ? (options?: TypedEnqueueLinksOptions<Options, Routes>) => Result : EnqueueLinks extends (options: infer Options) => infer Result ? (options: TypedEnqueueLinksOptions<Options, Routes>) => Result : EnqueueLinks;
-
-// @public
-export type TypedRequestsLike<Routes extends Record<keyof Routes, Dictionary>> = AsyncIterable<LabeledSource<Routes>> | Iterable<LabeledSource<Routes>> | LabeledSource<Routes>[];
 
 // @public (undocumented)
 export type UrlPatternObject = {
