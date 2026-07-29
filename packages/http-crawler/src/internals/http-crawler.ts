@@ -64,7 +64,8 @@ export interface HttpCrawlerOptions<
     Context extends InternalHttpCrawlingContext = InternalHttpCrawlingContext,
     ContextExtension = Dictionary<never>,
     ExtendedContext extends Context = Context & ContextExtension,
-> extends BasicCrawlerOptions<Context, ContextExtension, ExtendedContext> {
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
+> extends BasicCrawlerOptions<Context, ContextExtension, ExtendedContext, Routes> {
     /**
      * Timeout in which the HTTP request to the resource needs to finish, given in seconds.
      */
@@ -322,7 +323,8 @@ export class HttpCrawler<
     Context extends InternalHttpCrawlingContext<any, any> = InternalHttpCrawlingContext,
     ContextExtension = Dictionary<never>,
     ExtendedContext extends Context = Context & ContextExtension,
-> extends BasicCrawler<Context, ContextExtension, ExtendedContext> {
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
+> extends BasicCrawler<Context, ContextExtension, ExtendedContext, Routes> {
     // Internal storage uses the base (non-extended) context types. The public option types are
     // extension-aware for consumer DX, but internally the pipeline composes hooks against the
     // concrete crawling context, which does not statically carry `ContextExtension`. The members
