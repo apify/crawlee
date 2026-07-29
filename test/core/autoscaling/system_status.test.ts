@@ -273,4 +273,45 @@ describe('SystemStatus', () => {
         });
         expect(widened.getHistoricalStatus().isSystemIdle).toBe(false);
     });
+
+    describe('duplicate signal names', () => {
+        const fine = generateSnapsSync(100, false);
+        const snapshotter = () => new MockSnapshotter(fine, fine, fine, fine, {}) as any;
+
+        it('rejects a custom signal that shadows an enabled built-in', () => {
+            // Used to silently run alongside the built-in while overwriting its SystemInfo field, so the reported
+            // memInfo could claim memory was fine while the built-in held concurrency down.
+            expect(
+                () => new SystemStatus({ snapshotter: snapshotter(), loadSignals: [mockSignal('memInfo', fine)] }),
+            ).toThrow(/Duplicate load signal name "memInfo".*loadSignals: \{ memory: false \}/s);
+        });
+
+        it('rejects two custom signals sharing a name', () => {
+            expect(
+                () =>
+                    new SystemStatus({
+                        snapshotter: snapshotter(),
+                        loadSignals: [mockSignal('proxyHealth', fine), mockSignal('proxyHealth', fine)],
+                    }),
+            ).toThrow(/Duplicate load signal name "proxyHealth".*rename one of them/s);
+        });
+
+        it('allows a custom signal to take over the name of a disabled built-in', () => {
+            // The supported replacement route: switch the built-in off, keep its SystemInfo field reported by yours.
+            const withoutMemory = {
+                getLoadSignals: () => snapshotter().getLoadSignals().slice(1),
+            } as any;
+
+            const overloaded = generateSnapsSync(100, true);
+            const systemStatus = new SystemStatus({
+                snapshotter: withoutMemory,
+                loadSignals: [mockSignal('memInfo', overloaded)],
+            });
+
+            const status = systemStatus.getCurrentStatus();
+            expect(status.isSystemIdle).toBe(false);
+            expect(status.memInfo.isOverloaded).toBe(true);
+            expect(status.loadSignalInfo).toBeUndefined();
+        });
+    });
 });

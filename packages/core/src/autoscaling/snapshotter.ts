@@ -134,6 +134,9 @@ export interface LoadSignalsOptions {
      * Additional {@apilink LoadSignal} implementations — e.g. navigation timeouts or proxy health — evaluated
      * alongside the built-in four. If any signal reports overload, the system counts as overloaded. Their lifecycle
      * is driven by the {@apilink ConcurrencySystem} they are given to.
+     *
+     * Names must be unique across the whole set, so replacing a built-in means switching it off (`memory: false`)
+     * rather than shadowing its name — a duplicate name throws. See {@apilink LoadSignal.name}.
      */
     custom?: LoadSignal[];
 }

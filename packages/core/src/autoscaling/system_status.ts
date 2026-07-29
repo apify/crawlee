@@ -2,6 +2,7 @@ import ow from 'ow';
 
 import type { LoadSignal } from './load_signal.js';
 import { evaluateLoadSignalSample } from './load_signal.js';
+import type { LoadSignalsOptions } from './snapshotter.js';
 import { DEFAULT_SNAPSHOT_HISTORY_SECS, Snapshotter } from './snapshotter.js';
 
 /**
@@ -98,8 +99,15 @@ export interface FinalStatistics {
     crawlerRuntimeMillis: number;
 }
 
-/** The four built-in signal names that map to typed `SystemInfo` fields. */
-const BUILTIN_SIGNAL_NAMES = new Set(['memInfo', 'eventLoopInfo', 'cpuInfo', 'clientInfo']);
+/** The four built-in signal names that map to typed `SystemInfo` fields, and the option that switches each off. */
+const BUILTIN_SIGNAL_OPTION_KEYS: Record<string, keyof LoadSignalsOptions> = {
+    memInfo: 'memory',
+    eventLoopInfo: 'eventLoop',
+    cpuInfo: 'cpu',
+    clientInfo: 'client',
+};
+
+const BUILTIN_SIGNAL_NAMES = new Set(Object.keys(BUILTIN_SIGNAL_OPTION_KEYS));
 
 /**
  * Provides a simple interface to reading system status from a {@apilink Snapshotter} instance.
@@ -155,6 +163,33 @@ export class SystemStatus {
         this.snapshotter = snapshotter || new Snapshotter();
 
         this.signals = [...this.snapshotter.getLoadSignals(), ...loadSignals];
+        this.assertUniqueSignalNames();
+    }
+
+    /**
+     * Signal names are the keys of the reported {@apilink SystemInfo}, so two signals sharing one is never something
+     * the caller meant: both would still be evaluated (any overloaded signal holds concurrency down), but only the
+     * last one would be reported, leaving a status object that contradicts the pool's actual behavior.
+     *
+     * Names collide most easily with a built-in — `memInfo`, `eventLoopInfo`, `cpuInfo`, `clientInfo` — since
+     * matching one used to look like a way to replace it. Switching the built-in off is that way; a custom signal is
+     * free to take over the vacated name and report in its `SystemInfo` field.
+     */
+    private assertUniqueSignalNames(): void {
+        const seen = new Set<string>();
+
+        for (const { name } of this.signals) {
+            if (!seen.has(name)) {
+                seen.add(name);
+                continue;
+            }
+
+            const hint = BUILTIN_SIGNAL_NAMES.has(name)
+                ? `it is the name of a built-in signal. To replace that signal, switch it off with \`loadSignals: { ${BUILTIN_SIGNAL_OPTION_KEYS[name]}: false }\` and keep your implementation in \`loadSignals.custom\`; to run yours alongside it, give it a different name.`
+                : 'two custom signals cannot share a name - rename one of them.';
+
+            throw new Error(`Duplicate load signal name ${JSON.stringify(name)}: ${hint}`);
+        }
     }
 
     /**

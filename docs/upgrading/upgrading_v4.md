@@ -1361,6 +1361,18 @@ new ConcurrencySystem({
 
 A disabled signal simply stops being collected and evaluated; its entry in `SystemInfo` reports as not overloaded, so nothing reading the status has to special-case it.
 
+Switching a built-in off is also the **only** way to replace it. Naming a custom signal after a built-in — `memInfo`, `eventLoopInfo`, `cpuInfo` or `clientInfo` — used to look like an override, but never was one: the built-in kept running and kept holding concurrency down (any overloaded signal does), while your signal merely overwrote its field in `SystemInfo`. The reported status could therefore claim a resource was healthy while the pool was being throttled precisely because that resource was overloaded. Constructing a `ConcurrencySystem` with a duplicate signal name now **throws**, and the same goes for two custom signals sharing a name, since signal names are the keys of the reported status:
+
+```typescript
+new ConcurrencySystem({
+    loadSignals: {
+        // Without `memory: false`, this throws — the built-in memory signal is still enabled.
+        memory: false,
+        custom: [myMemorySignal], // free to take over the vacated `memInfo` field
+    },
+});
+```
+
 The `Snapshotter` and `SystemStatus` classes are now internal, along with their options types (`SnapshotterOptions`, `SystemStatusOptions`) — they are implementation details of the `ConcurrencySystem`, which is the sole public entry point to load monitoring and autoscaling. What stays public is the configuration (`LoadSignalsOptions` and the four per-signal bags) and the extension surface: the `LoadSignal` interface, the `SnapshotStore` helper, and `LoadSignalStartContext`.
 
 ### Custom load signals are now sampled over the same window as the built-in ones

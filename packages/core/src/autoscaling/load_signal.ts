@@ -39,7 +39,12 @@ export interface LoadSignalStartContext {
  * {@apilink ConcurrencySystemOptions.loadSignals|`loadSignals`}.
  */
 export interface LoadSignal {
-    /** Human-readable name used in logging and `SystemInfo` keys. */
+    /**
+     * Human-readable name used in logging and as this signal's key in the reported {@apilink SystemInfo} — so it must
+     * be unique among the signals of one {@apilink ConcurrencySystem}, which throws on a duplicate. The four
+     * built-in names (`memInfo`, `eventLoopInfo`, `cpuInfo`, `clientInfo`) map to the correspondingly named
+     * `SystemInfo` fields instead of the `loadSignalInfo` bag; taking one over means switching that built-in off.
+     */
     readonly name: string;
 
     /**

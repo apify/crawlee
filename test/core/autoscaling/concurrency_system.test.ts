@@ -106,14 +106,47 @@ describe('ConcurrencySystem', () => {
             expect(contexts[1]).toEqual({ maxSampleWindowMillis: 60_000 });
         });
 
+        test('a custom signal cannot shadow an enabled built-in, but can replace a disabled one', async () => {
+            const now = Date.now();
+
+            // The reported `limitRatio` is the signal's own `overloadedRatio`, so an unmistakable value identifies
+            // which signal ended up owning the `memInfo` field.
+            const memorySignal = (): LoadSignal => ({
+                name: 'memInfo',
+                overloadedRatio: 0.99,
+                async start() {},
+                async stop() {},
+                getSample: () => [
+                    { createdAt: new Date(now - 1_000), isOverloaded: true },
+                    { createdAt: new Date(now), isOverloaded: true },
+                ],
+            });
+
+            expect(() => new ConcurrencySystem({ loadSignals: { custom: [memorySignal()] } })).toThrow(
+                'Duplicate load signal name "memInfo"',
+            );
+
+            const system = new ConcurrencySystem({
+                loadSignals: { memory: false, custom: [memorySignal()] },
+            });
+
+            const status = system.getCurrentStatus();
+
+            // The replacement owns the vacated field and gates the system, rather than being reported separately.
+            expect(status.memInfo).toEqual({ isOverloaded: true, limitRatio: 0.99, actualRatio: 1 });
+            expect(status.loadSignalInfo).toBeUndefined();
+            expect(status.isSystemIdle).toBe(false);
+
+            // The other three built-ins are untouched — each still reports under its own default ratio.
+            expect(status.eventLoopInfo.limitRatio).toBe(0.6);
+            expect(status.cpuInfo.limitRatio).toBe(0.4);
+            expect(status.clientInfo.limitRatio).toBe(0.3);
+        });
+
         test('built-in signals can be switched off with `false`', async () => {
             const system = new ConcurrencySystem({
                 loadSignals: { client: false, eventLoop: false },
             });
-
-            // @ts-expect-error Accessing private prop
-            const names = system.snapshotter.getLoadSignals().map((signal: LoadSignal) => signal.name);
-            expect(names).toEqual(['memInfo', 'cpuInfo']);
 
             await system.start();
             try {
@@ -122,6 +155,11 @@ describe('ConcurrencySystem', () => {
                 expect(status.clientInfo).toEqual({ isOverloaded: false, limitRatio: 0, actualRatio: 0 });
                 expect(status.eventLoopInfo).toEqual({ isOverloaded: false, limitRatio: 0, actualRatio: 0 });
                 expect(status.isSystemIdle).toBe(true);
+
+                // The two that stayed on are distinguishable from the placeholders above: `limitRatio` is the
+                // reporting signal's own `overloadedRatio`, which no disabled signal is around to supply.
+                expect(status.memInfo.limitRatio).toBe(0.2);
+                expect(status.cpuInfo.limitRatio).toBe(0.4);
             } finally {
                 await system.stop();
             }
