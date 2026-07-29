@@ -1,6 +1,7 @@
-import type { Server } from 'node:http';
+import { createServer, type Server } from 'node:http';
 
 import type { BasicCrawlingContext, CheerioCrawlingContext, CheerioRequestHandler, Source } from '@crawlee/cheerio';
+import { FetchHttpClient } from '@crawlee/http-client';
 import {
     CheerioCrawler,
     createCheerioRouter,
@@ -543,6 +544,51 @@ describe('CheerioCrawler', () => {
 
             expect(failed).toHaveLength(0);
             expect(processed).toHaveLength(4);
+        });
+
+        test('navigationTimeoutSecs bounds a slowly-streamed response body', async () => {
+            // the headers arrive at once, but the body dribbles out over ~5s - reading it is still part of the
+            // navigation, so it must be bound by `navigationTimeoutSecs` rather than run unbounded
+            const slowServer = createServer(async (_req, res) => {
+                res.writeHead(200, { 'content-type': 'text/html', 'content-length': '20' });
+                for (let i = 0; i < 20; i++) {
+                    res.write('x');
+                    await sleep(250);
+                }
+                res.end();
+            });
+            await new Promise<void>((resolve) => slowServer.listen(0, resolve));
+            const { port: slowPort } = slowServer.address() as import('node:net').AddressInfo;
+
+            try {
+                const processed: Request[] = [];
+                const failed: Request[] = [];
+                const requestList = await RequestList.open(null, [{ url: `http://localhost:${slowPort}/` }]);
+
+                const cheerioCrawler = new CheerioCrawler({
+                    requestList,
+                    navigationTimeoutSecs: 1,
+                    maxRequestRetries: 0,
+                    httpClient: new FetchHttpClient(),
+                    requestHandler: ({ request }) => {
+                        processed.push(request);
+                    },
+                    failedRequestHandler: ({ request }) => {
+                        failed.push(request);
+                    },
+                });
+
+                const startedAt = Date.now();
+                await cheerioCrawler.run();
+
+                expect(processed).toHaveLength(0);
+                expect(failed).toHaveLength(1);
+                expect(failed[0].errorMessages[0]).toMatch('Navigation timed out');
+                // it must give up around the 1s window, not wait out the whole ~5s body
+                expect(Date.now() - startedAt).toBeLessThan(3000);
+            } finally {
+                slowServer.close();
+            }
         });
     });
 

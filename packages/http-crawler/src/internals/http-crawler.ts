@@ -548,7 +548,18 @@ export class HttpCrawler<
 
         tryCancel();
 
-        const parsed = await this.parseResponse(crawlingContext.request, crawlingContext.response);
+        // Reading the body is still part of the navigation, so it draws from the same shared window: on a server
+        // that streams the body slowly the request completes (headers arrive) but the body read would otherwise
+        // run unbounded. `extendTimeout` from a post-navigation hook has already pushed this deadline out if asked.
+        const remaining = remainingNavigationWindowMillis(crawlingContext, this.navigationTimeoutMillis);
+        if (remaining <= 0) {
+            throw new TimeoutError(`Navigation timed out after ${this.navigationTimeoutMillis / 1000} seconds.`);
+        }
+        const parsed = await addTimeoutToPromise(
+            async () => this.parseResponse(crawlingContext.request, crawlingContext.response),
+            remaining,
+            `Navigation timed out after ${this.navigationTimeoutMillis / 1000} seconds.`,
+        );
         tryCancel();
         const response = parsed.response!;
         const contentType = parsed.contentType!;
