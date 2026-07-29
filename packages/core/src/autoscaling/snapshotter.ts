@@ -16,10 +16,9 @@ import { MemoryLoadSignal } from './memory_load_signal.js';
  * `{ cpu: false, custom: [new CpuLoadSignal({ overloadedRatio: 0.5 })] }`. Pass `false` to leave a resource
  * unwatched, and put anything else you want taken into account in {@apilink LoadSignalsOptions.custom|`custom`}.
  *
- * How far back the signals are evaluated is not set here — that's the
- * {@apilink ConcurrencySystemOptions.snapshotHistorySecs|`snapshotHistorySecs`} /
- * {@apilink ConcurrencySystemOptions.currentHistorySecs|`currentHistorySecs`} pair, which applies to every signal
- * alike (and which signals size their snapshot retention to).
+ * How far back the signals are evaluated is *not* set here, but by
+ * {@apilink ConcurrencySystemOptions.snapshotHistorySecs|`snapshotHistorySecs`} and
+ * {@apilink ConcurrencySystemOptions.currentHistorySecs|`currentHistorySecs`}.
  */
 export interface LoadSignalsOptions {
     /**
@@ -49,10 +48,8 @@ export interface LoadSignalsOptions {
     /**
      * Additional {@apilink LoadSignal} implementations — e.g. navigation timeouts or proxy health — evaluated
      * alongside the built-in four. If any signal reports overload, the system counts as overloaded. Their lifecycle
-     * is driven by the {@apilink ConcurrencySystem} they are given to.
-     *
-     * Names must be unique across the whole set, so replacing a built-in means switching it off (`memory: false`)
-     * rather than shadowing its name — a duplicate name throws. See {@apilink LoadSignal.name}.
+     * is driven by the {@apilink ConcurrencySystem} they are given to, and their {@apilink LoadSignal.name|names} must
+     * not collide with an enabled built-in's.
      */
     custom?: LoadSignal[];
 }

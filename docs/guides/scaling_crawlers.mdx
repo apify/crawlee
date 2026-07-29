@@ -53,7 +53,7 @@ This section is super advanced and, unless you test the changes extensively and 
 
 :::
 
-With that warning aside, this is how we pass those options. Two things to know: an injected `ConcurrencySystem` is ours to `start()` and `stop()`, and the `minConcurrency`/`maxConcurrency`/`maxRequestsPerMinute` shortcuts cannot be combined with one — they configure the default system it replaces, so set those limits on the instance instead:
+With that warning aside, this is how we pass those options. One thing to watch: the `minConcurrency`/`maxConcurrency`/`maxRequestsPerMinute` shortcuts cannot be combined with an injected system — they configure the default one it replaces, so set those limits on the instance instead.
 
 <CodeBlock language="js">
 	{ConcurrencySystemSource}
@@ -156,7 +156,7 @@ Each built-in is a public class too — `MemoryLoadSignal`, `EventLoopLoadSignal
 
 :::info Signal names are the keys of the reported status
 
-Two signals cannot share a name, and a duplicate throws at construction time. Taking over one of the built-in names (`memInfo`, `eventLoopInfo`, `cpuInfo`, `clientInfo`) therefore means switching that built-in off first.
+A signal's `name` is the key its verdict appears under in the reported status, so two signals cannot share one — a duplicate throws at construction time. That is why taking over a built-in name (`memInfo`, `eventLoopInfo`, `cpuInfo`, `clientInfo`) requires switching that built-in off.
 
 :::
 

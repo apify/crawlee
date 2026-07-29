@@ -330,8 +330,10 @@ export interface BasicCrawlerOptions<
      * accounting is shared.
      *
      * Mutually exclusive with the `minConcurrency`/`maxConcurrency`/`maxRequestsPerMinute` shortcuts, which configure
-     * the default system this one replaces — combining the two throws. The crawler also neither starts nor tears a
-     * supplied system down; the caller owns its lifecycle.
+     * the default system this one replaces — combining the two throws.
+     *
+     * You own a supplied system's lifecycle: `start()` it before `run()` (which throws otherwise) and `stop()` it once
+     * every crawler borrowing it has finished. The crawler does neither on your behalf.
      */
     concurrencySystem?: IConcurrencySystem;
 

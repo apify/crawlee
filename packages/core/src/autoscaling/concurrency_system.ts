@@ -106,10 +106,6 @@ export interface ConcurrencySystemOptions {
  * there free compute for one more task?* and tracks the budget that tasks are booked against.
  * {@apilink ConcurrencySystem} is the canonical implementation; the interface lets alternate governors be substituted
  * without depending on its internals.
- *
- * {@apilink IConcurrencySystem.tryRegisterTaskStart|`tryRegisterTaskStart()`} must be an *atomic* (synchronous)
- * check-and-book — several pools may share one governor, and a check separated from the booking by an `await` lets two
- * of them claim the last free slot at once.
  * @category Scaling
  */
 export interface IConcurrencySystem {
@@ -145,8 +141,11 @@ export interface IConcurrencySystem {
     hasCapacityForTask(): boolean;
 
     /**
-     * Atomically books a task against the budget, returning `false` (without booking) when there is no room — the
-     * budget is spent, or an implementation-specific rate limit was reached.
+     * Books a task against the budget, returning `false` (without booking) when there is no room — the budget is
+     * spent, or an implementation-specific rate limit was reached.
+     *
+     * Must be an *atomic* (synchronous) check-and-book: several pools may share one governor, and a check separated
+     * from the booking by an `await` lets two of them claim the last free slot at once.
      */
     tryRegisterTaskStart(): boolean;
 
@@ -327,14 +326,9 @@ export class ConcurrencySystem implements IConcurrencySystem {
 
     /**
      * Re-establishes `minConcurrency <= desiredConcurrency <= maxConcurrency` after any of the three is retuned.
-     *
-     * Dispatch gates on the desired value alone, so a `desiredConcurrency` left stranded above `maxConcurrency` would
-     * make the ceiling meaningless — and it would stay stranded: `_scaleUp()` refuses to act once the desired value has
-     * reached the ceiling, and `_scaleDown()` only runs while a load signal reports overload, which a rate-limited
-     * *target site* never causes.
-     *
-     * A contradictory pair (`minConcurrency > maxConcurrency`) resolves in favour of the maximum, since that is the
-     * limit callers set in order to protect something.
+     * Dispatch gates on the desired value alone, so one stranded above `maxConcurrency` would make the ceiling
+     * meaningless. A contradictory pair (`minConcurrency > maxConcurrency`) resolves in favour of the maximum, since
+     * that is the limit callers set in order to protect something.
      */
     private clampDesiredConcurrency(): void {
         const atLeastMin = Math.max(this._desiredConcurrency, this._minConcurrency);
@@ -415,12 +409,10 @@ export class ConcurrencySystem implements IConcurrencySystem {
     }
 
     /**
-     * Reports, once per session, that capacity is being queried on a system that isn't running — which is a mistake
-     * nothing else catches. {@apilink AutoscaledPool.run|`pool.run()`} only reads
-     * {@apilink ConcurrencySystem.isRunning|`isRunning`} when it starts, so a system stopped *underneath* a live pool
-     * goes unnoticed: the signals stop collecting but their samples are pruned relative to the newest snapshot rather
-     * than the wall clock, so the overload verdict stays frozen at whatever it last was (an overloaded one pins the
-     * pool at `minConcurrency` forever), and `desiredConcurrency` freezes too once the autoscaling interval is cleared.
+     * Reports, once per session, that capacity is being queried on a system that isn't running — a mistake nothing
+     * else catches, since {@apilink AutoscaledPool.run|`pool.run()`} only checks
+     * {@apilink ConcurrencySystem.isRunning|`isRunning`} on the way in. Both the overload verdict and
+     * `desiredConcurrency` are frozen at that point, so the borrowing pool would otherwise just quietly mis-scale.
      */
     private warnIfNotRunning(): void {
         if (this.running || this.warnedAboutQueryWhileStopped) {

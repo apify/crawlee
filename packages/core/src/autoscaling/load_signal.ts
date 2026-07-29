@@ -17,10 +17,8 @@ export interface LoadSnapshot {
 export interface LoadSignalStartContext {
     /**
      * The longest sample window the signal will be queried with (the wider of the task-gating and autoscaling
-     * windows). Keeping less history than this means contributing a narrower view of the resource than the other
-     * signals; keeping more is wasted memory, as the extra snapshots are never sampled.
-     *
-     * Signals built on {@apilink SnapshotStore} get this applied automatically.
+     * windows). Keeping less history than this contributes a narrower view of the resource than the other signals;
+     * keeping more is wasted memory, as the extra snapshots are never sampled.
      */
     maxSampleWindowMillis: number;
 }
@@ -32,16 +30,15 @@ export interface LoadSignalStartContext {
  * The built-in signals cover memory, CPU, event loop and storage-client rate limits. Implement this interface to add
  * your own (navigation timeouts, proxy health, …) and pass them via
  * {@apilink LoadSignalsOptions.custom|`loadSignals.custom`}; {@apilink SnapshotStore} does the time-windowed
- * bookkeeping if you want it. Each built-in is also a public class, so *wrapping* one — rather than reimplementing it
- * — means constructing it yourself and switching the default off ({@apilink LoadSignalsOptions.cpu|`cpu: false`} and
- * friends), since {@apilink LoadSignal.name|names} are unique.
+ * bookkeeping if you want it. Each built-in is also a public class, so one can be *wrapped* rather than reimplemented
+ * — construct it yourself and switch the default off with {@apilink LoadSignalsOptions.cpu|`cpu: false`} or friends.
  */
 export interface LoadSignal {
     /**
-     * Human-readable name used in logging and as this signal's key in the reported {@apilink SystemInfo} — so it must
-     * be unique among the signals of one {@apilink ConcurrencySystem}, which throws on a duplicate. The four
-     * built-in names (`memInfo`, `eventLoopInfo`, `cpuInfo`, `clientInfo`) map to the correspondingly named
-     * `SystemInfo` fields instead of the `loadSignalInfo` bag; taking one over means switching that built-in off.
+     * This signal's key in the reported {@apilink SystemInfo}, also used in logging — so it must be unique among the
+     * signals of one {@apilink ConcurrencySystem}, which throws on a duplicate. The four built-in names (`memInfo`,
+     * `eventLoopInfo`, `cpuInfo`, `clientInfo`) land in the correspondingly named `SystemInfo` fields rather than the
+     * `loadSignalInfo` bag; taking one over means switching that built-in off.
      */
     readonly name: string;
 
@@ -53,9 +50,8 @@ export interface LoadSignal {
     readonly overloadedRatio: number;
 
     /**
-     * Start collecting snapshots. Called when the {@apilink ConcurrencySystem} starts, with the sample window the
-     * signal should retain at least as much history as. Implementations that manage their own storage may ignore the
-     * argument, at the cost of contributing a window that doesn't match the other signals.
+     * Start collecting snapshots, retaining at least the sample window named in the `context`. Called when the
+     * {@apilink ConcurrencySystem} starts — which may be a *restart*, so drop anything measured before it.
      */
     start(context: LoadSignalStartContext): Promise<void>;
 
@@ -76,16 +72,13 @@ export interface LoadSignal {
 export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
     private snapshots: T[] = [];
 
-    /**
-     * Retention window in milliseconds. Starts unbounded so nothing is pruned before the store learns the window it
-     * will actually be sampled over; {@apilink SnapshotStore.useSampleWindow|`useSampleWindow()`} narrows it to that
-     * window when the owning signal starts.
-     */
+    /** Retention window in milliseconds. Unbounded until {@apilink SnapshotStore.useSampleWindow|`useSampleWindow()`}. */
     private historyMillis = Infinity;
 
     /**
      * Sizes retention to the window the signal will be sampled over, as handed to it in
-     * {@apilink LoadSignal.start|`start()`} — keep exactly what will be asked for, no more.
+     * {@apilink LoadSignal.start|`start()`}. Until this is called nothing is pruned at all, so a signal that ignores
+     * its start context grows unboundedly.
      */
     useSampleWindow(maxSampleWindowMillis: number): void {
         this.historyMillis = maxSampleWindowMillis;
@@ -140,10 +133,9 @@ export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
 
     /**
      * Discards every retained snapshot. The built-in signals do this when they *start*, so that a session neither
-     * samples nor diffs against measurements taken before the preceding downtime — pruning is relative to the newest
+     * samples nor diffs against measurements from before the preceding downtime — pruning is relative to the newest
      * snapshot rather than the wall clock, so stale entries would otherwise survive indefinitely. Clearing on start
-     * rather than on stop leaves a finished session readable, which is worth having when working out why a crawl
-     * never scaled up.
+     * rather than on stop leaves a finished session readable.
      */
     clear(): void {
         this.snapshots = [];
