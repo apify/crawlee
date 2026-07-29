@@ -240,7 +240,7 @@ export class SessionPool implements ISessionPool {
         this.keyValueStore = await KeyValueStore.open(
             this.persistStateKeyValueStoreId ? { id: this.persistStateKeyValueStoreId } : null,
             {
-                config: serviceLocator.getConfiguration(),
+                configuration: serviceLocator.getConfiguration(),
             },
         );
 

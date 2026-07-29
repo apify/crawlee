@@ -92,7 +92,7 @@ const crawler = new PlaywrightCrawler({
 });
 ```
 
-The browser *launchers* (`PlaywrightLauncher`, `PuppeteerLauncher`) keep their `(launchContext?, config?)` constructor signature — this change is only about the crawler classes.
+The browser *launchers* (`PlaywrightLauncher`, `PuppeteerLauncher`) keep their `(launchContext?, configuration?)` constructor signature — this change is only about the crawler classes.
 
 ## Removed symbols
 
@@ -577,7 +577,7 @@ The following methods and properties have been removed from `Configuration`:
 - `Configuration.resetGlobalState()` - use `serviceLocator.reset()` instead
 - `Configuration.storageManagers` - moved to `ServiceLocator.storageManagers`
 
-The `EventManager` and `LocalEventManager` constructors now accept an options object for configuring event intervals (e.g. `persistStateIntervalMillis`, `systemInfoIntervalMillis`). You can also use the new `LocalEventManager.fromConfig()` factory method to create an instance with intervals derived from a `Configuration` object.
+The `EventManager` and `LocalEventManager` constructors now accept an options object for configuring event intervals (e.g. `persistStateIntervalMillis`, `systemInfoIntervalMillis`). You can also use the new `LocalEventManager.fromConfiguration()` factory method to create an instance with intervals derived from a `Configuration` object.
 
 ### Migration guide
 
@@ -617,7 +617,7 @@ const crawler = new BasicCrawler({
     },
     configuration: new Configuration({ headless: false }),
     storageBackend: new MemoryStorageBackend(),
-    eventManager: LocalEventManager.fromConfig(),
+    eventManager: LocalEventManager.fromConfiguration(),
 });
 
 await crawler.run(['https://example.com']);
@@ -643,7 +643,7 @@ const crawler = new BasicCrawler({
 
 ### Accessing configuration
 
-`Configuration.getGlobalConfig()` remains as a utility function, but in most cases, you should use `serviceLocator.getConfiguration()` instead:
+`Configuration.getGlobalConfiguration()` remains as a utility function, but in most cases, you should use `serviceLocator.getConfiguration()` instead:
 
 ```typescript
 import { serviceLocator } from 'crawlee';
@@ -652,6 +652,40 @@ const config = serviceLocator.getConfiguration();
 ```
 
 Do note that the method is currently misnamed - in specific circumstances, it will not return the global configuration object, but the one from the currently active service locator.
+
+### `config` is renamed to `configuration` everywhere
+
+v3 used `config` and `configuration` interchangeably. v4 settles on `configuration`, matching Crawlee for Python.
+
+Renamed methods:
+
+| Before | After |
+| --- | --- |
+| `Configuration.getGlobalConfig()` | `Configuration.getGlobalConfiguration()` |
+| `LocalEventManager.fromConfig()` | `LocalEventManager.fromConfiguration()` |
+
+Renamed options — pass `configuration` instead of `config`:
+
+- `Dataset.open()`, `KeyValueStore.open()` and `RequestQueue.open()` (`StorageOpenOptions`)
+- `useState()` (`UseStateOptions`)
+- `purgeDefaultStorages()` (both the options object and the legacy positional argument)
+- `new Snapshotter()` (`SnapshotterOptions`)
+- `saveSnapshot()` in `@crawlee/playwright` and `@crawlee/puppeteer` (`SaveSnapshotOptions`)
+- `RecoverableStateOptions`, `RequestListOptions`, `CpuLoadSignalOptions` and `MemoryLoadSignalOptions`
+
+**Before:**
+```typescript
+const store = await KeyValueStore.open(null, { config: new Configuration({ persistStorage: false }) });
+```
+
+**After:**
+```typescript
+const store = await KeyValueStore.open(null, { configuration: new Configuration({ persistStorage: false }) });
+```
+
+Renamed properties — `Dataset.config`, `KeyValueStore.config`, `Snapshotter.config` and `BrowserLauncher.config` (including `PlaywrightLauncher`, `PuppeteerLauncher` and `StagehandLauncher`) are now `.configuration`.
+
+The `configuration` crawler option is unchanged, as are `serviceLocator.getConfiguration()` and `serviceLocator.setConfiguration()`.
 
 ## Cookie handling in `HttpCrawler` and `sendRequest`
 

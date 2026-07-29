@@ -1,26 +1,13 @@
 import type { IncomingMessage } from 'node:http';
 import { inspect } from 'node:util';
 
-import type { AllowedHttpMethods, Dictionary } from '@crawlee/types';
+import type { Dictionary } from '@crawlee/types';
 import ow from 'ow';
+
+import type { Request } from './request.js';
 
 interface BrowserResponseLike {
     status(): number;
-}
-
-interface Request<UserData extends Dictionary = Dictionary> {
-    id?: string;
-    url: string;
-    loadedUrl?: string;
-    uniqueKey: string;
-    method: AllowedHttpMethods;
-    payload?: string;
-    noRetry: boolean;
-    retryCount: number;
-    errorMessages: string[];
-    headers?: Record<string, string>;
-    userData: UserData;
-    handledAt?: string;
 }
 
 /**
@@ -31,6 +18,8 @@ interface Request<UserData extends Dictionary = Dictionary> {
  *   Puppeteer [`Response`](https://pptr.dev/#?product=Puppeteer&version=v1.11.0&show=api-class-response)
  *   or NodeJS [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_serverresponse).
  * @param [additionalFields] Object containing additional fields to be added.
+ *
+ * @internal
  */
 export function createRequestDebugInfo(
     request: Request,
@@ -80,6 +69,12 @@ export function inspectValue(value: unknown): string {
     });
 }
 
+/**
+ * Returns the type of a value as a lowercase string, with `Date`, `Buffer` and `RegExp` reported
+ * by their constructor name. Used for building validation error messages.
+ *
+ * @internal
+ */
 export function getObjectType(value: unknown): string {
     const simple = typeof value;
 

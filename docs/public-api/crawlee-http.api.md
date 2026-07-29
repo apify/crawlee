@@ -97,7 +97,7 @@ export type FileDownloadRequestHandler<UserData extends Dictionary = any> = Requ
 export const HTTP_OPTIMIZED_CONCURRENCY_SYSTEM_OPTIONS: ConcurrencySystemOptions;
 
 // @public
-export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any> = InternalHttpCrawlingContext, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension> extends BasicCrawler<Context, ContextExtension, ExtendedContext> {
+export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any> = InternalHttpCrawlingContext, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>> extends BasicCrawler<Context, ContextExtension, ExtendedContext, Routes> {
     constructor(options?: HttpCrawlerOptions<Context, ContextExtension, ExtendedContext> & RequireContextPipeline<InternalHttpCrawlingContext, Context>);
     // (undocumented)
     protected buildContextPipeline(): ContextPipeline<CrawlingContext, InternalHttpCrawlingContext>;
@@ -153,7 +153,7 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any> =
 }
 
 // @public (undocumented)
-export interface HttpCrawlerOptions<Context extends InternalHttpCrawlingContext = InternalHttpCrawlingContext, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension> extends BasicCrawlerOptions<Context, ContextExtension, ExtendedContext> {
+export interface HttpCrawlerOptions<Context extends InternalHttpCrawlingContext = InternalHttpCrawlingContext, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>> extends BasicCrawlerOptions<Context, ContextExtension, ExtendedContext, Routes> {
     additionalMimeTypes?: string[];
     forceResponseEncoding?: string;
     ignoreSslErrors?: boolean;

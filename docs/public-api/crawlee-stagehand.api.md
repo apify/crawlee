@@ -78,10 +78,10 @@ export { ObserveOptions }
 export { Stagehand }
 
 // @public
-export class StagehandCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends StagehandCrawlingContext = StagehandCrawlingContext & ContextExtension> extends BrowserCrawler<StagehandPage, Response_2, {
+export class StagehandCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends StagehandCrawlingContext = StagehandCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<StagehandCrawlingContext['request']>>> extends BrowserCrawler<StagehandPage, Response_2, {
     browserPlugins: [StagehandPlugin];
-}, LaunchOptions, StagehandCrawlingContext, ContextExtension, ExtendedContext> {
-    constructor(options?: StagehandCrawlerOptions<ContextExtension, ExtendedContext>);
+}, LaunchOptions, StagehandCrawlingContext, ContextExtension, ExtendedContext, Routes> {
+    constructor(options?: StagehandCrawlerOptions<ContextExtension, ExtendedContext, Routes>);
     // (undocumented)
     protected buildContextPipeline(): ContextPipeline<CrawlingContext, StagehandCrawlingContext>;
     protected _navigationHandler(crawlingContext: StagehandCrawlingContext, gotoOptions: StagehandGotoOptions): Promise<Response_2 | null>;
@@ -136,13 +136,13 @@ export class StagehandCrawler<ContextExtension = Dictionary<never>, ExtendedCont
 }
 
 // @public
-export interface StagehandCrawlerOptions<ContextExtension = Dictionary<never>, ExtendedContext extends StagehandCrawlingContext = StagehandCrawlingContext & ContextExtension> extends BrowserCrawlerOptions<StagehandPage, Response_2, StagehandCrawlingContext, ContextExtension, ExtendedContext, {
+export interface StagehandCrawlerOptions<ContextExtension = Dictionary<never>, ExtendedContext extends StagehandCrawlingContext = StagehandCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<StagehandCrawlingContext['request']>>> extends BrowserCrawlerOptions<StagehandPage, Response_2, StagehandCrawlingContext, ContextExtension, ExtendedContext, {
     browserPlugins: [StagehandPlugin];
-}> {
+}, Routes> {
     launchContext?: StagehandLaunchContext;
     postNavigationHooks?: StagehandHook[];
     preNavigationHooks?: StagehandHook[];
-    requestHandler?: StagehandRequestHandler;
+    requestHandler?: RouterHandler<ExtendedContext, Routes> | RequestHandler<ExtendedContext>;
     stagehandOptions?: StagehandOptions;
 }
 

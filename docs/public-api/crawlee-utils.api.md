@@ -4,7 +4,6 @@
 
 ```ts
 
-import type { AllowedHttpMethods } from '@crawlee/types';
 import { Awaitable } from '@crawlee/types';
 import type { BaseHttpClient } from '@crawlee/types';
 import { Cheerio } from 'cheerio';
@@ -13,7 +12,6 @@ import { Constructor } from '@crawlee/types';
 import type { CrawleeLogger } from '@crawlee/types';
 import { Dictionary } from '@crawlee/types';
 import { Element as Element_2 } from 'domhandler';
-import type { IncomingMessage } from 'node:http';
 import type { SearchParams } from '@crawlee/types';
 
 export { Awaitable }
@@ -32,9 +30,6 @@ export function chunk<T>(array: readonly T[], chunkSize: number): T[][];
 export const CLOUDFLARE_RETRY_CSS_SELECTORS: string[];
 
 export { Constructor }
-
-// @public
-export function createRequestDebugInfo(request: Request_2, response?: IncomingMessage | Partial<BrowserResponseLike>, additionalFields?: Dictionary): Dictionary;
 
 export { Dictionary }
 
@@ -97,9 +92,6 @@ const FACEBOOK_REGEX: RegExp;
 
 // @public
 const FACEBOOK_REGEX_GLOBAL: RegExp;
-
-// @public (undocumented)
-export function getObjectType(value: unknown): string;
 
 // @public
 export function htmlToText(htmlOrCheerioElement: string | CheerioRoot): Promise<string>;

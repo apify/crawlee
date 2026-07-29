@@ -46,8 +46,8 @@ export function createJSDOMRouter<Context extends JSDOMCrawlingContext = JSDOMCr
 export function createJSDOMRouter<Context extends JSDOMCrawlingContext = JSDOMCrawlingContext, const Schemas extends RouteSchemas = RouteSchemas>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
 
 // @public (undocumented)
-export class JSDOMCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends JSDOMCrawlingContext = JSDOMCrawlingContext & ContextExtension> extends HttpCrawler<JSDOMCrawlingContext, ContextExtension, ExtendedContext> {
-    constructor(options?: JSDOMCrawlerOptions<ContextExtension, ExtendedContext>);
+export class JSDOMCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends JSDOMCrawlingContext = JSDOMCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<JSDOMCrawlingContext['request']>>> extends HttpCrawler<JSDOMCrawlingContext, ContextExtension, ExtendedContext, Routes> {
+    constructor(options?: JSDOMCrawlerOptions<ContextExtension, ExtendedContext, any, any, Routes>);
     // (undocumented)
     protected buildContextPipeline(): ContextPipeline<CrawlingContext<Dictionary>, InternalHttpCrawlingContext<any, any> & {
     readonly window: DOMWindow;
@@ -111,7 +111,8 @@ export class JSDOMCrawler<ContextExtension = Dictionary<never>, ExtendedContext 
 
 // @public (undocumented)
 export interface JSDOMCrawlerOptions<ContextExtension = Dictionary<never>, ExtendedContext extends JSDOMCrawlingContext = JSDOMCrawlingContext & ContextExtension, UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-JSONData extends Dictionary = any> extends HttpCrawlerOptions<JSDOMCrawlingContext<UserData, JSONData>, ContextExtension, ExtendedContext> {
+JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
+Routes extends Record<keyof Routes, Dictionary> = Record<string, UserData>> extends HttpCrawlerOptions<JSDOMCrawlingContext<UserData, JSONData>, ContextExtension, ExtendedContext, Routes> {
     hideInternalConsole?: boolean;
     runScripts?: boolean;
 }
