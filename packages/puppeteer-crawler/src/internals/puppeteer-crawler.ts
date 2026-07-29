@@ -284,7 +284,10 @@ export class PuppeteerCrawler<
             infiniteScroll: async (options?: InfiniteScrollOptions) =>
                 puppeteerUtils.infiniteScroll(context.page, options),
             saveSnapshot: async (options?: SaveSnapshotOptions) =>
-                puppeteerUtils.saveSnapshot(context.page, { ...options, config: serviceLocator.getConfiguration() }),
+                puppeteerUtils.saveSnapshot(context.page, {
+                    ...options,
+                    configuration: serviceLocator.getConfiguration(),
+                }),
             closeCookieModals: async () => puppeteerUtils.closeCookieModals(context.page),
         };
     }

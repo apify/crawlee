@@ -1397,7 +1397,7 @@ export class BasicCrawler<
         await purgeDefaultStorages({
             onlyPurgeOnce: true,
             storageBackend: serviceLocator.getStorageBackend(),
-            config: serviceLocator.getConfiguration(),
+            configuration: serviceLocator.getConfiguration(),
         });
 
         if (requests) {
@@ -1537,7 +1537,7 @@ export class BasicCrawler<
         // subsequent instances get their own queue via a unique alias so they don't collide.
         const identifier = this.identity.instanceIndex === 0 ? null : { alias: `__default_${this.identity.id}__` };
 
-        const requestQueue = await RequestQueue.open(identifier, { config: serviceLocator.getConfiguration() });
+        const requestQueue = await RequestQueue.open(identifier, { configuration: serviceLocator.getConfiguration() });
         return this.ownedRequestQueue.set(requestQueue);
     }
 
@@ -1587,7 +1587,7 @@ export class BasicCrawler<
     }
 
     async useState<State extends Dictionary = Dictionary>(defaultValue = {} as State): Promise<State> {
-        const kvs = await KeyValueStore.open(null, { config: serviceLocator.getConfiguration() });
+        const kvs = await KeyValueStore.open(null, { configuration: serviceLocator.getConfiguration() });
 
         if (this.identity.hasExplicitId) {
             const stateKey = `${BasicCrawler.CRAWLEE_STATE_KEY}_${this.identity.id}`;
@@ -1759,7 +1759,7 @@ export class BasicCrawler<
      */
     async getDataset(identifier?: string | StorageIdentifier): Promise<Dataset> {
         return Dataset.open(identifier, {
-            config: serviceLocator.getConfiguration(),
+            configuration: serviceLocator.getConfiguration(),
         });
     }
 
@@ -1920,7 +1920,7 @@ export class BasicCrawler<
                     if (err.message.includes('Cannot persist state.')) {
                         this.log.error(
                             "The crawler attempted to persist its request list's state and failed due to missing or " +
-                                'invalid config. Make sure to use either RequestList.open() or the "stateKeyPrefix" option of RequestList ' +
+                                'invalid configuration. Make sure to use either RequestList.open() or the "stateKeyPrefix" option of RequestList ' +
                                 'constructor to ensure your crawling state is persisted through host migrations and restarts.',
                         );
                     } else {

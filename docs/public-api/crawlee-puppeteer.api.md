@@ -152,7 +152,7 @@ export type InterceptHandler = (request: HTTPRequest) => unknown;
 function isTargetRelevant(page: Page, target: Target): boolean;
 
 // @public
-export function launchPuppeteer(launchContext?: PuppeteerLaunchContext, config?: Configuration): Promise<Browser>;
+export function launchPuppeteer(launchContext?: PuppeteerLaunchContext, configuration?: Configuration): Promise<Browser>;
 
 // @public
 function parseWithCheerio(page: Page, ignoreShadowRoots?: boolean, ignoreIframes?: boolean): Promise<CheerioRoot>;
@@ -318,7 +318,7 @@ function saveSnapshot(page: Page, options?: SaveSnapshotOptions): Promise<void>;
 
 // @public (undocumented)
 export interface SaveSnapshotOptions {
-    config?: Configuration;
+    configuration?: Configuration;
     key?: string;
     keyValueStoreName?: string | null;
     saveHtml?: boolean;

@@ -167,7 +167,7 @@ export interface RequestListOptions {
     keepDuplicateUrls?: boolean;
 
     /** @internal */
-    config?: Configuration;
+    configuration?: Configuration;
 
     /**
      * The HTTP client to be used to download `requestsFromUrl` URLs.

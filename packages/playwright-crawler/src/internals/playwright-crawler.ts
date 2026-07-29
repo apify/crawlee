@@ -296,7 +296,10 @@ export class PlaywrightCrawler<
                 playwrightUtils.infiniteScroll(context.page, options),
             listDownloads: async () => downloads,
             saveSnapshot: async (options?: SaveSnapshotOptions) =>
-                playwrightUtils.saveSnapshot(context.page, { ...options, config: serviceLocator.getConfiguration() }),
+                playwrightUtils.saveSnapshot(context.page, {
+                    ...options,
+                    configuration: serviceLocator.getConfiguration(),
+                }),
             enqueueLinksByClickingElements: async (
                 options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestManager'>,
             ) =>

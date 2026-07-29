@@ -77,7 +77,7 @@ export class StagehandLauncher extends BrowserLauncher<StagehandPlugin> {
      */
     constructor(
         launchContext: StagehandLaunchContext = {},
-        override readonly config = Configuration.getGlobalConfig(),
+        override readonly configuration = Configuration.getGlobalConfiguration(),
     ) {
         ow(launchContext, 'StagehandLaunchContext', ow.object.exactShape(StagehandLauncher.optionsShape));
 
@@ -97,11 +97,11 @@ export class StagehandLauncher extends BrowserLauncher<StagehandPlugin> {
                 ...rest,
                 launchOptions: {
                     ...launchOptions,
-                    executablePath: getDefaultExecutablePath(launchContext, config),
+                    executablePath: getDefaultExecutablePath(launchContext, configuration),
                 },
                 launcher,
             },
-            config,
+            configuration,
         );
 
         this.stagehandOptions = {
@@ -130,8 +130,11 @@ export class StagehandLauncher extends BrowserLauncher<StagehandPlugin> {
  * Gets the default executable path for the browser.
  * @ignore
  */
-function getDefaultExecutablePath(launchContext: StagehandLaunchContext, config: Configuration): string | undefined {
-    const pathFromPlaywrightImage = config.defaultBrowserPath;
+function getDefaultExecutablePath(
+    launchContext: StagehandLaunchContext,
+    configuration: Configuration,
+): string | undefined {
+    const pathFromPlaywrightImage = configuration.defaultBrowserPath;
     const { launchOptions = {} } = launchContext;
 
     if (launchOptions.executablePath) {

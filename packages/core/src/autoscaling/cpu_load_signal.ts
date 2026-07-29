@@ -13,7 +13,7 @@ export interface CpuSnapshot extends LoadSnapshot {
 export interface CpuLoadSignalOptions {
     overloadedRatio?: number;
     snapshotHistoryMillis?: number;
-    config: Configuration;
+    configuration: Configuration;
 }
 
 /**
