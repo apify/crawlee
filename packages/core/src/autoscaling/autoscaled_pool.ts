@@ -67,12 +67,6 @@ export interface AutoscaledPoolOptions extends AutoscaledPoolPredicateOptions {
 }
 
 /**
- * Everything that describes the pool's *task loop* — the work it runs and how often — without the
- * {@apilink ConcurrencySystem} governor, which a driver like {@apilink BasicCrawler} supplies separately.
- */
-export type AutoscaledPoolTaskLoopOptions = Omit<AutoscaledPoolOptions, 'concurrencySystem'>;
-
-/**
  * Manages a pool of asynchronous resource-intensive tasks that are executed in parallel.
  * The pool only starts new tasks while its {@apilink IConcurrencySystem|concurrency system} reports free capacity —
  * that governor is what monitors CPU, memory and event loop load and autoscales the concurrency budget.

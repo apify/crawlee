@@ -1,4 +1,4 @@
-import type { AutoscaledPoolTaskLoopOptions, ConcurrencySystemOptions, LoadSignal, LoadSnapshot } from '@crawlee/core';
+import type { AutoscaledPoolOptions, ConcurrencySystemOptions, LoadSignal, LoadSnapshot } from '@crawlee/core';
 import { AutoscaledPool, ConcurrencySystem, CriticalError } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
 
@@ -14,7 +14,7 @@ import log from '@apify/log';
  * don't leak between tests. Must be called from within a test (or a `beforeEach`).
  */
 async function makePool(
-    poolOptions: AutoscaledPoolTaskLoopOptions,
+    poolOptions: Omit<AutoscaledPoolOptions, 'concurrencySystem'>,
     concurrencyOptions: ConcurrencySystemOptions = {},
 ): Promise<AutoscaledPool> {
     const concurrencySystem = new ConcurrencySystem(concurrencyOptions);

@@ -4,8 +4,8 @@ import { dirname } from 'node:path';
 import type {
     AddRequestsBatchedOptions,
     AddRequestsBatchedResult,
+    AutoscaledPoolOptions,
     AutoscaledPoolPredicateOptions,
-    AutoscaledPoolTaskLoopOptions,
     ConcurrencySystemOptions,
     Configuration,
     CrawleeLogger,
@@ -738,7 +738,7 @@ export class BasicCrawler<
      * `runTaskFunction`, the (possibly user-overridden) ready/finished predicates and cadence/logging. Concurrency
      * configuration lives on the {@apilink ConcurrencySystem} instead.
      */
-    private autoscaledPoolOptions: AutoscaledPoolTaskLoopOptions;
+    private autoscaledPoolOptions: Omit<AutoscaledPoolOptions, 'concurrencySystem'>;
     protected readonly httpClient: BaseHttpClient;
     protected readonly retryOnBlocked: boolean;
     private respectRobotsTxtFile: boolean | { userAgent?: string };

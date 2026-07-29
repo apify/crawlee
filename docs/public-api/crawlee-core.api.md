@@ -107,9 +107,6 @@ export interface AutoscaledPoolPredicateOptions {
     isTaskReadyFunction?: () => Promise<boolean>;
 }
 
-// @public
-export type AutoscaledPoolTaskLoopOptions = Omit<AutoscaledPoolOptions, 'concurrencySystem'>;
-
 export { Awaitable }
 
 // @public
