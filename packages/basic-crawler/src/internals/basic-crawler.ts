@@ -43,8 +43,6 @@ import {
     EnqueueStrategy,
     EventType,
     getObjectType,
-    isAsyncIterable,
-    isIterable,
     KeyValueStore,
     log,
     LogLevel,
@@ -81,7 +79,7 @@ import type {
     SetStatusMessageOptions,
     StorageBackend,
 } from '@crawlee/types';
-import { RobotsTxtFile, ROTATE_PROXY_ERRORS } from '@crawlee/utils';
+import { isAsyncIterable, isIterable, RobotsTxtFile, ROTATE_PROXY_ERRORS } from '@crawlee/utils';
 import { stringify } from 'csv-stringify/sync';
 import { ensureDir, writeJSON } from 'fs-extra/esm';
 import ow from 'ow';

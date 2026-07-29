@@ -1,52 +1,6 @@
 import { inspect } from 'node:util';
 
 /**
- * Type guard that checks if a value is iterable (has Symbol.iterator).
- * @internal
- *
- * **Example usage:**
- * ```ts
- * if (isIterable(someValue)) {
- *   for (const item of someValue) {
- *     console.log(item);
- *   }
- * }
- * ```
- */
-export function isIterable<T>(value: unknown): value is Iterable<T> {
-    if (value == null || typeof value === 'string' || ArrayBuffer.isView(value)) {
-        return false;
-    }
-
-    if (Array.isArray(value)) {
-        return true;
-    }
-
-    return typeof Object(value)[Symbol.iterator] === 'function';
-}
-
-/**
- * Type guard that checks if a value is async iterable (has Symbol.asyncIterator).
- * @internal
- *
- * **Example usage:**
- * ```ts
- * if (isAsyncIterable(someValue)) {
- *   for await (const item of someValue) {
- *     console.log(item);
- *   }
- * }
- * ```
- */
-export function isAsyncIterable<T>(value: unknown): value is AsyncIterable<T> {
-    if (value == null || typeof value === 'string' || ArrayBuffer.isView(value)) {
-        return false;
-    }
-
-    return typeof Object(value)[Symbol.asyncIterator] === 'function';
-}
-
-/**
  * Converts any iterable or async iterable to an async iterable.
  * @internal
  *
