@@ -288,6 +288,29 @@ describe('BasicCrawler', () => {
         expect(secondSystem.desiredConcurrency).toBeLessThanOrEqual(2);
     });
 
+    test('stops the owned ConcurrencySystem when startup fails after it was started', async () => {
+        const crawler = new BasicCrawler({
+            requestHandler: async () => {},
+        });
+
+        const failure = new Error('Could not open the request queue');
+        // `_init()` starts the concurrency system before it resolves the request manager, so this fails after the
+        // system's intervals are already ticking.
+        const getRequestManager = vitest
+            .spyOn(crawler, 'getRequestManager')
+            .mockImplementation(async () => Promise.reject(failure));
+
+        // No initial requests — `addRequests()` would resolve the request manager before `_init()` even runs.
+        await expect(crawler.run()).rejects.toThrow(failure);
+
+        // The intervals would otherwise keep the event loop alive for the rest of the process's life.
+        expect((crawler.autoscaledPool!.system as ConcurrencySystem).isRunning).toBe(false);
+
+        // A failed startup is not a run, so the crawler must not stay wedged as `running`.
+        getRequestManager.mockRestore();
+        await crawler.run(['https://example.com/2']);
+    });
+
     test('should process 4 requests total when calling run() twice with maxRequestsPerCrawl: 2', async () => {
         const processed: { url: string }[] = [];
 

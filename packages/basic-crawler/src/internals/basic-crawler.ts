@@ -1474,8 +1474,20 @@ export class BasicCrawler<
             await this.addRequests(requests, addRequestsOptions);
         }
 
-        await this._init();
-        await this.stats.startCapturing();
+        try {
+            await this._init();
+            await this.stats.startCapturing();
+        } catch (error) {
+            // Clean up here before propagating, otherwise a failed startup would leave the process hanging.
+            await this.teardown().catch((teardownError) => {
+                this.log.exception(teardownError as Error, 'Cleaning up after a failed crawler startup failed.');
+            });
+
+            // The run never began, so let the instance be run again instead of leaving it wedged as `running`.
+            this.running = false;
+            throw error;
+        }
+
         const periodicLogger = this.getPeriodicLogger();
         this.setStatusMessage('Starting the crawler.', { level: 'INFO' });
 
