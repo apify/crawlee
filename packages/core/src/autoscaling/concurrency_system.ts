@@ -115,7 +115,8 @@ export interface ConcurrencySystemOptions {
 export interface IConcurrencySystem {
     /**
      * The number of tasks that should currently be running in parallel, assuming a sufficient supply of them. How it
-     * is derived is up to the implementation, hence read-only here.
+     * is derived is up to the implementation, hence read-only here — but it must always be at least `1`, or a pool
+     * could never start the first task.
      */
     readonly desiredConcurrency: number;
 
@@ -133,6 +134,13 @@ export interface IConcurrencySystem {
      *
      * Must **not** enforce rate limits that only make sense for ready tasks (e.g. a per-minute task cap): the pool
      * calls this before knowing whether any task is ready, so refusing here would stall an already-empty queue.
+     *
+     * Must also return `true` whenever a *particular* pool has nothing in flight of its own. A `false` sends that pool
+     * straight to its finished-check **without** consulting `isTaskReadyFunction`, so a governor that starves an idle
+     * pool can make its `run()` resolve while work is still pending. Since a governor cannot see the per-pool split of
+     * {@apilink IConcurrencySystem.currentConcurrency|`currentConcurrency`}, satisfy this the way
+     * {@apilink ConcurrencySystem} does — never refuse while `currentConcurrency` is `0`, which follows from keeping
+     * `desiredConcurrency >= 1` and from only reporting overload once at least `minConcurrency` tasks are booked.
      */
     hasCapacityForTask(): boolean;
 
@@ -189,6 +197,9 @@ export class ConcurrencySystem implements IConcurrencySystem {
 
     /** The in-flight (or completed) startup, memoized so concurrent `start()` calls await one boot. */
     private startPromise?: Promise<void>;
+
+    /** Set once per session, so a pool outliving `stop()` is reported once rather than every half second. */
+    private warnedAboutQueryWhileStopped = false;
 
     constructor(options: ConcurrencySystemOptions = {}) {
         ow(
@@ -357,6 +368,13 @@ export class ConcurrencySystem implements IConcurrencySystem {
     }
 
     private async boot(): Promise<void> {
+        // Per-session measurement state, reset so a restarted system isn't judged on the previous session. The
+        // per-minute window matters most: its ageing interval is cleared while we are down, so starts from before an
+        // arbitrarily long stop would otherwise still count against "this minute" and trip the cap immediately.
+        this._tasksPerMinute = Array.from({ length: 60 }, () => 0);
+        this.lastLoggingTime = undefined;
+        this.warnedAboutQueryWhileStopped = false;
+
         // Signals are told how much history to keep when they start: exactly the longest window they will be sampled
         // over, so nobody has to guess a retention value that matches this system's configuration.
         const startContext = { maxSampleWindowMillis: this.systemStatus.maxSampleWindowMillis };
@@ -397,10 +415,34 @@ export class ConcurrencySystem implements IConcurrencySystem {
     }
 
     /**
+     * Reports, once per session, that capacity is being queried on a system that isn't running — which is a mistake
+     * nothing else catches. {@apilink AutoscaledPool.run|`pool.run()`} only reads
+     * {@apilink ConcurrencySystem.isRunning|`isRunning`} when it starts, so a system stopped *underneath* a live pool
+     * goes unnoticed: the signals stop collecting but their samples are pruned relative to the newest snapshot rather
+     * than the wall clock, so the overload verdict stays frozen at whatever it last was (an overloaded one pins the
+     * pool at `minConcurrency` forever), and `desiredConcurrency` freezes too once the autoscaling interval is cleared.
+     */
+    private warnIfNotRunning(): void {
+        if (this.running || this.warnedAboutQueryWhileStopped) {
+            return;
+        }
+
+        this.warnedAboutQueryWhileStopped = true;
+        this.log.warning(
+            'Capacity is being queried on a ConcurrencySystem that is not running, so system load is no longer being ' +
+                'monitored and the concurrency will no longer be adjusted. Whoever creates a ConcurrencySystem owns ' +
+                'its lifecycle: call `await concurrencySystem.stop()` only once every pool and crawler borrowing it ' +
+                'has finished.',
+        );
+    }
+
+    /**
      * May **one more** task start right now? Returns `false` when the shared budget is spent (desired concurrency
      * reached) or when the machine is overloaded past `minConcurrency`.
      */
     hasCapacityForTask(): boolean {
+        this.warnIfNotRunning();
+
         if (this._currentConcurrency >= this._desiredConcurrency) {
             this.log.perf('Task will not run. Desired concurrency achieved.');
             return false;

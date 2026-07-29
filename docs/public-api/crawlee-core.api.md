@@ -1620,6 +1620,7 @@ export interface SnapshotResult {
 
 // @public
 export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
+    clear(): void;
     getAll(): T[];
     getSample(sampleDurationMillis?: number): T[];
     push(snapshot: T, now?: Date): void;

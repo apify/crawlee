@@ -137,6 +137,17 @@ export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
     getAll(): T[] {
         return this.snapshots;
     }
+
+    /**
+     * Discards every retained snapshot. The built-in signals do this when they *start*, so that a session neither
+     * samples nor diffs against measurements taken before the preceding downtime — pruning is relative to the newest
+     * snapshot rather than the wall clock, so stale entries would otherwise survive indefinitely. Clearing on start
+     * rather than on stop leaves a finished session readable, which is worth having when working out why a crawl
+     * never scaled up.
+     */
+    clear(): void {
+        this.snapshots = [];
+    }
 }
 
 /**

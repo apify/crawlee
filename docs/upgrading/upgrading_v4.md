@@ -1207,7 +1207,7 @@ The point is sharing: inject a single `ConcurrencySystem` into several pools (an
 
 :::info Who starts and stops it
 
-Whoever *builds* a `ConcurrencySystem` owns its lifecycle. Crawlers do that for the default system they build for each run. A system **you** supply is yours to `start()` before the crawlers or pools borrowing it run, and to `stop()` once they are all done — no crawler can know when the last borrower has finished. Forgetting to start it makes `run()` **throw**, rather than silently crawling with load monitoring and autoscaling switched off; read `isRunning` if you need to know whether another owner already started a system handed to you.
+Whoever *builds* a `ConcurrencySystem` owns its lifecycle. Crawlers do that for the default system they build for each run. A system **you** supply is yours to `start()` before the crawlers or pools borrowing it run, and to `stop()` once they are all done — no crawler can know when the last borrower has finished. Forgetting to start it makes `run()` **throw**, rather than silently crawling with load monitoring and autoscaling switched off; stopping it too early only **warns**, since by then a pool is already running against it. Read `isRunning` if you need to know whether another owner already started a system handed to you.
 
 :::
 

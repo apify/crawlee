@@ -71,6 +71,9 @@ export class ClientLoadSignal implements LoadSignal {
 
     async start(context: LoadSignalStartContext): Promise<void> {
         this.store.useSampleWindow(context.maxSampleWindowMillis);
+        // A new session starts from a clean slate, or its first measurement diffs the error count against the previous
+        // session's — possibly against a different backend, since the client is resolved afresh just below.
+        this.store.clear();
 
         // Resolved here rather than in the constructor, where asking for the backend would instantiate a default one
         // as a side effect - long before the crawler that owns the run has had a chance to register its own.

@@ -62,6 +62,9 @@ export class EventLoopLoadSignal implements LoadSignal {
 
     async start(context: LoadSignalStartContext): Promise<void> {
         this.store.useSampleWindow(context.maxSampleWindowMillis);
+        // A new session starts from a clean slate, or the downtime gets charged to the event loop: `handle()` measures
+        // the gap since the previous snapshot, which across a restart is however long the system was stopped.
+        this.store.clear();
         this.interval = betterSetInterval(this.handle, this.intervalMillis);
     }
 

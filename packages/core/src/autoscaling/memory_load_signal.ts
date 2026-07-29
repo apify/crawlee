@@ -69,6 +69,8 @@ export class MemoryLoadSignal implements LoadSignal {
 
     async start(context: LoadSignalStartContext): Promise<void> {
         this.store.useSampleWindow(context.maxSampleWindowMillis);
+        // A new session starts from a clean slate, so it is not judged on measurements from before the downtime.
+        this.store.clear();
 
         // Resolved here rather than in the constructor: an instance built ahead of time (to be wrapped, or shared
         // between systems) must not capture whichever services happened to be registered at that moment.

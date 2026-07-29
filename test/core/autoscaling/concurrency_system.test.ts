@@ -1,5 +1,5 @@
 import type { LoadSignal, LoadSignalStartContext } from '@crawlee/core';
-import { AutoscaledPool, ConcurrencySystem, SnapshotStore } from '@crawlee/core';
+import { AutoscaledPool, ConcurrencySystem, EventLoopLoadSignal, SnapshotStore } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
 
 import log from '@apify/log';
@@ -262,6 +262,35 @@ describe('ConcurrencySystem', () => {
             // @ts-expect-error Accessing private prop
             expect(store.historyMillis).toBe(90_000);
         });
+
+        test('a restarted built-in signal is not judged on measurements from before the downtime', async () => {
+            const signal = new EventLoopLoadSignal();
+            await signal.start({ maxSampleWindowMillis: 30_000 });
+            signal.handle(() => {});
+
+            const beforeStop = signal.getSample();
+            expect(beforeStop.length).toBeGreaterThan(0);
+            const lastBeforeStop = +beforeStop[beforeStop.length - 1].createdAt;
+
+            // Stopping leaves the finished session readable - worth having when working out why a crawl never
+            // scaled up.
+            await signal.stop();
+            expect(signal.getSample()).toEqual(beforeStop);
+
+            await sleep(20);
+            await signal.start({ maxSampleWindowMillis: 30_000 });
+            signal.handle(() => {});
+
+            // Starting, though, wipes the slate, so neither the delta the handler computes nor the sample the system
+            // evaluates can span the downtime. Pruning is relative to the newest snapshot rather than the wall clock,
+            // so stale entries would otherwise be evaluated forever as if they were current - and here the gap would
+            // be billed to the event loop as blocked time, via exactly the stop/start pair the docs recommend for
+            // quiescing a system during a long pause.
+            expect(signal.getSample().every((snapshot) => +snapshot.createdAt > lastBeforeStop)).toBe(true);
+            expect(signal.getSample().some((snapshot) => snapshot.isOverloaded)).toBe(false);
+
+            await signal.stop();
+        });
     });
 
     describe('lifecycle', () => {
@@ -383,6 +412,52 @@ describe('ConcurrencySystem', () => {
             expect(system.isRunning).toBe(true);
 
             await system.stop();
+        });
+
+        test('a restart does not inherit the previous session\u2019s per-minute task count', async () => {
+            const system = new ConcurrencySystem({ minConcurrency: 5, maxTasksPerMinute: 2 });
+            await system.start();
+
+            expect(system.tryRegisterTaskStart()).toBe(true);
+            expect(system.tryRegisterTaskStart()).toBe(true);
+            expect(system.tryRegisterTaskStart()).toBe(false);
+            system.registerTaskEnd();
+            system.registerTaskEnd();
+
+            await system.stop();
+            await system.start();
+
+            // The ageing interval is cleared while the system is down, so the window never advances past the starts
+            // booked before the stop. Without a reset those would still count against "this minute" and trip the cap
+            // immediately, however long the downtime was.
+            expect(system.tryRegisterTaskStart()).toBe(true);
+
+            await system.stop();
+        });
+
+        test('capacity queried on a stopped system warns once per session', async () => {
+            const system = new ConcurrencySystem();
+            // @ts-expect-error Accessing private prop
+            const warning = vitest.spyOn(system.log, 'warning');
+
+            await system.start();
+            system.hasCapacityForTask();
+            // A running system is the normal case and must stay quiet.
+            expect(warning).not.toHaveBeenCalled();
+
+            // A pool only checks `isRunning` when `run()` is called, so a system stopped underneath a live pool is
+            // otherwise undetectable - the frozen overload verdict just silently pins its concurrency.
+            await system.stop();
+            system.hasCapacityForTask();
+            system.tryRegisterTaskStart();
+            expect(warning).toHaveBeenCalledTimes(1);
+            expect(warning.mock.calls[0][0]).toMatch(/not running/);
+
+            // Re-armed by the next boot, so a later mistake is reported again.
+            await system.start();
+            await system.stop();
+            system.hasCapacityForTask();
+            expect(warning).toHaveBeenCalledTimes(2);
         });
 
         test('stop() called mid-startup still tears the system down', async () => {

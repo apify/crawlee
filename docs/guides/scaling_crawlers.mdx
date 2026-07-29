@@ -140,8 +140,9 @@ const proxyHealth: LoadSignal = {
     name: 'proxyHealth',
     overloadedRatio: 0.3,
     async start({ maxSampleWindowMillis }) {
-        // Retain exactly the window we will be sampled over.
+        // Retain exactly the window we will be sampled over, and drop anything measured before a restart.
         store.useSampleWindow(maxSampleWindowMillis);
+        store.clear();
         // ...start measuring, calling store.push() per measurement
     },
     async stop() { /* ...stop measuring */ },

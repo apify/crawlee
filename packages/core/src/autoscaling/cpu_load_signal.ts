@@ -48,6 +48,8 @@ export class CpuLoadSignal implements LoadSignal {
 
     async start(context: LoadSignalStartContext): Promise<void> {
         this.store.useSampleWindow(context.maxSampleWindowMillis);
+        // A new session starts from a clean slate, so it is not judged on measurements from before the downtime.
+        this.store.clear();
 
         // Resolved here rather than in the constructor, so an instance built ahead of time (to be wrapped, or shared
         // between systems) cannot capture whichever event manager happened to be registered at that moment.
