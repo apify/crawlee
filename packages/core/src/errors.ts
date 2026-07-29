@@ -1,4 +1,4 @@
-import { inspectValue } from '@crawlee/utils';
+import { inspectValue } from './debug.js';
 
 /**
  * Errors of `NonRetryableError` type will never be retried by the crawler.

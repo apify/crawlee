@@ -29,8 +29,8 @@ import type { RoutesFromSchemas } from '@crawlee/http';
 import type { SkippedRequestCallback } from '@crawlee/http';
 
 // @public
-export class CheerioCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends CheerioCrawlingContext = CheerioCrawlingContext & ContextExtension> extends HttpCrawler<CheerioCrawlingContext, ContextExtension, ExtendedContext> {
-    constructor(options?: CheerioCrawlerOptions<ContextExtension, ExtendedContext>);
+export class CheerioCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends CheerioCrawlingContext = CheerioCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<CheerioCrawlingContext['request']>>> extends HttpCrawler<CheerioCrawlingContext, ContextExtension, ExtendedContext, Routes> {
+    constructor(options?: CheerioCrawlerOptions<ContextExtension, ExtendedContext, any, any, Routes>);
     // (undocumented)
     protected buildContextPipeline(): ContextPipeline<CrawlingContext<Dictionary>, InternalHttpCrawlingContext<any, any> & {
     readonly body: string;
@@ -44,7 +44,8 @@ export class CheerioCrawler<ContextExtension = Dictionary<never>, ExtendedContex
 
 // @public (undocumented)
 export interface CheerioCrawlerOptions<ContextExtension = Dictionary<never>, ExtendedContext extends CheerioCrawlingContext = CheerioCrawlingContext & ContextExtension, UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-JSONData extends Dictionary = any> extends HttpCrawlerOptions<CheerioCrawlingContext<UserData, JSONData>, ContextExtension, ExtendedContext> {
+JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
+Routes extends Record<keyof Routes, Dictionary> = Record<string, UserData>> extends HttpCrawlerOptions<CheerioCrawlingContext<UserData, JSONData>, ContextExtension, ExtendedContext, Routes> {
 }
 
 // @public (undocumented)

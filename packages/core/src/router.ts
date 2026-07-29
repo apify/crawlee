@@ -1,7 +1,13 @@
 import type { Dictionary } from '@crawlee/types';
 import type { StandardSchemaV1 } from '@standard-schema/spec';
 
-import type { CrawlingContext, LoadedRequest, RestrictedCrawlingContext } from './crawlers/crawler_commons.js';
+import type {
+    CrawlingContext,
+    LoadedRequest,
+    RestrictedCrawlingContext,
+    TypedContextAddRequests,
+    TypedContextEnqueueLinks,
+} from './crawlers/crawler_commons.js';
 import { MissingRouteError, RequestValidationError } from './errors.js';
 import type { Request } from './request.js';
 import type { Awaitable } from './typedefs.js';
@@ -14,11 +20,20 @@ import type { Awaitable } from './typedefs.js';
 export const defaultRoute: unique symbol = Symbol('default-route');
 
 /**
- * The crawling context received by a route handler, with `request.userData` narrowed to `UserData`.
+ * The crawling context received by a route handler, with `request.userData` narrowed to `UserData`, and
+ * `addRequests`/`enqueueLinks` typed according to the router's route map (`Routes`) so that enqueuing a
+ * request under a declared label requires the matching `userData` shape.
  */
-export type RouterHandlerContext<Context, UserData extends Dictionary> = Omit<Context, 'request'> & {
+export type RouterHandlerContext<
+    Context,
+    UserData extends Dictionary,
+    Routes extends Record<keyof Routes, Dictionary>,
+> = Omit<Context, 'request' | 'addRequests' | 'enqueueLinks'> & {
     request: LoadedRequest<Request<UserData>>;
-};
+    addRequests: TypedContextAddRequests<Routes>;
+} & (Context extends { enqueueLinks: infer EnqueueLinks }
+        ? { enqueueLinks: TypedContextEnqueueLinks<EnqueueLinks, Routes> }
+        : {});
 
 /**
  * A map of request labels to a [Standard Schema](https://standardschema.dev) (Zod, Valibot, ArkType, …)
@@ -30,16 +45,32 @@ export type RouteSchemas = Record<string, StandardSchemaV1> & {
     [defaultRoute]?: StandardSchemaV1;
 };
 
+/** Infers a label's `userData` type from its schema, falling back to a plain {@apilink Dictionary}. */
+type SchemaUserData<Schema extends StandardSchemaV1> =
+    StandardSchemaV1.InferOutput<Schema> extends Dictionary ? StandardSchemaV1.InferOutput<Schema> : Dictionary;
+
 /**
- * Derives a route map (label → `userData` type) from a {@apilink RouteSchemas} map by inferring each
- * schema's output type. Outputs that are not object-shaped fall back to a plain {@apilink Dictionary}. The
- * {@apilink defaultRoute} schema drives runtime validation only, so it is excluded from the typed route map.
+ * Derives a route map (label → `userData` type) from a {@apilink RouteSchemas} map by inferring each schema's
+ * output type. Outputs that are not object-shaped fall back to a plain {@apilink Dictionary}. The
+ * {@apilink defaultRoute} schema is kept under its symbol key so {@apilink Router.addDefaultHandler} can pick it
+ * up; string labels (the ones {@apilink Router.addHandler} and the crawler-level typing accept) ignore it.
  */
 export type RoutesFromSchemas<Schemas extends RouteSchemas> = {
-    [Label in Extract<keyof Schemas, string>]: StandardSchemaV1.InferOutput<Schemas[Label]> extends Dictionary
-        ? StandardSchemaV1.InferOutput<Schemas[Label]>
-        : Dictionary;
-};
+    [Label in Extract<keyof Schemas, string>]: SchemaUserData<Schemas[Label]>;
+} & (Schemas extends { [defaultRoute]: StandardSchemaV1 }
+    ? { [defaultRoute]: SchemaUserData<Schemas[typeof defaultRoute]> }
+    : {});
+
+/**
+ * The `userData` type of the default route: inferred from the {@apilink defaultRoute} schema when the route map
+ * carries one, otherwise the provided `Fallback`.
+ * @internal
+ */
+export type DefaultRouteUserData<Routes, Fallback extends Dictionary> = Routes extends {
+    [defaultRoute]: infer DefaultUserData extends Dictionary;
+}
+    ? DefaultUserData
+    : Fallback;
 
 /** Whether a validation issue points at the top-level `label` key. */
 function isLabelIssue(issue: StandardSchemaV1.Issue): boolean {
@@ -269,7 +300,7 @@ export class Router<
      */
     addHandler<Label extends keyof Routes & string>(
         label: Label,
-        handler: (ctx: RouterHandlerContext<Context, Routes[Label]>) => Awaitable<void>,
+        handler: (ctx: RouterHandlerContext<Context, Routes[Label], Routes>) => Awaitable<void>,
         options?: RouteOptions,
     ): void;
 
@@ -280,7 +311,7 @@ export class Router<
      */
     addHandler<UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(
         label: RouterLabel<Routes>,
-        handler: (ctx: RouterHandlerContext<Context, UserData>) => Awaitable<void>,
+        handler: (ctx: RouterHandlerContext<Context, UserData, Routes>) => Awaitable<void>,
         options?: RouteOptions,
     ): void;
 
@@ -294,16 +325,15 @@ export class Router<
     }
 
     /**
-     * Registers default route handler. As a fallback it can receive any request (including labels not
-     * declared in the route map), so `request.userData` defaults to the context's `userData` type
-     * (loosely typed by default). Pass an explicit `UserData` type argument to narrow it. Pass
-     * {@apilink RouteOptions|`options`} to give the default route its own `requestHandlerTimeoutSecs`,
-     * overriding the crawler's default for requests that fall through to it.
+     * declared in the route map). When the router was created with a {@apilink defaultRoute} schema,
+     * `request.userData` is typed from it; otherwise it defaults to the context's (loosely typed) `userData`.
+     * Pass an explicit `UserData` type argument to narrow it. Pass {@apilink RouteOptions|`options`} to give the
+     * default route its own `requestHandlerTimeoutSecs`, overriding the crawler's default for requests that fall
+     * through to it.
      */
-    addDefaultHandler<UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(
-        handler: (ctx: RouterHandlerContext<Context, UserData>) => Awaitable<void>,
-        options: RouteOptions = {},
-    ) {
+    addDefaultHandler<
+        UserData extends Dictionary = DefaultRouteUserData<Routes, GetUserDataFromRequest<Context['request']>>,
+    >(handler: (ctx: RouterHandlerContext<Context, UserData, Routes>) => Awaitable<void>, options: RouteOptions = {}) {
         this.validate(defaultRoute);
         this.routes.set(defaultRoute, handler);
 

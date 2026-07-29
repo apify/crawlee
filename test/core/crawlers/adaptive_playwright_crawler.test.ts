@@ -806,7 +806,7 @@ describe('AdaptivePlaywrightCrawler', () => {
         const crawler = new AdaptivePlaywrightCrawler({ requestHandler: router });
 
         await expect(
-            crawler.addRequests([{ url: 'https://example.com/a', label: 'DETAIL', userData: { id: 123 } }]),
+            crawler.addRequests([{ url: 'https://example.com/a', label: 'DETAIL', userData: { id: 123 } }] as never),
         ).rejects.toThrow(RequestValidationError);
     });
 });

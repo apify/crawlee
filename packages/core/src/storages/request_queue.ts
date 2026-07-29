@@ -12,7 +12,6 @@ import type {
 import {
     chunkedAsyncIterable,
     downloadListOfUrls,
-    getObjectType,
     isAsyncIterable,
     isIterable,
     peekableAsyncIterable,
@@ -24,6 +23,7 @@ import type { ReadonlyDeep } from 'type-fest';
 import { LruCache } from '@apify/datastructures';
 
 import { Configuration } from '../configuration.js';
+import { getObjectType } from '../debug.js';
 import type { Constructor } from '../typedefs.js';
 import type { EventManager } from '../events/event_manager.js';
 import { EventType } from '../events/event_manager.js';

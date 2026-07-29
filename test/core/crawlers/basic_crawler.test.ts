@@ -2596,7 +2596,9 @@ describe('BasicCrawler', () => {
             const crawler = makeCrawler();
 
             await expect(
-                crawler.addRequests([{ url: 'https://example.com/a', label: 'DETAIL', userData: { id: 123 } }]),
+                crawler.addRequests([
+                    { url: 'https://example.com/a', label: 'DETAIL', userData: { id: 123 } },
+                ] as never),
             ).rejects.toThrow(RequestValidationError);
         });
 
@@ -2604,7 +2606,7 @@ describe('BasicCrawler', () => {
             const crawler = makeCrawler();
 
             await expect(
-                crawler.run([{ url: 'https://example.com/a', label: 'DETAIL', userData: { id: 123 } }]),
+                crawler.run([{ url: 'https://example.com/a', label: 'DETAIL', userData: { id: 123 } }] as never),
             ).rejects.toThrow(RequestValidationError);
         });
 
@@ -2639,7 +2641,9 @@ describe('BasicCrawler', () => {
             const crawler = new BasicCrawler({ requestHandler: router });
 
             // the label is not part of the source's `userData`, yet a schema declaring it still validates
-            await crawler.addRequests([{ url: 'https://example.com/l', label: 'DETAIL', userData: { id: 'ok' } }]);
+            await crawler.addRequests([
+                { url: 'https://example.com/l', label: 'DETAIL', userData: { id: 'ok' } },
+            ] as never);
 
             const queue = await crawler.getRequestQueue();
             expect((await queue.fetchNextRequest())?.userData).toMatchObject({ label: 'DETAIL', id: 'ok' });
@@ -2654,7 +2658,7 @@ describe('BasicCrawler', () => {
 
             // the label matches, so the only reported issue must be the bad `id` — not a spurious label one
             const error = await crawler
-                .addRequests([{ url: 'https://example.com/m', label: 'DETAIL', userData: { id: 123 } }])
+                .addRequests([{ url: 'https://example.com/m', label: 'DETAIL', userData: { id: 123 } }] as never)
                 .catch((err: Error) => err);
 
             expect(error).toBeInstanceOf(RequestValidationError);
@@ -2671,7 +2675,7 @@ describe('BasicCrawler', () => {
 
             await crawler.addRequests([
                 { url: 'https://example.com/c', label: 'DETAIL', userData: { id: 'ok', price: '42' } },
-            ]);
+            ] as never);
 
             const queue = await crawler.getRequestQueue();
             const request = await queue.fetchNextRequest();
@@ -2691,14 +2695,16 @@ describe('BasicCrawler', () => {
 
             // an unregistered label is validated against the default-route schema on add
             await expect(
-                crawler.addRequests([{ url: 'https://example.com/l', label: 'LIST', userData: { page: 'nope' } }]),
+                crawler.addRequests([
+                    { url: 'https://example.com/l', label: 'LIST', userData: { page: 'nope' } },
+                ] as never),
             ).rejects.toThrow(RequestValidationError);
 
             // a registered label uses its own schema, and a matching default-route request is accepted
             await crawler.addRequests([
                 { url: 'https://example.com/d', label: 'DETAIL', userData: { id: 'ok' } },
                 { url: 'https://example.com/p', label: 'LIST', userData: { page: 2 } },
-            ]);
+            ] as never);
             const queue = await crawler.getRequestQueue();
             expect(await queue.isEmpty()).toBe(false);
         });
@@ -2708,7 +2714,11 @@ describe('BasicCrawler', () => {
             let caught: unknown;
             router.addDefaultHandler(async ({ enqueueLinks }) => {
                 try {
-                    await enqueueLinks({ urls: ['https://example.com/x'], label: 'DETAIL', userData: { id: 123 } });
+                    await enqueueLinks({
+                        urls: ['https://example.com/x'],
+                        label: 'DETAIL',
+                        userData: { id: 123 },
+                    } as never);
                 } catch (err) {
                     caught = err;
                 }
@@ -2723,7 +2733,9 @@ describe('BasicCrawler', () => {
         test('requests with a label that has no registered schema are not validated', async () => {
             const crawler = makeCrawler();
 
-            await crawler.addRequests([{ url: 'https://example.com/d', label: 'OTHER', userData: { whatever: true } }]);
+            await crawler.addRequests([
+                { url: 'https://example.com/d', label: 'OTHER', userData: { whatever: true } },
+            ] as never);
 
             const queue = await crawler.getRequestQueue();
             expect(await queue.isEmpty()).toBe(false);
