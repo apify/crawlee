@@ -201,6 +201,9 @@ export class ConcurrencySystem implements IConcurrencySystem {
     /** Whether the snapshotter and autoscaling intervals are currently running. */
     private running = false;
 
+    /** The in-flight (or completed) startup, memoized so concurrent `start()` calls await one boot. */
+    private startPromise?: Promise<void>;
+
     constructor(options: ConcurrencySystemOptions = {}) {
         ow(
             options,
@@ -337,14 +340,22 @@ export class ConcurrencySystem implements IConcurrencySystem {
 
     /**
      * Boots the underlying snapshotter and the autoscaling interval. Idempotent, so a shared system isn't restarted
-     * when handed to another consumer.
+     * when handed to another consumer; concurrent callers await one startup. Rejects, leaving nothing running, if a
+     * signal fails to start.
      */
     async start(): Promise<void> {
-        if (this.running) {
-            return;
-        }
-        this.running = true;
+        // Unwound and dropped again on failure, so a later `start()` retries instead of resolving instantly against
+        // a system that is down.
+        this.startPromise ??= this.boot().catch(async (error) => {
+            this.startPromise = undefined;
+            await this.shutDown();
+            throw error;
+        });
 
+        await this.startPromise;
+    }
+
+    private async boot(): Promise<void> {
         const startContext = { maxSampleWindowMillis: this.maxSampleWindowMillis };
         await this.snapshotter.start(startContext);
         await Promise.all(this.loadSignals.map(async (s) => s.start(startContext)));
@@ -354,17 +365,28 @@ export class ConcurrencySystem implements IConcurrencySystem {
         if (this.maxTasksPerMinute !== Infinity) {
             this.tasksDonePerSecondInterval = betterSetInterval(this._incrementTasksDonePerSecond, 1000);
         }
+
+        // Last, so `isRunning` never claims a system whose signals aren't collecting yet.
+        this.running = true;
     }
 
     /**
      * Stops the snapshotter and intervals. Idempotent and safe to call even if the system was never started.
      */
     async stop(): Promise<void> {
-        if (!this.running) {
+        if (this.startPromise === undefined) {
             return;
         }
+
+        // Waited out rather than interrupted, or the intervals a starting signal is about to register outlive us.
+        await this.startPromise.catch(() => {});
+        this.startPromise = undefined;
         this.running = false;
 
+        await this.shutDown();
+    }
+
+    private async shutDown(): Promise<void> {
         if (this.autoscaleInterval) betterClearInterval(this.autoscaleInterval);
         if (this.tasksDonePerSecondInterval) betterClearInterval(this.tasksDonePerSecondInterval);
         await this.snapshotter.stop();

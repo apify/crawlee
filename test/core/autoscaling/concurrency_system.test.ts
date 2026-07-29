@@ -251,6 +251,120 @@ describe('ConcurrencySystem', () => {
             expect(system.isRunning).toBe(false);
         });
 
+        test('concurrent start() calls await a single startup', async () => {
+            let release!: () => void;
+            const blocked = new Promise<void>((resolve) => {
+                release = resolve;
+            });
+            let startCount = 0;
+
+            const signal: LoadSignal = {
+                name: 'slowSignal',
+                overloadedRatio: 0.5,
+                async start() {
+                    startCount++;
+                    await blocked;
+                },
+                async stop() {},
+                getSample: () => [],
+            };
+
+            const system = new ConcurrencySystem({ loadSignals: { custom: [signal] } });
+
+            const first = system.start();
+            const second = system.start();
+
+            // A second owner booting the same shared system has to wait the first boot out - returning early here
+            // would let it run tasks against signals that are not collecting yet.
+            expect(system.isRunning).toBe(false);
+
+            release();
+            await Promise.all([first, second]);
+
+            expect(startCount).toBe(1);
+            expect(system.isRunning).toBe(true);
+
+            await system.stop();
+        });
+
+        test('a failed startup leaves nothing running and can be retried', async () => {
+            let attempts = 0;
+            const signal: LoadSignal = {
+                name: 'flakySignal',
+                overloadedRatio: 0.5,
+                async start() {
+                    attempts++;
+                    if (attempts === 1) throw new Error('signal boot failed');
+                },
+                async stop() {},
+                getSample: () => [],
+            };
+
+            const system = new ConcurrencySystem({ loadSignals: { custom: [signal] } });
+            // @ts-expect-error Accessing private prop
+            const snapshotterStop = vitest.spyOn(system.snapshotter, 'stop');
+
+            await expect(system.start()).rejects.toThrow('signal boot failed');
+
+            // The built-in signals started before the custom one blew up, so the failed attempt has to unwind them
+            // instead of leaving their intervals behind - and must not report a system that is up.
+            expect(snapshotterStop).toHaveBeenCalledTimes(1);
+            expect(system.isRunning).toBe(false);
+
+            // A retry has to actually retry, rather than resolving instantly against the memoized failure.
+            await system.start();
+            expect(attempts).toBe(2);
+            expect(system.isRunning).toBe(true);
+
+            await system.stop();
+        });
+
+        test('start() after stop() restarts the system', async () => {
+            const system = new ConcurrencySystem();
+            // @ts-expect-error Accessing private prop
+            const snapshotterStart = vitest.spyOn(system.snapshotter, 'start');
+
+            await system.start();
+            await system.stop();
+            await system.start();
+
+            expect(snapshotterStart).toHaveBeenCalledTimes(2);
+            expect(system.isRunning).toBe(true);
+
+            await system.stop();
+        });
+
+        test('stop() called mid-startup still tears the system down', async () => {
+            let release!: () => void;
+            const blocked = new Promise<void>((resolve) => {
+                release = resolve;
+            });
+            const signalStop = vitest.fn(async () => {});
+
+            const signal: LoadSignal = {
+                name: 'slowSignal',
+                overloadedRatio: 0.5,
+                async start() {
+                    await blocked;
+                },
+                stop: signalStop,
+                getSample: () => [],
+            };
+
+            const system = new ConcurrencySystem({ loadSignals: { custom: [signal] } });
+
+            const starting = system.start();
+            const stopping = system.stop();
+
+            release();
+            await Promise.all([starting, stopping]);
+
+            // The teardown waits the boot out instead of racing it, so whatever the signals registered on the way up
+            // is stopped rather than orphaned.
+            expect(signalStop).toHaveBeenCalled();
+            expect(system.isRunning).toBe(false);
+        });
+
         test('a pool refuses to run against a system that was never started', async () => {
             const system = new ConcurrencySystem();
             const runTaskFunction = vitest.fn(async () => {});
