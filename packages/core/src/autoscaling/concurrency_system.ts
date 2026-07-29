@@ -115,26 +115,21 @@ export interface ConcurrencySystemOptions {
 export interface IConcurrencySystem {
     /**
      * The number of tasks that should currently be running in parallel, assuming a sufficient supply of them. How it
-     * is derived is up to the implementation, hence read-only here — tuning knobs live on the concrete instance its
-     * owner holds.
+     * is derived is up to the implementation, hence read-only here.
      */
     readonly desiredConcurrency: number;
 
-    /**
-     * The number of parallel tasks currently booked against this governor, regardless of which pool booked them.
-     */
+    /** The number of parallel tasks currently booked against this governor, regardless of which pool booked them. */
     readonly currentConcurrency: number;
 
     /**
      * Whether the governor is ready to be booked against. {@apilink AutoscaledPool.run|`pool.run()`} refuses to run
-     * when this is `false`, rather than proceed against a governor that is not yet functional. An implementation with
-     * no startup lifecycle simply reports `true`.
+     * when this is `false`. An implementation with no startup lifecycle simply reports `true`.
      */
     readonly isRunning: boolean;
 
     /**
-     * May **one more** task start right now? A cheap pre-check the pool consults before querying task readiness;
-     * booking happens in {@apilink IConcurrencySystem.tryRegisterTaskStart|`tryRegisterTaskStart()`}.
+     * May **one more** task start right now? A cheap pre-check the pool consults before querying task readiness.
      *
      * Must **not** enforce rate limits that only make sense for ready tasks (e.g. a per-minute task cap): the pool
      * calls this before knowing whether any task is ready, so refusing here would stall an already-empty queue.
@@ -142,15 +137,12 @@ export interface IConcurrencySystem {
     hasCapacityForTask(): boolean;
 
     /**
-     * Atomically books a task against the budget, returning `false` (without booking) when there is no room — either
-     * the concurrency budget is spent, or an implementation-specific rate limit (e.g. a cap on tasks per minute) was
-     * reached.
+     * Atomically books a task against the budget, returning `false` (without booking) when there is no room — the
+     * budget is spent, or an implementation-specific rate limit was reached.
      */
     tryRegisterTaskStart(): boolean;
 
-    /**
-     * Returns a task's slot to the budget. Called once the task settles (resolve or reject).
-     */
+    /** Returns a task's slot to the budget. Called once the task settles (resolve or reject). */
     registerTaskEnd(): void;
 }
 

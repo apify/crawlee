@@ -643,15 +643,12 @@ export class BasicCrawler<
 
     /**
      * Resolves the governor for one run: either the injected
-     * {@apilink BasicCrawlerOptions.concurrencySystem|`concurrencySystem`} (borrowed — the caller owns its lifecycle)
-     * or a freshly built default with the concurrency shortcuts folded in (owned, so the crawler starts and stops it).
+     * {@apilink BasicCrawlerOptions.concurrencySystem|`concurrencySystem`} (borrowed) or a freshly built default with
+     * the concurrency shortcuts folded in (owned, so the crawler starts and stops it).
      */
     private readonly resolveConcurrencySystem: () => OwnedOrInjected<IConcurrencySystem, ConcurrencySystem>;
 
-    /**
-     * The governor backing the crawler's {@apilink AutoscaledPool}, as resolved by
-     * {@apilink BasicCrawler._init|`_init()`}. Absent until the first run, so a `teardown()` before it is a no-op.
-     */
+    /** As resolved by `_init()`. Absent until the first run, so a `teardown()` before it is a no-op. */
     private concurrencySystemDep?: OwnedOrInjected<IConcurrencySystem, ConcurrencySystem>;
 
     /**

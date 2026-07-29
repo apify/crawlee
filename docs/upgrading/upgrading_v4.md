@@ -1219,16 +1219,10 @@ try {
 }
 ```
 
-The pool's concurrency accessors are now read-only telemetry: `desiredConcurrency` and `currentConcurrency` remain as getters, while the `minConcurrency`/`maxConcurrency` accessors and every setter were **removed**. Runtime tuning — `crawler.autoscaledPool.maxConcurrency = 10` as a reaction to rate limiting, say — happens on the `ConcurrencySystem` instead, so build it yourself and keep the reference:
+The pool's concurrency accessors are now read-only telemetry: `desiredConcurrency` and `currentConcurrency` remain as getters, while the `minConcurrency`/`maxConcurrency` accessors and every setter were **removed**. Runtime tuning happens on the `ConcurrencySystem` instead — which means building it yourself, since the system a crawler builds for itself is not reachable for reconfiguration:
 
 ```typescript
-import { CheerioCrawler, ConcurrencySystem, HTTP_OPTIMIZED_CONCURRENCY_SYSTEM_OPTIONS } from 'crawlee';
-
-const concurrencySystem = new ConcurrencySystem({
-    // A supplied system replaces the crawler's default wholesale, tuning included — see below.
-    ...HTTP_OPTIMIZED_CONCURRENCY_SYSTEM_OPTIONS,
-    maxConcurrency: 50,
-});
+const concurrencySystem = new ConcurrencySystem({ maxConcurrency: 50 });
 
 const crawler = new CheerioCrawler({
     concurrencySystem,
@@ -1246,8 +1240,6 @@ try {
     await concurrencySystem.stop();
 }
 ```
-
-Note that this is the *only* way to tune concurrency at runtime: the system a crawler builds for itself cannot be reconfigured after the fact. `pool.system` hands back the governor, but typed as the read-only `IConcurrencySystem` — the setters live on `ConcurrencySystem`, so reaching them means having constructed the instance yourself, as above.
 
 One behavioral consequence: `pool.pause()` no longer suspends autoscaling, because the autoscaling interval belongs to the `ConcurrencySystem`, which knows nothing about its borrowers' pause state — deliberately, since other pools sharing it may still need scaling. A paused pool's system keeps evaluating (and possibly scaling down) the desired concurrency and keeps emitting its periodic state log. Scaling *up* stays effectively blocked, as the current concurrency drains below the ratio required for a scale-up. To silence the system during a long pause, `stop()` it (if you own it) and `start()` it again before resuming.
 
@@ -1269,8 +1261,6 @@ const crawler = new CheerioCrawler({
 
 **After:**
 ```typescript
-import { ConcurrencySystem } from '@crawlee/core';
-
 const concurrencySystem = new ConcurrencySystem({
     desiredConcurrency: 10,
     maxTasksPerMinute: 120,
@@ -1301,7 +1291,7 @@ const crawler = new CheerioCrawler({
 A supplied system also replaces the default *wholesale*, including any crawler-specific tuning that default carried. `HttpCrawler` and its subclasses (`CheerioCrawler`, `JSDOMCrawler`, …) ship a preset — a higher `desiredConcurrency` and a relaxed event loop signal — exported as `HTTP_OPTIMIZED_CONCURRENCY_SYSTEM_OPTIONS`; spread it in to keep it:
 
 ```typescript
-import { CheerioCrawler, ConcurrencySystem, HTTP_OPTIMIZED_CONCURRENCY_SYSTEM_OPTIONS } from 'crawlee';
+import { ConcurrencySystem, HTTP_OPTIMIZED_CONCURRENCY_SYSTEM_OPTIONS } from 'crawlee';
 
 const concurrencySystem = new ConcurrencySystem({
     ...HTTP_OPTIMIZED_CONCURRENCY_SYSTEM_OPTIONS,
@@ -1311,11 +1301,9 @@ const concurrencySystem = new ConcurrencySystem({
 
 ### Sharing a `ConcurrencySystem` across crawlers
 
-Inject the same instance into multiple crawlers to cap their combined concurrency:
+Inject the same instance into multiple crawlers to cap their combined concurrency. Here the `finally` is the point: the system is stopped once the last borrower is done, which only the caller can know.
 
 ```typescript
-import { CheerioCrawler, ConcurrencySystem } from 'crawlee';
-
 const concurrencySystem = new ConcurrencySystem({ maxConcurrency: 20 });
 await concurrencySystem.start();
 
@@ -1388,36 +1376,15 @@ new ConcurrencySystem({
 });
 ```
 
-The `Snapshotter` and `SystemStatus` classes are now internal, along with their options types (`SnapshotterOptions`, `SystemStatusOptions`) — they are implementation details of the `ConcurrencySystem`, which is the sole public entry point to load monitoring and autoscaling. `ConcurrencySystem.getCurrentStatus()` is the public way to read the resulting `SystemInfo`. What else stays public is the configuration (`LoadSignalsOptions` and the four per-signal bags), the four built-in signal classes, and the extension surface: the `LoadSignal` interface, the `SnapshotStore` helper and `LoadSignalStartContext`. The concrete snapshot types the built-in signals produce are *not* public — `getSample()` returns plain `LoadSnapshot` values, which is all any consumer needs.
+The `Snapshotter` and `SystemStatus` classes are now internal, along with `SnapshotterOptions` and `SystemStatusOptions` — they are implementation details of the `ConcurrencySystem`, which is the sole public entry point to load monitoring and autoscaling; read the resulting `SystemInfo` through `ConcurrencySystem.getCurrentStatus()`. Still public: the configuration types, the four built-in signal classes, and the extension surface (`LoadSignal`, `SnapshotStore`, `LoadSignalStartContext`). The concrete snapshot types the built-ins produce are *not* — `getSample()` returns plain `LoadSnapshot` values.
 
-### Custom load signals are sampled over the same window as the built-in ones
+### Both evaluation windows are now requested from every signal
 
 Overload is evaluated over two windows: a short one (`currentHistorySecs`, default 5s) gating whether another task may start, and a long one (`snapshotHistorySecs`, default 30s) driving autoscaling. The long window used to be implicit — `getHistoricalStatus()` asked each signal for *everything it had retained*, so a custom signal keeping five minutes of snapshots silently made autoscaling reason over five minutes of history for that resource while the built-ins used 30 seconds. Both windows are now requested explicitly from every signal.
 
-With default settings nothing changes. You are affected only if a custom signal retains **more** history than `snapshotHistorySecs` (its stale snapshots no longer influence scaling), or if your `getSample()` ignores its `sampleDurationMillis` argument, in which case it still contributes everything it has — honour that argument, as `SnapshotStore` does, if you want the window respected.
+Retention follows suit, and is no longer a guess: `LoadSignal.start()` receives the wider of the two windows as `maxSampleWindowMillis`, so a signal can size its storage to exactly what it will be asked for. The [scaling guide](../guides/scaling-crawlers#load-signals) has a worked custom signal.
 
-### `LoadSignal.start()` receives the sample window
-
-Retention used to be a guess: you passed a millisecond value to `new SnapshotStore(...)` (or rolled your own storage) and hoped it matched the windows of whichever `ConcurrencySystem` ended up driving the signal. `start()` now receives the widest window the signal will be queried with, so retention can be derived instead:
-
-```typescript
-import { SnapshotStore, type LoadSignal } from 'crawlee';
-
-const store = new SnapshotStore();
-
-const proxyHealthSignal: LoadSignal = {
-    name: 'proxyHealth',
-    overloadedRatio: 0.3,
-    async start({ maxSampleWindowMillis }) {
-        store.useSampleWindow(maxSampleWindowMillis);
-        // ...start collecting, calling store.push() per measurement
-    },
-    async stop() { /* ... */ },
-    getSample: (sampleDurationMillis) => store.getSample(sampleDurationMillis),
-};
-```
-
-Existing implementations keep compiling — a `start()` that declares no parameters still satisfies the interface — they just retain whatever they chose to. Correspondingly, `snapshotHistoryMillis` was removed from the per-signal option types: retention is no longer configured anywhere, `snapshotHistorySecs` sets the autoscaling window, and signals size their retention to it.
+You are affected if a custom signal retains **more** history than `snapshotHistorySecs` (its stale snapshots no longer influence scaling), or if your `getSample()` ignores its `sampleDurationMillis` argument, in which case it still contributes everything it has. On the API side, `snapshotHistoryMillis` was removed from the per-signal option types, and `SnapshotStore` lost both its constructor argument and the `fromInterval`/`fromEvent` factories — call `useSampleWindow(maxSampleWindowMillis)` from your `start()` instead. Note that a store whose window is never set retains everything, so a signal that ignores the start context now grows unboundedly.
 
 ## Stagehand type narrowings
 

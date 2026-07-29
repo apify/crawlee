@@ -191,25 +191,24 @@ export class AutoscaledPool {
     }
 
     /**
-     * The governor backing this pool, as supplied to the constructor. Exposed as the read-only
-     * {@apilink IConcurrencySystem} contract — tuning happens on the concrete instance its owner holds, so this is for
-     * identifying (and reading telemetry off) the governor a pool ended up with, not for reconfiguring it.
+     * The governor backing this pool, as supplied to the constructor — exposed as the read-only
+     * {@apilink IConcurrencySystem} contract.
+     *
+     * This and the two getters below are telemetry only: concurrency is configured and tuned on the concrete
+     * {@apilink ConcurrencySystem} its owner holds, never through the pool.
      */
     get system(): IConcurrencySystem {
         return this.concurrencySystem;
     }
 
-    /**
-     * The estimated number of parallel tasks the governor backing this pool can currently support. Read-only
-     * telemetry — concurrency limits are configured and tuned on the governor instance its owner holds.
-     */
+    /** The estimated number of parallel tasks the governor can currently support. */
     get desiredConcurrency(): number {
         return this.concurrencySystem.desiredConcurrency;
     }
 
     /**
-     * The number of parallel tasks currently booked against the governor backing this pool. When the governor is
-     * shared, this includes tasks of every borrowing pool, not just this one.
+     * The number of parallel tasks currently booked against the governor. When it is shared, this counts every
+     * borrowing pool's tasks, not just this one's.
      */
     get currentConcurrency(): number {
         return this.concurrencySystem.currentConcurrency;

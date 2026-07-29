@@ -53,7 +53,7 @@ This section is super advanced and, unless you test the changes extensively and 
 
 :::
 
-With that warning aside, if we're feeling adventurous, this is how we would pass these options when using a crawler. Note that when we inject a `ConcurrencySystem`, we own its lifecycle — we `start()` it before running the crawler and `stop()` it once we're done. The `minConcurrency`/`maxConcurrency`/`maxRequestsPerMinute` shortcuts configure the default system, so they cannot be combined with an injected one — set those limits on the `ConcurrencySystem` instead:
+With that warning aside, this is how we pass those options. Two things to know: an injected `ConcurrencySystem` is ours to `start()` and `stop()`, and the `minConcurrency`/`maxConcurrency`/`maxRequestsPerMinute` shortcuts cannot be combined with one — they configure the default system it replaces, so set those limits on the instance instead:
 
 <CodeBlock language="js">
 	{ConcurrencySystemSource}
@@ -151,29 +151,11 @@ const proxyHealth: LoadSignal = {
 const concurrencySystem = new ConcurrencySystem({ loadSignals: { custom: [proxyHealth] } });
 ```
 
-Each built-in is a public class too — `MemoryLoadSignal`, `EventLoopLoadSignal`, `CpuLoadSignal`, `ClientLoadSignal` — taking exactly the bag its `loadSignals` key accepts. Constructing one directly is how we *wrap* a built-in rather than reimplement it, for instance to stop its verdict from flapping:
-
-```ts
-const cpu = new CpuLoadSignal({ overloadedRatio: 0.4 });
-
-const stickyCpu: LoadSignal = {
-    ...cpu,
-    name: 'cpuSticky',
-    start: (context) => cpu.start(context),
-    stop: () => cpu.stop(),
-    // Hold the overload verdict for a while after the CPU recovers.
-    getSample: (ms) => holdOverloads(cpu.getSample(ms)),
-};
-
-const concurrencySystem = new ConcurrencySystem({
-    // The built-in has to go: signal names are unique, and a duplicate throws.
-    loadSignals: { cpu: false, custom: [stickyCpu] },
-});
-```
+Each built-in is a public class too — `MemoryLoadSignal`, `EventLoopLoadSignal`, `CpuLoadSignal`, `ClientLoadSignal` — taking exactly the bag its `loadSignals` key accepts. Constructing one directly is how we *wrap* a built-in rather than reimplement it (to hold its overload verdict for a while after the resource recovers, say): switch the original off with `cpu: false`, and pass a signal that delegates to the instance we built in `custom`.
 
 :::info Signal names are the keys of the reported status
 
-Two signals cannot share a name, and a duplicate throws at construction time. Taking over one of the built-in names (`memInfo`, `eventLoopInfo`, `cpuInfo`, `clientInfo`) therefore means switching that built-in off first, as above.
+Two signals cannot share a name, and a duplicate throws at construction time. Taking over one of the built-in names (`memInfo`, `eventLoopInfo`, `cpuInfo`, `clientInfo`) therefore means switching that built-in off first.
 
 :::
 
