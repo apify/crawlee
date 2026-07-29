@@ -1,10 +1,9 @@
-import { weightedAvg } from '@crawlee/utils';
-
 import type { BetterIntervalID } from '@apify/utilities';
 import { betterClearInterval, betterSetInterval } from '@apify/utilities';
 
 import type { EventManager, EventTypeName } from '../events/event_manager.js';
 import type { ClientInfo } from './system_status.js';
+import { weightedAvg } from './weighted_avg.js';
 
 /**
  * A snapshot of a resource's overload state at a point in time.
