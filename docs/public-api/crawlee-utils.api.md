@@ -4,17 +4,13 @@
 
 ```ts
 
-import { Awaitable } from '@crawlee/types';
 import type { BaseHttpClient } from '@crawlee/types';
 import { Cheerio } from 'cheerio';
 import { CheerioAPI } from 'cheerio';
-import { Constructor } from '@crawlee/types';
 import type { CrawleeLogger } from '@crawlee/types';
-import { Dictionary } from '@crawlee/types';
+import type { Dictionary } from '@crawlee/types';
 import { Element as Element_2 } from 'domhandler';
 import type { SearchParams } from '@crawlee/types';
-
-export { Awaitable }
 
 export { Cheerio }
 
@@ -28,10 +24,6 @@ export function chunk<T>(array: readonly T[], chunkSize: number): T[][];
 
 // @public (undocumented)
 export const CLOUDFLARE_RETRY_CSS_SELECTORS: string[];
-
-export { Constructor }
-
-export { Dictionary }
 
 // @public
 const DISCORD_REGEX: RegExp;

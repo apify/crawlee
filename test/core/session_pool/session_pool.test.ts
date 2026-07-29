@@ -1,5 +1,6 @@
 import {
     BaseCrawleeLogger,
+    entries,
     EventType,
     KeyValueStore,
     MemoryStorageBackend,
@@ -7,7 +8,6 @@ import {
     Session,
     SessionPool,
 } from '@crawlee/core';
-import { entries } from '@crawlee/utils';
 
 describe('SessionPool - testing session pool', () => {
     let sessionPool: SessionPool;

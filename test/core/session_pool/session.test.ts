@@ -1,5 +1,5 @@
-import { Session } from '@crawlee/core';
-import { entries, sleep } from '@crawlee/utils';
+import { entries, Session } from '@crawlee/core';
+import { sleep } from '@crawlee/utils';
 
 describe('Session - testing session behaviour', () => {
     let session: Session;
