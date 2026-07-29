@@ -2,6 +2,7 @@ import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { Readable } from 'node:stream';
 
+import type { ConcurrencySystemOptions } from '@crawlee/core';
 import { MemoryStorageBackend, serviceLocator } from '@crawlee/core';
 import { ConcurrencySystem, HttpCrawler, SessionPool } from '@crawlee/http';
 import { ResponseWithUrl } from '@crawlee/http-client';
@@ -119,12 +120,32 @@ test('works', async () => {
     expect(results[0].includes('Example Domain')).toBeTruthy();
 });
 
+/**
+ * Records the budget of the {@apilink ConcurrencySystem} the crawler builds for itself, *as configured* — i.e. before
+ * `start()` arms the autoscaler.
+ */
+class ObservableHttpCrawler extends HttpCrawler {
+    /** The default governor's budget at the moment the crawler built it. */
+    asConfigured?: { desiredConcurrency: number; maxConcurrency: number };
+
+    protected override createDefaultConcurrencySystem(options: ConcurrencySystemOptions): ConcurrencySystem {
+        const system = super.createDefaultConcurrencySystem(options);
+
+        this.asConfigured = {
+            desiredConcurrency: system.desiredConcurrency,
+            maxConcurrency: system.maxConcurrency,
+        };
+
+        return system;
+    }
+}
+
 test('builds an HTTP-optimized default ConcurrencySystem and owns its lifecycle', async () => {
     const startSpy = vitest.spyOn(ConcurrencySystem.prototype, 'start');
     const stopSpy = vitest.spyOn(ConcurrencySystem.prototype, 'stop');
 
     try {
-        const crawler = new HttpCrawler({
+        const crawler = new ObservableHttpCrawler({
             maxRequestRetries: 0,
             requestHandler: () => {},
         });
@@ -132,7 +153,7 @@ test('builds an HTTP-optimized default ConcurrencySystem and owns its lifecycle'
         await crawler.run([url]);
 
         // The HTTP-optimized starting concurrency made it into the default system...
-        expect(crawler.autoscaledPool!.desiredConcurrency).toBe(10);
+        expect(crawler.asConfigured!.desiredConcurrency).toBe(10);
         // ...and the crawler owns the default system, so it drives its lifecycle.
         expect(startSpy).toHaveBeenCalledTimes(1);
         expect(stopSpy).toHaveBeenCalledTimes(1);
@@ -143,7 +164,7 @@ test('builds an HTTP-optimized default ConcurrencySystem and owns its lifecycle'
 });
 
 test('concurrency shortcuts coexist with the HTTP-optimized defaults', async () => {
-    const crawler = new HttpCrawler({
+    const crawler = new ObservableHttpCrawler({
         maxConcurrency: 5,
         maxRequestRetries: 0,
         requestHandler: () => {},
@@ -151,10 +172,11 @@ test('concurrency shortcuts coexist with the HTTP-optimized defaults', async () 
 
     await crawler.run([url]);
 
-    // The shortcut applies...
+    // The shortcut applies, and the governor really is the one wired into the pool (autoscaling never moves the
+    // ceiling, so this one is safe to read after the run)...
     expect((crawler.autoscaledPool!.system as ConcurrencySystem).maxConcurrency).toBe(5);
-    // ...without discarding the HTTP-optimized starting concurrency (which the max then caps).
-    expect(crawler.autoscaledPool!.desiredConcurrency).toBe(5);
+    // ...without discarding the HTTP-optimized starting concurrency, which the max then caps.
+    expect(crawler.asConfigured!.desiredConcurrency).toBe(5);
 });
 
 test('parseWithCheerio works', async () => {
