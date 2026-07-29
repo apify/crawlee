@@ -911,6 +911,40 @@ describe('enqueueLinks()', () => {
             expect(enqueued[2].userData).toEqual({});
         });
 
+        test('ignores an explicitly undefined baseUrl and keeps the resolved one', async () => {
+            const { enqueued, requestQueue } = createRequestQueueMock();
+            await cheerioCrawlerEnqueueLinks({
+                options: { strategy: EnqueueStrategy.SameDomain, baseUrl: undefined },
+                $,
+                requestQueue,
+                originalRequestUrl: 'https://example.com',
+            });
+
+            expect(enqueued.map((request) => request.url)).toEqual([
+                'https://example.com/a/b/first',
+                'https://example.com/a/second',
+                'https://example.com/a/b/third',
+                'https://example.com/x/absolutepath',
+                'https://example.com/y/relativepath',
+            ]);
+        });
+
+        test('ignores an explicitly undefined baseUrl when delegating to the bound enqueueLinks', async () => {
+            let forwardedBaseUrl: string | undefined;
+
+            await cheerioCrawlerEnqueueLinks({
+                options: { strategy: EnqueueStrategy.SameDomain, baseUrl: undefined },
+                $,
+                originalRequestUrl: 'https://example.com',
+                enqueueLinks: async (options) => {
+                    forwardedBaseUrl = options?.baseUrl;
+                    return { processedRequests: [], unprocessedRequests: [] };
+                },
+            });
+
+            expect(forwardedBaseUrl).toBe('https://example.com');
+        });
+
         test('keeps filtering by the original domain with the strategy of same-domain after an off-domain redirect', async () => {
             const { enqueued, requestQueue } = createRequestQueueMock();
             await cheerioCrawlerEnqueueLinks({

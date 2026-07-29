@@ -395,8 +395,8 @@ export async function domCrawlerEnqueueLinks(options: EnqueueLinksInternalOption
     if (containsEnqueueLinks(options)) {
         return options.enqueueLinks({
             urls,
-            baseUrl,
             ...enqueueLinksOptions,
+            baseUrl,
         });
     }
 
@@ -405,8 +405,8 @@ export async function domCrawlerEnqueueLinks(options: EnqueueLinksInternalOption
         robotsTxtFile: options.robotsTxtFile,
         onSkippedRequest: options.onSkippedRequest,
         urls,
-        baseUrl,
         ...enqueueLinksOptions,
+        baseUrl,
     });
 }
 
