@@ -253,7 +253,7 @@ export class RequestHandlerResult {
     private addRequestsCalls: Parameters<RestrictedCrawlingContext['addRequests']>[] = [];
 
     constructor(
-        private config: Configuration,
+        private configuration: Configuration,
         private crawleeStateKey: string,
     ) {}
 
@@ -346,11 +346,11 @@ export class RequestHandlerResult {
     };
 
     getKeyValueStore: RestrictedCrawlingContext['getKeyValueStore'] = async (identifier) => {
-        const store = await KeyValueStore.open(identifier, { config: this.config });
+        const store = await KeyValueStore.open(identifier, { configuration: this.configuration });
         const storeId = store.id;
 
         return {
-            id: storeId ?? this.config.defaultKeyValueStoreId,
+            id: storeId ?? this.configuration.defaultKeyValueStoreId,
             name: store.name,
             getValue: async (key) => this.getKeyValueStoreChangedValue(storeId, key) ?? (await store.getValue(key)),
             setValue: async (key, value, options) => {
@@ -362,7 +362,7 @@ export class RequestHandlerResult {
     };
 
     private getKeyValueStoreChangedValue = (storeKey: string | undefined, key: string) => {
-        const id = storeKey ?? this.config.defaultKeyValueStoreId;
+        const id = storeKey ?? this.configuration.defaultKeyValueStoreId;
         this._keyValueStoreChanges[id] ??= {};
         return this.keyValueStoreChanges[id][key]?.changedValue ?? null;
     };
@@ -373,7 +373,7 @@ export class RequestHandlerResult {
         changedValue: unknown,
         options?: RecordOptions,
     ) => {
-        const id = storeKey ?? this.config.defaultKeyValueStoreId;
+        const id = storeKey ?? this.configuration.defaultKeyValueStoreId;
         this._keyValueStoreChanges[id] ??= {};
         this._keyValueStoreChanges[id][key] = { changedValue, options };
     };
