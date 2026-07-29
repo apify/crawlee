@@ -21,7 +21,6 @@ import {
     ContextPipeline,
     cookieStringToToughCookie,
     enqueueLinks,
-    handleRequestTimeout,
     NavigationSkippedError,
     OwnedOrInjected,
     remainingNavigationWindowMillis,
@@ -292,6 +291,20 @@ export interface BrowserCrawlerOptions<
      * By default, `iframes` are expanded automatically. Use this option to disable this behavior.
      */
     ignoreIframes?: boolean;
+}
+
+/**
+ * Whether an error thrown by `page.goto()` is a navigation timeout - either our own {@apilink TimeoutError}
+ * or the driver's, which Playwright/Puppeteer report with their own class and a `Timeout ... exceeded` message
+ * naming the raw millisecond value rather than the configured window.
+ */
+function isNavigationTimeoutError(error: Error): boolean {
+    return (
+        error instanceof TimeoutError ||
+        error?.name === 'TimeoutError' ||
+        error?.constructor?.name === 'TimeoutError' ||
+        /timeout.*exceeded/i.test(error?.message ?? '')
+    );
 }
 
 /**
@@ -636,6 +649,8 @@ export abstract class BrowserCrawler<
         crawlingContext.request.state = RequestState.BEFORE_NAV;
 
         return {
+            // Default to the full navigation timeout so a pre-navigation hook can read it; `navigate` narrows it
+            // to the remaining shared window unless a hook overrode it (see there).
             gotoOptions: { timeout: this.navigationTimeoutMillis } as unknown as GoToOptions,
             [COOKIES_BEFORE_HOOKS]: this._getCookieHeaderFromRequest(crawlingContext.request),
         } as unknown as Partial<Context>;
@@ -645,12 +660,18 @@ export abstract class BrowserCrawler<
         tryCancel();
 
         const gotoOptions = crawlingContext.gotoOptions as GoToOptions;
-        // Bound the navigation by whatever is left of the shared navigation window - pre-navigation hooks may
-        // have already consumed part of it - so the goto never runs past the window (a hook's own override is
-        // still honoured when it asks for less).
         const remaining = remainingNavigationWindowMillis(crawlingContext, this.navigationTimeoutMillis);
+        if (remaining <= 0) {
+            throw new TimeoutError(`Navigation timed out after ${this.navigationTimeoutMillis / 1000} seconds.`);
+        }
+        // If a hook left the default `navigationTimeoutMillis` in place, bound the goto to whatever is left of the
+        // shared navigation window. If it overrode the value - including `0`, Playwright's "no timeout" - honour
+        // that verbatim as the goto's own timeout. The driver enforces this natively (so a timed-out goto is
+        // aborted, not left lingering) and `handleNavigationTimeout` turns its error into our own message.
         const gotoTimeout = gotoOptions as { timeout?: number };
-        gotoTimeout.timeout = Math.max(1, Math.min(gotoTimeout.timeout ?? remaining, remaining));
+        if (gotoTimeout.timeout === this.navigationTimeoutMillis) {
+            gotoTimeout.timeout = remaining;
+        }
         const cookiesBeforeHooks = readContextField<string>(crawlingContext, COOKIES_BEFORE_HOOKS);
         const cookiesAfterHooks = this._getCookieHeaderFromRequest(crawlingContext.request);
 
@@ -741,13 +762,16 @@ export abstract class BrowserCrawler<
     private async handleNavigationTimeout(crawlingContext: BrowserCrawlingContext, error: Error): Promise<void> {
         const { session, page } = crawlingContext;
 
-        if (error?.constructor.name === 'TimeoutError') {
-            handleRequestTimeout({ session, errorMessage: error.message });
-        }
-
         // Fire-and-forget: no user code will run on this page after a failed navigation.
         // Swallow rejections: the page may already be detached.
         void page.evaluate(() => window.stop()).catch(() => {});
+
+        if (isNavigationTimeoutError(error)) {
+            session?.markBad();
+            // The driver was handed the remaining window (usually shorter than `navigationTimeoutSecs` once the
+            // hooks have run), so it names that value in its own error; report the configured window instead.
+            throw new TimeoutError(`Navigation timed out after ${this.navigationTimeoutMillis / 1000} seconds.`);
+        }
     }
 
     /**

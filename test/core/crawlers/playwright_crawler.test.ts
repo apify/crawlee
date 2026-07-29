@@ -34,6 +34,8 @@ describe('PlaywrightCrawler', () => {
             res.send(`<html><head><title>Example Domain</title></head></html>`);
             res.status(200);
         });
+        // never responds, so a navigation to it runs until the navigation timeout
+        app.get('/hang', () => {});
         app.get('/page-with-download', (_req, res) => {
             res.status(200).send(
                 `<html><body><a id="download-link" href="/download-file" download="hello.txt">download</a></body></html>`,
@@ -321,6 +323,61 @@ describe('PlaywrightCrawler', () => {
             expect(failed[0].errorMessages[0]).toMatch('Navigation timed out');
             // the hook is neither the navigation nor the request handler
             expect(failed[0].errorMessages[0]).not.toMatch('requestHandler timed out');
+        });
+
+        test('a slow navigation reports the configured window, not the driver value', async () => {
+            const failed: Request[] = [];
+            const requestList = await RequestList.open(`sources-${Math.random() * 10000}`, [
+                `http://${HOSTNAME}:${port}/hang`,
+            ]);
+
+            const crawler = new PlaywrightCrawler({
+                requestList,
+                navigationTimeoutSecs: 2,
+                maxRequestRetries: 0,
+                // eat most of the window, so the goto is handed a small remaining budget - the driver would
+                // otherwise report that raw value ("Timeout NNNms exceeded") instead of the configured window
+                preNavigationHooks: [async () => sleep(1500)],
+                requestHandler: () => {},
+                failedRequestHandler: ({ request }) => {
+                    failed.push(request);
+                },
+            });
+
+            await crawler.run();
+
+            expect(failed).toHaveLength(1);
+            expect(failed[0].errorMessages[0]).toMatch('Navigation timed out after 2 seconds');
+            expect(failed[0].errorMessages[0]).not.toMatch(/Timeout \d+ms exceeded/);
+        });
+
+        test('a hook can disable the navigation timeout with gotoOptions.timeout = 0', async () => {
+            const processed: Request[] = [];
+            const failed: Request[] = [];
+
+            const crawler = new PlaywrightCrawler({
+                requestList,
+                navigationTimeoutSecs: 0.5,
+                maxRequestRetries: 0,
+                // `0` is Playwright's "no timeout"; it must be honoured verbatim, not clamped to 1ms (which would
+                // make the navigation time out immediately)
+                preNavigationHooks: [
+                    ({ gotoOptions }) => {
+                        gotoOptions.timeout = 0;
+                    },
+                ],
+                requestHandler: ({ request }) => {
+                    processed.push(request);
+                },
+                failedRequestHandler: ({ request }) => {
+                    failed.push(request);
+                },
+            });
+
+            await crawler.run();
+
+            expect(failed).toHaveLength(0);
+            expect(processed).toHaveLength(1);
         });
 
         test('extendTimeout from a preNavigationHook keeps it from timing out', async () => {
