@@ -1,6 +1,14 @@
 import os from 'node:os';
 
-import { Configuration, EventType, LocalEventManager, serviceLocator, Snapshotter } from '@crawlee/core';
+import {
+    ClientLoadSignal,
+    Configuration,
+    EventType,
+    LocalEventManager,
+    MemoryLoadSignal,
+    serviceLocator,
+    Snapshotter,
+} from '@crawlee/core';
 import type { MemoryInfo } from '../../../packages/core/src/system-info/memory-info.js';
 import * as utils from '../../../packages/core/src/system-info/memory-info.js';
 import { sleep } from '@crawlee/utils';
@@ -272,11 +280,17 @@ describe('Snapshotter', () => {
         // Mock memory info to be able to inject custom memory measurement data.
         vitest.spyOn(utils, 'getMemoryInfo').mockResolvedValue(memoryData);
         serviceLocator.setConfiguration(new Configuration({ availableMemoryRatio: 1 }));
-        const snapshotter = new Snapshotter({ memory: { maxUsedRatio: 0.5 } });
+
+        // The signal logs through a child of the registered logger; collapsing `child()` onto its parent lets the
+        // spy below observe it.
+        const logger = serviceLocator.getLogger();
+        vitest.spyOn(logger, 'child').mockReturnValue(logger);
+        const warningSpy = vitest.spyOn(logger, 'warning').mockImplementation(() => {});
+
+        const memorySignal = new MemoryLoadSignal({ maxUsedRatio: 0.5 });
 
         const eventManager = serviceLocator.getEventManager() as LocalEventManager;
-        await snapshotter.start(START_CONTEXT);
-        const warningSpy = vitest.spyOn(snapshotter.log, 'warning').mockImplementation(() => {});
+        await memorySignal.start(START_CONTEXT);
 
         // First snapshot - below warning usage
         await eventManager.emitSystemInfoEvent(noop);
@@ -296,19 +310,18 @@ describe('Snapshotter', () => {
         warningSpy.mockReset();
 
         vitest.restoreAllMocks();
-        await snapshotter.stop();
+        await memorySignal.stop();
     });
 
-    test('correctly marks clientOverloaded', () => {
+    test('correctly marks clientOverloaded', async () => {
         // mock client data
         const apifyClient = serviceLocator.getStorageBackend();
         const oldStats = apifyClient.stats;
         apifyClient.stats = {} as any;
         apifyClient.stats!.rateLimitErrors = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 
-        const snapshotter = new Snapshotter({ client: { maxErrors: 1 } });
-        // @ts-expect-error Accessing private property
-        const clientSignal = snapshotter.clientSignal!;
+        const clientSignal = new ClientLoadSignal({ maxErrors: 1 });
+        await clientSignal.start(START_CONTEXT);
         clientSignal.handle(noop);
         apifyClient.stats!.rateLimitErrors = [1, 1, 1, 0, 0, 0, 0, 0, 0, 0];
         clientSignal.handle(noop);
@@ -317,7 +330,9 @@ describe('Snapshotter', () => {
         apifyClient.stats!.rateLimitErrors = [100, 24, 4, 2, 0, 0, 0, 0, 0, 0];
         clientSignal.handle(noop);
 
-        const clientSnapshots = sampleOf(snapshotter, 'clientInfo');
+        // `start()` takes a baseline snapshot immediately (the measuring interval fires on its first tick), so the
+        // four driven below follow it.
+        const clientSnapshots = clientSignal.getSample().slice(1);
 
         expect(clientSnapshots.length).toBe(4);
         expect(clientSnapshots[0].isOverloaded).toBe(false);
@@ -325,6 +340,7 @@ describe('Snapshotter', () => {
         expect(clientSnapshots[2].isOverloaded).toBe(false);
         expect(clientSnapshots[3].isOverloaded).toBe(true);
 
+        await clientSignal.stop();
         apifyClient.stats = oldStats;
     });
 
@@ -397,10 +413,13 @@ describe('Snapshotter', () => {
                 });
             }
 
-            const snapshotter = new Snapshotter({ config });
+            // The signal reads its configuration when it starts, from wherever the services are registered.
+            serviceLocator.setConfiguration(config);
+
+            const memorySignal = new MemoryLoadSignal();
             vitest.spyOn(LocalEventManager.prototype, 'init').mockImplementation(async () => {});
             const eventManager = serviceLocator.getEventManager() as LocalEventManager;
-            await snapshotter.start(START_CONTEXT);
+            await memorySignal.start(START_CONTEXT);
 
             // First snapshot - full usage of the memory, should be overloaded in both modes
             await eventManager.emitSystemInfoEvent(noop);
@@ -410,12 +429,12 @@ describe('Snapshotter', () => {
             memoryData.freeBytes = memoryData.totalBytes - actualMemoryUsage;
             await eventManager.emitSystemInfoEvent(noop);
 
-            const memorySnapshots = sampleOf(snapshotter, 'memInfo');
+            const memorySnapshots = memorySignal.getSample();
             expect(memorySnapshots).toHaveLength(2);
             expect(memorySnapshots[0].isOverloaded).toBe(true);
             expect(memorySnapshots[1].isOverloaded).toBe(!dynamic);
 
-            await snapshotter.stop();
+            await memorySignal.stop();
         },
     );
 });

@@ -1306,6 +1306,38 @@ When a `concurrencySystem` is supplied, the `minConcurrency` / `maxConcurrency` 
 
 The per-resource load-signal configuration was consolidated. Previously it was spread across flat `SnapshotterOptions` fields, the `max*OverloadedRatio` options on `SystemStatusOptions`, and a separate `loadSignals` array — three places, two of them named after classes that are now internal. All of it now lives in a single `loadSignals` bag on `ConcurrencySystemOptions`: one options bag per built-in signal (each carrying its own limits *and* its `overloadedRatio`), plus `custom` for your own implementations.
 
+Each built-in signal is also a public class — `MemoryLoadSignal`, `EventLoopLoadSignal`, `CpuLoadSignal`, `ClientLoadSignal` — taking exactly the bag its `loadSignals` key accepts, so the shorthand and the explicit form are the same thing:
+
+```typescript
+new ConcurrencySystem({ loadSignals: { cpu: { overloadedRatio: 0.5 } } });
+
+// …is precisely:
+new ConcurrencySystem({
+    loadSignals: { cpu: false, custom: [new CpuLoadSignal({ overloadedRatio: 0.5 })] },
+});
+```
+
+Use the shorthand for tuning. Reach for the class when you want to *wrap* a built-in rather than reimplement it — smoothing its verdict, say, or logging every overload:
+
+```typescript
+import { ConcurrencySystem, CpuLoadSignal, type LoadSignal } from '@crawlee/core';
+
+const cpu = new CpuLoadSignal({ overloadedRatio: 0.4 });
+
+const stickyCpu: LoadSignal = {
+    ...cpu,
+    name: 'cpuSticky',
+    start: (context) => cpu.start(context),
+    stop: () => cpu.stop(),
+    // Hold the overload verdict for a while after the CPU recovers, instead of flapping.
+    getSample: (ms) => holdOverloads(cpu.getSample(ms)),
+};
+
+new ConcurrencySystem({ loadSignals: { cpu: false, custom: [stickyCpu] } });
+```
+
+Signals resolve their own dependencies (configuration, event manager, storage backend) when they are **started**, not when constructed, so an instance built ahead of time — at module scope, or to be shared between systems — cannot capture the wrong ones.
+
 **Before:**
 ```typescript
 new AutoscaledPool({
@@ -1373,7 +1405,7 @@ new ConcurrencySystem({
 });
 ```
 
-The `Snapshotter` and `SystemStatus` classes are now internal, along with their options types (`SnapshotterOptions`, `SystemStatusOptions`) — they are implementation details of the `ConcurrencySystem`, which is the sole public entry point to load monitoring and autoscaling. What stays public is the configuration (`LoadSignalsOptions` and the four per-signal bags) and the extension surface: the `LoadSignal` interface, the `SnapshotStore` helper, and `LoadSignalStartContext`.
+The `Snapshotter` and `SystemStatus` classes are now internal, along with their options types (`SnapshotterOptions`, `SystemStatusOptions`) — they are implementation details of the `ConcurrencySystem`, which is the sole public entry point to load monitoring and autoscaling. What stays public is the configuration (`LoadSignalsOptions` and the four per-signal bags), the four built-in signal classes, and the extension surface: the `LoadSignal` interface, the `SnapshotStore` helper, and `LoadSignalStartContext`. The concrete snapshot types the built-in signals produce are *not* public — `getSample()` is typed as returning plain `LoadSnapshot` values, which is all any signal consumer needs.
 
 ### Custom load signals are now sampled over the same window as the built-in ones
 

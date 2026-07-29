@@ -256,10 +256,7 @@ export class ConcurrencySystem implements IConcurrencySystem {
         // The built-in signals are collected by the snapshotter; custom ones are simply evaluated alongside them.
         const { custom: customLoadSignals = [], ...builtinSignalOptions } = loadSignals;
 
-        this.snapshotter = new Snapshotter({
-            ...builtinSignalOptions,
-            log: this.log,
-        });
+        this.snapshotter = new Snapshotter(builtinSignalOptions);
         this.loadSignals = customLoadSignals;
         this.systemStatus = new SystemStatus({
             snapshotter: this.snapshotter,

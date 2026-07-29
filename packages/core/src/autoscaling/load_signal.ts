@@ -4,6 +4,7 @@ import type { BetterIntervalID } from '@apify/utilities';
 import { betterClearInterval, betterSetInterval } from '@apify/utilities';
 
 import type { EventManager, EventTypeName } from '../events/event_manager.js';
+import { serviceLocator } from '../service_locator.js';
 import type { ClientInfo } from './system_status.js';
 
 /**
@@ -185,11 +186,16 @@ export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
      *
      * The `handler` receives the event payload and the store. It should call
      * `store.push()` to record a snapshot.
+     *
+     * The event manager is subscribed to when the signal starts. Leave `events` unset to use whichever manager is
+     * registered at that point — which is what you want unless you have a specific one in mind, since a signal
+     * constructed ahead of time (to be wrapped, or shared between systems) would otherwise capture whatever happened
+     * to be registered back then.
      */
     static fromEvent<T extends LoadSnapshot, E>(options: {
         name: string;
         overloadedRatio: number;
-        events: EventManager;
+        events?: EventManager;
         event: EventTypeName;
         handler: (store: SnapshotStore<T>, payload: E) => void;
     }): Omit<LoadSignal, 'getSample'> & {
@@ -200,6 +206,7 @@ export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
         const store = new SnapshotStore<T>();
 
         const handle = (payload: E) => options.handler(store, payload);
+        let events: EventManager | undefined;
 
         return {
             name: options.name,
@@ -209,10 +216,12 @@ export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
             getSample: (ms) => store.getSample(ms),
             async start({ maxSampleWindowMillis }) {
                 store.useSampleWindow(maxSampleWindowMillis);
-                options.events.on(options.event, handle);
+                events = options.events ?? serviceLocator.getEventManager();
+                events.on(options.event, handle);
             },
             async stop() {
-                options.events.off(options.event, handle);
+                events?.off(options.event, handle);
+                events = undefined;
             },
         };
     }

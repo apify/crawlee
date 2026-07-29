@@ -161,7 +161,22 @@ export interface ClientInfo {
 }
 
 // @public
-export interface ClientSignalOptions {
+export class ClientLoadSignal implements LoadSignal {
+    constructor(options?: ClientLoadSignalOptions);
+    // (undocumented)
+    getSample(sampleDurationMillis?: number): LoadSnapshot[];
+    // (undocumented)
+    readonly name = "clientInfo";
+    // (undocumented)
+    readonly overloadedRatio: number;
+    // (undocumented)
+    start(context: LoadSignalStartContext): Promise<void>;
+    // (undocumented)
+    stop(): Promise<void>;
+}
+
+// @public
+export interface ClientLoadSignalOptions {
     maxErrors?: number;
     overloadedRatio?: number;
     snapshotIntervalSecs?: number;
@@ -271,7 +286,22 @@ export class ContextPipelineInterruptedError extends Error {
 export { Cookie }
 
 // @public
-export interface CpuSignalOptions {
+export class CpuLoadSignal implements LoadSignal {
+    constructor(options?: CpuLoadSignalOptions);
+    // (undocumented)
+    getSample(sampleDurationMillis?: number): LoadSnapshot[];
+    // (undocumented)
+    readonly name = "cpuInfo";
+    // (undocumented)
+    readonly overloadedRatio: number;
+    // (undocumented)
+    start(context: LoadSignalStartContext): Promise<void>;
+    // (undocumented)
+    stop(): Promise<void>;
+}
+
+// @public
+export interface CpuLoadSignalOptions {
     overloadedRatio?: number;
 }
 
@@ -554,7 +584,22 @@ export interface ErrorTrackerOptions {
 }
 
 // @public
-export interface EventLoopSignalOptions {
+export class EventLoopLoadSignal implements LoadSignal {
+    constructor(options?: EventLoopLoadSignalOptions);
+    // (undocumented)
+    getSample(sampleDurationMillis?: number): LoadSnapshot[];
+    // (undocumented)
+    readonly name = "eventLoopInfo";
+    // (undocumented)
+    readonly overloadedRatio: number;
+    // (undocumented)
+    start(context: LoadSignalStartContext): Promise<void>;
+    // (undocumented)
+    stop(): Promise<void>;
+}
+
+// @public
+export interface EventLoopLoadSignalOptions {
     maxBlockedMillis?: number;
     overloadedRatio?: number;
     snapshotIntervalSecs?: number;
@@ -805,11 +850,11 @@ export interface LoadSignal {
 
 // @public
 export interface LoadSignalsOptions {
-    client?: ClientSignalOptions | false;
-    cpu?: CpuSignalOptions | false;
+    client?: ClientLoadSignalOptions | false;
+    cpu?: CpuLoadSignalOptions | false;
     custom?: LoadSignal[];
-    eventLoop?: EventLoopSignalOptions | false;
-    memory?: MemorySignalOptions | false;
+    eventLoop?: EventLoopLoadSignalOptions | false;
+    memory?: MemoryLoadSignalOptions | false;
 }
 
 // @public
@@ -857,7 +902,22 @@ export { LogLevel }
 export const MAX_POOL_SIZE = 1000;
 
 // @public
-export interface MemorySignalOptions {
+export class MemoryLoadSignal implements LoadSignal {
+    constructor(options?: MemoryLoadSignalOptions);
+    // (undocumented)
+    getSample(sampleDurationMillis?: number): LoadSnapshot[];
+    // (undocumented)
+    readonly name = "memInfo";
+    // (undocumented)
+    readonly overloadedRatio: number;
+    // (undocumented)
+    start(context: LoadSignalStartContext): Promise<void>;
+    // (undocumented)
+    stop(): Promise<void>;
+}
+
+// @public
+export interface MemoryLoadSignalOptions {
     maxUsedRatio?: number;
     overloadedRatio?: number;
 }
@@ -1557,7 +1617,7 @@ export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
     static fromEvent<T extends LoadSnapshot, E>(options: {
         name: string;
         overloadedRatio: number;
-        events: EventManager;
+        events?: EventManager;
         event: EventTypeName;
         handler: (store: SnapshotStore<T>, payload: E) => void;
     }): Omit<LoadSignal, 'getSample'> & {
