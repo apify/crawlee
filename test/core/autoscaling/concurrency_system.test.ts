@@ -401,13 +401,13 @@ describe('ConcurrencySystem', () => {
         });
 
         test('a governor with no startup lifecycle is accepted', async () => {
-            // `isRunning` is optional in the IConcurrencySystem contract - a governor that needs no starting simply
-            // omits it, and only an explicit `false` is treated as an error.
+            // An implementation that needs no starting reports `isRunning: true` and is otherwise free of lifecycle.
             let done = 0;
             const pool = new AutoscaledPool({
                 concurrencySystem: {
                     desiredConcurrency: 1,
                     currentConcurrency: 0,
+                    isRunning: true,
                     hasCapacityForTask: () => true,
                     tryRegisterTaskStart: () => true,
                     registerTaskEnd: () => {},
@@ -458,26 +458,21 @@ describe('ConcurrencySystem', () => {
             expect(combinedPeak).toBeLessThanOrEqual(4);
         });
 
-        test('AutoscaledPool exposes its governor via `system` for re-injection', () => {
+        test('tuning a shared governor is reflected by every borrowing pool', () => {
             const system = new ConcurrencySystem();
 
-            const first = new AutoscaledPool({
-                concurrencySystem: system,
-                runTaskFunction: async () => {},
-                isFinishedFunction: async () => true,
-                isTaskReadyFunction: async () => false,
-            });
+            const makeBorrower = () =>
+                new AutoscaledPool({
+                    concurrencySystem: system,
+                    runTaskFunction: async () => {},
+                    isFinishedFunction: async () => true,
+                    isTaskReadyFunction: async () => false,
+                });
 
-            const second = new AutoscaledPool({
-                concurrencySystem: first.system,
-                runTaskFunction: async () => {},
-                isFinishedFunction: async () => true,
-                isTaskReadyFunction: async () => false,
-            });
+            const first = makeBorrower();
+            const second = makeBorrower();
 
-            expect(second.system).toBe(system);
-
-            // Tuning happens on the (shared) governor; every borrowing pool reflects it read-only.
+            // Tuning happens on the governor its owner holds; the pools only report it, read-only.
             system.desiredConcurrency = 42;
             expect(first.desiredConcurrency).toBe(42);
             expect(second.desiredConcurrency).toBe(42);

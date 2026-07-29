@@ -33,11 +33,17 @@ export interface AutoscaledPoolPredicateOptions {
     isFinishedFunction?: () => Promise<boolean>;
 }
 
-/**
- * Everything that describes the pool's *task loop* — the work it runs and how often — without the
- * {@apilink ConcurrencySystem} governor, which a driver like {@apilink BasicCrawler} supplies separately.
- */
-export interface AutoscaledPoolTaskLoopOptions extends AutoscaledPoolPredicateOptions {
+export interface AutoscaledPoolOptions extends AutoscaledPoolPredicateOptions {
+    /**
+     * The governor that decides whether there is free compute for one more task. Typically a
+     * {@apilink ConcurrencySystem}, but any {@apilink IConcurrencySystem} works. Share a single instance across
+     * multiple pools (and therefore multiple crawlers) to cap their *combined* concurrency against one budget.
+     *
+     * All concurrency/scaling/snapshotter configuration lives on the governor — the pool only owns the task loop and
+     * its cadence.
+     */
+    concurrencySystem: IConcurrencySystem;
+
     /**
      * A function that performs an asynchronous resource-intensive task.
      * The function must either be labeled `async` or return a promise.
@@ -60,17 +66,11 @@ export interface AutoscaledPoolTaskLoopOptions extends AutoscaledPoolPredicateOp
     log?: CrawleeLogger;
 }
 
-export interface AutoscaledPoolOptions extends AutoscaledPoolTaskLoopOptions {
-    /**
-     * The governor that decides whether there is free compute for one more task. Typically a
-     * {@apilink ConcurrencySystem}, but any {@apilink IConcurrencySystem} works. Share a single instance across
-     * multiple pools (and therefore multiple crawlers) to cap their *combined* concurrency against one budget.
-     *
-     * All concurrency/scaling/snapshotter configuration lives on the governor — the pool only owns the task loop and
-     * its cadence.
-     */
-    concurrencySystem: IConcurrencySystem;
-}
+/**
+ * Everything that describes the pool's *task loop* — the work it runs and how often — without the
+ * {@apilink ConcurrencySystem} governor, which a driver like {@apilink BasicCrawler} supplies separately.
+ */
+export type AutoscaledPoolTaskLoopOptions = Omit<AutoscaledPoolOptions, 'concurrencySystem'>;
 
 /**
  * Manages a pool of asynchronous resource-intensive tasks that are executed in parallel.
@@ -78,7 +78,7 @@ export interface AutoscaledPoolOptions extends AutoscaledPoolTaskLoopOptions {
  * that governor is what monitors CPU, memory and event loop load and autoscales the concurrency budget.
  *
  * Before running the pool, you need to implement the following three functions:
- * {@apilink AutoscaledPoolTaskLoopOptions.runTaskFunction|`runTaskFunction`},
+ * {@apilink AutoscaledPoolOptions.runTaskFunction|`runTaskFunction`},
  * {@apilink AutoscaledPoolPredicateOptions.isTaskReadyFunction|`isTaskReadyFunction`} and
  * {@apilink AutoscaledPoolPredicateOptions.isFinishedFunction|`isFinishedFunction`}.
  *
@@ -191,8 +191,9 @@ export class AutoscaledPool {
     }
 
     /**
-     * The load-and-budget governor backing this pool. Read it to inject the *same* budget into another pool
-     * (see {@apilink AutoscaledPoolOptions.concurrencySystem}) so their combined compute is capped.
+     * The governor backing this pool, as supplied to the constructor. Exposed as the read-only
+     * {@apilink IConcurrencySystem} contract — tuning happens on the concrete instance its owner holds, so this is for
+     * identifying (and reading telemetry off) the governor a pool ended up with, not for reconfiguring it.
      */
     get system(): IConcurrencySystem {
         return this.concurrencySystem;
@@ -224,7 +225,7 @@ export class AutoscaledPool {
     async run(): Promise<void> {
         // Checked here, on an awaited path — the capacity queries inside the task loop run from intervals and
         // `setImmediate`, where a throw would become an unhandled rejection and hang `run()` forever.
-        if (this.concurrencySystem.isRunning === false) {
+        if (!this.concurrencySystem.isRunning) {
             throw new CriticalError(
                 'The ConcurrencySystem this AutoscaledPool borrows has not been started, so system load would not be ' +
                     'monitored and the concurrency would never be adjusted. Whoever creates a ConcurrencySystem owns ' +

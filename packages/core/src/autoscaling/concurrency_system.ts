@@ -126,11 +126,11 @@ export interface IConcurrencySystem {
     readonly currentConcurrency: number;
 
     /**
-     * Whether a governor that needs starting has actually been started. {@apilink AutoscaledPool.run|`pool.run()`}
-     * refuses to run when this is `false`, rather than proceed against a governor that is not yet functional. Omit the
-     * member entirely if the implementation has no startup lifecycle; only an explicit `false` is treated as an error.
+     * Whether the governor is ready to be booked against. {@apilink AutoscaledPool.run|`pool.run()`} refuses to run
+     * when this is `false`, rather than proceed against a governor that is not yet functional. An implementation with
+     * no startup lifecycle simply reports `true`.
      */
-    readonly isRunning?: boolean;
+    readonly isRunning: boolean;
 
     /**
      * May **one more** task start right now? A cheap pre-check the pool consults before querying task readiness; the
@@ -441,7 +441,11 @@ export class ConcurrencySystem implements IConcurrencySystem {
         this._currentConcurrency--;
     }
 
-    /** Reads the current live system status (used by the pool for logging/telemetry). */
+    /**
+     * What the system currently makes of the machine: the per-signal overload verdicts, evaluated over the
+     * task-gating window, exactly as {@apilink ConcurrencySystem.hasCapacityForTask|`hasCapacityForTask()`} sees them.
+     * The one public window into load monitoring — useful for answering *why* a crawl is not scaling up.
+     */
     getCurrentStatus(): SystemInfo {
         return this.systemStatus.getCurrentStatus();
     }
