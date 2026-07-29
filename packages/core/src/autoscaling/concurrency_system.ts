@@ -237,7 +237,8 @@ export class ConcurrencySystem implements IConcurrencySystem {
 
         this._minConcurrency = minConcurrency;
         this._maxConcurrency = maxConcurrency;
-        this._desiredConcurrency = Math.min(desiredConcurrency ?? minConcurrency, maxConcurrency);
+        this._desiredConcurrency = desiredConcurrency ?? minConcurrency;
+        this.clampDesiredConcurrency();
 
         this._autoscale = this._autoscale.bind(this);
         this._incrementTasksDonePerSecond = this._incrementTasksDonePerSecond.bind(this);
@@ -273,6 +274,7 @@ export class ConcurrencySystem implements IConcurrencySystem {
     set minConcurrency(value: number) {
         ow(value, ow.optional.number.integer.greaterThanOrEqual(1));
         this._minConcurrency = value;
+        this.clampDesiredConcurrency();
     }
 
     /**
@@ -283,11 +285,15 @@ export class ConcurrencySystem implements IConcurrencySystem {
     }
 
     /**
-     * Sets the maximum number of tasks running in parallel.
+     * Sets the maximum number of tasks running in parallel. Lowering it below the current
+     * {@apilink ConcurrencySystem.desiredConcurrency|`desiredConcurrency`} pulls that down to the new ceiling too, so
+     * the change takes effect immediately (in-flight tasks are never cancelled — the budget simply drains to the new
+     * limit as they settle).
      */
     set maxConcurrency(value: number) {
         ow(value, ow.optional.number.integer.greaterThanOrEqual(1));
         this._maxConcurrency = value;
+        this.clampDesiredConcurrency();
     }
 
     /**
@@ -305,6 +311,23 @@ export class ConcurrencySystem implements IConcurrencySystem {
     set desiredConcurrency(value: number) {
         ow(value, ow.optional.number.integer.greaterThanOrEqual(1));
         this._desiredConcurrency = value;
+        this.clampDesiredConcurrency();
+    }
+
+    /**
+     * Re-establishes `minConcurrency <= desiredConcurrency <= maxConcurrency` after any of the three is retuned.
+     *
+     * Dispatch gates on the desired value alone, so a `desiredConcurrency` left stranded above `maxConcurrency` would
+     * make the ceiling meaningless — and it would stay stranded: `_scaleUp()` refuses to act once the desired value has
+     * reached the ceiling, and `_scaleDown()` only runs while a load signal reports overload, which a rate-limited
+     * *target site* never causes.
+     *
+     * A contradictory pair (`minConcurrency > maxConcurrency`) resolves in favour of the maximum, since that is the
+     * limit callers set in order to protect something.
+     */
+    private clampDesiredConcurrency(): void {
+        const atLeastMin = Math.max(this._desiredConcurrency, this._minConcurrency);
+        this._desiredConcurrency = Math.min(atLeastMin, this._maxConcurrency);
     }
 
     get currentConcurrency(): number {

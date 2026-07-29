@@ -70,6 +70,57 @@ describe('ConcurrencySystem', () => {
         });
     });
 
+    describe('runtime tuning', () => {
+        test('lowering maxConcurrency takes effect immediately', () => {
+            const system = new ConcurrencySystem({ minConcurrency: 1, maxConcurrency: 100, desiredConcurrency: 50 });
+
+            // Dispatch gates on `desiredConcurrency`, so a ceiling that left it stranded at 50 would be no ceiling at
+            // all - and nothing would ever bring it down, since scaling up is blocked at the ceiling and scaling down
+            // needs a load signal to report overload.
+            system.maxConcurrency = 10;
+
+            expect(system.maxConcurrency).toBe(10);
+            expect(system.desiredConcurrency).toBe(10);
+
+            for (let i = 0; i < 10; i++) expect(system.tryRegisterTaskStart()).toBe(true);
+            expect(system.tryRegisterTaskStart()).toBe(false);
+        });
+
+        test('raising minConcurrency takes effect immediately', () => {
+            const system = new ConcurrencySystem({ minConcurrency: 1, maxConcurrency: 100, desiredConcurrency: 5 });
+
+            system.minConcurrency = 20;
+
+            expect(system.desiredConcurrency).toBe(20);
+        });
+
+        test('desiredConcurrency is held within the current bounds', () => {
+            const system = new ConcurrencySystem({ minConcurrency: 5, maxConcurrency: 50 });
+
+            system.desiredConcurrency = 500;
+            expect(system.desiredConcurrency).toBe(50);
+
+            system.desiredConcurrency = 1;
+            expect(system.desiredConcurrency).toBe(5);
+        });
+
+        test('the maximum wins a contradictory pair of bounds', () => {
+            const system = new ConcurrencySystem({ minConcurrency: 10, maxConcurrency: 100, desiredConcurrency: 50 });
+
+            // `maxConcurrency` is the limit callers set to protect something, so it outranks a now-unreachable minimum.
+            system.maxConcurrency = 4;
+
+            expect(system.desiredConcurrency).toBe(4);
+        });
+
+        test('the constructor honours both bounds', () => {
+            // A ceiling below the requested starting point wins...
+            expect(new ConcurrencySystem({ maxConcurrency: 3, desiredConcurrency: 10 }).desiredConcurrency).toBe(3);
+            // ...and so does a floor above it, rather than starting below the minimum the caller asked for.
+            expect(new ConcurrencySystem({ minConcurrency: 10, desiredConcurrency: 3 }).desiredConcurrency).toBe(10);
+        });
+    });
+
     describe('load signals', () => {
         test('signals are told the widest window they will be sampled over', async () => {
             const contexts: LoadSignalStartContext[] = [];
