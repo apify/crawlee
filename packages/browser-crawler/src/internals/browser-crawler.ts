@@ -7,10 +7,12 @@ import type {
     Dictionary,
     EnqueueLinksOptions,
     ErrorHandler,
+    GetUserDataFromRequest,
     IRequestManager,
     LoadedRequest,
     Request,
     RequestHandler,
+    RouterHandler,
     SkippedRequestCallback,
 } from '@crawlee/basic';
 import {
@@ -115,6 +117,7 @@ export interface BrowserCrawlerOptions<
     ContextExtension = Dictionary<never>,
     ExtendedContext extends Context = Context & ContextExtension,
     InternalBrowserPoolOptions extends BrowserPoolOptions = BrowserPoolOptions,
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
     __BrowserPlugins extends BrowserPlugin[] = InferBrowserPluginArray<InternalBrowserPoolOptions['browserPlugins']>,
     __BrowserControllerReturn extends BrowserController = ReturnType<__BrowserPlugins[number]['createController']>,
     __LaunchContextReturn extends LaunchContext = ReturnType<__BrowserPlugins[number]['createLaunchContext']>,
@@ -171,7 +174,7 @@ export interface BrowserCrawlerOptions<
      * The exceptions are logged to the request using the
      * {@apilink Request.pushErrorMessage|`Request.pushErrorMessage()`} function.
      */
-    requestHandler?: RequestHandler<ExtendedContext>;
+    requestHandler?: RouterHandler<ExtendedContext, Routes> | RequestHandler<ExtendedContext>;
 
     /**
      * User-provided function that allows modifying the request object before it gets retried by the crawler.
@@ -340,8 +343,9 @@ export abstract class BrowserCrawler<
     >,
     ContextExtension = Dictionary<never>,
     ExtendedContext extends Context = Context & ContextExtension,
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
     GoToOptions extends Dictionary = Dictionary,
-> extends BasicCrawler<Context, ContextExtension, ExtendedContext> {
+> extends BasicCrawler<Context, ContextExtension, ExtendedContext, Routes> {
     /** Backs the {@apilink BrowserCrawler.browserPool|`browserPool`} getter. */
     private browserPoolDep: OwnedOrInjected<IBrowserPool<Page>, OwnedBrowserPool<Page>>;
 

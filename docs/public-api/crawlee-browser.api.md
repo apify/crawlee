@@ -28,6 +28,7 @@ import type { Dictionary } from '@crawlee/basic';
 import type { Dictionary as Dictionary_2 } from '@crawlee/utils';
 import type { EnqueueLinksOptions } from '@crawlee/basic';
 import type { ErrorHandler } from '@crawlee/basic';
+import type { GetUserDataFromRequest } from '@crawlee/basic';
 import type { IBrowserPool } from '@crawlee/types';
 import type { InferBrowserPluginArray } from '@crawlee/browser-pool';
 import { IRequestManager } from '@crawlee/basic';
@@ -40,11 +41,12 @@ import type { ReadonlyDeep } from 'type-fest';
 import { Request as Request_2 } from '@crawlee/basic';
 import type { RequestHandler } from '@crawlee/basic';
 import type { RobotsTxtFile } from '@crawlee/utils';
+import type { RouterHandler } from '@crawlee/basic';
 import type { SkippedRequestCallback } from '@crawlee/basic';
 import { StringPredicate } from 'ow';
 
 // @public
-export abstract class BrowserCrawler<Page extends CommonPage = CommonPage, Response extends BaseResponse = BaseResponse, InternalBrowserPoolOptions extends BrowserPoolOptions = BrowserPoolOptions, LaunchOptions extends Dictionary | undefined = Dictionary, Context extends BrowserCrawlingContext<Page, Response, Dictionary> = BrowserCrawlingContext<Page, Response, Dictionary>, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension, GoToOptions extends Dictionary = Dictionary> extends BasicCrawler<Context, ContextExtension, ExtendedContext> {
+export abstract class BrowserCrawler<Page extends CommonPage = CommonPage, Response extends BaseResponse = BaseResponse, InternalBrowserPoolOptions extends BrowserPoolOptions = BrowserPoolOptions, LaunchOptions extends Dictionary | undefined = Dictionary, Context extends BrowserCrawlingContext<Page, Response, Dictionary> = BrowserCrawlingContext<Page, Response, Dictionary>, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>, GoToOptions extends Dictionary = Dictionary> extends BasicCrawler<Context, ContextExtension, ExtendedContext, Routes> {
     protected constructor(options: BrowserCrawlerOptions<Page, Response, Context, ContextExtension, ExtendedContext> & {
         contextPipelineBuilder: () => ContextPipeline<CrawlingContext, Context>;
     });
@@ -108,7 +110,7 @@ export abstract class BrowserCrawler<Page extends CommonPage = CommonPage, Respo
 }
 
 // @public (undocumented)
-export interface BrowserCrawlerOptions<Page extends CommonPage = CommonPage, Response extends BaseResponse = BaseResponse, Context extends BrowserCrawlingContext<Page, Response, Dictionary> = BrowserCrawlingContext<Page, Response, Dictionary>, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension, InternalBrowserPoolOptions extends BrowserPoolOptions = BrowserPoolOptions, __BrowserPlugins extends BrowserPlugin[] = InferBrowserPluginArray<InternalBrowserPoolOptions['browserPlugins']>, __BrowserControllerReturn extends BrowserController = ReturnType<__BrowserPlugins[number]['createController']>, __LaunchContextReturn extends LaunchContext = ReturnType<__BrowserPlugins[number]['createLaunchContext']>> extends Omit<BasicCrawlerOptions<Context, ContextExtension, ExtendedContext>, 'requestHandler' | 'failedRequestHandler' | 'errorHandler'> {
+export interface BrowserCrawlerOptions<Page extends CommonPage = CommonPage, Response extends BaseResponse = BaseResponse, Context extends BrowserCrawlingContext<Page, Response, Dictionary> = BrowserCrawlingContext<Page, Response, Dictionary>, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension, InternalBrowserPoolOptions extends BrowserPoolOptions = BrowserPoolOptions, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>, __BrowserPlugins extends BrowserPlugin[] = InferBrowserPluginArray<InternalBrowserPoolOptions['browserPlugins']>, __BrowserControllerReturn extends BrowserController = ReturnType<__BrowserPlugins[number]['createController']>, __LaunchContextReturn extends LaunchContext = ReturnType<__BrowserPlugins[number]['createLaunchContext']>> extends Omit<BasicCrawlerOptions<Context, ContextExtension, ExtendedContext>, 'requestHandler' | 'failedRequestHandler' | 'errorHandler'> {
     browserPool?: IBrowserPool<Page>;
     browserPoolOptions?: Partial<BrowserPoolOptions> & Partial<BrowserPoolHooks<__BrowserControllerReturn, __LaunchContextReturn>>;
     errorHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
@@ -122,7 +124,7 @@ export interface BrowserCrawlerOptions<Page extends CommonPage = CommonPage, Res
     postNavigationHooks?: BrowserHook<Context, ContextExtension>[];
     preNavigationHooks?: BrowserHook<Context, ContextExtension>[];
     remoteBrowser?: CrawlerRemoteBrowserOptions;
-    requestHandler?: RequestHandler<ExtendedContext>;
+    requestHandler?: RouterHandler<ExtendedContext, Routes> | RequestHandler<ExtendedContext>;
     saveResponseCookies?: boolean;
 }
 

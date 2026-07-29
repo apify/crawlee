@@ -1,7 +1,13 @@
 import type { Dictionary } from '@crawlee/types';
 import type { StandardSchemaV1 } from '@standard-schema/spec';
 
-import type { CrawlingContext, LoadedRequest, RestrictedCrawlingContext } from './crawlers/crawler_commons.js';
+import type {
+    CrawlingContext,
+    LoadedRequest,
+    RestrictedCrawlingContext,
+    TypedContextAddRequests,
+    TypedContextEnqueueLinks,
+} from './crawlers/crawler_commons.js';
 import { MissingRouteError, RequestValidationError } from './errors.js';
 import type { Request } from './request.js';
 import type { Awaitable } from './typedefs.js';
@@ -14,11 +20,20 @@ import type { Awaitable } from './typedefs.js';
 export const defaultRoute: unique symbol = Symbol('default-route');
 
 /**
- * The crawling context received by a route handler, with `request.userData` narrowed to `UserData`.
+ * The crawling context received by a route handler, with `request.userData` narrowed to `UserData`, and
+ * `addRequests`/`enqueueLinks` typed according to the router's route map (`Routes`) so that enqueuing a
+ * request under a declared label requires the matching `userData` shape.
  */
-export type RouterHandlerContext<Context, UserData extends Dictionary> = Omit<Context, 'request'> & {
+export type RouterHandlerContext<
+    Context,
+    UserData extends Dictionary,
+    Routes extends Record<keyof Routes, Dictionary>,
+> = Omit<Context, 'request' | 'addRequests' | 'enqueueLinks'> & {
     request: LoadedRequest<Request<UserData>>;
-};
+    addRequests: TypedContextAddRequests<Routes>;
+} & (Context extends { enqueueLinks: infer EnqueueLinks }
+        ? { enqueueLinks: TypedContextEnqueueLinks<EnqueueLinks, Routes> }
+        : {});
 
 /**
  * A map of request labels to a [Standard Schema](https://standardschema.dev) (Zod, Valibot, ArkType, …)
@@ -38,7 +53,7 @@ type SchemaUserData<Schema extends StandardSchemaV1> =
  * Derives a route map (label → `userData` type) from a {@apilink RouteSchemas} map by inferring each schema's
  * output type. Outputs that are not object-shaped fall back to a plain {@apilink Dictionary}. The
  * {@apilink defaultRoute} schema is kept under its symbol key so {@apilink Router.addDefaultHandler} can pick it
- * up; string labels (the ones {@apilink Router.addHandler} accepts) ignore it.
+ * up; string labels (the ones {@apilink Router.addHandler} and the crawler-level typing accept) ignore it.
  */
 export type RoutesFromSchemas<Schemas extends RouteSchemas> = {
     [Label in Extract<keyof Schemas, string>]: SchemaUserData<Schemas[Label]>;
@@ -49,6 +64,7 @@ export type RoutesFromSchemas<Schemas extends RouteSchemas> = {
 /**
  * The `userData` type of the default route: inferred from the {@apilink defaultRoute} schema when the route map
  * carries one, otherwise the provided `Fallback`.
+ * @internal
  */
 export type DefaultRouteUserData<Routes, Fallback extends Dictionary> = Routes extends {
     [defaultRoute]: infer DefaultUserData extends Dictionary;
@@ -246,7 +262,7 @@ export class Router<
      */
     addHandler<Label extends keyof Routes & string>(
         label: Label,
-        handler: (ctx: RouterHandlerContext<Context, Routes[Label]>) => Awaitable<void>,
+        handler: (ctx: RouterHandlerContext<Context, Routes[Label], Routes>) => Awaitable<void>,
     ): void;
 
     /**
@@ -256,7 +272,7 @@ export class Router<
      */
     addHandler<UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(
         label: RouterLabel<Routes>,
-        handler: (ctx: RouterHandlerContext<Context, UserData>) => Awaitable<void>,
+        handler: (ctx: RouterHandlerContext<Context, UserData, Routes>) => Awaitable<void>,
     ): void;
 
     addHandler(label: string | symbol, handler: (ctx: any) => Awaitable<void>): void {
@@ -272,7 +288,7 @@ export class Router<
      */
     addDefaultHandler<
         UserData extends Dictionary = DefaultRouteUserData<Routes, GetUserDataFromRequest<Context['request']>>,
-    >(handler: (ctx: RouterHandlerContext<Context, UserData>) => Awaitable<void>) {
+    >(handler: (ctx: RouterHandlerContext<Context, UserData, Routes>) => Awaitable<void>) {
         this.validate(defaultRoute);
         this.routes.set(defaultRoute, handler);
     }

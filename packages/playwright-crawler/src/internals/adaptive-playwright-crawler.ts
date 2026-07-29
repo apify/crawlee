@@ -184,8 +184,12 @@ type AdaptivePostNavigationHook<ContextExtension = Dictionary<never>> = BrowserH
 export interface AdaptivePlaywrightCrawlerOptions<
     ContextExtension = Dictionary<never>,
     ExtendedContext extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext & ContextExtension,
+    Routes extends Record<keyof Routes, Dictionary> = Record<
+        string,
+        GetUserDataFromRequest<AdaptivePlaywrightCrawlerContext['request']>
+    >,
 > extends Omit<
-    BasicCrawlerOptions<AdaptivePlaywrightCrawlerContext, ContextExtension, ExtendedContext>,
+    BasicCrawlerOptions<AdaptivePlaywrightCrawlerContext, ContextExtension, ExtendedContext, Routes>,
     'preNavigationHooks' | 'postNavigationHooks'
 > {
     /**
@@ -306,7 +310,11 @@ type LogProxyCall = [log: CrawleeLogger, method: (typeof proxyLogMethods)[number
 export class AdaptivePlaywrightCrawler<
     ContextExtension = Dictionary<never>,
     ExtendedContext extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext & ContextExtension,
-> extends BasicCrawler<AdaptivePlaywrightCrawlerContext, ContextExtension, ExtendedContext> {
+    Routes extends Record<keyof Routes, Dictionary> = Record<
+        string,
+        GetUserDataFromRequest<AdaptivePlaywrightCrawlerContext['request']>
+    >,
+> extends BasicCrawler<AdaptivePlaywrightCrawlerContext, ContextExtension, ExtendedContext, Routes> {
     private renderingTypePredictor: NonNullable<AdaptivePlaywrightCrawlerOptions['renderingTypePredictor']>;
     private resultChecker: NonNullable<AdaptivePlaywrightCrawlerOptions['resultChecker']>;
     private shouldPropagateError: NonNullable<AdaptivePlaywrightCrawlerOptions['shouldPropagateError']>;
@@ -321,7 +329,7 @@ export class AdaptivePlaywrightCrawler<
 
     private teardownHooks: (() => Promise<unknown>)[] = [];
 
-    constructor(options: AdaptivePlaywrightCrawlerOptions<ContextExtension, ExtendedContext> = {}) {
+    constructor(options: AdaptivePlaywrightCrawlerOptions<ContextExtension, ExtendedContext, Routes> = {}) {
         const {
             requestHandler,
             renderingTypeDetectionRatio = 0.1,
