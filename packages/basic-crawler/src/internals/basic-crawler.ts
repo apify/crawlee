@@ -1764,7 +1764,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             }
 
             // After injecting the crawlDepth, we call the user-provided transform function, if there is one.
-            return options.transformRequestFunction?.(newRequest) ?? newRequest;
+            // Its return value is passed through as is, so a falsy one still skips the request.
+            return options.transformRequestFunction ? options.transformRequestFunction(newRequest) : newRequest;
         };
 
         // Create a request-scoped callback that logs enqueueLimit once per request handler call
