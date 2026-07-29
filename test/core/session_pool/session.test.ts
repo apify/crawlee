@@ -1,5 +1,7 @@
-import { entries, Session } from '@crawlee/core';
+import { Session } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
+
+import { entries } from '../../shared/typedefs.js';
 
 describe('Session - testing session behaviour', () => {
     let session: Session;

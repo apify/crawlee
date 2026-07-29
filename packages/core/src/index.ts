@@ -18,6 +18,5 @@ export * from './memory-storage/index.js';
 export * from './validators.js';
 export * from './cookie_utils.js';
 export * from './recoverable_state.js';
-export { entries, keys } from './typedefs.js';
 export { PseudoUrl } from '@apify/pseudo_url';
 export type { Dictionary, Awaitable, Constructor, StorageBackend, Cookie, QueueOperationInfo } from '@crawlee/types';
