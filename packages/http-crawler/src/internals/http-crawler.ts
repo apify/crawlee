@@ -808,7 +808,7 @@ export class HttpCrawler<
      */
     private handleRequestTimeout(session: ISession) {
         session.markBad();
-        throw new Error(`request timed out after ${this.navigationTimeoutMillis / 1000} seconds.`);
+        throw new Error(`Request timed out after ${this.navigationTimeoutMillis / 1000} seconds.`);
     }
 
     private _abortDownloadOfBody(request: CrawleeRequest, response: Response) {
