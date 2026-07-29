@@ -1219,17 +1219,35 @@ try {
 }
 ```
 
-The pool's concurrency accessors are now read-only telemetry: `desiredConcurrency` and `currentConcurrency` remain as getters (the governor itself is reachable through `pool.system`), while the `minConcurrency`/`maxConcurrency` accessors and every setter were **removed**. Runtime tuning — `crawler.autoscaledPool.maxConcurrency = 10` as a reaction to rate limiting, say — happens on the `ConcurrencySystem` instead, so build it yourself and keep the reference:
+The pool's concurrency accessors are now read-only telemetry: `desiredConcurrency` and `currentConcurrency` remain as getters, while the `minConcurrency`/`maxConcurrency` accessors and every setter were **removed**. Runtime tuning — `crawler.autoscaledPool.maxConcurrency = 10` as a reaction to rate limiting, say — happens on the `ConcurrencySystem` instead, so build it yourself and keep the reference:
 
 ```typescript
-const concurrencySystem = new ConcurrencySystem({ maxConcurrency: 50 });
+import { CheerioCrawler, ConcurrencySystem, HTTP_OPTIMIZED_CONCURRENCY_SYSTEM_OPTIONS } from 'crawlee';
+
+const concurrencySystem = new ConcurrencySystem({
+    // A supplied system replaces the crawler's default wholesale, tuning included — see below.
+    ...HTTP_OPTIMIZED_CONCURRENCY_SYSTEM_OPTIONS,
+    maxConcurrency: 50,
+});
+
+const crawler = new CheerioCrawler({
+    concurrencySystem,
+    requestHandler,
+    errorHandler: async ({ response }) => {
+        if (response?.status === 429) concurrencySystem.maxConcurrency = 10;
+    },
+});
+
+// Ours to build, so ours to run.
 await concurrencySystem.start();
-
-const crawler = new CheerioCrawler({ concurrencySystem, requestHandler });
-
-// later, e.g. in an error handler:
-concurrencySystem.maxConcurrency = 10;
+try {
+    await crawler.run();
+} finally {
+    await concurrencySystem.stop();
+}
 ```
+
+Note that this is the *only* way to tune concurrency at runtime: the system a crawler builds for itself cannot be reconfigured after the fact. `pool.system` hands back the governor, but typed as the read-only `IConcurrencySystem` — the setters live on `ConcurrencySystem`, so reaching them means having constructed the instance yourself, as above.
 
 One behavioral consequence: `pool.pause()` no longer suspends autoscaling, because the autoscaling interval belongs to the `ConcurrencySystem`, which knows nothing about its borrowers' pause state — deliberately, since other pools sharing it may still need scaling. A paused pool's system keeps evaluating (and possibly scaling down) the desired concurrency and keeps emitting its periodic state log. Scaling *up* stays effectively blocked, as the current concurrency drains below the ratio required for a scale-up. To silence the system during a long pause, `stop()` it (if you own it) and `start()` it again before resuming.
 
