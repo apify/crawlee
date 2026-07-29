@@ -209,7 +209,7 @@ export interface Configuration extends ResolvedConfigValues {
 export class Configuration {
     constructor(options?: ConfigurationInput);
     protected static fields: Record<string, ConfigField>;
-    static getGlobalConfig(): Configuration;
+    static getGlobalConfiguration(): Configuration;
 }
 
 // @public (undocumented)
@@ -254,7 +254,7 @@ export { Cookie }
 // @public (undocumented)
 export interface CpuLoadSignalOptions {
     // (undocumented)
-    config: Configuration;
+    configuration: Configuration;
     // (undocumented)
     overloadedRatio?: number;
     // (undocumented)
@@ -345,7 +345,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     // (undocumented)
     backend: DatasetBackend<Data>;
     // (undocumented)
-    readonly config: Configuration;
+    readonly configuration: Configuration;
     drop(): Promise<void>;
     entries(options?: DatasetIteratorOptions): AsyncIterable<[number, Data]> & Promise<[number, Data][]>;
     export(options?: DatasetExportOptions): Promise<Data[]>;
@@ -760,7 +760,7 @@ export interface KeyConsumer {
 export class KeyValueStore {
     [Symbol.asyncIterator]<T = unknown>(): AsyncGenerator<[string, T], void, undefined>;
     // (undocumented)
-    readonly config: Configuration;
+    readonly configuration: Configuration;
     drop(): Promise<void>;
     entries<T = unknown>(options?: KeyValueStoreIteratorOptions): AsyncIterable<[string, T]> & Promise<[string, T][]>;
     forEachKey(iteratee: KeyConsumer, options?: KeyValueStoreIteratorOptions): Promise<void>;
@@ -838,7 +838,7 @@ export class LocalEventManager extends EventManager {
     constructor(options: LocalEventManagerOptions);
     // (undocumented)
     close(): Promise<void>;
-    static fromConfig(config?: Configuration): LocalEventManager;
+    static fromConfiguration(configuration?: Configuration): LocalEventManager;
     init(): Promise<void>;
 }
 
@@ -883,7 +883,7 @@ export class MemoryLoadSignal implements LoadSignal {
 // @public (undocumented)
 export interface MemoryLoadSignalOptions {
     // (undocumented)
-    config: Configuration;
+    configuration: Configuration;
     // (undocumented)
     log?: CrawleeLogger;
     // (undocumented)
@@ -990,7 +990,7 @@ export type PseudoUrlObject = {
 export function purgeDefaultStorages(options?: PurgeDefaultStorageOptions): Promise<void>;
 
 // @public
-export function purgeDefaultStorages(config?: Configuration, storageBackend?: StorageBackend): Promise<void>;
+export function purgeDefaultStorages(configuration?: Configuration, storageBackend?: StorageBackend): Promise<void>;
 
 // @public (undocumented)
 export interface PushErrorMessageOptions {
@@ -1018,7 +1018,7 @@ export class RecoverableState<TStateModel = Record<string, unknown>> {
 
 // @public
 export interface RecoverableStateOptions<TStateModel = Record<string, unknown>> extends RecoverableStatePersistenceOptions {
-    config?: Configuration;
+    configuration?: Configuration;
     defaultState: TStateModel;
     deserialize?: (serializedState: string) => TStateModel;
     logger?: CrawleeLogger;
@@ -1082,7 +1082,7 @@ export class RequestHandlerError extends Error {
 
 // @public
 export class RequestHandlerResult {
-    constructor(config: Configuration, crawleeStateKey: string);
+    constructor(configuration: Configuration, crawleeStateKey: string);
     // (undocumented)
     addRequests: RestrictedCrawlingContext['addRequests'];
     get calls(): ReadonlyDeep<{
@@ -1638,7 +1638,7 @@ export class Snapshotter {
     // (undocumented)
     get clientSnapshots(): ClientSnapshot[];
     // (undocumented)
-    readonly config: Configuration;
+    readonly configuration: Configuration;
     // (undocumented)
     get cpuSnapshots(): CpuSnapshot[];
     // (undocumented)
@@ -1776,7 +1776,7 @@ export { StorageIdentifier }
 
 // @public
 export interface StorageOpenOptions {
-    config?: Configuration;
+    configuration?: Configuration;
     httpClient?: BaseHttpClient;
     proxyConfiguration?: IProxyConfiguration;
     storageBackend?: StorageBackend;
@@ -1839,7 +1839,7 @@ export function useState<State extends Dictionary = Dictionary>(name?: string, d
 // @public (undocumented)
 export interface UseStateOptions {
     // (undocumented)
-    config?: Configuration;
+    configuration?: Configuration;
     keyValueStoreName?: string | null;
 }
 

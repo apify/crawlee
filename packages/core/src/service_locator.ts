@@ -115,9 +115,9 @@ interface ServiceLocatorInterface {
  *
  * const crawler = new BasicCrawler({
  *     requestHandler: async ({ request }) => { ... },
- *     configuration: new Configuration({ ... }),  // custom config
+ *     configuration: new Configuration({ ... }),           // custom configuration
  *     storageBackend: new MemoryStorageBackend(),          // custom storage
- *     eventManager: LocalEventManager.fromConfig(),  // custom events
+ *     eventManager: LocalEventManager.fromConfiguration(), // custom events
  * });
  * // Crawler has its own isolated ServiceLocator instance
  * ```
@@ -186,7 +186,7 @@ export class ServiceLocator implements ServiceLocatorInterface {
                         'It is advised to explicitly first set the configuration instead.',
                 );
             }
-            this.eventManager = LocalEventManager.fromConfig(this.getConfiguration());
+            this.eventManager = LocalEventManager.fromConfiguration(this.getConfiguration());
         }
         return this.eventManager;
     }
@@ -217,10 +217,10 @@ export class ServiceLocator implements ServiceLocatorInterface {
                         'It is advised to explicitly first set the configuration instead.',
                 );
             }
-            const config = this.getConfiguration();
-            this.storageBackend = config.persistStorage
+            const configuration = this.getConfiguration();
+            this.storageBackend = configuration.persistStorage
                 ? new FileSystemStorageBackend({
-                      localDataDirectory: config.storageDir,
+                      localDataDirectory: configuration.storageDir,
                       logger: this.getLogger().child({ prefix: 'FileSystemStorageBackend' }),
                   })
                 : new MemoryStorageBackend({

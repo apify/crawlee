@@ -22,12 +22,12 @@ export class LocalEventManager extends EventManager {
      * Creates a new `LocalEventManager` based on the provided `Configuration`.
      * Uses the global configuration from the service locator if none is provided.
      */
-    static fromConfig(config?: Configuration): LocalEventManager {
-        const resolvedConfig = config ?? serviceLocator.getConfiguration();
+    static fromConfiguration(configuration?: Configuration): LocalEventManager {
+        const resolvedConfiguration = configuration ?? serviceLocator.getConfiguration();
 
         return new LocalEventManager({
-            persistStateIntervalMillis: resolvedConfig.persistStateIntervalMillis,
-            systemInfoIntervalMillis: resolvedConfig.systemInfoIntervalMillis,
+            persistStateIntervalMillis: resolvedConfiguration.persistStateIntervalMillis,
+            systemInfoIntervalMillis: resolvedConfiguration.systemInfoIntervalMillis,
         });
     }
 
