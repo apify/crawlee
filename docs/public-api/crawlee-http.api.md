@@ -9,7 +9,7 @@ import { ArrayPredicate } from 'ow';
 import type { Awaitable } from '@crawlee/types';
 import { BasePredicate } from 'ow';
 import { BasicCrawler } from '@crawlee/basic';
-import type { BasicCrawlerOptions } from '@crawlee/basic';
+import { BasicCrawlerOptions } from '@crawlee/basic';
 import { BooleanPredicate } from 'ow';
 import { CheerioRoot } from '@crawlee/utils';
 import { ConcurrencySystem } from '@crawlee/basic';
@@ -92,6 +92,9 @@ export type FileDownloadHook<UserData extends Dictionary = any> = InternalHttpHo
 
 // @public (undocumented)
 export type FileDownloadRequestHandler<UserData extends Dictionary = any> = RequestHandler<FileDownloadCrawlingContext<UserData>>;
+
+// @public
+export const HTTP_OPTIMIZED_CONCURRENCY_SYSTEM_OPTIONS: ConcurrencySystemOptions;
 
 // @public
 export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any> = InternalHttpCrawlingContext, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension> extends BasicCrawler<Context, ContextExtension, ExtendedContext> {

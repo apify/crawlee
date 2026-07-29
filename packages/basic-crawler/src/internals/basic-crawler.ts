@@ -84,7 +84,7 @@ import type {
 import { getObjectType, isAsyncIterable, isIterable, RobotsTxtFile, ROTATE_PROXY_ERRORS } from '@crawlee/utils';
 import { stringify } from 'csv-stringify/sync';
 import { ensureDir, writeJSON } from 'fs-extra/esm';
-import ow from 'ow';
+import ow, { ArgumentError } from 'ow';
 import { getDomain } from 'tldts';
 import type { ReadonlyDeep, SetRequired } from 'type-fest';
 
@@ -326,8 +326,9 @@ export interface BasicCrawlerOptions<
      * single budget. Each crawler still builds and drives its own {@apilink AutoscaledPool}; only the load/scaling
      * accounting is shared.
      *
-     * When supplied, the `minConcurrency`/`maxConcurrency`/`maxRequestsPerMinute` shortcuts are ignored, and the
-     * crawler neither starts nor tears the system down — the caller owns its lifecycle.
+     * Mutually exclusive with the `minConcurrency`/`maxConcurrency`/`maxRequestsPerMinute` shortcuts, which configure
+     * the default system this one replaces — combining the two throws. The crawler also neither starts nor tears a
+     * supplied system down; the caller owns its lifecycle.
      */
     concurrencySystem?: IConcurrencySystem;
 
@@ -858,6 +859,21 @@ export class BasicCrawler<
             id,
         } = options;
 
+        // All concurrency configuration lives on the `ConcurrencySystem`, so the shortcuts have nowhere to go once
+        // one is supplied - and silently dropping a `maxConcurrency` the user asked for is how crawls end up
+        // hammering a site.
+        if (
+            concurrencySystem !== undefined &&
+            (minConcurrency !== undefined || maxConcurrency !== undefined || maxRequestsPerMinute !== undefined)
+        ) {
+            throw new ArgumentError(
+                'The `minConcurrency`/`maxConcurrency`/`maxRequestsPerMinute` shortcuts cannot be combined with ' +
+                    '`concurrencySystem` - they configure the default `ConcurrencySystem` that a supplied one ' +
+                    'replaces. Pass them to the `ConcurrencySystem` constructor instead.',
+                this.constructor,
+            );
+        }
+
         // Create per-crawler service locator if custom services were provided.
         // This wraps every method on the crawler instance so that calls to the global `serviceLocator`
         // (via AsyncLocalStorage) resolve to this scoped instance instead.
@@ -1125,16 +1141,6 @@ export class BasicCrawler<
             };
 
             this.autoscaledPoolOptions = { ...autoscaledPoolOptions, ...basicCrawlerAutoscaledPoolConfiguration };
-
-            if (
-                concurrencySystem !== undefined &&
-                (minConcurrency !== undefined || maxConcurrency !== undefined || maxRequestsPerMinute !== undefined)
-            ) {
-                this.log.info(
-                    'A `concurrencySystem` was provided; the `minConcurrency`/`maxConcurrency`/`maxRequestsPerMinute` ' +
-                        'shortcuts are ignored in favour of the configuration on the supplied system.',
-                );
-            }
 
             this.injectedConcurrencySystem = concurrencySystem;
             this.buildDefaultConcurrencySystem = () =>

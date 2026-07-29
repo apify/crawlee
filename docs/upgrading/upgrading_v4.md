@@ -1269,6 +1269,17 @@ try {
 
 Note that an injected system is **yours to run**: the crawler never starts or stops a system it did not build, since it cannot know when the last crawler sharing it is done. Forgetting to `start()` it makes `run()` **throw**, rather than silently crawling at a fixed concurrency with no load monitoring — check `isRunning` if you need to know whether another owner already started a system handed to you.
 
+A supplied system also replaces the crawler's default *wholesale*, including any crawler-specific tuning that default carried. `HttpCrawler` and its subclasses (`CheerioCrawler`, `JSDOMCrawler`, …) ship a preset — a higher `desiredConcurrency` and a relaxed event loop signal — exported as `HTTP_OPTIMIZED_CONCURRENCY_SYSTEM_OPTIONS`; spread it in if you want to keep it:
+
+```typescript
+import { CheerioCrawler, ConcurrencySystem, HTTP_OPTIMIZED_CONCURRENCY_SYSTEM_OPTIONS } from 'crawlee';
+
+const concurrencySystem = new ConcurrencySystem({
+    ...HTTP_OPTIMIZED_CONCURRENCY_SYSTEM_OPTIONS,
+    maxConcurrency: 50,
+});
+```
+
 For the common case, the shortcuts are enough and need no `ConcurrencySystem`:
 
 ```typescript
@@ -1300,7 +1311,7 @@ try {
 }
 ```
 
-When a `concurrencySystem` is supplied, the `minConcurrency` / `maxConcurrency` / `maxRequestsPerMinute` shortcuts are ignored in its favour.
+The `minConcurrency` / `maxConcurrency` / `maxRequestsPerMinute` shortcuts configure the *default* system, so they cannot be combined with an injected one — the crawler constructor **throws** rather than silently dropping a limit you asked for. Move those limits onto the `ConcurrencySystem`.
 
 ## `Snapshotter` and `SystemStatus` load-signal options restructured
 

@@ -46,9 +46,16 @@ const HTML_AND_XML_MIME_TYPES = ['text/html', 'text/xml', 'application/xhtml+xml
 const APPLICATION_JSON_MIME_TYPE = 'application/json';
 /**
  * A higher starting concurrency and a relaxed event loop signal, since HTTP-only crawling barely touches the event
- * loop.
+ * loop. {@apilink HttpCrawler} folds these into the {@apilink ConcurrencySystem} it builds by default.
+ *
+ * A {@apilink BasicCrawlerOptions.concurrencySystem|`concurrencySystem`} you supply yourself replaces that default
+ * wholesale, tuning included, so spread these options in if you want to keep it:
+ *
+ * ```typescript
+ * new ConcurrencySystem({ ...HTTP_OPTIMIZED_CONCURRENCY_SYSTEM_OPTIONS, maxConcurrency: 50 });
+ * ```
  */
-const HTTP_OPTIMIZED_CONCURRENCY_SYSTEM_OPTIONS: ConcurrencySystemOptions = {
+export const HTTP_OPTIMIZED_CONCURRENCY_SYSTEM_OPTIONS: ConcurrencySystemOptions = {
     desiredConcurrency: 10,
     loadSignals: {
         eventLoop: {
@@ -413,7 +420,12 @@ export class HttpCrawler<
         this.saveResponseCookies = saveResponseCookies;
     }
 
-    /** Folds the HTTP-optimized tuning into the default system, keeping the user's concurrency shortcuts on top. */
+    /**
+     * Folds {@apilink HTTP_OPTIMIZED_CONCURRENCY_SYSTEM_OPTIONS} into the default system, keeping the user's
+     * concurrency shortcuts on top. Not called for a supplied
+     * {@apilink BasicCrawlerOptions.concurrencySystem|`concurrencySystem`} — spread the constant into it yourself to
+     * keep the tuning.
+     */
     protected override createDefaultConcurrencySystem(options: ConcurrencySystemOptions): ConcurrencySystem {
         return super.createDefaultConcurrencySystem({
             ...HTTP_OPTIMIZED_CONCURRENCY_SYSTEM_OPTIONS,

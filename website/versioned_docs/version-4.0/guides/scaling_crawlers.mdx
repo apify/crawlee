@@ -53,7 +53,7 @@ This section is super advanced and, unless you test the changes extensively and 
 
 :::
 
-With that warning aside, if we're feeling adventurous, this is how we would pass these options when using a crawler. Note that when we inject a `ConcurrencySystem`, we own its lifecycle — we `start()` it before running the crawler and `stop()` it once we're done (and the `minConcurrency`/`maxConcurrency`/`maxRequestsPerMinute` shortcuts are ignored in favour of the injected configuration):
+With that warning aside, if we're feeling adventurous, this is how we would pass these options when using a crawler. Note that when we inject a `ConcurrencySystem`, we own its lifecycle — we `start()` it before running the crawler and `stop()` it once we're done. The `minConcurrency`/`maxConcurrency`/`maxRequestsPerMinute` shortcuts configure the default system, so they cannot be combined with an injected one — set those limits on the `ConcurrencySystem` instead:
 
 <CodeBlock language="js">
 	{ConcurrencySystemSource}

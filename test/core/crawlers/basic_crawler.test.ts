@@ -190,9 +190,6 @@ describe('BasicCrawler', () => {
         const basicCrawler = new BasicCrawler({
             requestList,
             concurrencySystem: system,
-            // These should be ignored in favour of the shared system's limits.
-            minConcurrency: 1,
-            maxConcurrency: 1,
             requestHandler,
         });
 
@@ -210,6 +207,20 @@ describe('BasicCrawler', () => {
         expect(startSpy).toHaveBeenCalledTimes(1);
         expect(stopSpy).toHaveBeenCalledTimes(1);
     });
+
+    test.each(['minConcurrency', 'maxConcurrency', 'maxRequestsPerMinute'] as const)(
+        'throws when %s is combined with a supplied concurrencySystem',
+        (shortcut) => {
+            expect(
+                () =>
+                    new BasicCrawler({
+                        concurrencySystem: new ConcurrencySystem(),
+                        [shortcut]: 1,
+                        requestHandler: async () => {},
+                    }),
+            ).toThrow(/cannot be combined with `concurrencySystem`/);
+        },
+    );
 
     test('two crawlers sharing a ConcurrencySystem cap their combined concurrency', async () => {
         const system = new ConcurrencySystem({ minConcurrency: 3, maxConcurrency: 3, desiredConcurrency: 3 });
@@ -523,7 +534,7 @@ describe('BasicCrawler', () => {
         expect(generatedRequests[1].crawlDepth).toBe(4);
     });
 
-    test('concurrency shortcuts configure the default system; an injected system takes precedence', async () => {
+    test('concurrency shortcuts configure the default system; an injected system is used as-is', async () => {
         const requestList = await RequestList.open(null, []);
         const requestHandler = async () => {};
 
@@ -543,15 +554,12 @@ describe('BasicCrawler', () => {
             maxRequestsPerMinute: 789,
         });
 
-        // An injected system carries its own config; the shortcuts are ignored in its favour.
+        // An injected system carries its own config (the shortcuts are rejected alongside one, see above).
         const injectedSystem = new ConcurrencySystem({ minConcurrency: 16, maxConcurrency: 32, maxTasksPerMinute: 64 });
         const injected = new BasicCrawler({
             requestList,
             requestHandler,
             concurrencySystem: injectedSystem,
-            minConcurrency: 123,
-            maxConcurrency: 456,
-            maxRequestsPerMinute: 789,
         });
 
         // An injected system is ours to run - the crawler refuses to run against one that was never started.
