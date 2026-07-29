@@ -459,6 +459,18 @@ export interface DefaultStorageIdentifier {
 export { Dictionary }
 
 // @public
+export function downloadListOfUrls(options: DownloadListOfUrlsOptions): Promise<string[]>;
+
+// @public (undocumented)
+export interface DownloadListOfUrlsOptions {
+    encoding?: BufferEncoding;
+    httpClient?: BaseHttpClient;
+    proxyUrl?: string;
+    url: string;
+    urlRegExp?: RegExp;
+}
+
+// @public
 export function enqueueLinks(options: SetRequired<Omit<EnqueueLinksOptions, 'requestManager'>, 'urls'> & {
     requestManager: {
         addRequestsBatched: (requests: Request_2<Dictionary>[], options: AddRequestsBatchedOptions) => Promise<AddRequestsBatchedResult>;
@@ -1826,6 +1838,12 @@ export interface SystemStatusOptions {
 }
 
 export { tryAbsoluteURL }
+
+// @public
+export const URL_NO_COMMAS_REGEX: RegExp;
+
+// @public
+export const URL_WITH_COMMAS_REGEX: RegExp;
 
 // @public (undocumented)
 export type UrlPatternObject = {

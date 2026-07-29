@@ -49,18 +49,6 @@ export function discoverValidSitemaps(urls: string[], options?: {
     logger?: CrawleeLogger;
 }): AsyncIterable<string>;
 
-// @public
-export function downloadListOfUrls(options: DownloadListOfUrlsOptions): Promise<string[]>;
-
-// @public (undocumented)
-export interface DownloadListOfUrlsOptions {
-    encoding?: BufferEncoding;
-    httpClient?: BaseHttpClient;
-    proxyUrl?: string;
-    url: string;
-    urlRegExp?: RegExp;
-}
-
 export { Element_2 as Element }
 
 // @public
@@ -76,16 +64,7 @@ function emailsFromText(text: string): string[];
 function emailsFromUrls(urls: string[]): string[];
 
 // @public
-export function extractUrls(options: ExtractUrlsOptions): string[];
-
-// @public
 export function extractUrlsFromCheerio($: CheerioAPI, selector?: string, baseUrl?: string): string[];
-
-// @public (undocumented)
-export interface ExtractUrlsOptions {
-    string: string;
-    urlRegExp?: RegExp;
-}
 
 // @public
 const FACEBOOK_REGEX: RegExp;
@@ -268,12 +247,6 @@ const TWITTER_REGEX: RegExp;
 
 // @public
 const TWITTER_REGEX_GLOBAL: RegExp;
-
-// @public
-export const URL_NO_COMMAS_REGEX: RegExp;
-
-// @public
-export const URL_WITH_COMMAS_REGEX: RegExp;
 
 // @public
 const YOUTUBE_REGEX: RegExp;

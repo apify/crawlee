@@ -4,7 +4,7 @@
 
 ```ts
 
-import { downloadListOfUrls } from '@crawlee/utils';
+import { downloadListOfUrls } from '@crawlee/core';
 import { enqueueLinks } from '@crawlee/core';
 import { Log } from '@apify/log';
 import { parseOpenGraph } from '@crawlee/utils';

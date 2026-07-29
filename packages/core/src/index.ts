@@ -5,6 +5,12 @@ export * from './configuration.js';
 export * from './service_locator.js';
 export * from './crawlers/index.js';
 export * from './enqueue_links/index.js';
+export {
+    downloadListOfUrls,
+    type DownloadListOfUrlsOptions,
+    URL_NO_COMMAS_REGEX,
+    URL_WITH_COMMAS_REGEX,
+} from './extract-urls.js';
 export * from './events/index.js';
 export * from './log.js';
 export * from './owned_or_injected.js';

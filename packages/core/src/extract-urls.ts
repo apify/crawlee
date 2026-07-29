@@ -1,0 +1,120 @@
+import { FetchHttpClient } from '@crawlee/http-client';
+import type { BaseHttpClient } from '@crawlee/types';
+import ow from 'ow';
+
+/**
+ * Default regular expression to match URLs in a string that may be plain text, JSON, CSV or other. It supports common URL characters
+ * and does not support URLs containing commas or spaces. The URLs also may contain Unicode letters (not symbols).
+ */
+export const URL_NO_COMMAS_REGEX =
+    /https?:\/\/(www\.)?([\p{L}0-9]|[\p{L}0-9][-\p{L}0-9@:%._+~#=]{0,254}[\p{L}0-9])\.[a-z]{2,63}(:\d{1,5})?(\/[-\p{L}0-9@:%_+.~#?&/=()'*]*)?/giu;
+
+/**
+ * Regular expression that, in addition to the default regular expression `URL_NO_COMMAS_REGEX`, supports matching commas in URL path and query.
+ * Note, however, that this may prevent parsing URLs from comma delimited lists, or the URLs may become malformed.
+ */
+export const URL_WITH_COMMAS_REGEX =
+    /https?:\/\/(www\.)?([\p{L}0-9]|[\p{L}0-9][-\p{L}0-9@:%._+~#=]{0,254}[\p{L}0-9])\.[a-z]{2,63}(:\d{1,5})?(\/[-\p{L}0-9@:%_+,.~#?&/=()'*]*)?/giu;
+
+export interface DownloadListOfUrlsOptions {
+    /**
+     * URL to the file
+     */
+    url: string;
+
+    /**
+     * The encoding of the file.
+     * @default 'utf8'
+     */
+    encoding?: BufferEncoding;
+
+    /**
+     * Custom regular expression to identify the URLs in the file to extract.
+     * The regular expression should be case-insensitive and have global flag set (i.e. `/something/gi`).
+     * @default URL_NO_COMMAS_REGEX
+     */
+    urlRegExp?: RegExp;
+
+    /** Allows to use a proxy for the download request. */
+    proxyUrl?: string;
+
+    /**
+     * Custom HTTP client to use for downloading the file.
+     */
+    httpClient?: BaseHttpClient;
+}
+
+/**
+ * Returns a promise that resolves to an array of urls parsed from the resource available at the provided url.
+ * Optionally, custom regular expression and encoding may be provided.
+ */
+export async function downloadListOfUrls(options: DownloadListOfUrlsOptions): Promise<string[]> {
+    ow(
+        options as any,
+        ow.object.exactShape({
+            url: ow.string.url,
+            encoding: ow.optional.string,
+            urlRegExp: ow.optional.regExp,
+            proxyUrl: ow.optional.string,
+            httpClient: ow.optional.object,
+        }),
+    );
+    const {
+        url,
+        encoding = 'utf8',
+        urlRegExp = URL_NO_COMMAS_REGEX,
+        proxyUrl,
+        httpClient = new FetchHttpClient(),
+    } = options;
+
+    // Try to detect wrong urls and fix them. Currently, detects only sharing url instead of csv download one.
+    const match = /^(https:\/\/docs\.google\.com\/spreadsheets\/d\/(?:\w|-)+)\/?/.exec(url);
+    let fixedUrl = url;
+
+    if (match) {
+        fixedUrl = `${match[1]}/gviz/tq?tqx=out:csv`;
+    }
+
+    const response = await httpClient.sendRequest(new Request(fixedUrl, { method: 'GET' }), {
+        proxyUrl,
+    });
+
+    const string = new TextDecoder(encoding).decode(new Uint8Array(await response.arrayBuffer()));
+
+    return extractUrls({ string, urlRegExp });
+}
+
+export interface ExtractUrlsOptions {
+    /**
+     * The string to extract URLs from.
+     */
+    string: string;
+
+    /**
+     * Custom regular expression
+     * @default URL_NO_COMMAS_REGEX
+     */
+    urlRegExp?: RegExp;
+}
+
+/**
+ * Collects all URLs in an arbitrary string to an array, optionally using a custom regular expression.
+ */
+export function extractUrls(options: ExtractUrlsOptions): string[] {
+    ow(
+        options as any,
+        ow.object.exactShape({
+            string: ow.string,
+            urlRegExp: ow.optional.regExp,
+        }),
+    );
+    const lines = options.string.split('\n');
+    const result: string[] = [];
+    const urlRegExp = options.urlRegExp ?? URL_NO_COMMAS_REGEX;
+
+    for (const line of lines) {
+        result.push(...(line.match(urlRegExp) ?? []));
+    }
+
+    return result;
+}

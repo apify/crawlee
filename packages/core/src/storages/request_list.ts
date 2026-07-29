@@ -1,9 +1,9 @@
 import type { BaseHttpClient, Dictionary } from '@crawlee/types';
-import { downloadListOfUrls } from '@crawlee/utils';
 import ow, { ArgumentError } from 'ow';
 
 import type { Configuration } from '../configuration.js';
 import { EventType } from '../events/event_manager.js';
+import { downloadListOfUrls } from '../extract-urls.js';
 import type { CrawleeLogger } from '../log.js';
 import type { IProxyConfiguration } from '../proxy_configuration.js';
 import { type InternalSource, Request, type RequestOptions, type Source } from '../request.js';

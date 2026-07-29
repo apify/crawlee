@@ -2,7 +2,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import type { BaseHttpClient } from '@crawlee/types';
-import { downloadListOfUrls, extractUrls, URL_WITH_COMMAS_REGEX } from '@crawlee/utils';
+import { downloadListOfUrls, URL_WITH_COMMAS_REGEX } from '@crawlee/core';
+
+import { extractUrls } from '../../packages/core/src/extract-urls.js';
 
 const baseDataPath = path.join(import.meta.dirname, '..', 'shared', 'data');
 

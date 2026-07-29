@@ -1,7 +1,7 @@
-import { enqueueLinks, log } from '@crawlee/core';
+import { downloadListOfUrls, enqueueLinks, log } from '@crawlee/core';
 import { playwrightUtils } from '@crawlee/playwright';
 import { puppeteerUtils } from '@crawlee/puppeteer';
-import { downloadListOfUrls, parseOpenGraph, sleep, social } from '@crawlee/utils';
+import { parseOpenGraph, sleep, social } from '@crawlee/utils';
 
 export * from '@crawlee/core';
 export * from '@crawlee/utils';
