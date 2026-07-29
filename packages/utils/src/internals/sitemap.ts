@@ -11,7 +11,7 @@ import sax from 'sax';
 import MIMEType from 'whatwg-mimetype';
 
 import { mergeAsyncIterables } from './iterables.js';
-import { RobotsFile } from './robots.js';
+import { RobotsTxtFile } from './robots.js';
 
 interface SitemapUrlData {
     loc: string;
@@ -578,7 +578,7 @@ export async function* discoverValidSitemaps(
         }
 
         try {
-            const robotsFile = await RobotsFile.find(domainUrls[0], {
+            const robotsFile = await RobotsTxtFile.find(domainUrls[0], {
                 proxyUrl,
                 timeoutMillis: requestTimeoutMillis,
                 signal,
