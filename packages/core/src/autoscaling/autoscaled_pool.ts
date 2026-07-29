@@ -360,7 +360,12 @@ export class AutoscaledPool {
         }
         // - the budget has room.
         if (!this.concurrencySystem.hasCapacityForTask()) {
-            return done();
+            done();
+            // A shared governor's budget can stay saturated by another pool indefinitely, so we still have to be able
+            // to notice that *this* pool has run out of work — `maybeFinish()` is the only thing that ever resolves
+            // `run()`. It no-ops while this pool has tasks of its own in flight, which is every case in which an
+            // unshared governor reports no capacity.
+            return this.maybeFinish();
         }
         // - a task is ready.
         this.queryingIsTaskReady = true;

@@ -458,6 +458,54 @@ describe('ConcurrencySystem', () => {
             expect(combinedPeak).toBeLessThanOrEqual(4);
         });
 
+        test('a pool that ran out of work finishes while another one saturates the shared budget', async () => {
+            // A budget of exactly one slot, so the hog below holds all of it for as long as we let it.
+            const system = new ConcurrencySystem({ minConcurrency: 1, maxConcurrency: 1, desiredConcurrency: 1 });
+
+            let releaseHog: () => void;
+            const hogReleased = new Promise<void>((resolve) => {
+                releaseHog = resolve;
+            });
+
+            let hogStarted: () => void;
+            const hogRunning = new Promise<void>((resolve) => {
+                hogStarted = resolve;
+            });
+
+            let hogFinished = false;
+            const hog = new AutoscaledPool({
+                concurrencySystem: system,
+                runTaskFunction: async () => {
+                    hogStarted();
+                    await hogReleased;
+                    hogFinished = true;
+                },
+                isFinishedFunction: async () => hogFinished,
+                isTaskReadyFunction: async () => !hogFinished,
+            });
+
+            // Nothing to do and finished from the outset - the only thing that could keep this from resolving is the
+            // shared budget, which this pool is not waiting on for anything.
+            const drained = new AutoscaledPool({
+                concurrencySystem: system,
+                runTaskFunction: async () => {},
+                isFinishedFunction: async () => true,
+                isTaskReadyFunction: async () => false,
+            });
+
+            await system.start();
+            const hogPromise = hog.run();
+            await hogRunning;
+
+            // The single slot is now booked by the hog and stays booked. A borrower with no in-flight work of its own
+            // has nothing to wait for, so it must still be able to observe that it is finished.
+            await expect(drained.run()).resolves.toBeUndefined();
+
+            releaseHog!();
+            await hogPromise;
+            await system.stop();
+        });
+
         test('tuning a shared governor is reflected by every borrowing pool', () => {
             const system = new ConcurrencySystem();
 
