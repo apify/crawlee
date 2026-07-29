@@ -316,7 +316,7 @@ describe('PlaywrightCrawler', () => {
 
             expect(requestHandler).not.toHaveBeenCalled();
             expect(failed).toHaveLength(1);
-            expect(failed[0].errorMessages[0]).toMatch('navigation timed out');
+            expect(failed[0].errorMessages[0]).toMatch('Navigation timed out');
             // the hook is neither the navigation nor the request handler
             expect(failed[0].errorMessages[0]).not.toMatch('requestHandler timed out');
         });

@@ -431,13 +431,13 @@ export abstract class BrowserCrawler<
                         const remaining = remainingNavigationWindowMillis(ctx, this.navigationTimeoutMillis);
                         if (remaining <= 0) {
                             throw new TimeoutError(
-                                `navigation timed out after ${this.navigationTimeoutMillis / 1000} seconds.`,
+                                `Navigation timed out after ${this.navigationTimeoutMillis / 1000} seconds.`,
                             );
                         }
                         return addTimeoutToPromise(
                             async () => step(ctx),
                             remaining,
-                            `navigation timed out after ${this.navigationTimeoutMillis / 1000} seconds.`,
+                            `Navigation timed out after ${this.navigationTimeoutMillis / 1000} seconds.`,
                         );
                     });
 

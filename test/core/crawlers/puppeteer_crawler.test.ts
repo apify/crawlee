@@ -256,14 +256,14 @@ describe('PuppeteerCrawler', () => {
         expect(requestHandler).not.toBeCalled();
         const warnings = logWarningSpy.mock.calls.map((call) => [call[0].split('\n')[0], call[1]!.retryCount]);
         expect(warnings).toEqual([
-            ['Reclaiming failed request back to the list or queue. navigation timed out after 0.005 seconds.', 1],
-            ['Reclaiming failed request back to the list or queue. navigation timed out after 0.005 seconds.', 2],
-            ['Reclaiming failed request back to the list or queue. navigation timed out after 0.005 seconds.', 3],
+            ['Reclaiming failed request back to the list or queue. Navigation timed out after 0.005 seconds.', 1],
+            ['Reclaiming failed request back to the list or queue. Navigation timed out after 0.005 seconds.', 2],
+            ['Reclaiming failed request back to the list or queue. Navigation timed out after 0.005 seconds.', 3],
         ]);
 
         const errors = logErrorSpy.mock.calls.map((call) => [call[0], call[1]!.retryCount]);
         expect(errors).toEqual([
-            ['Request failed and reached maximum retries. navigation timed out after 0.005 seconds.', undefined],
+            ['Request failed and reached maximum retries. Navigation timed out after 0.005 seconds.', undefined],
         ]);
     });
 
@@ -299,14 +299,14 @@ describe('PuppeteerCrawler', () => {
         expect(requestHandler).not.toBeCalled();
         const warnings = logWarningSpy.mock.calls.map((call) => [call[0].split('\n')[0], call[1]!.retryCount]);
         expect(warnings).toEqual([
-            ['Reclaiming failed request back to the list or queue. navigation timed out after 0.005 seconds.', 1],
-            ['Reclaiming failed request back to the list or queue. navigation timed out after 0.005 seconds.', 2],
-            ['Reclaiming failed request back to the list or queue. navigation timed out after 0.005 seconds.', 3],
+            ['Reclaiming failed request back to the list or queue. Navigation timed out after 0.005 seconds.', 1],
+            ['Reclaiming failed request back to the list or queue. Navigation timed out after 0.005 seconds.', 2],
+            ['Reclaiming failed request back to the list or queue. Navigation timed out after 0.005 seconds.', 3],
         ]);
 
         const errors = logErrorSpy.mock.calls.map((call) => [call[0], call[1]!.retryCount]);
         expect(errors).toEqual([
-            ['Request failed and reached maximum retries. navigation timed out after 0.005 seconds.', undefined],
+            ['Request failed and reached maximum retries. Navigation timed out after 0.005 seconds.', undefined],
         ]);
     });
 

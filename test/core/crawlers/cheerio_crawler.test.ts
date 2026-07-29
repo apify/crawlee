@@ -347,8 +347,8 @@ describe('CheerioCrawler', () => {
 
             failed.forEach((request) => {
                 expect(request.errorMessages).toHaveLength(2);
-                expect(request.errorMessages[0]).toMatch('navigation timed out');
-                expect(request.errorMessages[1]).toMatch('navigation timed out');
+                expect(request.errorMessages[0]).toMatch('Navigation timed out');
+                expect(request.errorMessages[1]).toMatch('Navigation timed out');
             });
         });
 
@@ -416,7 +416,7 @@ describe('CheerioCrawler', () => {
 
                 request.errorMessages.forEach((message) => {
                     // a hook overrunning shares the navigation window, so it reads as a navigation timeout
-                    expect(message).toMatch('navigation timed out');
+                    expect(message).toMatch('Navigation timed out');
                     // ...not the request handler, which is timed separately
                     expect(message).not.toMatch('requestHandler timed out');
                 });
@@ -448,7 +448,7 @@ describe('CheerioCrawler', () => {
 
             failed.forEach((request) => {
                 request.errorMessages.forEach((message) => {
-                    expect(message).toMatch('navigation timed out');
+                    expect(message).toMatch('Navigation timed out');
                 });
             });
         });

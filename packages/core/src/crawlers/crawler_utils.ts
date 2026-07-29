@@ -10,5 +10,5 @@ export function handleRequestTimeout({ session, errorMessage }: { session?: ISes
     session?.markBad();
     const timeoutMillis = /(\d+)\s?ms/.exec(errorMessage)?.[1]; // first capturing group
     const timeoutSecs = Number(timeoutMillis) / 1000;
-    throw new TimeoutError(`navigation timed out after ${timeoutSecs} seconds.`);
+    throw new TimeoutError(`Navigation timed out after ${timeoutSecs} seconds.`);
 }
