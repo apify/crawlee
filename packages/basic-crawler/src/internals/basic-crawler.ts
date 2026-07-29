@@ -642,16 +642,17 @@ export class BasicCrawler<
     private requestManagerTimeoutsApplied = false;
 
     /**
-     * The governor backing the crawler's {@apilink AutoscaledPool}: either the injected
+     * Resolves the governor for one run: either the injected
      * {@apilink BasicCrawlerOptions.concurrencySystem|`concurrencySystem`} (borrowed — the caller owns its lifecycle)
-     * or a default that {@apilink BasicCrawler._init|`_init()`} builds and starts for each run.
+     * or a freshly built default with the concurrency shortcuts folded in (owned, so the crawler starts and stops it).
      */
-    private concurrencySystemDep: OwnedOrInjected<IConcurrencySystem, ConcurrencySystem>;
+    private readonly resolveConcurrencySystem: () => OwnedOrInjected<IConcurrencySystem, ConcurrencySystem>;
 
-    private readonly injectedConcurrencySystem?: IConcurrencySystem;
-
-    /** Builds the crawler-owned default governor with the concurrency shortcuts folded in. */
-    private readonly buildDefaultConcurrencySystem: () => ConcurrencySystem;
+    /**
+     * The governor backing the crawler's {@apilink AutoscaledPool}, as resolved by
+     * {@apilink BasicCrawler._init|`_init()`}. Absent until the first run, so a `teardown()` before it is a no-op.
+     */
+    private concurrencySystemDep?: OwnedOrInjected<IConcurrencySystem, ConcurrencySystem>;
 
     /**
      * A reference to the underlying {@apilink AutoscaledPool} class that runs the crawler's task loop.
@@ -1142,20 +1143,15 @@ export class BasicCrawler<
 
             this.autoscaledPoolOptions = { ...autoscaledPoolOptions, ...basicCrawlerAutoscaledPoolConfiguration };
 
-            this.injectedConcurrencySystem = concurrencySystem;
-            this.buildDefaultConcurrencySystem = () =>
-                this.createDefaultConcurrencySystem({
-                    minConcurrency,
-                    maxConcurrency,
-                    maxTasksPerMinute: maxRequestsPerMinute,
-                    log: this.log,
-                });
-
-            // An empty owned slot until `_init()` builds the default, so that a `teardown()` before the first `run()`
-            // stays a no-op.
-            this.concurrencySystemDep = OwnedOrInjected.resolve<IConcurrencySystem, ConcurrencySystem>(
-                concurrencySystem,
-            );
+            this.resolveConcurrencySystem = () =>
+                OwnedOrInjected.resolve<IConcurrencySystem, ConcurrencySystem>(concurrencySystem, () =>
+                    this.createDefaultConcurrencySystem({
+                        minConcurrency,
+                        maxConcurrency,
+                        maxTasksPerMinute: maxRequestsPerMinute,
+                        log: this.log,
+                    }),
+                );
         } finally {
             serviceLocatorScope.exitScope();
         }
@@ -1929,10 +1925,7 @@ export class BasicCrawler<
         // An owned governor is rebuilt (and started) for every run, so it always starts from a clean slate — stale
         // resource snapshots or a previous run's scaled desired concurrency would otherwise distort this run's
         // scaling. An injected one is long-lived and its lifecycle belongs to the caller.
-        this.concurrencySystemDep = OwnedOrInjected.resolve<IConcurrencySystem, ConcurrencySystem>(
-            this.injectedConcurrencySystem,
-            this.buildDefaultConcurrencySystem,
-        );
+        this.concurrencySystemDep = this.resolveConcurrencySystem();
         await this.concurrencySystemDep.ifOwned((system) => system.start());
 
         this.autoscaledPool = new AutoscaledPool({
@@ -2436,7 +2429,7 @@ export class BasicCrawler<
         await this.sessionPoolDep.ifOwned((pool) => pool.teardown());
 
         await this.autoscaledPool?.abort();
-        await this.concurrencySystemDep.ifOwned((system) => system.stop());
+        await this.concurrencySystemDep?.ifOwned((system) => system.stop());
     }
 
     protected _getCookieHeaderFromRequest(request: Request) {
