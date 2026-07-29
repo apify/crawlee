@@ -1,4 +1,4 @@
-import { asyncifyIterable, chunkedAsyncIterable, peekableAsyncIterable } from '@crawlee/utils';
+import { asyncifyIterable, chunkedAsyncIterable, peekableAsyncIterable } from '@crawlee/core';
 import { describe, expect, it } from 'vitest';
 
 describe('asyncifyIterable', () => {
