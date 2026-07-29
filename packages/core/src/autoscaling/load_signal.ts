@@ -1,10 +1,5 @@
 import { weightedAvg } from '@crawlee/utils';
 
-import type { BetterIntervalID } from '@apify/utilities';
-import { betterClearInterval, betterSetInterval } from '@apify/utilities';
-
-import type { EventManager, EventTypeName } from '../events/event_manager.js';
-import { serviceLocator } from '../service_locator.js';
 import type { ClientInfo } from './system_status.js';
 
 /**
@@ -73,8 +68,8 @@ export interface LoadSignal {
 }
 
 /**
- * A time-pruning, time-windowed store for `LoadSnapshot` values.
- * Signals compose with this instead of inheriting from a base class.
+ * A time-pruning, time-windowed store for `LoadSnapshot` values. All four built-in signals compose with one of these,
+ * and so can yours — it is the only part of their machinery worth reusing.
  */
 export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
     private snapshots: T[] = [];
@@ -88,9 +83,7 @@ export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
 
     /**
      * Sizes retention to the window the signal will be sampled over, as handed to it in
-     * {@apilink LoadSignal.start|`start()`} — keep exactly what will be asked for, no more. Signals created through
-     * {@apilink SnapshotStore.fromInterval|`fromInterval()`}/{@apilink SnapshotStore.fromEvent|`fromEvent()`} call
-     * this for you; call it yourself when composing a store into a hand-written signal.
+     * {@apilink LoadSignal.start|`start()`} — keep exactly what will be asked for, no more.
      */
     useSampleWindow(maxSampleWindowMillis: number): void {
         this.historyMillis = maxSampleWindowMillis;
@@ -141,89 +134,6 @@ export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
      */
     getAll(): T[] {
         return this.snapshots;
-    }
-
-    /**
-     * Create a `LoadSignal` that snapshots on a `betterSetInterval` tick.
-     *
-     * The `handler` receives the store (to read previous snapshots) and the
-     * interval callback (which it **must** call when done). It should call
-     * `store.push()` to record a snapshot.
-     */
-    static fromInterval<T extends LoadSnapshot>(options: {
-        name: string;
-        overloadedRatio: number;
-        intervalMillis: number;
-        handler: (store: SnapshotStore<T>, intervalCallback: () => unknown) => void;
-    }): Omit<LoadSignal, 'getSample'> & {
-        store: SnapshotStore<T>;
-        handle: (cb: () => unknown) => void;
-        getSample(sampleDurationMillis?: number): T[];
-    } {
-        const store = new SnapshotStore<T>();
-        let interval: BetterIntervalID = null!;
-
-        const handle = (cb: () => unknown) => options.handler(store, cb);
-
-        return {
-            name: options.name,
-            overloadedRatio: options.overloadedRatio,
-            store,
-            handle,
-            getSample: (ms) => store.getSample(ms),
-            async start({ maxSampleWindowMillis }) {
-                store.useSampleWindow(maxSampleWindowMillis);
-                interval = betterSetInterval(handle, options.intervalMillis);
-            },
-            async stop() {
-                betterClearInterval(interval);
-            },
-        };
-    }
-
-    /**
-     * Create a `LoadSignal` that snapshots in response to an `EventManager` event.
-     *
-     * The `handler` receives the event payload and the store. It should call
-     * `store.push()` to record a snapshot.
-     *
-     * The event manager is subscribed to when the signal starts. Leave `events` unset to use whichever manager is
-     * registered at that point — which is what you want unless you have a specific one in mind, since a signal
-     * constructed ahead of time (to be wrapped, or shared between systems) would otherwise capture whatever happened
-     * to be registered back then.
-     */
-    static fromEvent<T extends LoadSnapshot, E>(options: {
-        name: string;
-        overloadedRatio: number;
-        events?: EventManager;
-        event: EventTypeName;
-        handler: (store: SnapshotStore<T>, payload: E) => void;
-    }): Omit<LoadSignal, 'getSample'> & {
-        store: SnapshotStore<T>;
-        handle: (payload: E) => void;
-        getSample(sampleDurationMillis?: number): T[];
-    } {
-        const store = new SnapshotStore<T>();
-
-        const handle = (payload: E) => options.handler(store, payload);
-        let events: EventManager | undefined;
-
-        return {
-            name: options.name,
-            overloadedRatio: options.overloadedRatio,
-            store,
-            handle,
-            getSample: (ms) => store.getSample(ms),
-            async start({ maxSampleWindowMillis }) {
-                store.useSampleWindow(maxSampleWindowMillis);
-                events = options.events ?? serviceLocator.getEventManager();
-                events.on(options.event, handle);
-            },
-            async stop() {
-                events?.off(options.event, handle);
-                events = undefined;
-            },
-        };
     }
 }
 

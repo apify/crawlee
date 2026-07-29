@@ -1,4 +1,6 @@
+import type { EventManager } from '../events/event_manager.js';
 import { EventType } from '../events/event_manager.js';
+import { serviceLocator } from '../service_locator.js';
 import type { LoadSignal, LoadSignalStartContext, LoadSnapshot } from './load_signal.js';
 import { SnapshotStore } from './load_signal.js';
 import type { SystemInfo } from './system_status.js';
@@ -45,47 +47,44 @@ export class CpuLoadSignal implements LoadSignal {
     readonly name = 'cpuInfo';
     readonly overloadedRatio: number;
 
-    private readonly signal: ReturnType<typeof SnapshotStore.fromEvent<CpuSnapshot, SystemInfo>>;
+    private readonly store = new SnapshotStore<CpuSnapshot>();
+    private events?: EventManager;
 
     constructor(options: CpuLoadSignalOptions = {}) {
         this.overloadedRatio = options.overloadedRatio ?? 0.4;
-
-        this.signal = SnapshotStore.fromEvent<CpuSnapshot, SystemInfo>({
-            name: this.name,
-            overloadedRatio: this.overloadedRatio,
-            // The event manager is left to be resolved when the signal starts, so an instance built ahead of time
-            // cannot capture whichever one happened to be registered at that moment.
-            event: EventType.SYSTEM_INFO,
-            handler(store, systemInfo) {
-                const { cpuCurrentUsage, isCpuOverloaded } = systemInfo;
-                const createdAt = systemInfo.createdAt ? new Date(systemInfo.createdAt) : new Date();
-
-                store.push(
-                    {
-                        createdAt,
-                        isOverloaded: isCpuOverloaded!,
-                        usedRatio: Math.ceil(cpuCurrentUsage! / 100),
-                    },
-                    createdAt,
-                );
-            },
-        });
+        this.handle = this.handle.bind(this);
     }
 
-    async start(context: LoadSignalStartContext): Promise<void> {
-        await this.signal.start(context);
+    async start({ maxSampleWindowMillis }: LoadSignalStartContext): Promise<void> {
+        this.store.useSampleWindow(maxSampleWindowMillis);
+
+        // Resolved here rather than in the constructor, so an instance built ahead of time (to be wrapped, or shared
+        // between systems) cannot capture whichever event manager happened to be registered at that moment.
+        this.events = serviceLocator.getEventManager();
+        this.events.on(EventType.SYSTEM_INFO, this.handle);
     }
 
     async stop(): Promise<void> {
-        await this.signal.stop();
+        this.events?.off(EventType.SYSTEM_INFO, this.handle);
+        this.events = undefined;
     }
 
     getSample(sampleDurationMillis?: number): LoadSnapshot[] {
-        return this.signal.getSample(sampleDurationMillis);
+        return this.store.getSample(sampleDurationMillis);
     }
 
     /** @internal Records a snapshot from a `SYSTEM_INFO` payload. Exposed for tests. */
     handle(systemInfo: SystemInfo): void {
-        this.signal.handle(systemInfo);
+        const { cpuCurrentUsage, isCpuOverloaded } = systemInfo;
+        const createdAt = systemInfo.createdAt ? new Date(systemInfo.createdAt) : new Date();
+
+        this.store.push(
+            {
+                createdAt,
+                isOverloaded: isCpuOverloaded!,
+                usedRatio: Math.ceil(cpuCurrentUsage! / 100),
+            },
+            createdAt,
+        );
     }
 }

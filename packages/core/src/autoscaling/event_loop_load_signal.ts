@@ -1,3 +1,6 @@
+import type { BetterIntervalID } from '@apify/utilities';
+import { betterClearInterval, betterSetInterval } from '@apify/utilities';
+
 import type { LoadSignal, LoadSignalStartContext, LoadSnapshot } from './load_signal.js';
 import { SnapshotStore } from './load_signal.js';
 
@@ -47,60 +50,56 @@ export class EventLoopLoadSignal implements LoadSignal {
     readonly name = 'eventLoopInfo';
     readonly overloadedRatio: number;
 
-    private readonly signal: ReturnType<typeof SnapshotStore.fromInterval<EventLoopSnapshot>>;
+    private readonly store = new SnapshotStore<EventLoopSnapshot>();
+    private readonly intervalMillis: number;
+    private readonly maxBlockedMillis: number;
+    private interval?: BetterIntervalID;
 
     constructor(options: EventLoopLoadSignalOptions = {}) {
         this.overloadedRatio = options.overloadedRatio ?? 0.6;
-
-        const intervalMillis = (options.snapshotIntervalSecs ?? 0.5) * 1000;
-        const maxBlockedMillis = options.maxBlockedMillis ?? 50;
-
-        this.signal = SnapshotStore.fromInterval<EventLoopSnapshot>({
-            name: this.name,
-            overloadedRatio: this.overloadedRatio,
-            intervalMillis,
-            handler(store, intervalCallback) {
-                const now = new Date();
-
-                const snapshot: EventLoopSnapshot = {
-                    createdAt: now,
-                    isOverloaded: false,
-                    exceededMillis: 0,
-                };
-
-                const all = store.getAll();
-                const previousSnapshot = all[all.length - 1];
-
-                if (previousSnapshot) {
-                    // How much later than scheduled this tick ran is how long the loop was blocked.
-                    const delta = now.getTime() - +previousSnapshot.createdAt - intervalMillis;
-
-                    if (delta > maxBlockedMillis) snapshot.isOverloaded = true;
-                    snapshot.exceededMillis = Math.max(delta - maxBlockedMillis, 0);
-                }
-
-                store.push(snapshot, now);
-                intervalCallback();
-            },
-        });
+        this.intervalMillis = (options.snapshotIntervalSecs ?? 0.5) * 1000;
+        this.maxBlockedMillis = options.maxBlockedMillis ?? 50;
+        this.handle = this.handle.bind(this);
     }
 
-    async start(context: LoadSignalStartContext): Promise<void> {
-        await this.signal.start(context);
+    async start({ maxSampleWindowMillis }: LoadSignalStartContext): Promise<void> {
+        this.store.useSampleWindow(maxSampleWindowMillis);
+        this.interval = betterSetInterval(this.handle, this.intervalMillis);
     }
 
     async stop(): Promise<void> {
-        await this.signal.stop();
+        if (this.interval) betterClearInterval(this.interval);
+        this.interval = undefined;
     }
 
     getSample(sampleDurationMillis?: number): LoadSnapshot[] {
-        return this.signal.getSample(sampleDurationMillis);
+        return this.store.getSample(sampleDurationMillis);
     }
 
     /**
-     * @internal Records one snapshot. Exposed so tests can drive the measurement without waiting on a timer.
+     * Records one snapshot: how much later than scheduled this tick ran is how long the loop was blocked.
+     * @internal Also lets tests drive the measurement without waiting on a timer.
      */
     handle(intervalCallback: () => unknown): void {
-        this.signal.handle(intervalCallback);
+        const now = new Date();
+
+        const snapshot: EventLoopSnapshot = {
+            createdAt: now,
+            isOverloaded: false,
+            exceededMillis: 0,
+        };
+
+        const all = this.store.getAll();
+        const previousSnapshot = all[all.length - 1];
+
+        if (previousSnapshot) {
+            const delta = now.getTime() - +previousSnapshot.createdAt - this.intervalMillis;
+
+            if (delta > this.maxBlockedMillis) snapshot.isOverloaded = true;
+            snapshot.exceededMillis = Math.max(delta - this.maxBlockedMillis, 0);
+        }
+
+        this.store.push(snapshot, now);
+        intervalCallback();
     }
 }

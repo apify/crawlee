@@ -1,9 +1,6 @@
-import ow from 'ow';
-
 import type { LoadSignal } from './load_signal.js';
 import { evaluateLoadSignalSample } from './load_signal.js';
-import type { LoadSignalsOptions } from './snapshotter.js';
-import { DEFAULT_SNAPSHOT_HISTORY_SECS, Snapshotter } from './snapshotter.js';
+import type { LoadSignalsOptions, Snapshotter } from './snapshotter.js';
 
 /**
  * Represents the current status of the system.
@@ -47,6 +44,13 @@ export interface SystemInfo {
 export const DEFAULT_CURRENT_HISTORY_SECS = 5;
 
 /**
+ * How far back the *historical* system status looks by default — the window autoscaling decisions are based on, and
+ * therefore how much history the signals are asked to retain.
+ * @internal
+ */
+export const DEFAULT_SNAPSHOT_HISTORY_SECS = 30;
+
+/**
  * An implementation detail of the {@apilink ConcurrencySystem} — configure it through
  * {@apilink ConcurrencySystemOptions} (`loadSignals`, `currentHistorySecs` and `snapshotHistorySecs`).
  * @internal
@@ -67,9 +71,9 @@ export interface SystemStatusOptions {
     historySecs?: number;
 
     /**
-     * The `Snapshotter` instance to be queried for `SystemStatus`.
+     * The `Snapshotter` whose built-in signals are evaluated.
      */
-    snapshotter?: Snapshotter;
+    snapshotter: Snapshotter;
 
     /**
      * Additional load signals to include in the system status evaluation.
@@ -137,20 +141,9 @@ const BUILTIN_SIGNAL_NAMES = new Set(Object.keys(BUILTIN_SIGNAL_OPTION_KEYS));
 export class SystemStatus {
     private readonly currentHistoryMillis: number;
     private readonly historyMillis: number;
-    private readonly snapshotter: Snapshotter;
     private readonly signals: LoadSignal[];
 
-    constructor(options: SystemStatusOptions = {}) {
-        ow(
-            options,
-            ow.object.exactShape({
-                currentHistorySecs: ow.optional.number,
-                historySecs: ow.optional.number,
-                snapshotter: ow.optional.object,
-                loadSignals: ow.optional.array,
-            }),
-        );
-
+    constructor(options: SystemStatusOptions) {
         const {
             currentHistorySecs = DEFAULT_CURRENT_HISTORY_SECS,
             historySecs = DEFAULT_SNAPSHOT_HISTORY_SECS,
@@ -160,10 +153,18 @@ export class SystemStatus {
 
         this.currentHistoryMillis = currentHistorySecs * 1000;
         this.historyMillis = historySecs * 1000;
-        this.snapshotter = snapshotter || new Snapshotter();
 
-        this.signals = [...this.snapshotter.getLoadSignals(), ...loadSignals];
+        this.signals = [...snapshotter.getLoadSignals(), ...loadSignals];
         this.assertUniqueSignalNames();
+    }
+
+    /**
+     * The widest window any signal will be queried with, and therefore exactly how much history the signals are asked
+     * to retain when they start. Derived here, where the windows are resolved, so nothing has to reapply their
+     * defaults.
+     */
+    get maxSampleWindowMillis(): number {
+        return Math.max(this.currentHistoryMillis, this.historyMillis);
     }
 
     /**

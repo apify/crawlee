@@ -1,5 +1,5 @@
 import type { LoadSignal, LoadSnapshot } from '@crawlee/core';
-import { Snapshotter, SystemStatus } from '@crawlee/core';
+import { SystemStatus } from '@crawlee/core';
 
 import log from '@apify/log';
 
@@ -223,12 +223,6 @@ describe('SystemStatus', () => {
         systemStatus.currentHistoryMillis = 12;
         expect(systemStatus.getCurrentStatus().isSystemIdle).toBe(false);
         expect(systemStatus.getHistoricalStatus().isSystemIdle).toBe(false);
-    });
-
-    test('creates a snapshotter when none is passed', () => {
-        const systemStatus = new SystemStatus();
-        // @ts-expect-error Accessing private prop
-        expect(systemStatus.snapshotter).toBeInstanceOf(Snapshotter);
     });
 
     test('the historical window is requested explicitly, so a long-memory custom signal cannot widen it', () => {

@@ -1,5 +1,3 @@
-import ow from 'ow';
-
 import type { ClientLoadSignalOptions } from './client_load_signal.js';
 import { ClientLoadSignal } from './client_load_signal.js';
 import type { CpuLoadSignalOptions } from './cpu_load_signal.js';
@@ -9,13 +7,6 @@ import { EventLoopLoadSignal } from './event_loop_load_signal.js';
 import type { LoadSignal, LoadSignalStartContext } from './load_signal.js';
 import type { MemoryLoadSignalOptions } from './memory_load_signal.js';
 import { MemoryLoadSignal } from './memory_load_signal.js';
-
-/**
- * How long the built-in signals retain snapshots, and — since the historical status is evaluated over the same
- * window — how far back autoscaling decisions look by default.
- * @internal
- */
-export const DEFAULT_SNAPSHOT_HISTORY_SECS = 30;
 
 /**
  * The load signals a {@apilink ConcurrencySystem} watches to decide whether the machine is overloaded.
@@ -112,19 +103,7 @@ export class Snapshotter {
      * @param [options] All `Snapshotter` configuration options.
      */
     constructor(options: SnapshotterOptions = {}) {
-        // Read the per-signal options before `ow` narrows `options` to the validator's own shape, which would erase
-        // the `| false` in their declared types.
         const { memory = {}, eventLoop = {}, cpu = {}, client = {} } = options;
-
-        ow(
-            options,
-            ow.object.exactShape({
-                memory: ow.any(ow.object, ow.boolean, ow.undefined),
-                eventLoop: ow.any(ow.object, ow.boolean, ow.undefined),
-                cpu: ow.any(ow.object, ow.boolean, ow.undefined),
-                client: ow.any(ow.object, ow.boolean, ow.undefined),
-            }),
-        );
 
         // Each signal resolves its own ambient dependencies when started, and is told the window it will be sampled
         // over then too - so there is nothing to thread in here beyond the caller's tuning.

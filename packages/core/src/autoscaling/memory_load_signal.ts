@@ -55,21 +55,22 @@ export class MemoryLoadSignal implements LoadSignal {
 
     private readonly store = new SnapshotStore<MemorySnapshot>();
     private readonly maxUsedRatio: number;
-    private config?: Configuration;
-    private events?: EventManager;
-    private log?: CrawleeLogger;
-    private maxMemoryRatio: number | undefined;
+    /** All resolved in `start()`, before anything that reads them can fire. */
+    private config!: Configuration;
+    private log!: CrawleeLogger;
     private maxMemoryBytes!: number;
+    private events?: EventManager;
+    private maxMemoryRatio: number | undefined;
     private lastLoggedCriticalMemoryOverloadAt: Date | null = null;
 
     constructor(options: MemoryLoadSignalOptions = {}) {
         this.maxUsedRatio = options.maxUsedRatio ?? 0.9;
         this.overloadedRatio = options.overloadedRatio ?? 0.2;
-        this._onSystemInfo = this._onSystemInfo.bind(this);
+        this.handle = this.handle.bind(this);
     }
 
-    async start(context: LoadSignalStartContext): Promise<void> {
-        this.store.useSampleWindow(context.maxSampleWindowMillis);
+    async start({ maxSampleWindowMillis }: LoadSignalStartContext): Promise<void> {
+        this.store.useSampleWindow(maxSampleWindowMillis);
 
         // Resolved here rather than in the constructor: an instance built ahead of time (to be wrapped, or shared
         // between systems) must not capture whichever services happened to be registered at that moment.
@@ -86,7 +87,7 @@ export class MemoryLoadSignal implements LoadSignal {
             if (!this.maxMemoryRatio) {
                 throw new Error('availableMemoryRatio is not set in configuration.');
             } else {
-                this.log!.debug(
+                this.log.debug(
                     `Setting max memory of this run to ${this.maxMemoryRatio * 100} % of available memory. ` +
                         'Use the CRAWLEE_MEMORY_MBYTES or CRAWLEE_AVAILABLE_MEMORY_RATIO environment variable to override it.',
                 );
@@ -95,11 +96,11 @@ export class MemoryLoadSignal implements LoadSignal {
             this.maxMemoryBytes = await this._getTotalMemoryBytes();
         }
 
-        this.events.on(EventType.SYSTEM_INFO, this._onSystemInfo);
+        this.events.on(EventType.SYSTEM_INFO, this.handle);
     }
 
     async stop(): Promise<void> {
-        this.events?.off(EventType.SYSTEM_INFO, this._onSystemInfo);
+        this.events?.off(EventType.SYSTEM_INFO, this.handle);
         this.events = undefined;
     }
 
@@ -107,12 +108,12 @@ export class MemoryLoadSignal implements LoadSignal {
         return this.store.getSample(sampleDurationMillis);
     }
 
-    /** @internal */
-    _onSystemInfo(systemInfo: SystemInfo): void {
+    /** @internal Records a snapshot from a `SYSTEM_INFO` payload. Exposed for tests. */
+    handle(systemInfo: SystemInfo): void {
         const createdAt = systemInfo.createdAt ? new Date(systemInfo.createdAt) : new Date();
         const { memCurrentBytes, memTotalBytes } = systemInfo;
 
-        let maxMemoryBytes = this.maxMemoryBytes!;
+        let maxMemoryBytes = this.maxMemoryBytes;
         if (this.maxMemoryRatio !== undefined && this.maxMemoryRatio > 0) {
             maxMemoryBytes = this.maxMemoryRatio * (memTotalBytes ?? this.maxMemoryBytes);
         }
@@ -129,7 +130,7 @@ export class MemoryLoadSignal implements LoadSignal {
 
     /** @internal */
     _memoryOverloadWarning(systemInfo: SystemInfo, maxMemoryBytes?: number): void {
-        const effectiveMax = maxMemoryBytes ?? this.maxMemoryBytes!;
+        const effectiveMax = maxMemoryBytes ?? this.maxMemoryBytes;
         const { memCurrentBytes } = systemInfo;
         const createdAt = systemInfo.createdAt ? new Date(systemInfo.createdAt) : new Date();
         if (
@@ -146,7 +147,7 @@ export class MemoryLoadSignal implements LoadSignal {
         if (isCriticalOverload) {
             const usedPercentage = Math.round((memCurrentBytes! / effectiveMax) * 100);
             const toMb = (bytes: number) => Math.round(bytes / 1024 ** 2);
-            this.log?.warning(
+            this.log.warning(
                 'Memory is critically overloaded. ' +
                     `Using ${toMb(memCurrentBytes!)} MB of ${toMb(
                         effectiveMax,
@@ -157,7 +158,7 @@ export class MemoryLoadSignal implements LoadSignal {
     }
 
     private async _getTotalMemoryBytes(): Promise<number> {
-        const containerized = this.config!.containerized ?? (await isContainerized());
+        const containerized = this.config.containerized ?? (await isContainerized());
         return (await getMemoryInfo({ containerized, logger: serviceLocator.getLogger() })).totalBytes;
     }
 }
