@@ -114,3 +114,69 @@ This controls how many total requests can be made per minute. It counts the amou
 This option can be set by specifying [`maxRequestsPerMinute`](#maxrequestsperminute) in your crawler options too, as it is a shortcut for visibility and ease of access.
 
 :::
+
+## Load signals
+
+Whether the machine counts as overloaded is decided by *load signals*. Four are built in — memory, event loop, CPU and the storage client's rate-limit errors — and each is configured by its own bag under <ApiLink to="core/interface/ConcurrencySystemOptions#loadSignals">`loadSignals`</ApiLink>, carrying both its limits and the `overloadedRatio` at which it fires. If any signal reports overload, the system is overloaded and concurrency is held down.
+
+A signal we don't want watched at all can be switched **off** with `false`, which stops it being collected as well as evaluated (its entry in the reported status then simply reads as not overloaded):
+
+```ts
+const concurrencySystem = new ConcurrencySystem({
+    loadSignals: {
+        // Our storage backend reports no rate-limit statistics, so stop polling it every second.
+        client: false,
+        eventLoop: { maxBlockedMillis: 100 },
+    },
+});
+```
+
+We can also watch resources of our own by implementing <ApiLink to="core/interface/LoadSignal">`LoadSignal`</ApiLink> — navigation timeouts or proxy health, say — and passing them in `loadSignals.custom`. The <ApiLink to="core/class/SnapshotStore">`SnapshotStore`</ApiLink> helper does the time-windowed bookkeeping for us:
+
+```ts
+const store = new SnapshotStore();
+
+const proxyHealth: LoadSignal = {
+    name: 'proxyHealth',
+    overloadedRatio: 0.3,
+    async start({ maxSampleWindowMillis }) {
+        // Retain exactly the window we will be sampled over.
+        store.useSampleWindow(maxSampleWindowMillis);
+        // ...start measuring, calling store.push() per measurement
+    },
+    async stop() { /* ...stop measuring */ },
+    getSample: (sampleDurationMillis) => store.getSample(sampleDurationMillis),
+};
+
+const concurrencySystem = new ConcurrencySystem({ loadSignals: { custom: [proxyHealth] } });
+```
+
+Each built-in is a public class too — `MemoryLoadSignal`, `EventLoopLoadSignal`, `CpuLoadSignal`, `ClientLoadSignal` — taking exactly the bag its `loadSignals` key accepts. Constructing one directly is how we *wrap* a built-in rather than reimplement it, for instance to stop its verdict from flapping:
+
+```ts
+const cpu = new CpuLoadSignal({ overloadedRatio: 0.4 });
+
+const stickyCpu: LoadSignal = {
+    ...cpu,
+    name: 'cpuSticky',
+    start: (context) => cpu.start(context),
+    stop: () => cpu.stop(),
+    // Hold the overload verdict for a while after the CPU recovers.
+    getSample: (ms) => holdOverloads(cpu.getSample(ms)),
+};
+
+const concurrencySystem = new ConcurrencySystem({
+    // The built-in has to go: signal names are unique, and a duplicate throws.
+    loadSignals: { cpu: false, custom: [stickyCpu] },
+});
+```
+
+:::info Signal names are the keys of the reported status
+
+Two signals cannot share a name, and a duplicate throws at construction time. Taking over one of the built-in names (`memInfo`, `eventLoopInfo`, `cpuInfo`, `clientInfo`) therefore means switching that built-in off first, as above.
+
+:::
+
+### `snapshotHistorySecs` and `currentHistorySecs`
+
+Signals are not read as a single instantaneous measurement but averaged over a window, and there are two: `currentHistorySecs` (default `5`) is the short window that gates whether one more request may start, while `snapshotHistorySecs` (default `30`) is the longer window autoscaling decisions are based on. Dispatch therefore reacts to spikes quickly while scaling stays stable. Both apply to every signal alike, built-in or custom, and signals size their snapshot retention to the wider of the two — so raising `snapshotHistorySecs` is what costs memory.

@@ -115,8 +115,8 @@ export interface ConcurrencySystemOptions {
 export interface IConcurrencySystem {
     /**
      * The number of tasks that should currently be running in parallel, assuming a sufficient supply of them. How it
-     * is derived (autoscaling, fixed configuration, an external signal) is up to the implementation — which is why it
-     * is read-only here: tuning knobs live on the concrete instance its owner holds.
+     * is derived is up to the implementation, hence read-only here — tuning knobs live on the concrete instance its
+     * owner holds.
      */
     readonly desiredConcurrency: number;
 
@@ -133,11 +133,11 @@ export interface IConcurrencySystem {
     readonly isRunning: boolean;
 
     /**
-     * May **one more** task start right now? A cheap pre-check the pool consults before querying task readiness; the
-     * booking itself happens in {@apilink IConcurrencySystem.tryRegisterTaskStart|`tryRegisterTaskStart()`}.
+     * May **one more** task start right now? A cheap pre-check the pool consults before querying task readiness;
+     * booking happens in {@apilink IConcurrencySystem.tryRegisterTaskStart|`tryRegisterTaskStart()`}.
      *
-     * Must **not** enforce rate limits that only make sense for ready tasks (e.g. a per-minute task cap) — the pool
-     * calls this before knowing whether any task is ready, so a refusal here would stall an already-empty queue.
+     * Must **not** enforce rate limits that only make sense for ready tasks (e.g. a per-minute task cap): the pool
+     * calls this before knowing whether any task is ready, so refusing here would stall an already-empty queue.
      */
     hasCapacityForTask(): boolean;
 

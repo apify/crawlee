@@ -30,16 +30,7 @@ export interface CpuLoadSignalOptions {
  * Tracks CPU usage via `SYSTEM_INFO` events and reports overload when the platform or local OS metrics indicate the
  * CPU is overloaded.
  *
- * The {@apilink ConcurrencySystem} builds one of these by default, so you only need to construct it yourself to wrap
- * or otherwise adapt it — in which case switch the default off, since two signals cannot share a name:
- *
- * ```typescript
- * const cpu = new CpuLoadSignal({ overloadedRatio: 0.5 });
- *
- * new ConcurrencySystem({
- *     loadSignals: { cpu: false, custom: [withHysteresis(cpu)] },
- * });
- * ```
+ * Built by default; construct one yourself only to wrap or adapt it — see {@apilink LoadSignal}.
  *
  * @category Scaling
  */
@@ -55,8 +46,8 @@ export class CpuLoadSignal implements LoadSignal {
         this.handle = this.handle.bind(this);
     }
 
-    async start({ maxSampleWindowMillis }: LoadSignalStartContext): Promise<void> {
-        this.store.useSampleWindow(maxSampleWindowMillis);
+    async start(context: LoadSignalStartContext): Promise<void> {
+        this.store.useSampleWindow(context.maxSampleWindowMillis);
 
         // Resolved here rather than in the constructor, so an instance built ahead of time (to be wrapped, or shared
         // between systems) cannot capture whichever event manager happened to be registered at that moment.

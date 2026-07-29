@@ -26,13 +26,15 @@ export interface LoadSignalStartContext {
 }
 
 /**
- * A signal that reports whether a particular resource is overloaded.
+ * A signal that reports whether a particular resource is overloaded. The {@apilink ConcurrencySystem} aggregates
+ * several of them — if any one reports overload, the system is overloaded.
  *
- * The {@apilink ConcurrencySystem} aggregates multiple `LoadSignal` instances to determine
- * overall system health. The built-in signals cover memory, CPU, event loop,
- * and API client rate limits. You can implement this interface to add
- * custom overload signals (e.g. navigation timeouts, proxy health) and pass them via
- * {@apilink ConcurrencySystemOptions.loadSignals|`loadSignals`}.
+ * The built-in signals cover memory, CPU, event loop and storage-client rate limits. Implement this interface to add
+ * your own (navigation timeouts, proxy health, …) and pass them via
+ * {@apilink LoadSignalsOptions.custom|`loadSignals.custom`}; {@apilink SnapshotStore} does the time-windowed
+ * bookkeeping if you want it. Each built-in is also a public class, so *wrapping* one — rather than reimplementing it
+ * — means constructing it yourself and switching the default off ({@apilink LoadSignalsOptions.cpu|`cpu: false`} and
+ * friends), since {@apilink LoadSignal.name|names} are unique.
  */
 export interface LoadSignal {
     /**

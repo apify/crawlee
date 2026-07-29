@@ -40,9 +40,7 @@ export interface EventLoopLoadSignalOptions {
 /**
  * Periodically measures event loop delay and reports overload when the delay exceeds a configured threshold.
  *
- * The {@apilink ConcurrencySystem} builds one of these by default, so you only need to construct it yourself to wrap
- * or otherwise adapt it — in which case switch the default off with
- * {@apilink LoadSignalsOptions.eventLoop|`eventLoop: false`}, since two signals cannot share a name.
+ * Built by default; construct one yourself only to wrap or adapt it — see {@apilink LoadSignal}.
  *
  * @category Scaling
  */
@@ -62,8 +60,8 @@ export class EventLoopLoadSignal implements LoadSignal {
         this.handle = this.handle.bind(this);
     }
 
-    async start({ maxSampleWindowMillis }: LoadSignalStartContext): Promise<void> {
-        this.store.useSampleWindow(maxSampleWindowMillis);
+    async start(context: LoadSignalStartContext): Promise<void> {
+        this.store.useSampleWindow(context.maxSampleWindowMillis);
         this.interval = betterSetInterval(this.handle, this.intervalMillis);
     }
 

@@ -114,28 +114,16 @@ const BUILTIN_SIGNAL_OPTION_KEYS: Record<string, keyof LoadSignalsOptions> = {
 const BUILTIN_SIGNAL_NAMES = new Set(Object.keys(BUILTIN_SIGNAL_OPTION_KEYS));
 
 /**
- * Provides a simple interface to reading system status from a {@apilink Snapshotter} instance.
- * It only exposes two functions {@apilink SystemStatus.getCurrentStatus}
- * and {@apilink SystemStatus.getHistoricalStatus}.
- * The system status is calculated using a weighted average of overloaded
- * messages in the snapshots, with the weights being the time intervals
- * between the snapshots. Each resource is calculated separately
- * and the system is overloaded whenever at least one resource is overloaded.
- * The class is used by the {@apilink ConcurrencySystem} class.
+ * Reads the overload verdict of every signal — the {@apilink Snapshotter}'s built-in four plus any custom ones — and
+ * combines them into a {@apilink SystemInfo}: each signal is a time-weighted average of its snapshots, and the system
+ * is overloaded whenever at least one of them is.
  *
- * {@apilink SystemStatus.getCurrentStatus}
- * returns a boolean that represents the current status of the system.
- * The length of the current timeframe in seconds is configurable
- * by the `currentHistorySecs` option and represents the max age
- * of snapshots to be considered for the calculation.
+ * Evaluated over two windows, both requested explicitly from every signal so that a signal's private retention cannot
+ * widen what it contributes: a short `currentHistorySecs` one ({@apilink SystemStatus.getCurrentStatus}, gating task
+ * dispatch) and a longer `historySecs` one ({@apilink SystemStatus.getHistoricalStatus}, driving autoscaling).
  *
- * {@apilink SystemStatus.getHistoricalStatus}
- * returns a boolean that represents the long-term status
- * of the system, over the longer `historySecs` timeframe. Both windows are requested explicitly from every signal,
- * built-in or custom, so a signal's private snapshot retention cannot widen the window it contributes to.
- *
- * Configured through {@apilink ConcurrencySystemOptions}.
- * @category Scaling
+ * An implementation detail of the {@apilink ConcurrencySystem}, configured through
+ * {@apilink ConcurrencySystemOptions}.
  * @internal
  */
 export class SystemStatus {
@@ -168,13 +156,9 @@ export class SystemStatus {
     }
 
     /**
-     * Signal names are the keys of the reported {@apilink SystemInfo}, so two signals sharing one is never something
-     * the caller meant: both would still be evaluated (any overloaded signal holds concurrency down), but only the
-     * last one would be reported, leaving a status object that contradicts the pool's actual behavior.
-     *
-     * Names collide most easily with a built-in — `memInfo`, `eventLoopInfo`, `cpuInfo`, `clientInfo` — since
-     * matching one used to look like a way to replace it. Switching the built-in off is that way; a custom signal is
-     * free to take over the vacated name and report in its `SystemInfo` field.
+     * Signal names are the keys of the reported {@apilink SystemInfo}, so a duplicate would leave a status object that
+     * contradicts actual behavior: both signals are still evaluated (any overloaded one holds concurrency down), but
+     * only the last is reported.
      */
     private assertUniqueSignalNames(): void {
         const seen = new Set<string>();

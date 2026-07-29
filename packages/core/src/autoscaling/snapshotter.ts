@@ -72,8 +72,6 @@ export type SnapshotterOptions = Omit<LoadSignalsOptions, 'custom'>;
  *
  * Configured indirectly through {@apilink ConcurrencySystemOptions.loadSignals|`loadSignals`}, whose per-signal bags
  * are simply forwarded to the corresponding constructor.
- *
- * @category Scaling
  * @internal
  */
 export class Snapshotter {

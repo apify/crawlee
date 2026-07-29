@@ -43,9 +43,7 @@ export interface MemoryLoadSignalOptions {
  * Tracks memory usage via `SYSTEM_INFO` events and reports overload when the used-to-available memory ratio exceeds a
  * threshold. Also warns when memory use becomes critical.
  *
- * The {@apilink ConcurrencySystem} builds one of these by default, so you only need to construct it yourself to wrap
- * or otherwise adapt it — in which case switch the default off with
- * {@apilink LoadSignalsOptions.memory|`memory: false`}, since two signals cannot share a name.
+ * Built by default; construct one yourself only to wrap or adapt it — see {@apilink LoadSignal}.
  *
  * @category Scaling
  */
@@ -69,8 +67,8 @@ export class MemoryLoadSignal implements LoadSignal {
         this.handle = this.handle.bind(this);
     }
 
-    async start({ maxSampleWindowMillis }: LoadSignalStartContext): Promise<void> {
-        this.store.useSampleWindow(maxSampleWindowMillis);
+    async start(context: LoadSignalStartContext): Promise<void> {
+        this.store.useSampleWindow(context.maxSampleWindowMillis);
 
         // Resolved here rather than in the constructor: an instance built ahead of time (to be wrapped, or shared
         // between systems) must not capture whichever services happened to be registered at that moment.

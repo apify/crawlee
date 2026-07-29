@@ -1167,19 +1167,19 @@ The `log` property exposed throughout the public API (on the crawling context, `
 
 ## Autoscaling split into `AutoscaledPool` + `ConcurrencySystem`
 
-The autoscaling logic was split in two. The load-and-budget "governor" — the part that decides whether there is free compute for one more task (the snapshotter, the system-status evaluation, the concurrency budget, and the scaling logic) — moved into a new `ConcurrencySystem` class. `AutoscaledPool` keeps only the *task loop*: `runTaskFunction`, `isTaskReadyFunction`, `isFinishedFunction`, `maybeRunIntervalSecs`, `taskTimeoutSecs`, and `log`.
+The load-and-budget "governor" — everything that decides whether there is free compute for one more task (snapshotting, the system-status evaluation, the concurrency budget and the scaling logic) — moved out of `AutoscaledPool` into a new `ConcurrencySystem`. The pool keeps only the *task loop*: `runTaskFunction`, `isTaskReadyFunction`, `isFinishedFunction`, `maybeRunIntervalSecs`, `taskTimeoutSecs` and `log`.
 
-The motivation is sharing: inject a single `ConcurrencySystem` into several pools (and therefore several crawlers) to cap their **combined** concurrency against one budget, instead of each crawler scaling independently and oversubscribing the host.
+The point is sharing: inject a single `ConcurrencySystem` into several pools (and therefore several crawlers) to cap their **combined** concurrency against one budget, instead of each scaling independently and oversubscribing the host. Pools and crawlers depend only on `IConcurrencySystem`, the minimal read-only governor contract, so an alternative governor can be substituted; `ConcurrencySystem` is the canonical implementation and the one crawlers build by default.
 
-Both the pool and the crawlers depend only on the `IConcurrencySystem` interface — the minimal, read-only governor contract. `ConcurrencySystem` is the canonical implementation and the one crawlers build by default; the interface only matters if you want to supply an alternate governor.
+:::info Who starts and stops it
+
+Whoever *builds* a `ConcurrencySystem` owns its lifecycle. Crawlers do that for the default system they build for each run. A system **you** supply is yours to `start()` before the crawlers or pools borrowing it run, and to `stop()` once they are all done — no crawler can know when the last borrower has finished. Forgetting to start it makes `run()` **throw**, rather than silently crawling with load monitoring and autoscaling switched off; read `isRunning` if you need to know whether another owner already started a system handed to you.
+
+:::
 
 ### `AutoscaledPool` requires a `concurrencySystem` and no longer takes scaling options
 
-All scaling and load-monitoring options were **removed** from `AutoscaledPoolOptions` and now live on `ConcurrencySystemOptions`: `minConcurrency`, `maxConcurrency`, `desiredConcurrency`, `desiredConcurrencyRatio`, `scaleUpStepRatio`, `scaleDownStepRatio`, `loggingIntervalSecs`, `autoscaleIntervalSecs`, and `maxTasksPerMinute`, plus the load-signal configuration described [below](#snapshotter-and-systemstatus-load-signal-options-restructured). The `snapshotterOptions` and `systemStatusOptions` bags are both gone. In place of all this, `AutoscaledPoolOptions` gained a **required** `concurrencySystem`.
-
-`AutoscaledPool` also no longer manages the system's lifecycle: it requires the `ConcurrencySystem` to be running already. Whoever owns the system must `start()` it before `pool.run()` and `stop()` it afterwards — `pool.run()` throws if the system it borrows was never started, instead of running a whole crawl with load monitoring and autoscaling switched off. (Within Crawlee this is handled by the crawler for the pool it builds; you only need to care about this if you inject a system or drive an `AutoscaledPool` directly.)
-
-One subtle behavioral consequence: `pool.pause()` no longer suspends autoscaling. The autoscaling interval now lives on the `ConcurrencySystem`, which knows nothing about its borrowing pools' pause state — deliberately so, since other pools sharing it may still need scaling. A paused pool's system therefore keeps evaluating (and possibly scaling down) the desired concurrency and keeps emitting its periodic state log. Scaling *up* stays effectively blocked, as the current concurrency drains below the ratio of desired concurrency required for a scale-up. To silence the system during a long pause, `stop()` it (if you own it) and `start()` it again before resuming.
+All scaling and load-monitoring options were **removed** from `AutoscaledPoolOptions` and now live on `ConcurrencySystemOptions`: `minConcurrency`, `maxConcurrency`, `desiredConcurrency`, `desiredConcurrencyRatio`, `scaleUpStepRatio`, `scaleDownStepRatio`, `loggingIntervalSecs`, `autoscaleIntervalSecs`, and `maxTasksPerMinute`, plus the load-signal configuration described [below](#load-signal-options-restructured). The `snapshotterOptions` and `systemStatusOptions` bags are both gone. In their place, `AutoscaledPoolOptions` gained a **required** `concurrencySystem`.
 
 **Before:**
 ```typescript
@@ -1219,7 +1219,7 @@ try {
 }
 ```
 
-The concurrency accessors on `AutoscaledPool` were slimmed down to read-only telemetry: `desiredConcurrency` and `currentConcurrency` remain as getters (reading through the underlying system, which is also reachable via the new `pool.system` getter), while the `minConcurrency`/`maxConcurrency` accessors and all setters were **removed**. Changing concurrency at runtime (e.g. `crawler.autoscaledPool.maxConcurrency = 10` as a reaction to rate limiting) is now done on the `ConcurrencySystem` instance instead — build it yourself, keep the reference, and inject it:
+The pool's concurrency accessors are now read-only telemetry: `desiredConcurrency` and `currentConcurrency` remain as getters (the governor itself is reachable through `pool.system`), while the `minConcurrency`/`maxConcurrency` accessors and every setter were **removed**. Runtime tuning — `crawler.autoscaledPool.maxConcurrency = 10` as a reaction to rate limiting, say — happens on the `ConcurrencySystem` instead, so build it yourself and keep the reference:
 
 ```typescript
 const concurrencySystem = new ConcurrencySystem({ maxConcurrency: 50 });
@@ -1231,9 +1231,11 @@ const crawler = new CheerioCrawler({ concurrencySystem, requestHandler });
 concurrencySystem.maxConcurrency = 10;
 ```
 
+One behavioral consequence: `pool.pause()` no longer suspends autoscaling, because the autoscaling interval belongs to the `ConcurrencySystem`, which knows nothing about its borrowers' pause state — deliberately, since other pools sharing it may still need scaling. A paused pool's system keeps evaluating (and possibly scaling down) the desired concurrency and keeps emitting its periodic state log. Scaling *up* stays effectively blocked, as the current concurrency drains below the ratio required for a scale-up. To silence the system during a long pause, `stop()` it (if you own it) and `start()` it again before resuming.
+
 ### `BasicCrawlerOptions.autoscaledPoolOptions` no longer carries concurrency config
 
-`autoscaledPoolOptions` now accepts **only** the task-loop predicates `isFinishedFunction` and `isTaskReadyFunction`. All concurrency/scaling configuration must go through either the existing `minConcurrency` / `maxConcurrency` / `maxRequestsPerMinute` shortcuts (which build the crawler's default `ConcurrencySystem`), or — for anything finer — an injected `concurrencySystem`.
+`autoscaledPoolOptions` now accepts **only** the task-loop predicates `isFinishedFunction` and `isTaskReadyFunction`. Concurrency configuration goes through either the `minConcurrency` / `maxConcurrency` / `maxRequestsPerMinute` shortcuts (which configure the crawler's default `ConcurrencySystem`), or — for anything finer — a supplied `concurrencySystem`.
 
 **Before:**
 ```typescript
@@ -1267,20 +1269,7 @@ try {
 }
 ```
 
-Note that an injected system is **yours to run**: the crawler never starts or stops a system it did not build, since it cannot know when the last crawler sharing it is done. Forgetting to `start()` it makes `run()` **throw**, rather than silently crawling at a fixed concurrency with no load monitoring — check `isRunning` if you need to know whether another owner already started a system handed to you.
-
-A supplied system also replaces the crawler's default *wholesale*, including any crawler-specific tuning that default carried. `HttpCrawler` and its subclasses (`CheerioCrawler`, `JSDOMCrawler`, …) ship a preset — a higher `desiredConcurrency` and a relaxed event loop signal — exported as `HTTP_OPTIMIZED_CONCURRENCY_SYSTEM_OPTIONS`; spread it in if you want to keep it:
-
-```typescript
-import { CheerioCrawler, ConcurrencySystem, HTTP_OPTIMIZED_CONCURRENCY_SYSTEM_OPTIONS } from 'crawlee';
-
-const concurrencySystem = new ConcurrencySystem({
-    ...HTTP_OPTIMIZED_CONCURRENCY_SYSTEM_OPTIONS,
-    maxConcurrency: 50,
-});
-```
-
-For the common case, the shortcuts are enough and need no `ConcurrencySystem`:
+The shortcuts cannot be combined with a supplied `concurrencySystem` — they configure the default system that a supplied one replaces, so the crawler constructor **throws** rather than dropping a limit you asked for. For the common case, the shortcuts are all you need and no `ConcurrencySystem` is involved:
 
 ```typescript
 const crawler = new CheerioCrawler({
@@ -1291,9 +1280,20 @@ const crawler = new CheerioCrawler({
 });
 ```
 
+A supplied system also replaces the default *wholesale*, including any crawler-specific tuning that default carried. `HttpCrawler` and its subclasses (`CheerioCrawler`, `JSDOMCrawler`, …) ship a preset — a higher `desiredConcurrency` and a relaxed event loop signal — exported as `HTTP_OPTIMIZED_CONCURRENCY_SYSTEM_OPTIONS`; spread it in to keep it:
+
+```typescript
+import { CheerioCrawler, ConcurrencySystem, HTTP_OPTIMIZED_CONCURRENCY_SYSTEM_OPTIONS } from 'crawlee';
+
+const concurrencySystem = new ConcurrencySystem({
+    ...HTTP_OPTIMIZED_CONCURRENCY_SYSTEM_OPTIONS,
+    maxConcurrency: 50,
+});
+```
+
 ### Sharing a `ConcurrencySystem` across crawlers
 
-Inject the same instance into multiple crawlers to cap their combined concurrency. You own the shared system's lifecycle — `start()` it before running the crawlers and `stop()` it once they are all done (the crawlers never start or stop a supplied system):
+Inject the same instance into multiple crawlers to cap their combined concurrency:
 
 ```typescript
 import { CheerioCrawler, ConcurrencySystem } from 'crawlee';
@@ -1311,43 +1311,9 @@ try {
 }
 ```
 
-The `minConcurrency` / `maxConcurrency` / `maxRequestsPerMinute` shortcuts configure the *default* system, so they cannot be combined with an injected one — the crawler constructor **throws** rather than silently dropping a limit you asked for. Move those limits onto the `ConcurrencySystem`.
+## Load-signal options restructured
 
-## `Snapshotter` and `SystemStatus` load-signal options restructured
-
-The per-resource load-signal configuration was consolidated. Previously it was spread across flat `SnapshotterOptions` fields, the `max*OverloadedRatio` options on `SystemStatusOptions`, and a separate `loadSignals` array — three places, two of them named after classes that are now internal. All of it now lives in a single `loadSignals` bag on `ConcurrencySystemOptions`: one options bag per built-in signal (each carrying its own limits *and* its `overloadedRatio`), plus `custom` for your own implementations.
-
-Each built-in signal is also a public class — `MemoryLoadSignal`, `EventLoopLoadSignal`, `CpuLoadSignal`, `ClientLoadSignal` — taking exactly the bag its `loadSignals` key accepts, so the shorthand and the explicit form are the same thing:
-
-```typescript
-new ConcurrencySystem({ loadSignals: { cpu: { overloadedRatio: 0.5 } } });
-
-// …is precisely:
-new ConcurrencySystem({
-    loadSignals: { cpu: false, custom: [new CpuLoadSignal({ overloadedRatio: 0.5 })] },
-});
-```
-
-Use the shorthand for tuning. Reach for the class when you want to *wrap* a built-in rather than reimplement it — smoothing its verdict, say, or logging every overload:
-
-```typescript
-import { ConcurrencySystem, CpuLoadSignal, type LoadSignal } from '@crawlee/core';
-
-const cpu = new CpuLoadSignal({ overloadedRatio: 0.4 });
-
-const stickyCpu: LoadSignal = {
-    ...cpu,
-    name: 'cpuSticky',
-    start: (context) => cpu.start(context),
-    stop: () => cpu.stop(),
-    // Hold the overload verdict for a while after the CPU recovers, instead of flapping.
-    getSample: (ms) => holdOverloads(cpu.getSample(ms)),
-};
-
-new ConcurrencySystem({ loadSignals: { cpu: false, custom: [stickyCpu] } });
-```
-
-Signals resolve their own dependencies (configuration, event manager, storage backend) when they are **started**, not when constructed, so an instance built ahead of time — at module scope, or to be shared between systems — cannot capture the wrong ones.
+The per-resource load-signal configuration was consolidated. It used to be spread across flat `SnapshotterOptions` fields, the `max*OverloadedRatio` options on `SystemStatusOptions`, and a separate `loadSignals` array — three places, two of them named after classes that are now internal. All of it now lives in a single `loadSignals` bag on `ConcurrencySystemOptions`: one options bag per built-in signal (each carrying its own limits *and* its `overloadedRatio`), plus `custom` for your own implementations.
 
 **Before:**
 ```typescript
@@ -1388,23 +1354,11 @@ new ConcurrencySystem({
 });
 ```
 
-In detail: the four `max*OverloadedRatio` options of `SystemStatusOptions` were **removed** (each signal now owns its overload ratio, set in its bag above), custom signals moved from `systemStatusOptions.loadSignals` to `loadSignals.custom`, and the two evaluation windows — `snapshotHistorySecs` (autoscaling) and `currentHistorySecs` (task gating) — are now plain options on `ConcurrencySystemOptions`, since they apply to every signal alike rather than to any one of them.
+In detail: the four `max*OverloadedRatio` options of `SystemStatusOptions` were **removed** (each signal now owns its overload ratio, set in its own bag), custom signals moved from `systemStatusOptions.loadSignals` to `loadSignals.custom`, and the two evaluation windows — `snapshotHistorySecs` (autoscaling) and `currentHistorySecs` (task gating) — are plain options on `ConcurrencySystemOptions`, since they apply to every signal alike rather than to any one of them.
 
-New in the process: a built-in signal can be switched off by passing `false` instead of its options bag, which was previously impossible — all four always ran, and the closest you could get was neutering a signal's verdict with `overloadedRatio: 1` while it kept collecting snapshots regardless:
+Two related capabilities are new, and covered in the [scaling guide](../guides/scaling-crawlers#load-signals): a built-in signal can be switched **off** with `false`, and each built-in is also a public class (`MemoryLoadSignal`, `EventLoopLoadSignal`, `CpuLoadSignal`, `ClientLoadSignal`) you can construct to wrap or adapt.
 
-```typescript
-new ConcurrencySystem({
-    loadSignals: {
-        // The storage backend reports no rate-limit statistics, so stop polling it every second.
-        client: false,
-        eventLoop: { maxBlockedMillis: 100 },
-    },
-});
-```
-
-A disabled signal simply stops being collected and evaluated; its entry in `SystemInfo` reports as not overloaded, so nothing reading the status has to special-case it.
-
-Switching a built-in off is also the **only** way to replace it. Naming a custom signal after a built-in — `memInfo`, `eventLoopInfo`, `cpuInfo` or `clientInfo` — used to look like an override, but never was one: the built-in kept running and kept holding concurrency down (any overloaded signal does), while your signal merely overwrote its field in `SystemInfo`. The reported status could therefore claim a resource was healthy while the pool was being throttled precisely because that resource was overloaded. Constructing a `ConcurrencySystem` with a duplicate signal name now **throws**, and the same goes for two custom signals sharing a name, since signal names are the keys of the reported status:
+One behavioral change to watch for: naming a custom signal after a built-in — `memInfo`, `eventLoopInfo`, `cpuInfo` or `clientInfo` — used to look like an override but never was one. The built-in kept running and kept holding concurrency down (any overloaded signal does), while your signal merely overwrote its field in `SystemInfo`, so the reported status could claim a resource was healthy while the pool was throttled because that very resource was overloaded. A duplicate signal name now **throws** — switch the built-in off to take its place:
 
 ```typescript
 new ConcurrencySystem({
@@ -1416,19 +1370,17 @@ new ConcurrencySystem({
 });
 ```
 
-The `Snapshotter` and `SystemStatus` classes are now internal, along with their options types (`SnapshotterOptions`, `SystemStatusOptions`) — they are implementation details of the `ConcurrencySystem`, which is the sole public entry point to load monitoring and autoscaling. What stays public is the configuration (`LoadSignalsOptions` and the four per-signal bags), the four built-in signal classes, and the extension surface: the `LoadSignal` interface, the `SnapshotStore` helper, and `LoadSignalStartContext`. The concrete snapshot types the built-in signals produce are *not* public — `getSample()` is typed as returning plain `LoadSnapshot` values, which is all any signal consumer needs.
+The `Snapshotter` and `SystemStatus` classes are now internal, along with their options types (`SnapshotterOptions`, `SystemStatusOptions`) — they are implementation details of the `ConcurrencySystem`, which is the sole public entry point to load monitoring and autoscaling. `ConcurrencySystem.getCurrentStatus()` is the public way to read the resulting `SystemInfo`. What else stays public is the configuration (`LoadSignalsOptions` and the four per-signal bags), the four built-in signal classes, and the extension surface: the `LoadSignal` interface, the `SnapshotStore` helper and `LoadSignalStartContext`. The concrete snapshot types the built-in signals produce are *not* public — `getSample()` returns plain `LoadSnapshot` values, which is all any consumer needs.
 
-### Custom load signals are now sampled over the same window as the built-in ones
+### Custom load signals are sampled over the same window as the built-in ones
 
-Overload is evaluated over two windows: a short one (`currentHistorySecs`, default 5s) that gates whether another task may start, and a long one (`snapshotHistorySecs`, default 30s) that drives autoscaling decisions. Previously the long window was implicit — `getHistoricalStatus()` asked each signal for *everything it had retained*, so a custom signal that kept, say, five minutes of snapshots silently made autoscaling reason over five minutes of history for that resource, while the built-in signals used 30 seconds.
+Overload is evaluated over two windows: a short one (`currentHistorySecs`, default 5s) gating whether another task may start, and a long one (`snapshotHistorySecs`, default 30s) driving autoscaling. The long window used to be implicit — `getHistoricalStatus()` asked each signal for *everything it had retained*, so a custom signal keeping five minutes of snapshots silently made autoscaling reason over five minutes of history for that resource while the built-ins used 30 seconds. Both windows are now requested explicitly from every signal.
 
-Both windows are now requested explicitly from every signal, so `snapshotHistorySecs` bounds the autoscaling window uniformly, custom signals included. With default settings nothing changes (the built-in signals retain exactly the 30s they are evaluated over, `SnapshotStore` sizing its retention to that window once the signal starts). You are only affected if a custom signal retains **more** history than `snapshotHistorySecs` — its stale snapshots no longer influence scaling — or if your custom `getSample()` implementation ignores its `sampleDurationMillis` argument, in which case it still contributes everything it has. Honour that argument (as `SnapshotStore` does) if you want the window respected.
+With default settings nothing changes. You are affected only if a custom signal retains **more** history than `snapshotHistorySecs` (its stale snapshots no longer influence scaling), or if your `getSample()` ignores its `sampleDurationMillis` argument, in which case it still contributes everything it has — honour that argument, as `SnapshotStore` does, if you want the window respected.
 
 ### `LoadSignal.start()` receives the sample window
 
-Retention used to be something a custom signal had to guess: you passed a millisecond value to `new SnapshotStore(...)` (or rolled your own storage) and hoped it matched the windows of the `ConcurrencySystem` that would end up driving it. Keeping less than the system samples meant silently contributing a narrower view of your resource than every other signal, with nothing to warn you.
-
-`start()` now receives a context carrying the widest window the signal will be queried with, so retention can be derived instead of guessed:
+Retention used to be a guess: you passed a millisecond value to `new SnapshotStore(...)` (or rolled your own storage) and hoped it matched the windows of whichever `ConcurrencySystem` ended up driving the signal. `start()` now receives the widest window the signal will be queried with, so retention can be derived instead:
 
 ```typescript
 import { SnapshotStore, type LoadSignal } from 'crawlee';
@@ -1447,7 +1399,7 @@ const proxyHealthSignal: LoadSignal = {
 };
 ```
 
-Signals built through `SnapshotStore.fromInterval()` / `SnapshotStore.fromEvent()` do this for you. Existing implementations keep compiling — a `start()` that declares no parameters still satisfies the interface — they just retain whatever they chose to. Correspondingly, the `snapshotHistoryMillis` option was removed from the internal per-signal option types, and retention is no longer configured anywhere: `ConcurrencySystemOptions.snapshotHistorySecs` sets the autoscaling window, and signals size their retention to it.
+Existing implementations keep compiling — a `start()` that declares no parameters still satisfies the interface — they just retain whatever they chose to. Correspondingly, `snapshotHistoryMillis` was removed from the per-signal option types: retention is no longer configured anywhere, `snapshotHistorySecs` sets the autoscaling window, and signals size their retention to it.
 
 ## Stagehand type narrowings
 

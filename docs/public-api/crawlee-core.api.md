@@ -92,8 +92,13 @@ export class AutoscaledPool {
 }
 
 // @public (undocumented)
-export interface AutoscaledPoolOptions extends AutoscaledPoolTaskLoopOptions {
+export interface AutoscaledPoolOptions extends AutoscaledPoolPredicateOptions {
     concurrencySystem: IConcurrencySystem;
+    // (undocumented)
+    log?: CrawleeLogger;
+    maybeRunIntervalSecs?: number;
+    runTaskFunction?: () => Promise<unknown>;
+    taskTimeoutSecs?: number;
 }
 
 // @public
@@ -103,13 +108,7 @@ export interface AutoscaledPoolPredicateOptions {
 }
 
 // @public
-export interface AutoscaledPoolTaskLoopOptions extends AutoscaledPoolPredicateOptions {
-    // (undocumented)
-    log?: CrawleeLogger;
-    maybeRunIntervalSecs?: number;
-    runTaskFunction?: () => Promise<unknown>;
-    taskTimeoutSecs?: number;
-}
+export type AutoscaledPoolTaskLoopOptions = Omit<AutoscaledPoolOptions, 'concurrencySystem'>;
 
 export { Awaitable }
 
@@ -728,7 +727,7 @@ export interface IConcurrencySystem {
     readonly currentConcurrency: number;
     readonly desiredConcurrency: number;
     hasCapacityForTask(): boolean;
-    readonly isRunning?: boolean;
+    readonly isRunning: boolean;
     registerTaskEnd(): void;
     tryRegisterTaskStart(): boolean;
 }
@@ -1614,27 +1613,6 @@ export interface SnapshotResult {
 
 // @public
 export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
-    static fromEvent<T extends LoadSnapshot, E>(options: {
-        name: string;
-        overloadedRatio: number;
-        events?: EventManager;
-        event: EventTypeName;
-        handler: (store: SnapshotStore<T>, payload: E) => void;
-    }): Omit<LoadSignal, 'getSample'> & {
-        store: SnapshotStore<T>;
-        handle: (payload: E) => void;
-        getSample(sampleDurationMillis?: number): T[];
-    };
-    static fromInterval<T extends LoadSnapshot>(options: {
-        name: string;
-        overloadedRatio: number;
-        intervalMillis: number;
-        handler: (store: SnapshotStore<T>, intervalCallback: () => unknown) => void;
-    }): Omit<LoadSignal, 'getSample'> & {
-        store: SnapshotStore<T>;
-        handle: (cb: () => unknown) => void;
-        getSample(sampleDurationMillis?: number): T[];
-    };
     getAll(): T[];
     getSample(sampleDurationMillis?: number): T[];
     push(snapshot: T, now?: Date): void;

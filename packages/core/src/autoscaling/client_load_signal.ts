@@ -45,11 +45,10 @@ export interface ClientLoadSignalOptions {
  * Periodically checks the storage backend for rate-limit errors (HTTP 429) and reports overload when the error delta
  * exceeds a threshold.
  *
- * The {@apilink ConcurrencySystem} builds one of these by default, so you only need to construct it yourself to wrap
- * or otherwise adapt it — in which case switch the default off with
- * {@apilink LoadSignalsOptions.client|`client: false`}, since two signals cannot share a name. If your backend
- * reports no rate-limit statistics at all, switching this signal off (rather than replacing it) saves a poll per
- * second.
+ * Built by default; construct one yourself only to wrap or adapt it — see {@apilink LoadSignal}.
+ *
+ * Switch it off entirely ({@apilink LoadSignalsOptions.client|`client: false`}) if the storage backend reports no
+ * rate-limit statistics, since it otherwise polls it every second to no purpose.
  *
  * @category Scaling
  */
@@ -70,8 +69,8 @@ export class ClientLoadSignal implements LoadSignal {
         this.handle = this.handle.bind(this);
     }
 
-    async start({ maxSampleWindowMillis }: LoadSignalStartContext): Promise<void> {
-        this.store.useSampleWindow(maxSampleWindowMillis);
+    async start(context: LoadSignalStartContext): Promise<void> {
+        this.store.useSampleWindow(context.maxSampleWindowMillis);
 
         // Resolved here rather than in the constructor, where asking for the backend would instantiate a default one
         // as a side effect - long before the crawler that owns the run has had a chance to register its own.
