@@ -1407,7 +1407,7 @@ describe('BasicCrawler', () => {
         const requestList = await RequestList.open({ sources: [{ url }] });
 
         const previous = process.env.CRAWLEE_INTERNAL_TIMEOUT;
-        process.env.CRAWLEE_INTERNAL_TIMEOUT = '300';
+        process.env.CRAWLEE_INTERNAL_TIMEOUT = '100';
 
         try {
             const results: Request[] = [];
@@ -1417,9 +1417,10 @@ describe('BasicCrawler', () => {
                 requestList,
                 maxRequestRetries: 0,
                 // `extendContext` is not the navigation, the hooks or the request handler, so none of their
-                // timeouts apply to it - only the internal one stands between this and a stuck crawler
+                // timeouts apply to it - only the internal one stands between this and a stuck crawler. It also
+                // outlives the backstop, so it is the case where the losing side of the race keeps running.
                 extendContext: async () => {
-                    await sleep(5000);
+                    await sleep(500);
                     return {};
                 },
                 requestHandler,
@@ -1429,6 +1430,10 @@ describe('BasicCrawler', () => {
             });
 
             await crawler.run();
+
+            // Wait past the stuck `extendContext`: `run()` resolves when the backstop fails the request, but the
+            // pipeline keeps running underneath - the handler must still not fire once it finally gets there.
+            await sleep(600);
 
             expect(requestHandler).not.toHaveBeenCalled();
             expect(results).toHaveLength(1);

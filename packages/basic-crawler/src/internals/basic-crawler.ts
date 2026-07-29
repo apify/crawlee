@@ -134,6 +134,13 @@ const deferredCleanupKey = Symbol('deferredCleanup');
 const extendBackstopKey = Symbol('extendBackstop');
 
 /**
+ * Returns `true` once the internal backstop has fired for this request. The backstop cannot cancel work stuck
+ * somewhere we do not control, but the phases we do run (e.g. the request handler) check this at their start
+ * and bail, so a request whose backstop already elapsed does not carry on after the crawler moved past it.
+ */
+const backstopExpiredKey = Symbol('backstopExpired');
+
+/**
  * The shared navigation-window deadline (epoch millis), stored on the in-flight context so the pre- and
  * post-navigation hooks and the navigation itself all draw from one budget - and so `context.extendTimeout`
  * can push the whole window, not just the current step.
@@ -154,6 +161,7 @@ export function remainingNavigationWindowMillis(ctx: object, windowMillis: numbe
 /** The in-flight context, carrying the backstop extender that {@apilink BasicCrawler.withRequestBackstop} hangs on it. */
 type PendingCrawlingContext = { request: Request } & Partial<CrawlingContext> & {
         [extendBackstopKey]?: (extraMillis: number) => void;
+        [backstopExpiredKey]?: () => boolean;
         [navigationDeadlineKey]?: number;
     };
 
@@ -1909,7 +1917,9 @@ export class BasicCrawler<
      * hook or the request handler) still fails instead of stalling the crawler.
      *
      * `Promise.race` attaches a handler to both sides, so a late rejection from `work` cannot go unhandled. The
-     * losing side is not cancelled - by definition it is stuck somewhere we do not control.
+     * losing side is not cancelled - by definition it is stuck somewhere we do not control - but the phases we
+     * do run check {@apilink backstopExpiredKey} at their start and bail, so a request whose backstop already
+     * fired does not carry on (e.g. run the handler) after the crawler has moved past it.
      */
     private async withRequestBackstop(crawlingContext: PendingCrawlingContext, work: Promise<void>): Promise<void> {
         const { request } = crawlingContext;
@@ -1927,13 +1937,20 @@ export class BasicCrawler<
         let deadline = Date.now() + timeoutMillis;
         let settled = false;
 
+        let firedByBackstop = false;
+
         const backstop = new Promise<never>((_, reject) => {
             const fire = () => {
                 settled = true;
+                firedByBackstop = true;
                 reject(new TimeoutError(`Request timed out after ${timeoutMillis / 1e3} seconds (${request.id}).`));
             };
 
             timer = setTimeout(fire, timeoutMillis);
+
+            // The losing side of the race is not cancelled (it is stuck somewhere we do not control), but the
+            // phases we do run check this and bail, so the request does not carry on past a fired backstop.
+            crawlingContext[backstopExpiredKey] = () => firedByBackstop;
 
             // `context.extendTimeout` extends the handler's own window; without this the backstop would cut
             // the request down anyway, and the extension would have bought nothing
@@ -2129,6 +2146,13 @@ export class BasicCrawler<
 
     /** Handles a single request - runs the request handler with retries, error handling, and lifecycle management. */
     private async handleRequest(crawlingContext: ExtendedContext, requestSource: IRequestManager, request: Request) {
+        // An earlier phase we cannot cancel (e.g. a slow `extendContext`) may have run past the internal backstop,
+        // which already failed the request in `runTaskFunction`. Bail before running the handler so it does not
+        // execute (and re-report) on top of a request the crawler has already moved past.
+        if ((crawlingContext as PendingCrawlingContext)[backstopExpiredKey]?.()) {
+            return;
+        }
+
         const statisticsId = request.id || request.uniqueKey;
 
         let isRequestLocked = true;
