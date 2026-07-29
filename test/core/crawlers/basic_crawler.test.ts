@@ -2108,6 +2108,215 @@ describe('BasicCrawler', () => {
             expect(visitedUrls).toContain('http://example.com/');
             expect(visitedUrls).toContain('http://example.com/new');
         });
+
+        test('enqueueLinks should respect maxRequestsPerCrawl when passed an explicitly undefined limit', async () => {
+            const requestQueue = await RequestQueue.open();
+            const onSkippedRequest = vitest.fn();
+
+            const requestsToAdd = Array.from({ length: 6 }, (_, i) => `http://example.com/${i + 1}`);
+
+            const crawler = new BasicCrawler({
+                requestQueue,
+                maxRequestsPerCrawl: 5,
+                onSkippedRequest,
+                requestHandler: async (context) => {
+                    if (context.request.label) {
+                        return;
+                    }
+
+                    crawler.stats.state.requestsFinished = 2;
+
+                    // e.g. `enqueueLinks({ urls, limit: config.limit })` where `config.limit` is not set
+                    await context.enqueueLinks({ urls: requestsToAdd, limit: undefined, label: 'child' });
+                },
+            });
+
+            await crawler.run(['http://example.com']);
+
+            // 2 requests already finished and 1 is in progress, so only 2 more fit into the limit
+            expect(requestQueue.getTotalCount()).toBe(3);
+
+            const skippedUrls = onSkippedRequest.mock.calls
+                .map((call) => call[0])
+                .filter(({ reason }) => reason === 'enqueueLimit')
+                .map(({ url }) => url)
+                .sort();
+
+            expect(skippedUrls).toEqual([
+                'http://example.com/3',
+                'http://example.com/4',
+                'http://example.com/5',
+                'http://example.com/6',
+            ]);
+        });
+
+        test('enqueueLinks should clamp an explicit limit to the remaining maxRequestsPerCrawl budget', async () => {
+            const requestQueue = await RequestQueue.open();
+
+            const requestsToAdd = Array.from({ length: 6 }, (_, i) => `http://example.com/${i + 1}`);
+
+            const crawler = new BasicCrawler({
+                requestQueue,
+                maxRequestsPerCrawl: 5,
+                requestHandler: async (context) => {
+                    if (context.request.label) {
+                        return;
+                    }
+
+                    crawler.stats.state.requestsFinished = 2;
+
+                    await context.enqueueLinks({ urls: requestsToAdd, limit: 4, label: 'child' });
+                },
+            });
+
+            const infoSpy = vitest.spyOn(crawler.log, 'info');
+
+            await crawler.run(['http://example.com']);
+
+            // The user limit of 4 is higher than what's left of maxRequestsPerCrawl, so only 2 are enqueued
+            expect(requestQueue.getTotalCount()).toBe(3);
+
+            // ...and the log message must not blame the user limit of 4 for it
+            expect(infoSpy).toHaveBeenCalledWith(
+                expect.stringContaining('due to the remaining maxRequestsPerCrawl budget of 2'),
+            );
+        });
+
+        test('enqueueLinks should keep reporting skipped requests when the user passes onSkippedRequest', async () => {
+            const requestQueue = await RequestQueue.open();
+            const crawlerOnSkippedRequest = vitest.fn();
+            const userOnSkippedRequest = vitest.fn();
+
+            const requestsToAdd = Array.from({ length: 3 }, (_, i) => `http://example.com/${i + 1}`);
+
+            const crawler = new BasicCrawler({
+                requestQueue,
+                onSkippedRequest: crawlerOnSkippedRequest,
+                requestHandler: async (context) => {
+                    if (context.request.label) {
+                        return;
+                    }
+
+                    await context.enqueueLinks({
+                        urls: requestsToAdd,
+                        limit: 1,
+                        label: 'child',
+                        onSkippedRequest: userOnSkippedRequest,
+                    });
+                },
+            });
+
+            await crawler.run(['http://example.com']);
+
+            const skipped = [
+                { url: 'http://example.com/2', reason: 'enqueueLimit' },
+                { url: 'http://example.com/3', reason: 'enqueueLimit' },
+            ];
+
+            for (const mock of [crawlerOnSkippedRequest, userOnSkippedRequest]) {
+                expect(mock.mock.calls.map((call) => call[0]).sort((a, b) => a.url.localeCompare(b.url))).toEqual(
+                    skipped,
+                );
+            }
+        });
+
+        test('enqueueLinks should keep the crawler robots.txt file when passed an explicitly undefined robotsTxtFile', async () => {
+            const requestQueue = await RequestQueue.open();
+
+            const crawler = new (class MockedRobotsTxtCrawler extends BasicCrawler {
+                override async getRobotsTxtFileForUrl(_: string) {
+                    return RobotsTxtFile.from(
+                        'http://example.com/robots.txt',
+                        `User-agent: *
+                         Disallow: /no
+                        `,
+                    );
+                }
+            })({
+                requestQueue,
+                maxConcurrency: 1,
+                respectRobotsTxtFile: true,
+                requestHandler: async (context) => {
+                    if (context.request.label) {
+                        return;
+                    }
+
+                    await context.enqueueLinks({
+                        urls: ['http://example.com/yes', 'http://example.com/no'],
+                        robotsTxtFile: undefined,
+                        label: 'child',
+                    });
+                },
+            });
+
+            await crawler.run(['http://example.com/start']);
+
+            // The disallowed URL should never make it into the queue
+            expect(requestQueue.getTotalCount()).toBe(2);
+        });
+
+        test('enqueueLinks should keep the crawler user-agent when passed an explicitly undefined respectRobotsTxtFile', async () => {
+            const requestQueue = await RequestQueue.open();
+            const isAllowedSpy = vitest.fn((_url: string, _userAgent?: string) => true);
+
+            const crawler = new (class MockedRobotsTxtCrawler extends BasicCrawler {
+                override async getRobotsTxtFileForUrl(_: string) {
+                    return { isAllowed: isAllowedSpy } as unknown as RobotsTxtFile;
+                }
+            })({
+                requestQueue,
+                maxConcurrency: 1,
+                respectRobotsTxtFile: { userAgent: 'MyCrawler' },
+                requestHandler: async (context) => {
+                    if (context.request.label) {
+                        return;
+                    }
+
+                    await context.enqueueLinks({
+                        urls: ['http://example.com/child'],
+                        respectRobotsTxtFile: undefined,
+                        label: 'child',
+                    });
+                },
+            });
+
+            await crawler.run(['http://example.com/start']);
+
+            expect(isAllowedSpy).toHaveBeenCalledWith('http://example.com/child', 'MyCrawler');
+            // the crawler user-agent must not fall back to the `*` default
+            expect(isAllowedSpy.mock.calls.map(([, userAgent]) => userAgent)).not.toContain('*');
+        });
+
+        test('enqueueLinks should use the request queue from the options, and the crawler one when it is undefined', async () => {
+            const requestQueue = await RequestQueue.open();
+            const customQueue = await RequestQueue.open('custom-queue');
+
+            const crawler = new BasicCrawler({
+                requestQueue,
+                requestHandler: async (context) => {
+                    if (context.request.label) {
+                        return;
+                    }
+
+                    await context.enqueueLinks({
+                        urls: ['http://example.com/custom'],
+                        requestQueue: customQueue,
+                        label: 'child',
+                    });
+
+                    await context.enqueueLinks({
+                        urls: ['http://example.com/default'],
+                        requestQueue: undefined,
+                        label: 'child',
+                    });
+                },
+            });
+
+            await crawler.run(['http://example.com/start']);
+
+            expect(customQueue.getTotalCount()).toBe(1);
+            expect(requestQueue.getTotalCount()).toBe(2);
+        });
     });
 
     describe('addRequests input validation', () => {
