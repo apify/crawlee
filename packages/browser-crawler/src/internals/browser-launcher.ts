@@ -138,7 +138,7 @@ export abstract class BrowserLauncher<
      */
     constructor(
         launchContext: BrowserLaunchContext<LaunchOptions, Launcher>,
-        readonly config = Configuration.getGlobalConfig(),
+        readonly configuration = Configuration.getGlobalConfiguration(),
     ) {
         const {
             launcher,
@@ -189,7 +189,7 @@ export abstract class BrowserLauncher<
             ...this.launchOptions,
         };
 
-        if (this.config.disableBrowserSandbox) {
+        if (this.configuration.disableBrowserSandbox) {
             launchOptions.args.push('--no-sandbox');
         }
 
@@ -209,11 +209,11 @@ export abstract class BrowserLauncher<
     }
 
     protected getDefaultHeadlessOption(): boolean {
-        return this.config.headless && !this.config.xvfb;
+        return this.configuration.headless && !this.configuration.xvfb;
     }
 
     private getChromeExecutablePath(): string {
-        return this.config.chromeExecutablePath ?? this.getTypicalChromeExecutablePath();
+        return this.configuration.chromeExecutablePath ?? this.getTypicalChromeExecutablePath();
     }
 
     /**

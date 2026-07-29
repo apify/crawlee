@@ -20,7 +20,7 @@ export interface MemoryLoadSignalOptions {
     maxUsedMemoryRatio?: number;
     overloadedRatio?: number;
     snapshotHistoryMillis?: number;
-    config: Configuration;
+    configuration: Configuration;
     log?: CrawleeLogger;
 }
 
@@ -33,7 +33,7 @@ export class MemoryLoadSignal implements LoadSignal {
     readonly overloadedRatio: number;
 
     private readonly store: SnapshotStore<MemorySnapshot>;
-    private readonly config: Configuration;
+    private readonly configuration: Configuration;
     private readonly events: EventManager;
     private readonly log: CrawleeLogger;
     private readonly maxUsedMemoryRatio: number;
@@ -43,7 +43,7 @@ export class MemoryLoadSignal implements LoadSignal {
 
     constructor(options: MemoryLoadSignalOptions) {
         this.store = new SnapshotStore(options.snapshotHistoryMillis);
-        this.config = options.config;
+        this.configuration = options.configuration;
         this.events = serviceLocator.getEventManager();
         this.log = options.log ?? serviceLocator.getLogger().child({ prefix: 'MemoryLoadSignal' });
         this.maxUsedMemoryRatio = options.maxUsedMemoryRatio ?? 0.9;
@@ -52,12 +52,12 @@ export class MemoryLoadSignal implements LoadSignal {
     }
 
     async start(): Promise<void> {
-        const memoryMbytes = this.config.memoryMbytes ?? 0;
+        const memoryMbytes = this.configuration.memoryMbytes ?? 0;
 
         if (memoryMbytes > 0) {
             this.maxMemoryBytes = memoryMbytes * 1024 * 1024;
         } else {
-            this.maxMemoryRatio = this.config.availableMemoryRatio;
+            this.maxMemoryRatio = this.configuration.availableMemoryRatio;
             if (!this.maxMemoryRatio) {
                 throw new Error('availableMemoryRatio is not set in configuration.');
             } else {
@@ -138,7 +138,7 @@ export class MemoryLoadSignal implements LoadSignal {
     }
 
     private async _getTotalMemoryBytes(): Promise<number> {
-        const containerized = this.config.containerized ?? (await isContainerized());
+        const containerized = this.configuration.containerized ?? (await isContainerized());
         return (await getMemoryInfo({ containerized, logger: serviceLocator.getLogger() })).totalBytes;
     }
 }

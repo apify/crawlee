@@ -63,7 +63,7 @@ export interface SnapshotterOptions {
     client?: StorageBackend;
 
     /** @internal */
-    config?: Configuration;
+    configuration?: Configuration;
 }
 
 /**
@@ -95,7 +95,7 @@ export interface SnapshotterOptions {
 export class Snapshotter {
     readonly log: CrawleeLogger;
     readonly client: StorageBackend;
-    readonly config: Configuration;
+    readonly configuration: Configuration;
 
     private readonly memorySignal: MemoryLoadSignal;
     private readonly eventLoopSignal: EventLoopLoadSignal;
@@ -142,7 +142,7 @@ export class Snapshotter {
                 maxClientErrors: ow.optional.number,
                 log: ow.optional.object,
                 client: ow.optional.object,
-                config: ow.optional.object,
+                configuration: ow.optional.object,
             }),
         );
 
@@ -154,20 +154,20 @@ export class Snapshotter {
             maxUsedMemoryRatio = 0.9,
             maxClientErrors = 3,
             log = serviceLocator.getLogger(),
-            config = serviceLocator.getConfiguration(),
+            configuration = serviceLocator.getConfiguration(),
             client = serviceLocator.getStorageBackend(),
         } = options;
 
         this.log = log.child({ prefix: 'Snapshotter' });
         this.client = client;
-        this.config = config;
+        this.configuration = configuration;
 
         const snapshotHistoryMillis = snapshotHistorySecs * 1000;
 
         this.memorySignal = new MemoryLoadSignal({
             maxUsedMemoryRatio,
             snapshotHistoryMillis,
-            config: this.config,
+            configuration: this.configuration,
             log: this.log,
         });
 
@@ -179,7 +179,7 @@ export class Snapshotter {
 
         this.cpuSignal = createCpuLoadSignal({
             snapshotHistoryMillis,
-            config: this.config,
+            configuration: this.configuration,
         });
 
         this.clientSignal = createClientLoadSignal({

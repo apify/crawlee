@@ -373,18 +373,18 @@ describe('Snapshotter', () => {
             // Mock memory info to be able to inject custom memory measurement data.
             vitest.spyOn(LocalEventManager.prototype as any, 'getMemoryInfo').mockResolvedValue(memoryData);
 
-            let config: Configuration;
+            let configuration: Configuration;
             if (dynamic) {
                 // Dynamic: Allow usage of 50 % of available memory through ratio
-                config = new Configuration({ availableMemoryRatio: allowedMemoryUsageRatio });
+                configuration = new Configuration({ availableMemoryRatio: allowedMemoryUsageRatio });
             } else {
                 // Static: Allow usage of 50 % of available memory through fixed value
-                config = new Configuration({
+                configuration = new Configuration({
                     memoryMbytes: (allowedMemoryUsageRatio * initialTotalBytes) / 1024 / 1024,
                 });
             }
 
-            const snapshotter = new Snapshotter({ config });
+            const snapshotter = new Snapshotter({ configuration });
             vitest.spyOn(LocalEventManager.prototype, 'init').mockImplementation(async () => {});
             const eventManager = serviceLocator.getEventManager() as LocalEventManager;
             await snapshotter.start();

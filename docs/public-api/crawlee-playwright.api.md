@@ -235,7 +235,7 @@ function injectJQuery(page: Page, options?: {
 }): Promise<unknown>;
 
 // @public
-export function launchPlaywright(launchContext?: PlaywrightLaunchContext, config?: Configuration): Promise<Browser>;
+export function launchPlaywright(launchContext?: PlaywrightLaunchContext, configuration?: Configuration): Promise<Browser>;
 
 // @public
 function parseWithCheerio(page: Page, ignoreShadowRoots?: boolean, ignoreIframes?: boolean): Promise<CheerioRoot>;
@@ -404,7 +404,7 @@ function saveSnapshot(page: Page, options?: SaveSnapshotOptions): Promise<void>;
 
 // @public (undocumented)
 interface SaveSnapshotOptions {
-    config?: Configuration;
+    configuration?: Configuration;
     key?: string;
     keyValueStoreName?: string | null;
     saveHtml?: boolean;

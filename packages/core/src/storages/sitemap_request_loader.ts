@@ -232,7 +232,6 @@ export class SitemapRequestLoader implements IRequestLoader {
                     ow.any(ow.string, ow.regExp, ow.object.hasKeys('glob'), ow.object.hasKeys('regexp')),
                 ),
                 regexps: ow.optional.array.ofType(ow.any(ow.regExp, ow.object.hasKeys('regexp'))),
-                config: ow.optional.object,
                 persistenceOptions: ow.optional.object,
             }),
         );
