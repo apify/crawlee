@@ -416,11 +416,16 @@ export async function enqueueLinks(
         if (onSkippedRequest && skippedRequests.length > 0) {
             await Promise.all(
                 skippedRequests.map((request) => {
+                    const skippedRequest =
+                        request instanceof Request
+                            ? request
+                            : new Request(
+                                  typeof request === 'string' ? { url: request } : { ...request, url: request.url! },
+                              );
+
                     return onSkippedRequest({
-                        request:
-                            request instanceof Request
-                                ? request
-                                : new Request(typeof request === 'string' ? { url: request } : { ...request, url: request.url! }),
+                        url: skippedRequest.url,
+                        request: skippedRequest,
                         reason: (request as { skippedReason?: SkippedRequestReason }).skippedReason ?? reason,
                     }) as Promise<void>;
                 }),
@@ -486,8 +491,10 @@ export async function enqueueLinks(
             (request) => skippedRequests.push(request),
         );
         // ...then filter them by the enqueue links strategy (making this an AND check)
-        const filtered = filterRequestsByPatterns(generatedRequestsFromUserFilters, enqueueStrategyPatterns, (request) =>
-            skippedRequests.push(request),
+        const filtered = filterRequestsByPatterns(
+            generatedRequestsFromUserFilters,
+            enqueueStrategyPatterns,
+            (request) => skippedRequests.push(request),
         );
 
         await reportSkippedRequests(skippedRequests, 'filters');

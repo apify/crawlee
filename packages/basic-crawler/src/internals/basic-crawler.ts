@@ -1160,7 +1160,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         return Math.min(limit, explicitLimit ?? Infinity);
     }
 
-    protected async handleSkippedRequest(options: Parameters<SkippedRequestCallback>[0]): Promise<void> {
+    protected async handleSkippedRequest(options: Omit<Parameters<SkippedRequestCallback>[0], 'url'>): Promise<void> {
         if (options.reason === 'limit') {
             this.logOncePerRun(
                 'maxRequestsPerCrawl',
@@ -1176,7 +1176,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             );
         }
 
-        await this.onSkippedRequest?.(options);
+        await this.onSkippedRequest?.({ url: options.request.url, ...options });
     }
 
     private logOncePerRun(key: string, message: string): void {

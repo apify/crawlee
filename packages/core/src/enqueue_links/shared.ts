@@ -49,7 +49,12 @@ export type RegExpInput = RegExp | RegExpObject;
 
 export type SkippedRequestReason = 'robotsTxt' | 'limit' | 'enqueueLimit' | 'filters' | 'redirect' | 'depth';
 
-export type SkippedRequestCallback = (args: { request: Request; reason: SkippedRequestReason }) => Awaitable<void>;
+export type SkippedRequestCallback = (args: {
+    /** @deprecated Use `request.url` instead. */
+    url: string;
+    request: Request;
+    reason: SkippedRequestReason;
+}) => Awaitable<void>;
 
 /**
  * @ignore
@@ -182,7 +187,9 @@ export function createRequests(
             const matchesExcludePatterns = excludePatternObjectMatchers.some(({ match }) => match(url));
 
             if (matchesExcludePatterns) {
-                onSkippedRequest?.(new Request(typeof opts === 'string' ? { url: opts, enqueueStrategy: strategy } : opts));
+                onSkippedRequest?.(
+                    new Request(typeof opts === 'string' ? { url: opts, enqueueStrategy: strategy } : opts),
+                );
             }
 
             return !matchesExcludePatterns;

@@ -288,14 +288,20 @@ describe('BasicCrawler', () => {
 
             const skippedRequests = onSkippedRequestMock.mock.calls.map((call) => call[0]);
             expect(skippedRequests).toHaveLength(2);
-            expect(skippedRequests[0]).toMatchObject({ reason: 'depth', request: { url: 'https://example.com/1/' } });
-            expect(skippedRequests[1]).toMatchObject({ reason: 'depth', request: { url: 'https://example.com/2/' } });
+            expect(skippedRequests[0]).toMatchObject({
+                url: 'https://example.com/1/',
+                reason: 'depth',
+                request: { url: 'https://example.com/1/' },
+            });
+            expect(skippedRequests[1]).toMatchObject({
+                url: 'https://example.com/2/',
+                reason: 'depth',
+                request: { url: 'https://example.com/2/' },
+            });
             expect(skippedRequests[0].request).toBeInstanceOf(Request);
             expect(skippedRequests[1].request).toBeInstanceOf(Request);
             expect(skippedRequests[0].request.userData).toMatchObject({ source: 'crawl-depth-test' });
             expect(skippedRequests[1].request.userData).toMatchObject({ source: 'crawl-depth-test' });
-            expect(skippedRequests[0]).not.toHaveProperty('url');
-            expect(skippedRequests[1]).not.toHaveProperty('url');
         });
 
         it('should respect user provided transformRequestFunction', async () => {
