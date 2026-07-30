@@ -25,12 +25,11 @@ import type {
     RouteSchemas,
     RoutesFromSchemas,
 } from '@crawlee/browser';
-import { BrowserCrawler, Router } from '@crawlee/browser';
+import { BrowserCrawler, parseArgument, Router, schemas } from '@crawlee/browser';
 import type { BrowserPoolOptions } from '@crawlee/browser-pool';
 import type { Dictionary } from '@crawlee/types';
-import ow from 'ow';
 import type { LaunchOptions, Page, Response } from 'playwright';
-import type { z } from 'zod';
+import { z } from 'zod';
 
 import type { StagehandController } from './stagehand-controller';
 import type { StagehandLaunchContext } from './stagehand-launcher';
@@ -403,8 +402,8 @@ export class StagehandCrawler<
 > {
     protected static override optionsShape = {
         ...BrowserCrawler.optionsShape,
-        stagehandOptions: ow.optional.object,
-        browserPoolOptions: ow.optional.object,
+        stagehandOptions: schemas.anyObject.optional(),
+        browserPoolOptions: schemas.anyObject.optional(),
     };
 
     /**
@@ -413,7 +412,7 @@ export class StagehandCrawler<
      * @param options - Crawler configuration options
      */
     constructor(options: StagehandCrawlerOptions<ContextExtension, ExtendedContext, Routes> = {}) {
-        ow(options, 'StagehandCrawlerOptions', ow.object.exactShape(StagehandCrawler.optionsShape));
+        parseArgument(options, 'StagehandCrawlerOptions', z.strictObject(StagehandCrawler.optionsShape));
 
         const { stagehandOptions = {}, launchContext = {}, contextPipelineBuilder, ...browserCrawlerOptions } = options;
 

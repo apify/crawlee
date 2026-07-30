@@ -22,8 +22,10 @@ import {
     handleRequestTimeout,
     NavigationSkippedError,
     OwnedOrInjected,
+    parseArgument,
     RequestState,
     resolveBaseUrlForEnqueueLinksFiltering,
+    schemas,
     SessionError,
     toughCookieToBrowserPoolCookie,
     tryAbsoluteURL,
@@ -50,8 +52,8 @@ import type {
 } from '@crawlee/types';
 import type { RobotsTxtFile } from '@crawlee/utils';
 import { CLOUDFLARE_RETRY_CSS_SELECTORS, RETRY_CSS_SELECTORS, sleep } from '@crawlee/utils';
-import ow from 'ow';
 import type { ReadonlyDeep } from 'type-fest';
+import { z } from 'zod';
 
 import { tryCancel } from '@apify/timeout';
 
@@ -373,17 +375,19 @@ export abstract class BrowserCrawler<
     protected static override optionsShape = {
         ...BasicCrawler.optionsShape,
 
-        navigationTimeoutSecs: ow.optional.number.greaterThan(0),
-        preNavigationHooks: ow.optional.array,
-        postNavigationHooks: ow.optional.array,
+        navigationTimeoutSecs: schemas.anyNumber
+            .refine((value) => value > 0, 'Expected a number greater than 0')
+            .optional(),
+        preNavigationHooks: schemas.anyArray.optional(),
+        postNavigationHooks: schemas.anyArray.optional(),
 
-        launchContext: ow.optional.object,
-        headless: ow.optional.any(ow.boolean, ow.string),
-        browserPool: ow.optional.object.validate(validators.browserPool),
-        remoteBrowser: ow.optional.object,
-        browserPoolOptions: ow.optional.object,
-        saveResponseCookies: ow.optional.boolean,
-        proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
+        launchContext: schemas.anyObject.optional(),
+        headless: z.union([z.boolean(), z.string()]).optional(),
+        browserPool: validators.browserPool.optional(),
+        remoteBrowser: schemas.anyObject.optional(),
+        browserPoolOptions: schemas.anyObject.optional(),
+        saveResponseCookies: z.boolean().optional(),
+        proxyConfiguration: validators.proxyConfiguration.optional(),
     };
 
     /**
@@ -394,7 +398,7 @@ export abstract class BrowserCrawler<
             contextPipelineBuilder: () => ContextPipeline<CrawlingContext, Context>;
         },
     ) {
-        ow(options, 'BrowserCrawlerOptions', ow.object.exactShape(BrowserCrawler.optionsShape));
+        parseArgument(options, 'BrowserCrawlerOptions', z.strictObject(BrowserCrawler.optionsShape));
         const {
             navigationTimeoutSecs = 60,
             saveResponseCookies = true,

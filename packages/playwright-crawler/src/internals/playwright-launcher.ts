@@ -1,8 +1,8 @@
 import type { BrowserLaunchContext } from '@crawlee/browser';
-import { BrowserLauncher, Configuration } from '@crawlee/browser';
+import { BrowserLauncher, Configuration, parseArgument } from '@crawlee/browser';
 import { PlaywrightPlugin } from '@crawlee/browser-pool';
-import ow from 'ow';
 import type { Browser, BrowserType, LaunchOptions } from 'playwright';
+import { z } from 'zod';
 
 /**
  * Apify extends the launch options of Playwright.
@@ -79,8 +79,8 @@ export interface PlaywrightLaunchContext extends BrowserLaunchContext<LaunchOpti
 export class PlaywrightLauncher extends BrowserLauncher<PlaywrightPlugin> {
     protected static override optionsShape = {
         ...BrowserLauncher.optionsShape,
-        launcher: ow.optional.object,
-        launchContextOptions: ow.optional.object,
+        launcher: z.looseObject({}).optional(),
+        launchContextOptions: z.looseObject({}).optional(),
     };
 
     /**
@@ -90,7 +90,7 @@ export class PlaywrightLauncher extends BrowserLauncher<PlaywrightPlugin> {
         launchContext: PlaywrightLaunchContext = {},
         override readonly configuration = Configuration.getGlobalConfiguration(),
     ) {
-        ow(launchContext, 'PlaywrightLauncherOptions', ow.object.exactShape(PlaywrightLauncher.optionsShape));
+        parseArgument(launchContext, 'PlaywrightLauncherOptions', z.strictObject(PlaywrightLauncher.optionsShape));
 
         const {
             launcher = BrowserLauncher.requireLauncherOrThrow<typeof import('playwright')>(

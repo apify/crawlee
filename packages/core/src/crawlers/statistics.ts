@@ -1,10 +1,11 @@
-import ow from 'ow';
+import { z } from 'zod';
 
 import type { EventManager } from '../events/event_manager.js';
 import { EventType } from '../events/event_manager.js';
 import type { CrawleeLogger } from '../log.js';
 import { serviceLocator } from '../service_locator.js';
 import { KeyValueStore } from '../storages/key_value_store.js';
+import { parseArgument, schemas } from '../validators.js';
 import { ErrorTracker } from './error_tracker.js';
 
 /**
@@ -105,16 +106,17 @@ export class Statistics {
      * @internal
      */
     constructor(options: StatisticsOptions = {}) {
-        ow(
+        parseArgument(
             options,
-            ow.object.exactShape({
-                logIntervalSecs: ow.optional.number,
-                logMessage: ow.optional.string,
-                log: ow.optional.object,
-                keyValueStore: ow.optional.object,
-                persistenceOptions: ow.optional.object,
-                saveErrorSnapshots: ow.optional.boolean,
-                id: ow.optional.any(ow.number, ow.string),
+            'options',
+            z.strictObject({
+                logIntervalSecs: schemas.anyNumber.optional(),
+                logMessage: z.string().optional(),
+                log: z.looseObject({}).optional(),
+                keyValueStore: z.looseObject({}).optional(),
+                persistenceOptions: z.looseObject({}).optional(),
+                saveErrorSnapshots: z.boolean().optional(),
+                id: z.union([schemas.anyNumber, z.string()]).optional(),
             }),
         );
 

@@ -25,15 +25,15 @@ import {
     Router,
     SessionError,
 } from '@crawlee/basic';
-import { type LoadedRequest, getCookiesFromResponse } from '@crawlee/core';
+import { type LoadedRequest, getCookiesFromResponse, parseArgument, schemas } from '@crawlee/core';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import type { Awaitable, Dictionary, ISession } from '@crawlee/types';
 import { type CheerioRoot, RETRY_CSS_SELECTORS } from '@crawlee/utils';
 import type { RequestLike, ResponseLike } from 'content-type';
 import contentTypeParser from 'content-type';
 import iconv from 'iconv-lite';
-import ow from 'ow';
 import type { JsonValue } from 'type-fest';
+import { z } from 'zod';
 
 import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 
@@ -355,15 +355,15 @@ export class HttpCrawler<
     protected static override optionsShape = {
         ...BasicCrawler.optionsShape,
 
-        navigationTimeoutSecs: ow.optional.number,
-        ignoreSslErrors: ow.optional.boolean,
-        additionalMimeTypes: ow.optional.array.ofType(ow.string),
-        suggestResponseEncoding: ow.optional.string,
-        forceResponseEncoding: ow.optional.string,
-        saveResponseCookies: ow.optional.boolean,
+        navigationTimeoutSecs: schemas.anyNumber.optional(),
+        ignoreSslErrors: z.boolean().optional(),
+        additionalMimeTypes: z.array(z.string()).optional(),
+        suggestResponseEncoding: z.string().optional(),
+        forceResponseEncoding: z.string().optional(),
+        saveResponseCookies: z.boolean().optional(),
 
-        preNavigationHooks: ow.optional.array,
-        postNavigationHooks: ow.optional.array,
+        preNavigationHooks: schemas.anyArray.optional(),
+        postNavigationHooks: schemas.anyArray.optional(),
     };
 
     /**
@@ -373,7 +373,7 @@ export class HttpCrawler<
         options: HttpCrawlerOptions<Context, ContextExtension, ExtendedContext> &
             RequireContextPipeline<InternalHttpCrawlingContext, Context> = {} as any,
     ) {
-        ow(options, 'HttpCrawlerOptions', ow.object.exactShape(HttpCrawler.optionsShape));
+        parseArgument(options, 'HttpCrawlerOptions', z.strictObject(HttpCrawler.optionsShape));
 
         const {
             navigationTimeoutSecs = 30,

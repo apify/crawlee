@@ -3,8 +3,8 @@ import { Transform } from 'node:stream';
 import type { BaseHttpClient } from '@crawlee/types';
 import { parseSitemap, type ParseSitemapOptions } from '@crawlee/utils';
 import { minimatch } from 'minimatch';
-import ow from 'ow';
 import type { RequiredDeep } from 'type-fest';
+import { z } from 'zod';
 
 import type { GlobInput, RegExpInput, UrlPatternObject } from '../enqueue_links/shared.js';
 import { constructGlobObjectsFromGlobs, constructRegExpObjectsFromRegExps } from '../enqueue_links/shared.js';
@@ -12,6 +12,7 @@ import { type EventManager, EventType } from '../events/event_manager.js';
 import type { CrawleeLogger } from '../log.js';
 import { Request } from '../request.js';
 import { serviceLocator } from '../service_locator.js';
+import { parseArgument, schemas } from '../validators.js';
 import { KeyValueStore } from './key_value_store.js';
 import type { IRequestLoader } from './request_loader.js';
 import type { IRequestManager } from './request_manager.js';
@@ -204,22 +205,30 @@ export class SitemapRequestLoader implements IRequestLoader {
 
     /** @internal */
     private constructor(options: SitemapRequestLoaderOptions) {
-        ow(
+        parseArgument(
             options,
-            ow.object.exactShape({
-                sitemapUrls: ow.array.ofType(ow.string),
-                proxyUrl: ow.optional.string,
-                persistStateKey: ow.optional.string,
-                signal: ow.optional.any(),
-                timeoutMillis: ow.optional.number,
-                maxBufferSize: ow.optional.number,
-                parseSitemapOptions: ow.optional.object,
-                globs: ow.optional.array.ofType(ow.any(ow.string, ow.object.hasKeys('glob'))),
-                exclude: ow.optional.array.ofType(
-                    ow.any(ow.string, ow.regExp, ow.object.hasKeys('glob'), ow.object.hasKeys('regexp')),
-                ),
-                regexps: ow.optional.array.ofType(ow.any(ow.regExp, ow.object.hasKeys('regexp'))),
-                persistenceOptions: ow.optional.object,
+            'options',
+            z.strictObject({
+                sitemapUrls: z.array(z.string()),
+                proxyUrl: z.string().optional(),
+                persistStateKey: z.string().optional(),
+                signal: z.unknown().optional(),
+                timeoutMillis: schemas.anyNumber.optional(),
+                maxBufferSize: schemas.anyNumber.optional(),
+                parseSitemapOptions: z.looseObject({}).optional(),
+                globs: z.array(z.union([z.string(), schemas.objectWithKeys(['glob'])])).optional(),
+                exclude: z
+                    .array(
+                        z.union([
+                            z.string(),
+                            z.instanceof(RegExp),
+                            schemas.objectWithKeys(['glob']),
+                            schemas.objectWithKeys(['regexp']),
+                        ]),
+                    )
+                    .optional(),
+                regexps: z.array(z.union([z.instanceof(RegExp), schemas.objectWithKeys(['regexp'])])).optional(),
+                persistenceOptions: z.looseObject({}).optional(),
             }),
         );
 

@@ -55,6 +55,7 @@ import {
     NavigationSkippedError,
     NonRetryableError,
     OwnedOrInjected,
+    parseArgument,
     purgeDefaultStorages,
     RequestHandlerError,
     RequestManagerTandem,
@@ -62,6 +63,7 @@ import {
     RequestState,
     RetryRequestError,
     Router,
+    schemas,
     ServiceLocator,
     serviceLocator,
     Session,
@@ -86,9 +88,9 @@ import type {
 import { isAsyncIterable, isIterable, RobotsTxtFile, ROTATE_PROXY_ERRORS } from '@crawlee/utils';
 import { stringify } from 'csv-stringify/sync';
 import { ensureDir, writeJSON } from 'fs-extra/esm';
-import ow, { ArgumentError } from 'ow';
 import { getDomain } from 'tldts';
 import type { ReadonlyDeep, SetRequired } from 'type-fest';
+import { z } from 'zod';
 
 import { LruCache } from '@apify/datastructures';
 import { addTimeoutToPromise, TimeoutError } from '@apify/timeout';
@@ -777,53 +779,56 @@ export class BasicCrawler<
     };
 
     protected static optionsShape = {
-        contextPipelineBuilder: ow.optional.object,
-        extendContext: ow.optional.function,
+        contextPipelineBuilder: schemas.anyObject.optional(),
+        extendContext: schemas.anyFunction.optional(),
 
-        requestList: ow.optional.object.validate(validators.requestList),
-        requestQueue: ow.optional.object.validate(validators.requestQueue),
+        requestList: validators.requestList.optional(),
+        requestQueue: validators.requestQueue.optional(),
         // Subclasses override this function instead of passing it
         // in constructor, so this validation needs to apply only
         // if the user creates an instance of BasicCrawler directly.
-        requestHandler: ow.optional.function,
-        requestHandlerTimeoutSecs: ow.optional.number,
-        errorHandler: ow.optional.function,
-        failedRequestHandler: ow.optional.function,
-        maxRequestRetries: ow.optional.number,
-        sameDomainDelaySecs: ow.optional.number,
-        maxRequestsPerCrawl: ow.optional.number,
-        maxCrawlDepth: ow.optional.number,
-        taskLoopOptions: ow.optional.object,
-        concurrencySystem: ow.optional.object,
-        sessionPool: ow.optional.object.validate(validators.sessionPool),
-        proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
+        requestHandler: schemas.anyFunction.optional(),
+        requestHandlerTimeoutSecs: schemas.anyNumber.optional(),
+        errorHandler: schemas.anyFunction.optional(),
+        failedRequestHandler: schemas.anyFunction.optional(),
+        maxRequestRetries: schemas.anyNumber.optional(),
+        sameDomainDelaySecs: schemas.anyNumber.optional(),
+        maxRequestsPerCrawl: schemas.anyNumber.optional(),
+        maxCrawlDepth: schemas.anyNumber.optional(),
+        taskLoopOptions: schemas.anyObject.optional(),
+        concurrencySystem: schemas.anyObject.optional(),
+        sessionPool: validators.sessionPool.optional(),
+        proxyConfiguration: validators.proxyConfiguration.optional(),
 
-        statusMessageLoggingInterval: ow.optional.number,
-        statusMessageCallback: ow.optional.function,
+        statusMessageLoggingInterval: schemas.anyNumber.optional(),
+        statusMessageCallback: schemas.anyFunction.optional(),
 
-        additionalHttpErrorStatusCodes: ow.optional.array.ofType(ow.number),
-        ignoreHttpErrorStatusCodes: ow.optional.array.ofType(ow.number),
+        additionalHttpErrorStatusCodes: z.array(schemas.anyNumber).optional(),
+        ignoreHttpErrorStatusCodes: z.array(schemas.anyNumber).optional(),
 
-        blockedStatusCodes: ow.optional.array.ofType(ow.number),
-        retryOnBlocked: ow.optional.boolean,
-        respectRobotsTxtFile: ow.optional.any(ow.boolean, ow.object),
-        onSkippedRequest: ow.optional.function,
-        httpClient: ow.optional.object,
+        blockedStatusCodes: z.array(schemas.anyNumber).optional(),
+        retryOnBlocked: z.boolean().optional(),
+        respectRobotsTxtFile: z.union([z.boolean(), schemas.anyObject]).optional(),
+        onSkippedRequest: schemas.anyFunction.optional(),
+        httpClient: schemas.anyObject.optional(),
 
-        configuration: ow.optional.object,
-        storageBackend: ow.optional.object,
-        eventManager: ow.optional.object,
-        logger: ow.optional.object,
+        configuration: schemas.anyObject.optional(),
+        storageBackend: schemas.anyObject.optional(),
+        eventManager: schemas.anyObject.optional(),
+        logger: schemas.anyObject.optional(),
 
         // AutoscaledPool shorthands
-        minConcurrency: ow.optional.number,
-        maxConcurrency: ow.optional.number,
-        maxRequestsPerMinute: ow.optional.number.integerOrInfinite.positive.greaterThanOrEqual(1),
-        keepAlive: ow.optional.boolean,
+        minConcurrency: schemas.anyNumber.optional(),
+        maxConcurrency: schemas.anyNumber.optional(),
+        maxRequestsPerMinute: schemas.anyNumber
+            .refine((value) => Number.isInteger(value) || value === Infinity, 'Expected an integer or infinite number')
+            .refine((value) => value >= 1, 'Expected a number greater than or equal to 1')
+            .optional(),
+        keepAlive: z.boolean().optional(),
 
-        statisticsOptions: ow.optional.object,
+        statisticsOptions: schemas.anyObject.optional(),
 
-        id: ow.optional.string,
+        id: z.string().optional(),
     };
 
     /**
@@ -833,7 +838,7 @@ export class BasicCrawler<
         options: BasicCrawlerOptions<Context, ContextExtension, ExtendedContext, Routes> &
             RequireContextPipeline<CrawlingContext, Context> = {} as any, // cast because the constructor logic handles missing `contextPipelineBuilder` - the type is just for DX
     ) {
-        ow(options, 'BasicCrawlerOptions', ow.object.exactShape(BasicCrawler.optionsShape));
+        parseArgument(options, 'BasicCrawlerOptions', z.strictObject(BasicCrawler.optionsShape));
 
         const {
             // oxlint-disable-next-line typescript/no-deprecated -- still accepted and folded into `requestManager` for back-compat
@@ -888,11 +893,10 @@ export class BasicCrawler<
             concurrencySystem !== undefined &&
             (minConcurrency !== undefined || maxConcurrency !== undefined || maxRequestsPerMinute !== undefined)
         ) {
-            throw new ArgumentError(
+            throw new Error(
                 'The `minConcurrency`/`maxConcurrency`/`maxRequestsPerMinute` shortcuts cannot be combined with ' +
                     '`concurrencySystem` - they configure the default `ConcurrencySystem` that a supplied one ' +
                     'replaces. Pass them to the `ConcurrencySystem` constructor instead.',
-                this.constructor,
             );
         }
 
@@ -1815,12 +1819,9 @@ export class BasicCrawler<
         const maxCrawlDepth = this.maxCrawlDepth;
         const validateRequestUserData = this.validateRequestUserData.bind(this);
 
-        ow(
-            requests,
-            ow.object
-                .is((value: unknown) => isIterable(value) || isAsyncIterable(value))
-                .message((value) => `Expected an iterable or async iterable, got ${getObjectType(value)}`),
-        );
+        if (!isIterable(requests) && !isAsyncIterable(requests)) {
+            throw new Error(`Expected an iterable or async iterable, got ${getObjectType(requests)}`);
+        }
 
         async function* filteredRequests() {
             for await (const request of requests) {

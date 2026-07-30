@@ -11,8 +11,8 @@ import type {
     RequestQueueInfo,
 } from '@crawlee/types';
 import { downloadListOfUrls, isAsyncIterable, isIterable, sleep } from '@crawlee/utils';
-import ow from 'ow';
 import type { ReadonlyDeep } from 'type-fest';
+import { z } from 'zod';
 
 import { LruCache } from '@apify/datastructures';
 
@@ -26,6 +26,7 @@ import type { IProxyConfiguration } from '../proxy_configuration.js';
 import type { InternalSource, RequestOptions, Source } from '../request.js';
 import { Request } from '../request.js';
 import { serviceLocator } from '../service_locator.js';
+import { parseArgument, schemas } from '../validators.js';
 import { checkStorageAccess } from './access_checking.js';
 import type { IRequestManager, RequestsLike } from './request_manager.js';
 import type { RequestQueueStats } from './storage_stats.js';
@@ -187,11 +188,12 @@ export class RequestQueue implements IStorage, IRequestManager {
     ): Promise<RequestQueueOperationInfo> {
         checkStorageAccess();
 
-        ow(requestLike, ow.object);
-        ow(
+        parseArgument(requestLike, 'requestLike', schemas.anyObject);
+        parseArgument(
             options,
-            ow.object.exactShape({
-                forefront: ow.optional.boolean,
+            'options',
+            z.strictObject({
+                forefront: z.boolean().optional(),
             }),
         );
 
@@ -204,15 +206,16 @@ export class RequestQueue implements IStorage, IRequestManager {
             return { ...processedRequests[0], forefront };
         }
 
-        ow(
+        parseArgument(
             requestLike,
-            ow.object.partialShape({
-                url: ow.string,
-                id: ow.undefined,
+            'requestLike',
+            z.looseObject({
+                url: z.string(),
+                id: z.undefined().optional(),
             }),
         );
 
-        const request = requestLike instanceof Request ? requestLike : new Request(requestLike);
+        const request = requestLike instanceof Request ? requestLike : new Request(requestLike as RequestOptions);
 
         const cacheKey = getRequestId(request.uniqueKey);
         const cachedInfo = this.requestCache.get(cacheKey);
@@ -264,17 +267,19 @@ export class RequestQueue implements IStorage, IRequestManager {
     ): Promise<BatchAddRequestsResult> {
         checkStorageAccess();
 
-        ow(
+        parseArgument(
             requestsLike,
-            ow.object
-                .is((value: unknown) => isIterable(value) || isAsyncIterable(value))
-                .message((value) => `Expected an iterable or async iterable, got ${getObjectType(value)}`),
+            'requestsLike',
+            z.custom((value) => isIterable(value) || isAsyncIterable(value), {
+                error: (issue) => `Expected an iterable or async iterable, got ${getObjectType(issue.input)}`,
+            }),
         );
-        ow(
+        parseArgument(
             options,
-            ow.object.exactShape({
-                forefront: ow.optional.boolean,
-                cache: ow.optional.boolean,
+            'options',
+            z.strictObject({
+                forefront: z.boolean().optional(),
+                cache: z.boolean().optional(),
             }),
         );
 
@@ -378,21 +383,23 @@ export class RequestQueue implements IStorage, IRequestManager {
     ): Promise<AddRequestsBatchedResult> {
         checkStorageAccess();
 
-        ow(
+        parseArgument(
             requests,
-            ow.object
-                .is((value: unknown) => isIterable(value) || isAsyncIterable(value))
-                .message((value) => `Expected an iterable or async iterable, got ${getObjectType(value)}`),
+            'requests',
+            z.custom((value) => isIterable(value) || isAsyncIterable(value), {
+                error: (issue) => `Expected an iterable or async iterable, got ${getObjectType(issue.input)}`,
+            }),
         );
 
-        ow(
+        parseArgument(
             options,
-            ow.object.exactShape({
-                forefront: ow.optional.boolean,
-                waitForAllRequestsToBeAdded: ow.optional.boolean,
-                batchSize: ow.optional.number,
-                waitBetweenBatchesMillis: ow.optional.number,
-                maxNewRequests: ow.optional.number,
+            'options',
+            z.strictObject({
+                forefront: z.boolean().optional(),
+                waitForAllRequestsToBeAdded: z.boolean().optional(),
+                batchSize: schemas.anyNumber.optional(),
+                waitBetweenBatchesMillis: schemas.anyNumber.optional(),
+                maxNewRequests: schemas.anyNumber.optional(),
             }),
         );
 
@@ -575,7 +582,7 @@ export class RequestQueue implements IStorage, IRequestManager {
     async getRequest<T extends Dictionary = Dictionary>(uniqueKey: string): Promise<Request<T> | null> {
         checkStorageAccess();
 
-        ow(uniqueKey, ow.string);
+        parseArgument(uniqueKey, 'uniqueKey', z.string());
 
         const requestOptions = await this.backend.getRequest(uniqueKey);
         if (!requestOptions) return null;
@@ -623,12 +630,13 @@ export class RequestQueue implements IStorage, IRequestManager {
     async markRequestAsHandled(request: Request): Promise<RequestQueueOperationInfo | null> {
         checkStorageAccess();
 
-        ow(
+        parseArgument(
             request,
-            ow.object.partialShape({
-                id: ow.string,
-                uniqueKey: ow.string,
-                handledAt: ow.optional.string,
+            'request',
+            z.looseObject({
+                id: z.string(),
+                uniqueKey: z.string(),
+                handledAt: z.string().optional(),
             }),
         );
 
@@ -637,7 +645,7 @@ export class RequestQueue implements IStorage, IRequestManager {
         const handledAt = request.handledAt ?? new Date().toISOString();
         this.statsTracker.add('writeCount');
         const processedRequest = await this.backend.markRequestAsHandled({
-            ...request,
+            ...(request as Request & { id: string }),
             handledAt,
         });
 
@@ -671,24 +679,28 @@ export class RequestQueue implements IStorage, IRequestManager {
     ): Promise<RequestQueueOperationInfo | null> {
         checkStorageAccess();
 
-        ow(
+        parseArgument(
             request,
-            ow.object.partialShape({
-                id: ow.string,
-                uniqueKey: ow.string,
+            'request',
+            z.looseObject({
+                id: z.string(),
+                uniqueKey: z.string(),
             }),
         );
-        ow(
+        parseArgument(
             options,
-            ow.object.exactShape({
-                forefront: ow.optional.boolean,
+            'options',
+            z.strictObject({
+                forefront: z.boolean().optional(),
             }),
         );
 
         const { forefront = false } = options;
 
         this.statsTracker.add('writeCount');
-        const processedRequest = await this.backend.reclaimRequest(request, { forefront });
+        const processedRequest = await this.backend.reclaimRequest(request as Request & { id: string }, {
+            forefront,
+        });
 
         // The request was not in progress — nothing to reclaim.
         if (!processedRequest) {
@@ -946,13 +958,14 @@ export class RequestQueue implements IStorage, IRequestManager {
     ): Promise<RequestQueue> {
         checkStorageAccess();
 
-        ow(
+        parseArgument(
             options,
-            ow.object.exactShape({
-                configuration: ow.optional.object.instanceOf(Configuration),
-                storageBackend: ow.optional.object,
-                proxyConfiguration: ow.optional.object,
-                httpClient: ow.optional.object,
+            'options',
+            z.strictObject({
+                configuration: z.instanceof(Configuration).optional(),
+                storageBackend: z.looseObject({}).optional(),
+                proxyConfiguration: z.looseObject({}).optional(),
+                httpClient: z.looseObject({}).optional(),
             }),
         );
 

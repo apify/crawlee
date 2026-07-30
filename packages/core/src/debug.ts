@@ -2,9 +2,9 @@ import type { IncomingMessage } from 'node:http';
 import { inspect } from 'node:util';
 
 import type { Dictionary } from '@crawlee/types';
-import ow from 'ow';
 
 import type { Request } from './request.js';
+import { parseArgument, schemas } from './validators.js';
 
 interface BrowserResponseLike {
     status(): number;
@@ -26,9 +26,9 @@ export function createRequestDebugInfo(
     response: IncomingMessage | Partial<BrowserResponseLike> = {},
     additionalFields: Dictionary = {},
 ): Dictionary {
-    ow(request, ow.object);
-    ow(response, ow.object);
-    ow(additionalFields, ow.object);
+    parseArgument(request, 'request', schemas.anyObject);
+    parseArgument(response, 'response', schemas.anyObject);
+    parseArgument(additionalFields, 'additionalFields', schemas.anyObject);
 
     return {
         requestId: request.id,

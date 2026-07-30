@@ -8,3 +8,5 @@ export * from './internals/robots.js';
 export * from './internals/sitemap.js';
 export * from './internals/iterables.js';
 export * from './internals/url.js';
+export * from './internals/validation.js';
+export * as schemas from './internals/schemas.js';

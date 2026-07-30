@@ -1,8 +1,10 @@
 import { FetchHttpClient } from '@crawlee/http-client';
 import type { BaseHttpClient } from '@crawlee/types';
-import ow from 'ow';
+import { z } from 'zod';
 
 import { URL_NO_COMMAS_REGEX } from './general.js';
+import { anyObject } from './schemas.js';
+import { parseArgument } from './validation.js';
 
 export interface DownloadListOfUrlsOptions {
     /**
@@ -37,14 +39,15 @@ export interface DownloadListOfUrlsOptions {
  * Optionally, custom regular expression and encoding may be provided.
  */
 export async function downloadListOfUrls(options: DownloadListOfUrlsOptions): Promise<string[]> {
-    ow(
-        options as any,
-        ow.object.exactShape({
-            url: ow.string.url,
-            encoding: ow.optional.string,
-            urlRegExp: ow.optional.regExp,
-            proxyUrl: ow.optional.string,
-            httpClient: ow.optional.object,
+    parseArgument(
+        options,
+        'options',
+        z.strictObject({
+            url: z.url(),
+            encoding: z.string().optional(),
+            urlRegExp: z.instanceof(RegExp).optional(),
+            proxyUrl: z.string().optional(),
+            httpClient: anyObject.optional(),
         }),
     );
     const {
@@ -89,11 +92,12 @@ export interface ExtractUrlsOptions {
  * Collects all URLs in an arbitrary string to an array, optionally using a custom regular expression.
  */
 export function extractUrls(options: ExtractUrlsOptions): string[] {
-    ow(
-        options as any,
-        ow.object.exactShape({
-            string: ow.string,
-            urlRegExp: ow.optional.regExp,
+    parseArgument(
+        options,
+        'options',
+        z.strictObject({
+            string: z.string(),
+            urlRegExp: z.instanceof(RegExp).optional(),
         }),
     );
     const lines = options.string.split('\n');

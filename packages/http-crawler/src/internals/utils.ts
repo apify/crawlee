@@ -2,10 +2,10 @@ import { extname } from 'node:path';
 import { Readable } from 'node:stream';
 
 import type { HttpRequest, HttpRequestOptions } from '@crawlee/types';
-import { applySearchParams } from '@crawlee/utils';
+import { applySearchParams, parseArgument } from '@crawlee/utils';
 import contentTypeParser from 'content-type';
 import mime from 'mime-types';
-import ow, { ObjectPredicate } from 'ow';
+import { z } from 'zod';
 
 /**
  * Converts {@apilink HttpRequestOptions} to a {@apilink HttpRequest}.
@@ -76,13 +76,7 @@ export function extractCharsetFromHtmlBytes(bytes: Buffer): string | undefined {
  * @param response HTTP response object
  */
 export function parseContentTypeFromResponse(response: Response): { type: string; charset: BufferEncoding } {
-    ow(
-        response,
-        ow.object.partialShape({
-            url: ow.string.url,
-            headers: new ObjectPredicate<Record<string, unknown>>(),
-        }),
-    );
+    parseArgument(response, 'response', z.looseObject({ url: z.url(), headers: z.looseObject({}) }));
 
     const { url, headers } = response;
     let parsedContentType;

@@ -1,6 +1,6 @@
 import type { Dictionary, ISessionPool } from '@crawlee/types';
 import { AsyncQueue } from '@sapphire/async-queue';
-import ow from 'ow';
+import { z } from 'zod';
 
 import type { PersistenceOptions } from '../crawlers/statistics.js';
 import type { EventManager } from '../events/event_manager.js';
@@ -8,6 +8,7 @@ import { EventType } from '../events/event_manager.js';
 import type { CrawleeLogger } from '../log.js';
 import { serviceLocator } from '../service_locator.js';
 import { KeyValueStore } from '../storages/key_value_store.js';
+import { parseArgument, schemas } from '../validators.js';
 import { MAX_POOL_SIZE, PERSIST_STATE_KEY } from './consts.js';
 import { createDefaultSessionFingerprint } from './fingerprint.js';
 import type { SessionOptions } from './session.js';
@@ -153,18 +154,19 @@ export class SessionPool implements ISessionPool {
     private roundRobinIndex = 0;
 
     constructor(options: SessionPoolOptions = {}) {
-        ow(
+        parseArgument(
             options,
-            ow.object.exactShape({
-                id: ow.optional.any(ow.number, ow.string),
-                maxPoolSize: ow.optional.number,
-                persistStateKeyValueStoreId: ow.optional.string,
-                persistStateKey: ow.optional.string,
-                createSessionFunction: ow.optional.function,
-                sessionOptions: ow.optional.object,
-                log: ow.optional.object,
-                persistenceOptions: ow.optional.object,
-                sessionReuseStrategy: ow.optional.string.oneOf([...SESSION_REUSE_STRATEGIES]),
+            'options',
+            z.strictObject({
+                id: z.union([schemas.anyNumber, z.string()]).optional(),
+                maxPoolSize: schemas.anyNumber.optional(),
+                persistStateKeyValueStoreId: z.string().optional(),
+                persistStateKey: z.string().optional(),
+                createSessionFunction: schemas.anyFunction.optional(),
+                sessionOptions: z.looseObject({}).optional(),
+                log: z.looseObject({}).optional(),
+                persistenceOptions: z.looseObject({}).optional(),
+                sessionReuseStrategy: z.enum(SESSION_REUSE_STRATEGIES).optional(),
             }),
         );
 
@@ -429,7 +431,7 @@ export class SessionPool implements ISessionPool {
      * @returns New session.
      */
     private async defaultCreateSessionFunction(options: { sessionOptions?: SessionOptions } = {}): Promise<Session> {
-        ow(options, ow.object.exactShape({ sessionOptions: ow.optional.object }));
+        parseArgument(options, 'options', z.strictObject({ sessionOptions: z.looseObject({}).optional() }));
         const { sessionOptions = {} } = options;
 
         return new Session(sessionOptions);

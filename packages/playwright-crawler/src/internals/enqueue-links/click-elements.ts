@@ -17,12 +17,14 @@ import {
     constructRegExpObjectsFromRegExps,
     createRequestOptions,
     filterRequestOptionsByPatterns,
+    parseArgument,
     Request as CrawleeRequest,
+    schemas,
     serviceLocator,
 } from '@crawlee/browser';
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
-import ow from 'ow';
 import type { Frame, Page, Request, Route } from 'playwright';
+import { z } from 'zod';
 
 const STARTING_Z_INDEX = 2147400000;
 const getLog = () => serviceLocator.getChildLog('Playwright Click Elements');
@@ -237,27 +239,35 @@ export interface EnqueueLinksByClickingElementsOptions {
 export async function enqueueLinksByClickingElements(
     options: EnqueueLinksByClickingElementsOptions,
 ): Promise<BatchAddRequestsResult> {
-    ow(
+    parseArgument(
         options,
-        ow.object.exactShape({
-            page: ow.object.hasKeys('goto', 'evaluate'),
-            requestManager: ow.object.hasKeys('fetchNextRequest', 'addRequestsBatched'),
-            selector: ow.string,
-            userData: ow.optional.object,
-            clickOptions: ow.optional.object,
-            pseudoUrls: ow.optional.array.ofType(ow.any(ow.string, ow.object.hasKeys('purl'))),
-            globs: ow.optional.array.ofType(ow.any(ow.string, ow.object.hasKeys('glob'))),
-            regexps: ow.optional.array.ofType(ow.any(ow.regExp, ow.object.hasKeys('regexp'))),
-            exclude: ow.optional.array.ofType(
-                ow.any(ow.string, ow.regExp, ow.object.hasKeys('glob'), ow.object.hasKeys('regexp')),
-            ),
-            transformRequestFunction: ow.optional.function,
-            waitForPageIdleSecs: ow.optional.number,
-            maxWaitForPageIdleSecs: ow.optional.number,
-            label: ow.optional.string,
-            forefront: ow.optional.boolean,
-            skipNavigation: ow.optional.boolean,
-            onSkippedRequest: ow.optional.function,
+        'EnqueueLinksByClickingElementsOptions',
+        z.strictObject({
+            page: schemas.objectWithKeys(['goto', 'evaluate']),
+            requestManager: schemas.objectWithKeys(['fetchNextRequest', 'addRequestsBatched']),
+            selector: z.string(),
+            userData: schemas.anyObject.optional(),
+            clickOptions: z.looseObject({}).optional(),
+            pseudoUrls: z.array(z.union([z.string(), schemas.objectWithKeys(['purl'])])).optional(),
+            globs: z.array(z.union([z.string(), schemas.objectWithKeys(['glob'])])).optional(),
+            regexps: z.array(z.union([z.instanceof(RegExp), schemas.objectWithKeys(['regexp'])])).optional(),
+            exclude: z
+                .array(
+                    z.union([
+                        z.string(),
+                        z.instanceof(RegExp),
+                        schemas.objectWithKeys(['glob']),
+                        schemas.objectWithKeys(['regexp']),
+                    ]),
+                )
+                .optional(),
+            transformRequestFunction: schemas.anyFunction.optional(),
+            waitForPageIdleSecs: schemas.anyNumber.optional(),
+            maxWaitForPageIdleSecs: schemas.anyNumber.optional(),
+            label: z.string().optional(),
+            forefront: z.boolean().optional(),
+            skipNavigation: z.boolean().optional(),
+            onSkippedRequest: schemas.anyFunction.optional(),
         }),
     );
 

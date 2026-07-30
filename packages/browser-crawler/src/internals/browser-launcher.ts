@@ -2,10 +2,10 @@ import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import os from 'node:os';
 
-import { Configuration } from '@crawlee/basic';
+import { Configuration, schemas } from '@crawlee/basic';
 import type { BrowserPlugin, BrowserPluginOptions } from '@crawlee/browser-pool';
 import type { Constructor, Dictionary } from '@crawlee/types';
-import ow from 'ow';
+import { z } from 'zod';
 
 const DEFAULT_VIEWPORT = {
     width: 1366,
@@ -105,14 +105,14 @@ export abstract class BrowserLauncher<
     userAgent?: string;
 
     protected static optionsShape = {
-        proxyUrl: ow.optional.string.url,
-        useChrome: ow.optional.boolean,
-        useIncognitoPages: ow.optional.boolean,
-        browserPerProxy: ow.optional.boolean,
-        ignoreProxyCertificate: ow.optional.boolean,
-        userDataDir: ow.optional.string,
-        launchOptions: ow.optional.object,
-        userAgent: ow.optional.string,
+        proxyUrl: z.url().optional(),
+        useChrome: z.boolean().optional(),
+        useIncognitoPages: z.boolean().optional(),
+        browserPerProxy: z.boolean().optional(),
+        ignoreProxyCertificate: z.boolean().optional(),
+        userDataDir: z.string().optional(),
+        launchOptions: schemas.anyObject.optional(),
+        userAgent: z.string().optional(),
     };
 
     static requireLauncherOrThrow<T>(launcher: string, apifyImageName: string): T {

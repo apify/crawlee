@@ -1,15 +1,15 @@
 import { AsyncResource } from 'node:async_hooks';
 
-import { type CrawleeLogger, SessionError, serviceLocator } from '@crawlee/core';
+import { type CrawleeLogger, parseArgument, schemas, SessionError, serviceLocator } from '@crawlee/core';
 import type { IBrowserPool, NewPageOptions, PageState } from '@crawlee/types';
 import type { BrowserFingerprintWithHeaders } from 'fingerprint-generator';
 import { FingerprintGenerator } from 'fingerprint-generator';
 import { FingerprintInjector } from 'fingerprint-injector';
 import { nanoid } from 'nanoid';
-import ow from 'ow';
 import pLimit from 'p-limit';
 import QuickLRU from 'quick-lru';
 import { TypedEmitter } from 'tiny-typed-emitter';
+import { z } from 'zod';
 
 import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 
@@ -28,6 +28,23 @@ import type { InferBrowserPluginArray, UnwrapPromise } from './utils.js';
 const PAGE_CLOSE_TIMEOUT_MILLIS = 5000;
 const PAGE_CLOSE_KILL_TIMEOUT_MILLIS = 1000;
 const BROWSER_KILLER_INTERVAL_MILLIS = 10 * 1000;
+
+const browserPoolOptionsSchema = z.strictObject({
+    browserPlugins: schemas.anyArray.refine((value) => value.length >= 1, 'Expected a non-empty array'),
+    maxOpenPagesPerBrowser: schemas.anyNumber.optional(),
+    retireBrowserAfterPageCount: schemas.anyNumber.optional(),
+    operationTimeoutSecs: schemas.anyNumber.optional(),
+    closeInactiveBrowserAfterSecs: schemas.anyNumber.optional(),
+    retireInactiveBrowserAfterSecs: schemas.anyNumber.optional(),
+    preLaunchHooks: schemas.anyArray.optional(),
+    postLaunchHooks: schemas.anyArray.optional(),
+    prePageCreateHooks: schemas.anyArray.optional(),
+    postPageCreateHooks: schemas.anyArray.optional(),
+    prePageCloseHooks: schemas.anyArray.optional(),
+    postPageCloseHooks: schemas.anyArray.optional(),
+    useFingerprints: z.boolean().optional(),
+    fingerprintOptions: schemas.anyObject.optional(),
+});
 
 export interface BrowserPoolEvents<BC extends BrowserController, Page> {
     [BROWSER_POOL_EVENTS.PAGE_CREATED]: (page: Page) => void | Promise<void>;
@@ -349,25 +366,7 @@ export class BrowserPool<
 
         this.browserKillerInterval!.unref();
 
-        ow(
-            options,
-            ow.object.exactShape({
-                browserPlugins: ow.array.minLength(1),
-                maxOpenPagesPerBrowser: ow.optional.number,
-                retireBrowserAfterPageCount: ow.optional.number,
-                operationTimeoutSecs: ow.optional.number,
-                closeInactiveBrowserAfterSecs: ow.optional.number,
-                retireInactiveBrowserAfterSecs: ow.optional.number,
-                preLaunchHooks: ow.optional.array,
-                postLaunchHooks: ow.optional.array,
-                prePageCreateHooks: ow.optional.array,
-                postPageCreateHooks: ow.optional.array,
-                prePageCloseHooks: ow.optional.array,
-                postPageCloseHooks: ow.optional.array,
-                useFingerprints: ow.optional.boolean,
-                fingerprintOptions: ow.optional.object,
-            }),
-        );
+        parseArgument(options, 'options', browserPoolOptionsSchema);
 
         const {
             browserPlugins,

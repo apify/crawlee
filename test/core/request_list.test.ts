@@ -1,4 +1,5 @@
 import {
+    ArgumentValidationError,
     Configuration,
     deserializeArray,
     EventType,
@@ -673,29 +674,17 @@ describe('RequestList', () => {
             expect(setValueSpy).not.toBeCalled();
         });
 
-        test('should throw on invalid parameters', async () => {
-            const args = [[], ['x', {}], ['x', 6, {}], ['x', [], []]] as const;
-            for (const arg of args) {
-                try {
-                    // @ts-ignore
-                    await RequestList.open(...arg);
-                    throw new Error('wrong error');
-                } catch (err) {
-                    const e = err as Error;
-                    expect(e.message).not.toBe('wrong error');
-                    if (/argument to be of type `string`/.exec(e.message)) {
-                        expect(e.message).toMatch('received type `undefined`');
-                    } else if (/argument to be of type `array`/.exec(e.message)) {
-                        const isMatched =
-                            /received type `Object`/.exec(e.message) ||
-                            /received type `number`/.exec(e.message) ||
-                            /received type `undefined`/.exec(e.message);
-                        expect(isMatched).toBeTruthy();
-                    } else if (/argument to be of type `null`/.exec(e.message)) {
-                        expect(e.message).toMatch('received type `undefined`');
-                    }
-                }
-            }
+        test.each([
+            [[], 'sources'],
+            [['x', {}], 'sources'],
+            [['x', 6, {}], 'sources'],
+            [['x', [], []], 'options'],
+            [[6, []], 'listName'],
+        ])('open(...%j) should throw on invalid argument %s', async (args, label) => {
+            // @ts-expect-error JS-side validation
+            await expect(RequestList.open(...args)).rejects.toThrow(ArgumentValidationError);
+            // @ts-expect-error JS-side validation
+            await expect(RequestList.open(...args)).rejects.toThrow(`Validation of argument '${label}' failed`);
         });
     });
 

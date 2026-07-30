@@ -1,7 +1,8 @@
 import type { Dictionary, ProxyInfo } from '@crawlee/types';
-import ow from 'ow';
+import { z } from 'zod';
 
 import type { Request } from './request.js';
+import { parseArgument, schemas } from './validators.js';
 
 export interface ProxyConfigurationFunction {
     (options?: { request?: Request }): string | null | Promise<string | null>;
@@ -112,11 +113,15 @@ export class ProxyConfiguration implements IProxyConfiguration {
             );
         }
 
-        ow(
+        parseArgument(
             rest,
-            ow.object.exactShape({
-                proxyUrls: ow.optional.array.nonEmpty.ofType(ow.any(ow.string.url, ow.null)),
-                newUrlFunction: ow.optional.function,
+            'options',
+            z.strictObject({
+                proxyUrls: z
+                    .array(z.union([z.url(), z.null()]))
+                    .nonempty()
+                    .optional(),
+                newUrlFunction: schemas.anyFunction.optional(),
             }),
         );
 

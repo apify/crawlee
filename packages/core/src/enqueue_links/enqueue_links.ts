@@ -1,8 +1,8 @@
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 import { type RobotsTxtFile } from '@crawlee/utils';
-import ow from 'ow';
 import { getDomain } from 'tldts';
 import type { SetRequired } from 'type-fest';
+import { z } from 'zod';
 
 import type { RequestOptions } from '../request.js';
 import { Request } from '../request.js';
@@ -13,6 +13,7 @@ import type {
     AddRequestsBatchedResult,
     RequestQueueOperationOptions,
 } from '../storages/request_queue.js';
+import { parseArgument, schemas } from '../validators.js';
 import type {
     GlobInput,
     PseudoUrlInput,
@@ -305,31 +306,41 @@ export async function enqueueLinks(
         );
     }
 
-    ow(
-        options as any,
-        ow.object.exactShape({
-            urls: ow.array.ofType(ow.string),
-            requestManager: ow.object.hasKeys('addRequestsBatched'),
-            robotsTxtFile: ow.optional.object.hasKeys('isAllowed'),
-            respectRobotsTxtFile: ow.optional.any(ow.boolean, ow.object.exactShape({ userAgent: ow.optional.string })),
-            onSkippedRequest: ow.optional.function,
-            forefront: ow.optional.boolean,
-            skipNavigation: ow.optional.boolean,
-            sessionId: ow.optional.string,
-            limit: ow.optional.number,
-            selector: ow.optional.string,
-            baseUrl: ow.optional.string,
-            userData: ow.optional.object,
-            label: ow.optional.string,
-            pseudoUrls: ow.optional.array.ofType(ow.any(ow.string, ow.object.hasKeys('purl'))),
-            globs: ow.optional.array.ofType(ow.any(ow.string, ow.object.hasKeys('glob'))),
-            exclude: ow.optional.array.ofType(
-                ow.any(ow.string, ow.regExp, ow.object.hasKeys('glob'), ow.object.hasKeys('regexp')),
-            ),
-            regexps: ow.optional.array.ofType(ow.any(ow.regExp, ow.object.hasKeys('regexp'))),
-            transformRequestFunction: ow.optional.function,
-            strategy: ow.optional.string.oneOf(Object.values(EnqueueStrategy)),
-            waitForAllRequestsToBeAdded: ow.optional.boolean,
+    parseArgument(
+        options,
+        'options',
+        z.strictObject({
+            urls: z.array(z.string()),
+            requestManager: schemas.objectWithKeys(['addRequestsBatched']),
+            robotsTxtFile: schemas.objectWithKeys(['isAllowed']).optional(),
+            respectRobotsTxtFile: z
+                .union([z.boolean(), z.strictObject({ userAgent: z.string().optional() })])
+                .optional(),
+            onSkippedRequest: schemas.anyFunction.optional(),
+            forefront: z.boolean().optional(),
+            skipNavigation: z.boolean().optional(),
+            sessionId: z.string().optional(),
+            limit: schemas.anyNumber.optional(),
+            selector: z.string().optional(),
+            baseUrl: z.string().optional(),
+            userData: z.looseObject({}).optional(),
+            label: z.string().optional(),
+            pseudoUrls: z.array(z.union([z.string(), schemas.objectWithKeys(['purl'])])).optional(),
+            globs: z.array(z.union([z.string(), schemas.objectWithKeys(['glob'])])).optional(),
+            exclude: z
+                .array(
+                    z.union([
+                        z.string(),
+                        z.instanceof(RegExp),
+                        schemas.objectWithKeys(['glob']),
+                        schemas.objectWithKeys(['regexp']),
+                    ]),
+                )
+                .optional(),
+            regexps: z.array(z.union([z.instanceof(RegExp), schemas.objectWithKeys(['regexp'])])).optional(),
+            transformRequestFunction: schemas.anyFunction.optional(),
+            strategy: z.enum(EnqueueStrategy).optional(),
+            waitForAllRequestsToBeAdded: z.boolean().optional(),
         }),
     );
 
