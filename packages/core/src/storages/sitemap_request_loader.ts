@@ -18,6 +18,29 @@ import type { IRequestLoader } from './request_loader.js';
 import type { IRequestManager } from './request_manager.js';
 import { purgeDefaultStorages } from './utils.js';
 
+const sitemapRequestLoaderOptionsSchema = z.strictObject({
+    sitemapUrls: z.array(z.string()),
+    proxyUrl: z.string().optional(),
+    persistStateKey: z.string().optional(),
+    signal: z.unknown().optional(),
+    timeoutMillis: schemas.anyNumber.optional(),
+    maxBufferSize: schemas.anyNumber.default(200),
+    parseSitemapOptions: z.looseObject({}).optional(),
+    globs: z.array(z.union([z.string(), schemas.objectWithKeys(['glob'])])).optional(),
+    exclude: z
+        .array(
+            z.union([
+                z.string(),
+                z.instanceof(RegExp),
+                schemas.objectWithKeys(['glob']),
+                schemas.objectWithKeys(['regexp']),
+            ]) as z.ZodType<GlobInput | RegExpInput>,
+        )
+        .optional(),
+    regexps: z.array(z.union([z.instanceof(RegExp), schemas.objectWithKeys(['regexp'])])).optional(),
+    persistenceOptions: z.looseObject({}).optional(),
+});
+
 /** @internal */
 const STATE_PERSISTENCE_KEY = 'SITEMAP_REQUEST_LOADER_STATE';
 
@@ -205,34 +228,8 @@ export class SitemapRequestLoader implements IRequestLoader {
 
     /** @internal */
     private constructor(options: SitemapRequestLoaderOptions) {
-        parseArgument(
-            options,
-            'options',
-            z.strictObject({
-                sitemapUrls: z.array(z.string()),
-                proxyUrl: z.string().optional(),
-                persistStateKey: z.string().optional(),
-                signal: z.unknown().optional(),
-                timeoutMillis: schemas.anyNumber.optional(),
-                maxBufferSize: schemas.anyNumber.optional(),
-                parseSitemapOptions: z.looseObject({}).optional(),
-                globs: z.array(z.union([z.string(), schemas.objectWithKeys(['glob'])])).optional(),
-                exclude: z
-                    .array(
-                        z.union([
-                            z.string(),
-                            z.instanceof(RegExp),
-                            schemas.objectWithKeys(['glob']),
-                            schemas.objectWithKeys(['regexp']),
-                        ]),
-                    )
-                    .optional(),
-                regexps: z.array(z.union([z.instanceof(RegExp), schemas.objectWithKeys(['regexp'])])).optional(),
-                persistenceOptions: z.looseObject({}).optional(),
-            }),
-        );
-
-        const { globs, exclude, regexps } = options;
+        const { globs, exclude, regexps, persistStateKey, persistenceOptions, proxyUrl, maxBufferSize, sitemapUrls } =
+            parseArgument(options, sitemapRequestLoaderOptionsSchema);
 
         this.log = serviceLocator.getLogger().child({ prefix: 'SitemapRequestLoader' });
 
@@ -254,14 +251,14 @@ export class SitemapRequestLoader implements IRequestLoader {
             this.urlPatternObjects.push(...constructRegExpObjectsFromRegExps(regexps));
         }
 
-        this.persistStateKey = options.persistStateKey;
-        this.persistenceOptions = { enable: true, ...options.persistenceOptions };
+        this.persistStateKey = persistStateKey;
+        this.persistenceOptions = { enable: true, ...persistenceOptions };
 
-        this.proxyUrl = options.proxyUrl;
+        this.proxyUrl = proxyUrl;
 
-        this.urlQueueStream = this.createNewStream(options.maxBufferSize ?? 200);
+        this.urlQueueStream = this.createNewStream(maxBufferSize);
 
-        this.sitemapParsingProgress.pendingSitemapUrls = new Set(options.sitemapUrls);
+        this.sitemapParsingProgress.pendingSitemapUrls = new Set(sitemapUrls);
         this.events = serviceLocator.getEventManager();
 
         this.persistState = this.persistState.bind(this);

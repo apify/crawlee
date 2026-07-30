@@ -9,7 +9,7 @@ import type { IProxyConfiguration } from '../proxy_configuration.js';
 import { type InternalSource, Request, type RequestOptions, type Source } from '../request.js';
 import { createDeserialize, serializeArray } from '../serialization.js';
 import { serviceLocator } from '../service_locator.js';
-import { parseArgument, schemas } from '../validators.js';
+import { parseArgument, schemas, validators } from '../validators.js';
 import { KeyValueStore } from './key_value_store.js';
 import type { IRequestLoader } from './request_loader.js';
 import type { IRequestManager } from './request_manager.js';
@@ -22,6 +22,25 @@ export const STATE_PERSISTENCE_KEY = 'REQUEST_LIST_STATE';
 export const REQUESTS_PERSISTENCE_KEY = 'REQUEST_LIST_REQUESTS';
 
 const CONTENT_TYPE_BINARY = 'application/octet-stream';
+
+const requestListOptionsSchema = z.strictObject({
+    sources: schemas.anyArray.optional(), // check only for array and not subtypes to avoid iteration over the whole thing
+    sourcesFunction: schemas.anyFunction.optional(),
+    persistStateKey: z.string().optional(),
+    persistRequestsKey: z.string().optional(),
+    state: z
+        .strictObject({
+            nextIndex: schemas.anyNumber,
+            nextUniqueKey: z.string(),
+            inProgress: schemas.anyObject, // persisted as an array of unique keys
+        })
+        .optional(),
+    keepDuplicateUrls: z.boolean().default(false),
+    proxyConfiguration: validators.proxyConfiguration.optional(),
+    httpClient: schemas.httpClient.optional(),
+});
+const listNameSchema = z.string().nullish();
+const openOptionsSchema = z.looseObject({});
 
 export interface RequestListOptions {
     /**
@@ -305,33 +324,13 @@ export class RequestList implements IRequestLoader {
             persistRequestsKey,
             state,
             proxyConfiguration,
-            keepDuplicateUrls = false,
+            keepDuplicateUrls,
             httpClient,
-        } = options;
+        } = parseArgument(options, requestListOptionsSchema);
 
         if (!(sources || sourcesFunction)) {
             throw new Error('At least one of "sources" or "sourcesFunction" must be provided.');
         }
-        parseArgument(
-            options,
-            'options',
-            z.strictObject({
-                sources: schemas.anyArray.optional(), // check only for array and not subtypes to avoid iteration over the whole thing
-                sourcesFunction: schemas.anyFunction.optional(),
-                persistStateKey: z.string().optional(),
-                persistRequestsKey: z.string().optional(),
-                state: z
-                    .strictObject({
-                        nextIndex: schemas.anyNumber,
-                        nextUniqueKey: z.string(),
-                        inProgress: schemas.anyObject, // persisted as an array of unique keys
-                    })
-                    .optional(),
-                keepDuplicateUrls: z.boolean().optional(),
-                proxyConfiguration: z.looseObject({}).optional(),
-                httpClient: z.looseObject({}).optional(),
-            }),
-        );
 
         this.persistStateKey = persistStateKey ? `CRAWLEE_${persistStateKey}` : persistStateKey;
         this.persistRequestsKey = persistRequestsKey ? `CRAWLEE_${persistRequestsKey}` : persistRequestsKey;
@@ -911,9 +910,9 @@ export class RequestList implements IRequestLoader {
 
         const listName = listNameOrOptions;
 
-        parseArgument(listName, 'listName', z.string().nullish());
-        parseArgument(sources, 'sources', schemas.anyArray);
-        parseArgument(options, 'options', z.looseObject({}));
+        parseArgument(listName, listNameSchema);
+        parseArgument(sources, schemas.anyArray);
+        parseArgument(options, openOptionsSchema);
 
         const rl = new RequestList({
             ...options,

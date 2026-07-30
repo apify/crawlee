@@ -11,7 +11,7 @@ import { KEY_VALUE_STORE_KEY_REGEX } from '@apify/consts';
 
 import { Configuration } from '../configuration.js';
 import { serviceLocator } from '../service_locator.js';
-import { parseArgument, schemas } from '../validators.js';
+import { parseArgument, schemas, validators } from '../validators.js';
 import { checkStorageAccess } from './access_checking.js';
 import { parseValue, serializeValue } from './key_value_store_codec.js';
 import type { KeyValueStoreStats } from './storage_stats.js';
@@ -24,6 +24,21 @@ import { isBuffer, isStream } from '../byte_utils.js';
 
 /** @internal */
 const KVS_KEYS_DEFAULT_LIMIT = 1000;
+
+const keySchema = z.string().nonempty();
+const setValueKeySchema = z.string().nonempty().regex(KEY_VALUE_STORE_KEY_REGEX, {
+    message: `The "key" argument must be at most 256 characters long and only contain the following characters: a-zA-Z0-9!-_.'()`,
+});
+const recordOptionsSchema = z.strictObject({
+    contentType: z.string().nonempty().optional(),
+});
+const iteratorOptionsSchema = z.strictObject({
+    prefix: z.string().optional(),
+});
+const openOptionsSchema = z.strictObject({
+    configuration: z.instanceof(Configuration).optional(),
+    storageBackend: validators.storageBackend.optional(),
+});
 
 /**
  * The `KeyValueStore` class represents a key-value store, a simple data storage that is used
@@ -216,7 +231,7 @@ export class KeyValueStore {
     async getValue<T = unknown>(key: string, defaultValue?: T): Promise<T | null> {
         checkStorageAccess();
 
-        parseArgument(key, 'key', z.string().nonempty());
+        parseArgument(key, keySchema);
         this.statsTracker.add('readCount');
         const record = await this.backend.getValue(key);
 
@@ -259,7 +274,7 @@ export class KeyValueStore {
     async getRecord(key: string): Promise<KeyValueStoreRawRecord | null> {
         checkStorageAccess();
 
-        parseArgument(key, 'key', z.string().nonempty());
+        parseArgument(key, keySchema);
         this.statsTracker.add('readCount');
         const record = await this.backend.getValue(key);
         if (!record) return null;
@@ -279,7 +294,7 @@ export class KeyValueStore {
     async recordExists(key: string): Promise<boolean> {
         checkStorageAccess();
 
-        parseArgument(key, 'key', z.string().nonempty());
+        parseArgument(key, keySchema);
         return this.backend.recordExists(key);
     }
 
@@ -411,31 +426,14 @@ export class KeyValueStore {
     async setValue<T>(key: string, value: T | null, options: RecordOptions = {}): Promise<void> {
         checkStorageAccess();
 
-        parseArgument(
-            key,
-            'key',
-            z
-                .string()
-                .nonempty()
-                .regex(KEY_VALUE_STORE_KEY_REGEX, {
-                    message: `The "key" argument "${key}" must be at most 256 characters long and only contain the following characters: a-zA-Z0-9!-_.'()`,
-                }),
-        );
+        parseArgument(key, setValueKeySchema);
         if (options.contentType && !(typeof value === 'string' || isBuffer(value) || isStream(value))) {
             throw new Error(
                 'The "value" parameter must be a String, Buffer, ArrayBuffer, TypedArray, or Stream when "options.contentType" is specified.',
             );
         }
-        parseArgument(
-            options,
-            'options',
-            z.strictObject({
-                contentType: z.string().nonempty().optional(),
-            }),
-        );
-
-        // Make copy of options, don't update what user passed.
-        const optionsCopy = { ...options };
+        // The parse result is a fresh copy, so we never update what user passed.
+        const optionsCopy = parseArgument(options, recordOptionsSchema);
 
         // If we try to set the value of a cached state to a different reference, we need to update the cache accordingly.
         const cachedValue = this.cache.get(key);
@@ -512,18 +510,12 @@ export class KeyValueStore {
     async forEachKey(iteratee: KeyConsumer, options: KeyValueStoreIteratorOptions = {}): Promise<void> {
         checkStorageAccess();
 
-        parseArgument(iteratee, 'iteratee', schemas.anyFunction);
-        parseArgument(
-            options,
-            'options',
-            z.strictObject({
-                prefix: z.string().optional(),
-            }),
-        );
+        parseArgument(iteratee, schemas.anyFunction);
+        const parsedOptions = parseArgument(options, iteratorOptionsSchema);
 
         let index = 0;
 
-        for await (const page of this.fetchKeyPages(options)) {
+        for await (const page of this.fetchKeyPages(parsedOptions)) {
             for (const item of page) {
                 await iteratee(item.key, index++, { size: item.size });
             }
@@ -676,19 +668,12 @@ export class KeyValueStore {
     ): Promise<KeyValueStore> {
         checkStorageAccess();
 
-        parseArgument(
-            options,
-            'options',
-            z.strictObject({
-                configuration: z.instanceof(Configuration).optional(),
-                storageBackend: z.looseObject({}).optional(),
-            }),
-        );
+        const parsedOptions = parseArgument(options, openOptionsSchema);
 
-        options.configuration ??= Configuration.getGlobalConfiguration();
-        const storageBackend = options.storageBackend ?? serviceLocator.getStorageBackend();
+        const configuration = parsedOptions.configuration ?? Configuration.getGlobalConfiguration();
+        const storageBackend = parsedOptions.storageBackend ?? serviceLocator.getStorageBackend();
 
-        await purgeDefaultStorages({ onlyPurgeOnce: true, storageBackend, configuration: options.configuration });
+        await purgeDefaultStorages({ onlyPurgeOnce: true, storageBackend, configuration });
 
         const resolved = await resolveStorageIdentifier(identifier, storageBackend, 'KeyValueStore');
 

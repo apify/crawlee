@@ -11,6 +11,22 @@ import mime from 'mime-types';
 
 const DEFAULT_LOCAL_FILE_EXTENSION = 'bin';
 
+const keySchema = z.string();
+const inputRecordSchema = z.object({
+    key: z.string().min(1),
+    value: z.union([
+        z.null(),
+        z.string(),
+        z.number(),
+        z.instanceof(Buffer),
+        z.instanceof(ArrayBuffer),
+        schemas.typedArray,
+        // only checks the value is an actual object, not null, nor array
+        schemas.plainObject,
+    ]),
+    contentType: z.string().min(1).optional(),
+});
+
 /**
  * Key under which a run's input is stored in the default key-value store. Matches Crawlee's default
  * `inputKey` (`CRAWLEE_INPUT_KEY`) and the `INPUT` files `FileSystemStorageBackend` preserves on purge.
@@ -93,11 +109,7 @@ export class KeyValueStoreBackend extends BaseClient implements storage.KeyValue
     }
 
     async listKeys(options: storage.KeyValueStoreListKeysOptions = {}): Promise<storage.KeyValueStoreListKeysResult> {
-        const { prefix, exclusiveStartKey, limit } = parseArgument(
-            options,
-            'options',
-            schemas.keyValueStoreListKeysOptions,
-        );
+        const { prefix, exclusiveStartKey, limit } = parseArgument(options, schemas.keyValueStoreListKeysOptions);
 
         const items: storage.KeyValueStoreItemData[] = [];
 
@@ -148,7 +160,7 @@ export class KeyValueStoreBackend extends BaseClient implements storage.KeyValue
      * @param key The key of the record to generate the public URL for.
      */
     async getPublicUrl(key: string): Promise<string | undefined> {
-        parseArgument(key, 'key', z.string());
+        parseArgument(key, keySchema);
 
         return undefined;
     }
@@ -160,13 +172,13 @@ export class KeyValueStoreBackend extends BaseClient implements storage.KeyValue
      * @returns `true` if the record exists, `false` if it does not.
      */
     async recordExists(key: string): Promise<boolean> {
-        parseArgument(key, 'key', z.string());
+        parseArgument(key, keySchema);
 
         return this.keyValueEntries.has(key);
     }
 
     async getValue(key: string): Promise<storage.KeyValueStoreRecord | undefined> {
-        parseArgument(key, 'key', z.string());
+        parseArgument(key, keySchema);
 
         const entry = this.keyValueEntries.get(key);
 
@@ -190,24 +202,7 @@ export class KeyValueStoreBackend extends BaseClient implements storage.KeyValue
     }
 
     async setValue(record: storage.KeyValueStoreInputRecord): Promise<void> {
-        parseArgument(
-            record,
-            'record',
-            z.object({
-                key: z.string().min(1),
-                value: z.union([
-                    z.null(),
-                    z.string(),
-                    z.number(),
-                    z.instanceof(Buffer),
-                    z.instanceof(ArrayBuffer),
-                    schemas.typedArray,
-                    // only checks the value is an actual object, not null, nor array
-                    schemas.plainObject,
-                ]),
-                contentType: z.string().min(1).optional(),
-            }),
-        );
+        parseArgument(record, inputRecordSchema);
 
         const { key } = record;
         let { value } = record;
@@ -247,7 +242,7 @@ export class KeyValueStoreBackend extends BaseClient implements storage.KeyValue
     }
 
     async deleteValue(key: string): Promise<void> {
-        parseArgument(key, 'key', z.string());
+        parseArgument(key, keySchema);
 
         if (this.keyValueEntries.has(key)) {
             this.keyValueEntries.delete(key);

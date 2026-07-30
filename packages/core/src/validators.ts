@@ -29,4 +29,14 @@ export const validators = {
         ['getSession'],
         "Expected an object implementing the ISessionPool interface (missing 'getSession'), got something else.",
     ),
+    requestManager: schemas.objectWithKeys(
+        ['fetchNextRequest', 'addRequest', 'addRequestsBatched'],
+        "Expected an object implementing the IRequestManager interface (missing one of 'fetchNextRequest', 'addRequest', 'addRequestsBatched'), got something else.",
+    ),
+    storageBackend: schemas.objectWithKeys(
+        ['createDatasetBackend', 'createKeyValueStoreBackend', 'createRequestQueueBackend'],
+        "Expected an object implementing the StorageBackend interface (missing one of 'createDatasetBackend', 'createKeyValueStoreBackend', 'createRequestQueueBackend'), got something else.",
+    ),
+    logger: schemas.logger,
+    httpClient: schemas.httpClient,
 };

@@ -155,13 +155,13 @@ describe('ProxyConfiguration', () => {
         test('should throw proxyUrls array is empty', () => {
             const create = () => new ProxyConfiguration({ proxyUrls: [] });
             expect(create).toThrow(ArgumentValidationError);
-            expect(create).toThrow(/Validation of argument 'options' failed:[\s\S]*at proxyUrls/);
+            expect(create).toThrow(/Too small.*at `proxyUrls`/);
         });
 
         test('should throw invalid custom URL form', () => {
             const create = () => new ProxyConfiguration({ proxyUrls: ['http://proxy.com:1111*invalid_url'] });
             expect(create).toThrow(ArgumentValidationError);
-            expect(create).toThrow(/Validation of argument 'options' failed:[\s\S]*at proxyUrls\[0\]/);
+            expect(create).toThrow(/at `proxyUrls\[0\]`/);
         });
     });
 });

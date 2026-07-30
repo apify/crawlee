@@ -5,7 +5,7 @@ import { EventType } from '../events/event_manager.js';
 import type { CrawleeLogger } from '../log.js';
 import { serviceLocator } from '../service_locator.js';
 import { KeyValueStore } from '../storages/key_value_store.js';
-import { parseArgument, schemas } from '../validators.js';
+import { parseArgument, schemas, validators } from '../validators.js';
 import { ErrorTracker } from './error_tracker.js';
 
 /**
@@ -24,6 +24,17 @@ class Job {
         return this.durationMillis;
     }
 }
+
+const statisticsOptionsSchema = z.strictObject({
+    logIntervalSecs: schemas.anyNumber.default(60),
+    logMessage: z.string().default('Statistics'),
+    log: validators.logger.optional(),
+    keyValueStore: z.instanceof(KeyValueStore).optional(),
+    // `schemas.anyObject` passes values through by reference (object schemas return a pruned plain copy).
+    persistenceOptions: schemas.anyObject.default(() => ({ enable: true })),
+    saveErrorSnapshots: z.boolean().default(false),
+    id: z.union([schemas.anyNumber, z.string()]).optional(),
+});
 
 const errorTrackerConfig = {
     showErrorCode: true,
@@ -106,35 +117,13 @@ export class Statistics {
      * @internal
      */
     constructor(options: StatisticsOptions = {}) {
-        parseArgument(
-            options,
-            'options',
-            z.strictObject({
-                logIntervalSecs: schemas.anyNumber.optional(),
-                logMessage: z.string().optional(),
-                log: z.looseObject({}).optional(),
-                keyValueStore: z.looseObject({}).optional(),
-                persistenceOptions: z.looseObject({}).optional(),
-                saveErrorSnapshots: z.boolean().optional(),
-                id: z.union([schemas.anyNumber, z.string()]).optional(),
-            }),
-        );
-
-        const {
-            logIntervalSecs = 60,
-            logMessage = 'Statistics',
-            keyValueStore,
-            persistenceOptions = {
-                enable: true,
-            },
-            saveErrorSnapshots = false,
-            id,
-        } = options;
+        const { logIntervalSecs, logMessage, log, keyValueStore, persistenceOptions, saveErrorSnapshots, id } =
+            parseArgument(options, statisticsOptionsSchema);
 
         this.id = id ?? String(Statistics.id++);
         this.persistStateKey = `CRAWLEE_CRAWLER_STATISTICS_${this.id}`;
 
-        this.log = (options.log ?? serviceLocator.getLogger()).child({ prefix: 'Statistics' });
+        this.log = (log ?? serviceLocator.getLogger()).child({ prefix: 'Statistics' });
         this.errorTracker = new ErrorTracker({ ...errorTrackerConfig, saveErrorSnapshots });
         this.errorTrackerRetry = new ErrorTracker({ ...errorTrackerConfig, saveErrorSnapshots });
         this.logIntervalMillis = logIntervalSecs * 1000;

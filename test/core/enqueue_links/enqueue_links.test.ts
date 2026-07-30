@@ -367,7 +367,7 @@ describe('enqueueLinks()', () => {
                     requestManager: requestQueue,
                     originalRequestUrl: 'https://example.com',
                 }),
-            ).rejects.toThrow(/Validation of argument 'options' failed:[\s\S]*at pseudoUrls\[0\]/);
+            ).rejects.toThrow(/at `pseudoUrls\[0\]`/);
         });
 
         test('works with undefined pseudoUrls[]', async () => {
@@ -409,7 +409,7 @@ describe('enqueueLinks()', () => {
                     requestManager: requestQueue,
                     originalRequestUrl: 'https://example.com',
                 }),
-            ).rejects.toThrow(/Validation of argument 'options' failed:[\s\S]*expected array[\s\S]*at pseudoUrls/);
+            ).rejects.toThrow(/Invalid input: expected array.*at `pseudoUrls`/);
         });
 
         test('works with empty pseudoUrls[]', async () => {
@@ -452,7 +452,7 @@ describe('enqueueLinks()', () => {
                     requestManager: requestQueue,
                     originalRequestUrl: 'https://example.com',
                 }),
-            ).rejects.toThrow(/Validation of argument 'options' failed:[\s\S]*at pseudoUrls\[1\]/);
+            ).rejects.toThrow(/at `pseudoUrls\[1\]`/);
             expect(enqueued).toHaveLength(0);
         });
 
@@ -742,7 +742,7 @@ describe('enqueueLinks()', () => {
                     requestManager: requestQueue,
                     originalRequestUrl: 'https://example.com',
                 }),
-            ).rejects.toThrow(/Validation of argument 'options' failed:[\s\S]*at pseudoUrls\[0\]/);
+            ).rejects.toThrow(/at `pseudoUrls\[0\]`/);
         });
 
         test('works with undefined pseudoUrls[]', async () => {
@@ -783,7 +783,7 @@ describe('enqueueLinks()', () => {
                     requestManager: requestQueue,
                     originalRequestUrl: 'https://example.com',
                 }),
-            ).rejects.toThrow(/Validation of argument 'options' failed:[\s\S]*expected array[\s\S]*at pseudoUrls/);
+            ).rejects.toThrow(/Invalid input: expected array.*at `pseudoUrls`/);
         });
 
         test('works with empty pseudoUrls[]', async () => {
@@ -826,7 +826,7 @@ describe('enqueueLinks()', () => {
                     requestManager: requestQueue,
                     originalRequestUrl: 'https://example.com',
                 }),
-            ).rejects.toThrow(/Validation of argument 'options' failed:[\s\S]*at pseudoUrls\[1\]/);
+            ).rejects.toThrow(/at `pseudoUrls\[1\]`/);
             expect(enqueued).toHaveLength(0);
         });
 

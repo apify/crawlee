@@ -263,6 +263,40 @@ export enum EnqueueStrategy {
     SameOrigin = 'same-origin',
 }
 
+// `schemas.anyObject` passes values through by reference (object schemas return a pruned plain
+// copy), so `userData` keeps its identity for the enqueued requests.
+const enqueueLinksOptionsSchema = z.strictObject({
+    urls: z.array(z.string()),
+    requestManager: schemas.objectWithKeys(['addRequestsBatched']),
+    robotsTxtFile: schemas.objectWithKeys(['isAllowed']).optional(),
+    respectRobotsTxtFile: z.union([z.boolean(), z.strictObject({ userAgent: z.string().optional() })]).optional(),
+    onSkippedRequest: schemas.anyFunction.optional(),
+    forefront: z.boolean().optional(),
+    skipNavigation: z.boolean().optional(),
+    sessionId: z.string().optional(),
+    limit: schemas.anyNumber.optional(),
+    selector: z.string().optional(),
+    baseUrl: z.string().optional(),
+    userData: schemas.anyObject.optional(),
+    label: z.string().optional(),
+    pseudoUrls: z.array(z.union([z.string(), schemas.objectWithKeys(['purl'])])).optional(),
+    globs: z.array(z.union([z.string(), schemas.objectWithKeys(['glob'])])).optional(),
+    exclude: z
+        .array(
+            z.union([
+                z.string(),
+                z.instanceof(RegExp),
+                schemas.objectWithKeys(['glob']),
+                schemas.objectWithKeys(['regexp']),
+            ]) as z.ZodType<GlobInput | RegExpInput>,
+        )
+        .optional(),
+    regexps: z.array(z.union([z.instanceof(RegExp), schemas.objectWithKeys(['regexp'])])).optional(),
+    transformRequestFunction: schemas.anyFunction.optional(),
+    strategy: z.enum(EnqueueStrategy).optional(),
+    waitForAllRequestsToBeAdded: z.boolean().optional(),
+});
+
 /**
  * This function enqueues the urls provided to the {@apilink RequestQueue} provided. If you want to automatically find and enqueue links,
  * you should use the context-aware `enqueueLinks` function provided on the crawler contexts.
@@ -306,43 +340,7 @@ export async function enqueueLinks(
         );
     }
 
-    parseArgument(
-        options,
-        'options',
-        z.strictObject({
-            urls: z.array(z.string()),
-            requestManager: schemas.objectWithKeys(['addRequestsBatched']),
-            robotsTxtFile: schemas.objectWithKeys(['isAllowed']).optional(),
-            respectRobotsTxtFile: z
-                .union([z.boolean(), z.strictObject({ userAgent: z.string().optional() })])
-                .optional(),
-            onSkippedRequest: schemas.anyFunction.optional(),
-            forefront: z.boolean().optional(),
-            skipNavigation: z.boolean().optional(),
-            sessionId: z.string().optional(),
-            limit: schemas.anyNumber.optional(),
-            selector: z.string().optional(),
-            baseUrl: z.string().optional(),
-            userData: z.looseObject({}).optional(),
-            label: z.string().optional(),
-            pseudoUrls: z.array(z.union([z.string(), schemas.objectWithKeys(['purl'])])).optional(),
-            globs: z.array(z.union([z.string(), schemas.objectWithKeys(['glob'])])).optional(),
-            exclude: z
-                .array(
-                    z.union([
-                        z.string(),
-                        z.instanceof(RegExp),
-                        schemas.objectWithKeys(['glob']),
-                        schemas.objectWithKeys(['regexp']),
-                    ]),
-                )
-                .optional(),
-            regexps: z.array(z.union([z.instanceof(RegExp), schemas.objectWithKeys(['regexp'])])).optional(),
-            transformRequestFunction: schemas.anyFunction.optional(),
-            strategy: z.enum(EnqueueStrategy).optional(),
-            waitForAllRequestsToBeAdded: z.boolean().optional(),
-        }),
-    );
+    const parsedOptions = parseArgument(options, enqueueLinksOptionsSchema);
 
     const {
         requestManager,
@@ -358,7 +356,7 @@ export async function enqueueLinks(
         waitForAllRequestsToBeAdded,
         robotsTxtFile,
         onSkippedRequest,
-    } = options;
+    } = parsedOptions;
 
     const urlExcludePatternObjects: UrlPatternObject[] = [];
     const urlPatternObjects: UrlPatternObject[] = [];
@@ -387,15 +385,15 @@ export async function enqueueLinks(
     }
 
     if (!urlPatternObjects.length) {
-        options.strategy ??= EnqueueStrategy.SameHostname;
+        parsedOptions.strategy ??= EnqueueStrategy.SameHostname;
     }
 
     const enqueueStrategyPatterns: UrlPatternObject[] = [];
 
-    if (options.baseUrl) {
-        const url = new URL(options.baseUrl);
+    if (parsedOptions.baseUrl) {
+        const url = new URL(parsedOptions.baseUrl);
 
-        switch (options.strategy) {
+        switch (parsedOptions.strategy) {
             case EnqueueStrategy.SameHostname:
                 // We need to get the origin of the passed in domain in the event someone sets baseUrl
                 // to an url like https://example.com/deep/default/path and one of the found urls is an
@@ -449,11 +447,13 @@ export async function enqueueLinks(
         }
     }
 
-    let requestOptions = createRequestOptions(urls, options);
+    let requestOptions = createRequestOptions(urls, parsedOptions);
 
-    if (robotsTxtFile && options.respectRobotsTxtFile !== false) {
+    if (robotsTxtFile && parsedOptions.respectRobotsTxtFile !== false) {
         const robotsUserAgent =
-            typeof options.respectRobotsTxtFile === 'object' ? (options.respectRobotsTxtFile.userAgent ?? '*') : '*';
+            typeof parsedOptions.respectRobotsTxtFile === 'object'
+                ? (parsedOptions.respectRobotsTxtFile.userAgent ?? '*')
+                : '*';
         const skippedRequests: RequestOptions[] = [];
 
         requestOptions = requestOptions.filter((request) => {
@@ -479,7 +479,7 @@ export async function enqueueLinks(
                 requestOptions,
                 enqueueStrategyPatterns.length > 0 ? enqueueStrategyPatterns : undefined,
                 urlExcludePatternObjects,
-                options.strategy,
+                parsedOptions.strategy,
                 (url) => skippedRequests.push(url),
             );
         } else {
@@ -488,7 +488,7 @@ export async function enqueueLinks(
                 requestOptions,
                 urlPatternObjects,
                 urlExcludePatternObjects,
-                options.strategy,
+                parsedOptions.strategy,
                 (url) => skippedRequests.push(url),
             );
             // ...then filter by the enqueue links strategy (making this an AND check)
@@ -496,7 +496,7 @@ export async function enqueueLinks(
                 afterUserPatterns,
                 enqueueStrategyPatterns.length > 0 ? enqueueStrategyPatterns : undefined,
                 [],
-                options.strategy,
+                parsedOptions.strategy,
                 (url) => skippedRequests.push(url),
             );
         }

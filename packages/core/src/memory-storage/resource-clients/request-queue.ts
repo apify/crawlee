@@ -8,6 +8,8 @@ import type { MemoryStorageBackend } from '../memory-storage.js';
 import { purgeNullsFromObject, uniqueKeyToRequestId } from '../utils.js';
 import { BaseClient } from './common/base-client.js';
 
+const uniqueKeySchema = z.string();
+
 export interface RequestQueueBackendOptions {
     name?: string;
     id?: string;
@@ -229,8 +231,8 @@ export class RequestQueueBackend extends BaseClient implements storage.RequestQu
         requests: storage.RequestSchema[],
         options: storage.RequestQueueOperationOptions = {},
     ): Promise<storage.BatchAddRequestsResult> {
-        parseArgument(requests, 'requests', schemas.storageRequestBatch);
-        parseArgument(options, 'options', schemas.requestQueueOperationOptions);
+        parseArgument(requests, schemas.storageRequestBatch);
+        parseArgument(options, schemas.requestQueueOperationOptions);
 
         // Serialize against other mutators (and the head scans in `isEmpty`/`isFinished`) so that the
         // shared `requests` map, `forefrontRequestIds` array and request counts are not corrupted by a
@@ -290,7 +292,7 @@ export class RequestQueueBackend extends BaseClient implements storage.RequestQu
     }
 
     async getRequest(uniqueKey: string): Promise<storage.UpdateRequestSchema | undefined> {
-        parseArgument(uniqueKey, 'uniqueKey', z.string());
+        parseArgument(uniqueKey, uniqueKeySchema);
         this.updateTimestamps(false);
         const id = uniqueKeyToRequestId(uniqueKey);
         const json = this.requests.get(id)?.json;
@@ -298,7 +300,7 @@ export class RequestQueueBackend extends BaseClient implements storage.RequestQu
     }
 
     async markRequestAsHandled(request: storage.UpdateRequestSchema): Promise<storage.QueueOperationInfo | undefined> {
-        parseArgument(request, 'request', schemas.storageRequest);
+        parseArgument(request, schemas.storageRequest);
         this.updateTimestamps(false);
 
         // Serialize against other mutators (and the head scans in `isEmpty`/`isFinished`) so the shared
@@ -350,8 +352,8 @@ export class RequestQueueBackend extends BaseClient implements storage.RequestQu
         request: storage.UpdateRequestSchema,
         options: storage.RequestQueueOperationOptions = {},
     ): Promise<storage.QueueOperationInfo | undefined> {
-        parseArgument(request, 'request', schemas.storageRequest);
-        parseArgument(options, 'options', schemas.requestQueueOperationOptions);
+        parseArgument(request, schemas.storageRequest);
+        parseArgument(options, schemas.requestQueueOperationOptions);
         this.updateTimestamps(false);
 
         // Serialize against other mutators (and the head scans in `isEmpty`/`isFinished`) so the shared

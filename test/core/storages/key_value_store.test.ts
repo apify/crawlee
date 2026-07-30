@@ -10,8 +10,8 @@ beforeEach(async () => {
 });
 
 describe('KeyValueStore', () => {
-    const keyStringErrMsg = /Validation of argument 'key' failed:[\s\S]*expected string/;
-    const keyEmptyErrMsg = /Validation of argument 'key' failed:[\s\S]*Too small/;
+    const keyStringErrMsg = /Invalid input: expected string/;
+    const keyEmptyErrMsg = /Too small/;
 
     beforeEach(async () => {
         vitest.clearAllMocks();
@@ -169,7 +169,7 @@ describe('KeyValueStore', () => {
             await expect(store.setValue('key', 12345, { contentType: 'image/png' })).rejects.toThrow(valueErrMsg);
             await expect(store.setValue('key', () => {}, { contentType: 'image/png' })).rejects.toThrow(valueErrMsg);
 
-            const optionsObjectErrMsg = /Validation of argument 'options' failed:[\s\S]*expected object/;
+            const optionsObjectErrMsg = /Invalid input: expected object/;
             // @ts-expect-error JS-side validation
             await expect(store.setValue('key', {}, 123)).rejects.toThrow(ArgumentValidationError);
             // @ts-expect-error JS-side validation
@@ -191,9 +191,8 @@ describe('KeyValueStore', () => {
             // @ts-expect-error JS-side validation
             await expect(store.setValue('key')).rejects.toThrow(undefinedErrMsg);
 
-            const contTypeStringErrMsg =
-                /Validation of argument 'options' failed:[\s\S]*expected string[\s\S]*at contentType/;
-            const contTypeEmptyErrMsg = /Validation of argument 'options' failed:[\s\S]*Too small[\s\S]*at contentType/;
+            const contTypeStringErrMsg = /Invalid input: expected string.*at `contentType`/;
+            const contTypeEmptyErrMsg = /Too small.*at `contentType`/;
             await expect(store.setValue('key', null, { contentType: 'image/png' })).rejects.toThrow(
                 'The "value" parameter must be a String, Buffer, ArrayBuffer, TypedArray, or Stream when "options.contentType" is specified.',
             );
@@ -222,13 +221,13 @@ describe('KeyValueStore', () => {
             const INVALID_CHARACTERS = '?|\\/"*<>%:';
             for (const char of INVALID_CHARACTERS) {
                 const key = `my_id_${char}`;
-                const err = `The "key" argument "${key}" must be at most 256 characters`;
+                const err = `The "key" argument must be at most 256 characters long and only contain the following characters: a-zA-Z0-9!-_.'(), got \`${key}\``;
                 await expect(store.setValue(key, 'value')).rejects.toThrow(err);
             }
 
             // test max length
             const longKey = 'X'.repeat(257);
-            const err = `The "key" argument "${longKey}" must be at most 256 characters`;
+            const err = `The "key" argument must be at most 256 characters long and only contain the following characters: a-zA-Z0-9!-_.'(), got \`${longKey}\``;
             await expect(store.setValue(longKey, '...')).rejects.toThrow(err);
         });
 
