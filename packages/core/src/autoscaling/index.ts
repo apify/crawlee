@@ -1,4 +1,5 @@
 export * from './autoscaled_pool.js';
+export * from './concurrency_system.js';
 export * from './client_load_signal.js';
 export * from './cpu_load_signal.js';
 export * from './event_loop_load_signal.js';

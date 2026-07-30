@@ -2,8 +2,9 @@ import { Readable } from 'node:stream';
 import util from 'node:util';
 
 import type {
-    AutoscaledPoolOptions,
     BasicCrawlerOptions,
+    ConcurrencySystem,
+    ConcurrencySystemOptions,
     ContextMiddleware,
     CrawlingContext,
     ErrorHandler,
@@ -43,14 +44,25 @@ import { extractCharsetFromHtmlBytes, parseContentTypeFromResponse, processHttpR
  */
 const HTML_AND_XML_MIME_TYPES = ['text/html', 'text/xml', 'application/xhtml+xml', 'application/xml'];
 const APPLICATION_JSON_MIME_TYPE = 'application/json';
-const HTTP_OPTIMIZED_AUTOSCALED_POOL_OPTIONS: AutoscaledPoolOptions = {
+/**
+ * A higher starting concurrency and a relaxed event loop signal, since HTTP-only crawling barely touches the event
+ * loop. {@apilink HttpCrawler} folds these into the {@apilink ConcurrencySystem} it builds by default.
+ *
+ * A {@apilink BasicCrawlerOptions.concurrencySystem|`concurrencySystem`} you supply yourself replaces that default
+ * wholesale, tuning included, so spread these options in if you want to keep it:
+ *
+ * ```typescript
+ * new ConcurrencySystem({ ...HTTP_OPTIMIZED_CONCURRENCY_SYSTEM_OPTIONS, maxConcurrency: 50 });
+ * ```
+ */
+export const HTTP_OPTIMIZED_CONCURRENCY_SYSTEM_OPTIONS: ConcurrencySystemOptions = {
     desiredConcurrency: 10,
-    snapshotterOptions: {
-        eventLoopSnapshotIntervalSecs: 2,
-        maxBlockedMillis: 100,
-    },
-    systemStatusOptions: {
-        maxEventLoopOverloadedRatio: 0.7,
+    loadSignals: {
+        eventLoop: {
+            snapshotIntervalSecs: 2,
+            maxBlockedMillis: 100,
+            overloadedRatio: 0.7,
+        },
     },
 };
 
@@ -292,9 +304,9 @@ export type HttpRequestHandler<
  *
  * New requests are only dispatched when there is enough free CPU and memory available,
  * using the functionality provided by the {@apilink AutoscaledPool} class.
- * All {@apilink AutoscaledPool} configuration options can be passed to the `autoscaledPoolOptions`
- * parameter of the constructor. For user convenience, the `minConcurrency` and `maxConcurrency`
- * {@apilink AutoscaledPool} options are available directly in the constructor.
+ * Concurrency is tuned via the `minConcurrency`, `maxConcurrency` and `maxRequestsPerMinute` options of the
+ * constructor, or, for finer control, by injecting a pre-configured
+ * {@apilink ConcurrencySystem|`concurrencySystem`}.
  *
  * **Example usage:**
  *
@@ -374,14 +386,12 @@ export class HttpCrawler<
             postNavigationHooks = [],
 
             // BasicCrawler
-            autoscaledPoolOptions = HTTP_OPTIMIZED_AUTOSCALED_POOL_OPTIONS,
             contextPipelineBuilder,
             ...basicCrawlerOptions
         } = options;
 
         super({
             ...basicCrawlerOptions,
-            autoscaledPoolOptions,
             contextPipelineBuilder:
                 contextPipelineBuilder ??
                 (() => this.buildContextPipeline() as ContextPipeline<CrawlingContext, Context>),
@@ -410,6 +420,19 @@ export class HttpCrawler<
         ];
 
         this.saveResponseCookies = saveResponseCookies;
+    }
+
+    /**
+     * Folds {@apilink HTTP_OPTIMIZED_CONCURRENCY_SYSTEM_OPTIONS} into the default system, keeping the user's
+     * concurrency shortcuts on top. Not called for a supplied
+     * {@apilink BasicCrawlerOptions.concurrencySystem|`concurrencySystem`} — spread the constant into it yourself to
+     * keep the tuning.
+     */
+    protected override createDefaultConcurrencySystem(options: ConcurrencySystemOptions): ConcurrencySystem {
+        return super.createDefaultConcurrencySystem({
+            ...HTTP_OPTIMIZED_CONCURRENCY_SYSTEM_OPTIONS,
+            ...options,
+        });
     }
 
     protected override buildContextPipeline(): ContextPipeline<CrawlingContext, InternalHttpCrawlingContext> {
