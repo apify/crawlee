@@ -63,3 +63,4 @@ export type {
 } from './remote-browser-pool.js';
 export type { InferBrowserPluginArray, UnwrapPromise } from './utils.js';
 export { anonymizeProxySugar, type AnonymizeProxySugarOptions } from './anonymize-proxy.js';
+export type { IBrowserPool, NewPageOptions } from '@crawlee/types';
