@@ -307,6 +307,25 @@ describe('BasicCrawler', () => {
             expect(requests).toHaveLength(2);
             expect(requests[0]).toMatchObject({ url: 'https://example.com/1/', crawlDepth: 3 });
         });
+
+        it.each([
+            null,
+            undefined,
+            false,
+        ] as const)('should skip requests when transformRequestFunction returns %s', async (returnValue) => {
+            const transformRequestFunction = vi.fn(() => returnValue);
+            const optionsWithTransform = { ...options, transformRequestFunction };
+
+            await crawler.exposedEnqueueLinksWithCrawlDepth(optionsWithTransform, request, requestQueue);
+
+            const requests = addRequestsBatchedMock.mock.calls[0][0];
+            expect(requests).toHaveLength(0);
+
+            const skippedRequests = onSkippedRequestMock.mock.calls.map((call) => call[0]);
+            expect(skippedRequests).toHaveLength(2);
+            expect(skippedRequests[0]).toStrictEqual({ url: 'https://example.com/1/', reason: 'filters' });
+            expect(skippedRequests[1]).toStrictEqual({ url: 'https://example.com/2/', reason: 'filters' });
+        });
     });
 
     it('addCrawlDepthRequestGenerator() should generate requests with maxCrawlDepth', async () => {

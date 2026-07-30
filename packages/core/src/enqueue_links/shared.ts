@@ -299,7 +299,7 @@ function createPatternObjectMatcher(urlPatternObject: UrlPatternObject) {
 export interface RequestTransform {
     /**
      * @param original Request options to be modified.
-     * @returns The modified request options to enqueue.
+     * @returns The modified request options to enqueue, or any falsy value to skip the request.
      */
     (original: RequestOptions): RequestOptions | false | undefined | null;
 }
