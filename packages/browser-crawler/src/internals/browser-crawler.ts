@@ -528,6 +528,10 @@ export abstract class BrowserCrawler<
         });
     }
 
+    protected override getNavigationTimeoutMillis(): number {
+        return this.navigationTimeoutMillis;
+    }
+
     protected override buildContextPipeline(): ContextPipeline<
         CrawlingContext,
         BrowserCrawlingContext<Page, Response, Dictionary>

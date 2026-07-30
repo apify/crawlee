@@ -1921,17 +1921,23 @@ export class BasicCrawler<
      * do run check {@apilink backstopExpiredKey} at their start and bail, so a request whose backstop already
      * fired does not carry on (e.g. run the handler) after the crawler has moved past it.
      */
+    /**
+     * The navigation timeout (pre-navigation hooks, navigation, and post-navigation hooks) in milliseconds, used
+     * to size the request backstop. `BasicCrawler` has no navigation phase, so this is 0; the HTTP and browser
+     * crawlers override it with their `navigationTimeoutSecs`.
+     */
+    protected getNavigationTimeoutMillis(): number {
+        return 0;
+    }
+
     private async withRequestBackstop(crawlingContext: PendingCrawlingContext, work: Promise<void>): Promise<void> {
         const { request } = crawlingContext;
-        // `internalTimeoutMillis` is derived from the crawler's own request handler timeout, so a route asking
-        // for more than that could otherwise be cut short by the backstop while still legitimately running.
-        // Only stretch it for routes that actually override the timeout - an explicitly configured internal
-        // timeout must stay exactly as configured.
-        const routeTimeoutMillis = this.getRouteTimeoutMillis(request);
-        const timeoutMillis =
-            routeTimeoutMillis === undefined
-                ? this.internalTimeoutMillis
-                : Math.max(this.internalTimeoutMillis, routeTimeoutMillis * 2);
+        // The backstop wraps the whole request, so it must outlast the phases that have their own timeout -
+        // the navigation (plus its hooks) and the request handler - or a legitimately slow request, a per-route
+        // override, or a low `CRAWLEE_INTERNAL_TIMEOUT` would be cut short mid-phase. Take whichever is larger:
+        // the configured internal timeout, or the combined phase budget for this request.
+        const phasesMillis = this.getNavigationTimeoutMillis() + this.resolveRequestHandlerTimeoutMillis(request);
+        const timeoutMillis = Math.max(this.internalTimeoutMillis, phasesMillis);
 
         let timer: NodeJS.Timeout | undefined;
         let deadline = Date.now() + timeoutMillis;

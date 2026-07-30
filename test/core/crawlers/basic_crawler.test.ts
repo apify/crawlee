@@ -1416,6 +1416,8 @@ describe('BasicCrawler', () => {
             const crawler = new BasicCrawler({
                 requestList,
                 maxRequestRetries: 0,
+                // keep the handler timeout small so the backstop is not floored above the 100ms we set below
+                requestHandlerTimeoutSecs: 0.05,
                 // `extendContext` is not the navigation, the hooks or the request handler, so none of their
                 // timeouts apply to it - only the internal one stands between this and a stuck crawler. It also
                 // outlives the backstop, so it is the case where the losing side of the race keeps running.
@@ -1446,6 +1448,40 @@ describe('BasicCrawler', () => {
         } finally {
             // assigning `undefined` would set the *string* "undefined", which parses to NaN and would
             // leave every later test in this file with a NaN internal timeout
+            if (previous === undefined) {
+                delete process.env.CRAWLEE_INTERNAL_TIMEOUT;
+            } else {
+                process.env.CRAWLEE_INTERNAL_TIMEOUT = previous;
+            }
+        }
+    });
+
+    test('the internal timeout does not cut a request handler short of its own timeout', async () => {
+        const url = 'https://example.com';
+        const requestList = await RequestList.open({ sources: [{ url }] });
+
+        const previous = process.env.CRAWLEE_INTERNAL_TIMEOUT;
+        // deliberately below the request handler timeout - the backstop must still not fire before it
+        process.env.CRAWLEE_INTERNAL_TIMEOUT = '100';
+
+        try {
+            const processed: Request[] = [];
+
+            const crawler = new BasicCrawler({
+                requestList,
+                maxRequestRetries: 0,
+                requestHandlerTimeoutSecs: 1,
+                requestHandler: async ({ request }) => {
+                    // comfortably within the 1s handler timeout, but well past the 100ms internal one
+                    await sleep(500);
+                    processed.push(request as Request);
+                },
+            });
+
+            await crawler.run();
+
+            expect(processed).toHaveLength(1);
+        } finally {
             if (previous === undefined) {
                 delete process.env.CRAWLEE_INTERNAL_TIMEOUT;
             } else {

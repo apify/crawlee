@@ -417,6 +417,10 @@ export class HttpCrawler<
         this.saveResponseCookies = saveResponseCookies;
     }
 
+    protected override getNavigationTimeoutMillis(): number {
+        return this.navigationTimeoutMillis;
+    }
+
     protected override buildContextPipeline(): ContextPipeline<CrawlingContext, InternalHttpCrawlingContext> {
         // When navigation is skipped, `prepareHttpRequest` has already installed throwing getters for
         // the response-derived members, so the guarded action is bypassed and the context left untouched.
