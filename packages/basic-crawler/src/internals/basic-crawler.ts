@@ -90,6 +90,13 @@ import { LruCache } from '@apify/datastructures';
 import { addTimeoutToPromise, extendTimeout, TimeoutError } from '@apify/timeout';
 import { cryptoRandomObjectId } from '@apify/utilities';
 
+import {
+    backstopExpiredKey,
+    type BackstopContext,
+    extendBackstopKey,
+    navigationDeadlineKey,
+    raceWithBackstop,
+} from './request-backstop.js';
 import { createSendRequest } from './send-request.js';
 
 class LazyDefaultHttpClient implements BaseHttpClient {
@@ -127,43 +134,11 @@ const SAFE_MIGRATION_WAIT_MILLIS = 20000;
 
 const deferredCleanupKey = Symbol('deferredCleanup');
 
-/**
- * Lets `context.extendTimeout` push back the internal backstop as well. The backstop is a bare timer rather
- * than an `addTimeoutToPromise` frame, so `extendTimeout` from `@apify/timeout` cannot reach it on its own.
- */
-const extendBackstopKey = Symbol('extendBackstop');
+// The request backstop plumbing (the window helper, the context symbols, and the race) lives in its own module.
+export { navigationDeadlineKey, remainingNavigationWindowMillis } from './request-backstop.js';
 
-/**
- * Returns `true` once the internal backstop has fired for this request. The backstop cannot cancel work stuck
- * somewhere we do not control, but the phases we do run (e.g. the request handler) check this at their start
- * and bail, so a request whose backstop already elapsed does not carry on after the crawler moved past it.
- */
-const backstopExpiredKey = Symbol('backstopExpired');
-
-/**
- * The shared navigation-window deadline (epoch millis), stored on the in-flight context so the pre- and
- * post-navigation hooks and the navigation itself all draw from one budget - and so `context.extendTimeout`
- * can push the whole window, not just the current step.
- * @internal
- */
-export const navigationDeadlineKey = Symbol('navigationDeadline');
-
-/**
- * Milliseconds left in the shared navigation window for `ctx`, lazily starting the window on first use.
- * @internal
- */
-export function remainingNavigationWindowMillis(ctx: object, windowMillis: number): number {
-    const store = ctx as Record<symbol, number>;
-    store[navigationDeadlineKey] ??= Date.now() + windowMillis;
-    return store[navigationDeadlineKey] - Date.now();
-}
-
-/** The in-flight context, carrying the backstop extender that {@apilink BasicCrawler.withRequestBackstop} hangs on it. */
-type PendingCrawlingContext = { request: Request } & Partial<CrawlingContext> & {
-        [extendBackstopKey]?: (extraMillis: number) => void;
-        [backstopExpiredKey]?: () => boolean;
-        [navigationDeadlineKey]?: number;
-    };
+/** The in-flight context, carrying the backstop slots ({@apilink raceWithBackstop} hangs its extender on them). */
+type PendingCrawlingContext = { request: Request } & Partial<CrawlingContext> & BackstopContext;
 
 export type RequestHandler<Context extends CrawlingContext = CrawlingContext> = (inputs: Context) => Awaitable<void>;
 
@@ -1229,7 +1204,8 @@ export class BasicCrawler<
                 // asks for much longer is not handed out again mid-flight. Best-effort: the hint is process-wide
                 // and raise-only, and locking is opt-in in v4.
                 extendedByMillis += extraMillis;
-                const reservedForSecs = (this.resolveRequestHandlerTimeoutMillis(context.request) + extendedByMillis) / 1000;
+                const reservedForSecs =
+                    (this.resolveRequestHandlerTimeoutMillis(context.request) + extendedByMillis) / 1000;
                 void this.requestManager?.setExpectedRequestProcessingTimeSecs?.(reservedForSecs + 5);
             },
             [deferredCleanupKey]: deferredCleanup,
@@ -1933,16 +1909,6 @@ export class BasicCrawler<
     }
 
     /**
-     * Races the request against {@apilink BasicCrawler.internalTimeoutMillis|`internalTimeoutMillis`}, so that a
-     * request stuck in a phase that has no timeout of its own (anything that is not the navigation, a navigation
-     * hook or the request handler) still fails instead of stalling the crawler.
-     *
-     * `Promise.race` attaches a handler to both sides, so a late rejection from `work` cannot go unhandled. The
-     * losing side is not cancelled - by definition it is stuck somewhere we do not control - but the phases we
-     * do run check {@apilink backstopExpiredKey} at their start and bail, so a request whose backstop already
-     * fired does not carry on (e.g. run the handler) after the crawler has moved past it.
-     */
-    /**
      * The navigation timeout (pre-navigation hooks, navigation, and post-navigation hooks) in milliseconds, used
      * to size the request backstop. `BasicCrawler` has no navigation phase, so this is 0; the HTTP and browser
      * crawlers override it with their `navigationTimeoutSecs`.
@@ -1951,53 +1917,18 @@ export class BasicCrawler<
         return 0;
     }
 
+    /**
+     * Races the request against the backstop (see {@apilink raceWithBackstop}), sized to outlast the phases that
+     * have their own timeout - the navigation, its hooks, and the request handler - so a legitimately slow
+     * request, a per-route override, or a low `CRAWLEE_INTERNAL_TIMEOUT` is not cut short mid-phase. The backstop
+     * takes whichever is larger: the configured internal timeout, or this request's combined phase budget.
+     */
     private async withRequestBackstop(crawlingContext: PendingCrawlingContext, work: Promise<void>): Promise<void> {
         const { request } = crawlingContext;
-        // The backstop wraps the whole request, so it must outlast the phases that have their own timeout -
-        // the navigation (plus its hooks) and the request handler - or a legitimately slow request, a per-route
-        // override, or a low `CRAWLEE_INTERNAL_TIMEOUT` would be cut short mid-phase. Take whichever is larger:
-        // the configured internal timeout, or the combined phase budget for this request.
         const phasesMillis = this.getNavigationTimeoutMillis() + this.resolveRequestHandlerTimeoutMillis(request);
         const timeoutMillis = Math.max(this.internalTimeoutMillis, phasesMillis);
 
-        let timer: NodeJS.Timeout | undefined;
-        let deadline = Date.now() + timeoutMillis;
-        let settled = false;
-
-        let firedByBackstop = false;
-
-        const backstop = new Promise<never>((_, reject) => {
-            const fire = () => {
-                settled = true;
-                firedByBackstop = true;
-                reject(new TimeoutError(`Request timed out after ${timeoutMillis / 1e3} seconds (${request.id}).`));
-            };
-
-            timer = setTimeout(fire, timeoutMillis);
-
-            // The losing side of the race is not cancelled (it is stuck somewhere we do not control), but the
-            // phases we do run check this and bail, so the request does not carry on past a fired backstop.
-            crawlingContext[backstopExpiredKey] = () => firedByBackstop;
-
-            // `context.extendTimeout` extends the handler's own window; without this the backstop would cut
-            // the request down anyway, and the extension would have bought nothing
-            crawlingContext[extendBackstopKey] = (extraMillis: number) => {
-                if (settled) {
-                    return;
-                }
-
-                clearTimeout(timer);
-                deadline += extraMillis;
-                timer = setTimeout(fire, Math.max(deadline - Date.now(), 0));
-            };
-        });
-
-        try {
-            await Promise.race([work, backstop]);
-        } finally {
-            settled = true;
-            clearTimeout(timer);
-        }
+        await raceWithBackstop(crawlingContext, work, { timeoutMillis, requestId: request.id });
     }
 
     /**
