@@ -21,6 +21,7 @@ import type { DatasetBackend } from '@crawlee/types';
 import type { DatasetInfo } from '@crawlee/types';
 import { Dictionary } from '@crawlee/types';
 import type { HttpRequestOptions } from '@crawlee/types';
+import type { IncomingMessage } from 'node:http';
 import type { ISession } from '@crawlee/types';
 import type { ISessionPool } from '@crawlee/types';
 import type { KeyValueStoreBackend } from '@crawlee/types';
@@ -207,7 +208,7 @@ export interface Configuration extends ResolvedConfigValues {
 export class Configuration {
     constructor(options?: ConfigurationInput);
     protected static fields: Record<string, ConfigField>;
-    static getGlobalConfig(): Configuration;
+    static getGlobalConfiguration(): Configuration;
 }
 
 // @public (undocumented)
@@ -252,7 +253,7 @@ export { Cookie }
 // @public (undocumented)
 export interface CpuLoadSignalOptions {
     // (undocumented)
-    config: Configuration;
+    configuration: Configuration;
     // (undocumented)
     overloadedRatio?: number;
     // (undocumented)
@@ -343,7 +344,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     // (undocumented)
     backend: DatasetBackend<Data>;
     // (undocumented)
-    readonly config: Configuration;
+    readonly configuration: Configuration;
     drop(): Promise<void>;
     entries(options?: DatasetIteratorOptions): AsyncIterable<[number, Data]> & Promise<[number, Data][]>;
     export(options?: DatasetExportOptions): Promise<Data[]>;
@@ -756,7 +757,7 @@ export interface KeyConsumer {
 export class KeyValueStore {
     [Symbol.asyncIterator]<T = unknown>(): AsyncGenerator<[string, T], void, undefined>;
     // (undocumented)
-    readonly config: Configuration;
+    readonly configuration: Configuration;
     drop(): Promise<void>;
     entries<T = unknown>(options?: KeyValueStoreIteratorOptions): AsyncIterable<[string, T]> & Promise<[string, T][]>;
     forEachKey(iteratee: KeyConsumer, options?: KeyValueStoreIteratorOptions): Promise<void>;
@@ -834,7 +835,7 @@ export class LocalEventManager extends EventManager {
     constructor(options: LocalEventManagerOptions);
     // (undocumented)
     close(): Promise<void>;
-    static fromConfig(config?: Configuration): LocalEventManager;
+    static fromConfiguration(configuration?: Configuration): LocalEventManager;
     init(): Promise<void>;
 }
 
@@ -879,7 +880,7 @@ export class MemoryLoadSignal implements LoadSignal {
 // @public (undocumented)
 export interface MemoryLoadSignalOptions {
     // (undocumented)
-    config: Configuration;
+    configuration: Configuration;
     // (undocumented)
     log?: CrawleeLogger;
     // (undocumented)
@@ -976,7 +977,7 @@ export interface ProxyConfigurationOptions {
 export function purgeDefaultStorages(options?: PurgeDefaultStorageOptions): Promise<void>;
 
 // @public
-export function purgeDefaultStorages(config?: Configuration, storageBackend?: StorageBackend): Promise<void>;
+export function purgeDefaultStorages(configuration?: Configuration, storageBackend?: StorageBackend): Promise<void>;
 
 // @public (undocumented)
 export interface PushErrorMessageOptions {
@@ -1004,7 +1005,7 @@ export class RecoverableState<TStateModel = Record<string, unknown>> {
 
 // @public
 export interface RecoverableStateOptions<TStateModel = Record<string, unknown>> extends RecoverableStatePersistenceOptions {
-    config?: Configuration;
+    configuration?: Configuration;
     defaultState: TStateModel;
     deserialize?: (serializedState: string) => TStateModel;
     logger?: CrawleeLogger;
@@ -1069,7 +1070,7 @@ export class RequestHandlerError extends Error {
 
 // @public
 export class RequestHandlerResult {
-    constructor(config: Configuration, crawleeStateKey: string);
+    constructor(configuration: Configuration, crawleeStateKey: string);
     // (undocumented)
     addRequests: RestrictedCrawlingContext['addRequests'];
     get calls(): ReadonlyDeep<{
@@ -1330,9 +1331,9 @@ export class RetryRequestError extends Error {
 
 // @public
 export class Router<Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'>, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>> {
-    addDefaultHandler<UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(handler: (ctx: RouterHandlerContext<Context, UserData>) => Awaitable_2<void>): void;
-    addHandler<Label extends keyof Routes & string>(label: Label, handler: (ctx: RouterHandlerContext<Context, Routes[Label]>) => Awaitable_2<void>): void;
-    addHandler<UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(label: RouterLabel<Routes>, handler: (ctx: RouterHandlerContext<Context, UserData>) => Awaitable_2<void>): void;
+    addDefaultHandler<UserData extends Dictionary = DefaultRouteUserData<Routes, GetUserDataFromRequest<Context['request']>>>(handler: (ctx: RouterHandlerContext<Context, UserData, Routes>) => Awaitable_2<void>): void;
+    addHandler<Label extends keyof Routes & string>(label: Label, handler: (ctx: RouterHandlerContext<Context, Routes[Label], Routes>) => Awaitable_2<void>): void;
+    addHandler<UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(label: RouterLabel<Routes>, handler: (ctx: RouterHandlerContext<Context, UserData, Routes>) => Awaitable_2<void>): void;
     static create<Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'> = CrawlingContext, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
     // (undocumented)
     static create<Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'> = CrawlingContext, UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
@@ -1349,9 +1350,14 @@ export interface RouterHandler<Context extends Omit<RestrictedCrawlingContext, '
 }
 
 // @public
-export type RouterHandlerContext<Context, UserData extends Dictionary> = Omit<Context, 'request'> & {
+export type RouterHandlerContext<Context, UserData extends Dictionary, Routes extends Record<keyof Routes, Dictionary>> = Omit<Context, 'request' | 'addRequests' | 'enqueueLinks'> & {
     request: LoadedRequest<Request_2<UserData>>;
-};
+    addRequests: TypedContextAddRequests<Routes>;
+} & (Context extends {
+    enqueueLinks: infer EnqueueLinks;
+} ? {
+    enqueueLinks: TypedContextEnqueueLinks<EnqueueLinks, Routes>;
+} : {});
 
 // @public
 export type RouterLabel<Routes extends Record<keyof Routes, Dictionary>> = string extends keyof Routes ? string | symbol : (keyof Routes & string) | symbol;
@@ -1370,8 +1376,12 @@ export type RouteSchemas = Record<string, StandardSchemaV1> & {
 
 // @public
 export type RoutesFromSchemas<Schemas extends RouteSchemas> = {
-    [Label in Extract<keyof Schemas, string>]: StandardSchemaV1.InferOutput<Schemas[Label]> extends Dictionary ? StandardSchemaV1.InferOutput<Schemas[Label]> : Dictionary;
-};
+    [Label in Extract<keyof Schemas, string>]: SchemaUserData<Schemas[Label]>;
+} & (Schemas extends {
+    [defaultRoute]: StandardSchemaV1;
+} ? {
+    [defaultRoute]: SchemaUserData<Schemas[typeof defaultRoute]>;
+} : {});
 
 // @public
 export function serializeValue(value: unknown, contentType?: string): {
@@ -1616,7 +1626,7 @@ export class Snapshotter {
     // (undocumented)
     get clientSnapshots(): ClientSnapshot[];
     // (undocumented)
-    readonly config: Configuration;
+    readonly configuration: Configuration;
     // (undocumented)
     get cpuSnapshots(): CpuSnapshot[];
     // (undocumented)
@@ -1754,7 +1764,7 @@ export { StorageIdentifier }
 
 // @public
 export interface StorageOpenOptions {
-    config?: Configuration;
+    configuration?: Configuration;
     httpClient?: BaseHttpClient;
     proxyConfiguration?: IProxyConfiguration;
     storageBackend?: StorageBackend;
@@ -1822,7 +1832,7 @@ export function useState<State extends Dictionary = Dictionary>(name?: string, d
 // @public (undocumented)
 export interface UseStateOptions {
     // (undocumented)
-    config?: Configuration;
+    configuration?: Configuration;
     keyValueStoreName?: string | null;
 }
 

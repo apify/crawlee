@@ -63,8 +63,8 @@ import { StringPredicate } from 'ow';
 import type { UrlPatternInput } from '@crawlee/browser';
 
 // @public
-export class AdaptivePlaywrightCrawler<ContextExtension = Dictionary_2<never>, ExtendedContext extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext & ContextExtension> extends BasicCrawler<AdaptivePlaywrightCrawlerContext, ContextExtension, ExtendedContext> {
-    constructor(options?: AdaptivePlaywrightCrawlerOptions<ContextExtension, ExtendedContext>);
+export class AdaptivePlaywrightCrawler<ContextExtension = Dictionary_2<never>, ExtendedContext extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary_2> = Record<string, GetUserDataFromRequest_2<AdaptivePlaywrightCrawlerContext['request']>>> extends BasicCrawler<AdaptivePlaywrightCrawlerContext, ContextExtension, ExtendedContext, Routes> {
+    constructor(options?: AdaptivePlaywrightCrawlerOptions<ContextExtension, ExtendedContext, Routes>);
     // (undocumented)
     protected buildContextPipeline(): ContextPipeline_2<CrawlingContext_2<Dictionary_2>, CrawlingContext_2<Dictionary_2> & {
         readonly request: LoadedRequest<Request_3<Dictionary_2>>;
@@ -101,7 +101,7 @@ export interface AdaptivePlaywrightCrawlerContext<UserData extends Dictionary_2 
 }
 
 // @public (undocumented)
-export interface AdaptivePlaywrightCrawlerOptions<ContextExtension = Dictionary_2<never>, ExtendedContext extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext & ContextExtension> extends Omit<BasicCrawlerOptions<AdaptivePlaywrightCrawlerContext, ContextExtension, ExtendedContext>, 'preNavigationHooks' | 'postNavigationHooks'> {
+export interface AdaptivePlaywrightCrawlerOptions<ContextExtension = Dictionary_2<never>, ExtendedContext extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary_2> = Record<string, GetUserDataFromRequest_2<AdaptivePlaywrightCrawlerContext['request']>>> extends Omit<BasicCrawlerOptions<AdaptivePlaywrightCrawlerContext, ContextExtension, ExtendedContext, Routes>, 'preNavigationHooks' | 'postNavigationHooks'> {
     postNavigationHooks?: AdaptivePostNavigationHook<ContextExtension>[];
     preNavigationHooks?: AdaptiveHook<ContextExtension>[];
     preventDirectStorageAccess?: boolean;
@@ -230,7 +230,7 @@ function injectJQuery(page: Page, options?: {
 }): Promise<unknown>;
 
 // @public
-export function launchPlaywright(launchContext?: PlaywrightLaunchContext, config?: Configuration): Promise<Browser>;
+export function launchPlaywright(launchContext?: PlaywrightLaunchContext, configuration?: Configuration): Promise<Browser>;
 
 // @public
 function parseWithCheerio(page: Page, ignoreShadowRoots?: boolean, ignoreIframes?: boolean): Promise<CheerioRoot>;
@@ -245,10 +245,10 @@ declare namespace playwrightClickElements {
 }
 
 // @public
-export class PlaywrightCrawler<ContextExtension = Dictionary_2<never>, ExtendedContext extends PlaywrightCrawlingContext = PlaywrightCrawlingContext & ContextExtension> extends BrowserCrawler<Page, Response_2, {
+export class PlaywrightCrawler<ContextExtension = Dictionary_2<never>, ExtendedContext extends PlaywrightCrawlingContext = PlaywrightCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary_2> = Record<string, GetUserDataFromRequest<PlaywrightCrawlingContext['request']>>> extends BrowserCrawler<Page, Response_2, {
     browserPlugins: [PlaywrightPlugin];
-}, LaunchOptions, PlaywrightCrawlingContext, ContextExtension, ExtendedContext> {
-    constructor(options?: PlaywrightCrawlerOptions<ContextExtension, ExtendedContext>);
+}, LaunchOptions, PlaywrightCrawlingContext, ContextExtension, ExtendedContext, Routes> {
+    constructor(options?: PlaywrightCrawlerOptions<ContextExtension, ExtendedContext, Routes>);
     // (undocumented)
     protected buildContextPipeline(): ContextPipeline<CrawlingContext<Dictionary_2>, BrowserCrawlingContext<Page, Response_2, Dictionary_2, Dictionary_2> & {
     injectFile: (filePath: string, options?: InjectFileOptions) => Promise<unknown>;
@@ -318,13 +318,13 @@ export class PlaywrightCrawler<ContextExtension = Dictionary_2<never>, ExtendedC
 }
 
 // @public (undocumented)
-export interface PlaywrightCrawlerOptions<ContextExtension = Dictionary_2<never>, ExtendedContext extends PlaywrightCrawlingContext = PlaywrightCrawlingContext & ContextExtension> extends BrowserCrawlerOptions<Page, Response_2, PlaywrightCrawlingContext, ContextExtension, ExtendedContext, {
+export interface PlaywrightCrawlerOptions<ContextExtension = Dictionary_2<never>, ExtendedContext extends PlaywrightCrawlingContext = PlaywrightCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary_2> = Record<string, GetUserDataFromRequest<PlaywrightCrawlingContext['request']>>> extends BrowserCrawlerOptions<Page, Response_2, PlaywrightCrawlingContext, ContextExtension, ExtendedContext, {
     browserPlugins: [PlaywrightPlugin];
-}> {
+}, Routes> {
     launchContext?: PlaywrightLaunchContext;
     postNavigationHooks?: BrowserHook<PlaywrightCrawlingContext, ContextExtension>[];
     preNavigationHooks?: BrowserHook<PlaywrightCrawlingContext, ContextExtension>[];
-    requestHandler?: RequestHandler<ExtendedContext>;
+    requestHandler?: RouterHandler<ExtendedContext, Routes> | RequestHandler<ExtendedContext>;
 }
 
 // @public (undocumented)
@@ -399,7 +399,7 @@ function saveSnapshot(page: Page, options?: SaveSnapshotOptions): Promise<void>;
 
 // @public (undocumented)
 interface SaveSnapshotOptions {
-    config?: Configuration;
+    configuration?: Configuration;
     key?: string;
     keyValueStoreName?: string | null;
     saveHtml?: boolean;

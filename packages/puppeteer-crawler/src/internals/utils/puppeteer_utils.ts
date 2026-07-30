@@ -741,9 +741,9 @@ export interface SaveSnapshotOptions {
 
     /**
      * Configuration of the crawler that will be used to save the snapshot.
-     * @default Configuration.getGlobalConfig()
+     * @default Configuration.getGlobalConfiguration()
      */
-    config?: Configuration;
+    configuration?: Configuration;
 }
 
 /**
@@ -761,7 +761,7 @@ export async function saveSnapshot(page: Page, options: SaveSnapshotOptions = {}
             saveScreenshot: ow.optional.boolean,
             saveHtml: ow.optional.boolean,
             keyValueStoreName: ow.optional.string,
-            config: ow.optional.object,
+            configuration: ow.optional.object,
         }),
     );
 
@@ -771,12 +771,12 @@ export async function saveSnapshot(page: Page, options: SaveSnapshotOptions = {}
         saveScreenshot = true,
         saveHtml = true,
         keyValueStoreName,
-        config,
+        configuration,
     } = options;
 
     try {
         const store = await KeyValueStore.open(keyValueStoreName ? { name: keyValueStoreName } : null, {
-            config: config ?? Configuration.getGlobalConfig(),
+            configuration: configuration ?? Configuration.getGlobalConfiguration(),
         });
 
         if (saveScreenshot) {

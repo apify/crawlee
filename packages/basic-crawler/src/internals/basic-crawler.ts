@@ -27,6 +27,7 @@ import type {
     StatisticsOptions,
     StatisticState,
     StorageIdentifier,
+    TypedRequestsLike,
 } from '@crawlee/core';
 import {
     AutoscaledPool,
@@ -41,6 +42,7 @@ import {
     enqueueLinks,
     EnqueueStrategy,
     EventType,
+    getObjectType,
     KeyValueStore,
     log,
     LogLevel,
@@ -77,7 +79,7 @@ import type {
     SetStatusMessageOptions,
     StorageBackend,
 } from '@crawlee/types';
-import { getObjectType, isAsyncIterable, isIterable, RobotsTxtFile, ROTATE_PROXY_ERRORS } from '@crawlee/utils';
+import { isAsyncIterable, isIterable, RobotsTxtFile, ROTATE_PROXY_ERRORS } from '@crawlee/utils';
 import { stringify } from 'csv-stringify/sync';
 import { ensureDir, writeJSON } from 'fs-extra/esm';
 import ow from 'ow';
@@ -142,7 +144,7 @@ export type ErrorHandler<
 
 export interface StatusMessageCallbackParams<
     Context extends CrawlingContext = BasicCrawlingContext,
-    Crawler extends BasicCrawler<any> = BasicCrawler<Context>,
+    Crawler extends BasicCrawler<any, any, any, any> = BasicCrawler<Context>,
 > {
     state: StatisticState;
     crawler: Crawler;
@@ -152,7 +154,7 @@ export interface StatusMessageCallbackParams<
 
 export type StatusMessageCallback<
     Context extends CrawlingContext = BasicCrawlingContext,
-    Crawler extends BasicCrawler<any> = BasicCrawler<Context>,
+    Crawler extends BasicCrawler<any, any, any, any> = BasicCrawler<Context>,
 > = (params: StatusMessageCallbackParams<Context, Crawler>) => Awaitable<void>;
 
 export type RequireContextPipeline<
@@ -166,6 +168,7 @@ export interface BasicCrawlerOptions<
     Context extends CrawlingContext = CrawlingContext,
     ContextExtension = Dictionary<never>,
     ExtendedContext extends Context = Context & ContextExtension,
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
 > {
     /**
      * User-provided function that performs the logic of the crawler. It is called for each URL to crawl.
@@ -184,7 +187,7 @@ export interface BasicCrawlerOptions<
      * The exceptions are logged to the request using the
      * {@apilink Request.pushErrorMessage|`Request.pushErrorMessage()`} function.
      */
-    requestHandler?: RequestHandler<ExtendedContext>;
+    requestHandler?: RouterHandler<ExtendedContext, Routes> | RequestHandler<ExtendedContext>;
 
     /**
      * Allows the user to extend the crawling context with custom functionality (helpers, references, etc.).
@@ -566,6 +569,7 @@ export class BasicCrawler<
     Context extends CrawlingContext = CrawlingContext,
     ContextExtension = Dictionary<never>,
     ExtendedContext extends Context = Context & ContextExtension,
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
 > {
     protected static readonly CRAWLEE_STATE_KEY = 'CRAWLEE_STATE';
 
@@ -638,7 +642,10 @@ export class BasicCrawler<
      * Default {@apilink Router} instance that will be used if we don't specify any {@apilink BasicCrawlerOptions.requestHandler|`requestHandler`}.
      * See {@apilink Router.addHandler|`router.addHandler()`} and {@apilink Router.addDefaultHandler|`router.addDefaultHandler()`}.
      */
-    readonly router: RouterHandler<Context> = Router.create<Context>();
+    readonly router: RouterHandler<Context, Routes> = Router.create<Context>() as unknown as RouterHandler<
+        Context,
+        Routes
+    >;
 
     private _basicContextPipeline?: ContextPipeline<{ request: Request }, CrawlingContext>;
 
@@ -765,7 +772,7 @@ export class BasicCrawler<
      * All `BasicCrawler` parameters are passed via an options object.
      */
     constructor(
-        options: BasicCrawlerOptions<Context, ContextExtension, ExtendedContext> &
+        options: BasicCrawlerOptions<Context, ContextExtension, ExtendedContext, Routes> &
             RequireContextPipeline<CrawlingContext, Context> = {} as any, // cast because the constructor logic handles missing `contextPipelineBuilder` - the type is just for DX
     ) {
         ow(options, 'BasicCrawlerOptions', ow.object.exactShape(BasicCrawler.optionsShape));
@@ -1353,7 +1360,7 @@ export class BasicCrawler<
      * @param [requests] The requests to add.
      * @param [options] Options for the request queue.
      */
-    async run(requests?: RequestsLike, options?: CrawlerRunOptions): Promise<FinalStatistics> {
+    async run(requests?: TypedRequestsLike<Routes>, options?: CrawlerRunOptions): Promise<FinalStatistics> {
         if (this.running) {
             throw new Error(
                 'This crawler instance is already running, you can add more requests to it via `crawler.addRequests()`.',
@@ -1390,7 +1397,7 @@ export class BasicCrawler<
         await purgeDefaultStorages({
             onlyPurgeOnce: true,
             storageBackend: serviceLocator.getStorageBackend(),
-            config: serviceLocator.getConfiguration(),
+            configuration: serviceLocator.getConfiguration(),
         });
 
         if (requests) {
@@ -1530,7 +1537,7 @@ export class BasicCrawler<
         // subsequent instances get their own queue via a unique alias so they don't collide.
         const identifier = this.identity.instanceIndex === 0 ? null : { alias: `__default_${this.identity.id}__` };
 
-        const requestQueue = await RequestQueue.open(identifier, { config: serviceLocator.getConfiguration() });
+        const requestQueue = await RequestQueue.open(identifier, { configuration: serviceLocator.getConfiguration() });
         return this.ownedRequestQueue.set(requestQueue);
     }
 
@@ -1580,7 +1587,7 @@ export class BasicCrawler<
     }
 
     async useState<State extends Dictionary = Dictionary>(defaultValue = {} as State): Promise<State> {
-        const kvs = await KeyValueStore.open(null, { config: serviceLocator.getConfiguration() });
+        const kvs = await KeyValueStore.open(null, { configuration: serviceLocator.getConfiguration() });
 
         if (this.identity.hasExplicitId) {
             const stateKey = `${BasicCrawler.CRAWLEE_STATE_KEY}_${this.identity.id}`;
@@ -1658,7 +1665,7 @@ export class BasicCrawler<
      * @param options Options for the request queue
      */
     async addRequests(
-        requests: ReadonlyDeep<RequestsLike>,
+        requests: ReadonlyDeep<TypedRequestsLike<Routes>>,
         options: CrawlerAddRequestsOptions = {},
     ): Promise<CrawlerAddRequestsResult> {
         await this.getRequestManager();
@@ -1752,7 +1759,7 @@ export class BasicCrawler<
      */
     async getDataset(identifier?: string | StorageIdentifier): Promise<Dataset> {
         return Dataset.open(identifier, {
-            config: serviceLocator.getConfiguration(),
+            configuration: serviceLocator.getConfiguration(),
         });
     }
 
@@ -1913,7 +1920,7 @@ export class BasicCrawler<
                     if (err.message.includes('Cannot persist state.')) {
                         this.log.error(
                             "The crawler attempted to persist its request list's state and failed due to missing or " +
-                                'invalid config. Make sure to use either RequestList.open() or the "stateKeyPrefix" option of RequestList ' +
+                                'invalid configuration. Make sure to use either RequestList.open() or the "stateKeyPrefix" option of RequestList ' +
                                 'constructor to ensure your crawling state is persisted through host migrations and restarts.',
                         );
                     } else {

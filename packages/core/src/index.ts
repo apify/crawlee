@@ -1,3 +1,4 @@
+export * from './debug.js';
 export * from './errors.js';
 export * from './autoscaling/index.js';
 export * from './configuration.js';

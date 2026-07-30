@@ -210,7 +210,6 @@ export class SitemapRequestLoader implements IRequestLoader {
                 parseSitemapOptions: ow.optional.object,
                 include: ow.optional.array.ofType(urlPatternValidator),
                 exclude: ow.optional.array.ofType(urlPatternValidator),
-                config: ow.optional.object,
                 persistenceOptions: ow.optional.object,
                 httpClient: ow.optional.object,
             }),

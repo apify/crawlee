@@ -291,7 +291,9 @@ describe('PlaywrightCrawler', () => {
         const crawler = new PlaywrightCrawler({ requestHandler: router });
 
         await expect(
-            crawler.addRequests([{ url: `http://${HOSTNAME}:${port}/`, label: 'DETAIL', userData: { id: 123 } }]),
+            crawler.addRequests([
+                { url: `http://${HOSTNAME}:${port}/`, label: 'DETAIL', userData: { id: 123 } },
+            ] as never),
         ).rejects.toThrow(RequestValidationError);
     });
 });
