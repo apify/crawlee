@@ -1321,14 +1321,17 @@ describe('BasicCrawler', () => {
     });
 
     test('context.extendTimeout also holds off the internal timeout', async () => {
+        // shorter than the 400ms the handler needs, so an unextended backstop would definitely cut it
+        serviceLocator.reset();
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
+        serviceLocator.setConfiguration(new Configuration({ internalTimeoutMillis: 250 }));
+
         const requestList = await RequestList.open({ sources: [{ url: 'https://example.com' }] });
 
         const failed: Request[] = [];
 
         const crawler = new BasicCrawler({
             requestList,
-            // shorter than the 400ms the handler needs, so an unextended backstop would definitely cut it
-            configuration: new Configuration({ internalTimeoutMillis: 250 }),
             requestHandlerTimeoutSecs: 0.2,
             maxRequestRetries: 0,
             requestHandler: async ({ extendTimeout }) => {
@@ -1394,6 +1397,11 @@ describe('BasicCrawler', () => {
     });
 
     test('internal timeout catches a request stuck outside the timed phases', async () => {
+        // reset so we can install a configuration with a custom internal timeout before anything resolves it
+        serviceLocator.reset();
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
+        serviceLocator.setConfiguration(new Configuration({ internalTimeoutMillis: 100 }));
+
         const url = 'https://example.com';
         const requestList = await RequestList.open({ sources: [{ url }] });
 
@@ -1402,7 +1410,6 @@ describe('BasicCrawler', () => {
 
         const crawler = new BasicCrawler({
             requestList,
-            configuration: new Configuration({ internalTimeoutMillis: 100 }),
             maxRequestRetries: 0,
             // keep the handler timeout small so the backstop is not floored above the 100ms set above
             requestHandlerTimeoutSecs: 0.05,
@@ -1436,6 +1443,11 @@ describe('BasicCrawler', () => {
     });
 
     test('the internal timeout does not cut a request handler short of its own timeout', async () => {
+        // deliberately below the request handler timeout - the backstop must still not fire before it
+        serviceLocator.reset();
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
+        serviceLocator.setConfiguration(new Configuration({ internalTimeoutMillis: 100 }));
+
         const url = 'https://example.com';
         const requestList = await RequestList.open({ sources: [{ url }] });
 
@@ -1443,8 +1455,6 @@ describe('BasicCrawler', () => {
 
         const crawler = new BasicCrawler({
             requestList,
-            // deliberately below the request handler timeout - the backstop must still not fire before it
-            configuration: new Configuration({ internalTimeoutMillis: 100 }),
             maxRequestRetries: 0,
             requestHandlerTimeoutSecs: 1,
             requestHandler: async ({ request }) => {
@@ -1457,6 +1467,49 @@ describe('BasicCrawler', () => {
         await crawler.run();
 
         expect(processed).toHaveLength(1);
+    });
+
+    test('warns when the internal timeout is shorter than the phase timeouts', async () => {
+        serviceLocator.reset();
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
+        serviceLocator.setConfiguration(new Configuration({ internalTimeoutMillis: 100 }));
+
+        const requestList = await RequestList.open({ sources: [{ url: 'https://example.com' }] });
+        const crawler = new BasicCrawler({
+            requestList,
+            requestHandlerTimeoutSecs: 1, // 1000ms, well above the 100ms internal timeout
+            maxRequestRetries: 0,
+            requestHandler: async () => {},
+        });
+        const warnSpy = vitest.spyOn(crawler.log, 'warning');
+
+        await crawler.run();
+
+        const warned = warnSpy.mock.calls.some((call) =>
+            String(call[0]).includes('shorter than the navigation and request handler'),
+        );
+        expect(warned).toBe(true);
+    });
+
+    test('extendTimeout raises the request reservation so a locking backend does not re-hand-out the request', async () => {
+        const requestQueue = await RequestQueue.open(`rq-extend-${Math.random()}`);
+        await requestQueue.addRequest({ url: 'https://example.com' });
+        const hintSpy = vitest.spyOn(requestQueue, 'setExpectedRequestProcessingTimeSecs');
+
+        const crawler = new BasicCrawler({
+            requestQueue,
+            requestHandlerTimeoutSecs: 1,
+            maxRequestRetries: 0,
+            requestHandler: async ({ extendTimeout }) => {
+                // ask for ten more minutes; the reservation must be raised to match
+                extendTimeout(600);
+            },
+        });
+
+        await crawler.run();
+
+        const maxHint = Math.max(...hintSpy.mock.calls.map((call) => call[0]));
+        expect(maxHint).toBeGreaterThanOrEqual(600);
     });
 
     test('timeouted request should not access storages', async () => {

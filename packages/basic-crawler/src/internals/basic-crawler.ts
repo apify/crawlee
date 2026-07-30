@@ -1201,6 +1201,7 @@ export class BasicCrawler<
 
     private createBaseContext(context: PendingCrawlingContext) {
         const deferredCleanup: (() => Promise<unknown>)[] = [];
+        let extendedByMillis = 0;
 
         return {
             id: cryptoRandomObjectId(10),
@@ -1223,6 +1224,13 @@ export class BasicCrawler<
                 if (context[navigationDeadlineKey] !== undefined) {
                     context[navigationDeadlineKey] += extraMillis;
                 }
+
+                // Keep a locking request manager's reservation ahead of the extended deadline, so a request that
+                // asks for much longer is not handed out again mid-flight. Best-effort: the hint is process-wide
+                // and raise-only, and locking is opt-in in v4.
+                extendedByMillis += extraMillis;
+                const reservedForSecs = (this.resolveRequestHandlerTimeoutMillis(context.request) + extendedByMillis) / 1000;
+                void this.requestManager?.setExpectedRequestProcessingTimeSecs?.(reservedForSecs + 5);
             },
             [deferredCleanupKey]: deferredCleanup,
         };
@@ -1904,6 +1912,19 @@ export class BasicCrawler<
         if (!eventManager.isInitialized()) {
             await eventManager.init();
             this._closeEvents = true;
+        }
+
+        // Warn once at startup if the internal timeout is shorter than the phases it is meant to outlast. The
+        // backstop is floored per request so it will not actually cut them short, but the configured value is
+        // then effectively ignored, which is worth flagging. Checked here (not in the constructor) because a
+        // subclass sets its navigation timeout only after `super()`.
+        const phasesMillis = this.getNavigationTimeoutMillis() + this.requestHandlerTimeoutMillis;
+        if (this.internalTimeoutMillis < phasesMillis) {
+            this.log.warning(
+                `CRAWLEE_INTERNAL_TIMEOUT (${this.internalTimeoutMillis / 1000}s) is shorter than the navigation ` +
+                    `and request handler timeouts combined (${phasesMillis / 1000}s); it will be raised per request ` +
+                    `so it does not cut them short.`,
+            );
         }
 
         this.autoscaledPool = new AutoscaledPool(this.autoscaledPoolOptions);
