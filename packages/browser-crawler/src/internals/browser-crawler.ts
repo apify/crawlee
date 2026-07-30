@@ -542,7 +542,7 @@ export abstract class BrowserCrawler<
             newPageOptions.proxyUrl = proxyInfo?.url;
             newPageOptions.proxyTier = proxyInfo?.proxyTier;
 
-            if (this.proxyConfiguration.isManInTheMiddle) {
+            if (proxyInfo?.isManInTheMiddle || this.proxyConfiguration.isProxyManInTheMiddle(proxyInfo?.url)) {
                 /**
                  * @see https://playwright.dev/docs/api/class-browser/#browser-new-context
                  * @see https://github.com/puppeteer/puppeteer/blob/main/docs/api.md
@@ -766,8 +766,8 @@ export abstract class BrowserCrawler<
             launchContext.proxyUrl = proxyInfo?.url;
             launchContextExtends.proxyInfo = proxyInfo;
 
-            // Disable SSL verification for MITM proxies
-            if (this.proxyConfiguration.isManInTheMiddle) {
+            // Disable SSL verification only for the selected MITM proxy URL.
+            if (proxyInfo?.isManInTheMiddle || this.proxyConfiguration.isProxyManInTheMiddle(proxyInfo?.url)) {
                 /**
                  * @see https://playwright.dev/docs/api/class-browser/#browser-new-context
                  * @see https://github.com/puppeteer/puppeteer/blob/main/docs/api.md

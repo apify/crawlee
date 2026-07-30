@@ -40,6 +40,15 @@ export interface ProxyConfigurationOptions {
      * Use `null` as a proxy URL to disable the proxy for the given tier.
      */
     tieredProxyUrls?: UrlList[];
+
+    /**
+     * Subset of proxy URLs that perform TLS interception (MITM).
+     * When the currently selected proxy URL is listed here, crawlers disable certificate verification
+     * for that request only. This allows mixing MITM and normal proxies in one configuration.
+     *
+     * When omitted, the {@apilink ProxyConfiguration.isManInTheMiddle} flag applies to every proxy URL.
+     */
+    manInTheMiddleProxyUrls?: string[];
 }
 
 export interface TieredProxy {
@@ -112,6 +121,12 @@ export interface ProxyInfo {
      * Proxy tier for the current proxy, if applicable (only for `tieredProxyUrls`).
      */
     proxyTier?: number;
+
+    /**
+     * Whether this specific proxy URL performs TLS interception (MITM).
+     * Used by crawlers to decide whether certificate verification should be disabled for the request.
+     */
+    isManInTheMiddle?: boolean;
 }
 
 interface TieredProxyOptions {
@@ -205,6 +220,7 @@ export class ProxyConfiguration {
     protected nextCustomUrlIndex = 0;
     protected proxyUrls?: UrlList;
     protected tieredProxyUrls?: UrlList[];
+    protected manInTheMiddleProxyUrls?: Set<string>;
     protected usedProxyUrls = new Map<string, string | null>();
     protected newUrlFunction?: ProxyConfigurationFunction;
     protected log = log.child({ prefix: 'ProxyConfiguration' });
@@ -240,10 +256,11 @@ export class ProxyConfiguration {
                 tieredProxyUrls: ow.optional.array.nonEmpty.ofType(
                     ow.array.nonEmpty.ofType(ow.any(ow.string.url, ow.null)),
                 ),
+                manInTheMiddleProxyUrls: ow.optional.array.ofType(ow.string.url),
             }),
         );
 
-        const { proxyUrls, newUrlFunction, tieredProxyUrls } = options;
+        const { proxyUrls, newUrlFunction, tieredProxyUrls, manInTheMiddleProxyUrls } = options;
 
         if ([proxyUrls, newUrlFunction, tieredProxyUrls].filter((x) => x).length > 1)
             this._throwCannotCombineCustomMethods();
@@ -252,6 +269,22 @@ export class ProxyConfiguration {
         this.proxyUrls = proxyUrls;
         this.newUrlFunction = newUrlFunction;
         this.tieredProxyUrls = tieredProxyUrls;
+        this.manInTheMiddleProxyUrls = manInTheMiddleProxyUrls?.length
+            ? new Set(manInTheMiddleProxyUrls)
+            : undefined;
+    }
+
+    /**
+     * Returns whether the given proxy URL should be treated as a MITM (TLS-intercepting) proxy.
+     * Prefers {@apilink ProxyConfigurationOptions.manInTheMiddleProxyUrls} when configured;
+     * otherwise falls back to the configuration-wide {@apilink ProxyConfiguration.isManInTheMiddle} flag.
+     */
+    isProxyManInTheMiddle(proxyUrl?: string | null): boolean {
+        if (!proxyUrl) return false;
+        if (this.manInTheMiddleProxyUrls) {
+            return this.manInTheMiddleProxyUrls.has(proxyUrl);
+        }
+        return this.isManInTheMiddle;
     }
 
     /**
@@ -296,6 +329,7 @@ export class ProxyConfiguration {
             hostname,
             port: port!,
             proxyTier: tier,
+            isManInTheMiddle: this.isProxyManInTheMiddle(url),
         };
     }
 

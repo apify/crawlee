@@ -20,6 +20,7 @@ describe('ProxyConfiguration', () => {
             username: '',
             password: '',
             port: '1111',
+            isManInTheMiddle: false,
         };
         expect(await proxyConfiguration.newProxyInfo(sessionId)).toEqual(proxyInfo);
     });
@@ -35,8 +36,39 @@ describe('ProxyConfiguration', () => {
             username: 'user@name',
             password: 'pass@word',
             port: '1111',
+            isManInTheMiddle: false,
         };
         expect(await proxyConfiguration.newProxyInfo(sessionId)).toEqual(proxyInfo);
+    });
+
+    test('isProxyManInTheMiddle respects per-URL MITM list', async () => {
+        const mitmUrl = 'http://mitm-proxy.com:8000';
+        const normalUrl = 'http://normal-proxy.com:8000';
+        const proxyConfiguration = new ProxyConfiguration({
+            proxyUrls: [mitmUrl, normalUrl],
+            manInTheMiddleProxyUrls: [mitmUrl],
+        });
+
+        expect(proxyConfiguration.isProxyManInTheMiddle(mitmUrl)).toBe(true);
+        expect(proxyConfiguration.isProxyManInTheMiddle(normalUrl)).toBe(false);
+        expect(proxyConfiguration.isProxyManInTheMiddle(undefined)).toBe(false);
+
+        const mitmInfo = await proxyConfiguration.newProxyInfo(sessionId);
+        // newProxyInfo rotates; force checks via helper + explicit construction path
+        expect(proxyConfiguration.isProxyManInTheMiddle(mitmInfo!.url)).toBe(
+            mitmInfo!.url === mitmUrl,
+        );
+        expect(mitmInfo!.isManInTheMiddle).toBe(mitmInfo!.url === mitmUrl);
+    });
+
+    test('isProxyManInTheMiddle falls back to configuration-wide flag', () => {
+        const proxyConfiguration = new ProxyConfiguration({
+            proxyUrls: ['http://proxy.com:1111'],
+        });
+        proxyConfiguration.isManInTheMiddle = true;
+
+        expect(proxyConfiguration.isProxyManInTheMiddle('http://proxy.com:1111')).toBe(true);
+        expect(proxyConfiguration.isProxyManInTheMiddle('http://other.com:1111')).toBe(true);
     });
 
     test('should throw on invalid newUrlFunction', async () => {
