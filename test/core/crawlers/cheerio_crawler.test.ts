@@ -18,8 +18,9 @@ import {
     serviceLocator,
     SessionPool,
 } from '@crawlee/core';
+import { BaseHttpClient } from '@crawlee/http-client';
 import { ImpitHttpClient } from '@crawlee/impit-client';
-import type { Dictionary, ISession, ProxyInfo } from '@crawlee/types';
+import type { Dictionary, ISession, ProxyInfo, SendRequestOptions } from '@crawlee/types';
 import { sleep } from '@crawlee/utils';
 import iconv from 'iconv-lite';
 import { CookieJar } from 'tough-cookie';
@@ -805,8 +806,8 @@ describe('CheerioCrawler', () => {
 
                 proxyConfiguration,
                 requestHandler: () => {},
-                httpClient: {
-                    sendRequest: async (request, opts) => {
+                httpClient: Object.assign(Object.create(BaseHttpClient.prototype) as BaseHttpClient, {
+                    sendRequest: async (request: globalThis.Request, opts?: SendRequestOptions) => {
                         const proxyUrl = opts?.session?.proxyInfo?.url;
                         check({ ...opts, proxyUrl });
 
@@ -816,7 +817,7 @@ describe('CheerioCrawler', () => {
 
                         throw new Error('Proxy responded with 400 - Bad request');
                     },
-                },
+                }),
             });
 
             await expect(crawler.run([serverAddress])).resolves.not.toThrow();
@@ -839,8 +840,8 @@ describe('CheerioCrawler', () => {
                 maxRequestRetries: 5,
                 requestHandler: async () => {},
                 failedRequestHandler,
-                httpClient: {
-                    sendRequest: async (request, opts) => {
+                httpClient: Object.assign(Object.create(BaseHttpClient.prototype) as BaseHttpClient, {
+                    sendRequest: async (request: globalThis.Request, opts?: SendRequestOptions) => {
                         const { session } = opts ?? {};
                         if (session?.proxyInfo?.url.includes('localhost')) {
                             numberOfRotations++;
@@ -848,7 +849,7 @@ describe('CheerioCrawler', () => {
                         }
                         return await impit.sendRequest(request);
                     },
-                },
+                }),
             });
 
             await crawler.run([serverAddress]);
@@ -868,15 +869,15 @@ describe('CheerioCrawler', () => {
                 proxyConfiguration,
                 maxRequestRetries: 1,
                 requestHandler: async () => {},
-                httpClient: {
-                    sendRequest: async (request, opts) => {
+                httpClient: Object.assign(Object.create(BaseHttpClient.prototype) as BaseHttpClient, {
+                    sendRequest: async (request: globalThis.Request, opts?: SendRequestOptions) => {
                         const { session } = opts ?? {};
                         if (session?.proxyInfo?.url.includes('localhost')) {
                             throw new Error(proxyError);
                         }
                         return impit.sendRequest(request);
                     },
-                },
+                }),
             });
 
             const spy = vitest.spyOn((crawler as any).log, 'warning' as any).mockImplementation(() => {});

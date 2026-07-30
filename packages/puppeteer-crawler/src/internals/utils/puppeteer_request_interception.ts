@@ -159,8 +159,8 @@ async function handleRequest(request: PuppeteerRequest, interceptRequestHandlers
  * @param handler Request interception handler.
  */
 export async function addInterceptRequestHandler(page: Page, handler: InterceptHandler): Promise<void> {
-    parseArgument(page, 'page', pageSchema);
-    parseArgument(handler, 'handler', schemas.anyFunction);
+    parseArgument(page, pageSchema);
+    parseArgument(handler, schemas.anyFunction);
 
     if (!pageInterceptRequestHandlersMap.has(page)) {
         pageInterceptRequestHandlersMap.set(page, []);
@@ -202,8 +202,8 @@ export async function addInterceptRequestHandler(page: Page, handler: InterceptH
  * @param handler Request interception handler.
  */
 export async function removeInterceptRequestHandler(page: Page, handler: InterceptHandler): Promise<void> {
-    parseArgument(page, 'page', pageSchema);
-    parseArgument(handler, 'handler', schemas.anyFunction);
+    parseArgument(page, pageSchema);
+    parseArgument(handler, schemas.anyFunction);
 
     const handlersArray = pageInterceptRequestHandlersMap.get(page)!.filter((item) => item !== handler);
 

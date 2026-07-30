@@ -91,7 +91,7 @@ export class DatasetBackend<Data extends Dictionary = Dictionary>
             );
         }
 
-        const { desc, limit, offset } = parseArgument(options, 'options', schemas.datasetListItemsOptions);
+        const { desc, limit, offset } = parseArgument(options, schemas.datasetListItemsOptions);
 
         const page = await this.nativeBackend.getData(offset ?? 0, limit, desc ?? false, false);
 

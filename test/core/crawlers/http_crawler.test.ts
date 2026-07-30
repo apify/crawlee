@@ -5,7 +5,7 @@ import { Readable } from 'node:stream';
 import type { ConcurrencySystemOptions } from '@crawlee/core';
 import { MemoryStorageBackend, serviceLocator } from '@crawlee/core';
 import { ConcurrencySystem, HttpCrawler, SessionPool } from '@crawlee/http';
-import { ResponseWithUrl } from '@crawlee/http-client';
+import { BaseHttpClient, ResponseWithUrl } from '@crawlee/http-client';
 import iconv from 'iconv-lite';
 
 const router = new Map<string, http.RequestListener>();
@@ -546,15 +546,15 @@ test('works with a custom HttpClient', async () => {
 
             results.push(await (await sendRequest()).text());
         },
-        httpClient: {
-            async sendRequest(request) {
+        httpClient: Object.assign(Object.create(BaseHttpClient.prototype) as BaseHttpClient, {
+            async sendRequest(request: Request) {
                 return new ResponseWithUrl('<html><head><title>Schmexample Domain</title></head></html>', {
                     url: request.url.toString(),
                     status: 200,
                     headers: { 'content-type': 'text/html; charset=utf-8' },
                 });
             },
-        },
+        }),
     });
 
     await crawler.run([url]);

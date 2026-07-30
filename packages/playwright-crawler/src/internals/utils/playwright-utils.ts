@@ -52,6 +52,37 @@ const jqueryPath = require.resolve('jquery');
 const MAX_INJECT_FILE_CACHE_SIZE = 10;
 const DEFAULT_BLOCK_REQUEST_URL_PATTERNS = ['.css', '.jpg', '.jpeg', '.png', '.svg', '.gif', '.woff', '.pdf', '.zip'];
 
+const filePathSchema = z.string();
+const injectFileOptionsSchema = z.strictObject({
+    surviveNavigations: z.boolean().optional(),
+});
+const gotoExtendedRequestSchema = z.looseObject({
+    url: z.url(),
+    method: z.string().optional(),
+    headers: schemas.anyObject.optional(),
+    payload: z.union([z.string(), z.instanceof(Uint8Array)]).optional(),
+});
+const blockRequestsOptionsSchema = z.strictObject({
+    urlPatterns: z.array(z.string()).default(DEFAULT_BLOCK_REQUEST_URL_PATTERNS),
+    extraUrlPatterns: z.array(z.string()).default(() => []),
+});
+const infiniteScrollOptionsSchema = z.strictObject({
+    timeoutSecs: schemas.anyNumber.default(0),
+    maxScrollHeight: schemas.anyNumber.default(0),
+    waitForSecs: schemas.anyNumber.default(4),
+    scrollDownAndUp: z.boolean().default(false),
+    buttonSelector: z.string().optional(),
+    stopScrollCallback: schemas.anyFunction.optional(),
+});
+const saveSnapshotOptionsSchema = z.strictObject({
+    key: z.string().min(1).default('SNAPSHOT'),
+    screenshotQuality: schemas.anyNumber.default(50),
+    saveScreenshot: z.boolean().default(true),
+    saveHtml: z.boolean().default(true),
+    keyValueStoreName: z.string().optional(),
+    configuration: schemas.anyObject.optional(),
+});
+
 export interface InjectFileOptions {
     /**
      * Enables the injected script to survive page navigations and reloads without need to be re-injected manually.
@@ -93,15 +124,9 @@ const injectedFilesCache = new LruCache({ maxLength: MAX_INJECT_FILE_CACHE_SIZE 
  * @param [options]
  */
 export async function injectFile(page: Page, filePath: string, options: InjectFileOptions = {}): Promise<unknown> {
-    parseArgument(page, 'page', validators.browserPage);
-    parseArgument(filePath, 'filePath', z.string());
-    parseArgument(
-        options,
-        'options',
-        z.strictObject({
-            surviveNavigations: z.boolean().optional(),
-        }),
-    );
+    parseArgument(page, validators.browserPage);
+    parseArgument(filePath, filePathSchema);
+    const { surviveNavigations } = parseArgument(options, injectFileOptionsSchema);
 
     let contents = injectedFilesCache.get(filePath);
     if (!contents) {
@@ -110,7 +135,7 @@ export async function injectFile(page: Page, filePath: string, options: InjectFi
     }
     const evalP = page.evaluate(contents);
 
-    if (options.surviveNavigations) {
+    if (surviveNavigations) {
         page.on('framenavigated', async () =>
             page
                 .evaluate(contents)
@@ -148,7 +173,7 @@ export async function injectFile(page: Page, filePath: string, options: InjectFi
  * @param [options.surviveNavigations] Opt-out option to disable the JQuery reinjection after navigation.
  */
 export async function injectJQuery(page: Page, options?: { surviveNavigations?: boolean }): Promise<unknown> {
-    parseArgument(page, 'page', validators.browserPage);
+    parseArgument(page, validators.browserPage);
     return injectFile(page, jqueryPath, { surviveNavigations: options?.surviveNavigations ?? true });
 }
 
@@ -192,18 +217,9 @@ export async function gotoExtended(
     request: Request,
     gotoOptions: DirectNavigationOptions = {},
 ): Promise<Response | null> {
-    parseArgument(page, 'page', validators.browserPage);
-    parseArgument(
-        request,
-        'request',
-        z.looseObject({
-            url: z.url(),
-            method: z.string().optional(),
-            headers: schemas.anyObject.optional(),
-            payload: z.union([z.string(), z.instanceof(Uint8Array)]).optional(),
-        }),
-    );
-    parseArgument(gotoOptions, 'gotoOptions', schemas.anyObject);
+    parseArgument(page, validators.browserPage);
+    parseArgument(request, gotoExtendedRequestSchema);
+    parseArgument(gotoOptions, schemas.anyObject);
 
     const { url, method, headers, payload } = request;
     const isEmpty = (o?: object) => !o || Object.keys(o).length === 0;
@@ -293,17 +309,8 @@ export async function gotoExtended(
  * @param [options]
  */
 export async function blockRequests(page: Page, options: BlockRequestsOptions = {}): Promise<void> {
-    parseArgument(page, 'page', validators.browserPage);
-    parseArgument(
-        options,
-        'options',
-        z.strictObject({
-            urlPatterns: z.array(z.string()).optional(),
-            extraUrlPatterns: z.array(z.string()).optional(),
-        }),
-    );
-
-    const { urlPatterns = DEFAULT_BLOCK_REQUEST_URL_PATTERNS, extraUrlPatterns = [] } = options;
+    parseArgument(page, validators.browserPage);
+    const { urlPatterns, extraUrlPatterns } = parseArgument(options, blockRequestsOptionsSchema);
 
     const patternsToBlock = [...urlPatterns, ...extraUrlPatterns];
 
@@ -409,28 +416,9 @@ export interface InfiniteScrollOptions {
  * @param [options]
  */
 export async function infiniteScroll(page: Page, options: InfiniteScrollOptions = {}): Promise<void> {
-    parseArgument(page, 'page', validators.browserPage);
-    parseArgument(
-        options,
-        'options',
-        z.strictObject({
-            timeoutSecs: schemas.anyNumber.optional(),
-            maxScrollHeight: schemas.anyNumber.optional(),
-            waitForSecs: schemas.anyNumber.optional(),
-            scrollDownAndUp: z.boolean().optional(),
-            buttonSelector: z.string().optional(),
-            stopScrollCallback: schemas.anyFunction.optional(),
-        }),
-    );
-
-    const {
-        timeoutSecs = 0,
-        maxScrollHeight = 0,
-        waitForSecs = 4,
-        scrollDownAndUp = false,
-        buttonSelector,
-        stopScrollCallback,
-    } = options;
+    parseArgument(page, validators.browserPage);
+    const { timeoutSecs, maxScrollHeight, waitForSecs, scrollDownAndUp, buttonSelector, stopScrollCallback } =
+        parseArgument(options, infiniteScrollOptionsSchema);
 
     let finished;
     const startTime = Date.now();
@@ -553,28 +541,11 @@ export interface SaveSnapshotOptions {
  * @param [options]
  */
 export async function saveSnapshot(page: Page, options: SaveSnapshotOptions = {}): Promise<void> {
-    parseArgument(page, 'page', validators.browserPage);
-    parseArgument(
+    parseArgument(page, validators.browserPage);
+    const { key, screenshotQuality, saveScreenshot, saveHtml, keyValueStoreName, configuration } = parseArgument(
         options,
-        'options',
-        z.strictObject({
-            key: z.string().min(1).optional(),
-            screenshotQuality: schemas.anyNumber.optional(),
-            saveScreenshot: z.boolean().optional(),
-            saveHtml: z.boolean().optional(),
-            keyValueStoreName: z.string().optional(),
-            configuration: schemas.anyObject.optional(),
-        }),
+        saveSnapshotOptionsSchema,
     );
-
-    const {
-        key = 'SNAPSHOT',
-        screenshotQuality = 50,
-        saveScreenshot = true,
-        saveHtml = true,
-        keyValueStoreName,
-        configuration,
-    } = options;
 
     try {
         const store = await KeyValueStore.open(keyValueStoreName ? { name: keyValueStoreName } : null, {
@@ -619,7 +590,7 @@ export async function parseWithCheerio(
     ignoreShadowRoots = false,
     ignoreIframes = false,
 ): Promise<CheerioRoot> {
-    parseArgument(page, 'page', validators.browserPage);
+    parseArgument(page, validators.browserPage);
 
     const html = ignoreShadowRoots
         ? null
@@ -691,7 +662,7 @@ ${error.message}
 }
 
 export async function closeCookieModals(page: Page): Promise<void> {
-    parseArgument(page, 'page', validators.browserPage);
+    parseArgument(page, validators.browserPage);
     const idcac = await getIdcacPlaywright();
 
     if (idcac?.getInjectableScript()) {

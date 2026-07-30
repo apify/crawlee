@@ -7,6 +7,8 @@ import contentTypeParser from 'content-type';
 import mime from 'mime-types';
 import { z } from 'zod';
 
+const responseWithUrlSchema = z.looseObject({ url: z.url(), headers: z.looseObject({}) });
+
 /**
  * Converts {@apilink HttpRequestOptions} to a {@apilink HttpRequest}.
  */
@@ -76,7 +78,7 @@ export function extractCharsetFromHtmlBytes(bytes: Buffer): string | undefined {
  * @param response HTTP response object
  */
 export function parseContentTypeFromResponse(response: Response): { type: string; charset: BufferEncoding } {
-    parseArgument(response, 'response', z.looseObject({ url: z.url(), headers: z.looseObject({}) }));
+    parseArgument(response, responseWithUrlSchema);
 
     const { url, headers } = response;
     let parsedContentType;

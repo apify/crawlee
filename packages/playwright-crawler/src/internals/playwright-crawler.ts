@@ -203,20 +203,20 @@ export class PlaywrightCrawler<
         ...BrowserCrawler.optionsShape,
         browserPoolOptions: schemas.anyObject.optional(),
         launcher: schemas.anyObject.optional(),
-        ignoreIframes: z.boolean().optional(),
-        ignoreShadowRoots: z.boolean().optional(),
     };
+
+    protected static override optionsSchema = z.strictObject(PlaywrightCrawler.optionsShape);
 
     /**
      * All `PlaywrightCrawler` parameters are passed via an options object.
      */
     constructor(options: PlaywrightCrawlerOptions<ContextExtension, ExtendedContext, Routes> = {}) {
-        parseArgument(options, 'PlaywrightCrawlerOptions', z.strictObject(PlaywrightCrawler.optionsShape));
+        const parsedOptions = parseArgument(options, PlaywrightCrawler.optionsSchema);
 
-        const { launchContext = {}, headless, contextPipelineBuilder, ...browserCrawlerOptions } = options;
+        const { launchContext = {}, headless, contextPipelineBuilder, ...browserCrawlerOptions } = parsedOptions;
 
         const browserPoolOptions = {
-            ...options.browserPoolOptions,
+            ...parsedOptions.browserPoolOptions,
         } as BrowserPoolOptions;
 
         if (launchContext.proxyUrl) {
@@ -237,7 +237,7 @@ export class PlaywrightCrawler<
             launchContext.launchOptions.headless = headless as boolean;
         }
 
-        const playwrightLauncher = new PlaywrightLauncher(launchContext, options.configuration);
+        const playwrightLauncher = new PlaywrightLauncher(launchContext, parsedOptions.configuration);
 
         browserPoolOptions.browserPlugins = [playwrightLauncher.createBrowserPlugin()];
 

@@ -6,12 +6,10 @@ import type {
     AddRequestsBatchedResult,
     AutoscaledPoolOptions,
     ConcurrencySystemOptions,
-    Configuration,
     CrawleeLogger,
     CrawlingContext,
     DatasetExportOptions,
     EnqueueLinksOptions,
-    EventManager,
     EventStatusMessageData,
     FinalStatistics,
     GetUserDataFromRequest,
@@ -37,6 +35,7 @@ import {
     bindMethodsToServiceLocator,
     BLOCKED_STATUS_CODES,
     ConcurrencySystem,
+    Configuration,
     ContextPipeline,
     ContextPipelineCleanupError,
     ContextPipelineInitializationError,
@@ -45,6 +44,7 @@ import {
     Dataset,
     enqueueLinks,
     EnqueueStrategy,
+    EventManager,
     EventType,
     getObjectType,
     KeyValueStore,
@@ -73,10 +73,9 @@ import {
     validateUserData,
     validators,
 } from '@crawlee/core';
-import { FetchHttpClient } from '@crawlee/http-client';
+import { BaseHttpClient, FetchHttpClient } from '@crawlee/http-client';
 import type {
     Awaitable,
-    BaseHttpClient,
     BatchAddRequestsResult,
     Dictionary,
     ISession,
@@ -98,10 +97,11 @@ import { cryptoRandomObjectId } from '@apify/utilities';
 
 import { createSendRequest } from './send-request.js';
 
-class LazyDefaultHttpClient implements BaseHttpClient {
+class LazyDefaultHttpClient extends BaseHttpClient {
     private readonly _delegatePromise: Promise<BaseHttpClient>;
 
     constructor(options?: { logger?: CrawleeLogger }) {
+        super(options);
         this._delegatePromise = import('@crawlee/impit-client')
             .then(({ ImpitHttpClient }) => new ImpitHttpClient(options))
             .catch(() => {
@@ -113,7 +113,11 @@ class LazyDefaultHttpClient implements BaseHttpClient {
             });
     }
 
-    async sendRequest(...args: Parameters<BaseHttpClient['sendRequest']>): Promise<Response> {
+    protected fetch(): Promise<Response> {
+        throw new Error('LazyDefaultHttpClient delegates `sendRequest` entirely; `fetch` is never called.');
+    }
+
+    override async sendRequest(...args: Parameters<BaseHttpClient['sendRequest']>): Promise<Response> {
         return (await this._delegatePromise).sendRequest(...args);
     }
 }
@@ -784,6 +788,7 @@ export class BasicCrawler<
 
         requestList: validators.requestList.optional(),
         requestQueue: validators.requestQueue.optional(),
+        requestManager: validators.requestManager.optional(),
         // Subclasses override this function instead of passing it
         // in constructor, so this validation needs to apply only
         // if the user creates an instance of BasicCrawler directly.
@@ -791,31 +796,32 @@ export class BasicCrawler<
         requestHandlerTimeoutSecs: schemas.anyNumber.optional(),
         errorHandler: schemas.anyFunction.optional(),
         failedRequestHandler: schemas.anyFunction.optional(),
-        maxRequestRetries: schemas.anyNumber.optional(),
-        sameDomainDelaySecs: schemas.anyNumber.optional(),
+        maxRequestRetries: schemas.anyNumber.default(3),
+        sameDomainDelaySecs: schemas.anyNumber.default(0),
         maxRequestsPerCrawl: schemas.anyNumber.optional(),
         maxCrawlDepth: schemas.anyNumber.optional(),
+        // No zod default — subclasses provide their own fallback (e.g. HTTP-optimized pool options).
         taskLoopOptions: schemas.anyObject.optional(),
         concurrencySystem: schemas.anyObject.optional(),
         sessionPool: validators.sessionPool.optional(),
         proxyConfiguration: validators.proxyConfiguration.optional(),
 
-        statusMessageLoggingInterval: schemas.anyNumber.optional(),
+        statusMessageLoggingInterval: schemas.anyNumber.default(10),
         statusMessageCallback: schemas.anyFunction.optional(),
 
-        additionalHttpErrorStatusCodes: z.array(schemas.anyNumber).optional(),
-        ignoreHttpErrorStatusCodes: z.array(schemas.anyNumber).optional(),
+        additionalHttpErrorStatusCodes: z.array(schemas.anyNumber).default(() => []),
+        ignoreHttpErrorStatusCodes: z.array(schemas.anyNumber).default(() => []),
 
         blockedStatusCodes: z.array(schemas.anyNumber).optional(),
-        retryOnBlocked: z.boolean().optional(),
-        respectRobotsTxtFile: z.union([z.boolean(), schemas.anyObject]).optional(),
+        retryOnBlocked: z.boolean().default(false),
+        respectRobotsTxtFile: z.union([z.boolean(), schemas.anyObject]).default(false),
         onSkippedRequest: schemas.anyFunction.optional(),
-        httpClient: schemas.anyObject.optional(),
+        httpClient: schemas.httpClient.optional(),
 
-        configuration: schemas.anyObject.optional(),
-        storageBackend: schemas.anyObject.optional(),
-        eventManager: schemas.anyObject.optional(),
-        logger: schemas.anyObject.optional(),
+        configuration: z.instanceof(Configuration).optional(),
+        storageBackend: validators.storageBackend.optional(),
+        eventManager: z.instanceof(EventManager).optional(),
+        logger: validators.logger.optional(),
 
         // AutoscaledPool shorthands
         minConcurrency: schemas.anyNumber.optional(),
@@ -831,6 +837,8 @@ export class BasicCrawler<
         id: z.string().optional(),
     };
 
+    protected static optionsSchema = z.strictObject(BasicCrawler.optionsShape);
+
     /**
      * All `BasicCrawler` parameters are passed via an options object.
      */
@@ -838,7 +846,7 @@ export class BasicCrawler<
         options: BasicCrawlerOptions<Context, ContextExtension, ExtendedContext, Routes> &
             RequireContextPipeline<CrawlingContext, Context> = {} as any, // cast because the constructor logic handles missing `contextPipelineBuilder` - the type is just for DX
     ) {
-        parseArgument(options, 'BasicCrawlerOptions', z.strictObject(BasicCrawler.optionsShape));
+        const parsedOptions = parseArgument(options, BasicCrawler.optionsSchema);
 
         const {
             // oxlint-disable-next-line typescript/no-deprecated -- still accepted and folded into `requestManager` for back-compat
@@ -846,8 +854,8 @@ export class BasicCrawler<
             // oxlint-disable-next-line typescript/no-deprecated -- still accepted and folded into `requestManager` for back-compat
             requestQueue,
             requestManager,
-            maxRequestRetries = 3,
-            sameDomainDelaySecs = 0,
+            maxRequestRetries,
+            sameDomainDelaySecs,
             maxRequestsPerCrawl,
             maxCrawlDepth,
             taskLoopOptions = {},
@@ -856,8 +864,8 @@ export class BasicCrawler<
             sessionPool,
             proxyConfiguration,
 
-            additionalHttpErrorStatusCodes = [],
-            ignoreHttpErrorStatusCodes = [],
+            additionalHttpErrorStatusCodes,
+            ignoreHttpErrorStatusCodes,
 
             // Service locator options
             configuration,
@@ -871,20 +879,20 @@ export class BasicCrawler<
             maxRequestsPerMinute,
 
             blockedStatusCodes: blockedStatusCodesInput,
-            retryOnBlocked = false,
-            respectRobotsTxtFile = false,
+            retryOnBlocked,
+            respectRobotsTxtFile,
             onSkippedRequest,
             requestHandler,
             requestHandlerTimeoutSecs,
             errorHandler,
             failedRequestHandler,
-            statusMessageLoggingInterval = 10,
+            statusMessageLoggingInterval,
             statusMessageCallback,
             statisticsOptions,
             httpClient,
 
             id,
-        } = options;
+        } = parsedOptions;
 
         // All concurrency configuration lives on the `ConcurrencySystem`, so the shortcuts have nowhere to go once
         // one is supplied - and silently dropping a `maxConcurrency` the user asked for is how crawls end up
@@ -920,8 +928,8 @@ export class BasicCrawler<
         try {
             serviceLocatorScope.enterScope();
             this.contextPipelineOptions = {
-                contextPipelineBuilder: options.contextPipelineBuilder,
-                extendContext: options.extendContext,
+                contextPipelineBuilder: parsedOptions.contextPipelineBuilder,
+                extendContext: parsedOptions.extendContext,
             };
 
             this.#log = serviceLocator.getLogger().child({ prefix: this.constructor.name });

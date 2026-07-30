@@ -78,6 +78,8 @@ export class PuppeteerLauncher extends BrowserLauncher<PuppeteerPlugin, unknown>
         launcher: schemas.anyObject.optional(),
     };
 
+    protected static override optionsSchema = z.strictObject(PuppeteerLauncher.optionsShape);
+
     /**
      * All `PuppeteerLauncher` parameters are passed via an launchContext object.
      */
@@ -85,12 +87,10 @@ export class PuppeteerLauncher extends BrowserLauncher<PuppeteerPlugin, unknown>
         launchContext: PuppeteerLaunchContext = {},
         override readonly configuration = Configuration.getGlobalConfiguration(),
     ) {
-        parseArgument(launchContext, 'PuppeteerLauncherOptions', z.strictObject(PuppeteerLauncher.optionsShape));
-
         const {
             launcher = BrowserLauncher.requireLauncherOrThrow('puppeteer', 'apify/actor-node-puppeteer-chrome'),
             ...browserLauncherOptions
-        } = launchContext;
+        } = parseArgument(launchContext, PuppeteerLauncher.optionsSchema);
 
         super(
             {

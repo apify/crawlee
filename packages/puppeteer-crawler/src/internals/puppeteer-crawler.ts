@@ -181,11 +181,13 @@ export class PuppeteerCrawler<
         browserPoolOptions: schemas.anyObject.optional(),
     };
 
+    protected static override optionsSchema = z.strictObject(PuppeteerCrawler.optionsShape);
+
     /**
      * All `PuppeteerCrawler` parameters are passed via an options object.
      */
     constructor(options: PuppeteerCrawlerOptions<ContextExtension, ExtendedContext, Routes> = {}) {
-        parseArgument(options, 'PuppeteerCrawlerOptions', z.strictObject(PuppeteerCrawler.optionsShape));
+        const parsedOptions = parseArgument(options, PuppeteerCrawler.optionsSchema);
 
         const {
             launchContext = {},
@@ -193,10 +195,10 @@ export class PuppeteerCrawler<
             proxyConfiguration,
             contextPipelineBuilder,
             ...browserCrawlerOptions
-        } = options;
+        } = parsedOptions;
 
         const browserPoolOptions = {
-            ...options.browserPoolOptions,
+            ...parsedOptions.browserPoolOptions,
         } as BrowserPoolOptions;
 
         if (launchContext.proxyUrl) {
@@ -217,7 +219,7 @@ export class PuppeteerCrawler<
             launchContext.launchOptions.headless = headless as boolean;
         }
 
-        const puppeteerLauncher = new PuppeteerLauncher(launchContext, options.configuration);
+        const puppeteerLauncher = new PuppeteerLauncher(launchContext, parsedOptions.configuration);
 
         browserPoolOptions.browserPlugins = [puppeteerLauncher.createBrowserPlugin()];
 

@@ -32,6 +32,34 @@ import { addInterceptRequestHandler, removeInterceptRequestHandler } from '../ut
 const STARTING_Z_INDEX = 2147400000;
 const getLog = () => serviceLocator.getChildLog('Puppeteer Click Elements');
 
+const enqueueLinksByClickingElementsOptionsSchema = z.strictObject({
+    page: schemas.objectWithKeys(['goto', 'evaluate']),
+    requestManager: schemas.objectWithKeys(['fetchNextRequest', 'addRequestsBatched']),
+    selector: z.string(),
+    userData: schemas.anyObject.optional(),
+    clickOptions: schemas.anyObject.optional(),
+    pseudoUrls: z.array(z.union([z.string(), schemas.objectWithKeys(['purl'])])).optional(),
+    globs: z.array(z.union([z.string(), schemas.objectWithKeys(['glob'])])).optional(),
+    regexps: z.array(z.union([z.instanceof(RegExp), schemas.objectWithKeys(['regexp'])])).optional(),
+    exclude: z
+        .array(
+            z.union([
+                z.string(),
+                z.instanceof(RegExp),
+                schemas.objectWithKeys(['glob']),
+                schemas.objectWithKeys(['regexp']),
+            ]) as z.ZodType<GlobInput | RegExpInput>,
+        )
+        .optional(),
+    transformRequestFunction: schemas.anyFunction.optional(),
+    waitForPageIdleSecs: schemas.anyNumber.default(1),
+    maxWaitForPageIdleSecs: schemas.anyNumber.default(5),
+    label: z.string().optional(),
+    forefront: z.boolean().optional(),
+    skipNavigation: z.boolean().optional(),
+    onSkippedRequest: schemas.anyFunction.optional(),
+});
+
 export interface EnqueueLinksByClickingElementsOptions {
     /**
      * Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
@@ -240,37 +268,7 @@ export interface EnqueueLinksByClickingElementsOptions {
 export async function enqueueLinksByClickingElements(
     options: EnqueueLinksByClickingElementsOptions,
 ): Promise<BatchAddRequestsResult> {
-    parseArgument(
-        options,
-        'EnqueueLinksByClickingElementsOptions',
-        z.strictObject({
-            page: schemas.objectWithKeys(['goto', 'evaluate']),
-            requestManager: schemas.objectWithKeys(['fetchNextRequest', 'addRequestsBatched']),
-            selector: z.string(),
-            userData: schemas.anyObject.optional(),
-            clickOptions: z.looseObject({}).optional(),
-            pseudoUrls: z.array(z.union([z.string(), schemas.objectWithKeys(['purl'])])).optional(),
-            globs: z.array(z.union([z.string(), schemas.objectWithKeys(['glob'])])).optional(),
-            regexps: z.array(z.union([z.instanceof(RegExp), schemas.objectWithKeys(['regexp'])])).optional(),
-            exclude: z
-                .array(
-                    z.union([
-                        z.string(),
-                        z.instanceof(RegExp),
-                        schemas.objectWithKeys(['glob']),
-                        schemas.objectWithKeys(['regexp']),
-                    ]),
-                )
-                .optional(),
-            transformRequestFunction: schemas.anyFunction.optional(),
-            waitForPageIdleSecs: schemas.anyNumber.optional(),
-            maxWaitForPageIdleSecs: schemas.anyNumber.optional(),
-            label: z.string().optional(),
-            forefront: z.boolean().optional(),
-            skipNavigation: z.boolean().optional(),
-            onSkippedRequest: schemas.anyFunction.optional(),
-        }),
-    );
+    const parsedOptions = parseArgument(options, enqueueLinksByClickingElementsOptionsSchema);
 
     const {
         page,
@@ -282,12 +280,12 @@ export async function enqueueLinksByClickingElements(
         globs,
         regexps,
         transformRequestFunction,
-        waitForPageIdleSecs = 1,
-        maxWaitForPageIdleSecs = 5,
+        waitForPageIdleSecs,
+        maxWaitForPageIdleSecs,
         forefront,
         exclude,
         onSkippedRequest,
-    } = options;
+    } = parsedOptions;
 
     const waitForPageIdleMillis = waitForPageIdleSecs * 1000;
     const maxWaitForPageIdleMillis = maxWaitForPageIdleSecs * 1000;
@@ -325,7 +323,7 @@ export async function enqueueLinksByClickingElements(
         maxWaitForPageIdleMillis,
         clickOptions,
     });
-    const requestOptions = createRequestOptions(interceptedRequests, options);
+    const requestOptions = createRequestOptions(interceptedRequests, parsedOptions);
     const skippedByFilters: string[] = [];
     let filteredOptions = filterRequestOptionsByPatterns(
         requestOptions,

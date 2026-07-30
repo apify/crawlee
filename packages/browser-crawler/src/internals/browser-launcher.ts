@@ -115,6 +115,8 @@ export abstract class BrowserLauncher<
         userAgent: z.string().optional(),
     };
 
+    protected static optionsSchema = z.strictObject(BrowserLauncher.optionsShape);
+
     static requireLauncherOrThrow<T>(launcher: string, apifyImageName: string): T {
         try {
             return require(launcher); // eslint-disable-line
