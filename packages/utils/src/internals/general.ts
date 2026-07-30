@@ -52,20 +52,6 @@ export async function sleep(millis?: number): Promise<void> {
 }
 
 /**
- * Converts SNAKE_CASE to camelCase.
- * @ignore
- */
-export function snakeCaseToCamelCase(snakeCaseStr: string): string {
-    return snakeCaseStr
-        .toLowerCase()
-        .split('_')
-        .map((part, index) => {
-            return index > 0 ? part.charAt(0).toUpperCase() + part.slice(1) : part;
-        })
-        .join('');
-}
-
-/**
  * Traverses DOM and expands shadow-root elements (created by custom components).
  * @ignore
  */
