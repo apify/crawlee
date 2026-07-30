@@ -4,10 +4,13 @@
 
 ```ts
 
+import { $ZodTypeInternals } from 'zod/v4/core';
 import type { AllowedHttpMethods } from '@crawlee/types';
+import { ArgumentValidationError } from '@crawlee/utils';
 import { AsyncEventEmitter } from '@vladfrangu/async_event_emitter';
 import type { Awaitable } from '@crawlee/types';
 import type { BaseHttpClient } from '@crawlee/types';
+import { BaseHttpClient as BaseHttpClient_2 } from '@crawlee/http-client';
 import type { BatchAddRequestsResult } from '@crawlee/types';
 import type { BetterIntervalID } from '@apify/utilities';
 import type { BinaryLike } from 'node:crypto';
@@ -33,6 +36,7 @@ import { LoggerJson } from '@apify/log';
 import type { LoggerOptions } from '@apify/log';
 import { LoggerText } from '@apify/log';
 import { LogLevel } from '@apify/log';
+import { parseArgument } from '@crawlee/utils';
 import { ParseSitemapOptions } from '@crawlee/utils';
 import type { ProcessedRequest } from '@crawlee/types';
 import type { ProxyInfo } from '@crawlee/types';
@@ -43,6 +47,7 @@ import type { ReadonlyDeep } from 'type-fest';
 import type { RequestQueueBackend } from '@crawlee/types';
 import type { RequestQueueInfo } from '@crawlee/types';
 import { RobotsTxtFile } from '@crawlee/utils';
+import { schemas } from '@crawlee/utils';
 import type { SendRequestOptions } from '@crawlee/types';
 import type { SessionFingerprint } from '@crawlee/types';
 import { SessionState } from '@crawlee/types';
@@ -53,6 +58,8 @@ import { StorageBackend } from '@crawlee/types';
 import { StorageIdentifier } from '@crawlee/types';
 import { tryAbsoluteURL } from '@crawlee/utils';
 import { z } from 'zod';
+import { ZodCustom } from 'zod';
+import { ZodType } from 'zod';
 
 // @public (undocumented)
 export interface AddRequestsBatchedOptions extends RequestQueueOperationOptions {
@@ -78,6 +85,8 @@ export class ApifyLogAdapter extends BaseCrawleeLogger {
     // (undocumented)
     logWithLevel(level: number, message: string, data?: Record<string, unknown>): void;
 }
+
+export { ArgumentValidationError }
 
 // @public
 export abstract class BaseCrawleeLogger implements CrawleeLogger {
@@ -149,10 +158,10 @@ export interface ClientLoadSignalOptions {
 }
 
 // @public
-export const coerceBoolean: z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodBoolean>;
+export const coerceBoolean: z.ZodPreprocess<z.ZodBoolean>;
 
 // @public (undocumented)
-export const coerceNumber: z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodNumber>;
+export const coerceNumber: z.ZodPreprocess<z.ZodNumber>;
 
 // @public
 export interface ConcurrencyConsumer {
@@ -274,24 +283,24 @@ export interface CpuLoadSignalOptions {
 // @public (undocumented)
 export const crawleeConfigFields: {
     defaultDatasetId: ConfigField<z.ZodDefault<z.ZodString>>;
-    purgeOnStart: ConfigField<z.ZodDefault<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodBoolean>>>;
+    purgeOnStart: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>>;
     defaultKeyValueStoreId: ConfigField<z.ZodDefault<z.ZodString>>;
     defaultRequestQueueId: ConfigField<z.ZodDefault<z.ZodString>>;
-    maxUsedCpuRatio: ConfigField<z.ZodDefault<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodNumber>>>;
-    availableMemoryRatio: ConfigField<z.ZodDefault<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodNumber>>>;
-    memoryMbytes: ConfigField<z.ZodOptional<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodNumber>>>;
-    persistStateIntervalMillis: ConfigField<z.ZodDefault<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodNumber>>>;
-    systemInfoIntervalMillis: ConfigField<z.ZodDefault<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodNumber>>>;
+    maxUsedCpuRatio: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodNumber>>>;
+    availableMemoryRatio: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodNumber>>>;
+    memoryMbytes: ConfigField<z.ZodOptional<z.ZodPreprocess<z.ZodNumber>>>;
+    persistStateIntervalMillis: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodNumber>>>;
+    systemInfoIntervalMillis: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodNumber>>>;
     inputKey: ConfigField<z.ZodDefault<z.ZodString>>;
-    headless: ConfigField<z.ZodDefault<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodBoolean>>>;
-    xvfb: ConfigField<z.ZodDefault<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodBoolean>>>;
+    headless: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>>;
+    xvfb: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>>;
     chromeExecutablePath: ConfigField<z.ZodOptional<z.ZodString>>;
     defaultBrowserPath: ConfigField<z.ZodOptional<z.ZodString>>;
-    disableBrowserSandbox: ConfigField<z.ZodDefault<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodBoolean>>>;
-    logLevel: ConfigField<z.ZodOptional<z.ZodPipe<z.ZodTransform<{} | null | undefined, unknown>, z.ZodEnum<typeof LogLevel>>>>;
-    persistStorage: ConfigField<z.ZodDefault<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodBoolean>>>;
+    disableBrowserSandbox: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>>;
+    logLevel: ConfigField<z.ZodOptional<z.ZodPreprocess<z.ZodEnum<typeof LogLevel>>>>;
+    persistStorage: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>>;
     storageDir: ConfigField<z.ZodDefault<z.ZodString>>;
-    containerized: ConfigField<z.ZodOptional<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodBoolean>>>;
+    containerized: ConfigField<z.ZodOptional<z.ZodPreprocess<z.ZodBoolean>>>;
 };
 
 export { CrawleeLogger }
@@ -928,6 +937,8 @@ export class NavigationSkippedError extends NonRetryableError {
 export class NonRetryableError extends Error {
 }
 
+export { parseArgument }
+
 // @public
 export function parseValue(body: Buffer | ArrayBuffer | string, contentTypeHeader: string | null): string | Buffer | ArrayBuffer | Record<string, unknown>;
 
@@ -1378,6 +1389,8 @@ export type RoutesFromSchemas<Schemas extends RouteSchemas> = {
 } ? {
     [defaultRoute]: SchemaUserData<Schemas[typeof defaultRoute]>;
 } : {});
+
+export { schemas }
 
 // @public
 export function serializeValue(value: unknown, contentType?: string): {

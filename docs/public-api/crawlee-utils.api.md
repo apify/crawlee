@@ -4,13 +4,22 @@
 
 ```ts
 
-import type { BaseHttpClient } from '@crawlee/types';
+import { BaseHttpClient } from '@crawlee/http-client';
+import type { BaseHttpClient as BaseHttpClient_2 } from '@crawlee/types';
 import { Cheerio } from 'cheerio';
 import { CheerioAPI } from 'cheerio';
 import type { CrawleeLogger } from '@crawlee/types';
 import type { Dictionary } from '@crawlee/types';
 import { Element as Element_2 } from 'domhandler';
 import type { SearchParams } from '@crawlee/types';
+import { z } from 'zod';
+
+// @public
+export class ArgumentValidationError extends Error {
+    constructor(error: z.ZodError, value: unknown);
+    readonly cause: z.ZodError;
+    readonly issues: z.ZodError['issues'];
+}
 
 export { Cheerio }
 
@@ -34,7 +43,7 @@ export function discoverValidSitemaps(urls: string[], options?: {
     timeoutMillis?: number;
     signal?: AbortSignal;
     requestTimeoutMillis?: number;
-    httpClient?: BaseHttpClient;
+    httpClient?: BaseHttpClient_2;
     logger?: CrawleeLogger;
 }): AsyncIterable<string>;
 
@@ -44,7 +53,7 @@ export function downloadListOfUrls(options: DownloadListOfUrlsOptions): Promise<
 // @public (undocumented)
 export interface DownloadListOfUrlsOptions {
     encoding?: BufferEncoding;
-    httpClient?: BaseHttpClient;
+    httpClient?: BaseHttpClient_2;
     proxyUrl?: string;
     url: string;
     urlRegExp?: RegExp;
@@ -125,7 +134,7 @@ export function parseSitemap<T extends ParseSitemapOptions>(initialSources: Site
 // @public (undocumented)
 export interface ParseSitemapOptions {
     emitNestedSitemaps?: true | false;
-    httpClient?: BaseHttpClient;
+    httpClient?: BaseHttpClient_2;
     logger?: CrawleeLogger;
     maxDepth?: number;
     nestedSitemapFilter?: (sitemapUrl: string) => boolean;
@@ -155,7 +164,7 @@ export class RobotsTxtFile {
         signal?: AbortSignal;
         timeoutMillis?: number;
         proxyUrl?: string;
-        httpClient?: BaseHttpClient;
+        httpClient?: BaseHttpClient_2;
         logger?: CrawleeLogger;
     }): Promise<RobotsTxtFile>;
     static from(url: string, content: string, proxyUrl?: string): RobotsTxtFile;
@@ -167,6 +176,26 @@ export class RobotsTxtFile {
 
 // @public
 export const ROTATE_PROXY_ERRORS: string[];
+
+declare namespace schemas {
+    export {
+        objectWithKeys,
+        anyObject,
+        anyArray,
+        anyFunction,
+        anyNumber,
+        httpClient,
+        logger,
+        typedArray,
+        plainObject,
+        storageRequest,
+        storageRequestWithoutId,
+        storageRequestBatch,
+        requestQueueOperationOptions,
+        keyValueStoreListKeysOptions,
+        datasetListItemsOptions
+    }
+}
 
 // @public
 export class Sitemap {
