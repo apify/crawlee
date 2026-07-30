@@ -868,10 +868,7 @@ export class BasicCrawler<
         retryOnBlocked: z.boolean().default(false),
         respectRobotsTxtFile: z.union([z.boolean(), schemas.anyObject]).default(false),
         transactionalStorage: z
-            .union([
-                z.boolean(),
-                z.strictObject({ requestQueue: z.enum(['deferred', 'writeThrough']).optional() }),
-            ])
+            .union([z.boolean(), z.strictObject({ requestQueue: z.enum(['deferred', 'writeThrough']).optional() })])
             .optional(),
         onSkippedRequest: schemas.anyFunction.optional(),
         httpClient: schemas.httpClient.optional(),

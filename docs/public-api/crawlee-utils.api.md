@@ -4,7 +4,7 @@
 
 ```ts
 
-import type { BaseHttpClient } from '@crawlee/types';
+import type { BaseHttpClient } from '@crawlee/http-client';
 import type { CheerioAPI } from 'cheerio';
 import type { CrawleeLogger } from '@crawlee/types';
 import type { Dictionary } from '@crawlee/types';

@@ -483,6 +483,9 @@ importers:
       '@crawlee/fs-storage':
         specifier: workspace:*
         version: link:../fs-storage
+      '@crawlee/http-client':
+        specifier: workspace:*
+        version: link:../http-client
       '@crawlee/types':
         specifier: workspace:*
         version: link:../types

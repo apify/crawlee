@@ -1,5 +1,5 @@
 import { FetchHttpClient } from '@crawlee/http-client';
-import type { BaseHttpClient } from '@crawlee/types';
+import type { BaseHttpClient } from '@crawlee/http-client';
 import { z } from 'zod';
 
 import { URL_NO_COMMAS_REGEX } from './general.js';

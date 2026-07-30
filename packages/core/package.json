@@ -53,6 +53,7 @@
         "@apify/timeout": "^0.4.4",
         "@apify/utilities": "^2.15.5",
         "@crawlee/fs-storage": "workspace:*",
+        "@crawlee/http-client": "workspace:*",
         "@crawlee/types": "workspace:*",
         "@crawlee/utils": "workspace:*",
         "@sapphire/async-queue": "^1.5.5",

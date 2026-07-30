@@ -28,9 +28,7 @@ const throttlingRequestManagerOptionsSchema = z.strictObject({
     requestManagerOpener: schemas.anyFunction.optional(),
     baseDelaySecs: schemas.anyNumber.refine((value) => value > 0, 'Expected a number greater than 0').optional(),
     maxDelaySecs: schemas.anyNumber.refine((value) => value > 0, 'Expected a number greater than 0').optional(),
-    maxDomainStallSecs: schemas.anyNumber
-        .refine((value) => value > 0, 'Expected a number greater than 0')
-        .optional(),
+    maxDomainStallSecs: schemas.anyNumber.refine((value) => value > 0, 'Expected a number greater than 0').optional(),
 });
 
 /**

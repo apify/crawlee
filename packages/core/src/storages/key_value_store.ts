@@ -358,7 +358,6 @@ export class KeyValueStore {
             return entry.value !== null;
         }
 
-
         return this.backend.recordExists(key);
     }
 

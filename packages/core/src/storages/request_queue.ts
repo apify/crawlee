@@ -1,7 +1,7 @@
 import { inspect } from 'node:util';
 
+import type { BaseHttpClient } from '@crawlee/http-client';
 import type {
-    BaseHttpClient,
     BatchAddRequestsResult,
     Constructor,
     Dictionary,
@@ -664,7 +664,6 @@ export class RequestQueue implements IStorage, IRequestManager {
                 });
             },
         });
-
     }
 
     /**
