@@ -7,7 +7,27 @@ import { cryptoRandomObjectId } from '@apify/utilities';
 import { getDefaultCookieExpirationDate } from '../cookie_utils.js';
 import type { CrawleeLogger } from '../log.js';
 import { serviceLocator } from '../service_locator.js';
-import { parseArgument, schemas } from '../validators.js';
+import { parseArgument, schemas, validators } from '../validators.js';
+
+// `schemas.anyObject` passes values through by reference (object schemas return a pruned plain
+// copy), so class instances like cookie jars and loggers keep their prototype.
+const sessionOptionsSchema = z.strictObject({
+    id: z.string().default(() => `session_${cryptoRandomObjectId(10)}`),
+    cookieJar: schemas.anyObject.default(() => new CookieJar()),
+    proxyInfo: schemas.anyObject.optional(),
+    maxAgeSecs: schemas.anyNumber.default(3000),
+    userData: schemas.anyObject.default(() => ({})),
+    maxErrorScore: schemas.anyNumber.default(3),
+    errorScoreDecrement: schemas.anyNumber.default(0.5),
+    createdAt: z.date().default(() => new Date()),
+    expiresAt: z.date().optional(),
+    usageCount: schemas.anyNumber.default(0),
+    errorScore: schemas.anyNumber.default(0),
+    maxUsageCount: schemas.anyNumber.default(50),
+    retired: z.boolean().default(false),
+    log: validators.logger.default(() => serviceLocator.getLogger()),
+    fingerprint: schemas.anyObject.optional(),
+});
 
 export interface SessionOptions {
     /** Id of session used for generating fingerprints. It is used as proxy session name. */
@@ -156,46 +176,23 @@ export class Session implements ISession {
      * Session configuration.
      */
     constructor(options: SessionOptions = {}) {
-        parseArgument(
-            options,
-            'options',
-            z.strictObject({
-                id: z.string().optional(),
-                cookieJar: z.looseObject({}).optional(),
-                proxyInfo: z.looseObject({}).optional(),
-                maxAgeSecs: schemas.anyNumber.optional(),
-                userData: z.looseObject({}).optional(),
-                maxErrorScore: schemas.anyNumber.optional(),
-                errorScoreDecrement: schemas.anyNumber.optional(),
-                createdAt: z.date().optional(),
-                expiresAt: z.date().optional(),
-                usageCount: schemas.anyNumber.optional(),
-                errorScore: schemas.anyNumber.optional(),
-                maxUsageCount: schemas.anyNumber.optional(),
-                retired: z.boolean().optional(),
-                log: z.looseObject({}).optional(),
-                fingerprint: z.looseObject({}).optional(),
-            }),
-        );
-
         const {
-            id = `session_${cryptoRandomObjectId(10)}`,
-            cookieJar = new CookieJar(),
-            proxyInfo = undefined,
-            maxAgeSecs = 3000,
-            userData = {},
-            maxErrorScore = 3,
-            errorScoreDecrement = 0.5,
-            createdAt = new Date(),
-            usageCount = 0,
-            errorScore = 0,
-            maxUsageCount = 50,
-            retired = false,
-            log = serviceLocator.getLogger(),
+            id,
+            cookieJar,
+            proxyInfo,
+            maxAgeSecs,
+            userData,
+            maxErrorScore,
+            errorScoreDecrement,
+            createdAt,
+            usageCount,
+            errorScore,
+            maxUsageCount,
+            retired,
+            log,
             fingerprint,
-        } = options;
-
-        const { expiresAt = getDefaultCookieExpirationDate(maxAgeSecs) } = options;
+            expiresAt = getDefaultCookieExpirationDate(maxAgeSecs),
+        } = parseArgument(options, sessionOptionsSchema);
 
         this.#log = log.child({ prefix: 'Session' });
 

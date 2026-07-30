@@ -80,7 +80,7 @@ export class DatasetBackend<Data extends Dictionary = Dictionary>
     }
 
     getData(options: storage.DatasetBackendListOptions = {}): Promise<storage.PaginatedList<Data>> {
-        const { desc, limit, offset } = parseArgument(options, 'options', schemas.datasetListItemsOptions);
+        const { desc, limit, offset } = parseArgument(options, schemas.datasetListItemsOptions);
 
         return this.getDataPage({
             desc,

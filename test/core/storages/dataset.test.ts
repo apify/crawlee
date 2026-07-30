@@ -341,7 +341,7 @@ describe('dataset', () => {
     describe('pushData', () => {
         test('throws on invalid args', async () => {
             const dataset = await Dataset.open();
-            const dataErrMsg = /Validation of argument 'data' failed:[\s\S]*expected object/;
+            const dataErrMsg = /Invalid input: expected object/;
             // @ts-expect-error JS-side validation
             await expect(dataset.pushData()).rejects.toThrow(ArgumentValidationError);
             // @ts-expect-error JS-side validation

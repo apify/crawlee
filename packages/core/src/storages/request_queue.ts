@@ -27,7 +27,7 @@ import type { IProxyConfiguration } from '../proxy_configuration.js';
 import type { InternalSource, RequestOptions, Source } from '../request.js';
 import { Request } from '../request.js';
 import { serviceLocator } from '../service_locator.js';
-import { parseArgument, schemas } from '../validators.js';
+import { parseArgument, schemas, validators } from '../validators.js';
 import type { JournalEntry, StorageTransaction } from './transaction.js';
 import { activeStorageTransaction, rejectOperationInTransaction } from './transaction.js';
 import { drainRequestBatches } from './batched_adds.js';
@@ -45,6 +45,44 @@ import { RequestDeduplicationCache } from './request_dedup_cache.js';
  * @internal
  */
 const MAX_CACHED_REQUESTS = 2_000_000;
+
+const iterableSchema = z.custom((value) => isIterable(value) || isAsyncIterable(value), {
+    error: (issue) => `Expected an iterable or async iterable, got ${getObjectType(issue.input)}`,
+});
+const operationOptionsSchema = z.strictObject({
+    forefront: z.boolean().default(false),
+});
+const addRequestsOptionsSchema = z.strictObject({
+    forefront: z.boolean().default(false),
+    cache: z.boolean().default(true),
+});
+const addRequestsBatchedOptionsSchema = z.strictObject({
+    forefront: z.boolean().optional(),
+    waitForAllRequestsToBeAdded: z.boolean().optional(),
+    batchSize: schemas.anyNumber.default(1000),
+    waitBetweenBatchesMillis: schemas.anyNumber.default(1000),
+    maxNewRequests: schemas.anyNumber.optional(),
+});
+const newRequestLikeSchema = z.looseObject({
+    url: z.string(),
+    id: z.undefined().optional(),
+});
+const handledRequestSchema = z.looseObject({
+    id: z.string(),
+    uniqueKey: z.string(),
+    handledAt: z.string().optional(),
+});
+const reclaimedRequestSchema = z.looseObject({
+    id: z.string(),
+    uniqueKey: z.string(),
+});
+const uniqueKeySchema = z.string();
+const openOptionsSchema = z.strictObject({
+    configuration: z.instanceof(Configuration).optional(),
+    storageBackend: validators.storageBackend.optional(),
+    proxyConfiguration: validators.proxyConfiguration.optional(),
+    httpClient: schemas.httpClient.optional(),
+});
 
 /**
  * Represents a queue of URLs to crawl, which is used for deep crawling of websites
@@ -187,16 +225,8 @@ export class RequestQueue implements IStorage, IRequestManager {
     ): Promise<RequestQueueOperationInfo> {
         const transaction = activeStorageTransaction();
 
-        parseArgument(requestLike, 'requestLike', schemas.anyObject);
-        parseArgument(
-            options,
-            'options',
-            z.strictObject({
-                forefront: z.boolean().optional(),
-            }),
-        );
-
-        const { forefront = false } = options;
+        parseArgument(requestLike, schemas.anyObject);
+        const { forefront } = parseArgument(options, operationOptionsSchema);
 
         if ('requestsFromUrl' in requestLike) {
             const requests = await this.fetchRequestsFromUrl(requestLike as InternalSource);
@@ -205,14 +235,7 @@ export class RequestQueue implements IStorage, IRequestManager {
             return { ...processedRequests[0], forefront };
         }
 
-        parseArgument(
-            requestLike,
-            'requestLike',
-            z.looseObject({
-                url: z.string(),
-                id: z.undefined().optional(),
-            }),
-        );
+        parseArgument(requestLike, newRequestLikeSchema);
 
         const request = requestLike instanceof Request ? requestLike : new Request(requestLike as RequestOptions);
 
@@ -448,23 +471,8 @@ export class RequestQueue implements IStorage, IRequestManager {
     ): Promise<BatchAddRequestsResult> {
         const transaction = activeStorageTransaction();
 
-        parseArgument(
-            requestsLike,
-            'requestsLike',
-            z.custom((value) => isIterable(value) || isAsyncIterable(value), {
-                error: (issue) => `Expected an iterable or async iterable, got ${getObjectType(issue.input)}`,
-            }),
-        );
-        parseArgument(
-            options,
-            'options',
-            z.strictObject({
-                forefront: z.boolean().optional(),
-                cache: z.boolean().optional(),
-            }),
-        );
-
-        const { forefront = false, cache = true } = options;
+        parseArgument(requestsLike, iterableSchema);
+        const { forefront, cache } = parseArgument(options, addRequestsOptionsSchema);
 
         const uniqueKeyToCacheKey = new Map<string, string>();
         const getCachedRequestId = (uniqueKey: string) => {
@@ -576,25 +584,10 @@ export class RequestQueue implements IStorage, IRequestManager {
         requests: ReadonlyDeep<RequestsLike>,
         options: AddRequestsBatchedOptions = {},
     ): Promise<AddRequestsBatchedResult> {
-        parseArgument(
-            requests,
-            'requests',
-            z.custom((value) => isIterable(value) || isAsyncIterable(value), {
-                error: (issue) => `Expected an iterable or async iterable, got ${getObjectType(issue.input)}`,
-            }),
-        );
+        parseArgument(requests, iterableSchema);
 
-        parseArgument(
-            options,
-            'options',
-            z.strictObject({
-                forefront: z.boolean().optional(),
-                waitForAllRequestsToBeAdded: z.boolean().optional(),
-                batchSize: schemas.anyNumber.optional(),
-                waitBetweenBatchesMillis: schemas.anyNumber.optional(),
-                maxNewRequests: schemas.anyNumber.optional(),
-            }),
-        );
+        const { forefront, waitForAllRequestsToBeAdded, batchSize, waitBetweenBatchesMillis, maxNewRequests } =
+            parseArgument(options, addRequestsBatchedOptionsSchema);
 
         const addRequest = this.addRequest.bind(this);
 
@@ -626,7 +619,7 @@ export class RequestQueue implements IStorage, IRequestManager {
 
                 if (opts && typeof opts === 'object' && 'requestsFromUrl' in opts) {
                     // Handle URL lists right away
-                    await addRequest(opts, { forefront: options.forefront });
+                    await addRequest(opts, { forefront });
                 } else {
                     // Yield valid requests
                     yield typeof opts === 'string' ? { url: opts } : (opts as RequestOptions);
@@ -636,10 +629,10 @@ export class RequestQueue implements IStorage, IRequestManager {
 
         return drainRequestBatches<RequestOptions>({
             items: generateRequests(),
-            batchSize: options.batchSize ?? 1000,
-            waitBetweenBatchesMillis: options.waitBetweenBatchesMillis ?? 1000,
-            waitForAllRequestsToBeAdded: options.waitForAllRequestsToBeAdded ?? false,
-            maxNewRequests: options.maxNewRequests,
+            batchSize,
+            waitBetweenBatchesMillis,
+            waitForAllRequestsToBeAdded,
+            maxNewRequests,
 
             /**
              * Requests the backend reports as unprocessed are warned about and skipped rather than retried:
@@ -649,7 +642,7 @@ export class RequestQueue implements IStorage, IRequestManager {
              */
             processChunk: async (chunk, isInitial) => {
                 const { processedRequests, unprocessedRequests } = await this.addRequests(chunk, {
-                    forefront: options.forefront,
+                    forefront,
                     cache: isInitial,
                 });
 
@@ -671,6 +664,7 @@ export class RequestQueue implements IStorage, IRequestManager {
                 });
             },
         });
+
     }
 
     /**
@@ -682,7 +676,7 @@ export class RequestQueue implements IStorage, IRequestManager {
     async getRequest<T extends Dictionary = Dictionary>(uniqueKey: string): Promise<Request<T> | null> {
         const transaction = activeStorageTransaction();
 
-        parseArgument(uniqueKey, 'uniqueKey', z.string());
+        parseArgument(uniqueKey, uniqueKeySchema);
 
         // Requests buffered by the active transaction (under the `deferred` write policy) are visible to it.
         const buffered = transaction && this.bufferedRequests(transaction).get(uniqueKey);
@@ -742,15 +736,7 @@ export class RequestQueue implements IStorage, IRequestManager {
             'it is part of the crawler request-processing bookkeeping, which a transaction must not affect.',
         );
 
-        parseArgument(
-            request,
-            'request',
-            z.looseObject({
-                id: z.string(),
-                uniqueKey: z.string(),
-                handledAt: z.string().optional(),
-            }),
-        );
+        parseArgument(request, handledRequestSchema);
 
         const forefront = this.requestCache.get(getRequestId(request.uniqueKey))?.forefront ?? false;
 
@@ -794,23 +780,8 @@ export class RequestQueue implements IStorage, IRequestManager {
             'it is part of the crawler request-processing bookkeeping, which a transaction must not affect.',
         );
 
-        parseArgument(
-            request,
-            'request',
-            z.looseObject({
-                id: z.string(),
-                uniqueKey: z.string(),
-            }),
-        );
-        parseArgument(
-            options,
-            'options',
-            z.strictObject({
-                forefront: z.boolean().optional(),
-            }),
-        );
-
-        const { forefront = false } = options;
+        parseArgument(request, reclaimedRequestSchema);
+        const { forefront } = parseArgument(options, operationOptionsSchema);
 
         this.#statsTracker.add('writeCount');
         const processedRequest = await this.backend.reclaimRequest(request, { forefront });
@@ -1092,19 +1063,10 @@ export class RequestQueue implements IStorage, IRequestManager {
     ): Promise<RequestQueue> {
         tryCancel();
 
-        parseArgument(
-            options,
-            'options',
-            z.strictObject({
-                configuration: z.instanceof(Configuration).optional(),
-                storageBackend: z.looseObject({}).optional(),
-                proxyConfiguration: z.looseObject({}).optional(),
-                httpClient: z.looseObject({}).optional(),
-            }),
-        );
+        const parsedOptions = parseArgument(options, openOptionsSchema);
 
-        const storageBackend = options.storageBackend ?? serviceLocator.getStorageBackend();
-        const configuration = options.configuration ?? serviceLocator.getConfiguration();
+        const storageBackend = parsedOptions.storageBackend ?? serviceLocator.getStorageBackend();
+        const configuration = parsedOptions.configuration ?? serviceLocator.getConfiguration();
 
         await purgeDefaultStorages({ onlyPurgeOnce: true, storageBackend, configuration });
 
@@ -1117,8 +1079,8 @@ export class RequestQueue implements IStorage, IRequestManager {
                 backendOpener: () => storageBackend.createRequestQueueBackend(resolved),
                 backendCacheKey: storageBackend.getStorageBackendCacheKey?.() ?? storageBackend.constructor.name,
             });
-        queue.#proxyConfiguration = options.proxyConfiguration;
-        queue.#httpClient = options.httpClient;
+        queue.#proxyConfiguration = parsedOptions.proxyConfiguration;
+        queue.#httpClient = parsedOptions.httpClient;
 
         return queue;
     }

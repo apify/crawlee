@@ -17,8 +17,10 @@ const dateString = z.string().refine((value) => !Number.isNaN(Date.parse(value))
     message: 'Invalid input: expected a date string',
 });
 
+const requestUrlSchema = z.object({ url: z.string() });
+
 // new properties on the Request object breaks serialization
-const requestOptionalSchemas: Partial<Record<string, z.ZodType>> = {
+const requestOptionalSchemaShapes: Record<string, z.ZodType> = {
     id: z.string().optional(),
     loadedUrl: z.url().optional(),
     uniqueKey: z.string().optional(),
@@ -42,6 +44,11 @@ const requestOptionalSchemas: Partial<Record<string, z.ZodType>> = {
         .optional(),
     state: z.number().gte(0).lte(6).optional(),
 };
+
+// Each schema is wrapped in a single-key object so validation errors carry the property name.
+const requestOptionalSchemas: Partial<Record<string, z.ZodType>> = Object.fromEntries(
+    Object.entries(requestOptionalSchemaShapes).map(([key, schema]) => [key, z.object({ [key]: schema })]),
+);
 
 export enum RequestState {
     UNPROCESSED,
@@ -147,8 +154,8 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
      * `Request` parameters including the URL, HTTP method and headers, and others.
      */
     constructor(options: RequestOptions<UserData>) {
-        parseArgument(options, 'RequestOptions', schemas.anyObject);
-        parseArgument(options.url, 'RequestOptions.url', z.string());
+        parseArgument(options, schemas.anyObject);
+        parseArgument(options, requestUrlSchema);
         // Full-shape validation is slow, because it checks all predicates
         // even if the validated object has only 1 property.
         // This custom validation loop iterates only over existing
@@ -162,7 +169,7 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
             const schema = requestOptionalSchemas[prop as string];
             const value = options[prop];
             if (schema) {
-                parseArgument(value, `RequestOptions.${prop}`, schema);
+                parseArgument({ [prop]: value }, schema);
             }
         });
 

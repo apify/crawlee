@@ -7,12 +7,13 @@ beforeEach(async () => {
 describe('StorageManager', () => {
     test('failed openStorage call does not block subsequent calls (#3661)', async () => {
         const goodBackend = serviceLocator.getStorageBackend();
-        const failingBackend = {
-            ...goodBackend,
+        // Delegate to the real backend via the prototype chain so the mock still satisfies
+        // the StorageBackend interface validation.
+        const failingBackend = Object.assign(Object.create(goodBackend), {
             createDatasetBackend: () => {
                 throw new Error('boom');
             },
-        };
+        });
 
         await expect(Dataset.open('will-fail', { storageBackend: failingBackend as any })).rejects.toThrow('boom');
 

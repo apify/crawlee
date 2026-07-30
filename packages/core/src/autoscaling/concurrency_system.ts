@@ -5,7 +5,34 @@ import { betterClearInterval, betterSetInterval } from '@apify/utilities';
 
 import type { CrawleeLogger } from '../log.js';
 import { serviceLocator } from '../service_locator.js';
-import { parseArgument, schemas } from '../validators.js';
+import { parseArgument, schemas, validators } from '../validators.js';
+
+const concurrencySchema = z.number().int().gte(1).optional();
+
+// `schemas.anyObject` passes values through by reference, so the load signal instances inside
+// `loadSignals` and class instances like loggers keep their prototype.
+const concurrencySystemOptionsSchema = z.strictObject({
+    maxConcurrency: z.number().int().gte(1).default(200),
+    minConcurrency: z.number().int().gte(1).default(1),
+    desiredConcurrency: z.number().int().gte(1).optional(),
+    desiredConcurrencyRatio: z.number().gt(0).lt(1).default(0.9),
+    scaleUpStepRatio: z.number().gt(0).lt(1).default(0.05),
+    scaleDownStepRatio: z.number().gt(0).lt(1).default(0.05),
+    loggingIntervalSecs: schemas.anyNumber
+        .refine((value) => value > 0, 'Expected a number greater than 0')
+        .nullish()
+        .default(60),
+    autoscaleIntervalSecs: schemas.anyNumber
+        .refine((value) => value > 0, 'Expected a number greater than 0')
+        .default(10),
+    loadSignals: schemas.anyObject.default(() => ({})),
+    snapshotHistorySecs: schemas.anyNumber.refine((value) => value > 0, 'Expected a number greater than 0').optional(),
+    currentHistorySecs: schemas.anyNumber.refine((value) => value > 0, 'Expected a number greater than 0').optional(),
+    log: validators.logger.default(() => serviceLocator.getLogger()),
+    maxTasksPerMinute: z
+        .union([z.number().int().gte(1), z.literal(Number.POSITIVE_INFINITY)])
+        .default(Number.POSITIVE_INFINITY),
+});
 import type { LoadSignal } from './load_signal.js';
 import { Snapshotter } from './snapshotter.js';
 import type { LoadSignalsOptions } from './snapshotter.js';
@@ -217,49 +244,21 @@ export class ConcurrencySystem implements IConcurrencySystem {
     #warnedAboutQueryWhileStopped = false;
 
     constructor(options: ConcurrencySystemOptions = {}) {
-        parseArgument(
-            options,
-            'options',
-            z.strictObject({
-                maxConcurrency: z.number().int().gte(1).optional(),
-                minConcurrency: z.number().int().gte(1).optional(),
-                desiredConcurrency: z.number().int().gte(1).optional(),
-                desiredConcurrencyRatio: z.number().gt(0).lt(1).optional(),
-                scaleUpStepRatio: z.number().gt(0).lt(1).optional(),
-                scaleDownStepRatio: z.number().gt(0).lt(1).optional(),
-                loggingIntervalSecs: schemas.anyNumber
-                    .refine((value) => value > 0, 'Expected a number greater than 0')
-                    .nullish(),
-                autoscaleIntervalSecs: schemas.anyNumber
-                    .refine((value) => value > 0, 'Expected a number greater than 0')
-                    .optional(),
-                loadSignals: z.looseObject({}).optional(),
-                snapshotHistorySecs: schemas.anyNumber
-                    .refine((value) => value > 0, 'Expected a number greater than 0')
-                    .optional(),
-                currentHistorySecs: schemas.anyNumber
-                    .refine((value) => value > 0, 'Expected a number greater than 0')
-                    .optional(),
-                log: z.looseObject({}).optional(),
-                maxTasksPerMinute: z.union([z.number().int().gte(1), z.literal(Number.POSITIVE_INFINITY)]).optional(),
-            }),
-        );
-
         const {
-            maxConcurrency = 200,
-            minConcurrency = 1,
+            maxConcurrency,
+            minConcurrency,
             desiredConcurrency,
-            desiredConcurrencyRatio = 0.9,
-            scaleUpStepRatio = 0.05,
-            scaleDownStepRatio = 0.05,
-            loggingIntervalSecs = 60,
-            autoscaleIntervalSecs = 10,
-            loadSignals = {},
+            desiredConcurrencyRatio,
+            scaleUpStepRatio,
+            scaleDownStepRatio,
+            loggingIntervalSecs,
+            autoscaleIntervalSecs,
+            loadSignals,
             snapshotHistorySecs,
             currentHistorySecs,
-            log = serviceLocator.getLogger(),
-            maxTasksPerMinute = Infinity,
-        } = options;
+            log,
+            maxTasksPerMinute,
+        } = parseArgument(options, concurrencySystemOptionsSchema);
 
         this.log = log.child({ prefix: 'ConcurrencySystem' });
 
@@ -307,7 +306,7 @@ export class ConcurrencySystem implements IConcurrencySystem {
      * If you're not sure, just keep the default value and the concurrency will scale up automatically.
      */
     set minConcurrency(value: number) {
-        parseArgument(value, 'minConcurrency', z.number().int().gte(1).optional());
+        parseArgument(value, concurrencySchema);
         this.#minConcurrency = value;
         this.clampDesiredConcurrency();
     }
@@ -326,7 +325,7 @@ export class ConcurrencySystem implements IConcurrencySystem {
      * limit as they settle).
      */
     set maxConcurrency(value: number) {
-        parseArgument(value, 'maxConcurrency', z.number().int().gte(1).optional());
+        parseArgument(value, concurrencySchema);
         this.#maxConcurrency = value;
         this.clampDesiredConcurrency();
     }
@@ -344,7 +343,7 @@ export class ConcurrencySystem implements IConcurrencySystem {
      * in parallel if there's large enough supply of tasks.
      */
     set desiredConcurrency(value: number) {
-        parseArgument(value, 'desiredConcurrency', z.number().int().gte(1).optional());
+        parseArgument(value, concurrencySchema);
         this.#desiredConcurrency = value;
         this.clampDesiredConcurrency();
     }

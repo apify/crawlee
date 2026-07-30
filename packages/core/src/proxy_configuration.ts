@@ -4,6 +4,14 @@ import { z } from 'zod';
 import type { Request } from './request.js';
 import { parseArgument, schemas } from './validators.js';
 
+const proxyConfigurationOptionsSchema = z.strictObject({
+    proxyUrls: z
+        .array(z.union([z.url(), z.null()]))
+        .nonempty()
+        .optional(),
+    newUrlFunction: schemas.anyFunction.optional(),
+});
+
 export interface ProxyConfigurationFunction {
     (options?: { request?: Request }): string | null | Promise<string | null>;
 }
@@ -113,19 +121,10 @@ export class ProxyConfiguration implements IProxyConfiguration {
             );
         }
 
-        parseArgument(
-            rest,
-            'options',
-            z.strictObject({
-                proxyUrls: z
-                    .array(z.union([z.url(), z.null()]))
-                    .nonempty()
-                    .optional(),
-                newUrlFunction: schemas.anyFunction.optional(),
-            }),
+        const { proxyUrls, newUrlFunction } = parseArgument(
+            rest as ProxyConfigurationOptions,
+            proxyConfigurationOptionsSchema,
         );
-
-        const { proxyUrls, newUrlFunction } = options;
 
         if (proxyUrls && newUrlFunction) this.throwCannotCombineCustomMethods();
         if (!proxyUrls && !newUrlFunction && validateRequired) this.throwNoOptionsProvided();
