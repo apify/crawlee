@@ -26,7 +26,6 @@ import type {
     Source,
     StatisticsOptions,
     StatisticState,
-    StorageIdentifier,
     TypedRequestsLike,
 } from '@crawlee/core';
 import {
@@ -78,6 +77,7 @@ import type {
     ProxyInfo,
     SetStatusMessageOptions,
     StorageBackend,
+    StorageIdentifier,
 } from '@crawlee/types';
 import { isAsyncIterable, isIterable, RobotsTxtFile, ROTATE_PROXY_ERRORS } from '@crawlee/utils';
 import { stringify } from 'csv-stringify/sync';

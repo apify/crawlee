@@ -6,7 +6,6 @@ import {
     type CrawleeLogger,
     type CrawleeLoggerOptions,
     Dataset,
-    type Dictionary,
     EventType,
     KeyValueStore,
     MemoryStorageBackend,
@@ -27,6 +26,7 @@ import {
     RequestList,
     RequestValidationError,
 } from '@crawlee/playwright';
+import type { Dictionary } from '@crawlee/types';
 import { sleep } from 'crawlee';
 import express from 'express';
 import { z } from 'zod';

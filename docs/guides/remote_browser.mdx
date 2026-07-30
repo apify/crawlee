@@ -18,7 +18,7 @@ Use this when you need IPs in specific regions, want to offload CPU/memory from 
 
 ## How it works
 
-Set the crawler's `remoteBrowser` option with the connection details. The crawler builds a <ApiLink to="browser-pool/class/RemoteBrowserPool">`RemoteBrowserPool`</ApiLink> around its own browser plugin, so the connection is always for the matching browser — there's no plugin to construct and no way to mismatch the pool with the crawler. The pool (an <ApiLink to="browser-pool/interface/IBrowserPool">`IBrowserPool`</ApiLink> wrapping the regular <ApiLink to="browser-pool/class/BrowserPool">`BrowserPool`</ApiLink>) owns everything remote: resolving the endpoint, releasing sessions when browsers close, and capping how many remote browsers run at once.
+Set the crawler's `remoteBrowser` option with the connection details. The crawler builds a <ApiLink to="browser-pool/class/RemoteBrowserPool">`RemoteBrowserPool`</ApiLink> around its own browser plugin, so the connection is always for the matching browser — there's no plugin to construct and no way to mismatch the pool with the crawler. The pool (an <ApiLink to="types/interface/IBrowserPool">`IBrowserPool`</ApiLink> wrapping the regular <ApiLink to="browser-pool/class/BrowserPool">`BrowserPool`</ApiLink>) owns everything remote: resolving the endpoint, releasing sessions when browsers close, and capping how many remote browsers run at once.
 
 ## Basic usage
 

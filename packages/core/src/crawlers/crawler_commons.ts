@@ -1,4 +1,11 @@
-import type { Dictionary, HttpRequestOptions, ISession, ProxyInfo, SendRequestOptions } from '@crawlee/types';
+import type {
+    Dictionary,
+    HttpRequestOptions,
+    ISession,
+    ProxyInfo,
+    SendRequestOptions,
+    StorageIdentifier,
+} from '@crawlee/types';
 import type { ReadonlyDeep, SetRequired } from 'type-fest';
 
 import type { Configuration } from '../configuration.js';
@@ -8,7 +15,6 @@ import type { Request, RequestOptions, Source } from '../request.js';
 import type { Dataset } from '../storages/dataset.js';
 import { KeyValueStore, type RecordOptions } from '../storages/key_value_store.js';
 import type { RequestQueueOperationOptions } from '../storages/request_queue.js';
-import type { StorageIdentifier } from '../storages/storage_instance_manager.js';
 
 /** @internal */
 export type IsAny<T> = 0 extends 1 & T ? true : false;
