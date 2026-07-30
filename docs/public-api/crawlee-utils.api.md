@@ -24,9 +24,6 @@ export { CheerioAPI }
 export type CheerioRoot = CheerioAPI;
 
 // @public (undocumented)
-export function chunk<T>(array: readonly T[], chunkSize: number): T[][];
-
-// @public (undocumented)
 export const CLOUDFLARE_RETRY_CSS_SELECTORS: string[];
 
 export { Constructor }
@@ -161,7 +158,7 @@ const PINTEREST_REGEX_GLOBAL: RegExp;
 export const RETRY_CSS_SELECTORS: string[];
 
 // @public
-class RobotsTxtFile {
+export class RobotsTxtFile {
     static find(url: string, options?: {
         signal?: AbortSignal;
         timeoutMillis?: number;
@@ -175,8 +172,6 @@ class RobotsTxtFile {
     parseSitemaps(): Promise<Sitemap>;
     parseUrlsFromSitemaps(): Promise<string[]>;
 }
-export { RobotsTxtFile as RobotsFile }
-export { RobotsTxtFile }
 
 // @public
 export const ROTATE_PROXY_ERRORS: string[];

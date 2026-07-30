@@ -12,6 +12,8 @@ import { BasicCrawler } from '@crawlee/basic';
 import { BasicCrawlerOptions } from '@crawlee/basic';
 import { BooleanPredicate } from 'ow';
 import { CheerioRoot } from '@crawlee/utils';
+import { ConcurrencySystem } from '@crawlee/basic';
+import type { ConcurrencySystemOptions } from '@crawlee/basic';
 import { ContextPipeline } from '@crawlee/basic';
 import type { CrawlingContext } from '@crawlee/basic';
 import type { CrawlingContext as CrawlingContext_2 } from '@crawlee/core';
@@ -92,10 +94,14 @@ export type FileDownloadHook<UserData extends Dictionary = any> = InternalHttpHo
 export type FileDownloadRequestHandler<UserData extends Dictionary = any> = RequestHandler<FileDownloadCrawlingContext<UserData>>;
 
 // @public
+export const HTTP_OPTIMIZED_CONCURRENCY_SYSTEM_OPTIONS: ConcurrencySystemOptions;
+
+// @public
 export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any> = InternalHttpCrawlingContext, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>> extends BasicCrawler<Context, ContextExtension, ExtendedContext, Routes> {
     constructor(options?: HttpCrawlerOptions<Context, ContextExtension, ExtendedContext> & RequireContextPipeline<InternalHttpCrawlingContext, Context>);
     // (undocumented)
     protected buildContextPipeline(): ContextPipeline<CrawlingContext, InternalHttpCrawlingContext>;
+    protected createDefaultConcurrencySystem(options: ConcurrencySystemOptions): ConcurrencySystem;
     // (undocumented)
     protected getNavigationTimeoutMillis(): number;
     // (undocumented)
@@ -123,6 +129,7 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any> =
         maxRequestsPerCrawl: NumberPredicate & BasePredicate<number | undefined>;
         maxCrawlDepth: NumberPredicate & BasePredicate<number | undefined>;
         autoscaledPoolOptions: ObjectPredicate<object> & BasePredicate<object | undefined>;
+        concurrencySystem: ObjectPredicate<object> & BasePredicate<object | undefined>;
         sessionPool: ObjectPredicate<object> & BasePredicate<object | undefined>;
         proxyConfiguration: ObjectPredicate<object> & BasePredicate<object | undefined>;
         statusMessageLoggingInterval: NumberPredicate & BasePredicate<number | undefined>;

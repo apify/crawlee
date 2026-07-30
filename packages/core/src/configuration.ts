@@ -117,7 +117,7 @@ export interface Configuration extends ResolvedConfigValues {}
 
 /**
  * `Configuration` is a value object holding Crawlee configuration. By default, there is a
- * global singleton instance of this class available via `Configuration.getGlobalConfig()`.
+ * global singleton instance of this class available via `Configuration.getGlobalConfiguration()`.
  * Places that depend on a configurable behaviour depend on this class, as they have the global
  * instance as the default value.
  *
@@ -126,7 +126,7 @@ export interface Configuration extends ResolvedConfigValues {}
  * import { BasicCrawler, Configuration } from 'crawlee';
  *
  * // Get the global configuration
- * const config = Configuration.getGlobalConfig();
+ * const config = Configuration.getGlobalConfiguration();
  * // Access configuration values directly as properties
  * console.log(config.headless);
  * console.log(config.persistStateIntervalMillis);
@@ -210,7 +210,7 @@ export class Configuration {
      *
      * Delegates to the global ServiceLocator, making it the single source of truth for service management.
      */
-    static getGlobalConfig(): Configuration {
+    static getGlobalConfiguration(): Configuration {
         return serviceLocator.getConfiguration();
     }
 
