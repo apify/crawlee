@@ -31,19 +31,19 @@ const BROWSER_KILLER_INTERVAL_MILLIS = 10 * 1000;
 
 const browserPoolOptionsSchema = z.strictObject({
     browserPlugins: schemas.anyArray.refine((value) => value.length >= 1, 'Expected a non-empty array'),
-    maxOpenPagesPerBrowser: schemas.anyNumber.optional(),
-    retireBrowserAfterPageCount: schemas.anyNumber.optional(),
-    operationTimeoutSecs: schemas.anyNumber.optional(),
-    closeInactiveBrowserAfterSecs: schemas.anyNumber.optional(),
-    retireInactiveBrowserAfterSecs: schemas.anyNumber.optional(),
-    preLaunchHooks: schemas.anyArray.optional(),
-    postLaunchHooks: schemas.anyArray.optional(),
-    prePageCreateHooks: schemas.anyArray.optional(),
-    postPageCreateHooks: schemas.anyArray.optional(),
-    prePageCloseHooks: schemas.anyArray.optional(),
-    postPageCloseHooks: schemas.anyArray.optional(),
-    useFingerprints: z.boolean().optional(),
-    fingerprintOptions: schemas.anyObject.optional(),
+    maxOpenPagesPerBrowser: schemas.anyNumber.default(20),
+    retireBrowserAfterPageCount: schemas.anyNumber.default(100),
+    operationTimeoutSecs: schemas.anyNumber.default(15),
+    closeInactiveBrowserAfterSecs: schemas.anyNumber.default(300),
+    retireInactiveBrowserAfterSecs: schemas.anyNumber.default(10),
+    preLaunchHooks: schemas.anyArray.default(() => []),
+    postLaunchHooks: schemas.anyArray.default(() => []),
+    prePageCreateHooks: schemas.anyArray.default(() => []),
+    postPageCreateHooks: schemas.anyArray.default(() => []),
+    prePageCloseHooks: schemas.anyArray.default(() => []),
+    postPageCloseHooks: schemas.anyArray.default(() => []),
+    useFingerprints: z.boolean().default(true),
+    fingerprintOptions: schemas.anyObject.default(() => ({})),
 });
 
 export interface BrowserPoolEvents<BC extends BrowserController, Page> {
@@ -367,24 +367,22 @@ export class BrowserPool<
 
         this.browserKillerInterval!.unref();
 
-        parseArgument(options, 'options', browserPoolOptionsSchema);
-
         const {
             browserPlugins,
-            maxOpenPagesPerBrowser = 20,
-            retireBrowserAfterPageCount = 100,
-            operationTimeoutSecs = 15,
-            closeInactiveBrowserAfterSecs = 300,
-            retireInactiveBrowserAfterSecs = 10,
-            preLaunchHooks = [],
-            postLaunchHooks = [],
-            prePageCreateHooks = [],
-            postPageCreateHooks = [],
-            prePageCloseHooks = [],
-            postPageCloseHooks = [],
-            useFingerprints = true,
-            fingerprintOptions = {},
-        } = options;
+            maxOpenPagesPerBrowser,
+            retireBrowserAfterPageCount,
+            operationTimeoutSecs,
+            closeInactiveBrowserAfterSecs,
+            retireInactiveBrowserAfterSecs,
+            preLaunchHooks,
+            postLaunchHooks,
+            prePageCreateHooks,
+            postPageCreateHooks,
+            prePageCloseHooks,
+            postPageCloseHooks,
+            useFingerprints,
+            fingerprintOptions,
+        } = parseArgument(options, browserPoolOptionsSchema);
 
         const firstPluginConstructor = browserPlugins[0].constructor as typeof BrowserPlugin;
 

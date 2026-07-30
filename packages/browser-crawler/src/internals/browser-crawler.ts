@@ -391,18 +391,22 @@ export abstract class BrowserCrawler<
 
         navigationTimeoutSecs: schemas.anyNumber
             .refine((value) => value > 0, 'Expected a number greater than 0')
-            .optional(),
-        preNavigationHooks: schemas.anyArray.optional(),
-        postNavigationHooks: schemas.anyArray.optional(),
+            .default(60),
+        preNavigationHooks: schemas.anyArray.default(() => []),
+        postNavigationHooks: schemas.anyArray.default(() => []),
 
-        launchContext: schemas.anyObject.optional(),
+        launchContext: schemas.anyObject.default(() => ({})),
         headless: z.union([z.boolean(), z.string()]).optional(),
         browserPool: validators.browserPool.optional(),
         remoteBrowser: schemas.anyObject.optional(),
         browserPoolOptions: schemas.anyObject.optional(),
-        saveResponseCookies: z.boolean().optional(),
+        saveResponseCookies: z.boolean().default(true),
         proxyConfiguration: validators.proxyConfiguration.optional(),
+        ignoreIframes: z.boolean().default(false),
+        ignoreShadowRoots: z.boolean().default(false),
     };
+
+    protected static override optionsSchema = z.strictObject(BrowserCrawler.optionsShape);
 
     /**
      * All `BrowserCrawler` parameters are passed via an options object.
@@ -412,23 +416,22 @@ export abstract class BrowserCrawler<
             contextPipelineBuilder: () => ContextPipeline<CrawlingContext, Context>;
         },
     ) {
-        parseArgument(options, 'BrowserCrawlerOptions', z.strictObject(BrowserCrawler.optionsShape));
         const {
-            navigationTimeoutSecs = 60,
-            saveResponseCookies = true,
-            launchContext = {},
+            navigationTimeoutSecs,
+            saveResponseCookies,
+            launchContext,
             browserPool,
             remoteBrowser,
             browserPoolOptions,
-            preNavigationHooks = [],
-            postNavigationHooks = [],
+            preNavigationHooks,
+            postNavigationHooks,
             headless,
-            ignoreIframes = false,
-            ignoreShadowRoots = false,
+            ignoreIframes,
+            ignoreShadowRoots,
             contextPipelineBuilder,
             extendContext,
             ...basicCrawlerOptions
-        } = options;
+        } = parseArgument(options, BrowserCrawler.optionsSchema);
 
         const skipGuard = <Ctx extends Context>(
             action: (ctx: Ctx) => Awaitable<void | Partial<Ctx>>,

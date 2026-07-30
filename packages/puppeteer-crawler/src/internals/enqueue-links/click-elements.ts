@@ -28,6 +28,30 @@ import { addInterceptRequestHandler, removeInterceptRequestHandler } from '../ut
 const STARTING_Z_INDEX = 2147400000;
 const getLog = () => serviceLocator.getChildLog('Puppeteer Click Elements');
 
+const urlPatternSchema = z.union([
+    z.string(),
+    z.instanceof(RegExp),
+    schemas.objectWithKeys(['glob']),
+    schemas.objectWithKeys(['regexp']),
+]) as z.ZodType<UrlPatternInput>;
+
+const enqueueLinksByClickingElementsOptionsSchema = z.strictObject({
+    page: schemas.objectWithKeys(['goto', 'evaluate']),
+    requestManager: schemas.objectWithKeys(['fetchNextRequest', 'addRequestsBatched']),
+    selector: z.string(),
+    userData: schemas.anyObject.optional(),
+    clickOptions: schemas.anyObject.optional(),
+    include: z.array(urlPatternSchema).optional(),
+    exclude: z.array(urlPatternSchema).optional(),
+    transformRequestFunction: schemas.anyFunction.optional(),
+    waitForPageIdleSecs: schemas.anyNumber.default(1),
+    maxWaitForPageIdleSecs: schemas.anyNumber.default(5),
+    label: z.string().optional(),
+    forefront: z.boolean().optional(),
+    skipNavigation: z.boolean().optional(),
+    onSkippedRequest: schemas.anyFunction.optional(),
+});
+
 export interface EnqueueLinksByClickingElementsOptions {
     /**
      * Puppeteer [`Page`](https://pptr.dev/#?product=Puppeteer&show=api-class-page) object.
@@ -198,33 +222,7 @@ export interface EnqueueLinksByClickingElementsOptions {
 export async function enqueueLinksByClickingElements(
     options: EnqueueLinksByClickingElementsOptions,
 ): Promise<BatchAddRequestsResult> {
-    const urlPatternSchema = z.union([
-        z.string(),
-        z.instanceof(RegExp),
-        schemas.objectWithKeys(['glob']),
-        schemas.objectWithKeys(['regexp']),
-    ]);
-
-    parseArgument(
-        options,
-        'EnqueueLinksByClickingElementsOptions',
-        z.strictObject({
-            page: schemas.objectWithKeys(['goto', 'evaluate']),
-            requestManager: schemas.objectWithKeys(['fetchNextRequest', 'addRequestsBatched']),
-            selector: z.string(),
-            userData: schemas.anyObject.optional(),
-            clickOptions: z.looseObject({}).optional(),
-            include: z.array(urlPatternSchema).optional(),
-            exclude: z.array(urlPatternSchema).optional(),
-            transformRequestFunction: schemas.anyFunction.optional(),
-            waitForPageIdleSecs: schemas.anyNumber.optional(),
-            maxWaitForPageIdleSecs: schemas.anyNumber.optional(),
-            label: z.string().optional(),
-            forefront: z.boolean().optional(),
-            skipNavigation: z.boolean().optional(),
-            onSkippedRequest: schemas.anyFunction.optional(),
-        }),
-    );
+    const parsedOptions = parseArgument(options, enqueueLinksByClickingElementsOptionsSchema);
 
     const {
         page,
@@ -234,11 +232,11 @@ export async function enqueueLinksByClickingElements(
         include,
         exclude,
         transformRequestFunction,
-        waitForPageIdleSecs = 1,
-        maxWaitForPageIdleSecs = 5,
+        waitForPageIdleSecs,
+        maxWaitForPageIdleSecs,
         forefront,
         onSkippedRequest,
-    } = options;
+    } = parsedOptions;
 
     const waitForPageIdleMillis = waitForPageIdleSecs * 1000;
     const maxWaitForPageIdleMillis = maxWaitForPageIdleSecs * 1000;
@@ -253,7 +251,7 @@ export async function enqueueLinksByClickingElements(
         maxWaitForPageIdleMillis,
         clickOptions,
     });
-    const requestOptions = createRequestOptions(interceptedRequests, options);
+    const requestOptions = createRequestOptions(interceptedRequests, parsedOptions);
     const skippedByFilters: string[] = [];
     let filteredOptions = filterRequestOptionsByPatterns(
         requestOptions,

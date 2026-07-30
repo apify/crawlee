@@ -411,18 +411,25 @@ export class StagehandCrawler<
         browserPoolOptions: schemas.anyObject.optional(),
     };
 
+    protected static override optionsSchema = z.strictObject(StagehandCrawler.optionsShape);
+
     /**
      * Creates a new instance of StagehandCrawler.
      *
      * @param options - Crawler configuration options
      */
     constructor(options: StagehandCrawlerOptions<ContextExtension, ExtendedContext, Routes> = {}) {
-        parseArgument(options, 'StagehandCrawlerOptions', z.strictObject(StagehandCrawler.optionsShape));
+        const parsedOptions = parseArgument(options, StagehandCrawler.optionsSchema);
 
-        const { stagehandOptions = {}, launchContext = {}, contextPipelineBuilder, ...browserCrawlerOptions } = options;
+        const {
+            stagehandOptions = {},
+            launchContext = {},
+            contextPipelineBuilder,
+            ...browserCrawlerOptions
+        } = parsedOptions;
 
         const browserPoolOptions = {
-            ...options.browserPoolOptions,
+            ...parsedOptions.browserPoolOptions,
         } as BrowserPoolOptions;
 
         // Create launcher with Stagehand plugin

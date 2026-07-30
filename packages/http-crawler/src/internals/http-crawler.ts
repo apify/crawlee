@@ -361,16 +361,18 @@ export class HttpCrawler<
     protected static override optionsShape = {
         ...BasicCrawler.optionsShape,
 
-        navigationTimeoutSecs: schemas.anyNumber.optional(),
-        ignoreTlsErrors: z.boolean().optional(),
-        additionalMimeTypes: z.array(z.string()).optional(),
+        navigationTimeoutSecs: schemas.anyNumber.default(30),
+        ignoreTlsErrors: z.boolean().default(true),
+        additionalMimeTypes: z.array(z.string()).default(() => []),
         suggestResponseEncoding: z.string().optional(),
         forceResponseEncoding: z.string().optional(),
-        saveResponseCookies: z.boolean().optional(),
+        saveResponseCookies: z.boolean().default(true),
 
-        preNavigationHooks: schemas.anyArray.optional(),
-        postNavigationHooks: schemas.anyArray.optional(),
+        preNavigationHooks: schemas.anyArray.default(() => []),
+        postNavigationHooks: schemas.anyArray.default(() => []),
     };
+
+    protected static override optionsSchema = z.strictObject(HttpCrawler.optionsShape);
 
     /**
      * All `HttpCrawlerOptions` parameters are passed via an options object.
@@ -379,22 +381,20 @@ export class HttpCrawler<
         options: HttpCrawlerOptions<Context, ContextExtension, ExtendedContext> &
             RequireContextPipeline<InternalHttpCrawlingContext, Context> = {} as any,
     ) {
-        parseArgument(options, 'HttpCrawlerOptions', z.strictObject(HttpCrawler.optionsShape));
-
         const {
-            navigationTimeoutSecs = 30,
-            ignoreTlsErrors = true,
-            additionalMimeTypes = [],
+            navigationTimeoutSecs,
+            ignoreTlsErrors,
+            additionalMimeTypes,
             suggestResponseEncoding,
             forceResponseEncoding,
-            saveResponseCookies = true,
-            preNavigationHooks = [],
-            postNavigationHooks = [],
+            saveResponseCookies,
+            preNavigationHooks,
+            postNavigationHooks,
 
             // BasicCrawler
             contextPipelineBuilder,
             ...basicCrawlerOptions
-        } = options;
+        } = parseArgument(options, HttpCrawler.optionsSchema);
 
         super({
             ...basicCrawlerOptions,

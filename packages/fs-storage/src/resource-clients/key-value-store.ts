@@ -30,6 +30,8 @@ const BARE_FILE_FALLBACKS: { extension: string; contentType: string }[] = [
 
 const ALLOWED_BARE_FILES = ['INPUT'];
 
+const keySchema = z.string();
+
 const inputRecordShape = z.object({
     key: z.string().min(1),
     value: z.union([
@@ -144,11 +146,7 @@ export class KeyValueStoreBackend extends CachedIdClient implements storage.KeyV
     }
 
     async listKeys(options: storage.KeyValueStoreListKeysOptions = {}): Promise<storage.KeyValueStoreListKeysResult> {
-        const { prefix, exclusiveStartKey, limit } = parseArgument(
-            options,
-            'options',
-            schemas.keyValueStoreListKeysOptions,
-        );
+        const { prefix, exclusiveStartKey, limit } = parseArgument(options, schemas.keyValueStoreListKeysOptions);
 
         // Pass the bare-file fallbacks so out-of-band value files (e.g. a hand-placed `INPUT.json`)
         // are enumerated alongside tracked records, under their actual on-disk name. The native reads
@@ -187,7 +185,7 @@ export class KeyValueStoreBackend extends CachedIdClient implements storage.KeyV
      * @param key The key of the record to generate the public URL for.
      */
     async getPublicUrl(key: string): Promise<string | undefined> {
-        parseArgument(key, 'key', z.string());
+        parseArgument(key, keySchema);
 
         // The native `getPublicUrl` stats the encoded path but does not probe bare-file extensions,
         // so we resolve the on-disk key first (handling e.g. `INPUT` -> `INPUT.json`) and normalize
@@ -206,12 +204,12 @@ export class KeyValueStoreBackend extends CachedIdClient implements storage.KeyV
      * @returns `true` if the record exists, `false` otherwise.
      */
     async recordExists(key: string): Promise<boolean> {
-        parseArgument(key, 'key', z.string());
+        parseArgument(key, keySchema);
         return (await this.resolveExistingKey(key)) !== undefined;
     }
 
     async getValue(key: string): Promise<storage.KeyValueStoreRecord | undefined> {
-        parseArgument(key, 'key', z.string());
+        parseArgument(key, keySchema);
 
         const fallbacks = this.bareFallbacksFor(key);
         const record = fallbacks
@@ -234,7 +232,7 @@ export class KeyValueStoreBackend extends CachedIdClient implements storage.KeyV
         // serialized it: non-bytes become a `string`, everything else is a `Buffer`/typed array or a
         // stream. So we only accept those shapes here — there is no JSON inference or `String(value)`
         // coercion left to do.
-        parseArgument(record, 'record', inputRecordShape);
+        parseArgument(record, inputRecordShape);
 
         const { key, value } = record;
         // The frontend resolves the content type before it reaches the backend; this backend is a plain
@@ -262,7 +260,7 @@ export class KeyValueStoreBackend extends CachedIdClient implements storage.KeyV
     }
 
     async deleteValue(key: string): Promise<void> {
-        parseArgument(key, 'key', z.string());
+        parseArgument(key, keySchema);
         await this.#nativeBackend.deleteValue(key);
     }
 
