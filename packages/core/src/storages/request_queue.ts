@@ -12,8 +12,8 @@ import type {
 } from '@crawlee/types';
 import { isAsyncIterable, isIterable } from '@crawlee/utils/internal';
 import { downloadListOfUrls } from '@crawlee/utils';
-import ow from 'ow';
 import type { ReadonlyDeep } from 'type-fest';
+import { z } from 'zod';
 
 import { LruCache } from '@apify/datastructures';
 import { tryCancel } from '@apify/timeout';
@@ -27,6 +27,7 @@ import type { IProxyConfiguration } from '../proxy_configuration.js';
 import type { InternalSource, RequestOptions, Source } from '../request.js';
 import { Request } from '../request.js';
 import { serviceLocator } from '../service_locator.js';
+import { parseArgument, schemas } from '../validators.js';
 import type { JournalEntry, StorageTransaction } from './transaction.js';
 import { activeStorageTransaction, rejectOperationInTransaction } from './transaction.js';
 import { drainRequestBatches } from './batched_adds.js';
@@ -186,11 +187,12 @@ export class RequestQueue implements IStorage, IRequestManager {
     ): Promise<RequestQueueOperationInfo> {
         const transaction = activeStorageTransaction();
 
-        ow(requestLike, ow.object);
-        ow(
+        parseArgument(requestLike, 'requestLike', schemas.anyObject);
+        parseArgument(
             options,
-            ow.object.exactShape({
-                forefront: ow.optional.boolean,
+            'options',
+            z.strictObject({
+                forefront: z.boolean().optional(),
             }),
         );
 
@@ -203,15 +205,16 @@ export class RequestQueue implements IStorage, IRequestManager {
             return { ...processedRequests[0], forefront };
         }
 
-        ow(
+        parseArgument(
             requestLike,
-            ow.object.partialShape({
-                url: ow.string,
-                id: ow.undefined,
+            'requestLike',
+            z.looseObject({
+                url: z.string(),
+                id: z.undefined().optional(),
             }),
         );
 
-        const request = requestLike instanceof Request ? requestLike : new Request(requestLike);
+        const request = requestLike instanceof Request ? requestLike : new Request(requestLike as RequestOptions);
 
         if (transaction?.policy.requestQueue === 'deferred') {
             return this.addRequestDeferred(transaction, request, forefront);
@@ -445,17 +448,19 @@ export class RequestQueue implements IStorage, IRequestManager {
     ): Promise<BatchAddRequestsResult> {
         const transaction = activeStorageTransaction();
 
-        ow(
+        parseArgument(
             requestsLike,
-            ow.object
-                .is((value: unknown) => isIterable(value) || isAsyncIterable(value))
-                .message((value) => `Expected an iterable or async iterable, got ${getObjectType(value)}`),
+            'requestsLike',
+            z.custom((value) => isIterable(value) || isAsyncIterable(value), {
+                error: (issue) => `Expected an iterable or async iterable, got ${getObjectType(issue.input)}`,
+            }),
         );
-        ow(
+        parseArgument(
             options,
-            ow.object.exactShape({
-                forefront: ow.optional.boolean,
-                cache: ow.optional.boolean,
+            'options',
+            z.strictObject({
+                forefront: z.boolean().optional(),
+                cache: z.boolean().optional(),
             }),
         );
 
@@ -571,21 +576,23 @@ export class RequestQueue implements IStorage, IRequestManager {
         requests: ReadonlyDeep<RequestsLike>,
         options: AddRequestsBatchedOptions = {},
     ): Promise<AddRequestsBatchedResult> {
-        ow(
+        parseArgument(
             requests,
-            ow.object
-                .is((value: unknown) => isIterable(value) || isAsyncIterable(value))
-                .message((value) => `Expected an iterable or async iterable, got ${getObjectType(value)}`),
+            'requests',
+            z.custom((value) => isIterable(value) || isAsyncIterable(value), {
+                error: (issue) => `Expected an iterable or async iterable, got ${getObjectType(issue.input)}`,
+            }),
         );
 
-        ow(
+        parseArgument(
             options,
-            ow.object.exactShape({
-                forefront: ow.optional.boolean,
-                waitForAllRequestsToBeAdded: ow.optional.boolean,
-                batchSize: ow.optional.number,
-                waitBetweenBatchesMillis: ow.optional.number,
-                maxNewRequests: ow.optional.number,
+            'options',
+            z.strictObject({
+                forefront: z.boolean().optional(),
+                waitForAllRequestsToBeAdded: z.boolean().optional(),
+                batchSize: schemas.anyNumber.optional(),
+                waitBetweenBatchesMillis: schemas.anyNumber.optional(),
+                maxNewRequests: schemas.anyNumber.optional(),
             }),
         );
 
@@ -675,7 +682,7 @@ export class RequestQueue implements IStorage, IRequestManager {
     async getRequest<T extends Dictionary = Dictionary>(uniqueKey: string): Promise<Request<T> | null> {
         const transaction = activeStorageTransaction();
 
-        ow(uniqueKey, ow.string);
+        parseArgument(uniqueKey, 'uniqueKey', z.string());
 
         // Requests buffered by the active transaction (under the `deferred` write policy) are visible to it.
         const buffered = transaction && this.bufferedRequests(transaction).get(uniqueKey);
@@ -735,12 +742,13 @@ export class RequestQueue implements IStorage, IRequestManager {
             'it is part of the crawler request-processing bookkeeping, which a transaction must not affect.',
         );
 
-        ow(
+        parseArgument(
             request,
-            ow.object.partialShape({
-                id: ow.string,
-                uniqueKey: ow.string,
-                handledAt: ow.optional.string,
+            'request',
+            z.looseObject({
+                id: z.string(),
+                uniqueKey: z.string(),
+                handledAt: z.string().optional(),
             }),
         );
 
@@ -749,7 +757,7 @@ export class RequestQueue implements IStorage, IRequestManager {
         const handledAt = request.handledAt ?? new Date().toISOString();
         this.#statsTracker.add('writeCount');
         const processedRequest = await this.backend.markRequestAsHandled({
-            ...request,
+            ...(request as Request & { id: string }),
             handledAt,
         });
 
@@ -786,17 +794,19 @@ export class RequestQueue implements IStorage, IRequestManager {
             'it is part of the crawler request-processing bookkeeping, which a transaction must not affect.',
         );
 
-        ow(
+        parseArgument(
             request,
-            ow.object.partialShape({
-                id: ow.string,
-                uniqueKey: ow.string,
+            'request',
+            z.looseObject({
+                id: z.string(),
+                uniqueKey: z.string(),
             }),
         );
-        ow(
+        parseArgument(
             options,
-            ow.object.exactShape({
-                forefront: ow.optional.boolean,
+            'options',
+            z.strictObject({
+                forefront: z.boolean().optional(),
             }),
         );
 
@@ -1082,13 +1092,14 @@ export class RequestQueue implements IStorage, IRequestManager {
     ): Promise<RequestQueue> {
         tryCancel();
 
-        ow(
+        parseArgument(
             options,
-            ow.object.exactShape({
-                configuration: ow.optional.object.instanceOf(Configuration),
-                storageBackend: ow.optional.object,
-                proxyConfiguration: ow.optional.object,
-                httpClient: ow.optional.object,
+            'options',
+            z.strictObject({
+                configuration: z.instanceof(Configuration).optional(),
+                storageBackend: z.looseObject({}).optional(),
+                proxyConfiguration: z.looseObject({}).optional(),
+                httpClient: z.looseObject({}).optional(),
             }),
         );
 

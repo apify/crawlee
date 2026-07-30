@@ -13,13 +13,15 @@ import {
     constructUrlPatternObjects,
     createRequestOptions,
     filterRequestOptionsByPatterns,
+    parseArgument,
     Request,
+    schemas,
     serviceLocator,
 } from '@crawlee/browser';
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
-import ow from 'ow';
 // @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
 import type { ClickOptions, Frame, HTTPRequest as PuppeteerRequest, Page, Target } from 'puppeteer';
+import { z } from 'zod';
 
 import { addInterceptRequestHandler, removeInterceptRequestHandler } from '../utils/puppeteer_request_interception.js';
 
@@ -196,25 +198,31 @@ export interface EnqueueLinksByClickingElementsOptions {
 export async function enqueueLinksByClickingElements(
     options: EnqueueLinksByClickingElementsOptions,
 ): Promise<BatchAddRequestsResult> {
-    const urlPatternValidator = ow.any(ow.string, ow.regExp, ow.object.hasKeys('glob'), ow.object.hasKeys('regexp'));
+    const urlPatternSchema = z.union([
+        z.string(),
+        z.instanceof(RegExp),
+        schemas.objectWithKeys(['glob']),
+        schemas.objectWithKeys(['regexp']),
+    ]);
 
-    ow(
+    parseArgument(
         options,
-        ow.object.exactShape({
-            page: ow.object.hasKeys('goto', 'evaluate'),
-            requestManager: ow.object.hasKeys('fetchNextRequest', 'addRequestsBatched'),
-            selector: ow.string,
-            userData: ow.optional.object,
-            clickOptions: ow.optional.object,
-            include: ow.optional.array.ofType(urlPatternValidator),
-            exclude: ow.optional.array.ofType(urlPatternValidator),
-            transformRequestFunction: ow.optional.function,
-            waitForPageIdleSecs: ow.optional.number,
-            maxWaitForPageIdleSecs: ow.optional.number,
-            label: ow.optional.string,
-            forefront: ow.optional.boolean,
-            skipNavigation: ow.optional.boolean,
-            onSkippedRequest: ow.optional.function,
+        'EnqueueLinksByClickingElementsOptions',
+        z.strictObject({
+            page: schemas.objectWithKeys(['goto', 'evaluate']),
+            requestManager: schemas.objectWithKeys(['fetchNextRequest', 'addRequestsBatched']),
+            selector: z.string(),
+            userData: schemas.anyObject.optional(),
+            clickOptions: z.looseObject({}).optional(),
+            include: z.array(urlPatternSchema).optional(),
+            exclude: z.array(urlPatternSchema).optional(),
+            transformRequestFunction: schemas.anyFunction.optional(),
+            waitForPageIdleSecs: schemas.anyNumber.optional(),
+            maxWaitForPageIdleSecs: schemas.anyNumber.optional(),
+            label: z.string().optional(),
+            forefront: z.boolean().optional(),
+            skipNavigation: z.boolean().optional(),
+            onSkippedRequest: schemas.anyFunction.optional(),
         }),
     );
 

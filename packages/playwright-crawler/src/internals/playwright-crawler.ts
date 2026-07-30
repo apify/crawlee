@@ -9,11 +9,11 @@ import type {
     RouteSchemas,
     RoutesFromSchemas,
 } from '@crawlee/browser';
-import { BrowserCrawler, RequestState, Router, serviceLocator } from '@crawlee/browser';
+import { BrowserCrawler, parseArgument, RequestState, Router, schemas, serviceLocator } from '@crawlee/browser';
 import type { BrowserPoolOptions, PlaywrightPlugin } from '@crawlee/browser-pool';
 import type { Dictionary } from '@crawlee/types';
-import ow from 'ow';
 import type { Download, LaunchOptions, Page, Response } from 'playwright';
+import { z } from 'zod';
 
 import type { EnqueueLinksByClickingElementsOptions } from './enqueue-links/click-elements.js';
 import type { PlaywrightLaunchContext } from './playwright-launcher.js';
@@ -211,17 +211,17 @@ export class PlaywrightCrawler<
 > {
     protected static override optionsShape = {
         ...BrowserCrawler.optionsShape,
-        browserPoolOptions: ow.optional.object,
-        launcher: ow.optional.object,
-        ignoreIframes: ow.optional.boolean,
-        ignoreShadowRoots: ow.optional.boolean,
+        browserPoolOptions: schemas.anyObject.optional(),
+        launcher: schemas.anyObject.optional(),
+        ignoreIframes: z.boolean().optional(),
+        ignoreShadowRoots: z.boolean().optional(),
     };
 
     /**
      * All `PlaywrightCrawler` parameters are passed via an options object.
      */
     constructor(options: PlaywrightCrawlerOptions<ContextExtension, ExtendedContext, Routes> = {}) {
-        ow(options, 'PlaywrightCrawlerOptions', ow.object.exactShape(PlaywrightCrawler.optionsShape));
+        parseArgument(options, 'PlaywrightCrawlerOptions', z.strictObject(PlaywrightCrawler.optionsShape));
 
         const { launchContext = {}, headless, contextPipelineBuilder, ...browserCrawlerOptions } = options;
 

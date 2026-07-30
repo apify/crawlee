@@ -3,6 +3,9 @@ packages:
   - docs
   - website
 
+catalog:
+  zod: ^4.4.3
+
 minimumReleaseAge: 1440
 minimumReleaseAgeExclude:
   - "@apify/*"

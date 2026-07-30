@@ -5,13 +5,14 @@ import type {
     KeyValueStoreInfo,
     KeyValueStoreItemData,
 } from '@crawlee/types';
-import ow, { ArgumentError } from 'ow';
+import { z } from 'zod';
 
 import { KEY_VALUE_STORE_KEY_REGEX } from '@apify/consts';
 import { tryCancel } from '@apify/timeout';
 
 import { Configuration } from '../configuration.js';
 import { serviceLocator } from '../service_locator.js';
+import { parseArgument, schemas } from '../validators.js';
 import type { JournalEntry, KeyValueStoreJournalEntry } from './transaction.js';
 import {
     activeStorageTransaction,
@@ -224,7 +225,7 @@ export class KeyValueStore {
     async getValue<T = unknown>(key: string, defaultValue?: T): Promise<T | null> {
         tryCancel();
 
-        ow(key, ow.string.nonEmpty);
+        parseArgument(key, 'key', z.string().nonempty());
         const record = await this.readRecord(key);
 
         // A missing record falls back to the default; a record that parses to a falsy value (including
@@ -322,7 +323,7 @@ export class KeyValueStore {
     async getRecord(key: string): Promise<KeyValueStoreRawRecord | null> {
         tryCancel();
 
-        ow(key, ow.string.nonEmpty);
+        parseArgument(key, 'key', z.string().nonempty());
         return this.readRecord(key);
     }
 
@@ -335,12 +336,13 @@ export class KeyValueStore {
     async recordExists(key: string): Promise<boolean> {
         tryCancel();
 
-        ow(key, ow.string.nonEmpty);
+        parseArgument(key, 'key', z.string().nonempty());
 
         const entry = this.bufferedJournalEntries()?.get(key);
         if (entry) {
             return entry.value !== null;
         }
+
 
         return this.backend.recordExists(key);
     }
@@ -503,24 +505,26 @@ export class KeyValueStore {
     async setValue<T>(key: string, value: T | null, options: RecordOptions = {}): Promise<void> {
         const transaction = activeStorageTransaction();
 
-        ow(key, 'key', ow.string.nonEmpty);
-        ow(
+        parseArgument(
             key,
-            ow.string.validate((k) => ({
-                validator: ow.isValid(k, ow.string.matches(KEY_VALUE_STORE_KEY_REGEX)),
-                message: `The "key" argument "${key}" must be at most 256 characters long and only contain the following characters: a-zA-Z0-9!-_.'()`,
-            })),
+            'key',
+            z
+                .string()
+                .nonempty()
+                .regex(KEY_VALUE_STORE_KEY_REGEX, {
+                    message: `The "key" argument "${key}" must be at most 256 characters long and only contain the following characters: a-zA-Z0-9!-_.'()`,
+                }),
         );
         if (options.contentType && !(typeof value === 'string' || isBuffer(value) || isStream(value))) {
-            throw new ArgumentError(
+            throw new Error(
                 'The "value" parameter must be a String, Buffer, ArrayBuffer, TypedArray, or Stream when "options.contentType" is specified.',
-                this.setValue,
             );
         }
-        ow(
+        parseArgument(
             options,
-            ow.object.exactShape({
-                contentType: ow.optional.string.nonEmpty,
+            'options',
+            z.strictObject({
+                contentType: z.string().nonempty().optional(),
             }),
         );
 
@@ -650,11 +654,12 @@ export class KeyValueStore {
     async forEachKey(iteratee: KeyConsumer, options: KeyValueStoreIteratorOptions = {}): Promise<void> {
         tryCancel();
 
-        ow(iteratee, ow.function);
-        ow(
+        parseArgument(iteratee, 'iteratee', schemas.anyFunction);
+        parseArgument(
             options,
-            ow.object.exactShape({
-                prefix: ow.optional.string,
+            'options',
+            z.strictObject({
+                prefix: z.string().optional(),
             }),
         );
 
@@ -813,11 +818,12 @@ export class KeyValueStore {
     ): Promise<KeyValueStore> {
         tryCancel();
 
-        ow(
+        parseArgument(
             options,
-            ow.object.exactShape({
-                configuration: ow.optional.object.instanceOf(Configuration),
-                storageBackend: ow.optional.object,
+            'options',
+            z.strictObject({
+                configuration: z.instanceof(Configuration).optional(),
+                storageBackend: z.looseObject({}).optional(),
             }),
         );
 

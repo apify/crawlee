@@ -1,11 +1,12 @@
 import type { Awaitable, DatasetBackend, DatasetInfo, Dictionary, PaginatedList } from '@crawlee/types';
-import ow from 'ow';
+import { z } from 'zod';
 
 import { tryCancel } from '@apify/timeout';
 
 import { Configuration } from '../configuration.js';
 import type { CrawleeLogger } from '../log.js';
 import { serviceLocator } from '../service_locator.js';
+import { parseArgument, schemas } from '../validators.js';
 import type { DatasetJournalEntry, JournalEntry } from './transaction.js';
 import { activeStorageTransaction, rejectOperationInTransaction, snapshotValue } from './transaction.js';
 import { KeyValueStore } from './key_value_store.js';
@@ -231,7 +232,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     async pushData(data: Data | Data[]): Promise<void> {
         const transaction = activeStorageTransaction();
 
-        ow(data, 'data', ow.object);
+        parseArgument(data, 'data', schemas.anyObject);
 
         // Normalize to array and validate each item
         const items = Array.isArray(data) ? data : [data];
@@ -796,11 +797,12 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     ): Promise<Dataset<Data>> {
         tryCancel();
 
-        ow(
+        parseArgument(
             options,
-            ow.object.exactShape({
-                configuration: ow.optional.object.instanceOf(Configuration),
-                storageBackend: ow.optional.object,
+            'options',
+            z.strictObject({
+                configuration: z.instanceof(Configuration).optional(),
+                storageBackend: z.looseObject({}).optional(),
             }),
         );
 

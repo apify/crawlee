@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto';
 
 import type * as storage from '@crawlee/types';
-import { s } from '@sapphire/shapeshift';
+import { parseArgument, schemas } from '@crawlee/utils/internal';
+import { z } from 'zod';
 
 import type { MemoryStorageBackend } from '../memory-storage.js';
 import { isStream, toBuffer } from '../utils.js';
@@ -93,13 +94,11 @@ export class KeyValueStoreBackend extends BaseClient implements storage.KeyValue
     }
 
     async listKeys(options: storage.KeyValueStoreListKeysOptions = {}): Promise<storage.KeyValueStoreListKeysResult> {
-        const { prefix, exclusiveStartKey, limit } = s
-            .object({
-                prefix: s.string().optional(),
-                exclusiveStartKey: s.string().optional(),
-                limit: s.number().int().greaterThan(0).optional(),
-            })
-            .parse(options);
+        const { prefix, exclusiveStartKey, limit } = parseArgument(
+            options,
+            'options',
+            schemas.keyValueStoreListKeysOptions,
+        );
 
         const items: storage.KeyValueStoreItemData[] = [];
 
@@ -150,7 +149,7 @@ export class KeyValueStoreBackend extends BaseClient implements storage.KeyValue
      * @param key The key of the record to generate the public URL for.
      */
     async getPublicUrl(key: string): Promise<string | undefined> {
-        s.string().parse(key);
+        parseArgument(key, 'key', z.string());
 
         return undefined;
     }
@@ -162,13 +161,13 @@ export class KeyValueStoreBackend extends BaseClient implements storage.KeyValue
      * @returns `true` if the record exists, `false` if it does not.
      */
     async recordExists(key: string): Promise<boolean> {
-        s.string().parse(key);
+        parseArgument(key, 'key', z.string());
 
         return this.#keyValueEntries.has(key);
     }
 
     async getValue(key: string): Promise<storage.KeyValueStoreRecord | undefined> {
-        s.string().parse(key);
+        parseArgument(key, 'key', z.string());
 
         const entry = this.#keyValueEntries.get(key);
 
@@ -192,20 +191,24 @@ export class KeyValueStoreBackend extends BaseClient implements storage.KeyValue
     }
 
     async setValue(record: storage.KeyValueStoreInputRecord): Promise<void> {
-        s.object({
-            key: s.string().lengthGreaterThan(0),
-            value: s.union([
-                s.null(),
-                s.string(),
-                s.number(),
-                s.instance(Buffer),
-                s.instance(ArrayBuffer),
-                s.typedArray(),
-                // disabling validation will make shapeshift only check the object given is an actual object, not null, nor array
-                s.object({}).setValidationEnabled(false),
-            ]),
-            contentType: s.string().lengthGreaterThan(0).optional(),
-        }).parse(record);
+        parseArgument(
+            record,
+            'record',
+            z.object({
+                key: z.string().min(1),
+                value: z.union([
+                    z.null(),
+                    z.string(),
+                    z.number(),
+                    z.instanceof(Buffer),
+                    z.instanceof(ArrayBuffer),
+                    schemas.typedArray,
+                    // only checks the value is an actual object, not null, nor array
+                    schemas.plainObject,
+                ]),
+                contentType: z.string().min(1).optional(),
+            }),
+        );
 
         const { key } = record;
         let { value } = record;
@@ -245,7 +248,7 @@ export class KeyValueStoreBackend extends BaseClient implements storage.KeyValue
     }
 
     async deleteValue(key: string): Promise<void> {
-        s.string().parse(key);
+        parseArgument(key, 'key', z.string());
 
         if (this.#keyValueEntries.has(key)) {
             this.#keyValueEntries.delete(key);

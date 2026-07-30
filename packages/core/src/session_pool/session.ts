@@ -1,12 +1,13 @@
 import type { Dictionary, ISession, ProxyInfo, SessionFingerprint, SessionState } from '@crawlee/types';
-import ow from 'ow';
 import { CookieJar } from 'tough-cookie';
+import { z } from 'zod';
 
 import { cryptoRandomObjectId } from '@apify/utilities';
 
 import { getDefaultCookieExpirationDate } from '../cookie_utils.js';
 import type { CrawleeLogger } from '../log.js';
 import { serviceLocator } from '../service_locator.js';
+import { parseArgument, schemas } from '../validators.js';
 
 export interface SessionOptions {
     /** Id of session used for generating fingerprints. It is used as proxy session name. */
@@ -155,24 +156,25 @@ export class Session implements ISession {
      * Session configuration.
      */
     constructor(options: SessionOptions = {}) {
-        ow(
+        parseArgument(
             options,
-            ow.object.exactShape({
-                id: ow.optional.string,
-                cookieJar: ow.optional.object,
-                proxyInfo: ow.optional.object,
-                maxAgeSecs: ow.optional.number,
-                userData: ow.optional.object,
-                maxErrorScore: ow.optional.number,
-                errorScoreDecrement: ow.optional.number,
-                createdAt: ow.optional.date,
-                expiresAt: ow.optional.date,
-                usageCount: ow.optional.number,
-                errorScore: ow.optional.number,
-                maxUsageCount: ow.optional.number,
-                retired: ow.optional.boolean,
-                log: ow.optional.object,
-                fingerprint: ow.optional.object,
+            'options',
+            z.strictObject({
+                id: z.string().optional(),
+                cookieJar: z.looseObject({}).optional(),
+                proxyInfo: z.looseObject({}).optional(),
+                maxAgeSecs: schemas.anyNumber.optional(),
+                userData: z.looseObject({}).optional(),
+                maxErrorScore: schemas.anyNumber.optional(),
+                errorScoreDecrement: schemas.anyNumber.optional(),
+                createdAt: z.date().optional(),
+                expiresAt: z.date().optional(),
+                usageCount: schemas.anyNumber.optional(),
+                errorScore: schemas.anyNumber.optional(),
+                maxUsageCount: schemas.anyNumber.optional(),
+                retired: z.boolean().optional(),
+                log: z.looseObject({}).optional(),
+                fingerprint: z.looseObject({}).optional(),
             }),
         );
 

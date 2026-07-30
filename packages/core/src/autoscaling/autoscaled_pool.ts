@@ -1,4 +1,4 @@
-import ow from 'ow';
+import { z } from 'zod';
 
 import { addTimeoutToPromise } from '@apify/timeout';
 import type { BetterIntervalID } from '@apify/utilities';
@@ -8,6 +8,7 @@ import type { ConcurrencyConsumer, IConcurrencySystem } from './concurrency_syst
 import { CriticalError } from '../errors.js';
 import type { CrawleeLogger } from '../log.js';
 import { serviceLocator } from '../service_locator.js';
+import { parseArgument, schemas } from '../validators.js';
 
 /**
  * The two predicates that steer a task loop: *is there work ready?* and *are we done?* These are the parts of the loop
@@ -151,17 +152,22 @@ export class AutoscaledPool {
     #ownConcurrency = 0;
 
     constructor(options: AutoscaledPoolOptions) {
-        ow(
+        parseArgument(
             options,
-            ow.object.exactShape({
-                runTaskFunction: ow.function,
-                isFinishedFunction: ow.function,
-                isTaskReadyFunction: ow.function,
-                maybeRunIntervalSecs: ow.optional.number.greaterThan(0),
-                taskTimeoutSecs: ow.optional.number.greaterThanOrEqual(0),
-                log: ow.optional.object,
-                concurrencySystem: ow.object,
-                consumer: ow.object.partialShape({ id: ow.string.nonEmpty }),
+            'options',
+            z.strictObject({
+                runTaskFunction: schemas.anyFunction,
+                isFinishedFunction: schemas.anyFunction,
+                isTaskReadyFunction: schemas.anyFunction,
+                maybeRunIntervalSecs: schemas.anyNumber
+                    .refine((value) => value > 0, 'Expected a number greater than 0')
+                    .optional(),
+                taskTimeoutSecs: schemas.anyNumber
+                    .refine((value) => value >= 0, 'Expected a number greater than or equal to 0')
+                    .optional(),
+                log: z.looseObject({}).optional(),
+                concurrencySystem: z.looseObject({}),
+                consumer: z.looseObject({ id: z.string().min(1) }),
             }),
         );
 

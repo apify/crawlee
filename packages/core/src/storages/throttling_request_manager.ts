@@ -1,6 +1,6 @@
 import { URL } from 'node:url';
 import type { Dictionary } from '@crawlee/types';
-import ow from 'ow';
+import { z } from 'zod';
 
 import type { Configuration } from '../configuration.js';
 import { PersistentRateLimitError } from '../errors.js';
@@ -9,6 +9,7 @@ import type { CrawleeLogger } from '../log.js';
 import type { Request, Source } from '../request.js';
 import { serviceLocator } from '../service_locator.js';
 import { normalizeHostname } from '../url.js';
+import { parseArgument, schemas } from '../validators.js';
 import { drainRequestBatches } from './batched_adds.js';
 import type { IRequestManager, RequestsLike } from './request_manager.js';
 import type {
@@ -210,15 +211,22 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         options: ThrottlingRequestManagerOptions<T>,
         private readonly config: Configuration = serviceLocator.getConfiguration(),
     ) {
-        ow(
+        parseArgument(
             options,
-            ow.object.exactShape({
-                inner: ow.object,
-                domains: ow.array.ofType(ow.string.nonEmpty),
-                requestManagerOpener: ow.optional.function,
-                baseDelaySecs: ow.optional.number.positive,
-                maxDelaySecs: ow.optional.number.positive,
-                maxDomainStallSecs: ow.optional.number.positive,
+            'options',
+            z.strictObject({
+                inner: schemas.anyObject,
+                domains: z.array(z.string().nonempty()),
+                requestManagerOpener: schemas.anyFunction.optional(),
+                baseDelaySecs: schemas.anyNumber
+                    .refine((value) => value > 0, 'Expected a number greater than 0')
+                    .optional(),
+                maxDelaySecs: schemas.anyNumber
+                    .refine((value) => value > 0, 'Expected a number greater than 0')
+                    .optional(),
+                maxDomainStallSecs: schemas.anyNumber
+                    .refine((value) => value > 0, 'Expected a number greater than 0')
+                    .optional(),
             }),
         );
 

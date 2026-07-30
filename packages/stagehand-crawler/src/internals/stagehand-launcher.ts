@@ -1,7 +1,7 @@
 import type { BrowserLaunchContext } from '@crawlee/browser';
-import { BrowserLauncher, Configuration } from '@crawlee/browser';
-import ow from 'ow';
+import { BrowserLauncher, Configuration, parseArgument } from '@crawlee/browser';
 import type { BrowserType, LaunchOptions } from 'playwright';
+import { z } from 'zod';
 
 import type { StagehandOptions } from './stagehand-crawler';
 import { StagehandPlugin } from './stagehand-plugin';
@@ -65,9 +65,9 @@ export interface StagehandLaunchContext extends BrowserLaunchContext<LaunchOptio
 export class StagehandLauncher extends BrowserLauncher<StagehandPlugin> {
     protected static override optionsShape = {
         ...BrowserLauncher.optionsShape,
-        launcher: ow.optional.object,
-        launchContextOptions: ow.optional.object,
-        stagehandOptions: ow.optional.object,
+        launcher: z.looseObject({}).optional(),
+        launchContextOptions: z.looseObject({}).optional(),
+        stagehandOptions: z.looseObject({}).optional(),
     };
 
     readonly #stagehandOptions: StagehandOptions;
@@ -79,7 +79,7 @@ export class StagehandLauncher extends BrowserLauncher<StagehandPlugin> {
         launchContext: StagehandLaunchContext = {},
         override readonly configuration = Configuration.getGlobalConfiguration(),
     ) {
-        ow(launchContext, 'StagehandLaunchContext', ow.object.exactShape(StagehandLauncher.optionsShape));
+        parseArgument(launchContext, 'StagehandLaunchContext', z.strictObject(StagehandLauncher.optionsShape));
 
         const {
             launcher = BrowserLauncher.requireLauncherOrThrow<typeof import('playwright')>(

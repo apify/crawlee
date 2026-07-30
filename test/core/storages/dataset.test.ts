@@ -1,4 +1,11 @@
-import { assertJsonSerializable, Dataset, KeyValueStore, MemoryStorageBackend, serviceLocator } from '@crawlee/core';
+import {
+    ArgumentValidationError,
+    assertJsonSerializable,
+    Dataset,
+    KeyValueStore,
+    MemoryStorageBackend,
+    serviceLocator,
+} from '@crawlee/core';
 import type { Dictionary } from '@crawlee/types';
 
 import { MAX_PAYLOAD_SIZE_BYTES } from '@apify/consts';
@@ -334,26 +341,19 @@ describe('dataset', () => {
     describe('pushData', () => {
         test('throws on invalid args', async () => {
             const dataset = await Dataset.open();
+            const dataErrMsg = /Validation of argument 'data' failed:[\s\S]*expected object/;
             // @ts-expect-error JS-side validation
-            await expect(dataset.pushData()).rejects.toThrow(
-                'Expected `data` to be of type `object` but received type `undefined`',
-            );
+            await expect(dataset.pushData()).rejects.toThrow(ArgumentValidationError);
             // @ts-expect-error JS-side validation
-            await expect(dataset.pushData('')).rejects.toThrow(
-                'Expected `data` to be of type `object` but received type `string`',
-            );
+            await expect(dataset.pushData()).rejects.toThrow(dataErrMsg);
             // @ts-expect-error JS-side validation
-            await expect(dataset.pushData(123)).rejects.toThrow(
-                'Expected `data` to be of type `object` but received type `number`',
-            );
+            await expect(dataset.pushData('')).rejects.toThrow(dataErrMsg);
             // @ts-expect-error JS-side validation
-            await expect(dataset.pushData(true)).rejects.toThrow(
-                'Expected `data` to be of type `object` but received type `boolean`',
-            );
+            await expect(dataset.pushData(123)).rejects.toThrow(dataErrMsg);
             // @ts-expect-error JS-side validation
-            await expect(dataset.pushData(false)).rejects.toThrow(
-                'Expected `data` to be of type `object` but received type `boolean`',
-            );
+            await expect(dataset.pushData(true)).rejects.toThrow(dataErrMsg);
+            // @ts-expect-error JS-side validation
+            await expect(dataset.pushData(false)).rejects.toThrow(dataErrMsg);
             await expect(dataset.pushData(() => {})).rejects.toThrow(
                 'Data item at index 0 is not an object. You can push only objects into a dataset.',
             );

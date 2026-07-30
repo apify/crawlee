@@ -3,8 +3,8 @@ import { Transform } from 'node:stream';
 import type { BaseHttpClient } from '@crawlee/types';
 import { parseSitemap, type ParseSitemapOptions } from '@crawlee/utils';
 import { minimatch } from 'minimatch';
-import ow from 'ow';
 import type { RequiredDeep } from 'type-fest';
+import { z } from 'zod';
 
 import type { UrlPatternInput, UrlPatternObject } from '../enqueue_links/shared.js';
 import { constructUrlPatternObjects } from '../enqueue_links/shared.js';
@@ -12,6 +12,7 @@ import { type EventManager, EventType } from '../events/event_manager.js';
 import type { CrawleeLogger } from '../log.js';
 import { Request } from '../request.js';
 import { serviceLocator } from '../service_locator.js';
+import { parseArgument, schemas } from '../validators.js';
 import { KeyValueStore } from './key_value_store.js';
 import type { IRequestLoader } from './request_loader.js';
 import type { IRequestManager } from './request_manager.js';
@@ -191,27 +192,28 @@ export class SitemapRequestLoader implements IRequestLoader {
 
     /** @internal */
     private constructor(options: SitemapRequestLoaderOptions) {
-        const urlPatternValidator = ow.any(
-            ow.string,
-            ow.regExp,
-            ow.object.hasKeys('glob'),
-            ow.object.hasKeys('regexp'),
-        );
+        const urlPatternSchema = z.union([
+            z.string(),
+            z.instanceof(RegExp),
+            schemas.objectWithKeys(['glob']),
+            schemas.objectWithKeys(['regexp']),
+        ]);
 
-        ow(
+        parseArgument(
             options,
-            ow.object.exactShape({
-                sitemapUrls: ow.array.ofType(ow.string),
-                proxyUrl: ow.optional.string,
-                persistStateKey: ow.optional.string,
-                signal: ow.optional.any(),
-                timeoutMillis: ow.optional.number,
-                maxBufferSize: ow.optional.number,
-                parseSitemapOptions: ow.optional.object,
-                include: ow.optional.array.ofType(urlPatternValidator),
-                exclude: ow.optional.array.ofType(urlPatternValidator),
-                persistenceOptions: ow.optional.object,
-                httpClient: ow.optional.object,
+            'options',
+            z.strictObject({
+                sitemapUrls: z.array(z.string()),
+                proxyUrl: z.string().optional(),
+                persistStateKey: z.string().optional(),
+                signal: z.unknown().optional(),
+                timeoutMillis: schemas.anyNumber.optional(),
+                maxBufferSize: schemas.anyNumber.optional(),
+                parseSitemapOptions: z.looseObject({}).optional(),
+                include: z.array(urlPatternSchema).optional(),
+                exclude: z.array(urlPatternSchema).optional(),
+                persistenceOptions: z.looseObject({}).optional(),
+                httpClient: z.looseObject({}).optional(),
             }),
         );
 
