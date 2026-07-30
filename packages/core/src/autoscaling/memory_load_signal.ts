@@ -5,59 +5,85 @@ import type { CrawleeLogger } from '../log.js';
 import { serviceLocator } from '../service_locator.js';
 import { getMemoryInfo } from '../system-info/memory-info.js';
 import { isContainerized } from '../system-info/runtime.js';
-import type { LoadSignal, LoadSnapshot } from './load_signal.js';
+import type { LoadSignal, LoadSignalStartContext, LoadSnapshot } from './load_signal.js';
 import { SnapshotStore } from './load_signal.js';
 import type { SystemInfo } from './system_status.js';
 
 const RESERVE_MEMORY_RATIO = 0.5;
 const CRITICAL_OVERLOAD_RATE_LIMIT_MILLIS = 10_000;
 
+/**
+ * A snapshot produced by the built-in memory signal.
+ * @internal
+ */
 export interface MemorySnapshot extends LoadSnapshot {
     usedBytes?: number;
 }
 
+/**
+ * Tuning for the built-in **memory** load signal, as accepted both by {@apilink MemoryLoadSignal} and by the
+ * {@apilink LoadSignalsOptions.memory|`memory`} shorthand on {@apilink LoadSignalsOptions}.
+ */
 export interface MemoryLoadSignalOptions {
-    maxUsedMemoryRatio?: number;
+    /**
+     * Defines the maximum ratio of total memory that can be used.
+     * Exceeding this limit overloads the memory.
+     * @default 0.9
+     */
+    maxUsedRatio?: number;
+
+    /**
+     * Maximum ratio of overloaded snapshots in a sample before memory counts as overloaded.
+     * @default 0.2
+     */
     overloadedRatio?: number;
-    snapshotHistoryMillis?: number;
-    configuration: Configuration;
-    log?: CrawleeLogger;
 }
 
 /**
- * Tracks memory usage via `SYSTEM_INFO` events and reports overload when
- * the used-to-available memory ratio exceeds a threshold.
+ * Tracks memory usage via `SYSTEM_INFO` events and reports overload when the used-to-available memory ratio exceeds a
+ * threshold. Also warns when memory use becomes critical.
+ *
+ * Built by default; construct one yourself only to wrap or adapt it — see {@apilink LoadSignal}.
+ *
+ * @category Scaling
  */
 export class MemoryLoadSignal implements LoadSignal {
     readonly name = 'memInfo';
     readonly overloadedRatio: number;
 
-    private readonly store: SnapshotStore<MemorySnapshot>;
-    private readonly configuration: Configuration;
-    private readonly events: EventManager;
-    private readonly log: CrawleeLogger;
-    private readonly maxUsedMemoryRatio: number;
-    private maxMemoryRatio: number | undefined;
+    private readonly store = new SnapshotStore<MemorySnapshot>();
+    private readonly maxUsedRatio: number;
+    /** All resolved in `start()`, before anything that reads them can fire. */
+    private config!: Configuration;
+    private log!: CrawleeLogger;
     private maxMemoryBytes!: number;
+    private events?: EventManager;
+    private maxMemoryRatio: number | undefined;
     private lastLoggedCriticalMemoryOverloadAt: Date | null = null;
 
-    constructor(options: MemoryLoadSignalOptions) {
-        this.store = new SnapshotStore(options.snapshotHistoryMillis);
-        this.configuration = options.configuration;
-        this.events = serviceLocator.getEventManager();
-        this.log = options.log ?? serviceLocator.getLogger().child({ prefix: 'MemoryLoadSignal' });
-        this.maxUsedMemoryRatio = options.maxUsedMemoryRatio ?? 0.9;
+    constructor(options: MemoryLoadSignalOptions = {}) {
+        this.maxUsedRatio = options.maxUsedRatio ?? 0.9;
         this.overloadedRatio = options.overloadedRatio ?? 0.2;
-        this._onSystemInfo = this._onSystemInfo.bind(this);
+        this.handle = this.handle.bind(this);
     }
 
-    async start(): Promise<void> {
-        const memoryMbytes = this.configuration.memoryMbytes ?? 0;
+    async start(context: LoadSignalStartContext): Promise<void> {
+        this.store.useSampleWindow(context.maxSampleWindowMillis);
+        // A new session starts from a clean slate, so it is not judged on measurements from before the downtime.
+        this.store.clear();
+
+        // Resolved here rather than in the constructor: an instance built ahead of time (to be wrapped, or shared
+        // between systems) must not capture whichever services happened to be registered at that moment.
+        this.config = serviceLocator.getConfiguration();
+        this.events = serviceLocator.getEventManager();
+        this.log = serviceLocator.getLogger().child({ prefix: 'MemoryLoadSignal' });
+
+        const memoryMbytes = this.config.memoryMbytes ?? 0;
 
         if (memoryMbytes > 0) {
             this.maxMemoryBytes = memoryMbytes * 1024 * 1024;
         } else {
-            this.maxMemoryRatio = this.configuration.availableMemoryRatio;
+            this.maxMemoryRatio = this.config.availableMemoryRatio;
             if (!this.maxMemoryRatio) {
                 throw new Error('availableMemoryRatio is not set in configuration.');
             } else {
@@ -70,37 +96,31 @@ export class MemoryLoadSignal implements LoadSignal {
             this.maxMemoryBytes = await this._getTotalMemoryBytes();
         }
 
-        this.events.on(EventType.SYSTEM_INFO, this._onSystemInfo);
+        this.events.on(EventType.SYSTEM_INFO, this.handle);
     }
 
     async stop(): Promise<void> {
-        this.events.off(EventType.SYSTEM_INFO, this._onSystemInfo);
+        this.events?.off(EventType.SYSTEM_INFO, this.handle);
+        this.events = undefined;
     }
 
-    getSample(sampleDurationMillis?: number): MemorySnapshot[] {
+    getSample(sampleDurationMillis?: number): LoadSnapshot[] {
         return this.store.getSample(sampleDurationMillis);
     }
 
-    /**
-     * Returns typed memory snapshots for backward compatibility with `Snapshotter`.
-     */
-    getMemorySnapshots(): MemorySnapshot[] {
-        return this.store.getAll();
-    }
-
-    /** @internal */
-    _onSystemInfo(systemInfo: SystemInfo): void {
+    /** @internal Records a snapshot from a `SYSTEM_INFO` payload. Exposed for tests. */
+    handle(systemInfo: SystemInfo): void {
         const createdAt = systemInfo.createdAt ? new Date(systemInfo.createdAt) : new Date();
         const { memCurrentBytes, memTotalBytes } = systemInfo;
 
-        let maxMemoryBytes = this.maxMemoryBytes!;
+        let maxMemoryBytes = this.maxMemoryBytes;
         if (this.maxMemoryRatio !== undefined && this.maxMemoryRatio > 0) {
             maxMemoryBytes = this.maxMemoryRatio * (memTotalBytes ?? this.maxMemoryBytes);
         }
 
         const snapshot: MemorySnapshot = {
             createdAt,
-            isOverloaded: memCurrentBytes! / maxMemoryBytes > this.maxUsedMemoryRatio,
+            isOverloaded: memCurrentBytes! / maxMemoryBytes > this.maxUsedRatio,
             usedBytes: memCurrentBytes,
         };
 
@@ -110,7 +130,7 @@ export class MemoryLoadSignal implements LoadSignal {
 
     /** @internal */
     _memoryOverloadWarning(systemInfo: SystemInfo, maxMemoryBytes?: number): void {
-        const effectiveMax = maxMemoryBytes ?? this.maxMemoryBytes!;
+        const effectiveMax = maxMemoryBytes ?? this.maxMemoryBytes;
         const { memCurrentBytes } = systemInfo;
         const createdAt = systemInfo.createdAt ? new Date(systemInfo.createdAt) : new Date();
         if (
@@ -119,8 +139,8 @@ export class MemoryLoadSignal implements LoadSignal {
         )
             return;
 
-        const maxDesiredMemoryBytes = this.maxUsedMemoryRatio * effectiveMax;
-        const reserveMemory = effectiveMax * (1 - this.maxUsedMemoryRatio) * RESERVE_MEMORY_RATIO;
+        const maxDesiredMemoryBytes = this.maxUsedRatio * effectiveMax;
+        const reserveMemory = effectiveMax * (1 - this.maxUsedRatio) * RESERVE_MEMORY_RATIO;
         const criticalOverloadBytes = maxDesiredMemoryBytes + reserveMemory;
         const isCriticalOverload = memCurrentBytes! > criticalOverloadBytes;
 
@@ -138,7 +158,7 @@ export class MemoryLoadSignal implements LoadSignal {
     }
 
     private async _getTotalMemoryBytes(): Promise<number> {
-        const containerized = this.configuration.containerized ?? (await isContainerized());
+        const containerized = this.config.containerized ?? (await isContainerized());
         return (await getMemoryInfo({ containerized, logger: serviceLocator.getLogger() })).totalBytes;
     }
 }

@@ -85,37 +85,28 @@ export class AutoscaledPool {
     abort(): Promise<void>;
     get currentConcurrency(): number;
     get desiredConcurrency(): number;
-    set desiredConcurrency(value: number);
-    get maxConcurrency(): number;
-    set maxConcurrency(value: number);
-    get minConcurrency(): number;
-    set minConcurrency(value: number);
     notify(): Promise<void>;
     pause(timeoutSecs?: number): Promise<void>;
     resume(): void;
     run(): Promise<void>;
+    get system(): IConcurrencySystem;
 }
 
 // @public (undocumented)
-export interface AutoscaledPoolOptions {
-    autoscaleIntervalSecs?: number;
-    desiredConcurrency?: number;
-    desiredConcurrencyRatio?: number;
-    isFinishedFunction?: () => Promise<boolean>;
-    isTaskReadyFunction?: () => Promise<boolean>;
+export interface AutoscaledPoolOptions extends AutoscaledPoolPredicateOptions {
+    concurrencySystem: IConcurrencySystem;
+    consumer: ConcurrencyConsumer;
     // (undocumented)
     log?: CrawleeLogger;
-    loggingIntervalSecs?: number | null;
-    maxConcurrency?: number;
-    maxTasksPerMinute?: number;
     maybeRunIntervalSecs?: number;
-    minConcurrency?: number;
     runTaskFunction?: () => Promise<unknown>;
-    scaleDownStepRatio?: number;
-    scaleUpStepRatio?: number;
-    snapshotterOptions?: SnapshotterOptions;
-    systemStatusOptions?: SystemStatusOptions;
     taskTimeoutSecs?: number;
+}
+
+// @public
+export interface AutoscaledPoolPredicateOptions {
+    isFinishedFunction?: () => Promise<boolean>;
+    isTaskReadyFunction?: () => Promise<boolean>;
 }
 
 export { Awaitable }
@@ -167,24 +158,26 @@ export interface ClientInfo {
     limitRatio: number;
 }
 
-// @public (undocumented)
-export interface ClientLoadSignalOptions {
+// @public
+export class ClientLoadSignal implements LoadSignal {
+    constructor(options?: ClientLoadSignalOptions);
     // (undocumented)
-    client: StorageBackend;
+    getSample(sampleDurationMillis?: number): LoadSnapshot[];
     // (undocumented)
-    clientSnapshotIntervalSecs?: number;
+    readonly name = "clientInfo";
     // (undocumented)
-    maxClientErrors?: number;
+    readonly overloadedRatio: number;
     // (undocumented)
-    overloadedRatio?: number;
+    start(context: LoadSignalStartContext): Promise<void>;
     // (undocumented)
-    snapshotHistoryMillis?: number;
+    stop(): Promise<void>;
 }
 
-// @public (undocumented)
-export interface ClientSnapshot extends LoadSnapshot {
-    // (undocumented)
-    rateLimitErrorCount: number;
+// @public
+export interface ClientLoadSignalOptions {
+    maxErrors?: number;
+    overloadedRatio?: number;
+    snapshotIntervalSecs?: number;
 }
 
 // @public
@@ -192,6 +185,49 @@ export const coerceBoolean: z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodBoo
 
 // @public (undocumented)
 export const coerceNumber: z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodNumber>;
+
+// @public
+export interface ConcurrencyConsumer {
+    readonly id: string;
+}
+
+// @public
+export class ConcurrencySystem implements IConcurrencySystem {
+    constructor(options?: ConcurrencySystemOptions);
+    // (undocumented)
+    get currentConcurrency(): number;
+    get desiredConcurrency(): number;
+    set desiredConcurrency(value: number);
+    getCurrentStatus(): SystemInfo;
+    hasCapacityForTask(_consumer?: ConcurrencyConsumer): boolean;
+    get isRunning(): boolean;
+    get maxConcurrency(): number;
+    set maxConcurrency(value: number);
+    get minConcurrency(): number;
+    set minConcurrency(value: number);
+    registerTaskEnd(_consumer?: ConcurrencyConsumer): void;
+    start(): Promise<void>;
+    stop(): Promise<void>;
+    tryRegisterTaskStart(consumer?: ConcurrencyConsumer): boolean;
+}
+
+// @public (undocumented)
+export interface ConcurrencySystemOptions {
+    autoscaleIntervalSecs?: number;
+    currentHistorySecs?: number;
+    desiredConcurrency?: number;
+    desiredConcurrencyRatio?: number;
+    loadSignals?: LoadSignalsOptions;
+    // (undocumented)
+    log?: CrawleeLogger;
+    loggingIntervalSecs?: number | null;
+    maxConcurrency?: number;
+    maxTasksPerMinute?: number;
+    minConcurrency?: number;
+    scaleDownStepRatio?: number;
+    scaleUpStepRatio?: number;
+    snapshotHistorySecs?: number;
+}
 
 // @public (undocumented)
 export interface ConfigField<T extends z.ZodType = z.ZodType> {
@@ -251,25 +287,24 @@ export class ContextPipelineInterruptedError extends Error {
 
 export { Cookie }
 
-// @public (undocumented)
-export interface CpuLoadSignalOptions {
+// @public
+export class CpuLoadSignal implements LoadSignal {
+    constructor(options?: CpuLoadSignalOptions);
     // (undocumented)
-    configuration: Configuration;
+    getSample(sampleDurationMillis?: number): LoadSnapshot[];
     // (undocumented)
-    overloadedRatio?: number;
+    readonly name = "cpuInfo";
     // (undocumented)
-    snapshotHistoryMillis?: number;
+    readonly overloadedRatio: number;
+    // (undocumented)
+    start(context: LoadSignalStartContext): Promise<void>;
+    // (undocumented)
+    stop(): Promise<void>;
 }
 
-// @public (undocumented)
-export interface CpuSnapshot extends LoadSnapshot {
-    // (undocumented)
-    ticks?: {
-        idle: number;
-        total: number;
-    };
-    // (undocumented)
-    usedRatio: number;
+// @public
+export interface CpuLoadSignalOptions {
+    overloadedRatio?: number;
 }
 
 // @public (undocumented)
@@ -305,27 +340,6 @@ export interface CrawlingContext<UserData extends Dictionary = Dictionary> exten
     registerDeferredCleanup(cleanup: () => Promise<unknown>): void;
     sendRequest: (requestOverrides?: Partial<HttpRequestOptions>, optionsOverrides?: SendRequestOptions) => Promise<Response>;
 }
-
-// @public
-export function createClientLoadSignal(options: ClientLoadSignalOptions): Omit<LoadSignal, "getSample"> & {
-    store: SnapshotStore<ClientSnapshot>;
-    handle: (cb: () => unknown) => void;
-    getSample(sampleDurationMillis?: number): ClientSnapshot[];
-};
-
-// @public
-export function createCpuLoadSignal(options: CpuLoadSignalOptions): Omit<LoadSignal, "getSample"> & {
-    store: SnapshotStore<CpuSnapshot>;
-    handle: (payload: SystemInfo) => void;
-    getSample(sampleDurationMillis?: number): CpuSnapshot[];
-};
-
-// @public
-export function createEventLoopLoadSignal(options?: EventLoopLoadSignalOptions): Omit<LoadSignal, "getSample"> & {
-    store: SnapshotStore<EventLoopSnapshot>;
-    handle: (cb: () => unknown) => void;
-    getSample(sampleDurationMillis?: number): EventLoopSnapshot[];
-};
 
 // @public
 export interface CreateSession {
@@ -572,24 +586,25 @@ export interface ErrorTrackerOptions {
 }
 
 // @public
-export function evaluateLoadSignalSample(sample: LoadSnapshot[], overloadedRatio: number): ClientInfo;
-
-// @public (undocumented)
-export interface EventLoopLoadSignalOptions {
+export class EventLoopLoadSignal implements LoadSignal {
+    constructor(options?: EventLoopLoadSignalOptions);
     // (undocumented)
-    eventLoopSnapshotIntervalSecs?: number;
+    getSample(sampleDurationMillis?: number): LoadSnapshot[];
     // (undocumented)
-    maxBlockedMillis?: number;
+    readonly name = "eventLoopInfo";
     // (undocumented)
-    overloadedRatio?: number;
+    readonly overloadedRatio: number;
     // (undocumented)
-    snapshotHistoryMillis?: number;
+    start(context: LoadSignalStartContext): Promise<void>;
+    // (undocumented)
+    stop(): Promise<void>;
 }
 
-// @public (undocumented)
-export interface EventLoopSnapshot extends LoadSnapshot {
-    // (undocumented)
-    exceededMillis: number;
+// @public
+export interface EventLoopLoadSignalOptions {
+    maxBlockedMillis?: number;
+    overloadedRatio?: number;
+    snapshotIntervalSecs?: number;
 }
 
 // @public (undocumented)
@@ -711,6 +726,16 @@ export type GlobObject = {
 } & Pick<RequestOptions, 'method' | 'payload' | 'label' | 'userData' | 'headers'>;
 
 // @public
+export interface IConcurrencySystem {
+    readonly currentConcurrency: number;
+    readonly desiredConcurrency: number;
+    hasCapacityForTask(consumer: ConcurrencyConsumer): boolean;
+    readonly isRunning: boolean;
+    registerTaskEnd(consumer: ConcurrencyConsumer): void;
+    tryRegisterTaskStart(consumer: ConcurrencyConsumer): boolean;
+}
+
+// @public
 export interface IProxyConfiguration {
     newProxyInfo(options?: NewUrlOptions): Promise<ProxyInfo | undefined>;
 }
@@ -821,8 +846,22 @@ export interface LoadSignal {
     getSample(sampleDurationMillis?: number): LoadSnapshot[];
     readonly name: string;
     readonly overloadedRatio: number;
-    start(): Promise<void>;
+    start(context: LoadSignalStartContext): Promise<void>;
     stop(): Promise<void>;
+}
+
+// @public
+export interface LoadSignalsOptions {
+    client?: ClientLoadSignalOptions | false;
+    cpu?: CpuLoadSignalOptions | false;
+    custom?: LoadSignal[];
+    eventLoop?: EventLoopLoadSignalOptions | false;
+    memory?: MemoryLoadSignalOptions | false;
+}
+
+// @public
+export interface LoadSignalStartContext {
+    maxSampleWindowMillis: number;
 }
 
 // @public
@@ -866,38 +905,23 @@ export const MAX_POOL_SIZE = 1000;
 
 // @public
 export class MemoryLoadSignal implements LoadSignal {
-    constructor(options: MemoryLoadSignalOptions);
-    getMemorySnapshots(): MemorySnapshot[];
+    constructor(options?: MemoryLoadSignalOptions);
     // (undocumented)
-    getSample(sampleDurationMillis?: number): MemorySnapshot[];
+    getSample(sampleDurationMillis?: number): LoadSnapshot[];
     // (undocumented)
     readonly name = "memInfo";
     // (undocumented)
     readonly overloadedRatio: number;
     // (undocumented)
-    start(): Promise<void>;
+    start(context: LoadSignalStartContext): Promise<void>;
     // (undocumented)
     stop(): Promise<void>;
 }
 
-// @public (undocumented)
+// @public
 export interface MemoryLoadSignalOptions {
-    // (undocumented)
-    configuration: Configuration;
-    // (undocumented)
-    log?: CrawleeLogger;
-    // (undocumented)
-    maxUsedMemoryRatio?: number;
-    // (undocumented)
+    maxUsedRatio?: number;
     overloadedRatio?: number;
-    // (undocumented)
-    snapshotHistoryMillis?: number;
-}
-
-// @public (undocumented)
-export interface MemorySnapshot extends LoadSnapshot {
-    // (undocumented)
-    usedBytes?: number;
 }
 
 // @public (undocumented)
@@ -1601,69 +1625,11 @@ export interface SnapshotResult {
 
 // @public
 export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
-    constructor(historyMillis?: number);
-    static fromEvent<T extends LoadSnapshot, E>(options: {
-        name: string;
-        overloadedRatio: number;
-        events: EventManager;
-        event: EventTypeName;
-        snapshotHistoryMillis?: number;
-        handler: (store: SnapshotStore<T>, payload: E) => void;
-    }): Omit<LoadSignal, 'getSample'> & {
-        store: SnapshotStore<T>;
-        handle: (payload: E) => void;
-        getSample(sampleDurationMillis?: number): T[];
-    };
-    static fromInterval<T extends LoadSnapshot>(options: {
-        name: string;
-        overloadedRatio: number;
-        intervalMillis: number;
-        snapshotHistoryMillis?: number;
-        handler: (store: SnapshotStore<T>, intervalCallback: () => unknown) => void;
-    }): Omit<LoadSignal, 'getSample'> & {
-        store: SnapshotStore<T>;
-        handle: (cb: () => unknown) => void;
-        getSample(sampleDurationMillis?: number): T[];
-    };
+    clear(): void;
     getAll(): T[];
     getSample(sampleDurationMillis?: number): T[];
     push(snapshot: T, now?: Date): void;
-}
-
-// @public
-export class Snapshotter {
-    constructor(options?: SnapshotterOptions);
-    // (undocumented)
-    readonly client: StorageBackend;
-    // (undocumented)
-    get clientSnapshots(): ClientSnapshot[];
-    // (undocumented)
-    readonly configuration: Configuration;
-    // (undocumented)
-    get cpuSnapshots(): CpuSnapshot[];
-    // (undocumented)
-    get eventLoopSnapshots(): EventLoopSnapshot[];
-    getClientSample(sampleDurationMillis?: number): ClientSnapshot[];
-    getCpuSample(sampleDurationMillis?: number): CpuSnapshot[];
-    getEventLoopSample(sampleDurationMillis?: number): EventLoopSnapshot[];
-    getLoadSignals(): LoadSignal[];
-    getMemorySample(sampleDurationMillis?: number): MemorySnapshot[];
-    // (undocumented)
-    readonly log: CrawleeLogger;
-    // (undocumented)
-    get memorySnapshots(): MemorySnapshot[];
-    start(): Promise<void>;
-    stop(): Promise<void>;
-}
-
-// @public (undocumented)
-export interface SnapshotterOptions {
-    clientSnapshotIntervalSecs?: number;
-    eventLoopSnapshotIntervalSecs?: number;
-    maxBlockedMillis?: number;
-    maxClientErrors?: number;
-    maxUsedMemoryRatio?: number;
-    snapshotHistorySecs?: number;
+    useSampleWindow(maxSampleWindowMillis: number): void;
 }
 
 // @public (undocumented)
@@ -1805,24 +1771,6 @@ export interface SystemInfo {
     memInfo: ClientInfo;
     // (undocumented)
     memTotalBytes?: number;
-}
-
-// @public
-export class SystemStatus {
-    constructor(options?: SystemStatusOptions);
-    getCurrentStatus(): SystemInfo;
-    getHistoricalStatus(): SystemInfo;
-}
-
-// @public (undocumented)
-export interface SystemStatusOptions {
-    currentHistorySecs?: number;
-    loadSignals?: LoadSignal[];
-    maxClientOverloadedRatio?: number;
-    maxCpuOverloadedRatio?: number;
-    maxEventLoopOverloadedRatio?: number;
-    maxMemoryOverloadedRatio?: number;
-    snapshotter?: Snapshotter;
 }
 
 export { tryAbsoluteURL }

@@ -11,6 +11,7 @@ import {
 import {
     bindMethodsToServiceLocator,
     BLOCKED_STATUS_CODES,
+    type ConcurrencySystem,
     MemoryStorageBackend,
     serviceLocator,
     ServiceLocator,
@@ -107,7 +108,7 @@ describe('BrowserCrawler', () => {
 
         await browserCrawler.run();
 
-        expect(browserCrawler.autoscaledPool!.minConcurrency).toBe(1);
+        expect((browserCrawler.autoscaledPool!.system as ConcurrencySystem).minConcurrency).toBe(1);
         expect(processed).toHaveLength(6);
         expect(failed).toHaveLength(0);
 

@@ -1,9 +1,5 @@
 import { weightedAvg } from '@crawlee/utils';
 
-import type { BetterIntervalID } from '@apify/utilities';
-import { betterClearInterval, betterSetInterval } from '@apify/utilities';
-
-import type { EventManager, EventTypeName } from '../events/event_manager.js';
 import type { ClientInfo } from './system_status.js';
 
 /**
@@ -15,15 +11,35 @@ export interface LoadSnapshot {
 }
 
 /**
- * A signal that reports whether a particular resource is overloaded.
+ * Handed to a {@apilink LoadSignal} when it starts, so it can size its snapshot retention to what it will actually
+ * be asked for — without having to know how the {@apilink ConcurrencySystem} that drives it is configured.
+ */
+export interface LoadSignalStartContext {
+    /**
+     * The longest sample window the signal will be queried with (the wider of the task-gating and autoscaling
+     * windows). Keeping less history than this contributes a narrower view of the resource than the other signals;
+     * keeping more is wasted memory, as the extra snapshots are never sampled.
+     */
+    maxSampleWindowMillis: number;
+}
+
+/**
+ * A signal that reports whether a particular resource is overloaded. The {@apilink ConcurrencySystem} aggregates
+ * several of them — if any one reports overload, the system is overloaded.
  *
- * `SystemStatus` aggregates multiple `LoadSignal` instances to determine
- * overall system health. The built-in signals cover memory, CPU, event loop,
- * and API client rate limits. You can implement this interface to add
- * custom overload signals (e.g. navigation timeouts, proxy health).
+ * The built-in signals cover memory, CPU, event loop and storage-client rate limits. Implement this interface to add
+ * your own (navigation timeouts, proxy health, …) and pass them via
+ * {@apilink LoadSignalsOptions.custom|`loadSignals.custom`}; {@apilink SnapshotStore} does the time-windowed
+ * bookkeeping if you want it. Each built-in is also a public class, so one can be *wrapped* rather than reimplemented
+ * — construct it yourself and switch the default off with {@apilink LoadSignalsOptions.cpu|`cpu: false`} or friends.
  */
 export interface LoadSignal {
-    /** Human-readable name used in logging and `SystemInfo` keys. */
+    /**
+     * This signal's key in the reported {@apilink SystemInfo}, also used in logging — so it must be unique among the
+     * signals of one {@apilink ConcurrencySystem}, which throws on a duplicate. The four built-in names (`memInfo`,
+     * `eventLoopInfo`, `cpuInfo`, `clientInfo`) land in the correspondingly named `SystemInfo` fields rather than the
+     * `loadSignalInfo` bag; taking one over means switching that built-in off.
+     */
     readonly name: string;
 
     /**
@@ -33,10 +49,13 @@ export interface LoadSignal {
      */
     readonly overloadedRatio: number;
 
-    /** Start collecting snapshots. Called when the pool starts. */
-    start(): Promise<void>;
+    /**
+     * Start collecting snapshots, retaining at least the sample window named in the `context`. Called when the
+     * {@apilink ConcurrencySystem} starts — which may be a *restart*, so drop anything measured before it.
+     */
+    start(context: LoadSignalStartContext): Promise<void>;
 
-    /** Stop collecting snapshots. Called when the pool shuts down. */
+    /** Stop collecting snapshots. Called when the {@apilink ConcurrencySystem} shuts down. */
     stop(): Promise<void>;
 
     /**
@@ -47,15 +66,22 @@ export interface LoadSignal {
 }
 
 /**
- * A time-pruning, time-windowed store for `LoadSnapshot` values.
- * Signals compose with this instead of inheriting from a base class.
+ * A time-pruning, time-windowed store for `LoadSnapshot` values. All four built-in signals compose with one of these,
+ * and so can yours — it is the only part of their machinery worth reusing.
  */
 export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
     private snapshots: T[] = [];
-    private readonly historyMillis: number;
 
-    constructor(historyMillis = 30_000) {
-        this.historyMillis = historyMillis;
+    /** Retention window in milliseconds. Unbounded until {@apilink SnapshotStore.useSampleWindow|`useSampleWindow()`}. */
+    private historyMillis = Infinity;
+
+    /**
+     * Sizes retention to the window the signal will be sampled over, as handed to it in
+     * {@apilink LoadSignal.start|`start()`}. Until this is called nothing is pruned at all, so a signal that ignores
+     * its start context grows unboundedly.
+     */
+    useSampleWindow(maxSampleWindowMillis: number): void {
+        this.historyMillis = maxSampleWindowMillis;
     }
 
     /**
@@ -98,85 +124,21 @@ export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
     }
 
     /**
-     * Direct access to the underlying array (for backward-compat getters).
+     * Direct, unwindowed access to the underlying array — used by signals whose handler needs the previous snapshot
+     * to compute a delta (e.g. the event loop and client signals read the last entry to measure change since it).
      */
     getAll(): T[] {
         return this.snapshots;
     }
 
     /**
-     * Create a `LoadSignal` that snapshots on a `betterSetInterval` tick.
-     *
-     * The `handler` receives the store (to read previous snapshots) and the
-     * interval callback (which it **must** call when done). It should call
-     * `store.push()` to record a snapshot.
+     * Discards every retained snapshot. The built-in signals do this when they *start*, so that a session neither
+     * samples nor diffs against measurements from before the preceding downtime — pruning is relative to the newest
+     * snapshot rather than the wall clock, so stale entries would otherwise survive indefinitely. Clearing on start
+     * rather than on stop leaves a finished session readable.
      */
-    static fromInterval<T extends LoadSnapshot>(options: {
-        name: string;
-        overloadedRatio: number;
-        intervalMillis: number;
-        snapshotHistoryMillis?: number;
-        handler: (store: SnapshotStore<T>, intervalCallback: () => unknown) => void;
-    }): Omit<LoadSignal, 'getSample'> & {
-        store: SnapshotStore<T>;
-        handle: (cb: () => unknown) => void;
-        getSample(sampleDurationMillis?: number): T[];
-    } {
-        const store = new SnapshotStore<T>(options.snapshotHistoryMillis);
-        let interval: BetterIntervalID = null!;
-
-        const handle = (cb: () => unknown) => options.handler(store, cb);
-
-        return {
-            name: options.name,
-            overloadedRatio: options.overloadedRatio,
-            store,
-            handle,
-            getSample: (ms) => store.getSample(ms),
-            async start() {
-                interval = betterSetInterval(handle, options.intervalMillis);
-            },
-            async stop() {
-                betterClearInterval(interval);
-            },
-        };
-    }
-
-    /**
-     * Create a `LoadSignal` that snapshots in response to an `EventManager` event.
-     *
-     * The `handler` receives the event payload and the store. It should call
-     * `store.push()` to record a snapshot.
-     */
-    static fromEvent<T extends LoadSnapshot, E>(options: {
-        name: string;
-        overloadedRatio: number;
-        events: EventManager;
-        event: EventTypeName;
-        snapshotHistoryMillis?: number;
-        handler: (store: SnapshotStore<T>, payload: E) => void;
-    }): Omit<LoadSignal, 'getSample'> & {
-        store: SnapshotStore<T>;
-        handle: (payload: E) => void;
-        getSample(sampleDurationMillis?: number): T[];
-    } {
-        const store = new SnapshotStore<T>(options.snapshotHistoryMillis);
-
-        const handle = (payload: E) => options.handler(store, payload);
-
-        return {
-            name: options.name,
-            overloadedRatio: options.overloadedRatio,
-            store,
-            handle,
-            getSample: (ms) => store.getSample(ms),
-            async start() {
-                options.events.on(options.event, handle);
-            },
-            async stop() {
-                options.events.off(options.event, handle);
-            },
-        };
+    clear(): void {
+        this.snapshots = [];
     }
 }
 
@@ -184,6 +146,7 @@ export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
  * Evaluate whether a sample of `LoadSnapshot` values exceeds the given
  * overloaded ratio, using a time-weighted average. This is the shared
  * evaluation logic used by `SystemStatus` for all signal types.
+ * @internal
  */
 export function evaluateLoadSignalSample(sample: LoadSnapshot[], overloadedRatio: number): ClientInfo {
     if (sample.length === 0) {
