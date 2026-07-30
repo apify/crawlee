@@ -137,6 +137,3 @@ export class RobotsTxtFile {
         return (await this.parseSitemaps()).urls;
     }
 }
-
-// to stay backwards compatible
-export { RobotsTxtFile as RobotsFile };
