@@ -95,6 +95,7 @@ export class AutoscaledPool {
 // @public (undocumented)
 export interface AutoscaledPoolOptions extends AutoscaledPoolPredicateOptions {
     concurrencySystem: IConcurrencySystem;
+    consumer: ConcurrencyConsumer;
     // (undocumented)
     log?: CrawleeLogger;
     maybeRunIntervalSecs?: number;
@@ -186,6 +187,11 @@ export const coerceBoolean: z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodBoo
 export const coerceNumber: z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodNumber>;
 
 // @public
+export interface ConcurrencyConsumer {
+    readonly id: string;
+}
+
+// @public
 export class ConcurrencySystem implements IConcurrencySystem {
     constructor(options?: ConcurrencySystemOptions);
     // (undocumented)
@@ -193,17 +199,16 @@ export class ConcurrencySystem implements IConcurrencySystem {
     get desiredConcurrency(): number;
     set desiredConcurrency(value: number);
     getCurrentStatus(): SystemInfo;
-    hasCapacityForTask(): boolean;
+    hasCapacityForTask(_consumer?: ConcurrencyConsumer): boolean;
     get isRunning(): boolean;
     get maxConcurrency(): number;
     set maxConcurrency(value: number);
     get minConcurrency(): number;
     set minConcurrency(value: number);
-    // (undocumented)
-    registerTaskEnd(): void;
+    registerTaskEnd(_consumer?: ConcurrencyConsumer): void;
     start(): Promise<void>;
     stop(): Promise<void>;
-    tryRegisterTaskStart(): boolean;
+    tryRegisterTaskStart(consumer?: ConcurrencyConsumer): boolean;
 }
 
 // @public (undocumented)
@@ -724,10 +729,10 @@ export type GlobObject = {
 export interface IConcurrencySystem {
     readonly currentConcurrency: number;
     readonly desiredConcurrency: number;
-    hasCapacityForTask(): boolean;
+    hasCapacityForTask(consumer: ConcurrencyConsumer): boolean;
     readonly isRunning: boolean;
-    registerTaskEnd(): void;
-    tryRegisterTaskStart(): boolean;
+    registerTaskEnd(consumer: ConcurrencyConsumer): void;
+    tryRegisterTaskStart(consumer: ConcurrencyConsumer): boolean;
 }
 
 // @public

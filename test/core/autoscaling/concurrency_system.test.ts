@@ -1,4 +1,4 @@
-import type { LoadSignal, LoadSignalStartContext } from '@crawlee/core';
+import type { ConcurrencyConsumer, IConcurrencySystem, LoadSignal, LoadSignalStartContext } from '@crawlee/core';
 import { AutoscaledPool, ConcurrencySystem, EventLoopLoadSignal, SnapshotStore } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
 
@@ -497,6 +497,7 @@ describe('ConcurrencySystem', () => {
 
             const pool = new AutoscaledPool({
                 concurrencySystem: system,
+                consumer: { id: 'pool' },
                 runTaskFunction,
                 isFinishedFunction: async () => false,
                 isTaskReadyFunction: async () => true,
@@ -515,6 +516,7 @@ describe('ConcurrencySystem', () => {
             let done = 0;
             const pool = new AutoscaledPool({
                 concurrencySystem: system,
+                consumer: { id: 'pool' },
                 runTaskFunction: async () => {
                     done++;
                 },
@@ -538,6 +540,7 @@ describe('ConcurrencySystem', () => {
                     tryRegisterTaskStart: () => true,
                     registerTaskEnd: () => {},
                 },
+                consumer: { id: 'pool' },
                 runTaskFunction: async () => {
                     done++;
                 },
@@ -557,7 +560,7 @@ describe('ConcurrencySystem', () => {
             let combinedCurrent = 0;
             let combinedPeak = 0;
 
-            const makePool = (taskCount: number) => {
+            const makePool = (id: string, taskCount: number) => {
                 let done = 0;
                 const runTaskFunction = async () => {
                     combinedCurrent++;
@@ -569,6 +572,7 @@ describe('ConcurrencySystem', () => {
 
                 return new AutoscaledPool({
                     concurrencySystem: system,
+                    consumer: { id },
                     runTaskFunction,
                     isFinishedFunction: async () => done >= taskCount,
                     isTaskReadyFunction: async () => done < taskCount,
@@ -577,7 +581,7 @@ describe('ConcurrencySystem', () => {
 
             // The pool no longer owns the system's lifecycle — as the shared owner, the caller starts and stops it.
             await system.start();
-            await Promise.all([makePool(30).run(), makePool(30).run()]);
+            await Promise.all([makePool('first', 30).run(), makePool('second', 30).run()]);
             await system.stop();
 
             // The two pools together must never exceed the single shared budget.
@@ -601,6 +605,7 @@ describe('ConcurrencySystem', () => {
             let hogFinished = false;
             const hog = new AutoscaledPool({
                 concurrencySystem: system,
+                consumer: { id: 'hog' },
                 runTaskFunction: async () => {
                     hogStarted();
                     await hogReleased;
@@ -614,6 +619,7 @@ describe('ConcurrencySystem', () => {
             // shared budget, which this pool is not waiting on for anything.
             const drained = new AutoscaledPool({
                 concurrencySystem: system,
+                consumer: { id: 'drained' },
                 runTaskFunction: async () => {},
                 isFinishedFunction: async () => true,
                 isTaskReadyFunction: async () => false,
@@ -632,19 +638,66 @@ describe('ConcurrencySystem', () => {
             await system.stop();
         });
 
+        test('every capacity query and booking tells the governor which pool it is for', async () => {
+            const calls: { method: string; consumerId: string }[] = [];
+            const record = (method: string, consumer: ConcurrencyConsumer) => {
+                calls.push({ method, consumerId: consumer.id });
+            };
+
+            const governor: IConcurrencySystem = {
+                desiredConcurrency: 2,
+                currentConcurrency: 0,
+                isRunning: true,
+                hasCapacityForTask: (consumer) => {
+                    record('hasCapacityForTask', consumer);
+                    return true;
+                },
+                tryRegisterTaskStart: (consumer) => {
+                    record('tryRegisterTaskStart', consumer);
+                    return true;
+                },
+                registerTaskEnd: (consumer) => record('registerTaskEnd', consumer),
+            };
+
+            const makePool = (consumer: ConcurrencyConsumer) => {
+                let done = 0;
+                return new AutoscaledPool({
+                    concurrencySystem: governor,
+                    consumer,
+                    runTaskFunction: async () => {
+                        done++;
+                    },
+                    isFinishedFunction: async () => done > 0,
+                    isTaskReadyFunction: async () => done === 0,
+                });
+            };
+
+            await makePool({ id: 'crawler-a' }).run();
+            await makePool({ id: 'crawler-b' }).run();
+
+            // The whole point of the identity: a governor can attribute every query and booking to a pool, rather
+            // than just counting them.
+            for (const id of ['crawler-a', 'crawler-b']) {
+                expect(calls).toContainEqual({ method: 'hasCapacityForTask', consumerId: id });
+                expect(calls).toContainEqual({ method: 'tryRegisterTaskStart', consumerId: id });
+                expect(calls).toContainEqual({ method: 'registerTaskEnd', consumerId: id });
+            }
+        });
+
         test('tuning a shared governor is reflected by every borrowing pool', () => {
             const system = new ConcurrencySystem();
 
-            const makeBorrower = () =>
+            const makeBorrower = (id: string) =>
                 new AutoscaledPool({
                     concurrencySystem: system,
+                    consumer: { id },
                     runTaskFunction: async () => {},
                     isFinishedFunction: async () => true,
                     isTaskReadyFunction: async () => false,
                 });
 
-            const first = makeBorrower();
-            const second = makeBorrower();
+            const first = makeBorrower('first');
+            const second = makeBorrower('second');
 
             // Tuning happens on the governor its owner holds; the pools only report it, read-only.
             system.desiredConcurrency = 42;

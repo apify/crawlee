@@ -208,6 +208,27 @@ describe('BasicCrawler', () => {
         expect(stopSpy).toHaveBeenCalledTimes(1);
     });
 
+    test('identifies itself to its concurrency system by its own id', async () => {
+        const system = new ConcurrencySystem({ minConcurrency: 2, maxConcurrency: 2 });
+        const bookings = vitest.spyOn(system, 'tryRegisterTaskStart');
+
+        const makeCrawler = async (id: string) => {
+            const requestList = await RequestList.open(`identified-${id}`, [{ url: `https://example.com/${id}` }]);
+            return new BasicCrawler({ id, requestList, concurrencySystem: system, requestHandler: async () => {} });
+        };
+
+        const [a, b] = await Promise.all([makeCrawler('crawler-a'), makeCrawler('crawler-b')]);
+
+        await system.start();
+        await Promise.all([a.run(), b.run()]);
+        await system.stop();
+
+        // A shared governor is told which crawler each booking is for, under the same id the crawler is known by
+        // elsewhere - so an allocating implementation can keep them from starving each other.
+        const bookedFor = new Set(bookings.mock.calls.map(([consumer]) => consumer?.id));
+        expect(bookedFor).toEqual(new Set(['crawler-a', 'crawler-b']));
+    });
+
     test.each(['minConcurrency', 'maxConcurrency', 'maxRequestsPerMinute'] as const)(
         'throws when %s is combined with a supplied concurrencySystem',
         (shortcut) => {

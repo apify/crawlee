@@ -63,6 +63,8 @@ With that warning aside, this is how we pass those options. One thing to watch: 
 
 Injecting the *same* `ConcurrencySystem` instance into several crawlers makes them share a single concurrency budget, capping their combined parallelism instead of letting each crawler scale independently.
 
+The budget is shared, not divided: slots go to whoever asks first, so a crawler that fills it early keeps refilling it as its own requests finish, and one that starts later may get a much smaller share of it. If a crawler needs a guaranteed slice, give it its own instance — or implement <ApiLink to="core/interface/IConcurrencySystem">`IConcurrencySystem`</ApiLink>, whose allocation methods are told which crawler is asking, and allocate however we see fit.
+
 :::
 
 ### `desiredConcurrency`

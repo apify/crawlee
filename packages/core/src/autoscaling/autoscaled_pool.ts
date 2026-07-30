@@ -4,7 +4,7 @@ import { addTimeoutToPromise } from '@apify/timeout';
 import type { BetterIntervalID } from '@apify/utilities';
 import { betterClearInterval, betterSetInterval } from '@apify/utilities';
 
-import type { IConcurrencySystem } from './concurrency_system.js';
+import type { ConcurrencyConsumer, IConcurrencySystem } from './concurrency_system.js';
 import { CriticalError } from '../errors.js';
 import type { CrawleeLogger } from '../log.js';
 import { serviceLocator } from '../service_locator.js';
@@ -43,6 +43,12 @@ export interface AutoscaledPoolOptions extends AutoscaledPoolPredicateOptions {
      * its cadence.
      */
     concurrencySystem: IConcurrencySystem;
+
+    /**
+     * Who this pool is, presented to the governor on every capacity query and booking so that a shared one can tell
+     * several pools apart. Worth naming meaningfully — a governor that allocates per consumer reports this `id`.
+     */
+    consumer: ConcurrencyConsumer;
 
     /**
      * A function that performs an asynchronous resource-intensive task.
@@ -94,6 +100,7 @@ export interface AutoscaledPoolOptions extends AutoscaledPoolPredicateOptions {
  *
  * const pool = new AutoscaledPool({
  *     concurrencySystem,
+ *     consumer: { id: 'my-pool' },
  *     runTaskFunction: async () => {
  *         // Run some resource-intensive asynchronous operation here.
  *     },
@@ -127,6 +134,7 @@ export class AutoscaledPool {
     private readonly isTaskReadyFunction: () => Promise<boolean>;
 
     private readonly concurrencySystem: IConcurrencySystem;
+    private readonly consumer: ConcurrencyConsumer;
 
     // Internal properties.
     private isStopped = false;
@@ -153,6 +161,7 @@ export class AutoscaledPool {
                 taskTimeoutSecs: ow.optional.number.greaterThanOrEqual(0),
                 log: ow.optional.object,
                 concurrencySystem: ow.object,
+                consumer: ow.object.partialShape({ id: ow.string.nonEmpty }),
             }),
         );
 
@@ -164,6 +173,7 @@ export class AutoscaledPool {
             taskTimeoutSecs = 0,
             log = serviceLocator.getLogger(),
             concurrencySystem,
+            consumer,
         } = options;
 
         this.log = log.child({ prefix: 'AutoscaledPool' });
@@ -176,6 +186,7 @@ export class AutoscaledPool {
         this.isTaskReadyFunction = isTaskReadyFunction;
 
         this.concurrencySystem = concurrencySystem;
+        this.consumer = consumer;
 
         // Internal properties.
         this.isStopped = false;
@@ -350,8 +361,8 @@ export class AutoscaledPool {
             this.log.perf('Task will not run. Waiting for a ready task.');
             return done();
         }
-        // - the budget has room.
-        if (!this.concurrencySystem.hasCapacityForTask()) {
+        // - the budget has room for us.
+        if (!this.concurrencySystem.hasCapacityForTask(this.consumer)) {
             done();
             // A shared governor's budget can stay saturated by another pool indefinitely, so we still have to be able
             // to notice that *this* pool has run out of work — `maybeFinish()` is the only thing that ever resolves
@@ -386,7 +397,7 @@ export class AutoscaledPool {
 
         // - the budget still has room. Re-checked atomically, because another pool sharing the governor may have taken
         // the last free slot while we awaited `isTaskReadyFunction` above.
-        if (!this.concurrencySystem.tryRegisterTaskStart()) {
+        if (!this.concurrencySystem.tryRegisterTaskStart(this.consumer)) {
             return done();
         }
 
@@ -433,7 +444,7 @@ export class AutoscaledPool {
                 this.reject(err);
             }
         } finally {
-            this.concurrencySystem.registerTaskEnd();
+            this.concurrencySystem.registerTaskEnd(this.consumer);
             this.ownConcurrency--;
         }
 

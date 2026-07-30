@@ -102,10 +102,24 @@ export interface ConcurrencySystemOptions {
 }
 
 /**
+ * Identifies *who* is asking a governor for capacity: one {@apilink AutoscaledPool}, or the crawler driving it. The
+ * same object is passed on every call a pool makes, so per-consumer state can be keyed off it or off its `id`.
+ * @category Scaling
+ */
+export interface ConcurrencyConsumer {
+    /** Process-unique and human-readable — a crawler's is its {@apilink BasicCrawlerOptions.id|`id`} option. */
+    readonly id: string;
+}
+
+/**
  * The contract between an {@apilink AutoscaledPool} and its concurrency "governor" — the object that answers *is
  * there free compute for one more task?* and tracks the budget that tasks are booked against.
  * {@apilink ConcurrencySystem} is the canonical implementation; the interface lets alternate governors be substituted
  * without depending on its internals.
+ *
+ * Every allocation method is told which {@apilink ConcurrencyConsumer|consumer} is asking, so an implementation can
+ * allocate per consumer. {@apilink ConcurrencySystem} does not: it serves whoever asks first, which can starve a pool
+ * that joins a saturated system late.
  * @category Scaling
  */
 export interface IConcurrencySystem {
@@ -126,31 +140,31 @@ export interface IConcurrencySystem {
     readonly isRunning: boolean;
 
     /**
-     * May **one more** task start right now? A cheap pre-check the pool consults before querying task readiness.
+     * May **one more** task start right now, on behalf of `consumer`? A cheap pre-check the pool consults before
+     * querying task readiness.
      *
      * Must **not** enforce rate limits that only make sense for ready tasks (e.g. a per-minute task cap): the pool
      * calls this before knowing whether any task is ready, so refusing here would stall an already-empty queue.
      *
-     * Must also return `true` whenever a *particular* pool has nothing in flight of its own. A `false` sends that pool
-     * straight to its finished-check **without** consulting `isTaskReadyFunction`, so a governor that starves an idle
-     * pool can make its `run()` resolve while work is still pending. Since a governor cannot see the per-pool split of
-     * {@apilink IConcurrencySystem.currentConcurrency|`currentConcurrency`}, satisfy this the way
-     * {@apilink ConcurrencySystem} does — never refuse while `currentConcurrency` is `0`, which follows from keeping
-     * `desiredConcurrency >= 1` and from only reporting overload once at least `minConcurrency` tasks are booked.
+     * Must also return `true` whenever `consumer` has nothing in flight of its own. A `false` sends that pool straight
+     * to its finished-check **without** consulting `isTaskReadyFunction`, so a governor that starves an idle pool can
+     * make its `run()` resolve while work is still pending. Tracking bookings per consumer answers that directly;
+     * {@apilink ConcurrencySystem}, which does not, instead never refuses while
+     * {@apilink IConcurrencySystem.currentConcurrency|`currentConcurrency`} is `0`.
      */
-    hasCapacityForTask(): boolean;
+    hasCapacityForTask(consumer: ConcurrencyConsumer): boolean;
 
     /**
-     * Books a task against the budget, returning `false` (without booking) when there is no room — the budget is
-     * spent, or an implementation-specific rate limit was reached.
+     * Books a task against the budget for `consumer`, returning `false` (without booking) when there is no room — the
+     * budget is spent, the consumer is over its share, or an implementation-specific rate limit was reached.
      *
      * Must be an *atomic* (synchronous) check-and-book: several pools may share one governor, and a check separated
      * from the booking by an `await` lets two of them claim the last free slot at once.
      */
-    tryRegisterTaskStart(): boolean;
+    tryRegisterTaskStart(consumer: ConcurrencyConsumer): boolean;
 
-    /** Returns a task's slot to the budget. Called once the task settles (resolve or reject). */
-    registerTaskEnd(): void;
+    /** Returns a task's slot to `consumer`'s budget. Called once the task settles (resolve or reject). */
+    registerTaskEnd(consumer: ConcurrencyConsumer): void;
 }
 
 /**
@@ -431,8 +445,11 @@ export class ConcurrencySystem implements IConcurrencySystem {
     /**
      * May **one more** task start right now? Returns `false` when the shared budget is spent (desired concurrency
      * reached) or when the machine is overloaded past `minConcurrency`.
+     *
+     * One budget for the whole machine, so the asking consumer is ignored — and therefore optional here, unlike in the
+     * interface, letting the answer be queried directly.
      */
-    hasCapacityForTask(): boolean {
+    hasCapacityForTask(_consumer?: ConcurrencyConsumer): boolean {
         this.warnIfNotRunning();
 
         if (this._currentConcurrency >= this._desiredConcurrency) {
@@ -471,8 +488,8 @@ export class ConcurrencySystem implements IConcurrencySystem {
      * The cap is enforced here rather than in the pre-check so that an empty queue never blocks the pool for a whole
      * extra minute.
      */
-    tryRegisterTaskStart(): boolean {
-        if (!this.hasCapacityForTask()) {
+    tryRegisterTaskStart(consumer?: ConcurrencyConsumer): boolean {
+        if (!this.hasCapacityForTask(consumer)) {
             return false;
         }
 
@@ -486,7 +503,8 @@ export class ConcurrencySystem implements IConcurrencySystem {
         return true;
     }
 
-    registerTaskEnd(): void {
+    /** Returns a slot to the shared budget, whoever booked it. */
+    registerTaskEnd(_consumer?: ConcurrencyConsumer): void {
         this._currentConcurrency--;
     }
 

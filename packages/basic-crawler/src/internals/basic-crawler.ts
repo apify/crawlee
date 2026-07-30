@@ -745,9 +745,10 @@ export class BasicCrawler<
     /**
      * The resolved task-loop options for the crawler's own {@apilink AutoscaledPool} — the crawler-owned
      * `runTaskFunction`, the (possibly user-overridden) ready/finished predicates and cadence/logging. Concurrency
-     * configuration lives on the {@apilink ConcurrencySystem} instead.
+     * configuration lives on the {@apilink ConcurrencySystem} instead, and the pool's `consumer` identity is the
+     * crawler's own, so neither is settable here.
      */
-    private autoscaledPoolOptions: Omit<AutoscaledPoolOptions, 'concurrencySystem'>;
+    private autoscaledPoolOptions: Omit<AutoscaledPoolOptions, 'concurrencySystem' | 'consumer'>;
     protected readonly httpClient: BaseHttpClient;
     protected readonly retryOnBlocked: boolean;
     private respectRobotsTxtFile: boolean | { userAgent?: string };
@@ -1937,6 +1938,7 @@ export class BasicCrawler<
         this.autoscaledPool = new AutoscaledPool({
             ...this.autoscaledPoolOptions,
             concurrencySystem: this.concurrencySystemDep.value,
+            consumer: this.identity,
         });
 
         await this.getRequestManager();

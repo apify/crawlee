@@ -1232,9 +1232,9 @@ try {
 
 The `AutoscaledPool` migration below spells it out once more at the pool level; the crawler examples elide it, to keep the actual change in focus.
 
-### `AutoscaledPool` requires a `concurrencySystem` and no longer takes scaling options
+### `AutoscaledPool` requires a `concurrencySystem` and a `consumer`, and no longer takes scaling options
 
-All scaling and load-monitoring options were **removed** from `AutoscaledPoolOptions` and now live on `ConcurrencySystemOptions`: `minConcurrency`, `maxConcurrency`, `desiredConcurrency`, `desiredConcurrencyRatio`, `scaleUpStepRatio`, `scaleDownStepRatio`, `loggingIntervalSecs`, `autoscaleIntervalSecs`, and `maxTasksPerMinute`, plus the load-signal configuration described [below](#load-signal-options-restructured). The `snapshotterOptions` and `systemStatusOptions` bags are both gone. In their place, `AutoscaledPoolOptions` gained a **required** `concurrencySystem`.
+All scaling and load-monitoring options were **removed** from `AutoscaledPoolOptions` and now live on `ConcurrencySystemOptions`: `minConcurrency`, `maxConcurrency`, `desiredConcurrency`, `desiredConcurrencyRatio`, `scaleUpStepRatio`, `scaleDownStepRatio`, `loggingIntervalSecs`, `autoscaleIntervalSecs`, and `maxTasksPerMinute`, plus the load-signal configuration described [below](#load-signal-options-restructured). The `snapshotterOptions` and `systemStatusOptions` bags are both gone. In their place, `AutoscaledPoolOptions` gained a **required** `concurrencySystem`, plus a **required** `consumer` — the pool's identity (`{ id }`), which it presents to the governor on every capacity query and booking so that a shared one can tell several pools' tasks apart. Crawlers pass their own identity, so this only concerns pools you build yourself.
 
 **Before:**
 ```typescript
@@ -1262,6 +1262,7 @@ await concurrencySystem.start();
 
 const pool = new AutoscaledPool({
     concurrencySystem,
+    consumer: { id: 'my-pool' },
     runTaskFunction: async () => { /* ... */ },
     isTaskReadyFunction: async () => true,
     isFinishedFunction: async () => false,

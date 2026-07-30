@@ -1,4 +1,10 @@
-import type { AutoscaledPoolOptions, ConcurrencySystemOptions, LoadSignal, LoadSnapshot } from '@crawlee/core';
+import type {
+    AutoscaledPoolOptions,
+    ConcurrencyConsumer,
+    ConcurrencySystemOptions,
+    LoadSignal,
+    LoadSnapshot,
+} from '@crawlee/core';
 import { AutoscaledPool, ConcurrencySystem, CriticalError } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
 
@@ -14,14 +20,16 @@ import log from '@apify/log';
  * don't leak between tests. Must be called from within a test (or a `beforeEach`).
  */
 async function makePool(
-    poolOptions: Omit<AutoscaledPoolOptions, 'concurrencySystem'>,
+    poolOptions: Omit<AutoscaledPoolOptions, 'concurrencySystem' | 'consumer'> & { consumer?: ConcurrencyConsumer },
     concurrencyOptions: ConcurrencySystemOptions = {},
 ): Promise<AutoscaledPool> {
     const concurrencySystem = new ConcurrencySystem(concurrencyOptions);
     await concurrencySystem.start();
     onTestFinished(async () => concurrencySystem.stop());
 
-    return new AutoscaledPool({ ...poolOptions, concurrencySystem });
+    // The identity only matters to a governor that allocates per consumer, which `ConcurrencySystem` does not - so
+    // tests get a stock one unless they say otherwise.
+    return new AutoscaledPool({ consumer: { id: 'test-pool' }, ...poolOptions, concurrencySystem });
 }
 
 /**
@@ -411,6 +419,7 @@ describe('AutoscaledPool', () => {
 
             const failing = new AutoscaledPool({
                 concurrencySystem: system,
+                consumer: { id: 'failing' },
                 runTaskFunction: async () => {
                     await sleep(1);
                     throw new Error('some-runtask-error');
@@ -427,6 +436,7 @@ describe('AutoscaledPool', () => {
             let current = 0;
             const survivor = new AutoscaledPool({
                 concurrencySystem: system,
+                consumer: { id: 'survivor' },
                 runTaskFunction: async () => {
                     current++;
                     peak = Math.max(peak, current);
