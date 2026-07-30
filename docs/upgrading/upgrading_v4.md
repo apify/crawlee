@@ -431,7 +431,7 @@ As part of this change, the low-level resource- and environment-detection helper
 
 ## `@crawlee/types` symbols are no longer re-exported
 
-Every type owned by `@crawlee/types` now has exactly one import site: `@crawlee/types` itself. The remaining transitive re-exports were dropped, so `Dictionary`, `Awaitable`, `Constructor`, `StorageBackend`, `Cookie`, `QueueOperationInfo`, `AllowedHttpMethods` and `StorageIdentifier` are no longer available from `@crawlee/core` (nor, in turn, from `@crawlee/basic` and the `crawlee` meta-package), and `IBrowserPool` / `NewPageOptions` are no longer available from `@crawlee/browser-pool`. Add `@crawlee/types` to your dependencies and import them from there — most of the package's types (`ISession`, `ProxyInfo`, `RequestSchema`, …) already required this.
+Every type owned by `@crawlee/types` now has exactly one import site: `@crawlee/types` itself. The remaining transitive re-exports were dropped, so `Dictionary`, `Awaitable`, `Constructor`, `StorageBackend`, `Cookie`, `QueueOperationInfo` and `AllowedHttpMethods` are no longer available from `@crawlee/core` (nor, in turn, from `@crawlee/basic` and the `crawlee` meta-package), and `IBrowserPool` / `NewPageOptions` are no longer available from `@crawlee/browser-pool`. Add `@crawlee/types` to your dependencies and import them from there — most of the package's types (`ISession`, `ProxyInfo`, `RequestSchema`, …) already required this.
 
 ## Removed and relocated `@crawlee/utils` exports
 

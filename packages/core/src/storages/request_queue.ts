@@ -9,7 +9,6 @@ import type {
     QueueOperationInfo,
     RequestQueueBackend,
     RequestQueueInfo,
-    StorageIdentifier,
 } from '@crawlee/types';
 import {
     chunkedAsyncIterable,
@@ -37,7 +36,7 @@ import { checkStorageAccess } from './access_checking.js';
 import type { IRequestManager, RequestsLike } from './request_manager.js';
 import type { RequestQueueStats } from './storage_stats.js';
 import { StorageStatsTracker } from './storage_stats.js';
-import type { IStorage } from './storage_instance_manager.js';
+import type { IStorage, StorageIdentifier } from './storage_instance_manager.js';
 import type { StorageOpenOptions } from './utils.js';
 import { resolveStorageIdentifier } from './storage_instance_manager.js';
 import { getRequestId, purgeDefaultStorages } from './utils.js';

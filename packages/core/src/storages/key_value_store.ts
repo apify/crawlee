@@ -4,7 +4,6 @@ import type {
     KeyValueStoreBackend,
     KeyValueStoreInfo,
     KeyValueStoreItemData,
-    StorageIdentifier,
 } from '@crawlee/types';
 import ow, { ArgumentError } from 'ow';
 
@@ -17,6 +16,7 @@ import { parseValue, serializeValue } from './key_value_store_codec.js';
 import type { KeyValueStoreStats } from './storage_stats.js';
 import { StorageStatsTracker } from './storage_stats.js';
 import type { StorageOpenOptions } from './utils.js';
+import type { StorageIdentifier } from './storage_instance_manager.js';
 import { resolveStorageIdentifier } from './storage_instance_manager.js';
 import { createDualIterable, purgeDefaultStorages } from './utils.js';
 import { isBuffer, isStream } from '@crawlee/utils';

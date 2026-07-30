@@ -1,17 +1,11 @@
-import type {
-    Dictionary,
-    HttpRequestOptions,
-    ISession,
-    ProxyInfo,
-    SendRequestOptions,
-    StorageIdentifier,
-} from '@crawlee/types';
+import type { Dictionary, HttpRequestOptions, ISession, ProxyInfo, SendRequestOptions } from '@crawlee/types';
 import type { ReadonlyDeep, SetRequired } from 'type-fest';
 
 import type { Configuration } from '../configuration.js';
 import type { EnqueueLinksOptions } from '../enqueue_links/enqueue_links.js';
 import type { CrawleeLogger } from '../log.js';
 import type { Request, RequestOptions, Source } from '../request.js';
+import type { StorageIdentifier } from '../storages/storage_instance_manager.js';
 import type { Dataset } from '../storages/dataset.js';
 import { KeyValueStore, type RecordOptions } from '../storages/key_value_store.js';
 import type { RequestQueueOperationOptions } from '../storages/request_queue.js';

@@ -6,6 +6,8 @@ import type {
     StorageBackend,
     StorageIdentifier,
 } from '@crawlee/types';
+
+export type { StorageIdentifier } from '@crawlee/types';
 import { AsyncQueue } from '@sapphire/async-queue';
 
 /**

@@ -50,7 +50,7 @@ import type { SetRequired } from 'type-fest';
 import type { StandardSchemaV1 } from '@standard-schema/spec';
 import type * as storage from '@crawlee/types';
 import type { StorageBackend } from '@crawlee/types';
-import type { StorageIdentifier } from '@crawlee/types';
+import { StorageIdentifier } from '@crawlee/types';
 import { tryAbsoluteURL } from '@crawlee/utils';
 import { z } from 'zod';
 
@@ -1759,6 +1759,8 @@ export interface StatisticState {
     // (undocumented)
     statsPersistedAt: Date | string | null;
 }
+
+export { StorageIdentifier }
 
 // @public
 export interface StorageOpenOptions {
