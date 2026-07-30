@@ -1,6 +1,6 @@
 import { Transform } from 'node:stream';
 
-import type { BaseHttpClient } from '@crawlee/types';
+import type { BaseHttpClient } from '@crawlee/http-client';
 import { parseSitemap, type ParseSitemapOptions } from '@crawlee/utils';
 import { minimatch } from 'minimatch';
 import type { RequiredDeep } from 'type-fest';

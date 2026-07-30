@@ -5,7 +5,6 @@
 ```ts
 
 import { BaseHttpClient } from '@crawlee/http-client';
-import type { BaseHttpClient as BaseHttpClient_2 } from '@crawlee/types';
 import { Cheerio } from 'cheerio';
 import { CheerioAPI } from 'cheerio';
 import type { CrawleeLogger } from '@crawlee/types';
@@ -43,7 +42,7 @@ export function discoverValidSitemaps(urls: string[], options?: {
     timeoutMillis?: number;
     signal?: AbortSignal;
     requestTimeoutMillis?: number;
-    httpClient?: BaseHttpClient_2;
+    httpClient?: BaseHttpClient;
     logger?: CrawleeLogger;
 }): AsyncIterable<string>;
 
@@ -53,7 +52,7 @@ export function downloadListOfUrls(options: DownloadListOfUrlsOptions): Promise<
 // @public (undocumented)
 export interface DownloadListOfUrlsOptions {
     encoding?: BufferEncoding;
-    httpClient?: BaseHttpClient_2;
+    httpClient?: BaseHttpClient;
     proxyUrl?: string;
     url: string;
     urlRegExp?: RegExp;
@@ -134,7 +133,7 @@ export function parseSitemap<T extends ParseSitemapOptions>(initialSources: Site
 // @public (undocumented)
 export interface ParseSitemapOptions {
     emitNestedSitemaps?: true | false;
-    httpClient?: BaseHttpClient_2;
+    httpClient?: BaseHttpClient;
     logger?: CrawleeLogger;
     maxDepth?: number;
     nestedSitemapFilter?: (sitemapUrl: string) => boolean;
@@ -164,7 +163,7 @@ export class RobotsTxtFile {
         signal?: AbortSignal;
         timeoutMillis?: number;
         proxyUrl?: string;
-        httpClient?: BaseHttpClient_2;
+        httpClient?: BaseHttpClient;
         logger?: CrawleeLogger;
     }): Promise<RobotsTxtFile>;
     static from(url: string, content: string, proxyUrl?: string): RobotsTxtFile;

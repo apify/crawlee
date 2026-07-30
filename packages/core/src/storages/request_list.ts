@@ -1,4 +1,5 @@
-import type { BaseHttpClient, Dictionary } from '@crawlee/types';
+import type { BaseHttpClient } from '@crawlee/http-client';
+import type { Dictionary } from '@crawlee/types';
 import { downloadListOfUrls } from '@crawlee/utils';
 import { z } from 'zod';
 

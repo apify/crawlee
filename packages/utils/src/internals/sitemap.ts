@@ -5,7 +5,8 @@ import { StringDecoder } from 'node:string_decoder';
 import { createGunzip } from 'node:zlib';
 
 import { FetchHttpClient } from '@crawlee/http-client';
-import type { BaseHttpClient, CrawleeLogger } from '@crawlee/types';
+import type { BaseHttpClient } from '@crawlee/http-client';
+import type { CrawleeLogger } from '@crawlee/types';
 import { fileTypeStream } from 'file-type';
 import sax from 'sax';
 import MIMEType from 'whatwg-mimetype';

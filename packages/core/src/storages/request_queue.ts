@@ -1,7 +1,7 @@
 import { inspect } from 'node:util';
 
+import type { BaseHttpClient } from '@crawlee/http-client';
 import type {
-    BaseHttpClient,
     BatchAddRequestsResult,
     Constructor,
     Dictionary,

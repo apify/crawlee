@@ -1,5 +1,6 @@
 import { FetchHttpClient } from '@crawlee/http-client';
-import type { BaseHttpClient, CrawleeLogger } from '@crawlee/types';
+import type { BaseHttpClient } from '@crawlee/http-client';
+import type { CrawleeLogger } from '@crawlee/types';
 import type { Robot } from 'robots-parser';
 import robotsParser from 'robots-parser';
 
