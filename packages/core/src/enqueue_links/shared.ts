@@ -11,9 +11,8 @@ export { tryAbsoluteURL } from '@crawlee/utils';
 const MAX_ENQUEUE_LINKS_CACHE_SIZE = 1000;
 
 /**
- * To enable direct use of the Actor UI `include`/`exclude` output while keeping high performance,
- * all the regexps from the output are only constructed once and kept in a cache
- * by the `enqueueLinks()` function.
+ * To keep high performance when the same patterns are passed on every `enqueueLinks()` call,
+ * each glob/regexp is only compiled once and then kept in a cache.
  * @ignore
  */
 const enqueueLinksPatternCache = new Map();
