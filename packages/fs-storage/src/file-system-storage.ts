@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 
 import type * as storage from '@crawlee/types';
 import type { CrawleeLogger } from '@crawlee/types';
-import { parseArgument, schemas } from '@crawlee/utils';
+import { parseArgument, schemas } from '@crawlee/utils/internal';
 import { z } from 'zod';
 
 import {

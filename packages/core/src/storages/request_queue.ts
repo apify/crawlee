@@ -58,7 +58,7 @@ const addRequestsOptionsSchema = z.strictObject({
 });
 const addRequestsBatchedOptionsSchema = z.strictObject({
     forefront: z.boolean().optional(),
-    waitForAllRequestsToBeAdded: z.boolean().optional(),
+    waitForAllRequestsToBeAdded: z.boolean().default(false),
     batchSize: schemas.anyNumber.default(1000),
     waitBetweenBatchesMillis: schemas.anyNumber.default(1000),
     maxNewRequests: schemas.anyNumber.optional(),
@@ -784,7 +784,9 @@ export class RequestQueue implements IStorage, IRequestManager {
         const { forefront } = parseArgument(options, operationOptionsSchema);
 
         this.#statsTracker.add('writeCount');
-        const processedRequest = await this.backend.reclaimRequest(request, { forefront });
+        const processedRequest = await this.backend.reclaimRequest(request as Request & { id: string }, {
+            forefront,
+        });
 
         // The request was not in progress — nothing to reclaim.
         if (!processedRequest) {

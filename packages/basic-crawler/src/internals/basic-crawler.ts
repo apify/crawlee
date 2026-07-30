@@ -110,10 +110,11 @@ import {
 } from './request-timeout.js';
 import { createSendRequest } from './send-request.js';
 
-class LazyDefaultHttpClient implements BaseHttpClient {
+class LazyDefaultHttpClient extends BaseHttpClient {
     readonly #delegatePromise: Promise<BaseHttpClient>;
 
     constructor(options?: { logger?: CrawleeLogger }) {
+        super(options);
         this.#delegatePromise = import('@crawlee/impit-client')
             .then(({ ImpitHttpClient }) => new ImpitHttpClient(options))
             .catch(() => {
@@ -125,7 +126,11 @@ class LazyDefaultHttpClient implements BaseHttpClient {
             });
     }
 
-    async sendRequest(...args: Parameters<BaseHttpClient['sendRequest']>): Promise<Response> {
+    protected fetch(): Promise<Response> {
+        throw new Error('LazyDefaultHttpClient delegates `sendRequest` entirely; `fetch` is never called.');
+    }
+
+    override async sendRequest(...args: Parameters<BaseHttpClient['sendRequest']>): Promise<Response> {
         return (await this.#delegatePromise).sendRequest(...args);
     }
 }

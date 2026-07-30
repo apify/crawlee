@@ -22,6 +22,17 @@ import { RequestQueue } from './request_queue.js';
 import type { StorageIdentifier } from './storage_instance_manager.js';
 import type { StorageOpenOptions } from './utils.js';
 
+const throttlingRequestManagerOptionsSchema = z.strictObject({
+    inner: schemas.anyObject,
+    domains: z.array(z.string().nonempty()),
+    requestManagerOpener: schemas.anyFunction.optional(),
+    baseDelaySecs: schemas.anyNumber.refine((value) => value > 0, 'Expected a number greater than 0').optional(),
+    maxDelaySecs: schemas.anyNumber.refine((value) => value > 0, 'Expected a number greater than 0').optional(),
+    maxDomainStallSecs: schemas.anyNumber
+        .refine((value) => value > 0, 'Expected a number greater than 0')
+        .optional(),
+});
+
 /**
  * Opens a request manager, matching the shape of storage `open` methods such as
  * {@apilink RequestQueue.open|`RequestQueue.open`}.
@@ -211,24 +222,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         options: ThrottlingRequestManagerOptions<T>,
         private readonly config: Configuration = serviceLocator.getConfiguration(),
     ) {
-        parseArgument(
-            options,
-            'options',
-            z.strictObject({
-                inner: schemas.anyObject,
-                domains: z.array(z.string().nonempty()),
-                requestManagerOpener: schemas.anyFunction.optional(),
-                baseDelaySecs: schemas.anyNumber
-                    .refine((value) => value > 0, 'Expected a number greater than 0')
-                    .optional(),
-                maxDelaySecs: schemas.anyNumber
-                    .refine((value) => value > 0, 'Expected a number greater than 0')
-                    .optional(),
-                maxDomainStallSecs: schemas.anyNumber
-                    .refine((value) => value > 0, 'Expected a number greater than 0')
-                    .optional(),
-            }),
-        );
+        parseArgument(options, throttlingRequestManagerOptionsSchema);
 
         this.inner = options.inner;
         this.requestManagerOpener =

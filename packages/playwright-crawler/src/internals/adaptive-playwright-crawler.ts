@@ -360,7 +360,7 @@ export class AdaptivePlaywrightCrawler<
         } = options;
 
         // The user's value is replaced by `false` in the `super` call below — validate it separately.
-        parseArgument(transactionalStorage, 'transactionalStorage', BasicCrawler.optionsShape.transactionalStorage);
+        parseArgument(transactionalStorage, BasicCrawler.optionsShape.transactionalStorage);
 
         // Per-attempt buffering is load-bearing here: the handler runs up to twice per request and the
         // losing attempt's writes must be discardable.
