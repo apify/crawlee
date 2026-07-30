@@ -857,10 +857,11 @@ export class HttpCrawler<
         // hooks keeps working) but a per-request clone is passed in so writes are discarded.
         const cookieJar = this.saveResponseCookies ? session.cookieJar : await session.cookieJar.clone();
 
-        // Bind the request to the shared navigation window instead of a fixed per-request timeout: the
-        // `@apify/timeout` frame around the navigation aborts this signal when the window runs out, and
-        // `extendTimeout()` (even from a post-navigation hook, before the body is read) pushes that deadline
-        // back. A fixed `AbortSignal.timeout` would fire on its own and kill the lazily-read response body.
+        // Bind the request to the shared navigation window instead of a fixed per-request timeout, so
+        // `extendTimeout()` can push the deadline and a fixed `AbortSignal.timeout` won't fire on its own and
+        // kill a lazily-read body mid-extension. This aborts the socket only during the header phase; the body
+        // read is bounded separately at the promise level (see `processHttpResponse`), so a slow-streaming body
+        // still fails cleanly with a navigation timeout, though the socket is left to close on its own.
         const cancelSignal = storage.getStore()?.cancelTask.signal;
 
         const response = await this.httpClient.sendRequest(

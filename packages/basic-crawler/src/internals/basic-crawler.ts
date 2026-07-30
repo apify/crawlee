@@ -998,11 +998,7 @@ export class BasicCrawler<
                     try {
                         // Navigation, the navigation hooks and the request handler are timed individually, but the
                         // phases between them are not, so a request could still get stuck indefinitely. This is the
-                        // backstop for that - it is not any single phase's timeout, and it does not blame one.
-                        //
-                        // Deliberately a bare timer rather than `addTimeoutToPromise`: that shares one `AbortController`
-                        // with everything nested inside it, so the request handler timing out would abort this context
-                        // too, and the error handling that follows it would be cancelled before it could run.
+                        // backstop for that - see `raceWithBackstop` for why it is a bare timer, not a timeout frame.
                         await this.withRequestBackstop(
                             crawlingContext,
                             this.basicContextPipeline

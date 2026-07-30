@@ -381,7 +381,6 @@ export abstract class BrowserCrawler<
     protected readonly ignoreIframes: boolean;
 
     private readonly navigationTimeoutMillis: number;
-
     private readonly preNavigationHooks: BrowserHook<Context>[];
     private readonly postNavigationHooks: BrowserHook<Context>[];
     private readonly saveResponseCookies: boolean;

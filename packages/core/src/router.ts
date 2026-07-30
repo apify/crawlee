@@ -325,6 +325,7 @@ export class Router<
     }
 
     /**
+     * Registers default route handler. As a fallback it can receive any request (including labels not
      * declared in the route map). When the router was created with a {@apilink defaultRoute} schema,
      * `request.userData` is typed from it; otherwise it defaults to the context's (loosely typed) `userData`.
      * Pass an explicit `UserData` type argument to narrow it. Pass {@apilink RouteOptions|`options`} to give the
