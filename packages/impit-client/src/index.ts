@@ -140,8 +140,7 @@ export class ImpitHttpClient implements BaseHttpClient {
             result[key] = value;
         }
 
-        const setCookies =
-            typeof headers.getSetCookie === 'function' ? headers.getSetCookie() : ([] as string[]);
+        const setCookies = typeof headers.getSetCookie === 'function' ? headers.getSetCookie() : ([] as string[]);
 
         if (setCookies.length === 1) {
             result['set-cookie'] = setCookies[0];
@@ -218,7 +217,9 @@ export class ImpitHttpClient implements BaseHttpClient {
             );
 
             const nextUrl =
-                typeof updatedRequest.url === 'string' ? updatedRequest.url : (updatedRequest.url?.href ?? redirectUrl.href);
+                typeof updatedRequest.url === 'string'
+                    ? updatedRequest.url
+                    : (updatedRequest.url?.href ?? redirectUrl.href);
 
             return this.getResponse(
                 {

@@ -10,7 +10,10 @@ vi.mock('impit', () => ({
 }));
 
 function createRedirectResponse(status: number, location: string, setCookie?: string | string[]) {
-    const setCookies = setCookie === undefined ? [] : Array.isArray(setCookie) ? setCookie : [setCookie];
+    let setCookies: string[] = [];
+    if (setCookie !== undefined) {
+        setCookies = Array.isArray(setCookie) ? setCookie : [setCookie];
+    }
     const headerEntries: [string, string][] = [['location', location]];
 
     return {
