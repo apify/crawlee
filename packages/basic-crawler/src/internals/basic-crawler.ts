@@ -1204,8 +1204,9 @@ export class BasicCrawler<
                 // asks for much longer is not handed out again mid-flight. Best-effort: the hint is process-wide
                 // and raise-only, and locking is opt-in in v4.
                 extendedByMillis += extraMillis;
-                const reservedForSecs =
-                    (this.resolveRequestHandlerTimeoutMillis(context.request) + extendedByMillis) / 1000;
+                const handlerMillis =
+                    this.resolveRequestHandlerTimeoutMillis(context.request) * this.getRequestHandlerRunCount();
+                const reservedForSecs = (handlerMillis + extendedByMillis) / 1000;
                 void this.requestManager?.setExpectedRequestProcessingTimeSecs?.(reservedForSecs + 5);
             },
             [deferredCleanupKey]: deferredCleanup,
@@ -1599,9 +1600,11 @@ export class BasicCrawler<
     private async applyRequestManagerTimeouts(requestManager: IRequestManager): Promise<void> {
         // A router route may hold a request for longer than the crawler's own timeout, and we cannot know
         // which routes a run will hit, so reserve for the longest one any route asked for. The hint is
-        // raise-only, so erring high here is safe.
+        // raise-only, so erring high here is safe. Multiply by the handler run count so an adaptive crawler,
+        // which runs the handler up to twice, reserves enough for both runs.
         const maxRouteTimeoutSecs = (this.requestHandler as Partial<RouterHandler>).getMaxTimeoutSecs?.() ?? 0;
-        const handlerTimeoutSecs = Math.max(this.requestHandlerTimeoutMillis / 1000, maxRouteTimeoutSecs);
+        const handlerTimeoutSecs =
+            Math.max(this.requestHandlerTimeoutMillis / 1000, maxRouteTimeoutSecs) * this.getRequestHandlerRunCount();
 
         await requestManager.setExpectedRequestProcessingTimeSecs?.(Math.max(handlerTimeoutSecs + 5, 60));
     }
@@ -1894,7 +1897,8 @@ export class BasicCrawler<
         // backstop is floored per request so it will not actually cut them short, but the configured value is
         // then effectively ignored, which is worth flagging. Checked here (not in the constructor) because a
         // subclass sets its navigation timeout only after `super()`.
-        const phasesMillis = this.getNavigationTimeoutMillis() + this.requestHandlerTimeoutMillis;
+        const phasesMillis =
+            this.getNavigationTimeoutMillis() + this.requestHandlerTimeoutMillis * this.getRequestHandlerRunCount();
         if (this.internalTimeoutMillis < phasesMillis) {
             this.log.warning(
                 `CRAWLEE_INTERNAL_TIMEOUT (${this.internalTimeoutMillis / 1000}s) is shorter than the navigation ` +
@@ -1918,14 +1922,26 @@ export class BasicCrawler<
     }
 
     /**
+     * How many times the request handler can run for a single request, used to size the timeouts that bound the
+     * request as a whole (the backstop and the request reservation). One for `BasicCrawler`;
+     * `AdaptivePlaywrightCrawler` runs it up to twice (a static attempt falling through to the browser), so it
+     * returns 2. It does not affect the per-run handler timeout, only the whole-request budgets.
+     */
+    protected getRequestHandlerRunCount(): number {
+        return 1;
+    }
+
+    /**
      * Races the request against the backstop (see {@apilink raceWithBackstop}), sized to outlast the phases that
-     * have their own timeout - the navigation, its hooks, and the request handler - so a legitimately slow
+     * have their own timeout - the navigation, its hooks, and the request handler (which may run more than once,
+     * see {@apilink BasicCrawler.getRequestHandlerRunCount|`getRequestHandlerRunCount`}) - so a legitimately slow
      * request, a per-route override, or a low `CRAWLEE_INTERNAL_TIMEOUT` is not cut short mid-phase. The backstop
      * takes whichever is larger: the configured internal timeout, or this request's combined phase budget.
      */
     private async withRequestBackstop(crawlingContext: PendingCrawlingContext, work: Promise<void>): Promise<void> {
         const { request } = crawlingContext;
-        const phasesMillis = this.getNavigationTimeoutMillis() + this.resolveRequestHandlerTimeoutMillis(request);
+        const handlerMillis = this.resolveRequestHandlerTimeoutMillis(request) * this.getRequestHandlerRunCount();
+        const phasesMillis = this.getNavigationTimeoutMillis() + handlerMillis;
         const timeoutMillis = Math.max(this.internalTimeoutMillis, phasesMillis);
 
         await raceWithBackstop(crawlingContext, work, { timeoutMillis, requestId: request.id });

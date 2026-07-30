@@ -354,11 +354,7 @@ export class AdaptivePlaywrightCrawler<
             errorHandler,
             failedRequestHandler,
             requestHandler,
-            // one request can run the handler twice in sequence - the static attempt falling through to the
-            // browser, or the browser run followed by a rendering type detection - and each run gets its own
-            // window. The base class only uses this to size the timeouts that bound the request as a whole, so
-            // it has to account for both runs; the individual window is applied in `runRequestHandler` below.
-            requestHandlerTimeoutSecs: requestHandlerTimeoutSecs * 2,
+            requestHandlerTimeoutSecs,
             contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),
         });
         this.individualRequestHandlerTimeoutMillis = requestHandlerTimeoutSecs * 1000;
@@ -626,6 +622,16 @@ export class AdaptivePlaywrightCrawler<
         } finally {
             await Promise.all(deferredCleanup.map((cleanup) => cleanup()));
         }
+    }
+
+    /**
+     * One request can run the handler twice in sequence - a static attempt falling through to the browser, or a
+     * browser run followed by a rendering-type detection - so the whole-request budgets (backstop, reservation)
+     * are sized for two runs. Each individual run is still bounded by its own `requestHandlerTimeoutSecs` window,
+     * applied in {@apilink AdaptivePlaywrightCrawler.runRequestHandler|`runRequestHandler`}.
+     */
+    protected override getRequestHandlerRunCount(): number {
+        return 2;
     }
 
     protected override async runRequestHandler(crawlingContext: CrawlingContext): Promise<void> {

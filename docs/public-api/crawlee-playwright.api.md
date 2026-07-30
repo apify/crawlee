@@ -78,6 +78,7 @@ export class AdaptivePlaywrightCrawler<ContextExtension = Dictionary_2<never>, E
         readonly parseWithCheerio: AdaptivePlaywrightCrawlerContext["parseWithCheerio"];
     }>;
     protected getPendingRequestCountApproximation(): Promise<number>;
+    protected getRequestHandlerRunCount(): number;
     // (undocumented)
     protected _init(): Promise<void>;
     // (undocumented)
