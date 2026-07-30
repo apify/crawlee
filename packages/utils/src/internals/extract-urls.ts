@@ -3,8 +3,21 @@ import type { BaseHttpClient } from '@crawlee/types';
 import { z } from 'zod';
 
 import { URL_NO_COMMAS_REGEX } from './general.js';
-import { anyObject } from './schemas.js';
+import { httpClient as httpClientSchema } from './schemas.js';
 import { parseArgument } from './validation.js';
+
+const downloadListOfUrlsOptionsSchema = z.strictObject({
+    url: z.url(),
+    encoding: z.string().default('utf8'),
+    urlRegExp: z.instanceof(RegExp).default(URL_NO_COMMAS_REGEX),
+    proxyUrl: z.string().optional(),
+    httpClient: httpClientSchema.default(() => new FetchHttpClient()),
+});
+
+const extractUrlsOptionsSchema = z.strictObject({
+    string: z.string(),
+    urlRegExp: z.instanceof(RegExp).default(URL_NO_COMMAS_REGEX),
+});
 
 export interface DownloadListOfUrlsOptions {
     /**
@@ -39,24 +52,7 @@ export interface DownloadListOfUrlsOptions {
  * Optionally, custom regular expression and encoding may be provided.
  */
 export async function downloadListOfUrls(options: DownloadListOfUrlsOptions): Promise<string[]> {
-    parseArgument(
-        options,
-        'options',
-        z.strictObject({
-            url: z.url(),
-            encoding: z.string().optional(),
-            urlRegExp: z.instanceof(RegExp).optional(),
-            proxyUrl: z.string().optional(),
-            httpClient: anyObject.optional(),
-        }),
-    );
-    const {
-        url,
-        encoding = 'utf8',
-        urlRegExp = URL_NO_COMMAS_REGEX,
-        proxyUrl,
-        httpClient = new FetchHttpClient(),
-    } = options;
+    const { url, encoding, urlRegExp, proxyUrl, httpClient } = parseArgument(options, downloadListOfUrlsOptionsSchema);
 
     // Try to detect wrong urls and fix them. Currently, detects only sharing url instead of csv download one.
     const match = /^(https:\/\/docs\.google\.com\/spreadsheets\/d\/(?:\w|-)+)\/?/.exec(url);
@@ -92,17 +88,9 @@ export interface ExtractUrlsOptions {
  * Collects all URLs in an arbitrary string to an array, optionally using a custom regular expression.
  */
 export function extractUrls(options: ExtractUrlsOptions): string[] {
-    parseArgument(
-        options,
-        'options',
-        z.strictObject({
-            string: z.string(),
-            urlRegExp: z.instanceof(RegExp).optional(),
-        }),
-    );
-    const lines = options.string.split('\n');
+    const { string, urlRegExp } = parseArgument(options, extractUrlsOptionsSchema);
+    const lines = string.split('\n');
     const result: string[] = [];
-    const urlRegExp = options.urlRegExp ?? URL_NO_COMMAS_REGEX;
 
     for (const line of lines) {
         result.push(...(line.match(urlRegExp) ?? []));

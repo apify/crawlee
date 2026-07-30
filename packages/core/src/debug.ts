@@ -26,9 +26,9 @@ export function createRequestDebugInfo(
     response: IncomingMessage | Partial<BrowserResponseLike> = {},
     additionalFields: Dictionary = {},
 ): Dictionary {
-    parseArgument(request, 'request', schemas.anyObject);
-    parseArgument(response, 'response', schemas.anyObject);
-    parseArgument(additionalFields, 'additionalFields', schemas.anyObject);
+    parseArgument(request, schemas.anyObject);
+    parseArgument(response, schemas.anyObject);
+    parseArgument(additionalFields, schemas.anyObject);
 
     return {
         requestId: request.id,

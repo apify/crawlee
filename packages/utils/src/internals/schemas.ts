@@ -1,3 +1,4 @@
+import { BaseHttpClient } from '@crawlee/http-client';
 import type { Dictionary } from '@crawlee/types';
 import { z } from 'zod';
 
@@ -47,6 +48,21 @@ export function objectWithKeys(keys: string[], message?: string): z.ZodType<Dict
         },
     );
 }
+
+/**
+ * Accepts only instances of {@link BaseHttpClient} (all Crawlee HTTP clients extend it).
+ * @internal
+ */
+export const httpClient = z.instanceof(BaseHttpClient);
+
+/**
+ * Accepts any object implementing the CrawleeLogger interface.
+ * @internal
+ */
+export const logger = objectWithKeys(
+    ['child', 'info', 'error', 'warning'],
+    "Expected an object implementing the CrawleeLogger interface (missing one of 'child', 'info', 'error', 'warning'), got something else.",
+);
 
 /**
  * Accepts any typed array (`Uint8Array`, `Float64Array`, ...), but not a `DataView`.
