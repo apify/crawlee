@@ -117,10 +117,10 @@ describe('schemas', () => {
 });
 
 describe('parseArgument', () => {
-    test('throws ArgumentValidationError with label and prettified issues', () => {
+    test('throws ArgumentValidationError naming the received value', () => {
         let error!: ArgumentValidationError;
         try {
-            parseArgument('not an object', 'myArg', schemas.anyObject);
+            parseArgument('not an object', schemas.anyObject);
         } catch (err) {
             error = err as ArgumentValidationError;
         }
@@ -128,28 +128,44 @@ describe('parseArgument', () => {
         expect(error).toBeInstanceOf(ArgumentValidationError);
         expect(error).toBeInstanceOf(Error);
         expect(error.name).toBe('ArgumentValidationError');
-        expect(error.message).toContain("Validation of argument 'myArg' failed:");
-        expect(error.message).toContain('expected object');
-        expect(error.validationError).toBeInstanceOf(z.ZodError);
-        expect(error.validationError.issues.length).toBeGreaterThan(0);
-        expect(error.cause).toBe(error.validationError);
+        expect(error.message).toBe('Invalid input: expected object, got `not an object`');
+        expect(error.cause).toBeInstanceOf(z.ZodError);
+        expect(error.issues).toBe(error.cause.issues);
+        expect(error.issues.length).toBeGreaterThan(0);
+    });
+
+    test('message names the offending field and the value it received', () => {
+        const schema = z
+            .object({
+                countryCode: z.string().regex(/^[A-Z]{2}$/),
+                retries: z.number().optional(),
+            })
+            .strict();
+
+        expect(() => parseArgument({ countryCode: 'CZE' }, schema)).toThrow(
+            'Invalid string: must match pattern /^[A-Z]{2}$/ at `countryCode`, got `CZE`',
+        );
     });
 
     test('returns its input for custom schemas', () => {
         const obj = { foo: 'bar' };
-        expect(parseArgument(obj, 'x', schemas.anyObject)).toBe(obj);
+        expect(parseArgument(obj, schemas.anyObject)).toBe(obj);
         const arr = [1, 2];
-        expect(parseArgument(arr, 'x', schemas.anyArray)).toBe(arr);
+        expect(parseArgument(arr, schemas.anyArray)).toBe(arr);
     });
 
     test('returns typed parsed output for object schemas', () => {
         const options = { desc: true, limit: 10, offset: 0 };
         const parsed: z.output<typeof schemas.datasetListItemsOptions> = parseArgument(
             options,
-            'options',
             schemas.datasetListItemsOptions,
         );
         expect(parsed).toEqual(options);
+    });
+
+    test('applies schema defaults in the returned value', () => {
+        const schema = z.strictObject({ limit: z.number().default(42) });
+        expect(parseArgument({}, schema)).toEqual({ limit: 42 });
     });
 });
 
@@ -172,18 +188,18 @@ describe('ow parity in crawler options', () => {
     test('BasicCrawler throws ArgumentValidationError for an unknown key', () => {
         const create = () => new BasicCrawler({ unknownOption: true } as any);
         expect(create).toThrow(ArgumentValidationError);
-        expect(create).toThrow("Validation of argument 'BasicCrawlerOptions' failed");
+        expect(create).toThrow('Unrecognized key: "unknownOption"');
     });
 
     test('BasicCrawler throws ArgumentValidationError for NaN', () => {
         const create = () => new BasicCrawler({ requestHandler: async () => {}, maxConcurrency: NaN });
         expect(create).toThrow(ArgumentValidationError);
-        expect(create).toThrow("Validation of argument 'BasicCrawlerOptions' failed");
+        expect(create).toThrow('Invalid input: expected number at `maxConcurrency`, got `NaN`');
     });
 
     test('ProxyConfiguration throws ArgumentValidationError for an unknown key', () => {
         const create = () => new ProxyConfiguration({ unknownOption: true } as any);
         expect(create).toThrow(ArgumentValidationError);
-        expect(create).toThrow("Validation of argument 'options' failed");
+        expect(create).toThrow('Unrecognized key: "unknownOption"');
     });
 });
