@@ -97,6 +97,8 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any> =
     // (undocumented)
     protected buildContextPipeline(): ContextPipeline<CrawlingContext, InternalHttpCrawlingContext>;
     // (undocumented)
+    protected getNavigationTimeoutMillis(): number;
+    // (undocumented)
     protected isRequestBlocked(crawlingContext: InternalHttpCrawlingContext): Promise<string | false>;
     // (undocumented)
     protected static optionsShape: {

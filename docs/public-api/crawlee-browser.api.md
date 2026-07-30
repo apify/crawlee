@@ -54,6 +54,8 @@ export abstract class BrowserCrawler<Page extends CommonPage = CommonPage, Respo
     // (undocumented)
     protected buildContextPipeline(): ContextPipeline<CrawlingContext, BrowserCrawlingContext<Page, Response, Dictionary>>;
     // (undocumented)
+    protected getNavigationTimeoutMillis(): number;
+    // (undocumented)
     protected readonly ignoreIframes: boolean;
     // (undocumented)
     protected readonly ignoreShadowRoots: boolean;

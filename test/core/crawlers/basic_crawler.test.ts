@@ -7,6 +7,7 @@ import type { EnqueueLinksOptions, ErrorHandler, RequestHandler, RequestOptions,
 import type { Session } from '@crawlee/basic';
 import {
     BasicCrawler,
+    Configuration,
     CriticalError,
     defaultRoute,
     EventType,
@@ -1322,38 +1323,28 @@ describe('BasicCrawler', () => {
     test('context.extendTimeout also holds off the internal timeout', async () => {
         const requestList = await RequestList.open({ sources: [{ url: 'https://example.com' }] });
 
-        const previous = process.env.CRAWLEE_INTERNAL_TIMEOUT;
-        // shorter than the 400ms the handler needs, so an unextended backstop would definitely cut it
-        process.env.CRAWLEE_INTERNAL_TIMEOUT = '250';
+        const failed: Request[] = [];
 
-        try {
-            const failed: Request[] = [];
+        const crawler = new BasicCrawler({
+            requestList,
+            // shorter than the 400ms the handler needs, so an unextended backstop would definitely cut it
+            configuration: new Configuration({ internalTimeoutMillis: 250 }),
+            requestHandlerTimeoutSecs: 0.2,
+            maxRequestRetries: 0,
+            requestHandler: async ({ extendTimeout }) => {
+                await sleep(100);
+                extendTimeout(5);
+                await sleep(300);
+            },
+            failedRequestHandler: async ({ request }) => {
+                failed.push(request);
+            },
+        });
 
-            const crawler = new BasicCrawler({
-                requestList,
-                requestHandlerTimeoutSecs: 0.2,
-                maxRequestRetries: 0,
-                requestHandler: async ({ extendTimeout }) => {
-                    await sleep(100);
-                    extendTimeout(5);
-                    await sleep(300);
-                },
-                failedRequestHandler: async ({ request }) => {
-                    failed.push(request);
-                },
-            });
+        await crawler.run();
 
-            await crawler.run();
-
-            // extending only the handler would be pointless if the backstop cut it down anyway
-            expect(failed).toHaveLength(0);
-        } finally {
-            if (previous === undefined) {
-                delete process.env.CRAWLEE_INTERNAL_TIMEOUT;
-            } else {
-                process.env.CRAWLEE_INTERNAL_TIMEOUT = previous;
-            }
-        }
+        // extending only the handler would be pointless if the backstop cut it down anyway
+        expect(failed).toHaveLength(0);
     });
 
     test('a route can override requestHandlerTimeoutSecs, other routes keep the default', async () => {
@@ -1406,88 +1397,66 @@ describe('BasicCrawler', () => {
         const url = 'https://example.com';
         const requestList = await RequestList.open({ sources: [{ url }] });
 
-        const previous = process.env.CRAWLEE_INTERNAL_TIMEOUT;
-        process.env.CRAWLEE_INTERNAL_TIMEOUT = '100';
+        const results: Request[] = [];
+        const requestHandler = vitest.fn();
 
-        try {
-            const results: Request[] = [];
-            const requestHandler = vitest.fn();
+        const crawler = new BasicCrawler({
+            requestList,
+            configuration: new Configuration({ internalTimeoutMillis: 100 }),
+            maxRequestRetries: 0,
+            // keep the handler timeout small so the backstop is not floored above the 100ms set above
+            requestHandlerTimeoutSecs: 0.05,
+            // `extendContext` is not the navigation, the hooks or the request handler, so none of their
+            // timeouts apply to it - only the internal one stands between this and a stuck crawler. It also
+            // outlives the backstop, so it is the case where the losing side of the race keeps running.
+            extendContext: async () => {
+                await sleep(500);
+                return {};
+            },
+            requestHandler,
+            failedRequestHandler: async ({ request }) => {
+                results.push(request);
+            },
+        });
 
-            const crawler = new BasicCrawler({
-                requestList,
-                maxRequestRetries: 0,
-                // keep the handler timeout small so the backstop is not floored above the 100ms we set below
-                requestHandlerTimeoutSecs: 0.05,
-                // `extendContext` is not the navigation, the hooks or the request handler, so none of their
-                // timeouts apply to it - only the internal one stands between this and a stuck crawler. It also
-                // outlives the backstop, so it is the case where the losing side of the race keeps running.
-                extendContext: async () => {
-                    await sleep(500);
-                    return {};
-                },
-                requestHandler,
-                failedRequestHandler: async ({ request }) => {
-                    results.push(request);
-                },
-            });
+        await crawler.run();
 
-            await crawler.run();
+        // Wait past the stuck `extendContext`: `run()` resolves when the backstop fails the request, but the
+        // pipeline keeps running underneath - the handler must still not fire once it finally gets there.
+        await sleep(600);
 
-            // Wait past the stuck `extendContext`: `run()` resolves when the backstop fails the request, but the
-            // pipeline keeps running underneath - the handler must still not fire once it finally gets there.
-            await sleep(600);
+        expect(requestHandler).not.toHaveBeenCalled();
+        expect(results).toHaveLength(1);
 
-            expect(requestHandler).not.toHaveBeenCalled();
-            expect(results).toHaveLength(1);
-
-            results[0].errorMessages.forEach((msg) => {
-                expect(msg).toMatch('Request timed out');
-                // the request handler never even started, so blaming it would be a lie
-                expect(msg).not.toMatch('requestHandler timed out');
-            });
-        } finally {
-            // assigning `undefined` would set the *string* "undefined", which parses to NaN and would
-            // leave every later test in this file with a NaN internal timeout
-            if (previous === undefined) {
-                delete process.env.CRAWLEE_INTERNAL_TIMEOUT;
-            } else {
-                process.env.CRAWLEE_INTERNAL_TIMEOUT = previous;
-            }
-        }
+        results[0].errorMessages.forEach((msg) => {
+            expect(msg).toMatch('Request timed out');
+            // the request handler never even started, so blaming it would be a lie
+            expect(msg).not.toMatch('requestHandler timed out');
+        });
     });
 
     test('the internal timeout does not cut a request handler short of its own timeout', async () => {
         const url = 'https://example.com';
         const requestList = await RequestList.open({ sources: [{ url }] });
 
-        const previous = process.env.CRAWLEE_INTERNAL_TIMEOUT;
-        // deliberately below the request handler timeout - the backstop must still not fire before it
-        process.env.CRAWLEE_INTERNAL_TIMEOUT = '100';
+        const processed: Request[] = [];
 
-        try {
-            const processed: Request[] = [];
+        const crawler = new BasicCrawler({
+            requestList,
+            // deliberately below the request handler timeout - the backstop must still not fire before it
+            configuration: new Configuration({ internalTimeoutMillis: 100 }),
+            maxRequestRetries: 0,
+            requestHandlerTimeoutSecs: 1,
+            requestHandler: async ({ request }) => {
+                // comfortably within the 1s handler timeout, but well past the 100ms internal one
+                await sleep(500);
+                processed.push(request as Request);
+            },
+        });
 
-            const crawler = new BasicCrawler({
-                requestList,
-                maxRequestRetries: 0,
-                requestHandlerTimeoutSecs: 1,
-                requestHandler: async ({ request }) => {
-                    // comfortably within the 1s handler timeout, but well past the 100ms internal one
-                    await sleep(500);
-                    processed.push(request as Request);
-                },
-            });
+        await crawler.run();
 
-            await crawler.run();
-
-            expect(processed).toHaveLength(1);
-        } finally {
-            if (previous === undefined) {
-                delete process.env.CRAWLEE_INTERNAL_TIMEOUT;
-            } else {
-                process.env.CRAWLEE_INTERNAL_TIMEOUT = previous;
-            }
-        }
+        expect(processed).toHaveLength(1);
     });
 
     test('timeouted request should not access storages', async () => {

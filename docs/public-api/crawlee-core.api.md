@@ -282,6 +282,7 @@ export const crawleeConfigFields: {
     availableMemoryRatio: ConfigField<z.ZodDefault<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodNumber>>>;
     memoryMbytes: ConfigField<z.ZodOptional<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodNumber>>>;
     persistStateIntervalMillis: ConfigField<z.ZodDefault<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodNumber>>>;
+    internalTimeoutMillis: ConfigField<z.ZodOptional<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodNumber>>>;
     systemInfoIntervalMillis: ConfigField<z.ZodDefault<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodNumber>>>;
     inputKey: ConfigField<z.ZodDefault<z.ZodString>>;
     headless: ConfigField<z.ZodDefault<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodBoolean>>>;

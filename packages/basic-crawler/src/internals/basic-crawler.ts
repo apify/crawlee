@@ -937,10 +937,10 @@ export class BasicCrawler<
             this.respectRobotsTxtFile = respectRobotsTxtFile;
             this.onSkippedRequest = onSkippedRequest;
 
-            const tryEnv = (val?: string) => (val == null ? null : +val);
             // allow at least 5min for internal timeouts
             this.internalTimeoutMillis =
-                tryEnv(process.env.CRAWLEE_INTERNAL_TIMEOUT) ?? Math.max(this.requestHandlerTimeoutMillis * 2, 300e3);
+                serviceLocator.getConfiguration().internalTimeoutMillis ??
+                Math.max(this.requestHandlerTimeoutMillis * 2, 300e3);
 
             this.maxRequestRetries = maxRequestRetries;
             this.maxCrawlDepth = maxCrawlDepth;
