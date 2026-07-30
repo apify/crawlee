@@ -22,7 +22,7 @@ import {
     serviceLocator,
     SessionPool,
 } from '@crawlee/basic';
-import { MemoryStorageBackend, RequestState } from '@crawlee/core';
+import { ConcurrencySystem, MemoryStorageBackend, RequestState } from '@crawlee/core';
 import type { ISession, ProxyInfo } from '@crawlee/types';
 import type { Dictionary } from '@crawlee/utils';
 import { RobotsTxtFile, sleep } from '@crawlee/utils';
@@ -167,10 +167,113 @@ describe('BasicCrawler', () => {
 
         await basicCrawler.run();
 
-        expect(basicCrawler.autoscaledPool!.minConcurrency).toBe(25);
+        expect((basicCrawler.autoscaledPool!.system as ConcurrencySystem).minConcurrency).toBe(25);
         expect(processed).toEqual(sourcesCopy);
         expect(await requestList.isFinished()).toBe(true);
         expect(await requestList.isEmpty()).toBe(true);
+    });
+
+    test('folds a supplied concurrencySystem into its pool and never tears the system down', async () => {
+        const sources = [...Array(20).keys()].map((index) => ({ url: `https://example.com/${index}` }));
+        const requestList = await RequestList.open(null, sources);
+
+        const processed: string[] = [];
+        const requestHandler: RequestHandler = async ({ request }) => {
+            await sleep(1);
+            processed.push(request.url);
+        };
+
+        const system = new ConcurrencySystem({ minConcurrency: 7, maxConcurrency: 7 });
+        const startSpy = vitest.spyOn(system, 'start');
+        const stopSpy = vitest.spyOn(system, 'stop');
+
+        const basicCrawler = new BasicCrawler({
+            requestList,
+            concurrencySystem: system,
+            requestHandler,
+        });
+
+        // The caller owns a supplied system's lifecycle.
+        await system.start();
+        await basicCrawler.run();
+        await system.stop();
+
+        // The crawler built its own pool but wired the shared governor into it.
+        expect(basicCrawler.autoscaledPool!.system).toBe(system);
+        expect((basicCrawler.autoscaledPool!.system as ConcurrencySystem).minConcurrency).toBe(7);
+        // Work actually ran (the crawler kept its own task loop).
+        expect(processed).toHaveLength(20);
+        // The crawler never touched the borrowed system's lifecycle — only our two explicit calls did.
+        expect(startSpy).toHaveBeenCalledTimes(1);
+        expect(stopSpy).toHaveBeenCalledTimes(1);
+    });
+
+    test('identifies itself to its concurrency system by its own id', async () => {
+        const system = new ConcurrencySystem({ minConcurrency: 2, maxConcurrency: 2 });
+        const bookings = vitest.spyOn(system, 'tryRegisterTaskStart');
+
+        const makeCrawler = async (id: string) => {
+            const requestList = await RequestList.open(`identified-${id}`, [{ url: `https://example.com/${id}` }]);
+            return new BasicCrawler({ id, requestList, concurrencySystem: system, requestHandler: async () => {} });
+        };
+
+        const [a, b] = await Promise.all([makeCrawler('crawler-a'), makeCrawler('crawler-b')]);
+
+        await system.start();
+        await Promise.all([a.run(), b.run()]);
+        await system.stop();
+
+        // A shared governor is told which crawler each booking is for, under the same id the crawler is known by
+        // elsewhere - so an allocating implementation can keep them from starving each other.
+        const bookedFor = new Set(bookings.mock.calls.map(([consumer]) => consumer?.id));
+        expect(bookedFor).toEqual(new Set(['crawler-a', 'crawler-b']));
+    });
+
+    test.each(['minConcurrency', 'maxConcurrency', 'maxRequestsPerMinute'] as const)(
+        'throws when %s is combined with a supplied concurrencySystem',
+        (shortcut) => {
+            expect(
+                () =>
+                    new BasicCrawler({
+                        concurrencySystem: new ConcurrencySystem(),
+                        [shortcut]: 1,
+                        requestHandler: async () => {},
+                    }),
+            ).toThrow(/cannot be combined with `concurrencySystem`/);
+        },
+    );
+
+    test('two crawlers sharing a ConcurrencySystem cap their combined concurrency', async () => {
+        const system = new ConcurrencySystem({ minConcurrency: 3, maxConcurrency: 3, desiredConcurrency: 3 });
+
+        let combinedCurrent = 0;
+        let combinedPeak = 0;
+
+        const makeCrawler = async (offset: number) => {
+            const sources = [...Array(30).keys()].map((index) => ({ url: `https://example.com/${offset}-${index}` }));
+            const requestList = await RequestList.open(`shared-${offset}`, sources);
+
+            const requestHandler: RequestHandler = async () => {
+                combinedCurrent++;
+                combinedPeak = Math.max(combinedPeak, combinedCurrent);
+                await sleep(3);
+                combinedCurrent--;
+            };
+
+            return new BasicCrawler({
+                requestList,
+                concurrencySystem: system,
+                requestHandler,
+            });
+        };
+
+        const [a, b] = await Promise.all([makeCrawler(0), makeCrawler(1)]);
+        // The shared system is the caller's to run — the crawlers borrow it and never touch its lifecycle.
+        await system.start();
+        await Promise.all([a.run(), b.run()]);
+        await system.stop();
+
+        expect(combinedPeak).toBeLessThanOrEqual(3);
     });
 
     test('should allow using run method multiple times', async () => {
@@ -194,6 +297,50 @@ describe('BasicCrawler', () => {
         await basicCrawler.run(sources);
 
         expect(processed).toHaveLength(sourcesCopy.length * 3);
+    });
+
+    test('builds a fresh owned ConcurrencySystem for every run', async () => {
+        const crawler = new BasicCrawler({
+            requestHandler: async () => {},
+        });
+
+        await crawler.run(['https://example.com/1']);
+        const firstSystem = crawler.autoscaledPool!.system as ConcurrencySystem;
+        // Simulate scaling state left behind by the first run.
+        firstSystem.desiredConcurrency = 42;
+
+        await crawler.run(['https://example.com/2']);
+        const secondSystem = crawler.autoscaledPool!.system;
+
+        // The crawler-owned governor is rebuilt per run, so no previous-run state (resource snapshots,
+        // autoscaled desired concurrency, per-minute task counts) can distort the next run's scaling.
+        expect(secondSystem).not.toBe(firstSystem);
+        // The rebuilt governor starts over from the default desired concurrency (the immediate autoscale tick on
+        // start may already have nudged it up a step) instead of inheriting the previous run's value.
+        expect(secondSystem.desiredConcurrency).toBeLessThanOrEqual(2);
+    });
+
+    test('stops the owned ConcurrencySystem when startup fails after it was started', async () => {
+        const crawler = new BasicCrawler({
+            requestHandler: async () => {},
+        });
+
+        const failure = new Error('Could not open the request queue');
+        // `_init()` starts the concurrency system before it resolves the request manager, so this fails after the
+        // system's intervals are already ticking.
+        const getRequestManager = vitest
+            .spyOn(crawler, 'getRequestManager')
+            .mockImplementation(async () => Promise.reject(failure));
+
+        // No initial requests — `addRequests()` would resolve the request manager before `_init()` even runs.
+        await expect(crawler.run()).rejects.toThrow(failure);
+
+        // The intervals would otherwise keep the event loop alive for the rest of the process's life.
+        expect((crawler.autoscaledPool!.system as ConcurrencySystem).isRunning).toBe(false);
+
+        // A failed startup is not a run, so the crawler must not stay wedged as `running`.
+        getRequestManager.mockRestore();
+        await crawler.run(['https://example.com/2']);
     });
 
     test('should process 4 requests total when calling run() twice with maxRequestsPerCrawl: 2', async () => {
@@ -408,62 +555,43 @@ describe('BasicCrawler', () => {
         expect(generatedRequests[1].crawlDepth).toBe(4);
     });
 
-    test('should correctly combine shorthand and full length options', async () => {
-        const shorthandOptions = {
-            minConcurrency: 123,
-            maxConcurrency: 456,
-            maxRequestsPerMinute: 789,
-        };
-
-        const autoscaledPoolOptions = {
-            minConcurrency: 16,
-            maxConcurrency: 32,
-            maxTasksPerMinute: 64,
-        };
-
-        const collectResults = (crawler: BasicCrawler): typeof shorthandOptions | typeof autoscaledPoolOptions => {
-            return {
-                minConcurrency: crawler.autoscaledPool!.minConcurrency,
-                maxConcurrency: crawler.autoscaledPool!.maxConcurrency,
-                // eslint-disable-next-line dot-notation -- accessing a private member
-                maxRequestsPerMinute: crawler.autoscaledPool!['maxTasksPerMinute'],
-                // eslint-disable-next-line dot-notation
-                maxTasksPerMinute: crawler.autoscaledPool!['maxTasksPerMinute'],
-            };
-        };
-
+    test('concurrency shortcuts configure the default system; an injected system is used as-is', async () => {
         const requestList = await RequestList.open(null, []);
         const requestHandler = async () => {};
 
-        const results = await Promise.all(
-            [
-                new BasicCrawler({
-                    requestList,
-                    requestHandler,
-                    ...shorthandOptions,
-                }),
-                new BasicCrawler({
-                    requestList,
-                    requestHandler,
-                    autoscaledPoolOptions,
-                }),
-                new BasicCrawler({
-                    requestList,
-                    requestHandler,
-                    ...shorthandOptions,
-                    autoscaledPoolOptions,
-                }),
-            ].map(async (c) => {
-                await c.run();
-                return collectResults(c);
-            }),
-        );
+        const collect = (crawler: BasicCrawler) => ({
+            minConcurrency: (crawler.autoscaledPool!.system as ConcurrencySystem).minConcurrency,
+            maxConcurrency: (crawler.autoscaledPool!.system as ConcurrencySystem).maxConcurrency,
+            // eslint-disable-next-line dot-notation -- private member on the governor
+            maxTasksPerMinute: (crawler.autoscaledPool!.system as ConcurrencySystem)['maxTasksPerMinute'],
+        });
 
-        expect(results[0]).toEqual(expect.objectContaining(shorthandOptions));
+        // Shortcuts feed the default ConcurrencySystem the crawler builds.
+        const shortcuts = new BasicCrawler({
+            requestList,
+            requestHandler,
+            minConcurrency: 123,
+            maxConcurrency: 456,
+            maxRequestsPerMinute: 789,
+        });
 
-        expect(results[1]).toEqual(expect.objectContaining(autoscaledPoolOptions));
+        // An injected system carries its own config (the shortcuts are rejected alongside one, see above).
+        const injectedSystem = new ConcurrencySystem({ minConcurrency: 16, maxConcurrency: 32, maxTasksPerMinute: 64 });
+        const injected = new BasicCrawler({
+            requestList,
+            requestHandler,
+            concurrencySystem: injectedSystem,
+        });
 
-        expect(results[2]).toEqual(expect.objectContaining(shorthandOptions));
+        // An injected system is ours to run - the crawler refuses to run against one that was never started.
+        await injectedSystem.start();
+        await Promise.all([shortcuts.run(), injected.run()]);
+        await injectedSystem.stop();
+
+        expect(collect(shortcuts)).toEqual({ minConcurrency: 123, maxConcurrency: 456, maxTasksPerMinute: 789 });
+        expect(collect(injected)).toEqual({ minConcurrency: 16, maxConcurrency: 32, maxTasksPerMinute: 64 });
+        // The injected system is the very instance the pool uses.
+        expect(injected.autoscaledPool!.system).toBe(injectedSystem);
     });
 
     test('auto-saved state object', async () => {
@@ -1105,9 +1233,9 @@ describe('BasicCrawler', () => {
 
         const basicCrawler = new BasicCrawler({
             requestQueue,
+            minConcurrency: 1,
+            maxConcurrency: 1,
             autoscaledPoolOptions: {
-                minConcurrency: 1,
-                maxConcurrency: 1,
                 isFinishedFunction: async () => {
                     isFinishedFunctionCalled = true;
                     return Promise.resolve(isFinished);

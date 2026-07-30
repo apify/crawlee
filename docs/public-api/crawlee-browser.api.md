@@ -86,6 +86,7 @@ export abstract class BrowserCrawler<Page extends CommonPage = CommonPage, Respo
         maxRequestsPerCrawl: NumberPredicate & BasePredicate<number | undefined>;
         maxCrawlDepth: NumberPredicate & BasePredicate<number | undefined>;
         autoscaledPoolOptions: ObjectPredicate<object> & BasePredicate<object | undefined>;
+        concurrencySystem: ObjectPredicate<object> & BasePredicate<object | undefined>;
         sessionPool: ObjectPredicate<object> & BasePredicate<object | undefined>;
         statusMessageLoggingInterval: NumberPredicate & BasePredicate<number | undefined>;
         statusMessageCallback: Predicate<Function> & BasePredicate<Function | undefined>;

@@ -84,6 +84,7 @@ export class JSDOMCrawler<ContextExtension = Dictionary<never>, ExtendedContext 
         maxRequestsPerCrawl: NumberPredicate & BasePredicate<number | undefined>;
         maxCrawlDepth: NumberPredicate & BasePredicate<number | undefined>;
         autoscaledPoolOptions: ObjectPredicate<object> & BasePredicate<object | undefined>;
+        concurrencySystem: ObjectPredicate<object> & BasePredicate<object | undefined>;
         sessionPool: ObjectPredicate<object> & BasePredicate<object | undefined>;
         proxyConfiguration: ObjectPredicate<object> & BasePredicate<object | undefined>;
         statusMessageLoggingInterval: NumberPredicate & BasePredicate<number | undefined>;
