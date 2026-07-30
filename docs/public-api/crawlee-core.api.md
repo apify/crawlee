@@ -4,16 +4,16 @@
 
 ```ts
 
-import { AllowedHttpMethods } from '@crawlee/types';
+import type { AllowedHttpMethods } from '@crawlee/types';
 import { AsyncEventEmitter } from '@vladfrangu/async_event_emitter';
-import { Awaitable } from '@crawlee/types';
+import type { Awaitable } from '@crawlee/types';
 import type { BaseHttpClient } from '@crawlee/types';
 import type { BatchAddRequestsResult } from '@crawlee/types';
 import type { BetterIntervalID } from '@apify/utilities';
 import type { BinaryLike } from 'node:crypto';
-import { Constructor } from '@crawlee/types';
-import { Cookie } from '@crawlee/types';
-import { Cookie as Cookie_2 } from 'tough-cookie';
+import type { Constructor } from '@crawlee/types';
+import { Cookie } from 'tough-cookie';
+import type { Cookie as Cookie_2 } from '@crawlee/types';
 import { CookieJar } from 'tough-cookie';
 import { CrawleeLogger } from '@crawlee/types';
 import type { CrawleeLoggerOptions } from '@crawlee/types';
@@ -37,7 +37,7 @@ import { ParseSitemapOptions } from '@crawlee/utils';
 import type { ProcessedRequest } from '@crawlee/types';
 import type { ProxyInfo } from '@crawlee/types';
 import { PseudoUrl } from '@apify/pseudo_url';
-import { QueueOperationInfo } from '@crawlee/types';
+import type { QueueOperationInfo } from '@crawlee/types';
 import { Readable } from 'node:stream';
 import type { ReadonlyDeep } from 'type-fest';
 import type { RequestQueueBackend } from '@crawlee/types';
@@ -49,8 +49,8 @@ import { SessionState } from '@crawlee/types';
 import type { SetRequired } from 'type-fest';
 import type { StandardSchemaV1 } from '@standard-schema/spec';
 import type * as storage from '@crawlee/types';
-import { StorageBackend } from '@crawlee/types';
-import { StorageIdentifier } from '@crawlee/types';
+import type { StorageBackend } from '@crawlee/types';
+import type { StorageIdentifier } from '@crawlee/types';
 import { tryAbsoluteURL } from '@crawlee/utils';
 import { z } from 'zod';
 
@@ -117,8 +117,6 @@ export interface AutoscaledPoolOptions {
     systemStatusOptions?: SystemStatusOptions;
     taskTimeoutSecs?: number;
 }
-
-export { Awaitable }
 
 // @public
 export abstract class BaseCrawleeLogger implements CrawleeLogger {
@@ -218,8 +216,6 @@ export type ConfigurationInput = FieldsInput<typeof crawleeConfigFields>;
 // @public @deprecated (undocumented)
 export type ConfigurationOptions = ConfigurationInput;
 
-export { Constructor }
-
 // @public
 export interface ContextMiddleware<TCrawlingContext, TCrawlingContextExtension> {
     action: (context: TCrawlingContext) => Awaitable<TCrawlingContextExtension>;
@@ -248,8 +244,6 @@ export class ContextPipelineInitializationError extends Error {
 export class ContextPipelineInterruptedError extends Error {
     constructor(message?: string);
 }
-
-export { Cookie }
 
 // @public (undocumented)
 export interface CpuLoadSignalOptions {
@@ -377,7 +371,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
 // @public
 export interface DatasetConsumer<Data> {
     // (undocumented)
-    (item: Data, index: number): Awaitable_2<void>;
+    (item: Data, index: number): Awaitable<void>;
 }
 
 // @public (undocumented)
@@ -421,7 +415,7 @@ export interface DatasetIteratorOptions extends Omit<DatasetDataOptions, 'offset
 
 // @public
 export interface DatasetMapper<Data, R> {
-    (item: Data, index: number): Awaitable_2<R>;
+    (item: Data, index: number): Awaitable<R>;
 }
 
 // @public (undocumented)
@@ -434,7 +428,7 @@ export interface DatasetOptions {
 // @public
 export interface DatasetReducer<T, Data> {
     // (undocumented)
-    (memo: T, item: Data, index: number): Awaitable_2<T>;
+    (memo: T, item: Data, index: number): Awaitable<T>;
 }
 
 // @public
@@ -455,8 +449,6 @@ export interface DefaultStorageIdentifier {
     // (undocumented)
     name?: never;
 }
-
-export { Dictionary }
 
 // @public
 export function enqueueLinks(options: SetRequired<Omit<EnqueueLinksOptions, 'requestManager'>, 'urls'> & {
@@ -753,7 +745,7 @@ export interface KeyConsumer {
     // (undocumented)
     (key: string, index: number, info: {
         size: number;
-    }): Awaitable_2<void>;
+    }): Awaitable<void>;
 }
 
 // @public
@@ -996,8 +988,6 @@ export function purgeDefaultStorages(config?: Configuration, storageBackend?: St
 export interface PushErrorMessageOptions {
     omitStack?: boolean;
 }
-
-export { QueueOperationInfo }
 
 // @public (undocumented)
 export interface RecordOptions {
@@ -1343,22 +1333,22 @@ export class RetryRequestError extends Error {
 
 // @public
 export class Router<Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'>, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>> {
-    addDefaultHandler<UserData extends Dictionary = DefaultRouteUserData<Routes, GetUserDataFromRequest<Context['request']>>>(handler: (ctx: RouterHandlerContext<Context, UserData, Routes>) => Awaitable_2<void>): void;
-    addHandler<Label extends keyof Routes & string>(label: Label, handler: (ctx: RouterHandlerContext<Context, Routes[Label], Routes>) => Awaitable_2<void>): void;
-    addHandler<UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(label: RouterLabel<Routes>, handler: (ctx: RouterHandlerContext<Context, UserData, Routes>) => Awaitable_2<void>): void;
+    addDefaultHandler<UserData extends Dictionary = DefaultRouteUserData<Routes, GetUserDataFromRequest<Context['request']>>>(handler: (ctx: RouterHandlerContext<Context, UserData, Routes>) => Awaitable<void>): void;
+    addHandler<Label extends keyof Routes & string>(label: Label, handler: (ctx: RouterHandlerContext<Context, Routes[Label], Routes>) => Awaitable<void>): void;
+    addHandler<UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(label: RouterLabel<Routes>, handler: (ctx: RouterHandlerContext<Context, UserData, Routes>) => Awaitable<void>): void;
     static create<Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'> = CrawlingContext, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
     // (undocumented)
     static create<Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'> = CrawlingContext, UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
     // (undocumented)
     static create<Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'> = CrawlingContext, const Schemas extends RouteSchemas = RouteSchemas>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
-    getHandler(label?: string | symbol): (ctx: Context) => Awaitable_2<void>;
-    use(middleware: (ctx: Context) => Awaitable_2<void>): void;
+    getHandler(label?: string | symbol): (ctx: Context) => Awaitable<void>;
+    use(middleware: (ctx: Context) => Awaitable<void>): void;
 }
 
 // @public (undocumented)
 export interface RouterHandler<Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'> = CrawlingContext, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>> extends Router<Context, Routes> {
     // (undocumented)
-    (ctx: Context): Awaitable_2<void>;
+    (ctx: Context): Awaitable<void>;
 }
 
 // @public
@@ -1378,7 +1368,7 @@ export type RouterLabel<Routes extends Record<keyof Routes, Dictionary>> = strin
 export type RouterRoutes<Context, Routes extends Record<keyof Routes, Dictionary>> = {
     [Label in keyof Routes]: (ctx: Omit<Context, 'request'> & {
         request: Request_2<Routes[Label]>;
-    }) => Awaitable_2<void>;
+    }) => Awaitable<void>;
 };
 
 // @public
@@ -1770,10 +1760,6 @@ export interface StatisticState {
     statsPersistedAt: Date | string | null;
 }
 
-export { StorageBackend }
-
-export { StorageIdentifier }
-
 // @public
 export interface StorageOpenOptions {
     config?: Configuration;
@@ -1844,7 +1830,7 @@ export interface UseStateOptions {
 }
 
 // @public
-export const withCheckedStorageAccess: <T>(checkFunction: () => void, callback: () => Awaitable_2<T>) => Promise<T>;
+export const withCheckedStorageAccess: <T>(checkFunction: () => void, callback: () => Awaitable<T>) => Promise<T>;
 
 // (No @packageDocumentation comment for this package)
 

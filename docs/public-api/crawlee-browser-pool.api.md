@@ -16,8 +16,8 @@ import { EventEmitter } from 'node:events';
 import { FingerprintGenerator as FingerprintGenerator_2 } from 'fingerprint-generator';
 import type { FingerprintGeneratorOptions as FingerprintGeneratorOptions_2 } from 'fingerprint-generator';
 import { FingerprintInjector } from 'fingerprint-injector';
-import { IBrowserPool } from '@crawlee/types';
-import { NewPageOptions } from '@crawlee/types';
+import type { IBrowserPool } from '@crawlee/types';
+import type { NewPageOptions } from '@crawlee/types';
 import type { Page } from 'playwright';
 import type { PageState } from '@crawlee/types';
 import type Puppeteer from 'puppeteer';
@@ -356,8 +356,6 @@ export interface IBrowserLaunchContext {
     useIncognitoPages?: boolean;
 }
 
-export { IBrowserPool }
-
 // @public (undocumented)
 export type InferBrowserPluginArray<Input extends readonly unknown[], Result extends BrowserPlugin[] = []> = Input extends readonly [infer FirstValue, ...infer Rest] | [infer FirstValue, ...infer Rest] ? FirstValue extends PlaywrightPlugin ? InferBrowserPluginArray<Rest, [...Result, PlaywrightPlugin]> : FirstValue extends PuppeteerPlugin ? InferBrowserPluginArray<Rest, [...Result, PuppeteerPlugin]> : never : Input extends [] ? Result : Input extends readonly (infer U)[] ? [
 U
@@ -404,8 +402,6 @@ export interface LaunchContextOptions<Library extends CommonLibrary = CommonLibr
     useIncognitoPages?: boolean;
     userDataDir?: string;
 }
-
-export { NewPageOptions }
 
 // @public (undocumented)
 export const enum OperatingSystemsName {

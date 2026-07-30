@@ -1,16 +1,21 @@
-import type { DatasetBackend, DatasetInfo, Dictionary, PaginatedList } from '@crawlee/types';
+import type {
+    Awaitable,
+    DatasetBackend,
+    DatasetInfo,
+    Dictionary,
+    PaginatedList,
+    StorageIdentifier,
+} from '@crawlee/types';
 import { stringify } from 'csv-stringify/sync';
 import ow from 'ow';
 
 import { Configuration } from '../configuration.js';
 import type { CrawleeLogger } from '../log.js';
 import { serviceLocator } from '../service_locator.js';
-import type { Awaitable } from '../typedefs.js';
 import { checkStorageAccess } from './access_checking.js';
 import { KeyValueStore } from './key_value_store.js';
 import type { DatasetStats } from './storage_stats.js';
 import { StorageStatsTracker } from './storage_stats.js';
-import type { StorageIdentifier } from './storage_instance_manager.js';
 import type { StorageOpenOptions } from './utils.js';
 import { resolveStorageIdentifier } from './storage_instance_manager.js';
 import { createDualIterable, purgeDefaultStorages } from './utils.js';

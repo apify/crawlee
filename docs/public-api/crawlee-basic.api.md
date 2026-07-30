@@ -54,7 +54,7 @@ import { Statistics } from '@crawlee/core';
 import type { StatisticsOptions } from '@crawlee/core';
 import type { StatisticState } from '@crawlee/core';
 import type { StorageBackend } from '@crawlee/types';
-import type { StorageIdentifier } from '@crawlee/core';
+import type { StorageIdentifier } from '@crawlee/types';
 import { StringPredicate } from 'ow';
 import { TimeoutError } from '@apify/timeout';
 import type { TypedRequestsLike } from '@crawlee/core';
