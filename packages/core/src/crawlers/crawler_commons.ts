@@ -5,10 +5,10 @@ import type { Configuration } from '../configuration.js';
 import type { EnqueueLinksOptions } from '../enqueue_links/enqueue_links.js';
 import type { CrawleeLogger } from '../log.js';
 import type { Request, RequestOptions, Source } from '../request.js';
+import type { StorageIdentifier } from '../storages/storage_instance_manager.js';
 import type { Dataset } from '../storages/dataset.js';
 import { KeyValueStore, type RecordOptions } from '../storages/key_value_store.js';
 import type { RequestQueueOperationOptions } from '../storages/request_queue.js';
-import type { StorageIdentifier } from '../storages/storage_instance_manager.js';
 
 /** @internal */
 export type IsAny<T> = 0 extends 1 & T ? true : false;
@@ -253,7 +253,7 @@ export class RequestHandlerResult {
     private addRequestsCalls: Parameters<RestrictedCrawlingContext['addRequests']>[] = [];
 
     constructor(
-        private config: Configuration,
+        private configuration: Configuration,
         private crawleeStateKey: string,
     ) {}
 
@@ -346,11 +346,11 @@ export class RequestHandlerResult {
     };
 
     getKeyValueStore: RestrictedCrawlingContext['getKeyValueStore'] = async (identifier) => {
-        const store = await KeyValueStore.open(identifier, { config: this.config });
+        const store = await KeyValueStore.open(identifier, { configuration: this.configuration });
         const storeId = store.id;
 
         return {
-            id: storeId ?? this.config.defaultKeyValueStoreId,
+            id: storeId ?? this.configuration.defaultKeyValueStoreId,
             name: store.name,
             getValue: async (key) => this.getKeyValueStoreChangedValue(storeId, key) ?? (await store.getValue(key)),
             setValue: async (key, value, options) => {
@@ -362,7 +362,7 @@ export class RequestHandlerResult {
     };
 
     private getKeyValueStoreChangedValue = (storeKey: string | undefined, key: string) => {
-        const id = storeKey ?? this.config.defaultKeyValueStoreId;
+        const id = storeKey ?? this.configuration.defaultKeyValueStoreId;
         this._keyValueStoreChanges[id] ??= {};
         return this.keyValueStoreChanges[id][key]?.changedValue ?? null;
     };
@@ -373,7 +373,7 @@ export class RequestHandlerResult {
         changedValue: unknown,
         options?: RecordOptions,
     ) => {
-        const id = storeKey ?? this.config.defaultKeyValueStoreId;
+        const id = storeKey ?? this.configuration.defaultKeyValueStoreId;
         this._keyValueStoreChanges[id] ??= {};
         this._keyValueStoreChanges[id][key] = { changedValue, options };
     };

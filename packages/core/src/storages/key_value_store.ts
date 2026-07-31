@@ -1,17 +1,22 @@
-import type { Dictionary, KeyValueStoreBackend, KeyValueStoreInfo, KeyValueStoreItemData } from '@crawlee/types';
+import type {
+    Awaitable,
+    Dictionary,
+    KeyValueStoreBackend,
+    KeyValueStoreInfo,
+    KeyValueStoreItemData,
+} from '@crawlee/types';
 import ow, { ArgumentError } from 'ow';
 
 import { KEY_VALUE_STORE_KEY_REGEX } from '@apify/consts';
 
 import { Configuration } from '../configuration.js';
 import { serviceLocator } from '../service_locator.js';
-import type { Awaitable } from '../typedefs.js';
 import { checkStorageAccess } from './access_checking.js';
 import { parseValue, serializeValue } from './key_value_store_codec.js';
 import type { KeyValueStoreStats } from './storage_stats.js';
 import { StorageStatsTracker } from './storage_stats.js';
-import type { StorageIdentifier } from './storage_instance_manager.js';
 import type { StorageOpenOptions } from './utils.js';
+import type { StorageIdentifier } from './storage_instance_manager.js';
 import { resolveStorageIdentifier } from './storage_instance_manager.js';
 import { createDualIterable, purgeDefaultStorages } from './utils.js';
 import { isBuffer, isStream } from '../byte_utils.js';
@@ -96,7 +101,7 @@ export class KeyValueStore {
      */
     constructor(
         options: KeyValueStoreOptions,
-        readonly config = Configuration.getGlobalConfig(),
+        readonly configuration = Configuration.getGlobalConfiguration(),
     ) {
         this.id = options.metadata.id;
         this.name = options.metadata.name;
@@ -670,15 +675,15 @@ export class KeyValueStore {
         ow(
             options,
             ow.object.exactShape({
-                config: ow.optional.object.instanceOf(Configuration),
+                configuration: ow.optional.object.instanceOf(Configuration),
                 storageBackend: ow.optional.object,
             }),
         );
 
-        options.config ??= Configuration.getGlobalConfig();
+        options.configuration ??= Configuration.getGlobalConfiguration();
         const storageBackend = options.storageBackend ?? serviceLocator.getStorageBackend();
 
-        await purgeDefaultStorages({ onlyPurgeOnce: true, storageBackend, config: options.config });
+        await purgeDefaultStorages({ onlyPurgeOnce: true, storageBackend, configuration: options.configuration });
 
         const resolved = await resolveStorageIdentifier(identifier, storageBackend, 'KeyValueStore');
 
@@ -871,7 +876,7 @@ export class KeyValueStore {
      */
     static async getInput<T = Dictionary | string | Buffer>(): Promise<T | null> {
         const store = await this.open();
-        return store.getValue<T>(store.config.inputKey);
+        return store.getValue<T>(store.configuration.inputKey);
     }
 }
 

@@ -3,7 +3,7 @@ import type { BrowserCrawlerOptions, BrowserCrawlingContext } from '@crawlee/bro
 import type { CheerioCrawlerOptions, CheerioErrorHandler, CheerioRequestHandler } from '@crawlee/cheerio';
 import type { HttpCrawlerOptions, HttpCrawlingContext, HttpErrorHandler } from '@crawlee/http';
 import type { PlaywrightCrawlerOptions, PlaywrightCrawlingContext } from '@crawlee/playwright';
-import type { Dictionary } from '@crawlee/utils';
+import type { Dictionary } from '@crawlee/types';
 
 /**
  * Type-level regression test for https://github.com/apify/crawlee/issues/3424.

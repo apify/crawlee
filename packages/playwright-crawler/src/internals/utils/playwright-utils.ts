@@ -23,8 +23,8 @@ import { createRequire } from 'node:module';
 import vm from 'node:vm';
 
 import { Configuration, KeyValueStore, type Request, serviceLocator, SessionError, validators } from '@crawlee/browser';
-import type { BatchAddRequestsResult } from '@crawlee/types';
-import { type CheerioRoot, type Dictionary, expandShadowRoots, sleep } from '@crawlee/utils';
+import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
+import { type CheerioRoot, expandShadowRoots, sleep } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
 import ow from 'ow';
 import type { Download, Page, Response, Route } from 'playwright';
@@ -529,9 +529,9 @@ export interface SaveSnapshotOptions {
 
     /**
      * Configuration of the crawler that will be used to save the snapshot.
-     * @default Configuration.getGlobalConfig()
+     * @default Configuration.getGlobalConfiguration()
      */
-    config?: Configuration;
+    configuration?: Configuration;
 }
 
 /**
@@ -549,7 +549,7 @@ export async function saveSnapshot(page: Page, options: SaveSnapshotOptions = {}
             saveScreenshot: ow.optional.boolean,
             saveHtml: ow.optional.boolean,
             keyValueStoreName: ow.optional.string,
-            config: ow.optional.object,
+            configuration: ow.optional.object,
         }),
     );
 
@@ -559,12 +559,12 @@ export async function saveSnapshot(page: Page, options: SaveSnapshotOptions = {}
         saveScreenshot = true,
         saveHtml = true,
         keyValueStoreName,
-        config,
+        configuration,
     } = options;
 
     try {
         const store = await KeyValueStore.open(keyValueStoreName ? { name: keyValueStoreName } : null, {
-            config: config ?? Configuration.getGlobalConfig(),
+            configuration: configuration ?? Configuration.getGlobalConfiguration(),
         });
 
         if (saveScreenshot) {

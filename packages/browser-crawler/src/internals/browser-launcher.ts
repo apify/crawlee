@@ -4,7 +4,7 @@ import os from 'node:os';
 
 import { Configuration } from '@crawlee/basic';
 import type { BrowserPlugin, BrowserPluginOptions } from '@crawlee/browser-pool';
-import type { Constructor, Dictionary } from '@crawlee/utils';
+import type { Constructor, Dictionary } from '@crawlee/types';
 import ow from 'ow';
 
 const DEFAULT_VIEWPORT = {
@@ -138,7 +138,7 @@ export abstract class BrowserLauncher<
      */
     constructor(
         launchContext: BrowserLaunchContext<LaunchOptions, Launcher>,
-        readonly config = Configuration.getGlobalConfig(),
+        readonly configuration = Configuration.getGlobalConfiguration(),
     ) {
         const {
             launcher,
@@ -189,7 +189,7 @@ export abstract class BrowserLauncher<
             ...this.launchOptions,
         };
 
-        if (this.config.disableBrowserSandbox) {
+        if (this.configuration.disableBrowserSandbox) {
             launchOptions.args.push('--no-sandbox');
         }
 
@@ -209,11 +209,11 @@ export abstract class BrowserLauncher<
     }
 
     protected getDefaultHeadlessOption(): boolean {
-        return this.config.headless && !this.config.xvfb;
+        return this.configuration.headless && !this.configuration.xvfb;
     }
 
     private getChromeExecutablePath(): string {
-        return this.config.chromeExecutablePath ?? this.getTypicalChromeExecutablePath();
+        return this.configuration.chromeExecutablePath ?? this.getTypicalChromeExecutablePath();
     }
 
     /**

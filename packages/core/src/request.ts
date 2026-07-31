@@ -2,7 +2,7 @@ import type { BinaryLike } from 'node:crypto';
 import crypto from 'node:crypto';
 import util from 'node:util';
 
-import type { Dictionary } from '@crawlee/types';
+import type { AllowedHttpMethods, Dictionary } from '@crawlee/types';
 import type { BasePredicate } from 'ow';
 import ow from 'ow';
 
@@ -11,7 +11,6 @@ import { cryptoRandomObjectId, normalizeUrl } from '@apify/utilities';
 import type { EnqueueLinksOptions } from './enqueue_links/enqueue_links.js';
 import type { SkippedRequestReason } from './enqueue_links/shared.js';
 import { serviceLocator } from './service_locator.js';
-import type { AllowedHttpMethods } from './typedefs.js';
 import { keys } from './typedefs.js';
 
 // new properties on the Request object breaks serialization

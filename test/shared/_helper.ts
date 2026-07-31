@@ -4,10 +4,11 @@ import path from 'node:path';
 import { setTimeout } from 'node:timers/promises';
 
 import bodyParser from 'body-parser';
-import { entries } from 'crawlee';
 import type { Application } from 'express';
 import express from 'express';
 import iconv from 'iconv-lite';
+
+import { entries } from './typedefs.js';
 
 export const startExpressAppPromise = async (app: Application, port: number) => {
     return new Promise<Server>((resolve) => {

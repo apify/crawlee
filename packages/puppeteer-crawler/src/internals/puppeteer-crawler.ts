@@ -122,9 +122,9 @@ export interface PuppeteerCrawlerOptions<
  *
  * New pages are only opened when there is enough free CPU and memory available,
  * using the functionality provided by the {@apilink AutoscaledPool} class.
- * All {@apilink AutoscaledPool} configuration options can be passed to the {@apilink PuppeteerCrawlerOptions.autoscaledPoolOptions}
- * parameter of the `PuppeteerCrawler` constructor. For user convenience, the `minConcurrency` and `maxConcurrency`
- * {@apilink AutoscaledPoolOptions} are available directly in the `PuppeteerCrawler` constructor.
+ * Concurrency is tuned via the `minConcurrency`, `maxConcurrency` and `maxRequestsPerMinute` options of the
+ * `PuppeteerCrawler` constructor, or, for finer control, by injecting a pre-configured
+ * {@apilink ConcurrencySystem|`concurrencySystem`}.
  *
  * Note that the pool of Puppeteer instances is internally managed by the [BrowserPool](https://github.com/apify/browser-pool) class.
  *
@@ -284,7 +284,10 @@ export class PuppeteerCrawler<
             infiniteScroll: async (options?: InfiniteScrollOptions) =>
                 puppeteerUtils.infiniteScroll(context.page, options),
             saveSnapshot: async (options?: SaveSnapshotOptions) =>
-                puppeteerUtils.saveSnapshot(context.page, { ...options, config: serviceLocator.getConfiguration() }),
+                puppeteerUtils.saveSnapshot(context.page, {
+                    ...options,
+                    configuration: serviceLocator.getConfiguration(),
+                }),
             closeCookieModals: async () => puppeteerUtils.closeCookieModals(context.page),
         };
     }

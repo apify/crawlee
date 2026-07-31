@@ -88,7 +88,7 @@ export class PlaywrightLauncher extends BrowserLauncher<PlaywrightPlugin> {
      */
     constructor(
         launchContext: PlaywrightLaunchContext = {},
-        override readonly config = Configuration.getGlobalConfig(),
+        override readonly configuration = Configuration.getGlobalConfiguration(),
     ) {
         ow(launchContext, 'PlaywrightLauncherOptions', ow.object.exactShape(PlaywrightLauncher.optionsShape));
 
@@ -106,11 +106,11 @@ export class PlaywrightLauncher extends BrowserLauncher<PlaywrightPlugin> {
                 ...rest,
                 launchOptions: {
                     ...launchOptions,
-                    executablePath: getDefaultExecutablePath(launchContext, config),
+                    executablePath: getDefaultExecutablePath(launchContext, configuration),
                 },
                 launcher,
             },
-            config,
+            configuration,
         );
 
         this.Plugin = PlaywrightPlugin;
@@ -122,8 +122,11 @@ export class PlaywrightLauncher extends BrowserLauncher<PlaywrightPlugin> {
  * @returns default path to browser.
  * @ignore
  */
-function getDefaultExecutablePath(launchContext: PlaywrightLaunchContext, config: Configuration): string | undefined {
-    const pathFromPlaywrightImage = config.defaultBrowserPath;
+function getDefaultExecutablePath(
+    launchContext: PlaywrightLaunchContext,
+    configuration: Configuration,
+): string | undefined {
+    const pathFromPlaywrightImage = configuration.defaultBrowserPath;
     const { launchOptions = {} } = launchContext;
 
     if (launchOptions.executablePath) {
@@ -170,15 +173,15 @@ function getDefaultExecutablePath(launchContext: PlaywrightLaunchContext, config
  *   Optional settings passed to `browserType.launch()`. In addition to
  *   [Playwright's options](https://playwright.dev/docs/api/class-browsertype?_highlight=launch#browsertypelaunchoptions)
  *   the object may contain our own  {@apilink PlaywrightLaunchContext} that enable additional features.
- * @param [config]
+ * @param [configuration]
  * @returns
  *   Promise that resolves to Playwright's `Browser` instance.
  */
 export async function launchPlaywright(
     launchContext?: PlaywrightLaunchContext,
-    config = Configuration.getGlobalConfig(),
+    configuration = Configuration.getGlobalConfiguration(),
 ): Promise<Browser> {
-    const playwrightLauncher = new PlaywrightLauncher(launchContext, config);
+    const playwrightLauncher = new PlaywrightLauncher(launchContext, configuration);
 
     return playwrightLauncher.launch();
 }

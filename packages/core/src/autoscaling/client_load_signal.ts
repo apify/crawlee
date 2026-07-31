@@ -1,60 +1,122 @@
 import type { StorageBackend } from '@crawlee/types';
 
-import type { LoadSnapshot } from './load_signal.js';
+import type { BetterIntervalID } from '@apify/utilities';
+import { betterClearInterval, betterSetInterval } from '@apify/utilities';
+
+import { serviceLocator } from '../service_locator.js';
+import type { LoadSignal, LoadSignalStartContext, LoadSnapshot } from './load_signal.js';
 import { SnapshotStore } from './load_signal.js';
 
 const CLIENT_RATE_LIMIT_ERROR_RETRY_COUNT = 2;
 
+/**
+ * A snapshot produced by the built-in client (rate-limit) signal.
+ * @internal
+ */
 export interface ClientSnapshot extends LoadSnapshot {
     rateLimitErrorCount: number;
 }
 
+/**
+ * Tuning for the built-in **client** (rate-limit) load signal, as accepted both by {@apilink ClientLoadSignal} and by
+ * the {@apilink LoadSignalsOptions.client|`client`} shorthand on {@apilink LoadSignalsOptions}.
+ */
 export interface ClientLoadSignalOptions {
-    client: StorageBackend;
-    clientSnapshotIntervalSecs?: number;
-    maxClientErrors?: number;
+    /**
+     * Defines the interval of checking the current state of the remote API client, in seconds.
+     * @default 1
+     */
+    snapshotIntervalSecs?: number;
+
+    /**
+     * Defines the maximum number of new rate limit errors within the given interval.
+     * @default 3
+     */
+    maxErrors?: number;
+
+    /**
+     * Maximum ratio of overloaded snapshots in a sample before the client counts as overloaded.
+     * @default 0.3
+     */
     overloadedRatio?: number;
-    snapshotHistoryMillis?: number;
 }
 
 /**
- * Periodically checks the storage client for rate-limit errors (HTTP 429)
- * and reports overload when the error delta exceeds a threshold.
+ * Periodically checks the storage backend for rate-limit errors (HTTP 429) and reports overload when the error delta
+ * exceeds a threshold.
+ *
+ * Built by default; construct one yourself only to wrap or adapt it — see {@apilink LoadSignal}.
+ *
+ * Switch it off entirely ({@apilink LoadSignalsOptions.client|`client: false`}) if the storage backend reports no
+ * rate-limit statistics, since it otherwise polls it every second to no purpose.
+ *
+ * @category Scaling
  */
-export function createClientLoadSignal(options: ClientLoadSignalOptions) {
-    const maxClientErrors = options.maxClientErrors ?? 3;
+export class ClientLoadSignal implements LoadSignal {
+    readonly name = 'clientInfo';
+    readonly overloadedRatio: number;
 
-    const signal = SnapshotStore.fromInterval<ClientSnapshot>({
-        name: 'clientInfo',
-        overloadedRatio: options.overloadedRatio ?? 0.3,
-        intervalMillis: (options.clientSnapshotIntervalSecs ?? 1) * 1000,
-        snapshotHistoryMillis: options.snapshotHistoryMillis,
-        handler(store, intervalCallback) {
-            const now = new Date();
+    private readonly store = new SnapshotStore<ClientSnapshot>();
+    private readonly intervalMillis: number;
+    private readonly maxErrors: number;
+    private interval?: BetterIntervalID;
+    private client?: StorageBackend;
 
-            const allErrorCounts = options.client.stats?.rateLimitErrors ?? [];
-            const currentErrCount = allErrorCounts[CLIENT_RATE_LIMIT_ERROR_RETRY_COUNT] || 0;
+    constructor(options: ClientLoadSignalOptions = {}) {
+        this.overloadedRatio = options.overloadedRatio ?? 0.3;
+        this.intervalMillis = (options.snapshotIntervalSecs ?? 1) * 1000;
+        this.maxErrors = options.maxErrors ?? 3;
+        this.handle = this.handle.bind(this);
+    }
 
-            const snapshot: ClientSnapshot = {
-                createdAt: now,
-                isOverloaded: false,
-                rateLimitErrorCount: currentErrCount,
-            };
-            const all = store.getAll();
-            const previousSnapshot = all[all.length - 1];
-            if (previousSnapshot) {
-                const { rateLimitErrorCount } = previousSnapshot;
-                const delta = currentErrCount - rateLimitErrorCount;
-                if (delta > maxClientErrors) snapshot.isOverloaded = true;
-            }
+    async start(context: LoadSignalStartContext): Promise<void> {
+        this.store.useSampleWindow(context.maxSampleWindowMillis);
+        // A new session starts from a clean slate, or its first measurement diffs the error count against the previous
+        // session's — possibly against a different backend, since the client is resolved afresh just below.
+        this.store.clear();
 
-            store.push(snapshot, now);
-            intervalCallback();
-        },
-    });
+        // Resolved here rather than in the constructor, where asking for the backend would instantiate a default one
+        // as a side effect - long before the crawler that owns the run has had a chance to register its own.
+        this.client = serviceLocator.getStorageBackend();
+        this.interval = betterSetInterval(this.handle, this.intervalMillis);
+    }
 
-    return signal;
+    async stop(): Promise<void> {
+        if (this.interval) betterClearInterval(this.interval);
+        this.interval = undefined;
+        this.client = undefined;
+    }
+
+    getSample(sampleDurationMillis?: number): LoadSnapshot[] {
+        return this.store.getSample(sampleDurationMillis);
+    }
+
+    /**
+     * Records one snapshot, overloaded when rate-limit errors grew by more than the configured limit since the
+     * previous one.
+     * @internal Also lets tests drive the measurement without waiting on a timer.
+     */
+    handle(intervalCallback: () => unknown): void {
+        const now = new Date();
+
+        const allErrorCounts = this.client?.stats?.rateLimitErrors ?? [];
+        const currentErrCount = allErrorCounts[CLIENT_RATE_LIMIT_ERROR_RETRY_COUNT] || 0;
+
+        const snapshot: ClientSnapshot = {
+            createdAt: now,
+            isOverloaded: false,
+            rateLimitErrorCount: currentErrCount,
+        };
+
+        const all = this.store.getAll();
+        const previousSnapshot = all[all.length - 1];
+
+        if (previousSnapshot) {
+            const delta = currentErrCount - previousSnapshot.rateLimitErrorCount;
+            if (delta > this.maxErrors) snapshot.isOverloaded = true;
+        }
+
+        this.store.push(snapshot, now);
+        intervalCallback();
+    }
 }
-
-/** @internal Return type for backward compat in Snapshotter facade */
-export type ClientLoadSignal = ReturnType<typeof createClientLoadSignal>;

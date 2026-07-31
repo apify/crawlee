@@ -52,7 +52,7 @@ The change spans, among others:
 
 - **`BasicCrawler`** — `unexpectedStop`, `requestHandlerTimeoutMillis`, `sameDomainDelayMillis`, `domainAccessedTime`, `handledRequestsCount`, `statusMessageLoggingInterval`, `statusMessageCallback`, `ignoreHttpErrorStatusCodes`, `autoscaledPoolOptions`, `respectRobotsTxtFile`, and the helpers `buildBasicContextPipeline`, `validateRequestUserData`, `pauseOnMigration`, `fetchNextRequest`, `delayRequest`, `handleRequest`, `timeoutAndRetry`, `isTaskReadyFunction`, `defaultIsFinishedFunction`, `requestFunctionErrorHandler`, `handleFailedRequestHandler`, `canRequestBeRetried`
 - **`HttpCrawler`** — `preNavigationHooks`, `postNavigationHooks`, `saveResponseCookies`, `navigationTimeoutMillis`, `ignoreSslErrors`, `suggestResponseEncoding`, `forceResponseEncoding`, `supportedMimeTypes`, and the helpers `requestFunction`, `parseResponse`, `getRequestOptions`, `encodeResponse`, `extendSupportedMimeTypes`, `handleRequestTimeout`
-- **`AutoscaledPool`** — `autoscale`, `maybeRunTask`, `incrementTasksDonePerSecond`, `maybeFinish`, `destroy`, `scaleUp`, `scaleDown`, `isOverMaxRequestLimit`
+- **`AutoscaledPool`** — `maybeRunTask`, `maybeFinish`, `destroy` (the scaling internals `autoscale`, `scaleUp`, `scaleDown`, `incrementTasksDonePerSecond` and `isOverMaxRequestLimit` are private too, but they now live on the `ConcurrencySystem` the pool delegates to — see [below](#autoscaling-split-into-autoscaledpool--concurrencysystem))
 - **`SessionPool`** — all pool internals (`log`, `maxPoolSize`, `createSessionFunction`, `keyValueStore`, `sessions`, `sessionMap`, `sessionOptions`, `persistStateKey`, `persistStateKeyValueStoreId`, `events`, `persistenceOptions`, `sessionReuseStrategy`, and the helpers `ensureInitialized`, `maybeLoadSessionPool`, `registerSession`, `createSession`, `hasSpaceForSession`, `pickSession`, `removeRetiredSessions`, `getRandomIndex`, `defaultCreateSessionFunction`)
 - **`Session`** — `maybeSelfRetire` (`userData` is now `readonly`)
 - **`RequestList`** — all `_`-prefixed helpers (`addFetchedRequests`, `addPersistedRequests`, `addRequest`, `addRequestsFromSources`, `ensureInProgress`, `ensureIsInitialized`, `ensureUniqueKeyValid`, `fetchRequestsFromUrl`, `getPersistedState`, `loadStateAndPersistedRequests`, `persistRequests`, `restoreState`)
@@ -92,7 +92,7 @@ const crawler = new PlaywrightCrawler({
 });
 ```
 
-The browser *launchers* (`PlaywrightLauncher`, `PuppeteerLauncher`) keep their `(launchContext?, config?)` constructor signature — this change is only about the crawler classes.
+The browser *launchers* (`PlaywrightLauncher`, `PuppeteerLauncher`) keep their `(launchContext?, configuration?)` constructor signature — this change is only about the crawler classes.
 
 ## Removed symbols
 
@@ -112,7 +112,7 @@ The browser *launchers* (`PlaywrightLauncher`, `PuppeteerLauncher`) keep their `
 - `BasicCrawler._tagUserHandlerError` (protected) - internal error-tagging helper, no longer part of the crawler surface
 - `BasicCrawler.handledRequestsCount` setter (`@deprecated`) - the throw-on-assign guard is gone; the getter is now internal-only and the count is derived from `this.stats`
 - `PlaywrightPlugin._containerProxyServer` (public) - was an unused, never-populated field
-- `Snapshotter._snapshotMemory`, `Snapshotter._memoryOverloadWarning`, `Snapshotter._snapshotEventLoop`, `Snapshotter._snapshotCpu`, `Snapshotter._snapshotClient`, `Snapshotter._pruneSnapshots` (all `@deprecated` protected stubs) - snapshotting is handled by the individual load signals, use `Snapshotter.getMemorySample()` / `getEventLoopSample()` / `getCpuSample()` / `getClientSample()` instead
+- `Snapshotter._snapshotMemory`, `Snapshotter._memoryOverloadWarning`, `Snapshotter._snapshotEventLoop`, `Snapshotter._snapshotCpu`, `Snapshotter._snapshotClient`, `Snapshotter._pruneSnapshots` (all `@deprecated` protected stubs) - snapshotting is now handled by the individual load signals, and the `Snapshotter` itself is internal to `ConcurrencySystem`; there is no longer a public API for reading raw resource snapshots
 - `FileDownloadOptions.streamHandler` - streaming should now be handled directly in the `requestHandler` instead
 - `playwrightUtils.registerUtilsToContext` and `puppeteerUtils.registerUtilsToContext` - this is now added to the context via `ContextPipeline` composition
 - `context.blockResources` and `context.cacheResponses` — no longer attached to the crawling context. The functionality is still available as deprecated functions, accessible both via the `puppeteerUtils` namespace (`puppeteerUtils.blockResources`, `puppeteerUtils.cacheResponses`) and as top-level exports from `@crawlee/puppeteer` (`import { blockResources, cacheResponses } from '@crawlee/puppeteer'`). Unlike the old context helpers, these take an explicit `page` argument — e.g. `await blockResources(page)`. Both are `@deprecated` and will be removed in a future release, so migrate away from them.
@@ -355,6 +355,29 @@ await pool.destroy();
 
 Note that this couples your code to the built-in `BrowserPool` — custom `IBrowserPool` implementations may not expose controllers at all.
 
+## Custom rendering type predictors via the `IRenderingTypePredictor` interface
+
+The `renderingTypePredictor` option of `AdaptivePlaywrightCrawler` is now typed as the new `IRenderingTypePredictor` interface — `predict(request)` and `storeResult(requests, renderingType)`, nothing else. The built-in `RenderingTypePredictor` implements it, so passing one still works.
+
+What changed is the lifecycle: the crawler used to call `initialize()` on the predictor it was given, even though it did not create it. It now follows the same own-only-what-you-built rule as the session and browser pools — a predictor you pass in is *borrowed*, so setting it up is your job, and `initialize` is not part of the interface at all. The built-in predictor restores its persisted state in `initialize()` and will throw `Recoverable state has not yet been loaded` from `predict()` if it is never called:
+
+```typescript
+import { AdaptivePlaywrightCrawler, RenderingTypePredictor } from '@crawlee/playwright';
+
+const renderingTypePredictor = new RenderingTypePredictor({ detectionRatio: 0.1 });
+// You own the predictor — initialize it yourself (this used to be done by the crawler).
+await renderingTypePredictor.initialize();
+
+const crawler = new AdaptivePlaywrightCrawler({
+    renderingTypePredictor,
+    requestHandler: async ({ pushData }) => {
+        // …
+    },
+});
+```
+
+If you don't pass a predictor, nothing changes: the crawler builds one from `renderingTypeDetectionRatio` and, since it owns that one, initializes it for you.
+
 ## `tieredProxyUrls` is removed from `ProxyConfiguration`
 
 The `tieredProxyUrls` option has been removed, together with the `proxyTier` field on `ProxyInfo` and the `proxyTier` plumbing in `BrowserPool`. In v4 the `Session` is the main rotation unit - a session already carries its own proxy, cookies and error score, so the pool rotates the whole fingerprint when a session gets retired on a block.
@@ -429,12 +452,17 @@ In v3, we introduced a new way to detect available resources for the crawler, av
 
 As part of this change, the low-level resource- and environment-detection helpers exported from `@crawlee/utils` were **removed**: `getMemoryInfo()` (and the `MemoryInfo` interface), `isContainerized()`, `isDocker()`, `isLambda()`, and `getCgroupsVersion()`. These backed the old detection path and are no longer part of the public API. Resource detection is now handled internally by the crawler's autoscaling; if you called any of these directly, read the equivalent values from the OS (`node:os`) or the relevant cgroup files yourself.
 
+## `@crawlee/types` symbols are no longer re-exported
+
+The general-purpose utility types owned by `@crawlee/types` are no longer re-exported from other packages, so `Dictionary`, `Awaitable`, `Constructor`, `Cookie`, `QueueOperationInfo` and `AllowedHttpMethods` are no longer available from `@crawlee/core` (nor, in turn, from `@crawlee/basic` and the `crawlee` meta-package). Add `@crawlee/types` to your dependencies and import them from there — most of the package's types (`ISession`, `ProxyInfo`, `RequestSchema`, …) already required this. The interfaces you implement against — `StorageBackend`, `StorageIdentifier` and `IBrowserPool` / `NewPageOptions` — stay reachable from `@crawlee/core` and `@crawlee/browser-pool` respectively.
+
 ## Removed and relocated `@crawlee/utils` exports
 
 Besides the resource-detection helpers above, several other `@crawlee/utils` exports were removed or moved:
 
 - **Removed URL helpers:** `filterUrl(target, origin, strategy)`, `matchesEnqueueStrategy(strategy, target, origin)`, and the `UNSUPPORTED_SCHEME_MESSAGE` constant. URL filtering by enqueue strategy is now internal to `enqueueLinks`.
 - **Relocated enums/types:** `EnqueueStrategy` now lives in `@crawlee/core` and `SearchParams` in `@crawlee/types`. They are no longer re-exported from `@crawlee/utils`, so `import { EnqueueStrategy } from '@crawlee/utils'` breaks — import them from `crawlee` (the meta-package) or from `@crawlee/core` / `@crawlee/types` instead.
+- **Removed `RobotsFile` alias:** `RobotsFile` was an alias for the `RobotsTxtFile` class and is removed. Rename any usage to `RobotsTxtFile`; the class itself is unchanged apart from the signature change described below.
 
 ### `RobotsTxtFile.find` signature changed; sitemap options removed
 
@@ -577,7 +605,7 @@ The following methods and properties have been removed from `Configuration`:
 - `Configuration.resetGlobalState()` - use `serviceLocator.reset()` instead
 - `Configuration.storageManagers` - moved to `ServiceLocator.storageManagers`
 
-The `EventManager` and `LocalEventManager` constructors now accept an options object for configuring event intervals (e.g. `persistStateIntervalMillis`, `systemInfoIntervalMillis`). You can also use the new `LocalEventManager.fromConfig()` factory method to create an instance with intervals derived from a `Configuration` object.
+The `EventManager` and `LocalEventManager` constructors now accept an options object for configuring event intervals (e.g. `persistStateIntervalMillis`, `systemInfoIntervalMillis`). You can also use the new `LocalEventManager.fromConfiguration()` factory method to create an instance with intervals derived from a `Configuration` object.
 
 ### Migration guide
 
@@ -617,7 +645,7 @@ const crawler = new BasicCrawler({
     },
     configuration: new Configuration({ headless: false }),
     storageBackend: new MemoryStorageBackend(),
-    eventManager: LocalEventManager.fromConfig(),
+    eventManager: LocalEventManager.fromConfiguration(),
 });
 
 await crawler.run(['https://example.com']);
@@ -643,7 +671,7 @@ const crawler = new BasicCrawler({
 
 ### Accessing configuration
 
-`Configuration.getGlobalConfig()` remains as a utility function, but in most cases, you should use `serviceLocator.getConfiguration()` instead:
+`Configuration.getGlobalConfiguration()` remains as a utility function, but in most cases, you should use `serviceLocator.getConfiguration()` instead:
 
 ```typescript
 import { serviceLocator } from 'crawlee';
@@ -652,6 +680,40 @@ const config = serviceLocator.getConfiguration();
 ```
 
 Do note that the method is currently misnamed - in specific circumstances, it will not return the global configuration object, but the one from the currently active service locator.
+
+### `config` is renamed to `configuration` everywhere
+
+v3 used `config` and `configuration` interchangeably. v4 settles on `configuration`, matching Crawlee for Python.
+
+Renamed methods:
+
+| Before | After |
+| --- | --- |
+| `Configuration.getGlobalConfig()` | `Configuration.getGlobalConfiguration()` |
+| `LocalEventManager.fromConfig()` | `LocalEventManager.fromConfiguration()` |
+
+Renamed options — pass `configuration` instead of `config`:
+
+- `Dataset.open()`, `KeyValueStore.open()` and `RequestQueue.open()` (`StorageOpenOptions`)
+- `useState()` (`UseStateOptions`)
+- `purgeDefaultStorages()` (both the options object and the legacy positional argument)
+- `new Snapshotter()` (`SnapshotterOptions`)
+- `saveSnapshot()` in `@crawlee/playwright` and `@crawlee/puppeteer` (`SaveSnapshotOptions`)
+- `RecoverableStateOptions`, `RequestListOptions`, `CpuLoadSignalOptions` and `MemoryLoadSignalOptions`
+
+**Before:**
+```typescript
+const store = await KeyValueStore.open(null, { config: new Configuration({ persistStorage: false }) });
+```
+
+**After:**
+```typescript
+const store = await KeyValueStore.open(null, { configuration: new Configuration({ persistStorage: false }) });
+```
+
+Renamed properties — `Dataset.config`, `KeyValueStore.config`, `Snapshotter.config` and `BrowserLauncher.config` (including `PlaywrightLauncher`, `PuppeteerLauncher` and `StagehandLauncher`) are now `.configuration`.
+
+The `configuration` crawler option is unchanged, as are `serviceLocator.getConfiguration()` and `serviceLocator.setConfiguration()`.
 
 ## Cookie handling in `HttpCrawler` and `sendRequest`
 
@@ -1164,6 +1226,216 @@ If you rely on Crawlee's default configuration (one browser context per session,
 ## The `log` property is typed as `CrawleeLogger`
 
 The `log` property exposed throughout the public API (on the crawling context, `AutoscaledPool`, `Statistics`, `EventManager`, `SessionOptions`, `Dataset`, etc.) is now typed as the `CrawleeLogger` interface (from `@crawlee/types`) rather than the concrete `Log` class from `@apify/log`. If you consume it structurally — calling `log.info(...)`, `log.debug(...)`, `log.child(...)` — nothing changes. You only need to act if you explicitly annotated a variable or parameter with the `Log` type from `@apify/log` and assigned `context.log` to it; type it as `CrawleeLogger` instead.
+
+## Autoscaling split into `AutoscaledPool` + `ConcurrencySystem`
+
+Everything that decides whether there is free compute for one more task — snapshotting, the system-status evaluation, the concurrency budget and the scaling logic — moved out of `AutoscaledPool` into a new `ConcurrencySystem`. The pool keeps only the task loop.
+
+The point is sharing: inject one instance into several pools (and therefore several crawlers) to cap their **combined** concurrency against a single budget, instead of letting each scale independently and oversubscribe the host. The option is typed as `IConcurrencySystem`, a minimal read-only contract, so an alternative governor can be substituted; `ConcurrencySystem` is the canonical implementation and the one crawlers build by default.
+
+:::info Who starts and stops it
+
+Whoever *builds* a `ConcurrencySystem` owns its lifecycle. Crawlers do that for the default system they build per run. One **you** supply is yours to `start()` and `stop()`, because no crawler can know when the last borrower has finished. Forgetting to start it makes `run()` **throw**; stopping it while a pool is still running only **warns**. Read `isRunning` to check whether a system handed to you was already started by its owner.
+
+:::
+
+Every migration below has the same shape — build, start, run, stop:
+
+```typescript
+import { CheerioCrawler, ConcurrencySystem } from 'crawlee';
+
+const concurrencySystem = new ConcurrencySystem({ maxConcurrency: 20 });
+await concurrencySystem.start();
+
+// One crawler, or several: a shared instance caps their combined concurrency.
+const a = new CheerioCrawler({ concurrencySystem, requestHandler });
+const b = new CheerioCrawler({ concurrencySystem, requestHandler });
+
+try {
+    await Promise.all([a.run(), b.run()]);
+} finally {
+    await concurrencySystem.stop();
+}
+```
+
+The `AutoscaledPool` migration below spells it out once more at the pool level; the crawler examples elide it, to keep the actual change in focus.
+
+### `AutoscaledPool` requires a `concurrencySystem` and a `consumer`, and no longer takes scaling options
+
+All scaling and load-monitoring options were **removed** from `AutoscaledPoolOptions` and now live on `ConcurrencySystemOptions`: `minConcurrency`, `maxConcurrency`, `desiredConcurrency`, `desiredConcurrencyRatio`, `scaleUpStepRatio`, `scaleDownStepRatio`, `loggingIntervalSecs`, `autoscaleIntervalSecs`, and `maxTasksPerMinute`, plus the load-signal configuration described [below](#load-signal-options-restructured). The `snapshotterOptions` and `systemStatusOptions` bags are both gone. In their place, `AutoscaledPoolOptions` gained a **required** `concurrencySystem`, plus a **required** `consumer` — the pool's identity (`{ id }`), which it presents to the governor on every capacity query and booking so that a shared one can tell several pools' tasks apart. Crawlers pass their own identity, so this only concerns pools you build yourself.
+
+**Before:**
+```typescript
+const pool = new AutoscaledPool({
+    minConcurrency: 5,
+    maxConcurrency: 50,
+    maxTasksPerMinute: 120,
+    runTaskFunction: async () => { /* ... */ },
+    isTaskReadyFunction: async () => true,
+    isFinishedFunction: async () => false,
+});
+await pool.run();
+```
+
+**After:**
+```typescript
+import { AutoscaledPool, ConcurrencySystem } from '@crawlee/core';
+
+const concurrencySystem = new ConcurrencySystem({
+    minConcurrency: 5,
+    maxConcurrency: 50,
+    maxTasksPerMinute: 120,
+});
+await concurrencySystem.start();
+
+const pool = new AutoscaledPool({
+    concurrencySystem,
+    consumer: { id: 'my-pool' },
+    runTaskFunction: async () => { /* ... */ },
+    isTaskReadyFunction: async () => true,
+    isFinishedFunction: async () => false,
+});
+
+try {
+    await pool.run();
+} finally {
+    await concurrencySystem.stop();
+}
+```
+
+The pool's concurrency accessors are now read-only telemetry: `desiredConcurrency` and `currentConcurrency` remain as getters, while the `minConcurrency`/`maxConcurrency` accessors and every setter were **removed**. Runtime tuning happens on the `ConcurrencySystem` instead — which means building it yourself, since the system a crawler builds for itself is not reachable for reconfiguration:
+
+```typescript
+const concurrencySystem = new ConcurrencySystem({ maxConcurrency: 50 });
+
+const crawler = new CheerioCrawler({
+    concurrencySystem,
+    requestHandler,
+    errorHandler: async ({ response }) => {
+        if (response?.status === 429) concurrencySystem.maxConcurrency = 10;
+    },
+});
+```
+
+One behavioral consequence: `pool.pause()` no longer suspends autoscaling, because the autoscaling interval belongs to the `ConcurrencySystem`, which knows nothing about its borrowers' pause state — deliberately, since other pools sharing it may still need scaling. A paused pool's system keeps evaluating (and possibly scaling down) the desired concurrency and keeps emitting its periodic state log. Scaling *up* stays effectively blocked, as the current concurrency drains below the ratio required for a scale-up. To silence the system during a long pause, `stop()` it (if you own it) and `start()` it again before resuming; a restart discards the snapshots taken before it, so the pause is not mistaken for load.
+
+### `BasicCrawlerOptions.autoscaledPoolOptions` no longer carries concurrency config
+
+`autoscaledPoolOptions` now accepts **only** the task-loop predicates `isFinishedFunction` and `isTaskReadyFunction` (its type changed from `AutoscaledPoolOptions` to `AutoscaledPoolPredicateOptions`). Concurrency configuration goes through either the `minConcurrency` / `maxConcurrency` / `maxRequestsPerMinute` shortcuts (which configure the crawler's default `ConcurrencySystem`), or — for anything finer — a supplied `concurrencySystem`.
+
+Note that this narrowing also drops three options that did *not* move to the `ConcurrencySystem`: `maybeRunIntervalSecs`, `taskTimeoutSecs` and `log` are still `AutoscaledPoolOptions`, but a crawler no longer forwards them, so they can only be set by driving an `AutoscaledPool` yourself. If you were tuning the crawler's task-loop cadence through `autoscaledPoolOptions`, there is no replacement.
+
+**Before:**
+```typescript
+const crawler = new CheerioCrawler({
+    autoscaledPoolOptions: {
+        desiredConcurrency: 10,
+        maxTasksPerMinute: 120,
+        systemStatusOptions: { currentHistorySecs: 10 },
+    },
+    requestHandler,
+});
+```
+
+**After:**
+```typescript
+const concurrencySystem = new ConcurrencySystem({
+    desiredConcurrency: 10,
+    maxTasksPerMinute: 120,
+    currentHistorySecs: 10,
+});
+
+const crawler = new CheerioCrawler({ concurrencySystem, requestHandler });
+```
+
+The shortcuts cannot be combined with a supplied `concurrencySystem` — they configure the default system that a supplied one replaces, so the crawler constructor **throws** rather than dropping a limit you asked for. For the common case, the shortcuts are all you need and no `ConcurrencySystem` is involved:
+
+```typescript
+const crawler = new CheerioCrawler({
+    minConcurrency: 5,
+    maxConcurrency: 50,
+    maxRequestsPerMinute: 120,
+    requestHandler,
+});
+```
+
+A supplied system also replaces the default *wholesale*, including any crawler-specific tuning that default carried. `HttpCrawler` and its subclasses (`CheerioCrawler`, `JSDOMCrawler`, …) ship a preset — a higher `desiredConcurrency` and a relaxed event loop signal — exported as `HTTP_OPTIMIZED_CONCURRENCY_SYSTEM_OPTIONS`; spread it in to keep it:
+
+```typescript
+import { ConcurrencySystem, HTTP_OPTIMIZED_CONCURRENCY_SYSTEM_OPTIONS } from 'crawlee';
+
+const concurrencySystem = new ConcurrencySystem({
+    ...HTTP_OPTIMIZED_CONCURRENCY_SYSTEM_OPTIONS,
+    maxConcurrency: 50,
+});
+```
+
+## Load-signal options restructured
+
+The per-resource load-signal configuration was consolidated. It used to be spread across flat `SnapshotterOptions` fields, the `max*OverloadedRatio` options on `SystemStatusOptions`, and a separate `loadSignals` array — three places, two of them named after classes that are now internal. All of it now lives in a single `loadSignals` bag on `ConcurrencySystemOptions`: one options bag per built-in signal (each carrying its own limits *and* its `overloadedRatio`), plus `custom` for your own implementations.
+
+**Before:**
+```typescript
+new AutoscaledPool({
+    snapshotterOptions: {
+        maxUsedMemoryRatio: 0.8,
+        eventLoopSnapshotIntervalSecs: 2,
+        maxBlockedMillis: 100,
+        clientSnapshotIntervalSecs: 1,
+        maxClientErrors: 3,
+        snapshotHistorySecs: 60,
+    },
+    systemStatusOptions: {
+        maxMemoryOverloadedRatio: 0.2,
+        maxEventLoopOverloadedRatio: 0.7,
+        maxCpuOverloadedRatio: 0.4,
+        maxClientOverloadedRatio: 0.3,
+        currentHistorySecs: 10,
+        loadSignals: [myProxyHealthSignal],
+    },
+    // ...
+});
+```
+
+**After:**
+```typescript
+new ConcurrencySystem({
+    loadSignals: {
+        memory: { maxUsedRatio: 0.8, overloadedRatio: 0.2 },
+        eventLoop: { snapshotIntervalSecs: 2, maxBlockedMillis: 100, overloadedRatio: 0.7 },
+        cpu: { overloadedRatio: 0.4 },
+        client: { snapshotIntervalSecs: 1, maxErrors: 3, overloadedRatio: 0.3 },
+        custom: [myProxyHealthSignal],
+    },
+    // the two evaluation windows are policy, alongside the scaling options
+    snapshotHistorySecs: 60,
+    currentHistorySecs: 10,
+});
+```
+
+In detail: the four `max*OverloadedRatio` options of `SystemStatusOptions` were **removed** (each signal now owns its overload ratio, set in its own bag), custom signals moved from `systemStatusOptions.loadSignals` to `loadSignals.custom`, and the two evaluation windows — `snapshotHistorySecs` (autoscaling) and `currentHistorySecs` (task gating) — are plain options on `ConcurrencySystemOptions`, since they apply to every signal alike rather than to any one of them.
+
+Two related capabilities are new, and covered in the [scaling guide](../guides/scaling-crawlers#load-signals): a built-in signal can be switched **off** with `false`, and each built-in is also a public class (`MemoryLoadSignal`, `EventLoopLoadSignal`, `CpuLoadSignal`, `ClientLoadSignal`) you can construct to wrap or adapt.
+
+A duplicate signal name now **throws**, where naming a custom signal after a built-in (`memInfo`, `eventLoopInfo`, `cpuInfo`, `clientInfo`) used to look like an override but never was one: the built-in kept running and kept holding concurrency down, while your signal only overwrote its field in the reported `SystemInfo`. To take a built-in's place, switch it off:
+
+```typescript
+new ConcurrencySystem({
+    loadSignals: {
+        // Without `memory: false`, this throws — the built-in memory signal is still enabled.
+        memory: false,
+        custom: [myMemorySignal], // free to take over the vacated `memInfo` field
+    },
+});
+```
+
+`Snapshotter` and `SystemStatus` are no longer public API, along with `SnapshotterOptions` and `SystemStatusOptions` — they are implementation details of the `ConcurrencySystem`, which is now the only supported entry point to load monitoring; read the resulting `SystemInfo` through `ConcurrencySystem.getCurrentStatus()`. Still public: the configuration types, the four built-in signal classes, and the extension surface (`LoadSignal`, `SnapshotStore`, `LoadSignalStartContext`). The concrete snapshot types the built-ins produce are *not* — `getSample()` returns plain `LoadSnapshot` values.
+
+### Both evaluation windows are now requested from every signal
+
+Overload is evaluated over two windows: `currentHistorySecs` (default 5s) gates whether another task may start, and `snapshotHistorySecs` (default 30s) drives autoscaling. The long one used to be implicit — `getHistoricalStatus()` asked each signal for *everything it had retained*, so a custom signal keeping five minutes of snapshots silently made autoscaling reason over five minutes of history for that resource while the built-ins used 30 seconds. Both are now requested explicitly from every signal, and `LoadSignal.start()` receives the wider of the two as `maxSampleWindowMillis` so retention can be sized to match.
+
+You are affected if a custom signal retains **more** history than `snapshotHistorySecs` (its stale snapshots no longer influence scaling), or if its `getSample()` ignores the `sampleDurationMillis` argument, in which case it still contributes everything it has. On the API side, `snapshotHistoryMillis` was removed from the per-signal option types and `SnapshotStore` lost both its constructor argument and the `fromInterval`/`fromEvent` factories; call `useSampleWindow(maxSampleWindowMillis)` and `clear()` from your `start()` instead, as a store that is never given a window retains everything. The [scaling guide](../guides/scaling-crawlers#load-signals) has a worked example.
 
 ## Stagehand type narrowings
 
