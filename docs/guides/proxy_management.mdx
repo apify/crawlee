@@ -99,6 +99,30 @@ The `sessionId` parameter is always provided and allows us to differentiate betw
 
 The `options` parameter is an object containing a <ApiLink to="core/class/Request">`Request`</ApiLink>, which is the request that will be made. Note that this object is not always available, for example when we are using the `newUrl` function directly. Your custom function should therefore not rely on the `request` object being present and provide a default behavior when it is not.
 
+### Per-request country targeting
+
+Many proxy providers route all traffic through a single gateway endpoint and choose the exit country based on parameters encoded in the proxy username - for example `user-country-us`. With such providers, we don't need a separate proxy URL for each country. Instead, we can build the credentials dynamically in `newUrlFunction`, based on the request that is about to be made:
+
+```javascript
+const proxyConfiguration = new ProxyConfiguration({
+    newUrlFunction: (sessionId, { request }) => {
+        const country = request?.userData?.country ?? 'us';
+        return `http://user-country-${country}:password@proxy.example.com:8000`;
+    }
+});
+```
+
+We choose the country when enqueueing each request, using its `userData`:
+
+```javascript
+await crawler.addRequests([
+    { url: 'https://example.com/us-store', userData: { country: 'us' } },
+    { url: 'https://example.com/de-store', userData: { country: 'de' } },
+]);
+```
+
+Every provider uses its own username format and parameter names, so check your provider's documentation for the exact syntax. And since the `request` object is not always available (see above), the function should fall back to a sensible default when it is missing.
+
 ### Tiered proxies
 
 You can also provide a list of proxy tiers to the `ProxyConfiguration` class. This is useful when you want to switch between different proxies automatically based on the blocking behavior of the website.
@@ -165,6 +189,28 @@ Our crawlers will now use the selected proxies for all connections.
 &#8203;<ApiLink to="core/class/ProxyConfiguration#newUrl">`proxyConfiguration.newUrl()`</ApiLink> allows us to pass a `sessionId` parameter. It will then be used to create a `sessionId`-`proxyUrl` pair, and subsequent `newUrl()` calls with the same `sessionId` will always return the same `proxyUrl`. This is extremely useful in scraping, because we want to create the impression of a real user. See the [session management guide](../guides/session-management) and <ApiLink to="core/class/SessionPool">`SessionPool`</ApiLink> class for more information on how keeping a real session helps us avoid blocking.
 
 When no `sessionId` is provided, our proxy URLs are rotated round-robin.
+
+Providers that encode routing parameters in the proxy username usually support sessions the same way - a session parameter in the username, such as `user-country-us-session-abc123`, keeps subsequent connections on the same exit IP. We can pass Crawlee's `sessionId` straight into that parameter, which ties each <ApiLink to="core/class/SessionPool">`SessionPool`</ApiLink> session to one exit IP: when Crawlee retires a blocked session, the new session's id automatically produces new credentials, and with them a new IP.
+
+```javascript
+const proxyConfiguration = new ProxyConfiguration({
+    newUrlFunction: (sessionId, { request }) => {
+        const country = request?.userData?.country ?? 'us';
+        const username = sessionId
+            ? `user-country-${country}-session-${sessionId}`
+            : `user-country-${country}`;
+        return `http://${username}:password@proxy.example.com:8000`;
+    }
+});
+```
+
+This works because the session identifier is limited to 50 characters from `0-9`, `a-z`, `A-Z`, `"."`, `"_"` and `"~"` - it never contains the `-` character that providers commonly use as the delimiter inside the username, so it is safe to embed.
+
+:::tip
+
+Parameter names differ between providers (`session`, `sessid`, `sid`, ...), and gateways often silently ignore parameters they don't recognize - a misspelled session parameter typically doesn't cause an error, it just means every connection gets a different IP. After setting this up, verify that two subsequent requests with the same session return the same IP.
+
+:::
 
 <Tabs groupId="proxy_session_management">
     <TabItem value="http" label="HttpCrawler">
