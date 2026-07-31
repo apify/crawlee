@@ -2,7 +2,8 @@ import { PassThrough } from 'node:stream';
 
 import { KeyValueStore, MemoryStorageBackend, serviceLocator } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/types';
-import { toBuffer } from '@crawlee/utils';
+
+import { toBuffer } from '../../../packages/core/src/byte_utils.js';
 
 beforeEach(async () => {
     serviceLocator.setStorageBackend(new MemoryStorageBackend());
