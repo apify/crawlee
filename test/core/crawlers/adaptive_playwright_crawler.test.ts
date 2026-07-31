@@ -162,7 +162,6 @@ describe('AdaptivePlaywrightCrawler', () => {
         detectionProbabilityRecommendation: number;
         renderingType: 'clientOnly' | 'static';
     }) => ({
-        initialize: async () => {},
         predict: vi.fn((_request: Request) => prediction),
         storeResult: vi.fn((_request: Request, _renderingType: string) => {}),
     });
@@ -761,16 +760,20 @@ describe('AdaptivePlaywrightCrawler', () => {
             await pushData({ content: 'test data' });
         });
 
+        // Use a real RenderingTypePredictor instead of the mocked one. An injected predictor is borrowed -
+        // the crawler never initializes it, so restoring its persisted state is up to us.
+        const renderingTypePredictor = new RenderingTypePredictor({ detectionRatio: 1 });
+        await renderingTypePredictor.initialize();
+
         const crawler = await makeOneshotCrawler(
             {
                 requestHandler,
-                // Use a real RenderingTypePredictor instead of the mocked one
-                renderingTypePredictor: new RenderingTypePredictor({ detectionRatio: 1 }),
+                renderingTypePredictor,
             },
             [`http://${HOSTNAME}:${port}/static`],
         );
 
-        // Run the crawler - this will initialize the RenderingTypePredictor and potentially store results
+        // Run the crawler - this will potentially store rendering type detection results
         await crawler.run();
 
         // Now emit a PERSIST_STATE event to trigger state persistence
@@ -797,6 +800,55 @@ describe('AdaptivePlaywrightCrawler', () => {
 
         // This should not throw since we've persisted valid state
         await expect(newPredictor.initialize()).resolves.not.toThrow();
+    });
+
+    describe('rendering type predictor lifecycle', () => {
+        const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = async ({ pushData }) => {
+            await pushData({ content: 'test data' });
+        };
+
+        test('initializes the default predictor it built itself', async () => {
+            const crawler = new AdaptivePlaywrightCrawler({
+                requestHandler,
+                // No `renderingTypePredictor` - the crawler builds (and therefore owns) its own.
+                renderingTypeDetectionRatio: 1,
+                maxConcurrency: 1,
+                maxRequestRetries: 0,
+                maxRequestsPerCrawl: 1,
+                requestList: await RequestList.open({ sources: [`http://${HOSTNAME}:${port}/static`] }),
+            });
+
+            await crawler.run();
+
+            // Persistence only happens for an initialized predictor, so a stored state proves the crawler
+            // did initialize the predictor it owns.
+            serviceLocator.getEventManager().emit(EventType.PERSIST_STATE);
+            await sleep(100);
+
+            const store = await KeyValueStore.open();
+            await expect(store.getValue<string>('rendering-type-predictor-state')).resolves.not.toBeNull();
+        });
+
+        test('does not initialize an injected predictor', async () => {
+            const renderingTypePredictor = {
+                ...makeRiggedRenderingTypePredictor({
+                    detectionProbabilityRecommendation: 0,
+                    renderingType: 'static',
+                }),
+                // Not part of the predictor contract the crawler depends on - a borrowed instance is set up by
+                // whoever created it, so the crawler must keep its hands off.
+                initialize: vi.fn(async () => {}),
+            };
+
+            const crawler = await makeOneshotCrawler({ requestHandler, renderingTypePredictor }, [
+                `http://${HOSTNAME}:${port}/static`,
+            ]);
+
+            await crawler.run();
+
+            expect(renderingTypePredictor.predict).toHaveBeenCalledOnce();
+            expect(renderingTypePredictor.initialize).not.toHaveBeenCalled();
+        });
     });
 
     test('validates userData against the router schema when adding requests', async () => {

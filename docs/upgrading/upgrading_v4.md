@@ -355,6 +355,29 @@ await pool.destroy();
 
 Note that this couples your code to the built-in `BrowserPool` — custom `IBrowserPool` implementations may not expose controllers at all.
 
+## Custom rendering type predictors via the `IRenderingTypePredictor` interface
+
+The `renderingTypePredictor` option of `AdaptivePlaywrightCrawler` is now typed as the new `IRenderingTypePredictor` interface — `predict(request)` and `storeResult(requests, renderingType)`, nothing else. The built-in `RenderingTypePredictor` implements it, so passing one still works.
+
+What changed is the lifecycle: the crawler used to call `initialize()` on the predictor it was given, even though it did not create it. It now follows the same own-only-what-you-built rule as the session and browser pools — a predictor you pass in is *borrowed*, so setting it up is your job, and `initialize` is not part of the interface at all. The built-in predictor restores its persisted state in `initialize()` and will throw `Recoverable state has not yet been loaded` from `predict()` if it is never called:
+
+```typescript
+import { AdaptivePlaywrightCrawler, RenderingTypePredictor } from '@crawlee/playwright';
+
+const renderingTypePredictor = new RenderingTypePredictor({ detectionRatio: 0.1 });
+// You own the predictor — initialize it yourself (this used to be done by the crawler).
+await renderingTypePredictor.initialize();
+
+const crawler = new AdaptivePlaywrightCrawler({
+    renderingTypePredictor,
+    requestHandler: async ({ pushData }) => {
+        // …
+    },
+});
+```
+
+If you don't pass a predictor, nothing changes: the crawler builds one from `renderingTypeDetectionRatio` and, since it owns that one, initializes it for you.
+
 ## `tieredProxyUrls` is removed from `ProxyConfiguration`
 
 The `tieredProxyUrls` option has been removed, together with the `proxyTier` field on `ProxyInfo` and the `proxyTier` plumbing in `BrowserPool`. In v4 the `Session` is the main rotation unit - a session already carries its own proxy, cookies and error score, so the pool rotates the whole fingerprint when a session gets retired on a block.
