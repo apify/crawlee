@@ -129,26 +129,21 @@ export class ImpitHttpClient implements BaseHttpClient {
     }
 
     /**
-     * Converts Fetch/Impit headers into the simple header map expected by {@apilink RedirectHandler}.
-     * Preserves multiple `set-cookie` values when available.
+     * Converts Fetch/Impit headers into a simple header map.
+     * `Object.fromEntries` would keep only the last `set-cookie` value, so those are collected separately.
      */
     private intoSimpleHeaders(headers: Headers): SimpleHeaders {
         const result: SimpleHeaders = {};
 
         for (const [key, value] of headers.entries()) {
-            if (key.toLowerCase() === 'set-cookie') continue;
+            if (key === 'set-cookie') continue;
             result[key] = value;
         }
 
-        const setCookies = typeof headers.getSetCookie === 'function' ? headers.getSetCookie() : ([] as string[]);
+        const setCookies = headers.getSetCookie();
 
-        if (setCookies.length === 1) {
-            result['set-cookie'] = setCookies[0];
-        } else if (setCookies.length > 1) {
-            result['set-cookie'] = setCookies;
-        } else {
-            const single = headers.get('set-cookie');
-            if (single) result['set-cookie'] = single;
+        if (setCookies.length > 0) {
+            result['set-cookie'] = setCookies.length === 1 ? setCookies[0] : setCookies;
         }
 
         return result;
@@ -227,8 +222,6 @@ export class ImpitHttpClient implements BaseHttpClient {
                     method: this.shouldRewriteRedirectToGet(response.status, request.method) ? 'GET' : request.method,
                     url: nextUrl,
                     headers: updatedRequest.headers,
-                    // Body must not be replayed on redirect hops that rewrite to GET.
-                    body: this.shouldRewriteRedirectToGet(response.status, request.method) ? undefined : request.body,
                 },
                 {
                     redirectCount: (redirects?.redirectCount ?? 0) + 1,
@@ -269,7 +262,7 @@ export class ImpitHttpClient implements BaseHttpClient {
         }
 
         return {
-            headers: Object.fromEntries(response.headers.entries()),
+            headers: this.intoSimpleHeaders(response.headers),
             statusCode: response.status,
             url: response.url,
             request,
@@ -324,7 +317,7 @@ export class ImpitHttpClient implements BaseHttpClient {
             },
             uploadProgress: { percent: 100, transferred: 0 },
             redirectUrls,
-            headers: Object.fromEntries(response.headers.entries()),
+            headers: this.intoSimpleHeaders(response.headers),
             trailers: {},
         };
     }

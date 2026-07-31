@@ -9,27 +9,15 @@ vi.mock('impit', () => ({
     ),
 }));
 
-function createRedirectResponse(status: number, location: string, setCookie?: string | string[]) {
-    let setCookies: string[] = [];
-    if (setCookie !== undefined) {
-        setCookies = Array.isArray(setCookie) ? setCookie : [setCookie];
-    }
-    const headerEntries: [string, string][] = [['location', location]];
+function createRedirectResponse(status: number, location: string, setCookie: string[] = []) {
+    const headers = new Headers({ location });
+    for (const cookie of setCookie) headers.append('set-cookie', cookie);
 
     return {
         status,
         statusText: 'Found',
         url: 'http://example.com/start',
-        headers: {
-            entries: () => headerEntries[Symbol.iterator](),
-            get: (name: string) => {
-                const key = name.toLowerCase();
-                if (key === 'location') return location;
-                if (key === 'set-cookie') return setCookies[0] ?? null;
-                return null;
-            },
-            getSetCookie: () => setCookies,
-        },
+        headers,
         body: undefined,
     };
 }
@@ -39,11 +27,7 @@ function createFinalResponse(body = 'ok') {
         status: 200,
         statusText: 'OK',
         url: 'http://example.com/final',
-        headers: {
-            entries: () => [['content-type', 'text/plain']][Symbol.iterator](),
-            get: (name: string) => (name.toLowerCase() === 'content-length' ? String(body.length) : null),
-            getSetCookie: () => [],
-        },
+        headers: new Headers({ 'content-type': 'text/plain', 'content-length': String(body.length) }),
         body: new ReadableStream({
             start(controller) {
                 controller.enqueue(new TextEncoder().encode(body));
@@ -90,12 +74,10 @@ describe('ImpitHttpClient', () => {
         );
 
         fetchMock
-            .mockResolvedValueOnce(createRedirectResponse(302, '/final', 'session=abc'))
+            .mockResolvedValueOnce(createRedirectResponse(302, '/final', ['session=abc', 'other=def']))
             .mockResolvedValueOnce(createFinalResponse('done'));
 
-        const onRedirect = vi.fn((redirectResponse, updatedRequest) => {
-            expect(redirectResponse.statusCode).toBe(302);
-            expect(redirectResponse.headers['set-cookie']).toEqual('session=abc');
+        const onRedirect = vi.fn((_redirectResponse, updatedRequest) => {
             updatedRequest.headers.Cookie = 'session=abc';
         });
 
@@ -110,6 +92,10 @@ describe('ImpitHttpClient', () => {
 
         expect(onRedirect).toHaveBeenCalledTimes(1);
         expect(fetchMock).toHaveBeenCalledTimes(2);
+
+        const [redirectResponse] = onRedirect.mock.calls[0];
+        expect(redirectResponse.statusCode).toBe(302);
+        expect(redirectResponse.headers['set-cookie']).toEqual(['session=abc', 'other=def']);
 
         const secondCallHeaders = fetchMock.mock.calls[1][1].headers as Headers;
         expect(secondCallHeaders.get('Cookie')).toBe('session=abc');

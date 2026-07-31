@@ -39,6 +39,12 @@ router.set('/cookies', (req, res) => {
     res.end(JSON.stringify(req.headers.cookie));
 });
 
+router.set('/setCookie', (req, res) => {
+    res.setHeader('content-type', 'text/html');
+    res.setHeader('set-cookie', 'first=1');
+    res.end();
+});
+
 router.set('/redirectWithoutCookies', (req, res) => {
     res.setHeader('location', '/cookies');
     res.statusCode = 302;
@@ -236,6 +242,27 @@ describe.each(
         await crawler.run([`${url}/redirectAndCookies`]);
 
         expect(results).toStrictEqual(['foo=bar']);
+    });
+
+    test('handles cookies from redirects when the session already has cookies', async () => {
+        const results: string[] = [];
+
+        const crawler = new HttpCrawler({
+            httpClient,
+            sessionPoolOptions: {
+                maxPoolSize: 1,
+                // isolated so that cookies stored by the other tests / clients don't leak in
+                persistStateKey: `SDK_SESSION_POOL_STATE_${httpClient.constructor.name}`,
+            },
+            maxConcurrency: 1,
+            requestHandler: async ({ body }) => {
+                results.push(body.toString());
+            },
+        });
+
+        await crawler.run([`${url}/setCookie`, `${url}/redirectAndCookies`]);
+
+        expect(results[1]).toBe('"first=1; foo=bar"');
     });
 
     test('handles cookies from redirects - no empty cookie header', async () => {
