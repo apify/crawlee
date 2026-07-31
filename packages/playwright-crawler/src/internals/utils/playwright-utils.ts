@@ -23,8 +23,8 @@ import { createRequire } from 'node:module';
 import vm from 'node:vm';
 
 import { Configuration, KeyValueStore, type Request, serviceLocator, SessionError, validators } from '@crawlee/browser';
-import type { BatchAddRequestsResult } from '@crawlee/types';
-import { type CheerioRoot, type Dictionary, expandShadowRoots, sleep } from '@crawlee/utils';
+import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
+import { type CheerioRoot, expandShadowRoots, sleep } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
 import ow from 'ow';
 import type { Download, Page, Response, Route } from 'playwright';

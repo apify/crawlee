@@ -1,6 +1,6 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 
-import type { Awaitable } from '../typedefs.js';
+import type { Awaitable } from '@crawlee/types';
 import { tryCancel } from '@apify/timeout';
 
 const storage = new AsyncLocalStorage<{ checkFunction: () => void }>();

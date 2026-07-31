@@ -1,15 +1,14 @@
 import type {
+    Constructor,
     DatasetBackend,
     KeyValueStoreBackend,
     RequestQueueBackend,
     StorageBackend,
     StorageIdentifier,
 } from '@crawlee/types';
-import { AsyncQueue } from '@sapphire/async-queue';
-
-import type { Constructor } from '../typedefs.js';
 
 export type { StorageIdentifier } from '@crawlee/types';
+import { AsyncQueue } from '@sapphire/async-queue';
 
 /**
  * Matches an `IStorage` – a storage "frontend" (Dataset, KeyValueStore, RequestQueue).
