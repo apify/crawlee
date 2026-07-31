@@ -1,248 +1,129 @@
-import type { StorageBackend } from '@crawlee/types';
-import ow from 'ow';
-
-import type { Configuration } from '../configuration.js';
-import type { CrawleeLogger } from '../log.js';
-import { serviceLocator } from '../service_locator.js';
-import type { ClientLoadSignal, ClientSnapshot } from './client_load_signal.js';
-import { createClientLoadSignal } from './client_load_signal.js';
-import type { CpuLoadSignal, CpuSnapshot } from './cpu_load_signal.js';
-import { createCpuLoadSignal } from './cpu_load_signal.js';
-import type { EventLoopLoadSignal, EventLoopSnapshot } from './event_loop_load_signal.js';
-import { createEventLoopLoadSignal } from './event_loop_load_signal.js';
-import type { LoadSignal } from './load_signal.js';
-import type { MemorySnapshot } from './memory_load_signal.js';
+import type { ClientLoadSignalOptions } from './client_load_signal.js';
+import { ClientLoadSignal } from './client_load_signal.js';
+import type { CpuLoadSignalOptions } from './cpu_load_signal.js';
+import { CpuLoadSignal } from './cpu_load_signal.js';
+import type { EventLoopLoadSignalOptions } from './event_loop_load_signal.js';
+import { EventLoopLoadSignal } from './event_loop_load_signal.js';
+import type { LoadSignal, LoadSignalStartContext } from './load_signal.js';
+import type { MemoryLoadSignalOptions } from './memory_load_signal.js';
 import { MemoryLoadSignal } from './memory_load_signal.js';
 
-export interface SnapshotterOptions {
+/**
+ * The load signals a {@apilink ConcurrencySystem} watches to decide whether the machine is overloaded.
+ *
+ * Each of the four built-in signals is configured by passing its options bag — shorthand for constructing the
+ * corresponding {@apilink LoadSignal} class yourself, so `{ cpu: { overloadedRatio: 0.5 } }` is exactly
+ * `{ cpu: false, custom: [new CpuLoadSignal({ overloadedRatio: 0.5 })] }`. Pass `false` to leave a resource
+ * unwatched, and put anything else you want taken into account in {@apilink LoadSignalsOptions.custom|`custom`}.
+ *
+ * How far back the signals are evaluated is *not* set here, but by
+ * {@apilink ConcurrencySystemOptions.snapshotHistorySecs|`snapshotHistorySecs`} and
+ * {@apilink ConcurrencySystemOptions.currentHistorySecs|`currentHistorySecs`}.
+ */
+export interface LoadSignalsOptions {
     /**
-     * Defines the interval of measuring the event loop response time.
-     * @default 0.5
+     * Tuning for the built-in {@apilink MemoryLoadSignal} (used-memory limit + overload ratio), or `false` to switch
+     * it off.
      */
-    eventLoopSnapshotIntervalSecs?: number;
-
-    /**
-     * Defines the interval of checking the current state
-     * of the remote API client.
-     * @default 1
-     */
-    clientSnapshotIntervalSecs?: number;
-
-    /**
-     * Maximum allowed delay of the event loop in milliseconds.
-     * Exceeding this limit overloads the event loop.
-     * @default 50
-     */
-    maxBlockedMillis?: number;
+    memory?: MemoryLoadSignalOptions | false;
 
     /**
-     * Defines the maximum ratio of total memory that can be used.
-     * Exceeding this limit overloads the memory.
-     * @default 0.9
+     * Tuning for the built-in {@apilink EventLoopLoadSignal} (snapshot interval + blocked-millis limit + overload
+     * ratio), or `false` to switch it off — which also stops its measuring interval.
      */
-    maxUsedMemoryRatio?: number;
+    eventLoop?: EventLoopLoadSignalOptions | false;
 
     /**
-     * Defines the maximum number of new rate limit errors within
-     * the given interval.
-     * @default 3
+     * Tuning for the built-in {@apilink CpuLoadSignal} (overload ratio), or `false` to switch it off.
      */
-    maxClientErrors?: number;
+    cpu?: CpuLoadSignalOptions | false;
 
     /**
-     * Sets the interval in seconds for which a history of resource snapshots
-     * will be kept. Increasing this to very high numbers will affect performance.
-     * @default 30
+     * Tuning for the built-in {@apilink ClientLoadSignal} (snapshot interval + error limit + overload ratio), or
+     * `false` to switch it off — worth doing when the storage backend reports no rate-limit statistics, since the
+     * signal otherwise polls it every second to no purpose.
      */
-    snapshotHistorySecs?: number;
+    client?: ClientLoadSignalOptions | false;
 
-    /** @internal */
-    log?: CrawleeLogger;
-
-    /** @internal */
-    client?: StorageBackend;
-
-    /** @internal */
-    config?: Configuration;
+    /**
+     * Additional {@apilink LoadSignal} implementations — e.g. navigation timeouts or proxy health — evaluated
+     * alongside the built-in four. If any signal reports overload, the system counts as overloaded. Their lifecycle
+     * is driven by the {@apilink ConcurrencySystem} they are given to, and their {@apilink LoadSignal.name|names} must
+     * not collide with an enabled built-in's.
+     */
+    custom?: LoadSignal[];
 }
 
 /**
- * Creates snapshots of system resources at given intervals and marks the resource
- * as either overloaded or not during the last interval. Keeps a history of the snapshots.
- * It tracks the following resources: Memory, EventLoop, API and CPU.
- * The class is used by the {@apilink AutoscaledPool} class.
+ * An implementation detail of the {@apilink ConcurrencySystem}: the built-in signal tuning from
+ * {@apilink LoadSignalsOptions}, minus the custom signals, which the system evaluates itself rather than collecting
+ * them here.
+ * @internal
+ */
+export type SnapshotterOptions = Omit<LoadSignalsOptions, 'custom'>;
+
+/**
+ * Owns the four built-in {@apilink LoadSignal} instances — {@apilink MemoryLoadSignal},
+ * {@apilink EventLoopLoadSignal}, {@apilink CpuLoadSignal} and {@apilink ClientLoadSignal} — constructing the ones
+ * that were not switched off and driving their shared lifecycle.
  *
- * When running on the Apify platform, the CPU and memory statistics are provided by the platform,
- * as collected from the running Docker container. When running locally, `Snapshotter`
- * makes its own statistics by querying the OS.
- *
- * CPU becomes overloaded locally when its current use exceeds the `maxUsedCpuRatio` option or
- * when Apify platform marks it as overloaded.
- *
- * Memory becomes overloaded if its current use exceeds the `maxUsedMemoryRatio` option.
- * It's computed using the total memory available to the container when running on
- * the Apify platform and a quarter of total system memory when running locally.
- * Max total memory when running locally may be overridden by using the `CRAWLEE_MEMORY_MBYTES`
- * environment variable.
- *
- * Event loop becomes overloaded if it slows down by more than the `maxBlockedMillis` option.
- *
- * Client becomes overloaded when rate limit errors (429 - Too Many Requests),
- * typically received from the request queue, exceed the set limit within the set interval.
- *
- * @category Scaling
+ * Configured indirectly through {@apilink ConcurrencySystemOptions.loadSignals|`loadSignals`}, whose per-signal bags
+ * are simply forwarded to the corresponding constructor.
+ * @internal
  */
 export class Snapshotter {
-    readonly log: CrawleeLogger;
-    readonly client: StorageBackend;
-    readonly config: Configuration;
-
-    private readonly memorySignal: MemoryLoadSignal;
-    private readonly eventLoopSignal: EventLoopLoadSignal;
-    private readonly cpuSignal: CpuLoadSignal;
-    private readonly clientSignal: ClientLoadSignal;
+    // Absent when switched off through the corresponding option (e.g. `client: false`).
+    private readonly memorySignal?: MemoryLoadSignal;
+    private readonly eventLoopSignal?: EventLoopLoadSignal;
+    private readonly cpuSignal?: CpuLoadSignal;
+    private readonly clientSignal?: ClientLoadSignal;
 
     /**
-     * Returns the four built-in signals as an array, so `SystemStatus` can
-     * iterate them alongside any custom `LoadSignal` instances.
+     * Returns the enabled built-in signals, so `SystemStatus` can iterate them alongside any custom `LoadSignal`
+     * instances. Signals switched off through the options are simply absent — the system status reports them as
+     * not overloaded.
      */
     getLoadSignals(): LoadSignal[] {
-        return [this.memorySignal, this.eventLoopSignal, this.cpuSignal, this.clientSignal];
-    }
+        const builtin: (LoadSignal | undefined)[] = [
+            this.memorySignal,
+            this.eventLoopSignal,
+            this.cpuSignal,
+            this.clientSignal,
+        ];
 
-    // Legacy public properties kept for backward compat (tests read these directly)
-    get cpuSnapshots(): CpuSnapshot[] {
-        return this.cpuSignal.store.getAll();
-    }
-
-    get eventLoopSnapshots(): EventLoopSnapshot[] {
-        return this.eventLoopSignal.store.getAll();
-    }
-
-    get memorySnapshots(): MemorySnapshot[] {
-        return this.memorySignal.getMemorySnapshots();
-    }
-
-    get clientSnapshots(): ClientSnapshot[] {
-        return this.clientSignal.store.getAll();
+        return builtin.filter((signal): signal is LoadSignal => signal !== undefined);
     }
 
     /**
      * @param [options] All `Snapshotter` configuration options.
      */
     constructor(options: SnapshotterOptions = {}) {
-        ow(
-            options,
-            ow.object.exactShape({
-                eventLoopSnapshotIntervalSecs: ow.optional.number,
-                clientSnapshotIntervalSecs: ow.optional.number,
-                snapshotHistorySecs: ow.optional.number,
-                maxBlockedMillis: ow.optional.number,
-                maxUsedMemoryRatio: ow.optional.number,
-                maxClientErrors: ow.optional.number,
-                log: ow.optional.object,
-                client: ow.optional.object,
-                config: ow.optional.object,
-            }),
-        );
+        const { memory = {}, eventLoop = {}, cpu = {}, client = {} } = options;
 
-        const {
-            eventLoopSnapshotIntervalSecs = 0.5,
-            clientSnapshotIntervalSecs = 1,
-            snapshotHistorySecs = 30,
-            maxBlockedMillis = 50,
-            maxUsedMemoryRatio = 0.9,
-            maxClientErrors = 3,
-            log = serviceLocator.getLogger(),
-            config = serviceLocator.getConfiguration(),
-            client = serviceLocator.getStorageBackend(),
-        } = options;
-
-        this.log = log.child({ prefix: 'Snapshotter' });
-        this.client = client;
-        this.config = config;
-
-        const snapshotHistoryMillis = snapshotHistorySecs * 1000;
-
-        this.memorySignal = new MemoryLoadSignal({
-            maxUsedMemoryRatio,
-            snapshotHistoryMillis,
-            config: this.config,
-            log: this.log,
-        });
-
-        this.eventLoopSignal = createEventLoopLoadSignal({
-            eventLoopSnapshotIntervalSecs,
-            maxBlockedMillis,
-            snapshotHistoryMillis,
-        });
-
-        this.cpuSignal = createCpuLoadSignal({
-            snapshotHistoryMillis,
-            config: this.config,
-        });
-
-        this.clientSignal = createClientLoadSignal({
-            client: this.client,
-            clientSnapshotIntervalSecs,
-            maxClientErrors,
-            snapshotHistoryMillis,
-        });
+        // Each signal resolves its own ambient dependencies when started, and is told the window it will be sampled
+        // over then too - so there is nothing to thread in here beyond the caller's tuning.
+        if (memory !== false) this.memorySignal = new MemoryLoadSignal(memory);
+        if (eventLoop !== false) this.eventLoopSignal = new EventLoopLoadSignal(eventLoop);
+        if (cpu !== false) this.cpuSignal = new CpuLoadSignal(cpu);
+        if (client !== false) this.clientSignal = new ClientLoadSignal(client);
     }
 
     /**
-     * Starts capturing snapshots at configured intervals.
+     * Starts capturing snapshots at configured intervals. The `context` carries the sample window the signals will
+     * be queried with, which is also how much history they retain.
      */
-    async start(): Promise<void> {
-        await this.memorySignal.start();
-        await this.eventLoopSignal.start();
-        await this.cpuSignal.start();
-        await this.clientSignal.start();
+    async start(context: LoadSignalStartContext): Promise<void> {
+        await Promise.all(this.getLoadSignals().map(async (signal) => signal.start(context)));
     }
 
     /**
      * Stops all resource capturing.
      */
     async stop(): Promise<void> {
-        await this.memorySignal.stop();
-        await this.eventLoopSignal.stop();
-        await this.cpuSignal.stop();
-        await this.clientSignal.stop();
+        await Promise.all(this.getLoadSignals().map(async (signal) => signal.stop()));
         // Allow microtask queue to unwind before stop returns.
         await new Promise((resolve) => {
             setImmediate(resolve);
         });
-    }
-
-    /**
-     * Returns a sample of latest memory snapshots, with the size of the sample defined
-     * by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
-     */
-    getMemorySample(sampleDurationMillis?: number): MemorySnapshot[] {
-        return this.memorySignal.getSample(sampleDurationMillis);
-    }
-
-    /**
-     * Returns a sample of latest event loop snapshots, with the size of the sample defined
-     * by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
-     */
-    getEventLoopSample(sampleDurationMillis?: number): EventLoopSnapshot[] {
-        return this.eventLoopSignal.getSample(sampleDurationMillis);
-    }
-
-    /**
-     * Returns a sample of latest CPU snapshots, with the size of the sample defined
-     * by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
-     */
-    getCpuSample(sampleDurationMillis?: number): CpuSnapshot[] {
-        return this.cpuSignal.getSample(sampleDurationMillis);
-    }
-
-    /**
-     * Returns a sample of latest Client snapshots, with the size of the sample defined
-     * by the sampleDurationMillis parameter. If omitted, it returns a full snapshot history.
-     */
-    getClientSample(sampleDurationMillis?: number): ClientSnapshot[] {
-        return this.clientSignal.getSample(sampleDurationMillis);
     }
 }

@@ -287,7 +287,7 @@ export class Statistics {
      * displaying the current state in predefined intervals
      */
     async startCapturing() {
-        this.keyValueStore ??= await KeyValueStore.open(null, { config: serviceLocator.getConfiguration() });
+        this.keyValueStore ??= await KeyValueStore.open(null, { configuration: serviceLocator.getConfiguration() });
 
         if (this.state.crawlerStartedAt === null) {
             this.state.crawlerStartedAt = new Date();

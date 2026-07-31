@@ -1,8 +1,6 @@
-import ow from 'ow';
-
 import type { LoadSignal } from './load_signal.js';
 import { evaluateLoadSignalSample } from './load_signal.js';
-import { Snapshotter } from './snapshotter.js';
+import type { LoadSignalsOptions, Snapshotter } from './snapshotter.js';
 
 /**
  * Represents the current status of the system.
@@ -39,6 +37,24 @@ export interface SystemInfo {
     loadSignalInfo?: Record<string, ClientInfo>;
 }
 
+/**
+ * How far back the *current* system status looks by default — the window that gates task dispatch.
+ * @internal
+ */
+export const DEFAULT_CURRENT_HISTORY_SECS = 5;
+
+/**
+ * How far back the *historical* system status looks by default — the window autoscaling decisions are based on, and
+ * therefore how much history the signals are asked to retain.
+ * @internal
+ */
+export const DEFAULT_SNAPSHOT_HISTORY_SECS = 30;
+
+/**
+ * An implementation detail of the {@apilink ConcurrencySystem} — configure it through
+ * {@apilink ConcurrencySystemOptions} (`loadSignals`, `currentHistorySecs` and `snapshotHistorySecs`).
+ * @internal
+ */
 export interface SystemStatusOptions {
     /**
      * Defines max age of snapshots used in the {@apilink SystemStatus.getCurrentStatus} measurement.
@@ -47,43 +63,23 @@ export interface SystemStatusOptions {
     currentHistorySecs?: number;
 
     /**
-     * Sets the maximum ratio of overloaded snapshots in a memory sample.
-     * If the sample exceeds this ratio, the system will be overloaded.
-     * @default 0.2
+     * Defines max age of snapshots used in the {@apilink SystemStatus.getHistoricalStatus} measurement — the window
+     * autoscaling decisions are based on. Applied uniformly to every signal, built-in or custom, so that a signal's
+     * private retention cannot silently widen the window.
+     * @default 30
      */
-    maxMemoryOverloadedRatio?: number;
+    historySecs?: number;
 
     /**
-     * Sets the maximum ratio of overloaded snapshots in an event loop sample.
-     * If the sample exceeds this ratio, the system will be overloaded.
-     * @default 0.6
+     * The `Snapshotter` whose built-in signals are evaluated.
      */
-    maxEventLoopOverloadedRatio?: number;
-
-    /**
-     * Sets the maximum ratio of overloaded snapshots in a CPU sample.
-     * If the sample exceeds this ratio, the system will be overloaded.
-     * @default 0.4
-     */
-    maxCpuOverloadedRatio?: number;
-
-    /**
-     * Sets the maximum ratio of overloaded snapshots in a Client sample.
-     * If the sample exceeds this ratio, the system will be overloaded.
-     * @default 0.3
-     */
-    maxClientOverloadedRatio?: number;
-
-    /**
-     * The `Snapshotter` instance to be queried for `SystemStatus`.
-     */
-    snapshotter?: Snapshotter;
+    snapshotter: Snapshotter;
 
     /**
      * Additional load signals to include in the system status evaluation.
      * These are evaluated alongside the built-in memory, CPU, event loop,
      * and client signals. If any signal reports overload, the system is
-     * considered overloaded.
+     * considered overloaded. Each signal carries its own overload ratio.
      */
     loadSignals?: LoadSignal[];
 }
@@ -107,80 +103,78 @@ export interface FinalStatistics {
     crawlerRuntimeMillis: number;
 }
 
-/** The four built-in signal names that map to typed `SystemInfo` fields. */
-const BUILTIN_SIGNAL_NAMES = new Set(['memInfo', 'eventLoopInfo', 'cpuInfo', 'clientInfo']);
+/** The four built-in signal names that map to typed `SystemInfo` fields, and the option that switches each off. */
+const BUILTIN_SIGNAL_OPTION_KEYS: Record<string, keyof LoadSignalsOptions> = {
+    memInfo: 'memory',
+    eventLoopInfo: 'eventLoop',
+    cpuInfo: 'cpu',
+    clientInfo: 'client',
+};
+
+const BUILTIN_SIGNAL_NAMES = new Set(Object.keys(BUILTIN_SIGNAL_OPTION_KEYS));
 
 /**
- * Provides a simple interface to reading system status from a {@apilink Snapshotter} instance.
- * It only exposes two functions {@apilink SystemStatus.getCurrentStatus}
- * and {@apilink SystemStatus.getHistoricalStatus}.
- * The system status is calculated using a weighted average of overloaded
- * messages in the snapshots, with the weights being the time intervals
- * between the snapshots. Each resource is calculated separately
- * and the system is overloaded whenever at least one resource is overloaded.
- * The class is used by the {@apilink AutoscaledPool} class.
+ * Reads the overload verdict of every signal — the {@apilink Snapshotter}'s built-in four plus any custom ones — and
+ * combines them into a {@apilink SystemInfo}: each signal is a time-weighted average of its snapshots, and the system
+ * is overloaded whenever at least one of them is.
  *
- * {@apilink SystemStatus.getCurrentStatus}
- * returns a boolean that represents the current status of the system.
- * The length of the current timeframe in seconds is configurable
- * by the `currentHistorySecs` option and represents the max age
- * of snapshots to be considered for the calculation.
+ * Evaluated over two windows, both requested explicitly from every signal so that a signal's private retention cannot
+ * widen what it contributes: a short `currentHistorySecs` one ({@apilink SystemStatus.getCurrentStatus}, gating task
+ * dispatch) and a longer `historySecs` one ({@apilink SystemStatus.getHistoricalStatus}, driving autoscaling).
  *
- * {@apilink SystemStatus.getHistoricalStatus}
- * returns a boolean that represents the long-term status
- * of the system. It considers the full snapshot history available
- * in the {@apilink Snapshotter} instance.
- * @category Scaling
+ * An implementation detail of the {@apilink ConcurrencySystem}, configured through
+ * {@apilink ConcurrencySystemOptions}.
+ * @internal
  */
 export class SystemStatus {
     private readonly currentHistoryMillis: number;
-    private readonly snapshotter: Snapshotter;
+    private readonly historyMillis: number;
     private readonly signals: LoadSignal[];
 
-    /**
-     * Per-signal ratio overrides. The built-in four get their overrides from
-     * the legacy `max*OverloadedRatio` options; custom signals use their own
-     * `overloadedRatio`.
-     */
-    private ratioOverrides: Record<string, number>;
-
-    constructor(options: SystemStatusOptions = {}) {
-        ow(
-            options,
-            ow.object.exactShape({
-                currentHistorySecs: ow.optional.number,
-                maxMemoryOverloadedRatio: ow.optional.number,
-                maxEventLoopOverloadedRatio: ow.optional.number,
-                maxCpuOverloadedRatio: ow.optional.number,
-                maxClientOverloadedRatio: ow.optional.number,
-                snapshotter: ow.optional.object,
-                loadSignals: ow.optional.array,
-            }),
-        );
-
+    constructor(options: SystemStatusOptions) {
         const {
-            currentHistorySecs = 5,
-            maxMemoryOverloadedRatio = 0.2,
-            maxEventLoopOverloadedRatio = 0.6,
-            maxCpuOverloadedRatio = 0.4,
-            maxClientOverloadedRatio = 0.3,
+            currentHistorySecs = DEFAULT_CURRENT_HISTORY_SECS,
+            historySecs = DEFAULT_SNAPSHOT_HISTORY_SECS,
             snapshotter,
             loadSignals = [],
         } = options;
 
         this.currentHistoryMillis = currentHistorySecs * 1000;
-        this.snapshotter = snapshotter || new Snapshotter();
+        this.historyMillis = historySecs * 1000;
 
-        // Built-in signals from the snapshotter + any custom signals
-        this.signals = [...this.snapshotter.getLoadSignals(), ...loadSignals];
+        this.signals = [...snapshotter.getLoadSignals(), ...loadSignals];
+        this.assertUniqueSignalNames();
+    }
 
-        // Allow legacy options to override the built-in signal ratios
-        this.ratioOverrides = {
-            memInfo: maxMemoryOverloadedRatio,
-            eventLoopInfo: maxEventLoopOverloadedRatio,
-            cpuInfo: maxCpuOverloadedRatio,
-            clientInfo: maxClientOverloadedRatio,
-        };
+    /**
+     * The widest window any signal will be queried with, and therefore exactly how much history the signals are asked
+     * to retain when they start. Derived here, where the windows are resolved, so nothing has to reapply their
+     * defaults.
+     */
+    get maxSampleWindowMillis(): number {
+        return Math.max(this.currentHistoryMillis, this.historyMillis);
+    }
+
+    /**
+     * Signal names are the keys of the reported {@apilink SystemInfo}, so a duplicate would leave a status object that
+     * contradicts actual behavior: both signals are still evaluated (any overloaded one holds concurrency down), but
+     * only the last is reported.
+     */
+    private assertUniqueSignalNames(): void {
+        const seen = new Set<string>();
+
+        for (const { name } of this.signals) {
+            if (!seen.has(name)) {
+                seen.add(name);
+                continue;
+            }
+
+            const hint = BUILTIN_SIGNAL_NAMES.has(name)
+                ? `it is the name of a built-in signal. To replace that signal, switch it off with \`loadSignals: { ${BUILTIN_SIGNAL_OPTION_KEYS[name]}: false }\` and keep your implementation in \`loadSignals.custom\`; to run yours alongside it, give it a different name.`
+                : 'two custom signals cannot share a name - rename one of them.';
+
+            throw new Error(`Duplicate load signal name ${JSON.stringify(name)}: ${hint}`);
+        }
     }
 
     /**
@@ -215,12 +209,11 @@ export class SystemStatus {
      * }
      * ```
      *
-     * Where the `isSystemIdle` property is set to `false` if the system
-     * has been overloaded in the full history of the {@apilink Snapshotter}
-     * (which is configurable in the {@apilink Snapshotter}) and `true` otherwise.
+     * Where the `isSystemIdle` property is set to `false` if the system has been overloaded within the last
+     * `historySecs` seconds and `true` otherwise.
      */
     getHistoricalStatus(): SystemInfo {
-        return this.isSystemIdle();
+        return this.isSystemIdle(this.historyMillis);
     }
 
     /**
@@ -238,9 +231,8 @@ export class SystemStatus {
         let loadSignalInfo: Record<string, ClientInfo> | undefined;
 
         for (const signal of this.signals) {
-            const ratio = this.ratioOverrides[signal.name] ?? signal.overloadedRatio;
             const sample = signal.getSample(sampleDurationMillis);
-            const info = evaluateLoadSignalSample(sample, ratio);
+            const info = evaluateLoadSignalSample(sample, signal.overloadedRatio);
 
             if (info.isOverloaded) {
                 result.isSystemIdle = false;

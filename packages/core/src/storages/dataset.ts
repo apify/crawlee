@@ -199,7 +199,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      */
     constructor(
         options: DatasetOptions,
-        readonly config = Configuration.getGlobalConfig(),
+        readonly configuration = Configuration.getGlobalConfiguration(),
     ) {
         this.id = options.metadata.id;
         this.name = options.metadata.name;
@@ -285,7 +285,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      * @param [contentType] Only JSON and CSV are supported currently, defaults to JSON.
      */
     async exportTo(key: string, options?: DatasetExportToOptions, contentType?: string): Promise<Data[]> {
-        const kvStore = await KeyValueStore.open(options?.toKVS ?? null, { config: this.config });
+        const kvStore = await KeyValueStore.open(options?.toKVS ?? null, { configuration: this.configuration });
         const items = await this.export(options);
 
         if (contentType === 'text/csv') {
@@ -678,16 +678,16 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         ow(
             options,
             ow.object.exactShape({
-                config: ow.optional.object.instanceOf(Configuration),
+                configuration: ow.optional.object.instanceOf(Configuration),
                 storageBackend: ow.optional.object,
             }),
         );
 
-        options.config ??= Configuration.getGlobalConfig();
+        options.configuration ??= Configuration.getGlobalConfiguration();
 
         const storageBackend = options.storageBackend ?? serviceLocator.getStorageBackend();
 
-        await purgeDefaultStorages({ onlyPurgeOnce: true, storageBackend, config: options.config });
+        await purgeDefaultStorages({ onlyPurgeOnce: true, storageBackend, configuration: options.configuration });
 
         const resolved = await resolveStorageIdentifier(identifier, storageBackend, 'Dataset');
 

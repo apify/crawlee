@@ -152,7 +152,7 @@ export type InterceptHandler = (request: HTTPRequest) => unknown;
 function isTargetRelevant(page: Page, target: Target): boolean;
 
 // @public
-export function launchPuppeteer(launchContext?: PuppeteerLaunchContext, config?: Configuration): Promise<Browser>;
+export function launchPuppeteer(launchContext?: PuppeteerLaunchContext, configuration?: Configuration): Promise<Browser>;
 
 // @public
 function parseWithCheerio(page: Page, ignoreShadowRoots?: boolean, ignoreIframes?: boolean): Promise<CheerioRoot>;
@@ -214,6 +214,7 @@ export class PuppeteerCrawler<ContextExtension = Dictionary<never>, ExtendedCont
         maxRequestsPerCrawl: NumberPredicate & BasePredicate<number | undefined>;
         maxCrawlDepth: NumberPredicate & BasePredicate<number | undefined>;
         autoscaledPoolOptions: ObjectPredicate<object> & BasePredicate<object | undefined>;
+        concurrencySystem: ObjectPredicate<object> & BasePredicate<object | undefined>;
         sessionPool: ObjectPredicate<object> & BasePredicate<object | undefined>;
         statusMessageLoggingInterval: NumberPredicate & BasePredicate<number | undefined>;
         statusMessageCallback: Predicate<Function> & BasePredicate<Function | undefined>;
@@ -318,7 +319,7 @@ function saveSnapshot(page: Page, options?: SaveSnapshotOptions): Promise<void>;
 
 // @public (undocumented)
 export interface SaveSnapshotOptions {
-    config?: Configuration;
+    configuration?: Configuration;
     key?: string;
     keyValueStoreName?: string | null;
     saveHtml?: boolean;

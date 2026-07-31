@@ -234,7 +234,7 @@ function injectJQuery(page: Page, options?: {
 }): Promise<unknown>;
 
 // @public
-export function launchPlaywright(launchContext?: PlaywrightLaunchContext, config?: Configuration): Promise<Browser>;
+export function launchPlaywright(launchContext?: PlaywrightLaunchContext, configuration?: Configuration): Promise<Browser>;
 
 // @public
 function parseWithCheerio(page: Page, ignoreShadowRoots?: boolean, ignoreIframes?: boolean): Promise<CheerioRoot>;
@@ -298,6 +298,7 @@ export class PlaywrightCrawler<ContextExtension = Dictionary<never>, ExtendedCon
         maxRequestsPerCrawl: NumberPredicate & BasePredicate<number | undefined>;
         maxCrawlDepth: NumberPredicate & BasePredicate<number | undefined>;
         autoscaledPoolOptions: ObjectPredicate<object> & BasePredicate<object | undefined>;
+        concurrencySystem: ObjectPredicate<object> & BasePredicate<object | undefined>;
         sessionPool: ObjectPredicate<object> & BasePredicate<object | undefined>;
         statusMessageLoggingInterval: NumberPredicate & BasePredicate<number | undefined>;
         statusMessageCallback: Predicate<Function> & BasePredicate<Function | undefined>;
@@ -403,7 +404,7 @@ function saveSnapshot(page: Page, options?: SaveSnapshotOptions): Promise<void>;
 
 // @public (undocumented)
 interface SaveSnapshotOptions {
-    config?: Configuration;
+    configuration?: Configuration;
     key?: string;
     keyValueStoreName?: string | null;
     saveHtml?: boolean;

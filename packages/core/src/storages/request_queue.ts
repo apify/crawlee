@@ -955,7 +955,7 @@ export class RequestQueue implements IStorage, IRequestManager {
         ow(
             options,
             ow.object.exactShape({
-                config: ow.optional.object.instanceOf(Configuration),
+                configuration: ow.optional.object.instanceOf(Configuration),
                 storageBackend: ow.optional.object,
                 proxyConfiguration: ow.optional.object,
                 httpClient: ow.optional.object,
@@ -963,9 +963,9 @@ export class RequestQueue implements IStorage, IRequestManager {
         );
 
         const storageBackend = options.storageBackend ?? serviceLocator.getStorageBackend();
-        const config = options.config ?? serviceLocator.getConfiguration();
+        const configuration = options.configuration ?? serviceLocator.getConfiguration();
 
-        await purgeDefaultStorages({ onlyPurgeOnce: true, storageBackend, config });
+        await purgeDefaultStorages({ onlyPurgeOnce: true, storageBackend, configuration });
 
         const resolved = await resolveStorageIdentifier(identifier, storageBackend, 'RequestQueue');
 

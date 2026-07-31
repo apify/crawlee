@@ -1,56 +1,106 @@
-import type { LoadSnapshot } from './load_signal.js';
+import type { BetterIntervalID } from '@apify/utilities';
+import { betterClearInterval, betterSetInterval } from '@apify/utilities';
+
+import type { LoadSignal, LoadSignalStartContext, LoadSnapshot } from './load_signal.js';
 import { SnapshotStore } from './load_signal.js';
 
+/**
+ * A snapshot produced by the built-in event loop signal.
+ * @internal
+ */
 export interface EventLoopSnapshot extends LoadSnapshot {
     exceededMillis: number;
 }
 
+/**
+ * Tuning for the built-in **event loop** load signal, as accepted both by {@apilink EventLoopLoadSignal} and by the
+ * {@apilink LoadSignalsOptions.eventLoop|`eventLoop`} shorthand on {@apilink LoadSignalsOptions}.
+ */
 export interface EventLoopLoadSignalOptions {
-    eventLoopSnapshotIntervalSecs?: number;
+    /**
+     * Defines the interval of measuring the event loop response time, in seconds.
+     * @default 0.5
+     */
+    snapshotIntervalSecs?: number;
+
+    /**
+     * Maximum allowed delay of the event loop in milliseconds.
+     * Exceeding this limit overloads the event loop.
+     * @default 50
+     */
     maxBlockedMillis?: number;
+
+    /**
+     * Maximum ratio of overloaded snapshots in a sample before the event loop counts as overloaded.
+     * @default 0.6
+     */
     overloadedRatio?: number;
-    snapshotHistoryMillis?: number;
 }
 
 /**
- * Periodically measures event loop delay and reports overload when the
- * delay exceeds a configured threshold.
+ * Periodically measures event loop delay and reports overload when the delay exceeds a configured threshold.
+ *
+ * Built by default; construct one yourself only to wrap or adapt it — see {@apilink LoadSignal}.
+ *
+ * @category Scaling
  */
-export function createEventLoopLoadSignal(options: EventLoopLoadSignalOptions = {}) {
-    const intervalMillis = (options.eventLoopSnapshotIntervalSecs ?? 0.5) * 1000;
-    const maxBlockedMillis = options.maxBlockedMillis ?? 50;
+export class EventLoopLoadSignal implements LoadSignal {
+    readonly name = 'eventLoopInfo';
+    readonly overloadedRatio: number;
 
-    const signal = SnapshotStore.fromInterval<EventLoopSnapshot>({
-        name: 'eventLoopInfo',
-        overloadedRatio: options.overloadedRatio ?? 0.6,
-        intervalMillis,
-        snapshotHistoryMillis: options.snapshotHistoryMillis,
-        handler(store, intervalCallback) {
-            const now = new Date();
+    private readonly store = new SnapshotStore<EventLoopSnapshot>();
+    private readonly intervalMillis: number;
+    private readonly maxBlockedMillis: number;
+    private interval?: BetterIntervalID;
 
-            const snapshot: EventLoopSnapshot = {
-                createdAt: now,
-                isOverloaded: false,
-                exceededMillis: 0,
-            };
+    constructor(options: EventLoopLoadSignalOptions = {}) {
+        this.overloadedRatio = options.overloadedRatio ?? 0.6;
+        this.intervalMillis = (options.snapshotIntervalSecs ?? 0.5) * 1000;
+        this.maxBlockedMillis = options.maxBlockedMillis ?? 50;
+        this.handle = this.handle.bind(this);
+    }
 
-            const all = store.getAll();
-            const previousSnapshot = all[all.length - 1];
-            if (previousSnapshot) {
-                const { createdAt } = previousSnapshot;
-                const delta = now.getTime() - +createdAt - intervalMillis;
+    async start(context: LoadSignalStartContext): Promise<void> {
+        this.store.useSampleWindow(context.maxSampleWindowMillis);
+        // A new session starts from a clean slate, or the downtime gets charged to the event loop: `handle()` measures
+        // the gap since the previous snapshot, which across a restart is however long the system was stopped.
+        this.store.clear();
+        this.interval = betterSetInterval(this.handle, this.intervalMillis);
+    }
 
-                if (delta > maxBlockedMillis) snapshot.isOverloaded = true;
-                snapshot.exceededMillis = Math.max(delta - maxBlockedMillis, 0);
-            }
+    async stop(): Promise<void> {
+        if (this.interval) betterClearInterval(this.interval);
+        this.interval = undefined;
+    }
 
-            store.push(snapshot, now);
-            intervalCallback();
-        },
-    });
+    getSample(sampleDurationMillis?: number): LoadSnapshot[] {
+        return this.store.getSample(sampleDurationMillis);
+    }
 
-    return signal;
+    /**
+     * Records one snapshot: how much later than scheduled this tick ran is how long the loop was blocked.
+     * @internal Also lets tests drive the measurement without waiting on a timer.
+     */
+    handle(intervalCallback: () => unknown): void {
+        const now = new Date();
+
+        const snapshot: EventLoopSnapshot = {
+            createdAt: now,
+            isOverloaded: false,
+            exceededMillis: 0,
+        };
+
+        const all = this.store.getAll();
+        const previousSnapshot = all[all.length - 1];
+
+        if (previousSnapshot) {
+            const delta = now.getTime() - +previousSnapshot.createdAt - this.intervalMillis;
+
+            if (delta > this.maxBlockedMillis) snapshot.isOverloaded = true;
+            snapshot.exceededMillis = Math.max(delta - this.maxBlockedMillis, 0);
+        }
+
+        this.store.push(snapshot, now);
+        intervalCallback();
+    }
 }
-
-/** @internal Return type for backward compat in Snapshotter facade */
-export type EventLoopLoadSignal = ReturnType<typeof createEventLoopLoadSignal>;
