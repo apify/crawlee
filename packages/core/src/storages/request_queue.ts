@@ -3,6 +3,7 @@ import { inspect } from 'node:util';
 import type {
     BaseHttpClient,
     BatchAddRequestsResult,
+    Constructor,
     Dictionary,
     ProcessedRequest,
     QueueOperationInfo,
@@ -24,7 +25,6 @@ import { LruCache } from '@apify/datastructures';
 
 import { Configuration } from '../configuration.js';
 import { getObjectType } from '../debug.js';
-import type { Constructor } from '../typedefs.js';
 import type { EventManager } from '../events/event_manager.js';
 import { EventType } from '../events/event_manager.js';
 import type { CrawleeLogger } from '../log.js';

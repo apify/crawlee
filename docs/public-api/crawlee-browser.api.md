@@ -6,7 +6,7 @@
 
 import { AnyPredicate } from 'ow';
 import { ArrayPredicate } from 'ow';
-import type { Awaitable } from '@crawlee/basic';
+import type { Awaitable } from '@crawlee/types';
 import { BasePredicate } from 'ow';
 import { BasicCrawler } from '@crawlee/basic';
 import type { BasicCrawlerOptions } from '@crawlee/basic';
@@ -20,12 +20,11 @@ import type { BrowserPoolHooks } from '@crawlee/browser-pool';
 import type { BrowserPoolOptions } from '@crawlee/browser-pool';
 import type { CommonPage } from '@crawlee/browser-pool';
 import { Configuration } from '@crawlee/basic';
-import type { Constructor } from '@crawlee/utils';
+import type { Constructor } from '@crawlee/types';
 import { ContextPipeline } from '@crawlee/basic';
 import type { CrawlerRemoteBrowserOptions } from '@crawlee/browser-pool';
 import type { CrawlingContext } from '@crawlee/basic';
-import type { Dictionary } from '@crawlee/basic';
-import type { Dictionary as Dictionary_2 } from '@crawlee/utils';
+import type { Dictionary } from '@crawlee/types';
 import type { EnqueueLinksOptions } from '@crawlee/basic';
 import type { ErrorHandler } from '@crawlee/basic';
 import type { GetUserDataFromRequest } from '@crawlee/basic';

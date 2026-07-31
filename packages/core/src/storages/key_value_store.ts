@@ -1,20 +1,25 @@
-import type { Dictionary, KeyValueStoreBackend, KeyValueStoreInfo, KeyValueStoreItemData } from '@crawlee/types';
+import type {
+    Awaitable,
+    Dictionary,
+    KeyValueStoreBackend,
+    KeyValueStoreInfo,
+    KeyValueStoreItemData,
+} from '@crawlee/types';
 import ow, { ArgumentError } from 'ow';
 
 import { KEY_VALUE_STORE_KEY_REGEX } from '@apify/consts';
 
 import { Configuration } from '../configuration.js';
 import { serviceLocator } from '../service_locator.js';
-import type { Awaitable } from '../typedefs.js';
 import { checkStorageAccess } from './access_checking.js';
 import { parseValue, serializeValue } from './key_value_store_codec.js';
 import type { KeyValueStoreStats } from './storage_stats.js';
 import { StorageStatsTracker } from './storage_stats.js';
-import type { StorageIdentifier } from './storage_instance_manager.js';
 import type { StorageOpenOptions } from './utils.js';
+import type { StorageIdentifier } from './storage_instance_manager.js';
 import { resolveStorageIdentifier } from './storage_instance_manager.js';
 import { createDualIterable, purgeDefaultStorages } from './utils.js';
-import { isBuffer, isStream } from '@crawlee/utils';
+import { isBuffer, isStream } from '../byte_utils.js';
 
 /** @internal */
 const KVS_KEYS_DEFAULT_LIMIT = 1000;

@@ -1,8 +1,6 @@
 import { createHash } from 'node:crypto';
 import { resolve, sep } from 'node:path';
 
-import { isBuffer, isStream, toBuffer } from '@crawlee/utils';
-
 import { REQUEST_ID_LENGTH } from './consts.js';
 
 /**
@@ -50,4 +48,4 @@ export function uniqueKeyToRequestId(uniqueKey: string): string {
     return str.length > REQUEST_ID_LENGTH ? str.slice(0, REQUEST_ID_LENGTH) : str;
 }
 
-export { isBuffer, isStream, toBuffer };
+export { isBuffer, isStream, toBuffer } from '../byte_utils.js';
