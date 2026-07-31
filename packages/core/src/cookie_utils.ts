@@ -1,6 +1,5 @@
 import type { Cookie as CookieObject } from '@crawlee/types';
-import { CookieJar } from '@crawlee/types';
-import { Cookie } from 'tough-cookie';
+import { Cookie, CookieJar } from 'tough-cookie';
 
 import { serviceLocator } from './service_locator.js';
 import { CookieParseError } from './session_pool/errors.js';

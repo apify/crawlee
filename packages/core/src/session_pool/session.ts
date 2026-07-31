@@ -1,6 +1,6 @@
 import type { Dictionary, ISession, ProxyInfo, SessionFingerprint, SessionState } from '@crawlee/types';
-import { CookieJar } from '@crawlee/types';
 import ow from 'ow';
+import { CookieJar } from 'tough-cookie';
 
 import { cryptoRandomObjectId } from '@apify/utilities';
 

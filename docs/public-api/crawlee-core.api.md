@@ -14,7 +14,7 @@ import type { BinaryLike } from 'node:crypto';
 import type { Constructor } from '@crawlee/types';
 import { Cookie } from 'tough-cookie';
 import type { Cookie as Cookie_2 } from '@crawlee/types';
-import { CookieJar } from '@crawlee/types';
+import { CookieJar } from 'tough-cookie';
 import { CrawleeLogger } from '@crawlee/types';
 import type { CrawleeLoggerOptions } from '@crawlee/types';
 import type { DatasetBackend } from '@crawlee/types';

@@ -1,6 +1,7 @@
 import type { Readable } from 'node:stream';
 
-import type { CookieJar } from './cookies.js';
+import type { CookieJar } from 'tough-cookie';
+
 import type { ISession } from './session.js';
 import type { AllowedHttpMethods } from './utility-types.js';
 

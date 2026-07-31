@@ -4,9 +4,9 @@
 
 ```ts
 
-import { CookieJar } from 'tough-cookie';
+import type { CookieJar } from 'tough-cookie';
 import type { Readable } from 'node:stream';
-import { SerializedCookieJar } from 'tough-cookie';
+import type { SerializedCookieJar } from 'tough-cookie';
 
 // @public (undocumented)
 export type AllowedHttpMethods = 'GET' | 'HEAD' | 'POST' | 'PUT' | 'DELETE' | 'TRACE' | 'OPTIONS' | 'CONNECT' | 'PATCH' | 'get' | 'head' | 'post' | 'put' | 'delete' | 'trace' | 'options' | 'connect' | 'patch';
@@ -48,8 +48,6 @@ export interface Cookie {
     url?: string;
     value: string;
 }
-
-export { CookieJar }
 
 // @public
 export interface CrawleeLogger {
@@ -401,8 +399,6 @@ export interface SendRequestOptions {
     signal?: AbortSignal;
     timeoutMillis?: number;
 }
-
-export { SerializedCookieJar }
 
 // @public
 export interface SessionFingerprint {

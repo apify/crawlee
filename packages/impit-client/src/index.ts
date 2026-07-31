@@ -1,7 +1,8 @@
 import type { CustomFetchOptions } from '@crawlee/http-client';
 import { BaseHttpClient, ResponseWithUrl } from '@crawlee/http-client';
-import type { CookieJar as ToughCookieJar, CrawleeLogger, SessionFingerprint } from '@crawlee/types';
+import type { CrawleeLogger, SessionFingerprint } from '@crawlee/types';
 import { Impit, type Browser as ImpitBrowser, type ImpitOptions } from 'impit';
+import type { CookieJar as ToughCookieJar } from 'tough-cookie';
 
 import { LruCache } from '@apify/datastructures';
 
