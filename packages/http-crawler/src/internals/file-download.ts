@@ -140,7 +140,7 @@ export function ByteCounterStream({
  * ]
  * ```
  *
- * New requests are only dispatched when there is enough free CPU and memory available, using the functionality provided by the {@apilink AutoscaledPool} class. Concurrency is tuned via the `minConcurrency`, `maxConcurrency` and `maxRequestsPerMinute` options of the `FileCrawler` constructor, or, for finer control, by injecting a pre-configured {@apilink ConcurrencySystem|`concurrencySystem`}.
+ * New requests are only dispatched when there is enough free CPU and memory available, as judged by the crawler's {@apilink ConcurrencySystem}. Concurrency is tuned via the `minConcurrency`, `maxConcurrency` and `maxRequestsPerMinute` options of the `FileCrawler` constructor, or, for finer control, by injecting a pre-configured {@apilink ConcurrencySystem|`concurrencySystem`}.
  *
  * ## Example usage
  *
