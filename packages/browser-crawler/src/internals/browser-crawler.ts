@@ -1,10 +1,8 @@
 import type {
-    Awaitable,
     BasicCrawlerOptions,
     BasicCrawlingContext,
     ContextMiddleware,
     CrawlingContext,
-    Dictionary,
     EnqueueLinksOptions,
     ErrorHandler,
     GetUserDataFromRequest,
@@ -42,7 +40,14 @@ import type {
     LaunchContext,
 } from '@crawlee/browser-pool';
 import { BrowserPool, RemoteBrowserPool } from '@crawlee/browser-pool';
-import type { BatchAddRequestsResult, Cookie as CookieObject, IBrowserPool, ISession } from '@crawlee/types';
+import type {
+    Awaitable,
+    BatchAddRequestsResult,
+    Cookie as CookieObject,
+    Dictionary,
+    IBrowserPool,
+    ISession,
+} from '@crawlee/types';
 import type { RobotsTxtFile } from '@crawlee/utils';
 import { CLOUDFLARE_RETRY_CSS_SELECTORS, RETRY_CSS_SELECTORS, sleep } from '@crawlee/utils';
 import ow from 'ow';

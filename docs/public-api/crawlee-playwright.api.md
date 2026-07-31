@@ -29,8 +29,7 @@ import { ContextPipeline } from '@crawlee/browser';
 import type { ContextPipeline as ContextPipeline_2 } from '@crawlee/core';
 import { CrawlingContext } from '@crawlee/browser';
 import type { CrawlingContext as CrawlingContext_2 } from '@crawlee/core';
-import { Dictionary } from '@crawlee/utils';
-import type { Dictionary as Dictionary_2 } from '@crawlee/types';
+import type { Dictionary } from '@crawlee/types';
 import type { Download } from 'playwright';
 import type { EnqueueLinksOptions } from '@crawlee/core';
 import type { GetUserDataFromRequest } from '@crawlee/browser';
@@ -65,11 +64,11 @@ import type { StatisticState } from '@crawlee/core';
 import { StringPredicate } from 'ow';
 
 // @public
-export class AdaptivePlaywrightCrawler<ContextExtension = Dictionary_2<never>, ExtendedContext extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary_2> = Record<string, GetUserDataFromRequest_2<AdaptivePlaywrightCrawlerContext['request']>>> extends BasicCrawler<AdaptivePlaywrightCrawlerContext, ContextExtension, ExtendedContext, Routes> {
+export class AdaptivePlaywrightCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest_2<AdaptivePlaywrightCrawlerContext['request']>>> extends BasicCrawler<AdaptivePlaywrightCrawlerContext, ContextExtension, ExtendedContext, Routes> {
     constructor(options?: AdaptivePlaywrightCrawlerOptions<ContextExtension, ExtendedContext, Routes>);
     // (undocumented)
-    protected buildContextPipeline(): ContextPipeline_2<CrawlingContext_2<Dictionary_2>, CrawlingContext_2<Dictionary_2> & {
-        readonly request: LoadedRequest<Request_3<Dictionary_2>>;
+    protected buildContextPipeline(): ContextPipeline_2<CrawlingContext_2<Dictionary>, CrawlingContext_2<Dictionary> & {
+        readonly request: LoadedRequest<Request_3<Dictionary>>;
         readonly response: Response;
         readonly page: Page;
         readonly querySelector: AdaptivePlaywrightCrawlerContext["querySelector"];
@@ -90,7 +89,7 @@ export class AdaptivePlaywrightCrawler<ContextExtension = Dictionary_2<never>, E
 }
 
 // @public (undocumented)
-export interface AdaptivePlaywrightCrawlerContext<UserData extends Dictionary_2 = Dictionary_2> extends CrawlingContext_2<UserData> {
+export interface AdaptivePlaywrightCrawlerContext<UserData extends Dictionary = Dictionary> extends CrawlingContext_2<UserData> {
     // (undocumented)
     enqueueLinks(options?: EnqueueLinksOptions): Promise<unknown>;
     page: Page;
@@ -104,12 +103,12 @@ export interface AdaptivePlaywrightCrawlerContext<UserData extends Dictionary_2 
 }
 
 // @public (undocumented)
-export interface AdaptivePlaywrightCrawlerOptions<ContextExtension = Dictionary_2<never>, ExtendedContext extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary_2> = Record<string, GetUserDataFromRequest_2<AdaptivePlaywrightCrawlerContext['request']>>> extends Omit<BasicCrawlerOptions<AdaptivePlaywrightCrawlerContext, ContextExtension, ExtendedContext, Routes>, 'preNavigationHooks' | 'postNavigationHooks'> {
+export interface AdaptivePlaywrightCrawlerOptions<ContextExtension = Dictionary<never>, ExtendedContext extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest_2<AdaptivePlaywrightCrawlerContext['request']>>> extends Omit<BasicCrawlerOptions<AdaptivePlaywrightCrawlerContext, ContextExtension, ExtendedContext, Routes>, 'preNavigationHooks' | 'postNavigationHooks'> {
     postNavigationHooks?: AdaptivePostNavigationHook<ContextExtension>[];
     preNavigationHooks?: AdaptiveHook<ContextExtension>[];
     preventDirectStorageAccess?: boolean;
     renderingTypeDetectionRatio?: number;
-    renderingTypePredictor?: Pick<RenderingTypePredictor, 'predict' | 'storeResult' | 'initialize'>;
+    renderingTypePredictor?: IRenderingTypePredictor;
     resultChecker?: (result: RequestHandlerResult) => boolean;
     resultComparator?: (resultA: RequestHandlerResult, resultB: RequestHandlerResult) => boolean | 'equal' | 'different' | 'inconclusive';
     shouldPropagateError?: (error: Error, context: PlaywrightCrawlingContext) => Awaitable<boolean>;
@@ -142,19 +141,19 @@ interface CompiledScriptParams {
 function compileScript(scriptString: string, context?: Dictionary): CompiledScriptFunction;
 
 // @public (undocumented)
-export function createAdaptivePlaywrightRouter<Context extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext, Routes extends Record<keyof Routes, Dictionary_2> = Record<string, GetUserDataFromRequest_2<Context['request']>>>(routes?: RouterRoutes_2<Context, Routes>): RouterHandler<Context, Routes>;
+export function createAdaptivePlaywrightRouter<Context extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest_2<Context['request']>>>(routes?: RouterRoutes_2<Context, Routes>): RouterHandler<Context, Routes>;
 
 // @public (undocumented)
-export function createAdaptivePlaywrightRouter<Context extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext, UserData extends Dictionary_2 = GetUserDataFromRequest_2<Context['request']>>(routes?: RouterRoutes_2<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
+export function createAdaptivePlaywrightRouter<Context extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext, UserData extends Dictionary = GetUserDataFromRequest_2<Context['request']>>(routes?: RouterRoutes_2<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
 
 // @public (undocumented)
 export function createAdaptivePlaywrightRouter<Context extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext, const Schemas extends RouteSchemas = RouteSchemas>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
 
 // @public
-export function createPlaywrightRouter<Context extends PlaywrightCrawlingContext = PlaywrightCrawlingContext, Routes extends Record<keyof Routes, Dictionary_2> = Record<string, GetUserDataFromRequest<Context['request']>>>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
+export function createPlaywrightRouter<Context extends PlaywrightCrawlingContext = PlaywrightCrawlingContext, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
 
 // @public (undocumented)
-export function createPlaywrightRouter<Context extends PlaywrightCrawlingContext = PlaywrightCrawlingContext, UserData extends Dictionary_2 = GetUserDataFromRequest<Context['request']>>(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
+export function createPlaywrightRouter<Context extends PlaywrightCrawlingContext = PlaywrightCrawlingContext, UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
 
 // @public (undocumented)
 export function createPlaywrightRouter<Context extends PlaywrightCrawlingContext = PlaywrightCrawlingContext, const Schemas extends RouteSchemas = RouteSchemas>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
@@ -179,7 +178,7 @@ interface EnqueueLinksByClickingElementsOptions {
     selector: string;
     skipNavigation?: boolean;
     transformRequestFunction?: RequestTransform;
-    userData?: Dictionary_2;
+    userData?: Dictionary;
     waitForPageIdleSecs?: number;
 }
 
@@ -236,6 +235,15 @@ function injectJQuery(page: Page, options?: {
 }): Promise<unknown>;
 
 // @public
+export interface IRenderingTypePredictor {
+    predict(request: Request_2): {
+        renderingType: RenderingType;
+        detectionProbabilityRecommendation: number;
+    };
+    storeResult(requests: Request_2 | Request_2[], renderingType: RenderingType): void;
+}
+
+// @public
 export function launchPlaywright(launchContext?: PlaywrightLaunchContext, configuration?: Configuration): Promise<Browser>;
 
 // @public
@@ -251,12 +259,12 @@ declare namespace playwrightClickElements {
 }
 
 // @public
-export class PlaywrightCrawler<ContextExtension = Dictionary_2<never>, ExtendedContext extends PlaywrightCrawlingContext = PlaywrightCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary_2> = Record<string, GetUserDataFromRequest<PlaywrightCrawlingContext['request']>>> extends BrowserCrawler<Page, Response_2, {
+export class PlaywrightCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends PlaywrightCrawlingContext = PlaywrightCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<PlaywrightCrawlingContext['request']>>> extends BrowserCrawler<Page, Response_2, {
     browserPlugins: [PlaywrightPlugin];
 }, LaunchOptions, PlaywrightCrawlingContext, ContextExtension, ExtendedContext, Routes> {
     constructor(options?: PlaywrightCrawlerOptions<ContextExtension, ExtendedContext, Routes>);
     // (undocumented)
-    protected buildContextPipeline(): ContextPipeline<CrawlingContext<Dictionary_2>, BrowserCrawlingContext<Page, Response_2, Dictionary_2, Dictionary_2> & {
+    protected buildContextPipeline(): ContextPipeline<CrawlingContext<Dictionary>, BrowserCrawlingContext<Page, Response_2, Dictionary, Dictionary> & {
     injectFile: (filePath: string, options?: InjectFileOptions) => Promise<unknown>;
     injectJQuery: () => Promise<void>;
     blockRequests: (options?: BlockRequestsOptions) => Promise<void>;
@@ -266,7 +274,7 @@ export class PlaywrightCrawler<ContextExtension = Dictionary_2<never>, ExtendedC
     listDownloads: () => Promise<Download[]>;
     saveSnapshot: (options?: SaveSnapshotOptions) => Promise<void>;
     enqueueLinksByClickingElements: (options: Omit<EnqueueLinksByClickingElementsOptions, "page" | "requestManager">) => Promise<BatchAddRequestsResult>;
-    compileScript: (scriptString: string, ctx?: Dictionary_2) => CompiledScriptFunction;
+    compileScript: (scriptString: string, ctx?: Dictionary) => CompiledScriptFunction;
     closeCookieModals: () => Promise<void>;
     handleCloudflareChallenge: (options?: HandleCloudflareChallengeOptions) => Promise<Response_2 | undefined>;
     }>;
@@ -325,7 +333,7 @@ export class PlaywrightCrawler<ContextExtension = Dictionary_2<never>, ExtendedC
 }
 
 // @public (undocumented)
-export interface PlaywrightCrawlerOptions<ContextExtension = Dictionary_2<never>, ExtendedContext extends PlaywrightCrawlingContext = PlaywrightCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary_2> = Record<string, GetUserDataFromRequest<PlaywrightCrawlingContext['request']>>> extends BrowserCrawlerOptions<Page, Response_2, PlaywrightCrawlingContext, ContextExtension, ExtendedContext, {
+export interface PlaywrightCrawlerOptions<ContextExtension = Dictionary<never>, ExtendedContext extends PlaywrightCrawlingContext = PlaywrightCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<PlaywrightCrawlingContext['request']>>> extends BrowserCrawlerOptions<Page, Response_2, PlaywrightCrawlingContext, ContextExtension, ExtendedContext, {
     browserPlugins: [PlaywrightPlugin];
 }, Routes> {
     launchContext?: PlaywrightLaunchContext;
@@ -335,7 +343,7 @@ export interface PlaywrightCrawlerOptions<ContextExtension = Dictionary_2<never>
 }
 
 // @public (undocumented)
-export interface PlaywrightCrawlingContext<UserData extends Dictionary_2 = Dictionary_2> extends BrowserCrawlingContext<Page, Response_2, UserData, PlaywrightGotoOptions>, PlaywrightContextUtils {
+export interface PlaywrightCrawlingContext<UserData extends Dictionary = Dictionary> extends BrowserCrawlingContext<Page, Response_2, UserData, PlaywrightGotoOptions>, PlaywrightContextUtils {
 }
 
 // @public (undocumented)
@@ -391,7 +399,7 @@ declare namespace playwrightUtils {
 export type RenderingType = 'clientOnly' | 'static';
 
 // @public
-export class RenderingTypePredictor {
+export class RenderingTypePredictor implements IRenderingTypePredictor {
     constructor(input: RenderingTypePredictorOptions);
     initialize(): Promise<void>;
     predict(input: Request_2): {

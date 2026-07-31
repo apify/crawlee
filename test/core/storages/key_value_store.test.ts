@@ -1,7 +1,7 @@
 import { PassThrough } from 'node:stream';
 
 import { KeyValueStore, MemoryStorageBackend, serviceLocator } from '@crawlee/core';
-import type { Dictionary } from '@crawlee/utils';
+import type { Dictionary } from '@crawlee/types';
 import { toBuffer } from '@crawlee/utils';
 
 beforeEach(async () => {

@@ -20,8 +20,7 @@ import {
     SessionPool,
 } from '@crawlee/core';
 import { ImpitHttpClient } from '@crawlee/impit-client';
-import type { ISession, ProxyInfo } from '@crawlee/types';
-import type { Dictionary } from '@crawlee/utils';
+import type { Dictionary, ISession, ProxyInfo } from '@crawlee/types';
 import { sleep } from '@crawlee/utils';
 import iconv from 'iconv-lite';
 import { CookieJar } from 'tough-cookie';

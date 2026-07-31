@@ -355,6 +355,29 @@ await pool.destroy();
 
 Note that this couples your code to the built-in `BrowserPool` — custom `IBrowserPool` implementations may not expose controllers at all.
 
+## Custom rendering type predictors via the `IRenderingTypePredictor` interface
+
+The `renderingTypePredictor` option of `AdaptivePlaywrightCrawler` is now typed as the new `IRenderingTypePredictor` interface — `predict(request)` and `storeResult(requests, renderingType)`, nothing else. The built-in `RenderingTypePredictor` implements it, so passing one still works.
+
+What changed is the lifecycle: the crawler used to call `initialize()` on the predictor it was given, even though it did not create it. It now follows the same own-only-what-you-built rule as the session and browser pools — a predictor you pass in is *borrowed*, so setting it up is your job, and `initialize` is not part of the interface at all. The built-in predictor restores its persisted state in `initialize()` and will throw `Recoverable state has not yet been loaded` from `predict()` if it is never called:
+
+```typescript
+import { AdaptivePlaywrightCrawler, RenderingTypePredictor } from '@crawlee/playwright';
+
+const renderingTypePredictor = new RenderingTypePredictor({ detectionRatio: 0.1 });
+// You own the predictor — initialize it yourself (this used to be done by the crawler).
+await renderingTypePredictor.initialize();
+
+const crawler = new AdaptivePlaywrightCrawler({
+    renderingTypePredictor,
+    requestHandler: async ({ pushData }) => {
+        // …
+    },
+});
+```
+
+If you don't pass a predictor, nothing changes: the crawler builds one from `renderingTypeDetectionRatio` and, since it owns that one, initializes it for you.
+
 ## `tieredProxyUrls` is removed from `ProxyConfiguration`
 
 The `tieredProxyUrls` option has been removed, together with the `proxyTier` field on `ProxyInfo` and the `proxyTier` plumbing in `BrowserPool`. In v4 the `Session` is the main rotation unit - a session already carries its own proxy, cookies and error score, so the pool rotates the whole fingerprint when a session gets retired on a block.
@@ -428,6 +451,10 @@ This experimental option relied on an outdated manifest version for browser exte
 In v3, we introduced a new way to detect available resources for the crawler, available via `systemInfoV2` flag. In v4, this is the default way to detect available resources. The old way is removed completely together with the `systemInfoV2` flag.
 
 As part of this change, the low-level resource- and environment-detection helpers exported from `@crawlee/utils` were **removed**: `getMemoryInfo()` (and the `MemoryInfo` interface), `isContainerized()`, `isDocker()`, `isLambda()`, and `getCgroupsVersion()`. These backed the old detection path and are no longer part of the public API. Resource detection is now handled internally by the crawler's autoscaling; if you called any of these directly, read the equivalent values from the OS (`node:os`) or the relevant cgroup files yourself.
+
+## `@crawlee/types` symbols are no longer re-exported
+
+The general-purpose utility types owned by `@crawlee/types` are no longer re-exported from other packages, so `Dictionary`, `Awaitable`, `Constructor`, `Cookie`, `QueueOperationInfo` and `AllowedHttpMethods` are no longer available from `@crawlee/core` (nor, in turn, from `@crawlee/basic` and the `crawlee` meta-package). Add `@crawlee/types` to your dependencies and import them from there — most of the package's types (`ISession`, `ProxyInfo`, `RequestSchema`, …) already required this. The interfaces you implement against — `StorageBackend`, `StorageIdentifier` and `IBrowserPool` / `NewPageOptions` — stay reachable from `@crawlee/core` and `@crawlee/browser-pool` respectively.
 
 ## Removed and relocated `@crawlee/utils` exports
 
