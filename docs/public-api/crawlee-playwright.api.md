@@ -108,7 +108,7 @@ export interface AdaptivePlaywrightCrawlerOptions<ContextExtension = Dictionary_
     preNavigationHooks?: AdaptiveHook<ContextExtension>[];
     preventDirectStorageAccess?: boolean;
     renderingTypeDetectionRatio?: number;
-    renderingTypePredictor?: Pick<RenderingTypePredictor, 'predict' | 'storeResult' | 'initialize'>;
+    renderingTypePredictor?: IRenderingTypePredictor;
     resultChecker?: (result: RequestHandlerResult) => boolean;
     resultComparator?: (resultA: RequestHandlerResult, resultB: RequestHandlerResult) => boolean | 'equal' | 'different' | 'inconclusive';
     shouldPropagateError?: (error: Error, context: PlaywrightCrawlingContext) => Awaitable<boolean>;
@@ -233,6 +233,15 @@ interface InjectFileOptions {
 function injectJQuery(page: Page, options?: {
     surviveNavigations?: boolean;
 }): Promise<unknown>;
+
+// @public
+export interface IRenderingTypePredictor {
+    predict(request: Request_2): {
+        renderingType: RenderingType;
+        detectionProbabilityRecommendation: number;
+    };
+    storeResult(requests: Request_2 | Request_2[], renderingType: RenderingType): void;
+}
 
 // @public
 export function launchPlaywright(launchContext?: PlaywrightLaunchContext, configuration?: Configuration): Promise<Browser>;
@@ -390,7 +399,7 @@ declare namespace playwrightUtils {
 export type RenderingType = 'clientOnly' | 'static';
 
 // @public
-export class RenderingTypePredictor {
+export class RenderingTypePredictor implements IRenderingTypePredictor {
     constructor(input: RenderingTypePredictorOptions);
     initialize(): Promise<void>;
     predict(input: Request_2): {
