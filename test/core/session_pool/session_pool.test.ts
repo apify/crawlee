@@ -7,7 +7,8 @@ import {
     Session,
     SessionPool,
 } from '@crawlee/core';
-import { entries } from '@crawlee/utils';
+
+import { entries } from '../../shared/typedefs.js';
 
 describe('SessionPool - testing session pool', () => {
     let sessionPool: SessionPool;

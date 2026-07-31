@@ -1,4 +1,4 @@
-import type { Dictionary } from '@crawlee/core';
+import type { Dictionary } from '@crawlee/types';
 import { Configuration, KeyValueStore, MemoryStorageBackend, serviceLocator, useState } from '@crawlee/core';
 
 describe('useState', () => {

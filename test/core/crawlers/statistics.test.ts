@@ -1,5 +1,5 @@
 import { Configuration, EventType, MemoryStorageBackend, serviceLocator, Statistics } from '@crawlee/core';
-import type { Dictionary } from '@crawlee/utils';
+import type { Dictionary } from '@crawlee/types';
 
 describe('Statistics', () => {
     const getPerMinute = (jobCount: number, totalTickMillis: number) => {
