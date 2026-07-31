@@ -5,7 +5,7 @@
 ```ts
 
 import type { BaseHttpClient as BaseHttpClient_2 } from '@crawlee/types';
-import { CookieJar } from 'tough-cookie';
+import { CookieJar } from '@crawlee/types';
 import type { CrawleeLogger } from '@crawlee/types';
 import type { SendRequestOptions } from '@crawlee/types';
 import type { SessionFingerprint } from '@crawlee/types';

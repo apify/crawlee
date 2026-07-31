@@ -4,7 +4,7 @@ import type {
     SendRequestOptions,
     SessionFingerprint,
 } from '@crawlee/types';
-import { CookieJar } from 'tough-cookie';
+import { CookieJar } from '@crawlee/types';
 
 /**
  * Per-request options handed to a concrete client's `fetch` implementation.

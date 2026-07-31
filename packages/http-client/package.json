@@ -47,7 +47,6 @@
         "access": "public"
     },
     "dependencies": {
-        "@crawlee/types": "workspace:*",
-        "tough-cookie": "^6.0.0"
+        "@crawlee/types": "workspace:*"
     }
 }
