@@ -7,4 +7,4 @@ export { RenderingTypePredictor } from './internals/utils/rendering-type-predict
 export * as playwrightUtils from './internals/utils/playwright-utils.js';
 export * as playwrightClickElements from './internals/enqueue-links/click-elements.js';
 export type { DirectNavigationOptions as PlaywrightDirectNavigationOptions } from './internals/utils/playwright-utils.js';
-export type { RenderingType } from './internals/utils/rendering-type-prediction.js';
+export type { IRenderingTypePredictor, RenderingType } from './internals/utils/rendering-type-prediction.js';

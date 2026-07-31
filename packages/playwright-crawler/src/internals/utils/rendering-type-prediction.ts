@@ -47,11 +47,28 @@ export interface RenderingTypePredictorOptions {
 }
 
 /**
+ * Minimal contract that any object passed to {@apilink AdaptivePlaywrightCrawler} as its
+ * `renderingTypePredictor` option must satisfy.
+ *
+ * @experimental
+ */
+export interface IRenderingTypePredictor {
+    /** Predict the rendering type for a request, and how likely the crawler should be to verify it. */
+    predict(request: Request): {
+        renderingType: RenderingType;
+        detectionProbabilityRecommendation: number;
+    };
+
+    /** Report a detected rendering type, so that future predictions can take it into account. */
+    storeResult(requests: Request | Request[], renderingType: RenderingType): void;
+}
+
+/**
  * Stores rendering type information for previously crawled URLs and predicts the rendering type for URLs that have yet to be crawled and recommends when rendering type detection should be performed.
  *
  * @experimental
  */
-export class RenderingTypePredictor {
+export class RenderingTypePredictor implements IRenderingTypePredictor {
     private detectionRatio: number;
     private state: RecoverableState<{
         logreg: LogisticRegression;
