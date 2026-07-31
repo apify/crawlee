@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import { MemoryStorageBackend, serviceLocator } from '@crawlee/core';
 import { KeyValueStore, launchPuppeteer, puppeteerUtils, Request } from '@crawlee/puppeteer';
-import type { Dictionary } from '@crawlee/utils';
+import type { Dictionary } from '@crawlee/types';
 // @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
 import type { Browser, Page, ResponseForRequest } from 'puppeteer';
 import { runExampleComServer } from '../shared/_helper.js';

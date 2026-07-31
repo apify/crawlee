@@ -23,8 +23,7 @@ import {
     SessionPool,
 } from '@crawlee/basic';
 import { ConcurrencySystem, Dataset, MemoryStorageBackend, RequestState, SessionPool, Statistics } from '@crawlee/core';
-import type { ISession, ProxyInfo } from '@crawlee/types';
-import type { Dictionary } from '@crawlee/utils';
+import type { Dictionary, ISession, ProxyInfo } from '@crawlee/types';
 import { RobotsTxtFile, sleep } from '@crawlee/utils';
 import express from 'express';
 import type { SetRequired } from 'type-fest';

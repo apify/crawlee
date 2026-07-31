@@ -1,6 +1,5 @@
-import type { Dictionary } from '@crawlee/core';
+import type { Dictionary, StorageBackend } from '@crawlee/types';
 import { Configuration, KeyValueStore, MemoryStorageBackend, purgeDefaultStorages, serviceLocator, useState } from '@crawlee/core';
-import type { StorageBackend } from '@crawlee/types';
 
 describe('useState', () => {
     beforeEach(async () => {
