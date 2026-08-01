@@ -5,13 +5,18 @@ import { SnapshotStore } from './load_signal';
 import type { SystemInfo } from './system_status';
 
 export interface CpuSnapshot extends LoadSnapshot {
+    /** CPU utilization ratio recorded for the snapshot. */
     usedRatio: number;
+    /** Raw CPU tick counters when collected locally. */
     ticks?: { idle: number; total: number };
 }
 
 export interface CpuLoadSignalOptions {
+    /** Fraction of overloaded snapshots required to mark the signal overloaded. */
     overloadedRatio?: number;
+    /** Duration for which snapshots are retained, in milliseconds. */
     snapshotHistoryMillis?: number;
+    /** Crawlee configuration providing the system-info event manager. */
     config: Configuration;
 }
 
