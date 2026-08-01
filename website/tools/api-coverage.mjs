@@ -1,0 +1,303 @@
+import { readdir, readFile, stat } from 'node:fs/promises';
+import { dirname, join, resolve } from 'node:path';
+import process from 'node:process';
+
+const NON_API_KINDS = new Set([
+    1, // Project
+    2, // Module
+    4, // Namespace
+    4096, // Call signature
+    8192, // Index signature
+    16384, // Constructor signature
+    32768, // Parameter
+    65536, // Type literal
+    131072, // Type parameter
+    524288, // Get signature
+    1048576, // Set signature
+    4194304, // Reference
+]);
+
+const EXCLUDED_FLAGS = new Set(['isPrivate', 'isProtected']);
+const EXCLUDED_COMMENT_TAGS = new Set(['@internal', '@ignore']);
+
+function asText(parts = []) {
+    return parts
+        .map((part) => part.text ?? '')
+        .join('')
+        .trim();
+}
+
+function hasSummary(comment) {
+    return asText(comment?.summary).length > 0;
+}
+
+function hasExcludedMarker(reflection) {
+    if ([...EXCLUDED_FLAGS].some((flag) => reflection.flags?.[flag])) {
+        return true;
+    }
+
+    return (reflection.comment?.blockTags ?? []).some((tag) => EXCLUDED_COMMENT_TAGS.has(tag.tag));
+}
+
+function normalizePath(fileName = '') {
+    return fileName.replaceAll('\\', '/');
+}
+
+function sourceInfo(reflection) {
+    const source = reflection.sources?.[0];
+    const fileName = normalizePath(source?.fileName);
+
+    if (!fileName) {
+        return { fileName: '', ownership: 'unknown' };
+    }
+
+    if (fileName.includes('/node_modules/') || fileName.startsWith('node_modules/')) {
+        return { fileName, ownership: 'external' };
+    }
+
+    if (fileName.startsWith('packages/')) {
+        return { fileName, ownership: 'source' };
+    }
+
+    return { fileName, ownership: 'other' };
+}
+
+function packagePathFromSource(fileName) {
+    const match = fileName.match(/^(packages\/[^/]+)/);
+    return match?.[1] ?? null;
+}
+
+function packageNameFor(packagePath, packageMetadata, fallback) {
+    const metadata = packageMetadata.find((item) => item.packagePath === packagePath);
+    return metadata?.packageName ?? fallback ?? packagePath ?? 'unknown';
+}
+
+function packageMetadataFor(root, packageMetadata) {
+    const source = sourceInfo(root);
+    const packagePath = packagePathFromSource(source.fileName);
+
+    return {
+        packagePath,
+        packageName: packageNameFor(packagePath, packageMetadata, root.name),
+    };
+}
+
+function isCountedReflection(reflection) {
+    return !NON_API_KINDS.has(reflection.kind);
+}
+
+function isSupportedReflection(reflection) {
+    const source = sourceInfo(reflection);
+
+    return source.ownership === 'source' && !hasExcludedMarker(reflection);
+}
+
+function exclusionReason(reflection, source) {
+    if (hasExcludedMarker(reflection)) {
+        return 'visibility';
+    }
+
+    return source.ownership;
+}
+
+function qualifiedName(ancestors, reflection) {
+    return [...ancestors, reflection.name].filter(Boolean).join('.');
+}
+
+function missingRow(reflection, packageInfo, ancestors, source) {
+    return {
+        package: packageInfo.packageName,
+        packagePath: packageInfo.packagePath,
+        name: reflection.name,
+        qualifiedName: qualifiedName(ancestors, reflection),
+        kind: reflection.kind,
+        source: source.fileName,
+        line: reflection.sources?.[0]?.line ?? null,
+        ownership: source.ownership,
+    };
+}
+
+function walkReflection(reflection, context, output) {
+    const counted = isCountedReflection(reflection);
+    const source = sourceInfo(reflection);
+    const supported = counted && isSupportedReflection(reflection);
+    const packageInfo = context.packageInfo;
+
+    if (supported) {
+        output.total += 1;
+        const documented = hasSummary(reflection.comment) || (reflection.signatures ?? []).some((signature) => hasSummary(signature.comment));
+        if (documented) {
+            output.documented += 1;
+        } else {
+            output.missing.push(missingRow(reflection, packageInfo, context.ancestors, source));
+        }
+    } else if (counted && (source.ownership !== 'source' || hasExcludedMarker(reflection))) {
+        output.excluded.push({
+            ...missingRow(reflection, packageInfo, context.ancestors, source),
+            reason: exclusionReason(reflection, source),
+        });
+    }
+
+    for (const child of reflection.children ?? []) {
+        walkReflection(child, {
+            ...context,
+            ancestors: [...context.ancestors, reflection.name].filter(Boolean),
+        }, output);
+    }
+}
+
+function createPackageReport(root, packageMetadata) {
+    const packageInfo = packageMetadataFor(root, packageMetadata);
+    const result = {
+        package: packageInfo.packageName,
+        packagePath: packageInfo.packagePath,
+        total: 0,
+        documented: 0,
+        missing: [],
+        excluded: [],
+    };
+
+    walkReflection(root, { ancestors: [], packageInfo }, result);
+
+    return {
+        ...result,
+        percentage: result.total === 0 ? 100 : (result.documented / result.total) * 100,
+        missing: result.missing.sort(compareRows),
+        excluded: result.excluded.sort(compareRows),
+    };
+}
+
+function compareRows(a, b) {
+    return [a.package, a.source, a.qualifiedName, a.kind].join('\u0000').localeCompare([b.package, b.source, b.qualifiedName, b.kind].join('\u0000'));
+}
+
+export function analyzeCoverage(typedoc, packageMetadata = []) {
+    const roots = typedoc.children ?? [];
+    const packages = roots.map((root) => createPackageReport(root, packageMetadata));
+    const total = packages.reduce((sum, item) => sum + item.total, 0);
+    const documented = packages.reduce((sum, item) => sum + item.documented, 0);
+
+    return {
+        total,
+        documented,
+        percentage: total === 0 ? 100 : (documented / total) * 100,
+        packages,
+        missing: packages.flatMap((item) => item.missing).sort(compareRows),
+        excluded: packages.flatMap((item) => item.excluded).sort(compareRows),
+    };
+}
+
+export function formatReport(report) {
+    const lines = [
+        `API documentation coverage: ${report.documented}/${report.total} (${report.percentage.toFixed(1)}%)`,
+        '',
+        'Package                         Documented  Total  Coverage',
+        '------------------------------  ----------  -----  --------',
+    ];
+
+    for (const item of report.packages) {
+        lines.push(`${item.package.padEnd(30)}  ${String(item.documented).padStart(10)}  ${String(item.total).padStart(5)}  ${item.percentage.toFixed(1).padStart(7)}%`);
+    }
+
+    if (report.missing.length > 0) {
+        lines.push('', `Missing descriptions (${report.missing.length}):`);
+        for (const row of report.missing) {
+            lines.push(`- ${row.package}: ${row.qualifiedName} (${row.source}:${row.line ?? '?'})`);
+        }
+    }
+
+    lines.push('', `Excluded reflections: ${report.excluded.length}`);
+    return lines.join('\n');
+}
+
+async function loadJson(path) {
+    return JSON.parse(await readFile(path, 'utf8'));
+}
+
+async function findFiles(directory, predicate) {
+    const entries = await readdir(directory, { withFileTypes: true });
+    const files = [];
+
+    for (const entry of entries) {
+        const entryPath = join(directory, entry.name);
+        if (entry.isDirectory()) {
+            files.push(...(await findFiles(entryPath, predicate)));
+        } else if (predicate(entryPath)) {
+            files.push(entryPath);
+        }
+    }
+
+    return files;
+}
+
+async function loadWorkspacePackageMetadata(projectRoot) {
+    const packageFiles = await findFiles(join(projectRoot, 'packages'), (path) => path.endsWith('/package.json'));
+    return Promise.all(
+        packageFiles.map(async (path) => {
+            const packageJson = await loadJson(path);
+            const packagePath = dirname(path).replace(`${projectRoot}/`, '');
+            return { packagePath, packageName: packageJson.name };
+        }),
+    );
+}
+
+async function findCurrentTypeDoc(projectRoot) {
+    const generatedFiles = join(projectRoot, 'website', '.docusaurus');
+    const candidates = await findFiles(generatedFiles, (path) => /api-typedoc(?:-[^/]+)?\.json$/.test(path));
+    if (candidates.length === 0) {
+        throw new Error(`No generated TypeDoc JSON found under ${generatedFiles}. Run the Docusaurus API generation first.`);
+    }
+
+    const withTimes = await Promise.all(
+        candidates.map(async (path) => ({ path, modified: (await stat(path)).mtimeMs })),
+    );
+    withTimes.sort((a, b) => b.modified - a.modified);
+    return withTimes[0].path;
+}
+
+function parseArgs(args) {
+    const projectRoot = process.cwd().endsWith('/website') ? resolve(process.cwd(), '..') : process.cwd();
+    const options = { checkCurrent: false, typedocPath: null, packagesPath: null, projectRoot };
+    const positional = [];
+
+    for (const arg of args) {
+        if (arg === '--check-current') options.checkCurrent = true;
+        else if (arg.startsWith('--project-root=')) options.projectRoot = resolve(arg.slice('--project-root='.length));
+        else positional.push(arg);
+    }
+
+    [options.typedocPath, options.packagesPath] = positional;
+    return options;
+}
+
+async function main() {
+    const options = parseArgs(process.argv.slice(2));
+    let { typedocPath, packagesPath } = options;
+
+    if (options.checkCurrent) {
+        typedocPath = await findCurrentTypeDoc(options.projectRoot);
+        packagesPath = null;
+    }
+
+    if (!typedocPath) {
+        console.error('Usage: node website/tools/api-coverage.mjs <api-typedoc.json> [api-packages.json]');
+        console.error('   or: node website/tools/api-coverage.mjs --check-current [--project-root=<repo-root>]');
+        process.exitCode = 2;
+        return;
+    }
+
+    const typedoc = await loadJson(resolve(typedocPath));
+    const packageMetadata = packagesPath
+        ? await loadJson(resolve(packagesPath))
+        : await loadWorkspacePackageMetadata(options.projectRoot);
+    const report = analyzeCoverage(typedoc, packageMetadata);
+
+    console.log(formatReport(report));
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+    main().catch((error) => {
+        console.error(error instanceof Error ? error.message : error);
+        process.exitCode = 1;
+    });
+}
