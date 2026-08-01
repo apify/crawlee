@@ -144,7 +144,7 @@ There's no reason not to split your code into multiple files and keep your logic
 
 ## Using Crawlee `log` instead of `console.log`
 
-We won't go to great lengths here to talk about `log` object from Crawlee, because you can read all about it in the <ApiLink to="core/class/Log">documentation</ApiLink>, but there's just one thing that we need to stress: **log levels**.
+We won't go to great lengths here to talk about `log` object from Crawlee, because you can read all about it in the [Crawlee logging API](https://github.com/apify/log), but there's just one thing that we need to stress: **log levels**.
 
 Crawlee `log` has multiple log levels, such as `log.debug`, `log.info` or `log.warning`. It not only makes your log more readable, but it also allows selective turning off of some levels by either calling the `log.setLevel()` function or by setting the `CRAWLEE_LOG_LEVEL` environment variable. Thanks to this you can add a lot of debug logs to your crawler without polluting your log when they're not needed, but ready to help when you encounter issues.
 
