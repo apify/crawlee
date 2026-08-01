@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { analyzeCoverage, formatReport } from '../website/tools/api-coverage.mjs';
+import { analyzeCoverage, checkBaseline, createBaseline, formatReport } from '../website/tools/api-coverage.mjs';
 
 const packageMetadata = [
     {
@@ -9,8 +9,8 @@ const packageMetadata = [
     },
 ];
 
-function text(text: string) {
-    return [{ kind: 'text', text }];
+function text(content: string) {
+    return [{ kind: 'text', text: content }];
 }
 
 function fixture() {
@@ -104,9 +104,15 @@ describe('API documentation coverage', () => {
     it('excludes external and intentionally hidden reflections', () => {
         const report = analyzeCoverage(fixture(), packageMetadata);
 
-        expect(report.missing.some((row) => row.qualifiedName.includes('ExternalType'))).toBe(false);
-        expect(report.missing.some((row) => row.qualifiedName.includes('InternalType'))).toBe(false);
-        expect(report.missing.some((row) => row.qualifiedName.includes('DeprecatedOnly'))).toBe(true);
+        expect(
+            report.missing.some((row: { qualifiedName: string }) => row.qualifiedName.includes('ExternalType')),
+        ).toBe(false);
+        expect(
+            report.missing.some((row: { qualifiedName: string }) => row.qualifiedName.includes('InternalType')),
+        ).toBe(false);
+        expect(
+            report.missing.some((row: { qualifiedName: string }) => row.qualifiedName.includes('DeprecatedOnly')),
+        ).toBe(true);
         expect(report.excluded).toEqual(
             expect.arrayContaining([
                 expect.objectContaining({ ownership: 'external', reason: 'external' }),
@@ -121,5 +127,24 @@ describe('API documentation coverage', () => {
         expect(output).toContain('API documentation coverage: 2/4 (50.0%)');
         expect(output).toContain('@crawlee/example');
         expect(output).toContain('example/src.DocumentedClass.missingProperty');
+    });
+
+    it('ratchets against a baseline and rejects newly missing symbols', () => {
+        const report = analyzeCoverage(fixture(), packageMetadata);
+        const baseline = createBaseline(report);
+
+        expect(checkBaseline(report, baseline)).toEqual([]);
+        expect(
+            checkBaseline(report, {
+                ...baseline,
+                packages: {
+                    ...baseline.packages,
+                    '@crawlee/example': {
+                        ...baseline.packages['@crawlee/example'],
+                        acceptedMissing: [],
+                    },
+                },
+            }),
+        ).toEqual(expect.arrayContaining([expect.stringContaining('newly undocumented supported symbol')]));
     });
 });

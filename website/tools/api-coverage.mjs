@@ -1,4 +1,4 @@
-import { readdir, readFile, stat } from 'node:fs/promises';
+import { readdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import process from 'node:process';
 
@@ -171,6 +171,55 @@ function compareRows(a, b) {
     return [a.package, a.source, a.qualifiedName, a.kind].join('\u0000').localeCompare([b.package, b.source, b.qualifiedName, b.kind].join('\u0000'));
 }
 
+function rowKey(row) {
+    return [row.package, row.source, row.qualifiedName, row.kind].join('|');
+}
+
+export function createBaseline(report) {
+    return {
+        version: 1,
+        packages: Object.fromEntries(
+            report.packages.map((item) => [
+                item.package,
+                {
+                    total: item.total,
+                    documented: item.documented,
+                    minimumCoverage: Number(item.percentage.toFixed(4)),
+                    acceptedMissing: item.missing.map(rowKey),
+                },
+            ]),
+        ),
+    };
+}
+
+export function checkBaseline(report, baseline) {
+    const failures = [];
+
+    for (const [packageName, policy] of Object.entries(baseline.packages ?? {})) {
+        const actual = report.packages.find((item) => item.package === packageName);
+        if (!actual) {
+            failures.push(`${packageName}: package is missing from the generated TypeDoc report`);
+            continue;
+        }
+
+        if (actual.documented < policy.documented) {
+            failures.push(`${packageName}: documented count ${actual.documented} is below baseline ${policy.documented}`);
+        }
+
+        if (actual.percentage + 0.0001 < policy.minimumCoverage) {
+            failures.push(`${packageName}: coverage ${actual.percentage.toFixed(1)}% is below baseline ${policy.minimumCoverage.toFixed(1)}%`);
+        }
+
+        const acceptedMissing = new Set(policy.acceptedMissing ?? []);
+        const newlyMissing = actual.missing.map(rowKey).filter((key) => !acceptedMissing.has(key));
+        for (const key of newlyMissing) {
+            failures.push(`${packageName}: newly undocumented supported symbol ${key}`);
+        }
+    }
+
+    return failures;
+}
+
 export function analyzeCoverage(typedoc, packageMetadata = []) {
     const roots = typedoc.children ?? [];
     const packages = roots.map((root) => createPackageReport(root, packageMetadata));
@@ -257,11 +306,20 @@ async function findCurrentTypeDoc(projectRoot) {
 
 function parseArgs(args) {
     const projectRoot = process.cwd().endsWith('/website') ? resolve(process.cwd(), '..') : process.cwd();
-    const options = { checkCurrent: false, typedocPath: null, packagesPath: null, projectRoot };
+    const options = {
+        checkCurrent: false,
+        writeBaseline: false,
+        typedocPath: null,
+        packagesPath: null,
+        baselinePath: resolve(projectRoot, 'website/tools/api-coverage-baseline.json'),
+        projectRoot,
+    };
     const positional = [];
 
     for (const arg of args) {
         if (arg === '--check-current') options.checkCurrent = true;
+        else if (arg === '--write-baseline') options.writeBaseline = true;
+        else if (arg.startsWith('--baseline=')) options.baselinePath = resolve(arg.slice('--baseline='.length));
         else if (arg.startsWith('--project-root=')) options.projectRoot = resolve(arg.slice('--project-root='.length));
         else positional.push(arg);
     }
@@ -292,7 +350,28 @@ async function main() {
         : await loadWorkspacePackageMetadata(options.projectRoot);
     const report = analyzeCoverage(typedoc, packageMetadata);
 
+    if (options.writeBaseline) {
+        await writeFile(options.baselinePath, `${JSON.stringify(createBaseline(report), null, 2)}\n`);
+        console.log(`Wrote API coverage baseline to ${options.baselinePath}`);
+    }
+
     console.log(formatReport(report));
+
+    if (options.checkCurrent) {
+        let baseline;
+        try {
+            baseline = await loadJson(options.baselinePath);
+        } catch (error) {
+            throw new Error(`Unable to load API coverage baseline at ${options.baselinePath}: ${error.message}`);
+        }
+
+        const failures = checkBaseline(report, baseline);
+        if (failures.length > 0) {
+            console.error('\nAPI documentation coverage policy failed:');
+            for (const failure of failures) console.error(`- ${failure}`);
+            process.exitCode = 1;
+        }
+    }
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
