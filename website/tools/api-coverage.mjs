@@ -246,7 +246,14 @@ export function createBaseline(report) {
 }
 
 export function validateBaseline(baseline, baselinePath = '<baseline>') {
-    if (!baseline || typeof baseline !== 'object' || baseline.version !== 1 || !baseline.packages || typeof baseline.packages !== 'object') {
+    if (
+        !baseline ||
+        typeof baseline !== 'object' ||
+        baseline.version !== 1 ||
+        !baseline.packages ||
+        typeof baseline.packages !== 'object' ||
+        Array.isArray(baseline.packages)
+    ) {
         throw new Error(`Invalid API coverage baseline at ${baselinePath}: expected version 1 with a packages object.`);
     }
 

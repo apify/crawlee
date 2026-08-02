@@ -271,6 +271,7 @@ describe('API documentation coverage', () => {
         expect(() => validateBaseline({ version: 1, packages: { '@crawlee/example': { total: 1 } } })).toThrow(
             'Invalid API coverage counts',
         );
+        expect(() => validateBaseline({ version: 1, packages: [] })).toThrow('Invalid API coverage baseline');
     });
 
     it('protects the public reflection surface from removals and replacements', () => {
