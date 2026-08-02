@@ -9,6 +9,7 @@ import {
     createBaseline,
     formatReport,
     parseArgs,
+    validateBaseline,
 } from '../website/tools/api-coverage.mjs';
 
 const packageMetadata = [
@@ -255,6 +256,21 @@ describe('API documentation coverage', () => {
                 baseline,
             ),
         ).toEqual(expect.arrayContaining(['@crawlee/example: supported reflection count 3 is below baseline 4']));
+
+        const lowerDocumented = {
+            ...report,
+            packages: [{ ...report.packages[0], documented: 1, percentage: 25 }],
+        };
+        expect(checkBaseline(lowerDocumented, baseline)).toEqual(
+            expect.arrayContaining([
+                expect.stringContaining('documented count 1 is below baseline 2'),
+                expect.stringContaining('coverage 25.0% is below baseline 50.0%'),
+            ]),
+        );
+
+        expect(() => validateBaseline({ version: 1, packages: { '@crawlee/example': { total: 1 } } })).toThrow(
+            'Invalid API coverage counts',
+        );
     });
 
     it('protects the public reflection surface from removals and replacements', () => {

@@ -245,7 +245,35 @@ export function createBaseline(report) {
     };
 }
 
-export function checkBaseline(report, baseline) {
+export function validateBaseline(baseline, baselinePath = '<baseline>') {
+    if (!baseline || typeof baseline !== 'object' || baseline.version !== 1 || !baseline.packages || typeof baseline.packages !== 'object') {
+        throw new Error(`Invalid API coverage baseline at ${baselinePath}: expected version 1 with a packages object.`);
+    }
+
+    for (const [packageName, policy] of Object.entries(baseline.packages)) {
+        const numericFields = ['total', 'documented', 'minimumCoverage'];
+        if (!policy || typeof policy !== 'object') {
+            throw new Error(`Invalid API coverage policy for ${packageName} at ${baselinePath}.`);
+        }
+        if (!Number.isInteger(policy.total) || policy.total < 0 || !Number.isInteger(policy.documented) || policy.documented < 0) {
+            throw new Error(`Invalid API coverage counts for ${packageName} at ${baselinePath}.`);
+        }
+        if (!Number.isFinite(policy.minimumCoverage) || policy.minimumCoverage < 0 || policy.minimumCoverage > 100) {
+            throw new Error(`Invalid API coverage threshold for ${packageName} at ${baselinePath}.`);
+        }
+        if (policy.documented > policy.total || numericFields.some((field) => !(field in policy))) {
+            throw new Error(`Invalid API coverage policy values for ${packageName} at ${baselinePath}.`);
+        }
+        for (const field of ['acceptedMissing', 'surfaceKeys']) {
+            if (!Array.isArray(policy[field]) || policy[field].some((key) => typeof key !== 'string')) {
+                throw new Error(`Invalid ${field} for ${packageName} at ${baselinePath}.`);
+            }
+        }
+    }
+}
+
+export function checkBaseline(report, baseline, baselinePath = '<baseline>') {
+    validateBaseline(baseline, baselinePath);
     const failures = [];
     const policies = baseline.packages ?? {};
 
@@ -335,7 +363,12 @@ export function formatReport(report) {
 }
 
 async function loadJson(path) {
-    return JSON.parse(await readFile(path, 'utf8'));
+    try {
+        return JSON.parse(await readFile(path, 'utf8'));
+    } catch (error) {
+        const operation = error instanceof SyntaxError ? 'parse' : 'read';
+        throw new Error(`Unable to ${operation} JSON at ${path}: ${error.message}`, { cause: error });
+    }
 }
 
 async function findFiles(directory, predicate) {
@@ -451,7 +484,7 @@ async function main() {
             throw new Error(`Unable to load API coverage baseline at ${options.baselinePath}: ${error.message}`);
         }
 
-        const failures = checkBaseline(report, baseline);
+        const failures = checkBaseline(report, baseline, options.baselinePath);
         if (failures.length > 0) {
             console.error('\nAPI documentation coverage policy failed:');
             for (const failure of failures) console.error(`- ${failure}`);
