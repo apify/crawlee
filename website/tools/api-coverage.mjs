@@ -194,8 +194,15 @@ export function createBaseline(report) {
 
 export function checkBaseline(report, baseline) {
     const failures = [];
+    const policies = baseline.packages ?? {};
 
-    for (const [packageName, policy] of Object.entries(baseline.packages ?? {})) {
+    for (const actual of report.packages) {
+        if (!policies[actual.package]) {
+            failures.push(`${actual.package}: package has no API coverage baseline policy`);
+        }
+    }
+
+    for (const [packageName, policy] of Object.entries(policies)) {
         const actual = report.packages.find((item) => item.package === packageName);
         if (!actual) {
             failures.push(`${packageName}: package is missing from the generated TypeDoc report`);

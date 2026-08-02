@@ -146,5 +146,18 @@ describe('API documentation coverage', () => {
                 },
             }),
         ).toEqual(expect.arrayContaining([expect.stringContaining('newly undocumented supported symbol')]));
+
+        expect(
+            checkBaseline(
+                {
+                    ...report,
+                    packages: [
+                        ...report.packages,
+                        { package: '@crawlee/new', documented: 0, total: 0, percentage: 100, missing: [] },
+                    ],
+                },
+                baseline,
+            ),
+        ).toEqual(expect.arrayContaining(['@crawlee/new: package has no API coverage baseline policy']));
     });
 });
