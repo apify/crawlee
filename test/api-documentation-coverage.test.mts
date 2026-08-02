@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { analyzeCoverage, checkBaseline, createBaseline, formatReport } from '../website/tools/api-coverage.mjs';
+import {
+    analyzeCoverage,
+    checkBaseline,
+    createBaseline,
+    formatReport,
+    parseArgs,
+} from '../website/tools/api-coverage.mjs';
 
 const packageMetadata = [
     {
@@ -159,5 +165,21 @@ describe('API documentation coverage', () => {
                 baseline,
             ),
         ).toEqual(expect.arrayContaining(['@crawlee/new: package has no API coverage baseline policy']));
+
+        expect(
+            checkBaseline(
+                {
+                    ...report,
+                    packages: [{ ...report.packages[0], total: 3, missing: [] }],
+                },
+                baseline,
+            ),
+        ).toEqual(expect.arrayContaining(['@crawlee/example: supported reflection count 3 is below baseline 4']));
+    });
+
+    it('resolves the default baseline beside an explicit project root', () => {
+        const options = parseArgs(['--check-current', '--project-root=/tmp/example']);
+
+        expect(options.baselinePath).toBe('/tmp/example/website/tools/api-coverage-baseline.json');
     });
 });

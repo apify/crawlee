@@ -209,6 +209,10 @@ export function checkBaseline(report, baseline) {
             continue;
         }
 
+        if (actual.total < policy.total) {
+            failures.push(`${packageName}: supported reflection count ${actual.total} is below baseline ${policy.total}`);
+        }
+
         if (actual.documented < policy.documented) {
             failures.push(`${packageName}: documented count ${actual.documented} is below baseline ${policy.documented}`);
         }
@@ -311,14 +315,14 @@ async function findCurrentTypeDoc(projectRoot) {
     return withTimes[0].path;
 }
 
-function parseArgs(args) {
+export function parseArgs(args) {
     const projectRoot = process.cwd().endsWith('/website') ? resolve(process.cwd(), '..') : process.cwd();
     const options = {
         checkCurrent: false,
         writeBaseline: false,
         typedocPath: null,
         packagesPath: null,
-        baselinePath: resolve(projectRoot, 'website/tools/api-coverage-baseline.json'),
+        baselinePath: null,
         projectRoot,
     };
     const positional = [];
@@ -326,12 +330,14 @@ function parseArgs(args) {
     for (const arg of args) {
         if (arg === '--check-current') options.checkCurrent = true;
         else if (arg === '--write-baseline') options.writeBaseline = true;
-        else if (arg.startsWith('--baseline=')) options.baselinePath = resolve(arg.slice('--baseline='.length));
-        else if (arg.startsWith('--project-root=')) options.projectRoot = resolve(arg.slice('--project-root='.length));
+        else if (arg.startsWith('--baseline=')) {
+            options.baselinePath = resolve(arg.slice('--baseline='.length));
+        } else if (arg.startsWith('--project-root=')) options.projectRoot = resolve(arg.slice('--project-root='.length));
         else positional.push(arg);
     }
 
     [options.typedocPath, options.packagesPath] = positional;
+    options.baselinePath ??= resolve(options.projectRoot, 'website/tools/api-coverage-baseline.json');
     return options;
 }
 
