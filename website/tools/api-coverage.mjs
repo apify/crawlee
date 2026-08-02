@@ -19,6 +19,7 @@ const NON_API_KINDS = new Set([
 
 const EXCLUDED_FLAGS = new Set(['isPrivate', 'isProtected']);
 const EXCLUDED_COMMENT_TAGS = new Set(['@internal', '@ignore']);
+const REFERENCE_KIND = 4194304;
 
 function asText(parts = []) {
     return parts
@@ -166,6 +167,11 @@ function walkReflection(reflection, context, output) {
     const source = sourceInfo(reflection);
     const supported = counted && isSupportedReflection(reflection);
     const packageInfo = context.packageInfo;
+    const surfaceReflection = isSupportedReflection(reflection) && (counted || reflection.kind === REFERENCE_KIND);
+
+    if (surfaceReflection) {
+        output.surfaceKeys.push(rowKey(missingRow(reflection, packageInfo, context.ancestors, source)));
+    }
 
     if (supported) {
         output.total += 1;
@@ -199,6 +205,7 @@ function createPackageReport(root, packageMetadata, reflections) {
         documented: 0,
         missing: [],
         excluded: [],
+        surfaceKeys: [],
     };
 
     walkReflection(root, { ancestors: [], packageInfo, reflections }, result);
@@ -208,6 +215,7 @@ function createPackageReport(root, packageMetadata, reflections) {
         percentage: result.total === 0 ? 100 : (result.documented / result.total) * 100,
         missing: result.missing.sort(compareRows),
         excluded: result.excluded.sort(compareRows),
+        surfaceKeys: result.surfaceKeys.sort(),
     };
 }
 
@@ -230,6 +238,7 @@ export function createBaseline(report) {
                     documented: item.documented,
                     minimumCoverage: Number(item.percentage.toFixed(4)),
                     acceptedMissing: item.missing.map(rowKey),
+                    surfaceKeys: item.surfaceKeys,
                 },
             ]),
         ),
@@ -263,6 +272,14 @@ export function checkBaseline(report, baseline) {
 
         if (actual.percentage + 0.0001 < policy.minimumCoverage) {
             failures.push(`${packageName}: coverage ${actual.percentage.toFixed(1)}% is below baseline ${policy.minimumCoverage.toFixed(1)}%`);
+        }
+
+        const baselineSurface = new Set(policy.surfaceKeys ?? []);
+        const actualSurface = new Set(actual.surfaceKeys ?? []);
+        for (const key of baselineSurface) {
+            if (!actualSurface.has(key)) {
+                failures.push(`${packageName}: supported reflection was removed from the generated report ${key}`);
+            }
         }
 
         const acceptedMissing = new Set(policy.acceptedMissing ?? []);

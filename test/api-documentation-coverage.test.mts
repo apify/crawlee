@@ -84,6 +84,32 @@ function fixture() {
     };
 }
 
+function surfaceFixture(exportName: string) {
+    return {
+        children: [
+            {
+                name: 'example/src',
+                kind: 2,
+                sources: [{ fileName: 'packages/example/src/index.ts', line: 1 }],
+                children: [
+                    {
+                        name: exportName,
+                        kind: 256,
+                        sources: [{ fileName: 'packages/example/src/index.ts', line: 2 }],
+                        comment: { summary: text('Public export.') },
+                    },
+                    {
+                        name: 'ReExport',
+                        kind: 4194304,
+                        sources: [{ fileName: 'packages/example/src/index.ts', line: 3 }],
+                        target: 200,
+                    },
+                ],
+            },
+        ],
+    };
+}
+
 function inheritedFixture() {
     return {
         children: [
@@ -229,6 +255,20 @@ describe('API documentation coverage', () => {
                 baseline,
             ),
         ).toEqual(expect.arrayContaining(['@crawlee/example: supported reflection count 3 is below baseline 4']));
+    });
+
+    it('protects the public reflection surface from removals and replacements', () => {
+        const baseline = createBaseline(analyzeCoverage(surfaceFixture('OldExport'), packageMetadata));
+        const current = analyzeCoverage(surfaceFixture('NewExport'), packageMetadata);
+
+        expect(baseline.packages['@crawlee/example'].surfaceKeys.some((key: string) => key.includes('ReExport'))).toBe(
+            true,
+        );
+        expect(checkBaseline(current, baseline)).toEqual(
+            expect.arrayContaining([
+                expect.stringContaining('supported reflection was removed from the generated report'),
+            ]),
+        );
     });
 
     it('resolves inherited summaries recursively without looping on cycles', () => {
