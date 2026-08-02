@@ -153,7 +153,7 @@ export class MemoryStorage implements storage.StorageClient {
         });
     }
 
-    /** Publishes a status message for integrations that support it. */
+    /** Retained for API compatibility; validates the inputs but performs no operation. */
     async setStatusMessage(message: string, options: storage.SetStatusMessageOptions = {}): Promise<void> {
         s.string.parse(message);
         s.object({

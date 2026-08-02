@@ -1,3 +1,6 @@
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -18,6 +21,8 @@ const packageMetadata = [
 function text(content: string) {
     return [{ kind: 'text', text: content }];
 }
+
+const execFileAsync = promisify(execFile);
 
 function fixture() {
     return {
@@ -72,6 +77,55 @@ function fixture() {
                         comment: {
                             blockTags: [{ tag: '@internal', content: text('Not public.') }],
                         },
+                    },
+                ],
+            },
+        ],
+    };
+}
+
+function inheritedFixture() {
+    return {
+        children: [
+            {
+                name: 'example/src',
+                kind: 2,
+                sources: [{ fileName: 'packages/example/src/index.ts', line: 1 }],
+                children: [
+                    {
+                        id: 100,
+                        name: 'BaseProperty',
+                        kind: 1024,
+                        sources: [{ fileName: 'packages/example/src/base.ts', line: 1 }],
+                        comment: { summary: text('Inherited documentation.') },
+                    },
+                    {
+                        id: 101,
+                        name: 'InheritedProperty',
+                        kind: 1024,
+                        sources: [{ fileName: 'packages/example/src/derived.ts', line: 1 }],
+                        inheritedFrom: { type: 'reference', target: 100, name: 'BaseProperty' },
+                    },
+                    {
+                        id: 102,
+                        name: 'IndirectlyInheritedProperty',
+                        kind: 1024,
+                        sources: [{ fileName: 'packages/example/src/derived.ts', line: 2 }],
+                        inheritedFrom: { type: 'reference', target: 101, name: 'InheritedProperty' },
+                    },
+                    {
+                        id: 103,
+                        name: 'CyclicPropertyA',
+                        kind: 1024,
+                        sources: [{ fileName: 'packages/example/src/cycles.ts', line: 1 }],
+                        inheritedFrom: { type: 'reference', target: 104, name: 'CyclicPropertyB' },
+                    },
+                    {
+                        id: 104,
+                        name: 'CyclicPropertyB',
+                        kind: 1024,
+                        sources: [{ fileName: 'packages/example/src/cycles.ts', line: 2 }],
+                        inheritedFrom: { type: 'reference', target: 103, name: 'CyclicPropertyA' },
                     },
                 ],
             },
@@ -175,6 +229,32 @@ describe('API documentation coverage', () => {
                 baseline,
             ),
         ).toEqual(expect.arrayContaining(['@crawlee/example: supported reflection count 3 is below baseline 4']));
+    });
+
+    it('resolves inherited summaries recursively without looping on cycles', () => {
+        const report = analyzeCoverage(inheritedFixture(), packageMetadata);
+
+        expect(report.total).toBe(5);
+        expect(report.documented).toBe(3);
+        expect(report.missing.map((row: { name: string }) => row.name)).toEqual(['CyclicPropertyA', 'CyclicPropertyB']);
+    });
+
+    it('rejects malformed TypeDoc input with the input path', () => {
+        expect(() =>
+            analyzeCoverage({ name: 'not-a-project' }, packageMetadata, '/tmp/malformed-typedoc.json'),
+        ).toThrow('Invalid TypeDoc project at /tmp/malformed-typedoc.json: expected an object with a children array.');
+    });
+
+    it('gives Docusaurus guidance when generated TypeDoc output is missing', async () => {
+        const result = execFileAsync(process.execPath, [
+            'website/tools/api-coverage.mjs',
+            '--check-current',
+            `--project-root=/tmp/crawlee-api-coverage-missing-${process.pid}`,
+        ]);
+
+        await expect(result).rejects.toMatchObject({
+            stderr: expect.stringContaining('Run the Docusaurus API generation first.'),
+        });
     });
 
     it('resolves the default baseline beside an explicit project root', () => {

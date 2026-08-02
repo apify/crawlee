@@ -31,6 +31,50 @@ function hasSummary(comment) {
     return asText(comment?.summary).length > 0;
 }
 
+function validateTypeDocProject(typedoc, typedocPath) {
+    if (!typedoc || typeof typedoc !== 'object' || Array.isArray(typedoc) || !Array.isArray(typedoc.children)) {
+        throw new Error(`Invalid TypeDoc project at ${typedocPath}: expected an object with a children array.`);
+    }
+}
+
+function createReflectionIndex(typedoc) {
+    const reflections = new Map();
+
+    function indexReflection(reflection) {
+        if (!reflection || typeof reflection !== 'object') return;
+
+        if (reflection.id !== undefined) {
+            reflections.set(reflection.id, reflection);
+        }
+
+        for (const child of reflection.children ?? []) indexReflection(child);
+        for (const signature of reflection.signatures ?? []) indexReflection(signature);
+    }
+
+    indexReflection(typedoc);
+    return reflections;
+}
+
+function inheritedTarget(reflection, reflections) {
+    const target = reflection.inheritedFrom?.target;
+    const targetId = target && typeof target === 'object' ? target.id : target;
+    if (targetId === undefined || targetId === null) return null;
+
+    return reflections.get(targetId) ?? (typeof targetId === 'string' ? reflections.get(Number(targetId)) : null);
+}
+
+function hasDocumentation(reflection, reflections, visited = new Set()) {
+    const key = reflection.id ?? reflection;
+    if (visited.has(key)) return false;
+    visited.add(key);
+
+    if (hasSummary(reflection.comment)) return true;
+    if ((reflection.signatures ?? []).some((signature) => hasDocumentation(signature, reflections, visited))) return true;
+
+    const target = inheritedTarget(reflection, reflections);
+    return target ? hasDocumentation(target, reflections, visited) : false;
+}
+
 function hasExcludedMarker(reflection) {
     if ([...EXCLUDED_FLAGS].some((flag) => reflection.flags?.[flag])) {
         return true;
@@ -125,7 +169,7 @@ function walkReflection(reflection, context, output) {
 
     if (supported) {
         output.total += 1;
-        const documented = hasSummary(reflection.comment) || (reflection.signatures ?? []).some((signature) => hasSummary(signature.comment));
+        const documented = hasDocumentation(reflection, context.reflections);
         if (documented) {
             output.documented += 1;
         } else {
@@ -146,7 +190,7 @@ function walkReflection(reflection, context, output) {
     }
 }
 
-function createPackageReport(root, packageMetadata) {
+function createPackageReport(root, packageMetadata, reflections) {
     const packageInfo = packageMetadataFor(root, packageMetadata);
     const result = {
         package: packageInfo.packageName,
@@ -157,7 +201,7 @@ function createPackageReport(root, packageMetadata) {
         excluded: [],
     };
 
-    walkReflection(root, { ancestors: [], packageInfo }, result);
+    walkReflection(root, { ancestors: [], packageInfo, reflections }, result);
 
     return {
         ...result,
@@ -231,9 +275,12 @@ export function checkBaseline(report, baseline) {
     return failures;
 }
 
-export function analyzeCoverage(typedoc, packageMetadata = []) {
-    const roots = typedoc.children ?? [];
-    const packages = roots.map((root) => createPackageReport(root, packageMetadata));
+export function analyzeCoverage(typedoc, packageMetadata = [], typedocPath = '<input>') {
+    validateTypeDocProject(typedoc, typedocPath);
+
+    const roots = typedoc.children;
+    const reflections = createReflectionIndex(typedoc);
+    const packages = roots.map((root) => createPackageReport(root, packageMetadata, reflections));
     const total = packages.reduce((sum, item) => sum + item.total, 0);
     const documented = packages.reduce((sum, item) => sum + item.documented, 0);
 
@@ -303,7 +350,14 @@ async function loadWorkspacePackageMetadata(projectRoot) {
 
 async function findCurrentTypeDoc(projectRoot) {
     const generatedFiles = join(projectRoot, 'website', '.docusaurus');
-    const candidates = await findFiles(generatedFiles, (path) => /api-typedoc(?:-[^/]+)?\.json$/.test(path));
+    let candidates;
+    try {
+        candidates = await findFiles(generatedFiles, (path) => /api-typedoc(?:-[^/]+)?\.json$/.test(path));
+    } catch (error) {
+        if (error?.code !== 'ENOENT') throw error;
+        throw new Error(`No generated TypeDoc JSON found under ${generatedFiles}. Run the Docusaurus API generation first.`);
+    }
+
     if (candidates.length === 0) {
         throw new Error(`No generated TypeDoc JSON found under ${generatedFiles}. Run the Docusaurus API generation first.`);
     }
@@ -357,11 +411,13 @@ async function main() {
         return;
     }
 
-    const typedoc = await loadJson(resolve(typedocPath));
+    const typedocFilePath = resolve(typedocPath);
+    const typedoc = await loadJson(typedocFilePath);
+    validateTypeDocProject(typedoc, typedocFilePath);
     const packageMetadata = packagesPath
         ? await loadJson(resolve(packagesPath))
         : await loadWorkspacePackageMetadata(options.projectRoot);
-    const report = analyzeCoverage(typedoc, packageMetadata);
+    const report = analyzeCoverage(typedoc, packageMetadata, typedocFilePath);
 
     if (options.writeBaseline) {
         await writeFile(options.baselinePath, `${JSON.stringify(createBaseline(report), null, 2)}\n`);
