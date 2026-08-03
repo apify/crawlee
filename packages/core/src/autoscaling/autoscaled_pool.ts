@@ -10,11 +10,10 @@ import type { CrawleeLogger } from '../log.js';
 import { serviceLocator } from '../service_locator.js';
 
 /**
- * The task-readiness predicates a consumer may supply to steer an {@apilink AutoscaledPool}'s run loop — the parts of
- * the loop a higher-level driver (e.g. a crawler) legitimately overrides, as opposed to the crawler-owned
- * `runTaskFunction`.
+ * The two predicates that steer a task loop: *is there work ready?* and *are we done?* These are the parts of the loop
+ * a caller legitimately overrides, as opposed to the task itself (`runTaskFunction`), which the loop's driver owns.
  */
-export interface AutoscaledPoolPredicateOptions {
+export interface TaskLoopPredicates {
     /**
      * A function that indicates whether `runTaskFunction` should be called.
      * This function is called every time there is free capacity for a new task and it should
@@ -25,15 +24,15 @@ export interface AutoscaledPoolPredicateOptions {
 
     /**
      * A function that is called only when there are no tasks to be processed.
-     * If it resolves to `true` then the pool's run finishes. Being called only
+     * If it resolves to `true` then the run finishes. Being called only
      * when there are no tasks being processed means that as long as `isTaskReadyFunction()`
      * keeps resolving to `true`, `isFinishedFunction()` will never be called.
-     * To abort a run, use the {@apilink AutoscaledPool.abort} method.
      */
     isFinishedFunction?: () => Promise<boolean>;
 }
 
-export interface AutoscaledPoolOptions extends AutoscaledPoolPredicateOptions {
+/** @internal */
+export interface AutoscaledPoolOptions extends TaskLoopPredicates {
     /**
      * The governor that decides whether there is free compute for one more task. Typically a
      * {@apilink ConcurrencySystem}, but any {@apilink IConcurrencySystem} works. Share a single instance across
@@ -79,8 +78,8 @@ export interface AutoscaledPoolOptions extends AutoscaledPoolPredicateOptions {
  *
  * Before running the pool, you need to implement the following three functions:
  * {@apilink AutoscaledPoolOptions.runTaskFunction|`runTaskFunction`},
- * {@apilink AutoscaledPoolPredicateOptions.isTaskReadyFunction|`isTaskReadyFunction`} and
- * {@apilink AutoscaledPoolPredicateOptions.isFinishedFunction|`isFinishedFunction`}.
+ * {@apilink TaskLoopPredicates.isTaskReadyFunction|`isTaskReadyFunction`} and
+ * {@apilink TaskLoopPredicates.isFinishedFunction|`isFinishedFunction`}.
  *
  * The auto-scaled pool is started by calling the {@apilink AutoscaledPool.run} function.
  * The pool periodically queries `isTaskReadyFunction` for more tasks, managing optimal concurrency, until the function
@@ -121,7 +120,8 @@ export interface AutoscaledPoolOptions extends AutoscaledPoolPredicateOptions {
  *     await concurrencySystem.stop();
  * }
  * ```
- * @category Scaling
+ *
+ * @internal
  */
 export class AutoscaledPool {
     private readonly log: CrawleeLogger;

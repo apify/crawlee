@@ -120,8 +120,8 @@ export interface PuppeteerCrawlerOptions<
  * `PuppeteerCrawler` opens a new Chrome page (i.e. tab) for each {@apilink Request} object to crawl
  * and then calls the function provided by user as the {@apilink PuppeteerCrawlerOptions.requestHandler} option.
  *
- * New pages are only opened when there is enough free CPU and memory available,
- * using the functionality provided by the {@apilink AutoscaledPool} class.
+ * New pages are only opened when there is enough free CPU and memory available, as judged by the crawler's
+ * {@apilink ConcurrencySystem}.
  * Concurrency is tuned via the `minConcurrency`, `maxConcurrency` and `maxRequestsPerMinute` options of the
  * `PuppeteerCrawler` constructor, or, for finer control, by injecting a pre-configured
  * {@apilink ConcurrencySystem|`concurrencySystem`}.
