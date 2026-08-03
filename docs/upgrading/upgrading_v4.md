@@ -739,6 +739,8 @@ const response = await sendRequest({ url: '...' }, { cookieJar: jar });
 
 The protected `HttpCrawler._applyCookies` method is removed. If you were overriding it in a subclass, move your logic to a `preNavigationHook` that sets cookies on `request.headers.Cookie` or on the `session` cookie jar directly.
 
+`mergeCookies` now skips malformed cookie fragments with a warning instead of throwing.
+
 ### `Session.getCookies`, `setCookies` and `setCookiesFromResponse` are removed
 
 The public cookie helper methods on `Session` — `getCookies(url)`, `setCookies(cookies, url)`, and `setCookiesFromResponse(response)` — have been removed as part of centralizing cookie assembly in `BaseHttpClient`. Work with the session's `cookieJar` directly, or use the new `Session.getCookieString(url)` to read the assembled `Cookie` header value.
