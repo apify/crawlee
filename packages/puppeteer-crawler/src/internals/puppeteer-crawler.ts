@@ -39,13 +39,18 @@ export interface PuppeteerHook extends BrowserHook<PuppeteerCrawlingContext> {}
 export interface PuppeteerCrawlerOptions<
     ContextExtension = Dictionary<never>,
     ExtendedContext extends PuppeteerCrawlingContext = PuppeteerCrawlingContext & ContextExtension,
+    Routes extends Record<keyof Routes, Dictionary> = Record<
+        string,
+        GetUserDataFromRequest<PuppeteerCrawlingContext['request']>
+    >,
 > extends BrowserCrawlerOptions<
     Page,
     HTTPResponse,
     PuppeteerCrawlingContext,
     ContextExtension,
     ExtendedContext,
-    { browserPlugins: [PuppeteerPlugin] }
+    { browserPlugins: [PuppeteerPlugin] },
+    Routes
 > {
     /**
      * Options used by {@apilink launchPuppeteer} to start new Puppeteer instances.
@@ -68,7 +73,7 @@ export interface PuppeteerCrawlerOptions<
      * ]
      * ```
      */
-    preNavigationHooks?: PuppeteerHook[];
+    preNavigationHooks?: BrowserHook<PuppeteerCrawlingContext, ContextExtension>[];
 
     /**
      * Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
@@ -86,7 +91,7 @@ export interface PuppeteerCrawlerOptions<
      * ]
      * ```
      */
-    postNavigationHooks?: PuppeteerHook[];
+    postNavigationHooks?: BrowserHook<PuppeteerCrawlingContext, ContextExtension>[];
 }
 
 /**
@@ -117,9 +122,9 @@ export interface PuppeteerCrawlerOptions<
  *
  * New pages are only opened when there is enough free CPU and memory available,
  * using the functionality provided by the {@apilink AutoscaledPool} class.
- * All {@apilink AutoscaledPool} configuration options can be passed to the {@apilink PuppeteerCrawlerOptions.autoscaledPoolOptions}
- * parameter of the `PuppeteerCrawler` constructor. For user convenience, the `minConcurrency` and `maxConcurrency`
- * {@apilink AutoscaledPoolOptions} are available directly in the `PuppeteerCrawler` constructor.
+ * Concurrency is tuned via the `minConcurrency`, `maxConcurrency` and `maxRequestsPerMinute` options of the
+ * `PuppeteerCrawler` constructor, or, for finer control, by injecting a pre-configured
+ * {@apilink ConcurrencySystem|`concurrencySystem`}.
  *
  * Note that the pool of Puppeteer instances is internally managed by the [BrowserPool](https://github.com/apify/browser-pool) class.
  *
@@ -157,6 +162,10 @@ export interface PuppeteerCrawlerOptions<
 export class PuppeteerCrawler<
     ContextExtension = Dictionary<never>,
     ExtendedContext extends PuppeteerCrawlingContext = PuppeteerCrawlingContext & ContextExtension,
+    Routes extends Record<keyof Routes, Dictionary> = Record<
+        string,
+        GetUserDataFromRequest<PuppeteerCrawlingContext['request']>
+    >,
 > extends BrowserCrawler<
     Page,
     HTTPResponse,
@@ -164,7 +173,8 @@ export class PuppeteerCrawler<
     LaunchOptions,
     PuppeteerCrawlingContext,
     ContextExtension,
-    ExtendedContext
+    ExtendedContext,
+    Routes
 > {
     protected static override optionsShape = {
         ...BrowserCrawler.optionsShape,
@@ -174,7 +184,7 @@ export class PuppeteerCrawler<
     /**
      * All `PuppeteerCrawler` parameters are passed via an options object.
      */
-    constructor(options: PuppeteerCrawlerOptions<ContextExtension, ExtendedContext> = {}) {
+    constructor(options: PuppeteerCrawlerOptions<ContextExtension, ExtendedContext, Routes> = {}) {
         ow(options, 'PuppeteerCrawlerOptions', ow.object.exactShape(PuppeteerCrawler.optionsShape));
 
         const {
@@ -274,7 +284,10 @@ export class PuppeteerCrawler<
             infiniteScroll: async (options?: InfiniteScrollOptions) =>
                 puppeteerUtils.infiniteScroll(context.page, options),
             saveSnapshot: async (options?: SaveSnapshotOptions) =>
-                puppeteerUtils.saveSnapshot(context.page, { ...options, config: serviceLocator.getConfiguration() }),
+                puppeteerUtils.saveSnapshot(context.page, {
+                    ...options,
+                    configuration: serviceLocator.getConfiguration(),
+                }),
             closeCookieModals: async () => puppeteerUtils.closeCookieModals(context.page),
         };
     }

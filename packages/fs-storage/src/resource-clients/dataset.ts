@@ -61,7 +61,7 @@ export class DatasetBackend<Data extends Dictionary = Dictionary>
         options: DatasetBackendOptions,
     ): Promise<DatasetBackend<Data>> {
         const backend = new DatasetBackend<Data>(options);
-        backend._cachedId = (await options.nativeBackend.getMetadata()).id;
+        backend.cachedId = (await options.nativeBackend.getMetadata()).id;
         return backend;
     }
 

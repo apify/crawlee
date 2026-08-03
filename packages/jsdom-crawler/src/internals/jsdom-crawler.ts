@@ -1,5 +1,6 @@
 import type {
     BasicCrawlingContext,
+    CrawlingContext,
     EnqueueLinksOptions,
     ErrorHandler,
     GetUserDataFromRequest,
@@ -33,14 +34,16 @@ import { addTimeoutToPromise } from '@apify/timeout';
 export type JSDOMErrorHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-> = ErrorHandler<JSDOMCrawlingContext<UserData, JSONData>>;
+    ContextExtension = Dictionary<never>,
+> = ErrorHandler<CrawlingContext, JSDOMCrawlingContext<UserData, JSONData> & ContextExtension>;
 
 export interface JSDOMCrawlerOptions<
     ContextExtension = Dictionary<never>,
     ExtendedContext extends JSDOMCrawlingContext = JSDOMCrawlingContext & ContextExtension,
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-> extends HttpCrawlerOptions<JSDOMCrawlingContext<UserData, JSONData>, ContextExtension, ExtendedContext> {
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, UserData>,
+> extends HttpCrawlerOptions<JSDOMCrawlingContext<UserData, JSONData>, ContextExtension, ExtendedContext, Routes> {
     /**
      * Download and run scripts.
      */
@@ -153,9 +156,9 @@ export type JSDOMRequestHandler<
  *
  * New requests are only dispatched when there is enough free CPU and memory available,
  * using the functionality provided by the {@apilink AutoscaledPool} class.
- * All {@apilink AutoscaledPool} configuration options can be passed to the `autoscaledPoolOptions`
- * parameter of the `CheerioCrawler` constructor. For user convenience, the `minConcurrency` and `maxConcurrency`
- * {@apilink AutoscaledPool} options are available directly in the `CheerioCrawler` constructor.
+ * Concurrency is tuned via the `minConcurrency`, `maxConcurrency` and `maxRequestsPerMinute` options of the
+ * `JSDOMCrawler` constructor, or, for finer control, by injecting a pre-configured
+ * {@apilink ConcurrencySystem|`concurrencySystem`}.
  *
  * **Example usage:**
  *
@@ -185,18 +188,22 @@ const resources = new ResourceLoader({
 export class JSDOMCrawler<
     ContextExtension = Dictionary<never>,
     ExtendedContext extends JSDOMCrawlingContext = JSDOMCrawlingContext & ContextExtension,
-> extends HttpCrawler<JSDOMCrawlingContext, ContextExtension, ExtendedContext> {
+    Routes extends Record<keyof Routes, Dictionary> = Record<
+        string,
+        GetUserDataFromRequest<JSDOMCrawlingContext['request']>
+    >,
+> extends HttpCrawler<JSDOMCrawlingContext, ContextExtension, ExtendedContext, Routes> {
     protected static override optionsShape = {
         ...HttpCrawler.optionsShape,
         runScripts: ow.optional.boolean,
         hideInternalConsole: ow.optional.boolean,
     };
 
-    protected runScripts: boolean;
-    protected hideInternalConsole: boolean;
-    protected virtualConsole: VirtualConsole | null = null;
+    private runScripts: boolean;
+    private hideInternalConsole: boolean;
+    private virtualConsole: VirtualConsole | null = null;
 
-    constructor(options: JSDOMCrawlerOptions<ContextExtension, ExtendedContext> = {}) {
+    constructor(options: JSDOMCrawlerOptions<ContextExtension, ExtendedContext, any, any, Routes> = {}) {
         const { runScripts = false, hideInternalConsole = false, contextPipelineBuilder, ...httpOptions } = options;
 
         super({

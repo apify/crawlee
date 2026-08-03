@@ -2,8 +2,9 @@ import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { Readable } from 'node:stream';
 
+import type { ConcurrencySystemOptions } from '@crawlee/core';
 import { MemoryStorageBackend, serviceLocator } from '@crawlee/core';
-import { HttpCrawler, SessionPool } from '@crawlee/http';
+import { ConcurrencySystem, HttpCrawler, SessionPool } from '@crawlee/http';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import iconv from 'iconv-lite';
 
@@ -117,6 +118,65 @@ test('works', async () => {
     await crawler.run([url]);
 
     expect(results[0].includes('Example Domain')).toBeTruthy();
+});
+
+/**
+ * Records the budget of the {@apilink ConcurrencySystem} the crawler builds for itself, *as configured* — i.e. before
+ * `start()` arms the autoscaler.
+ */
+class ObservableHttpCrawler extends HttpCrawler {
+    /** The default governor's budget at the moment the crawler built it. */
+    asConfigured?: { desiredConcurrency: number; maxConcurrency: number };
+
+    protected override createDefaultConcurrencySystem(options: ConcurrencySystemOptions): ConcurrencySystem {
+        const system = super.createDefaultConcurrencySystem(options);
+
+        this.asConfigured = {
+            desiredConcurrency: system.desiredConcurrency,
+            maxConcurrency: system.maxConcurrency,
+        };
+
+        return system;
+    }
+}
+
+test('builds an HTTP-optimized default ConcurrencySystem and owns its lifecycle', async () => {
+    const startSpy = vitest.spyOn(ConcurrencySystem.prototype, 'start');
+    const stopSpy = vitest.spyOn(ConcurrencySystem.prototype, 'stop');
+
+    try {
+        const crawler = new ObservableHttpCrawler({
+            maxRequestRetries: 0,
+            requestHandler: () => {},
+        });
+
+        await crawler.run([url]);
+
+        // The HTTP-optimized starting concurrency made it into the default system...
+        expect(crawler.asConfigured!.desiredConcurrency).toBe(10);
+        // ...and the crawler owns the default system, so it drives its lifecycle.
+        expect(startSpy).toHaveBeenCalledTimes(1);
+        expect(stopSpy).toHaveBeenCalledTimes(1);
+    } finally {
+        startSpy.mockRestore();
+        stopSpy.mockRestore();
+    }
+});
+
+test('concurrency shortcuts coexist with the HTTP-optimized defaults', async () => {
+    const crawler = new ObservableHttpCrawler({
+        maxConcurrency: 5,
+        maxRequestRetries: 0,
+        requestHandler: () => {},
+    });
+
+    await crawler.run([url]);
+
+    // The shortcut applies, and the governor really is the one wired into the pool (autoscaling never moves the
+    // ceiling, so this one is safe to read after the run)...
+    expect((crawler.autoscaledPool!.system as ConcurrencySystem).maxConcurrency).toBe(5);
+    // ...without discarding the HTTP-optimized starting concurrency, which the max then caps.
+    expect(crawler.asConfigured!.desiredConcurrency).toBe(5);
 });
 
 test('parseWithCheerio works', async () => {
@@ -341,7 +401,7 @@ test('should ignore http error status codes set by user', async () => {
 
     await crawler.run([`${url}/500Error`]);
 
-    expect(crawler.autoscaledPool!.minConcurrency).toBe(2);
+    expect((crawler.autoscaledPool!.system as ConcurrencySystem).minConcurrency).toBe(2);
     expect(failed).toHaveLength(0);
 });
 
@@ -360,7 +420,7 @@ test('should throw an error on http error status codes set by user', async () =>
 
     await crawler.run([`${url}/hello.html`]);
 
-    expect(crawler.autoscaledPool!.minConcurrency).toBe(2);
+    expect((crawler.autoscaledPool!.system as ConcurrencySystem).minConcurrency).toBe(2);
     expect(failed).toHaveLength(1);
 });
 
@@ -446,6 +506,34 @@ test('navigation hooks can override context members via return value', async () 
     expect(postHookSawOverride).toBe(true);
     expect(observedStatus).toBe(201);
     expect(observedBody).toContain('overridden body');
+});
+
+test('extendContext is visible to pre/post-navigation hooks and the request handler', async () => {
+    const seenIn: Record<string, unknown> = {};
+
+    const crawler = new HttpCrawler({
+        maxRequestRetries: 0,
+        extendContext: () => ({ injected: 'from-extend-context' }),
+        preNavigationHooks: [
+            async (context) => {
+                seenIn.preNavigation = context.injected;
+            },
+        ],
+        postNavigationHooks: [
+            async (context) => {
+                seenIn.postNavigation = context.injected;
+            },
+        ],
+        requestHandler: async (context) => {
+            seenIn.requestHandler = context.injected;
+        },
+    });
+
+    await crawler.run([url]);
+
+    expect(seenIn.preNavigation).toBe('from-extend-context');
+    expect(seenIn.postNavigation).toBe('from-extend-context');
+    expect(seenIn.requestHandler).toBe('from-extend-context');
 });
 
 test('works with a custom HttpClient', async () => {

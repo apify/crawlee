@@ -24,7 +24,7 @@ import {
     Session,
     SessionPool,
 } from '@crawlee/puppeteer';
-import { MemoryStorageBackend, serviceLocator } from '@crawlee/core';
+import { type ConcurrencySystem, MemoryStorageBackend, serviceLocator } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
 import type { Server as ProxyChainServer } from 'proxy-chain';
 import { z } from 'zod';
@@ -126,7 +126,7 @@ describe('PuppeteerCrawler', () => {
 
         await puppeteerCrawler.run();
 
-        expect(puppeteerCrawler.autoscaledPool!.minConcurrency).toBe(1);
+        expect((puppeteerCrawler.autoscaledPool!.system as ConcurrencySystem).minConcurrency).toBe(1);
         expect(processed).toHaveLength(6);
         expect(failed).toHaveLength(0);
 
@@ -456,7 +456,7 @@ describe('PuppeteerCrawler', () => {
         const crawler = new PuppeteerCrawler({ requestHandler: router });
 
         await expect(
-            crawler.addRequests([{ url: 'https://example.com/a', label: 'DETAIL', userData: { id: 123 } }]),
+            crawler.addRequests([{ url: 'https://example.com/a', label: 'DETAIL', userData: { id: 123 } }] as never),
         ).rejects.toThrow(RequestValidationError);
     });
 });

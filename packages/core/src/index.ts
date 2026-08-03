@@ -1,3 +1,4 @@
+export * from './debug.js';
 export * from './errors.js';
 export * from './autoscaling/index.js';
 export * from './configuration.js';
@@ -6,6 +7,7 @@ export * from './crawlers/index.js';
 export * from './enqueue_links/index.js';
 export * from './events/index.js';
 export * from './log.js';
+export * from './owned_or_injected.js';
 export * from './proxy_configuration.js';
 export * from './request.js';
 export * from './router.js';
@@ -17,4 +19,4 @@ export * from './validators.js';
 export * from './cookie_utils.js';
 export * from './recoverable_state.js';
 export { PseudoUrl } from '@apify/pseudo_url';
-export type { Dictionary, Awaitable, Constructor, StorageBackend, Cookie, QueueOperationInfo } from '@crawlee/types';
+export type { StorageBackend } from '@crawlee/types';

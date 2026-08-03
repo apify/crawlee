@@ -11,10 +11,15 @@ import {
     RequestList,
     Session,
 } from '@crawlee/cheerio';
-import { BaseCrawleeLogger, MemoryStorageBackend, serviceLocator, SessionPool } from '@crawlee/core';
+import {
+    BaseCrawleeLogger,
+    type ConcurrencySystem,
+    MemoryStorageBackend,
+    serviceLocator,
+    SessionPool,
+} from '@crawlee/core';
 import { ImpitHttpClient } from '@crawlee/impit-client';
-import type { ISession, ProxyInfo } from '@crawlee/types';
-import type { Dictionary } from '@crawlee/utils';
+import type { Dictionary, ISession, ProxyInfo } from '@crawlee/types';
 import { sleep } from '@crawlee/utils';
 import iconv from 'iconv-lite';
 import { CookieJar } from 'tough-cookie';
@@ -101,7 +106,7 @@ describe('CheerioCrawler', () => {
 
         await cheerioCrawler.run();
 
-        expect(cheerioCrawler.autoscaledPool!.minConcurrency).toBe(2);
+        expect((cheerioCrawler.autoscaledPool!.system as ConcurrencySystem).minConcurrency).toBe(2);
         expect(processed).toHaveLength(4);
         expect(failed).toHaveLength(0);
 
@@ -134,7 +139,7 @@ describe('CheerioCrawler', () => {
 
         await cheerioCrawler.run();
 
-        expect(cheerioCrawler.autoscaledPool!.minConcurrency).toBe(2);
+        expect((cheerioCrawler.autoscaledPool!.system as ConcurrencySystem).minConcurrency).toBe(2);
         expect(processed).toHaveLength(4);
         expect(failed).toHaveLength(0);
 
@@ -170,7 +175,7 @@ describe('CheerioCrawler', () => {
 
         await cheerioCrawler.run();
 
-        expect(cheerioCrawler.autoscaledPool!.minConcurrency).toBe(2);
+        expect((cheerioCrawler.autoscaledPool!.system as ConcurrencySystem).minConcurrency).toBe(2);
         expect(processed).toHaveLength(4);
         expect(failed).toHaveLength(0);
 
@@ -335,7 +340,7 @@ describe('CheerioCrawler', () => {
             });
 
             // @ts-expect-error Overriding private method
-            cheerioCrawler._requestFunction = async () => {
+            cheerioCrawler.requestFunction = async () => {
                 await sleep(300);
                 return '<html><head></head><body>Body</body></html>';
             };
@@ -552,7 +557,7 @@ describe('CheerioCrawler', () => {
 
         await cheerioCrawler.run();
 
-        expect(cheerioCrawler.autoscaledPool!.minConcurrency).toBe(2);
+        expect((cheerioCrawler.autoscaledPool!.system as ConcurrencySystem).minConcurrency).toBe(2);
         expect(failed).toHaveLength(0);
     });
 
@@ -573,7 +578,7 @@ describe('CheerioCrawler', () => {
 
         await cheerioCrawler.run();
 
-        expect(cheerioCrawler.autoscaledPool!.minConcurrency).toBe(2);
+        expect((cheerioCrawler.autoscaledPool!.system as ConcurrencySystem).minConcurrency).toBe(2);
         expect(failed).toHaveLength(4);
     });
 
@@ -663,7 +668,7 @@ describe('CheerioCrawler', () => {
             });
 
             // @ts-expect-error Using private method
-            const { response, encoding } = crawler._encodeResponse({}, new Response(new Uint8Array(buf)));
+            const { response, encoding } = crawler.encodeResponse({}, new Response(new Uint8Array(buf)));
             expect(encoding).toBe('utf8');
             expect(await response.text()).toBe(html);
         });
@@ -684,7 +689,7 @@ describe('CheerioCrawler', () => {
             });
 
             // @ts-expect-error Using private method
-            const { response, encoding } = crawler._encodeResponse({}, new Response(new Uint8Array(buf)), 'ascii');
+            const { response, encoding } = crawler.encodeResponse({}, new Response(new Uint8Array(buf)), 'ascii');
             expect(encoding).toBe('utf8');
             expect(await response.text()).toBe(html);
         });
@@ -792,23 +797,26 @@ describe('CheerioCrawler', () => {
                 proxyUrls: ['http://localhost', 'http://localhost:1234', goodProxyUrl],
             });
             const check = vitest.fn();
+            const impit = new ImpitHttpClient();
 
-            const crawler = new (class extends CheerioCrawler {
-                protected override async _requestFunction(...args: any[]): Promise<any> {
-                    check(...args);
-
-                    if (args[0].proxyUrl === goodProxyUrl) {
-                        return null;
-                    }
-
-                    throw new Error('Proxy responded with 400 - Bad request');
-                }
-            })({
+            const crawler = new CheerioCrawler({
                 maxRequestRetries: 2,
                 maxConcurrency: 1,
 
                 proxyConfiguration,
                 requestHandler: () => {},
+                httpClient: {
+                    sendRequest: async (request, opts) => {
+                        const proxyUrl = opts?.session?.proxyInfo?.url;
+                        check({ ...opts, proxyUrl });
+
+                        if (proxyUrl === goodProxyUrl) {
+                            return await impit.sendRequest(request);
+                        }
+
+                        throw new Error('Proxy responded with 400 - Bad request');
+                    },
+                },
             });
 
             await expect(crawler.run([serverAddress])).resolves.not.toThrow();

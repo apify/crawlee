@@ -41,7 +41,7 @@ export interface CustomFetchOptions {
  * implement only the low-level network call in `fetch`.
  */
 export abstract class BaseHttpClient implements BaseHttpClientInterface {
-    protected log?: CrawleeLogger;
+    private log?: CrawleeLogger;
 
     constructor(options?: { logger?: CrawleeLogger }) {
         this.log = options?.logger;

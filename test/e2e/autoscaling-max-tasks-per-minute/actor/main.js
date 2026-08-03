@@ -19,7 +19,7 @@ let crawlCalledAt = Date.now();
 await Actor.main(async () => {
     const crawler = new BasicCrawler({
         log: crawlerLogger,
-        autoscaledPoolOptions: { maxTasksPerMinute: 1 },
+        maxRequestsPerMinute: 1,
         requestHandler({ log }) {
             log.info(`Crawler requestHandler called after ${Date.now() - crawlCalledAt}ms`);
             crawlCalledAt = Date.now();

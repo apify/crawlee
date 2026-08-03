@@ -4,22 +4,17 @@ import { addTimeoutToPromise } from '@apify/timeout';
 import type { BetterIntervalID } from '@apify/utilities';
 import { betterClearInterval, betterSetInterval } from '@apify/utilities';
 
+import type { ConcurrencyConsumer, IConcurrencySystem } from './concurrency_system.js';
 import { CriticalError } from '../errors.js';
 import type { CrawleeLogger } from '../log.js';
 import { serviceLocator } from '../service_locator.js';
-import type { LoadSignal } from './load_signal.js';
-import type { SnapshotterOptions } from './snapshotter.js';
-import { Snapshotter } from './snapshotter.js';
-import type { SystemInfo, SystemStatusOptions } from './system_status.js';
-import { SystemStatus } from './system_status.js';
 
-export interface AutoscaledPoolOptions {
-    /**
-     * A function that performs an asynchronous resource-intensive task.
-     * The function must either be labeled `async` or return a promise.
-     */
-    runTaskFunction?: () => Promise<unknown>;
-
+/**
+ * The task-readiness predicates a consumer may supply to steer an {@apilink AutoscaledPool}'s run loop — the parts of
+ * the loop a higher-level driver (e.g. a crawler) legitimately overrides, as opposed to the crawler-owned
+ * `runTaskFunction`.
+ */
+export interface AutoscaledPoolPredicateOptions {
     /**
      * A function that indicates whether `runTaskFunction` should be called.
      * This function is called every time there is free capacity for a new task and it should
@@ -36,48 +31,30 @@ export interface AutoscaledPoolOptions {
      * To abort a run, use the {@apilink AutoscaledPool.abort} method.
      */
     isFinishedFunction?: () => Promise<boolean>;
+}
 
+export interface AutoscaledPoolOptions extends AutoscaledPoolPredicateOptions {
     /**
-     * The minimum number of tasks running in parallel.
+     * The governor that decides whether there is free compute for one more task. Typically a
+     * {@apilink ConcurrencySystem}, but any {@apilink IConcurrencySystem} works. Share a single instance across
+     * multiple pools (and therefore multiple crawlers) to cap their *combined* concurrency against one budget.
      *
-     * *WARNING:* If you set this value too high with respect to the available system memory and CPU, your code might run extremely slow or crash.
-     * If you're not sure, just keep the default value and the concurrency will scale up automatically.
-     * @default 1
+     * All concurrency/scaling/snapshotter configuration lives on the governor — the pool only owns the task loop and
+     * its cadence.
      */
-    minConcurrency?: number;
+    concurrencySystem: IConcurrencySystem;
 
     /**
-     * The maximum number of tasks running in parallel.
-     * @default 200
+     * Who this pool is, presented to the governor on every capacity query and booking so that a shared one can tell
+     * several pools apart. Worth naming meaningfully — a governor that allocates per consumer reports this `id`.
      */
-    maxConcurrency?: number;
+    consumer: ConcurrencyConsumer;
 
     /**
-     * The desired number of tasks that should be running parallel on the start of the pool,
-     * if there is a large enough supply of them.
-     * By default, it is `minConcurrency`.
+     * A function that performs an asynchronous resource-intensive task.
+     * The function must either be labeled `async` or return a promise.
      */
-    desiredConcurrency?: number;
-
-    /**
-     * Minimum level of desired concurrency to reach before more scaling up is allowed.
-     * @default 0.90
-     */
-    desiredConcurrencyRatio?: number;
-
-    /**
-     * Defines the fractional amount of desired concurrency to be added with each scaling up.
-     * The minimum scaling step is one.
-     * @default 0.05
-     */
-    scaleUpStepRatio?: number;
-
-    /**
-     * Defines the amount of desired concurrency to be subtracted with each scaling down.
-     * The minimum scaling step is one.
-     * @default 0.05
-     */
-    scaleDownStepRatio?: number;
+    runTaskFunction?: () => Promise<unknown>;
 
     /**
      * Indicates how often the pool should call the `runTaskFunction()` to start a new task, in seconds.
@@ -87,68 +64,29 @@ export interface AutoscaledPoolOptions {
     maybeRunIntervalSecs?: number;
 
     /**
-     * Specifies a period in which the instance logs its state, in seconds.
-     * Set to `null` to disable periodic logging.
-     * @default 60
-     */
-    loggingIntervalSecs?: number | null;
-
-    /**
-     * Defines in seconds how often the pool should attempt to adjust the desired concurrency
-     * based on the latest system status. Setting it lower than 1 might have a severe impact on performance.
-     * We suggest using a value from 5 to 20.
-     * @default 10
-     */
-    autoscaleIntervalSecs?: number;
-
-    /**
      * Timeout in which the `runTaskFunction` needs to finish, given in seconds.
      * @default 0
      */
     taskTimeoutSecs?: number;
-
-    /**
-     * Options to be passed down to the {@apilink Snapshotter} constructor. This is useful for fine-tuning
-     * the snapshot intervals and history.
-     */
-    snapshotterOptions?: SnapshotterOptions;
-
-    /**
-     * Options to be passed down to the {@apilink SystemStatus} constructor. This is useful for fine-tuning
-     * the system status reports. If a custom snapshotter is set in the options, it will be used
-     * by the pool.
-     */
-    systemStatusOptions?: SystemStatusOptions;
-
-    /**
-     * The maximum number of tasks per minute the pool can run.
-     * By default, this is set to `Infinity`, but you can pass any positive, non-zero integer.
-     */
-    maxTasksPerMinute?: number;
 
     log?: CrawleeLogger;
 }
 
 /**
  * Manages a pool of asynchronous resource-intensive tasks that are executed in parallel.
- * The pool only starts new tasks if there is enough free CPU and memory available
- * and the Javascript event loop is not blocked.
- *
- * The information about the CPU and memory usage is obtained by the {@apilink Snapshotter} class,
- * which makes regular snapshots of system resources that may be either local
- * or from the Apify cloud infrastructure in case the process is running on the Apify platform.
- * Meaningful data gathered from these snapshots is provided to `AutoscaledPool` by the {@apilink SystemStatus} class.
+ * The pool only starts new tasks while its {@apilink IConcurrencySystem|concurrency system} reports free capacity —
+ * that governor is what monitors CPU, memory and event loop load and autoscales the concurrency budget.
  *
  * Before running the pool, you need to implement the following three functions:
- * {@apilink AutoscaledPoolOptions.runTaskFunction},
- * {@apilink AutoscaledPoolOptions.isTaskReadyFunction} and
- * {@apilink AutoscaledPoolOptions.isFinishedFunction}.
+ * {@apilink AutoscaledPoolOptions.runTaskFunction|`runTaskFunction`},
+ * {@apilink AutoscaledPoolPredicateOptions.isTaskReadyFunction|`isTaskReadyFunction`} and
+ * {@apilink AutoscaledPoolPredicateOptions.isFinishedFunction|`isFinishedFunction`}.
  *
  * The auto-scaled pool is started by calling the {@apilink AutoscaledPool.run} function.
- * The pool periodically queries the {@apilink AutoscaledPoolOptions.isTaskReadyFunction} function
- * for more tasks, managing optimal concurrency, until the function resolves to `false`. The pool then queries
- * the {@apilink AutoscaledPoolOptions.isFinishedFunction}. If it resolves to `true`, the run finishes after all running tasks complete.
- * If it resolves to `false`, it assumes there will be more tasks available later and keeps periodically querying for tasks.
+ * The pool periodically queries `isTaskReadyFunction` for more tasks, managing optimal concurrency, until the function
+ * resolves to `false`. The pool then queries `isFinishedFunction`. If it resolves to `true`, the run finishes after all
+ * running tasks complete. If it resolves to `false`, it assumes there will be more tasks available later and keeps
+ * periodically querying for tasks.
  * If any of the tasks throws then the {@apilink AutoscaledPool.run} function rejects the promise with an error.
  *
  * The pool evaluates whether it should start a new task every time one of the tasks finishes
@@ -157,8 +95,12 @@ export interface AutoscaledPoolOptions {
  * **Example usage:**
  *
  * ```javascript
+ * const concurrencySystem = new ConcurrencySystem({ maxConcurrency: 50 });
+ * await concurrencySystem.start();
+ *
  * const pool = new AutoscaledPool({
- *     maxConcurrency: 50,
+ *     concurrencySystem,
+ *     consumer: { id: 'my-pool' },
  *     runTaskFunction: async () => {
  *         // Run some resource-intensive asynchronous operation here.
  *     },
@@ -173,7 +115,11 @@ export interface AutoscaledPoolOptions {
  *     }
  * });
  *
- * await pool.run();
+ * try {
+ *     await pool.run();
+ * } finally {
+ *     await concurrencySystem.stop();
+ * }
  * ```
  * @category Scaling
  */
@@ -181,39 +127,28 @@ export class AutoscaledPool {
     private readonly log: CrawleeLogger;
 
     // Configurable properties.
-    private readonly desiredConcurrencyRatio: number;
-    private readonly scaleUpStepRatio: number;
-    private readonly scaleDownStepRatio: number;
     private readonly maybeRunIntervalMillis: number;
-    private readonly loggingIntervalMillis: number;
-    private readonly autoscaleIntervalMillis: number;
     private readonly taskTimeoutMillis: number;
     private readonly runTaskFunction: () => Promise<unknown>;
     private readonly isFinishedFunction: () => Promise<boolean>;
     private readonly isTaskReadyFunction: () => Promise<boolean>;
-    private readonly maxTasksPerMinute: number;
+
+    private readonly concurrencySystem: IConcurrencySystem;
+    private readonly consumer: ConcurrencyConsumer;
 
     // Internal properties.
-    private _minConcurrency: number;
-    private _maxConcurrency: number;
-    private _desiredConcurrency: number;
-    private _currentConcurrency = 0;
     private isStopped = false;
-    private lastLoggingTime?: number;
     private resolve: ((val?: unknown) => void) | null = null;
     private reject: ((reason?: unknown) => void) | null = null;
-    private snapshotter: Snapshotter;
-
-    /** Additional SystemStatus loadSignals - tracked here for initialization and cleanup */
-    private loadSignals: LoadSignal[];
-
-    private systemStatus: SystemStatus;
-    private autoscaleInterval!: BetterIntervalID;
     private maybeRunInterval!: BetterIntervalID;
     private queryingIsTaskReady!: boolean;
     private queryingIsFinished!: boolean;
-    private tasksDonePerSecondInterval?: BetterIntervalID;
-    private _tasksPerMinute: number[] = Array.from({ length: 60 }, () => 0);
+
+    /**
+     * This pool's *own* in-flight task count, as opposed to {@apilink AutoscaledPool.currentConcurrency}, which is the
+     * (possibly shared) governor's total. `pause()` and `maybeFinish()` care only about this pool draining.
+     */
+    private ownConcurrency = 0;
 
     constructor(options: AutoscaledPoolOptions) {
         ow(
@@ -222,20 +157,11 @@ export class AutoscaledPool {
                 runTaskFunction: ow.function,
                 isFinishedFunction: ow.function,
                 isTaskReadyFunction: ow.function,
-                maxConcurrency: ow.optional.number.integer.greaterThanOrEqual(1),
-                minConcurrency: ow.optional.number.integer.greaterThanOrEqual(1),
-                desiredConcurrency: ow.optional.number.integer.greaterThanOrEqual(1),
-                desiredConcurrencyRatio: ow.optional.number.greaterThan(0).lessThan(1),
-                scaleUpStepRatio: ow.optional.number.greaterThan(0).lessThan(1),
-                scaleDownStepRatio: ow.optional.number.greaterThan(0).lessThan(1),
                 maybeRunIntervalSecs: ow.optional.number.greaterThan(0),
-                loggingIntervalSecs: ow.any(ow.number.greaterThan(0), ow.nullOrUndefined),
-                autoscaleIntervalSecs: ow.optional.number.greaterThan(0),
                 taskTimeoutSecs: ow.optional.number.greaterThanOrEqual(0),
-                systemStatusOptions: ow.optional.object,
-                snapshotterOptions: ow.optional.object,
                 log: ow.optional.object,
-                maxTasksPerMinute: ow.optional.number.integerOrInfinite.greaterThanOrEqual(1),
+                concurrencySystem: ow.object,
+                consumer: ow.object.partialShape({ id: ow.string.nonEmpty }),
             }),
         );
 
@@ -243,148 +169,90 @@ export class AutoscaledPool {
             runTaskFunction,
             isFinishedFunction,
             isTaskReadyFunction,
-            maxConcurrency = 200,
-            minConcurrency = 1,
-            desiredConcurrency,
-            desiredConcurrencyRatio = 0.9,
-            scaleUpStepRatio = 0.05,
-            scaleDownStepRatio = 0.05,
             maybeRunIntervalSecs = 0.5,
-            loggingIntervalSecs = 60,
             taskTimeoutSecs = 0,
-            autoscaleIntervalSecs = 10,
-            systemStatusOptions,
-            snapshotterOptions,
             log = serviceLocator.getLogger(),
-            maxTasksPerMinute = Infinity,
+            concurrencySystem,
+            consumer,
         } = options;
 
         this.log = log.child({ prefix: 'AutoscaledPool' });
 
         // Configurable properties.
-        this.desiredConcurrencyRatio = desiredConcurrencyRatio;
-        this.scaleUpStepRatio = scaleUpStepRatio;
-        this.scaleDownStepRatio = scaleDownStepRatio;
         this.maybeRunIntervalMillis = maybeRunIntervalSecs * 1000;
-        this.loggingIntervalMillis = loggingIntervalSecs! * 1000;
-        this.autoscaleIntervalMillis = autoscaleIntervalSecs * 1000;
         this.taskTimeoutMillis = taskTimeoutSecs * 1000;
         this.runTaskFunction = runTaskFunction;
         this.isFinishedFunction = isFinishedFunction;
         this.isTaskReadyFunction = isTaskReadyFunction;
-        this.maxTasksPerMinute = maxTasksPerMinute;
+
+        this.concurrencySystem = concurrencySystem;
+        this.consumer = consumer;
 
         // Internal properties.
-        this._minConcurrency = minConcurrency;
-        this._maxConcurrency = maxConcurrency;
-        this._desiredConcurrency = Math.min(desiredConcurrency ?? minConcurrency, maxConcurrency);
-        this._currentConcurrency = 0;
         this.isStopped = false;
         this.resolve = null;
         this.reject = null;
-        this._autoscale = this._autoscale.bind(this);
-        this._maybeRunTask = this._maybeRunTask.bind(this);
-        this._incrementTasksDonePerSecond = this._incrementTasksDonePerSecond.bind(this);
-
-        // Create instances with correct options.
-        const ssoCopy = { ...systemStatusOptions };
-        ssoCopy.snapshotter ??= new Snapshotter({
-            ...snapshotterOptions,
-            log: this.log,
-        });
-        this.snapshotter = ssoCopy.snapshotter;
-        this.loadSignals = ssoCopy.loadSignals ?? [];
-        this.systemStatus = new SystemStatus(ssoCopy);
+        this.maybeRunTask = this.maybeRunTask.bind(this);
     }
 
     /**
-     * Gets the minimum number of tasks running in parallel.
-     */
-    get minConcurrency(): number {
-        return this._minConcurrency;
-    }
-
-    /**
-     * Sets the minimum number of tasks running in parallel.
+     * The governor backing this pool, as supplied to the constructor — exposed as the read-only
+     * {@apilink IConcurrencySystem} contract.
      *
-     * *WARNING:* If you set this value too high with respect to the available system memory and CPU, your code might run extremely slow or crash.
-     * If you're not sure, just keep the default value and the concurrency will scale up automatically.
+     * This and the two getters below are telemetry only: concurrency is configured and tuned on the concrete
+     * {@apilink ConcurrencySystem} its owner holds, never through the pool.
      */
-    set minConcurrency(value: number) {
-        ow(value, ow.optional.number.integer.greaterThanOrEqual(1));
-        this._minConcurrency = value;
+    get system(): IConcurrencySystem {
+        return this.concurrencySystem;
     }
 
-    /**
-     * Gets the maximum number of tasks running in parallel.
-     */
-    get maxConcurrency(): number {
-        return this._maxConcurrency;
-    }
-
-    /**
-     * Sets the maximum number of tasks running in parallel.
-     */
-    set maxConcurrency(value: number) {
-        ow(value, ow.optional.number.integer.greaterThanOrEqual(1));
-        this._maxConcurrency = value;
-    }
-
-    /**
-     * Gets the desired concurrency for the pool,
-     * which is an estimated number of parallel tasks that the system can currently support.
-     */
+    /** The estimated number of parallel tasks the governor can currently support. */
     get desiredConcurrency(): number {
-        return this._desiredConcurrency;
+        return this.concurrencySystem.desiredConcurrency;
     }
 
     /**
-     * Sets the desired concurrency for the pool, i.e. the number of tasks that should be running
-     * in parallel if there's large enough supply of tasks.
-     */
-    set desiredConcurrency(value: number) {
-        ow(value, ow.optional.number.integer.greaterThanOrEqual(1));
-        this._desiredConcurrency = value;
-    }
-
-    /**
-     * Gets the number of parallel tasks currently running in the pool.
+     * The number of parallel tasks currently booked against the governor. When it is shared, this counts every
+     * borrowing pool's tasks, not just this one's.
      */
     get currentConcurrency(): number {
-        return this._currentConcurrency;
+        return this.concurrencySystem.currentConcurrency;
     }
 
     /**
      * Runs the auto-scaled pool. Returns a promise that gets resolved or rejected once
      * all the tasks are finished or one of them fails.
+     *
+     * Throws if the {@apilink IConcurrencySystem|concurrency system} it borrows was never started — the pool assumes
+     * a running governor and cannot start one it does not own.
      */
     async run(): Promise<void> {
+        // Checked here, on an awaited path — the capacity queries inside the task loop run from intervals and
+        // `setImmediate`, where a throw would become an unhandled rejection and hang `run()` forever.
+        if (!this.concurrencySystem.isRunning) {
+            throw new CriticalError(
+                'The ConcurrencySystem this AutoscaledPool borrows has not been started, so system load would not be ' +
+                    'monitored and the concurrency would never be adjusted. Whoever creates a ConcurrencySystem owns ' +
+                    'its lifecycle: call `await concurrencySystem.start()` before running the pools or crawlers that ' +
+                    'use it, and `await concurrencySystem.stop()` once they are all done.',
+            );
+        }
+
         const poolPromise = new Promise((resolve, reject) => {
             this.resolve = resolve;
             this.reject = reject;
         });
 
-        await this.snapshotter.start();
-        await Promise.all(this.loadSignals.map((s) => s.start()));
-
-        // This interval checks the system status and updates the desired concurrency accordingly.
-        this.autoscaleInterval = betterSetInterval(this._autoscale, this.autoscaleIntervalMillis);
-
         // This is here because if we scale down to let's say 1, then after each promise is finished
-        // this._maybeRunTask() doesn't trigger another one. So if that 1 instance gets stuck it results
+        // this.maybeRunTask() doesn't trigger another one. So if that 1 instance gets stuck it results
         // in the crawler getting stuck and even after scaling up it never triggers another promise.
-        this.maybeRunInterval = betterSetInterval(this._maybeRunTask, this.maybeRunIntervalMillis);
-
-        if (this.maxTasksPerMinute !== Infinity) {
-            // Start the interval that resets the counter of tasks per minute.
-            this.tasksDonePerSecondInterval = betterSetInterval(this._incrementTasksDonePerSecond, 1000);
-        }
+        this.maybeRunInterval = betterSetInterval(this.maybeRunTask, this.maybeRunIntervalMillis);
 
         try {
             await poolPromise;
         } finally {
             // If resolve is null, the pool is already destroyed.
-            if (this.resolve) await this._destroy();
+            if (this.resolve) await this.destroy();
         }
     }
 
@@ -403,7 +271,7 @@ export class AutoscaledPool {
         this.isStopped = true;
         if (this.resolve) {
             this.resolve();
-            await this._destroy();
+            await this.destroy();
         }
     }
 
@@ -417,6 +285,10 @@ export class AutoscaledPool {
      *
      * The promise returned from the {@apilink AutoscaledPool.run} function will not resolve
      * when `.pause()` is invoked (unlike abort, which resolves it).
+     *
+     * > *NOTE:* Pausing the pool does not suspend the (possibly shared) {@apilink ConcurrencySystem} — its
+     * autoscaling and resource monitoring keep running, since other pools borrowing it may still be active. To silence
+     * it during a long pause, its owner can `stop()` and `start()` it again.
      */
     async pause(timeoutSecs?: number): Promise<void> {
         if (this.isStopped) return;
@@ -437,7 +309,7 @@ export class AutoscaledPool {
             }
 
             interval = setInterval(() => {
-                if (this._currentConcurrency <= 0) {
+                if (this.ownConcurrency <= 0) {
                     // Clean up timeout and interval to prevent process hanging.
                     if (timeout) clearTimeout(timeout);
                     clearInterval(interval);
@@ -462,7 +334,7 @@ export class AutoscaledPool {
      * every `maybeRunIntervalSecs` seconds. If you want to trigger the processing immediately, use this method.
      */
     async notify(): Promise<void> {
-        setImmediate(this._maybeRunTask);
+        setImmediate(this.maybeRunTask);
     }
 
     /**
@@ -473,7 +345,7 @@ export class AutoscaledPool {
      *
      * It doesn't allow multiple concurrent runs of this method.
      */
-    protected async _maybeRunTask(intervalCallback?: () => void): Promise<void> {
+    private async maybeRunTask(intervalCallback?: () => void): Promise<void> {
         this.log.perf('Attempting to run a task.');
         // Check if the function was invoked by the maybeRunInterval and use an empty function if not.
         const done = intervalCallback || (() => {});
@@ -489,20 +361,14 @@ export class AutoscaledPool {
             this.log.perf('Task will not run. Waiting for a ready task.');
             return done();
         }
-        // - we would exceed desired concurrency.
-        if (this._currentConcurrency >= this._desiredConcurrency) {
-            this.log.perf('Task will not run. Desired concurrency achieved.');
-            return done();
-        }
-        // - system is overloaded now and we are at or above minConcurrency
-        const currentStatus = this.systemStatus.getCurrentStatus();
-        const { isSystemIdle } = currentStatus;
-        if (!isSystemIdle && this._currentConcurrency >= this._minConcurrency) {
-            this.log.perf(
-                'Task will not be run. System is overloaded.',
-                currentStatus as unknown as Record<string, unknown>,
-            );
-            return done();
+        // - the budget has room for us.
+        if (!this.concurrencySystem.hasCapacityForTask(this.consumer)) {
+            done();
+            // A shared governor's budget can stay saturated by another pool indefinitely, so we still have to be able
+            // to notice that *this* pool has run out of work — `maybeFinish()` is the only thing that ever resolves
+            // `run()`. It no-ops while this pool has tasks of its own in flight, which is every case in which an
+            // unshared governor reports no capacity.
+            return this.maybeFinish();
         }
         // - a task is ready.
         this.queryingIsTaskReady = true;
@@ -526,24 +392,22 @@ export class AutoscaledPool {
             this.log.perf('Task will not run. No tasks are ready.');
             done();
             // No tasks could mean that we're finished with all tasks.
-            return this._maybeFinish();
+            return this.maybeFinish();
         }
 
-        // - we have already reached the maximum tasks per minute
-        // we need to check this *after* checking if a task is ready to prevent hanging the pool
-        // for an extra minute if there are no more tasks
-        if (this._isOverMaxRequestLimit) {
-            this.log.perf('Task will not run. Maximum tasks per minute reached.');
+        // - the budget still has room. Re-checked atomically, because another pool sharing the governor may have taken
+        // the last free slot while we awaited `isTaskReadyFunction` above.
+        if (!this.concurrencySystem.tryRegisterTaskStart(this.consumer)) {
             return done();
         }
 
+        this.ownConcurrency++;
+
         try {
             // Everything's fine. Run task.
-            this._currentConcurrency++;
-            this._tasksPerMinute[0]++;
             // Try to run next task to build up concurrency,
             // but defer it so it doesn't create a cycle.
-            setImmediate(this._maybeRunTask);
+            setImmediate(this.maybeRunTask);
 
             // We need to restart interval here, so that it doesn't get blocked by a stalled task.
             done();
@@ -562,9 +426,9 @@ export class AutoscaledPool {
             }
 
             this.log.perf('Task finished.');
-            this._currentConcurrency--;
-            // Run task after the previous one finished.
-            setImmediate(this._maybeRunTask);
+            // Run task after the previous one finished. Only on success: a failed task rejects the pool, and
+            // nudging the loop afterwards could start work on an already destroyed pool.
+            setImmediate(this.maybeRunTask);
         } catch (e) {
             const err = e as Error;
             this.log.perf('Running a task failed.');
@@ -579,93 +443,12 @@ export class AutoscaledPool {
                 }
                 this.reject(err);
             }
+        } finally {
+            this.concurrencySystem.registerTaskEnd(this.consumer);
+            this.ownConcurrency--;
         }
 
         return undefined;
-    }
-
-    /**
-     * Gets called every autoScaleIntervalSecs and evaluates the current system status.
-     * If the system IS NOT overloaded and the settings allow it, it scales up.
-     * If the system IS overloaded and the settings allow it, it scales down.
-     */
-    protected _autoscale(intervalCallback: () => void) {
-        // Don't scale if paused.
-        if (this.isStopped) return intervalCallback();
-
-        // Don't scale if we've hit the maximum requests per minute
-        if (this._isOverMaxRequestLimit) return intervalCallback();
-
-        // Only scale up if:
-        // - system has not been overloaded lately.
-        const systemStatus = this.systemStatus.getHistoricalStatus();
-        const { isSystemIdle } = systemStatus;
-        // - we're not already at max concurrency.
-        const weAreNotAtMax = this._desiredConcurrency < this._maxConcurrency;
-        // - current concurrency reaches at least the given ratio of desired concurrency.
-        const minCurrentConcurrency = Math.floor(this._desiredConcurrency * this.desiredConcurrencyRatio);
-        const weAreReachingDesiredConcurrency = this._currentConcurrency >= minCurrentConcurrency;
-
-        if (isSystemIdle && weAreNotAtMax && weAreReachingDesiredConcurrency) this._scaleUp(systemStatus);
-
-        // Always scale down if:
-        // - the system has been overloaded lately.
-        const isSystemOverloaded = !isSystemIdle;
-        // - we're over min concurrency.
-        const weAreNotAtMin = this._desiredConcurrency > this._minConcurrency;
-
-        if (isSystemOverloaded && weAreNotAtMin) this._scaleDown(systemStatus);
-
-        // On periodic intervals, print comprehensive log information
-        if (this.loggingIntervalMillis > 0) {
-            const now = Date.now();
-
-            if (this.lastLoggingTime == null) {
-                this.lastLoggingTime = now;
-            } else if (now > this.lastLoggingTime + this.loggingIntervalMillis) {
-                this.lastLoggingTime = now;
-                this.log.info('state', {
-                    currentConcurrency: this._currentConcurrency,
-                    desiredConcurrency: this._desiredConcurrency,
-                    systemStatus,
-                });
-            }
-        }
-
-        // Start a new interval cycle.
-        return intervalCallback();
-    }
-
-    /**
-     * Scales the pool up by increasing
-     * the desired concurrency by the scaleUpStepRatio.
-     *
-     * @param systemStatus for logging
-     */
-    protected _scaleUp(systemStatus: SystemInfo): void {
-        const step = Math.ceil(this._desiredConcurrency * this.scaleUpStepRatio);
-        this._desiredConcurrency = Math.min(this._maxConcurrency, this._desiredConcurrency + step);
-        this.log.debug('scaling up', {
-            oldConcurrency: this._desiredConcurrency - step,
-            newConcurrency: this._desiredConcurrency,
-            systemStatus,
-        });
-    }
-
-    /**
-     * Scales the pool down by decreasing
-     * the desired concurrency by the scaleDownStepRatio.
-     *
-     * @param systemStatus for logging
-     */
-    protected _scaleDown(systemStatus: SystemInfo): void {
-        const step = Math.ceil(this._desiredConcurrency * this.scaleDownStepRatio);
-        this._desiredConcurrency = Math.max(this._minConcurrency, this._desiredConcurrency - step);
-        this.log.debug('scaling down', {
-            oldConcurrency: this._desiredConcurrency + step,
-            newConcurrency: this._desiredConcurrency,
-            systemStatus,
-        });
     }
 
     /**
@@ -674,9 +457,9 @@ export class AutoscaledPool {
      *
      * It doesn't allow multiple concurrent runs of this method.
      */
-    protected async _maybeFinish(): Promise<void> {
+    private async maybeFinish(): Promise<void> {
         if (this.queryingIsFinished) return;
-        if (this._currentConcurrency > 0) return;
+        if (this.ownConcurrency > 0) return;
 
         this.queryingIsFinished = true;
         try {
@@ -697,30 +480,10 @@ export class AutoscaledPool {
     /**
      * Cleans up resources.
      */
-    protected async _destroy(): Promise<void> {
+    private async destroy(): Promise<void> {
         this.resolve = null;
         this.reject = null;
 
-        betterClearInterval(this.autoscaleInterval);
         betterClearInterval(this.maybeRunInterval);
-        if (this.tasksDonePerSecondInterval) betterClearInterval(this.tasksDonePerSecondInterval);
-        if (this.snapshotter) await this.snapshotter.stop();
-        await Promise.all(this.loadSignals.map((s) => s.stop()));
-    }
-
-    protected _incrementTasksDonePerSecond(intervalCallback: () => void) {
-        this._tasksPerMinute.unshift(0);
-
-        this._tasksPerMinute.pop();
-
-        return intervalCallback();
-    }
-
-    protected get _isOverMaxRequestLimit() {
-        if (this.maxTasksPerMinute === Infinity) {
-            return false;
-        }
-
-        return this._tasksPerMinute.reduce((acc, curr) => acc + curr, 0) >= this.maxTasksPerMinute;
     }
 }

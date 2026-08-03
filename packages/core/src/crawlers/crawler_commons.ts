@@ -4,14 +4,85 @@ import type { ReadonlyDeep, SetRequired } from 'type-fest';
 import type { Configuration } from '../configuration.js';
 import type { EnqueueLinksOptions } from '../enqueue_links/enqueue_links.js';
 import type { CrawleeLogger } from '../log.js';
-import type { Request, Source } from '../request.js';
+import type { Request, RequestOptions, Source } from '../request.js';
+import type { StorageIdentifier } from '../storages/storage_instance_manager.js';
 import type { Dataset } from '../storages/dataset.js';
 import { KeyValueStore, type RecordOptions } from '../storages/key_value_store.js';
 import type { RequestQueueOperationOptions } from '../storages/request_queue.js';
-import type { StorageIdentifier } from '../storages/storage_instance_manager.js';
 
 /** @internal */
 export type IsAny<T> = 0 extends 1 & T ? true : false;
+
+/**
+ * A request input (URL string, request-options object, or {@apilink Request}) whose `userData` is typed
+ * according to its `label`, based on a router's route map.
+ *
+ * When the route map is open (the default `Record<string, ...>`), this is just the regular loose
+ * {@apilink Source} input. When the map declares concrete labels, providing a `label` requires the matching
+ * `userData` shape and rejects labels not present in the map; unlabeled requests keep loose `userData`.
+ * @internal
+ */
+export type LabeledSource<Routes extends Record<keyof Routes, Dictionary>> = string extends keyof Routes
+    ? string | Source
+    :
+          | string
+          | Request
+          | ({ requestsFromUrl?: string; regex?: RegExp } & (
+                | {
+                      [Label in keyof Routes & string]: Omit<Partial<RequestOptions<Routes[Label]>>, 'label'> & {
+                          label: Label;
+                      };
+                  }[keyof Routes & string]
+                | (Omit<Partial<RequestOptions>, 'label'> & { label?: undefined })
+            ));
+
+/**
+ * The iterable/array of {@apilink LabeledSource} inputs accepted by the label-aware `addRequests`/`run`
+ * methods of a crawler bound to a typed router.
+ * @internal
+ */
+export type TypedRequestsLike<Routes extends Record<keyof Routes, Dictionary>> =
+    | AsyncIterable<LabeledSource<Routes>>
+    | Iterable<LabeledSource<Routes>>
+    | LabeledSource<Routes>[];
+
+/**
+ * The label-aware `addRequests` method signature exposed on a request handler's context when the crawler is
+ * bound to a typed router. Mirrors {@apilink RestrictedCrawlingContext.addRequests} with typed sources.
+ * @internal
+ */
+export type TypedContextAddRequests<Routes extends Record<keyof Routes, Dictionary>> = (
+    requestsLike: ReadonlyDeep<LabeledSource<Routes>[]>,
+    options?: ReadonlyDeep<RequestQueueOperationOptions>,
+) => Promise<void>;
+
+/**
+ * An `enqueueLinks`-options object with its `label`/`userData` retyped according to a router's route map: a
+ * declared `label` requires the matching `userData` shape (unknown labels are rejected), while unlabeled
+ * calls keep loose `userData`. Returns the options unchanged when the route map is open (the default).
+ */
+type TypedEnqueueLinksOptions<Options, Routes extends Record<keyof Routes, Dictionary>> = string extends keyof Routes
+    ? Options
+    : Omit<Options, 'label' | 'userData'> &
+          (
+              | { [Label in keyof Routes & string]: { label: Label; userData?: Routes[Label] } }[keyof Routes & string]
+              | { label?: undefined; userData?: Dictionary }
+          );
+
+/**
+ * Transforms a context's existing `enqueueLinks` method so that the `label`/`userData` in its options follow
+ * the router's route map, while preserving everything else about the signature (argument optionality and
+ * return type, which differ between crawler types).
+ * @internal
+ */
+export type TypedContextEnqueueLinks<
+    EnqueueLinks,
+    Routes extends Record<keyof Routes, Dictionary>,
+> = EnqueueLinks extends (options?: infer Options) => infer Result
+    ? (options?: TypedEnqueueLinksOptions<Options, Routes>) => Result
+    : EnqueueLinks extends (options: infer Options) => infer Result
+      ? (options: TypedEnqueueLinksOptions<Options, Routes>) => Result
+      : EnqueueLinks;
 
 /** @internal */
 export type WithRequired<T, K extends keyof T> = T & { [P in K]-?: T[P] };
@@ -182,7 +253,7 @@ export class RequestHandlerResult {
     private addRequestsCalls: Parameters<RestrictedCrawlingContext['addRequests']>[] = [];
 
     constructor(
-        private config: Configuration,
+        private configuration: Configuration,
         private crawleeStateKey: string,
     ) {}
 
@@ -275,11 +346,11 @@ export class RequestHandlerResult {
     };
 
     getKeyValueStore: RestrictedCrawlingContext['getKeyValueStore'] = async (identifier) => {
-        const store = await KeyValueStore.open(identifier, { config: this.config });
+        const store = await KeyValueStore.open(identifier, { configuration: this.configuration });
         const storeId = store.id;
 
         return {
-            id: storeId ?? this.config.defaultKeyValueStoreId,
+            id: storeId ?? this.configuration.defaultKeyValueStoreId,
             name: store.name,
             getValue: async (key) => this.getKeyValueStoreChangedValue(storeId, key) ?? (await store.getValue(key)),
             setValue: async (key, value, options) => {
@@ -291,7 +362,7 @@ export class RequestHandlerResult {
     };
 
     private getKeyValueStoreChangedValue = (storeKey: string | undefined, key: string) => {
-        const id = storeKey ?? this.config.defaultKeyValueStoreId;
+        const id = storeKey ?? this.configuration.defaultKeyValueStoreId;
         this._keyValueStoreChanges[id] ??= {};
         return this.keyValueStoreChanges[id][key]?.changedValue ?? null;
     };
@@ -302,7 +373,7 @@ export class RequestHandlerResult {
         changedValue: unknown,
         options?: RecordOptions,
     ) => {
-        const id = storeKey ?? this.config.defaultKeyValueStoreId;
+        const id = storeKey ?? this.configuration.defaultKeyValueStoreId;
         this._keyValueStoreChanges[id] ??= {};
         this._keyValueStoreChanges[id][key] = { changedValue, options };
     };

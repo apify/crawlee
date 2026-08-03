@@ -19,11 +19,20 @@ const calculateUrlSimilarity = (a: URLComponents, b: URLComponents): number | un
         return 0;
     }
 
-    for (let i = 1; i < Math.max(a.length, b.length); i++) {
+    const maxLength = Math.max(a.length, b.length);
+
+    // Only the hostname is present (no path components to compare) - the hosts already match.
+    if (maxLength <= 1) {
+        return 1;
+    }
+
+    for (let i = 1; i < maxLength; i++) {
         values.push(stringComparison.jaroWinkler.similarity(a[i] ?? '', b[i] ?? '') > 0.8 ? 1 : 0);
     }
 
-    return sum(values) / Math.max(a.length, b.length);
+    // The first component (index 0, the hostname) is excluded from the comparison above,
+    // so it must also be excluded from the denominator of the weighted average.
+    return sum(values) / (maxLength - 1);
 };
 
 const sum = (values: number[]) => values.reduce((acc, value) => acc + value);
@@ -38,11 +47,28 @@ export interface RenderingTypePredictorOptions {
 }
 
 /**
+ * Minimal contract that any object passed to {@apilink AdaptivePlaywrightCrawler} as its
+ * `renderingTypePredictor` option must satisfy.
+ *
+ * @experimental
+ */
+export interface IRenderingTypePredictor {
+    /** Predict the rendering type for a request, and how likely the crawler should be to verify it. */
+    predict(request: Request): {
+        renderingType: RenderingType;
+        detectionProbabilityRecommendation: number;
+    };
+
+    /** Report a detected rendering type, so that future predictions can take it into account. */
+    storeResult(requests: Request | Request[], renderingType: RenderingType): void;
+}
+
+/**
  * Stores rendering type information for previously crawled URLs and predicts the rendering type for URLs that have yet to be crawled and recommends when rendering type detection should be performed.
  *
  * @experimental
  */
-export class RenderingTypePredictor {
+export class RenderingTypePredictor implements IRenderingTypePredictor {
     private detectionRatio: number;
     private state: RecoverableState<{
         logreg: LogisticRegression;
@@ -151,7 +177,7 @@ export class RenderingTypePredictor {
             .reduce((acc, value) => acc + value, 0);
     }
 
-    protected calculateFeatureVector(url: URLComponents, label: string | undefined): FeatureVector {
+    private calculateFeatureVector(url: URLComponents, label: string | undefined): FeatureVector {
         return [
             mean(
                 (this.state.currentValue.detectionResults.get('static')?.get(label) ?? []).map(
@@ -166,7 +192,7 @@ export class RenderingTypePredictor {
         ];
     }
 
-    protected retrain(): void {
+    private retrain(): void {
         const X: FeatureVector[] = [
             [0, 1],
             [1, 0],

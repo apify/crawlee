@@ -45,7 +45,7 @@ export interface RecoverableStateOptions<
     /**
      * Configuration instance to use
      */
-    config?: Configuration;
+    configuration?: Configuration;
 
     /**
      * Optional function to transform the state to a JSON string before persistence.
@@ -127,7 +127,9 @@ export class RecoverableState<TStateModel = Record<string, unknown>> {
             kvsIdentifier = { id: this.persistStateKvsId };
         }
 
-        this.keyValueStore = await KeyValueStore.open(kvsIdentifier, { config: serviceLocator.getConfiguration() });
+        this.keyValueStore = await KeyValueStore.open(kvsIdentifier, {
+            configuration: serviceLocator.getConfiguration(),
+        });
 
         await this.loadSavedState();
 

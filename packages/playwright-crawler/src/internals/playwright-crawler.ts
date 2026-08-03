@@ -38,13 +38,18 @@ export interface PlaywrightHook extends BrowserHook<PlaywrightCrawlingContext> {
 export interface PlaywrightCrawlerOptions<
     ContextExtension = Dictionary<never>,
     ExtendedContext extends PlaywrightCrawlingContext = PlaywrightCrawlingContext & ContextExtension,
+    Routes extends Record<keyof Routes, Dictionary> = Record<
+        string,
+        GetUserDataFromRequest<PlaywrightCrawlingContext['request']>
+    >,
 > extends BrowserCrawlerOptions<
     Page,
     Response,
     PlaywrightCrawlingContext,
     ContextExtension,
     ExtendedContext,
-    { browserPlugins: [PlaywrightPlugin] }
+    { browserPlugins: [PlaywrightPlugin] },
+    Routes
 > {
     /**
      * The same options as used by {@apilink launchPlaywright}.
@@ -73,7 +78,7 @@ export interface PlaywrightCrawlerOptions<
      * The exceptions are logged to the request using the
      * {@apilink Request.pushErrorMessage} function.
      */
-    requestHandler?: RequestHandler<ExtendedContext>;
+    requestHandler?: RouterHandler<ExtendedContext, Routes> | RequestHandler<ExtendedContext>;
 
     /**
      * Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies
@@ -91,7 +96,7 @@ export interface PlaywrightCrawlerOptions<
      * ]
      * ```
      */
-    preNavigationHooks?: PlaywrightHook[];
+    preNavigationHooks?: BrowserHook<PlaywrightCrawlingContext, ContextExtension>[];
 
     /**
      * Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
@@ -109,7 +114,7 @@ export interface PlaywrightCrawlerOptions<
      * ]
      * ```
      */
-    postNavigationHooks?: PlaywrightHook[];
+    postNavigationHooks?: BrowserHook<PlaywrightCrawlingContext, ContextExtension>[];
 }
 
 /**
@@ -140,9 +145,9 @@ export interface PlaywrightCrawlerOptions<
  *
  * New pages are only opened when there is enough free CPU and memory available,
  * using the functionality provided by the {@apilink AutoscaledPool} class.
- * All {@apilink AutoscaledPool} configuration options can be passed to the {@apilink PlaywrightCrawlerOptions.autoscaledPoolOptions}
- * parameter of the `PlaywrightCrawler` constructor. For user convenience, the `minConcurrency` and `maxConcurrency`
- * {@apilink AutoscaledPoolOptions} are available directly in the `PlaywrightCrawler` constructor.
+ * Concurrency is tuned via the `minConcurrency`, `maxConcurrency` and `maxRequestsPerMinute` options of the
+ * `PlaywrightCrawler` constructor, or, for finer control, by injecting a pre-configured
+ * {@apilink ConcurrencySystem|`concurrencySystem`}.
  *
  * Note that the pool of Playwright instances is internally managed by the [BrowserPool](https://github.com/apify/browser-pool) class.
  *
@@ -180,6 +185,10 @@ export interface PlaywrightCrawlerOptions<
 export class PlaywrightCrawler<
     ContextExtension = Dictionary<never>,
     ExtendedContext extends PlaywrightCrawlingContext = PlaywrightCrawlingContext & ContextExtension,
+    Routes extends Record<keyof Routes, Dictionary> = Record<
+        string,
+        GetUserDataFromRequest<PlaywrightCrawlingContext['request']>
+    >,
 > extends BrowserCrawler<
     Page,
     Response,
@@ -187,7 +196,8 @@ export class PlaywrightCrawler<
     LaunchOptions,
     PlaywrightCrawlingContext,
     ContextExtension,
-    ExtendedContext
+    ExtendedContext,
+    Routes
 > {
     protected static override optionsShape = {
         ...BrowserCrawler.optionsShape,
@@ -200,7 +210,7 @@ export class PlaywrightCrawler<
     /**
      * All `PlaywrightCrawler` parameters are passed via an options object.
      */
-    constructor(options: PlaywrightCrawlerOptions<ExtendedContext> = {}) {
+    constructor(options: PlaywrightCrawlerOptions<ContextExtension, ExtendedContext, Routes> = {}) {
         ow(options, 'PlaywrightCrawlerOptions', ow.object.exactShape(PlaywrightCrawler.optionsShape));
 
         const { launchContext = {}, headless, contextPipelineBuilder, ...browserCrawlerOptions } = options;
@@ -232,7 +242,7 @@ export class PlaywrightCrawler<
         browserPoolOptions.browserPlugins = [playwrightLauncher.createBrowserPlugin()];
 
         super({
-            ...(browserCrawlerOptions as PlaywrightCrawlerOptions<ExtendedContext>),
+            ...(browserCrawlerOptions as unknown as PlaywrightCrawlerOptions<ContextExtension, ExtendedContext>),
             launchContext,
             browserPoolOptions,
             contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),
@@ -286,7 +296,10 @@ export class PlaywrightCrawler<
                 playwrightUtils.infiniteScroll(context.page, options),
             listDownloads: async () => downloads,
             saveSnapshot: async (options?: SaveSnapshotOptions) =>
-                playwrightUtils.saveSnapshot(context.page, { ...options, config: serviceLocator.getConfiguration() }),
+                playwrightUtils.saveSnapshot(context.page, {
+                    ...options,
+                    configuration: serviceLocator.getConfiguration(),
+                }),
             enqueueLinksByClickingElements: async (
                 options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestManager'>,
             ) =>

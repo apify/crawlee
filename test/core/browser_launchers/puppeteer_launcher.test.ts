@@ -6,7 +6,7 @@ import path from 'node:path';
 import util from 'node:util';
 
 import { BrowserLauncher, launchPuppeteer } from '@crawlee/puppeteer';
-import type { Dictionary } from '@crawlee/utils';
+import type { Dictionary } from '@crawlee/types';
 // @ts-expect-error no types
 import basicAuthParser from 'basic-auth-parser';
 // @ts-expect-error no types
@@ -199,7 +199,7 @@ describe('launchPuppeteer()', () => {
     });
 
     test('supports useChrome option', async () => {
-        const spy = vitest.spyOn(BrowserLauncher.prototype as any, '_getTypicalChromeExecutablePath');
+        const spy = vitest.spyOn(BrowserLauncher.prototype as any, 'getTypicalChromeExecutablePath');
 
         let browser;
         const opts = {

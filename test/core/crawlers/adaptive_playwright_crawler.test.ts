@@ -6,7 +6,6 @@ import {
     type CrawleeLogger,
     type CrawleeLoggerOptions,
     Dataset,
-    type Dictionary,
     EventType,
     KeyValueStore,
     MemoryStorageBackend,
@@ -22,10 +21,12 @@ import {
     AdaptivePlaywrightCrawler,
     BasicCrawler,
     createAdaptivePlaywrightRouter,
+    fullResultComparator,
     RenderingTypePredictor,
     RequestList,
     RequestValidationError,
 } from '@crawlee/playwright';
+import type { Dictionary } from '@crawlee/types';
 import { sleep } from 'crawlee';
 import express from 'express';
 import { z } from 'zod';
@@ -161,10 +162,56 @@ describe('AdaptivePlaywrightCrawler', () => {
         detectionProbabilityRecommendation: number;
         renderingType: 'clientOnly' | 'static';
     }) => ({
-        initialize: async () => {},
         predict: vi.fn((_request: Request) => prediction),
         storeResult: vi.fn((_request: Request, _renderingType: string) => {}),
     });
+
+    test.each([
+        ['/static', 'static'],
+        ['/dynamic', 'clientOnly'],
+    ] as const)(
+        'extendContext is visible to pre/post-navigation hooks and the request handler (%s)',
+        async (path, renderingType) => {
+            const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                detectionProbabilityRecommendation: 0,
+                renderingType,
+            });
+            const url = new URL(`http://${HOSTNAME}:${port}${path}`);
+
+            const seenIn: Record<string, unknown> = {};
+
+            // Instantiated directly (rather than via `makeOneshotCrawler`) so that the `ContextExtension`
+            // generic is inferred from `extendContext` and the hooks/handler see it without casts.
+            const crawler = new AdaptivePlaywrightCrawler({
+                renderingTypeDetectionRatio: 0.1,
+                maxConcurrency: 1,
+                maxRequestRetries: 0,
+                maxRequestsPerCrawl: 1,
+                requestList: await RequestList.open({ sources: [url.toString()] }),
+                renderingTypePredictor,
+                extendContext: () => ({ injected: 'from-extend-context' }),
+                preNavigationHooks: [
+                    async (context) => {
+                        seenIn.preNavigation = context.injected;
+                    },
+                ],
+                postNavigationHooks: [
+                    async (context) => {
+                        seenIn.postNavigation = context.injected;
+                    },
+                ],
+                requestHandler: async (context) => {
+                    seenIn.requestHandler = context.injected;
+                },
+            });
+
+            await crawler.run();
+
+            expect(seenIn.preNavigation).toBe('from-extend-context');
+            expect(seenIn.postNavigation).toBe('from-extend-context');
+            expect(seenIn.requestHandler).toBe('from-extend-context');
+        },
+    );
 
     describe('should detect page rendering type', () => {
         test.each([
@@ -209,6 +256,89 @@ describe('AdaptivePlaywrightCrawler', () => {
 
             // Check if only one item was added to the dataset
             expect((await Dataset.getData()).items).toEqual([{ heading: 'Heading' }]);
+        });
+    });
+
+    describe('querySelector and querySelectorAll', () => {
+        test.each([
+            ['/static', 'static'],
+            ['/dynamic', 'clientOnly'],
+        ] as const)('return first vs. all matched elements (%s)', async (path, renderingType) => {
+            const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                detectionProbabilityRecommendation: 0,
+                renderingType,
+            });
+            const url = new URL(`http://${HOSTNAME}:${port}${path}`);
+
+            const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(
+                async ({ pushData, querySelector, querySelectorAll }) => {
+                    const first = await querySelector('a');
+                    const all = await querySelectorAll('a');
+                    await pushData({
+                        firstCount: first.length,
+                        firstText: first.text(),
+                        allCount: all.length,
+                    });
+                },
+            );
+
+            const crawler = await makeOneshotCrawler(
+                {
+                    requestHandler,
+                    renderingTypePredictor,
+                },
+                [url.toString()],
+            );
+
+            await crawler.run();
+
+            // `querySelector` returns only the first match, `querySelectorAll` returns the whole collection.
+            expect((await Dataset.getData()).items).toEqual([{ firstCount: 1, firstText: 'Link 1', allCount: 5 }]);
+        });
+    });
+
+    describe('fullResultComparator', () => {
+        // The `/dynamic` page renders its links only after JS runs, so the static (plain HTTP) run enqueues
+        // no links while the browser run enqueues five. The pushed dataset item is constant in both runs.
+        const makeCrawler = async (options: Partial<AdaptivePlaywrightCrawlerOptions>) => {
+            const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                detectionProbabilityRecommendation: 1, // always run detection
+                renderingType: 'clientOnly',
+            });
+            const url = new URL(`http://${HOSTNAME}:${port}/dynamic`);
+
+            const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(
+                async ({ pushData, enqueueLinks }) => {
+                    await pushData({ heading: 'Heading' }); // identical in both runs
+                    await enqueueLinks(); // differs between static (0 links) and browser (5 links)
+                },
+            );
+
+            const crawler = await makeOneshotCrawler({ requestHandler, renderingTypePredictor, ...options }, [
+                url.toString(),
+            ]);
+
+            return { crawler, renderingTypePredictor };
+        };
+
+        test('default comparator ignores enqueued links and detects the page as static', async () => {
+            const { crawler, renderingTypePredictor } = await makeCrawler({});
+
+            await crawler.run();
+
+            expect(renderingTypePredictor.storeResult).toHaveBeenCalledOnce();
+            expect(renderingTypePredictor.storeResult.mock.lastCall?.[1]).toEqual('static');
+        });
+
+        test('fullResultComparator takes enqueued links into account and detects the page as clientOnly', async () => {
+            const { crawler, renderingTypePredictor } = await makeCrawler({
+                resultComparator: fullResultComparator,
+            });
+
+            await crawler.run();
+
+            expect(renderingTypePredictor.storeResult).toHaveBeenCalledOnce();
+            expect(renderingTypePredictor.storeResult.mock.lastCall?.[1]).toEqual('clientOnly');
         });
     });
 
@@ -630,16 +760,20 @@ describe('AdaptivePlaywrightCrawler', () => {
             await pushData({ content: 'test data' });
         });
 
+        // Use a real RenderingTypePredictor instead of the mocked one. An injected predictor is borrowed -
+        // the crawler never initializes it, so restoring its persisted state is up to us.
+        const renderingTypePredictor = new RenderingTypePredictor({ detectionRatio: 1 });
+        await renderingTypePredictor.initialize();
+
         const crawler = await makeOneshotCrawler(
             {
                 requestHandler,
-                // Use a real RenderingTypePredictor instead of the mocked one
-                renderingTypePredictor: new RenderingTypePredictor({ detectionRatio: 1 }),
+                renderingTypePredictor,
             },
             [`http://${HOSTNAME}:${port}/static`],
         );
 
-        // Run the crawler - this will initialize the RenderingTypePredictor and potentially store results
+        // Run the crawler - this will potentially store rendering type detection results
         await crawler.run();
 
         // Now emit a PERSIST_STATE event to trigger state persistence
@@ -668,6 +802,55 @@ describe('AdaptivePlaywrightCrawler', () => {
         await expect(newPredictor.initialize()).resolves.not.toThrow();
     });
 
+    describe('rendering type predictor lifecycle', () => {
+        const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = async ({ pushData }) => {
+            await pushData({ content: 'test data' });
+        };
+
+        test('initializes the default predictor it built itself', async () => {
+            const crawler = new AdaptivePlaywrightCrawler({
+                requestHandler,
+                // No `renderingTypePredictor` - the crawler builds (and therefore owns) its own.
+                renderingTypeDetectionRatio: 1,
+                maxConcurrency: 1,
+                maxRequestRetries: 0,
+                maxRequestsPerCrawl: 1,
+                requestList: await RequestList.open({ sources: [`http://${HOSTNAME}:${port}/static`] }),
+            });
+
+            await crawler.run();
+
+            // Persistence only happens for an initialized predictor, so a stored state proves the crawler
+            // did initialize the predictor it owns.
+            serviceLocator.getEventManager().emit(EventType.PERSIST_STATE);
+            await sleep(100);
+
+            const store = await KeyValueStore.open();
+            await expect(store.getValue<string>('rendering-type-predictor-state')).resolves.not.toBeNull();
+        });
+
+        test('does not initialize an injected predictor', async () => {
+            const renderingTypePredictor = {
+                ...makeRiggedRenderingTypePredictor({
+                    detectionProbabilityRecommendation: 0,
+                    renderingType: 'static',
+                }),
+                // Not part of the predictor contract the crawler depends on - a borrowed instance is set up by
+                // whoever created it, so the crawler must keep its hands off.
+                initialize: vi.fn(async () => {}),
+            };
+
+            const crawler = await makeOneshotCrawler({ requestHandler, renderingTypePredictor }, [
+                `http://${HOSTNAME}:${port}/static`,
+            ]);
+
+            await crawler.run();
+
+            expect(renderingTypePredictor.predict).toHaveBeenCalledOnce();
+            expect(renderingTypePredictor.initialize).not.toHaveBeenCalled();
+        });
+    });
+
     test('validates userData against the router schema when adding requests', async () => {
         const router = createAdaptivePlaywrightRouter({ DETAIL: z.object({ id: z.string() }) });
         router.addHandler('DETAIL', async () => {});
@@ -675,7 +858,7 @@ describe('AdaptivePlaywrightCrawler', () => {
         const crawler = new AdaptivePlaywrightCrawler({ requestHandler: router });
 
         await expect(
-            crawler.addRequests([{ url: 'https://example.com/a', label: 'DETAIL', userData: { id: 123 } }]),
+            crawler.addRequests([{ url: 'https://example.com/a', label: 'DETAIL', userData: { id: 123 } }] as never),
         ).rejects.toThrow(RequestValidationError);
     });
 });

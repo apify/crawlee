@@ -83,7 +83,7 @@ export class PuppeteerLauncher extends BrowserLauncher<PuppeteerPlugin, unknown>
      */
     constructor(
         launchContext: PuppeteerLaunchContext = {},
-        override readonly config = Configuration.getGlobalConfig(),
+        override readonly configuration = Configuration.getGlobalConfiguration(),
     ) {
         ow(launchContext, 'PuppeteerLauncher', ow.object.exactShape(PuppeteerLauncher.optionsShape));
 
@@ -97,14 +97,14 @@ export class PuppeteerLauncher extends BrowserLauncher<PuppeteerPlugin, unknown>
                 ...browserLauncherOptions,
                 launcher,
             },
-            config,
+            configuration,
         );
 
         this.Plugin = PuppeteerPlugin;
     }
 
-    protected override _getDefaultHeadlessOption(): boolean {
-        const headless = super._getDefaultHeadlessOption();
+    protected override getDefaultHeadlessOption(): boolean {
+        const headless = super.getDefaultHeadlessOption();
         return headless ? ('new' as any) : headless;
     }
 }
@@ -137,15 +137,15 @@ export class PuppeteerLauncher extends BrowserLauncher<PuppeteerPlugin, unknown>
  * @param [launchContext]
  *   All `PuppeteerLauncher` parameters are passed via an launchContext object.
  *   If you want to pass custom `puppeteer.launch(options)` options you can use the `PuppeteerLaunchContext.launchOptions` property.
- * @param [config]
+ * @param [configuration]
  * @returns
  *   Promise that resolves to Puppeteer's `Browser` instance.
  */
 export async function launchPuppeteer(
     launchContext?: PuppeteerLaunchContext,
-    config = Configuration.getGlobalConfig(),
+    configuration = Configuration.getGlobalConfiguration(),
 ): Promise<Browser> {
-    const puppeteerLauncher = new PuppeteerLauncher(launchContext, config);
+    const puppeteerLauncher = new PuppeteerLauncher(launchContext, configuration);
 
     return puppeteerLauncher.launch();
 }

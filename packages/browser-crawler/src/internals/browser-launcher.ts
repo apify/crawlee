@@ -4,7 +4,7 @@ import os from 'node:os';
 
 import { Configuration } from '@crawlee/basic';
 import type { BrowserPlugin, BrowserPluginOptions } from '@crawlee/browser-pool';
-import type { Constructor, Dictionary } from '@crawlee/utils';
+import type { Constructor, Dictionary } from '@crawlee/types';
 import ow from 'ow';
 
 const DEFAULT_VIEWPORT = {
@@ -138,7 +138,7 @@ export abstract class BrowserLauncher<
      */
     constructor(
         launchContext: BrowserLaunchContext<LaunchOptions, Launcher>,
-        readonly config = Configuration.getGlobalConfig(),
+        readonly configuration = Configuration.getGlobalConfiguration(),
     ) {
         const {
             launcher,
@@ -149,7 +149,7 @@ export abstract class BrowserLauncher<
             ...otherLaunchContextProps
         } = launchContext;
 
-        this._validateProxyUrlProtocol(proxyUrl);
+        this.validateProxyUrlProtocol(proxyUrl);
 
         // those need to be reassigned otherwise they are {} in types
         this.launcher = launcher!;
@@ -189,7 +189,7 @@ export abstract class BrowserLauncher<
             ...this.launchOptions,
         };
 
-        if (this.config.disableBrowserSandbox) {
+        if (this.configuration.disableBrowserSandbox) {
             launchOptions.args.push('--no-sandbox');
         }
 
@@ -198,28 +198,28 @@ export abstract class BrowserLauncher<
         }
 
         if (launchOptions.headless == null) {
-            launchOptions.headless = this._getDefaultHeadlessOption();
+            launchOptions.headless = this.getDefaultHeadlessOption();
         }
 
         if (this.useChrome && !launchOptions.executablePath) {
-            launchOptions.executablePath = this._getChromeExecutablePath();
+            launchOptions.executablePath = this.getChromeExecutablePath();
         }
 
         return launchOptions;
     }
 
-    protected _getDefaultHeadlessOption(): boolean {
-        return this.config.headless && !this.config.xvfb;
+    protected getDefaultHeadlessOption(): boolean {
+        return this.configuration.headless && !this.configuration.xvfb;
     }
 
-    protected _getChromeExecutablePath(): string {
-        return this.config.chromeExecutablePath ?? this._getTypicalChromeExecutablePath();
+    private getChromeExecutablePath(): string {
+        return this.configuration.chromeExecutablePath ?? this.getTypicalChromeExecutablePath();
     }
 
     /**
      * Gets a typical path to Chrome executable, depending on the current operating system.
      */
-    protected _getTypicalChromeExecutablePath(): string {
+    private getTypicalChromeExecutablePath(): string {
         /**
          * Returns path of Chrome executable by its OS environment variable to deal with non-english language OS.
          * Taking also into account the old [chrome 380177 issue](https://bugs.chromium.org/p/chromium/issues/detail?id=380177).
@@ -248,7 +248,7 @@ export abstract class BrowserLauncher<
         }
     }
 
-    protected _validateProxyUrlProtocol(proxyUrl?: string): void {
+    private validateProxyUrlProtocol(proxyUrl?: string): void {
         if (!proxyUrl) return;
 
         if (!/^(http|https|socks4|socks5)/i.test(proxyUrl)) {

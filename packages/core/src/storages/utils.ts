@@ -3,7 +3,7 @@ import crypto from 'node:crypto';
 import type { BaseHttpClient, Dictionary, StorageBackend } from '@crawlee/types';
 
 import { Configuration } from '../configuration.js';
-import type { ProxyConfiguration } from '../proxy_configuration.js';
+import type { IProxyConfiguration } from '../proxy_configuration.js';
 import { serviceLocator } from '../service_locator.js';
 import { KeyValueStore } from './key_value_store.js';
 
@@ -15,7 +15,7 @@ interface PurgeDefaultStorageOptions {
      * If set to `true`, calling multiple times will only have effect at the first time.
      */
     onlyPurgeOnce?: boolean;
-    config?: Configuration;
+    configuration?: Configuration;
     storageBackend?: StorageBackend;
 }
 
@@ -44,32 +44,35 @@ export async function purgeDefaultStorages(options?: PurgeDefaultStorageOptions)
  * This is a shortcut for running (optional) `purge` method on the StorageBackend interface, in other words
  * it will call the `purge` method of the underlying storage implementation we are currently using.
  */
-export async function purgeDefaultStorages(config?: Configuration, storageBackend?: StorageBackend): Promise<void>;
 export async function purgeDefaultStorages(
-    configOrOptions?: Configuration | PurgeDefaultStorageOptions,
+    configuration?: Configuration,
+    storageBackend?: StorageBackend,
+): Promise<void>;
+export async function purgeDefaultStorages(
+    configurationOrOptions?: Configuration | PurgeDefaultStorageOptions,
     storageBackend?: StorageBackend,
 ) {
     const options: PurgeDefaultStorageOptions =
-        configOrOptions instanceof Configuration
+        configurationOrOptions instanceof Configuration
             ? {
                   storageBackend,
-                  config: configOrOptions,
+                  configuration: configurationOrOptions,
               }
-            : (configOrOptions ?? {});
-    const { config = serviceLocator.getConfiguration(), onlyPurgeOnce = false } = options;
+            : (configurationOrOptions ?? {});
+    const { configuration = serviceLocator.getConfiguration(), onlyPurgeOnce = false } = options;
     ({ storageBackend = serviceLocator.getStorageBackend() } = options);
 
     const casted = storageBackend as StorageBackend & { __purged?: boolean };
 
     // if `onlyPurgeOnce` is true, will purge anytime this function is called, otherwise - only on start
-    if (!onlyPurgeOnce || (config.purgeOnStart && !casted.__purged)) {
+    if (!onlyPurgeOnce || (configuration.purgeOnStart && !casted.__purged)) {
         casted.__purged = true;
         await casted.purge?.();
     }
 }
 
 export interface UseStateOptions {
-    config?: Configuration;
+    configuration?: Configuration;
     /**
      * The name of the key-value store you'd like the state to be stored in.
      * If not provided, the default store will be used.
@@ -84,7 +87,7 @@ export interface UseStateOptions {
  *
  * @param name The name of the store to use.
  * @param defaultValue If the store does not yet have a value in it, the value will be initialized with the `defaultValue` you provide.
- * @param options An optional object parameter where a custom `keyValueStoreName` and `config` can be passed in.
+ * @param options An optional object parameter where a custom `keyValueStoreName` and `configuration` can be passed in.
  */
 export async function useState<State extends Dictionary = Dictionary>(
     name?: string,
@@ -92,7 +95,7 @@ export async function useState<State extends Dictionary = Dictionary>(
     options?: UseStateOptions,
 ) {
     const kvStore = await KeyValueStore.open(options?.keyValueStoreName ? { name: options.keyValueStoreName } : null, {
-        config: options?.config || serviceLocator.getConfiguration(),
+        configuration: options?.configuration || serviceLocator.getConfiguration(),
     });
     return kvStore.getAutoSavedValue<State>(name || 'CRAWLEE_GLOBAL_STATE', defaultValue);
 }
@@ -219,7 +222,7 @@ export interface StorageOpenOptions {
     /**
      * SDK configuration instance, defaults to the static register.
      */
-    config?: Configuration;
+    configuration?: Configuration;
 
     /**
      * Optional storage backend that should be used to open storages.
@@ -231,7 +234,7 @@ export interface StorageOpenOptions {
      * Takes advantage of the internal address rotation and authentication process.
      * If undefined, the `requestsFromUrl` requests will be made without proxy.
      */
-    proxyConfiguration?: ProxyConfiguration;
+    proxyConfiguration?: IProxyConfiguration;
 
     /**
      * HTTP client to be used to download the list of URLs in `RequestQueue`.

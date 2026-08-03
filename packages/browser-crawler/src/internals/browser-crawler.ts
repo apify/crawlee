@@ -1,16 +1,16 @@
 import type {
-    Awaitable,
     BasicCrawlerOptions,
     BasicCrawlingContext,
     ContextMiddleware,
     CrawlingContext,
-    Dictionary,
     EnqueueLinksOptions,
     ErrorHandler,
+    GetUserDataFromRequest,
     IRequestManager,
     LoadedRequest,
     Request,
     RequestHandler,
+    RouterHandler,
     SkippedRequestCallback,
 } from '@crawlee/basic';
 import {
@@ -21,6 +21,7 @@ import {
     enqueueLinks,
     handleRequestTimeout,
     NavigationSkippedError,
+    OwnedOrInjected,
     RequestState,
     resolveBaseUrlForEnqueueLinksFiltering,
     SessionError,
@@ -39,7 +40,14 @@ import type {
     LaunchContext,
 } from '@crawlee/browser-pool';
 import { BrowserPool, RemoteBrowserPool } from '@crawlee/browser-pool';
-import type { BatchAddRequestsResult, Cookie as CookieObject, IBrowserPool, ISession } from '@crawlee/types';
+import type {
+    Awaitable,
+    BatchAddRequestsResult,
+    Cookie as CookieObject,
+    Dictionary,
+    IBrowserPool,
+    ISession,
+} from '@crawlee/types';
 import type { RobotsTxtFile } from '@crawlee/utils';
 import { CLOUDFLARE_RETRY_CSS_SELECTORS, RETRY_CSS_SELECTORS, sleep } from '@crawlee/utils';
 import ow from 'ow';
@@ -52,6 +60,13 @@ import type { BrowserLaunchContext } from './browser-launcher.js';
 interface BaseResponse {
     status(): number;
 }
+
+/**
+ * The type of a browser pool the crawler builds (and therefore owns) for itself. It's an {@apilink IBrowserPool} that
+ * additionally exposes `destroy()` — the crawler only ever tears down pools it created, which is why {@apilink IBrowserPool}
+ * itself intentionally omits `destroy`.
+ */
+type OwnedBrowserPool<Page> = IBrowserPool<Page> & { destroy: () => Promise<void> };
 
 type ContextDifference<T, U> = Omit<U, keyof T> & Partial<U>;
 
@@ -88,8 +103,8 @@ export interface BrowserCrawlingContext<
     enqueueLinks: (options?: EnqueueLinksOptions) => Promise<BatchAddRequestsResult>;
 }
 
-export type BrowserHook<Context = BrowserCrawlingContext> = (
-    crawlingContext: Context,
+export type BrowserHook<Context = BrowserCrawlingContext, ContextExtension = {}> = (
+    crawlingContext: Context & ContextExtension,
 ) => Awaitable<void | Partial<Context>>;
 
 const COOKIES_BEFORE_HOOKS = Symbol('cookiesBeforeHooks');
@@ -107,11 +122,12 @@ export interface BrowserCrawlerOptions<
     ContextExtension = Dictionary<never>,
     ExtendedContext extends Context = Context & ContextExtension,
     InternalBrowserPoolOptions extends BrowserPoolOptions = BrowserPoolOptions,
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
     __BrowserPlugins extends BrowserPlugin[] = InferBrowserPluginArray<InternalBrowserPoolOptions['browserPlugins']>,
     __BrowserControllerReturn extends BrowserController = ReturnType<__BrowserPlugins[number]['createController']>,
     __LaunchContextReturn extends LaunchContext = ReturnType<__BrowserPlugins[number]['createLaunchContext']>,
 > extends Omit<
-    BasicCrawlerOptions<Context, ExtendedContext>,
+    BasicCrawlerOptions<Context, ContextExtension, ExtendedContext>,
     // Overridden with browser context
     'requestHandler' | 'failedRequestHandler' | 'errorHandler'
 > {
@@ -163,7 +179,7 @@ export interface BrowserCrawlerOptions<
      * The exceptions are logged to the request using the
      * {@apilink Request.pushErrorMessage|`Request.pushErrorMessage()`} function.
      */
-    requestHandler?: RequestHandler<ExtendedContext>;
+    requestHandler?: RouterHandler<ExtendedContext, Routes> | RequestHandler<ExtendedContext>;
 
     /**
      * User-provided function that allows modifying the request object before it gets retried by the crawler.
@@ -214,8 +230,13 @@ export interface BrowserCrawlerOptions<
      *
      * A hook may optionally return a partial object whose properties are merged into the crawling context,
      * allowing the hook to override context members for subsequent hooks and pipeline stages.
+     *
+     * The context is built up in the following order: base context (`request`, `session`, helpers, ...) ->
+     * `extendContext` -> `preNavigationHooks` -> navigation -> `postNavigationHooks` -> `requestHandler`.
+     * This means the members added by `extendContext` are already available here, but navigation-dependent
+     * members (e.g. `page`, `response`) are not.
      */
-    preNavigationHooks?: BrowserHook<Context>[];
+    preNavigationHooks?: BrowserHook<Context, ContextExtension>[];
 
     /**
      * Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
@@ -242,7 +263,7 @@ export interface BrowserCrawlerOptions<
      * ]
      * ```
      */
-    postNavigationHooks?: BrowserHook<Context>[];
+    postNavigationHooks?: BrowserHook<Context, ContextExtension>[];
 
     /**
      * Timeout in which page navigation needs to finish, in seconds.
@@ -305,11 +326,9 @@ export interface BrowserCrawlerOptions<
  *
  * New pages are only opened when there is enough free CPU and memory available,
  * using the functionality provided by the {@apilink AutoscaledPool} class.
- * All {@apilink AutoscaledPool} configuration options can be passed to the {@apilink BrowserCrawlerOptions.autoscaledPoolOptions|`autoscaledPoolOptions`}
- * parameter of the `BrowserCrawler` constructor.
- * For user convenience, the {@apilink AutoscaledPoolOptions.minConcurrency|`minConcurrency`} and
- * {@apilink AutoscaledPoolOptions.maxConcurrency|`maxConcurrency`} options of the
- * underlying {@apilink AutoscaledPool} constructor are available directly in the `BrowserCrawler` constructor.
+ * Concurrency is tuned via the `minConcurrency`, `maxConcurrency` and `maxRequestsPerMinute` options of the
+ * `BrowserCrawler` constructor, or, for finer control, by injecting a pre-configured
+ * {@apilink ConcurrencySystem|`concurrencySystem`}.
  *
  * > *NOTE:* the pool of browser instances is internally managed by the {@apilink BrowserPool} class.
  *
@@ -327,30 +346,29 @@ export abstract class BrowserCrawler<
     >,
     ContextExtension = Dictionary<never>,
     ExtendedContext extends Context = Context & ContextExtension,
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
     GoToOptions extends Dictionary = Dictionary,
-> extends BasicCrawler<Context, ContextExtension, ExtendedContext> {
+> extends BasicCrawler<Context, ContextExtension, ExtendedContext, Routes> {
+    /** Backs the {@apilink BrowserCrawler.browserPool|`browserPool`} getter. */
+    private browserPoolDep: OwnedOrInjected<IBrowserPool<Page>, OwnedBrowserPool<Page>>;
+
     /**
      * A reference to the underlying browser pool that manages the crawler's browsers. Typed as
      * {@apilink IBrowserPool} so custom implementations can be plugged in via the `browserPool` constructor option.
      */
-    browserPool: IBrowserPool<Page>;
-
-    /**
-     * Set when the crawler constructed its own pool (a {@apilink BrowserPool}, or a {@apilink RemoteBrowserPool}
-     * built from the `remoteBrowser` option). Holds the same instance as `browserPool` but is the only reference
-     * the crawler tears down — a user-supplied `browserPool` is never owned and never destroyed by the crawler.
-     */
-    private ownedBrowserPool?: { destroy: () => Promise<void> };
+    get browserPool(): IBrowserPool<Page> {
+        return this.browserPoolDep.value;
+    }
 
     launchContext: BrowserLaunchContext<LaunchOptions, unknown>;
 
     protected readonly ignoreShadowRoots: boolean;
     protected readonly ignoreIframes: boolean;
 
-    protected navigationTimeoutMillis: number;
-    protected preNavigationHooks: BrowserHook<Context>[];
-    protected postNavigationHooks: BrowserHook<Context>[];
-    protected saveResponseCookies: boolean;
+    private readonly navigationTimeoutMillis: number;
+    private readonly preNavigationHooks: BrowserHook<Context>[];
+    private readonly postNavigationHooks: BrowserHook<Context>[];
+    private readonly saveResponseCookies: boolean;
 
     protected static override optionsShape = {
         ...BasicCrawler.optionsShape,
@@ -420,13 +438,16 @@ export abstract class BrowserCrawler<
                     .compose({ action: this.handleBlockedRequestByContent.bind(this) })
                     .compose({ action: this.restoreRequestState.bind(this) });
             },
-            extendContext: extendContext as (context: Context) => Awaitable<ContextExtension>,
+            extendContext,
         });
 
         this.launchContext = launchContext;
         this.navigationTimeoutMillis = navigationTimeoutSecs * 1000;
-        this.preNavigationHooks = preNavigationHooks;
-        this.postNavigationHooks = postNavigationHooks;
+        // The public option hooks are extension-aware; internal storage uses the base context type
+        // (the pipeline composes hooks against the concrete context, which does not statically carry
+        // `ContextExtension`). The extension members are present at runtime regardless.
+        this.preNavigationHooks = preNavigationHooks as BrowserHook<Context>[];
+        this.postNavigationHooks = postNavigationHooks as BrowserHook<Context>[];
         this.ignoreIframes = ignoreIframes;
         this.ignoreShadowRoots = ignoreShadowRoots;
 
@@ -437,39 +458,37 @@ export abstract class BrowserCrawler<
 
         this.saveResponseCookies = saveResponseCookies;
 
-        // `browserPool` wins over `remoteBrowser` — a passed-in pool is used as-is, the sugar is ignored.
-        if (browserPool) {
-            this.browserPool = browserPool;
-            return;
-        }
+        // `browserPool` wins over `remoteBrowser` — a passed-in pool is used as-is (borrowed), the sugar is ignored.
+        // The default is only built when no pool was injected, so all the option/launchContext fiddling below stays
+        // inside the factory.
+        this.browserPoolDep = OwnedOrInjected.resolve(browserPool, () => {
+            const resolvedBrowserPoolOptions = browserPoolOptions ?? ({} as Partial<BrowserPoolOptions>);
 
-        const resolvedBrowserPoolOptions = browserPoolOptions ?? ({} as Partial<BrowserPoolOptions>);
+            if (launchContext?.userAgent) {
+                if (resolvedBrowserPoolOptions.useFingerprints)
+                    this.log.info('Custom user agent provided, disabling automatic browser fingerprint injection!');
+                resolvedBrowserPoolOptions.useFingerprints = false;
+            }
 
-        if (launchContext?.userAgent) {
-            if (resolvedBrowserPoolOptions.useFingerprints)
-                this.log.info('Custom user agent provided, disabling automatic browser fingerprint injection!');
-            resolvedBrowserPoolOptions.useFingerprints = false;
-        }
+            if (remoteBrowser) {
+                // The crawler already built the right plugin for its browser — hand it to a RemoteBrowserPool so the
+                // remote connection is always for the matching browser (no plugin to construct, no way to mismatch).
+                const { browserPlugins, ...remoteBrowserPoolOptions } = resolvedBrowserPoolOptions;
+                return new RemoteBrowserPool({
+                    browserPlugins: browserPlugins as BrowserPlugin[],
+                    ...remoteBrowser,
+                    browserPoolOptions: remoteBrowserPoolOptions as any,
+                }) as OwnedBrowserPool<Page>;
+            }
 
-        if (remoteBrowser) {
-            // The crawler already built the right plugin for its browser — hand it to a RemoteBrowserPool so the
-            // remote connection is always for the matching browser (no plugin to construct, no way to mismatch).
-            const { browserPlugins, ...remoteBrowserPoolOptions } = resolvedBrowserPoolOptions;
-            const remotePool = new RemoteBrowserPool({
-                browserPlugins: browserPlugins as BrowserPlugin[],
-                ...remoteBrowser,
-                browserPoolOptions: remoteBrowserPoolOptions as any,
-            });
-            this.ownedBrowserPool = remotePool;
-            this.browserPool = remotePool as IBrowserPool<Page>;
-            return;
-        }
-
-        const ownedBrowserPool = new BrowserPool<InternalBrowserPoolOptions>({
-            ...(resolvedBrowserPoolOptions as any),
+            // Double cast: `BrowserPool` implements `IBrowserPool<PageReturn>`, where `PageReturn` is derived from the
+            // plugin/controller generics and doesn't overlap with the crawler's free `Page` type param, so TS won't
+            // narrow it directly. The concrete pool does satisfy the `Page`/`destroy` contract at runtime — this is the
+            // long-standing `Page` variance gap, not a `destroy`-related hole.
+            return new BrowserPool<InternalBrowserPoolOptions>({
+                ...(resolvedBrowserPoolOptions as any),
+            }) as unknown as OwnedBrowserPool<Page>;
         });
-        this.ownedBrowserPool = ownedBrowserPool;
-        this.browserPool = ownedBrowserPool as IBrowserPool<Page>;
     }
 
     protected override buildContextPipeline(): ContextPipeline<
@@ -507,7 +526,7 @@ export abstract class BrowserCrawler<
         return foundSelectors.length > 0 ? foundSelectors : null;
     }
 
-    protected async isRequestBlocked(crawlingContext: BrowserCrawlingContext<Page, Response>): Promise<string | false> {
+    private async isRequestBlocked(crawlingContext: BrowserCrawlingContext<Page, Response>): Promise<string | false> {
         const { page, response } = crawlingContext;
 
         // Cloudflare specific heuristic - wait 5 seconds if we get a 403 for the JS challenge to load / resolve.
@@ -605,15 +624,15 @@ export abstract class BrowserCrawler<
         const cookiesBeforeHooks = readContextField<string>(crawlingContext, COOKIES_BEFORE_HOOKS);
         const cookiesAfterHooks = this._getCookieHeaderFromRequest(crawlingContext.request);
 
-        await this._applyCookies(crawlingContext, cookiesBeforeHooks, cookiesAfterHooks);
+        await this.applyCookies(crawlingContext, cookiesBeforeHooks, cookiesAfterHooks);
 
         let response: Response | undefined;
         try {
             response = (await this._navigationHandler(crawlingContext, gotoOptions)) ?? undefined;
         } catch (error) {
-            await this._handleNavigationTimeout(crawlingContext, error as Error);
+            await this.handleNavigationTimeout(crawlingContext, error as Error);
             crawlingContext.request.state = RequestState.ERROR;
-            this._throwIfProxyError(error as Error);
+            this.throwIfProxyError(error as Error);
             throw error;
         }
         tryCancel();
@@ -670,7 +689,7 @@ export abstract class BrowserCrawler<
         return {};
     }
 
-    protected async _applyCookies(
+    private async applyCookies(
         { session, request, page }: BrowserCrawlingContext<Page, Response>,
         preHooksCookies: string,
         postHooksCookies: string,
@@ -689,7 +708,7 @@ export abstract class BrowserCrawler<
     /**
      * Marks session bad on navigation timeout, and stops in-flight page loading on any navigation error.
      */
-    protected async _handleNavigationTimeout(crawlingContext: BrowserCrawlingContext, error: Error): Promise<void> {
+    private async handleNavigationTimeout(crawlingContext: BrowserCrawlingContext, error: Error): Promise<void> {
         const { session, page } = crawlingContext;
 
         if (error?.constructor.name === 'TimeoutError') {
@@ -704,7 +723,7 @@ export abstract class BrowserCrawler<
     /**
      * Transforms proxy-related errors to `SessionError`.
      */
-    protected _throwIfProxyError(error: Error) {
+    private throwIfProxyError(error: Error) {
         if (this.isProxyError(error)) {
             throw new SessionError(this._getMessageFromError(error) as string);
         }
@@ -751,7 +770,7 @@ export abstract class BrowserCrawler<
      * @ignore
      */
     override async teardown(): Promise<void> {
-        await this.ownedBrowserPool?.destroy();
+        await this.browserPoolDep.ifOwned((pool) => pool.destroy());
         await super.teardown();
     }
 }

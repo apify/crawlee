@@ -1,25 +1,21 @@
 import { PassThrough } from 'node:stream';
 
 import { KeyValueStore, MemoryStorageBackend, serviceLocator } from '@crawlee/core';
-import type { Dictionary } from '@crawlee/utils';
-import { toBuffer } from '@crawlee/utils';
+import type { Dictionary } from '@crawlee/types';
+
+import { toBuffer } from '../../../packages/core/src/byte_utils.js';
 
 beforeEach(async () => {
     serviceLocator.setStorageBackend(new MemoryStorageBackend());
 });
 
 describe('KeyValueStore', () => {
-    async function createKeyValueStore(id = 'some-id-1', name?: string) {
-        const client = await serviceLocator.getStorageBackend().createKeyValueStoreBackend(name ? { name } : { id });
-        return new KeyValueStore({ id, name, backend: client });
-    }
-
     beforeEach(async () => {
         vitest.clearAllMocks();
     });
 
     test('should work', async () => {
-        const store = await createKeyValueStore();
+        const store = await KeyValueStore.open();
 
         // Record definition
         const record = { foo: 'bar' };
@@ -94,7 +90,7 @@ describe('KeyValueStore', () => {
 
     describe('getValue', () => {
         test('throws on invalid args', async () => {
-            const store = await createKeyValueStore();
+            const store = await KeyValueStore.open();
 
             // @ts-expect-error JS-side validation
             await expect(store.getValue()).rejects.toThrow(
@@ -129,7 +125,7 @@ describe('KeyValueStore', () => {
 
     describe('recordExists', () => {
         test('throws on invalid args', async () => {
-            const store = await createKeyValueStore();
+            const store = await KeyValueStore.open();
 
             // @ts-expect-error JS-side validation
             await expect(store.recordExists()).rejects.toThrow(
@@ -159,7 +155,7 @@ describe('KeyValueStore', () => {
 
     describe('setValue', () => {
         test('throws on invalid args', async () => {
-            const store = await createKeyValueStore();
+            const store = await KeyValueStore.open();
 
             // @ts-expect-error JS-side validation
             await expect(store.setValue()).rejects.toThrow(
@@ -235,7 +231,7 @@ describe('KeyValueStore', () => {
         });
 
         test('throws on invalid key', async () => {
-            const store = await createKeyValueStore('my-store-id');
+            const store = await KeyValueStore.open();
 
             const INVALID_CHARACTERS = '?|\\/"*<>%:';
             for (const char of INVALID_CHARACTERS) {
@@ -251,7 +247,7 @@ describe('KeyValueStore', () => {
         });
 
         test('correctly adds charset to content type', async () => {
-            const store = await createKeyValueStore('my-store-id-1');
+            const store = await KeyValueStore.open();
 
             const mockSetValue = vitest
                 // @ts-expect-error Accessing private property
@@ -269,7 +265,7 @@ describe('KeyValueStore', () => {
         });
 
         test('correctly passes object values as JSON', async () => {
-            const store = await createKeyValueStore('my-store-id-1');
+            const store = await KeyValueStore.open();
 
             const record = { foo: 'bar' };
             const recordStr = JSON.stringify(record, null, 2);
@@ -290,7 +286,7 @@ describe('KeyValueStore', () => {
         });
 
         test('correctly passes raw string values', async () => {
-            const store = await createKeyValueStore('my-store-id-1');
+            const store = await KeyValueStore.open();
 
             const mockSetValue = vitest
                 // @ts-expect-error Accessing private property
@@ -308,7 +304,7 @@ describe('KeyValueStore', () => {
         });
 
         test('correctly passes raw Buffer values', async () => {
-            const store = await createKeyValueStore('my-store-id-1');
+            const store = await KeyValueStore.open();
 
             const mockSetValue = vitest
                 // @ts-expect-error Accessing private property
@@ -327,7 +323,7 @@ describe('KeyValueStore', () => {
         });
 
         test('correctly passes a stream', async () => {
-            const store = await createKeyValueStore('my-store-id-1');
+            const store = await KeyValueStore.open();
 
             const mockSetValue = vitest
                 // @ts-expect-error Accessing private property
@@ -532,7 +528,7 @@ describe('KeyValueStore', () => {
         });
 
         test('should work remotely', async () => {
-            const store = await createKeyValueStore('my-store-id-1');
+            const store = await KeyValueStore.open();
 
             // @ts-expect-error Accessing private property
             const mockListKeys = vitest.spyOn(store.backend, 'listKeys');
@@ -739,12 +735,12 @@ describe('KeyValueStore', () => {
 
     describe('stats', () => {
         test('start at zero', async () => {
-            const store = await createKeyValueStore();
+            const store = await KeyValueStore.open();
             expect(store.stats).toEqual({ readCount: 0, writeCount: 0, deleteCount: 0, listCount: 0 });
         });
 
         test('count reads, writes and deletes per client call', async () => {
-            const store = await createKeyValueStore();
+            const store = await KeyValueStore.open();
 
             await store.setValue('foo', { a: 1 });
             await store.setValue('bar', { b: 2 });
@@ -759,7 +755,7 @@ describe('KeyValueStore', () => {
         });
 
         test('count list operations when iterating keys', async () => {
-            const store = await createKeyValueStore();
+            const store = await KeyValueStore.open();
 
             await store.setValue('key1', { value: 1 });
             await store.setValue('key2', { value: 2 });

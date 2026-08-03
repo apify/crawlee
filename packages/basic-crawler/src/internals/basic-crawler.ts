@@ -5,6 +5,8 @@ import type {
     AddRequestsBatchedOptions,
     AddRequestsBatchedResult,
     AutoscaledPoolOptions,
+    AutoscaledPoolPredicateOptions,
+    ConcurrencySystemOptions,
     Configuration,
     CrawleeLogger,
     CrawlingContext,
@@ -14,9 +16,10 @@ import type {
     EventStatusMessageData,
     FinalStatistics,
     GetUserDataFromRequest,
+    IConcurrencySystem,
+    IProxyConfiguration,
     IRequestLoader,
     IRequestManager,
-    ProxyConfiguration,
     Request,
     RequestsLike,
     RequestTransform,
@@ -27,11 +30,13 @@ import type {
     StatisticsOptions,
     StatisticState,
     StorageIdentifier,
+    TypedRequestsLike,
 } from '@crawlee/core';
 import {
     AutoscaledPool,
     bindMethodsToServiceLocator,
     BLOCKED_STATUS_CODES,
+    ConcurrencySystem,
     ContextPipeline,
     ContextPipelineCleanupError,
     ContextPipelineInitializationError,
@@ -41,6 +46,7 @@ import {
     enqueueLinks,
     EnqueueStrategy,
     EventType,
+    getObjectType,
     KeyValueStore,
     log,
     LogLevel,
@@ -48,6 +54,7 @@ import {
     MissingSessionError,
     NavigationSkippedError,
     NonRetryableError,
+    OwnedOrInjected,
     purgeDefaultStorages,
     RequestHandlerError,
     RequestManagerTandem,
@@ -76,10 +83,10 @@ import type {
     SetStatusMessageOptions,
     StorageBackend,
 } from '@crawlee/types';
-import { getObjectType, isAsyncIterable, isIterable, RobotsTxtFile, ROTATE_PROXY_ERRORS } from '@crawlee/utils';
+import { isAsyncIterable, isIterable, RobotsTxtFile, ROTATE_PROXY_ERRORS } from '@crawlee/utils';
 import { stringify } from 'csv-stringify/sync';
 import { ensureDir, writeJSON } from 'fs-extra/esm';
-import ow from 'ow';
+import ow, { ArgumentError } from 'ow';
 import { getDomain } from 'tldts';
 import type { ReadonlyDeep, SetRequired } from 'type-fest';
 
@@ -126,14 +133,22 @@ const deferredCleanupKey = Symbol('deferredCleanup');
 
 export type RequestHandler<Context extends CrawlingContext = CrawlingContext> = (inputs: Context) => Awaitable<void>;
 
+/**
+ * An error handler receives the crawling context and the error that was thrown while processing the request.
+ *
+ * Unlike the {@apilink RequestHandler}, an error handler may run before the context pipeline has finished
+ * building the full context (e.g. when navigation or session setup fails). Therefore only `BaseContext` is
+ * guaranteed to be present, while the extra properties added by the pipeline and `extendContext` (the
+ * difference between `BaseContext` and `ExtendedContext`) are only available as a `Partial`.
+ */
 export type ErrorHandler<
-    Context extends CrawlingContext = CrawlingContext,
-    ExtendedContext extends Context = Context,
-> = (inputs: Context & Partial<ExtendedContext>, error: Error) => Awaitable<void>;
+    BaseContext extends CrawlingContext = CrawlingContext,
+    ExtendedContext extends BaseContext = BaseContext,
+> = (inputs: BaseContext & Partial<ExtendedContext>, error: Error) => Awaitable<void>;
 
 export interface StatusMessageCallbackParams<
     Context extends CrawlingContext = BasicCrawlingContext,
-    Crawler extends BasicCrawler<any> = BasicCrawler<Context>,
+    Crawler extends BasicCrawler<any, any, any, any> = BasicCrawler<Context>,
 > {
     state: StatisticState;
     crawler: Crawler;
@@ -143,7 +158,7 @@ export interface StatusMessageCallbackParams<
 
 export type StatusMessageCallback<
     Context extends CrawlingContext = BasicCrawlingContext,
-    Crawler extends BasicCrawler<any> = BasicCrawler<Context>,
+    Crawler extends BasicCrawler<any, any, any, any> = BasicCrawler<Context>,
 > = (params: StatusMessageCallbackParams<Context, Crawler>) => Awaitable<void>;
 
 export type RequireContextPipeline<
@@ -157,6 +172,7 @@ export interface BasicCrawlerOptions<
     Context extends CrawlingContext = CrawlingContext,
     ContextExtension = Dictionary<never>,
     ExtendedContext extends Context = Context & ContextExtension,
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
 > {
     /**
      * User-provided function that performs the logic of the crawler. It is called for each URL to crawl.
@@ -175,10 +191,16 @@ export interface BasicCrawlerOptions<
      * The exceptions are logged to the request using the
      * {@apilink Request.pushErrorMessage|`Request.pushErrorMessage()`} function.
      */
-    requestHandler?: RequestHandler<ExtendedContext>;
+    requestHandler?: RouterHandler<ExtendedContext, Routes> | RequestHandler<ExtendedContext>;
 
     /**
-     * Allows the user to extend the crawling context passed to the request handler with custom functionality.
+     * Allows the user to extend the crawling context with custom functionality (helpers, references, etc.).
+     *
+     * `extendContext` runs *before* navigation, so the returned members are visible to the
+     * `preNavigationHooks`, `postNavigationHooks`, and the `requestHandler` alike. As a consequence,
+     * the `context` passed to `extendContext` is the pre-navigation {@apilink CrawlingContext} and does
+     * **not** include navigation-dependent members (e.g. `page`, `response`, `$`, `body`). If you need
+     * those, use a `postNavigationHook` or the `requestHandler` instead.
      *
      * **Example usage:**
      *
@@ -198,7 +220,7 @@ export interface BasicCrawlerOptions<
      * });
      * ```
      */
-    extendContext?: (context: Context) => Awaitable<ContextExtension>;
+    extendContext?: (context: CrawlingContext) => Awaitable<ContextExtension>;
 
     /**
      * *Intended for BasicCrawler subclasses*. Prepares a context pipeline that transforms the initial crawling context into the shape given by the `Context` type parameter.
@@ -289,17 +311,36 @@ export interface BasicCrawlerOptions<
     maxCrawlDepth?: number;
 
     /**
-     * Custom options passed to the underlying {@apilink AutoscaledPool} constructor.
-     * > *NOTE:* The {@apilink AutoscaledPoolOptions.runTaskFunction|`runTaskFunction`}
-     * option is provided by the crawler and cannot be overridden.
-     * However, we can provide custom implementations of {@apilink AutoscaledPoolOptions.isFinishedFunction|`isFinishedFunction`}
-     * and {@apilink AutoscaledPoolOptions.isTaskReadyFunction|`isTaskReadyFunction`}.
+     * Lets you override the task-loop predicates (`isFinishedFunction`, `isTaskReadyFunction`) of the crawler's
+     * underlying {@apilink AutoscaledPool}. The `runTaskFunction` is owned by the crawler and cannot be overridden.
+     *
+     * Concurrency is configured elsewhere — through the `minConcurrency`/`maxConcurrency`/`maxRequestsPerMinute`
+     * shortcuts, or a {@apilink BasicCrawlerOptions.concurrencySystem|`concurrencySystem`} for finer control.
      */
-    autoscaledPoolOptions?: AutoscaledPoolOptions;
+    autoscaledPoolOptions?: AutoscaledPoolPredicateOptions;
+
+    /**
+     * A pre-configured concurrency governor — the component that decides whether there is free compute for one more
+     * task. Typically a {@apilink ConcurrencySystem}, though any {@apilink IConcurrencySystem} is accepted. All
+     * scaling configuration (min/max/desired concurrency, scaling ratios, `maxTasksPerMinute`, snapshotter tuning)
+     * lives on the instance itself.
+     *
+     * Inject the *same* instance into several concurrent crawlers to cap their **combined** concurrency against a
+     * single budget. Each crawler still builds and drives its own {@apilink AutoscaledPool}; only the load/scaling
+     * accounting is shared.
+     *
+     * Mutually exclusive with the `minConcurrency`/`maxConcurrency`/`maxRequestsPerMinute` shortcuts, which configure
+     * the default system this one replaces — combining the two throws.
+     *
+     * You own a supplied system's lifecycle: `start()` it before `run()` (which throws otherwise) and `stop()` it once
+     * every crawler borrowing it has finished. The crawler does neither on your behalf.
+     */
+    concurrencySystem?: IConcurrencySystem;
 
     /**
      * Sets the minimum concurrency (parallelism) for the crawl. Shortcut for the
-     * AutoscaledPool {@apilink AutoscaledPoolOptions.minConcurrency|`minConcurrency`} option.
+     * {@apilink ConcurrencySystemOptions.minConcurrency|`minConcurrency`} option of the crawler's default
+     * {@apilink ConcurrencySystem}.
      * > *WARNING:* If we set this value too high with respect to the available system memory and CPU, our crawler will run extremely slow or crash.
      * If not sure, it's better to keep the default value and the concurrency will scale up automatically.
      */
@@ -307,14 +348,16 @@ export interface BasicCrawlerOptions<
 
     /**
      * Sets the maximum concurrency (parallelism) for the crawl. Shortcut for the
-     * AutoscaledPool {@apilink AutoscaledPoolOptions.maxConcurrency|`maxConcurrency`} option.
+     * {@apilink ConcurrencySystemOptions.maxConcurrency|`maxConcurrency`} option of the crawler's default
+     * {@apilink ConcurrencySystem}.
      */
     maxConcurrency?: number;
 
     /**
      * The maximum number of requests per minute the crawler should run.
      * By default, this is set to `Infinity`, but we can pass any positive, non-zero integer.
-     * Shortcut for the AutoscaledPool {@apilink AutoscaledPoolOptions.maxTasksPerMinute|`maxTasksPerMinute`} option.
+     * Shortcut for the {@apilink ConcurrencySystemOptions.maxTasksPerMinute|`maxTasksPerMinute`} option of the
+     * crawler's default {@apilink ConcurrencySystem}.
      */
     maxRequestsPerMinute?: number;
 
@@ -408,7 +451,7 @@ export interface BasicCrawlerOptions<
      * If set, the crawler will be configured for all connections to use
      * the Proxy URLs provided and rotated according to the configuration.
      */
-    proxyConfiguration?: ProxyConfiguration;
+    proxyConfiguration?: IProxyConfiguration;
 
     /**
      * Custom configuration to use for this crawler.
@@ -493,11 +536,10 @@ export interface BasicCrawlerOptions<
  *
  * New requests are only dispatched when there is enough free CPU and memory available,
  * using the functionality provided by the {@apilink AutoscaledPool} class.
- * All {@apilink AutoscaledPool} configuration options can be passed to the {@apilink BasicCrawlerOptions.autoscaledPoolOptions|`autoscaledPoolOptions`}
- * parameter of the `BasicCrawler` constructor.
- * For user convenience, the {@apilink AutoscaledPoolOptions.minConcurrency|`minConcurrency`} and
- * {@apilink AutoscaledPoolOptions.maxConcurrency|`maxConcurrency`} options of the
- * underlying {@apilink AutoscaledPool} constructor are available directly in the `BasicCrawler` constructor.
+ * Concurrency is tuned via the {@apilink BasicCrawlerOptions.minConcurrency|`minConcurrency`},
+ * {@apilink BasicCrawlerOptions.maxConcurrency|`maxConcurrency`} and
+ * {@apilink BasicCrawlerOptions.maxRequestsPerMinute|`maxRequestsPerMinute`} shortcuts, or, for finer control, by
+ * injecting a pre-configured {@apilink BasicCrawlerOptions.concurrencySystem|`concurrencySystem`}.
  *
  * **Example usage:**
  *
@@ -531,18 +573,29 @@ export interface BasicCrawlerOptions<
  * ```
  * @category Crawlers
  */
+
+/**
+ * Identifies a crawler instance for storage aliasing, `useState()` and status-message events.
+ */
+interface CrawlerIdentity {
+    /**
+     * 0-based instantiation order across all crawlers in the process.
+     * Note that the value can be subject to race conditions between different script invocations.
+     */
+    readonly instanceIndex: number;
+    /** The user-supplied `id` option, or a fallback derived from `instanceIndex`. */
+    readonly id: string;
+    /** Whether `id` came from the user (as opposed to being derived from `instanceIndex`). */
+    readonly hasExplicitId: boolean;
+}
+
 export class BasicCrawler<
     Context extends CrawlingContext = CrawlingContext,
     ContextExtension = Dictionary<never>,
     ExtendedContext extends Context = Context & ContextExtension,
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
 > {
     protected static readonly CRAWLEE_STATE_KEY = 'CRAWLEE_STATE';
-
-    /**
-     * Tracks crawler instances that accessed shared state without having an explicit id.
-     * Used to detect and warn about multiple crawlers sharing the same state.
-     */
-    private static useStateCrawlerIds = new Set<string>();
 
     /**
      * Tracks the number of crawler instances created. The first crawler uses the default
@@ -550,6 +603,12 @@ export class BasicCrawler<
      * collide.
      */
     private static instanceCount = 0;
+
+    /**
+     * Tracks crawler instances that accessed shared state without having an explicit id.
+     * Used to detect and warn about multiple crawlers sharing the same state.
+     */
+    private static useStateAnonymousIndices = new Set<number>();
 
     /**
      * A reference to the underlying {@apilink Statistics} class that collects and logs run statistics for requests.
@@ -563,26 +622,23 @@ export class BasicCrawler<
      */
     protected requestManager?: IRequestManager;
 
+    /** Backs the {@apilink BasicCrawler.sessionPool|`sessionPool`} getter. */
+    private sessionPoolDep: OwnedOrInjected<ISessionPool, SessionPool>;
+
     /**
      * A reference to the underlying session pool that manages the crawler's {@apilink Session|sessions}. Typed as
      * {@apilink ISessionPool} so custom implementations can be plugged in via the `sessionPool` constructor option.
      */
-    sessionPool: ISessionPool;
+    get sessionPool(): ISessionPool {
+        return this.sessionPoolDep.value;
+    }
 
     /**
-     * Set when the crawler constructed its own {@apilink SessionPool} (no `sessionPool` option was provided).
-     * Holds the same instance as `sessionPool`, but typed as the concrete class so the crawler can call
-     * lifecycle methods (`resetStore`, `teardown`) that aren't part of {@apilink ISessionPool}. A user-supplied
-     * pool is never owned and never torn down by the crawler.
+     * Tracks **only** the queue the crawler opens for itself — not the {@apilink RequestManagerTandem} that may wrap it
+     * around a user-supplied `requestList` — so the owned-only purge between repeated `run()` calls never reaches
+     * through to a borrowed loader. Filled lazily in {@apilink BasicCrawler.openOwnedRequestQueue|`openOwnedRequestQueue()`}.
      */
-    private ownedSessionPool?: SessionPool;
-
-    /**
-     * Set when the crawler constructed its own request manager (no `requestManager`, `requestQueue`, or `requestList`
-     * option was provided). The owned manager is purged (not dropped) between repeated `run()` calls.
-     * A user-supplied manager is never purged by the crawler.
-     */
-    private ownedRequestManager?: IRequestManager;
+    private ownedRequestQueue = OwnedOrInjected.resolve<RequestQueue>();
 
     /**
      * Whether the request-processing-time hint has already been forwarded to the request manager. The hint
@@ -592,25 +648,41 @@ export class BasicCrawler<
     private requestManagerTimeoutsApplied = false;
 
     /**
-     * A reference to the underlying {@apilink AutoscaledPool} class that manages the concurrency of the crawler.
+     * Resolves the governor for one run: either the injected
+     * {@apilink BasicCrawlerOptions.concurrencySystem|`concurrencySystem`} (borrowed) or a freshly built default with
+     * the concurrency shortcuts folded in (owned, so the crawler starts and stops it).
+     */
+    private readonly resolveConcurrencySystem: () => OwnedOrInjected<IConcurrencySystem, ConcurrencySystem>;
+
+    /** As resolved by `_init()`. Absent until the first run, so a `teardown()` before it is a no-op. */
+    private concurrencySystemDep?: OwnedOrInjected<IConcurrencySystem, ConcurrencySystem>;
+
+    /**
+     * A reference to the underlying {@apilink AutoscaledPool} class that runs the crawler's task loop.
      * > *NOTE:* This property is only initialized after calling the {@apilink BasicCrawler.run|`crawler.run()`} function.
-     * We can use it to change the concurrency settings on the fly,
-     * to pause the crawler by calling {@apilink AutoscaledPool.pause|`autoscaledPool.pause()`}
+     * We can use it to pause the crawler by calling {@apilink AutoscaledPool.pause|`autoscaledPool.pause()`}
      * or to abort it by calling {@apilink AutoscaledPool.abort|`autoscaledPool.abort()`}.
+     *
+     * The pool only exposes read-only concurrency telemetry. To tune concurrency at runtime, keep a reference to a
+     * {@apilink ConcurrencySystem} and inject it via
+     * {@apilink BasicCrawlerOptions.concurrencySystem|`concurrencySystem`}.
      */
     autoscaledPool?: AutoscaledPool;
 
     /**
-     * A reference to the underlying {@apilink ProxyConfiguration} class that manages the crawler's proxies.
+     * A reference to the underlying {@apilink IProxyConfiguration} instance that manages the crawler's proxies.
      * Only available if used by the crawler.
      */
-    proxyConfiguration?: ProxyConfiguration;
+    readonly proxyConfiguration?: IProxyConfiguration;
 
     /**
      * Default {@apilink Router} instance that will be used if we don't specify any {@apilink BasicCrawlerOptions.requestHandler|`requestHandler`}.
      * See {@apilink Router.addHandler|`router.addHandler()`} and {@apilink Router.addDefaultHandler|`router.addDefaultHandler()`}.
      */
-    readonly router: RouterHandler<Context> = Router.create<Context>();
+    readonly router: RouterHandler<Context, Routes> = Router.create<Context>() as unknown as RouterHandler<
+        Context,
+        Routes
+    >;
 
     private _basicContextPipeline?: ContextPipeline<{ request: Request }, CrawlingContext>;
 
@@ -642,7 +714,7 @@ export class BasicCrawler<
 
     running = false;
     hasFinishedBefore = false;
-    protected unexpectedStop = false;
+    private unexpectedStop = false;
 
     #log!: CrawleeLogger;
 
@@ -650,48 +722,44 @@ export class BasicCrawler<
         return this.#log;
     }
 
-    protected requestHandler!: RequestHandler<ExtendedContext>;
-    protected errorHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
-    protected failedRequestHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
-    protected requestHandlerTimeoutMillis!: number;
-    protected internalTimeoutMillis: number;
-    protected maxRequestRetries: number;
-    protected maxCrawlDepth?: number;
-    protected sameDomainDelayMillis: number;
-    protected domainAccessedTime: Map<string, number>;
-    protected maxRequestsPerCrawl?: number;
+    protected readonly requestHandler!: RequestHandler<ExtendedContext>;
+    protected readonly errorHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
+    protected readonly failedRequestHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
+    private requestHandlerTimeoutMillis!: number;
+    protected readonly internalTimeoutMillis: number;
+    protected readonly maxRequestRetries: number;
+    protected readonly maxCrawlDepth?: number;
+    private sameDomainDelayMillis: number;
+    private domainAccessedTime: Map<string, number>;
+    protected readonly maxRequestsPerCrawl?: number;
 
-    protected get handledRequestsCount(): number {
+    private get handledRequestsCount(): number {
         return this.stats.state.requestsFinished + this.stats.state.requestsFailed;
     }
 
-    /** @deprecated Setting `handledRequestsCount` directly is no longer supported. The count is now derived from `this.stats`. */
-    protected set handledRequestsCount(_value: number) {
-        throw new Error(
-            'Setting `handledRequestsCount` directly is no longer supported. ' +
-                'The count is now derived from `this.stats.state.requestsFinished` and `this.stats.state.requestsFailed`.',
-        );
-    }
-
-    protected statusMessageLoggingInterval: number;
-    protected statusMessageCallback?: StatusMessageCallback;
+    private statusMessageLoggingInterval: number;
+    private statusMessageCallback?: StatusMessageCallback;
     protected blockedStatusCodes = new Set<number>();
-    protected additionalHttpErrorStatusCodes: Set<number>;
-    protected ignoreHttpErrorStatusCodes: Set<number>;
-    protected autoscaledPoolOptions: AutoscaledPoolOptions;
-    protected httpClient: BaseHttpClient;
-    protected retryOnBlocked: boolean;
-    protected respectRobotsTxtFile: boolean | { userAgent?: string };
-    protected onSkippedRequest?: SkippedRequestCallback;
+    protected readonly additionalHttpErrorStatusCodes: Set<number>;
+    private ignoreHttpErrorStatusCodes: Set<number>;
+    /**
+     * The resolved task-loop options for the crawler's own {@apilink AutoscaledPool} — the crawler-owned
+     * `runTaskFunction`, the (possibly user-overridden) ready/finished predicates and cadence/logging. Concurrency
+     * configuration lives on the {@apilink ConcurrencySystem} instead, and the pool's `consumer` identity is the
+     * crawler's own, so neither is settable here.
+     */
+    private autoscaledPoolOptions: Omit<AutoscaledPoolOptions, 'concurrencySystem' | 'consumer'>;
+    protected readonly httpClient: BaseHttpClient;
+    protected readonly retryOnBlocked: boolean;
+    private respectRobotsTxtFile: boolean | { userAgent?: string };
+    protected readonly onSkippedRequest?: SkippedRequestCallback;
     private _closeEvents?: boolean;
     private loggedPerRun = new Set<string>();
     private readonly robotsTxtFileCache: LruCache<RobotsTxtFile>;
-    private readonly crawlerId: string;
-    private readonly hasExplicitId: boolean;
-    private readonly crawlerInstanceIndex: number;
+    protected readonly identity: CrawlerIdentity;
     private readonly contextPipelineOptions: {
         contextPipelineBuilder?: () => ContextPipeline<CrawlingContext, Context>;
-        extendContext?: (context: Context) => Awaitable<ContextExtension>;
+        extendContext?: (context: CrawlingContext) => Awaitable<ContextExtension>;
     };
 
     protected static optionsShape = {
@@ -712,6 +780,7 @@ export class BasicCrawler<
         maxRequestsPerCrawl: ow.optional.number,
         maxCrawlDepth: ow.optional.number,
         autoscaledPoolOptions: ow.optional.object,
+        concurrencySystem: ow.optional.object,
         sessionPool: ow.optional.object.validate(validators.sessionPool),
         proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
 
@@ -747,7 +816,7 @@ export class BasicCrawler<
      * All `BasicCrawler` parameters are passed via an options object.
      */
     constructor(
-        options: BasicCrawlerOptions<Context, ContextExtension, ExtendedContext> &
+        options: BasicCrawlerOptions<Context, ContextExtension, ExtendedContext, Routes> &
             RequireContextPipeline<CrawlingContext, Context> = {} as any, // cast because the constructor logic handles missing `contextPipelineBuilder` - the type is just for DX
     ) {
         ow(options, 'BasicCrawlerOptions', ow.object.exactShape(BasicCrawler.optionsShape));
@@ -763,6 +832,7 @@ export class BasicCrawler<
             maxRequestsPerCrawl,
             maxCrawlDepth,
             autoscaledPoolOptions = {},
+            concurrencySystem,
             keepAlive,
             sessionPool,
             proxyConfiguration,
@@ -797,6 +867,21 @@ export class BasicCrawler<
             id,
         } = options;
 
+        // All concurrency configuration lives on the `ConcurrencySystem`, so the shortcuts have nowhere to go once
+        // one is supplied - and silently dropping a `maxConcurrency` the user asked for is how crawls end up
+        // hammering a site.
+        if (
+            concurrencySystem !== undefined &&
+            (minConcurrency !== undefined || maxConcurrency !== undefined || maxRequestsPerMinute !== undefined)
+        ) {
+            throw new ArgumentError(
+                'The `minConcurrency`/`maxConcurrency`/`maxRequestsPerMinute` shortcuts cannot be combined with ' +
+                    '`concurrencySystem` - they configure the default `ConcurrencySystem` that a supplied one ' +
+                    'replaces. Pass them to the `ConcurrencySystem` constructor instead.',
+                this.constructor,
+            );
+        }
+
         // Create per-crawler service locator if custom services were provided.
         // This wraps every method on the crawler instance so that calls to the global `serviceLocator`
         // (via AsyncLocalStorage) resolve to this scoped instance instead.
@@ -826,11 +911,8 @@ export class BasicCrawler<
             // Initialize the Configuration instance to avoid lazy loading in the components
             serviceLocator.getConfiguration();
 
-            // Store whether the user explicitly provided an ID
-            this.hasExplicitId = id !== undefined;
-            // Store the user-provided ID, or generate a unique one for tracking purposes (not for state key)
-            this.crawlerId = id ?? cryptoRandomObjectId();
-            this.crawlerInstanceIndex = BasicCrawler.instanceCount++;
+            const instanceIndex = BasicCrawler.instanceCount++;
+            this.identity = { instanceIndex, hasExplicitId: id !== undefined, id: id ?? String(instanceIndex) };
 
             if (requestManager !== undefined) {
                 if (requestList !== undefined || requestQueue !== undefined) {
@@ -888,7 +970,7 @@ export class BasicCrawler<
             this.stats = new Statistics({
                 logMessage: `${this.constructor.name} request statistics:`,
                 log: this.log,
-                ...(this.hasExplicitId ? { id: this.crawlerId } : {}),
+                id: this.identity.id,
                 ...statisticsOptions,
             });
 
@@ -901,19 +983,18 @@ export class BasicCrawler<
                 );
             }
 
-            if (sessionPool) {
-                this.sessionPool = sessionPool;
-            } else {
-                this.ownedSessionPool = new SessionPool({
-                    createSessionFunction: async (opts) =>
-                        new Session({
-                            ...opts?.sessionOptions,
-                            proxyInfo:
-                                opts?.sessionOptions?.proxyInfo ?? (await this.proxyConfiguration?.newProxyInfo()),
-                        }),
-                });
-                this.sessionPool = this.ownedSessionPool;
-            }
+            this.sessionPoolDep = OwnedOrInjected.resolve(
+                sessionPool,
+                () =>
+                    new SessionPool({
+                        createSessionFunction: async (opts) =>
+                            new Session({
+                                ...opts?.sessionOptions,
+                                proxyInfo:
+                                    opts?.sessionOptions?.proxyInfo ?? (await this.proxyConfiguration?.newProxyInfo()),
+                            }),
+                    }),
+            );
 
             this.blockedStatusCodes = new Set(blockedStatusCodesInput ?? BLOCKED_STATUS_CODES);
 
@@ -942,10 +1023,7 @@ export class BasicCrawler<
                 isFinishedFunction = async () => false;
             }
 
-            const basicCrawlerAutoscaledPoolConfiguration: Partial<AutoscaledPoolOptions> = {
-                minConcurrency: minConcurrency ?? autoscaledPoolOptions?.minConcurrency,
-                maxConcurrency: maxConcurrency ?? autoscaledPoolOptions?.maxConcurrency,
-                maxTasksPerMinute: maxRequestsPerMinute ?? autoscaledPoolOptions?.maxTasksPerMinute,
+            const basicCrawlerAutoscaledPoolConfiguration: Partial<typeof this.autoscaledPoolOptions> = {
                 runTaskFunction: async () => {
                     const source = this.requestManager;
                     if (!source) throw new Error('Request provider is not initialized!');
@@ -970,7 +1048,7 @@ export class BasicCrawler<
                         // (e.g., doesn't match enqueue strategy after redirect). Just return gracefully.
                         if (error instanceof ContextPipelineInterruptedError) {
                             this.stats.discardJob(request.id || request.uniqueKey);
-                            await this._timeoutAndRetry(
+                            await this.timeoutAndRetry(
                                 async () => this.requestManager?.markRequestAsHandled(request),
                                 this.internalTimeoutMillis,
                                 `Marking request ${crawlingContext.request.url} (${crawlingContext.request.id}) as handled timed out after ${
@@ -987,13 +1065,13 @@ export class BasicCrawler<
                         if (isPipelineError) {
                             const unwrappedError = this.unwrapError(error);
 
-                            await this._requestFunctionErrorHandler(
+                            await this.requestFunctionErrorHandler(
                                 unwrappedError,
                                 crawlingContext as CrawlingContext,
                                 request,
                                 this.requestManager!,
                             );
-                            // SessionError already retired the session in `_requestFunctionErrorHandler`;
+                            // SessionError already retired the session in `requestFunctionErrorHandler`;
                             // skip `markBad` to avoid double-counting usage/error score.
                             if (!(unwrappedError instanceof SessionError)) {
                                 crawlingContext.session?.markBad();
@@ -1001,6 +1079,19 @@ export class BasicCrawler<
                             return;
                         }
                         throw this.unwrapError(error);
+                    } finally {
+                        // Run request-scoped deferred cleanups only after the whole request lifecycle - including the user's error handler - has finished.
+                        const deferredCleanup =
+                            (crawlingContext as Partial<Record<typeof deferredCleanupKey, (() => Promise<unknown>)[]>>)[
+                                deferredCleanupKey
+                            ] ?? [];
+                        await Promise.all(
+                            deferredCleanup.map((fn) =>
+                                fn().catch((cleanupError) =>
+                                    this.log.debug('Error in deferred cleanup', { error: cleanupError }),
+                                ),
+                            ),
+                        );
                     }
                 },
                 isTaskReadyFunction: async () => {
@@ -1022,7 +1113,7 @@ export class BasicCrawler<
                         return false;
                     }
 
-                    return isTaskReadyFunction ? await isTaskReadyFunction() : await this._isTaskReadyFunction();
+                    return isTaskReadyFunction ? await isTaskReadyFunction() : await this.isTaskReadyFunction();
                 },
                 isFinishedFunction: async () => {
                     if (isMaxPagesExceeded()) {
@@ -1043,7 +1134,7 @@ export class BasicCrawler<
 
                     const isFinished = isFinishedFunction
                         ? await isFinishedFunction()
-                        : await this._defaultIsFinishedFunction();
+                        : await this.defaultIsFinishedFunction();
 
                     if (isFinished) {
                         const reason = isFinishedFunction
@@ -1058,9 +1149,31 @@ export class BasicCrawler<
             };
 
             this.autoscaledPoolOptions = { ...autoscaledPoolOptions, ...basicCrawlerAutoscaledPoolConfiguration };
+
+            this.resolveConcurrencySystem = () =>
+                OwnedOrInjected.resolve<IConcurrencySystem, ConcurrencySystem>(concurrencySystem, () =>
+                    this.createDefaultConcurrencySystem({
+                        minConcurrency,
+                        maxConcurrency,
+                        maxTasksPerMinute: maxRequestsPerMinute,
+                        log: this.log,
+                    }),
+                );
         } finally {
             serviceLocatorScope.exitScope();
         }
+    }
+
+    /**
+     * Builds the crawler-owned default {@apilink ConcurrencySystem} from the resolved
+     * `minConcurrency`/`maxConcurrency`/`maxRequestsPerMinute` shortcuts. Not called when a
+     * {@apilink BasicCrawlerOptions.concurrencySystem|`concurrencySystem`} was injected.
+     *
+     * Subclasses may override this to tune the default system (e.g. {@apilink HttpCrawler} raises the starting
+     * concurrency and relaxes the event loop signal) while still honouring the user's shortcuts.
+     */
+    protected createDefaultConcurrencySystem(options: ConcurrencySystemOptions): ConcurrencySystem {
+        return new ConcurrencySystem(options);
     }
 
     /**
@@ -1080,15 +1193,10 @@ export class BasicCrawler<
      * Builds the basic context pipeline that transforms `{ request }` into a full `CrawlingContext`.
      * This handles base context creation, session resolution, and context helpers.
      */
-    protected buildBasicContextPipeline(): ContextPipeline<{ request: Request }, CrawlingContext> {
+    private buildBasicContextPipeline(): ContextPipeline<{ request: Request }, CrawlingContext> {
         return ContextPipeline.create<{ request: Request }>()
             .compose({ action: this.checkRobotsTxt.bind(this) })
-            .compose({
-                action: () => this.createBaseContext(),
-                cleanup: async (context) => {
-                    await Promise.all(context[deferredCleanupKey].map((fn) => fn()));
-                },
-            })
+            .compose({ action: () => this.createBaseContext() })
             .compose({ action: this.resolveSession.bind(this) })
             .compose({ action: this.createContextHelpers.bind(this) });
     }
@@ -1136,8 +1244,8 @@ export class BasicCrawler<
     }
 
     private async resolveRequest(): Promise<Request | null> {
-        const request = await this._timeoutAndRetry(
-            this._fetchNextRequest.bind(this),
+        const request = await this.timeoutAndRetry(
+            this.fetchNextRequest.bind(this),
             this.internalTimeoutMillis,
             `Fetching next request timed out after ${this.internalTimeoutMillis / 1e3} seconds.`,
         );
@@ -1151,7 +1259,7 @@ export class BasicCrawler<
     }
 
     private async resolveSession({ request }: { request: Request }) {
-        const session = await this._timeoutAndRetry(
+        const session = await this.timeoutAndRetry(
             async () => {
                 const existingSession = await this.sessionPool.getSession(request.sessionId);
 
@@ -1187,14 +1295,32 @@ export class BasicCrawler<
     }
 
     private buildFinalContextPipeline(): ContextPipeline<CrawlingContext, ExtendedContext> {
-        let contextPipeline = (this.contextPipelineOptions.contextPipelineBuilder?.() ??
+        const subclassPipeline = (this.contextPipelineOptions.contextPipelineBuilder?.() ??
             this.buildContextPipeline()) as ContextPipeline<CrawlingContext, Context>;
 
+        // `extendContext` runs *before* the subclass navigation pipeline (which includes the
+        // pre/post-navigation hooks). This makes the extension visible to those hooks and to the
+        // request handler alike. The trade-off is that `extendContext` cannot access
+        // navigation-dependent context members (e.g. `page`, `response`, `$`, `body`), as those
+        // don't exist yet at this point in the pipeline.
+        // The `extendContext` output (`ContextExtension`) is carried through the subclass pipeline at
+        // runtime (the pipeline copies each middleware's returned members onto the shared context), but
+        // TypeScript cannot express that `Context` transitively includes `ContextExtension` here. The
+        // casts below are sound because `buildFinalContextPipeline` is declared to return the fully
+        // resolved `ExtendedContext` (= `Context & ContextExtension`).
         const { extendContext } = this.contextPipelineOptions;
+        let contextPipeline: ContextPipeline<CrawlingContext, Context>;
         if (extendContext !== undefined) {
-            contextPipeline = contextPipeline.compose({
-                action: async (context) => await extendContext(context),
-            });
+            contextPipeline = ContextPipeline.create<CrawlingContext>()
+                .compose({ action: async (context) => await extendContext(context) })
+                .chain(
+                    subclassPipeline as unknown as ContextPipeline<
+                        CrawlingContext & ContextExtension,
+                        CrawlingContext & ContextExtension
+                    >,
+                ) as unknown as ContextPipeline<CrawlingContext, Context>;
+        } else {
+            contextPipeline = subclassPipeline;
         }
 
         contextPipeline = contextPipeline.compose({
@@ -1248,7 +1374,7 @@ export class BasicCrawler<
         // Setting the status message is not a storage concern, so we intentionally don't route it
         // through the storage client anymore.
         serviceLocator.getEventManager().emit(EventType.STATUS_MESSAGE, {
-            crawlerId: this.crawlerId,
+            crawlerId: this.identity.id,
             message,
             isStatusMessageTerminal: options.isStatusMessageTerminal,
             level: options.level,
@@ -1313,7 +1439,7 @@ export class BasicCrawler<
      * @param [requests] The requests to add.
      * @param [options] Options for the request queue.
      */
-    async run(requests?: RequestsLike, options?: CrawlerRunOptions): Promise<FinalStatistics> {
+    async run(requests?: TypedRequestsLike<Routes>, options?: CrawlerRunOptions): Promise<FinalStatistics> {
         if (this.running) {
             throw new Error(
                 'This crawler instance is already running, you can add more requests to it via `crawler.addRequests()`.',
@@ -1327,12 +1453,12 @@ export class BasicCrawler<
             // we need to purge the RQ to allow processing the same requests again — this is important so users can
             // pass in failed requests back to the `crawler.run()`, otherwise they would be considered as handled and
             // ignored — as a failed request is still handled.
-            // By default (purgeRequestQueue unset or true), only the manager we created ourselves (ownedRequestManager) is purged.
+            // By default (`purgeRequestQueue` unset), only the queue we opened ourselves is purged.
             // When `purgeRequestQueue` is explicitly `true`, we also purge a user-supplied manager.
             // When `purgeRequestQueue` is explicitly `false`, nothing is purged.
             const shouldPurge = purgeRequestQueue !== false;
             const managerToPurge =
-                this.ownedRequestManager ?? (purgeRequestQueue === true ? this.requestManager : undefined);
+                this.ownedRequestQueue.maybeValue ?? (purgeRequestQueue === true ? this.requestManager : undefined);
 
             if (managerToPurge?.purge && shouldPurge) {
                 await managerToPurge.purge();
@@ -1340,7 +1466,7 @@ export class BasicCrawler<
 
             this.stats.reset();
             await this.stats.resetStore();
-            await this.ownedSessionPool?.resetStore();
+            await this.sessionPoolDep.ifOwned((pool) => pool.resetStore());
         }
 
         this.unexpectedStop = false;
@@ -1350,15 +1476,27 @@ export class BasicCrawler<
         await purgeDefaultStorages({
             onlyPurgeOnce: true,
             storageBackend: serviceLocator.getStorageBackend(),
-            config: serviceLocator.getConfiguration(),
+            configuration: serviceLocator.getConfiguration(),
         });
 
         if (requests) {
             await this.addRequests(requests, addRequestsOptions);
         }
 
-        await this._init();
-        await this.stats.startCapturing();
+        try {
+            await this._init();
+            await this.stats.startCapturing();
+        } catch (error) {
+            // Clean up here before propagating, otherwise a failed startup would leave the process hanging.
+            await this.teardown().catch((teardownError) => {
+                this.log.exception(teardownError as Error, 'Cleaning up after a failed crawler startup failed.');
+            });
+
+            // The run never began, so let the instance be run again instead of leaving it wedged as `running`.
+            this.running = false;
+            throw error;
+        }
+
         const periodicLogger = this.getPeriodicLogger();
         this.setStatusMessage('Starting the crawler.', { level: 'INFO' });
 
@@ -1366,12 +1504,12 @@ export class BasicCrawler<
             this.log.warning(
                 'Pausing... Press CTRL+C again to force exit. To resume, do: CRAWLEE_PURGE_ON_START=0 npm start',
             );
-            await this._pauseOnMigration();
+            await this.pauseOnMigration();
             await this.autoscaledPool!.abort();
         };
 
         // Attach a listener to handle migration and aborting events gracefully.
-        const boundPauseOnMigration = this._pauseOnMigration.bind(this);
+        const boundPauseOnMigration = this.pauseOnMigration.bind(this);
         process.once('SIGINT', sigintHandler);
         const eventManager = serviceLocator.getEventManager();
         eventManager.on(EventType.MIGRATING, boundPauseOnMigration);
@@ -1482,18 +1620,16 @@ export class BasicCrawler<
 
     /**
      * Opens the default {@apilink RequestQueue}, applies the crawler's timeouts to it and records it as the
-     * crawler-owned manager (so it gets purged between repeated `run()` calls).
+     * crawler-owned queue (so it gets purged between repeated `run()` calls).
      * @private
      */
-    private async openOwnedRequestQueue(): Promise<IRequestManager> {
+    private async openOwnedRequestQueue(): Promise<RequestQueue> {
         // The first crawler instance uses the default queue (null identifier);
         // subsequent instances get their own queue via a unique alias so they don't collide.
-        const identifier =
-            this.crawlerInstanceIndex === 0 ? null : { alias: `__default_${this.crawlerInstanceIndex}__` };
+        const identifier = this.identity.instanceIndex === 0 ? null : { alias: `__default_${this.identity.id}__` };
 
-        const requestQueue = await RequestQueue.open(identifier, { config: serviceLocator.getConfiguration() });
-        this.ownedRequestManager = requestQueue;
-        return requestQueue;
+        const requestQueue = await RequestQueue.open(identifier, { configuration: serviceLocator.getConfiguration() });
+        return this.ownedRequestQueue.set(requestQueue);
     }
 
     /**
@@ -1516,7 +1652,7 @@ export class BasicCrawler<
      * the request's label. Applied by the crawler on the add paths it owns — `crawler.addRequests`,
      * `crawler.run`, `context.addRequests` and `context.enqueueLinks`.
      */
-    protected async validateRequestUserData(source: Source | string): Promise<void> {
+    private async validateRequestUserData(source: Source | string): Promise<void> {
         if (typeof source === 'string') {
             return;
         }
@@ -1542,16 +1678,16 @@ export class BasicCrawler<
     }
 
     async useState<State extends Dictionary = Dictionary>(defaultValue = {} as State): Promise<State> {
-        const kvs = await KeyValueStore.open(null, { config: serviceLocator.getConfiguration() });
+        const kvs = await KeyValueStore.open(null, { configuration: serviceLocator.getConfiguration() });
 
-        if (this.hasExplicitId) {
-            const stateKey = `${BasicCrawler.CRAWLEE_STATE_KEY}_${this.crawlerId}`;
+        if (this.identity.hasExplicitId) {
+            const stateKey = `${BasicCrawler.CRAWLEE_STATE_KEY}_${this.identity.id}`;
             return kvs.getAutoSavedValue<State>(stateKey, defaultValue);
         }
 
-        BasicCrawler.useStateCrawlerIds.add(this.crawlerId);
+        BasicCrawler.useStateAnonymousIndices.add(this.identity.instanceIndex);
 
-        if (BasicCrawler.useStateCrawlerIds.size > 1) {
+        if (BasicCrawler.useStateAnonymousIndices.size > 1) {
             serviceLocator
                 .getLogger()
                 .warningOnce(
@@ -1620,7 +1756,7 @@ export class BasicCrawler<
      * @param options Options for the request queue
      */
     async addRequests(
-        requests: ReadonlyDeep<RequestsLike>,
+        requests: ReadonlyDeep<TypedRequestsLike<Routes>>,
         options: CrawlerAddRequestsOptions = {},
     ): Promise<CrawlerAddRequestsResult> {
         await this.getRequestManager();
@@ -1714,7 +1850,7 @@ export class BasicCrawler<
      */
     async getDataset(identifier?: string | StorageIdentifier): Promise<Dataset> {
         return Dataset.open(identifier, {
-            config: serviceLocator.getConfiguration(),
+            configuration: serviceLocator.getConfiguration(),
         });
     }
 
@@ -1793,7 +1929,17 @@ export class BasicCrawler<
             this._closeEvents = true;
         }
 
-        this.autoscaledPool = new AutoscaledPool(this.autoscaledPoolOptions);
+        // An owned governor is rebuilt (and started) for every run, so it always starts from a clean slate — stale
+        // resource snapshots or a previous run's scaled desired concurrency would otherwise distort this run's
+        // scaling. An injected one is long-lived and its lifecycle belongs to the caller.
+        this.concurrencySystemDep = this.resolveConcurrencySystem();
+        await this.concurrencySystemDep.ifOwned((system) => system.start());
+
+        this.autoscaledPool = new AutoscaledPool({
+            ...this.autoscaledPoolOptions,
+            concurrencySystem: this.concurrencySystemDep.value,
+            consumer: this.identity,
+        });
 
         await this.getRequestManager();
     }
@@ -1851,7 +1997,7 @@ export class BasicCrawler<
         }
     }
 
-    protected async _pauseOnMigration() {
+    private async pauseOnMigration() {
         if (this.autoscaledPool) {
             // if run wasn't called, this is going to crash
             await this.autoscaledPool.pause(SAFE_MIGRATION_WAIT_MILLIS).catch((err) => {
@@ -1875,7 +2021,7 @@ export class BasicCrawler<
                     if (err.message.includes('Cannot persist state.')) {
                         this.log.error(
                             "The crawler attempted to persist its request list's state and failed due to missing or " +
-                                'invalid config. Make sure to use either RequestList.open() or the "stateKeyPrefix" option of RequestList ' +
+                                'invalid configuration. Make sure to use either RequestList.open() or the "stateKeyPrefix" option of RequestList ' +
                                 'constructor to ensure your crawling state is persisted through host migrations and restarts.',
                         );
                     } else {
@@ -1895,9 +2041,9 @@ export class BasicCrawler<
     /**
      * Fetches the next request to process from the underlying request provider.
      */
-    protected async _fetchNextRequest() {
+    private async fetchNextRequest() {
         if (this.requestManager === undefined) {
-            throw new Error(`_fetchNextRequest called on an uninitialized crawler`);
+            throw new Error(`fetchNextRequest called on an uninitialized crawler`);
         }
 
         return this.requestManager.fetchNextRequest();
@@ -1908,7 +2054,7 @@ export class BasicCrawler<
      * adding it back to the queue after the timeout passes. Returns `true` if the request
      * should be ignored and will be reclaimed to the queue once ready.
      */
-    protected delayRequest(request: Request, source: IRequestManager) {
+    private delayRequest(request: Request, source: IRequestManager) {
         const domain = getDomain(request.url);
 
         if (!domain || !request) {
@@ -1937,7 +2083,7 @@ export class BasicCrawler<
     }
 
     /** Handles a single request - runs the request handler with retries, error handling, and lifecycle management. */
-    protected async handleRequest(crawlingContext: ExtendedContext, requestSource: IRequestManager, request: Request) {
+    private async handleRequest(crawlingContext: ExtendedContext, requestSource: IRequestManager, request: Request) {
         const statisticsId = request.id || request.uniqueKey;
 
         let isRequestLocked = true;
@@ -1946,7 +2092,7 @@ export class BasicCrawler<
             request.state = RequestState.REQUEST_HANDLER;
             await this.runRequestHandler(crawlingContext);
 
-            await this._timeoutAndRetry(
+            await this.timeoutAndRetry(
                 async () => requestSource.markRequestAsHandled(request!),
                 this.internalTimeoutMillis,
                 `Marking request ${request.url} (${request.id}) as handled timed out after ${
@@ -1966,14 +2112,14 @@ export class BasicCrawler<
             try {
                 request.state = RequestState.ERROR_HANDLER;
                 await addTimeoutToPromise(
-                    async () => this._requestFunctionErrorHandler(err, crawlingContext, request, requestSource),
+                    async () => this.requestFunctionErrorHandler(err, crawlingContext, request, requestSource),
                     this.internalTimeoutMillis,
                     `Handling request failure of ${request.url} (${request.id}) timed out after ${
                         this.internalTimeoutMillis / 1e3
                     } seconds.`,
                 );
                 if (!(err instanceof CriticalError)) {
-                    isRequestLocked = false; // _requestFunctionErrorHandler calls either markRequestAsHandled or reclaimRequest
+                    isRequestLocked = false; // requestFunctionErrorHandler calls either markRequestAsHandled or reclaimRequest
                 }
                 request.state = RequestState.DONE;
             } catch (secondaryError: any) {
@@ -2098,7 +2244,7 @@ export class BasicCrawler<
      * Run async callback with given timeout and retry. Returns the result of the callback.
      * @ignore
      */
-    protected async _timeoutAndRetry<T>(
+    private async timeoutAndRetry<T>(
         handler: () => Promise<T>,
         timeout: number,
         error: Error | string,
@@ -2111,7 +2257,7 @@ export class BasicCrawler<
             if (retried <= maxRetries) {
                 // we retry on any error, not just timeout
                 this.log.warning(`${(e as Error).message} (retrying ${retried}/${maxRetries})`);
-                return this._timeoutAndRetry(handler, timeout, error, maxRetries, retried + 1);
+                return this.timeoutAndRetry(handler, timeout, error, maxRetries, retried + 1);
             }
 
             throw e;
@@ -2121,14 +2267,14 @@ export class BasicCrawler<
     /**
      * Returns true if either RequestList or RequestQueue have a request ready for processing.
      */
-    protected async _isTaskReadyFunction() {
+    private async isTaskReadyFunction() {
         return this.requestManager !== undefined && !(await this.requestManager.isEmpty());
     }
 
     /**
      * Returns true if both RequestList and RequestQueue have all requests finished.
      */
-    protected async _defaultIsFinishedFunction() {
+    private async defaultIsFinishedFunction() {
         return !this.requestManager || (await this.requestManager.isFinished());
     }
 
@@ -2152,7 +2298,7 @@ export class BasicCrawler<
      *
      * @param request The request object, passed separately to circumvent potential dynamic logic in crawlingContext.request
      */
-    protected async _requestFunctionErrorHandler(
+    private async requestFunctionErrorHandler(
         error: Error,
         crawlingContext: CrawlingContext,
         request: Request,
@@ -2164,7 +2310,7 @@ export class BasicCrawler<
             throw error;
         }
 
-        const shouldRetryRequest = this._canRequestBeRetried(request, error);
+        const shouldRetryRequest = this.canRequestBeRetried(request, error);
 
         if (shouldRetryRequest) {
             await this.stats.errorTrackerRetry.addAsync(error, crawlingContext);
@@ -2216,19 +2362,10 @@ export class BasicCrawler<
         await source.markRequestAsHandled(request);
         this.stats.failJob(request.id || request.uniqueKey, request.retryCount);
 
-        await this._handleFailedRequestHandler(crawlingContext, error); // This function prints an error message.
+        await this.handleFailedRequestHandler(crawlingContext, error); // This function prints an error message.
     }
 
-    protected async _tagUserHandlerError<T>(cb: () => unknown): Promise<T> {
-        try {
-            return (await cb()) as T;
-        } catch (e: any) {
-            Object.defineProperty(e, 'triggeredFromUserHandler', { value: true });
-            throw e;
-        }
-    }
-
-    protected async _handleFailedRequestHandler(crawlingContext: CrawlingContext, error: Error): Promise<void> {
+    private async handleFailedRequestHandler(crawlingContext: CrawlingContext, error: Error): Promise<void> {
         // Always log the last error regardless if the user provided a failedRequestHandler
         const { id, url, method, uniqueKey } = crawlingContext.request;
         const message = this._getMessageFromError(error, true);
@@ -2267,7 +2404,7 @@ export class BasicCrawler<
             : [error.message || error, userLine].join('\n');
     }
 
-    protected _canRequestBeRetried(request: Request, error: Error) {
+    private canRequestBeRetried(request: Request, error: Error) {
         // Request should never be retried, or the error encountered makes it not able to be retried.
         if (request.noRetry || error instanceof NonRetryableError) {
             return false;
@@ -2297,9 +2434,10 @@ export class BasicCrawler<
             await serviceLocator.getEventManager().close();
         }
 
-        await this.ownedSessionPool?.teardown();
+        await this.sessionPoolDep.ifOwned((pool) => pool.teardown());
 
         await this.autoscaledPool?.abort();
+        await this.concurrencySystemDep?.ifOwned((system) => system.stop());
     }
 
     protected _getCookieHeaderFromRequest(request: Request) {
