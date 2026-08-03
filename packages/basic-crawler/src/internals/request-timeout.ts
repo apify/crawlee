@@ -4,6 +4,7 @@ import { TimeoutError } from '@apify/timeout';
  * The shared navigation-window deadline (epoch millis), stored on the in-flight context so the pre- and
  * post-navigation hooks and the navigation itself all draw from one budget - and so `context.extendTimeout`
  * can push the whole window, not just the current step.
+ * @internal
  */
 export const navigationDeadlineKey = Symbol('navigationDeadline');
 
@@ -29,6 +30,7 @@ export interface RequestTimeoutContext {
 
 /**
  * Milliseconds left in the shared navigation window for `ctx`, lazily starting the window on first use.
+ * @internal
  */
 export function remainingNavigationWindowMillis(ctx: object, windowMillis: number): number {
     const store = ctx as Record<symbol, number>;
