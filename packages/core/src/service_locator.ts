@@ -311,11 +311,17 @@ export function bindMethodsToServiceLocator(
     target: {},
 ): { run: <T>(fn: () => T) => T; enterScope: () => void; exitScope: () => void } {
     let proto = Object.getPrototypeOf(target);
+    const seenKeys = new Set<string | symbol>();
 
     while (proto !== null && proto !== Object.prototype) {
         const propertyKeys = [...Object.getOwnPropertyNames(proto), ...Object.getOwnPropertySymbols(proto)];
 
         for (const propertyKey of propertyKeys) {
+            // The chain is walked derived-first, so the first occurrence of a key is the one dynamic
+            // dispatch would pick — a subclass override must not be clobbered by its base version.
+            if (seenKeys.has(propertyKey)) continue;
+            seenKeys.add(propertyKey);
+
             const descriptor = Object.getOwnPropertyDescriptor(proto, propertyKey);
 
             // We use property descriptors rather than accessing target[propertyKey] directly,

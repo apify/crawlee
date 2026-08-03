@@ -1,6 +1,7 @@
 import type { CrawleeLogger } from '@crawlee/core';
 import {
     ApifyLogAdapter,
+    bindMethodsToServiceLocator,
     Configuration,
     LocalEventManager,
     MemoryStorageBackend,
@@ -375,6 +376,45 @@ describe('ServiceLocator', () => {
 
             const child = crawlerLocator.getChildLog('Crawler Module');
             expect(child.getOptions()).toEqual({ prefix: 'Crawler Module' });
+        });
+    });
+
+    describe('bindMethodsToServiceLocator', () => {
+        test('wrapped methods resolve the scoped service locator', () => {
+            const scopedLogger = makeMockLogger();
+            const scopedLocator = new ServiceLocator(undefined, undefined, undefined, scopedLogger);
+
+            class Service {
+                getLogger() {
+                    return serviceLocator.getLogger();
+                }
+            }
+
+            const service = new Service();
+            bindMethodsToServiceLocator(scopedLocator, service);
+
+            expect(service.getLogger()).toBe(scopedLogger);
+        });
+
+        test('subclass method overrides are not clobbered by their base class versions', () => {
+            const scopedLocator = new ServiceLocator();
+
+            class Base {
+                whoAmI() {
+                    return 'base';
+                }
+            }
+
+            class Derived extends Base {
+                override whoAmI() {
+                    return `derived (super says ${super.whoAmI()})`;
+                }
+            }
+
+            const instance = new Derived();
+            bindMethodsToServiceLocator(scopedLocator, instance);
+
+            expect(instance.whoAmI()).toBe('derived (super says base)');
         });
     });
 
