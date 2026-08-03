@@ -126,8 +126,8 @@ Enables verbose logging if set to `true`. If not explicitly set to `true` - for 
 
 #### `CRAWLEE_MEMORY_MBYTES`
 
-Sets the amount of system memory in megabytes to be used by the <ApiLink to="core/class/AutoscaledPool">`AutoscaledPool`</ApiLink>.
-It is used to limit the number of concurrently running tasks. By default, the max amount of memory
+Sets the amount of system memory in megabytes to be used by the <ApiLink to="core/class/ConcurrencySystem">`ConcurrencySystem`</ApiLink>.
+It is used to limit the number of concurrently running requests. By default, the max amount of memory
 to be used is set to one quarter of total system memory, i.e. on a system with 8192 MB of memory,
 the autoscaling feature will only use up to 2048 MB of memory.
 
