@@ -9,7 +9,7 @@ log.setLevel(LogLevel.DEBUG);
 // that automatically loads the URLs and saves their HTML.
 const crawler = new HttpCrawler({
     // The crawler downloads and processes the web pages in parallel, with a concurrency
-    // automatically managed based on the available system memory and CPU (see AutoscaledPool class).
+    // automatically managed based on the available system memory and CPU (see ConcurrencySystem class).
     // Here we define some hard limits for the concurrency.
     minConcurrency: 10,
     maxConcurrency: 50,

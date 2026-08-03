@@ -5,7 +5,6 @@ import type {
     AddRequestsBatchedOptions,
     AddRequestsBatchedResult,
     AutoscaledPoolOptions,
-    AutoscaledPoolPredicateOptions,
     ConcurrencySystemOptions,
     Configuration,
     CrawleeLogger,
@@ -30,6 +29,7 @@ import type {
     StatisticsOptions,
     StatisticState,
     StorageIdentifier,
+    TaskLoopPredicates,
     TypedRequestsLike,
 } from '@crawlee/core';
 import {
@@ -324,13 +324,14 @@ export interface BasicCrawlerOptions<
     maxCrawlDepth?: number;
 
     /**
-     * Lets you override the task-loop predicates (`isFinishedFunction`, `isTaskReadyFunction`) of the crawler's
-     * underlying {@apilink AutoscaledPool}. The `runTaskFunction` is owned by the crawler and cannot be overridden.
+     * Lets you override the predicates that steer the crawler's task loop: `isTaskReadyFunction` (may another request
+     * start?) and `isFinishedFunction` (is the crawl over?). The task itself — fetching a request and running it
+     * through the pipeline — is owned by the crawler and cannot be overridden.
      *
      * Concurrency is configured elsewhere — through the `minConcurrency`/`maxConcurrency`/`maxRequestsPerMinute`
      * shortcuts, or a {@apilink BasicCrawlerOptions.concurrencySystem|`concurrencySystem`} for finer control.
      */
-    autoscaledPoolOptions?: AutoscaledPoolPredicateOptions;
+    taskLoopOptions?: TaskLoopPredicates;
 
     /**
      * A pre-configured concurrency governor — the component that decides whether there is free compute for one more
@@ -547,8 +548,8 @@ export interface BasicCrawlerOptions<
  *
  * The crawler finishes if there are no more {@apilink Request} objects to crawl.
  *
- * New requests are only dispatched when there is enough free CPU and memory available,
- * using the functionality provided by the {@apilink AutoscaledPool} class.
+ * New requests are only dispatched when there is enough free CPU and memory available, as judged by the crawler's
+ * {@apilink ConcurrencySystem}.
  * Concurrency is tuned via the {@apilink BasicCrawlerOptions.minConcurrency|`minConcurrency`},
  * {@apilink BasicCrawlerOptions.maxConcurrency|`maxConcurrency`} and
  * {@apilink BasicCrawlerOptions.maxRequestsPerMinute|`maxRequestsPerMinute`} shortcuts, or, for finer control, by
@@ -671,16 +672,29 @@ export class BasicCrawler<
     private concurrencySystemDep?: OwnedOrInjected<IConcurrencySystem, ConcurrencySystem>;
 
     /**
-     * A reference to the underlying {@apilink AutoscaledPool} class that runs the crawler's task loop.
-     * > *NOTE:* This property is only initialized after calling the {@apilink BasicCrawler.run|`crawler.run()`} function.
-     * We can use it to pause the crawler by calling {@apilink AutoscaledPool.pause|`autoscaledPool.pause()`}
-     * or to abort it by calling {@apilink AutoscaledPool.abort|`autoscaledPool.abort()`}.
+     * The concurrency governor this run is booking its requests against — either the
+     * {@apilink BasicCrawlerOptions.concurrencySystem|`concurrencySystem`} that was injected, or the default the
+     * crawler built for itself. Read it for telemetry: `desiredConcurrency`, `currentConcurrency`, `isRunning`.
      *
-     * The pool only exposes read-only concurrency telemetry. To tune concurrency at runtime, keep a reference to a
-     * {@apilink ConcurrencySystem} and inject it via
-     * {@apilink BasicCrawlerOptions.concurrencySystem|`concurrencySystem`}.
+     * > *NOTE:* `undefined` until {@apilink BasicCrawler.run|`crawler.run()`} has resolved it. A crawler-owned default
+     * is also rebuilt for every run, so the instance is not stable across runs.
+     *
+     * {@apilink IConcurrencySystem} is deliberately read-only. Tuning concurrency *while a crawl is running* means
+     * owning the instance: build a {@apilink ConcurrencySystem} yourself and inject it, then set
+     * `minConcurrency`/`maxConcurrency`/`desiredConcurrency` on your own reference.
      */
-    autoscaledPool?: AutoscaledPool;
+    get concurrencySystem(): IConcurrencySystem | undefined {
+        return this.concurrencySystemDep?.maybeValue;
+    }
+
+    /**
+     * The task loop that dispatches this run's requests. Private on purpose — it is a bare parallel task runner with
+     * no configuration left of its own (see {@apilink ConcurrencySystem}), and everything a caller legitimately did
+     * with it now has a crawler-level counterpart: {@apilink BasicCrawler.pause|`pause()`},
+     * {@apilink BasicCrawler.resume|`resume()`}, {@apilink BasicCrawler.teardown|`teardown()`} and
+     * {@apilink BasicCrawler.concurrencySystem|`concurrencySystem`}.
+     */
+    private autoscaledPool?: AutoscaledPool;
 
     /**
      * A reference to the underlying {@apilink IProxyConfiguration} instance that manages the crawler's proxies.
@@ -756,12 +770,12 @@ export class BasicCrawler<
     protected readonly additionalHttpErrorStatusCodes: Set<number>;
     private ignoreHttpErrorStatusCodes: Set<number>;
     /**
-     * The resolved task-loop options for the crawler's own {@apilink AutoscaledPool} — the crawler-owned
-     * `runTaskFunction`, the (possibly user-overridden) ready/finished predicates and cadence/logging. Concurrency
-     * configuration lives on the {@apilink ConcurrencySystem} instead, and the pool's `consumer` identity is the
-     * crawler's own, so neither is settable here.
+     * The resolved options for the crawler's own task loop — the crawler-owned `runTaskFunction`, the (possibly
+     * user-overridden) ready/finished predicates and cadence/logging. Concurrency configuration lives on the
+     * {@apilink ConcurrencySystem} instead, and the loop's `consumer` identity is the crawler's own, so neither is
+     * settable here.
      */
-    private autoscaledPoolOptions: Omit<AutoscaledPoolOptions, 'concurrencySystem' | 'consumer'>;
+    private taskLoopOptions: Omit<AutoscaledPoolOptions, 'concurrencySystem' | 'consumer'>;
     protected readonly httpClient: BaseHttpClient;
     protected readonly retryOnBlocked: boolean;
     private respectRobotsTxtFile: boolean | { userAgent?: string };
@@ -792,7 +806,7 @@ export class BasicCrawler<
         sameDomainDelaySecs: ow.optional.number,
         maxRequestsPerCrawl: ow.optional.number,
         maxCrawlDepth: ow.optional.number,
-        autoscaledPoolOptions: ow.optional.object,
+        taskLoopOptions: ow.optional.object,
         concurrencySystem: ow.optional.object,
         sessionPool: ow.optional.object.validate(validators.sessionPool),
         proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
@@ -844,7 +858,7 @@ export class BasicCrawler<
             sameDomainDelaySecs = 0,
             maxRequestsPerCrawl,
             maxCrawlDepth,
-            autoscaledPoolOptions = {},
+            taskLoopOptions = {},
             concurrencySystem,
             keepAlive,
             sessionPool,
@@ -1029,14 +1043,14 @@ export class BasicCrawler<
                 this.maxRequestsPerCrawl && this.maxRequestsPerCrawl <= this.handledRequestsCount;
 
             // eslint-disable-next-line prefer-const
-            let { isFinishedFunction, isTaskReadyFunction } = autoscaledPoolOptions;
+            let { isFinishedFunction, isTaskReadyFunction } = taskLoopOptions;
 
             // override even if `isFinishedFunction` provided by user - `keepAlive` has higher priority
             if (keepAlive) {
                 isFinishedFunction = async () => false;
             }
 
-            const basicCrawlerAutoscaledPoolConfiguration: Partial<typeof this.autoscaledPoolOptions> = {
+            const crawlerOwnedTaskLoopConfiguration: Partial<typeof this.taskLoopOptions> = {
                 runTaskFunction: async () => {
                     const source = this.requestManager;
                     if (!source) throw new Error('Request provider is not initialized!');
@@ -1170,7 +1184,7 @@ export class BasicCrawler<
                 log: this.log,
             };
 
-            this.autoscaledPoolOptions = { ...autoscaledPoolOptions, ...basicCrawlerAutoscaledPoolConfiguration };
+            this.taskLoopOptions = { ...taskLoopOptions, ...crawlerOwnedTaskLoopConfiguration };
 
             this.resolveConcurrencySystem = () =>
                 OwnedOrInjected.resolve<IConcurrencySystem, ConcurrencySystem>(concurrencySystem, () =>
@@ -1454,7 +1468,7 @@ export class BasicCrawler<
                 const total = await this.requestManager?.getTotalCount();
                 message = `Crawled ${this.stats.state.requestsFinished}${total ? `/${total}` : ''} pages, ${
                     this.stats.state.requestsFailed
-                } failed requests, desired concurrency ${this.autoscaledPool?.desiredConcurrency ?? 0}.`;
+                } failed requests, desired concurrency ${this.concurrencySystem?.desiredConcurrency ?? 0}.`;
             }
 
             if (this.statusMessageCallback) {
@@ -1475,8 +1489,9 @@ export class BasicCrawler<
     }
 
     /**
-     * Runs the crawler. Returns a promise that resolves once all the requests are processed
-     * and `autoscaledPool.isFinished` returns `true`.
+     * Runs the crawler. Returns a promise that resolves once every request has been processed and the crawler's
+     * finished-check ({@apilink BasicCrawlerOptions.taskLoopOptions|`taskLoopOptions.isFinishedFunction`}, or the
+     * default "the request manager is empty") reports that the crawl is over.
      *
      * We can use the `requests` parameter to enqueue the initial requests — it is a shortcut for
      * running {@apilink BasicCrawler.addRequests|`crawler.addRequests()`} before {@apilink BasicCrawler.run|`crawler.run()`}.
@@ -1633,6 +1648,36 @@ export class BasicCrawler<
         }
         this.log.info(reason);
         this.unexpectedStop = true;
+    }
+
+    /**
+     * Stops dispatching new requests, letting the in-progress ones finish. Resolves once they have settled, or rejects
+     * after `timeoutSecs` if they take too long. Unlike {@apilink BasicCrawler.stop|`stop()`}, this does not end the
+     * run — {@apilink BasicCrawler.run|`run()`} stays pending until {@apilink BasicCrawler.resume|`resume()`}.
+     *
+     * > *NOTE:* The {@apilink BasicCrawler.concurrencySystem|concurrency system} keeps monitoring and autoscaling
+     * throughout, since a shared one may still be serving other crawlers.
+     */
+    async pause(timeoutSecs?: number): Promise<void> {
+        if (!this.autoscaledPool) {
+            this.log.warning('Cannot pause a crawler that is not running.');
+            return;
+        }
+
+        await this.autoscaledPool.pause(timeoutSecs);
+    }
+
+    /**
+     * Resumes a run suspended with {@apilink BasicCrawler.pause|`pause()`}, letting the crawler dispatch requests
+     * again. A no-op on a crawler that is not paused.
+     */
+    resume(): void {
+        if (!this.autoscaledPool) {
+            this.log.warning('Cannot resume a crawler that is not running.');
+            return;
+        }
+
+        this.autoscaledPool.resume();
     }
 
     /**
@@ -2001,7 +2046,7 @@ export class BasicCrawler<
         await this.concurrencySystemDep.ifOwned((system) => system.start());
 
         this.autoscaledPool = new AutoscaledPool({
-            ...this.autoscaledPoolOptions,
+            ...this.taskLoopOptions,
             concurrencySystem: this.concurrencySystemDep.value,
             consumer: this.identity,
         });

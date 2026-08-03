@@ -19,7 +19,7 @@ import type { StorageOpenOptions } from './utils.js';
 import type { StorageIdentifier } from './storage_instance_manager.js';
 import { resolveStorageIdentifier } from './storage_instance_manager.js';
 import { createDualIterable, purgeDefaultStorages } from './utils.js';
-import { isBuffer, isStream } from '@crawlee/utils';
+import { isBuffer, isStream } from '../byte_utils.js';
 
 /** @internal */
 const KVS_KEYS_DEFAULT_LIMIT = 1000;

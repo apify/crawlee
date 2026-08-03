@@ -107,7 +107,7 @@ describe('CheerioCrawler', () => {
 
         await cheerioCrawler.run();
 
-        expect((cheerioCrawler.autoscaledPool!.system as ConcurrencySystem).minConcurrency).toBe(2);
+        expect((cheerioCrawler.concurrencySystem! as ConcurrencySystem).minConcurrency).toBe(2);
         expect(processed).toHaveLength(4);
         expect(failed).toHaveLength(0);
 
@@ -140,7 +140,7 @@ describe('CheerioCrawler', () => {
 
         await cheerioCrawler.run();
 
-        expect((cheerioCrawler.autoscaledPool!.system as ConcurrencySystem).minConcurrency).toBe(2);
+        expect((cheerioCrawler.concurrencySystem! as ConcurrencySystem).minConcurrency).toBe(2);
         expect(processed).toHaveLength(4);
         expect(failed).toHaveLength(0);
 
@@ -176,7 +176,7 @@ describe('CheerioCrawler', () => {
 
         await cheerioCrawler.run();
 
-        expect((cheerioCrawler.autoscaledPool!.system as ConcurrencySystem).minConcurrency).toBe(2);
+        expect((cheerioCrawler.concurrencySystem! as ConcurrencySystem).minConcurrency).toBe(2);
         expect(processed).toHaveLength(4);
         expect(failed).toHaveLength(0);
 
@@ -760,7 +760,7 @@ describe('CheerioCrawler', () => {
 
         await cheerioCrawler.run();
 
-        expect((cheerioCrawler.autoscaledPool!.system as ConcurrencySystem).minConcurrency).toBe(2);
+        expect((cheerioCrawler.concurrencySystem! as ConcurrencySystem).minConcurrency).toBe(2);
         expect(failed).toHaveLength(0);
     });
 
@@ -781,7 +781,7 @@ describe('CheerioCrawler', () => {
 
         await cheerioCrawler.run();
 
-        expect((cheerioCrawler.autoscaledPool!.system as ConcurrencySystem).minConcurrency).toBe(2);
+        expect((cheerioCrawler.concurrencySystem! as ConcurrencySystem).minConcurrency).toBe(2);
         expect(failed).toHaveLength(4);
     });
 

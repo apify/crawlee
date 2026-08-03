@@ -126,7 +126,7 @@ describe('PuppeteerCrawler', () => {
 
         await puppeteerCrawler.run();
 
-        expect((puppeteerCrawler.autoscaledPool!.system as ConcurrencySystem).minConcurrency).toBe(1);
+        expect((puppeteerCrawler.concurrencySystem! as ConcurrencySystem).minConcurrency).toBe(1);
         expect(processed).toHaveLength(6);
         expect(failed).toHaveLength(0);
 

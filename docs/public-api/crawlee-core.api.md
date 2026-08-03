@@ -80,36 +80,6 @@ export class ApifyLogAdapter extends BaseCrawleeLogger {
 }
 
 // @public
-export class AutoscaledPool {
-    constructor(options: AutoscaledPoolOptions);
-    abort(): Promise<void>;
-    get currentConcurrency(): number;
-    get desiredConcurrency(): number;
-    notify(): Promise<void>;
-    pause(timeoutSecs?: number): Promise<void>;
-    resume(): void;
-    run(): Promise<void>;
-    get system(): IConcurrencySystem;
-}
-
-// @public (undocumented)
-export interface AutoscaledPoolOptions extends AutoscaledPoolPredicateOptions {
-    concurrencySystem: IConcurrencySystem;
-    consumer: ConcurrencyConsumer;
-    // (undocumented)
-    log?: CrawleeLogger;
-    maybeRunIntervalSecs?: number;
-    runTaskFunction?: () => Promise<unknown>;
-    taskTimeoutSecs?: number;
-}
-
-// @public
-export interface AutoscaledPoolPredicateOptions {
-    isFinishedFunction?: () => Promise<boolean>;
-    isTaskReadyFunction?: () => Promise<boolean>;
-}
-
-// @public
 export abstract class BaseCrawleeLogger implements CrawleeLogger {
     constructor(options?: Partial<CrawleeLoggerOptions>);
     // (undocumented)
@@ -1770,6 +1740,12 @@ export interface SystemInfo {
     memInfo: ClientInfo;
     // (undocumented)
     memTotalBytes?: number;
+}
+
+// @public
+export interface TaskLoopPredicates {
+    isFinishedFunction?: () => Promise<boolean>;
+    isTaskReadyFunction?: () => Promise<boolean>;
 }
 
 export { tryAbsoluteURL }

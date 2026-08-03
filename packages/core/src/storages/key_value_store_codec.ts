@@ -1,9 +1,10 @@
 import type { Dictionary } from '@crawlee/types';
 import contentTypeParser from 'content-type';
-import { isBuffer, isStream } from '@crawlee/utils';
 import JSON5 from 'json5';
 
 import { jsonStringifyExtended } from '@apify/utilities';
+
+import { isBuffer, isStream } from '../byte_utils.js';
 
 const CONTENT_TYPE_JSON = 'application/json';
 const STRINGIFIABLE_CONTENT_TYPE_RXS = [new RegExp(`^${CONTENT_TYPE_JSON}$`, 'i'), /^application\/.*xml$/i, /^text\//i];
