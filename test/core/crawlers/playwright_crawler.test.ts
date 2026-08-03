@@ -113,7 +113,7 @@ describe('PlaywrightCrawler', () => {
 
             await playwrightCrawler.run();
 
-            expect((playwrightCrawler.autoscaledPool!.system as ConcurrencySystem).minConcurrency).toBe(1);
+            expect((playwrightCrawler.concurrencySystem! as ConcurrencySystem).minConcurrency).toBe(1);
             expect(processed).toHaveLength(6);
             expect(failed).toHaveLength(0);
 

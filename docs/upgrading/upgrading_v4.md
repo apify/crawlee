@@ -50,9 +50,9 @@ This is intentional: these were never a supported API. If you relied on overridi
 
 The change spans, among others:
 
-- **`BasicCrawler`** — `unexpectedStop`, `requestHandlerTimeoutMillis`, `sameDomainDelayMillis`, `domainAccessedTime`, `handledRequestsCount`, `statusMessageLoggingInterval`, `statusMessageCallback`, `ignoreHttpErrorStatusCodes`, `autoscaledPoolOptions`, `respectRobotsTxtFile`, and the helpers `buildBasicContextPipeline`, `validateRequestUserData`, `pauseOnMigration`, `fetchNextRequest`, `delayRequest`, `handleRequest`, `timeoutAndRetry`, `isTaskReadyFunction`, `defaultIsFinishedFunction`, `requestFunctionErrorHandler`, `handleFailedRequestHandler`, `canRequestBeRetried`
+- **`BasicCrawler`** — `unexpectedStop`, `requestHandlerTimeoutMillis`, `sameDomainDelayMillis`, `domainAccessedTime`, `handledRequestsCount`, `statusMessageLoggingInterval`, `statusMessageCallback`, `ignoreHttpErrorStatusCodes`, `taskLoopOptions` (was `autoscaledPoolOptions`), `autoscaledPool`, `respectRobotsTxtFile`, and the helpers `buildBasicContextPipeline`, `validateRequestUserData`, `pauseOnMigration`, `fetchNextRequest`, `delayRequest`, `handleRequest`, `timeoutAndRetry`, `isTaskReadyFunction`, `defaultIsFinishedFunction`, `requestFunctionErrorHandler`, `handleFailedRequestHandler`, `canRequestBeRetried`
 - **`HttpCrawler`** — `preNavigationHooks`, `postNavigationHooks`, `saveResponseCookies`, `navigationTimeoutMillis`, `ignoreSslErrors`, `suggestResponseEncoding`, `forceResponseEncoding`, `supportedMimeTypes`, and the helpers `requestFunction`, `parseResponse`, `getRequestOptions`, `encodeResponse`, `extendSupportedMimeTypes`, `handleRequestTimeout`
-- **`AutoscaledPool`** — `maybeRunTask`, `maybeFinish`, `destroy` (the scaling internals `autoscale`, `scaleUp`, `scaleDown`, `incrementTasksDonePerSecond` and `isOverMaxRequestLimit` are private too, but they now live on the `ConcurrencySystem` the pool delegates to — see [below](#autoscaling-split-into-autoscaledpool--concurrencysystem))
+- **`AutoscaledPool`** — the whole class is `@internal` in v4, so its members are not enumerated here; see [`AutoscaledPool` is no longer public API](#autoscaledpool-is-no-longer-public-api)
 - **`SessionPool`** — all pool internals (`log`, `maxPoolSize`, `createSessionFunction`, `keyValueStore`, `sessions`, `sessionMap`, `sessionOptions`, `persistStateKey`, `persistStateKeyValueStoreId`, `events`, `persistenceOptions`, `sessionReuseStrategy`, and the helpers `ensureInitialized`, `maybeLoadSessionPool`, `registerSession`, `createSession`, `hasSpaceForSession`, `pickSession`, `removeRetiredSessions`, `getRandomIndex`, `defaultCreateSessionFunction`)
 - **`Session`** — `maybeSelfRetire` (`userData` is now `readonly`)
 - **`RequestList`** — all `_`-prefixed helpers (`addFetchedRequests`, `addPersistedRequests`, `addRequest`, `addRequestsFromSources`, `ensureInProgress`, `ensureIsInitialized`, `ensureUniqueKeyValid`, `fetchRequestsFromUrl`, `getPersistedState`, `loadStateAndPersistedRequests`, `persistRequests`, `restoreState`)
@@ -1225,17 +1225,17 @@ If you rely on Crawlee's default configuration (one browser context per session,
 
 ## The `log` property is typed as `CrawleeLogger`
 
-The `log` property exposed throughout the public API (on the crawling context, `AutoscaledPool`, `Statistics`, `EventManager`, `SessionOptions`, `Dataset`, etc.) is now typed as the `CrawleeLogger` interface (from `@crawlee/types`) rather than the concrete `Log` class from `@apify/log`. If you consume it structurally — calling `log.info(...)`, `log.debug(...)`, `log.child(...)` — nothing changes. You only need to act if you explicitly annotated a variable or parameter with the `Log` type from `@apify/log` and assigned `context.log` to it; type it as `CrawleeLogger` instead.
+The `log` property exposed throughout the public API (on the crawling context, `Statistics`, `EventManager`, `SessionOptions`, `Dataset`, etc.) is now typed as the `CrawleeLogger` interface (from `@crawlee/types`) rather than the concrete `Log` class from `@apify/log`. If you consume it structurally — calling `log.info(...)`, `log.debug(...)`, `log.child(...)` — nothing changes. You only need to act if you explicitly annotated a variable or parameter with the `Log` type from `@apify/log` and assigned `context.log` to it; type it as `CrawleeLogger` instead.
 
-## Autoscaling split into `AutoscaledPool` + `ConcurrencySystem`
+## Autoscaling moved to `ConcurrencySystem`
 
-Everything that decides whether there is free compute for one more task — snapshotting, the system-status evaluation, the concurrency budget and the scaling logic — moved out of `AutoscaledPool` into a new `ConcurrencySystem`. The pool keeps only the task loop.
+Everything that decides whether there is free compute for one more task — snapshotting, the system-status evaluation, the concurrency budget and the scaling logic — moved out of `AutoscaledPool` into a new `ConcurrencySystem`. What is left of the pool is a bare task loop, which is now **internal**: crawlers build and drive one for themselves, and `ConcurrencySystem` is the only part of this you configure.
 
-The point is sharing: inject one instance into several pools (and therefore several crawlers) to cap their **combined** concurrency against a single budget, instead of letting each scale independently and oversubscribe the host. The option is typed as `IConcurrencySystem`, a minimal read-only contract, so an alternative governor can be substituted; `ConcurrencySystem` is the canonical implementation and the one crawlers build by default.
+The point is sharing: inject one instance into several crawlers to cap their **combined** concurrency against a single budget, instead of letting each scale independently and oversubscribe the host. The option is typed as `IConcurrencySystem`, a minimal read-only contract, so an alternative governor can be substituted; `ConcurrencySystem` is the canonical implementation and the one crawlers build by default.
 
 :::info Who starts and stops it
 
-Whoever *builds* a `ConcurrencySystem` owns its lifecycle. Crawlers do that for the default system they build per run. One **you** supply is yours to `start()` and `stop()`, because no crawler can know when the last borrower has finished. Forgetting to start it makes `run()` **throw**; stopping it while a pool is still running only **warns**. Read `isRunning` to check whether a system handed to you was already started by its owner.
+Whoever *builds* a `ConcurrencySystem` owns its lifecycle. Crawlers do that for the default system they build per run. One **you** supply is yours to `start()` and `stop()`, because no crawler can know when the last borrower has finished. Forgetting to start it makes `run()` **throw**; stopping it while a crawler is still running only **warns**. Read `isRunning` to check whether a system handed to you was already started by its owner.
 
 :::
 
@@ -1258,11 +1258,50 @@ try {
 }
 ```
 
-The `AutoscaledPool` migration below spells it out once more at the pool level; the crawler examples elide it, to keep the actual change in focus.
+### `AutoscaledPool` is no longer public API
 
-### `AutoscaledPool` requires a `concurrencySystem` and a `consumer`, and no longer takes scaling options
+`AutoscaledPool` is `@internal` in v4, along with `AutoscaledPoolOptions`. It is still exported from `@crawlee/core` (and re-exported by `crawlee`), so nothing breaks at import time — but with all the configuration moved to the `ConcurrencySystem`, what remains is a bare parallel task runner, and a scraping library has no business promising backwards compatibility for one. Reach for it if you must; it can change without a major bump, and if you only wanted bounded parallelism, a `p-limit`-style helper is a better fit than an internal Crawlee class.
 
-All scaling and load-monitoring options were **removed** from `AutoscaledPoolOptions` and now live on `ConcurrencySystemOptions`: `minConcurrency`, `maxConcurrency`, `desiredConcurrency`, `desiredConcurrencyRatio`, `scaleUpStepRatio`, `scaleDownStepRatio`, `loggingIntervalSecs`, `autoscaleIntervalSecs`, and `maxTasksPerMinute`, plus the load-signal configuration described [below](#load-signal-options-restructured). The `snapshotterOptions` and `systemStatusOptions` bags are both gone. In their place, `AutoscaledPoolOptions` gained a **required** `concurrencySystem`, plus a **required** `consumer` — the pool's identity (`{ id }`), which it presents to the governor on every capacity query and booking so that a shared one can tell several pools' tasks apart. Crawlers pass their own identity, so this only concerns pools you build yourself.
+The crawler's `autoscaledPool` property is **private** as a result. Everything it was reached for has a crawler-level counterpart:
+
+| Before | After |
+|---|---|
+| `await crawler.autoscaledPool.pause(secs)` | `await crawler.pause(secs)` |
+| `crawler.autoscaledPool.resume()` | `crawler.resume()` |
+| `await crawler.autoscaledPool.abort()` | `await crawler.teardown()` — or `crawler.stop()`, to let in-flight requests finish |
+| `crawler.autoscaledPool.system` | `crawler.concurrencySystem` |
+| `crawler.autoscaledPool.desiredConcurrency` | `crawler.concurrencySystem?.desiredConcurrency` |
+| `crawler.autoscaledPool.currentConcurrency` | `crawler.concurrencySystem?.currentConcurrency` |
+
+```typescript
+const crawler = new CheerioCrawler({
+    async requestHandler({ crawler, log }) {
+        log.info(`Currently running ${crawler.concurrencySystem?.currentConcurrency} requests in parallel.`);
+    },
+});
+```
+
+`crawler.concurrencySystem` is `undefined` until `run()` has resolved it, and a crawler-owned default is rebuilt for every run — so read it during a run rather than caching it across runs. A system *you* injected is of course simply the instance you passed in.
+
+The getter is typed as the read-only `IConcurrencySystem`, and the pool never had setters to begin with in v4, so retuning concurrency mid-crawl means owning the instance:
+
+```typescript
+const concurrencySystem = new ConcurrencySystem({ maxConcurrency: 50 });
+
+const crawler = new CheerioCrawler({
+    concurrencySystem,
+    requestHandler,
+    errorHandler: async ({ response }) => {
+        if (response?.status === 429) concurrencySystem.maxConcurrency = 10;
+    },
+});
+```
+
+`crawler.pause()` resolves once the requests already in flight have settled, and leaves `run()` pending until you `resume()` — unlike `crawler.stop()`, which ends the run gracefully. One behavioral consequence of the split: pausing no longer suspends autoscaling, because the autoscaling interval belongs to the `ConcurrencySystem`, which knows nothing about its borrowers' pause state — deliberately, since other crawlers sharing it may still need scaling. A paused crawler's system keeps evaluating (and possibly scaling down) the desired concurrency and keeps emitting its periodic state log. Scaling *up* stays effectively blocked, as the current concurrency drains below the ratio required for a scale-up. To silence the system during a long pause, `stop()` it (if you own it) and `start()` it again before resuming; a restart discards the snapshots taken before it, so the pause is not mistaken for load.
+
+#### If you were driving an `AutoscaledPool` directly
+
+All scaling and load-monitoring options were **removed** from `AutoscaledPoolOptions` and now live on `ConcurrencySystemOptions`: `minConcurrency`, `maxConcurrency`, `desiredConcurrency`, `desiredConcurrencyRatio`, `scaleUpStepRatio`, `scaleDownStepRatio`, `loggingIntervalSecs`, `autoscaleIntervalSecs`, and `maxTasksPerMinute`, plus the load-signal configuration described [below](#load-signal-options-restructured). The `snapshotterOptions` and `systemStatusOptions` bags are both gone, as are the `minConcurrency`/`maxConcurrency` accessors and every setter (`desiredConcurrency`, `currentConcurrency` and `system` remain as read-only getters). In their place, `AutoscaledPoolOptions` gained a **required** `concurrencySystem`, plus a **required** `consumer` — the pool's identity (`{ id }`), which it presents to the governor on every capacity query and booking so that a shared one can tell several pools' tasks apart.
 
 **Before:**
 ```typescript
@@ -1303,27 +1342,11 @@ try {
 }
 ```
 
-The pool's concurrency accessors are now read-only telemetry: `desiredConcurrency` and `currentConcurrency` remain as getters, while the `minConcurrency`/`maxConcurrency` accessors and every setter were **removed**. Runtime tuning happens on the `ConcurrencySystem` instead — which means building it yourself, since the system a crawler builds for itself is not reachable for reconfiguration:
+### `autoscaledPoolOptions` is now `taskLoopOptions`, and no longer carries concurrency config
 
-```typescript
-const concurrencySystem = new ConcurrencySystem({ maxConcurrency: 50 });
+The crawler option was renamed — it was named after a class that is now internal — and narrowed to **only** the task-loop predicates `isFinishedFunction` and `isTaskReadyFunction`. Its type changed from `AutoscaledPoolOptions` to `TaskLoopPredicates` (itself a rename of the interim `AutoscaledPoolPredicateOptions`). Concurrency configuration goes through either the `minConcurrency` / `maxConcurrency` / `maxRequestsPerMinute` shortcuts (which configure the crawler's default `ConcurrencySystem`), or — for anything finer — a supplied `concurrencySystem`.
 
-const crawler = new CheerioCrawler({
-    concurrencySystem,
-    requestHandler,
-    errorHandler: async ({ response }) => {
-        if (response?.status === 429) concurrencySystem.maxConcurrency = 10;
-    },
-});
-```
-
-One behavioral consequence: `pool.pause()` no longer suspends autoscaling, because the autoscaling interval belongs to the `ConcurrencySystem`, which knows nothing about its borrowers' pause state — deliberately, since other pools sharing it may still need scaling. A paused pool's system keeps evaluating (and possibly scaling down) the desired concurrency and keeps emitting its periodic state log. Scaling *up* stays effectively blocked, as the current concurrency drains below the ratio required for a scale-up. To silence the system during a long pause, `stop()` it (if you own it) and `start()` it again before resuming; a restart discards the snapshots taken before it, so the pause is not mistaken for load.
-
-### `BasicCrawlerOptions.autoscaledPoolOptions` no longer carries concurrency config
-
-`autoscaledPoolOptions` now accepts **only** the task-loop predicates `isFinishedFunction` and `isTaskReadyFunction` (its type changed from `AutoscaledPoolOptions` to `AutoscaledPoolPredicateOptions`). Concurrency configuration goes through either the `minConcurrency` / `maxConcurrency` / `maxRequestsPerMinute` shortcuts (which configure the crawler's default `ConcurrencySystem`), or — for anything finer — a supplied `concurrencySystem`.
-
-Note that this narrowing also drops three options that did *not* move to the `ConcurrencySystem`: `maybeRunIntervalSecs`, `taskTimeoutSecs` and `log` are still `AutoscaledPoolOptions`, but a crawler no longer forwards them, so they can only be set by driving an `AutoscaledPool` yourself. If you were tuning the crawler's task-loop cadence through `autoscaledPoolOptions`, there is no replacement.
+Note that this narrowing also drops three options that did *not* move to the `ConcurrencySystem`: `maybeRunIntervalSecs`, `taskTimeoutSecs` and `log` still exist on `AutoscaledPoolOptions`, but a crawler never forwarded them and the type is internal now, so they are effectively unreachable. If you were tuning the crawler's task-loop cadence through `autoscaledPoolOptions`, there is no replacement.
 
 **Before:**
 ```typescript
