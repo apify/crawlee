@@ -656,23 +656,53 @@ export abstract class BrowserCrawler<
         await this.processResponse(response, crawlingContext);
         tryCancel();
 
-        // TODO: Should we save the cookies also after/only the handle page?
-        if (this.saveResponseCookies && crawlingContext.session) {
-            const { cookies } = await this.browserPool.extractPageState(crawlingContext.page);
-            tryCancel();
-            const url = crawlingContext.request.loadedUrl!;
-            for (const cookie of cookies) {
+        // Persist cookies from the navigation response before the user handler runs.
+        // Cookies set during `requestHandler` are saved again afterwards.
+        await this.persistCookiesFromPage(crawlingContext);
+
+        return { request: crawlingContext.request as LoadedRequest<Request> } as Partial<Context>;
+    }
+
+    /**
+     * Copies cookies from the live browser page into the session cookie jar.
+     */
+    private async persistCookiesFromPage(
+        crawlingContext: Pick<BrowserCrawlingContext<Page, Response>, 'session' | 'page' | 'request'>,
+    ): Promise<void> {
+        if (!this.saveResponseCookies || !crawlingContext.session) {
+            return;
+        }
+
+        const { cookies } = await this.browserPool.extractPageState(crawlingContext.page);
+        tryCancel();
+        const url = crawlingContext.request.loadedUrl ?? crawlingContext.request.url;
+        for (const cookie of cookies) {
+            try {
+                crawlingContext.session.cookieJar.setCookieSync(browserPoolCookieToToughCookie(cookie), url, {
+                    ignoreError: false,
+                });
+            } catch (e) {
+                this.log.debug(`Could not set cookie: ${(e as Error).message}`);
+            }
+        }
+    }
+
+    /**
+     * Runs the user request handler, then re-reads browser cookies so login flows /
+     * `page.setCookie` / XHR `Set-Cookie` updates are stored for later requests.
+     */
+    protected override async runRequestHandler(crawlingContext: ExtendedContext): Promise<void> {
+        try {
+            await super.runRequestHandler(crawlingContext);
+        } finally {
+            if (!crawlingContext.request.skipNavigation) {
                 try {
-                    crawlingContext.session.cookieJar.setCookieSync(browserPoolCookieToToughCookie(cookie), url, {
-                        ignoreError: false,
-                    });
-                } catch (e) {
-                    this.log.debug(`Could not set cookie: ${(e as Error).message}`);
+                    await this.persistCookiesFromPage(crawlingContext);
+                } catch {
+                    // Page may already be closed on some failure paths; ignore.
                 }
             }
         }
-
-        return { request: crawlingContext.request as LoadedRequest<Request> } as Partial<Context>;
     }
 
     private async handleBlockedRequestByContent(crawlingContext: BrowserCrawlingContext<Page, Response>) {
