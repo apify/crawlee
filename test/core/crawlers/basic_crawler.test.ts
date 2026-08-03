@@ -1696,27 +1696,6 @@ describe('BasicCrawler', () => {
         expect(warned).toBe(true);
     });
 
-    test('extendTimeout raises the request reservation so a locking backend does not re-hand-out the request', async () => {
-        const requestQueue = await RequestQueue.open(`rq-extend-${Math.random()}`);
-        await requestQueue.addRequest({ url: 'https://example.com' });
-        const hintSpy = vitest.spyOn(requestQueue, 'setExpectedRequestProcessingTimeSecs');
-
-        const crawler = new BasicCrawler({
-            requestQueue,
-            requestHandlerTimeoutSecs: 1,
-            maxRequestRetries: 0,
-            requestHandler: async ({ extendTimeout }) => {
-                // ask for ten more minutes; the reservation must be raised to match
-                extendTimeout(600);
-            },
-        });
-
-        await crawler.run();
-
-        const maxHint = Math.max(...hintSpy.mock.calls.map((call) => call[0]));
-        expect(maxHint).toBeGreaterThanOrEqual(600);
-    });
-
     test('timeouted request should not access storages', async () => {
         const url = 'https://example.com';
         const requestList = await RequestList.open({ sources: [{ url }] });

@@ -94,7 +94,6 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
     protected getNavigationTimeoutMillis(): number;
     // (undocumented)
     protected getPendingRequestCountApproximation(): Promise<number>;
-    protected getRequestHandlerRunCount(): number;
     getRequestManager(): Promise<IRequestManager>;
     // @deprecated (undocumented)
     getRequestQueue(): Promise<IRequestManager>;
@@ -167,7 +166,7 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
     // (undocumented)
     protected readonly requestHandler: RequestHandler<ExtendedContext>;
     protected requestManager?: IRequestManager;
-    protected resolveRequestHandlerTimeoutMillis(request: Request_2, fallbackMillis?: number): number;
+    protected resolveRequestHandlerTimeoutMillis(label: string | undefined, fallbackMillis?: number): number;
     resume(): void;
     // (undocumented)
     protected readonly retryOnBlocked: boolean;

@@ -1265,7 +1265,6 @@ export class BasicCrawler<
 
     private createBaseContext(context: PendingCrawlingContext) {
         const deferredCleanup: (() => Promise<unknown>)[] = [];
-        let extendedByMillis = 0;
 
         return {
             id: cryptoRandomObjectId(10),
@@ -1288,15 +1287,6 @@ export class BasicCrawler<
                 if (context[navigationDeadlineKey] !== undefined) {
                     context[navigationDeadlineKey] += extraMillis;
                 }
-
-                // Keep a locking request manager's reservation ahead of the extended deadline, so a request that
-                // asks for much longer is not handed out again mid-flight. Best-effort: the hint is process-wide
-                // and raise-only, and locking is opt-in in v4.
-                extendedByMillis += extraMillis;
-                const handlerMillis =
-                    this.resolveRequestHandlerTimeoutMillis(context.request) * this.getRequestHandlerRunCount();
-                const reservedForSecs = (handlerMillis + extendedByMillis) / 1000;
-                void this.requestManager?.setExpectedRequestProcessingTimeSecs?.(reservedForSecs + 5);
             },
             [deferredCleanupKey]: deferredCleanup,
         };
@@ -1731,13 +1721,16 @@ export class BasicCrawler<
      */
     private async applyRequestManagerTimeouts(requestManager: IRequestManager): Promise<void> {
         // A router route may hold a request for longer than the crawler's own timeout, and we cannot know
-        // which routes a run will hit, so reserve for the longest one any route asked for. The hint is
-        // raise-only, so erring high here is safe.
-        const maxRouteTimeoutSecs = (this.requestHandler as Partial<RouterHandler>).getMaxTimeoutSecs?.() ?? 0;
-        const handlerTimeoutSecs =
-            Math.max(this.requestHandlerTimeoutMillis / 1000, maxRouteTimeoutSecs) * this.getRequestHandlerRunCount();
+        // which routes a run will hit, so reserve for the longest one any route asked for. Routing it through
+        // `resolveRequestHandlerTimeoutMillis` picks up a subclass's whole-request scaling (e.g. the adaptive
+        // crawler's two runs). The hint is raise-only, so erring high here is safe.
+        const maxRouteMillis = ((this.requestHandler as Partial<RouterHandler>).getMaxTimeoutSecs?.() ?? 0) * 1000;
+        const handlerMillis = this.resolveRequestHandlerTimeoutMillis(
+            undefined,
+            Math.max(this.requestHandlerTimeoutMillis, maxRouteMillis),
+        );
 
-        await requestManager.setExpectedRequestProcessingTimeSecs?.(Math.max(handlerTimeoutSecs + 5, 60));
+        await requestManager.setExpectedRequestProcessingTimeSecs?.(Math.max(handlerMillis / 1000 + 5, 60));
     }
 
     /**
@@ -2028,8 +2021,7 @@ export class BasicCrawler<
         // floored per request so it will not actually cut them short, but the configured value is then effectively
         // ignored, which is worth flagging. Checked here (not in the constructor) because a subclass sets its
         // navigation timeout only after `super()`.
-        const phasesMillis =
-            this.getNavigationTimeoutMillis() + this.requestHandlerTimeoutMillis * this.getRequestHandlerRunCount();
+        const phasesMillis = this.getNavigationTimeoutMillis() + this.resolveRequestHandlerTimeoutMillis(undefined);
         if (this.internalTimeoutMillis < phasesMillis) {
             this.log.warning(
                 `CRAWLEE_INTERNAL_TIMEOUT (${this.internalTimeoutMillis / 1000}s) is shorter than the navigation ` +
@@ -2063,64 +2055,56 @@ export class BasicCrawler<
     }
 
     /**
-     * How many times the request handler can run for a single request, used to size the timeouts that bound the
-     * request as a whole (the internal timeout and the request reservation). One for `BasicCrawler`;
-     * `AdaptivePlaywrightCrawler` runs it up to twice (a static attempt falling through to the browser), so it
-     * returns 2. It does not affect the per-run handler timeout, only the whole-request budgets.
-     */
-    protected getRequestHandlerRunCount(): number {
-        return 1;
-    }
-
-    /**
      * Races the request against the internal timeout (see {@apilink raceWithTimeout}), sized to outlast the phases
-     * that have their own timeout - the navigation, its hooks, and the request handler (which may run more than
-     * once, see {@apilink BasicCrawler.getRequestHandlerRunCount|`getRequestHandlerRunCount`}) - so a legitimately
-     * slow request, a per-route override, or a low `CRAWLEE_INTERNAL_TIMEOUT` is not cut short mid-phase. It takes
-     * whichever is larger: the configured internal timeout, or this request's combined phase budget.
+     * that have their own timeout - the navigation, its hooks, and the request handler (which a subclass may run
+     * more than once per request, reflected by its {@apilink BasicCrawler.resolveRequestHandlerTimeoutMillis} override)
+     * - so a legitimately slow request, a per-route override, or a low `CRAWLEE_INTERNAL_TIMEOUT` is not cut short
+     * mid-phase. It takes whichever is larger: the configured internal timeout, or this request's combined phase budget.
      */
     private async withRequestTimeout(crawlingContext: PendingCrawlingContext, work: Promise<void>): Promise<void> {
         const { request } = crawlingContext;
-        const handlerMillis = this.resolveRequestHandlerTimeoutMillis(request) * this.getRequestHandlerRunCount();
-        const phasesMillis = this.getNavigationTimeoutMillis() + handlerMillis;
+        const phasesMillis = this.getNavigationTimeoutMillis() + this.resolveRequestHandlerTimeoutMillis(request.label);
         const timeoutMillis = Math.max(this.internalTimeoutMillis, phasesMillis);
 
         await raceWithTimeout(crawlingContext, work, { timeoutMillis, requestId: request.id });
     }
 
     /**
-     * The request handler timeout to apply to this particular request. A router route may override the
-     * crawler's own `requestHandlerTimeoutSecs`; anything else falls back to `fallbackMillis`.
+     * The request handler timeout for a request with the given route label. A router route may override the
+     * crawler's own `requestHandlerTimeoutSecs`; anything else falls back to `fallbackMillis`. Also drives the
+     * whole-request budgets (the internal timeout and the request reservation), so a subclass that runs the
+     * handler more than once per request - e.g. `AdaptivePlaywrightCrawler` - overrides this to scale it up.
      *
+     * @param label The request's route label, or `undefined` for the default route / no specific request.
      * @param fallbackMillis Timeout to use when no route overrides it. Subclasses that time the handler
      *   themselves rather than through {@apilink BasicCrawler.runRequestHandler|`runRequestHandler`} pass
      *   their own, since theirs may differ from the crawler-level one.
      */
     protected resolveRequestHandlerTimeoutMillis(
-        request: Request,
+        label: string | undefined,
         fallbackMillis = this.requestHandlerTimeoutMillis,
     ): number {
-        return this.getRouteTimeoutMillis(request) ?? fallbackMillis;
+        return this.getRouteTimeoutMillis(label) ?? fallbackMillis;
     }
 
     /**
-     * The timeout the matching router route asked for, or `undefined` when it did not override one (or the
-     * request handler is not a router at all).
+     * The timeout the router route with the given label asked for, or `undefined` when it did not override one
+     * (or the request handler is not a router at all).
      */
-    private getRouteTimeoutMillis(request: Request): number | undefined {
+    private getRouteTimeoutMillis(label: string | undefined): number | undefined {
         const getTimeoutSecs = (this.requestHandler as Partial<RouterHandler>).getTimeoutSecs;
 
         if (typeof getTimeoutSecs !== 'function') {
             return undefined;
         }
 
-        const timeoutSecs = getTimeoutSecs(request.label);
+        const timeoutSecs = getTimeoutSecs(label);
 
         return timeoutSecs === undefined ? undefined : timeoutSecs * 1000;
     }
 
     protected async runRequestHandler(crawlingContext: ExtendedContext): Promise<void> {
-        const timeoutMillis = this.resolveRequestHandlerTimeoutMillis(crawlingContext.request);
+        const timeoutMillis = this.resolveRequestHandlerTimeoutMillis(crawlingContext.request.label);
 
         await addTimeoutToPromise(
             async () => this.requestHandler(crawlingContext),

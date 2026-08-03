@@ -610,9 +610,10 @@ export class AdaptivePlaywrightCrawler<
             };
 
             // this crawler overrides `runRequestHandler` and times each rendering-type run itself, so it has
-            // to resolve any per-route override too - otherwise routes would be silently ignored here
-            const timeoutMillis = this.resolveRequestHandlerTimeoutMillis(
-                context.request,
+            // to resolve any per-route override too - otherwise routes would be silently ignored here. `super`
+            // gives the per-run window; our own override scales that up for the whole-request budgets.
+            const timeoutMillis = super.resolveRequestHandlerTimeoutMillis(
+                context.request.label,
                 this.individualRequestHandlerTimeoutMillis,
             );
 
@@ -639,12 +640,15 @@ export class AdaptivePlaywrightCrawler<
 
     /**
      * One request can run the handler twice in sequence - a static attempt falling through to the browser, or a
-     * browser run followed by a rendering-type detection - so the whole-request budgets (internal timeout, reservation)
-     * are sized for two runs. Each individual run is still bounded by its own `requestHandlerTimeoutSecs` window,
-     * applied in {@apilink AdaptivePlaywrightCrawler.runRequestHandler|`runRequestHandler`}.
+     * browser run followed by a rendering-type detection - so the whole-request budgets that draw on this (the
+     * internal timeout and the request reservation) are sized for two runs. Each individual run is still bounded
+     * by its own per-run window, resolved from `super` in {@apilink AdaptivePlaywrightCrawler.runRequestHandler|`runRequestHandler`}.
      */
-    protected override getRequestHandlerRunCount(): number {
-        return 2;
+    protected override resolveRequestHandlerTimeoutMillis(
+        label: string | undefined,
+        fallbackMillis = this.individualRequestHandlerTimeoutMillis,
+    ): number {
+        return super.resolveRequestHandlerTimeoutMillis(label, fallbackMillis) * 2;
     }
 
     protected override async runRequestHandler(crawlingContext: CrawlingContext): Promise<void> {
