@@ -275,6 +275,12 @@ export { Element_2 as Element }
 // @public
 export type ErrorHandler<BaseContext extends CrawlingContext = CrawlingContext, ExtendedContext extends BaseContext = BaseContext> = (inputs: BaseContext & Partial<ExtendedContext>, error: Error) => Awaitable<void>;
 
+// @public
+export const navigationDeadlineKey: unique symbol;
+
+// @public
+export function remainingNavigationWindowMillis(ctx: object, windowMillis: number): number;
+
 // @public (undocumented)
 export type RequestHandler<Context extends CrawlingContext = CrawlingContext> = (inputs: Context) => Awaitable<void>;
 

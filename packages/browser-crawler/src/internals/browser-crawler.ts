@@ -440,9 +440,9 @@ export abstract class BrowserCrawler<
             ...basicCrawlerOptions,
             contextPipelineBuilder: () => {
                 // A single navigation window covers the pre-navigation hooks, the navigation, and the
-                // post-navigation hooks: the whole phase shares one `navigationTimeoutSecs` budget (matching
-                // crawlee for Python), so a slow hook eats into the same window the navigation uses. The
-                // navigation itself is bounded by capping its `gotoOptions.timeout` to the remaining budget.
+                // post-navigation hooks: the whole phase shares one `navigationTimeoutSecs` budget, so a slow
+                // hook eats into the same window the navigation uses. The navigation itself is bounded by
+                // capping its `gotoOptions.timeout` to the remaining budget.
                 const windowGuard = <Ctx extends Context>(
                     step: (ctx: Ctx) => Awaitable<void | Partial<Ctx>>,
                 ): ContextMiddleware<Ctx, Partial<Ctx>> =>

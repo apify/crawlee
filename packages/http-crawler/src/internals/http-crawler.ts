@@ -454,8 +454,8 @@ export class HttpCrawler<
         });
 
         // A single navigation window covers the pre-navigation hooks, the navigation, and the post-navigation
-        // hooks: the whole phase shares one `navigationTimeoutSecs` budget (matching crawlee for Python), so a
-        // slow hook eats into the same window the navigation uses instead of each step being timed on its own.
+        // hooks: the whole phase shares one `navigationTimeoutSecs` budget, so a slow hook eats into the same
+        // window the navigation uses instead of each step being timed on its own.
         const navigationTimedOut = `Navigation timed out after ${this.navigationTimeoutMillis / 1000} seconds.`;
         const windowGuard = <Ctx extends CrawlingContext, Ext>(
             step: (ctx: Ctx) => Awaitable<void | Ext>,

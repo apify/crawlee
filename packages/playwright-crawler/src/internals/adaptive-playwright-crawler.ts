@@ -639,7 +639,7 @@ export class AdaptivePlaywrightCrawler<
 
     /**
      * One request can run the handler twice in sequence - a static attempt falling through to the browser, or a
-     * browser run followed by a rendering-type detection - so the whole-request budgets (backstop, reservation)
+     * browser run followed by a rendering-type detection - so the whole-request budgets (internal timeout, reservation)
      * are sized for two runs. Each individual run is still bounded by its own `requestHandlerTimeoutSecs` window,
      * applied in {@apilink AdaptivePlaywrightCrawler.runRequestHandler|`runRequestHandler`}.
      */
