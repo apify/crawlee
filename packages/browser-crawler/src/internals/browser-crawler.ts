@@ -16,6 +16,7 @@ import type {
 import {
     BasicCrawler,
     browserPoolCookieToToughCookie,
+    CLOUDFLARE_RETRY_CSS_SELECTORS,
     ContextPipeline,
     cookieStringToToughCookie,
     enqueueLinks,
@@ -24,9 +25,9 @@ import {
     OwnedOrInjected,
     RequestState,
     resolveBaseUrlForEnqueueLinksFiltering,
+    RETRY_CSS_SELECTORS,
     SessionError,
     toughCookieToBrowserPoolCookie,
-    tryAbsoluteURL,
     validators,
 } from '@crawlee/basic';
 import type {
@@ -49,7 +50,7 @@ import type {
     ISession,
 } from '@crawlee/types';
 import type { RobotsTxtFile } from '@crawlee/utils';
-import { CLOUDFLARE_RETRY_CSS_SELECTORS, RETRY_CSS_SELECTORS, sleep } from '@crawlee/utils';
+import { sleep, tryAbsoluteURL } from '@crawlee/utils';
 import ow from 'ow';
 import type { ReadonlyDeep } from 'type-fest';
 

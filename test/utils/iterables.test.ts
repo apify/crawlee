@@ -1,5 +1,7 @@
-import { asyncifyIterable, chunkedAsyncIterable, peekableAsyncIterable } from '@crawlee/utils';
+import { chunkedAsyncIterable, peekableAsyncIterable } from '@crawlee/utils';
 import { describe, expect, it } from 'vitest';
+
+import { asyncifyIterable } from '../../packages/utils/src/internals/iterables-internal.js';
 
 describe('asyncifyIterable', () => {
     it('should convert a regular array to async iterable', async () => {

@@ -25,10 +25,10 @@ import {
     Router,
     SessionError,
 } from '@crawlee/basic';
-import { type LoadedRequest, getCookiesFromResponse } from '@crawlee/core';
+import { type LoadedRequest, getCookiesFromResponse, RETRY_CSS_SELECTORS } from '@crawlee/core';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import type { Awaitable, Dictionary, ISession } from '@crawlee/types';
-import { type CheerioRoot, RETRY_CSS_SELECTORS } from '@crawlee/utils';
+import type { CheerioRoot } from '@crawlee/utils';
 import type { RequestLike, ResponseLike } from 'content-type';
 import contentTypeParser from 'content-type';
 import iconv from 'iconv-lite';

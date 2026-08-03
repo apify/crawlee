@@ -1,3 +1,4 @@
+export * from './blocked.js';
 export * from './debug.js';
 export * from './errors.js';
 export * from './autoscaling/index.js';

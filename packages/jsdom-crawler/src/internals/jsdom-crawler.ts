@@ -21,10 +21,9 @@ import {
     NavigationSkippedError,
     resolveBaseUrlForEnqueueLinksFiltering,
     Router,
-    tryAbsoluteURL,
 } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
-import { type CheerioRoot, type RobotsTxtFile, sleep } from '@crawlee/utils';
+import { type CheerioRoot, type RobotsTxtFile, sleep, tryAbsoluteURL } from '@crawlee/utils';
 import type { DOMWindow } from 'jsdom';
 import { JSDOM, ResourceLoader, VirtualConsole } from 'jsdom';
 import ow from 'ow';

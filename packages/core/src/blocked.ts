@@ -1,7 +1,11 @@
+/**
+ * @internal
+ */
 export const CLOUDFLARE_RETRY_CSS_SELECTORS = ['#turnstile-wrapper iframe[src^="https://challenges.cloudflare.com"]'];
 
 /**
  * CSS selectors for elements that should trigger a retry, as the crawler is likely getting blocked.
+ * @internal
  */
 export const RETRY_CSS_SELECTORS = [
     ...CLOUDFLARE_RETRY_CSS_SELECTORS,
@@ -11,6 +15,7 @@ export const RETRY_CSS_SELECTORS = [
 
 /**
  * Content of proxy errors that should trigger a retry, as the proxy is likely getting blocked / is malfunctioning.
+ * @internal
  */
 export const ROTATE_PROXY_ERRORS = [
     'ECONNRESET',

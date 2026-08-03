@@ -10,7 +10,7 @@ import { fileTypeStream } from 'file-type';
 import sax from 'sax';
 import MIMEType from 'whatwg-mimetype';
 
-import { mergeAsyncIterables } from './iterables.js';
+import { mergeAsyncIterables } from './iterables-internal.js';
 import { RobotsTxtFile } from './robots.js';
 
 interface SitemapUrlData {

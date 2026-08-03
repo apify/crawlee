@@ -1,4 +1,3 @@
-export * from './internals/blocked.js';
 export * from './internals/cheerio.js';
 export * from './internals/extract-urls.js';
 export * from './internals/general.js';

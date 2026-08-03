@@ -61,6 +61,7 @@ import {
     RequestQueue,
     RequestState,
     RetryRequestError,
+    ROTATE_PROXY_ERRORS,
     Router,
     ServiceLocator,
     serviceLocator,
@@ -83,7 +84,7 @@ import type {
     SetStatusMessageOptions,
     StorageBackend,
 } from '@crawlee/types';
-import { isAsyncIterable, isIterable, RobotsTxtFile, ROTATE_PROXY_ERRORS } from '@crawlee/utils';
+import { isAsyncIterable, isIterable, RobotsTxtFile } from '@crawlee/utils';
 import { stringify } from 'csv-stringify/sync';
 import { ensureDir, writeJSON } from 'fs-extra/esm';
 import ow, { ArgumentError } from 'ow';

@@ -19,9 +19,6 @@ export { CheerioAPI }
 // @public (undocumented)
 export type CheerioRoot = CheerioAPI;
 
-// @public (undocumented)
-export const CLOUDFLARE_RETRY_CSS_SELECTORS: string[];
-
 // @public
 const DISCORD_REGEX: RegExp;
 
@@ -97,9 +94,6 @@ const LINKEDIN_REGEX: RegExp;
 // @public
 const LINKEDIN_REGEX_GLOBAL: RegExp;
 
-// @public
-export function mergeAsyncIterables<T>(...iterables: AsyncIterable<T>[]): AsyncIterable<T>;
-
 // @public (undocumented)
 export interface OpenGraphProperty {
     // (undocumented)
@@ -147,9 +141,6 @@ const PINTEREST_REGEX: RegExp;
 const PINTEREST_REGEX_GLOBAL: RegExp;
 
 // @public
-export const RETRY_CSS_SELECTORS: string[];
-
-// @public
 export class RobotsTxtFile {
     static find(url: string, options?: {
         signal?: AbortSignal;
@@ -164,9 +155,6 @@ export class RobotsTxtFile {
     parseSitemaps(): Promise<Sitemap>;
     parseUrlsFromSitemaps(): Promise<string[]>;
 }
-
-// @public
-export const ROTATE_PROXY_ERRORS: string[];
 
 // @public
 export class Sitemap {
@@ -246,9 +234,6 @@ const TIKTOK_REGEX: RegExp;
 
 // @public
 const TIKTOK_REGEX_GLOBAL: RegExp;
-
-// @public
-export function tryAbsoluteURL(href: string, baseUrl: string): string | undefined;
 
 // @public
 const TWITTER_REGEX: RegExp;

@@ -8,8 +8,6 @@ import { purlToRegExp } from '@apify/pseudo_url';
 import type { RequestOptions } from '../request.js';
 import type { EnqueueLinksOptions } from './enqueue_links.js';
 
-export { tryAbsoluteURL } from '@crawlee/utils';
-
 const MAX_ENQUEUE_LINKS_CACHE_SIZE = 1000;
 
 /**

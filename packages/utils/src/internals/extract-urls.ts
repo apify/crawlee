@@ -109,6 +109,7 @@ export function extractUrls(options: ExtractUrlsOptions): string[] {
 
 /**
  * Helper function used to validate URLs used when extracting URLs from a page
+ * @internal
  */
 export function tryAbsoluteURL(href: string, baseUrl: string): string | undefined {
     try {
