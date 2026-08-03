@@ -1721,16 +1721,12 @@ export class BasicCrawler<
      */
     private async applyRequestManagerTimeouts(requestManager: IRequestManager): Promise<void> {
         // A router route may hold a request for longer than the crawler's own timeout, and we cannot know
-        // which routes a run will hit, so reserve for the longest one any route asked for. Routing it through
-        // `resolveRequestHandlerTimeoutMillis` picks up a subclass's whole-request scaling (e.g. the adaptive
-        // crawler's two runs). The hint is raise-only, so erring high here is safe.
-        const maxRouteMillis = ((this.requestHandler as Partial<RouterHandler>).getMaxTimeoutSecs?.() ?? 0) * 1000;
-        const handlerMillis = this.resolveRequestHandlerTimeoutMillis(
-            undefined,
-            Math.max(this.requestHandlerTimeoutMillis, maxRouteMillis),
-        );
+        // which routes a run will hit, so reserve for the longest one any route asked for. The hint is
+        // raise-only, so erring high here is safe.
+        const maxRouteTimeoutSecs = (this.requestHandler as Partial<RouterHandler>).getMaxTimeoutSecs?.() ?? 0;
+        const handlerTimeoutSecs = Math.max(this.requestHandlerTimeoutMillis / 1000, maxRouteTimeoutSecs);
 
-        await requestManager.setExpectedRequestProcessingTimeSecs?.(Math.max(handlerMillis / 1000 + 5, 60));
+        await requestManager.setExpectedRequestProcessingTimeSecs?.(Math.max(handlerTimeoutSecs + 5, 60));
     }
 
     /**
@@ -2056,10 +2052,9 @@ export class BasicCrawler<
 
     /**
      * Races the request against the internal timeout (see {@apilink raceWithTimeout}), sized to outlast the phases
-     * that have their own timeout - the navigation, its hooks, and the request handler (which a subclass may run
-     * more than once per request, reflected by its {@apilink BasicCrawler.resolveRequestHandlerTimeoutMillis} override)
-     * - so a legitimately slow request, a per-route override, or a low `CRAWLEE_INTERNAL_TIMEOUT` is not cut short
-     * mid-phase. It takes whichever is larger: the configured internal timeout, or this request's combined phase budget.
+     * that have their own timeout - the navigation, its hooks, and the request handler - so a legitimately slow
+     * request, a per-route override, or a low `CRAWLEE_INTERNAL_TIMEOUT` is not cut short mid-phase. It takes
+     * whichever is larger: the configured internal timeout, or this request's combined phase budget.
      */
     private async withRequestTimeout(crawlingContext: PendingCrawlingContext, work: Promise<void>): Promise<void> {
         const { request } = crawlingContext;
@@ -2071,16 +2066,12 @@ export class BasicCrawler<
 
     /**
      * The request handler timeout for a request with the given route label. A router route may override the
-     * crawler's own `requestHandlerTimeoutSecs`; anything else falls back to `fallbackMillis`. Also drives the
-     * whole-request budgets (the internal timeout and the request reservation), so a subclass that runs the
-     * handler more than once per request - e.g. `AdaptivePlaywrightCrawler` - overrides this to scale it up.
+     * crawler's own `requestHandlerTimeoutSecs`; anything else falls back to `fallbackMillis`.
      *
      * @param label The request's route label, or `undefined` for the default route / no specific request.
-     * @param fallbackMillis Timeout to use when no route overrides it. Subclasses that time the handler
-     *   themselves rather than through {@apilink BasicCrawler.runRequestHandler|`runRequestHandler`} pass
-     *   their own, since theirs may differ from the crawler-level one.
+     * @param fallbackMillis Timeout to use when no route overrides it.
      */
-    protected resolveRequestHandlerTimeoutMillis(
+    private resolveRequestHandlerTimeoutMillis(
         label: string | undefined,
         fallbackMillis = this.requestHandlerTimeoutMillis,
     ): number {

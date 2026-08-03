@@ -79,7 +79,6 @@ export class AdaptivePlaywrightCrawler<ContextExtension = Dictionary<never>, Ext
     protected getPendingRequestCountApproximation(): Promise<number>;
     // (undocumented)
     protected _init(): Promise<void>;
-    protected resolveRequestHandlerTimeoutMillis(label: string | undefined, fallbackMillis?: number): number;
     // (undocumented)
     protected runRequestHandler(crawlingContext: CrawlingContext_2): Promise<void>;
     // (undocumented)

@@ -610,12 +610,12 @@ export class AdaptivePlaywrightCrawler<
             };
 
             // this crawler overrides `runRequestHandler` and times each rendering-type run itself, so it has
-            // to resolve any per-route override too - otherwise routes would be silently ignored here. `super`
-            // gives the per-run window; our own override scales that up for the whole-request budgets.
-            const timeoutMillis = super.resolveRequestHandlerTimeoutMillis(
+            // to resolve any per-route override too - otherwise routes would be silently ignored here
+            const routeTimeoutSecs = (this.requestHandler as Partial<RouterHandler>).getTimeoutSecs?.(
                 context.request.label,
-                this.individualRequestHandlerTimeoutMillis,
             );
+            const timeoutMillis =
+                routeTimeoutSecs === undefined ? this.individualRequestHandlerTimeoutMillis : routeTimeoutSecs * 1000;
 
             await addTimeoutToPromise(
                 async () =>
@@ -636,19 +636,6 @@ export class AdaptivePlaywrightCrawler<
         } finally {
             await Promise.all(deferredCleanup.map((cleanup) => cleanup()));
         }
-    }
-
-    /**
-     * One request can run the handler twice in sequence - a static attempt falling through to the browser, or a
-     * browser run followed by a rendering-type detection - so the whole-request budgets that draw on this (the
-     * internal timeout and the request reservation) are sized for two runs. Each individual run is still bounded
-     * by its own per-run window, resolved from `super` in {@apilink AdaptivePlaywrightCrawler.runRequestHandler|`runRequestHandler`}.
-     */
-    protected override resolveRequestHandlerTimeoutMillis(
-        label: string | undefined,
-        fallbackMillis = this.individualRequestHandlerTimeoutMillis,
-    ): number {
-        return super.resolveRequestHandlerTimeoutMillis(label, fallbackMillis) * 2;
     }
 
     protected override async runRequestHandler(crawlingContext: CrawlingContext): Promise<void> {

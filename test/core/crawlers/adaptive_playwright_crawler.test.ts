@@ -863,18 +863,17 @@ describe('AdaptivePlaywrightCrawler', () => {
         ).rejects.toThrow(RequestValidationError);
     });
 
-    test('reserves a request for both handler runs when a route overrides the timeout', async () => {
+    test('reserves a request for the longest route timeout override', async () => {
         const requestQueue = await RequestQueue.open(`rq-adaptive-${Math.random() * 10000}`);
         const hintSpy = vitest.spyOn(requestQueue, 'setExpectedRequestProcessingTimeSecs');
 
         const router = createAdaptivePlaywrightRouter();
-        // the adaptive crawler runs the handler up to twice per request, so a 300s route must reserve ~600s
         router.addHandler('LIST', async () => {}, { requestHandlerTimeoutSecs: 300 });
 
         const crawler = new AdaptivePlaywrightCrawler({ requestQueue, requestHandler: router });
         await crawler.getRequestManager();
 
         const maxHint = Math.max(...hintSpy.mock.calls.map((call) => call[0]));
-        expect(maxHint).toBeGreaterThanOrEqual(600);
+        expect(maxHint).toBeGreaterThanOrEqual(300);
     });
 });
