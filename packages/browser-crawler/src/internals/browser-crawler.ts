@@ -675,7 +675,9 @@ export abstract class BrowserCrawler<
 
         const { cookies } = await this.browserPool.extractPageState(crawlingContext.page);
         tryCancel();
-        const url = crawlingContext.request.loadedUrl ?? crawlingContext.request.url;
+        // Prefer the live page URL — the handler may have navigated after the initial load.
+        const url =
+            (await crawlingContext.page.url()) || crawlingContext.request.loadedUrl || crawlingContext.request.url;
         for (const cookie of cookies) {
             try {
                 crawlingContext.session.cookieJar.setCookieSync(browserPoolCookieToToughCookie(cookie), url, {
