@@ -542,6 +542,12 @@ export class KeyValueStore implements TransactionParticipant {
         }
 
         if (transaction) {
+            // Validation only, result discarded: the journal snapshot (`structuredClone`) accepts values
+            // JSON cannot, which would otherwise only throw at a later read or at commit.
+            if (value !== null) {
+                serializeValue(value, optionsCopy.contentType);
+            }
+
             // One snapshot serves both the reads and the commit replay; `null` is a tombstone.
             transaction.recordJournalEntry({
                 type: 'keyValueStore',
