@@ -284,6 +284,9 @@ export class RequestQueue implements IStorage, IRequestManager, TransactionParti
     private bufferedRequests(transaction: StorageTransaction): Map<string, Dictionary> {
         const buffered = new Map<string, Dictionary>();
 
+        // Only `deferred` records snapshots, so scanning the journal under `writeThrough` never finds any.
+        if (transaction.policy.requestQueue !== 'deferred') return buffered;
+
         for (const entry of transaction.journal) {
             if (entry.type !== 'requestQueue' || entry.participant !== this) continue;
             for (const request of entry.requests) {

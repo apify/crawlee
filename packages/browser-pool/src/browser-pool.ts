@@ -483,8 +483,7 @@ export class BrowserPool<
         // Besides the cancelTask leak, the wrapper also keeps the per-request *storage transaction*
         // ALS-scoped: without it, a queued callback would resume in the previous request's async
         // context and run request B's storage writes inside request A's transaction.
-        // TODO(crawlee@v4): bump p-limit to v5 and drop this AsyncResource.bind wrapper - but only
-        // once transaction isolation across queued browser acquisitions is covered by a test.
+        // TODO(crawlee@v4): bump p-limit to v5 and drop this AsyncResource.bind wrapper.
         // Limiter is necessary - https://github.com/apify/crawlee/issues/1126
         return this.limiter(
             AsyncResource.bind(async () => {

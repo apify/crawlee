@@ -123,13 +123,13 @@ export interface StorageTransactionView {
     readonly datasetItems: { item: Dictionary; datasetId: string }[];
 
     /**
-     * URLs enqueued to request queues during the transaction, under either write policy.
+     * URLs enqueued to request queues during the transaction, under either write policy. Recorded as
+     * requested, so duplicate, already-present and backend-rejected URLs are included.
      *
-     * One gap: `addRequestsBatched()` splits large inputs into chunks and, unless the caller waits for
-     * all of them (`waitForAllRequestsToBeAdded` or `maxNewRequests`, both of which
-     * {@apilink enqueueLinks} sets when a crawl limit applies), the chunks after the first are added by
-     * a background writer that outlives the transaction. Those additions are applied but not recorded
-     * here.
+     * One gap: unless a caller of `addRequestsBatched()` waits for every chunk
+     * (`waitForAllRequestsToBeAdded` or `maxNewRequests`, both of which {@apilink enqueueLinks} sets when
+     * a crawl limit applies), the chunks after the first are added by a background writer that outlives
+     * the transaction and is not recorded here.
      */
     readonly enqueuedUrls: { url: string; label?: string }[];
 
@@ -254,7 +254,9 @@ export class StorageTransaction implements StorageTransactionView {
 
         for (const entry of this.journal) {
             if (entry.type === 'requestQueue' && entry.writeThrough) continue;
-            groups.set(entry.participant, [...(groups.get(entry.participant) ?? []), entry]);
+            const group = groups.get(entry.participant);
+            if (group) group.push(entry);
+            else groups.set(entry.participant, [entry]);
         }
 
         // A participant only records entries of its own storage type, so the first entry determines
@@ -344,8 +346,8 @@ export function createStorageTransaction(options: StorageTransactionOptions = {}
 /**
  * Runs `callback` inside a new {@apilink StorageTransaction}: storage writes made in the callback are
  * committed when it returns and rolled back when it throws. If a transaction is already active in the
- * current async context, it is reused and its outcome is left to its owner — there are no nested
- * transaction semantics.
+ * current async context, it is reused and its outcome is left to its owner (and `options` are ignored)
+ * — there are no nested transaction semantics.
  */
 export async function withStorageTransaction<T>(
     callback: (transaction: StorageTransaction) => Awaitable<T>,

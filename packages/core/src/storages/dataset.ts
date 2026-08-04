@@ -366,9 +366,11 @@ export class Dataset<Data extends Dictionary = Dictionary> implements Transactio
             }
         }
 
-        // One `pushData` call with all journaled items, in order - as close to atomic as the backend allows.
+        // One backend call with all journaled items, in order - as close to atomic as the backend allows.
+        // Straight to the backend: the items were validated and snapshotted at write time.
         if (items.length > 0) {
-            await this.pushData(items);
+            this.statsTracker.add('writeCount');
+            await this.backend.pushData(items);
         }
     }
 

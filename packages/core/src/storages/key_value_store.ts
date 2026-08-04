@@ -1023,16 +1023,13 @@ function normalizeSerializedValue(value: ReturnType<typeof serializeValue>['valu
 
 /** Computes the key listing item (serialized byte size and content type) of a buffered entry. */
 function bufferedKeyItemData(key: string, entry: { value: unknown; options?: RecordOptions }): KeyValueStoreItemData {
-    try {
-        const serialized = serializeValue(entry.value, entry.options?.contentType);
-        return {
-            key,
-            size: normalizeSerializedValue(serialized.value).byteLength,
-            contentType: serialized.contentType,
-        };
-    } catch {
-        return { key, size: 0, contentType: entry.options?.contentType ?? 'application/octet-stream' };
-    }
+    const serialized = serializeValue(entry.value, entry.options?.contentType);
+
+    return {
+        key,
+        size: normalizeSerializedValue(serialized.value).byteLength,
+        contentType: serialized.contentType,
+    };
 }
 
 /**
