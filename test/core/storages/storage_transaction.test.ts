@@ -565,6 +565,31 @@ describe('RequestQueue in a transaction', () => {
         await expect(queue.getInfo()).resolves.toMatchObject({ totalRequestCount: 1, pendingRequestCount: 1 });
     });
 
+    test('deferred: requests the backend rejects at commit are warned about and skipped', async () => {
+        const queue = await RequestQueue.open();
+        const warningSpy = vitest.spyOn((queue as any).log, 'warning');
+
+        // The backend refuses the request outright. Transient failures are the backend's own job to
+        // retry, so what it reports as unprocessed is a semantic rejection - the commit warns and
+        // moves on instead of dropping the link silently (or failing the whole request over it).
+        const addBatchSpy = vitest.spyOn(queue.backend, 'addBatchOfRequests').mockImplementation(async (batch) => ({
+            processedRequests: [],
+            unprocessedRequests: batch.map((r) => ({ uniqueKey: r.uniqueKey, url: r.url })),
+        }));
+
+        await withStorageTransaction(
+            async () => {
+                await queue.addRequests([{ url: 'https://example.com/rejected' }]);
+            },
+            { policy: { requestQueue: 'deferred' } },
+        );
+
+        expect(addBatchSpy).toHaveBeenCalledTimes(1);
+        expect(warningSpy).toHaveBeenCalledTimes(1);
+        expect(warningSpy.mock.calls[0][0]).toMatch(/rejected by the request queue while committing/);
+        await expect(queue.getTotalCount()).resolves.toBe(0); // the rejected request never landed
+    });
+
     test('deferred: a rolled-back transaction leaves the dedup caches untouched', async () => {
         const queue = await RequestQueue.open();
 

@@ -377,13 +377,27 @@ export class RequestQueue implements IStorage, IRequestManager, TransactionParti
             if (requests.length === 0) continue;
 
             this.statsTracker.add('writeCount');
-            const { processedRequests } = await this.backend.addBatchOfRequests(requests, { forefront });
+            const { processedRequests, unprocessedRequests } = await this.backend.addBatchOfRequests(requests, {
+                forefront,
+            });
 
             // Only now, with the real backend-assigned ids, may the shared dedup caches be populated.
             for (const processed of processedRequests) {
                 const cacheKey = getRequestId(processed.uniqueKey);
                 this.cacheRequest(cacheKey, { ...processed, forefront });
                 this.requestSeenCache.add(cacheKey, processed.requestId);
+            }
+
+            if (unprocessedRequests.length > 0) {
+                // Warn and skip, rather than retry or fail. `unprocessedRequests` is what remains after
+                // the backend's own transient-error handling - a semantic rejection that retrying here
+                // would only re-poke. And failing the commit would let one malformed request hold the
+                // whole transaction hostage.
+                this.log.warning(
+                    'Some requests were rejected by the request queue while committing a storage transaction and will be skipped. ' +
+                        "This usually means the request data is malformed (e.g. an invalid 'userData' shape).",
+                    { unprocessedRequests },
+                );
             }
         }
     }
