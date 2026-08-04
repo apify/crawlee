@@ -840,7 +840,6 @@ async function handleCloudflareChallenge(
     return (await page.reload()) ?? undefined;
 }
 
-/** @internal */
 export interface PlaywrightContextUtils {
     /**
      * Injects a JavaScript file into current `page`.

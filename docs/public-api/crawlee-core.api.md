@@ -9,6 +9,7 @@ import { AsyncEventEmitter } from '@vladfrangu/async_event_emitter';
 import type { Awaitable } from '@crawlee/types';
 import type { BaseHttpClient } from '@crawlee/types';
 import type { BatchAddRequestsResult } from '@crawlee/types';
+import type { Constructor } from '@crawlee/types';
 import { CookieJar } from 'tough-cookie';
 import { CrawleeLogger } from '@crawlee/types';
 import type { CrawleeLoggerOptions } from '@crawlee/types';
@@ -31,6 +32,7 @@ import { ParseSitemapOptions } from '@crawlee/utils';
 import type { ProcessedRequest } from '@crawlee/types';
 import type { ProxyInfo } from '@crawlee/types';
 import { PseudoUrl } from '@apify/pseudo_url';
+import type { QueueOperationInfo } from '@crawlee/types';
 import type { ReadonlyDeep } from 'type-fest';
 import type { RequestQueueBackend } from '@crawlee/types';
 import type { RequestQueueInfo } from '@crawlee/types';
@@ -417,6 +419,11 @@ export interface DatasetStats {
 export const defaultRoute: unique symbol;
 
 // @public
+export type DefaultRouteUserData<Routes, Fallback extends Dictionary> = Routes extends {
+    [defaultRoute]: infer DefaultUserData extends Dictionary;
+} ? DefaultUserData : Fallback;
+
+// @public
 export interface DefaultStorageIdentifier {
     // (undocumented)
     alias?: never;
@@ -791,6 +798,18 @@ export interface KeyValueStoreStats {
     readCount: number;
     writeCount: number;
 }
+
+// @public
+export type LabeledSource<Routes extends Record<keyof Routes, Dictionary>> = string extends keyof Routes ? string | Source : string | Request_2 | ({
+    requestsFromUrl?: string;
+    regex?: RegExp;
+} & ({
+    [Label in keyof Routes & string]: Omit<Partial<RequestOptions<Routes[Label]>>, 'label'> & {
+        label: Label;
+    };
+}[keyof Routes & string] | (Omit<Partial<RequestOptions>, 'label'> & {
+    label?: undefined;
+})));
 
 // @public (undocumented)
 export type LoadedRequest<R extends Request_2> = WithRequired<R, 'id' | 'loadedUrl'>;
@@ -1213,6 +1232,14 @@ export class RequestQueue implements IStorage, IRequestManager {
     reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
     setExpectedRequestProcessingTimeSecs(secs: number): Promise<void>;
     get stats(): RequestQueueStats;
+}
+
+// @public (undocumented)
+export interface RequestQueueOperationInfo extends QueueOperationInfo {
+    // (undocumented)
+    forefront: boolean;
+    // (undocumented)
+    uniqueKey: string;
 }
 
 // @public (undocumented)
@@ -1693,6 +1720,16 @@ export { StorageBackend }
 export { StorageIdentifier }
 
 // @public
+export class StorageInstanceManager {
+    clearCache(): void;
+    openStorage<TStorage extends IStorage>(cls: Constructor<TStorage>, input: (ExplicitStorageIdentifier | DefaultStorageIdentifier) & {
+        backendOpener: () => Promise<DatasetBackend | KeyValueStoreBackend | RequestQueueBackend>;
+        backendCacheKey: Hashable;
+    }): Promise<TStorage>;
+    removeFromCache(instance: IStorage): void;
+}
+
+// @public
 export interface StorageOpenOptions {
     configuration?: Configuration;
     httpClient?: BaseHttpClient;
@@ -1733,6 +1770,12 @@ export interface TaskLoopPredicates {
 
 export { tryAbsoluteURL }
 
+// @public
+export type TypedContextAddRequests<Routes extends Record<keyof Routes, Dictionary>> = (requestsLike: ReadonlyDeep<LabeledSource<Routes>[]>, options?: ReadonlyDeep<RequestQueueOperationOptions>) => Promise<void>;
+
+// @public
+export type TypedContextEnqueueLinks<EnqueueLinks, Routes extends Record<keyof Routes, Dictionary>> = EnqueueLinks extends (options?: infer Options) => infer Result ? (options?: TypedEnqueueLinksOptions<Options, Routes>) => Result : EnqueueLinks extends (options: infer Options) => infer Result ? (options: TypedEnqueueLinksOptions<Options, Routes>) => Result : EnqueueLinks;
+
 // @public (undocumented)
 export type UrlPatternObject = {
     glob?: string;
@@ -1751,6 +1794,11 @@ export interface UseStateOptions {
 
 // @public
 export const withCheckedStorageAccess: <T>(checkFunction: () => void, callback: () => Awaitable<T>) => Promise<T>;
+
+// @public (undocumented)
+export type WithRequired<T, K extends keyof T> = T & {
+    [P in K]-?: T[P];
+};
 
 // (No @packageDocumentation comment for this package)
 

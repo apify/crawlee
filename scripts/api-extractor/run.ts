@@ -27,6 +27,11 @@ import ts from 'typescript';
  * Extractor snapshots the imports before it trims the non-`@public` declarations, so
  * `@internal`-only types would otherwise linger there (see `pruneUnusedImports`).
  *
+ * We also act on two of API Extractor's analyzer messages, both of which mean the report
+ * references a symbol it never declares: `ae-incompatible-release-tags` fails the run (a
+ * `@public` signature referencing an `@internal` type is a tagging bug to fix in the source),
+ * while `ae-forgotten-export` is only reported (see `FATAL_MESSAGE`/`WARNING_MESSAGE`).
+ *
  * When running under GitHub Actions (or with `--github`), failures are additionally emitted
  * as workflow commands (`::error::`) so they show up as inline annotations in the CI run.
  */
@@ -67,6 +72,22 @@ const TS_IGNORE_LINE = /^\s*\/\/ @ts-ignore optional peer dependency or compatib
 const IGNORE_TAG = /(\/\*\*|\*)(\s*)@ignore\b/g;
 // CLI binary and project scaffolding are tooling, not an importable API where we promise BC.
 const EXCLUDED = new Set(['@crawlee/cli', '@crawlee/templates']);
+
+// The two API Extractor analyzer messages we act on (everything else is silenced to `none`
+// in `api-extractor.base.json`); both describe a symbol the report references but never
+// declares, which makes the committed surface map internally inconsistent.
+//
+//   ae-incompatible-release-tags — a @public symbol's signature references an @internal one.
+//     The referenced type is trimmed from the @public report, so the surface map is left
+//     referring to a name that appears nowhere in it. Fatal: this is a genuine tagging bug,
+//     and the fix belongs in the source (drop the tag — untagged is implicitly public — or
+//     keep the type out of the public signature).
+//   ae-forgotten-export — a referenced symbol isn't exported from the entry point at all.
+//     Same dangling-reference symptom, but a much larger backlog and often intentional
+//     (helper types we don't want to publish), so it's reported without failing the run.
+const FATAL_MESSAGE = 'ae-incompatible-release-tags';
+const WARNING_MESSAGE = 'ae-forgotten-export';
+type AnalyzerMessageId = typeof FATAL_MESSAGE | typeof WARNING_MESSAGE;
 
 interface PackageManifest {
     name: string;
@@ -236,9 +257,23 @@ function extract(pkgDir: string, pkgJsonPath: string, entry: string, paths?: Rec
             },
         },
     });
+    // Collected rather than printed, so `main` decides severity and the output stays grouped
+    // per package. Duplicates are common (one message per overload/declaration), hence the Set.
+    const diagnostics: Record<AnalyzerMessageId, Set<string>> = {
+        'ae-incompatible-release-tags': new Set(),
+        'ae-forgotten-export': new Set(),
+    };
     // Let API Extractor always write the staged report (localBuild), then diff it against the
     // committed report ourselves so `--verify` keys off the stable `<base>.api.md` name.
-    Extractor.invoke(config, { localBuild: true, showVerboseMessages: false });
+    Extractor.invoke(config, {
+        localBuild: true,
+        showVerboseMessages: false,
+        messageCallback: (message) => {
+            diagnostics[message.messageId as AnalyzerMessageId]?.add(message.text);
+            // Suppress API Extractor's own console output; everything else is already `none`.
+            message.handled = true;
+        },
+    });
 
     const stagedPath = resolve(stagingFolder, stagedFileName(name));
     const staged = pruneUnusedImports(readFileSync(stagedPath, 'utf8'));
@@ -248,8 +283,10 @@ function extract(pkgDir: string, pkgJsonPath: string, entry: string, paths?: Rec
     const committed = existsSync(committedPath) ? readFileSync(committedPath, 'utf8') : undefined;
     const apiReportChanged = staged !== committed;
     if (apiReportChanged && !verify) writeFileSync(committedPath, staged);
-    return { apiReportChanged, committedPath, stagedPath };
+    return { apiReportChanged, committedPath, stagedPath, diagnostics };
 }
+
+type ExtractResult = ReturnType<typeof extract>;
 
 // Render the surface diff between the committed report and the freshly staged one, so a
 // failing `--verify` shows *what* changed rather than only telling you to re-run `api:extract`.
@@ -318,9 +355,27 @@ function main() {
                 continue;
             }
 
-            // Up to date iff the committed report didn't change. Extractor warnings are
-            // diagnostics, not BC-surface changes, so we key success on apiReportChanged.
-            const ok = (result: { apiReportChanged: boolean; committedPath: string; stagedPath: string }, via = '') => {
+            // Up to date iff the committed report didn't change, and the report is internally
+            // consistent (no @public symbol referencing a trimmed @internal one). Both modes
+            // enforce consistency: unlike an out-of-date report, regenerating can't fix it.
+            const ok = (result: ExtractResult, via = '') => {
+                const forgotten = result.diagnostics[WARNING_MESSAGE];
+                for (const text of forgotten) console.warn(`  ! ${pkg.name}: ${text}`);
+                // One annotation per package rather than per symbol: there is a long tail of
+                // these, and GitHub caps annotations per run — spraying them would bury the
+                // errors that actually fail the build.
+                if (forgotten.size > 0) {
+                    ghCommand('warning', `${pkg.name}: ${forgotten.size} symbol(s) referenced by the public API but not exported from the entry point: ${[...forgotten].map((text) => text.match(/"([^"]+)"/)?.[1] ?? text).join(', ')}`);
+                }
+
+                const inconsistent = result.diagnostics[FATAL_MESSAGE];
+                for (const text of inconsistent) {
+                    const message = `${pkg.name}: ${text} — the referenced symbol is trimmed from the public report, leaving a dangling reference; tag it @public or keep it out of the public signature`;
+                    console.error(`✗ ${message}`);
+                    ghCommand('error', message);
+                    failed++;
+                }
+
                 if (verify && result.apiReportChanged) {
                     const message = `${pkg.name}: report out of date${via} — run "pnpm api:extract" and commit the changes in docs/public-api/`;
                     console.error(`✗ ${pkg.name}: report out of date${via}`);
@@ -330,7 +385,7 @@ function main() {
                     if (diff) console.error(`${diff}\n`);
                     ghCommand('error', message);
                     failed++;
-                } else {
+                } else if (inconsistent.size === 0) {
                     console.log(`✓ ${pkg.name}${via}`);
                 }
             };

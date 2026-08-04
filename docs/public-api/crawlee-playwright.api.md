@@ -252,6 +252,22 @@ declare namespace playwrightClickElements {
     }
 }
 
+// @public (undocumented)
+interface PlaywrightContextUtils {
+    blockRequests(options?: BlockRequestsOptions): Promise<void>;
+    closeCookieModals(): Promise<void>;
+    compileScript(scriptString: string, ctx?: Dictionary): CompiledScriptFunction;
+    enqueueLinksByClickingElements(options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestManager'>): Promise<BatchAddRequestsResult>;
+    handleCloudflareChallenge(options?: HandleCloudflareChallengeOptions): Promise<Response_2 | undefined>;
+    infiniteScroll(options?: InfiniteScrollOptions): Promise<void>;
+    injectFile(filePath: string, options?: InjectFileOptions): Promise<unknown>;
+    injectJQuery(): Promise<unknown>;
+    listDownloads(): Promise<Download[]>;
+    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
+    saveSnapshot(options?: SaveSnapshotOptions): Promise<void>;
+    waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
+}
+
 // @public
 export class PlaywrightCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends PlaywrightCrawlingContext = PlaywrightCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<PlaywrightCrawlingContext['request']>>> extends BrowserCrawler<Page, Response_2, {
     browserPlugins: [PlaywrightPlugin];

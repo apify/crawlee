@@ -106,6 +106,9 @@ export interface DatasetInfo {
     name?: string;
 }
 
+// @public (undocumented)
+export type Dictionary<T = any> = Record<PropertyKey, T>;
+
 // @public
 export interface HttpRequest {
     // (undocumented)

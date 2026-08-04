@@ -165,6 +165,22 @@ declare namespace puppeteerClickElements {
     }
 }
 
+// @public (undocumented)
+interface PuppeteerContextUtils {
+    addInterceptRequestHandler(handler: InterceptHandler): Promise<void>;
+    blockRequests(options?: BlockRequestsOptions): Promise<void>;
+    closeCookieModals(): Promise<void>;
+    compileScript(scriptString: string, ctx?: Dictionary): CompiledScriptFunction;
+    enqueueLinksByClickingElements(options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestManager'>): Promise<BatchAddRequestsResult>;
+    infiniteScroll(options?: InfiniteScrollOptions): Promise<void>;
+    injectFile(filePath: string, options?: InjectFileOptions): Promise<unknown>;
+    injectJQuery(): Promise<unknown>;
+    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
+    removeInterceptRequestHandler(handler: InterceptHandler): Promise<void>;
+    saveSnapshot(options?: SaveSnapshotOptions): Promise<void>;
+    waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
+}
+
 // @public
 export class PuppeteerCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends PuppeteerCrawlingContext = PuppeteerCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<PuppeteerCrawlingContext['request']>>> extends BrowserCrawler<Page, HTTPResponse, {
     browserPlugins: [PuppeteerPlugin];

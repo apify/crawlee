@@ -575,6 +575,17 @@ export abstract class RemoteBrowserProvider<TContext extends Record<string, unkn
 }
 
 // @public
+export interface RemoteConnection {
+    release(token: number): Promise<void>;
+    resolve(options?: {
+        proxyUrl?: string;
+    }): Promise<{
+        url: string;
+        token: number;
+    }>;
+}
+
+// @public
 export interface RemoteConnectionParameters {
     connectOptions?: Record<string, unknown>;
     protocol?: 'cdp' | 'playwright';

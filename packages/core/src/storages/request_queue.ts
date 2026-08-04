@@ -1022,9 +1022,6 @@ export interface RequestQueueOperationOptions {
     cache?: boolean;
 }
 
-/**
- * @internal
- */
 export interface RequestQueueOperationInfo extends QueueOperationInfo {
     uniqueKey: string;
     forefront: boolean;

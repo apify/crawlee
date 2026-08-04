@@ -39,8 +39,6 @@ export type RemoteBrowserEndpoint =
  * the pool. The plugin calls {@apilink RemoteConnection.resolve|resolve} before connecting, stores the
  * returned `token` on its launch context, and the controller later calls
  * {@apilink RemoteConnection.release|release} with that token when the browser closes.
- *
- * @internal
  */
 export interface RemoteConnection {
     /** Resolves the endpoint for a single browser launch. The `token` identifies the session for release. */
