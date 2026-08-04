@@ -383,6 +383,9 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
      * 2. because they don't match enqueueLinks filters,
      * 3. because they are redirected to a URL that doesn't match the enqueueLinks strategy,
      * 4. or because the {@apilink BasicCrawlerOptions.maxRequestsPerCrawl|`maxRequestsPerCrawl`} limit has been reached
+     *
+     * When `enqueueLinks` is called with its own `onSkippedRequest` callback, both are invoked — this one first,
+     * then the `enqueueLinks` one.
      */
     onSkippedRequest?: SkippedRequestCallback;
 
@@ -1746,8 +1749,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     /**
      * Wrapper around the crawling context's `enqueueLinks` method:
      * - Injects `crawlDepth` to each request being added based on the crawling context request.
-     * - Provides defaults for the `enqueueLinks` options based on the crawler configuration.
-     *      - These options can be overridden by the user.
+     * - Combines the `enqueueLinks` options with the crawler configuration - the user options take precedence,
+     *   but the crawler limits are always enforced (the `limit` is capped by the remaining `maxRequestsPerCrawl`
+     *   budget and skipped requests are always reported to the crawler too).
      * @internal
      */
     protected async enqueueLinksWithCrawlDepth(
@@ -1768,6 +1772,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             return options.transformRequestFunction ? options.transformRequestFunction(newRequest) : newRequest;
         };
 
+        const limit = this.calculateEnqueuedRequestLimit(options.limit);
+
         // Create a request-scoped callback that logs enqueueLimit once per request handler call
         // Only log if an explicit limit was passed to enqueueLinks (not the internal maxRequestsPerCrawl-derived limit)
         let loggedEnqueueLimitForThisRequest = false;
@@ -1775,13 +1781,16 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             if (skippedOptions.reason === 'enqueueLimit') {
                 if (!loggedEnqueueLimitForThisRequest && options.limit !== undefined) {
                     this.log.info(
-                        `Skipping URLs in the handler for ${request.url} due to the enqueueLinks limit of ${options.limit}.`,
+                        limit === options.limit
+                            ? `Skipping URLs in the handler for ${request.url} due to the enqueueLinks limit of ${options.limit}.`
+                            : `Skipping URLs in the handler for ${request.url} due to the remaining maxRequestsPerCrawl budget of ${limit}, which is lower than the enqueueLinks limit of ${options.limit}.`,
                     );
                     loggedEnqueueLimitForThisRequest = true;
                 }
             }
 
             await this.handleSkippedRequest(skippedOptions);
+            await options.onSkippedRequest?.(skippedOptions);
         };
 
         // `enqueueLinks` applies `options.label`/`options.userData` to every newly enqueued request, so a single
@@ -1789,15 +1798,15 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         await this.validateRequestUserData({ label: options.label, userData: options.userData });
 
         return enqueueLinks({
-            requestQueue,
-            robotsTxtFile: await this.getRobotsTxtFileForUrl(request!.url),
-            respectRobotsTxtFile: this.respectRobotsTxtFile,
-            onSkippedRequest,
-            limit: this.calculateEnqueuedRequestLimit(options.limit),
-
-            // Allow user options to override defaults set above ⤴
             ...options,
 
+            // The options below are merged with the user options, so an explicitly `undefined` value
+            // (e.g. `enqueueLinks({ urls, limit: config.limit })`) cannot discard the crawler defaults ⤵
+            requestQueue: options.requestQueue ?? requestQueue,
+            robotsTxtFile: options.robotsTxtFile ?? (await this.getRobotsTxtFileForUrl(request.url)),
+            respectRobotsTxtFile: options.respectRobotsTxtFile ?? this.respectRobotsTxtFile,
+            onSkippedRequest,
+            limit,
             transformRequestFunction: transformRequestFunctionWrapper,
         });
     }
