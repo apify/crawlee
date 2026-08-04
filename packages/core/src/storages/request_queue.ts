@@ -333,8 +333,13 @@ export class RequestQueue implements IStorage, IRequestManager, TransactionParti
             };
         }
 
-        // The JSON snapshot matches what a backend would persist; it deliberately contains no `id`.
         const snapshot = JSON.parse(JSON.stringify(request)) as Dictionary;
+
+        // Strip-list, not allow-list: every user-facing field flows through, including ones added to
+        // `Request` in the future. The exceptions are `id` and `handledAt`, the two backend-owned
+        // lifecycle fields.
+        delete snapshot.id;
+        delete snapshot.handledAt;
 
         transaction.recordJournalEntry({
             type: 'requestQueue',

@@ -6,6 +6,7 @@ import {
     getRequestId,
     KeyValueStore,
     MemoryStorageBackend,
+    Request,
     RequestQueue,
     serviceLocator,
     withDirectStorageAccess,
@@ -526,6 +527,42 @@ describe('RequestQueue in a transaction', () => {
         expect(committedRequests[0].id).toBeUndefined();
 
         await expect(queue.getTotalCount()).resolves.toBe(1);
+    });
+
+    test('deferred: a re-enqueued Request instance does not leak its id or handledAt into the commit', async () => {
+        const queue = await RequestQueue.open();
+        const addBatchSpy = vitest.spyOn(queue.backend, 'addBatchOfRequests');
+
+        // Looks like it came from a backend: foreign id, already handled.
+        const reenqueued = new Request({
+            url: 'https://example.com/old',
+            id: 'foreign-backend-id',
+            handledAt: new Date().toISOString(),
+        });
+
+        await withStorageTransaction(
+            async () => {
+                const info = await queue.addRequests([reenqueued]);
+                expect(info.processedRequests[0].wasAlreadyPresent).toBe(false);
+            },
+            { policy: { requestQueue: 'deferred' } },
+        );
+
+        // The contract under test is what crosses the backend boundary at commit: the stale id must not
+        // reach the storage backend (a validating backend would reject it, failing the whole commit),
+        // nor the handled marker (the request would be buried as already-handled).
+        expect(addBatchSpy).toHaveBeenCalledTimes(1);
+        const [committedRequests] = addBatchSpy.mock.calls[0];
+        expect(committedRequests).toHaveLength(1);
+        expect(committedRequests[0].id).toBeUndefined();
+        expect(committedRequests[0].handledAt).toBeUndefined();
+
+        // Which id the request ends up with is deliberately *not* asserted - that is the backend's own
+        // affair: it deduplicates on `uniqueKey` and assigns the id itself (for the bundled backends,
+        // the same `getRequestId(uniqueKey)` hash the provisional id was derived from, so the stored
+        // request lands with the very id the journal time promised). Either way, it lands pending and
+        // fetchable.
+        await expect(queue.getInfo()).resolves.toMatchObject({ totalRequestCount: 1, pendingRequestCount: 1 });
     });
 
     test('deferred: a rolled-back transaction leaves the dedup caches untouched', async () => {
