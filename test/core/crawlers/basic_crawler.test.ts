@@ -8,6 +8,7 @@ import type { Session } from '@crawlee/basic';
 import {
     BasicCrawler,
     CriticalError,
+    Dataset,
     defaultRoute,
     EventType,
     KeyValueStore,
@@ -2483,6 +2484,128 @@ describe('BasicCrawler', () => {
             // Both the start URL and the new URL should have been visited
             expect(visitedUrls).toContain('http://example.com/');
             expect(visitedUrls).toContain('http://example.com/new');
+        });
+    });
+
+    describe('transactional storage', () => {
+        test('a failing request handler leaves no dataset/KVS writes, but write-through enqueues survive', async () => {
+            const crawler = new BasicCrawler({
+                maxRequestRetries: 0,
+                requestHandler: async ({ request, pushData, addRequests }) => {
+                    if (request.label === 'FAIL') {
+                        await pushData({ from: 'failing-handler' });
+                        await (await KeyValueStore.open()).setValue('failing-key', { a: 1 });
+                        await addRequests([{ url: `http://${HOSTNAME}:${port}/child`, label: 'CHILD' }]);
+                        throw new Error('handler failed');
+                    }
+
+                    await pushData({ from: 'child-handler' });
+                },
+            });
+
+            await crawler.run([{ url: `http://${HOSTNAME}:${port}/`, label: 'FAIL' }]);
+
+            // The write-through enqueue survived the failure and the child was crawled...
+            const dataset = await Dataset.open();
+            await expect(dataset.getData()).resolves.toMatchObject({ items: [{ from: 'child-handler' }] });
+
+            // ...while the failing handler's other writes were rolled back.
+            await expect(KeyValueStore.getValue('failing-key')).resolves.toBeNull();
+        });
+
+        test('a retried handler does not double-write, and the deferred queue policy reaches the transaction', async () => {
+            const crawler = new BasicCrawler({
+                maxRequestRetries: 1,
+                transactionalStorage: { requestQueue: 'deferred' },
+                requestHandler: async ({ request, pushData, addRequests }) => {
+                    if (request.label === 'CHILD') {
+                        return;
+                    }
+
+                    await pushData({ attempt: request.retryCount });
+                    // A different child per attempt, so `uniqueKey` dedup cannot mask a write-through
+                    // enqueue of the failed attempt.
+                    await addRequests([
+                        { url: `http://${HOSTNAME}:${port}/child-${request.retryCount}`, label: 'CHILD' },
+                    ]);
+
+                    if (request.retryCount === 0) {
+                        throw new Error('first attempt fails');
+                    }
+                },
+            });
+
+            await crawler.run([`http://${HOSTNAME}:${port}/`]);
+
+            // Exactly one copy of the data, from the successful attempt.
+            const dataset = await Dataset.open();
+            await expect(dataset.getData()).resolves.toMatchObject({ total: 1, items: [{ attempt: 1 }] });
+
+            // Only the successful attempt's enqueue reached the queue: the seed plus `child-1`.
+            // A write-through enqueue of the failed attempt would have left `child-0` behind as well.
+            await expect((await crawler.getRequestQueue()).getTotalCount()).resolves.toBe(2);
+        });
+
+        test('errorHandler and failedRequestHandler writes reach real storage', async () => {
+            const crawler = new BasicCrawler({
+                maxRequestRetries: 1,
+                requestHandler: async ({ pushData }) => {
+                    await pushData({ from: 'handler' });
+                    throw new Error('always fails');
+                },
+                errorHandler: async () => {
+                    await (await KeyValueStore.open()).setValue('error-handler', { ran: true });
+                },
+                failedRequestHandler: async () => {
+                    await (await KeyValueStore.open()).setValue('failed-request-handler', { ran: true });
+                },
+            });
+
+            await crawler.run([`http://${HOSTNAME}:${port}/`]);
+
+            await expect(KeyValueStore.getValue('error-handler')).resolves.toEqual({ ran: true });
+            await expect(KeyValueStore.getValue('failed-request-handler')).resolves.toEqual({ ran: true });
+
+            const dataset = await Dataset.open();
+            await expect(dataset.getData()).resolves.toMatchObject({ total: 0 });
+        });
+
+        test('transactionalStorage: false disables the mechanism entirely', async () => {
+            const crawler = new BasicCrawler({
+                maxRequestRetries: 0,
+                transactionalStorage: false,
+                requestHandler: async ({ pushData }) => {
+                    await pushData({ from: 'failing-handler' });
+                    throw new Error('handler failed');
+                },
+            });
+
+            await crawler.run([`http://${HOSTNAME}:${port}/`]);
+
+            // Without transactions, the write of the failing handler lands immediately and stays.
+            const dataset = await Dataset.open();
+            await expect(dataset.getData()).resolves.toMatchObject({ items: [{ from: 'failing-handler' }] });
+        });
+
+        test('onSkippedRequest bookkeeping survives an in-pipeline robots.txt skip', async () => {
+            const crawler = new BasicCrawler({
+                maxRequestRetries: 0,
+                respectRobotsTxtFile: true,
+                requestHandler: async () => {},
+                onSkippedRequest: async ({ url, reason }) => {
+                    await (await KeyValueStore.open()).setValue('skipped', { url, reason });
+                },
+            });
+
+            // Let the request into the crawler's queue, then disallow it during processing, so the skip
+            // happens inside the request's transaction scope.
+            const queue = await crawler.getRequestQueue();
+            await queue.addRequest({ url: `http://${HOSTNAME}:${port}/disallowed` });
+            vitest.spyOn(crawler as any, 'isAllowedBasedOnRobotsTxtFile').mockResolvedValue(false);
+
+            await crawler.run();
+
+            await expect(KeyValueStore.getValue('skipped')).resolves.toMatchObject({ reason: 'robotsTxt' });
         });
     });
 

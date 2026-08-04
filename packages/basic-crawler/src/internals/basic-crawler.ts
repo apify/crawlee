@@ -29,6 +29,7 @@ import type {
     StatisticsOptions,
     StatisticState,
     StorageIdentifier,
+    StorageWritePolicy,
     TaskLoopPredicates,
     TypedRequestsLike,
 } from '@crawlee/core';
@@ -41,7 +42,9 @@ import {
     ContextPipelineCleanupError,
     ContextPipelineInitializationError,
     ContextPipelineInterruptedError,
+    createStorageTransaction,
     CriticalError,
+    currentStorageTransaction,
     Dataset,
     enqueueLinks,
     EnqueueStrategy,
@@ -70,6 +73,7 @@ import {
     Statistics,
     validateUserData,
     validators,
+    withDirectStorageAccess,
 } from '@crawlee/core';
 import { FetchHttpClient } from '@crawlee/http-client';
 import type {
@@ -492,6 +496,21 @@ export interface BasicCrawlerOptions<
     id?: string;
 
     /**
+     * Makes the storage writes performed while handling a request atomic with respect to the request
+     * succeeding: they are recorded in a {@apilink StorageTransaction} spanning the whole request
+     * lifecycle and only applied when the request handler succeeds, so a thrown handler leaves no partial
+     * writes behind and a retry does not double-write. Reads within the handler see its own writes.
+     *
+     * `false` disables the mechanism entirely; an object overrides the per-storage-type
+     * {@apilink StorageWritePolicy} (e.g. `{ requestQueue: 'deferred' }` for all-or-nothing enqueues).
+     * {@apilink withDirectStorageAccess} is the per-call-site escape hatch; `useState()` is deliberately
+     * *not* transactional.
+     *
+     * @default true
+     */
+    transactionalStorage?: boolean | Partial<StorageWritePolicy>;
+
+    /**
      * An array of HTTP response [Status Codes](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status) to be excluded from error consideration.
      * By default, status codes >= 500 trigger errors.
      */
@@ -766,6 +785,10 @@ export class BasicCrawler<
     protected readonly httpClient: BaseHttpClient;
     protected readonly retryOnBlocked: boolean;
     private respectRobotsTxtFile: boolean | { userAgent?: string };
+    /** Whether {@apilink BasicCrawler.runInStorageTransaction|`runInStorageTransaction()`} opens a transaction at all. */
+    protected readonly transactionalStorageEnabled: boolean;
+    /** The resolved per-storage-type write policy overrides forwarded to each request's transaction. */
+    protected readonly storageWritePolicy: Partial<StorageWritePolicy>;
     protected readonly onSkippedRequest?: SkippedRequestCallback;
     private _closeEvents?: boolean;
     private loggedPerRun = new Set<string>();
@@ -807,6 +830,7 @@ export class BasicCrawler<
         blockedStatusCodes: ow.optional.array.ofType(ow.number),
         retryOnBlocked: ow.optional.boolean,
         respectRobotsTxtFile: ow.optional.any(ow.boolean, ow.object),
+        transactionalStorage: ow.optional.any(ow.boolean, ow.object),
         onSkippedRequest: ow.optional.function,
         httpClient: ow.optional.object,
 
@@ -868,6 +892,7 @@ export class BasicCrawler<
             blockedStatusCodes: blockedStatusCodesInput,
             retryOnBlocked = false,
             respectRobotsTxtFile = false,
+            transactionalStorage,
             onSkippedRequest,
             requestHandler,
             requestHandlerTimeoutSecs,
@@ -971,6 +996,13 @@ export class BasicCrawler<
 
             this.retryOnBlocked = retryOnBlocked;
             this.respectRobotsTxtFile = respectRobotsTxtFile;
+            // The cast undoes ow's assertion signature, which mangles `boolean | object` unions.
+            const transactionalStorageOption = transactionalStorage as
+                | boolean
+                | Partial<StorageWritePolicy>
+                | undefined;
+            this.transactionalStorageEnabled = transactionalStorageOption !== false;
+            this.storageWritePolicy = typeof transactionalStorageOption === 'object' ? transactionalStorageOption : {};
             this.onSkippedRequest = onSkippedRequest;
 
             const tryEnv = (val?: string) => (val == null ? null : +val);
@@ -1054,9 +1086,13 @@ export class BasicCrawler<
 
                     const crawlingContext = { request } as { request: Request } & Partial<CrawlingContext>;
                     try {
-                        await this.basicContextPipeline
-                            .chain(this.contextPipeline)
-                            .call(crawlingContext, (ctx) => this.handleRequest(ctx, source, request));
+                        // The transaction spans the whole pipeline call, covering the navigation hooks
+                        // and `extendContext` too; `handleRequest` drives its outcome explicitly.
+                        await this.runInStorageTransaction(async () =>
+                            this.basicContextPipeline
+                                .chain(this.contextPipeline)
+                                .call(crawlingContext, (ctx) => this.handleRequest(ctx, source, request)),
+                        );
                     } catch (error) {
                         // ContextPipelineInterruptedError means the request was intentionally skipped
                         // (e.g., doesn't match enqueue strategy after redirect). Just return gracefully.
@@ -1764,22 +1800,26 @@ export class BasicCrawler<
     }
 
     protected async handleSkippedRequest(options: Parameters<SkippedRequestCallback>[0]): Promise<void> {
-        if (options.reason === 'limit') {
-            this.logOncePerRun(
-                'maxRequestsPerCrawl',
-                'The number of requests enqueued by the crawler reached the maxRequestsPerCrawl limit of ' +
-                    `${this.maxRequestsPerCrawl} requests and no further requests will be added.`,
-            );
-        }
+        // A skipped request is a *successful* outcome, but the interrupt still unwinds through the
+        // transaction scope, which rolls back - so the skip bookkeeping must write directly.
+        await withDirectStorageAccess(async () => {
+            if (options.reason === 'limit') {
+                this.logOncePerRun(
+                    'maxRequestsPerCrawl',
+                    'The number of requests enqueued by the crawler reached the maxRequestsPerCrawl limit of ' +
+                        `${this.maxRequestsPerCrawl} requests and no further requests will be added.`,
+                );
+            }
 
-        if (options.reason === 'depth') {
-            this.logOncePerRun(
-                'maxCrawlDepth',
-                `The crawler reached the maxCrawlDepth limit of ${this.maxCrawlDepth} and no further requests will be enqueued.`,
-            );
-        }
+            if (options.reason === 'depth') {
+                this.logOncePerRun(
+                    'maxCrawlDepth',
+                    `The crawler reached the maxCrawlDepth limit of ${this.maxCrawlDepth} and no further requests will be enqueued.`,
+                );
+            }
 
-        await this.onSkippedRequest?.(options);
+            await this.onSkippedRequest?.(options);
+        });
     }
 
     private logOncePerRun(key: string, message: string): void {
@@ -1998,6 +2038,34 @@ export class BasicCrawler<
     }
 
     /**
+     * Runs `callback` inside a {@apilink StorageTransaction}, unless transactional storage is disabled.
+     * Deliberately does **not** commit on return - `handleRequest` swallows request handler failures, so
+     * a normal return says nothing about success. `handleRequest` owns the outcome.
+     */
+    private async runInStorageTransaction<T>(callback: () => Promise<T>): Promise<T> {
+        if (!this.transactionalStorageEnabled) {
+            return callback();
+        }
+
+        const transaction = createStorageTransaction({
+            policy: this.storageWritePolicy,
+            commitTimeoutMillis: this.internalTimeoutMillis,
+        });
+
+        try {
+            return await transaction.run(callback);
+        } finally {
+            // Still open here means a pipeline-level throw (or a wiring bug) - discard unvalidated writes.
+            if (transaction.state === 'open') {
+                transaction.rollback();
+            }
+
+            // Unconditional: `failed` is a terminal state that the branch above never reaches.
+            transaction.dispose();
+        }
+    }
+
+    /**
      * Handles blocked request
      */
     protected _throwOnBlockedRequest(statusCode: number) {
@@ -2131,11 +2199,18 @@ export class BasicCrawler<
     private async handleRequest(crawlingContext: ExtendedContext, requestSource: IRequestManager, request: Request) {
         const statisticsId = request.id || request.uniqueKey;
 
+        // Opened by `runInStorageTransaction`; absent when disabled or when the subclass opens its own.
+        const transaction = currentStorageTransaction();
+
         let isRequestLocked = true;
 
         try {
             request.state = RequestState.REQUEST_HANDLER;
             await this.runRequestHandler(crawlingContext);
+
+            // Commit *before* marking the request as handled, so a commit failure fails the request and
+            // it is retried. This also closes the transaction, so everything below passes through.
+            await transaction?.commit();
 
             await this.timeoutAndRetry(
                 async () => requestSource.markRequestAsHandled(request!),
@@ -2152,6 +2227,10 @@ export class BasicCrawler<
             request.state = RequestState.DONE;
             crawlingContext.session.markGood();
         } catch (rawError) {
+            // Roll back *before* any error handler runs - error handlers write to real storage precisely
+            // because the transaction is already closed. A no-op when the commit above succeeded.
+            transaction?.rollback();
+
             const err = this.unwrapError(rawError);
 
             try {
