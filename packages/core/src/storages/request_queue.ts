@@ -253,10 +253,8 @@ export class RequestQueue implements IStorage, IRequestManager, TransactionParti
     }
 
     /**
-     * Records a write-through or introspection-only journal entry for the given requests, so transaction
-     * introspection (e.g. `StorageTransactionView.enqueuedUrls`) behaves the same under both policies for
-     * every addition made while the transaction is open. A no-op without an open transaction, which is
-     * how the detached `addRequestsBatched()` background writer stays out of the journal.
+     * Journals an addition for introspection only; these entries are never replayed. A no-op unless the
+     * transaction is open, so detached and outliving writers stay out of the journal.
      */
     private recordRequestJournalEntry(
         transaction: StorageTransaction | undefined,
@@ -264,7 +262,7 @@ export class RequestQueue implements IStorage, IRequestManager, TransactionParti
         forefront: boolean,
         writeThrough: boolean,
     ): void {
-        if (!transaction || requests.length === 0) return;
+        if (!transaction?.isActive || requests.length === 0) return;
 
         transaction.recordJournalEntry({
             type: 'requestQueue',
@@ -297,14 +295,9 @@ export class RequestQueue implements IStorage, IRequestManager, TransactionParti
     }
 
     /**
-     * Adds a request under the `deferred` write policy: journaled instead of sent to the backend; the
-     * commit replay performs the real addition. The returned `requestId` of a new request is the locally
-     * derived `uniqueKey` hash and is **provisional** — the real id is assigned by the backend at commit,
-     * so it is never written to `request.id` or the shared dedup caches. Batch callers pass a shared
-     * `buffered` dedup index (kept up to date here), so the journal is not re-scanned per request.
-     *
-     * Dedup is checked cheapest-first — the transaction's own buffer, then the shared caches, then the
-     * backend — so only a genuinely unknown request costs a round trip.
+     * Adds a request under the `deferred` policy: journaled now, really added by the commit replay.
+     * A new request's `requestId` is the local `uniqueKey` hash and is **provisional** — never write it
+     * to `request.id` or the dedup caches. Dedup is cheapest-first: buffer, caches, then a backend probe.
      */
     private async addRequestDeferred(
         transaction: StorageTransaction,
@@ -312,8 +305,7 @@ export class RequestQueue implements IStorage, IRequestManager, TransactionParti
         forefront: boolean,
         buffered = this.bufferedRequests(transaction),
     ): Promise<RequestQueueOperationInfo> {
-        // Intra-transaction dedup - this transaction's own buffered adds, which the shared caches
-        // never see, since their ids stay provisional until commit.
+        // This transaction's own buffered adds; the shared caches never see them (provisional ids).
         if (buffered.has(request.uniqueKey)) {
             this.recordRequestJournalEntry(transaction, [request], forefront, false);
             return {
@@ -325,9 +317,8 @@ export class RequestQueue implements IStorage, IRequestManager, TransactionParti
             };
         }
 
-        // Then the shared dedup caches, which hold real backend ids for requests already in the queue.
-        // Only *writing* provisional ids to them would be wrong; reading them is safe and saves a
-        // backend round trip per already-known request. Same lookup as the write-through path below.
+        // The caches hold real backend ids. Only *writing* provisional ids to them would be wrong;
+        // reading saves a probe. Same lookup as the write-through path.
         const cacheKey = getRequestId(request.uniqueKey);
         const cachedInfo = this.requestCache.get(cacheKey);
         const knownRequestId = cachedInfo?.id ?? this.requestSeenCache.get(cacheKey);
@@ -344,8 +335,7 @@ export class RequestQueue implements IStorage, IRequestManager, TransactionParti
             };
         }
 
-        // Both caches are bounded, so a miss is not proof of absence - a genuinely unknown request
-        // still needs the backend probe for an accurate `wasAlreadyPresent`.
+        // The caches are bounded, so a miss is not proof of absence - probe for an accurate answer.
         const existing = await this.backend.getRequest(request.uniqueKey);
 
         if (existing) {
@@ -357,6 +347,13 @@ export class RequestQueue implements IStorage, IRequestManager, TransactionParti
                 uniqueKey: request.uniqueKey,
                 forefront,
             };
+        }
+
+        // The entry below *is* the write, so a transaction closed during the probe must not receive it -
+        // pass through instead, per the closed-transaction rule. Under `deferred` that can land an
+        // addition a rollback would have discarded; dedup bounds that cost, silent loss is unbounded.
+        if (!transaction.isActive) {
+            return await this.addRequest(request, { forefront });
         }
 
         const snapshot = JSON.parse(JSON.stringify(request)) as Dictionary;

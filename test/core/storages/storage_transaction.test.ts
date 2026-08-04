@@ -678,6 +678,54 @@ describe('RequestQueue in a transaction', () => {
         expect(getRequestSpy.mock.calls.map(([uniqueKey]) => uniqueKey)).toEqual(['https://example.com/unknown']);
     });
 
+    test('write-through: an add still in flight when the transaction closes does not throw', async () => {
+        const queue = await RequestQueue.open();
+        const transaction = createStorageTransaction();
+
+        // Mimics a request handler timing out: `handleRequest` rolls the transaction back while the
+        // handler's storage calls keep running, so the add resumes against a closed transaction.
+        const addBatch = queue.backend.addBatchOfRequests.bind(queue.backend);
+        vitest.spyOn(queue.backend, 'addBatchOfRequests').mockImplementation(async (requests, options) => {
+            transaction.rollback();
+            return addBatch(requests, options);
+        });
+
+        await transaction.run(async () => {
+            await expect(queue.addRequest({ url: 'https://example.com/a' })).resolves.toMatchObject({
+                wasAlreadyPresent: false,
+            });
+        });
+
+        // The entry is introspection-only and the transaction is already decided, so it is simply skipped.
+        expect(transaction.enqueuedUrls).toEqual([]);
+        transaction.dispose();
+
+        // Write-through additions were never going to be rolled back.
+        await expect(queue.getTotalCount()).resolves.toBe(1);
+    });
+
+    test('deferred: an add still in flight when the transaction closes reaches the real queue', async () => {
+        const queue = await RequestQueue.open();
+        const transaction = createStorageTransaction({ policy: { requestQueue: 'deferred' } });
+
+        const getRequest = queue.backend.getRequest.bind(queue.backend);
+        vitest.spyOn(queue.backend, 'getRequest').mockImplementation(async (uniqueKey) => {
+            transaction.rollback();
+            return getRequest(uniqueKey);
+        });
+
+        await transaction.run(async () => {
+            await expect(queue.addRequest({ url: 'https://example.com/a' })).resolves.toMatchObject({
+                wasAlreadyPresent: false,
+            });
+        });
+        transaction.dispose();
+
+        // Here the journal entry *is* the write, so it passes through rather than being dropped -
+        // an unwanted (but deduplicated) addition beats losing a request silently.
+        await expect(queue.getTotalCount()).resolves.toBe(1);
+    });
+
     test('deferred: a multi-chunk addRequestsBatched call is fully applied when commit resolves', async () => {
         const queue = await RequestQueue.open();
         const requests = Array.from({ length: 1500 }, (_, i) => ({ url: `https://example.com/${i}` }));
