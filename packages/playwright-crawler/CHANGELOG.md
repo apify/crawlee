@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.18.0](https://github.com/apify/crawlee/compare/v3.17.0...v3.18.0) (2026-08-04)
+
+### Bug Fixes
+
+* allow any `clickOptions` in `enqueueLinksByClickingElements` ([#3823](https://github.com/apify/crawlee/issues/3823)) ([abcbfb1](https://github.com/apify/crawlee/commit/abcbfb158ab3edbb9e7e4c5c6f1d937dea9bb4dd))
+* declare missing dependencies ([#3817](https://github.com/apify/crawlee/issues/3817)) ([5a9a661](https://github.com/apify/crawlee/commit/5a9a661401a3aa895738c79a8310d9cc18e28826))
+* **playwright,puppeteer:** only intercept requests for non-GET methods or payloads ([#3819](https://github.com/apify/crawlee/issues/3819)) ([1942f1e](https://github.com/apify/crawlee/commit/1942f1ec827cb69953a95abae2086400498b32d8))
+* **playwright:** silence transient errors in `enqueueLinksByClickingElements` ([#3732](https://github.com/apify/crawlee/issues/3732)) ([7b98cc3](https://github.com/apify/crawlee/commit/7b98cc350f8ef7bd56bda309b5aff5664dd6fed5)), closes [#3216](https://github.com/apify/crawlee/issues/3216)
+* update handleCloudflareChallenge for new Cloudflare challenge markup ([#3717](https://github.com/apify/crawlee/issues/3717)) ([5baa8bd](https://github.com/apify/crawlee/commit/5baa8bdd7baba927871ed20859405e14312297b6)), closes [#3629](https://github.com/apify/crawlee/issues/3629) [apify/camoufox-js#283](https://github.com/apify/camoufox-js/issues/283) [#3629](https://github.com/apify/crawlee/issues/3629)
+
+### Features
+
+* opt-in schema validation of request userData per router label ([#3851](https://github.com/apify/crawlee/issues/3851)) ([c7347f9](https://github.com/apify/crawlee/commit/c7347f94f72980b7c424fb4fc7dc8f990f360d70)), closes [#3747](https://github.com/apify/crawlee/issues/3747) [#3748](https://github.com/apify/crawlee/issues/3748) [#3747](https://github.com/apify/crawlee/issues/3747) [#3082](https://github.com/apify/crawlee/issues/3082)
+* type-safe router labels via per-label userData map ([#3747](https://github.com/apify/crawlee/issues/3747)) ([1124aca](https://github.com/apify/crawlee/commit/1124aca3c5eb527c097decd7263a6816c411369e)), closes [#3082](https://github.com/apify/crawlee/issues/3082)
+
+
 # [3.17.0](https://github.com/apify/crawlee/compare/v3.16.0...v3.17.0) (2026-06-04)
 
 

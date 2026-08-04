@@ -3,6 +3,15 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.18.0](https://github.com/apify/crawlee/compare/v3.17.0...v3.18.0) (2026-08-04)
+
+### Bug Fixes
+
+* **memory-storage:** don't increment `handledRequestCount` when updating a handled request ([#3827](https://github.com/apify/crawlee/issues/3827)) ([4739d48](https://github.com/apify/crawlee/commit/4739d4886e3c52f90814b9e5342c4ec2cbaa7587))
+* **memory-storage:** prevent storage names from escaping the storage directory ([#3715](https://github.com/apify/crawlee/issues/3715)) ([a04c297](https://github.com/apify/crawlee/commit/a04c29766e3165534a5789d59a3a7bef5a8f5b5a))
+* **memory-storage:** use platform basename in key-value store warning ([#3864](https://github.com/apify/crawlee/issues/3864)) ([dcefe01](https://github.com/apify/crawlee/commit/dcefe0196d0ba9bd89770e0a9ff5503295dc274b))
+
+
 # [3.17.0](https://github.com/apify/crawlee/compare/v3.16.0...v3.17.0) (2026-06-04)
 
 
