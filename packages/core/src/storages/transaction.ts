@@ -111,9 +111,10 @@ export type JournalEntry = DatasetJournalEntry | KeyValueStoreJournalEntry | Req
 
 /**
  * A read-only view of a {@apilink StorageTransaction}: only the journal-backed introspection accessors,
- * without the lifecycle methods. The accessors are synchronous, expose the original pre-serialization
- * values, and behave identically under both write policies. A view is valid until the transaction is
- * disposed.
+ * without the lifecycle methods. The accessors are synchronous and expose the original pre-serialization
+ * values. They cover every write recorded while the transaction was open, under either write policy —
+ * with the one exception noted on {@apilink StorageTransactionView.enqueuedUrls|`enqueuedUrls`}. A view
+ * is valid until the transaction is disposed.
  */
 export interface StorageTransactionView {
     readonly state: StorageTransactionState;
@@ -121,7 +122,15 @@ export interface StorageTransactionView {
     /** Items pushed to datasets during the transaction, in push order. */
     readonly datasetItems: { item: Dictionary; datasetId: string }[];
 
-    /** URLs enqueued to request queues during the transaction, under either write policy. */
+    /**
+     * URLs enqueued to request queues during the transaction, under either write policy.
+     *
+     * One gap: `addRequestsBatched()` splits large inputs into chunks and, unless the caller waits for
+     * all of them (`waitForAllRequestsToBeAdded` or `maxNewRequests`, both of which
+     * {@apilink enqueueLinks} sets when a crawl limit applies), the chunks after the first are added by
+     * a background writer that outlives the transaction. Those additions are applied but not recorded
+     * here.
+     */
     readonly enqueuedUrls: { url: string; label?: string }[];
 
     /** Key-value store changes made during the transaction, keyed by store id, last write per key. */

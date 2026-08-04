@@ -254,7 +254,9 @@ export class RequestQueue implements IStorage, IRequestManager, TransactionParti
 
     /**
      * Records a write-through or introspection-only journal entry for the given requests, so transaction
-     * introspection (e.g. `StorageTransactionView.enqueuedUrls`) behaves identically under both policies.
+     * introspection (e.g. `StorageTransactionView.enqueuedUrls`) behaves the same under both policies for
+     * every addition made while the transaction is open. A no-op without an open transaction, which is
+     * how the detached `addRequestsBatched()` background writer stays out of the journal.
      */
     private recordRequestJournalEntry(
         transaction: StorageTransaction | undefined,
@@ -727,14 +729,22 @@ export class RequestQueue implements IStorage, IRequestManager, TransactionParti
             return finalAddedRequests;
         };
 
+        // maxNewRequests needs all batches to report skipped requests accurately; `deferred` needs them
+        // too - a writer that finishes after commit would have nowhere to put its journal entries.
+        const awaitsRemainingChunks = options.waitForAllRequestsToBeAdded || maxNewRequests !== undefined || deferred;
+
         // eslint-disable-next-line no-async-promise-executor
         const promise = new Promise<ProcessedRequest[]>(async (resolve) => {
-            if (deferred) {
-                // Awaited inside the transaction (see below), so the additions land in its journal.
+            if (awaitsRemainingChunks) {
+                // Awaited below, i.e. still within the caller's transaction scope, so the additions are
+                // journaled like the initial chunk - introspection must not depend on where the chunk
+                // boundary happened to fall.
                 resolve(await processRemainingChunks());
             } else {
-                // A detached background writer outlives the transaction scope it inherits, so it writes
-                // directly - its write-through additions were never going to be rolled back anyway.
+                // Nobody awaits this writer, so it outlives the transaction scope it inherits and must
+                // not record into a transaction that may already be closed. It writes directly - its
+                // write-through additions were never going to be rolled back anyway - which means the
+                // requests it adds are not journaled. See `StorageTransactionView.enqueuedUrls`.
                 resolve(await withDirectStorageAccess(processRemainingChunks));
             }
         });
@@ -744,9 +754,7 @@ export class RequestQueue implements IStorage, IRequestManager, TransactionParti
             this.inProgressRequestBatchCount -= 1;
         });
 
-        // maxNewRequests needs all batches to report skipped requests accurately; `deferred` needs them
-        // too - a writer that finishes after commit would have nowhere to put its journal entries.
-        if (options.waitForAllRequestsToBeAdded || maxNewRequests !== undefined || deferred) {
+        if (awaitsRemainingChunks) {
             addedRequests.push(...(await promise));
         }
 
