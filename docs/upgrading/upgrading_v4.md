@@ -1072,6 +1072,34 @@ const dataset = await Dataset.open();
 
 The same change applies to `CrawlingContext.getKeyValueStore()` and `CrawlingContext.pushData()` — both now accept `string | StorageIdentifier` for identifying the target storage.
 
+## Storage writes in request handlers are transactional
+
+Every crawler now wraps each request in a **storage transaction** (see the [Transactional storage](../guides/result-storage#transactional-storage) section of the Result Storage guide): storage writes made anywhere in the request lifecycle — hooks, `extendContext` and the request handler alike — are recorded and only applied to real storage when the request handler succeeds. A handler that throws leaves no partial writes behind, and a retry does not duplicate data.
+
+The observable behavior of a *successful* handler is unchanged (reads within a handler see its own writes), but several things differ on the failure path and around handler boundaries:
+
+- **Uncommitted writes are invisible to other handlers.** Using the key-value store as a live channel between concurrently running handlers no longer works — one handler's `setValue()` only becomes visible to others once its request succeeds. Use `useState()` for cross-handler communication.
+- **`useState()` / `getAutoSavedValue()` are *not* transactional.** The shared state object stays live; mutations of it are not rolled back when a handler fails.
+- **Request queue additions are applied immediately by default** (the `writeThrough` policy) and are not rolled back — deduplication by `uniqueKey` keeps retries idempotent. Pass `transactionalStorage: { requestQueue: 'deferred' }` for strict all-or-nothing enqueues.
+- **Commit is at-least-once.** It spans multiple storages, so a commit that fails partway fails the request; the retry may re-apply writes that already landed.
+- **`KeyValueStore.setValue()` with a stream value throws inside a request handler.** A stream can only be consumed once, so it cannot be buffered. Wrap the call in `withDirectStorageAccess()` to write it immediately:
+
+  ```typescript
+  import { withDirectStorageAccess } from 'crawlee';
+
+  await withDirectStorageAccess(async () => keyValueStore.setValue('video', stream, { contentType: 'video/mp4' }));
+  ```
+
+- **`drop()`, `purge()` and the request queue processing internals throw inside a request handler**, since no rollback could undo them. `withDirectStorageAccess()` is the escape hatch there, too.
+- **Key listing order changes inside a handler**: `keys()`, `values()` and `entries()` emit the handler's own (buffered) keys first, then the rest.
+
+The mechanism can be disabled entirely with `transactionalStorage: false` on any crawler except `AdaptivePlaywrightCrawler` (which needs it to discard the writes of its losing request handler attempts).
+
+### Removed symbols and options
+
+- `checkStorageAccess` and `withCheckedStorageAccess` are superseded by the transaction mechanism; the per-call-site helper is now `withDirectStorageAccess()`.
+- The experimental `AdaptivePlaywrightCrawler` no longer needs its bespoke write-buffering machinery: the `preventDirectStorageAccess` option is gone (direct storage calls are now captured by the per-attempt transaction instead of throwing), and `RequestHandlerResult` is replaced by the read-only `StorageTransactionView`, which the `resultChecker` / `resultComparator` callbacks (and `fullResultComparator`) now receive. The view keeps the familiar accessors (`datasetItems`, `enqueuedUrls`, `keyValueStoreChanges`), so most callbacks only need a type change.
+
 ## Request loaders and managers
 
 The request loader/manager interfaces have been reworked to mirror the abstractions in Crawlee for Python. See the new [Request loaders](../guides/request-loaders) guide for the full picture.

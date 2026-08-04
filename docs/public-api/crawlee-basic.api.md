@@ -56,6 +56,7 @@ import type { StatisticsOptions } from '@crawlee/core';
 import type { StatisticState } from '@crawlee/core';
 import type { StorageBackend } from '@crawlee/types';
 import type { StorageIdentifier } from '@crawlee/core';
+import { StorageWritePolicy } from '@crawlee/core';
 import { StringPredicate } from 'ow';
 import type { TaskLoopPredicates } from '@crawlee/core';
 import { TimeoutError } from '@apify/timeout';
@@ -146,6 +147,7 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
         blockedStatusCodes: ArrayPredicate<number>;
         retryOnBlocked: BooleanPredicate & BasePredicate<boolean | undefined>;
         respectRobotsTxtFile: AnyPredicate<boolean | object>;
+        transactionalStorage: AnyPredicate<boolean | object>;
         onSkippedRequest: Predicate<Function> & BasePredicate<Function | undefined>;
         httpClient: ObjectPredicate<object> & BasePredicate<object | undefined>;
         configuration: ObjectPredicate<object> & BasePredicate<object | undefined>;
@@ -178,8 +180,10 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
     setStatusMessage(message: string, options?: SetStatusMessageOptions): void;
     readonly stats: Statistics;
     stop(reason?: string): void;
+    protected readonly storageWritePolicy: Partial<StorageWritePolicy>;
     teardown(): Promise<void>;
     protected _throwOnBlockedRequest(statusCode: number): void;
+    protected readonly transactionalStorageEnabled: boolean;
     // (undocumented)
     useState<State extends Dictionary = Dictionary>(defaultValue?: State): Promise<State>;
 }
@@ -226,6 +230,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = CrawlingC
     statusMessageLoggingInterval?: number;
     storageBackend?: StorageBackend;
     taskLoopOptions?: TaskLoopPredicates;
+    transactionalStorage?: boolean | Partial<StorageWritePolicy>;
 }
 
 // @public (undocumented)

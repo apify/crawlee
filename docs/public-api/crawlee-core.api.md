@@ -113,9 +113,6 @@ export abstract class BaseCrawleeLogger implements CrawleeLogger {
 // @public (undocumented)
 export const BLOCKED_STATUS_CODES: number[];
 
-// @public
-export const checkStorageAccess: () => void | undefined;
-
 // @public (undocumented)
 export interface ClientInfo {
     // (undocumented)
@@ -314,11 +311,14 @@ export interface CreateSession {
 }
 
 // @public
+export function createStorageTransaction(options?: StorageTransactionOptions): StorageTransaction;
+
+// @public
 export class CriticalError extends NonRetryableError {
 }
 
 // @public
-export class Dataset<Data extends Dictionary = Dictionary> {
+export class Dataset<Data extends Dictionary = Dictionary> implements TransactionParticipant {
     [Symbol.asyncIterator](): AsyncGenerator<Data, void, undefined>;
     // (undocumented)
     backend: DatasetBackend<Data>;
@@ -744,7 +744,7 @@ export interface KeyConsumer {
 }
 
 // @public
-export class KeyValueStore {
+export class KeyValueStore implements TransactionParticipant {
     [Symbol.asyncIterator]<T = unknown>(): AsyncGenerator<[string, T], void, undefined>;
     // (undocumented)
     readonly configuration: Configuration;
@@ -1065,39 +1065,6 @@ export class RequestHandlerError extends Error {
 }
 
 // @public
-export class RequestHandlerResult {
-    constructor(configuration: Configuration, crawleeStateKey: string);
-    // (undocumented)
-    addRequests: RestrictedCrawlingContext['addRequests'];
-    get calls(): ReadonlyDeep<{
-        pushData: Parameters<RestrictedCrawlingContext['pushData']>[];
-        addRequests: Parameters<RestrictedCrawlingContext['addRequests']>[];
-    }>;
-    get datasetItems(): ReadonlyDeep<{
-        item: Dictionary;
-        datasetIdentifier?: string | StorageIdentifier;
-    }[]>;
-    get enqueuedUrlLists(): ReadonlyDeep<{
-        listUrl: string;
-        label?: string;
-    }[]>;
-    get enqueuedUrls(): ReadonlyDeep<{
-        url: string;
-        label?: string;
-    }[]>;
-    // (undocumented)
-    getKeyValueStore: RestrictedCrawlingContext['getKeyValueStore'];
-    get keyValueStoreChanges(): ReadonlyDeep<Record<string, Record<string, {
-        changedValue: unknown;
-        options?: RecordOptions;
-    }>>>;
-    // (undocumented)
-    pushData: RestrictedCrawlingContext['pushData'];
-    // (undocumented)
-    useState: RestrictedCrawlingContext['useState'];
-}
-
-// @public
 export class RequestList implements IRequestLoader {
     // (undocumented)
     [Symbol.asyncIterator](): AsyncGenerator<Request_2<Dictionary>, void, unknown>;
@@ -1192,7 +1159,7 @@ export interface RequestOptions<UserData extends Dictionary = Dictionary> {
 }
 
 // @public
-export class RequestQueue implements IStorage, IRequestManager {
+export class RequestQueue implements IStorage, IRequestManager, TransactionParticipant {
     // (undocumented)
     [Symbol.asyncIterator](): AsyncGenerator<Request_2<Dictionary>, void, unknown>;
     addRequest(requestLike: Source, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo>;
@@ -1716,6 +1683,69 @@ export class StorageStatsTracker<T extends Record<keyof T, number>> {
 }
 
 // @public
+export class StorageTransaction implements StorageTransactionView {
+    commit(): Promise<void>;
+    // (undocumented)
+    get datasetItems(): {
+        item: Dictionary;
+        datasetId: string;
+    }[];
+    dispose(): void;
+    // (undocumented)
+    get enqueuedUrls(): {
+        url: string;
+        label?: string;
+    }[];
+    get isActive(): boolean;
+    readonly journal: JournalEntry[];
+    // (undocumented)
+    get keyValueStoreChanges(): Record<string, Record<string, {
+        changedValue: unknown;
+        options?: RecordOptions;
+    }>>;
+    readonly policy: StorageWritePolicy;
+    rollback(): void;
+    run<T>(callback: () => Awaitable<T>): Promise<T>;
+    // (undocumented)
+    get state(): StorageTransactionState;
+}
+
+// @public (undocumented)
+export interface StorageTransactionOptions {
+    commitTimeoutMillis?: number;
+    policy?: Partial<StorageWritePolicy>;
+}
+
+// @public (undocumented)
+export type StorageTransactionState = 'open' | 'committing' | 'committed' | 'failed' | 'rolledBack';
+
+// @public
+export interface StorageTransactionView {
+    readonly datasetItems: {
+        item: Dictionary;
+        datasetId: string;
+    }[];
+    readonly enqueuedUrls: {
+        url: string;
+        label?: string;
+    }[];
+    readonly keyValueStoreChanges: Record<string, Record<string, {
+        changedValue: unknown;
+        options?: RecordOptions;
+    }>>;
+    // (undocumented)
+    readonly state: StorageTransactionState;
+}
+
+// @public
+export type StorageWriteMode = 'deferred' | 'writeThrough';
+
+// @public
+export interface StorageWritePolicy {
+    requestQueue: StorageWriteMode;
+}
+
+// @public
 export interface SystemInfo {
     // (undocumented)
     clientInfo: ClientInfo;
@@ -1758,7 +1788,10 @@ export interface UseStateOptions {
 }
 
 // @public
-export const withCheckedStorageAccess: <T>(checkFunction: () => void, callback: () => Awaitable<T>) => Promise<T>;
+export function withDirectStorageAccess<T>(callback: () => Awaitable<T>): Promise<T>;
+
+// @public
+export function withStorageTransaction<T>(callback: (transaction: StorageTransaction) => Awaitable<T>, options?: StorageTransactionOptions): Promise<T>;
 
 // (No @packageDocumentation comment for this package)
 

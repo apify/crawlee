@@ -111,3 +111,81 @@ await purgeDefaultStorages();
 ```
 
 Calling this function will clean up the default results storage directories except the `INPUT` key in default key-value store directory. This is a shortcut for running (optional) `purge` method on the <ApiLink to="core/interface/StorageBackend">`StorageBackend`</ApiLink> interface, in other words it will call the `purge` method of the underlying storage implementation we are currently using. In addition, this method will make sure the storage is purged only once for a given execution context, so it is safe to call it multiple times.
+
+## Transactional storage
+
+A request handler either finishes, or it doesn't. Without further care, a handler that pushes a few dataset items, updates a key-value record and *then* throws would leave those writes behind — and when the request is retried, they would happen again, duplicating your data.
+
+Crawlee prevents that by wrapping every request in a **storage transaction**. Writes made through the storage classes (<ApiLink to="core/class/Dataset">`Dataset`</ApiLink>, <ApiLink to="core/class/KeyValueStore">`KeyValueStore`</ApiLink>, <ApiLink to="core/class/RequestQueue">`RequestQueue`</ApiLink>) and the context helpers (`pushData`, `enqueueLinks`, ...) while a request is being handled are recorded rather than applied. When the request handler succeeds, they are replayed into real storage all together; when it throws, they are dropped. A retry therefore never double-writes, and a failed request leaves no partial results behind.
+
+This is **on by default** for every crawler and covers the whole request lifecycle — `preNavigationHooks`, `postNavigationHooks`, `extendContext` and the request handler alike.
+
+### What you can rely on
+
+- **Atomicity per request.** A request's storage writes become visible all together on success, or not at all on failure.
+- **Read-your-own-writes.** A read that follows a write in the same handler sees the written value — `getData()`, `getValue()`, key listings, dataset iteration and `getInfo()` all merge the handler's buffered writes with the real storage contents.
+- **Isolation of uncommitted writes.** One handler's uncommitted writes are invisible to concurrently running handlers — to pass data between handlers, use `useState()` instead of the key-value store.
+- **Fidelity.** Values are captured at write time (via `structuredClone`), so mutating an object after passing it to `pushData()` or `setValue()` affects neither what the handler reads back nor what gets committed.
+
+### What the transaction deliberately does *not* cover
+
+- **Request queue additions (by default).** Adding requests is idempotent (the queue deduplicates by `uniqueKey`), and buffering them would starve the crawl of new work until the handler finishes. New requests are therefore applied immediately (the `writeThrough` policy) and are *not* rolled back when the handler fails. If you need strict all-or-nothing enqueues, opt into buffering:
+
+  ```typescript
+  const crawler = new CheerioCrawler({
+      transactionalStorage: { requestQueue: 'deferred' },
+      // ...
+  });
+  ```
+
+  Under the `deferred` policy, the `requestId` returned by an `addRequests()` call inside a handler is provisional — the real id is assigned by the storage backend when the transaction commits.
+
+- **Shared state.** The object returned by `useState()` / <ApiLink to="core/class/KeyValueStore#getAutoSavedValue">`KeyValueStore.getAutoSavedValue()`</ApiLink> is the sanctioned live channel shared by all handlers, and it stays live: mutations of it are **not** rolled back when a handler fails.
+
+- **Cross-storage atomicity.** The commit spans multiple storages and multiple calls; delivery is *at-least-once*. If a commit fails partway, the request fails and is retried, and the retry may re-apply what already landed.
+
+- **Error handlers.** `errorHandler` and `failedRequestHandler` run after the failed request's transaction has been rolled back, so their writes go straight to real storage — that is what error handlers are for.
+
+### Escape hatches
+
+The feature is escapable at three granularities:
+
+- **Whole feature:** `transactionalStorage: false` on the crawler options disables the mechanism entirely; every storage call behaves exactly as if no transactions existed. (Not supported by <ApiLink to="playwright-crawler/class/AdaptivePlaywrightCrawler">`AdaptivePlaywrightCrawler`</ApiLink>, which needs per-attempt buffering to work at all.)
+- **Per storage type:** the `transactionalStorage: { requestQueue: 'writeThrough' | 'deferred' }` policy object, described above.
+- **Per call site:** <ApiLink to="core/function/withDirectStorageAccess">`withDirectStorageAccess()`</ApiLink> runs a callback outside the transaction, so its writes land immediately and are never rolled back. Use it for progress files, streaming output, and anything that genuinely must not wait for the handler to succeed:
+
+  ```typescript
+  import { withDirectStorageAccess } from 'crawlee';
+
+  async function requestHandler({ request }) {
+      await withDirectStorageAccess(async () => {
+          const store = await KeyValueStore.open();
+          await store.setValue(`progress-${request.id}`, { startedAt: new Date() });
+      });
+      // ... the rest of the handler is transactional as usual
+  }
+  ```
+
+### Operations that throw inside a transaction
+
+A few operations cannot be buffered, and silently letting them through would produce storage states that no rollback can undo. They throw inside a transaction, with an error pointing at `withDirectStorageAccess()`:
+
+- `Dataset.drop()`, `KeyValueStore.drop()`, `RequestQueue.drop()` and `RequestQueue.purge()`,
+- the request queue processing internals (`fetchNextRequest()`, `markRequestAsHandled()`, `reclaimRequest()`),
+- `KeyValueStore.setValue()` with a **stream** value — a stream can only be consumed once, so it cannot serve both a read within the handler and the commit replay. Write streams under `withDirectStorageAccess()`.
+
+### Programmatic use
+
+Outside a crawler, storage is non-transactional unless you ask for it explicitly:
+
+```typescript
+import { withStorageTransaction, Dataset } from 'crawlee';
+
+await withStorageTransaction(async () => {
+    const dataset = await Dataset.open();
+    await dataset.pushData({ some: 'data' }); // buffered
+    // committed when the callback returns, rolled back if it throws
+});
+```
+
+For full control (e.g. deciding whether to commit only after inspecting the results), use <ApiLink to="core/function/createStorageTransaction">`createStorageTransaction()`</ApiLink> and drive `run()` / `commit()` / `rollback()` / `dispose()` yourself. This is exactly what `AdaptivePlaywrightCrawler` does with its per-attempt transactions.

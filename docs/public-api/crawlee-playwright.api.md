@@ -49,7 +49,6 @@ import type { RegExpInput } from '@crawlee/browser';
 import type { Request as Request_2 } from '@crawlee/core';
 import { Request as Request_3 } from '@crawlee/browser';
 import type { RequestHandler } from '@crawlee/browser';
-import { RequestHandlerResult } from '@crawlee/core';
 import type { RequestTransform } from '@crawlee/browser';
 import type { Response as Response_2 } from 'playwright';
 import type { RouterHandler } from '@crawlee/browser';
@@ -61,6 +60,7 @@ import type { SkippedRequestCallback } from '@crawlee/browser';
 import { Statistics } from '@crawlee/core';
 import type { StatisticsOptions } from '@crawlee/core';
 import type { StatisticState } from '@crawlee/core';
+import type { StorageTransactionView } from '@crawlee/core';
 import { StringPredicate } from 'ow';
 
 // @public
@@ -76,7 +76,6 @@ export class AdaptivePlaywrightCrawler<ContextExtension = Dictionary<never>, Ext
         readonly waitForSelector: AdaptivePlaywrightCrawlerContext["waitForSelector"];
         readonly parseWithCheerio: AdaptivePlaywrightCrawlerContext["parseWithCheerio"];
     }>;
-    protected getPendingRequestCountApproximation(): Promise<number>;
     // (undocumented)
     protected _init(): Promise<void>;
     // (undocumented)
@@ -105,11 +104,10 @@ export interface AdaptivePlaywrightCrawlerContext<UserData extends Dictionary = 
 export interface AdaptivePlaywrightCrawlerOptions<ContextExtension = Dictionary<never>, ExtendedContext extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest_2<AdaptivePlaywrightCrawlerContext['request']>>> extends Omit<BasicCrawlerOptions<AdaptivePlaywrightCrawlerContext, ContextExtension, ExtendedContext, Routes>, 'preNavigationHooks' | 'postNavigationHooks'> {
     postNavigationHooks?: AdaptivePostNavigationHook<ContextExtension>[];
     preNavigationHooks?: AdaptiveHook<ContextExtension>[];
-    preventDirectStorageAccess?: boolean;
     renderingTypeDetectionRatio?: number;
     renderingTypePredictor?: IRenderingTypePredictor;
-    resultChecker?: (result: RequestHandlerResult) => boolean;
-    resultComparator?: (resultA: RequestHandlerResult, resultB: RequestHandlerResult) => boolean | 'equal' | 'different' | 'inconclusive';
+    resultChecker?: (result: StorageTransactionView) => boolean;
+    resultComparator?: (resultA: StorageTransactionView, resultB: StorageTransactionView) => boolean | 'equal' | 'different' | 'inconclusive';
     shouldPropagateError?: (error: Error, context: PlaywrightCrawlingContext) => Awaitable<boolean>;
 }
 
@@ -182,7 +180,7 @@ interface EnqueueLinksByClickingElementsOptions {
 }
 
 // @public
-export function fullResultComparator(resultA: RequestHandlerResult, resultB: RequestHandlerResult): boolean;
+export function fullResultComparator(resultA: StorageTransactionView, resultB: StorageTransactionView): boolean;
 
 // @public
 function gotoExtended(page: Page, request: Request_3, gotoOptions?: PlaywrightDirectNavigationOptions): Promise<Response_2 | null>;
@@ -316,6 +314,7 @@ export class PlaywrightCrawler<ContextExtension = Dictionary<never>, ExtendedCon
         blockedStatusCodes: ArrayPredicate<number>;
         retryOnBlocked: BooleanPredicate & BasePredicate<boolean | undefined>;
         respectRobotsTxtFile: AnyPredicate<boolean | object>;
+        transactionalStorage: AnyPredicate<boolean | object>;
         onSkippedRequest: Predicate<Function> & BasePredicate<Function | undefined>;
         httpClient: ObjectPredicate<object> & BasePredicate<object | undefined>;
         configuration: ObjectPredicate<object> & BasePredicate<object | undefined>;
