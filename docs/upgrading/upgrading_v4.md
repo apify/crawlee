@@ -764,7 +764,13 @@ const cookieHeader2 = await session.cookieJar.getCookieString(url);
 
 ## `persistCookiesPerSession` renamed to `saveResponseCookies`
 
-The `persistCookiesPerSession` crawler option has been renamed to `saveResponseCookies` on both `HttpCrawler` (and its subclasses like `CheerioCrawler`, `JSDOMCrawler`, etc.) and `BrowserCrawler`. The behavior is unchanged - when enabled (the default), response `Set-Cookie` headers are stored in the session's cookie jar so they're sent on subsequent requests using the same session. Rename the option in your crawler constructor options to migrate.
+The `persistCookiesPerSession` crawler option has been renamed to `saveResponseCookies` on both `HttpCrawler` (and its subclasses like `CheerioCrawler`, `JSDOMCrawler`, etc.) and `BrowserCrawler`. When enabled (the default), response cookies are stored in the session's cookie jar so they're sent on subsequent requests using the same session. Rename the option in your crawler constructor options to migrate.
+
+## Browser cookies are also persisted after `requestHandler`
+
+Previously, `BrowserCrawler` with `saveResponseCookies` (formerly `persistCookiesPerSession`) only copied cookies from the page into the session after navigation and **before** `requestHandler` ran. Cookies set during the handler — login flows, `page.setCookie()`, or XHR/`fetch` `Set-Cookie` responses — were not stored on the session for later requests.
+
+In v4, when `saveResponseCookies` is enabled (the default), browser cookies are also re-read and stored in the session cookie jar **after** `requestHandler` completes. If you relied on handler-set cookies staying page-local and not affecting later requests on the same session, set `saveResponseCookies: false` or clear/overwrite cookies on the session explicitly.
 
 ## Internal KVS keys renamed
 
