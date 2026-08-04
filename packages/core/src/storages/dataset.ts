@@ -2,10 +2,13 @@ import type { Awaitable, DatasetBackend, DatasetInfo, Dictionary, PaginatedList 
 import { stringify } from 'csv-stringify/sync';
 import ow from 'ow';
 
+import { tryCancel } from '@apify/timeout';
+
 import { Configuration } from '../configuration.js';
 import type { CrawleeLogger } from '../log.js';
 import { serviceLocator } from '../service_locator.js';
-import { checkStorageAccess } from './access_checking.js';
+import type { DatasetJournalEntry, JournalEntry, TransactionParticipant } from './transaction.js';
+import { activeStorageTransaction, rejectOperationInTransaction, snapshotValue } from './transaction.js';
 import { KeyValueStore } from './key_value_store.js';
 import type { DatasetStats } from './storage_stats.js';
 import { StorageStatsTracker } from './storage_stats.js';
@@ -183,7 +186,7 @@ export interface DatasetExportToOptions extends DatasetExportOptions {
  * ```
  * @category Result Stores
  */
-export class Dataset<Data extends Dictionary = Dictionary> {
+export class Dataset<Data extends Dictionary = Dictionary> implements TransactionParticipant {
     id: string;
     name?: string;
     backend: DatasetBackend<Data>;
@@ -227,7 +230,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      *   The objects must be serializable to JSON.
      */
     async pushData(data: Data | Data[]): Promise<void> {
-        checkStorageAccess();
+        const transaction = activeStorageTransaction();
 
         ow(data, 'data', ow.object);
 
@@ -235,6 +238,18 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         const items = Array.isArray(data) ? data : [data];
         for (let i = 0; i < items.length; i++) {
             assertJsonSerializable(items[i], i);
+        }
+
+        if (transaction) {
+            // One snapshot serves both the reads and the commit replay, so the two cannot disagree.
+            transaction.recordJournalEntry({
+                type: 'dataset',
+                participant: this,
+                storageId: this.id,
+                items: snapshotValue(items),
+                recordedAt: new Date(),
+            });
+            return;
         }
 
         this.statsTracker.add('writeCount');
@@ -245,11 +260,8 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      * Returns {@apilink DatasetContent} object holding the items in the dataset based on the provided parameters.
      */
     async getData(options: DatasetDataOptions = {}): Promise<DatasetContent<Data>> {
-        checkStorageAccess();
-
         try {
-            this.statsTracker.add('readCount');
-            return await this.backend.getData(options);
+            return await this.readPage(options);
         } catch (e) {
             const error = e as Error;
             if (error.message.includes('Cannot create a string longer than')) {
@@ -262,11 +274,108 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     }
 
     /**
+     * The single transaction-aware page read all dataset read paths go through — both `getData()` and
+     * the private `fetchPages()`. Returns the real page concatenated with the current transaction's
+     * buffered items, with `offset` / `limit` / `desc` windowing applied across the concatenation.
+     */
+    private async readPage(options: DatasetDataOptions): Promise<DatasetContent<Data>> {
+        const buffered = this.bufferedJournalEntries()?.flatMap((entry) => entry.items as Data[]);
+
+        if (!buffered?.length) {
+            this.statsTracker.add('readCount');
+            return this.backend.getData(options);
+        }
+
+        const { offset = 0, limit, desc = false } = options;
+
+        if (!desc) {
+            this.statsTracker.add('readCount');
+            const realPage = await this.backend.getData(options);
+            const needed = (limit ?? realPage.limit ?? Infinity) - realPage.items.length;
+            const items = [...realPage.items];
+
+            if (needed > 0) {
+                const bufferedStart = Math.max(0, offset - realPage.total);
+                items.push(...buffered.slice(bufferedStart, bufferedStart + needed));
+            }
+
+            return {
+                items,
+                total: realPage.total + buffered.length,
+                offset,
+                limit: limit ?? realPage.limit,
+                count: items.length,
+                desc,
+            };
+        }
+
+        // Descending order: the buffered items are the newest, so they come first, reversed.
+        const reversedBuffer = [...buffered].reverse();
+        const fromBuffer =
+            limit === undefined ? reversedBuffer.slice(offset) : reversedBuffer.slice(offset, offset + limit);
+        const needed = limit === undefined ? Infinity : limit - fromBuffer.length;
+
+        if (needed <= 0) {
+            // The whole window is served from the buffer; only the real total is missing.
+            this.statsTracker.add('readCount');
+            const { itemCount } = await this.backend.getMetadata();
+            return {
+                items: fromBuffer,
+                total: itemCount + buffered.length,
+                offset,
+                limit: limit!,
+                count: fromBuffer.length,
+                desc,
+            };
+        }
+
+        this.statsTracker.add('readCount');
+        const realPage = await this.backend.getData({
+            ...options,
+            offset: Math.max(0, offset - buffered.length),
+            ...(limit === undefined ? {} : { limit: needed }),
+        });
+
+        return {
+            items: [...fromBuffer, ...realPage.items],
+            total: realPage.total + buffered.length,
+            offset,
+            limit: limit ?? realPage.limit,
+            count: fromBuffer.length + realPage.items.length,
+            desc,
+        };
+    }
+
+    /** The active transaction's buffered writes to this dataset, derived from its journal. */
+    private bufferedJournalEntries(): DatasetJournalEntry[] | undefined {
+        const transaction = activeStorageTransaction();
+        return transaction?.journal.filter(
+            (entry): entry is DatasetJournalEntry => entry.type === 'dataset' && entry.participant === this,
+        );
+    }
+
+    /** @internal */
+    async commitJournalEntries(entries: JournalEntry[]): Promise<void> {
+        const items: Data[] = [];
+
+        for (const entry of entries) {
+            if (entry.type === 'dataset') {
+                items.push(...(entry.items as Data[]));
+            }
+        }
+
+        // One `pushData` call with all journaled items, in order - as close to atomic as the backend allows.
+        if (items.length > 0) {
+            await this.pushData(items);
+        }
+    }
+
+    /**
      * Returns all the data from the dataset. This will iterate through the whole dataset
      * via the `listItems()` client method, which gives you only paginated results.
      */
     async export(options: DatasetExportOptions = {}): Promise<Data[]> {
-        checkStorageAccess();
+        tryCancel();
 
         const items: Data[] = [];
 
@@ -344,7 +453,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      * @param [options] An optional options object where you can provide the dataset and target KVS name.
      */
     static async exportToJSON(key: string, options?: DatasetExportToOptions) {
-        checkStorageAccess();
+        tryCancel();
 
         const dataset = await this.open(options?.fromDataset);
         await dataset.exportToJSON(key, options);
@@ -357,7 +466,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      * @param [options] An optional options object where you can provide the dataset and target KVS name.
      */
     static async exportToCSV(key: string, options?: DatasetExportToOptions) {
-        checkStorageAccess();
+        tryCancel();
 
         const dataset = await this.open(options?.fromDataset);
         await dataset.exportToCSV(key, options);
@@ -381,9 +490,19 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      * @throws If the underlying storage no longer exists (e.g. it was deleted externally).
      */
     async getInfo(): Promise<DatasetInfo> {
-        checkStorageAccess();
+        const buffered = this.bufferedJournalEntries();
+        const metadata = await this.backend.getMetadata();
 
-        return this.backend.getMetadata();
+        if (buffered?.length) {
+            const lastWriteAt = buffered[buffered.length - 1].recordedAt;
+            return {
+                ...metadata,
+                itemCount: metadata.itemCount + buffered.reduce((sum, entry) => sum + entry.items.length, 0),
+                modifiedAt: metadata.modifiedAt > lastWriteAt ? metadata.modifiedAt : lastWriteAt,
+            };
+        }
+
+        return metadata;
     }
 
     /**
@@ -407,7 +526,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      * @default 0
      */
     async forEach(iteratee: DatasetConsumer<Data>, options: DatasetIteratorOptions = {}, index = 0): Promise<void> {
-        checkStorageAccess();
+        tryCancel();
 
         if (!options.offset) options.offset = 0;
         if (options.format && options.format !== 'json')
@@ -437,7 +556,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      * @param [options] All `map()` parameters.
      */
     async map<R>(iteratee: DatasetMapper<Data, R>, options: DatasetIteratorOptions = {}): Promise<R[]> {
-        checkStorageAccess();
+        tryCancel();
 
         const result: R[] = [];
 
@@ -513,7 +632,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         memo?: T,
         options: DatasetIteratorOptions = {},
     ): Promise<T | undefined> {
-        checkStorageAccess();
+        tryCancel();
 
         let currentMemo: T | undefined = memo;
 
@@ -553,8 +672,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
             const fetchLimit = totalLimit !== undefined ? Math.min(pageSize, totalLimit - yielded) : pageSize;
             if (fetchLimit <= 0) break;
 
-            this.statsTracker.add('readCount');
-            const page = await this.backend.getData({ ...options, offset, limit: fetchLimit });
+            const page = await this.readPage({ ...options, offset, limit: fetchLimit });
             yield page;
 
             yielded += page.items.length;
@@ -587,7 +705,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      * @param options Options for the iteration.
      */
     values(options: DatasetIteratorOptions = {}): AsyncIterable<Data> & Promise<Data[]> {
-        checkStorageAccess();
+        tryCancel();
 
         return createDualIterable({
             createPages: () => this.fetchPages(options),
@@ -619,7 +737,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      * @param options Options for the iteration.
      */
     entries(options: DatasetIteratorOptions = {}): AsyncIterable<[number, Data]> & Promise<[number, Data][]> {
-        checkStorageAccess();
+        tryCancel();
 
         return createDualIterable({
             createPages: () => this.fetchEntryPages(options),
@@ -648,7 +766,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      * depending on the mode of operation.
      */
     async drop(): Promise<void> {
-        checkStorageAccess();
+        rejectOperationInTransaction('Dataset.drop()');
 
         await this.backend.drop();
         serviceLocator.getStorageInstanceManager().removeFromCache(this);
@@ -673,7 +791,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         identifier?: string | StorageIdentifier | null,
         options: StorageOpenOptions = {},
     ): Promise<Dataset<Data>> {
-        checkStorageAccess();
+        tryCancel();
 
         ow(
             options,
