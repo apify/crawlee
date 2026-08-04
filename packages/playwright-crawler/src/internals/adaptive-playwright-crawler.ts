@@ -40,6 +40,7 @@ import type { BatchAddRequestsResult, Dictionary, Awaitable } from '@crawlee/typ
 import { type CheerioRoot, extractUrlsFromCheerio } from '@crawlee/utils';
 import { type Cheerio } from 'cheerio';
 import type { AnyNode } from 'domhandler';
+import ow from 'ow';
 import type { Page } from 'playwright';
 import type { SetRequired } from 'type-fest';
 
@@ -354,6 +355,9 @@ export class AdaptivePlaywrightCrawler<
             transactionalStorage,
             ...rest
         } = options;
+
+        // The user's value is replaced by `false` in the `super` call below — validate it separately.
+        ow(transactionalStorage, 'transactionalStorage', BasicCrawler.optionsShape.transactionalStorage);
 
         // Per-attempt buffering is load-bearing here: the handler runs up to three times per request
         // and the losing attempts' writes must be discardable.
