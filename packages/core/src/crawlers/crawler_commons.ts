@@ -1,13 +1,12 @@
 import type { Dictionary, HttpRequestOptions, ISession, ProxyInfo, SendRequestOptions } from '@crawlee/types';
 import type { ReadonlyDeep, SetRequired } from 'type-fest';
 
-import type { Configuration } from '../configuration.js';
 import type { EnqueueLinksOptions } from '../enqueue_links/enqueue_links.js';
 import type { CrawleeLogger } from '../log.js';
 import type { Request, RequestOptions, Source } from '../request.js';
 import type { StorageIdentifier } from '../storages/storage_instance_manager.js';
 import type { Dataset } from '../storages/dataset.js';
-import { KeyValueStore, type RecordOptions } from '../storages/key_value_store.js';
+import type { KeyValueStore } from '../storages/key_value_store.js';
 import type { RequestQueueOperationOptions } from '../storages/request_queue.js';
 
 /** @internal */
@@ -237,144 +236,4 @@ export interface CrawlingContext<UserData extends Dictionary = Dictionary> exten
      * Register a function to be called at the very end of the request handling process. This is useful for resources that should be accessible to error handlers, for instance.
      */
     registerDeferredCleanup(cleanup: () => Promise<unknown>): void;
-}
-
-/**
- * A partial implementation of {@apilink RestrictedCrawlingContext} that stores parameters of calls to context methods for later inspection.
- *
- * @experimental
- */
-export class RequestHandlerResult {
-    private _keyValueStoreChanges: Record<string, Record<string, { changedValue: unknown; options?: RecordOptions }>> =
-        {};
-
-    private pushDataCalls: Parameters<RestrictedCrawlingContext['pushData']>[] = [];
-
-    private addRequestsCalls: Parameters<RestrictedCrawlingContext['addRequests']>[] = [];
-
-    constructor(
-        private configuration: Configuration,
-        private crawleeStateKey: string,
-    ) {}
-
-    /**
-     * A record of calls to {@apilink RestrictedCrawlingContext.pushData}, {@apilink RestrictedCrawlingContext.addRequests}, {@apilink RestrictedCrawlingContext.enqueueLinks} made by a request handler.
-     */
-    get calls(): ReadonlyDeep<{
-        pushData: Parameters<RestrictedCrawlingContext['pushData']>[];
-        addRequests: Parameters<RestrictedCrawlingContext['addRequests']>[];
-    }> {
-        return {
-            pushData: this.pushDataCalls,
-            addRequests: this.addRequestsCalls,
-        };
-    }
-
-    /**
-     * A record of changes made to key-value stores by a request handler.
-     */
-    get keyValueStoreChanges(): ReadonlyDeep<
-        Record<string, Record<string, { changedValue: unknown; options?: RecordOptions }>>
-    > {
-        return this._keyValueStoreChanges;
-    }
-
-    /**
-     * Items added to datasets by a request handler.
-     */
-    get datasetItems(): ReadonlyDeep<{ item: Dictionary; datasetIdentifier?: string | StorageIdentifier }[]> {
-        return this.pushDataCalls.flatMap(([data, datasetIdentifier]) =>
-            (Array.isArray(data) ? data : [data]).map((item) => ({ item, datasetIdentifier })),
-        );
-    }
-
-    /**
-     * URLs enqueued to the request queue by a request handler, either via {@apilink RestrictedCrawlingContext.addRequests} or {@apilink RestrictedCrawlingContext.enqueueLinks}
-     */
-    get enqueuedUrls(): ReadonlyDeep<{ url: string; label?: string }[]> {
-        const result: { url: string; label?: string }[] = [];
-
-        for (const [requests] of this.addRequestsCalls) {
-            for (const request of requests) {
-                if (
-                    typeof request === 'object' &&
-                    (!('requestsFromUrl' in request) || request.requestsFromUrl !== undefined) &&
-                    request.url !== undefined
-                ) {
-                    result.push({ url: request.url, label: request.label });
-                } else if (typeof request === 'string') {
-                    result.push({ url: request });
-                }
-            }
-        }
-
-        return result;
-    }
-
-    /**
-     * URL lists enqueued to the request queue by a request handler via {@apilink RestrictedCrawlingContext.addRequests} using the `requestsFromUrl` option.
-     */
-    get enqueuedUrlLists(): ReadonlyDeep<{ listUrl: string; label?: string }[]> {
-        const result: { listUrl: string; label?: string }[] = [];
-
-        for (const [requests] of this.addRequestsCalls) {
-            for (const request of requests) {
-                if (
-                    typeof request === 'object' &&
-                    'requestsFromUrl' in request &&
-                    request.requestsFromUrl !== undefined
-                ) {
-                    result.push({ listUrl: request.requestsFromUrl, label: request.label });
-                }
-            }
-        }
-
-        return result;
-    }
-
-    pushData: RestrictedCrawlingContext['pushData'] = async (data, datasetIdOrName) => {
-        this.pushDataCalls.push([data, datasetIdOrName]);
-    };
-
-    addRequests: RestrictedCrawlingContext['addRequests'] = async (requests, options = {}) => {
-        this.addRequestsCalls.push([requests, options]);
-    };
-
-    useState: RestrictedCrawlingContext['useState'] = async (defaultValue) => {
-        const store = await this.getKeyValueStore(undefined);
-        return await store.getAutoSavedValue(this.crawleeStateKey, defaultValue);
-    };
-
-    getKeyValueStore: RestrictedCrawlingContext['getKeyValueStore'] = async (identifier) => {
-        const store = await KeyValueStore.open(identifier, { configuration: this.configuration });
-        const storeId = store.id;
-
-        return {
-            id: storeId ?? this.configuration.defaultKeyValueStoreId,
-            name: store.name,
-            getValue: async (key) => this.getKeyValueStoreChangedValue(storeId, key) ?? (await store.getValue(key)),
-            setValue: async (key, value, options) => {
-                this.setKeyValueStoreChangedValue(storeId, key, value, options);
-            },
-            getAutoSavedValue: store.getAutoSavedValue.bind(store),
-            getPublicUrl: store.getPublicUrl.bind(store),
-        };
-    };
-
-    private getKeyValueStoreChangedValue = (storeKey: string | undefined, key: string) => {
-        const id = storeKey ?? this.configuration.defaultKeyValueStoreId;
-        this._keyValueStoreChanges[id] ??= {};
-        return this.keyValueStoreChanges[id][key]?.changedValue ?? null;
-    };
-
-    private setKeyValueStoreChangedValue = (
-        storeKey: string | undefined,
-        key: string,
-        changedValue: unknown,
-        options?: RecordOptions,
-    ) => {
-        const id = storeKey ?? this.configuration.defaultKeyValueStoreId;
-        this._keyValueStoreChanges[id] ??= {};
-        this._keyValueStoreChanges[id][key] = { changedValue, options };
-    };
 }
