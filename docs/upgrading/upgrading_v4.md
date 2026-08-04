@@ -1082,6 +1082,10 @@ The same change applies to `CrawlingContext.getKeyValueStore()` and `CrawlingCon
 
 The request loader/manager interfaces have been reworked to mirror the abstractions in Crawlee for Python. See the new [Request loaders](../guides/request-loaders) guide for the full picture.
 
+### `RequestQueue.addRequestsBatched` no longer retries rejected requests
+
+Requests that the storage backend reports as unprocessed are now warned about and skipped after the first attempt, instead of being retried a bounded number of times. What a backend reports as unprocessed is a semantic rejection (typically malformed request data) that re-sending cannot fix — retrying transient failures is the storage backend's own responsibility.
+
 ### `IRequestList` renamed to `IRequestLoader`
 
 The `IRequestList` interface has been renamed to `IRequestLoader` and is now the read-only base interface implemented by `RequestList` and `SitemapRequestLoader`. The writable `IRequestManager` interface now **extends** `IRequestLoader` with the request-adding and reclaiming surface (`addRequest`, `addRequestsBatched`, `reclaimRequest`, optional `purge`). There is no `IRequestList` alias — update your imports and type references to `IRequestLoader` (or `IRequestManager` if you need the write surface).
