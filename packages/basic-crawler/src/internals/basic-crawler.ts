@@ -383,6 +383,9 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
      * 2. because they don't match enqueueLinks filters,
      * 3. because they are redirected to a URL that doesn't match the enqueueLinks strategy,
      * 4. or because the {@apilink BasicCrawlerOptions.maxRequestsPerCrawl|`maxRequestsPerCrawl`} limit has been reached
+     *
+     * When `enqueueLinks` is called with its own `onSkippedRequest` callback, both are invoked — this one first,
+     * then the `enqueueLinks` one.
      */
     onSkippedRequest?: SkippedRequestCallback;
 

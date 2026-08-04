@@ -1411,6 +1411,22 @@ describe('CheerioCrawler', () => {
         expect(succeeded[0]).toEqual('Redirecting outside');
     });
 
+    test('enqueueLinks should not log an enqueueLinks limit when only maxRequestsPerCrawl clamps', async () => {
+        const crawler = new CheerioCrawler({
+            maxRequestsPerCrawl: 1,
+            requestHandler: async ({ enqueueLinks }) => {
+                await enqueueLinks({ strategy: EnqueueStrategy.All });
+            },
+        });
+
+        const infoSpy = vitest.spyOn(crawler.log, 'info');
+
+        await crawler.run([`${serverAddress}/special/html-type`]);
+
+        // The user passed no `limit`, so the skips must not be attributed to one
+        expect(infoSpy).not.toHaveBeenCalledWith(expect.stringContaining('Skipping URLs in the handler'));
+    });
+
     test('enqueueLinks should respect maxCrawlDepth', async () => {
         const succeeded: string[] = [];
 

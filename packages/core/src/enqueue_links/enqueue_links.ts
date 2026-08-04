@@ -201,6 +201,9 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
      * 1. based on robots.txt file,
      * 2. because they don't match enqueueLinks filters,
      * 3. or because the maxRequestsPerCrawl limit has been reached
+     *
+     * When calling `enqueueLinks` through a crawler context, this callback runs in addition to (after) the
+     * crawler-level `onSkippedRequest`, it does not replace it.
      */
     onSkippedRequest?: SkippedRequestCallback;
 }
