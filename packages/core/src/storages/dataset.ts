@@ -291,7 +291,9 @@ export class Dataset<Data extends Dictionary = Dictionary> implements Transactio
         if (!desc) {
             this.statsTracker.add('readCount');
             const realPage = await this.backend.getData(options);
-            const needed = (limit ?? realPage.limit ?? Infinity) - realPage.items.length;
+            // A caller that passed no limit wants everything, so the backend-reported `limit` is not
+            // consulted - backends are free to report a page size or a sentinel there.
+            const needed = (limit ?? Infinity) - realPage.items.length;
             const items = [...realPage.items];
 
             if (needed > 0) {

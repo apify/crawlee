@@ -785,10 +785,10 @@ export class BasicCrawler<
     protected readonly httpClient: BaseHttpClient;
     protected readonly retryOnBlocked: boolean;
     private respectRobotsTxtFile: boolean | { userAgent?: string };
-    /** Whether {@apilink BasicCrawler.runInStorageTransaction|`runInStorageTransaction()`} opens a transaction at all. */
-    protected readonly transactionalStorageEnabled: boolean;
+    /** Whether `runInStorageTransaction()` opens a transaction at all. */
+    private readonly transactionalStorageEnabled: boolean;
     /** The resolved per-storage-type write policy overrides forwarded to each request's transaction. */
-    protected readonly storageWritePolicy: Partial<StorageWritePolicy>;
+    private readonly storageWritePolicy: Partial<StorageWritePolicy>;
     protected readonly onSkippedRequest?: SkippedRequestCallback;
     private _closeEvents?: boolean;
     private loggedPerRun = new Set<string>();

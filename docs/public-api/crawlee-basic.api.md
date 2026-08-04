@@ -180,10 +180,8 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
     setStatusMessage(message: string, options?: SetStatusMessageOptions): void;
     readonly stats: Statistics;
     stop(reason?: string): void;
-    protected readonly storageWritePolicy: Partial<StorageWritePolicy>;
     teardown(): Promise<void>;
     protected _throwOnBlockedRequest(statusCode: number): void;
-    protected readonly transactionalStorageEnabled: boolean;
     // (undocumented)
     useState<State extends Dictionary = Dictionary>(defaultValue?: State): Promise<State>;
 }
