@@ -627,6 +627,54 @@ describe('RequestQueue in a transaction', () => {
         await expect(queue.getTotalCount()).resolves.toBe(1500);
     });
 
+    test('requestsFromUrl sources are observed through their expanded URLs in `enqueuedUrls`', async () => {
+        // Mocked at the HTTP client level: the list download goes through the queue's configured client.
+        const lists: Record<string, string[]> = {
+            'http://example.com/list-1': ['https://example.com/a', 'https://example.com/b'],
+            'http://example.com/list-2': ['https://example.com/c'],
+        };
+        const httpClient = vitest.mockObject({
+            async sendRequest(_request: any, _options?: any) {
+                return new Response();
+            },
+            async stream() {
+                return new Response();
+            },
+        });
+        httpClient.sendRequest.mockImplementation(async (request: { url: string }) => {
+            return new Response(lists[request.url]?.join('\n') ?? '');
+        });
+
+        // There is no `enqueuedUrlLists` on the view - the list is downloaded at call time and the
+        // *fetched* URLs are journaled, under either policy.
+        const queue = await RequestQueue.open(null, { httpClient });
+
+        await withStorageTransaction(async (transaction) => {
+            await queue.addRequests([{ requestsFromUrl: 'http://example.com/list-1', label: 'from-list' }]);
+
+            // writeThrough (default): applied immediately, and journaled for introspection.
+            expect(transaction.enqueuedUrls).toEqual([
+                { url: 'https://example.com/a', label: 'from-list' },
+                { url: 'https://example.com/b', label: 'from-list' },
+            ]);
+        });
+
+        await expect(queue.getTotalCount()).resolves.toBe(2);
+
+        await withStorageTransaction(
+            async (transaction) => {
+                await queue.addRequests([{ requestsFromUrl: 'http://example.com/list-2' }]);
+
+                // deferred: journaled the same way, applied only at commit.
+                expect(transaction.enqueuedUrls).toEqual([{ url: 'https://example.com/c' }]);
+            },
+            { policy: { requestQueue: 'deferred' } },
+        );
+
+        expect(httpClient.sendRequest).toHaveBeenCalledTimes(2);
+        await expect(queue.getTotalCount()).resolves.toBe(3);
+    });
+
     test('crawler bookkeeping operations are rejected inside a transaction', async () => {
         const queue = await RequestQueue.open();
         await queue.addRequest({ url: 'https://example.com' });
