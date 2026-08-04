@@ -5,10 +5,6 @@
 ```ts
 
 import type { CrawleeLogger } from '@crawlee/types';
-import type { Dictionary } from '@crawlee/types';
-import type { FileSystemDatasetClient } from '@crawlee/fs-storage-native';
-import type { FileSystemKeyValueStoreClient } from '@crawlee/fs-storage-native';
-import type { FileSystemRequestQueueClient } from '@crawlee/fs-storage-native';
 import type * as storage from '@crawlee/types';
 
 // @public

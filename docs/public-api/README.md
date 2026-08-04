@@ -27,6 +27,11 @@ They are produced by [API Extractor](https://api-extractor.com/) from the built
   `@internal` (`@alpha`/`@beta` too) are excluded — only `@public` surface is tracked.
   The generator stages the variant as `<name>.public.api.md` under `temp/` and promotes it
   onto the committed `<name>.api.md`, so the tracked filenames stay stable.
+- API Extractor builds the import list before it trims the non-`@public` declarations and
+  never revisits it, so a type reachable only from an `@internal` member would linger as a
+  bare import and read as public surface. There is no config option for this, so the
+  generator post-processes each report: it parses the fenced TypeScript and drops imports
+  whose binding is referenced by no declaration that survived the trim.
 - `docs/public-api/temp/` holds intermediate reports (including the staged `.public.api.md`
   files) and is git-ignored.
 - `@crawlee/cli` and `@crawlee/templates` are deliberately excluded — they are tooling

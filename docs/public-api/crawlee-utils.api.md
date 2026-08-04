@@ -10,7 +10,6 @@ import { CheerioAPI } from 'cheerio';
 import type { CrawleeLogger } from '@crawlee/types';
 import type { Dictionary } from '@crawlee/types';
 import { Element as Element_2 } from 'domhandler';
-import type { SearchParams } from '@crawlee/types';
 
 export { Cheerio }
 

@@ -5,6 +5,7 @@ import { basename, dirname, relative, resolve } from 'node:path';
 
 import { Extractor, ExtractorConfig, type IConfigFile } from '@microsoft/api-extractor';
 import { globbySync } from 'globby';
+import ts from 'typescript';
 
 /**
  * Generates (`--verify` to check) a per-package map of the public type-level interface of
@@ -21,6 +22,10 @@ import { globbySync } from 'globby';
  * pass. A few packages may still re-export a comment-injected member across a package boundary
  * and crash anyway; those are retried against a sanitized mirror of the dist tree with
  * `@crawlee/*` deps remapped via tsconfig `paths`.
+ *
+ * After extraction we prune import lines that nothing in the report references — API
+ * Extractor snapshots the imports before it trims the non-`@public` declarations, so
+ * `@internal`-only types would otherwise linger there (see `pruneUnusedImports`).
  *
  * When running under GitHub Actions (or with `--github`), failures are additionally emitted
  * as workflow commands (`::error::`) so they show up as inline annotations in the CI run.
@@ -90,6 +95,97 @@ const sanitizeDts = (content: string) =>
         .join('\n')
         .replace(IGNORE_TAG, '$1$2@internal');
 
+type ImportStatement = ts.ImportDeclaration | ts.ImportEqualsDeclaration;
+const isImport = (node: ts.Node): node is ImportStatement =>
+    ts.isImportDeclaration(node) || ts.isImportEqualsDeclaration(node);
+
+/** Local binding names introduced by an import statement (`[]` for a side-effect import). */
+function importBindings(node: ImportStatement): string[] {
+    if (ts.isImportEqualsDeclaration(node)) return [node.name.text];
+    const clause = node.importClause;
+    if (!clause) return [];
+    const names = clause.name ? [clause.name.text] : [];
+    const bound = clause.namedBindings;
+    if (bound && ts.isNamespaceImport(bound)) names.push(bound.name.text);
+    if (bound && ts.isNamedImports(bound)) names.push(...bound.elements.map((element) => element.name.text));
+    return names;
+}
+
+/**
+ * Drops import statements whose binding is never referenced in the rest of the report.
+ *
+ * API Extractor collects the import list from the entry point *before* it trims the
+ * non-`@public` declarations, and never revisits it — deliberately, since a rollup may
+ * legitimately need an import that its release-tag filter would have dropped. In the API
+ * report, though, a type reachable only from an `@internal` member survives as a bare
+ * import and reads as public surface (e.g. `Cookie` from `tough-cookie` in `@crawlee/core`),
+ * producing review noise on changes that never touched the public API. There is no config
+ * knob for this, so we post-process the report.
+ *
+ * The report body is ordinary TypeScript, so we parse it rather than pattern-match lines:
+ * bindings come from real import nodes (covering every shape the emitter produces, including
+ * `import X = require(...)`), and usages from real identifier tokens — so a name occurring
+ * only in a string literal or a `// Warning:` comment correctly does not count as a use.
+ */
+function pruneUnusedImports(report: string): string {
+    const lines = report.split('\n');
+    // The report is a fixed markdown skeleton wrapping a single ```ts fence.
+    const open = lines.indexOf('```ts');
+    const close = lines.lastIndexOf('```');
+    if (open === -1 || close <= open) return report;
+
+    const source = ts.createSourceFile(
+        'report.ts',
+        lines.slice(open + 1, close).join('\n'),
+        ts.ScriptTarget.Latest,
+        true,
+        ts.ScriptKind.TS,
+    );
+    // `parseDiagnostics` is internal, but there is no public per-file equivalent that doesn't
+    // require a whole Program. A report that doesn't parse means our assumptions are broken,
+    // so leave the imports alone rather than guess which ones are dead.
+    const diagnostics = (source as unknown as { parseDiagnostics?: readonly ts.Diagnostic[] }).parseDiagnostics;
+    if (diagnostics?.length) {
+        const message = `skipped pruning unused imports: report did not parse (${diagnostics.length} syntax errors)`;
+        console.warn(`! ${message}`);
+        ghCommand('warning', message);
+        return report;
+    }
+
+    const imports = source.statements.filter(isImport);
+    if (imports.length === 0) return report;
+
+    const used = new Set<string>();
+    const collect = (node: ts.Node) => {
+        // Skip the import statements themselves so a binding never counts as its own usage.
+        if (isImport(node)) return;
+        if (ts.isIdentifier(node)) used.add(node.text);
+        node.forEachChild(collect);
+    };
+    source.forEachChild(collect);
+
+    // Offset back into the surrounding markdown; `getStart` skips leading trivia so we never
+    // swallow a comment sitting above an import.
+    const lineOf = (position: number) => open + 1 + source.getLineAndCharacterOfPosition(position).line;
+    const unused = imports.filter((node) => {
+        const bindings = importBindings(node);
+        return bindings.length > 0 && bindings.every((binding) => !used.has(binding));
+    });
+    if (unused.length === 0) return report;
+
+    const dropped = new Set<number>();
+    for (const node of unused) {
+        for (let line = lineOf(node.getStart(source)); line <= lineOf(node.getEnd()); line++) dropped.add(line);
+    }
+    // Emptying the block entirely would leave the blank line that separated it from the
+    // declarations stacked on the one after the ```ts fence; drop it so the output matches
+    // what API Extractor emits for an import-less report.
+    const after = lineOf(unused[unused.length - 1].getEnd()) + 1;
+    if (unused.length === imports.length && lines[after] === '') dropped.add(after);
+
+    return lines.filter((_, index) => !dropped.has(index)).join('\n');
+}
+
 const reportBaseName = (name: string) => name.replace('@', '').replace('/', '-');
 const reportFileName = (name: string) => `${reportBaseName(name)}.api.md`;
 // With `reportVariants: ['public']`, API Extractor appends the variant kind to the file name,
@@ -145,7 +241,9 @@ function extract(pkgDir: string, pkgJsonPath: string, entry: string, paths?: Rec
     Extractor.invoke(config, { localBuild: true, showVerboseMessages: false });
 
     const stagedPath = resolve(stagingFolder, stagedFileName(name));
-    const staged = readFileSync(stagedPath, 'utf8');
+    const staged = pruneUnusedImports(readFileSync(stagedPath, 'utf8'));
+    // Persist the pruned report so a `--verify` failure diffs against what we actually compare.
+    writeFileSync(stagedPath, staged);
     const committedPath = resolve(reportFolder, reportFileName(name));
     const committed = existsSync(committedPath) ? readFileSync(committedPath, 'utf8') : undefined;
     const apiReportChanged = staged !== committed;

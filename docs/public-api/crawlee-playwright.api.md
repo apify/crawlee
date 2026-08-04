@@ -19,7 +19,6 @@ import type { BrowserCrawlerOptions } from '@crawlee/browser';
 import type { BrowserCrawlingContext } from '@crawlee/browser';
 import type { BrowserHook } from '@crawlee/browser';
 import type { BrowserLaunchContext } from '@crawlee/browser';
-import { BrowserLauncher } from '@crawlee/browser';
 import type { BrowserType } from 'playwright';
 import { Cheerio } from 'cheerio';
 import { CheerioAPI } from '@crawlee/browser';
@@ -44,7 +43,6 @@ import type { Page } from 'playwright';
 import { PlaywrightPlugin } from '@crawlee/browser-pool';
 import { Predicate } from 'ow';
 import type { PseudoUrlInput } from '@crawlee/browser';
-import type { RecoverableStatePersistenceOptions } from '@crawlee/core';
 import type { RegExpInput } from '@crawlee/browser';
 import type { Request as Request_2 } from '@crawlee/core';
 import { Request as Request_3 } from '@crawlee/browser';
@@ -58,9 +56,6 @@ import type { RouterRoutes as RouterRoutes_2 } from '@crawlee/core';
 import type { RouteSchemas } from '@crawlee/browser';
 import type { RoutesFromSchemas } from '@crawlee/browser';
 import type { SkippedRequestCallback } from '@crawlee/browser';
-import { Statistics } from '@crawlee/core';
-import type { StatisticsOptions } from '@crawlee/core';
-import type { StatisticState } from '@crawlee/core';
 import { StringPredicate } from 'ow';
 
 // @public
