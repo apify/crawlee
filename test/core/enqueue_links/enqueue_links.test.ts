@@ -367,7 +367,7 @@ describe('enqueueLinks()', () => {
                     requestManager: requestQueue,
                     originalRequestUrl: 'https://example.com',
                 }),
-            ).rejects.toThrow(/to be of type `string` but received type `RegExp`/);
+            ).rejects.toThrow(/at `pseudoUrls\[0\]`/);
         });
 
         test('works with undefined pseudoUrls[]', async () => {
@@ -409,7 +409,7 @@ describe('enqueueLinks()', () => {
                     requestManager: requestQueue,
                     originalRequestUrl: 'https://example.com',
                 }),
-            ).rejects.toThrow(/Expected property `pseudoUrls` to be of type `array` but received type `null`/);
+            ).rejects.toThrow(/Invalid input: expected array.*at `pseudoUrls`/);
         });
 
         test('works with empty pseudoUrls[]', async () => {
@@ -452,7 +452,7 @@ describe('enqueueLinks()', () => {
                     requestManager: requestQueue,
                     originalRequestUrl: 'https://example.com',
                 }),
-            ).rejects.toThrow(/\(array `pseudoUrls`\) Any predicate failed with the following errors/);
+            ).rejects.toThrow(/at `pseudoUrls\[1\]`/);
             expect(enqueued).toHaveLength(0);
         });
 
@@ -742,7 +742,7 @@ describe('enqueueLinks()', () => {
                     requestManager: requestQueue,
                     originalRequestUrl: 'https://example.com',
                 }),
-            ).rejects.toThrow(/to be of type `string` but received type `RegExp`/);
+            ).rejects.toThrow(/at `pseudoUrls\[0\]`/);
         });
 
         test('works with undefined pseudoUrls[]', async () => {
@@ -783,7 +783,7 @@ describe('enqueueLinks()', () => {
                     requestManager: requestQueue,
                     originalRequestUrl: 'https://example.com',
                 }),
-            ).rejects.toThrow(/Expected property `pseudoUrls` to be of type `array` but received type `null`/);
+            ).rejects.toThrow(/Invalid input: expected array.*at `pseudoUrls`/);
         });
 
         test('works with empty pseudoUrls[]', async () => {
@@ -826,7 +826,7 @@ describe('enqueueLinks()', () => {
                     requestManager: requestQueue,
                     originalRequestUrl: 'https://example.com',
                 }),
-            ).rejects.toThrow(/\(array `pseudoUrls`\) Any predicate failed with the following errors/);
+            ).rejects.toThrow(/at `pseudoUrls\[1\]`/);
             expect(enqueued).toHaveLength(0);
         });
 

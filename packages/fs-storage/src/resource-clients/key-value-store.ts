@@ -2,7 +2,8 @@ import { Readable } from 'node:stream';
 
 import type * as storage from '@crawlee/types';
 import type { CrawleeLogger } from '@crawlee/types';
-import { s } from '@sapphire/shapeshift';
+import { parseArgument, schemas } from '@crawlee/utils';
+import { z } from 'zod';
 
 import type {
     FileSystemKeyValueStoreClient as NativeFileSystemKeyValueStoreBackend,
@@ -28,6 +29,22 @@ const BARE_FILE_FALLBACKS: { extension: string; contentType: string }[] = [
 ];
 
 const ALLOWED_BARE_FILES = ['INPUT'];
+
+const keySchema = z.string();
+
+const inputRecordShape = z.object({
+    key: z.string().min(1),
+    value: z.union([
+        z.string(),
+        z.instanceof(Buffer),
+        z.instanceof(ArrayBuffer),
+        schemas.typedArray,
+        // A stream is an object; this only checks it is a non-null, non-array object
+        // (the stream guard in `setValue` does the real check).
+        schemas.plainObject,
+    ]),
+    contentType: z.string().min(1).optional(),
+});
 
 /**
  * The out-of-band ("bare") files to surface from the native `listKeys`, derived from
@@ -129,13 +146,7 @@ export class KeyValueStoreBackend extends CachedIdClient implements storage.KeyV
     }
 
     async listKeys(options: storage.KeyValueStoreListKeysOptions = {}): Promise<storage.KeyValueStoreListKeysResult> {
-        const { prefix, exclusiveStartKey, limit } = s
-            .object({
-                prefix: s.string().optional(),
-                exclusiveStartKey: s.string().optional(),
-                limit: s.number().int().greaterThan(0).optional(),
-            })
-            .parse(options);
+        const { prefix, exclusiveStartKey, limit } = parseArgument(options, schemas.keyValueStoreListKeysOptions);
 
         // Pass the bare-file fallbacks so out-of-band value files (e.g. a hand-placed `INPUT.json`)
         // are enumerated alongside tracked records, under their actual on-disk name. The native reads
@@ -174,7 +185,7 @@ export class KeyValueStoreBackend extends CachedIdClient implements storage.KeyV
      * @param key The key of the record to generate the public URL for.
      */
     async getPublicUrl(key: string): Promise<string | undefined> {
-        s.string().parse(key);
+        parseArgument(key, keySchema);
 
         // The native `getPublicUrl` stats the encoded path but does not probe bare-file extensions,
         // so we resolve the on-disk key first (handling e.g. `INPUT` -> `INPUT.json`) and normalize
@@ -193,12 +204,12 @@ export class KeyValueStoreBackend extends CachedIdClient implements storage.KeyV
      * @returns `true` if the record exists, `false` otherwise.
      */
     async recordExists(key: string): Promise<boolean> {
-        s.string().parse(key);
+        parseArgument(key, keySchema);
         return (await this.resolveExistingKey(key)) !== undefined;
     }
 
     async getValue(key: string): Promise<storage.KeyValueStoreRecord | undefined> {
-        s.string().parse(key);
+        parseArgument(key, keySchema);
 
         const fallbacks = this.bareFallbacksFor(key);
         const record = fallbacks
@@ -221,19 +232,7 @@ export class KeyValueStoreBackend extends CachedIdClient implements storage.KeyV
         // serialized it: non-bytes become a `string`, everything else is a `Buffer`/typed array or a
         // stream. So we only accept those shapes here — there is no JSON inference or `String(value)`
         // coercion left to do.
-        s.object({
-            key: s.string().lengthGreaterThan(0),
-            value: s.union([
-                s.string(),
-                s.instance(Buffer),
-                s.instance(ArrayBuffer),
-                s.typedArray(),
-                // A stream is an object; disabling validation makes shapeshift only check it is a
-                // non-null, non-array object (the stream guard below does the real check).
-                s.object({}).setValidationEnabled(false),
-            ]),
-            contentType: s.string().lengthGreaterThan(0).optional(),
-        }).parse(record);
+        parseArgument(record, inputRecordShape);
 
         const { key, value } = record;
         // The frontend resolves the content type before it reaches the backend; this backend is a plain
@@ -261,7 +260,7 @@ export class KeyValueStoreBackend extends CachedIdClient implements storage.KeyV
     }
 
     async deleteValue(key: string): Promise<void> {
-        s.string().parse(key);
+        parseArgument(key, keySchema);
         await this.nativeBackend.deleteValue(key);
     }
 

@@ -1,10 +1,10 @@
 import { Transform } from 'node:stream';
 
-import type { BaseHttpClient } from '@crawlee/types';
+import type { BaseHttpClient } from '@crawlee/http-client';
 import { parseSitemap, type ParseSitemapOptions } from '@crawlee/utils';
 import { minimatch } from 'minimatch';
-import ow from 'ow';
 import type { RequiredDeep } from 'type-fest';
+import { z } from 'zod';
 
 import type { GlobInput, RegExpInput, UrlPatternObject } from '../enqueue_links/shared.js';
 import { constructGlobObjectsFromGlobs, constructRegExpObjectsFromRegExps } from '../enqueue_links/shared.js';
@@ -12,10 +12,34 @@ import { type EventManager, EventType } from '../events/event_manager.js';
 import type { CrawleeLogger } from '../log.js';
 import { Request } from '../request.js';
 import { serviceLocator } from '../service_locator.js';
+import { parseArgument, schemas } from '../validators.js';
 import { KeyValueStore } from './key_value_store.js';
 import type { IRequestLoader } from './request_loader.js';
 import type { IRequestManager } from './request_manager.js';
 import { purgeDefaultStorages } from './utils.js';
+
+const sitemapRequestLoaderOptionsSchema = z.strictObject({
+    sitemapUrls: z.array(z.string()),
+    proxyUrl: z.string().optional(),
+    persistStateKey: z.string().optional(),
+    signal: z.unknown().optional(),
+    timeoutMillis: schemas.anyNumber.optional(),
+    maxBufferSize: schemas.anyNumber.default(200),
+    parseSitemapOptions: z.looseObject({}).optional(),
+    globs: z.array(z.union([z.string(), schemas.objectWithKeys(['glob'])])).optional(),
+    exclude: z
+        .array(
+            z.union([
+                z.string(),
+                z.instanceof(RegExp),
+                schemas.objectWithKeys(['glob']),
+                schemas.objectWithKeys(['regexp']),
+            ]) as z.ZodType<GlobInput | RegExpInput>,
+        )
+        .optional(),
+    regexps: z.array(z.union([z.instanceof(RegExp), schemas.objectWithKeys(['regexp'])])).optional(),
+    persistenceOptions: z.looseObject({}).optional(),
+});
 
 /** @internal */
 const STATE_PERSISTENCE_KEY = 'SITEMAP_REQUEST_LOADER_STATE';
@@ -204,26 +228,8 @@ export class SitemapRequestLoader implements IRequestLoader {
 
     /** @internal */
     private constructor(options: SitemapRequestLoaderOptions) {
-        ow(
-            options,
-            ow.object.exactShape({
-                sitemapUrls: ow.array.ofType(ow.string),
-                proxyUrl: ow.optional.string,
-                persistStateKey: ow.optional.string,
-                signal: ow.optional.any(),
-                timeoutMillis: ow.optional.number,
-                maxBufferSize: ow.optional.number,
-                parseSitemapOptions: ow.optional.object,
-                globs: ow.optional.array.ofType(ow.any(ow.string, ow.object.hasKeys('glob'))),
-                exclude: ow.optional.array.ofType(
-                    ow.any(ow.string, ow.regExp, ow.object.hasKeys('glob'), ow.object.hasKeys('regexp')),
-                ),
-                regexps: ow.optional.array.ofType(ow.any(ow.regExp, ow.object.hasKeys('regexp'))),
-                persistenceOptions: ow.optional.object,
-            }),
-        );
-
-        const { globs, exclude, regexps } = options;
+        const { globs, exclude, regexps, persistStateKey, persistenceOptions, proxyUrl, maxBufferSize, sitemapUrls } =
+            parseArgument(options, sitemapRequestLoaderOptionsSchema);
 
         this.log = serviceLocator.getLogger().child({ prefix: 'SitemapRequestLoader' });
 
@@ -245,14 +251,14 @@ export class SitemapRequestLoader implements IRequestLoader {
             this.urlPatternObjects.push(...constructRegExpObjectsFromRegExps(regexps));
         }
 
-        this.persistStateKey = options.persistStateKey;
-        this.persistenceOptions = { enable: true, ...options.persistenceOptions };
+        this.persistStateKey = persistStateKey;
+        this.persistenceOptions = { enable: true, ...persistenceOptions };
 
-        this.proxyUrl = options.proxyUrl;
+        this.proxyUrl = proxyUrl;
 
-        this.urlQueueStream = this.createNewStream(options.maxBufferSize ?? 200);
+        this.urlQueueStream = this.createNewStream(maxBufferSize);
 
-        this.sitemapParsingProgress.pendingSitemapUrls = new Set(options.sitemapUrls);
+        this.sitemapParsingProgress.pendingSitemapUrls = new Set(sitemapUrls);
         this.events = serviceLocator.getEventManager();
 
         this.persistState = this.persistState.bind(this);

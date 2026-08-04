@@ -27,7 +27,7 @@ import type { Dictionary } from '@crawlee/types';
 import { type CheerioRoot, type RobotsTxtFile, sleep } from '@crawlee/utils';
 import type { DOMWindow } from 'jsdom';
 import { JSDOM, ResourceLoader, VirtualConsole } from 'jsdom';
-import ow from 'ow';
+import { z } from 'zod';
 
 import { addTimeoutToPromise } from '@apify/timeout';
 
@@ -195,8 +195,8 @@ export class JSDOMCrawler<
 > extends HttpCrawler<JSDOMCrawlingContext, ContextExtension, ExtendedContext, Routes> {
     protected static override optionsShape = {
         ...HttpCrawler.optionsShape,
-        runScripts: ow.optional.boolean,
-        hideInternalConsole: ow.optional.boolean,
+        runScripts: z.boolean().optional(),
+        hideInternalConsole: z.boolean().optional(),
     };
 
     private runScripts: boolean;

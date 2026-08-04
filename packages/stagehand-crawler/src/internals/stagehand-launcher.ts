@@ -1,7 +1,7 @@
 import type { BrowserLaunchContext } from '@crawlee/browser';
-import { BrowserLauncher, Configuration } from '@crawlee/browser';
-import ow from 'ow';
+import { BrowserLauncher, Configuration, parseArgument, schemas } from '@crawlee/browser';
 import type { BrowserType, LaunchOptions } from 'playwright';
+import { z } from 'zod';
 
 import type { StagehandOptions } from './stagehand-crawler';
 import { StagehandPlugin } from './stagehand-plugin';
@@ -65,10 +65,13 @@ export interface StagehandLaunchContext extends BrowserLaunchContext<LaunchOptio
 export class StagehandLauncher extends BrowserLauncher<StagehandPlugin> {
     protected static override optionsShape = {
         ...BrowserLauncher.optionsShape,
-        launcher: ow.optional.object,
-        launchContextOptions: ow.optional.object,
-        stagehandOptions: ow.optional.object,
+        // Passthrough schemas — the launcher module object must keep its prototype through parsing.
+        launcher: schemas.anyObject.optional(),
+        launchContextOptions: schemas.anyObject.optional(),
+        stagehandOptions: schemas.anyObject.optional(),
     };
+
+    protected static override optionsSchema = z.strictObject(StagehandLauncher.optionsShape);
 
     private readonly stagehandOptions: StagehandOptions;
 
@@ -79,7 +82,7 @@ export class StagehandLauncher extends BrowserLauncher<StagehandPlugin> {
         launchContext: StagehandLaunchContext = {},
         override readonly configuration = Configuration.getGlobalConfiguration(),
     ) {
-        ow(launchContext, 'StagehandLaunchContext', ow.object.exactShape(StagehandLauncher.optionsShape));
+        const parsedContext = parseArgument(launchContext, StagehandLauncher.optionsSchema);
 
         const {
             launcher = BrowserLauncher.requireLauncherOrThrow<typeof import('playwright')>(
@@ -87,9 +90,9 @@ export class StagehandLauncher extends BrowserLauncher<StagehandPlugin> {
                 'apify/actor-node-playwright-*',
             ).chromium,
             stagehandOptions = {},
-        } = launchContext;
+        } = parsedContext;
 
-        const { launchOptions = {}, ...rest } = launchContext;
+        const { launchOptions = {}, ...rest } = parsedContext;
 
         // Call super first before initializing properties
         super(
@@ -97,7 +100,7 @@ export class StagehandLauncher extends BrowserLauncher<StagehandPlugin> {
                 ...rest,
                 launchOptions: {
                     ...launchOptions,
-                    executablePath: getDefaultExecutablePath(launchContext, configuration),
+                    executablePath: getDefaultExecutablePath(parsedContext, configuration),
                 },
                 launcher,
             },

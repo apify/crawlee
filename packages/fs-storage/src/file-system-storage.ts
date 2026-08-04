@@ -3,7 +3,8 @@ import { resolve } from 'node:path';
 
 import type * as storage from '@crawlee/types';
 import type { CrawleeLogger } from '@crawlee/types';
-import { s } from '@sapphire/shapeshift';
+import { parseArgument, schemas } from '@crawlee/utils';
+import { z } from 'zod';
 
 import {
     FileSystemDatasetClient as NativeDatasetBackend,
@@ -13,6 +14,12 @@ import {
 import { DatasetBackend } from './resource-clients/dataset.js';
 import { KeyValueStoreBackend } from './resource-clients/key-value-store.js';
 import { RequestQueueBackend } from './resource-clients/request-queue.js';
+
+const fileSystemStorageOptionsSchema = z.object({
+    localDataDirectory: z.string(),
+    requestQueueAccess: z.enum(['single', 'shared']).default('single'),
+    logger: schemas.logger.optional(),
+});
 
 export interface FileSystemStorageOptions {
     /**
@@ -64,15 +71,15 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
     readonly requestQueueBackendCache: RequestQueueBackend[] = [];
 
     constructor(options: FileSystemStorageOptions) {
-        s.object({
-            localDataDirectory: s.string(),
-            requestQueueAccess: s.enum(['single', 'shared']).optional(),
-        }).parse(options);
+        const { logger, requestQueueAccess, localDataDirectory } = parseArgument(
+            options,
+            fileSystemStorageOptionsSchema,
+        );
 
-        this.logger = options.logger;
-        this.requestQueueAccess = options.requestQueueAccess ?? 'single';
+        this.logger = logger;
+        this.requestQueueAccess = requestQueueAccess;
 
-        this.localDataDirectory = options.localDataDirectory;
+        this.localDataDirectory = localDataDirectory;
         this.datasetsDirectory = resolve(this.localDataDirectory, 'datasets');
         this.keyValueStoresDirectory = resolve(this.localDataDirectory, 'key_value_stores');
         this.requestQueuesDirectory = resolve(this.localDataDirectory, 'request_queues');

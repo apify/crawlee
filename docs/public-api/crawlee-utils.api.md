@@ -4,13 +4,21 @@
 
 ```ts
 
-import type { BaseHttpClient } from '@crawlee/types';
+import { BaseHttpClient } from '@crawlee/http-client';
 import { Cheerio } from 'cheerio';
 import { CheerioAPI } from 'cheerio';
 import type { CrawleeLogger } from '@crawlee/types';
 import type { Dictionary } from '@crawlee/types';
 import { Element as Element_2 } from 'domhandler';
 import type { SearchParams } from '@crawlee/types';
+import { z } from 'zod';
+
+// @public
+export class ArgumentValidationError extends Error {
+    constructor(error: z.ZodError, value: unknown);
+    readonly cause: z.ZodError;
+    readonly issues: z.ZodError['issues'];
+}
 
 export { Cheerio }
 
@@ -167,6 +175,26 @@ export class RobotsTxtFile {
 
 // @public
 export const ROTATE_PROXY_ERRORS: string[];
+
+declare namespace schemas {
+    export {
+        objectWithKeys,
+        anyObject,
+        anyArray,
+        anyFunction,
+        anyNumber,
+        httpClient,
+        logger,
+        typedArray,
+        plainObject,
+        storageRequest,
+        storageRequestWithoutId,
+        storageRequestBatch,
+        requestQueueOperationOptions,
+        keyValueStoreListKeysOptions,
+        datasetListItemsOptions
+    }
+}
 
 // @public
 export class Sitemap {

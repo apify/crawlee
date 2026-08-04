@@ -1,10 +1,13 @@
 import type * as storage from '@crawlee/types';
 import type { CrawleeLogger } from '@crawlee/types';
-import { s } from '@sapphire/shapeshift';
+import { parseArgument, schemas } from '@crawlee/utils';
+import { z } from 'zod';
 
 import type { FileSystemRequestQueueClient as NativeFileSystemRequestQueueBackend } from '@crawlee/fs-storage-native';
 
 import { CachedIdClient } from './cached-id-client.js';
+
+const uniqueKeySchema = z.string();
 
 /**
  * Convert a request (either a Crawlee `Request` instance or a plain schema object) into a plain object
@@ -21,24 +24,6 @@ import { CachedIdClient } from './cached-id-client.js';
 function plainifyRequest(request: unknown): Record<string, unknown> {
     return JSON.parse(JSON.stringify(request)) as Record<string, unknown>;
 }
-
-const requestShape = s
-    .object({
-        id: s.string(),
-        url: s.string().url({ allowedProtocols: ['http:', 'https:'] }),
-        uniqueKey: s.string(),
-        method: s.string().optional(),
-        retryCount: s.number().int().optional(),
-        handledAt: s.union([s.string(), s.date().valid()]).optional(),
-    })
-    .passthrough();
-
-const requestShapeWithoutId = requestShape.omit(['id']);
-const batchRequestShapeWithoutId = requestShapeWithoutId.array();
-
-const requestOptionsShape = s.object({
-    forefront: s.boolean().optional(),
-});
 
 export interface RequestQueueBackendOptions {
     /** The user-facing storage name, or `undefined` for unnamed (alias / default) storages. */
@@ -106,8 +91,8 @@ export class RequestQueueBackend extends CachedIdClient implements storage.Reque
         requests: storage.RequestSchema[],
         options: storage.RequestQueueOperationOptions = {},
     ): Promise<storage.BatchAddRequestsResult> {
-        batchRequestShapeWithoutId.parse(requests);
-        requestOptionsShape.parse(options);
+        parseArgument(requests, schemas.storageRequestBatch);
+        parseArgument(options, schemas.requestQueueOperationOptions);
 
         const response = await this.nativeBackend.addBatchOfRequests(
             requests.map((request) => plainifyRequest(request)),
@@ -124,7 +109,7 @@ export class RequestQueueBackend extends CachedIdClient implements storage.Reque
     }
 
     async getRequest(uniqueKey: string): Promise<storage.UpdateRequestSchema | undefined> {
-        s.string().parse(uniqueKey);
+        parseArgument(uniqueKey, uniqueKeySchema);
         // The native client tags requests with an internal `orderNo`; it's harmless to leak, so we
         // hand the request back as-is rather than copying it just to drop one undeclared property.
         // The native client already returns `undefined` for a missing request, matching this contract.
@@ -136,7 +121,7 @@ export class RequestQueueBackend extends CachedIdClient implements storage.Reque
     }
 
     async markRequestAsHandled(request: storage.UpdateRequestSchema): Promise<storage.QueueOperationInfo | undefined> {
-        requestShape.parse(request);
+        parseArgument(request, schemas.storageRequest);
         return (await this.nativeBackend.markRequestAsHandled(plainifyRequest(request))) ?? undefined;
     }
 
@@ -144,8 +129,8 @@ export class RequestQueueBackend extends CachedIdClient implements storage.Reque
         request: storage.UpdateRequestSchema,
         options: storage.RequestQueueOperationOptions = {},
     ): Promise<storage.QueueOperationInfo | undefined> {
-        requestShape.parse(request);
-        requestOptionsShape.parse(options);
+        parseArgument(request, schemas.storageRequest);
+        parseArgument(options, schemas.requestQueueOperationOptions);
         return (
             (await this.nativeBackend.reclaimRequest(plainifyRequest(request), options.forefront ?? false)) ?? undefined
         );

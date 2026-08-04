@@ -1,15 +1,15 @@
 import { AsyncResource } from 'node:async_hooks';
 
-import { type CrawleeLogger, SessionError, serviceLocator } from '@crawlee/core';
+import { type CrawleeLogger, parseArgument, schemas, SessionError, serviceLocator } from '@crawlee/core';
 import type { IBrowserPool, NewPageOptions, PageState } from '@crawlee/types';
 import type { BrowserFingerprintWithHeaders } from 'fingerprint-generator';
 import { FingerprintGenerator } from 'fingerprint-generator';
 import { FingerprintInjector } from 'fingerprint-injector';
 import { nanoid } from 'nanoid';
-import ow from 'ow';
 import pLimit from 'p-limit';
 import QuickLRU from 'quick-lru';
 import { TypedEmitter } from 'tiny-typed-emitter';
+import { z } from 'zod';
 
 import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 
@@ -28,6 +28,23 @@ import type { InferBrowserPluginArray, UnwrapPromise } from './utils.js';
 const PAGE_CLOSE_TIMEOUT_MILLIS = 5000;
 const PAGE_CLOSE_KILL_TIMEOUT_MILLIS = 1000;
 const BROWSER_KILLER_INTERVAL_MILLIS = 10 * 1000;
+
+const browserPoolOptionsSchema = z.strictObject({
+    browserPlugins: schemas.anyArray.refine((value) => value.length >= 1, 'Expected a non-empty array'),
+    maxOpenPagesPerBrowser: schemas.anyNumber.default(20),
+    retireBrowserAfterPageCount: schemas.anyNumber.default(100),
+    operationTimeoutSecs: schemas.anyNumber.default(15),
+    closeInactiveBrowserAfterSecs: schemas.anyNumber.default(300),
+    retireInactiveBrowserAfterSecs: schemas.anyNumber.default(10),
+    preLaunchHooks: schemas.anyArray.default(() => []),
+    postLaunchHooks: schemas.anyArray.default(() => []),
+    prePageCreateHooks: schemas.anyArray.default(() => []),
+    postPageCreateHooks: schemas.anyArray.default(() => []),
+    prePageCloseHooks: schemas.anyArray.default(() => []),
+    postPageCloseHooks: schemas.anyArray.default(() => []),
+    useFingerprints: z.boolean().default(true),
+    fingerprintOptions: schemas.anyObject.default(() => ({})),
+});
 
 export interface BrowserPoolEvents<BC extends BrowserController, Page> {
     [BROWSER_POOL_EVENTS.PAGE_CREATED]: (page: Page) => void | Promise<void>;
@@ -349,42 +366,22 @@ export class BrowserPool<
 
         this.browserKillerInterval!.unref();
 
-        ow(
-            options,
-            ow.object.exactShape({
-                browserPlugins: ow.array.minLength(1),
-                maxOpenPagesPerBrowser: ow.optional.number,
-                retireBrowserAfterPageCount: ow.optional.number,
-                operationTimeoutSecs: ow.optional.number,
-                closeInactiveBrowserAfterSecs: ow.optional.number,
-                retireInactiveBrowserAfterSecs: ow.optional.number,
-                preLaunchHooks: ow.optional.array,
-                postLaunchHooks: ow.optional.array,
-                prePageCreateHooks: ow.optional.array,
-                postPageCreateHooks: ow.optional.array,
-                prePageCloseHooks: ow.optional.array,
-                postPageCloseHooks: ow.optional.array,
-                useFingerprints: ow.optional.boolean,
-                fingerprintOptions: ow.optional.object,
-            }),
-        );
-
         const {
             browserPlugins,
-            maxOpenPagesPerBrowser = 20,
-            retireBrowserAfterPageCount = 100,
-            operationTimeoutSecs = 15,
-            closeInactiveBrowserAfterSecs = 300,
-            retireInactiveBrowserAfterSecs = 10,
-            preLaunchHooks = [],
-            postLaunchHooks = [],
-            prePageCreateHooks = [],
-            postPageCreateHooks = [],
-            prePageCloseHooks = [],
-            postPageCloseHooks = [],
-            useFingerprints = true,
-            fingerprintOptions = {},
-        } = options;
+            maxOpenPagesPerBrowser,
+            retireBrowserAfterPageCount,
+            operationTimeoutSecs,
+            closeInactiveBrowserAfterSecs,
+            retireInactiveBrowserAfterSecs,
+            preLaunchHooks,
+            postLaunchHooks,
+            prePageCreateHooks,
+            postPageCreateHooks,
+            prePageCloseHooks,
+            postPageCloseHooks,
+            useFingerprints,
+            fingerprintOptions,
+        } = parseArgument(options, browserPoolOptionsSchema);
 
         const firstPluginConstructor = browserPlugins[0].constructor as typeof BrowserPlugin;
 

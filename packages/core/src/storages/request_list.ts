@@ -1,6 +1,7 @@
-import type { BaseHttpClient, Dictionary } from '@crawlee/types';
+import type { BaseHttpClient } from '@crawlee/http-client';
+import type { Dictionary } from '@crawlee/types';
 import { downloadListOfUrls } from '@crawlee/utils';
-import ow, { ArgumentError } from 'ow';
+import { z } from 'zod';
 
 import type { Configuration } from '../configuration.js';
 import { EventType } from '../events/event_manager.js';
@@ -9,6 +10,7 @@ import type { IProxyConfiguration } from '../proxy_configuration.js';
 import { type InternalSource, Request, type RequestOptions, type Source } from '../request.js';
 import { createDeserialize, serializeArray } from '../serialization.js';
 import { serviceLocator } from '../service_locator.js';
+import { parseArgument, schemas, validators } from '../validators.js';
 import { KeyValueStore } from './key_value_store.js';
 import type { IRequestLoader } from './request_loader.js';
 import type { IRequestManager } from './request_manager.js';
@@ -21,6 +23,25 @@ export const STATE_PERSISTENCE_KEY = 'REQUEST_LIST_STATE';
 export const REQUESTS_PERSISTENCE_KEY = 'REQUEST_LIST_REQUESTS';
 
 const CONTENT_TYPE_BINARY = 'application/octet-stream';
+
+const requestListOptionsSchema = z.strictObject({
+    sources: schemas.anyArray.optional(), // check only for array and not subtypes to avoid iteration over the whole thing
+    sourcesFunction: schemas.anyFunction.optional(),
+    persistStateKey: z.string().optional(),
+    persistRequestsKey: z.string().optional(),
+    state: z
+        .strictObject({
+            nextIndex: schemas.anyNumber,
+            nextUniqueKey: z.string(),
+            inProgress: schemas.anyObject, // persisted as an array of unique keys
+        })
+        .optional(),
+    keepDuplicateUrls: z.boolean().default(false),
+    proxyConfiguration: validators.proxyConfiguration.optional(),
+    httpClient: schemas.httpClient.optional(),
+});
+const listNameSchema = z.string().nullish();
+const openOptionsSchema = z.looseObject({});
 
 export interface RequestListOptions {
     /**
@@ -304,33 +325,13 @@ export class RequestList implements IRequestLoader {
             persistRequestsKey,
             state,
             proxyConfiguration,
-            keepDuplicateUrls = false,
+            keepDuplicateUrls,
             httpClient,
-        } = options;
+        } = parseArgument(options, requestListOptionsSchema);
 
         if (!(sources || sourcesFunction)) {
-            throw new ArgumentError(
-                'At least one of "sources" or "sourcesFunction" must be provided.',
-                this.constructor,
-            );
+            throw new Error('At least one of "sources" or "sourcesFunction" must be provided.');
         }
-        ow(
-            options,
-            ow.object.exactShape({
-                sources: ow.optional.array, // check only for array and not subtypes to avoid iteration over the whole thing
-                sourcesFunction: ow.optional.function,
-                persistStateKey: ow.optional.string,
-                persistRequestsKey: ow.optional.string,
-                state: ow.optional.object.exactShape({
-                    nextIndex: ow.number,
-                    nextUniqueKey: ow.string,
-                    inProgress: ow.object,
-                }),
-                keepDuplicateUrls: ow.optional.boolean,
-                proxyConfiguration: ow.optional.object,
-                httpClient: ow.optional.object,
-            }),
-        );
 
         this.persistStateKey = persistStateKey ? `CRAWLEE_${persistStateKey}` : persistStateKey;
         this.persistRequestsKey = persistRequestsKey ? `CRAWLEE_${persistRequestsKey}` : persistRequestsKey;
@@ -910,12 +911,9 @@ export class RequestList implements IRequestLoader {
 
         const listName = listNameOrOptions;
 
-        ow(listName, ow.optional.any(ow.string, ow.null));
-        ow(sources, ow.array);
-        ow(
-            options,
-            ow.object.is((v) => !Array.isArray(v)),
-        );
+        parseArgument(listName, listNameSchema);
+        parseArgument(sources, schemas.anyArray);
+        parseArgument(options, openOptionsSchema);
 
         const rl = new RequestList({
             ...options,
