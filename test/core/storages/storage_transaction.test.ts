@@ -609,6 +609,31 @@ describe('RequestQueue in a transaction', () => {
         expect(addBatchSpy).toHaveBeenCalledTimes(1);
     });
 
+    test('deferred: requests already known to the dedup caches are not probed against the backend', async () => {
+        const queue = await RequestQueue.open();
+        const known = { url: 'https://example.com/known' };
+
+        // Populates `requestCache` / `requestSeenCache` with the real backend id.
+        const { requestId } = await queue.addRequest({ ...known });
+
+        const getRequestSpy = vitest.spyOn(queue.backend, 'getRequest');
+
+        await withStorageTransaction(
+            async () => {
+                const info = await queue.addRequest({ ...known });
+                expect(info.wasAlreadyPresent).toBe(true);
+                // The cached id is the real one the backend assigned, not the provisional hash.
+                expect(info.requestId).toBe(requestId);
+
+                // A genuinely unknown request still falls through to the probe.
+                await queue.addRequest({ url: 'https://example.com/unknown' });
+            },
+            { policy: { requestQueue: 'deferred' } },
+        );
+
+        expect(getRequestSpy.mock.calls.map(([uniqueKey]) => uniqueKey)).toEqual(['https://example.com/unknown']);
+    });
+
     test('deferred: a multi-chunk addRequestsBatched call is fully applied when commit resolves', async () => {
         const queue = await RequestQueue.open();
         const requests = Array.from({ length: 1500 }, (_, i) => ({ url: `https://example.com/${i}` }));

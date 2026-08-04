@@ -302,6 +302,9 @@ export class RequestQueue implements IStorage, IRequestManager, TransactionParti
      * derived `uniqueKey` hash and is **provisional** — the real id is assigned by the backend at commit,
      * so it is never written to `request.id` or the shared dedup caches. Batch callers pass a shared
      * `buffered` dedup index (kept up to date here), so the journal is not re-scanned per request.
+     *
+     * Dedup is checked cheapest-first — the transaction's own buffer, then the shared caches, then the
+     * backend — so only a genuinely unknown request costs a round trip.
      */
     private async addRequestDeferred(
         transaction: StorageTransaction,
@@ -309,7 +312,8 @@ export class RequestQueue implements IStorage, IRequestManager, TransactionParti
         forefront: boolean,
         buffered = this.bufferedRequests(transaction),
     ): Promise<RequestQueueOperationInfo> {
-        // Intra-transaction dedup - the shared dedup caches hold real backend ids and stay out of this.
+        // Intra-transaction dedup - this transaction's own buffered adds, which the shared caches
+        // never see, since their ids stay provisional until commit.
         if (buffered.has(request.uniqueKey)) {
             this.recordRequestJournalEntry(transaction, [request], forefront, false);
             return {
@@ -321,7 +325,27 @@ export class RequestQueue implements IStorage, IRequestManager, TransactionParti
             };
         }
 
-        // Probe the real queue for an accurate `wasAlreadyPresent`.
+        // Then the shared dedup caches, which hold real backend ids for requests already in the queue.
+        // Only *writing* provisional ids to them would be wrong; reading them is safe and saves a
+        // backend round trip per already-known request. Same lookup as the write-through path below.
+        const cacheKey = getRequestId(request.uniqueKey);
+        const cachedInfo = this.requestCache.get(cacheKey);
+        const knownRequestId = cachedInfo?.id ?? this.requestSeenCache.get(cacheKey);
+
+        if (knownRequestId) {
+            this.recordRequestJournalEntry(transaction, [request], forefront, false);
+            return {
+                wasAlreadyPresent: true,
+                // The dedup cache doesn't track the handled state; only the full record does.
+                wasAlreadyHandled: cachedInfo?.isHandled ?? false,
+                requestId: knownRequestId,
+                uniqueKey: request.uniqueKey,
+                forefront,
+            };
+        }
+
+        // Both caches are bounded, so a miss is not proof of absence - a genuinely unknown request
+        // still needs the backend probe for an accurate `wasAlreadyPresent`.
         const existing = await this.backend.getRequest(request.uniqueKey);
 
         if (existing) {
