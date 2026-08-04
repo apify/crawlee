@@ -440,6 +440,22 @@ describe('KeyValueStore in a transaction', () => {
         await expect(store.getValue('stream')).resolves.toBe('data');
     });
 
+    test('a stream value is rejected before the auto-saved cache is touched', async () => {
+        const store = await KeyValueStore.open();
+        // Warm the shared cache first - the cache update only runs for a key it already holds.
+        const state = await store.getAutoSavedValue<{ a: number }>('STREAM_STATE', { a: 1 });
+
+        await withStorageTransaction(async () => {
+            await expect(
+                store.setValue('STREAM_STATE', Readable.from(['data']), { contentType: 'text/plain' }),
+            ).rejects.toThrow(/stream/);
+        });
+
+        // A stream is `typeof 'object'`, so a cache update reached before the rejection would splice the
+        // stream's internals into the live state object every handler shares.
+        expect(state).toEqual({ a: 1 });
+    });
+
     test('auto-saved values bypass the transaction', async () => {
         const store = await KeyValueStore.open();
 
@@ -456,6 +472,34 @@ describe('KeyValueStore in a transaction', () => {
         // Mutations of the auto-saved object are deliberately not rolled back.
         const state = await store.getAutoSavedValue<{ counter?: number }>('STATE', {});
         expect(state.counter).toBe(1);
+    });
+
+    test('a rolled-back setValue does not leak into a warm auto-saved state cache', async () => {
+        const store = await KeyValueStore.open();
+
+        // Seed the shared cache *first* - a buffered write only reaches it when it is already warm.
+        const state = await store.getAutoSavedValue<{ a: number; injected?: boolean }>('WARM_STATE', { a: 1 });
+
+        const transaction = createStorageTransaction();
+        await transaction.run(async () => store.setValue('WARM_STATE', { a: 2, injected: true }));
+        transaction.rollback();
+        transaction.dispose();
+
+        // The live object every handler shares must be untouched, or `persistState` would write it out.
+        expect(state).toEqual({ a: 1 });
+        await expect(store.getAutoSavedValue('WARM_STATE', {})).resolves.toEqual({ a: 1 });
+        await expect(store.getValue('WARM_STATE')).resolves.toBeNull();
+    });
+
+    test('a committed setValue does reach the shared auto-saved state object', async () => {
+        const store = await KeyValueStore.open();
+        const state = await store.getAutoSavedValue<{ a: number }>('COMMITTED_STATE', { a: 1 });
+
+        await withStorageTransaction(async () => store.setValue('COMMITTED_STATE', { a: 2 }));
+
+        // Identity is preserved, so handlers holding the reference observe the committed value.
+        expect(state).toEqual({ a: 2 });
+        await expect(store.getValue('COMMITTED_STATE')).resolves.toEqual({ a: 2 });
     });
 
     test('drop and clearCache are rejected inside a transaction', async () => {

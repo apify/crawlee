@@ -515,13 +515,35 @@ export class KeyValueStore implements TransactionParticipant {
         // Make copy of options, don't update what user passed.
         const optionsCopy = { ...options };
 
-        // Rejected before the cache update below, so a call that cannot succeed leaves nothing behind.
-        if (transaction && isStream(value)) {
-            // A stream cannot serve both a read-your-own-writes read and the commit replay.
-            rejectOperationInTransaction(
-                `KeyValueStore.setValue() with a stream value (key "${key}")`,
-                'a stream can only be consumed once, so it cannot be buffered until commit.',
-            );
+        // The whole transaction branch sits *above* the auto-saved cache update below, so a buffered
+        // write touches nothing outside the journal. That cache is shared, process-lifetime frontend
+        // state, so mutating it here would survive a rollback and later be persisted by `persistState`.
+        // The commit replay re-enters this method with no active transaction and updates it then.
+        if (transaction) {
+            if (isStream(value)) {
+                // A stream cannot serve both a read-your-own-writes read and the commit replay.
+                rejectOperationInTransaction(
+                    `KeyValueStore.setValue() with a stream value (key "${key}")`,
+                    'a stream can only be consumed once, so it cannot be buffered until commit.',
+                );
+            }
+
+            // Validation only, result discarded: the journal snapshot (`structuredClone`) accepts values
+            // JSON cannot, which would otherwise only throw at a later read or at commit.
+            if (value !== null) {
+                serializeValue(value, optionsCopy.contentType);
+            }
+
+            // One snapshot serves both the reads and the commit replay; `null` is a tombstone.
+            transaction.recordJournalEntry({
+                type: 'keyValueStore',
+                participant: this,
+                storageId: this.id,
+                key,
+                value: value === null ? null : snapshotValue(value),
+                options: optionsCopy,
+            });
+            return;
         }
 
         // If we try to set the value of a cached state to a different reference, we need to update the cache accordingly.
@@ -539,25 +561,6 @@ export class KeyValueStore implements TransactionParticipant {
                 // And update the existing ones + add new ones.
                 Object.assign(cachedValue, value);
             }
-        }
-
-        if (transaction) {
-            // Validation only, result discarded: the journal snapshot (`structuredClone`) accepts values
-            // JSON cannot, which would otherwise only throw at a later read or at commit.
-            if (value !== null) {
-                serializeValue(value, optionsCopy.contentType);
-            }
-
-            // One snapshot serves both the reads and the commit replay; `null` is a tombstone.
-            transaction.recordJournalEntry({
-                type: 'keyValueStore',
-                participant: this,
-                storageId: this.id,
-                key,
-                value: value === null ? null : snapshotValue(value),
-                options: optionsCopy,
-            });
-            return;
         }
 
         // In this case delete the record.
