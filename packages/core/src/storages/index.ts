@@ -9,5 +9,6 @@ export * from './storage_instance_manager.js';
 export * from './storage_stats.js';
 export * from './utils.js';
 export * from './access_checking.js';
+export * from './transaction.js';
 export * from './sitemap_request_loader.js';
 export * from './request_manager_tandem.js';
