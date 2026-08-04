@@ -107,6 +107,7 @@ export abstract class BrowserCrawler<Page extends CommonPage = CommonPage, Respo
         statisticsOptions: ObjectPredicate<object> & BasePredicate<object | undefined>;
         id: StringPredicate & BasePredicate<string | undefined>;
     };
+    protected runRequestHandler(crawlingContext: ExtendedContext): Promise<void>;
 }
 
 // @public (undocumented)
