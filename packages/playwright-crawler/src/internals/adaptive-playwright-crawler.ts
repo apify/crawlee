@@ -116,7 +116,7 @@ class AdaptivePlaywrightCrawlerStatistics extends Statistics {
 }
 
 export interface AdaptivePlaywrightCrawlerContext<
-    UserData extends Dictionary = Dictionary,
+    UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 > extends CrawlingContext<UserData> {
     request: LoadedRequest<Request<UserData>>;
     /**

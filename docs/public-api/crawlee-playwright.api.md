@@ -100,7 +100,7 @@ export class AdaptivePlaywrightCrawler<ContextExtension = Dictionary<never>, Ext
 }
 
 // @public (undocumented)
-export interface AdaptivePlaywrightCrawlerContext<UserData extends Dictionary = Dictionary> extends CrawlingContext_2<UserData> {
+export interface AdaptivePlaywrightCrawlerContext<UserData extends Dictionary = any> extends CrawlingContext_2<UserData> {
     // (undocumented)
     enqueueLinks(options?: EnqueueLinksOptions): Promise<unknown>;
     page: Page;
