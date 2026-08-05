@@ -19,16 +19,48 @@ import { RequestQueue } from './request_queue.js';
 import type { StorageIdentifier } from './storage_instance_manager.js';
 import type { StorageOpenOptions } from './utils.js';
 
+/**
+ * Opens a request manager, matching the shape of storage `open` methods such as
+ * {@apilink RequestQueue.open|`RequestQueue.open`}.
+ *
+ * {@apilink ThrottlingRequestManager} calls this once per configured domain, so every per-domain queue shares the
+ * concrete type and storage backend of the manager being wrapped.
+ */
 export type RequestManagerOpener<T extends IRequestManager = IRequestManager> = (
     identifier: string | StorageIdentifier,
     options?: StorageOpenOptions,
 ) => Promise<T>;
 
 export interface ThrottlingRequestManagerOptions<T extends IRequestManager = IRequestManager> {
+    /**
+     * The request manager to wrap, usually a {@apilink RequestQueue}. Requests for domains that are not throttled
+     * are stored here.
+     */
     inner: T;
+
+    /**
+     * Hostnames to throttle. Matching is case-insensitive and exact - wildcards such as `*.example.com` are not
+     * supported, so list each subdomain you care about. Requests for any other domain bypass throttling entirely.
+     */
     domains: string[];
+
+    /**
+     * Opens the per-domain queues, one per entry in `domains`, each under the alias `throttled-<domain>`.
+     * @default RequestQueue.open
+     */
     requestManagerOpener?: RequestManagerOpener<T>;
+
+    /**
+     * The delay applied after a domain's first HTTP 429, doubled on each subsequent one.
+     * @default 2000
+     */
     baseDelayMs?: number;
+
+    /**
+     * Upper bound on the delay between requests to a rate-limited domain, applied to both the exponential
+     * backoff and a `Retry-After` value.
+     * @default 60000
+     */
     maxDelayMs?: number;
 }
 
@@ -72,9 +104,42 @@ export function parseRetryAfterHeader(value?: string | null): number | null {
     return null;
 }
 
+/**
+ * A request manager that wraps another one and paces requests per domain.
+ *
+ * Requests for the configured {@apilink ThrottlingRequestManagerOptions.domains|`domains`} are routed into their own
+ * queue when they are added, so each request lives in exactly one place and deduplication keeps working. Everything
+ * else goes to the wrapped manager untouched.
+ *
+ * {@apilink ThrottlingRequestManager.fetchNextRequest|`fetchNextRequest()`} serves the domain that has been waiting
+ * longest and skips any that are backing off, falling back to the wrapped manager. It never blocks: while every
+ * remaining request belongs to a throttled domain it returns `null` and {@apilink ThrottlingRequestManager.isEmpty}
+ * reports `true`, so the crawler idles instead of holding a concurrency slot open.
+ *
+ * Delays come from two places:
+ * - HTTP 429 responses, honouring `Retry-After` and otherwise backing off exponentially. The crawlers report these
+ *   automatically; a request that is throttled is retried later without counting against `maxRequestRetries` and
+ *   without penalising its session.
+ * - robots.txt `Crawl-delay` directives, when `respectRobotsTxtFile` is enabled.
+ *
+ * This is opt-in: throttling only happens for a domain you list explicitly.
+ *
+ * **Example usage:**
+ *
+ * ```ts
+ * const crawler = new CheerioCrawler({
+ *     requestManager: new ThrottlingRequestManager({
+ *         inner: await RequestQueue.open(),
+ *         domains: ['api.example.com', 'slow-site.org'],
+ *     }),
+ *     requestHandler: async ({ request }) => { ... },
+ * });
+ * ```
+ *
+ * @category Sources
+ */
 export class ThrottlingRequestManager<T extends IRequestManager = IRequestManager> implements IRequestManager {
     private readonly inner: T;
-    private readonly domains: string[];
     private readonly requestManagerOpener: RequestManagerOpener<T>;
     private readonly baseDelayMs: number;
     private readonly maxDelayMs: number;
@@ -115,21 +180,18 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         );
 
         this.inner = options.inner;
-        this.domains = options.domains;
         this.requestManagerOpener =
             options.requestManagerOpener ??
-            ((idOrAlias, opts) => {
-                return RequestQueue.open(idOrAlias, opts) as unknown as Promise<T>;
-            });
-        this.baseDelayMs = options.baseDelayMs ?? 2000;
-        this.maxDelayMs = options.maxDelayMs ?? 60000;
+            ((idOrAlias, opts) => RequestQueue.open(idOrAlias, opts) as unknown as Promise<T>);
+        this.baseDelayMs = options.baseDelayMs ?? 2_000;
+        this.maxDelayMs = options.maxDelayMs ?? 60_000;
         this.log = serviceLocator.getLogger().child({ prefix: 'ThrottlingRequestManager' });
 
-        for (const domain of this.domains) {
+        for (const domain of options.domains) {
             if (domain) {
-                const lowerDomain = domain.toLowerCase();
-                this.domainStates.set(lowerDomain, {
-                    domain: lowerDomain,
+                const hostname = domain.toLowerCase();
+                this.domainStates.set(hostname, {
+                    domain: hostname,
                     throttledUntil: 0,
                     backoffDecaysAt: 0,
                     consecutive429Count: 0,
@@ -490,7 +552,8 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     }
 
     private async forEachManager(fn: (manager: T) => Promise<unknown> | undefined): Promise<void> {
-        await Promise.all([this.inner, ...(await this.getSubManagers())].map(fn));
+        // `fn` targets optional members, so it may return nothing - the wrapper normalizes that for `Promise.all`.
+        await Promise.all([this.inner, ...(await this.getSubManagers())].map(async (manager) => fn(manager)));
     }
 
     private async sumOverManagers(fn: (manager: T) => Promise<number>): Promise<number> {
