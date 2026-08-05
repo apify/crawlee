@@ -499,14 +499,16 @@ describe('BrowserCrawler', () => {
             maxRequestRetries: 0,
             preNavigationHooks: [
                 async ({ gotoOptions }) => {
-                    gotoOptions.timeout = 60000;
+                    // Deliberately different from the default `navigationTimeoutMillis` (60s) - a hook value equal
+                    // to the default is treated as "not overridden" and clamped to the remaining navigation window.
+                    gotoOptions.timeout = 25000;
                 },
             ],
         });
 
         await browserCrawler.run();
 
-        expect(optionsGoto!.timeout).toEqual(60000);
+        expect(optionsGoto!.timeout).toEqual(25000);
     });
 
     test.concurrent('should ignore errors in Page.close()', async () => {
