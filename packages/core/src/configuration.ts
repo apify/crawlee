@@ -67,6 +67,11 @@ export const crawleeConfigFields = {
     memoryMbytes: field(coerceNumber.optional(), 'CRAWLEE_MEMORY_MBYTES'),
     /** @default 60_000 */
     persistStateIntervalMillis: field(coerceNumber.default(60_000), 'CRAWLEE_PERSIST_STATE_INTERVAL_MILLIS'),
+    /**
+     * Internal safety-net timeout for a single request, in milliseconds. When unset the crawler derives it from
+     * the request handler timeout (twice it, and never below 5 minutes).
+     */
+    internalTimeoutMillis: field(coerceNumber.optional(), 'CRAWLEE_INTERNAL_TIMEOUT'),
     /** @default 1_000 */
     systemInfoIntervalMillis: field(coerceNumber.default(1_000)),
     /** @default 'INPUT' */
@@ -155,6 +160,7 @@ export interface Configuration extends ResolvedConfigValues {}
  * `defaultKeyValueStoreId` | `CRAWLEE_DEFAULT_KEY_VALUE_STORE_ID` | `'default'`
  * `defaultRequestQueueId` | `CRAWLEE_DEFAULT_REQUEST_QUEUE_ID` | `'default'`
  * `persistStateIntervalMillis` | `CRAWLEE_PERSIST_STATE_INTERVAL_MILLIS` | `60_000`
+ * `internalTimeoutMillis` | `CRAWLEE_INTERNAL_TIMEOUT` | -
  * `purgeOnStart` | `CRAWLEE_PURGE_ON_START` | `true`
  * `persistStorage` | `CRAWLEE_PERSIST_STORAGE` | `true`
  * `storageDir` | `CRAWLEE_STORAGE_DIR` | `'./storage'`

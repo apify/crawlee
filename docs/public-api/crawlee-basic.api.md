@@ -86,6 +86,7 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
     getData(...args: Parameters<Dataset['getData']>): ReturnType<Dataset['getData']>;
     getDataset(identifier?: string | StorageIdentifier): Promise<Dataset>;
     protected _getMessageFromError(error: Error, forceStack?: boolean): string | TimeoutError | undefined;
+    protected getNavigationTimeoutMillis(): number;
     // (undocumented)
     protected getPendingRequestCountApproximation(): Promise<number>;
     getRequestManager(): Promise<IRequestManager>;

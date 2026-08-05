@@ -9,7 +9,7 @@ import { ArrayPredicate } from 'ow';
 import type { Awaitable } from '@crawlee/types';
 import { BasePredicate } from 'ow';
 import { BasicCrawler } from '@crawlee/basic';
-import type { BasicCrawlerOptions } from '@crawlee/basic';
+import { BasicCrawlerOptions } from '@crawlee/basic';
 import type { BatchAddRequestsResult } from '@crawlee/types';
 import { BooleanPredicate } from 'ow';
 import type { BrowserController } from '@crawlee/browser-pool';
@@ -52,6 +52,8 @@ export abstract class BrowserCrawler<Page extends CommonPage = CommonPage, Respo
     get browserPool(): IBrowserPool<Page>;
     // (undocumented)
     protected buildContextPipeline(): ContextPipeline<CrawlingContext, BrowserCrawlingContext<Page, Response, Dictionary>>;
+    // (undocumented)
+    protected getNavigationTimeoutMillis(): number;
     // (undocumented)
     protected readonly ignoreIframes: boolean;
     // (undocumented)

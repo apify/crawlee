@@ -30,7 +30,7 @@
         "copy": "tsx ../../scripts/copy.ts"
     },
     "dependencies": {
-        "@apify/timeout": "^0.3.2",
+        "@apify/timeout": "^0.4.4",
         "@crawlee/core": "workspace:*",
         "@crawlee/types": "workspace:*",
         "fingerprint-generator": "^2.1.68",

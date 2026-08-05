@@ -7,6 +7,7 @@ import type { EnqueueLinksOptions, ErrorHandler, RequestHandler, RequestOptions,
 import type { Session } from '@crawlee/basic';
 import {
     BasicCrawler,
+    Configuration,
     CriticalError,
     defaultRoute,
     EventType,
@@ -1496,6 +1497,203 @@ describe('BasicCrawler', () => {
         expect(results).toHaveLength(1);
         expect(results[0].url).toEqual(url);
         results[0].errorMessages.forEach((msg) => expect(msg).toMatch('requestHandler timed out'));
+    });
+
+    test('context.extendTimeout buys a running handler more time', async () => {
+        const requestList = await RequestList.open({ sources: [{ url: 'https://example.com' }] });
+
+        const failed: Request[] = [];
+
+        const crawler = new BasicCrawler({
+            requestList,
+            requestHandlerTimeoutSecs: 0.2,
+            maxRequestRetries: 0,
+            requestHandler: async ({ extendTimeout }) => {
+                await sleep(100);
+                // only now do we know we need longer than the 0.2s we were given
+                extendTimeout(5);
+                await sleep(300);
+            },
+            failedRequestHandler: async ({ request }) => {
+                failed.push(request);
+            },
+        });
+
+        await crawler.run();
+
+        // the handler needs 400ms in total, so without the extension it would have timed out
+        expect(failed).toHaveLength(0);
+    });
+
+    test('context.extendTimeout also holds off the internal timeout', async () => {
+        // shorter than the 400ms the handler needs, so an unextended backstop would definitely cut it
+        serviceLocator.reset();
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
+        serviceLocator.setConfiguration(new Configuration({ internalTimeoutMillis: 250 }));
+
+        const requestList = await RequestList.open({ sources: [{ url: 'https://example.com' }] });
+
+        const failed: Request[] = [];
+
+        const crawler = new BasicCrawler({
+            requestList,
+            requestHandlerTimeoutSecs: 0.2,
+            maxRequestRetries: 0,
+            requestHandler: async ({ extendTimeout }) => {
+                await sleep(100);
+                extendTimeout(5);
+                await sleep(300);
+            },
+            failedRequestHandler: async ({ request }) => {
+                failed.push(request);
+            },
+        });
+
+        await crawler.run();
+
+        // extending only the handler would be pointless if the backstop cut it down anyway
+        expect(failed).toHaveLength(0);
+    });
+
+    test('a route can override requestHandlerTimeoutSecs, other routes keep the default', async () => {
+        const requestList = await RequestList.open({
+            sources: [
+                { url: 'https://example.com/list', userData: { label: 'LIST' } },
+                { url: 'https://example.com/detail', userData: { label: 'DETAIL' } },
+            ],
+        });
+
+        const processed: Request[] = [];
+        const failed: Request[] = [];
+
+        const router = Router.create();
+        // LIST is allowed to take its time, DETAIL is left on the crawler's default and must not be
+        router.addHandler(
+            'LIST',
+            async ({ request }) => {
+                await sleep(300);
+                processed.push(request as Request);
+            },
+            { requestHandlerTimeoutSecs: 5 },
+        );
+        router.addHandler('DETAIL', async ({ request }) => {
+            await sleep(300);
+            processed.push(request as Request);
+        });
+
+        const crawler = new BasicCrawler({
+            requestList,
+            requestHandlerTimeoutSecs: 0.1,
+            maxRequestRetries: 0,
+            requestHandler: router,
+            failedRequestHandler: async ({ request }) => {
+                failed.push(request);
+            },
+        });
+
+        await crawler.run();
+
+        // only DETAIL is held to the crawler's 0.1s default; LIST got its own 5s and finished
+        // (`processed` alone would not prove it - cancellation is cooperative, so a timed out handler
+        // keeps running to completion and still pushes)
+        expect(failed.map((request) => request.label)).toEqual(['DETAIL']);
+        expect(processed.map((request) => request.label)).toContain('LIST');
+        failed[0].errorMessages.forEach((msg) => expect(msg).toMatch('requestHandler timed out after 0.1 seconds'));
+    });
+
+    test('internal timeout catches a request stuck outside the timed phases', async () => {
+        // reset so we can install a configuration with a custom internal timeout before anything resolves it
+        serviceLocator.reset();
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
+        serviceLocator.setConfiguration(new Configuration({ internalTimeoutMillis: 100 }));
+
+        const url = 'https://example.com';
+        const requestList = await RequestList.open({ sources: [{ url }] });
+
+        const results: Request[] = [];
+        const requestHandler = vitest.fn();
+
+        const crawler = new BasicCrawler({
+            requestList,
+            maxRequestRetries: 0,
+            // keep the handler timeout small so the backstop is not floored above the 100ms set above
+            requestHandlerTimeoutSecs: 0.05,
+            // `extendContext` is not the navigation, the hooks or the request handler, so none of their
+            // timeouts apply to it - only the internal one stands between this and a stuck crawler. It also
+            // outlives the backstop, so it is the case where the losing side of the race keeps running.
+            extendContext: async () => {
+                await sleep(500);
+                return {};
+            },
+            requestHandler,
+            failedRequestHandler: async ({ request }) => {
+                results.push(request);
+            },
+        });
+
+        await crawler.run();
+
+        // Wait past the stuck `extendContext`: `run()` resolves when the backstop fails the request, but the
+        // pipeline keeps running underneath - the handler must still not fire once it finally gets there.
+        await sleep(600);
+
+        expect(requestHandler).not.toHaveBeenCalled();
+        expect(results).toHaveLength(1);
+
+        results[0].errorMessages.forEach((msg) => {
+            expect(msg).toMatch('Request timed out');
+            // the request handler never even started, so blaming it would be a lie
+            expect(msg).not.toMatch('requestHandler timed out');
+        });
+    });
+
+    test('the internal timeout does not cut a request handler short of its own timeout', async () => {
+        // deliberately below the request handler timeout - the backstop must still not fire before it
+        serviceLocator.reset();
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
+        serviceLocator.setConfiguration(new Configuration({ internalTimeoutMillis: 100 }));
+
+        const url = 'https://example.com';
+        const requestList = await RequestList.open({ sources: [{ url }] });
+
+        const processed: Request[] = [];
+
+        const crawler = new BasicCrawler({
+            requestList,
+            maxRequestRetries: 0,
+            requestHandlerTimeoutSecs: 1,
+            requestHandler: async ({ request }) => {
+                // comfortably within the 1s handler timeout, but well past the 100ms internal one
+                await sleep(500);
+                processed.push(request as Request);
+            },
+        });
+
+        await crawler.run();
+
+        expect(processed).toHaveLength(1);
+    });
+
+    test('warns when the internal timeout is shorter than the phase timeouts', async () => {
+        serviceLocator.reset();
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
+        serviceLocator.setConfiguration(new Configuration({ internalTimeoutMillis: 100 }));
+
+        const requestList = await RequestList.open({ sources: [{ url: 'https://example.com' }] });
+        const crawler = new BasicCrawler({
+            requestList,
+            requestHandlerTimeoutSecs: 1, // 1000ms, well above the 100ms internal timeout
+            maxRequestRetries: 0,
+            requestHandler: async () => {},
+        });
+        const warnSpy = vitest.spyOn(crawler.log, 'warning');
+
+        await crawler.run();
+
+        const warned = warnSpy.mock.calls.some((call) =>
+            String(call[0]).includes('shorter than the navigation and request handler'),
+        );
+        expect(warned).toBe(true);
     });
 
     test('timeouted request should not access storages', async () => {
