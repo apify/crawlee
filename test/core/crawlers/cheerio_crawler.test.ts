@@ -1,6 +1,7 @@
-import type { Server } from 'node:http';
+import { createServer, type Server } from 'node:http';
 
 import type { BasicCrawlingContext, CheerioCrawlingContext, CheerioRequestHandler, Source } from '@crawlee/cheerio';
+import { FetchHttpClient } from '@crawlee/http-client';
 import {
     CheerioCrawler,
     createCheerioRouter,
@@ -352,8 +353,8 @@ describe('CheerioCrawler', () => {
 
             failed.forEach((request) => {
                 expect(request.errorMessages).toHaveLength(2);
-                expect(request.errorMessages[0]).toMatch('request timed out');
-                expect(request.errorMessages[1]).toMatch('request timed out');
+                expect(request.errorMessages[0]).toMatch('Navigation timed out');
+                expect(request.errorMessages[1]).toMatch('Navigation timed out');
             });
         });
 
@@ -391,6 +392,208 @@ describe('CheerioCrawler', () => {
                     }),
                 );
             });
+        });
+
+        test('when a pre-navigation hook exceeds the navigation window', async () => {
+            const failed: Request[] = [];
+            const requestList = await getExampleRequestList();
+            const requestHandler = vi.fn();
+
+            const cheerioCrawler = new CheerioCrawler({
+                requestList,
+                navigationTimeoutSecs: 0.1,
+                maxRequestRetries: 1,
+                minConcurrency: 2,
+                maxConcurrency: 2,
+                preNavigationHooks: [async () => sleep(2000)],
+                requestHandler,
+                failedRequestHandler: ({ request }) => {
+                    failed.push(request);
+                },
+            });
+
+            await cheerioCrawler.run();
+
+            expect(requestHandler).not.toHaveBeenCalled();
+            expect(failed).toHaveLength(4);
+
+            failed.forEach((request) => {
+                expect(request.errorMessages).toHaveLength(2);
+
+                request.errorMessages.forEach((message) => {
+                    // a hook overrunning shares the navigation window, so it reads as a navigation timeout
+                    expect(message).toMatch('Navigation timed out');
+                    // ...not the request handler, which is timed separately
+                    expect(message).not.toMatch('requestHandler timed out');
+                });
+            });
+        });
+
+        test('after navigationTimeoutSecs in a post-navigation hook', async () => {
+            const failed: Request[] = [];
+            const requestList = await getExampleRequestList();
+            const requestHandler = vi.fn();
+
+            const cheerioCrawler = new CheerioCrawler({
+                requestList,
+                navigationTimeoutSecs: 0.1,
+                maxRequestRetries: 1,
+                minConcurrency: 2,
+                maxConcurrency: 2,
+                postNavigationHooks: [async () => sleep(2000)],
+                requestHandler,
+                failedRequestHandler: ({ request }) => {
+                    failed.push(request);
+                },
+            });
+
+            await cheerioCrawler.run();
+
+            expect(requestHandler).not.toHaveBeenCalled();
+            expect(failed).toHaveLength(4);
+
+            failed.forEach((request) => {
+                request.errorMessages.forEach((message) => {
+                    expect(message).toMatch('Navigation timed out');
+                });
+            });
+        });
+
+        test('navigation hooks that finish in time do not affect the handler timeout', async () => {
+            const processed: Request[] = [];
+            const requestList = await getExampleRequestList();
+
+            const cheerioCrawler = new CheerioCrawler({
+                requestList,
+                // the hooks eat 300ms in total, which must not be charged to the 1s handler window
+                navigationTimeoutSecs: 1,
+                requestHandlerTimeoutSecs: 1,
+                maxRequestRetries: 0,
+                minConcurrency: 2,
+                maxConcurrency: 2,
+                preNavigationHooks: [async () => sleep(150)],
+                postNavigationHooks: [async () => sleep(150)],
+                requestHandler: async ({ request }) => {
+                    await sleep(700);
+                    processed.push(request);
+                },
+            });
+
+            await cheerioCrawler.run();
+
+            expect(processed).toHaveLength(4);
+        });
+
+        test('extendTimeout from a pre-navigation hook keeps it from timing out', async () => {
+            const processed: Request[] = [];
+            const failed: Request[] = [];
+            const requestList = await getExampleRequestList();
+
+            const cheerioCrawler = new CheerioCrawler({
+                requestList,
+                navigationTimeoutSecs: 0.2,
+                maxRequestRetries: 0,
+                minConcurrency: 2,
+                maxConcurrency: 2,
+                // 400ms total, past the 0.2s window - only survives because the hook asks for more time
+                preNavigationHooks: [
+                    async ({ extendTimeout }) => {
+                        await sleep(100);
+                        extendTimeout(5);
+                        await sleep(300);
+                    },
+                ],
+                requestHandler: async ({ request }) => {
+                    processed.push(request);
+                },
+                failedRequestHandler: ({ request }) => {
+                    failed.push(request);
+                },
+            });
+
+            await cheerioCrawler.run();
+
+            expect(failed).toHaveLength(0);
+            expect(processed).toHaveLength(4);
+        });
+
+        test('extendTimeout from a post-navigation hook keeps it from timing out', async () => {
+            const processed: Request[] = [];
+            const failed: Request[] = [];
+            const requestList = await getExampleRequestList();
+
+            const cheerioCrawler = new CheerioCrawler({
+                requestList,
+                // enough for the (fast, local) navigation, but far short of the hook below
+                navigationTimeoutSecs: 1,
+                maxRequestRetries: 0,
+                minConcurrency: 2,
+                maxConcurrency: 2,
+                postNavigationHooks: [
+                    async ({ extendTimeout }) => {
+                        // the navigation already spent part of the shared window, so ask for more up front,
+                        // then take far longer than the window would otherwise have allowed
+                        extendTimeout(5);
+                        await sleep(2000);
+                    },
+                ],
+                requestHandler: async ({ request }) => {
+                    processed.push(request);
+                },
+                failedRequestHandler: ({ request }) => {
+                    failed.push(request);
+                },
+            });
+
+            await cheerioCrawler.run();
+
+            expect(failed).toHaveLength(0);
+            expect(processed).toHaveLength(4);
+        });
+
+        test('navigationTimeoutSecs bounds a slowly-streamed response body', async () => {
+            // the headers arrive at once, but the body dribbles out over ~5s - reading it is still part of the
+            // navigation, so it must be bound by `navigationTimeoutSecs` rather than run unbounded
+            const slowServer = createServer(async (_req, res) => {
+                res.writeHead(200, { 'content-type': 'text/html', 'content-length': '20' });
+                for (let i = 0; i < 20; i++) {
+                    res.write('x');
+                    await sleep(250);
+                }
+                res.end();
+            });
+            await new Promise<void>((resolve) => slowServer.listen(0, resolve));
+            const { port: slowPort } = slowServer.address() as import('node:net').AddressInfo;
+
+            try {
+                const processed: Request[] = [];
+                const failed: Request[] = [];
+                const requestList = await RequestList.open(null, [{ url: `http://localhost:${slowPort}/` }]);
+
+                const cheerioCrawler = new CheerioCrawler({
+                    requestList,
+                    navigationTimeoutSecs: 1,
+                    maxRequestRetries: 0,
+                    httpClient: new FetchHttpClient(),
+                    requestHandler: ({ request }) => {
+                        processed.push(request);
+                    },
+                    failedRequestHandler: ({ request }) => {
+                        failed.push(request);
+                    },
+                });
+
+                const startedAt = Date.now();
+                await cheerioCrawler.run();
+
+                expect(processed).toHaveLength(0);
+                expect(failed).toHaveLength(1);
+                expect(failed[0].errorMessages[0]).toMatch('Navigation timed out');
+                // it must give up around the 1s window, not wait out the whole ~5s body
+                expect(Date.now() - startedAt).toBeLessThan(3000);
+            } finally {
+                slowServer.close();
+            }
         });
     });
 

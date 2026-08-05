@@ -6,6 +6,7 @@ import type { PlaywrightCrawlingContext, PlaywrightGotoOptions, Request } from '
 import { type ConcurrencySystem, MemoryStorageBackend, serviceLocator } from '@crawlee/core';
 import { createPlaywrightRouter, PlaywrightCrawler, RequestList, RequestValidationError } from '@crawlee/playwright';
 import type { Cheerio, CheerioAPI, CheerioRoot, Element } from '@crawlee/utils';
+import { sleep } from '@crawlee/utils';
 import express from 'express';
 import playwright from 'playwright';
 import { z } from 'zod';
@@ -33,6 +34,8 @@ describe('PlaywrightCrawler', () => {
             res.send(`<html><head><title>Example Domain</title></head></html>`);
             res.status(200);
         });
+        // never responds, so a navigation to it runs until the navigation timeout
+        app.get('/hang', () => {});
         app.get('/page-with-download', (_req, res) => {
             res.status(200).send(
                 `<html><body><a id="download-link" href="/download-file" download="hello.txt">download</a></body></html>`,
@@ -295,5 +298,214 @@ describe('PlaywrightCrawler', () => {
                 { url: `http://${HOSTNAME}:${port}/`, label: 'DETAIL', userData: { id: 123 } },
             ] as never),
         ).rejects.toThrow(RequestValidationError);
+    });
+
+    describe('timeouts', () => {
+        test('a hanging preNavigationHook times out after navigationTimeoutSecs', async () => {
+            const failed: Request[] = [];
+            const requestHandler = vitest.fn();
+
+            const crawler = new PlaywrightCrawler({
+                requestList,
+                navigationTimeoutSecs: 0.1,
+                maxRequestRetries: 0,
+                preNavigationHooks: [async () => sleep(3000)],
+                requestHandler,
+                failedRequestHandler: ({ request }) => {
+                    failed.push(request);
+                },
+            });
+
+            await crawler.run();
+
+            expect(requestHandler).not.toHaveBeenCalled();
+            expect(failed).toHaveLength(1);
+            expect(failed[0].errorMessages[0]).toMatch('Navigation timed out');
+            // the hook is neither the navigation nor the request handler
+            expect(failed[0].errorMessages[0]).not.toMatch('requestHandler timed out');
+        });
+
+        test('a slow navigation reports the configured window, not the driver value', async () => {
+            const failed: Request[] = [];
+            const requestList = await RequestList.open(`sources-${Math.random() * 10000}`, [
+                `http://${HOSTNAME}:${port}/hang`,
+            ]);
+
+            const crawler = new PlaywrightCrawler({
+                requestList,
+                navigationTimeoutSecs: 2,
+                maxRequestRetries: 0,
+                // eat most of the window, so the goto is handed a small remaining budget - the driver would
+                // otherwise report that raw value ("Timeout NNNms exceeded") instead of the configured window
+                preNavigationHooks: [async () => sleep(1500)],
+                requestHandler: () => {},
+                failedRequestHandler: ({ request }) => {
+                    failed.push(request);
+                },
+            });
+
+            await crawler.run();
+
+            expect(failed).toHaveLength(1);
+            expect(failed[0].errorMessages[0]).toMatch('Navigation timed out after 2 seconds');
+            expect(failed[0].errorMessages[0]).not.toMatch(/Timeout \d+ms exceeded/);
+        });
+
+        test('a hook can disable the navigation timeout with gotoOptions.timeout = 0', async () => {
+            const processed: Request[] = [];
+            const failed: Request[] = [];
+
+            const crawler = new PlaywrightCrawler({
+                requestList,
+                navigationTimeoutSecs: 0.5,
+                maxRequestRetries: 0,
+                // `0` is Playwright's "no timeout"; it must be honoured verbatim, not clamped to 1ms (which would
+                // make the navigation time out immediately)
+                preNavigationHooks: [
+                    ({ gotoOptions }) => {
+                        gotoOptions.timeout = 0;
+                    },
+                ],
+                requestHandler: ({ request }) => {
+                    processed.push(request);
+                },
+                failedRequestHandler: ({ request }) => {
+                    failed.push(request);
+                },
+            });
+
+            await crawler.run();
+
+            expect(failed).toHaveLength(0);
+            expect(processed).toHaveLength(1);
+        });
+
+        test('extendTimeout from a preNavigationHook keeps it from timing out', async () => {
+            const processed: Request[] = [];
+            const failed: Request[] = [];
+
+            const crawler = new PlaywrightCrawler({
+                requestList,
+                navigationTimeoutSecs: 0.3,
+                maxRequestRetries: 0,
+                // 600ms total, past the 0.3s window - only survives because the hook asks for more time
+                preNavigationHooks: [
+                    async ({ extendTimeout }) => {
+                        await sleep(150);
+                        extendTimeout(5);
+                        await sleep(450);
+                    },
+                ],
+                requestHandler: ({ request }) => {
+                    processed.push(request);
+                },
+                failedRequestHandler: ({ request }) => {
+                    failed.push(request);
+                },
+            });
+
+            await crawler.run();
+
+            expect(failed).toHaveLength(0);
+            expect(processed).toHaveLength(1);
+        });
+
+        test('extendTimeout from a postNavigationHook keeps it from timing out', async () => {
+            const processed: Request[] = [];
+            const failed: Request[] = [];
+
+            const crawler = new PlaywrightCrawler({
+                requestList,
+                // enough for the navigation, but far short of the hook below
+                navigationTimeoutSecs: 1,
+                maxRequestRetries: 0,
+                postNavigationHooks: [
+                    async ({ extendTimeout }) => {
+                        // the navigation already spent part of the shared window, so ask for more up front,
+                        // then take far longer than the window would otherwise have allowed
+                        extendTimeout(5);
+                        await sleep(2000);
+                    },
+                ],
+                requestHandler: ({ request }) => {
+                    processed.push(request);
+                },
+                failedRequestHandler: ({ request }) => {
+                    failed.push(request);
+                },
+            });
+
+            await crawler.run();
+
+            expect(failed).toHaveLength(0);
+            expect(processed).toHaveLength(1);
+        });
+
+        test('a route can override requestHandlerTimeoutSecs, other routes keep the default', async () => {
+            const requestList = await RequestList.open(`sources-${Math.random() * 10000}`, [
+                { url: `http://${HOSTNAME}:${port}/?type=list`, label: 'LIST' },
+                { url: `http://${HOSTNAME}:${port}/?type=detail`, label: 'DETAIL' },
+            ]);
+
+            const processed: (string | undefined)[] = [];
+            const failed: (string | undefined)[] = [];
+
+            const router = createPlaywrightRouter();
+            // LIST is allowed to take its time, DETAIL is left on the crawler's short default
+            router.addHandler(
+                'LIST',
+                async ({ request }) => {
+                    await sleep(600);
+                    processed.push(request.label);
+                },
+                { requestHandlerTimeoutSecs: 5 },
+            );
+            router.addHandler('DETAIL', async ({ request }) => {
+                await sleep(600);
+                processed.push(request.label);
+            });
+
+            const crawler = new PlaywrightCrawler({
+                requestList,
+                requestHandlerTimeoutSecs: 0.3,
+                maxRequestRetries: 0,
+                maxConcurrency: 2,
+                requestHandler: router,
+                failedRequestHandler: ({ request }) => {
+                    failed.push(request.label);
+                },
+            });
+
+            await crawler.run();
+
+            // only DETAIL is held to the 0.3s default; LIST got its own 5s and finished
+            expect(failed).toEqual(['DETAIL']);
+            expect(processed).toContain('LIST');
+        });
+
+        test('extendTimeout from the request handler keeps it from timing out', async () => {
+            const processed: Request[] = [];
+            const failed: Request[] = [];
+
+            const crawler = new PlaywrightCrawler({
+                requestList,
+                requestHandlerTimeoutSecs: 0.3,
+                maxRequestRetries: 0,
+                requestHandler: async ({ request, extendTimeout }) => {
+                    await sleep(150);
+                    extendTimeout(5);
+                    await sleep(450);
+                    processed.push(request);
+                },
+                failedRequestHandler: ({ request }) => {
+                    failed.push(request);
+                },
+            });
+
+            await crawler.run();
+
+            expect(failed).toHaveLength(0);
+            expect(processed).toHaveLength(1);
+        });
     });
 });

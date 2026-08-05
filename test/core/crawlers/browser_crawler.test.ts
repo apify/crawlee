@@ -269,6 +269,38 @@ describe('BrowserCrawler', () => {
         expect(hook).toHaveBeenCalled();
     });
 
+    test.concurrent('should time out a hanging preNavigationHook after navigationTimeoutSecs', async () => {
+        const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
+
+        const requestList = await RequestList.open({
+            sources: [{ url: `${serverAddress}/?q=1` }],
+        });
+
+        const failed: Request[] = [];
+        const requestHandler = vi.fn();
+
+        const browserCrawler = new BrowserCrawlerTest({
+            browserPoolOptions: {
+                browserPlugins: [puppeteerPlugin],
+            },
+            requestList,
+            navigationTimeoutSecs: 0.1,
+            maxRequestRetries: 0,
+            preNavigationHooks: [async () => sleep(5000)],
+            requestHandler,
+            failedRequestHandler: ({ request }) => {
+                failed.push(request);
+            },
+        });
+
+        await browserCrawler.run();
+
+        expect(requestHandler).not.toHaveBeenCalled();
+        expect(failed).toHaveLength(1);
+        expect(failed[0].errorMessages[0]).toMatch('Navigation timed out');
+        expect(failed[0].errorMessages[0]).not.toMatch('requestHandler timed out');
+    });
+
     test.concurrent('should evaluate postNavigationHooks', async () => {
         const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
 
