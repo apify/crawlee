@@ -1378,7 +1378,7 @@ The crawler's `autoscaledPool` property is **private** as a result. Everything i
 
 ```typescript
 const crawler = new CheerioCrawler({
-    async requestHandler({ crawler, log }) {
+    async requestHandler({ log }) {
         log.info(`Currently running ${crawler.concurrencySystem?.currentConcurrency} requests in parallel.`);
     },
 });
