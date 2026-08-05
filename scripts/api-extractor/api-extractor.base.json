@@ -43,6 +43,12 @@
 		"extractorMessageReporting": {
 			"default": {
 				"logLevel": "none"
+			},
+			"ae-incompatible-release-tags": {
+				"logLevel": "warning"
+			},
+			"ae-forgotten-export": {
+				"logLevel": "warning"
 			}
 		},
 		"tsdocMessageReporting": {
