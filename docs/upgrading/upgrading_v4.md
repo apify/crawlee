@@ -149,7 +149,7 @@ The following methods and properties have been removed from `Configuration`:
 - `Configuration.useStorageClient()` - use `ServiceLocator.setStorageBackend()` instead
 - `Configuration.useEventManager()` - use `ServiceLocator.setEventManager()` instead
 - `Configuration.resetGlobalState()` - use `serviceLocator.reset()` instead
-- `Configuration.storageManagers` - moved to `ServiceLocator.storageManagers`
+- `Configuration.storageManagers` - moved to `ServiceLocator.getStorageInstanceManager()`
 
 The `EventManager` and `LocalEventManager` constructors now accept an options object for configuring event intervals (e.g. `persistStateIntervalMillis`, `systemInfoIntervalMillis`). You can also use the new `LocalEventManager.fromConfiguration()` factory method to create an instance with intervals derived from a `Configuration` object.
 
@@ -1212,7 +1212,7 @@ If you use a `RequestQueue` outside of a crawler and your processing may exceed 
 import { RequestQueue } from 'crawlee';
 
 const queue = await RequestQueue.open();
-queue.setExpectedRequestProcessingTimeSecs(600);
+await queue.setExpectedRequestProcessingTimeSecs(600);
 ```
 
 The `RequestQueue.internalTimeoutMillis` property and the associated "stuck queue" self-recovery have been removed. In v3 the `RequestQueue` frontend kept its own copy of the queue head and in-progress set, which could drift out of sync with the backing storage (an eventual-consistency hazard on the Apify platform); `isFinished()` watched for inactivity exceeding `internalTimeoutMillis` and reset that frontend state to recover. In v4 the frontend no longer holds any such bookkeeping — the storage backend is the single source of truth — so there is nothing for a reset to fix, and stuck request locks now self-heal on expiry. Any consistency-recovery logic that is genuinely specific to the Apify platform's distributed storage belongs in the Apify SDK's client implementation instead, and is tracked in [apify/crawlee#3328](https://github.com/apify/crawlee/issues/3328).
