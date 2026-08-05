@@ -43,12 +43,6 @@ import { RequestDeduplicationCache } from './request_dedup_cache.js';
 const MAX_CACHED_REQUESTS = 2_000_000;
 
 /**
- * The maximum number of consecutive no-progress retries for unprocessed requests in `addRequestsBatched()`.
- * @internal
- */
-const MAX_UNPROCESSED_REQUESTS_RETRIES = 3;
-
-/**
  * Represents a queue of URLs to crawl, which is used for deep crawling of websites
  * where you start with several URLs and then recursively
  * follow links to other pages. The data structure supports both breadth-first and depth-first crawling orders.
@@ -451,56 +445,33 @@ export class RequestQueue implements IStorage, IRequestManager {
         );
         const chunksIterator = chunks[Symbol.asyncIterator]();
 
-        const attemptToAddToQueueAndAddAnyUnprocessed = async (
-            providedRequests: Source[],
-            cache = true,
-            unsuccessfulAttempts = 0,
-        ) => {
-            const resultsToReturn: ProcessedRequest[] = [];
-            const apiResult = await this.addRequests(providedRequests, { forefront: options.forefront, cache });
-            resultsToReturn.push(...apiResult.processedRequests);
+        /**
+         * Process a chunk: send it to the queue, then update the remaining budget if maxNewRequests is active.
+         *
+         * Requests the backend reports as unprocessed are warned about and skipped rather than retried:
+         * `unprocessedRequests` is what remains after the backend's own transient-error handling - a
+         * semantic rejection (e.g. a malformed `userData` shape) that re-sending would only re-poke.
+         * Retrying transient failures is the storage backend's job, not the frontend's.
+         */
+        const processChunk = async (chunk: Source[], cache = true) => {
+            const { processedRequests, unprocessedRequests } = await this.addRequests(chunk, {
+                forefront: options.forefront,
+                cache,
+            });
 
-            if (apiResult.unprocessedRequests.length) {
-                // Count attempts that make no progress, so permanently rejected requests (e.g. a malformed
-                // `userData` shape causing a 400) don't loop forever. Any progress resets the counter.
-                const attempts = apiResult.processedRequests.length ? 0 : unsuccessfulAttempts + 1;
-
-                if (attempts >= MAX_UNPROCESSED_REQUESTS_RETRIES) {
-                    this.log.warning(
-                        `Some requests were consistently rejected by the request queue and will be skipped after ${MAX_UNPROCESSED_REQUESTS_RETRIES} attempts. This usually means the request data is malformed (e.g. an invalid 'userData' shape).`,
-                        { unprocessedRequests: apiResult.unprocessedRequests },
-                    );
-
-                    return resultsToReturn;
-                }
-
-                await sleep(waitBetweenBatchesMillis);
-
-                resultsToReturn.push(
-                    ...(await attemptToAddToQueueAndAddAnyUnprocessed(
-                        providedRequests.filter(
-                            (r) => !apiResult.processedRequests.some((pr) => pr.uniqueKey === r.uniqueKey),
-                        ),
-                        false,
-                        attempts,
-                    )),
+            if (unprocessedRequests.length > 0) {
+                this.log.warning(
+                    'Some requests were rejected by the request queue and will be skipped. ' +
+                        "This usually means the request data is malformed (e.g. an invalid 'userData' shape).",
+                    { unprocessedRequests },
                 );
             }
 
-            return resultsToReturn;
-        };
-
-        /**
-         * Process a chunk: send it to the queue, then update the remaining budget if maxNewRequests is active.
-         */
-        const processChunk = async (chunk: Source[], cache = true) => {
-            const results = await attemptToAddToQueueAndAddAnyUnprocessed(chunk, cache);
-
             if (maxNewRequests !== undefined) {
-                remainingBudget -= results.filter((r) => !r.wasAlreadyPresent).length;
+                remainingBudget -= processedRequests.filter((r) => !r.wasAlreadyPresent).length;
             }
 
-            return results;
+            return processedRequests;
         };
 
         /**
