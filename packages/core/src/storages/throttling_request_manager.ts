@@ -43,24 +43,30 @@ interface DomainState {
     crawlDelayMs: number | null;
 }
 
+/**
+ * Parses a `Retry-After` response header into a delay in milliseconds.
+ *
+ * The header holds either a non-negative number of seconds or an HTTP-date.
+ * See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Retry-After).
+ *
+ * @returns The delay in milliseconds, or `null` if the header is absent, unparseable, or already elapsed.
+ */
 export function parseRetryAfterHeader(value?: string | null): number | null {
     if (!value) {
         return null;
     }
 
-    const seconds = parseInt(value, 10);
-    if (!isNaN(seconds) && String(seconds) === value.trim()) {
-        return seconds * 1000;
+    const trimmed = value.trim();
+
+    // Per the spec this is a `delay-seconds`: digits only, so a negative or fractional value is not one.
+    if (/^\d+$/.test(trimmed)) {
+        return Number(trimmed) * 1000;
     }
 
-    try {
-        const date = Date.parse(value);
-        if (!isNaN(date)) {
-            const delayMs = date - Date.now();
-            return delayMs > 0 ? delayMs : null;
-        }
-    } catch {
-        // Ignore
+    const date = Date.parse(trimmed);
+    if (!Number.isNaN(date)) {
+        const delayMs = date - Date.now();
+        return delayMs > 0 ? delayMs : null;
     }
 
     return null;
