@@ -26,12 +26,7 @@ import {
     Router,
     SessionError,
 } from '@crawlee/basic';
-import {
-    type LoadedRequest,
-    RequestThrottledError,
-    getCookiesFromResponse,
-    parseRetryAfterHeader,
-} from '@crawlee/core';
+import { type LoadedRequest, RequestThrottledError, getCookiesFromResponse } from '@crawlee/core';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import type { Awaitable, Dictionary, ISession } from '@crawlee/types';
 import { type CheerioRoot, RETRY_CSS_SELECTORS } from '@crawlee/utils';

@@ -1084,6 +1084,9 @@ export class NonRetryableError extends Error {
 }
 
 // @public
+export function parseRetryAfterHeader(value?: string | null): number | null;
+
+// @public
 export function parseValue(body: Buffer | ArrayBuffer | string, contentTypeHeader: string | null): string | Buffer | ArrayBuffer | Record<string, unknown>;
 
 // @public (undocumented)
@@ -1304,6 +1307,9 @@ export interface RequestListState {
 }
 
 // @public
+export type RequestManagerOpener<T extends IRequestManager = IRequestManager> = (identifier: string | StorageIdentifier, options?: StorageOpenOptions) => Promise<T>;
+
+// @public
 export class RequestManagerTandem implements IRequestManager {
     // (undocumented)
     [Symbol.asyncIterator](): AsyncGenerator<Request_2<Dictionary>, void, unknown>;
@@ -1329,6 +1335,8 @@ export class RequestManagerTandem implements IRequestManager {
     purge(): Promise<void>;
     // (undocumented)
     reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
+    recordDomainDelay(url: string, retryAfterMs?: number | null): boolean;
+    setCrawlDelay(url: string, delaySeconds: number): boolean;
     setExpectedRequestProcessingTimeSecs(secs: number): Promise<void>;
 }
 
@@ -1485,6 +1493,11 @@ export enum RequestState {
     SKIPPED = 7,
     // (undocumented)
     UNPROCESSED = 0
+}
+
+// @public
+export class RequestThrottledError extends RetryRequestError {
+    constructor(message?: string);
 }
 
 // @public
@@ -2008,6 +2021,47 @@ export interface SystemInfo {
 export interface TaskLoopPredicates {
     isFinishedFunction?: () => Promise<boolean>;
     isTaskReadyFunction?: () => Promise<boolean>;
+}
+
+// @public
+export class ThrottlingRequestManager<T extends IRequestManager = IRequestManager> implements IRequestManager {
+    // (undocumented)
+    [Symbol.asyncIterator](): AsyncGenerator<Request_2<Dictionary>, void, unknown>;
+    constructor(options: ThrottlingRequestManagerOptions<T>, config?: Configuration);
+    // (undocumented)
+    addRequest(requestLike: Source, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo>;
+    addRequestsBatched(requests: RequestsLike, options?: AddRequestsBatchedOptions): Promise<AddRequestsBatchedResult>;
+    // (undocumented)
+    drop(): Promise<void>;
+    fetchNextRequest<R extends Dictionary = Dictionary>(): Promise<Request_2<R> | null>;
+    // (undocumented)
+    getHandledCount(): Promise<number>;
+    // (undocumented)
+    getPendingCount(): Promise<number>;
+    // (undocumented)
+    getTotalCount(): Promise<number>;
+    isEmpty(): Promise<boolean>;
+    isFinished(): Promise<boolean>;
+    // (undocumented)
+    markRequestAsHandled(request: Request_2): Promise<RequestQueueOperationInfo | void | null>;
+    // (undocumented)
+    persistState(): Promise<void>;
+    purge(): Promise<void>;
+    // (undocumented)
+    reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
+    recordDomainDelay(url: string, retryAfterMs?: number | null): boolean;
+    setCrawlDelay(url: string, delaySeconds: number): boolean;
+    // (undocumented)
+    setExpectedRequestProcessingTimeSecs(secs: number): Promise<void>;
+}
+
+// @public
+export interface ThrottlingRequestManagerOptions<T extends IRequestManager = IRequestManager> {
+    baseDelayMs?: number;
+    domains: string[];
+    inner: T;
+    maxDelayMs?: number;
+    requestManagerOpener?: RequestManagerOpener<T>;
 }
 
 export { tryAbsoluteURL }

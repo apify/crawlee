@@ -127,6 +127,7 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any> =
         extendContext: Predicate<Function> & BasePredicate<Function | undefined>;
         requestList: ObjectPredicate<object> & BasePredicate<object | undefined>;
         requestQueue: ObjectPredicate<object> & BasePredicate<object | undefined>;
+        requestManager: ObjectPredicate<object> & BasePredicate<object | undefined>;
         requestHandler: Predicate<Function> & BasePredicate<Function | undefined>;
         requestHandlerTimeoutSecs: NumberPredicate & BasePredicate<number | undefined>;
         errorHandler: Predicate<Function> & BasePredicate<Function | undefined>;

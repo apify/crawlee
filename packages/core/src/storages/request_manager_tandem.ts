@@ -254,7 +254,10 @@ export class RequestManagerTandem implements IRequestManager {
         return this.throttlingRequestManager?.setCrawlDelay(url, delaySeconds) ?? false;
     }
 
-    /** @see {@apilink RequestManagerTandem.setCrawlDelay} */
+    /**
+     * Forwards to the wrapped manager if it throttles, otherwise reports `false`.
+     * @see {@apilink RequestManagerTandem.setCrawlDelay}
+     */
     recordDomainDelay(url: string, retryAfterMs?: number | null): boolean {
         return this.throttlingRequestManager?.recordDomainDelay(url, retryAfterMs) ?? false;
     }

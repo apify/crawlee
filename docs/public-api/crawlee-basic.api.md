@@ -123,6 +123,7 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
         extendContext: Predicate<Function> & BasePredicate<Function | undefined>;
         requestList: ObjectPredicate<object> & BasePredicate<object | undefined>;
         requestQueue: ObjectPredicate<object> & BasePredicate<object | undefined>;
+        requestManager: ObjectPredicate<object> & BasePredicate<object | undefined>;
         requestHandler: Predicate<Function> & BasePredicate<Function | undefined>;
         requestHandlerTimeoutSecs: NumberPredicate & BasePredicate<number | undefined>;
         errorHandler: Predicate<Function> & BasePredicate<Function | undefined>;
@@ -158,6 +159,7 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
     pause(timeoutSecs?: number): Promise<void>;
     readonly proxyConfiguration?: IProxyConfiguration;
     pushData(data: Parameters<Dataset['pushData']>[0], datasetIdentifier?: string | StorageIdentifier): Promise<void>;
+    protected recordDomainRateLimit(url: string, retryAfterHeader?: string | null): boolean;
     // (undocumented)
     protected readonly requestHandler: RequestHandler<ExtendedContext>;
     protected requestManager?: IRequestManager;

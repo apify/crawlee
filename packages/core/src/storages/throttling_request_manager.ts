@@ -31,6 +31,7 @@ export type RequestManagerOpener<T extends IRequestManager = IRequestManager> = 
     options?: StorageOpenOptions,
 ) => Promise<T>;
 
+/** Options for {@apilink ThrottlingRequestManager}. */
 export interface ThrottlingRequestManagerOptions<T extends IRequestManager = IRequestManager> {
     /**
      * The request manager to wrap, usually a {@apilink RequestQueue}. Requests for domains that are not throttled
@@ -166,7 +167,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
 
     constructor(
         options: ThrottlingRequestManagerOptions<T>,
-        protected readonly config: Configuration = serviceLocator.getConfiguration(),
+        private readonly config: Configuration = serviceLocator.getConfiguration(),
     ) {
         ow(
             options,
