@@ -31,9 +31,13 @@ import { gotoExtended, playwrightUtils } from './utils/playwright-utils.js';
 
 export type PlaywrightGotoOptions = NonNullable<Parameters<Page['goto']>[1]>;
 
-export interface PlaywrightCrawlingContext<UserData extends Dictionary = Dictionary>
+export interface PlaywrightCrawlingContext<
+    UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
+>
     extends BrowserCrawlingContext<Page, Response, UserData, PlaywrightGotoOptions>, PlaywrightContextUtils {}
-export interface PlaywrightHook extends BrowserHook<PlaywrightCrawlingContext> {}
+export type PlaywrightHook<
+    UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
+> = BrowserHook<PlaywrightCrawlingContext<UserData>>;
 
 export interface PlaywrightCrawlerOptions<
     ContextExtension = Dictionary<never>,

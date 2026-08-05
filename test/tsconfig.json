@@ -19,6 +19,7 @@
             "@crawlee/cheerio": ["../packages/cheerio-crawler/src/index.ts"],
             "@crawlee/playwright": ["../packages/playwright-crawler/src/index.ts"],
             "@crawlee/puppeteer": ["../packages/puppeteer-crawler/src/index.ts"],
+            "@crawlee/stagehand": ["../packages/stagehand-crawler/src/index.ts"],
             "@crawlee/*": ["../packages/*/src/index.ts"]
         }
     }

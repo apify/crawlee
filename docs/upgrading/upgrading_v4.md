@@ -557,6 +557,10 @@ The `KeyValueStore.getPublicUrl` method is now asynchronous and reads the public
 
 The `preNavigationHooks` option in `HttpCrawler` subclasses no longer accepts the `gotOptions` object as a second parameter. Modify the `crawlingContext` fields (e.g. `.request`) directly instead.
 
+## Navigation hook types are now generic
+
+`PlaywrightHook`, `PuppeteerHook` and `StagehandHook` are now type aliases (previously interfaces) generic over the request's `userData` type. A hook that types its context — via the generic (e.g. `PlaywrightHook<MyUserData>`) or an explicit context annotation — is now assignable to the `preNavigationHooks` / `postNavigationHooks` options of an untyped crawler. If you extended one of these interfaces, use an intersection type instead.
+
 ## Navigation and the request handler are timed separately
 
 In v3, navigation ran inside the request handler's time window, and the two options were summed (plus an undocumented 10 second buffer) to form the actual limit. Setting `requestHandlerTimeoutSecs: 60` on a `PlaywrightCrawler` therefore produced errors complaining about 130 seconds.

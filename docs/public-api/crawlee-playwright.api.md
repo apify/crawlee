@@ -406,7 +406,7 @@ export interface PlaywrightCrawlerOptions<ContextExtension = Dictionary<never>, 
 }
 
 // @public (undocumented)
-export interface PlaywrightCrawlingContext<UserData extends Dictionary = Dictionary> extends BrowserCrawlingContext<Page, Response_2, UserData, PlaywrightGotoOptions>, PlaywrightContextUtils {
+export interface PlaywrightCrawlingContext<UserData extends Dictionary = any> extends BrowserCrawlingContext<Page, Response_2, UserData, PlaywrightGotoOptions>, PlaywrightContextUtils {
 }
 
 // @public (undocumented)
@@ -420,8 +420,7 @@ export interface PlaywrightDirectNavigationOptions {
 export type PlaywrightGotoOptions = NonNullable<Parameters<Page['goto']>[1]>;
 
 // @public (undocumented)
-export interface PlaywrightHook extends BrowserHook<PlaywrightCrawlingContext> {
-}
+export type PlaywrightHook<UserData extends Dictionary = any> = BrowserHook<PlaywrightCrawlingContext<UserData>>;
 
 // @public
 export interface PlaywrightLaunchContext extends BrowserLaunchContext<LaunchOptions, BrowserType> {
