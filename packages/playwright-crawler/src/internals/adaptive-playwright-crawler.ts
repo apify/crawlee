@@ -359,8 +359,8 @@ export class AdaptivePlaywrightCrawler<
         // The user's value is replaced by `false` in the `super` call below — validate it separately.
         ow(transactionalStorage, 'transactionalStorage', BasicCrawler.optionsShape.transactionalStorage);
 
-        // Per-attempt buffering is load-bearing here: the handler runs up to three times per request
-        // and the losing attempts' writes must be discardable.
+        // Per-attempt buffering is load-bearing here: the handler runs up to twice per request and the
+        // losing attempt's writes must be discardable.
         if (transactionalStorage === false) {
             throw new Error(
                 'AdaptivePlaywrightCrawler requires transactional storage - it runs the request handler ' +
@@ -643,9 +643,9 @@ export class AdaptivePlaywrightCrawler<
             this.inFlightRenderingTypeDetections += 1;
         }
 
-        // Every transaction created for this request (up to three: static, browser, detection attempt),
-        // disposed in the `finally` below - and not earlier, because the result checker and comparator
-        // read the journals *after* the corresponding `crawlOne` call has returned.
+        // Every transaction created for this request - up to two, since the static-then-browser
+        // fall-through and the browser-then-detection pair are mutually exclusive. Disposed in the
+        // `finally` below, not earlier: the comparators read the journals after `crawlOne` returns.
         const transactions: StorageTransaction[] = [];
 
         try {
