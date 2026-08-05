@@ -336,8 +336,10 @@ describe('BasicCrawler', () => {
 
             const skippedRequests = onSkippedRequestMock.mock.calls.map((call) => call[0]);
             expect(skippedRequests).toHaveLength(2);
-            expect(skippedRequests[0]).toStrictEqual({ url: 'https://example.com/1/', reason: 'filters' });
-            expect(skippedRequests[1]).toStrictEqual({ url: 'https://example.com/2/', reason: 'filters' });
+            expect(skippedRequests[0]).toMatchObject({ url: 'https://example.com/1/', reason: 'filters' });
+            expect(skippedRequests[1]).toMatchObject({ url: 'https://example.com/2/', reason: 'filters' });
+            expect(skippedRequests[0].request).toBeInstanceOf(Request);
+            expect(skippedRequests[1].request).toBeInstanceOf(Request);
         });
     });
 
