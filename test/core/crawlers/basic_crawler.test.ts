@@ -2246,9 +2246,10 @@ describe('BasicCrawler', () => {
             ];
 
             for (const mock of [crawlerOnSkippedRequest, userOnSkippedRequest]) {
-                expect(mock.mock.calls.map((call) => call[0]).sort((a, b) => a.url.localeCompare(b.url))).toEqual(
-                    skipped,
-                );
+                const calls = mock.mock.calls.map((call) => call[0]).sort((a, b) => a.url.localeCompare(b.url));
+                expect(calls).toMatchObject(skipped);
+                expect(calls[0].request).toBeInstanceOf(Request);
+                expect(calls[1].request).toBeInstanceOf(Request);
             }
         });
 
