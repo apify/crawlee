@@ -72,6 +72,13 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     private readonly subManagers = new Map<string, T>();
     private readonly log: CrawleeLogger;
 
+    /**
+     * Sub-managers are keyed by a stable alias, so they outlive the process. They must therefore be reopened
+     * for every configured domain rather than created on first insert - otherwise a restart sees an empty map,
+     * reports the crawl finished, and strands whatever the previous run left in them.
+     */
+    private subManagersReady?: Promise<void>;
+
     private newWorkSignaled = false;
     private resolveNewWork: (() => void) | null = null;
 
@@ -135,18 +142,31 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         return this.domainStates.get(domain) ?? null;
     }
 
-    private selectManager(url: string): T {
+    private async selectManager(url: string): Promise<T> {
+        await this.ensureSubManagers();
         const domain = this.extractDomain(url);
         return this.subManagers.get(domain) ?? this.inner;
     }
 
-    private async getOrCreateSubManager(domain: string): Promise<T> {
-        let sm = this.subManagers.get(domain);
-        if (!sm) {
-            sm = await this.requestManagerOpener({ alias: `throttled-${domain}` }, { configuration: this.config });
-            this.subManagers.set(domain, sm);
-        }
-        return sm;
+    private async ensureSubManagers(): Promise<void> {
+        this.subManagersReady ??= (async () => {
+            await Promise.all(
+                Array.from(this.domainStates.keys(), async (domain) => {
+                    const subManager = await this.requestManagerOpener(
+                        { alias: `throttled-${domain}` },
+                        { configuration: this.config },
+                    );
+                    this.subManagers.set(domain, subManager);
+                }),
+            );
+        })();
+
+        await this.subManagersReady;
+    }
+
+    private async getSubManagers(): Promise<T[]> {
+        await this.ensureSubManagers();
+        return Array.from(this.subManagers.values());
     }
 
     private signalNewWork(): void {
@@ -254,16 +274,8 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     // --- IRequestManager Implementation ---
 
     async addRequest(requestLike: Source, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo> {
-        const url = this.getUrlFromRequest(requestLike);
-        const domain = this.extractDomain(url);
-
-        let result: RequestQueueOperationInfo;
-        if (this.domainStates.has(domain)) {
-            const sm = await this.getOrCreateSubManager(domain);
-            result = await sm.addRequest(requestLike, options);
-        } else {
-            result = await this.inner.addRequest(requestLike, options);
-        }
+        const manager = await this.selectManager(this.getUrlFromRequest(requestLike));
+        const result = await manager.addRequest(requestLike, options);
 
         this.signalNewWork();
         return result;
@@ -308,8 +320,10 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
             }
         }
 
+        await this.ensureSubManagers();
+
         for (const [domain, reqs] of domainRequests.entries()) {
-            const sm = await this.getOrCreateSubManager(domain);
+            const sm = this.subManagers.get(domain)!;
             if ('addRequests' in sm && typeof (sm as any).addRequests === 'function') {
                 const res = await (sm as any).addRequests(reqs, options);
                 results.processedRequests.push(...res.processedRequests);
@@ -376,14 +390,14 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         request: Request,
         options?: RequestQueueOperationOptions,
     ): Promise<RequestQueueOperationInfo | null> {
-        const manager = this.selectManager(request.url);
+        const manager = await this.selectManager(request.url);
         const result = await manager.reclaimRequest(request, options);
         this.signalNewWork();
         return result;
     }
 
     async markRequestAsHandled(request: Request): Promise<RequestQueueOperationInfo | void | null> {
-        const manager = this.selectManager(request.url);
+        const manager = await this.selectManager(request.url);
         const result = await manager.markRequestAsHandled(request);
         const isSuccess = request.errorMessages.length <= request.retryCount;
         if (isSuccess) {
@@ -393,47 +407,27 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     }
 
     async getTotalCount(): Promise<number> {
-        const counts = await Promise.all([
-            this.inner.getTotalCount(),
-            ...Array.from(this.subManagers.values()).map((sm) => sm.getTotalCount()),
-        ]);
-        return counts.reduce((a, b) => a + b, 0);
+        return this.sumOverManagers((manager) => manager.getTotalCount());
     }
 
     async getPendingCount(): Promise<number> {
-        const counts = await Promise.all([
-            this.inner.getPendingCount(),
-            ...Array.from(this.subManagers.values()).map((sm) => sm.getPendingCount()),
-        ]);
-        return counts.reduce((a, b) => a + b, 0);
+        return this.sumOverManagers((manager) => manager.getPendingCount());
     }
 
     async getHandledCount(): Promise<number> {
-        const counts = await Promise.all([
-            this.inner.getHandledCount(),
-            ...Array.from(this.subManagers.values()).map((sm) => sm.getHandledCount()),
-        ]);
-        return counts.reduce((a, b) => a + b, 0);
+        return this.sumOverManagers((manager) => manager.getHandledCount());
     }
 
     async isEmpty(): Promise<boolean> {
-        const empties = await Promise.all([
-            this.inner.isEmpty(),
-            ...Array.from(this.subManagers.values()).map((sm) => sm.isEmpty()),
-        ]);
-        return empties.every(Boolean);
+        return this.everyManager((manager) => manager.isEmpty());
     }
 
     async isFinished(): Promise<boolean> {
-        const finished = await Promise.all([
-            this.inner.isFinished(),
-            ...Array.from(this.subManagers.values()).map((sm) => sm.isFinished()),
-        ]);
-        return finished.every(Boolean);
+        return this.everyManager((manager) => manager.isFinished());
     }
 
     async purge(): Promise<void> {
-        await Promise.all([this.inner.purge?.(), ...Array.from(this.subManagers.values(), async (sm) => sm.purge?.())]);
+        await this.forEachManager((manager) => manager.purge?.());
         for (const state of this.domainStates.values()) {
             state.consecutive429Count = 0;
             state.throttledUntil = 0;
@@ -441,20 +435,33 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     }
 
     async setExpectedRequestProcessingTimeSecs(secs: number): Promise<void> {
-        await Promise.all([
-            this.inner.setExpectedRequestProcessingTimeSecs?.(secs),
-            ...Array.from(this.subManagers.values(), (sm) => sm.setExpectedRequestProcessingTimeSecs?.(secs)),
-        ]);
+        await this.forEachManager((manager) => manager.setExpectedRequestProcessingTimeSecs?.(secs));
+    }
+
+    private async forEachManager(fn: (manager: T) => Promise<unknown> | undefined): Promise<void> {
+        await Promise.all([this.inner, ...(await this.getSubManagers())].map(fn));
+    }
+
+    private async sumOverManagers(fn: (manager: T) => Promise<number>): Promise<number> {
+        const counts = await Promise.all([this.inner, ...(await this.getSubManagers())].map(fn));
+        return counts.reduce((a, b) => a + b, 0);
+    }
+
+    private async everyManager(fn: (manager: T) => Promise<boolean>): Promise<boolean> {
+        const results = await Promise.all([this.inner, ...(await this.getSubManagers())].map(fn));
+        return results.every(Boolean);
     }
 
     async fetchNextRequest<R extends Dictionary = Dictionary>(): Promise<Request<R> | null> {
+        await this.ensureSubManagers();
+
         while (true) {
             this.clearNewWork();
 
             const now = Date.now();
             const availableDomains: string[] = [];
             for (const [domain, state] of this.domainStates.entries()) {
-                if (this.subManagers.has(domain) && now >= state.throttledUntil) {
+                if (now >= state.throttledUntil) {
                     availableDomains.push(domain);
                 }
             }
@@ -483,7 +490,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
                 return null;
             }
 
-            const subManagersEmpty = await Promise.all(Array.from(this.subManagers.values()).map((sm) => sm.isEmpty()));
+            const subManagersEmpty = await Promise.all(Array.from(this.subManagers.values(), (sm) => sm.isEmpty()));
             if (subManagersEmpty.every(Boolean)) {
                 return null;
             }
@@ -509,18 +516,12 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     }
 
     async persistState(): Promise<void> {
-        await Promise.all([
-            this.inner.persistState?.(),
-            ...Array.from(this.subManagers.values(), async (sm) => sm.persistState?.()),
-        ]);
+        await this.forEachManager((manager) => manager.persistState?.());
     }
 
     async drop(): Promise<void> {
-        const drops = [
-            (this.inner as any).drop?.(),
-            ...Array.from(this.subManagers.values()).map((sm) => (sm as any).drop?.()),
-        ];
-        await Promise.all(drops);
+        await this.forEachManager((manager) => (manager as { drop?(): Promise<void> }).drop?.());
         this.subManagers.clear();
+        this.subManagersReady = undefined;
     }
 }

@@ -101,6 +101,35 @@ describe('ThrottlingRequestManager', () => {
         expect(req2!.url).toBe('https://example.com/1');
     });
 
+    test('picks up requests left in per-domain sub-queues by a previous run', async () => {
+        const domains = ['example.com'];
+
+        const firstRun = new ThrottlingRequestManager({ inner: await createQueue(), domains });
+        await firstRun.addRequest({ url: 'https://example.com/left-behind' });
+        expect(await firstRun.getPendingCount()).toBe(1);
+
+        // A restart builds a brand new manager over the same storage backend.
+        const secondRun = new ThrottlingRequestManager({ inner: await createQueue(), domains });
+
+        expect(await secondRun.isEmpty()).toBe(false);
+        expect(await secondRun.isFinished()).toBe(false);
+        expect(await secondRun.getPendingCount()).toBe(1);
+        expect((await secondRun.fetchNextRequest())!.url).toBe('https://example.com/left-behind');
+    });
+
+    test('purge empties per-domain sub-queues it has not touched yet', async () => {
+        const domains = ['example.com'];
+
+        const firstRun = new ThrottlingRequestManager({ inner: await createQueue(), domains });
+        await firstRun.addRequest({ url: 'https://example.com/stale' });
+
+        const secondRun = new ThrottlingRequestManager({ inner: await createQueue(), domains });
+        await secondRun.purge();
+
+        const subQueue = await RequestQueue.open({ alias: 'throttled-example.com' });
+        expect(await subQueue.getPendingCount()).toBe(0);
+    });
+
     test('setCrawlDelay sets crawl-delay successfully', async () => {
         const inner = await createQueue();
         const manager = new ThrottlingRequestManager({
