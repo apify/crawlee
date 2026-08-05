@@ -19,9 +19,9 @@ import {
     ContextPipeline,
     cookieStringToToughCookie,
     enqueueLinks,
-    handleRequestTimeout,
     NavigationSkippedError,
     OwnedOrInjected,
+    remainingNavigationWindowMillis,
     RequestState,
     resolveBaseUrlForEnqueueLinksFiltering,
     SessionError,
@@ -53,7 +53,7 @@ import { CLOUDFLARE_RETRY_CSS_SELECTORS, RETRY_CSS_SELECTORS, sleep } from '@cra
 import ow from 'ow';
 import type { ReadonlyDeep } from 'type-fest';
 
-import { tryCancel } from '@apify/timeout';
+import { addTimeoutToPromise, TimeoutError, tryCancel } from '@apify/timeout';
 
 import type { BrowserLaunchContext } from './browser-launcher.js';
 
@@ -266,7 +266,11 @@ export interface BrowserCrawlerOptions<
     postNavigationHooks?: BrowserHook<Context, ContextExtension>[];
 
     /**
-     * Timeout in which page navigation needs to finish, in seconds.
+     * Timeout for the whole navigation phase, in seconds. A single window shared by the `preNavigationHooks`,
+     * the page navigation, and the `postNavigationHooks` - so a slow hook eats into the same budget the
+     * navigation uses. Separate from the
+     * {@apilink BasicCrawlerOptions.requestHandlerTimeoutSecs|`requestHandlerTimeoutSecs`}, which times only the
+     * request handler.
      */
     navigationTimeoutSecs?: number;
 
@@ -292,6 +296,20 @@ export interface BrowserCrawlerOptions<
      * By default, `iframes` are expanded automatically. Use this option to disable this behavior.
      */
     ignoreIframes?: boolean;
+}
+
+/**
+ * Whether an error thrown by `page.goto()` is a navigation timeout - either our own {@apilink TimeoutError}
+ * or the driver's, which Playwright/Puppeteer report with their own class and a `Timeout ... exceeded` message
+ * naming the raw millisecond value rather than the configured window.
+ */
+function isNavigationTimeoutError(error: Error): boolean {
+    return (
+        error instanceof TimeoutError ||
+        error?.name === 'TimeoutError' ||
+        error?.constructor?.name === 'TimeoutError' ||
+        /timeout.*exceeded/i.test(error?.message ?? '')
+    );
 }
 
 /**
@@ -421,16 +439,37 @@ export abstract class BrowserCrawler<
         super({
             ...basicCrawlerOptions,
             contextPipelineBuilder: () => {
+                // A single navigation window covers the pre-navigation hooks, the navigation, and the
+                // post-navigation hooks: the whole phase shares one `navigationTimeoutSecs` budget, so a slow
+                // hook eats into the same window the navigation uses. The navigation itself is bounded by
+                // capping its `gotoOptions.timeout` to the remaining budget.
+                const windowGuard = <Ctx extends Context>(
+                    step: (ctx: Ctx) => Awaitable<void | Partial<Ctx>>,
+                ): ContextMiddleware<Ctx, Partial<Ctx>> =>
+                    skipGuard(async (ctx: Ctx) => {
+                        const remaining = remainingNavigationWindowMillis(ctx, this.navigationTimeoutMillis);
+                        if (remaining <= 0) {
+                            throw new TimeoutError(
+                                `Navigation timed out after ${this.navigationTimeoutMillis / 1000} seconds.`,
+                            );
+                        }
+                        return addTimeoutToPromise(
+                            async () => step(ctx),
+                            remaining,
+                            `Navigation timed out after ${this.navigationTimeoutMillis / 1000} seconds.`,
+                        );
+                    });
+
                 let pipeline = contextPipelineBuilder().compose({ action: this.prepareNavigation.bind(this) });
 
                 for (const hook of this.preNavigationHooks) {
-                    pipeline = pipeline.compose(skipGuard(hook));
+                    pipeline = pipeline.compose(windowGuard(hook));
                 }
 
                 pipeline = pipeline.compose(skipGuard(this.navigate.bind(this)));
 
                 for (const hook of this.postNavigationHooks) {
-                    pipeline = pipeline.compose(skipGuard(hook));
+                    pipeline = pipeline.compose(windowGuard(hook));
                 }
 
                 return pipeline
@@ -489,6 +528,10 @@ export abstract class BrowserCrawler<
                 ...(resolvedBrowserPoolOptions as any),
             }) as unknown as OwnedBrowserPool<Page>;
         });
+    }
+
+    protected override getNavigationTimeoutMillis(): number {
+        return this.navigationTimeoutMillis;
     }
 
     protected override buildContextPipeline(): ContextPipeline<
@@ -612,6 +655,8 @@ export abstract class BrowserCrawler<
         crawlingContext.request.state = RequestState.BEFORE_NAV;
 
         return {
+            // Default to the full navigation timeout so a pre-navigation hook can read it; `navigate` narrows it
+            // to the remaining shared window unless a hook overrode it (see there).
             gotoOptions: { timeout: this.navigationTimeoutMillis } as unknown as GoToOptions,
             [COOKIES_BEFORE_HOOKS]: this._getCookieHeaderFromRequest(crawlingContext.request),
         } as unknown as Partial<Context>;
@@ -621,6 +666,18 @@ export abstract class BrowserCrawler<
         tryCancel();
 
         const gotoOptions = crawlingContext.gotoOptions as GoToOptions;
+        const remaining = remainingNavigationWindowMillis(crawlingContext, this.navigationTimeoutMillis);
+        if (remaining <= 0) {
+            throw new TimeoutError(`Navigation timed out after ${this.navigationTimeoutMillis / 1000} seconds.`);
+        }
+        // If a hook left the default `navigationTimeoutMillis` in place, bound the goto to whatever is left of the
+        // shared navigation window. If it overrode the value - including `0`, Playwright's "no timeout" - honour
+        // that verbatim as the goto's own timeout. The driver enforces this natively (so a timed-out goto is
+        // aborted, not left lingering) and `handleNavigationTimeout` turns its error into our own message.
+        const gotoTimeout = gotoOptions as { timeout?: number };
+        if (gotoTimeout.timeout === this.navigationTimeoutMillis) {
+            gotoTimeout.timeout = remaining;
+        }
         const cookiesBeforeHooks = readContextField<string>(crawlingContext, COOKIES_BEFORE_HOOKS);
         const cookiesAfterHooks = this._getCookieHeaderFromRequest(crawlingContext.request);
 
@@ -656,23 +713,55 @@ export abstract class BrowserCrawler<
         await this.processResponse(response, crawlingContext);
         tryCancel();
 
-        // TODO: Should we save the cookies also after/only the handle page?
-        if (this.saveResponseCookies && crawlingContext.session) {
-            const { cookies } = await this.browserPool.extractPageState(crawlingContext.page);
-            tryCancel();
-            const url = crawlingContext.request.loadedUrl!;
-            for (const cookie of cookies) {
+        // Persist cookies from the navigation response before the user handler runs.
+        // Cookies set during `requestHandler` are saved again afterwards.
+        await this.persistCookiesFromPage(crawlingContext);
+
+        return { request: crawlingContext.request as LoadedRequest<Request> } as Partial<Context>;
+    }
+
+    /**
+     * Copies cookies from the live browser page into the session cookie jar.
+     */
+    private async persistCookiesFromPage(
+        crawlingContext: Pick<BrowserCrawlingContext<Page, Response>, 'session' | 'page' | 'request'>,
+    ): Promise<void> {
+        if (!this.saveResponseCookies || !crawlingContext.session) {
+            return;
+        }
+
+        const { cookies } = await this.browserPool.extractPageState(crawlingContext.page);
+        tryCancel();
+        // Prefer the live page URL — the handler may have navigated after the initial load.
+        const url =
+            (await crawlingContext.page.url()) || crawlingContext.request.loadedUrl || crawlingContext.request.url;
+        for (const cookie of cookies) {
+            try {
+                crawlingContext.session.cookieJar.setCookieSync(browserPoolCookieToToughCookie(cookie), url, {
+                    ignoreError: false,
+                });
+            } catch (e) {
+                this.log.debug(`Could not set cookie: ${(e as Error).message}`);
+            }
+        }
+    }
+
+    /**
+     * Runs the user request handler, then re-reads browser cookies so login flows /
+     * `page.setCookie` / XHR `Set-Cookie` updates are stored for later requests.
+     */
+    protected override async runRequestHandler(crawlingContext: ExtendedContext): Promise<void> {
+        try {
+            await super.runRequestHandler(crawlingContext);
+        } finally {
+            if (!crawlingContext.request.skipNavigation) {
                 try {
-                    crawlingContext.session.cookieJar.setCookieSync(browserPoolCookieToToughCookie(cookie), url, {
-                        ignoreError: false,
-                    });
-                } catch (e) {
-                    this.log.debug(`Could not set cookie: ${(e as Error).message}`);
+                    await this.persistCookiesFromPage(crawlingContext);
+                } catch {
+                    // Page may already be closed on some failure paths; ignore.
                 }
             }
         }
-
-        return { request: crawlingContext.request as LoadedRequest<Request> } as Partial<Context>;
     }
 
     private async handleBlockedRequestByContent(crawlingContext: BrowserCrawlingContext<Page, Response>) {
@@ -711,13 +800,16 @@ export abstract class BrowserCrawler<
     private async handleNavigationTimeout(crawlingContext: BrowserCrawlingContext, error: Error): Promise<void> {
         const { session, page } = crawlingContext;
 
-        if (error?.constructor.name === 'TimeoutError') {
-            handleRequestTimeout({ session, errorMessage: error.message });
-        }
-
         // Fire-and-forget: no user code will run on this page after a failed navigation.
         // Swallow rejections: the page may already be detached.
         void page.evaluate(() => window.stop()).catch(() => {});
+
+        if (isNavigationTimeoutError(error)) {
+            session?.markBad();
+            // The driver was handed the remaining window (usually shorter than `navigationTimeoutSecs` once the
+            // hooks have run), so it names that value in its own error; report the configured window instead.
+            throw new TimeoutError(`Navigation timed out after ${this.navigationTimeoutMillis / 1000} seconds.`);
+        }
     }
 
     /**

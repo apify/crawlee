@@ -9,7 +9,7 @@ import { ArrayPredicate } from 'ow';
 import type { Awaitable } from '@crawlee/types';
 import { BasePredicate } from 'ow';
 import { BasicCrawler } from '@crawlee/basic';
-import type { BasicCrawlerOptions } from '@crawlee/basic';
+import { BasicCrawlerOptions } from '@crawlee/basic';
 import type { BasicCrawlingContext } from '@crawlee/basic';
 import type { BatchAddRequestsResult } from '@crawlee/types';
 import { BooleanPredicate } from 'ow';
@@ -53,6 +53,8 @@ export abstract class BrowserCrawler<Page extends CommonPage = CommonPage, Respo
     get browserPool(): IBrowserPool<Page>;
     // (undocumented)
     protected buildContextPipeline(): ContextPipeline<CrawlingContext, BrowserCrawlingContext<Page, Response, Dictionary>>;
+    // (undocumented)
+    protected getNavigationTimeoutMillis(): number;
     // (undocumented)
     protected readonly ignoreIframes: boolean;
     // (undocumented)
@@ -109,6 +111,7 @@ export abstract class BrowserCrawler<Page extends CommonPage = CommonPage, Respo
         statisticsOptions: ObjectPredicate<object> & BasePredicate<object | undefined>;
         id: StringPredicate & BasePredicate<string | undefined>;
     };
+    protected runRequestHandler(crawlingContext: ExtendedContext): Promise<void>;
 }
 
 // @public (undocumented)

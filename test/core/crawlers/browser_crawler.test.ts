@@ -269,6 +269,38 @@ describe('BrowserCrawler', () => {
         expect(hook).toHaveBeenCalled();
     });
 
+    test.concurrent('should time out a hanging preNavigationHook after navigationTimeoutSecs', async () => {
+        const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
+
+        const requestList = await RequestList.open({
+            sources: [{ url: `${serverAddress}/?q=1` }],
+        });
+
+        const failed: Request[] = [];
+        const requestHandler = vi.fn();
+
+        const browserCrawler = new BrowserCrawlerTest({
+            browserPoolOptions: {
+                browserPlugins: [puppeteerPlugin],
+            },
+            requestList,
+            navigationTimeoutSecs: 0.1,
+            maxRequestRetries: 0,
+            preNavigationHooks: [async () => sleep(5000)],
+            requestHandler,
+            failedRequestHandler: ({ request }) => {
+                failed.push(request);
+            },
+        });
+
+        await browserCrawler.run();
+
+        expect(requestHandler).not.toHaveBeenCalled();
+        expect(failed).toHaveLength(1);
+        expect(failed[0].errorMessages[0]).toMatch('Navigation timed out');
+        expect(failed[0].errorMessages[0]).not.toMatch('requestHandler timed out');
+    });
+
     test.concurrent('should evaluate postNavigationHooks', async () => {
         const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
 
@@ -640,6 +672,49 @@ describe('BrowserCrawler', () => {
 
             expect(cookie).toEqual('TEST=12321312312');
         });
+    });
+
+    test('should persist cookies set during requestHandler for the next request', async () => {
+        const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
+
+        const requestList = await RequestList.open(null, [
+            { url: `${serverAddress}/?q=cookie-1` },
+            { url: `${serverAddress}/?q=cookie-2` },
+        ]);
+
+        const cookieStrings: string[] = [];
+        const crawler = new BrowserCrawlerTest({
+            browserPoolOptions: {
+                browserPlugins: [puppeteerPlugin],
+            },
+            requestList,
+            saveResponseCookies: true,
+            sessionPool: new SessionPool({
+                maxPoolSize: 1,
+            }),
+            requestHandler: async ({ page, session, request }) => {
+                cookieStrings.push(session.cookieJar.getCookieStringSync(request.url));
+
+                if (request.url.includes('cookie-1')) {
+                    const hostname = new URL(request.loadedUrl || request.url).hostname;
+                    await page.setCookie({
+                        name: 'HANDLER_COOKIE',
+                        value: 'from-request-handler',
+                        domain: hostname,
+                        path: '/',
+                        expires: Date.now() / 1000 + 3600,
+                    });
+                }
+            },
+        });
+
+        await crawler.run();
+
+        expect(cookieStrings).toHaveLength(2);
+        // First request has no handler cookie yet (it is set during that handler).
+        expect(cookieStrings[0]).not.toContain('HANDLER_COOKIE=from-request-handler');
+        // Second request must see the cookie persisted after the first requestHandler.
+        expect(cookieStrings[1]).toContain('HANDLER_COOKIE=from-request-handler');
     });
 
     test.concurrent('should throw on "blocked" status codes', async () => {

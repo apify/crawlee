@@ -104,6 +104,8 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any> =
     protected buildContextPipeline(): ContextPipeline<CrawlingContext, InternalHttpCrawlingContext>;
     protected createDefaultConcurrencySystem(options: ConcurrencySystemOptions): ConcurrencySystem;
     // (undocumented)
+    protected getNavigationTimeoutMillis(): number;
+    // (undocumented)
     protected isRequestBlocked(crawlingContext: InternalHttpCrawlingContext): Promise<string | false>;
     // (undocumented)
     protected static optionsShape: {

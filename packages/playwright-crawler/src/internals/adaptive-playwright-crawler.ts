@@ -375,6 +375,7 @@ export class AdaptivePlaywrightCrawler<
             errorHandler,
             failedRequestHandler,
             requestHandler,
+            requestHandlerTimeoutSecs,
             contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),
             // The base crawler must not wrap requests in a transaction of its own - this crawler opens
             // one per request handler attempt in `crawlOne` instead, forwarding the write policy of the
@@ -615,9 +616,17 @@ export class AdaptivePlaywrightCrawler<
                 }
             };
 
+            // this crawler overrides `runRequestHandler` and times each rendering-type run itself, so it has
+            // to resolve any per-route override too - otherwise routes would be silently ignored here
+            const routeTimeoutSecs = (this.requestHandler as Partial<RouterHandler>).getTimeoutSecs?.(
+                context.request.label,
+            );
+            const timeoutMillis =
+                routeTimeoutSecs === undefined ? this.individualRequestHandlerTimeoutMillis : routeTimeoutSecs * 1000;
+
             await addTimeoutToPromise(
                 async () => transaction.run(callAdaptiveRequestHandler),
-                this.individualRequestHandlerTimeoutMillis,
+                timeoutMillis,
                 'Request handler timed out',
             );
 

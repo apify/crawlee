@@ -24,6 +24,7 @@ import {
     fullResultComparator,
     RenderingTypePredictor,
     RequestList,
+    RequestQueue,
     RequestValidationError,
 } from '@crawlee/playwright';
 import type { Dictionary } from '@crawlee/types';
@@ -879,5 +880,19 @@ describe('AdaptivePlaywrightCrawler', () => {
         await expect(
             crawler.addRequests([{ url: 'https://example.com/a', label: 'DETAIL', userData: { id: 123 } }] as never),
         ).rejects.toThrow(RequestValidationError);
+    });
+
+    test('reserves a request for the longest route timeout override', async () => {
+        const requestQueue = await RequestQueue.open(`rq-adaptive-${Math.random() * 10000}`);
+        const hintSpy = vitest.spyOn(requestQueue, 'setExpectedRequestProcessingTimeSecs');
+
+        const router = createAdaptivePlaywrightRouter();
+        router.addHandler('LIST', async () => {}, { requestHandlerTimeoutSecs: 300 });
+
+        const crawler = new AdaptivePlaywrightCrawler({ requestQueue, requestHandler: router });
+        await crawler.getRequestManager();
+
+        const maxHint = Math.max(...hintSpy.mock.calls.map((call) => call[0]));
+        expect(maxHint).toBeGreaterThanOrEqual(300);
     });
 });
