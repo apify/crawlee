@@ -12,7 +12,7 @@ import { tryCancel } from '@apify/timeout';
 
 import { Configuration } from '../configuration.js';
 import { serviceLocator } from '../service_locator.js';
-import type { JournalEntry, KeyValueStoreJournalEntry, TransactionParticipant } from './transaction.js';
+import type { JournalEntry, KeyValueStoreJournalEntry } from './transaction.js';
 import {
     activeStorageTransaction,
     operationRejectedInTransaction,
@@ -88,7 +88,7 @@ const KVS_KEYS_DEFAULT_LIMIT = 1000;
  * ```
  * @category Result Stores
  */
-export class KeyValueStore implements TransactionParticipant {
+export class KeyValueStore {
     readonly id: string;
     readonly name?: string;
     private readonly backend: KeyValueStoreBackend;

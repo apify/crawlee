@@ -514,7 +514,7 @@ export class StagehandCrawler<
  * });
  *
  * router.addDefaultHandler(async ({ page, enqueueLinks }) => {
- *   await enqueueLinks({ globs: ['https://example.com/products/*'] });
+ *   await enqueueLinks({ include: ['https://example.com/products/*'] });
  * });
  *
  * const crawler = new StagehandCrawler({

@@ -32,8 +32,6 @@ export interface StagehandPluginOptions extends BrowserPluginOptions<LaunchOptio
  * Limitations:
  * - Only Chromium is supported (Stagehand uses CDP)
  * - Some fingerprinting options may not be fully applied (Stagehand controls browser launch)
- *
- * @ignore
  */
 export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, PlaywrightBrowser> {
     readonly stagehandOptions: StagehandOptions;

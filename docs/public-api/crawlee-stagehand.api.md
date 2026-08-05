@@ -201,6 +201,25 @@ export interface StagehandPage extends Page {
     observe(options?: Omit<ObserveOptions, 'page'>): Promise<Action[]>;
 }
 
+// Not exported by the entry point; reachable only as a referenced type.
+// @public
+class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, Browser> {
+    constructor(library: BrowserType, options?: StagehandPluginOptions);
+    protected _addProxyToLaunchOptions(launchContext: LaunchContext<BrowserType>): Promise<void>;
+    createController(): BrowserController<BrowserType, LaunchOptions, Browser>;
+    getStagehandForBrowser(browser: Browser): Stagehand | undefined;
+    protected _isChromiumBasedBrowser(): boolean;
+    protected _launch(launchContext: LaunchContext<BrowserType>): Promise<Browser>;
+    // (undocumented)
+    readonly stagehandOptions: StagehandOptions;
+}
+
+// Not exported by the entry point; reachable only as a referenced type.
+// @public
+interface StagehandPluginOptions extends BrowserPluginOptions<LaunchOptions> {
+    stagehandOptions?: StagehandOptions;
+}
+
 // @public
 export interface StagehandRequestHandler extends RequestHandler<LoadedContext<StagehandCrawlingContext>> {
 }

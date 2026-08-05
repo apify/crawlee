@@ -121,6 +121,7 @@ The browser *launchers* (`PlaywrightLauncher`, `PuppeteerLauncher`) keep their `
 - `BASIC_CRAWLER_TIMEOUT_BUFFER_SECS` constant (from `@crawlee/basic`) — was an internal timeout buffer, no longer exported
 - `HttpResponse`, `HttpResponseWithoutBody`, `StreamingHttpResponse`, `ResponseTypes`, `BaseHttpResponseData`, `SimpleHeaders`, `processHttpRequestOptions`, and `GotScrapingHttpClient` (from `@crawlee/core`) — the HTTP client surface moved to `@crawlee/http-client` / `@crawlee/got-scraping-client` (see [HTTP client packages and `BaseHttpClient` reshaped](#http-client-packages-and-basehttpclient-reshaped))
 - `StreamHandlerContext` and `FileDownloadOptions` types (from `@crawlee/http`) — see [`FileDownload` now extends `BasicCrawler`](#filedownload-now-extends-basiccrawler-and-no-longer-takes-filedownloadoptions)
+- `PlainResponse` type (from `@crawlee/http`) — it wrapped the `got-scraping` response and is gone along with the rest of the old HTTP response surface (see [`CrawlingContext.response` is now of type `Response`](#crawlingcontextresponse-is-now-of-type-response))
 
 ### The protected `BasicCrawler.crawlingContexts` map is removed
 
@@ -460,7 +461,7 @@ The general-purpose utility types owned by `@crawlee/types` are no longer re-exp
 
 Besides the resource-detection helpers above, several other `@crawlee/utils` exports were removed or moved:
 
-- **Removed URL helpers:** `filterUrl(target, origin, strategy)`, `matchesEnqueueStrategy(strategy, target, origin)`, and the `UNSUPPORTED_SCHEME_MESSAGE` constant. URL filtering by enqueue strategy is now internal to `enqueueLinks`.
+- **Removed URL helpers:** `filterUrl(target, origin, strategy)`, `matchesEnqueueStrategy(strategy, target, origin)`, and the `UNSUPPORTED_SCHEME_MESSAGE` constant. URL filtering by enqueue strategy is now internal to `enqueueLinks`. The related `filterRequestsByPatterns(requests, patterns?, onSkippedUrl?)` function (from `@crawlee/core`) was removed for the same reason — pattern-based request filtering now happens inside `enqueueLinks`.
 - **Relocated enums/types:** `EnqueueStrategy` now lives in `@crawlee/core` and `SearchParams` in `@crawlee/types`. They are no longer re-exported from `@crawlee/utils`, so `import { EnqueueStrategy } from '@crawlee/utils'` breaks — import them from `crawlee` (the meta-package) or from `@crawlee/core` / `@crawlee/types` instead.
 - **Removed `RobotsFile` alias:** `RobotsFile` was an alias for the `RobotsTxtFile` class and is removed. Rename any usage to `RobotsTxtFile`; the class itself is unchanged apart from the signature change described below.
 
@@ -1147,6 +1148,10 @@ The mechanism can be disabled entirely with `transactionalStorage: false` on any
 
 The request loader/manager interfaces have been reworked to mirror the abstractions in Crawlee for Python. See the new [Request loaders](../guides/request-loaders) guide for the full picture.
 
+### `RequestQueue.addRequestsBatched` no longer retries rejected requests
+
+Requests that the storage backend reports as unprocessed are now warned about and skipped after the first attempt, instead of being retried a bounded number of times. What a backend reports as unprocessed is a semantic rejection (typically malformed request data) that re-sending cannot fix — retrying transient failures is the storage backend's own responsibility.
+
 ### `IRequestList` renamed to `IRequestLoader`
 
 The `IRequestList` interface has been renamed to `IRequestLoader` and is now the read-only base interface implemented by `RequestList` and `SitemapRequestLoader`. The writable `IRequestManager` interface now **extends** `IRequestLoader` with the request-adding and reclaiming surface (`addRequest`, `addRequestsBatched`, `reclaimRequest`, optional `purge`). There is no `IRequestList` alias — update your imports and type references to `IRequestLoader` (or `IRequestManager` if you need the write surface).
@@ -1267,14 +1272,57 @@ await enqueueLinks({ urls, requestQueue });
 await enqueueLinks({ urls, requestManager });
 ```
 
+### `globs`, `regexps`, and `pseudoUrls` replaced by `include`
+
+To align with the Crawlee for Python API, the separate `globs`, `regexps`, and `pseudoUrls` URL-filtering options of `enqueueLinks()`, the click-elements enqueue helpers, and `SitemapRequestLoader` have been collapsed into a single `include` option (mirroring the already-unified `exclude` option).
+
+The `PseudoUrl` class is no longer exported and the `@apify/pseudo_url` dependency has been dropped. Rewrite any pseudo-URL patterns as globs or regular expressions.
+
+Per-pattern request options (`label`, `userData`, `method`, `payload`, `headers` set directly on a pattern object) are no longer supported. Use the top-level `label` / `userData` options, or `transformRequestFunction`, to set request options for the enqueued requests.
+
+**Before:**
+```typescript
+await enqueueLinks({
+    globs: ['https://crawlee.dev/docs/**'],
+    regexps: [/\/blog\//],
+});
+```
+
+**After:**
+```typescript
+await enqueueLinks({
+    include: ['https://crawlee.dev/docs/**', /\/blog\//],
+});
+```
+
+#### Migrating `pseudoUrls`
+
+A `PseudoUrl` is equivalent to an anchored regular expression: the text inside `[ ]` is the pattern (a wildcard), everything outside it is matched literally, and the whole URL is anchored. Translate each pseudo-URL to a `RegExp` (or a glob, if the pattern is simple enough):
+
+**Before:**
+```typescript
+await enqueueLinks({
+    pseudoUrls: ['https://crawlee.dev/[.*]'],
+});
+```
+
+**After:**
+```typescript
+await enqueueLinks({
+    // faithful translation — [.*] becomes .*, literal text is escaped and anchored
+    include: [/^https:\/\/crawlee\.dev\/.*$/],
+    // or, when the pattern is simple, an equivalent glob:
+    // include: ['https://crawlee.dev/**'],
+});
+```
+
 ## `transformRequestFunction` precedence in `enqueueLinks`
 
-The `transformRequestFunction` callback in `enqueueLinks` now runs **after** URL pattern filtering (`globs`, `regexps`, `pseudoUrls`) instead of before. This means it has the highest priority and can overwrite any request options set by patterns or the global `label` option.
+The `transformRequestFunction` callback in `enqueueLinks` now runs **after** URL pattern filtering (`include`, `exclude`) instead of before. This means it has the highest priority and can overwrite any request options set by the global `label` / `userData` options.
 
 The priority order is now (lowest to highest):
 1. Global `label` / `userData` options
-2. Pattern-specific options from `globs`, `regexps`, or `pseudoUrls` objects
-3. `transformRequestFunction`
+2. `transformRequestFunction`
 
 The `transformRequestFunction` callback receives a `RequestOptions` object and can return either:
 - The modified `RequestOptions` object

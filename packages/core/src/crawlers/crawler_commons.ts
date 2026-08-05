@@ -19,7 +19,6 @@ export type IsAny<T> = 0 extends 1 & T ? true : false;
  * When the route map is open (the default `Record<string, ...>`), this is just the regular loose
  * {@apilink Source} input. When the map declares concrete labels, providing a `label` requires the matching
  * `userData` shape and rejects labels not present in the map; unlabeled requests keep loose `userData`.
- * @internal
  */
 export type LabeledSource<Routes extends Record<keyof Routes, Dictionary>> = string extends keyof Routes
     ? string | Source
@@ -48,7 +47,6 @@ export type TypedRequestsLike<Routes extends Record<keyof Routes, Dictionary>> =
 /**
  * The label-aware `addRequests` method signature exposed on a request handler's context when the crawler is
  * bound to a typed router. Mirrors {@apilink RestrictedCrawlingContext.addRequests} with typed sources.
- * @internal
  */
 export type TypedContextAddRequests<Routes extends Record<keyof Routes, Dictionary>> = (
     requestsLike: ReadonlyDeep<LabeledSource<Routes>[]>,
@@ -72,7 +70,6 @@ type TypedEnqueueLinksOptions<Options, Routes extends Record<keyof Routes, Dicti
  * Transforms a context's existing `enqueueLinks` method so that the `label`/`userData` in its options follow
  * the router's route map, while preserving everything else about the signature (argument optionality and
  * return type, which differ between crawler types).
- * @internal
  */
 export type TypedContextEnqueueLinks<
     EnqueueLinks,
@@ -83,7 +80,6 @@ export type TypedContextEnqueueLinks<
       ? (options: TypedEnqueueLinksOptions<Options, Routes>) => Result
       : EnqueueLinks;
 
-/** @internal */
 export type WithRequired<T, K extends keyof T> = T & { [P in K]-?: T[P] };
 
 export type LoadedRequest<R extends Request> = WithRequired<R, 'id' | 'loadedUrl'>;
@@ -127,8 +123,7 @@ export interface RestrictedCrawlingContext<UserData extends Dictionary = Diction
      * This function automatically finds and enqueues links from the current page, adding them to the {@apilink RequestQueue}
      * currently used by the crawler.
      *
-     * Optionally, the function allows you to filter the target links' URLs using an array of globs or regular expressions
-     * and override settings of the enqueued {@apilink Request} objects.
+     * Optionally, the function allows you to filter the target links' URLs using an array of glob or regexp patterns.
      *
      * Check out the [Crawl a website with relative links](https://crawlee.dev/js/docs/examples/crawl-relative-links) example
      * for more details regarding its usage.
@@ -138,7 +133,7 @@ export interface RestrictedCrawlingContext<UserData extends Dictionary = Diction
      * ```ts
      * async requestHandler({ enqueueLinks }) {
      *     await enqueueLinks({
-     *       globs: [
+     *       include: [
      *           'https://www.example.com/handbags/*',
      *       ],
      *     });
@@ -185,8 +180,7 @@ export interface CrawlingContext<UserData extends Dictionary = Dictionary> exten
      * This function automatically finds and enqueues links from the current page, adding them to the {@apilink RequestQueue}
      * currently used by the crawler.
      *
-     * Optionally, the function allows you to filter the target links' URLs using an array of globs or regular expressions
-     * and override settings of the enqueued {@apilink Request} objects.
+     * Optionally, the function allows you to filter the target links' URLs using an array of glob or regexp patterns.
      *
      * Check out the [Crawl a website with relative links](https://crawlee.dev/js/docs/examples/crawl-relative-links) example
      * for more details regarding its usage.
@@ -196,7 +190,7 @@ export interface CrawlingContext<UserData extends Dictionary = Dictionary> exten
      * ```ts
      * async requestHandler({ enqueueLinks }) {
      *     await enqueueLinks({
-     *       globs: [
+     *       include: [
      *           'https://www.example.com/handbags/*',
      *       ],
      *     });

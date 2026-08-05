@@ -15,7 +15,6 @@ import type { BrowserCrawlerOptions } from '@crawlee/browser';
 import type { BrowserCrawlingContext } from '@crawlee/browser';
 import type { BrowserHook } from '@crawlee/browser';
 import type { BrowserLaunchContext } from '@crawlee/browser';
-import { BrowserLauncher } from '@crawlee/browser';
 import { CheerioAPI } from '@crawlee/browser';
 import { CheerioRoot } from '@crawlee/utils';
 import type { ClickOptions } from 'puppeteer';
@@ -24,7 +23,6 @@ import { ContextPipeline } from '@crawlee/browser';
 import { CrawlingContext } from '@crawlee/browser';
 import type { Dictionary } from '@crawlee/types';
 import type { GetUserDataFromRequest } from '@crawlee/browser';
-import type { GlobInput } from '@crawlee/browser';
 import type { HTTPRequest } from 'puppeteer';
 import type { HTTPResponse } from 'puppeteer';
 import { IRequestManager } from '@crawlee/browser';
@@ -33,10 +31,7 @@ import { NumberPredicate } from 'ow';
 import { ObjectPredicate } from 'ow';
 import type { Page } from 'puppeteer';
 import { Predicate } from 'ow';
-import type { ProtocolMapping } from 'devtools-protocol/types/protocol-mapping.js';
-import type { PseudoUrlInput } from '@crawlee/browser';
 import { PuppeteerPlugin } from '@crawlee/browser-pool';
-import type { RegExpInput } from '@crawlee/browser';
 import { Request as Request_2 } from '@crawlee/browser';
 import type { RequestTransform } from '@crawlee/browser';
 import type { ResponseForRequest } from 'puppeteer';
@@ -48,6 +43,7 @@ import type { SkippedRequestCallback } from '@crawlee/browser';
 import { StorageWritePolicy } from '@crawlee/browser';
 import { StringPredicate } from 'ow';
 import type { Target } from 'puppeteer';
+import type { UrlPatternInput } from '@crawlee/browser';
 
 // @public
 function addInterceptRequestHandler(page: Page, handler: InterceptHandler): Promise<void>;
@@ -99,16 +95,13 @@ function enqueueLinksByClickingElements(options: EnqueueLinksByClickingElementsO
 // @public (undocumented)
 export interface EnqueueLinksByClickingElementsOptions {
     clickOptions?: ClickOptions;
-    exclude?: readonly (GlobInput | RegExpInput)[];
+    exclude?: readonly UrlPatternInput[];
     forefront?: boolean;
-    globs?: GlobInput[];
+    include?: UrlPatternInput[];
     label?: string;
     maxWaitForPageIdleSecs?: number;
     onSkippedRequest?: SkippedRequestCallback;
     page: Page;
-    // @deprecated
-    pseudoUrls?: PseudoUrlInput[];
-    regexps?: RegExpInput[];
     requestManager: IRequestManager;
     selector: string;
     skipNavigation?: boolean;
@@ -166,6 +159,22 @@ declare namespace puppeteerClickElements {
         clickElements,
         EnqueueLinksByClickingElementsOptions
     }
+}
+
+// @public (undocumented)
+interface PuppeteerContextUtils {
+    addInterceptRequestHandler(handler: InterceptHandler): Promise<void>;
+    blockRequests(options?: BlockRequestsOptions): Promise<void>;
+    closeCookieModals(): Promise<void>;
+    compileScript(scriptString: string, ctx?: Dictionary): CompiledScriptFunction;
+    enqueueLinksByClickingElements(options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestManager'>): Promise<BatchAddRequestsResult>;
+    infiniteScroll(options?: InfiniteScrollOptions): Promise<void>;
+    injectFile(filePath: string, options?: InjectFileOptions): Promise<unknown>;
+    injectJQuery(): Promise<unknown>;
+    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
+    removeInterceptRequestHandler(handler: InterceptHandler): Promise<void>;
+    saveSnapshot(options?: SaveSnapshotOptions): Promise<void>;
+    waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
 }
 
 // @public

@@ -177,9 +177,6 @@ export interface HttpCrawlerOptions<
     saveResponseCookies?: boolean;
 }
 
-/**
- * @internal
- */
 export type InternalHttpHook<Context, ContextExtension = {}> = (
     crawlingContext: Context & ContextExtension,
 ) => Awaitable<void | Partial<Context>>;
@@ -203,9 +200,6 @@ interface CrawlingContextWithResponse<
     response: Response;
 }
 
-/**
- * @internal
- */
 export interface InternalHttpCrawlingContext<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends JsonValue = any, // with default to Dictionary we cant use a typed router in untyped crawler

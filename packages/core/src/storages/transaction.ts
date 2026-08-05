@@ -53,10 +53,10 @@ export interface TransactionParticipant {
 
 /**
  * A single dataset write (`pushData`) recorded in a transaction journal.
- * @internal
  */
 export interface DatasetJournalEntry {
     type: 'dataset';
+    /** @internal **/
     participant: TransactionParticipant;
     storageId: string;
     /** The pushed items, captured by `structuredClone` at write time. */
@@ -66,10 +66,10 @@ export interface DatasetJournalEntry {
 
 /**
  * A single key-value store write (`setValue`) recorded in a transaction journal.
- * @internal
  */
 export interface KeyValueStoreJournalEntry {
     type: 'keyValueStore';
+    /** @internal **/
     participant: TransactionParticipant;
     storageId: string;
     key: string;
@@ -80,7 +80,6 @@ export interface KeyValueStoreJournalEntry {
 
 /**
  * A request recorded in a transaction journal.
- * @internal
  */
 export interface JournaledRequest {
     url: string;
@@ -95,10 +94,10 @@ export interface JournaledRequest {
 
 /**
  * A batch of request queue additions recorded in a transaction journal.
- * @internal
  */
 export interface RequestQueueJournalEntry {
     type: 'requestQueue';
+    /** @internal **/
     participant: TransactionParticipant;
     requests: JournaledRequest[];
     forefront: boolean;
@@ -106,7 +105,6 @@ export interface RequestQueueJournalEntry {
     writeThrough: boolean;
 }
 
-/** @internal */
 export type JournalEntry = DatasetJournalEntry | KeyValueStoreJournalEntry | RequestQueueJournalEntry;
 
 /**

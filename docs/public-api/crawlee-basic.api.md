@@ -11,7 +11,6 @@ import { ArrayPredicate } from 'ow';
 import type { Awaitable } from '@crawlee/types';
 import type { BaseHttpClient } from '@crawlee/types';
 import { BasePredicate } from 'ow';
-import type { BatchAddRequestsResult } from '@crawlee/types';
 import { BooleanPredicate } from 'ow';
 import { Cheerio } from '@crawlee/utils';
 import { CheerioAPI } from '@crawlee/utils';
@@ -26,7 +25,6 @@ import { Dataset } from '@crawlee/core';
 import type { DatasetExportOptions } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/types';
 import { Element as Element_2 } from '@crawlee/utils';
-import type { EnqueueLinksOptions } from '@crawlee/core';
 import type { EventManager } from '@crawlee/core';
 import type { FinalStatistics } from '@crawlee/core';
 import type { GetUserDataFromRequest } from '@crawlee/core';
@@ -43,14 +41,11 @@ import type { ProxyInfo } from '@crawlee/types';
 import type { ReadonlyDeep } from 'type-fest';
 import { Request as Request_2 } from '@crawlee/core';
 import { RequestQueue } from '@crawlee/core';
-import type { RequestsLike } from '@crawlee/core';
 import { RobotsTxtFile } from '@crawlee/utils';
 import type { RouterHandler } from '@crawlee/core';
 import type { RouterRoutes } from '@crawlee/core';
-import type { SetRequired } from 'type-fest';
 import type { SetStatusMessageOptions } from '@crawlee/types';
 import type { SkippedRequestCallback } from '@crawlee/core';
-import type { Source } from '@crawlee/core';
 import { Statistics } from '@crawlee/core';
 import type { StatisticsOptions } from '@crawlee/core';
 import type { StatisticState } from '@crawlee/core';
@@ -248,6 +243,14 @@ export interface CrawlerAddRequestsOptions extends AddRequestsBatchedOptions {
 
 // @public (undocumented)
 export interface CrawlerAddRequestsResult extends AddRequestsBatchedResult {
+}
+
+// Not exported by the entry point; reachable only as a referenced type.
+// @public
+interface CrawlerIdentity {
+    readonly hasExplicitId: boolean;
+    readonly id: string;
+    readonly instanceIndex: number;
 }
 
 // @public (undocumented)

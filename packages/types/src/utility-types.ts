@@ -1,4 +1,3 @@
-/** @ignore */
 export type Dictionary<T = any> = Record<PropertyKey, T>;
 
 /** @ignore */

@@ -27,7 +27,7 @@ import type { IProxyConfiguration } from '../proxy_configuration.js';
 import type { InternalSource, RequestOptions, Source } from '../request.js';
 import { Request } from '../request.js';
 import { serviceLocator } from '../service_locator.js';
-import type { JournalEntry, StorageTransaction, TransactionParticipant } from './transaction.js';
+import type { JournalEntry, StorageTransaction } from './transaction.js';
 import { activeStorageTransaction, rejectOperationInTransaction, withDirectStorageAccess } from './transaction.js';
 import type { IRequestManager, RequestsLike } from './request_manager.js';
 import type { RequestQueueStats } from './storage_stats.js';
@@ -43,12 +43,6 @@ import { RequestDeduplicationCache } from './request_dedup_cache.js';
  * @internal
  */
 const MAX_CACHED_REQUESTS = 2_000_000;
-
-/**
- * The maximum number of consecutive no-progress retries for unprocessed requests in `addRequestsBatched()`.
- * @internal
- */
-const MAX_UNPROCESSED_REQUESTS_RETRIES = 3;
 
 /**
  * Represents a queue of URLs to crawl, which is used for deep crawling of websites
@@ -84,7 +78,7 @@ const MAX_UNPROCESSED_REQUESTS_RETRIES = 3;
  * ```
  * @category Sources
  */
-export class RequestQueue implements IStorage, IRequestManager, TransactionParticipant {
+export class RequestQueue implements IStorage, IRequestManager {
     readonly id: string;
     readonly name?: string;
     readonly backend: RequestQueueBackend;
@@ -652,56 +646,33 @@ export class RequestQueue implements IStorage, IRequestManager, TransactionParti
         );
         const chunksIterator = chunks[Symbol.asyncIterator]();
 
-        const attemptToAddToQueueAndAddAnyUnprocessed = async (
-            providedRequests: Source[],
-            cache = true,
-            unsuccessfulAttempts = 0,
-        ) => {
-            const resultsToReturn: ProcessedRequest[] = [];
-            const apiResult = await this.addRequests(providedRequests, { forefront: options.forefront, cache });
-            resultsToReturn.push(...apiResult.processedRequests);
+        /**
+         * Process a chunk: send it to the queue, then update the remaining budget if maxNewRequests is active.
+         *
+         * Requests the backend reports as unprocessed are warned about and skipped rather than retried:
+         * `unprocessedRequests` is what remains after the backend's own transient-error handling - a
+         * semantic rejection (e.g. a malformed `userData` shape) that re-sending would only re-poke.
+         * Retrying transient failures is the storage backend's job, not the frontend's.
+         */
+        const processChunk = async (chunk: Source[], cache = true) => {
+            const { processedRequests, unprocessedRequests } = await this.addRequests(chunk, {
+                forefront: options.forefront,
+                cache,
+            });
 
-            if (apiResult.unprocessedRequests.length) {
-                // Count attempts that make no progress, so permanently rejected requests (e.g. a malformed
-                // `userData` shape causing a 400) don't loop forever. Any progress resets the counter.
-                const attempts = apiResult.processedRequests.length ? 0 : unsuccessfulAttempts + 1;
-
-                if (attempts >= MAX_UNPROCESSED_REQUESTS_RETRIES) {
-                    this.log.warning(
-                        `Some requests were consistently rejected by the request queue and will be skipped after ${MAX_UNPROCESSED_REQUESTS_RETRIES} attempts. This usually means the request data is malformed (e.g. an invalid 'userData' shape).`,
-                        { unprocessedRequests: apiResult.unprocessedRequests },
-                    );
-
-                    return resultsToReturn;
-                }
-
-                await sleep(waitBetweenBatchesMillis);
-
-                resultsToReturn.push(
-                    ...(await attemptToAddToQueueAndAddAnyUnprocessed(
-                        providedRequests.filter(
-                            (r) => !apiResult.processedRequests.some((pr) => pr.uniqueKey === r.uniqueKey),
-                        ),
-                        false,
-                        attempts,
-                    )),
+            if (unprocessedRequests.length > 0) {
+                this.log.warning(
+                    'Some requests were rejected by the request queue and will be skipped. ' +
+                        "This usually means the request data is malformed (e.g. an invalid 'userData' shape).",
+                    { unprocessedRequests },
                 );
             }
 
-            return resultsToReturn;
-        };
-
-        /**
-         * Process a chunk: send it to the queue, then update the remaining budget if maxNewRequests is active.
-         */
-        const processChunk = async (chunk: Source[], cache = true) => {
-            const results = await attemptToAddToQueueAndAddAnyUnprocessed(chunk, cache);
-
             if (maxNewRequests !== undefined) {
-                remainingBudget -= results.filter((r) => !r.wasAlreadyPresent).length;
+                remainingBudget -= processedRequests.filter((r) => !r.wasAlreadyPresent).length;
             }
 
-            return results;
+            return processedRequests;
         };
 
         /**
@@ -1277,9 +1248,6 @@ export interface RequestQueueOperationOptions {
     cache?: boolean;
 }
 
-/**
- * @internal
- */
 export interface RequestQueueOperationInfo extends QueueOperationInfo {
     uniqueKey: string;
     forefront: boolean;

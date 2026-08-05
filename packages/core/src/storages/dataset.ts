@@ -7,7 +7,7 @@ import { tryCancel } from '@apify/timeout';
 import { Configuration } from '../configuration.js';
 import type { CrawleeLogger } from '../log.js';
 import { serviceLocator } from '../service_locator.js';
-import type { DatasetJournalEntry, JournalEntry, TransactionParticipant } from './transaction.js';
+import type { DatasetJournalEntry, JournalEntry } from './transaction.js';
 import { activeStorageTransaction, rejectOperationInTransaction, snapshotValue } from './transaction.js';
 import { KeyValueStore } from './key_value_store.js';
 import type { DatasetStats } from './storage_stats.js';
@@ -186,7 +186,7 @@ export interface DatasetExportToOptions extends DatasetExportOptions {
  * ```
  * @category Result Stores
  */
-export class Dataset<Data extends Dictionary = Dictionary> implements TransactionParticipant {
+export class Dataset<Data extends Dictionary = Dictionary> {
     id: string;
     name?: string;
     backend: DatasetBackend<Data>;

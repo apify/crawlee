@@ -19,7 +19,6 @@ import type { BrowserCrawlerOptions } from '@crawlee/browser';
 import type { BrowserCrawlingContext } from '@crawlee/browser';
 import type { BrowserHook } from '@crawlee/browser';
 import type { BrowserLaunchContext } from '@crawlee/browser';
-import { BrowserLauncher } from '@crawlee/browser';
 import type { BrowserType } from 'playwright';
 import { Cheerio } from 'cheerio';
 import { CheerioAPI } from '@crawlee/browser';
@@ -34,7 +33,6 @@ import type { Download } from 'playwright';
 import type { EnqueueLinksOptions } from '@crawlee/core';
 import type { GetUserDataFromRequest } from '@crawlee/browser';
 import type { GetUserDataFromRequest as GetUserDataFromRequest_2 } from '@crawlee/core';
-import type { GlobInput } from '@crawlee/browser';
 import { IRequestManager } from '@crawlee/browser';
 import type { LaunchOptions } from 'playwright';
 import type { LoadedRequest } from '@crawlee/browser';
@@ -43,9 +41,7 @@ import { ObjectPredicate } from 'ow';
 import type { Page } from 'playwright';
 import { PlaywrightPlugin } from '@crawlee/browser-pool';
 import { Predicate } from 'ow';
-import type { PseudoUrlInput } from '@crawlee/browser';
 import type { RecoverableStatePersistenceOptions } from '@crawlee/core';
-import type { RegExpInput } from '@crawlee/browser';
 import type { Request as Request_2 } from '@crawlee/core';
 import { Request as Request_3 } from '@crawlee/browser';
 import type { RequestHandler } from '@crawlee/browser';
@@ -63,6 +59,22 @@ import type { StatisticState } from '@crawlee/core';
 import type { StorageTransactionView } from '@crawlee/core';
 import { StorageWritePolicy } from '@crawlee/browser';
 import { StringPredicate } from 'ow';
+import type { UrlPatternInput } from '@crawlee/browser';
+
+// Not exported by the entry point; reachable only as a referenced type.
+// @public (undocumented)
+type AdaptiveHook<ContextExtension = Dictionary<never>> = BrowserHook<AdaptiveHookContext, ContextExtension>;
+
+// Not exported by the entry point; reachable only as a referenced type.
+// @public (undocumented)
+interface AdaptiveHookContext extends Pick<AdaptivePlaywrightCrawlerContext, 'id' | 'session' | 'proxyInfo' | 'log'> {
+    // (undocumented)
+    gotoOptions?: PlaywrightGotoOptions;
+    // (undocumented)
+    page?: Page;
+    // (undocumented)
+    request: Request_3;
+}
 
 // @public
 export class AdaptivePlaywrightCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest_2<AdaptivePlaywrightCrawlerContext['request']>>> extends BasicCrawler<AdaptivePlaywrightCrawlerContext, ContextExtension, ExtendedContext, Routes> {
@@ -112,6 +124,41 @@ export interface AdaptivePlaywrightCrawlerOptions<ContextExtension = Dictionary<
     shouldPropagateError?: (error: Error, context: PlaywrightCrawlingContext) => Awaitable<boolean>;
 }
 
+// Not exported by the entry point; reachable only as a referenced type.
+// @public (undocumented)
+class AdaptivePlaywrightCrawlerStatistics extends Statistics {
+    constructor(options?: StatisticsOptions);
+    // (undocumented)
+    protected maybeLoadStatistics(): Promise<void>;
+    // (undocumented)
+    reset(): void;
+    // (undocumented)
+    state: AdaptivePlaywrightCrawlerStatisticState;
+    // (undocumented)
+    trackBrowserRequestHandlerRun(): void;
+    // (undocumented)
+    trackHttpOnlyRequestHandlerRun(): void;
+    // (undocumented)
+    trackRenderingTypeMisprediction(): void;
+}
+
+// Not exported by the entry point; reachable only as a referenced type.
+// @public (undocumented)
+interface AdaptivePlaywrightCrawlerStatisticState extends StatisticState {
+    // (undocumented)
+    browserRequestHandlerRuns?: number;
+    // (undocumented)
+    httpOnlyRequestHandlerRuns?: number;
+    // (undocumented)
+    renderingTypeMispredictions?: number;
+}
+
+// Not exported by the entry point; reachable only as a referenced type.
+// @public (undocumented)
+type AdaptivePostNavigationHook<ContextExtension = Dictionary<never>> = BrowserHook<Omit<AdaptiveHookContext, 'request'> & {
+    request: LoadedRequest<Request_3>;
+}, ContextExtension>;
+
 // @public
 function blockRequests(page: Page, options?: BlockRequestsOptions): Promise<void>;
 
@@ -120,6 +167,10 @@ interface BlockRequestsOptions {
     extraUrlPatterns?: string[];
     urlPatterns?: string[];
 }
+
+// Not exported by the entry point; reachable only as a referenced type.
+// @public (undocumented)
+type ClickOptions = Parameters<Page['click']>[1];
 
 // @public (undocumented)
 function closeCookieModals(page: Page): Promise<void>;
@@ -162,16 +213,13 @@ function enqueueLinksByClickingElements(options: EnqueueLinksByClickingElementsO
 // @public (undocumented)
 interface EnqueueLinksByClickingElementsOptions {
     clickOptions?: ClickOptions;
-    exclude?: readonly (GlobInput | RegExpInput)[];
+    exclude?: readonly UrlPatternInput[];
     forefront?: boolean;
-    globs?: GlobInput[];
+    include?: UrlPatternInput[];
     label?: string;
     maxWaitForPageIdleSecs?: number;
     onSkippedRequest?: SkippedRequestCallback;
     page: Page;
-    // @deprecated
-    pseudoUrls?: PseudoUrlInput[];
-    regexps?: RegExpInput[];
     requestManager: IRequestManager;
     selector: string;
     skipNavigation?: boolean;
@@ -254,6 +302,22 @@ declare namespace playwrightClickElements {
         clickElements,
         EnqueueLinksByClickingElementsOptions
     }
+}
+
+// @public (undocumented)
+interface PlaywrightContextUtils {
+    blockRequests(options?: BlockRequestsOptions): Promise<void>;
+    closeCookieModals(): Promise<void>;
+    compileScript(scriptString: string, ctx?: Dictionary): CompiledScriptFunction;
+    enqueueLinksByClickingElements(options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestManager'>): Promise<BatchAddRequestsResult>;
+    handleCloudflareChallenge(options?: HandleCloudflareChallengeOptions): Promise<Response_2 | undefined>;
+    infiniteScroll(options?: InfiniteScrollOptions): Promise<void>;
+    injectFile(filePath: string, options?: InjectFileOptions): Promise<unknown>;
+    injectJQuery(): Promise<unknown>;
+    listDownloads(): Promise<Download[]>;
+    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
+    saveSnapshot(options?: SaveSnapshotOptions): Promise<void>;
+    waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
 }
 
 // @public
@@ -406,6 +470,14 @@ export class RenderingTypePredictor implements IRenderingTypePredictor {
         detectionProbabilityRecommendation: number;
     };
     storeResult(requests: Request_2 | Request_2[], renderingType: RenderingType): void;
+}
+
+// Not exported by the entry point; reachable only as a referenced type.
+// @public (undocumented)
+interface RenderingTypePredictorOptions {
+    detectionRatio: number;
+    // (undocumented)
+    persistenceOptions?: Partial<RecoverableStatePersistenceOptions>;
 }
 
 // @public
