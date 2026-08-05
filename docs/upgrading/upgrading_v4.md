@@ -225,7 +225,7 @@ import { serviceLocator } from 'crawlee';
 const config = serviceLocator.getConfiguration();
 ```
 
-Do note that the method is currently misnamed - in specific circumstances, it will not return the global configuration object, but the one from the currently active service locator.
+Despite its name, `getGlobalConfiguration()` returns the configuration of the currently active service locator, which is not always the global one — prefer `serviceLocator.getConfiguration()`.
 
 #### `config` is renamed to `configuration` everywhere
 
@@ -341,7 +341,7 @@ const state = await sessionPool.getState();
 
 ### `maxSessionRotations` and `request.sessionRotationCount` are removed
 
-Session errors no longer have their own retry budget. The `maxSessionRotations` crawler option, the `Request.sessionRotationCount` property, and the special-case retry logic for `SessionError` are all gone. A `SessionError` now retires the session and counts toward `maxRequestRetries` like any other failure, so configure a single retry limit via `maxRequestRetries` (default `3`). `SessionError` also no longer extends `RetryRequestError` - if you were catching `RetryRequestError` to detect a session-triggered retry, branch on `SessionError` directly instead.
+Session errors no longer have their own retry budget. The `maxSessionRotations` crawler option, the `Request.sessionRotationCount` property, and the special-case retry logic for `SessionError` are all gone. A `SessionError` now retires the session and counts toward `maxRequestRetries` like any other failure, so configure a single retry limit via `maxRequestRetries` (default `3`). `SessionError` also no longer extends `RetryRequestError` — if you were catching `RetryRequestError` to detect a session-triggered retry, branch on `SessionError` directly instead.
 
 ### Cookie handling in `HttpCrawler` and `sendRequest`
 
@@ -587,7 +587,7 @@ The `transformRequestFunction` callback receives a `RequestOptions` object and c
 
 ### Internal KVS keys renamed
 
-Several internal Crawlee keys were prefixed with the `SDK_` prefix for legacy reasons - these keys now start with `CRAWLEE_` instead. These are, e.g., `CRAWLEE_SESSION_POOL_STATE` or `CRAWLEE_CRAWLER_STATISTICS_{n}`.
+Several internal Crawlee keys were prefixed with the `SDK_` prefix for legacy reasons — these keys now start with `CRAWLEE_` instead. These are, e.g., `CRAWLEE_SESSION_POOL_STATE` or `CRAWLEE_CRAWLER_STATISTICS_{n}`.
 
 ## Only if you subclassed crawlers or touched internals
 
@@ -741,9 +741,9 @@ If you previously subscribed to `sessionRetired` on the pool to clean up resourc
 
 ### `tieredProxyUrls` is removed from `ProxyConfiguration`
 
-The `tieredProxyUrls` option has been removed, together with the `proxyTier` field on `ProxyInfo` and the `proxyTier` plumbing in `BrowserPool`. In v4 the `Session` is the main rotation unit - a session already carries its own proxy, cookies and error score, so the pool rotates the whole fingerprint when a session gets retired on a block.
+The `tieredProxyUrls` option has been removed, together with the `proxyTier` field on `ProxyInfo` and the `proxyTier` plumbing in `BrowserPool`. In v4 the `Session` is the main rotation unit — a session already carries its own proxy, cookies and error score, so the pool rotates the whole fingerprint when a session gets retired on a block.
 
-If you used tiers to escalate from a cheap proxy pool to a pricier one on blocks, you can achieve the same behavior by pre-populating a `SessionPool` with named sessions - one per proxy tier - and flipping `request.sessionId` in an `errorHandler` to reassign the retry to the next tier. Skip the `proxyConfiguration` option on the crawler - the session already carries its own proxy.
+If you used tiers to escalate from a cheap proxy pool to a pricier one on blocks, you can achieve the same behavior by pre-populating a `SessionPool` with named sessions — one per proxy tier — and flipping `request.sessionId` in an `errorHandler` to reassign the retry to the next tier. Skip the `proxyConfiguration` option on the crawler — the session already carries its own proxy.
 
 ```typescript
 import { BasicCrawler, SessionPool } from '@crawlee/core';
@@ -912,6 +912,8 @@ This experimental option relied on an outdated manifest version for browser exte
 
 ## Only if you wrote a custom HTTP client or used `got-scraping` directly
 
+Applies when you implemented `BaseHttpClient` yourself, or imported `gotScraping` from `@crawlee/utils`.
+
 ### HTTP client packages and `BaseHttpClient` reshaped
 
 The HTTP client abstraction moved out of `@crawlee/core` into two new packages, and its shape changed to match the native `fetch` model.
@@ -961,6 +963,8 @@ const crawler = new CheerioCrawler({
 If you called `gotScraping(...)` directly for one-off requests unrelated to Crawlee, depend on the [`got-scraping`](https://www.npmjs.com/package/got-scraping) package directly instead.
 
 ## Only if you use `FileDownload`
+
+Applies when you use the `FileDownload` crawler from `@crawlee/http`.
 
 ### `FileDownload` now extends `BasicCrawler` and no longer takes `FileDownloadOptions`
 
@@ -1185,7 +1189,7 @@ Methods that may have "nothing" to return now consistently resolve to `undefined
 - `isEmpty()` is the weak check — `true` when the next `fetchNextRequest()` would return `undefined`, i.e. there is nothing left to fetch right now. Requests that are currently in progress (fetched but not yet handled or reclaimed) are **not** counted, because they are not fetchable. This is what drives the crawler's task scheduling.
 - `isFinished()` is the strong check — `true` only when there are no pending requests **and** no requests currently in progress (including those locked by other clients sharing the queue). This is what determines whether crawling is actually done. An in-progress request keeps the queue *empty but not finished*, which is what stops a crawler from shutting down while a request is still being processed.
 
-The separate `RequestQueueV1`/`RequestQueueV2` classes (and the `RequestProvider` base class) have been removed. They no longer differ in behavior — request coordination is now internal to the storage backend — so they are merged into a single `RequestQueue` class. Replace any `RequestQueueV1`, `RequestQueueV2`, or `RequestProvider` imports with `RequestQueue`. (Request coordination is now internal to the storage backend.)
+The separate `RequestQueueV1`/`RequestQueueV2` classes (and the `RequestProvider` base class) have been removed. They no longer differ in behavior — request coordination is now internal to the storage backend — so they are merged into a single `RequestQueue` class. Replace any `RequestQueueV1`, `RequestQueueV2`, or `RequestProvider` imports with `RequestQueue`.
 
 The `requestLocking` crawler experiment has been removed, along with the `experiments` crawler option and the `CrawlerExperiments` type that contained it. Request locking has been the default since v3.10 and there is no longer an alternative implementation to opt out to, so the flag did nothing. Delete any `experiments: { requestLocking: ... }` from your crawler options:
 
@@ -1382,7 +1386,7 @@ const crawler = new CheerioCrawler({
 
 `crawler.concurrencySystem` is `undefined` until `run()` has resolved it, and a crawler-owned default is rebuilt for every run — so read it during a run rather than caching it across runs. A system *you* injected is of course simply the instance you passed in.
 
-The getter is typed as the read-only `IConcurrencySystem`, and the pool never had setters to begin with in v4, so retuning concurrency mid-crawl means owning the instance:
+The getter is typed as the read-only `IConcurrencySystem` and has no setters, so retuning concurrency mid-crawl means owning the instance:
 
 ```typescript
 const concurrencySystem = new ConcurrencySystem({ maxConcurrency: 50 });
@@ -1445,7 +1449,7 @@ try {
 
 The crawler option was renamed — it was named after a class that is now internal — and narrowed to **only** the task-loop predicates `isFinishedFunction` and `isTaskReadyFunction`. Its type changed from `AutoscaledPoolOptions` to `TaskLoopPredicates` (itself a rename of the interim `AutoscaledPoolPredicateOptions`). Concurrency configuration goes through either the `minConcurrency` / `maxConcurrency` / `maxRequestsPerMinute` shortcuts (which configure the crawler's default `ConcurrencySystem`), or — for anything finer — a supplied `concurrencySystem`.
 
-Note that this narrowing also drops three options that did *not* move to the `ConcurrencySystem`: `maybeRunIntervalSecs`, `taskTimeoutSecs` and `log` still exist on `AutoscaledPoolOptions`, but a crawler never forwarded them and the type is internal now, so they are effectively unreachable. If you were tuning the crawler's task-loop cadence through `autoscaledPoolOptions`, there is no replacement.
+Three options that used to live here — `maybeRunIntervalSecs`, `taskTimeoutSecs` and `log` — did *not* move to the `ConcurrencySystem` and have no replacement: the crawler's task-loop cadence is no longer configurable.
 
 **Before:**
 ```typescript
@@ -1560,6 +1564,8 @@ Overload is evaluated over two windows: `currentHistorySecs` (default 5s) gates 
 You are affected if a custom signal retains **more** history than `snapshotHistorySecs` (its stale snapshots no longer influence scaling), or if its `getSample()` ignores the `sampleDurationMillis` argument, in which case it still contributes everything it has. On the API side, `snapshotHistoryMillis` was removed from the per-signal option types and `SnapshotStore` lost both its constructor argument and the `fromInterval`/`fromEvent` factories; call `useSampleWindow(maxSampleWindowMillis)` and `clear()` from your `start()` instead, as a store that is never given a window retains everything. The [scaling guide](../guides/scaling-crawlers#load-signals) has a worked example.
 
 ## Only if you import helpers from `@crawlee/utils` or `@crawlee/types`
+
+Applies when you import utility functions, enums or types directly from `@crawlee/utils` or `@crawlee/types`, rather than only using the crawlers.
 
 ### Available resource detection
 
