@@ -113,6 +113,15 @@ export enum BrowserName {
     safari = "safari"
 }
 
+// Not exported by the entry point; reachable only as a referenced type.
+// @public (undocumented)
+interface BrowserOptions {
+    // (undocumented)
+    browserContext: BrowserContext;
+    // (undocumented)
+    version: string;
+}
+
 // @public
 export abstract class BrowserPlugin<Library extends CommonLibrary = CommonLibrary, LibraryOptions extends Dictionary | undefined = Parameters<Library['launch']>[0], LaunchResult extends CommonBrowser = UnwrapPromise<ReturnType<Library['launch']>>, NewPageOptions = Parameters<LaunchResult['newPage']>[0], NewPageResult = UnwrapPromise<ReturnType<LaunchResult['newPage']>>> {
     constructor(library: Library, options?: BrowserPluginOptions<LibraryOptions>);
@@ -289,6 +298,13 @@ export interface BrowserSpecification {
     name: BrowserName;
 }
 
+// Not exported by the entry point; reachable only as a referenced type.
+// @public (undocumented)
+interface CommonBrowser {
+    // (undocumented)
+    newPage(...args: unknown[]): Promise<CommonPage>;
+}
+
 // @public
 export interface CommonLibrary {
     // (undocumented)
@@ -297,6 +313,16 @@ export interface CommonLibrary {
     name?: () => string;
     // (undocumented)
     product?: string;
+}
+
+// @public (undocumented)
+export interface CommonPage {
+    // (undocumented)
+    close(...args: unknown[]): Promise<unknown>;
+    // (undocumented)
+    evaluate(pageFunction: ((...args: any[]) => unknown) | string, ...args: unknown[]): Promise<unknown>;
+    // (undocumented)
+    url(): string | Promise<string>;
 }
 
 // @public
@@ -337,6 +363,10 @@ export interface GetFingerprintReturn {
     // (undocumented)
     fingerprint: BrowserFingerprintWithHeaders;
 }
+
+// Not exported by the entry point; reachable only as a referenced type.
+// @public
+type HttpVersion = (typeof SUPPORTED_HTTP_VERSIONS)[number];
 
 // @public
 export interface IBrowserController<Page = unknown> {
@@ -509,6 +539,15 @@ export class PuppeteerController extends BrowserController<typeof Puppeteer, Pup
     protected _setCookies(page: PuppeteerTypes.Page, cookies: Cookie[]): Promise<void>;
 }
 
+// Not exported by the entry point; reachable only as a referenced type.
+// @public (undocumented)
+interface PuppeteerNewPageOptions extends PuppeteerTypes.BrowserContextOptions {
+    // (undocumented)
+    proxyPassword?: string;
+    // (undocumented)
+    proxyUsername?: string;
+}
+
 // @public (undocumented)
 export class PuppeteerPlugin extends BrowserPlugin<typeof Puppeteer, PuppeteerTypes.LaunchOptions, PuppeteerTypes.Browser, PuppeteerNewPageOptions> {
     // (undocumented)
@@ -575,6 +614,17 @@ export abstract class RemoteBrowserProvider<TContext extends Record<string, unkn
 }
 
 // @public
+export interface RemoteConnection {
+    release(token: number): Promise<void>;
+    resolve(options?: {
+        proxyUrl?: string;
+    }): Promise<{
+        url: string;
+        token: number;
+    }>;
+}
+
+// @public
 export interface RemoteConnectionParameters {
     connectOptions?: Record<string, unknown>;
     protocol?: 'cdp' | 'playwright';
@@ -585,6 +635,14 @@ export interface ResolvedRemoteEndpoint {
     context?: Record<string, unknown>;
     url: string;
 }
+
+// Not exported by the entry point; reachable only as a referenced type.
+// @public
+type SafeParameters<T extends (...args: any) => any> = unknown[] extends Parameters<T> ? any : Parameters<T>;
+
+// Not exported by the entry point; reachable only as a referenced type.
+// @public (undocumented)
+const SUPPORTED_HTTP_VERSIONS: readonly ["1", "2"];
 
 // @public (undocumented)
 export type UnwrapPromise<T> = T extends PromiseLike<infer R> ? UnwrapPromise<R> : T;

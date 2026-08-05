@@ -830,7 +830,6 @@ export async function closeCookieModals(page: Page): Promise<void> {
     }
 }
 
-/** @internal */
 export interface PuppeteerContextUtils {
     /**
      * Injects a JavaScript file into current `page`.

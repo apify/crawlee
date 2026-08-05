@@ -15,7 +15,6 @@ import type { BrowserCrawlerOptions } from '@crawlee/browser';
 import type { BrowserCrawlingContext } from '@crawlee/browser';
 import type { BrowserHook } from '@crawlee/browser';
 import type { BrowserLaunchContext } from '@crawlee/browser';
-import { BrowserLauncher } from '@crawlee/browser';
 import { CheerioAPI } from '@crawlee/browser';
 import { CheerioRoot } from '@crawlee/utils';
 import type { ClickOptions } from 'puppeteer';
@@ -33,7 +32,6 @@ import { NumberPredicate } from 'ow';
 import { ObjectPredicate } from 'ow';
 import type { Page } from 'puppeteer';
 import { Predicate } from 'ow';
-import type { ProtocolMapping } from 'devtools-protocol/types/protocol-mapping.js';
 import type { PseudoUrlInput } from '@crawlee/browser';
 import { PuppeteerPlugin } from '@crawlee/browser-pool';
 import type { RegExpInput } from '@crawlee/browser';
@@ -165,6 +163,22 @@ declare namespace puppeteerClickElements {
         clickElements,
         EnqueueLinksByClickingElementsOptions
     }
+}
+
+// @public (undocumented)
+interface PuppeteerContextUtils {
+    addInterceptRequestHandler(handler: InterceptHandler): Promise<void>;
+    blockRequests(options?: BlockRequestsOptions): Promise<void>;
+    closeCookieModals(): Promise<void>;
+    compileScript(scriptString: string, ctx?: Dictionary): CompiledScriptFunction;
+    enqueueLinksByClickingElements(options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestManager'>): Promise<BatchAddRequestsResult>;
+    infiniteScroll(options?: InfiniteScrollOptions): Promise<void>;
+    injectFile(filePath: string, options?: InjectFileOptions): Promise<unknown>;
+    injectJQuery(): Promise<unknown>;
+    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
+    removeInterceptRequestHandler(handler: InterceptHandler): Promise<void>;
+    saveSnapshot(options?: SaveSnapshotOptions): Promise<void>;
+    waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
 }
 
 // @public

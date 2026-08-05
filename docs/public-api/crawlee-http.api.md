@@ -43,6 +43,13 @@ export function ByteCounterStream(input: {
     loggingInterval?: number;
 }): Transform;
 
+// Not exported by the entry point; reachable only as a referenced type.
+// @public (undocumented)
+interface CrawlingContextWithResponse<UserData extends Dictionary = any> extends CrawlingContext<UserData> {
+    request: LoadedRequest<Request_2<UserData>>;
+    response: Response;
+}
+
 // @public
 export function createFileRouter<Context extends FileDownloadCrawlingContext = FileDownloadCrawlingContext, UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(routes?: RouterRoutes<Context, UserData>): RouterHandler<Context, Record<string, GetUserDataFromRequest<Context["request"]>>>;
 
@@ -182,6 +189,25 @@ JSONData extends JsonValue = any> = InternalHttpHook<HttpCrawlingContext<UserDat
 // @public (undocumented)
 export type HttpRequestHandler<UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 JSONData extends JsonValue = any> = RequestHandler<HttpCrawlingContext<UserData, JSONData>>;
+
+// @public (undocumented)
+export interface InternalHttpCrawlingContext<UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
+JSONData extends JsonValue = any> extends CrawlingContextWithResponse<UserData> {
+    body: string | Buffer;
+    contentType: {
+        type: string;
+        encoding: BufferEncoding;
+    };
+    json: JSONData;
+    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
+    waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
+}
+
+// @public (undocumented)
+export type InternalHttpHook<Context, ContextExtension = {}> = (crawlingContext: Context & ContextExtension) => Awaitable<void | Partial<Context>>;
+
+// @public (undocumented)
+const kBodyDrained: unique symbol;
 
 // @public
 export function MinimumSpeedStream(input: {
