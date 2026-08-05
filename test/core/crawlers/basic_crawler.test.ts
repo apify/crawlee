@@ -2607,6 +2607,20 @@ describe('BasicCrawler', () => {
 
             await expect(KeyValueStore.getValue('skipped')).resolves.toMatchObject({ reason: 'robotsTxt' });
         });
+
+        test('an unrecognized write policy is rejected instead of falling back to the default', () => {
+            const make = (transactionalStorage: unknown) =>
+                new BasicCrawler({ requestHandler: async () => {}, transactionalStorage } as any);
+
+            expect(() => make({ requestQueue: 'defered' })).toThrow(/requestQueue/);
+            expect(() => make({ dataset: 'deferred' })).toThrow(/dataset/);
+
+            expect(() => make(true)).not.toThrow();
+            expect(() => make(false)).not.toThrow();
+            expect(() => make({})).not.toThrow();
+            expect(() => make({ requestQueue: 'deferred' })).not.toThrow();
+            expect(() => make({ requestQueue: 'writeThrough' })).not.toThrow();
+        });
     });
 
     describe('addRequests input validation', () => {

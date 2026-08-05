@@ -90,7 +90,7 @@ import type {
 import { isAsyncIterable, isIterable, RobotsTxtFile, ROTATE_PROXY_ERRORS } from '@crawlee/utils';
 import { stringify } from 'csv-stringify/sync';
 import { ensureDir, writeJSON } from 'fs-extra/esm';
-import ow, { ArgumentError } from 'ow';
+import ow, { ArgumentError, type BasePredicate } from 'ow';
 import { getDomain } from 'tldts';
 import type { ReadonlyDeep, SetRequired } from 'type-fest';
 
@@ -830,7 +830,12 @@ export class BasicCrawler<
         blockedStatusCodes: ow.optional.array.ofType(ow.number),
         retryOnBlocked: ow.optional.boolean,
         respectRobotsTxtFile: ow.optional.any(ow.boolean, ow.object),
-        transactionalStorage: ow.optional.any(ow.boolean, ow.object),
+        transactionalStorage: ow.optional.any(
+            ow.boolean,
+            ow.object.exactShape({
+                requestQueue: ow.optional.string.oneOf(['deferred', 'writeThrough']),
+            }),
+        ) as BasePredicate<boolean | Partial<StorageWritePolicy> | undefined>,
         onSkippedRequest: ow.optional.function,
         httpClient: ow.optional.object,
 

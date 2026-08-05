@@ -61,6 +61,7 @@ import { Statistics } from '@crawlee/core';
 import type { StatisticsOptions } from '@crawlee/core';
 import type { StatisticState } from '@crawlee/core';
 import type { StorageTransactionView } from '@crawlee/core';
+import { StorageWritePolicy } from '@crawlee/browser';
 import { StringPredicate } from 'ow';
 
 // @public
@@ -314,7 +315,7 @@ export class PlaywrightCrawler<ContextExtension = Dictionary<never>, ExtendedCon
         blockedStatusCodes: ArrayPredicate<number>;
         retryOnBlocked: BooleanPredicate & BasePredicate<boolean | undefined>;
         respectRobotsTxtFile: AnyPredicate<boolean | object>;
-        transactionalStorage: AnyPredicate<boolean | object>;
+        transactionalStorage: BasePredicate<boolean | Partial<StorageWritePolicy> | undefined>;
         onSkippedRequest: Predicate<Function> & BasePredicate<Function | undefined>;
         httpClient: ObjectPredicate<object> & BasePredicate<object | undefined>;
         configuration: ObjectPredicate<object> & BasePredicate<object | undefined>;

@@ -45,6 +45,7 @@ import type { RouterRoutes } from '@crawlee/browser';
 import type { RouteSchemas } from '@crawlee/browser';
 import type { RoutesFromSchemas } from '@crawlee/browser';
 import type { SkippedRequestCallback } from '@crawlee/browser';
+import { StorageWritePolicy } from '@crawlee/browser';
 import { StringPredicate } from 'ow';
 import type { Target } from 'puppeteer';
 
@@ -223,7 +224,7 @@ export class PuppeteerCrawler<ContextExtension = Dictionary<never>, ExtendedCont
         blockedStatusCodes: ArrayPredicate<number>;
         retryOnBlocked: BooleanPredicate & BasePredicate<boolean | undefined>;
         respectRobotsTxtFile: AnyPredicate<boolean | object>;
-        transactionalStorage: AnyPredicate<boolean | object>;
+        transactionalStorage: BasePredicate<boolean | Partial<StorageWritePolicy> | undefined>;
         onSkippedRequest: Predicate<Function> & BasePredicate<Function | undefined>;
         httpClient: ObjectPredicate<object> & BasePredicate<object | undefined>;
         configuration: ObjectPredicate<object> & BasePredicate<object | undefined>;
