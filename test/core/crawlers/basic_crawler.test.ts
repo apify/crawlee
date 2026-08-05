@@ -174,6 +174,23 @@ describe('BasicCrawler', () => {
         expect(await requestList.isEmpty()).toBe(true);
     });
 
+    test('accepts a `requestManager` and crawls from it', async () => {
+        const requestManager = await RequestQueue.open();
+        await requestManager.addRequest({ url: 'https://example.com/from-request-manager' });
+
+        const processed: string[] = [];
+        const crawler = new BasicCrawler({
+            requestManager,
+            requestHandler: async ({ request }) => {
+                processed.push(request.url);
+            },
+        });
+
+        await crawler.run();
+
+        expect(processed).toEqual(['https://example.com/from-request-manager']);
+    });
+
     test('folds a supplied concurrencySystem into its pool and never tears the system down', async () => {
         const sources = [...Array(20).keys()].map((index) => ({ url: `https://example.com/${index}` }));
         const requestList = await RequestList.open(null, sources);
