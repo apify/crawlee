@@ -2587,6 +2587,23 @@ describe('BasicCrawler', () => {
             await expect(dataset.getData()).resolves.toMatchObject({ items: [{ from: 'failing-handler' }] });
         });
 
+        test('an unclosed transaction on a normal pipeline return is discarded and logged', async () => {
+            const crawler = new BasicCrawler({ requestHandler: async () => {} });
+            const errorSpy = vitest.spyOn((crawler as any).log, 'error').mockImplementation(() => {});
+
+            // Simulate the wiring bug the guard exists for: the pipeline callback returns normally while
+            // its transaction is still open (handleRequest failed to commit or roll it back).
+            let leaked: any;
+            await (crawler as any).runInStorageTransaction(async () => {
+                leaked = (await import('@crawlee/core')).currentStorageTransaction();
+            });
+
+            expect(leaked.state).toBe('rolledBack'); // discarded, not left open
+            expect(errorSpy).toHaveBeenCalledWith(expect.stringMatching(/still open after the request pipeline/));
+
+            errorSpy.mockRestore();
+        });
+
         test('onSkippedRequest bookkeeping survives an in-pipeline robots.txt skip', async () => {
             const crawler = new BasicCrawler({
                 maxRequestRetries: 0,

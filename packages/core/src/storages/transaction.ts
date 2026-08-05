@@ -428,7 +428,16 @@ export function rejectOperationInTransaction(operation: string, reason = 'it can
         return;
     }
 
-    throw new Error(
+    throw operationRejectedInTransaction(operation, reason);
+}
+
+/**
+ * Builds the "operation not allowed in a transaction" error, for a call site that has already
+ * established a transaction is active and so wants to `throw` unconditionally.
+ * @internal
+ */
+export function operationRejectedInTransaction(operation: string, reason = 'it cannot be rolled back.'): Error {
+    return new Error(
         `${operation} cannot be used inside a storage transaction: ${reason} ` +
             'If you really need it, wrap the call in withDirectStorageAccess(() => ...) - operations ' +
             'performed there are applied immediately and are not rolled back.',

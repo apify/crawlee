@@ -15,6 +15,7 @@ import { serviceLocator } from '../service_locator.js';
 import type { JournalEntry, KeyValueStoreJournalEntry, TransactionParticipant } from './transaction.js';
 import {
     activeStorageTransaction,
+    operationRejectedInTransaction,
     rejectOperationInTransaction,
     snapshotValue,
     withDirectStorageAccess,
@@ -531,8 +532,9 @@ export class KeyValueStore implements TransactionParticipant {
         // The commit replay re-enters this method with no active transaction and updates it then.
         if (transaction) {
             if (isStream(value)) {
-                // A stream cannot serve both a read-your-own-writes read and the commit replay.
-                rejectOperationInTransaction(
+                // A stream cannot serve both a read-your-own-writes read and the commit replay. The
+                // transaction is known-active here, so throw directly rather than via the conditional guard.
+                throw operationRejectedInTransaction(
                     `KeyValueStore.setValue() with a stream value (key "${key}")`,
                     'a stream can only be consumed once, so it cannot be buffered until commit.',
                 );

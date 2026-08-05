@@ -281,15 +281,16 @@ export class Dataset<Data extends Dictionary = Dictionary> implements Transactio
     private async readPage(options: DatasetDataOptions): Promise<DatasetContent<Data>> {
         const buffered = this.bufferedJournalEntries()?.flatMap((entry) => entry.items as Data[]);
 
+        // Every branch below hits the backend exactly once.
+        this.statsTracker.add('readCount');
+
         if (!buffered?.length) {
-            this.statsTracker.add('readCount');
             return this.backend.getData(options);
         }
 
         const { offset = 0, limit, desc = false } = options;
 
         if (!desc) {
-            this.statsTracker.add('readCount');
             const realPage = await this.backend.getData(options);
 
             // Buffered items sit past `realPage.total`, so the window bounds must come from that - not
@@ -318,7 +319,6 @@ export class Dataset<Data extends Dictionary = Dictionary> implements Transactio
 
         if (needed <= 0) {
             // The whole window is served from the buffer; only the real total is missing.
-            this.statsTracker.add('readCount');
             const { itemCount } = await this.backend.getMetadata();
             return {
                 items: fromBuffer,
@@ -330,7 +330,6 @@ export class Dataset<Data extends Dictionary = Dictionary> implements Transactio
             };
         }
 
-        this.statsTracker.add('readCount');
         const realPage = await this.backend.getData({
             ...options,
             offset: Math.max(0, offset - buffered.length),

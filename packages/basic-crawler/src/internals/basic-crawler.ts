@@ -2057,11 +2057,23 @@ export class BasicCrawler<
             commitTimeoutMillis: this.internalTimeoutMillis,
         });
 
+        let threw = true;
         try {
-            return await transaction.run(callback);
+            const result = await transaction.run(callback);
+            threw = false;
+            return result;
         } finally {
-            // Still open here means a pipeline-level throw (or a wiring bug) - discard unvalidated writes.
             if (transaction.state === 'open') {
+                // `handleRequest` commits or rolls back on every normal path, so an open transaction on
+                // a normal return is a wiring bug; on a propagating throw (a pipeline-level failure) it is
+                // expected. Either way, discard the unvalidated writes; only the former is worth flagging.
+                if (!threw) {
+                    this.log.error(
+                        'Internal error: a storage transaction was still open after the request pipeline ' +
+                            'returned normally. Its writes are being discarded. Please report this.',
+                    );
+                }
+
                 transaction.rollback();
             }
 

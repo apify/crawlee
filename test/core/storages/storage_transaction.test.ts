@@ -367,6 +367,23 @@ describe('Dataset in a transaction', () => {
         });
         expect(dataset.stats.writeCount).toBe(1); // one collapsed backend call at commit
     });
+
+    test('a merged read counts exactly one backend hit', async () => {
+        const dataset = await Dataset.open();
+        await dataset.pushData([{ n: 0 }, { n: 1 }]);
+
+        await withStorageTransaction(async (transaction) => {
+            await dataset.pushData({ n: 2 });
+
+            const before = dataset.stats.readCount;
+            await dataset.getData(); // real page + buffered items
+            await dataset.getData({ desc: true, limit: 1 }); // buffer-only window -> getMetadata
+            // Each merged read hits the backend once, counted once - not per branch, not per item.
+            expect(dataset.stats.readCount - before).toBe(2);
+
+            transaction.rollback();
+        });
+    });
 });
 
 describe('KeyValueStore in a transaction', () => {
