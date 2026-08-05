@@ -155,6 +155,22 @@ describe('ThrottlingRequestManager', () => {
         await expect(result.waitForAllRequestsToBeAdded).rejects.toThrow('backend exploded');
     });
 
+    test('warns that requestsFromUrl sources cannot be domain-routed', async () => {
+        const manager = new ThrottlingRequestManager({
+            inner: await createQueue(),
+            domains: ['example.com'],
+        });
+        const warning = vitest.spyOn((manager as any).log, 'warning').mockImplementation(() => {});
+
+        await manager.addRequestsBatched([
+            { requestsFromUrl: 'https://example.com/urls.txt' },
+            { requestsFromUrl: 'https://example.com/more.txt' },
+        ]);
+
+        expect(warning).toHaveBeenCalledTimes(1);
+        expect(warning.mock.calls[0][0]).toMatch(/requestsFromUrl/);
+    });
+
     test('recordDomainDelay enforces throttling and fair scheduling', async () => {
         const inner = await createQueue();
         const manager = new ThrottlingRequestManager({

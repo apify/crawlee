@@ -83,6 +83,12 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     /** Batches still being added in the background; keeps {@apilink ThrottlingRequestManager.isFinished} honest. */
     private inProgressBatchCount = 0;
 
+    private readonly warnedAbout = new Set<string>();
+
+    private get hasThrottledDomains(): boolean {
+        return this.domainStates.size > 0;
+    }
+
     constructor(
         options: ThrottlingRequestManagerOptions<T>,
         protected readonly config: Configuration = serviceLocator.getConfiguration(),
@@ -126,7 +132,27 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         if (typeof requestLike === 'string') {
             return requestLike;
         }
+
+        if ('requestsFromUrl' in requestLike && requestLike.requestsFromUrl !== undefined && this.hasThrottledDomains) {
+            // The URL list is only fetched once the owning manager expands it, so we cannot know which domains
+            // it covers and cannot route it. Warn instead of silently exempting those URLs from throttling.
+            this.warnOnce(
+                'urlListNotRouted',
+                `Requests loaded via \`requestsFromUrl\` cannot be routed to a per-domain queue, because their URLs ` +
+                    `are not known at insertion time. They will be added to the inner request manager and will not ` +
+                    `be throttled, even if they belong to a configured domain.`,
+            );
+        }
+
         return requestLike.url ?? '';
+    }
+
+    private warnOnce(key: string, message: string): void {
+        if (this.warnedAbout.has(key)) {
+            return;
+        }
+        this.warnedAbout.add(key);
+        this.log.warning(message);
     }
 
     private extractDomain(url: string): string {
