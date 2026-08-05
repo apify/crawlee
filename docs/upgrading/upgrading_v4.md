@@ -1212,6 +1212,22 @@ const crawler = new CheerioCrawler({ requestManager: await requestList.toTandem(
 
 A lone `requestList` now runs through a tandem over an auto-opened queue (rather than a read-only adapter). This means retries and `maxRequestsPerCrawl` accounting for that path now follow queue semantics.
 
+### HTTP 429 can now back off per domain instead of retiring the session
+
+`blockedStatusCodes` still defaults to `[401, 403, 429]`, so out of the box a 429 retires the session and retries immediately, as in v3. New in v4 is the opt-in `ThrottlingRequestManager`, which handles rate limits at the scheduling layer instead:
+
+```typescript
+const crawler = new CheerioCrawler({
+    requestManager: new ThrottlingRequestManager({
+        inner: await RequestQueue.open(),
+        domains: ['api.example.com'],
+    }),
+    requestHandler,
+});
+```
+
+For the domains you list, a 429 honours `Retry-After` (or backs off exponentially), holds only that domain's requests back, and leaves both the session and the request's retry budget untouched. It is also what enforces robots.txt `Crawl-delay` directives — with `respectRobotsTxtFile` enabled and no throttling manager covering the domain, the directive is ignored and the crawler warns about it. See the [request loaders guide](../guides/request-loaders#per-domain-throttling).
+
 ### `BasicCrawler.requestList` and `BasicCrawler.requestQueue` fields removed
 
 The public `requestList` and `requestQueue` instance fields are gone. The crawler exposes a single `protected requestManager?: IRequestManager` instead. Access the active manager via the new async `getRequestManager()` method.
