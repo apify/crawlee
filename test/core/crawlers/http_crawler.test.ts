@@ -563,45 +563,56 @@ test('works with a custom HttpClient', async () => {
     expect(results[1].includes('Schmexample Domain')).toBeTruthy();
 });
 
-test('429 on throttled domain records delay and keeps session', async () => {
-    router.set('/429', (req, res) => {
-        res.statusCode = 429;
-        res.setHeader('retry-after', '2'); // 2 seconds
-        res.end();
+test('a 429 on a throttled domain paces the retry without spending it or the session', async () => {
+    const hits: number[] = [];
+    router.set('/429-then-ok', (req, res) => {
+        hits.push(Date.now());
+        if (hits.length === 1) {
+            res.statusCode = 429;
+            res.setHeader('retry-after', '1');
+            res.end();
+            return;
+        }
+        res.setHeader('content-type', 'text/html');
+        res.end('<html><body>ok</body></html>');
     });
 
-    const innerQueue = await RequestQueue.open();
     const throttlingManager = new ThrottlingRequestManager({
-        inner: innerQueue,
+        inner: await RequestQueue.open(),
         domains: ['127.0.0.1'],
     });
 
     const sessionPool = new SessionPool();
-    let sessionRetired = false;
+    const retiredSessions: string[] = [];
+    const markedBad: string[] = [];
 
+    const handled: string[] = [];
     const crawler = new HttpCrawler({
         requestManager: throttlingManager,
         sessionPool,
-        maxRequestRetries: 1,
+        maxRequestRetries: 0,
         preNavigationHooks: [
             async ({ session }) => {
-                vitest.spyOn(session, 'retire').mockImplementation(() => {
-                    sessionRetired = true;
-                });
+                vitest.spyOn(session!, 'retire').mockImplementation(() => retiredSessions.push(session!.id));
+                vitest.spyOn(session!, 'markBad').mockImplementation(() => markedBad.push(session!.id));
             },
         ],
-        requestHandler: async () => {},
+        requestHandler: async ({ request }) => {
+            handled.push(request.url);
+        },
     });
 
-    const targetUrl = `${url}/429`;
-    await crawler.run([targetUrl]);
+    const stats = await crawler.run([`${url}/429-then-ok`]);
 
-    // The request should have been retried and eventually fail, but the session should NOT be retired.
-    expect(sessionRetired).toBe(false);
+    // `maxRequestRetries: 0` would have failed the request outright had the 429 been charged as a retry.
+    expect(handled).toHaveLength(1);
+    expect(stats.requestsFailed).toBe(0);
 
-    // Throttling delay should be registered in the manager.
-    const state = (throttlingManager as any).domainStates.get('127.0.0.1');
-    expect(state).toBeDefined();
-    expect(state.consecutive429Count).toBeGreaterThan(0);
-    expect(state.throttledUntil).toBeGreaterThan(Date.now());
-});
+    // The domain's `Retry-After` was honoured between the two attempts...
+    expect(hits).toHaveLength(2);
+    expect(hits[1] - hits[0]).toBeGreaterThanOrEqual(1000);
+
+    // ...and the session came out untouched - a rate limit says nothing about it.
+    expect(retiredSessions).toEqual([]);
+    expect(markedBad).toEqual([]);
+}, 30_000);

@@ -57,6 +57,7 @@ import {
     OwnedOrInjected,
     purgeDefaultStorages,
     RequestHandlerError,
+    RequestThrottledError,
     RequestManagerTandem,
     RequestQueue,
     ThrottlingRequestManager,
@@ -1111,7 +1112,7 @@ export class BasicCrawler<
                             );
                             // SessionError already retired the session in `requestFunctionErrorHandler`;
                             // skip `markBad` to avoid double-counting usage/error score.
-                            if (!(unwrappedError instanceof SessionError)) {
+                            if (!this.errorAbsolvesSession(unwrappedError)) {
                                 crawlingContext.session?.markBad();
                             }
                             return;
@@ -2337,7 +2338,7 @@ export class BasicCrawler<
             }
             // decrease the session score if the request fails (but the error handler did not throw);
             // skip when the error is a SessionError, which already retired the session
-            if (!(err instanceof SessionError)) {
+            if (!this.errorAbsolvesSession(err)) {
                 crawlingContext.session.markBad();
             }
         } finally {
@@ -2497,6 +2498,17 @@ export class BasicCrawler<
         request: Request,
         source: IRequestManager,
     ): Promise<void> {
+        if (error instanceof RequestThrottledError) {
+            // The domain told us to come back later, so the request was never really attempted. Put it back
+            // without recording a failure - it costs neither a retry nor session reputation.
+            this.log.debug(`Deferring request because its domain is rate-limiting us. ${error.message}`, {
+                id: request.id,
+                url: request.url,
+            });
+            await source.reclaimRequest(request, { forefront: request.userData?.__crawlee?.forefront });
+            return;
+        }
+
         request.pushErrorMessage(error);
 
         if (error instanceof CriticalError) {
@@ -2595,6 +2607,14 @@ export class BasicCrawler<
         return process.env.CRAWLEE_VERBOSE_LOG || forceStack
             ? (error.stack ?? [error.message || error, ...stackLines].join('\n'))
             : [error.message || error, userLine].join('\n');
+    }
+
+    /**
+     * Whether the session should be spared for this error - either because it was already retired, or because the
+     * failure says nothing about the session (a rate limit is a property of the domain).
+     */
+    private errorAbsolvesSession(error: Error): boolean {
+        return error instanceof SessionError || error instanceof RequestThrottledError;
     }
 
     private canRequestBeRetried(request: Request, error: Error) {

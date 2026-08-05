@@ -21,14 +21,15 @@ import {
     enqueueLinks,
     NavigationSkippedError,
     OwnedOrInjected,
+    parseRetryAfterHeader,
     remainingNavigationWindowMillis,
     RequestState,
+    RequestThrottledError,
     resolveBaseUrlForEnqueueLinksFiltering,
     SessionError,
     toughCookieToBrowserPoolCookie,
     tryAbsoluteURL,
     validators,
-    parseRetryAfterHeader,
 } from '@crawlee/basic';
 import type {
     BrowserController,
@@ -868,9 +869,7 @@ export abstract class BrowserCrawler<
                         retryAfterMs,
                     );
                     if (recorded) {
-                        throw new Error(
-                            `Request to ${crawlingContext.request.url} failed with 429. Domain is throttled.`,
-                        );
+                        throw new RequestThrottledError(`${crawlingContext.request.url} responded with 429.`);
                     }
                 }
             }

@@ -54,6 +54,19 @@ export class RetryRequestError extends Error {
 }
 
 /**
+ * Thrown when a domain has rate-limited us and the request should simply be attempted again later.
+ *
+ * The request is reclaimed without recording a failure: it costs neither a retry nor session reputation, because
+ * nothing about the request or the session was at fault. A {@apilink ThrottlingRequestManager} holds it back until
+ * the domain's backoff expires, so retries are paced rather than immediate.
+ */
+export class RequestThrottledError extends RetryRequestError {
+    constructor(message?: string) {
+        super(message ?? 'Request is being retried later because its domain is rate-limiting us');
+    }
+}
+
+/**
  * Errors of `SessionError` type retire the session associated with the request and trigger a regular retry.
  *
  * The retry counts towards the `maxRequestRetries` limit, just like any other error.
