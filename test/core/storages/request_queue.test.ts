@@ -135,7 +135,7 @@ describe('RequestQueue remote', () => {
         expect(fetchedUrls.sort()).toEqual(['http://example.com/a', 'http://example.com/b']);
     });
 
-    test('addRequestsBatched does not retry permanently unprocessed requests forever', async () => {
+    test('addRequestsBatched warns about and skips requests the backend rejects, without retrying', async () => {
         const queue = await RequestQueue.open();
         const mockAddRequests = vitest.spyOn(queue.backend, 'addBatchOfRequests');
 
@@ -153,10 +153,15 @@ describe('RequestQueue remote', () => {
 
         const result = await queue.addRequestsBatched([requestOptions], { waitBetweenBatchesMillis: 0 });
 
-        // Must not hang: it gives up after a bounded number of attempts and warns about the skipped requests.
+        // Retrying transient failures is the backend's own job: the frontend makes one attempt,
+        // warns about the rejected requests, and moves on.
         expect(result.addedRequests).toHaveLength(0);
-        expect(logWarningSpy).toHaveBeenCalled();
-        expect(mockAddRequests.mock.calls.length).toBeLessThan(20);
+        expect(mockAddRequests).toHaveBeenCalledTimes(1);
+        expect(logWarningSpy).toHaveBeenCalledTimes(1);
+        expect(logWarningSpy.mock.calls[0][0]).toMatch(/rejected by the request queue/);
+        expect(logWarningSpy.mock.calls[0][1]).toMatchObject({
+            unprocessedRequests: [{ uniqueKey: request.uniqueKey, url: request.url, method: 'GET' }],
+        });
     });
 
     test('addRequestsBatched does not re-submit already enqueued requests beyond the initial batch (#3120)', async () => {
