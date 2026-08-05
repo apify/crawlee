@@ -3,6 +3,7 @@ import {
     ThrottlingRequestManager,
     parseRetryAfterHeader,
 } from '../../../packages/core/src/storages/throttling_request_manager.js';
+import { sleep } from '@crawlee/utils';
 
 describe('ThrottlingRequestManager', () => {
     beforeEach(() => {
@@ -11,6 +12,19 @@ describe('ThrottlingRequestManager', () => {
 
     async function createQueue(name = 'inner-queue') {
         return RequestQueue.open({ name });
+    }
+
+    /** Models the crawler's task loop: poll, and idle while the manager reports itself empty. */
+    async function pollForNextRequest(manager: ThrottlingRequestManager, timeoutMs = 5000) {
+        const deadline = Date.now() + timeoutMs;
+        while (Date.now() < deadline) {
+            const request = await manager.fetchNextRequest();
+            if (request) {
+                return request;
+            }
+            await sleep(20);
+        }
+        throw new Error('Timed out waiting for a request to become available');
     }
 
     test('parseRetryAfterHeader parsing seconds and date', () => {
@@ -91,14 +105,34 @@ describe('ThrottlingRequestManager', () => {
         const req1 = await manager.fetchNextRequest();
         expect(req1!.url).toBe('https://foo.com/1');
 
-        // Since example.com is still throttled, and inner is empty, calling fetchNextRequest
-        // should wait and then return the request once the throttle expires.
-        const start = Date.now();
-        const req2 = await manager.fetchNextRequest();
-        const elapsed = Date.now() - start;
+        // example.com is still throttled and inner is empty, so there is nothing to fetch right now -
+        // and the manager must say so rather than block the caller.
+        expect(await manager.fetchNextRequest()).toBeNull();
+        expect(await manager.isEmpty()).toBe(true);
+        // ...while still reporting the throttled request as outstanding work.
+        expect(await manager.isFinished()).toBe(false);
 
-        expect(elapsed).toBeGreaterThanOrEqual(400);
-        expect(req2!.url).toBe('https://example.com/1');
+        const start = Date.now();
+        const req2 = await pollForNextRequest(manager);
+
+        expect(Date.now() - start).toBeGreaterThanOrEqual(400);
+        expect(req2.url).toBe('https://example.com/1');
+    });
+
+    test('fetchNextRequest does not block while a domain is throttled', async () => {
+        const manager = new ThrottlingRequestManager({
+            inner: await createQueue(),
+            domains: ['example.com'],
+            maxDelayMs: 60_000,
+        });
+
+        await manager.addRequest({ url: 'https://example.com/1' });
+        manager.recordDomainDelay('https://example.com/1', 60_000);
+
+        const start = Date.now();
+        expect(await manager.fetchNextRequest()).toBeNull();
+
+        expect(Date.now() - start).toBeLessThan(1000);
     });
 
     test('picks up requests left in per-domain sub-queues by a previous run', async () => {
@@ -145,13 +179,11 @@ describe('ThrottlingRequestManager', () => {
         const req1 = await manager.fetchNextRequest();
         expect(req1!.url).toBe('https://example.com/1');
 
-        // After fetching req1, the crawl-delay of 200ms is applied to example.com.
-        // So fetching next request immediately should sleep/wait.
+        // Dispatching req1 pushes example.com's next slot 200ms out.
         const start = Date.now();
-        const req2 = await manager.fetchNextRequest();
-        const elapsed = Date.now() - start;
+        const req2 = await pollForNextRequest(manager);
 
-        expect(elapsed).toBeGreaterThanOrEqual(150);
-        expect(req2!.url).toBe('https://example.com/2');
+        expect(Date.now() - start).toBeGreaterThanOrEqual(150);
+        expect(req2.url).toBe('https://example.com/2');
     });
 });

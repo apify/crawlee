@@ -79,9 +79,6 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
      */
     private subManagersReady?: Promise<void>;
 
-    private newWorkSignaled = false;
-    private resolveNewWork: (() => void) | null = null;
-
     constructor(
         options: ThrottlingRequestManagerOptions<T>,
         protected readonly config: Configuration = serviceLocator.getConfiguration(),
@@ -169,40 +166,6 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         return Array.from(this.subManagers.values());
     }
 
-    private signalNewWork(): void {
-        this.newWorkSignaled = true;
-        if (this.resolveNewWork) {
-            this.resolveNewWork();
-            this.resolveNewWork = null;
-        }
-    }
-
-    private clearNewWork(): void {
-        this.newWorkSignaled = false;
-    }
-
-    private async waitForNewWorkOrTimeout(timeoutMs: number): Promise<void> {
-        if (this.newWorkSignaled) {
-            return;
-        }
-
-        let timeoutId: NodeJS.Timeout | undefined;
-        const timeoutPromise = new Promise<void>((resolve) => {
-            timeoutId = setTimeout(resolve, timeoutMs);
-        });
-
-        const workPromise = new Promise<void>((resolve) => {
-            this.resolveNewWork = resolve;
-        });
-
-        await Promise.race([workPromise, timeoutPromise]);
-
-        if (timeoutId) {
-            clearTimeout(timeoutId);
-        }
-        this.resolveNewWork = null;
-    }
-
     private markDomainDispatched(domain: string): void {
         const state = this.domainStates.get(domain);
         if (state && state.crawlDelayMs !== null) {
@@ -210,14 +173,13 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         }
     }
 
-    private getEarliestAvailableTime(now: number): number {
-        let earliest = now + this.maxDelayMs;
-        for (const state of this.domainStates.values()) {
-            if (now < state.throttledUntil && state.throttledUntil < earliest) {
-                earliest = state.throttledUntil;
-            }
-        }
-        return earliest;
+    /** Configured domains that are not currently backing off, longest-overdue first. */
+    private fetchableDomains(): string[] {
+        const now = Date.now();
+        return Array.from(this.domainStates.values())
+            .filter((state) => now >= state.throttledUntil)
+            .sort((a, b) => a.throttledUntil - b.throttledUntil)
+            .map((state) => state.domain);
     }
 
     recordDomainDelay(url: string, retryAfterMs?: number | null): boolean {
@@ -250,7 +212,6 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
                 `(consecutive: ${state.consecutive429Count}, delay: ${(delayMs / 1000).toFixed(1)}s)`,
         );
 
-        this.signalNewWork();
         return true;
     }
 
@@ -275,10 +236,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
 
     async addRequest(requestLike: Source, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo> {
         const manager = await this.selectManager(this.getUrlFromRequest(requestLike));
-        const result = await manager.addRequest(requestLike, options);
-
-        this.signalNewWork();
-        return result;
+        return manager.addRequest(requestLike, options);
     }
 
     async addRequests(
@@ -337,7 +295,6 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         }
 
         if (innerRequests.length > 0 || domainRequests.size > 0) {
-            this.signalNewWork();
         }
 
         return results;
@@ -391,9 +348,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         options?: RequestQueueOperationOptions,
     ): Promise<RequestQueueOperationInfo | null> {
         const manager = await this.selectManager(request.url);
-        const result = await manager.reclaimRequest(request, options);
-        this.signalNewWork();
-        return result;
+        return manager.reclaimRequest(request, options);
     }
 
     async markRequestAsHandled(request: Request): Promise<RequestQueueOperationInfo | void | null> {
@@ -418,10 +373,22 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         return this.sumOverManagers((manager) => manager.getHandledCount());
     }
 
+    /**
+     * Whether the next {@apilink ThrottlingRequestManager.fetchNextRequest} would return `null`.
+     *
+     * Requests waiting on a throttled domain count as unavailable, so a crawler whose task loop is gated on
+     * this idles for the backoff instead of spinning on a fetch that cannot succeed yet.
+     */
     async isEmpty(): Promise<boolean> {
-        return this.everyManager((manager) => manager.isEmpty());
+        await this.ensureSubManagers();
+
+        const fetchable = [this.inner, ...this.fetchableDomains().map((domain) => this.subManagers.get(domain)!)];
+        const results = await Promise.all(fetchable.map((manager) => manager.isEmpty()));
+
+        return results.every(Boolean);
     }
 
+    /** Unlike {@apilink ThrottlingRequestManager.isEmpty}, throttled requests still count as outstanding work. */
     async isFinished(): Promise<boolean> {
         return this.everyManager((manager) => manager.isFinished());
     }
@@ -452,59 +419,26 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         return results.every(Boolean);
     }
 
+    /**
+     * Returns the next request from a domain that is not backing off, or from the inner manager.
+     *
+     * Returns `null` while every remaining request belongs to a throttled domain - it never waits the backoff
+     * out, because a consumer parked in here holds a concurrency slot, which the autoscaler reads as spare
+     * capacity and answers by scaling up. Callers poll instead, and {@apilink ThrottlingRequestManager.isEmpty}
+     * reports `true` meanwhile so the crawler's task loop idles rather than spins.
+     */
     async fetchNextRequest<R extends Dictionary = Dictionary>(): Promise<Request<R> | null> {
         await this.ensureSubManagers();
 
-        while (true) {
-            this.clearNewWork();
-
-            const now = Date.now();
-            const availableDomains: string[] = [];
-            for (const [domain, state] of this.domainStates.entries()) {
-                if (now >= state.throttledUntil) {
-                    availableDomains.push(domain);
-                }
-            }
-
-            availableDomains.sort((a, b) => {
-                const stateA = this.domainStates.get(a)!;
-                const stateB = this.domainStates.get(b)!;
-                return stateA.throttledUntil - stateB.throttledUntil;
-            });
-
-            for (const domain of availableDomains) {
-                const sm = this.subManagers.get(domain)!;
-                const req = await sm.fetchNextRequest<R>();
-                if (req) {
-                    this.markDomainDispatched(domain);
-                    return req;
-                }
-            }
-
-            const request = await this.inner.fetchNextRequest<R>();
+        for (const domain of this.fetchableDomains()) {
+            const request = await this.subManagers.get(domain)!.fetchNextRequest<R>();
             if (request) {
+                this.markDomainDispatched(domain);
                 return request;
             }
-
-            if (this.subManagers.size === 0) {
-                return null;
-            }
-
-            const subManagersEmpty = await Promise.all(Array.from(this.subManagers.values(), (sm) => sm.isEmpty()));
-            if (subManagersEmpty.every(Boolean)) {
-                return null;
-            }
-
-            const earliest = this.getEarliestAvailableTime(now);
-            const sleepDurationMs = Math.max(earliest - now, 100);
-
-            this.log.debug(
-                `All configured domains are throttled and inner manager is empty. ` +
-                    `Waiting up to ${(sleepDurationMs / 1000).toFixed(1)}s for earliest domain to become available or new work.`,
-            );
-
-            await this.waitForNewWorkOrTimeout(sleepDurationMs);
         }
+
+        return this.inner.fetchNextRequest<R>();
     }
 
     async *[Symbol.asyncIterator]() {
