@@ -409,6 +409,35 @@ describe('KeyValueStore in a transaction', () => {
         await expect(store.getValue('real')).resolves.toEqual({ real: true });
     });
 
+    test('listing reduces the journal a bounded number of times, not once per key', async () => {
+        const store = await KeyValueStore.open();
+        for (let i = 0; i < 20; i++) {
+            await store.setValue(`real-${i}`, { i });
+        }
+
+        await withStorageTransaction(async (transaction) => {
+            for (let i = 0; i < 20; i++) {
+                await store.setValue(`buffered-${i}`, { i });
+            }
+
+            // `bufferedJournalEntries()` is the O(journal) reduction. Reading 40 keys' values must not
+            // call it 40 times - the listing path builds one map and threads it through every per-key
+            // read. A regression to per-key derivation makes this scale with the key count.
+            const reduceSpy = vitest.spyOn(store as any, 'bufferedJournalEntries');
+
+            const values = await store.values();
+            expect(values).toHaveLength(40);
+
+            // One reduction for the page listing, one shared across every record read: two, not forty.
+            // The lower bound matters too - zero calls would mean the buffered reads were skipped entirely.
+            expect(reduceSpy.mock.calls.length).toBeGreaterThanOrEqual(1);
+            expect(reduceSpy.mock.calls.length).toBeLessThanOrEqual(2);
+
+            reduceSpy.mockRestore();
+            transaction.rollback();
+        });
+    });
+
     test('deletion is a first-class tombstone', async () => {
         const store = await KeyValueStore.open();
         await store.setValue('doomed', { alive: true });

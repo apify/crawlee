@@ -258,9 +258,16 @@ export class KeyValueStore implements TransactionParticipant {
      * The single transaction-aware record read shared by `getValue`, `getRecord`, `recordExists` and the
      * listing paths: buffered key → serialized through the standard codec (same fidelity as a real
      * round-trip); tombstoned key → `null`; otherwise the backend.
+     *
+     * The per-key buffered lookup requires the whole journal to be reduced to a last-write-per-key map,
+     * which is O(journal). Single-record callers let it default (rebuilt per call); the listing paths,
+     * which read many keys, pass a map built once so the read stays O(1) per key instead of O(journal).
      */
-    private async readRecord(key: string): Promise<{ value: Buffer | ArrayBuffer; contentType: string | null } | null> {
-        const entry = this.bufferedJournalEntries()?.get(key);
+    private async readRecord(
+        key: string,
+        buffered = this.bufferedJournalEntries(),
+    ): Promise<{ value: Buffer | ArrayBuffer; contentType: string | null } | null> {
+        const entry = buffered?.get(key);
 
         if (entry) {
             if (entry.value === null) {
@@ -387,12 +394,15 @@ export class KeyValueStore implements TransactionParticipant {
         options: KeyValueStoreIteratorOptions,
         mapRecord: (key: string, value: unknown) => T,
     ): AsyncGenerator<T[]> {
-        for await (const page of this.fetchKeyPages(options)) {
+        // Reduce the journal once for the whole iteration, not once per key inside `readRecord`.
+        const buffered = this.bufferedJournalEntries();
+
+        for await (const page of this.fetchKeyPages(options, buffered)) {
             const results: T[] = [];
             for (const item of page) {
                 // The shared transaction-aware read, so a key that exists only in the transaction resolves
                 // here instead of being dropped (`values()` would disagree with `keys()` on length).
-                const record = await this.readRecord(item.key);
+                const record = await this.readRecord(item.key, buffered);
                 if (record) {
                     const parsed = parseValue(record.value, record.contentType ?? null);
                     results.push(mapRecord(item.key, parsed));
@@ -404,11 +414,11 @@ export class KeyValueStore implements TransactionParticipant {
 
     private async *fetchKeyPages(
         options: KeyValueStoreIteratorOptions,
+        buffered = this.bufferedJournalEntries(),
         limit = KVS_KEYS_DEFAULT_LIMIT,
     ): AsyncGenerator<KeyValueStoreItemData[]> {
         // Buffered keys are emitted first, then the real pages with any buffered (or tombstoned) key
         // skipped - a merge-join is not an option, since `listKeys` promises no sort order.
-        const buffered = this.bufferedJournalEntries();
         const shadowedKeys = new Set<string>();
 
         if (buffered) {
