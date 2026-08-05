@@ -7,7 +7,6 @@
 import { AnyPredicate } from 'ow';
 import { ArrayPredicate } from 'ow';
 import { BasePredicate } from 'ow';
-import type { BasicCrawlingContext } from '@crawlee/http';
 import { BooleanPredicate } from 'ow';
 import { CheerioAPI } from 'cheerio';
 import { CheerioRoot } from '@crawlee/utils';
@@ -22,17 +21,14 @@ import { HttpCrawler } from '@crawlee/http';
 import type { HttpCrawlerOptions } from '@crawlee/http';
 import type { InternalHttpCrawlingContext } from '@crawlee/http';
 import type { InternalHttpHook } from '@crawlee/http';
-import type { IRequestManager } from '@crawlee/http';
 import { NumberPredicate } from 'ow';
 import { ObjectPredicate } from 'ow';
 import { Predicate } from 'ow';
 import type { RequestHandler } from '@crawlee/http';
-import { RobotsTxtFile } from '@crawlee/utils';
 import type { RouterHandler } from '@crawlee/http';
 import type { RouterRoutes } from '@crawlee/http';
 import type { RouteSchemas } from '@crawlee/http';
 import type { RoutesFromSchemas } from '@crawlee/http';
-import type { SkippedRequestCallback } from '@crawlee/http';
 import { StringPredicate } from 'ow';
 import { VirtualConsole } from 'jsdom';
 

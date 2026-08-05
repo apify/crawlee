@@ -4,7 +4,6 @@
 
 ```ts
 
-import type { BasicCrawlingContext } from '@crawlee/http';
 import * as cheerio from 'cheerio';
 import { CheerioRoot } from '@crawlee/utils';
 import { ContextPipeline } from '@crawlee/http';
@@ -17,14 +16,11 @@ import { HttpCrawler } from '@crawlee/http';
 import type { HttpCrawlerOptions } from '@crawlee/http';
 import type { InternalHttpCrawlingContext } from '@crawlee/http';
 import type { InternalHttpHook } from '@crawlee/http';
-import { IRequestManager } from '@crawlee/http';
 import type { RequestHandler } from '@crawlee/http';
-import { RobotsTxtFile } from '@crawlee/utils';
 import type { RouterHandler } from '@crawlee/http';
 import type { RouterRoutes } from '@crawlee/http';
 import type { RouteSchemas } from '@crawlee/http';
 import type { RoutesFromSchemas } from '@crawlee/http';
-import type { SkippedRequestCallback } from '@crawlee/http';
 
 // @public
 export function createLinkeDOMRouter<Context extends LinkeDOMCrawlingContext = LinkeDOMCrawlingContext, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
