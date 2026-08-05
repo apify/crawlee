@@ -14,6 +14,10 @@ describe('ThrottlingRequestManager', () => {
         return RequestQueue.open({ name });
     }
 
+    function domainState(manager: ThrottlingRequestManager, domain: string) {
+        return (manager as any).domainStates.get(domain);
+    }
+
     /** Models the crawler's task loop: poll, and idle while the manager reports itself empty. */
     async function pollForNextRequest(manager: ThrottlingRequestManager, timeoutMs = 5000) {
         const deadline = Date.now() + timeoutMs;
@@ -186,9 +190,6 @@ describe('ThrottlingRequestManager', () => {
         const recorded = manager.recordDomainDelay('https://example.com/1', 500);
         expect(recorded).toBe(true);
 
-        // Record success reset check (does not reset delay, but resets consecutive count)
-        manager.recordSuccess('https://example.com/1');
-
         // Fetch next request - should fetch foo.com since example.com is throttled
         const req1 = await manager.fetchNextRequest();
         expect(req1!.url).toBe('https://foo.com/1');
@@ -205,6 +206,53 @@ describe('ThrottlingRequestManager', () => {
 
         expect(Date.now() - start).toBeGreaterThanOrEqual(400);
         expect(req2.url).toBe('https://example.com/1');
+    });
+
+    test('a burst of concurrent 429s advances the backoff only once', async () => {
+        const manager = new ThrottlingRequestManager({
+            inner: await createQueue(),
+            domains: ['example.com'],
+            baseDelayMs: 50,
+            maxDelayMs: 60_000,
+        });
+
+        // Eight requests were already in flight when the limit was hit; they all come back 429.
+        for (let i = 0; i < 8; i++) {
+            expect(manager.recordDomainDelay('https://example.com/1')).toBe(true);
+        }
+
+        expect(domainState(manager, 'example.com').consecutive429Count).toBe(1);
+    });
+
+    test('the backoff decays once the domain has stopped rate-limiting', async () => {
+        const manager = new ThrottlingRequestManager({
+            inner: await createQueue(),
+            domains: ['example.com'],
+            baseDelayMs: 20,
+            maxDelayMs: 60_000,
+        });
+
+        manager.recordDomainDelay('https://example.com/1');
+        await sleep(30);
+        manager.recordDomainDelay('https://example.com/1');
+        expect(domainState(manager, 'example.com').consecutive429Count).toBe(2);
+
+        // Wait out the delay plus a full extra window with no further 429.
+        await sleep(120);
+        manager.recordDomainDelay('https://example.com/1');
+        expect(domainState(manager, 'example.com').consecutive429Count).toBe(1);
+    });
+
+    test('caps the delay at maxDelayMs', async () => {
+        const manager = new ThrottlingRequestManager({
+            inner: await createQueue(),
+            domains: ['example.com'],
+            maxDelayMs: 1000,
+        });
+
+        manager.recordDomainDelay('https://example.com/1', 3_600_000);
+
+        expect(domainState(manager, 'example.com').throttledUntil).toBeLessThanOrEqual(Date.now() + 1000);
     });
 
     test('fetchNextRequest does not block while a domain is throttled', async () => {

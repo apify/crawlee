@@ -34,8 +34,12 @@ export interface ThrottlingRequestManagerOptions<T extends IRequestManager = IRe
 
 interface DomainState {
     domain: string;
-    throttledUntil: number; // Date.now() timestamp in ms
+    /** Earliest time the next request to this domain may be dispatched, as a `Date.now()` timestamp. */
+    throttledUntil: number;
+    /** Time after which an incoming 429 is treated as a fresh burst rather than a continuation. */
+    backoffDecaysAt: number;
     consecutive429Count: number;
+    /** Minimum interval between dispatches, from a robots.txt `Crawl-delay` directive. */
     crawlDelayMs: number | null;
 }
 
@@ -121,6 +125,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
                 this.domainStates.set(lowerDomain, {
                     domain: lowerDomain,
                     throttledUntil: 0,
+                    backoffDecaysAt: 0,
                     consecutive429Count: 0,
                     crawlDelayMs: null,
                 });
@@ -216,21 +221,38 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
             .map((state) => state.domain);
     }
 
+    /**
+     * Records a 429 response and puts the URL's domain into backoff.
+     *
+     * @returns `false` if the domain is not configured for throttling, in which case this is a no-op.
+     */
     recordDomainDelay(url: string, retryAfterMs?: number | null): boolean {
         const state = this.getDomainState(url);
         if (!state) {
             return false;
         }
 
+        const now = Date.now();
+
+        // Requests already in flight when the limit was hit all come back 429. They describe one rate-limit
+        // event, so only the first advances the backoff - otherwise concurrency alone drives the exponent.
+        if (now < state.throttledUntil) {
+            return true;
+        }
+
+        // A domain that has served us for a full extra backoff window is no longer rate-limiting; start over
+        // rather than carrying the old exponent into an unrelated burst.
+        if (now >= state.backoffDecaysAt) {
+            state.consecutive429Count = 0;
+        }
+
         state.consecutive429Count += 1;
-        let delayMs =
-            retryAfterMs !== undefined && retryAfterMs !== null
-                ? retryAfterMs
-                : this.baseDelayMs * Math.pow(2, state.consecutive429Count - 1);
+
+        const retryAfterGiven = retryAfterMs !== undefined && retryAfterMs !== null;
+        let delayMs = retryAfterGiven ? retryAfterMs : this.baseDelayMs * Math.pow(2, state.consecutive429Count - 1);
 
         if (delayMs > this.maxDelayMs) {
-            const source =
-                retryAfterMs !== undefined && retryAfterMs !== null ? 'Retry-After header' : 'exponential backoff';
+            const source = retryAfterGiven ? 'Retry-After header' : 'exponential backoff';
             this.log.warning(
                 `Capping ${source} delay of ${(delayMs / 1000).toFixed(1)}s for domain "${state.domain}" ` +
                     `to maxDelayMs (${(this.maxDelayMs / 1000).toFixed(1)}s); the domain may continue to rate-limit. ` +
@@ -239,7 +261,8 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
             delayMs = this.maxDelayMs;
         }
 
-        state.throttledUntil = Date.now() + delayMs;
+        state.throttledUntil = now + delayMs;
+        state.backoffDecaysAt = state.throttledUntil + delayMs;
 
         this.log.info(
             `Rate limit (429) detected for domain "${state.domain}" ` +
@@ -247,14 +270,6 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         );
 
         return true;
-    }
-
-    recordSuccess(url: string): void {
-        const state = this.getDomainState(url);
-        if (state && state.consecutive429Count > 0) {
-            this.log.debug(`Resetting rate limit state for domain "${state.domain}" after successful request`);
-            state.consecutive429Count = 0;
-        }
     }
 
     setCrawlDelay(url: string, delaySeconds: number): void {
@@ -400,12 +415,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
 
     async markRequestAsHandled(request: Request): Promise<RequestQueueOperationInfo | void | null> {
         const manager = await this.selectManager(request.url);
-        const result = await manager.markRequestAsHandled(request);
-        const isSuccess = request.errorMessages.length <= request.retryCount;
-        if (isSuccess) {
-            this.recordSuccess(request.url);
-        }
-        return result;
+        return manager.markRequestAsHandled(request);
     }
 
     async getTotalCount(): Promise<number> {
@@ -444,11 +454,16 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         return this.everyManager((manager) => manager.isFinished());
     }
 
+    /**
+     * Empties every manager and clears the accumulated backoff. A robots.txt `Crawl-delay` is a property of the
+     * site rather than of the run, so it survives.
+     */
     async purge(): Promise<void> {
         await this.forEachManager((manager) => manager.purge?.());
         for (const state of this.domainStates.values()) {
             state.consecutive429Count = 0;
             state.throttledUntil = 0;
+            state.backoffDecaysAt = 0;
         }
     }
 
