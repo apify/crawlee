@@ -574,6 +574,15 @@ export class HttpCrawler<
 
         tryCancel();
 
+        // Before `parseResponse`, which throws for error status codes - a 429 the user opted into treating as an
+        // error is still a rate limit the domain should back off from.
+        if (crawlingContext.response.status === 429) {
+            const retryAfter = crawlingContext.response.headers.get('retry-after');
+            if (this.recordDomainRateLimit(crawlingContext.request.url, retryAfter)) {
+                throw new RequestThrottledError(`${crawlingContext.request.url} responded with 429.`);
+            }
+        }
+
         // Reading the body is still part of the navigation, so it draws from the same shared window: on a server
         // that streams the body slowly the request completes (headers arrive) but the body read would otherwise
         // run unbounded. `extendTimeout` from a post-navigation hook has already pushed this deadline out if asked.
@@ -608,22 +617,6 @@ export class HttpCrawler<
 
             return $;
         };
-
-        if (response.status === 429) {
-            const retryAfterHeader = response.headers.get('retry-after');
-            const retryAfterMs = parseRetryAfterHeader(retryAfterHeader);
-            const requestManager = this.requestManager;
-            if (
-                requestManager &&
-                'recordDomainDelay' in requestManager &&
-                typeof (requestManager as any).recordDomainDelay === 'function'
-            ) {
-                const recorded = (requestManager as any).recordDomainDelay(crawlingContext.request.url, retryAfterMs);
-                if (recorded) {
-                    throw new RequestThrottledError(`${crawlingContext.request.url} responded with 429.`);
-                }
-            }
-        }
 
         this._throwOnBlockedRequest(response.status);
 

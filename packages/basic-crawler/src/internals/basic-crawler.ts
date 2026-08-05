@@ -58,6 +58,7 @@ import {
     OwnedOrInjected,
     purgeDefaultStorages,
     RequestHandlerError,
+    parseRetryAfterHeader,
     RequestThrottledError,
     RequestManagerTandem,
     RequestQueue,
@@ -2144,6 +2145,31 @@ export class BasicCrawler<
     }
 
     /**
+     * Records an HTTP 429 against the URL's domain so the request manager can pace the retry.
+     *
+     * @param retryAfterHeader The raw `Retry-After` response header, if the server sent one.
+     * @returns `true` if a manager took responsibility for the delay, in which case the caller should throw
+     *  {@apilink RequestThrottledError} rather than treating the response as a blocked session.
+     */
+    protected recordDomainRateLimit(url: string, retryAfterHeader?: string | null): boolean {
+        const manager = this.requestManager as Partial<ThrottlingRequestManager> | undefined;
+        if (manager?.recordDomainDelay?.(url, parseRetryAfterHeader(retryAfterHeader)) === true) {
+            return true;
+        }
+
+        const domain = hostnameOrUrl(url);
+        this.warnOncePerRun(
+            `rateLimitNotThrottled:${domain}`,
+            `"${domain}" responded with HTTP 429 (Too Many Requests), but nothing is set up to back off from it, ` +
+                'so the request will be retried without a per-domain delay and its session will be retired. ' +
+                `Pass a \`ThrottlingRequestManager\` as \`requestManager\` and include "${domain}" in its \`domains\` ` +
+                'option to honour `Retry-After` and apply exponential backoff instead.',
+        );
+
+        return false;
+    }
+
+    /**
      * Hands a robots.txt `Crawl-delay` to the request manager, warning if nothing is able to honour it.
      *
      * Only a {@apilink ThrottlingRequestManager} can pace dispatch per domain, and only for the domains it was
@@ -2157,7 +2183,7 @@ export class BasicCrawler<
             return;
         }
 
-        const domain = URL.canParse(url) ? new URL(url).hostname : url;
+        const domain = hostnameOrUrl(url);
         this.warnOncePerRun(
             `crawlDelayIgnored:${domain}`,
             `robots.txt for "${domain}" defines a crawl-delay of ${delaySeconds}s, but nothing is set up to honour it, ` +
@@ -2750,6 +2776,11 @@ export interface CrawlerRunOptions extends CrawlerAddRequestsOptions {
      *   note that even a failed request is considered handled.
      */
     purgeRequestQueue?: boolean;
+}
+
+/** The hostname of `url`, falling back to the whole string when it is not parseable - for log messages only. */
+function hostnameOrUrl(url: string): string {
+    return URL.canParse(url) ? new URL(url).hostname : url;
 }
 
 /**

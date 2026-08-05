@@ -21,7 +21,6 @@ import {
     enqueueLinks,
     NavigationSkippedError,
     OwnedOrInjected,
-    parseRetryAfterHeader,
     remainingNavigationWindowMillis,
     RequestState,
     RequestThrottledError,
@@ -839,39 +838,22 @@ export abstract class BrowserCrawler<
 
             this.stats.registerStatusCode(status);
 
+            // Ahead of the error-status throw below: a 429 the user opted into treating as an error is still a
+            // rate limit the domain should back off from.
+            if (status === 429) {
+                // Both drivers lower-case header names and join duplicates, so a plain lookup is enough.
+                const retryAfter = (response as { headers?(): Record<string, string> }).headers?.()['retry-after'];
+                if (this.recordDomainRateLimit(crawlingContext.request.url, retryAfter)) {
+                    throw new RequestThrottledError(`${crawlingContext.request.url} responded with 429.`);
+                }
+            }
+
             if (this.isErrorStatusCode(status)) {
                 if (this.additionalHttpErrorStatusCodes.has(status)) {
                     throw new Error(`${status} - Error status code was set by user.`);
                 }
 
                 throw new Error(`${status} - Internal Server Error`);
-            }
-
-            if (status === 429) {
-                const headers = typeof (response as any).headers === 'function' ? (response as any).headers() : {};
-                let retryAfterHeader: string | undefined;
-                for (const key of Object.keys(headers)) {
-                    if (key.toLowerCase() === 'retry-after') {
-                        retryAfterHeader = headers[key];
-                        break;
-                    }
-                }
-                const retryAfterStr = Array.isArray(retryAfterHeader) ? retryAfterHeader[0] : retryAfterHeader;
-                const retryAfterMs = parseRetryAfterHeader(retryAfterStr);
-                const requestManager = this.requestManager;
-                if (
-                    requestManager &&
-                    'recordDomainDelay' in requestManager &&
-                    typeof (requestManager as any).recordDomainDelay === 'function'
-                ) {
-                    const recorded = (requestManager as any).recordDomainDelay(
-                        crawlingContext.request.url,
-                        retryAfterMs,
-                    );
-                    if (recorded) {
-                        throw new RequestThrottledError(`${crawlingContext.request.url} responded with 429.`);
-                    }
-                }
             }
         }
 
