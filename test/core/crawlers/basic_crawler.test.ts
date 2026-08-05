@@ -2604,6 +2604,51 @@ describe('BasicCrawler', () => {
             errorSpy.mockRestore();
         });
 
+        test('the crawler never fetches the next request inside a storage transaction', async () => {
+            // The invariant that lets the request manager stay ignorant of transactions: fetching is
+            // crawler bookkeeping that runs *before* the request's transaction opens. If a refactor ever
+            // moved the fetch inside the transaction scope, a buffered add/transfer could be rolled back
+            // after the source request was consumed - losing the request. Observed through the public
+            // `requestManager` option, so the assertion sits on a documented seam, not crawler internals.
+            const { currentStorageTransaction } = await import('@crawlee/core');
+
+            const realManager = await RequestQueue.open();
+            await realManager.addRequests([
+                `http://${HOSTNAME}:${port}/one`,
+                `http://${HOSTNAME}:${port}/two`,
+                `http://${HOSTNAME}:${port}/three`,
+            ]);
+
+            let fetches = 0;
+            let fetchedInsideTransaction = false;
+
+            // A pass-through manager: delegates everything to a real queue, only observing whether a
+            // transaction is active at fetch time.
+            const observingManager = new Proxy(realManager, {
+                get(target, prop, receiver) {
+                    if (prop === 'fetchNextRequest') {
+                        return async (...args: unknown[]) => {
+                            fetches += 1;
+                            if (currentStorageTransaction()?.isActive) fetchedInsideTransaction = true;
+                            return (target.fetchNextRequest as (...a: unknown[]) => unknown)(...args);
+                        };
+                    }
+                    const value = Reflect.get(target, prop, receiver);
+                    return typeof value === 'function' ? value.bind(target) : value;
+                },
+            });
+
+            const crawler = new BasicCrawler({
+                requestQueue: observingManager as unknown as RequestQueue,
+                requestHandler: async () => {},
+            });
+
+            await crawler.run();
+
+            expect(fetches).toBeGreaterThan(0);
+            expect(fetchedInsideTransaction).toBe(false);
+        });
+
         test('onSkippedRequest bookkeeping survives an in-pipeline robots.txt skip', async () => {
             const crawler = new BasicCrawler({
                 maxRequestRetries: 0,
