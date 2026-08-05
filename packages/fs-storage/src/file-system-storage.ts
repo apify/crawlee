@@ -59,11 +59,8 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
     readonly logger?: CrawleeLogger;
     readonly requestQueueAccess: 'single' | 'shared';
 
-    /** Open-backend cache. Implementation detail of the backend, not part of the public API. @internal */
     readonly keyValueStoreBackendCache: KeyValueStoreBackend[] = [];
-    /** @internal */
     readonly datasetBackendCache: DatasetBackend[] = [];
-    /** @internal */
     readonly requestQueueBackendCache: RequestQueueBackend[] = [];
 
     constructor(options: FileSystemStorageOptions) {

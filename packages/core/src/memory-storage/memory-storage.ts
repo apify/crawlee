@@ -23,11 +23,8 @@ export class MemoryStorageBackend implements storage.StorageBackend {
      */
     private readonly instanceCacheKey = `MemoryStorageBackend:${randomUUID()}`;
 
-    /** Open-backend cache. Implementation detail of the backend, not part of the public API. @internal */
     readonly keyValueStoreBackendCache: KeyValueStoreBackend[] = [];
-    /** @internal */
     readonly datasetBackendCache: DatasetBackend[] = [];
-    /** @internal */
     readonly requestQueueBackendCache: RequestQueueBackend[] = [];
 
     constructor(options: MemoryStorageOptions = {}) {
@@ -103,7 +100,7 @@ export class MemoryStorageBackend implements storage.StorageBackend {
         return newStore;
     }
 
-    async createRequestQueueBackend(options: storage.StorageIdentifier = {}): Promise<storage.RequestQueueBackend> {
+    async createRequestQueueBackend(options: storage.StorageIdentifier = {}): Promise<RequestQueueBackend> {
         const { isAlias, cacheKey } = MemoryStorageBackend.resolveStorageKey(options);
 
         if (cacheKey) {
