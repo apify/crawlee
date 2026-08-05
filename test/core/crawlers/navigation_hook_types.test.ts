@@ -107,3 +107,32 @@ describe('navigation hook option types (#2063)', () => {
         expect(options).toBeTruthy();
     });
 });
+
+describe('request handler option types (#2063)', () => {
+    test('playwright - request handler typed with custom user data stays assignable', () => {
+        const requestHandler = async ({ request }: PlaywrightCrawlingContext<OrderUserData>) =>
+            void request.userData.label;
+
+        const options: PlaywrightCrawlerOptions = { requestHandler };
+
+        expect(options).toBeTruthy();
+    });
+
+    test('puppeteer - request handler typed with custom user data stays assignable', () => {
+        const requestHandler = async ({ request }: PuppeteerCrawlingContext<OrderUserData>) =>
+            void request.userData.label;
+
+        const options: PuppeteerCrawlerOptions = { requestHandler };
+
+        expect(options).toBeTruthy();
+    });
+
+    test('stagehand - request handler typed with custom user data stays assignable', () => {
+        const requestHandler = async ({ request }: StagehandCrawlingContext<OrderUserData>) =>
+            void request.userData.label;
+
+        const options: StagehandCrawlerOptions = { requestHandler };
+
+        expect(options).toBeTruthy();
+    });
+});
