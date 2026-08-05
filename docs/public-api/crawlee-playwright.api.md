@@ -43,6 +43,7 @@ import type { Page } from 'playwright';
 import { PlaywrightPlugin } from '@crawlee/browser-pool';
 import { Predicate } from 'ow';
 import type { PseudoUrlInput } from '@crawlee/browser';
+import type { RecoverableStatePersistenceOptions } from '@crawlee/core';
 import type { RegExpInput } from '@crawlee/browser';
 import type { Request as Request_2 } from '@crawlee/core';
 import { Request as Request_3 } from '@crawlee/browser';
@@ -56,7 +57,25 @@ import type { RouterRoutes as RouterRoutes_2 } from '@crawlee/core';
 import type { RouteSchemas } from '@crawlee/browser';
 import type { RoutesFromSchemas } from '@crawlee/browser';
 import type { SkippedRequestCallback } from '@crawlee/browser';
+import { Statistics } from '@crawlee/core';
+import type { StatisticsOptions } from '@crawlee/core';
+import type { StatisticState } from '@crawlee/core';
 import { StringPredicate } from 'ow';
+
+// Not exported by the entry point; reachable only as a referenced type.
+// @public (undocumented)
+type AdaptiveHook<ContextExtension = Dictionary<never>> = BrowserHook<AdaptiveHookContext, ContextExtension>;
+
+// Not exported by the entry point; reachable only as a referenced type.
+// @public (undocumented)
+interface AdaptiveHookContext extends Pick<AdaptivePlaywrightCrawlerContext, 'id' | 'session' | 'proxyInfo' | 'log'> {
+    // (undocumented)
+    gotoOptions?: PlaywrightGotoOptions;
+    // (undocumented)
+    page?: Page;
+    // (undocumented)
+    request: Request_3;
+}
 
 // @public
 export class AdaptivePlaywrightCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest_2<AdaptivePlaywrightCrawlerContext['request']>>> extends BasicCrawler<AdaptivePlaywrightCrawlerContext, ContextExtension, ExtendedContext, Routes> {
@@ -108,6 +127,41 @@ export interface AdaptivePlaywrightCrawlerOptions<ContextExtension = Dictionary<
     shouldPropagateError?: (error: Error, context: PlaywrightCrawlingContext) => Awaitable<boolean>;
 }
 
+// Not exported by the entry point; reachable only as a referenced type.
+// @public (undocumented)
+class AdaptivePlaywrightCrawlerStatistics extends Statistics {
+    constructor(options?: StatisticsOptions);
+    // (undocumented)
+    protected maybeLoadStatistics(): Promise<void>;
+    // (undocumented)
+    reset(): void;
+    // (undocumented)
+    state: AdaptivePlaywrightCrawlerStatisticState;
+    // (undocumented)
+    trackBrowserRequestHandlerRun(): void;
+    // (undocumented)
+    trackHttpOnlyRequestHandlerRun(): void;
+    // (undocumented)
+    trackRenderingTypeMisprediction(): void;
+}
+
+// Not exported by the entry point; reachable only as a referenced type.
+// @public (undocumented)
+interface AdaptivePlaywrightCrawlerStatisticState extends StatisticState {
+    // (undocumented)
+    browserRequestHandlerRuns?: number;
+    // (undocumented)
+    httpOnlyRequestHandlerRuns?: number;
+    // (undocumented)
+    renderingTypeMispredictions?: number;
+}
+
+// Not exported by the entry point; reachable only as a referenced type.
+// @public (undocumented)
+type AdaptivePostNavigationHook<ContextExtension = Dictionary<never>> = BrowserHook<Omit<AdaptiveHookContext, 'request'> & {
+    request: LoadedRequest<Request_3>;
+}, ContextExtension>;
+
 // @public
 function blockRequests(page: Page, options?: BlockRequestsOptions): Promise<void>;
 
@@ -116,6 +170,10 @@ interface BlockRequestsOptions {
     extraUrlPatterns?: string[];
     urlPatterns?: string[];
 }
+
+// Not exported by the entry point; reachable only as a referenced type.
+// @public (undocumented)
+type ClickOptions = Parameters<Page['click']>[1];
 
 // @public (undocumented)
 function closeCookieModals(page: Page): Promise<void>;
@@ -417,6 +475,14 @@ export class RenderingTypePredictor implements IRenderingTypePredictor {
         detectionProbabilityRecommendation: number;
     };
     storeResult(requests: Request_2 | Request_2[], renderingType: RenderingType): void;
+}
+
+// Not exported by the entry point; reachable only as a referenced type.
+// @public (undocumented)
+interface RenderingTypePredictorOptions {
+    detectionRatio: number;
+    // (undocumented)
+    persistenceOptions?: Partial<RecoverableStatePersistenceOptions>;
 }
 
 // @public

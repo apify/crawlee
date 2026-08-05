@@ -37,6 +37,13 @@ import type { RequestHandler } from '@crawlee/basic';
 import type { RouterHandler } from '@crawlee/basic';
 import { StringPredicate } from 'ow';
 
+// Not exported by the entry point; reachable only as a referenced type.
+// @public (undocumented)
+interface BaseResponse {
+    // (undocumented)
+    status(): number;
+}
+
 // @public
 export abstract class BrowserCrawler<Page extends CommonPage = CommonPage, Response extends BaseResponse = BaseResponse, InternalBrowserPoolOptions extends BrowserPoolOptions = BrowserPoolOptions, LaunchOptions extends Dictionary | undefined = Dictionary, Context extends BrowserCrawlingContext<Page, Response, Dictionary> = BrowserCrawlingContext<Page, Response, Dictionary>, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>, GoToOptions extends Dictionary = Dictionary> extends BasicCrawler<Context, ContextExtension, ExtendedContext, Routes> {
     protected constructor(options: BrowserCrawlerOptions<Page, Response, Context, ContextExtension, ExtendedContext> & {

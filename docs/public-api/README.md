@@ -21,13 +21,17 @@ They are produced by [API Extractor](https://api-extractor.com/) from the built
   check means you changed the public API: either that change is intentional (commit the
   updated report — reviewers will see the surface diff) or it was accidental (fix it).
 
-- `api:check` also fails if a `@public` symbol's signature references an `@internal` one.
-  Regenerating cannot fix that — the referenced type is trimmed from the report, so the
-  committed map is left referring to a symbol it never declares. Fix it in the source:
-  either drop the referenced type's `@internal`/`@ignore` tag (it is reachable from the
-  public API, so users can already depend on it) or keep it out of the public signature.
-  An untagged symbol is implicitly public, which is the convention here — the codebase
-  does not use explicit `@public` tags.
+- `api:check` also fails if a report ends up referencing a symbol it never declares, which
+  leaves the committed map describing a type nothing in it defines. Regenerating cannot fix
+  that; it has to be fixed in the source. In practice it means a `@public` symbol's signature
+  references an `@internal`/`@ignore`-d one, so the referenced type is trimmed out from under
+  it. Either drop the referenced type's tag (it is reachable from the public API, so users can
+  already depend on it) or keep it out of the public signature. An untagged symbol is
+  implicitly public, which is the convention here — the codebase does not use explicit
+  `@public` tags.
+
+  A symbol that is merely missing from the package's exports does **not** need fixing: see the
+  note on forgotten exports below.
 
 ## Notes
 
@@ -43,9 +47,27 @@ They are produced by [API Extractor](https://api-extractor.com/) from the built
   bare import and read as public surface. There is no config option for this, so the
   generator post-processes each report: it parses the fenced TypeScript and drops imports
   whose binding is referenced by no declaration that survived the trim.
-- Symbols referenced by the public API but never exported from the entry point
-  (`ae-forgotten-export`) are reported as warnings only. They are the same kind of dangling
-  reference, but there is a long tail of them and they are often deliberate.
+- **Forgotten exports** — types the public API references but the entry point never exports —
+  are included in the report via `includeForgottenExports` and carry an explicit banner:
+
+  ```ts
+  // Not exported by the entry point; reachable only as a referenced type.
+  // @public (undocumented)
+  interface SitemapUrlData {
+  ```
+
+  Their *shape* is part of the surface we promise not to break, but their *name* is not
+  importable, so they are emitted without `export`. API Extractor labels them `@public
+  (undocumented)` like anything else, which is indistinguishable from a real export at a
+  glance, hence the added banner. The alternative was exporting every such type from its
+  package — ~38 new public exports, committing us to names we never meant to publish. If you
+  *want* one importable, export it deliberately and the report will show it with `export`.
+- Because API Extractor decides both of the above before the `@public` trim, it also offers
+  declarations for symbols reachable only from members that never reach the report. The
+  generator drops those the same way it drops dead imports, so the report carries nothing it
+  does not refer to. Only symbols flagged `ae-forgotten-export` are eligible, which is what
+  keeps genuinely reachable declarations (e.g. the `social` namespace in `@crawlee/utils`,
+  whose members are exposed through a `declare namespace` block) from being pruned.
 - `docs/public-api/temp/` holds intermediate reports (including the staged `.public.api.md`
   files) and is git-ignored.
 - `@crawlee/cli` and `@crawlee/templates` are deliberately excluded — they are tooling

@@ -13,17 +13,22 @@ import { AnyPredicate } from 'ow';
 import { ArrayPredicate } from 'ow';
 import { BasePredicate } from 'ow';
 import { BooleanPredicate } from 'ow';
+import type { Browser } from 'playwright';
+import type { BrowserController } from '@crawlee/browser-pool';
 import { BrowserCrawler } from '@crawlee/browser';
 import type { BrowserCrawlerOptions } from '@crawlee/browser';
 import type { BrowserCrawlingContext } from '@crawlee/browser';
 import type { BrowserHook } from '@crawlee/browser';
 import type { BrowserLaunchContext } from '@crawlee/browser';
+import { BrowserPlugin } from '@crawlee/browser-pool';
+import type { BrowserPluginOptions } from '@crawlee/browser-pool';
 import type { BrowserType } from 'playwright';
 import type { ContextPipeline } from '@crawlee/browser';
 import type { CrawlingContext } from '@crawlee/browser';
 import type { Dictionary } from '@crawlee/types';
 import { ExtractOptions } from '@browserbasehq/stagehand';
 import type { GetUserDataFromRequest } from '@crawlee/browser';
+import type { LaunchContext } from '@crawlee/browser-pool';
 import type { LaunchOptions } from 'playwright';
 import type { LLMClient } from '@browserbasehq/stagehand';
 import type { LoadedContext } from '@crawlee/browser';
@@ -192,6 +197,25 @@ export interface StagehandPage extends Page {
     }): NonStreamingAgentInstance;
     extract<T>(instruction: string, schema: z.ZodType<T>, options?: Omit<ExtractOptions, 'page'>): Promise<T>;
     observe(options?: Omit<ObserveOptions, 'page'>): Promise<Action[]>;
+}
+
+// Not exported by the entry point; reachable only as a referenced type.
+// @public
+class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, Browser> {
+    constructor(library: BrowserType, options?: StagehandPluginOptions);
+    protected _addProxyToLaunchOptions(launchContext: LaunchContext<BrowserType>): Promise<void>;
+    createController(): BrowserController<BrowserType, LaunchOptions, Browser>;
+    getStagehandForBrowser(browser: Browser): Stagehand | undefined;
+    protected _isChromiumBasedBrowser(): boolean;
+    protected _launch(launchContext: LaunchContext<BrowserType>): Promise<Browser>;
+    // (undocumented)
+    readonly stagehandOptions: StagehandOptions;
+}
+
+// Not exported by the entry point; reachable only as a referenced type.
+// @public
+interface StagehandPluginOptions extends BrowserPluginOptions<LaunchOptions> {
+    stagehandOptions?: StagehandOptions;
 }
 
 // @public

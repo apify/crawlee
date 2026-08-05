@@ -25,6 +25,7 @@ import { LoadedRequest } from '@crawlee/core';
 import { NumberPredicate } from 'ow';
 import { ObjectPredicate } from 'ow';
 import { Predicate } from 'ow';
+import { Request as Request_2 } from '@crawlee/basic';
 import type { Request as Request_3 } from '@crawlee/core';
 import { RequestHandler } from '@crawlee/basic';
 import type { RequireContextPipeline } from '@crawlee/basic';
@@ -41,6 +42,13 @@ export function ByteCounterStream(input: {
     logTransferredBytes: (transferredBytes: number) => void;
     loggingInterval?: number;
 }): Transform;
+
+// Not exported by the entry point; reachable only as a referenced type.
+// @public (undocumented)
+interface CrawlingContextWithResponse<UserData extends Dictionary = any> extends CrawlingContext<UserData> {
+    request: LoadedRequest<Request_2<UserData>>;
+    response: Response;
+}
 
 // @public
 export function createFileRouter<Context extends FileDownloadCrawlingContext = FileDownloadCrawlingContext, UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(routes?: RouterRoutes<Context, UserData>): RouterHandler<Context, Record<string, GetUserDataFromRequest<Context["request"]>>>;
@@ -195,6 +203,9 @@ JSONData extends JsonValue = any> extends CrawlingContextWithResponse<UserData> 
 
 // @public (undocumented)
 export type InternalHttpHook<Context, ContextExtension = {}> = (crawlingContext: Context & ContextExtension) => Awaitable<void | Partial<Context>>;
+
+// @public (undocumented)
+const kBodyDrained: unique symbol;
 
 // @public
 export function MinimumSpeedStream(input: {

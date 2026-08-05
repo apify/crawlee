@@ -9,6 +9,7 @@ import { AsyncEventEmitter } from '@vladfrangu/async_event_emitter';
 import type { Awaitable } from '@crawlee/types';
 import type { BaseHttpClient } from '@crawlee/types';
 import type { BatchAddRequestsResult } from '@crawlee/types';
+import type { BetterIntervalID } from '@apify/utilities';
 import type { Constructor } from '@crawlee/types';
 import { CookieJar } from 'tough-cookie';
 import { CrawleeLogger } from '@crawlee/types';
@@ -106,6 +107,22 @@ export abstract class BaseCrawleeLogger implements CrawleeLogger {
 
 // @public (undocumented)
 export const BLOCKED_STATUS_CODES: number[];
+
+// Not exported by the entry point; reachable only as a referenced type.
+// @public (undocumented)
+interface BrowserCrawlingContext {
+    // (undocumented)
+    saveSnapshot: (options: {
+        key: string;
+    }) => Promise<void>;
+}
+
+// Not exported by the entry point; reachable only as a referenced type.
+// @public (undocumented)
+interface BrowserPage {
+    // (undocumented)
+    content: () => Promise<string>;
+}
 
 // @public
 export const checkStorageAccess: () => void | undefined;
@@ -488,6 +505,19 @@ export interface ErrnoException extends Error {
     syscall?: string;
 }
 
+// Not exported by the entry point; reachable only as a referenced type.
+// @public (undocumented)
+interface ErrorSnapshot {
+    // (undocumented)
+    htmlFileName?: string;
+    // (undocumented)
+    htmlFileUrl?: string;
+    // (undocumented)
+    screenshotFileName?: string;
+    // (undocumented)
+    screenshotFileUrl?: string;
+}
+
 // @public
 export class ErrorSnapshotter {
     // (undocumented)
@@ -686,6 +716,10 @@ export type GlobObject = {
     glob: string;
 } & Pick<RequestOptions, 'method' | 'payload' | 'label' | 'userData' | 'headers'>;
 
+// Not exported by the entry point; reachable only as a referenced type.
+// @public (undocumented)
+type Hashable = string;
+
 // @public
 export interface IConcurrencySystem {
     readonly currentConcurrency: number;
@@ -694,6 +728,15 @@ export interface IConcurrencySystem {
     readonly isRunning: boolean;
     registerTaskEnd(consumer: ConcurrencyConsumer): void;
     tryRegisterTaskStart(consumer: ConcurrencyConsumer): boolean;
+}
+
+// Not exported by the entry point; reachable only as a referenced type.
+// @public (undocumented)
+interface Intervals {
+    // (undocumented)
+    persistState?: BetterIntervalID;
+    // (undocumented)
+    systemInfo?: BetterIntervalID;
 }
 
 // @public
@@ -905,17 +948,11 @@ export class MemoryStorageBackend implements storage.StorageBackend {
     // (undocumented)
     createKeyValueStoreBackend(options?: storage.StorageIdentifier): Promise<storage.KeyValueStoreBackend>;
     // (undocumented)
-    createRequestQueueBackend(options?: storage.StorageIdentifier): Promise<RequestQueueBackend_2>;
-    // (undocumented)
-    readonly datasetBackendCache: DatasetBackend_2[];
+    createRequestQueueBackend(options?: storage.StorageIdentifier): Promise<storage.RequestQueueBackend>;
     getStorageBackendCacheKey(): string;
-    // (undocumented)
-    readonly keyValueStoreBackendCache: KeyValueStoreBackend_2[];
     // (undocumented)
     readonly logger?: CrawleeLogger;
     purge(): Promise<void>;
-    // (undocumented)
-    readonly requestQueueBackendCache: RequestQueueBackend_2[];
     // (undocumented)
     storageExists(id: string, type: 'Dataset' | 'KeyValueStore' | 'RequestQueue'): Promise<boolean>;
     teardown(): Promise<void>;
@@ -933,6 +970,13 @@ export class MissingSessionError extends Error {
 
 // @public
 export class NavigationSkippedError extends NonRetryableError {
+}
+
+// Not exported by the entry point; reachable only as a referenced type.
+// @public (undocumented)
+interface NewUrlOptions {
+    // (undocumented)
+    request?: Request_2;
 }
 
 // @public
@@ -982,6 +1026,16 @@ export type PseudoUrlInput = string | PseudoUrlObject;
 export type PseudoUrlObject = {
     purl: string;
 } & Pick<RequestOptions, 'method' | 'payload' | 'label' | 'userData' | 'headers'>;
+
+// Not exported by the entry point; reachable only as a referenced type.
+// @public
+interface PurgeDefaultStorageOptions {
+    // (undocumented)
+    configuration?: Configuration;
+    onlyPurgeOnce?: boolean;
+    // (undocumented)
+    storageBackend?: StorageBackend;
+}
 
 // @public
 export function purgeDefaultStorages(options?: PurgeDefaultStorageOptions): Promise<void>;
@@ -1143,6 +1197,10 @@ export interface RequestListOptions {
     sourcesFunction?: RequestListSourcesFunction;
     state?: RequestListState;
 }
+
+// Not exported by the entry point; reachable only as a referenced type.
+// @public (undocumented)
+type RequestListSource = string | Source;
 
 // @public (undocumented)
 export type RequestListSourcesFunction = () => Promise<RequestListSource[]>;
@@ -1398,6 +1456,10 @@ export type RoutesFromSchemas<Schemas extends RouteSchemas> = {
     [defaultRoute]: SchemaUserData<Schemas[typeof defaultRoute]>;
 } : {});
 
+// Not exported by the entry point; reachable only as a referenced type.
+// @public
+type SchemaUserData<Schema extends StandardSchemaV1> = StandardSchemaV1.InferOutput<Schema> extends Dictionary ? StandardSchemaV1.InferOutput<Schema> : Dictionary;
+
 // @public
 export function serializeValue(value: unknown, contentType?: string): {
     value: Buffer | ArrayBuffer | ArrayBufferView | string | NodeJS.ReadableStream | ReadableStream;
@@ -1439,6 +1501,21 @@ export class ServiceLocator implements ServiceLocatorInterface {
 // @public (undocumented)
 export const serviceLocator: ServiceLocatorInterface;
 
+// Not exported by the entry point; reachable only as a referenced type.
+// @public (undocumented)
+interface ServiceLocatorInterface {
+    getChildLog(prefix: string): CrawleeLogger;
+    getConfiguration(): Configuration;
+    getEventManager(): EventManager;
+    getLogger(): CrawleeLogger;
+    getStorageBackend(): StorageBackend;
+    getStorageInstanceManager(): StorageInstanceManager;
+    setConfiguration(configuration: Configuration): void;
+    setEventManager(eventManager: EventManager): void;
+    setLogger(logger: CrawleeLogger): void;
+    setStorageBackend(storageBackend: StorageBackend): void;
+}
+
 // @public
 export class Session implements ISession {
     constructor(options?: SessionOptions);
@@ -1479,6 +1556,10 @@ export class Session implements ISession {
     // (undocumented)
     readonly userData: Dictionary;
 }
+
+// Not exported by the entry point; reachable only as a referenced type.
+// @public (undocumented)
+const SESSION_REUSE_STRATEGIES: readonly ["random", "round-robin", "use-until-failure"];
 
 // @public
 export class SessionError extends Error {
@@ -1609,6 +1690,15 @@ export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
     getSample(sampleDurationMillis?: number): T[];
     push(snapshot: T, now?: Date): void;
     useSampleWindow(maxSampleWindowMillis: number): void;
+}
+
+// Not exported by the entry point; reachable only as a referenced type.
+// @public (undocumented)
+interface SnapshottableProperties {
+    // (undocumented)
+    body?: unknown;
+    // (undocumented)
+    page?: BrowserPage;
 }
 
 // @public (undocumented)
@@ -1775,6 +1865,30 @@ export type TypedContextAddRequests<Routes extends Record<keyof Routes, Dictiona
 
 // @public
 export type TypedContextEnqueueLinks<EnqueueLinks, Routes extends Record<keyof Routes, Dictionary>> = EnqueueLinks extends (options?: infer Options) => infer Result ? (options?: TypedEnqueueLinksOptions<Options, Routes>) => Result : EnqueueLinks extends (options: infer Options) => infer Result ? (options: TypedEnqueueLinksOptions<Options, Routes>) => Result : EnqueueLinks;
+
+// Not exported by the entry point; reachable only as a referenced type.
+// @public
+type TypedEnqueueLinksOptions<Options, Routes extends Record<keyof Routes, Dictionary>> = string extends keyof Routes ? Options : Omit<Options, 'label' | 'userData'> & ({
+    [Label in keyof Routes & string]: {
+        label: Label;
+        userData?: Routes[Label];
+    };
+}[keyof Routes & string] | {
+    label?: undefined;
+    userData?: Dictionary;
+});
+
+// Not exported by the entry point; reachable only as a referenced type.
+// @public (undocumented)
+interface UrlConstraints {
+    exclude?: readonly (GlobInput | RegExp)[];
+    globs?: readonly GlobInput[];
+    regexps?: readonly RegExpInput[];
+}
+
+// Not exported by the entry point; reachable only as a referenced type.
+// @public (undocumented)
+type UrlList = (string | null)[];
 
 // @public (undocumented)
 export type UrlPatternObject = {

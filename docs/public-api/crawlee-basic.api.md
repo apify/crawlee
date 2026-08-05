@@ -241,6 +241,14 @@ export interface CrawlerAddRequestsOptions extends AddRequestsBatchedOptions {
 export interface CrawlerAddRequestsResult extends AddRequestsBatchedResult {
 }
 
+// Not exported by the entry point; reachable only as a referenced type.
+// @public
+interface CrawlerIdentity {
+    readonly hasExplicitId: boolean;
+    readonly id: string;
+    readonly instanceIndex: number;
+}
+
 // @public (undocumented)
 export interface CrawlerRunOptions extends CrawlerAddRequestsOptions {
     purgeRequestQueue?: boolean;

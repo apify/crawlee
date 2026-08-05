@@ -17,12 +17,8 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
     // (undocumented)
     createRequestQueueBackend(options?: storage.StorageIdentifier): Promise<storage.RequestQueueBackend>;
     // (undocumented)
-    readonly datasetBackendCache: DatasetBackend[];
-    // (undocumented)
     readonly datasetsDirectory: string;
     getStorageBackendCacheKey(): string;
-    // (undocumented)
-    readonly keyValueStoreBackendCache: KeyValueStoreBackend[];
     // (undocumented)
     readonly keyValueStoresDirectory: string;
     // (undocumented)
@@ -32,8 +28,6 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
     purge(): Promise<void>;
     // (undocumented)
     readonly requestQueueAccess: 'single' | 'shared';
-    // (undocumented)
-    readonly requestQueueBackendCache: RequestQueueBackend[];
     // (undocumented)
     readonly requestQueuesDirectory: string;
     // (undocumented)
