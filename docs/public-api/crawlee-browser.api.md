@@ -9,8 +9,7 @@ import { ArrayPredicate } from 'ow';
 import type { Awaitable } from '@crawlee/types';
 import { BasePredicate } from 'ow';
 import { BasicCrawler } from '@crawlee/basic';
-import type { BasicCrawlerOptions } from '@crawlee/basic';
-import type { BasicCrawlingContext } from '@crawlee/basic';
+import { BasicCrawlerOptions } from '@crawlee/basic';
 import type { BatchAddRequestsResult } from '@crawlee/types';
 import { BooleanPredicate } from 'ow';
 import type { BrowserController } from '@crawlee/browser-pool';
@@ -19,8 +18,6 @@ import type { BrowserPluginOptions } from '@crawlee/browser-pool';
 import type { BrowserPoolHooks } from '@crawlee/browser-pool';
 import type { BrowserPoolOptions } from '@crawlee/browser-pool';
 import type { CommonPage } from '@crawlee/browser-pool';
-import { Configuration } from '@crawlee/basic';
-import type { Constructor } from '@crawlee/types';
 import { ContextPipeline } from '@crawlee/basic';
 import type { CrawlerRemoteBrowserOptions } from '@crawlee/browser-pool';
 import type { CrawlingContext } from '@crawlee/basic';
@@ -30,19 +27,22 @@ import type { ErrorHandler } from '@crawlee/basic';
 import type { GetUserDataFromRequest } from '@crawlee/basic';
 import type { IBrowserPool } from '@crawlee/types';
 import type { InferBrowserPluginArray } from '@crawlee/browser-pool';
-import { IRequestManager } from '@crawlee/basic';
 import type { LaunchContext } from '@crawlee/browser-pool';
 import type { LoadedRequest } from '@crawlee/basic';
 import { NumberPredicate } from 'ow';
 import { ObjectPredicate } from 'ow';
 import { Predicate } from 'ow';
-import type { ReadonlyDeep } from 'type-fest';
 import { Request as Request_2 } from '@crawlee/basic';
 import type { RequestHandler } from '@crawlee/basic';
-import type { RobotsTxtFile } from '@crawlee/utils';
 import type { RouterHandler } from '@crawlee/basic';
-import type { SkippedRequestCallback } from '@crawlee/basic';
 import { StringPredicate } from 'ow';
+
+// Not exported by the entry point; reachable only as a referenced type.
+// @public (undocumented)
+interface BaseResponse {
+    // (undocumented)
+    status(): number;
+}
 
 // @public
 export abstract class BrowserCrawler<Page extends CommonPage = CommonPage, Response extends BaseResponse = BaseResponse, InternalBrowserPoolOptions extends BrowserPoolOptions = BrowserPoolOptions, LaunchOptions extends Dictionary | undefined = Dictionary, Context extends BrowserCrawlingContext<Page, Response, Dictionary> = BrowserCrawlingContext<Page, Response, Dictionary>, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>, GoToOptions extends Dictionary = Dictionary> extends BasicCrawler<Context, ContextExtension, ExtendedContext, Routes> {
@@ -52,6 +52,8 @@ export abstract class BrowserCrawler<Page extends CommonPage = CommonPage, Respo
     get browserPool(): IBrowserPool<Page>;
     // (undocumented)
     protected buildContextPipeline(): ContextPipeline<CrawlingContext, BrowserCrawlingContext<Page, Response, Dictionary>>;
+    // (undocumented)
+    protected getNavigationTimeoutMillis(): number;
     // (undocumented)
     protected readonly ignoreIframes: boolean;
     // (undocumented)

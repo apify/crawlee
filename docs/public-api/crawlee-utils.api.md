@@ -10,7 +10,6 @@ import { CheerioAPI } from 'cheerio';
 import type { CrawleeLogger } from '@crawlee/types';
 import type { Dictionary } from '@crawlee/types';
 import { Element as Element_2 } from 'domhandler';
-import type { SearchParams } from '@crawlee/types';
 
 export { Cheerio }
 
@@ -100,6 +99,15 @@ const LINKEDIN_REGEX_GLOBAL: RegExp;
 // @public
 export function mergeAsyncIterables<T>(...iterables: AsyncIterable<T>[]): AsyncIterable<T>;
 
+// Not exported by the entry point; reachable only as a referenced type.
+// @public (undocumented)
+interface NestedSitemap {
+    // (undocumented)
+    loc: string;
+    // (undocumented)
+    originSitemapUrl: null;
+}
+
 // @public (undocumented)
 export interface OpenGraphProperty {
     // (undocumented)
@@ -109,6 +117,10 @@ export interface OpenGraphProperty {
     // (undocumented)
     outputName: string;
 }
+
+// Not exported by the entry point; reachable only as a referenced type.
+// @public (undocumented)
+type OpenGraphResult = string | string[] | Dictionary<string | Dictionary>;
 
 // @public
 function parseHandlesFromHtml(html: string, data?: Record<string, unknown> | null): Promise<SocialHandles>;
@@ -178,10 +190,35 @@ export class Sitemap {
     readonly urls: string[];
 }
 
+// Not exported by the entry point; reachable only as a referenced type.
+// @public (undocumented)
+type SitemapSource = ({
+    type: 'url';
+    url: string;
+} | {
+    type: 'raw';
+    content: string;
+}) & {
+    depth?: number;
+};
+
 // @public (undocumented)
 export type SitemapUrl = SitemapUrlData & {
     originSitemapUrl: string;
 };
+
+// Not exported by the entry point; reachable only as a referenced type.
+// @public (undocumented)
+interface SitemapUrlData {
+    // (undocumented)
+    changefreq?: 'always' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'never';
+    // (undocumented)
+    lastmod?: Date;
+    // (undocumented)
+    loc: string;
+    // (undocumented)
+    priority?: number;
+}
 
 // @public
 export function sleep(millis?: number): Promise<void>;

@@ -361,6 +361,7 @@ export class AdaptivePlaywrightCrawler<
             errorHandler,
             failedRequestHandler,
             requestHandler,
+            requestHandlerTimeoutSecs,
             contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),
         });
         this.individualRequestHandlerTimeoutMillis = requestHandlerTimeoutSecs * 1000;
@@ -608,6 +609,14 @@ export class AdaptivePlaywrightCrawler<
                 }
             };
 
+            // this crawler overrides `runRequestHandler` and times each rendering-type run itself, so it has
+            // to resolve any per-route override too - otherwise routes would be silently ignored here
+            const routeTimeoutSecs = (this.requestHandler as Partial<RouterHandler>).getTimeoutSecs?.(
+                context.request.label,
+            );
+            const timeoutMillis =
+                routeTimeoutSecs === undefined ? this.individualRequestHandlerTimeoutMillis : routeTimeoutSecs * 1000;
+
             await addTimeoutToPromise(
                 async () =>
                     withCheckedStorageAccess(() => {
@@ -617,7 +626,7 @@ export class AdaptivePlaywrightCrawler<
                             );
                         }
                     }, callAdaptiveRequestHandler),
-                this.individualRequestHandlerTimeoutMillis,
+                timeoutMillis,
                 'Request handler timed out',
             );
 

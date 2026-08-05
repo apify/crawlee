@@ -40,7 +40,7 @@
     },
     "dependencies": {
         "@apify/datastructures": "^2.0.0",
-        "@apify/timeout": "^0.3.2",
+        "@apify/timeout": "^0.4.4",
         "@apify/utilities": "^2.15.5",
         "@crawlee/core": "workspace:*",
         "@crawlee/http-client": "workspace:^",

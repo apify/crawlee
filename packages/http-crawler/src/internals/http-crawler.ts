@@ -21,6 +21,7 @@ import {
     BasicCrawler,
     ContextPipeline,
     NavigationSkippedError,
+    remainingNavigationWindowMillis,
     RequestState,
     Router,
     SessionError,
@@ -35,7 +36,7 @@ import iconv from 'iconv-lite';
 import ow from 'ow';
 import type { JsonValue } from 'type-fest';
 
-import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
+import { addTimeoutToPromise, storage, TimeoutError, tryCancel } from '@apify/timeout';
 
 import { extractCharsetFromHtmlBytes, parseContentTypeFromResponse, processHttpRequestOptions } from './utils.js';
 
@@ -79,7 +80,11 @@ export interface HttpCrawlerOptions<
     Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
 > extends BasicCrawlerOptions<Context, ContextExtension, ExtendedContext, Routes> {
     /**
-     * Timeout in which the HTTP request to the resource needs to finish, given in seconds.
+     * Timeout for the whole navigation phase, given in seconds. A single window shared by the
+     * `preNavigationHooks`, the navigation (the HTTP request to the resource), and the `postNavigationHooks` -
+     * so a slow hook eats into the same budget the navigation uses. Separate from the
+     * {@apilink BasicCrawlerOptions.requestHandlerTimeoutSecs|`requestHandlerTimeoutSecs`}, which times only the
+     * request handler.
      */
     navigationTimeoutSecs?: number;
 
@@ -172,9 +177,6 @@ export interface HttpCrawlerOptions<
     saveResponseCookies?: boolean;
 }
 
-/**
- * @internal
- */
 export type InternalHttpHook<Context, ContextExtension = {}> = (
     crawlingContext: Context & ContextExtension,
 ) => Awaitable<void | Partial<Context>>;
@@ -198,9 +200,6 @@ interface CrawlingContextWithResponse<
     response: Response;
 }
 
-/**
- * @internal
- */
 export interface InternalHttpCrawlingContext<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends JsonValue = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -422,6 +421,10 @@ export class HttpCrawler<
         this.saveResponseCookies = saveResponseCookies;
     }
 
+    protected override getNavigationTimeoutMillis(): number {
+        return this.navigationTimeoutMillis;
+    }
+
     /**
      * Folds {@apilink HTTP_OPTIMIZED_CONCURRENCY_SYSTEM_OPTIONS} into the default system, keeping the user's
      * concurrency shortcuts on top. Not called for a supplied
@@ -444,18 +447,33 @@ export class HttpCrawler<
             action: async (ctx) => (ctx.request.skipNavigation ? {} : ((await action(ctx)) ?? {})) as Ext,
         });
 
+        // A single navigation window covers the pre-navigation hooks, the navigation, and the post-navigation
+        // hooks: the whole phase shares one `navigationTimeoutSecs` budget, so a slow hook eats into the same
+        // window the navigation uses instead of each step being timed on its own.
+        const navigationTimedOut = `Navigation timed out after ${this.navigationTimeoutMillis / 1000} seconds.`;
+        const windowGuard = <Ctx extends CrawlingContext, Ext>(
+            step: (ctx: Ctx) => Awaitable<void | Ext>,
+        ): ContextMiddleware<Ctx, Ext> =>
+            skipGuard(async (ctx: Ctx) => {
+                const remaining = remainingNavigationWindowMillis(ctx, this.navigationTimeoutMillis);
+                if (remaining <= 0) {
+                    throw new TimeoutError(navigationTimedOut);
+                }
+                return addTimeoutToPromise(async () => step(ctx), remaining, navigationTimedOut);
+            });
+
         let pipeline = ContextPipeline.create<CrawlingContext>().compose({
             action: this.prepareHttpRequest.bind(this),
         });
 
         for (const hook of this.preNavigationHooks) {
-            pipeline = pipeline.compose(skipGuard(hook));
+            pipeline = pipeline.compose(windowGuard(hook));
         }
 
         let pipelineWithNavigation = pipeline.compose(skipGuard(this.makeHttpRequest.bind(this)));
 
         for (const hook of this.postNavigationHooks) {
-            pipelineWithNavigation = pipelineWithNavigation.compose(skipGuard(hook));
+            pipelineWithNavigation = pipelineWithNavigation.compose(windowGuard(hook));
         }
 
         return pipelineWithNavigation
@@ -498,10 +516,13 @@ export class HttpCrawler<
         const { request, session } = crawlingContext;
         const proxyUrl = crawlingContext.proxyInfo?.url;
 
+        // Bound the request by whatever is left of the shared navigation window (the pre-navigation hooks may
+        // have already spent part of it), so it produces a clean navigation-timeout error rather than the raw
+        // client abort.
         const httpResponse = await addTimeoutToPromise(
             async () => this.requestFunction({ request, session, proxyUrl }),
-            this.navigationTimeoutMillis,
-            `request timed out after ${this.navigationTimeoutMillis / 1000} seconds.`,
+            Math.max(1, remainingNavigationWindowMillis(crawlingContext, this.navigationTimeoutMillis)),
+            `Navigation timed out after ${this.navigationTimeoutMillis / 1000} seconds.`,
         );
         tryCancel();
 
@@ -548,7 +569,18 @@ export class HttpCrawler<
 
         tryCancel();
 
-        const parsed = await this.parseResponse(crawlingContext.request, crawlingContext.response);
+        // Reading the body is still part of the navigation, so it draws from the same shared window: on a server
+        // that streams the body slowly the request completes (headers arrive) but the body read would otherwise
+        // run unbounded. `extendTimeout` from a post-navigation hook has already pushed this deadline out if asked.
+        const remaining = remainingNavigationWindowMillis(crawlingContext, this.navigationTimeoutMillis);
+        if (remaining <= 0) {
+            throw new TimeoutError(`Navigation timed out after ${this.navigationTimeoutMillis / 1000} seconds.`);
+        }
+        const parsed = await addTimeoutToPromise(
+            async () => this.parseResponse(crawlingContext.request, crawlingContext.response),
+            remaining,
+            `Navigation timed out after ${this.navigationTimeoutMillis / 1000} seconds.`,
+        );
         tryCancel();
         const response = parsed.response!;
         const contentType = parsed.contentType!;
@@ -810,7 +842,7 @@ export class HttpCrawler<
      */
     private handleRequestTimeout(session: ISession) {
         session.markBad();
-        throw new Error(`request timed out after ${this.navigationTimeoutMillis / 1000} seconds.`);
+        throw new Error(`Request timed out after ${this.navigationTimeoutMillis / 1000} seconds.`);
     }
 
     private _abortDownloadOfBody(request: CrawleeRequest, response: Response) {
@@ -842,6 +874,13 @@ export class HttpCrawler<
         // hooks keeps working) but a per-request clone is passed in so writes are discarded.
         const cookieJar = this.saveResponseCookies ? session.cookieJar : await session.cookieJar.clone();
 
+        // Bind the request to the shared navigation window instead of a fixed per-request timeout, so
+        // `extendTimeout()` can push the deadline and a fixed `AbortSignal.timeout` won't fire on its own and
+        // kill a lazily-read body mid-extension. This aborts the socket only during the header phase; the body
+        // read is bounded separately at the promise level (see `processHttpResponse`), so a slow-streaming body
+        // still fails cleanly with a navigation timeout, though the socket is left to close on its own.
+        const cancelSignal = storage.getStore()?.cancelTask.signal;
+
         const response = await this.httpClient.sendRequest(
             new Request(opts.url, {
                 body: opts.body ? (Readable.toWeb(opts.body) as any) : undefined,
@@ -853,7 +892,8 @@ export class HttpCrawler<
             {
                 session,
                 cookieJar,
-                timeoutMillis: opts.timeout,
+                signal: cancelSignal,
+                timeoutMillis: cancelSignal ? undefined : opts.timeout,
             },
         );
 

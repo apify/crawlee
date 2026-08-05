@@ -20,7 +20,6 @@ export type IsAny<T> = 0 extends 1 & T ? true : false;
  * When the route map is open (the default `Record<string, ...>`), this is just the regular loose
  * {@apilink Source} input. When the map declares concrete labels, providing a `label` requires the matching
  * `userData` shape and rejects labels not present in the map; unlabeled requests keep loose `userData`.
- * @internal
  */
 export type LabeledSource<Routes extends Record<keyof Routes, Dictionary>> = string extends keyof Routes
     ? string | Source
@@ -49,7 +48,6 @@ export type TypedRequestsLike<Routes extends Record<keyof Routes, Dictionary>> =
 /**
  * The label-aware `addRequests` method signature exposed on a request handler's context when the crawler is
  * bound to a typed router. Mirrors {@apilink RestrictedCrawlingContext.addRequests} with typed sources.
- * @internal
  */
 export type TypedContextAddRequests<Routes extends Record<keyof Routes, Dictionary>> = (
     requestsLike: ReadonlyDeep<LabeledSource<Routes>[]>,
@@ -73,7 +71,6 @@ type TypedEnqueueLinksOptions<Options, Routes extends Record<keyof Routes, Dicti
  * Transforms a context's existing `enqueueLinks` method so that the `label`/`userData` in its options follow
  * the router's route map, while preserving everything else about the signature (argument optionality and
  * return type, which differ between crawler types).
- * @internal
  */
 export type TypedContextEnqueueLinks<
     EnqueueLinks,
@@ -84,7 +81,6 @@ export type TypedContextEnqueueLinks<
       ? (options: TypedEnqueueLinksOptions<Options, Routes>) => Result
       : EnqueueLinks;
 
-/** @internal */
 export type WithRequired<T, K extends keyof T> = T & { [P in K]-?: T[P] };
 
 export type LoadedRequest<R extends Request> = WithRequired<R, 'id' | 'loadedUrl'>;
@@ -235,6 +231,26 @@ export interface CrawlingContext<UserData extends Dictionary = Dictionary> exten
      * Register a function to be called at the very end of the request handling process. This is useful for resources that should be accessible to error handlers, for instance.
      */
     registerDeferredCleanup(cleanup: () => Promise<unknown>): void;
+
+    /**
+     * Gives the current request `secs` more seconds to finish, for when how long it needs is only apparent
+     * once it is already running - a listing page that turns out to have far more to scroll through than
+     * usual, say. Prefer `requestHandlerTimeoutSecs`, or a per-route override via
+     * {@apilink Router.addHandler|`router.addHandler`}, whenever the time needed is known up front.
+     *
+     * ```ts
+     * router.addHandler('LIST', async ({ extendTimeout, page }) => {
+     *     const pageCount = await countPages(page);
+     *     extendTimeout(pageCount * 10);
+     *     await scrapeAllPages(page);
+     * });
+     * ```
+     *
+     * Extends the request handler's own timeout and the crawler's internal one together, so the extension
+     * is not immediately undone by the latter. Calling it from a handler that has already timed out does
+     * nothing.
+     */
+    extendTimeout(secs: number): void;
 }
 
 /**

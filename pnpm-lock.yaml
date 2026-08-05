@@ -300,8 +300,8 @@ importers:
         specifier: ^2.0.0
         version: 2.0.4
       '@apify/timeout':
-        specifier: ^0.3.2
-        version: 0.3.3
+        specifier: ^0.4.4
+        version: 0.4.4
       '@apify/utilities':
         specifier: ^2.15.5
         version: 2.27.0
@@ -343,8 +343,8 @@ importers:
   packages/browser-crawler:
     dependencies:
       '@apify/timeout':
-        specifier: ^0.3.2
-        version: 0.3.3
+        specifier: ^0.4.4
+        version: 0.4.4
       '@crawlee/basic':
         specifier: workspace:*
         version: link:../basic-crawler
@@ -376,8 +376,8 @@ importers:
   packages/browser-pool:
     dependencies:
       '@apify/timeout':
-        specifier: ^0.3.2
-        version: 0.3.3
+        specifier: ^0.4.4
+        version: 0.4.4
       '@crawlee/core':
         specifier: workspace:*
         version: link:../core
@@ -475,8 +475,8 @@ importers:
         specifier: ^2.5.18
         version: 2.5.35
       '@apify/timeout':
-        specifier: ^0.3.2
-        version: 0.3.3
+        specifier: ^0.4.4
+        version: 0.4.4
       '@apify/utilities':
         specifier: ^2.15.5
         version: 2.27.0
@@ -628,8 +628,8 @@ importers:
   packages/http-crawler:
     dependencies:
       '@apify/timeout':
-        specifier: ^0.3.2
-        version: 0.3.3
+        specifier: ^0.4.4
+        version: 0.4.4
       '@apify/utilities':
         specifier: ^2.15.5
         version: 2.27.0
@@ -694,8 +694,8 @@ importers:
   packages/jsdom-crawler:
     dependencies:
       '@apify/timeout':
-        specifier: ^0.3.0
-        version: 0.3.3
+        specifier: ^0.4.4
+        version: 0.4.4
       '@apify/utilities':
         specifier: ^2.7.10
         version: 2.27.0
@@ -727,8 +727,8 @@ importers:
   packages/linkedom-crawler:
     dependencies:
       '@apify/timeout':
-        specifier: ^0.3.2
-        version: 0.3.3
+        specifier: ^0.4.4
+        version: 0.4.4
       '@apify/utilities':
         specifier: ^2.15.5
         version: 2.27.0
@@ -760,8 +760,8 @@ importers:
         specifier: ^2.0.3
         version: 2.0.4
       '@apify/timeout':
-        specifier: ^0.3.2
-        version: 0.3.3
+        specifier: ^0.4.4
+        version: 0.4.4
       '@crawlee/basic':
         specifier: workspace:*
         version: link:../basic-crawler
@@ -859,8 +859,8 @@ importers:
   packages/stagehand-crawler:
     dependencies:
       '@apify/timeout':
-        specifier: ^0.3.2
-        version: 0.3.3
+        specifier: ^0.4.4
+        version: 0.4.4
       '@crawlee/browser':
         specifier: workspace:*
         version: link:../browser-crawler
@@ -1318,6 +1318,9 @@ packages:
 
   '@apify/timeout@0.3.3':
     resolution: {integrity: sha512-lyvwMXee8SJNjNyxhr+nSTNyvjyoxbxol51xikq9VytFOPNSEMz8N02mUAuLVJNqrnqCBFRybjeqZdg4Y5AZlA==}
+
+  '@apify/timeout@0.4.4':
+    resolution: {integrity: sha512-WOjdkuNRSo09ikse47t6jIW4R55FEmZdOaoUTbSmpwfmNNHVht+iTgoqeHIVr7vvI9s+mtTmvzPoesoZa0cjVA==}
 
   '@apify/tsconfig@0.2.0':
     resolution: {integrity: sha512-0i6rF+hgXw6mQXhENYNTnP+Yo4WY38d698k/pk4rIpdCx/sSuEprR2N5WdtMaN628vCB+aZjff0jPN2EnQYtjQ==}
@@ -12961,6 +12964,8 @@ snapshots:
       '@apify/log': 2.5.35
 
   '@apify/timeout@0.3.3': {}
+
+  '@apify/timeout@0.4.4': {}
 
   '@apify/tsconfig@0.2.0': {}
 
