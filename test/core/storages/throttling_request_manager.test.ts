@@ -66,14 +66,14 @@ describe('ThrottlingRequestManager', () => {
         expect(await manager.fetchNextRequest()).toBeNull();
     });
 
-    test('addRequests routing', async () => {
+    test('addRequestsBatched routing', async () => {
         const inner = await createQueue();
         const manager = new ThrottlingRequestManager({
             inner,
             domains: ['example.com', 'foo.com'],
         });
 
-        await manager.addRequests([
+        await manager.addRequestsBatched([
             { url: 'https://example.com/1' },
             { url: 'https://other.com/1' },
             { url: 'https://foo.com/1' },
@@ -81,6 +81,78 @@ describe('ThrottlingRequestManager', () => {
 
         expect(await inner.getTotalCount()).toBe(1);
         expect(await manager.getTotalCount()).toBe(3);
+    });
+
+    test('addRequestsBatched consumes the input lazily and honours maxNewRequests', async () => {
+        const manager = new ThrottlingRequestManager({
+            inner: await createQueue(),
+            domains: ['example.com'],
+        });
+
+        let produced = 0;
+        async function* urls() {
+            for (let i = 0; i < 10; i++) {
+                produced++;
+                yield { url: `https://example.com/${i}` };
+            }
+        }
+
+        const result = await manager.addRequestsBatched(urls(), { batchSize: 2, maxNewRequests: 4 });
+
+        expect(await manager.getTotalCount()).toBe(4);
+        expect(result.requestsOverLimit).toHaveLength(6);
+        // Everything was pulled to report the leftovers, but only via the budget-capped chunks.
+        expect(produced).toBe(10);
+    });
+
+    test('addRequestsBatched keeps isFinished false while background batches are landing', async () => {
+        const inner = await createQueue();
+        // Reports itself done the moment each batch lands, so only our own batch bookkeeping can hold the crawl open.
+        const eagerlyFinished = {
+            ...inner,
+            addRequestsBatched: inner.addRequestsBatched.bind(inner),
+            getTotalCount: inner.getTotalCount.bind(inner),
+            isEmpty: async () => true,
+            isFinished: async () => true,
+        } as unknown as RequestQueue;
+
+        const manager = new ThrottlingRequestManager({ inner: eagerlyFinished, domains: [] });
+
+        const result = await manager.addRequestsBatched(
+            [{ url: 'https://other.com/1' }, { url: 'https://other.com/2' }],
+            { batchSize: 1, waitBetweenBatchesMillis: 0 },
+        );
+
+        // The inner manager reports itself finished as soon as its own batch lands, but ours must not -
+        // there is still a batch in flight behind it.
+        expect(await manager.isFinished()).toBe(false);
+
+        await result.waitForAllRequestsToBeAdded;
+        expect(await manager.getTotalCount()).toBe(2);
+    });
+
+    test('addRequestsBatched surfaces a background failure without an unhandled rejection', async () => {
+        const inner = await createQueue();
+        let batches = 0;
+        const flaky = {
+            ...inner,
+            addRequestsBatched: async (...args: Parameters<RequestQueue['addRequestsBatched']>) => {
+                if (++batches > 1) {
+                    throw new Error('backend exploded');
+                }
+                return inner.addRequestsBatched(...args);
+            },
+        } as unknown as RequestQueue;
+
+        const manager = new ThrottlingRequestManager({ inner: flaky, domains: [] });
+
+        const result = await manager.addRequestsBatched(
+            [{ url: 'https://other.com/1' }, { url: 'https://other.com/2' }],
+            { batchSize: 1, waitBetweenBatchesMillis: 0 },
+        );
+
+        // Nobody is obliged to await this - but if it rejects unhandled, Node kills the process.
+        await expect(result.waitForAllRequestsToBeAdded).rejects.toThrow('backend exploded');
     });
 
     test('recordDomainDelay enforces throttling and fair scheduling', async () => {
