@@ -49,15 +49,15 @@ describe('enqueueLinks() - combining user patterns with enqueue strategies', () 
         $ = load(HTML);
     });
 
-    test('works with globs and same domain strategy', async () => {
+    test('works with include and same domain strategy', async () => {
         const requestQueue = await RequestQueue.open();
 
-        const globs = ['**/first'];
+        const include = ['**/first'];
 
         await cheerioCrawlerEnqueueLinks({
             options: {
                 selector: '.click',
-                globs,
+                include,
                 strategy: EnqueueStrategy.SameDomain,
             },
             $,
@@ -68,15 +68,15 @@ describe('enqueueLinks() - combining user patterns with enqueue strategies', () 
         expect(await enqueuedUrls(requestQueue)).toEqual(new Set(['https://example.com/a/b/first']));
     });
 
-    test('works with globs and all domains strategy', async () => {
+    test('works with include and all domains strategy', async () => {
         const requestQueue = await RequestQueue.open();
 
-        const globs = ['**/first'];
+        const include = ['**/first'];
 
         await cheerioCrawlerEnqueueLinks({
             options: {
                 selector: '.click',
-                globs,
+                include,
                 strategy: EnqueueStrategy.All,
             },
             $,
@@ -107,16 +107,16 @@ describe('enqueueLinks() - combining user patterns with enqueue strategies', () 
         );
     });
 
-    test('works with globs and exclude', async () => {
+    test('works with include and exclude', async () => {
         const requestQueue = await RequestQueue.open();
 
-        const globs = ['**/first'];
+        const include = ['**/first'];
         const exclude = ['**/first'];
 
         await cheerioCrawlerEnqueueLinks({
             options: {
                 selector: '.click',
-                globs,
+                include,
                 exclude,
             },
             $,
