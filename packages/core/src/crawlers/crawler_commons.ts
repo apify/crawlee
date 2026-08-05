@@ -234,6 +234,11 @@ export interface CrawlingContext<UserData extends Dictionary = Dictionary> exten
 
     /**
      * Register a function to be called at the very end of the request handling process. This is useful for resources that should be accessible to error handlers, for instance.
+     *
+     * The callback runs *outside* the request's storage transaction, so storage writes made here are
+     * applied immediately and are **not** rolled back when the request fails. In
+     * {@apilink AdaptivePlaywrightCrawler} it also runs once per request handler attempt, so a write
+     * here can land more than once for a single request. Push results from the request handler itself.
      */
     registerDeferredCleanup(cleanup: () => Promise<unknown>): void;
 }

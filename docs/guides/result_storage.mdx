@@ -146,6 +146,8 @@ This is **on by default** for every crawler and covers the whole request lifecyc
 
 - **Error handlers.** `errorHandler` and `failedRequestHandler` run after the failed request's transaction has been rolled back, so their writes go straight to real storage — that is what error handlers are for.
 
+- **Deferred cleanups.** Callbacks registered with `registerDeferredCleanup()` run after the transaction is closed, so their writes land immediately and are not rolled back. In <ApiLink to="playwright-crawler/class/AdaptivePlaywrightCrawler">`AdaptivePlaywrightCrawler`</ApiLink> they run once per request handler attempt, so a write there can land twice for one request — push your results from the request handler instead.
+
 ### Escape hatches
 
 The feature is escapable at three granularities:
