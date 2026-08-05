@@ -557,6 +557,26 @@ The `KeyValueStore.getPublicUrl` method is now asynchronous and reads the public
 
 The `preNavigationHooks` option in `HttpCrawler` subclasses no longer accepts the `gotOptions` object as a second parameter. Modify the `crawlingContext` fields (e.g. `.request`) directly instead.
 
+## Browser navigation hooks no longer receive `gotoOptions` as a second argument
+
+The `preNavigationHooks` and `postNavigationHooks` of the browser crawlers (`PlaywrightCrawler`, `PuppeteerCrawler`) received the options object forwarded to `page.goto()` as a second parameter in v3. The hooks now receive only the crawling context, and the `page.goto()` options are available as its `gotoOptions` member, which can be mutated in place:
+
+```ts
+// v3
+preNavigationHooks: [
+    async (crawlingContext, gotoOptions) => {
+        gotoOptions.timeout = 60_000;
+    },
+],
+
+// v4
+preNavigationHooks: [
+    async ({ gotoOptions }) => {
+        gotoOptions.timeout = 60_000;
+    },
+],
+```
+
 ## Navigation and the request handler are timed separately
 
 In v3, navigation ran inside the request handler's time window, and the two options were summed (plus an undocumented 10 second buffer) to form the actual limit. Setting `requestHandlerTimeoutSecs: 60` on a `PlaywrightCrawler` therefore produced errors complaining about 130 seconds.
