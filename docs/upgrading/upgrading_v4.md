@@ -109,14 +109,14 @@ The `Configuration` class has been redesigned for v4. The main changes are:
 #### Direct property access replaces `get()` and `set()`
 
 **Before:**
-```ts
+```typescript
 const config = Configuration.getGlobalConfig();
 config.set('persistStateIntervalMillis', 10_000);
 const headless = config.get('headless');
 ```
 
 **After:**
-```ts
+```typescript
 // Configuration is now immutable — set options via the constructor
 const config = new Configuration({ persistStateIntervalMillis: 10_000 });
 const headless = config.headless;
@@ -277,20 +277,20 @@ Navigation and the request handler are now timed independently, and each reports
 Two things to watch for when upgrading:
 
 - **Navigation hooks are now bounded.** They had no timeout of their own before, so a `preNavigationHooks` / `postNavigationHooks` function that pushes the whole phase past `navigationTimeoutSecs` will now fail the request. Raise `navigationTimeoutSecs`, or call `context.extendTimeout()` from inside the hook when the extra time is only needed occasionally.
-- **A request can no longer hang forever.** An internal timeout now bounds the whole request, covering the phases that have no timeout of their own (`extendContext`, the robots.txt check, response processing). By default it is deliberately generous (twice the request handler timeout, and never less than 5 minutes), so it only fires when a request is genuinely stuck. Set `CRAWLEE_INTERNAL_TIMEOUT` (in milliseconds) to override it. Because it wraps the whole request, it is raised per request to outlast the navigation and request handler timeouts, so a value below them cannot cut those phases short; if you configure one that low, the crawler warns at startup that it is being ignored.
+- **A request can no longer hang forever.** An internal timeout now bounds the whole request, covering the phases that have no timeout of their own (`extendContext`, the robots.txt check, response processing). By default it is deliberately generous (twice the request handler timeout, and never less than 5 minutes), so it only fires when a request is genuinely stuck. Set `CRAWLEE_INTERNAL_TIMEOUT` (in milliseconds) to override it. A value below the navigation and request handler timeouts is ignored — the crawler warns at startup and keeps the timeout above them so those phases are never cut short.
 
 ### Per-route and per-request handler timeouts
 
 `requestHandlerTimeoutSecs` still applies to every request alike, but a single route can now opt out of it — useful when one page type needs markedly more time than the rest, and you do not want to raise the timeout for everything else to accommodate it:
 
-```ts
+```typescript
 router.addHandler('LIST', async ({ enqueueLinks }) => { ... }, { requestHandlerTimeoutSecs: 120 });
 router.addHandler('DETAIL', async ({ pushData }) => { ... }); // keeps the crawler's default
 ```
 
 When the time needed is only apparent once the handler is already running, `context.extendTimeout()` buys it more:
 
-```ts
+```typescript
 router.addHandler('LIST', async ({ page, extendTimeout }) => {
     const pageCount = await countPages(page);
     extendTimeout(pageCount * 10);
@@ -414,7 +414,7 @@ The crawling context no longer includes the `Error` object for failed requests. 
 
 This was previously accessible via `context.crawler`. If you want to restore the functionality, you may use the `extendContext` option of the crawler:
 
-```ts
+```typescript
 const crawler = new CheerioCrawler({
   extendContext: () => ({ crawler }),
   requestHandler: async (context) => {
@@ -491,7 +491,7 @@ await crawler.run(['https://example.com/second'], { purgeRequestQueue: true });
 
 The first parameter now also accepts a `StorageIdentifier` object with separate `id` and `name` fields:
 
-```ts
+```typescript
 interface StorageIdentifier {
     id?: string;
     name?: string;
@@ -1208,7 +1208,7 @@ The `RequestQueue.requestLockSecs` property has been removed. Because request lo
 
 If you use a `RequestQueue` outside of a crawler and your processing may exceed the 3-minute default lock, call `setExpectedRequestProcessingTimeSecs(secs)` on the queue to raise it:
 
-```ts
+```typescript
 import { RequestQueue } from 'crawlee';
 
 const queue = await RequestQueue.open();
@@ -1363,7 +1363,7 @@ try {
 
 #### `AutoscaledPool` is no longer public API
 
-`AutoscaledPool` is `@internal` in v4, along with `AutoscaledPoolOptions`. It is still exported from `@crawlee/core` (and re-exported by `crawlee`), so nothing breaks at import time — but with all the configuration moved to the `ConcurrencySystem`, what remains is a bare parallel task runner, and a scraping library has no business promising backwards compatibility for one. Reach for it if you must; it can change without a major bump, and if you only wanted bounded parallelism, a `p-limit`-style helper is a better fit than an internal Crawlee class.
+`AutoscaledPool` is `@internal` in v4, along with `AutoscaledPoolOptions`. It is still exported from `@crawlee/core` (and re-exported by `crawlee`), so nothing breaks at import time — but with all the configuration moved to the `ConcurrencySystem`, what remains is a bare parallel task runner. It can change without a major bump, so avoid depending on it; if you only wanted bounded parallelism, a `p-limit`-style helper is a better fit than an internal Crawlee class.
 
 The crawler's `autoscaledPool` property is **private** as a result. Everything it was reached for has a crawler-level counterpart:
 
@@ -1384,7 +1384,7 @@ const crawler = new CheerioCrawler({
 });
 ```
 
-`crawler.concurrencySystem` is `undefined` until `run()` has resolved it, and a crawler-owned default is rebuilt for every run — so read it during a run rather than caching it across runs. A system *you* injected is of course simply the instance you passed in.
+`crawler.concurrencySystem` is `undefined` until `run()` has resolved it, and a crawler-owned default is rebuilt for every run — so read it during a run rather than caching it across runs. A system *you* injected is simply the instance you passed in.
 
 The getter is typed as the read-only `IConcurrencySystem` and has no setters, so retuning concurrency mid-crawl means owning the instance:
 
