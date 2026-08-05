@@ -14,6 +14,8 @@ import type {
     RequestProvider,
     RouterHandler,
     RouterRoutes,
+    RouteSchemas,
+    RoutesFromSchemas,
     SkippedRequestCallback,
 } from '@crawlee/http';
 import { enqueueLinks, HttpCrawler, resolveBaseUrlForEnqueueLinksFiltering, Router } from '@crawlee/http';
@@ -195,7 +197,9 @@ export class CheerioCrawler extends HttpCrawler<CheerioCrawlingContext> {
             body,
             enqueueLinks: async (enqueueOptions?: EnqueueLinksOptions) => {
                 return cheerioCrawlerEnqueueLinks({
-                    options: { ...enqueueOptions, limit: this.calculateEnqueuedRequestLimit(enqueueOptions?.limit) },
+                    // `originalEnqueueLinks` clamps `limit` by the remaining `maxRequestsPerCrawl` budget itself;
+                    // pre-clamping it here would make the crawler log the internal limit as a user-provided one
+                    options: enqueueOptions,
                     $,
                     requestQueue: await this.getRequestQueue(),
                     robotsTxtFile: await this.getRobotsTxtFileForUrl(crawlingContext.request.url),
@@ -292,8 +296,8 @@ export async function cheerioCrawlerEnqueueLinks(
     if (containsEnqueueLinks(options)) {
         return options.enqueueLinks({
             urls,
-            baseUrl,
             ...enqueueLinksOptions,
+            baseUrl,
         });
     }
     return enqueueLinks({
@@ -301,8 +305,8 @@ export async function cheerioCrawlerEnqueueLinks(
         robotsTxtFile: options.robotsTxtFile,
         onSkippedRequest: options.onSkippedRequest,
         urls,
-        baseUrl,
         ...enqueueLinksOptions,
+        baseUrl,
     });
 }
 
@@ -338,6 +342,10 @@ export function createCheerioRouter<
     Context extends CheerioCrawlingContext = CheerioCrawlingContext,
     UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
 >(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
-export function createCheerioRouter(routes?: RouterRoutes<any, any>) {
-    return Router.create<any, any>(routes);
+export function createCheerioRouter<
+    Context extends CheerioCrawlingContext = CheerioCrawlingContext,
+    const Schemas extends RouteSchemas = RouteSchemas,
+>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
+export function createCheerioRouter(routesOrSchemas?: any): any {
+    return Router.create(routesOrSchemas);
 }

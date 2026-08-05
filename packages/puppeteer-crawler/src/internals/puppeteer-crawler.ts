@@ -7,11 +7,14 @@ import type {
     LoadedContext,
     RouterHandler,
     RouterRoutes,
+    RouteSchemas,
+    RoutesFromSchemas,
 } from '@crawlee/browser';
 import { BrowserCrawler, Configuration, Router } from '@crawlee/browser';
 import type { BrowserPoolOptions, PuppeteerController, PuppeteerPlugin } from '@crawlee/browser-pool';
 import type { Dictionary } from '@crawlee/types';
 import ow from 'ow';
+// @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
 import type { HTTPResponse, LaunchOptions, Page } from 'puppeteer';
 
 import type { PuppeteerLaunchContext } from './puppeteer-launcher';
@@ -228,6 +231,10 @@ export function createPuppeteerRouter<
     Context extends PuppeteerCrawlingContext = PuppeteerCrawlingContext,
     UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
 >(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
-export function createPuppeteerRouter(routes?: RouterRoutes<any, any>) {
-    return Router.create<any, any>(routes);
+export function createPuppeteerRouter<
+    Context extends PuppeteerCrawlingContext = PuppeteerCrawlingContext,
+    const Schemas extends RouteSchemas = RouteSchemas,
+>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
+export function createPuppeteerRouter(routesOrSchemas?: any): any {
+    return Router.create(routesOrSchemas);
 }

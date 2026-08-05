@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.18.0](https://github.com/apify/crawlee/compare/v3.17.0...v3.18.0) (2026-08-04)
+
+### Bug Fixes
+
+* filter sitemap-derived URLs by enqueue strategy ([#3797](https://github.com/apify/crawlee/issues/3797)) ([9dc3160](https://github.com/apify/crawlee/commit/9dc3160e6b83c549c29c188b7a88fdc8a612be62))
+* **sitemap:** recognize sitemap_index as a valid input sitemap url ([#3909](https://github.com/apify/crawlee/issues/3909)) ([eacab5e](https://github.com/apify/crawlee/commit/eacab5e155aeb5dca62cd0c03ef3553be65dd32b))
+* **utils:** advance the CPU tick baseline in systemInfoV2 getCurrentCpuTicks ([#3824](https://github.com/apify/crawlee/issues/3824)) ([bb23800](https://github.com/apify/crawlee/commit/bb238007e34009371807742ba11ecbb9974887b3))
+* **utils:** allow apostrophes and asterisks in extracted URLs ([#3790](https://github.com/apify/crawlee/issues/3790)) ([e9baffd](https://github.com/apify/crawlee/commit/e9baffd78ec42079d5c9a8a6e62d43a594ae42c8)), closes [#2755](https://github.com/apify/crawlee/issues/2755)
+* **utils:** prevent ReDoS in social email regex ([#3845](https://github.com/apify/crawlee/issues/3845)) ([d6a2b39](https://github.com/apify/crawlee/commit/d6a2b39252c0f00290e75a73def057fd39625525))
+* **utils:** prevent sitemap metadata leak across url without loc ([#3795](https://github.com/apify/crawlee/issues/3795)) ([895ed62](https://github.com/apify/crawlee/commit/895ed6264d7eadc5306b92303aeb99bff41cb286))
+* **utils:** use article:* selectors for article Open Graph properties ([#3789](https://github.com/apify/crawlee/issues/3789)) ([b660506](https://github.com/apify/crawlee/commit/b6605065fc4d7b692bcdac3ee2004042e8de7457))
+
+
 # [3.17.0](https://github.com/apify/crawlee/compare/v3.16.0...v3.17.0) (2026-06-04)
 
 

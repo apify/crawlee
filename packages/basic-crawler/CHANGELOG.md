@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.18.0](https://github.com/apify/crawlee/compare/v3.17.0...v3.18.0) (2026-08-04)
+
+### Bug Fixes
+
+* avoid duplicate final crawler persistence ([#3866](https://github.com/apify/crawlee/issues/3866)) ([79dd6c4](https://github.com/apify/crawlee/commit/79dd6c41eff144914ddb7fa6e04a65e9b8b762e0)), closes [#3167](https://github.com/apify/crawlee/issues/3167)
+* **basic-crawler:** declare `@apify/datastructures` as a dependency ([#3815](https://github.com/apify/crawlee/issues/3815)) ([4e9d227](https://github.com/apify/crawlee/commit/4e9d227d7711f10662800d4079c4f958368bc063))
+* **core:** keep crawler enqueue limits when options carry explicit undefined ([#3927](https://github.com/apify/crawlee/issues/3927)) ([5f1b0ab](https://github.com/apify/crawlee/commit/5f1b0ab480f297100d2db70f646825b92f70f21a)), closes [#3924](https://github.com/apify/crawlee/issues/3924) [#3924](https://github.com/apify/crawlee/issues/3924)
+* make crawler terminal status message reliably delivered ([#3733](https://github.com/apify/crawlee/issues/3733)) ([7aed264](https://github.com/apify/crawlee/commit/7aed264f1cd9e993ffab93e314e9c7318b30d43d))
+* respect falsy transformRequestFunction return in context enqueueLinks ([#3925](https://github.com/apify/crawlee/issues/3925)) ([6cb4fc3](https://github.com/apify/crawlee/commit/6cb4fc392f43e7ad42d56114372eb8ad79aeff74)), closes [#3920](https://github.com/apify/crawlee/issues/3920)
+
+### Features
+
+* opt-in schema validation of request userData per router label ([#3851](https://github.com/apify/crawlee/issues/3851)) ([c7347f9](https://github.com/apify/crawlee/commit/c7347f94f72980b7c424fb4fc7dc8f990f360d70)), closes [#3747](https://github.com/apify/crawlee/issues/3747) [#3748](https://github.com/apify/crawlee/issues/3748) [#3747](https://github.com/apify/crawlee/issues/3747) [#3082](https://github.com/apify/crawlee/issues/3082)
+* type-safe router labels via per-label userData map ([#3747](https://github.com/apify/crawlee/issues/3747)) ([1124aca](https://github.com/apify/crawlee/commit/1124aca3c5eb527c097decd7263a6816c411369e)), closes [#3082](https://github.com/apify/crawlee/issues/3082)
+
+
 # [3.17.0](https://github.com/apify/crawlee/compare/v3.16.0...v3.17.0) (2026-06-04)
 
 

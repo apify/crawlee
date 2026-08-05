@@ -384,10 +384,13 @@ export class SessionPool extends EventEmitter {
     /**
      * Removes listener from `persistState` event.
      * This function should be called after you are done with using the `SessionPool` instance.
+     * @param options - Set `persistState` to false when the final state was already persisted by the event manager.
      */
-    async teardown(): Promise<void> {
+    async teardown({ persistState = true }: { persistState?: boolean } = {}): Promise<void> {
         this.events.off(EventType.PERSIST_STATE, this._listener);
-        await this.persistState();
+        if (persistState) {
+            await this.persistState();
+        }
     }
 
     /**

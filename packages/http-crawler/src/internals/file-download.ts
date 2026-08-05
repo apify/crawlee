@@ -15,6 +15,8 @@ import type {
     RequestHandler,
     RouterHandler,
     RouterRoutes,
+    RouteSchemas,
+    RoutesFromSchemas,
 } from '../index';
 import { HttpCrawler, Router } from '../index';
 
@@ -338,6 +340,10 @@ export function createFileRouter<
     Context extends FileDownloadCrawlingContext = FileDownloadCrawlingContext,
     UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
 >(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
-export function createFileRouter(routes?: RouterRoutes<any, any>) {
-    return Router.create<any, any>(routes);
+export function createFileRouter<
+    Context extends FileDownloadCrawlingContext = FileDownloadCrawlingContext,
+    const Schemas extends RouteSchemas = RouteSchemas,
+>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
+export function createFileRouter(routesOrSchemas?: any): any {
+    return Router.create(routesOrSchemas);
 }

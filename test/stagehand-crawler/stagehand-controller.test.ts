@@ -171,6 +171,78 @@ describe('StagehandController', () => {
         await expect((controller as any)._kill()).resolves.toBeUndefined();
     });
 
+    describe('_newPage', () => {
+        let mockCdpSession: any;
+        let mockPage: any;
+
+        beforeEach(() => {
+            mockCdpSession = {
+                send: vi.fn().mockResolvedValue({ frameTree: { frame: { id: 'MAIN_FRAME_1' } } }),
+                detach: vi.fn().mockResolvedValue(undefined),
+            };
+
+            mockPage = {
+                once: vi.fn(),
+                close: vi.fn().mockResolvedValue(undefined),
+                context: vi.fn().mockReturnValue({
+                    newCDPSession: vi.fn().mockResolvedValue(mockCdpSession),
+                }),
+            };
+
+            mockBrowser.contexts = vi.fn().mockReturnValue([{ newPage: vi.fn().mockResolvedValue(mockPage) }]);
+            mockStagehand.context.resolvePageByMainFrameId = vi.fn().mockReturnValue(undefined);
+        });
+
+        const createController = () => {
+            const controller = new StagehandController(mockPlugin, stagehandInstances);
+            (controller as any).browser = mockBrowser;
+
+            return controller;
+        };
+
+        test('should not return the page before Stagehand registers it', async () => {
+            // Stagehand registers pages from a CDP event, so the page is unresolvable for a short while.
+            let attempts = 0;
+            mockStagehand.context.resolvePageByMainFrameId = vi.fn(() =>
+                ++attempts < 3 ? undefined : { v3Page: true },
+            );
+
+            const page = await (createController() as any)._newPage();
+
+            expect(page).toBe(mockPage);
+            expect(attempts).toBe(3);
+            expect(mockStagehand.context.resolvePageByMainFrameId).toHaveBeenCalledWith('MAIN_FRAME_1');
+            expect(mockPage.close).not.toHaveBeenCalled();
+        });
+
+        test('should detach the CDP session used to read the main frame id', async () => {
+            mockStagehand.context.resolvePageByMainFrameId = vi.fn().mockReturnValue({ v3Page: true });
+
+            await (createController() as any)._newPage();
+
+            expect(mockCdpSession.send).toHaveBeenCalledWith('Page.getFrameTree');
+            expect(mockCdpSession.detach).toHaveBeenCalled();
+        });
+
+        test('should throw when Stagehand never registers the page', async () => {
+            const controller = createController();
+
+            await expect((controller as any).waitForStagehandToRegisterPage(mockPage, 100)).rejects.toThrow(
+                'Stagehand did not register the page within 100ms',
+            );
+        });
+
+        test('should close the page when Stagehand never registers it', async () => {
+            const controller = createController();
+            vi.spyOn(controller as any, 'waitForStagehandToRegisterPage').mockRejectedValue(
+                new Error('not registered'),
+            );
+
+            await expect((controller as any)._newPage()).rejects.toThrow('Failed to create new page: not registered');
+            expect(mockPage.close).toHaveBeenCalled();
+        });
+    });
+
     // Note: Proxy authentication is now handled at the plugin level using anonymizeProxySugar
     // from proxy-chain, which creates a local proxy that handles auth transparently.
     // See stagehand-plugin.ts for the implementation.

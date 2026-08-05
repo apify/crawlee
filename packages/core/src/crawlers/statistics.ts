@@ -72,7 +72,7 @@ export class Statistics {
     /**
      * Statistic instance id.
      */
-    readonly id = Statistics.id++; // assign an id while incrementing so it can be saved/restored from KV
+    readonly id: string;
 
     /**
      * Current statistic state used for doing calculations on {@apilink Statistics.calculate} calls
@@ -90,7 +90,7 @@ export class Statistics {
     private readonly config: Configuration;
 
     protected keyValueStore?: KeyValueStore = undefined;
-    protected persistStateKey = `SDK_CRAWLER_STATISTICS_${this.id}`;
+    protected persistStateKey: string;
     private logIntervalMillis: number;
     private logMessage: string;
     private listener: () => Promise<void>;
@@ -115,6 +115,7 @@ export class Statistics {
                 config: ow.optional.object,
                 persistenceOptions: ow.optional.object,
                 saveErrorSnapshots: ow.optional.boolean,
+                id: ow.optional.any(ow.number, ow.string),
             }),
         );
 
@@ -127,7 +128,11 @@ export class Statistics {
                 enable: true,
             },
             saveErrorSnapshots = false,
+            id,
         } = options;
+
+        this.id = id ?? String(Statistics.id++);
+        this.persistStateKey = `SDK_CRAWLER_STATISTICS_${this.id}`;
 
         this.log = (options.log ?? defaultLog).child({ prefix: 'Statistics' });
         this.errorTracker = new ErrorTracker({ ...errorTrackerConfig, saveErrorSnapshots });
@@ -474,6 +479,16 @@ export interface StatisticsOptions {
      * @default false
      */
     saveErrorSnapshots?: boolean;
+
+    /**
+     * A unique identifier for this statistics instance. This ID is used for persistence
+     * to the key value store, ensuring the same statistics can be loaded after script restarts.
+     *
+     * If not provided, an auto-incremented ID will be used for backward compatibility.
+     * This means statistics may not persist correctly across script restarts
+     * if crawler creation order changes.
+     */
+    id?: string;
 }
 
 /**
@@ -481,7 +496,7 @@ export interface StatisticsOptions {
  */
 export interface StatisticPersistedState extends Omit<StatisticState, 'statsPersistedAt'> {
     requestRetryHistogram: number[];
-    statsId: number;
+    statsId: string;
     requestAvgFailedDurationMillis: number;
     requestAvgFinishedDurationMillis: number;
     requestTotalDurationMillis: number;

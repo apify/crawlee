@@ -52,6 +52,7 @@ import {
     SessionError,
     SessionPool,
     Statistics,
+    validateUserData,
     validators,
 } from '@crawlee/core';
 import type { Awaitable, BatchAddRequestsResult, Dictionary, SetStatusMessageOptions } from '@crawlee/types';
@@ -382,6 +383,9 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = BasicCraw
      * 2. because they don't match enqueueLinks filters,
      * 3. because they are redirected to a URL that doesn't match the enqueueLinks strategy,
      * 4. or because the {@apilink BasicCrawlerOptions.maxRequestsPerCrawl|`maxRequestsPerCrawl`} limit has been reached
+     *
+     * When `enqueueLinks` is called with its own `onSkippedRequest` callback, both are invoked — this one first,
+     * then the `enqueueLinks` one.
      */
     onSkippedRequest?: SkippedRequestCallback;
 
@@ -574,7 +578,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected retryOnBlocked: boolean;
     protected respectRobotsTxtFile: boolean | { userAgent?: string };
     protected onSkippedRequest?: SkippedRequestCallback;
-    private _closeEvents?: boolean;
+    private _ownsEventManager = false;
     private loggedPerRun = new Set<string>();
     private experiments: CrawlerExperiments;
     private readonly robotsTxtFileCache: LruCache<RobotsTxtFile>;
@@ -1041,8 +1045,8 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         try {
             await this.autoscaledPool!.run();
         } finally {
-            await this.teardown();
             await this.stats.stopCapturing();
+            await this.teardown();
 
             process.off('SIGINT', sigintHandler);
             this.events.off(EventType.MIGRATING, boundPauseOnMigration);
@@ -1138,6 +1142,51 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
         return this.requestQueue;
     }
 
+    /**
+     * The request handler exactly as the user supplied it — a {@apilink Router} when one is in use, whether it
+     * was passed as `requestHandler` or auto-wired from {@apilink BasicCrawler.router|`crawler.router`}.
+     *
+     * Router-aware features read per-label metadata off this handler (currently the `userData` schema map), so
+     * it must resolve to the *unwrapped* handler. Subclasses that hand a wrapper to `BasicCrawler` instead of
+     * the user's own function — {@apilink BrowserCrawler} and its descendants do — have to override this, or
+     * those features silently no-op against the wrapper.
+     */
+    protected get userRequestHandler(): RequestHandler<Context> {
+        return this.requestHandler;
+    }
+
+    /**
+     * Validates a request source's `userData` against the {@apilink RouteSchemas|Standard Schema} registered
+     * for its label on the crawler's schema-router (if any), throwing a {@apilink RequestValidationError} on
+     * mismatch. A no-op when the user's request handler is not a schema-router, or no schema is registered for
+     * the request's label. Applied by the crawler on the add paths it owns — `crawler.addRequests`,
+     * `crawler.run`, `context.addRequests` and `context.enqueueLinks`.
+     */
+    protected async validateRequestUserData(source: Source | string): Promise<void> {
+        if (typeof source === 'string') {
+            return;
+        }
+
+        const getSchema = (this.userRequestHandler as Partial<RouterHandler>).getSchema;
+
+        if (typeof getSchema !== 'function') {
+            return;
+        }
+
+        // Resolve the label via its public accessors only — the top-level `label` of a `RequestOptions` or the
+        // `Request.label` getter — rather than reaching into `userData`, where the request happens to store it.
+        const target = source as { label?: string; userData?: Dictionary };
+        const schema = getSchema(target.label);
+
+        if (!schema) {
+            return;
+        }
+
+        // Store the parsed value rather than the raw input, so the queue holds the same coerced `userData` the
+        // handler will see. Assigning through a `Request` instance's setter keeps its internal `__crawlee` meta.
+        target.userData = await validateUserData(target.label!, schema, target.userData ?? {});
+    }
+
     async useState<State extends Dictionary = Dictionary>(defaultValue = {} as State): Promise<State> {
         const kvs = await KeyValueStore.open(null, { config: this.config });
         return kvs.getAutoSavedValue<State>(BasicCrawler.CRAWLEE_STATE_KEY, defaultValue);
@@ -1216,6 +1265,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         const isAllowedBasedOnRobotsTxtFile = this.isAllowedBasedOnRobotsTxtFile.bind(this);
         const maxCrawlDepth = this.maxCrawlDepth;
+        const validateRequestUserData = this.validateRequestUserData.bind(this);
 
         ow(
             requests,
@@ -1235,6 +1285,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 }
 
                 if (await isAllowedBasedOnRobotsTxtFile(url)) {
+                    await validateRequestUserData(request);
                     yield request;
                 } else {
                     skippedBecauseOfRobots.set(url, skippedRequest);
@@ -1367,7 +1418,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected async _init(): Promise<void> {
         if (!this.events.isInitialized()) {
             await this.events.init();
-            this._closeEvents = true;
+            this._ownsEventManager = true;
         }
 
         this.autoscaledPool = new AutoscaledPool(this.autoscaledPoolOptions, this.config);
@@ -1707,8 +1758,9 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     /**
      * Wrapper around the crawling context's `enqueueLinks` method:
      * - Injects `crawlDepth` to each request being added based on the crawling context request.
-     * - Provides defaults for the `enqueueLinks` options based on the crawler configuration.
-     *      - These options can be overridden by the user.
+     * - Combines the `enqueueLinks` options with the crawler configuration - the user options take precedence,
+     *   but the crawler limits are always enforced (the `limit` is capped by the remaining `maxRequestsPerCrawl`
+     *   budget and skipped requests are always reported to the crawler too).
      * @internal
      */
     protected async enqueueLinksWithCrawlDepth(
@@ -1725,8 +1777,11 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             }
 
             // After injecting the crawlDepth, we call the user-provided transform function, if there is one.
-            return options.transformRequestFunction?.(newRequest) ?? newRequest;
+            // Its return value is passed through as is, so a falsy one still skips the request.
+            return options.transformRequestFunction ? options.transformRequestFunction(newRequest) : newRequest;
         };
+
+        const limit = this.calculateEnqueuedRequestLimit(options.limit);
 
         // Create a request-scoped callback that logs enqueueLimit once per request handler call
         // Only log if an explicit limit was passed to enqueueLinks (not the internal maxRequestsPerCrawl-derived limit)
@@ -1735,25 +1790,32 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
             if (skippedOptions.reason === 'enqueueLimit') {
                 if (!loggedEnqueueLimitForThisRequest && options.limit !== undefined) {
                     this.log.info(
-                        `Skipping URLs in the handler for ${request.url} due to the enqueueLinks limit of ${options.limit}.`,
+                        limit === options.limit
+                            ? `Skipping URLs in the handler for ${request.url} due to the enqueueLinks limit of ${options.limit}.`
+                            : `Skipping URLs in the handler for ${request.url} due to the remaining maxRequestsPerCrawl budget of ${limit}, which is lower than the enqueueLinks limit of ${options.limit}.`,
                     );
                     loggedEnqueueLimitForThisRequest = true;
                 }
             }
 
             await this.handleSkippedRequest(skippedOptions);
+            await options.onSkippedRequest?.(skippedOptions);
         };
 
-        return enqueueLinks({
-            requestQueue,
-            robotsTxtFile: await this.getRobotsTxtFileForUrl(request!.url),
-            respectRobotsTxtFile: this.respectRobotsTxtFile,
-            onSkippedRequest,
-            limit: this.calculateEnqueuedRequestLimit(options.limit),
+        // `enqueueLinks` applies `options.label`/`options.userData` to every newly enqueued request, so a single
+        // validation against the label's schema covers them all (a no-op unless the router declares a schema).
+        await this.validateRequestUserData({ label: options.label, userData: options.userData });
 
-            // Allow user options to override defaults set above ⤴
+        return enqueueLinks({
             ...options,
 
+            // The options below are merged with the user options, so an explicitly `undefined` value
+            // (e.g. `enqueueLinks({ urls, limit: config.limit })`) cannot discard the crawler defaults ⤵
+            requestQueue: options.requestQueue ?? requestQueue,
+            robotsTxtFile: options.robotsTxtFile ?? (await this.getRobotsTxtFileForUrl(request.url)),
+            respectRobotsTxtFile: options.respectRobotsTxtFile ?? this.respectRobotsTxtFile,
+            onSkippedRequest,
+            limit,
             transformRequestFunction: transformRequestFunctionWrapper,
         });
     }
@@ -1988,13 +2050,18 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
      * To stop the crawler gracefully (waiting for all running requests to finish), use {@apilink BasicCrawler.stop|`crawler.stop()`} instead.
      */
     async teardown(): Promise<void> {
-        this.events.emit(EventType.PERSIST_STATE, { isMigrating: false });
-
-        if (this.useSessionPool) {
-            await this.sessionPool!.teardown();
+        // When this crawler initialized the event manager, its close() call emits
+        // the final persistence event after the crawler-specific state has been
+        // saved. External event managers still need an explicit event here.
+        if (!this._ownsEventManager) {
+            this.events.emit(EventType.PERSIST_STATE, { isMigrating: false });
         }
 
-        if (this._closeEvents) {
+        if (this.useSessionPool) {
+            await this.sessionPool!.teardown({ persistState: this._ownsEventManager });
+        }
+
+        if (this._ownsEventManager) {
             await this.events.close();
         }
 

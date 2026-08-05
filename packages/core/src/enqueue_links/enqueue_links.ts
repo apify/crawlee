@@ -1,5 +1,5 @@
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
-import { type RobotsTxtFile } from '@crawlee/utils';
+import { EnqueueStrategy, type RobotsTxtFile } from '@crawlee/utils';
 import ow from 'ow';
 import { getDomain } from 'tldts';
 import type { SetRequired } from 'type-fest';
@@ -31,8 +31,14 @@ import {
     filterRequestsByPatterns,
 } from './shared';
 
+export { EnqueueStrategy };
+
 export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
-    /** Limit the amount of actually enqueued URLs to this number. Useful for testing across the entire crawling scope. */
+    /**
+     * Limit the amount of actually enqueued URLs to this number. Useful for testing across the entire crawling scope.
+     * When called from a crawler context, the limit is further capped by what's left of the crawler's
+     * {@apilink BasicCrawlerOptions.maxRequestsPerCrawl|`maxRequestsPerCrawl`} budget.
+     */
     limit?: number;
 
     /** An array of URLs to enqueue. */
@@ -195,63 +201,11 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
      * 1. based on robots.txt file,
      * 2. because they don't match enqueueLinks filters,
      * 3. or because the maxRequestsPerCrawl limit has been reached
+     *
+     * When calling `enqueueLinks` through a crawler context, this callback runs in addition to (after) the
+     * crawler-level `onSkippedRequest`, it does not replace it.
      */
     onSkippedRequest?: SkippedRequestCallback;
-}
-
-/**
- * The different enqueueing strategies available.
- *
- * Depending on the strategy you select, we will only check certain parts of the URLs found. Here is a diagram of each URL part and their name:
- *
- * ```md
- * Protocol          Domain
- * ┌────┐          ┌─────────┐
- * https://example.crawlee.dev/...
- * │       └─────────────────┤
- * │             Hostname    │
- * │                         │
- * └─────────────────────────┘
- *          Origin
- *```
- *
- * - The `Protocol` is usually `http` or `https`
- * - The `Domain` represents the path without any possible subdomains to a website. For example, `crawlee.dev` is the domain of `https://example.crawlee.dev/`
- * - The `Hostname` is the full path to a website, including any subdomains. For example, `example.crawlee.dev` is the hostname of `https://example.crawlee.dev/`
- * - The `Origin` is the combination of the `Protocol` and `Hostname`. For example, `https://example.crawlee.dev` is the origin of `https://example.crawlee.dev/`
- */
-export enum EnqueueStrategy {
-    /**
-     * Matches any URLs found
-     */
-    All = 'all',
-
-    /**
-     * Matches any URLs that have the same hostname.
-     * For example, `https://wow.example.com/hello` will be matched for a base url of `https://wow.example.com/`, but
-     * `https://example.com/hello` will not be matched.
-     *
-     * > This strategy will match both `http` and `https` protocols regardless of the base URL protocol.
-     */
-    SameHostname = 'same-hostname',
-
-    /**
-     * Matches any URLs that have the same domain as the base URL.
-     * For example, `https://wow.an.example.com` and `https://example.com` will both be matched for a base url of
-     * `https://example.com`.
-     *
-     * > This strategy will match both `http` and `https` protocols regardless of the base URL protocol.
-     */
-    SameDomain = 'same-domain',
-
-    /**
-     * Matches any URLs that have the same hostname and protocol.
-     * For example, `https://wow.example.com/hello` will be matched for a base url of `https://wow.example.com/`, but
-     * `http://wow.example.com/hello` will not be matched.
-     *
-     * > This strategy will ensure the protocol of the base URL is the same as the protocol of the URL to be enqueued.
-     */
-    SameOrigin = 'same-origin',
 }
 
 /**
@@ -546,8 +500,8 @@ export function resolveBaseUrlForEnqueueLinksFiltering({
     }
 
     // If the user wants to ensure the same domain is accessed, regardless of subdomains, we check to ensure the domains match
-    // Returning undefined here is intentional! If the domains don't match, having no baseUrl in enqueueLinks will cause it to not enqueue anything
-    // which is the intended behavior (since we went off domain)
+    // If they don't (we went off domain via a redirect), we keep filtering against the original domain - returning
+    // undefined here would disable the filtering entirely and enqueue every link on the redirected page
     if (enqueueStrategy === EnqueueStrategy.SameDomain) {
         const originalHostname = getDomain(originalUrlOrigin, { mixedInputs: false })!;
         const finalHostname = getDomain(finalUrlOrigin, { mixedInputs: false })!;
@@ -556,7 +510,7 @@ export function resolveBaseUrlForEnqueueLinksFiltering({
             return finalUrlOrigin;
         }
 
-        return undefined;
+        return originalUrlOrigin;
     }
 
     // Always enqueue urls that are from the same origin in all other cases, as the filtering happens on the original request url, even if there was a redirect

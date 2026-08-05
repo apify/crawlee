@@ -14,7 +14,9 @@ import {
 } from '@crawlee/browser-pool';
 import playwright from 'playwright';
 import type { Server as ProxyChainServer } from 'proxy-chain';
+// @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
 import type { Browser } from 'puppeteer';
+// @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), vitest executes tests as ESM, so its alllll gooooood
 import puppeteer from 'puppeteer';
 
 import { runExampleComServer } from '../../shared/_helper';

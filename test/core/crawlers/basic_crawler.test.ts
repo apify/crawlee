@@ -15,6 +15,7 @@ import {
     BasicCrawler,
     Configuration,
     CriticalError,
+    defaultRoute,
     EventType,
     KeyValueStore,
     MissingRouteError,
@@ -22,14 +23,17 @@ import {
     Request,
     RequestList,
     RequestQueue,
+    RequestValidationError,
+    Router,
 } from '@crawlee/basic';
-import { RequestState } from '@crawlee/core';
+import { RequestState, SessionPool, Statistics } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
 import { RobotsTxtFile, sleep } from '@crawlee/utils';
 import express from 'express';
 import type { SetRequired } from 'type-fest';
 import type { Mock } from 'vitest';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
+import { z } from 'zod';
 
 import log from '@apify/log';
 
@@ -315,6 +319,25 @@ describe('BasicCrawler', () => {
             const requests = addRequestsBatchedMock.mock.calls[0][0];
             expect(requests).toHaveLength(2);
             expect(requests[0]).toMatchObject({ url: 'https://example.com/1/', crawlDepth: 3 });
+        });
+
+        it.each([
+            null,
+            undefined,
+            false,
+        ] as const)('should skip requests when transformRequestFunction returns %s', async (returnValue) => {
+            const transformRequestFunction = vi.fn(() => returnValue);
+            const optionsWithTransform = { ...options, transformRequestFunction };
+
+            await crawler.exposedEnqueueLinksWithCrawlDepth(optionsWithTransform, request, requestQueue);
+
+            const requests = addRequestsBatchedMock.mock.calls[0][0];
+            expect(requests).toHaveLength(0);
+
+            const skippedRequests = onSkippedRequestMock.mock.calls.map((call) => call[0]);
+            expect(skippedRequests).toHaveLength(2);
+            expect(skippedRequests[0]).toStrictEqual({ url: 'https://example.com/1/', reason: 'filters' });
+            expect(skippedRequests[1]).toStrictEqual({ url: 'https://example.com/2/', reason: 'filters' });
         });
     });
 
@@ -1346,6 +1369,52 @@ describe('BasicCrawler', () => {
     });
 
     describe('Uses SessionPool', () => {
+        it('persists statistics and the session pool once when finishing', async () => {
+            const persistStatistics = vitest.spyOn(Statistics.prototype, 'persistState');
+            const persistSessionPool = vitest.spyOn(SessionPool.prototype, 'persistState');
+            const config = new Configuration();
+            const crawler = new BasicCrawler(
+                {
+                    useSessionPool: true,
+                    requestHandler: async () => {
+                        persistStatistics.mockClear();
+                        persistSessionPool.mockClear();
+                    },
+                },
+                config,
+            );
+
+            await crawler.run(['https://example.com']);
+
+            expect(persistStatistics).toHaveBeenCalledTimes(1);
+            expect(persistSessionPool).toHaveBeenCalledTimes(1);
+        });
+
+        it('persists the session pool once with a shared event manager', async () => {
+            const persistStatistics = vitest.spyOn(Statistics.prototype, 'persistState');
+            const persistSessionPool = vitest.spyOn(SessionPool.prototype, 'persistState');
+            const config = new Configuration();
+            await config.getEventManager().init();
+            const crawler = new BasicCrawler(
+                {
+                    useSessionPool: true,
+                    requestHandler: async () => {
+                        persistStatistics.mockClear();
+                        persistSessionPool.mockClear();
+                    },
+                },
+                config,
+            );
+
+            await crawler.run(['https://example.com']);
+            expect(config.getEventManager().listenerCount(EventType.PERSIST_STATE)).toBe(0);
+            expect(persistSessionPool).toHaveBeenCalledTimes(1);
+            await config.getEventManager().close();
+
+            expect(persistStatistics).toHaveBeenCalledTimes(1);
+            expect(persistSessionPool).toHaveBeenCalledTimes(1);
+        });
+
         it('should use SessionPool when useSessionPool is true ', async () => {
             const url = 'https://example.com';
             const requestList = await RequestList.open({ sources: [{ url }] });
@@ -2071,6 +2140,215 @@ describe('BasicCrawler', () => {
             expect(visitedUrls).toContain('http://example.com/');
             expect(visitedUrls).toContain('http://example.com/new');
         });
+
+        test('enqueueLinks should respect maxRequestsPerCrawl when passed an explicitly undefined limit', async () => {
+            const requestQueue = await RequestQueue.open();
+            const onSkippedRequest = vitest.fn();
+
+            const requestsToAdd = Array.from({ length: 6 }, (_, i) => `http://example.com/${i + 1}`);
+
+            const crawler = new BasicCrawler({
+                requestQueue,
+                maxRequestsPerCrawl: 5,
+                onSkippedRequest,
+                requestHandler: async (context) => {
+                    if (context.request.label) {
+                        return;
+                    }
+
+                    crawler.stats.state.requestsFinished = 2;
+
+                    // e.g. `enqueueLinks({ urls, limit: config.limit })` where `config.limit` is not set
+                    await context.enqueueLinks({ urls: requestsToAdd, limit: undefined, label: 'child' });
+                },
+            });
+
+            await crawler.run(['http://example.com']);
+
+            // 2 requests already finished and 1 is in progress, so only 2 more fit into the limit
+            expect(requestQueue.getTotalCount()).toBe(3);
+
+            const skippedUrls = onSkippedRequest.mock.calls
+                .map((call) => call[0])
+                .filter(({ reason }) => reason === 'enqueueLimit')
+                .map(({ url }) => url)
+                .sort();
+
+            expect(skippedUrls).toEqual([
+                'http://example.com/3',
+                'http://example.com/4',
+                'http://example.com/5',
+                'http://example.com/6',
+            ]);
+        });
+
+        test('enqueueLinks should clamp an explicit limit to the remaining maxRequestsPerCrawl budget', async () => {
+            const requestQueue = await RequestQueue.open();
+
+            const requestsToAdd = Array.from({ length: 6 }, (_, i) => `http://example.com/${i + 1}`);
+
+            const crawler = new BasicCrawler({
+                requestQueue,
+                maxRequestsPerCrawl: 5,
+                requestHandler: async (context) => {
+                    if (context.request.label) {
+                        return;
+                    }
+
+                    crawler.stats.state.requestsFinished = 2;
+
+                    await context.enqueueLinks({ urls: requestsToAdd, limit: 4, label: 'child' });
+                },
+            });
+
+            const infoSpy = vitest.spyOn(crawler.log, 'info');
+
+            await crawler.run(['http://example.com']);
+
+            // The user limit of 4 is higher than what's left of maxRequestsPerCrawl, so only 2 are enqueued
+            expect(requestQueue.getTotalCount()).toBe(3);
+
+            // ...and the log message must not blame the user limit of 4 for it
+            expect(infoSpy).toHaveBeenCalledWith(
+                expect.stringContaining('due to the remaining maxRequestsPerCrawl budget of 2'),
+            );
+        });
+
+        test('enqueueLinks should keep reporting skipped requests when the user passes onSkippedRequest', async () => {
+            const requestQueue = await RequestQueue.open();
+            const crawlerOnSkippedRequest = vitest.fn();
+            const userOnSkippedRequest = vitest.fn();
+
+            const requestsToAdd = Array.from({ length: 3 }, (_, i) => `http://example.com/${i + 1}`);
+
+            const crawler = new BasicCrawler({
+                requestQueue,
+                onSkippedRequest: crawlerOnSkippedRequest,
+                requestHandler: async (context) => {
+                    if (context.request.label) {
+                        return;
+                    }
+
+                    await context.enqueueLinks({
+                        urls: requestsToAdd,
+                        limit: 1,
+                        label: 'child',
+                        onSkippedRequest: userOnSkippedRequest,
+                    });
+                },
+            });
+
+            await crawler.run(['http://example.com']);
+
+            const skipped = [
+                { url: 'http://example.com/2', reason: 'enqueueLimit' },
+                { url: 'http://example.com/3', reason: 'enqueueLimit' },
+            ];
+
+            for (const mock of [crawlerOnSkippedRequest, userOnSkippedRequest]) {
+                expect(mock.mock.calls.map((call) => call[0]).sort((a, b) => a.url.localeCompare(b.url))).toEqual(
+                    skipped,
+                );
+            }
+        });
+
+        test('enqueueLinks should keep the crawler robots.txt file when passed an explicitly undefined robotsTxtFile', async () => {
+            const requestQueue = await RequestQueue.open();
+
+            const crawler = new (class MockedRobotsTxtCrawler extends BasicCrawler {
+                override async getRobotsTxtFileForUrl(_: string) {
+                    return RobotsTxtFile.from(
+                        'http://example.com/robots.txt',
+                        `User-agent: *
+                         Disallow: /no
+                        `,
+                    );
+                }
+            })({
+                requestQueue,
+                maxConcurrency: 1,
+                respectRobotsTxtFile: true,
+                requestHandler: async (context) => {
+                    if (context.request.label) {
+                        return;
+                    }
+
+                    await context.enqueueLinks({
+                        urls: ['http://example.com/yes', 'http://example.com/no'],
+                        robotsTxtFile: undefined,
+                        label: 'child',
+                    });
+                },
+            });
+
+            await crawler.run(['http://example.com/start']);
+
+            // The disallowed URL should never make it into the queue
+            expect(requestQueue.getTotalCount()).toBe(2);
+        });
+
+        test('enqueueLinks should keep the crawler user-agent when passed an explicitly undefined respectRobotsTxtFile', async () => {
+            const requestQueue = await RequestQueue.open();
+            const isAllowedSpy = vitest.fn((_url: string, _userAgent?: string) => true);
+
+            const crawler = new (class MockedRobotsTxtCrawler extends BasicCrawler {
+                override async getRobotsTxtFileForUrl(_: string) {
+                    return { isAllowed: isAllowedSpy } as unknown as RobotsTxtFile;
+                }
+            })({
+                requestQueue,
+                maxConcurrency: 1,
+                respectRobotsTxtFile: { userAgent: 'MyCrawler' },
+                requestHandler: async (context) => {
+                    if (context.request.label) {
+                        return;
+                    }
+
+                    await context.enqueueLinks({
+                        urls: ['http://example.com/child'],
+                        respectRobotsTxtFile: undefined,
+                        label: 'child',
+                    });
+                },
+            });
+
+            await crawler.run(['http://example.com/start']);
+
+            expect(isAllowedSpy).toHaveBeenCalledWith('http://example.com/child', 'MyCrawler');
+            // the crawler user-agent must not fall back to the `*` default
+            expect(isAllowedSpy.mock.calls.map(([, userAgent]) => userAgent)).not.toContain('*');
+        });
+
+        test('enqueueLinks should use the request queue from the options, and the crawler one when it is undefined', async () => {
+            const requestQueue = await RequestQueue.open();
+            const customQueue = await RequestQueue.open('custom-queue');
+
+            const crawler = new BasicCrawler({
+                requestQueue,
+                requestHandler: async (context) => {
+                    if (context.request.label) {
+                        return;
+                    }
+
+                    await context.enqueueLinks({
+                        urls: ['http://example.com/custom'],
+                        requestQueue: customQueue,
+                        label: 'child',
+                    });
+
+                    await context.enqueueLinks({
+                        urls: ['http://example.com/default'],
+                        requestQueue: undefined,
+                        label: 'child',
+                    });
+                },
+            });
+
+            await crawler.run(['http://example.com/start']);
+
+            expect(customQueue.getTotalCount()).toBe(1);
+            expect(requestQueue.getTotalCount()).toBe(2);
+        });
     });
 
     describe('addRequests input validation', () => {
@@ -2223,6 +2501,199 @@ describe('BasicCrawler', () => {
             expect(getGlobalConfigSpy.mock.calls.length).toBe(0);
             expect(crawlerA.requestQueue?.config).toBe(configA);
             expect(crawlerB.requestQueue?.config).toBe(configB);
+        });
+    });
+
+    describe('schema validation on add', () => {
+        const makeCrawler = () => {
+            const router = Router.create({
+                DETAIL: z.object({ id: z.string() }),
+            });
+            router.addHandler('DETAIL', async () => {});
+
+            return new BasicCrawler({ requestHandler: router });
+        };
+
+        test('crawler.addRequests rejects userData that does not match the label schema', async () => {
+            const crawler = makeCrawler();
+
+            await expect(
+                crawler.addRequests([{ url: 'https://example.com/a', label: 'DETAIL', userData: { id: 123 } }]),
+            ).rejects.toThrow(RequestValidationError);
+        });
+
+        test('crawler.run rejects userData that does not match the label schema', async () => {
+            const crawler = makeCrawler();
+
+            await expect(
+                crawler.run([{ url: 'https://example.com/a', label: 'DETAIL', userData: { id: 123 } }]),
+            ).rejects.toThrow(RequestValidationError);
+        });
+
+        test('crawler.addRequests accepts matching userData', async () => {
+            const crawler = makeCrawler();
+
+            await crawler.addRequests([{ url: 'https://example.com/b', label: 'DETAIL', userData: { id: 'ok' } }]);
+
+            const queue = await crawler.getRequestQueue();
+            expect(await queue.isEmpty()).toBe(false);
+        });
+
+        test('crawler.addRequests excludes the Crawlee-managed label when validating (strict schemas)', async () => {
+            const router = Router.create({ DETAIL: z.strictObject({ id: z.string() }) });
+            router.addHandler('DETAIL', async () => {});
+            const crawler = new BasicCrawler({ requestHandler: router });
+
+            // a Request instance stores `label` inside `userData`; it must not trip the strict schema
+            await crawler.addRequests([
+                new Request({ url: 'https://example.com/s', label: 'DETAIL', userData: { id: 'ok' } }),
+            ]);
+
+            const queue = await crawler.getRequestQueue();
+            expect(await queue.isEmpty()).toBe(false);
+        });
+
+        test('a schema that declares the label opts into validating it', async () => {
+            const router = Router.create({
+                DETAIL: z.object({ label: z.literal('DETAIL'), id: z.string() }),
+            });
+            router.addHandler('DETAIL', async () => {});
+            const crawler = new BasicCrawler({ requestHandler: router });
+
+            // the label is not part of the source's `userData`, yet a schema declaring it still validates
+            await crawler.addRequests([{ url: 'https://example.com/l', label: 'DETAIL', userData: { id: 'ok' } }]);
+
+            const queue = await crawler.getRequestQueue();
+            expect((await queue.fetchNextRequest())?.userData).toMatchObject({ label: 'DETAIL', id: 'ok' });
+        });
+
+        test('a schema declaring the label reports only genuine issues', async () => {
+            const router = Router.create({
+                DETAIL: z.object({ label: z.literal('DETAIL'), id: z.string() }),
+            });
+            router.addHandler('DETAIL', async () => {});
+            const crawler = new BasicCrawler({ requestHandler: router });
+
+            // the label matches, so the only reported issue must be the bad `id` — not a spurious label one
+            const error = await crawler
+                .addRequests([{ url: 'https://example.com/m', label: 'DETAIL', userData: { id: 123 } }])
+                .catch((err: Error) => err);
+
+            expect(error).toBeInstanceOf(RequestValidationError);
+            expect((error as Error).message).toContain('id:');
+            expect((error as Error).message).not.toContain('label:');
+        });
+
+        test('the parsed (coerced) userData is what gets stored in the queue', async () => {
+            const router = Router.create({
+                DETAIL: z.object({ id: z.string(), price: z.coerce.number() }),
+            });
+            router.addHandler('DETAIL', async () => {});
+            const crawler = new BasicCrawler({ requestHandler: router });
+
+            await crawler.addRequests([
+                { url: 'https://example.com/c', label: 'DETAIL', userData: { id: 'ok', price: '42' } },
+            ]);
+
+            const queue = await crawler.getRequestQueue();
+            const request = await queue.fetchNextRequest();
+
+            // the queue holds the coerced number, not the raw '42' string that was passed in
+            expect(request?.userData.price).toBe(42);
+        });
+
+        test('a defaultRoute schema validates userData added for unregistered labels', async () => {
+            const router = Router.create({
+                DETAIL: z.object({ id: z.string() }),
+                [defaultRoute]: z.object({ page: z.number() }),
+            });
+            router.addHandler('DETAIL', async () => {});
+            router.addDefaultHandler(async () => {});
+            const crawler = new BasicCrawler({ requestHandler: router });
+
+            // an unregistered label is validated against the default-route schema on add
+            await expect(
+                crawler.addRequests([{ url: 'https://example.com/l', label: 'LIST', userData: { page: 'nope' } }]),
+            ).rejects.toThrow(RequestValidationError);
+
+            // a registered label uses its own schema, and a matching default-route request is accepted
+            await crawler.addRequests([
+                { url: 'https://example.com/d', label: 'DETAIL', userData: { id: 'ok' } },
+                { url: 'https://example.com/p', label: 'LIST', userData: { page: 2 } },
+            ]);
+            const queue = await crawler.getRequestQueue();
+            expect(await queue.isEmpty()).toBe(false);
+        });
+
+        test('context.enqueueLinks validates userData against the label schema', async () => {
+            const router = Router.create({ DETAIL: z.object({ id: z.string() }) });
+            let caught: unknown;
+            router.addDefaultHandler(async ({ enqueueLinks }) => {
+                try {
+                    await enqueueLinks({ urls: ['https://example.com/x'], label: 'DETAIL', userData: { id: 123 } });
+                } catch (err) {
+                    caught = err;
+                }
+            });
+
+            const crawler = new BasicCrawler({ requestHandler: router });
+            await crawler.run([`http://${HOSTNAME}:${port}/`]);
+
+            expect(caught).toBeInstanceOf(RequestValidationError);
+        });
+
+        test('requests with a label that has no registered schema are not validated', async () => {
+            const crawler = makeCrawler();
+
+            await crawler.addRequests([{ url: 'https://example.com/d', label: 'OTHER', userData: { whatever: true } }]);
+
+            const queue = await crawler.getRequestQueue();
+            expect(await queue.isEmpty()).toBe(false);
+        });
+
+        test('a plain (non-router) requestHandler skips validation entirely', async () => {
+            const crawler = new BasicCrawler({ requestHandler: async () => {} });
+
+            await crawler.addRequests([{ url: 'https://example.com/e', label: 'DETAIL', userData: { id: 123 } }]);
+
+            const queue = await crawler.getRequestQueue();
+            expect(await queue.isEmpty()).toBe(false);
+        });
+
+        test('validation runs at the crawler level; direct requestQueue calls bypass it', async () => {
+            let validateCount = 0;
+            // `version` has to stay the literal `1` the spec declares; an object literal widens it to `number`
+            const countingSchema = {
+                '~standard': {
+                    version: 1 as const,
+                    vendor: 'test',
+                    validate: (value: unknown) => {
+                        validateCount += 1;
+                        return { value };
+                    },
+                },
+            };
+
+            const makeRouterCrawler = () => {
+                const router = Router.create({ DETAIL: countingSchema });
+                router.addHandler('DETAIL', async () => {});
+
+                return new BasicCrawler({ requestHandler: router });
+            };
+
+            // crawler.addRequests validates each request exactly once
+            validateCount = 0;
+            await makeRouterCrawler().addRequests([
+                { url: 'https://example.com/a', label: 'DETAIL', userData: { id: 'a' } },
+            ]);
+            expect(validateCount).toBe(1);
+
+            // a direct requestQueue.addRequest / addRequests bypasses the crawler and is not validated
+            validateCount = 0;
+            const queue = await makeRouterCrawler().getRequestQueue();
+            await queue.addRequest({ url: 'https://example.com/b', label: 'DETAIL', userData: { id: 'b' } });
+            await queue.addRequests([{ url: 'https://example.com/c', label: 'DETAIL', userData: { id: 'c' } }]);
+            expect(validateCount).toBe(0);
         });
     });
 });

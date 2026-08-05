@@ -49,6 +49,8 @@ import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 
 import type { BrowserLaunchContext } from './browser-launcher';
 
+const PAGE_CLOSE_TIMEOUT_MILLIS = 5000;
+
 export interface BrowserCrawlingContext<
     Crawler = unknown,
     Page extends CommonPage = CommonPage,
@@ -462,7 +464,12 @@ export abstract class BrowserCrawler<
 
         // Page creation may be aborted
         if (page) {
-            await page.close().catch((error: Error) => this.log.debug('Error while closing page', { error }));
+            // Puppeteer 25+ can hang `page.close()` indefinitely when the page's navigation was aborted, don't let it block the crawler.
+            await addTimeoutToPromise(
+                async () => page.close(),
+                PAGE_CLOSE_TIMEOUT_MILLIS,
+                `page.close() timed out after ${PAGE_CLOSE_TIMEOUT_MILLIS / 1000} seconds`,
+            ).catch((error: Error) => this.log.debug('Error while closing page', { error }));
         }
     }
 
@@ -503,6 +510,14 @@ export abstract class BrowserCrawler<
         if (blockedStatusCode) return `Received blocked status code: ${blockedStatusCode}`;
 
         return false;
+    }
+
+    /**
+     * `BrowserCrawler` hands `BasicCrawler` a wrapper that opens a page before delegating, and keeps the user's
+     * own handler in `userProvidedRequestHandler` — so resolve router-aware metadata against that instead.
+     */
+    protected override get userRequestHandler(): RequestHandler<Context> {
+        return this.userProvidedRequestHandler as RequestHandler<Context>;
     }
 
     /**
@@ -627,7 +642,9 @@ export abstract class BrowserCrawler<
         const contextEnqueueLinks = crawlingContext.enqueueLinks;
         crawlingContext.enqueueLinks = async (enqueueOptions) => {
             return browserCrawlerEnqueueLinks({
-                options: { ...enqueueOptions, limit: this.calculateEnqueuedRequestLimit(enqueueOptions?.limit) },
+                // `contextEnqueueLinks` clamps `limit` by the remaining `maxRequestsPerCrawl` budget itself;
+                // pre-clamping it here would make the crawler log the internal limit as a user-provided one
+                options: enqueueOptions,
                 page,
                 requestQueue: await this.getRequestQueue(),
                 robotsTxtFile: await this.getRobotsTxtFileForUrl(crawlingContext.request.url),
@@ -844,8 +861,8 @@ export async function browserCrawlerEnqueueLinks(
     if (containsEnqueueLinks(options)) {
         return options.enqueueLinks({
             urls,
-            baseUrl,
             ...enqueueLinksOptions,
+            baseUrl,
         });
     }
     return enqueueLinks({
@@ -853,8 +870,8 @@ export async function browserCrawlerEnqueueLinks(
         robotsTxtFile: options.robotsTxtFile,
         onSkippedRequest: options.onSkippedRequest,
         urls,
-        baseUrl,
         ...(enqueueLinksOptions as EnqueueLinksOptions),
+        baseUrl,
     });
 }
 

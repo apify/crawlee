@@ -21,9 +21,16 @@ function execSync(command, options) {
 }
 
 /**
+ * The index is not always 0: AdaptivePlaywrightCrawler discards the Statistics
+ * the base crawler created and installs its own, which lands on the next id.
  * @param {string} name
  */
-const isPrivateEntry = (name) => name === 'SDK_CRAWLER_STATISTICS_0' || name === 'SDK_SESSION_POOL_STATE';
+const isCrawlerStatisticsKey = (name) => name.startsWith('SDK_CRAWLER_STATISTICS_');
+
+/**
+ * @param {string} name
+ */
+const isPrivateEntry = (name) => isCrawlerStatisticsKey(name) || name === 'SDK_SESSION_POOL_STATE';
 
 export const SKIPPED_TEST_CLOSE_CODE = 404;
 
@@ -49,14 +56,19 @@ export function getStorage(dirName) {
  * @param {string} dirName
  */
 export async function getStats(dirName) {
-    const dir = getStorage(dirName);
-    const path = join(dir, `key_value_stores/default/SDK_CRAWLER_STATISTICS_0.json`);
+    const dir = join(getStorage(dirName), 'key_value_stores/default');
 
-    if (!existsSync(path)) {
+    if (!existsSync(dir)) {
         return false;
     }
 
-    return fs.readJSON(path);
+    const [statsFile] = (await readdir(dir)).filter((name) => isCrawlerStatisticsKey(name)).sort();
+
+    if (!statsFile) {
+        return false;
+    }
+
+    return fs.readJSON(join(dir, statsFile));
 }
 
 /**
@@ -217,7 +229,12 @@ export async function runActor(dirName, memory = 4096) {
         const runTook = (runFinishedAt.getTime() - runStartedAt.getTime()) / 1000;
         console.log(`[run] View run: https://console.apify.com/view/runs/${runId} [run took ${runTook}s]`);
 
-        const statsRecord = await client.keyValueStore(defaultKeyValueStoreId).getRecord('SDK_CRAWLER_STATISTICS_0');
+        const { items: kvKeys } = await client.keyValueStore(defaultKeyValueStoreId).listKeys();
+        const [statsKey] = kvKeys
+            .map(({ key }) => key)
+            .filter((key) => isCrawlerStatisticsKey(key))
+            .sort();
+        const statsRecord = statsKey && (await client.keyValueStore(defaultKeyValueStoreId).getRecord(statsKey));
         stats = statsRecord?.value;
 
         const { items } = await client.dataset(defaultDatasetId).listItems();

@@ -28,6 +28,7 @@ import { type CheerioRoot, expandShadowRoots, sleep } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
 import type { ProtocolMapping } from 'devtools-protocol/types/protocol-mapping.js';
 import ow from 'ow';
+// @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
 import type { HTTPRequest as PuppeteerRequest, HTTPResponse, Page, ResponseForRequest } from 'puppeteer';
 
 import { LruCache } from '@apify/datastructures';
@@ -518,7 +519,19 @@ export async function gotoExtended(
 
         await addInterceptRequestHandler(page, interceptRequestHandler);
     } else if (!isEmpty(headers)) {
-        await page.setExtraHTTPHeaders(headers!);
+        const extraHeaders = { ...headers! };
+
+        // Chrome bundled with Puppeteer 25+ ignores a `User-Agent` passed via `setExtraHTTPHeaders()`, it has to be set explicitly.
+        for (const name of Object.keys(extraHeaders)) {
+            if (name.toLowerCase() === 'user-agent') {
+                await page.setUserAgent(extraHeaders[name]);
+                delete extraHeaders[name];
+            }
+        }
+
+        if (!isEmpty(extraHeaders)) {
+            await page.setExtraHTTPHeaders(extraHeaders);
+        }
     }
 
     return page.goto(url, gotoOptions as Dictionary);

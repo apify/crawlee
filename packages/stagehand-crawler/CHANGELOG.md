@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.18.0](https://github.com/apify/crawlee/compare/v3.17.0...v3.18.0) (2026-08-04)
+
+### Bug Fixes
+
+* **stagehand:** wait for Stagehand to register a page before using it ([#3865](https://github.com/apify/crawlee/issues/3865)) ([238214f](https://github.com/apify/crawlee/commit/238214f9e1586d63837c0b2c7b0a2cfc9a945ae4))
+
+### Features
+
+* opt-in schema validation of request userData per router label ([#3851](https://github.com/apify/crawlee/issues/3851)) ([c7347f9](https://github.com/apify/crawlee/commit/c7347f94f72980b7c424fb4fc7dc8f990f360d70)), closes [#3747](https://github.com/apify/crawlee/issues/3747) [#3748](https://github.com/apify/crawlee/issues/3748) [#3747](https://github.com/apify/crawlee/issues/3747) [#3082](https://github.com/apify/crawlee/issues/3082)
+* type-safe router labels via per-label userData map ([#3747](https://github.com/apify/crawlee/issues/3747)) ([1124aca](https://github.com/apify/crawlee/commit/1124aca3c5eb527c097decd7263a6816c411369e)), closes [#3082](https://github.com/apify/crawlee/issues/3082)
+
+
 # [3.17.0](https://github.com/apify/crawlee/compare/v3.16.0...v3.17.0) (2026-06-04)
 
 

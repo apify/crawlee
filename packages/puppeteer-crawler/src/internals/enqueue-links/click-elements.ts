@@ -18,6 +18,7 @@ import {
 } from '@crawlee/browser';
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 import ow from 'ow';
+// @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
 import type { ClickOptions, Frame, HTTPRequest as PuppeteerRequest, Page, Target } from 'puppeteer';
 
 import log_ from '@apify/log';
@@ -473,7 +474,16 @@ async function preventHistoryNavigation(page: Page): Promise<unknown> {
  * for large element sets, this will take considerable amount of time.
  * @ignore
  */
-export async function clickElements(page: Page, selector: string, clickOptions?: ClickOptions): Promise<void> {
+export async function clickElements(
+    page: Page,
+    selector: string,
+    clickOptions?: ClickOptions & { clickCount?: number },
+): Promise<void> {
+    // Puppeteer 25 removed the deprecated `clickCount` option in favor of `count`, older versions ignore `count`, so we pass both.
+    if (clickOptions?.clickCount !== undefined && clickOptions.count === undefined) {
+        clickOptions = { ...clickOptions, count: clickOptions.clickCount };
+    }
+
     const elementHandles = await page.$$(selector);
     log.debug(`enqueueLinksByClickingElements: There are ${elementHandles.length} elements to click.`);
     let clickedElementsCount = 0;

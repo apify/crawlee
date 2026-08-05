@@ -217,6 +217,60 @@ describe('Sitemap', () => {
                     'http://not-exists.com/catalog?item=79&desc=vacation_somalia',
                 ].join('\n'),
             )
+            // urlset mixing a same-host and a cross-host URL entry (for enqueue-strategy filtering)
+            .get('/cross_host_urls.xml')
+            .reply(
+                200,
+                [
+                    '<?xml version="1.0" encoding="UTF-8"?>',
+                    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+                    '<url><loc>http://not-exists.com/local-page</loc></url>',
+                    '<url><loc>http://other.test/cross-page</loc></url>',
+                    '</urlset>',
+                ].join('\n'),
+            )
+            // sitemap index pointing at a cross-host nested sitemap
+            .get('/cross_host_index.xml')
+            .reply(
+                200,
+                [
+                    '<?xml version="1.0" encoding="UTF-8"?>',
+                    '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+                    '<sitemap><loc>http://other.test/child.xml</loc></sitemap>',
+                    '</sitemapindex>',
+                ].join('\n'),
+            )
+            // urlset mixing a valid http URL with non-http(s) schemes
+            .get('/bad_schemes.xml')
+            .reply(
+                200,
+                [
+                    '<?xml version="1.0" encoding="UTF-8"?>',
+                    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+                    '<url><loc>http://not-exists.com/ok</loc></url>',
+                    '<url><loc>mailto:foo@bar.com</loc></url>',
+                    '<url><loc>javascript:alert(1)</loc></url>',
+                    '<url><loc>ftp://example.com/file.txt</loc></url>',
+                    '</urlset>',
+                ].join('\n'),
+            )
+            .get('*')
+            .reply(404);
+
+        // A cross-host server whose child sitemap is served, so a *followed* nested reference would surface
+        // `child-page`. Under the default `same-hostname` strategy it must never be fetched.
+        nock('http://other.test')
+            .persist()
+            .get('/child.xml')
+            .reply(
+                200,
+                [
+                    '<?xml version="1.0" encoding="UTF-8"?>',
+                    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+                    '<url><loc>http://other.test/child-page</loc></url>',
+                    '</urlset>',
+                ].join('\n'),
+            )
             .get('*')
             .reply(404);
 
@@ -508,6 +562,51 @@ describe('Sitemap', () => {
             ]),
         );
     });
+
+    it('drops cross-host URL entries under the default same-hostname strategy', async () => {
+        const sitemap = await Sitemap.load('http://not-exists.com/cross_host_urls.xml');
+        expect(sitemap.urls).toEqual(['http://not-exists.com/local-page']);
+    });
+
+    it('logs one aggregated warning per sitemap for dropped URL entries', async () => {
+        const spy = vi.spyOn(log, 'warning');
+
+        await Sitemap.load('http://not-exists.com/cross_host_urls.xml');
+
+        expect(spy).toHaveBeenCalledTimes(1);
+        expect(spy).toHaveBeenCalledWith(
+            expect.stringContaining('Skipped 1 URL(s) from sitemap http://not-exists.com/cross_host_urls.xml'),
+        );
+    });
+
+    it('keeps cross-host URL entries when enqueueStrategy is "all"', async () => {
+        const sitemap = await Sitemap.load('http://not-exists.com/cross_host_urls.xml', undefined, {
+            enqueueStrategy: 'all',
+        });
+        expect(new Set(sitemap.urls)).toEqual(
+            new Set(['http://not-exists.com/local-page', 'http://other.test/cross-page']),
+        );
+    });
+
+    it('does not fetch cross-host nested sitemaps under the default same-hostname strategy', async () => {
+        const sitemap = await Sitemap.load('http://not-exists.com/cross_host_index.xml');
+        // If the cross-host nested sitemap were fetched, `child-page` would appear in the result.
+        expect(sitemap.urls).toEqual([]);
+    });
+
+    it('follows cross-host nested sitemaps when enqueueStrategy is "all"', async () => {
+        const sitemap = await Sitemap.load('http://not-exists.com/cross_host_index.xml', undefined, {
+            enqueueStrategy: 'all',
+        });
+        expect(sitemap.urls).toEqual(['http://other.test/child-page']);
+    });
+
+    it('drops non-http(s) scheme entries even when enqueueStrategy is "all"', async () => {
+        const sitemap = await Sitemap.load('http://not-exists.com/bad_schemes.xml', undefined, {
+            enqueueStrategy: 'all',
+        });
+        expect(sitemap.urls).toEqual(['http://not-exists.com/ok']);
+    });
 });
 
 describe('discoverValidSitemaps', () => {
@@ -539,6 +638,26 @@ describe('discoverValidSitemaps', () => {
         }
 
         expect(urls).toEqual(['http://sitemap-discovery.com/some-sitemap.xml']);
+    });
+
+    it('discovers cross-host sitemaps referenced in robots.txt', async () => {
+        nock('http://sitemap-discovery.com')
+            .get('/robots.txt')
+            .reply(200, 'Sitemap: http://cdn.other-host.com/some-sitemap.xml')
+            .head('/sitemap.xml')
+            .reply(404, '')
+            .head('/sitemap.txt')
+            .reply(404, '')
+            .head('/sitemap_index.xml')
+            .reply(404, '');
+
+        const urls = [];
+        for await (const url of discoverValidSitemaps(['http://sitemap-discovery.com'])) {
+            urls.push(url);
+        }
+
+        // Cross-host sitemap is surfaced; host scoping is applied at load time.
+        expect(urls).toEqual(['http://cdn.other-host.com/some-sitemap.xml']);
     });
 
     it('extracts sitemap from well-known paths if robots.txt is missing', async () => {

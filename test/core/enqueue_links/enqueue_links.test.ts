@@ -12,6 +12,7 @@ import {
 import { type CheerioRoot, RobotsTxtFile } from '@crawlee/utils';
 import { load } from 'cheerio';
 import type { Browser as PlaywrightBrowser, Page as PlaywrightPage } from 'playwright';
+// @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
 import type { Browser as PuppeteerBrowser, Page as PuppeteerPage } from 'puppeteer';
 
 import log from '@apify/log';
@@ -908,6 +909,57 @@ describe('enqueueLinks()', () => {
             expect(enqueued[2].url).toBe('http://example.absolute.com/hello');
             expect(enqueued[2].method).toBe('GET');
             expect(enqueued[2].userData).toEqual({});
+        });
+
+        test('ignores an explicitly undefined baseUrl and keeps the resolved one', async () => {
+            const { enqueued, requestQueue } = createRequestQueueMock();
+            await cheerioCrawlerEnqueueLinks({
+                options: { strategy: EnqueueStrategy.SameDomain, baseUrl: undefined },
+                $,
+                requestQueue,
+                originalRequestUrl: 'https://example.com',
+            });
+
+            expect(enqueued.map((request) => request.url)).toEqual([
+                'https://example.com/a/b/first',
+                'https://example.com/a/second',
+                'https://example.com/a/b/third',
+                'https://example.com/x/absolutepath',
+                'https://example.com/y/relativepath',
+            ]);
+        });
+
+        test('ignores an explicitly undefined baseUrl when delegating to the bound enqueueLinks', async () => {
+            let forwardedBaseUrl: string | undefined;
+
+            await cheerioCrawlerEnqueueLinks({
+                options: { strategy: EnqueueStrategy.SameDomain, baseUrl: undefined },
+                $,
+                originalRequestUrl: 'https://example.com',
+                enqueueLinks: async (options) => {
+                    forwardedBaseUrl = options?.baseUrl;
+                    return { processedRequests: [], unprocessedRequests: [] };
+                },
+            });
+
+            expect(forwardedBaseUrl).toBe('https://example.com');
+        });
+
+        test('keeps filtering by the original domain with the strategy of same-domain after an off-domain redirect', async () => {
+            const { enqueued, requestQueue } = createRequestQueueMock();
+            await cheerioCrawlerEnqueueLinks({
+                options: { strategy: EnqueueStrategy.SameDomain },
+                $,
+                requestQueue,
+                originalRequestUrl: 'https://example.com',
+                finalRequestUrl: 'https://another.com/',
+            });
+
+            expect(enqueued).toHaveLength(3);
+
+            expect(enqueued[0].url).toBe('https://example.com/a/b/first');
+            expect(enqueued[1].url).toBe('https://example.com/a/second');
+            expect(enqueued[2].url).toBe('https://example.com/a/b/third');
         });
 
         test('correctly resolves relative URLs with `urls` option', async () => {

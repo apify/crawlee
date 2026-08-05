@@ -1,4 +1,13 @@
-import type { BrowserHook, LoadedContext, LoadedRequest, Request, RouterHandler } from '@crawlee/browser';
+import type {
+    BrowserHook,
+    LoadedContext,
+    LoadedRequest,
+    Request,
+    RequestHandler,
+    RouterHandler,
+    RouteSchemas,
+    RoutesFromSchemas,
+} from '@crawlee/browser';
 import { extractUrlsFromPage } from '@crawlee/browser';
 import type {
     BaseHttpResponseData,
@@ -292,6 +301,14 @@ export class AdaptivePlaywrightCrawler extends PlaywrightCrawler {
     // @ts-ignore
     override readonly router: RouterHandler<AdaptivePlaywrightCrawlerContext> =
         Router.create<AdaptivePlaywrightCrawlerContext>();
+
+    /**
+     * The `requestHandler` never reaches `BrowserCrawler` here — it is kept as `adaptiveRequestHandler` and
+     * invoked through a proxy — so router-aware metadata has to resolve against it.
+     */
+    protected override get userRequestHandler() {
+        return this.adaptiveRequestHandler as unknown as RequestHandler<PlaywrightCrawlingContext>;
+    }
 
     constructor(
         options: AdaptivePlaywrightCrawlerOptions = {},
@@ -760,6 +777,10 @@ export function createAdaptivePlaywrightRouter<
     Context extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext,
     UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
 >(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
-export function createAdaptivePlaywrightRouter(routes?: RouterRoutes<any, any>) {
-    return Router.create<any, any>(routes);
+export function createAdaptivePlaywrightRouter<
+    Context extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext,
+    const Schemas extends RouteSchemas = RouteSchemas,
+>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
+export function createAdaptivePlaywrightRouter(routesOrSchemas?: any): any {
+    return Router.create(routesOrSchemas);
 }

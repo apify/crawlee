@@ -35,14 +35,14 @@ describe('Statistics', () => {
     describe('persist state', () => {
         // needs to go first for predictability
         test('should increment id by each new consecutive instance', () => {
-            expect(stats.id).toEqual(0);
+            expect(stats.id).toEqual('0');
             // @ts-expect-error Accessing private prop
             expect(Statistics.id).toEqual(1);
             // @ts-expect-error Accessing private prop
             expect(stats.persistStateKey).toEqual('SDK_CRAWLER_STATISTICS_0');
             const [n1, n2] = [new Statistics(), new Statistics()];
-            expect(n1.id).toEqual(1);
-            expect(n2.id).toEqual(2);
+            expect(n1.id).toEqual('1');
+            expect(n2.id).toEqual('2');
             // @ts-expect-error Accessing private prop
             expect(Statistics.id).toEqual(3);
         });
@@ -197,6 +197,24 @@ describe('Statistics', () => {
                 },
             );
         }, 2000);
+
+        test('an explicit id restores state across instances under a stable key', async () => {
+            const stats1 = new Statistics({ id: 'shared-stats' });
+            stats1.startJob(0);
+            vitest.advanceTimersByTime(100);
+            stats1.finishJob(0, 0);
+
+            await stats1.startCapturing();
+            await stats1.persistState();
+            await stats1.stopCapturing();
+
+            const stats2 = new Statistics({ id: 'shared-stats' });
+            await stats2.startCapturing();
+
+            expect(stats2.state.requestsFinished).toEqual(1);
+
+            await stats2.stopCapturing();
+        });
     });
 
     test('should finish a job', () => {

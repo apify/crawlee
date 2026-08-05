@@ -2,7 +2,14 @@ import { pipeline, Readable, Transform } from 'node:stream';
 import { type ReadableStream } from 'node:stream/web';
 import { isGeneratorObject } from 'node:util/types';
 
-import type { BaseHttpClient, HttpRequest, HttpResponse, ResponseTypes, StreamingHttpResponse } from '@crawlee/core';
+import type {
+    BaseHttpClient,
+    HttpRequest,
+    HttpResponse,
+    RedirectHandler,
+    ResponseTypes,
+    StreamingHttpResponse,
+} from '@crawlee/core';
 import type { HttpMethod, ImpitOptions, ImpitResponse, RequestInit } from 'impit';
 import { Impit } from 'impit';
 import type { CookieJar as ToughCookieJar } from 'tough-cookie';
@@ -18,6 +25,8 @@ interface ResponseWithRedirects {
     response: ImpitResponse;
     redirectUrls: URL[];
 }
+
+type SimpleHeaders = Record<string, string | string[] | undefined>;
 
 /**
  * A HTTP client implementation based on the `impit library.
@@ -120,6 +129,27 @@ export class ImpitHttpClient implements BaseHttpClient {
     }
 
     /**
+     * Converts Fetch/Impit headers into a simple header map.
+     * `Object.fromEntries` would keep only the last `set-cookie` value, so those are collected separately.
+     */
+    private intoSimpleHeaders(headers: Headers): SimpleHeaders {
+        const result: SimpleHeaders = {};
+
+        for (const [key, value] of headers.entries()) {
+            if (key === 'set-cookie') continue;
+            result[key] = value;
+        }
+
+        const setCookies = headers.getSetCookie();
+
+        if (setCookies.length > 0) {
+            result['set-cookie'] = setCookies.length === 1 ? setCookies[0] : setCookies;
+        }
+
+        return result;
+    }
+
+    /**
      * Common implementation for `sendRequest` and `stream` methods.
      * @param request `HttpRequest` object
      * @returns `HttpResponse` object
@@ -130,6 +160,7 @@ export class ImpitHttpClient implements BaseHttpClient {
             redirectCount?: number;
             redirectUrls?: URL[];
         },
+        onRedirect?: RedirectHandler,
     ): Promise<ResponseWithRedirects> {
         if ((redirects?.redirectCount ?? 0) > this.maxRedirects) {
             throw new Error(`Too many redirects, maximum is ${this.maxRedirects}.`);
@@ -159,16 +190,44 @@ export class ImpitHttpClient implements BaseHttpClient {
                 throw new Error('Redirect response missing location header.');
             }
 
+            const nextRedirectUrls = [...(redirects?.redirectUrls ?? []), redirectUrl];
+            const updatedRequest: { url?: string | URL; headers: SimpleHeaders } = {
+                url: redirectUrl.href,
+                headers: { ...(request.headers ?? {}) },
+            };
+
+            // Match GotScrapingHttpClient: allow HttpCrawler to persist redirect cookies into the session
+            // and mutate Cookie / URL for the next hop.
+            onRedirect?.(
+                {
+                    redirectUrls: nextRedirectUrls,
+                    url,
+                    statusCode: response.status,
+                    statusMessage: response.statusText,
+                    headers: this.intoSimpleHeaders(response.headers),
+                    trailers: {},
+                    complete: true,
+                },
+                updatedRequest,
+            );
+
+            const nextUrl =
+                typeof updatedRequest.url === 'string'
+                    ? updatedRequest.url
+                    : (updatedRequest.url?.href ?? redirectUrl.href);
+
             return this.getResponse(
                 {
                     ...request,
                     method: this.shouldRewriteRedirectToGet(response.status, request.method) ? 'GET' : request.method,
-                    url: redirectUrl.href,
+                    url: nextUrl,
+                    headers: updatedRequest.headers,
                 },
                 {
                     redirectCount: (redirects?.redirectCount ?? 0) + 1,
-                    redirectUrls: [...(redirects?.redirectUrls ?? []), redirectUrl],
+                    redirectUrls: nextRedirectUrls,
                 },
+                onRedirect,
             );
         }
 
@@ -203,7 +262,7 @@ export class ImpitHttpClient implements BaseHttpClient {
         }
 
         return {
-            headers: Object.fromEntries(response.headers.entries()),
+            headers: this.intoSimpleHeaders(response.headers),
             statusCode: response.status,
             url: response.url,
             request,
@@ -243,8 +302,8 @@ export class ImpitHttpClient implements BaseHttpClient {
     /**
      * @inheritDoc
      */
-    async stream(request: HttpRequest): Promise<StreamingHttpResponse> {
-        const { response, redirectUrls } = await this.getResponse(request);
+    async stream(request: HttpRequest, onRedirect?: RedirectHandler): Promise<StreamingHttpResponse> {
+        const { response, redirectUrls } = await this.getResponse(request, undefined, onRedirect);
         const [stream, getDownloadProgress] = this.getStreamWithProgress(response);
 
         return {
@@ -258,7 +317,7 @@ export class ImpitHttpClient implements BaseHttpClient {
             },
             uploadProgress: { percent: 100, transferred: 0 },
             redirectUrls,
-            headers: Object.fromEntries(response.headers.entries()),
+            headers: this.intoSimpleHeaders(response.headers),
             trailers: {},
         };
     }

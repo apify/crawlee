@@ -1,6 +1,7 @@
 import type { Stagehand } from '@browserbasehq/stagehand';
 import { BrowserController } from '@crawlee/browser-pool';
 import type { Cookie } from '@crawlee/types';
+import { sleep } from '@crawlee/utils';
 import type { Browser as PlaywrightBrowser, BrowserType, LaunchOptions, Page } from 'playwright';
 
 import log from '@apify/log';
@@ -62,11 +63,59 @@ export class StagehandController extends BrowserController<BrowserType, LaunchOp
                 this.activePages--;
             });
 
+            try {
+                await this.waitForStagehandToRegisterPage(page);
+            } catch (error) {
+                await page.close().catch(() => {});
+                throw error;
+            }
+
             return page;
         } catch (error) {
             throw new Error(`Failed to create new page: ${error instanceof Error ? error.message : String(error)}`, {
                 cause: error,
             });
+        }
+    }
+
+    /**
+     * Waits until Stagehand knows about the page, so that `act()`/`extract()`/`observe()` can resolve it.
+     *
+     * Stagehand only learns about pages from CDP `Target.attachedToTarget` events on its own connection,
+     * and it maps them by main frame id. We create pages through a separate `connectOverCDP()` handle, so
+     * `context.newPage()` resolves before Stagehand has processed that event — the page is unresolvable for
+     * a short window, and the AI methods fail with 'Failed to resolve V3 Page from Playwright page'.
+     * Stagehand's own `newPage()` polls for the same reason.
+     */
+    private async waitForStagehandToRegisterPage(page: Page, timeoutMs = 10_000): Promise<void> {
+        const stagehand = this.getStagehand();
+        const mainFrameId = await this.getMainFrameId(page);
+        const deadline = Date.now() + timeoutMs;
+
+        while (Date.now() < deadline) {
+            if (stagehand.context.resolvePageByMainFrameId(mainFrameId)) {
+                return;
+            }
+
+            await sleep(25);
+        }
+
+        // Stagehand skips registration entirely when it cannot install its helper script into the page's CDP
+        // session, so this is not always just a slow attach - it can never resolve.
+        throw new Error(`Stagehand did not register the page within ${timeoutMs}ms`);
+    }
+
+    /**
+     * Reads the page's main frame id, which is the key Stagehand resolves pages by.
+     */
+    private async getMainFrameId(page: Page): Promise<string> {
+        const cdpSession = await page.context().newCDPSession(page);
+
+        try {
+            const { frameTree } = await cdpSession.send('Page.getFrameTree');
+            return frameTree.frame.id;
+        } finally {
+            await cdpSession.detach().catch(() => {});
         }
     }
 
