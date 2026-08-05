@@ -281,6 +281,7 @@ export const crawleeConfigFields: {
     availableMemoryRatio: ConfigField<z.ZodDefault<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodNumber>>>;
     memoryMbytes: ConfigField<z.ZodOptional<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodNumber>>>;
     persistStateIntervalMillis: ConfigField<z.ZodDefault<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodNumber>>>;
+    internalTimeoutMillis: ConfigField<z.ZodOptional<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodNumber>>>;
     systemInfoIntervalMillis: ConfigField<z.ZodDefault<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodNumber>>>;
     inputKey: ConfigField<z.ZodDefault<z.ZodString>>;
     headless: ConfigField<z.ZodDefault<z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodBoolean>>>;
@@ -301,6 +302,7 @@ export { CrawleeLoggerOptions }
 // @public (undocumented)
 export interface CrawlingContext<UserData extends Dictionary = Dictionary> extends RestrictedCrawlingContext<UserData> {
     enqueueLinks(options: ReadonlyDeep<Omit<SetRequired<EnqueueLinksOptions, 'urls'>, 'requestManager' | 'robotsTxtFile'>> & Pick<EnqueueLinksOptions, 'requestManager' | 'robotsTxtFile'>): Promise<unknown>;
+    extendTimeout(secs: number): void;
     registerDeferredCleanup(cleanup: () => Promise<unknown>): void;
     sendRequest: (requestOverrides?: Partial<HttpRequestOptions>, optionsOverrides?: SendRequestOptions) => Promise<Response>;
 }
@@ -1326,16 +1328,23 @@ export class RetryRequestError extends Error {
 }
 
 // @public
+export interface RouteOptions {
+    requestHandlerTimeoutSecs?: number;
+}
+
+// @public
 export class Router<Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'>, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>> {
-    addDefaultHandler<UserData extends Dictionary = DefaultRouteUserData<Routes, GetUserDataFromRequest<Context['request']>>>(handler: (ctx: RouterHandlerContext<Context, UserData, Routes>) => Awaitable<void>): void;
-    addHandler<Label extends keyof Routes & string>(label: Label, handler: (ctx: RouterHandlerContext<Context, Routes[Label], Routes>) => Awaitable<void>): void;
-    addHandler<UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(label: RouterLabel<Routes>, handler: (ctx: RouterHandlerContext<Context, UserData, Routes>) => Awaitable<void>): void;
+    addDefaultHandler<UserData extends Dictionary = DefaultRouteUserData<Routes, GetUserDataFromRequest<Context['request']>>>(handler: (ctx: RouterHandlerContext<Context, UserData, Routes>) => Awaitable<void>, options?: RouteOptions): void;
+    addHandler<Label extends keyof Routes & string>(label: Label, handler: (ctx: RouterHandlerContext<Context, Routes[Label], Routes>) => Awaitable<void>, options?: RouteOptions): void;
+    addHandler<UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(label: RouterLabel<Routes>, handler: (ctx: RouterHandlerContext<Context, UserData, Routes>) => Awaitable<void>, options?: RouteOptions): void;
     static create<Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'> = CrawlingContext, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
     // (undocumented)
     static create<Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'> = CrawlingContext, UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
     // (undocumented)
     static create<Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'> = CrawlingContext, const Schemas extends RouteSchemas = RouteSchemas>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
     getHandler(label?: string | symbol): (ctx: Context) => Awaitable<void>;
+    getMaxTimeoutSecs(): number | undefined;
+    getTimeoutSecs(label?: string | symbol): number | undefined;
     use(middleware: (ctx: Context) => Awaitable<void>): void;
 }
 

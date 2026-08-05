@@ -48,7 +48,7 @@
     },
     "dependencies": {
         "@apify/datastructures": "^2.0.3",
-        "@apify/timeout": "^0.3.2",
+        "@apify/timeout": "^0.4.4",
         "@crawlee/basic": "workspace:*",
         "@crawlee/browser": "workspace:*",
         "@crawlee/browser-pool": "workspace:*",
