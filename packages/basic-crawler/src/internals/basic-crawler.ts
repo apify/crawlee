@@ -26,7 +26,6 @@ import type {
     RouterRoutes,
     SkippedRequestCallback,
     Source,
-    StatisticsOptions,
     StatisticState,
     StorageIdentifier,
     TaskLoopPredicates,
@@ -450,10 +449,10 @@ export interface BasicCrawlerOptions<
     onSkippedRequest?: SkippedRequestCallback;
 
     /**
-     * Customize the way statistics collecting works, such as logging interval or
-     * whether to output them to the Key-Value store.
+     * A preconfigured {@apilink Statistics} instance. When provided, the crawler records into it instead of building
+     * its own and will not `reset()` it between `run()` calls. Subclass {@apilink Statistics} to track extra fields.
      */
-    statisticsOptions?: StatisticsOptions;
+    statistics?: Statistics;
 
     /**
      * HTTP client implementation for the `sendRequest` context helper and for plain HTTP crawling.
@@ -624,10 +623,16 @@ export class BasicCrawler<
      */
     private static useStateAnonymousIndices = new Set<number>();
 
+    /** Backs the {@apilink BasicCrawler.stats|`stats`} getter. */
+    private statsDep: OwnedOrInjected<Statistics>;
+
     /**
-     * A reference to the underlying {@apilink Statistics} class that collects and logs run statistics for requests.
+     * The {@apilink Statistics} instance collecting the crawler's run statistics - either the injected `statistics`
+     * option or a crawler-built default.
      */
-    readonly stats: Statistics;
+    get stats(): Statistics {
+        return this.statsDep.value;
+    }
 
     /**
      * The main request-handling component of the crawler. It manages the requests that the crawler processes,
@@ -834,7 +839,7 @@ export class BasicCrawler<
         maxRequestsPerMinute: ow.optional.number.integerOrInfinite.positive.greaterThanOrEqual(1),
         keepAlive: ow.optional.boolean,
 
-        statisticsOptions: ow.optional.object,
+        statistics: ow.optional.object,
 
         id: ow.optional.string,
     };
@@ -888,7 +893,7 @@ export class BasicCrawler<
             failedRequestHandler,
             statusMessageLoggingInterval = 10,
             statusMessageCallback,
-            statisticsOptions,
+            statistics,
             httpClient,
 
             id,
@@ -994,12 +999,15 @@ export class BasicCrawler<
             this.maxRequestRetries = maxRequestRetries;
             this.maxCrawlDepth = maxCrawlDepth;
             this.sameDomainDelayMillis = sameDomainDelaySecs * 1000;
-            this.stats = new Statistics({
-                logMessage: `${this.constructor.name} request statistics:`,
-                log: this.log,
-                id: this.identity.id,
-                ...statisticsOptions,
-            });
+            this.statsDep = OwnedOrInjected.resolve(
+                statistics,
+                () =>
+                    new Statistics({
+                        logMessage: `${this.constructor.name} request statistics:`,
+                        log: this.log,
+                        id: this.identity.id,
+                    }),
+            );
 
             if (sessionPool && proxyConfiguration) {
                 this.log.warning(
@@ -1514,8 +1522,11 @@ export class BasicCrawler<
                 await managerToPurge.purge();
             }
 
-            this.stats.reset();
-            await this.stats.resetStore();
+            // A supplied statistics instance keeps whatever state it was handed - only wipe a default we built.
+            await this.statsDep.ifOwned(async (stats) => {
+                stats.reset();
+                await stats.resetStore();
+            });
             await this.sessionPoolDep.ifOwned((pool) => pool.resetStore());
         }
 

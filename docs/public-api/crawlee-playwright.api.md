@@ -82,7 +82,7 @@ export class AdaptivePlaywrightCrawler<ContextExtension = Dictionary<never>, Ext
     // (undocumented)
     protected runRequestHandler(crawlingContext: CrawlingContext_2): Promise<void>;
     // (undocumented)
-    readonly stats: AdaptivePlaywrightCrawlerStatistics;
+    get stats(): AdaptivePlaywrightCrawlerStatistics;
     // (undocumented)
     teardown(): Promise<void>;
 }
@@ -326,7 +326,7 @@ export class PlaywrightCrawler<ContextExtension = Dictionary<never>, ExtendedCon
         maxConcurrency: NumberPredicate & BasePredicate<number | undefined>;
         maxRequestsPerMinute: NumberPredicate & BasePredicate<number | undefined>;
         keepAlive: BooleanPredicate & BasePredicate<boolean | undefined>;
-        statisticsOptions: ObjectPredicate<object> & BasePredicate<object | undefined>;
+        statistics: ObjectPredicate<object> & BasePredicate<object | undefined>;
         id: StringPredicate & BasePredicate<string | undefined>;
     };
 }

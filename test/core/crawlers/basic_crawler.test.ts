@@ -22,6 +22,7 @@ import {
     Router,
     serviceLocator,
     SessionPool,
+    Statistics,
 } from '@crawlee/basic';
 import type { IConcurrencySystem } from '@crawlee/core';
 import { ConcurrencySystem, MemoryStorageBackend, RequestState } from '@crawlee/core';
@@ -2026,6 +2027,60 @@ describe('BasicCrawler', () => {
             // crawler2 should reuse sessions created by crawler1, not grow the pool further
             expect(sharedPool.usableSessionsCount).toBe(poolSizeAfterCrawler1);
             await sharedPool.teardown();
+        });
+    });
+
+    describe('statistics injection', () => {
+        it('uses the crawler-built default when no instance is supplied', async () => {
+            const crawler = new BasicCrawler({
+                requestList: await RequestList.open({ sources: [{ url: 'https://example.com' }] }),
+                requestHandler: async () => {},
+            });
+
+            expect(crawler.stats).toBeInstanceOf(Statistics);
+        });
+
+        it('records into a supplied Statistics instance', async () => {
+            const stats = new Statistics({ persistenceOptions: { enable: false } });
+            const crawler = new BasicCrawler({
+                requestList: await RequestList.open({ sources: [{ url: 'https://example.com' }] }),
+                statistics: stats,
+                requestHandler: async () => {},
+            });
+
+            expect(crawler.stats).toBe(stats);
+
+            await crawler.run();
+
+            expect(stats.state.requestsFinished).toBe(1);
+        });
+
+        it('does not reset a supplied instance between runs, but does reset a default', async () => {
+            const stats = new Statistics({ persistenceOptions: { enable: false } });
+            const injectingCrawler = new BasicCrawler({
+                statistics: stats,
+                requestHandler: async () => {},
+            });
+            const resetSpy = vitest.spyOn(stats, 'reset');
+
+            await injectingCrawler.run([{ url: 'https://example.com', uniqueKey: 'run-1' }]);
+            await injectingCrawler.run([{ url: 'https://example.com', uniqueKey: 'run-2' }]);
+
+            // Two runs, one request each - the injected instance keeps accumulating instead of being wiped.
+            expect(resetSpy).not.toHaveBeenCalled();
+            expect(stats.state.requestsFinished).toBe(2);
+
+            const owningCrawler = new BasicCrawler({
+                requestHandler: async () => {},
+            });
+            const ownedResetSpy = vitest.spyOn(owningCrawler.stats, 'reset');
+
+            await owningCrawler.run([{ url: 'https://example.com', uniqueKey: 'owned-1' }]);
+            await owningCrawler.run([{ url: 'https://example.com', uniqueKey: 'owned-2' }]);
+
+            // A crawler-owned default is wiped at the start of each run.
+            expect(ownedResetSpy).toHaveBeenCalled();
+            expect(owningCrawler.stats.state.requestsFinished).toBe(1);
         });
     });
 

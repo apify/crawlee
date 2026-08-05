@@ -331,6 +331,17 @@ describe('Statistics', () => {
         expect(stats.requestRetryHistogram).toEqual([]);
     });
 
+    test('should throw when startCapturing is called while already capturing', async () => {
+        await stats.startCapturing();
+
+        await expect(stats.startCapturing()).rejects.toThrow('already capturing');
+
+        await stats.stopCapturing();
+        // stopCapturing tears the interval down, so capturing can be resumed on the same instance.
+        await expect(stats.startCapturing()).resolves.toBeUndefined();
+        await stats.stopCapturing();
+    });
+
     describe('explicit id option', () => {
         test('statistics with same explicit id should share persisted state', async () => {
             const stats1 = new Statistics({ id: 'shared-stats' });

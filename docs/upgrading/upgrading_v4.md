@@ -289,6 +289,22 @@ const crawler = new BasicCrawler({
 });
 ```
 
+## `statisticsOptions` is replaced by a `statistics` instance
+
+The `statisticsOptions` option has been removed from the crawler constructor. Instead of passing options for the crawler to build its `Statistics` from, construct a `Statistics` instance yourself and pass it via the new `statistics` option — the same inject-or-default idiom as `sessionPool` and `browserPool`.
+
+```typescript
+import { Statistics } from '@crawlee/core';
+
+const crawler = new BasicCrawler({
+    // The old parameter won't work anymore
+    // statisticsOptions: { saveErrorSnapshots: true },
+    statistics: new Statistics({ saveErrorSnapshots: true }),
+});
+```
+
+Omit the option and the crawler builds its own default, exactly as before. A supplied instance is treated as borrowed: the crawler records into it and drives its capture lifecycle for the run, but never `reset()`s it between `run()` calls — so a preconfigured instance keeps whatever state it was handed. This is also the supported way to plug in a custom `Statistics` subclass that tracks extra fields (superseding the previous subclass-and-reassign pattern).
+
 ## Custom `BrowserPool` implementations via the `IBrowserPool` interface
 
 Browser crawlers now accept any object implementing the new `IBrowserPool` interface as their `browserPool` option, not just instances of the built-in `BrowserPool`. The interface follows the classic acquire/release pattern, plus a pair of helpers for moving state between the crawling session and the page:

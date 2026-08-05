@@ -330,7 +330,11 @@ export class AdaptivePlaywrightCrawler<
     private staticContextPipeline: ContextPipeline<CrawlingContext, ExtendedContext>;
     private browserContextPipeline: ContextPipeline<CrawlingContext, ExtendedContext>;
     private individualRequestHandlerTimeoutMillis: number;
-    declare readonly stats: AdaptivePlaywrightCrawlerStatistics;
+
+    // The constructor always injects an `AdaptivePlaywrightCrawlerStatistics`, so narrowing the cast is sound.
+    override get stats(): AdaptivePlaywrightCrawlerStatistics {
+        return super.stats as AdaptivePlaywrightCrawlerStatistics;
+    }
     private resultObjects = new WeakMap<CrawlingContext, RequestHandlerResult>();
     private inFlightRenderingTypeDetections = 0;
 
@@ -344,7 +348,7 @@ export class AdaptivePlaywrightCrawler<
             resultChecker,
             shouldPropagateError,
             resultComparator,
-            statisticsOptions,
+            statistics,
             preventDirectStorageAccess = true,
             requestHandlerTimeoutSecs = 60,
             errorHandler,
@@ -356,12 +360,25 @@ export class AdaptivePlaywrightCrawler<
             ...rest
         } = options;
 
+        if (statistics !== undefined && !(statistics instanceof AdaptivePlaywrightCrawlerStatistics)) {
+            throw new Error(
+                'AdaptivePlaywrightCrawler tracks extra fields on its own Statistics subclass and cannot use a ' +
+                    'plain `statistics` instance. Omit the option to let the crawler build its own.',
+            );
+        }
+
         super({
             ...rest,
             errorHandler,
             failedRequestHandler,
             requestHandler,
             requestHandlerTimeoutSecs,
+            // Inject our subclass so the base tracks the extra adaptive fields instead of building a plain `Statistics`.
+            statistics:
+                statistics ??
+                new AdaptivePlaywrightCrawlerStatistics({
+                    logMessage: `${AdaptivePlaywrightCrawler.name} request statistics:`,
+                }),
             contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),
         });
         this.individualRequestHandlerTimeoutMillis = requestHandlerTimeoutSecs * 1000;
@@ -400,9 +417,7 @@ export class AdaptivePlaywrightCrawler<
         // each hook's overrides at runtime regardless of the static type.
         const staticCrawler = new CheerioCrawler({
             ...rest,
-            statisticsOptions: {
-                persistenceOptions: { enable: false },
-            },
+            statistics: new Statistics({ persistenceOptions: { enable: false } }),
             preNavigationHooks,
             postNavigationHooks,
             extendContext,
@@ -410,9 +425,7 @@ export class AdaptivePlaywrightCrawler<
 
         const browserCrawler = new PlaywrightCrawler({
             ...rest,
-            statisticsOptions: {
-                persistenceOptions: { enable: false },
-            },
+            statistics: new Statistics({ persistenceOptions: { enable: false } }),
             preNavigationHooks: preNavigationHooks as unknown as PlaywrightHook[],
             postNavigationHooks: postNavigationHooks as unknown as PlaywrightHook[],
             extendContext,
@@ -427,11 +440,6 @@ export class AdaptivePlaywrightCrawler<
         this.browserContextPipeline = browserCrawler.contextPipeline.compose({
             action: this.adaptPlaywrightContext.bind(this),
         }) as unknown as ContextPipeline<CrawlingContext, ExtendedContext>;
-
-        this.stats = new AdaptivePlaywrightCrawlerStatistics({
-            logMessage: `${this.log.getOptions().prefix} request statistics:`,
-            ...statisticsOptions,
-        });
 
         this.preventDirectStorageAccess = preventDirectStorageAccess;
     }

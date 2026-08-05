@@ -52,7 +52,6 @@ import type { SetStatusMessageOptions } from '@crawlee/types';
 import type { SkippedRequestCallback } from '@crawlee/core';
 import type { Source } from '@crawlee/core';
 import { Statistics } from '@crawlee/core';
-import type { StatisticsOptions } from '@crawlee/core';
 import type { StatisticState } from '@crawlee/core';
 import type { StorageBackend } from '@crawlee/types';
 import type { StorageIdentifier } from '@crawlee/core';
@@ -157,7 +156,7 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
         maxConcurrency: NumberPredicate & BasePredicate<number | undefined>;
         maxRequestsPerMinute: NumberPredicate & BasePredicate<number | undefined>;
         keepAlive: BooleanPredicate & BasePredicate<boolean | undefined>;
-        statisticsOptions: ObjectPredicate<object> & BasePredicate<object | undefined>;
+        statistics: ObjectPredicate<object> & BasePredicate<object | undefined>;
         id: StringPredicate & BasePredicate<string | undefined>;
     };
     pause(timeoutSecs?: number): Promise<void>;
@@ -177,7 +176,7 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
     protected runRequestHandler(crawlingContext: ExtendedContext): Promise<void>;
     get sessionPool(): ISessionPool;
     setStatusMessage(message: string, options?: SetStatusMessageOptions): void;
-    readonly stats: Statistics;
+    get stats(): Statistics;
     stop(reason?: string): void;
     teardown(): Promise<void>;
     protected _throwOnBlockedRequest(statusCode: number): void;
@@ -222,7 +221,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = CrawlingC
     retryOnBlocked?: boolean;
     sameDomainDelaySecs?: number;
     sessionPool?: ISessionPool;
-    statisticsOptions?: StatisticsOptions;
+    statistics?: Statistics;
     statusMessageCallback?: StatusMessageCallback;
     statusMessageLoggingInterval?: number;
     storageBackend?: StorageBackend;

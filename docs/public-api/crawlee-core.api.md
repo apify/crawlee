@@ -1629,6 +1629,7 @@ export interface StatisticPersistedState extends Omit<StatisticState, 'statsPers
 
 // @public
 export class Statistics {
+    constructor(options?: StatisticsOptions);
     calculate(): {
         requestAvgFailedDurationMillis: number;
         requestAvgFinishedDurationMillis: number;

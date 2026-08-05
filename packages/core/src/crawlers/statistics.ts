@@ -102,7 +102,8 @@ export class Statistics {
     }
 
     /**
-     * @internal
+     * Construct a statistics instance to pass to a crawler via its `statistics` option, e.g. to preconfigure
+     * persistence or error snapshots, share it across sequential runs, or subclass it to track extra fields.
      */
     constructor(options: StatisticsOptions = {}) {
         ow(
@@ -287,6 +288,12 @@ export class Statistics {
      * displaying the current state in predefined intervals
      */
     async startCapturing() {
+        // A single instance drives one logging interval and one PERSIST_STATE listener, so a second concurrent
+        // capture (e.g. sharing one instance across crawlers running at once) would orphan the first. Fail loudly.
+        if (this.logInterval) {
+            throw new Error('Statistics.startCapturing() was already called - this instance is already capturing.');
+        }
+
         this.keyValueStore ??= await KeyValueStore.open(null, { configuration: serviceLocator.getConfiguration() });
 
         if (this.state.crawlerStartedAt === null) {
