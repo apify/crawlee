@@ -5,25 +5,76 @@ title: Upgrading to v4
 
 import ApiLink from '@site/src/components/ApiLink';
 
-This page summarizes most of the breaking changes in Crawlee v4.
+This page summarizes the breaking changes in Crawlee v4. There are many, so the guide is organized to let you stop reading as early as possible:
 
-## ECMAScript modules
+- [What v4 does better](#what-v4-does-better) — why the migration is worth the trouble.
+- [Rename cheat sheet](#rename-cheat-sheet) — the purely mechanical renames, in one table.
+- [Changes most users will hit](#changes-most-users-will-hit) — read this part in full.
+- The **Only if you…** sections — each applies only if you use what its title says. Skim the titles and skip what doesn't concern you.
+- [Appendix: removed symbols](#appendix-removed-symbols) — for when the compiler hands you a missing name and you want to know where it went.
+
+## What v4 does better
+
+- **Timeouts that mean what they say.** Navigation and the request handler are [timed separately](#navigation-and-the-request-handler-are-timed-separately) — no more mysteriously summed limits — and a single route can get [its own timeout](#per-route-and-per-request-handler-timeouts) or extend it mid-flight.
+- **Composable crawling context.** The new `extendContext` option and `ContextPipeline` composition replace subclassing tricks for [adding members to the crawling context](#crawling-context-no-longer-includes-a-reference-to-the-crawler-itself).
+- **Bring your own implementation.** Crawlers now accept any [`ISessionPool`](#custom-sessionpool-implementations-via-the-isessionpool-interface), [`IBrowserPool`](#custom-browserpool-implementations-via-the-ibrowserpool-interface), [`IRenderingTypePredictor`](#custom-rendering-type-predictors-via-the-irenderingtypepredictor-interface) or [`IRequestManager`](#request-loaders-and-managers) — and never tear down an instance they did not create.
+- **One concurrency budget for several crawlers.** The new [`ConcurrencySystem`](#autoscaling-moved-to-concurrencysystem) can be shared between crawlers, capping their combined concurrency instead of letting each one oversubscribe the host.
+- **Native `fetch` types.** HTTP clients and `context.response` now use the [standard `Response`](#crawlingcontextresponse-is-now-of-type-response), and `got-scraping` is an [opt-in dependency](#http-client-packages-and-basehttpclient-reshaped) instead of a mandatory one.
+- **The session is the rotation unit.** A session carries its proxy, cookies and error score, and is rotated as a whole when blocked — replacing [proxy tiers](#tieredproxyurls-is-removed-from-proxyconfiguration) and [session rotation counters](#maxsessionrotations-and-requestsessionrotationcount-are-removed).
+- **Crawlers stop stepping on each other.** Multiple crawlers in one process [no longer share the default request queue](#multiple-crawler-instances-use-separate-default-request-queues), and repeated `run()` calls purge the queue instead of dropping and recreating it.
+- **Cookies behave.** `sendRequest` finally [respects your `Cookie` header](#cookie-handling-in-httpcrawler-and-sendrequest), and browser cookies set inside the handler are [persisted to the session](#browser-cookies-are-also-persisted-after-requesthandler).
+- **Simpler storage backend contract.** A custom storage backend is now [4 classes instead of 7](#storagebackend-interface-simplified).
+
+## Rename cheat sheet
+
+The purely mechanical renames, collected in one place. Where a row links to a section, the rename also comes with a behavior or signature change — read it before renaming blindly.
+
+| v3 | v4 |
+| --- | --- |
+| `handleRequestFunction` / `handlePageFunction` | `requestHandler` |
+| `handleRequestTimeoutSecs` | `requestHandlerTimeoutSecs` |
+| `handleFailedRequestFunction` | `failedRequestHandler` |
+| `persistCookiesPerSession` | `saveResponseCookies` |
+| `config` (option / property name) | `configuration` ([details](#config-is-renamed-to-configuration-everywhere)) |
+| `Configuration.getGlobalConfig()` | `Configuration.getGlobalConfiguration()` |
+| `LocalEventManager.fromConfig()` | `LocalEventManager.fromConfiguration()` |
+| `StorageClient` | `StorageBackend` ([reshaped](#storagebackend-interface-simplified)) |
+| `MemoryStorage` (`@crawlee/memory-storage`) | `MemoryStorageBackend` (`@crawlee/core`, [now memory-only](#memorystorage-split-into-filesystemstoragebackend-and-memorystoragebackend)) |
+| `RequestQueueV1` / `RequestQueueV2` / `RequestProvider` | `RequestQueue` |
+| `IRequestList` | `IRequestLoader` ([reshaped](#irequestlist-renamed-to-irequestloader)) |
+| `SitemapRequestList` | `SitemapRequestLoader` ([details](#sitemaprequestlist-renamed-to-sitemaprequestloader)) |
+| `RobotsFile` | `RobotsTxtFile` |
+| `markRequestHandled()` | `markRequestAsHandled()` |
+| `requestList.length()` / `requestList.handledCount()` | `await getTotalCount()` / `await getHandledCount()` |
+| `Dataset.listItems()` | `Dataset.getData()` / `Dataset.values()` ([details](#datasetlistitems-replaced-by-datasetgetdata-and-datasetvalues)) |
+| crawler options `requestList` / `requestQueue` | `requestManager` ([details](#crawler-requestlist--requestqueue-options-deprecated-in-favor-of-requestmanager)) |
+| `enqueueLinks({ requestQueue })` | `enqueueLinks({ requestManager })` |
+| `enqueueLinks({ globs, regexps, pseudoUrls })` | `enqueueLinks({ include })` ([details](#globs-regexps-and-pseudourls-replaced-by-include)) |
+| `autoscaledPoolOptions` | `taskLoopOptions` ([narrowed](#autoscaledpooloptions-is-now-taskloopoptions-and-no-longer-carries-concurrency-config)) |
+| `gotScraping` (from `@crawlee/utils`) | `GotScrapingHttpClient` (`@crawlee/got-scraping-client`) |
+| `SDK_`-prefixed internal KVS keys | `CRAWLEE_`-prefixed ([details](#internal-kvs-keys-renamed)) |
+
+## Changes most users will hit
+
+Environment requirements, renamed options and behavior changes that nearly every project runs into. Read this whole section.
+
+### ECMAScript modules
 
 Crawlee v4 is a native ESM package now. It can be still consumed from a CJS project, as long as you use TypeScript and Node.js version that supports `require(esm)`.
 
-## Node 22+ required
+### Node 22+ required
 
 Support for older node versions was dropped.
 
-## TypeScript 5.8+ required
+### TypeScript 5.8+ required
 
-Support for older TypeScript versions was dropped. Older versions might work too, but only if your project is also ESM.
+Support for older TypeScript versions was dropped. Crawlee ships compiled JavaScript, so this only affects type-checking against its type declaration files — plain JavaScript projects are unaffected. In particular, a CJS TypeScript project needs TypeScript 5.8+ to type-check a `require()` of an ESM package like Crawlee; older versions might still work if your project is also ESM.
 
-## Cheerio v1
+### Cheerio v1
 
 Previously, we kept the dependency on cheerio locked to the latest RC version, since there were many breaking changes introduced in v1.0. This release bumps cheerio to the stable v1. Also, we now use the default `parse5` internally.
 
-## Deprecated crawler options are removed
+### Deprecated crawler options are removed
 
 The crawler following options are removed:
 
@@ -32,7 +83,517 @@ The crawler following options are removed:
 - `handleRequestTimeoutSecs` -> `requestHandlerTimeoutSecs`
 - `handleFailedRequestFunction` -> `failedRequestHandler`
 
-## Underscore prefix is removed from many protected and private methods
+### Crawler constructors no longer take a `Configuration` argument
+
+The crawler classes dropped the optional second `config?: Configuration` constructor parameter: `PlaywrightCrawler`, `PuppeteerCrawler`, and `AdaptivePlaywrightCrawler` (the same applies to the other crawlers, which never advertised it publicly). `AdaptivePlaywrightCrawler` additionally now extends `BasicCrawler` rather than `PlaywrightCrawler`. Pass a `Configuration` via the `configuration` option instead (see [Using per-crawler services](#using-per-crawler-services-recommended)).
+
+**Before:**
+```typescript
+const crawler = new PlaywrightCrawler({ requestHandler }, new Configuration({ headless: false }));
+```
+
+**After:**
+```typescript
+const crawler = new PlaywrightCrawler({
+    requestHandler,
+    configuration: new Configuration({ headless: false }),
+});
+```
+
+The browser *launchers* (`PlaywrightLauncher`, `PuppeteerLauncher`) keep their `(launchContext?, configuration?)` constructor signature — this change is only about the crawler classes.
+
+### Configuration class redesign
+
+The `Configuration` class has been redesigned for v4. The main changes are:
+
+#### Direct property access replaces `get()` and `set()`
+
+**Before:**
+```ts
+const config = Configuration.getGlobalConfig();
+config.set('persistStateIntervalMillis', 10_000);
+const headless = config.get('headless');
+```
+
+**After:**
+```ts
+// Configuration is now immutable — set options via the constructor
+const config = new Configuration({ persistStateIntervalMillis: 10_000 });
+const headless = config.headless;
+```
+
+The `get()` and `set()` methods are removed. Access config values directly as properties.
+Configuration instances are immutable — attempting to assign a property throws a `TypeError`.
+
+#### Constructor options now take precedence over environment variables
+
+**New priority order (highest to lowest):**
+1. Constructor options
+2. Environment variables
+3. `crawlee.json`
+4. Schema defaults
+
+Previously, environment variables always won. Now `new Configuration({ headless: false })`
+works even when `CRAWLEE_HEADLESS=true` is set.
+
+### Service management moved from `Configuration` to `ServiceLocator`
+
+The service management functionality has been extracted from `Configuration` into a new `ServiceLocator` class.
+
+#### Breaking changes
+
+The following methods and properties have been removed from `Configuration`:
+
+- `Configuration.getStorageClient()` - moved to `ServiceLocator.getStorageBackend()`
+- `Configuration.getEventManager()` - moved to `ServiceLocator.getEventManager()`
+- `Configuration.useStorageClient()` - use `ServiceLocator.setStorageBackend()` instead
+- `Configuration.useEventManager()` - use `ServiceLocator.setEventManager()` instead
+- `Configuration.resetGlobalState()` - use `serviceLocator.reset()` instead
+- `Configuration.storageManagers` - moved to `ServiceLocator.storageManagers`
+
+The `EventManager` and `LocalEventManager` constructors now accept an options object for configuring event intervals (e.g. `persistStateIntervalMillis`, `systemInfoIntervalMillis`). You can also use the new `LocalEventManager.fromConfiguration()` factory method to create an instance with intervals derived from a `Configuration` object.
+
+#### Migration guide
+
+If you were using the removed `Configuration` methods directly, you need to update your code:
+
+**Before:**
+```typescript
+import { Configuration } from 'crawlee';
+
+const config = Configuration.getGlobalConfig();
+const storageBackend = config.getStorageClient();
+const eventManager = config.getEventManager();
+
+// or static methods
+const storageBackend = Configuration.getStorageClient();
+// (both of these are the removed v3 APIs)
+```
+
+**After:**
+```typescript
+import { serviceLocator } from 'crawlee';
+
+const storageBackend = serviceLocator.getStorageBackend();
+const eventManager = serviceLocator.getEventManager();
+```
+
+#### Using per-crawler services (recommended)
+
+The new `ServiceLocator` supports per-crawler service isolation, allowing you to use different storage backends or event managers for different crawlers by passing them via options:
+
+```typescript
+import { BasicCrawler, Configuration, LocalEventManager, MemoryStorageBackend } from 'crawlee';
+
+const crawler = new BasicCrawler({
+    requestHandler: async ({ request, log }) => {
+        log.info(`Processing ${request.url}`);
+    },
+    configuration: new Configuration({ headless: false }),
+    storageBackend: new MemoryStorageBackend(),
+    eventManager: LocalEventManager.fromConfiguration(),
+});
+
+await crawler.run(['https://example.com']);
+```
+
+#### Using the global service locator
+
+For most use cases, the global `serviceLocator` singleton works well:
+
+```typescript
+import { serviceLocator, BasicCrawler, MemoryStorageBackend } from 'crawlee';
+
+// Configure global services (optional)
+serviceLocator.setStorageBackend(new MemoryStorageBackend());
+
+// All crawlers will use the global service locator by default
+const crawler = new BasicCrawler({
+    requestHandler: async ({ request, log }) => {
+        log.info(`Processing ${request.url}`);
+    },
+});
+```
+
+#### Accessing configuration
+
+`Configuration.getGlobalConfiguration()` remains as a utility function, but in most cases, you should use `serviceLocator.getConfiguration()` instead:
+
+```typescript
+import { serviceLocator } from 'crawlee';
+
+const config = serviceLocator.getConfiguration();
+```
+
+Do note that the method is currently misnamed - in specific circumstances, it will not return the global configuration object, but the one from the currently active service locator.
+
+#### `config` is renamed to `configuration` everywhere
+
+v3 used `config` and `configuration` interchangeably. v4 settles on `configuration`.
+
+Renamed methods:
+
+| Before | After |
+| --- | --- |
+| `Configuration.getGlobalConfig()` | `Configuration.getGlobalConfiguration()` |
+| `LocalEventManager.fromConfig()` | `LocalEventManager.fromConfiguration()` |
+
+Renamed options — pass `configuration` instead of `config`:
+
+- `Dataset.open()`, `KeyValueStore.open()` and `RequestQueue.open()` (`StorageOpenOptions`)
+- `useState()` (`UseStateOptions`)
+- `purgeDefaultStorages()` (both the options object and the legacy positional argument)
+- `new Snapshotter()` (`SnapshotterOptions`)
+- `saveSnapshot()` in `@crawlee/playwright` and `@crawlee/puppeteer` (`SaveSnapshotOptions`)
+- `RecoverableStateOptions`, `RequestListOptions`, `CpuLoadSignalOptions` and `MemoryLoadSignalOptions`
+
+**Before:**
+```typescript
+const store = await KeyValueStore.open(null, { config: new Configuration({ persistStorage: false }) });
+```
+
+**After:**
+```typescript
+const store = await KeyValueStore.open(null, { configuration: new Configuration({ persistStorage: false }) });
+```
+
+Renamed properties — `Dataset.config`, `KeyValueStore.config`, `Snapshotter.config` and `BrowserLauncher.config` (including `PlaywrightLauncher`, `PuppeteerLauncher` and `StagehandLauncher`) are now `.configuration`.
+
+The `configuration` crawler option is unchanged, as are `serviceLocator.getConfiguration()` and `serviceLocator.setConfiguration()`.
+
+### Navigation and the request handler are timed separately
+
+In v3, navigation ran inside the request handler's time window, and the two options were summed (plus an undocumented 10 second buffer) to form the actual limit. Setting `requestHandlerTimeoutSecs: 60` on a `PlaywrightCrawler` therefore produced errors complaining about 130 seconds.
+
+Navigation and the request handler are now timed independently, and each reports itself:
+
+| Option | Covers | Default |
+| --- | --- | --- |
+| `requestHandlerTimeoutSecs` | your `requestHandler` only | 60 |
+| `navigationTimeoutSecs` | the `preNavigationHooks`, the navigation, and the `postNavigationHooks` together | 30 (HTTP), 60 (browser) |
+
+`navigationTimeoutSecs` is a single budget shared by the whole navigation phase, so a slow hook eats into the same window the navigation uses. The separate `navigationHooksTimeoutSecs` option has been removed.
+
+Two things to watch for when upgrading:
+
+- **Navigation hooks are now bounded.** They had no timeout of their own before, so a `preNavigationHooks` / `postNavigationHooks` function that pushes the whole phase past `navigationTimeoutSecs` will now fail the request. Raise `navigationTimeoutSecs`, or call `context.extendTimeout()` from inside the hook when the extra time is only needed occasionally.
+- **A request can no longer hang forever.** An internal timeout now bounds the whole request, covering the phases that have no timeout of their own (`extendContext`, the robots.txt check, response processing). By default it is deliberately generous (twice the request handler timeout, and never less than 5 minutes), so it only fires when a request is genuinely stuck. Set `CRAWLEE_INTERNAL_TIMEOUT` (in milliseconds) to override it. Because it wraps the whole request, it is raised per request to outlast the navigation and request handler timeouts, so a value below them cannot cut those phases short; if you configure one that low, the crawler warns at startup that it is being ignored.
+
+### Per-route and per-request handler timeouts
+
+`requestHandlerTimeoutSecs` still applies to every request alike, but a single route can now opt out of it — useful when one page type needs markedly more time than the rest, and you do not want to raise the timeout for everything else to accommodate it:
+
+```ts
+router.addHandler('LIST', async ({ enqueueLinks }) => { ... }, { requestHandlerTimeoutSecs: 120 });
+router.addHandler('DETAIL', async ({ pushData }) => { ... }); // keeps the crawler's default
+```
+
+When the time needed is only apparent once the handler is already running, `context.extendTimeout()` buys it more:
+
+```ts
+router.addHandler('LIST', async ({ page, extendTimeout }) => {
+    const pageCount = await countPages(page);
+    extendTimeout(pageCount * 10);
+    await scrapeAllPages(page);
+});
+```
+
+### `useSessionPool` and `sessionPoolOptions` are removed
+
+The `useSessionPool` and `sessionPoolOptions` options have been removed from the `BasicCrawler` constructor. Every crawler now uses a `SessionPool` by default. Instead of passing `sessionPoolOptions`, create a `SessionPool` instance directly and pass it via the `sessionPool` option.
+
+```typescript
+import { SessionPool } from '@crawlee/core';
+
+const crawler = new BasicCrawler({
+    // The old parameters won't work anymore
+    // useSessionPool: true,
+    // sessionPoolOptions: { maxUsageCount: 5 },
+    sessionPool: new SessionPool({
+        maxUsageCount: 5,
+    }),
+});
+```
+
+### `SessionPool` is now lazy-initialized
+
+`SessionPool.open()` static factory method is removed. Create instances with `new SessionPool(options)` instead — all public methods automatically initialize the pool on first use.
+
+`SessionPool.usableSessionsCount` and `SessionPool.retiredSessionsCount` are now async methods instead of synchronous getters. `SessionPool.getState()` is also async now.
+
+**Before:**
+```typescript
+const sessionPool = await SessionPool.open({ maxPoolSize: 100 });
+const count = sessionPool.usableSessionsCount;
+const state = sessionPool.getState();
+```
+
+**After:**
+```typescript
+const sessionPool = new SessionPool({ maxPoolSize: 100 });
+const count = await sessionPool.usableSessionsCount();
+const state = await sessionPool.getState();
+```
+
+### `retireOnBlockedStatusCodes` is removed from `Session`
+
+`Session.retireOnBlockedStatusCodes` is removed. Blocked status code handling is now internal to the crawler. Configure blocked status codes via the `blockedStatusCodes` crawler option (moved from `sessionPoolOptions`).
+
+### `maxSessionRotations` and `request.sessionRotationCount` are removed
+
+Session errors no longer have their own retry budget. The `maxSessionRotations` crawler option, the `Request.sessionRotationCount` property, and the special-case retry logic for `SessionError` are all gone. A `SessionError` now retires the session and counts toward `maxRequestRetries` like any other failure, so configure a single retry limit via `maxRequestRetries` (default `3`). `SessionError` also no longer extends `RetryRequestError` - if you were catching `RetryRequestError` to detect a session-triggered retry, branch on `SessionError` directly instead.
+
+### Cookie handling in `HttpCrawler` and `sendRequest`
+
+Cookie handling was refactored to be simpler and more predictable. The `BaseHttpClient` is now the single place where the `Cookie` request header is assembled, by merging cookies from the session's cookie jar with any `Cookie` header already present on the request. Explicit `Cookie` headers take precedence over jar cookies with the same name.
+
+This means `sendRequest` now respects user-provided cookies. In v3, passing a `Cookie` header via `sendRequest` headers was silently overwritten by the session's cookie jar — this is no longer the case.
+
+The precedence (highest to lowest) is:
+
+1. `sendRequest` `Cookie` header and `cookieJar` overrides
+2. `Cookie` header set directly on the request (via `request.headers`)
+3. Session cookie jar (persisted cookies received from `Set-Cookie` response headers or set manually)
+
+To fully replace the cookie jar for a `sendRequest` call, pass a custom `cookieJar` in the options:
+
+```typescript
+import { CookieJar } from 'tough-cookie';
+
+const jar = new CookieJar();
+await jar.setCookie('my=cookie', request.url);
+const response = await sendRequest({ url: '...' }, { cookieJar: jar });
+```
+
+The protected `HttpCrawler._applyCookies` method is removed. If you were overriding it in a subclass, move your logic to a `preNavigationHook` that sets cookies on `request.headers.Cookie` or on the `session` cookie jar directly.
+
+`mergeCookies` now skips malformed cookie fragments with a warning instead of throwing.
+
+#### `Session.getCookies`, `setCookies` and `setCookiesFromResponse` are removed
+
+The public cookie helper methods on `Session` — `getCookies(url)`, `setCookies(cookies, url)`, and `setCookiesFromResponse(response)` — have been removed as part of centralizing cookie assembly in `BaseHttpClient`. Work with the session's `cookieJar` directly, or use the new `Session.getCookieString(url)` to read the assembled `Cookie` header value.
+
+**Before:**
+```typescript
+const cookies = session.getCookies(url);
+session.setCookies([{ name: 'foo', value: 'bar' }], url);
+session.setCookiesFromResponse(response);
+```
+
+**After:**
+```typescript
+// Read the Cookie header string for a URL:
+const cookieHeader = session.getCookieString(url);
+
+// Set / read cookies via the jar directly:
+await session.cookieJar.setCookie('foo=bar', url);
+const cookieHeader2 = await session.cookieJar.getCookieString(url);
+```
+
+### `persistCookiesPerSession` renamed to `saveResponseCookies`
+
+The `persistCookiesPerSession` crawler option has been renamed to `saveResponseCookies` on both `HttpCrawler` (and its subclasses like `CheerioCrawler`, `JSDOMCrawler`, etc.) and `BrowserCrawler`. When enabled (the default), response cookies are stored in the session's cookie jar so they're sent on subsequent requests using the same session. Rename the option in your crawler constructor options to migrate.
+
+### Browser cookies are also persisted after `requestHandler`
+
+Previously, `BrowserCrawler` with `saveResponseCookies` (formerly `persistCookiesPerSession`) only copied cookies from the page into the session after navigation and **before** `requestHandler` ran. Cookies set during the handler — login flows, `page.setCookie()`, or XHR/`fetch` `Set-Cookie` responses — were not stored on the session for later requests.
+
+In v4, when `saveResponseCookies` is enabled (the default), browser cookies are also re-read and stored in the session cookie jar **after** `requestHandler` completes. If you relied on handler-set cookies staying page-local and not affecting later requests on the same session, set `saveResponseCookies: false` or clear/overwrite cookies on the session explicitly.
+
+### `preNavigationHooks` in `HttpCrawler` no longer accepts `gotOptions` object
+
+The `preNavigationHooks` option in `HttpCrawler` subclasses no longer accepts the `gotOptions` object as a second parameter. Modify the `crawlingContext` fields (e.g. `.request`) directly instead.
+
+### Removed crawling context properties
+
+#### Crawling context no longer includes Error for failed requests
+
+The crawling context no longer includes the `Error` object for failed requests. Use the second parameter of the `errorHandler` or `failedRequestHandler` callbacks to access the error.
+
+#### Crawling context no longer includes a reference to the crawler itself
+
+This was previously accessible via `context.crawler`. If you want to restore the functionality, you may use the `extendContext` option of the crawler:
+
+```ts
+const crawler = new CheerioCrawler({
+  extendContext: () => ({ crawler }),
+  requestHandler: async (context) => {
+    if (Math.random() < 0.01) {
+      context.crawler.stop()
+    }
+  }
+})
+```
+
+`extendContext` runs **before navigation**, so the members it returns are visible to the `preNavigationHooks`, `postNavigationHooks`, and the `requestHandler` alike. As a consequence, the `context` passed to `extendContext` is the pre-navigation context and does **not** include navigation-dependent members (e.g. `page`, `response`, `$`, `body`). If your extension needs to read those, do it in a `postNavigationHook` or the `requestHandler` instead.
+
+### Crawling context is strictly typed
+
+Previously, the crawling context extended a `Record` type, allowing to access any property. This was changed to a strict type, which means that you can only access properties that are defined in the context.
+
+### `HttpClient` instances return `Response` objects
+
+The interface of `HttpClient` instances was changed to return the [native `Response` objects](https://developer.mozilla.org/en-US/docs/Web/API/Response) instead of custom `HttpResponse` objects.
+
+### `CrawlingContext.response` is now of type `Response`
+
+The `CrawlingContext.response` property is now of type [`Response`](https://developer.mozilla.org/en-US/docs/Web/API/Response) instead of `HttpResponse`. `CrawlingContext.sendRequest` method now returns `Response` objects as well.
+
+### Multiple crawler instances use separate default request queues
+
+In v3, every `BasicCrawler` (or subclass) that didn't receive an explicit `requestQueue` option would open the same default request queue. If you created two crawlers in the same process, they would silently share a queue — leading to request collisions and hard-to-debug deduplication issues.
+
+In v4, only the **first** crawler instance uses the default request queue. Each subsequent instance automatically gets its own queue via an internal alias (e.g. `__default_1__`, `__default_2__`, etc.). This means multiple crawlers can safely coexist without interfering with each other's requests.
+
+If you explicitly pass a `requestQueue` (or `requestManager`) to the crawler, that queue is used as-is regardless of instance order.
+
+### Repeated `run()` calls use `purge()` instead of `drop()` + recreate
+
+When calling `crawler.run()` multiple times on the same crawler instance, v3 would drop the default request queue and create a fresh one between runs. In v4, the crawler **purges** the queue instead — clearing all requests and resetting internal counters, but keeping the same queue object. This is more efficient and avoids edge cases around stale references.
+
+The new `purge()` method is available on `RequestQueue` and is also defined as an optional method on the `IRequestManager` interface.
+
+By default, only queues that the crawler created itself (the "owned" queue) are purged between runs — a user-supplied queue is never touched unless you explicitly opt in. The `purgeRequestQueue` option in `CrawlerRunOptions` controls this behavior:
+
+| `purgeRequestQueue` value | Owned queue (auto-created) | User-supplied queue |
+|---|---|---|
+| omitted (default) | Purged | Not purged |
+| `true` | Purged | Purged |
+| `false` | Not purged | Not purged |
+
+```typescript
+// The purge happens automatically between run() calls:
+const crawler = new BasicCrawler({ requestHandler: async ({ request }) => { /* ... */ } });
+await crawler.run(['https://example.com/a', 'https://example.com/b']);
+// Queue is purged here, so the same URLs can be processed again:
+await crawler.run(['https://example.com/a', 'https://example.com/c']);
+```
+
+You can opt out of the automatic purge by passing `purgeRequestQueue: false`:
+
+```typescript
+await crawler.run(urls, { purgeRequestQueue: false });
+```
+
+If you supplied your own `requestQueue` and want it purged between runs, pass `purgeRequestQueue: true` explicitly:
+
+```typescript
+const queue = await RequestQueue.open('my-queue');
+const crawler = new BasicCrawler({ requestQueue: queue, requestHandler: async () => { /* ... */ } });
+await crawler.run(['https://example.com/first']);
+// Explicitly purge the user-supplied queue before the second run:
+await crawler.run(['https://example.com/second'], { purgeRequestQueue: true });
+```
+
+### Storage `.open()` now also accepts `{ id?, name? }`
+
+`Dataset.open()`, `KeyValueStore.open()`, and `RequestQueue.open()` previously accepted a single `idOrName?: string` parameter. This was ambiguous — callers couldn't express whether they were opening a storage by its ID or by name.
+
+The first parameter now also accepts a `StorageIdentifier` object with separate `id` and `name` fields:
+
+```ts
+interface StorageIdentifier {
+    id?: string;
+    name?: string;
+}
+```
+
+Passing a plain string still works — it is first looked up as an ID, and if no such storage exists, it is treated as a name (matching the v3 behavior):
+
+```typescript
+const dataset = await Dataset.open('my-dataset');
+const store = await KeyValueStore.open('my-store');
+const queue = await RequestQueue.open('my-queue');
+```
+
+You can also use the object form, which additionally allows opening a storage by ID:
+
+```typescript
+const dataset = await Dataset.open({ name: 'my-dataset' });
+
+// Opening by ID (e.g. on the Apify platform):
+const dataset = await Dataset.open({ id: 'WkzbQMuFYuamGv3YF' });
+```
+
+Opening the default storage (no arguments or `null`) still works as before:
+
+```typescript
+const dataset = await Dataset.open();
+```
+
+The same change applies to `CrawlingContext.getKeyValueStore()` and `CrawlingContext.pushData()` — both now accept `string | StorageIdentifier` for identifying the target storage.
+
+### `KeyValueStore.getPublicUrl` is now async
+
+The `KeyValueStore.getPublicUrl` method is now asynchronous and reads the public URL directly from the storage backend.
+
+### `globs`, `regexps`, and `pseudoUrls` replaced by `include`
+
+The separate `globs`, `regexps`, and `pseudoUrls` URL-filtering options of `enqueueLinks()`, the click-elements enqueue helpers, and `SitemapRequestLoader` have been collapsed into a single `include` option (mirroring the already-unified `exclude` option).
+
+The `PseudoUrl` class is no longer exported and the `@apify/pseudo_url` dependency has been dropped. Rewrite any pseudo-URL patterns as globs or regular expressions.
+
+Per-pattern request options (`label`, `userData`, `method`, `payload`, `headers` set directly on a pattern object) are no longer supported. Use the top-level `label` / `userData` options, or `transformRequestFunction`, to set request options for the enqueued requests.
+
+**Before:**
+```typescript
+await enqueueLinks({
+    globs: ['https://crawlee.dev/docs/**'],
+    regexps: [/\/blog\//],
+});
+```
+
+**After:**
+```typescript
+await enqueueLinks({
+    include: ['https://crawlee.dev/docs/**', /\/blog\//],
+});
+```
+
+#### Migrating `pseudoUrls`
+
+A `PseudoUrl` is equivalent to an anchored regular expression: the text inside `[ ]` is the pattern (a wildcard), everything outside it is matched literally, and the whole URL is anchored. Translate each pseudo-URL to a `RegExp` (or a glob, if the pattern is simple enough):
+
+**Before:**
+```typescript
+await enqueueLinks({
+    pseudoUrls: ['https://crawlee.dev/[.*]'],
+});
+```
+
+**After:**
+```typescript
+await enqueueLinks({
+    // faithful translation — [.*] becomes .*, literal text is escaped and anchored
+    include: [/^https:\/\/crawlee\.dev\/.*$/],
+    // or, when the pattern is simple, an equivalent glob:
+    // include: ['https://crawlee.dev/**'],
+});
+```
+
+### `transformRequestFunction` precedence in `enqueueLinks`
+
+The `transformRequestFunction` callback in `enqueueLinks` now runs **after** URL pattern filtering (`include`, `exclude`) instead of before. This means it has the highest priority and can overwrite any request options set by the global `label` / `userData` options.
+
+The priority order is now (lowest to highest):
+1. Global `label` / `userData` options
+2. `transformRequestFunction`
+
+The `transformRequestFunction` callback receives a `RequestOptions` object and can return either:
+- The modified `RequestOptions` object
+- A new `RequestOptions` plain object
+- `'unchanged'` to keep the original options as-is
+- A falsy value or `'skip'` to exclude the request from the queue
+
+### Internal KVS keys renamed
+
+Several internal Crawlee keys were prefixed with the `SDK_` prefix for legacy reasons - these keys now start with `CRAWLEE_` instead. These are, e.g., `CRAWLEE_SESSION_POOL_STATE` or `CRAWLEE_CRAWLER_STATISTICS_{n}`.
+
+## Only if you subclassed crawlers or touched internals
+
+Skip this section unless you subclass Crawlee classes, override `protected` members, or read fields that were never documented.
+
+### Underscore prefix is removed from many protected and private methods
 
 The leading underscore was dropped from protected and private class members across the codebase. The most visible rename is:
 
@@ -42,7 +603,7 @@ The file-system storage backends' shared `CachedIdClient._cachedId` protected fi
 
 Members that were also made `private` in the same pass are listed under [Unintentionally exposed internals are now private](#unintentionally-exposed-internals-are-now-private) below.
 
-## Unintentionally exposed internals are now private
+### Unintentionally exposed internals are now private
 
 A number of class members were `public` or `protected` only by accident — they were never meant to be part of the extension surface, are not used by any subclass, and in most cases also carried a leading underscore to signal that. In v4 they are `private` (and where it applies, `readonly`). If you were reaching into any of these — either to read internal state or to override a helper in a subclass — that no longer compiles.
 
@@ -71,166 +632,25 @@ The change spans, among others:
 - **`RobotsTxtFile.load` and `Sitemap.parse`** — internal static factory helpers, now `private` (use the public `RobotsTxtFile.from` / `Sitemap.load` / `Sitemap.fromXmlString` entry points)
 - Various internal fields on `BrowserController` (`id`, `browserPlugin`, `log`) and `BrowserPlugin` (`name`, `library`, `launchOptions`, `proxyUrl`, `userDataDir`, `browserPerProxy`, `ignoreProxyCertificate`, `log`) are now `readonly`
 
-## The `RequestQueue` constructor no longer takes a `Configuration`
+### The `RequestQueue` constructor no longer takes a `Configuration`
 
 The internal `RequestQueue` constructor dropped its second `config: Configuration` parameter (it also stopped exposing a `protected config` field). You should not be constructing `RequestQueue` directly anyway — use `RequestQueue.open()`, which resolves configuration for you.
 
-## Crawler constructors no longer take a `Configuration` argument
-
-The crawler classes dropped the optional second `config?: Configuration` constructor parameter: `PlaywrightCrawler`, `PuppeteerCrawler`, and `AdaptivePlaywrightCrawler` (the same applies to the other crawlers, which never advertised it publicly). `AdaptivePlaywrightCrawler` additionally now extends `BasicCrawler` rather than `PlaywrightCrawler`. Pass a `Configuration` via the `configuration` option instead (see [Using per-crawler services](#using-per-crawler-services-recommended)).
-
-**Before:**
-```typescript
-const crawler = new PlaywrightCrawler({ requestHandler }, new Configuration({ headless: false }));
-```
-
-**After:**
-```typescript
-const crawler = new PlaywrightCrawler({
-    requestHandler,
-    configuration: new Configuration({ headless: false }),
-});
-```
-
-The browser *launchers* (`PlaywrightLauncher`, `PuppeteerLauncher`) keep their `(launchContext?, configuration?)` constructor signature — this change is only about the crawler classes.
-
-## Removed symbols
-
-- `BasicCrawler._cleanupContext` (protected) - this is now handled by the `ContextPipeline`
-- `BasicCrawler.isRequestBlocked` (protected)
-- `BasicCrawler.events` (protected) - this should be accessed via `BasicCrawler.serviceLocator`
-- `BrowserRequestHandler` and `BrowserErrorHandler` types in `@crawlee/browser`
-- `BrowserCrawler.userProvidedRequestHandler` (protected)
-- `BrowserCrawler.requestHandlerTimeoutInnerMillis` (protected)
-- `BrowserCrawler._enhanceCrawlingContextWithPageInfo` (protected)
-- `BrowserCrawler._handleNavigation` (protected)
-- `HttpCrawler.userRequestHandlerTimeoutMillis` (protected)
-- `HttpCrawler._handleNavigation` (protected)
-- `HttpCrawler._applyCookies` (protected) - cookie merging is now handled by `BaseHttpClient`
-- `HttpCrawler._parseHTML` (protected)
-- `HttpCrawler.use` and the `CrawlerExtension` class (experimental) - the `ContextPipeline` should be used for extending the crawler
-- `BasicCrawler._tagUserHandlerError` (protected) - internal error-tagging helper, no longer part of the crawler surface
-- `BasicCrawler.handledRequestsCount` setter (`@deprecated`) - the throw-on-assign guard is gone; the getter is now internal-only and the count is derived from `this.stats`
-- `PlaywrightPlugin._containerProxyServer` (public) - was an unused, never-populated field
-- `Snapshotter._snapshotMemory`, `Snapshotter._memoryOverloadWarning`, `Snapshotter._snapshotEventLoop`, `Snapshotter._snapshotCpu`, `Snapshotter._snapshotClient`, `Snapshotter._pruneSnapshots` (all `@deprecated` protected stubs) - snapshotting is now handled by the individual load signals, and the `Snapshotter` itself is internal to `ConcurrencySystem`; there is no longer a public API for reading raw resource snapshots
-- `FileDownloadOptions.streamHandler` - streaming should now be handled directly in the `requestHandler` instead
-- `playwrightUtils.registerUtilsToContext` and `puppeteerUtils.registerUtilsToContext` - this is now added to the context via `ContextPipeline` composition
-- `context.blockResources` and `context.cacheResponses` — no longer attached to the crawling context. The functionality is still available as deprecated functions, accessible both via the `puppeteerUtils` namespace (`puppeteerUtils.blockResources`, `puppeteerUtils.cacheResponses`) and as top-level exports from `@crawlee/puppeteer` (`import { blockResources, cacheResponses } from '@crawlee/puppeteer'`). Unlike the old context helpers, these take an explicit `page` argument — e.g. `await blockResources(page)`. Both are `@deprecated` and will be removed in a future release, so migrate away from them.
-- `Configuration.systemInfoV2` / `CRAWLEE_SYSTEM_INFO_V2` environment variable — the v2 behavior is now the default (see [Available resource detection](#available-resource-detection))
-- `checkAndSerialize` and `chunkBySize` functions (from `@crawlee/core`) — value (de)serialization now lives in the `KeyValueStore` frontend; use `serializeValue` / `parseValue` (see [`maybeStringify` is removed](#maybestringify-is-removed))
-- `BASIC_CRAWLER_TIMEOUT_BUFFER_SECS` constant (from `@crawlee/basic`) — was an internal timeout buffer, no longer exported
-- `HttpResponse`, `HttpResponseWithoutBody`, `StreamingHttpResponse`, `ResponseTypes`, `BaseHttpResponseData`, `SimpleHeaders`, `processHttpRequestOptions`, and `GotScrapingHttpClient` (from `@crawlee/core`) — the HTTP client surface moved to `@crawlee/http-client` / `@crawlee/got-scraping-client` (see [HTTP client packages and `BaseHttpClient` reshaped](#http-client-packages-and-basehttpclient-reshaped))
-- `StreamHandlerContext` and `FileDownloadOptions` types (from `@crawlee/http`) — see [`FileDownload` now extends `BasicCrawler`](#filedownload-now-extends-basiccrawler-and-no-longer-takes-filedownloadoptions)
-- `PlainResponse` type (from `@crawlee/http`) — it wrapped the `got-scraping` response and is gone along with the rest of the old HTTP response surface (see [`CrawlingContext.response` is now of type `Response`](#crawlingcontextresponse-is-now-of-type-response))
-
-### The protected `BasicCrawler.crawlingContexts` map is removed
-
-The property was not used by the library itself and re-implementing the functionality in user code is fairly straightforward.
-
-## Removed crawling context properties
-
-### Crawling context no longer includes Error for failed requests
-
-The crawling context no longer includes the `Error` object for failed requests. Use the second parameter of the `errorHandler` or `failedRequestHandler` callbacks to access the error.
-
-### Crawling context no longer includes a reference to the crawler itself
-
-This was previously accessible via `context.crawler`. If you want to restore the functionality, you may use the `extendContext` option of the crawler:
-
-```ts
-const crawler = new CheerioCrawler({
-  extendContext: () => ({ crawler }),
-  requestHandler: async (context) => {
-    if (Math.random() < 0.01) {
-      context.crawler.stop()
-    }
-  }
-})
-```
-
-`extendContext` runs **before navigation**, so the members it returns are visible to the `preNavigationHooks`, `postNavigationHooks`, and the `requestHandler` alike. As a consequence, the `context` passed to `extendContext` is the pre-navigation context and does **not** include navigation-dependent members (e.g. `page`, `response`, `$`, `body`). If your extension needs to read those, do it in a `postNavigationHook` or the `requestHandler` instead.
-
-## Crawling context is strictly typed
-
-Previously, the crawling context extended a `Record` type, allowing to access any property. This was changed to a strict type, which means that you can only access properties that are defined in the context.
-
-## Crawler generic parameters and handler types changed
+### Crawler generic parameters and handler types changed
 
 To support the new `ContextPipeline` / `extendContext` composition, the crawler classes gained additional generic type parameters. `BasicCrawler<Context>` is now `BasicCrawler<Context, ContextExtension, ExtendedContext>`, and the same pattern was propagated to `HttpCrawler`, `CheerioCrawler`, `JSDOMCrawler`, `LinkeDOMCrawler`, `PuppeteerCrawler`, `PlaywrightCrawler`, `StagehandCrawler`, and their `*Options` interfaces. This only affects you if you **explicitly annotated** crawler generics or **subclassed** a crawler while narrowing its `Context` — in that case the compiler now expects the extra parameters (and a matching `contextPipelineBuilder`). Most users, who let the types be inferred, are unaffected.
 
 The exported handler types were reshaped accordingly. `ErrorHandler` and `RequestHandler` no longer wrap their context in `LoadedContext<...>`; `ErrorHandler` now takes two type parameters (`ErrorHandler<BaseContext, ExtendedContext>`), receiving `inputs: BaseContext & Partial<ExtendedContext>`. The `RestrictedCrawlingContext` and `LoadedContext` types are no longer exported from `@crawlee/basic`. If you imported or annotated these directly, update the references; if you only used the crawler options' `requestHandler` / `errorHandler` / `failedRequestHandler` callbacks with inferred parameter types, nothing changes.
 
-## `SessionPool` is now lazy-initialized
+### The `log` property is typed as `CrawleeLogger`
 
-`SessionPool.open()` static factory method is removed. Create instances with `new SessionPool(options)` instead — all public methods automatically initialize the pool on first use.
+The `log` property exposed throughout the public API (on the crawling context, `Statistics`, `EventManager`, `SessionOptions`, `Dataset`, etc.) is now typed as the `CrawleeLogger` interface (from `@crawlee/types`) rather than the concrete `Log` class from `@apify/log`. If you consume it structurally — calling `log.info(...)`, `log.debug(...)`, `log.child(...)` — nothing changes. You only need to act if you explicitly annotated a variable or parameter with the `Log` type from `@apify/log` and assigned `context.log` to it; type it as `CrawleeLogger` instead.
 
-`SessionPool.usableSessionsCount` and `SessionPool.retiredSessionsCount` are now async methods instead of synchronous getters. `SessionPool.getState()` is also async now.
+## Only if you manage sessions or proxies yourself
 
-**Before:**
-```typescript
-const sessionPool = await SessionPool.open({ maxPoolSize: 100 });
-const count = sessionPool.usableSessionsCount;
-const state = sessionPool.getState();
-```
+Applies when you construct `SessionPool` or `Session` instances directly, implement your own pool, or configure proxies beyond a static URL list.
 
-**After:**
-```typescript
-const sessionPool = new SessionPool({ maxPoolSize: 100 });
-const count = await sessionPool.usableSessionsCount();
-const state = await sessionPool.getState();
-```
-
-## `createSessionFunction` signature has changed
-
-The pool-wide `sessionOptions` are now merged with per-call overrides before `createSessionFunction` is invoked, and the leading `sessionPool` argument is gone — it was only useful to pass to `new Session({ sessionPool })`, and `Session` no longer keeps a back-reference to the pool. The new signature is `(options?: { sessionOptions?: SessionOptions }) => Session | Promise<Session>`.
-
-**Before:**
-```typescript
-new SessionPool({
-    sessionOptions: { maxUsageCount: 5 },
-    createSessionFunction: async (pool, opts) =>
-        new Session({
-            ...pool.sessionOptions, // had to be spread manually for pool defaults to apply
-            ...opts?.sessionOptions,
-            sessionPool: pool,
-        }),
-});
-```
-
-**After:**
-```typescript
-new SessionPool({
-    sessionOptions: { maxUsageCount: 5 },
-    createSessionFunction: async (opts) =>
-        new Session({
-            ...opts?.sessionOptions, // already merged with pool-wide defaults
-        }),
-});
-```
-
-## `Session` no longer requires a `sessionPool` reference
-
-`Session` no longer holds a back-reference to its `SessionPool` and no longer emits a `sessionRetired` event when retired. The `sessionPool` constructor option is gone, `SessionPool` is no longer an `EventEmitter`, and the `EVENT_SESSION_RETIRED` constant is no longer exported. Custom `createSessionFunction` implementations that constructed `Session` instances manually should drop the `sessionPool` argument.
-
-**Before:**
-```typescript
-new SessionPool({
-    createSessionFunction: async (pool, opts) =>
-        new Session({ ...opts?.sessionOptions, sessionPool: pool }),
-});
-```
-
-**After:**
-```typescript
-new SessionPool({
-    createSessionFunction: async (opts) =>
-        new Session({ ...opts?.sessionOptions }),
-});
-```
-
-If you previously subscribed to `sessionRetired` on the pool to clean up resources tied to a session, perform the cleanup at the end of your request handler (or via a context-pipeline cleanup hook) by checking `session.isUsable()` instead. `Session.retire()` is now a terminal state — once retired, `isUsable()` returns `false` permanently and cannot be undone by a subsequent `markGood()`.
-
-## Custom `SessionPool` implementations via the `ISessionPool` interface
+### Custom `SessionPool` implementations via the `ISessionPool` interface
 
 Crawlers now accept any object implementing the new `ISessionPool` interface as their `sessionPool` option, not just instances of the built-in `SessionPool`. The contract is intentionally tiny — a single method, `getSession()` / `getSession(id)`, that hands out a `Session` for a request. Lifecycle (reset, teardown) is the responsibility of whoever owns the pool: a custom pool you construct yourself is never owned by the crawler, so the crawler never tears it down. This makes it straightforward to plug in a remote, shared, or otherwise customized session-management strategy without subclassing `SessionPool` or copying its internals.
 
@@ -269,117 +689,57 @@ The returned objects must be `Session` instances — the rest of the crawler rel
 
 The `crawler.sessionPool` property is now **read-only** (a getter). It was previously a writable field, so any code that reassigned it after construction (`crawler.sessionPool = myPool`) no longer works — pass your pool via the `sessionPool` constructor option instead.
 
-## `retireOnBlockedStatusCodes` is removed from `Session`
+### `createSessionFunction` signature has changed
 
-`Session.retireOnBlockedStatusCodes` is removed. Blocked status code handling is now internal to the crawler. Configure blocked status codes via the `blockedStatusCodes` crawler option (moved from `sessionPoolOptions`).
+The pool-wide `sessionOptions` are now merged with per-call overrides before `createSessionFunction` is invoked, and the leading `sessionPool` argument is gone — it was only useful to pass to `new Session({ sessionPool })`, and `Session` no longer keeps a back-reference to the pool. The new signature is `(options?: { sessionOptions?: SessionOptions }) => Session | Promise<Session>`.
 
-## `useSessionPool` and `sessionPoolOptions` are removed
-
-The `useSessionPool` and `sessionPoolOptions` options have been removed from the `BasicCrawler` constructor. Every crawler now uses a `SessionPool` by default. Instead of passing `sessionPoolOptions`, create a `SessionPool` instance directly and pass it via the `sessionPool` option.
-
+**Before:**
 ```typescript
-import { SessionPool } from '@crawlee/core';
-
-const crawler = new BasicCrawler({
-    // The old parameters won't work anymore
-    // useSessionPool: true,
-    // sessionPoolOptions: { maxUsageCount: 5 },
-    sessionPool: new SessionPool({
-        maxUsageCount: 5,
-    }),
+new SessionPool({
+    sessionOptions: { maxUsageCount: 5 },
+    createSessionFunction: async (pool, opts) =>
+        new Session({
+            ...pool.sessionOptions, // had to be spread manually for pool defaults to apply
+            ...opts?.sessionOptions,
+            sessionPool: pool,
+        }),
 });
 ```
 
-## Custom `BrowserPool` implementations via the `IBrowserPool` interface
-
-Browser crawlers now accept any object implementing the new `IBrowserPool` interface as their `browserPool` option, not just instances of the built-in `BrowserPool`. The interface follows the classic acquire/release pattern, plus a pair of helpers for moving state between the crawling session and the page:
-
-- **`newPage(options?)`** — opens a new page. An optional `session` can be passed as a best-effort hint — the pool may use it for proxy configuration, fingerprinting, etc., but nothing is guaranteed.
-- **`closePage(page, options?)`** — signals the pool that the caller is done with the page. If the optional `error` is a `SessionError`, the pool should purge all state associated with the session (e.g. retire the underlying browser).
-- **`extractPageState(page)`** — reads the relevant state (currently cookies) out of a page so the crawler can persist it back into the session.
-- **`injectPageState(page, state)`** — the counterpart to `extractPageState`; seeds a page with state (currently cookies) before navigation. Isolation between pages is best-effort and depends on the pool implementation.
-
-Lifecycle (`destroy`) is the responsibility of whoever owns the pool: a custom pool you construct yourself is never owned by the crawler, so the crawler never tears it down. This makes it straightforward to plug in a remote browser farm, a session-aware pool, or another custom browser-management strategy without subclassing `BrowserPool`.
-
+**After:**
 ```typescript
-import { PuppeteerCrawler } from '@crawlee/puppeteer';
-import { BrowserPool, PuppeteerPlugin, type IBrowserPool } from '@crawlee/browser-pool';
-import puppeteer from 'puppeteer';
-
-const sharedPool = new BrowserPool({ browserPlugins: [new PuppeteerPlugin(puppeteer)] });
-
-const crawler = new PuppeteerCrawler({
-    browserPool: sharedPool,
-    requestHandler: async ({ page }) => {
-        // …
-    },
-});
-
-// You own `sharedPool` — destroy it yourself when you're done.
-await crawler.run();
-await sharedPool.destroy();
-```
-
-The `crawler.browserPool` property is now **read-only** (a getter). It was previously a writable field, so any code that reassigned it after construction (`crawler.browserPool = myPool`) no longer works — pass your pool via the `browserPool` constructor option instead.
-
-## `BrowserCrawlingContext.browserController` has been removed
-
-The `browserController` property is no longer part of the crawling context (`BrowserCrawlingContext`). Browser controller management is now fully internal to the pool — the crawler interacts with the pool only through the `IBrowserPool` interface (`newPage`, `closePage`, `extractPageState`, and `injectPageState`).
-
-If you previously used `browserController` in your request handlers, here is how to migrate the most common patterns:
-
-**Cookies** — Cookie injection and persistence are now handled automatically by the crawler and the pool. You no longer need to call `browserController.getCookies()` or `browserController.setCookies()` manually.
-
-**Proxy info** — Access proxy information via `session.proxyInfo` instead of `browserController.launchContext.proxyUrl`. TLS-error handling moved along with it: the pool reads `session.proxyInfo.ignoreTlsErrors`, so there is no standalone `ignoreTlsErrors` page option anymore. If you need to disable TLS verification for some other reason, set `ignoreHTTPSErrors` (Playwright) / `acceptInsecureCerts` (Puppeteer) through the browser's `launchOptions`.
-
-**Direct browser access** — If you need the raw browser or controller instance (e.g. for Puppeteer/Playwright-specific APIs), construct a `BrowserPool` yourself, pass it to the crawler, and reference it directly in your handler — no cast needed:
-
-```typescript
-import { BrowserPool, PuppeteerPlugin } from '@crawlee/browser-pool';
-import { PuppeteerCrawler } from '@crawlee/puppeteer';
-import puppeteer from 'puppeteer';
-
-const pool = new BrowserPool({ browserPlugins: [new PuppeteerPlugin(puppeteer)] });
-
-const crawler = new PuppeteerCrawler({
-    browserPool: pool,
-    requestHandler: async ({ page }) => {
-        const controller = pool.getBrowserControllerByPage(page);
-        // controller.browser, controller.launchContext, etc.
-    },
-});
-
-await crawler.run();
-// You own the pool — tear it down yourself.
-await pool.destroy();
-```
-
-Note that this couples your code to the built-in `BrowserPool` — custom `IBrowserPool` implementations may not expose controllers at all.
-
-## Custom rendering type predictors via the `IRenderingTypePredictor` interface
-
-The `renderingTypePredictor` option of `AdaptivePlaywrightCrawler` is now typed as the new `IRenderingTypePredictor` interface — `predict(request)` and `storeResult(requests, renderingType)`, nothing else. The built-in `RenderingTypePredictor` implements it, so passing one still works.
-
-What changed is the lifecycle: the crawler used to call `initialize()` on the predictor it was given, even though it did not create it. It now follows the same own-only-what-you-built rule as the session and browser pools — a predictor you pass in is *borrowed*, so setting it up is your job, and `initialize` is not part of the interface at all. The built-in predictor restores its persisted state in `initialize()` and will throw `Recoverable state has not yet been loaded` from `predict()` if it is never called:
-
-```typescript
-import { AdaptivePlaywrightCrawler, RenderingTypePredictor } from '@crawlee/playwright';
-
-const renderingTypePredictor = new RenderingTypePredictor({ detectionRatio: 0.1 });
-// You own the predictor — initialize it yourself (this used to be done by the crawler).
-await renderingTypePredictor.initialize();
-
-const crawler = new AdaptivePlaywrightCrawler({
-    renderingTypePredictor,
-    requestHandler: async ({ pushData }) => {
-        // …
-    },
+new SessionPool({
+    sessionOptions: { maxUsageCount: 5 },
+    createSessionFunction: async (opts) =>
+        new Session({
+            ...opts?.sessionOptions, // already merged with pool-wide defaults
+        }),
 });
 ```
 
-If you don't pass a predictor, nothing changes: the crawler builds one from `renderingTypeDetectionRatio` and, since it owns that one, initializes it for you.
+### `Session` no longer requires a `sessionPool` reference
 
-## `tieredProxyUrls` is removed from `ProxyConfiguration`
+`Session` no longer holds a back-reference to its `SessionPool` and no longer emits a `sessionRetired` event when retired. The `sessionPool` constructor option is gone, `SessionPool` is no longer an `EventEmitter`, and the `EVENT_SESSION_RETIRED` constant is no longer exported. Custom `createSessionFunction` implementations that constructed `Session` instances manually should drop the `sessionPool` argument.
+
+**Before:**
+```typescript
+new SessionPool({
+    createSessionFunction: async (pool, opts) =>
+        new Session({ ...opts?.sessionOptions, sessionPool: pool }),
+});
+```
+
+**After:**
+```typescript
+new SessionPool({
+    createSessionFunction: async (opts) =>
+        new Session({ ...opts?.sessionOptions }),
+});
+```
+
+If you previously subscribed to `sessionRetired` on the pool to clean up resources tied to a session, perform the cleanup at the end of your request handler (or via a context-pipeline cleanup hook) by checking `session.isUsable()` instead. `Session.retire()` is now a terminal state — once retired, `isUsable()` returns `false` permanently and cannot be undone by a subsequent `markGood()`.
+
+### `tieredProxyUrls` is removed from `ProxyConfiguration`
 
 The `tieredProxyUrls` option has been removed, together with the `proxyTier` field on `ProxyInfo` and the `proxyTier` plumbing in `BrowserPool`. In v4 the `Session` is the main rotation unit - a session already carries its own proxy, cookies and error score, so the pool rotates the whole fingerprint when a session gets retired on a block.
 
@@ -419,7 +779,7 @@ await crawler.run([{ url: 'https://example.com', sessionId: 'basic' }]);
 
 More complex routing (more tiers, weighted draws, sticky assignment, cooldowns) can be expressed with additional named sessions and custom `errorHandler` logic.
 
-### `ProxyConfiguration.newUrl` / `newProxyInfo` signatures changed
+#### `ProxyConfiguration.newUrl` / `newProxyInfo` signatures changed
 
 Because proxy tiers are gone, the leading `sessionId` positional argument was dropped from `ProxyConfiguration.newUrl()` and `ProxyConfiguration.newProxyInfo()`. Both now take a single optional options object instead of `(sessionId?, options?)`. The `ProxyConfigurationFunction` callback (the `newUrlFunction` option) was likewise simplified — it no longer receives a `sessionId` as its first argument; it now receives an optional `{ request }` object. The `TieredProxy` interface and the `TieredProxyOptions` type have been removed.
 
@@ -439,53 +799,120 @@ const proxyConfiguration = new ProxyConfiguration({
 const url = await proxyConfiguration.newUrl();
 ```
 
-## `maxSessionRotations` and `request.sessionRotationCount` are removed
+## Only if you customize browser management
 
-Session errors no longer have their own retry budget. The `maxSessionRotations` crawler option, the `Request.sessionRotationCount` property, and the special-case retry logic for `SessionError` are all gone. A `SessionError` now retires the session and counts toward `maxRequestRetries` like any other failure, so configure a single retry limit via `maxRequestRetries` (default `3`). `SessionError` also no longer extends `RetryRequestError` - if you were catching `RetryRequestError` to detect a session-triggered retry, branch on `SessionError` directly instead.
+Applies when you construct a `BrowserPool` yourself, reach for `browserController`, or tune `AdaptivePlaywrightCrawler` internals.
 
-## Remove `experimentalContainers` option
+### Custom `BrowserPool` implementations via the `IBrowserPool` interface
+
+Browser crawlers now accept any object implementing the new `IBrowserPool` interface as their `browserPool` option, not just instances of the built-in `BrowserPool`. The interface follows the classic acquire/release pattern, plus a pair of helpers for moving state between the crawling session and the page:
+
+- **`newPage(options?)`** — opens a new page. An optional `session` can be passed as a best-effort hint — the pool may use it for proxy configuration, fingerprinting, etc., but nothing is guaranteed.
+- **`closePage(page, options?)`** — signals the pool that the caller is done with the page. If the optional `error` is a `SessionError`, the pool should purge all state associated with the session (e.g. retire the underlying browser).
+- **`extractPageState(page)`** — reads the relevant state (currently cookies) out of a page so the crawler can persist it back into the session.
+- **`injectPageState(page, state)`** — the counterpart to `extractPageState`; seeds a page with state (currently cookies) before navigation. Isolation between pages is best-effort and depends on the pool implementation.
+
+Lifecycle (`destroy`) is the responsibility of whoever owns the pool: a custom pool you construct yourself is never owned by the crawler, so the crawler never tears it down. This makes it straightforward to plug in a remote browser farm, a session-aware pool, or another custom browser-management strategy without subclassing `BrowserPool`.
+
+```typescript
+import { PuppeteerCrawler } from '@crawlee/puppeteer';
+import { BrowserPool, PuppeteerPlugin, type IBrowserPool } from '@crawlee/browser-pool';
+import puppeteer from 'puppeteer';
+
+const sharedPool = new BrowserPool({ browserPlugins: [new PuppeteerPlugin(puppeteer)] });
+
+const crawler = new PuppeteerCrawler({
+    browserPool: sharedPool,
+    requestHandler: async ({ page }) => {
+        // …
+    },
+});
+
+// You own `sharedPool` — destroy it yourself when you're done.
+await crawler.run();
+await sharedPool.destroy();
+```
+
+The `crawler.browserPool` property is now **read-only** (a getter). It was previously a writable field, so any code that reassigned it after construction (`crawler.browserPool = myPool`) no longer works — pass your pool via the `browserPool` constructor option instead.
+
+### `BrowserCrawlingContext.browserController` has been removed
+
+The `browserController` property is no longer part of the crawling context (`BrowserCrawlingContext`). Browser controller management is now fully internal to the pool — the crawler interacts with the pool only through the `IBrowserPool` interface (`newPage`, `closePage`, `extractPageState`, and `injectPageState`).
+
+If you previously used `browserController` in your request handlers, here is how to migrate the most common patterns:
+
+**Cookies** — Cookie injection and persistence are now handled automatically by the crawler and the pool. You no longer need to call `browserController.getCookies()` or `browserController.setCookies()` manually.
+
+**Proxy info** — Access proxy information via `session.proxyInfo` instead of `browserController.launchContext.proxyUrl`. TLS-error handling moved along with it: the pool reads `session.proxyInfo.ignoreTlsErrors`, so there is no standalone `ignoreTlsErrors` page option anymore. If you need to disable TLS verification for some other reason, set `ignoreHTTPSErrors` (Playwright) / `acceptInsecureCerts` (Puppeteer) through the browser's `launchOptions`.
+
+**Direct browser access** — If you need the raw browser or controller instance (e.g. for Puppeteer/Playwright-specific APIs), construct a `BrowserPool` yourself, pass it to the crawler, and reference it directly in your handler — no cast needed:
+
+```typescript
+import { BrowserPool, PuppeteerPlugin } from '@crawlee/browser-pool';
+import { PuppeteerCrawler } from '@crawlee/puppeteer';
+import puppeteer from 'puppeteer';
+
+const pool = new BrowserPool({ browserPlugins: [new PuppeteerPlugin(puppeteer)] });
+
+const crawler = new PuppeteerCrawler({
+    browserPool: pool,
+    requestHandler: async ({ page }) => {
+        const controller = pool.getBrowserControllerByPage(page);
+        // controller.browser, controller.launchContext, etc.
+    },
+});
+
+await crawler.run();
+// You own the pool — tear it down yourself.
+await pool.destroy();
+```
+
+Note that this couples your code to the built-in `BrowserPool` — custom `IBrowserPool` implementations may not expose controllers at all.
+
+### Puppeteer cookies are now read and written at the browser-context level
+
+The `PuppeteerController._getCookies` / `_setCookies` methods (used internally by the session pool to sync cookies between a `Session` and a Puppeteer page) now call `page.browserContext().cookies()` / `setCookie()` instead of the deprecated `page.cookies()` / `page.setCookie()`. The page-level API was removed in newer Puppeteer releases.
+
+This aligns the Puppeteer controller with the Playwright controller, which has always worked at the context level.
+
+**What changes in practice**
+- Cookie reads return every cookie stored in the page's browser context, not just cookies matching the page's current URL. If your `Session` relied on the URL-scoped filtering (for example, to avoid pulling cookies that belong to other tabs in the same context), you'll now see the full set.
+- Cookie writes are applied to the whole browser context. When you launch pages with shared contexts, cookies written via `Session.setCookiesFromResponse` or similar will be visible to every other page in that context.
+
+If you rely on Crawlee's default configuration (one browser context per session, which is the `useIncognitoPages` / `newContextPerSession` behavior used by `PuppeteerCrawler`), you should not notice any difference — each session already owns its own context.
+
+**Cookie `url` field** — the old `page.setCookie()` auto-filled a missing `url` on each cookie with the page's current URL. The new `browserContext().setCookie()` does not; Chromium rejects cookies that carry neither `url` nor `domain`. Crawlee's internal `_setCookies` keeps the old behavior by back-filling `page.url()` for any cookie that has neither field set, but if you call `browserContext().setCookie()` directly (outside of Crawlee) you need to provide one of them yourself.
+
+### Custom rendering type predictors via the `IRenderingTypePredictor` interface
+
+The `renderingTypePredictor` option of `AdaptivePlaywrightCrawler` is now typed as the new `IRenderingTypePredictor` interface — `predict(request)` and `storeResult(requests, renderingType)`, nothing else. The built-in `RenderingTypePredictor` implements it, so passing one still works.
+
+What changed is the lifecycle: the crawler used to call `initialize()` on the predictor it was given, even though it did not create it. It now follows the same own-only-what-you-built rule as the session and browser pools — a predictor you pass in is *borrowed*, so setting it up is your job, and `initialize` is not part of the interface at all. The built-in predictor restores its persisted state in `initialize()` and will throw `Recoverable state has not yet been loaded` from `predict()` if it is never called:
+
+```typescript
+import { AdaptivePlaywrightCrawler, RenderingTypePredictor } from '@crawlee/playwright';
+
+const renderingTypePredictor = new RenderingTypePredictor({ detectionRatio: 0.1 });
+// You own the predictor — initialize it yourself (this used to be done by the crawler).
+await renderingTypePredictor.initialize();
+
+const crawler = new AdaptivePlaywrightCrawler({
+    renderingTypePredictor,
+    requestHandler: async ({ pushData }) => {
+        // …
+    },
+});
+```
+
+If you don't pass a predictor, nothing changes: the crawler builds one from `renderingTypeDetectionRatio` and, since it owns that one, initializes it for you.
+
+### Remove `experimentalContainers` option
 
 This experimental option relied on an outdated manifest version for browser extensions, it is not possible to achieve this with the currently supported versions.
 
-## Available resource detection
+## Only if you wrote a custom HTTP client or used `got-scraping` directly
 
-In v3, we introduced a new way to detect available resources for the crawler, available via `systemInfoV2` flag. In v4, this is the default way to detect available resources. The old way is removed completely together with the `systemInfoV2` flag.
-
-As part of this change, the low-level resource- and environment-detection helpers exported from `@crawlee/utils` were **removed**: `getMemoryInfo()` (and the `MemoryInfo` interface), `isContainerized()`, `isDocker()`, `isLambda()`, and `getCgroupsVersion()`. These backed the old detection path and are no longer part of the public API. Resource detection is now handled internally by the crawler's autoscaling; if you called any of these directly, read the equivalent values from the OS (`node:os`) or the relevant cgroup files yourself.
-
-## `@crawlee/types` symbols are no longer re-exported
-
-The general-purpose utility types owned by `@crawlee/types` are no longer re-exported from other packages, so `Dictionary`, `Awaitable`, `Constructor`, `Cookie`, `QueueOperationInfo` and `AllowedHttpMethods` are no longer available from `@crawlee/core` (nor, in turn, from `@crawlee/basic` and the `crawlee` meta-package). Add `@crawlee/types` to your dependencies and import them from there — most of the package's types (`ISession`, `ProxyInfo`, `RequestSchema`, …) already required this. The interfaces you implement against — `StorageBackend`, `StorageIdentifier` and `IBrowserPool` / `NewPageOptions` — stay reachable from `@crawlee/core` and `@crawlee/browser-pool` respectively.
-
-## Removed and relocated `@crawlee/utils` exports
-
-Besides the resource-detection helpers above, several other `@crawlee/utils` exports were removed or moved:
-
-- **Removed URL helpers:** `filterUrl(target, origin, strategy)`, `matchesEnqueueStrategy(strategy, target, origin)`, and the `UNSUPPORTED_SCHEME_MESSAGE` constant. URL filtering by enqueue strategy is now internal to `enqueueLinks`. The related `filterRequestsByPatterns(requests, patterns?, onSkippedUrl?)` function (from `@crawlee/core`) was removed for the same reason — pattern-based request filtering now happens inside `enqueueLinks`.
-- **Relocated enums/types:** `EnqueueStrategy` now lives in `@crawlee/core` and `SearchParams` in `@crawlee/types`. They are no longer re-exported from `@crawlee/utils`, so `import { EnqueueStrategy } from '@crawlee/utils'` breaks — import them from `crawlee` (the meta-package) or from `@crawlee/core` / `@crawlee/types` instead.
-- **Removed `RobotsFile` alias:** `RobotsFile` was an alias for the `RobotsTxtFile` class and is removed. Rename any usage to `RobotsTxtFile`; the class itself is unchanged apart from the signature change described below.
-
-### `RobotsTxtFile.find` signature changed; sitemap options removed
-
-The `proxyUrl` argument of `RobotsTxtFile.find()` moved from a positional parameter into the options bag, which also gained `httpClient` and `logger`:
-
-**Before:**
-```typescript
-const robots = await RobotsTxtFile.find(url, proxyUrl, { timeoutMillis: 5000 });
-```
-
-**After:**
-```typescript
-const robots = await RobotsTxtFile.find(url, { proxyUrl, timeoutMillis: 5000 });
-```
-
-Relatedly, `RobotsTxtFile.getSitemaps()`, `parseSitemaps()`, and `parseUrlsFromSitemaps()` no longer take a `RobotsTxtFileSitemapsOptions` argument (the type is removed), and the `enqueueStrategy` / `networkTimeouts` options were dropped from `ParseSitemapOptions` — robots/sitemap parsing no longer filters by enqueue strategy.
-
-## `HttpClient` instances return `Response` objects
-
-The interface of `HttpClient` instances was changed to return the [native `Response` objects](https://developer.mozilla.org/en-US/docs/Web/API/Response) instead of custom `HttpResponse` objects.
-
-## HTTP client packages and `BaseHttpClient` reshaped
+### HTTP client packages and `BaseHttpClient` reshaped
 
 The HTTP client abstraction moved out of `@crawlee/core` into two new packages, and its shape changed to match the native `fetch` model.
 
@@ -517,7 +944,7 @@ class MyClient extends BaseHttpClient {
 }
 ```
 
-### `gotScraping` is no longer exported from `@crawlee/utils`
+#### `gotScraping` is no longer exported from `@crawlee/utils`
 
 The `gotScraping` singleton previously exported from `@crawlee/utils` has been removed. If you used it as the crawler's HTTP client, use the new `GotScrapingHttpClient` instead:
 
@@ -533,292 +960,155 @@ const crawler = new CheerioCrawler({
 
 If you called `gotScraping(...)` directly for one-off requests unrelated to Crawlee, depend on the [`got-scraping`](https://www.npmjs.com/package/got-scraping) package directly instead.
 
-## `CrawlingContext.response` is now of type `Response`
+## Only if you use `FileDownload`
 
-The `CrawlingContext.response` property is now of type [`Response`](https://developer.mozilla.org/en-US/docs/Web/API/Response) instead of `HttpResponse`. `CrawlingContext.sendRequest` method now returns `Response` objects as well.
-
-## Crawling context in the `FileDownload` crawler no longer includes `body` and `stream` properties
-
-The crawling context in the `FileDownload` crawler no longer includes the `body` and `stream` properties. These can be accessed directly via the `response` property instead, e.g. `context.response.bytes()` or `context.response.body`.
-
-## `FileDownload` now extends `BasicCrawler` and no longer takes `FileDownloadOptions`
+### `FileDownload` now extends `BasicCrawler` and no longer takes `FileDownloadOptions`
 
 `FileDownload` was re-based from `HttpCrawler` onto `BasicCrawler`. Its constructor now accepts `BasicCrawlerOptions<FileDownloadCrawlingContext>` instead of the dedicated `FileDownloadOptions` type, which — together with `StreamHandlerContext` — has been **removed** from `@crawlee/http`. In practice this means the HTTP-crawler-specific options (`navigationTimeoutSecs`, `additionalMimeTypes`, `suggestResponseEncoding`, `forceResponseEncoding`, the `gotOptions`-style `preNavigationHooks`, etc.) are no longer accepted by `FileDownload`; downloading is a thin layer over `BasicCrawler` and the request is performed via `sendRequest` / the configured `httpClient`. If you passed any of those HTTP-only options to `FileDownload`, drop them and configure the `httpClient` (or the request itself) directly. The `FileDownloadCrawlingContext` type also lost its extra type parameter and no longer extends the internal HTTP crawling context — it now extends the common `CrawlingContext` with `contentType`, `request`, and `response`.
 
-## HTML-parsing helper functions are now asynchronous
+### Crawling context in the `FileDownload` crawler no longer includes `body` and `stream` properties
 
-The HTML-parsing helper functions `htmlToText`, `parseHandlesFromHtml` and `parseOpenGraph` are now asynchronous and return promises.
+The crawling context in the `FileDownload` crawler no longer includes the `body` and `stream` properties. These can be accessed directly via the `response` property instead, e.g. `context.response.bytes()` or `context.response.body`.
 
-## `KeyValueStore.getPublicUrl` is now async
+## Only if you use request lists and loaders
 
-The `KeyValueStore.getPublicUrl` method is now asynchronous and reads the public URL directly from the storage backend.
+### Request loaders and managers
 
-## `preNavigationHooks` in `HttpCrawler` no longer accepts `gotOptions` object
+The request loader/manager interfaces have been reworked. See the new [Request loaders](../guides/request-loaders) guide for the full picture.
 
-The `preNavigationHooks` option in `HttpCrawler` subclasses no longer accepts the `gotOptions` object as a second parameter. Modify the `crawlingContext` fields (e.g. `.request`) directly instead.
+#### `RequestQueue.addRequestsBatched` no longer retries rejected requests
 
-## Navigation and the request handler are timed separately
+Requests that the storage backend reports as unprocessed are now warned about and skipped after the first attempt, instead of being retried a bounded number of times. What a backend reports as unprocessed is a semantic rejection (typically malformed request data) that re-sending cannot fix — retrying transient failures is the storage backend's own responsibility.
 
-In v3, navigation ran inside the request handler's time window, and the two options were summed (plus an undocumented 10 second buffer) to form the actual limit. Setting `requestHandlerTimeoutSecs: 60` on a `PlaywrightCrawler` therefore produced errors complaining about 130 seconds.
+#### `IRequestList` renamed to `IRequestLoader`
 
-Navigation and the request handler are now timed independently, and each reports itself:
+The `IRequestList` interface has been renamed to `IRequestLoader` and is now the read-only base interface implemented by `RequestList` and `SitemapRequestLoader`. The writable `IRequestManager` interface now **extends** `IRequestLoader` with the request-adding and reclaiming surface (`addRequest`, `addRequestsBatched`, `reclaimRequest`, optional `purge`). There is no `IRequestList` alias — update your imports and type references to `IRequestLoader` (or `IRequestManager` if you need the write surface).
 
-| Option | Covers | Default |
-| --- | --- | --- |
-| `requestHandlerTimeoutSecs` | your `requestHandler` only | 60 |
-| `navigationTimeoutSecs` | the `preNavigationHooks`, the navigation, and the `postNavigationHooks` together | 30 (HTTP), 60 (browser) |
+#### Loader interface surface changes
 
-`navigationTimeoutSecs` is a single budget shared by the whole navigation phase (matching Crawlee for Python), so a slow hook eats into the same window the navigation uses. The separate `navigationHooksTimeoutSecs` option has been removed.
+The harmonized loader interface differs from the old `IRequestList` in a few ways:
 
-Two things to watch for when upgrading:
+| Before (v3) | After (v4) |
+|---|---|
+| `length(): number` | `getTotalCount(): Promise<number>` (renamed and now async) |
+| _(n/a)_ | `getPendingCount(): Promise<number>` (new) |
+| `handledCount(): number` | `getHandledCount(): Promise<number>` (renamed and now async) |
+| `markRequestHandled(request)` | `markRequestAsHandled(request)` (renamed) |
+| `reclaimRequest()` on the interface | Removed from the read-only loaders entirely; reclaiming is a write operation that lives only on `IRequestManager` (e.g. `RequestQueue`, `RequestManagerTandem`) |
+| `inProgress: Set<string>` on the interface | Removed from the interface |
+| `persistState(): Promise<void>` (required) | `persistState?(): Promise<void>` (optional) |
+| _(n/a)_ | `toTandem?(requestManager?)` (new) |
 
-- **Navigation hooks are now bounded.** They had no timeout of their own before, so a `preNavigationHooks` / `postNavigationHooks` function that pushes the whole phase past `navigationTimeoutSecs` will now fail the request. Raise `navigationTimeoutSecs`, or call `context.extendTimeout()` from inside the hook when the extra time is only needed occasionally.
-- **A request can no longer hang forever.** An internal timeout now bounds the whole request, covering the phases that have no timeout of their own (`extendContext`, the robots.txt check, response processing). By default it is deliberately generous (twice the request handler timeout, and never less than 5 minutes), so it only fires when a request is genuinely stuck. Set `CRAWLEE_INTERNAL_TIMEOUT` (in milliseconds) to override it. Because it wraps the whole request, it is raised per request to outlast the navigation and request handler timeouts, so a value below them cannot cut those phases short; if you configure one that low, the crawler warns at startup that it is being ignored.
+`RequestList.length()` and `RequestList.handledCount()` (and their `SitemapRequestLoader` counterparts) were renamed to `getTotalCount()` and `getHandledCount()` and are now `async` — `await` them.
 
-## Per-route and per-request handler timeouts
-
-`requestHandlerTimeoutSecs` still applies to every request alike, but a single route can now opt out of it — useful when one page type needs markedly more time than the rest, and you do not want to raise the timeout for everything else to accommodate it:
-
-```ts
-router.addHandler('LIST', async ({ enqueueLinks }) => { ... }, { requestHandlerTimeoutSecs: 120 });
-router.addHandler('DETAIL', async ({ pushData }) => { ... }); // keeps the crawler's default
-```
-
-When the time needed is only apparent once the handler is already running, `context.extendTimeout()` buys it more:
-
-```ts
-router.addHandler('LIST', async ({ page, extendTimeout }) => {
-    const pageCount = await countPages(page);
-    extendTimeout(pageCount * 10);
-    await scrapeAllPages(page);
-});
-```
-
-## Configuration class redesign
-
-The `Configuration` class has been redesigned for v4. The main changes are:
-
-### Direct property access replaces `get()` and `set()`
-
-**Before:**
-```ts
-const config = Configuration.getGlobalConfig();
-config.set('persistStateIntervalMillis', 10_000);
-const headless = config.get('headless');
-```
-
-**After:**
-```ts
-// Configuration is now immutable — set options via the constructor
-const config = new Configuration({ persistStateIntervalMillis: 10_000 });
-const headless = config.headless;
-```
-
-The `get()` and `set()` methods are removed. Access config values directly as properties.
-Configuration instances are immutable — attempting to assign a property throws a `TypeError`.
-
-### Constructor options now take precedence over environment variables
-
-**New priority order (highest to lowest):**
-1. Constructor options
-2. Environment variables
-3. `crawlee.json`
-4. Schema defaults
-
-Previously, environment variables always won. Now `new Configuration({ headless: false })`
-works even when `CRAWLEE_HEADLESS=true` is set.
-
-## Service management moved from `Configuration` to `ServiceLocator`
-
-The service management functionality has been extracted from `Configuration` into a new `ServiceLocator` class, following the pattern established in Crawlee for Python.
-
-### Breaking changes
-
-The following methods and properties have been removed from `Configuration`:
-
-- `Configuration.getStorageClient()` - moved to `ServiceLocator.getStorageBackend()`
-- `Configuration.getEventManager()` - moved to `ServiceLocator.getEventManager()`
-- `Configuration.useStorageClient()` - use `ServiceLocator.setStorageBackend()` instead
-- `Configuration.useEventManager()` - use `ServiceLocator.setEventManager()` instead
-- `Configuration.resetGlobalState()` - use `serviceLocator.reset()` instead
-- `Configuration.storageManagers` - moved to `ServiceLocator.storageManagers`
-
-The `EventManager` and `LocalEventManager` constructors now accept an options object for configuring event intervals (e.g. `persistStateIntervalMillis`, `systemInfoIntervalMillis`). You can also use the new `LocalEventManager.fromConfiguration()` factory method to create an instance with intervals derived from a `Configuration` object.
-
-### Migration guide
-
-If you were using the removed `Configuration` methods directly, you need to update your code:
+`markRequestHandled()` was renamed to `markRequestAsHandled()` across the loader and manager interfaces (`RequestList`, `SitemapRequestLoader`, `RequestQueue`, `RequestManagerTandem`) to match the storage backend method of the same name. Rename any calls accordingly.
 
 **Before:**
 ```typescript
-import { Configuration } from 'crawlee';
-
-const config = Configuration.getGlobalConfig();
-const storageBackend = config.getStorageClient();
-const eventManager = config.getEventManager();
-
-// or static methods
-const storageBackend = Configuration.getStorageClient();
-// (both of these are the removed v3 APIs)
+const total = requestList.length();
+const handled = requestList.handledCount();
 ```
 
 **After:**
 ```typescript
-import { serviceLocator } from 'crawlee';
-
-const storageBackend = serviceLocator.getStorageBackend();
-const eventManager = serviceLocator.getEventManager();
+const total = await requestList.getTotalCount();
+const handled = await requestList.getHandledCount();
 ```
 
-### Using per-crawler services (recommended)
+#### Combining a list and a queue: `toTandem()`
 
-The new `ServiceLocator` supports per-crawler service isolation, allowing you to use different storage backends or event managers for different crawlers by passing them via options:
-
-```typescript
-import { BasicCrawler, Configuration, LocalEventManager, MemoryStorageBackend } from 'crawlee';
-
-const crawler = new BasicCrawler({
-    requestHandler: async ({ request, log }) => {
-        log.info(`Processing ${request.url}`);
-    },
-    configuration: new Configuration({ headless: false }),
-    storageBackend: new MemoryStorageBackend(),
-    eventManager: LocalEventManager.fromConfiguration(),
-});
-
-await crawler.run(['https://example.com']);
-```
-
-### Using the global service locator
-
-For most use cases, the global `serviceLocator` singleton works well:
+`RequestList` and `SitemapRequestLoader` now expose a `toTandem()` helper that pairs the read-only loader with a writable request manager (the default `RequestQueue` if none is passed), producing a `RequestManagerTandem` you can hand to a crawler via the new `requestManager` option:
 
 ```typescript
-import { serviceLocator, BasicCrawler, MemoryStorageBackend } from 'crawlee';
+import { CheerioCrawler, RequestList } from 'crawlee';
 
-// Configure global services (optional)
-serviceLocator.setStorageBackend(new MemoryStorageBackend());
+const requestList = await RequestList.open('my-list', ['https://example.com']);
 
-// All crawlers will use the global service locator by default
-const crawler = new BasicCrawler({
-    requestHandler: async ({ request, log }) => {
-        log.info(`Processing ${request.url}`);
+const crawler = new CheerioCrawler({
+    requestManager: await requestList.toTandem(),
+    requestHandler: async ({ enqueueLinks }) => {
+        await enqueueLinks();
     },
 });
 ```
 
-### Accessing configuration
+#### `SitemapRequestList` renamed to `SitemapRequestLoader`
 
-`Configuration.getGlobalConfiguration()` remains as a utility function, but in most cases, you should use `serviceLocator.getConfiguration()` instead:
+The `SitemapRequestList` class (and its `SitemapRequestListOptions` type) have been renamed to `SitemapRequestLoader` and `SitemapRequestLoaderOptions` to match the loader terminology. Update your imports and type references accordingly:
 
 ```typescript
-import { serviceLocator } from 'crawlee';
+// Before
+import { SitemapRequestList } from 'crawlee';
+const loader = await SitemapRequestList.open({ sitemapUrls: ['https://example.com/sitemap.xml'] });
 
-const config = serviceLocator.getConfiguration();
+// After
+import { SitemapRequestLoader } from 'crawlee';
+const loader = await SitemapRequestLoader.open({ sitemapUrls: ['https://example.com/sitemap.xml'] });
 ```
 
-Do note that the method is currently misnamed - in specific circumstances, it will not return the global configuration object, but the one from the currently active service locator.
+The default `KeyValueStore` key used to persist the loader's state was also renamed from `SITEMAP_REQUEST_LIST_STATE` to `SITEMAP_REQUEST_LOADER_STATE`. State persisted under the old key by a v3 run will **not** be picked up after upgrading, so any in-flight sitemap crawl that migrates across the upgrade will restart from the beginning. If you need to preserve state, either finish the crawl before upgrading or pass an explicit `persistStateKey`.
 
-### `config` is renamed to `configuration` everywhere
+#### Crawler `requestList` / `requestQueue` options deprecated in favor of `requestManager`
 
-v3 used `config` and `configuration` interchangeably. v4 settles on `configuration`, matching Crawlee for Python.
+The crawler now reads its requests from a single `requestManager` (any `IRequestManager`, including a `RequestQueue`). The `requestList` and `requestQueue` constructor options are **deprecated** but still accepted as sugar:
 
-Renamed methods:
+- `requestQueue` alone → used directly as the manager.
+- `requestList` + `requestQueue` → combined into a `RequestManagerTandem` automatically.
+- `requestList` alone → combined with a lazily-opened default queue into a tandem.
 
-| Before | After |
-| --- | --- |
-| `Configuration.getGlobalConfig()` | `Configuration.getGlobalConfiguration()` |
-| `LocalEventManager.fromConfig()` | `LocalEventManager.fromConfiguration()` |
+```typescript
+// Before
+const crawler = new CheerioCrawler({ requestList, requestQueue });
 
-Renamed options — pass `configuration` instead of `config`:
+// After
+const crawler = new CheerioCrawler({ requestManager: new RequestManagerTandem(requestList, requestQueue) });
+// or, equivalently
+const crawler = new CheerioCrawler({ requestManager: await requestList.toTandem(requestQueue) });
+```
 
-- `Dataset.open()`, `KeyValueStore.open()` and `RequestQueue.open()` (`StorageOpenOptions`)
-- `useState()` (`UseStateOptions`)
-- `purgeDefaultStorages()` (both the options object and the legacy positional argument)
-- `new Snapshotter()` (`SnapshotterOptions`)
-- `saveSnapshot()` in `@crawlee/playwright` and `@crawlee/puppeteer` (`SaveSnapshotOptions`)
-- `RecoverableStateOptions`, `RequestListOptions`, `CpuLoadSignalOptions` and `MemoryLoadSignalOptions`
+A lone `requestList` now runs through a tandem over an auto-opened queue (rather than a read-only adapter). This means retries and `maxRequestsPerCrawl` accounting for that path now follow queue semantics.
+
+#### `BasicCrawler.requestList` and `BasicCrawler.requestQueue` fields removed
+
+The public `requestList` and `requestQueue` instance fields are gone. The crawler exposes a single `protected requestManager?: IRequestManager` instead. Access the active manager via the new async `getRequestManager()` method.
+
+#### `getRequestQueue()` deprecated in favor of `getRequestManager()`
+
+`BasicCrawler.getRequestQueue()` is deprecated. It still works as an alias, but now returns an `IRequestManager` that is no longer guaranteed to be a `RequestQueue` (it may be a `RequestManagerTandem`). Use `getRequestManager()` instead.
 
 **Before:**
 ```typescript
-const store = await KeyValueStore.open(null, { config: new Configuration({ persistStorage: false }) });
+const queue = await crawler.getRequestQueue();
 ```
 
 **After:**
 ```typescript
-const store = await KeyValueStore.open(null, { configuration: new Configuration({ persistStorage: false }) });
+const manager = await crawler.getRequestManager();
 ```
 
-Renamed properties — `Dataset.config`, `KeyValueStore.config`, `Snapshotter.config` and `BrowserLauncher.config` (including `PlaywrightLauncher`, `PuppeteerLauncher` and `StagehandLauncher`) are now `.configuration`.
+#### `enqueueLinks` `requestQueue` option renamed to `requestManager`
 
-The `configuration` crawler option is unchanged, as are `serviceLocator.getConfiguration()` and `serviceLocator.setConfiguration()`.
-
-## Cookie handling in `HttpCrawler` and `sendRequest`
-
-Cookie handling was refactored to be simpler and more predictable. The `BaseHttpClient` is now the single place where the `Cookie` request header is assembled, by merging cookies from the session's cookie jar with any `Cookie` header already present on the request. Explicit `Cookie` headers take precedence over jar cookies with the same name.
-
-This means `sendRequest` now respects user-provided cookies. In v3, passing a `Cookie` header via `sendRequest` headers was silently overwritten by the session's cookie jar — this is no longer the case.
-
-The precedence (highest to lowest) is:
-
-1. `sendRequest` `Cookie` header and `cookieJar` overrides
-2. `Cookie` header set directly on the request (via `request.headers`)
-3. Session cookie jar (persisted cookies received from `Set-Cookie` response headers or set manually)
-
-To fully replace the cookie jar for a `sendRequest` call, pass a custom `cookieJar` in the options:
-
-```typescript
-import { CookieJar } from 'tough-cookie';
-
-const jar = new CookieJar();
-await jar.setCookie('my=cookie', request.url);
-const response = await sendRequest({ url: '...' }, { cookieJar: jar });
-```
-
-The protected `HttpCrawler._applyCookies` method is removed. If you were overriding it in a subclass, move your logic to a `preNavigationHook` that sets cookies on `request.headers.Cookie` or on the `session` cookie jar directly.
-
-`mergeCookies` now skips malformed cookie fragments with a warning instead of throwing.
-
-### `Session.getCookies`, `setCookies` and `setCookiesFromResponse` are removed
-
-The public cookie helper methods on `Session` — `getCookies(url)`, `setCookies(cookies, url)`, and `setCookiesFromResponse(response)` — have been removed as part of centralizing cookie assembly in `BaseHttpClient`. Work with the session's `cookieJar` directly, or use the new `Session.getCookieString(url)` to read the assembled `Cookie` header value.
+The standalone `enqueueLinks()` function and the click-elements enqueue helpers (`enqueueLinksByClickingElements` in `@crawlee/puppeteer` and `@crawlee/playwright`) now take a `requestManager` option instead of `requestQueue`:
 
 **Before:**
 ```typescript
-const cookies = session.getCookies(url);
-session.setCookies([{ name: 'foo', value: 'bar' }], url);
-session.setCookiesFromResponse(response);
+await enqueueLinks({ urls, requestQueue });
 ```
 
 **After:**
 ```typescript
-// Read the Cookie header string for a URL:
-const cookieHeader = session.getCookieString(url);
-
-// Set / read cookies via the jar directly:
-await session.cookieJar.setCookie('foo=bar', url);
-const cookieHeader2 = await session.cookieJar.getCookieString(url);
+await enqueueLinks({ urls, requestManager });
 ```
 
-## `persistCookiesPerSession` renamed to `saveResponseCookies`
+## Only if you configure or implement storage backends
 
-The `persistCookiesPerSession` crawler option has been renamed to `saveResponseCookies` on both `HttpCrawler` (and its subclasses like `CheerioCrawler`, `JSDOMCrawler`, etc.) and `BrowserCrawler`. When enabled (the default), response cookies are stored in the session's cookie jar so they're sent on subsequent requests using the same session. Rename the option in your crawler constructor options to migrate.
+The implicit default (file-system storage under `./storage`) behaves as before — this section matters when you construct a storage backend explicitly or implement your own.
 
-## Browser cookies are also persisted after `requestHandler`
+### `StorageBackend` interface simplified
 
-Previously, `BrowserCrawler` with `saveResponseCookies` (formerly `persistCookiesPerSession`) only copied cookies from the page into the session after navigation and **before** `requestHandler` ran. Cookies set during the handler — login flows, `page.setCookie()`, or XHR/`fetch` `Set-Cookie` responses — were not stored on the session for later requests.
+The `StorageBackend` interface (from `@crawlee/types`, formerly named `StorageClient`) has been redesigned and simplified. A new storage backend now needs **4 classes** instead of the previous 7.
 
-In v4, when `saveResponseCookies` is enabled (the default), browser cookies are also re-read and stored in the session cookie jar **after** `requestHandler` completes. If you relied on handler-set cookies staying page-local and not affecting later requests on the same session, set `saveResponseCookies: false` or clear/overwrite cookies on the session explicitly.
-
-## Internal KVS keys renamed
-
-Several internal Crawlee keys were prefixed with the `SDK_` prefix for legacy reasons - these keys now start with `CRAWLEE_` instead. These are, e.g., `CRAWLEE_SESSION_POOL_STATE` or `CRAWLEE_CRAWLER_STATISTICS_{n}`.
-
-## `StorageBackend` interface simplified
-
-The `StorageBackend` interface (from `@crawlee/types`, formerly named `StorageClient`) has been redesigned to match the simplified architecture from Crawlee for Python. A new storage backend now needs **4 classes** instead of the previous 7.
-
-### What changed
+#### What changed
 
 The three **collection client** interfaces have been removed:
 
@@ -839,7 +1129,7 @@ The `StorageBackend` interface changed from synchronous sub-client getters to **
 | `client.requestQueue(id, opts)` | `backend.createRequestQueueBackend({ id?, name? })` |
 | `client.requestQueues().getOrCreate(name)` | _(absorbed into `createRequestQueueBackend`)_ |
 
-The sub-backend interfaces (`DatasetBackend`, `KeyValueStoreBackend`, `RequestQueueBackend`, formerly `DatasetClient` / `KeyValueStoreClient` / `RequestQueueClient`) have been aligned with their Python counterparts:
+The sub-backend interfaces (`DatasetBackend`, `KeyValueStoreBackend`, `RequestQueueBackend`, formerly `DatasetClient` / `KeyValueStoreClient` / `RequestQueueClient`) have been simplified:
 
 | Before (v3) | After (v4) |
 |---|---|
@@ -931,19 +1221,19 @@ The high-level storage classes (`Dataset`, `KeyValueStore`, `RequestQueue`) are 
 
 `RequestQueue` no longer accepts (or stores) `clientKey` / `timeoutSecs`. These are request-locking concerns that are now internal to the storage backend implementation (see [apify/crawlee#3328](https://github.com/apify/crawlee/issues/3328)); they are also no longer part of the `createRequestQueueBackend` options — all three `create*Backend` methods now take a plain `StorageIdentifier` (`{ id?, name?, alias? }`). The now-redundant `CreateDatasetBackendOptions`, `CreateKeyValueStoreBackendOptions`, and `CreateRequestQueueBackendOptions` type aliases have been removed from `@crawlee/types`; use `StorageIdentifier` instead.
 
-### `RecordOptions` simplified
+#### `RecordOptions` simplified
 
 `timeoutSecs` and `doNotRetryTimeouts` were removed from `RecordOptions` (used by `KeyValueStore.setValue`). Only `contentType` remains.
 
-### `maybeStringify` is removed
+#### `maybeStringify` is removed
 
 The `maybeStringify` helper exported from `@crawlee/core` has been removed. Value (de)serialization now lives entirely in the `KeyValueStore` frontend: writing serializes the value (and infers its content type), reading parses it back, and the storage backend is a plain byte transport. If you imported `maybeStringify` directly, use the `serializeValue` / `parseValue` functions exported from `@crawlee/core` instead.
 
-### `KeyValueStoreIteratorOptions` simplified
+#### `KeyValueStoreIteratorOptions` simplified
 
 `exclusiveStartKey` and `collection` were removed. Only `prefix` remains.
 
-### `Dataset.listItems` replaced by `Dataset.getData` and `Dataset.values`
+#### `Dataset.listItems` replaced by `Dataset.getData` and `Dataset.values`
 
 `Dataset.listItems()` is replaced by two methods:
 - `Dataset.getData(options?)` — returns a single `PaginatedList<Data>` page.
@@ -951,11 +1241,11 @@ The `maybeStringify` helper exported from `@crawlee/core` has been removed. Valu
 
 `Dataset.entries()` works the same way as `values()` but yields `[index, Data]` tuples. `KeyValueStore.keys()`, `.values()`, `.entries()` follow the same dual-iterable pattern.
 
-### Removed `list()` method
+#### Removed `list()` method
 
 The `list()` method on collection clients (e.g. `client.datasets().list()`) has no replacement. If you were using it to enumerate all storages, you will need to use the Apify API client directly.
 
-### Migration guide
+#### Migration guide
 
 If you implemented a custom `StorageBackend`, you need to:
 
@@ -963,7 +1253,7 @@ If you implemented a custom `StorageBackend`, you need to:
 2. Replace the six getter methods (`dataset`, `datasets`, `keyValueStore`, `keyValueStores`, `requestQueue`, `requestQueues`) with three async factory methods (`createDatasetBackend`, `createKeyValueStoreBackend`, `createRequestQueueBackend`). Each factory should handle both opening an existing storage and creating a new one.
 3. Apply the sub-backend renames listed above (`get` → `getMetadata`, `delete` → `drop`, etc.) and implement the new `purge()` method.
 
-## `MemoryStorage` split into `FileSystemStorageBackend` and `MemoryStorageBackend`
+### `MemoryStorage` split into `FileSystemStorageBackend` and `MemoryStorageBackend`
 
 In v3, the single `MemoryStorage` class from `@crawlee/memory-storage` did double duty: it kept everything in memory *and*, by default, mirrored it to disk (toggled via the `persistStorage` option / `CRAWLEE_PERSIST_STORAGE` environment variable). In v4 these two responsibilities are split into two independent classes, and the default storage backend now persists to disk.
 
@@ -972,11 +1262,11 @@ In v3, the single `MemoryStorage` class from `@crawlee/memory-storage` did doubl
 
 Both classes are re-exported from the `crawlee` meta-package.
 
-### The default storage backend now persists to disk
+#### The default storage backend now persists to disk
 
 Which client backs the implicit default is decided by `Configuration.persistStorage` (still controllable via the `CRAWLEE_PERSIST_STORAGE` environment variable): `true` (the default) selects `FileSystemStorageBackend`, `false` selects `MemoryStorageBackend`. If you relied on the default and never set `persistStorage`, your storage is persisted to disk exactly as before — no change.
 
-### `MemoryStorage` is renamed and is now memory-only
+#### `MemoryStorage` is renamed and is now memory-only
 
 If you constructed the storage backend explicitly, two things changed:
 
@@ -1005,11 +1295,11 @@ const inMemory = new MemoryStorageBackend();
 
 `MemoryStorageBackend` no longer takes the `localDataDirectory`, `persistStorage`, or `writeMetadata` options — in-memory storage has nowhere to write, so they had no meaning. `FileSystemStorageBackend` honors `localDataDirectory`; it always persists, so it has no `persistStorage` option, and the `writeMetadata` option has been removed there too (see [`writeMetadata` option removed](#writemetadata-option-removed)).
 
-### No request lock expiry in `MemoryStorageBackend`
+#### No request lock expiry in `MemoryStorageBackend`
 
 Because the in-memory queue lives entirely within a single process and is never shared with another consumer, `MemoryStorageBackend`'s request queue no longer uses an expiring, cross-process lock. A fetched request simply stays *in progress* until it is handled or reclaimed; it never becomes fetchable again on its own after a timeout. `setExpectedRequestProcessingTimeSecs()` is therefore a no-op for in-memory storage. (Disk-backed `FileSystemStorageBackend` keeps the lock-with-expiry behavior.)
 
-### `writeMetadata` option removed
+#### `writeMetadata` option removed
 
 `FileSystemStorageBackend` no longer accepts the `writeMetadata` option. The underlying file-system storage now always writes metadata files (`__metadata__.json` for each storage and a `<key>.__metadata__.json` sidecar for each key-value record), so the toggle no longer had any effect. Remove it from your storage backend options:
 
@@ -1024,7 +1314,7 @@ Because the in-memory queue lives entirely within a single process and is never 
 
 `MemoryStorageBackend` never accepted `writeMetadata` (it has no on-disk format to begin with), so there is nothing to change there.
 
-### Out-of-band key-value files (e.g. a hand-placed `INPUT.json`)
+#### Out-of-band key-value files (e.g. a hand-placed `INPUT.json`)
 
 `FileSystemStorageBackend` only fully tracks records it wrote itself (those have a `<key>.__metadata__.json` sidecar). It still reads a value file placed in the store directory out-of-band — such as a hand-written or platform-provided `INPUT.json` — by probing the requested key plus the `.json` and `.txt` extensions. A few behaviors around these "bare" files changed in v4:
 
@@ -1032,295 +1322,11 @@ Because the in-memory queue lives entirely within a single process and is never 
 - **Malformed bare files are no longer silently swallowed.** In v3 a bare `INPUT.json` containing invalid JSON was treated as a missing record (`getValue` returned `undefined`). In v4 the raw bytes are returned verbatim and parsing happens in the `KeyValueStore` frontend, so a malformed value now surfaces a parse error at read time instead of looking absent.
 - **Bare files are enumerated by `listKeys` under their actual on-disk name.** A bare `INPUT.json` (or `.txt`/`.bin`) shows up in `listKeys` as `INPUT.json` and reads back cleanly under that key via `getValue` / `recordExists` / `getPublicUrl`; the logical `INPUT` lookup keeps resolving the same file as well. An extensionless bare file is listed as `INPUT`. If both a tracked `INPUT` record and a bare `INPUT.json` exist, the tracked record wins and the bare variant is not listed. Everything `listKeys` needs is read from the filesystem index, so this no longer triggers the per-read O(n) directory scans the v3 fallback performed.
 
-## Multiple crawler instances use separate default request queues
+## Only if you tuned autoscaling
 
-In v3, every `BasicCrawler` (or subclass) that didn't receive an explicit `requestQueue` option would open the same default request queue. If you created two crawlers in the same process, they would silently share a queue — leading to request collisions and hard-to-debug deduplication issues.
+The `minConcurrency` / `maxConcurrency` / `maxRequestsPerMinute` crawler options work as before. This section matters when you used `autoscaledPoolOptions`, drove an `AutoscaledPool` directly, or configured snapshotting and system status.
 
-In v4, only the **first** crawler instance uses the default request queue. Each subsequent instance automatically gets its own queue via an internal alias (e.g. `__default_1__`, `__default_2__`, etc.). This means multiple crawlers can safely coexist without interfering with each other's requests.
-
-If you explicitly pass a `requestQueue` (or `requestManager`) to the crawler, that queue is used as-is regardless of instance order.
-
-## Repeated `run()` calls use `purge()` instead of `drop()` + recreate
-
-When calling `crawler.run()` multiple times on the same crawler instance, v3 would drop the default request queue and create a fresh one between runs. In v4, the crawler **purges** the queue instead — clearing all requests and resetting internal counters, but keeping the same queue object. This is more efficient and avoids edge cases around stale references.
-
-The new `purge()` method is available on `RequestQueue` and is also defined as an optional method on the `IRequestManager` interface.
-
-By default, only queues that the crawler created itself (the "owned" queue) are purged between runs — a user-supplied queue is never touched unless you explicitly opt in. The `purgeRequestQueue` option in `CrawlerRunOptions` controls this behavior:
-
-| `purgeRequestQueue` value | Owned queue (auto-created) | User-supplied queue |
-|---|---|---|
-| omitted (default) | Purged | Not purged |
-| `true` | Purged | Purged |
-| `false` | Not purged | Not purged |
-
-```typescript
-// The purge happens automatically between run() calls:
-const crawler = new BasicCrawler({ requestHandler: async ({ request }) => { /* ... */ } });
-await crawler.run(['https://example.com/a', 'https://example.com/b']);
-// Queue is purged here, so the same URLs can be processed again:
-await crawler.run(['https://example.com/a', 'https://example.com/c']);
-```
-
-You can opt out of the automatic purge by passing `purgeRequestQueue: false`:
-
-```typescript
-await crawler.run(urls, { purgeRequestQueue: false });
-```
-
-If you supplied your own `requestQueue` and want it purged between runs, pass `purgeRequestQueue: true` explicitly:
-
-```typescript
-const queue = await RequestQueue.open('my-queue');
-const crawler = new BasicCrawler({ requestQueue: queue, requestHandler: async () => { /* ... */ } });
-await crawler.run(['https://example.com/first']);
-// Explicitly purge the user-supplied queue before the second run:
-await crawler.run(['https://example.com/second'], { purgeRequestQueue: true });
-```
-
-## Storage `.open()` now also accepts `{ id?, name? }`
-
-`Dataset.open()`, `KeyValueStore.open()`, and `RequestQueue.open()` previously accepted a single `idOrName?: string` parameter. This was ambiguous — callers couldn't express whether they were opening a storage by its ID or by name.
-
-The first parameter now also accepts a `StorageIdentifier` object with separate `id` and `name` fields:
-
-```ts
-interface StorageIdentifier {
-    id?: string;
-    name?: string;
-}
-```
-
-Passing a plain string still works — it is first looked up as an ID, and if no such storage exists, it is treated as a name (matching the v3 behavior):
-
-```typescript
-const dataset = await Dataset.open('my-dataset');
-const store = await KeyValueStore.open('my-store');
-const queue = await RequestQueue.open('my-queue');
-```
-
-You can also use the object form, which additionally allows opening a storage by ID:
-
-```typescript
-const dataset = await Dataset.open({ name: 'my-dataset' });
-
-// Opening by ID (e.g. on the Apify platform):
-const dataset = await Dataset.open({ id: 'WkzbQMuFYuamGv3YF' });
-```
-
-Opening the default storage (no arguments or `null`) still works as before:
-
-```typescript
-const dataset = await Dataset.open();
-```
-
-The same change applies to `CrawlingContext.getKeyValueStore()` and `CrawlingContext.pushData()` — both now accept `string | StorageIdentifier` for identifying the target storage.
-
-## Request loaders and managers
-
-The request loader/manager interfaces have been reworked to mirror the abstractions in Crawlee for Python. See the new [Request loaders](../guides/request-loaders) guide for the full picture.
-
-### `RequestQueue.addRequestsBatched` no longer retries rejected requests
-
-Requests that the storage backend reports as unprocessed are now warned about and skipped after the first attempt, instead of being retried a bounded number of times. What a backend reports as unprocessed is a semantic rejection (typically malformed request data) that re-sending cannot fix — retrying transient failures is the storage backend's own responsibility.
-
-### `IRequestList` renamed to `IRequestLoader`
-
-The `IRequestList` interface has been renamed to `IRequestLoader` and is now the read-only base interface implemented by `RequestList` and `SitemapRequestLoader`. The writable `IRequestManager` interface now **extends** `IRequestLoader` with the request-adding and reclaiming surface (`addRequest`, `addRequestsBatched`, `reclaimRequest`, optional `purge`). There is no `IRequestList` alias — update your imports and type references to `IRequestLoader` (or `IRequestManager` if you need the write surface).
-
-### Loader interface surface changes
-
-The harmonized loader interface differs from the old `IRequestList` in a few ways:
-
-| Before (v3) | After (v4) |
-|---|---|
-| `length(): number` | `getTotalCount(): Promise<number>` (renamed and now async) |
-| _(n/a)_ | `getPendingCount(): Promise<number>` (new) |
-| `handledCount(): number` | `getHandledCount(): Promise<number>` (renamed and now async) |
-| `markRequestHandled(request)` | `markRequestAsHandled(request)` (renamed) |
-| `reclaimRequest()` on the interface | Removed from the read-only loaders entirely; reclaiming is a write operation that lives only on `IRequestManager` (e.g. `RequestQueue`, `RequestManagerTandem`) |
-| `inProgress: Set<string>` on the interface | Removed from the interface |
-| `persistState(): Promise<void>` (required) | `persistState?(): Promise<void>` (optional) |
-| _(n/a)_ | `toTandem?(requestManager?)` (new) |
-
-`RequestList.length()` and `RequestList.handledCount()` (and their `SitemapRequestLoader` counterparts) were renamed to `getTotalCount()` and `getHandledCount()` and are now `async` — `await` them.
-
-`markRequestHandled()` was renamed to `markRequestAsHandled()` across the loader and manager interfaces (`RequestList`, `SitemapRequestLoader`, `RequestQueue`, `RequestManagerTandem`) to match the storage backend method of the same name (and the Python `mark_request_as_handled`). Rename any calls accordingly.
-
-**Before:**
-```typescript
-const total = requestList.length();
-const handled = requestList.handledCount();
-```
-
-**After:**
-```typescript
-const total = await requestList.getTotalCount();
-const handled = await requestList.getHandledCount();
-```
-
-### Combining a list and a queue: `toTandem()`
-
-`RequestList` and `SitemapRequestLoader` now expose a `toTandem()` helper that pairs the read-only loader with a writable request manager (the default `RequestQueue` if none is passed), producing a `RequestManagerTandem` you can hand to a crawler via the new `requestManager` option:
-
-```typescript
-import { CheerioCrawler, RequestList } from 'crawlee';
-
-const requestList = await RequestList.open('my-list', ['https://example.com']);
-
-const crawler = new CheerioCrawler({
-    requestManager: await requestList.toTandem(),
-    requestHandler: async ({ enqueueLinks }) => {
-        await enqueueLinks();
-    },
-});
-```
-
-### `SitemapRequestList` renamed to `SitemapRequestLoader`
-
-The `SitemapRequestList` class (and its `SitemapRequestListOptions` type) have been renamed to `SitemapRequestLoader` and `SitemapRequestLoaderOptions` to match the loader terminology. Update your imports and type references accordingly:
-
-```typescript
-// Before
-import { SitemapRequestList } from 'crawlee';
-const loader = await SitemapRequestList.open({ sitemapUrls: ['https://example.com/sitemap.xml'] });
-
-// After
-import { SitemapRequestLoader } from 'crawlee';
-const loader = await SitemapRequestLoader.open({ sitemapUrls: ['https://example.com/sitemap.xml'] });
-```
-
-The default `KeyValueStore` key used to persist the loader's state was also renamed from `SITEMAP_REQUEST_LIST_STATE` to `SITEMAP_REQUEST_LOADER_STATE`. State persisted under the old key by a v3 run will **not** be picked up after upgrading, so any in-flight sitemap crawl that migrates across the upgrade will restart from the beginning. If you need to preserve state, either finish the crawl before upgrading or pass an explicit `persistStateKey`.
-
-### Crawler `requestList` / `requestQueue` options deprecated in favor of `requestManager`
-
-The crawler now reads its requests from a single `requestManager` (any `IRequestManager`, including a `RequestQueue`). The `requestList` and `requestQueue` constructor options are **deprecated** but still accepted as sugar:
-
-- `requestQueue` alone → used directly as the manager.
-- `requestList` + `requestQueue` → combined into a `RequestManagerTandem` automatically.
-- `requestList` alone → combined with a lazily-opened default queue into a tandem.
-
-```typescript
-// Before
-const crawler = new CheerioCrawler({ requestList, requestQueue });
-
-// After
-const crawler = new CheerioCrawler({ requestManager: new RequestManagerTandem(requestList, requestQueue) });
-// or, equivalently
-const crawler = new CheerioCrawler({ requestManager: await requestList.toTandem(requestQueue) });
-```
-
-A lone `requestList` now runs through a tandem over an auto-opened queue (rather than a read-only adapter). This means retries and `maxRequestsPerCrawl` accounting for that path now follow queue semantics.
-
-### `BasicCrawler.requestList` and `BasicCrawler.requestQueue` fields removed
-
-The public `requestList` and `requestQueue` instance fields are gone. The crawler exposes a single `protected requestManager?: IRequestManager` instead. Access the active manager via the new async `getRequestManager()` method.
-
-### `getRequestQueue()` deprecated in favor of `getRequestManager()`
-
-`BasicCrawler.getRequestQueue()` is deprecated. It still works as an alias, but now returns an `IRequestManager` that is no longer guaranteed to be a `RequestQueue` (it may be a `RequestManagerTandem`). Use `getRequestManager()` instead.
-
-**Before:**
-```typescript
-const queue = await crawler.getRequestQueue();
-```
-
-**After:**
-```typescript
-const manager = await crawler.getRequestManager();
-```
-
-### `enqueueLinks` `requestQueue` option renamed to `requestManager`
-
-The standalone `enqueueLinks()` function and the click-elements enqueue helpers (`enqueueLinksByClickingElements` in `@crawlee/puppeteer` and `@crawlee/playwright`) now take a `requestManager` option instead of `requestQueue`:
-
-**Before:**
-```typescript
-await enqueueLinks({ urls, requestQueue });
-```
-
-**After:**
-```typescript
-await enqueueLinks({ urls, requestManager });
-```
-
-### `globs`, `regexps`, and `pseudoUrls` replaced by `include`
-
-To align with the Crawlee for Python API, the separate `globs`, `regexps`, and `pseudoUrls` URL-filtering options of `enqueueLinks()`, the click-elements enqueue helpers, and `SitemapRequestLoader` have been collapsed into a single `include` option (mirroring the already-unified `exclude` option).
-
-The `PseudoUrl` class is no longer exported and the `@apify/pseudo_url` dependency has been dropped. Rewrite any pseudo-URL patterns as globs or regular expressions.
-
-Per-pattern request options (`label`, `userData`, `method`, `payload`, `headers` set directly on a pattern object) are no longer supported. Use the top-level `label` / `userData` options, or `transformRequestFunction`, to set request options for the enqueued requests.
-
-**Before:**
-```typescript
-await enqueueLinks({
-    globs: ['https://crawlee.dev/docs/**'],
-    regexps: [/\/blog\//],
-});
-```
-
-**After:**
-```typescript
-await enqueueLinks({
-    include: ['https://crawlee.dev/docs/**', /\/blog\//],
-});
-```
-
-#### Migrating `pseudoUrls`
-
-A `PseudoUrl` is equivalent to an anchored regular expression: the text inside `[ ]` is the pattern (a wildcard), everything outside it is matched literally, and the whole URL is anchored. Translate each pseudo-URL to a `RegExp` (or a glob, if the pattern is simple enough):
-
-**Before:**
-```typescript
-await enqueueLinks({
-    pseudoUrls: ['https://crawlee.dev/[.*]'],
-});
-```
-
-**After:**
-```typescript
-await enqueueLinks({
-    // faithful translation — [.*] becomes .*, literal text is escaped and anchored
-    include: [/^https:\/\/crawlee\.dev\/.*$/],
-    // or, when the pattern is simple, an equivalent glob:
-    // include: ['https://crawlee.dev/**'],
-});
-```
-
-## `transformRequestFunction` precedence in `enqueueLinks`
-
-The `transformRequestFunction` callback in `enqueueLinks` now runs **after** URL pattern filtering (`include`, `exclude`) instead of before. This means it has the highest priority and can overwrite any request options set by the global `label` / `userData` options.
-
-The priority order is now (lowest to highest):
-1. Global `label` / `userData` options
-2. `transformRequestFunction`
-
-The `transformRequestFunction` callback receives a `RequestOptions` object and can return either:
-- The modified `RequestOptions` object
-- A new `RequestOptions` plain object
-- `'unchanged'` to keep the original options as-is
-- A falsy value or `'skip'` to exclude the request from the queue
-
-## Puppeteer cookies are now read and written at the browser-context level
-
-The `PuppeteerController._getCookies` / `_setCookies` methods (used internally by the session pool to sync cookies between a `Session` and a Puppeteer page) now call `page.browserContext().cookies()` / `setCookie()` instead of the deprecated `page.cookies()` / `page.setCookie()`. The page-level API was removed in newer Puppeteer releases.
-
-This aligns the Puppeteer controller with the Playwright controller, which has always worked at the context level.
-
-**What changes in practice**
-- Cookie reads return every cookie stored in the page's browser context, not just cookies matching the page's current URL. If your `Session` relied on the URL-scoped filtering (for example, to avoid pulling cookies that belong to other tabs in the same context), you'll now see the full set.
-- Cookie writes are applied to the whole browser context. When you launch pages with shared contexts, cookies written via `Session.setCookiesFromResponse` or similar will be visible to every other page in that context.
-
-If you rely on Crawlee's default configuration (one browser context per session, which is the `useIncognitoPages` / `newContextPerSession` behavior used by `PuppeteerCrawler`), you should not notice any difference — each session already owns its own context.
-
-**Cookie `url` field** — the old `page.setCookie()` auto-filled a missing `url` on each cookie with the page's current URL. The new `browserContext().setCookie()` does not; Chromium rejects cookies that carry neither `url` nor `domain`. Crawlee's internal `_setCookies` keeps the old behavior by back-filling `page.url()` for any cookie that has neither field set, but if you call `browserContext().setCookie()` directly (outside of Crawlee) you need to provide one of them yourself.
-
-## The `log` property is typed as `CrawleeLogger`
-
-The `log` property exposed throughout the public API (on the crawling context, `Statistics`, `EventManager`, `SessionOptions`, `Dataset`, etc.) is now typed as the `CrawleeLogger` interface (from `@crawlee/types`) rather than the concrete `Log` class from `@apify/log`. If you consume it structurally — calling `log.info(...)`, `log.debug(...)`, `log.child(...)` — nothing changes. You only need to act if you explicitly annotated a variable or parameter with the `Log` type from `@apify/log` and assigned `context.log` to it; type it as `CrawleeLogger` instead.
-
-## Autoscaling moved to `ConcurrencySystem`
+### Autoscaling moved to `ConcurrencySystem`
 
 Everything that decides whether there is free compute for one more task — snapshotting, the system-status evaluation, the concurrency budget and the scaling logic — moved out of `AutoscaledPool` into a new `ConcurrencySystem`. What is left of the pool is a bare task loop, which is now **internal**: crawlers build and drive one for themselves, and `ConcurrencySystem` is the only part of this you configure.
 
@@ -1351,7 +1357,7 @@ try {
 }
 ```
 
-### `AutoscaledPool` is no longer public API
+#### `AutoscaledPool` is no longer public API
 
 `AutoscaledPool` is `@internal` in v4, along with `AutoscaledPoolOptions`. It is still exported from `@crawlee/core` (and re-exported by `crawlee`), so nothing breaks at import time — but with all the configuration moved to the `ConcurrencySystem`, what remains is a bare parallel task runner, and a scraping library has no business promising backwards compatibility for one. Reach for it if you must; it can change without a major bump, and if you only wanted bounded parallelism, a `p-limit`-style helper is a better fit than an internal Crawlee class.
 
@@ -1392,7 +1398,7 @@ const crawler = new CheerioCrawler({
 
 `crawler.pause()` resolves once the requests already in flight have settled, and leaves `run()` pending until you `resume()` — unlike `crawler.stop()`, which ends the run gracefully. One behavioral consequence of the split: pausing no longer suspends autoscaling, because the autoscaling interval belongs to the `ConcurrencySystem`, which knows nothing about its borrowers' pause state — deliberately, since other crawlers sharing it may still need scaling. A paused crawler's system keeps evaluating (and possibly scaling down) the desired concurrency and keeps emitting its periodic state log. Scaling *up* stays effectively blocked, as the current concurrency drains below the ratio required for a scale-up. To silence the system during a long pause, `stop()` it (if you own it) and `start()` it again before resuming; a restart discards the snapshots taken before it, so the pause is not mistaken for load.
 
-#### If you were driving an `AutoscaledPool` directly
+##### If you were driving an `AutoscaledPool` directly
 
 All scaling and load-monitoring options were **removed** from `AutoscaledPoolOptions` and now live on `ConcurrencySystemOptions`: `minConcurrency`, `maxConcurrency`, `desiredConcurrency`, `desiredConcurrencyRatio`, `scaleUpStepRatio`, `scaleDownStepRatio`, `loggingIntervalSecs`, `autoscaleIntervalSecs`, and `maxTasksPerMinute`, plus the load-signal configuration described [below](#load-signal-options-restructured). The `snapshotterOptions` and `systemStatusOptions` bags are both gone, as are the `minConcurrency`/`maxConcurrency` accessors and every setter (`desiredConcurrency`, `currentConcurrency` and `system` remain as read-only getters). In their place, `AutoscaledPoolOptions` gained a **required** `concurrencySystem`, plus a **required** `consumer` — the pool's identity (`{ id }`), which it presents to the governor on every capacity query and booking so that a shared one can tell several pools' tasks apart.
 
@@ -1435,7 +1441,7 @@ try {
 }
 ```
 
-### `autoscaledPoolOptions` is now `taskLoopOptions`, and no longer carries concurrency config
+#### `autoscaledPoolOptions` is now `taskLoopOptions`, and no longer carries concurrency config
 
 The crawler option was renamed — it was named after a class that is now internal — and narrowed to **only** the task-loop predicates `isFinishedFunction` and `isTaskReadyFunction`. Its type changed from `AutoscaledPoolOptions` to `TaskLoopPredicates` (itself a rename of the interim `AutoscaledPoolPredicateOptions`). Concurrency configuration goes through either the `minConcurrency` / `maxConcurrency` / `maxRequestsPerMinute` shortcuts (which configure the crawler's default `ConcurrencySystem`), or — for anything finer — a supplied `concurrencySystem`.
 
@@ -1486,7 +1492,7 @@ const concurrencySystem = new ConcurrencySystem({
 });
 ```
 
-## Load-signal options restructured
+### Load-signal options restructured
 
 The per-resource load-signal configuration was consolidated. It used to be spread across flat `SnapshotterOptions` fields, the `max*OverloadedRatio` options on `SystemStatusOptions`, and a separate `loadSignals` array — three places, two of them named after classes that are now internal. All of it now lives in a single `loadSignals` bag on `ConcurrencySystemOptions`: one options bag per built-in signal (each carrying its own limits *and* its `overloadedRatio`), plus `custom` for your own implementations.
 
@@ -1547,16 +1553,95 @@ new ConcurrencySystem({
 
 `Snapshotter` and `SystemStatus` are no longer public API, along with `SnapshotterOptions` and `SystemStatusOptions` — they are implementation details of the `ConcurrencySystem`, which is now the only supported entry point to load monitoring; read the resulting `SystemInfo` through `ConcurrencySystem.getCurrentStatus()`. Still public: the configuration types, the four built-in signal classes, and the extension surface (`LoadSignal`, `SnapshotStore`, `LoadSignalStartContext`). The concrete snapshot types the built-ins produce are *not* — `getSample()` returns plain `LoadSnapshot` values.
 
-### Both evaluation windows are now requested from every signal
+#### Both evaluation windows are now requested from every signal
 
 Overload is evaluated over two windows: `currentHistorySecs` (default 5s) gates whether another task may start, and `snapshotHistorySecs` (default 30s) drives autoscaling. The long one used to be implicit — `getHistoricalStatus()` asked each signal for *everything it had retained*, so a custom signal keeping five minutes of snapshots silently made autoscaling reason over five minutes of history for that resource while the built-ins used 30 seconds. Both are now requested explicitly from every signal, and `LoadSignal.start()` receives the wider of the two as `maxSampleWindowMillis` so retention can be sized to match.
 
 You are affected if a custom signal retains **more** history than `snapshotHistorySecs` (its stale snapshots no longer influence scaling), or if its `getSample()` ignores the `sampleDurationMillis` argument, in which case it still contributes everything it has. On the API side, `snapshotHistoryMillis` was removed from the per-signal option types and `SnapshotStore` lost both its constructor argument and the `fromInterval`/`fromEvent` factories; call `useSampleWindow(maxSampleWindowMillis)` and `clear()` from your `start()` instead, as a store that is never given a window retains everything. The [scaling guide](../guides/scaling-crawlers#load-signals) has a worked example.
 
-## Stagehand type narrowings
+## Only if you import helpers from `@crawlee/utils` or `@crawlee/types`
+
+### Available resource detection
+
+In v3, we introduced a new way to detect available resources for the crawler, available via `systemInfoV2` flag. In v4, this is the default way to detect available resources. The old way is removed completely together with the `systemInfoV2` flag.
+
+As part of this change, the low-level resource- and environment-detection helpers exported from `@crawlee/utils` were **removed**: `getMemoryInfo()` (and the `MemoryInfo` interface), `isContainerized()`, `isDocker()`, `isLambda()`, and `getCgroupsVersion()`. These backed the old detection path and are no longer part of the public API. Resource detection is now handled internally by the crawler's autoscaling; if you called any of these directly, read the equivalent values from the OS (`node:os`) or the relevant cgroup files yourself.
+
+### `@crawlee/types` symbols are no longer re-exported
+
+The general-purpose utility types owned by `@crawlee/types` are no longer re-exported from other packages, so `Dictionary`, `Awaitable`, `Constructor`, `Cookie`, `QueueOperationInfo` and `AllowedHttpMethods` are no longer available from `@crawlee/core` (nor, in turn, from `@crawlee/basic` and the `crawlee` meta-package). Add `@crawlee/types` to your dependencies and import them from there — most of the package's types (`ISession`, `ProxyInfo`, `RequestSchema`, …) already required this. The interfaces you implement against — `StorageBackend`, `StorageIdentifier` and `IBrowserPool` / `NewPageOptions` — stay reachable from `@crawlee/core` and `@crawlee/browser-pool` respectively.
+
+### Removed and relocated `@crawlee/utils` exports
+
+Besides the resource-detection helpers above, several other `@crawlee/utils` exports were removed or moved:
+
+- **Removed URL helpers:** `filterUrl(target, origin, strategy)`, `matchesEnqueueStrategy(strategy, target, origin)`, and the `UNSUPPORTED_SCHEME_MESSAGE` constant. URL filtering by enqueue strategy is now internal to `enqueueLinks`. The related `filterRequestsByPatterns(requests, patterns?, onSkippedUrl?)` function (from `@crawlee/core`) was removed for the same reason — pattern-based request filtering now happens inside `enqueueLinks`.
+- **Relocated enums/types:** `EnqueueStrategy` now lives in `@crawlee/core` and `SearchParams` in `@crawlee/types`. They are no longer re-exported from `@crawlee/utils`, so `import { EnqueueStrategy } from '@crawlee/utils'` breaks — import them from `crawlee` (the meta-package) or from `@crawlee/core` / `@crawlee/types` instead.
+- **Removed `RobotsFile` alias:** `RobotsFile` was an alias for the `RobotsTxtFile` class and is removed. Rename any usage to `RobotsTxtFile`; the class itself is unchanged apart from the signature change described below.
+
+#### `RobotsTxtFile.find` signature changed; sitemap options removed
+
+The `proxyUrl` argument of `RobotsTxtFile.find()` moved from a positional parameter into the options bag, which also gained `httpClient` and `logger`:
+
+**Before:**
+```typescript
+const robots = await RobotsTxtFile.find(url, proxyUrl, { timeoutMillis: 5000 });
+```
+
+**After:**
+```typescript
+const robots = await RobotsTxtFile.find(url, { proxyUrl, timeoutMillis: 5000 });
+```
+
+Relatedly, `RobotsTxtFile.getSitemaps()`, `parseSitemaps()`, and `parseUrlsFromSitemaps()` no longer take a `RobotsTxtFileSitemapsOptions` argument (the type is removed), and the `enqueueStrategy` / `networkTimeouts` options were dropped from `ParseSitemapOptions` — robots/sitemap parsing no longer filters by enqueue strategy.
+
+### HTML-parsing helper functions are now asynchronous
+
+The HTML-parsing helper functions `htmlToText`, `parseHandlesFromHtml` and `parseOpenGraph` are now asynchronous and return promises.
+
+## Only if you use `StagehandCrawler`
+
+### Stagehand type narrowings
 
 A few Stagehand-specific option types were tightened:
 
 - `StagehandGotoOptions` dropped its `Dictionary &` intersection — it is now exactly `NonNullable<Parameters<Page['goto']>[1]>`, so arbitrary extra keys are no longer accepted.
 - The explicit `failedRequestHandler` field was removed from `StagehandCrawlerOptions` (it is inherited from the base crawler options generically, so passing `failedRequestHandler` still works).
 - The `ignoreShadowRoots` and `ignoreIframes` options were removed from `StagehandCrawler`.
+
+## Appendix: removed symbols
+
+The full list of removed exports and members, for ctrl-F purposes. Where a replacement exists, it is noted inline.
+
+### Removed symbols
+
+- `BasicCrawler._cleanupContext` (protected) - this is now handled by the `ContextPipeline`
+- `BasicCrawler.isRequestBlocked` (protected)
+- `BasicCrawler.events` (protected) - this should be accessed via `BasicCrawler.serviceLocator`
+- `BrowserRequestHandler` and `BrowserErrorHandler` types in `@crawlee/browser`
+- `BrowserCrawler.userProvidedRequestHandler` (protected)
+- `BrowserCrawler.requestHandlerTimeoutInnerMillis` (protected)
+- `BrowserCrawler._enhanceCrawlingContextWithPageInfo` (protected)
+- `BrowserCrawler._handleNavigation` (protected)
+- `HttpCrawler.userRequestHandlerTimeoutMillis` (protected)
+- `HttpCrawler._handleNavigation` (protected)
+- `HttpCrawler._applyCookies` (protected) - cookie merging is now handled by `BaseHttpClient`
+- `HttpCrawler._parseHTML` (protected)
+- `HttpCrawler.use` and the `CrawlerExtension` class (experimental) - the `ContextPipeline` should be used for extending the crawler
+- `BasicCrawler._tagUserHandlerError` (protected) - internal error-tagging helper, no longer part of the crawler surface
+- `BasicCrawler.handledRequestsCount` setter (`@deprecated`) - the throw-on-assign guard is gone; the getter is now internal-only and the count is derived from `this.stats`
+- `PlaywrightPlugin._containerProxyServer` (public) - was an unused, never-populated field
+- `Snapshotter._snapshotMemory`, `Snapshotter._memoryOverloadWarning`, `Snapshotter._snapshotEventLoop`, `Snapshotter._snapshotCpu`, `Snapshotter._snapshotClient`, `Snapshotter._pruneSnapshots` (all `@deprecated` protected stubs) - snapshotting is now handled by the individual load signals, and the `Snapshotter` itself is internal to `ConcurrencySystem`; there is no longer a public API for reading raw resource snapshots
+- `FileDownloadOptions.streamHandler` - streaming should now be handled directly in the `requestHandler` instead
+- `playwrightUtils.registerUtilsToContext` and `puppeteerUtils.registerUtilsToContext` - this is now added to the context via `ContextPipeline` composition
+- `context.blockResources` and `context.cacheResponses` — no longer attached to the crawling context. The functionality is still available as deprecated functions, accessible both via the `puppeteerUtils` namespace (`puppeteerUtils.blockResources`, `puppeteerUtils.cacheResponses`) and as top-level exports from `@crawlee/puppeteer` (`import { blockResources, cacheResponses } from '@crawlee/puppeteer'`). Unlike the old context helpers, these take an explicit `page` argument — e.g. `await blockResources(page)`. Both are `@deprecated` and will be removed in a future release, so migrate away from them.
+- `Configuration.systemInfoV2` / `CRAWLEE_SYSTEM_INFO_V2` environment variable — the v2 behavior is now the default (see [Available resource detection](#available-resource-detection))
+- `checkAndSerialize` and `chunkBySize` functions (from `@crawlee/core`) — value (de)serialization now lives in the `KeyValueStore` frontend; use `serializeValue` / `parseValue` (see [`maybeStringify` is removed](#maybestringify-is-removed))
+- `BASIC_CRAWLER_TIMEOUT_BUFFER_SECS` constant (from `@crawlee/basic`) — was an internal timeout buffer, no longer exported
+- `HttpResponse`, `HttpResponseWithoutBody`, `StreamingHttpResponse`, `ResponseTypes`, `BaseHttpResponseData`, `SimpleHeaders`, `processHttpRequestOptions`, and `GotScrapingHttpClient` (from `@crawlee/core`) — the HTTP client surface moved to `@crawlee/http-client` / `@crawlee/got-scraping-client` (see [HTTP client packages and `BaseHttpClient` reshaped](#http-client-packages-and-basehttpclient-reshaped))
+- `StreamHandlerContext` and `FileDownloadOptions` types (from `@crawlee/http`) — see [`FileDownload` now extends `BasicCrawler`](#filedownload-now-extends-basiccrawler-and-no-longer-takes-filedownloadoptions)
+- `PlainResponse` type (from `@crawlee/http`) — it wrapped the `got-scraping` response and is gone along with the rest of the old HTTP response surface (see [`CrawlingContext.response` is now of type `Response`](#crawlingcontextresponse-is-now-of-type-response))
+
+#### The protected `BasicCrawler.crawlingContexts` map is removed
+
+The property was not used by the library itself and re-implementing the functionality in user code is fairly straightforward.
