@@ -267,6 +267,45 @@ describe('Dataset in a transaction', () => {
         });
     });
 
+    test('a backend returning short pages does not pull buffered items into the real window', async () => {
+        const dataset = await Dataset.open<{ n: number }>();
+        await dataset.pushData(Array.from({ length: 12 }, (_, n) => ({ n })));
+
+        // A backend honouring `skipEmpty` / `clean` / `unwind` returns fewer items than asked for while
+        // the real items are far from exhausted - `total` stays honest, the page is just filtered.
+        const realBackend = dataset.backend;
+        dataset.backend = {
+            getMetadata: async () => realBackend.getMetadata(),
+            drop: async () => realBackend.drop(),
+            purge: async () => realBackend.purge(),
+            pushData: async (items) => realBackend.pushData(items),
+            getData: async (options) => {
+                const page = await realBackend.getData(options);
+                const items = page.items.filter(({ n }) => ![1, 3, 5].includes(n));
+                return { ...page, items, count: items.length };
+            },
+        };
+
+        await withStorageTransaction(async (transaction) => {
+            await dataset.pushData([{ n: 100 }, { n: 101 }]);
+
+            // The window lies entirely within the 12 real items, so it must not reach the buffer at all -
+            // deriving the buffered slice from the page's shortfall would append 100 and 101 here.
+            await expect(dataset.getData({ offset: 0, limit: 5 })).resolves.toMatchObject({
+                items: [{ n: 0 }, { n: 2 }, { n: 4 }],
+                total: 14,
+            });
+
+            // ...and the buffer is reached exactly once, where the window really does cross into it.
+            await expect(dataset.getData({ offset: 10, limit: 5 })).resolves.toMatchObject({
+                items: [{ n: 10 }, { n: 11 }, { n: 100 }, { n: 101 }],
+                total: 14,
+            });
+
+            transaction.rollback();
+        });
+    });
+
     test('values are captured at write time with full fidelity', async () => {
         const dataset = await Dataset.open();
         const pushDataSpy = vitest.spyOn(dataset.backend, 'pushData');
