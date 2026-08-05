@@ -19,6 +19,7 @@ import type {
     IProxyConfiguration,
     IRequestLoader,
     IRequestManager,
+    IStatistics,
     Request,
     RequestsLike,
     RequestTransform,
@@ -449,10 +450,11 @@ export interface BasicCrawlerOptions<
     onSkippedRequest?: SkippedRequestCallback;
 
     /**
-     * A preconfigured {@apilink Statistics} instance. When provided, the crawler records into it instead of building
-     * its own and will not `reset()` it between `run()` calls. Subclass {@apilink Statistics} to track extra fields.
+     * A preconfigured statistics instance. When provided, the crawler records into it instead of building its own and
+     * will not `reset()` it between `run()` calls. Accepts the built-in {@apilink Statistics} (subclass it to track
+     * extra fields) or any object implementing {@apilink IStatistics}.
      */
-    statistics?: Statistics;
+    statistics?: IStatistics;
 
     /**
      * HTTP client implementation for the `sendRequest` context helper and for plain HTTP crawling.
@@ -624,13 +626,13 @@ export class BasicCrawler<
     private static useStateAnonymousIndices = new Set<number>();
 
     /** Backs the {@apilink BasicCrawler.stats|`stats`} getter. */
-    private statsDep: OwnedOrInjected<Statistics>;
+    private statsDep: OwnedOrInjected<IStatistics, Statistics>;
 
     /**
-     * The {@apilink Statistics} instance collecting the crawler's run statistics - either the injected `statistics`
-     * option or a crawler-built default.
+     * The statistics instance collecting the crawler's run statistics - either the injected `statistics` option or a
+     * crawler-built default. Typed as {@apilink IStatistics} so custom implementations can be plugged in.
      */
-    get stats(): Statistics {
+    get stats(): IStatistics {
         return this.statsDep.value;
     }
 
@@ -999,7 +1001,7 @@ export class BasicCrawler<
             this.maxRequestRetries = maxRequestRetries;
             this.maxCrawlDepth = maxCrawlDepth;
             this.sameDomainDelayMillis = sameDomainDelaySecs * 1000;
-            this.statsDep = OwnedOrInjected.resolve(
+            this.statsDep = OwnedOrInjected.resolve<IStatistics, Statistics>(
                 statistics,
                 () =>
                     new Statistics({
@@ -2198,7 +2200,7 @@ export class BasicCrawler<
             }
         })();
 
-        await Promise.all([requestManagerPersistPromise, this.stats.persistState()]);
+        await Promise.all([requestManagerPersistPromise, this.stats.persistState?.()]);
     }
 
     /**

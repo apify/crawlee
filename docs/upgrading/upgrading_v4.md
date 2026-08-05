@@ -305,6 +305,8 @@ const crawler = new BasicCrawler({
 
 Omit the option and the crawler builds its own default, exactly as before. A supplied instance is treated as borrowed: the crawler records into it and drives its capture lifecycle for the run, but never `reset()`s it between `run()` calls — so a preconfigured instance keeps whatever state it was handed. This is also the supported way to plug in a custom `Statistics` subclass that tracks extra fields (superseding the previous subclass-and-reassign pattern).
 
+The option accepts the built-in `Statistics` or any object implementing the new `IStatistics` interface, so a fully custom statistics backend can be plugged in without subclassing. The crawler exposes it as `crawler.stats` typed as `IStatistics`.
+
 ## Custom `BrowserPool` implementations via the `IBrowserPool` interface
 
 Browser crawlers now accept any object implementing the new `IBrowserPool` interface as their `browserPool` option, not just instances of the built-in `BrowserPool`. The interface follows the classic acquire/release pattern, plus a pair of helpers for moving state between the crawling session and the page:
