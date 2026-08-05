@@ -3,20 +3,14 @@ import { inspect } from 'node:util';
 import type {
     BaseHttpClient,
     BatchAddRequestsResult,
+    Constructor,
     Dictionary,
     ProcessedRequest,
     QueueOperationInfo,
     RequestQueueBackend,
     RequestQueueInfo,
 } from '@crawlee/types';
-import {
-    chunkedAsyncIterable,
-    downloadListOfUrls,
-    isAsyncIterable,
-    isIterable,
-    peekableAsyncIterable,
-    sleep,
-} from '@crawlee/utils';
+import { downloadListOfUrls, isAsyncIterable, isIterable, sleep } from '@crawlee/utils';
 import ow from 'ow';
 import type { ReadonlyDeep } from 'type-fest';
 
@@ -24,9 +18,9 @@ import { LruCache } from '@apify/datastructures';
 
 import { Configuration } from '../configuration.js';
 import { getObjectType } from '../debug.js';
-import type { Constructor } from '../typedefs.js';
 import type { EventManager } from '../events/event_manager.js';
 import { EventType } from '../events/event_manager.js';
+import { chunkedAsyncIterable, peekableAsyncIterable } from '../iterables.js';
 import type { CrawleeLogger } from '../log.js';
 import type { IProxyConfiguration } from '../proxy_configuration.js';
 import type { InternalSource, RequestOptions, Source } from '../request.js';

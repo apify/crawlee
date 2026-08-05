@@ -27,6 +27,7 @@ import type {
     StatisticState,
 } from '@crawlee/core';
 import {
+    OwnedOrInjected,
     RequestHandlerError,
     RequestHandlerResult,
     resolveBaseUrlForEnqueueLinksFiltering,
@@ -46,7 +47,11 @@ import { addTimeoutToPromise } from '@apify/timeout';
 
 import type { PlaywrightCrawlingContext, PlaywrightGotoOptions, PlaywrightHook } from './playwright-crawler.js';
 import { PlaywrightCrawler } from './playwright-crawler.js';
-import { type RenderingType, RenderingTypePredictor } from './utils/rendering-type-prediction.js';
+import {
+    type IRenderingTypePredictor,
+    type RenderingType,
+    RenderingTypePredictor,
+} from './utils/rendering-type-prediction.js';
 
 type Result<TResult> =
     | { result: TResult; ok: true; logs?: LogProxyCall[] }
@@ -254,9 +259,11 @@ export interface AdaptivePlaywrightCrawlerOptions<
     ) => boolean | 'equal' | 'different' | 'inconclusive';
 
     /**
-     * A custom rendering type predictor
+     * A custom rendering type predictor. A predictor passed here is borrowed - the crawler never drives its
+     * lifecycle, so set it up yourself (the built-in {@apilink RenderingTypePredictor} needs `initialize()`).
+     * Omit the option and the crawler builds its own from `renderingTypeDetectionRatio` - and initializes it.
      */
-    renderingTypePredictor?: Pick<RenderingTypePredictor, 'predict' | 'storeResult' | 'initialize'>;
+    renderingTypePredictor?: IRenderingTypePredictor;
 
     /**
      * Prevent direct access to storage in request handlers (only allow using context helpers).
@@ -315,7 +322,7 @@ export class AdaptivePlaywrightCrawler<
         GetUserDataFromRequest<AdaptivePlaywrightCrawlerContext['request']>
     >,
 > extends BasicCrawler<AdaptivePlaywrightCrawlerContext, ContextExtension, ExtendedContext, Routes> {
-    private renderingTypePredictor: NonNullable<AdaptivePlaywrightCrawlerOptions['renderingTypePredictor']>;
+    private renderingTypePredictor: OwnedOrInjected<IRenderingTypePredictor, RenderingTypePredictor>;
     private resultChecker: NonNullable<AdaptivePlaywrightCrawlerOptions['resultChecker']>;
     private shouldPropagateError: NonNullable<AdaptivePlaywrightCrawlerOptions['shouldPropagateError']>;
     private resultComparator: NonNullable<AdaptivePlaywrightCrawlerOptions['resultComparator']>;
@@ -358,8 +365,12 @@ export class AdaptivePlaywrightCrawler<
         });
         this.individualRequestHandlerTimeoutMillis = requestHandlerTimeoutSecs * 1000;
 
-        this.renderingTypePredictor =
-            renderingTypePredictor ?? new RenderingTypePredictor({ detectionRatio: renderingTypeDetectionRatio });
+        // `renderingTypeDetectionRatio` only configures the default predictor - an injected one brings its own
+        // detection ratio (and its own state), so the option is ignored in that case.
+        this.renderingTypePredictor = OwnedOrInjected.resolve<IRenderingTypePredictor, RenderingTypePredictor>(
+            renderingTypePredictor,
+            () => new RenderingTypePredictor({ detectionRatio: renderingTypeDetectionRatio }),
+        );
         this.resultChecker = resultChecker ?? (() => true);
         this.shouldPropagateError = shouldPropagateError ?? (() => false);
 
@@ -425,7 +436,9 @@ export class AdaptivePlaywrightCrawler<
     }
 
     protected override async _init(): Promise<void> {
-        await this.renderingTypePredictor.initialize();
+        // Only the predictor we built ourselves is ours to initialize - an injected one is borrowed, so its
+        // lifecycle (including restoring persisted state) stays with whoever created it.
+        await this.renderingTypePredictor.ifOwned((predictor) => predictor.initialize());
         return await super._init();
     }
 
@@ -617,7 +630,7 @@ export class AdaptivePlaywrightCrawler<
     }
 
     protected override async runRequestHandler(crawlingContext: CrawlingContext): Promise<void> {
-        const renderingTypePrediction = this.renderingTypePredictor.predict(crawlingContext.request);
+        const renderingTypePrediction = this.renderingTypePredictor.value.predict(crawlingContext.request);
         const shouldDetectRenderingType = Math.random() < renderingTypePrediction.detectionProbabilityRecommendation;
 
         if (!shouldDetectRenderingType) {
@@ -736,7 +749,7 @@ export class AdaptivePlaywrightCrawler<
                 );
 
                 if (detectionResult !== undefined) {
-                    this.renderingTypePredictor.storeResult(crawlingContext.request, detectionResult);
+                    this.renderingTypePredictor.value.storeResult(crawlingContext.request, detectionResult);
                 }
             }
         } finally {

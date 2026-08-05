@@ -143,11 +143,11 @@ export interface PlaywrightCrawlerOptions<
  * `PlaywrightCrawler` opens a new Chrome page (i.e. tab) for each {@apilink Request} object to crawl
  * and then calls the function provided by user as the {@apilink PlaywrightCrawlerOptions.requestHandler} option.
  *
- * New pages are only opened when there is enough free CPU and memory available,
- * using the functionality provided by the {@apilink AutoscaledPool} class.
- * All {@apilink AutoscaledPool} configuration options can be passed to the {@apilink PlaywrightCrawlerOptions.autoscaledPoolOptions}
- * parameter of the `PlaywrightCrawler` constructor. For user convenience, the `minConcurrency` and `maxConcurrency`
- * {@apilink AutoscaledPoolOptions} are available directly in the `PlaywrightCrawler` constructor.
+ * New pages are only opened when there is enough free CPU and memory available, as judged by the crawler's
+ * {@apilink ConcurrencySystem}.
+ * Concurrency is tuned via the `minConcurrency`, `maxConcurrency` and `maxRequestsPerMinute` options of the
+ * `PlaywrightCrawler` constructor, or, for finer control, by injecting a pre-configured
+ * {@apilink ConcurrencySystem|`concurrencySystem`}.
  *
  * Note that the pool of Playwright instances is internally managed by the [BrowserPool](https://github.com/apify/browser-pool) class.
  *

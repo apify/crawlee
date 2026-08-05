@@ -1,10 +1,8 @@
 import type {
-    Awaitable,
     BasicCrawlerOptions,
     BasicCrawlingContext,
     ContextMiddleware,
     CrawlingContext,
-    Dictionary,
     EnqueueLinksOptions,
     ErrorHandler,
     GetUserDataFromRequest,
@@ -42,7 +40,14 @@ import type {
     LaunchContext,
 } from '@crawlee/browser-pool';
 import { BrowserPool, RemoteBrowserPool } from '@crawlee/browser-pool';
-import type { BatchAddRequestsResult, Cookie as CookieObject, IBrowserPool, ISession } from '@crawlee/types';
+import type {
+    Awaitable,
+    BatchAddRequestsResult,
+    Cookie as CookieObject,
+    Dictionary,
+    IBrowserPool,
+    ISession,
+} from '@crawlee/types';
 import type { RobotsTxtFile } from '@crawlee/utils';
 import { CLOUDFLARE_RETRY_CSS_SELECTORS, RETRY_CSS_SELECTORS, sleep } from '@crawlee/utils';
 import ow from 'ow';
@@ -319,13 +324,11 @@ export interface BrowserCrawlerOptions<
  * `BrowserCrawler` opens a new browser page (i.e. tab or window) for each {@apilink Request} object to crawl
  * and then calls the function provided by user as the {@apilink BrowserCrawlerOptions.requestHandler|`requestHandler`} option.
  *
- * New pages are only opened when there is enough free CPU and memory available,
- * using the functionality provided by the {@apilink AutoscaledPool} class.
- * All {@apilink AutoscaledPool} configuration options can be passed to the {@apilink BrowserCrawlerOptions.autoscaledPoolOptions|`autoscaledPoolOptions`}
- * parameter of the `BrowserCrawler` constructor.
- * For user convenience, the {@apilink AutoscaledPoolOptions.minConcurrency|`minConcurrency`} and
- * {@apilink AutoscaledPoolOptions.maxConcurrency|`maxConcurrency`} options of the
- * underlying {@apilink AutoscaledPool} constructor are available directly in the `BrowserCrawler` constructor.
+ * New pages are only opened when there is enough free CPU and memory available, as judged by the crawler's
+ * {@apilink ConcurrencySystem}.
+ * Concurrency is tuned via the `minConcurrency`, `maxConcurrency` and `maxRequestsPerMinute` options of the
+ * `BrowserCrawler` constructor, or, for finer control, by injecting a pre-configured
+ * {@apilink ConcurrencySystem|`concurrencySystem`}.
  *
  * > *NOTE:* the pool of browser instances is internally managed by the {@apilink BrowserPool} class.
  *
@@ -653,23 +656,55 @@ export abstract class BrowserCrawler<
         await this.processResponse(response, crawlingContext);
         tryCancel();
 
-        // TODO: Should we save the cookies also after/only the handle page?
-        if (this.saveResponseCookies && crawlingContext.session) {
-            const { cookies } = await this.browserPool.extractPageState(crawlingContext.page);
-            tryCancel();
-            const url = crawlingContext.request.loadedUrl!;
-            for (const cookie of cookies) {
+        // Persist cookies from the navigation response before the user handler runs.
+        // Cookies set during `requestHandler` are saved again afterwards.
+        await this.persistCookiesFromPage(crawlingContext);
+
+        return { request: crawlingContext.request as LoadedRequest<Request> } as Partial<Context>;
+    }
+
+    /**
+     * Copies cookies from the live browser page into the session cookie jar.
+     */
+    private async persistCookiesFromPage(
+        crawlingContext: Pick<BrowserCrawlingContext<Page, Response>, 'session' | 'page' | 'request'>,
+    ): Promise<void> {
+        if (!this.saveResponseCookies || !crawlingContext.session) {
+            return;
+        }
+
+        const { cookies } = await this.browserPool.extractPageState(crawlingContext.page);
+        tryCancel();
+        // Prefer the live page URL — the handler may have navigated after the initial load.
+        const url =
+            (await crawlingContext.page.url()) || crawlingContext.request.loadedUrl || crawlingContext.request.url;
+        for (const cookie of cookies) {
+            try {
+                crawlingContext.session.cookieJar.setCookieSync(browserPoolCookieToToughCookie(cookie), url, {
+                    ignoreError: false,
+                });
+            } catch (e) {
+                this.log.debug(`Could not set cookie: ${(e as Error).message}`);
+            }
+        }
+    }
+
+    /**
+     * Runs the user request handler, then re-reads browser cookies so login flows /
+     * `page.setCookie` / XHR `Set-Cookie` updates are stored for later requests.
+     */
+    protected override async runRequestHandler(crawlingContext: ExtendedContext): Promise<void> {
+        try {
+            await super.runRequestHandler(crawlingContext);
+        } finally {
+            if (!crawlingContext.request.skipNavigation) {
                 try {
-                    crawlingContext.session.cookieJar.setCookieSync(browserPoolCookieToToughCookie(cookie), url, {
-                        ignoreError: false,
-                    });
-                } catch (e) {
-                    this.log.debug(`Could not set cookie: ${(e as Error).message}`);
+                    await this.persistCookiesFromPage(crawlingContext);
+                } catch {
+                    // Page may already be closed on some failure paths; ignore.
                 }
             }
         }
-
-        return { request: crawlingContext.request as LoadedRequest<Request> } as Partial<Context>;
     }
 
     private async handleBlockedRequestByContent(crawlingContext: BrowserCrawlingContext<Page, Response>) {

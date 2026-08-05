@@ -4,7 +4,7 @@ import os from 'node:os';
 
 import { Configuration } from '@crawlee/basic';
 import type { BrowserPlugin, BrowserPluginOptions } from '@crawlee/browser-pool';
-import type { Constructor, Dictionary } from '@crawlee/utils';
+import type { Constructor, Dictionary } from '@crawlee/types';
 import ow from 'ow';
 
 const DEFAULT_VIEWPORT = {

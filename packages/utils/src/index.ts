@@ -3,13 +3,8 @@ export * from './internals/cheerio.js';
 export * from './internals/extract-urls.js';
 export * from './internals/general.js';
 export * as social from './internals/social.js';
-export * from './internals/typedefs.js';
 export * from './internals/open_graph_parser.js';
 export * from './internals/robots.js';
 export * from './internals/sitemap.js';
 export * from './internals/iterables.js';
-export * from './internals/robots.js';
-export * from './internals/sitemap.js';
 export * from './internals/url.js';
-
-export type { Dictionary, Awaitable, Constructor } from '@crawlee/types';

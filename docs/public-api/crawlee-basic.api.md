@@ -8,8 +8,6 @@ import type { AddRequestsBatchedOptions } from '@crawlee/core';
 import type { AddRequestsBatchedResult } from '@crawlee/core';
 import { AnyPredicate } from 'ow';
 import { ArrayPredicate } from 'ow';
-import { AutoscaledPool } from '@crawlee/core';
-import { AutoscaledPoolOptions } from '@crawlee/core';
 import type { Awaitable } from '@crawlee/types';
 import type { BaseHttpClient } from '@crawlee/types';
 import { BasePredicate } from 'ow';
@@ -18,6 +16,8 @@ import { BooleanPredicate } from 'ow';
 import { Cheerio } from '@crawlee/utils';
 import { CheerioAPI } from '@crawlee/utils';
 import { CheerioRoot } from '@crawlee/utils';
+import { ConcurrencySystem } from '@crawlee/core';
+import { ConcurrencySystemOptions } from '@crawlee/core';
 import type { Configuration } from '@crawlee/core';
 import { ContextPipeline } from '@crawlee/core';
 import type { CrawleeLogger } from '@crawlee/core';
@@ -30,6 +30,7 @@ import type { EnqueueLinksOptions } from '@crawlee/core';
 import type { EventManager } from '@crawlee/core';
 import type { FinalStatistics } from '@crawlee/core';
 import type { GetUserDataFromRequest } from '@crawlee/core';
+import { IConcurrencySystem } from '@crawlee/core';
 import { IProxyConfiguration } from '@crawlee/core';
 import { IRequestLoader } from '@crawlee/core';
 import { IRequestManager } from '@crawlee/core';
@@ -56,6 +57,7 @@ import type { StatisticState } from '@crawlee/core';
 import type { StorageBackend } from '@crawlee/types';
 import type { StorageIdentifier } from '@crawlee/core';
 import { StringPredicate } from 'ow';
+import type { TaskLoopPredicates } from '@crawlee/core';
 import { TimeoutError } from '@apify/timeout';
 import type { TypedRequestsLike } from '@crawlee/core';
 
@@ -65,7 +67,6 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
     // (undocumented)
     protected readonly additionalHttpErrorStatusCodes: Set<number>;
     addRequests(requests: ReadonlyDeep<TypedRequestsLike<Routes>>, options?: CrawlerAddRequestsOptions): Promise<CrawlerAddRequestsResult>;
-    autoscaledPool?: AutoscaledPool;
     get basicContextPipeline(): ContextPipeline<{
         request: Request_2;
     }, CrawlingContext>;
@@ -74,10 +75,12 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
     protected buildContextPipeline(): ContextPipeline<CrawlingContext, CrawlingContext>;
     // (undocumented)
     protected calculateEnqueuedRequestLimit(explicitLimit?: number): Promise<number | undefined>;
+    get concurrencySystem(): IConcurrencySystem | undefined;
     // (undocumented)
     get contextPipeline(): ContextPipeline<CrawlingContext, ExtendedContext>;
     // (undocumented)
     protected static readonly CRAWLEE_STATE_KEY = "CRAWLEE_STATE";
+    protected createDefaultConcurrencySystem(options: ConcurrencySystemOptions): ConcurrencySystem;
     // (undocumented)
     protected readonly errorHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
     exportData<Data>(path: string, format?: 'json' | 'csv', options?: DatasetExportOptions): Promise<Data[]>;
@@ -132,7 +135,8 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
         sameDomainDelaySecs: NumberPredicate & BasePredicate<number | undefined>;
         maxRequestsPerCrawl: NumberPredicate & BasePredicate<number | undefined>;
         maxCrawlDepth: NumberPredicate & BasePredicate<number | undefined>;
-        autoscaledPoolOptions: ObjectPredicate<object> & BasePredicate<object | undefined>;
+        taskLoopOptions: ObjectPredicate<object> & BasePredicate<object | undefined>;
+        concurrencySystem: ObjectPredicate<object> & BasePredicate<object | undefined>;
         sessionPool: ObjectPredicate<object> & BasePredicate<object | undefined>;
         proxyConfiguration: ObjectPredicate<object> & BasePredicate<object | undefined>;
         statusMessageLoggingInterval: NumberPredicate & BasePredicate<number | undefined>;
@@ -155,11 +159,13 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
         statisticsOptions: ObjectPredicate<object> & BasePredicate<object | undefined>;
         id: StringPredicate & BasePredicate<string | undefined>;
     };
+    pause(timeoutSecs?: number): Promise<void>;
     readonly proxyConfiguration?: IProxyConfiguration;
     pushData(data: Parameters<Dataset['pushData']>[0], datasetIdentifier?: string | StorageIdentifier): Promise<void>;
     // (undocumented)
     protected readonly requestHandler: RequestHandler<ExtendedContext>;
     protected requestManager?: IRequestManager;
+    resume(): void;
     // (undocumented)
     protected readonly retryOnBlocked: boolean;
     readonly router: RouterHandler<Context, Routes>;
@@ -181,8 +187,8 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
 // @public (undocumented)
 export interface BasicCrawlerOptions<Context extends CrawlingContext = CrawlingContext, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>> {
     additionalHttpErrorStatusCodes?: number[];
-    autoscaledPoolOptions?: AutoscaledPoolOptions;
     blockedStatusCodes?: number[];
+    concurrencySystem?: IConcurrencySystem;
     configuration?: Configuration;
     contextPipelineBuilder?: () => ContextPipeline<CrawlingContext, Context>;
     errorHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
@@ -219,6 +225,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = CrawlingC
     statusMessageCallback?: StatusMessageCallback;
     statusMessageLoggingInterval?: number;
     storageBackend?: StorageBackend;
+    taskLoopOptions?: TaskLoopPredicates;
 }
 
 // @public (undocumented)

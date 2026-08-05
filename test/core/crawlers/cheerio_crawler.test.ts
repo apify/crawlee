@@ -11,10 +11,15 @@ import {
     RequestList,
     Session,
 } from '@crawlee/cheerio';
-import { BaseCrawleeLogger, MemoryStorageBackend, serviceLocator, SessionPool } from '@crawlee/core';
+import {
+    BaseCrawleeLogger,
+    type ConcurrencySystem,
+    MemoryStorageBackend,
+    serviceLocator,
+    SessionPool,
+} from '@crawlee/core';
 import { ImpitHttpClient } from '@crawlee/impit-client';
-import type { ISession, ProxyInfo } from '@crawlee/types';
-import type { Dictionary } from '@crawlee/utils';
+import type { Dictionary, ISession, ProxyInfo } from '@crawlee/types';
 import { sleep } from '@crawlee/utils';
 import iconv from 'iconv-lite';
 import { CookieJar } from 'tough-cookie';
@@ -101,7 +106,7 @@ describe('CheerioCrawler', () => {
 
         await cheerioCrawler.run();
 
-        expect(cheerioCrawler.autoscaledPool!.minConcurrency).toBe(2);
+        expect((cheerioCrawler.concurrencySystem! as ConcurrencySystem).minConcurrency).toBe(2);
         expect(processed).toHaveLength(4);
         expect(failed).toHaveLength(0);
 
@@ -134,7 +139,7 @@ describe('CheerioCrawler', () => {
 
         await cheerioCrawler.run();
 
-        expect(cheerioCrawler.autoscaledPool!.minConcurrency).toBe(2);
+        expect((cheerioCrawler.concurrencySystem! as ConcurrencySystem).minConcurrency).toBe(2);
         expect(processed).toHaveLength(4);
         expect(failed).toHaveLength(0);
 
@@ -170,7 +175,7 @@ describe('CheerioCrawler', () => {
 
         await cheerioCrawler.run();
 
-        expect(cheerioCrawler.autoscaledPool!.minConcurrency).toBe(2);
+        expect((cheerioCrawler.concurrencySystem! as ConcurrencySystem).minConcurrency).toBe(2);
         expect(processed).toHaveLength(4);
         expect(failed).toHaveLength(0);
 
@@ -552,7 +557,7 @@ describe('CheerioCrawler', () => {
 
         await cheerioCrawler.run();
 
-        expect(cheerioCrawler.autoscaledPool!.minConcurrency).toBe(2);
+        expect((cheerioCrawler.concurrencySystem! as ConcurrencySystem).minConcurrency).toBe(2);
         expect(failed).toHaveLength(0);
     });
 
@@ -573,7 +578,7 @@ describe('CheerioCrawler', () => {
 
         await cheerioCrawler.run();
 
-        expect(cheerioCrawler.autoscaledPool!.minConcurrency).toBe(2);
+        expect((cheerioCrawler.concurrencySystem! as ConcurrencySystem).minConcurrency).toBe(2);
         expect(failed).toHaveLength(4);
     });
 
@@ -1175,13 +1180,12 @@ describe('CheerioCrawler', () => {
             expect(warningSpy).toBeCalledWith(`Found cookies with similar name during cookie merging: 'coo' and 'Coo'`);
         });
 
-        test('mergeCookies() throws a contextual error for malformed cookie fragments', () => {
-            expect(() => mergeCookies('https://example.com', ['valid=1; brokenfragment'])).toThrow(
-                'Could not parse cookie header string: brokenfragment',
-            );
-            expect(() => mergeCookies('https://example.com', ['sessionid'])).toThrow(
-                'Could not parse cookie header string: sessionid',
-            );
+        test('mergeCookies() skips malformed cookie fragments instead of throwing', () => {
+            const warningSpy = vitest.spyOn(BaseCrawleeLogger.prototype, 'warning');
+            expect(mergeCookies('https://example.com', ['valid=1; brokenfragment'])).toBe('valid=1');
+            expect(mergeCookies('https://example.com', ['a=b', 'c'])).toBe('a=b');
+            expect(mergeCookies('https://example.com', ['sessionid'])).toBe('');
+            expect(warningSpy).toBeCalled();
         });
 
         test('sendRequest and main request should share the same session cookie jar', async () => {

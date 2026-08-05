@@ -3,7 +3,7 @@ import type { AddressInfo } from 'node:net';
 import os from 'node:os';
 
 import type { PlaywrightCrawlingContext, PlaywrightGotoOptions, Request } from '@crawlee/playwright';
-import { MemoryStorageBackend, serviceLocator } from '@crawlee/core';
+import { type ConcurrencySystem, MemoryStorageBackend, serviceLocator } from '@crawlee/core';
 import { createPlaywrightRouter, PlaywrightCrawler, RequestList, RequestValidationError } from '@crawlee/playwright';
 import type { Cheerio, CheerioAPI, CheerioRoot, Element } from '@crawlee/utils';
 import express from 'express';
@@ -113,7 +113,7 @@ describe('PlaywrightCrawler', () => {
 
             await playwrightCrawler.run();
 
-            expect(playwrightCrawler.autoscaledPool!.minConcurrency).toBe(1);
+            expect((playwrightCrawler.concurrencySystem! as ConcurrencySystem).minConcurrency).toBe(1);
             expect(processed).toHaveLength(6);
             expect(failed).toHaveLength(0);
 
