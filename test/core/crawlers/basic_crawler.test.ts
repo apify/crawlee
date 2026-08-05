@@ -3,7 +3,14 @@ import type { Server } from 'node:http';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 
-import type { EnqueueLinksOptions, ErrorHandler, RequestHandler, RequestOptions, Source } from '@crawlee/basic';
+import type {
+    BasicCrawlerOptions,
+    EnqueueLinksOptions,
+    ErrorHandler,
+    RequestHandler,
+    RequestOptions,
+    Source,
+} from '@crawlee/basic';
 import type { Session } from '@crawlee/basic';
 import {
     BasicCrawler,
@@ -22,6 +29,7 @@ import {
     Router,
     serviceLocator,
     SessionPool,
+    ThrottlingRequestManager,
 } from '@crawlee/basic';
 import type { IConcurrencySystem } from '@crawlee/core';
 import { ConcurrencySystem, MemoryStorageBackend, RequestState } from '@crawlee/core';
@@ -2363,6 +2371,53 @@ describe('BasicCrawler', () => {
             expect(addRequestsBatchedSpy).toHaveBeenCalledOnce();
         });
 
+        describe('robots.txt crawl-delay', () => {
+            const crawlerWithCrawlDelay = (options: Partial<BasicCrawlerOptions>) =>
+                new (class MockedRobotsTxtCrawler extends BasicCrawler {
+                    override async getRobotsTxtFileForUrl(_: string) {
+                        return RobotsTxtFile.from('http://example.com/robots.txt', 'User-agent: *\nCrawl-delay: 5\n');
+                    }
+                })({ respectRobotsTxtFile: true, requestHandler: async () => {}, ...options } as BasicCrawlerOptions);
+
+            test('is applied when a ThrottlingRequestManager covers the domain', async () => {
+                const requestManager = new ThrottlingRequestManager({
+                    inner: await RequestQueue.open(),
+                    domains: ['example.com'],
+                });
+                const crawler = crawlerWithCrawlDelay({ requestManager });
+                const warning = vitest.spyOn(crawler.log, 'warning').mockImplementation(() => {});
+
+                await crawler.addRequests(['http://example.com/1']);
+
+                expect(warning).not.toHaveBeenCalled();
+                expect(requestManager.setCrawlDelay('http://example.com/1', 999)).toBe(true);
+            });
+
+            test('warns when the request manager cannot honour it', async () => {
+                const crawler = crawlerWithCrawlDelay({ requestQueue: await RequestQueue.open() });
+                const warning = vitest.spyOn(crawler.log, 'warning').mockImplementation(() => {});
+
+                await crawler.addRequests(['http://example.com/1', 'http://example.com/2']);
+
+                expect(warning).toHaveBeenCalledTimes(1);
+                expect(warning.mock.calls[0][0]).toMatch(/crawl-delay of 5s/);
+            });
+
+            test('warns when the domain is missing from the manager `domains` list', async () => {
+                const requestManager = new ThrottlingRequestManager({
+                    inner: await RequestQueue.open(),
+                    domains: ['some-other-domain.com'],
+                });
+                const crawler = crawlerWithCrawlDelay({ requestManager });
+                const warning = vitest.spyOn(crawler.log, 'warning').mockImplementation(() => {});
+
+                await crawler.addRequests(['http://example.com/1']);
+
+                expect(warning).toHaveBeenCalledTimes(1);
+                expect(warning.mock.calls[0][0]).toMatch(/example\.com/);
+            });
+        });
+
         test('enqueueLinks should respect custom user-agent robots.txt rules', async () => {
             const requestQueue = await RequestQueue.open();
             const visitedUrls: string[] = [];
@@ -2419,7 +2474,7 @@ describe('BasicCrawler', () => {
 
             const crawler = new (class MockedRobotsTxtCrawler extends BasicCrawler {
                 override async getRobotsTxtFileForUrl(_: string) {
-                    return { isAllowed: isAllowedSpy } as unknown as RobotsTxtFile;
+                    return { isAllowed: isAllowedSpy, getCrawlDelay: () => undefined } as unknown as RobotsTxtFile;
                 }
             })({
                 requestQueue,

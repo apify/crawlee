@@ -272,13 +272,25 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         return true;
     }
 
-    setCrawlDelay(url: string, delaySeconds: number): void {
+    /**
+     * Applies a robots.txt `Crawl-delay` to the URL's domain, as a minimum interval between dispatches.
+     *
+     * The first value wins, so a robots.txt re-fetch cannot change the cadence mid-crawl.
+     *
+     * @returns `false` if the domain is not configured for throttling, in which case this is a no-op.
+     */
+    setCrawlDelay(url: string, delaySeconds: number): boolean {
         const state = this.getDomainState(url);
-        if (state?.crawlDelayMs !== null) {
-            return;
+        if (!state) {
+            return false;
         }
-        state.crawlDelayMs = delaySeconds * 1000;
-        this.log.debug(`Set crawl-delay for domain "${state.domain}" to ${delaySeconds}s`);
+
+        if (state.crawlDelayMs === null) {
+            state.crawlDelayMs = delaySeconds * 1000;
+            this.log.debug(`Set crawl-delay for domain "${state.domain}" to ${delaySeconds}s`);
+        }
+
+        return true;
     }
 
     // --- IRequestManager Implementation ---

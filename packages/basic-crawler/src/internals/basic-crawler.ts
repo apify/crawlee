@@ -31,6 +31,7 @@ import type {
     StorageIdentifier,
     TaskLoopPredicates,
     TypedRequestsLike,
+    ThrottlingRequestManager,
 } from '@crawlee/core';
 import {
     AutoscaledPool,
@@ -60,7 +61,6 @@ import {
     RequestThrottledError,
     RequestManagerTandem,
     RequestQueue,
-    ThrottlingRequestManager,
     RequestState,
     RetryRequestError,
     Router,
@@ -1831,6 +1831,13 @@ export class BasicCrawler<
         }
     }
 
+    private warnOncePerRun(key: string, message: string): void {
+        if (!this.loggedPerRun.has(key)) {
+            this.log.warning(message);
+            this.loggedPerRun.add(key);
+        }
+    }
+
     /**
      * Adds requests to the queue in batches. By default, it will resolve after the initial batch is added, and continue
      * adding the rest in background. You can configure the batch size via `batchSize` option and the sleep time in between
@@ -2042,25 +2049,6 @@ export class BasicCrawler<
         });
 
         await this.getRequestManager();
-
-        if (this.respectRobotsTxtFile) {
-            let isThrottling = false;
-            let currentManager = this.requestManager;
-            if (currentManager instanceof RequestManagerTandem) {
-                currentManager = (currentManager as any).resolvedRequestManager;
-            }
-            if (currentManager instanceof ThrottlingRequestManager) {
-                isThrottling = true;
-            }
-
-            if (!isThrottling) {
-                this.log.warning(
-                    'The `respectRobotsTxtFile` option is enabled, but the crawler is not using a `ThrottlingRequestManager`. ' +
-                        'Crawl delays defined in robots.txt will NOT be respected. ' +
-                        'To respect crawl delays, wrap your request queue in a `ThrottlingRequestManager`.',
-                );
-            }
-        }
     }
 
     /**
@@ -2146,19 +2134,36 @@ export class BasicCrawler<
         const userAgent = typeof this.respectRobotsTxtFile === 'object' ? this.respectRobotsTxtFile?.userAgent : '*';
 
         if (robotsTxtFile) {
-            if (
-                this.requestManager &&
-                'setCrawlDelay' in this.requestManager &&
-                typeof (this.requestManager as any).setCrawlDelay === 'function'
-            ) {
-                const crawlDelay = robotsTxtFile.getCrawlDelay(userAgent);
-                if (crawlDelay !== undefined) {
-                    (this.requestManager as any).setCrawlDelay(url, crawlDelay);
-                }
+            const crawlDelay = robotsTxtFile.getCrawlDelay(userAgent);
+            if (crawlDelay !== undefined) {
+                this.applyCrawlDelay(url, crawlDelay);
             }
         }
 
         return !robotsTxtFile || robotsTxtFile.isAllowed(url, userAgent);
+    }
+
+    /**
+     * Hands a robots.txt `Crawl-delay` to the request manager, warning if nothing is able to honour it.
+     *
+     * Only a {@apilink ThrottlingRequestManager} can pace dispatch per domain, and only for the domains it was
+     * configured with - so the warning is driven by whether the delay was actually accepted, not by the type of
+     * the manager. Both are easy to get wrong: a correctly wrapped manager still drops the delay for a domain
+     * missing from its `domains` list.
+     */
+    private applyCrawlDelay(url: string, delaySeconds: number): void {
+        const manager = this.requestManager as Partial<ThrottlingRequestManager> | undefined;
+        if (manager?.setCrawlDelay?.(url, delaySeconds)) {
+            return;
+        }
+
+        const domain = URL.canParse(url) ? new URL(url).hostname : url;
+        this.warnOncePerRun(
+            `crawlDelayIgnored:${domain}`,
+            `robots.txt for "${domain}" defines a crawl-delay of ${delaySeconds}s, but nothing is set up to honour it, ` +
+                'so requests to that domain will not be paced. Pass a `ThrottlingRequestManager` as `requestManager` ' +
+                `and include "${domain}" in its \`domains\` option to enforce the delay.`,
+        );
     }
 
     protected async getRobotsTxtFileForUrl(url: string): Promise<RobotsTxtFile | undefined> {
