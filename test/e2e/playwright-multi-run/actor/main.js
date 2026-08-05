@@ -15,7 +15,7 @@ const crawler = new PlaywrightCrawler({
         const pageTitle = await page.title();
         await Dataset.pushData({ url, pageTitle });
         await enqueueLinks({
-            globs: ['**/3.12/examples/*'],
+            include: ['**/3.12/examples/*'],
         });
     },
 });
