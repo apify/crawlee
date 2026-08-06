@@ -144,16 +144,17 @@ export abstract class BrowserController<
 
     lastPageOpenedAt = Date.now();
 
-    private _activate!: () => void;
+    #activate!: () => void;
 
+    // kept as TS-private: `BrowserPool` awaits it through cross-object bracket access
     private isActivePromise = new Promise<void>((resolve) => {
-        this._activate = resolve;
+        this.#activate = resolve;
     });
 
-    private commitBrowser!: () => void;
+    #commitBrowser!: () => void;
 
-    private hasBrowserPromise = new Promise<void>((resolve) => {
-        this.commitBrowser = resolve;
+    #hasBrowserPromise = new Promise<void>((resolve) => {
+        this.#commitBrowser = resolve;
     });
 
     constructor(browserPlugin: BrowserPlugin<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>) {
@@ -172,7 +173,7 @@ export abstract class BrowserController<
         if (!this.browser) {
             throw new Error('Cannot activate BrowserController without an assigned browser.');
         }
-        this._activate();
+        this.#activate();
         this.isActive = true;
     }
 
@@ -188,7 +189,7 @@ export abstract class BrowserController<
         }
         this.browser = browser;
         this.launchContext = launchContext;
-        this.commitBrowser();
+        this.#commitBrowser();
     }
 
     /**
@@ -198,7 +199,7 @@ export abstract class BrowserController<
      * Emits 'browserClosed' event.
      */
     async close(): Promise<void> {
-        await this.hasBrowserPromise;
+        await this.#hasBrowserPromise;
 
         try {
             await this._close();
@@ -225,7 +226,7 @@ export abstract class BrowserController<
      * Emits 'browserClosed' event.
      */
     async kill(): Promise<void> {
-        await this.hasBrowserPromise;
+        await this.#hasBrowserPromise;
         await this._kill();
         this.emit(BROWSER_CONTROLLER_EVENTS.BROWSER_CLOSED, this);
     }

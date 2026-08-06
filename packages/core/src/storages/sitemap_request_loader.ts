@@ -131,12 +131,12 @@ export class SitemapRequestLoader implements IRequestLoader {
      *
      * We use this to persist custom user fields on the in-progress requests.
      */
-    private requestData = new Map<string, Request>();
+    #requestData = new Map<string, Request>();
 
     /**
      * Object for keeping track of the sitemap parsing progress.
      */
-    private sitemapParsingProgress: SitemapParsingProgress = {
+    #sitemapParsingProgress: SitemapParsingProgress = {
         /**
          * URL of the sitemap that is currently being parsed. `null` if no sitemap is being parsed.
          */
@@ -157,7 +157,7 @@ export class SitemapRequestLoader implements IRequestLoader {
      *
      * Fetch the next URL to be processed using `fetchNextRequest()`.
      */
-    private urlQueueStream: Transform;
+    #urlQueueStream: Transform;
 
     /**
      * Indicates whether the request list sitemap loading was aborted.
@@ -167,39 +167,39 @@ export class SitemapRequestLoader implements IRequestLoader {
      *
      * If the loading is aborted and all the requests are handled, `isFinished()` will return `true`.
      */
-    private abortLoading = false;
+    #abortLoading = false;
 
     /** Number of URLs that were marked as handled */
-    private handledUrlCount = 0;
+    #handledUrlCount = 0;
 
-    private persistStateKey?: string;
+    #persistStateKey?: string;
 
-    private store?: KeyValueStore;
+    #store?: KeyValueStore;
 
-    private closed = false;
+    #closed = false;
 
     /**
      * Proxy URL to be used for sitemap loading.
      */
-    private proxyUrl?: string;
+    #proxyUrl?: string;
 
     /**
      * Enqueue strategy applied to sitemap-derived URLs and stamped onto the emitted `Request` objects.
      */
-    private enqueueStrategy: EnqueueStrategy | `${EnqueueStrategy}`;
+    #enqueueStrategy: EnqueueStrategy | `${EnqueueStrategy}`;
 
     /**
      * Logger instance.
      */
-    private log: CrawleeLogger;
+    #log: CrawleeLogger;
 
-    private urlExcludePatternObjects: UrlPatternObject[] = [];
-    private urlPatternObjects: UrlPatternObject[] = [];
+    #urlExcludePatternObjects: UrlPatternObject[] = [];
+    #urlPatternObjects: UrlPatternObject[] = [];
 
     /** EventManager used to handle persistence */
-    private events: EventManager;
+    #events: EventManager;
 
-    private persistenceOptions: RequiredDeep<SitemapRequestLoaderOptions['persistenceOptions']>;
+    #persistenceOptions: RequiredDeep<SitemapRequestLoaderOptions['persistenceOptions']>;
 
     /** @internal */
     private constructor(options: SitemapRequestLoaderOptions) {
@@ -230,26 +230,26 @@ export class SitemapRequestLoader implements IRequestLoader {
 
         const { include, exclude } = options;
 
-        this.log = serviceLocator.getLogger().child({ prefix: 'SitemapRequestLoader' });
+        this.#log = serviceLocator.getLogger().child({ prefix: 'SitemapRequestLoader' });
 
         if (exclude?.length) {
-            this.urlExcludePatternObjects.push(...constructUrlPatternObjects(exclude));
+            this.#urlExcludePatternObjects.push(...constructUrlPatternObjects(exclude));
         }
 
         if (include?.length) {
-            this.urlPatternObjects.push(...constructUrlPatternObjects(include));
+            this.#urlPatternObjects.push(...constructUrlPatternObjects(include));
         }
 
-        this.persistStateKey = options.persistStateKey;
-        this.persistenceOptions = { enable: true, ...options.persistenceOptions };
+        this.#persistStateKey = options.persistStateKey;
+        this.#persistenceOptions = { enable: true, ...options.persistenceOptions };
 
-        this.proxyUrl = options.proxyUrl;
-        this.enqueueStrategy = options.enqueueStrategy ?? EnqueueStrategy.SameHostname;
+        this.#proxyUrl = options.proxyUrl;
+        this.#enqueueStrategy = options.enqueueStrategy ?? EnqueueStrategy.SameHostname;
 
-        this.urlQueueStream = this.createNewStream(options.maxBufferSize ?? 200);
+        this.#urlQueueStream = this.createNewStream(options.maxBufferSize ?? 200);
 
-        this.sitemapParsingProgress.pendingSitemapUrls = new Set(options.sitemapUrls);
-        this.events = serviceLocator.getEventManager();
+        this.#sitemapParsingProgress.pendingSitemapUrls = new Set(options.sitemapUrls);
+        this.#events = serviceLocator.getEventManager();
 
         this.persistState = this.persistState.bind(this);
     }
@@ -289,8 +289,8 @@ export class SitemapRequestLoader implements IRequestLoader {
      */
     private isUrlMatchingPatterns(url: string): boolean {
         return (
-            !this.urlExcludePatternObjects.some(this.matchesUrl(url)) &&
-            (this.urlPatternObjects.length === 0 || this.urlPatternObjects.some(this.matchesUrl(url)))
+            !this.#urlExcludePatternObjects.some(this.matchesUrl(url)) &&
+            (this.#urlPatternObjects.length === 0 || this.#urlPatternObjects.some(this.matchesUrl(url)))
         );
     }
 
@@ -301,14 +301,14 @@ export class SitemapRequestLoader implements IRequestLoader {
      */
     private async pushNextUrl(url: string | null) {
         return new Promise<void>((resolve) => {
-            if (this.closed || (url && !this.isUrlMatchingPatterns(url))) {
+            if (this.#closed || (url && !this.isUrlMatchingPatterns(url))) {
                 resolve();
                 return;
             }
 
-            if (!this.urlQueueStream.push(url)) {
+            if (!this.#urlQueueStream.push(url)) {
                 // This doesn't work with the 'drain' event (it's not emitted for some reason).
-                this.urlQueueStream.once('readdata', () => {
+                this.#urlQueueStream.once('readdata', () => {
                     resolve();
                 });
             } else {
@@ -325,22 +325,22 @@ export class SitemapRequestLoader implements IRequestLoader {
      */
     private async readNextUrl(): Promise<string | null> {
         return new Promise((resolve) => {
-            if (this.closed) {
+            if (this.#closed) {
                 resolve(null);
                 return;
             }
 
-            const result = this.urlQueueStream.read();
+            const result = this.#urlQueueStream.read();
 
             if (!result && !this.isSitemapFullyLoaded()) {
-                this.urlQueueStream.once('readable', () => {
-                    const nextUrl = this.urlQueueStream.read();
+                this.#urlQueueStream.once('readable', () => {
+                    const nextUrl = this.#urlQueueStream.read();
                     resolve(nextUrl);
                 });
             } else {
                 resolve(result);
             }
-            this.urlQueueStream.emit('readdata');
+            this.#urlQueueStream.emit('readdata');
         });
     }
 
@@ -351,8 +351,8 @@ export class SitemapRequestLoader implements IRequestLoader {
      */
     isSitemapFullyLoaded(): boolean {
         return (
-            this.sitemapParsingProgress.inProgressSitemapUrl === null &&
-            this.sitemapParsingProgress.pendingSitemapUrls.size === 0
+            this.#sitemapParsingProgress.inProgressSitemapUrl === null &&
+            this.#sitemapParsingProgress.pendingSitemapUrls.size === 0
         );
     }
 
@@ -366,39 +366,39 @@ export class SitemapRequestLoader implements IRequestLoader {
     }: {
         parseSitemapOptions?: SitemapRequestLoaderOptions['parseSitemapOptions'];
     }): Promise<void> {
-        while (!this.isSitemapFullyLoaded() && !this.abortLoading) {
+        while (!this.isSitemapFullyLoaded() && !this.#abortLoading) {
             const sitemapUrl =
-                this.sitemapParsingProgress.inProgressSitemapUrl ??
-                this.sitemapParsingProgress.pendingSitemapUrls.values().next().value!;
+                this.#sitemapParsingProgress.inProgressSitemapUrl ??
+                this.#sitemapParsingProgress.pendingSitemapUrls.values().next().value!;
 
             try {
-                for await (const item of parseSitemap([{ type: 'url', url: sitemapUrl }], this.proxyUrl, {
+                for await (const item of parseSitemap([{ type: 'url', url: sitemapUrl }], this.#proxyUrl, {
                     ...parseSitemapOptions,
                     maxDepth: 0,
                     emitNestedSitemaps: true,
-                    enqueueStrategy: this.enqueueStrategy,
+                    enqueueStrategy: this.#enqueueStrategy,
                 })) {
                     if (!item.originSitemapUrl) {
                         // This is a nested sitemap
-                        this.sitemapParsingProgress.pendingSitemapUrls.add(item.loc);
+                        this.#sitemapParsingProgress.pendingSitemapUrls.add(item.loc);
                         continue;
                     }
 
-                    if (!this.sitemapParsingProgress.inProgressEntries.has(item.loc)) {
+                    if (!this.#sitemapParsingProgress.inProgressEntries.has(item.loc)) {
                         await this.pushNextUrl(item.loc);
-                        this.sitemapParsingProgress.inProgressEntries.add(item.loc);
+                        this.#sitemapParsingProgress.inProgressEntries.add(item.loc);
                     }
                 }
             } catch (e: any) {
-                this.log.error('Error loading sitemap contents:', e);
+                this.#log.error('Error loading sitemap contents:', e);
             }
 
-            this.sitemapParsingProgress.pendingSitemapUrls.delete(sitemapUrl);
-            this.sitemapParsingProgress.inProgressEntries.clear();
-            this.sitemapParsingProgress.inProgressSitemapUrl = null;
+            this.#sitemapParsingProgress.pendingSitemapUrls.delete(sitemapUrl);
+            this.#sitemapParsingProgress.inProgressEntries.clear();
+            this.#sitemapParsingProgress.inProgressSitemapUrl = null;
         }
 
-        this.urlQueueStream.end();
+        this.#urlQueueStream.end();
     }
 
     /**
@@ -420,17 +420,17 @@ export class SitemapRequestLoader implements IRequestLoader {
             parseSitemapOptions: { logger: serviceLocator.getLogger(), ...options.parseSitemapOptions, httpClient },
         });
 
-        if (requestList.persistenceOptions.enable) {
-            requestList.events.on(EventType.PERSIST_STATE, requestList.persistState);
+        if (requestList.#persistenceOptions.enable) {
+            requestList.#events.on(EventType.PERSIST_STATE, requestList.persistState);
         }
 
         options?.signal?.addEventListener('abort', () => {
-            requestList.abortLoading = true;
+            requestList.#abortLoading = true;
         });
 
         if (options.timeoutMillis) {
             setTimeout(() => {
-                requestList.abortLoading = true;
+                requestList.#abortLoading = true;
             }, options.timeoutMillis);
         }
 
@@ -443,7 +443,7 @@ export class SitemapRequestLoader implements IRequestLoader {
     async getTotalCount(): Promise<number> {
         // Total known so far = not-yet-fetched (still buffered in the stream) + in-progress (fetched but not
         // yet handled) + already handled.
-        return this.urlQueueStream.readableLength + this.inProgress.size + this.handledUrlCount;
+        return this.#urlQueueStream.readableLength + this.inProgress.size + this.#handledUrlCount;
     }
 
     /**
@@ -451,7 +451,7 @@ export class SitemapRequestLoader implements IRequestLoader {
      */
     async getPendingCount(): Promise<number> {
         // Pending = everything not yet handled = not-yet-fetched + in-progress.
-        return this.urlQueueStream.readableLength + this.inProgress.size;
+        return this.#urlQueueStream.readableLength + this.inProgress.size;
     }
 
     /**
@@ -472,7 +472,7 @@ export class SitemapRequestLoader implements IRequestLoader {
      */
     async isFinished(): Promise<boolean> {
         return (
-            (await this.isEmpty()) && this.inProgress.size === 0 && (this.isSitemapFullyLoaded() || this.abortLoading)
+            (await this.isEmpty()) && this.inProgress.size === 0 && (this.isSitemapFullyLoaded() || this.#abortLoading)
         );
     }
 
@@ -480,30 +480,30 @@ export class SitemapRequestLoader implements IRequestLoader {
      * @inheritDoc
      */
     async isEmpty(): Promise<boolean> {
-        return this.urlQueueStream.readableLength === 0;
+        return this.#urlQueueStream.readableLength === 0;
     }
 
     /**
      * @inheritDoc
      */
     async getHandledCount(): Promise<number> {
-        return this.handledUrlCount;
+        return this.#handledUrlCount;
     }
 
     /**
      * @inheritDoc
      */
     async persistState(): Promise<void> {
-        if (this.persistStateKey === undefined) {
+        if (this.#persistStateKey === undefined) {
             return;
         }
 
-        this.store ??= await KeyValueStore.open();
+        this.#store ??= await KeyValueStore.open();
 
         const urlQueue = [];
 
-        while (this.urlQueueStream.readableLength > 0) {
-            const url = this.urlQueueStream.read();
+        while (this.#urlQueueStream.readableLength > 0) {
+            const url = this.#urlQueueStream.read();
             if (url === null) {
                 break;
             }
@@ -512,7 +512,7 @@ export class SitemapRequestLoader implements IRequestLoader {
 
         // Create a new stream, as we have read all the URLs from the current one.
         // Pushing the urls back to the original stream might not be possible if it has been ended.
-        const previousStream = this.urlQueueStream;
+        const previousStream = this.#urlQueueStream;
         const newStream = this.createNewStream(previousStream.readableHighWaterMark);
 
         for (const url of urlQueue) {
@@ -523,7 +523,7 @@ export class SitemapRequestLoader implements IRequestLoader {
             newStream.end();
         }
 
-        this.urlQueueStream = newStream;
+        this.#urlQueueStream = newStream;
 
         // A `pushNextUrl()` call may be blocked on backpressure, waiting for a `readdata` event on the
         // previous stream. That event is only ever emitted by `readNextUrl()` on the current stream, so
@@ -532,48 +532,48 @@ export class SitemapRequestLoader implements IRequestLoader {
         // been transferred to the new stream above).
         previousStream.emit('readdata');
 
-        await this.store.setValue(this.persistStateKey, {
+        await this.#store.setValue(this.#persistStateKey, {
             sitemapParsingProgress: {
-                pendingSitemapUrls: Array.from(this.sitemapParsingProgress.pendingSitemapUrls),
-                inProgressSitemapUrl: this.sitemapParsingProgress.inProgressSitemapUrl,
-                inProgressEntries: Array.from(this.sitemapParsingProgress.inProgressEntries),
+                pendingSitemapUrls: Array.from(this.#sitemapParsingProgress.pendingSitemapUrls),
+                inProgressSitemapUrl: this.#sitemapParsingProgress.inProgressSitemapUrl,
+                inProgressEntries: Array.from(this.#sitemapParsingProgress.inProgressEntries),
             },
             // Re-queue in-progress requests to the front so they are retried if the state is restored.
             urlQueue: [...this.inProgress, ...urlQueue],
-            requestData: Array.from(this.requestData.entries()),
-            abortLoading: this.abortLoading,
-            closed: this.closed,
+            requestData: Array.from(this.#requestData.entries()),
+            abortLoading: this.#abortLoading,
+            closed: this.#closed,
         } satisfies SitemapRequestLoaderState);
     }
 
     private async restoreState(): Promise<void> {
         await purgeDefaultStorages({ onlyPurgeOnce: true });
 
-        if (this.persistStateKey === undefined) {
+        if (this.#persistStateKey === undefined) {
             return;
         }
 
-        this.store ??= await KeyValueStore.open();
-        const state = await this.store.getValue<SitemapRequestLoaderState>(this.persistStateKey);
+        this.#store ??= await KeyValueStore.open();
+        const state = await this.#store.getValue<SitemapRequestLoaderState>(this.#persistStateKey);
 
         if (state === null) {
             return;
         }
 
-        this.sitemapParsingProgress = {
+        this.#sitemapParsingProgress = {
             pendingSitemapUrls: new Set(state.sitemapParsingProgress.pendingSitemapUrls),
             inProgressSitemapUrl: state.sitemapParsingProgress.inProgressSitemapUrl,
             inProgressEntries: new Set(state.sitemapParsingProgress.inProgressEntries),
         };
 
-        this.requestData = new Map(state.requestData ?? []);
+        this.#requestData = new Map(state.requestData ?? []);
 
         for (const url of state.urlQueue) {
-            this.urlQueueStream.push(url);
+            this.#urlQueueStream.push(url);
         }
 
-        this.abortLoading = state.abortLoading;
-        this.closed = state.closed;
+        this.#abortLoading = state.abortLoading;
+        this.#closed = state.closed;
     }
 
     /**
@@ -586,12 +586,12 @@ export class SitemapRequestLoader implements IRequestLoader {
         }
 
         // A restored in-progress request already has its Request data; don't overwrite it.
-        if (!this.requestData.has(nextUrl)) {
-            this.requestData.set(nextUrl, new Request({ url: nextUrl, enqueueStrategy: this.enqueueStrategy }));
+        if (!this.#requestData.has(nextUrl)) {
+            this.#requestData.set(nextUrl, new Request({ url: nextUrl, enqueueStrategy: this.#enqueueStrategy }));
         }
 
         this.inProgress.add(nextUrl);
-        return this.requestData.get(nextUrl)!;
+        return this.#requestData.get(nextUrl)!;
     }
 
     /**
@@ -612,22 +612,22 @@ export class SitemapRequestLoader implements IRequestLoader {
      * Calling `fetchNextRequest()` after this method will always return `null`.
      */
     async teardown(): Promise<void> {
-        this.closed = true;
-        this.abortLoading = true;
-        this.events.off(EventType.PERSIST_STATE, this.persistState);
+        this.#closed = true;
+        this.#abortLoading = true;
+        this.#events.off(EventType.PERSIST_STATE, this.persistState);
         await this.persistState();
 
-        this.urlQueueStream.emit('readdata'); // unblocks the potentially waiting `pushNextUrl` call
+        this.#urlQueueStream.emit('readdata'); // unblocks the potentially waiting `pushNextUrl` call
     }
 
     /**
      * @inheritDoc
      */
     async markRequestAsHandled(request: Request): Promise<void> {
-        this.handledUrlCount += 1;
+        this.#handledUrlCount += 1;
         this.ensureInProgress(request.url);
         this.inProgress.delete(request.url);
-        this.requestData.delete(request.url);
+        this.#requestData.delete(request.url);
     }
 
     private ensureInProgress(url: string): void {

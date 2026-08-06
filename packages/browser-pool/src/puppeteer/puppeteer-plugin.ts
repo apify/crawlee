@@ -58,7 +58,7 @@ export class PuppeteerPlugin extends BrowserPlugin<
         let browser: PuppeteerTypes.Browser;
 
         if (this.remoteConnection) {
-            browser = await this._connectToRemoteBrowser(launchContext, async (url) => {
+            browser = await this.connectToRemoteBrowser(launchContext, async (url) => {
                 const connectOptions = this.remoteConnectionParameters?.connectOptions ?? {};
                 this.log.info('Connecting to remote browser via connect (CDP).');
                 return this.library.connect({ ...connectOptions, browserWSEndpoint: url });
@@ -110,7 +110,7 @@ export class PuppeteerPlugin extends BrowserPlugin<
                 } catch (error: any) {
                     await close();
 
-                    this._throwAugmentedLaunchError(
+                    this.throwAugmentedLaunchError(
                         error,
                         launchContext.launchOptions?.executablePath,
                         '`apify/actor-node-puppeteer-chrome`',
@@ -238,7 +238,7 @@ export class PuppeteerPlugin extends BrowserPlugin<
         return new PuppeteerController(this);
     }
 
-    protected async _addProxyToLaunchOptions(
+    protected async addProxyToLaunchOptions(
         _launchContext: LaunchContext<
             typeof Puppeteer,
             PuppeteerTypes.LaunchOptions,
@@ -273,7 +273,7 @@ export class PuppeteerPlugin extends BrowserPlugin<
         */
     }
 
-    protected _isChromiumBasedBrowser(
+    protected isChromiumBasedBrowser(
         _launchContext: LaunchContext<
             typeof Puppeteer,
             PuppeteerTypes.LaunchOptions,

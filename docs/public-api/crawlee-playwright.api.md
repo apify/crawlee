@@ -90,7 +90,7 @@ export class AdaptivePlaywrightCrawler<ContextExtension = Dictionary<never>, Ext
         readonly parseWithCheerio: AdaptivePlaywrightCrawlerContext["parseWithCheerio"];
     }>;
     // (undocumented)
-    protected _init(): Promise<void>;
+    protected init(): Promise<void>;
     // (undocumented)
     protected runRequestHandler(crawlingContext: CrawlingContext_2): Promise<void>;
     // (undocumented)
@@ -341,7 +341,7 @@ export class PlaywrightCrawler<ContextExtension = Dictionary<never>, ExtendedCon
     handleCloudflareChallenge: (options?: HandleCloudflareChallengeOptions) => Promise<Response_2 | undefined>;
     }>;
     // (undocumented)
-    protected _navigationHandler(crawlingContext: PlaywrightCrawlingContext, gotoOptions: PlaywrightDirectNavigationOptions): Promise<Response_2 | null>;
+    protected navigationHandler(crawlingContext: PlaywrightCrawlingContext, gotoOptions: PlaywrightDirectNavigationOptions): Promise<Response_2 | null>;
     // (undocumented)
     protected static optionsShape: {
         browserPoolOptions: ObjectPredicate<object> & BasePredicate<object | undefined>;

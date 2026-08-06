@@ -21,7 +21,7 @@ export class MemoryStorageBackend implements storage.StorageBackend {
      * Unique per-instance cache partition key. Mirrors the way `FileSystemStorageBackend` partitions its
      * cache by storage directory: two distinct `MemoryStorageBackend` instances must not share cached backends.
      */
-    private readonly instanceCacheKey = `MemoryStorageBackend:${randomUUID()}`;
+    readonly #instanceCacheKey = `MemoryStorageBackend:${randomUUID()}`;
 
     readonly keyValueStoreBackendCache: KeyValueStoreBackend[] = [];
     readonly datasetBackendCache: DatasetBackend[] = [];
@@ -36,7 +36,7 @@ export class MemoryStorageBackend implements storage.StorageBackend {
      * cache partitions in the storage backend cache.
      */
     getStorageBackendCacheKey(): string {
-        return this.instanceCacheKey;
+        return this.#instanceCacheKey;
     }
 
     private static resolveStorageKey(options: { id?: string; name?: string; alias?: string }): {

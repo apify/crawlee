@@ -34,28 +34,28 @@ type SitemapSource = ({ type: 'url'; url: string } | { type: 'raw'; content: str
 type SitemapItem = ({ type: 'url' } & SitemapUrlData) | { type: 'sitemapUrl'; url: string };
 
 class SitemapTxtParser extends Transform {
-    private decoder: StringDecoder = new StringDecoder('utf8');
-    private buffer = '';
+    #decoder: StringDecoder = new StringDecoder('utf8');
+    #buffer = '';
 
     constructor() {
         super({
             readableObjectMode: true,
             transform: (chunk, _encoding, callback) => {
-                this.processBuffer(this.decoder.write(chunk), false);
+                this.processBuffer(this.#decoder.write(chunk), false);
                 callback();
             },
             flush: (callback) => {
-                this.processBuffer(this.decoder.end(), true);
+                this.processBuffer(this.#decoder.end(), true);
                 callback();
             },
         });
     }
 
     private processBuffer(input: string, finalize: boolean): void {
-        this.buffer += input;
+        this.#buffer += input;
 
-        if (finalize || this.buffer.includes('\n')) {
-            const parts = this.buffer
+        if (finalize || this.#buffer.includes('\n')) {
+            const parts = this.#buffer
                 .split('\n')
                 .map((part) => part.trim())
                 .filter((part) => part.length > 0);
@@ -65,113 +65,113 @@ class SitemapTxtParser extends Transform {
                     this.push({ type: 'url', loc: url } satisfies SitemapItem);
                 }
 
-                this.buffer = '';
+                this.#buffer = '';
             } else if (parts.length > 0) {
                 for (const url of parts.slice(0, -1)) {
                     this.push({ type: 'url', loc: url } satisfies SitemapItem);
                 }
 
-                this.buffer = parts.at(-1)!;
+                this.#buffer = parts.at(-1)!;
             }
         }
     }
 }
 
 class SitemapXmlParser extends Transform {
-    private decoder: StringDecoder = new StringDecoder('utf8');
-    private parser = new sax.SAXParser(true);
+    #decoder: StringDecoder = new StringDecoder('utf8');
+    #parser = new sax.SAXParser(true);
 
-    private rootTagName?: 'sitemapindex' | 'urlset';
-    private currentTag?: 'loc' | 'lastmod' | 'changefreq' | 'priority' = undefined;
-    private url: Partial<SitemapUrl> = {};
+    #rootTagName?: 'sitemapindex' | 'urlset';
+    #currentTag?: 'loc' | 'lastmod' | 'changefreq' | 'priority' = undefined;
+    #url: Partial<SitemapUrl> = {};
 
     constructor() {
         super({
             readableObjectMode: true,
             transform: (chunk, _encoding, callback) => {
-                this.parser.write(this.decoder.write(chunk));
+                this.#parser.write(this.#decoder.write(chunk));
                 callback();
             },
             flush: (callback) => {
-                const rest = this.decoder.end();
+                const rest = this.#decoder.end();
                 if (rest.length > 0) {
-                    this.parser.write(rest);
+                    this.#parser.write(rest);
                 }
 
-                this.parser.end();
+                this.#parser.end();
                 callback();
             },
         });
 
-        this.parser.onopentag = this.onOpenTag.bind(this);
-        this.parser.onclosetag = this.onCloseTag.bind(this);
+        this.#parser.onopentag = this.onOpenTag.bind(this);
+        this.#parser.onclosetag = this.onCloseTag.bind(this);
 
-        this.parser.ontext = this.onText.bind(this);
-        this.parser.oncdata = this.onText.bind(this);
+        this.#parser.ontext = this.onText.bind(this);
+        this.#parser.oncdata = this.onText.bind(this);
 
-        this.parser.onerror = this.destroy.bind(this);
+        this.#parser.onerror = this.destroy.bind(this);
     }
 
     private onOpenTag(node: sax.Tag | sax.QualifiedTag) {
-        if (this.rootTagName !== undefined) {
+        if (this.#rootTagName !== undefined) {
             if (
                 node.name === 'loc' ||
                 node.name === 'lastmod' ||
                 node.name === 'priority' ||
                 node.name === 'changefreq'
             ) {
-                this.currentTag = node.name;
+                this.#currentTag = node.name;
             }
         }
         if (node.name === 'urlset') {
-            this.rootTagName = 'urlset';
+            this.#rootTagName = 'urlset';
         }
         if (node.name === 'sitemapindex') {
-            this.rootTagName = 'sitemapindex';
+            this.#rootTagName = 'sitemapindex';
         }
     }
 
     private onCloseTag(name: string) {
         if (name === 'loc' || name === 'lastmod' || name === 'priority' || name === 'changefreq') {
-            this.currentTag = undefined;
+            this.#currentTag = undefined;
         }
 
         if (name === 'url') {
-            if (this.url.loc !== undefined) {
-                this.push({ type: 'url', ...this.url, loc: this.url.loc } satisfies SitemapItem);
+            if (this.#url.loc !== undefined) {
+                this.push({ type: 'url', ...this.#url, loc: this.#url.loc } satisfies SitemapItem);
             }
-            this.url = {};
+            this.#url = {};
         }
     }
 
     private onText(text: string) {
-        if (this.currentTag === 'loc') {
-            if (this.rootTagName === 'sitemapindex') {
+        if (this.#currentTag === 'loc') {
+            if (this.#rootTagName === 'sitemapindex') {
                 this.push({ type: 'sitemapUrl', url: text.trim() } satisfies SitemapItem);
             }
 
-            if (this.rootTagName === 'urlset') {
-                this.url ??= {};
-                this.url.loc = text.trim();
+            if (this.#rootTagName === 'urlset') {
+                this.#url ??= {};
+                this.#url.loc = text.trim();
             }
         }
 
         text = text.trim();
 
-        if (this.currentTag === 'lastmod') {
+        if (this.#currentTag === 'lastmod') {
             const lastmod = new Date(text);
             if (!Number.isNaN(lastmod.getTime())) {
-                this.url.lastmod = lastmod;
+                this.#url.lastmod = lastmod;
             }
         }
 
-        if (this.currentTag === 'priority') {
-            this.url.priority = Number(text);
+        if (this.#currentTag === 'priority') {
+            this.#url.priority = Number(text);
         }
 
-        if (this.currentTag === 'changefreq') {
+        if (this.#currentTag === 'changefreq') {
             if (['always', 'hourly', 'daily', 'weekly', 'monthly', 'yearly', 'never'].includes(text)) {
-                this.url.changefreq = text as SitemapUrl['changefreq'];
+                this.#url.changefreq = text as SitemapUrl['changefreq'];
             }
         }
     }

@@ -16,8 +16,8 @@ describe('Session - testing session behaviour', () => {
         session.markGood();
         expect(session.usageCount).toBe(1);
         expect(session.errorScore).toBe(0);
-        // @ts-expect-error Private property
-        session._errorScore = 1;
+        session.markBad();
+        expect(session.errorScore).toBe(1);
         session.markGood();
         expect(session.errorScore).toBe(0.5);
     });
@@ -36,16 +36,14 @@ describe('Session - testing session behaviour', () => {
     });
 
     test('should max out session usage', () => {
-        // @ts-expect-error Private property
-        session._maxUsageCount = 1;
+        session = new Session({ maxUsageCount: 1 });
         session.markGood();
         expect(session.isMaxUsageCountReached()).toBe(true);
         expect(session.isUsable()).toBe(false);
     });
 
     test('should block session', () => {
-        // @ts-expect-error Private property
-        session._errorScore += session.maxErrorScore;
+        session = new Session({ maxErrorScore: 3, errorScore: 3 });
         expect(session.isBlocked()).toBe(true);
         expect(session.isUsable()).toBe(false);
     });

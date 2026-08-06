@@ -131,26 +131,27 @@ export interface SessionPoolOptions {
  * @category Scaling
  */
 export class SessionPool implements ISessionPool {
-    private static nextId = 0;
+    static #nextId = 0;
 
     readonly id: string;
-    private log: CrawleeLogger;
+    #log: CrawleeLogger;
+    #sessions: Session[] = [];
+    // kept as TS-private: session_pool tests read/override the members below directly
     private maxPoolSize: number;
     private createSessionFunction: CreateSession;
     private keyValueStore?: KeyValueStore;
-    private sessions: Session[] = [];
     private sessionMap = new Map<string, Session>();
     private sessionOptions: SessionOptions;
     private persistStateKeyValueStoreId?: string;
     private persistStateKey: string;
-    private listener?: () => Promise<void>;
-    private events: EventManager;
-    private persistenceOptions: PersistenceOptions;
-    private sessionReuseStrategy: SessionReuseStrategy;
+    #listener?: () => Promise<void>;
+    #events: EventManager;
+    #persistenceOptions: PersistenceOptions;
+    #sessionReuseStrategy: SessionReuseStrategy;
 
-    private initPromise?: Promise<void>;
-    private queue = new AsyncQueue();
-    private roundRobinIndex = 0;
+    #initPromise?: Promise<void>;
+    #queue = new AsyncQueue();
+    #roundRobinIndex = 0;
 
     constructor(options: SessionPoolOptions = {}) {
         ow(
@@ -182,22 +183,22 @@ export class SessionPool implements ISessionPool {
             sessionReuseStrategy = 'random',
         } = options;
 
-        this.id = id != null ? String(id) : String(SessionPool.nextId++);
-        this.sessionReuseStrategy = sessionReuseStrategy;
-        this.events = serviceLocator.getEventManager();
-        this.log = log.child({ prefix: 'SessionPool' });
-        this.persistenceOptions = persistenceOptions;
+        this.id = id != null ? String(id) : String(SessionPool.#nextId++);
+        this.#sessionReuseStrategy = sessionReuseStrategy;
+        this.#events = serviceLocator.getEventManager();
+        this.#log = log.child({ prefix: 'SessionPool' });
+        this.#persistenceOptions = persistenceOptions;
 
         // Pool Configuration
         this.maxPoolSize = maxPoolSize;
         this.createSessionFunction = createSessionFunction || this.defaultCreateSessionFunction;
 
         // Session configuration. The pool-scoped logger is merged into per-call sessionOptions inside
-        // `_invokeCreateSessionFunction`, so every Session inherits it without custom createSessionFunctions
+        // `invokeCreateSessionFunction`, so every Session inherits it without custom createSessionFunctions
         // having to know about it.
         this.sessionOptions = {
             ...sessionOptions,
-            log: this.log,
+            log: this.#log,
         };
 
         // Session keyValueStore
@@ -210,7 +211,7 @@ export class SessionPool implements ISessionPool {
      */
     async usableSessionsCount(): Promise<number> {
         await this.ensureInitialized();
-        return this.sessions.filter((session) => session.isUsable()).length;
+        return this.#sessions.filter((session) => session.isUsable()).length;
     }
 
     /**
@@ -218,7 +219,7 @@ export class SessionPool implements ISessionPool {
      */
     async retiredSessionsCount(): Promise<number> {
         await this.ensureInitialized();
-        return this.sessions.filter((session) => !session.isUsable()).length;
+        return this.#sessions.filter((session) => !session.isUsable()).length;
     }
 
     /**
@@ -226,14 +227,14 @@ export class SessionPool implements ISessionPool {
      * Called automatically on first use of any public method.
      */
     private async ensureInitialized(): Promise<void> {
-        if (!this.initPromise) {
-            this.initPromise = this.setupPool();
+        if (!this.#initPromise) {
+            this.#initPromise = this.setupPool();
         }
-        return this.initPromise;
+        return this.#initPromise;
     }
 
     private async setupPool(): Promise<void> {
-        if (!this.persistenceOptions.enable) {
+        if (!this.#persistenceOptions.enable) {
             return;
         }
 
@@ -245,7 +246,7 @@ export class SessionPool implements ISessionPool {
         );
 
         if (!this.persistStateKeyValueStoreId) {
-            this.log.debug(
+            this.#log.debug(
                 `No 'persistStateKeyValueStoreId' options specified, this session pool's data has been saved in the KeyValueStore with the id: ${this.keyValueStore.id}`,
             );
         }
@@ -253,8 +254,8 @@ export class SessionPool implements ISessionPool {
         // in case of migration happened and SessionPool state should be restored from the keyValueStore.
         await this.maybeLoadSessionPool();
 
-        this.listener = this.persistState.bind(this);
-        this.events.on(EventType.PERSIST_STATE, this.listener);
+        this.#listener = this.persistState.bind(this);
+        this.#events.on(EventType.PERSIST_STATE, this.#listener);
     }
 
     /**
@@ -277,8 +278,8 @@ export class SessionPool implements ISessionPool {
             this.removeRetiredSessions();
         }
 
-        const newSession = options instanceof Session ? options : await this._invokeCreateSessionFunction(options);
-        this.log.debug(`Adding new Session - ${newSession.id}`);
+        const newSession = options instanceof Session ? options : await this.invokeCreateSessionFunction(options);
+        this.#log.debug(`Adding new Session - ${newSession.id}`);
 
         this.registerSession(newSession);
     }
@@ -292,7 +293,7 @@ export class SessionPool implements ISessionPool {
     async newSession(sessionOptions?: SessionOptions): Promise<Session> {
         await this.ensureInitialized();
 
-        const newSession = await this._invokeCreateSessionFunction(sessionOptions);
+        const newSession = await this.invokeCreateSessionFunction(sessionOptions);
         this.registerSession(newSession);
 
         return newSession;
@@ -308,7 +309,7 @@ export class SessionPool implements ISessionPool {
     async getSession(sessionId?: string): Promise<Session | undefined> {
         await this.ensureInitialized();
 
-        await this.queue.wait();
+        await this.#queue.wait();
         try {
             if (sessionId) {
                 const session = this.sessionMap.get(sessionId);
@@ -326,7 +327,7 @@ export class SessionPool implements ISessionPool {
             this.removeRetiredSessions();
             return await this.createSession();
         } finally {
-            this.queue.shift();
+            this.#queue.shift();
         }
     }
 
@@ -334,7 +335,7 @@ export class SessionPool implements ISessionPool {
      * @param options - Override the persistence options provided in the constructor
      */
     async resetStore(options?: PersistenceOptions) {
-        if (!this.persistenceOptions.enable && !options?.enable) {
+        if (!this.#persistenceOptions.enable && !options?.enable) {
             return;
         }
 
@@ -351,7 +352,7 @@ export class SessionPool implements ISessionPool {
         return {
             usableSessionsCount: await this.usableSessionsCount(),
             retiredSessionsCount: await this.retiredSessionsCount(),
-            sessions: this.sessions.map((session) => session.getState()),
+            sessions: this.#sessions.map((session) => session.getState()),
         };
     }
 
@@ -361,13 +362,13 @@ export class SessionPool implements ISessionPool {
      * @param options - Override the persistence options provided in the constructor
      */
     async persistState(options?: PersistenceOptions): Promise<void> {
-        if (!this.persistenceOptions.enable && !options?.enable) {
+        if (!this.#persistenceOptions.enable && !options?.enable) {
             return;
         }
 
         await this.ensureInitialized();
 
-        this.log.debug('Persisting state', {
+        this.#log.debug('Persisting state', {
             persistStateKeyValueStoreId: this.persistStateKeyValueStoreId,
             persistStateKey: this.persistStateKey,
         });
@@ -375,7 +376,7 @@ export class SessionPool implements ISessionPool {
         await this.keyValueStore
             ?.setValue(this.persistStateKey, await this.getState())
             .catch((error) =>
-                this.log.warning(`Failed to persist the session pool stats to ${this.persistStateKey}`, { error }),
+                this.#log.warning(`Failed to persist the session pool stats to ${this.persistStateKey}`, { error }),
             );
     }
 
@@ -385,10 +386,10 @@ export class SessionPool implements ISessionPool {
      * @param options - Set `persistState` to false when the final state was already persisted by the event manager.
      */
     async teardown({ persistState = true }: { persistState?: boolean } = {}): Promise<void> {
-        if (!this.initPromise) return;
+        if (!this.#initPromise) return;
         await this.ensureInitialized();
-        if (this.listener) {
-            this.events.off(EventType.PERSIST_STATE, this.listener);
+        if (this.#listener) {
+            this.#events.off(EventType.PERSIST_STATE, this.#listener);
         }
         if (persistState) {
             await this.persistState();
@@ -399,11 +400,11 @@ export class SessionPool implements ISessionPool {
      * Removes retired `Session` instances from `SessionPool`.
      */
     private removeRetiredSessions() {
-        this.sessions = this.sessions.filter((storedSession) => {
+        this.#sessions = this.#sessions.filter((storedSession) => {
             if (storedSession.isUsable()) return true;
 
             this.sessionMap.delete(storedSession.id);
-            this.log.debug(`Removed Session - ${storedSession.id}`);
+            this.#log.debug(`Removed Session - ${storedSession.id}`);
 
             return false;
         });
@@ -414,7 +415,7 @@ export class SessionPool implements ISessionPool {
      * @param newSession `Session` instance to be added.
      */
     private registerSession(newSession: Session) {
-        this.sessions.push(newSession);
+        this.#sessions.push(newSession);
         this.sessionMap.set(newSession.id, newSession);
     }
 
@@ -422,7 +423,7 @@ export class SessionPool implements ISessionPool {
      * Gets random index.
      */
     private getRandomIndex(): number {
-        return Math.floor(Math.random() * this.sessions.length);
+        return Math.floor(Math.random() * this.#sessions.length);
     }
 
     /**
@@ -448,7 +449,7 @@ export class SessionPool implements ISessionPool {
      * through `maybeLoadSessionPool` naturally wins because it arrives in
      * `perCallOptions`.
      */
-    private async _invokeCreateSessionFunction(perCallOptions?: SessionOptions): Promise<Session> {
+    private async invokeCreateSessionFunction(perCallOptions?: SessionOptions): Promise<Session> {
         const sessionOptions: SessionOptions = {
             fingerprint: createDefaultSessionFingerprint(),
             ...this.sessionOptions,
@@ -462,9 +463,9 @@ export class SessionPool implements ISessionPool {
      * @returns Newly created `Session` instance.
      */
     private async createSession(): Promise<Session> {
-        const newSession = await this._invokeCreateSessionFunction();
+        const newSession = await this.invokeCreateSessionFunction();
         this.registerSession(newSession);
-        this.log.debug(`Created new Session - ${newSession.id}`);
+        this.#log.debug(`Created new Session - ${newSession.id}`);
 
         return newSession;
     }
@@ -473,7 +474,7 @@ export class SessionPool implements ISessionPool {
      * Decides whether there is enough space for creating new session.
      */
     private hasSpaceForSession(): boolean {
-        return this.sessions.length < this.maxPoolSize;
+        return this.#sessions.length < this.maxPoolSize;
     }
 
     /**
@@ -481,19 +482,19 @@ export class SessionPool implements ISessionPool {
      * Returns `undefined` when no session should be reused and a new one should be created instead.
      */
     private pickSession(): Session | undefined {
-        if (this.sessionReuseStrategy !== 'use-until-failure' && this.hasSpaceForSession()) return undefined;
+        if (this.#sessionReuseStrategy !== 'use-until-failure' && this.hasSpaceForSession()) return undefined;
 
-        if (this.sessionReuseStrategy === 'use-until-failure') {
-            return this.sessions.find((session) => session.isUsable());
+        if (this.#sessionReuseStrategy === 'use-until-failure') {
+            return this.#sessions.find((session) => session.isUsable());
         }
 
         let picked: Session;
-        if (this.sessionReuseStrategy === 'round-robin') {
-            const index = this.roundRobinIndex % this.sessions.length;
-            this.roundRobinIndex = index + 1;
-            picked = this.sessions[index];
+        if (this.#sessionReuseStrategy === 'round-robin') {
+            const index = this.#roundRobinIndex % this.#sessions.length;
+            this.#roundRobinIndex = index + 1;
+            picked = this.#sessions[index];
         } else {
-            picked = this.sessions[this.getRandomIndex()];
+            picked = this.#sessions[this.getRandomIndex()];
         }
 
         return picked.isUsable() ? picked : undefined;
@@ -509,7 +510,7 @@ export class SessionPool implements ISessionPool {
         if (!loadedSessionPool) return;
 
         // Invalidate old sessions and load active sessions only
-        this.log.debug('Recreating state from KeyValueStore', {
+        this.#log.debug('Recreating state from KeyValueStore', {
             persistStateKeyValueStoreId: this.persistStateKeyValueStoreId,
             persistStateKey: this.persistStateKey,
         });
@@ -517,13 +518,13 @@ export class SessionPool implements ISessionPool {
         for (const sessionObject of loadedSessionPool.sessions) {
             sessionObject.createdAt = new Date(sessionObject.createdAt as string);
             sessionObject.expiresAt = new Date(sessionObject.expiresAt as string);
-            const recreatedSession = await this._invokeCreateSessionFunction(sessionObject);
+            const recreatedSession = await this.invokeCreateSessionFunction(sessionObject);
 
             if (recreatedSession.isUsable()) {
                 this.registerSession(recreatedSession);
             }
         }
 
-        this.log.debug(`${this.sessions.length} active sessions loaded from KeyValueStore`);
+        this.#log.debug(`${this.#sessions.length} active sessions loaded from KeyValueStore`);
     }
 }

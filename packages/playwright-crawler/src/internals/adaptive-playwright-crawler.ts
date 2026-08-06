@@ -318,28 +318,26 @@ export class AdaptivePlaywrightCrawler<
         GetUserDataFromRequest<AdaptivePlaywrightCrawlerContext['request']>
     >,
 > extends BasicCrawler<AdaptivePlaywrightCrawlerContext, ContextExtension, ExtendedContext, Routes> {
-    private renderingTypePredictor: OwnedOrInjected<IRenderingTypePredictor, RenderingTypePredictor>;
-    private resultChecker: NonNullable<AdaptivePlaywrightCrawlerOptions['resultChecker']>;
-    private shouldPropagateError: NonNullable<AdaptivePlaywrightCrawlerOptions['shouldPropagateError']>;
-    private resultComparator: NonNullable<AdaptivePlaywrightCrawlerOptions['resultComparator']>;
-    private staticContextPipeline: ContextPipeline<CrawlingContext, ExtendedContext>;
-    private browserContextPipeline: ContextPipeline<CrawlingContext, ExtendedContext>;
-    private individualRequestHandlerTimeoutMillis: number;
+    #renderingTypePredictor: OwnedOrInjected<IRenderingTypePredictor, RenderingTypePredictor>;
+    #resultChecker: NonNullable<AdaptivePlaywrightCrawlerOptions['resultChecker']>;
+    #shouldPropagateError: NonNullable<AdaptivePlaywrightCrawlerOptions['shouldPropagateError']>;
+    #resultComparator: NonNullable<AdaptivePlaywrightCrawlerOptions['resultComparator']>;
+    #staticContextPipeline: ContextPipeline<CrawlingContext, ExtendedContext>;
+    #browserContextPipeline: ContextPipeline<CrawlingContext, ExtendedContext>;
+    #individualRequestHandlerTimeoutMillis: number;
 
     // The constructor always injects an `AdaptivePlaywrightCrawlerStatistics`, so narrowing the cast is sound.
     override get stats(): AdaptivePlaywrightCrawlerStatistics {
         return super.stats as AdaptivePlaywrightCrawlerStatistics;
     }
 
-    private inFlightRenderingTypeDetections = 0;
-
     /**
      * The write policy of the per-attempt transactions. Defaults the request queue to `deferred`:
      * a discarded attempt's enqueues must never reach the queue.
      */
-    private readonly attemptWritePolicy: Partial<StorageWritePolicy>;
+    readonly #attemptWritePolicy: Partial<StorageWritePolicy>;
 
-    private teardownHooks: (() => Promise<unknown>)[] = [];
+    #teardownHooks: (() => Promise<unknown>)[] = [];
 
     constructor(options: AdaptivePlaywrightCrawlerOptions<ContextExtension, ExtendedContext, Routes> = {}) {
         const {
@@ -400,28 +398,28 @@ export class AdaptivePlaywrightCrawler<
             // user-facing option (validated above) to those.
             transactionalStorage: false,
         });
-        this.individualRequestHandlerTimeoutMillis = requestHandlerTimeoutSecs * 1000;
+        this.#individualRequestHandlerTimeoutMillis = requestHandlerTimeoutSecs * 1000;
 
         // `renderingTypeDetectionRatio` only configures the default predictor - an injected one brings its own
         // detection ratio (and its own state), so the option is ignored in that case.
-        this.renderingTypePredictor = OwnedOrInjected.resolve<IRenderingTypePredictor, RenderingTypePredictor>(
+        this.#renderingTypePredictor = OwnedOrInjected.resolve<IRenderingTypePredictor, RenderingTypePredictor>(
             renderingTypePredictor,
             () => new RenderingTypePredictor({ detectionRatio: renderingTypeDetectionRatio }),
         );
-        this.attemptWritePolicy = {
+        this.#attemptWritePolicy = {
             requestQueue: 'deferred',
             ...(typeof transactionalStorage === 'object' ? transactionalStorage : {}),
         };
 
-        this.resultChecker = resultChecker ?? (() => true);
-        this.shouldPropagateError = shouldPropagateError ?? (() => false);
+        this.#resultChecker = resultChecker ?? (() => true);
+        this.#shouldPropagateError = shouldPropagateError ?? (() => false);
 
         if (resultComparator !== undefined) {
-            this.resultComparator = resultComparator;
+            this.#resultComparator = resultComparator;
         } else if (resultChecker !== undefined) {
-            this.resultComparator = (resultA, resultB) => this.resultChecker(resultA) && this.resultChecker(resultB);
+            this.#resultComparator = (resultA, resultB) => this.#resultChecker(resultA) && this.#resultChecker(resultB);
         } else {
-            this.resultComparator = (resultA, resultB) => {
+            this.#resultComparator = (resultA, resultB) => {
                 return (
                     resultA.datasetItems.length === resultB.datasetItems.length &&
                     resultA.datasetItems.every((itemA, i) => {
@@ -455,22 +453,22 @@ export class AdaptivePlaywrightCrawler<
             extendContext,
         });
 
-        this.teardownHooks.push(browserCrawler.teardown.bind(browserCrawler));
+        this.#teardownHooks.push(browserCrawler.teardown.bind(browserCrawler));
 
-        this.staticContextPipeline = staticCrawler.contextPipeline.compose({
+        this.#staticContextPipeline = staticCrawler.contextPipeline.compose({
             action: this.adaptCheerioContext.bind(this),
         }) as unknown as ContextPipeline<CrawlingContext, ExtendedContext>;
 
-        this.browserContextPipeline = browserCrawler.contextPipeline.compose({
+        this.#browserContextPipeline = browserCrawler.contextPipeline.compose({
             action: this.adaptPlaywrightContext.bind(this),
         }) as unknown as ContextPipeline<CrawlingContext, ExtendedContext>;
     }
 
-    protected override async _init(): Promise<void> {
+    protected override async init(): Promise<void> {
         // Only the predictor we built ourselves is ours to initialize - an injected one is borrowed, so its
         // lifecycle (including restoring persisted state) stays with whoever created it.
-        await this.renderingTypePredictor.ifOwned((predictor) => predictor.initialize());
-        return await super._init();
+        await this.#renderingTypePredictor.ifOwned((predictor) => predictor.initialize());
+        return await super.init();
     }
 
     protected override buildContextPipeline() {
@@ -590,7 +588,7 @@ export class AdaptivePlaywrightCrawler<
         transactions: StorageTransaction[],
     ): Promise<Result<StorageTransaction>> {
         const transaction = createStorageTransaction({
-            policy: this.attemptWritePolicy,
+            policy: this.#attemptWritePolicy,
             commitTimeoutMillis: this.internalTimeoutMillis,
         });
         transactions.push(transaction);
@@ -619,9 +617,9 @@ export class AdaptivePlaywrightCrawler<
         try {
             const callAdaptiveRequestHandler = async () => {
                 if (renderingType === 'static') {
-                    await this.staticContextPipeline.call(subCrawlerContext, this.requestHandler.bind(this));
+                    await this.#staticContextPipeline.call(subCrawlerContext, this.requestHandler.bind(this));
                 } else if (renderingType === 'clientOnly') {
-                    await this.browserContextPipeline.call(subCrawlerContext, this.requestHandler.bind(this));
+                    await this.#browserContextPipeline.call(subCrawlerContext, this.requestHandler.bind(this));
                 }
             };
 
@@ -631,7 +629,7 @@ export class AdaptivePlaywrightCrawler<
                 context.request.label,
             );
             const timeoutMillis =
-                routeTimeoutSecs === undefined ? this.individualRequestHandlerTimeoutMillis : routeTimeoutSecs * 1000;
+                routeTimeoutSecs === undefined ? this.#individualRequestHandlerTimeoutMillis : routeTimeoutSecs * 1000;
 
             await addTimeoutToPromise(
                 async () => transaction.run(callAdaptiveRequestHandler),
@@ -648,17 +646,13 @@ export class AdaptivePlaywrightCrawler<
     }
 
     protected override async runRequestHandler(crawlingContext: CrawlingContext): Promise<void> {
-        const renderingTypePrediction = this.renderingTypePredictor.value.predict(crawlingContext.request);
+        const renderingTypePrediction = this.#renderingTypePredictor.value.predict(crawlingContext.request);
         const shouldDetectRenderingType = Math.random() < renderingTypePrediction.detectionProbabilityRecommendation;
 
         if (!shouldDetectRenderingType) {
             crawlingContext.log.debug(
                 `Predicted rendering type ${renderingTypePrediction.renderingType} for ${crawlingContext.request.url}`,
             );
-        }
-
-        if (shouldDetectRenderingType) {
-            this.inFlightRenderingTypeDetections += 1;
         }
 
         // Every transaction created for this request - up to two, since the static-then-browser
@@ -678,7 +672,7 @@ export class AdaptivePlaywrightCrawler<
                     transactions,
                 );
 
-                if (plainHTTPRun.ok && this.resultChecker(plainHTTPRun.result)) {
+                if (plainHTTPRun.ok && this.#resultChecker(plainHTTPRun.result)) {
                     crawlingContext.log.debug(`HTTP-only request handler succeeded for ${crawlingContext.request.url}`);
                     plainHTTPRun.logs?.forEach(([log, method, ...args]) => log[method](...(args as [any, any])));
                     await plainHTTPRun.result.commit();
@@ -692,7 +686,7 @@ export class AdaptivePlaywrightCrawler<
                             ? (plainHTTPRun.error.cause as Error)
                             : (plainHTTPRun.error as Error);
 
-                    if (await this.shouldPropagateError(actualError, crawlingContext as any)) {
+                    if (await this.#shouldPropagateError(actualError, crawlingContext as any)) {
                         throw actualError;
                     }
 
@@ -764,7 +758,7 @@ export class AdaptivePlaywrightCrawler<
                         return 'clientOnly';
                     }
 
-                    const comparisonResult = this.resultComparator(plainHTTPRun.result, browserRun.result);
+                    const comparisonResult = this.#resultComparator(plainHTTPRun.result, browserRun.result);
                     if (comparisonResult === true || comparisonResult === 'equal') {
                         return 'static';
                     }
@@ -781,14 +775,10 @@ export class AdaptivePlaywrightCrawler<
                 );
 
                 if (detectionResult !== undefined) {
-                    this.renderingTypePredictor.value.storeResult(crawlingContext.request, detectionResult);
+                    this.#renderingTypePredictor.value.storeResult(crawlingContext.request, detectionResult);
                 }
             }
         } finally {
-            if (shouldDetectRenderingType) {
-                this.inFlightRenderingTypeDetections -= 1;
-            }
-
             // A still-open transaction here belongs to a discarded attempt - roll it back, then release.
             for (const transaction of transactions) {
                 transaction.rollback();
@@ -828,7 +818,7 @@ export class AdaptivePlaywrightCrawler<
 
     override async teardown() {
         await super.teardown();
-        for (const hook of this.teardownHooks) {
+        for (const hook of this.#teardownHooks) {
             await hook();
         }
     }

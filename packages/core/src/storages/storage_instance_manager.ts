@@ -178,8 +178,8 @@ class StorageCache {
  * assigns a reserved default alias.
  */
 export class StorageInstanceManager {
-    private readonly cache = new StorageCache();
-    private readonly openerLocks = new Map<string, AsyncQueue>();
+    readonly #cache = new StorageCache();
+    readonly #openerLocks = new Map<string, AsyncQueue>();
 
     /**
      * Open (or retrieve from cache) a storage instance.
@@ -214,40 +214,40 @@ export class StorageInstanceManager {
 
         // Fast-path cache check (no lock).
         if (alias !== undefined) {
-            const cached = this.cache.get(cls, { alias, backendCacheKey });
+            const cached = this.#cache.get(cls, { alias, backendCacheKey });
             if (cached) return cached;
         } else if (id) {
-            const cached = this.cache.get(cls, { id, backendCacheKey });
+            const cached = this.#cache.get(cls, { id, backendCacheKey });
             if (cached) return cached;
         } else if (name) {
-            const cached = this.cache.get(cls, { name, backendCacheKey });
+            const cached = this.#cache.get(cls, { name, backendCacheKey });
             if (cached) return cached;
         }
 
         const identifierKey = id ?? name ?? alias ?? DEFAULT_STORAGE_ALIAS;
         const lockKey = `${cls.name}:${identifierKey}:${backendCacheKey}`;
 
-        if (!this.openerLocks.has(lockKey)) {
-            this.openerLocks.set(lockKey, new AsyncQueue());
+        if (!this.#openerLocks.has(lockKey)) {
+            this.#openerLocks.set(lockKey, new AsyncQueue());
         }
-        const queue = this.openerLocks.get(lockKey)!;
+        const queue = this.#openerLocks.get(lockKey)!;
 
         await queue.wait();
         try {
             // Double-check cache under lock (another caller may have filled it while we waited).
             if (alias !== undefined) {
-                const cached = this.cache.get(cls, { alias, backendCacheKey });
+                const cached = this.#cache.get(cls, { alias, backendCacheKey });
                 if (cached) return cached;
             } else if (id) {
-                const cached = this.cache.get(cls, { id, backendCacheKey });
+                const cached = this.#cache.get(cls, { id, backendCacheKey });
                 if (cached) return cached;
             } else if (name) {
-                const cached = this.cache.get(cls, { name, backendCacheKey });
+                const cached = this.#cache.get(cls, { name, backendCacheKey });
                 if (cached) return cached;
             }
 
             // Prevent the same string from being used as both a name and an alias.
-            this.cache.checkNameAliasConflict(cls, { name, alias, backendCacheKey });
+            this.#cache.checkNameAliasConflict(cls, { name, alias, backendCacheKey });
 
             // Cache miss — create the sub-backend and storage instance.
             const subBackend = await backendOpener();
@@ -260,7 +260,7 @@ export class StorageInstanceManager {
             const instance = new cls({ metadata: storageInfo, backend: subBackend });
 
             // Atomic cache writes (no awaits between these).
-            this.cache.set(cls, instance, backendCacheKey, alias);
+            this.#cache.set(cls, instance, backendCacheKey, alias);
 
             return instance;
         } finally {
@@ -269,7 +269,7 @@ export class StorageInstanceManager {
             // Clean up idle locks so the map doesn't grow unboundedly
             // (mirrors crawlee-python's WeakValueDictionary behaviour).
             if (queue.remaining === 0) {
-                this.openerLocks.delete(lockKey);
+                this.#openerLocks.delete(lockKey);
             }
         }
     }
@@ -278,7 +278,7 @@ export class StorageInstanceManager {
      * Remove a storage instance from the cache (called from `storage.drop()`).
      */
     removeFromCache(instance: IStorage): void {
-        this.cache.removeFromCache(instance);
+        this.#cache.removeFromCache(instance);
     }
 
     /**
@@ -287,13 +287,13 @@ export class StorageInstanceManager {
      * Called during service locator reset.
      */
     clearCache(): void {
-        for (const instance of this.cache.allValues()) {
+        for (const instance of this.#cache.allValues()) {
             if ('clearCache' in instance && typeof (instance as any).clearCache === 'function') {
                 (instance as any).clearCache();
             }
         }
 
-        this.cache.clear();
+        this.#cache.clear();
     }
 }
 
