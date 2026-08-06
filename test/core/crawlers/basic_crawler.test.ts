@@ -9,6 +9,7 @@ import {
     BasicCrawler,
     Configuration,
     CriticalError,
+    Dataset,
     defaultRoute,
     ErrorTracker,
     EventType,
@@ -3033,6 +3034,204 @@ describe('BasicCrawler', () => {
 
             expect(customQueue.getTotalCount()).toBe(1);
             expect(requestQueue.getTotalCount()).toBe(2);
+        });
+    });
+
+    describe('transactional storage', () => {
+        test('a failing request handler leaves no dataset/KVS writes, but write-through enqueues survive', async () => {
+            const crawler = new BasicCrawler({
+                maxRequestRetries: 0,
+                requestHandler: async ({ request, pushData, addRequests }) => {
+                    if (request.label === 'FAIL') {
+                        await pushData({ from: 'failing-handler' });
+                        await (await KeyValueStore.open()).setValue('failing-key', { a: 1 });
+                        await addRequests([{ url: `http://${HOSTNAME}:${port}/child`, label: 'CHILD' }]);
+                        throw new Error('handler failed');
+                    }
+
+                    await pushData({ from: 'child-handler' });
+                },
+            });
+
+            await crawler.run([{ url: `http://${HOSTNAME}:${port}/`, label: 'FAIL' }]);
+
+            // The write-through enqueue survived the failure and the child was crawled...
+            const dataset = await Dataset.open();
+            await expect(dataset.getData()).resolves.toMatchObject({ items: [{ from: 'child-handler' }] });
+
+            // ...while the failing handler's other writes were rolled back.
+            await expect(KeyValueStore.getValue('failing-key')).resolves.toBeNull();
+        });
+
+        test('a retried handler does not double-write, and the deferred queue policy reaches the transaction', async () => {
+            const crawler = new BasicCrawler({
+                maxRequestRetries: 1,
+                transactionalStorage: { requestQueue: 'deferred' },
+                requestHandler: async ({ request, pushData, addRequests }) => {
+                    if (request.label === 'CHILD') {
+                        return;
+                    }
+
+                    await pushData({ attempt: request.retryCount });
+                    // A different child per attempt, so `uniqueKey` dedup cannot mask a write-through
+                    // enqueue of the failed attempt.
+                    await addRequests([
+                        { url: `http://${HOSTNAME}:${port}/child-${request.retryCount}`, label: 'CHILD' },
+                    ]);
+
+                    if (request.retryCount === 0) {
+                        throw new Error('first attempt fails');
+                    }
+                },
+            });
+
+            await crawler.run([`http://${HOSTNAME}:${port}/`]);
+
+            // Exactly one copy of the data, from the successful attempt.
+            const dataset = await Dataset.open();
+            await expect(dataset.getData()).resolves.toMatchObject({ total: 1, items: [{ attempt: 1 }] });
+
+            // Only the successful attempt's enqueue reached the queue: the seed plus `child-1`.
+            // A write-through enqueue of the failed attempt would have left `child-0` behind as well.
+            await expect((await crawler.getRequestQueue()).getTotalCount()).resolves.toBe(2);
+        });
+
+        test('errorHandler and failedRequestHandler writes reach real storage', async () => {
+            const crawler = new BasicCrawler({
+                maxRequestRetries: 1,
+                requestHandler: async ({ pushData }) => {
+                    await pushData({ from: 'handler' });
+                    throw new Error('always fails');
+                },
+                errorHandler: async () => {
+                    await (await KeyValueStore.open()).setValue('error-handler', { ran: true });
+                },
+                failedRequestHandler: async () => {
+                    await (await KeyValueStore.open()).setValue('failed-request-handler', { ran: true });
+                },
+            });
+
+            await crawler.run([`http://${HOSTNAME}:${port}/`]);
+
+            await expect(KeyValueStore.getValue('error-handler')).resolves.toEqual({ ran: true });
+            await expect(KeyValueStore.getValue('failed-request-handler')).resolves.toEqual({ ran: true });
+
+            const dataset = await Dataset.open();
+            await expect(dataset.getData()).resolves.toMatchObject({ total: 0 });
+        });
+
+        test('transactionalStorage: false disables the mechanism entirely', async () => {
+            const crawler = new BasicCrawler({
+                maxRequestRetries: 0,
+                transactionalStorage: false,
+                requestHandler: async ({ pushData }) => {
+                    await pushData({ from: 'failing-handler' });
+                    throw new Error('handler failed');
+                },
+            });
+
+            await crawler.run([`http://${HOSTNAME}:${port}/`]);
+
+            // Without transactions, the write of the failing handler lands immediately and stays.
+            const dataset = await Dataset.open();
+            await expect(dataset.getData()).resolves.toMatchObject({ items: [{ from: 'failing-handler' }] });
+        });
+
+        test('an unclosed transaction on a normal pipeline return is discarded and logged', async () => {
+            const crawler = new BasicCrawler({ requestHandler: async () => {} });
+            const errorSpy = vitest.spyOn((crawler as any).log, 'error').mockImplementation(() => {});
+
+            // Simulate the wiring bug the guard exists for: the pipeline callback returns normally while
+            // its transaction is still open (handleRequest failed to commit or roll it back).
+            let leaked: any;
+            await (crawler as any).runInStorageTransaction(async () => {
+                leaked = (await import('@crawlee/core')).currentStorageTransaction();
+            });
+
+            expect(leaked.state).toBe('rolledBack'); // discarded, not left open
+            expect(errorSpy).toHaveBeenCalledWith(expect.stringMatching(/still open after the request pipeline/));
+
+            errorSpy.mockRestore();
+        });
+
+        test('the crawler never fetches the next request inside a storage transaction', async () => {
+            // The invariant that lets the request manager stay ignorant of transactions: fetching is
+            // crawler bookkeeping that runs *before* the request's transaction opens. If a refactor ever
+            // moved the fetch inside the transaction scope, a buffered add/transfer could be rolled back
+            // after the source request was consumed - losing the request. Observed through the public
+            // `requestManager` option, so the assertion sits on a documented seam, not crawler internals.
+            const { currentStorageTransaction } = await import('@crawlee/core');
+
+            const realManager = await RequestQueue.open();
+            await realManager.addRequests([
+                `http://${HOSTNAME}:${port}/one`,
+                `http://${HOSTNAME}:${port}/two`,
+                `http://${HOSTNAME}:${port}/three`,
+            ]);
+
+            let fetches = 0;
+            let fetchedInsideTransaction = false;
+
+            // A pass-through manager: delegates everything to a real queue, only observing whether a
+            // transaction is active at fetch time.
+            const observingManager = new Proxy(realManager, {
+                get(target, prop, receiver) {
+                    if (prop === 'fetchNextRequest') {
+                        return async (...args: unknown[]) => {
+                            fetches += 1;
+                            if (currentStorageTransaction()?.isActive) fetchedInsideTransaction = true;
+                            return (target.fetchNextRequest as (...a: unknown[]) => unknown)(...args);
+                        };
+                    }
+                    const value = Reflect.get(target, prop, receiver);
+                    return typeof value === 'function' ? value.bind(target) : value;
+                },
+            });
+
+            const crawler = new BasicCrawler({
+                requestQueue: observingManager as unknown as RequestQueue,
+                requestHandler: async () => {},
+            });
+
+            await crawler.run();
+
+            expect(fetches).toBeGreaterThan(0);
+            expect(fetchedInsideTransaction).toBe(false);
+        });
+
+        test('onSkippedRequest bookkeeping survives an in-pipeline robots.txt skip', async () => {
+            const crawler = new BasicCrawler({
+                maxRequestRetries: 0,
+                respectRobotsTxtFile: true,
+                requestHandler: async () => {},
+                onSkippedRequest: async ({ url, reason }) => {
+                    await (await KeyValueStore.open()).setValue('skipped', { url, reason });
+                },
+            });
+
+            // Let the request into the crawler's queue, then disallow it during processing, so the skip
+            // happens inside the request's transaction scope.
+            const queue = await crawler.getRequestQueue();
+            await queue.addRequest({ url: `http://${HOSTNAME}:${port}/disallowed` });
+            vitest.spyOn(crawler as any, 'isAllowedBasedOnRobotsTxtFile').mockResolvedValue(false);
+
+            await crawler.run();
+
+            await expect(KeyValueStore.getValue('skipped')).resolves.toMatchObject({ reason: 'robotsTxt' });
+        });
+
+        test('an unrecognized write policy is rejected instead of falling back to the default', () => {
+            const make = (transactionalStorage: unknown) =>
+                new BasicCrawler({ requestHandler: async () => {}, transactionalStorage } as any);
+
+            expect(() => make({ requestQueue: 'defered' })).toThrow(/requestQueue/);
+            expect(() => make({ dataset: 'deferred' })).toThrow(/dataset/);
+
+            expect(() => make(true)).not.toThrow();
+            expect(() => make(false)).not.toThrow();
+            expect(() => make({})).not.toThrow();
+            expect(() => make({ requestQueue: 'deferred' })).not.toThrow();
+            expect(() => make({ requestQueue: 'writeThrough' })).not.toThrow();
         });
     });
 
