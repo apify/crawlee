@@ -22,9 +22,6 @@ import type {
     RequestQueue,
     RestrictedCrawlingContext,
     RouterRoutes,
-    StatisticPersistedState,
-    StatisticsOptions,
-    StatisticState,
 } from '@crawlee/core';
 import {
     OwnedOrInjected,
@@ -57,63 +54,32 @@ type Result<TResult> =
     | { result: TResult; ok: true; logs?: LogProxyCall[] }
     | { error: unknown; ok: false; logs?: LogProxyCall[] };
 
-interface AdaptivePlaywrightCrawlerStatisticState extends StatisticState {
-    httpOnlyRequestHandlerRuns?: number;
-    browserRequestHandlerRuns?: number;
-    renderingTypeMispredictions?: number;
+/**
+ * The extra statistics fields {@apilink AdaptivePlaywrightCrawler} tracks on top of the built-in
+ * {@apilink StatisticState} ones. They are available on `crawler.stats.state` and are persisted with the rest of
+ * the statistics.
+ */
+export interface AdaptivePlaywrightCrawlerStatisticState {
+    /** How many requests were handled by the HTTP-only request handler. */
+    httpOnlyRequestHandlerRuns: number;
+
+    /** How many requests were handled in a browser. */
+    browserRequestHandlerRuns: number;
+
+    /** How many times the HTTP-only handler produced a result the `resultChecker` rejected. */
+    renderingTypeMispredictions: number;
 }
 
-interface AdaptivePlaywrightCrawlerPersistedStatisticState extends StatisticPersistedState {
-    httpOnlyRequestHandlerRuns?: number;
-    browserRequestHandlerRuns?: number;
-    renderingTypeMispredictions?: number;
-}
-
-class AdaptivePlaywrightCrawlerStatistics extends Statistics {
-    override state: AdaptivePlaywrightCrawlerStatisticState = null as any; // this needs to be assigned for a valid override, but the initialization is done by a reset() call from the parent constructor
-
-    constructor(options: StatisticsOptions = {}) {
-        super(options);
-        this.reset();
-    }
-
-    override reset(): void {
-        super.reset();
-        this.state.httpOnlyRequestHandlerRuns = 0;
-        this.state.browserRequestHandlerRuns = 0;
-        this.state.renderingTypeMispredictions = 0;
-    }
-
-    protected override async maybeLoadStatistics(): Promise<void> {
-        await super.maybeLoadStatistics();
-        const savedState = await this.keyValueStore?.getValue<AdaptivePlaywrightCrawlerPersistedStatisticState>(
-            this.persistStateKey,
-        );
-
-        if (!savedState) {
-            return;
-        }
-
-        this.state.httpOnlyRequestHandlerRuns = savedState.httpOnlyRequestHandlerRuns;
-        this.state.browserRequestHandlerRuns = savedState.browserRequestHandlerRuns;
-        this.state.renderingTypeMispredictions = savedState.renderingTypeMispredictions;
-    }
-
-    trackHttpOnlyRequestHandlerRun(): void {
-        this.state.httpOnlyRequestHandlerRuns ??= 0;
-        this.state.httpOnlyRequestHandlerRuns += 1;
-    }
-
-    trackBrowserRequestHandlerRun(): void {
-        this.state.browserRequestHandlerRuns ??= 0;
-        this.state.browserRequestHandlerRuns += 1;
-    }
-
-    trackRenderingTypeMisprediction(): void {
-        this.state.renderingTypeMispredictions ??= 0;
-        this.state.renderingTypeMispredictions += 1;
-    }
-}
+/**
+ * The initial values of the {@apilink AdaptivePlaywrightCrawlerStatisticState} fields. Spread it into the
+ * `defaultState` of a {@apilink Statistics} instance to be injected into an {@apilink AdaptivePlaywrightCrawler},
+ * which needs those fields to be present.
+ */
+export const defaultAdaptivePlaywrightCrawlerStatisticState: AdaptivePlaywrightCrawlerStatisticState = {
+    httpOnlyRequestHandlerRuns: 0,
+    browserRequestHandlerRuns: 0,
+    renderingTypeMispredictions: 0,
+};
 
 export interface AdaptivePlaywrightCrawlerContext<
     UserData extends Dictionary = Dictionary,
@@ -193,8 +159,15 @@ export interface AdaptivePlaywrightCrawlerOptions<
         string,
         GetUserDataFromRequest<AdaptivePlaywrightCrawlerContext['request']>
     >,
+    StatisticStateExtension extends AdaptivePlaywrightCrawlerStatisticState = AdaptivePlaywrightCrawlerStatisticState,
 > extends Omit<
-    BasicCrawlerOptions<AdaptivePlaywrightCrawlerContext, ContextExtension, ExtendedContext, Routes>,
+    BasicCrawlerOptions<
+        AdaptivePlaywrightCrawlerContext,
+        ContextExtension,
+        ExtendedContext,
+        Routes,
+        StatisticStateExtension
+    >,
     'preNavigationHooks' | 'postNavigationHooks'
 > {
     /**
@@ -321,7 +294,14 @@ export class AdaptivePlaywrightCrawler<
         string,
         GetUserDataFromRequest<AdaptivePlaywrightCrawlerContext['request']>
     >,
-> extends BasicCrawler<AdaptivePlaywrightCrawlerContext, ContextExtension, ExtendedContext, Routes> {
+    StatisticStateExtension extends AdaptivePlaywrightCrawlerStatisticState = AdaptivePlaywrightCrawlerStatisticState,
+> extends BasicCrawler<
+    AdaptivePlaywrightCrawlerContext,
+    ContextExtension,
+    ExtendedContext,
+    Routes,
+    StatisticStateExtension
+> {
     private renderingTypePredictor: OwnedOrInjected<IRenderingTypePredictor, RenderingTypePredictor>;
     private resultChecker: NonNullable<AdaptivePlaywrightCrawlerOptions['resultChecker']>;
     private shouldPropagateError: NonNullable<AdaptivePlaywrightCrawlerOptions['shouldPropagateError']>;
@@ -331,16 +311,19 @@ export class AdaptivePlaywrightCrawler<
     private browserContextPipeline: ContextPipeline<CrawlingContext, ExtendedContext>;
     private individualRequestHandlerTimeoutMillis: number;
 
-    // The constructor always injects an `AdaptivePlaywrightCrawlerStatistics`, so narrowing the cast is sound.
-    override get stats(): AdaptivePlaywrightCrawlerStatistics {
-        return super.stats as AdaptivePlaywrightCrawlerStatistics;
-    }
     private resultObjects = new WeakMap<CrawlingContext, RequestHandlerResult>();
     private inFlightRenderingTypeDetections = 0;
 
     private teardownHooks: (() => Promise<unknown>)[] = [];
 
-    constructor(options: AdaptivePlaywrightCrawlerOptions<ContextExtension, ExtendedContext, Routes> = {}) {
+    constructor(
+        options: AdaptivePlaywrightCrawlerOptions<
+            ContextExtension,
+            ExtendedContext,
+            Routes,
+            StatisticStateExtension
+        > = {},
+    ) {
         const {
             requestHandler,
             renderingTypeDetectionRatio = 0.1,
@@ -360,24 +343,20 @@ export class AdaptivePlaywrightCrawler<
             ...rest
         } = options;
 
-        if (statistics !== undefined && !(statistics instanceof AdaptivePlaywrightCrawlerStatistics)) {
-            throw new Error(
-                'AdaptivePlaywrightCrawler tracks extra fields on its own Statistics subclass and cannot use a ' +
-                    'plain `statistics` instance. Omit the option to let the crawler build its own.',
-            );
-        }
-
         super({
             ...rest,
             errorHandler,
             failedRequestHandler,
             requestHandler,
             requestHandlerTimeoutSecs,
-            // Inject our subclass so the base tracks the extra adaptive fields instead of building a plain `Statistics`.
+            // The base would build a `Statistics` without the adaptive fields, so provide a default that has them.
+            // The cast covers a `StatisticStateExtension` that adds further fields - those can only come from an
+            // injected instance, in which case this default is never built.
             statistics:
                 statistics ??
-                new AdaptivePlaywrightCrawlerStatistics({
+                new Statistics({
                     logMessage: `${AdaptivePlaywrightCrawler.name} request statistics:`,
+                    defaultState: defaultAdaptivePlaywrightCrawlerStatisticState as StatisticStateExtension,
                 }),
             contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),
         });
@@ -663,7 +642,7 @@ export class AdaptivePlaywrightCrawler<
         try {
             if (renderingTypePrediction.renderingType === 'static' && !shouldDetectRenderingType) {
                 crawlingContext.log.debug(`Running HTTP-only request handler for ${crawlingContext.request.url}`);
-                this.stats.trackHttpOnlyRequestHandlerRun();
+                this.stats.state.httpOnlyRequestHandlerRuns++;
 
                 const plainHTTPRun = await this.crawlOne('static', crawlingContext, crawlingContext.useState);
 
@@ -693,12 +672,12 @@ export class AdaptivePlaywrightCrawler<
                     crawlingContext.log.warning(
                         `HTTP-only request handler returned a suspicious result for ${crawlingContext.request.url}`,
                     );
-                    this.stats.trackRenderingTypeMisprediction();
+                    this.stats.state.renderingTypeMispredictions++;
                 }
             }
 
             crawlingContext.log.debug(`Running browser request handler for ${crawlingContext.request.url}`);
-            this.stats.trackBrowserRequestHandlerRun();
+            this.stats.state.browserRequestHandlerRuns++;
 
             // Run the request handler in a browser. The copy of the crawler state is kept so that we can perform
             // a rendering type detection if necessary. Without this measure, the HTTP request handler would run

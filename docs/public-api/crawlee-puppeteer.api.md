@@ -177,10 +177,10 @@ interface PuppeteerContextUtils {
 }
 
 // @public
-export class PuppeteerCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends PuppeteerCrawlingContext = PuppeteerCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<PuppeteerCrawlingContext['request']>>> extends BrowserCrawler<Page, HTTPResponse, {
+export class PuppeteerCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends PuppeteerCrawlingContext = PuppeteerCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<PuppeteerCrawlingContext['request']>>, StatisticStateExtension extends object = {}> extends BrowserCrawler<Page, HTTPResponse, {
     browserPlugins: [PuppeteerPlugin];
-}, LaunchOptions, PuppeteerCrawlingContext, ContextExtension, ExtendedContext, Routes> {
-    constructor(options?: PuppeteerCrawlerOptions<ContextExtension, ExtendedContext, Routes>);
+}, LaunchOptions, PuppeteerCrawlingContext, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
+    constructor(options?: PuppeteerCrawlerOptions<ContextExtension, ExtendedContext, Routes, StatisticStateExtension>);
     // (undocumented)
     protected buildContextPipeline(): ContextPipeline<CrawlingContext<Dictionary>, BrowserCrawlingContext<Page, HTTPResponse, Dictionary, Dictionary> & {
     injectFile: (filePath: string, options?: InjectFileOptions) => Promise<unknown>;
@@ -248,9 +248,9 @@ export class PuppeteerCrawler<ContextExtension = Dictionary<never>, ExtendedCont
 }
 
 // @public (undocumented)
-export interface PuppeteerCrawlerOptions<ContextExtension = Dictionary<never>, ExtendedContext extends PuppeteerCrawlingContext = PuppeteerCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<PuppeteerCrawlingContext['request']>>> extends BrowserCrawlerOptions<Page, HTTPResponse, PuppeteerCrawlingContext, ContextExtension, ExtendedContext, {
+export interface PuppeteerCrawlerOptions<ContextExtension = Dictionary<never>, ExtendedContext extends PuppeteerCrawlingContext = PuppeteerCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<PuppeteerCrawlingContext['request']>>, StatisticStateExtension extends object = {}> extends BrowserCrawlerOptions<Page, HTTPResponse, PuppeteerCrawlingContext, ContextExtension, ExtendedContext, {
     browserPlugins: [PuppeteerPlugin];
-}, Routes> {
+}, Routes, StatisticStateExtension> {
     launchContext?: PuppeteerLaunchContext;
     postNavigationHooks?: BrowserHook<PuppeteerCrawlingContext, ContextExtension>[];
     preNavigationHooks?: BrowserHook<PuppeteerCrawlingContext, ContextExtension>[];

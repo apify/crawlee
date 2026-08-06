@@ -430,6 +430,12 @@ describe('AdaptivePlaywrightCrawler', () => {
 
         expect(requestHandler).toHaveBeenCalledTimes(2);
         expect(resultChecker).toHaveBeenCalledTimes(1);
+
+        expect(crawler.stats.state).toMatchObject({
+            httpOnlyRequestHandlerRuns: 1,
+            renderingTypeMispredictions: 1,
+            browserRequestHandlerRuns: 1,
+        });
     });
 
     describe('shouldPropagateError', () => {

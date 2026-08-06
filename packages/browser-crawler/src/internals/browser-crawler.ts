@@ -123,11 +123,12 @@ export interface BrowserCrawlerOptions<
     ExtendedContext extends Context = Context & ContextExtension,
     InternalBrowserPoolOptions extends BrowserPoolOptions = BrowserPoolOptions,
     Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
+    StatisticStateExtension extends object = {},
     __BrowserPlugins extends BrowserPlugin[] = InferBrowserPluginArray<InternalBrowserPoolOptions['browserPlugins']>,
     __BrowserControllerReturn extends BrowserController = ReturnType<__BrowserPlugins[number]['createController']>,
     __LaunchContextReturn extends LaunchContext = ReturnType<__BrowserPlugins[number]['createLaunchContext']>,
 > extends Omit<
-    BasicCrawlerOptions<Context, ContextExtension, ExtendedContext>,
+    BasicCrawlerOptions<Context, ContextExtension, ExtendedContext, Routes, StatisticStateExtension>,
     // Overridden with browser context
     'requestHandler' | 'failedRequestHandler' | 'errorHandler'
 > {
@@ -365,8 +366,9 @@ export abstract class BrowserCrawler<
     ContextExtension = Dictionary<never>,
     ExtendedContext extends Context = Context & ContextExtension,
     Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
+    StatisticStateExtension extends object = {},
     GoToOptions extends Dictionary = Dictionary,
-> extends BasicCrawler<Context, ContextExtension, ExtendedContext, Routes> {
+> extends BasicCrawler<Context, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
     /** Backs the {@apilink BrowserCrawler.browserPool|`browserPool`} getter. */
     private browserPoolDep: OwnedOrInjected<IBrowserPool<Page>, OwnedBrowserPool<Page>>;
 
@@ -408,7 +410,18 @@ export abstract class BrowserCrawler<
      * All `BrowserCrawler` parameters are passed via an options object.
      */
     protected constructor(
-        options: BrowserCrawlerOptions<Page, Response, Context, ContextExtension, ExtendedContext> & {
+        options: BrowserCrawlerOptions<
+            Page,
+            Response,
+            Context,
+            ContextExtension,
+            ExtendedContext,
+            // Left at the default rather than forwarding `InternalBrowserPoolOptions` - narrowing the pool options
+            // here would reject subclasses that declare their own options without pinning the pool type.
+            BrowserPoolOptions,
+            Routes,
+            StatisticStateExtension
+        > & {
             contextPipelineBuilder: () => ContextPipeline<CrawlingContext, Context>;
         },
     ) {

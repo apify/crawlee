@@ -648,7 +648,7 @@ The change spans, among others:
 - **`RenderingTypePredictor`** — `calculateFeatureVector`, `retrain`
 - **`BrowserCrawler`** — `navigationTimeoutMillis`, `preNavigationHooks`, `postNavigationHooks`, `saveResponseCookies` (now `private readonly`; configure them through the constructor options as before), and the helpers `isRequestBlocked`, `applyCookies` (was `_applyCookies`), `handleNavigationTimeout` (was `_handleNavigationTimeout`), `throwIfProxyError` (was `_throwIfProxyError`)
 - **`BrowserLauncher`** — the helpers `getChromeExecutablePath`, `getTypicalChromeExecutablePath`, `validateProxyUrlProtocol` (were `_`-prefixed). `getDefaultHeadlessOption` (was `_getDefaultHeadlessOption`) stays `protected` — it is an override point (`PuppeteerLauncher` overrides it) — but lost its underscore prefix
-- **`Statistics.maybeLoadStatistics`** (was `_maybeLoadStatistics`) — stays `protected` (it is overridden by `AdaptivePlaywrightCrawler`'s statistics), but lost its underscore prefix; rename any `super._maybeLoadStatistics()` overrides accordingly
+- **`Statistics.maybeLoadStatistics`** (was `_maybeLoadStatistics`) — stays `protected`, but lost its underscore prefix; rename any `super._maybeLoadStatistics()` overrides accordingly (though tracking extra fields no longer needs an override — see [`defaultState`](#track-custom-fields-with-defaultstate-instead-of-subclassing-statistics))
 - **`RobotsTxtFile.load` and `Sitemap.parse`** — internal static factory helpers, now `private` (use the public `RobotsTxtFile.from` / `Sitemap.load` / `Sitemap.fromXmlString` entry points)
 - Various internal fields on `BrowserController` (`id`, `browserPlugin`, `log`) and `BrowserPlugin` (`name`, `library`, `launchOptions`, `proxyUrl`, `userDataDir`, `browserPerProxy`, `ignoreProxyCertificate`, `log`) are now `readonly`
 
@@ -935,7 +935,7 @@ This experimental option relied on an outdated manifest version for browser exte
 
 ## Only if you customize crawler statistics
 
-Applies when you passed `statisticsOptions` to a crawler, or subclassed `Statistics`.
+Applies when you passed `statisticsOptions` to a crawler, subclassed `Statistics`, or passed type arguments to `BrowserCrawler`/`BrowserCrawlerOptions`.
 
 ### `statisticsOptions` is replaced by a `statistics` instance
 
@@ -951,9 +951,20 @@ const crawler = new BasicCrawler({
 });
 ```
 
-Omit the option and the crawler builds its own default, exactly as before. A supplied instance is treated as borrowed: the crawler records into it and drives its capture lifecycle for the run, but never `reset()`s it between `run()` calls — so a preconfigured instance keeps whatever state it was handed. This is also the supported way to plug in a custom `Statistics` subclass that tracks extra fields (superseding the previous subclass-and-reassign pattern).
+Omit the option and the crawler builds its own default, exactly as before. A supplied instance is treated as borrowed: the crawler records into it and drives its capture lifecycle for the run, but never `reset()`s it between `run()` calls — so a preconfigured instance keeps whatever state it was handed.
 
 The option accepts the built-in `Statistics` or any object implementing the new `IStatistics` interface, so a fully custom statistics backend can be plugged in without subclassing. The crawler exposes it as `crawler.stats` typed as `IStatistics`.
+
+### Subclassing `Statistics` to track extra fields is replaced by `defaultState`
+
+A subclass that overrode `reset()` and `maybeLoadStatistics()` only to track extra fields should declare them via the new `defaultState` option instead — see the [Custom statistics fields](../guides/custom-statistics) guide. The subclass keeps working; it is just no longer necessary.
+
+The custom field types reach `crawler.stats.state` through a new trailing `StatisticStateExtension` type parameter on the crawler classes and their options. It defaults to `{}`, so existing type arguments keep working — except on `BrowserCrawler` and `BrowserCrawlerOptions`, where it was inserted after `Routes` and shifts the trailing internal parameters (`GoToOptions`, `__BrowserPlugins`, …). Adjust any explicit type arguments you passed to those two.
+
+`AdaptivePlaywrightCrawler` now uses this mechanism for its own extra fields, with two consequences:
+
+- `httpOnlyRequestHandlerRuns`, `browserRequestHandlerRuns` and `renderingTypeMispredictions` were typed as optional and are now always present. Reading them no longer needs a `?? 0`.
+- The `statistics` option used to throw for this crawler; it now accepts any `IStatistics<AdaptivePlaywrightCrawlerStatisticState>`. Build one by spreading the exported `defaultAdaptivePlaywrightCrawlerStatisticState` into your `defaultState`.
 
 ## Only if you wrote a custom HTTP client or used `got-scraping` directly
 

@@ -1,3 +1,4 @@
+import type { StandardSchemaV1 } from '@standard-schema/spec';
 import ow from 'ow';
 
 import type { EventManager } from '../events/event_manager.js';
@@ -46,16 +47,19 @@ export interface PersistenceOptions {
 
 /**
  * The statistics surface a crawler depends on: recording per-request outcomes, tracking errors, and driving the
- * capture lifecycle for a run. Injected via the crawler's `statistics` option, so a custom implementation (or a
- * {@apilink Statistics} subclass tracking extra fields) can be plugged in without subclassing the crawler.
+ * capture lifecycle for a run. Injected via the crawler's `statistics` option, so a custom implementation can be
+ * plugged in without subclassing the crawler.
  *
  * The owned-only mutators the crawler uses to *own* a default it built - `reset()`/`resetStore()` - are deliberately
  * absent: an injected instance is borrowed, and the crawler never wipes it. Those live on the concrete
  * {@apilink Statistics} only.
  *
+ * `StateExtension` describes the custom fields tracked alongside the built-in {@apilink StatisticState} ones - see
+ * {@apilink StatisticsOptions.defaultState}.
+ *
  * @category Crawlers
  */
-export interface IStatistics {
+export interface IStatistics<StateExtension extends object = {}> {
     /** Tracker for errors on the final retry of a request. */
     readonly errorTracker: ErrorTracker;
 
@@ -63,7 +67,7 @@ export interface IStatistics {
     readonly errorTrackerRetry: ErrorTracker;
 
     /** The live statistics state the crawler reads for status messages and the final summary. */
-    readonly state: StatisticState;
+    readonly state: StatisticState & StateExtension;
 
     /** Retries histogram - index `i` holds the number of requests that finished after `i` retries. */
     readonly requestRetryHistogram: number[];
@@ -131,9 +135,22 @@ export interface CalculatedStatistics {
  * under the key `CRAWLEE_CRAWLER_STATISTICS_*`, persists between
  * migrations and abort/resurrect
  *
+ * Custom fields are tracked by passing {@apilink StatisticsOptions.defaultState|`defaultState`} - the extra fields
+ * are then part of {@apilink Statistics.state|`state`}, persisted and restored along with the built-in ones:
+ *
+ * ```ts
+ * const statistics = new Statistics({ defaultState: { productsFound: 0 } });
+ * const crawler = new CheerioCrawler({
+ *     statistics,
+ *     requestHandler: async () => {
+ *         statistics.state.productsFound++;
+ *     },
+ * });
+ * ```
+ *
  * @category Crawlers
  */
-export class Statistics implements IStatistics {
+export class Statistics<StateExtension extends object = {}> implements IStatistics<StateExtension> {
     private static id = 0;
 
     /**
@@ -154,7 +171,7 @@ export class Statistics implements IStatistics {
     /**
      * Current statistic state used for doing calculations on {@apilink Statistics.calculate} calls
      */
-    state!: StatisticState;
+    state!: StatisticState & StateExtension;
 
     /**
      * Contains the current retries histogram. Index 0 means 0 retries, index 2, 2 retries, and so on
@@ -163,6 +180,8 @@ export class Statistics implements IStatistics {
 
     protected keyValueStore?: KeyValueStore = undefined;
     protected readonly persistStateKey: string;
+    private readonly defaultStateExtension: StateExtension;
+    private readonly stateSchema?: StandardSchemaV1<unknown, StateExtension>;
     private logIntervalMillis: number;
     private logMessage: string;
     private listener: () => Promise<void>;
@@ -182,9 +201,9 @@ export class Statistics implements IStatistics {
 
     /**
      * Construct a statistics instance to pass to a crawler via its `statistics` option, e.g. to preconfigure
-     * persistence or error snapshots, share it across sequential runs, or subclass it to track extra fields.
+     * persistence or error snapshots, share it across sequential runs, or track extra fields via `defaultState`.
      */
-    constructor(options: StatisticsOptions = {}) {
+    constructor(options: StatisticsOptions<StateExtension> = {}) {
         ow(
             options,
             ow.object.exactShape({
@@ -195,6 +214,8 @@ export class Statistics implements IStatistics {
                 persistenceOptions: ow.optional.object,
                 saveErrorSnapshots: ow.optional.boolean,
                 id: ow.optional.any(ow.number, ow.string),
+                defaultState: ow.optional.object,
+                stateSchema: ow.optional.object,
             }),
         );
 
@@ -207,6 +228,8 @@ export class Statistics implements IStatistics {
             },
             saveErrorSnapshots = false,
             id,
+            defaultState = {} as StateExtension,
+            stateSchema,
         } = options;
 
         this.id = id ?? String(Statistics.id++);
@@ -220,6 +243,8 @@ export class Statistics implements IStatistics {
         this.keyValueStore = keyValueStore;
         this.listener = this.persistState.bind(this);
         this.persistenceOptions = persistenceOptions;
+        this.defaultStateExtension = defaultState;
+        this.stateSchema = stateSchema;
 
         // initialize by "resetting"
         this.reset();
@@ -249,6 +274,8 @@ export class Statistics implements IStatistics {
             requestsWithStatusCode: {},
             errors: this.errorTracker.result,
             retryErrors: this.errorTrackerRetry.result,
+            // Cloned so that mutating the state never writes through to the defaults of a later reset()
+            ...structuredClone(this.defaultStateExtension),
         };
 
         this.requestRetryHistogram.length = 0;
@@ -441,7 +468,10 @@ export class Statistics implements IStatistics {
             return;
         }
 
-        const savedState = await this.keyValueStore.getValue<StatisticPersistedState>(this.persistStateKey);
+        // The custom fields are `Partial` - a record written before they were declared has none of them.
+        const savedState = await this.keyValueStore.getValue<StatisticPersistedState & Partial<StateExtension>>(
+            this.persistStateKey,
+        );
 
         if (!savedState) return;
 
@@ -474,7 +504,52 @@ export class Statistics implements IStatistics {
         this.state.crawlerRuntimeMillis = savedState.crawlerRuntimeMillis;
         this.instanceStart = Date.now() - (+this.state.statsPersistedAt! - savedState.crawlerLastStartTimestamp);
 
+        await this.loadStateExtension(savedState);
+
         this.log.debug('Loaded from KeyValueStore');
+    }
+
+    /**
+     * Restores the custom {@apilink StatisticsOptions.defaultState|`defaultState`} fields from the persisted state.
+     *
+     * A field missing from the persisted record keeps its default, so adding a field between runs does not leave it
+     * `undefined`. When a {@apilink StatisticsOptions.stateSchema|`stateSchema`} is provided and the restored fields
+     * fail validation, the whole extension falls back to the defaults - a schema change (or a hand-edited record)
+     * degrades the custom fields instead of poisoning the run.
+     */
+    private async loadStateExtension(savedState: Partial<StateExtension>): Promise<void> {
+        const keys = Object.keys(this.defaultStateExtension) as (keyof StateExtension)[];
+
+        if (keys.length === 0) {
+            return;
+        }
+
+        const restored = structuredClone(this.defaultStateExtension);
+
+        for (const key of keys) {
+            const savedValue = savedState[key];
+
+            if (savedValue !== undefined) {
+                restored[key] = savedValue;
+            }
+        }
+
+        if (!this.stateSchema) {
+            Object.assign(this.state, restored);
+            return;
+        }
+
+        const result = await this.stateSchema['~standard'].validate(restored);
+
+        if (result.issues) {
+            this.log.warning('Persisted custom statistics state failed validation, falling back to the defaults.', {
+                persistStateKey: this.persistStateKey,
+                issues: result.issues,
+            });
+            return;
+        }
+
+        Object.assign(this.state, result.value);
     }
 
     private teardown(): void {
@@ -493,7 +568,7 @@ export class Statistics implements IStatistics {
      * Make this class serializable when called with `JSON.stringify(statsInstance)` directly
      * or through `keyValueStore.setValue('KEY', statsInstance)`
      */
-    toJSON(): StatisticPersistedState {
+    toJSON(): StatisticPersistedState & StateExtension {
         // merge all the current state information that can be used from the outside
         // without the need to reconstruct for the sake of stats.calculate()
         // omit duplicated information
@@ -525,7 +600,7 @@ export class Statistics implements IStatistics {
 /**
  * Configuration for the {@apilink Statistics} instance used by the crawler
  */
-export interface StatisticsOptions {
+export interface StatisticsOptions<StateExtension extends object = {}> {
     /**
      * Interval in seconds to log the current statistics
      * @default 60
@@ -570,6 +645,27 @@ export interface StatisticsOptions {
      * if crawler creation order changes.
      */
     id?: string;
+
+    /**
+     * Initial values of custom fields to track alongside the built-in {@apilink StatisticState} ones. The fields
+     * become part of {@apilink Statistics.state|`state`} (typed as such), are persisted with the rest of the state,
+     * and are restored on migration or resurrect. `reset()` returns them to these values.
+     *
+     * ```ts
+     * const statistics = new Statistics({ defaultState: { productsFound: 0 } });
+     * statistics.state.productsFound++;
+     * ```
+     */
+    defaultState?: StateExtension;
+
+    /**
+     * An optional [Standard Schema](https://standardschema.dev) (Zod, Valibot, ArkType, …) describing the
+     * `defaultState` fields. It validates them when they are restored from the key-value store - values that fail
+     * validation fall back to `defaultState`, so a schema change between runs does not corrupt the statistics.
+     *
+     * The custom field *types* come from `defaultState`, so a schema is never required.
+     */
+    stateSchema?: StandardSchemaV1<unknown, NoInfer<StateExtension>>;
 }
 
 /**

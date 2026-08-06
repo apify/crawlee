@@ -32,8 +32,8 @@ export function createLinkeDOMRouter<Context extends LinkeDOMCrawlingContext = L
 export function createLinkeDOMRouter<Context extends LinkeDOMCrawlingContext = LinkeDOMCrawlingContext, const Schemas extends RouteSchemas = RouteSchemas>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
 
 // @public
-export class LinkeDOMCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends LinkeDOMCrawlingContext = LinkeDOMCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<LinkeDOMCrawlingContext['request']>>> extends HttpCrawler<LinkeDOMCrawlingContext, ContextExtension, ExtendedContext, Routes> {
-    constructor(options: LinkeDOMCrawlerOptions<ContextExtension, ExtendedContext, any, any, Routes>);
+export class LinkeDOMCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends LinkeDOMCrawlingContext = LinkeDOMCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<LinkeDOMCrawlingContext['request']>>, StatisticStateExtension extends object = {}> extends HttpCrawler<LinkeDOMCrawlingContext, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
+    constructor(options: LinkeDOMCrawlerOptions<ContextExtension, ExtendedContext, any, any, Routes, StatisticStateExtension>);
     // (undocumented)
     protected buildContextPipeline(): ContextPipeline<CrawlingContext<Dictionary>, InternalHttpCrawlingContext<any, any> & {
     readonly window: Window;
@@ -53,7 +53,7 @@ export interface LinkeDOMCrawlerEnqueueLinksOptions extends Omit<EnqueueLinksOpt
 // @public (undocumented)
 export interface LinkeDOMCrawlerOptions<ContextExtension = Dictionary<never>, ExtendedContext extends LinkeDOMCrawlingContext = LinkeDOMCrawlingContext & ContextExtension, UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-Routes extends Record<keyof Routes, Dictionary> = Record<string, UserData>> extends HttpCrawlerOptions<LinkeDOMCrawlingContext<UserData, JSONData>, ContextExtension, ExtendedContext, Routes> {
+Routes extends Record<keyof Routes, Dictionary> = Record<string, UserData>, StatisticStateExtension extends object = {}> extends HttpCrawlerOptions<LinkeDOMCrawlingContext<UserData, JSONData>, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
 }
 
 // @public (undocumented)
