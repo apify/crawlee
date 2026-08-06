@@ -326,12 +326,18 @@ export interface StagehandCrawlerOptions<
     /**
      * Async functions that are sequentially evaluated before the navigation.
      */
-    preNavigationHooks?: StagehandHook[];
+    preNavigationHooks?: BrowserHook<
+        StagehandCrawlingContext<GetUserDataFromRequest<ExtendedContext['request']>>,
+        ContextExtension
+    >[];
 
     /**
      * Async functions that are sequentially evaluated after the navigation.
      */
-    postNavigationHooks?: StagehandHook[];
+    postNavigationHooks?: BrowserHook<
+        StagehandCrawlingContext<GetUserDataFromRequest<ExtendedContext['request']>>,
+        ContextExtension
+    >[];
 }
 
 /**

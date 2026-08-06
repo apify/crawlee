@@ -252,8 +252,8 @@ export interface PuppeteerCrawlerOptions<ContextExtension = Dictionary<never>, E
     browserPlugins: [PuppeteerPlugin];
 }, Routes> {
     launchContext?: PuppeteerLaunchContext;
-    postNavigationHooks?: BrowserHook<PuppeteerCrawlingContext, ContextExtension>[];
-    preNavigationHooks?: BrowserHook<PuppeteerCrawlingContext, ContextExtension>[];
+    postNavigationHooks?: BrowserHook<PuppeteerCrawlingContext<GetUserDataFromRequest<ExtendedContext['request']>>, ContextExtension>[];
+    preNavigationHooks?: BrowserHook<PuppeteerCrawlingContext<GetUserDataFromRequest<ExtendedContext['request']>>, ContextExtension>[];
 }
 
 // @public (undocumented)

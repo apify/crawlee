@@ -136,3 +136,50 @@ describe('request handler option types (#2063)', () => {
         expect(options).toBeTruthy();
     });
 });
+
+describe('hooks with a crawler-level typed context (#2063)', () => {
+    test('playwright - hooks receive the user data typed via the options generic', () => {
+        const options: PlaywrightCrawlerOptions<Dictionary<never>, PlaywrightCrawlingContext<OrderUserData>> = {
+            requestHandler: async ({ request }) => {
+                expectTypeOf(request.userData).toEqualTypeOf<OrderUserData>();
+            },
+            preNavigationHooks: [
+                async ({ request, gotoOptions }) => {
+                    expectTypeOf(request.userData).toEqualTypeOf<OrderUserData>();
+                    void gotoOptions;
+                },
+            ],
+            postNavigationHooks: [
+                async ({ request }) => {
+                    expectTypeOf(request.userData).toEqualTypeOf<OrderUserData>();
+                },
+            ],
+        };
+
+        expect(options).toBeTruthy();
+    });
+
+    test('puppeteer - hooks receive the user data typed via the options generic', () => {
+        const options: PuppeteerCrawlerOptions<Dictionary<never>, PuppeteerCrawlingContext<OrderUserData>> = {
+            preNavigationHooks: [
+                async ({ request }) => {
+                    expectTypeOf(request.userData).toEqualTypeOf<OrderUserData>();
+                },
+            ],
+        };
+
+        expect(options).toBeTruthy();
+    });
+
+    test('stagehand - hooks receive the user data typed via the options generic', () => {
+        const options: StagehandCrawlerOptions<Dictionary<never>, StagehandCrawlingContext<OrderUserData>> = {
+            preNavigationHooks: [
+                async ({ request }) => {
+                    expectTypeOf(request.userData).toEqualTypeOf<OrderUserData>();
+                },
+            ],
+        };
+
+        expect(options).toBeTruthy();
+    });
+});

@@ -77,7 +77,10 @@ export interface PuppeteerCrawlerOptions<
      * ]
      * ```
      */
-    preNavigationHooks?: BrowserHook<PuppeteerCrawlingContext, ContextExtension>[];
+    preNavigationHooks?: BrowserHook<
+        PuppeteerCrawlingContext<GetUserDataFromRequest<ExtendedContext['request']>>,
+        ContextExtension
+    >[];
 
     /**
      * Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
@@ -95,7 +98,10 @@ export interface PuppeteerCrawlerOptions<
      * ]
      * ```
      */
-    postNavigationHooks?: BrowserHook<PuppeteerCrawlingContext, ContextExtension>[];
+    postNavigationHooks?: BrowserHook<
+        PuppeteerCrawlingContext<GetUserDataFromRequest<ExtendedContext['request']>>,
+        ContextExtension
+    >[];
 }
 
 /**

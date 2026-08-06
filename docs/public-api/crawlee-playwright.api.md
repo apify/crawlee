@@ -400,8 +400,8 @@ export interface PlaywrightCrawlerOptions<ContextExtension = Dictionary<never>, 
     browserPlugins: [PlaywrightPlugin];
 }, Routes> {
     launchContext?: PlaywrightLaunchContext;
-    postNavigationHooks?: BrowserHook<PlaywrightCrawlingContext, ContextExtension>[];
-    preNavigationHooks?: BrowserHook<PlaywrightCrawlingContext, ContextExtension>[];
+    postNavigationHooks?: BrowserHook<PlaywrightCrawlingContext<GetUserDataFromRequest<ExtendedContext['request']>>, ContextExtension>[];
+    preNavigationHooks?: BrowserHook<PlaywrightCrawlingContext<GetUserDataFromRequest<ExtendedContext['request']>>, ContextExtension>[];
     requestHandler?: RouterHandler<ExtendedContext, Routes> | RequestHandler<ExtendedContext>;
 }
 

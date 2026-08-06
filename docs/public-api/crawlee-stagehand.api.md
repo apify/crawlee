@@ -140,8 +140,8 @@ export interface StagehandCrawlerOptions<ContextExtension = Dictionary<never>, E
     browserPlugins: [StagehandPlugin];
 }, Routes> {
     launchContext?: StagehandLaunchContext;
-    postNavigationHooks?: StagehandHook[];
-    preNavigationHooks?: StagehandHook[];
+    postNavigationHooks?: BrowserHook<StagehandCrawlingContext<GetUserDataFromRequest<ExtendedContext['request']>>, ContextExtension>[];
+    preNavigationHooks?: BrowserHook<StagehandCrawlingContext<GetUserDataFromRequest<ExtendedContext['request']>>, ContextExtension>[];
     requestHandler?: RouterHandler<ExtendedContext, Routes> | RequestHandler<ExtendedContext>;
     stagehandOptions?: StagehandOptions;
 }

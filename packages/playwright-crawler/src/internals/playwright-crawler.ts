@@ -100,7 +100,10 @@ export interface PlaywrightCrawlerOptions<
      * ]
      * ```
      */
-    preNavigationHooks?: BrowserHook<PlaywrightCrawlingContext, ContextExtension>[];
+    preNavigationHooks?: BrowserHook<
+        PlaywrightCrawlingContext<GetUserDataFromRequest<ExtendedContext['request']>>,
+        ContextExtension
+    >[];
 
     /**
      * Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
@@ -118,7 +121,10 @@ export interface PlaywrightCrawlerOptions<
      * ]
      * ```
      */
-    postNavigationHooks?: BrowserHook<PlaywrightCrawlingContext, ContextExtension>[];
+    postNavigationHooks?: BrowserHook<
+        PlaywrightCrawlingContext<GetUserDataFromRequest<ExtendedContext['request']>>,
+        ContextExtension
+    >[];
 }
 
 /**
