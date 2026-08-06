@@ -404,6 +404,26 @@ In v4, when `saveResponseCookies` is enabled (the default), browser cookies are 
 
 The `preNavigationHooks` option in `HttpCrawler` subclasses no longer accepts the `gotOptions` object as a second parameter. Modify the `crawlingContext` fields (e.g. `.request`) directly instead.
 
+### Browser navigation hooks no longer receive `gotoOptions` as a second argument
+
+The `preNavigationHooks` and `postNavigationHooks` of the browser crawlers (`PlaywrightCrawler`, `PuppeteerCrawler`) received the options object forwarded to `page.goto()` as a second parameter in v3. The hooks now receive only the crawling context, and the `page.goto()` options are available as its `gotoOptions` member, which can be mutated in place:
+
+```ts
+// v3
+preNavigationHooks: [
+    async (crawlingContext, gotoOptions) => {
+        gotoOptions.timeout = 60_000;
+    },
+],
+
+// v4
+preNavigationHooks: [
+    async ({ gotoOptions }) => {
+        gotoOptions.timeout = 60_000;
+    },
+],
+```
+
 ### Removed crawling context properties
 
 #### Crawling context no longer includes Error for failed requests
