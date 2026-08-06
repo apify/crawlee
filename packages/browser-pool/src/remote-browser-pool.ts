@@ -53,22 +53,25 @@ export interface RemoteConnection {
  * {@apilink RemoteConnection} so it can be injected into a plugin.
  */
 class RemoteSessionRegistry implements RemoteConnection {
-    private readonly sessions = new Map<
-        number,
-        { url: string; context?: Record<string, unknown>; released: boolean }
-    >();
-    private nextToken = 0;
+    readonly #sessions = new Map<number, { url: string; context?: Record<string, unknown>; released: boolean }>();
+    #nextToken = 0;
+
+    readonly #endpoint: RemoteBrowserEndpoint;
+    readonly #onRelease: ((info: { endpoint: string; context?: Record<string, unknown> }) => unknown) | undefined;
+    readonly #log: CrawleeLogger;
 
     constructor(
-        private readonly endpoint: RemoteBrowserEndpoint,
-        private readonly onRelease:
-            | ((info: { endpoint: string; context?: Record<string, unknown> }) => unknown)
-            | undefined,
-        private readonly log: CrawleeLogger,
-    ) {}
+        endpoint: RemoteBrowserEndpoint,
+        onRelease: ((info: { endpoint: string; context?: Record<string, unknown> }) => unknown) | undefined,
+        log: CrawleeLogger,
+    ) {
+        this.#endpoint = endpoint;
+        this.#onRelease = onRelease;
+        this.#log = log;
+    }
 
     async resolve(options?: { proxyUrl?: string }): Promise<{ url: string; token: number }> {
-        const resolved = typeof this.endpoint === 'function' ? await this.endpoint(options) : this.endpoint;
+        const resolved = typeof this.#endpoint === 'function' ? await this.#endpoint(options) : this.#endpoint;
 
         let result: ResolvedRemoteEndpoint;
         if (typeof resolved === 'string') {
@@ -80,30 +83,30 @@ class RemoteSessionRegistry implements RemoteConnection {
             result = resolved;
         }
 
-        const token = this.nextToken++;
-        this.sessions.set(token, { url: result.url, context: result.context, released: false });
+        const token = this.#nextToken++;
+        this.#sessions.set(token, { url: result.url, context: result.context, released: false });
         return { url: result.url, token };
     }
 
     async release(token: number): Promise<void> {
-        const session = this.sessions.get(token);
+        const session = this.#sessions.get(token);
         // Release at most once per session — guards a close()/teardown race (the `released` flag is set
         // synchronously before the awaited onRelease, so releaseAll() can't double-fire an in-flight release).
         if (!session || session.released) return;
         session.released = true;
 
         try {
-            await this.onRelease?.({ endpoint: session.url, context: session.context });
+            await this.#onRelease?.({ endpoint: session.url, context: session.context });
         } catch (err) {
-            this.log.warning('Remote browser release() failed.', { error: (err as Error)?.message });
+            this.#log.warning('Remote browser release() failed.', { error: (err as Error)?.message });
         } finally {
-            this.sessions.delete(token);
+            this.#sessions.delete(token);
         }
     }
 
     /** Releases every session that is still open. Called on pool teardown so no remote session leaks. */
     async releaseAll(): Promise<void> {
-        await Promise.all([...this.sessions.keys()].map(async (token) => this.release(token)));
+        await Promise.all([...this.#sessions.keys()].map(async (token) => this.release(token)));
     }
 }
 
@@ -199,14 +202,14 @@ export class RemoteBrowserPool<Page = unknown> implements IBrowserPool<Page> {
     readonly browserPool: BrowserPool;
 
     /** The wrapped pool viewed through the {@apilink IBrowserPool} contract (the bare type widens pages to `never`). */
-    private readonly pool: IBrowserPool<Page>;
+    readonly #pool: IBrowserPool<Page>;
 
-    private readonly registry: RemoteSessionRegistry;
-    private readonly slotPollIntervalMillis: number;
-    private readonly log: CrawleeLogger;
+    readonly #registry: RemoteSessionRegistry;
+    readonly #slotPollIntervalMillis: number;
+    readonly #log: CrawleeLogger;
 
     /** Shared by all `newPage` callers waiting for a free slot, so they don't each register their own listeners. */
-    private _capacityChange?: Promise<void>;
+    #capacityChange?: Promise<void>;
 
     constructor(options: RemoteBrowserPoolOptions) {
         const {
@@ -219,8 +222,8 @@ export class RemoteBrowserPool<Page = unknown> implements IBrowserPool<Page> {
             slotPollIntervalMillis = 500,
         } = options;
 
-        this.log = serviceLocator.getLogger().child({ prefix: 'RemoteBrowserPool' });
-        this.slotPollIntervalMillis = slotPollIntervalMillis;
+        this.#log = serviceLocator.getLogger().child({ prefix: 'RemoteBrowserPool' });
+        this.#slotPollIntervalMillis = slotPollIntervalMillis;
 
         // A RemoteBrowserProvider carries its own endpoint, release, and maxOpenBrowsers.
         const provider = endpoint instanceof RemoteBrowserProvider ? endpoint : undefined;
@@ -232,22 +235,22 @@ export class RemoteBrowserPool<Page = unknown> implements IBrowserPool<Page> {
             : release;
         const resolvedMax = maxOpenBrowsers ?? provider?.maxOpenBrowsers;
 
-        this.registry = new RemoteSessionRegistry(resolvedEndpoint, resolvedRelease, this.log);
+        this.#registry = new RemoteSessionRegistry(resolvedEndpoint, resolvedRelease, this.#log);
 
         // Wire every plugin for remote connection.
         for (const plugin of browserPlugins) {
-            plugin.useRemoteConnection(this.registry, connection);
+            plugin.useRemoteConnection(this.#registry, connection);
         }
 
         this.browserPool = new BrowserPool({ ...browserPoolOptions, browserPlugins }) as unknown as BrowserPool;
-        this.pool = this.browserPool as unknown as IBrowserPool<Page>;
+        this.#pool = this.browserPool as unknown as IBrowserPool<Page>;
 
         // Release a browser's remote session once it closes. The registry dedupes (close() schedules a delayed
         // kill(), so BROWSER_CLOSED can fire twice), and destroy()'s releaseAll() backstops any that never close.
         this.browserPool.on(BROWSER_POOL_EVENTS.BROWSER_LAUNCHED, (controller: BrowserController) => {
             controller.once(BROWSER_CONTROLLER_EVENTS.BROWSER_CLOSED, () => {
-                const token = controller.launchContext._remoteToken;
-                if (token !== undefined) void this.registry.release(token);
+                const token = controller.launchContext.remoteToken;
+                if (token !== undefined) void this.#registry.release(token);
             });
         });
 
@@ -270,33 +273,33 @@ export class RemoteBrowserPool<Page = unknown> implements IBrowserPool<Page> {
      * allows it (either a new browser slot is free, or an active browser still has page capacity).
      */
     async newPage(options?: NewPageOptions): Promise<Page> {
-        await this._waitForFreeSlot();
-        return this.pool.newPage(options);
+        await this.waitForFreeSlot();
+        return this.#pool.newPage(options);
     }
 
     async closePage(page: Page, options?: { error?: Error }): Promise<void> {
-        return this.pool.closePage(page, options);
+        return this.#pool.closePage(page, options);
     }
 
     async extractPageState(page: Page): Promise<PageState> {
-        return this.pool.extractPageState(page);
+        return this.#pool.extractPageState(page);
     }
 
     async injectPageState(page: Page, state: PageState): Promise<void> {
-        return this.pool.injectPageState(page, state);
+        return this.#pool.injectPageState(page, state);
     }
 
     /** Closes all browsers, releases any still-open remote sessions, and tears down the wrapped pool. */
     async destroy(): Promise<void> {
         await this.browserPool.destroy();
         // Backstop: release any sessions whose browser never emitted a close (e.g. dropped on teardown).
-        await this.registry.releaseAll();
+        await this.#registry.releaseAll();
     }
 
     /** Resolves once the wrapped pool can serve another page without exceeding `maxOpenBrowsers`. */
-    private async _waitForFreeSlot(): Promise<void> {
+    private async waitForFreeSlot(): Promise<void> {
         while (!this.browserPool.hasFreeBrowserSlot() && !this.browserPool.hasActiveBrowserWithFreeCapacity()) {
-            await this._nextCapacityChange();
+            await this.nextCapacityChange();
         }
     }
 
@@ -305,22 +308,22 @@ export class RemoteBrowserPool<Page = unknown> implements IBrowserPool<Page> {
      * concurrently-waiting `newPage` calls share a single promise (and a single pair of event listeners)
      * per tick, so a fleet of saturated callers doesn't fan out into N listener pairs on the pool.
      */
-    private _nextCapacityChange(): Promise<void> {
-        this._capacityChange ??= new Promise<void>((resolve) => {
+    private nextCapacityChange(): Promise<void> {
+        this.#capacityChange ??= new Promise<void>((resolve) => {
             const done = () => {
                 clearTimeout(timer);
                 this.browserPool.off(BROWSER_POOL_EVENTS.BROWSER_RETIRED, done);
                 this.browserPool.off(BROWSER_POOL_EVENTS.PAGE_CLOSED, done);
-                this._capacityChange = undefined;
+                this.#capacityChange = undefined;
                 resolve();
             };
 
-            const timer = setTimeout(done, this.slotPollIntervalMillis);
+            const timer = setTimeout(done, this.#slotPollIntervalMillis);
             timer.unref?.();
             this.browserPool.once(BROWSER_POOL_EVENTS.BROWSER_RETIRED, done);
             this.browserPool.once(BROWSER_POOL_EVENTS.PAGE_CLOSED, done);
         });
 
-        return this._capacityChange;
+        return this.#capacityChange;
     }
 }

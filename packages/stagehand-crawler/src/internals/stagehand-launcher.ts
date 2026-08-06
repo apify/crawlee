@@ -70,7 +70,7 @@ export class StagehandLauncher extends BrowserLauncher<StagehandPlugin> {
         stagehandOptions: ow.optional.object,
     };
 
-    private readonly stagehandOptions: StagehandOptions;
+    readonly #stagehandOptions: StagehandOptions;
 
     /**
      * All StagehandLauncher parameters are passed via the launchContext object.
@@ -104,7 +104,7 @@ export class StagehandLauncher extends BrowserLauncher<StagehandPlugin> {
             configuration,
         );
 
-        this.stagehandOptions = {
+        this.#stagehandOptions = {
             env: 'LOCAL',
             model: 'openai/gpt-4.1-mini',
             ...stagehandOptions,
@@ -121,7 +121,7 @@ export class StagehandLauncher extends BrowserLauncher<StagehandPlugin> {
             ...this.otherLaunchContextProps,
             proxyUrl: this.proxyUrl,
             launchOptions: this.createLaunchOptions(),
-            stagehandOptions: this.stagehandOptions, // Set AFTER to override any unresolved options
+            stagehandOptions: this.#stagehandOptions, // Set AFTER to override any unresolved options
         });
     }
 }

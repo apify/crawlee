@@ -169,20 +169,20 @@ export class StorageTransaction implements StorageTransactionView {
     /** Per-storage-type write policy. */
     readonly policy: StorageWritePolicy;
 
-    private readonly commitTimeoutMillis: number;
+    readonly #commitTimeoutMillis: number;
 
-    private _state: StorageTransactionState = 'open';
+    #state: StorageTransactionState = 'open';
 
-    private disposed = false;
+    #disposed = false;
 
     /** @internal */
     constructor(options: StorageTransactionOptions = {}) {
         this.policy = { ...DEFAULT_STORAGE_WRITE_POLICY, ...options.policy };
-        this.commitTimeoutMillis = options.commitTimeoutMillis ?? DEFAULT_COMMIT_TIMEOUT_MILLIS;
+        this.#commitTimeoutMillis = options.commitTimeoutMillis ?? DEFAULT_COMMIT_TIMEOUT_MILLIS;
     }
 
     get state(): StorageTransactionState {
-        return this._state;
+        return this.#state;
     }
 
     /**
@@ -190,7 +190,7 @@ export class StorageTransaction implements StorageTransactionView {
      * consults — operations performed after the transaction is closed pass through to the real backend.
      */
     get isActive(): boolean {
-        return this._state === 'open';
+        return this.#state === 'open';
     }
 
     /** Runs `callback` with this transaction installed in the async context. */
@@ -204,7 +204,7 @@ export class StorageTransaction implements StorageTransactionView {
      */
     recordJournalEntry(entry: JournalEntry): void {
         if (!this.isActive) {
-            throw new Error(`Cannot record a journal entry on a transaction in the '${this._state}' state`);
+            throw new Error(`Cannot record a journal entry on a transaction in the '${this.#state}' state`);
         }
 
         this.journal.push(entry);
@@ -219,11 +219,11 @@ export class StorageTransaction implements StorageTransactionView {
      * partway may have applied some of the writes already.
      */
     async commit(): Promise<void> {
-        if (this._state !== 'open') {
+        if (this.#state !== 'open') {
             return;
         }
 
-        this._state = 'committing';
+        this.#state = 'committing';
 
         try {
             // The replay re-drives the frontend write path, which checks for cancellation (`tryCancel`)
@@ -233,13 +233,13 @@ export class StorageTransaction implements StorageTransactionView {
             await timeoutStorage.exit(async () =>
                 addTimeoutToPromise(
                     async () => this.flush(),
-                    this.commitTimeoutMillis,
-                    `Committing the storage transaction timed out after ${this.commitTimeoutMillis / 1000} seconds.`,
+                    this.#commitTimeoutMillis,
+                    `Committing the storage transaction timed out after ${this.#commitTimeoutMillis / 1000} seconds.`,
                 ),
             );
-            this._state = 'committed';
+            this.#state = 'committed';
         } catch (error) {
-            this._state = 'failed';
+            this.#state = 'failed';
             throw error;
         }
     }
@@ -274,11 +274,11 @@ export class StorageTransaction implements StorageTransactionView {
      * and never throws.
      */
     rollback(): void {
-        if (this._state !== 'open') {
+        if (this.#state !== 'open') {
             return;
         }
 
-        this._state = 'rolledBack';
+        this.#state = 'rolledBack';
     }
 
     /**
@@ -287,11 +287,11 @@ export class StorageTransaction implements StorageTransactionView {
      * {@apilink StorageTransactionView} of this transaction is only valid until this is called.
      */
     dispose(): void {
-        if (this.disposed) {
+        if (this.#disposed) {
             return;
         }
 
-        if (this._state === 'open') {
+        if (this.#state === 'open') {
             // Disposing an open transaction is an internal invariant violation - roll back first.
             try {
                 serviceLocator
@@ -303,7 +303,7 @@ export class StorageTransaction implements StorageTransactionView {
             this.rollback();
         }
 
-        this.disposed = true;
+        this.#disposed = true;
         this.journal.length = 0;
     }
 

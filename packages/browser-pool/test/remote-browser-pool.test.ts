@@ -117,7 +117,7 @@ describe('RemoteBrowserPool — release lifecycle', () => {
 
         // Mimic the inner pool launching a controller, then that controller closing.
         const controller: any = new EventEmitter();
-        controller.launchContext = { _remoteToken: token };
+        controller.launchContext = { remoteToken: token };
         pool.browserPool.emit(BROWSER_POOL_EVENTS.BROWSER_LAUNCHED, controller);
         controller.emit(BROWSER_CONTROLLER_EVENTS.BROWSER_CLOSED, controller);
 

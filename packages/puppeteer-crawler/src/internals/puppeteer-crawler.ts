@@ -302,7 +302,7 @@ export class PuppeteerCrawler<
         };
     }
 
-    protected override async _navigationHandler(
+    protected override async navigationHandler(
         crawlingContext: PuppeteerCrawlingContext,
         gotoOptions: DirectNavigationOptions,
     ) {

@@ -85,7 +85,7 @@ export class StagehandCrawler<ContextExtension = Dictionary<never>, ExtendedCont
     constructor(options?: StagehandCrawlerOptions<ContextExtension, ExtendedContext, Routes>);
     // (undocumented)
     protected buildContextPipeline(): ContextPipeline<CrawlingContext, StagehandCrawlingContext>;
-    protected _navigationHandler(crawlingContext: StagehandCrawlingContext, gotoOptions: StagehandGotoOptions): Promise<Response_2 | null>;
+    protected navigationHandler(crawlingContext: StagehandCrawlingContext, gotoOptions: StagehandGotoOptions): Promise<Response_2 | null>;
     // (undocumented)
     protected static optionsShape: {
         stagehandOptions: ObjectPredicate<object> & BasePredicate<object | undefined>;
@@ -204,10 +204,10 @@ export interface StagehandPage extends Page {
 // @public
 class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, Browser> {
     constructor(library: BrowserType, options?: StagehandPluginOptions);
-    protected _addProxyToLaunchOptions(launchContext: LaunchContext<BrowserType>): Promise<void>;
+    protected addProxyToLaunchOptions(launchContext: LaunchContext<BrowserType>): Promise<void>;
     createController(): BrowserController<BrowserType, LaunchOptions, Browser>;
     getStagehandForBrowser(browser: Browser): Stagehand | undefined;
-    protected _isChromiumBasedBrowser(): boolean;
+    protected isChromiumBasedBrowser(): boolean;
     protected _launch(launchContext: LaunchContext<BrowserType>): Promise<Browser>;
     // (undocumented)
     readonly stagehandOptions: StagehandOptions;

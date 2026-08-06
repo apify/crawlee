@@ -184,45 +184,34 @@ describe('SystemStatus', () => {
 
     test('should show different values for now and lately', () => {
         const ratios = { memInfo: 0.5, eventLoopInfo: 0.5, cpuInfo: 0.5, clientInfo: 0.5 };
+        // The "now" window is configuration, so each width gets its own instance rather than a mutated one.
+        const statusWithCurrentWindow = (snaps: any[], currentHistoryMillis: number) =>
+            new SystemStatus({
+                snapshotter: new MockSnapshotter(snaps, snaps, snaps, snaps, ratios) as any,
+                currentHistorySecs: currentHistoryMillis / 1000,
+            });
+
         let snaps = generateSnapsSync(95, false);
-        let systemStatus = new SystemStatus({
-            snapshotter: new MockSnapshotter(snaps, snaps, snaps, snaps, ratios) as any,
-        });
 
-        // @ts-expect-error Overwriting readonly private prop
-        systemStatus.currentHistoryMillis = 5;
-        expect(systemStatus.getCurrentStatus().isSystemIdle).toBe(false);
-        expect(systemStatus.getHistoricalStatus().isSystemIdle).toBe(true);
+        expect(statusWithCurrentWindow(snaps, 5).getCurrentStatus().isSystemIdle).toBe(false);
+        expect(statusWithCurrentWindow(snaps, 5).getHistoricalStatus().isSystemIdle).toBe(true);
 
-        // @ts-expect-error Overwriting readonly private prop
-        systemStatus.currentHistoryMillis = 10;
-        expect(systemStatus.getCurrentStatus().isSystemIdle).toBe(false);
-        expect(systemStatus.getHistoricalStatus().isSystemIdle).toBe(true);
+        expect(statusWithCurrentWindow(snaps, 10).getCurrentStatus().isSystemIdle).toBe(false);
+        expect(statusWithCurrentWindow(snaps, 10).getHistoricalStatus().isSystemIdle).toBe(true);
 
-        // @ts-expect-error Overwriting readonly private prop
-        systemStatus.currentHistoryMillis = 12;
-        expect(systemStatus.getCurrentStatus().isSystemIdle).toBe(true);
-        expect(systemStatus.getHistoricalStatus().isSystemIdle).toBe(true);
+        expect(statusWithCurrentWindow(snaps, 12).getCurrentStatus().isSystemIdle).toBe(true);
+        expect(statusWithCurrentWindow(snaps, 12).getHistoricalStatus().isSystemIdle).toBe(true);
 
         snaps = generateSnapsSync(95, true);
-        systemStatus = new SystemStatus({
-            snapshotter: new MockSnapshotter(snaps, snaps, snaps, snaps, ratios) as any,
-        });
 
-        // @ts-expect-error Overwriting readonly private prop
-        systemStatus.currentHistoryMillis = 5;
-        expect(systemStatus.getCurrentStatus().isSystemIdle).toBe(true);
-        expect(systemStatus.getHistoricalStatus().isSystemIdle).toBe(false);
+        expect(statusWithCurrentWindow(snaps, 5).getCurrentStatus().isSystemIdle).toBe(true);
+        expect(statusWithCurrentWindow(snaps, 5).getHistoricalStatus().isSystemIdle).toBe(false);
 
-        // @ts-expect-error Overwriting readonly private prop
-        systemStatus.currentHistoryMillis = 10;
-        expect(systemStatus.getCurrentStatus().isSystemIdle).toBe(true);
-        expect(systemStatus.getHistoricalStatus().isSystemIdle).toBe(false);
+        expect(statusWithCurrentWindow(snaps, 10).getCurrentStatus().isSystemIdle).toBe(true);
+        expect(statusWithCurrentWindow(snaps, 10).getHistoricalStatus().isSystemIdle).toBe(false);
 
-        // @ts-expect-error Overwriting readonly private prop
-        systemStatus.currentHistoryMillis = 12;
-        expect(systemStatus.getCurrentStatus().isSystemIdle).toBe(false);
-        expect(systemStatus.getHistoricalStatus().isSystemIdle).toBe(false);
+        expect(statusWithCurrentWindow(snaps, 12).getCurrentStatus().isSystemIdle).toBe(false);
+        expect(statusWithCurrentWindow(snaps, 12).getHistoricalStatus().isSystemIdle).toBe(false);
     });
 
     test('the historical window is requested explicitly, so a long-memory custom signal cannot widen it', () => {
