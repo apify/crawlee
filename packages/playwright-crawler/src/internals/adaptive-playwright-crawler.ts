@@ -117,7 +117,7 @@ class AdaptivePlaywrightCrawlerStatistics extends Statistics {
 }
 
 export interface AdaptivePlaywrightCrawlerContext<
-    UserData extends Dictionary = Dictionary,
+    UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 > extends CrawlingContext<UserData> {
     request: LoadedRequest<Request<UserData>>;
     /**
@@ -325,7 +325,12 @@ export class AdaptivePlaywrightCrawler<
     private staticContextPipeline: ContextPipeline<CrawlingContext, ExtendedContext>;
     private browserContextPipeline: ContextPipeline<CrawlingContext, ExtendedContext>;
     private individualRequestHandlerTimeoutMillis: number;
-    declare readonly stats: AdaptivePlaywrightCrawlerStatistics;
+
+    // The constructor always injects an `AdaptivePlaywrightCrawlerStatistics`, so narrowing the cast is sound.
+    override get stats(): AdaptivePlaywrightCrawlerStatistics {
+        return super.stats as AdaptivePlaywrightCrawlerStatistics;
+    }
+
     private inFlightRenderingTypeDetections = 0;
 
     /**
@@ -344,7 +349,7 @@ export class AdaptivePlaywrightCrawler<
             resultChecker,
             shouldPropagateError,
             resultComparator,
-            statisticsOptions,
+            statistics,
             requestHandlerTimeoutSecs = 60,
             errorHandler,
             failedRequestHandler,
@@ -370,12 +375,25 @@ export class AdaptivePlaywrightCrawler<
             );
         }
 
+        if (statistics !== undefined && !(statistics instanceof AdaptivePlaywrightCrawlerStatistics)) {
+            throw new Error(
+                'AdaptivePlaywrightCrawler tracks extra fields on its own Statistics subclass and cannot use a ' +
+                    'plain `statistics` instance. Omit the option to let the crawler build its own.',
+            );
+        }
+
         super({
             ...rest,
             errorHandler,
             failedRequestHandler,
             requestHandler,
             requestHandlerTimeoutSecs,
+            // Inject our subclass so the base tracks the extra adaptive fields instead of building a plain `Statistics`.
+            statistics:
+                statistics ??
+                new AdaptivePlaywrightCrawlerStatistics({
+                    logMessage: `${AdaptivePlaywrightCrawler.name} request statistics:`,
+                }),
             contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),
             // The base crawler must not wrap requests in a transaction of its own - this crawler opens
             // one per request handler attempt in `crawlOne` instead, forwarding the write policy of the
@@ -423,9 +441,7 @@ export class AdaptivePlaywrightCrawler<
         // each hook's overrides at runtime regardless of the static type.
         const staticCrawler = new CheerioCrawler({
             ...rest,
-            statisticsOptions: {
-                persistenceOptions: { enable: false },
-            },
+            statistics: new Statistics({ persistenceOptions: { enable: false } }),
             preNavigationHooks,
             postNavigationHooks,
             extendContext,
@@ -433,9 +449,7 @@ export class AdaptivePlaywrightCrawler<
 
         const browserCrawler = new PlaywrightCrawler({
             ...rest,
-            statisticsOptions: {
-                persistenceOptions: { enable: false },
-            },
+            statistics: new Statistics({ persistenceOptions: { enable: false } }),
             preNavigationHooks: preNavigationHooks as unknown as PlaywrightHook[],
             postNavigationHooks: postNavigationHooks as unknown as PlaywrightHook[],
             extendContext,
@@ -450,11 +464,6 @@ export class AdaptivePlaywrightCrawler<
         this.browserContextPipeline = browserCrawler.contextPipeline.compose({
             action: this.adaptPlaywrightContext.bind(this),
         }) as unknown as ContextPipeline<CrawlingContext, ExtendedContext>;
-
-        this.stats = new AdaptivePlaywrightCrawlerStatistics({
-            logMessage: `${this.log.getOptions().prefix} request statistics:`,
-            ...statisticsOptions,
-        });
     }
 
     protected override async _init(): Promise<void> {

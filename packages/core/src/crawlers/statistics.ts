@@ -45,6 +45,85 @@ export interface PersistenceOptions {
 }
 
 /**
+ * The statistics surface a crawler depends on: recording per-request outcomes, tracking errors, and driving the
+ * capture lifecycle for a run. Injected via the crawler's `statistics` option, so a custom implementation (or a
+ * {@apilink Statistics} subclass tracking extra fields) can be plugged in without subclassing the crawler.
+ *
+ * The owned-only mutators the crawler uses to *own* a default it built - `reset()`/`resetStore()` - are deliberately
+ * absent: an injected instance is borrowed, and the crawler never wipes it. Those live on the concrete
+ * {@apilink Statistics} only.
+ *
+ * @category Crawlers
+ */
+export interface IStatistics {
+    /** Tracker for errors on the final retry of a request. */
+    readonly errorTracker: ErrorTracker;
+
+    /** Tracker for errors on retries prior to the final one. */
+    readonly errorTrackerRetry: ErrorTracker;
+
+    /** The live statistics state the crawler reads for status messages and the final summary. */
+    readonly state: StatisticState;
+
+    /** Retries histogram - index `i` holds the number of requests that finished after `i` retries. */
+    readonly requestRetryHistogram: number[];
+
+    /** Marks a request as started, so its duration can be measured on finish/fail. */
+    startJob(id: number | string): void;
+
+    /** Marks a started request as finished, updating the finished counters and durations. */
+    finishJob(id: number | string, retryCount: number): void;
+
+    /** Marks a started request as failed, updating the failed counters and durations. */
+    failJob(id: number | string, retryCount: number): void;
+
+    /** Drops a started request without counting it as finished or failed (e.g. skipped by robots.txt). */
+    discardJob(id: number | string): void;
+
+    /** Increments the counter for the given HTTP status code. */
+    registerStatusCode(code: number): void;
+
+    /** Computes the derived aggregates (averages, per-minute rates, totals) from the current state. */
+    calculate(): CalculatedStatistics;
+
+    /** Begins a capture window: loads any persisted state, subscribes to persistence events, starts periodic logging. */
+    startCapturing(): Promise<void>;
+
+    /** Ends the capture window: stops logging, unsubscribes, and persists the final state. */
+    stopCapturing(): Promise<void>;
+
+    /**
+     * Persists the current state to the key-value store. Optional - the crawler calls it on migration, but a backend
+     * with no persistence of its own can omit it.
+     */
+    persistState?(options?: PersistenceOptions): Promise<void>;
+}
+
+/** The derived aggregates computed by {@apilink IStatistics.calculate} from the current {@apilink StatisticState}. */
+export interface CalculatedStatistics {
+    /** Mean duration of a failed request, in milliseconds; `Infinity` when nothing has failed. */
+    requestAvgFailedDurationMillis: number;
+
+    /** Mean duration of a finished request, in milliseconds; `Infinity` when nothing has finished. */
+    requestAvgFinishedDurationMillis: number;
+
+    /** Requests finished per minute over the run so far. */
+    requestsFinishedPerMinute: number;
+
+    /** Requests failed per minute over the run so far. */
+    requestsFailedPerMinute: number;
+
+    /** Combined duration of all finished and failed requests, in milliseconds. */
+    requestTotalDurationMillis: number;
+
+    /** Total number of settled requests (finished plus failed). */
+    requestsTotal: number;
+
+    /** Wall-clock runtime since capturing started, in milliseconds. */
+    crawlerRuntimeMillis: number;
+}
+
+/**
  * The statistics class provides an interface to collecting and logging run
  * statistics for requests.
  *
@@ -54,7 +133,7 @@ export interface PersistenceOptions {
  *
  * @category Crawlers
  */
-export class Statistics {
+export class Statistics implements IStatistics {
     private static id = 0;
 
     /**
@@ -102,7 +181,8 @@ export class Statistics {
     }
 
     /**
-     * @internal
+     * Construct a statistics instance to pass to a crawler via its `statistics` option, e.g. to preconfigure
+     * persistence or error snapshots, share it across sequential runs, or subclass it to track extra fields.
      */
     constructor(options: StatisticsOptions = {}) {
         ow(
@@ -260,7 +340,7 @@ export class Statistics {
     /**
      * Calculate the current statistics
      */
-    calculate() {
+    calculate(): CalculatedStatistics {
         const {
             requestsFailed,
             requestsFinished,
@@ -287,6 +367,12 @@ export class Statistics {
      * displaying the current state in predefined intervals
      */
     async startCapturing() {
+        // A single instance drives one logging interval and one PERSIST_STATE listener, so a second concurrent
+        // capture (e.g. sharing one instance across crawlers running at once) would orphan the first. Fail loudly.
+        if (this.logInterval) {
+            throw new Error('Statistics.startCapturing() was already called - this instance is already capturing.');
+        }
+
         this.keyValueStore ??= await KeyValueStore.open(null, { configuration: serviceLocator.getConfiguration() });
 
         if (this.state.crawlerStartedAt === null) {

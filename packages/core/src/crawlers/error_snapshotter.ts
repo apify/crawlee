@@ -30,9 +30,7 @@ interface ErrorSnapshot {
  * ```ts
  * const crawler = new BasicCrawler({
  *   // ...
- *   statisticsOptions: {
- *     saveErrorSnapshots: true,
- *   },
+ *   statistics: new Statistics({ saveErrorSnapshots: true }),
  * });
  * ```
  */

@@ -244,7 +244,7 @@ export class PuppeteerCrawler<ContextExtension = Dictionary<never>, ExtendedCont
         maxConcurrency: NumberPredicate & BasePredicate<number | undefined>;
         maxRequestsPerMinute: NumberPredicate & BasePredicate<number | undefined>;
         keepAlive: BooleanPredicate & BasePredicate<boolean | undefined>;
-        statisticsOptions: ObjectPredicate<object> & BasePredicate<object | undefined>;
+        statistics: ObjectPredicate<object> & BasePredicate<object | undefined>;
         id: StringPredicate & BasePredicate<string | undefined>;
     };
 }
@@ -254,12 +254,12 @@ export interface PuppeteerCrawlerOptions<ContextExtension = Dictionary<never>, E
     browserPlugins: [PuppeteerPlugin];
 }, Routes> {
     launchContext?: PuppeteerLaunchContext;
-    postNavigationHooks?: BrowserHook<PuppeteerCrawlingContext, ContextExtension>[];
-    preNavigationHooks?: BrowserHook<PuppeteerCrawlingContext, ContextExtension>[];
+    postNavigationHooks?: BrowserHook<PuppeteerCrawlingContext<GetUserDataFromRequest<ExtendedContext['request']>>, ContextExtension>[];
+    preNavigationHooks?: BrowserHook<PuppeteerCrawlingContext<GetUserDataFromRequest<ExtendedContext['request']>>, ContextExtension>[];
 }
 
 // @public (undocumented)
-export interface PuppeteerCrawlingContext<UserData extends Dictionary = Dictionary> extends BrowserCrawlingContext<Page, HTTPResponse, UserData, PuppeteerGoToOptions>, PuppeteerContextUtils {
+export interface PuppeteerCrawlingContext<UserData extends Dictionary = any> extends BrowserCrawlingContext<Page, HTTPResponse, UserData, PuppeteerGoToOptions>, PuppeteerContextUtils {
 }
 
 // @public (undocumented)
@@ -273,8 +273,7 @@ export interface PuppeteerDirectNavigationOptions {
 export type PuppeteerGoToOptions = NonNullable<Parameters<Page['goto']>[1]>;
 
 // @public (undocumented)
-export interface PuppeteerHook extends BrowserHook<PuppeteerCrawlingContext> {
-}
+export type PuppeteerHook<UserData extends Dictionary = any> = BrowserHook<PuppeteerCrawlingContext<UserData>>;
 
 // @public
 export interface PuppeteerLaunchContext extends BrowserLaunchContext<PuppeteerPlugin['launchOptions'], unknown> {

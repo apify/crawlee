@@ -17,7 +17,7 @@ This page summarizes the breaking changes in Crawlee v4. There are many, so the 
 
 - **Timeouts that mean what they say.** Navigation and the request handler are [timed separately](#navigation-and-the-request-handler-are-timed-separately) — no more mysteriously summed limits — and a single route can get [its own timeout](#per-route-and-per-request-handler-timeouts) or extend it mid-flight.
 - **Composable crawling context.** The new `extendContext` option and `ContextPipeline` composition replace subclassing tricks for [adding members to the crawling context](#crawling-context-no-longer-includes-a-reference-to-the-crawler-itself).
-- **Bring your own implementation.** Crawlers now accept any [`ISessionPool`](#custom-sessionpool-implementations-via-the-isessionpool-interface), [`IBrowserPool`](#custom-browserpool-implementations-via-the-ibrowserpool-interface), [`IRenderingTypePredictor`](#custom-rendering-type-predictors-via-the-irenderingtypepredictor-interface) or [`IRequestManager`](#request-loaders-and-managers) — and never tear down an instance they did not create.
+- **Bring your own implementation.** Crawlers now accept any [`ISessionPool`](#custom-sessionpool-implementations-via-the-isessionpool-interface), [`IBrowserPool`](#custom-browserpool-implementations-via-the-ibrowserpool-interface), [`IRenderingTypePredictor`](#custom-rendering-type-predictors-via-the-irenderingtypepredictor-interface), [`IRequestManager`](#request-loaders-and-managers) or [`IStatistics`](#statisticsoptions-is-replaced-by-a-statistics-instance) — and never tear down an instance they did not create.
 - **One concurrency budget for several crawlers.** The new [`ConcurrencySystem`](#autoscaling-moved-to-concurrencysystem) can be shared between crawlers, capping their combined concurrency instead of letting each one oversubscribe the host.
 - **Native `fetch` types.** HTTP clients and `context.response` now use the [standard `Response`](#crawlingcontextresponse-is-now-of-type-response), and `got-scraping` is an [opt-in dependency](#http-client-packages-and-basehttpclient-reshaped) instead of a mandatory one.
 - **The session is the rotation unit.** A session carries its proxy, cookies and error score, and is rotated as a whole when blocked — replacing [proxy tiers](#tieredproxyurls-is-removed-from-proxyconfiguration) and [session rotation counters](#maxsessionrotations-and-requestsessionrotationcount-are-removed).
@@ -405,6 +405,26 @@ In v4, when `saveResponseCookies` is enabled (the default), browser cookies are 
 
 The `preNavigationHooks` option in `HttpCrawler` subclasses no longer accepts the `gotOptions` object as a second parameter. Modify the `crawlingContext` fields (e.g. `.request`) directly instead.
 
+### Browser navigation hooks no longer receive `gotoOptions` as a second argument
+
+The `preNavigationHooks` and `postNavigationHooks` of the browser crawlers (`PlaywrightCrawler`, `PuppeteerCrawler`) received the options object forwarded to `page.goto()` as a second parameter in v3. The hooks now receive only the crawling context, and the `page.goto()` options are available as its `gotoOptions` member, which can be mutated in place:
+
+```ts
+// v3
+preNavigationHooks: [
+    async (crawlingContext, gotoOptions) => {
+        gotoOptions.timeout = 60_000;
+    },
+],
+
+// v4
+preNavigationHooks: [
+    async ({ gotoOptions }) => {
+        gotoOptions.timeout = 60_000;
+    },
+],
+```
+
 ### Removed crawling context properties
 
 #### Crawling context no longer includes Error for failed requests
@@ -671,6 +691,10 @@ To support the new `ContextPipeline` / `extendContext` composition, the crawler 
 
 The exported handler types were reshaped accordingly. `ErrorHandler` and `RequestHandler` no longer wrap their context in `LoadedContext<...>`; `ErrorHandler` now takes two type parameters (`ErrorHandler<BaseContext, ExtendedContext>`), receiving `inputs: BaseContext & Partial<ExtendedContext>`. The `RestrictedCrawlingContext` and `LoadedContext` types are no longer exported from `@crawlee/basic`. If you imported or annotated these directly, update the references; if you only used the crawler options' `requestHandler` / `errorHandler` / `failedRequestHandler` callbacks with inferred parameter types, nothing changes.
 
+### Navigation hook types are now generic
+
+`PlaywrightHook`, `PuppeteerHook` and `StagehandHook` are now type aliases (previously interfaces) generic over the request's `userData` type. A hook that types its context — via the generic (e.g. `PlaywrightHook<MyUserData>`) or an explicit context annotation — is now assignable to the `preNavigationHooks` / `postNavigationHooks` options of an untyped crawler. If you extended one of these interfaces, use an intersection type instead.
+
 ### The `log` property is typed as `CrawleeLogger`
 
 The `log` property exposed throughout the public API (on the crawling context, `Statistics`, `EventManager`, `SessionOptions`, `Dataset`, etc.) is now typed as the `CrawleeLogger` interface (from `@crawlee/types`) rather than the concrete `Log` class from `@apify/log`. If you consume it structurally — calling `log.info(...)`, `log.debug(...)`, `log.child(...)` — nothing changes. You only need to act if you explicitly annotated a variable or parameter with the `Log` type from `@apify/log` and assigned `context.log` to it; type it as `CrawleeLogger` instead.
@@ -681,23 +705,24 @@ Applies when you construct `SessionPool` or `Session` instances directly, implem
 
 ### Custom `SessionPool` implementations via the `ISessionPool` interface
 
-Crawlers now accept any object implementing the new `ISessionPool` interface as their `sessionPool` option, not just instances of the built-in `SessionPool`. The contract is intentionally tiny — a single method, `getSession()` / `getSession(id)`, that hands out a `Session` for a request. Lifecycle (reset, teardown) is the responsibility of whoever owns the pool: a custom pool you construct yourself is never owned by the crawler, so the crawler never tears it down. This makes it straightforward to plug in a remote, shared, or otherwise customized session-management strategy without subclassing `SessionPool` or copying its internals.
+Crawlers now accept any object implementing the new `ISessionPool` interface as their `sessionPool` option, not just instances of the built-in `SessionPool`. The contract is intentionally tiny — a single method, `getSession(sessionId?)`, that hands out a session for a request. Lifecycle (reset, teardown) is the responsibility of whoever owns the pool: a custom pool you construct yourself is never owned by the crawler, so the crawler never tears it down. This makes it straightforward to plug in a remote, shared, or otherwise customized session-management strategy without subclassing `SessionPool` or copying its internals.
+
+`ISessionPool` and `ISession` live in `@crawlee/types`; they are not re-exported from `@crawlee/core` (see [`@crawlee/types` symbols are no longer re-exported](#crawleetypes-symbols-are-no-longer-re-exported)).
 
 ```typescript
-import { BasicCrawler, Session, type ISessionPool } from '@crawlee/core';
+import { BasicCrawler, Session } from '@crawlee/core';
+import type { ISession, ISessionPool } from '@crawlee/types';
 
 class MySessionPool implements ISessionPool {
-    private readonly sessions = new Map<string, Session>();
+    private readonly sessions = new Map<string, ISession>();
 
-    async getSession(): Promise<Session>;
-    async getSession(sessionId: string): Promise<Session | undefined>;
-    async getSession(sessionId?: string): Promise<Session | undefined> {
+    async getSession(sessionId?: string): Promise<ISession | undefined> {
         if (sessionId) {
             const existing = this.sessions.get(sessionId);
             return existing?.isUsable() ? existing : undefined;
         }
 
-        const usable = [...this.sessions.values()].find((s) => s.isUsable());
+        const usable = [...this.sessions.values()].find((session) => session.isUsable());
         if (usable) return usable;
 
         const fresh = new Session();
@@ -709,12 +734,14 @@ class MySessionPool implements ISessionPool {
 const crawler = new BasicCrawler({
     sessionPool: new MySessionPool(),
     requestHandler: async ({ session }) => {
-        // session is a Session instance, use it as usual
+        // `session` is whatever your pool returned, typed as ISession
     },
 });
 ```
 
-The returned objects must be `Session` instances — the rest of the crawler relies on `session.markGood()`, `session.cookieJar`, `session.proxyInfo`, and the rest of the concrete `Session` API.
+The crawler depends only on the `ISession` interface — `id`, `cookieJar`, `proxyInfo`, `fingerprint`, and the `isUsable()` / `markGood()` / `markBad()` / `retire()` methods — so a custom pool may hand out its own session implementation instead of instances of the built-in `Session` class. `Session` implements `ISession`, so returning `Session` instances (as above) is the shortest path; `crawlingContext.session` is typed as `ISession` either way.
+
+Returning `undefined` means the pool has no usable session for the request. The crawler turns that into a `MissingSessionError` and retries the request like any other failure.
 
 The `crawler.sessionPool` property is now **read-only** (a getter). It was previously a writable field, so any code that reassigned it after construction (`crawler.sessionPool = myPool`) no longer works — pass your pool via the `sessionPool` constructor option instead.
 
@@ -938,6 +965,28 @@ If you don't pass a predictor, nothing changes: the crawler builds one from `ren
 ### Remove `experimentalContainers` option
 
 This experimental option relied on an outdated manifest version for browser extensions, it is not possible to achieve this with the currently supported versions.
+
+## Only if you customize crawler statistics
+
+Applies when you passed `statisticsOptions` to a crawler, or subclassed `Statistics`.
+
+### `statisticsOptions` is replaced by a `statistics` instance
+
+The `statisticsOptions` option has been removed from the crawler constructor. Instead of passing options for the crawler to build its `Statistics` from, construct a `Statistics` instance yourself and pass it via the new `statistics` option — the same inject-or-default idiom as `sessionPool` and `browserPool`.
+
+```typescript
+import { Statistics } from '@crawlee/core';
+
+const crawler = new BasicCrawler({
+    // The old parameter won't work anymore
+    // statisticsOptions: { saveErrorSnapshots: true },
+    statistics: new Statistics({ saveErrorSnapshots: true }),
+});
+```
+
+Omit the option and the crawler builds its own default, exactly as before. A supplied instance is treated as borrowed: the crawler records into it and drives its capture lifecycle for the run, but never `reset()`s it between `run()` calls — so a preconfigured instance keeps whatever state it was handed. This is also the supported way to plug in a custom `Statistics` subclass that tracks extra fields (superseding the previous subclass-and-reassign pattern).
+
+The option accepts the built-in `Statistics` or any object implementing the new `IStatistics` interface, so a fully custom statistics backend can be plugged in without subclassing. The crawler exposes it as `crawler.stats` typed as `IStatistics`.
 
 ## Only if you wrote a custom HTTP client or used `got-scraping` directly
 

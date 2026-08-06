@@ -131,6 +131,17 @@ interface BrowserPage {
     content: () => Promise<string>;
 }
 
+// @public
+export interface CalculatedStatistics {
+    crawlerRuntimeMillis: number;
+    requestAvgFailedDurationMillis: number;
+    requestAvgFinishedDurationMillis: number;
+    requestsFailedPerMinute: number;
+    requestsFinishedPerMinute: number;
+    requestsTotal: number;
+    requestTotalDurationMillis: number;
+}
+
 // @public (undocumented)
 export interface ClientInfo {
     // (undocumented)
@@ -826,6 +837,23 @@ export interface IRequestManager extends IRequestLoader {
     purge?(): Promise<void>;
     reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
     setExpectedRequestProcessingTimeSecs?(secs: number): Promise<void>;
+}
+
+// @public
+export interface IStatistics {
+    calculate(): CalculatedStatistics;
+    discardJob(id: number | string): void;
+    readonly errorTracker: ErrorTracker;
+    readonly errorTrackerRetry: ErrorTracker;
+    failJob(id: number | string, retryCount: number): void;
+    finishJob(id: number | string, retryCount: number): void;
+    persistState?(options?: PersistenceOptions): Promise<void>;
+    registerStatusCode(code: number): void;
+    readonly requestRetryHistogram: number[];
+    startCapturing(): Promise<void>;
+    startJob(id: number | string): void;
+    readonly state: StatisticState;
+    stopCapturing(): Promise<void>;
 }
 
 // @public
@@ -1896,16 +1924,9 @@ export interface StatisticPersistedState extends Omit<StatisticState, 'statsPers
 }
 
 // @public
-export class Statistics {
-    calculate(): {
-        requestAvgFailedDurationMillis: number;
-        requestAvgFinishedDurationMillis: number;
-        requestsFinishedPerMinute: number;
-        requestsFailedPerMinute: number;
-        requestTotalDurationMillis: number;
-        requestsTotal: number;
-        crawlerRuntimeMillis: number;
-    };
+export class Statistics implements IStatistics {
+    constructor(options?: StatisticsOptions);
+    calculate(): CalculatedStatistics;
     readonly errorTracker: ErrorTracker;
     readonly errorTrackerRetry: ErrorTracker;
     readonly id: string;
