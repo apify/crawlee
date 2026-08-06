@@ -626,6 +626,20 @@ describe('Plugins', () => {
                     expect(version1).toEqual(browser.version());
                 });
 
+                test('should return browser type', async () => {
+                    const plugin = new PlaywrightPlugin(playwright[browserName]);
+
+                    const launchContext = plugin.createLaunchContext({ useIncognitoPages: false });
+                    browser = await plugin.launch(launchContext);
+                    expect(browser.browserType()).toBe(playwright[browserName]);
+
+                    await browser.close();
+
+                    const launchContext2 = plugin.createLaunchContext({ useIncognitoPages: true });
+                    browser = await plugin.launch(launchContext2);
+                    expect(browser.browserType()).toBe(playwright[browserName]);
+                });
+
                 test('should return all contexts', async () => {
                     const plugin = new PlaywrightPlugin(playwright[browserName]);
 
