@@ -114,7 +114,7 @@ export interface HttpCrawlerOptions<
      * ]
      * ```
      */
-    preNavigationHooks?: InternalHttpHook<CrawlingContext, ContextExtension>[];
+    preNavigationHooks?: InternalHttpHook<CrawlingContext<any>, ContextExtension>[];
 
     /**
      * Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.

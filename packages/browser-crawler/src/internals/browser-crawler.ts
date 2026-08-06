@@ -73,7 +73,7 @@ type ContextDifference<T, U> = Omit<U, keyof T> & Partial<U>;
 export interface BrowserCrawlingContext<
     Page extends CommonPage = CommonPage,
     Response extends BaseResponse = BaseResponse,
-    UserData extends Dictionary = Dictionary,
+    UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     GoToOptions extends Dictionary = Dictionary,
 > extends CrawlingContext<UserData> {
     /**
@@ -114,11 +114,7 @@ const readContextField = <T>(ctx: object, key: symbol): T => (ctx as Record<symb
 export interface BrowserCrawlerOptions<
     Page extends CommonPage = CommonPage,
     Response extends BaseResponse = BaseResponse,
-    Context extends BrowserCrawlingContext<Page, Response, Dictionary> = BrowserCrawlingContext<
-        Page,
-        Response,
-        Dictionary
-    >,
+    Context extends BrowserCrawlingContext<Page, Response> = BrowserCrawlingContext<Page, Response>,
     ContextExtension = Dictionary<never>,
     ExtendedContext extends Context = Context & ContextExtension,
     InternalBrowserPoolOptions extends BrowserPoolOptions = BrowserPoolOptions,
@@ -357,11 +353,7 @@ export abstract class BrowserCrawler<
     Response extends BaseResponse = BaseResponse,
     InternalBrowserPoolOptions extends BrowserPoolOptions = BrowserPoolOptions,
     LaunchOptions extends Dictionary | undefined = Dictionary,
-    Context extends BrowserCrawlingContext<Page, Response, Dictionary> = BrowserCrawlingContext<
-        Page,
-        Response,
-        Dictionary
-    >,
+    Context extends BrowserCrawlingContext<Page, Response> = BrowserCrawlingContext<Page, Response>,
     ContextExtension = Dictionary<never>,
     ExtendedContext extends Context = Context & ContextExtension,
     Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
