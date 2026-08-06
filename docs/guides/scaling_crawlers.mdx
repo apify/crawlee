@@ -11,6 +11,9 @@ import CodeBlock from '@theme/CodeBlock';
 import MinMaxConcurrencySource from '!!raw-loader!./scaling_crawlers_minMaxConcurrency.ts';
 import MaxRequestsPerMinuteSource from '!!raw-loader!./scaling_crawlers_maxRequestsPerMinute.ts';
 import ConcurrencySystemSource from '!!raw-loader!./scaling_crawlers_concurrencySystem.ts';
+import LoadSignalsOffSource from '!!raw-loader!./scaling_crawlers_loadSignalsOff.ts';
+import CustomLoadSignalSource from '!!raw-loader!./scaling_crawlers_customLoadSignal.ts';
+import WrapLoadSignalSource from '!!raw-loader!./scaling_crawlers_wrapLoadSignal.ts';
 
 As we build our crawler, we might want to control how many requests we do to the website at a time. Crawlee provides several options to fine tune how many parallel requests should be made at any time, how many requests should be done per minute, and how should scaling work based on the available system resources.
 
@@ -123,38 +126,21 @@ Whether the machine counts as overloaded is decided by *load signals*. Four are 
 
 A signal we don't want watched at all can be switched **off** with `false`, which stops it being collected as well as evaluated (its entry in the reported status then simply reads as not overloaded):
 
-```ts
-const concurrencySystem = new ConcurrencySystem({
-    loadSignals: {
-        // Our storage backend reports no rate-limit statistics, so stop polling it every second.
-        client: false,
-        eventLoop: { maxBlockedMillis: 100 },
-    },
-});
-```
+<CodeBlock language="js">
+	{LoadSignalsOffSource}
+</CodeBlock>
 
 We can also watch resources of our own by implementing <ApiLink to="core/interface/LoadSignal">`LoadSignal`</ApiLink> — navigation timeouts or proxy health, say — and passing them in `loadSignals.custom`. The <ApiLink to="core/class/SnapshotStore">`SnapshotStore`</ApiLink> helper does the time-windowed bookkeeping for us:
 
-```ts
-const store = new SnapshotStore();
-
-const proxyHealth: LoadSignal = {
-    name: 'proxyHealth',
-    overloadedRatio: 0.3,
-    async start({ maxSampleWindowMillis }) {
-        // Retain exactly the window we will be sampled over, and drop anything measured before a restart.
-        store.useSampleWindow(maxSampleWindowMillis);
-        store.clear();
-        // ...start measuring, calling store.push() per measurement
-    },
-    async stop() { /* ...stop measuring */ },
-    getSample: (sampleDurationMillis) => store.getSample(sampleDurationMillis),
-};
-
-const concurrencySystem = new ConcurrencySystem({ loadSignals: { custom: [proxyHealth] } });
-```
+<CodeBlock language="js">
+	{CustomLoadSignalSource}
+</CodeBlock>
 
 Each built-in is a public class too — `MemoryLoadSignal`, `EventLoopLoadSignal`, `CpuLoadSignal`, `ClientLoadSignal` — taking exactly the bag its `loadSignals` key accepts. Constructing one directly is how we *wrap* a built-in rather than reimplement it (to hold its overload verdict for a while after the resource recovers, say): switch the original off with `cpu: false`, and pass a signal that delegates to the instance we built in `custom`.
+
+<CodeBlock language="js">
+	{WrapLoadSignalSource}
+</CodeBlock>
 
 :::info Signal names are the keys of the reported status
 
