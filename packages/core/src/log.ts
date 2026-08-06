@@ -36,6 +36,8 @@ export type { CrawleeLogger, CrawleeLoggerOptions };
  * ```
  */
 export abstract class BaseCrawleeLogger implements CrawleeLogger {
+    // kept as TS-private: the adaptive crawler's log proxy calls non-intercepted methods with `this === proxy`,
+    // where `#`-field access would throw at runtime
     private options: CrawleeLoggerOptions;
     private readonly warningsLogged = new Set<string>();
 
@@ -126,6 +128,7 @@ export abstract class BaseCrawleeLogger implements CrawleeLogger {
  */
 export class ApifyLogAdapter extends BaseCrawleeLogger {
     constructor(
+        // kept as a TS-private parameter property: reached through the adaptive crawler's log proxy, see above
         private readonly apifyLog: Log,
         options?: Partial<CrawleeLoggerOptions>,
     ) {

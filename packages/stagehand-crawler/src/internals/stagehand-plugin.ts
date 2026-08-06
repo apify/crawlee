@@ -35,7 +35,7 @@ export interface StagehandPluginOptions extends BrowserPluginOptions<LaunchOptio
  */
 export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, PlaywrightBrowser> {
     readonly stagehandOptions: StagehandOptions;
-    private readonly stagehandInstances: WeakMap<PlaywrightBrowser, Stagehand> = new WeakMap();
+    readonly #stagehandInstances: WeakMap<PlaywrightBrowser, Stagehand> = new WeakMap();
 
     constructor(library: BrowserType, options: StagehandPluginOptions = {}) {
         super(library, options);
@@ -104,11 +104,11 @@ export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, P
             const browser = await chromium.connectOverCDP(cdpUrl);
 
             // Store the Stagehand instance for AI operations
-            this.stagehandInstances.set(browser, stagehand);
+            this.#stagehandInstances.set(browser, stagehand);
 
             // Handle browser disconnection - cleanup both Stagehand and anonymized proxy
             browser.on('disconnected', async () => {
-                await this._cleanupStagehand(browser);
+                await this.cleanupStagehand(browser);
                 await closeAnonymizedProxy();
             });
 
@@ -118,7 +118,7 @@ export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, P
             await stagehand.close().catch(() => {});
             await closeAnonymizedProxy();
 
-            const augmentedError = this._augmentLaunchError(error, launchContext);
+            const augmentedError = this.augmentLaunchError(error, launchContext);
             serviceLocator.getLogger().error('Stagehand browser launch failed', { message: augmentedError.message });
             throw augmentedError;
         }
@@ -127,15 +127,15 @@ export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, P
     /**
      * Cleans up Stagehand instance when browser disconnects.
      */
-    private async _cleanupStagehand(browser: PlaywrightBrowser): Promise<void> {
-        const stagehand = this.stagehandInstances.get(browser);
+    private async cleanupStagehand(browser: PlaywrightBrowser): Promise<void> {
+        const stagehand = this.#stagehandInstances.get(browser);
         if (stagehand) {
             try {
                 await stagehand.close();
             } catch {
                 // Ignore cleanup errors
             }
-            this.stagehandInstances.delete(browser);
+            this.#stagehandInstances.delete(browser);
         }
     }
 
@@ -143,13 +143,13 @@ export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, P
      * Creates a controller for the Stagehand browser.
      */
     override createController(): BrowserController<BrowserType, LaunchOptions, PlaywrightBrowser> {
-        return new StagehandController(this, this.stagehandInstances) as any;
+        return new StagehandController(this, this.#stagehandInstances) as any;
     }
 
     /**
      * Adds proxy configuration to launch options.
      */
-    protected async _addProxyToLaunchOptions(launchContext: LaunchContext<BrowserType>): Promise<void> {
+    protected async addProxyToLaunchOptions(launchContext: LaunchContext<BrowserType>): Promise<void> {
         launchContext.launchOptions ??= {};
 
         const { launchOptions, proxyUrl } = launchContext;
@@ -168,7 +168,7 @@ export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, P
     /**
      * Determines if this is a Chromium-based browser.
      */
-    protected _isChromiumBasedBrowser(): boolean {
+    protected isChromiumBasedBrowser(): boolean {
         const name = this.library?.name?.();
         return name === 'chromium';
     }
@@ -176,7 +176,7 @@ export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, P
     /**
      * Augments launch errors with helpful context.
      */
-    private _augmentLaunchError(error: unknown, launchContext: LaunchContext<BrowserType>): Error {
+    private augmentLaunchError(error: unknown, launchContext: LaunchContext<BrowserType>): Error {
         const message = error instanceof Error ? error.message : String(error);
         const model = this.stagehandOptions.model;
 
@@ -205,6 +205,6 @@ export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, P
      * Gets the Stagehand instance for a given browser.
      */
     getStagehandForBrowser(browser: PlaywrightBrowser): Stagehand | undefined {
-        return this.stagehandInstances.get(browser);
+        return this.#stagehandInstances.get(browser);
     }
 }

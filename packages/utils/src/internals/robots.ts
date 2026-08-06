@@ -34,12 +34,22 @@ export interface RobotsTxtFileSitemapsOptions {
  * ```
  */
 export class RobotsTxtFile {
+    #url: string;
+    #robots: Pick<Robot, 'isAllowed' | 'getSitemaps'>;
+    #proxyUrl?: string;
+    #logger?: CrawleeLogger;
+
     private constructor(
-        private url: string,
-        private robots: Pick<Robot, 'isAllowed' | 'getSitemaps'>,
-        private proxyUrl?: string,
-        private logger?: CrawleeLogger,
-    ) {}
+        url: string,
+        robots: Pick<Robot, 'isAllowed' | 'getSitemaps'>,
+        proxyUrl?: string,
+        logger?: CrawleeLogger,
+    ) {
+        this.#url = url;
+        this.#robots = robots;
+        this.#proxyUrl = proxyUrl;
+        this.#logger = logger;
+    }
 
     /**
      * Determine the location of a robots.txt file for a URL and fetch it.
@@ -123,7 +133,7 @@ export class RobotsTxtFile {
      * @param [userAgent] relevant user agent, default to `*`
      */
     isAllowed(url: string, userAgent = '*'): boolean {
-        return this.robots.isAllowed(url, userAgent) ?? true; // `undefined` means that there is no explicit rule for the requested URL - assume it's allowed
+        return this.#robots.isAllowed(url, userAgent) ?? true; // `undefined` means that there is no explicit rule for the requested URL - assume it's allowed
     }
 
     /**
@@ -135,11 +145,11 @@ export class RobotsTxtFile {
         const { enqueueStrategy = 'same-hostname' } = options;
         const sitemaps: string[] = [];
 
-        for (const sitemapUrl of this.robots.getSitemaps()) {
+        for (const sitemapUrl of this.#robots.getSitemaps()) {
             // `filterUrl` tolerates an unparseable origin (returns not-allowed) rather than throwing.
-            const { allowed, reason } = filterUrl(sitemapUrl, this.url, enqueueStrategy);
+            const { allowed, reason } = filterUrl(sitemapUrl, this.#url, enqueueStrategy);
             if (!allowed) {
-                this.logger?.warning(`Skipping sitemap ${sitemapUrl} listed in robots.txt at ${this.url}: ${reason}.`);
+                this.#logger?.warning(`Skipping sitemap ${sitemapUrl} listed in robots.txt at ${this.#url}: ${reason}.`);
                 continue;
             }
             sitemaps.push(sitemapUrl);
@@ -153,7 +163,7 @@ export class RobotsTxtFile {
      * and the sitemap parser.
      */
     async parseSitemaps(options: RobotsTxtFileSitemapsOptions = {}): Promise<Sitemap> {
-        return Sitemap.load(this.getSitemaps(options), this.proxyUrl, { ...options, logger: this.logger });
+        return Sitemap.load(this.getSitemaps(options), this.#proxyUrl, { ...options, logger: this.#logger });
     }
 
     /**

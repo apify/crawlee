@@ -7,7 +7,9 @@ import {
     ProxyConfiguration,
     Request,
     RequestList,
+    REQUESTS_PERSISTENCE_KEY,
     serviceLocator,
+    STATE_PERSISTENCE_KEY,
 } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
 import { beforeAll, type MockedFunction } from 'vitest';
@@ -164,7 +166,7 @@ describe('RequestList', () => {
     });
 
     test('should correctly load list from hosted files in correct order', async () => {
-        const spy = vitest.spyOn(RequestList.prototype as any, '_downloadListOfUrls');
+        const spy = vitest.spyOn(RequestList.prototype as any, 'downloadListOfUrls');
         const list1 = ['https://example.com', 'https://google.com', 'https://wired.com'];
         const list2 = ['https://another.com', 'https://page.com'];
         spy.mockImplementationOnce(() => new Promise((resolve) => setTimeout(() => resolve(list1) as any, 100)) as any);
@@ -242,7 +244,7 @@ describe('RequestList', () => {
     });
 
     test('should handle requestsFromUrl with no URLs', async () => {
-        const spy = vitest.spyOn(RequestList.prototype as any, '_downloadListOfUrls');
+        const spy = vitest.spyOn(RequestList.prototype as any, 'downloadListOfUrls');
         spy.mockResolvedValueOnce([]);
 
         const requestList = await RequestList.open({
@@ -263,7 +265,7 @@ describe('RequestList', () => {
     test('should use the defined proxy server when using `requestsFromUrl`', async () => {
         const proxyUrls = ['http://proxyurl.usedforthe.download', 'http://another.proxy.url'];
 
-        const spy = vitest.spyOn(RequestList.prototype as any, '_downloadListOfUrls');
+        const spy = vitest.spyOn(RequestList.prototype as any, 'downloadListOfUrls');
         spy.mockResolvedValue([]);
 
         const proxyConfiguration = new ProxyConfiguration({
@@ -430,7 +432,7 @@ describe('RequestList', () => {
         const PERSIST_REQUESTS_KEY = 'some-key';
         const getValueSpy = vitest.spyOn(KeyValueStore.prototype, 'getValue');
         const setValueSpy = vitest.spyOn(KeyValueStore.prototype, 'setValue');
-        const spy = vitest.spyOn(RequestList.prototype as any, '_downloadListOfUrls');
+        const spy = vitest.spyOn(RequestList.prototype as any, 'downloadListOfUrls');
         let persistedRequests: any;
 
         const opts = {
@@ -575,6 +577,9 @@ describe('RequestList', () => {
     });
 
     describe('Apify.RequestList.open()', () => {
+        /** The keys a spied {@apilink KeyValueStore} method was called with, in call order. */
+        const keysPassedTo = (spy: MockedFunction<any>) => spy.mock.calls.map(([key]: [string]) => key);
+
         test('should work', async () => {
             const getValueSpy = vitest.spyOn(KeyValueStore.prototype, 'getValue');
             const setValueSpy = vitest.spyOn(KeyValueStore.prototype, 'setValue');
@@ -586,16 +591,16 @@ describe('RequestList', () => {
             const rl = await RequestList.open(name, sources);
             expect(rl).toBeInstanceOf(RequestList);
             // @ts-expect-error accessing private var
-            expect(rl.persistStateKey.startsWith(CRAWLEE_KEY)).toBe(true);
-            // @ts-expect-error accessing private var
-            expect(rl.persistRequestsKey.startsWith(CRAWLEE_KEY)).toBe(true);
-            // @ts-expect-error accessing private var
             expect(rl.sources).toEqual([]);
-            // @ts-expect-error accessing private var
-            expect(rl.isInitialized).toBe(true);
+            // An uninitialized list throws here, so this is the observable form of "open() initialized it".
+            await expect(rl.isEmpty()).resolves.toBe(false);
 
-            expect(getValueSpy).toBeCalledTimes(2);
-            expect(setValueSpy).toBeCalledTimes(1);
+            // The persistence keys are derived from the list name, which shows in the keys it reads and writes.
+            expect(keysPassedTo(getValueSpy)).toEqual([
+                `${CRAWLEE_KEY}-${STATE_PERSISTENCE_KEY}`,
+                `${CRAWLEE_KEY}-${REQUESTS_PERSISTENCE_KEY}`,
+            ]);
+            expect(keysPassedTo(setValueSpy)).toEqual([`${CRAWLEE_KEY}-${REQUESTS_PERSISTENCE_KEY}`]);
         });
 
         test('should work with string sources', async () => {
@@ -609,16 +614,14 @@ describe('RequestList', () => {
 
             const rl = await RequestList.open(name, sources);
             expect(rl).toBeInstanceOf(RequestList);
-            // @ts-expect-error accessing private var
-            expect(rl.persistStateKey.startsWith(CRAWLEE_KEY)).toBe(true);
-            // @ts-expect-error accessing private var
-            expect(rl.persistRequestsKey.startsWith(CRAWLEE_KEY)).toBe(true);
             expect(rl.requests).toEqual(requests);
-            // @ts-expect-error accessing private var
-            expect(rl.isInitialized).toBe(true);
+            await expect(rl.isEmpty()).resolves.toBe(false);
 
-            expect(getValueSpy).toBeCalledTimes(2);
-            expect(setValueSpy).toBeCalledTimes(1);
+            expect(keysPassedTo(getValueSpy)).toEqual([
+                `${CRAWLEE_KEY}-${STATE_PERSISTENCE_KEY}`,
+                `${CRAWLEE_KEY}-${REQUESTS_PERSISTENCE_KEY}`,
+            ]);
+            expect(keysPassedTo(setValueSpy)).toEqual([`${CRAWLEE_KEY}-${REQUESTS_PERSISTENCE_KEY}`]);
         });
 
         test('should correctly pass options', async () => {
@@ -637,18 +640,16 @@ describe('RequestList', () => {
 
             const rl = await RequestList.open(name, sources, options);
             expect(rl).toBeInstanceOf(RequestList);
-            // @ts-expect-error accessing private var
-            expect(rl.persistStateKey.startsWith(CRAWLEE_KEY)).toBe(true);
-            // @ts-expect-error accessing private var
-            expect(rl.persistRequestsKey.startsWith(CRAWLEE_KEY)).toBe(true);
+            // The counter suffix on the unique key is what `keepDuplicateUrls: true` does.
             expect(rl.requests).toEqual(requests);
-            // @ts-expect-error accessing private var
-            expect(rl.isInitialized).toBe(true);
-            // @ts-expect-error accessing private var
-            expect(rl.keepDuplicateUrls).toBe(true);
+            await expect(rl.isEmpty()).resolves.toBe(false);
 
-            expect(getValueSpy).toBeCalledTimes(2);
-            expect(setValueSpy).toBeCalledTimes(1);
+            // The list name wins over the `persistStateKey` option.
+            expect(keysPassedTo(getValueSpy)).toEqual([
+                `${CRAWLEE_KEY}-${STATE_PERSISTENCE_KEY}`,
+                `${CRAWLEE_KEY}-${REQUESTS_PERSISTENCE_KEY}`,
+            ]);
+            expect(keysPassedTo(setValueSpy)).toEqual([`${CRAWLEE_KEY}-${REQUESTS_PERSISTENCE_KEY}`]);
         });
 
         test('should work with null name', async () => {
@@ -661,14 +662,10 @@ describe('RequestList', () => {
 
             const rl = await RequestList.open(name, sources);
             expect(rl).toBeInstanceOf(RequestList);
-            // @ts-expect-error accessing private var
-            expect(rl.persistStateKey == null).toBe(true);
-            // @ts-expect-error accessing private var
-            expect(rl.persistRequestsKey == null).toBe(true);
             expect(rl.requests).toEqual(requests);
-            // @ts-expect-error accessing private var
-            expect(rl.isInitialized).toBe(true);
+            await expect(rl.isEmpty()).resolves.toBe(false);
 
+            // A nameless list has no persistence keys, so it never touches the store.
             expect(getValueSpy).not.toBeCalled();
             expect(setValueSpy).not.toBeCalled();
         });

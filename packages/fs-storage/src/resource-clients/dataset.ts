@@ -42,19 +42,19 @@ export class DatasetBackend<Data extends Dictionary = Dictionary>
     readonly name?: string;
     readonly cacheKey: string;
 
-    private readonly nativeBackend: NativeFileSystemDatasetBackend;
-    private readonly logger?: CrawleeLogger;
+    readonly #nativeBackend: NativeFileSystemDatasetBackend;
+    readonly #logger?: CrawleeLogger;
 
     constructor(options: DatasetBackendOptions) {
         super();
         this.name = options.name;
         this.cacheKey = options.cacheKey;
-        this.nativeBackend = options.nativeBackend;
-        this.logger = options.logger;
+        this.#nativeBackend = options.nativeBackend;
+        this.#logger = options.logger;
     }
 
     get datasetDirectory(): string {
-        return this.nativeBackend.pathToDataset;
+        return this.#nativeBackend.pathToDataset;
     }
 
     static async create<Data extends Dictionary = Dictionary>(
@@ -66,26 +66,26 @@ export class DatasetBackend<Data extends Dictionary = Dictionary>
     }
 
     async getMetadata(): Promise<storage.DatasetInfo> {
-        return this.nativeBackend.getMetadata();
+        return this.#nativeBackend.getMetadata();
     }
 
     async drop(): Promise<void> {
-        await this.nativeBackend.dropStorage();
+        await this.#nativeBackend.dropStorage();
     }
 
     async purge(): Promise<void> {
-        await this.nativeBackend.purge();
+        await this.#nativeBackend.purge();
     }
 
     async pushData(items: Data[]): Promise<void> {
-        await this.nativeBackend.pushData(items);
+        await this.#nativeBackend.pushData(items);
     }
 
     async getData(options: storage.DatasetBackendListOptions = {}): Promise<storage.PaginatedList<Data>> {
         const passedOptions = options as Record<string, unknown>;
         const ignored = UNSUPPORTED_GET_DATA_OPTIONS.filter((key) => passedOptions[key] !== undefined);
         if (ignored.length > 0) {
-            this.logger?.warning?.(
+            this.#logger?.warning?.(
                 `getData() options [${ignored.join(', ')}] are not supported by the file-system dataset ` +
                     `and were ignored. Only "offset", "limit" and "desc" are honored.`,
             );
@@ -99,7 +99,7 @@ export class DatasetBackend<Data extends Dictionary = Dictionary>
             })
             .parse(options);
 
-        const page = await this.nativeBackend.getData(offset ?? 0, limit, desc ?? false, false);
+        const page = await this.#nativeBackend.getData(offset ?? 0, limit, desc ?? false, false);
 
         return {
             count: page.count,

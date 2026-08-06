@@ -73,10 +73,10 @@ export type SnapshotterOptions = Omit<LoadSignalsOptions, 'custom'>;
  */
 export class Snapshotter {
     // Absent when switched off through the corresponding option (e.g. `client: false`).
-    private readonly memorySignal?: MemoryLoadSignal;
-    private readonly eventLoopSignal?: EventLoopLoadSignal;
-    private readonly cpuSignal?: CpuLoadSignal;
-    private readonly clientSignal?: ClientLoadSignal;
+    readonly #memorySignal?: MemoryLoadSignal;
+    readonly #eventLoopSignal?: EventLoopLoadSignal;
+    readonly #cpuSignal?: CpuLoadSignal;
+    readonly #clientSignal?: ClientLoadSignal;
 
     /**
      * Returns the enabled built-in signals, so `SystemStatus` can iterate them alongside any custom `LoadSignal`
@@ -85,10 +85,10 @@ export class Snapshotter {
      */
     getLoadSignals(): LoadSignal[] {
         const builtin: (LoadSignal | undefined)[] = [
-            this.memorySignal,
-            this.eventLoopSignal,
-            this.cpuSignal,
-            this.clientSignal,
+            this.#memorySignal,
+            this.#eventLoopSignal,
+            this.#cpuSignal,
+            this.#clientSignal,
         ];
 
         return builtin.filter((signal): signal is LoadSignal => signal !== undefined);
@@ -102,10 +102,10 @@ export class Snapshotter {
 
         // Each signal resolves its own ambient dependencies when started, and is told the window it will be sampled
         // over then too - so there is nothing to thread in here beyond the caller's tuning.
-        if (memory !== false) this.memorySignal = new MemoryLoadSignal(memory);
-        if (eventLoop !== false) this.eventLoopSignal = new EventLoopLoadSignal(eventLoop);
-        if (cpu !== false) this.cpuSignal = new CpuLoadSignal(cpu);
-        if (client !== false) this.clientSignal = new ClientLoadSignal(client);
+        if (memory !== false) this.#memorySignal = new MemoryLoadSignal(memory);
+        if (eventLoop !== false) this.#eventLoopSignal = new EventLoopLoadSignal(eventLoop);
+        if (cpu !== false) this.#cpuSignal = new CpuLoadSignal(cpu);
+        if (client !== false) this.#clientSignal = new ClientLoadSignal(client);
     }
 
     /**

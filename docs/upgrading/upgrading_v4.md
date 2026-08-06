@@ -650,7 +650,31 @@ The leading underscore was dropped from protected and private class members acro
 
 The file-system storage backends' shared `CachedIdClient._cachedId` protected field was also renamed to `cachedId` (this only affects custom `@crawlee/fs-storage` backends that subclass it).
 
+If you subclass a crawler or implement a custom browser plugin, these `protected` extension points lost their underscore too:
+
+- `BasicCrawler._init` -> `init`
+- `BasicCrawler._throwOnBlockedRequest` -> `throwOnBlockedRequest`
+- `BasicCrawler._getMessageFromError` -> `getMessageFromError`
+- `BasicCrawler._getCookieHeaderFromRequest` -> `getCookieHeaderFromRequest`
+- `BrowserCrawler._navigationHandler` -> `navigationHandler` (including the `PlaywrightCrawler`, `PuppeteerCrawler` and `StagehandCrawler` overrides)
+- `BrowserPlugin._addProxyToLaunchOptions` -> `addProxyToLaunchOptions`
+- `BrowserPlugin._isChromiumBasedBrowser` -> `isChromiumBasedBrowser`
+- `BrowserPlugin._connectToRemoteBrowser` -> `connectToRemoteBrowser`
+- `BrowserPlugin._throwAugmentedLaunchError` -> `throwAugmentedLaunchError`
+
+Two `@internal` members were renamed the same way: `LaunchContext._remoteToken` -> `remoteToken` and `PlaywrightBrowser._setBrowserType` -> `setBrowserType`.
+
+A handful of hooks intentionally keep the underscore, because the un-prefixed name is taken by their public wrapper method: `BrowserPlugin._launch` (wrapped by `launch()`) and `BrowserController._close`, `_kill`, `_newPage`, `_getCookies`, `_setCookies` (wrapped by the same names without the underscore). Custom plugin or controller implementations override these under their existing names, unchanged.
+
 Members that were also made `private` in the same pass are listed under [Unintentionally exposed internals are now private](#unintentionally-exposed-internals-are-now-private) below.
+
+### Private properties are native `#` fields now
+
+Private class properties across the codebase were converted from TypeScript's compile-time `private` to native ECMAScript private fields (`#name`). Where a `private _foo` field backed a `get foo()` accessor, the field is now `#foo` — the public accessor is unchanged.
+
+TypeScript's `private` was purely a compile-time construct: the properties still existed on the instances at runtime, so code could reach them via `(crawler as any).something` or `crawler['something']`, and they showed up in `Object.keys()`, object spread and `JSON.stringify()`. Native `#` fields close that hole — they are inaccessible outside the declaring class and invisible to enumeration and serialization. If you were reaching into any of them, that now fails at runtime, not just in the type checker. As with the visibility tightening above, the supported extension points (handlers, hooks, `ContextPipeline` composition and the `ISessionPool` / `IBrowserPool` / `IRequestManager` interfaces) are the way to go; open an issue if something you need is missing.
+
+One related behavior change: `LaunchContext.extend()` now consistently rejects all declared fields as reserved keys — including `fingerprint`, `proxyUrl` and `remoteToken`, which previously slipped through the reserved-name check. Set those directly instead (e.g. `launchContext.fingerprint = ...`); `extend()` is only for attaching your own extra fields.
 
 ### Unintentionally exposed internals are now private
 

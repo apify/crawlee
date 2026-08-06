@@ -494,7 +494,7 @@ export class StagehandCrawler<
      * Navigation handler for Stagehand crawler.
      * Uses standard Playwright navigation.
      */
-    protected override async _navigationHandler(
+    protected override async navigationHandler(
         crawlingContext: StagehandCrawlingContext,
         gotoOptions: StagehandGotoOptions,
     ): Promise<Response | null> {

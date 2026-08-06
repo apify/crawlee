@@ -198,7 +198,7 @@ export class PuppeteerCrawler<ContextExtension = Dictionary<never>, ExtendedCont
     closeCookieModals: () => Promise<void>;
     }>;
     // (undocumented)
-    protected _navigationHandler(crawlingContext: PuppeteerCrawlingContext, gotoOptions: PuppeteerDirectNavigationOptions): Promise<HTTPResponse | null>;
+    protected navigationHandler(crawlingContext: PuppeteerCrawlingContext, gotoOptions: PuppeteerDirectNavigationOptions): Promise<HTTPResponse | null>;
     // (undocumented)
     protected static optionsShape: {
         browserPoolOptions: ObjectPredicate<object> & BasePredicate<object | undefined>;

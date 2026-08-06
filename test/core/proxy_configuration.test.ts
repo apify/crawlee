@@ -107,12 +107,9 @@ describe('ProxyConfiguration', () => {
 
     describe('With proxyUrls options', () => {
         test('should rotate custom URLs correctly', async () => {
-            const proxyConfiguration = new ProxyConfiguration({
-                proxyUrls: ['http://proxy.com:1111', 'http://proxy.com:2222', 'http://proxy.com:3333'],
-            });
+            const proxyUrls = ['http://proxy.com:1111', 'http://proxy.com:2222', 'http://proxy.com:3333'];
+            const proxyConfiguration = new ProxyConfiguration({ proxyUrls });
 
-            // @ts-expect-error private property
-            const proxyUrls = proxyConfiguration.proxyUrls!;
             expect(await proxyConfiguration.newUrl()).toEqual(proxyUrls[0]);
             expect(await proxyConfiguration.newUrl()).toEqual(proxyUrls[1]);
             expect(await proxyConfiguration.newUrl()).toEqual(proxyUrls[2]);
@@ -122,12 +119,9 @@ describe('ProxyConfiguration', () => {
         });
 
         test('newProxyInfo() should return correctly rotated URL', async () => {
-            const proxyConfiguration = new ProxyConfiguration({
-                proxyUrls: ['http://proxy.com:1111', 'http://proxy.com:2222', 'http://proxy.com:3333'],
-            });
+            const proxyUrls = ['http://proxy.com:1111', 'http://proxy.com:2222', 'http://proxy.com:3333'];
+            const proxyConfiguration = new ProxyConfiguration({ proxyUrls });
 
-            // @ts-expect-error TODO private property?
-            const proxyUrls = proxyConfiguration.proxyUrls!;
             expect((await proxyConfiguration.newProxyInfo())!.url).toEqual(proxyUrls[0]);
             expect((await proxyConfiguration.newProxyInfo())!.url).toEqual(proxyUrls[1]);
             expect((await proxyConfiguration.newProxyInfo())!.url).toEqual(proxyUrls[2]);
