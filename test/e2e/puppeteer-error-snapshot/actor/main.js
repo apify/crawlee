@@ -1,3 +1,4 @@
+import { Statistics } from '@crawlee/core';
 import { PuppeteerCrawler } from '@crawlee/puppeteer';
 import { sleep } from '@crawlee/utils';
 import { Actor } from 'apify';
@@ -22,9 +23,7 @@ await Actor.main(async () => {
     const crawler = new PuppeteerCrawler({
         requestHandlerTimeoutSecs: 15,
         maxRequestRetries: 0,
-        statisticsOptions: {
-            saveErrorSnapshots: true,
-        },
+        statistics: new Statistics({ saveErrorSnapshots: true }),
         async requestHandler({ request, log, page }) {
             const {
                 userData: { label },
