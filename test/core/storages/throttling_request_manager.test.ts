@@ -266,7 +266,7 @@ describe('ThrottlingRequestManager', () => {
 
         manager.recordDomainDelay('https://example.com/1', 3_600_000);
 
-        expect(domainState(manager, 'example.com').throttledUntil).toBeLessThanOrEqual(Date.now() + 1000);
+        expect(domainState(manager, 'example.com').backoffUntil).toBeLessThanOrEqual(Date.now() + 1000);
     });
 
     test('fetchNextRequest does not block while a domain is throttled', async () => {
@@ -312,6 +312,28 @@ describe('ThrottlingRequestManager', () => {
 
         const subQueue = await RequestQueue.open({ alias: 'throttled-example.com' });
         expect(await subQueue.getPendingCount()).toBe(0);
+    });
+
+    test('a crawl-delay does not swallow the 429 backoff', async () => {
+        const manager = new ThrottlingRequestManager({
+            inner: await createQueue(),
+            domains: ['example.com'],
+        });
+
+        manager.setCrawlDelay('https://example.com/1', 5);
+        await manager.addRequest({ url: 'https://example.com/1' });
+        await manager.addRequest({ url: 'https://example.com/2' });
+
+        // Dispatching arms the crawl-delay, which used to read as an already-active backoff.
+        await manager.fetchNextRequest();
+        expect(manager.recordDomainDelay('https://example.com/1', 30_000)).toBe(true);
+
+        const state = domainState(manager, 'example.com');
+        expect(state.consecutive429Count).toBe(1);
+        expect(state.backoffUntil).toBeGreaterThan(Date.now() + 25_000);
+
+        // The longer of the two clocks wins, so the domain stays parked.
+        expect(await manager.fetchNextRequest()).toBeNull();
     });
 
     test('setCrawlDelay sets crawl-delay successfully', async () => {

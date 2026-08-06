@@ -67,13 +67,24 @@ export interface ThrottlingRequestManagerOptions<T extends IRequestManager = IRe
 
 interface DomainState {
     domain: string;
-    /** Earliest time the next request to this domain may be dispatched, as a `Date.now()` timestamp. */
-    throttledUntil: number;
+    /**
+     * Earliest dispatch time imposed by 429 backoff, as a `Date.now()` timestamp. Kept apart from
+     * `crawlDelayUntil` so that a crawl-delay, which is armed on every single dispatch, cannot pass for an
+     * active backoff and swallow the 429s it is supposed to be tracking.
+     */
+    backoffUntil: number;
+    /** Earliest dispatch time imposed by the robots.txt `Crawl-delay`, as a `Date.now()` timestamp. */
+    crawlDelayUntil: number;
     /** Time after which an incoming 429 is treated as a fresh burst rather than a continuation. */
     backoffDecaysAt: number;
     consecutive429Count: number;
     /** Minimum interval between dispatches, from a robots.txt `Crawl-delay` directive. */
     crawlDelayMs: number | null;
+}
+
+/** The moment a domain may be dispatched to again - whichever of its two independent clocks runs longer. */
+function throttledUntil(state: DomainState): number {
+    return Math.max(state.backoffUntil, state.crawlDelayUntil);
 }
 
 /**
@@ -197,7 +208,8 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
                 const hostname = domain.toLowerCase();
                 this.domainStates.set(hostname, {
                     domain: hostname,
-                    throttledUntil: 0,
+                    backoffUntil: 0,
+                    crawlDelayUntil: 0,
                     backoffDecaysAt: 0,
                     consecutive429Count: 0,
                     crawlDelayMs: null,
@@ -281,7 +293,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     private markDomainDispatched(domain: string): void {
         const state = this.domainStates.get(domain);
         if (state && state.crawlDelayMs !== null) {
-            state.throttledUntil = Date.now() + state.crawlDelayMs;
+            state.crawlDelayUntil = Date.now() + state.crawlDelayMs;
         }
     }
 
@@ -289,8 +301,8 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     private fetchableDomains(): string[] {
         const now = Date.now();
         return Array.from(this.domainStates.values())
-            .filter((state) => now >= state.throttledUntil)
-            .sort((a, b) => a.throttledUntil - b.throttledUntil)
+            .filter((state) => now >= throttledUntil(state))
+            .sort((a, b) => throttledUntil(a) - throttledUntil(b))
             .map((state) => state.domain);
     }
 
@@ -309,7 +321,9 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
 
         // Requests already in flight when the limit was hit all come back 429. They describe one rate-limit
         // event, so only the first advances the backoff - otherwise concurrency alone drives the exponent.
-        if (now < state.throttledUntil) {
+        // Only the backoff clock may suppress here: `crawlDelayUntil` is in the future after every dispatch,
+        // so consulting it would discard every 429 the domain ever sends, `Retry-After` included.
+        if (now < state.backoffUntil) {
             return true;
         }
 
@@ -334,8 +348,8 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
             delayMs = this.maxDelayMs;
         }
 
-        state.throttledUntil = now + delayMs;
-        state.backoffDecaysAt = state.throttledUntil + delayMs;
+        state.backoffUntil = now + delayMs;
+        state.backoffDecaysAt = state.backoffUntil + delayMs;
 
         this.log.info(
             `Rate limit (429) detected for domain "${state.domain}" ` +
@@ -547,7 +561,8 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         await this.forEachManager((manager) => manager.purge?.());
         for (const state of this.domainStates.values()) {
             state.consecutive429Count = 0;
-            state.throttledUntil = 0;
+            state.backoffUntil = 0;
+            state.crawlDelayUntil = 0;
             state.backoffDecaysAt = 0;
         }
     }
