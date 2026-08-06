@@ -50,6 +50,7 @@ import type { SkippedRequestCallback } from '@crawlee/core';
 import type { StatisticState } from '@crawlee/core';
 import type { StorageBackend } from '@crawlee/types';
 import type { StorageIdentifier } from '@crawlee/core';
+import { StorageWritePolicy } from '@crawlee/core';
 import { StringPredicate } from 'ow';
 import type { TaskLoopPredicates } from '@crawlee/core';
 import { TimeoutError } from '@apify/timeout';
@@ -141,6 +142,7 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
         blockedStatusCodes: ArrayPredicate<number>;
         retryOnBlocked: BooleanPredicate & BasePredicate<boolean | undefined>;
         respectRobotsTxtFile: AnyPredicate<boolean | object>;
+        transactionalStorage: BasePredicate<boolean | Partial<StorageWritePolicy> | undefined>;
         onSkippedRequest: Predicate<Function> & BasePredicate<Function | undefined>;
         httpClient: ObjectPredicate<object> & BasePredicate<object | undefined>;
         configuration: ObjectPredicate<object> & BasePredicate<object | undefined>;
@@ -221,6 +223,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = CrawlingC
     statusMessageLoggingInterval?: number;
     storageBackend?: StorageBackend;
     taskLoopOptions?: TaskLoopPredicates;
+    transactionalStorage?: boolean | Partial<StorageWritePolicy>;
 }
 
 // @public (undocumented)

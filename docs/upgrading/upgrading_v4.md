@@ -23,6 +23,7 @@ This page summarizes the breaking changes in Crawlee v4. There are many, so the 
 - **The session is the rotation unit.** A session carries its proxy, cookies and error score, and is rotated as a whole when blocked — replacing [proxy tiers](#tieredproxyurls-is-removed-from-proxyconfiguration) and [session rotation counters](#maxsessionrotations-and-requestsessionrotationcount-are-removed).
 - **Crawlers stop stepping on each other.** Multiple crawlers in one process [no longer share the default request queue](#multiple-crawler-instances-use-separate-default-request-queues), and repeated `run()` calls purge the queue instead of dropping and recreating it.
 - **Cookies behave.** `sendRequest` finally [respects your `Cookie` header](#cookie-handling-in-httpcrawler-and-sendrequest), and browser cookies set inside the handler are [persisted to the session](#browser-cookies-are-also-persisted-after-requesthandler).
+- **No half-written results.** Storage writes in a request handler are [transactional](#storage-writes-in-request-handlers-are-transactional) — a handler that throws leaves nothing behind, and its retry does not duplicate data.
 - **Simpler storage backend contract.** A custom storage backend is now [4 classes instead of 7](#storagebackend-interface-simplified).
 
 ## Rename cheat sheet
@@ -542,6 +543,34 @@ const dataset = await Dataset.open();
 ```
 
 The same change applies to `CrawlingContext.getKeyValueStore()` and `CrawlingContext.pushData()` — both now accept `string | StorageIdentifier` for identifying the target storage.
+
+### Storage writes in request handlers are transactional
+
+Every crawler now wraps each request in a **storage transaction** (see the [Transactional storage](../guides/result-storage#transactional-storage) section of the Result Storage guide): storage writes made anywhere in the request lifecycle — hooks, `extendContext` and the request handler alike — are recorded and only applied to real storage when the request handler succeeds. A handler that throws leaves no partial writes behind, and a retry does not duplicate data.
+
+The observable behavior of a *successful* handler is unchanged (reads within a handler see its own writes), but several things differ on the failure path and around handler boundaries:
+
+- **Uncommitted writes are invisible to other handlers.** Using the key-value store as a live channel between concurrently running handlers no longer works — one handler's `setValue()` only becomes visible to others once its request succeeds. Use `useState()` for cross-handler communication.
+- **`useState()` / `getAutoSavedValue()` are *not* transactional.** The shared state object stays live; mutations of it are not rolled back when a handler fails.
+- **Request queue additions are applied immediately by default** (the `writeThrough` policy) and are not rolled back — deduplication by `uniqueKey` keeps retries idempotent. Pass `transactionalStorage: { requestQueue: 'deferred' }` for strict all-or-nothing enqueues.
+- **Commit is at-least-once.** It spans multiple storages, so a commit that fails partway fails the request; the retry may re-apply writes that already landed.
+- **`KeyValueStore.setValue()` with a stream value throws inside a request handler.** A stream can only be consumed once, so it cannot be buffered. Wrap the call in `withDirectStorageAccess()` to write it immediately:
+
+  ```typescript
+  import { withDirectStorageAccess } from 'crawlee';
+
+  await withDirectStorageAccess(async () => keyValueStore.setValue('video', stream, { contentType: 'video/mp4' }));
+  ```
+
+- **`drop()`, `purge()` and the request queue processing internals throw inside a request handler**, since no rollback could undo them. `withDirectStorageAccess()` is the escape hatch there, too.
+- **Key listing order changes inside a handler**: `keys()`, `values()` and `entries()` emit the handler's own (buffered) keys first, then the rest.
+
+The mechanism can be disabled entirely with `transactionalStorage: false` on any crawler except `AdaptivePlaywrightCrawler` (which needs it to discard the writes of its losing request handler attempts).
+
+#### Removed symbols and options
+
+- `checkStorageAccess` and `withCheckedStorageAccess` are superseded by the transaction mechanism; the per-call-site helper is now `withDirectStorageAccess()`.
+- The experimental `AdaptivePlaywrightCrawler` no longer needs its bespoke write-buffering machinery: the `preventDirectStorageAccess` option is gone (direct storage calls are now captured by the per-attempt transaction instead of throwing), and `RequestHandlerResult` is replaced by the read-only `StorageTransactionView`, which the `resultChecker` / `resultComparator` callbacks (and `fullResultComparator`) now receive. The view keeps the familiar accessors (`datasetItems`, `enqueuedUrls`, `keyValueStoreChanges`), so most callbacks only need a type change. The `calls` and `enqueuedUrlLists` accessors are gone — `requestsFromUrl` sources are now expanded when added, so the fetched URLs appear in `enqueuedUrls` (and are what `fullResultComparator` compares).
 
 ### `KeyValueStore.getPublicUrl` is now async
 
@@ -1718,6 +1747,7 @@ The full list of removed exports and members, for ctrl-F purposes. Where a repla
 - `HttpResponse`, `HttpResponseWithoutBody`, `StreamingHttpResponse`, `ResponseTypes`, `BaseHttpResponseData`, `SimpleHeaders`, `processHttpRequestOptions`, and `GotScrapingHttpClient` (from `@crawlee/core`) — the HTTP client surface moved to `@crawlee/http-client` / `@crawlee/got-scraping-client` (see [HTTP client packages and `BaseHttpClient` reshaped](#http-client-packages-and-basehttpclient-reshaped))
 - `StreamHandlerContext` and `FileDownloadOptions` types (from `@crawlee/http`) — see [`FileDownload` now extends `BasicCrawler`](#filedownload-now-extends-basiccrawler-and-no-longer-takes-filedownloadoptions)
 - `PlainResponse` type (from `@crawlee/http`) — it wrapped the `got-scraping` response and is gone along with the rest of the old HTTP response surface (see [`CrawlingContext.response` is now of type `Response`](#crawlingcontextresponse-is-now-of-type-response))
+- `checkStorageAccess`, `withCheckedStorageAccess` and the `RequestHandlerResult` type — superseded by the storage transaction mechanism; use `withDirectStorageAccess()` and `StorageTransactionView` (see [Storage writes in request handlers are transactional](#storage-writes-in-request-handlers-are-transactional))
 
 #### The protected `BasicCrawler.crawlingContexts` map is removed
 
