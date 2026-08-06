@@ -1,4 +1,4 @@
-import { writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 
 import type {
@@ -85,7 +85,6 @@ import type {
 } from '@crawlee/types';
 import { isAsyncIterable, isIterable, RobotsTxtFile, ROTATE_PROXY_ERRORS } from '@crawlee/utils';
 import { stringify } from 'csv-stringify/sync';
-import { ensureDir, writeJSON } from 'fs-extra/esm';
 import ow, { ArgumentError } from 'ow';
 import { getDomain } from 'tldts';
 import type { ReadonlyDeep, SetRequired } from 'type-fest';
@@ -1991,14 +1990,14 @@ export class BasicCrawler<
                 ]);
             }
 
-            await ensureDir(dirname(path));
+            await mkdir(dirname(path), { recursive: true });
             await writeFile(path, value);
             this.log.info(`Export to ${path} finished!`);
         }
 
         if (format === 'json') {
-            await ensureDir(dirname(path));
-            await writeJSON(path, items, { spaces: 4 });
+            await mkdir(dirname(path), { recursive: true });
+            await writeFile(path, `${JSON.stringify(items, null, 4)}\n`);
             this.log.info(`Export to ${path} finished!`);
         }
 
