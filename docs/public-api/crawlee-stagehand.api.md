@@ -140,14 +140,14 @@ export interface StagehandCrawlerOptions<ContextExtension = Dictionary<never>, E
     browserPlugins: [StagehandPlugin];
 }, Routes> {
     launchContext?: StagehandLaunchContext;
-    postNavigationHooks?: StagehandHook[];
-    preNavigationHooks?: StagehandHook[];
+    postNavigationHooks?: BrowserHook<StagehandCrawlingContext<GetUserDataFromRequest<ExtendedContext['request']>>, ContextExtension>[];
+    preNavigationHooks?: BrowserHook<StagehandCrawlingContext<GetUserDataFromRequest<ExtendedContext['request']>>, ContextExtension>[];
     requestHandler?: RouterHandler<ExtendedContext, Routes> | RequestHandler<ExtendedContext>;
     stagehandOptions?: StagehandOptions;
 }
 
 // @public (undocumented)
-export interface StagehandCrawlingContext<UserData extends Dictionary = Dictionary> extends BrowserCrawlingContext<StagehandPage, Response_2, UserData, StagehandGotoOptions> {
+export interface StagehandCrawlingContext<UserData extends Dictionary = any> extends BrowserCrawlingContext<StagehandPage, Response_2, UserData, StagehandGotoOptions> {
     page: StagehandPage;
     stagehand: Stagehand;
 }
@@ -156,8 +156,7 @@ export interface StagehandCrawlingContext<UserData extends Dictionary = Dictiona
 export type StagehandGotoOptions = NonNullable<Parameters<Page['goto']>[1]>;
 
 // @public
-export interface StagehandHook extends BrowserHook<StagehandCrawlingContext> {
-}
+export type StagehandHook<UserData extends Dictionary = any> = BrowserHook<StagehandCrawlingContext<UserData>>;
 
 // @public
 export interface StagehandLaunchContext extends BrowserLaunchContext<LaunchOptions, BrowserType> {
