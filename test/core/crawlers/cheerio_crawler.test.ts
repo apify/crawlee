@@ -1147,8 +1147,7 @@ describe('CheerioCrawler', () => {
 
             await cheerioCrawler.run();
 
-            // @ts-expect-error private symbol
-            const sessions: Session[] = cheerioCrawler.sessionPool!.sessions;
+            const { sessions } = await (cheerioCrawler.sessionPool as SessionPool).getState();
             expect(sessions.length).toBe(4);
             sessions.forEach((session) => {
                 // TODO this test is flaky in CI and we need some more info to debug why.
@@ -1188,8 +1187,7 @@ describe('CheerioCrawler', () => {
                 });
                 await crawler.run();
 
-                // @ts-expect-error private symbol
-                const poolSessions: Session[] = crawler.sessionPool.sessions;
+                const { sessions: poolSessions } = await (crawler.sessionPool as SessionPool).getState();
                 // each request retires its session on every retry, so we get
                 // (maxRequestRetries + 1) sessions per request (retired ones + the final one)
                 expect(poolSessions.length).toBe(4 * (maxRequestRetries + 1));

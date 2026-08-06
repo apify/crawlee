@@ -135,11 +135,11 @@ export class SessionPool implements ISessionPool {
 
     readonly id: string;
     #log: CrawleeLogger;
+    #sessions: Session[] = [];
     // kept as TS-private: session_pool tests read/override the members below directly
     private maxPoolSize: number;
     private createSessionFunction: CreateSession;
     private keyValueStore?: KeyValueStore;
-    private sessions: Session[] = [];
     private sessionMap = new Map<string, Session>();
     private sessionOptions: SessionOptions;
     private persistStateKeyValueStoreId?: string;
@@ -211,7 +211,7 @@ export class SessionPool implements ISessionPool {
      */
     async usableSessionsCount(): Promise<number> {
         await this.ensureInitialized();
-        return this.sessions.filter((session) => session.isUsable()).length;
+        return this.#sessions.filter((session) => session.isUsable()).length;
     }
 
     /**
@@ -219,7 +219,7 @@ export class SessionPool implements ISessionPool {
      */
     async retiredSessionsCount(): Promise<number> {
         await this.ensureInitialized();
-        return this.sessions.filter((session) => !session.isUsable()).length;
+        return this.#sessions.filter((session) => !session.isUsable()).length;
     }
 
     /**
@@ -352,7 +352,7 @@ export class SessionPool implements ISessionPool {
         return {
             usableSessionsCount: await this.usableSessionsCount(),
             retiredSessionsCount: await this.retiredSessionsCount(),
-            sessions: this.sessions.map((session) => session.getState()),
+            sessions: this.#sessions.map((session) => session.getState()),
         };
     }
 
@@ -397,7 +397,7 @@ export class SessionPool implements ISessionPool {
      * Removes retired `Session` instances from `SessionPool`.
      */
     private removeRetiredSessions() {
-        this.sessions = this.sessions.filter((storedSession) => {
+        this.#sessions = this.#sessions.filter((storedSession) => {
             if (storedSession.isUsable()) return true;
 
             this.sessionMap.delete(storedSession.id);
@@ -412,7 +412,7 @@ export class SessionPool implements ISessionPool {
      * @param newSession `Session` instance to be added.
      */
     private registerSession(newSession: Session) {
-        this.sessions.push(newSession);
+        this.#sessions.push(newSession);
         this.sessionMap.set(newSession.id, newSession);
     }
 
@@ -420,7 +420,7 @@ export class SessionPool implements ISessionPool {
      * Gets random index.
      */
     private getRandomIndex(): number {
-        return Math.floor(Math.random() * this.sessions.length);
+        return Math.floor(Math.random() * this.#sessions.length);
     }
 
     /**
@@ -471,7 +471,7 @@ export class SessionPool implements ISessionPool {
      * Decides whether there is enough space for creating new session.
      */
     private hasSpaceForSession(): boolean {
-        return this.sessions.length < this.maxPoolSize;
+        return this.#sessions.length < this.maxPoolSize;
     }
 
     /**
@@ -482,16 +482,16 @@ export class SessionPool implements ISessionPool {
         if (this.#sessionReuseStrategy !== 'use-until-failure' && this.hasSpaceForSession()) return undefined;
 
         if (this.#sessionReuseStrategy === 'use-until-failure') {
-            return this.sessions.find((session) => session.isUsable());
+            return this.#sessions.find((session) => session.isUsable());
         }
 
         let picked: Session;
         if (this.#sessionReuseStrategy === 'round-robin') {
-            const index = this.#roundRobinIndex % this.sessions.length;
+            const index = this.#roundRobinIndex % this.#sessions.length;
             this.#roundRobinIndex = index + 1;
-            picked = this.sessions[index];
+            picked = this.#sessions[index];
         } else {
-            picked = this.sessions[this.getRandomIndex()];
+            picked = this.#sessions[this.getRandomIndex()];
         }
 
         return picked.isUsable() ? picked : undefined;
@@ -522,6 +522,6 @@ export class SessionPool implements ISessionPool {
             }
         }
 
-        this.#log.debug(`${this.sessions.length} active sessions loaded from KeyValueStore`);
+        this.#log.debug(`${this.#sessions.length} active sessions loaded from KeyValueStore`);
     }
 }

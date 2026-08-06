@@ -770,8 +770,7 @@ describe('BasicCrawler', () => {
             expect(setValueSpy).toBeCalled();
 
             // clean up
-            // @ts-expect-error Accessing a private property and its private method
-            await basicCrawler.autoscaledPool!.destroy();
+            await basicCrawler.teardown();
         },
     );
 

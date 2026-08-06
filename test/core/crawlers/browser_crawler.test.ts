@@ -987,9 +987,8 @@ describe('BrowserCrawler', () => {
                 ],
             });
 
-            const proxyConfiguration = new ProxyConfiguration({
-                proxyUrls: ['http://proxy.com:1111', 'http://proxy.com:2222', 'http://proxy.com:3333'],
-            });
+            const proxyUrls = ['http://proxy.com:1111', 'http://proxy.com:2222', 'http://proxy.com:3333'];
+            const proxyConfiguration = new ProxyConfiguration({ proxyUrls });
 
             const browserProxies: string[] = [];
 
@@ -1012,10 +1011,8 @@ describe('BrowserCrawler', () => {
 
             await browserCrawler.run();
 
-            // @ts-expect-error Accessing private property
-            const proxiesToUse = proxyConfiguration.proxyUrls!;
-            for (const proxyUrl of proxiesToUse) {
-                expect(browserProxies.includes(new URL(proxyUrl!).href.slice(0, -1))).toBeTruthy();
+            for (const proxyUrl of proxyUrls) {
+                expect(browserProxies.includes(new URL(proxyUrl).href.slice(0, -1))).toBeTruthy();
             }
 
             delete process.env[ENV_VARS.PROXY_PASSWORD];

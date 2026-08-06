@@ -127,12 +127,11 @@ export class AutoscaledPool {
     readonly #log: CrawleeLogger;
 
     // Configurable properties.
-    // kept as TS-private: autoscaled_pool tests override these four directly
-    private readonly maybeRunIntervalMillis: number;
+    readonly #maybeRunIntervalMillis: number;
     readonly #taskTimeoutMillis: number;
-    private readonly runTaskFunction: () => Promise<unknown>;
-    private readonly isFinishedFunction: () => Promise<boolean>;
-    private readonly isTaskReadyFunction: () => Promise<boolean>;
+    readonly #runTaskFunction: () => Promise<unknown>;
+    readonly #isFinishedFunction: () => Promise<boolean>;
+    readonly #isTaskReadyFunction: () => Promise<boolean>;
 
     readonly #concurrencySystem: IConcurrencySystem;
     readonly #consumer: ConcurrencyConsumer;
@@ -180,11 +179,11 @@ export class AutoscaledPool {
         this.#log = log.child({ prefix: 'AutoscaledPool' });
 
         // Configurable properties.
-        this.maybeRunIntervalMillis = maybeRunIntervalSecs * 1000;
+        this.#maybeRunIntervalMillis = maybeRunIntervalSecs * 1000;
         this.#taskTimeoutMillis = taskTimeoutSecs * 1000;
-        this.runTaskFunction = runTaskFunction;
-        this.isFinishedFunction = isFinishedFunction;
-        this.isTaskReadyFunction = isTaskReadyFunction;
+        this.#runTaskFunction = runTaskFunction;
+        this.#isFinishedFunction = isFinishedFunction;
+        this.#isTaskReadyFunction = isTaskReadyFunction;
 
         this.#concurrencySystem = concurrencySystem;
         this.#consumer = consumer;
@@ -247,7 +246,7 @@ export class AutoscaledPool {
         // This is here because if we scale down to let's say 1, then after each promise is finished
         // this.maybeRunTask() doesn't trigger another one. So if that 1 instance gets stuck it results
         // in the crawler getting stuck and even after scaling up it never triggers another promise.
-        this.#maybeRunInterval = betterSetInterval(this.maybeRunTask, this.maybeRunIntervalMillis);
+        this.#maybeRunInterval = betterSetInterval(this.maybeRunTask, this.#maybeRunIntervalMillis);
 
         try {
             await poolPromise;
@@ -316,7 +315,7 @@ export class AutoscaledPool {
                     clearInterval(interval);
                     resolve();
                 }
-            }, this.maybeRunIntervalMillis);
+            }, this.#maybeRunIntervalMillis);
         });
     }
 
@@ -342,7 +341,7 @@ export class AutoscaledPool {
      * Starts a new task
      * if the number of running tasks (current concurrency) is lower than desired concurrency
      * and the system is not currently overloaded
-     * and this.isTaskReadyFunction() returns true.
+     * and `isTaskReadyFunction()` returns true.
      *
      * It doesn't allow multiple concurrent runs of this method.
      */
@@ -376,7 +375,7 @@ export class AutoscaledPool {
         let isTaskReady;
         try {
             this.#log.perf('Checking for ready tasks.');
-            isTaskReady = await this.isTaskReadyFunction();
+            isTaskReady = await this.#isTaskReadyFunction();
         } catch (e) {
             const err = e as Error;
             this.#log.perf('Checking for ready tasks failed.');
@@ -418,12 +417,12 @@ export class AutoscaledPool {
 
             if (this.#taskTimeoutMillis > 0) {
                 await addTimeoutToPromise(
-                    async () => this.runTaskFunction(),
+                    async () => this.#runTaskFunction(),
                     this.#taskTimeoutMillis,
                     `runTaskFunction timed out after ${this.#taskTimeoutMillis / 1000} seconds.`,
                 );
             } else {
-                await this.runTaskFunction();
+                await this.#runTaskFunction();
             }
 
             this.#log.perf('Task finished.');
@@ -453,7 +452,7 @@ export class AutoscaledPool {
     }
 
     /**
-     * If there are no running tasks and this.isFinishedFunction() returns true then closes
+     * If there are no running tasks and `isFinishedFunction()` returns true then closes
      * the pool and resolves the pool's promise returned by the run() method.
      *
      * It doesn't allow multiple concurrent runs of this method.
@@ -464,7 +463,7 @@ export class AutoscaledPool {
 
         this.#queryingIsFinished = true;
         try {
-            const isFinished = await this.isFinishedFunction();
+            const isFinished = await this.#isFinishedFunction();
             if (isFinished && this.#resolve) this.#resolve();
         } catch (e) {
             const err = e as Error;

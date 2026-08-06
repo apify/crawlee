@@ -280,13 +280,13 @@ export class RequestList implements IRequestLoader {
     areRequestsPersisted = false;
 
     #isLoading = false;
-    // kept as TS-private: request_list tests read these fields directly
-    private isInitialized = false;
-    private persistStateKey?: string;
-    private persistRequestsKey?: string;
+    #isInitialized = false;
+    #persistStateKey?: string;
+    #persistRequestsKey?: string;
     #initialState?: RequestListState;
     #store?: KeyValueStore;
-    private keepDuplicateUrls: boolean;
+    #keepDuplicateUrls: boolean;
+    // kept as TS-private: request_list tests read this field directly
     private sources: RequestListSource[];
     #sourcesFunction?: RequestListSourcesFunction;
     #proxyConfiguration?: IProxyConfiguration;
@@ -333,13 +333,13 @@ export class RequestList implements IRequestLoader {
             }),
         );
 
-        this.persistStateKey = persistStateKey ? `CRAWLEE_${persistStateKey}` : persistStateKey;
-        this.persistRequestsKey = persistRequestsKey ? `CRAWLEE_${persistRequestsKey}` : persistRequestsKey;
+        this.#persistStateKey = persistStateKey ? `CRAWLEE_${persistStateKey}` : persistStateKey;
+        this.#persistRequestsKey = persistRequestsKey ? `CRAWLEE_${persistRequestsKey}` : persistRequestsKey;
         this.#initialState = state;
         this.#httpClient = httpClient;
 
         // If this option is set then all requests will get a pre-generated unique ID and duplicate URLs will be kept in the list.
-        this.keepDuplicateUrls = keepDuplicateUrls;
+        this.#keepDuplicateUrls = keepDuplicateUrls;
 
         // Will be empty after initialization to save memory.
         this.sources = sources ? [...sources] : [];
@@ -374,9 +374,9 @@ export class RequestList implements IRequestLoader {
         }
 
         this.restoreState(state as RequestListState);
-        this.isInitialized = true;
-        if (this.persistRequestsKey && !this.areRequestsPersisted) await this.persistRequests();
-        if (this.persistStateKey) {
+        this.#isInitialized = true;
+        if (this.#persistRequestsKey && !this.areRequestsPersisted) await this.persistRequests();
+        if (this.#persistStateKey) {
             serviceLocator.getEventManager().on(EventType.PERSIST_STATE, this.persistState);
         }
 
@@ -454,13 +454,13 @@ export class RequestList implements IRequestLoader {
      * @inheritDoc
      */
     async persistState(): Promise<void> {
-        if (!this.persistStateKey) {
+        if (!this.#persistStateKey) {
             throw new Error('Cannot persist state. options.persistStateKey is not set.');
         }
         if (this.isStatePersisted) return;
         try {
             this.#store ??= await KeyValueStore.open();
-            await this.#store.setValue(this.persistStateKey, this.getState());
+            await this.#store.setValue(this.#persistStateKey, this.getState());
             this.isStatePersisted = true;
         } catch (e) {
             const err = e as Error;
@@ -476,7 +476,7 @@ export class RequestList implements IRequestLoader {
     async teardown(): Promise<void> {
         serviceLocator.getEventManager().off(EventType.PERSIST_STATE, this.persistState);
 
-        if (this.persistStateKey) {
+        if (this.#persistStateKey) {
             await this.persistState();
         }
     }
@@ -489,7 +489,7 @@ export class RequestList implements IRequestLoader {
     private async persistRequests(): Promise<void> {
         const serializedRequests = await serializeArray(this.requests);
         this.#store ??= await KeyValueStore.open();
-        await this.#store.setValue(this.persistRequestsKey!, serializedRequests, { contentType: CONTENT_TYPE_BINARY });
+        await this.#store.setValue(this.#persistRequestsKey!, serializedRequests, { contentType: CONTENT_TYPE_BINARY });
         this.areRequestsPersisted = true;
     }
 
@@ -571,13 +571,13 @@ export class RequestList implements IRequestLoader {
         if (this.#initialState) {
             state = this.#initialState;
             this.#log.debug('Loaded state from options.state argument.');
-        } else if (this.persistStateKey) {
-            state = await this.getPersistedState(this.persistStateKey);
+        } else if (this.#persistStateKey) {
+            state = await this.getPersistedState(this.#persistStateKey);
             if (state) this.#log.debug('Loaded state from key value store using the persistStateKey.');
         }
 
-        if (this.persistRequestsKey) {
-            persistedRequests = await this.getPersistedState(this.persistRequestsKey);
+        if (this.#persistRequestsKey) {
+            persistedRequests = await this.getPersistedState(this.#persistRequestsKey);
             if (persistedRequests)
                 this.#log.debug('Loaded requests from key value store using the persistRequestsKey.');
         }
@@ -756,7 +756,7 @@ export class RequestList implements IRequestLoader {
         request.uniqueKey ??= Request.computeUniqueKey(request as any);
 
         // Add index to uniqueKey if duplicates are to be kept
-        if (this.keepDuplicateUrls && !hasUniqueKey) {
+        if (this.#keepDuplicateUrls && !hasUniqueKey) {
             request.uniqueKey += `-${this.requests.length}`;
         }
 
@@ -767,7 +767,7 @@ export class RequestList implements IRequestLoader {
         if (!Object.hasOwn(this.#uniqueKeyToIndex, uniqueKey)) {
             this.#uniqueKeyToIndex[uniqueKey] = this.requests.length;
             this.requests.push(request);
-        } else if (this.keepDuplicateUrls) {
+        } else if (this.#keepDuplicateUrls) {
             this.#log.warning(
                 `Duplicate uniqueKey: ${uniqueKey} found while the keepDuplicateUrls option was set. Check your sources' unique keys.`,
             );
@@ -797,7 +797,7 @@ export class RequestList implements IRequestLoader {
      * Throws an error if request list wasn't initialized.
      */
     private ensureIsInitialized(): void {
-        if (!this.isInitialized) {
+        if (!this.#isInitialized) {
             throw new Error(
                 'RequestList is not initialized; you must call "await requestList.initialize()" before using it!',
             );

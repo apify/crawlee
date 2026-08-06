@@ -127,8 +127,7 @@ const BUILTIN_SIGNAL_NAMES = new Set(Object.keys(BUILTIN_SIGNAL_OPTION_KEYS));
  * @internal
  */
 export class SystemStatus {
-    // kept as TS-private: system_status tests write this window directly
-    private readonly currentHistoryMillis: number;
+    readonly #currentHistoryMillis: number;
     readonly #historyMillis: number;
     readonly #signals: LoadSignal[];
 
@@ -140,7 +139,7 @@ export class SystemStatus {
             loadSignals = [],
         } = options;
 
-        this.currentHistoryMillis = currentHistorySecs * 1000;
+        this.#currentHistoryMillis = currentHistorySecs * 1000;
         this.#historyMillis = historySecs * 1000;
 
         this.#signals = [...snapshotter.getLoadSignals(), ...loadSignals];
@@ -153,7 +152,7 @@ export class SystemStatus {
      * defaults.
      */
     get maxSampleWindowMillis(): number {
-        return Math.max(this.currentHistoryMillis, this.#historyMillis);
+        return Math.max(this.#currentHistoryMillis, this.#historyMillis);
     }
 
     /**
@@ -195,7 +194,7 @@ export class SystemStatus {
      * and `true` otherwise.
      */
     getCurrentStatus(): SystemInfo {
-        return this.isSystemIdle(this.currentHistoryMillis);
+        return this.isSystemIdle(this.#currentHistoryMillis);
     }
 
     /**

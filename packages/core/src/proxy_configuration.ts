@@ -79,8 +79,7 @@ export interface IProxyConfiguration {
 export class ProxyConfiguration implements IProxyConfiguration {
     readonly isManInTheMiddle = false;
     #nextCustomUrlIndex = 0;
-    // kept as TS-private: proxy_configuration tests read this list directly
-    private proxyUrls?: UrlList;
+    #proxyUrls?: UrlList;
     #newUrlFunction?: ProxyConfigurationFunction;
 
     /**
@@ -126,7 +125,7 @@ export class ProxyConfiguration implements IProxyConfiguration {
         if (proxyUrls && newUrlFunction) this.throwCannotCombineCustomMethods();
         if (!proxyUrls && !newUrlFunction && validateRequired) this.throwNoOptionsProvided();
 
-        this.proxyUrls = proxyUrls;
+        this.#proxyUrls = proxyUrls;
         this.#newUrlFunction = newUrlFunction;
     }
 
@@ -169,7 +168,7 @@ export class ProxyConfiguration implements IProxyConfiguration {
     }
 
     private handleProxyUrlsList(): string | null {
-        return this.proxyUrls![this.#nextCustomUrlIndex++ % this.proxyUrls!.length];
+        return this.#proxyUrls![this.#nextCustomUrlIndex++ % this.#proxyUrls!.length];
     }
 
     /**

@@ -74,8 +74,7 @@ export type SnapshotterOptions = Omit<LoadSignalsOptions, 'custom'>;
 export class Snapshotter {
     // Absent when switched off through the corresponding option (e.g. `client: false`).
     readonly #memorySignal?: MemoryLoadSignal;
-    // kept as TS-private: snapshotter tests reach for this signal directly
-    private readonly eventLoopSignal?: EventLoopLoadSignal;
+    readonly #eventLoopSignal?: EventLoopLoadSignal;
     readonly #cpuSignal?: CpuLoadSignal;
     readonly #clientSignal?: ClientLoadSignal;
 
@@ -87,7 +86,7 @@ export class Snapshotter {
     getLoadSignals(): LoadSignal[] {
         const builtin: (LoadSignal | undefined)[] = [
             this.#memorySignal,
-            this.eventLoopSignal,
+            this.#eventLoopSignal,
             this.#cpuSignal,
             this.#clientSignal,
         ];
@@ -104,7 +103,7 @@ export class Snapshotter {
         // Each signal resolves its own ambient dependencies when started, and is told the window it will be sampled
         // over then too - so there is nothing to thread in here beyond the caller's tuning.
         if (memory !== false) this.#memorySignal = new MemoryLoadSignal(memory);
-        if (eventLoop !== false) this.eventLoopSignal = new EventLoopLoadSignal(eventLoop);
+        if (eventLoop !== false) this.#eventLoopSignal = new EventLoopLoadSignal(eventLoop);
         if (cpu !== false) this.#cpuSignal = new CpuLoadSignal(cpu);
         if (client !== false) this.#clientSignal = new ClientLoadSignal(client);
     }

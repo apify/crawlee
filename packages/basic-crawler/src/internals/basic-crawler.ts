@@ -720,8 +720,7 @@ export class BasicCrawler<
      * {@apilink BasicCrawler.resume|`resume()`}, {@apilink BasicCrawler.teardown|`teardown()`} and
      * {@apilink BasicCrawler.concurrencySystem|`concurrencySystem`}.
      */
-    // kept as TS-private: tests reach for it at runtime
-    private autoscaledPool?: AutoscaledPool;
+    #autoscaledPool?: AutoscaledPool;
 
     /**
      * A reference to the underlying {@apilink IProxyConfiguration} instance that manages the crawler's proxies.
@@ -1613,7 +1612,7 @@ export class BasicCrawler<
                 'Pausing... Press CTRL+C again to force exit. To resume, do: CRAWLEE_PURGE_ON_START=0 npm start',
             );
             await this.pauseOnMigration();
-            await this.autoscaledPool!.abort();
+            await this.#autoscaledPool!.abort();
         };
 
         // Attach a listener to handle migration and aborting events gracefully.
@@ -1626,7 +1625,7 @@ export class BasicCrawler<
         let stats = {} as FinalStatistics;
 
         try {
-            await this.autoscaledPool!.run();
+            await this.#autoscaledPool!.run();
         } finally {
             await this.teardown();
             await this.stats.stopCapturing();
@@ -1707,12 +1706,12 @@ export class BasicCrawler<
      * throughout, since a shared one may still be serving other crawlers.
      */
     async pause(timeoutSecs?: number): Promise<void> {
-        if (!this.autoscaledPool) {
+        if (!this.#autoscaledPool) {
             this.log.warning('Cannot pause a crawler that is not running.');
             return;
         }
 
-        await this.autoscaledPool.pause(timeoutSecs);
+        await this.#autoscaledPool.pause(timeoutSecs);
     }
 
     /**
@@ -1720,12 +1719,12 @@ export class BasicCrawler<
      * again. A no-op on a crawler that is not paused.
      */
     resume(): void {
-        if (!this.autoscaledPool) {
+        if (!this.#autoscaledPool) {
             this.log.warning('Cannot resume a crawler that is not running.');
             return;
         }
 
-        this.autoscaledPool.resume();
+        this.#autoscaledPool.resume();
     }
 
     /**
@@ -2094,7 +2093,7 @@ export class BasicCrawler<
         this.#concurrencySystemDep = this.#resolveConcurrencySystem();
         await this.#concurrencySystemDep.ifOwned((system) => system.start());
 
-        this.autoscaledPool = new AutoscaledPool({
+        this.#autoscaledPool = new AutoscaledPool({
             ...this.taskLoopOptions,
             concurrencySystem: this.#concurrencySystemDep.value,
             consumer: this.identity,
@@ -2252,9 +2251,9 @@ export class BasicCrawler<
     }
 
     private async pauseOnMigration() {
-        if (this.autoscaledPool) {
+        if (this.#autoscaledPool) {
             // if run wasn't called, this is going to crash
-            await this.autoscaledPool.pause(SAFE_MIGRATION_WAIT_MILLIS).catch((err) => {
+            await this.#autoscaledPool.pause(SAFE_MIGRATION_WAIT_MILLIS).catch((err) => {
                 if (err.message.includes('running tasks did not finish')) {
                     this.log.error(
                         'The crawler was paused due to migration to another host, ' +
@@ -2708,7 +2707,7 @@ export class BasicCrawler<
 
         await this.#sessionPoolDep.ifOwned((pool) => pool.teardown());
 
-        await this.autoscaledPool?.abort();
+        await this.#autoscaledPool?.abort();
         await this.#concurrencySystemDep?.ifOwned((system) => system.stop());
     }
 
