@@ -672,23 +672,24 @@ Applies when you construct `SessionPool` or `Session` instances directly, implem
 
 ### Custom `SessionPool` implementations via the `ISessionPool` interface
 
-Crawlers now accept any object implementing the new `ISessionPool` interface as their `sessionPool` option, not just instances of the built-in `SessionPool`. The contract is intentionally tiny — a single method, `getSession()` / `getSession(id)`, that hands out a `Session` for a request. Lifecycle (reset, teardown) is the responsibility of whoever owns the pool: a custom pool you construct yourself is never owned by the crawler, so the crawler never tears it down. This makes it straightforward to plug in a remote, shared, or otherwise customized session-management strategy without subclassing `SessionPool` or copying its internals.
+Crawlers now accept any object implementing the new `ISessionPool` interface as their `sessionPool` option, not just instances of the built-in `SessionPool`. The contract is intentionally tiny — a single method, `getSession(sessionId?)`, that hands out a session for a request. Lifecycle (reset, teardown) is the responsibility of whoever owns the pool: a custom pool you construct yourself is never owned by the crawler, so the crawler never tears it down. This makes it straightforward to plug in a remote, shared, or otherwise customized session-management strategy without subclassing `SessionPool` or copying its internals.
+
+`ISessionPool` and `ISession` live in `@crawlee/types`; they are not re-exported from `@crawlee/core` (see [`@crawlee/types` symbols are no longer re-exported](#crawleetypes-symbols-are-no-longer-re-exported)).
 
 ```typescript
-import { BasicCrawler, Session, type ISessionPool } from '@crawlee/core';
+import { BasicCrawler, Session } from '@crawlee/core';
+import type { ISession, ISessionPool } from '@crawlee/types';
 
 class MySessionPool implements ISessionPool {
-    private readonly sessions = new Map<string, Session>();
+    private readonly sessions = new Map<string, ISession>();
 
-    async getSession(): Promise<Session>;
-    async getSession(sessionId: string): Promise<Session | undefined>;
-    async getSession(sessionId?: string): Promise<Session | undefined> {
+    async getSession(sessionId?: string): Promise<ISession | undefined> {
         if (sessionId) {
             const existing = this.sessions.get(sessionId);
             return existing?.isUsable() ? existing : undefined;
         }
 
-        const usable = [...this.sessions.values()].find((s) => s.isUsable());
+        const usable = [...this.sessions.values()].find((session) => session.isUsable());
         if (usable) return usable;
 
         const fresh = new Session();
@@ -700,12 +701,14 @@ class MySessionPool implements ISessionPool {
 const crawler = new BasicCrawler({
     sessionPool: new MySessionPool(),
     requestHandler: async ({ session }) => {
-        // session is a Session instance, use it as usual
+        // `session` is whatever your pool returned, typed as ISession
     },
 });
 ```
 
-The returned objects must be `Session` instances — the rest of the crawler relies on `session.markGood()`, `session.cookieJar`, `session.proxyInfo`, and the rest of the concrete `Session` API.
+The crawler depends only on the `ISession` interface — `id`, `cookieJar`, `proxyInfo`, `fingerprint`, and the `isUsable()` / `markGood()` / `markBad()` / `retire()` methods — so a custom pool may hand out its own session implementation instead of instances of the built-in `Session` class. `Session` implements `ISession`, so returning `Session` instances (as above) is the shortest path; `crawlingContext.session` is typed as `ISession` either way.
+
+Returning `undefined` means the pool has no usable session for the request. The crawler turns that into a `MissingSessionError` and retries the request like any other failure.
 
 The `crawler.sessionPool` property is now **read-only** (a getter). It was previously a writable field, so any code that reassigned it after construction (`crawler.sessionPool = myPool`) no longer works — pass your pool via the `sessionPool` constructor option instead.
 
