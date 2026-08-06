@@ -17,7 +17,7 @@ This page summarizes the breaking changes in Crawlee v4. There are many, so the 
 
 - **Timeouts that mean what they say.** Navigation and the request handler are [timed separately](#navigation-and-the-request-handler-are-timed-separately) — no more mysteriously summed limits — and a single route can get [its own timeout](#per-route-and-per-request-handler-timeouts) or extend it mid-flight.
 - **Composable crawling context.** The new `extendContext` option and `ContextPipeline` composition replace subclassing tricks for [adding members to the crawling context](#crawling-context-no-longer-includes-a-reference-to-the-crawler-itself).
-- **Bring your own implementation.** Crawlers now accept any [`ISessionPool`](#custom-sessionpool-implementations-via-the-isessionpool-interface), [`IBrowserPool`](#custom-browserpool-implementations-via-the-ibrowserpool-interface), [`IRenderingTypePredictor`](#custom-rendering-type-predictors-via-the-irenderingtypepredictor-interface) or [`IRequestManager`](#request-loaders-and-managers) — and never tear down an instance they did not create.
+- **Bring your own implementation.** Crawlers now accept any [`ISessionPool`](#custom-sessionpool-implementations-via-the-isessionpool-interface), [`IBrowserPool`](#custom-browserpool-implementations-via-the-ibrowserpool-interface), [`IRenderingTypePredictor`](#custom-rendering-type-predictors-via-the-irenderingtypepredictor-interface), [`IRequestManager`](#request-loaders-and-managers) or [`IStatistics`](#statisticsoptions-is-replaced-by-a-statistics-instance) — and never tear down an instance they did not create.
 - **One concurrency budget for several crawlers.** The new [`ConcurrencySystem`](#autoscaling-moved-to-concurrencysystem) can be shared between crawlers, capping their combined concurrency instead of letting each one oversubscribe the host.
 - **Native `fetch` types.** HTTP clients and `context.response` now use the [standard `Response`](#crawlingcontextresponse-is-now-of-type-response), and `got-scraping` is an [opt-in dependency](#http-client-packages-and-basehttpclient-reshaped) instead of a mandatory one.
 - **The session is the rotation unit.** A session carries its proxy, cookies and error score, and is rotated as a whole when blocked — replacing [proxy tiers](#tieredproxyurls-is-removed-from-proxyconfiguration) and [session rotation counters](#maxsessionrotations-and-requestsessionrotationcount-are-removed).
@@ -932,6 +932,28 @@ If you don't pass a predictor, nothing changes: the crawler builds one from `ren
 ### Remove `experimentalContainers` option
 
 This experimental option relied on an outdated manifest version for browser extensions, it is not possible to achieve this with the currently supported versions.
+
+## Only if you customize crawler statistics
+
+Applies when you passed `statisticsOptions` to a crawler, or subclassed `Statistics`.
+
+### `statisticsOptions` is replaced by a `statistics` instance
+
+The `statisticsOptions` option has been removed from the crawler constructor. Instead of passing options for the crawler to build its `Statistics` from, construct a `Statistics` instance yourself and pass it via the new `statistics` option — the same inject-or-default idiom as `sessionPool` and `browserPool`.
+
+```typescript
+import { Statistics } from '@crawlee/core';
+
+const crawler = new BasicCrawler({
+    // The old parameter won't work anymore
+    // statisticsOptions: { saveErrorSnapshots: true },
+    statistics: new Statistics({ saveErrorSnapshots: true }),
+});
+```
+
+Omit the option and the crawler builds its own default, exactly as before. A supplied instance is treated as borrowed: the crawler records into it and drives its capture lifecycle for the run, but never `reset()`s it between `run()` calls — so a preconfigured instance keeps whatever state it was handed. This is also the supported way to plug in a custom `Statistics` subclass that tracks extra fields (superseding the previous subclass-and-reassign pattern).
+
+The option accepts the built-in `Statistics` or any object implementing the new `IStatistics` interface, so a fully custom statistics backend can be plugged in without subclassing. The crawler exposes it as `crawler.stats` typed as `IStatistics`.
 
 ## Only if you wrote a custom HTTP client or used `got-scraping` directly
 
