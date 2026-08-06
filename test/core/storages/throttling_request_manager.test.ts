@@ -34,9 +34,12 @@ describe('ThrottlingRequestManager', () => {
     test('parseRetryAfterHeader parsing seconds and date', () => {
         expect(parseRetryAfterHeader('120')).toBe(120_000);
         expect(parseRetryAfterHeader('  5  ')).toBe(5000);
-        expect(parseRetryAfterHeader('0')).toBe(0);
         // Zero-padded values are valid `delay-seconds`.
         expect(parseRetryAfterHeader('05')).toBe(5000);
+
+        // A zero delay names no deadline; reporting it as one would leave the domain unthrottled and busy-loop.
+        expect(parseRetryAfterHeader('0')).toBeNull();
+        expect(parseRetryAfterHeader('00')).toBeNull();
 
         // date format
         const futureDate = new Date(Date.now() + 5000).toUTCString();
