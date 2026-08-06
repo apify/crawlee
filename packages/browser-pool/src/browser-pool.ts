@@ -480,6 +480,9 @@ export class BrowserPool<
         // requests (https://github.com/apify/crawlee/issues/3670). Mirrors the
         // fix p-limit landed upstream in v5 (sindresorhus/p-limit#71); v5 is an
         // ESM-only rewrite, so we can't bump it in Crawlee v3.
+        // Besides the cancelTask leak, the wrapper also keeps the per-request *storage transaction*
+        // ALS-scoped: without it, a queued callback would resume in the previous request's async
+        // context and run request B's storage writes inside request A's transaction.
         // TODO(crawlee@v4): bump p-limit to v5 and drop this AsyncResource.bind wrapper.
         // Limiter is necessary - https://github.com/apify/crawlee/issues/1126
         return this.limiter(
