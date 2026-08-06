@@ -499,14 +499,17 @@ describe('BrowserCrawler', () => {
             maxRequestRetries: 0,
             preNavigationHooks: [
                 async ({ gotoOptions }) => {
-                    gotoOptions.timeout = 60000;
+                    // Extends past the navigation window to prove the override is not silently clamped to it.
+                    // Must differ from the default `navigationTimeoutMillis` (60s) - a hook value equal to the
+                    // default is treated as "not overridden" and clamped to the remaining navigation window.
+                    gotoOptions.timeout = 120000;
                 },
             ],
         });
 
         await browserCrawler.run();
 
-        expect(optionsGoto!.timeout).toEqual(60000);
+        expect(optionsGoto!.timeout).toEqual(120000);
     });
 
     test.concurrent('should ignore errors in Page.close()', async () => {
