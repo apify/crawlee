@@ -100,7 +100,7 @@ export class AdaptivePlaywrightCrawler<ContextExtension = Dictionary<never>, Ext
 }
 
 // @public (undocumented)
-export interface AdaptivePlaywrightCrawlerContext<UserData extends Dictionary = Dictionary> extends CrawlingContext_2<UserData> {
+export interface AdaptivePlaywrightCrawlerContext<UserData extends Dictionary = any> extends CrawlingContext_2<UserData> {
     // (undocumented)
     enqueueLinks(options?: EnqueueLinksOptions): Promise<unknown>;
     page: Page;
@@ -400,13 +400,13 @@ export interface PlaywrightCrawlerOptions<ContextExtension = Dictionary<never>, 
     browserPlugins: [PlaywrightPlugin];
 }, Routes> {
     launchContext?: PlaywrightLaunchContext;
-    postNavigationHooks?: BrowserHook<PlaywrightCrawlingContext, ContextExtension>[];
-    preNavigationHooks?: BrowserHook<PlaywrightCrawlingContext, ContextExtension>[];
+    postNavigationHooks?: BrowserHook<PlaywrightCrawlingContext<GetUserDataFromRequest<ExtendedContext['request']>>, ContextExtension>[];
+    preNavigationHooks?: BrowserHook<PlaywrightCrawlingContext<GetUserDataFromRequest<ExtendedContext['request']>>, ContextExtension>[];
     requestHandler?: RouterHandler<ExtendedContext, Routes> | RequestHandler<ExtendedContext>;
 }
 
 // @public (undocumented)
-export interface PlaywrightCrawlingContext<UserData extends Dictionary = Dictionary> extends BrowserCrawlingContext<Page, Response_2, UserData, PlaywrightGotoOptions>, PlaywrightContextUtils {
+export interface PlaywrightCrawlingContext<UserData extends Dictionary = any> extends BrowserCrawlingContext<Page, Response_2, UserData, PlaywrightGotoOptions>, PlaywrightContextUtils {
 }
 
 // @public (undocumented)
@@ -420,8 +420,7 @@ export interface PlaywrightDirectNavigationOptions {
 export type PlaywrightGotoOptions = NonNullable<Parameters<Page['goto']>[1]>;
 
 // @public (undocumented)
-export interface PlaywrightHook extends BrowserHook<PlaywrightCrawlingContext> {
-}
+export type PlaywrightHook<UserData extends Dictionary = any> = BrowserHook<PlaywrightCrawlingContext<UserData>>;
 
 // @public
 export interface PlaywrightLaunchContext extends BrowserLaunchContext<LaunchOptions, BrowserType> {

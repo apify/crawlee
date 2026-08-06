@@ -168,7 +168,7 @@ export interface HttpCrawlerOptions<Context extends InternalHttpCrawlingContext 
     ignoreSslErrors?: boolean;
     navigationTimeoutSecs?: number;
     postNavigationHooks?: ((crawlingContext: CrawlingContextWithResponse & ContextExtension) => Awaitable<void | Partial<CrawlingContextWithResponse>>)[];
-    preNavigationHooks?: InternalHttpHook<CrawlingContext, ContextExtension>[];
+    preNavigationHooks?: InternalHttpHook<CrawlingContext<any>, ContextExtension>[];
     saveResponseCookies?: boolean;
     suggestResponseEncoding?: string;
 }
