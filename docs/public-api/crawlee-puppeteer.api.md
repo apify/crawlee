@@ -242,7 +242,7 @@ export class PuppeteerCrawler<ContextExtension = Dictionary<never>, ExtendedCont
         maxConcurrency: NumberPredicate & BasePredicate<number | undefined>;
         maxRequestsPerMinute: NumberPredicate & BasePredicate<number | undefined>;
         keepAlive: BooleanPredicate & BasePredicate<boolean | undefined>;
-        statisticsOptions: ObjectPredicate<object> & BasePredicate<object | undefined>;
+        statistics: ObjectPredicate<object> & BasePredicate<object | undefined>;
         id: StringPredicate & BasePredicate<string | undefined>;
     };
 }
