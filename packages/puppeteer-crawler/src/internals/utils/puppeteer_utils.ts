@@ -26,7 +26,6 @@ import type { Request } from '@crawlee/browser';
 import { Configuration, KeyValueStore, serviceLocator, validators } from '@crawlee/browser';
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 import { type CheerioRoot, expandShadowRoots, sleep } from '@crawlee/utils';
-import * as cheerio from 'cheerio';
 import type { ProtocolMapping } from 'devtools-protocol/types/protocol-mapping.js';
 import ow from 'ow';
 // @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
@@ -235,7 +234,8 @@ export async function parseWithCheerio(
         : ((await page.evaluate(`(${expandShadowRoots.toString()})(document)`)) as string);
     const pageContent = html || (await page.content());
 
-    return cheerio.load(pageContent);
+    const { load } = await import('cheerio');
+    return load(pageContent);
 }
 
 /**
@@ -830,7 +830,6 @@ export async function closeCookieModals(page: Page): Promise<void> {
     }
 }
 
-/** @internal */
 export interface PuppeteerContextUtils {
     /**
      * Injects a JavaScript file into current `page`.
@@ -906,8 +905,7 @@ export interface PuppeteerContextUtils {
      * in `href` elements, but rather navigations are triggered in click handlers.
      * If you're looking to find URLs in `href` attributes of the page, see {@apilink enqueueLinks}.
      *
-     * Optionally, the function allows you to filter the target links' URLs using an array of {@apilink PseudoUrl} objects
-     * and override settings of the enqueued {@apilink Request} objects.
+     * Optionally, the function allows you to filter the target links' URLs using an array of glob or regexp patterns.
      *
      * **IMPORTANT**: To be able to do this, this function uses various mutations on the page,
      * such as changing the Z-index of elements being clicked and their visibility. Therefore,
@@ -928,9 +926,9 @@ export interface PuppeteerContextUtils {
      * async requestHandler({ enqueueLinksByClickingElements }) {
      *     await enqueueLinksByClickingElements({
      *         selector: 'a.product-detail',
-     *         globs: [
-     *             'https://www.example.com/handbags/**'
-     *             'https://www.example.com/purses/**'
+     *         include: [
+     *             'https://www.example.com/handbags/**',
+     *             'https://www.example.com/purses/**',
      *         ],
      *     });
      * });

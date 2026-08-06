@@ -34,12 +34,10 @@ export interface CommonLibrary {
     name?: () => string;
 }
 
-/** @internal */
 export interface CommonBrowser {
     newPage(...args: unknown[]): Promise<CommonPage>;
 }
 
-/** @internal */
 export interface CommonPage {
     close(...args: unknown[]): Promise<unknown>;
     url(): string | Promise<string>;

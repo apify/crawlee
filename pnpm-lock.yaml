@@ -320,9 +320,6 @@ importers:
       csv-stringify:
         specifier: ^6.5.2
         version: 6.7.0
-      fs-extra:
-        specifier: ^11.3.0
-        version: 11.3.4
       ow:
         specifier: ^2.0.0
         version: 2.0.0
@@ -453,9 +450,6 @@ importers:
       ansi-colors:
         specifier: ^4.1.3
         version: 4.1.3
-      fs-extra:
-        specifier: ^11.3.0
-        version: 11.3.4
       tslib:
         specifier: ^2.8.1
         version: 2.8.1
@@ -474,9 +468,6 @@ importers:
       '@apify/log':
         specifier: ^2.5.18
         version: 2.5.35
-      '@apify/pseudo_url':
-        specifier: ^2.0.59
-        version: 2.0.76
       '@apify/timeout':
         specifier: ^0.4.4
         version: 0.4.4
@@ -1315,9 +1306,6 @@ packages:
     resolution: {integrity: sha512-VHIswI7rD/R4bToeIDuJ9WJXt+qr5SdhfoZ9RzdjmCs9mgy7l0P4RugQEUCcU+WB4sfImbd4CKwzXcn0uYx1yw==}
     engines: {node: '>= 0.10'}
     hasBin: true
-
-  '@apify/pseudo_url@2.0.76':
-    resolution: {integrity: sha512-eNWHnP8CeMBgYBFko6/NJhHNKnxjy9HtbKQy0rq75LuKeibnAcT+7kkQrr6JDyDzrZL1O96yRWEy+G3lC2eIZA==}
 
   '@apify/timeout@0.3.3':
     resolution: {integrity: sha512-lyvwMXee8SJNjNyxhr+nSTNyvjyoxbxol51xikq9VytFOPNSEMz8N02mUAuLVJNqrnqCBFRybjeqZdg4Y5AZlA==}
@@ -12961,10 +12949,6 @@ snapshots:
   '@apify/ps-tree@1.2.0':
     dependencies:
       event-stream: 3.3.4
-
-  '@apify/pseudo_url@2.0.76':
-    dependencies:
-      '@apify/log': 2.5.35
 
   '@apify/timeout@0.3.3': {}
 

@@ -176,8 +176,6 @@ class StorageCache {
  * The manager itself does not resolve identifiers — callers pass explicit `id`, `name`, or `alias` (at most one),
  * and a pre-bound `backendOpener` promise. When none of `id`, `name`, `alias` are provided, the manager automatically
  * assigns a reserved default alias.
- *
- * @ignore
  */
 export class StorageInstanceManager {
     private readonly cache = new StorageCache();
