@@ -61,7 +61,7 @@ export abstract class BrowserCrawler<Page extends CommonPage = CommonPage, Respo
     // (undocumented)
     launchContext: BrowserLaunchContext<LaunchOptions, unknown>;
     // (undocumented)
-    protected abstract _navigationHandler(crawlingContext: BrowserCrawlingContext<Page, Response>, gotoOptions: GoToOptions): Promise<Context['response'] | null | undefined>;
+    protected abstract navigationHandler(crawlingContext: BrowserCrawlingContext<Page, Response>, gotoOptions: GoToOptions): Promise<Context['response'] | null | undefined>;
     // (undocumented)
     protected static optionsShape: {
         navigationTimeoutSecs: NumberPredicate & BasePredicate<number | undefined>;

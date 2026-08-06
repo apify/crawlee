@@ -329,13 +329,13 @@ describe('BasicCrawler', () => {
         });
 
         const failure = new Error('Could not open the request queue');
-        // `_init()` starts the concurrency system before it resolves the request manager, so this fails after the
+        // `init()` starts the concurrency system before it resolves the request manager, so this fails after the
         // system's intervals are already ticking.
         const getRequestManager = vitest
             .spyOn(crawler, 'getRequestManager')
             .mockImplementation(async () => Promise.reject(failure));
 
-        // No initial requests — `addRequests()` would resolve the request manager before `_init()` even runs.
+        // No initial requests — `addRequests()` would resolve the request manager before `init()` even runs.
         await expect(crawler.run()).rejects.toThrow(failure);
 
         // The intervals would otherwise keep the event loop alive for the rest of the process's life.

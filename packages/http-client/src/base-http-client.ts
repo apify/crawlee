@@ -41,10 +41,10 @@ export interface CustomFetchOptions {
  * implement only the low-level network call in `fetch`.
  */
 export abstract class BaseHttpClient implements BaseHttpClientInterface {
-    private log?: CrawleeLogger;
+    #log?: CrawleeLogger;
 
     constructor(options?: { logger?: CrawleeLogger }) {
-        this.log = options?.logger;
+        this.#log = options?.logger;
     }
 
     /**
@@ -82,7 +82,7 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
                 request.headers.set('cookie', cookieString);
             }
         } catch (e) {
-            this.log?.warning(`Failed to get cookies for URL "${request.url}": ${(e as Error).message}`);
+            this.#log?.warning(`Failed to get cookies for URL "${request.url}": ${(e as Error).message}`);
         }
 
         return request;
@@ -95,7 +95,7 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
             try {
                 await cookieJar.setCookie(header, response.url);
             } catch (e) {
-                this.log?.warning(`Failed to set cookie for URL "${response.url}": ${(e as Error).message}`);
+                this.#log?.warning(`Failed to set cookie for URL "${response.url}": ${(e as Error).message}`);
             }
         }
     }

@@ -83,13 +83,14 @@ const KVS_KEYS_DEFAULT_LIMIT = 1000;
 export class KeyValueStore {
     readonly id: string;
     readonly name?: string;
+    // kept as TS-private: key_value_store tests spy on the backend directly
     private readonly backend: KeyValueStoreBackend;
-    private persistStateEventStarted = false;
+    #persistStateEventStarted = false;
 
     /** Cache for persistent (auto-saved) values. When we try to set such value, the cache will be updated automatically. */
-    private readonly cache = new Map<string, Dictionary>();
+    readonly #cache = new Map<string, Dictionary>();
 
-    private readonly statsTracker = new StorageStatsTracker<KeyValueStoreStats>({
+    readonly #statsTracker = new StorageStatsTracker<KeyValueStoreStats>({
         readCount: 0,
         writeCount: 0,
         deleteCount: 0,
@@ -113,7 +114,7 @@ export class KeyValueStore {
      * list operations issued to the underlying storage backend). Counted per backend call.
      */
     get stats(): KeyValueStoreStats {
-        return this.statsTracker.current;
+        return this.#statsTracker.current;
     }
 
     /**
@@ -216,7 +217,7 @@ export class KeyValueStore {
         checkStorageAccess();
 
         ow(key, ow.string.nonEmpty);
-        this.statsTracker.add('readCount');
+        this.#statsTracker.add('readCount');
         const record = await this.backend.getValue(key);
 
         // A missing record falls back to the default; a record that parses to a falsy value (including
@@ -259,7 +260,7 @@ export class KeyValueStore {
         checkStorageAccess();
 
         ow(key, ow.string.nonEmpty);
-        this.statsTracker.add('readCount');
+        this.#statsTracker.add('readCount');
         const record = await this.backend.getValue(key);
         if (!record) return null;
 
@@ -285,8 +286,8 @@ export class KeyValueStore {
     async getAutoSavedValue<T extends Dictionary = Dictionary>(key: string, defaultValue = {} as T): Promise<T> {
         checkStorageAccess();
 
-        if (this.cache.has(key)) {
-            return this.cache.get(key) as T;
+        if (this.#cache.has(key)) {
+            return this.#cache.get(key) as T;
         }
 
         const value = await this.getValue<T>(key, defaultValue);
@@ -295,25 +296,25 @@ export class KeyValueStore {
         // the value will in cache at this point, and returning the new fetched value would introduce two different instances of
         // the auto-saved object, and only the latter one would be persisted.
         // Therefore we re-check the cache here, and if such race condition happened, we drop the fetched value and return the cached one.
-        if (this.cache.has(key)) {
-            return this.cache.get(key) as T;
+        if (this.#cache.has(key)) {
+            return this.#cache.get(key) as T;
         }
 
-        this.cache.set(key, value!);
+        this.#cache.set(key, value!);
         this.ensurePersistStateEvent();
 
         return value!;
     }
 
     private ensurePersistStateEvent(): void {
-        if (this.persistStateEventStarted) {
+        if (this.#persistStateEventStarted) {
             return;
         }
 
         serviceLocator.getEventManager().on('persistState', async () => {
             const promises: Promise<void>[] = [];
 
-            for (const [key, value] of this.cache) {
+            for (const [key, value] of this.#cache) {
                 promises.push(
                     this.setValue(key, value).catch((error) =>
                         serviceLocator.getLogger().warning(`Failed to persist the state value to ${key}`, { error }),
@@ -324,7 +325,7 @@ export class KeyValueStore {
             await Promise.all(promises);
         });
 
-        this.persistStateEventStarted = true;
+        this.#persistStateEventStarted = true;
     }
 
     private async *fetchKeyValuePages<T>(
@@ -334,7 +335,7 @@ export class KeyValueStore {
         for await (const page of this.fetchKeyPages(options)) {
             const results: T[] = [];
             for (const item of page) {
-                this.statsTracker.add('readCount');
+                this.#statsTracker.add('readCount');
                 const record = await this.backend.getValue(item.key);
                 if (record) {
                     const parsed = parseValue(record.value, record.contentType ?? null);
@@ -352,7 +353,7 @@ export class KeyValueStore {
         let exclusiveStartKey: string | undefined;
 
         while (true) {
-            this.statsTracker.add('listCount');
+            this.#statsTracker.add('listCount');
             const { items, isTruncated, nextExclusiveStartKey } = await this.backend.listKeys({
                 ...options,
                 exclusiveStartKey,
@@ -435,17 +436,17 @@ export class KeyValueStore {
         const optionsCopy = { ...options };
 
         // If we try to set the value of a cached state to a different reference, we need to update the cache accordingly.
-        const cachedValue = this.cache.get(key);
+        const cachedValue = this.#cache.get(key);
 
         if (cachedValue && cachedValue !== value) {
             if (value === null) {
                 // Cached state can be only object, so a propagation of `null` means removing all its properties.
-                Object.keys(cachedValue).forEach((k) => this.cache.delete(k));
+                Object.keys(cachedValue).forEach((k) => this.#cache.delete(k));
             } else if (typeof value === 'object') {
                 // We need to remove the keys that are no longer present in the new value.
                 Object.keys(cachedValue)
                     .filter((k) => !(k in (value as Dictionary)))
-                    .forEach((k) => this.cache.delete(k));
+                    .forEach((k) => this.#cache.delete(k));
                 // And update the existing ones + add new ones.
                 Object.assign(cachedValue, value);
             }
@@ -453,13 +454,13 @@ export class KeyValueStore {
 
         // In this case delete the record.
         if (value === null) {
-            this.statsTracker.add('deleteCount');
+            this.#statsTracker.add('deleteCount');
             return this.backend.deleteValue(key);
         }
 
         const serialized = serializeValue(value, optionsCopy.contentType);
 
-        this.statsTracker.add('writeCount');
+        this.#statsTracker.add('writeCount');
         return this.backend.setValue({
             key,
             value: serialized.value,
@@ -482,7 +483,7 @@ export class KeyValueStore {
     clearCache(): void {
         checkStorageAccess();
 
-        this.cache.clear();
+        this.#cache.clear();
     }
 
     /**

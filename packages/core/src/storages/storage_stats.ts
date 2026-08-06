@@ -43,19 +43,19 @@ export interface RequestQueueStats {
  * the buckets that make sense for it.
  */
 export class StorageStatsTracker<T extends Record<keyof T, number>> {
-    private readonly counters: T;
+    readonly #counters: T;
 
     constructor(initial: T) {
-        this.counters = { ...initial };
+        this.#counters = { ...initial };
     }
 
     /** Increment a counter bucket by `by` (default `1`). */
     add(key: keyof T, by = 1): void {
-        (this.counters[key] as number) += by;
+        (this.#counters[key] as number) += by;
     }
 
     /** Return a snapshot of the current counters. The returned object is a copy and safe to keep. */
     get current(): T {
-        return { ...this.counters };
+        return { ...this.#counters };
     }
 }

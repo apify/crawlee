@@ -105,8 +105,7 @@ describe('SessionPool - testing session pool', () => {
             // @ts-expect-error private symbol
             expect(sessionPool.sessions[0].id === session.id).toBe(true);
 
-            // @ts-expect-error Overriding private property
-            session._errorScore += session.maxErrorScore;
+            session!.retire();
             await sessionPool.getSession();
 
             // @ts-expect-error private symbol
@@ -242,8 +241,7 @@ describe('SessionPool - testing session pool', () => {
 
         // @ts-expect-error private symbol
         const session = sessionPool.sessions[0];
-        // @ts-expect-error Overriding private property
-        session._errorScore += session.maxErrorScore;
+        session.retire();
         const { id: retiredSessionId } = session;
 
         await sessionPool.getSession();
@@ -261,8 +259,7 @@ describe('SessionPool - testing session pool', () => {
             const session = await sessionPool.getSession();
 
             if (i % 2 === 0) {
-                // @ts-expect-error Overriding private property
-                session._errorScore += session.maxErrorScore;
+                session!.retire();
                 invalidSessionsCount += 1;
             }
         }
@@ -412,8 +409,7 @@ describe('SessionPool - testing session pool', () => {
         for (let i = 0; i < 10; i++) {
             await sessionPool.addSession({ id: `session_${i}` });
             const session = await sessionPool.getSession(`session_${i}`);
-            // @ts-expect-error Overriding private property
-            session._errorScore += session.maxErrorScore;
+            session!.retire();
         }
 
         await sessionPool.getSession();

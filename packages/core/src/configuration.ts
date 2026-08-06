@@ -185,7 +185,7 @@ export class Configuration {
      */
     protected static fields: Record<string, ConfigField> = crawleeConfigFields;
 
-    private resolvedValues: Record<string, unknown>;
+    #resolvedValues: Record<string, unknown>;
 
     /**
      * Creates new `Configuration` instance with provided options.
@@ -195,7 +195,7 @@ export class Configuration {
     constructor(options: ConfigurationInput = {}) {
         const fields = (this.constructor as typeof Configuration).fields;
         const fileOptions = Configuration.loadFileOptions();
-        this.resolvedValues = Configuration.resolveAll(fields, options as Record<string, unknown>, fileOptions);
+        this.#resolvedValues = Configuration.resolveAll(fields, options as Record<string, unknown>, fileOptions);
         this.registerAccessors();
 
         // Set the log level
@@ -262,7 +262,7 @@ export class Configuration {
 
         for (const key of Object.keys(fields)) {
             descriptors[key] = {
-                get: () => this.resolvedValues[key],
+                get: () => this.#resolvedValues[key],
                 set() {
                     throw new TypeError('Configuration is immutable. Pass options via the constructor instead.');
                 },

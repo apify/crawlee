@@ -164,7 +164,7 @@ describe('RequestList', () => {
     });
 
     test('should correctly load list from hosted files in correct order', async () => {
-        const spy = vitest.spyOn(RequestList.prototype as any, '_downloadListOfUrls');
+        const spy = vitest.spyOn(RequestList.prototype as any, 'downloadListOfUrls');
         const list1 = ['https://example.com', 'https://google.com', 'https://wired.com'];
         const list2 = ['https://another.com', 'https://page.com'];
         spy.mockImplementationOnce(() => new Promise((resolve) => setTimeout(() => resolve(list1) as any, 100)) as any);
@@ -242,7 +242,7 @@ describe('RequestList', () => {
     });
 
     test('should handle requestsFromUrl with no URLs', async () => {
-        const spy = vitest.spyOn(RequestList.prototype as any, '_downloadListOfUrls');
+        const spy = vitest.spyOn(RequestList.prototype as any, 'downloadListOfUrls');
         spy.mockResolvedValueOnce([]);
 
         const requestList = await RequestList.open({
@@ -263,7 +263,7 @@ describe('RequestList', () => {
     test('should use the defined proxy server when using `requestsFromUrl`', async () => {
         const proxyUrls = ['http://proxyurl.usedforthe.download', 'http://another.proxy.url'];
 
-        const spy = vitest.spyOn(RequestList.prototype as any, '_downloadListOfUrls');
+        const spy = vitest.spyOn(RequestList.prototype as any, 'downloadListOfUrls');
         spy.mockResolvedValue([]);
 
         const proxyConfiguration = new ProxyConfiguration({
@@ -430,7 +430,7 @@ describe('RequestList', () => {
         const PERSIST_REQUESTS_KEY = 'some-key';
         const getValueSpy = vitest.spyOn(KeyValueStore.prototype, 'getValue');
         const setValueSpy = vitest.spyOn(KeyValueStore.prototype, 'setValue');
-        const spy = vitest.spyOn(RequestList.prototype as any, '_downloadListOfUrls');
+        const spy = vitest.spyOn(RequestList.prototype as any, 'downloadListOfUrls');
         let persistedRequests: any;
 
         const opts = {

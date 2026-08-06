@@ -36,8 +36,8 @@ export const Browser = {
  * A HTTP client implementation based on the `impit` library.
  */
 export class ImpitHttpClient extends BaseHttpClient {
-    private impitOptions: ImpitOptions;
-    private cacheClients: boolean;
+    #impitOptions: ImpitOptions;
+    #cacheClients: boolean;
 
     /**
      * Enables reuse of `impit` clients for the same set of options.
@@ -45,31 +45,31 @@ export class ImpitHttpClient extends BaseHttpClient {
      * a new client for each request breaks TCP connection
      * (and other resources) reuse.
      */
-    private clientCache: LruCache<{ client: Impit; cookieJar: ToughCookieJar }> = new LruCache({ maxLength: 10 });
+    #clientCache: LruCache<{ client: Impit; cookieJar: ToughCookieJar }> = new LruCache({ maxLength: 10 });
 
     /**
      * Stable impit impersonation version per fingerprint object, so the same
      * session keeps impersonating the same browser version across requests
      * instead of rerolling on every call.
      */
-    private impitBrowserByFingerprint = new WeakMap<SessionFingerprint, ImpitBrowser>();
+    #impitBrowserByFingerprint = new WeakMap<SessionFingerprint, ImpitBrowser>();
 
     private getClient(options: ImpitOptions): Impit {
-        if (!this.cacheClients) {
+        if (!this.#cacheClients) {
             return new Impit(options);
         }
 
         const { cookieJar, ...rest } = options;
 
         const cacheKey = JSON.stringify(rest);
-        const existingClient = this.clientCache.get(cacheKey);
+        const existingClient = this.#clientCache.get(cacheKey);
 
         if (existingClient && (!cookieJar || existingClient.cookieJar === cookieJar)) {
             return existingClient.client;
         }
 
         const client = new Impit(options);
-        this.clientCache.add(cacheKey, { client, cookieJar: cookieJar as ToughCookieJar });
+        this.#clientCache.add(cacheKey, { client, cookieJar: cookieJar as ToughCookieJar });
 
         return client;
     }
@@ -83,8 +83,8 @@ export class ImpitHttpClient extends BaseHttpClient {
         super({ logger: options?.logger });
         const { cacheClients = true, logger: _logger, ...impitOptions } = options ?? {};
 
-        this.impitOptions = impitOptions;
-        this.cacheClients = cacheClients;
+        this.#impitOptions = impitOptions;
+        this.#cacheClients = cacheClients;
     }
 
     /**
@@ -96,7 +96,7 @@ export class ImpitHttpClient extends BaseHttpClient {
         const impitBrowser = this.resolveImpitBrowser(fingerprint);
 
         const impit = this.getClient({
-            ...this.impitOptions,
+            ...this.#impitOptions,
             ...(impitBrowser ? { browser: impitBrowser } : {}),
             proxyUrl,
             followRedirects: redirect === 'follow',
@@ -111,7 +111,7 @@ export class ImpitHttpClient extends BaseHttpClient {
     private resolveImpitBrowser(fingerprint?: SessionFingerprint): ImpitBrowser | undefined {
         if (!fingerprint?.browser) return undefined;
 
-        const cached = this.impitBrowserByFingerprint.get(fingerprint);
+        const cached = this.#impitBrowserByFingerprint.get(fingerprint);
         if (cached) return cached;
 
         // impit can only impersonate Chrome and Firefox. Map other (Chromium-based or
@@ -120,7 +120,7 @@ export class ImpitHttpClient extends BaseHttpClient {
         const versions = IMPIT_VERSIONS_BY_BROWSER[fingerprint.browser] ?? IMPIT_VERSIONS_BY_BROWSER.chrome!;
 
         const picked = versions[Math.floor(Math.random() * versions.length)];
-        this.impitBrowserByFingerprint.set(fingerprint, picked);
+        this.#impitBrowserByFingerprint.set(fingerprint, picked);
         return picked;
     }
 }

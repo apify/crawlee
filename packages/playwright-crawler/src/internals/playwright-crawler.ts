@@ -263,7 +263,7 @@ export class PlaywrightCrawler<
         return super.buildContextPipeline().compose({ action: this.enhanceContext.bind(this) });
     }
 
-    protected override async _navigationHandler(
+    protected override async navigationHandler(
         crawlingContext: PlaywrightCrawlingContext,
         gotoOptions: DirectNavigationOptions,
     ) {

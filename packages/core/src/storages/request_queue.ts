@@ -80,10 +80,11 @@ export class RequestQueue implements IStorage, IRequestManager {
     readonly id: string;
     readonly name?: string;
     readonly backend: RequestQueueBackend;
-    private proxyConfiguration?: IProxyConfiguration;
+    #proxyConfiguration?: IProxyConfiguration;
 
     readonly log: CrawleeLogger;
 
+    // kept as TS-private: request_queue tests read this cache directly
     private requestCache: LruCache<RequestLruItem>;
 
     /**
@@ -91,10 +92,11 @@ export class RequestQueue implements IStorage, IRequestManager {
      * batches that `requestCache` skips — so overlapping URL sets aren't re-submitted.
      * See {@link RequestDeduplicationCache} for why this is a separate, cheaper cache.
      */
-    private requestSeenCache: RequestDeduplicationCache;
+    #requestSeenCache: RequestDeduplicationCache;
 
-    private queuePausedForMigration = false;
+    #queuePausedForMigration = false;
 
+    // kept as TS-private: packages/core/test request-queue tests write this counter directly
     private inProgressRequestBatchCount = 0;
 
     /**
@@ -102,13 +104,13 @@ export class RequestQueue implements IStorage, IRequestManager {
      * {@link setExpectedRequestProcessingTimeSecs}. Used to ensure that value is only ever raised, never
      * lowered, before being forwarded to the storage backend.
      */
-    private expectedRequestProcessingSecs = 0;
+    #expectedRequestProcessingSecs = 0;
 
-    private httpClient?: BaseHttpClient;
+    #httpClient?: BaseHttpClient;
 
-    private readonly events: EventManager;
+    readonly #events: EventManager;
 
-    private readonly statsTracker = new StorageStatsTracker<RequestQueueStats>({
+    readonly #statsTracker = new StorageStatsTracker<RequestQueueStats>({
         writeCount: 0,
         headItemReadCount: 0,
     });
@@ -118,7 +120,7 @@ export class RequestQueue implements IStorage, IRequestManager {
      * queue-head reads issued to the underlying storage backend). Counted per backend call.
      */
     get stats(): RequestQueueStats {
-        return this.statsTracker.current;
+        return this.#statsTracker.current;
     }
 
     /**
@@ -127,17 +129,17 @@ export class RequestQueue implements IStorage, IRequestManager {
     constructor(options: RequestQueueOptions) {
         this.id = options.metadata.id;
         this.name = options.metadata.name;
-        this.events = serviceLocator.getEventManager();
+        this.#events = serviceLocator.getEventManager();
         this.backend = options.backend;
 
-        this.proxyConfiguration = options.proxyConfiguration;
+        this.#proxyConfiguration = options.proxyConfiguration;
 
         this.requestCache = new LruCache({ maxLength: MAX_CACHED_REQUESTS });
-        this.requestSeenCache = new RequestDeduplicationCache();
+        this.#requestSeenCache = new RequestDeduplicationCache();
         this.log = serviceLocator.getLogger().child({ prefix: `RequestQueue(${this.id}, ${this.name ?? 'no-name'})` });
 
-        this.events.on(EventType.MIGRATING, async () => {
-            this.queuePausedForMigration = true;
+        this.#events.on(EventType.MIGRATING, async () => {
+            this.#queuePausedForMigration = true;
         });
     }
 
@@ -224,7 +226,7 @@ export class RequestQueue implements IStorage, IRequestManager {
             };
         }
 
-        this.statsTracker.add('writeCount');
+        this.#statsTracker.add('writeCount');
         const { processedRequests } = await this.backend.addBatchOfRequests([request], { forefront });
         const queueOperationInfo = {
             ...processedRequests[0],
@@ -233,7 +235,7 @@ export class RequestQueue implements IStorage, IRequestManager {
         } satisfies RequestQueueOperationInfo;
 
         this.cacheRequest(cacheKey, queueOperationInfo);
-        this.requestSeenCache.add(cacheKey, request.id!);
+        this.#requestSeenCache.add(cacheKey, request.id!);
 
         return queueOperationInfo;
     }
@@ -312,7 +314,7 @@ export class RequestQueue implements IStorage, IRequestManager {
             const cacheKey = getCachedRequestId(request.uniqueKey);
             // Prefer the full `requestCache` record; fall back to the dedup cache for background batches it skips.
             const cachedInfo = this.requestCache.get(cacheKey);
-            const knownRequestId = cachedInfo?.id ?? this.requestSeenCache.get(cacheKey);
+            const knownRequestId = cachedInfo?.id ?? this.#requestSeenCache.get(cacheKey);
 
             if (knownRequestId) {
                 request.id = knownRequestId;
@@ -333,7 +335,7 @@ export class RequestQueue implements IStorage, IRequestManager {
             return results;
         }
 
-        this.statsTracker.add('writeCount');
+        this.#statsTracker.add('writeCount');
         const apiResults = await this.backend.addBatchOfRequests([...requestsToAdd.values()], { forefront });
 
         // Report unprocessed requests
@@ -351,7 +353,7 @@ export class RequestQueue implements IStorage, IRequestManager {
             }
 
             // Unlike `requestCache`, populate this on every batch (including background ones).
-            this.requestSeenCache.add(cacheKey, newRequest.requestId!);
+            this.#requestSeenCache.add(cacheKey, newRequest.requestId!);
         }
 
         return results;
@@ -574,11 +576,11 @@ export class RequestQueue implements IStorage, IRequestManager {
     async fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request<T> | null> {
         checkStorageAccess();
 
-        if (this.queuePausedForMigration) {
+        if (this.#queuePausedForMigration) {
             return null;
         }
 
-        this.statsTracker.add('headItemReadCount');
+        this.#statsTracker.add('headItemReadCount');
         const requestOptions = await this.backend.fetchNextRequest();
         if (!requestOptions) return null;
 
@@ -606,7 +608,7 @@ export class RequestQueue implements IStorage, IRequestManager {
         const forefront = this.requestCache.get(getRequestId(request.uniqueKey))?.forefront ?? false;
 
         const handledAt = request.handledAt ?? new Date().toISOString();
-        this.statsTracker.add('writeCount');
+        this.#statsTracker.add('writeCount');
         const processedRequest = await this.backend.markRequestAsHandled({
             ...request,
             handledAt,
@@ -658,7 +660,7 @@ export class RequestQueue implements IStorage, IRequestManager {
 
         const { forefront = false } = options;
 
-        this.statsTracker.add('writeCount');
+        this.#statsTracker.add('writeCount');
         const processedRequest = await this.backend.reclaimRequest(request, { forefront });
 
         // The request was not in progress — nothing to reclaim.
@@ -722,11 +724,11 @@ export class RequestQueue implements IStorage, IRequestManager {
      * short the reservation of a long-lived one and have its in-flight request stolen.
      */
     async setExpectedRequestProcessingTimeSecs(secs: number): Promise<void> {
-        if (secs <= this.expectedRequestProcessingSecs) {
+        if (secs <= this.#expectedRequestProcessingSecs) {
             return;
         }
 
-        this.expectedRequestProcessingSecs = secs;
+        this.#expectedRequestProcessingSecs = secs;
         await this.backend.setExpectedRequestProcessingTimeSecs?.(secs);
     }
 
@@ -769,13 +771,13 @@ export class RequestQueue implements IStorage, IRequestManager {
 
         // Reset in-memory bookkeeping so the queue behaves as if freshly opened.
         this.requestCache.clear();
-        this.requestSeenCache.clear();
+        this.#requestSeenCache.clear();
         this.inProgressRequestBatchCount = 0;
 
         // Reset the expected-processing-time high-water mark too, otherwise the monotonic-raise guard
         // in `setExpectedRequestProcessingTimeSecs` would let a value raised in an earlier run leak into a
         // later one and silently swallow a lower hint (the queue is meant to be reusable across runs).
-        this.expectedRequestProcessingSecs = 0;
+        this.#expectedRequestProcessingSecs = 0;
     }
 
     /**
@@ -839,10 +841,10 @@ export class RequestQueue implements IStorage, IRequestManager {
         // Download remote resource and parse URLs.
         let urlsArr;
         try {
-            urlsArr = await this._downloadListOfUrls({
+            urlsArr = await this.downloadListOfUrls({
                 url: requestsFromUrl,
                 urlRegExp: regex,
-                proxyUrl: (await this.proxyConfiguration?.newProxyInfo())?.url,
+                proxyUrl: (await this.#proxyConfiguration?.newProxyInfo())?.url,
             });
         } catch (err) {
             throw new Error(`Cannot fetch a request list from ${requestsFromUrl}: ${err}`);
@@ -883,14 +885,14 @@ export class RequestQueue implements IStorage, IRequestManager {
     /**
      * @internal wraps public utility for mocking purposes
      */
-    private async _downloadListOfUrls(options: {
+    private async downloadListOfUrls(options: {
         url: string;
         urlRegExp?: RegExp;
         proxyUrl?: string;
     }): Promise<string[]> {
         return downloadListOfUrls({
             ...options,
-            httpClient: this.httpClient,
+            httpClient: this.#httpClient,
         });
     }
 
@@ -941,8 +943,8 @@ export class RequestQueue implements IStorage, IRequestManager {
                 backendOpener: () => storageBackend.createRequestQueueBackend(resolved),
                 backendCacheKey: storageBackend.getStorageBackendCacheKey?.() ?? storageBackend.constructor.name,
             });
-        queue.proxyConfiguration = options.proxyConfiguration;
-        queue.httpClient = options.httpClient;
+        queue.#proxyConfiguration = options.proxyConfiguration;
+        queue.#httpClient = options.httpClient;
 
         return queue;
     }

@@ -21,12 +21,13 @@ import type { StagehandPlugin } from './stagehand-plugin';
  * @ignore
  */
 export class StagehandController extends BrowserController<BrowserType, LaunchOptions, PlaywrightBrowser> {
+    // kept as TS-private: tests reach for it at runtime
     private stagehand: Stagehand | null = null;
-    private readonly stagehandInstances: WeakMap<PlaywrightBrowser, Stagehand>;
+    readonly #stagehandInstances: WeakMap<PlaywrightBrowser, Stagehand>;
 
     constructor(browserPlugin: StagehandPlugin, stagehandInstances: WeakMap<PlaywrightBrowser, Stagehand>) {
         super(browserPlugin);
-        this.stagehandInstances = stagehandInstances;
+        this.#stagehandInstances = stagehandInstances;
     }
 
     /**
@@ -34,7 +35,7 @@ export class StagehandController extends BrowserController<BrowserType, LaunchOp
      */
     getStagehand(): Stagehand {
         if (!this.stagehand) {
-            this.stagehand = this.stagehandInstances.get(this.browser)!;
+            this.stagehand = this.#stagehandInstances.get(this.browser)!;
             if (!this.stagehand) {
                 throw new Error('Stagehand instance not found for browser');
             }

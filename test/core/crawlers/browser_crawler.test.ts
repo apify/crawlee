@@ -217,7 +217,7 @@ describe('BrowserCrawler', () => {
         let markBadCalled = false;
         let sessionGoto!: ISession;
         const browserCrawler = new (class extends BrowserCrawlerTest {
-            protected override async _navigationHandler(
+            protected override async navigationHandler(
                 ctx: TestCrawlingContext,
             ): Promise<HTTPResponse | null | undefined> {
                 sessionGoto = ctx.session!;
@@ -408,7 +408,7 @@ describe('BrowserCrawler', () => {
         const pageClosedStates: boolean[] = [];
 
         const browserCrawler = new (class extends BrowserCrawlerTest {
-            protected override async _navigationHandler(): Promise<HTTPResponse | null | undefined> {
+            protected override async navigationHandler(): Promise<HTTPResponse | null | undefined> {
                 throw new Error('net::ERR_NAME_NOT_RESOLVED');
             }
         })({
@@ -482,7 +482,7 @@ describe('BrowserCrawler', () => {
         });
         let optionsGoto: PuppeteerGoToOptions;
         const browserCrawler = new (class extends BrowserCrawlerTest {
-            protected override async _navigationHandler(
+            protected override async navigationHandler(
                 ctx: TestCrawlingContext,
                 gotoOptions: PuppeteerGoToOptions,
             ): Promise<HTTPResponse | null | undefined> {
@@ -751,7 +751,7 @@ describe('BrowserCrawler', () => {
         });
 
         // @ts-expect-error Overriding protected method
-        crawler._navigationHandler = async ({ request }) => {
+        crawler.navigationHandler = async ({ request }) => {
             return { status: () => request.userData.statusCode };
         };
 
@@ -826,7 +826,7 @@ describe('BrowserCrawler', () => {
         });
 
         // @ts-expect-error Overriding protected method
-        crawler._navigationHandler = async ({ request }) => {
+        crawler.navigationHandler = async ({ request }) => {
             return { status: () => request.userData.statusCode };
         };
 
@@ -868,7 +868,7 @@ describe('BrowserCrawler', () => {
         });
 
         // @ts-expect-error Overriding protected method
-        crawler._navigationHandler = async ({ request }) => {
+        crawler.navigationHandler = async ({ request }) => {
             return { status: () => request.userData.statusCode };
         };
 
@@ -1039,7 +1039,7 @@ describe('BrowserCrawler', () => {
             const requestHandler = vitest.fn();
 
             const browserCrawler = new (class extends BrowserCrawlerTest {
-                protected override async _navigationHandler(
+                protected override async navigationHandler(
                     ctx: TestCrawlingContext,
                 ): Promise<HTTPResponse | null | undefined> {
                     const proxyInfo = ctx.session?.proxyInfo;
@@ -1090,7 +1090,7 @@ describe('BrowserCrawler', () => {
              */
             let numberOfRotations = -(await requestList!.getTotalCount());
             const browserCrawler = new (class extends BrowserCrawlerTest {
-                protected override async _navigationHandler(
+                protected override async navigationHandler(
                     ctx: TestCrawlingContext,
                 ): Promise<HTTPResponse | null | undefined> {
                     const proxyInfo = ctx.session?.proxyInfo;
@@ -1138,7 +1138,7 @@ describe('BrowserCrawler', () => {
                 'Proxy responded with 400 - Bad request. Also, this error message contains some useful payload.';
 
             const crawler = new (class extends BrowserCrawlerTest {
-                protected override async _navigationHandler(
+                protected override async navigationHandler(
                     ctx: TestCrawlingContext,
                 ): Promise<HTTPResponse | null | undefined> {
                     const proxyInfo = ctx.session?.proxyInfo;
@@ -1224,7 +1224,7 @@ describe('BrowserCrawler', () => {
                     failedRequestHandler,
                 });
                 // @ts-expect-error Overriding protected method
-                browserCrawler._navigationHandler = gotoFunction;
+                browserCrawler.navigationHandler = gotoFunction;
 
                 await browserCrawler.run();
             } finally {

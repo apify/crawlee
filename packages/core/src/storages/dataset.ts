@@ -189,7 +189,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     backend: DatasetBackend<Data>;
     log: CrawleeLogger;
 
-    private readonly statsTracker = new StorageStatsTracker<DatasetStats>({
+    readonly #statsTracker = new StorageStatsTracker<DatasetStats>({
         readCount: 0,
         writeCount: 0,
     });
@@ -212,7 +212,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      * the underlying storage backend). Counted per backend call.
      */
     get stats(): DatasetStats {
-        return this.statsTracker.current;
+        return this.#statsTracker.current;
     }
 
     /**
@@ -237,7 +237,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
             assertJsonSerializable(items[i], i);
         }
 
-        this.statsTracker.add('writeCount');
+        this.#statsTracker.add('writeCount');
         await this.backend.pushData(items);
     }
 
@@ -248,7 +248,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         checkStorageAccess();
 
         try {
-            this.statsTracker.add('readCount');
+            this.#statsTracker.add('readCount');
             return await this.backend.getData(options);
         } catch (e) {
             const error = e as Error;
@@ -553,7 +553,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
             const fetchLimit = totalLimit !== undefined ? Math.min(pageSize, totalLimit - yielded) : pageSize;
             if (fetchLimit <= 0) break;
 
-            this.statsTracker.add('readCount');
+            this.#statsTracker.add('readCount');
             const page = await this.backend.getData({ ...options, offset, limit: fetchLimit });
             yield page;
 

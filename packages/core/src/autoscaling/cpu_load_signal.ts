@@ -38,8 +38,8 @@ export class CpuLoadSignal implements LoadSignal {
     readonly name = 'cpuInfo';
     readonly overloadedRatio: number;
 
-    private readonly store = new SnapshotStore<CpuSnapshot>();
-    private events?: EventManager;
+    readonly #store = new SnapshotStore<CpuSnapshot>();
+    #events?: EventManager;
 
     constructor(options: CpuLoadSignalOptions = {}) {
         this.overloadedRatio = options.overloadedRatio ?? 0.4;
@@ -47,23 +47,23 @@ export class CpuLoadSignal implements LoadSignal {
     }
 
     async start(context: LoadSignalStartContext): Promise<void> {
-        this.store.useSampleWindow(context.maxSampleWindowMillis);
+        this.#store.useSampleWindow(context.maxSampleWindowMillis);
         // A new session starts from a clean slate, so it is not judged on measurements from before the downtime.
-        this.store.clear();
+        this.#store.clear();
 
         // Resolved here rather than in the constructor, so an instance built ahead of time (to be wrapped, or shared
         // between systems) cannot capture whichever event manager happened to be registered at that moment.
-        this.events = serviceLocator.getEventManager();
-        this.events.on(EventType.SYSTEM_INFO, this.handle);
+        this.#events = serviceLocator.getEventManager();
+        this.#events.on(EventType.SYSTEM_INFO, this.handle);
     }
 
     async stop(): Promise<void> {
-        this.events?.off(EventType.SYSTEM_INFO, this.handle);
-        this.events = undefined;
+        this.#events?.off(EventType.SYSTEM_INFO, this.handle);
+        this.#events = undefined;
     }
 
     getSample(sampleDurationMillis?: number): LoadSnapshot[] {
-        return this.store.getSample(sampleDurationMillis);
+        return this.#store.getSample(sampleDurationMillis);
     }
 
     /** @internal Records a snapshot from a `SYSTEM_INFO` payload. Exposed for tests. */
@@ -71,7 +71,7 @@ export class CpuLoadSignal implements LoadSignal {
         const { cpuCurrentUsage, isCpuOverloaded } = systemInfo;
         const createdAt = systemInfo.createdAt ? new Date(systemInfo.createdAt) : new Date();
 
-        this.store.push(
+        this.#store.push(
             {
                 createdAt,
                 isOverloaded: isCpuOverloaded!,

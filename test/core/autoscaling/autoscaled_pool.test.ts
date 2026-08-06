@@ -198,29 +198,29 @@ describe('AutoscaledPool', () => {
 
         test('works with low values', () => {
             // @ts-expect-error Calling private method on the governor
-            pool.system._autoscale(cb);
+            pool.system.autoscale(cb);
             expect(pool.desiredConcurrency).toBe(2);
 
             // @ts-expect-error Calling private method on the governor
-            pool.system._autoscale(cb);
+            pool.system.autoscale(cb);
             expect(pool.desiredConcurrency).toBe(2); // because currentConcurrency is not high enough;
 
             // @ts-expect-error Overwriting readonly private prop
             pool.system._currentConcurrency = 2;
             // @ts-expect-error Calling private method on the governor
-            pool.system._autoscale(cb);
+            pool.system.autoscale(cb);
             expect(pool.desiredConcurrency).toBe(3);
 
             systemStatus.okNow = false; // this should have no effect
             // @ts-expect-error Overwriting readonly private prop
             pool.system._currentConcurrency = 3;
             // @ts-expect-error Calling private method on the governor
-            pool.system._autoscale(cb);
+            pool.system.autoscale(cb);
             expect(pool.desiredConcurrency).toBe(4);
 
             systemStatus.okLately = false;
             // @ts-expect-error Calling private method on the governor
-            pool.system._autoscale(cb);
+            pool.system.autoscale(cb);
             expect(pool.desiredConcurrency).toBe(3);
         });
 
@@ -233,7 +233,7 @@ describe('AutoscaledPool', () => {
                 Math.floor(pool.desiredConcurrency * pool.system.desiredConcurrencyRatio) - 1;
             systemStatus.okLately = true;
             // @ts-expect-error Calling private method on the governor
-            pool.system._autoscale(cb);
+            pool.system.autoscale(cb);
             expect(pool.desiredConcurrency).toBe(50);
 
             // Should scale because we bumped up current concurrency.
@@ -245,7 +245,7 @@ describe('AutoscaledPool', () => {
                 // @ts-expect-error Accessing private prop on the governor
                 pool.desiredConcurrency + Math.ceil(pool.desiredConcurrency * pool.system.scaleUpStepRatio);
             // @ts-expect-error Calling private method on the governor
-            pool.system._autoscale(cb);
+            pool.system.autoscale(cb);
             expect(pool.desiredConcurrency).toEqual(newConcurrency);
 
             // Should scale down.
@@ -254,7 +254,7 @@ describe('AutoscaledPool', () => {
                 // @ts-expect-error Accessing private prop on the governor
                 pool.desiredConcurrency - Math.ceil(pool.desiredConcurrency * pool.system.scaleDownStepRatio);
             // @ts-expect-error Calling private method on the governor
-            pool.system._autoscale(cb);
+            pool.system.autoscale(cb);
             expect(pool.desiredConcurrency).toEqual(newConcurrency);
         });
 
@@ -566,7 +566,7 @@ describe('AutoscaledPool', () => {
             { minConcurrency: 1, maxConcurrency: 100, loggingIntervalSecs: null },
         );
         // @ts-expect-error Calling private method on the governor
-        pool.system._autoscale(() => {});
+        pool.system.autoscale(() => {});
         expect(pool.desiredConcurrency).toBe(2);
     });
 

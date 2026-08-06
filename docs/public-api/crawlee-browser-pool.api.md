@@ -126,17 +126,17 @@ interface BrowserOptions {
 export abstract class BrowserPlugin<Library extends CommonLibrary = CommonLibrary, LibraryOptions extends Dictionary | undefined = Parameters<Library['launch']>[0], LaunchResult extends CommonBrowser = UnwrapPromise<ReturnType<Library['launch']>>, NewPageOptions = Parameters<LaunchResult['newPage']>[0], NewPageResult = UnwrapPromise<ReturnType<LaunchResult['newPage']>>> {
     constructor(library: Library, options?: BrowserPluginOptions<LibraryOptions>);
     // (undocumented)
-    protected abstract _addProxyToLaunchOptions(launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>): Promise<void>;
+    protected abstract addProxyToLaunchOptions(launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>): Promise<void>;
     // (undocumented)
     readonly browserPerProxy?: boolean;
-    protected _connectToRemoteBrowser(launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>, connect: (url: string) => Promise<LaunchResult>): Promise<LaunchResult>;
+    protected connectToRemoteBrowser(launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>, connect: (url: string) => Promise<LaunchResult>): Promise<LaunchResult>;
     // (undocumented)
     abstract createController(): BrowserController<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>;
     createLaunchContext(options?: CreateLaunchContextOptions<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>): LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>;
     // (undocumented)
     readonly ignoreProxyCertificate?: boolean;
     // (undocumented)
-    protected abstract _isChromiumBasedBrowser(launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>): boolean;
+    protected abstract isChromiumBasedBrowser(launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>): boolean;
     launch(launchContext?: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>): Promise<LaunchResult>;
     // (undocumented)
     protected abstract _launch(launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>): Promise<LaunchResult>;
@@ -151,7 +151,7 @@ export abstract class BrowserPlugin<Library extends CommonLibrary = CommonLibrar
     // (undocumented)
     readonly proxyUrl?: string;
     // (undocumented)
-    protected _throwAugmentedLaunchError(cause: unknown, executablePath: string | undefined, dockerImage: string, moduleInstallCommand: string): never;
+    protected throwAugmentedLaunchError(cause: unknown, executablePath: string | undefined, dockerImage: string, moduleInstallCommand: string): never;
     // (undocumented)
     useIncognitoPages: boolean;
     // (undocumented)
@@ -495,11 +495,11 @@ export class PlaywrightController extends BrowserController<BrowserType, SafePar
 // @public (undocumented)
 export class PlaywrightPlugin extends BrowserPlugin<BrowserType, SafeParameters<BrowserType['launch']>[0], Browser> {
     // (undocumented)
-    protected _addProxyToLaunchOptions(launchContext: LaunchContext<BrowserType>): Promise<void>;
+    protected addProxyToLaunchOptions(launchContext: LaunchContext<BrowserType>): Promise<void>;
     // (undocumented)
     createController(): PlaywrightController;
     // (undocumented)
-    protected _isChromiumBasedBrowser(): boolean;
+    protected isChromiumBasedBrowser(): boolean;
     // (undocumented)
     protected _launch(launchContext: LaunchContext<BrowserType>): Promise<Browser>;
     useRemoteConnection(connection: RemoteConnection, parameters?: RemoteConnectionParameters): void;
@@ -551,11 +551,11 @@ interface PuppeteerNewPageOptions extends PuppeteerTypes.BrowserContextOptions {
 // @public (undocumented)
 export class PuppeteerPlugin extends BrowserPlugin<typeof Puppeteer, PuppeteerTypes.LaunchOptions, PuppeteerTypes.Browser, PuppeteerNewPageOptions> {
     // (undocumented)
-    protected _addProxyToLaunchOptions(_launchContext: LaunchContext<typeof Puppeteer, PuppeteerTypes.LaunchOptions, PuppeteerTypes.Browser, PuppeteerNewPageOptions>): Promise<void>;
+    protected addProxyToLaunchOptions(_launchContext: LaunchContext<typeof Puppeteer, PuppeteerTypes.LaunchOptions, PuppeteerTypes.Browser, PuppeteerNewPageOptions>): Promise<void>;
     // (undocumented)
     createController(): PuppeteerController;
     // (undocumented)
-    protected _isChromiumBasedBrowser(_launchContext: LaunchContext<typeof Puppeteer, PuppeteerTypes.LaunchOptions, PuppeteerTypes.Browser, PuppeteerNewPageOptions>): boolean;
+    protected isChromiumBasedBrowser(_launchContext: LaunchContext<typeof Puppeteer, PuppeteerTypes.LaunchOptions, PuppeteerTypes.Browser, PuppeteerNewPageOptions>): boolean;
     // (undocumented)
     protected _launch(launchContext: LaunchContext<typeof Puppeteer, PuppeteerTypes.LaunchOptions, PuppeteerTypes.Browser, PuppeteerNewPageOptions>): Promise<PuppeteerTypes.Browser>;
     useRemoteConnection(connection: RemoteConnection, parameters?: RemoteConnectionParameters): void;

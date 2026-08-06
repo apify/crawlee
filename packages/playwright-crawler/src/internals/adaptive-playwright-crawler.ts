@@ -322,23 +322,23 @@ export class AdaptivePlaywrightCrawler<
         GetUserDataFromRequest<AdaptivePlaywrightCrawlerContext['request']>
     >,
 > extends BasicCrawler<AdaptivePlaywrightCrawlerContext, ContextExtension, ExtendedContext, Routes> {
-    private renderingTypePredictor: OwnedOrInjected<IRenderingTypePredictor, RenderingTypePredictor>;
-    private resultChecker: NonNullable<AdaptivePlaywrightCrawlerOptions['resultChecker']>;
-    private shouldPropagateError: NonNullable<AdaptivePlaywrightCrawlerOptions['shouldPropagateError']>;
-    private resultComparator: NonNullable<AdaptivePlaywrightCrawlerOptions['resultComparator']>;
-    private preventDirectStorageAccess: boolean;
-    private staticContextPipeline: ContextPipeline<CrawlingContext, ExtendedContext>;
-    private browserContextPipeline: ContextPipeline<CrawlingContext, ExtendedContext>;
-    private individualRequestHandlerTimeoutMillis: number;
+    #renderingTypePredictor: OwnedOrInjected<IRenderingTypePredictor, RenderingTypePredictor>;
+    #resultChecker: NonNullable<AdaptivePlaywrightCrawlerOptions['resultChecker']>;
+    #shouldPropagateError: NonNullable<AdaptivePlaywrightCrawlerOptions['shouldPropagateError']>;
+    #resultComparator: NonNullable<AdaptivePlaywrightCrawlerOptions['resultComparator']>;
+    #preventDirectStorageAccess: boolean;
+    #staticContextPipeline: ContextPipeline<CrawlingContext, ExtendedContext>;
+    #browserContextPipeline: ContextPipeline<CrawlingContext, ExtendedContext>;
+    #individualRequestHandlerTimeoutMillis: number;
 
     // The constructor always injects an `AdaptivePlaywrightCrawlerStatistics`, so narrowing the cast is sound.
     override get stats(): AdaptivePlaywrightCrawlerStatistics {
         return super.stats as AdaptivePlaywrightCrawlerStatistics;
     }
-    private resultObjects = new WeakMap<CrawlingContext, RequestHandlerResult>();
-    private inFlightRenderingTypeDetections = 0;
+    #resultObjects = new WeakMap<CrawlingContext, RequestHandlerResult>();
+    #inFlightRenderingTypeDetections = 0;
 
-    private teardownHooks: (() => Promise<unknown>)[] = [];
+    #teardownHooks: (() => Promise<unknown>)[] = [];
 
     constructor(options: AdaptivePlaywrightCrawlerOptions<ContextExtension, ExtendedContext, Routes> = {}) {
         const {
@@ -381,23 +381,23 @@ export class AdaptivePlaywrightCrawler<
                 }),
             contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),
         });
-        this.individualRequestHandlerTimeoutMillis = requestHandlerTimeoutSecs * 1000;
+        this.#individualRequestHandlerTimeoutMillis = requestHandlerTimeoutSecs * 1000;
 
         // `renderingTypeDetectionRatio` only configures the default predictor - an injected one brings its own
         // detection ratio (and its own state), so the option is ignored in that case.
-        this.renderingTypePredictor = OwnedOrInjected.resolve<IRenderingTypePredictor, RenderingTypePredictor>(
+        this.#renderingTypePredictor = OwnedOrInjected.resolve<IRenderingTypePredictor, RenderingTypePredictor>(
             renderingTypePredictor,
             () => new RenderingTypePredictor({ detectionRatio: renderingTypeDetectionRatio }),
         );
-        this.resultChecker = resultChecker ?? (() => true);
-        this.shouldPropagateError = shouldPropagateError ?? (() => false);
+        this.#resultChecker = resultChecker ?? (() => true);
+        this.#shouldPropagateError = shouldPropagateError ?? (() => false);
 
         if (resultComparator !== undefined) {
-            this.resultComparator = resultComparator;
+            this.#resultComparator = resultComparator;
         } else if (resultChecker !== undefined) {
-            this.resultComparator = (resultA, resultB) => this.resultChecker(resultA) && this.resultChecker(resultB);
+            this.#resultComparator = (resultA, resultB) => this.#resultChecker(resultA) && this.#resultChecker(resultB);
         } else {
-            this.resultComparator = (resultA, resultB) => {
+            this.#resultComparator = (resultA, resultB) => {
                 return (
                     resultA.datasetItems.length === resultB.datasetItems.length &&
                     resultA.datasetItems.every((itemA, i) => {
@@ -431,24 +431,24 @@ export class AdaptivePlaywrightCrawler<
             extendContext,
         });
 
-        this.teardownHooks.push(browserCrawler.teardown.bind(browserCrawler));
+        this.#teardownHooks.push(browserCrawler.teardown.bind(browserCrawler));
 
-        this.staticContextPipeline = staticCrawler.contextPipeline.compose({
+        this.#staticContextPipeline = staticCrawler.contextPipeline.compose({
             action: this.adaptCheerioContext.bind(this),
         }) as unknown as ContextPipeline<CrawlingContext, ExtendedContext>;
 
-        this.browserContextPipeline = browserCrawler.contextPipeline.compose({
+        this.#browserContextPipeline = browserCrawler.contextPipeline.compose({
             action: this.adaptPlaywrightContext.bind(this),
         }) as unknown as ContextPipeline<CrawlingContext, ExtendedContext>;
 
-        this.preventDirectStorageAccess = preventDirectStorageAccess;
+        this.#preventDirectStorageAccess = preventDirectStorageAccess;
     }
 
-    protected override async _init(): Promise<void> {
+    protected override async init(): Promise<void> {
         // Only the predictor we built ourselves is ours to initialize - an injected one is borrowed, so its
         // lifecycle (including restoring persisted state) stays with whoever created it.
-        await this.renderingTypePredictor.ifOwned((predictor) => predictor.initialize());
-        return await super._init();
+        await this.#renderingTypePredictor.ifOwned((predictor) => predictor.initialize());
+        return await super.init();
     }
 
     protected override buildContextPipeline() {
@@ -484,9 +484,9 @@ export class AdaptivePlaywrightCrawler<
 
     private async adaptCheerioContext(cheerioContext: CheerioCrawlingContext) {
         // Capture the original response to avoid infinite recursion when the getter is copied to the context
-        const result = this.resultObjects.get(cheerioContext);
+        const result = this.#resultObjects.get(cheerioContext);
         if (result === undefined) {
-            throw new Error('Logical error - `this.resultObjects` does not contain the result object');
+            throw new Error('Logical error - `this.#resultObjects` does not contain the result object');
         }
 
         return {
@@ -520,9 +520,9 @@ export class AdaptivePlaywrightCrawler<
     private async adaptPlaywrightContext(playwrightContext: PlaywrightCrawlingContext) {
         const originalResponse = playwrightContext.response;
 
-        const result = this.resultObjects.get(playwrightContext);
+        const result = this.#resultObjects.get(playwrightContext);
         if (result === undefined) {
-            throw new Error('Logical error - `this.resultObjects` does not contain the result object');
+            throw new Error('Logical error - `this.#resultObjects` does not contain the result object');
         }
 
         return {
@@ -606,14 +606,14 @@ export class AdaptivePlaywrightCrawler<
             Object.defineProperty(subCrawlerContext, key, { ...descriptor, configurable: false });
         }
 
-        this.resultObjects.set(subCrawlerContext, result);
+        this.#resultObjects.set(subCrawlerContext, result);
 
         try {
             const callAdaptiveRequestHandler = async () => {
                 if (renderingType === 'static') {
-                    await this.staticContextPipeline.call(subCrawlerContext, this.requestHandler.bind(this));
+                    await this.#staticContextPipeline.call(subCrawlerContext, this.requestHandler.bind(this));
                 } else if (renderingType === 'clientOnly') {
-                    await this.browserContextPipeline.call(subCrawlerContext, this.requestHandler.bind(this));
+                    await this.#browserContextPipeline.call(subCrawlerContext, this.requestHandler.bind(this));
                 }
             };
 
@@ -623,12 +623,12 @@ export class AdaptivePlaywrightCrawler<
                 context.request.label,
             );
             const timeoutMillis =
-                routeTimeoutSecs === undefined ? this.individualRequestHandlerTimeoutMillis : routeTimeoutSecs * 1000;
+                routeTimeoutSecs === undefined ? this.#individualRequestHandlerTimeoutMillis : routeTimeoutSecs * 1000;
 
             await addTimeoutToPromise(
                 async () =>
                     withCheckedStorageAccess(() => {
-                        if (this.preventDirectStorageAccess) {
+                        if (this.#preventDirectStorageAccess) {
                             throw new Error(
                                 'Directly accessing storage in a request handler is not allowed in AdaptivePlaywrightCrawler',
                             );
@@ -647,7 +647,7 @@ export class AdaptivePlaywrightCrawler<
     }
 
     protected override async runRequestHandler(crawlingContext: CrawlingContext): Promise<void> {
-        const renderingTypePrediction = this.renderingTypePredictor.value.predict(crawlingContext.request);
+        const renderingTypePrediction = this.#renderingTypePredictor.value.predict(crawlingContext.request);
         const shouldDetectRenderingType = Math.random() < renderingTypePrediction.detectionProbabilityRecommendation;
 
         if (!shouldDetectRenderingType) {
@@ -657,7 +657,7 @@ export class AdaptivePlaywrightCrawler<
         }
 
         if (shouldDetectRenderingType) {
-            this.inFlightRenderingTypeDetections += 1;
+            this.#inFlightRenderingTypeDetections += 1;
         }
 
         try {
@@ -667,7 +667,7 @@ export class AdaptivePlaywrightCrawler<
 
                 const plainHTTPRun = await this.crawlOne('static', crawlingContext, crawlingContext.useState);
 
-                if (plainHTTPRun.ok && this.resultChecker(plainHTTPRun.result)) {
+                if (plainHTTPRun.ok && this.#resultChecker(plainHTTPRun.result)) {
                     crawlingContext.log.debug(`HTTP-only request handler succeeded for ${crawlingContext.request.url}`);
                     plainHTTPRun.logs?.forEach(([log, method, ...args]) => log[method](...(args as [any, any])));
                     await this.commitResult(crawlingContext, plainHTTPRun.result);
@@ -681,7 +681,7 @@ export class AdaptivePlaywrightCrawler<
                             ? (plainHTTPRun.error.cause as Error)
                             : (plainHTTPRun.error as Error);
 
-                    if (await this.shouldPropagateError(actualError, crawlingContext as any)) {
+                    if (await this.#shouldPropagateError(actualError, crawlingContext as any)) {
                         throw actualError;
                     }
 
@@ -749,7 +749,7 @@ export class AdaptivePlaywrightCrawler<
                         return 'clientOnly';
                     }
 
-                    const comparisonResult = this.resultComparator(plainHTTPRun.result, browserRun.result);
+                    const comparisonResult = this.#resultComparator(plainHTTPRun.result, browserRun.result);
                     if (comparisonResult === true || comparisonResult === 'equal') {
                         return 'static';
                     }
@@ -766,12 +766,12 @@ export class AdaptivePlaywrightCrawler<
                 );
 
                 if (detectionResult !== undefined) {
-                    this.renderingTypePredictor.value.storeResult(crawlingContext.request, detectionResult);
+                    this.#renderingTypePredictor.value.storeResult(crawlingContext.request, detectionResult);
                 }
             }
         } finally {
             if (shouldDetectRenderingType) {
-                this.inFlightRenderingTypeDetections -= 1;
+                this.#inFlightRenderingTypeDetections -= 1;
             }
         }
     }
@@ -860,7 +860,7 @@ export class AdaptivePlaywrightCrawler<
 
     override async teardown() {
         await super.teardown();
-        for (const hook of this.teardownHooks) {
+        for (const hook of this.#teardownHooks) {
             await hook();
         }
     }

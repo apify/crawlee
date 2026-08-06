@@ -259,17 +259,19 @@ export interface CrawlingContext<UserData extends Dictionary = Dictionary> exten
  * @experimental
  */
 export class RequestHandlerResult {
-    private _keyValueStoreChanges: Record<string, Record<string, { changedValue: unknown; options?: RecordOptions }>> =
-        {};
+    #keyValueStoreChanges: Record<string, Record<string, { changedValue: unknown; options?: RecordOptions }>> = {};
 
-    private pushDataCalls: Parameters<RestrictedCrawlingContext['pushData']>[] = [];
+    #pushDataCalls: Parameters<RestrictedCrawlingContext['pushData']>[] = [];
 
-    private addRequestsCalls: Parameters<RestrictedCrawlingContext['addRequests']>[] = [];
+    #addRequestsCalls: Parameters<RestrictedCrawlingContext['addRequests']>[] = [];
 
-    constructor(
-        private configuration: Configuration,
-        private crawleeStateKey: string,
-    ) {}
+    readonly #configuration: Configuration;
+    readonly #crawleeStateKey: string;
+
+    constructor(configuration: Configuration, crawleeStateKey: string) {
+        this.#configuration = configuration;
+        this.#crawleeStateKey = crawleeStateKey;
+    }
 
     /**
      * A record of calls to {@apilink RestrictedCrawlingContext.pushData}, {@apilink RestrictedCrawlingContext.addRequests}, {@apilink RestrictedCrawlingContext.enqueueLinks} made by a request handler.
@@ -279,8 +281,8 @@ export class RequestHandlerResult {
         addRequests: Parameters<RestrictedCrawlingContext['addRequests']>[];
     }> {
         return {
-            pushData: this.pushDataCalls,
-            addRequests: this.addRequestsCalls,
+            pushData: this.#pushDataCalls,
+            addRequests: this.#addRequestsCalls,
         };
     }
 
@@ -290,14 +292,14 @@ export class RequestHandlerResult {
     get keyValueStoreChanges(): ReadonlyDeep<
         Record<string, Record<string, { changedValue: unknown; options?: RecordOptions }>>
     > {
-        return this._keyValueStoreChanges;
+        return this.#keyValueStoreChanges;
     }
 
     /**
      * Items added to datasets by a request handler.
      */
     get datasetItems(): ReadonlyDeep<{ item: Dictionary; datasetIdentifier?: string | StorageIdentifier }[]> {
-        return this.pushDataCalls.flatMap(([data, datasetIdentifier]) =>
+        return this.#pushDataCalls.flatMap(([data, datasetIdentifier]) =>
             (Array.isArray(data) ? data : [data]).map((item) => ({ item, datasetIdentifier })),
         );
     }
@@ -308,7 +310,7 @@ export class RequestHandlerResult {
     get enqueuedUrls(): ReadonlyDeep<{ url: string; label?: string }[]> {
         const result: { url: string; label?: string }[] = [];
 
-        for (const [requests] of this.addRequestsCalls) {
+        for (const [requests] of this.#addRequestsCalls) {
             for (const request of requests) {
                 if (
                     typeof request === 'object' &&
@@ -331,7 +333,7 @@ export class RequestHandlerResult {
     get enqueuedUrlLists(): ReadonlyDeep<{ listUrl: string; label?: string }[]> {
         const result: { listUrl: string; label?: string }[] = [];
 
-        for (const [requests] of this.addRequestsCalls) {
+        for (const [requests] of this.#addRequestsCalls) {
             for (const request of requests) {
                 if (
                     typeof request === 'object' &&
@@ -347,24 +349,24 @@ export class RequestHandlerResult {
     }
 
     pushData: RestrictedCrawlingContext['pushData'] = async (data, datasetIdOrName) => {
-        this.pushDataCalls.push([data, datasetIdOrName]);
+        this.#pushDataCalls.push([data, datasetIdOrName]);
     };
 
     addRequests: RestrictedCrawlingContext['addRequests'] = async (requests, options = {}) => {
-        this.addRequestsCalls.push([requests, options]);
+        this.#addRequestsCalls.push([requests, options]);
     };
 
     useState: RestrictedCrawlingContext['useState'] = async (defaultValue) => {
         const store = await this.getKeyValueStore(undefined);
-        return await store.getAutoSavedValue(this.crawleeStateKey, defaultValue);
+        return await store.getAutoSavedValue(this.#crawleeStateKey, defaultValue);
     };
 
     getKeyValueStore: RestrictedCrawlingContext['getKeyValueStore'] = async (identifier) => {
-        const store = await KeyValueStore.open(identifier, { configuration: this.configuration });
+        const store = await KeyValueStore.open(identifier, { configuration: this.#configuration });
         const storeId = store.id;
 
         return {
-            id: storeId ?? this.configuration.defaultKeyValueStoreId,
+            id: storeId ?? this.#configuration.defaultKeyValueStoreId,
             name: store.name,
             getValue: async (key) => this.getKeyValueStoreChangedValue(storeId, key) ?? (await store.getValue(key)),
             setValue: async (key, value, options) => {
@@ -376,8 +378,8 @@ export class RequestHandlerResult {
     };
 
     private getKeyValueStoreChangedValue = (storeKey: string | undefined, key: string) => {
-        const id = storeKey ?? this.configuration.defaultKeyValueStoreId;
-        this._keyValueStoreChanges[id] ??= {};
+        const id = storeKey ?? this.#configuration.defaultKeyValueStoreId;
+        this.#keyValueStoreChanges[id] ??= {};
         return this.keyValueStoreChanges[id][key]?.changedValue ?? null;
     };
 
@@ -387,8 +389,8 @@ export class RequestHandlerResult {
         changedValue: unknown,
         options?: RecordOptions,
     ) => {
-        const id = storeKey ?? this.configuration.defaultKeyValueStoreId;
-        this._keyValueStoreChanges[id] ??= {};
-        this._keyValueStoreChanges[id][key] = { changedValue, options };
+        const id = storeKey ?? this.#configuration.defaultKeyValueStoreId;
+        this.#keyValueStoreChanges[id] ??= {};
+        this.#keyValueStoreChanges[id][key] = { changedValue, options };
     };
 }
