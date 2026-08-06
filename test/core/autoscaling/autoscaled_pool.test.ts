@@ -198,29 +198,29 @@ describe('AutoscaledPool', () => {
 
         test('works with low values', () => {
             // @ts-expect-error Calling private method on the governor
-            pool.system._autoscale(cb);
+            pool.system.autoscale(cb);
             expect(pool.desiredConcurrency).toBe(2);
 
             // @ts-expect-error Calling private method on the governor
-            pool.system._autoscale(cb);
+            pool.system.autoscale(cb);
             expect(pool.desiredConcurrency).toBe(2); // because currentConcurrency is not high enough;
 
             // @ts-expect-error Overwriting readonly private prop
             pool.system._currentConcurrency = 2;
             // @ts-expect-error Calling private method on the governor
-            pool.system._autoscale(cb);
+            pool.system.autoscale(cb);
             expect(pool.desiredConcurrency).toBe(3);
 
             systemStatus.okNow = false; // this should have no effect
             // @ts-expect-error Overwriting readonly private prop
             pool.system._currentConcurrency = 3;
             // @ts-expect-error Calling private method on the governor
-            pool.system._autoscale(cb);
+            pool.system.autoscale(cb);
             expect(pool.desiredConcurrency).toBe(4);
 
             systemStatus.okLately = false;
             // @ts-expect-error Calling private method on the governor
-            pool.system._autoscale(cb);
+            pool.system.autoscale(cb);
             expect(pool.desiredConcurrency).toBe(3);
         });
 
@@ -233,7 +233,7 @@ describe('AutoscaledPool', () => {
                 Math.floor(pool.desiredConcurrency * pool.system.desiredConcurrencyRatio) - 1;
             systemStatus.okLately = true;
             // @ts-expect-error Calling private method on the governor
-            pool.system._autoscale(cb);
+            pool.system.autoscale(cb);
             expect(pool.desiredConcurrency).toBe(50);
 
             // Should scale because we bumped up current concurrency.
@@ -245,7 +245,7 @@ describe('AutoscaledPool', () => {
                 // @ts-expect-error Accessing private prop on the governor
                 pool.desiredConcurrency + Math.ceil(pool.desiredConcurrency * pool.system.scaleUpStepRatio);
             // @ts-expect-error Calling private method on the governor
-            pool.system._autoscale(cb);
+            pool.system.autoscale(cb);
             expect(pool.desiredConcurrency).toEqual(newConcurrency);
 
             // Should scale down.
@@ -254,7 +254,7 @@ describe('AutoscaledPool', () => {
                 // @ts-expect-error Accessing private prop on the governor
                 pool.desiredConcurrency - Math.ceil(pool.desiredConcurrency * pool.system.scaleDownStepRatio);
             // @ts-expect-error Calling private method on the governor
-            pool.system._autoscale(cb);
+            pool.system.autoscale(cb);
             expect(pool.desiredConcurrency).toEqual(newConcurrency);
         });
 
@@ -262,17 +262,22 @@ describe('AutoscaledPool', () => {
             let limit = 5;
             let concurrencyLog: number[] = [];
             let count = 0;
-            // @ts-expect-error Overwriting readonly private prop on the governor
-            pool.system.systemStatus.okNow = false;
-            // @ts-expect-error Overwriting readonly private prop
-            pool.runTaskFunction = async () => {
-                await sleep(10);
-                count++;
-            };
-            // @ts-expect-error Overwriting readonly private prop
-            pool.isFinishedFunction = async () => count >= limit;
-            // @ts-expect-error Overwriting readonly private prop
-            pool.isTaskReadyFunction = async () => count < limit;
+
+            // The task loop is configuration, so this test builds its own pool instead of reusing the shared one.
+            pool = await makePool(
+                {
+                    runTaskFunction: async () => {
+                        await sleep(10);
+                        count++;
+                    },
+                    isFinishedFunction: async () => count >= limit,
+                    isTaskReadyFunction: async () => count < limit,
+                },
+                { minConcurrency: 1, maxConcurrency: 100 },
+            );
+            // @ts-expect-error Mock
+            pool.system.systemStatus = systemStatus;
+            systemStatus.okNow = false;
             systemOf(pool).desiredConcurrency = 10;
 
             // Spy on the governor's concurrency accounting - that is where per-task current concurrency now lives.
@@ -505,12 +510,11 @@ describe('AutoscaledPool', () => {
                     }),
                 isFinishedFunction: isFinished,
                 isTaskReadyFunction: async () => !(await isFinished()),
+                // Speed up the test.
+                maybeRunIntervalSecs: 0.005,
             },
             { minConcurrency: 3 },
         );
-
-        // @ts-expect-error Overwriting readonly private prop
-        pool.maybeRunIntervalMillis = 5;
 
         await pool.run();
         await sleep(10);
@@ -544,11 +548,11 @@ describe('AutoscaledPool', () => {
                 },
                 isFinishedFunction: async () => isFinished,
                 isTaskReadyFunction: async () => !isFinished && isTaskReady,
+                // Speed up the test.
+                maybeRunIntervalSecs: 0.001,
             },
             { maxConcurrency: 1 },
         );
-        // @ts-expect-error Overwriting readonly private prop
-        pool.maybeRunIntervalMillis = 1;
         await pool.run();
 
         // Check finished tasks.
@@ -566,7 +570,7 @@ describe('AutoscaledPool', () => {
             { minConcurrency: 1, maxConcurrency: 100, loggingIntervalSecs: null },
         );
         // @ts-expect-error Calling private method on the governor
-        pool.system._autoscale(() => {});
+        pool.system.autoscale(() => {});
         expect(pool.desiredConcurrency).toBe(2);
     });
 

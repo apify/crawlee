@@ -279,10 +279,10 @@ export class Router<
     Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'>,
     Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
 > {
-    private readonly routes: Map<string | symbol, (ctx: any) => Awaitable<void>> = new Map();
-    private readonly schemas: Map<string | symbol, StandardSchemaV1> = new Map();
-    private readonly timeouts: Map<string | symbol, number> = new Map();
-    private readonly middlewares: ((ctx: Context) => Awaitable<void>)[] = [];
+    readonly #routes: Map<string | symbol, (ctx: any) => Awaitable<void>> = new Map();
+    readonly #schemas: Map<string | symbol, StandardSchemaV1> = new Map();
+    readonly #timeouts: Map<string | symbol, number> = new Map();
+    readonly #middlewares: ((ctx: Context) => Awaitable<void>)[] = [];
 
     /**
      * use Router.create() instead!
@@ -315,10 +315,10 @@ export class Router<
 
     addHandler(label: string | symbol, handler: (ctx: any) => Awaitable<void>, options: RouteOptions = {}): void {
         this.validate(label);
-        this.routes.set(label, handler);
+        this.#routes.set(label, handler);
 
         if (options.requestHandlerTimeoutSecs !== undefined) {
-            this.timeouts.set(label, options.requestHandlerTimeoutSecs);
+            this.#timeouts.set(label, options.requestHandlerTimeoutSecs);
         }
     }
 
@@ -334,10 +334,10 @@ export class Router<
         UserData extends Dictionary = DefaultRouteUserData<Routes, GetUserDataFromRequest<Context['request']>>,
     >(handler: (ctx: RouterHandlerContext<Context, UserData, Routes>) => Awaitable<void>, options: RouteOptions = {}) {
         this.validate(defaultRoute);
-        this.routes.set(defaultRoute, handler);
+        this.#routes.set(defaultRoute, handler);
 
         if (options.requestHandlerTimeoutSecs !== undefined) {
-            this.timeouts.set(defaultRoute, options.requestHandlerTimeoutSecs);
+            this.#timeouts.set(defaultRoute, options.requestHandlerTimeoutSecs);
         }
     }
 
@@ -348,21 +348,21 @@ export class Router<
      */
     getSchema(label?: string | symbol): StandardSchemaV1 | undefined {
         if (label != null) {
-            const schema = this.schemas.get(label);
+            const schema = this.#schemas.get(label);
 
             if (schema) {
                 return schema;
             }
 
             // A label with its own route is fully specified; don't fall back to the default-route schema.
-            if (this.routes.has(label)) {
+            if (this.#routes.has(label)) {
                 return undefined;
             }
         }
 
         // Requests with no route of their own fall through to the default handler, so validate their
         // `userData` against the default-route schema, if one was registered.
-        return this.schemas.get(defaultRoute);
+        return this.#schemas.get(defaultRoute);
     }
 
     /**
@@ -370,7 +370,7 @@ export class Router<
      * Multiple middlewares can be registered, they will be fired in the same order.
      */
     use(middleware: (ctx: Context) => Awaitable<void>) {
-        this.middlewares.push(middleware);
+        this.#middlewares.push(middleware);
     }
 
     /**
@@ -380,11 +380,11 @@ export class Router<
      * the default route asked for. Used by the crawler; not meant to be called directly.
      */
     getTimeoutSecs(label?: string | symbol): number | undefined {
-        if (label && this.routes.has(label)) {
-            return this.timeouts.get(label);
+        if (label && this.#routes.has(label)) {
+            return this.#timeouts.get(label);
         }
 
-        return this.timeouts.get(defaultRoute);
+        return this.#timeouts.get(defaultRoute);
     }
 
     /**
@@ -392,19 +392,19 @@ export class Router<
      * The crawler needs an upper bound up front, before it knows which routes a run will actually hit.
      */
     getMaxTimeoutSecs(): number | undefined {
-        return this.timeouts.size > 0 ? Math.max(...this.timeouts.values()) : undefined;
+        return this.#timeouts.size > 0 ? Math.max(...this.#timeouts.values()) : undefined;
     }
 
     /**
      * Returns route handler for given label. If no label is provided, the default request handler will be returned.
      */
     getHandler(label?: string | symbol): (ctx: Context) => Awaitable<void> {
-        if (label && this.routes.has(label)) {
-            return this.routes.get(label)!;
+        if (label && this.#routes.has(label)) {
+            return this.#routes.get(label)!;
         }
 
-        if (this.routes.has(defaultRoute)) {
-            return this.routes.get(defaultRoute)!;
+        if (this.#routes.has(defaultRoute)) {
+            return this.#routes.get(defaultRoute)!;
         }
 
         throw new MissingRouteError(
@@ -435,7 +435,7 @@ export class Router<
      * Throws when the label already exists in our registry.
      */
     private validate(label: string | symbol) {
-        if (this.routes.has(label)) {
+        if (this.#routes.has(label)) {
             const message =
                 label === defaultRoute
                     ? `Default route is already defined!`
@@ -505,7 +505,7 @@ export class Router<
             if (typeof value === 'function') {
                 router.addHandler(label as string, value as (ctx: any) => Awaitable<void>);
             } else {
-                router.schemas.set(label, value);
+                router.#schemas.set(label, value);
             }
         }
 
@@ -515,7 +515,7 @@ export class Router<
 
             await router.validateRequest(context);
 
-            for (const middleware of router.middlewares) {
+            for (const middleware of router.#middlewares) {
                 await middleware(context);
             }
 

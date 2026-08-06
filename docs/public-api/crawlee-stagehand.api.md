@@ -46,6 +46,7 @@ import type { RouterRoutes } from '@crawlee/browser';
 import type { RouteSchemas } from '@crawlee/browser';
 import type { RoutesFromSchemas } from '@crawlee/browser';
 import { Stagehand } from '@browserbasehq/stagehand';
+import { StorageWritePolicy } from '@crawlee/browser';
 import type { StreamingAgentInstance } from '@browserbasehq/stagehand';
 import { StringPredicate } from 'ow';
 import type { z } from 'zod';
@@ -84,7 +85,7 @@ export class StagehandCrawler<ContextExtension = Dictionary<never>, ExtendedCont
     constructor(options?: StagehandCrawlerOptions<ContextExtension, ExtendedContext, Routes, StatisticStateExtension>);
     // (undocumented)
     protected buildContextPipeline(): ContextPipeline<CrawlingContext, StagehandCrawlingContext>;
-    protected _navigationHandler(crawlingContext: StagehandCrawlingContext, gotoOptions: StagehandGotoOptions): Promise<Response_2 | null>;
+    protected navigationHandler(crawlingContext: StagehandCrawlingContext, gotoOptions: StagehandGotoOptions): Promise<Response_2 | null>;
     // (undocumented)
     protected static optionsShape: {
         stagehandOptions: ObjectPredicate<object> & BasePredicate<object | undefined>;
@@ -120,6 +121,7 @@ export class StagehandCrawler<ContextExtension = Dictionary<never>, ExtendedCont
         blockedStatusCodes: ArrayPredicate<number>;
         retryOnBlocked: BooleanPredicate & BasePredicate<boolean | undefined>;
         respectRobotsTxtFile: AnyPredicate<boolean | object>;
+        transactionalStorage: BasePredicate<boolean | Partial<StorageWritePolicy> | undefined>;
         onSkippedRequest: Predicate<Function> & BasePredicate<Function | undefined>;
         httpClient: ObjectPredicate<object> & BasePredicate<object | undefined>;
         configuration: ObjectPredicate<object> & BasePredicate<object | undefined>;
@@ -140,14 +142,14 @@ export interface StagehandCrawlerOptions<ContextExtension = Dictionary<never>, E
     browserPlugins: [StagehandPlugin];
 }, Routes, StatisticStateExtension> {
     launchContext?: StagehandLaunchContext;
-    postNavigationHooks?: StagehandHook[];
-    preNavigationHooks?: StagehandHook[];
+    postNavigationHooks?: BrowserHook<StagehandCrawlingContext<GetUserDataFromRequest<ExtendedContext['request']>>, ContextExtension>[];
+    preNavigationHooks?: BrowserHook<StagehandCrawlingContext<GetUserDataFromRequest<ExtendedContext['request']>>, ContextExtension>[];
     requestHandler?: RouterHandler<ExtendedContext, Routes> | RequestHandler<ExtendedContext>;
     stagehandOptions?: StagehandOptions;
 }
 
 // @public (undocumented)
-export interface StagehandCrawlingContext<UserData extends Dictionary = Dictionary> extends BrowserCrawlingContext<StagehandPage, Response_2, UserData, StagehandGotoOptions> {
+export interface StagehandCrawlingContext<UserData extends Dictionary = any> extends BrowserCrawlingContext<StagehandPage, Response_2, UserData, StagehandGotoOptions> {
     page: StagehandPage;
     stagehand: Stagehand;
 }
@@ -156,8 +158,7 @@ export interface StagehandCrawlingContext<UserData extends Dictionary = Dictiona
 export type StagehandGotoOptions = NonNullable<Parameters<Page['goto']>[1]>;
 
 // @public
-export interface StagehandHook extends BrowserHook<StagehandCrawlingContext> {
-}
+export type StagehandHook<UserData extends Dictionary = any> = BrowserHook<StagehandCrawlingContext<UserData>>;
 
 // @public
 export interface StagehandLaunchContext extends BrowserLaunchContext<LaunchOptions, BrowserType> {
@@ -203,10 +204,10 @@ export interface StagehandPage extends Page {
 // @public
 class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, Browser> {
     constructor(library: BrowserType, options?: StagehandPluginOptions);
-    protected _addProxyToLaunchOptions(launchContext: LaunchContext<BrowserType>): Promise<void>;
+    protected addProxyToLaunchOptions(launchContext: LaunchContext<BrowserType>): Promise<void>;
     createController(): BrowserController<BrowserType, LaunchOptions, Browser>;
     getStagehandForBrowser(browser: Browser): Stagehand | undefined;
-    protected _isChromiumBasedBrowser(): boolean;
+    protected isChromiumBasedBrowser(): boolean;
     protected _launch(launchContext: LaunchContext<BrowserType>): Promise<Browser>;
     // (undocumented)
     readonly stagehandOptions: StagehandOptions;

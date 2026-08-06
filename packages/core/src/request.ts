@@ -121,7 +121,7 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
     headers?: Record<string, string>;
 
     /** Private store for the custom user data assigned to the request. */
-    private _userData: Record<string, any> = {};
+    #userData: Record<string, any> = {};
 
     /**
      * Custom user data assigned to the request.
@@ -225,37 +225,35 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
             userData.label = label;
         }
 
+        this.#userData = { __crawlee: {}, ...userData };
+
+        // `userData` must stay an enumerable own accessor — serialization in the storages relies on it
         Object.defineProperties(this, {
-            _userData: {
-                value: { __crawlee: {}, ...userData },
-                enumerable: false,
-                writable: true,
-            },
             userData: {
-                get: () => this._userData,
+                get: () => this.#userData,
                 set: (value: Record<string, any>) => {
                     Object.defineProperties(value, {
                         __crawlee: {
-                            value: this._userData.__crawlee,
+                            value: this.#userData.__crawlee,
                             enumerable: false,
                             writable: true,
                         },
                         toJSON: {
                             value: () => {
-                                if (Object.keys(this._userData.__crawlee).length > 0) {
+                                if (Object.keys(this.#userData.__crawlee).length > 0) {
                                     return {
-                                        ...this._userData,
-                                        __crawlee: this._userData.__crawlee,
+                                        ...this.#userData,
+                                        __crawlee: this.#userData.__crawlee,
                                     };
                                 }
 
-                                return this._userData;
+                                return this.#userData;
                             },
                             enumerable: false,
                             writable: true,
                         },
                     });
-                    this._userData = value;
+                    this.#userData = value;
                 },
                 enumerable: true,
             },

@@ -185,7 +185,7 @@ export class LinkeDOMCrawler<
     >,
     StatisticStateExtension extends object = {},
 > extends HttpCrawler<LinkeDOMCrawlingContext, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
-    private static parser = new DOMParser();
+    static #parser = new DOMParser();
 
     constructor(
         options: LinkeDOMCrawlerOptions<ContextExtension, ExtendedContext, any, any, Routes, StatisticStateExtension>,
@@ -210,7 +210,7 @@ export class LinkeDOMCrawler<
     private async parseContent(crawlingContext: InternalHttpCrawlingContext) {
         try {
             const isXml = crawlingContext.contentType.type.includes('xml');
-            const document = LinkeDOMCrawler.parser.parseFromString(
+            const document = LinkeDOMCrawler.#parser.parseFromString(
                 crawlingContext.body.toString(),
                 isXml ? 'text/xml' : 'text/html',
             );

@@ -34,6 +34,7 @@ import { RouterHandler } from '@crawlee/basic';
 import { RouterRoutes } from '@crawlee/basic';
 import type { RouteSchemas } from '@crawlee/basic';
 import type { RoutesFromSchemas } from '@crawlee/basic';
+import { StorageWritePolicy } from '@crawlee/basic';
 import { StringPredicate } from 'ow';
 import { Transform } from 'node:stream';
 
@@ -146,6 +147,7 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any> =
         blockedStatusCodes: ArrayPredicate<number>;
         retryOnBlocked: BooleanPredicate & BasePredicate<boolean | undefined>;
         respectRobotsTxtFile: AnyPredicate<boolean | object>;
+        transactionalStorage: BasePredicate<boolean | Partial<StorageWritePolicy> | undefined>;
         onSkippedRequest: Predicate<Function> & BasePredicate<Function | undefined>;
         httpClient: ObjectPredicate<object> & BasePredicate<object | undefined>;
         configuration: ObjectPredicate<object> & BasePredicate<object | undefined>;
@@ -168,7 +170,7 @@ export interface HttpCrawlerOptions<Context extends InternalHttpCrawlingContext 
     ignoreSslErrors?: boolean;
     navigationTimeoutSecs?: number;
     postNavigationHooks?: ((crawlingContext: CrawlingContextWithResponse & ContextExtension) => Awaitable<void | Partial<CrawlingContextWithResponse>>)[];
-    preNavigationHooks?: InternalHttpHook<CrawlingContext, ContextExtension>[];
+    preNavigationHooks?: InternalHttpHook<CrawlingContext<any>, ContextExtension>[];
     saveResponseCookies?: boolean;
     suggestResponseEncoding?: string;
 }

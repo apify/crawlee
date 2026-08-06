@@ -80,8 +80,8 @@ export class LaunchContext<
     readonly isRemote: boolean;
     ignoreProxyCertificate?: boolean;
 
-    private _proxyUrl?: string;
-    private readonly _reservedFieldNames = [...Reflect.ownKeys(this), 'extend'];
+    #proxyUrl?: string;
+    readonly #reservedFieldNames: (string | symbol)[];
 
     fingerprint?: BrowserFingerprintWithHeaders;
 
@@ -90,7 +90,7 @@ export class LaunchContext<
      * the {@apilink RemoteBrowserPool} to release the session on close. Only present for remote connections.
      * @internal
      */
-    _remoteToken?: number;
+    remoteToken?: number;
 
     [K: PropertyKey]: unknown;
 
@@ -116,7 +116,11 @@ export class LaunchContext<
         this.ignoreProxyCertificate = ignoreProxyCertificate ?? false;
         this.isRemote = isRemote ?? false;
 
-        this._proxyUrl = proxyUrl;
+        this.#proxyUrl = proxyUrl;
+
+        // Computed here (not in a field initializer) so that all fields already exist; the accessors live on
+        // the prototype, so they are never own keys and have to be listed explicitly.
+        this.#reservedFieldNames = [...Reflect.ownKeys(this), 'proxyUrl', 'remoteToken', 'extend'];
     }
 
     /**
@@ -128,7 +132,7 @@ export class LaunchContext<
      */
     extend<T extends Record<PropertyKey, unknown>>(fields: T): void {
         Object.entries(fields).forEach(([key, value]) => {
-            if (this._reservedFieldNames.includes(key)) {
+            if (this.#reservedFieldNames.includes(key)) {
                 throw new Error(`Cannot extend LaunchContext with key: ${key}, because it's reserved.`);
             } else {
                 Reflect.set(this, key, value);
@@ -142,7 +146,7 @@ export class LaunchContext<
      */
     set proxyUrl(url: string | undefined) {
         if (!url) {
-            this._proxyUrl = undefined;
+            this.#proxyUrl = undefined;
             return;
         }
 
@@ -152,13 +156,13 @@ export class LaunchContext<
         urlInstance.hash = '';
 
         // https://www.chromium.org/developers/design-documents/network-settings/#command-line-options-for-proxy-settings
-        this._proxyUrl = urlInstance.href.slice(0, -1);
+        this.#proxyUrl = urlInstance.href.slice(0, -1);
     }
 
     /**
      * Returns the proxy URL of the browser.
      */
     get proxyUrl(): string | undefined {
-        return this._proxyUrl;
+        return this.#proxyUrl;
     }
 }

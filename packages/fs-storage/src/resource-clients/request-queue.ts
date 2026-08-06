@@ -63,17 +63,17 @@ export class RequestQueueBackend extends CachedIdClient implements storage.Reque
     readonly name?: string;
     readonly cacheKey: string;
 
-    private readonly nativeBackend: NativeFileSystemRequestQueueBackend;
+    readonly #nativeBackend: NativeFileSystemRequestQueueBackend;
 
     constructor(options: RequestQueueBackendOptions) {
         super();
         this.name = options.name;
         this.cacheKey = options.cacheKey;
-        this.nativeBackend = options.nativeBackend;
+        this.#nativeBackend = options.nativeBackend;
     }
 
     get requestQueueDirectory(): string {
-        return this.nativeBackend.pathToRq;
+        return this.#nativeBackend.pathToRq;
     }
 
     static async create(options: RequestQueueBackendOptions): Promise<RequestQueueBackend> {
@@ -87,19 +87,19 @@ export class RequestQueueBackend extends CachedIdClient implements storage.Reque
      * available again.
      */
     async setExpectedRequestProcessingTimeSecs(secs: number): Promise<void> {
-        await this.nativeBackend.setExpectedRequestProcessingTime(secs);
+        await this.#nativeBackend.setExpectedRequestProcessingTime(secs);
     }
 
     async getMetadata(): Promise<storage.RequestQueueInfo> {
-        return this.nativeBackend.getMetadata();
+        return this.#nativeBackend.getMetadata();
     }
 
     async drop(): Promise<void> {
-        await this.nativeBackend.dropStorage();
+        await this.#nativeBackend.dropStorage();
     }
 
     async purge(): Promise<void> {
-        await this.nativeBackend.purge();
+        await this.#nativeBackend.purge();
     }
 
     async addBatchOfRequests(
@@ -109,7 +109,7 @@ export class RequestQueueBackend extends CachedIdClient implements storage.Reque
         batchRequestShapeWithoutId.parse(requests);
         requestOptionsShape.parse(options);
 
-        const response = await this.nativeBackend.addBatchOfRequests(
+        const response = await this.#nativeBackend.addBatchOfRequests(
             requests.map((request) => plainifyRequest(request)),
             options.forefront ?? false,
         );
@@ -128,16 +128,16 @@ export class RequestQueueBackend extends CachedIdClient implements storage.Reque
         // The native client tags requests with an internal `orderNo`; it's harmless to leak, so we
         // hand the request back as-is rather than copying it just to drop one undeclared property.
         // The native client already returns `undefined` for a missing request, matching this contract.
-        return (await this.nativeBackend.getRequest(uniqueKey)) as storage.UpdateRequestSchema | undefined;
+        return (await this.#nativeBackend.getRequest(uniqueKey)) as storage.UpdateRequestSchema | undefined;
     }
 
     async fetchNextRequest(): Promise<storage.UpdateRequestSchema | undefined> {
-        return (await this.nativeBackend.fetchNextRequest()) as storage.UpdateRequestSchema | undefined;
+        return (await this.#nativeBackend.fetchNextRequest()) as storage.UpdateRequestSchema | undefined;
     }
 
     async markRequestAsHandled(request: storage.UpdateRequestSchema): Promise<storage.QueueOperationInfo | undefined> {
         requestShape.parse(request);
-        return (await this.nativeBackend.markRequestAsHandled(plainifyRequest(request))) ?? undefined;
+        return (await this.#nativeBackend.markRequestAsHandled(plainifyRequest(request))) ?? undefined;
     }
 
     async reclaimRequest(
@@ -147,16 +147,17 @@ export class RequestQueueBackend extends CachedIdClient implements storage.Reque
         requestShape.parse(request);
         requestOptionsShape.parse(options);
         return (
-            (await this.nativeBackend.reclaimRequest(plainifyRequest(request), options.forefront ?? false)) ?? undefined
+            (await this.#nativeBackend.reclaimRequest(plainifyRequest(request), options.forefront ?? false)) ??
+            undefined
         );
     }
 
     async isEmpty(): Promise<boolean> {
-        return this.nativeBackend.isEmpty();
+        return this.#nativeBackend.isEmpty();
     }
 
     async isFinished(): Promise<boolean> {
-        return this.nativeBackend.isFinished();
+        return this.#nativeBackend.isFinished();
     }
 
     /**
@@ -165,6 +166,6 @@ export class RequestQueueBackend extends CachedIdClient implements storage.Reque
      * for the next consumer of the same on-disk queue.
      */
     async persistState(): Promise<void> {
-        await this.nativeBackend.persistState();
+        await this.#nativeBackend.persistState();
     }
 }

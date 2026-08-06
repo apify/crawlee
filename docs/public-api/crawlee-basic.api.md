@@ -50,6 +50,7 @@ import type { SkippedRequestCallback } from '@crawlee/core';
 import type { StatisticState } from '@crawlee/core';
 import type { StorageBackend } from '@crawlee/types';
 import type { StorageIdentifier } from '@crawlee/core';
+import { StorageWritePolicy } from '@crawlee/core';
 import { StringPredicate } from 'ow';
 import type { TaskLoopPredicates } from '@crawlee/core';
 import { TimeoutError } from '@apify/timeout';
@@ -81,10 +82,10 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
     // (undocumented)
     protected readonly failedRequestHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
     // (undocumented)
-    protected _getCookieHeaderFromRequest(request: Request_2): string;
+    protected getCookieHeaderFromRequest(request: Request_2): string;
     getData(...args: Parameters<Dataset['getData']>): ReturnType<Dataset['getData']>;
     getDataset(identifier?: string | StorageIdentifier): Promise<Dataset>;
-    protected _getMessageFromError(error: Error, forceStack?: boolean): string | TimeoutError | undefined;
+    protected getMessageFromError(error: Error, forceStack?: boolean): string | TimeoutError | undefined;
     protected getNavigationTimeoutMillis(): number;
     // (undocumented)
     protected getPendingRequestCountApproximation(): Promise<number>;
@@ -101,7 +102,7 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
     protected readonly httpClient: BaseHttpClient;
     // (undocumented)
     protected readonly identity: CrawlerIdentity;
-    protected _init(): Promise<void>;
+    protected init(): Promise<void>;
     // (undocumented)
     protected readonly internalTimeoutMillis: number;
     protected isErrorStatusCode(status: number): boolean;
@@ -141,6 +142,7 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
         blockedStatusCodes: ArrayPredicate<number>;
         retryOnBlocked: BooleanPredicate & BasePredicate<boolean | undefined>;
         respectRobotsTxtFile: AnyPredicate<boolean | object>;
+        transactionalStorage: BasePredicate<boolean | Partial<StorageWritePolicy> | undefined>;
         onSkippedRequest: Predicate<Function> & BasePredicate<Function | undefined>;
         httpClient: ObjectPredicate<object> & BasePredicate<object | undefined>;
         configuration: ObjectPredicate<object> & BasePredicate<object | undefined>;
@@ -174,7 +176,7 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
     get stats(): IStatistics<StatisticStateExtension>;
     stop(reason?: string): void;
     teardown(): Promise<void>;
-    protected _throwOnBlockedRequest(statusCode: number): void;
+    protected throwOnBlockedRequest(statusCode: number): void;
     // (undocumented)
     useState<State extends Dictionary = Dictionary>(defaultValue?: State): Promise<State>;
 }
@@ -221,6 +223,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = CrawlingC
     statusMessageLoggingInterval?: number;
     storageBackend?: StorageBackend;
     taskLoopOptions?: TaskLoopPredicates;
+    transactionalStorage?: boolean | Partial<StorageWritePolicy>;
 }
 
 // @public (undocumented)

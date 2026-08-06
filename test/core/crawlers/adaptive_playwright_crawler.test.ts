@@ -315,9 +315,21 @@ describe('AdaptivePlaywrightCrawler', () => {
                 },
             );
 
-            const crawler = await makeOneshotCrawler({ requestHandler, renderingTypePredictor, ...options }, [
-                url.toString(),
-            ]);
+            const crawler = await makeOneshotCrawler(
+                {
+                    requestHandler,
+                    renderingTypePredictor,
+                    // The enqueue budget derived from `maxRequestsPerCrawl` applies to the transaction
+                    // journal too (only requests that would really be enqueued are recorded), so the seed
+                    // request needs room for its five links. The crawl is stopped right after the seed's
+                    // rendering type detection (see below), so the enqueued links are never crawled.
+                    maxRequestsPerCrawl: 10,
+                    ...options,
+                },
+                [url.toString()],
+            );
+
+            renderingTypePredictor.storeResult.mockImplementation(() => void crawler.stop());
 
             return { crawler, renderingTypePredictor };
         };
@@ -728,7 +740,17 @@ describe('AdaptivePlaywrightCrawler', () => {
         await expect(store.getValue('3')).resolves.toEqual({ content: 42 });
     });
 
-    test('should not allow direct key-value store manipulation', async () => {
+    test('should reject transactionalStorage: false at construction', () => {
+        expect(
+            () =>
+                new AdaptivePlaywrightCrawler({
+                    transactionalStorage: false,
+                    requestHandler: async () => {},
+                }),
+        ).toThrow(/requires transactional storage/);
+    });
+
+    test('should capture direct key-value store manipulation and commit it with the winning attempt', async () => {
         const renderingTypePredictor = makeRiggedRenderingTypePredictor({
             detectionProbabilityRecommendation: 0,
             renderingType: 'static',
@@ -753,13 +775,10 @@ describe('AdaptivePlaywrightCrawler', () => {
         );
 
         await crawler.run();
-        expect(failedRequestHandler.mock.calls).toHaveLength(1);
-        expect((failedRequestHandler.mock.calls[0][1] as Error).message).toEqual(
-            'Directly accessing storage in a request handler is not allowed in AdaptivePlaywrightCrawler',
-        );
+        expect(failedRequestHandler).not.toHaveBeenCalled();
 
         const store = await KeyValueStore.open();
-        expect(await store.getValue('1')).toBeNull();
+        expect(await store.getValue('1')).toEqual({ content: 42 });
     });
 
     test('should persist RenderingTypePredictor state on PERSIST_STATE events', async () => {

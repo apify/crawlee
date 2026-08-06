@@ -333,19 +333,20 @@ export class BrowserPool<
     fingerprintGenerator?: FingerprintGenerator;
     fingerprintCache?: QuickLRU<string, BrowserFingerprintWithHeaders>;
 
+    // kept as TS-private: tests replace this interval through bracket access
     private browserKillerInterval? = setInterval(
-        async () => this._closeInactiveRetiredBrowsers(),
+        async () => this.closeInactiveRetiredBrowsers(),
         BROWSER_KILLER_INTERVAL_MILLIS,
     );
 
-    private browserRetireInterval?: NodeJS.Timeout;
+    #browserRetireInterval?: NodeJS.Timeout;
 
-    private limiter = pLimit(1);
-    private log!: CrawleeLogger;
+    #limiter = pLimit(1);
+    #log!: CrawleeLogger;
 
     constructor(options: Options & BrowserPoolHooks<BrowserControllerReturn, LaunchContextReturn, PageReturn>) {
         super();
-        this.log = serviceLocator.getLogger().child({ prefix: 'BrowserPool' });
+        this.#log = serviceLocator.getLogger().child({ prefix: 'BrowserPool' });
 
         this.browserKillerInterval!.unref();
 
@@ -410,7 +411,7 @@ export class BrowserPool<
         this.useFingerprints = useFingerprints;
         this.fingerprintOptions = fingerprintOptions;
 
-        this.browserRetireInterval = setInterval(
+        this.#browserRetireInterval = setInterval(
             async () =>
                 this.activeBrowserControllers.forEach((controller) => {
                     if (
@@ -423,7 +424,7 @@ export class BrowserPool<
             retireInactiveBrowserAfterSecs * 1000,
         );
 
-        this.browserRetireInterval!.unref();
+        this.#browserRetireInterval!.unref();
 
         // hooks
         this.preLaunchHooks = preLaunchHooks;
@@ -435,7 +436,7 @@ export class BrowserPool<
 
         // fingerprinting
         if (this.useFingerprints) {
-            this._initializeFingerprinting();
+            this.initializeFingerprinting();
         }
     }
 
@@ -460,7 +461,7 @@ export class BrowserPool<
         const {
             id = nanoid(),
             pageOptions,
-            browserPlugin = this._pickBrowserPlugin(),
+            browserPlugin = this.pickBrowserPlugin(),
             session,
             proxyUrl = session?.proxyInfo?.url,
             ignoreTlsErrors = session?.proxyInfo?.ignoreTlsErrors,
@@ -480,21 +481,24 @@ export class BrowserPool<
         // requests (https://github.com/apify/crawlee/issues/3670). Mirrors the
         // fix p-limit landed upstream in v5 (sindresorhus/p-limit#71); v5 is an
         // ESM-only rewrite, so we can't bump it in Crawlee v3.
+        // Besides the cancelTask leak, the wrapper also keeps the per-request *storage transaction*
+        // ALS-scoped: without it, a queued callback would resume in the previous request's async
+        // context and run request B's storage writes inside request A's transaction.
         // TODO(crawlee@v4): bump p-limit to v5 and drop this AsyncResource.bind wrapper.
         // Limiter is necessary - https://github.com/apify/crawlee/issues/1126
-        return this.limiter(
+        return this.#limiter(
             AsyncResource.bind(async () => {
-                let browserController = this._pickBrowserWithFreeCapacity(browserPlugin, { proxyUrl });
+                let browserController = this.pickBrowserWithFreeCapacity(browserPlugin, { proxyUrl });
 
                 if (!browserController)
-                    browserController = await this._launchBrowser(id, {
+                    browserController = await this.launchBrowser(id, {
                         browserPlugin,
                         proxyUrl,
                         ignoreTlsErrors,
                     });
                 tryCancel();
 
-                return await this._createPageForBrowser(id, browserController, pageOptions, proxyUrl, ignoreTlsErrors);
+                return await this.createPageForBrowser(id, browserController, pageOptions, proxyUrl, ignoreTlsErrors);
             }),
         );
     }
@@ -507,15 +511,15 @@ export class BrowserPool<
     async newPageInNewBrowser(
         options: BrowserPoolNewPageInNewBrowserOptions<PageOptions, BrowserPlugins[number]> = {},
     ): Promise<PageReturn> {
-        const { id = nanoid(), pageOptions, launchOptions, browserPlugin = this._pickBrowserPlugin() } = options;
+        const { id = nanoid(), pageOptions, launchOptions, browserPlugin = this.pickBrowserPlugin() } = options;
 
         if (this.pages.has(id)) {
             throw new Error(`Page with ID: ${id} already exists.`);
         }
 
-        const browserController = await this._launchBrowser(id, { launchOptions, browserPlugin });
+        const browserController = await this.launchBrowser(id, { launchOptions, browserPlugin });
         tryCancel();
-        return await this._createPageForBrowser(id, browserController, pageOptions);
+        return await this.createPageForBrowser(id, browserController, pageOptions);
     }
 
     /**
@@ -588,7 +592,7 @@ export class BrowserPool<
         return this.pageIds.get(page);
     }
 
-    private async _createPageForBrowser(
+    private async createPageForBrowser(
         pageId: string,
         browserController: BrowserControllerReturn,
         pageOptions: PageOptions = {} as PageOptions,
@@ -614,7 +618,7 @@ export class BrowserPool<
             }
         }
 
-        await this._executeHooks(this.prePageCreateHooks, pageId, browserController, finalPageOptions);
+        await this.executeHooks(this.prePageCreateHooks, pageId, browserController, finalPageOptions);
         tryCancel();
 
         let page: PageReturn;
@@ -636,7 +640,7 @@ export class BrowserPool<
                 this.retireBrowserController(browserController);
             }
 
-            this._overridePageClose(page);
+            this.overridePageClose(page);
         } catch (err) {
             this.retireBrowserController(browserController);
             throw new Error(
@@ -644,7 +648,7 @@ export class BrowserPool<
             );
         }
 
-        await this._executeHooks(this.postPageCreateHooks, page, browserController);
+        await this.executeHooks(this.postPageCreateHooks, page, browserController);
         tryCancel();
 
         this.emit(BROWSER_POOL_EVENTS.PAGE_CREATED, page);
@@ -759,7 +763,7 @@ export class BrowserPool<
      * @return {Promise<void>}
      */
     async closeAllBrowsers(): Promise<void> {
-        const controllers = this._getAllBrowserControllers();
+        const controllers = this.getAllBrowserControllers();
         const promises = [...controllers]
             .filter((controller) => controller.isActive)
             .map(async (controller) => controller.close());
@@ -772,16 +776,16 @@ export class BrowserPool<
      */
     async destroy(): Promise<void> {
         clearInterval(this.browserKillerInterval!);
-        clearInterval(this.browserRetireInterval!);
+        clearInterval(this.#browserRetireInterval!);
         this.browserKillerInterval = undefined;
-        this.browserRetireInterval = undefined;
+        this.#browserRetireInterval = undefined;
 
         await this.closeAllBrowsers();
 
-        this._teardown();
+        this.teardown();
     }
 
-    private _teardown() {
+    private teardown() {
         this.startingBrowserControllers.clear();
         this.activeBrowserControllers.clear();
         this.retiredBrowserControllers.clear();
@@ -789,7 +793,7 @@ export class BrowserPool<
         this.removeAllListeners();
     }
 
-    private _getAllBrowserControllers() {
+    private getAllBrowserControllers() {
         return new Set([
             ...this.startingBrowserControllers,
             ...this.activeBrowserControllers,
@@ -797,7 +801,7 @@ export class BrowserPool<
         ]);
     }
 
-    private async _launchBrowser(pageId: string, options: InternalLaunchBrowserOptions<BrowserPlugins[number]>) {
+    private async launchBrowser(pageId: string, options: InternalLaunchBrowserOptions<BrowserPlugins[number]>) {
         const { browserPlugin, launchOptions, proxyUrl, ignoreTlsErrors } = options;
 
         const browserController = browserPlugin.createController() as BrowserControllerReturn;
@@ -822,7 +826,7 @@ export class BrowserPool<
         try {
             // If the hooks or the launch fails, we need to delete the controller,
             // because otherwise it would be stuck in limbo without a browser.
-            await this._executeHooks(this.preLaunchHooks, pageId, launchContext);
+            await this.executeHooks(this.preLaunchHooks, pageId, launchContext);
             tryCancel();
             const browser = await browserPlugin.launch(launchContext);
             tryCancel();
@@ -832,17 +836,17 @@ export class BrowserPool<
             throw err;
         }
 
-        this.log.debug('Launched new browser.', { id: browserController.id });
+        this.#log.debug('Launched new browser.', { id: browserController.id });
         browserController.proxyUrl = proxyUrl;
 
         try {
             // If the launch fails on the post-launch hooks, we need to clean up
             // both the controller and the browser before throwing.
-            await this._executeHooks(this.postLaunchHooks, pageId, browserController);
+            await this.executeHooks(this.postLaunchHooks, pageId, browserController);
         } catch (err) {
             this.startingBrowserControllers.delete(browserController);
             browserController.close().catch((closeErr) => {
-                this.log.error(`Could not close browser whose post-launch hooks failed.\nCause:${closeErr.message}`, {
+                this.#log.error(`Could not close browser whose post-launch hooks failed.\nCause:${closeErr.message}`, {
                     id: browserController.id,
                 });
             });
@@ -862,14 +866,14 @@ export class BrowserPool<
      * Picks plugins round robin.
      * @private
      */
-    private _pickBrowserPlugin() {
+    private pickBrowserPlugin() {
         const pluginIndex = this.pageCounter % this.browserPlugins.length;
         this.pageCounter++;
 
         return this.browserPlugins[pluginIndex];
     }
 
-    private _pickBrowserWithFreeCapacity(browserPlugin: BrowserPlugin, options?: { proxyUrl?: string }) {
+    private pickBrowserWithFreeCapacity(browserPlugin: BrowserPlugin, options?: { proxyUrl?: string }) {
         return [...this.activeBrowserControllers].find((controller) => {
             const hasCapacity = controller.activePages < this.maxOpenPagesPerBrowser;
             const isCorrectPlugin = controller.browserPlugin === browserPlugin;
@@ -885,7 +889,7 @@ export class BrowserPool<
         });
     }
 
-    private async _closeInactiveRetiredBrowsers() {
+    private async closeInactiveRetiredBrowsers() {
         const closedBrowserIds: string[] = [];
 
         for (const controller of this.retiredBrowserControllers) {
@@ -895,7 +899,7 @@ export class BrowserPool<
 
             if (isBrowserIdle || isBrowserEmpty) {
                 const { id } = controller;
-                this.log.debug('Closing retired browser.', { id });
+                this.#log.debug('Closing retired browser.', { id });
                 await controller.close();
                 this.retiredBrowserControllers.delete(controller);
                 closedBrowserIds.push(id);
@@ -903,46 +907,46 @@ export class BrowserPool<
         }
 
         if (closedBrowserIds.length) {
-            this.log.debug('Closed retired browsers.', {
+            this.#log.debug('Closed retired browsers.', {
                 count: closedBrowserIds.length,
                 closedBrowserIds,
             });
         }
     }
 
-    private _overridePageClose(page: PageReturn) {
+    private overridePageClose(page: PageReturn) {
         const originalPageClose = page.close;
         const browserController = this.pageToBrowserController.get(page)!;
         const pageId = this.getPageId(page)!;
 
         page.close = async (...args: unknown[]) => {
-            await this._executeHooks(this.prePageCloseHooks, page, browserController);
+            await this.executeHooks(this.prePageCloseHooks, page, browserController);
 
             await originalPageClose.apply(page, args).catch((err: Error) => {
-                this.log.debug(`Could not close page.\nCause:${err.message}`, { id: browserController.id });
+                this.#log.debug(`Could not close page.\nCause:${err.message}`, { id: browserController.id });
             });
 
-            await this._executeHooks(this.postPageCloseHooks, pageId, browserController);
+            await this.executeHooks(this.postPageCloseHooks, pageId, browserController);
 
             this.pages.delete(pageId);
-            this._closeRetiredBrowserWithNoPages(browserController);
+            this.closeRetiredBrowserWithNoPages(browserController);
 
             this.emit(BROWSER_POOL_EVENTS.PAGE_CLOSED, page);
         };
     }
 
-    private async _executeHooks(hooks: ((...args: any[]) => unknown)[], ...args: unknown[]) {
+    private async executeHooks(hooks: ((...args: any[]) => unknown)[], ...args: unknown[]) {
         for (const hook of hooks) {
             await hook(...args);
         }
     }
 
-    private _closeRetiredBrowserWithNoPages(browserController: BrowserControllerReturn) {
+    private closeRetiredBrowserWithNoPages(browserController: BrowserControllerReturn) {
         if (browserController.activePages === 0 && this.retiredBrowserControllers.has(browserController)) {
             // Run this with a delay, otherwise page.close()
             // might fail with "Protocol error (Target.closeTarget): Target closed."
             setTimeout(() => {
-                this.log.debug('Closing retired browser because it has no active pages', { id: browserController.id });
+                this.#log.debug('Closing retired browser because it has no active pages', { id: browserController.id });
                 void browserController.close().finally(() => {
                     this.retiredBrowserControllers.delete(browserController);
                 });
@@ -972,7 +976,7 @@ export class BrowserPool<
         return false;
     }
 
-    private _initializeFingerprinting(): void {
+    private initializeFingerprinting(): void {
         const { useFingerprintCache = true, fingerprintCacheSize = 10_000 } = this.fingerprintOptions;
         this.fingerprintGenerator = new FingerprintGenerator(this.fingerprintOptions.fingerprintGeneratorOptions);
         this.fingerprintInjector = new FingerprintInjector();
@@ -981,10 +985,10 @@ export class BrowserPool<
             this.fingerprintCache = new QuickLRU({ maxSize: fingerprintCacheSize });
         }
 
-        this._addFingerprintHooks();
+        this.addFingerprintHooks();
     }
 
-    private _addFingerprintHooks() {
+    private addFingerprintHooks() {
         this.preLaunchHooks = [
             ...this.preLaunchHooks,
             // This is flipped because of the fingerprint cache.

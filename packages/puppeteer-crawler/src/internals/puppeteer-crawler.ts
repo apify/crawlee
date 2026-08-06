@@ -32,9 +32,13 @@ import { gotoExtended, puppeteerUtils } from './utils/puppeteer_utils.js';
 
 export type PuppeteerGoToOptions = NonNullable<Parameters<Page['goto']>[1]>;
 
-export interface PuppeteerCrawlingContext<UserData extends Dictionary = Dictionary>
+export interface PuppeteerCrawlingContext<
+    UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
+>
     extends BrowserCrawlingContext<Page, HTTPResponse, UserData, PuppeteerGoToOptions>, PuppeteerContextUtils {}
-export interface PuppeteerHook extends BrowserHook<PuppeteerCrawlingContext> {}
+export type PuppeteerHook<
+    UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
+> = BrowserHook<PuppeteerCrawlingContext<UserData>>;
 
 export interface PuppeteerCrawlerOptions<
     ContextExtension = Dictionary<never>,
@@ -75,7 +79,10 @@ export interface PuppeteerCrawlerOptions<
      * ]
      * ```
      */
-    preNavigationHooks?: BrowserHook<PuppeteerCrawlingContext, ContextExtension>[];
+    preNavigationHooks?: BrowserHook<
+        PuppeteerCrawlingContext<GetUserDataFromRequest<ExtendedContext['request']>>,
+        ContextExtension
+    >[];
 
     /**
      * Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
@@ -93,7 +100,10 @@ export interface PuppeteerCrawlerOptions<
      * ]
      * ```
      */
-    postNavigationHooks?: BrowserHook<PuppeteerCrawlingContext, ContextExtension>[];
+    postNavigationHooks?: BrowserHook<
+        PuppeteerCrawlingContext<GetUserDataFromRequest<ExtendedContext['request']>>,
+        ContextExtension
+    >[];
 }
 
 /**
@@ -301,7 +311,7 @@ export class PuppeteerCrawler<
         };
     }
 
-    protected override async _navigationHandler(
+    protected override async navigationHandler(
         crawlingContext: PuppeteerCrawlingContext,
         gotoOptions: DirectNavigationOptions,
     ) {

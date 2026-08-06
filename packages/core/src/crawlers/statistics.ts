@@ -12,16 +12,16 @@ import { ErrorTracker } from './error_tracker.js';
  * @ignore
  */
 class Job {
-    private lastRunAt: number | null = null;
-    private durationMillis?: number;
+    #lastRunAt: number | null = null;
+    #durationMillis?: number;
 
     run() {
-        this.lastRunAt = Date.now();
+        this.#lastRunAt = Date.now();
     }
 
     finish() {
-        this.durationMillis = Date.now() - this.lastRunAt!;
-        return this.durationMillis;
+        this.#durationMillis = Date.now() - this.#lastRunAt!;
+        return this.#durationMillis;
     }
 }
 
@@ -151,6 +151,7 @@ export interface CalculatedStatistics {
  * @category Crawlers
  */
 export class Statistics<StateExtension extends object = {}> implements IStatistics<StateExtension> {
+    // kept as TS-private: statistics tests read the static counter directly
     private static id = 0;
 
     /**
@@ -180,23 +181,23 @@ export class Statistics<StateExtension extends object = {}> implements IStatisti
 
     protected keyValueStore?: KeyValueStore = undefined;
     protected readonly persistStateKey: string;
-    private readonly defaultStateExtension: StateExtension;
-    private readonly stateSchema?: StandardSchemaV1<unknown, StateExtension>;
-    private logIntervalMillis: number;
-    private logMessage: string;
-    private listener: () => Promise<void>;
-    private requestsInProgress = new Map<number | string, Job>();
+    readonly #defaultStateExtension: StateExtension;
+    readonly #stateSchema?: StandardSchemaV1<unknown, StateExtension>;
+    #logIntervalMillis: number;
+    #logMessage: string;
+    #listener: () => Promise<void>;
+    #requestsInProgress = new Map<number | string, Job>();
     private readonly log: CrawleeLogger;
-    private instanceStart!: number;
-    private logInterval: unknown;
-    private _events?: EventManager;
-    private persistenceOptions: PersistenceOptions;
+    #instanceStart!: number;
+    #logInterval: unknown;
+    #events?: EventManager;
+    #persistenceOptions: PersistenceOptions;
 
     private get events(): EventManager {
-        if (!this._events) {
-            this._events = serviceLocator.getEventManager();
+        if (!this.#events) {
+            this.#events = serviceLocator.getEventManager();
         }
-        return this._events;
+        return this.#events;
     }
 
     /**
@@ -238,13 +239,13 @@ export class Statistics<StateExtension extends object = {}> implements IStatisti
         this.log = (options.log ?? serviceLocator.getLogger()).child({ prefix: 'Statistics' });
         this.errorTracker = new ErrorTracker({ ...errorTrackerConfig, saveErrorSnapshots });
         this.errorTrackerRetry = new ErrorTracker({ ...errorTrackerConfig, saveErrorSnapshots });
-        this.logIntervalMillis = logIntervalSecs * 1000;
-        this.logMessage = logMessage;
+        this.#logIntervalMillis = logIntervalSecs * 1000;
+        this.#logMessage = logMessage;
         this.keyValueStore = keyValueStore;
-        this.listener = this.persistState.bind(this);
-        this.persistenceOptions = persistenceOptions;
-        this.defaultStateExtension = defaultState;
-        this.stateSchema = stateSchema;
+        this.#listener = this.persistState.bind(this);
+        this.#persistenceOptions = persistenceOptions;
+        this.#defaultStateExtension = defaultState;
+        this.#stateSchema = stateSchema;
 
         // initialize by "resetting"
         this.reset();
@@ -275,12 +276,12 @@ export class Statistics<StateExtension extends object = {}> implements IStatisti
             errors: this.errorTracker.result,
             retryErrors: this.errorTrackerRetry.result,
             // Cloned so that mutating the state never writes through to the defaults of a later reset()
-            ...structuredClone(this.defaultStateExtension),
+            ...structuredClone(this.#defaultStateExtension),
         };
 
         this.requestRetryHistogram.length = 0;
-        this.requestsInProgress.clear();
-        this.instanceStart = Date.now();
+        this.#requestsInProgress.clear();
+        this.#instanceStart = Date.now();
 
         this.teardown();
     }
@@ -289,7 +290,7 @@ export class Statistics<StateExtension extends object = {}> implements IStatisti
      * @param options - Override the persistence options provided in the constructor
      */
     async resetStore(options?: PersistenceOptions) {
-        if (!this.persistenceOptions.enable && !options?.enable) {
+        if (!this.#persistenceOptions.enable && !options?.enable) {
             return;
         }
 
@@ -318,10 +319,10 @@ export class Statistics<StateExtension extends object = {}> implements IStatisti
      * @ignore
      */
     startJob(id: number | string) {
-        let job = this.requestsInProgress.get(id);
+        let job = this.#requestsInProgress.get(id);
         if (!job) job = new Job();
         job.run();
-        this.requestsInProgress.set(id, job);
+        this.#requestsInProgress.set(id, job);
     }
 
     /**
@@ -329,7 +330,7 @@ export class Statistics<StateExtension extends object = {}> implements IStatisti
      * @ignore
      */
     finishJob(id: number | string, retryCount: number) {
-        const job = this.requestsInProgress.get(id);
+        const job = this.#requestsInProgress.get(id);
         if (!job) return;
         const jobDurationMillis = job.finish();
         this.state.requestsFinished++;
@@ -339,7 +340,7 @@ export class Statistics<StateExtension extends object = {}> implements IStatisti
             this.state.requestMinDurationMillis = jobDurationMillis;
         if (jobDurationMillis > this.state.requestMaxDurationMillis)
             this.state.requestMaxDurationMillis = jobDurationMillis;
-        this.requestsInProgress.delete(id);
+        this.#requestsInProgress.delete(id);
     }
 
     /**
@@ -347,12 +348,12 @@ export class Statistics<StateExtension extends object = {}> implements IStatisti
      * @ignore
      */
     failJob(id: number | string, retryCount: number) {
-        const job = this.requestsInProgress.get(id);
+        const job = this.#requestsInProgress.get(id);
         if (!job) return;
         this.state.requestTotalFailedDurationMillis += job.finish();
         this.state.requestsFailed++;
         this.saveRetryCountForJob(retryCount);
-        this.requestsInProgress.delete(id);
+        this.#requestsInProgress.delete(id);
     }
 
     /**
@@ -361,7 +362,7 @@ export class Statistics<StateExtension extends object = {}> implements IStatisti
      * @ignore
      */
     discardJob(id: number | string) {
-        this.requestsInProgress.delete(id);
+        this.#requestsInProgress.delete(id);
     }
 
     /**
@@ -374,7 +375,7 @@ export class Statistics<StateExtension extends object = {}> implements IStatisti
             requestTotalFailedDurationMillis,
             requestTotalFinishedDurationMillis,
         } = this.state;
-        const totalMillis = Date.now() - this.instanceStart;
+        const totalMillis = Date.now() - this.#instanceStart;
         const totalMinutes = totalMillis / 1000 / 60;
 
         return {
@@ -396,7 +397,7 @@ export class Statistics<StateExtension extends object = {}> implements IStatisti
     async startCapturing() {
         // A single instance drives one logging interval and one PERSIST_STATE listener, so a second concurrent
         // capture (e.g. sharing one instance across crawlers running at once) would orphan the first. Fail loudly.
-        if (this.logInterval) {
+        if (this.#logInterval) {
             throw new Error('Statistics.startCapturing() was already called - this instance is already capturing.');
         }
 
@@ -406,17 +407,17 @@ export class Statistics<StateExtension extends object = {}> implements IStatisti
             this.state.crawlerStartedAt = new Date();
         }
 
-        if (this.persistenceOptions.enable) {
+        if (this.#persistenceOptions.enable) {
             await this.maybeLoadStatistics();
-            this.events.on(EventType.PERSIST_STATE, this.listener);
+            this.events.on(EventType.PERSIST_STATE, this.#listener);
         }
 
-        this.logInterval = setInterval(() => {
-            this.log.info(this.logMessage, {
+        this.#logInterval = setInterval(() => {
+            this.log.info(this.#logMessage, {
                 ...this.calculate(),
                 retryHistogram: this.requestRetryHistogram,
             });
-        }, this.logIntervalMillis);
+        }, this.#logIntervalMillis);
     }
 
     /**
@@ -441,7 +442,7 @@ export class Statistics<StateExtension extends object = {}> implements IStatisti
      * @param options - Override the persistence options provided in the constructor
      */
     async persistState(options?: PersistenceOptions) {
-        if (!this.persistenceOptions.enable && !options?.enable) {
+        if (!this.#persistenceOptions.enable && !options?.enable) {
             return;
         }
 
@@ -502,7 +503,7 @@ export class Statistics<StateExtension extends object = {}> implements IStatisti
         this.state.crawlerStartedAt = savedState.crawlerStartedAt ? new Date(savedState.crawlerStartedAt) : null;
         this.state.statsPersistedAt = savedState.statsPersistedAt ? new Date(savedState.statsPersistedAt) : null;
         this.state.crawlerRuntimeMillis = savedState.crawlerRuntimeMillis;
-        this.instanceStart = Date.now() - (+this.state.statsPersistedAt! - savedState.crawlerLastStartTimestamp);
+        this.#instanceStart = Date.now() - (+this.state.statsPersistedAt! - savedState.crawlerLastStartTimestamp);
 
         await this.loadStateExtension(savedState);
 
@@ -518,13 +519,13 @@ export class Statistics<StateExtension extends object = {}> implements IStatisti
      * degrades the custom fields instead of poisoning the run.
      */
     private async loadStateExtension(savedState: Partial<StateExtension>): Promise<void> {
-        const keys = Object.keys(this.defaultStateExtension) as (keyof StateExtension)[];
+        const keys = Object.keys(this.#defaultStateExtension) as (keyof StateExtension)[];
 
         if (keys.length === 0) {
             return;
         }
 
-        const restored = structuredClone(this.defaultStateExtension);
+        const restored = structuredClone(this.#defaultStateExtension);
 
         for (const key of keys) {
             const savedValue = savedState[key];
@@ -534,12 +535,12 @@ export class Statistics<StateExtension extends object = {}> implements IStatisti
             }
         }
 
-        if (!this.stateSchema) {
+        if (!this.#stateSchema) {
             Object.assign(this.state, restored);
             return;
         }
 
-        const result = await this.stateSchema['~standard'].validate(restored);
+        const result = await this.#stateSchema['~standard'].validate(restored);
 
         if (result.issues) {
             this.log.warning('Persisted custom statistics state failed validation, falling back to the defaults.', {
@@ -556,11 +557,11 @@ export class Statistics<StateExtension extends object = {}> implements IStatisti
         // this can be called before a call to startCapturing happens (or in a 'finally' block)
         // Only unsubscribe if event manager was already resolved — avoid eagerly resolving it
         // (e.g. during the constructor's reset() call, which would capture the wrong context)
-        this._events?.off(EventType.PERSIST_STATE, this.listener);
+        this.#events?.off(EventType.PERSIST_STATE, this.#listener);
 
-        if (this.logInterval) {
-            clearInterval(this.logInterval as number);
-            this.logInterval = null;
+        if (this.#logInterval) {
+            clearInterval(this.#logInterval as number);
+            this.#logInterval = null;
         }
     }
 
@@ -574,7 +575,7 @@ export class Statistics<StateExtension extends object = {}> implements IStatisti
         // omit duplicated information
         const result = {
             ...this.state,
-            crawlerLastStartTimestamp: this.instanceStart,
+            crawlerLastStartTimestamp: this.#instanceStart,
             crawlerFinishedAt: this.state.crawlerFinishedAt
                 ? new Date(this.state.crawlerFinishedAt).toISOString()
                 : null,

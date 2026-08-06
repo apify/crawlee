@@ -169,7 +169,7 @@ export abstract class BrowserPlugin<
      * Subclasses implement only the `connect` callback — the resolve / token / release / error-wrap scaffolding
      * lives here so it stays identical across plugins.
      */
-    protected async _connectToRemoteBrowser(
+    protected async connectToRemoteBrowser(
         launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>,
         connect: (url: string) => Promise<LaunchResult>,
     ): Promise<LaunchResult> {
@@ -183,7 +183,7 @@ export abstract class BrowserPlugin<
             throw new BrowserLaunchError('Failed to resolve the remote browser endpoint.', { cause });
         }
 
-        launchContext._remoteToken = token;
+        launchContext.remoteToken = token;
 
         try {
             return await connect(url);
@@ -256,12 +256,12 @@ export abstract class BrowserPlugin<
         const { proxyUrl, launchOptions } = launchContext;
 
         if (proxyUrl && !launchContext.isRemote) {
-            await this._addProxyToLaunchOptions(launchContext);
+            await this.addProxyToLaunchOptions(launchContext);
         }
 
-        if (!launchContext.isRemote && this._isChromiumBasedBrowser(launchContext)) {
+        if (!launchContext.isRemote && this.isChromiumBasedBrowser(launchContext)) {
             // This will set the args for chromium based browsers to hide the webdriver.
-            (launchOptions as Dictionary).args = this._mergeArgsToHideWebdriver(launchOptions!.args);
+            (launchOptions as Dictionary).args = this.mergeArgsToHideWebdriver(launchOptions!.args);
             // When User-Agent is not set, and we're using Chromium in headless mode,
             // it is better to use DEFAULT_USER_AGENT to reduce chance of detection,
             // as otherwise 'HeadlessChrome' is present in User-Agent string.
@@ -278,7 +278,7 @@ export abstract class BrowserPlugin<
         return this._launch(launchContext);
     }
 
-    private _mergeArgsToHideWebdriver(originalArgs?: string[]): string[] {
+    private mergeArgsToHideWebdriver(originalArgs?: string[]): string[] {
         if (!originalArgs?.length) {
             return ['--disable-blink-features=AutomationControlled'];
         }
@@ -294,7 +294,7 @@ export abstract class BrowserPlugin<
         return originalArgs;
     }
 
-    protected _throwAugmentedLaunchError(
+    protected throwAugmentedLaunchError(
         cause: unknown,
         executablePath: string | undefined,
         dockerImage: string,
@@ -325,11 +325,11 @@ export abstract class BrowserPlugin<
     /**
      * @private
      */
-    protected abstract _addProxyToLaunchOptions(
+    protected abstract addProxyToLaunchOptions(
         launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>,
     ): Promise<void>;
 
-    protected abstract _isChromiumBasedBrowser(
+    protected abstract isChromiumBasedBrowser(
         launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>,
     ): boolean;
 

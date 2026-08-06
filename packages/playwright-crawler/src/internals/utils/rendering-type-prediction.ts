@@ -69,14 +69,15 @@ export interface IRenderingTypePredictor {
  * @experimental
  */
 export class RenderingTypePredictor implements IRenderingTypePredictor {
-    private detectionRatio: number;
+    #detectionRatio: number;
+    // kept as TS-private: tests reach for it at runtime
     private state: RecoverableState<{
         logreg: LogisticRegression;
         detectionResults: Map<RenderingType, Map<string | undefined, URLComponents[]>>;
     }>;
 
     constructor({ detectionRatio, persistenceOptions }: RenderingTypePredictorOptions) {
-        this.detectionRatio = detectionRatio;
+        this.#detectionRatio = detectionRatio;
         this.state = new RecoverableState({
             defaultState: {
                 logreg: new LogisticRegression({ numSteps: 1000, learningRate: 0.05 }),
@@ -144,7 +145,7 @@ export class RenderingTypePredictor implements IRenderingTypePredictor {
             detectionProbabilityRecommendation:
                 Math.abs(scores[0] - scores[1]) < 0.1
                     ? 1
-                    : this.detectionRatio * Math.max(1, 5 - this.resultCount(label)),
+                    : this.#detectionRatio * Math.max(1, 5 - this.resultCount(label)),
         };
     }
 
