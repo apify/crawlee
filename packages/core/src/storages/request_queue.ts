@@ -15,6 +15,7 @@ import ow from 'ow';
 import type { ReadonlyDeep } from 'type-fest';
 
 import { LruCache } from '@apify/datastructures';
+import { tryCancel } from '@apify/timeout';
 
 import { Configuration } from '../configuration.js';
 import { getObjectType } from '../debug.js';
@@ -26,7 +27,8 @@ import type { IProxyConfiguration } from '../proxy_configuration.js';
 import type { InternalSource, RequestOptions, Source } from '../request.js';
 import { Request } from '../request.js';
 import { serviceLocator } from '../service_locator.js';
-import { checkStorageAccess } from './access_checking.js';
+import type { JournalEntry, StorageTransaction } from './transaction.js';
+import { activeStorageTransaction, rejectOperationInTransaction, withDirectStorageAccess } from './transaction.js';
 import type { IRequestManager, RequestsLike } from './request_manager.js';
 import type { RequestQueueStats } from './storage_stats.js';
 import { StorageStatsTracker } from './storage_stats.js';
@@ -179,7 +181,7 @@ export class RequestQueue implements IStorage, IRequestManager {
         requestLike: Source,
         options: RequestQueueOperationOptions = {},
     ): Promise<RequestQueueOperationInfo> {
-        checkStorageAccess();
+        const transaction = activeStorageTransaction();
 
         ow(requestLike, ow.object);
         ow(
@@ -208,11 +210,16 @@ export class RequestQueue implements IStorage, IRequestManager {
 
         const request = requestLike instanceof Request ? requestLike : new Request(requestLike);
 
+        if (transaction?.policy.requestQueue === 'deferred') {
+            return this.addRequestDeferred(transaction, request, forefront);
+        }
+
         const cacheKey = getRequestId(request.uniqueKey);
         const cachedInfo = this.requestCache.get(cacheKey);
 
         if (cachedInfo) {
             request.id = cachedInfo.id;
+            this.recordRequestJournalEntry(transaction, [request], forefront, true);
             return {
                 wasAlreadyPresent: true,
                 // We may assume that if request is in local cache then also the information if the
@@ -226,6 +233,7 @@ export class RequestQueue implements IStorage, IRequestManager {
 
         this.statsTracker.add('writeCount');
         const { processedRequests } = await this.backend.addBatchOfRequests([request], { forefront });
+        this.recordRequestJournalEntry(transaction, [request], forefront, true);
         const queueOperationInfo = {
             ...processedRequests[0],
             uniqueKey: request.uniqueKey,
@@ -236,6 +244,182 @@ export class RequestQueue implements IStorage, IRequestManager {
         this.requestSeenCache.add(cacheKey, request.id!);
 
         return queueOperationInfo;
+    }
+
+    /**
+     * Journals an addition for introspection only; these entries are never replayed. A no-op unless the
+     * transaction is open, so detached and outliving writers stay out of the journal.
+     */
+    private recordRequestJournalEntry(
+        transaction: StorageTransaction | undefined,
+        requests: Request[],
+        forefront: boolean,
+        writeThrough: boolean,
+    ): void {
+        if (!transaction?.isActive || requests.length === 0) return;
+
+        transaction.recordJournalEntry({
+            type: 'requestQueue',
+            participant: this,
+            requests: requests.map((request) => ({
+                url: request.url,
+                uniqueKey: request.uniqueKey,
+                label: request.label,
+            })),
+            forefront,
+            writeThrough,
+        });
+    }
+
+    /**
+     * The requests buffered by the given transaction for this queue, keyed by `uniqueKey` — a dedup
+     * index derived from the transaction journal.
+     */
+    private bufferedRequests(transaction: StorageTransaction): Map<string, Dictionary> {
+        const buffered = new Map<string, Dictionary>();
+
+        // Only `deferred` records snapshots, so scanning the journal under `writeThrough` never finds any.
+        if (transaction.policy.requestQueue !== 'deferred') return buffered;
+
+        for (const entry of transaction.journal) {
+            if (entry.type !== 'requestQueue' || entry.participant !== this) continue;
+            for (const request of entry.requests) {
+                if (request.snapshot !== undefined) buffered.set(request.uniqueKey, request.snapshot);
+            }
+        }
+
+        return buffered;
+    }
+
+    /**
+     * Adds a request under the `deferred` policy: journaled now, really added by the commit replay.
+     * A new request's `requestId` is the local `uniqueKey` hash and is **provisional** — never write it
+     * to `request.id` or the dedup caches. Dedup is cheapest-first: buffer, caches, then a backend probe.
+     */
+    private async addRequestDeferred(
+        transaction: StorageTransaction,
+        request: Request,
+        forefront: boolean,
+        buffered = this.bufferedRequests(transaction),
+    ): Promise<RequestQueueOperationInfo> {
+        // This transaction's own buffered adds; the shared caches never see them (provisional ids).
+        if (buffered.has(request.uniqueKey)) {
+            this.recordRequestJournalEntry(transaction, [request], forefront, false);
+            return {
+                wasAlreadyPresent: true,
+                wasAlreadyHandled: false,
+                requestId: getRequestId(request.uniqueKey),
+                uniqueKey: request.uniqueKey,
+                forefront,
+            };
+        }
+
+        // The caches hold real backend ids. Only *writing* provisional ids to them would be wrong;
+        // reading saves a probe. Same lookup as the write-through path.
+        const cacheKey = getRequestId(request.uniqueKey);
+        const cachedInfo = this.requestCache.get(cacheKey);
+        const knownRequestId = cachedInfo?.id ?? this.requestSeenCache.get(cacheKey);
+
+        if (knownRequestId) {
+            this.recordRequestJournalEntry(transaction, [request], forefront, false);
+            return {
+                wasAlreadyPresent: true,
+                // The dedup cache doesn't track the handled state; only the full record does.
+                wasAlreadyHandled: cachedInfo?.isHandled ?? false,
+                requestId: knownRequestId,
+                uniqueKey: request.uniqueKey,
+                forefront,
+            };
+        }
+
+        // The caches are bounded, so a miss is not proof of absence - probe for an accurate answer.
+        const existing = await this.backend.getRequest(request.uniqueKey);
+
+        if (existing) {
+            this.recordRequestJournalEntry(transaction, [request], forefront, false);
+            return {
+                wasAlreadyPresent: true,
+                wasAlreadyHandled: existing.handledAt != null,
+                requestId: existing.id,
+                uniqueKey: request.uniqueKey,
+                forefront,
+            };
+        }
+
+        // The entry below *is* the write, so a transaction closed during the probe must not receive it -
+        // pass through instead, per the closed-transaction rule. Under `deferred` that can land an
+        // addition a rollback would have discarded; dedup bounds that cost, silent loss is unbounded.
+        if (!transaction.isActive) {
+            return await this.addRequest(request, { forefront });
+        }
+
+        const snapshot = JSON.parse(JSON.stringify(request)) as Dictionary;
+
+        // Strip-list, not allow-list: every user-facing field flows through, including ones added to
+        // `Request` in the future. The exceptions are `id` and `handledAt`, the two backend-owned
+        // lifecycle fields.
+        delete snapshot.id;
+        delete snapshot.handledAt;
+
+        transaction.recordJournalEntry({
+            type: 'requestQueue',
+            participant: this,
+            requests: [{ url: request.url, uniqueKey: request.uniqueKey, label: request.label, snapshot }],
+            forefront,
+            writeThrough: false,
+        });
+        buffered.set(request.uniqueKey, snapshot);
+
+        return {
+            wasAlreadyPresent: false,
+            wasAlreadyHandled: false,
+            requestId: getRequestId(request.uniqueKey),
+            uniqueKey: request.uniqueKey,
+            forefront,
+        };
+    }
+
+    /** @internal */
+    async commitJournalEntries(entries: JournalEntry[]): Promise<void> {
+        // Replay through `backend.addBatchOfRequests`, *not* the batched frontend wrapper - the wrapper
+        // resolves after the first chunk and sleeps between the rest, neither of which commit may
+        // inherit. One call per `forefront` flag; the order of forefront additions is arbitrary anyway.
+        for (const forefront of [false, true]) {
+            const requests = entries.flatMap((entry) =>
+                entry.type === 'requestQueue' && entry.forefront === forefront
+                    ? // Requests without a snapshot were deduplicated or written through; nothing to replay.
+                      entry.requests
+                          .filter((journaled) => journaled.snapshot !== undefined)
+                          .map((journaled) => new Request(journaled.snapshot as unknown as RequestOptions))
+                    : [],
+            );
+
+            if (requests.length === 0) continue;
+
+            this.statsTracker.add('writeCount');
+            const { processedRequests, unprocessedRequests } = await this.backend.addBatchOfRequests(requests, {
+                forefront,
+            });
+
+            // Only now, with the real backend-assigned ids, may the shared dedup caches be populated.
+            for (const processed of processedRequests) {
+                const cacheKey = getRequestId(processed.uniqueKey);
+                this.cacheRequest(cacheKey, { ...processed, forefront });
+                this.requestSeenCache.add(cacheKey, processed.requestId);
+            }
+
+            if (unprocessedRequests.length > 0) {
+                // Warn and skip, rather than retry or fail. `unprocessedRequests` is what remains after
+                // the backend's own transient-error handling - a semantic rejection that retrying here
+                // would only re-poke. And failing the commit would let one malformed request hold the
+                // whole transaction hostage.
+                this.log.warning(
+                    'Some requests were rejected by the request queue while committing a storage transaction and will be skipped. ' +
+                        "This usually means the request data is malformed (e.g. an invalid 'userData' shape).",
+                    { unprocessedRequests },
+                );
+            }
+        }
     }
 
     /**
@@ -256,7 +440,7 @@ export class RequestQueue implements IStorage, IRequestManager {
         requestsLike: RequestsLike,
         options: RequestQueueOperationOptions = {},
     ): Promise<BatchAddRequestsResult> {
-        checkStorageAccess();
+        const transaction = activeStorageTransaction();
 
         ow(
             requestsLike,
@@ -305,6 +489,20 @@ export class RequestQueue implements IStorage, IRequestManager {
                 );
             }
         }
+
+        if (transaction?.policy.requestQueue === 'deferred') {
+            const buffered = this.bufferedRequests(transaction);
+
+            for (const request of requests) {
+                results.processedRequests.push(
+                    await this.addRequestDeferred(transaction, request, forefront, buffered),
+                );
+            }
+
+            return results;
+        }
+
+        this.recordRequestJournalEntry(transaction, requests, forefront, true);
 
         const requestsToAdd = new Map<string, Request>();
 
@@ -370,7 +568,8 @@ export class RequestQueue implements IStorage, IRequestManager {
         requests: ReadonlyDeep<RequestsLike>,
         options: AddRequestsBatchedOptions = {},
     ): Promise<AddRequestsBatchedResult> {
-        checkStorageAccess();
+        const transaction = activeStorageTransaction();
+        const deferred = transaction?.policy.requestQueue === 'deferred';
 
         ow(
             requests,
@@ -428,7 +627,9 @@ export class RequestQueue implements IStorage, IRequestManager {
             }
         }
 
-        const { batchSize = 1000, waitBetweenBatchesMillis = 1000, maxNewRequests = undefined } = options;
+        const { batchSize = 1000, maxNewRequests = undefined } = options;
+        // Under `deferred` no chunk performs backend I/O, so pacing them would only stall the handler.
+        const waitBetweenBatchesMillis = deferred ? 0 : (options.waitBetweenBatchesMillis ?? 1000);
 
         let remainingBudget = maxNewRequests ?? Infinity;
         const requestsOverLimit: Source[] = [];
@@ -512,8 +713,7 @@ export class RequestQueue implements IStorage, IRequestManager {
             return buildResult(addedRequests, Promise.resolve([]), requestIterator);
         }
 
-        // eslint-disable-next-line no-async-promise-executor
-        const promise = new Promise<ProcessedRequest[]>(async (resolve) => {
+        const processRemainingChunks = async () => {
             const finalAddedRequests: ProcessedRequest[] = [];
 
             for await (const requestChunk of chunks) {
@@ -521,7 +721,27 @@ export class RequestQueue implements IStorage, IRequestManager {
                 await sleep(waitBetweenBatchesMillis);
             }
 
-            resolve(finalAddedRequests);
+            return finalAddedRequests;
+        };
+
+        // maxNewRequests needs all batches to report skipped requests accurately; `deferred` needs them
+        // too - a writer that finishes after commit would have nowhere to put its journal entries.
+        const awaitsRemainingChunks = options.waitForAllRequestsToBeAdded || maxNewRequests !== undefined || deferred;
+
+        // eslint-disable-next-line no-async-promise-executor
+        const promise = new Promise<ProcessedRequest[]>(async (resolve) => {
+            if (awaitsRemainingChunks) {
+                // Awaited below, i.e. still within the caller's transaction scope, so the additions are
+                // journaled like the initial chunk - introspection must not depend on where the chunk
+                // boundary happened to fall.
+                resolve(await processRemainingChunks());
+            } else {
+                // Nobody awaits this writer, so it outlives the transaction scope it inherits and must
+                // not record into a transaction that may already be closed. It writes directly - its
+                // write-through additions were never going to be rolled back anyway - which means the
+                // requests it adds are not journaled. See `StorageTransactionView.enqueuedUrls`.
+                resolve(await withDirectStorageAccess(processRemainingChunks));
+            }
         });
 
         this.inProgressRequestBatchCount += 1;
@@ -529,8 +749,7 @@ export class RequestQueue implements IStorage, IRequestManager {
             this.inProgressRequestBatchCount -= 1;
         });
 
-        // When maxNewRequests is set, we must wait for all batches so we can accurately report skipped requests.
-        if (options.waitForAllRequestsToBeAdded || maxNewRequests !== undefined) {
+        if (awaitsRemainingChunks) {
             addedRequests.push(...(await promise));
         }
 
@@ -544,9 +763,15 @@ export class RequestQueue implements IStorage, IRequestManager {
      * @returns Returns the request object, or `null` if it was not found.
      */
     async getRequest<T extends Dictionary = Dictionary>(uniqueKey: string): Promise<Request<T> | null> {
-        checkStorageAccess();
+        const transaction = activeStorageTransaction();
 
         ow(uniqueKey, ow.string);
+
+        // Requests buffered by the active transaction (under the `deferred` write policy) are visible to it.
+        const buffered = transaction && this.bufferedRequests(transaction).get(uniqueKey);
+        if (buffered) {
+            return new Request(buffered as unknown as RequestOptions);
+        }
 
         const requestOptions = await this.backend.getRequest(uniqueKey);
         if (!requestOptions) return null;
@@ -572,7 +797,10 @@ export class RequestQueue implements IStorage, IRequestManager {
      *   Returns the request object or `null` if there are no more pending requests.
      */
     async fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request<T> | null> {
-        checkStorageAccess();
+        rejectOperationInTransaction(
+            'RequestQueue.fetchNextRequest()',
+            'it is part of the crawler request-processing bookkeeping, which a transaction must not affect.',
+        );
 
         if (this.queuePausedForMigration) {
             return null;
@@ -592,7 +820,10 @@ export class RequestQueue implements IStorage, IRequestManager {
      * Handled requests will never again be returned by the `fetchNextRequest` function.
      */
     async markRequestAsHandled(request: Request): Promise<RequestQueueOperationInfo | null> {
-        checkStorageAccess();
+        rejectOperationInTransaction(
+            'RequestQueue.markRequestAsHandled()',
+            'it is part of the crawler request-processing bookkeeping, which a transaction must not affect.',
+        );
 
         ow(
             request,
@@ -640,7 +871,10 @@ export class RequestQueue implements IStorage, IRequestManager {
         request: Request,
         options: RequestQueueOperationOptions = {},
     ): Promise<RequestQueueOperationInfo | null> {
-        checkStorageAccess();
+        rejectOperationInTransaction(
+            'RequestQueue.reclaimRequest()',
+            'it is part of the crawler request-processing bookkeeping, which a transaction must not affect.',
+        );
 
         ow(
             request,
@@ -687,7 +921,12 @@ export class RequestQueue implements IStorage, IRequestManager {
      * {@apilink RequestQueue.isFinished}.
      */
     async isEmpty(): Promise<boolean> {
-        checkStorageAccess();
+        const transaction = activeStorageTransaction();
+
+        // Requests buffered by the active transaction count as pending from its point of view.
+        if (transaction && this.bufferedRequests(transaction).size > 0) {
+            return false;
+        }
 
         return this.backend.isEmpty();
     }
@@ -701,10 +940,15 @@ export class RequestQueue implements IStorage, IRequestManager {
      * a false negative, but it shall never return a false positive.
      */
     async isFinished(): Promise<boolean> {
-        checkStorageAccess();
+        const transaction = activeStorageTransaction();
 
         // We are not finished if we're still adding new requests in the background.
         if (this.inProgressRequestBatchCount > 0) {
+            return false;
+        }
+
+        // Requests buffered by the active transaction count as pending from its point of view.
+        if (transaction && this.bufferedRequests(transaction).size > 0) {
             return false;
         }
 
@@ -752,7 +996,7 @@ export class RequestQueue implements IStorage, IRequestManager {
      * depending on the mode of operation.
      */
     async drop(): Promise<void> {
-        checkStorageAccess();
+        rejectOperationInTransaction('RequestQueue.drop()');
 
         await this.backend.drop();
         serviceLocator.getStorageInstanceManager().removeFromCache(this);
@@ -763,7 +1007,7 @@ export class RequestQueue implements IStorage, IRequestManager {
      * so it can be reused (e.g. across multiple `crawler.run()` calls).
      */
     async purge(): Promise<void> {
-        checkStorageAccess();
+        rejectOperationInTransaction('RequestQueue.purge()');
 
         await this.backend.purge();
 
@@ -825,9 +1069,20 @@ export class RequestQueue implements IStorage, IRequestManager {
      * @throws If the underlying storage no longer exists (e.g. it was deleted externally).
      */
     async getInfo(): Promise<RequestQueueInfo> {
-        checkStorageAccess();
+        const transaction = activeStorageTransaction();
 
-        return this.backend.getMetadata();
+        const metadata = await this.backend.getMetadata();
+        const bufferedCount = transaction ? this.bufferedRequests(transaction).size : 0;
+
+        if (bufferedCount > 0) {
+            return {
+                ...metadata,
+                totalRequestCount: metadata.totalRequestCount + bufferedCount,
+                pendingRequestCount: metadata.pendingRequestCount + bufferedCount,
+            };
+        }
+
+        return metadata;
     }
 
     /**
@@ -915,7 +1170,7 @@ export class RequestQueue implements IStorage, IRequestManager {
         identifier?: string | StorageIdentifier | null,
         options: StorageOpenOptions = {},
     ): Promise<RequestQueue> {
-        checkStorageAccess();
+        tryCancel();
 
         ow(
             options,

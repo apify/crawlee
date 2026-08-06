@@ -142,9 +142,6 @@ export interface CalculatedStatistics {
     requestTotalDurationMillis: number;
 }
 
-// @public
-export const checkStorageAccess: () => void | undefined;
-
 // @public (undocumented)
 export interface ClientInfo {
     // (undocumented)
@@ -345,6 +342,9 @@ export interface CreateSession {
 }
 
 // @public
+export function createStorageTransaction(options?: StorageTransactionOptions): StorageTransaction;
+
+// @public
 export class CriticalError extends NonRetryableError {
 }
 
@@ -467,6 +467,17 @@ export interface DatasetExportToOptions extends DatasetExportOptions {
 
 // @public (undocumented)
 export interface DatasetIteratorOptions extends Omit<DatasetDataOptions, 'offset' | 'limit' | 'clean' | 'skipHidden' | 'skipEmpty'> {
+}
+
+// @public
+export interface DatasetJournalEntry {
+    items: Dictionary[];
+    // (undocumented)
+    recordedAt: Date;
+    // (undocumented)
+    storageId: string;
+    // (undocumented)
+    type: 'dataset';
 }
 
 // @public
@@ -854,6 +865,20 @@ export interface IStorage {
 }
 
 // @public
+export interface JournaledRequest {
+    // (undocumented)
+    label?: string;
+    snapshot?: Dictionary;
+    // (undocumented)
+    uniqueKey: string;
+    // (undocumented)
+    url: string;
+}
+
+// @public (undocumented)
+export type JournalEntry = DatasetJournalEntry | KeyValueStoreJournalEntry | RequestQueueJournalEntry;
+
+// @public
 export interface KeyConsumer {
     // (undocumented)
     (key: string, index: number, info: {
@@ -939,6 +964,19 @@ interface KeyValueStoreBackendOptions {
 // @public (undocumented)
 export interface KeyValueStoreIteratorOptions {
     prefix?: string;
+}
+
+// @public
+export interface KeyValueStoreJournalEntry {
+    // (undocumented)
+    key: string;
+    // (undocumented)
+    options?: RecordOptions;
+    // (undocumented)
+    storageId: string;
+    // (undocumented)
+    type: 'keyValueStore';
+    value: unknown;
 }
 
 // @public (undocumented)
@@ -1249,39 +1287,6 @@ export class RequestHandlerError extends Error {
 }
 
 // @public
-export class RequestHandlerResult {
-    constructor(configuration: Configuration, crawleeStateKey: string);
-    // (undocumented)
-    addRequests: RestrictedCrawlingContext['addRequests'];
-    get calls(): ReadonlyDeep<{
-        pushData: Parameters<RestrictedCrawlingContext['pushData']>[];
-        addRequests: Parameters<RestrictedCrawlingContext['addRequests']>[];
-    }>;
-    get datasetItems(): ReadonlyDeep<{
-        item: Dictionary;
-        datasetIdentifier?: string | StorageIdentifier;
-    }[]>;
-    get enqueuedUrlLists(): ReadonlyDeep<{
-        listUrl: string;
-        label?: string;
-    }[]>;
-    get enqueuedUrls(): ReadonlyDeep<{
-        url: string;
-        label?: string;
-    }[]>;
-    // (undocumented)
-    getKeyValueStore: RestrictedCrawlingContext['getKeyValueStore'];
-    get keyValueStoreChanges(): ReadonlyDeep<Record<string, Record<string, {
-        changedValue: unknown;
-        options?: RecordOptions;
-    }>>>;
-    // (undocumented)
-    pushData: RestrictedCrawlingContext['pushData'];
-    // (undocumented)
-    useState: RestrictedCrawlingContext['useState'];
-}
-
-// @public
 export class RequestList implements IRequestLoader {
     // (undocumented)
     [Symbol.asyncIterator](): AsyncGenerator<Request_2<Dictionary>, void, unknown>;
@@ -1463,6 +1468,17 @@ interface RequestQueueBackendOptions {
     name?: string;
     // (undocumented)
     storageBackend: MemoryStorageBackend;
+}
+
+// @public
+export interface RequestQueueJournalEntry {
+    // (undocumented)
+    forefront: boolean;
+    // (undocumented)
+    requests: JournaledRequest[];
+    // (undocumented)
+    type: 'requestQueue';
+    writeThrough: boolean;
 }
 
 // @public (undocumented)
@@ -2008,6 +2024,69 @@ export class StorageStatsTracker<T extends Record<keyof T, number>> {
 }
 
 // @public
+export class StorageTransaction implements StorageTransactionView {
+    commit(): Promise<void>;
+    // (undocumented)
+    get datasetItems(): {
+        item: Dictionary;
+        datasetId: string;
+    }[];
+    dispose(): void;
+    // (undocumented)
+    get enqueuedUrls(): {
+        url: string;
+        label?: string;
+    }[];
+    get isActive(): boolean;
+    readonly journal: JournalEntry[];
+    // (undocumented)
+    get keyValueStoreChanges(): Record<string, Record<string, {
+        changedValue: unknown;
+        options?: RecordOptions;
+    }>>;
+    readonly policy: StorageWritePolicy;
+    rollback(): void;
+    run<T>(callback: () => Awaitable<T>): Promise<T>;
+    // (undocumented)
+    get state(): StorageTransactionState;
+}
+
+// @public (undocumented)
+export interface StorageTransactionOptions {
+    commitTimeoutMillis?: number;
+    policy?: Partial<StorageWritePolicy>;
+}
+
+// @public (undocumented)
+export type StorageTransactionState = 'open' | 'committing' | 'committed' | 'failed' | 'rolledBack';
+
+// @public
+export interface StorageTransactionView {
+    readonly datasetItems: {
+        item: Dictionary;
+        datasetId: string;
+    }[];
+    readonly enqueuedUrls: {
+        url: string;
+        label?: string;
+    }[];
+    readonly keyValueStoreChanges: Record<string, Record<string, {
+        changedValue: unknown;
+        options?: RecordOptions;
+    }>>;
+    // (undocumented)
+    readonly state: StorageTransactionState;
+}
+
+// @public
+export type StorageWriteMode = 'deferred' | 'writeThrough';
+
+// @public
+export interface StorageWritePolicy {
+    requestQueue: StorageWriteMode;
+}
+
+// @public
 export interface SystemInfo {
     // (undocumented)
     clientInfo: ClientInfo;
@@ -2084,12 +2163,15 @@ export interface UseStateOptions {
 }
 
 // @public
-export const withCheckedStorageAccess: <T>(checkFunction: () => void, callback: () => Awaitable<T>) => Promise<T>;
+export function withDirectStorageAccess<T>(callback: () => Awaitable<T>): Promise<T>;
 
 // @public (undocumented)
 export type WithRequired<T, K extends keyof T> = T & {
     [P in K]-?: T[P];
 };
+
+// @public
+export function withStorageTransaction<T>(callback: (transaction: StorageTransaction) => Awaitable<T>, options?: StorageTransactionOptions): Promise<T>;
 
 // (No @packageDocumentation comment for this package)
 

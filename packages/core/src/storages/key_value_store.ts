@@ -8,10 +8,18 @@ import type {
 import ow, { ArgumentError } from 'ow';
 
 import { KEY_VALUE_STORE_KEY_REGEX } from '@apify/consts';
+import { tryCancel } from '@apify/timeout';
 
 import { Configuration } from '../configuration.js';
 import { serviceLocator } from '../service_locator.js';
-import { checkStorageAccess } from './access_checking.js';
+import type { JournalEntry, KeyValueStoreJournalEntry } from './transaction.js';
+import {
+    activeStorageTransaction,
+    operationRejectedInTransaction,
+    rejectOperationInTransaction,
+    snapshotValue,
+    withDirectStorageAccess,
+} from './transaction.js';
 import { parseValue, serializeValue } from './key_value_store_codec.js';
 import type { KeyValueStoreStats } from './storage_stats.js';
 import { StorageStatsTracker } from './storage_stats.js';
@@ -213,11 +221,10 @@ export class KeyValueStore {
      *   on the MIME content type of the record, or `null` if the key is missing from the store.
      */
     async getValue<T = unknown>(key: string, defaultValue?: T): Promise<T | null> {
-        checkStorageAccess();
+        tryCancel();
 
         ow(key, ow.string.nonEmpty);
-        this.statsTracker.add('readCount');
-        const record = await this.backend.getValue(key);
+        const record = await this.readRecord(key);
 
         // A missing record falls back to the default; a record that parses to a falsy value (including
         // a stored literal `null`) is returned verbatim, so callers can tell "stored null" from "absent".
@@ -227,6 +234,62 @@ export class KeyValueStore {
 
         // Storage backends are byte transports — the value is raw bytes; the frontend parses it here.
         return parseValue(record.value, record.contentType ?? null) as T;
+    }
+
+    /**
+     * The active transaction's last buffered write per key for this store, derived from its journal.
+     * An entry with a `null` value is a tombstone (an in-transaction deletion).
+     */
+    private bufferedJournalEntries(): Map<string, KeyValueStoreJournalEntry> | undefined {
+        const transaction = activeStorageTransaction();
+        if (!transaction) return undefined;
+
+        const lastWritePerKey = new Map<string, KeyValueStoreJournalEntry>();
+
+        for (const entry of transaction.journal) {
+            if (entry.type === 'keyValueStore' && entry.participant === this) {
+                lastWritePerKey.set(entry.key, entry);
+            }
+        }
+
+        return lastWritePerKey;
+    }
+
+    /**
+     * The single transaction-aware record read shared by `getValue`, `getRecord`, `recordExists` and the
+     * listing paths: buffered key → serialized through the standard codec (same fidelity as a real
+     * round-trip); tombstoned key → `null`; otherwise the backend.
+     *
+     * The per-key buffered lookup requires the whole journal to be reduced to a last-write-per-key map,
+     * which is O(journal). Single-record callers let it default (rebuilt per call); the listing paths,
+     * which read many keys, pass a map built once so the read stays O(1) per key instead of O(journal).
+     */
+    private async readRecord(
+        key: string,
+        buffered = this.bufferedJournalEntries(),
+    ): Promise<{ value: Buffer | ArrayBuffer; contentType: string | null } | null> {
+        const entry = buffered?.get(key);
+
+        if (entry) {
+            if (entry.value === null) {
+                return null;
+            }
+
+            const serialized = serializeValue(entry.value, entry.options?.contentType);
+            return {
+                value: normalizeSerializedValue(serialized.value),
+                contentType: serialized.contentType ?? null,
+            };
+        }
+
+        this.statsTracker.add('readCount');
+        const record = await this.backend.getValue(key);
+        if (!record) return null;
+
+        return {
+            value: record.value,
+            contentType: record.contentType ?? null,
+        };
     }
 
     /**
@@ -256,17 +319,10 @@ export class KeyValueStore {
      *   of the following characters: `a`-`z`, `A`-`Z`, `0`-`9` and `!-_.'()`
      */
     async getRecord(key: string): Promise<KeyValueStoreRawRecord | null> {
-        checkStorageAccess();
+        tryCancel();
 
         ow(key, ow.string.nonEmpty);
-        this.statsTracker.add('readCount');
-        const record = await this.backend.getValue(key);
-        if (!record) return null;
-
-        return {
-            value: record.value,
-            contentType: record.contentType ?? null,
-        };
+        return this.readRecord(key);
     }
 
     /**
@@ -276,20 +332,28 @@ export class KeyValueStore {
      * @returns `true` if the record exists, `false` if it does not.
      */
     async recordExists(key: string): Promise<boolean> {
-        checkStorageAccess();
+        tryCancel();
 
         ow(key, ow.string.nonEmpty);
+
+        const entry = this.bufferedJournalEntries()?.get(key);
+        if (entry) {
+            return entry.value !== null;
+        }
+
         return this.backend.recordExists(key);
     }
 
     async getAutoSavedValue<T extends Dictionary = Dictionary>(key: string, defaultValue = {} as T): Promise<T> {
-        checkStorageAccess();
+        tryCancel();
 
         if (this.cache.has(key)) {
             return this.cache.get(key) as T;
         }
 
-        const value = await this.getValue<T>(key, defaultValue);
+        // Auto-saved state is deliberately *not* transactional. The direct read bypasses any active
+        // transaction - a buffered value seeded into this shared cache would survive a rollback forever.
+        const value = await withDirectStorageAccess(async () => this.getValue<T>(key, defaultValue));
 
         // The await above could have run in parallel with another call to this function. If the other call finished more quickly,
         // the value will in cache at this point, and returning the new fetched value would introduce two different instances of
@@ -331,11 +395,15 @@ export class KeyValueStore {
         options: KeyValueStoreIteratorOptions,
         mapRecord: (key: string, value: unknown) => T,
     ): AsyncGenerator<T[]> {
-        for await (const page of this.fetchKeyPages(options)) {
+        // Reduce the journal once for the whole iteration, not once per key inside `readRecord`.
+        const buffered = this.bufferedJournalEntries();
+
+        for await (const page of this.fetchKeyPages(options, buffered)) {
             const results: T[] = [];
             for (const item of page) {
-                this.statsTracker.add('readCount');
-                const record = await this.backend.getValue(item.key);
+                // The shared transaction-aware read, so a key that exists only in the transaction resolves
+                // here instead of being dropped (`values()` would disagree with `keys()` on length).
+                const record = await this.readRecord(item.key, buffered);
                 if (record) {
                     const parsed = parseValue(record.value, record.contentType ?? null);
                     results.push(mapRecord(item.key, parsed));
@@ -347,8 +415,31 @@ export class KeyValueStore {
 
     private async *fetchKeyPages(
         options: KeyValueStoreIteratorOptions,
+        buffered = this.bufferedJournalEntries(),
         limit = KVS_KEYS_DEFAULT_LIMIT,
     ): AsyncGenerator<KeyValueStoreItemData[]> {
+        // Buffered keys are emitted first, then the real pages with any buffered (or tombstoned) key
+        // skipped - a merge-join is not an option, since `listKeys` promises no sort order.
+        const shadowedKeys = new Set<string>();
+
+        if (buffered) {
+            const bufferedItems: KeyValueStoreItemData[] = [];
+
+            for (const [key, entry] of buffered) {
+                shadowedKeys.add(key);
+
+                if (entry.value === null) continue;
+                if (options.prefix !== undefined && !key.startsWith(options.prefix)) continue;
+
+                bufferedItems.push(bufferedKeyItemData(key, entry));
+            }
+
+            if (bufferedItems.length > 0) {
+                bufferedItems.sort((a, b) => (a.key < b.key ? -1 : 1));
+                yield bufferedItems;
+            }
+        }
+
         let exclusiveStartKey: string | undefined;
 
         while (true) {
@@ -358,8 +449,9 @@ export class KeyValueStore {
                 exclusiveStartKey,
                 limit,
             });
-            yield items;
+            yield shadowedKeys.size > 0 ? items.filter((item) => !shadowedKeys.has(item.key)) : items;
             if (!isTruncated) break;
+            // Paginate from the raw backend cursor - it may reject a key it did not hand out.
             exclusiveStartKey = nextExclusiveStartKey;
         }
     }
@@ -408,7 +500,7 @@ export class KeyValueStore {
      * @param [options] Record options.
      */
     async setValue<T>(key: string, value: T | null, options: RecordOptions = {}): Promise<void> {
-        checkStorageAccess();
+        const transaction = activeStorageTransaction();
 
         ow(key, 'key', ow.string.nonEmpty);
         ow(
@@ -433,6 +525,38 @@ export class KeyValueStore {
 
         // Make copy of options, don't update what user passed.
         const optionsCopy = { ...options };
+
+        // The whole transaction branch sits *above* the auto-saved cache update below, so a buffered
+        // write touches nothing outside the journal. That cache is shared, process-lifetime frontend
+        // state, so mutating it here would survive a rollback and later be persisted by `persistState`.
+        // The commit replay re-enters this method with no active transaction and updates it then.
+        if (transaction) {
+            if (isStream(value)) {
+                // A stream cannot serve both a read-your-own-writes read and the commit replay. The
+                // transaction is known-active here, so throw directly rather than via the conditional guard.
+                throw operationRejectedInTransaction(
+                    `KeyValueStore.setValue() with a stream value (key "${key}")`,
+                    'a stream can only be consumed once, so it cannot be buffered until commit.',
+                );
+            }
+
+            // Validation only, result discarded: the journal snapshot (`structuredClone`) accepts values
+            // JSON cannot, which would otherwise only throw at a later read or at commit.
+            if (value !== null) {
+                serializeValue(value, optionsCopy.contentType);
+            }
+
+            // One snapshot serves both the reads and the commit replay; `null` is a tombstone.
+            transaction.recordJournalEntry({
+                type: 'keyValueStore',
+                participant: this,
+                storageId: this.id,
+                key,
+                value: value === null ? null : snapshotValue(value),
+                options: optionsCopy,
+            });
+            return;
+        }
 
         // If we try to set the value of a cached state to a different reference, we need to update the cache accordingly.
         const cachedValue = this.cache.get(key);
@@ -467,12 +591,28 @@ export class KeyValueStore {
         });
     }
 
+    /** @internal */
+    async commitJournalEntries(entries: JournalEntry[]): Promise<void> {
+        // One `setValue` per key, last write wins - idempotent under retry.
+        const lastWritePerKey = new Map<string, { value: unknown; options?: RecordOptions }>();
+
+        for (const entry of entries) {
+            if (entry.type === 'keyValueStore') {
+                lastWritePerKey.set(entry.key, { value: entry.value, options: entry.options });
+            }
+        }
+
+        for (const [key, { value, options }] of lastWritePerKey) {
+            await this.setValue(key, value, options);
+        }
+    }
+
     /**
      * Removes the key-value store either from the Apify cloud storage or from the local directory,
      * depending on the mode of operation.
      */
     async drop(): Promise<void> {
-        checkStorageAccess();
+        rejectOperationInTransaction('KeyValueStore.drop()');
 
         await this.backend.drop();
         serviceLocator.getStorageInstanceManager().removeFromCache(this);
@@ -480,7 +620,7 @@ export class KeyValueStore {
 
     /** @internal */
     clearCache(): void {
-        checkStorageAccess();
+        rejectOperationInTransaction('KeyValueStore.clearCache()');
 
         this.cache.clear();
     }
@@ -507,7 +647,7 @@ export class KeyValueStore {
      * @param [options] All `forEachKey()` parameters.
      */
     async forEachKey(iteratee: KeyConsumer, options: KeyValueStoreIteratorOptions = {}): Promise<void> {
-        checkStorageAccess();
+        tryCancel();
 
         ow(iteratee, ow.function);
         ow(
@@ -550,7 +690,7 @@ export class KeyValueStore {
      * @param options Options for the iteration.
      */
     keys(options: KeyValueStoreIteratorOptions = {}): AsyncIterable<string> & Promise<string[]> {
-        checkStorageAccess();
+        tryCancel();
 
         return createDualIterable({
             createPages: () => this.fetchKeyPages(options),
@@ -582,7 +722,7 @@ export class KeyValueStore {
      * @param options Options for the iteration.
      */
     values<T = unknown>(options: KeyValueStoreIteratorOptions = {}): AsyncIterable<T> & Promise<T[]> {
-        checkStorageAccess();
+        tryCancel();
 
         return createDualIterable({
             createPages: () => this.fetchKeyValuePages<T>(options, (_key, value) => value as T),
@@ -616,7 +756,7 @@ export class KeyValueStore {
     entries<T = unknown>(
         options: KeyValueStoreIteratorOptions = {},
     ): AsyncIterable<[string, T]> & Promise<[string, T][]> {
-        checkStorageAccess();
+        tryCancel();
 
         return createDualIterable({
             createPages: () => this.fetchKeyValuePages<[string, T]>(options, (key, value) => [key, value as T]),
@@ -670,7 +810,7 @@ export class KeyValueStore {
         identifier?: string | StorageIdentifier | null,
         options: StorageOpenOptions = {},
     ): Promise<KeyValueStore> {
-        checkStorageAccess();
+        tryCancel();
 
         ow(
             options,
@@ -878,6 +1018,30 @@ export class KeyValueStore {
         const store = await this.open();
         return store.getValue<T>(store.configuration.inputKey);
     }
+}
+
+/** Normalizes a codec-serialized value into the `Buffer | ArrayBuffer` shape raw record reads promise. */
+function normalizeSerializedValue(value: ReturnType<typeof serializeValue>['value']): Buffer | ArrayBuffer {
+    if (typeof value === 'string') {
+        return Buffer.from(value);
+    }
+
+    if (ArrayBuffer.isView(value)) {
+        return Buffer.isBuffer(value) ? value : Buffer.from(value.buffer, value.byteOffset, value.byteLength);
+    }
+
+    return value as Buffer | ArrayBuffer;
+}
+
+/** Computes the key listing item (serialized byte size and content type) of a buffered entry. */
+function bufferedKeyItemData(key: string, entry: { value: unknown; options?: RecordOptions }): KeyValueStoreItemData {
+    const serialized = serializeValue(entry.value, entry.options?.contentType);
+
+    return {
+        key,
+        size: normalizeSerializedValue(serialized.value).byteLength,
+        contentType: serialized.contentType,
+    };
 }
 
 /**
