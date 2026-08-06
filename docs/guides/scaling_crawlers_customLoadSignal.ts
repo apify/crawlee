@@ -1,42 +1,33 @@
-import type { LoadSignal, LoadSignalStartContext, LoadSnapshot } from 'crawlee';
+import type { LoadSignal } from 'crawlee';
 import { ConcurrencySystem, SnapshotStore } from 'crawlee';
 
-// Stands in for whatever we actually measure - a health endpoint, a queue depth, an error counter.
+// The only part that is ours: anything we can poll and reduce to "is this resource in trouble?"
 async function areProxiesStruggling(): Promise<boolean> {
     const response = await fetch('https://proxy-monitor.example.com/health');
-    const { queuedRequests } = (await response.json()) as { queuedRequests: number };
 
-    return queuedRequests > 100;
+    return !response.ok;
 }
 
-class ProxyHealthSignal implements LoadSignal {
-    readonly name = 'proxyHealth';
-    readonly overloadedRatio = 0.3;
+const store = new SnapshotStore();
+let interval: NodeJS.Timeout;
 
-    private readonly store = new SnapshotStore();
-    private interval?: NodeJS.Timeout;
+const proxyHealth: LoadSignal = {
+    name: 'proxyHealth',
+    overloadedRatio: 0.3,
+    async start({ maxSampleWindowMillis }) {
+        // Retain exactly the window we will be sampled over, and drop anything measured before a restart.
+        store.useSampleWindow(maxSampleWindowMillis);
+        store.clear();
 
-    async start({ maxSampleWindowMillis }: LoadSignalStartContext): Promise<void> {
-        // Retain exactly the window we will be sampled over - a store never given one keeps everything.
-        this.store.useSampleWindow(maxSampleWindowMillis);
-        // This may be a restart, so drop anything measured before the downtime.
-        this.store.clear();
-
-        this.interval = setInterval(async () => {
+        interval = setInterval(async () => {
             const createdAt = new Date();
-            this.store.push({ createdAt, isOverloaded: await areProxiesStruggling() }, createdAt);
+            store.push({ createdAt, isOverloaded: await areProxiesStruggling() }, createdAt);
         }, 1_000);
-    }
+    },
+    async stop() {
+        clearInterval(interval);
+    },
+    getSample: (sampleDurationMillis) => store.getSample(sampleDurationMillis),
+};
 
-    async stop(): Promise<void> {
-        clearInterval(this.interval);
-    }
-
-    getSample(sampleDurationMillis?: number): LoadSnapshot[] {
-        return this.store.getSample(sampleDurationMillis);
-    }
-}
-
-const concurrencySystem = new ConcurrencySystem({
-    loadSignals: { custom: [new ProxyHealthSignal()] },
-});
+const concurrencySystem = new ConcurrencySystem({ loadSignals: { custom: [proxyHealth] } });
