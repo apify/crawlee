@@ -674,6 +674,8 @@ Private class properties across the codebase were converted from TypeScript's co
 
 TypeScript's `private` was purely a compile-time construct: the properties still existed on the instances at runtime, so code could reach them via `(crawler as any).something` or `crawler['something']`, and they showed up in `Object.keys()`, object spread and `JSON.stringify()`. Native `#` fields close that hole — they are inaccessible outside the declaring class and invisible to enumeration and serialization. If you were reaching into any of them, that now fails at runtime, not just in the type checker. As with the visibility tightening above, the supported extension points (handlers, hooks, `ContextPipeline` composition and the `ISessionPool` / `IBrowserPool` / `IRequestManager` interfaces) are the way to go; open an issue if something you need is missing.
 
+One related behavior change: `LaunchContext.extend()` now consistently rejects all declared fields as reserved keys — including `fingerprint`, `proxyUrl` and `remoteToken`, which previously slipped through the reserved-name check. Set those directly instead (e.g. `launchContext.fingerprint = ...`); `extend()` is only for attaching your own extra fields.
+
 ### Unintentionally exposed internals are now private
 
 A number of class members were `public` or `protected` only by accident — they were never meant to be part of the extension surface, are not used by any subclass, and in most cases also carried a leading underscore to signal that. In v4 they are `private` (and where it applies, `readonly`). If you were reaching into any of these — either to read internal state or to override a helper in a subclass — that no longer compiles.

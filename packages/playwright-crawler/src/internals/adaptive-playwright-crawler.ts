@@ -331,8 +331,6 @@ export class AdaptivePlaywrightCrawler<
         return super.stats as AdaptivePlaywrightCrawlerStatistics;
     }
 
-    #inFlightRenderingTypeDetections = 0;
-
     /**
      * The write policy of the per-attempt transactions. Defaults the request queue to `deferred`:
      * a discarded attempt's enqueues must never reach the queue.
@@ -657,10 +655,6 @@ export class AdaptivePlaywrightCrawler<
             );
         }
 
-        if (shouldDetectRenderingType) {
-            this.#inFlightRenderingTypeDetections += 1;
-        }
-
         // Every transaction created for this request - up to two, since the static-then-browser
         // fall-through and the browser-then-detection pair are mutually exclusive. Disposed in the
         // `finally` below, not earlier: the comparators read the journals after `crawlOne` returns.
@@ -785,10 +779,6 @@ export class AdaptivePlaywrightCrawler<
                 }
             }
         } finally {
-            if (shouldDetectRenderingType) {
-                this.#inFlightRenderingTypeDetections -= 1;
-            }
-
             // A still-open transaction here belongs to a discarded attempt - roll it back, then release.
             for (const transaction of transactions) {
                 transaction.rollback();

@@ -115,7 +115,7 @@ describe('isLambda()', () => {
 });
 
 describe('getCgroupsVersion()', () => {
-    // Reset the module cache so that _cgroupsVersion is not retained across tests.
+    // Reset the module cache so that cgroupsVersion is not retained across tests.
     beforeEach(() => {
         vitest.resetModules();
     });
