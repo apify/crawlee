@@ -1,8 +1,6 @@
 import type { Readable } from 'node:stream';
 
-import type { CookieJar } from 'tough-cookie';
-
-import type { ISession } from './session.js';
+import type { CookieJar, ISession } from './session.js';
 import type { AllowedHttpMethods } from './utility-types.js';
 
 export type SearchParams = string | URLSearchParams | Record<string, string | number | boolean | null | undefined>;
