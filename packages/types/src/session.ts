@@ -1,4 +1,4 @@
-import type { CookieJar, SerializedCookieJar } from 'tough-cookie';
+import type { CookieJar, SerializedCookieJar } from './cookies.js';
 
 /**
  * The main purpose of the ProxyInfo object is to provide information
