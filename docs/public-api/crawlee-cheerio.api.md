@@ -25,8 +25,8 @@ import type { RouteSchemas } from '@crawlee/http';
 import type { RoutesFromSchemas } from '@crawlee/http';
 
 // @public
-export class CheerioCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends CheerioCrawlingContext = CheerioCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<CheerioCrawlingContext['request']>>> extends HttpCrawler<CheerioCrawlingContext, ContextExtension, ExtendedContext, Routes> {
-    constructor(options?: CheerioCrawlerOptions<ContextExtension, ExtendedContext, any, any, Routes>);
+export class CheerioCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends CheerioCrawlingContext = CheerioCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<CheerioCrawlingContext['request']>>, StatisticStateExtension extends object = {}> extends HttpCrawler<CheerioCrawlingContext, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
+    constructor(options?: CheerioCrawlerOptions<ContextExtension, ExtendedContext, any, any, Routes, StatisticStateExtension>);
     // (undocumented)
     protected buildContextPipeline(): ContextPipeline<CrawlingContext<Dictionary>, InternalHttpCrawlingContext<any, any> & {
     readonly body: string;
@@ -41,7 +41,7 @@ export class CheerioCrawler<ContextExtension = Dictionary<never>, ExtendedContex
 // @public (undocumented)
 export interface CheerioCrawlerOptions<ContextExtension = Dictionary<never>, ExtendedContext extends CheerioCrawlingContext = CheerioCrawlingContext & ContextExtension, UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-Routes extends Record<keyof Routes, Dictionary> = Record<string, UserData>> extends HttpCrawlerOptions<CheerioCrawlingContext<UserData, JSONData>, ContextExtension, ExtendedContext, Routes> {
+Routes extends Record<keyof Routes, Dictionary> = Record<string, UserData>, StatisticStateExtension extends object = {}> extends HttpCrawlerOptions<CheerioCrawlingContext<UserData, JSONData>, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
 }
 
 // @public (undocumented)

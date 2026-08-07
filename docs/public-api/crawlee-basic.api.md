@@ -57,8 +57,8 @@ import { TimeoutError } from '@apify/timeout';
 import type { TypedRequestsLike } from '@crawlee/core';
 
 // @public (undocumented)
-export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>> {
-    constructor(options?: BasicCrawlerOptions<Context, ContextExtension, ExtendedContext, Routes> & RequireContextPipeline<CrawlingContext, Context>);
+export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>, StatisticStateExtension extends object = {}> {
+    constructor(options?: BasicCrawlerOptions<Context, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> & RequireContextPipeline<CrawlingContext, Context>);
     // (undocumented)
     protected readonly additionalHttpErrorStatusCodes: Set<number>;
     addRequests(requests: ReadonlyDeep<TypedRequestsLike<Routes>>, options?: CrawlerAddRequestsOptions): Promise<CrawlerAddRequestsResult>;
@@ -173,7 +173,7 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
     protected runRequestHandler(crawlingContext: ExtendedContext): Promise<void>;
     get sessionPool(): ISessionPool;
     setStatusMessage(message: string, options?: SetStatusMessageOptions): void;
-    get stats(): IStatistics;
+    get stats(): IStatistics<StatisticStateExtension>;
     stop(reason?: string): void;
     teardown(): Promise<void>;
     protected throwOnBlockedRequest(statusCode: number): void;
@@ -182,7 +182,7 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
 }
 
 // @public (undocumented)
-export interface BasicCrawlerOptions<Context extends CrawlingContext = CrawlingContext, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>> {
+export interface BasicCrawlerOptions<Context extends CrawlingContext = CrawlingContext, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>, StatisticStateExtension extends object = {}> {
     additionalHttpErrorStatusCodes?: number[];
     blockedStatusCodes?: number[];
     concurrencySystem?: IConcurrencySystem;
@@ -218,7 +218,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = CrawlingC
     retryOnBlocked?: boolean;
     sameDomainDelaySecs?: number;
     sessionPool?: ISessionPool;
-    statistics?: IStatistics;
+    statistics?: IStatistics<StatisticStateExtension>;
     statusMessageCallback?: StatusMessageCallback;
     statusMessageLoggingInterval?: number;
     storageBackend?: StorageBackend;
