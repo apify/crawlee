@@ -24,7 +24,8 @@ import vm from 'node:vm';
 
 import { Configuration, KeyValueStore, type Request, serviceLocator, SessionError, validators } from '@crawlee/browser';
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
-import { type CheerioRoot, expandShadowRoots, sleep } from '@crawlee/utils';
+import { type CheerioRoot } from '@crawlee/utils/internal';
+import { expandShadowRoots, sleep } from '@crawlee/utils';
 import ow from 'ow';
 import type { Download, Page, Response, Route } from 'playwright';
 

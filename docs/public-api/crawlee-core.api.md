@@ -45,7 +45,7 @@ import type { StandardSchemaV1 } from '@standard-schema/spec';
 import type * as storage from '@crawlee/types';
 import { StorageBackend } from '@crawlee/types';
 import { StorageIdentifier } from '@crawlee/types';
-import { tryAbsoluteURL } from '@crawlee/utils';
+import { tryAbsoluteURL } from '@crawlee/utils/internal';
 import { z } from 'zod';
 
 // @public (undocumented)

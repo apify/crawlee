@@ -24,7 +24,8 @@ import {
     tryAbsoluteURL,
 } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
-import { type CheerioRoot, type RobotsTxtFile, sleep } from '@crawlee/utils';
+import { type CheerioRoot } from '@crawlee/utils/internal';
+import { type RobotsTxtFile, sleep } from '@crawlee/utils';
 import type { DOMWindow } from 'jsdom';
 import { JSDOM, ResourceLoader, VirtualConsole } from 'jsdom';
 import ow from 'ow';

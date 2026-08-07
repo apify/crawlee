@@ -16,7 +16,7 @@ import type { BrowserCrawlingContext } from '@crawlee/browser';
 import type { BrowserHook } from '@crawlee/browser';
 import type { BrowserLaunchContext } from '@crawlee/browser';
 import { CheerioAPI } from '@crawlee/browser';
-import { CheerioRoot } from '@crawlee/utils';
+import { CheerioRoot } from '@crawlee/utils/internal';
 import type { ClickOptions } from 'puppeteer';
 import { Configuration } from '@crawlee/browser';
 import { ContextPipeline } from '@crawlee/browser';

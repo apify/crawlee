@@ -25,7 +25,8 @@ import vm from 'node:vm';
 import type { Request } from '@crawlee/browser';
 import { Configuration, KeyValueStore, serviceLocator, validators } from '@crawlee/browser';
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
-import { type CheerioRoot, expandShadowRoots, sleep } from '@crawlee/utils';
+import { type CheerioRoot } from '@crawlee/utils/internal';
+import { expandShadowRoots, sleep } from '@crawlee/utils';
 import type { ProtocolMapping } from 'devtools-protocol/types/protocol-mapping.js';
 import ow from 'ow';
 // @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood

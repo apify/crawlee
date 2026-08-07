@@ -2,7 +2,7 @@ import { extname } from 'node:path';
 import { Readable } from 'node:stream';
 
 import type { HttpRequest, HttpRequestOptions } from '@crawlee/types';
-import { applySearchParams } from '@crawlee/utils';
+import { applySearchParams } from '@crawlee/utils/internal';
 import contentTypeParser from 'content-type';
 import mime from 'mime-types';
 import ow, { ObjectPredicate } from 'ow';

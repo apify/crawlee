@@ -39,6 +39,7 @@ const baseConfig = defineConfig({
             { find: '@crawlee/playwright', replacement: resolve(__dirname, './packages/playwright-crawler/src') },
             { find: '@crawlee/puppeteer', replacement: resolve(__dirname, './packages/puppeteer-crawler/src') },
             { find: '@crawlee/stagehand', replacement: resolve(__dirname, './packages/stagehand-crawler/src') },
+            { find: '@crawlee/utils/internal', replacement: resolve(__dirname, './packages/utils/src/internal') },
             // The generic `@crawlee/*` aliases below map specifiers to workspace package sources. They
             // exclude `@crawlee/fs-storage-native` via a negative lookahead, since it is a real external
             // (npm) dependency with no `packages/fs-storage-native` source — letting it resolve normally

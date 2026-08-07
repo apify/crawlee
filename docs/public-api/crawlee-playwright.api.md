@@ -22,7 +22,7 @@ import type { BrowserLaunchContext } from '@crawlee/browser';
 import type { BrowserType } from 'playwright';
 import { Cheerio } from 'cheerio';
 import { CheerioAPI } from '@crawlee/browser';
-import { CheerioRoot } from '@crawlee/utils';
+import { CheerioRoot } from '@crawlee/utils/internal';
 import { Configuration } from '@crawlee/browser';
 import { ContextPipeline } from '@crawlee/browser';
 import type { ContextPipeline as ContextPipeline_2 } from '@crawlee/core';
