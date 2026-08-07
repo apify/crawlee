@@ -1045,16 +1045,13 @@ describe('enqueueLinks()', () => {
 
                 // 'skip' should trigger onSkippedRequest with reason 'transform'
                 const skippedCalls = onSkippedRequest.mock.calls.map(
-                    (call: unknown[]) => call[0] as { url: string; reason: string },
+                    (call: unknown[]) => call[0] as { request: Request; reason: string },
                 );
-                const transformSkipped = skippedCalls.filter((s) => s.url === 'https://example.com/a/b/first');
+                const transformSkipped = skippedCalls.filter((s) => s.request.url === 'https://example.com/a/b/first');
                 expect(transformSkipped).toHaveLength(1);
-                expect(transformSkipped[0]).toEqual({
-                    url: 'https://example.com/a/b/first',
-                    reason: 'transform',
-                });
+                expect(transformSkipped[0].reason).toBe('transform');
                 // 'unchanged' should NOT trigger onSkippedRequest
-                const unchangedSkipped = skippedCalls.filter((s) => s.url === 'https://example.com/a/b/third');
+                const unchangedSkipped = skippedCalls.filter((s) => s.request.url === 'https://example.com/a/b/third');
                 expect(unchangedSkipped).toHaveLength(0);
             });
 
@@ -1086,14 +1083,11 @@ describe('enqueueLinks()', () => {
                 // onSkippedRequest fires for URLs filtered out by include (another.com, cool.com)
                 // AND for the URL explicitly skipped by transformRequestFunction
                 const skippedCalls = onSkippedRequest.mock.calls.map(
-                    (call: unknown[]) => call[0] as { url: string; reason: string },
+                    (call: unknown[]) => call[0] as { request: Request; reason: string },
                 );
-                const transformSkipped = skippedCalls.filter((s) => s.url === 'https://example.com/a/b/first');
+                const transformSkipped = skippedCalls.filter((s) => s.request.url === 'https://example.com/a/b/first');
                 expect(transformSkipped).toHaveLength(1);
-                expect(transformSkipped[0]).toEqual({
-                    url: 'https://example.com/a/b/first',
-                    reason: 'transform',
-                });
+                expect(transformSkipped[0].reason).toBe('transform');
             });
         });
     });

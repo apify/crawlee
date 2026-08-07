@@ -494,8 +494,12 @@ describe('BasicCrawler', () => {
 
             const skippedRequests = onSkippedRequestMock.mock.calls.map((call) => call[0]);
             expect(skippedRequests).toHaveLength(2);
-            expect(skippedRequests[0]).toStrictEqual({ url: 'https://example.com/1/', reason: 'depth' });
-            expect(skippedRequests[1]).toStrictEqual({ url: 'https://example.com/2/', reason: 'depth' });
+            expect(skippedRequests[0].reason).toBe('depth');
+            expect(skippedRequests[0].request).toBeInstanceOf(Request);
+            expect(skippedRequests[0].request.url).toBe('https://example.com/1/');
+            expect(skippedRequests[1].reason).toBe('depth');
+            expect(skippedRequests[1].request).toBeInstanceOf(Request);
+            expect(skippedRequests[1].request.url).toBe('https://example.com/2/');
         });
 
         it('should respect user provided transformRequestFunction', async () => {
@@ -527,8 +531,12 @@ describe('BasicCrawler', () => {
             // The skipped reason should be 'depth', not 'transform'
             const skippedRequests = onSkippedRequestMock.mock.calls.map((call) => call[0]);
             expect(skippedRequests).toHaveLength(2);
-            expect(skippedRequests[0]).toStrictEqual({ url: 'https://example.com/1/', reason: 'depth' });
-            expect(skippedRequests[1]).toStrictEqual({ url: 'https://example.com/2/', reason: 'depth' });
+            expect(skippedRequests[0].reason).toBe('depth');
+            expect(skippedRequests[0].request).toBeInstanceOf(Request);
+            expect(skippedRequests[0].request.url).toBe('https://example.com/1/');
+            expect(skippedRequests[1].reason).toBe('depth');
+            expect(skippedRequests[1].request).toBeInstanceOf(Request);
+            expect(skippedRequests[1].request.url).toBe('https://example.com/2/');
         });
     });
 
@@ -2940,8 +2948,8 @@ describe('BasicCrawler', () => {
                 maxRequestRetries: 0,
                 respectRobotsTxtFile: true,
                 requestHandler: async () => {},
-                onSkippedRequest: async ({ url, reason }) => {
-                    await (await KeyValueStore.open()).setValue('skipped', { url, reason });
+                onSkippedRequest: async ({ request, reason }) => {
+                    await (await KeyValueStore.open()).setValue('skipped', { url: request.url, reason });
                 },
             });
 

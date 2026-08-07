@@ -12,6 +12,7 @@ import {
     applyRequestTransform,
     constructUrlPatternObjects,
     createRequestOptions,
+    createSkippedRequestArgs,
     filterRequestOptionsByPatterns,
     Request as CrawleeRequest,
     serviceLocator,
@@ -245,17 +246,19 @@ export async function enqueueLinksByClickingElements(
         clickOptions,
     });
     const requestOptions = createRequestOptions(interceptedRequests, options);
-    const skippedByFilters: string[] = [];
+    const skippedByFilters: RequestOptions[] = [];
     let filteredOptions = filterRequestOptionsByPatterns(
         requestOptions,
         urlPatternObjects.length > 0 ? urlPatternObjects : undefined,
         urlExcludePatternObjects,
         undefined,
-        (url) => skippedByFilters.push(url),
+        (opts) => skippedByFilters.push(opts),
     );
 
     if (onSkippedRequest && skippedByFilters.length > 0) {
-        await Promise.all(skippedByFilters.map(async (url) => onSkippedRequest({ url, reason: 'filters' })));
+        await Promise.all(
+            skippedByFilters.map(async (opts) => onSkippedRequest(createSkippedRequestArgs(opts, 'filters'))),
+        );
     }
 
     if (transformRequestFunction) {
@@ -265,7 +268,7 @@ export async function enqueueLinksByClickingElements(
         );
         if (onSkippedRequest && skippedByTransform.length > 0) {
             await Promise.all(
-                skippedByTransform.map(async (r) => onSkippedRequest({ url: r.url, reason: 'transform' })),
+                skippedByTransform.map(async (r) => onSkippedRequest(createSkippedRequestArgs(r, 'transform'))),
             );
         }
     }
