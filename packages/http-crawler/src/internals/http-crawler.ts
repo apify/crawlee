@@ -29,7 +29,7 @@ import {
 import { type LoadedRequest, getCookiesFromResponse } from '@crawlee/core';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import type { Awaitable, Dictionary, ISession } from '@crawlee/types';
-import { type CheerioRoot, RETRY_CSS_SELECTORS } from '@crawlee/utils';
+import { type CheerioRoot, RETRY_CSS_SELECTORS } from '@crawlee/utils/internal';
 import type { RequestLike, ResponseLike } from 'content-type';
 import contentTypeParser from 'content-type';
 import iconv from 'iconv-lite';

@@ -1,4 +1,4 @@
-import type { CheerioRoot } from '@crawlee/utils';
+import type { CheerioRoot } from '@crawlee/utils/internal';
 import { htmlToText } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
 

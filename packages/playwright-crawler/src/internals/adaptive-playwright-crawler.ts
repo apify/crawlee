@@ -37,7 +37,7 @@ import {
     Statistics,
 } from '@crawlee/core';
 import type { BatchAddRequestsResult, Dictionary, Awaitable } from '@crawlee/types';
-import { type CheerioRoot, extractUrlsFromCheerio } from '@crawlee/utils';
+import { type CheerioRoot, extractUrlsFromCheerio } from '@crawlee/utils/internal';
 import { type Cheerio } from 'cheerio';
 import type { AnyNode } from 'domhandler';
 import ow from 'ow';

@@ -49,7 +49,8 @@ import type {
     ISession,
 } from '@crawlee/types';
 import type { RobotsTxtFile } from '@crawlee/utils';
-import { CLOUDFLARE_RETRY_CSS_SELECTORS, RETRY_CSS_SELECTORS, sleep } from '@crawlee/utils';
+import { CLOUDFLARE_RETRY_CSS_SELECTORS, RETRY_CSS_SELECTORS } from '@crawlee/utils/internal';
+import { sleep } from '@crawlee/utils';
 import ow from 'ow';
 import type { ReadonlyDeep } from 'type-fest';
 

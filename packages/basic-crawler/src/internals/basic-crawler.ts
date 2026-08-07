@@ -87,7 +87,8 @@ import type {
     SetStatusMessageOptions,
     StorageBackend,
 } from '@crawlee/types';
-import { isAsyncIterable, isIterable, RobotsTxtFile, ROTATE_PROXY_ERRORS } from '@crawlee/utils';
+import { isAsyncIterable, isIterable, ROTATE_PROXY_ERRORS } from '@crawlee/utils/internal';
+import { RobotsTxtFile } from '@crawlee/utils';
 import ow, { ArgumentError, type BasePredicate } from 'ow';
 import { getDomain } from 'tldts';
 import type { ReadonlyDeep, SetRequired } from 'type-fest';

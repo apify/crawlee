@@ -5,21 +5,13 @@
 ```ts
 
 import type { BaseHttpClient } from '@crawlee/types';
-import { Cheerio } from 'cheerio';
-import { CheerioAPI } from 'cheerio';
+import type { CheerioAPI } from 'cheerio';
 import type { CrawleeLogger } from '@crawlee/types';
 import type { Dictionary } from '@crawlee/types';
-import { Element as Element_2 } from 'domhandler';
 
-export { Cheerio }
-
-export { CheerioAPI }
-
+// Not exported by the entry point; reachable only as a referenced type.
 // @public (undocumented)
-export type CheerioRoot = CheerioAPI;
-
-// @public (undocumented)
-export const CLOUDFLARE_RETRY_CSS_SELECTORS: string[];
+type CheerioRoot = CheerioAPI;
 
 // @public
 const DISCORD_REGEX: RegExp;
@@ -49,8 +41,6 @@ export interface DownloadListOfUrlsOptions {
     urlRegExp?: RegExp;
 }
 
-export { Element_2 as Element }
-
 // @public
 const EMAIL_REGEX: RegExp;
 
@@ -65,9 +55,6 @@ function emailsFromUrls(urls: string[]): string[];
 
 // @public
 export function extractUrls(options: ExtractUrlsOptions): string[];
-
-// @public
-export function extractUrlsFromCheerio($: CheerioAPI, selector?: string, baseUrl?: string): string[];
 
 // @public (undocumented)
 export interface ExtractUrlsOptions {
@@ -95,9 +82,6 @@ const LINKEDIN_REGEX: RegExp;
 
 // @public
 const LINKEDIN_REGEX_GLOBAL: RegExp;
-
-// @public
-export function mergeAsyncIterables<T>(...iterables: AsyncIterable<T>[]): AsyncIterable<T>;
 
 // Not exported by the entry point; reachable only as a referenced type.
 // @public (undocumented)
@@ -159,9 +143,6 @@ const PINTEREST_REGEX: RegExp;
 const PINTEREST_REGEX_GLOBAL: RegExp;
 
 // @public
-export const RETRY_CSS_SELECTORS: string[];
-
-// @public
 export class RobotsTxtFile {
     static find(url: string, options?: {
         signal?: AbortSignal;
@@ -176,9 +157,6 @@ export class RobotsTxtFile {
     parseSitemaps(): Promise<Sitemap>;
     parseUrlsFromSitemaps(): Promise<string[]>;
 }
-
-// @public
-export const ROTATE_PROXY_ERRORS: string[];
 
 // @public
 export class Sitemap {
@@ -285,19 +263,10 @@ const TIKTOK_REGEX: RegExp;
 const TIKTOK_REGEX_GLOBAL: RegExp;
 
 // @public
-export function tryAbsoluteURL(href: string, baseUrl: string): string | undefined;
-
-// @public
 const TWITTER_REGEX: RegExp;
 
 // @public
 const TWITTER_REGEX_GLOBAL: RegExp;
-
-// @public
-export const URL_NO_COMMAS_REGEX: RegExp;
-
-// @public
-export const URL_WITH_COMMAS_REGEX: RegExp;
 
 // @public
 const YOUTUBE_REGEX: RegExp;

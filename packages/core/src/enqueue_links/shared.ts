@@ -6,7 +6,7 @@ import { Minimatch } from 'minimatch';
 import type { RequestOptions } from '../request.js';
 import type { EnqueueLinksOptions } from './enqueue_links.js';
 
-export { tryAbsoluteURL } from '@crawlee/utils';
+export { tryAbsoluteURL } from '@crawlee/utils/internal';
 
 const MAX_ENQUEUE_LINKS_CACHE_SIZE = 1000;
 
