@@ -42,6 +42,7 @@ import {
     ContextPipelineCleanupError,
     ContextPipelineInitializationError,
     ContextPipelineInterruptedError,
+    createSkippedRequestArgs,
     createStorageTransaction,
     CriticalError,
     currentStorageTransaction,
@@ -1299,7 +1300,7 @@ export class BasicCrawler<
             request.state = RequestState.SKIPPED;
             request.noRetry = true;
             await this.handleSkippedRequest({
-                url: request.url,
+                request,
                 reason: 'robotsTxt',
             });
 
@@ -1437,7 +1438,7 @@ export class BasicCrawler<
                     request.noRetry = true;
                     request.state = RequestState.SKIPPED;
 
-                    await this.handleSkippedRequest({ url: request.url, reason: 'redirect' });
+                    await this.handleSkippedRequest({ request, reason: 'redirect' });
 
                     throw new ContextPipelineInterruptedError(message);
                 }
@@ -1908,8 +1909,8 @@ export class BasicCrawler<
 
         const requestLimit = await this.calculateEnqueuedRequestLimit();
 
-        const skippedBecauseOfRobots = new Set<string>();
-        const skippedBecauseOfMaxCrawlDepth = new Set<string>();
+        const skippedBecauseOfRobots = new Map<string, Source | string>();
+        const skippedBecauseOfMaxCrawlDepth = new Map<string, Source | string>();
 
         const isAllowedBasedOnRobotsTxtFile = this.isAllowedBasedOnRobotsTxtFile.bind(this);
         const maxCrawlDepth = this.maxCrawlDepth;
@@ -1927,7 +1928,7 @@ export class BasicCrawler<
                 const url = typeof request === 'string' ? request : request.url!;
 
                 if (maxCrawlDepth !== undefined && (request as any).crawlDepth > maxCrawlDepth) {
-                    skippedBecauseOfMaxCrawlDepth.add(url);
+                    skippedBecauseOfMaxCrawlDepth.set(url, request);
                     continue;
                 }
 
@@ -1935,7 +1936,7 @@ export class BasicCrawler<
                     await validateRequestUserData(request);
                     yield request;
                 } else {
-                    skippedBecauseOfRobots.add(url);
+                    skippedBecauseOfRobots.set(url, request);
                 }
             }
         }
@@ -1950,7 +1951,7 @@ export class BasicCrawler<
 
         if (skippedBecauseOfRobots.size > 0) {
             this.log.warning(`Some requests were skipped because they were disallowed based on the robots.txt file`, {
-                skipped: [...skippedBecauseOfRobots],
+                skipped: [...skippedBecauseOfRobots.keys()],
             });
         }
 
@@ -1960,17 +1961,16 @@ export class BasicCrawler<
             skippedBecauseOfMaxCrawlDepth.size > 0
         ) {
             await Promise.all(
-                [...skippedBecauseOfRobots]
-                    .map((url) => {
-                        return this.handleSkippedRequest({ url, reason: 'robotsTxt' });
+                [...skippedBecauseOfRobots.values()]
+                    .map((source) => {
+                        return this.handleSkippedRequest(createSkippedRequestArgs(source, 'robotsTxt'));
                     })
                     .concat(
-                        skippedBecauseOfLimit.map((request) => {
-                            const url = typeof request === 'string' ? request : request.url!;
-                            return this.handleSkippedRequest({ url, reason: 'limit' });
+                        skippedBecauseOfLimit.map((source) => {
+                            return this.handleSkippedRequest(createSkippedRequestArgs(source, 'limit'));
                         }),
-                        [...skippedBecauseOfMaxCrawlDepth].map((url) => {
-                            return this.handleSkippedRequest({ url, reason: 'depth' });
+                        [...skippedBecauseOfMaxCrawlDepth.values()].map((source) => {
+                            return this.handleSkippedRequest(createSkippedRequestArgs(source, 'depth'));
                         }),
                     ),
             );

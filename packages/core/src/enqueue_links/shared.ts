@@ -3,7 +3,8 @@ import { URL } from 'node:url';
 import type { Awaitable } from '@crawlee/types';
 import { Minimatch } from 'minimatch';
 
-import type { RequestOptions } from '../request.js';
+import type { RequestOptions, Source } from '../request.js';
+import { Request } from '../request.js';
 import type { EnqueueLinksOptions } from './enqueue_links.js';
 
 export { tryAbsoluteURL } from '@crawlee/utils/internal';
@@ -46,7 +47,32 @@ export type SkippedRequestReason =
     | 'redirect'
     | 'depth';
 
-export type SkippedRequestCallback = (args: { url: string; reason: SkippedRequestReason }) => Awaitable<void>;
+export type SkippedRequestCallback = (args: { request: Request; reason: SkippedRequestReason }) => Awaitable<void>;
+
+/**
+ * Builds the `{ request, reason }` argument passed to a {@apilink SkippedRequestCallback}, constructing the
+ * `Request` lazily on first access to `request` (and caching it) since most skips are never observed by a
+ * real callback and building a `Request` isn't free.
+ * @ignore
+ */
+export function createSkippedRequestArgs(
+    source: string | Source,
+    reason: SkippedRequestReason,
+): Parameters<SkippedRequestCallback>[0] {
+    const sourceReason = typeof source === 'string' ? undefined : source.skippedReason;
+    let request: Request | undefined;
+
+    return {
+        reason: sourceReason ?? reason,
+        get request() {
+            request ??=
+                source instanceof Request
+                    ? source
+                    : new Request(typeof source === 'string' ? { url: source } : (source as RequestOptions));
+            return request;
+        },
+    };
+}
 
 /**
  * @ignore
@@ -165,16 +191,16 @@ export function filterRequestOptionsByPatterns(
     includePatterns: UrlPatternObject[] | undefined,
     excludePatterns: UrlPatternObject[] = [],
     strategy?: EnqueueLinksOptions['strategy'],
-    onSkippedUrl?: (url: string) => void,
+    onSkippedRequestOptions?: (options: RequestOptions) => void,
 ): RequestOptions[] {
     const excludeMatchers = excludePatterns.map(createPatternObjectMatcher);
     const includeMatchers = includePatterns?.length ? includePatterns.map(createPatternObjectMatcher) : undefined;
 
     return requestOptions
-        .filter(({ url }) => {
-            const matchesExclude = excludeMatchers.some(({ match }) => match(url));
+        .filter((opts) => {
+            const matchesExclude = excludeMatchers.some(({ match }) => match(opts.url));
             if (matchesExclude) {
-                onSkippedUrl?.(url);
+                onSkippedRequestOptions?.(opts);
             }
             return !matchesExclude;
         })
@@ -190,7 +216,7 @@ export function filterRequestOptionsByPatterns(
             }
 
             // didn't match any positive pattern
-            onSkippedUrl?.(opts.url);
+            onSkippedRequestOptions?.(opts);
             return null;
         })
         .filter((opts) => opts !== null);
