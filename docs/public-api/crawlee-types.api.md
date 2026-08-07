@@ -54,23 +54,13 @@ export interface CookieJar {
     // (undocumented)
     getCookies(url: string | URL, options?: CookieJarGetCookiesOptions): Promise<SessionCookie[]>;
     // (undocumented)
-    getCookiesSync(url: string | URL, options?: CookieJarGetCookiesOptions): SessionCookie[];
-    // (undocumented)
     getCookieString(url: string | URL, options?: CookieJarGetCookiesOptions): Promise<string>;
-    // (undocumented)
-    getCookieStringSync(url: string | URL, options?: CookieJarGetCookiesOptions): string;
     // (undocumented)
     getSetCookieStrings(url: string | URL, options?: CookieJarGetCookiesOptions): Promise<string[] | undefined>;
     // (undocumented)
-    getSetCookieStringsSync(url: string | URL, options?: CookieJarGetCookiesOptions): string[];
-    // (undocumented)
     serialize(): Promise<SerializedCookieJar>;
     // (undocumented)
-    serializeSync(): SerializedCookieJar | undefined;
-    // (undocumented)
     setCookie(cookie: string | SessionCookie, url: string | URL, options?: CookieJarSetCookieOptions): Promise<SessionCookie | undefined>;
-    // (undocumented)
-    setCookieSync(cookie: string | SessionCookie, url: string | URL, options?: CookieJarSetCookieOptions): SessionCookie | undefined;
     // (undocumented)
     toJSON(): SerializedCookieJar | undefined;
 }

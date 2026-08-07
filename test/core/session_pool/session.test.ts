@@ -174,7 +174,10 @@ describe('Session - testing session behaviour', () => {
         const newSession = new Session();
         const url = 'https://example.com';
         await newSession.cookieJar.setCookie('CSRF=e8b667; Domain=example.com; Secure', url);
-        await newSession.cookieJar.setCookie('id=a3fWa; Expires=Wed, 21 Oct 2099 07:28:00 GMT; Domain=example.com', url);
+        await newSession.cookieJar.setCookie(
+            'id=a3fWa; Expires=Wed, 21 Oct 2099 07:28:00 GMT; Domain=example.com',
+            url,
+        );
 
         const old = newSession.getState();
 
