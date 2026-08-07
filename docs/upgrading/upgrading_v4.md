@@ -634,6 +634,10 @@ The `transformRequestFunction` callback receives a `RequestOptions` object and c
 - `'unchanged'` to keep the original options as-is
 - A falsy value or `'skip'` to exclude the request from the queue
 
+### `onSkippedRequest` receives a `Request` instead of a URL string
+
+The callback now gets `{ request, reason }` instead of `{ url, reason }` — use `request.url` for the URL.
+
 ### Internal KVS keys renamed
 
 Several internal Crawlee keys were prefixed with the `SDK_` prefix for legacy reasons — these keys now start with `CRAWLEE_` instead. These are, e.g., `CRAWLEE_SESSION_POOL_STATE` or `CRAWLEE_CRAWLER_STATISTICS_{n}`.
