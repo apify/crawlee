@@ -57,13 +57,23 @@ export async function purgeDefaultStorages(
     const { config = Configuration.getGlobalConfig(), onlyPurgeOnce = false } = options;
     ({ client = config.getStorageClient() } = options);
 
-    const casted = client as StorageClient & { __purged?: boolean };
+    const casted = client as StorageClient & { __purged?: Promise<void> };
+
+    const runPurge = async () => {
+        try {
+            await casted.purge?.();
+        } catch (e) {
+            casted.__purged = undefined;
+            throw e;
+        }
+    };
 
     // if `onlyPurgeOnce` is true, will purge anytime this function is called, otherwise - only on start
     if (!onlyPurgeOnce || (config.get('purgeOnStart') && !casted.__purged)) {
-        casted.__purged = true;
-        await casted.purge?.();
+        casted.__purged = runPurge();
     }
+
+    await casted.__purged;
 }
 
 export interface UseStateOptions {
