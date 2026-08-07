@@ -10,7 +10,8 @@ import type {
     RequestQueueBackend,
     RequestQueueInfo,
 } from '@crawlee/types';
-import { downloadListOfUrls, isAsyncIterable, isIterable, sleep } from '@crawlee/utils';
+import { isAsyncIterable, isIterable } from '@crawlee/utils/internal';
+import { downloadListOfUrls, sleep } from '@crawlee/utils';
 import ow from 'ow';
 import type { ReadonlyDeep } from 'type-fest';
 

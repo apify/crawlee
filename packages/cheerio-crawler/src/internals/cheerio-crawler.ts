@@ -23,7 +23,8 @@ import {
     Router,
 } from '@crawlee/http';
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
-import { type CheerioRoot, extractUrlsFromCheerio, type RobotsTxtFile } from '@crawlee/utils';
+import { type CheerioRoot, extractUrlsFromCheerio } from '@crawlee/utils/internal';
+import { type RobotsTxtFile } from '@crawlee/utils';
 import type { CheerioAPI, CheerioOptions } from 'cheerio';
 import * as cheerio from 'cheerio';
 import { parseDocument } from 'htmlparser2';
