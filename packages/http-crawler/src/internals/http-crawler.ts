@@ -611,7 +611,9 @@ export class HttpCrawler<
                 for (const cookie of getCookiesFromResponse(response)) {
                     if (!cookie) continue;
                     try {
-                        crawlingContext.session.cookieJar.setCookieSync(cookie, response.url, { ignoreError: false });
+                        await crawlingContext.session.cookieJar.setCookie(cookie, response.url, {
+                            ignoreError: false,
+                        });
                     } catch (e) {
                         this.log.debug(`Could not set cookie: ${(e as Error).message}`);
                     }

@@ -1255,10 +1255,10 @@ describe('CheerioCrawler', () => {
                     maxPoolSize: 1,
                 }),
                 preNavigationHooks: [
-                    ({ session, request }) => {
+                    async ({ session, request }) => {
                         // this should get overriden by the server
-                        session.cookieJar.setCookieSync('foo=bar1', request.url);
-                        session.cookieJar.setCookieSync('other=cookie1', request.url);
+                        await session.cookieJar.setCookie('foo=bar1', request.url);
+                        await session.cookieJar.setCookie('other=cookie1', request.url);
 
                         request.headers ??= {};
                         request.headers.cookie += '; coo=kie';
@@ -1507,7 +1507,7 @@ describe('CheerioCrawler', () => {
                     },
                 ]),
                 requestHandler: async ({ session, request }) => {
-                    sessionCookies.push(session.cookieJar.getCookieStringSync(request.url));
+                    sessionCookies.push(await session.cookieJar.getCookieString(request.url));
                 },
             });
 
@@ -1524,8 +1524,8 @@ describe('CheerioCrawler', () => {
                 maxConcurrency: 1,
                 requestList: await RequestList.open(null, [`${serverAddress}/special/get-cookies`]),
                 preNavigationHooks: [
-                    ({ session, request }) => {
-                        session.cookieJar.setCookieSync('manual=fromHook', request.url);
+                    async ({ session, request }) => {
+                        await session.cookieJar.setCookie('manual=fromHook', request.url);
                     },
                 ],
                 requestHandler: ({ json }) => {

@@ -314,16 +314,16 @@ export class Session implements ISession {
      * a cookie header or elsewhere.
      * @returns Represents `Cookie` header.
      */
-    getCookieString(url: string): string {
-        return this.cookieJar.getCookieStringSync(url, {});
+    async getCookieString(url: string): Promise<string> {
+        return this.cookieJar.getCookieString(url, {});
     }
 
     /**
      * Sets a cookie within this session for the specific URL.
      */
-    setCookie(rawCookie: string, url: string): void {
+    async setCookie(rawCookie: string, url: string): Promise<void> {
         try {
-            this.cookieJar.setCookieSync(rawCookie, url);
+            await this.cookieJar.setCookie(rawCookie, url);
         } catch (e) {
             this.log.warning('Could not set cookie.', { url, error: (e as Error).message });
         }

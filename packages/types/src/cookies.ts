@@ -35,8 +35,8 @@ export interface SessionCookie {
 }
 
 /**
- * Options for {@apilink CookieJar.setCookie} and {@apilink CookieJar.setCookieSync}.
- * Structurally compatible with `tough-cookie`'s `SetCookieOptions`.
+ * Options for {@apilink CookieJar.setCookie}. Structurally compatible with `tough-cookie`'s
+ * `SetCookieOptions`.
  */
 export interface CookieJarSetCookieOptions {
     loose?: boolean;
@@ -69,19 +69,10 @@ export interface CookieJar {
         url: string | URL,
         options?: CookieJarSetCookieOptions,
     ): Promise<SessionCookie | undefined>;
-    setCookieSync(
-        cookie: string | SessionCookie,
-        url: string | URL,
-        options?: CookieJarSetCookieOptions,
-    ): SessionCookie | undefined;
     getCookies(url: string | URL, options?: CookieJarGetCookiesOptions): Promise<SessionCookie[]>;
-    getCookiesSync(url: string | URL, options?: CookieJarGetCookiesOptions): SessionCookie[];
     getCookieString(url: string | URL, options?: CookieJarGetCookiesOptions): Promise<string>;
-    getCookieStringSync(url: string | URL, options?: CookieJarGetCookiesOptions): string;
     getSetCookieStrings(url: string | URL, options?: CookieJarGetCookiesOptions): Promise<string[] | undefined>;
-    getSetCookieStringsSync(url: string | URL, options?: CookieJarGetCookiesOptions): string[];
     serialize(): Promise<SerializedCookieJar>;
-    serializeSync(): SerializedCookieJar | undefined;
     toJSON(): SerializedCookieJar | undefined;
     clone(): Promise<CookieJar>;
 }

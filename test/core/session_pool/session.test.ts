@@ -145,9 +145,9 @@ describe('Session - testing session behaviour', () => {
         expect(session.cookieJar.setCookie).toBeDefined();
     });
 
-    test('setCookie does not throw on malformed raw cookie string', () => {
+    test('setCookie does not throw on malformed raw cookie string', async () => {
         session = new Session();
-        expect(() => session.setCookie('garbled!!!@#$%nonsense', 'https://www.example.com')).not.toThrow();
+        await expect(session.setCookie('garbled!!!@#$%nonsense', 'https://www.example.com')).resolves.not.toThrow();
     });
 
     test('retired state survives a getState() / new Session() round-trip', () => {
@@ -170,11 +170,11 @@ describe('Session - testing session behaviour', () => {
         expect(reinitialized.isUsable()).toBe(false);
     });
 
-    test('should correctly persist and init cookieJar', () => {
+    test('should correctly persist and init cookieJar', async () => {
         const newSession = new Session();
         const url = 'https://example.com';
-        newSession.cookieJar.setCookieSync('CSRF=e8b667; Domain=example.com; Secure', url);
-        newSession.cookieJar.setCookieSync('id=a3fWa; Expires=Wed, 21 Oct 2099 07:28:00 GMT; Domain=example.com', url);
+        await newSession.cookieJar.setCookie('CSRF=e8b667; Domain=example.com; Secure', url);
+        await newSession.cookieJar.setCookie('id=a3fWa; Expires=Wed, 21 Oct 2099 07:28:00 GMT; Domain=example.com', url);
 
         const old = newSession.getState();
 
@@ -185,6 +185,6 @@ describe('Session - testing session behaviour', () => {
 
         // @ts-expect-error string -> Date for createdAt has been overridden
         const reinitializedSession = new Session({ ...old });
-        expect(reinitializedSession.getCookieString(url)).toEqual('CSRF=e8b667; id=a3fWa');
+        await expect(reinitializedSession.getCookieString(url)).resolves.toEqual('CSRF=e8b667; id=a3fWa');
     });
 });

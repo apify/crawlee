@@ -119,8 +119,8 @@ describe('SessionPool - testing session pool', () => {
     test('get state should work', async () => {
         const url = 'https://example.com';
         const newSession = await sessionPool.getSession();
-        newSession?.cookieJar.setCookieSync('cookie1=my-cookie', url);
-        newSession?.cookieJar.setCookieSync('cookie2=your-cookie', url);
+        await newSession?.cookieJar.setCookie('cookie1=my-cookie', url);
+        await newSession?.cookieJar.setCookie('cookie2=your-cookie', url);
 
         const state = await sessionPool.getState();
         expect(state).toBeInstanceOf(Object);
