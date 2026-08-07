@@ -12,29 +12,29 @@
  * @internal
  */
 export class RequestDeduplicationCache {
-    private keys: (string | undefined)[];
-    private ids: (string | undefined)[];
+    #keys: (string | undefined)[];
+    #ids: (string | undefined)[];
 
     // The slot count is the same for every queue, so it's a fixed default rather than a per-consumer option.
     constructor(private readonly size = 1_000_000) {
-        this.keys = new Array<string | undefined>(size);
-        this.ids = new Array<string | undefined>(size);
+        this.#keys = new Array<string | undefined>(size);
+        this.#ids = new Array<string | undefined>(size);
     }
 
     get(cacheKey: string): string | null {
         const index = this.indexOf(cacheKey);
-        return this.keys[index] === cacheKey ? this.ids[index]! : null;
+        return this.#keys[index] === cacheKey ? this.#ids[index]! : null;
     }
 
     add(cacheKey: string, requestId: string): void {
         const index = this.indexOf(cacheKey);
-        this.keys[index] = cacheKey;
-        this.ids[index] = requestId;
+        this.#keys[index] = cacheKey;
+        this.#ids[index] = requestId;
     }
 
     clear(): void {
-        this.keys = new Array<string | undefined>(this.size);
-        this.ids = new Array<string | undefined>(this.size);
+        this.#keys = new Array<string | undefined>(this.size);
+        this.#ids = new Array<string | undefined>(this.size);
     }
 
     // A cheap FNV-1a hash of the cache key — avoids pulling in a dedicated hashing dependency.

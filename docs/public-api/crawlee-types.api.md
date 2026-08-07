@@ -4,9 +4,7 @@
 
 ```ts
 
-import type { CookieJar } from 'tough-cookie';
 import type { Readable } from 'node:stream';
-import type { SerializedCookieJar } from 'tough-cookie';
 
 // @public (undocumented)
 export type AllowedHttpMethods = 'GET' | 'HEAD' | 'POST' | 'PUT' | 'DELETE' | 'TRACE' | 'OPTIONS' | 'CONNECT' | 'PATCH' | 'get' | 'head' | 'post' | 'put' | 'delete' | 'trace' | 'options' | 'connect' | 'patch';
@@ -47,6 +45,52 @@ export interface Cookie {
     sourceScheme?: 'Unset' | 'NonSecure' | 'Secure';
     url?: string;
     value: string;
+}
+
+// @public
+export interface CookieJar {
+    // (undocumented)
+    clone(): Promise<CookieJar>;
+    // (undocumented)
+    getCookies(url: string | URL, options?: CookieJarGetCookiesOptions): Promise<SessionCookie[]>;
+    // (undocumented)
+    getCookieString(url: string | URL, options?: CookieJarGetCookiesOptions): Promise<string>;
+    // (undocumented)
+    getSetCookieStrings(url: string | URL, options?: CookieJarGetCookiesOptions): Promise<string[] | undefined>;
+    // (undocumented)
+    serialize(): Promise<SerializedCookieJar>;
+    // (undocumented)
+    setCookie(cookie: string | SessionCookie, url: string | URL, options?: CookieJarSetCookieOptions): Promise<SessionCookie | undefined>;
+    // (undocumented)
+    toJSON(): SerializedCookieJar | undefined;
+}
+
+// @public
+export interface CookieJarGetCookiesOptions {
+    // (undocumented)
+    allPaths?: boolean;
+    // (undocumented)
+    expire?: boolean;
+    // (undocumented)
+    http?: boolean;
+    // (undocumented)
+    sameSiteContext?: 'none' | 'lax' | 'strict';
+    // (undocumented)
+    sort?: boolean;
+}
+
+// @public
+export interface CookieJarSetCookieOptions {
+    // (undocumented)
+    http?: boolean;
+    // (undocumented)
+    ignoreError?: boolean;
+    // (undocumented)
+    loose?: boolean;
+    // (undocumented)
+    now?: Date;
+    // (undocumented)
+    sameSiteContext?: 'strict' | 'lax' | 'none';
 }
 
 // @public
@@ -401,6 +445,80 @@ export interface SendRequestOptions {
     session?: ISession;
     signal?: AbortSignal;
     timeoutMillis?: number;
+}
+
+// @public
+export interface SerializedCookieJar {
+    // (undocumented)
+    [key: string]: unknown;
+    // (undocumented)
+    cookies: Record<string, unknown>[];
+    // (undocumented)
+    rejectPublicSuffixes: boolean;
+    // (undocumented)
+    storeType: string | null;
+    // (undocumented)
+    version: string;
+}
+
+// @public
+export interface SessionCookie {
+    // (undocumented)
+    canonicalizedDomain(): string | undefined;
+    // (undocumented)
+    cdomain(): string | undefined;
+    // (undocumented)
+    clone(): SessionCookie | undefined;
+    // (undocumented)
+    cookieString(): string;
+    // (undocumented)
+    creation: Date | 'Infinity' | null;
+    // (undocumented)
+    creationIndex: number;
+    // (undocumented)
+    domain: string | null;
+    // (undocumented)
+    expires: Date | 'Infinity' | null;
+    // (undocumented)
+    expiryDate(now?: Date): Date | undefined;
+    // (undocumented)
+    expiryTime(now?: Date): number | undefined;
+    // (undocumented)
+    extensions: string[] | null;
+    // (undocumented)
+    hostOnly: boolean | null;
+    // (undocumented)
+    httpOnly: boolean;
+    // (undocumented)
+    isPersistent(): boolean;
+    // (undocumented)
+    key: string;
+    // (undocumented)
+    lastAccessed: Date | 'Infinity' | null;
+    // (undocumented)
+    maxAge: number | 'Infinity' | '-Infinity' | null;
+    // (undocumented)
+    path: string | null;
+    // (undocumented)
+    pathIsDefault: boolean | null;
+    // (undocumented)
+    sameSite: string | undefined;
+    // (undocumented)
+    secure: boolean;
+    // (undocumented)
+    setExpires(exp: string | Date): void;
+    // (undocumented)
+    setMaxAge(age: number): void;
+    // (undocumented)
+    toJSON(): Record<string, unknown>;
+    // (undocumented)
+    toString(): string;
+    // (undocumented)
+    TTL(now?: number): number;
+    // (undocumented)
+    validate(): boolean;
+    // (undocumented)
+    value: string;
 }
 
 // @public

@@ -86,61 +86,61 @@ export interface SessionOptions {
 export class Session implements ISession {
     readonly id: string;
     readonly userData: Dictionary;
-    private _maxErrorScore: number;
-    private _errorScoreDecrement: number;
-    private _createdAt: Date;
-    private _expiresAt: Date;
-    private _usageCount: number;
-    private _maxUsageCount: number;
-    private _errorScore: number;
-    private _retired = false;
-    private _proxyInfo?: ProxyInfo;
-    private _cookieJar: CookieJar;
-    private _fingerprint?: SessionFingerprint;
-    private log: CrawleeLogger;
+    #maxErrorScore: number;
+    #errorScoreDecrement: number;
+    #createdAt: Date;
+    #expiresAt: Date;
+    #usageCount: number;
+    #maxUsageCount: number;
+    #errorScore: number;
+    #retired = false;
+    #proxyInfo?: ProxyInfo;
+    #cookieJar: CookieJar;
+    #fingerprint?: SessionFingerprint;
+    #log: CrawleeLogger;
 
     get errorScore() {
-        return this._errorScore;
+        return this.#errorScore;
     }
 
     get usageCount() {
-        return this._usageCount;
+        return this.#usageCount;
     }
 
     get maxErrorScore() {
-        return this._maxErrorScore;
+        return this.#maxErrorScore;
     }
 
     get errorScoreDecrement() {
-        return this._errorScoreDecrement;
+        return this.#errorScoreDecrement;
     }
 
     get expiresAt() {
-        return this._expiresAt;
+        return this.#expiresAt;
     }
 
     get createdAt() {
-        return this._createdAt;
+        return this.#createdAt;
     }
 
     get maxUsageCount() {
-        return this._maxUsageCount;
+        return this.#maxUsageCount;
     }
 
     get cookieJar() {
-        return this._cookieJar;
+        return this.#cookieJar;
     }
 
     get proxyInfo() {
-        return this._proxyInfo;
+        return this.#proxyInfo;
     }
 
     get fingerprint(): SessionFingerprint | undefined {
-        return this._fingerprint;
+        return this.#fingerprint;
     }
 
     set fingerprint(fingerprint: SessionFingerprint | undefined) {
-        this._fingerprint = fingerprint;
+        this.#fingerprint = fingerprint;
     }
 
     /**
@@ -148,7 +148,7 @@ export class Session implements ISession {
      * a retired session is never picked by the pool and cannot be revived via `markGood()`.
      */
     get retired() {
-        return this._retired;
+        return this.#retired;
     }
 
     /**
@@ -195,23 +195,23 @@ export class Session implements ISession {
 
         const { expiresAt = getDefaultCookieExpirationDate(maxAgeSecs) } = options;
 
-        this.log = log.child({ prefix: 'Session' });
+        this.#log = log.child({ prefix: 'Session' });
 
-        this._cookieJar = (cookieJar.setCookie as unknown) ? cookieJar : CookieJar.fromJSON(JSON.stringify(cookieJar));
-        this._proxyInfo = proxyInfo;
-        this._fingerprint = fingerprint;
+        this.#cookieJar = (cookieJar.setCookie as unknown) ? cookieJar : CookieJar.fromJSON(JSON.stringify(cookieJar));
+        this.#proxyInfo = proxyInfo;
+        this.#fingerprint = fingerprint;
         this.id = id;
         this.userData = userData;
-        this._maxErrorScore = maxErrorScore;
-        this._errorScoreDecrement = errorScoreDecrement;
+        this.#maxErrorScore = maxErrorScore;
+        this.#errorScoreDecrement = errorScoreDecrement;
 
         // Internal
-        this._expiresAt = expiresAt;
-        this._createdAt = createdAt;
-        this._usageCount = usageCount; // indicates how many times the session has been used
-        this._errorScore = errorScore; // indicates number of markBaded request with the session
-        this._maxUsageCount = maxUsageCount;
-        this._retired = retired;
+        this.#expiresAt = expiresAt;
+        this.#createdAt = createdAt;
+        this.#usageCount = usageCount; // indicates how many times the session has been used
+        this.#errorScore = errorScore; // indicates number of markBaded request with the session
+        this.#maxUsageCount = maxUsageCount;
+        this.#retired = retired;
     }
 
     /**
@@ -244,7 +244,7 @@ export class Session implements ISession {
      * Session is usable when it is not retired, not expired, not blocked and the maximum usage count has not be reached.
      */
     isUsable(): boolean {
-        return !this._retired && !this.isBlocked() && !this.isExpired() && !this.isMaxUsageCountReached();
+        return !this.#retired && !this.isBlocked() && !this.isExpired() && !this.isMaxUsageCountReached();
     }
 
     /**
@@ -252,10 +252,10 @@ export class Session implements ISession {
      * It increases `usageCount` and potentially lowers the `errorScore` by the `errorScoreDecrement`.
      */
     markGood() {
-        this._usageCount += 1;
+        this.#usageCount += 1;
 
-        if (this._errorScore > 0) {
-            this._errorScore -= this._errorScoreDecrement;
+        if (this.#errorScore > 0) {
+            this.#errorScore -= this.#errorScoreDecrement;
         }
 
         this.maybeSelfRetire();
@@ -269,9 +269,9 @@ export class Session implements ISession {
         return {
             id: this.id,
             cookieJar: this.cookieJar.toJSON()!,
-            proxyInfo: this._proxyInfo,
+            proxyInfo: this.#proxyInfo,
             userData: this.userData,
-            fingerprint: this._fingerprint,
+            fingerprint: this.#fingerprint,
             maxErrorScore: this.maxErrorScore,
             errorScoreDecrement: this.errorScoreDecrement,
             expiresAt: this.expiresAt.toISOString(),
@@ -279,7 +279,7 @@ export class Session implements ISession {
             usageCount: this.usageCount,
             maxUsageCount: this.maxUsageCount,
             errorScore: this.errorScore,
-            retired: this._retired,
+            retired: this.#retired,
         };
     }
 
@@ -291,10 +291,10 @@ export class Session implements ISession {
      * For transient external failures (such as `5XX` responses), use `markBad()` instead.
      */
     retire() {
-        if (this._retired) return;
-        this._errorScore += this._maxErrorScore;
-        this._usageCount += 1;
-        this._retired = true;
+        if (this.#retired) return;
+        this.#errorScore += this.#maxErrorScore;
+        this.#usageCount += 1;
+        this.#retired = true;
     }
 
     /**
@@ -302,8 +302,8 @@ export class Session implements ISession {
      * Should be used when the session has been used unsuccessfully. For example because of timeouts.
      */
     markBad() {
-        this._errorScore += 1;
-        this._usageCount += 1;
+        this.#errorScore += 1;
+        this.#usageCount += 1;
 
         this.maybeSelfRetire();
     }
@@ -314,18 +314,18 @@ export class Session implements ISession {
      * a cookie header or elsewhere.
      * @returns Represents `Cookie` header.
      */
-    getCookieString(url: string): string {
-        return this.cookieJar.getCookieStringSync(url, {});
+    async getCookieString(url: string): Promise<string> {
+        return this.cookieJar.getCookieString(url, {});
     }
 
     /**
      * Sets a cookie within this session for the specific URL.
      */
-    setCookie(rawCookie: string, url: string): void {
+    async setCookie(rawCookie: string, url: string): Promise<void> {
         try {
-            this.cookieJar.setCookieSync(rawCookie, url);
+            await this.cookieJar.setCookie(rawCookie, url);
         } catch (e) {
-            this.log.warning('Could not set cookie.', { url, error: (e as Error).message });
+            this.#log.warning('Could not set cookie.', { url, error: (e as Error).message });
         }
     }
 

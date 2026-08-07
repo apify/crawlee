@@ -192,7 +192,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     backend: DatasetBackend<Data>;
     log: CrawleeLogger;
 
-    private readonly statsTracker = new StorageStatsTracker<DatasetStats>({
+    readonly #statsTracker = new StorageStatsTracker<DatasetStats>({
         readCount: 0,
         writeCount: 0,
     });
@@ -215,7 +215,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      * the underlying storage backend). Counted per backend call.
      */
     get stats(): DatasetStats {
-        return this.statsTracker.current;
+        return this.#statsTracker.current;
     }
 
     /**
@@ -252,7 +252,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
             return;
         }
 
-        this.statsTracker.add('writeCount');
+        this.#statsTracker.add('writeCount');
         await this.backend.pushData(items);
     }
 
@@ -282,7 +282,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         const buffered = this.bufferedJournalEntries()?.flatMap((entry) => entry.items as Data[]);
 
         // Every branch below hits the backend exactly once.
-        this.statsTracker.add('readCount');
+        this.#statsTracker.add('readCount');
 
         if (!buffered?.length) {
             return this.backend.getData(options);
@@ -367,7 +367,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         // One backend call with all journaled items, in order - as close to atomic as the backend allows.
         // Straight to the backend: the items were validated and snapshotted at write time.
         if (items.length > 0) {
-            this.statsTracker.add('writeCount');
+            this.#statsTracker.add('writeCount');
             await this.backend.pushData(items);
         }
     }

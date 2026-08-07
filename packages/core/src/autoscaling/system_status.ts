@@ -127,9 +127,9 @@ const BUILTIN_SIGNAL_NAMES = new Set(Object.keys(BUILTIN_SIGNAL_OPTION_KEYS));
  * @internal
  */
 export class SystemStatus {
-    private readonly currentHistoryMillis: number;
-    private readonly historyMillis: number;
-    private readonly signals: LoadSignal[];
+    readonly #currentHistoryMillis: number;
+    readonly #historyMillis: number;
+    readonly #signals: LoadSignal[];
 
     constructor(options: SystemStatusOptions) {
         const {
@@ -139,10 +139,10 @@ export class SystemStatus {
             loadSignals = [],
         } = options;
 
-        this.currentHistoryMillis = currentHistorySecs * 1000;
-        this.historyMillis = historySecs * 1000;
+        this.#currentHistoryMillis = currentHistorySecs * 1000;
+        this.#historyMillis = historySecs * 1000;
 
-        this.signals = [...snapshotter.getLoadSignals(), ...loadSignals];
+        this.#signals = [...snapshotter.getLoadSignals(), ...loadSignals];
         this.assertUniqueSignalNames();
     }
 
@@ -152,7 +152,7 @@ export class SystemStatus {
      * defaults.
      */
     get maxSampleWindowMillis(): number {
-        return Math.max(this.currentHistoryMillis, this.historyMillis);
+        return Math.max(this.#currentHistoryMillis, this.#historyMillis);
     }
 
     /**
@@ -163,7 +163,7 @@ export class SystemStatus {
     private assertUniqueSignalNames(): void {
         const seen = new Set<string>();
 
-        for (const { name } of this.signals) {
+        for (const { name } of this.#signals) {
             if (!seen.has(name)) {
                 seen.add(name);
                 continue;
@@ -194,7 +194,7 @@ export class SystemStatus {
      * and `true` otherwise.
      */
     getCurrentStatus(): SystemInfo {
-        return this.isSystemIdle(this.currentHistoryMillis);
+        return this.isSystemIdle(this.#currentHistoryMillis);
     }
 
     /**
@@ -213,7 +213,7 @@ export class SystemStatus {
      * `historySecs` seconds and `true` otherwise.
      */
     getHistoricalStatus(): SystemInfo {
-        return this.isSystemIdle(this.historyMillis);
+        return this.isSystemIdle(this.#historyMillis);
     }
 
     /**
@@ -230,7 +230,7 @@ export class SystemStatus {
 
         let loadSignalInfo: Record<string, ClientInfo> | undefined;
 
-        for (const signal of this.signals) {
+        for (const signal of this.#signals) {
             const sample = signal.getSample(sampleDurationMillis);
             const info = evaluateLoadSignalSample(sample, signal.overloadedRatio);
 

@@ -53,7 +53,8 @@ export function createFingerprintPreLaunchHook(browserPool: BrowserPool<any, any
             if (cacheKey) fingerprintCache?.set(cacheKey, fingerprint);
         }
 
-        launchContext.extend({ fingerprint });
+        // `fingerprint` is a declared field, so it cannot go through `extend()` (which rejects reserved names)
+        launchContext.fingerprint = fingerprint;
 
         if (useIncognitoPages) {
             return;

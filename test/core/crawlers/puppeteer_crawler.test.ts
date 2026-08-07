@@ -319,15 +319,15 @@ describe('PuppeteerCrawler', () => {
 
             saveResponseCookies: true,
             sessionPool: new SessionPool({
-                createSessionFunction: () => {
+                createSessionFunction: async () => {
                     const session = new Session();
-                    session.cookieJar.setCookieSync('example_cookie_name=example_cookie_value', serverUrl);
+                    await session.cookieJar.setCookie('example_cookie_name=example_cookie_value', serverUrl);
                     return session;
                 },
             }),
             requestHandler: async ({ page, session }) => {
                 pageCookies = await page.cookies().then((cks) => cks.map((c) => `${c.name}=${c.value}`).join('; '));
-                sessionCookies = session!.cookieJar.getCookieStringSync(serverUrl);
+                sessionCookies = await session!.cookieJar.getCookieString(serverUrl);
             },
         });
 

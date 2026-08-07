@@ -82,7 +82,7 @@ const runPluginTest = <
                 id,
                 launchOptions,
                 browserPlugin: plugin,
-                _proxyUrl: proxyUrl.slice(0, -1),
+                proxyUrl: proxyUrl.slice(0, -1),
                 one: 1,
                 useIncognitoPages: false,
             };
@@ -93,7 +93,7 @@ const runPluginTest = <
             expect(context.id).toEqual(desiredObject.id);
             expect(context.launchOptions).toEqual(desiredObject.launchOptions);
             expect(context.browserPlugin).toEqual(desiredObject.browserPlugin);
-            expect(context['_proxyUrl']).toEqual(desiredObject._proxyUrl); // eslint-disable-line
+            expect(context.proxyUrl).toEqual(desiredObject.proxyUrl);
             expect(context.one).toEqual(desiredObject.one);
             expect(context.useIncognitoPages).toEqual(desiredObject.useIncognitoPages);
         });
@@ -648,8 +648,9 @@ describe('Plugins', () => {
                     const contexts = browser.contexts();
                     expect(contexts).toHaveLength(1);
 
-                    // Cast to any to access private property
-                    expect(contexts[0]).toEqual((browser as any)._browserContext);
+                    // the returned context is the one new pages are created in
+                    const page = await browser.newPage();
+                    expect(page.context()).toBe(contexts[0]);
                 });
 
                 test('should return correct connected status', async () => {

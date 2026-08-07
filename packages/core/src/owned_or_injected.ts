@@ -10,14 +10,14 @@
  * @internal
  */
 export class OwnedOrInjected<Injected, Owned extends Injected = Injected> {
-    private _value: Injected | undefined;
-    private readonly _owned: boolean;
-    private _present: boolean;
+    #value: Injected | undefined;
+    readonly #owned: boolean;
+    #present: boolean;
 
     private constructor(value: Injected | undefined, owned: boolean, present: boolean) {
-        this._value = value;
-        this._owned = owned;
-        this._present = present;
+        this.#value = value;
+        this.#owned = owned;
+        this.#present = present;
     }
 
     /**
@@ -50,7 +50,7 @@ export class OwnedOrInjected<Injected, Owned extends Injected = Injected> {
      * crawler-built defaults, `false` for user-injected instances.
      */
     get isOwned(): boolean {
-        return this._owned;
+        return this.#owned;
     }
 
     /**
@@ -58,7 +58,7 @@ export class OwnedOrInjected<Injected, Owned extends Injected = Injected> {
      * (e.g. a lazily-opened request queue before its first use).
      */
     get isPresent(): boolean {
-        return this._present;
+        return this.#present;
     }
 
     /**
@@ -66,11 +66,11 @@ export class OwnedOrInjected<Injected, Owned extends Injected = Injected> {
      * expect a lazily-filled owned slot should read {@apilink OwnedOrInjected.maybeValue|`maybeValue`} instead.
      */
     get value(): Injected {
-        if (!this._present) {
+        if (!this.#present) {
             throw new Error('OwnedOrInjected value is not initialized yet');
         }
 
-        return this._value as Injected;
+        return this.#value as Injected;
     }
 
     /**
@@ -79,7 +79,7 @@ export class OwnedOrInjected<Injected, Owned extends Injected = Injected> {
      * a possibly-empty slot without the `isPresent ? value : …` dance.
      */
     get maybeValue(): Injected | undefined {
-        return this._present ? (this._value as Injected) : undefined;
+        return this.#present ? (this.#value as Injected) : undefined;
     }
 
     /**
@@ -88,16 +88,16 @@ export class OwnedOrInjected<Injected, Owned extends Injected = Injected> {
      * would silently orphan the previous instance's lifecycle).
      */
     set(value: Owned): Owned {
-        if (!this._owned) {
+        if (!this.#owned) {
             throw new Error('Cannot set() a borrowed OwnedOrInjected value');
         }
 
-        if (this._present) {
+        if (this.#present) {
             throw new Error('OwnedOrInjected value is already initialized');
         }
 
-        this._value = value;
-        this._present = true;
+        this.#value = value;
+        this.#present = true;
 
         return value;
     }
@@ -107,10 +107,10 @@ export class OwnedOrInjected<Injected, Owned extends Injected = Injected> {
      * owns a present instance — a no-op for a borrowed instance or an owned-but-not-yet-built slot.
      */
     async ifOwned<R>(fn: (value: Owned) => R | Promise<R>): Promise<R | undefined> {
-        if (!this._owned || !this._present) {
+        if (!this.#owned || !this.#present) {
             return undefined;
         }
 
-        return fn(this._value as Owned);
+        return fn(this.#value as Owned);
     }
 }

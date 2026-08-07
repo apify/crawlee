@@ -129,7 +129,7 @@ describe('Remote connection — PlaywrightPlugin', () => {
         expect(lib.connectOverCDP).toHaveBeenCalledWith('http://remote:9222', { timeout: 5000 });
         expect(lib.connect).not.toHaveBeenCalled();
         expect(lib.launch).not.toHaveBeenCalled();
-        expect(ctx._remoteToken).toBe(42);
+        expect(ctx.remoteToken).toBe(42);
     });
 
     it("connects via connect() when protocol is 'playwright'", async () => {
@@ -195,7 +195,7 @@ describe('Remote connection — PuppeteerPlugin', () => {
         expect(connection.resolve).toHaveBeenCalledTimes(1);
         expect(lib.connect).toHaveBeenCalledWith({ protocolTimeout: 1000, browserWSEndpoint: 'ws://remote:9222' });
         expect(lib.launch).not.toHaveBeenCalled();
-        expect(ctx._remoteToken).toBe(42);
+        expect(ctx.remoteToken).toBe(42);
     });
 
     it('releases the session and throws BrowserLaunchError when connect fails', async () => {

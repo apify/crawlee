@@ -123,17 +123,17 @@ interface ServiceLocatorInterface {
  * ```
  */
 export class ServiceLocator implements ServiceLocatorInterface {
-    private configuration?: Configuration;
-    private eventManager?: EventManager;
-    private storageBackend?: StorageBackend;
-    private logger?: CrawleeLogger;
+    #configuration?: Configuration;
+    #eventManager?: EventManager;
+    #storageBackend?: StorageBackend;
+    #logger?: CrawleeLogger;
 
     /**
      * Unified storage instance manager for Dataset, KeyValueStore, and RequestQueue.
      * Shared across all ServiceLocator instances (global singleton), matching crawlee-python.
      * Per-crawler isolation is achieved via `clientCacheKey`, not separate manager instances.
      */
-    private static storageInstanceManager?: StorageInstanceManager;
+    static #storageInstanceManager?: StorageInstanceManager;
 
     /**
      * Creates a new ServiceLocator instance.
@@ -149,76 +149,76 @@ export class ServiceLocator implements ServiceLocatorInterface {
         storageBackend?: StorageBackend,
         logger?: CrawleeLogger,
     ) {
-        this.configuration = configuration;
-        this.eventManager = eventManager;
-        this.storageBackend = storageBackend;
-        this.logger = logger;
+        this.#configuration = configuration;
+        this.#eventManager = eventManager;
+        this.#storageBackend = storageBackend;
+        this.#logger = logger;
     }
 
     getConfiguration(): Configuration {
-        if (!this.configuration) {
+        if (!this.#configuration) {
             this.getLogger().debug('No configuration set, implicitly creating and using default Configuration.');
-            this.configuration = new Configuration();
+            this.#configuration = new Configuration();
         }
-        return this.configuration;
+        return this.#configuration;
     }
 
     setConfiguration(configuration: Configuration): void {
         // Same instance, no need to do anything
-        if (this.configuration === configuration) {
+        if (this.#configuration === configuration) {
             return;
         }
 
         // Already have a different configuration that was retrieved
-        if (this.configuration) {
-            throw new ServiceConflictError('Configuration', configuration, this.configuration);
+        if (this.#configuration) {
+            throw new ServiceConflictError('Configuration', configuration, this.#configuration);
         }
 
-        this.configuration = configuration;
+        this.#configuration = configuration;
     }
 
     getEventManager(): EventManager {
-        if (!this.eventManager) {
+        if (!this.#eventManager) {
             this.getLogger().debug('No event manager set, implicitly creating and using default LocalEventManager.');
-            if (!this.configuration) {
+            if (!this.#configuration) {
                 this.getLogger().warning(
                     'Implicit creation of event manager will implicitly set configuration as side effect. ' +
                         'It is advised to explicitly first set the configuration instead.',
                 );
             }
-            this.eventManager = LocalEventManager.fromConfiguration(this.getConfiguration());
+            this.#eventManager = LocalEventManager.fromConfiguration(this.getConfiguration());
         }
-        return this.eventManager;
+        return this.#eventManager;
     }
 
     setEventManager(eventManager: EventManager): void {
         // Same instance, no need to do anything
-        if (this.eventManager === eventManager) {
+        if (this.#eventManager === eventManager) {
             return;
         }
 
         // Already have a different event manager that was retrieved
-        if (this.eventManager) {
-            throw new ServiceConflictError('EventManager', eventManager, this.eventManager);
+        if (this.#eventManager) {
+            throw new ServiceConflictError('EventManager', eventManager, this.#eventManager);
         }
 
-        this.eventManager = eventManager;
+        this.#eventManager = eventManager;
     }
 
     getStorageBackend(): StorageBackend {
-        if (!this.storageBackend) {
+        if (!this.#storageBackend) {
             this.getLogger().debug(
                 'No storage backend set, implicitly creating and using the default storage backend ' +
                     '(FileSystemStorageBackend when persistStorage is enabled, MemoryStorageBackend otherwise).',
             );
-            if (!this.configuration) {
+            if (!this.#configuration) {
                 this.getLogger().warning(
                     'Implicit creation of storage backend will implicitly set configuration as side effect. ' +
                         'It is advised to explicitly first set the configuration instead.',
                 );
             }
             const configuration = this.getConfiguration();
-            this.storageBackend = configuration.persistStorage
+            this.#storageBackend = configuration.persistStorage
                 ? new FileSystemStorageBackend({
                       localDataDirectory: configuration.storageDir,
                       logger: this.getLogger().child({ prefix: 'FileSystemStorageBackend' }),
@@ -227,40 +227,40 @@ export class ServiceLocator implements ServiceLocatorInterface {
                       logger: this.getLogger().child({ prefix: 'MemoryStorageBackend' }),
                   });
         }
-        return this.storageBackend;
+        return this.#storageBackend;
     }
 
     setStorageBackend(storageBackend: StorageBackend): void {
         // Same instance, no need to do anything
-        if (this.storageBackend === storageBackend) {
+        if (this.#storageBackend === storageBackend) {
             return;
         }
 
         // Already have a different storage backend that was retrieved
-        if (this.storageBackend) {
-            throw new ServiceConflictError('StorageBackend', storageBackend, this.storageBackend);
+        if (this.#storageBackend) {
+            throw new ServiceConflictError('StorageBackend', storageBackend, this.#storageBackend);
         }
 
-        this.storageBackend = storageBackend;
+        this.#storageBackend = storageBackend;
     }
 
     getLogger(): CrawleeLogger {
-        if (!this.logger) {
-            this.logger = new ApifyLogAdapter(log);
+        if (!this.#logger) {
+            this.#logger = new ApifyLogAdapter(log);
         }
-        return this.logger;
+        return this.#logger;
     }
 
     setLogger(logger: CrawleeLogger): void {
-        if (this.logger === logger) {
+        if (this.#logger === logger) {
             return;
         }
 
-        if (this.logger) {
-            throw new ServiceConflictError('Logger', logger, this.logger);
+        if (this.#logger) {
+            throw new ServiceConflictError('Logger', logger, this.#logger);
         }
 
-        this.logger = logger;
+        this.#logger = logger;
     }
 
     getChildLog(prefix: string): CrawleeLogger {
@@ -268,19 +268,19 @@ export class ServiceLocator implements ServiceLocatorInterface {
     }
 
     getStorageInstanceManager(): StorageInstanceManager {
-        if (!ServiceLocator.storageInstanceManager) {
-            ServiceLocator.storageInstanceManager = new StorageInstanceManager();
+        if (!ServiceLocator.#storageInstanceManager) {
+            ServiceLocator.#storageInstanceManager = new StorageInstanceManager();
         }
-        return ServiceLocator.storageInstanceManager;
+        return ServiceLocator.#storageInstanceManager;
     }
 
     reset(): void {
-        this.configuration = undefined;
-        this.eventManager = undefined;
-        this.storageBackend = undefined;
-        this.logger = undefined;
-        ServiceLocator.storageInstanceManager?.clearCache();
-        ServiceLocator.storageInstanceManager = undefined;
+        this.#configuration = undefined;
+        this.#eventManager = undefined;
+        this.#storageBackend = undefined;
+        this.#logger = undefined;
+        ServiceLocator.#storageInstanceManager?.clearCache();
+        ServiceLocator.#storageInstanceManager = undefined;
     }
 }
 

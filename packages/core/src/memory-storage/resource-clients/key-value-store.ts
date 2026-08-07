@@ -46,7 +46,8 @@ export class KeyValueStoreBackend extends BaseClient implements storage.KeyValue
     accessedAt = new Date();
     modifiedAt = new Date();
 
-    private readonly keyValueEntries = new Map<string, InternalKeyRecord>();
+    readonly #keyValueEntries = new Map<string, InternalKeyRecord>();
+    // kept as TS-private: storage-backend tests read this field at runtime
     private readonly storageBackend: MemoryStorageBackend;
 
     constructor(options: KeyValueStoreBackendOptions) {
@@ -66,12 +67,12 @@ export class KeyValueStoreBackend extends BaseClient implements storage.KeyValue
 
         if (storeIndex !== -1) {
             const [oldBackend] = this.storageBackend.keyValueStoreBackendCache.splice(storeIndex, 1);
-            oldBackend.keyValueEntries.clear();
+            oldBackend.#keyValueEntries.clear();
         }
     }
 
     async purge(): Promise<void> {
-        this.keyValueEntries.clear();
+        this.#keyValueEntries.clear();
         this.updateTimestamps(true);
     }
 
@@ -82,9 +83,9 @@ export class KeyValueStoreBackend extends BaseClient implements storage.KeyValue
      * preserve the bare `INPUT` key only.
      */
     async purgeExceptInput(): Promise<void> {
-        for (const key of this.keyValueEntries.keys()) {
+        for (const key of this.#keyValueEntries.keys()) {
             if (key !== KEY_VALUE_STORE_INPUT_KEY) {
-                this.keyValueEntries.delete(key);
+                this.#keyValueEntries.delete(key);
             }
         }
 
@@ -102,7 +103,7 @@ export class KeyValueStoreBackend extends BaseClient implements storage.KeyValue
 
         const items: storage.KeyValueStoreItemData[] = [];
 
-        for (const record of this.keyValueEntries.values()) {
+        for (const record of this.#keyValueEntries.values()) {
             const size = Buffer.byteLength(record.value);
             items.push({
                 key: record.key,
@@ -163,13 +164,13 @@ export class KeyValueStoreBackend extends BaseClient implements storage.KeyValue
     async recordExists(key: string): Promise<boolean> {
         s.string().parse(key);
 
-        return this.keyValueEntries.has(key);
+        return this.#keyValueEntries.has(key);
     }
 
     async getValue(key: string): Promise<storage.KeyValueStoreRecord | undefined> {
         s.string().parse(key);
 
-        const entry = this.keyValueEntries.get(key);
+        const entry = this.#keyValueEntries.get(key);
 
         if (!entry) {
             return undefined;
@@ -231,14 +232,14 @@ export class KeyValueStoreBackend extends BaseClient implements storage.KeyValue
                 ? Buffer.from(value, 'utf-8')
                 : toBuffer(value as Buffer | ArrayBuffer | ArrayBufferView);
 
-        const _record = {
+        const normalizedRecord = {
             extension,
             key,
             value: normalizedValue,
             contentType,
         } satisfies InternalKeyRecord;
 
-        this.keyValueEntries.set(key, _record);
+        this.#keyValueEntries.set(key, normalizedRecord);
 
         this.updateTimestamps(true);
     }
@@ -246,8 +247,8 @@ export class KeyValueStoreBackend extends BaseClient implements storage.KeyValue
     async deleteValue(key: string): Promise<void> {
         s.string().parse(key);
 
-        if (this.keyValueEntries.has(key)) {
-            this.keyValueEntries.delete(key);
+        if (this.#keyValueEntries.has(key)) {
+            this.#keyValueEntries.delete(key);
             this.updateTimestamps(true);
         }
     }

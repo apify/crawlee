@@ -16,34 +16,32 @@ type Chain = ReturnType<typeof StreamArray.withParser>;
  * @internal
  */
 class ArrayToJson<T> extends Readable {
-    private offset = 0;
-    private readonly batchSize: number;
+    #offset = 0;
+    readonly #batchSize: number;
+    readonly #data: T[];
 
-    constructor(
-        private data: T[],
-        options: { batchSize?: number } = {},
-    ) {
+    constructor(data: T[], options: { batchSize?: number } = {}) {
         super({
             ...options,
             autoDestroy: true,
             emitClose: true,
         });
         const { batchSize = 10000 } = options;
-        this.batchSize = batchSize;
-        this.data = data;
+        this.#batchSize = batchSize;
+        this.#data = data;
         this.push('[');
     }
 
     override _read(): void {
         try {
-            const items = this.data.slice(this.offset, this.offset + this.batchSize);
+            const items = this.#data.slice(this.#offset, this.#offset + this.#batchSize);
             if (items.length) {
                 const json = JSON.stringify(items);
                 // Strip brackets to flatten the batch.
                 const itemString = json.substring(1, json.length - 1);
-                if (this.offset > 0) this.push(',', 'utf8');
+                if (this.#offset > 0) this.push(',', 'utf8');
                 this.push(itemString, 'utf8');
-                this.offset += this.batchSize;
+                this.#offset += this.#batchSize;
             } else {
                 this.push(']');
                 this.push(null);

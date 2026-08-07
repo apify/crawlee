@@ -100,11 +100,16 @@ class ContextPipelineImpl<TContextBase, TCrawlingContext extends TContextBase> e
     TContextBase,
     TCrawlingContext
 > {
+    readonly #middleware: ContextMiddleware<TContextBase, TCrawlingContext>;
+    readonly #parent?: ContextPipelineImpl<TContextBase, TContextBase>;
+
     constructor(
-        private middleware: ContextMiddleware<TContextBase, TCrawlingContext>,
-        private parent?: ContextPipelineImpl<TContextBase, TContextBase>,
+        middleware: ContextMiddleware<TContextBase, TCrawlingContext>,
+        parent?: ContextPipelineImpl<TContextBase, TContextBase>,
     ) {
         super();
+        this.#middleware = middleware;
+        this.#parent = parent;
     }
 
     /**
@@ -138,8 +143,8 @@ class ContextPipelineImpl<TContextBase, TCrawlingContext extends TContextBase> e
         let step: ContextPipelineImpl<TContextBase, TContextBase> | undefined = this as any;
 
         while (step !== undefined) {
-            yield step.middleware;
-            step = step.parent;
+            yield step.#middleware;
+            step = step.#parent;
         }
     }
 

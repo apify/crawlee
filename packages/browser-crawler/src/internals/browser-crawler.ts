@@ -360,14 +360,14 @@ export abstract class BrowserCrawler<
     GoToOptions extends Dictionary = Dictionary,
 > extends BasicCrawler<Context, ContextExtension, ExtendedContext, Routes> {
     /** Backs the {@apilink BrowserCrawler.browserPool|`browserPool`} getter. */
-    private browserPoolDep: OwnedOrInjected<IBrowserPool<Page>, OwnedBrowserPool<Page>>;
+    #browserPoolDep: OwnedOrInjected<IBrowserPool<Page>, OwnedBrowserPool<Page>>;
 
     /**
      * A reference to the underlying browser pool that manages the crawler's browsers. Typed as
      * {@apilink IBrowserPool} so custom implementations can be plugged in via the `browserPool` constructor option.
      */
     get browserPool(): IBrowserPool<Page> {
-        return this.browserPoolDep.value;
+        return this.#browserPoolDep.value;
     }
 
     launchContext: BrowserLaunchContext<LaunchOptions, unknown>;
@@ -375,10 +375,10 @@ export abstract class BrowserCrawler<
     protected readonly ignoreShadowRoots: boolean;
     protected readonly ignoreIframes: boolean;
 
-    private readonly navigationTimeoutMillis: number;
-    private readonly preNavigationHooks: BrowserHook<Context>[];
-    private readonly postNavigationHooks: BrowserHook<Context>[];
-    private readonly saveResponseCookies: boolean;
+    readonly #navigationTimeoutMillis: number;
+    readonly #preNavigationHooks: BrowserHook<Context>[];
+    readonly #postNavigationHooks: BrowserHook<Context>[];
+    readonly #saveResponseCookies: boolean;
 
     protected static override optionsShape = {
         ...BasicCrawler.optionsShape,
@@ -439,28 +439,28 @@ export abstract class BrowserCrawler<
                     step: (ctx: Ctx) => Awaitable<void | Partial<Ctx>>,
                 ): ContextMiddleware<Ctx, Partial<Ctx>> =>
                     skipGuard(async (ctx: Ctx) => {
-                        const remaining = remainingNavigationWindowMillis(ctx, this.navigationTimeoutMillis);
+                        const remaining = remainingNavigationWindowMillis(ctx, this.#navigationTimeoutMillis);
                         if (remaining <= 0) {
                             throw new TimeoutError(
-                                `Navigation timed out after ${this.navigationTimeoutMillis / 1000} seconds.`,
+                                `Navigation timed out after ${this.#navigationTimeoutMillis / 1000} seconds.`,
                             );
                         }
                         return addTimeoutToPromise(
                             async () => step(ctx),
                             remaining,
-                            `Navigation timed out after ${this.navigationTimeoutMillis / 1000} seconds.`,
+                            `Navigation timed out after ${this.#navigationTimeoutMillis / 1000} seconds.`,
                         );
                     });
 
                 let pipeline = contextPipelineBuilder().compose({ action: this.prepareNavigation.bind(this) });
 
-                for (const hook of this.preNavigationHooks) {
+                for (const hook of this.#preNavigationHooks) {
                     pipeline = pipeline.compose(windowGuard(hook));
                 }
 
                 pipeline = pipeline.compose(skipGuard(this.navigate.bind(this)));
 
-                for (const hook of this.postNavigationHooks) {
+                for (const hook of this.#postNavigationHooks) {
                     pipeline = pipeline.compose(windowGuard(hook));
                 }
 
@@ -473,12 +473,12 @@ export abstract class BrowserCrawler<
         });
 
         this.launchContext = launchContext;
-        this.navigationTimeoutMillis = navigationTimeoutSecs * 1000;
+        this.#navigationTimeoutMillis = navigationTimeoutSecs * 1000;
         // The public option hooks are extension-aware; internal storage uses the base context type
         // (the pipeline composes hooks against the concrete context, which does not statically carry
         // `ContextExtension`). The extension members are present at runtime regardless.
-        this.preNavigationHooks = preNavigationHooks as BrowserHook<Context>[];
-        this.postNavigationHooks = postNavigationHooks as BrowserHook<Context>[];
+        this.#preNavigationHooks = preNavigationHooks as BrowserHook<Context>[];
+        this.#postNavigationHooks = postNavigationHooks as BrowserHook<Context>[];
         this.ignoreIframes = ignoreIframes;
         this.ignoreShadowRoots = ignoreShadowRoots;
 
@@ -487,12 +487,12 @@ export abstract class BrowserCrawler<
             (this.launchContext.launchOptions as Dictionary).headless = headless;
         }
 
-        this.saveResponseCookies = saveResponseCookies;
+        this.#saveResponseCookies = saveResponseCookies;
 
         // `browserPool` wins over `remoteBrowser` — a passed-in pool is used as-is (borrowed), the sugar is ignored.
         // The default is only built when no pool was injected, so all the option/launchContext fiddling below stays
         // inside the factory.
-        this.browserPoolDep = OwnedOrInjected.resolve(browserPool, () => {
+        this.#browserPoolDep = OwnedOrInjected.resolve(browserPool, () => {
             const resolvedBrowserPoolOptions = browserPoolOptions ?? ({} as Partial<BrowserPoolOptions>);
 
             if (launchContext?.userAgent) {
@@ -523,7 +523,7 @@ export abstract class BrowserCrawler<
     }
 
     protected override getNavigationTimeoutMillis(): number {
-        return this.navigationTimeoutMillis;
+        return this.#navigationTimeoutMillis;
     }
 
     protected override buildContextPipeline(): ContextPipeline<
@@ -649,8 +649,8 @@ export abstract class BrowserCrawler<
         return {
             // Default to the full navigation timeout so a pre-navigation hook can read it; `navigate` narrows it
             // to the remaining shared window unless a hook overrode it (see there).
-            gotoOptions: { timeout: this.navigationTimeoutMillis } as unknown as GoToOptions,
-            [COOKIES_BEFORE_HOOKS]: this._getCookieHeaderFromRequest(crawlingContext.request),
+            gotoOptions: { timeout: this.#navigationTimeoutMillis } as unknown as GoToOptions,
+            [COOKIES_BEFORE_HOOKS]: this.getCookieHeaderFromRequest(crawlingContext.request),
         } as unknown as Partial<Context>;
     }
 
@@ -658,26 +658,26 @@ export abstract class BrowserCrawler<
         tryCancel();
 
         const gotoOptions = crawlingContext.gotoOptions as GoToOptions;
-        const remaining = remainingNavigationWindowMillis(crawlingContext, this.navigationTimeoutMillis);
+        const remaining = remainingNavigationWindowMillis(crawlingContext, this.#navigationTimeoutMillis);
         if (remaining <= 0) {
-            throw new TimeoutError(`Navigation timed out after ${this.navigationTimeoutMillis / 1000} seconds.`);
+            throw new TimeoutError(`Navigation timed out after ${this.#navigationTimeoutMillis / 1000} seconds.`);
         }
         // If a hook left the default `navigationTimeoutMillis` in place, bound the goto to whatever is left of the
         // shared navigation window. If it overrode the value - including `0`, Playwright's "no timeout" - honour
         // that verbatim as the goto's own timeout. The driver enforces this natively (so a timed-out goto is
         // aborted, not left lingering) and `handleNavigationTimeout` turns its error into our own message.
         const gotoTimeout = gotoOptions as { timeout?: number };
-        if (gotoTimeout.timeout === this.navigationTimeoutMillis) {
+        if (gotoTimeout.timeout === this.#navigationTimeoutMillis) {
             gotoTimeout.timeout = remaining;
         }
         const cookiesBeforeHooks = readContextField<string>(crawlingContext, COOKIES_BEFORE_HOOKS);
-        const cookiesAfterHooks = this._getCookieHeaderFromRequest(crawlingContext.request);
+        const cookiesAfterHooks = this.getCookieHeaderFromRequest(crawlingContext.request);
 
         await this.applyCookies(crawlingContext, cookiesBeforeHooks, cookiesAfterHooks);
 
         let response: Response | undefined;
         try {
-            response = (await this._navigationHandler(crawlingContext, gotoOptions)) ?? undefined;
+            response = (await this.navigationHandler(crawlingContext, gotoOptions)) ?? undefined;
         } catch (error) {
             await this.handleNavigationTimeout(crawlingContext, error as Error);
             crawlingContext.request.state = RequestState.ERROR;
@@ -718,7 +718,7 @@ export abstract class BrowserCrawler<
     private async persistCookiesFromPage(
         crawlingContext: Pick<BrowserCrawlingContext<Page, Response>, 'session' | 'page' | 'request'>,
     ): Promise<void> {
-        if (!this.saveResponseCookies || !crawlingContext.session) {
+        if (!this.#saveResponseCookies || !crawlingContext.session) {
             return;
         }
 
@@ -729,7 +729,7 @@ export abstract class BrowserCrawler<
             (await crawlingContext.page.url()) || crawlingContext.request.loadedUrl || crawlingContext.request.url;
         for (const cookie of cookies) {
             try {
-                crawlingContext.session.cookieJar.setCookieSync(browserPoolCookieToToughCookie(cookie), url, {
+                await crawlingContext.session.cookieJar.setCookie(browserPoolCookieToToughCookie(cookie), url, {
                     ignoreError: false,
                 });
             } catch (e) {
@@ -775,7 +775,9 @@ export abstract class BrowserCrawler<
         preHooksCookies: string,
         postHooksCookies: string,
     ) {
-        const sessionCookie = session?.cookieJar.getCookiesSync(request.url).map(toughCookieToBrowserPoolCookie) ?? [];
+        const sessionCookie = session
+            ? (await session.cookieJar.getCookies(request.url)).map(toughCookieToBrowserPoolCookie)
+            : [];
         const parsedPreHooksCookies = preHooksCookies.split(/ *; */).map((c) => cookieStringToToughCookie(c));
         const parsedPostHooksCookies = postHooksCookies.split(/ *; */).map((c) => cookieStringToToughCookie(c));
 
@@ -800,7 +802,7 @@ export abstract class BrowserCrawler<
             session?.markBad();
             // The driver was handed the remaining window (usually shorter than `navigationTimeoutSecs` once the
             // hooks have run), so it names that value in its own error; report the configured window instead.
-            throw new TimeoutError(`Navigation timed out after ${this.navigationTimeoutMillis / 1000} seconds.`);
+            throw new TimeoutError(`Navigation timed out after ${this.#navigationTimeoutMillis / 1000} seconds.`);
         }
     }
 
@@ -809,11 +811,11 @@ export abstract class BrowserCrawler<
      */
     private throwIfProxyError(error: Error) {
         if (this.isProxyError(error)) {
-            throw new SessionError(this._getMessageFromError(error) as string);
+            throw new SessionError(this.getMessageFromError(error) as string);
         }
     }
 
-    protected abstract _navigationHandler(
+    protected abstract navigationHandler(
         crawlingContext: BrowserCrawlingContext<Page, Response>,
         gotoOptions: GoToOptions,
     ): Promise<Context['response'] | null | undefined>;
@@ -840,7 +842,7 @@ export abstract class BrowserCrawler<
 
         if (this.sessionPool && response && session) {
             if (typeof response === 'object' && typeof response.status === 'function') {
-                this._throwOnBlockedRequest(response.status());
+                this.throwOnBlockedRequest(response.status());
             } else {
                 this.log.debug('Got a malformed Browser response.', { request, response });
             }
@@ -854,7 +856,7 @@ export abstract class BrowserCrawler<
      * @ignore
      */
     override async teardown(): Promise<void> {
-        await this.browserPoolDep.ifOwned((pool) => pool.destroy());
+        await this.#browserPoolDep.ifOwned((pool) => pool.destroy());
         await super.teardown();
     }
 }

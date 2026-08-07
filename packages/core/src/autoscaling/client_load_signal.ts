@@ -56,39 +56,39 @@ export class ClientLoadSignal implements LoadSignal {
     readonly name = 'clientInfo';
     readonly overloadedRatio: number;
 
-    private readonly store = new SnapshotStore<ClientSnapshot>();
-    private readonly intervalMillis: number;
-    private readonly maxErrors: number;
-    private interval?: BetterIntervalID;
-    private client?: StorageBackend;
+    readonly #store = new SnapshotStore<ClientSnapshot>();
+    readonly #intervalMillis: number;
+    readonly #maxErrors: number;
+    #interval?: BetterIntervalID;
+    #client?: StorageBackend;
 
     constructor(options: ClientLoadSignalOptions = {}) {
         this.overloadedRatio = options.overloadedRatio ?? 0.3;
-        this.intervalMillis = (options.snapshotIntervalSecs ?? 1) * 1000;
-        this.maxErrors = options.maxErrors ?? 3;
+        this.#intervalMillis = (options.snapshotIntervalSecs ?? 1) * 1000;
+        this.#maxErrors = options.maxErrors ?? 3;
         this.handle = this.handle.bind(this);
     }
 
     async start(context: LoadSignalStartContext): Promise<void> {
-        this.store.useSampleWindow(context.maxSampleWindowMillis);
+        this.#store.useSampleWindow(context.maxSampleWindowMillis);
         // A new session starts from a clean slate, or its first measurement diffs the error count against the previous
         // session's — possibly against a different backend, since the client is resolved afresh just below.
-        this.store.clear();
+        this.#store.clear();
 
         // Resolved here rather than in the constructor, where asking for the backend would instantiate a default one
         // as a side effect - long before the crawler that owns the run has had a chance to register its own.
-        this.client = serviceLocator.getStorageBackend();
-        this.interval = betterSetInterval(this.handle, this.intervalMillis);
+        this.#client = serviceLocator.getStorageBackend();
+        this.#interval = betterSetInterval(this.handle, this.#intervalMillis);
     }
 
     async stop(): Promise<void> {
-        if (this.interval) betterClearInterval(this.interval);
-        this.interval = undefined;
-        this.client = undefined;
+        if (this.#interval) betterClearInterval(this.#interval);
+        this.#interval = undefined;
+        this.#client = undefined;
     }
 
     getSample(sampleDurationMillis?: number): LoadSnapshot[] {
-        return this.store.getSample(sampleDurationMillis);
+        return this.#store.getSample(sampleDurationMillis);
     }
 
     /**
@@ -99,7 +99,7 @@ export class ClientLoadSignal implements LoadSignal {
     handle(intervalCallback: () => unknown): void {
         const now = new Date();
 
-        const allErrorCounts = this.client?.stats?.rateLimitErrors ?? [];
+        const allErrorCounts = this.#client?.stats?.rateLimitErrors ?? [];
         const currentErrCount = allErrorCounts[CLIENT_RATE_LIMIT_ERROR_RETRY_COUNT] || 0;
 
         const snapshot: ClientSnapshot = {
@@ -108,15 +108,15 @@ export class ClientLoadSignal implements LoadSignal {
             rateLimitErrorCount: currentErrCount,
         };
 
-        const all = this.store.getAll();
+        const all = this.#store.getAll();
         const previousSnapshot = all[all.length - 1];
 
         if (previousSnapshot) {
             const delta = currentErrCount - previousSnapshot.rateLimitErrorCount;
-            if (delta > this.maxErrors) snapshot.isOverloaded = true;
+            if (delta > this.#maxErrors) snapshot.isOverloaded = true;
         }
 
-        this.store.push(snapshot, now);
+        this.#store.push(snapshot, now);
         intervalCallback();
     }
 }

@@ -217,7 +217,7 @@ describe('BrowserCrawler', () => {
         let markBadCalled = false;
         let sessionGoto!: ISession;
         const browserCrawler = new (class extends BrowserCrawlerTest {
-            protected override async _navigationHandler(
+            protected override async navigationHandler(
                 ctx: TestCrawlingContext,
             ): Promise<HTTPResponse | null | undefined> {
                 sessionGoto = ctx.session!;
@@ -408,7 +408,7 @@ describe('BrowserCrawler', () => {
         const pageClosedStates: boolean[] = [];
 
         const browserCrawler = new (class extends BrowserCrawlerTest {
-            protected override async _navigationHandler(): Promise<HTTPResponse | null | undefined> {
+            protected override async navigationHandler(): Promise<HTTPResponse | null | undefined> {
                 throw new Error('net::ERR_NAME_NOT_RESOLVED');
             }
         })({
@@ -482,7 +482,7 @@ describe('BrowserCrawler', () => {
         });
         let optionsGoto: PuppeteerGoToOptions;
         const browserCrawler = new (class extends BrowserCrawlerTest {
-            protected override async _navigationHandler(
+            protected override async navigationHandler(
                 ctx: TestCrawlingContext,
                 gotoOptions: PuppeteerGoToOptions,
             ): Promise<HTTPResponse | null | undefined> {
@@ -644,8 +644,7 @@ describe('BrowserCrawler', () => {
             requestList,
             saveResponseCookies: true,
             requestHandler: async ({ session, request }) => {
-                loadedCookies.push(session.cookieJar.getCookieStringSync(request.url));
-                return Promise.resolve();
+                loadedCookies.push(await session.cookieJar.getCookieString(request.url));
             },
             preNavigationHooks: [
                 async ({ session, page }) => {
@@ -696,7 +695,7 @@ describe('BrowserCrawler', () => {
                 maxPoolSize: 1,
             }),
             requestHandler: async ({ page, session, request }) => {
-                cookieStrings.push(session.cookieJar.getCookieStringSync(request.url));
+                cookieStrings.push(await session.cookieJar.getCookieString(request.url));
 
                 if (request.url.includes('cookie-1')) {
                     const hostname = new URL(request.loadedUrl || request.url).hostname;
@@ -751,7 +750,7 @@ describe('BrowserCrawler', () => {
         });
 
         // @ts-expect-error Overriding protected method
-        crawler._navigationHandler = async ({ request }) => {
+        crawler.navigationHandler = async ({ request }) => {
             return { status: () => request.userData.statusCode };
         };
 
@@ -826,7 +825,7 @@ describe('BrowserCrawler', () => {
         });
 
         // @ts-expect-error Overriding protected method
-        crawler._navigationHandler = async ({ request }) => {
+        crawler.navigationHandler = async ({ request }) => {
             return { status: () => request.userData.statusCode };
         };
 
@@ -868,7 +867,7 @@ describe('BrowserCrawler', () => {
         });
 
         // @ts-expect-error Overriding protected method
-        crawler._navigationHandler = async ({ request }) => {
+        crawler.navigationHandler = async ({ request }) => {
             return { status: () => request.userData.statusCode };
         };
 
@@ -987,9 +986,8 @@ describe('BrowserCrawler', () => {
                 ],
             });
 
-            const proxyConfiguration = new ProxyConfiguration({
-                proxyUrls: ['http://proxy.com:1111', 'http://proxy.com:2222', 'http://proxy.com:3333'],
-            });
+            const proxyUrls = ['http://proxy.com:1111', 'http://proxy.com:2222', 'http://proxy.com:3333'];
+            const proxyConfiguration = new ProxyConfiguration({ proxyUrls });
 
             const browserProxies: string[] = [];
 
@@ -1012,10 +1010,8 @@ describe('BrowserCrawler', () => {
 
             await browserCrawler.run();
 
-            // @ts-expect-error Accessing private property
-            const proxiesToUse = proxyConfiguration.proxyUrls!;
-            for (const proxyUrl of proxiesToUse) {
-                expect(browserProxies.includes(new URL(proxyUrl!).href.slice(0, -1))).toBeTruthy();
+            for (const proxyUrl of proxyUrls) {
+                expect(browserProxies.includes(new URL(proxyUrl).href.slice(0, -1))).toBeTruthy();
             }
 
             delete process.env[ENV_VARS.PROXY_PASSWORD];
@@ -1039,7 +1035,7 @@ describe('BrowserCrawler', () => {
             const requestHandler = vitest.fn();
 
             const browserCrawler = new (class extends BrowserCrawlerTest {
-                protected override async _navigationHandler(
+                protected override async navigationHandler(
                     ctx: TestCrawlingContext,
                 ): Promise<HTTPResponse | null | undefined> {
                     const proxyInfo = ctx.session?.proxyInfo;
@@ -1090,7 +1086,7 @@ describe('BrowserCrawler', () => {
              */
             let numberOfRotations = -(await requestList!.getTotalCount());
             const browserCrawler = new (class extends BrowserCrawlerTest {
-                protected override async _navigationHandler(
+                protected override async navigationHandler(
                     ctx: TestCrawlingContext,
                 ): Promise<HTTPResponse | null | undefined> {
                     const proxyInfo = ctx.session?.proxyInfo;
@@ -1138,7 +1134,7 @@ describe('BrowserCrawler', () => {
                 'Proxy responded with 400 - Bad request. Also, this error message contains some useful payload.';
 
             const crawler = new (class extends BrowserCrawlerTest {
-                protected override async _navigationHandler(
+                protected override async navigationHandler(
                     ctx: TestCrawlingContext,
                 ): Promise<HTTPResponse | null | undefined> {
                     const proxyInfo = ctx.session?.proxyInfo;
@@ -1224,7 +1220,7 @@ describe('BrowserCrawler', () => {
                     failedRequestHandler,
                 });
                 // @ts-expect-error Overriding protected method
-                browserCrawler._navigationHandler = gotoFunction;
+                browserCrawler.navigationHandler = gotoFunction;
 
                 await browserCrawler.run();
             } finally {

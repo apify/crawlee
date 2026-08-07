@@ -16,8 +16,8 @@ describe('Session - testing session behaviour', () => {
         session.markGood();
         expect(session.usageCount).toBe(1);
         expect(session.errorScore).toBe(0);
-        // @ts-expect-error Private property
-        session._errorScore = 1;
+        session.markBad();
+        expect(session.errorScore).toBe(1);
         session.markGood();
         expect(session.errorScore).toBe(0.5);
     });
@@ -36,16 +36,14 @@ describe('Session - testing session behaviour', () => {
     });
 
     test('should max out session usage', () => {
-        // @ts-expect-error Private property
-        session._maxUsageCount = 1;
+        session = new Session({ maxUsageCount: 1 });
         session.markGood();
         expect(session.isMaxUsageCountReached()).toBe(true);
         expect(session.isUsable()).toBe(false);
     });
 
     test('should block session', () => {
-        // @ts-expect-error Private property
-        session._errorScore += session.maxErrorScore;
+        session = new Session({ maxErrorScore: 3, errorScore: 3 });
         expect(session.isBlocked()).toBe(true);
         expect(session.isUsable()).toBe(false);
     });
@@ -145,9 +143,9 @@ describe('Session - testing session behaviour', () => {
         expect(session.cookieJar.setCookie).toBeDefined();
     });
 
-    test('setCookie does not throw on malformed raw cookie string', () => {
+    test('setCookie does not throw on malformed raw cookie string', async () => {
         session = new Session();
-        expect(() => session.setCookie('garbled!!!@#$%nonsense', 'https://www.example.com')).not.toThrow();
+        await expect(session.setCookie('garbled!!!@#$%nonsense', 'https://www.example.com')).resolves.not.toThrow();
     });
 
     test('retired state survives a getState() / new Session() round-trip', () => {
@@ -170,11 +168,14 @@ describe('Session - testing session behaviour', () => {
         expect(reinitialized.isUsable()).toBe(false);
     });
 
-    test('should correctly persist and init cookieJar', () => {
+    test('should correctly persist and init cookieJar', async () => {
         const newSession = new Session();
         const url = 'https://example.com';
-        newSession.cookieJar.setCookieSync('CSRF=e8b667; Domain=example.com; Secure', url);
-        newSession.cookieJar.setCookieSync('id=a3fWa; Expires=Wed, 21 Oct 2099 07:28:00 GMT; Domain=example.com', url);
+        await newSession.cookieJar.setCookie('CSRF=e8b667; Domain=example.com; Secure', url);
+        await newSession.cookieJar.setCookie(
+            'id=a3fWa; Expires=Wed, 21 Oct 2099 07:28:00 GMT; Domain=example.com',
+            url,
+        );
 
         const old = newSession.getState();
 
@@ -185,6 +186,6 @@ describe('Session - testing session behaviour', () => {
 
         // @ts-expect-error string -> Date for createdAt has been overridden
         const reinitializedSession = new Session({ ...old });
-        expect(reinitializedSession.getCookieString(url)).toEqual('CSRF=e8b667; id=a3fWa');
+        await expect(reinitializedSession.getCookieString(url)).resolves.toEqual('CSRF=e8b667; id=a3fWa');
     });
 });

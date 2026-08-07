@@ -3,6 +3,7 @@ import os from 'node:os';
 import {
     ClientLoadSignal,
     Configuration,
+    type EventLoopLoadSignal,
     EventType,
     LocalEventManager,
     MemoryLoadSignal,
@@ -25,11 +26,11 @@ const noop = () => {};
 const START_CONTEXT = { maxSampleWindowMillis: 30_000 };
 
 /** Reads a signal's sample by name, the same way production (`SystemStatus`) does. */
+const signalOf = (snapshotter: Snapshotter, name: string) =>
+    snapshotter.getLoadSignals().find((signal) => signal.name === name)!;
+
 const sampleOf = (snapshotter: Snapshotter, name: string, sampleDurationMillis?: number): any[] =>
-    snapshotter
-        .getLoadSignals()
-        .find((signal) => signal.name === name)!
-        .getSample(sampleDurationMillis);
+    signalOf(snapshotter, name).getSample(sampleDurationMillis);
 
 describe('Snapshotter', () => {
     let logLevel: number;
@@ -205,8 +206,7 @@ describe('Snapshotter', () => {
         const clock = vitest.useFakeTimers();
         try {
             const snapshotter = new Snapshotter({ eventLoop: { maxBlockedMillis: 5, snapshotIntervalSecs: 0 } });
-            // @ts-expect-error Accessing private property
-            const eventLoopSignal = snapshotter.eventLoopSignal!;
+            const eventLoopSignal = signalOf(snapshotter, 'eventLoopInfo') as EventLoopLoadSignal;
             eventLoopSignal.handle(noop);
             clock.advanceTimersByTime(1);
             eventLoopSignal.handle(noop);

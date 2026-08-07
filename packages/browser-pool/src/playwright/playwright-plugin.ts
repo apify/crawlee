@@ -16,7 +16,7 @@ export class PlaywrightPlugin extends BrowserPlugin<
     SafeParameters<BrowserType['launch']>[0],
     PlaywrightBrowser
 > {
-    private _browserVersion?: string;
+    #browserVersion?: string;
 
     /**
      * Playwright remote connections only support incognito pages — `connect()` / `connectOverCDP()` don't
@@ -36,7 +36,7 @@ export class PlaywrightPlugin extends BrowserPlugin<
 
     protected async _launch(launchContext: LaunchContext<BrowserType>): Promise<PlaywrightBrowser> {
         if (this.remoteConnection) {
-            return this._connectToRemoteBrowser(launchContext, async (url) => {
+            return this.connectToRemoteBrowser(launchContext, async (url) => {
                 const connectOptions = (this.remoteConnectionParameters?.connectOptions ?? {}) as any;
                 if (this.remoteConnectionParameters?.protocol === 'playwright') {
                     this.log.info('Connecting to remote browser via connect (Playwright WebSocket).');
@@ -73,7 +73,7 @@ export class PlaywrightPlugin extends BrowserPlugin<
         try {
             if (useIncognitoPages) {
                 browser = await this.library.launch(launchOptions).catch((error) => {
-                    return this._throwOnFailedLaunch(launchContext, error);
+                    return this.throwOnFailedLaunch(launchContext, error);
                 });
 
                 if (anonymizedProxyUrl) {
@@ -85,7 +85,7 @@ export class PlaywrightPlugin extends BrowserPlugin<
                 const browserContext = await this.library
                     .launchPersistentContext(userDataDir, launchOptions)
                     .catch((error) => {
-                        return this._throwOnFailedLaunch(launchContext, error);
+                        return this.throwOnFailedLaunch(launchContext, error);
                     });
 
                 browserContext.once('close', () => {
@@ -103,10 +103,10 @@ export class PlaywrightPlugin extends BrowserPlugin<
                     });
                 }
 
-                if (!this._browserVersion) {
+                if (!this.#browserVersion) {
                     // Launches unused browser just to get the browser version.
                     const inactiveBrowser = await this.library.launch(launchOptions);
-                    this._browserVersion = inactiveBrowser.version();
+                    this.#browserVersion = inactiveBrowser.version();
 
                     inactiveBrowser.close().catch((error) => {
                         this.log.exception(error, 'Failed to close browser.');
@@ -115,9 +115,9 @@ export class PlaywrightPlugin extends BrowserPlugin<
 
                 const persistentBrowser = new PlaywrightBrowserWithPersistentContext({
                     browserContext,
-                    version: this._browserVersion,
+                    version: this.#browserVersion,
                 });
-                persistentBrowser._setBrowserType(this.library);
+                persistentBrowser.setBrowserType(this.library);
                 browser = persistentBrowser as unknown as PlaywrightBrowser;
             }
         } catch (error) {
@@ -129,8 +129,8 @@ export class PlaywrightPlugin extends BrowserPlugin<
         return browser;
     }
 
-    private _throwOnFailedLaunch(launchContext: LaunchContext<BrowserType>, cause: unknown): never {
-        this._throwAugmentedLaunchError(
+    private throwOnFailedLaunch(launchContext: LaunchContext<BrowserType>, cause: unknown): never {
+        this.throwAugmentedLaunchError(
             cause,
             launchContext.launchOptions?.executablePath,
             '`apify/actor-node-playwright-*` (with a correct browser name)',
@@ -142,7 +142,7 @@ export class PlaywrightPlugin extends BrowserPlugin<
         return new PlaywrightController(this as any);
     }
 
-    protected async _addProxyToLaunchOptions(launchContext: LaunchContext<BrowserType>): Promise<void> {
+    protected async addProxyToLaunchOptions(launchContext: LaunchContext<BrowserType>): Promise<void> {
         launchContext.launchOptions ??= {};
 
         const { launchOptions, proxyUrl } = launchContext;
@@ -158,7 +158,7 @@ export class PlaywrightPlugin extends BrowserPlugin<
         }
     }
 
-    protected _isChromiumBasedBrowser(): boolean {
+    protected isChromiumBasedBrowser(): boolean {
         const name = this.library.name();
         return name === 'chromium';
     }

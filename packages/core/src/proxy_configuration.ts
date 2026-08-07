@@ -78,9 +78,9 @@ export interface IProxyConfiguration {
  */
 export class ProxyConfiguration implements IProxyConfiguration {
     readonly isManInTheMiddle = false;
-    private nextCustomUrlIndex = 0;
-    private proxyUrls?: UrlList;
-    private newUrlFunction?: ProxyConfigurationFunction;
+    #nextCustomUrlIndex = 0;
+    #proxyUrls?: UrlList;
+    #newUrlFunction?: ProxyConfigurationFunction;
 
     /**
      * Creates a {@apilink ProxyConfiguration} instance based on the provided options. Proxy servers are used to prevent target websites from
@@ -125,8 +125,8 @@ export class ProxyConfiguration implements IProxyConfiguration {
         if (proxyUrls && newUrlFunction) this.throwCannotCombineCustomMethods();
         if (!proxyUrls && !newUrlFunction && validateRequired) this.throwNoOptionsProvided();
 
-        this.proxyUrls = proxyUrls;
-        this.newUrlFunction = newUrlFunction;
+        this.#proxyUrls = proxyUrls;
+        this.#newUrlFunction = newUrlFunction;
     }
 
     /**
@@ -160,7 +160,7 @@ export class ProxyConfiguration implements IProxyConfiguration {
      *  For example, `http://bob:password123@proxy.example.com:8000`
      */
     async newUrl(options?: NewUrlOptions): Promise<string | undefined> {
-        if (this.newUrlFunction) {
+        if (this.#newUrlFunction) {
             return (await this.callNewUrlFunction({ request: options?.request })) ?? undefined;
         }
 
@@ -168,14 +168,14 @@ export class ProxyConfiguration implements IProxyConfiguration {
     }
 
     private handleProxyUrlsList(): string | null {
-        return this.proxyUrls![this.nextCustomUrlIndex++ % this.proxyUrls!.length];
+        return this.#proxyUrls![this.#nextCustomUrlIndex++ % this.#proxyUrls!.length];
     }
 
     /**
      * Calls the custom newUrlFunction and checks format of its return value
      */
     private async callNewUrlFunction(options?: { request?: Request }) {
-        const proxyUrl = await this.newUrlFunction!(options);
+        const proxyUrl = await this.#newUrlFunction!(options);
         try {
             if (proxyUrl) {
                 new URL(proxyUrl); // eslint-disable-line no-new

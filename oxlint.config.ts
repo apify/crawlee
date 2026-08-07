@@ -32,6 +32,30 @@ export default defineConfig({
         'no-throw-literal': 'error',
         eqeqeq: ['error', 'smart'],
         yoda: 'error',
+        // Enforces the naming convention from #3108: no `_`-prefixed members; private
+        // properties use native `#` fields instead. The allow list covers the template-method
+        // hooks that collide with their public wrappers, platform contracts (`Readable._read`),
+        // and documented internals (`__crawlee`, `_currentConcurrency`).
+        'no-underscore-dangle': [
+            'error',
+            {
+                enforceInClassFields: true,
+                enforceInMethodNames: true,
+                allow: [
+                    '_launch',
+                    '_close',
+                    '_kill',
+                    '_newPage',
+                    '_getCookies',
+                    '_setCookies',
+                    '_read',
+                    '_currentConcurrency',
+                    '__crawlee',
+                    '__purged',
+                    '__originalHistory__',
+                ],
+            },
+        ],
 
         'typescript/consistent-type-imports': ['error', { disallowTypeAnnotations: false }],
         'typescript/consistent-type-definitions': ['error', 'interface'],
@@ -97,6 +121,7 @@ export default defineConfig({
         {
             files: ['test/**/*', 'packages/*/test/**/*'],
             rules: {
+                'no-underscore-dangle': 'off',
                 'typescript/consistent-type-imports': 'off',
                 'typescript/no-floating-promises': 'off',
                 'typescript/only-throw-error': 'off',
