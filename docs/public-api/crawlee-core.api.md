@@ -1728,7 +1728,7 @@ export class Session implements ISession {
     // (undocumented)
     get fingerprint(): SessionFingerprint | undefined;
     set fingerprint(fingerprint: SessionFingerprint | undefined);
-    getCookieString(url: string): string;
+    getCookieString(url: string): Promise<string>;
     getState(): SessionState;
     // (undocumented)
     readonly id: string;
@@ -1746,7 +1746,7 @@ export class Session implements ISession {
     get proxyInfo(): ProxyInfo | undefined;
     retire(): void;
     get retired(): boolean;
-    setCookie(rawCookie: string, url: string): void;
+    setCookie(rawCookie: string, url: string): Promise<void>;
     // (undocumented)
     get usageCount(): number;
     // (undocumented)
