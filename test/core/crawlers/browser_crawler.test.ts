@@ -644,8 +644,7 @@ describe('BrowserCrawler', () => {
             requestList,
             saveResponseCookies: true,
             requestHandler: async ({ session, request }) => {
-                loadedCookies.push(session.cookieJar.getCookieStringSync(request.url));
-                return Promise.resolve();
+                loadedCookies.push(await session.cookieJar.getCookieString(request.url));
             },
             preNavigationHooks: [
                 async ({ session, page }) => {
@@ -696,7 +695,7 @@ describe('BrowserCrawler', () => {
                 maxPoolSize: 1,
             }),
             requestHandler: async ({ page, session, request }) => {
-                cookieStrings.push(session.cookieJar.getCookieStringSync(request.url));
+                cookieStrings.push(await session.cookieJar.getCookieString(request.url));
 
                 if (request.url.includes('cookie-1')) {
                     const hostname = new URL(request.loadedUrl || request.url).hostname;

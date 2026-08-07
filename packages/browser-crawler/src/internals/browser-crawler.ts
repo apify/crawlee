@@ -728,7 +728,7 @@ export abstract class BrowserCrawler<
             (await crawlingContext.page.url()) || crawlingContext.request.loadedUrl || crawlingContext.request.url;
         for (const cookie of cookies) {
             try {
-                crawlingContext.session.cookieJar.setCookieSync(browserPoolCookieToToughCookie(cookie), url, {
+                await crawlingContext.session.cookieJar.setCookie(browserPoolCookieToToughCookie(cookie), url, {
                     ignoreError: false,
                 });
             } catch (e) {
@@ -774,7 +774,9 @@ export abstract class BrowserCrawler<
         preHooksCookies: string,
         postHooksCookies: string,
     ) {
-        const sessionCookie = session?.cookieJar.getCookiesSync(request.url).map(toughCookieToBrowserPoolCookie) ?? [];
+        const sessionCookie = session
+            ? (await session.cookieJar.getCookies(request.url)).map(toughCookieToBrowserPoolCookie)
+            : [];
         const parsedPreHooksCookies = preHooksCookies.split(/ *; */).map((c) => cookieStringToToughCookie(c));
         const parsedPostHooksCookies = postHooksCookies.split(/ *; */).map((c) => cookieStringToToughCookie(c));
 

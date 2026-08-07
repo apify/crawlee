@@ -76,7 +76,7 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
                     .filter(Boolean)
                     .map((pair) => merged.setCookie(pair, request.url)),
             );
-            const cookieString = merged.getCookieStringSync(request.url);
+            const cookieString = await merged.getCookieString(request.url);
 
             if (cookieString) {
                 request.headers.set('cookie', cookieString);
