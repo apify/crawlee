@@ -6,7 +6,6 @@ import { createGunzip } from 'node:zlib';
 
 import { FetchHttpClient } from '@crawlee/http-client';
 import type { BaseHttpClient, CrawleeLogger } from '@crawlee/types';
-import { fileTypeStream } from 'file-type';
 import sax from 'sax';
 import MIMEType from 'whatwg-mimetype';
 
@@ -309,6 +308,7 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
                         if (sitemapResponse.body === null) {
                             break;
                         }
+                        const { fileTypeStream } = await import('file-type');
                         const streamWithType = await fileTypeStream(Readable.fromWeb(sitemapResponse.body as any));
                         if (streamWithType.fileType !== undefined) {
                             contentType = streamWithType.fileType.mime;

@@ -1,5 +1,4 @@
 import type { Awaitable, DatasetBackend, DatasetInfo, Dictionary, PaginatedList } from '@crawlee/types';
-import { stringify } from 'csv-stringify/sync';
 import ow from 'ow';
 
 import { tryCancel } from '@apify/timeout';
@@ -409,6 +408,8 @@ export class Dataset<Data extends Dictionary = Dictionary> {
             const keys = options?.collectAllKeys
                 ? Array.from(new Set(items.flatMap(Object.keys)))
                 : Object.keys(items[0]);
+
+            const { stringify } = await import('csv-stringify/sync');
 
             const value = stringify([
                 keys,

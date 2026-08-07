@@ -88,7 +88,6 @@ import type {
     StorageBackend,
 } from '@crawlee/types';
 import { isAsyncIterable, isIterable, RobotsTxtFile, ROTATE_PROXY_ERRORS } from '@crawlee/utils';
-import { stringify } from 'csv-stringify/sync';
 import ow, { ArgumentError, type BasePredicate } from 'ow';
 import { getDomain } from 'tldts';
 import type { ReadonlyDeep, SetRequired } from 'type-fest';
@@ -2043,6 +2042,8 @@ export class BasicCrawler<
                 const keys = options?.collectAllKeys
                     ? Array.from(new Set(items.flatMap(Object.keys)))
                     : Object.keys(items[0]);
+
+                const { stringify } = await import('csv-stringify/sync');
 
                 value = stringify([
                     keys,
