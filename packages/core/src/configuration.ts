@@ -13,6 +13,8 @@ import { type EventManager, LocalEventManager } from './events';
 import type { StorageManager } from './storages';
 import { type Constructor, entries } from './typedefs';
 
+const memoryStorages = new Map<string, MemoryStorage>();
+
 export interface ConfigurationOptions {
     /**
      * Defines storage client to be used.
@@ -438,20 +440,24 @@ export class Configuration {
      * @internal
      */
     createMemoryStorage(options: MemoryStorageOptions = {}): MemoryStorage {
-        const cacheKey = `MemoryStorage-${JSON.stringify(options)}`;
-
-        if (this.services.has(cacheKey)) {
-            return this.services.get(cacheKey) as MemoryStorage;
-        }
-
-        const storage = new MemoryStorage({
-            persistStorage: this.get('persistStorage'),
+        const storageOptions = {
+            persistStorage: this.get('persistStorage') as boolean,
             // Override persistStorage if user provides it via storageClientOptions
             ...options,
-        });
-        this.services.set(cacheKey, storage);
+        };
 
-        return storage;
+        const cacheKey = `MemoryStorage-${JSON.stringify(storageOptions)}-${process.env.CRAWLEE_STORAGE_DIR ?? ''}`;
+
+        // Clients writing to the same directory are not independent, so they are shared between
+        // `Configuration` instances - otherwise they would purge each other's data mid-run.
+        // Purely in-memory clients have no such conflict and stay isolated per configuration.
+        const cache = storageOptions.persistStorage ? memoryStorages : this.services;
+
+        if (!cache.has(cacheKey)) {
+            cache.set(cacheKey, new MemoryStorage(storageOptions));
+        }
+
+        return cache.get(cacheKey) as MemoryStorage;
     }
 
     useStorageClient(client: StorageClient): void {
@@ -498,6 +504,7 @@ export class Configuration {
      */
     static resetGlobalState(): void {
         delete this.globalConfig;
+        memoryStorages.clear();
     }
 
     protected buildOptions(options: ConfigurationOptions) {
