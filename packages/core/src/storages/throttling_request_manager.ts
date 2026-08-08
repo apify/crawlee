@@ -1,14 +1,14 @@
 import { URL } from 'node:url';
-import { setTimeout as sleep } from 'node:timers/promises';
-import type { Dictionary, ProcessedRequest } from '@crawlee/types';
+import type { Dictionary } from '@crawlee/types';
 import ow from 'ow';
 
 import type { Configuration } from '../configuration.js';
 import { PersistentRateLimitError } from '../errors.js';
-import { asyncifyIterable, chunkedAsyncIterable, peekableAsyncIterable } from '../iterables.js';
+import { asyncifyIterable } from '../iterables.js';
 import type { CrawleeLogger } from '../log.js';
 import type { Request, Source } from '../request.js';
 import { serviceLocator } from '../service_locator.js';
+import { drainRequestBatches } from './batched_adds.js';
 import type { IRequestManager, RequestsLike } from './request_manager.js';
 import type {
     AddRequestsBatchedOptions,
@@ -494,108 +494,56 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     ): Promise<AddRequestsBatchedResult> {
         await this.ensureSubManagers();
 
-        const { batchSize = 1000, waitBetweenBatchesMillis = 1000, forefront, maxNewRequests } = options;
-
-        let remainingBudget = maxNewRequests ?? Infinity;
-        const requestsOverLimit: Source[] = [];
-
-        // Never hand a target more than the budget allows, so an over-large final batch cannot overshoot.
-        const effectiveChunkSize =
-            maxNewRequests !== undefined ? () => Math.min(batchSize, remainingBudget) : batchSize;
-
-        // An async generator is both the iterator `chunkedAsyncIterable` consumes and an iterable we can drain
-        // leftovers from later - the same object, so only unconsumed requests end up over the limit.
-        async function* iterateRequests(): AsyncGenerator<Source | string> {
-            yield* asyncifyIterable<Source | string>(requests);
+        // Normalized up front so the shared batching helper - and `requestsOverLimit` - only ever see `Source`.
+        async function* iterateRequests(): AsyncGenerator<Source> {
+            for await (const request of asyncifyIterable<Source | string>(requests)) {
+                yield typeof request === 'string' ? { url: request } : request;
+            }
         }
 
-        const requestIterator = iterateRequests();
-        const chunks = peekableAsyncIterable(chunkedAsyncIterable(requestIterator, effectiveChunkSize));
-        const chunksIterator = chunks[Symbol.asyncIterator]();
+        return drainRequestBatches<Source>({
+            items: iterateRequests(),
+            batchSize: options.batchSize ?? 1000,
+            waitBetweenBatchesMillis: options.waitBetweenBatchesMillis ?? 1000,
+            waitForAllRequestsToBeAdded: options.waitForAllRequestsToBeAdded ?? false,
+            maxNewRequests: options.maxNewRequests,
 
-        const processChunk = async (chunk: (Source | string)[]): Promise<ProcessedRequest[]> => {
-            const byManager = new Map<T, (Source | string)[]>();
-            for (const request of chunk) {
-                const manager = this.managerForUrl(this.getUrlFromRequest(request));
-                const bucket = byManager.get(manager);
-                if (bucket) {
-                    bucket.push(request);
-                } else {
-                    byManager.set(manager, [request]);
+            // Routing is the only thing this manager adds; the targets do the batching, validation and
+            // deduplication themselves.
+            processChunk: async (chunk) => {
+                const byManager = new Map<T, Source[]>();
+                for (const request of chunk) {
+                    const manager = this.managerForUrl(this.getUrlFromRequest(request));
+                    const bucket = byManager.get(manager);
+                    if (bucket) {
+                        bucket.push(request);
+                    } else {
+                        byManager.set(manager, [request]);
+                    }
                 }
-            }
 
-            const results = await Promise.all(
-                Array.from(byManager, ([manager, slice]) =>
-                    manager.addRequestsBatched(slice, {
-                        forefront,
-                        // The slice is already one batch, and we need its results before releasing the next one.
-                        batchSize: slice.length,
-                        waitForAllRequestsToBeAdded: true,
-                    }),
-                ),
-            );
+                const results = await Promise.all(
+                    Array.from(byManager, ([manager, slice]) =>
+                        manager.addRequestsBatched(slice, {
+                            forefront: options.forefront,
+                            // The slice is already one batch, and we need its results before releasing the next one.
+                            batchSize: slice.length,
+                            waitForAllRequestsToBeAdded: true,
+                        }),
+                    ),
+                );
 
-            const processedRequests = results.flatMap((result) => result.addedRequests);
-            if (maxNewRequests !== undefined) {
-                remainingBudget -= processedRequests.filter((request) => !request.wasAlreadyPresent).length;
-            }
+                return results.flatMap((result) => result.addedRequests);
+            },
 
-            return processedRequests;
-        };
-
-        const buildResult = async (
-            addedRequests: ProcessedRequest[],
-            waitForAllRequestsToBeAdded: Promise<ProcessedRequest[]>,
-        ): Promise<AddRequestsBatchedResult> => {
-            if (maxNewRequests !== undefined) {
-                // `chunkedAsyncIterable` stops pulling once the budget-derived chunk size hits zero, so whatever
-                // is left is still sitting in the source iterator.
-                for await (const request of requestIterator) {
-                    requestsOverLimit.push(typeof request === 'string' ? { url: request } : request);
-                }
-            }
-
-            return { addedRequests, waitForAllRequestsToBeAdded, requestsOverLimit };
-        };
-
-        const initialChunk = await chunksIterator.peek();
-        if (initialChunk === undefined) {
-            return buildResult([], Promise.resolve([]));
-        }
-
-        const addedRequests = await processChunk(initialChunk);
-        await chunksIterator.next();
-
-        if ((await chunksIterator.peek()) === undefined) {
-            return buildResult(addedRequests, Promise.resolve([]));
-        }
-
-        const remainder = (async () => {
-            const added: ProcessedRequest[] = [];
-            for await (const chunk of chunks) {
-                added.push(...(await processChunk(chunk)));
-                await sleep(waitBetweenBatchesMillis);
-            }
-            return added;
-        })();
-
-        // Keep the crawler from concluding it is finished while batches are still landing. The caller is not
-        // obliged to await `remainder`, so every derived promise needs its own handler - an unhandled rejection
-        // here would take the process down.
-        this.inProgressBatchCount += 1;
-        void remainder
-            .catch(() => {})
-            .finally(() => {
-                this.inProgressBatchCount -= 1;
-            });
-
-        // With a budget we must drain everything before we can report what went over it.
-        if (options.waitForAllRequestsToBeAdded || maxNewRequests !== undefined) {
-            addedRequests.push(...(await remainder));
-        }
-
-        return buildResult(addedRequests, remainder);
+            // Keeps the crawler from concluding it is finished while batches are still landing.
+            trackBackgroundBatches: (batches) => {
+                this.inProgressBatchCount += 1;
+                void batches.finally(() => {
+                    this.inProgressBatchCount -= 1;
+                });
+            },
+        });
     }
 
     async reclaimRequest(
