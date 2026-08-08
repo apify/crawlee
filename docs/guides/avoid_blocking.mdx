@@ -13,6 +13,7 @@ import PuppeteerSource from '!!raw-loader!./avoid_blocking_puppeteer';
 import PlaywrightFingerprintsOffSource from '!!raw-loader!./avoid_blocking_playwright_fingerprints_off.ts';
 import PuppeteerFingerprintsOffSource from '!!raw-loader!./avoid_blocking_puppeteer_fingerprints_off.ts';
 import PlaywrightCamoufox from '!!raw-loader!./avoid_blocking_camoufox.ts';
+import PlaywrightCloakBrowser from '!!raw-loader!./avoid_blocking_cloakbrowser.ts';
 
 A scraper might get blocked for numerous reasons. Let's narrow it down to the two main ones. The first is a bad or blocked IP address. You can learn about this topic in the [proxy management guide](./proxy-management). The second reason is [browser fingerprints](https://pixelprivacy.com/resources/browser-fingerprinting/) (or signatures), which we will explore more in this guide. Check the [Apify Academy anti-scraping course](https://docs.apify.com/academy/anti-scraping) to gain a deeper theoretical understanding of blocking and learn a few tips and tricks.
 
@@ -62,6 +63,14 @@ For some protections, using our integrated solutions is not enough, one example 
 
 <CodeBlock language="ts">
     {PlaywrightCamoufox}
+</CodeBlock>
+
+## CloakBrowser
+
+For sites with aggressive anti-bot protection, [CloakBrowser](https://github.com/CloakHQ/CloakBrowser) takes a different approach. Instead of overriding fingerprints at the JavaScript level (which anti-bot scripts can detect as tampering), CloakBrowser ships a custom Chromium binary with fingerprints modified directly in the C++ source code. It is also Chromium-based, which can matter when a target site behaves differently with Firefox than with Chrome. Install it separately with `npm install cloakbrowser` — the binary auto-downloads on first run.
+
+<CodeBlock language="ts">
+    {PlaywrightCloakBrowser}
 </CodeBlock>
 
 **Related links**
