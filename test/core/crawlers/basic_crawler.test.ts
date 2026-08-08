@@ -2476,10 +2476,18 @@ describe('BasicCrawler', () => {
                 const crawler = crawlerWithCrawlDelay({ requestManager });
                 const warning = vitest.spyOn(crawler.log, 'warning').mockImplementation(() => {});
 
-                await crawler.addRequests(['http://example.com/1']);
+                await crawler.addRequests(['http://example.com/1', 'http://example.com/2']);
 
                 expect(warning).not.toHaveBeenCalled();
-                expect(requestManager.setCrawlDelay('http://example.com/1', 999)).toBe(true);
+
+                // The robots.txt `Crawl-delay: 5` must have reached the manager, not merely been survivable.
+                await requestManager.fetchNextRequest();
+                const state = (requestManager as any).domainStates.get('example.com');
+                expect(state.crawlDelayMs).toBe(5_000);
+
+                // ...and it paces dispatch: the next request is held back rather than served immediately.
+                expect(state.crawlDelayUntil).toBeGreaterThan(Date.now() + 4_000);
+                expect(await requestManager.fetchNextRequest()).toBeNull();
             });
 
             test('warns when the request manager cannot honour it', async () => {
