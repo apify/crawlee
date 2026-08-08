@@ -1188,7 +1188,7 @@ const crawler = new CheerioCrawler({
 });
 ```
 
-For the domains you list, a 429 honours `Retry-After` (or backs off exponentially), holds only that domain's requests back, and leaves both the session and the request's retry budget untouched. Because those retries are free, a domain that never stops rate-limiting would keep the crawl alive indefinitely — so one that goes `maxDomainStallSecs` (15 minutes by default) without letting a single request through shuts the crawl down with a `PersistentRateLimitError`, leaving its requests queued for a later run.
+For the domains you list, a 429 is treated as a rate limit before `blockedStatusCodes` is consulted at all — it honours `Retry-After` (or backs off exponentially), holds only that domain's requests back, and leaves both the session and the request's retry budget untouched. Removing 429 from `blockedStatusCodes` therefore only affects domains the manager does not cover; you do not need to touch it to adopt throttling. Because those retries are free, a domain that never stops rate-limiting would keep the crawl alive indefinitely — so one that goes `maxDomainStallSecs` (15 minutes by default) without letting a single request through shuts the crawl down with a `PersistentRateLimitError`, leaving its requests queued for a later run.
 
 It is also what enforces robots.txt `Crawl-delay` directives — with `respectRobotsTxtFile` enabled and no throttling manager covering the domain, the directive is ignored and the crawler warns about it. See the [request loaders guide](../guides/request-loaders#per-domain-throttling).
 

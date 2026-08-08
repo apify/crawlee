@@ -423,6 +423,10 @@ export interface BasicCrawlerOptions<
 
     /**
      * HTTP status codes that indicate the session should be retired.
+     *
+     * A 429 from a domain covered by a {@apilink ThrottlingRequestManager} is handled as a rate limit before
+     * this is consulted, so removing 429 here only affects domains that manager does not cover.
+     *
      * @default [401, 403, 429]
      */
     blockedStatusCodes?: number[];
