@@ -110,7 +110,7 @@ vitest.mock('node:os', async (importActual) => {
     return {
         ...original,
         platform: () => 'darwin',
-        freemem: jest.fn(),
+        freemem: vitest.fn(),
     };
 });
 ```
