@@ -1732,6 +1732,29 @@ describe('BasicCrawler', () => {
             expect(addRequestsBatchedSpy).toHaveBeenCalledOnce();
         });
 
+        test('fetches robots.txt through the crawler proxy configuration', async () => {
+            const proxyUrl = 'http://user:pass@proxy.example:8000';
+            const findSpy = vitest.spyOn(RobotsTxtFile, 'find').mockResolvedValue(
+                RobotsTxtFile.from('http://example.com/robots.txt', 'User-agent: *\nAllow: /\n'),
+            );
+
+            class ProxiedBasicCrawler extends BasicCrawler {
+                proxyConfiguration = {
+                    newProxyInfo: async () => ({ url: proxyUrl }),
+                } as any;
+            }
+
+            const crawler = new ProxiedBasicCrawler({
+                respectRobotsTxtFile: true,
+                requestHandler: async () => {},
+            });
+
+            await (crawler as any).getRobotsTxtFileForUrl('http://example.com/page');
+
+            expect(findSpy).toHaveBeenCalledWith('http://example.com/page', proxyUrl);
+            findSpy.mockRestore();
+        });
+
         test.each([
             {
                 testName: 'custom user-agent robots.txt rules',
