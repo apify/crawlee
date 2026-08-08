@@ -4,7 +4,14 @@ import { Readable } from 'node:stream';
 
 import type { ConcurrencySystemOptions } from '@crawlee/core';
 import { MemoryStorageBackend, serviceLocator } from '@crawlee/core';
-import { ConcurrencySystem, HttpCrawler, RequestQueue, SessionPool, ThrottlingRequestManager } from '@crawlee/http';
+import {
+    ConcurrencySystem,
+    HttpCrawler,
+    PersistentRateLimitError,
+    RequestQueue,
+    SessionPool,
+    ThrottlingRequestManager,
+} from '@crawlee/http';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import iconv from 'iconv-lite';
 
@@ -615,4 +622,33 @@ test('a 429 on a throttled domain paces the retry without spending it or the ses
     // ...and the session came out untouched - a rate limit says nothing about it.
     expect(retiredSessions).toEqual([]);
     expect(markedBad).toEqual([]);
+}, 30_000);
+
+test('a domain that never stops rate-limiting shuts the crawl down instead of hanging', async () => {
+    let hits = 0;
+    router.set('/always-429', (req, res) => {
+        hits++;
+        res.statusCode = 429;
+        res.end();
+    });
+
+    const crawler = new HttpCrawler({
+        requestManager: new ThrottlingRequestManager({
+            inner: await RequestQueue.open(),
+            domains: ['127.0.0.1'],
+            baseDelaySecs: 0.05,
+            maxDelaySecs: 0.1,
+            maxDomainStallSecs: 2,
+        }),
+        maxRequestRetries: 0,
+        requestHandler: async () => {},
+    });
+
+    // Without the stall detector this never resolves - a throttled request costs no retries.
+    await expect(crawler.run([`${url}/always-429`])).rejects.toThrow(PersistentRateLimitError);
+
+    expect(hits).toBeGreaterThan(1);
+
+    // The request is deliberately left queued, so a later run can pick it up if the rate limit lifts.
+    expect(await crawler.getRequestManager().then((manager) => manager.getPendingCount())).toBe(1);
 }, 30_000);

@@ -1098,6 +1098,10 @@ export interface PersistenceOptions {
 }
 
 // @public
+export class PersistentRateLimitError extends CriticalError {
+}
+
+// @public
 export class ProxyConfiguration implements IProxyConfiguration {
     constructor(options?: ProxyConfigurationOptions);
     // (undocumented)
@@ -1335,8 +1339,6 @@ export class RequestManagerTandem implements IRequestManager {
     purge(): Promise<void>;
     // (undocumented)
     reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
-    recordDomainDelay(url: string, retryAfterMs?: number | null): boolean;
-    setCrawlDelay(url: string, delaySeconds: number): boolean;
     setExpectedRequestProcessingTimeSecs(secs: number): Promise<void>;
 }
 
@@ -2000,6 +2002,19 @@ export class StorageStatsTracker<T extends Record<keyof T, number>> {
 }
 
 // @public
+export interface SupportsDomainThrottling {
+    // (undocumented)
+    assertNoStalledDomains(): Promise<void>;
+    // (undocumented)
+    recordDomainDelay(url: string, retryAfterMs?: number | null): boolean;
+    // (undocumented)
+    setCrawlDelay(url: string, delaySeconds: number): boolean;
+}
+
+// @public
+export function supportsDomainThrottling(manager: unknown): manager is SupportsDomainThrottling;
+
+// @public
 export interface SystemInfo {
     // (undocumented)
     clientInfo: ClientInfo;
@@ -2024,13 +2039,14 @@ export interface TaskLoopPredicates {
 }
 
 // @public
-export class ThrottlingRequestManager<T extends IRequestManager = IRequestManager> implements IRequestManager {
+export class ThrottlingRequestManager<T extends IRequestManager = IRequestManager> implements IRequestManager, SupportsDomainThrottling {
     // (undocumented)
     [Symbol.asyncIterator](): AsyncGenerator<Request_2<Dictionary>, void, unknown>;
     constructor(options: ThrottlingRequestManagerOptions<T>, config?: Configuration);
     // (undocumented)
     addRequest(requestLike: Source, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo>;
     addRequestsBatched(requests: RequestsLike, options?: AddRequestsBatchedOptions): Promise<AddRequestsBatchedResult>;
+    assertNoStalledDomains(): Promise<void>;
     // (undocumented)
     drop(): Promise<void>;
     fetchNextRequest<R extends Dictionary = Dictionary>(): Promise<Request_2<R> | null>;
@@ -2057,10 +2073,11 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
 
 // @public
 export interface ThrottlingRequestManagerOptions<T extends IRequestManager = IRequestManager> {
-    baseDelayMs?: number;
+    baseDelaySecs?: number;
     domains: string[];
     inner: T;
-    maxDelayMs?: number;
+    maxDelaySecs?: number;
+    maxDomainStallSecs?: number;
     requestManagerOpener?: RequestManagerOpener<T>;
 }
 

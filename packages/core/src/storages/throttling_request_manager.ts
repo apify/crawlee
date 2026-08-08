@@ -4,6 +4,7 @@ import type { Dictionary, ProcessedRequest } from '@crawlee/types';
 import ow from 'ow';
 
 import type { Configuration } from '../configuration.js';
+import { PersistentRateLimitError } from '../errors.js';
 import { asyncifyIterable, chunkedAsyncIterable, peekableAsyncIterable } from '../iterables.js';
 import type { CrawleeLogger } from '../log.js';
 import type { Request, Source } from '../request.js';
@@ -31,6 +32,32 @@ export type RequestManagerOpener<T extends IRequestManager = IRequestManager> = 
     options?: StorageOpenOptions,
 ) => Promise<T>;
 
+/**
+ * A request manager that can pace requests per domain, as {@apilink ThrottlingRequestManager} does.
+ *
+ * The crawlers detect this structurally rather than by type, so a wrapper can opt in by forwarding these three
+ * methods without {@apilink IRequestManager} having to know that throttling exists.
+ */
+export interface SupportsDomainThrottling {
+    /** @see {@apilink ThrottlingRequestManager.recordDomainDelay} */
+    recordDomainDelay(url: string, retryAfterMs?: number | null): boolean;
+    /** @see {@apilink ThrottlingRequestManager.setCrawlDelay} */
+    setCrawlDelay(url: string, delaySeconds: number): boolean;
+    /** @see {@apilink ThrottlingRequestManager.assertNoStalledDomains} */
+    assertNoStalledDomains(): Promise<void>;
+}
+
+/** Whether `manager` can pace requests per domain. */
+export function supportsDomainThrottling(manager: unknown): manager is SupportsDomainThrottling {
+    const candidate = manager as Partial<SupportsDomainThrottling> | null | undefined;
+
+    return (
+        typeof candidate?.recordDomainDelay === 'function' &&
+        typeof candidate.setCrawlDelay === 'function' &&
+        typeof candidate.assertNoStalledDomains === 'function'
+    );
+}
+
 /** Options for {@apilink ThrottlingRequestManager}. */
 export interface ThrottlingRequestManagerOptions<T extends IRequestManager = IRequestManager> {
     /**
@@ -53,16 +80,27 @@ export interface ThrottlingRequestManagerOptions<T extends IRequestManager = IRe
 
     /**
      * The delay applied after a domain's first HTTP 429, doubled on each subsequent one.
-     * @default 2000
+     * @default 2
      */
-    baseDelayMs?: number;
+    baseDelaySecs?: number;
 
     /**
      * Upper bound on the delay between requests to a rate-limited domain, applied to both the exponential
      * backoff and a `Retry-After` value.
-     * @default 60000
+     * @default 60
      */
-    maxDelayMs?: number;
+    maxDelaySecs?: number;
+
+    /**
+     * How long a domain may rate-limit us without a single request getting through before the crawl is
+     * abandoned with a {@apilink PersistentRateLimitError}.
+     *
+     * A domain that keeps answering 429 for this long is not going to be crawled by waiting longer - the
+     * concurrency is too high for it, or it has blocked us outright. Its requests are deliberately left in
+     * their queue, so re-running the crawl without purging storages picks them up once the domain recovers.
+     * @default 900
+     */
+    maxDomainStallSecs?: number;
 }
 
 interface DomainState {
@@ -80,6 +118,8 @@ interface DomainState {
     consecutive429Count: number;
     /** Minimum interval between dispatches, from a robots.txt `Crawl-delay` directive. */
     crawlDelayMs: number | null;
+    /** When this domain last let a request through, as a `Date.now()` timestamp. Drives stall detection. */
+    lastProgressAt: number;
 }
 
 /** The moment a domain may be dispatched to again - whichever of its two independent clocks runs longer. */
@@ -154,11 +194,14 @@ export function parseRetryAfterHeader(value?: string | null): number | null {
  *
  * @category Sources
  */
-export class ThrottlingRequestManager<T extends IRequestManager = IRequestManager> implements IRequestManager {
+export class ThrottlingRequestManager<T extends IRequestManager = IRequestManager>
+    implements IRequestManager, SupportsDomainThrottling
+{
     private readonly inner: T;
     private readonly requestManagerOpener: RequestManagerOpener<T>;
     private readonly baseDelayMs: number;
     private readonly maxDelayMs: number;
+    private readonly maxDomainStallMs: number;
 
     private readonly domainStates = new Map<string, DomainState>();
     private readonly subManagers = new Map<string, T>();
@@ -190,8 +233,9 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
                 inner: ow.object,
                 domains: ow.array.ofType(ow.string),
                 requestManagerOpener: ow.optional.function,
-                baseDelayMs: ow.optional.number,
-                maxDelayMs: ow.optional.number,
+                baseDelaySecs: ow.optional.number,
+                maxDelaySecs: ow.optional.number,
+                maxDomainStallSecs: ow.optional.number,
             }),
         );
 
@@ -199,9 +243,12 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         this.requestManagerOpener =
             options.requestManagerOpener ??
             ((idOrAlias, opts) => RequestQueue.open(idOrAlias, opts) as unknown as Promise<T>);
-        this.baseDelayMs = options.baseDelayMs ?? 2_000;
-        this.maxDelayMs = options.maxDelayMs ?? 60_000;
+        this.baseDelayMs = (options.baseDelaySecs ?? 2) * 1000;
+        this.maxDelayMs = (options.maxDelaySecs ?? 60) * 1000;
+        this.maxDomainStallMs = (options.maxDomainStallSecs ?? 900) * 1000;
         this.log = serviceLocator.getLogger().child({ prefix: 'ThrottlingRequestManager' });
+
+        const now = Date.now();
 
         for (const domain of options.domains) {
             if (domain) {
@@ -213,6 +260,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
                     backoffDecaysAt: 0,
                     consecutive429Count: 0,
                     crawlDelayMs: null,
+                    lastProgressAt: now,
                 });
             }
         }
@@ -342,8 +390,8 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
             const source = retryAfterGiven ? 'Retry-After header' : 'exponential backoff';
             this.log.warning(
                 `Capping ${source} delay of ${(delayMs / 1000).toFixed(1)}s for domain "${state.domain}" ` +
-                    `to maxDelayMs (${(this.maxDelayMs / 1000).toFixed(1)}s); the domain may continue to rate-limit. ` +
-                    `Consider increasing maxDelayMs if this recurs.`,
+                    `to maxDelaySecs (${(this.maxDelayMs / 1000).toFixed(1)}s); the domain may continue to rate-limit. ` +
+                    `Consider increasing maxDelaySecs if this recurs.`,
             );
             delayMs = this.maxDelayMs;
         }
@@ -378,6 +426,52 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         }
 
         return true;
+    }
+
+    /**
+     * Throws {@apilink PersistentRateLimitError} if any domain has been rate-limiting us past
+     * {@apilink ThrottlingRequestManagerOptions.maxDomainStallSecs|`maxDomainStallSecs`} without letting a single
+     * request through.
+     *
+     * A domain qualifies only while it still has queued requests and is actively rate-limiting - a domain that
+     * has simply run out of work is finished, not stalled.
+     */
+    async assertNoStalledDomains(): Promise<void> {
+        await this.ensureSubManagers();
+
+        const now = Date.now();
+        const candidates = Array.from(this.domainStates.values()).filter(
+            (state) => state.consecutive429Count > 0 && now - state.lastProgressAt > this.maxDomainStallMs,
+        );
+
+        const stalled = (
+            await Promise.all(
+                candidates.map(async (state) => ((await this.subManagers.get(state.domain)!.isEmpty()) ? null : state)),
+            )
+        ).filter((state) => state !== null);
+
+        if (stalled.length === 0) {
+            return;
+        }
+
+        const summary = stalled
+            .map((state) => `"${state.domain}" (${((now - state.lastProgressAt) / 1000).toFixed(0)}s)`)
+            .join(', ');
+
+        throw new PersistentRateLimitError(
+            `Giving up: ${summary} rate-limited every request for longer than maxDomainStallSecs ` +
+                `(${(this.maxDomainStallMs / 1000).toFixed(0)}s). Waiting longer will not help - lower the ` +
+                `crawler's concurrency, or drop these domains. Their requests are still queued, so re-running ` +
+                `without purging storages will resume them if the rate limit lifts.`,
+        );
+    }
+
+    /** Records that a domain let a request through, which is what stall detection watches for. */
+    private recordProgress(url: string): void {
+        const state = this.getDomainState(url);
+        if (state) {
+            state.lastProgressAt = Date.now();
+        }
     }
 
     // --- IRequestManager Implementation ---
@@ -514,6 +608,8 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
 
     async markRequestAsHandled(request: Request): Promise<RequestQueueOperationInfo | void | null> {
         const manager = await this.selectManager(request.url);
+        // Reached whether the request succeeded or ran out of retries; either way the domain answered us.
+        this.recordProgress(request.url);
         return manager.markRequestAsHandled(request);
     }
 
@@ -559,11 +655,13 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
      */
     async purge(): Promise<void> {
         await this.forEachManager((manager) => manager.purge?.());
+        const now = Date.now();
         for (const state of this.domainStates.values()) {
             state.consecutive429Count = 0;
             state.backoffUntil = 0;
             state.crawlDelayUntil = 0;
             state.backoffDecaysAt = 0;
+            state.lastProgressAt = now;
         }
     }
 

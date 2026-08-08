@@ -11,7 +11,6 @@ import type {
     RequestQueueOperationInfo,
     RequestQueueOperationOptions,
 } from './request_queue.js';
-import { ThrottlingRequestManager } from './throttling_request_manager.js';
 
 /**
  * A request manager that combines a {@apilink IRequestLoader} (such as a `RequestList`) with a writable
@@ -244,27 +243,5 @@ export class RequestManagerTandem implements IRequestManager {
     async setExpectedRequestProcessingTimeSecs(secs: number): Promise<void> {
         this.expectedRequestProcessingSecs = secs;
         await this.resolvedRequestManager?.setExpectedRequestProcessingTimeSecs?.(secs);
-    }
-
-    /**
-     * Forwards to the wrapped manager if it throttles. Reports `false` when it does not, or when it has not been
-     * resolved yet - a tandem resolves on first use, so the answer is only meaningful once crawling has started.
-     */
-    setCrawlDelay(url: string, delaySeconds: number): boolean {
-        return this.throttlingRequestManager?.setCrawlDelay(url, delaySeconds) ?? false;
-    }
-
-    /**
-     * Forwards to the wrapped manager if it throttles, otherwise reports `false`.
-     * @see {@apilink RequestManagerTandem.setCrawlDelay}
-     */
-    recordDomainDelay(url: string, retryAfterMs?: number | null): boolean {
-        return this.throttlingRequestManager?.recordDomainDelay(url, retryAfterMs) ?? false;
-    }
-
-    private get throttlingRequestManager(): ThrottlingRequestManager | undefined {
-        return this.resolvedRequestManager instanceof ThrottlingRequestManager
-            ? this.resolvedRequestManager
-            : undefined;
     }
 }

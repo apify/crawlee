@@ -67,6 +67,16 @@ export class RequestThrottledError extends RetryRequestError {
 }
 
 /**
+ * Thrown when a domain has rate-limited us for so long that no request has got through, and the crawl is
+ * abandoned rather than kept waiting.
+ *
+ * Waiting longer will not help: at this point the concurrency is too high for the domain, or it has blocked us.
+ * The affected requests are deliberately left in their queue, so re-running the crawl without purging storages
+ * resumes them once the domain recovers.
+ */
+export class PersistentRateLimitError extends CriticalError {}
+
+/**
  * Errors of `SessionError` type retire the session associated with the request and trigger a regular retry.
  *
  * The retry counts towards the `maxRequestRetries` limit, just like any other error.

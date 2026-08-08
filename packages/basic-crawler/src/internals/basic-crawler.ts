@@ -31,7 +31,6 @@ import type {
     StorageIdentifier,
     TaskLoopPredicates,
     TypedRequestsLike,
-    ThrottlingRequestManager,
 } from '@crawlee/core';
 import {
     AutoscaledPool,
@@ -64,6 +63,7 @@ import {
     RequestQueue,
     RequestState,
     RetryRequestError,
+    supportsDomainThrottling,
     Router,
     ServiceLocator,
     serviceLocator,
@@ -1172,6 +1172,12 @@ export class BasicCrawler<
                         return true;
                     }
 
+                    // Checked here because this runs only once nothing is in flight, which is exactly when a
+                    // crawl that cannot progress looks indistinguishable from one that is merely waiting.
+                    if (supportsDomainThrottling(this.requestManager)) {
+                        await this.requestManager.assertNoStalledDomains();
+                    }
+
                     const isFinished = isFinishedFunction
                         ? await isFinishedFunction()
                         : await this.defaultIsFinishedFunction();
@@ -2152,8 +2158,10 @@ export class BasicCrawler<
      *  {@apilink RequestThrottledError} rather than treating the response as a blocked session.
      */
     protected recordDomainRateLimit(url: string, retryAfterHeader?: string | null): boolean {
-        const manager = this.requestManager as Partial<ThrottlingRequestManager> | undefined;
-        if (manager?.recordDomainDelay?.(url, parseRetryAfterHeader(retryAfterHeader)) === true) {
+        if (
+            supportsDomainThrottling(this.requestManager) &&
+            this.requestManager.recordDomainDelay(url, parseRetryAfterHeader(retryAfterHeader))
+        ) {
             return true;
         }
 
@@ -2172,14 +2180,11 @@ export class BasicCrawler<
     /**
      * Hands a robots.txt `Crawl-delay` to the request manager, warning if nothing is able to honour it.
      *
-     * Only a {@apilink ThrottlingRequestManager} can pace dispatch per domain, and only for the domains it was
-     * configured with - so the warning is driven by whether the delay was actually accepted, not by the type of
-     * the manager. Both are easy to get wrong: a correctly wrapped manager still drops the delay for a domain
-     * missing from its `domains` list.
+     * The warning is driven by whether the delay was actually accepted rather than by the type of the manager,
+     * because a manager that does throttle still drops the delay for a domain missing from its `domains` list.
      */
     private applyCrawlDelay(url: string, delaySeconds: number): void {
-        const manager = this.requestManager as Partial<ThrottlingRequestManager> | undefined;
-        if (manager?.setCrawlDelay?.(url, delaySeconds)) {
+        if (supportsDomainThrottling(this.requestManager) && this.requestManager.setCrawlDelay(url, delaySeconds)) {
             return;
         }
 

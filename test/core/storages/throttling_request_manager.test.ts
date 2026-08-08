@@ -1,4 +1,4 @@
-import { MemoryStorageBackend, RequestQueue, serviceLocator } from '@crawlee/core';
+import { MemoryStorageBackend, PersistentRateLimitError, RequestQueue, serviceLocator } from '@crawlee/core';
 import {
     ThrottlingRequestManager,
     parseRetryAfterHeader,
@@ -194,7 +194,7 @@ describe('ThrottlingRequestManager', () => {
         const manager = new ThrottlingRequestManager({
             inner,
             domains: ['example.com', 'foo.com'],
-            baseDelayMs: 100,
+            baseDelaySecs: 0.1,
         });
 
         await manager.addRequest({ url: 'https://example.com/1' });
@@ -226,8 +226,8 @@ describe('ThrottlingRequestManager', () => {
         const manager = new ThrottlingRequestManager({
             inner: await createQueue(),
             domains: ['example.com'],
-            baseDelayMs: 50,
-            maxDelayMs: 60_000,
+            baseDelaySecs: 0.05,
+            maxDelaySecs: 60,
         });
 
         // Eight requests were already in flight when the limit was hit; they all come back 429.
@@ -242,8 +242,8 @@ describe('ThrottlingRequestManager', () => {
         const manager = new ThrottlingRequestManager({
             inner: await createQueue(),
             domains: ['example.com'],
-            baseDelayMs: 20,
-            maxDelayMs: 60_000,
+            baseDelaySecs: 0.02,
+            maxDelaySecs: 60,
         });
 
         manager.recordDomainDelay('https://example.com/1');
@@ -257,11 +257,11 @@ describe('ThrottlingRequestManager', () => {
         expect(domainState(manager, 'example.com').consecutive429Count).toBe(1);
     });
 
-    test('caps the delay at maxDelayMs', async () => {
+    test('caps the delay at maxDelaySecs', async () => {
         const manager = new ThrottlingRequestManager({
             inner: await createQueue(),
             domains: ['example.com'],
-            maxDelayMs: 1000,
+            maxDelaySecs: 1,
         });
 
         manager.recordDomainDelay('https://example.com/1', 3_600_000);
@@ -273,7 +273,7 @@ describe('ThrottlingRequestManager', () => {
         const manager = new ThrottlingRequestManager({
             inner: await createQueue(),
             domains: ['example.com'],
-            maxDelayMs: 60_000,
+            maxDelaySecs: 60,
         });
 
         await manager.addRequest({ url: 'https://example.com/1' });
@@ -312,6 +312,60 @@ describe('ThrottlingRequestManager', () => {
 
         const subQueue = await RequestQueue.open({ alias: 'throttled-example.com' });
         expect(await subQueue.getPendingCount()).toBe(0);
+    });
+
+    describe('stall detection', () => {
+        const stallingManager = async () =>
+            new ThrottlingRequestManager({
+                inner: await createQueue(),
+                domains: ['example.com'],
+                baseDelaySecs: 0.01,
+                maxDomainStallSecs: 30,
+            });
+
+        /** Ages the domain past its stall threshold. Backdating beats sleeping - a loaded CI box cannot race it. */
+        const stallFor = (manager: ThrottlingRequestManager, domain: string) => {
+            domainState(manager, domain).lastProgressAt -= 60_000;
+        };
+
+        test('gives up on a domain that never lets a request through', async () => {
+            const manager = await stallingManager();
+            await manager.addRequest({ url: 'https://example.com/1' });
+            manager.recordDomainDelay('https://example.com/1');
+
+            await expect(manager.assertNoStalledDomains()).resolves.toBeUndefined();
+
+            stallFor(manager, 'example.com');
+            await expect(manager.assertNoStalledDomains()).rejects.toThrow(PersistentRateLimitError);
+        });
+
+        test('a handled request resets the clock', async () => {
+            const manager = await stallingManager();
+            await manager.addRequest({ url: 'https://example.com/1' });
+            await manager.addRequest({ url: 'https://example.com/2' });
+            manager.recordDomainDelay('https://example.com/1');
+            stallFor(manager, 'example.com');
+
+            await manager.markRequestAsHandled((await pollForNextRequest(manager))!);
+
+            await expect(manager.assertNoStalledDomains()).resolves.toBeUndefined();
+        });
+
+        test('a domain that has run out of work is finished, not stalled', async () => {
+            const manager = await stallingManager();
+            manager.recordDomainDelay('https://example.com/1');
+            stallFor(manager, 'example.com');
+
+            await expect(manager.assertNoStalledDomains()).resolves.toBeUndefined();
+        });
+
+        test('a domain that was never rate-limited is never stalled', async () => {
+            const manager = await stallingManager();
+            await manager.addRequest({ url: 'https://example.com/1' });
+            stallFor(manager, 'example.com');
+
+            await expect(manager.assertNoStalledDomains()).resolves.toBeUndefined();
+        });
     });
 
     test('a crawl-delay does not swallow the 429 backoff', async () => {
