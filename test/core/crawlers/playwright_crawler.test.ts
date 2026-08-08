@@ -5,7 +5,7 @@ import os from 'node:os';
 import type { PlaywrightCrawlingContext, PlaywrightGotoOptions, Request } from '@crawlee/playwright';
 import { type ConcurrencySystem, MemoryStorageBackend, serviceLocator } from '@crawlee/core';
 import { createPlaywrightRouter, PlaywrightCrawler, RequestList, RequestValidationError } from '@crawlee/playwright';
-import type { Cheerio, CheerioAPI, CheerioRoot, Element } from '@crawlee/utils';
+import type { Cheerio, CheerioAPI, CheerioRoot, Element } from '@crawlee/utils/internal';
 import { sleep } from '@crawlee/utils';
 import express from 'express';
 import playwright from 'playwright';

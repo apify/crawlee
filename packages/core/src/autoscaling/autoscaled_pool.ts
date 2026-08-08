@@ -124,31 +124,31 @@ export interface AutoscaledPoolOptions extends TaskLoopPredicates {
  * @internal
  */
 export class AutoscaledPool {
-    private readonly log: CrawleeLogger;
+    readonly #log: CrawleeLogger;
 
     // Configurable properties.
-    private readonly maybeRunIntervalMillis: number;
-    private readonly taskTimeoutMillis: number;
-    private readonly runTaskFunction: () => Promise<unknown>;
-    private readonly isFinishedFunction: () => Promise<boolean>;
-    private readonly isTaskReadyFunction: () => Promise<boolean>;
+    readonly #maybeRunIntervalMillis: number;
+    readonly #taskTimeoutMillis: number;
+    readonly #runTaskFunction: () => Promise<unknown>;
+    readonly #isFinishedFunction: () => Promise<boolean>;
+    readonly #isTaskReadyFunction: () => Promise<boolean>;
 
-    private readonly concurrencySystem: IConcurrencySystem;
-    private readonly consumer: ConcurrencyConsumer;
+    readonly #concurrencySystem: IConcurrencySystem;
+    readonly #consumer: ConcurrencyConsumer;
 
     // Internal properties.
-    private isStopped = false;
-    private resolve: ((val?: unknown) => void) | null = null;
-    private reject: ((reason?: unknown) => void) | null = null;
-    private maybeRunInterval!: BetterIntervalID;
-    private queryingIsTaskReady!: boolean;
-    private queryingIsFinished!: boolean;
+    #isStopped = false;
+    #resolve: ((val?: unknown) => void) | null = null;
+    #reject: ((reason?: unknown) => void) | null = null;
+    #maybeRunInterval!: BetterIntervalID;
+    #queryingIsTaskReady!: boolean;
+    #queryingIsFinished!: boolean;
 
     /**
      * This pool's *own* in-flight task count, as opposed to {@apilink AutoscaledPool.currentConcurrency}, which is the
      * (possibly shared) governor's total. `pause()` and `maybeFinish()` care only about this pool draining.
      */
-    private ownConcurrency = 0;
+    #ownConcurrency = 0;
 
     constructor(options: AutoscaledPoolOptions) {
         ow(
@@ -176,22 +176,22 @@ export class AutoscaledPool {
             consumer,
         } = options;
 
-        this.log = log.child({ prefix: 'AutoscaledPool' });
+        this.#log = log.child({ prefix: 'AutoscaledPool' });
 
         // Configurable properties.
-        this.maybeRunIntervalMillis = maybeRunIntervalSecs * 1000;
-        this.taskTimeoutMillis = taskTimeoutSecs * 1000;
-        this.runTaskFunction = runTaskFunction;
-        this.isFinishedFunction = isFinishedFunction;
-        this.isTaskReadyFunction = isTaskReadyFunction;
+        this.#maybeRunIntervalMillis = maybeRunIntervalSecs * 1000;
+        this.#taskTimeoutMillis = taskTimeoutSecs * 1000;
+        this.#runTaskFunction = runTaskFunction;
+        this.#isFinishedFunction = isFinishedFunction;
+        this.#isTaskReadyFunction = isTaskReadyFunction;
 
-        this.concurrencySystem = concurrencySystem;
-        this.consumer = consumer;
+        this.#concurrencySystem = concurrencySystem;
+        this.#consumer = consumer;
 
         // Internal properties.
-        this.isStopped = false;
-        this.resolve = null;
-        this.reject = null;
+        this.#isStopped = false;
+        this.#resolve = null;
+        this.#reject = null;
         this.maybeRunTask = this.maybeRunTask.bind(this);
     }
 
@@ -203,12 +203,12 @@ export class AutoscaledPool {
      * {@apilink ConcurrencySystem} its owner holds, never through the pool.
      */
     get system(): IConcurrencySystem {
-        return this.concurrencySystem;
+        return this.#concurrencySystem;
     }
 
     /** The estimated number of parallel tasks the governor can currently support. */
     get desiredConcurrency(): number {
-        return this.concurrencySystem.desiredConcurrency;
+        return this.#concurrencySystem.desiredConcurrency;
     }
 
     /**
@@ -216,7 +216,7 @@ export class AutoscaledPool {
      * borrowing pool's tasks, not just this one's.
      */
     get currentConcurrency(): number {
-        return this.concurrencySystem.currentConcurrency;
+        return this.#concurrencySystem.currentConcurrency;
     }
 
     /**
@@ -229,7 +229,7 @@ export class AutoscaledPool {
     async run(): Promise<void> {
         // Checked here, on an awaited path — the capacity queries inside the task loop run from intervals and
         // `setImmediate`, where a throw would become an unhandled rejection and hang `run()` forever.
-        if (!this.concurrencySystem.isRunning) {
+        if (!this.#concurrencySystem.isRunning) {
             throw new CriticalError(
                 'The ConcurrencySystem this AutoscaledPool borrows has not been started, so system load would not be ' +
                     'monitored and the concurrency would never be adjusted. Whoever creates a ConcurrencySystem owns ' +
@@ -239,20 +239,20 @@ export class AutoscaledPool {
         }
 
         const poolPromise = new Promise((resolve, reject) => {
-            this.resolve = resolve;
-            this.reject = reject;
+            this.#resolve = resolve;
+            this.#reject = reject;
         });
 
         // This is here because if we scale down to let's say 1, then after each promise is finished
         // this.maybeRunTask() doesn't trigger another one. So if that 1 instance gets stuck it results
         // in the crawler getting stuck and even after scaling up it never triggers another promise.
-        this.maybeRunInterval = betterSetInterval(this.maybeRunTask, this.maybeRunIntervalMillis);
+        this.#maybeRunInterval = betterSetInterval(this.maybeRunTask, this.#maybeRunIntervalMillis);
 
         try {
             await poolPromise;
         } finally {
             // If resolve is null, the pool is already destroyed.
-            if (this.resolve) await this.destroy();
+            if (this.#resolve) await this.destroy();
         }
     }
 
@@ -268,9 +268,9 @@ export class AutoscaledPool {
      * parts of their asynchronous chains of commands will not execute.
      */
     async abort(): Promise<void> {
-        this.isStopped = true;
-        if (this.resolve) {
-            this.resolve();
+        this.#isStopped = true;
+        if (this.#resolve) {
+            this.#resolve();
             await this.destroy();
         }
     }
@@ -291,8 +291,8 @@ export class AutoscaledPool {
      * it during a long pause, its owner can `stop()` and `start()` it again.
      */
     async pause(timeoutSecs?: number): Promise<void> {
-        if (this.isStopped) return;
-        this.isStopped = true;
+        if (this.#isStopped) return;
+        this.#isStopped = true;
         await new Promise<void>((resolve, reject) => {
             let timeout: NodeJS.Timeout;
             let interval: NodeJS.Timeout;
@@ -309,13 +309,13 @@ export class AutoscaledPool {
             }
 
             interval = setInterval(() => {
-                if (this.ownConcurrency <= 0) {
+                if (this.#ownConcurrency <= 0) {
                     // Clean up timeout and interval to prevent process hanging.
                     if (timeout) clearTimeout(timeout);
                     clearInterval(interval);
                     resolve();
                 }
-            }, this.maybeRunIntervalMillis);
+            }, this.#maybeRunIntervalMillis);
         });
     }
 
@@ -326,7 +326,7 @@ export class AutoscaledPool {
      * Tasks will automatically start running again in `options.maybeRunIntervalSecs`.
      */
     resume(): void {
-        this.isStopped = false;
+        this.#isStopped = false;
     }
 
     /**
@@ -341,28 +341,28 @@ export class AutoscaledPool {
      * Starts a new task
      * if the number of running tasks (current concurrency) is lower than desired concurrency
      * and the system is not currently overloaded
-     * and this.isTaskReadyFunction() returns true.
+     * and `isTaskReadyFunction()` returns true.
      *
      * It doesn't allow multiple concurrent runs of this method.
      */
     private async maybeRunTask(intervalCallback?: () => void): Promise<void> {
-        this.log.perf('Attempting to run a task.');
+        this.#log.perf('Attempting to run a task.');
         // Check if the function was invoked by the maybeRunInterval and use an empty function if not.
         const done = intervalCallback || (() => {});
 
         // Prevent starting a new task if:
         // - the pool is paused or aborted
-        if (this.isStopped) {
-            this.log.perf('Task will not run. AutoscaledPool is stopped.');
+        if (this.#isStopped) {
+            this.#log.perf('Task will not run. AutoscaledPool is stopped.');
             return done();
         }
         // - we are already querying for a task.
-        if (this.queryingIsTaskReady) {
-            this.log.perf('Task will not run. Waiting for a ready task.');
+        if (this.#queryingIsTaskReady) {
+            this.#log.perf('Task will not run. Waiting for a ready task.');
             return done();
         }
         // - the budget has room for us.
-        if (!this.concurrencySystem.hasCapacityForTask(this.consumer)) {
+        if (!this.#concurrencySystem.hasCapacityForTask(this.#consumer)) {
             done();
             // A shared governor's budget can stay saturated by another pool indefinitely, so we still have to be able
             // to notice that *this* pool has run out of work — `maybeFinish()` is the only thing that ever resolves
@@ -371,25 +371,25 @@ export class AutoscaledPool {
             return this.maybeFinish();
         }
         // - a task is ready.
-        this.queryingIsTaskReady = true;
+        this.#queryingIsTaskReady = true;
         let isTaskReady;
         try {
-            this.log.perf('Checking for ready tasks.');
-            isTaskReady = await this.isTaskReadyFunction();
+            this.#log.perf('Checking for ready tasks.');
+            isTaskReady = await this.#isTaskReadyFunction();
         } catch (e) {
             const err = e as Error;
-            this.log.perf('Checking for ready tasks failed.');
+            this.#log.perf('Checking for ready tasks failed.');
             // We might have already rejected this promise.
-            if (this.reject) {
+            if (this.#reject) {
                 // No need to log all concurrent errors.
-                this.log.exception(err, 'isTaskReadyFunction failed');
-                this.reject(err);
+                this.#log.exception(err, 'isTaskReadyFunction failed');
+                this.#reject(err);
             }
         } finally {
-            this.queryingIsTaskReady = false;
+            this.#queryingIsTaskReady = false;
         }
         if (!isTaskReady) {
-            this.log.perf('Task will not run. No tasks are ready.');
+            this.#log.perf('Task will not run. No tasks are ready.');
             done();
             // No tasks could mean that we're finished with all tasks.
             return this.maybeFinish();
@@ -397,11 +397,11 @@ export class AutoscaledPool {
 
         // - the budget still has room. Re-checked atomically, because another pool sharing the governor may have taken
         // the last free slot while we awaited `isTaskReadyFunction` above.
-        if (!this.concurrencySystem.tryRegisterTaskStart(this.consumer)) {
+        if (!this.#concurrencySystem.tryRegisterTaskStart(this.#consumer)) {
             return done();
         }
 
-        this.ownConcurrency++;
+        this.#ownConcurrency++;
 
         try {
             // Everything's fine. Run task.
@@ -413,67 +413,67 @@ export class AutoscaledPool {
             done();
 
             // Execute the current task.
-            this.log.perf('Running a task.');
+            this.#log.perf('Running a task.');
 
-            if (this.taskTimeoutMillis > 0) {
+            if (this.#taskTimeoutMillis > 0) {
                 await addTimeoutToPromise(
-                    async () => this.runTaskFunction(),
-                    this.taskTimeoutMillis,
-                    `runTaskFunction timed out after ${this.taskTimeoutMillis / 1000} seconds.`,
+                    async () => this.#runTaskFunction(),
+                    this.#taskTimeoutMillis,
+                    `runTaskFunction timed out after ${this.#taskTimeoutMillis / 1000} seconds.`,
                 );
             } else {
-                await this.runTaskFunction();
+                await this.#runTaskFunction();
             }
 
-            this.log.perf('Task finished.');
+            this.#log.perf('Task finished.');
             // Run task after the previous one finished. Only on success: a failed task rejects the pool, and
             // nudging the loop afterwards could start work on an already destroyed pool.
             setImmediate(this.maybeRunTask);
         } catch (e) {
             const err = e as Error;
-            this.log.perf('Running a task failed.');
+            this.#log.perf('Running a task failed.');
             // We might have already rejected this promise.
-            if (this.reject) {
+            if (this.#reject) {
                 // No need to log all concurrent errors.
                 if (
                     // avoid reprinting the same critical error multiple times, as it will be printed by Nodejs at the end anyway
                     !(e instanceof CriticalError)
                 ) {
-                    this.log.exception(err, 'runTaskFunction failed.');
+                    this.#log.exception(err, 'runTaskFunction failed.');
                 }
-                this.reject(err);
+                this.#reject(err);
             }
         } finally {
-            this.concurrencySystem.registerTaskEnd(this.consumer);
-            this.ownConcurrency--;
+            this.#concurrencySystem.registerTaskEnd(this.#consumer);
+            this.#ownConcurrency--;
         }
 
         return undefined;
     }
 
     /**
-     * If there are no running tasks and this.isFinishedFunction() returns true then closes
+     * If there are no running tasks and `isFinishedFunction()` returns true then closes
      * the pool and resolves the pool's promise returned by the run() method.
      *
      * It doesn't allow multiple concurrent runs of this method.
      */
     private async maybeFinish(): Promise<void> {
-        if (this.queryingIsFinished) return;
-        if (this.ownConcurrency > 0) return;
+        if (this.#queryingIsFinished) return;
+        if (this.#ownConcurrency > 0) return;
 
-        this.queryingIsFinished = true;
+        this.#queryingIsFinished = true;
         try {
-            const isFinished = await this.isFinishedFunction();
-            if (isFinished && this.resolve) this.resolve();
+            const isFinished = await this.#isFinishedFunction();
+            if (isFinished && this.#resolve) this.#resolve();
         } catch (e) {
             const err = e as Error;
-            if (this.reject) {
+            if (this.#reject) {
                 // No need to log all concurrent errors.
-                this.log.exception(err, 'isFinishedFunction failed.');
-                this.reject(err);
+                this.#log.exception(err, 'isFinishedFunction failed.');
+                this.#reject(err);
             }
         } finally {
-            this.queryingIsFinished = false;
+            this.#queryingIsFinished = false;
         }
     }
 
@@ -481,9 +481,9 @@ export class AutoscaledPool {
      * Cleans up resources.
      */
     private async destroy(): Promise<void> {
-        this.resolve = null;
-        this.reject = null;
+        this.#resolve = null;
+        this.#reject = null;
 
-        betterClearInterval(this.maybeRunInterval);
+        betterClearInterval(this.#maybeRunInterval);
     }
 }

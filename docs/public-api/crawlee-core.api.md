@@ -45,7 +45,7 @@ import type { StandardSchemaV1 } from '@standard-schema/spec';
 import type * as storage from '@crawlee/types';
 import { StorageBackend } from '@crawlee/types';
 import { StorageIdentifier } from '@crawlee/types';
-import { tryAbsoluteURL } from '@crawlee/utils';
+import { tryAbsoluteURL } from '@crawlee/utils/internal';
 import { z } from 'zod';
 
 // @public (undocumented)
@@ -132,7 +132,15 @@ interface BrowserPage {
 }
 
 // @public
-export const checkStorageAccess: () => void | undefined;
+export interface CalculatedStatistics {
+    crawlerRuntimeMillis: number;
+    requestAvgFailedDurationMillis: number;
+    requestAvgFinishedDurationMillis: number;
+    requestsFailedPerMinute: number;
+    requestsFinishedPerMinute: number;
+    requestsTotal: number;
+    requestTotalDurationMillis: number;
+}
 
 // @public (undocumented)
 export interface ClientInfo {
@@ -334,6 +342,9 @@ export interface CreateSession {
 }
 
 // @public
+export function createStorageTransaction(options?: StorageTransactionOptions): StorageTransaction;
+
+// @public
 export class CriticalError extends NonRetryableError {
 }
 
@@ -456,6 +467,17 @@ export interface DatasetExportToOptions extends DatasetExportOptions {
 
 // @public (undocumented)
 export interface DatasetIteratorOptions extends Omit<DatasetDataOptions, 'offset' | 'limit' | 'clean' | 'skipHidden' | 'skipEmpty'> {
+}
+
+// @public
+export interface DatasetJournalEntry {
+    items: Dictionary[];
+    // (undocumented)
+    recordedAt: Date;
+    // (undocumented)
+    storageId: string;
+    // (undocumented)
+    type: 'dataset';
 }
 
 // @public
@@ -818,12 +840,43 @@ export interface IRequestManager extends IRequestLoader {
 }
 
 // @public
+export interface IStatistics {
+    calculate(): CalculatedStatistics;
+    discardJob(id: number | string): void;
+    readonly errorTracker: ErrorTracker;
+    readonly errorTrackerRetry: ErrorTracker;
+    failJob(id: number | string, retryCount: number): void;
+    finishJob(id: number | string, retryCount: number): void;
+    persistState?(options?: PersistenceOptions): Promise<void>;
+    registerStatusCode(code: number): void;
+    readonly requestRetryHistogram: number[];
+    startCapturing(): Promise<void>;
+    startJob(id: number | string): void;
+    readonly state: StatisticState;
+    stopCapturing(): Promise<void>;
+}
+
+// @public
 export interface IStorage {
     // (undocumented)
     id: string;
     // (undocumented)
     name?: string;
 }
+
+// @public
+export interface JournaledRequest {
+    // (undocumented)
+    label?: string;
+    snapshot?: Dictionary;
+    // (undocumented)
+    uniqueKey: string;
+    // (undocumented)
+    url: string;
+}
+
+// @public (undocumented)
+export type JournalEntry = DatasetJournalEntry | KeyValueStoreJournalEntry | RequestQueueJournalEntry;
 
 // @public
 export interface KeyConsumer {
@@ -911,6 +964,19 @@ interface KeyValueStoreBackendOptions {
 // @public (undocumented)
 export interface KeyValueStoreIteratorOptions {
     prefix?: string;
+}
+
+// @public
+export interface KeyValueStoreJournalEntry {
+    // (undocumented)
+    key: string;
+    // (undocumented)
+    options?: RecordOptions;
+    // (undocumented)
+    storageId: string;
+    // (undocumented)
+    type: 'keyValueStore';
+    value: unknown;
 }
 
 // @public (undocumented)
@@ -1228,39 +1294,6 @@ export class RequestHandlerError extends Error {
 }
 
 // @public
-export class RequestHandlerResult {
-    constructor(configuration: Configuration, crawleeStateKey: string);
-    // (undocumented)
-    addRequests: RestrictedCrawlingContext['addRequests'];
-    get calls(): ReadonlyDeep<{
-        pushData: Parameters<RestrictedCrawlingContext['pushData']>[];
-        addRequests: Parameters<RestrictedCrawlingContext['addRequests']>[];
-    }>;
-    get datasetItems(): ReadonlyDeep<{
-        item: Dictionary;
-        datasetIdentifier?: string | StorageIdentifier;
-    }[]>;
-    get enqueuedUrlLists(): ReadonlyDeep<{
-        listUrl: string;
-        label?: string;
-    }[]>;
-    get enqueuedUrls(): ReadonlyDeep<{
-        url: string;
-        label?: string;
-    }[]>;
-    // (undocumented)
-    getKeyValueStore: RestrictedCrawlingContext['getKeyValueStore'];
-    get keyValueStoreChanges(): ReadonlyDeep<Record<string, Record<string, {
-        changedValue: unknown;
-        options?: RecordOptions;
-    }>>>;
-    // (undocumented)
-    pushData: RestrictedCrawlingContext['pushData'];
-    // (undocumented)
-    useState: RestrictedCrawlingContext['useState'];
-}
-
-// @public
 export class RequestList implements IRequestLoader {
     // (undocumented)
     [Symbol.asyncIterator](): AsyncGenerator<Request_2<Dictionary>, void, unknown>;
@@ -1445,6 +1478,17 @@ interface RequestQueueBackendOptions {
     name?: string;
     // (undocumented)
     storageBackend: MemoryStorageBackend;
+}
+
+// @public
+export interface RequestQueueJournalEntry {
+    // (undocumented)
+    forefront: boolean;
+    // (undocumented)
+    requests: JournaledRequest[];
+    // (undocumented)
+    type: 'requestQueue';
+    writeThrough: boolean;
 }
 
 // @public (undocumented)
@@ -1699,7 +1743,7 @@ export class Session implements ISession {
     // (undocumented)
     get fingerprint(): SessionFingerprint | undefined;
     set fingerprint(fingerprint: SessionFingerprint | undefined);
-    getCookieString(url: string): string;
+    getCookieString(url: string): Promise<string>;
     getState(): SessionState;
     // (undocumented)
     readonly id: string;
@@ -1717,7 +1761,7 @@ export class Session implements ISession {
     get proxyInfo(): ProxyInfo | undefined;
     retire(): void;
     get retired(): boolean;
-    setCookie(rawCookie: string, url: string): void;
+    setCookie(rawCookie: string, url: string): Promise<void>;
     // (undocumented)
     get usageCount(): number;
     // (undocumented)
@@ -1895,16 +1939,9 @@ export interface StatisticPersistedState extends Omit<StatisticState, 'statsPers
 }
 
 // @public
-export class Statistics {
-    calculate(): {
-        requestAvgFailedDurationMillis: number;
-        requestAvgFinishedDurationMillis: number;
-        requestsFinishedPerMinute: number;
-        requestsFailedPerMinute: number;
-        requestTotalDurationMillis: number;
-        requestsTotal: number;
-        crawlerRuntimeMillis: number;
-    };
+export class Statistics implements IStatistics {
+    constructor(options?: StatisticsOptions);
+    calculate(): CalculatedStatistics;
     readonly errorTracker: ErrorTracker;
     readonly errorTrackerRetry: ErrorTracker;
     readonly id: string;
@@ -1999,6 +2036,69 @@ export class StorageStatsTracker<T extends Record<keyof T, number>> {
     constructor(initial: T);
     add(key: keyof T, by?: number): void;
     get current(): T;
+}
+
+// @public
+export class StorageTransaction implements StorageTransactionView {
+    commit(): Promise<void>;
+    // (undocumented)
+    get datasetItems(): {
+        item: Dictionary;
+        datasetId: string;
+    }[];
+    dispose(): void;
+    // (undocumented)
+    get enqueuedUrls(): {
+        url: string;
+        label?: string;
+    }[];
+    get isActive(): boolean;
+    readonly journal: JournalEntry[];
+    // (undocumented)
+    get keyValueStoreChanges(): Record<string, Record<string, {
+        changedValue: unknown;
+        options?: RecordOptions;
+    }>>;
+    readonly policy: StorageWritePolicy;
+    rollback(): void;
+    run<T>(callback: () => Awaitable<T>): Promise<T>;
+    // (undocumented)
+    get state(): StorageTransactionState;
+}
+
+// @public (undocumented)
+export interface StorageTransactionOptions {
+    commitTimeoutMillis?: number;
+    policy?: Partial<StorageWritePolicy>;
+}
+
+// @public (undocumented)
+export type StorageTransactionState = 'open' | 'committing' | 'committed' | 'failed' | 'rolledBack';
+
+// @public
+export interface StorageTransactionView {
+    readonly datasetItems: {
+        item: Dictionary;
+        datasetId: string;
+    }[];
+    readonly enqueuedUrls: {
+        url: string;
+        label?: string;
+    }[];
+    readonly keyValueStoreChanges: Record<string, Record<string, {
+        changedValue: unknown;
+        options?: RecordOptions;
+    }>>;
+    // (undocumented)
+    readonly state: StorageTransactionState;
+}
+
+// @public
+export type StorageWriteMode = 'deferred' | 'writeThrough';
+
+// @public
+export interface StorageWritePolicy {
+    requestQueue: StorageWriteMode;
 }
 
 // @public
@@ -2134,12 +2234,15 @@ export interface UseStateOptions {
 }
 
 // @public
-export const withCheckedStorageAccess: <T>(checkFunction: () => void, callback: () => Awaitable<T>) => Promise<T>;
+export function withDirectStorageAccess<T>(callback: () => Awaitable<T>): Promise<T>;
 
 // @public (undocumented)
 export type WithRequired<T, K extends keyof T> = T & {
     [P in K]-?: T[P];
 };
+
+// @public
+export function withStorageTransaction<T>(callback: (transaction: StorageTransaction) => Awaitable<T>, options?: StorageTransactionOptions): Promise<T>;
 
 // (No @packageDocumentation comment for this package)
 

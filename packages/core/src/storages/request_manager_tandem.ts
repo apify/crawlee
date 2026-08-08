@@ -18,18 +18,18 @@ import type {
  * It first reads requests from the loader and then, when needed, transfers them in batches to the manager.
  */
 export class RequestManagerTandem implements IRequestManager {
-    private log: CrawleeLogger;
-    private requestLoader: IRequestLoader;
-    private requestManagerPromise?: Promise<IRequestManager>;
-    private resolvedRequestManager?: IRequestManager;
+    #log: CrawleeLogger;
+    #requestLoader: IRequestLoader;
+    #requestManagerPromise?: Promise<IRequestManager>;
+    #resolvedRequestManager?: IRequestManager;
 
-    private requestManagerFactory: () => IRequestManager | Promise<IRequestManager>;
+    #requestManagerFactory: () => IRequestManager | Promise<IRequestManager>;
 
     /**
      * The latest expected request-processing time hinted via {@link setExpectedRequestProcessingTimeSecs}.
      * Remembered so it can be applied to the writable manager once it is lazily resolved.
      */
-    private expectedRequestProcessingSecs?: number;
+    #expectedRequestProcessingSecs?: number;
 
     /**
      * @param requestLoader The read-only loader to read requests from first.
@@ -41,9 +41,9 @@ export class RequestManagerTandem implements IRequestManager {
         requestLoader: IRequestLoader,
         requestManager: IRequestManager | (() => IRequestManager | Promise<IRequestManager>),
     ) {
-        this.log = serviceLocator.getLogger().child({ prefix: 'RequestManagerTandem' });
-        this.requestLoader = requestLoader;
-        this.requestManagerFactory = typeof requestManager === 'function' ? requestManager : () => requestManager;
+        this.#log = serviceLocator.getLogger().child({ prefix: 'RequestManagerTandem' });
+        this.#requestLoader = requestLoader;
+        this.#requestManagerFactory = typeof requestManager === 'function' ? requestManager : () => requestManager;
     }
 
     /**
@@ -51,18 +51,18 @@ export class RequestManagerTandem implements IRequestManager {
      * @private
      */
     private async getRequestManager(): Promise<IRequestManager> {
-        if (this.resolvedRequestManager === undefined) {
-            this.requestManagerPromise ??= Promise.resolve(this.requestManagerFactory());
-            this.resolvedRequestManager = await this.requestManagerPromise;
+        if (this.#resolvedRequestManager === undefined) {
+            this.#requestManagerPromise ??= Promise.resolve(this.#requestManagerFactory());
+            this.#resolvedRequestManager = await this.#requestManagerPromise;
 
             // Apply any hint received before the manager was resolved.
-            if (this.expectedRequestProcessingSecs !== undefined) {
-                await this.resolvedRequestManager.setExpectedRequestProcessingTimeSecs?.(
-                    this.expectedRequestProcessingSecs,
+            if (this.#expectedRequestProcessingSecs !== undefined) {
+                await this.#resolvedRequestManager.setExpectedRequestProcessingTimeSecs?.(
+                    this.#expectedRequestProcessingSecs,
                 );
             }
         }
-        return this.resolvedRequestManager;
+        return this.#resolvedRequestManager;
     }
 
     /**
@@ -74,7 +74,7 @@ export class RequestManagerTandem implements IRequestManager {
      * @private
      */
     private async transferNextRequestToQueue(): Promise<boolean> {
-        const request = await this.requestLoader.fetchNextRequest();
+        const request = await this.#requestLoader.fetchNextRequest();
 
         if (request === null) {
             return true;
@@ -86,7 +86,7 @@ export class RequestManagerTandem implements IRequestManager {
             await requestManager.addRequest(request, { forefront: true });
             return true;
         } catch (error) {
-            this.log.exception(
+            this.#log.exception(
                 error as Error,
                 'Adding request from the RequestLoader to the RequestManager failed, the request has been dropped.',
                 { url: request.url, uniqueKey: request.uniqueKey },
@@ -94,7 +94,7 @@ export class RequestManagerTandem implements IRequestManager {
             return false;
         } finally {
             // Mark it as handled so that the request doesn't get stuck in the `inProgress` state in the loader.
-            await this.requestLoader.markRequestAsHandled(request);
+            await this.#requestLoader.markRequestAsHandled(request);
         }
     }
 
@@ -106,8 +106,8 @@ export class RequestManagerTandem implements IRequestManager {
     async fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request<T> | null> {
         // First, try to transfer a request from the requestList
         const [listEmpty, listFinished] = await Promise.all([
-            this.requestLoader.isEmpty(),
-            this.requestLoader.isFinished(),
+            this.#requestLoader.isEmpty(),
+            this.#requestLoader.isFinished(),
         ]);
 
         if (!listEmpty && !listFinished) {
@@ -127,7 +127,7 @@ export class RequestManagerTandem implements IRequestManager {
      */
     async isFinished(): Promise<boolean> {
         const requestManager = await this.getRequestManager();
-        const storagesFinished = await Promise.all([this.requestLoader.isFinished(), requestManager.isFinished()]);
+        const storagesFinished = await Promise.all([this.#requestLoader.isFinished(), requestManager.isFinished()]);
         return storagesFinished.every(Boolean);
     }
 
@@ -136,7 +136,7 @@ export class RequestManagerTandem implements IRequestManager {
      */
     async isEmpty(): Promise<boolean> {
         const requestManager = await this.getRequestManager();
-        const storagesEmpty = await Promise.all([this.requestLoader.isEmpty(), requestManager.isEmpty()]);
+        const storagesEmpty = await Promise.all([this.#requestLoader.isEmpty(), requestManager.isEmpty()]);
         return storagesEmpty.every(Boolean);
     }
 
@@ -156,7 +156,7 @@ export class RequestManagerTandem implements IRequestManager {
         const [managerTotal, loaderTotal] = await Promise.all([
             requestManager.getTotalCount(),
             // count only pending to avoid double counting, requests marked as "handled" have been moved to requestManager
-            this.requestLoader.getPendingCount(),
+            this.#requestLoader.getPendingCount(),
         ]);
         return managerTotal + loaderTotal;
     }
@@ -168,7 +168,7 @@ export class RequestManagerTandem implements IRequestManager {
         const requestManager = await this.getRequestManager();
         const [managerPending, loaderPending] = await Promise.all([
             requestManager.getPendingCount(),
-            this.requestLoader.getPendingCount(),
+            this.#requestLoader.getPendingCount(),
         ]);
         return managerPending + loaderPending;
     }
@@ -223,7 +223,7 @@ export class RequestManagerTandem implements IRequestManager {
      * @inheritdoc
      */
     async persistState(): Promise<void> {
-        await this.requestLoader.persistState?.();
+        await this.#requestLoader.persistState?.();
     }
 
     /**
@@ -241,7 +241,7 @@ export class RequestManagerTandem implements IRequestManager {
      * @inheritdoc
      */
     async setExpectedRequestProcessingTimeSecs(secs: number): Promise<void> {
-        this.expectedRequestProcessingSecs = secs;
-        await this.resolvedRequestManager?.setExpectedRequestProcessingTimeSecs?.(secs);
+        this.#expectedRequestProcessingSecs = secs;
+        await this.#resolvedRequestManager?.setExpectedRequestProcessingTimeSecs?.(secs);
     }
 }

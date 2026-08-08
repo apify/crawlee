@@ -5,7 +5,7 @@
 ```ts
 
 import * as cheerio from 'cheerio';
-import { CheerioRoot } from '@crawlee/utils';
+import { CheerioRoot } from '@crawlee/utils/internal';
 import { ContextPipeline } from '@crawlee/http';
 import type { CrawlingContext } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';

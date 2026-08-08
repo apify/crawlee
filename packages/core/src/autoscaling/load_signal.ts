@@ -69,9 +69,10 @@ export interface LoadSignal {
  * and so can yours — it is the only part of their machinery worth reusing.
  */
 export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
-    private snapshots: T[] = [];
+    #snapshots: T[] = [];
 
     /** Retention window in milliseconds. Unbounded until {@apilink SnapshotStore.useSampleWindow|`useSampleWindow()`}. */
+    // kept as TS-private: concurrency_system tests read this retention window directly
     private historyMillis = Infinity;
 
     /**
@@ -89,29 +90,29 @@ export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
     push(snapshot: T, now: Date = snapshot.createdAt): void {
         // Inline pruning to avoid private-method transpilation issues
         let oldCount = 0;
-        for (let i = 0; i < this.snapshots.length; i++) {
-            const { createdAt } = this.snapshots[i];
+        for (let i = 0; i < this.#snapshots.length; i++) {
+            const { createdAt } = this.#snapshots[i];
             if (now.getTime() - new Date(createdAt).getTime() > this.historyMillis) oldCount++;
             else break;
         }
-        if (oldCount) this.snapshots.splice(0, oldCount);
+        if (oldCount) this.#snapshots.splice(0, oldCount);
 
-        this.snapshots.push(snapshot);
+        this.#snapshots.push(snapshot);
     }
 
     /**
      * Return all snapshots, or only those within the given time window.
      */
     getSample(sampleDurationMillis?: number): T[] {
-        if (!sampleDurationMillis) return this.snapshots;
+        if (!sampleDurationMillis) return this.#snapshots;
 
         const sample: T[] = [];
-        let idx = this.snapshots.length;
+        let idx = this.#snapshots.length;
         if (!idx) return sample;
 
-        const latestTime = this.snapshots[idx - 1].createdAt;
+        const latestTime = this.#snapshots[idx - 1].createdAt;
         while (idx--) {
-            const snapshot = this.snapshots[idx];
+            const snapshot = this.#snapshots[idx];
             if (+latestTime - +snapshot.createdAt <= sampleDurationMillis) {
                 sample.unshift(snapshot);
             } else {
@@ -127,7 +128,7 @@ export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
      * to compute a delta (e.g. the event loop and client signals read the last entry to measure change since it).
      */
     getAll(): T[] {
-        return this.snapshots;
+        return this.#snapshots;
     }
 
     /**
@@ -137,7 +138,7 @@ export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
      * rather than on stop leaves a finished session readable.
      */
     clear(): void {
-        this.snapshots = [];
+        this.#snapshots = [];
     }
 }
 

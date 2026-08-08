@@ -11,11 +11,11 @@ export interface LocalEventManagerOptions extends EventManagerOptions {
 }
 
 export class LocalEventManager extends EventManager {
-    private systemInfoIntervalMillis: number;
+    #systemInfoIntervalMillis: number;
 
     constructor(options: LocalEventManagerOptions) {
         super(options);
-        this.systemInfoIntervalMillis = options.systemInfoIntervalMillis;
+        this.#systemInfoIntervalMillis = options.systemInfoIntervalMillis;
     }
 
     /**
@@ -45,7 +45,7 @@ export class LocalEventManager extends EventManager {
         this.emitSystemInfoEvent = this.emitSystemInfoEvent.bind(this);
         this.intervals.systemInfo = betterSetInterval(
             this.emitSystemInfoEvent.bind(this),
-            this.systemInfoIntervalMillis,
+            this.#systemInfoIntervalMillis,
         );
     }
 

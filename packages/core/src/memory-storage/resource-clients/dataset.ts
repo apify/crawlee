@@ -46,7 +46,8 @@ export class DatasetBackend<Data extends Dictionary = Dictionary>
     modifiedAt = new Date();
     itemCount = 0;
 
-    private readonly datasetEntries = new Map<string, Data>();
+    readonly #datasetEntries = new Map<string, Data>();
+    // kept as TS-private: storage-backend tests read this field at runtime
     private readonly storageBackend: MemoryStorageBackend;
 
     constructor(options: DatasetBackendOptions) {
@@ -67,13 +68,13 @@ export class DatasetBackend<Data extends Dictionary = Dictionary>
         if (storeIndex !== -1) {
             const [oldBackend] = this.storageBackend.datasetBackendCache.splice(storeIndex, 1);
             oldBackend.itemCount = 0;
-            oldBackend.datasetEntries.clear();
+            oldBackend.#datasetEntries.clear();
         }
     }
 
     async purge(): Promise<void> {
         this.itemCount = 0;
-        this.datasetEntries.clear();
+        this.#datasetEntries.clear();
 
         this.updateTimestamps(true);
     }
@@ -106,7 +107,7 @@ export class DatasetBackend<Data extends Dictionary = Dictionary>
 
         for (let idx = start; idx < end; idx++) {
             const entryNumber = this.generateLocalEntryName(idx);
-            items.push(this.datasetEntries.get(entryNumber)!);
+            items.push(this.#datasetEntries.get(entryNumber)!);
         }
 
         this.updateTimestamps(false);
@@ -124,7 +125,7 @@ export class DatasetBackend<Data extends Dictionary = Dictionary>
     async pushData(items: Data[]): Promise<void> {
         for (const entry of items) {
             const idx = this.generateLocalEntryName(++this.itemCount);
-            this.datasetEntries.set(idx, JSON.parse(JSON.stringify(entry)) as Data);
+            this.#datasetEntries.set(idx, JSON.parse(JSON.stringify(entry)) as Data);
         }
 
         this.updateTimestamps(true);

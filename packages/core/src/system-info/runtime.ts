@@ -65,29 +65,29 @@ export function isLambda() {
     return !!process.env.AWS_LAMBDA_FUNCTION_MEMORY_SIZE;
 }
 
-let _cgroupsVersion: null | 'V1' | 'V2';
+let cgroupsVersion: null | 'V1' | 'V2';
 /**
  * gets the cgroup version by checking for a file at /sys/fs/cgroup/memory
  * @returns "V1" or "V2" for the version of cgroup or null if cgroup is not found.
  */
 export async function getCgroupsVersion(forceReset?: boolean) {
     // Parameter forceReset is just internal for unit tests.
-    if (_cgroupsVersion !== undefined && !forceReset) {
-        return _cgroupsVersion;
+    if (cgroupsVersion !== undefined && !forceReset) {
+        return cgroupsVersion;
     }
     try {
         // If this directory does not exists, cgroups are not available
         await fs.access('/sys/fs/cgroup/');
     } catch (e) {
-        _cgroupsVersion = null;
+        cgroupsVersion = null;
         return null;
     }
-    _cgroupsVersion = 'V1';
+    cgroupsVersion = 'V1';
     try {
         // If this directory does not exists, assume the container is using cgroups V2
         await fs.access('/sys/fs/cgroup/memory/');
     } catch (e) {
-        _cgroupsVersion = 'V2';
+        cgroupsVersion = 'V2';
     }
-    return _cgroupsVersion;
+    return cgroupsVersion;
 }

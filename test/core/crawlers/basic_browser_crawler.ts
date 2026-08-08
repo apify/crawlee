@@ -26,7 +26,7 @@ export class BrowserCrawlerTest extends BrowserCrawler<
         });
     }
 
-    protected async _navigationHandler(
+    protected async navigationHandler(
         ctx: PuppeteerCrawlingContext,
         gotoOptions: PuppeteerGoToOptions,
     ): Promise<HTTPResponse | null | undefined> {

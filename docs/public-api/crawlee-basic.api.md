@@ -12,9 +12,9 @@ import type { Awaitable } from '@crawlee/types';
 import type { BaseHttpClient } from '@crawlee/types';
 import { BasePredicate } from 'ow';
 import { BooleanPredicate } from 'ow';
-import { Cheerio } from '@crawlee/utils';
-import { CheerioAPI } from '@crawlee/utils';
-import { CheerioRoot } from '@crawlee/utils';
+import { Cheerio } from '@crawlee/utils/internal';
+import { CheerioAPI } from '@crawlee/utils/internal';
+import { CheerioRoot } from '@crawlee/utils/internal';
 import { ConcurrencySystem } from '@crawlee/core';
 import { ConcurrencySystemOptions } from '@crawlee/core';
 import type { Configuration } from '@crawlee/core';
@@ -24,7 +24,7 @@ import { CrawlingContext } from '@crawlee/core';
 import { Dataset } from '@crawlee/core';
 import type { DatasetExportOptions } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/types';
-import { Element as Element_2 } from '@crawlee/utils';
+import { Element as Element_2 } from '@crawlee/utils/internal';
 import type { EventManager } from '@crawlee/core';
 import type { FinalStatistics } from '@crawlee/core';
 import type { GetUserDataFromRequest } from '@crawlee/core';
@@ -34,6 +34,7 @@ import { IRequestLoader } from '@crawlee/core';
 import { IRequestManager } from '@crawlee/core';
 import type { ISession } from '@crawlee/types';
 import type { ISessionPool } from '@crawlee/types';
+import { IStatistics } from '@crawlee/core';
 import { NumberPredicate } from 'ow';
 import { ObjectPredicate } from 'ow';
 import { Predicate } from 'ow';
@@ -46,11 +47,10 @@ import type { RouterHandler } from '@crawlee/core';
 import type { RouterRoutes } from '@crawlee/core';
 import type { SetStatusMessageOptions } from '@crawlee/types';
 import type { SkippedRequestCallback } from '@crawlee/core';
-import { Statistics } from '@crawlee/core';
-import type { StatisticsOptions } from '@crawlee/core';
 import type { StatisticState } from '@crawlee/core';
 import type { StorageBackend } from '@crawlee/types';
 import type { StorageIdentifier } from '@crawlee/core';
+import { StorageWritePolicy } from '@crawlee/core';
 import { StringPredicate } from 'ow';
 import type { TaskLoopPredicates } from '@crawlee/core';
 import { TimeoutError } from '@apify/timeout';
@@ -82,10 +82,10 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
     // (undocumented)
     protected readonly failedRequestHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
     // (undocumented)
-    protected _getCookieHeaderFromRequest(request: Request_2): string;
+    protected getCookieHeaderFromRequest(request: Request_2): string;
     getData(...args: Parameters<Dataset['getData']>): ReturnType<Dataset['getData']>;
     getDataset(identifier?: string | StorageIdentifier): Promise<Dataset>;
-    protected _getMessageFromError(error: Error, forceStack?: boolean): string | TimeoutError | undefined;
+    protected getMessageFromError(error: Error, forceStack?: boolean): string | TimeoutError | undefined;
     protected getNavigationTimeoutMillis(): number;
     // (undocumented)
     protected getPendingRequestCountApproximation(): Promise<number>;
@@ -102,7 +102,7 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
     protected readonly httpClient: BaseHttpClient;
     // (undocumented)
     protected readonly identity: CrawlerIdentity;
-    protected _init(): Promise<void>;
+    protected init(): Promise<void>;
     // (undocumented)
     protected readonly internalTimeoutMillis: number;
     protected isErrorStatusCode(status: number): boolean;
@@ -143,6 +143,7 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
         blockedStatusCodes: ArrayPredicate<number>;
         retryOnBlocked: BooleanPredicate & BasePredicate<boolean | undefined>;
         respectRobotsTxtFile: AnyPredicate<boolean | object>;
+        transactionalStorage: BasePredicate<boolean | Partial<StorageWritePolicy> | undefined>;
         onSkippedRequest: Predicate<Function> & BasePredicate<Function | undefined>;
         httpClient: ObjectPredicate<object> & BasePredicate<object | undefined>;
         configuration: ObjectPredicate<object> & BasePredicate<object | undefined>;
@@ -153,7 +154,7 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
         maxConcurrency: NumberPredicate & BasePredicate<number | undefined>;
         maxRequestsPerMinute: NumberPredicate & BasePredicate<number | undefined>;
         keepAlive: BooleanPredicate & BasePredicate<boolean | undefined>;
-        statisticsOptions: ObjectPredicate<object> & BasePredicate<object | undefined>;
+        statistics: ObjectPredicate<object> & BasePredicate<object | undefined>;
         id: StringPredicate & BasePredicate<string | undefined>;
     };
     pause(timeoutSecs?: number): Promise<void>;
@@ -174,10 +175,10 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
     protected runRequestHandler(crawlingContext: ExtendedContext): Promise<void>;
     get sessionPool(): ISessionPool;
     setStatusMessage(message: string, options?: SetStatusMessageOptions): void;
-    readonly stats: Statistics;
+    get stats(): IStatistics;
     stop(reason?: string): void;
     teardown(): Promise<void>;
-    protected _throwOnBlockedRequest(statusCode: number): void;
+    protected throwOnBlockedRequest(statusCode: number): void;
     // (undocumented)
     useState<State extends Dictionary = Dictionary>(defaultValue?: State): Promise<State>;
 }
@@ -219,11 +220,12 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = CrawlingC
     retryOnBlocked?: boolean;
     sameDomainDelaySecs?: number;
     sessionPool?: ISessionPool;
-    statisticsOptions?: StatisticsOptions;
+    statistics?: IStatistics;
     statusMessageCallback?: StatusMessageCallback;
     statusMessageLoggingInterval?: number;
     storageBackend?: StorageBackend;
     taskLoopOptions?: TaskLoopPredicates;
+    transactionalStorage?: boolean | Partial<StorageWritePolicy>;
 }
 
 // @public (undocumented)

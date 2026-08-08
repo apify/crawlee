@@ -85,17 +85,17 @@ export class KeyValueStoreBackend extends CachedIdClient implements storage.KeyV
     readonly name?: string;
     readonly cacheKey: string;
 
-    private readonly nativeBackend: NativeFileSystemKeyValueStoreBackend;
+    readonly #nativeBackend: NativeFileSystemKeyValueStoreBackend;
 
     constructor(options: KeyValueStoreBackendOptions) {
         super();
         this.name = options.name;
         this.cacheKey = options.cacheKey;
-        this.nativeBackend = options.nativeBackend;
+        this.#nativeBackend = options.nativeBackend;
     }
 
     get keyValueStoreDirectory(): string {
-        return this.nativeBackend.pathToKvs;
+        return this.#nativeBackend.pathToKvs;
     }
 
     static async create(options: KeyValueStoreBackendOptions): Promise<KeyValueStoreBackend> {
@@ -105,15 +105,15 @@ export class KeyValueStoreBackend extends CachedIdClient implements storage.KeyV
     }
 
     async getMetadata(): Promise<storage.KeyValueStoreInfo> {
-        return this.nativeBackend.getMetadata();
+        return this.#nativeBackend.getMetadata();
     }
 
     async drop(): Promise<void> {
-        await this.nativeBackend.dropStorage();
+        await this.#nativeBackend.dropStorage();
     }
 
     async purge(): Promise<void> {
-        await this.nativeBackend.purge();
+        await this.#nativeBackend.purge();
     }
 
     /**
@@ -125,7 +125,7 @@ export class KeyValueStoreBackend extends CachedIdClient implements storage.KeyV
      * filename the input might live under (`INPUT`, `INPUT.json`, `INPUT.txt`, `INPUT.bin`).
      */
     async purgeExceptInput(): Promise<void> {
-        await this.nativeBackend.purge(BARE_FILE_FALLBACKS.flatMap(({ extension }) => `INPUT${extension}`));
+        await this.#nativeBackend.purge(BARE_FILE_FALLBACKS.flatMap(({ extension }) => `INPUT${extension}`));
     }
 
     async listKeys(options: storage.KeyValueStoreListKeysOptions = {}): Promise<storage.KeyValueStoreListKeysResult> {
@@ -142,7 +142,7 @@ export class KeyValueStoreBackend extends CachedIdClient implements storage.KeyV
         // everything it needs off the filesystem index — no per-file reads — so this stays cheap.
         // The native `listKeys` already returns a self-describing page (items + pagination cursors)
         // matching the `KeyValueStoreListKeysResult` contract, so we only post-process the items.
-        const page = await this.nativeBackend.listKeys(exclusiveStartKey, limit, prefix, LIST_BARE_FALLBACKS);
+        const page = await this.#nativeBackend.listKeys(exclusiveStartKey, limit, prefix, LIST_BARE_FALLBACKS);
 
         const presentKeys = new Set(page.items.map((record) => record.key));
 
@@ -183,7 +183,7 @@ export class KeyValueStoreBackend extends CachedIdClient implements storage.KeyV
         if (resolvedKey === undefined) {
             return undefined;
         }
-        return (await this.nativeBackend.getPublicUrl(resolvedKey)) ?? undefined;
+        return (await this.#nativeBackend.getPublicUrl(resolvedKey)) ?? undefined;
     }
 
     /**
@@ -202,8 +202,8 @@ export class KeyValueStoreBackend extends CachedIdClient implements storage.KeyV
 
         const fallbacks = this.bareFallbacksFor(key);
         const record = fallbacks
-            ? await this.nativeBackend.resolveValue(key, fallbacks)
-            : await this.nativeBackend.getValue(key);
+            ? await this.#nativeBackend.resolveValue(key, fallbacks)
+            : await this.#nativeBackend.getValue(key);
 
         if (record) {
             return {
@@ -244,7 +244,7 @@ export class KeyValueStoreBackend extends CachedIdClient implements storage.KeyV
         // consumes a Web `ReadableStream`, so convert the Node `Readable` we get from the frontend.
         if (isStream(value)) {
             const webStream = Readable.toWeb(value as Readable) as ReadableStream<Uint8Array>;
-            await this.nativeBackend.setValueStream(key, webStream, contentType);
+            await this.#nativeBackend.setValueStream(key, webStream, contentType);
             return;
         }
 
@@ -257,12 +257,12 @@ export class KeyValueStoreBackend extends CachedIdClient implements storage.KeyV
                 ? Buffer.from(value.buffer, value.byteOffset, value.byteLength)
                 : Buffer.from(value as string);
 
-        await this.nativeBackend.setValue(key, buffer, contentType);
+        await this.#nativeBackend.setValue(key, buffer, contentType);
     }
 
     async deleteValue(key: string): Promise<void> {
         s.string().parse(key);
-        await this.nativeBackend.deleteValue(key);
+        await this.#nativeBackend.deleteValue(key);
     }
 
     /**
@@ -277,13 +277,13 @@ export class KeyValueStoreBackend extends CachedIdClient implements storage.KeyV
         const fallbacks = this.bareFallbacksFor(key);
         if (fallbacks) {
             return (
-                (await this.nativeBackend.resolveExistingKey(
+                (await this.#nativeBackend.resolveExistingKey(
                     key,
                     fallbacks.map(({ extension }) => extension),
                 )) ?? undefined
             );
         }
-        return (await this.nativeBackend.recordExists(key)) ? key : undefined;
+        return (await this.#nativeBackend.recordExists(key)) ? key : undefined;
     }
 
     /**

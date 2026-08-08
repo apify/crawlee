@@ -24,8 +24,8 @@ import vm from 'node:vm';
 
 import { Configuration, KeyValueStore, type Request, serviceLocator, SessionError, validators } from '@crawlee/browser';
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
-import { type CheerioRoot, expandShadowRoots, sleep } from '@crawlee/utils';
-import * as cheerio from 'cheerio';
+import { type CheerioRoot } from '@crawlee/utils/internal';
+import { expandShadowRoots, sleep } from '@crawlee/utils';
 import ow from 'ow';
 import type { Download, Page, Response, Route } from 'playwright';
 
@@ -611,7 +611,8 @@ export async function parseWithCheerio(
         ? null
         : ((await page.evaluate(`(${expandShadowRoots.toString()})(document)`)) as string);
     const pageContent = html || (await page.content());
-    const $ = cheerio.load(pageContent);
+    const { load } = await import('cheerio');
+    const $ = load(pageContent);
 
     if (page.frames().length > 1 && !ignoreIframes) {
         const frames = await page.$$('iframe');

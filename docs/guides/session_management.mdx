@@ -99,7 +99,7 @@ You can also seed or read cookies yourself. <ApiLink to="core/class/Session#setC
 ```js
 const crawler = new CheerioCrawler({
     requestHandler: async ({ session, request }) => {
-        session.setCookie('consent=yes', request.url);
+        await session.setCookie('consent=yes', request.url);
     },
 });
 ```

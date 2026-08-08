@@ -72,16 +72,16 @@ export interface RecoverableStateOptions<
  * The class automatically hooks into the event system to persist state when needed.
  */
 export class RecoverableState<TStateModel = Record<string, unknown>> {
-    private readonly defaultState: TStateModel;
-    private state: TStateModel | null = null;
-    private readonly persistenceEnabled: boolean;
-    private readonly persistStateKey: string;
-    private readonly persistStateKvsName?: string;
-    private readonly persistStateKvsId?: string;
-    private keyValueStore: KeyValueStore | null = null;
-    private readonly log: CrawleeLogger;
-    private readonly serialize: (state: TStateModel) => string;
-    private readonly deserialize: (serializedState: string) => TStateModel;
+    readonly #defaultState: TStateModel;
+    #state: TStateModel | null = null;
+    readonly #persistenceEnabled: boolean;
+    readonly #persistStateKey: string;
+    readonly #persistStateKvsName?: string;
+    readonly #persistStateKvsId?: string;
+    #keyValueStore: KeyValueStore | null = null;
+    readonly #log: CrawleeLogger;
+    readonly #serialize: (state: TStateModel) => string;
+    readonly #deserialize: (serializedState: string) => TStateModel;
 
     /**
      * Initialize a new recoverable state object.
@@ -89,14 +89,14 @@ export class RecoverableState<TStateModel = Record<string, unknown>> {
      * @param options Configuration options for the recoverable state
      */
     constructor(options: RecoverableStateOptions<TStateModel>) {
-        this.defaultState = options.defaultState;
-        this.persistStateKey = options.persistStateKey;
-        this.persistenceEnabled = options.persistenceEnabled ?? false;
-        this.persistStateKvsName = options.persistStateKvsName;
-        this.persistStateKvsId = options.persistStateKvsId;
-        this.log = options.logger ?? serviceLocator.getLogger().child({ prefix: 'RecoverableState' });
-        this.serialize = options.serialize ?? JSON.stringify;
-        this.deserialize = options.deserialize ?? JSON.parse;
+        this.#defaultState = options.defaultState;
+        this.#persistStateKey = options.persistStateKey;
+        this.#persistenceEnabled = options.persistenceEnabled ?? false;
+        this.#persistStateKvsName = options.persistStateKvsName;
+        this.#persistStateKvsId = options.persistStateKvsId;
+        this.#log = options.logger ?? serviceLocator.getLogger().child({ prefix: 'RecoverableState' });
+        this.#serialize = options.serialize ?? JSON.stringify;
+        this.#deserialize = options.deserialize ?? JSON.parse;
 
         this.persistState = this.persistState.bind(this);
     }
@@ -110,24 +110,24 @@ export class RecoverableState<TStateModel = Record<string, unknown>> {
      * @returns The loaded state object
      */
     async initialize(): Promise<TStateModel> {
-        if (this.state !== null && this.state !== undefined) {
+        if (this.#state !== null && this.#state !== undefined) {
             return this.currentValue;
         }
 
-        if (!this.persistenceEnabled) {
-            this.state = this.deserialize(this.serialize(this.defaultState));
+        if (!this.#persistenceEnabled) {
+            this.#state = this.#deserialize(this.#serialize(this.#defaultState));
             return this.currentValue;
         }
 
         let kvsIdentifier: { name: string } | { id: string } | null = null;
 
-        if (this.persistStateKvsName) {
-            kvsIdentifier = { name: this.persistStateKvsName };
-        } else if (this.persistStateKvsId) {
-            kvsIdentifier = { id: this.persistStateKvsId };
+        if (this.#persistStateKvsName) {
+            kvsIdentifier = { name: this.#persistStateKvsName };
+        } else if (this.#persistStateKvsId) {
+            kvsIdentifier = { id: this.#persistStateKvsId };
         }
 
-        this.keyValueStore = await KeyValueStore.open(kvsIdentifier, {
+        this.#keyValueStore = await KeyValueStore.open(kvsIdentifier, {
             configuration: serviceLocator.getConfiguration(),
         });
 
@@ -147,7 +147,7 @@ export class RecoverableState<TStateModel = Record<string, unknown>> {
      * and persists the current state one last time.
      */
     async teardown(): Promise<void> {
-        if (!this.persistenceEnabled || !this.persistState) {
+        if (!this.#persistenceEnabled || !this.persistState) {
             return;
         }
 
@@ -160,11 +160,11 @@ export class RecoverableState<TStateModel = Record<string, unknown>> {
      * Get the current state.
      */
     get currentValue(): TStateModel {
-        if (this.state === null) {
+        if (this.#state === null) {
             throw new Error('Recoverable state has not yet been loaded');
         }
 
-        return this.state;
+        return this.#state;
     }
 
     /**
@@ -174,14 +174,14 @@ export class RecoverableState<TStateModel = Record<string, unknown>> {
      * clears the persisted state from the KeyValueStore.
      */
     async reset(): Promise<void> {
-        this.state = this.deserialize(this.serialize(this.defaultState));
+        this.#state = this.#deserialize(this.#serialize(this.#defaultState));
 
-        if (this.persistenceEnabled) {
-            if (this.keyValueStore === null) {
+        if (this.#persistenceEnabled) {
+            if (this.#keyValueStore === null) {
                 throw new Error('Recoverable state has not yet been initialized');
             }
 
-            await this.keyValueStore.setValue(this.persistStateKey, null);
+            await this.#keyValueStore.setValue(this.#persistStateKey, null);
         }
     }
 
@@ -194,14 +194,14 @@ export class RecoverableState<TStateModel = Record<string, unknown>> {
      * @param eventData Optional data associated with a PERSIST_STATE event
      */
     async persistState(eventData?: { isMigrating: boolean }): Promise<void> {
-        this.log.debug(`Persisting state of the RecoverableState (eventData=${JSON.stringify(eventData)}).`);
+        this.#log.debug(`Persisting state of the RecoverableState (eventData=${JSON.stringify(eventData)}).`);
 
-        if (this.keyValueStore === null || this.state === null) {
+        if (this.#keyValueStore === null || this.#state === null) {
             throw new Error('Recoverable state has not yet been initialized');
         }
 
-        if (this.persistenceEnabled) {
-            await this.keyValueStore.setValue(this.persistStateKey, this.serialize(this.state), {
+        if (this.#persistenceEnabled) {
+            await this.#keyValueStore.setValue(this.#persistStateKey, this.#serialize(this.#state), {
                 contentType: 'text/plain', // HACK - the result is expected to be JSON, but we do this to avoid the implicit JSON.parse in `KeyValueStore.getValue`
             });
         }
@@ -211,15 +211,15 @@ export class RecoverableState<TStateModel = Record<string, unknown>> {
      * Load the saved state from the KeyValueStore
      */
     private async loadSavedState(): Promise<void> {
-        if (this.keyValueStore === null) {
+        if (this.#keyValueStore === null) {
             throw new Error('Recoverable state has not yet been initialized');
         }
 
-        const storedState = await this.keyValueStore.getValue(this.persistStateKey);
+        const storedState = await this.#keyValueStore.getValue(this.#persistStateKey);
         if (storedState === null || storedState === undefined) {
-            this.state = this.deserialize(this.serialize(this.defaultState));
+            this.#state = this.#deserialize(this.#serialize(this.#defaultState));
         } else {
-            this.state = this.deserialize(storedState as string);
+            this.#state = this.#deserialize(storedState as string);
         }
     }
 }

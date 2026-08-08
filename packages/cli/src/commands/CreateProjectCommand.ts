@@ -1,6 +1,6 @@
 import { execSync } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
-import { readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { get } from 'node:https';
 import { dirname, join, resolve } from 'node:path';
 import { setTimeout } from 'node:timers/promises';
@@ -9,7 +9,6 @@ import type { Template } from '@crawlee/templates';
 import { fetchManifest } from '@crawlee/templates';
 import { input, select } from '@inquirer/prompts';
 import colors from 'ansi-colors';
-import { ensureDir } from 'fs-extra/esm';
 import type { ArgumentsCamelCase, Argv, CommandModule } from 'yargs';
 
 interface CreateProjectArgs {
@@ -76,7 +75,7 @@ async function downloadTemplateFilesToDisk(template: Template, destinationDirect
                 // Make sure the folder for the file exists
                 const fileDirName = dirname(file.path);
                 const fileFolder = resolve(destinationDirectory, fileDirName);
-                await ensureDir(fileFolder);
+                await mkdir(fileFolder, { recursive: true });
 
                 // Write the actual file
                 await writeFile(resolve(destinationDirectory, file.path), buffer);

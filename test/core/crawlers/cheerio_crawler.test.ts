@@ -1147,8 +1147,7 @@ describe('CheerioCrawler', () => {
 
             await cheerioCrawler.run();
 
-            // @ts-expect-error private symbol
-            const sessions: Session[] = cheerioCrawler.sessionPool!.sessions;
+            const { sessions } = await (cheerioCrawler.sessionPool as SessionPool).getState();
             expect(sessions.length).toBe(4);
             sessions.forEach((session) => {
                 // TODO this test is flaky in CI and we need some more info to debug why.
@@ -1188,8 +1187,7 @@ describe('CheerioCrawler', () => {
                 });
                 await crawler.run();
 
-                // @ts-expect-error private symbol
-                const poolSessions: Session[] = crawler.sessionPool.sessions;
+                const { sessions: poolSessions } = await (crawler.sessionPool as SessionPool).getState();
                 // each request retires its session on every retry, so we get
                 // (maxRequestRetries + 1) sessions per request (retired ones + the final one)
                 expect(poolSessions.length).toBe(4 * (maxRequestRetries + 1));
@@ -1255,10 +1253,10 @@ describe('CheerioCrawler', () => {
                     maxPoolSize: 1,
                 }),
                 preNavigationHooks: [
-                    ({ session, request }) => {
+                    async ({ session, request }) => {
                         // this should get overriden by the server
-                        session.cookieJar.setCookieSync('foo=bar1', request.url);
-                        session.cookieJar.setCookieSync('other=cookie1', request.url);
+                        await session.cookieJar.setCookie('foo=bar1', request.url);
+                        await session.cookieJar.setCookie('other=cookie1', request.url);
 
                         request.headers ??= {};
                         request.headers.cookie += '; coo=kie';
@@ -1507,7 +1505,7 @@ describe('CheerioCrawler', () => {
                     },
                 ]),
                 requestHandler: async ({ session, request }) => {
-                    sessionCookies.push(session.cookieJar.getCookieStringSync(request.url));
+                    sessionCookies.push(await session.cookieJar.getCookieString(request.url));
                 },
             });
 
@@ -1524,8 +1522,8 @@ describe('CheerioCrawler', () => {
                 maxConcurrency: 1,
                 requestList: await RequestList.open(null, [`${serverAddress}/special/get-cookies`]),
                 preNavigationHooks: [
-                    ({ session, request }) => {
-                        session.cookieJar.setCookieSync('manual=fromHook', request.url);
+                    async ({ session, request }) => {
+                        await session.cookieJar.setCookie('manual=fromHook', request.url);
                     },
                 ],
                 requestHandler: ({ json }) => {

@@ -11,16 +11,16 @@ import { ErrorTracker } from './error_tracker.js';
  * @ignore
  */
 class Job {
-    private lastRunAt: number | null = null;
-    private durationMillis?: number;
+    #lastRunAt: number | null = null;
+    #durationMillis?: number;
 
     run() {
-        this.lastRunAt = Date.now();
+        this.#lastRunAt = Date.now();
     }
 
     finish() {
-        this.durationMillis = Date.now() - this.lastRunAt!;
-        return this.durationMillis;
+        this.#durationMillis = Date.now() - this.#lastRunAt!;
+        return this.#durationMillis;
     }
 }
 
@@ -45,6 +45,85 @@ export interface PersistenceOptions {
 }
 
 /**
+ * The statistics surface a crawler depends on: recording per-request outcomes, tracking errors, and driving the
+ * capture lifecycle for a run. Injected via the crawler's `statistics` option, so a custom implementation (or a
+ * {@apilink Statistics} subclass tracking extra fields) can be plugged in without subclassing the crawler.
+ *
+ * The owned-only mutators the crawler uses to *own* a default it built - `reset()`/`resetStore()` - are deliberately
+ * absent: an injected instance is borrowed, and the crawler never wipes it. Those live on the concrete
+ * {@apilink Statistics} only.
+ *
+ * @category Crawlers
+ */
+export interface IStatistics {
+    /** Tracker for errors on the final retry of a request. */
+    readonly errorTracker: ErrorTracker;
+
+    /** Tracker for errors on retries prior to the final one. */
+    readonly errorTrackerRetry: ErrorTracker;
+
+    /** The live statistics state the crawler reads for status messages and the final summary. */
+    readonly state: StatisticState;
+
+    /** Retries histogram - index `i` holds the number of requests that finished after `i` retries. */
+    readonly requestRetryHistogram: number[];
+
+    /** Marks a request as started, so its duration can be measured on finish/fail. */
+    startJob(id: number | string): void;
+
+    /** Marks a started request as finished, updating the finished counters and durations. */
+    finishJob(id: number | string, retryCount: number): void;
+
+    /** Marks a started request as failed, updating the failed counters and durations. */
+    failJob(id: number | string, retryCount: number): void;
+
+    /** Drops a started request without counting it as finished or failed (e.g. skipped by robots.txt). */
+    discardJob(id: number | string): void;
+
+    /** Increments the counter for the given HTTP status code. */
+    registerStatusCode(code: number): void;
+
+    /** Computes the derived aggregates (averages, per-minute rates, totals) from the current state. */
+    calculate(): CalculatedStatistics;
+
+    /** Begins a capture window: loads any persisted state, subscribes to persistence events, starts periodic logging. */
+    startCapturing(): Promise<void>;
+
+    /** Ends the capture window: stops logging, unsubscribes, and persists the final state. */
+    stopCapturing(): Promise<void>;
+
+    /**
+     * Persists the current state to the key-value store. Optional - the crawler calls it on migration, but a backend
+     * with no persistence of its own can omit it.
+     */
+    persistState?(options?: PersistenceOptions): Promise<void>;
+}
+
+/** The derived aggregates computed by {@apilink IStatistics.calculate} from the current {@apilink StatisticState}. */
+export interface CalculatedStatistics {
+    /** Mean duration of a failed request, in milliseconds; `Infinity` when nothing has failed. */
+    requestAvgFailedDurationMillis: number;
+
+    /** Mean duration of a finished request, in milliseconds; `Infinity` when nothing has finished. */
+    requestAvgFinishedDurationMillis: number;
+
+    /** Requests finished per minute over the run so far. */
+    requestsFinishedPerMinute: number;
+
+    /** Requests failed per minute over the run so far. */
+    requestsFailedPerMinute: number;
+
+    /** Combined duration of all finished and failed requests, in milliseconds. */
+    requestTotalDurationMillis: number;
+
+    /** Total number of settled requests (finished plus failed). */
+    requestsTotal: number;
+
+    /** Wall-clock runtime since capturing started, in milliseconds. */
+    crawlerRuntimeMillis: number;
+}
+
+/**
  * The statistics class provides an interface to collecting and logging run
  * statistics for requests.
  *
@@ -54,7 +133,8 @@ export interface PersistenceOptions {
  *
  * @category Crawlers
  */
-export class Statistics {
+export class Statistics implements IStatistics {
+    // kept as TS-private: statistics tests read the static counter directly
     private static id = 0;
 
     /**
@@ -84,25 +164,26 @@ export class Statistics {
 
     protected keyValueStore?: KeyValueStore = undefined;
     protected readonly persistStateKey: string;
-    private logIntervalMillis: number;
-    private logMessage: string;
-    private listener: () => Promise<void>;
-    private requestsInProgress = new Map<number | string, Job>();
+    #logIntervalMillis: number;
+    #logMessage: string;
+    #listener: () => Promise<void>;
+    #requestsInProgress = new Map<number | string, Job>();
     private readonly log: CrawleeLogger;
-    private instanceStart!: number;
-    private logInterval: unknown;
-    private _events?: EventManager;
-    private persistenceOptions: PersistenceOptions;
+    #instanceStart!: number;
+    #logInterval: unknown;
+    #events?: EventManager;
+    #persistenceOptions: PersistenceOptions;
 
     private get events(): EventManager {
-        if (!this._events) {
-            this._events = serviceLocator.getEventManager();
+        if (!this.#events) {
+            this.#events = serviceLocator.getEventManager();
         }
-        return this._events;
+        return this.#events;
     }
 
     /**
-     * @internal
+     * Construct a statistics instance to pass to a crawler via its `statistics` option, e.g. to preconfigure
+     * persistence or error snapshots, share it across sequential runs, or subclass it to track extra fields.
      */
     constructor(options: StatisticsOptions = {}) {
         ow(
@@ -135,11 +216,11 @@ export class Statistics {
         this.log = (options.log ?? serviceLocator.getLogger()).child({ prefix: 'Statistics' });
         this.errorTracker = new ErrorTracker({ ...errorTrackerConfig, saveErrorSnapshots });
         this.errorTrackerRetry = new ErrorTracker({ ...errorTrackerConfig, saveErrorSnapshots });
-        this.logIntervalMillis = logIntervalSecs * 1000;
-        this.logMessage = logMessage;
+        this.#logIntervalMillis = logIntervalSecs * 1000;
+        this.#logMessage = logMessage;
         this.keyValueStore = keyValueStore;
-        this.listener = this.persistState.bind(this);
-        this.persistenceOptions = persistenceOptions;
+        this.#listener = this.persistState.bind(this);
+        this.#persistenceOptions = persistenceOptions;
 
         // initialize by "resetting"
         this.reset();
@@ -172,8 +253,8 @@ export class Statistics {
         };
 
         this.requestRetryHistogram.length = 0;
-        this.requestsInProgress.clear();
-        this.instanceStart = Date.now();
+        this.#requestsInProgress.clear();
+        this.#instanceStart = Date.now();
 
         this.teardown();
     }
@@ -182,7 +263,7 @@ export class Statistics {
      * @param options - Override the persistence options provided in the constructor
      */
     async resetStore(options?: PersistenceOptions) {
-        if (!this.persistenceOptions.enable && !options?.enable) {
+        if (!this.#persistenceOptions.enable && !options?.enable) {
             return;
         }
 
@@ -211,10 +292,10 @@ export class Statistics {
      * @ignore
      */
     startJob(id: number | string) {
-        let job = this.requestsInProgress.get(id);
+        let job = this.#requestsInProgress.get(id);
         if (!job) job = new Job();
         job.run();
-        this.requestsInProgress.set(id, job);
+        this.#requestsInProgress.set(id, job);
     }
 
     /**
@@ -222,7 +303,7 @@ export class Statistics {
      * @ignore
      */
     finishJob(id: number | string, retryCount: number) {
-        const job = this.requestsInProgress.get(id);
+        const job = this.#requestsInProgress.get(id);
         if (!job) return;
         const jobDurationMillis = job.finish();
         this.state.requestsFinished++;
@@ -232,7 +313,7 @@ export class Statistics {
             this.state.requestMinDurationMillis = jobDurationMillis;
         if (jobDurationMillis > this.state.requestMaxDurationMillis)
             this.state.requestMaxDurationMillis = jobDurationMillis;
-        this.requestsInProgress.delete(id);
+        this.#requestsInProgress.delete(id);
     }
 
     /**
@@ -240,12 +321,12 @@ export class Statistics {
      * @ignore
      */
     failJob(id: number | string, retryCount: number) {
-        const job = this.requestsInProgress.get(id);
+        const job = this.#requestsInProgress.get(id);
         if (!job) return;
         this.state.requestTotalFailedDurationMillis += job.finish();
         this.state.requestsFailed++;
         this.saveRetryCountForJob(retryCount);
-        this.requestsInProgress.delete(id);
+        this.#requestsInProgress.delete(id);
     }
 
     /**
@@ -254,20 +335,20 @@ export class Statistics {
      * @ignore
      */
     discardJob(id: number | string) {
-        this.requestsInProgress.delete(id);
+        this.#requestsInProgress.delete(id);
     }
 
     /**
      * Calculate the current statistics
      */
-    calculate() {
+    calculate(): CalculatedStatistics {
         const {
             requestsFailed,
             requestsFinished,
             requestTotalFailedDurationMillis,
             requestTotalFinishedDurationMillis,
         } = this.state;
-        const totalMillis = Date.now() - this.instanceStart;
+        const totalMillis = Date.now() - this.#instanceStart;
         const totalMinutes = totalMillis / 1000 / 60;
 
         return {
@@ -287,23 +368,29 @@ export class Statistics {
      * displaying the current state in predefined intervals
      */
     async startCapturing() {
+        // A single instance drives one logging interval and one PERSIST_STATE listener, so a second concurrent
+        // capture (e.g. sharing one instance across crawlers running at once) would orphan the first. Fail loudly.
+        if (this.#logInterval) {
+            throw new Error('Statistics.startCapturing() was already called - this instance is already capturing.');
+        }
+
         this.keyValueStore ??= await KeyValueStore.open(null, { configuration: serviceLocator.getConfiguration() });
 
         if (this.state.crawlerStartedAt === null) {
             this.state.crawlerStartedAt = new Date();
         }
 
-        if (this.persistenceOptions.enable) {
+        if (this.#persistenceOptions.enable) {
             await this.maybeLoadStatistics();
-            this.events.on(EventType.PERSIST_STATE, this.listener);
+            this.events.on(EventType.PERSIST_STATE, this.#listener);
         }
 
-        this.logInterval = setInterval(() => {
-            this.log.info(this.logMessage, {
+        this.#logInterval = setInterval(() => {
+            this.log.info(this.#logMessage, {
                 ...this.calculate(),
                 retryHistogram: this.requestRetryHistogram,
             });
-        }, this.logIntervalMillis);
+        }, this.#logIntervalMillis);
     }
 
     /**
@@ -328,7 +415,7 @@ export class Statistics {
      * @param options - Override the persistence options provided in the constructor
      */
     async persistState(options?: PersistenceOptions) {
-        if (!this.persistenceOptions.enable && !options?.enable) {
+        if (!this.#persistenceOptions.enable && !options?.enable) {
             return;
         }
 
@@ -386,7 +473,7 @@ export class Statistics {
         this.state.crawlerStartedAt = savedState.crawlerStartedAt ? new Date(savedState.crawlerStartedAt) : null;
         this.state.statsPersistedAt = savedState.statsPersistedAt ? new Date(savedState.statsPersistedAt) : null;
         this.state.crawlerRuntimeMillis = savedState.crawlerRuntimeMillis;
-        this.instanceStart = Date.now() - (+this.state.statsPersistedAt! - savedState.crawlerLastStartTimestamp);
+        this.#instanceStart = Date.now() - (+this.state.statsPersistedAt! - savedState.crawlerLastStartTimestamp);
 
         this.log.debug('Loaded from KeyValueStore');
     }
@@ -395,11 +482,11 @@ export class Statistics {
         // this can be called before a call to startCapturing happens (or in a 'finally' block)
         // Only unsubscribe if event manager was already resolved — avoid eagerly resolving it
         // (e.g. during the constructor's reset() call, which would capture the wrong context)
-        this._events?.off(EventType.PERSIST_STATE, this.listener);
+        this.#events?.off(EventType.PERSIST_STATE, this.#listener);
 
-        if (this.logInterval) {
-            clearInterval(this.logInterval as number);
-            this.logInterval = null;
+        if (this.#logInterval) {
+            clearInterval(this.#logInterval as number);
+            this.#logInterval = null;
         }
     }
 
@@ -413,7 +500,7 @@ export class Statistics {
         // omit duplicated information
         const result = {
             ...this.state,
-            crawlerLastStartTimestamp: this.instanceStart,
+            crawlerLastStartTimestamp: this.#instanceStart,
             crawlerFinishedAt: this.state.crawlerFinishedAt
                 ? new Date(this.state.crawlerFinishedAt).toISOString()
                 : null,

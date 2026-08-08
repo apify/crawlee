@@ -16,7 +16,7 @@ import type { BrowserCrawlingContext } from '@crawlee/browser';
 import type { BrowserHook } from '@crawlee/browser';
 import type { BrowserLaunchContext } from '@crawlee/browser';
 import { CheerioAPI } from '@crawlee/browser';
-import { CheerioRoot } from '@crawlee/utils';
+import { CheerioRoot } from '@crawlee/utils/internal';
 import type { ClickOptions } from 'puppeteer';
 import { Configuration } from '@crawlee/browser';
 import { ContextPipeline } from '@crawlee/browser';
@@ -40,6 +40,7 @@ import type { RouterRoutes } from '@crawlee/browser';
 import type { RouteSchemas } from '@crawlee/browser';
 import type { RoutesFromSchemas } from '@crawlee/browser';
 import type { SkippedRequestCallback } from '@crawlee/browser';
+import { StorageWritePolicy } from '@crawlee/browser';
 import { StringPredicate } from 'ow';
 import type { Target } from 'puppeteer';
 import type { UrlPatternInput } from '@crawlee/browser';
@@ -197,7 +198,7 @@ export class PuppeteerCrawler<ContextExtension = Dictionary<never>, ExtendedCont
     closeCookieModals: () => Promise<void>;
     }>;
     // (undocumented)
-    protected _navigationHandler(crawlingContext: PuppeteerCrawlingContext, gotoOptions: PuppeteerDirectNavigationOptions): Promise<HTTPResponse | null>;
+    protected navigationHandler(crawlingContext: PuppeteerCrawlingContext, gotoOptions: PuppeteerDirectNavigationOptions): Promise<HTTPResponse | null>;
     // (undocumented)
     protected static optionsShape: {
         browserPoolOptions: ObjectPredicate<object> & BasePredicate<object | undefined>;
@@ -233,6 +234,7 @@ export class PuppeteerCrawler<ContextExtension = Dictionary<never>, ExtendedCont
         blockedStatusCodes: ArrayPredicate<number>;
         retryOnBlocked: BooleanPredicate & BasePredicate<boolean | undefined>;
         respectRobotsTxtFile: AnyPredicate<boolean | object>;
+        transactionalStorage: BasePredicate<boolean | Partial<StorageWritePolicy> | undefined>;
         onSkippedRequest: Predicate<Function> & BasePredicate<Function | undefined>;
         httpClient: ObjectPredicate<object> & BasePredicate<object | undefined>;
         configuration: ObjectPredicate<object> & BasePredicate<object | undefined>;
@@ -243,7 +245,7 @@ export class PuppeteerCrawler<ContextExtension = Dictionary<never>, ExtendedCont
         maxConcurrency: NumberPredicate & BasePredicate<number | undefined>;
         maxRequestsPerMinute: NumberPredicate & BasePredicate<number | undefined>;
         keepAlive: BooleanPredicate & BasePredicate<boolean | undefined>;
-        statisticsOptions: ObjectPredicate<object> & BasePredicate<object | undefined>;
+        statistics: ObjectPredicate<object> & BasePredicate<object | undefined>;
         id: StringPredicate & BasePredicate<string | undefined>;
     };
 }
@@ -253,12 +255,12 @@ export interface PuppeteerCrawlerOptions<ContextExtension = Dictionary<never>, E
     browserPlugins: [PuppeteerPlugin];
 }, Routes> {
     launchContext?: PuppeteerLaunchContext;
-    postNavigationHooks?: BrowserHook<PuppeteerCrawlingContext, ContextExtension>[];
-    preNavigationHooks?: BrowserHook<PuppeteerCrawlingContext, ContextExtension>[];
+    postNavigationHooks?: BrowserHook<PuppeteerCrawlingContext<GetUserDataFromRequest<ExtendedContext['request']>>, ContextExtension>[];
+    preNavigationHooks?: BrowserHook<PuppeteerCrawlingContext<GetUserDataFromRequest<ExtendedContext['request']>>, ContextExtension>[];
 }
 
 // @public (undocumented)
-export interface PuppeteerCrawlingContext<UserData extends Dictionary = Dictionary> extends BrowserCrawlingContext<Page, HTTPResponse, UserData, PuppeteerGoToOptions>, PuppeteerContextUtils {
+export interface PuppeteerCrawlingContext<UserData extends Dictionary = any> extends BrowserCrawlingContext<Page, HTTPResponse, UserData, PuppeteerGoToOptions>, PuppeteerContextUtils {
 }
 
 // @public (undocumented)
@@ -272,8 +274,7 @@ export interface PuppeteerDirectNavigationOptions {
 export type PuppeteerGoToOptions = NonNullable<Parameters<Page['goto']>[1]>;
 
 // @public (undocumented)
-export interface PuppeteerHook extends BrowserHook<PuppeteerCrawlingContext> {
-}
+export type PuppeteerHook<UserData extends Dictionary = any> = BrowserHook<PuppeteerCrawlingContext<UserData>>;
 
 // @public
 export interface PuppeteerLaunchContext extends BrowserLaunchContext<PuppeteerPlugin['launchOptions'], unknown> {

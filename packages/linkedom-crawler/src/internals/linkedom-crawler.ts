@@ -24,7 +24,8 @@ import {
     tryAbsoluteURL,
 } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
-import { type CheerioRoot, type RobotsTxtFile, sleep } from '@crawlee/utils';
+import { type CheerioRoot } from '@crawlee/utils/internal';
+import { type RobotsTxtFile, sleep } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
 import { DOMParser } from 'linkedom/cached';
 
@@ -177,7 +178,7 @@ export class LinkeDOMCrawler<
         GetUserDataFromRequest<LinkeDOMCrawlingContext['request']>
     >,
 > extends HttpCrawler<LinkeDOMCrawlingContext, ContextExtension, ExtendedContext, Routes> {
-    private static parser = new DOMParser();
+    static #parser = new DOMParser();
 
     constructor(options: LinkeDOMCrawlerOptions<ContextExtension, ExtendedContext, any, any, Routes>) {
         const { contextPipelineBuilder, ...rest } = options;
@@ -200,7 +201,7 @@ export class LinkeDOMCrawler<
     private async parseContent(crawlingContext: InternalHttpCrawlingContext) {
         try {
             const isXml = crawlingContext.contentType.type.includes('xml');
-            const document = LinkeDOMCrawler.parser.parseFromString(
+            const document = LinkeDOMCrawler.#parser.parseFromString(
                 crawlingContext.body.toString(),
                 isXml ? 'text/xml' : 'text/html',
             );

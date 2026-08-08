@@ -9,7 +9,7 @@ import { ArrayPredicate } from 'ow';
 import { BasePredicate } from 'ow';
 import { BooleanPredicate } from 'ow';
 import { CheerioAPI } from 'cheerio';
-import { CheerioRoot } from '@crawlee/utils';
+import { CheerioRoot } from '@crawlee/utils/internal';
 import { ContextPipeline } from '@crawlee/http';
 import type { CrawlingContext } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
@@ -29,6 +29,7 @@ import type { RouterHandler } from '@crawlee/http';
 import type { RouterRoutes } from '@crawlee/http';
 import type { RouteSchemas } from '@crawlee/http';
 import type { RoutesFromSchemas } from '@crawlee/http';
+import { StorageWritePolicy } from '@crawlee/http';
 import { StringPredicate } from 'ow';
 import { VirtualConsole } from 'jsdom';
 
@@ -91,6 +92,7 @@ export class JSDOMCrawler<ContextExtension = Dictionary<never>, ExtendedContext 
         blockedStatusCodes: ArrayPredicate<number>;
         retryOnBlocked: BooleanPredicate & BasePredicate<boolean | undefined>;
         respectRobotsTxtFile: AnyPredicate<boolean | object>;
+        transactionalStorage: BasePredicate<boolean | Partial<StorageWritePolicy> | undefined>;
         onSkippedRequest: Predicate<Function> & BasePredicate<Function | undefined>;
         httpClient: ObjectPredicate<object> & BasePredicate<object | undefined>;
         configuration: ObjectPredicate<object> & BasePredicate<object | undefined>;
@@ -101,7 +103,7 @@ export class JSDOMCrawler<ContextExtension = Dictionary<never>, ExtendedContext 
         maxConcurrency: NumberPredicate & BasePredicate<number | undefined>;
         maxRequestsPerMinute: NumberPredicate & BasePredicate<number | undefined>;
         keepAlive: BooleanPredicate & BasePredicate<boolean | undefined>;
-        statisticsOptions: ObjectPredicate<object> & BasePredicate<object | undefined>;
+        statistics: ObjectPredicate<object> & BasePredicate<object | undefined>;
         id: StringPredicate & BasePredicate<string | undefined>;
     };
 }

@@ -320,9 +320,6 @@ importers:
       csv-stringify:
         specifier: ^6.5.2
         version: 6.7.0
-      fs-extra:
-        specifier: ^11.3.0
-        version: 11.3.4
       ow:
         specifier: ^2.0.0
         version: 2.0.0
@@ -453,9 +450,6 @@ importers:
       ansi-colors:
         specifier: ^4.1.3
         version: 4.1.3
-      fs-extra:
-        specifier: ^11.3.0
-        version: 11.3.4
       tslib:
         specifier: ^2.8.1
         version: 2.8.1
@@ -787,8 +781,8 @@ importers:
         specifier: ^1.0.0
         version: 1.2.0
       idcac-playwright:
-        specifier: ^0.1.3
-        version: 0.1.3
+        specifier: ^0.2.0
+        version: 0.2.0
       jquery:
         specifier: ^3.7.1
         version: 3.7.1
@@ -901,9 +895,6 @@ importers:
 
   packages/types:
     dependencies:
-      tough-cookie:
-        specifier: ^6.0.0
-        version: 6.0.1
       tslib:
         specifier: ^2.8.1
         version: 2.8.1
@@ -1312,9 +1303,6 @@ packages:
     resolution: {integrity: sha512-VHIswI7rD/R4bToeIDuJ9WJXt+qr5SdhfoZ9RzdjmCs9mgy7l0P4RugQEUCcU+WB4sfImbd4CKwzXcn0uYx1yw==}
     engines: {node: '>= 0.10'}
     hasBin: true
-
-  '@apify/pseudo_url@2.0.76':
-    resolution: {integrity: sha512-eNWHnP8CeMBgYBFko6/NJhHNKnxjy9HtbKQy0rq75LuKeibnAcT+7kkQrr6JDyDzrZL1O96yRWEy+G3lC2eIZA==}
 
   '@apify/timeout@0.3.3':
     resolution: {integrity: sha512-lyvwMXee8SJNjNyxhr+nSTNyvjyoxbxol51xikq9VytFOPNSEMz8N02mUAuLVJNqrnqCBFRybjeqZdg4Y5AZlA==}
@@ -7961,9 +7949,6 @@ packages:
     peerDependencies:
       postcss: ^8.1.0
 
-  idcac-playwright@0.1.3:
-    resolution: {integrity: sha512-VVYQ4sv6OrUJKVzYaIP1hq0qAHd1O22HW5LnL1Wf6zkrLStQ/QEg4iJ0rllIOEpd+Rmm+635AJD59A+Vw+2PgQ==}
-
   idcac-playwright@0.2.0:
     resolution: {integrity: sha512-qJH7vQgq3TKnhea/3Z3jlEJL7NC9vK9BkLClAzQHVRepBtq1fWfSI4fSuMKcPq7nDUTTlIEIS+vU+GRwwR1BXw==}
 
@@ -12958,10 +12943,6 @@ snapshots:
   '@apify/ps-tree@1.2.0':
     dependencies:
       event-stream: 3.3.4
-
-  '@apify/pseudo_url@2.0.76':
-    dependencies:
-      '@apify/log': 2.5.35
 
   '@apify/timeout@0.3.3': {}
 
@@ -21233,8 +21214,6 @@ snapshots:
   icss-utils@5.1.0(postcss@8.5.9):
     dependencies:
       postcss: 8.5.9
-
-  idcac-playwright@0.1.3: {}
 
   idcac-playwright@0.2.0: {}
 

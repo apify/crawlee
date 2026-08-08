@@ -24,11 +24,19 @@ import { Sitemap } from './sitemap.js';
  * ```
  */
 export class RobotsTxtFile {
+    #robots: Pick<Robot, 'isAllowed' | 'getSitemaps' | 'getCrawlDelay'>;
+    #proxyUrl?: string;
+    #logger?: CrawleeLogger;
+
     private constructor(
-        private robots: Pick<Robot, 'isAllowed' | 'getSitemaps' | 'getCrawlDelay'>,
-        private proxyUrl?: string,
-        private logger?: CrawleeLogger,
-    ) {}
+        robots: Pick<Robot, 'isAllowed' | 'getSitemaps' | 'getCrawlDelay'>,
+        proxyUrl?: string,
+        logger?: CrawleeLogger,
+    ) {
+        this.#robots = robots;
+        this.#proxyUrl = proxyUrl;
+        this.#logger = logger;
+    }
 
     /**
      * Determine the location of a robots.txt file for a URL and fetch it.
@@ -115,7 +123,7 @@ export class RobotsTxtFile {
      * @param [userAgent] relevant user agent, default to `*`
      */
     getCrawlDelay(userAgent = '*'): number | undefined {
-        return this.robots.getCrawlDelay(userAgent);
+        return this.#robots.getCrawlDelay(userAgent);
     }
 
     /**
@@ -124,21 +132,21 @@ export class RobotsTxtFile {
      * @param [userAgent] relevant user agent, default to `*`
      */
     isAllowed(url: string, userAgent = '*'): boolean {
-        return this.robots.isAllowed(url, userAgent) ?? true; // `undefined` means that there is no explicit rule for the requested URL - assume it's allowed
+        return this.#robots.isAllowed(url, userAgent) ?? true; // `undefined` means that there is no explicit rule for the requested URL - assume it's allowed
     }
 
     /**
      * Get URLs of sitemaps referenced in the robots file.
      */
     getSitemaps(): string[] {
-        return this.robots.getSitemaps();
+        return this.#robots.getSitemaps();
     }
 
     /**
      * Parse all the sitemaps referenced in the robots file.
      */
     async parseSitemaps(): Promise<Sitemap> {
-        return Sitemap.load(this.robots.getSitemaps(), this.proxyUrl, { logger: this.logger });
+        return Sitemap.load(this.#robots.getSitemaps(), this.#proxyUrl, { logger: this.#logger });
     }
 
     /**

@@ -24,7 +24,8 @@ import {
     tryAbsoluteURL,
 } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
-import { type CheerioRoot, type RobotsTxtFile, sleep } from '@crawlee/utils';
+import { type CheerioRoot } from '@crawlee/utils/internal';
+import { type RobotsTxtFile, sleep } from '@crawlee/utils';
 import type { DOMWindow } from 'jsdom';
 import { JSDOM, ResourceLoader, VirtualConsole } from 'jsdom';
 import ow from 'ow';
@@ -199,9 +200,9 @@ export class JSDOMCrawler<
         hideInternalConsole: ow.optional.boolean,
     };
 
-    private runScripts: boolean;
-    private hideInternalConsole: boolean;
-    private virtualConsole: VirtualConsole | null = null;
+    #runScripts: boolean;
+    #hideInternalConsole: boolean;
+    #virtualConsole: VirtualConsole | null = null;
 
     constructor(options: JSDOMCrawlerOptions<ContextExtension, ExtendedContext, any, any, Routes> = {}) {
         const { runScripts = false, hideInternalConsole = false, contextPipelineBuilder, ...httpOptions } = options;
@@ -211,8 +212,8 @@ export class JSDOMCrawler<
             contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),
         });
 
-        this.runScripts = runScripts;
-        this.hideInternalConsole = hideInternalConsole;
+        this.#runScripts = runScripts;
+        this.#hideInternalConsole = hideInternalConsole;
     }
 
     protected override buildContextPipeline() {
@@ -243,19 +244,19 @@ export class JSDOMCrawler<
      * ```
      */
     getVirtualConsole() {
-        if (this.virtualConsole) {
-            return this.virtualConsole;
+        if (this.#virtualConsole) {
+            return this.#virtualConsole;
         }
 
-        this.virtualConsole = new VirtualConsole();
+        this.#virtualConsole = new VirtualConsole();
 
-        if (!this.hideInternalConsole) {
-            this.virtualConsole.sendTo(console, { omitJSDOMErrors: true });
+        if (!this.#hideInternalConsole) {
+            this.#virtualConsole.sendTo(console, { omitJSDOMErrors: true });
         }
 
-        this.virtualConsole.on('jsdomError', this.jsdomErrorHandler);
+        this.#virtualConsole.on('jsdomError', this.jsdomErrorHandler);
 
-        return this.virtualConsole;
+        return this.#virtualConsole;
     }
 
     private readonly jsdomErrorHandler = (error: Error) => this.log.debug('JSDOM error from console', { error });
@@ -268,7 +269,7 @@ export class JSDOMCrawler<
             const { window } = new JSDOM(crawlingContext.body.toString(), {
                 url: crawlingContext.response.url,
                 contentType: isXml ? 'text/xml' : 'text/html',
-                runScripts: this.runScripts ? 'dangerously' : undefined,
+                runScripts: this.#runScripts ? 'dangerously' : undefined,
                 resources,
                 virtualConsole: this.getVirtualConsole(),
                 pretendToBeVisual: true,
@@ -295,7 +296,7 @@ export class JSDOMCrawler<
                 return range;
             };
 
-            if (this.runScripts) {
+            if (this.#runScripts) {
                 try {
                     await addTimeoutToPromise(
                         async () => {

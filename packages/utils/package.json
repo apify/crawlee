@@ -8,6 +8,7 @@
     "type": "module",
     "exports": {
         ".": "./dist/index.js",
+        "./internal": "./dist/internal.js",
         "./package.json": "./package.json"
     },
     "keywords": [

@@ -62,10 +62,10 @@ export abstract class EventManager {
     protected initialized = false;
     protected intervals: Intervals = {};
     protected log = serviceLocator.getLogger().child({ prefix: 'Events' });
-    private persistStateIntervalMillis: number;
+    #persistStateIntervalMillis: number;
 
     constructor(options: EventManagerOptions) {
-        this.persistStateIntervalMillis = options.persistStateIntervalMillis;
+        this.#persistStateIntervalMillis = options.persistStateIntervalMillis;
         this.events.setMaxListeners(50);
     }
 
@@ -81,7 +81,7 @@ export abstract class EventManager {
         this.intervals.persistState = betterSetInterval((intervalCallback: () => unknown) => {
             this.emit(EventType.PERSIST_STATE, { isMigrating: false });
             intervalCallback();
-        }, this.persistStateIntervalMillis);
+        }, this.#persistStateIntervalMillis);
 
         this.initialized = true;
     }

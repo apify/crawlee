@@ -17,7 +17,7 @@ const crawler = new BasicCrawler({
             headers: {
                 // If you want to use the cookieJar.
                 // This way you get the Cookie headers string from session.
-                Cookie: session?.cookieJar.getCookieStringSync(url) ?? '',
+                Cookie: (await session?.cookieJar.getCookieString(url)) ?? '',
             },
         });
         let response;

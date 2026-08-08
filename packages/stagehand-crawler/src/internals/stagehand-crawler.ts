@@ -215,12 +215,9 @@ export interface StagehandPage extends Page {
  */
 export type StagehandGotoOptions = NonNullable<Parameters<Page['goto']>[1]>;
 
-export interface StagehandCrawlingContext<UserData extends Dictionary = Dictionary> extends BrowserCrawlingContext<
-    StagehandPage,
-    Response,
-    UserData,
-    StagehandGotoOptions
-> {
+export interface StagehandCrawlingContext<
+    UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
+> extends BrowserCrawlingContext<StagehandPage, Response, UserData, StagehandGotoOptions> {
     /**
      * Enhanced Playwright page with Stagehand AI methods.
      * Use page.act(), page.extract(), page.observe(), page.agent() for AI-powered operations.
@@ -237,7 +234,9 @@ export interface StagehandCrawlingContext<UserData extends Dictionary = Dictiona
 /**
  * Hook function for StagehandCrawler.
  */
-export interface StagehandHook extends BrowserHook<StagehandCrawlingContext> {}
+export type StagehandHook<
+    UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
+> = BrowserHook<StagehandCrawlingContext<UserData>>;
 
 /**
  * Request handler for StagehandCrawler.
@@ -327,12 +326,18 @@ export interface StagehandCrawlerOptions<
     /**
      * Async functions that are sequentially evaluated before the navigation.
      */
-    preNavigationHooks?: StagehandHook[];
+    preNavigationHooks?: BrowserHook<
+        StagehandCrawlingContext<GetUserDataFromRequest<ExtendedContext['request']>>,
+        ContextExtension
+    >[];
 
     /**
      * Async functions that are sequentially evaluated after the navigation.
      */
-    postNavigationHooks?: StagehandHook[];
+    postNavigationHooks?: BrowserHook<
+        StagehandCrawlingContext<GetUserDataFromRequest<ExtendedContext['request']>>,
+        ContextExtension
+    >[];
 }
 
 /**
@@ -489,7 +494,7 @@ export class StagehandCrawler<
      * Navigation handler for Stagehand crawler.
      * Uses standard Playwright navigation.
      */
-    protected override async _navigationHandler(
+    protected override async navigationHandler(
         crawlingContext: StagehandCrawlingContext,
         gotoOptions: StagehandGotoOptions,
     ): Promise<Response | null> {
