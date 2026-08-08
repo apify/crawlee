@@ -37,18 +37,34 @@ export interface MemoryStorageOptions {
     persistStorage?: boolean;
 }
 
+/**
+ * Local storage client that keeps Crawlee data in memory and optionally persists it to disk.
+ *
+ * The client implements datasets, key-value stores, and request queues using the configured
+ * local storage directory.
+ */
 export class MemoryStorage implements storage.StorageClient {
+    /** Root directory used for persisted storage data. */
     readonly localDataDirectory: string;
+    /** Directory containing persisted datasets. */
     readonly datasetsDirectory: string;
+    /** Directory containing persisted key-value stores. */
     readonly keyValueStoresDirectory: string;
+    /** Directory containing persisted request queues. */
     readonly requestQueuesDirectory: string;
+    /** Whether metadata sidecar files are written. */
     readonly writeMetadata: boolean;
+    /** Whether storage data is persisted to disk. */
     readonly persistStorage: boolean;
 
+    /** Key-value store clients created by this storage instance. */
     readonly keyValueStoresHandled: KeyValueStoreClient[] = [];
+    /** Dataset clients created by this storage instance. */
     readonly datasetClientsHandled: DatasetClient[] = [];
+    /** Request queue clients created by this storage instance. */
     readonly requestQueuesHandled: RequestQueueClient[] = [];
 
+    /** Creates a memory storage client with optional disk persistence. */
     constructor(options: MemoryStorageOptions = {}) {
         s.object({
             localDataDirectory: s.string.optional,
@@ -83,6 +99,7 @@ export class MemoryStorage implements storage.StorageClient {
                 : true);
     }
 
+    /** Returns a client for the datasets collection. */
     datasets(): storage.DatasetCollectionClient {
         return new DatasetCollectionClient({
             baseStorageDirectory: this.datasetsDirectory,
@@ -90,12 +107,14 @@ export class MemoryStorage implements storage.StorageClient {
         });
     }
 
+    /** Opens a dataset client by identifier. */
     dataset<Data extends Dictionary = Dictionary>(id: string): storage.DatasetClient<Data> {
         s.string.parse(id);
 
         return new DatasetClient({ id, baseStorageDirectory: this.datasetsDirectory, client: this });
     }
 
+    /** Returns a client for the key-value stores collection. */
     keyValueStores(): storage.KeyValueStoreCollectionClient {
         return new KeyValueStoreCollectionClient({
             baseStorageDirectory: this.keyValueStoresDirectory,
@@ -103,12 +122,14 @@ export class MemoryStorage implements storage.StorageClient {
         });
     }
 
+    /** Opens a key-value store client by identifier. */
     keyValueStore(id: string): storage.KeyValueStoreClient {
         s.string.parse(id);
 
         return new KeyValueStoreClient({ id, baseStorageDirectory: this.keyValueStoresDirectory, client: this });
     }
 
+    /** Returns a client for the request queues collection. */
     requestQueues(): storage.RequestQueueCollectionClient {
         return new RequestQueueCollectionClient({
             baseStorageDirectory: this.requestQueuesDirectory,
@@ -116,6 +137,7 @@ export class MemoryStorage implements storage.StorageClient {
         });
     }
 
+    /** Opens a request queue client by identifier. */
     requestQueue(id: string, options: storage.RequestQueueOptions = {}): storage.RequestQueueClient {
         s.string.parse(id);
         s.object({
@@ -131,6 +153,7 @@ export class MemoryStorage implements storage.StorageClient {
         });
     }
 
+    /** Retained for API compatibility; validates the inputs but performs no operation. */
     async setStatusMessage(message: string, options: storage.SetStatusMessageOptions = {}): Promise<void> {
         s.string.parse(message);
         s.object({

@@ -290,7 +290,7 @@ const crawler = new CheerioCrawler({
 
 There is also `noRetry`. If set to `true` then the request will not be automatically tried.
 
-Crawlee also provides a built-in [logging mechanism](https://crawlee.dev/js/api/core/class/Log) via `log`, allowing you to log warnings, errors, and other information effectively.
+Crawlee also provides a built-in [logging mechanism](https://github.com/apify/log) via `log`, allowing you to log warnings, errors, and other information effectively.
 
 ### Deployment using Docker
 

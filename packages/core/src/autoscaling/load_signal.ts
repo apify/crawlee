@@ -10,7 +10,9 @@ import type { ClientInfo } from './system_status';
  * A snapshot of a resource's overload state at a point in time.
  */
 export interface LoadSnapshot {
+    /** Time when the resource measurement was collected. */
     createdAt: Date;
+    /** Whether the resource was overloaded at measurement time. */
     isOverloaded: boolean;
 }
 

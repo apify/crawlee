@@ -4,7 +4,7 @@
         "postinstall": "npx patch-package",
         "start": "rimraf .docusaurus && docusaurus start",
         "start:fast": "rimraf .docusaurus && CRAWLEE_DOCS_FAST=1 docusaurus start",
-        "build": "rimraf .docusaurus && node --max_old_space_size=16000 node_modules/@docusaurus/core/bin/docusaurus.mjs build",
+        "build": "rimraf .docusaurus && node --max_old_space_size=16000 node_modules/@docusaurus/core/bin/docusaurus.mjs build && node ./tools/api-coverage.mjs --check-current && node ./tools/joinLlmsFiles.mjs",
         "publish-gh-pages": "docusaurus-publish",
         "write-translations": "docusaurus write-translations",
         "version": "docusaurus version",
