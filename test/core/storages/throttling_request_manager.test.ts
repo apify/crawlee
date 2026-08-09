@@ -58,6 +58,32 @@ describe('ThrottlingRequestManager', () => {
         expect(await manager.fetchNextRequest()).toBeNull();
     });
 
+    test('Routing: a configured domain matches however its hostname is spelled', async () => {
+        const inner = await createQueue();
+        const manager = new ThrottlingRequestManager({
+            inner,
+            // A unicode, a punycode and a root-dotted spelling.
+            domains: ['HÁČKY.cz', 'xn--bcher-kva.example', 'example.com.', '[::1]'],
+        });
+
+        await manager.addRequest({ url: 'https://xn--hky-ela4t.cz/punycode' });
+        await manager.addRequest({ url: 'https://háčky.cz./unicode-with-root-dot' });
+        await manager.addRequest({ url: 'https://bücher.example/unicode' });
+        await manager.addRequest({ url: 'https://example.com/no-root-dot' });
+        await manager.addRequest({ url: 'http://[::1]:8080/bracketed' });
+
+        // Every one of them belongs to a configured domain, so none of them fell through to the inner queue.
+        expect(await inner.getTotalCount()).toBe(0);
+        expect(await manager.getTotalCount()).toBe(5);
+    });
+
+    test('rejects a domain that is not a hostname', async () => {
+        const inner = await createQueue();
+
+        // Unbracketed IPv6 - previously accepted, then silently matched nothing.
+        expect(() => new ThrottlingRequestManager({ inner, domains: ['::1'] })).toThrow(/not a valid hostname/);
+    });
+
     test('addRequestsBatched routing', async () => {
         const inner = await createQueue();
         const manager = new ThrottlingRequestManager({

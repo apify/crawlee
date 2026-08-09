@@ -8,6 +8,7 @@ import { asyncifyIterable } from '../iterables.js';
 import type { CrawleeLogger } from '../log.js';
 import type { Request, Source } from '../request.js';
 import { serviceLocator } from '../service_locator.js';
+import { normalizeHostname } from '../url.js';
 import { drainRequestBatches } from './batched_adds.js';
 import type { IRequestManager, RequestsLike } from './request_manager.js';
 import type {
@@ -69,6 +70,9 @@ export interface ThrottlingRequestManagerOptions<T extends IRequestManager = IRe
     /**
      * Hostnames to throttle. Matching is case-insensitive and exact - wildcards such as `*.example.com` are not
      * supported, so list each subdomain you care about. Requests for any other domain bypass throttling entirely.
+     *
+     * An internationalized domain may be given in either its unicode or its punycode form, and an IPv6 address
+     * has to be bracketed (`[::1]`).
      */
     domains: string[];
 
@@ -218,7 +222,17 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         const now = Date.now();
 
         for (const domain of options.domains) {
-            const hostname = domain.toLowerCase();
+            let hostname: string;
+            try {
+                // These are bare hostnames, so they only reach `URL` - and with it IDNA - via a synthetic URL.
+                hostname = normalizeHostname(new URL(`http://${domain}`).hostname);
+            } catch {
+                throw new Error(
+                    `"${domain}" is not a valid hostname. The \`domains\` option takes bare hostnames such as ` +
+                        `"example.com"; an IPv6 address has to be bracketed, as in "[::1]".`,
+                );
+            }
+
             this.domainStates.set(hostname, {
                 domain: hostname,
                 backoffUntil: 0,
@@ -265,8 +279,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
 
     private extractDomain(url: string): string {
         try {
-            const parsed = new URL(url);
-            return parsed.hostname.toLowerCase();
+            return normalizeHostname(new URL(url).hostname);
         } catch {
             return '';
         }
