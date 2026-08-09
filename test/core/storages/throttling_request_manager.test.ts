@@ -1,9 +1,11 @@
+import type { AddRequestsBatchedResult } from '@crawlee/core';
 import {
     MemoryStorageBackend,
     PersistentRateLimitError,
     RequestQueue,
     serviceLocator,
     ThrottlingRequestManager,
+    withStorageTransaction,
 } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
 
@@ -171,6 +173,45 @@ describe('ThrottlingRequestManager', () => {
 
         // Nobody is obliged to await this - but if it rejects unhandled, Node kills the process.
         await expect(result.waitForAllRequestsToBeAdded).rejects.toThrow('backend exploded');
+    });
+
+    describe('addRequestsBatched in a transaction', () => {
+        const sixRequests = Array.from({ length: 6 }, (_, i) => ({ url: `https://example.com/${i}` }));
+
+        test('deferred: every batch is rolled back, not just the first', async () => {
+            const manager = new ThrottlingRequestManager({ inner: await createQueue(), domains: ['example.com'] });
+
+            let result!: AddRequestsBatchedResult;
+            await withStorageTransaction(
+                async (transaction) => {
+                    result = await manager.addRequestsBatched(sixRequests, {
+                        batchSize: 2,
+                        waitBetweenBatchesMillis: 0,
+                    });
+                    transaction.rollback();
+                },
+                { policy: { requestQueue: 'deferred' } },
+            );
+            await result.waitForAllRequestsToBeAdded;
+
+            expect(await manager.getTotalCount()).toBe(0);
+        });
+
+        test('write-through: batches that outlive the transaction stay out of its journal', async () => {
+            const manager = new ThrottlingRequestManager({ inner: await createQueue(), domains: ['example.com'] });
+
+            await withStorageTransaction(async (transaction) => {
+                const result = await manager.addRequestsBatched(sixRequests, {
+                    batchSize: 2,
+                    waitBetweenBatchesMillis: 0,
+                });
+                await result.waitForAllRequestsToBeAdded;
+
+                // Only the initial batch was added within the transaction's scope; the rest writes directly,
+                // exactly as a bare `RequestQueue` does.
+                expect(transaction.enqueuedUrls).toHaveLength(2);
+            });
+        });
     });
 
     test('warns that requestsFromUrl sources cannot be domain-routed', async () => {

@@ -4,6 +4,7 @@ import type { ProcessedRequest } from '@crawlee/types';
 import { chunkedAsyncIterable, peekableAsyncIterable } from '../iterables.js';
 import type { Source } from '../request.js';
 import type { AddRequestsBatchedResult } from './request_queue.js';
+import { activeStorageTransaction, withDirectStorageAccess } from './transaction.js';
 
 export interface DrainRequestBatchesOptions<TItem extends Source> {
     /**
@@ -30,18 +31,6 @@ export interface DrainRequestBatchesOptions<TItem extends Source> {
      * `isFinished` honest while batches are still landing.
      */
     trackBackgroundBatches?: (batches: Promise<unknown>) => void;
-
-    /**
-     * Await the remaining chunks before returning even when the caller did not ask to. Set when the chunks
-     * carry state that must not outlive the current scope, regardless of what the caller wanted.
-     */
-    alwaysAwaitRemainder?: boolean;
-
-    /**
-     * Wraps the remaining chunks when they are *not* awaited, i.e. when they will outlive the caller's
-     * scope. Defaults to running them as-is.
-     */
-    runDetachedRemainder?: (run: () => Promise<ProcessedRequest[]>) => Promise<ProcessedRequest[]>;
 }
 
 /**
@@ -49,8 +38,10 @@ export interface DrainRequestBatchesOptions<TItem extends Source> {
  * rest continue in the background, paced by `waitBetweenBatchesMillis`.
  *
  * Callers differ only in how a chunk is added and how the input is normalized, so that is all
- * {@apilink DrainRequestBatchesOptions} asks for - the budget arithmetic, the lazy chunking and the
- * over-limit reporting are identical for everyone and live here.
+ * {@apilink DrainRequestBatchesOptions} asks for - the budget arithmetic, the lazy chunking, the
+ * over-limit reporting and the transaction handling are identical for everyone and live here. In
+ * particular, every caller has to keep its background chunks out of a transaction they will outlive,
+ * so that is read from the ambient transaction rather than asked of the caller.
  */
 export async function drainRequestBatches<TItem extends Source>(
     options: DrainRequestBatchesOptions<TItem>,
@@ -63,9 +54,9 @@ export async function drainRequestBatches<TItem extends Source>(
         maxNewRequests,
         processChunk,
         trackBackgroundBatches,
-        alwaysAwaitRemainder = false,
-        runDetachedRemainder = async (run) => run(),
     } = options;
+
+    const deferred = activeStorageTransaction()?.policy.requestQueue === 'deferred';
 
     let remainingBudget = maxNewRequests ?? Infinity;
     const requestsOverLimit: Source[] = [];
@@ -117,14 +108,21 @@ export async function drainRequestBatches<TItem extends Source>(
         const added: ProcessedRequest[] = [];
         for await (const chunk of chunks) {
             added.push(...(await addChunk(chunk, false)));
-            await sleep(waitBetweenBatchesMillis);
+            // Under `deferred` no chunk performs backend I/O, so pacing them would only stall the handler.
+            await sleep(deferred ? 0 : waitBetweenBatchesMillis);
         }
         return added;
     };
 
-    // With a budget we must drain everything before we can report what went over it.
-    const awaitsRemainder = waitForAllRequestsToBeAdded || maxNewRequests !== undefined || alwaysAwaitRemainder;
-    const remainder = awaitsRemainder ? processRemainingChunks() : runDetachedRemainder(processRemainingChunks);
+    // With a budget we must drain everything before we can report what went over it; under `deferred` a
+    // writer that finishes after commit would have nowhere to put its journal entries.
+    const awaitsRemainder = waitForAllRequestsToBeAdded || maxNewRequests !== undefined || deferred;
+
+    // An un-awaited writer outlives the transaction scope it inherits, so it must not record into a
+    // transaction that may already be closed. It writes directly - its write-through additions were never
+    // going to be rolled back anyway - which means the requests it adds are not journaled.
+    // See `StorageTransactionView.enqueuedUrls`.
+    const remainder = awaitsRemainder ? processRemainingChunks() : withDirectStorageAccess(processRemainingChunks);
 
     // The caller is not obliged to await `remainder`, so give it a handler of its own - an unhandled
     // rejection here would otherwise take the process down.

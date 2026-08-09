@@ -28,7 +28,7 @@ import type { InternalSource, RequestOptions, Source } from '../request.js';
 import { Request } from '../request.js';
 import { serviceLocator } from '../service_locator.js';
 import type { JournalEntry, StorageTransaction } from './transaction.js';
-import { activeStorageTransaction, rejectOperationInTransaction, withDirectStorageAccess } from './transaction.js';
+import { activeStorageTransaction, rejectOperationInTransaction } from './transaction.js';
 import { drainRequestBatches } from './batched_adds.js';
 import type { IRequestManager, RequestsLike } from './request_manager.js';
 import type { RequestQueueStats } from './storage_stats.js';
@@ -571,9 +571,6 @@ export class RequestQueue implements IStorage, IRequestManager {
         requests: ReadonlyDeep<RequestsLike>,
         options: AddRequestsBatchedOptions = {},
     ): Promise<AddRequestsBatchedResult> {
-        const transaction = activeStorageTransaction();
-        const deferred = transaction?.policy.requestQueue === 'deferred';
-
         ow(
             requests,
             ow.object
@@ -633,8 +630,7 @@ export class RequestQueue implements IStorage, IRequestManager {
         return drainRequestBatches<RequestOptions>({
             items: generateRequests(),
             batchSize: options.batchSize ?? 1000,
-            // Under `deferred` no chunk performs backend I/O, so pacing them would only stall the handler.
-            waitBetweenBatchesMillis: deferred ? 0 : (options.waitBetweenBatchesMillis ?? 1000),
+            waitBetweenBatchesMillis: options.waitBetweenBatchesMillis ?? 1000,
             waitForAllRequestsToBeAdded: options.waitForAllRequestsToBeAdded ?? false,
             maxNewRequests: options.maxNewRequests,
 
@@ -660,16 +656,6 @@ export class RequestQueue implements IStorage, IRequestManager {
 
                 return processedRequests;
             },
-
-            // `deferred` must await the remainder - a writer that finishes after commit would have nowhere
-            // to put its journal entries.
-            alwaysAwaitRemainder: deferred,
-
-            // An un-awaited writer outlives the transaction scope it inherits, so it must not record into a
-            // transaction that may already be closed. It writes directly - its write-through additions were
-            // never going to be rolled back anyway - which means the requests it adds are not journaled.
-            // See `StorageTransactionView.enqueuedUrls`.
-            runDetachedRemainder: withDirectStorageAccess,
 
             trackBackgroundBatches: (batches) => {
                 this.inProgressRequestBatchCount += 1;
