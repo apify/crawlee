@@ -577,6 +577,9 @@ export class HttpCrawler<
         if (crawlingContext.response.status === 429) {
             const retryAfter = crawlingContext.response.headers.get('retry-after');
             if (this.recordDomainRateLimit(crawlingContext.request.url, retryAfter)) {
+                // This is the one path that never reads the body, so cancel it to release the connection
+                // rather than leaving it to the garbage collector.
+                await crawlingContext.response.body?.cancel().catch(() => {});
                 throw new RequestThrottledError(`${crawlingContext.request.url} responded with 429.`);
             }
         }
