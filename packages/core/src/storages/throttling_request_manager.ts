@@ -127,6 +127,11 @@ interface DomainState {
     crawlDelayMs: number | null;
     /** When this domain last let a request through, as a `Date.now()` timestamp. Drives stall detection. */
     lastProgressAt: number;
+    /**
+     * When this domain last answered 429, as a `Date.now()` timestamp, or `0` if it never has. Read alongside
+     * `lastProgressAt` to tell a domain that is rate-limiting us from one that is merely being waited out.
+     */
+    lastRateLimitedAt: number;
 }
 
 /** The moment a domain may be dispatched to again - whichever of its two independent clocks runs longer. */
@@ -244,6 +249,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
                 consecutive429Count: 0,
                 crawlDelayMs: null,
                 lastProgressAt: now,
+                lastRateLimitedAt: 0,
             });
         }
     }
@@ -346,6 +352,10 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
 
         const now = Date.now();
 
+        // Recorded before the burst suppression below, because a suppressed 429 is still the domain turning us
+        // away - which is exactly what stall detection needs to know about.
+        state.lastRateLimitedAt = now;
+
         // Requests already in flight when the limit was hit all come back 429. They describe one rate-limit
         // event, so only the first advances the backoff - otherwise concurrency alone drives the exponent.
         // Only the backoff clock may suppress here: `crawlDelayUntil` is in the future after every dispatch,
@@ -413,14 +423,19 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
      * request through.
      *
      * A domain qualifies only while it still has queued requests and is actively rate-limiting - a domain that
-     * has simply run out of work is finished, not stalled.
+     * has simply run out of work is finished, not stalled, and one being waited out under a long robots.txt
+     * `Crawl-delay` is being obeyed, not stonewalled.
      */
     async assertNoStalledDomains(): Promise<void> {
         await this.ensureSubManagers();
 
         const now = Date.now();
         const candidates = Array.from(this.domainStates.values()).filter(
-            (state) => state.consecutive429Count > 0 && now - state.lastProgressAt > this.maxDomainStallMs,
+            // Both clocks are read over the same window, so this says: it turned us away within the window, and
+            // over that whole window it never once let us through.
+            (state) =>
+                now - state.lastRateLimitedAt <= this.maxDomainStallMs &&
+                now - state.lastProgressAt > this.maxDomainStallMs,
         );
 
         const stalled = (
@@ -589,6 +604,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
             state.crawlDelayUntil = 0;
             state.backoffDecaysAt = 0;
             state.lastProgressAt = now;
+            state.lastRateLimitedAt = 0;
         }
     }
 

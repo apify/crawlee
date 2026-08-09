@@ -377,6 +377,19 @@ describe('ThrottlingRequestManager', () => {
 
             await expect(manager.assertNoStalledDomains()).resolves.toBeUndefined();
         });
+
+        test('a domain that stopped rate-limiting a while ago is being waited out, not stalled', async () => {
+            const manager = await stallingManager();
+            await manager.addRequest({ url: 'https://example.com/1' });
+
+            // A single old 429, and nothing since - which is what a `Crawl-delay` longer than the stall window
+            // looks like. The domain is not turning us away, we are keeping our distance from it.
+            manager.recordDomainDelay('https://example.com/1');
+            stallFor(manager, 'example.com');
+            domainState(manager, 'example.com').lastRateLimitedAt -= 60_000;
+
+            await expect(manager.assertNoStalledDomains()).resolves.toBeUndefined();
+        });
     });
 
     test('a crawl-delay does not swallow the 429 backoff', async () => {
