@@ -1896,16 +1896,9 @@ export class BasicCrawler<
         });
     }
 
-    private logOncePerRun(key: string, message: string): void {
+    private logOncePerRun(key: string, message: string, level: 'info' | 'warning' = 'info'): void {
         if (!this.#loggedPerRun.has(key)) {
-            this.log.info(message);
-            this.#loggedPerRun.add(key);
-        }
-    }
-
-    private warnOncePerRun(key: string, message: string): void {
-        if (!this.#loggedPerRun.has(key)) {
-            this.log.warning(message);
+            this.log[level](message);
             this.#loggedPerRun.add(key);
         }
     }
@@ -2273,12 +2266,13 @@ export class BasicCrawler<
         }
 
         const domain = hostnameOrUrl(url);
-        this.warnOncePerRun(
+        this.logOncePerRun(
             `rateLimitNotThrottled:${domain}`,
             `"${domain}" responded with HTTP 429 (Too Many Requests), but nothing is set up to back off from it, ` +
-                'so the request will be retried without a per-domain delay and its session will be retired. ' +
+                'so the response is handled like any other, with no per-domain delay. ' +
                 `Pass a \`ThrottlingRequestManager\` as \`requestManager\` and include "${domain}" in its \`domains\` ` +
                 'option to honour `Retry-After` and apply exponential backoff instead.',
+            'warning',
         );
 
         return false;
@@ -2296,11 +2290,12 @@ export class BasicCrawler<
         }
 
         const domain = hostnameOrUrl(url);
-        this.warnOncePerRun(
+        this.logOncePerRun(
             `crawlDelayIgnored:${domain}`,
             `robots.txt for "${domain}" defines a crawl-delay of ${delaySeconds}s, but nothing is set up to honour it, ` +
                 'so requests to that domain will not be paced. Pass a `ThrottlingRequestManager` as `requestManager` ' +
                 `and include "${domain}" in its \`domains\` option to enforce the delay.`,
+            'warning',
         );
     }
 

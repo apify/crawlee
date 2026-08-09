@@ -259,11 +259,8 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         return this.inner;
     }
 
-    private getUrlFromRequest(requestLike: Source | string): string {
-        if (typeof requestLike === 'string') {
-            return requestLike;
-        }
-
+    /** Warns once about sources that cannot be routed by domain, because their URLs are not known yet. */
+    private warnIfNotRoutable(requestLike: Source): void {
         if ('requestsFromUrl' in requestLike && requestLike.requestsFromUrl !== undefined && this.hasThrottledDomains) {
             // The URL list is only fetched once the owning manager expands it, so we cannot know which domains
             // it covers and cannot route it. Warn instead of silently exempting those URLs from throttling.
@@ -274,8 +271,6 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
                     `be throttled, even if they belong to a configured domain.`,
             );
         }
-
-        return requestLike.url ?? '';
     }
 
     private warnOnce(key: string, message: string): void {
@@ -314,7 +309,9 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
             await Promise.all(
                 Array.from(this.domainStates.keys(), async (domain) => {
                     const subManager = await this.requestManagerOpener(
-                        { alias: `throttled-${domain}` },
+                        // Backends use the alias as a directory name, and an IPv6 literal is full of characters
+                        // Windows will not accept. Ordinary hostnames survive this untouched.
+                        { alias: `throttled-${encodeURIComponent(domain)}` },
                         { configuration: this.config },
                     );
                     this.subManagers.set(domain, subManager);
@@ -471,7 +468,9 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     // --- IRequestManager Implementation ---
 
     async addRequest(requestLike: Source, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo> {
-        const manager = await this.selectManager(this.getUrlFromRequest(requestLike));
+        this.warnIfNotRoutable(requestLike);
+
+        const manager = await this.selectManager(requestLike.url ?? '');
         return manager.addRequest(requestLike, options);
     }
 
@@ -507,7 +506,9 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
             processChunk: async (chunk) => {
                 const byManager = new Map<T, Source[]>();
                 for (const request of chunk) {
-                    const manager = this.managerForUrl(this.getUrlFromRequest(request));
+                    this.warnIfNotRoutable(request);
+
+                    const manager = this.managerForUrl(request.url ?? '');
                     const bucket = byManager.get(manager);
                     if (bucket) {
                         bucket.push(request);
