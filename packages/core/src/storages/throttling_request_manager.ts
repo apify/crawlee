@@ -207,9 +207,9 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
                 inner: ow.object,
                 domains: ow.array.ofType(ow.string.nonEmpty),
                 requestManagerOpener: ow.optional.function,
-                baseDelaySecs: ow.optional.number,
-                maxDelaySecs: ow.optional.number,
-                maxDomainStallSecs: ow.optional.number,
+                baseDelaySecs: ow.optional.number.positive,
+                maxDelaySecs: ow.optional.number.positive,
+                maxDomainStallSecs: ow.optional.number.positive,
             }),
         );
 
