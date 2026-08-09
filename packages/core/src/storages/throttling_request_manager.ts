@@ -128,39 +128,6 @@ function throttledUntil(state: DomainState): number {
 }
 
 /**
- * Parses a `Retry-After` response header into a delay in milliseconds.
- *
- * The header holds either a non-negative number of seconds or an HTTP-date.
- * See [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Retry-After).
- *
- * @returns The delay in milliseconds, or `null` if the header is absent, unparseable, or already elapsed.
- */
-export function parseRetryAfterHeader(value?: string | null): number | null {
-    if (!value) {
-        return null;
-    }
-
-    const trimmed = value.trim();
-
-    // Per the spec this is a `delay-seconds`: digits only, so a negative or fractional value is not one.
-    if (/^\d+$/.test(trimmed)) {
-        // `Retry-After: 0` names no future deadline, same as an HTTP-date that has already passed. Reporting it
-        // as a zero delay would leave the domain unthrottled while still counting as a rate-limit event, so the
-        // caller would defer the request for free and re-send it immediately.
-        const delayMs = Number(trimmed) * 1000;
-        return delayMs > 0 ? delayMs : null;
-    }
-
-    const date = Date.parse(trimmed);
-    if (!Number.isNaN(date)) {
-        const delayMs = date - Date.now();
-        return delayMs > 0 ? delayMs : null;
-    }
-
-    return null;
-}
-
-/**
  * A request manager that wraps another one and paces requests per domain.
  *
  * Requests for the configured {@apilink ThrottlingRequestManagerOptions.domains|`domains`} are routed into their own
@@ -231,7 +198,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
             options,
             ow.object.exactShape({
                 inner: ow.object,
-                domains: ow.array.ofType(ow.string),
+                domains: ow.array.ofType(ow.string.nonEmpty),
                 requestManagerOpener: ow.optional.function,
                 baseDelaySecs: ow.optional.number,
                 maxDelaySecs: ow.optional.number,
@@ -251,19 +218,22 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         const now = Date.now();
 
         for (const domain of options.domains) {
-            if (domain) {
-                const hostname = domain.toLowerCase();
-                this.domainStates.set(hostname, {
-                    domain: hostname,
-                    backoffUntil: 0,
-                    crawlDelayUntil: 0,
-                    backoffDecaysAt: 0,
-                    consecutive429Count: 0,
-                    crawlDelayMs: null,
-                    lastProgressAt: now,
-                });
-            }
+            const hostname = domain.toLowerCase();
+            this.domainStates.set(hostname, {
+                domain: hostname,
+                backoffUntil: 0,
+                crawlDelayUntil: 0,
+                backoffDecaysAt: 0,
+                consecutive429Count: 0,
+                crawlDelayMs: null,
+                lastProgressAt: now,
+            });
         }
+    }
+
+    /** The wrapped manager, holding every request whose domain is not throttled. */
+    get innerManager(): T {
+        return this.inner;
     }
 
     private getUrlFromRequest(requestLike: Source | string): string {

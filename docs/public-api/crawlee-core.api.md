@@ -2156,6 +2156,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     getPendingCount(): Promise<number>;
     // (undocumented)
     getTotalCount(): Promise<number>;
+    get innerManager(): T;
     isEmpty(): Promise<boolean>;
     isFinished(): Promise<boolean>;
     // (undocumented)

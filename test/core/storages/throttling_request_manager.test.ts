@@ -1,8 +1,10 @@
-import { MemoryStorageBackend, PersistentRateLimitError, RequestQueue, serviceLocator } from '@crawlee/core';
 import {
+    MemoryStorageBackend,
+    PersistentRateLimitError,
+    RequestQueue,
+    serviceLocator,
     ThrottlingRequestManager,
-    parseRetryAfterHeader,
-} from '../../../packages/core/src/storages/throttling_request_manager.js';
+} from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
 
 describe('ThrottlingRequestManager', () => {
@@ -30,34 +32,6 @@ describe('ThrottlingRequestManager', () => {
         }
         throw new Error('Timed out waiting for a request to become available');
     }
-
-    test('parseRetryAfterHeader parsing seconds and date', () => {
-        expect(parseRetryAfterHeader('120')).toBe(120_000);
-        expect(parseRetryAfterHeader('  5  ')).toBe(5000);
-        // Zero-padded values are valid `delay-seconds`.
-        expect(parseRetryAfterHeader('05')).toBe(5000);
-
-        // A zero delay names no deadline; reporting it as one would leave the domain unthrottled and busy-loop.
-        expect(parseRetryAfterHeader('0')).toBeNull();
-        expect(parseRetryAfterHeader('00')).toBeNull();
-
-        // date format
-        const futureDate = new Date(Date.now() + 5000).toUTCString();
-        const delay = parseRetryAfterHeader(futureDate);
-        expect(delay).toBeGreaterThan(0);
-        expect(delay).toBeLessThanOrEqual(5500);
-
-        // A date in the past means "no delay", not a negative one.
-        expect(parseRetryAfterHeader(new Date(Date.now() - 5000).toUTCString())).toBeNull();
-
-        expect(parseRetryAfterHeader(null)).toBeNull();
-        expect(parseRetryAfterHeader(undefined)).toBeNull();
-        expect(parseRetryAfterHeader('')).toBeNull();
-        expect(parseRetryAfterHeader('invalid')).toBeNull();
-        // Not `delay-seconds`; a negative delay would have suppressed the backoff entirely.
-        expect(parseRetryAfterHeader('-5')).toBeNull();
-        expect(parseRetryAfterHeader('1.5')).toBeNull();
-    });
 
     test('Routing: requests to configured domains route to sub-managers, others to inner queue', async () => {
         const inner = await createQueue();
@@ -242,19 +216,28 @@ describe('ThrottlingRequestManager', () => {
         const manager = new ThrottlingRequestManager({
             inner: await createQueue(),
             domains: ['example.com'],
-            baseDelaySecs: 0.02,
+            baseDelaySecs: 10,
             maxDelaySecs: 60,
         });
+        const state = domainState(manager, 'example.com');
 
         manager.recordDomainDelay('https://example.com/1');
-        await sleep(30);
-        manager.recordDomainDelay('https://example.com/1');
-        expect(domainState(manager, 'example.com').consecutive429Count).toBe(2);
 
-        // Wait out the delay plus a full extra window with no further 429.
-        await sleep(120);
+        // Rewinding both clocks beats sleeping out real delays - a loaded CI box cannot race it.
+        const rewind = (ms: number) => {
+            state.backoffUntil -= ms;
+            state.backoffDecaysAt -= ms;
+        };
+
+        // Past the backoff but still inside the decay window: the next 429 continues the same burst.
+        rewind(11_000);
         manager.recordDomainDelay('https://example.com/1');
-        expect(domainState(manager, 'example.com').consecutive429Count).toBe(1);
+        expect(state.consecutive429Count).toBe(2);
+
+        // Past the decay window as well: the domain is treated as recovered and the exponent restarts.
+        rewind(41_000);
+        manager.recordDomainDelay('https://example.com/1');
+        expect(state.consecutive429Count).toBe(1);
     });
 
     test('caps the delay at maxDelaySecs', async () => {
@@ -307,10 +290,12 @@ describe('ThrottlingRequestManager', () => {
         const firstRun = new ThrottlingRequestManager({ inner: await createQueue(), domains });
         await firstRun.addRequest({ url: 'https://example.com/stale' });
 
+        const subQueue = await RequestQueue.open({ alias: 'throttled-example.com' });
+        expect(await subQueue.getPendingCount()).toBe(1);
+
         const secondRun = new ThrottlingRequestManager({ inner: await createQueue(), domains });
         await secondRun.purge();
 
-        const subQueue = await RequestQueue.open({ alias: 'throttled-example.com' });
         expect(await subQueue.getPendingCount()).toBe(0);
     });
 
