@@ -125,11 +125,15 @@ interface DomainState {
     consecutive429Count: number;
     /** Minimum interval between dispatches, from a robots.txt `Crawl-delay` directive. */
     crawlDelayMs: number | null;
-    /** When this domain last let a request through, as a `Date.now()` timestamp. Drives stall detection. */
-    lastProgressAt: number;
+    /**
+     * When the current unbroken run of 429s began, as a `Date.now()` timestamp, or `0` if the domain is not
+     * currently rate-limiting us. Cleared the moment a request gets through, so it measures how long we have
+     * been stonewalled rather than how long the domain has been quiet.
+     */
+    rateLimitedSince: number;
     /**
      * When this domain last answered 429, as a `Date.now()` timestamp, or `0` if it never has. Read alongside
-     * `lastProgressAt` to tell a domain that is rate-limiting us from one that is merely being waited out.
+     * `rateLimitedSince` to tell a domain that is still turning us away from one that is merely being waited out.
      */
     lastRateLimitedAt: number;
 }
@@ -227,8 +231,6 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         this.maxDomainStallMs = (options.maxDomainStallSecs ?? 900) * 1000;
         this.log = serviceLocator.getLogger().child({ prefix: 'ThrottlingRequestManager' });
 
-        const now = Date.now();
-
         for (const domain of options.domains) {
             let hostname: string;
             try {
@@ -248,7 +250,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
                 backoffDecaysAt: 0,
                 consecutive429Count: 0,
                 crawlDelayMs: null,
-                lastProgressAt: now,
+                rateLimitedSince: 0,
                 lastRateLimitedAt: 0,
             });
         }
@@ -352,6 +354,9 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         // Recorded before the burst suppression below, because a suppressed 429 is still the domain turning us
         // away - which is exactly what stall detection needs to know about.
         state.lastRateLimitedAt = now;
+        if (state.rateLimitedSince === 0) {
+            state.rateLimitedSince = now;
+        }
 
         // Requests already in flight when the limit was hit all come back 429. They describe one rate-limit
         // event, so only the first advances the backoff - otherwise concurrency alone drives the exponent.
@@ -428,11 +433,13 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
 
         const now = Date.now();
         const candidates = Array.from(this.domainStates.values()).filter(
-            // Both clocks are read over the same window, so this says: it turned us away within the window, and
-            // over that whole window it never once let us through.
+            // Together: it is still turning us away, and has been doing so without a break for longer than the
+            // window. A domain that has simply been idle starts this clock at its first 429 rather than
+            // arriving with the idle time already on it.
             (state) =>
+                state.rateLimitedSince !== 0 &&
                 now - state.lastRateLimitedAt <= this.maxDomainStallMs &&
-                now - state.lastProgressAt > this.maxDomainStallMs,
+                now - state.rateLimitedSince > this.maxDomainStallMs,
         );
 
         const stalled = (
@@ -446,7 +453,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         }
 
         const summary = stalled
-            .map((state) => `"${state.domain}" (${((now - state.lastProgressAt) / 1000).toFixed(0)}s)`)
+            .map((state) => `"${state.domain}" (${((now - state.rateLimitedSince) / 1000).toFixed(0)}s)`)
             .join(', ');
 
         throw new PersistentRateLimitError(
@@ -457,11 +464,11 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         );
     }
 
-    /** Records that a domain let a request through, which is what stall detection watches for. */
+    /** Records that a domain let a request through, which ends any rate-limit run stall detection was timing. */
     private recordProgress(url: string): void {
         const state = this.getDomainState(url);
         if (state) {
-            state.lastProgressAt = Date.now();
+            state.rateLimitedSince = 0;
         }
     }
 
@@ -598,13 +605,12 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
      */
     async purge(): Promise<void> {
         await this.forEachManager((manager) => manager.purge?.());
-        const now = Date.now();
         for (const state of this.domainStates.values()) {
             state.consecutive429Count = 0;
             state.backoffUntil = 0;
             state.crawlDelayUntil = 0;
             state.backoffDecaysAt = 0;
-            state.lastProgressAt = now;
+            state.rateLimitedSince = 0;
             state.lastRateLimitedAt = 0;
         }
     }

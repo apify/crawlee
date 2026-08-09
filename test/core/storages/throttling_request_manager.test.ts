@@ -334,9 +334,12 @@ describe('ThrottlingRequestManager', () => {
                 maxDomainStallSecs: 30,
             });
 
-        /** Ages the domain past its stall threshold. Backdating beats sleeping - a loaded CI box cannot race it. */
+        /**
+         * Ages the domain's ongoing run of 429s past the stall threshold. Backdating beats sleeping - a loaded
+         * CI box cannot race it.
+         */
         const stallFor = (manager: ThrottlingRequestManager, domain: string) => {
-            domainState(manager, domain).lastProgressAt -= 60_000;
+            domainState(manager, domain).rateLimitedSince -= 60_000;
         };
 
         test('gives up on a domain that never lets a request through', async () => {
@@ -370,10 +373,27 @@ describe('ThrottlingRequestManager', () => {
             await expect(manager.assertNoStalledDomains()).resolves.toBeUndefined();
         });
 
+        test('a domain that has been idle for longer than the window is not stalled by its first 429', async () => {
+            const manager = new ThrottlingRequestManager({
+                inner: await createQueue(),
+                domains: ['example.com'],
+                baseDelaySecs: 0.01,
+                maxDomainStallSecs: 0.05,
+            });
+            await manager.addRequest({ url: 'https://example.com/1' });
+
+            // The crawl spent longer than the whole stall window elsewhere before this domain was touched.
+            await sleep(100);
+
+            // The first 429 starts the clock - it does not arrive with the idle time already on it.
+            manager.recordDomainDelay('https://example.com/1');
+
+            await expect(manager.assertNoStalledDomains()).resolves.toBeUndefined();
+        });
+
         test('a domain that was never rate-limited is never stalled', async () => {
             const manager = await stallingManager();
             await manager.addRequest({ url: 'https://example.com/1' });
-            stallFor(manager, 'example.com');
 
             await expect(manager.assertNoStalledDomains()).resolves.toBeUndefined();
         });
