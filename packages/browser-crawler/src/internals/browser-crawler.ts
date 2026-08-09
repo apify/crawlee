@@ -61,6 +61,8 @@ import type { BrowserLaunchContext } from './browser-launcher.js';
 
 interface BaseResponse {
     status(): number;
+    /** Optional because only Playwright and Puppeteer responses are guaranteed to carry it. */
+    headers?(): Record<string, string>;
 }
 
 /**
@@ -837,7 +839,7 @@ export abstract class BrowserCrawler<
             // rate limit the domain should back off from.
             if (status === 429) {
                 // Both drivers lower-case header names and join duplicates, so a plain lookup is enough.
-                const retryAfter = (response as { headers?(): Record<string, string> }).headers?.()['retry-after'];
+                const retryAfter = response.headers?.()['retry-after'];
                 if (this.recordDomainRateLimit(crawlingContext.request.url, retryAfter)) {
                     throw new RequestThrottledError(`${crawlingContext.request.url} responded with 429.`);
                 }

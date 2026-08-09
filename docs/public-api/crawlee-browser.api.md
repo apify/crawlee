@@ -41,6 +41,7 @@ import { StringPredicate } from 'ow';
 // Not exported by the entry point; reachable only as a referenced type.
 // @public (undocumented)
 interface BaseResponse {
+    headers?(): Record<string, string>;
     // (undocumented)
     status(): number;
 }
