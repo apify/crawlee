@@ -1232,7 +1232,7 @@ export class BasicCrawler<
 
                     // Checked here because this runs only once nothing is in flight, which is exactly when a
                     // crawl that cannot progress looks indistinguishable from one that is merely waiting.
-                    if (supportsDomainThrottling(this.requestManager)) {
+                    if (!keepAlive && supportsDomainThrottling(this.requestManager)) {
                         await this.requestManager.assertNoStalledDomains();
                     }
 

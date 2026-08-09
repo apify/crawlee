@@ -102,6 +102,9 @@ export interface ThrottlingRequestManagerOptions<T extends IRequestManager = IRe
      * A domain that keeps answering 429 for this long is not going to be crawled by waiting longer - the
      * concurrency is too high for it, or it has blocked us outright. Its requests are deliberately left in
      * their queue, so re-running the crawl without purging storages picks them up once the domain recovers.
+     *
+     * A crawler running with `keepAlive` is exempt - outliving a domain that will not let us through is the
+     * whole point there.
      * @default 900
      */
     maxDomainStallSecs?: number;

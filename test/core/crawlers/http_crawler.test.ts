@@ -13,6 +13,7 @@ import {
     ThrottlingRequestManager,
 } from '@crawlee/http';
 import { ResponseWithUrl } from '@crawlee/http-client';
+import { sleep } from '@crawlee/utils';
 import iconv from 'iconv-lite';
 
 const router = new Map<string, http.RequestListener>();
@@ -651,4 +652,40 @@ test('a domain that never stops rate-limiting shuts the crawl down instead of ha
 
     // The request is deliberately left queued, so a later run can pick it up if the rate limit lifts.
     expect(await crawler.getRequestManager().then((manager) => manager.getPendingCount())).toBe(1);
+}, 30_000);
+
+test('`keepAlive` outlives a domain that never stops rate-limiting', async () => {
+    router.set('/always-429-keep-alive', (req, res) => {
+        res.statusCode = 429;
+        res.end();
+    });
+
+    const crawler = new HttpCrawler({
+        requestManager: new ThrottlingRequestManager({
+            inner: await RequestQueue.open(),
+            domains: ['127.0.0.1'],
+            baseDelaySecs: 0.05,
+            maxDelaySecs: 0.1,
+            maxDomainStallSecs: 0.5,
+        }),
+        keepAlive: true,
+        maxRequestRetries: 0,
+        requestHandler: async () => {},
+    });
+
+    const running = crawler.run([`${url}/always-429-keep-alive`]);
+
+    // Several times the stall threshold - long enough that the shutdown would have fired by now.
+    const outcome = await Promise.race([
+        running.then(
+            () => 'shut down',
+            () => 'threw',
+        ),
+        sleep(3000).then(() => 'still running' as const),
+    ]);
+
+    expect(outcome).toBe('still running');
+
+    await crawler.teardown();
+    await running;
 }, 30_000);
