@@ -375,6 +375,49 @@ describe('ThrottlingRequestManager', () => {
         expect(await manager.fetchNextRequest()).toBeNull();
     });
 
+    test('concurrent fetches cannot dispatch past the crawl-delay', async () => {
+        const manager = new ThrottlingRequestManager({
+            inner: await createQueue(),
+            // Holds every dispatch open long enough that the other callers demonstrably run while one is in
+            // flight, rather than leaving the overlap to microtask ordering.
+            requestManagerOpener: async (identifier, options) => {
+                const queue = await RequestQueue.open(identifier, options);
+                const fetch = queue.fetchNextRequest.bind(queue);
+                queue.fetchNextRequest = async (...args) => {
+                    await sleep(50);
+                    return fetch(...args);
+                };
+                return queue;
+            },
+            domains: ['example.com'],
+        });
+
+        manager.setCrawlDelay('https://example.com/1', 60);
+        for (let i = 0; i < 5; i++) {
+            await manager.addRequest({ url: `https://example.com/${i}` });
+        }
+
+        // The task loop runs several tasks at once, each pulling its own request.
+        const fetched = await Promise.all(Array.from({ length: 5 }, async () => manager.fetchNextRequest()));
+
+        expect(fetched.filter(Boolean)).toHaveLength(1);
+    });
+
+    test('a domain that hands over nothing does not spend its crawl-delay slot', async () => {
+        const manager = new ThrottlingRequestManager({
+            inner: await createQueue(),
+            domains: ['example.com'],
+        });
+
+        manager.setCrawlDelay('https://example.com/1', 60);
+
+        // Nothing queued yet, so there is no dispatch for the delay to pace.
+        expect(await manager.fetchNextRequest()).toBeNull();
+
+        await manager.addRequest({ url: 'https://example.com/1' });
+        expect((await manager.fetchNextRequest())!.url).toBe('https://example.com/1');
+    });
+
     test('setCrawlDelay sets crawl-delay successfully', async () => {
         const inner = await createQueue();
         const manager = new ThrottlingRequestManager({

@@ -308,13 +308,6 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         return Array.from(this.subManagers.values());
     }
 
-    private markDomainDispatched(domain: string): void {
-        const state = this.domainStates.get(domain);
-        if (state && state.crawlDelayMs !== null) {
-            state.crawlDelayUntil = Date.now() + state.crawlDelayMs;
-        }
-    }
-
     /** Configured domains that are not currently backing off, longest-overdue first. */
     private fetchableDomains(): string[] {
         const now = Date.now();
@@ -614,11 +607,23 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         await this.ensureSubManagers();
 
         for (const domain of this.fetchableDomains()) {
+            const state = this.domainStates.get(domain)!;
+
+            // Armed while the fetch below is still suspended, so that a concurrent `fetchNextRequest` cannot
+            // find the domain fetchable and dispatch into the same window - which would pace each task
+            // rather than the domain.
+            const crawlDelayBefore = state.crawlDelayUntil;
+            if (state.crawlDelayMs !== null) {
+                state.crawlDelayUntil = Date.now() + state.crawlDelayMs;
+            }
+
             const request = await this.subManagers.get(domain)!.fetchNextRequest<R>();
             if (request) {
-                this.markDomainDispatched(domain);
                 return request;
             }
+
+            // No dispatch to pace, so the domain keeps its slot.
+            state.crawlDelayUntil = crawlDelayBefore;
         }
 
         return this.inner.fetchNextRequest<R>();
