@@ -238,6 +238,7 @@ export async function enqueueLinksByClickingElements(
 
     const waitForPageIdleMillis = waitForPageIdleSecs * 1000;
     const maxWaitForPageIdleMillis = maxWaitForPageIdleSecs * 1000;
+    const hasOnSkippedRequest = onSkippedRequest !== undefined;
 
     const urlExcludePatternObjects: UrlPatternObject[] = exclude?.length ? constructUrlPatternObjects(exclude) : [];
     const urlPatternObjects: UrlPatternObject[] = include?.length ? constructUrlPatternObjects(include) : [];
@@ -256,7 +257,7 @@ export async function enqueueLinksByClickingElements(
         urlPatternObjects.length > 0 ? urlPatternObjects : undefined,
         urlExcludePatternObjects,
         undefined,
-        (opts) => skippedByFilters.push(opts),
+        hasOnSkippedRequest ? (opts) => skippedByFilters.push(opts) : undefined,
     );
 
     if (onSkippedRequest && skippedByFilters.length > 0) {
@@ -267,8 +268,10 @@ export async function enqueueLinksByClickingElements(
 
     if (transformRequestFunction) {
         const skippedByTransform: RequestOptions[] = [];
-        filteredOptions = applyRequestTransform(filteredOptions, transformRequestFunction, (r) =>
-            skippedByTransform.push(r),
+        filteredOptions = applyRequestTransform(
+            filteredOptions,
+            transformRequestFunction,
+            hasOnSkippedRequest ? (r) => skippedByTransform.push(r) : undefined,
         );
         if (onSkippedRequest && skippedByTransform.length > 0) {
             await Promise.all(
