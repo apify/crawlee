@@ -162,7 +162,7 @@ jobs:
 
             -   name: Commit changes
                 id: commit
-                uses: EndBug/add-and-commit@v10
+                uses: EndBug/add-and-commit@v11
                 with:
                   author_name: Apify Release Bot
                   author_email: noreply@apify.com
@@ -240,7 +240,7 @@ jobs:
                     yarn docusaurus api:version $MAJOR_MINOR
 
             -   name: Commit and push the version snapshot
-                uses: EndBug/add-and-commit@v10
+                uses: EndBug/add-and-commit@v11
                 with:
                     author_name: Apify Release Bot
                     author_email: noreply@apify.com
