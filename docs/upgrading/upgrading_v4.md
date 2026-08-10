@@ -719,6 +719,10 @@ The exported handler types were reshaped accordingly. `ErrorHandler` and `Reques
 
 `PlaywrightHook`, `PuppeteerHook` and `StagehandHook` are now type aliases (previously interfaces) generic over the request's `userData` type. A hook that types its context — via the generic (e.g. `PlaywrightHook<MyUserData>`) or an explicit context annotation — is now assignable to the `preNavigationHooks` / `postNavigationHooks` options of an untyped crawler. If you extended one of these interfaces, use an intersection type instead.
 
+### `RecoverableState` reshaped
+
+`serialize` and `deserialize` now take and return values rather than strings (so v3 records will not load) and each also accept a [Standard Schema](https://standardschema.dev) — a zod codec works as `deserialize` directly — `reset()` is synchronous and no longer clears the persisted record (the new `resetStore()` does), `persistStateKvsName` and `persistStateKvsId` collapsed into a single `keyValueStore` option taking a store (or a pending `KeyValueStore.open()`), `defaultState` also accepts a factory (which you need for a state `structuredClone` cannot rebuild, as the deep copy no longer goes through `serialize`/`deserialize`), and there is a new `persistenceTimeoutMillis` option.
+
 ### The `log` property is typed as `CrawleeLogger`
 
 The `log` property exposed throughout the public API (on the crawling context, `Statistics`, `EventManager`, `SessionOptions`, `Dataset`, etc.) is now typed as the `CrawleeLogger` interface (from `@crawlee/types`) rather than the concrete `Log` class from `@apify/log`. If you consume it structurally — calling `log.info(...)`, `log.debug(...)`, `log.child(...)` — nothing changes. You only need to act if you explicitly annotated a variable or parameter with the `Log` type from `@apify/log` and assigned `context.log` to it; type it as `CrawleeLogger` instead.
@@ -967,7 +971,7 @@ If you rely on Crawlee's default configuration (one browser context per session,
 
 The `renderingTypePredictor` option of `AdaptivePlaywrightCrawler` is now typed as the new `IRenderingTypePredictor` interface — `predict(request)` and `storeResult(requests, renderingType)`, nothing else. The built-in `RenderingTypePredictor` implements it, so passing one still works.
 
-What changed is the lifecycle: the crawler used to call `initialize()` on the predictor it was given, even though it did not create it. It now follows the same own-only-what-you-built rule as the session and browser pools — a predictor you pass in is *borrowed*, so setting it up is your job, and `initialize` is not part of the interface at all. The built-in predictor restores its persisted state in `initialize()` and will throw `Recoverable state has not yet been loaded` from `predict()` if it is never called:
+What changed is the lifecycle: the crawler used to call `initialize()` on the predictor it was given, even though it did not create it. It now follows the same own-only-what-you-built rule as the session and browser pools — a predictor you pass in is *borrowed*, so setting it up is your job, and `initialize` is not part of the interface at all. The built-in predictor restores its persisted state in `initialize()` and silently starts from scratch if it is never called:
 
 ```typescript
 import { AdaptivePlaywrightCrawler, RenderingTypePredictor } from '@crawlee/playwright';

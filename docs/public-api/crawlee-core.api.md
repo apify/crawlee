@@ -1210,32 +1210,33 @@ export interface RecordOptions {
 }
 
 // @public
-export class RecoverableState<TStateModel = Record<string, unknown>> {
-    constructor(options: RecoverableStateOptions<TStateModel>);
+export class RecoverableState<TStateModel = Record<string, unknown>, TPersistedState = TStateModel> {
+    constructor(options: RecoverableStateOptions<TStateModel, TPersistedState>);
     get currentValue(): TStateModel;
     initialize(): Promise<TStateModel>;
     persistState(eventData?: {
         isMigrating: boolean;
     }): Promise<void>;
-    reset(): Promise<void>;
+    reset(): void;
+    resetStore(): Promise<void>;
     teardown(): Promise<void>;
 }
 
 // @public
-export interface RecoverableStateOptions<TStateModel = Record<string, unknown>> extends RecoverableStatePersistenceOptions {
+export interface RecoverableStateOptions<TStateModel = Record<string, unknown>, TPersistedState = TStateModel> extends RecoverableStatePersistenceOptions {
     configuration?: Configuration;
-    defaultState: TStateModel;
-    deserialize?: (serializedState: string) => TStateModel;
+    defaultState: TStateModel | (() => TStateModel);
+    deserialize?: StateConversion<TPersistedState, TStateModel>;
     logger?: CrawleeLogger;
-    serialize?: (state: TStateModel) => string;
+    serialize?: StateConversion<TStateModel, TPersistedState>;
 }
 
 // @public (undocumented)
 export interface RecoverableStatePersistenceOptions {
+    keyValueStore?: KeyValueStore | PromiseLike<KeyValueStore>;
     persistenceEnabled?: boolean;
+    persistenceTimeoutMillis?: number;
     persistStateKey: string;
-    persistStateKvsId?: string;
-    persistStateKvsName?: string;
 }
 
 // @public (undocumented)
@@ -1539,19 +1540,9 @@ export interface RequestTransform {
 
 // @public
 export class RequestValidationError extends NonRetryableError {
-    constructor(label: string | symbol, issues: readonly {
-        readonly message: string;
-        readonly path?: readonly (PropertyKey | {
-            key: PropertyKey;
-        })[];
-    }[]);
+    constructor(label: string | symbol, issues: readonly SchemaIssue[]);
     // (undocumented)
-    readonly issues: readonly {
-        readonly message: string;
-        readonly path?: readonly (PropertyKey | {
-            key: PropertyKey;
-        })[];
-    }[];
+    readonly issues: readonly SchemaIssue[];
     // (undocumented)
     readonly label: string | symbol;
 }
@@ -1651,6 +1642,16 @@ export type RoutesFromSchemas<Schemas extends RouteSchemas> = {
 } ? {
     [defaultRoute]: SchemaUserData<Schemas[typeof defaultRoute]>;
 } : {});
+
+// @public
+export interface SchemaIssue {
+    // (undocumented)
+    readonly message: string;
+    // (undocumented)
+    readonly path?: readonly (PropertyKey | {
+        key: PropertyKey;
+    })[];
+}
 
 // Not exported by the entry point; reachable only as a referenced type.
 // @public
@@ -1902,6 +1903,18 @@ export type Source = (Partial<RequestOptions> & {
     requestsFromUrl?: string;
     regex?: RegExp;
 }) | Request_2;
+
+// @public
+export type StateConversion<TFrom, TTo> = ((value: TFrom) => Awaitable<TTo>) | StandardSchemaV1<TFrom, TTo>;
+
+// @public
+export class StateValidationError extends Error {
+    constructor(persistStateKey: string, issues: readonly SchemaIssue[]);
+    // (undocumented)
+    readonly issues: readonly SchemaIssue[];
+    // (undocumented)
+    readonly persistStateKey: string;
+}
 
 // @public
 export interface StatisticPersistedState extends Omit<StatisticState, 'statsPersistedAt'> {
