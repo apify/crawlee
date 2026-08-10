@@ -308,24 +308,23 @@ describe('BasicCrawler', () => {
             expect(requests[0]).toMatchObject({ url: 'https://example.com/1/', crawlDepth: 3 });
         });
 
-        it.each([
-            null,
-            undefined,
-            false,
-        ] as const)('should skip requests when transformRequestFunction returns %s', async (returnValue) => {
-            const transformRequestFunction = vi.fn(() => returnValue);
-            const optionsWithTransform = { ...options, transformRequestFunction };
+        it.each([null, undefined, false] as const)(
+            'should skip requests when transformRequestFunction returns %s',
+            async (returnValue) => {
+                const transformRequestFunction = vi.fn(() => returnValue);
+                const optionsWithTransform = { ...options, transformRequestFunction };
 
-            await crawler.exposedEnqueueLinksWithCrawlDepth(optionsWithTransform, request, requestQueue);
+                await crawler.exposedEnqueueLinksWithCrawlDepth(optionsWithTransform, request, requestQueue);
 
-            const requests = addRequestsBatchedMock.mock.calls[0][0];
-            expect(requests).toHaveLength(0);
+                const requests = addRequestsBatchedMock.mock.calls[0][0];
+                expect(requests).toHaveLength(0);
 
-            const skippedRequests = onSkippedRequestMock.mock.calls.map((call) => call[0]);
-            expect(skippedRequests).toHaveLength(2);
-            expect(skippedRequests[0]).toStrictEqual({ url: 'https://example.com/1/', reason: 'filters' });
-            expect(skippedRequests[1]).toStrictEqual({ url: 'https://example.com/2/', reason: 'filters' });
-        });
+                const skippedRequests = onSkippedRequestMock.mock.calls.map((call) => call[0]);
+                expect(skippedRequests).toHaveLength(2);
+                expect(skippedRequests[0]).toStrictEqual({ url: 'https://example.com/1/', reason: 'filters' });
+                expect(skippedRequests[1]).toStrictEqual({ url: 'https://example.com/2/', reason: 'filters' });
+            },
+        );
     });
 
     it('addCrawlDepthRequestGenerator() should generate requests with maxCrawlDepth', async () => {
@@ -441,61 +440,61 @@ describe('BasicCrawler', () => {
         expect(await requestList.isEmpty()).toBe(true);
     });
 
-    test.each([
-        EventType.MIGRATING,
-        EventType.ABORTING,
-    ])('should pause on %s event and persist RequestList state', async (event) => {
-        const sources = [...Array(500).keys()].map((index) => ({ url: `https://example.com/${index + 1}` }));
+    test.each([EventType.MIGRATING, EventType.ABORTING])(
+        'should pause on %s event and persist RequestList state',
+        async (event) => {
+            const sources = [...Array(500).keys()].map((index) => ({ url: `https://example.com/${index + 1}` }));
 
-        let persistResolve!: (value?: unknown) => void;
-        const persistPromise = new Promise((res) => {
-            persistResolve = res;
-        });
+            let persistResolve!: (value?: unknown) => void;
+            const persistPromise = new Promise((res) => {
+                persistResolve = res;
+            });
 
-        // Mock the calls to persist sources.
-        const getValueSpy = vitest.spyOn(KeyValueStore.prototype, 'getValue');
-        const setValueSpy = vitest.spyOn(KeyValueStore.prototype, 'setValue');
-        getValueSpy.mockResolvedValue(null);
+            // Mock the calls to persist sources.
+            const getValueSpy = vitest.spyOn(KeyValueStore.prototype, 'getValue');
+            const setValueSpy = vitest.spyOn(KeyValueStore.prototype, 'setValue');
+            getValueSpy.mockResolvedValue(null);
 
-        const processed: { url: string }[] = [];
-        const requestList = await RequestList.open('reqList', sources);
-        const requestHandler: RequestHandler = async ({ request }) => {
-            if (request.url.endsWith('200')) events.emit(event);
-            processed.push({ url: request.url });
-        };
+            const processed: { url: string }[] = [];
+            const requestList = await RequestList.open('reqList', sources);
+            const requestHandler: RequestHandler = async ({ request }) => {
+                if (request.url.endsWith('200')) events.emit(event);
+                processed.push({ url: request.url });
+            };
 
-        const basicCrawler = new BasicCrawler({
-            requestList,
-            minConcurrency: 25,
-            maxConcurrency: 25,
-            requestHandler,
-        });
+            const basicCrawler = new BasicCrawler({
+                requestList,
+                minConcurrency: 25,
+                maxConcurrency: 25,
+                requestHandler,
+            });
 
-        let finished = false;
-        // Mock the call to persist state.
-        setValueSpy.mockImplementationOnce(persistResolve as any);
-        // The crawler will pause after 200 requests
-        const runPromise = basicCrawler.run();
-        void runPromise.then(() => {
-            finished = true;
-        });
+            let finished = false;
+            // Mock the call to persist state.
+            setValueSpy.mockImplementationOnce(persistResolve as any);
+            // The crawler will pause after 200 requests
+            const runPromise = basicCrawler.run();
+            void runPromise.then(() => {
+                finished = true;
+            });
 
-        // need to monkeypatch the stats class, otherwise it will never finish
-        basicCrawler.stats.persistState = async () => Promise.resolve();
-        await persistPromise;
+            // need to monkeypatch the stats class, otherwise it will never finish
+            basicCrawler.stats.persistState = async () => Promise.resolve();
+            await persistPromise;
 
-        expect(finished).toBe(false);
-        expect(await requestList.isFinished()).toBe(false);
-        expect(await requestList.isEmpty()).toBe(false);
-        expect(processed.length).toBe(200);
+            expect(finished).toBe(false);
+            expect(await requestList.isFinished()).toBe(false);
+            expect(await requestList.isEmpty()).toBe(false);
+            expect(processed.length).toBe(200);
 
-        expect(getValueSpy).toBeCalled();
-        expect(setValueSpy).toBeCalled();
+            expect(getValueSpy).toBeCalled();
+            expect(setValueSpy).toBeCalled();
 
-        // clean up
-        // @ts-expect-error Accessing private method
-        await basicCrawler.autoscaledPool!._destroy();
-    });
+            // clean up
+            // @ts-expect-error Accessing private method
+            await basicCrawler.autoscaledPool!._destroy();
+        },
+    );
 
     test('should retry failed requests', async () => {
         const sources = [
