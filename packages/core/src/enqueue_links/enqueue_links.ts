@@ -4,7 +4,7 @@ import ow from 'ow';
 import { getDomain } from 'tldts';
 import type { SetRequired } from 'type-fest';
 
-import type { RequestOptions } from '../request.js';
+import type { RequestOptions, Source } from '../request.js';
 import { Request } from '../request.js';
 import type { IRequestManager } from '../storages/request_manager.js';
 import type {
@@ -357,7 +357,7 @@ export async function enqueueLinks(
         }
     }
 
-    async function reportSkippedRequests(skippedRequests: (RequestOptions | Request)[], reason: SkippedRequestReason) {
+    async function reportSkippedRequests(skippedRequests: Source[], reason: SkippedRequestReason) {
         if (onSkippedRequest && skippedRequests.length > 0) {
             await Promise.all(
                 skippedRequests.map((source) => {
@@ -443,7 +443,7 @@ export async function enqueueLinks(
     );
 
     if (requestsOverLimit?.length !== undefined && requestsOverLimit.length > 0) {
-        await reportSkippedRequests(requestsOverLimit as Request[], 'enqueueLimit');
+        await reportSkippedRequests(requestsOverLimit, 'enqueueLimit');
     }
 
     return { processedRequests: addedRequests, unprocessedRequests: [] };
