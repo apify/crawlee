@@ -1914,6 +1914,8 @@ export class BasicCrawler<
         const isAllowedBasedOnRobotsTxtFile = this.isAllowedBasedOnRobotsTxtFile.bind(this);
         const maxCrawlDepth = this.maxCrawlDepth;
         const validateRequestUserData = this.validateRequestUserData.bind(this);
+        // Keep the full request/source (can carry arbitrary userData) only if something reads it.
+        const onSkippedRequest = this.onSkippedRequest;
 
         ow(
             requests,
@@ -1927,7 +1929,7 @@ export class BasicCrawler<
                 const url = typeof request === 'string' ? request : request.url!;
 
                 if (maxCrawlDepth !== undefined && (request as any).crawlDepth > maxCrawlDepth) {
-                    skippedBecauseOfMaxCrawlDepth.set(url, request);
+                    skippedBecauseOfMaxCrawlDepth.set(url, onSkippedRequest ? request : url);
                     continue;
                 }
 
@@ -1935,7 +1937,7 @@ export class BasicCrawler<
                     await validateRequestUserData(request);
                     yield request;
                 } else {
-                    skippedBecauseOfRobots.set(url, request);
+                    skippedBecauseOfRobots.set(url, onSkippedRequest ? request : url);
                 }
             }
         }

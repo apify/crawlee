@@ -379,7 +379,7 @@ export async function enqueueLinks(
                 return true;
             }
 
-            skippedRequests.push(request);
+            if (onSkippedRequest) skippedRequests.push(request);
             return false;
         });
 
@@ -397,7 +397,7 @@ export async function enqueueLinks(
                 enqueueStrategyPatterns.length > 0 ? enqueueStrategyPatterns : undefined,
                 urlExcludePatternObjects,
                 options.strategy,
-                (opts) => skippedRequests.push(opts),
+                onSkippedRequest ? (opts) => skippedRequests.push(opts) : undefined,
             );
         } else {
             // Filter by user patterns first (with exclude)
@@ -406,7 +406,7 @@ export async function enqueueLinks(
                 urlPatternObjects,
                 urlExcludePatternObjects,
                 options.strategy,
-                (opts) => skippedRequests.push(opts),
+                onSkippedRequest ? (opts) => skippedRequests.push(opts) : undefined,
             );
             // ...then filter by the enqueue links strategy (making this an AND check)
             filteredOptions = filterRequestOptionsByPatterns(
@@ -414,7 +414,7 @@ export async function enqueueLinks(
                 enqueueStrategyPatterns.length > 0 ? enqueueStrategyPatterns : undefined,
                 [],
                 options.strategy,
-                (opts) => skippedRequests.push(opts),
+                onSkippedRequest ? (opts) => skippedRequests.push(opts) : undefined,
             );
         }
 
@@ -423,8 +423,10 @@ export async function enqueueLinks(
         // Step 2: Apply transformRequestFunction on request options - it has the highest priority
         if (transformRequestFunction) {
             const skippedByTransform: RequestOptions[] = [];
-            filteredOptions = applyRequestTransform(filteredOptions, transformRequestFunction, (r) =>
-                skippedByTransform.push(r),
+            filteredOptions = applyRequestTransform(
+                filteredOptions,
+                transformRequestFunction,
+                onSkippedRequest ? (r) => skippedByTransform.push(r) : undefined,
             );
             await reportSkippedRequests(skippedByTransform, 'transform');
         }
