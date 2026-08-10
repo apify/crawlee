@@ -9,8 +9,8 @@ Crawlee v3.18 is out. The main feature this time is a long-requested one: the ro
 
 - [Type-safe router labels](/blog/crawlee-v3-18#type-safe-router-labels)
 - [Schema validation of userData](/blog/crawlee-v3-18#schema-validation-of-userdata)
-- [What landed in v3.17](/blog/crawlee-v3-18#what-landed-in-v317)
 - [Other changes](/blog/crawlee-v3-18#other-changes)
+- [What landed in v3.17](/blog/crawlee-v3-18#what-landed-in-v317)
 
 <!-- truncate -->
 
@@ -81,18 +81,6 @@ router.addDefaultHandler(async ({ request }) => {
 
 The whole thing is opt-in. A router created without a schema map behaves exactly as it did before, and labels without a registered schema are left alone. Also note that the schema map and the type-only route map are alternative styles, not layers: a schema map already infers the `userData` types, so you don't pass a `<Context, Routes>` type argument on top of it. Both are documented in the [TypeScript projects guide](https://crawlee.dev/js/docs/guides/typescript-project).
 
-## What landed in v3.17
-
-We didn't write a blog post for v3.17 (released in June), so here's a quick recap of its two features.
-
-### Dynamic memory snapshots
-
-The [`Snapshotter`](https://crawlee.dev/js/api/core/class/Snapshotter) previously measured the available memory once at startup and stuck with that number for the whole crawl. In environments where the memory limit can change while the crawler runs, for example a container that gets resized, the autoscaling either under-used the available memory or pushed past it. When no fixed `memoryMbytes` is configured, the snapshotter now follows the total memory reported by the event manager and scales with it.
-
-### Custom load signals for autoscaling
-
-The autoscaling internals were refactored around a new `LoadSignal` interface. `SystemStatus` aggregates a set of load signals to decide whether the system is overloaded, and the built-in ones (memory, CPU, event loop, and API client rate limits) are now separate composable classes. You can implement the interface yourself and pass extra signals to the [`AutoscaledPool`](https://crawlee.dev/js/api/core/class/AutoscaledPool) via `loadSignals`, so the crawler can react to overload conditions that Crawlee doesn't know about, such as navigation timeouts or proxy health.
-
 ## Other changes
 
 A few of the smaller changes in this release are worth calling out:
@@ -104,6 +92,18 @@ A few of the smaller changes in this release are worth calling out:
 - A backpressured sitemap load no longer deadlocks when `persistState` fires mid-crawl ([#3863](https://github.com/apify/crawlee/pull/3863)).
 - The final crawler statistics are persisted once instead of twice ([#3866](https://github.com/apify/crawlee/pull/3866)).
 - Returning a falsy value from `transformRequestFunction` in the context-aware `enqueueLinks` now skips the request as documented ([#3925](https://github.com/apify/crawlee/pull/3925)).
+
+## What landed in v3.17
+
+We didn't write a blog post for v3.17 (released in June), so here's a quick recap of its two features.
+
+### Dynamic memory snapshots
+
+The [`Snapshotter`](https://crawlee.dev/js/api/core/class/Snapshotter) previously measured the available memory once at startup and stuck with that number for the whole crawl. In environments where the memory limit can change while the crawler runs, for example a container that gets resized, the autoscaling either under-used the available memory or pushed past it. When no fixed `memoryMbytes` is configured, the snapshotter now follows the total memory reported by the event manager and scales with it.
+
+### Custom load signals for autoscaling
+
+The autoscaling internals were refactored around a new `LoadSignal` interface. `SystemStatus` aggregates a set of load signals to decide whether the system is overloaded, and the built-in ones (memory, CPU, event loop, and API client rate limits) are now separate composable classes. You can implement the interface yourself and pass extra signals to the [`AutoscaledPool`](https://crawlee.dev/js/api/core/class/AutoscaledPool) via `loadSignals`, so the crawler can react to overload conditions that Crawlee doesn't know about, such as navigation timeouts or proxy health.
 
 ---
 
