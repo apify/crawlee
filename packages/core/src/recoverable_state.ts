@@ -151,7 +151,8 @@ export class RecoverableState<TStateModel = Record<string, unknown>, TPersistedS
      * Initialize the recoverable state.
      *
      * If persistence is enabled, this method loads the saved state and registers the object to listen for
-     * PERSIST_STATE events. Until it is called, {@apilink RecoverableState.currentValue} holds the default state.
+     * PERSIST_STATE events. A state established beforehand by {@apilink RecoverableState.reset} survives if there
+     * is no record to restore.
      *
      * @returns The loaded state object
      */
@@ -172,6 +173,7 @@ export class RecoverableState<TStateModel = Record<string, unknown>, TPersistedS
         // Flipped before the record is loaded, so that a caller catching a `StateValidationError` is left with a
         // fully wired object running on the default state rather than a half-initialized one.
         this.#initialized = true;
+        this.#state ??= this.#defaultState();
 
         await this.#loadSavedState();
 
@@ -195,10 +197,16 @@ export class RecoverableState<TStateModel = Record<string, unknown>, TPersistedS
     }
 
     /**
-     * Get the current state, defaulting to a deep copy of the default state.
+     * Get the current state.
+     *
+     * Throws until the state has been established, by either {@apilink RecoverableState.initialize} or the
+     * synchronous {@apilink RecoverableState.reset} - the latter being how a caller that cannot await in its
+     * constructor gets a usable state right away.
      */
     get currentValue(): TStateModel {
-        this.#state ??= this.#defaultState();
+        if (this.#state === null) {
+            throw new Error('Recoverable state has not yet been loaded - call initialize() or reset() first');
+        }
 
         return this.#state;
     }
@@ -249,12 +257,13 @@ export class RecoverableState<TStateModel = Record<string, unknown>, TPersistedS
      * Persist the current state to the KeyValueStore.
      *
      * This method is typically called in response to a PERSIST_STATE event, but can also be called
-     * directly when needed. It is a no-op if persistence is disabled or no KeyValueStore is available yet.
+     * directly when needed. It is a no-op if persistence is disabled, if no KeyValueStore is available yet, or if
+     * there is no state to write.
      *
      * @param eventData Optional data associated with a PERSIST_STATE event
      */
     async persistState(eventData?: { isMigrating: boolean }): Promise<void> {
-        if (!this.#persistenceEnabled) {
+        if (!this.#persistenceEnabled || this.#state === null) {
             return;
         }
 

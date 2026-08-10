@@ -42,12 +42,24 @@ describe('RecoverableState', () => {
         expect(recoverableState.currentValue).toEqual(defaultState);
     });
 
-    test('should expose a deep copy of the default state before initialization', () => {
+    test('should throw when accessing currentValue before it has been established', () => {
         const recoverableState = new RecoverableState({
             defaultState,
             persistStateKey: 'test-key',
             persistenceEnabled: false,
         });
+
+        expect(() => recoverableState.currentValue).toThrow('Recoverable state has not yet been loaded');
+    });
+
+    test('should establish a deep copy of the default state on a synchronous reset', () => {
+        const recoverableState = new RecoverableState({
+            defaultState,
+            persistStateKey: 'test-key',
+            persistenceEnabled: false,
+        });
+
+        recoverableState.reset();
 
         expect(recoverableState.currentValue).toEqual(defaultState);
         expect(recoverableState.currentValue).not.toBe(defaultState);
@@ -60,10 +72,26 @@ describe('RecoverableState', () => {
             persistenceEnabled: true,
         });
 
+        recoverableState.reset();
         recoverableState.currentValue.counter = 42;
         await recoverableState.initialize();
 
         expect(recoverableState.currentValue.counter).toBe(42);
+    });
+
+    test('should overwrite a pre-initialization state with a restored record', async () => {
+        await (await KeyValueStore.open()).setValue('test-key', { ...defaultState, counter: 7 });
+
+        const recoverableState = new RecoverableState({
+            defaultState,
+            persistStateKey: 'test-key',
+            persistenceEnabled: true,
+        });
+
+        recoverableState.reset();
+        recoverableState.currentValue.counter = 42;
+
+        expect((await recoverableState.initialize()).counter).toBe(7);
     });
 
     test('should allow state modification after initialization', async () => {
@@ -246,6 +274,7 @@ describe('RecoverableState', () => {
             persistenceEnabled: false,
         });
 
+        recoverableState.reset();
         const first = recoverableState.currentValue.items;
         recoverableState.reset();
 
@@ -486,6 +515,21 @@ describe('RecoverableState', () => {
         });
     });
 
+    test('persistState should be a no-op when there is no state to write', async () => {
+        const store = await KeyValueStore.open();
+        const setValue = vi.spyOn(store, 'setValue');
+
+        const recoverableState = new RecoverableState({
+            defaultState,
+            persistStateKey: 'test-key',
+            persistenceEnabled: true,
+            keyValueStore: store,
+        });
+
+        await expect(recoverableState.persistState()).resolves.not.toThrow();
+        expect(setValue).not.toHaveBeenCalled();
+    });
+
     test('persistState should be a no-op before initialization', async () => {
         const recoverableState = new RecoverableState({
             defaultState,
@@ -533,6 +577,7 @@ describe('RecoverableState', () => {
                 keyValueStore: KeyValueStore.open({ name: 'named-store' }),
             });
 
+            recoverableState.reset();
             recoverableState.currentValue.counter = 42;
             await recoverableState.persistState();
 
@@ -551,6 +596,8 @@ describe('RecoverableState', () => {
             keyValueStore: store,
             persistenceTimeoutMillis: 50,
         });
+
+        recoverableState.reset();
 
         await expect(recoverableState.persistState()).rejects.toThrow(/timed out after 0.05 seconds/);
     });
