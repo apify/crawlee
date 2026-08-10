@@ -23,6 +23,7 @@ import {
     OwnedOrInjected,
     remainingNavigationWindowMillis,
     RequestState,
+    RequestThrottledError,
     resolveBaseUrlForEnqueueLinksFiltering,
     SessionError,
     toughCookieToBrowserPoolCookie,
@@ -60,6 +61,8 @@ import type { BrowserLaunchContext } from './browser-launcher.js';
 
 interface BaseResponse {
     status(): number;
+    /** Optional because only Playwright and Puppeteer responses are guaranteed to carry it. */
+    headers?(): Record<string, string>;
 }
 
 /**
@@ -830,6 +833,16 @@ export abstract class BrowserCrawler<
             const status: number = response.status();
 
             this.stats.registerStatusCode(status);
+
+            // Ahead of the error-status throw below: a 429 the user opted into treating as an error is still a
+            // rate limit the domain should back off from.
+            if (status === 429) {
+                // Both drivers lower-case header names and join duplicates, so a plain lookup is enough.
+                const retryAfter = response.headers?.()['retry-after'];
+                if (this.recordDomainRateLimit(crawlingContext.request.url, retryAfter)) {
+                    throw new RequestThrottledError(`${crawlingContext.request.url} responded with 429.`);
+                }
+            }
 
             if (this.isErrorStatusCode(status)) {
                 if (this.additionalHttpErrorStatusCodes.has(status)) {

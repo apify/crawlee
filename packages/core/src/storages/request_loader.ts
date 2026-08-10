@@ -60,6 +60,11 @@ export interface IRequestLoader {
      * Resolves to `true` if the next call to {@apilink IRequestLoader.fetchNextRequest} function
      * would return `null`, otherwise it resolves to `false`.
      * Note that even if the loader is empty, there might be some pending requests currently being processed.
+     *
+     * This is a statement about what the *next fetch* would return, not about how much work is left, so it
+     * may report `true` while {@apilink IRequestLoader.getPendingCount} is non-zero - a loader that withholds
+     * requests for a while (as {@apilink ThrottlingRequestManager} does for a rate-limited domain) is empty
+     * for as long as it will not hand anything over. Use `isFinished()` to ask whether the work is done.
      */
     isEmpty(): Promise<boolean>;
 

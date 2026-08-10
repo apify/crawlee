@@ -654,3 +654,32 @@ describe('RequestQueue (request lifecycle)', () => {
         expect(retrievedUrls.map((x) => new URL(x).pathname)).toEqual(Array.from({ length: 5 }, (_, i) => `/${i + 1}`));
     });
 });
+
+describe('RequestQueue background batches', () => {
+    beforeEach(async () => {
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
+    });
+
+    test('a failing background batch rejects instead of hanging, and stops blocking isFinished', async () => {
+        const queue = await RequestQueue.open();
+
+        let batches = 0;
+        const original = queue.addRequests.bind(queue);
+        vitest.spyOn(queue, 'addRequests').mockImplementation(async (requests, options) => {
+            if (++batches > 1) throw new Error('backend exploded');
+            return original(requests, options);
+        });
+
+        const result = await queue.addRequestsBatched(
+            [{ url: 'https://example.com/1' }, { url: 'https://example.com/2' }],
+            { batchSize: 1, waitBetweenBatchesMillis: 0 },
+        );
+
+        // Previously the async promise executor swallowed the throw: this promise never settled at all.
+        await expect(result.waitForAllRequestsToBeAdded).rejects.toThrow('backend exploded');
+
+        // ...and the in-flight batch counter stayed stuck, so the queue claimed to be unfinished forever.
+        await sleep(10);
+        expect(queue['inProgressRequestBatchCount']).toBe(0);
+    }, 10_000);
+});
