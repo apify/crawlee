@@ -6,7 +6,8 @@ import { createGunzip } from 'node:zlib';
 
 import { FetchHttpClient } from '@crawlee/http-client';
 import type { BaseHttpClient, CrawleeLogger } from '@crawlee/types';
-import sax from 'sax';
+// Imported as a type only so `sax` (a fairly heavy parser) isn't loaded eagerly with @crawlee/utils.
+import type * as sax from 'sax';
 import MIMEType from 'whatwg-mimetype';
 
 import { mergeAsyncIterables } from './iterables.js';
@@ -78,13 +79,18 @@ class SitemapTxtParser extends Transform {
 
 class SitemapXmlParser extends Transform {
     #decoder: StringDecoder = new StringDecoder('utf8');
-    #parser = new sax.SAXParser(true);
+    #parser: sax.SAXParser;
 
     #rootTagName?: 'sitemapindex' | 'urlset';
     #currentTag?: 'loc' | 'lastmod' | 'changefreq' | 'priority' = undefined;
     #url: Partial<SitemapUrl> = {};
 
-    constructor() {
+    static async create(): Promise<SitemapXmlParser> {
+        const { SAXParser } = await import('sax');
+        return new SitemapXmlParser(new SAXParser(true));
+    }
+
+    private constructor(parser: sax.SAXParser) {
         super({
             readableObjectMode: true,
             transform: (chunk, _encoding, callback) => {
@@ -102,6 +108,7 @@ class SitemapXmlParser extends Transform {
             },
         });
 
+        this.#parser = parser;
         this.#parser.onopentag = this.onOpenTag.bind(this);
         this.#parser.onclosetag = this.onCloseTag.bind(this);
 
@@ -242,7 +249,7 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
     const sources = [...initialSources];
     const visitedSitemapUrls = new Set<string>();
 
-    const createParser = (contentType = '', url?: URL): Duplex => {
+    const createParser = async (contentType = '', url?: URL): Promise<Duplex> => {
         let mimeType: MIMEType | null;
 
         try {
@@ -252,7 +259,7 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
         }
 
         if (mimeType?.isXML() || url?.pathname.endsWith('.xml')) {
-            return new SitemapXmlParser();
+            return SitemapXmlParser.create();
         }
 
         if (mimeType?.essence === 'text/plain' || url?.pathname.endsWith('.txt')) {
@@ -331,7 +338,7 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
                         items = pipeline(
                             streamWithType,
                             isGzipped ? createGunzip() : new PassThrough(),
-                            createParser(contentType ?? undefined, sitemapUrl),
+                            await createParser(contentType ?? undefined, sitemapUrl),
                             (e) => {
                                 if (e !== undefined && e !== null) {
                                     error = { type: 'parser', error: e };
@@ -362,7 +369,7 @@ export async function* parseSitemap<T extends ParseSitemapOptions>(
                 }
             }
         } else if (source.type === 'raw') {
-            items = pipeline(Readable.from([source.content]), createParser('text/xml'), (error) => {
+            items = pipeline(Readable.from([source.content]), await createParser('text/xml'), (error) => {
                 if (error !== undefined) {
                     logger?.warning(`Malformed sitemap content: ${error}`);
                 }
