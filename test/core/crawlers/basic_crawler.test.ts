@@ -3,7 +3,14 @@ import type { Server } from 'node:http';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 
-import type { EnqueueLinksOptions, ErrorHandler, RequestHandler, RequestOptions, Source } from '@crawlee/basic';
+import type {
+    BasicCrawlerOptions,
+    EnqueueLinksOptions,
+    ErrorHandler,
+    RequestHandler,
+    RequestOptions,
+    Source,
+} from '@crawlee/basic';
 import type { Session } from '@crawlee/basic';
 import {
     BasicCrawler,
@@ -25,6 +32,7 @@ import {
     serviceLocator,
     SessionPool,
     Statistics,
+    ThrottlingRequestManager,
 } from '@crawlee/basic';
 import type { CalculatedStatistics, IConcurrencySystem, IStatistics } from '@crawlee/core';
 import { ConcurrencySystem, Dataset, MemoryStorageBackend, RequestState, SessionPool, Statistics } from '@crawlee/core';
@@ -175,6 +183,23 @@ describe('BasicCrawler', () => {
         expect(processed).toEqual(sourcesCopy);
         expect(await requestList.isFinished()).toBe(true);
         expect(await requestList.isEmpty()).toBe(true);
+    });
+
+    test('accepts a `requestManager` and crawls from it', async () => {
+        const requestManager = await RequestQueue.open();
+        await requestManager.addRequest({ url: 'https://example.com/from-request-manager' });
+
+        const processed: string[] = [];
+        const crawler = new BasicCrawler({
+            requestManager,
+            requestHandler: async ({ request }) => {
+                processed.push(request.url);
+            },
+        });
+
+        await crawler.run();
+
+        expect(processed).toEqual(['https://example.com/from-request-manager']);
     });
 
     test('folds a supplied concurrencySystem into its pool and never tears the system down', async () => {
@@ -2489,6 +2514,61 @@ describe('BasicCrawler', () => {
             expect(addRequestsBatchedSpy).toHaveBeenCalledOnce();
         });
 
+        describe('robots.txt crawl-delay', () => {
+            const crawlerWithCrawlDelay = (options: Partial<BasicCrawlerOptions>) =>
+                new (class MockedRobotsTxtCrawler extends BasicCrawler {
+                    override async getRobotsTxtFileForUrl(_: string) {
+                        return RobotsTxtFile.from('http://example.com/robots.txt', 'User-agent: *\nCrawl-delay: 5\n');
+                    }
+                })({ respectRobotsTxtFile: true, requestHandler: async () => {}, ...options } as BasicCrawlerOptions);
+
+            test('is applied when a ThrottlingRequestManager covers the domain', async () => {
+                const requestManager = new ThrottlingRequestManager({
+                    inner: await RequestQueue.open(),
+                    domains: ['example.com'],
+                });
+                const crawler = crawlerWithCrawlDelay({ requestManager });
+                const warning = vitest.spyOn(crawler.log, 'warning').mockImplementation(() => {});
+
+                await crawler.addRequests(['http://example.com/1', 'http://example.com/2']);
+
+                expect(warning).not.toHaveBeenCalled();
+
+                // The robots.txt `Crawl-delay: 5` must have reached the manager, not merely been survivable.
+                await requestManager.fetchNextRequest();
+                const state = (requestManager as any).domainStates.get('example.com');
+                expect(state.crawlDelayMs).toBe(5_000);
+
+                // ...and it paces dispatch: the next request is held back rather than served immediately.
+                expect(state.crawlDelayUntil).toBeGreaterThan(Date.now() + 4_000);
+                expect(await requestManager.fetchNextRequest()).toBeNull();
+            });
+
+            test('warns when the request manager cannot honour it', async () => {
+                const crawler = crawlerWithCrawlDelay({ requestQueue: await RequestQueue.open() });
+                const warning = vitest.spyOn(crawler.log, 'warning').mockImplementation(() => {});
+
+                await crawler.addRequests(['http://example.com/1', 'http://example.com/2']);
+
+                expect(warning).toHaveBeenCalledTimes(1);
+                expect(warning.mock.calls[0][0]).toMatch(/crawl-delay of 5s/);
+            });
+
+            test('warns when the domain is missing from the manager `domains` list', async () => {
+                const requestManager = new ThrottlingRequestManager({
+                    inner: await RequestQueue.open(),
+                    domains: ['some-other-domain.com'],
+                });
+                const crawler = crawlerWithCrawlDelay({ requestManager });
+                const warning = vitest.spyOn(crawler.log, 'warning').mockImplementation(() => {});
+
+                await crawler.addRequests(['http://example.com/1']);
+
+                expect(warning).toHaveBeenCalledTimes(1);
+                expect(warning.mock.calls[0][0]).toMatch(/example\.com/);
+            });
+        });
+
         test('enqueueLinks should respect custom user-agent robots.txt rules', async () => {
             const requestQueue = await RequestQueue.open();
             const visitedUrls: string[] = [];
@@ -2545,7 +2625,7 @@ describe('BasicCrawler', () => {
 
             const crawler = new (class MockedRobotsTxtCrawler extends BasicCrawler {
                 override async getRobotsTxtFileForUrl(_: string) {
-                    return { isAllowed: isAllowedSpy } as unknown as RobotsTxtFile;
+                    return { isAllowed: isAllowedSpy, getCrawlDelay: () => undefined } as unknown as RobotsTxtFile;
                 }
             })({
                 requestQueue,

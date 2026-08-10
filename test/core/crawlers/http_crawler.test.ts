@@ -4,8 +4,16 @@ import { Readable } from 'node:stream';
 
 import type { ConcurrencySystemOptions } from '@crawlee/core';
 import { MemoryStorageBackend, serviceLocator } from '@crawlee/core';
-import { ConcurrencySystem, HttpCrawler, SessionPool } from '@crawlee/http';
+import {
+    ConcurrencySystem,
+    HttpCrawler,
+    PersistentRateLimitError,
+    RequestQueue,
+    SessionPool,
+    ThrottlingRequestManager,
+} from '@crawlee/http';
 import { ResponseWithUrl } from '@crawlee/http-client';
+import { sleep } from '@crawlee/utils';
 import iconv from 'iconv-lite';
 
 const router = new Map<string, http.RequestListener>();
@@ -588,3 +596,122 @@ test('works with a custom HttpClient', async () => {
     expect(results[0].includes('Schmexample Domain')).toBeTruthy();
     expect(results[1].includes('Schmexample Domain')).toBeTruthy();
 });
+
+test('a 429 on a throttled domain paces the retry without spending it or the session', async () => {
+    const hits: number[] = [];
+    router.set('/429-then-ok', (req, res) => {
+        hits.push(Date.now());
+        if (hits.length === 1) {
+            res.statusCode = 429;
+            res.setHeader('retry-after', '1');
+            res.end();
+            return;
+        }
+        res.setHeader('content-type', 'text/html');
+        res.end('<html><body>ok</body></html>');
+    });
+
+    const throttlingManager = new ThrottlingRequestManager({
+        inner: await RequestQueue.open(),
+        domains: ['127.0.0.1'],
+    });
+
+    const sessionPool = new SessionPool();
+    const retiredSessions: string[] = [];
+    const markedBad: string[] = [];
+
+    const handled: string[] = [];
+    const crawler = new HttpCrawler({
+        requestManager: throttlingManager,
+        sessionPool,
+        maxRequestRetries: 0,
+        preNavigationHooks: [
+            async ({ session }) => {
+                vitest.spyOn(session!, 'retire').mockImplementation(() => retiredSessions.push(session!.id));
+                vitest.spyOn(session!, 'markBad').mockImplementation(() => markedBad.push(session!.id));
+            },
+        ],
+        requestHandler: async ({ request }) => {
+            handled.push(request.url);
+        },
+    });
+
+    const stats = await crawler.run([`${url}/429-then-ok`]);
+
+    // `maxRequestRetries: 0` would have failed the request outright had the 429 been charged as a retry.
+    expect(handled).toHaveLength(1);
+    expect(stats.requestsFailed).toBe(0);
+
+    // The domain's `Retry-After` was honoured between the two attempts...
+    expect(hits).toHaveLength(2);
+    expect(hits[1] - hits[0]).toBeGreaterThanOrEqual(1000);
+
+    // ...and the session came out untouched - a rate limit says nothing about it.
+    expect(retiredSessions).toEqual([]);
+    expect(markedBad).toEqual([]);
+}, 30_000);
+
+test('a domain that never stops rate-limiting shuts the crawl down instead of hanging', async () => {
+    let hits = 0;
+    router.set('/always-429', (req, res) => {
+        hits++;
+        res.statusCode = 429;
+        res.end();
+    });
+
+    const crawler = new HttpCrawler({
+        requestManager: new ThrottlingRequestManager({
+            inner: await RequestQueue.open(),
+            domains: ['127.0.0.1'],
+            baseDelaySecs: 0.05,
+            maxDelaySecs: 0.1,
+            maxDomainStallSecs: 2,
+        }),
+        maxRequestRetries: 0,
+        requestHandler: async () => {},
+    });
+
+    // Without the stall detector this never resolves - a throttled request costs no retries.
+    await expect(crawler.run([`${url}/always-429`])).rejects.toThrow(PersistentRateLimitError);
+
+    expect(hits).toBeGreaterThan(1);
+
+    // The request is deliberately left queued, so a later run can pick it up if the rate limit lifts.
+    expect(await crawler.getRequestManager().then((manager) => manager.getPendingCount())).toBe(1);
+}, 30_000);
+
+test('`keepAlive` outlives a domain that never stops rate-limiting', async () => {
+    router.set('/always-429-keep-alive', (req, res) => {
+        res.statusCode = 429;
+        res.end();
+    });
+
+    const crawler = new HttpCrawler({
+        requestManager: new ThrottlingRequestManager({
+            inner: await RequestQueue.open(),
+            domains: ['127.0.0.1'],
+            baseDelaySecs: 0.05,
+            maxDelaySecs: 0.1,
+            maxDomainStallSecs: 0.5,
+        }),
+        keepAlive: true,
+        maxRequestRetries: 0,
+        requestHandler: async () => {},
+    });
+
+    const running = crawler.run([`${url}/always-429-keep-alive`]);
+
+    // Several times the stall threshold - long enough that the shutdown would have fired by now.
+    const outcome = await Promise.race([
+        running.then(
+            () => 'shut down',
+            () => 'threw',
+        ),
+        sleep(3000).then(() => 'still running' as const),
+    ]);
+
+    expect(outcome).toBe('still running');
+
+    await crawler.teardown();
+    await running;
+}, 30_000);

@@ -213,6 +213,14 @@ const crawler = new CheerioCrawler({
 
 For sites that respond with a `200` page that is actually a bot wall (Cloudflare challenges, Google's rate-limit page), set `retryOnBlocked: true` to have the crawler detect those by content and retry as well. For deeper anti-blocking measures see the [avoid blocking guide](./avoid-blocking).
 
+:::tip A 429 is a rate limit, not a block
+
+Retiring a session on HTTP 429 burns proxies without slowing anything down — the site is asking you to wait, not telling you the session is unwelcome. Wrap your request manager in a <ApiLink to="core/class/ThrottlingRequestManager">`ThrottlingRequestManager`</ApiLink> to back off per domain instead of rotating; see [per-domain throttling](./request-loaders#per-domain-throttling). Sessions are left untouched for the domains it covers.
+
+Those domains are handled as rate limits before `blockedStatusCodes` is consulted, so leave 429 in the list — removing it only changes what happens for domains the manager does not cover.
+
+:::
+
 ## Sharing a session pool between crawlers
 
 A `SessionPool` instance can be shared across multiple crawlers by passing the same object to each crawler's `sessionPool` option. This is useful in multi-stage scrapers — for example a fast `CheerioCrawler` that discovers links and a `PlaywrightCrawler` that renders detail pages — where you want both stages to reuse the same proven, non-blocked identities and their cookies instead of each warming up its own pool from scratch.

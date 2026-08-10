@@ -41,6 +41,7 @@ import { StringPredicate } from 'ow';
 // Not exported by the entry point; reachable only as a referenced type.
 // @public (undocumented)
 interface BaseResponse {
+    headers?(): Record<string, string>;
     // (undocumented)
     status(): number;
 }
@@ -79,6 +80,7 @@ export abstract class BrowserCrawler<Page extends CommonPage = CommonPage, Respo
         extendContext: Predicate<Function> & BasePredicate<Function | undefined>;
         requestList: ObjectPredicate<object> & BasePredicate<object | undefined>;
         requestQueue: ObjectPredicate<object> & BasePredicate<object | undefined>;
+        requestManager: ObjectPredicate<object> & BasePredicate<object | undefined>;
         requestHandler: Predicate<Function> & BasePredicate<Function | undefined>;
         requestHandlerTimeoutSecs: NumberPredicate & BasePredicate<number | undefined>;
         errorHandler: Predicate<Function> & BasePredicate<Function | undefined>;

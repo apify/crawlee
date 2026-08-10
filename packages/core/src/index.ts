@@ -17,5 +17,6 @@ export * from './storages/index.js';
 export * from './memory-storage/index.js';
 export * from './validators.js';
 export * from './cookie_utils.js';
+export * from './http.js';
 export * from './recoverable_state.js';
 export type { StorageBackend } from '@crawlee/types';

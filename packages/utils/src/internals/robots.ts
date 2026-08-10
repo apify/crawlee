@@ -35,13 +35,13 @@ export interface RobotsTxtFileSitemapsOptions {
  */
 export class RobotsTxtFile {
     #url: string;
-    #robots: Pick<Robot, 'isAllowed' | 'getSitemaps'>;
+    #robots: Pick<Robot, 'isAllowed' | 'getSitemaps' | 'getCrawlDelay'>;
     #proxyUrl?: string;
     #logger?: CrawleeLogger;
 
     private constructor(
         url: string,
-        robots: Pick<Robot, 'isAllowed' | 'getSitemaps'>,
+        robots: Pick<Robot, 'isAllowed' | 'getSitemaps' | 'getCrawlDelay'>,
         proxyUrl?: string,
         logger?: CrawleeLogger,
     ) {
@@ -118,6 +118,9 @@ export class RobotsTxtFile {
                     getSitemaps() {
                         return [];
                     },
+                    getCrawlDelay() {
+                        return undefined;
+                    },
                 },
                 proxyUrl,
                 logger,
@@ -125,6 +128,14 @@ export class RobotsTxtFile {
         }
 
         return new RobotsTxtFile(url, robotsParser(url.toString(), await response.text()), proxyUrl, logger);
+    }
+
+    /**
+     * Get crawl delay for a given user agent.
+     * @param [userAgent] relevant user agent, default to `*`
+     */
+    getCrawlDelay(userAgent = '*'): number | undefined {
+        return this.#robots.getCrawlDelay(userAgent);
     }
 
     /**

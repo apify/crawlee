@@ -11,3 +11,4 @@ export * from './utils.js';
 export * from './transaction.js';
 export * from './sitemap_request_loader.js';
 export * from './request_manager_tandem.js';
+export * from './throttling_request_manager.js';

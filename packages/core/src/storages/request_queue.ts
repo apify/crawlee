@@ -11,7 +11,7 @@ import type {
     RequestQueueInfo,
 } from '@crawlee/types';
 import { isAsyncIterable, isIterable } from '@crawlee/utils/internal';
-import { downloadListOfUrls, sleep } from '@crawlee/utils';
+import { downloadListOfUrls } from '@crawlee/utils';
 import ow from 'ow';
 import type { ReadonlyDeep } from 'type-fest';
 
@@ -22,14 +22,14 @@ import { Configuration } from '../configuration.js';
 import { getObjectType } from '../debug.js';
 import type { EventManager } from '../events/event_manager.js';
 import { EventType } from '../events/event_manager.js';
-import { chunkedAsyncIterable, peekableAsyncIterable } from '../iterables.js';
 import type { CrawleeLogger } from '../log.js';
 import type { IProxyConfiguration } from '../proxy_configuration.js';
 import type { InternalSource, RequestOptions, Source } from '../request.js';
 import { Request } from '../request.js';
 import { serviceLocator } from '../service_locator.js';
 import type { JournalEntry, StorageTransaction } from './transaction.js';
-import { activeStorageTransaction, rejectOperationInTransaction, withDirectStorageAccess } from './transaction.js';
+import { activeStorageTransaction, rejectOperationInTransaction } from './transaction.js';
+import { drainRequestBatches } from './batched_adds.js';
 import type { IRequestManager, RequestsLike } from './request_manager.js';
 import type { RequestQueueStats } from './storage_stats.js';
 import { StorageStatsTracker } from './storage_stats.js';
@@ -571,9 +571,6 @@ export class RequestQueue implements IStorage, IRequestManager {
         requests: ReadonlyDeep<RequestsLike>,
         options: AddRequestsBatchedOptions = {},
     ): Promise<AddRequestsBatchedResult> {
-        const transaction = activeStorageTransaction();
-        const deferred = transaction?.policy.requestQueue === 'deferred';
-
         ow(
             requests,
             ow.object
@@ -630,133 +627,43 @@ export class RequestQueue implements IStorage, IRequestManager {
             }
         }
 
-        const { batchSize = 1000, maxNewRequests = undefined } = options;
-        // Under `deferred` no chunk performs backend I/O, so pacing them would only stall the handler.
-        const waitBetweenBatchesMillis = deferred ? 0 : (options.waitBetweenBatchesMillis ?? 1000);
+        return drainRequestBatches<RequestOptions>({
+            items: generateRequests(),
+            batchSize: options.batchSize ?? 1000,
+            waitBetweenBatchesMillis: options.waitBetweenBatchesMillis ?? 1000,
+            waitForAllRequestsToBeAdded: options.waitForAllRequestsToBeAdded ?? false,
+            maxNewRequests: options.maxNewRequests,
 
-        let remainingBudget = maxNewRequests ?? Infinity;
-        const requestsOverLimit: Source[] = [];
+            /**
+             * Requests the backend reports as unprocessed are warned about and skipped rather than retried:
+             * `unprocessedRequests` is what remains after the backend's own transient-error handling - a
+             * semantic rejection (e.g. a malformed `userData` shape) that re-sending would only re-poke.
+             * Retrying transient failures is the storage backend's job, not the frontend's.
+             */
+            processChunk: async (chunk, isInitial) => {
+                const { processedRequests, unprocessedRequests } = await this.addRequests(chunk, {
+                    forefront: options.forefront,
+                    cache: isInitial,
+                });
 
-        // If there's a limit on the number of added requests, do not send batches bigger than the limit
-        const effectiveChunkSize =
-            maxNewRequests !== undefined ? () => Math.min(batchSize, remainingBudget) : batchSize;
-
-        // Hold onto the underlying iterator so we can drain leftovers from it in buildResult
-        const requestIterator = generateRequests();
-
-        const chunks = peekableAsyncIterable(
-            chunkedAsyncIterable(requestIterator, effectiveChunkSize) as AsyncIterable<Source[]>,
-        );
-        const chunksIterator = chunks[Symbol.asyncIterator]();
-
-        /**
-         * Process a chunk: send it to the queue, then update the remaining budget if maxNewRequests is active.
-         *
-         * Requests the backend reports as unprocessed are warned about and skipped rather than retried:
-         * `unprocessedRequests` is what remains after the backend's own transient-error handling - a
-         * semantic rejection (e.g. a malformed `userData` shape) that re-sending would only re-poke.
-         * Retrying transient failures is the storage backend's job, not the frontend's.
-         */
-        const processChunk = async (chunk: Source[], cache = true) => {
-            const { processedRequests, unprocessedRequests } = await this.addRequests(chunk, {
-                forefront: options.forefront,
-                cache,
-            });
-
-            if (unprocessedRequests.length > 0) {
-                this.log.warning(
-                    'Some requests were rejected by the request queue and will be skipped. ' +
-                        "This usually means the request data is malformed (e.g. an invalid 'userData' shape).",
-                    { unprocessedRequests },
-                );
-            }
-
-            if (maxNewRequests !== undefined) {
-                remainingBudget -= processedRequests.filter((r) => !r.wasAlreadyPresent).length;
-            }
-
-            return processedRequests;
-        };
-
-        /**
-         * Build the final result. When maxNewRequests is set, drains any remaining items
-         * from the underlying request iterator into requestsOverLimit.
-         *
-         * We accept the iterator explicitly (rather than closing over it) to make it obvious
-         * that this is the *same* iterator that `chunkedAsyncIterable` has been consuming —
-         * so only unconsumed items are drained. We drain `requestIterator` (not `chunks`)
-         * because `chunkedAsyncIterable` stops yielding when the budget-based chunk size
-         * drops to 0, leaving unconsumed items in the underlying iterator.
-         */
-        const buildResult = async (
-            addedRequests: ProcessedRequest[],
-            waitForAllRequestsToBeAdded: Promise<ProcessedRequest[]>,
-            unconsumedIterator: AsyncGenerator<RequestOptions>,
-        ): Promise<AddRequestsBatchedResult> => {
-            if (maxNewRequests !== undefined) {
-                for await (const request of unconsumedIterator) {
-                    requestsOverLimit.push(request);
+                if (unprocessedRequests.length > 0) {
+                    this.log.warning(
+                        'Some requests were rejected by the request queue and will be skipped. ' +
+                            "This usually means the request data is malformed (e.g. an invalid 'userData' shape).",
+                        { unprocessedRequests },
+                    );
                 }
-            }
 
-            return { addedRequests, waitForAllRequestsToBeAdded, requestsOverLimit };
-        };
+                return processedRequests;
+            },
 
-        // Add initial batch to process right away
-        const initialChunk = await chunksIterator.peek();
-        if (initialChunk === undefined) {
-            return buildResult([], Promise.resolve([]), requestIterator);
-        }
-
-        const addedRequests = await processChunk(initialChunk);
-        await chunksIterator.next();
-
-        // If we have no more requests to add (either exhausted or budget hit), return immediately
-        if ((await chunksIterator.peek()) === undefined) {
-            return buildResult(addedRequests, Promise.resolve([]), requestIterator);
-        }
-
-        const processRemainingChunks = async () => {
-            const finalAddedRequests: ProcessedRequest[] = [];
-
-            for await (const requestChunk of chunks) {
-                finalAddedRequests.push(...(await processChunk(requestChunk, false)));
-                await sleep(waitBetweenBatchesMillis);
-            }
-
-            return finalAddedRequests;
-        };
-
-        // maxNewRequests needs all batches to report skipped requests accurately; `deferred` needs them
-        // too - a writer that finishes after commit would have nowhere to put its journal entries.
-        const awaitsRemainingChunks = options.waitForAllRequestsToBeAdded || maxNewRequests !== undefined || deferred;
-
-        // eslint-disable-next-line no-async-promise-executor
-        const promise = new Promise<ProcessedRequest[]>(async (resolve) => {
-            if (awaitsRemainingChunks) {
-                // Awaited below, i.e. still within the caller's transaction scope, so the additions are
-                // journaled like the initial chunk - introspection must not depend on where the chunk
-                // boundary happened to fall.
-                resolve(await processRemainingChunks());
-            } else {
-                // Nobody awaits this writer, so it outlives the transaction scope it inherits and must
-                // not record into a transaction that may already be closed. It writes directly - its
-                // write-through additions were never going to be rolled back anyway - which means the
-                // requests it adds are not journaled. See `StorageTransactionView.enqueuedUrls`.
-                resolve(await withDirectStorageAccess(processRemainingChunks));
-            }
+            trackBackgroundBatches: (batches) => {
+                this.inProgressRequestBatchCount += 1;
+                void batches.finally(() => {
+                    this.inProgressRequestBatchCount -= 1;
+                });
+            },
         });
-
-        this.inProgressRequestBatchCount += 1;
-        void promise.finally(() => {
-            this.inProgressRequestBatchCount -= 1;
-        });
-
-        if (awaitsRemainingChunks) {
-            addedRequests.push(...(await promise));
-        }
-
-        return buildResult(addedRequests, promise, requestIterator);
     }
 
     /**
