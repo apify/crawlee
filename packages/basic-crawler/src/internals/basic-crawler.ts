@@ -60,10 +60,13 @@ import {
     OwnedOrInjected,
     purgeDefaultStorages,
     RequestHandlerError,
+    parseRetryAfterHeader,
+    RequestThrottledError,
     RequestManagerTandem,
     RequestQueue,
     RequestState,
     RetryRequestError,
+    supportsDomainThrottling,
     Router,
     ServiceLocator,
     serviceLocator,
@@ -420,6 +423,10 @@ export interface BasicCrawlerOptions<
 
     /**
      * HTTP status codes that indicate the session should be retired.
+     *
+     * A 429 from a domain covered by a {@apilink ThrottlingRequestManager} is handled as a rate limit before
+     * this is consulted, so removing 429 here only affects domains that manager does not cover.
+     *
      * @default [401, 403, 429]
      */
     blockedStatusCodes?: number[];
@@ -827,6 +834,7 @@ export class BasicCrawler<
 
         requestList: ow.optional.object.validate(validators.requestList),
         requestQueue: ow.optional.object.validate(validators.requestQueue),
+        requestManager: ow.optional.object,
         // Subclasses override this function instead of passing it
         // in constructor, so this validation needs to apply only
         // if the user creates an instance of BasicCrawler directly.
@@ -1163,7 +1171,7 @@ export class BasicCrawler<
                             );
                             // SessionError already retired the session in `requestFunctionErrorHandler`;
                             // skip `markBad` to avoid double-counting usage/error score.
-                            if (!(unwrappedError instanceof SessionError)) {
+                            if (!this.errorAbsolvesSession(unwrappedError)) {
                                 crawlingContext.session?.markBad();
                             }
                             return;
@@ -1220,6 +1228,12 @@ export class BasicCrawler<
                             'The crawler has finished all the remaining ongoing requests and will shut down now.',
                         );
                         return true;
+                    }
+
+                    // Checked here because this runs only once nothing is in flight, which is exactly when a
+                    // crawl that cannot progress looks indistinguishable from one that is merely waiting.
+                    if (!keepAlive && supportsDomainThrottling(this.requestManager)) {
+                        await this.requestManager.assertNoStalledDomains();
                     }
 
                     const isFinished = isFinishedFunction
@@ -1882,9 +1896,9 @@ export class BasicCrawler<
         });
     }
 
-    private logOncePerRun(key: string, message: string): void {
+    private logOncePerRun(key: string, message: string, level: 'info' | 'warning' = 'info'): void {
         if (!this.#loggedPerRun.has(key)) {
-            this.log.info(message);
+            this.log[level](message);
             this.#loggedPerRun.add(key);
         }
     }
@@ -2226,7 +2240,63 @@ export class BasicCrawler<
         const robotsTxtFile = await this.getRobotsTxtFileForUrl(url);
         const userAgent = typeof this.#respectRobotsTxtFile === 'object' ? this.#respectRobotsTxtFile?.userAgent : '*';
 
+        if (robotsTxtFile) {
+            const crawlDelay = robotsTxtFile.getCrawlDelay(userAgent);
+            if (crawlDelay !== undefined) {
+                this.applyCrawlDelay(url, crawlDelay);
+            }
+        }
+
         return !robotsTxtFile || robotsTxtFile.isAllowed(url, userAgent);
+    }
+
+    /**
+     * Records an HTTP 429 against the URL's domain so the request manager can pace the retry.
+     *
+     * @param retryAfterHeader The raw `Retry-After` response header, if the server sent one.
+     * @returns `true` if a manager took responsibility for the delay, in which case the caller should throw
+     *  {@apilink RequestThrottledError} rather than treating the response as a blocked session.
+     */
+    protected recordDomainRateLimit(url: string, retryAfterHeader?: string | null): boolean {
+        if (
+            supportsDomainThrottling(this.requestManager) &&
+            this.requestManager.recordDomainDelay(url, parseRetryAfterHeader(retryAfterHeader))
+        ) {
+            return true;
+        }
+
+        const domain = hostnameOrUrl(url);
+        this.logOncePerRun(
+            `rateLimitNotThrottled:${domain}`,
+            `"${domain}" responded with HTTP 429 (Too Many Requests), but nothing is set up to back off from it, ` +
+                'so the response is handled like any other, with no per-domain delay. ' +
+                `Pass a \`ThrottlingRequestManager\` as \`requestManager\` and include "${domain}" in its \`domains\` ` +
+                'option to honour `Retry-After` and apply exponential backoff instead.',
+            'warning',
+        );
+
+        return false;
+    }
+
+    /**
+     * Hands a robots.txt `Crawl-delay` to the request manager, warning if nothing is able to honour it.
+     *
+     * The warning is driven by whether the delay was actually accepted rather than by the type of the manager,
+     * because a manager that does throttle still drops the delay for a domain missing from its `domains` list.
+     */
+    private applyCrawlDelay(url: string, delaySeconds: number): void {
+        if (supportsDomainThrottling(this.requestManager) && this.requestManager.setCrawlDelay(url, delaySeconds)) {
+            return;
+        }
+
+        const domain = hostnameOrUrl(url);
+        this.logOncePerRun(
+            `crawlDelayIgnored:${domain}`,
+            `robots.txt for "${domain}" defines a crawl-delay of ${delaySeconds}s, but nothing is set up to honour it, ` +
+                'so requests to that domain will not be paced. Pass a `ThrottlingRequestManager` as `requestManager` ' +
+                `and include "${domain}" in its \`domains\` option to enforce the delay.`,
+            'warning',
+        );
     }
 
     protected async getRobotsTxtFileForUrl(url: string): Promise<RobotsTxtFile | undefined> {
@@ -2417,7 +2487,7 @@ export class BasicCrawler<
             }
             // decrease the session score if the request fails (but the error handler did not throw);
             // skip when the error is a SessionError, which already retired the session
-            if (!(err instanceof SessionError)) {
+            if (!this.errorAbsolvesSession(err)) {
                 crawlingContext.session.markBad();
             }
         } finally {
@@ -2577,6 +2647,17 @@ export class BasicCrawler<
         request: Request,
         source: IRequestManager,
     ): Promise<void> {
+        if (error instanceof RequestThrottledError) {
+            // The domain told us to come back later, so the request was never really attempted. Put it back
+            // without recording a failure - it costs neither a retry nor session reputation.
+            this.log.debug(`Deferring request because its domain is rate-limiting us. ${error.message}`, {
+                id: request.id,
+                url: request.url,
+            });
+            await source.reclaimRequest(request, { forefront: request.userData?.__crawlee?.forefront });
+            return;
+        }
+
         request.pushErrorMessage(error);
 
         if (error instanceof CriticalError) {
@@ -2675,6 +2756,14 @@ export class BasicCrawler<
         return process.env.CRAWLEE_VERBOSE_LOG || forceStack
             ? (error.stack ?? [error.message || error, ...stackLines].join('\n'))
             : [error.message || error, userLine].join('\n');
+    }
+
+    /**
+     * Whether the session should be spared for this error - either because it was already retired, or because the
+     * failure says nothing about the session (a rate limit is a property of the domain).
+     */
+    private errorAbsolvesSession(error: Error): boolean {
+        return error instanceof SessionError || error instanceof RequestThrottledError;
     }
 
     private canRequestBeRetried(request: Request, error: Error) {
@@ -2805,6 +2894,11 @@ export interface CrawlerRunOptions extends CrawlerAddRequestsOptions {
      *   note that even a failed request is considered handled.
      */
     purgeRequestQueue?: boolean;
+}
+
+/** The hostname of `url`, falling back to the whole string when it is not parseable - for log messages only. */
+function hostnameOrUrl(url: string): string {
+    return URL.canParse(url) ? new URL(url).hostname : url;
 }
 
 /**

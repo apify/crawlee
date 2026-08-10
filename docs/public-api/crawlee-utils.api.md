@@ -152,6 +152,7 @@ export class RobotsTxtFile {
         logger?: CrawleeLogger;
     }): Promise<RobotsTxtFile>;
     static from(url: string, content: string, proxyUrl?: string): RobotsTxtFile;
+    getCrawlDelay(userAgent?: string): number | undefined;
     getSitemaps(): string[];
     isAllowed(url: string, userAgent?: string): boolean;
     parseSitemaps(): Promise<Sitemap>;

@@ -26,6 +26,7 @@ The request loader abstractions are built around two interfaces and a couple of 
 - <ApiLink to="core/interface/IRequestLoader">`IRequestLoader`</ApiLink>: The base interface for reading requests in a crawl.
 - <ApiLink to="core/interface/IRequestManager">`IRequestManager`</ApiLink>: Extends `IRequestLoader` with write capabilities (adding and reclaiming requests).
 - <ApiLink to="core/class/RequestManagerTandem">`RequestManagerTandem`</ApiLink>: Combines a read-only `IRequestLoader` with a writable `IRequestManager`.
+- <ApiLink to="core/class/ThrottlingRequestManager">`ThrottlingRequestManager`</ApiLink>: Wraps a writable `IRequestManager` and paces requests per domain.
 
 And the concrete request loader implementations:
 
@@ -79,6 +80,8 @@ class SitemapRequestLoader
 
 class RequestManagerTandem
 
+class ThrottlingRequestManager
+
 %% ========================
 %% Inheritance arrows
 %% ========================
@@ -88,6 +91,7 @@ IRequestLoader <|.. RequestList
 IRequestLoader <|.. SitemapRequestLoader
 IRequestManager <|.. RequestQueue
 IRequestManager <|.. RequestManagerTandem
+IRequestManager <|.. ThrottlingRequestManager
 ```
 
 :::info Crawler usage
@@ -129,6 +133,42 @@ The loader supports filtering URLs using glob patterns and regular expressions, 
 ## Request managers
 
 The <ApiLink to="core/interface/IRequestManager">`IRequestManager`</ApiLink> interface extends `IRequestLoader` with **write** capabilities. In addition to reading requests, a request manager can add new requests and reclaim failed ones. This is essential for dynamic crawling, where new URLs emerge during the crawl, or when requests fail and need to be retried. The <ApiLink to="core/class/RequestQueue">`RequestQueue`</ApiLink> is the primary built-in request manager — see the [Request storage](./request-storage) guide for details.
+
+## Per-domain throttling
+
+Some sites answer bursts of traffic with HTTP 429 (Too Many Requests) rather than an outright block. By default a 429 is treated as a blocked session: the session is retired and the request is retried straight away on a fresh one, which churns through proxies without actually slowing down.
+
+The <ApiLink to="core/class/ThrottlingRequestManager">`ThrottlingRequestManager`</ApiLink> handles it at the scheduling layer instead. Wrap your request manager in it and list the domains you want paced:
+
+```ts
+import { CheerioCrawler, RequestQueue, ThrottlingRequestManager } from 'crawlee';
+
+const crawler = new CheerioCrawler({
+    requestManager: new ThrottlingRequestManager({
+        inner: await RequestQueue.open(),
+        domains: ['api.example.com'],
+        // optional, these are the defaults
+        baseDelaySecs: 2,
+        maxDelaySecs: 60,
+        maxDomainStallSecs: 900,
+    }),
+    requestHandler: async ({ request }) => {
+        // ...
+    },
+});
+```
+
+Requests for a listed domain are routed into their own queue as they are added. When one of those domains answers with a 429, the crawler honours its `Retry-After` header — or backs off exponentially from `baseDelaySecs` up to `maxDelaySecs` if there is none — and holds that domain's requests back for the duration. Requests for every other domain keep flowing at full speed, the throttled request is retried later without counting against `maxRequestRetries`, and its session is left alone, because a rate limit says nothing about the session.
+
+Because a throttled request costs no retries, a domain that never stops rate-limiting would otherwise keep the crawl alive forever. If one goes `maxDomainStallSecs` without letting a single request through, the crawl shuts down with a `PersistentRateLimitError` — at that point the concurrency is too high for that domain, or it has blocked you outright, and waiting longer will not help. Its requests are left in their queue on purpose, so re-running the crawl without purging storages resumes them if the rate limit lifts. A crawler running with `keepAlive` is exempt, since staying up regardless is what it was asked to do.
+
+This is opt-in and exact: only the domains you list are throttled, and matching is case-insensitive with no wildcard support, so list each subdomain you care about.
+
+:::note robots.txt crawl-delay
+
+`ThrottlingRequestManager` is also what enforces `Crawl-delay` directives when `respectRobotsTxtFile` is enabled. Without it, or for a domain missing from `domains`, the directive is ignored and the crawler warns you about it.
+
+:::
 
 ## Request manager tandem
 
@@ -174,6 +214,6 @@ Similarly, you can combine a <ApiLink to="core/class/SitemapRequestLoader">`Site
 
 ## Conclusion
 
-This guide introduced the request loader abstractions: the read-only <ApiLink to="core/interface/IRequestLoader">`IRequestLoader`</ApiLink>, the writable <ApiLink to="core/interface/IRequestManager">`IRequestManager`</ApiLink>, and the <ApiLink to="core/class/RequestManagerTandem">`RequestManagerTandem`</ApiLink> that combines them, along with the <ApiLink to="core/class/RequestList">`RequestList`</ApiLink> and <ApiLink to="core/class/SitemapRequestLoader">`SitemapRequestLoader`</ApiLink> implementations. You also saw how to pair a loader with a queue using the `toTandem()` helper to handle both static and dynamically discovered requests.
+This guide introduced the request loader abstractions: the read-only <ApiLink to="core/interface/IRequestLoader">`IRequestLoader`</ApiLink>, the writable <ApiLink to="core/interface/IRequestManager">`IRequestManager`</ApiLink>, and the <ApiLink to="core/class/RequestManagerTandem">`RequestManagerTandem`</ApiLink> that combines them, along with the <ApiLink to="core/class/RequestList">`RequestList`</ApiLink> and <ApiLink to="core/class/SitemapRequestLoader">`SitemapRequestLoader`</ApiLink> implementations. You also saw how to pair a loader with a queue using the `toTandem()` helper to handle both static and dynamically discovered requests, and how <ApiLink to="core/class/ThrottlingRequestManager">`ThrottlingRequestManager`</ApiLink> paces requests to individual domains.
 
 If you have questions or need assistance, feel free to reach out on our [GitHub](https://github.com/apify/crawlee) or join our [Discord community](https://discord.com/invite/jyEM2PRvMU). Happy scraping!

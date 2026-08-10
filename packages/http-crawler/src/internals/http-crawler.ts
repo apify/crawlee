@@ -26,7 +26,7 @@ import {
     Router,
     SessionError,
 } from '@crawlee/basic';
-import { type LoadedRequest, getCookiesFromResponse } from '@crawlee/core';
+import { type LoadedRequest, RequestThrottledError, getCookiesFromResponse } from '@crawlee/core';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import type { Awaitable, Dictionary, ISession } from '@crawlee/types';
 import { type CheerioRoot, RETRY_CSS_SELECTORS } from '@crawlee/utils/internal';
@@ -571,6 +571,18 @@ export class HttpCrawler<
         }
 
         tryCancel();
+
+        // Before `parseResponse`, which throws for error status codes - a 429 the user opted into treating as an
+        // error is still a rate limit the domain should back off from.
+        if (crawlingContext.response.status === 429) {
+            const retryAfter = crawlingContext.response.headers.get('retry-after');
+            if (this.recordDomainRateLimit(crawlingContext.request.url, retryAfter)) {
+                // This is the one path that never reads the body, so cancel it to release the connection
+                // rather than leaving it to the garbage collector.
+                await crawlingContext.response.body?.cancel().catch(() => {});
+                throw new RequestThrottledError(`${crawlingContext.request.url} responded with 429.`);
+            }
+        }
 
         // Reading the body is still part of the navigation, so it draws from the same shared window: on a server
         // that streams the body slowly the request completes (headers arrive) but the body read would otherwise

@@ -1174,6 +1174,24 @@ const crawler = new CheerioCrawler({ requestManager: await requestList.toTandem(
 
 A lone `requestList` now runs through a tandem over an auto-opened queue (rather than a read-only adapter). This means retries and `maxRequestsPerCrawl` accounting for that path now follow queue semantics.
 
+#### HTTP 429 can now back off per domain instead of retiring the session
+
+`blockedStatusCodes` still defaults to `[401, 403, 429]`, so out of the box a 429 retires the session and retries immediately, as in v3. New in v4 is the opt-in `ThrottlingRequestManager`, which handles rate limits at the scheduling layer instead:
+
+```typescript
+const crawler = new CheerioCrawler({
+    requestManager: new ThrottlingRequestManager({
+        inner: await RequestQueue.open(),
+        domains: ['api.example.com'],
+    }),
+    requestHandler,
+});
+```
+
+For the domains you list, a 429 is treated as a rate limit before `blockedStatusCodes` is consulted at all — it honours `Retry-After` (or backs off exponentially), holds only that domain's requests back, and leaves both the session and the request's retry budget untouched. Removing 429 from `blockedStatusCodes` therefore only affects domains the manager does not cover; you do not need to touch it to adopt throttling. Because those retries are free, a domain that never stops rate-limiting would keep the crawl alive indefinitely — so one that goes `maxDomainStallSecs` (15 minutes by default) without letting a single request through shuts the crawl down with a `PersistentRateLimitError`, leaving its requests queued for a later run — unless `keepAlive` is set, which exempts the crawl.
+
+It is also what enforces robots.txt `Crawl-delay` directives — with `respectRobotsTxtFile` enabled and no throttling manager covering the domain, the directive is ignored and the crawler warns about it. See the [request loaders guide](../guides/request-loaders#per-domain-throttling).
+
 #### `BasicCrawler.requestList` and `BasicCrawler.requestQueue` fields removed
 
 The public `requestList` and `requestQueue` instance fields are gone. The crawler exposes a single `protected requestManager?: IRequestManager` instead. Access the active manager via the new async `getRequestManager()` method.

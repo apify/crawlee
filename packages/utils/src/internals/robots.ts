@@ -24,11 +24,15 @@ import { Sitemap } from './sitemap.js';
  * ```
  */
 export class RobotsTxtFile {
-    #robots: Pick<Robot, 'isAllowed' | 'getSitemaps'>;
+    #robots: Pick<Robot, 'isAllowed' | 'getSitemaps' | 'getCrawlDelay'>;
     #proxyUrl?: string;
     #logger?: CrawleeLogger;
 
-    private constructor(robots: Pick<Robot, 'isAllowed' | 'getSitemaps'>, proxyUrl?: string, logger?: CrawleeLogger) {
+    private constructor(
+        robots: Pick<Robot, 'isAllowed' | 'getSitemaps' | 'getCrawlDelay'>,
+        proxyUrl?: string,
+        logger?: CrawleeLogger,
+    ) {
         this.#robots = robots;
         this.#proxyUrl = proxyUrl;
         this.#logger = logger;
@@ -101,6 +105,9 @@ export class RobotsTxtFile {
                     getSitemaps() {
                         return [];
                     },
+                    getCrawlDelay() {
+                        return undefined;
+                    },
                 },
                 proxyUrl,
                 logger,
@@ -109,6 +116,14 @@ export class RobotsTxtFile {
 
         // @ts-ignore
         return new RobotsTxtFile(robotsParser(url.toString(), await response.text()), proxyUrl, logger);
+    }
+
+    /**
+     * Get crawl delay for a given user agent.
+     * @param [userAgent] relevant user agent, default to `*`
+     */
+    getCrawlDelay(userAgent = '*'): number | undefined {
+        return this.#robots.getCrawlDelay(userAgent);
     }
 
     /**
