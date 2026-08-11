@@ -155,6 +155,25 @@ export class ServiceLocator implements ServiceLocatorInterface {
         this.#logger = logger;
     }
 
+    /**
+     * Returns the currently set services without triggering the implicit creation of defaults.
+     * Used to inherit already-materialized services into crawler-scoped service locators.
+     * @internal
+     */
+    getServicesIfSet(): {
+        configuration?: Configuration;
+        eventManager?: EventManager;
+        storageBackend?: StorageBackend;
+        logger?: CrawleeLogger;
+    } {
+        return {
+            configuration: this.#configuration,
+            eventManager: this.#eventManager,
+            storageBackend: this.#storageBackend,
+            logger: this.#logger,
+        };
+    }
+
     getConfiguration(): Configuration {
         if (!this.#configuration) {
             this.getLogger().debug('No configuration set, implicitly creating and using default Configuration.');

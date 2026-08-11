@@ -969,7 +969,17 @@ export class BasicCrawler<
             logger ||
             (configuration !== undefined && configuration !== serviceLocator.getConfiguration())
         ) {
-            const scopedServiceLocator = new ServiceLocator(configuration, eventManager, storageBackend, logger);
+            // Inherit the ambient locator's already-set services for anything not explicitly
+            // provided - otherwise passing e.g. only a `logger` would detach the crawler from a
+            // globally configured storage backend (such as the platform storage set by the SDK)
+            // and silently fall back to the default file-system one.
+            const ambientServices = (serviceLocator as unknown as ServiceLocator).getServicesIfSet();
+            const scopedServiceLocator = new ServiceLocator(
+                configuration ?? ambientServices.configuration,
+                eventManager ?? ambientServices.eventManager,
+                storageBackend ?? ambientServices.storageBackend,
+                logger ?? ambientServices.logger,
+            );
             serviceLocatorScope = bindMethodsToServiceLocator(scopedServiceLocator, this);
         }
 
