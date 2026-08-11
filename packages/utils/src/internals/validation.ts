@@ -29,7 +29,7 @@ function describeType(value: unknown): string {
 
 /** The bare custom-schema messages that stop at the expected type, e.g. `Invalid input: expected number`. */
 const BARE_EXPECTED_TYPE_MESSAGE =
-    /^Invalid input: expected (?:an array of .+|(object|array|function|number|string|boolean))$/;
+    /^Invalid input: expected (an array of .+|a typed array|an object|object|array|function|number|string|boolean)$/;
 
 /** Renders a primitive received value for an error; skips objects/Dates (noisy). */
 function describeReceived(value: unknown): string | undefined {
@@ -77,11 +77,9 @@ function formatIssue(issue: z.ZodError['issues'][number], root: unknown, basePat
     let got = '';
     const bareExpected = BARE_EXPECTED_TYPE_MESSAGE.exec(message);
     const zodReceived = /, received (\S+)$/.exec(message);
-    // `arrayOf` messages leave group 1 empty — their expected type is `array`.
-    if (
-        bareExpected &&
-        (bareExpected[1] ?? 'array') !== (Number.isNaN(value as number) ? 'NaN' : describeType(value))
-    ) {
+    // `arrayOf` messages name the element type — their expected runtime type is `array`.
+    const expectedType = bareExpected?.[1].startsWith('an array of') ? 'array' : bareExpected?.[1];
+    if (bareExpected && expectedType !== (Number.isNaN(value as number) ? 'NaN' : describeType(value))) {
         message += `, ${describeReceivedClause(value)}`;
     } else if (zodReceived && zodReceived[1] === describeType(value) && rendered !== undefined) {
         message = `${message.slice(0, zodReceived.index)}, ${describeReceivedClause(value)}`;
