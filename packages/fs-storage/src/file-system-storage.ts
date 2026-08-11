@@ -17,6 +17,9 @@ import { RequestQueueBackend } from './resource-clients/request-queue.js';
 /** The alias `@crawlee/core` opens the default (unnamed) storage under. */
 const DEFAULT_STORAGE_ALIAS = '__default__';
 
+/** The directory the default storage lives in, one level below `datasets` / `key_value_stores` / etc. */
+const DEFAULT_STORAGE_DIRECTORY = 'default';
+
 export interface FileSystemStorageOptions {
     /**
      * Path to directory where the data will be saved.
@@ -99,10 +102,12 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
         // No identifier at all means the default storage, which is opened under the reserved alias —
         // same rule as `resolveStorageIdentifier` in @crawlee/core, so that a backend used directly
         // lands on the very storage the frontends would have opened.
-        const alias = options.alias || (!options.id && !options.name ? DEFAULT_STORAGE_ALIAS : undefined);
-        const rawKey = alias ?? options.name ?? options.id;
-        // Normalize the internal __default__ alias to the user-facing 'default' name.
-        const cacheKey = rawKey === DEFAULT_STORAGE_ALIAS ? 'default' : rawKey;
+        const requestedAlias = options.alias || (!options.id && !options.name ? DEFAULT_STORAGE_ALIAS : undefined);
+        // `__default__` is an internal sentinel and must not escape onto disk: the default storage lives
+        // in `default`, which is what the docs, the project templates and every pre-existing local
+        // `storage/` directory expect. Normalizing here keeps the cache key and the directory in step.
+        const alias = requestedAlias === DEFAULT_STORAGE_ALIAS ? DEFAULT_STORAGE_DIRECTORY : requestedAlias;
+        const cacheKey = alias ?? options.name ?? options.id;
         return { id: options.id, name: options.name, alias, cacheKey };
     }
 
@@ -332,10 +337,9 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
         purgeStorage: (storage: T, isDefault: boolean) => Promise<void>,
     ): Promise<void> {
         // The default storage is listed unconditionally, so that a run over an empty directory still ends
-        // up with it opened (and cached) exactly as it was before. It is also listed first, so that it
-        // wins the deduplication below: distinct directory names can share a cache key (`__default__` and
-        // `default` both normalize to `default`), and opening both would leave the cache holding two
-        // backends for one logical storage.
+        // up with it opened (and cached) exactly as it was before. Deduplicating by cache key then keeps
+        // it to a single open: every run after the first also finds its `default` directory on disk, and
+        // opening the same storage twice concurrently would race two backends onto one directory.
         const aliasesByCacheKey = new Map<string | undefined, string>();
 
         for (const alias of [
@@ -350,7 +354,7 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
 
         await Promise.all(
             Array.from(aliasesByCacheKey, async ([cacheKey, alias]) => {
-                await purgeStorage(await open(alias), cacheKey === 'default');
+                await purgeStorage(await open(alias), cacheKey === DEFAULT_STORAGE_DIRECTORY);
             }),
         );
     }
