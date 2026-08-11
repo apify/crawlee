@@ -671,7 +671,7 @@ describe('RequestList', () => {
             [['x', {}], 'Invalid input: expected array'],
             [['x', 6, {}], 'Invalid input: expected array'],
             [['x', [], []], 'Invalid input: expected object'],
-            [[6, []], 'Invalid input: expected string, received number'],
+            [[6, []], 'Invalid input: expected string, received the number `6`'],
         ])('open(...%j) should throw on invalid argument (%s)', async (args, message) => {
             // @ts-expect-error JS-side validation
             await expect(RequestList.open(...args)).rejects.toThrow(ArgumentValidationError);
