@@ -13,6 +13,8 @@ describe('StorageManager', () => {
             createDatasetBackend: () => {
                 throw new Error('boom');
             },
+            // The inherited method reads a private field that only the real instance carries.
+            getStorageBackendCacheKey: () => 'FailingBackend',
         });
 
         await expect(Dataset.open('will-fail', { storageBackend: failingBackend as any })).rejects.toThrow('boom');
