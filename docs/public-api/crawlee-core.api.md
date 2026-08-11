@@ -704,7 +704,7 @@ export interface EventStatusMessageData {
 }
 
 // @public (undocumented)
-export const enum EventType {
+export enum EventType {
     // (undocumented)
     ABORTING = "aborting",
     // (undocumented)
