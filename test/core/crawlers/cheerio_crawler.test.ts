@@ -201,23 +201,6 @@ describe('CheerioCrawler', () => {
         );
     });
 
-    test('should ignore ssl by default', async () => {
-        const sources = [{ url: 'http://example.com/?q=1' }];
-        const requestList = await RequestList.open(null, sources);
-        const requestHandler = () => {};
-
-        const cheerioCrawler = new CheerioCrawler({
-            requestList,
-            maxConcurrency: 1,
-            requestHandler,
-        });
-
-        await cheerioCrawler.run();
-
-        // @ts-expect-error Accessing private prop
-        expect(cheerioCrawler.ignoreSslErrors).toBeTruthy();
-    });
-
     test('should work with skipNavigation', async () => {
         const processed: Request[] = [];
         const failed: Request[] = [];

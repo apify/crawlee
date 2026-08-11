@@ -89,11 +89,6 @@ export interface HttpCrawlerOptions<
     navigationTimeoutSecs?: number;
 
     /**
-     * If set to true, SSL certificate errors will be ignored.
-     */
-    ignoreSslErrors?: boolean;
-
-    /**
      * Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies
      * or browser properties before navigation. The function accepts one parameter `crawlingContext`,
      * which is passed to the `requestAsBrowser()` function the crawler calls to navigate.
@@ -348,8 +343,6 @@ export class HttpCrawler<
     #postNavigationHooks: InternalHttpPostNavigationHook[];
     #saveResponseCookies: boolean;
     #navigationTimeoutMillis: number;
-    // kept as TS-private: tests read it at runtime
-    private ignoreSslErrors: boolean;
     #suggestResponseEncoding?: string;
     #forceResponseEncoding?: string;
     readonly #supportedMimeTypes: Set<string>;
@@ -358,7 +351,6 @@ export class HttpCrawler<
         ...BasicCrawler.optionsShape,
 
         navigationTimeoutSecs: ow.optional.number,
-        ignoreSslErrors: ow.optional.boolean,
         additionalMimeTypes: ow.optional.array.ofType(ow.string),
         suggestResponseEncoding: ow.optional.string,
         forceResponseEncoding: ow.optional.string,
@@ -379,7 +371,6 @@ export class HttpCrawler<
 
         const {
             navigationTimeoutSecs = 30,
-            ignoreSslErrors = true,
             additionalMimeTypes = [],
             suggestResponseEncoding,
             forceResponseEncoding,
@@ -409,7 +400,6 @@ export class HttpCrawler<
         }
 
         this.#navigationTimeoutMillis = navigationTimeoutSecs * 1000;
-        this.ignoreSslErrors = ignoreSslErrors;
         this.#suggestResponseEncoding = suggestResponseEncoding;
         this.#forceResponseEncoding = forceResponseEncoding;
         // Cast away the extension-aware option types to the base internal storage types (see the field
@@ -764,23 +754,12 @@ export class HttpCrawler<
             timeout: this.#navigationTimeoutMillis,
             sessionToken: session,
             headers: request.headers,
-            https: {
-                rejectUnauthorized: !this.ignoreSslErrors,
-            },
             body: undefined as string | undefined,
         };
 
         if (requestOptions.headers?.cookie || requestOptions.headers?.Cookie) {
             requestOptions.headers!.Cookie = this.getCookieHeaderFromRequest(request);
             delete requestOptions.headers!.cookie;
-        }
-
-        // Disable SSL verification for MITM proxies
-        if (session.proxyInfo?.ignoreTlsErrors) {
-            requestOptions.https = {
-                ...requestOptions.https,
-                rejectUnauthorized: false,
-            };
         }
 
         if (/PATCH|POST|PUT/.test(request.method)) requestOptions.body = request.payload ?? '';

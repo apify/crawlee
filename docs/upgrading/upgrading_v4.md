@@ -401,6 +401,24 @@ Previously, `BrowserCrawler` with `saveResponseCookies` (formerly `persistCookie
 
 In v4, when `saveResponseCookies` is enabled (the default), browser cookies are also re-read and stored in the session cookie jar **after** `requestHandler` completes. If you relied on handler-set cookies staying page-local and not affecting later requests on the same session, set `saveResponseCookies: false` or clear/overwrite cookies on the session explicitly.
 
+### `ignoreSslErrors` is removed from `HttpCrawler`
+
+TLS behavior is now the HTTP client's responsibility, so the `ignoreSslErrors` crawler option is gone. To ignore invalid certificates, configure the client and pass it via the `httpClient` option:
+
+```ts
+import { CheerioCrawler } from '@crawlee/cheerio';
+import { ImpitHttpClient } from '@crawlee/impit-client';
+
+const crawler = new CheerioCrawler({
+    httpClient: new ImpitHttpClient({ ignoreTlsErrors: true }),
+    // ...
+});
+```
+
+Note that while the option was documented as defaulting to `true`, it had no effect in recent versions — certificates were always verified. The v4 default (verify certificates) matches that actual behavior, so dropping the option does not change what your crawler does; only re-add `ignoreTlsErrors` if you genuinely need to accept invalid certificates.
+
+MITM proxies are handled separately: when `session.proxyInfo.ignoreTlsErrors` is set, the built-in HTTP clients disable certificate verification for that session's requests automatically — same as the browser crawlers.
+
 ### `preNavigationHooks` in `HttpCrawler` no longer accepts `gotOptions` object
 
 The `preNavigationHooks` option in `HttpCrawler` subclasses no longer accepts the `gotOptions` object as a second parameter. Modify the `crawlingContext` fields (e.g. `.request`) directly instead.
@@ -685,7 +703,7 @@ This is intentional: these were never a supported API. If you relied on overridi
 The change spans, among others:
 
 - **`BasicCrawler`** — `unexpectedStop`, `requestHandlerTimeoutMillis`, `sameDomainDelayMillis`, `domainAccessedTime`, `handledRequestsCount`, `statusMessageLoggingInterval`, `statusMessageCallback`, `ignoreHttpErrorStatusCodes`, `taskLoopOptions` (was `autoscaledPoolOptions`), `autoscaledPool`, `respectRobotsTxtFile`, and the helpers `buildBasicContextPipeline`, `validateRequestUserData`, `pauseOnMigration`, `fetchNextRequest`, `delayRequest`, `handleRequest`, `timeoutAndRetry`, `isTaskReadyFunction`, `defaultIsFinishedFunction`, `requestFunctionErrorHandler`, `handleFailedRequestHandler`, `canRequestBeRetried`
-- **`HttpCrawler`** — `preNavigationHooks`, `postNavigationHooks`, `saveResponseCookies`, `navigationTimeoutMillis`, `ignoreSslErrors`, `suggestResponseEncoding`, `forceResponseEncoding`, `supportedMimeTypes`, and the helpers `requestFunction`, `parseResponse`, `getRequestOptions`, `encodeResponse`, `extendSupportedMimeTypes`, `handleRequestTimeout`
+- **`HttpCrawler`** — `preNavigationHooks`, `postNavigationHooks`, `saveResponseCookies`, `navigationTimeoutMillis`, `suggestResponseEncoding`, `forceResponseEncoding`, `supportedMimeTypes`, and the helpers `requestFunction`, `parseResponse`, `getRequestOptions`, `encodeResponse`, `extendSupportedMimeTypes`, `handleRequestTimeout`
 - **`AutoscaledPool`** — the whole class is `@internal` in v4, so its members are not enumerated here; see [`AutoscaledPool` is no longer public API](#autoscaledpool-is-no-longer-public-api)
 - **`SessionPool`** — all pool internals (`log`, `maxPoolSize`, `createSessionFunction`, `keyValueStore`, `sessions`, `sessionMap`, `sessionOptions`, `persistStateKey`, `persistStateKeyValueStoreId`, `events`, `persistenceOptions`, `sessionReuseStrategy`, and the helpers `ensureInitialized`, `maybeLoadSessionPool`, `registerSession`, `createSession`, `hasSpaceForSession`, `pickSession`, `removeRetiredSessions`, `getRandomIndex`, `defaultCreateSessionFunction`)
 - **`Session`** — `maybeSelfRetire` (`userData` is now `readonly`)

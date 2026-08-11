@@ -33,6 +33,14 @@ export interface CustomFetchOptions {
      * rest on a best-effort basis. Sourced from `SendRequestOptions.session.fingerprint`.
      */
     fingerprint?: SessionFingerprint;
+
+    /**
+     * When `true`, TLS certificate errors should be ignored for this request.
+     * Sourced from `SendRequestOptions.session.proxyInfo.ignoreTlsErrors` —
+     * set for MITM proxies whose certificates cannot be verified. Best-effort:
+     * clients that cannot disable TLS verification ignore it.
+     */
+    ignoreTlsErrors?: boolean;
 }
 
 /**
@@ -105,6 +113,7 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
         cookieJar: CookieJar;
         signal?: AbortSignal;
         fingerprint?: SessionFingerprint;
+        ignoreTlsErrors?: boolean;
     }> {
         const proxyUrl = options?.proxyUrl ?? options?.session?.proxyInfo?.url;
         const cookieJar = options?.cookieJar ?? options?.session?.cookieJar ?? (await this.#createDefaultCookieJar());
@@ -114,6 +123,7 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
             cookieJar,
             signal,
             fingerprint: options?.session?.fingerprint,
+            ignoreTlsErrors: options?.session?.proxyInfo?.ignoreTlsErrors,
         };
     }
 
@@ -176,7 +186,7 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
         let currentRequest = initialRequest;
         let redirectCount = 0;
 
-        const { proxyUrl, cookieJar, signal, fingerprint } = await this.resolveRequestContext(options);
+        const { proxyUrl, cookieJar, signal, fingerprint, ignoreTlsErrors } = await this.resolveRequestContext(options);
         currentRequest = initialRequest.clone();
 
         while (true) {
@@ -187,6 +197,7 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
                 proxyUrl,
                 cookieJar,
                 fingerprint,
+                ignoreTlsErrors,
                 redirect: 'manual',
             });
 

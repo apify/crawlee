@@ -23,6 +23,7 @@ export abstract class BaseHttpClient implements BaseHttpClient_2 {
 export interface CustomFetchOptions {
     cookieJar?: CookieJar;
     fingerprint?: SessionFingerprint;
+    ignoreTlsErrors?: boolean;
     proxyUrl?: string;
 }
 
