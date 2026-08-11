@@ -34,7 +34,8 @@ const BARE_EXPECTED_TYPE_MESSAGE = /^Invalid input: expected (object|array|funct
 function describeReceived(value: unknown): string | undefined {
     switch (typeof value) {
         case 'string':
-            return value;
+            // An empty string would render as bare backticks — make it visible.
+            return value === '' ? "''" : value;
         case 'number':
         case 'boolean':
         case 'bigint':
@@ -42,6 +43,16 @@ function describeReceived(value: unknown): string | undefined {
         default:
             return undefined;
     }
+}
+
+/** Renders the received side of a sentence: ``received the string `abc` ``, `received NaN`, `received array`. */
+function describeReceivedClause(value: unknown): string {
+    if (typeof value === 'number' && Number.isNaN(value)) return 'received NaN';
+    if (value === '') return 'received an empty string';
+    const rendered = describeReceived(value);
+    return rendered === undefined
+        ? `received ${describeType(value)}`
+        : `received the ${describeType(value)} \`${rendered}\``;
 }
 
 /** Renders one issue as a line each; a union expands into a line per failed arm. */
@@ -55,18 +66,25 @@ function formatIssue(issue: z.ZodError['issues'][number], root: unknown, basePat
 
     const location = path.length ? ` at \`${formatIssuePath(path)}\`` : '';
     const value = valueAtPath(root, path);
+    const rendered = describeReceived(value);
 
-    // ow named the received type ("expected `number` but received type `string`"); zod's built-in
-    // messages do too, but our custom schemas stop at the expected type — name the received one here.
-    // Skipped when the two would read the same (`expected number, received number` for `NaN`).
+    // ow named the received type ("expected `number` but received type `string`"). The received value is
+    // folded into that clause (``received the string `3` ``) rather than dangling after the location: our
+    // custom schemas stop at the expected type, so the clause is appended; zod's built-in messages already
+    // end with `, received <type>`, so that tail is replaced with the enriched one.
     let { message } = issue;
+    let got = '';
     const bareExpected = BARE_EXPECTED_TYPE_MESSAGE.exec(message);
-    if (bareExpected && describeType(value) !== bareExpected[1]) {
-        message += `, received ${describeType(value)}`;
+    const zodReceived = /, received (\S+)$/.exec(message);
+    if (bareExpected && bareExpected[1] !== (Number.isNaN(value as number) ? 'NaN' : describeType(value))) {
+        message += `, ${describeReceivedClause(value)}`;
+    } else if (zodReceived && zodReceived[1] === describeType(value) && rendered !== undefined) {
+        message = `${message.slice(0, zodReceived.index)}, ${describeReceivedClause(value)}`;
+    } else if (rendered !== undefined && !message.endsWith(`received ${rendered}`)) {
+        // Messages that never name a received type (regex, min/max, enums) keep the plain value suffix.
+        got = `, got \`${rendered}\``;
     }
 
-    const received = describeReceived(value);
-    const got = received === undefined ? '' : `, got \`${received}\``;
     return [`${message}${location}${got}`];
 }
 

@@ -128,7 +128,7 @@ describe('parseArgument', () => {
         expect(error).toBeInstanceOf(ArgumentValidationError);
         expect(error).toBeInstanceOf(Error);
         expect(error.name).toBe('ArgumentValidationError');
-        expect(error.message).toBe('Invalid input: expected object, received string, got `not an object`');
+        expect(error.message).toBe('Invalid input: expected object, received the string `not an object`');
         expect(error.cause).toBeInstanceOf(z.ZodError);
         expect(error.issues).toBe(error.cause.issues);
         expect(error.issues.length).toBeGreaterThan(0);
@@ -147,21 +147,28 @@ describe('parseArgument', () => {
         );
     });
 
-    test('message names the received type for bare custom-schema failures', () => {
+    test('message folds the received type and value into one clause', () => {
         expect(() => parseArgument({ retries: 'three' }, z.strictObject({ retries: schemas.anyNumber }))).toThrow(
-            'Invalid input: expected number, received string at `retries`, got `three`',
+            'Invalid input: expected number, received the string `three` at `retries`',
         );
 
-        // Skipped when the two would read the same — `NaN` is a number to `typeof`.
-        expect(() => parseArgument(Number.NaN, schemas.anyNumber)).toThrow('Invalid input: expected number, got `NaN`');
+        // `NaN` is named as itself, not as the self-contradictory "received number".
+        expect(() => parseArgument(Number.NaN, schemas.anyNumber)).toThrow(
+            'Invalid input: expected number, received NaN',
+        );
+
+        // An empty string would render as bare backticks — made visible instead.
+        expect(() => parseArgument('', schemas.anyNumber)).toThrow(
+            'Invalid input: expected number, received an empty string',
+        );
     });
 
     test('label names the validated interface on every line', () => {
         const schema = z.strictObject({ retries: schemas.anyNumber, name: z.string() });
 
         expect(() => parseArgument({ retries: 'three', name: 7 }, schema, 'ExampleOptions')).toThrow(
-            'Invalid input: expected number, received string at `retries`, got `three` in `ExampleOptions`\n' +
-                'Invalid input: expected string, received number at `name`, got `7` in `ExampleOptions`',
+            'Invalid input: expected number, received the string `three` at `retries` in `ExampleOptions`\n' +
+                'Invalid input: expected string, received the number `7` at `name` in `ExampleOptions`',
         );
     });
 
@@ -212,7 +219,7 @@ describe('ow parity in crawler options', () => {
     test('BasicCrawler throws ArgumentValidationError for NaN', () => {
         const create = () => new BasicCrawler({ requestHandler: async () => {}, maxConcurrency: NaN });
         expect(create).toThrow(ArgumentValidationError);
-        expect(create).toThrow('Invalid input: expected number at `maxConcurrency`, got `NaN`');
+        expect(create).toThrow('Invalid input: expected number, received NaN at `maxConcurrency`');
     });
 
     test('ProxyConfiguration throws ArgumentValidationError for an unknown key', () => {
