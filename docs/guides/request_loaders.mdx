@@ -162,13 +162,36 @@ Requests for a listed domain are routed into their own queue as they are added. 
 
 Because a throttled request costs no retries, a domain that never stops rate-limiting would otherwise keep the crawl alive forever. If one goes `maxDomainStallSecs` without letting a single request through, the crawl shuts down with a `PersistentRateLimitError` — at that point the concurrency is too high for that domain, or it has blocked you outright, and waiting longer will not help. Its requests are left in their queue on purpose, so re-running the crawl with `purgeOnStart` disabled resumes them if the rate limit lifts. A crawler running with `keepAlive` is exempt, since staying up regardless is what it was asked to do.
 
-This is opt-in and exact: only the domains you list are throttled, and matching is case-insensitive with no wildcard support, so list each subdomain you care about.
+Matching is exact and case-insensitive, with no wildcard support, so list each subdomain you care about — or set `throttleBy: 'registrableDomain'`, which groups a site and all of its subdomains under a single set of clocks.
 
-:::note robots.txt crawl-delay
+### The two clocks
 
-`ThrottlingRequestManager` is also what enforces `Crawl-delay` directives when `respectRobotsTxtFile` is enabled. Without it, or for a domain missing from `domains`, the directive is ignored and the crawler warns you about it.
+Every throttled domain runs two of them, and is dispatched to once both have run out:
 
-:::
+- **Backoff** — reactive and temporary, set by HTTP 429 responses and decaying once the domain stops turning you away.
+- **Crawl delay** — proactive and constant, a minimum interval between two dispatches, armed after each one. It is whatever the domain's robots.txt asks for (with `respectRobotsTxtFile` enabled), floored by `minCrawlDelaySecs`. A domain asking for longer gets longer.
+
+### Throttling every domain
+
+`domains: 'all'` gives a clock to each domain the crawl encounters instead of a fixed list, and a queue of its own the first time it is seen — so a domain that is waiting out a delay is skipped rather than repeatedly fetched and put back:
+
+```ts
+const crawler = new CheerioCrawler({
+    requestManager: new ThrottlingRequestManager({
+        inner: await RequestQueue.open(),
+        domains: 'all',
+        minCrawlDelaySecs: 1,
+        throttleBy: 'registrableDomain',
+    }),
+    requestHandler: async ({ request }) => {
+        // ...
+    },
+});
+```
+
+This is what the crawler's own <ApiLink to="basic-crawler/interface/BasicCrawlerOptions#sameDomainDelaySecs">`sameDomainDelaySecs`</ApiLink> option is built on — it wraps the crawler's request manager in a `ThrottlingRequestManager` configured exactly like the above. Dropping `minCrawlDelaySecs` is just as useful: 429 backoff and robots.txt `Crawl-delay` then apply to every domain, with no pacing of your own on top.
+
+A queue per domain is not free, so a run may only throttle `maxThrottledDomains` of them (1000 by default) before it throws. If you are crawling more domains than that, pace the crawl with `maxRequestsPerMinute` instead. The list of domains discovered so far is kept in the default key-value store, under `persistStateKey`, so that a restart reopens their queues rather than leaving whatever they still hold uncrawled.
 
 ## Request manager tandem
 
