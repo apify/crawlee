@@ -146,7 +146,7 @@ function getCatalogVersions(): Record<string, string> {
     const versions: Record<string, string> = {};
 
     for (const line of catalogBlock.split('\n')) {
-        const match = line.match(/^ {2}["']?([^"':]+)["']?:\s*["']?(\S+?)["']?$/);
+        const match = line.match(/^ {2}["']?([^"':]+)["']?:\s*["']?(.+?)["']?\s*$/);
         if (match) versions[match[1]] = match[2];
     }
 
