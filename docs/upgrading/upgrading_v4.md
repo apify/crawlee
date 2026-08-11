@@ -437,6 +437,35 @@ preNavigationHooks: [
 ],
 ```
 
+### `handleCloudflareChallenge` hooks must return the response
+
+In v3, calling `handleCloudflareChallenge()` in a `postNavigationHooks` entry was enough on its own - the helper received the session and removed `403` from the session pool's blocked status codes, so the challenge page (which is served with a 403 status) did not trip the blocked-request detection.
+
+In v4, blocked status code handling is internal to the crawler and runs *after* the post-navigation hooks, and the helper no longer touches it. Instead, `handleCloudflareChallenge()` returns the reloaded `Response` after solving the challenge, and the hook must return it as the new context response - otherwise the crawler still sees the original 403 challenge response and throws a `SessionError` before your `requestHandler` runs, even when the challenge was solved successfully.
+
+Use the pre-wrapped `handleCloudflareChallengeHook()` (it also handles the no-challenge case), or return the response yourself:
+
+```ts
+// v3
+postNavigationHooks: [
+    async ({ handleCloudflareChallenge }) => {
+        await handleCloudflareChallenge();
+    },
+],
+
+// v4
+import { handleCloudflareChallengeHook } from 'crawlee';
+
+postNavigationHooks: [handleCloudflareChallengeHook()],
+
+// v4 (manual equivalent)
+postNavigationHooks: [
+    async ({ handleCloudflareChallenge }) => ({ response: await handleCloudflareChallenge() }),
+],
+```
+
+If you called the standalone `playwrightUtils.handleCloudflareChallenge(page, url, session, options)` directly, note that the `session` parameter is gone - the v4 signature is `handleCloudflareChallenge(page, url, options)`, so an options object passed in the old fourth position would be silently ignored.
+
 ### Removed crawling context properties
 
 #### Crawling context no longer includes Error for failed requests
