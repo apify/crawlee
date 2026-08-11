@@ -1214,9 +1214,7 @@ export class RecoverableState<TStateModel = Record<string, unknown>, TPersistedS
     constructor(options: RecoverableStateOptions<TStateModel, TPersistedState>);
     get currentValue(): TStateModel;
     initialize(): Promise<TStateModel>;
-    persistState(eventData?: {
-        isMigrating: boolean;
-    }): Promise<void>;
+    persistState(eventData?: Record<string, unknown>): Promise<void>;
     reset(): void;
     resetStore(): Promise<void>;
     teardown(): Promise<void>;

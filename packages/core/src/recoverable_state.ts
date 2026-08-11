@@ -101,6 +101,7 @@ export class RecoverableState<TStateModel = Record<string, unknown>, TPersistedS
     readonly #log: CrawleeLogger;
     readonly #serialize: (state: TStateModel) => Promise<TPersistedState>;
     readonly #deserialize: (persistedState: TPersistedState) => Promise<TStateModel>;
+    readonly #persistStateQuietly: (eventData?: Record<string, unknown>) => Promise<void>;
 
     /**
      * Initialize a new recoverable state object.
@@ -123,7 +124,12 @@ export class RecoverableState<TStateModel = Record<string, unknown>, TPersistedS
         this.#serialize = this.#toConversion(options.serialize);
         this.#deserialize = this.#toConversion(options.deserialize);
 
-        this.persistState = this.persistState.bind(this);
+        // The automatic persists, where a rejection has nowhere useful to go - the event manager does not catch
+        // listener errors, and throwing from teardown would bury the outcome of the work it cleans up after.
+        this.#persistStateQuietly = async (eventData) =>
+            this.persistState(eventData).catch((error) =>
+                this.#log.warning(`Failed to persist the state under key '${this.#persistStateKey}'.`, { error }),
+            );
     }
 
     /** Normalizes a conversion option into a function. Absent conversions pass the value through unchanged. */
@@ -154,6 +160,9 @@ export class RecoverableState<TStateModel = Record<string, unknown>, TPersistedS
      * PERSIST_STATE events. A state established beforehand by {@apilink RecoverableState.reset} survives if there
      * is no record to restore.
      *
+     * Calling this again after a {@apilink RecoverableState.teardown} starts a new persistence window - the
+     * listener is registered again and the record reloaded.
+     *
      * @returns The loaded state object
      */
     async initialize(): Promise<TStateModel> {
@@ -166,7 +175,7 @@ export class RecoverableState<TStateModel = Record<string, unknown>, TPersistedS
                 configuration: this.#configuration ?? serviceLocator.getConfiguration(),
             });
             await this.#resolveKeyValueStore();
-            serviceLocator.getEventManager().on(EventType.PERSIST_STATE, this.persistState);
+            serviceLocator.getEventManager().on(EventType.PERSIST_STATE, this.#persistStateQuietly);
             this.#listening = true;
         }
 
@@ -184,16 +193,21 @@ export class RecoverableState<TStateModel = Record<string, unknown>, TPersistedS
      * Clean up resources used by the recoverable state.
      *
      * If persistence is enabled, this method deregisters the object from PERSIST_STATE events
-     * and persists the current state one last time.
+     * and persists the current state one last time, warning rather than throwing if that write fails - cleanup
+     * runs when the work is already done, and failing it would bury whatever the caller was doing. The in-memory
+     * state is left alone, and {@apilink RecoverableState.initialize} can be called again to open a new
+     * persistence window.
      */
     async teardown(): Promise<void> {
+        this.#initialized = false;
+
         if (!this.#persistenceEnabled) {
             return;
         }
 
-        serviceLocator.getEventManager().off(EventType.PERSIST_STATE, this.persistState);
+        serviceLocator.getEventManager().off(EventType.PERSIST_STATE, this.#persistStateQuietly);
         this.#listening = false;
-        await this.persistState();
+        await this.#persistStateQuietly();
     }
 
     /**
@@ -258,11 +272,11 @@ export class RecoverableState<TStateModel = Record<string, unknown>, TPersistedS
      *
      * This method is typically called in response to a PERSIST_STATE event, but can also be called
      * directly when needed. It is a no-op if persistence is disabled, if no KeyValueStore is available yet, or if
-     * there is no state to write.
+     * there is no state to write. A failed write only rejects here - the periodic and teardown ones warn instead.
      *
      * @param eventData Optional data associated with a PERSIST_STATE event
      */
-    async persistState(eventData?: { isMigrating: boolean }): Promise<void> {
+    async persistState(eventData?: Record<string, unknown>): Promise<void> {
         if (!this.#persistenceEnabled || this.#state === null) {
             return;
         }

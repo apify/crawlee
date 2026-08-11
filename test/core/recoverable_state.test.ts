@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { z } from 'zod';
 
 import {
+    EventType,
     KeyValueStore,
     MemoryStorageBackend,
     serviceLocator,
@@ -140,6 +141,64 @@ describe('RecoverableState', () => {
         });
 
         await recoverableState.initialize();
+        await expect(recoverableState.teardown()).resolves.not.toThrow();
+    });
+
+    test('should start listening again when initialized after a teardown', async () => {
+        const events = serviceLocator.getEventManager();
+
+        const recoverableState = new RecoverableState({
+            defaultState,
+            persistStateKey: 'test-key',
+            persistenceEnabled: true,
+        });
+
+        await recoverableState.initialize();
+        expect(events.listenerCount(EventType.PERSIST_STATE)).toBe(1);
+
+        await recoverableState.teardown();
+        expect(events.listenerCount(EventType.PERSIST_STATE)).toBe(0);
+
+        await recoverableState.initialize();
+        expect(events.listenerCount(EventType.PERSIST_STATE)).toBe(1);
+
+        await recoverableState.teardown();
+    });
+
+    test('should warn rather than throw when a periodic persist fails', async () => {
+        const store = await KeyValueStore.open();
+        vi.spyOn(store, 'setValue').mockRejectedValue(new Error('store is on fire'));
+
+        const recoverableState = new RecoverableState({
+            defaultState,
+            persistStateKey: 'test-key',
+            persistenceEnabled: true,
+            keyValueStore: store,
+        });
+
+        await recoverableState.initialize();
+
+        // An unhandled rejection here would take the process down and make `EventManager.close()` reject.
+        serviceLocator.getEventManager().emit(EventType.PERSIST_STATE, { isMigrating: false });
+        await expect(serviceLocator.getEventManager().waitForAllListenersToComplete()).resolves.not.toThrow();
+
+        await expect(recoverableState.persistState()).rejects.toThrow('store is on fire');
+    });
+
+    test('should warn rather than throw when the persist during teardown fails', async () => {
+        const store = await KeyValueStore.open();
+        vi.spyOn(store, 'setValue').mockRejectedValue(new Error('store is on fire'));
+
+        const recoverableState = new RecoverableState({
+            defaultState,
+            persistStateKey: 'test-key',
+            persistenceEnabled: true,
+            keyValueStore: store,
+        });
+
+        await recoverableState.initialize();
+
+        // `BasicCrawler.run()` tears down in a `finally`, so a throw here would replace the crawl's own outcome.
         await expect(recoverableState.teardown()).resolves.not.toThrow();
     });
 
