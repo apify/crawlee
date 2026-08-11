@@ -161,6 +161,11 @@ describe('parseArgument', () => {
         expect(() => parseArgument('', schemas.anyNumber)).toThrow(
             'Invalid input: expected number, received an empty string',
         );
+
+        // Long strings are elided rather than dumped whole into the message.
+        expect(() => parseArgument('a'.repeat(250), schemas.anyNumber)).toThrow(
+            `Invalid input: expected number, received the string \`${'a'.repeat(200)}… (50 more characters)\``,
+        );
     });
 
     test('arrayOf names the element type at the top level and per element', () => {

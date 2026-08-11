@@ -31,12 +31,18 @@ function describeType(value: unknown): string {
 const BARE_EXPECTED_TYPE_MESSAGE =
     /^Invalid input: expected (an array of .+|a typed array|an object|object|array|function|number|string|boolean)$/;
 
+/** Longest received string rendered in an error; the rest is elided. */
+const MAX_RENDERED_STRING_LENGTH = 200;
+
 /** Renders a primitive received value for an error; skips objects/Dates (noisy). */
 function describeReceived(value: unknown): string | undefined {
     switch (typeof value) {
         case 'string':
             // An empty string would render as bare backticks — make it visible.
-            return value === '' ? "''" : value;
+            if (value === '') return "''";
+            return value.length > MAX_RENDERED_STRING_LENGTH
+                ? `${value.slice(0, MAX_RENDERED_STRING_LENGTH)}… (${value.length - MAX_RENDERED_STRING_LENGTH} more characters)`
+                : value;
         case 'number':
         case 'boolean':
         case 'bigint':
