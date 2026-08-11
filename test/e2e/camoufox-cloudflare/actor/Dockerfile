@@ -11,10 +11,10 @@ COPY --chown=myuser package*.json ./
 # `--ignore-scripts` skips the `camoufox-js fetch` postinstall; the browser is already
 # baked into the base image.
 RUN npm --quiet set progress=false \
-    && npm install --only=prod --no-optional --no-audit --ignore-scripts \
+    && npm install --only=prod --no-audit --ignore-scripts \
     && npm update --no-audit \
     && echo "Installed NPM packages:" \
-    && (npm list --only=prod --no-optional --all || true) \
+    && (npm list --only=prod --all || true) \
     && echo "Node.js version:" \
     && node --version \
     && echo "NPM version:" \

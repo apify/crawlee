@@ -70,6 +70,9 @@ importers:
       '@crawlee/stagehand':
         specifier: workspace:*
         version: link:packages/stagehand-crawler
+      '@crawlee/types':
+        specifier: workspace:*
+        version: link:packages/types
       '@crawlee/utils':
         specifier: workspace:*
         version: link:packages/utils

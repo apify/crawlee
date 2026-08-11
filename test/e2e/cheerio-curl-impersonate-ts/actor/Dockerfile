@@ -5,7 +5,7 @@ COPY /package*.json ./
 COPY /tsconfig.json ./
 COPY /main.ts ./
 RUN npm --quiet set progress=false \
-    && npm install --only=prod --no-optional --no-audit \
+    && npm install --only=prod --no-audit \
     && npm update \
     && npm run build
 
@@ -20,7 +20,7 @@ COPY --from=builder /main.js ./
 COPY /.actor ./.actor
 
 RUN echo "Installed NPM packages:" \
-    && (npm list --only=prod --no-optional --all || true) \
+    && (npm list --only=prod --all || true) \
     && echo "Node.js version:" \
     && node --version \
     && echo "NPM version:" \

@@ -47,9 +47,18 @@ class CurlImpersonateHttpClient extends BaseHttpClient {
 
         const response = await curl.makeRequest();
 
+        // The parsed curl headers include the status line as a key (e.g. "HTTP/2 200 "),
+        // which the fetch Headers constructor rejects - keep only valid header names.
+        const responseHeaders: Record<string, string> = {};
+        for (const [name, value] of Object.entries(response.responseHeaders ?? {})) {
+            if (/^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/.test(name)) {
+                responseHeaders[name] = String(value);
+            }
+        }
+
         return new ResponseWithUrl(response.response, {
             status: response.statusCode,
-            headers: response.responseHeaders as Record<string, string>,
+            headers: responseHeaders,
             url: response.url ?? request.url,
         });
     }

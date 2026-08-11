@@ -72,6 +72,7 @@
         "@crawlee/playwright": "workspace:*",
         "@crawlee/puppeteer": "workspace:*",
         "@crawlee/stagehand": "workspace:*",
+        "@crawlee/types": "workspace:*",
         "@crawlee/utils": "workspace:*",
         "@microsoft/api-extractor": "^7.58.9",
         "@playwright/browser-chromium": "1.61.1",

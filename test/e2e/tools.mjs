@@ -182,7 +182,12 @@ export async function runActor(dirName, memory = 4096) {
             // id: runId,
             buildId,
             userId,
+            status: runStatus,
         } = await client.run(runId).waitForFinish();
+
+        if (runStatus !== 'SUCCEEDED') {
+            console.log(`[run] actor run finished with status ${runStatus} - the assertions below will likely fail`);
+        }
 
         getKeyValueStoreItems = async (name) => {
             const kvResult = await client.keyValueStore(name ? `${userId}/${name}` : defaultKeyValueStoreId).get();
