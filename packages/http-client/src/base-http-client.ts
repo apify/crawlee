@@ -107,7 +107,7 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
         fingerprint?: SessionFingerprint;
     }> {
         const proxyUrl = options?.proxyUrl ?? options?.session?.proxyInfo?.url;
-        const cookieJar = options?.cookieJar ?? options?.session?.cookieJar ?? (await this.createDefaultCookieJar());
+        const cookieJar = options?.cookieJar ?? options?.session?.cookieJar ?? (await this.#createDefaultCookieJar());
         const signal = this.createAbortSignal(options?.signal, options?.timeoutMillis);
         return {
             proxyUrl,
@@ -117,7 +117,7 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
         };
     }
 
-    private async createDefaultCookieJar(): Promise<CookieJar> {
+    async #createDefaultCookieJar(): Promise<CookieJar> {
         const { CookieJar: ToughCookieJar } = await import('tough-cookie');
         return new ToughCookieJar();
     }
