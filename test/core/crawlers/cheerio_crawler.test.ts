@@ -201,6 +201,34 @@ describe('CheerioCrawler', () => {
         );
     });
 
+    test('forwards ignoreSslErrors to the http client as ignoreTlsErrors', async () => {
+        const captured: (boolean | undefined)[] = [];
+        const fetchClient = new FetchHttpClient();
+        const capturingClient = {
+            sendRequest: async (request: globalThis.Request, options?: { ignoreTlsErrors?: boolean }) => {
+                captured.push(options?.ignoreTlsErrors);
+                return fetchClient.sendRequest(request, options);
+            },
+        };
+
+        const defaultCrawler = new CheerioCrawler({
+            httpClient: capturingClient,
+            maxConcurrency: 1,
+            requestHandler: () => {},
+        });
+        await defaultCrawler.run([`${serverAddress}/?tls=default`]);
+
+        const strictCrawler = new CheerioCrawler({
+            httpClient: capturingClient,
+            ignoreSslErrors: false,
+            maxConcurrency: 1,
+            requestHandler: () => {},
+        });
+        await strictCrawler.run([`${serverAddress}/?tls=strict`]);
+
+        expect(captured).toEqual([true, false]);
+    });
+
     test('should work with skipNavigation', async () => {
         const processed: Request[] = [];
         const failed: Request[] = [];

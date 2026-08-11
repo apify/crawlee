@@ -11,6 +11,7 @@ const mainOptions = {
 
 await Actor.main(async () => {
     const crawler = new CheerioCrawler({
+        ignoreSslErrors: false,
         async requestHandler({ $, enqueueLinks, request, log }) {
             const {
                 userData: { label },

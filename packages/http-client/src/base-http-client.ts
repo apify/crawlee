@@ -36,9 +36,10 @@ export interface CustomFetchOptions {
 
     /**
      * When `true`, TLS certificate errors should be ignored for this request.
-     * Sourced from `SendRequestOptions.session.proxyInfo.ignoreTlsErrors` —
-     * set for MITM proxies whose certificates cannot be verified. Best-effort:
-     * clients that cannot disable TLS verification ignore it.
+     * Set when `SendRequestOptions.ignoreTlsErrors` is passed (e.g. from the
+     * `ignoreSslErrors` crawler option) or when the session's proxy is a MITM
+     * proxy (`session.proxyInfo.ignoreTlsErrors`). Best-effort: clients that
+     * cannot disable TLS verification ignore it.
      */
     ignoreTlsErrors?: boolean;
 }
@@ -123,7 +124,7 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
             cookieJar,
             signal,
             fingerprint: options?.session?.fingerprint,
-            ignoreTlsErrors: options?.session?.proxyInfo?.ignoreTlsErrors,
+            ignoreTlsErrors: options?.ignoreTlsErrors || options?.session?.proxyInfo?.ignoreTlsErrors,
         };
     }
 

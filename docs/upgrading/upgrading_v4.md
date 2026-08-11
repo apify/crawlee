@@ -401,21 +401,11 @@ Previously, `BrowserCrawler` with `saveResponseCookies` (formerly `persistCookie
 
 In v4, when `saveResponseCookies` is enabled (the default), browser cookies are also re-read and stored in the session cookie jar **after** `requestHandler` completes. If you relied on handler-set cookies staying page-local and not affecting later requests on the same session, set `saveResponseCookies: false` or clear/overwrite cookies on the session explicitly.
 
-### `ignoreSslErrors` is removed from `HttpCrawler`
+### `ignoreSslErrors` is forwarded to the HTTP client
 
-TLS behavior is now the HTTP client's responsibility, so the `ignoreSslErrors` crawler option is gone. **This is also a behavior change:** in v3 the option defaulted to `true`, so HTTP crawlers accepted invalid TLS certificates by default. In v4, certificates are always verified unless you configure the client otherwise. If you crawl sites with invalid, expired, or self-signed certificates (or relied on the old default), configure the client and pass it via the `httpClient` option:
+The `ignoreSslErrors` crawler option is unchanged for users: it still defaults to `true` and HTTP crawlers still accept invalid TLS certificates by default, same as v3. What changed is how it reaches the network layer — the crawler now forwards it to the HTTP client as `SendRequestOptions.ignoreTlsErrors` on every request, and the same flag is enabled automatically for MITM proxy sessions (`session.proxyInfo.ignoreTlsErrors`), matching the browser crawlers.
 
-```ts
-import { CheerioCrawler } from '@crawlee/cheerio';
-import { ImpitHttpClient } from '@crawlee/impit-client';
-
-const crawler = new CheerioCrawler({
-    httpClient: new ImpitHttpClient({ ignoreTlsErrors: true }),
-    // ...
-});
-```
-
-MITM proxies are handled separately: when `session.proxyInfo.ignoreTlsErrors` is set, the built-in HTTP clients disable certificate verification for that session's requests automatically — same as the browser crawlers.
+This only affects custom `BaseHttpClient` implementations: honor `ignoreTlsErrors` (from `SendRequestOptions`, or `CustomFetchOptions` when extending the `BaseHttpClient` class from `@crawlee/http-client`) if your client can disable TLS verification. The built-in impit client does; the native fetch fallback cannot and ignores the flag.
 
 ### `preNavigationHooks` in `HttpCrawler` no longer accepts `gotOptions` object
 

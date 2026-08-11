@@ -1,6 +1,5 @@
 import { Actor } from 'apify';
 import { CheerioCrawler, Dataset } from '@crawlee/cheerio';
-import { ImpitHttpClient } from '@crawlee/impit-client';
 
 const mainOptions = {
     exit: Actor.isAtHome(),
@@ -12,7 +11,7 @@ const mainOptions = {
 
 await Actor.main(async () => {
     const crawler = new CheerioCrawler({
-        httpClient: new ImpitHttpClient({ ignoreTlsErrors: true }),
+        ignoreSslErrors: true,
         async requestHandler({ $, enqueueLinks, request, log }) {
             const {
                 url,

@@ -89,6 +89,16 @@ export interface HttpCrawlerOptions<
     navigationTimeoutSecs?: number;
 
     /**
+     * If set to `true`, TLS/SSL certificate errors are ignored. Forwarded to the HTTP client as
+     * {@apilink SendRequestOptions.ignoreTlsErrors|`ignoreTlsErrors`} on every request, so custom
+     * {@apilink BaseHttpClient} implementations should honor that flag (the built-in impit client does;
+     * the native fetch fallback cannot disable TLS verification).
+     *
+     * @default true
+     */
+    ignoreSslErrors?: boolean;
+
+    /**
      * Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies
      * or browser properties before navigation. The function accepts one parameter `crawlingContext`,
      * which is passed to the `requestAsBrowser()` function the crawler calls to navigate.
@@ -343,6 +353,7 @@ export class HttpCrawler<
     #postNavigationHooks: InternalHttpPostNavigationHook[];
     #saveResponseCookies: boolean;
     #navigationTimeoutMillis: number;
+    #ignoreSslErrors: boolean;
     #suggestResponseEncoding?: string;
     #forceResponseEncoding?: string;
     readonly #supportedMimeTypes: Set<string>;
@@ -351,6 +362,7 @@ export class HttpCrawler<
         ...BasicCrawler.optionsShape,
 
         navigationTimeoutSecs: ow.optional.number,
+        ignoreSslErrors: ow.optional.boolean,
         additionalMimeTypes: ow.optional.array.ofType(ow.string),
         suggestResponseEncoding: ow.optional.string,
         forceResponseEncoding: ow.optional.string,
@@ -371,6 +383,7 @@ export class HttpCrawler<
 
         const {
             navigationTimeoutSecs = 30,
+            ignoreSslErrors = true,
             additionalMimeTypes = [],
             suggestResponseEncoding,
             forceResponseEncoding,
@@ -400,6 +413,7 @@ export class HttpCrawler<
         }
 
         this.#navigationTimeoutMillis = navigationTimeoutSecs * 1000;
+        this.#ignoreSslErrors = ignoreSslErrors;
         this.#suggestResponseEncoding = suggestResponseEncoding;
         this.#forceResponseEncoding = forceResponseEncoding;
         // Cast away the extension-aware option types to the base internal storage types (see the field
@@ -890,6 +904,7 @@ export class HttpCrawler<
                 cookieJar,
                 signal: cancelSignal,
                 timeoutMillis: cancelSignal ? undefined : opts.timeout,
+                ignoreTlsErrors: this.#ignoreSslErrors,
             },
         );
 
