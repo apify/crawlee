@@ -10,6 +10,7 @@ COPY --chown=myuser package*.json ./
 
 # `--ignore-scripts` skips the `camoufox-js fetch` postinstall; the browser is already
 # baked into the base image.
+RUN rm -rf node_modules package-lock.json
 RUN npm --quiet set progress=false \
     && npm install --only=prod --no-audit --ignore-scripts \
     && npm update --no-audit \

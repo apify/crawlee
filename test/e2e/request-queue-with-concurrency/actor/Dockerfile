@@ -3,6 +3,7 @@ FROM apify/actor-node:24-beta
 COPY packages ./packages
 COPY package*.json ./
 
+RUN rm -rf node_modules package-lock.json
 RUN npm --quiet set progress=false \
 	&& npm install --only=prod --no-audit \
 	&& npm update --no-audit \

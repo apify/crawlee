@@ -3,7 +3,7 @@
     "version": "0.0.1",
     "description": "LinkeDOM Crawler Test - TypeScript",
     "dependencies": {
-        "apify": "next-v4",
+        "apify": "4.0.0-beta.22",
         "@crawlee/basic": "file:./packages/basic-crawler",
         "@crawlee/browser-pool": "file:./packages/browser-pool",
         "@crawlee/http": "file:./packages/http-crawler",

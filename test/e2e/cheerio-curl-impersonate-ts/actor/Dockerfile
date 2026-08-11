@@ -4,6 +4,7 @@ COPY /packages ./packages
 COPY /package*.json ./
 COPY /tsconfig.json ./
 COPY /main.ts ./
+RUN rm -rf node_modules package-lock.json
 RUN npm --quiet set progress=false \
     && npm install --only=prod --no-audit \
     && npm update \

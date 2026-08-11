@@ -3,7 +3,7 @@
     "version": "0.0.1",
     "description": "Playwright Test - Default",
     "dependencies": {
-        "apify": "next-v4",
+        "apify": "4.0.0-beta.22",
         "@crawlee/basic": "file:./packages/basic-crawler",
         "@crawlee/browser": "file:./packages/browser-crawler",
         "@crawlee/browser-pool": "file:./packages/browser-pool",

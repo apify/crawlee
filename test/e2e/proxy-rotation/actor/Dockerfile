@@ -2,13 +2,13 @@ FROM node:24 AS builder
 
 COPY /packages ./packages
 COPY /package*.json ./
+RUN rm -rf node_modules package-lock.json
 RUN npm --quiet set progress=false \
     && npm install --only=prod --no-audit \
     && npm update
 
 FROM apify/actor-node-puppeteer-chrome:24-beta
 
-RUN rm -r node_modules
 COPY --from=builder /node_modules ./node_modules
 COPY --from=builder /packages ./packages
 COPY --from=builder /package*.json ./
