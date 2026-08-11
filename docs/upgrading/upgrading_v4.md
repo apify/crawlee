@@ -403,7 +403,7 @@ In v4, when `saveResponseCookies` is enabled (the default), browser cookies are 
 
 ### `ignoreSslErrors` is removed from `HttpCrawler`
 
-TLS behavior is now the HTTP client's responsibility, so the `ignoreSslErrors` crawler option is gone. To ignore invalid certificates, configure the client and pass it via the `httpClient` option:
+TLS behavior is now the HTTP client's responsibility, so the `ignoreSslErrors` crawler option is gone. **This is also a behavior change:** in v3 the option defaulted to `true`, so HTTP crawlers accepted invalid TLS certificates by default. In v4, certificates are always verified unless you configure the client otherwise. If you crawl sites with invalid, expired, or self-signed certificates (or relied on the old default), configure the client and pass it via the `httpClient` option:
 
 ```ts
 import { CheerioCrawler } from '@crawlee/cheerio';
@@ -414,8 +414,6 @@ const crawler = new CheerioCrawler({
     // ...
 });
 ```
-
-Note that while the option was documented as defaulting to `true`, it had no effect in recent versions — certificates were always verified. The v4 default (verify certificates) matches that actual behavior, so dropping the option does not change what your crawler does; only re-add `ignoreTlsErrors` if you genuinely need to accept invalid certificates.
 
 MITM proxies are handled separately: when `session.proxyInfo.ignoreTlsErrors` is set, the built-in HTTP clients disable certificate verification for that session's requests automatically — same as the browser crawlers.
 
