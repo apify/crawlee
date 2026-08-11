@@ -226,15 +226,7 @@ describe('CheerioCrawler', () => {
         });
         await strictCrawler.run([`${serverAddress}/?tls=strict`]);
 
-        const legacyCrawler = new CheerioCrawler({
-            httpClient: capturingClient,
-            ignoreSslErrors: false,
-            maxConcurrency: 1,
-            requestHandler: () => {},
-        });
-        await legacyCrawler.run([`${serverAddress}/?tls=legacy`]);
-
-        expect(captured).toEqual([true, false, false]);
+        expect(captured).toEqual([true, false]);
     });
 
     test('should work with skipNavigation', async () => {

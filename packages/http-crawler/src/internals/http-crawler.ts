@@ -99,11 +99,6 @@ export interface HttpCrawlerOptions<
     ignoreTlsErrors?: boolean;
 
     /**
-     * @deprecated Use {@apilink HttpCrawlerOptions.ignoreTlsErrors|`ignoreTlsErrors`} instead.
-     */
-    ignoreSslErrors?: boolean;
-
-    /**
      * Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies
      * or browser properties before navigation. The function accepts one parameter `crawlingContext`,
      * which is passed to the `requestAsBrowser()` function the crawler calls to navigate.
@@ -368,7 +363,6 @@ export class HttpCrawler<
 
         navigationTimeoutSecs: ow.optional.number,
         ignoreTlsErrors: ow.optional.boolean,
-        ignoreSslErrors: ow.optional.boolean,
         additionalMimeTypes: ow.optional.array.ofType(ow.string),
         suggestResponseEncoding: ow.optional.string,
         forceResponseEncoding: ow.optional.string,
@@ -389,9 +383,7 @@ export class HttpCrawler<
 
         const {
             navigationTimeoutSecs = 30,
-            // oxlint-disable-next-line typescript/no-deprecated -- still accepted and folded into `ignoreTlsErrors` for back-compat
-            ignoreSslErrors,
-            ignoreTlsErrors = ignoreSslErrors ?? true,
+            ignoreTlsErrors = true,
             additionalMimeTypes = [],
             suggestResponseEncoding,
             forceResponseEncoding,
@@ -418,10 +410,6 @@ export class HttpCrawler<
             this.log.warning(
                 'Both forceResponseEncoding and suggestResponseEncoding options are set. Using forceResponseEncoding.',
             );
-        }
-
-        if (ignoreSslErrors !== undefined) {
-            this.log.deprecated('The `ignoreSslErrors` option is deprecated, use `ignoreTlsErrors` instead.');
         }
 
         this.#navigationTimeoutMillis = navigationTimeoutSecs * 1000;

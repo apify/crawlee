@@ -403,7 +403,7 @@ In v4, when `saveResponseCookies` is enabled (the default), browser cookies are 
 
 ### `ignoreSslErrors` is renamed to `ignoreTlsErrors`
 
-The crawler option is renamed to `ignoreTlsErrors`, matching the naming used everywhere else in v4 (`session.proxyInfo.ignoreTlsErrors`, the browser pool, the impit client). The old `ignoreSslErrors` name still works as a deprecated alias (with a one-time warning), so existing actor input schemas and SDK forwarding are unaffected. Behavior is unchanged from v3: the option defaults to `true` and HTTP crawlers accept invalid TLS certificates by default.
+The crawler option is renamed to `ignoreTlsErrors`, matching the naming used everywhere else in v4 (`session.proxyInfo.ignoreTlsErrors`, the browser pool, the impit client). The old `ignoreSslErrors` name is no longer accepted — rename it in your crawler options. Behavior is unchanged from v3: the option defaults to `true` and HTTP crawlers accept invalid TLS certificates by default.
 
 Under the hood the crawler now forwards the option to the HTTP client as `SendRequestOptions.ignoreTlsErrors` on every request, and the same flag is enabled automatically for MITM proxy sessions (`session.proxyInfo.ignoreTlsErrors`), matching the browser crawlers.
 
