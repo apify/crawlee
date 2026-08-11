@@ -401,9 +401,11 @@ Previously, `BrowserCrawler` with `saveResponseCookies` (formerly `persistCookie
 
 In v4, when `saveResponseCookies` is enabled (the default), browser cookies are also re-read and stored in the session cookie jar **after** `requestHandler` completes. If you relied on handler-set cookies staying page-local and not affecting later requests on the same session, set `saveResponseCookies: false` or clear/overwrite cookies on the session explicitly.
 
-### `ignoreSslErrors` is forwarded to the HTTP client
+### `ignoreSslErrors` is renamed to `ignoreTlsErrors`
 
-The `ignoreSslErrors` crawler option is unchanged for users: it still defaults to `true` and HTTP crawlers still accept invalid TLS certificates by default, same as v3. What changed is how it reaches the network layer — the crawler now forwards it to the HTTP client as `SendRequestOptions.ignoreTlsErrors` on every request, and the same flag is enabled automatically for MITM proxy sessions (`session.proxyInfo.ignoreTlsErrors`), matching the browser crawlers.
+The crawler option is renamed to `ignoreTlsErrors`, matching the naming used everywhere else in v4 (`session.proxyInfo.ignoreTlsErrors`, the browser pool, the impit client). The old `ignoreSslErrors` name still works as a deprecated alias (with a one-time warning), so existing actor input schemas and SDK forwarding are unaffected. Behavior is unchanged from v3: the option defaults to `true` and HTTP crawlers accept invalid TLS certificates by default.
+
+Under the hood the crawler now forwards the option to the HTTP client as `SendRequestOptions.ignoreTlsErrors` on every request, and the same flag is enabled automatically for MITM proxy sessions (`session.proxyInfo.ignoreTlsErrors`), matching the browser crawlers.
 
 This only affects custom `BaseHttpClient` implementations: honor `ignoreTlsErrors` (from `SendRequestOptions`, or `CustomFetchOptions` when extending the `BaseHttpClient` class from `@crawlee/http-client`) if your client can disable TLS verification. The built-in impit client does; the native fetch fallback cannot and ignores the flag.
 

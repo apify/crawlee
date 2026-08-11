@@ -37,7 +37,7 @@ export interface CustomFetchOptions {
     /**
      * When `true`, TLS certificate errors should be ignored for this request.
      * Set when `SendRequestOptions.ignoreTlsErrors` is passed (e.g. from the
-     * `ignoreSslErrors` crawler option) or when the session's proxy is a MITM
+     * `ignoreTlsErrors` crawler option) or when the session's proxy is a MITM
      * proxy (`session.proxyInfo.ignoreTlsErrors`). Best-effort: clients that
      * cannot disable TLS verification ignore it.
      */

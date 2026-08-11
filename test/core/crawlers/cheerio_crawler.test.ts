@@ -201,7 +201,7 @@ describe('CheerioCrawler', () => {
         );
     });
 
-    test('forwards ignoreSslErrors to the http client as ignoreTlsErrors', async () => {
+    test('forwards ignoreTlsErrors to the http client', async () => {
         const captured: (boolean | undefined)[] = [];
         const fetchClient = new FetchHttpClient();
         const capturingClient = {
@@ -220,13 +220,21 @@ describe('CheerioCrawler', () => {
 
         const strictCrawler = new CheerioCrawler({
             httpClient: capturingClient,
-            ignoreSslErrors: false,
+            ignoreTlsErrors: false,
             maxConcurrency: 1,
             requestHandler: () => {},
         });
         await strictCrawler.run([`${serverAddress}/?tls=strict`]);
 
-        expect(captured).toEqual([true, false]);
+        const legacyCrawler = new CheerioCrawler({
+            httpClient: capturingClient,
+            ignoreSslErrors: false,
+            maxConcurrency: 1,
+            requestHandler: () => {},
+        });
+        await legacyCrawler.run([`${serverAddress}/?tls=legacy`]);
+
+        expect(captured).toEqual([true, false, false]);
     });
 
     test('should work with skipNavigation', async () => {

@@ -61,6 +61,7 @@ export class JSDOMCrawler<ContextExtension = Dictionary<never>, ExtendedContext 
         runScripts: BooleanPredicate & BasePredicate<boolean | undefined>;
         hideInternalConsole: BooleanPredicate & BasePredicate<boolean | undefined>;
         navigationTimeoutSecs: NumberPredicate & BasePredicate<number | undefined>;
+        ignoreTlsErrors: BooleanPredicate & BasePredicate<boolean | undefined>;
         ignoreSslErrors: BooleanPredicate & BasePredicate<boolean | undefined>;
         additionalMimeTypes: ArrayPredicate<string>;
         suggestResponseEncoding: StringPredicate & BasePredicate<string | undefined>;

@@ -96,6 +96,11 @@ export interface HttpCrawlerOptions<
      *
      * @default true
      */
+    ignoreTlsErrors?: boolean;
+
+    /**
+     * @deprecated Use {@apilink HttpCrawlerOptions.ignoreTlsErrors|`ignoreTlsErrors`} instead.
+     */
     ignoreSslErrors?: boolean;
 
     /**
@@ -353,7 +358,7 @@ export class HttpCrawler<
     #postNavigationHooks: InternalHttpPostNavigationHook[];
     #saveResponseCookies: boolean;
     #navigationTimeoutMillis: number;
-    #ignoreSslErrors: boolean;
+    #ignoreTlsErrors: boolean;
     #suggestResponseEncoding?: string;
     #forceResponseEncoding?: string;
     readonly #supportedMimeTypes: Set<string>;
@@ -362,6 +367,7 @@ export class HttpCrawler<
         ...BasicCrawler.optionsShape,
 
         navigationTimeoutSecs: ow.optional.number,
+        ignoreTlsErrors: ow.optional.boolean,
         ignoreSslErrors: ow.optional.boolean,
         additionalMimeTypes: ow.optional.array.ofType(ow.string),
         suggestResponseEncoding: ow.optional.string,
@@ -383,7 +389,9 @@ export class HttpCrawler<
 
         const {
             navigationTimeoutSecs = 30,
-            ignoreSslErrors = true,
+            // oxlint-disable-next-line typescript/no-deprecated -- still accepted and folded into `ignoreTlsErrors` for back-compat
+            ignoreSslErrors,
+            ignoreTlsErrors = ignoreSslErrors ?? true,
             additionalMimeTypes = [],
             suggestResponseEncoding,
             forceResponseEncoding,
@@ -412,8 +420,12 @@ export class HttpCrawler<
             );
         }
 
+        if (ignoreSslErrors !== undefined) {
+            this.log.deprecated('The `ignoreSslErrors` option is deprecated, use `ignoreTlsErrors` instead.');
+        }
+
         this.#navigationTimeoutMillis = navigationTimeoutSecs * 1000;
-        this.#ignoreSslErrors = ignoreSslErrors;
+        this.#ignoreTlsErrors = ignoreTlsErrors;
         this.#suggestResponseEncoding = suggestResponseEncoding;
         this.#forceResponseEncoding = forceResponseEncoding;
         // Cast away the extension-aware option types to the base internal storage types (see the field
@@ -904,7 +916,7 @@ export class HttpCrawler<
                 cookieJar,
                 signal: cancelSignal,
                 timeoutMillis: cancelSignal ? undefined : opts.timeout,
-                ignoreTlsErrors: this.#ignoreSslErrors,
+                ignoreTlsErrors: this.#ignoreTlsErrors,
             },
         );
 
