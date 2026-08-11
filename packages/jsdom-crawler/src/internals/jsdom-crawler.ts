@@ -19,6 +19,7 @@ import {
     enqueueLinks,
     HttpCrawler,
     NavigationSkippedError,
+    parseArgument,
     resolveBaseUrlForEnqueueLinksFiltering,
     Router,
     tryAbsoluteURL,
@@ -200,12 +201,19 @@ export class JSDOMCrawler<
         hideInternalConsole: z.boolean().optional(),
     };
 
+    protected static override optionsSchema = z.strictObject(JSDOMCrawler.optionsShape);
+
     #runScripts: boolean;
     #hideInternalConsole: boolean;
     #virtualConsole: VirtualConsole | null = null;
 
     constructor(options: JSDOMCrawlerOptions<ContextExtension, ExtendedContext, any, any, Routes> = {}) {
-        const { runScripts = false, hideInternalConsole = false, contextPipelineBuilder, ...httpOptions } = options;
+        const {
+            runScripts = false,
+            hideInternalConsole = false,
+            contextPipelineBuilder,
+            ...httpOptions
+        } = parseArgument(options, JSDOMCrawler.optionsSchema, 'JSDOMCrawlerOptions');
 
         super({
             ...httpOptions,
