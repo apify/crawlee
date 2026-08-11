@@ -18,7 +18,8 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                storage: [ LOCAL, MEMORY, PLATFORM ]
+                # TODO(v4): re-enable LOCAL once @apify/storage-local supports v4
+                storage: [ MEMORY, PLATFORM ]
 
         steps:
             -   name: Checkout repository

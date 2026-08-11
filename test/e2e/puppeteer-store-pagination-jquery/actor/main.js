@@ -15,7 +15,7 @@ await Actor.main(async () => {
         proxyConfiguration: await Actor.createProxyConfiguration(),
         maxRequestsPerCrawl: 10,
         preNavigationHooks: [
-            async ({ page }, goToOptions) => {
+            async ({ page, gotoOptions: goToOptions }) => {
                 await page.evaluateOnNewDocument(() => {
                     localStorage.setItem('themeExitPopup', 'true');
                 });

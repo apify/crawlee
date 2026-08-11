@@ -12,7 +12,6 @@
         "@crawlee/http": "file:./packages/http-crawler",
         "@crawlee/types": "file:./packages/types",
         "@crawlee/utils": "file:./packages/utils",
-        "apify": "next",
         "apify-node-curl-impersonate": "^1.0.29"
     },
     "overrides": {

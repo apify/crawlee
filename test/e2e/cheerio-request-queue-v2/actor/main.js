@@ -1,5 +1,5 @@
-import { Actor, LogLevel, log as Logger } from 'apify';
-import { CheerioCrawler, Dataset } from '@crawlee/cheerio';
+import { Actor, log as Logger } from 'apify';
+import { ApifyLogAdapter, CheerioCrawler, Dataset } from '@crawlee/cheerio';
 
 const mainOptions = {
     exit: Actor.isAtHome(),
@@ -22,10 +22,11 @@ await Actor.main(async () => {
 
             await Dataset.pushData({ url, pageTitle });
         },
-        log: Logger.child({
-            prefix: 'CheerioCrawler',
-            // level: LogLevel.DEBUG,
-        }),
+        logger: new ApifyLogAdapter(
+            Logger.child({
+                prefix: 'CheerioCrawler',
+            }),
+        ),
     });
 
     try {

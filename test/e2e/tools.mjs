@@ -6,7 +6,7 @@ import { dirname, join } from 'node:path';
 import { setTimeout } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 
-import { URL_NO_COMMAS_REGEX } from '@crawlee/utils';
+import { URL_NO_COMMAS_REGEX } from '@crawlee/utils/internal';
 import { Actor, ApifyClient } from 'apify';
 import fs from 'fs-extra';
 import { got } from 'got';
@@ -22,7 +22,8 @@ function execSync(command, options) {
 /**
  * @param {string} name
  */
-const isPrivateEntry = (name) => name === 'CRAWLEE_CRAWLER_STATISTICS_0' || name === 'CRAWLEE_SESSION_POOL_STATE';
+const isPrivateEntry = (name) =>
+    name.startsWith('CRAWLEE_CRAWLER_STATISTICS') || name.startsWith('CRAWLEE_SESSION_POOL_STATE');
 
 export const SKIPPED_TEST_CLOSE_CODE = 404;
 
@@ -49,7 +50,9 @@ export function getStorage(dirName) {
  */
 export async function getStats(dirName) {
     const dir = getStorage(dirName);
-    const path = join(dir, `key_value_stores/default/CRAWLEE_CRAWLER_STATISTICS_0.json`);
+    // fs-storage stores the default (unnamed) stores under the `__default__` alias
+    // and writes key-value records extensionless (the filename is the record key).
+    const path = join(dir, `key_value_stores/__default__/CRAWLEE_CRAWLER_STATISTICS_0`);
 
     if (!existsSync(path)) {
         return false;
@@ -405,7 +408,7 @@ export async function getApifyToken() {
  */
 export async function getDatasetItems(dirName) {
     const dir = getStorage(dirName);
-    const datasetPath = join(dir, 'datasets/default/');
+    const datasetPath = join(dir, 'datasets/__default__/');
 
     if (!existsSync(datasetPath)) {
         return [];
@@ -436,7 +439,7 @@ export async function getDatasetItems(dirName) {
  */
 export async function getLocalKeyValueStoreItems(dirName, kvName) {
     const dir = getStorage(dirName);
-    const storePath = join(dir, 'key_value_stores', kvName);
+    const storePath = join(dir, 'key_value_stores', kvName === 'default' ? '__default__' : kvName);
 
     if (!existsSync(storePath)) {
         return undefined;
@@ -452,7 +455,8 @@ export async function getLocalKeyValueStoreItems(dirName, kvName) {
         const filePath = join(storePath, fileName.name);
         const buffer = await readFile(filePath);
 
-        const name = fileName.name.split('.').slice(0, -1).join('.');
+        // fs-storage writes records extensionless — the filename is the record key.
+        const name = fileName.name;
 
         if (isPrivateEntry(name)) {
             continue;

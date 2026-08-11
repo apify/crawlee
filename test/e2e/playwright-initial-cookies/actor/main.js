@@ -27,19 +27,13 @@ const mainOptions = {
 await Actor.main(async () => {
     const crawler = new PlaywrightCrawler({
         preNavigationHooks: [
-            ({ session, request }, goToOptions) => {
-                session.setCookies(
-                    [
-                        {
-                            name: 'session',
-                            value: 'true',
-                        },
-                    ],
-                    request.url,
-                );
+            // v4 hooks receive only the crawling context (gotoOptions is a context field),
+            // and the Session cookie API is setCookie(rawCookie, url).
+            async ({ session, request, gotoOptions }) => {
+                await session.setCookie('session=true', request.url);
                 request.headers.cookie = 'hook_request=true';
 
-                goToOptions.waitUntil = 'networkidle';
+                gotoOptions.waitUntil = 'networkidle';
             },
         ],
         async requestHandler({ page }) {

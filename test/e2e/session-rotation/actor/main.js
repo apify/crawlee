@@ -1,5 +1,5 @@
 import { Actor } from 'apify';
-import { PlaywrightCrawler } from '@crawlee/playwright';
+import { PlaywrightCrawler, Session, SessionPool } from '@crawlee/playwright';
 
 const mainOptions = {
     exit: Actor.isAtHome(),
@@ -12,14 +12,21 @@ const mainOptions = {
 await Actor.main(async () => {
     const crawler = new PlaywrightCrawler({
         maxRequestRetries: 10,
-        sessionPoolOptions: {
-            sessionOptions: {
-                maxErrorScore: 2,
-            },
-        },
-        requestHandler: async ({ session }) => {
+        // v4 dropped `sessionPoolOptions` - session tuning is done by passing a custom pool.
+        sessionPool: new SessionPool({
+            createSessionFunction: async (opts) =>
+                new Session({
+                    ...opts?.sessionOptions,
+                    maxErrorScore: 2,
+                }),
+        }),
+        requestHandler: async ({ session, registerDeferredCleanup }) => {
+            // v4 wraps the handler in a storage transaction, so a plain pushData would be
+            // rolled back when the handler throws. Deferred cleanups run outside of it.
             const { id, usageCount, errorScore } = session;
-            await Actor.pushData({ id, usageCount, errorScore });
+            registerDeferredCleanup(async () => {
+                await Actor.pushData({ id, usageCount, errorScore });
+            });
             throw new Error('retry');
         },
     });

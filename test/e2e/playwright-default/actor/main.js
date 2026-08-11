@@ -12,8 +12,8 @@ const mainOptions = {
 await Actor.main(async () => {
     const crawler = new PlaywrightCrawler({
         preNavigationHooks: [
-            (_ctx, goToOptions) => {
-                goToOptions.waitUntil = 'networkidle';
+            ({ gotoOptions }) => {
+                gotoOptions.waitUntil = 'networkidle';
             },
         ],
         async requestHandler({ page, enqueueLinks, request }) {
