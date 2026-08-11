@@ -1,4 +1,4 @@
-import { Dataset, PlaywrightCrawler } from '@crawlee/playwright';
+import { Dataset, handleCloudflareChallengeHook, PlaywrightCrawler } from '@crawlee/playwright';
 import { Actor } from 'apify';
 import { launchOptions } from 'camoufox-js';
 import { firefox } from 'playwright';
@@ -38,11 +38,9 @@ await Actor.main(async () => {
                 });
             },
         ],
-        postNavigationHooks: [
-            async ({ handleCloudflareChallenge }) => {
-                await handleCloudflareChallenge();
-            },
-        ],
+        // The hook returns the post-challenge response - otherwise the original 403 challenge
+        // response would propagate and the crawler would throw on the blocked status code.
+        postNavigationHooks: [handleCloudflareChallengeHook()],
         launchContext: {
             launcher: firefox,
             launchOptions: await launchOptions({
