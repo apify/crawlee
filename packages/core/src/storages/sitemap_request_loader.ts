@@ -29,7 +29,7 @@ const sitemapRequestLoaderOptionsSchema = z.strictObject({
     include: schemas.arrayOf(urlPatternSchema, 'URL patterns').optional(),
     exclude: schemas.arrayOf(urlPatternSchema, 'URL patterns').optional(),
     persistenceOptions: z.looseObject({}).optional(),
-    httpClient: z.looseObject({}).optional(),
+    httpClient: schemas.httpClient.optional(),
 });
 
 /** @internal */
