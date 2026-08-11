@@ -90,7 +90,7 @@ export interface HttpCrawlerOptions<
 
     /**
      * If set to `true`, TLS/SSL certificate errors are ignored. Forwarded to the HTTP client as
-     * {@apilink SendRequestOptions.ignoreTlsErrors|`ignoreTlsErrors`} on every request, so custom
+     * {@apilink SendRequestOptions.ignoreTlsErrors|`ignoreTlsErrors`} on every navigation request, so custom
      * {@apilink BaseHttpClient} implementations should honor that flag (the built-in impit client does;
      * the native fetch fallback cannot disable TLS verification).
      *

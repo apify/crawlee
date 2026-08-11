@@ -35,7 +35,7 @@ describe('ImpitHttpClient', () => {
     test('forwards the per-request ignoreTlsErrors flag to the impit client', async () => {
         const httpClient = new ImpitHttpClient();
 
-        await (httpClient as any).fetch(new Request('http://example.com'), { ignoreTlsErrors: true });
+        await httpClient.fetch(new Request('http://example.com'), { ignoreTlsErrors: true });
 
         expect(Impit).toHaveBeenCalledWith(expect.objectContaining({ ignoreTlsErrors: true }));
     });
@@ -43,7 +43,7 @@ describe('ImpitHttpClient', () => {
     test('keeps constructor-level ignoreTlsErrors when the per-request flag is absent', async () => {
         const httpClient = new ImpitHttpClient({ ignoreTlsErrors: true });
 
-        await (httpClient as any).fetch(new Request('http://example.com'), {});
+        await httpClient.fetch(new Request('http://example.com'), {});
 
         expect(Impit).toHaveBeenCalledWith(expect.objectContaining({ ignoreTlsErrors: true }));
     });

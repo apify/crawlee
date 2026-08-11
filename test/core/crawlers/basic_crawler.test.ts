@@ -2272,6 +2272,26 @@ describe('BasicCrawler', () => {
             ]);
         });
 
+        test('forwards ignoreTlsErrors to the http client', async () => {
+            const captured: (boolean | undefined)[] = [];
+
+            const crawler = new BasicCrawler({
+                httpClient: {
+                    async sendRequest(request, options) {
+                        captured.push(options?.ignoreTlsErrors);
+                        return new Response('ok');
+                    },
+                },
+                async requestHandler({ sendRequest }) {
+                    await sendRequest({}, { ignoreTlsErrors: true });
+                },
+            });
+
+            await crawler.run([url]);
+
+            expect(captured).toEqual([true]);
+        });
+
         test('proxyUrl TypeScript support', async () => {
             const crawler = new BasicCrawler({
                 async requestHandler({ sendRequest }) {

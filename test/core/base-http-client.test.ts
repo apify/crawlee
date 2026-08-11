@@ -171,6 +171,15 @@ describe('BaseHttpClient TLS error handling', () => {
         expect(client.lastFetchOptions?.ignoreTlsErrors).toBe(true);
     });
 
+    test('session proxyInfo.ignoreTlsErrors wins over an explicit false option', async () => {
+        const client = new CapturingHttpClient();
+        const session = { proxyInfo: { ignoreTlsErrors: true } } as any;
+
+        await client.sendRequest(new Request(url), { session, ignoreTlsErrors: false });
+
+        expect(client.lastFetchOptions?.ignoreTlsErrors).toBe(true);
+    });
+
     test('leaves ignoreTlsErrors unset without a session proxy', async () => {
         const client = new CapturingHttpClient();
 

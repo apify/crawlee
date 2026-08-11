@@ -98,7 +98,7 @@ export class ImpitHttpClient extends BaseHttpClient {
         const impit = this.getClient({
             ...this.#impitOptions,
             ...(impitBrowser ? { browser: impitBrowser } : {}),
-            // Per-request flag (from `session.proxyInfo.ignoreTlsErrors`, i.e. MITM proxies)
+            // The per-request flag (from the crawler option or a MITM proxy session)
             // can only enable ignoring, never override a constructor-level `true`.
             ...(ignoreTlsErrors ? { ignoreTlsErrors: true } : {}),
             proxyUrl,
