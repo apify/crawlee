@@ -335,7 +335,7 @@ describe('ThrottlingRequestManager', () => {
         expect(Date.now() - start).toBeLessThan(1000);
     });
 
-    test('picks up requests left in per-domain sub-queues by a previous run', async () => {
+    test('picks up requests left in per-domain sub-queues by a previous run (if purgeOnStart is not enabled)', async () => {
         const domains = ['example.com'];
 
         const firstRun = new ThrottlingRequestManager({ inner: await createQueue(), domains });

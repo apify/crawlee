@@ -14,6 +14,9 @@ import { DatasetBackend } from './resource-clients/dataset.js';
 import { KeyValueStoreBackend } from './resource-clients/key-value-store.js';
 import { RequestQueueBackend } from './resource-clients/request-queue.js';
 
+/** The alias `@crawlee/core` opens the default (unnamed) storage under. */
+const DEFAULT_STORAGE_ALIAS = '__default__';
+
 export interface FileSystemStorageOptions {
     /**
      * Path to directory where the data will be saved.
@@ -96,7 +99,7 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
         const isAlias = 'alias' in options && !!options.alias;
         const rawKey = isAlias ? options.alias : (options.name ?? options.id);
         // Normalize the internal __default__ alias to the user-facing 'default' name.
-        const cacheKey = rawKey === '__default__' ? 'default' : rawKey;
+        const cacheKey = rawKey === DEFAULT_STORAGE_ALIAS ? 'default' : rawKey;
         return { id: options.id, name: options.name, alias: options.alias, cacheKey };
     }
 
@@ -242,7 +245,7 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
     ): Promise<string | undefined> {
         // Directory named exactly after the string: return its real (metadata) id, which may differ
         // from the string when the string is a name rather than an id.
-        const directId = await FileSystemStorageBackend.readMetadataId(resolve(baseDirectory, entryNameOrId));
+        const directId = (await FileSystemStorageBackend.readMetadata(resolve(baseDirectory, entryNameOrId)))?.id;
         if (directId !== undefined) {
             return directId;
         }
@@ -260,7 +263,8 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
                 continue;
             }
 
-            const metadataId = await FileSystemStorageBackend.readMetadataId(resolve(baseDirectory, directory.name));
+            const metadataId = (await FileSystemStorageBackend.readMetadata(resolve(baseDirectory, directory.name)))
+                ?.id;
             if (metadataId === entryNameOrId) {
                 return metadataId;
             }
@@ -269,42 +273,115 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
         return undefined;
     }
 
-    /** Read the `id` field from a storage directory's `__metadata__.json`, or `undefined` if absent. */
-    private static async readMetadataId(storageDirectory: string): Promise<string | undefined> {
+    /** Read a storage directory's `__metadata__.json`, or `undefined` if there is none to read. */
+    private static async readMetadata(
+        storageDirectory: string,
+    ): Promise<{ id?: string; name?: string | null } | undefined> {
         try {
             const fileContent = await readFile(resolve(storageDirectory, '__metadata__.json'), 'utf8');
-            return (JSON.parse(fileContent) as { id?: string }).id;
+            return JSON.parse(fileContent) as { id?: string; name?: string | null };
         } catch {
-            // Directory missing, or no/unreadable metadata file — no id to report.
+            // Directory missing, or no/unreadable metadata file — nothing to report.
             return undefined;
         }
     }
 
     /**
-     * Cleans up the default storages before the run starts:
-     *  - the default dataset;
-     *  - all records from the default key-value store, except for the "INPUT" key;
-     *  - the default request queue.
+     * Cleans up the storages that belong to a single run before the run starts:
+     *  - the default dataset and request queue, plus every alias-keyed one;
+     *  - all records from the default key-value store except for the "INPUT" key, and all records from
+     *    every alias-keyed key-value store.
+     *
+     * Named storages are the opt-in way of keeping data across runs, so they are left untouched.
      */
     async purge(): Promise<void> {
-        // Resolve the default stores up front so leftover on-disk records are purged even when the
-        // store has not been opened in this process yet (e.g. a fresh run over a pre-existing
-        // directory). Opening caches the backend, so the subsequent purge operates on a real backend.
-        // The default store is opened via the internal `__default__` alias (see resolveStorageIdentifier
-        // in @crawlee/core), which resolves to the `default` cache key — match that here so we purge the
-        // very backend the default open would return rather than creating a divergent one.
-        const [defaultKeyValueStore, defaultDataset, defaultRequestQueue] = await Promise.all([
-            this.createKeyValueStoreBackend({ alias: '__default__' }) as Promise<KeyValueStoreBackend>,
-            this.createDatasetBackend({ alias: '__default__' }) as Promise<DatasetBackend>,
-            this.createRequestQueueBackend({ alias: '__default__' }) as Promise<RequestQueueBackend>,
-        ]);
-
         await Promise.all([
-            // Preserve the run input (INPUT) when purging the default key-value store.
-            defaultKeyValueStore.purgeExceptInput(),
-            defaultDataset.purge(),
-            defaultRequestQueue.purge(),
+            this.purgeRunScopedStorages(
+                this.keyValueStoresDirectory,
+                async (alias) => this.createKeyValueStoreBackend({ alias }) as Promise<KeyValueStoreBackend>,
+                // Only the default store holds the run input, so it is the only one that keeps `INPUT`.
+                async (store, isDefault) => (isDefault ? store.purgeExceptInput() : store.purge()),
+            ),
+            this.purgeRunScopedStorages(
+                this.datasetsDirectory,
+                async (alias) => this.createDatasetBackend({ alias }) as Promise<DatasetBackend>,
+                async (store) => store.purge(),
+            ),
+            this.purgeRunScopedStorages(
+                this.requestQueuesDirectory,
+                async (alias) => this.createRequestQueueBackend({ alias }) as Promise<RequestQueueBackend>,
+                async (store) => store.purge(),
+            ),
         ]);
+    }
+
+    /**
+     * Purge every run-scoped storage under `storagesDirectory` — the default one and every alias-keyed
+     * one, whether or not it has been opened in this process yet.
+     *
+     * Storages are opened through `open` rather than purged on disk directly, both so that a leftover
+     * from a previous process is reachable at all, and so that a storage already open in this process is
+     * purged through the very backend the run is using instead of a divergent second one.
+     */
+    private async purgeRunScopedStorages<T>(
+        storagesDirectory: string,
+        open: (alias: string) => Promise<T>,
+        purgeStorage: (storage: T, isDefault: boolean) => Promise<void>,
+    ): Promise<void> {
+        // The default storage is listed unconditionally, so that a run over an empty directory still ends
+        // up with it opened (and cached) exactly as it was before. It is also listed first, so that it
+        // wins the deduplication below: distinct directory names can share a cache key (`__default__` and
+        // `default` both normalize to `default`), and opening both would leave the cache holding two
+        // backends for one logical storage.
+        const aliasesByCacheKey = new Map<string | undefined, string>();
+
+        for (const alias of [
+            DEFAULT_STORAGE_ALIAS,
+            ...(await FileSystemStorageBackend.listUnnamedStorages(storagesDirectory)),
+        ]) {
+            const { cacheKey } = FileSystemStorageBackend.resolveStorageKey({ alias });
+            if (!aliasesByCacheKey.has(cacheKey)) {
+                aliasesByCacheKey.set(cacheKey, alias);
+            }
+        }
+
+        await Promise.all(
+            Array.from(aliasesByCacheKey, async ([cacheKey, alias]) => {
+                await purgeStorage(await open(alias), cacheKey === 'default');
+            }),
+        );
+    }
+
+    /**
+     * The directory names of the on-disk storages under `storagesDirectory` that Crawlee created without
+     * a name — the default storage and every alias-keyed one. Since the directory is named after the
+     * storage's `name ?? alias ?? id`, the name is read from the metadata rather than guessed.
+     *
+     * A directory with no readable `__metadata__.json` was not created by Crawlee (a hand-placed input
+     * directory, say), so it is left out — purging it would destroy data we never wrote.
+     */
+    private static async listUnnamedStorages(storagesDirectory: string): Promise<string[]> {
+        let directories;
+        try {
+            directories = await opendir(storagesDirectory);
+        } catch {
+            return [];
+        }
+
+        const unnamed: string[] = [];
+
+        for await (const directory of directories) {
+            if (!directory.isDirectory()) {
+                continue;
+            }
+
+            const metadata = await FileSystemStorageBackend.readMetadata(resolve(storagesDirectory, directory.name));
+            if (metadata !== undefined && typeof metadata.name !== 'string') {
+                unnamed.push(directory.name);
+            }
+        }
+
+        return unnamed;
     }
 
     /**

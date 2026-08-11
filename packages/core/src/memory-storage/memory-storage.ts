@@ -147,34 +147,38 @@ export class MemoryStorageBackend implements storage.StorageBackend {
     }
 
     /**
-     * Cleans up the default storages before the run starts. For the in-memory storage this simply
-     * resets the in-memory state of the cached default dataset, key-value store and request queue.
+     * Cleans up the run-scoped storages before the run starts: the default one and every alias-keyed
+     * one. For the in-memory storage this simply resets the in-memory state of the cached backends.
      *
-     * As with `FileSystemStorageBackend`, the run's input (the `INPUT` key in the default key-value
-     * store) is preserved — only the rest of the default storages is cleared.
+     * Named storages are the opt-in way to keep data across runs, so they are left untouched. The run's
+     * input (the `INPUT` key in the default key-value store) is preserved as well, matching
+     * `FileSystemStorageBackend`.
      */
     async purge(): Promise<void> {
-        // The run default is opened via `{ alias: '__default__' }`, which `resolveStorageKey`
-        // normalizes to `cacheKey === 'default'` (with `name === undefined`) — that is the clause
-        // that actually matches it. The `name === 'default'` clause additionally covers a store a user
-        // explicitly opened via `{ name: 'default' }`. (`'__default__'` never reaches `cacheKey`,
-        // as it is always normalized to `'default'` first, so it does not need to be checked here.)
+        // Alias-keyed and default storages are unnamed (`resolveStorageKey` only sets `name` for named
+        // ones), which is what marks them as belonging to a single run — same rule as crawlee-python's
+        // `_purge_if_needed`. The extra `name === 'default'` clause covers a store opened via
+        // `{ name: 'default' }`: that collapses onto the same `cacheKey` as the default storage, so the
+        // cached backend the run's default resolves to may well carry that name.
+        const isRunScoped = (store: { name?: string }) => store.name === undefined || store.name === 'default';
+
         const isDefault = (store: { name?: string; cacheKey: string }) =>
             store.name === 'default' || store.cacheKey === 'default';
 
-        const purgeDefaults = async <T extends { name?: string; cacheKey: string }>(
+        const purgeRunScoped = async <T extends { name?: string; cacheKey: string }>(
             cache: T[],
             purgeStore: (store: T) => Promise<void>,
         ) => {
-            await Promise.all(cache.filter(isDefault).map(async (store) => purgeStore(store)));
+            await Promise.all(cache.filter(isRunScoped).map(async (store) => purgeStore(store)));
         };
 
         await Promise.all([
-            // Preserve the run input (INPUT) when purging the default key-value store, matching
-            // `FileSystemStorageBackend`.
-            purgeDefaults(this.keyValueStoreBackendCache, async (store) => store.purgeExceptInput()),
-            purgeDefaults(this.datasetBackendCache, async (store) => store.purge()),
-            purgeDefaults(this.requestQueueBackendCache, async (store) => store.purge()),
+            // Only the default store holds the run input, so it is the only one that keeps `INPUT`.
+            purgeRunScoped(this.keyValueStoreBackendCache, async (store) =>
+                isDefault(store) ? store.purgeExceptInput() : store.purge(),
+            ),
+            purgeRunScoped(this.datasetBackendCache, async (store) => store.purge()),
+            purgeRunScoped(this.requestQueueBackendCache, async (store) => store.purge()),
         ]);
     }
 
