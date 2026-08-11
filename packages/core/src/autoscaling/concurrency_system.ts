@@ -6,6 +6,11 @@ import { betterClearInterval, betterSetInterval } from '@apify/utilities';
 import type { CrawleeLogger } from '../log.js';
 import { serviceLocator } from '../service_locator.js';
 import { parseArgument, schemas, validators } from '../validators.js';
+import type { LoadSignal } from './load_signal.js';
+import { Snapshotter } from './snapshotter.js';
+import type { LoadSignalsOptions } from './snapshotter.js';
+import type { SystemInfo } from './system_status.js';
+import { SystemStatus } from './system_status.js';
 
 const concurrencySchema = z.number().int().gte(1).optional();
 
@@ -33,11 +38,6 @@ const concurrencySystemOptionsSchema = z.strictObject({
         .union([z.number().int().gte(1), z.literal(Number.POSITIVE_INFINITY)])
         .default(Number.POSITIVE_INFINITY),
 });
-import type { LoadSignal } from './load_signal.js';
-import { Snapshotter } from './snapshotter.js';
-import type { LoadSignalsOptions } from './snapshotter.js';
-import type { SystemInfo } from './system_status.js';
-import { SystemStatus } from './system_status.js';
 
 export interface ConcurrencySystemOptions {
     /**

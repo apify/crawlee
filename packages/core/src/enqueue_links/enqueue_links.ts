@@ -25,6 +25,7 @@ import {
     constructUrlPatternObjects,
     createRequestOptions,
     filterRequestOptionsByPatterns,
+    urlPatternSchema,
 } from './shared.js';
 
 export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
@@ -225,13 +226,6 @@ export enum EnqueueStrategy {
      */
     SameOrigin = 'same-origin',
 }
-
-const urlPatternSchema = z.union([
-    z.string(),
-    z.instanceof(RegExp),
-    schemas.objectWithKeys(['glob']),
-    schemas.objectWithKeys(['regexp']),
-]) as z.ZodType<UrlPatternInput>;
 
 // `schemas.anyObject` passes values through by reference (object schemas return a pruned plain
 // copy), so `userData` keeps its identity for the enqueued requests.

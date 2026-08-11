@@ -17,6 +17,17 @@ const dateString = z.string().refine((value) => !Number.isNaN(Date.parse(value))
     message: 'Invalid input: expected a date string',
 });
 
+export enum RequestState {
+    UNPROCESSED,
+    BEFORE_NAV,
+    AFTER_NAV,
+    REQUEST_HANDLER,
+    DONE,
+    ERROR_HANDLER,
+    ERROR,
+    SKIPPED,
+}
+
 const requestUrlSchema = z.object({ url: z.string() });
 
 // new properties on the Request object breaks serialization
@@ -42,24 +53,13 @@ const requestOptionalSchemaShapes: Record<string, z.ZodType> = {
     crawlDepth: schemas.anyNumber
         .refine((value) => value >= 0, 'Expected a number greater than or equal to 0')
         .optional(),
-    state: z.number().gte(0).lte(6).optional(),
+    state: z.enum(RequestState).optional(),
 };
 
 // Each schema is wrapped in a single-key object so validation errors carry the property name.
 const requestOptionalSchemas: Partial<Record<string, z.ZodType>> = Object.fromEntries(
     Object.entries(requestOptionalSchemaShapes).map(([key, schema]) => [key, z.object({ [key]: schema })]),
 );
-
-export enum RequestState {
-    UNPROCESSED,
-    BEFORE_NAV,
-    AFTER_NAV,
-    REQUEST_HANDLER,
-    DONE,
-    ERROR_HANDLER,
-    ERROR,
-    SKIPPED,
-}
 
 /**
  * Represents a URL to be crawled, optionally including HTTP method, headers, payload and other metadata.

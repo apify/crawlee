@@ -14,6 +14,7 @@ import {
     createRequestOptions,
     filterRequestOptionsByPatterns,
     parseArgument,
+    urlPatternSchema,
     Request as CrawleeRequest,
     schemas,
     serviceLocator,
@@ -26,13 +27,6 @@ const STARTING_Z_INDEX = 2147400000;
 const getLog = () => serviceLocator.getChildLog('Playwright Click Elements');
 
 type ClickOptions = Parameters<Page['click']>[1];
-
-const urlPatternSchema = z.union([
-    z.string(),
-    z.instanceof(RegExp),
-    schemas.objectWithKeys(['glob']),
-    schemas.objectWithKeys(['regexp']),
-]) as z.ZodType<UrlPatternInput>;
 
 const enqueueLinksByClickingElementsOptionsSchema = z.strictObject({
     page: schemas.objectWithKeys(['goto', 'evaluate']),

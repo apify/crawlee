@@ -7,7 +7,7 @@ import type { RequiredDeep } from 'type-fest';
 import { z } from 'zod';
 
 import type { UrlPatternInput, UrlPatternObject } from '../enqueue_links/shared.js';
-import { constructUrlPatternObjects } from '../enqueue_links/shared.js';
+import { constructUrlPatternObjects, urlPatternSchema } from '../enqueue_links/shared.js';
 import { type EventManager, EventType } from '../events/event_manager.js';
 import type { CrawleeLogger } from '../log.js';
 import { Request } from '../request.js';
@@ -17,13 +17,6 @@ import { KeyValueStore } from './key_value_store.js';
 import type { IRequestLoader } from './request_loader.js';
 import type { IRequestManager } from './request_manager.js';
 import { purgeDefaultStorages } from './utils.js';
-
-const urlPatternSchema = z.union([
-    z.string(),
-    z.instanceof(RegExp),
-    schemas.objectWithKeys(['glob']),
-    schemas.objectWithKeys(['regexp']),
-]) as z.ZodType<UrlPatternInput>;
 
 const sitemapRequestLoaderOptionsSchema = z.strictObject({
     sitemapUrls: z.array(z.string()),

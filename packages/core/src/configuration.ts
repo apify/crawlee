@@ -246,11 +246,8 @@ export class Configuration {
             }
 
             // 4. Schema default (by parsing undefined through the schema)
-            try {
-                values[key] = fieldDef.schema.parse(undefined);
-            } catch {
-                values[key] = undefined;
-            }
+            const parsed = fieldDef.schema.safeParse(undefined);
+            values[key] = parsed.success ? parsed.data : undefined;
         }
 
         return values;

@@ -14,6 +14,7 @@ import {
     createRequestOptions,
     filterRequestOptionsByPatterns,
     parseArgument,
+    urlPatternSchema,
     Request,
     schemas,
     serviceLocator,
@@ -27,13 +28,6 @@ import { addInterceptRequestHandler, removeInterceptRequestHandler } from '../ut
 
 const STARTING_Z_INDEX = 2147400000;
 const getLog = () => serviceLocator.getChildLog('Puppeteer Click Elements');
-
-const urlPatternSchema = z.union([
-    z.string(),
-    z.instanceof(RegExp),
-    schemas.objectWithKeys(['glob']),
-    schemas.objectWithKeys(['regexp']),
-]) as z.ZodType<UrlPatternInput>;
 
 const enqueueLinksByClickingElementsOptionsSchema = z.strictObject({
     page: schemas.objectWithKeys(['goto', 'evaluate']),

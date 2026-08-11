@@ -160,7 +160,12 @@ rewrite(resolve(target, 'package.json'), (pkg) => {
     const catalog = getCatalogVersions();
     const manifest = JSON.parse(pkg.replace(/dist\//g, '').replace(/src\/(.*)\.ts/g, '$1.js'));
 
-    for (const deps of [manifest.dependencies, manifest.devDependencies, manifest.peerDependencies]) {
+    for (const deps of [
+        manifest.dependencies,
+        manifest.devDependencies,
+        manifest.peerDependencies,
+        manifest.optionalDependencies,
+    ]) {
         for (const dep of Object.keys(deps ?? {})) {
             if (deps[dep] === 'catalog:') {
                 if (!catalog[dep]) throw new Error(`Missing catalog entry for '${dep}' in pnpm-workspace.yaml`);
