@@ -197,15 +197,10 @@ export class PuppeteerCrawler<
      * All `PuppeteerCrawler` parameters are passed via an options object.
      */
     constructor(options: PuppeteerCrawlerOptions<ContextExtension, ExtendedContext, Routes> = {}) {
-        const parsedOptions = parseArgument(options, PuppeteerCrawler.optionsSchema);
+        const parsedOptions = parseArgument(options, PuppeteerCrawler.optionsSchema, 'PuppeteerCrawlerOptions');
 
-        const {
-            launchContext = {},
-            headless,
-            proxyConfiguration,
-            contextPipelineBuilder,
-            ...browserCrawlerOptions
-        } = parsedOptions;
+        const { launchContext, headless, proxyConfiguration, contextPipelineBuilder, ...browserCrawlerOptions } =
+            parsedOptions;
 
         const browserPoolOptions = {
             ...parsedOptions.browserPoolOptions,

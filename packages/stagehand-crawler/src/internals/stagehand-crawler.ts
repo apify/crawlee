@@ -419,11 +419,11 @@ export class StagehandCrawler<
      * @param options - Crawler configuration options
      */
     constructor(options: StagehandCrawlerOptions<ContextExtension, ExtendedContext, Routes> = {}) {
-        const parsedOptions = parseArgument(options, StagehandCrawler.optionsSchema);
+        const parsedOptions = parseArgument(options, StagehandCrawler.optionsSchema, 'StagehandCrawlerOptions');
 
         const {
             stagehandOptions = {},
-            launchContext = {},
+            launchContext,
             contextPipelineBuilder,
             ...browserCrawlerOptions
         } = parsedOptions;

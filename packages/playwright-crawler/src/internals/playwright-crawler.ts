@@ -221,9 +221,9 @@ export class PlaywrightCrawler<
      * All `PlaywrightCrawler` parameters are passed via an options object.
      */
     constructor(options: PlaywrightCrawlerOptions<ContextExtension, ExtendedContext, Routes> = {}) {
-        const parsedOptions = parseArgument(options, PlaywrightCrawler.optionsSchema);
+        const parsedOptions = parseArgument(options, PlaywrightCrawler.optionsSchema, 'PlaywrightCrawlerOptions');
 
-        const { launchContext = {}, headless, contextPipelineBuilder, ...browserCrawlerOptions } = parsedOptions;
+        const { launchContext, headless, contextPipelineBuilder, ...browserCrawlerOptions } = parsedOptions;
 
         const browserPoolOptions = {
             ...parsedOptions.browserPoolOptions,
