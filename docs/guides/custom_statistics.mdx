@@ -1,0 +1,43 @@
+---
+id: custom-statistics
+title: Custom statistics fields
+description: Track your own counters alongside the built-in crawler statistics
+---
+
+import ApiLink from '@site/src/components/ApiLink';
+import CodeBlock from '@theme/CodeBlock';
+
+import BasicSource from '!!raw-loader!./custom_statistics_basic.ts';
+import AdaptiveSource from '!!raw-loader!./custom_statistics_adaptive.ts';
+
+Every crawler collects run statistics — requests finished, failures, retries, durations — into a <ApiLink to="core/class/Statistics">`Statistics`</ApiLink> instance exposed as `crawler.stats`. You can track your own counters in the same place, and get the persistence, logging and lifecycle handling that the built-in fields already have.
+
+Keeping a counter in a plain variable works right up until the run is interrupted. Statistics state is written to the key-value store and restored on migration or resurrect, so a counter that lives in `stats.state` survives a run that a plain variable would not.
+
+## Declaring custom fields
+
+Pass <ApiLink to="core/interface/StatisticsOptions#defaultState">`defaultState`</ApiLink> when constructing a <ApiLink to="core/class/Statistics">`Statistics`</ApiLink> instance, and inject it into the crawler via the `statistics` option. The fields become part of `state`, typed exactly as you declared them:
+
+<CodeBlock className="language-typescript">{BasicSource}</CodeBlock>
+
+The field types flow through to `crawler.stats.state`, so they are available anywhere you hold the crawler, not just where you hold the statistics instance. Reading an undeclared field is a compile-time error.
+
+`defaultState` is also what `reset()` restores, and it determines which keys are read back from a persisted record. A field you add later simply keeps its default when an older record is restored, so growing the state between runs does not need a migration.
+
+The values have to be JSON-serializable, because the state round-trips through the key-value store. A `Date` or a `Set` comes back from that trip as a string or a plain object while the type still claims otherwise — keep to numbers, strings, booleans, `null`, and plain arrays and objects of those.
+
+:::note Injected instances are not reset
+
+A crawler resets the statistics it built itself at the start of every `run()`, but never one you passed in — a supplied instance keeps whatever state it was handed. If you reuse a crawler for several runs and want the counters to start from zero each time, call `statistics.reset()` yourself.
+
+:::
+
+## Crawlers that track fields of their own
+
+<ApiLink to="playwright-crawler/class/AdaptivePlaywrightCrawler">`AdaptivePlaywrightCrawler`</ApiLink> tracks a few extra fields itself (how many requests were handled with and without a browser, and how many rendering type mispredictions occurred). It builds a suitable `Statistics` instance by default, so you only need to do anything if you want to add fields of your own — in which case your `defaultState` has to include the crawler's fields as well:
+
+<CodeBlock className="language-typescript">{AdaptiveSource}</CodeBlock>
+
+## Custom statistics implementations
+
+If you need something more than extra fields — reporting to an external metrics backend, for example — the `statistics` option accepts any object implementing <ApiLink to="core/interface/IStatistics">`IStatistics`</ApiLink>, not just the built-in class. The crawler drives it purely through that interface.

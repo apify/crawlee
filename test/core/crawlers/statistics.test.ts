@@ -1,3 +1,4 @@
+import type { StatisticsOptions } from '@crawlee/core';
 import type { StatisticPersistedState, StatisticState } from '@crawlee/core';
 import { EventType, KeyValueStore, MemoryStorageBackend, serviceLocator, Statistics } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/types';
@@ -428,6 +429,79 @@ describe('Statistics', () => {
         // stopCapturing tears the interval down, so capturing can be resumed on the same instance.
         await expect(stats.startCapturing()).resolves.toBeUndefined();
         await stats.stopCapturing();
+    });
+
+    describe('custom state fields', () => {
+        /** Persists `productsFound: 7` and one finished request under `id`. */
+        const persistCustomState = async (id: string) => {
+            const stats = new Statistics({ id, defaultState: { productsFound: 0 } });
+
+            await stats.startCapturing();
+            stats.startJob(0);
+            stats.finishJob(0, 0);
+            stats.state.productsFound = 7;
+            await stats.stopCapturing();
+        };
+
+        /** Loads whatever was persisted under `options.id` and returns the resulting state. */
+        const loadState = async <T extends object>(options: StatisticsOptions<T>) => {
+            const stats = new Statistics(options);
+
+            await stats.startCapturing();
+            await stats.stopCapturing();
+
+            return stats.state;
+        };
+
+        test('should expose the custom fields and restore their defaults on reset', () => {
+            const stats = new Statistics({
+                defaultState: { productsFound: 0, seenPerDomain: {} as Record<string, number> },
+            });
+
+            stats.state.productsFound += 3;
+            stats.state.seenPerDomain['example.com'] = 1;
+            stats.reset();
+
+            expect(stats.state.productsFound).toEqual(0);
+            // the nested default is cloned per reset, not shared with the previous state
+            expect(stats.state.seenPerDomain).toEqual({});
+
+            // @ts-expect-error `categoriesFound` was not declared in `defaultState`
+            stats.state.categoriesFound = 1;
+        });
+
+        test('should restore the persisted custom fields, keeping the defaults of ones the record lacks', async () => {
+            await persistCustomState('grown-stats');
+
+            const state = await loadState({
+                id: 'grown-stats',
+                // `categoriesFound` was declared after the state above was persisted
+                defaultState: { productsFound: 0, categoriesFound: 42 },
+            });
+
+            expect(state.productsFound).toEqual(7);
+            expect(state.categoriesFound).toEqual(42);
+        });
+
+        test('should reject a custom field that collides with a built-in one', () => {
+            expect(() => new Statistics({ defaultState: { requestsFinished: 999 } })).toThrow(
+                /`requestsFinished` collides with a built-in one/,
+            );
+        });
+
+        test('should give the custom fields the same shape before and after a restore', async () => {
+            // a value that does not survive the key-value store must not survive a reset() either
+            const defaultState = { lastSeenAt: new Date('2020-01-01T00:00:00.000Z') };
+
+            const stats = new Statistics({ id: 'json-shaped-stats', defaultState });
+            await stats.startCapturing();
+            await stats.stopCapturing();
+
+            const restored = await loadState({ id: 'json-shaped-stats', defaultState });
+
+            expect(restored.lastSeenAt).toEqual(stats.state.lastSeenAt);
+            expect(stats.state.lastSeenAt).toEqual('2020-01-01T00:00:00.000Z');
+        });
     });
 
     describe('explicit id option', () => {

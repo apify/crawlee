@@ -809,7 +809,7 @@ export interface IRequestManager extends IRequestLoader {
 }
 
 // @public
-export interface IStatistics {
+export interface IStatistics<StateExtension extends object = {}> {
     calculate(): CalculatedStatistics;
     discardJob(id: number | string): void;
     readonly errorTracker: ErrorTracker;
@@ -821,7 +821,7 @@ export interface IStatistics {
     readonly requestRetryHistogram: number[];
     startCapturing(): Promise<void>;
     startJob(id: number | string): void;
-    readonly state: StatisticState;
+    readonly state: StatisticState & StateExtension;
     stopCapturing(): Promise<void>;
 }
 
@@ -1939,11 +1939,11 @@ export interface StatisticPersistedState extends Omit<StatisticState, 'statsPers
 }
 
 // @public
-export class Statistics implements IStatistics {
-    constructor(options?: StatisticsOptions);
+export class Statistics<StateExtension extends object = {}> implements IStatistics<StateExtension> {
+    constructor(options?: StatisticsOptions<StateExtension>);
     calculate(): CalculatedStatistics;
-    protected defaultState(): StatisticState;
-    protected deserializeState(persistedState: StatisticPersistedState): StatisticState;
+    protected defaultState(): StatisticState & StateExtension;
+    protected deserializeState(persistedState: StatisticPersistedState & Partial<StateExtension>): StatisticState & StateExtension;
     readonly errorTracker: ErrorTracker;
     readonly errorTrackerRetry: ErrorTracker;
     readonly id: string;
@@ -1954,15 +1954,16 @@ export class Statistics implements IStatistics {
     get requestRetryHistogram(): number[];
     reset(): void;
     resetStore(): Promise<void>;
-    protected serializeState(state: StatisticState): StatisticPersistedState;
+    protected serializeState(state: StatisticState & StateExtension): StatisticPersistedState & StateExtension;
     startCapturing(): Promise<void>;
-    get state(): StatisticState;
+    get state(): StatisticState & StateExtension;
     stopCapturing(): Promise<void>;
-    toJSON(): StatisticPersistedState;
+    toJSON(): StatisticPersistedState & StateExtension;
 }
 
 // @public
-export interface StatisticsOptions {
+export interface StatisticsOptions<StateExtension extends object = {}> {
+    defaultState?: StateExtension;
     id?: string;
     keyValueStore?: KeyValueStore;
     log?: CrawleeLogger;
