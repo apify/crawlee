@@ -10,6 +10,7 @@
         "@crawlee/cheerio": "file:./packages/cheerio-crawler",
         "@crawlee/core": "file:./packages/core",
         "@crawlee/http": "file:./packages/http-crawler",
+        "@crawlee/http-client": "file:./packages/http-client",
         "@crawlee/types": "file:./packages/types",
         "@crawlee/utils": "file:./packages/utils",
         "apify-node-curl-impersonate": "^1.0.29"

@@ -65,6 +65,7 @@
         "@crawlee/basic": "workspace:*",
         "@crawlee/cheerio": "workspace:*",
         "@crawlee/core": "workspace:*",
+        "@crawlee/http-client": "workspace:*",
         "@crawlee/impit-client": "workspace:*",
         "@crawlee/jsdom": "workspace:*",
         "@crawlee/linkedom": "workspace:*",

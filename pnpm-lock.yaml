@@ -49,6 +49,9 @@ importers:
       '@crawlee/core':
         specifier: workspace:*
         version: link:packages/core
+      '@crawlee/http-client':
+        specifier: workspace:*
+        version: link:packages/http-client
       '@crawlee/impit-client':
         specifier: workspace:*
         version: link:packages/impit-client
