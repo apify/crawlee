@@ -37,7 +37,7 @@ class CurlImpersonateHttpClient extends BaseHttpClient {
         }
 
         const curl = new CurlImpersonate(request.url, {
-            method: request.method ?? 'GET',
+            method: request.method,
             headers,
             flags,
             impersonate: this.options.impersonate,

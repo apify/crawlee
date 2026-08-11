@@ -491,7 +491,12 @@ postNavigationHooks: [handleCloudflareChallengeHook()],
 
 // v4 (manual equivalent)
 postNavigationHooks: [
-    async ({ handleCloudflareChallenge }) => ({ response: await handleCloudflareChallenge() }),
+    async ({ handleCloudflareChallenge }) => {
+        // Returning `{ response: undefined }` would clobber the navigation response
+        // when there was no challenge, so only return it when one was solved.
+        const response = await handleCloudflareChallenge();
+        return response && { response };
+    },
 ],
 ```
 
