@@ -1,10 +1,10 @@
 import type {
     BaseHttpClient as BaseHttpClientInterface,
+    CookieJar,
     CrawleeLogger,
     SendRequestOptions,
     SessionFingerprint,
 } from '@crawlee/types';
-import { CookieJar } from 'tough-cookie';
 
 /**
  * Per-request options handed to a concrete client's `fetch` implementation.
@@ -100,21 +100,26 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
         }
     }
 
-    private resolveRequestContext(options?: SendRequestOptions): {
+    private async resolveRequestContext(options?: SendRequestOptions): Promise<{
         proxyUrl?: string;
         cookieJar: CookieJar;
         signal?: AbortSignal;
         fingerprint?: SessionFingerprint;
-    } {
+    }> {
         const proxyUrl = options?.proxyUrl ?? options?.session?.proxyInfo?.url;
-        const cookieJar = options?.cookieJar ?? options?.session?.cookieJar ?? new CookieJar();
+        const cookieJar = options?.cookieJar ?? options?.session?.cookieJar ?? (await this.#createDefaultCookieJar());
         const signal = this.createAbortSignal(options?.signal, options?.timeoutMillis);
         return {
             proxyUrl,
-            cookieJar: cookieJar as CookieJar,
+            cookieJar,
             signal,
             fingerprint: options?.session?.fingerprint,
         };
+    }
+
+    async #createDefaultCookieJar(): Promise<CookieJar> {
+        const { CookieJar: ToughCookieJar } = await import('tough-cookie');
+        return new ToughCookieJar();
     }
 
     private createAbortSignal(signal?: AbortSignal, timeoutMillis?: number): AbortSignal | undefined {
@@ -171,7 +176,7 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
         let currentRequest = initialRequest;
         let redirectCount = 0;
 
-        const { proxyUrl, cookieJar, signal, fingerprint } = this.resolveRequestContext(options);
+        const { proxyUrl, cookieJar, signal, fingerprint } = await this.resolveRequestContext(options);
         currentRequest = initialRequest.clone();
 
         while (true) {
