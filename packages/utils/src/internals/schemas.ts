@@ -102,10 +102,23 @@ export const storageRequest = z.looseObject({
 export const storageRequestWithoutId = storageRequest.omit({ id: true });
 
 /**
+ * `z.array(item)` whose top-level type error names the element type — ``expected an array of numbers`` —
+ * instead of zod's bare `expected array`. Element failures keep zod's per-index messages, and `elements`
+ * is a human-readable plural (`'numbers'`, `'URL patterns'`), since element types cannot be introspected.
+ * @internal
+ */
+export function arrayOf<TItem extends z.ZodType>(item: TItem, elements: string): z.ZodArray<TItem> {
+    return z.array(item, {
+        error: (issue) =>
+            issue.code === 'invalid_type' ? `Invalid input: expected an array of ${elements}` : undefined,
+    });
+}
+
+/**
  * Batch of {@link storageRequestWithoutId}.
  * @internal
  */
-export const storageRequestBatch = z.array(storageRequestWithoutId);
+export const storageRequestBatch = arrayOf(storageRequestWithoutId, 'requests');
 
 /**
  * Options of request queue add/update operations.

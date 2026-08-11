@@ -41,7 +41,7 @@ const requestOptionalSchemaShapes: Record<string, z.ZodType> = {
     retryCount: schemas.anyNumber.optional(),
     sessionId: z.string().optional(),
     maxRetries: schemas.anyNumber.optional(),
-    errorMessages: z.array(z.string()).optional(),
+    errorMessages: schemas.arrayOf(z.string(), 'strings').optional(),
     headers: z.looseObject({}).optional(),
     userData: z.looseObject({}).optional(),
     label: z.string().optional(),

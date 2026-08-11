@@ -163,6 +163,19 @@ describe('parseArgument', () => {
         );
     });
 
+    test('arrayOf names the element type at the top level and per element', () => {
+        const schema = z.strictObject({ codes: schemas.arrayOf(schemas.anyNumber, 'numbers') });
+
+        expect(() => parseArgument({ codes: 500 }, schema)).toThrow(
+            'Invalid input: expected an array of numbers, received the number `500` at `codes`',
+        );
+        // Element failures keep zod's per-index messages.
+        expect(() => parseArgument({ codes: [500, 'x'] }, schema)).toThrow(
+            'Invalid input: expected number, received the string `x` at `codes[1]`',
+        );
+        expect(() => parseArgument({ codes: [500] }, schema)).not.toThrow();
+    });
+
     test('label names the validated interface on every line', () => {
         const schema = z.strictObject({ retries: schemas.anyNumber, name: z.string() });
 

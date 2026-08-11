@@ -24,7 +24,7 @@ import type { StorageOpenOptions } from './utils.js';
 
 const throttlingRequestManagerOptionsSchema = z.strictObject({
     inner: schemas.anyObject,
-    domains: z.array(z.string().nonempty()),
+    domains: schemas.arrayOf(z.string().nonempty(), 'non-empty strings'),
     requestManagerOpener: schemas.anyFunction.optional(),
     baseDelaySecs: schemas.anyNumber.refine((value) => value > 0, 'Expected a number greater than 0').optional(),
     maxDelaySecs: schemas.anyNumber.refine((value) => value > 0, 'Expected a number greater than 0').optional(),

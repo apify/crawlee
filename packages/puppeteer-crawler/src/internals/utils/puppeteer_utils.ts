@@ -49,7 +49,7 @@ const filePathSchema = z.string();
 const injectFileOptionsSchema = z.strictObject({
     surviveNavigations: z.boolean().optional(),
 });
-const responseUrlRulesSchema = z.array(z.union([z.string(), z.instanceof(RegExp)]));
+const responseUrlRulesSchema = schemas.arrayOf(z.union([z.string(), z.instanceof(RegExp)]), 'strings or RegExps');
 const gotoExtendedRequestSchema = z.looseObject({
     url: z.url(),
     method: z.string().optional(),
@@ -57,8 +57,8 @@ const gotoExtendedRequestSchema = z.looseObject({
     payload: z.union([z.string(), z.instanceof(Uint8Array)]).optional(),
 });
 const blockRequestsOptionsSchema = z.strictObject({
-    urlPatterns: z.array(z.string()).default(DEFAULT_BLOCK_REQUEST_URL_PATTERNS),
-    extraUrlPatterns: z.array(z.string()).default(() => []),
+    urlPatterns: schemas.arrayOf(z.string(), 'strings').default(DEFAULT_BLOCK_REQUEST_URL_PATTERNS),
+    extraUrlPatterns: schemas.arrayOf(z.string(), 'strings').default(() => []),
 });
 const infiniteScrollOptionsSchema = z.strictObject({
     timeoutSecs: schemas.anyNumber.default(0),

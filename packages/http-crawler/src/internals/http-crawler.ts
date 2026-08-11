@@ -369,7 +369,7 @@ export class HttpCrawler<
 
         navigationTimeoutSecs: schemas.anyNumber.default(30),
         ignoreTlsErrors: z.boolean().default(true),
-        additionalMimeTypes: z.array(z.string()).default(() => []),
+        additionalMimeTypes: schemas.arrayOf(z.string(), 'strings').default(() => []),
         suggestResponseEncoding: z.string().optional(),
         forceResponseEncoding: z.string().optional(),
         saveResponseCookies: z.boolean().default(true),

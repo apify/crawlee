@@ -861,10 +861,10 @@ export class BasicCrawler<
         statusMessageLoggingInterval: schemas.anyNumber.default(10),
         statusMessageCallback: schemas.anyFunction.optional(),
 
-        additionalHttpErrorStatusCodes: z.array(schemas.anyNumber).default(() => []),
-        ignoreHttpErrorStatusCodes: z.array(schemas.anyNumber).default(() => []),
+        additionalHttpErrorStatusCodes: schemas.arrayOf(schemas.anyNumber, 'numbers').default(() => []),
+        ignoreHttpErrorStatusCodes: schemas.arrayOf(schemas.anyNumber, 'numbers').default(() => []),
 
-        blockedStatusCodes: z.array(schemas.anyNumber).optional(),
+        blockedStatusCodes: schemas.arrayOf(schemas.anyNumber, 'numbers').optional(),
         retryOnBlocked: z.boolean().default(false),
         respectRobotsTxtFile: z.union([z.boolean(), schemas.anyObject]).default(false),
         transactionalStorage: z

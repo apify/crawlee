@@ -63,8 +63,8 @@ const gotoExtendedRequestSchema = z.looseObject({
     payload: z.union([z.string(), z.instanceof(Uint8Array)]).optional(),
 });
 const blockRequestsOptionsSchema = z.strictObject({
-    urlPatterns: z.array(z.string()).default(DEFAULT_BLOCK_REQUEST_URL_PATTERNS),
-    extraUrlPatterns: z.array(z.string()).default(() => []),
+    urlPatterns: schemas.arrayOf(z.string(), 'strings').default(DEFAULT_BLOCK_REQUEST_URL_PATTERNS),
+    extraUrlPatterns: schemas.arrayOf(z.string(), 'strings').default(() => []),
 });
 const infiniteScrollOptionsSchema = z.strictObject({
     timeoutSecs: schemas.anyNumber.default(0),

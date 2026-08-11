@@ -230,7 +230,7 @@ export enum EnqueueStrategy {
 // `schemas.anyObject` passes values through by reference (object schemas return a pruned plain
 // copy), so `userData` keeps its identity for the enqueued requests.
 const enqueueLinksOptionsSchema = z.strictObject({
-    urls: z.array(z.string()),
+    urls: schemas.arrayOf(z.string(), 'strings'),
     requestManager: schemas.objectWithKeys(['addRequestsBatched']),
     robotsTxtFile: schemas.objectWithKeys(['isAllowed']).optional(),
     respectRobotsTxtFile: z.union([z.boolean(), z.strictObject({ userAgent: z.string().optional() })]).optional(),
@@ -243,8 +243,8 @@ const enqueueLinksOptionsSchema = z.strictObject({
     baseUrl: z.string().optional(),
     userData: schemas.anyObject.optional(),
     label: z.string().optional(),
-    include: z.array(urlPatternSchema).min(1).optional(),
-    exclude: z.array(urlPatternSchema).optional(),
+    include: schemas.arrayOf(urlPatternSchema, 'URL patterns').min(1).optional(),
+    exclude: schemas.arrayOf(urlPatternSchema, 'URL patterns').optional(),
     transformRequestFunction: schemas.anyFunction.optional(),
     strategy: z.enum(EnqueueStrategy).optional(),
     waitForAllRequestsToBeAdded: z.boolean().optional(),

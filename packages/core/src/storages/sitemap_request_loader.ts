@@ -19,15 +19,15 @@ import type { IRequestManager } from './request_manager.js';
 import { purgeDefaultStorages } from './utils.js';
 
 const sitemapRequestLoaderOptionsSchema = z.strictObject({
-    sitemapUrls: z.array(z.string()),
+    sitemapUrls: schemas.arrayOf(z.string(), 'strings'),
     proxyUrl: z.string().optional(),
     persistStateKey: z.string().optional(),
     signal: z.unknown().optional(),
     timeoutMillis: schemas.anyNumber.optional(),
     maxBufferSize: schemas.anyNumber.default(200),
     parseSitemapOptions: z.looseObject({}).optional(),
-    include: z.array(urlPatternSchema).optional(),
-    exclude: z.array(urlPatternSchema).optional(),
+    include: schemas.arrayOf(urlPatternSchema, 'URL patterns').optional(),
+    exclude: schemas.arrayOf(urlPatternSchema, 'URL patterns').optional(),
     persistenceOptions: z.looseObject({}).optional(),
     httpClient: z.looseObject({}).optional(),
 });
