@@ -2193,6 +2193,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     // (undocumented)
     persistState(): Promise<void>;
     purge(): Promise<void>;
+    purgeDomainQueues(): Promise<void>;
     // (undocumented)
     reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
     recordDomainDelay(url: string, retryAfterMs?: number | null): boolean;
@@ -2204,11 +2205,15 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
 // @public
 export interface ThrottlingRequestManagerOptions<T extends IRequestManager = IRequestManager> {
     baseDelaySecs?: number;
-    domains: string[];
+    domains: string[] | 'all';
     inner: T;
     maxDelaySecs?: number;
     maxDomainStallSecs?: number;
+    maxThrottledDomains?: number;
+    minCrawlDelaySecs?: number;
+    persistStateKey?: string;
     requestManagerOpener?: RequestManagerOpener<T>;
+    throttleBy?: 'hostname' | 'registrableDomain';
 }
 
 export { tryAbsoluteURL }

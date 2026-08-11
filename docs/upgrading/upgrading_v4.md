@@ -1369,6 +1369,14 @@ For the domains you list, a 429 is treated as a rate limit before `blockedStatus
 
 It is also what enforces robots.txt `Crawl-delay` directives — with `respectRobotsTxtFile` enabled and no throttling manager covering the domain, the directive is ignored and the crawler warns about it. See the [request loaders guide](../guides/request-loaders#per-domain-throttling).
 
+#### `sameDomainDelaySecs` is now backed by `ThrottlingRequestManager`
+
+The option means the same thing as in v3 — subdomains included, it still paces a whole site rather than a single host — but it no longer holds delayed requests in memory and re-enqueues them. The crawler now wraps its request manager in a `ThrottlingRequestManager`, which gives every domain a request queue of its own so a delayed request waits in storage. Consequences worth knowing about:
+
+- A crawl that discovers more than `maxThrottledDomains` domains (1000 by default) throws instead of quietly running out of steam. Pass your own `ThrottlingRequestManager` as `requestManager` to raise the ceiling — or crawl fewer sites.
+- Combining `sameDomainDelaySecs` with a `requestManager` that throttles per domain on its own now throws. Configure the delay on that manager instead, via its `domains: 'all'` and `minCrawlDelaySecs` options.
+- Requests that never pass through the request manager — those from the deprecated `requestList` option, or from a `requestsFromUrl` list — are not paced, and the crawler warns when it hands one out.
+
 #### `BasicCrawler.requestList` and `BasicCrawler.requestQueue` fields removed
 
 The public `requestList` and `requestQueue` instance fields are gone. The crawler exposes a single `protected requestManager?: IRequestManager` instead. Access the active manager via the new async `getRequestManager()` method.

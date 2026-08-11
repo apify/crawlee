@@ -2523,7 +2523,7 @@ describe('BasicCrawler', () => {
                 // The robots.txt `Crawl-delay: 5` must have reached the manager, not merely been survivable.
                 await requestManager.fetchNextRequest();
                 const state = (requestManager as any).domainStates.get('example.com');
-                expect(state.crawlDelayMs).toBe(5_000);
+                expect(state.declaredCrawlDelayMs).toBe(5_000);
 
                 // ...and it paces dispatch: the next request is held back rather than served immediately.
                 expect(state.crawlDelayUntil).toBeGreaterThan(Date.now() + 4_000);
@@ -2552,6 +2552,98 @@ describe('BasicCrawler', () => {
 
                 expect(warning).toHaveBeenCalledTimes(1);
                 expect(warning.mock.calls[0][0]).toMatch(/example\.com/);
+            });
+        });
+
+        describe('sameDomainDelaySecs', () => {
+            const crawlerVisiting = async (urls: string[], options: Partial<BasicCrawlerOptions> = {}) => {
+                const visits: { url: string; at: number }[] = [];
+                const crawler = new BasicCrawler({
+                    sameDomainDelaySecs: 0.5,
+                    requestHandler: async ({ request }) => {
+                        visits.push({ url: request.url, at: Date.now() });
+                    },
+                    ...options,
+                });
+
+                await crawler.run(urls);
+                return { crawler, visits };
+            };
+
+            test('spaces out requests to one site, subdomains included', async () => {
+                const { visits } = await crawlerVisiting(
+                    ['http://a.example.com/1', 'http://b.example.com/2', 'http://other.com/1'],
+                    { sameDomainDelaySecs: 1 },
+                );
+
+                expect(visits).toHaveLength(3);
+
+                const [sameSite, elsewhere] = [
+                    visits.filter(({ url }) => url.includes('example.com')),
+                    visits.filter(({ url }) => url.includes('other.com')),
+                ];
+
+                // The two hosts belong to the same site, so the delay applies across them...
+                expect(sameSite[1].at - sameSite[0].at).toBeGreaterThanOrEqual(700);
+                // ...while an unrelated domain is served in the meantime rather than queued behind it.
+                expect(elsewhere[0].at - sameSite[0].at).toBeLessThan(700);
+            });
+
+            test('does not re-enqueue the requests it delays', async () => {
+                const reclaimed: string[] = [];
+                const requestQueue = await RequestQueue.open();
+                const reclaimRequest = requestQueue.reclaimRequest.bind(requestQueue);
+                requestQueue.reclaimRequest = async (request, options) => {
+                    reclaimed.push(request.url);
+                    return reclaimRequest(request, options);
+                };
+
+                const { visits } = await crawlerVisiting(['http://example.com/1', 'http://example.com/2'], {
+                    requestQueue,
+                    sameDomainDelaySecs: 0.2,
+                });
+
+                // The point of the exercise: a delayed request waits in its domain's queue instead of being
+                // handed out, put back, and handed out again.
+                expect(visits).toHaveLength(2);
+                expect(reclaimed).toEqual([]);
+            });
+
+            test('a crawl fed by a requestList still finishes', async () => {
+                // Those requests are transferred straight into the wrapped manager, so they are never routed by
+                // domain - and have to be handed back to it rather than to the queue their domain would own.
+                const requestList = await RequestList.open(null, ['http://example.com/1', 'http://example.com/2']);
+                const { visits } = await crawlerVisiting([], { requestList, sameDomainDelaySecs: 0.1 });
+
+                expect(visits.map(({ url }) => url).sort()).toEqual(['http://example.com/1', 'http://example.com/2']);
+            });
+
+            test('a second run() crawls the same requests again', async () => {
+                const crawler = new BasicCrawler({
+                    sameDomainDelaySecs: 0.05,
+                    requestHandler: async () => {},
+                });
+
+                await crawler.run(['http://example.com/1']);
+                await crawler.run(['http://example.com/1']);
+
+                expect(crawler.stats.state.requestsFinished).toBe(1);
+            });
+
+            test('refuses to be combined with a request manager that throttles on its own', async () => {
+                const requestManager = new ThrottlingRequestManager({
+                    inner: await RequestQueue.open(),
+                    domains: ['example.com'],
+                });
+
+                expect(
+                    () =>
+                        new BasicCrawler({
+                            requestManager,
+                            sameDomainDelaySecs: 1,
+                            requestHandler: async () => {},
+                        }),
+                ).toThrow(/ThrottlingRequestManager/);
             });
         });
 
