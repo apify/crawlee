@@ -9,6 +9,9 @@ RUN npm --quiet set progress=false \
 
 FROM apify/actor-node-playwright-chrome:24-1.58.2-beta
 
+# The browser base images ship a preinstalled node_modules - wipe it so the
+# builder tree (with file: symlinks) can be copied over cleanly.
+RUN rm -rf node_modules
 COPY --from=builder /node_modules ./node_modules
 COPY --from=builder /packages ./packages
 COPY --from=builder /package*.json ./
