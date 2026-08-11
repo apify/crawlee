@@ -34,6 +34,21 @@ function describeReceived(value: unknown): string | undefined {
     }
 }
 
+/** Renders one issue as a line each; a union expands into a line per failed arm. */
+function formatIssue(issue: z.ZodError['issues'][number], root: unknown, basePath: readonly PropertyKey[]): string[] {
+    const path = [...basePath, ...issue.path];
+    // A union's own message is a bare "Invalid input" — the useful part is in `errors`,
+    // whose paths are relative to the union, hence passing `path` down as the base.
+    if (issue.code === 'invalid_union') {
+        return issue.errors.flatMap((arm) => arm.flatMap((nested) => formatIssue(nested, root, path)));
+    }
+
+    const location = path.length ? ` at \`${formatIssuePath(path)}\`` : '';
+    const received = describeReceived(valueAtPath(root, path));
+    const got = received === undefined ? '' : `, got \`${received}\``;
+    return [`${issue.message}${location}${got}`];
+}
+
 /**
  * Formats a `ZodError` as a plain, human-readable message that names the
  * offending field *and* the value it received (e.g. ``must match pattern
@@ -41,14 +56,7 @@ function describeReceived(value: unknown): string | undefined {
  * than zod's default, which omits the received value.
  */
 function formatZodError(error: z.ZodError, root: unknown): string {
-    return error.issues
-        .map((issue) => {
-            const location = issue.path.length ? ` at \`${formatIssuePath(issue.path)}\`` : '';
-            const received = describeReceived(valueAtPath(root, issue.path));
-            const got = received === undefined ? '' : `, got \`${received}\``;
-            return `${issue.message}${location}${got}`;
-        })
-        .join('\n');
+    return error.issues.flatMap((issue) => formatIssue(issue, root, [])).join('\n');
 }
 
 /**
