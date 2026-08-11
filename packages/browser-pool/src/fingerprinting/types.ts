@@ -46,7 +46,7 @@ export interface BrowserSpecification {
     httpVersion?: HttpVersion;
 }
 
-export const enum OperatingSystemsName {
+export enum OperatingSystemsName {
     linux = 'linux',
     macos = 'macos',
     windows = 'windows',
@@ -60,7 +60,7 @@ export const enum OperatingSystemsName {
     ios = 'ios',
 }
 
-export const enum DeviceCategory {
+export enum DeviceCategory {
     /**
      * Describes mobile devices (mobile phones, tablets...). These devices usually have smaller, vertical screens and load lighter versions of websites.
      * > Note: Generating `android` and `ios` devices will not work without setting the device to `mobile` first.
