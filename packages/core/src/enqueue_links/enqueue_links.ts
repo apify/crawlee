@@ -292,7 +292,7 @@ export async function enqueueLinks(
         );
     }
 
-    const parsedOptions = parseArgument(options, enqueueLinksOptionsSchema);
+    const parsedOptions = parseArgument(options, enqueueLinksOptionsSchema, 'EnqueueLinksOptions');
 
     const {
         requestManager,

@@ -12,7 +12,7 @@ import type { z } from 'zod';
 
 // @public
 export class ArgumentValidationError extends Error {
-    constructor(error: z.ZodError, value: unknown);
+    constructor(error: z.ZodError, value: unknown, label?: string);
     readonly cause: z.ZodError;
     readonly issues: z.ZodError['issues'];
 }

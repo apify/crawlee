@@ -220,7 +220,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         options: ThrottlingRequestManagerOptions<T>,
         private readonly config: Configuration = serviceLocator.getConfiguration(),
     ) {
-        parseArgument(options, throttlingRequestManagerOptionsSchema);
+        parseArgument(options, throttlingRequestManagerOptionsSchema, 'ThrottlingRequestManagerOptions');
 
         this.inner = options.inner;
         this.requestManagerOpener =

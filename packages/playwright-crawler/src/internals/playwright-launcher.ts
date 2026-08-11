@@ -93,7 +93,7 @@ export class PlaywrightLauncher extends BrowserLauncher<PlaywrightPlugin> {
         launchContext: PlaywrightLaunchContext = {},
         override readonly configuration = Configuration.getGlobalConfiguration(),
     ) {
-        const parsedContext = parseArgument(launchContext, PlaywrightLauncher.optionsSchema);
+        const parsedContext = parseArgument(launchContext, PlaywrightLauncher.optionsSchema, 'PlaywrightLaunchContext');
 
         const {
             launcher = BrowserLauncher.requireLauncherOrThrow<typeof import('playwright')>(

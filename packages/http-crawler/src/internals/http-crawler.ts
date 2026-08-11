@@ -400,7 +400,7 @@ export class HttpCrawler<
             // BasicCrawler
             contextPipelineBuilder,
             ...basicCrawlerOptions
-        } = parseArgument(options, HttpCrawler.optionsSchema);
+        } = parseArgument(options, HttpCrawler.optionsSchema, 'HttpCrawlerOptions');
 
         super({
             ...basicCrawlerOptions,

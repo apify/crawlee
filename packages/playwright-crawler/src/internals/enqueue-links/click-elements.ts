@@ -215,7 +215,11 @@ export interface EnqueueLinksByClickingElementsOptions {
 export async function enqueueLinksByClickingElements(
     options: EnqueueLinksByClickingElementsOptions,
 ): Promise<BatchAddRequestsResult> {
-    const parsedOptions = parseArgument(options, enqueueLinksByClickingElementsOptionsSchema);
+    const parsedOptions = parseArgument(
+        options,
+        enqueueLinksByClickingElementsOptionsSchema,
+        'EnqueueLinksByClickingElementsOptions',
+    );
 
     const {
         page,

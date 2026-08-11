@@ -154,8 +154,16 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
      * `Request` parameters including the URL, HTTP method and headers, and others.
      */
     constructor(options: RequestOptions<UserData>) {
-        parseArgument(options, schemas.anyObject);
-        parseArgument(options, requestUrlSchema);
+        // A bare URL is a common slip — point at the object form instead of a generic type error.
+        if (typeof options === 'string') {
+            throw new TypeError(
+                `\`Request\` options must be an object, got the string '${options}'. ` +
+                    'Did you mean `new Request({ url })`?',
+            );
+        }
+
+        parseArgument(options, schemas.anyObject, 'RequestOptions');
+        parseArgument(options, requestUrlSchema, 'RequestOptions');
         // Full-shape validation is slow, because it checks all predicates
         // even if the validated object has only 1 property.
         // This custom validation loop iterates only over existing
@@ -169,7 +177,7 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
             const schema = requestOptionalSchemas[prop as string];
             const value = options[prop];
             if (schema) {
-                parseArgument({ [prop]: value }, schema);
+                parseArgument({ [prop]: value }, schema, 'RequestOptions');
             }
         });
 

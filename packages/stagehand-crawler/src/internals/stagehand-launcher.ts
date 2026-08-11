@@ -82,7 +82,7 @@ export class StagehandLauncher extends BrowserLauncher<StagehandPlugin> {
         launchContext: StagehandLaunchContext = {},
         override readonly configuration = Configuration.getGlobalConfiguration(),
     ) {
-        const parsedContext = parseArgument(launchContext, StagehandLauncher.optionsSchema);
+        const parsedContext = parseArgument(launchContext, StagehandLauncher.optionsSchema, 'StagehandLaunchContext');
 
         const {
             launcher = BrowserLauncher.requireLauncherOrThrow<typeof import('playwright')>(

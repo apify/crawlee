@@ -128,7 +128,7 @@ describe('parseArgument', () => {
         expect(error).toBeInstanceOf(ArgumentValidationError);
         expect(error).toBeInstanceOf(Error);
         expect(error.name).toBe('ArgumentValidationError');
-        expect(error.message).toBe('Invalid input: expected object, got `not an object`');
+        expect(error.message).toBe('Invalid input: expected object, received string, got `not an object`');
         expect(error.cause).toBeInstanceOf(z.ZodError);
         expect(error.issues).toBe(error.cause.issues);
         expect(error.issues.length).toBeGreaterThan(0);
@@ -144,6 +144,24 @@ describe('parseArgument', () => {
 
         expect(() => parseArgument({ countryCode: 'CZE' }, schema)).toThrow(
             'Invalid string: must match pattern /^[A-Z]{2}$/ at `countryCode`, got `CZE`',
+        );
+    });
+
+    test('message names the received type for bare custom-schema failures', () => {
+        expect(() => parseArgument({ retries: 'three' }, z.strictObject({ retries: schemas.anyNumber }))).toThrow(
+            'Invalid input: expected number, received string at `retries`, got `three`',
+        );
+
+        // Skipped when the two would read the same — `NaN` is a number to `typeof`.
+        expect(() => parseArgument(Number.NaN, schemas.anyNumber)).toThrow('Invalid input: expected number, got `NaN`');
+    });
+
+    test('label names the validated interface on every line', () => {
+        const schema = z.strictObject({ retries: schemas.anyNumber, name: z.string() });
+
+        expect(() => parseArgument({ retries: 'three', name: 7 }, schema, 'ExampleOptions')).toThrow(
+            'Invalid input: expected number, received string at `retries`, got `three` in `ExampleOptions`\n' +
+                'Invalid input: expected string, received number at `name`, got `7` in `ExampleOptions`',
         );
     });
 

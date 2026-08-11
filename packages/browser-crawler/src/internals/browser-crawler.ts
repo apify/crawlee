@@ -431,7 +431,7 @@ export abstract class BrowserCrawler<
             contextPipelineBuilder,
             extendContext,
             ...basicCrawlerOptions
-        } = parseArgument(options, BrowserCrawler.optionsSchema);
+        } = parseArgument(options, BrowserCrawler.optionsSchema, 'BrowserCrawlerOptions');
 
         const skipGuard = <Ctx extends Context>(
             action: (ctx: Ctx) => Awaitable<void | Partial<Ctx>>,

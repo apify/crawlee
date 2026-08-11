@@ -258,7 +258,7 @@ export class ConcurrencySystem implements IConcurrencySystem {
             currentHistorySecs,
             log,
             maxTasksPerMinute,
-        } = parseArgument(options, concurrencySystemOptionsSchema);
+        } = parseArgument(options, concurrencySystemOptionsSchema, 'ConcurrencySystemOptions');
 
         this.log = log.child({ prefix: 'ConcurrencySystem' });
 

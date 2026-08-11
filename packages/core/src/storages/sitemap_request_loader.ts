@@ -207,7 +207,7 @@ export class SitemapRequestLoader implements IRequestLoader {
     /** @internal */
     private constructor(options: SitemapRequestLoaderOptions) {
         const { include, exclude, persistStateKey, persistenceOptions, proxyUrl, maxBufferSize, sitemapUrls } =
-            parseArgument(options, sitemapRequestLoaderOptionsSchema);
+            parseArgument(options, sitemapRequestLoaderOptionsSchema, 'SitemapRequestLoaderOptions');
 
         this.#log = serviceLocator.getLogger().child({ prefix: 'SitemapRequestLoader' });
 

@@ -90,7 +90,7 @@ export class PuppeteerLauncher extends BrowserLauncher<PuppeteerPlugin, unknown>
         const {
             launcher = BrowserLauncher.requireLauncherOrThrow('puppeteer', 'apify/actor-node-puppeteer-chrome'),
             ...browserLauncherOptions
-        } = parseArgument(launchContext, PuppeteerLauncher.optionsSchema);
+        } = parseArgument(launchContext, PuppeteerLauncher.optionsSchema, 'PuppeteerLaunchContext');
 
         super(
             {

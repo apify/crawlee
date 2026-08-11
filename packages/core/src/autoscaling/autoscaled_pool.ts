@@ -182,7 +182,7 @@ export class AutoscaledPool {
             log,
             concurrencySystem,
             consumer,
-        } = parseArgument(options, autoscaledPoolOptionsSchema);
+        } = parseArgument(options, autoscaledPoolOptionsSchema, 'AutoscaledPoolOptions');
 
         this.#log = log.child({ prefix: 'AutoscaledPool' });
 

@@ -20,6 +20,16 @@ function valueAtPath(root: unknown, path: readonly PropertyKey[]): unknown {
     return current;
 }
 
+/** Names the runtime type of `value` the way zod's own messages do (`null`, `array`, `string`, …). */
+function describeType(value: unknown): string {
+    if (value === null) return 'null';
+    if (Array.isArray(value)) return 'array';
+    return typeof value;
+}
+
+/** The bare custom-schema messages that stop at the expected type, e.g. `Invalid input: expected number`. */
+const BARE_EXPECTED_TYPE_MESSAGE = /^Invalid input: expected (object|array|function|number|string|boolean)$/;
+
 /** Renders a primitive received value for an error; skips objects/Dates (noisy). */
 function describeReceived(value: unknown): string | undefined {
     switch (typeof value) {
@@ -44,9 +54,20 @@ function formatIssue(issue: z.ZodError['issues'][number], root: unknown, basePat
     }
 
     const location = path.length ? ` at \`${formatIssuePath(path)}\`` : '';
-    const received = describeReceived(valueAtPath(root, path));
+    const value = valueAtPath(root, path);
+
+    // ow named the received type ("expected `number` but received type `string`"); zod's built-in
+    // messages do too, but our custom schemas stop at the expected type — name the received one here.
+    // Skipped when the two would read the same (`expected number, received number` for `NaN`).
+    let { message } = issue;
+    const bareExpected = BARE_EXPECTED_TYPE_MESSAGE.exec(message);
+    if (bareExpected && describeType(value) !== bareExpected[1]) {
+        message += `, received ${describeType(value)}`;
+    }
+
+    const received = describeReceived(value);
     const got = received === undefined ? '' : `, got \`${received}\``;
-    return [`${issue.message}${location}${got}`];
+    return [`${message}${location}${got}`];
 }
 
 /**
@@ -55,8 +76,10 @@ function formatIssue(issue: z.ZodError['issues'][number], root: unknown, basePat
  * /^[A-Z]{2}$/ at `countryCode`, got `CZE` ``) — closer to the old `ow` errors
  * than zod's default, which omits the received value.
  */
-function formatZodError(error: z.ZodError, root: unknown): string {
-    return error.issues.flatMap((issue) => formatIssue(issue, root, [])).join('\n');
+function formatZodError(error: z.ZodError, root: unknown, label?: string): string {
+    const lines = error.issues.flatMap((issue) => formatIssue(issue, root, []));
+    // The label names the validated interface, the way ow's errors ended with "in object `X`".
+    return (label ? lines.map((line) => `${line} in \`${label}\``) : lines).join('\n');
 }
 
 /**
@@ -74,8 +97,8 @@ export class ArgumentValidationError extends Error {
     /** The raw zod error that triggered this. */
     override readonly cause: z.ZodError;
 
-    constructor(error: z.ZodError, value: unknown) {
-        super(formatZodError(error, value), { cause: error });
+    constructor(error: z.ZodError, value: unknown, label?: string) {
+        super(formatZodError(error, value, label), { cause: error });
         this.name = 'ArgumentValidationError';
         this.issues = error.issues;
         this.cause = error;
@@ -85,13 +108,17 @@ export class ArgumentValidationError extends Error {
 /**
  * Parses `value` with `schema`, returning the typed result (with schema defaults applied).
  * Throws {@link ArgumentValidationError} on failure.
+ *
+ * The optional `label` names the interface being validated and is appended to every error line
+ * (e.g. ``… at `maxRequestRetries` in `BasicCrawlerOptions` ``).
  * @internal
  */
 export function parseArgument<TValue, TSchema extends z.ZodType>(
     value: TValue,
     schema: TSchema,
+    label?: string,
 ): TValue & z.output<TSchema> {
     const result = schema.safeParse(value);
-    if (!result.success) throw new ArgumentValidationError(result.error, value);
+    if (!result.success) throw new ArgumentValidationError(result.error, value, label);
     return result.data as TValue & z.output<TSchema>;
 }

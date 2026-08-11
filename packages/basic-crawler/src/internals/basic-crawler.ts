@@ -901,7 +901,7 @@ export class BasicCrawler<
         options: BasicCrawlerOptions<Context, ContextExtension, ExtendedContext, Routes> &
             RequireContextPipeline<CrawlingContext, Context> = {} as any, // cast because the constructor logic handles missing `contextPipelineBuilder` - the type is just for DX
     ) {
-        const parsedOptions = parseArgument(options, BasicCrawler.optionsSchema);
+        const parsedOptions = parseArgument(options, BasicCrawler.optionsSchema, 'BasicCrawlerOptions');
 
         const {
             // oxlint-disable-next-line typescript/no-deprecated -- still accepted and folded into `requestManager` for back-compat
