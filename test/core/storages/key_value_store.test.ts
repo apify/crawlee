@@ -225,9 +225,9 @@ describe('KeyValueStore', () => {
                 await expect(store.setValue(key, 'value')).rejects.toThrow(err);
             }
 
-            // test max length
+            // test max length; the received value is elided at 200 characters
             const longKey = 'X'.repeat(257);
-            const err = `The "key" argument must be at most 256 characters long and only contain the following characters: a-zA-Z0-9!-_.'(), got \`${longKey}\``;
+            const err = `The "key" argument must be at most 256 characters long and only contain the following characters: a-zA-Z0-9!-_.'(), got \`${'X'.repeat(200)}… (57 more characters)\``;
             await expect(store.setValue(longKey, '...')).rejects.toThrow(err);
         });
 
