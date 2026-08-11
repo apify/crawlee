@@ -4,7 +4,6 @@
     "description": "Crawler Stop-Resume Test - TypeScript",
     "dependencies": {
         "apify": "next-v4",
-        "@apify/storage-local": "^3.0.0",
         "@crawlee/basic": "file:./packages/basic-crawler",
         "@crawlee/browser-pool": "file:./packages/browser-pool",
         "@crawlee/http": "file:./packages/http-crawler",
@@ -18,9 +17,6 @@
             "@crawlee/core": "file:./packages/core",
             "@crawlee/types": "file:./packages/types",
             "@crawlee/utils": "file:./packages/utils"
-        },
-        "@apify/storage-local": {
-            "better-sqlite3": "^11.10.0"
         }
     },
     "devDependencies": {

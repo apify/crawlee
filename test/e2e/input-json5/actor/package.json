@@ -4,7 +4,6 @@
     "description": "JSON5 input test",
     "dependencies": {
         "apify": "next-v4",
-        "@apify/storage-local": "^3.0.0",
         "@crawlee/core": "file:./packages/core",
         "@crawlee/utils": "file:./packages/utils"
     },
@@ -12,9 +11,6 @@
         "apify": {
             "@crawlee/core": "file:./packages/core",
             "@crawlee/utils": "file:./packages/utils"
-        },
-        "@apify/storage-local": {
-            "better-sqlite3": "^11.10.0"
         }
     },
     "scripts": {
