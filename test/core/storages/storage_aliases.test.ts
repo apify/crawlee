@@ -2,6 +2,7 @@ import { resolve } from 'node:path';
 
 import { FileSystemStorageBackend } from '@crawlee/fs-storage';
 import { Dataset, KeyValueStore, MemoryStorageBackend, RequestQueue, serviceLocator } from '@crawlee/core';
+import type { StorageBackend } from '@crawlee/types';
 import { ensureDir, rm } from 'fs-extra';
 
 import { cryptoRandomObjectId } from '@apify/utilities';
@@ -230,6 +231,38 @@ describe('storage aliases', () => {
             const dataset1 = await Dataset.open({});
             const dataset2 = await Dataset.open();
             expect(dataset1).toBe(dataset2);
+        });
+
+        test('the reserved __default__ alias opens default storage', async () => {
+            const dataset1 = await Dataset.open({ alias: '__default__' });
+            const dataset2 = await Dataset.open();
+            expect(dataset1).toBe(dataset2);
+        });
+
+        describe('at the backend level', () => {
+            const localStorageDir = resolve(import.meta.dirname, '..', 'tmp', 'fs-aliases', cryptoRandomObjectId(10));
+
+            afterAll(async () => {
+                await rm(localStorageDir, { force: true, recursive: true });
+            });
+
+            test.each([
+                ['MemoryStorageBackend', (): StorageBackend => new MemoryStorageBackend()],
+                [
+                    'FileSystemStorageBackend',
+                    (): StorageBackend => new FileSystemStorageBackend({ localDataDirectory: localStorageDir }),
+                ],
+            ])(
+                '%s opens the same default storage for the reserved alias and for no identifier',
+                async (_backendName, createBackend) => {
+                    const backend = createBackend();
+
+                    const aliased = await backend.createDatasetBackend({ alias: '__default__' });
+
+                    expect(await backend.createDatasetBackend({})).toBe(aliased);
+                    expect(await backend.createDatasetBackend()).toBe(aliased);
+                },
+            );
         });
 
         test('string identifier opens named storage', async () => {

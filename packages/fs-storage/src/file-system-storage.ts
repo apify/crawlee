@@ -96,11 +96,14 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
         alias?: string;
         cacheKey: string | undefined;
     } {
-        const isAlias = 'alias' in options && !!options.alias;
-        const rawKey = isAlias ? options.alias : (options.name ?? options.id);
+        // No identifier at all means the default storage, which is opened under the reserved alias —
+        // same rule as `resolveStorageIdentifier` in @crawlee/core, so that a backend used directly
+        // lands on the very storage the frontends would have opened.
+        const alias = options.alias || (!options.id && !options.name ? DEFAULT_STORAGE_ALIAS : undefined);
+        const rawKey = alias ?? options.name ?? options.id;
         // Normalize the internal __default__ alias to the user-facing 'default' name.
         const cacheKey = rawKey === DEFAULT_STORAGE_ALIAS ? 'default' : rawKey;
-        return { id: options.id, name: options.name, alias: options.alias, cacheKey };
+        return { id: options.id, name: options.name, alias, cacheKey };
     }
 
     async createDatasetBackend(options: storage.StorageIdentifier = {}): Promise<storage.DatasetBackend> {

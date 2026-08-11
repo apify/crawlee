@@ -7,6 +7,9 @@ import { DatasetBackend } from './resource-clients/dataset.js';
 import { KeyValueStoreBackend } from './resource-clients/key-value-store.js';
 import { RequestQueueBackend } from './resource-clients/request-queue.js';
 
+/** The alias the default (unnamed) storage is opened under. */
+const DEFAULT_STORAGE_ALIAS = '__default__';
+
 export interface MemoryStorageOptions {
     /**
      * Optional logger for MemoryStorageBackend warnings.
@@ -43,11 +46,14 @@ export class MemoryStorageBackend implements storage.StorageBackend {
         isAlias: boolean;
         cacheKey: string | undefined;
     } {
-        const isAlias = 'alias' in options && !!options.alias;
-        const rawKey = isAlias ? options.alias : (options.name ?? options.id);
+        // No identifier at all means the default storage, which is opened under the reserved alias —
+        // same rule as `resolveStorageIdentifier` in the storage frontends, so that a backend used
+        // directly lands on the very storage the frontends would have opened.
+        const alias = options.alias || (!options.id && !options.name ? DEFAULT_STORAGE_ALIAS : undefined);
+        const rawKey = alias ?? options.name ?? options.id;
         // Normalize the internal __default__ alias to the user-facing 'default' name.
-        const cacheKey = rawKey === '__default__' ? 'default' : rawKey;
-        return { isAlias, cacheKey };
+        const cacheKey = rawKey === DEFAULT_STORAGE_ALIAS ? 'default' : rawKey;
+        return { isAlias: alias !== undefined, cacheKey };
     }
 
     async createDatasetBackend(options: storage.StorageIdentifier = {}): Promise<storage.DatasetBackend> {
