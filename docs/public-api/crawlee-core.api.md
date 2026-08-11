@@ -847,7 +847,7 @@ export interface IStatistics {
     readonly errorTrackerRetry: ErrorTracker;
     failJob(id: number | string, retryCount: number): void;
     finishJob(id: number | string, retryCount: number): void;
-    persistState?(options?: PersistenceOptions): Promise<void>;
+    persistState?(): Promise<void>;
     registerStatusCode(code: number): void;
     readonly requestRetryHistogram: number[];
     startCapturing(): Promise<void>;
@@ -1930,15 +1930,18 @@ export class StateValidationError extends Error {
 }
 
 // @public
-export interface StatisticPersistedState extends Omit<StatisticState, 'statsPersistedAt'> {
+export interface StatisticPersistedState extends Omit<StatisticState, 'statsPersistedAt' | 'crawlerStartedAt' | 'crawlerFinishedAt' | 'requestMinDurationMillis' | 'requestRetryHistogram' | 'instanceStart'> {
     // (undocumented)
+    crawlerFinishedAt: string | null;
     crawlerLastStartTimestamp: number;
+    crawlerStartedAt: string | null;
     // (undocumented)
-    requestAvgFailedDurationMillis: number;
+    requestAvgFailedDurationMillis: number | null;
     // (undocumented)
-    requestAvgFinishedDurationMillis: number;
+    requestAvgFinishedDurationMillis: number | null;
     // (undocumented)
-    requestRetryHistogram: number[];
+    requestMinDurationMillis: number | null;
+    requestRetryHistogram: (number | null)[];
     // (undocumented)
     requestsTotal: number;
     // (undocumented)
@@ -1953,22 +1956,21 @@ export interface StatisticPersistedState extends Omit<StatisticState, 'statsPers
 export class Statistics implements IStatistics {
     constructor(options?: StatisticsOptions);
     calculate(): CalculatedStatistics;
+    protected defaultState(): StatisticState;
+    protected deserializeState(persistedState: StatisticPersistedState): StatisticState;
     readonly errorTracker: ErrorTracker;
     readonly errorTrackerRetry: ErrorTracker;
     readonly id: string;
-    // (undocumented)
-    protected keyValueStore?: KeyValueStore;
-    protected maybeLoadStatistics(): Promise<void>;
-    persistState(options?: PersistenceOptions): Promise<void>;
+    persistState(): Promise<void>;
     // (undocumented)
     protected readonly persistStateKey: string;
     registerStatusCode(code: number): void;
-    readonly requestRetryHistogram: number[];
+    get requestRetryHistogram(): number[];
     reset(): void;
-    // (undocumented)
-    resetStore(options?: PersistenceOptions): Promise<void>;
+    resetStore(): Promise<void>;
+    protected serializeState(state: StatisticState): StatisticPersistedState;
     startCapturing(): Promise<void>;
-    state: StatisticState;
+    get state(): StatisticState;
     stopCapturing(): Promise<void>;
     toJSON(): StatisticPersistedState;
 }
@@ -1994,10 +1996,12 @@ export interface StatisticState {
     crawlerStartedAt: Date | string | null;
     // (undocumented)
     errors: Record<string, unknown>;
+    instanceStart: number;
     // (undocumented)
     requestMaxDurationMillis: number;
     // (undocumented)
     requestMinDurationMillis: number;
+    requestRetryHistogram: number[];
     // (undocumented)
     requestsFailed: number;
     // (undocumented)

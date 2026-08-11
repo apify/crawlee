@@ -1,10 +1,10 @@
 import ow from 'ow';
+import { z } from 'zod';
 
-import type { EventManager } from '../events/event_manager.js';
-import { EventType } from '../events/event_manager.js';
 import type { CrawleeLogger } from '../log.js';
+import { RecoverableState } from '../recoverable_state.js';
 import { serviceLocator } from '../service_locator.js';
-import { KeyValueStore } from '../storages/key_value_store.js';
+import type { KeyValueStore } from '../storages/key_value_store.js';
 import { ErrorTracker } from './error_tracker.js';
 
 /**
@@ -32,6 +32,122 @@ const errorTrackerConfig = {
     showErrorMessage: true,
     showFullMessage: false,
 };
+
+/**
+ * The persisted record, in the order it is written - the schema rebuilds the object on the way out, so the field
+ * order here *is* the record's field order (guarded by a test).
+ *
+ * JSON has no infinity, so the three fields that are `Infinity` until the first request settles are written as
+ * `null`. Both {@apilink Statistics.serializeState} and {@apilink Statistics.deserializeState} run through this,
+ * which is what keeps them describing the same record.
+ *
+ * Nothing is optional on purpose: `serializeState` has always written every field, so a record missing one is not
+ * one of ours and is discarded whole rather than partially trusted - a counter restored as a string would poison
+ * every later increment.
+ */
+const persistedStatisticState = z
+    .object({
+        requestsFinished: z.number(),
+        requestsFailed: z.number(),
+        requestsRetries: z.number(),
+        requestsFailedPerMinute: z.number(),
+        requestsFinishedPerMinute: z.number(),
+        requestMinDurationMillis: z.number().nullable(),
+        requestMaxDurationMillis: z.number(),
+        requestTotalFailedDurationMillis: z.number(),
+        requestTotalFinishedDurationMillis: z.number(),
+        crawlerStartedAt: z.string().nullable(),
+        crawlerFinishedAt: z.string().nullable(),
+        statsPersistedAt: z.string(),
+        crawlerRuntimeMillis: z.number(),
+        crawlerLastStartTimestamp: z.number(),
+        // A retry count that never occurred leaves a hole in the live histogram, written out as a `null`. We
+        // once saw a record whose histogram was not an array at all and crashed the crawler on load.
+        requestRetryHistogram: z.array(z.number().nullable()),
+        statsId: z.string(),
+        requestAvgFailedDurationMillis: z.number().nullable(),
+        requestAvgFinishedDurationMillis: z.number().nullable(),
+        requestTotalDurationMillis: z.number(),
+        requestsTotal: z.number(),
+        requestsWithStatusCode: z.record(z.string(), z.number()),
+        errors: z.record(z.string(), z.unknown()),
+        retryErrors: z.record(z.string(), z.unknown()),
+    })
+    // A subclass tracking extra fields spreads them into the record; they are none of this schema's business,
+    // but they must not be dropped on the way through it.
+    .catchall(z.unknown());
+
+/** `Infinity` is what the statistics use for "nothing to average yet"; JSON has only `null` for it. */
+function finiteOrNull(value: number): number | null {
+    return Number.isFinite(value) ? value : null;
+}
+
+/**
+ * The conversion between the live state and the record above, in both directions.
+ *
+ * Built per instance rather than kept as a constant because a record carries three things the state does not: the
+ * instance `id`, the derived aggregates of the overridable {@apilink Statistics.calculate}, and - on the way back -
+ * the fields that are rebuilt from {@apilink Statistics.defaultState} rather than restored, the error trackers
+ * among them.
+ *
+ * The model side is deliberately opaque: zod rebuilds what it validates, and `state.errors` has to stay the very
+ * object the error trackers write into, not a copy of it.
+ */
+function buildStatisticStateCodec(statistics: {
+    statsId: string;
+    defaultState: () => StatisticState;
+    calculate: () => CalculatedStatistics;
+}) {
+    return z.codec(persistedStatisticState, z.custom<StatisticState>(), {
+        decode: (record) => ({
+            ...statistics.defaultState(),
+            requestsFinished: record.requestsFinished,
+            requestsFailed: record.requestsFailed,
+            requestsRetries: record.requestsRetries,
+            requestTotalFailedDurationMillis: record.requestTotalFailedDurationMillis,
+            requestTotalFinishedDurationMillis: record.requestTotalFinishedDurationMillis,
+            // Restoring the `null` as-is would make every later `duration < min` comparison fail, leaving the
+            // minimum `null` for the rest of the run.
+            requestMinDurationMillis: record.requestMinDurationMillis ?? Infinity,
+            requestMaxDurationMillis: record.requestMaxDurationMillis,
+            crawlerRuntimeMillis: record.crawlerRuntimeMillis,
+            // A `null` stands for the zero requests that reached that retry count - restore it as such.
+            requestRetryHistogram: record.requestRetryHistogram.map((count) => count ?? 0),
+            // The record keeps ISO strings, the live state keeps `Date`s.
+            crawlerStartedAt: record.crawlerStartedAt === null ? null : new Date(record.crawlerStartedAt),
+            crawlerFinishedAt: record.crawlerFinishedAt === null ? null : new Date(record.crawlerFinishedAt),
+            statsPersistedAt: new Date(record.statsPersistedAt),
+            // Rebased so that the runtime reported by `calculate()` spans the migration instead of restarting.
+            instanceStart:
+                Date.now() - (new Date(record.statsPersistedAt).getTime() - record.crawlerLastStartTimestamp),
+        }),
+        encode: (state) => {
+            const { requestsWithStatusCode, errors, retryErrors, requestRetryHistogram, instanceStart, ...counters } =
+                state;
+            const { requestAvgFailedDurationMillis, requestAvgFinishedDurationMillis, ...aggregates } =
+                statistics.calculate();
+
+            return {
+                ...counters,
+                requestMinDurationMillis: finiteOrNull(state.requestMinDurationMillis),
+                crawlerStartedAt: state.crawlerStartedAt ? new Date(state.crawlerStartedAt).toISOString() : null,
+                crawlerFinishedAt: state.crawlerFinishedAt ? new Date(state.crawlerFinishedAt).toISOString() : null,
+                statsPersistedAt: new Date().toISOString(),
+                crawlerLastStartTimestamp: instanceStart,
+                // `Array.from`, not `map` - a hole left by a retry count no request reached is skipped by `map`
+                // and would stay a hole, which is not something the record can carry.
+                requestRetryHistogram: Array.from(requestRetryHistogram, (count) => count ?? null),
+                statsId: statistics.statsId,
+                ...aggregates,
+                requestAvgFailedDurationMillis: finiteOrNull(requestAvgFailedDurationMillis),
+                requestAvgFinishedDurationMillis: finiteOrNull(requestAvgFinishedDurationMillis),
+                requestsWithStatusCode,
+                errors,
+                retryErrors,
+            };
+        },
+    });
+}
 
 /**
  * Persistence-related options to control how and when crawler's data gets persisted.
@@ -96,7 +212,7 @@ export interface IStatistics {
      * Persists the current state to the key-value store. Optional - the crawler calls it on migration, but a backend
      * with no persistence of its own can omit it.
      */
-    persistState?(options?: PersistenceOptions): Promise<void>;
+    persistState?(): Promise<void>;
 }
 
 /** The derived aggregates computed by {@apilink IStatistics.calculate} from the current {@apilink StatisticState}. */
@@ -152,33 +268,27 @@ export class Statistics implements IStatistics {
      */
     readonly id: string;
 
+    protected readonly persistStateKey: string;
+    readonly #stateCodec: ReturnType<typeof buildStatisticStateCodec>;
+    readonly #recoverableState: RecoverableState<StatisticState, StatisticPersistedState>;
+    #logIntervalMillis: number;
+    #logMessage: string;
+    #requestsInProgress = new Map<number | string, Job>();
+    private readonly log: CrawleeLogger;
+    #logInterval: unknown;
+
     /**
      * Current statistic state used for doing calculations on {@apilink Statistics.calculate} calls
      */
-    state!: StatisticState;
+    get state(): StatisticState {
+        return this.#recoverableState.currentValue;
+    }
 
     /**
      * Contains the current retries histogram. Index 0 means 0 retries, index 2, 2 retries, and so on
      */
-    readonly requestRetryHistogram: number[] = [];
-
-    protected keyValueStore?: KeyValueStore = undefined;
-    protected readonly persistStateKey: string;
-    #logIntervalMillis: number;
-    #logMessage: string;
-    #listener: () => Promise<void>;
-    #requestsInProgress = new Map<number | string, Job>();
-    private readonly log: CrawleeLogger;
-    #instanceStart!: number;
-    #logInterval: unknown;
-    #events?: EventManager;
-    #persistenceOptions: PersistenceOptions;
-
-    private get events(): EventManager {
-        if (!this.#events) {
-            this.#events = serviceLocator.getEventManager();
-        }
-        return this.#events;
+    get requestRetryHistogram(): number[] {
+        return this.state.requestRetryHistogram;
     }
 
     /**
@@ -218,22 +328,47 @@ export class Statistics implements IStatistics {
         this.errorTrackerRetry = new ErrorTracker({ ...errorTrackerConfig, saveErrorSnapshots });
         this.#logIntervalMillis = logIntervalSecs * 1000;
         this.#logMessage = logMessage;
-        this.keyValueStore = keyValueStore;
-        this.#listener = this.persistState.bind(this);
-        this.#persistenceOptions = persistenceOptions;
+
+        // Late-bound on purpose - both hooks are override points, and a subclass's must be the ones that run.
+        this.#stateCodec = buildStatisticStateCodec({
+            statsId: this.id,
+            defaultState: () => this.defaultState(),
+            calculate: () => this.calculate(),
+        });
+
+        this.#recoverableState = new RecoverableState({
+            persistStateKey: this.persistStateKey,
+            persistenceEnabled: persistenceOptions.enable,
+            keyValueStore,
+            logger: this.log,
+            defaultState: () => this.defaultState(),
+            serialize: (state) => this.serializeState(state),
+            deserialize: (persistedState) => this.deserializeState(persistedState),
+        });
 
         // initialize by "resetting"
         this.reset();
     }
 
     /**
-     * Set the current statistic instance to pristine values
+     * Set the current statistic instance to pristine values.
+     *
+     * The persisted record is left alone - use {@apilink Statistics.resetStore} to clear that as well.
      */
     reset() {
         this.errorTracker.reset();
         this.errorTrackerRetry.reset();
+        this.#recoverableState.reset();
+        this.#requestsInProgress.clear();
+    }
 
-        this.state = {
+    /**
+     * The pristine state a new instance starts with and {@apilink Statistics.reset} restores.
+     *
+     * A subclass tracking extra fields declares their initial values here.
+     */
+    protected defaultState(): StatisticState {
+        return {
             requestsFinished: 0,
             requestsFailed: 0,
             requestsRetries: 0,
@@ -248,30 +383,21 @@ export class Statistics implements IStatistics {
             statsPersistedAt: null,
             crawlerRuntimeMillis: 0,
             requestsWithStatusCode: {},
+            // Aliases, not copies - the trackers keep writing into these objects.
             errors: this.errorTracker.result,
             retryErrors: this.errorTrackerRetry.result,
+            requestRetryHistogram: [],
+            instanceStart: Date.now(),
         };
-
-        this.requestRetryHistogram.length = 0;
-        this.#requestsInProgress.clear();
-        this.#instanceStart = Date.now();
-
-        this.teardown();
     }
 
     /**
-     * @param options - Override the persistence options provided in the constructor
+     * Clear the persisted statistics record, leaving the in-memory state alone.
+     *
+     * Throws while capturing - the next PERSIST_STATE event would write the record straight back.
      */
-    async resetStore(options?: PersistenceOptions) {
-        if (!this.#persistenceOptions.enable && !options?.enable) {
-            return;
-        }
-
-        if (!this.keyValueStore) {
-            return;
-        }
-
-        await this.keyValueStore.setValue(this.persistStateKey, null);
+    async resetStore() {
+        await this.#recoverableState.resetStore();
     }
 
     /**
@@ -348,7 +474,7 @@ export class Statistics implements IStatistics {
             requestTotalFailedDurationMillis,
             requestTotalFinishedDurationMillis,
         } = this.state;
-        const totalMillis = Date.now() - this.#instanceStart;
+        const totalMillis = Date.now() - this.state.instanceStart;
         const totalMinutes = totalMillis / 1000 / 60;
 
         return {
@@ -374,15 +500,11 @@ export class Statistics implements IStatistics {
             throw new Error('Statistics.startCapturing() was already called - this instance is already capturing.');
         }
 
-        this.keyValueStore ??= await KeyValueStore.open(null, { configuration: serviceLocator.getConfiguration() });
+        await this.#recoverableState.initialize();
 
+        // After the load, so that a restored record keeps the timestamp of the run it belongs to.
         if (this.state.crawlerStartedAt === null) {
             this.state.crawlerStartedAt = new Date();
-        }
-
-        if (this.#persistenceOptions.enable) {
-            await this.maybeLoadStatistics();
-            this.events.on(EventType.PERSIST_STATE, this.#listener);
         }
 
         this.#logInterval = setInterval(() => {
@@ -397,11 +519,11 @@ export class Statistics implements IStatistics {
      * Stops logging and remove event listeners, then persist
      */
     async stopCapturing() {
-        this.teardown();
+        this.#stopLogging();
 
         this.state.crawlerFinishedAt = new Date();
 
-        await this.persistState();
+        await this.#recoverableState.teardown();
     }
 
     private saveRetryCountForJob(retryCount: number) {
@@ -411,79 +533,46 @@ export class Statistics implements IStatistics {
     }
 
     /**
-     * Persist internal state to the key value store
-     * @param options - Override the persistence options provided in the constructor
+     * Persist internal state to the key value store.
+     *
+     * Statistics are bookkeeping - a store that refuses the write is worth a warning, not a failed crawl. The
+     * crawler calls this from its migration handler, where a rejection would go unhandled.
      */
-    async persistState(options?: PersistenceOptions) {
-        if (!this.#persistenceOptions.enable && !options?.enable) {
-            return;
-        }
-
-        // this might be called before startCapturing was called without using await, should not crash
-        if (!this.keyValueStore) {
-            return;
-        }
-
-        this.log.debug('Persisting state', { persistStateKey: this.persistStateKey });
-
-        await this.keyValueStore
-            .setValue(this.persistStateKey, this.toJSON())
+    async persistState() {
+        await this.#recoverableState
+            .persistState()
             .catch((error) =>
                 this.log.warning(`Failed to persist the statistics to ${this.persistStateKey}`, { error }),
             );
     }
 
     /**
-     * Loads the current statistic from the key value store if any
+     * Rebuilds the state from a persisted record.
+     *
+     * A subclass tracking extra fields restores them here, on top of the result of `super.deserializeState()`.
      */
-    protected async maybeLoadStatistics() {
-        // this might be called before startCapturing was called without using await, should not crash
-        if (!this.keyValueStore) {
-            return;
-        }
+    protected deserializeState(persistedState: StatisticPersistedState): StatisticState {
+        // The cast is the index signature the `catchall` puts on the schema and an interface cannot have - the
+        // record is an unvalidated blob off the key-value store either way, which is what the decode is for.
+        const restored = z.safeDecode(this.#stateCodec, persistedState as z.input<typeof persistedStatisticState>);
 
-        const savedState = await this.keyValueStore.getValue<StatisticPersistedState>(this.persistStateKey);
-
-        if (!savedState) return;
-
-        // We saw a run where the requestRetryHistogram was not iterable and crashed
-        // the crawler. Adding some logging to monitor this problem in the future.
-        if (!Array.isArray(savedState.requestRetryHistogram)) {
-            this.log.warning('Received invalid state from Key-value store.', {
+        if (!restored.success) {
+            // Statistics are bookkeeping - a record that cannot be made sense of is worth a warning and a fresh
+            // start, not a failed crawl.
+            this.log.warning('Received invalid state from Key-value store, starting the statistics from scratch.', {
                 persistStateKey: this.persistStateKey,
-                state: savedState,
+                issues: restored.error.issues,
             });
+
+            return this.defaultState();
         }
 
         this.log.debug('Recreating state from KeyValueStore', { persistStateKey: this.persistStateKey });
 
-        // the `requestRetryHistogram` array might be very large, we could end up with
-        // `RangeError: Maximum call stack size exceeded` if we use `a.push(...b)`
-        savedState.requestRetryHistogram.forEach((idx) => this.requestRetryHistogram.push(idx));
-        this.state.requestsFinished = savedState.requestsFinished;
-        this.state.requestsFailed = savedState.requestsFailed;
-        this.state.requestsRetries = savedState.requestsRetries;
-
-        this.state.requestTotalFailedDurationMillis = savedState.requestTotalFailedDurationMillis;
-        this.state.requestTotalFinishedDurationMillis = savedState.requestTotalFinishedDurationMillis;
-        this.state.requestMinDurationMillis = savedState.requestMinDurationMillis;
-        this.state.requestMaxDurationMillis = savedState.requestMaxDurationMillis;
-        // persisted state uses ISO date strings
-        this.state.crawlerFinishedAt = savedState.crawlerFinishedAt ? new Date(savedState.crawlerFinishedAt) : null;
-        this.state.crawlerStartedAt = savedState.crawlerStartedAt ? new Date(savedState.crawlerStartedAt) : null;
-        this.state.statsPersistedAt = savedState.statsPersistedAt ? new Date(savedState.statsPersistedAt) : null;
-        this.state.crawlerRuntimeMillis = savedState.crawlerRuntimeMillis;
-        this.#instanceStart = Date.now() - (+this.state.statsPersistedAt! - savedState.crawlerLastStartTimestamp);
-
-        this.log.debug('Loaded from KeyValueStore');
+        return { ...this.defaultState(), ...restored.data };
     }
 
-    private teardown(): void {
-        // this can be called before a call to startCapturing happens (or in a 'finally' block)
-        // Only unsubscribe if event manager was already resolved — avoid eagerly resolving it
-        // (e.g. during the constructor's reset() call, which would capture the wrong context)
-        this.#events?.off(EventType.PERSIST_STATE, this.#listener);
-
+    #stopLogging(): void {
         if (this.#logInterval) {
             clearInterval(this.#logInterval as number);
             this.#logInterval = null;
@@ -491,35 +580,19 @@ export class Statistics implements IStatistics {
     }
 
     /**
+     * Builds the record written to the key value store, merging in the derived aggregates so that a consumer
+     * reading the record does not have to reconstruct them.
+     */
+    protected serializeState(state: StatisticState): StatisticPersistedState {
+        return z.encode(this.#stateCodec, state);
+    }
+
+    /**
      * Make this class serializable when called with `JSON.stringify(statsInstance)` directly
      * or through `keyValueStore.setValue('KEY', statsInstance)`
      */
     toJSON(): StatisticPersistedState {
-        // merge all the current state information that can be used from the outside
-        // without the need to reconstruct for the sake of stats.calculate()
-        // omit duplicated information
-        const result = {
-            ...this.state,
-            crawlerLastStartTimestamp: this.#instanceStart,
-            crawlerFinishedAt: this.state.crawlerFinishedAt
-                ? new Date(this.state.crawlerFinishedAt).toISOString()
-                : null,
-            crawlerStartedAt: this.state.crawlerStartedAt ? new Date(this.state.crawlerStartedAt).toISOString() : null,
-            requestRetryHistogram: this.requestRetryHistogram,
-            statsId: this.id,
-            statsPersistedAt: new Date().toISOString(),
-            ...this.calculate(),
-        };
-
-        Reflect.deleteProperty(result, 'requestsWithStatusCode');
-        Reflect.deleteProperty(result, 'errors');
-        Reflect.deleteProperty(result, 'retryErrors');
-
-        result.requestsWithStatusCode = this.state.requestsWithStatusCode;
-        result.errors = this.state.errors;
-        result.retryErrors = this.state.retryErrors;
-
-        return result;
+        return this.serializeState(this.state);
     }
 }
 
@@ -574,17 +647,34 @@ export interface StatisticsOptions {
 }
 
 /**
- * Format of the persisted stats
+ * Format of the persisted stats.
+ *
+ * The `null`s are `Infinity` on the way out - JSON has no infinity, so a record written before anything
+ * finished or failed carries a `null` in its place.
  */
-export interface StatisticPersistedState extends Omit<StatisticState, 'statsPersistedAt'> {
-    requestRetryHistogram: number[];
+export interface StatisticPersistedState extends Omit<
+    StatisticState,
+    | 'statsPersistedAt'
+    | 'crawlerStartedAt'
+    | 'crawlerFinishedAt'
+    | 'requestMinDurationMillis'
+    | 'requestRetryHistogram'
+    | 'instanceStart'
+> {
     statsId: string;
-    requestAvgFailedDurationMillis: number;
-    requestAvgFinishedDurationMillis: number;
+    /** ISO strings - the live state keeps these as `Date`s. */
+    crawlerStartedAt: string | null;
+    crawlerFinishedAt: string | null;
+    statsPersistedAt: string;
+    requestMinDurationMillis: number | null;
+    /** A retry count that no request ever reached leaves a `null` here. */
+    requestRetryHistogram: (number | null)[];
+    requestAvgFailedDurationMillis: number | null;
+    requestAvgFinishedDurationMillis: number | null;
     requestTotalDurationMillis: number;
     requestsTotal: number;
+    /** {@apilink StatisticState.instanceStart} of the run that wrote the record. */
     crawlerLastStartTimestamp: number;
-    statsPersistedAt: string;
 }
 
 /**
@@ -607,4 +697,13 @@ export interface StatisticState {
     errors: Record<string, unknown>;
     retryErrors: Record<string, unknown>;
     requestsWithStatusCode: Record<string, number>;
+
+    /** Retries histogram - index `i` holds the number of requests that finished after `i` retries. */
+    requestRetryHistogram: number[];
+
+    /**
+     * When the current capture window started, as a `Date.now()` timestamp. Rebased on load so that the runtime
+     * reported by {@apilink Statistics.calculate} spans a migration rather than restarting from zero.
+     */
+    instanceStart: number;
 }

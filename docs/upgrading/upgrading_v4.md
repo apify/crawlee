@@ -75,6 +75,10 @@ Support for older TypeScript versions was dropped. Crawlee ships compiled JavaSc
 
 Previously, we kept the dependency on cheerio locked to the latest RC version, since there were many breaking changes introduced in v1.0. This release bumps cheerio to the stable v1. Also, we now use the default `parse5` internally.
 
+### Zod 4.1+ required
+
+`@crawlee/core` used to accept zod 3 as well; it now needs 4.1 or newer, for the codecs it validates persisted state with. Zod is an ordinary dependency rather than a peer, so a project pinned to zod 3 keeps working — it just ends up with both versions installed.
+
 ### Deprecated crawler options are removed
 
 The crawler following options are removed:
@@ -700,7 +704,7 @@ The change spans, among others:
 - **`RequestList`** — all `_`-prefixed helpers (`addFetchedRequests`, `addPersistedRequests`, `addRequest`, `addRequestsFromSources`, `ensureInProgress`, `ensureIsInitialized`, `ensureUniqueKeyValid`, `fetchRequestsFromUrl`, `getPersistedState`, `loadStateAndPersistedRequests`, `persistRequests`, `restoreState`)
 - **`RequestQueue`** — `proxyConfiguration`, `requestCache`, `requestSeenCache`, `queuePausedForMigration`, `inProgressRequestBatchCount`, `expectedRequestProcessingSecs`, `httpClient`, `events`, and the helpers `cacheRequest`, `fetchRequestsFromUrl`, `addFetchedRequests` (`id`, `name`, `backend`, `log` are now `readonly`)
 - **`ProxyConfiguration`** — `nextCustomUrlIndex`, `proxyUrls`, `newUrlFunction`, and the helpers `handleProxyUrlsList`, `callNewUrlFunction`, `throwCannotCombineCustomMethods`, `throwNoOptionsProvided` (the internal `log` field and `usedProxyUrls` map are removed; `isManInTheMiddle` is now `readonly`)
-- **`Statistics`** — `saveRetryCountForJob`, `teardown` (`errorTracker`, `errorTrackerRetry` are now `readonly`)
+- **`Statistics`** — `saveRetryCountForJob`, `teardown`, `keyValueStore` (`errorTracker`, `errorTrackerRetry` are now `readonly`, and `state` / `requestRetryHistogram` are getters)
 - **`SystemStatus`** — `isSystemIdle`
 - **`Router`** — the constructor is now `private`; use the static `Router.create()` factory
 - **`BaseHttpClient`** — `log` (subclasses receive it via the constructor `logger` option instead of reading `this.log`)
@@ -709,7 +713,6 @@ The change spans, among others:
 - **`RenderingTypePredictor`** — `calculateFeatureVector`, `retrain`
 - **`BrowserCrawler`** — `navigationTimeoutMillis`, `preNavigationHooks`, `postNavigationHooks`, `saveResponseCookies` (now `private readonly`; configure them through the constructor options as before), and the helpers `isRequestBlocked`, `applyCookies` (was `_applyCookies`), `handleNavigationTimeout` (was `_handleNavigationTimeout`), `throwIfProxyError` (was `_throwIfProxyError`)
 - **`BrowserLauncher`** — the helpers `getChromeExecutablePath`, `getTypicalChromeExecutablePath`, `validateProxyUrlProtocol` (were `_`-prefixed). `getDefaultHeadlessOption` (was `_getDefaultHeadlessOption`) stays `protected` — it is an override point (`PuppeteerLauncher` overrides it) — but lost its underscore prefix
-- **`Statistics.maybeLoadStatistics`** (was `_maybeLoadStatistics`) — stays `protected` (it is overridden by `AdaptivePlaywrightCrawler`'s statistics), but lost its underscore prefix; rename any `super._maybeLoadStatistics()` overrides accordingly
 - **`RobotsTxtFile.load` and `Sitemap.parse`** — internal static factory helpers, now `private` (use the public `RobotsTxtFile.from` / `Sitemap.load` / `Sitemap.fromXmlString` entry points)
 - Various internal fields on `BrowserController` (`id`, `browserPlugin`, `log`) and `BrowserPlugin` (`name`, `library`, `launchOptions`, `proxyUrl`, `userDataDir`, `browserPerProxy`, `ignoreProxyCertificate`, `log`) are now `readonly`
 
@@ -1023,6 +1026,12 @@ const crawler = new BasicCrawler({
 Omit the option and the crawler builds its own default, exactly as before. A supplied instance is treated as borrowed: the crawler records into it and drives its capture lifecycle for the run, but never `reset()`s it between `run()` calls — so a preconfigured instance keeps whatever state it was handed. This is also the supported way to plug in a custom `Statistics` subclass that tracks extra fields (superseding the previous subclass-and-reassign pattern).
 
 The option accepts the built-in `Statistics` or any object implementing the new `IStatistics` interface, so a fully custom statistics backend can be plugged in without subclassing. The crawler exposes it as `crawler.stats` typed as `IStatistics`.
+
+### The `Statistics` persistence lifecycle is stricter
+
+`persistState()` and `resetStore()` no longer take `PersistenceOptions` — persistence is enabled or disabled once, in the constructor. `resetStore()` throws while the instance is capturing, where the next `PERSIST_STATE` event would write the record straight back; call it before `startCapturing()` or after `stopCapturing()`. And `reset()` only resets the counters — it no longer stops an ongoing capture, which `stopCapturing()` does.
+
+A persisted record is also validated on load now. One that does not match the expected shape is discarded whole, with a warning, and the statistics start from scratch — where v3 would copy the malformed values into the live state and let them corrupt every later increment.
 
 ## Only if you wrote a custom HTTP client or used `got-scraping` directly
 

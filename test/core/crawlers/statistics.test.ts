@@ -1,4 +1,5 @@
-import { Configuration, EventType, MemoryStorageBackend, serviceLocator, Statistics } from '@crawlee/core';
+import type { StatisticPersistedState, StatisticState } from '@crawlee/core';
+import { EventType, KeyValueStore, MemoryStorageBackend, serviceLocator, Statistics } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/types';
 
 describe('Statistics', () => {
@@ -6,14 +7,21 @@ describe('Statistics', () => {
         return Math.round(jobCount / (totalTickMillis / 1000 / 60));
     };
 
+    const persistStateKey = (statistics: Statistics) => `CRAWLEE_CRAWLER_STATISTICS_${statistics.id}`;
+
     let stats: Statistics;
+    let store: KeyValueStore;
+
     beforeAll(async () => {
         vitest.useFakeTimers();
     });
 
     beforeEach(async () => {
+        // Restarted for every test so that the timestamps of a persisted record are predictable.
+        vitest.setSystemTime(0);
         serviceLocator.setStorageBackend(new MemoryStorageBackend());
         stats = new Statistics();
+        store = await KeyValueStore.open();
     });
 
     afterEach(async () => {
@@ -42,113 +50,174 @@ describe('Statistics', () => {
         });
 
         test('should persist the state to KV and load again', async () => {
-            const startedAt = 1000;
-            vitest.advanceTimersByTime(startedAt);
+            vitest.advanceTimersByTime(1000);
+            stats.startJob(0);
+            vitest.advanceTimersByTime(100);
+            stats.finishJob(0, 1);
+            stats.registerStatusCode(200);
+
+            await stats.startCapturing();
+            await stats.stopCapturing();
+
+            const restored = new Statistics({ id: stats.id });
+            vitest.advanceTimersByTime(5000);
+            await restored.startCapturing();
+
+            expect(restored.state).toMatchObject({
+                requestsFinished: 1,
+                requestsRetries: 1,
+                requestTotalFinishedDurationMillis: 100,
+                requestMinDurationMillis: 100,
+                requestMaxDurationMillis: 100,
+                crawlerStartedAt: stats.state.crawlerStartedAt,
+            });
+            // JSON writes the hole left by a retry count that never occurred as a `null` - it is restored as the
+            // zero requests it stands for.
+            expect(restored.requestRetryHistogram).toEqual([0, 1]);
+            // The gap between the two runs is not counted, but the first run's runtime is.
+            expect(restored.calculate().crawlerRuntimeMillis).toEqual(1100);
+
+            await restored.stopCapturing();
+        });
+
+        test('should restore an Infinity minimum duration written out as null', async () => {
+            await stats.startCapturing();
+            await stats.stopCapturing();
+
+            const record = await store.getValue<StatisticPersistedState>(persistStateKey(stats));
+            expect(record!.requestMinDurationMillis).toBeNull();
+
+            const restored = new Statistics({ id: stats.id });
+            await restored.startCapturing();
+
+            expect(restored.state.requestMinDurationMillis).toEqual(Infinity);
+
+            // The whole point of the minimum - a `duration < null` comparison would never win.
+            restored.startJob(0);
+            vitest.advanceTimersByTime(100);
+            restored.finishJob(0, 0);
+            expect(restored.state.requestMinDurationMillis).toEqual(100);
+
+            await restored.stopCapturing();
+        });
+
+        test('should start from scratch on a record it cannot make sense of', async () => {
+            await stats.startCapturing();
             stats.startJob(0);
             vitest.advanceTimersByTime(100);
             stats.finishJob(0, 0);
+            await stats.stopCapturing();
+
+            const record = (await store.getValue<StatisticPersistedState>(persistStateKey(stats)))!;
+            await store.setValue(persistStateKey(stats), { ...record, requestsFinished: 'plenty' });
+
+            const restored = new Statistics({ id: stats.id });
+            // @ts-expect-error Accessing private prop
+            const warningSpy = vitest.spyOn(restored.log, 'warning').mockImplementation(() => {});
+
+            // A corrupt counter must not take the crawl down with it, and must not be trusted either - an
+            // increment on a string would poison every later one.
+            await restored.startCapturing();
+
+            expect(warningSpy).toHaveBeenCalledWith(
+                expect.stringContaining('starting the statistics from scratch'),
+                expect.objectContaining({ persistStateKey: persistStateKey(stats) }),
+            );
+            expect(restored.state.requestsFinished).toEqual(0);
+            expect(restored.state.requestTotalFinishedDurationMillis).toEqual(0);
+
+            await restored.stopCapturing();
+        });
+
+        test('should persist the extra fields of a subclass', async () => {
+            type ExtendedState = StatisticState & { productsFound: number };
+
+            class ExtendedStatistics extends Statistics {
+                override get state(): ExtendedState {
+                    return super.state as ExtendedState;
+                }
+
+                protected override defaultState(): ExtendedState {
+                    return { ...super.defaultState(), productsFound: 0 };
+                }
+            }
+
+            const extended = new ExtendedStatistics({ id: 'extended' });
+            await extended.startCapturing();
+            extended.state.productsFound = 7;
+            await extended.persistState();
+
+            // The record schema knows nothing about them, and must not drop them on the way through.
+            expect(await store.getValue(persistStateKey(extended))).toMatchObject({ productsFound: 7 });
+
+            await extended.stopCapturing();
+        });
+
+        test('should keep the shape of the persisted record', async () => {
+            stats.startJob(0);
+            vitest.advanceTimersByTime(100);
+            stats.finishJob(0, 0);
+            stats.registerStatusCode(200);
 
             await stats.startCapturing();
             await stats.persistState();
 
-            // console.dir(stats);
-            // @ts-expect-error Accessing private prop
-            const state = await stats.keyValueStore.getValue(stats.persistStateKey);
+            const record = (await store.getValue<StatisticPersistedState>(persistStateKey(stats)))!;
 
-            /*
-            expect(state).toEqual({
-                crawlerFinishedAt: null,
-                crawlerLastStartTimestamp: 0,
-                crawlerRuntimeMillis: 1100,
-                crawlerStartedAt: toISOString(startedAt + 100),
-                requestAvgFailedDurationMillis: null,
-                requestAvgFinishedDurationMillis: 100,
-                requestMaxDurationMillis: 100,
+            expect(record).toEqual({
+                requestsFinished: 1,
+                requestsFailed: 0,
+                requestsRetries: 0,
+                requestsFailedPerMinute: 0,
+                requestsFinishedPerMinute: 600,
                 requestMinDurationMillis: 100,
-                requestTotalDurationMillis: 100,
-                requestRetryHistogram: [1],
+                requestMaxDurationMillis: 100,
                 requestTotalFailedDurationMillis: 0,
                 requestTotalFinishedDurationMillis: 100,
-                requestsFailed: 0,
-                requestsFailedPerMinute: 0,
-                requestsFinished: 1,
-                requestsFinishedPerMinute: 55,
-                requestsRetries: 0,
-                requestsTotal: 1,
+                crawlerStartedAt: '1970-01-01T00:00:00.100Z',
+                crawlerFinishedAt: null,
+                statsPersistedAt: '1970-01-01T00:00:00.100Z',
+                crawlerRuntimeMillis: 100,
+                crawlerLastStartTimestamp: 0,
+                requestRetryHistogram: [1],
                 statsId: stats.id,
-                statsPersistedAt: toISOString(startedAt + 100),
+                requestAvgFailedDurationMillis: null,
+                requestAvgFinishedDurationMillis: 100,
+                requestTotalDurationMillis: 100,
+                requestsTotal: 1,
+                requestsWithStatusCode: { 200: 1 },
+                errors: {},
+                retryErrors: {},
             });
+
+            // The record is read by tooling outside Crawlee - the key order is part of its shape.
+            expect(Object.keys(record)).toEqual([
+                'requestsFinished',
+                'requestsFailed',
+                'requestsRetries',
+                'requestsFailedPerMinute',
+                'requestsFinishedPerMinute',
+                'requestMinDurationMillis',
+                'requestMaxDurationMillis',
+                'requestTotalFailedDurationMillis',
+                'requestTotalFinishedDurationMillis',
+                'crawlerStartedAt',
+                'crawlerFinishedAt',
+                'statsPersistedAt',
+                'crawlerRuntimeMillis',
+                'crawlerLastStartTimestamp',
+                'requestRetryHistogram',
+                'statsId',
+                'requestAvgFailedDurationMillis',
+                'requestAvgFinishedDurationMillis',
+                'requestTotalDurationMillis',
+                'requestsTotal',
+                'requestsWithStatusCode',
+                'errors',
+                'retryErrors',
+            ]);
 
             await stats.stopCapturing();
-            stats.reset();
-
-            expect(stats.toJSON()).toEqual({
-                crawlerFinishedAt: null,
-                crawlerRuntimeMillis: 0,
-                crawlerLastStartTimestamp: 1100,
-                crawlerStartedAt: null,
-                requestAvgFailedDurationMillis: Infinity,
-                requestAvgFinishedDurationMillis: Infinity,
-                requestMaxDurationMillis: 0,
-                requestMinDurationMillis: Infinity,
-                requestRetryHistogram: [],
-                requestTotalDurationMillis: 0,
-                requestTotalFailedDurationMillis: 0,
-                requestTotalFinishedDurationMillis: 0,
-                requestsFailed: 0,
-                requestsFailedPerMinute: 0,
-                requestsFinished: 0,
-                requestsFinishedPerMinute: 0,
-                requestsRetries: 0,
-                requestsTotal: 0,
-                statsId: stats.id,
-                statsPersistedAt: toISOString(startedAt + 100),
-            });
-
-            await stats.startCapturing();
-
-            stats.startJob(1);
-            vitest.advanceTimersByTime(100);
-            stats.finishJob(1);
-
-            vitest.advanceTimersByTime(1000);
-
-            expect(stats.toJSON()).toEqual({
-                crawlerRuntimeMillis: 2200,
-                crawlerLastStartTimestamp: 0,
-                crawlerFinishedAt: toISOString(startedAt + 100),
-                crawlerStartedAt: toISOString(startedAt + 100),
-                requestAvgFailedDurationMillis: Infinity,
-                requestAvgFinishedDurationMillis: 100,
-                requestMaxDurationMillis: 100,
-                requestMinDurationMillis: 100,
-                requestRetryHistogram: [2],
-                requestTotalDurationMillis: 200,
-                requestTotalFailedDurationMillis: 0,
-                requestTotalFinishedDurationMillis: 200,
-                requestsFailed: 0,
-                requestsFailedPerMinute: 0,
-                requestsFinished: 2,
-                requestsFinishedPerMinute: 55,
-                requestsRetries: 0,
-                requestsTotal: 2,
-                statsId: stats.id,
-                statsPersistedAt: toISOString(startedAt + 1200),
-            });
-
-            vitest.advanceTimersByTime(10000);
-
-            expect(stats.calculate()).toEqual({
-                crawlerRuntimeMillis: 12200,
-                requestAvgFailedDurationMillis: Infinity,
-                requestAvgFinishedDurationMillis: 100,
-                requestTotalDurationMillis: 200,
-                requestsFailedPerMinute: 0,
-                requestsFinishedPerMinute: getPerMinute(2, 12200),
-                requestsTotal: 2,
-            });
-
-             */
         });
 
         test('should remove persist state event listener', async () => {
@@ -160,7 +229,7 @@ describe('Statistics', () => {
             expect(events.listenerCount(EventType.PERSIST_STATE)).toEqual(0);
             await stats.startCapturing();
             expect(events.listenerCount(EventType.PERSIST_STATE)).toEqual(1);
-            stats.reset();
+            await stats.stopCapturing();
 
             expect(events.listenerCount(EventType.PERSIST_STATE)).toEqual(0);
         });
@@ -170,23 +239,17 @@ describe('Statistics', () => {
             vitest.advanceTimersByTime(100);
             stats.finishJob(0, 0);
 
-            await stats.startCapturing(); // keyValueStore is initialized here
+            await stats.startCapturing();
 
             const state = stats.toJSON();
-            // @ts-expect-error Accessing private prop
-            const setValueSpy = vitest.spyOn(stats.keyValueStore, 'setValue');
 
             serviceLocator.getEventManager().emit(EventType.PERSIST_STATE);
+            await serviceLocator.getEventManager().waitForAllListenersToComplete();
 
-            // TODO: these properties don't exist on the calculate return type
-            // @ts-expect-error Incorrect types?
-            const { retryHistogram, finished, failed, ...rest } = stats.calculate();
+            // `Infinity` does not survive JSON, so compare against what a record can hold.
+            expect(await store.getValue(persistStateKey(stats))).toEqual(JSON.parse(JSON.stringify(state)));
 
-            expect(setValueSpy).toBeCalledWith(
-                // @ts-expect-error Accessing private prop
-                stats.persistStateKey,
-                { ...state, ...rest },
-            );
+            await stats.stopCapturing();
         }, 2000);
     });
 
@@ -329,6 +392,10 @@ describe('Statistics', () => {
         stats.reset();
         expect(stats.state.requestsFinished).toEqual(0);
         expect(stats.requestRetryHistogram).toEqual([]);
+
+        // Resetting the counters does not end the capture - stopCapturing() is what does.
+        expect(serviceLocator.getEventManager().listenerCount(EventType.PERSIST_STATE)).toEqual(1);
+        await stats.stopCapturing();
     });
 
     test('should throw when startCapturing is called while already capturing', async () => {
