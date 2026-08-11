@@ -122,7 +122,7 @@ export type RouterLabel<Routes extends Record<keyof Routes, Dictionary>> = strin
     : (keyof Routes & string) | symbol;
 
 export interface RouterHandler<
-    Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'> = CrawlingContext,
+    Context extends Omit<RestrictedCrawlingContext, 'enqueueUrls'> = CrawlingContext,
     Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
 > extends Router<Context, Routes> {
     (ctx: Context): Awaitable<void>;
@@ -276,7 +276,7 @@ export type RouterRoutes<Context, Routes extends Record<keyof Routes, Dictionary
  * ```
  */
 export class Router<
-    Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'>,
+    Context extends Omit<RestrictedCrawlingContext, 'enqueueUrls'>,
     Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
 > {
     readonly #routes: Map<string | symbol, (ctx: any) => Awaitable<void>> = new Map();
@@ -470,21 +470,21 @@ export class Router<
     // treated as the legacy flat `userData` shape shared by all handlers. The third overload accepts a
     // Standard Schema per label, inferring the route map and validating `userData` at runtime.
     static create<
-        Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'> = CrawlingContext,
+        Context extends Omit<RestrictedCrawlingContext, 'enqueueUrls'> = CrawlingContext,
         Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
     >(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
 
     static create<
-        Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'> = CrawlingContext,
+        Context extends Omit<RestrictedCrawlingContext, 'enqueueUrls'> = CrawlingContext,
         UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
     >(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
 
     static create<
-        Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'> = CrawlingContext,
+        Context extends Omit<RestrictedCrawlingContext, 'enqueueUrls'> = CrawlingContext,
         const Schemas extends RouteSchemas = RouteSchemas,
     >(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
 
-    static create<Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'> = CrawlingContext>(
+    static create<Context extends Omit<RestrictedCrawlingContext, 'enqueueUrls'> = CrawlingContext>(
         routesOrSchemas?: Record<string | symbol, ((ctx: any) => Awaitable<void>) | StandardSchemaV1>,
     ): RouterHandler<Context, any> {
         const router = new Router<Context, any>();

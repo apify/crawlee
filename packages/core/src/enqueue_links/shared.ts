@@ -1,10 +1,10 @@
 import { URL } from 'node:url';
 
-import type { Awaitable } from '@crawlee/types';
+import type { Awaitable, Dictionary } from '@crawlee/types';
 import { Minimatch } from 'minimatch';
 
 import type { RequestOptions } from '../request.js';
-import type { EnqueueLinksOptions } from './enqueue_links.js';
+import type { EnqueueStrategyOption } from './enqueue_links.js';
 
 export { tryAbsoluteURL } from '@crawlee/utils/internal';
 
@@ -164,7 +164,7 @@ export function filterRequestOptionsByPatterns(
     requestOptions: RequestOptions[],
     includePatterns: UrlPatternObject[] | undefined,
     excludePatterns: UrlPatternObject[] = [],
-    strategy?: EnqueueLinksOptions['strategy'],
+    strategy?: EnqueueStrategyOption,
     onSkippedUrl?: (url: string) => void,
 ): RequestOptions[] {
     const excludeMatchers = excludePatterns.map(createPatternObjectMatcher);
@@ -201,10 +201,14 @@ export function filterRequestOptionsByPatterns(
  */
 export function createRequestOptions(
     sources: readonly (string | Record<string, unknown>)[],
-    options: Pick<
-        EnqueueLinksOptions,
-        'label' | 'userData' | 'baseUrl' | 'skipNavigation' | 'sessionId' | 'strategy'
-    > = {},
+    options: {
+        label?: string;
+        userData?: Dictionary;
+        baseUrl?: string;
+        skipNavigation?: boolean;
+        sessionId?: string;
+        strategy?: EnqueueStrategyOption;
+    } = {},
 ): RequestOptions[] {
     return sources
         .map((src) =>

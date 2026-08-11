@@ -39,7 +39,6 @@ import { ConcurrencySystem, MemoryStorageBackend, RequestState } from '@crawlee/
 import type { Dictionary, ISession, ProxyInfo } from '@crawlee/types';
 import { RobotsTxtFile, sleep } from '@crawlee/utils';
 import express from 'express';
-import type { SetRequired } from 'type-fest';
 import type { Mock } from 'vitest';
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vitest } from 'vitest';
 import { z } from 'zod';
@@ -440,14 +439,12 @@ describe('BasicCrawler', () => {
     test('enqueueLinks should respect maxCrawlDepth', async () => {
         const processedUrls: string[] = [];
 
-        const requestHandler: RequestHandler = async ({ request, enqueueLinks }) => {
+        const requestHandler: RequestHandler = async ({ request, enqueueUrls }) => {
             processedUrls.push(request.url);
             const url = new URL(request.url);
             url.pathname = `${url.pathname}deep/`;
 
-            await enqueueLinks({
-                urls: [url.toString()],
-            });
+            await enqueueUrls([url.toString()]);
         };
 
         const crawler = new BasicCrawler({
@@ -465,17 +462,18 @@ describe('BasicCrawler', () => {
         ]);
     });
 
-    describe('enqueueLinksWithCrawlDepth()', () => {
+    describe('enqueueUrls()', () => {
         let onSkippedRequestMock: Mock;
         let addRequestsBatchedMock: Mock;
-        let options: SetRequired<EnqueueLinksOptions, 'urls'>;
+        let urls: string[];
+        let options: EnqueueLinksOptions;
         let request: Request;
         let requestQueue: RequestQueue;
 
-        type EnqueueLinksWrapperOptions = Parameters<BasicCrawler['enqueueLinksWithCrawlDepth']>;
+        type EnqueueUrlsArgs = Parameters<BasicCrawler['enqueueUrls']>;
         class TestCrawler extends BasicCrawler {
-            public exposedEnqueueLinksWithCrawlDepth(...enqueueLinksOptions: EnqueueLinksWrapperOptions) {
-                return this.enqueueLinksWithCrawlDepth(...enqueueLinksOptions);
+            public exposedEnqueueUrls(...args: EnqueueUrlsArgs) {
+                return this.enqueueUrls(...args);
             }
         }
 
@@ -489,18 +487,20 @@ describe('BasicCrawler', () => {
             }));
             onSkippedRequestMock = vi.fn();
 
+            urls = ['https://example.com/1/', 'https://example.com/2/'];
             options = {
-                urls: ['https://example.com/1/', 'https://example.com/2/'],
                 onSkippedRequest: onSkippedRequestMock,
             };
             request = new Request({ url: 'https://example.com/', crawlDepth: 2 });
             requestQueue = {
                 addRequestsBatched: addRequestsBatchedMock as RequestQueue['addRequestsBatched'],
             } as RequestQueue;
+            // eslint-disable-next-line dot-notation -- private field on the crawler, injected for the mock
+            crawler['requestManager'] = requestQueue;
         });
 
         it('should generate requests with maxCrawlDepth', async () => {
-            await crawler.exposedEnqueueLinksWithCrawlDepth(options, request, requestQueue);
+            await crawler.exposedEnqueueUrls(urls, options, request);
 
             const requests = addRequestsBatchedMock.mock.calls[0][0];
             expect(requests).toHaveLength(2);
@@ -512,7 +512,7 @@ describe('BasicCrawler', () => {
 
         it('should skip requests with crawlDepth exceeding maxCrawlDepth', async () => {
             const requestWithMaxDepth = new Request({ url: 'https://example.com/', crawlDepth: 3 });
-            await crawler.exposedEnqueueLinksWithCrawlDepth(options, requestWithMaxDepth, requestQueue);
+            await crawler.exposedEnqueueUrls(urls, options, requestWithMaxDepth);
 
             const requests = addRequestsBatchedMock.mock.calls[0][0];
             expect(requests).toHaveLength(0);
@@ -527,7 +527,7 @@ describe('BasicCrawler', () => {
             const transformRequestFunction = vi.fn((req: RequestOptions) => req);
             const optionsWithTransform = { ...options, transformRequestFunction };
 
-            await crawler.exposedEnqueueLinksWithCrawlDepth(optionsWithTransform, request, requestQueue);
+            await crawler.exposedEnqueueUrls(urls, optionsWithTransform, request);
 
             expect(transformRequestFunction).toHaveBeenCalled();
 
@@ -541,7 +541,7 @@ describe('BasicCrawler', () => {
             const requestWithMaxDepth = new Request({ url: 'https://example.com/', crawlDepth: 3 });
             const optionsWithTransform = { ...options, transformRequestFunction };
 
-            await crawler.exposedEnqueueLinksWithCrawlDepth(optionsWithTransform, requestWithMaxDepth, requestQueue);
+            await crawler.exposedEnqueueUrls(urls, optionsWithTransform, requestWithMaxDepth);
 
             const requests = addRequestsBatchedMock.mock.calls[0][0];
             expect(requests).toHaveLength(0);
@@ -2544,15 +2544,15 @@ describe('BasicCrawler', () => {
                         return;
                     }
 
-                    await context.enqueueLinks({
-                        urls: [
+                    await context.enqueueUrls(
+                        [
                             'http://example.com/yes',
                             'http://example.com/no',
                             'http://example.com/no-globally',
                             'http://example.com/my-crawler/anything',
                         ],
-                        label: 'child',
-                    });
+                        { label: 'child' },
+                    );
                 },
             });
 
@@ -2579,7 +2579,7 @@ describe('BasicCrawler', () => {
                 respectRobotsTxtFile: { userAgent: 'MyCrawler' },
                 requestHandler: async (context) => {
                     if (context.request.label) return;
-                    await context.enqueueLinks({ urls: ['http://example.com/child'], label: 'child' });
+                    await context.enqueueUrls(['http://example.com/child'], { label: 'child' });
                 },
             });
 
@@ -2615,7 +2615,7 @@ describe('BasicCrawler', () => {
 
                     crawler.stats.state.requestsFinished = 2;
 
-                    await context.enqueueLinks({ urls: requestsToAdd, label: 'not-undefined' });
+                    await context.enqueueUrls(requestsToAdd, { label: 'not-undefined' });
                 },
             });
 
@@ -2644,7 +2644,7 @@ describe('BasicCrawler', () => {
                         return;
                     }
 
-                    await context.enqueueLinks({ urls: requestsToAdd, limit: 2, label: 'child' });
+                    await context.enqueueUrls(requestsToAdd, { limit: 2, label: 'child' });
                 },
             });
 
@@ -2671,7 +2671,7 @@ describe('BasicCrawler', () => {
                         return;
                     }
 
-                    await context.enqueueLinks({ urls: requestsToAdd, limit: 1, label: 'child' });
+                    await context.enqueueUrls(requestsToAdd, { limit: 1, label: 'child' });
                 },
             });
 
@@ -2703,7 +2703,7 @@ describe('BasicCrawler', () => {
                         return;
                     }
 
-                    await context.enqueueLinks({ urls: requestsToAdd, limit: 1, label: 'child' });
+                    await context.enqueueUrls(requestsToAdd, { limit: 1, label: 'child' });
                 },
             });
 
@@ -2736,8 +2736,7 @@ describe('BasicCrawler', () => {
 
                     // This will add requests at depth+1, so initial requests add at depth 1 (allowed)
                     // and depth 1 requests add at depth 2 (blocked by maxCrawlDepth)
-                    await context.enqueueLinks({
-                        urls: requestsToAdd,
+                    await context.enqueueUrls(requestsToAdd, {
                         label: `depth-${context.request.crawlDepth + 1}`,
                     });
                 },
@@ -2841,7 +2840,7 @@ describe('BasicCrawler', () => {
                     // Enqueue 10 duplicate links + 1 new unique link
                     const urls = [...Array.from({ length: 10 }, () => 'http://example.com/'), 'http://example.com/new'];
 
-                    await context.enqueueLinks({ urls, label: 'child' });
+                    await context.enqueueUrls(urls, { label: 'child' });
                 },
             });
 
@@ -3323,13 +3322,12 @@ describe('BasicCrawler', () => {
             expect(await queue.isEmpty()).toBe(false);
         });
 
-        test('context.enqueueLinks validates userData against the label schema', async () => {
+        test('context.enqueueUrls validates userData against the label schema', async () => {
             const router = Router.create({ DETAIL: z.object({ id: z.string() }) });
             let caught: unknown;
-            router.addDefaultHandler(async ({ enqueueLinks }) => {
+            router.addDefaultHandler(async ({ enqueueUrls }) => {
                 try {
-                    await enqueueLinks({
-                        urls: ['https://example.com/x'],
+                    await enqueueUrls(['https://example.com/x'], {
                         label: 'DETAIL',
                         userData: { id: 123 },
                     } as never);

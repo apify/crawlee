@@ -42,7 +42,6 @@ import { type Cheerio } from 'cheerio';
 import type { AnyNode } from 'domhandler';
 import ow from 'ow';
 import type { Page } from 'playwright';
-import type { SetRequired } from 'type-fest';
 
 import { addTimeoutToPromise } from '@apify/timeout';
 
@@ -498,6 +497,9 @@ export class AdaptivePlaywrightCrawler<
                 get parseWithCheerio(): AdaptivePlaywrightCrawlerContext['parseWithCheerio'] {
                     throw new Error(errorMessage('parseWithCheerio'));
                 },
+                get enqueueLinks(): AdaptivePlaywrightCrawlerContext['enqueueLinks'] {
+                    throw new Error(errorMessage('enqueueLinks'));
+                },
             }),
         });
     }
@@ -514,14 +516,12 @@ export class AdaptivePlaywrightCrawler<
                 return cheerioContext.$(selector);
             },
             enqueueLinks: async (options: EnqueueLinksOptions = {}) => {
-                const urls =
-                    options.urls ??
-                    extractUrlsFromCheerio(
-                        cheerioContext.$,
-                        options.selector,
-                        options.baseUrl ?? cheerioContext.request.loadedUrl,
-                    );
-                return (await this.enqueueLinks({ ...options, urls }, cheerioContext.request)) as unknown as void;
+                const urls = extractUrlsFromCheerio(
+                    cheerioContext.$,
+                    options.selector,
+                    options.baseUrl ?? cheerioContext.request.loadedUrl,
+                );
+                return (await this.enqueueLinks(urls, options, cheerioContext.request)) as unknown as void;
             },
             response: cheerioContext.response,
         };
@@ -553,24 +553,16 @@ export class AdaptivePlaywrightCrawler<
             },
             enqueueLinks: async (options: EnqueueLinksOptions = {}, timeoutMs = 5000) => {
                 // TODO consider using `context.parseWithCheerio` to make this universal and avoid code duplication
-                let urls: readonly string[];
+                const selector = options.selector ?? 'a';
+                const locator = playwrightContext.page.locator(selector).first();
+                await locator.waitFor({ timeout: timeoutMs, state: 'attached' });
+                const urls = await extractUrlsFromPage(
+                    playwrightContext.page,
+                    selector,
+                    options.baseUrl ?? playwrightContext.request.loadedUrl,
+                );
 
-                if (options.urls === undefined) {
-                    const selector = options.selector ?? 'a';
-                    const locator = playwrightContext.page.locator(selector).first();
-                    await locator.waitFor({ timeout: timeoutMs, state: 'attached' });
-                    urls =
-                        options.urls ??
-                        (await extractUrlsFromPage(
-                            playwrightContext.page,
-                            selector,
-                            options.baseUrl ?? playwrightContext.request.loadedUrl,
-                        ));
-                } else {
-                    urls = options.urls;
-                }
-
-                return (await this.enqueueLinks({ ...options, urls }, playwrightContext.request)) as unknown as void;
+                return (await this.enqueueLinks(urls, options, playwrightContext.request)) as unknown as void;
             },
         };
     }
@@ -788,7 +780,8 @@ export class AdaptivePlaywrightCrawler<
     }
 
     private async enqueueLinks(
-        options: SetRequired<EnqueueLinksOptions, 'urls'>,
+        urls: readonly string[],
+        options: EnqueueLinksOptions,
         request: RestrictedCrawlingContext['request'],
     ): Promise<BatchAddRequestsResult> {
         const baseUrl = resolveBaseUrlForEnqueueLinksFiltering({
@@ -800,7 +793,7 @@ export class AdaptivePlaywrightCrawler<
 
         // The per-attempt transaction buffers these (the queue policy defaults to `deferred` here),
         // so a discarded attempt's enqueues never reach the queue.
-        return await this.enqueueLinksWithCrawlDepth({ ...options, baseUrl }, request, await this.getRequestManager());
+        return await this.enqueueUrls(urls, { ...options, baseUrl }, request);
     }
 
     private createLogProxy(log: CrawleeLogger, logs: LogProxyCall[]) {

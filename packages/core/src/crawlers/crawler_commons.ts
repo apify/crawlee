@@ -1,7 +1,14 @@
-import type { Dictionary, HttpRequestOptions, ISession, ProxyInfo, SendRequestOptions } from '@crawlee/types';
-import type { ReadonlyDeep, SetRequired } from 'type-fest';
+import type {
+    BatchAddRequestsResult,
+    Dictionary,
+    HttpRequestOptions,
+    ISession,
+    ProxyInfo,
+    SendRequestOptions,
+} from '@crawlee/types';
+import type { ReadonlyDeep } from 'type-fest';
 
-import type { EnqueueLinksOptions } from '../enqueue_links/enqueue_links.js';
+import type { EnqueueUrlsOptions } from '../enqueue_links/enqueue_links.js';
 import type { CrawleeLogger } from '../log.js';
 import type { Request, RequestOptions, Source } from '../request.js';
 import type { StorageIdentifier } from '../storages/storage_instance_manager.js';
@@ -120,31 +127,17 @@ export interface RestrictedCrawlingContext<UserData extends Dictionary = Diction
     ): Promise<void>;
 
     /**
-     * This function automatically finds and enqueues links from the current page, adding them to the {@apilink RequestQueue}
-     * currently used by the crawler.
+     * Enqueues the given URLs, adding them to the {@apilink RequestQueue} currently used by the crawler.
      *
-     * Optionally, the function allows you to filter the target links' URLs using an array of glob or regexp patterns.
+     * Optionally, the function allows you to filter the target URLs using an array of glob or regexp patterns.
      *
-     * Check out the [Crawl a website with relative links](https://crawlee.dev/js/docs/examples/crawl-relative-links) example
-     * for more details regarding its usage.
-     *
-     * **Example usage**
-     *
-     * ```ts
-     * async requestHandler({ enqueueLinks }) {
-     *     await enqueueLinks({
-     *       include: [
-     *           'https://www.example.com/handbags/*',
-     *       ],
-     *     });
-     * },
-     * ```
-     *
-     * @param [options] All `enqueueLinks()` parameters are passed via an options object.
+     * @param urls The URLs to enqueue.
+     * @param [options] All `enqueueUrls()` parameters are passed via an options object.
      */
-    enqueueLinks: (
-        options: ReadonlyDeep<Omit<SetRequired<EnqueueLinksOptions, 'urls'>, 'requestManager' | 'robotsTxtFile'>>,
-    ) => Promise<unknown>;
+    enqueueUrls: (
+        urls: ReadonlyDeep<readonly string[]>,
+        options?: ReadonlyDeep<Omit<EnqueueUrlsOptions, 'robotsTxtFile'>>,
+    ) => Promise<BatchAddRequestsResult>;
 
     /**
      * Add requests directly to the request queue.
@@ -176,35 +169,6 @@ export interface RestrictedCrawlingContext<UserData extends Dictionary = Diction
 }
 
 export interface CrawlingContext<UserData extends Dictionary = Dictionary> extends RestrictedCrawlingContext<UserData> {
-    /**
-     * This function automatically finds and enqueues links from the current page, adding them to the {@apilink RequestQueue}
-     * currently used by the crawler.
-     *
-     * Optionally, the function allows you to filter the target links' URLs using an array of glob or regexp patterns.
-     *
-     * Check out the [Crawl a website with relative links](https://crawlee.dev/js/docs/examples/crawl-relative-links) example
-     * for more details regarding its usage.
-     *
-     * **Example usage**
-     *
-     * ```ts
-     * async requestHandler({ enqueueLinks }) {
-     *     await enqueueLinks({
-     *       include: [
-     *           'https://www.example.com/handbags/*',
-     *       ],
-     *     });
-     * },
-     * ```
-     *
-     * @param [options] All `enqueueLinks()` parameters are passed via an options object.
-     * @returns Promise that resolves to {@apilink BatchAddRequestsResult} object.
-     */
-    enqueueLinks(
-        options: ReadonlyDeep<Omit<SetRequired<EnqueueLinksOptions, 'urls'>, 'requestManager' | 'robotsTxtFile'>> &
-            Pick<EnqueueLinksOptions, 'requestManager' | 'robotsTxtFile'>,
-    ): Promise<unknown>;
-
     /**
      * Fires HTTP request via the internal HTTP client, allowing to override the request options on the fly.
      *

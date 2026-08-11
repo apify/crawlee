@@ -1,22 +1,19 @@
 import type {
-    BasicCrawlingContext,
     CrawlingContext,
     EnqueueLinksOptions,
     ErrorHandler,
+    ExtractLinksOptions,
     GetUserDataFromRequest,
     HttpCrawlerOptions,
     InternalHttpCrawlingContext,
     InternalHttpHook,
-    IRequestManager,
     RequestHandler,
     RouterHandler,
     RouterRoutes,
     RouteSchemas,
     RoutesFromSchemas,
-    SkippedRequestCallback,
 } from '@crawlee/http';
 import {
-    enqueueLinks,
     HttpCrawler,
     NavigationSkippedError,
     resolveBaseUrlForEnqueueLinksFiltering,
@@ -25,7 +22,7 @@ import {
 } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
 import { type CheerioRoot } from '@crawlee/utils/internal';
-import { type RobotsTxtFile, sleep } from '@crawlee/utils';
+import { sleep } from '@crawlee/utils';
 import type { DOMWindow } from 'jsdom';
 import { JSDOM, ResourceLoader, VirtualConsole } from 'jsdom';
 import ow from 'ow';
@@ -97,6 +94,11 @@ export interface JSDOMCrawlingContext<
      * ```
      */
     parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
+
+    /**
+     * Extracts URLs from the parsed DOM, without adding them to the request queue.
+     */
+    extractLinks(options?: ExtractLinksOptions): Promise<string[]>;
 }
 
 export type JSDOMRequestHandler<
@@ -356,20 +358,34 @@ export class JSDOMCrawler<
     }
 
     private async addHelpers(crawlingContext: InternalHttpCrawlingContext & { body: string; window: DOMWindow }) {
+        const enqueueUrls = crawlingContext.enqueueUrls;
+
+        const extractLinks = async (options?: ExtractLinksOptions): Promise<string[]> => {
+            if (!crawlingContext.window) {
+                throw new Error('Cannot extract links because the JSDOM is not available.');
+            }
+
+            return extractUrlsFromWindow(
+                crawlingContext.window,
+                options?.selector ?? 'a',
+                options?.baseUrl ?? crawlingContext.request.loadedUrl ?? crawlingContext.request.url,
+            );
+        };
+
         return {
-            enqueueLinks: async (enqueueOptions?: EnqueueLinksOptions) => {
-                return domCrawlerEnqueueLinks({
-                    options: {
-                        ...enqueueOptions,
-                        limit: await this.calculateEnqueuedRequestLimit(enqueueOptions?.limit),
-                    },
-                    window: crawlingContext.window,
-                    requestManager: await this.getRequestManager(),
-                    robotsTxtFile: await this.getRobotsTxtFileForUrl(crawlingContext.request.url),
-                    onSkippedRequest: this.handleSkippedRequest,
-                    originalRequestUrl: crawlingContext.request.url,
+            extractLinks,
+            enqueueLinks: async (options: EnqueueLinksOptions = {}) => {
+                const baseUrl = resolveBaseUrlForEnqueueLinksFiltering({
+                    enqueueStrategy: options.strategy,
                     finalRequestUrl: crawlingContext.request.loadedUrl,
+                    originalRequestUrl: crawlingContext.request.url,
+                    userProvidedBaseUrl: options.baseUrl,
                 });
+
+                const urls = await extractLinks(options);
+                const { selector: _selector, ...enqueueUrlsOptions } = options;
+
+                return enqueueUrls(urls, { ...enqueueUrlsOptions, baseUrl });
             },
             async waitForSelector(selector: string, timeoutMs = 5_000) {
                 const cheerio = await import('cheerio');
@@ -397,70 +413,6 @@ export class JSDOMCrawler<
             },
         };
     }
-}
-
-interface EnqueueLinksInternalOptions {
-    options?: EnqueueLinksOptions;
-    window: DOMWindow | null;
-    requestManager: IRequestManager;
-    robotsTxtFile?: RobotsTxtFile;
-    onSkippedRequest?: SkippedRequestCallback;
-    originalRequestUrl: string;
-    finalRequestUrl?: string;
-}
-
-interface BoundEnqueueLinksInternalOptions {
-    enqueueLinks: BasicCrawlingContext['enqueueLinks'];
-    options?: EnqueueLinksOptions;
-    window: DOMWindow | null;
-    originalRequestUrl: string;
-    finalRequestUrl?: string;
-}
-
-/** @internal */
-function containsEnqueueLinks(
-    options: EnqueueLinksInternalOptions | BoundEnqueueLinksInternalOptions,
-): options is BoundEnqueueLinksInternalOptions {
-    return !!(options as BoundEnqueueLinksInternalOptions).enqueueLinks;
-}
-
-/** @internal */
-export async function domCrawlerEnqueueLinks(options: EnqueueLinksInternalOptions | BoundEnqueueLinksInternalOptions) {
-    const { options: enqueueLinksOptions, window, originalRequestUrl, finalRequestUrl } = options;
-
-    if (!window) {
-        throw new Error('Cannot enqueue links because the JSDOM is not available.');
-    }
-
-    const baseUrl = resolveBaseUrlForEnqueueLinksFiltering({
-        enqueueStrategy: enqueueLinksOptions?.strategy,
-        finalRequestUrl,
-        originalRequestUrl,
-        userProvidedBaseUrl: enqueueLinksOptions?.baseUrl,
-    });
-
-    const urls = extractUrlsFromWindow(
-        window,
-        enqueueLinksOptions?.selector ?? 'a',
-        enqueueLinksOptions?.baseUrl ?? finalRequestUrl ?? originalRequestUrl,
-    );
-
-    if (containsEnqueueLinks(options)) {
-        return options.enqueueLinks({
-            urls,
-            baseUrl,
-            ...enqueueLinksOptions,
-        });
-    }
-
-    return enqueueLinks({
-        requestManager: options.requestManager,
-        robotsTxtFile: options.robotsTxtFile,
-        onSkippedRequest: options.onSkippedRequest,
-        urls,
-        baseUrl,
-        ...enqueueLinksOptions,
-    });
 }
 
 /**

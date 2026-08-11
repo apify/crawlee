@@ -10,7 +10,7 @@ import type {
     CrawleeLogger,
     CrawlingContext,
     DatasetExportOptions,
-    EnqueueLinksOptions,
+    EnqueueUrlsOptions,
     EventManager,
     EventStatusMessageData,
     FinalStatistics,
@@ -20,35 +20,42 @@ import type {
     IRequestLoader,
     IRequestManager,
     IStatistics,
-    Request,
+    RequestOptions,
     RequestsLike,
     RequestTransform,
     RouterHandler,
     RouterRoutes,
     SkippedRequestCallback,
+    SkippedRequestReason,
     Source,
     StatisticState,
     StorageIdentifier,
     StorageWritePolicy,
     TaskLoopPredicates,
     TypedRequestsLike,
+    UrlPatternObject,
 } from '@crawlee/core';
 import {
+    applyRequestTransform,
     AutoscaledPool,
     bindMethodsToServiceLocator,
     BLOCKED_STATUS_CODES,
+    buildEnqueueStrategyPatterns,
     ConcurrencySystem,
+    constructUrlPatternObjects,
     ContextPipeline,
     ContextPipelineCleanupError,
     ContextPipelineInitializationError,
     ContextPipelineInterruptedError,
+    createRequestOptions,
     createStorageTransaction,
+    Request,
     CriticalError,
     currentStorageTransaction,
     Dataset,
-    enqueueLinks,
     EnqueueStrategy,
     EventType,
+    filterRequestOptionsByPatterns,
     getObjectType,
     KeyValueStore,
     log,
@@ -94,7 +101,7 @@ import { isAsyncIterable, isIterable, ROTATE_PROXY_ERRORS } from '@crawlee/utils
 import { RobotsTxtFile } from '@crawlee/utils';
 import ow, { ArgumentError, type BasePredicate } from 'ow';
 import { getDomain } from 'tldts';
-import type { ReadonlyDeep, SetRequired } from 'type-fest';
+import type { ReadonlyDeep } from 'type-fest';
 
 import { LruCache } from '@apify/datastructures';
 import { addTimeoutToPromise, extendTimeout, TimeoutError } from '@apify/timeout';
@@ -1394,10 +1401,8 @@ export class BasicCrawler<
     }
 
     private async createContextHelpers({ request, session }: { request: Request; session: ISession }) {
-        const enqueueLinksWrapper: CrawlingContext['enqueueLinks'] = async (options) => {
-            const requestManager = await this.getRequestManager();
-
-            return await this.enqueueLinksWithCrawlDepth(options, request!, requestManager);
+        const enqueueUrlsWrapper: CrawlingContext['enqueueUrls'] = async (urls, options) => {
+            return await this.enqueueUrls(urls, options ?? {}, request!);
         };
         const addRequests: CrawlingContext['addRequests'] = async (requests, options = {}) => {
             const newCrawlDepth = request!.crawlDepth + 1;
@@ -1408,7 +1413,7 @@ export class BasicCrawler<
 
         const sendRequest = createSendRequest(this.httpClient, request!, session);
 
-        return { enqueueLinks: enqueueLinksWrapper, addRequests, sendRequest };
+        return { enqueueUrls: enqueueUrlsWrapper, addRequests, sendRequest };
     }
 
     private buildFinalContextPipeline(): ContextPipeline<CrawlingContext, ExtendedContext> {
@@ -2505,16 +2510,15 @@ export class BasicCrawler<
     }
 
     /**
-     * Wrapper around the crawling context's `enqueueLinks` method:
+     * Enqueues the given URLs to the request manager currently used by the crawler:
      * - Injects `crawlDepth` to each request being added based on the crawling context request.
-     * - Provides defaults for the `enqueueLinks` options based on the crawler configuration.
-     *      - These options can be overridden by the user.
+     * - Provides defaults for the options based on the crawler configuration (these can be overridden by the caller).
      * @internal
      */
-    protected async enqueueLinksWithCrawlDepth(
-        options: SetRequired<EnqueueLinksOptions, 'urls'>,
+    protected async enqueueUrls(
+        urls: readonly string[],
+        options: EnqueueUrlsOptions,
         request: Request<Dictionary>,
-        requestManager: IRequestManager,
     ): Promise<BatchAddRequestsResult> {
         const transformRequestFunctionWrapper: RequestTransform = (requestOptions) => {
             requestOptions.crawlDepth = request.crawlDepth + 1;
@@ -2532,7 +2536,7 @@ export class BasicCrawler<
         };
 
         // Create a request-scoped callback that logs enqueueLimit once per request handler call
-        // Only log if an explicit limit was passed to enqueueLinks (not the internal maxRequestsPerCrawl-derived limit)
+        // Only log if an explicit limit was passed to enqueueUrls (not the internal maxRequestsPerCrawl-derived limit)
         let loggedEnqueueLimitForThisRequest = false;
         const onSkippedRequest: SkippedRequestCallback = async (skippedOptions) => {
             if (skippedOptions.reason === 'enqueueLimit') {
@@ -2547,12 +2551,11 @@ export class BasicCrawler<
             await this.handleSkippedRequest(skippedOptions);
         };
 
-        // `enqueueLinks` applies `options.label`/`options.userData` to every newly enqueued request, so a single
+        // `enqueueUrls` applies `options.label`/`options.userData` to every newly enqueued request, so a single
         // validation against the label's schema covers them all (a no-op unless the router declares a schema).
         await this.validateRequestUserData({ label: options.label, userData: options.userData });
 
-        return await enqueueLinks({
-            requestManager,
+        return await this.addUrlsToRequestManager(urls, {
             robotsTxtFile: await this.getRobotsTxtFileForUrl(request!.url),
             respectRobotsTxtFile: this.#respectRobotsTxtFile,
             onSkippedRequest,
@@ -2563,6 +2566,159 @@ export class BasicCrawler<
 
             transformRequestFunction: transformRequestFunctionWrapper,
         });
+    }
+
+    /**
+     * Filters and batch-adds `urls` to `this.requestManager`. This is the part of `enqueueUrls()` that has no
+     * knowledge of a specific crawling context (crawl depth, request-scoped logging), so `addRequests()` reuses
+     * it too.
+     * @internal
+     */
+    private async addUrlsToRequestManager(
+        urls: readonly string[],
+        options: EnqueueUrlsOptions,
+    ): Promise<BatchAddRequestsResult> {
+        const urlPatternValidator = ow.any(
+            ow.string,
+            ow.regExp,
+            ow.object.hasKeys('glob'),
+            ow.object.hasKeys('regexp'),
+        );
+
+        ow(
+            options as any,
+            ow.object.exactShape({
+                robotsTxtFile: ow.optional.object.hasKeys('isAllowed'),
+                respectRobotsTxtFile: ow.optional.any(
+                    ow.boolean,
+                    ow.object.exactShape({ userAgent: ow.optional.string }),
+                ),
+                onSkippedRequest: ow.optional.function,
+                forefront: ow.optional.boolean,
+                cache: ow.optional.boolean,
+                skipNavigation: ow.optional.boolean,
+                sessionId: ow.optional.string,
+                limit: ow.optional.number,
+                baseUrl: ow.optional.string,
+                userData: ow.optional.object,
+                label: ow.optional.string,
+                include: ow.optional.array.minLength(1).ofType(urlPatternValidator),
+                exclude: ow.optional.array.ofType(urlPatternValidator),
+                transformRequestFunction: ow.optional.function,
+                strategy: ow.optional.string.oneOf(Object.values(EnqueueStrategy)),
+                waitForAllRequestsToBeAdded: ow.optional.boolean,
+            }),
+        );
+
+        const requestManager = await this.getRequestManager();
+
+        const strategy = options.strategy ?? EnqueueStrategy.SameHostname;
+        const urlExcludePatternObjects: UrlPatternObject[] = options.exclude?.length
+            ? constructUrlPatternObjects(options.exclude)
+            : [];
+        const urlPatternObjects: UrlPatternObject[] = options.include?.length
+            ? constructUrlPatternObjects(options.include)
+            : [];
+        // The strategy always applies, even when `include` patterns are provided - the two are AND-ed together
+        // (a URL must match an `include` pattern *and* satisfy the strategy). This mirrors crawlee-python.
+        const enqueueStrategyPatterns: UrlPatternObject[] = options.baseUrl
+            ? buildEnqueueStrategyPatterns(options.baseUrl, strategy)
+            : [];
+
+        const { onSkippedRequest, robotsTxtFile } = options;
+
+        async function reportSkippedRequests(
+            skippedRequests: { url: string; skippedReason?: SkippedRequestReason }[],
+            reason: SkippedRequestReason,
+        ) {
+            if (onSkippedRequest && skippedRequests.length > 0) {
+                await Promise.all(
+                    skippedRequests.map((skippedRequest) =>
+                        onSkippedRequest({ url: skippedRequest.url, reason: skippedRequest.skippedReason ?? reason }),
+                    ),
+                );
+            }
+        }
+
+        let requestOptions = createRequestOptions(urls, { ...options, strategy });
+
+        if (robotsTxtFile && options.respectRobotsTxtFile !== false) {
+            const robotsUserAgent =
+                typeof options.respectRobotsTxtFile === 'object'
+                    ? (options.respectRobotsTxtFile.userAgent ?? '*')
+                    : '*';
+            const skippedRequests: RequestOptions[] = [];
+
+            requestOptions = requestOptions.filter((requestOpts) => {
+                if (robotsTxtFile.isAllowed(requestOpts.url, robotsUserAgent)) {
+                    return true;
+                }
+
+                skippedRequests.push(requestOpts);
+                return false;
+            });
+
+            await reportSkippedRequests(skippedRequests, 'robotsTxt');
+        }
+
+        const filteredRequests: string[] = [];
+        let filteredOptions: RequestOptions[];
+        if (urlPatternObjects.length === 0) {
+            filteredOptions = filterRequestOptionsByPatterns(
+                requestOptions,
+                enqueueStrategyPatterns.length > 0 ? enqueueStrategyPatterns : undefined,
+                urlExcludePatternObjects,
+                strategy,
+                (url) => filteredRequests.push(url),
+            );
+        } else {
+            // Filter by user patterns first (with exclude)...
+            const afterUserPatterns = filterRequestOptionsByPatterns(
+                requestOptions,
+                urlPatternObjects,
+                urlExcludePatternObjects,
+                strategy,
+                (url) => filteredRequests.push(url),
+            );
+            // ...then filter by the enqueue strategy (making this an AND check)
+            filteredOptions = filterRequestOptionsByPatterns(
+                afterUserPatterns,
+                enqueueStrategyPatterns.length > 0 ? enqueueStrategyPatterns : undefined,
+                [],
+                strategy,
+                (url) => filteredRequests.push(url),
+            );
+        }
+        await reportSkippedRequests(
+            filteredRequests.map((url) => ({ url })),
+            'filters',
+        );
+
+        if (options.transformRequestFunction) {
+            const skippedByTransform: RequestOptions[] = [];
+            filteredOptions = applyRequestTransform(filteredOptions, options.transformRequestFunction, (r) =>
+                skippedByTransform.push(r),
+            );
+            await reportSkippedRequests(skippedByTransform, 'transform');
+        }
+
+        const { addedRequests, requestsOverLimit } = await requestManager.addRequestsBatched(
+            filteredOptions.map((requestOpts) => new Request(requestOpts)),
+            {
+                forefront: options.forefront,
+                waitForAllRequestsToBeAdded: options.waitForAllRequestsToBeAdded,
+                maxNewRequests: options.limit,
+            },
+        );
+
+        if (requestsOverLimit?.length) {
+            await reportSkippedRequests(
+                requestsOverLimit.map((r) => ({ url: typeof r === 'string' ? r : r.url! })),
+                'enqueueLimit',
+            );
+        }
+
+        return { processedRequests: addedRequests, unprocessedRequests: [] };
     }
 
     /**
