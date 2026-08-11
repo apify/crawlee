@@ -744,6 +744,17 @@ describe('AdaptivePlaywrightCrawler', () => {
         ).toThrow(/requires transactional storage/);
     });
 
+    test('should name transactionalStorage in the validation error', () => {
+        expect(
+            () =>
+                new AdaptivePlaywrightCrawler({
+                    // @ts-expect-error invalid value on purpose
+                    transactionalStorage: 'yes',
+                    requestHandler: async () => {},
+                }),
+        ).toThrow('at `transactionalStorage` in `AdaptivePlaywrightCrawlerOptions`');
+    });
+
     test('should capture direct key-value store manipulation and commit it with the winning attempt', async () => {
         const renderingTypePredictor = makeRiggedRenderingTypePredictor({
             detectionProbabilityRecommendation: 0,

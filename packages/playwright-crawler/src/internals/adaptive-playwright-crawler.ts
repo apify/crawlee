@@ -43,6 +43,7 @@ import { type Cheerio } from 'cheerio';
 import type { AnyNode } from 'domhandler';
 import type { Page } from 'playwright';
 import type { SetRequired } from 'type-fest';
+import { z } from 'zod';
 
 import { addTimeoutToPromise } from '@apify/timeout';
 
@@ -359,8 +360,13 @@ export class AdaptivePlaywrightCrawler<
             ...rest
         } = options;
 
-        // The user's value is replaced by `false` in the `super` call below — validate it separately.
-        parseArgument(transactionalStorage, BasicCrawler.optionsShape.transactionalStorage);
+        // The user's value is replaced by `false` in the `super` call below — validate it separately,
+        // wrapped in an object so the error still names the field.
+        parseArgument(
+            { transactionalStorage },
+            z.object({ transactionalStorage: BasicCrawler.optionsShape.transactionalStorage }),
+            'AdaptivePlaywrightCrawlerOptions',
+        );
 
         // Per-attempt buffering is load-bearing here: the handler runs up to twice per request and the
         // losing attempt's writes must be discardable.
