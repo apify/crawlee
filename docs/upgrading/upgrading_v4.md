@@ -51,7 +51,7 @@ The purely mechanical renames, collected in one place. Where a row links to a se
 | crawler options `requestList` / `requestQueue` | `requestManager` ([details](#crawler-requestlist--requestqueue-options-deprecated-in-favor-of-requestmanager)) |
 | `enqueueLinks({ requestQueue })` | `enqueueLinks({ requestManager })` |
 | `enqueueLinks({ globs, regexps, pseudoUrls })` | `enqueueLinks({ include })` ([details](#globs-regexps-and-pseudourls-replaced-by-include)) |
-| `(await enqueueLinks()).processedRequests` | `(await enqueueLinks()).addedRequests` ([details](#enqueuelinks-return-value-processedrequests-renamed-to-addedrequests)) |
+| `(await enqueueLinks()).processedRequests` | `(await enqueueLinks()).addedRequests` ([details](#enqueuelinks-return-value-reshaped-addrequestsbatchedresult-instead-of-batchaddrequestsresult)) |
 | `autoscaledPoolOptions` | `taskLoopOptions` ([narrowed](#autoscaledpooloptions-is-now-taskloopoptions-and-no-longer-carries-concurrency-config)) |
 | `gotScraping` (from `@crawlee/utils`) | `GotScrapingHttpClient` (`@crawlee/got-scraping-client`) |
 | `SDK_`-prefixed internal KVS keys | `CRAWLEE_`-prefixed ([details](#internal-kvs-keys-renamed)) |
@@ -635,14 +635,16 @@ The `transformRequestFunction` callback receives a `RequestOptions` object and c
 - `'unchanged'` to keep the original options as-is
 - A falsy value or `'skip'` to exclude the request from the queue
 
-### `enqueueLinks()` return value: `processedRequests` renamed to `addedRequests`
+### `enqueueLinks()` return value reshaped: `AddRequestsBatchedResult` instead of `BatchAddRequestsResult`
 
-`enqueueLinks()` (and `context.addRequests()`) now return an `AddRequestsBatchedResult` object instead of `BatchAddRequestsResult`. The renamed fields:
+`enqueueLinks()` (and `context.addRequests()`) now return the same `AddRequestsBatchedResult` object that `crawler.addRequests()` / `queue.addRequestsBatched()` already returned in v3, instead of repackaging it into the legacy `BatchAddRequestsResult` shape:
 
 | Before (`BatchAddRequestsResult`) | After (`AddRequestsBatchedResult`) |
 | --- | --- |
 | `processedRequests` | `addedRequests` |
-| `unprocessedRequests` | *(removed — retries are handled internally, see "`RequestQueue.addRequestsBatched` no longer retries rejected requests" below)* |
+| `unprocessedRequests` (always `[]` — `enqueueLinks()` never actually populated it) | *(removed — retries are handled internally, see "`RequestQueue.addRequestsBatched` no longer retries rejected requests" below)* |
+| *(not exposed)* | `waitForAllRequestsToBeAdded` — a promise resolving with the requests added in batches after the first (new) |
+| *(not exposed)* | `requestsOverLimit` — requests dropped because of the `limit` / `maxRequestsPerCrawl` budget (new) |
 
 **Before:**
 ```typescript
