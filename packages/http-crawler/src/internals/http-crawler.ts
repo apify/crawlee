@@ -26,15 +26,21 @@ import {
     Router,
     SessionError,
 } from '@crawlee/basic';
-import { type LoadedRequest, RequestThrottledError, getCookiesFromResponse } from '@crawlee/core';
+import {
+    type LoadedRequest,
+    RequestThrottledError,
+    getCookiesFromResponse,
+    parseArgument,
+    schemas,
+} from '@crawlee/core';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import type { Awaitable, Dictionary, ISession } from '@crawlee/types';
 import { type CheerioRoot, RETRY_CSS_SELECTORS } from '@crawlee/utils/internal';
 import type { RequestLike, ResponseLike } from 'content-type';
 import contentTypeParser from 'content-type';
 import iconv from 'iconv-lite';
-import ow from 'ow';
 import type { JsonValue } from 'type-fest';
+import { z } from 'zod';
 
 import { addTimeoutToPromise, storage, TimeoutError, tryCancel } from '@apify/timeout';
 
@@ -361,16 +367,18 @@ export class HttpCrawler<
     protected static override optionsShape = {
         ...BasicCrawler.optionsShape,
 
-        navigationTimeoutSecs: ow.optional.number,
-        ignoreTlsErrors: ow.optional.boolean,
-        additionalMimeTypes: ow.optional.array.ofType(ow.string),
-        suggestResponseEncoding: ow.optional.string,
-        forceResponseEncoding: ow.optional.string,
-        saveResponseCookies: ow.optional.boolean,
+        navigationTimeoutSecs: schemas.anyNumber.default(30),
+        ignoreTlsErrors: z.boolean().default(true),
+        additionalMimeTypes: schemas.arrayOf(z.string(), 'strings').default(() => []),
+        suggestResponseEncoding: z.string().optional(),
+        forceResponseEncoding: z.string().optional(),
+        saveResponseCookies: z.boolean().default(true),
 
-        preNavigationHooks: ow.optional.array,
-        postNavigationHooks: ow.optional.array,
+        preNavigationHooks: schemas.anyArray.default(() => []),
+        postNavigationHooks: schemas.anyArray.default(() => []),
     };
+
+    protected static override optionsSchema = z.strictObject(HttpCrawler.optionsShape);
 
     /**
      * All `HttpCrawlerOptions` parameters are passed via an options object.
@@ -379,22 +387,20 @@ export class HttpCrawler<
         options: HttpCrawlerOptions<Context, ContextExtension, ExtendedContext> &
             RequireContextPipeline<InternalHttpCrawlingContext, Context> = {} as any,
     ) {
-        ow(options, 'HttpCrawlerOptions', ow.object.exactShape(HttpCrawler.optionsShape));
-
         const {
-            navigationTimeoutSecs = 30,
-            ignoreTlsErrors = true,
-            additionalMimeTypes = [],
+            navigationTimeoutSecs,
+            ignoreTlsErrors,
+            additionalMimeTypes,
             suggestResponseEncoding,
             forceResponseEncoding,
-            saveResponseCookies = true,
-            preNavigationHooks = [],
-            postNavigationHooks = [],
+            saveResponseCookies,
+            preNavigationHooks,
+            postNavigationHooks,
 
             // BasicCrawler
             contextPipelineBuilder,
             ...basicCrawlerOptions
-        } = options;
+        } = parseArgument(options, HttpCrawler.optionsSchema, 'HttpCrawlerOptions');
 
         super({
             ...basicCrawlerOptions,

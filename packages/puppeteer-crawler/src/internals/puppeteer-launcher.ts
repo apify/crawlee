@@ -1,9 +1,9 @@
 import type { BrowserLaunchContext } from '@crawlee/browser';
-import { BrowserLauncher, Configuration } from '@crawlee/browser';
+import { BrowserLauncher, Configuration, parseArgument, schemas } from '@crawlee/browser';
 import { PuppeteerPlugin } from '@crawlee/browser-pool';
-import ow from 'ow';
 // @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
 import type { Browser } from 'puppeteer';
+import { z } from 'zod';
 
 /**
  * Apify extends the launch options of Puppeteer.
@@ -75,8 +75,10 @@ export interface PuppeteerLaunchContext extends BrowserLaunchContext<PuppeteerPl
 export class PuppeteerLauncher extends BrowserLauncher<PuppeteerPlugin, unknown> {
     protected static override optionsShape = {
         ...BrowserLauncher.optionsShape,
-        launcher: ow.optional.object,
+        launcher: schemas.anyObject.optional(),
     };
+
+    protected static override optionsSchema = z.strictObject(PuppeteerLauncher.optionsShape);
 
     /**
      * All `PuppeteerLauncher` parameters are passed via an launchContext object.
@@ -85,18 +87,16 @@ export class PuppeteerLauncher extends BrowserLauncher<PuppeteerPlugin, unknown>
         launchContext: PuppeteerLaunchContext = {},
         override readonly configuration = Configuration.getGlobalConfiguration(),
     ) {
-        ow(launchContext, 'PuppeteerLauncher', ow.object.exactShape(PuppeteerLauncher.optionsShape));
-
         const {
             launcher = BrowserLauncher.requireLauncherOrThrow('puppeteer', 'apify/actor-node-puppeteer-chrome'),
             ...browserLauncherOptions
-        } = launchContext;
+        } = parseArgument(launchContext, PuppeteerLauncher.optionsSchema, 'PuppeteerLaunchContext');
 
         super(
             {
                 ...browserLauncherOptions,
                 launcher,
-            },
+            } as BrowserLaunchContext<Partial<Parameters<PuppeteerPlugin['launch']>[0]>, unknown>,
             configuration,
         );
 

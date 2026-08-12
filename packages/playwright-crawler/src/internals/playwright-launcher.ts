@@ -1,8 +1,8 @@
 import type { BrowserLaunchContext } from '@crawlee/browser';
-import { BrowserLauncher, Configuration } from '@crawlee/browser';
+import { BrowserLauncher, Configuration, parseArgument, schemas } from '@crawlee/browser';
 import { PlaywrightPlugin } from '@crawlee/browser-pool';
-import ow from 'ow';
 import type { Browser, BrowserType, LaunchOptions } from 'playwright';
+import { z } from 'zod';
 
 /**
  * Apify extends the launch options of Playwright.
@@ -79,9 +79,12 @@ export interface PlaywrightLaunchContext extends BrowserLaunchContext<LaunchOpti
 export class PlaywrightLauncher extends BrowserLauncher<PlaywrightPlugin> {
     protected static override optionsShape = {
         ...BrowserLauncher.optionsShape,
-        launcher: ow.optional.object,
-        launchContextOptions: ow.optional.object,
+        // Passthrough schemas — the launcher module object must keep its prototype through parsing.
+        launcher: schemas.anyObject.optional(),
+        launchContextOptions: schemas.anyObject.optional(),
     };
+
+    protected static override optionsSchema = z.strictObject(PlaywrightLauncher.optionsShape);
 
     /**
      * All `PlaywrightLauncher` parameters are passed via this launchContext object.
@@ -90,23 +93,23 @@ export class PlaywrightLauncher extends BrowserLauncher<PlaywrightPlugin> {
         launchContext: PlaywrightLaunchContext = {},
         override readonly configuration = Configuration.getGlobalConfiguration(),
     ) {
-        ow(launchContext, 'PlaywrightLauncherOptions', ow.object.exactShape(PlaywrightLauncher.optionsShape));
+        const parsedContext = parseArgument(launchContext, PlaywrightLauncher.optionsSchema, 'PlaywrightLaunchContext');
 
         const {
             launcher = BrowserLauncher.requireLauncherOrThrow<typeof import('playwright')>(
                 'playwright',
                 'apify/actor-node-playwright-*',
             ).chromium,
-        } = launchContext;
+        } = parsedContext;
 
-        const { launchOptions = {}, ...rest } = launchContext;
+        const { launchOptions = {}, ...rest } = parsedContext;
 
         super(
             {
                 ...rest,
                 launchOptions: {
                     ...launchOptions,
-                    executablePath: getDefaultExecutablePath(launchContext, configuration),
+                    executablePath: getDefaultExecutablePath(parsedContext, configuration),
                 },
                 launcher,
             },

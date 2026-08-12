@@ -47,7 +47,7 @@ const logLevelSchema = z.preprocess((val) => {
     const key = s.toUpperCase() as keyof typeof LogLevel;
     if (key in LogLevel) return LogLevel[key];
     return val;
-}, z.nativeEnum(LogLevel));
+}, z.enum(LogLevel));
 
 // --- Crawlee config field definitions ---
 
@@ -246,8 +246,8 @@ export class Configuration {
             }
 
             // 4. Schema default (by parsing undefined through the schema)
-            const result = fieldDef.schema.safeParse(undefined);
-            values[key] = result.success ? result.data : undefined;
+            const parsed = fieldDef.schema.safeParse(undefined);
+            values[key] = parsed.success ? parsed.data : undefined;
         }
 
         return values;

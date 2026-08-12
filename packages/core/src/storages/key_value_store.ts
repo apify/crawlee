@@ -5,13 +5,14 @@ import type {
     KeyValueStoreInfo,
     KeyValueStoreItemData,
 } from '@crawlee/types';
-import ow, { ArgumentError } from 'ow';
+import { z } from 'zod';
 
 import { KEY_VALUE_STORE_KEY_REGEX } from '@apify/consts';
 import { tryCancel } from '@apify/timeout';
 
 import { Configuration } from '../configuration.js';
 import { serviceLocator } from '../service_locator.js';
+import { parseArgument, schemas, validators } from '../validators.js';
 import type { JournalEntry, KeyValueStoreJournalEntry } from './transaction.js';
 import {
     activeStorageTransaction,
@@ -31,6 +32,21 @@ import { isBuffer, isStream } from '../byte_utils.js';
 
 /** @internal */
 const KVS_KEYS_DEFAULT_LIMIT = 1000;
+
+const keySchema = z.string().nonempty();
+const setValueKeySchema = z.string().nonempty().regex(KEY_VALUE_STORE_KEY_REGEX, {
+    message: `The "key" argument must be at most 256 characters long and only contain the following characters: a-zA-Z0-9!-_.'()`,
+});
+const recordOptionsSchema = z.strictObject({
+    contentType: z.string().nonempty().optional(),
+});
+const iteratorOptionsSchema = z.strictObject({
+    prefix: z.string().optional(),
+});
+const openOptionsSchema = z.strictObject({
+    configuration: z.instanceof(Configuration).optional(),
+    storageBackend: validators.storageBackend.optional(),
+});
 
 /**
  * The `KeyValueStore` class represents a key-value store, a simple data storage that is used
@@ -224,7 +240,7 @@ export class KeyValueStore {
     async getValue<T = unknown>(key: string, defaultValue?: T): Promise<T | null> {
         tryCancel();
 
-        ow(key, ow.string.nonEmpty);
+        parseArgument(key, keySchema);
         const record = await this.readRecord(key);
 
         // A missing record falls back to the default; a record that parses to a falsy value (including
@@ -322,7 +338,7 @@ export class KeyValueStore {
     async getRecord(key: string): Promise<KeyValueStoreRawRecord | null> {
         tryCancel();
 
-        ow(key, ow.string.nonEmpty);
+        parseArgument(key, keySchema);
         return this.readRecord(key);
     }
 
@@ -335,7 +351,7 @@ export class KeyValueStore {
     async recordExists(key: string): Promise<boolean> {
         tryCancel();
 
-        ow(key, ow.string.nonEmpty);
+        parseArgument(key, keySchema);
 
         const entry = this.bufferedJournalEntries()?.get(key);
         if (entry) {
@@ -503,29 +519,14 @@ export class KeyValueStore {
     async setValue<T>(key: string, value: T | null, options: RecordOptions = {}): Promise<void> {
         const transaction = activeStorageTransaction();
 
-        ow(key, 'key', ow.string.nonEmpty);
-        ow(
-            key,
-            ow.string.validate((k) => ({
-                validator: ow.isValid(k, ow.string.matches(KEY_VALUE_STORE_KEY_REGEX)),
-                message: `The "key" argument "${key}" must be at most 256 characters long and only contain the following characters: a-zA-Z0-9!-_.'()`,
-            })),
-        );
+        parseArgument(key, setValueKeySchema);
         if (options.contentType && !(typeof value === 'string' || isBuffer(value) || isStream(value))) {
-            throw new ArgumentError(
+            throw new Error(
                 'The "value" parameter must be a String, Buffer, ArrayBuffer, TypedArray, or Stream when "options.contentType" is specified.',
-                this.setValue,
             );
         }
-        ow(
-            options,
-            ow.object.exactShape({
-                contentType: ow.optional.string.nonEmpty,
-            }),
-        );
-
-        // Make copy of options, don't update what user passed.
-        const optionsCopy = { ...options };
+        // The parse result is a fresh copy, so we never update what user passed.
+        const optionsCopy = parseArgument(options, recordOptionsSchema);
 
         // The whole transaction branch sits *above* the auto-saved cache update below, so a buffered
         // write touches nothing outside the journal. That cache is shared, process-lifetime frontend
@@ -650,17 +651,12 @@ export class KeyValueStore {
     async forEachKey(iteratee: KeyConsumer, options: KeyValueStoreIteratorOptions = {}): Promise<void> {
         tryCancel();
 
-        ow(iteratee, ow.function);
-        ow(
-            options,
-            ow.object.exactShape({
-                prefix: ow.optional.string,
-            }),
-        );
+        parseArgument(iteratee, schemas.anyFunction);
+        const parsedOptions = parseArgument(options, iteratorOptionsSchema);
 
         let index = 0;
 
-        for await (const page of this.fetchKeyPages(options)) {
+        for await (const page of this.fetchKeyPages(parsedOptions)) {
             for (const item of page) {
                 await iteratee(item.key, index++, { size: item.size });
             }
@@ -813,18 +809,12 @@ export class KeyValueStore {
     ): Promise<KeyValueStore> {
         tryCancel();
 
-        ow(
-            options,
-            ow.object.exactShape({
-                configuration: ow.optional.object.instanceOf(Configuration),
-                storageBackend: ow.optional.object,
-            }),
-        );
+        const parsedOptions = parseArgument(options, openOptionsSchema);
 
-        options.configuration ??= Configuration.getGlobalConfiguration();
-        const storageBackend = options.storageBackend ?? serviceLocator.getStorageBackend();
+        const configuration = parsedOptions.configuration ?? Configuration.getGlobalConfiguration();
+        const storageBackend = parsedOptions.storageBackend ?? serviceLocator.getStorageBackend();
 
-        await purgeDefaultStorages({ onlyPurgeOnce: true, storageBackend, configuration: options.configuration });
+        await purgeDefaultStorages({ onlyPurgeOnce: true, storageBackend, configuration });
 
         const resolved = await resolveStorageIdentifier(identifier, storageBackend, 'KeyValueStore');
 

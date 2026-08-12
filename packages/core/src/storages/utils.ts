@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 
-import type { BaseHttpClient, Dictionary, StorageBackend } from '@crawlee/types';
+import type { BaseHttpClient } from '@crawlee/http-client';
+import type { Dictionary, StorageBackend } from '@crawlee/types';
 
 import { Configuration } from '../configuration.js';
 import type { IProxyConfiguration } from '../proxy_configuration.js';
