@@ -122,7 +122,7 @@ This option can be set by specifying [`maxRequestsPerMinute`](#maxrequestspermin
 
 ## Load signals
 
-Whether the machine counts as overloaded is decided by *load signals*. Four are built in — memory, event loop, CPU and the storage client's rate-limit errors — and each is configured by its own bag under <ApiLink to="core/interface/ConcurrencySystemOptions#loadSignals">`loadSignals`</ApiLink>, carrying both its limits and the `overloadedRatio` at which it fires. If any signal reports overload, the system is overloaded and concurrency is held down.
+Whether the machine counts as overloaded is decided by *load signals*. Four are built in — memory, event loop, CPU and the storage backend's rate-limit errors — and each is configured by its own bag under <ApiLink to="core/interface/ConcurrencySystemOptions#loadSignals">`loadSignals`</ApiLink>, carrying both its limits and the `overloadedRatio` at which it fires. If any signal reports overload, the system is overloaded and concurrency is held down.
 
 A signal we don't want watched at all can be switched **off** with `false`, which stops it being collected as well as evaluated (its entry in the reported status then simply reads as not overloaded):
 
@@ -136,7 +136,7 @@ We can also watch resources of our own by implementing <ApiLink to="core/interfa
 	{CustomLoadSignalSource}
 </CodeBlock>
 
-Each built-in is a public class too — `MemoryLoadSignal`, `EventLoopLoadSignal`, `CpuLoadSignal`, `ClientLoadSignal` — taking exactly the bag its `loadSignals` key accepts. Constructing one directly is how we *wrap* a built-in rather than reimplement it (to hold its overload verdict for a while after the resource recovers, say): switch the original off with `cpu: false`, and pass a signal that delegates to the instance we built in `custom`.
+Each built-in is a public class too — `MemoryLoadSignal`, `EventLoopLoadSignal`, `CpuLoadSignal`, `StorageBackendLoadSignal` — taking exactly the bag its `loadSignals` key accepts. Constructing one directly is how we *wrap* a built-in rather than reimplement it (to hold its overload verdict for a while after the resource recovers, say): switch the original off with `cpu: false`, and pass a signal that delegates to the instance we built in `custom`.
 
 <CodeBlock language="js">
 	{WrapLoadSignalSource}
@@ -144,7 +144,7 @@ Each built-in is a public class too — `MemoryLoadSignal`, `EventLoopLoadSignal
 
 :::info Signal names are the keys of the reported status
 
-A signal's `name` is the key its verdict appears under in the reported status, so two signals cannot share one — a duplicate throws at construction time. That is why taking over a built-in name (`memInfo`, `eventLoopInfo`, `cpuInfo`, `clientInfo`) requires switching that built-in off.
+A signal's `name` is the key its verdict appears under in the reported status, so two signals cannot share one — a duplicate throws at construction time. That is why taking over a built-in name (`memInfo`, `eventLoopInfo`, `cpuInfo`, `storageBackendInfo`) requires switching that built-in off.
 
 :::
 
