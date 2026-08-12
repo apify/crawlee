@@ -51,6 +51,7 @@ The purely mechanical renames, collected in one place. Where a row links to a se
 | crawler options `requestList` / `requestQueue` | `requestManager` ([details](#crawler-requestlist--requestqueue-options-deprecated-in-favor-of-requestmanager)) |
 | `enqueueLinks({ requestQueue })` | `enqueueLinks({ requestManager })` |
 | `enqueueLinks({ globs, regexps, pseudoUrls })` | `enqueueLinks({ include })` ([details](#globs-regexps-and-pseudourls-replaced-by-include)) |
+| `(await enqueueLinks()).processedRequests` | `(await enqueueLinks()).addedRequests` ([details](#enqueuelinks-return-value-processedrequests-renamed-to-addedrequests)) |
 | `autoscaledPoolOptions` | `taskLoopOptions` ([narrowed](#autoscaledpooloptions-is-now-taskloopoptions-and-no-longer-carries-concurrency-config)) |
 | `gotScraping` (from `@crawlee/utils`) | `GotScrapingHttpClient` (`@crawlee/got-scraping-client`) |
 | `SDK_`-prefixed internal KVS keys | `CRAWLEE_`-prefixed ([details](#internal-kvs-keys-renamed)) |
@@ -633,6 +634,45 @@ The `transformRequestFunction` callback receives a `RequestOptions` object and c
 - A new `RequestOptions` plain object
 - `'unchanged'` to keep the original options as-is
 - A falsy value or `'skip'` to exclude the request from the queue
+
+### `enqueueLinks()` return value: `processedRequests` renamed to `addedRequests`
+
+`enqueueLinks()` (and `context.addRequests()`) now return an `AddRequestsBatchedResult` object instead of `BatchAddRequestsResult`. The renamed fields:
+
+| Before (`BatchAddRequestsResult`) | After (`AddRequestsBatchedResult`) |
+| --- | --- |
+| `processedRequests` | `addedRequests` |
+| `unprocessedRequests` | *(removed — retries are handled internally, see "`RequestQueue.addRequestsBatched` no longer retries rejected requests" below)* |
+
+**Before:**
+```typescript
+const { processedRequests } = await enqueueLinks();
+```
+
+**After:**
+```typescript
+const { addedRequests } = await enqueueLinks();
+```
+
+### `extractLinks()`: extracting URLs without enqueueing them
+
+Crawling contexts that support `enqueueLinks()` (Cheerio, JSDOM, LinkeDOM, and browser-based crawlers) now also expose an `extractLinks()` helper that returns the matching URLs as strings, without adding them to the request queue:
+
+```typescript
+const urls = await extractLinks({ selector: '.product-link' });
+```
+
+`enqueueLinks()` itself is unchanged in behavior — it now calls `extractLinks()` internally and forwards the URLs to `context.addRequests()`.
+
+### `context.addRequests()` now applies `enqueueLinks`-style filtering, and `BasicCrawler` no longer has `enqueueLinks`
+
+`context.addRequests()` (and `crawler.addRequests()`) accept the same `include` / `exclude` / `strategy` / `transformRequestFunction` / `onSkippedRequest` options as `enqueueLinks()`, and resolve `baseUrl`-relative URLs the same way. Unlike `enqueueLinks()`, there is no implicit "current page" to anchor the strategy to, so `strategy` defaults to `EnqueueStrategy.All` here instead of `EnqueueStrategy.SameHostname`.
+
+`context.addRequests()` also now returns an `AddRequestsBatchedResult` (previously it resolved to `void`).
+
+`BasicCrawler` (and its `BasicCrawlingContext`) no longer has an `enqueueLinks()` method — `BasicCrawler` has no concept of a page to extract links from. `enqueueLinks()` remains available on crawlers with web content (`CheerioCrawler`, `HttpCrawler`-derived crawlers, `PlaywrightCrawler`, `PuppeteerCrawler`, etc.), now implemented in terms of `extractLinks()` + `addRequests()`.
+
+The `robotsTxtFile` / `respectRobotsTxtFile` per-call options are removed from `enqueueLinks()` — robots.txt filtering is applied by the crawler consistently via `BasicCrawlerOptions.respectRobotsTxtFile`.
 
 ### Internal KVS keys renamed
 
