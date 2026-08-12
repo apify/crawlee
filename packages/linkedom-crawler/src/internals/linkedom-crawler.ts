@@ -178,6 +178,8 @@ export class LinkeDOMCrawler extends HttpCrawler<LinkeDOMCrawlingContext> {
 
         const document = LinkeDOMCrawler.parser.parseFromString(body.toString(), isXml ? 'text/xml' : 'text/html');
 
+        const originalEnqueueLinks = crawlingContext.enqueueLinks;
+
         return {
             window: document.defaultView,
             get body() {
@@ -189,13 +191,16 @@ export class LinkeDOMCrawler extends HttpCrawler<LinkeDOMCrawlingContext> {
             },
             enqueueLinks: async (enqueueOptions?: LinkeDOMCrawlerEnqueueLinksOptions) => {
                 return linkedomCrawlerEnqueueLinks({
-                    options: { ...enqueueOptions, limit: this.calculateEnqueuedRequestLimit(enqueueOptions?.limit) },
+                    // `originalEnqueueLinks` clamps `limit` by the remaining `maxRequestsPerCrawl` budget itself;
+                    // pre-clamping it here would make the crawler log the internal limit as a user-provided one
+                    options: enqueueOptions,
                     window: document.defaultView,
                     requestQueue: await this.getRequestQueue(),
                     robotsTxtFile: await this.getRobotsTxtFileForUrl(crawlingContext.request.url),
                     onSkippedRequest: this.handleSkippedRequest,
                     originalRequestUrl: crawlingContext.request.url,
                     finalRequestUrl: crawlingContext.request.loadedUrl,
+                    enqueueLinks: originalEnqueueLinks,
                 });
             },
         };
