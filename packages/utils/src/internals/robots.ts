@@ -163,7 +163,9 @@ export class RobotsTxtFile {
             // `filterUrl` tolerates an unparseable origin (returns not-allowed) rather than throwing.
             const { allowed, reason } = filterUrl(sitemapUrl, this.#url, enqueueStrategy);
             if (!allowed) {
-                this.#logger?.warning(`Skipping sitemap ${sitemapUrl} listed in robots.txt at ${this.#url}: ${reason}.`);
+                this.#logger?.warning(
+                    `Skipping sitemap ${sitemapUrl} listed in robots.txt at ${this.#url}: ${reason}.`,
+                );
                 continue;
             }
             sitemaps.push(sitemapUrl);

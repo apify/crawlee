@@ -1,5 +1,12 @@
 import type { Dictionary, StorageBackend } from '@crawlee/types';
-import { Configuration, KeyValueStore, MemoryStorageBackend, purgeDefaultStorages, serviceLocator, useState } from '@crawlee/core';
+import {
+    Configuration,
+    KeyValueStore,
+    MemoryStorageBackend,
+    purgeDefaultStorages,
+    serviceLocator,
+    useState,
+} from '@crawlee/core';
 
 describe('useState', () => {
     beforeEach(async () => {
@@ -80,6 +87,4 @@ describe('purgeDefaultStorages', () => {
 
         expect(purgedWhileAlreadyPurging).toBe(false);
     });
-
-
 });

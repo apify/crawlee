@@ -62,6 +62,14 @@ function emailsFromText(text: string): string[];
 function emailsFromUrls(urls: string[]): string[];
 
 // @public
+export enum EnqueueStrategy {
+    All = "all",
+    SameDomain = "same-domain",
+    SameHostname = "same-hostname",
+    SameOrigin = "same-origin"
+}
+
+// @public
 export function extractUrls(options: ExtractUrlsOptions): string[];
 
 // @public (undocumented)
@@ -129,6 +137,7 @@ export function parseSitemap<T extends ParseSitemapOptions>(initialSources: Site
 // @public (undocumented)
 export interface ParseSitemapOptions {
     emitNestedSitemaps?: true | false;
+    enqueueStrategy?: EnqueueStrategy | `${EnqueueStrategy}`;
     httpClient?: BaseHttpClient;
     logger?: CrawleeLogger;
     maxDepth?: number;
@@ -161,10 +170,15 @@ export class RobotsTxtFile {
     }): Promise<RobotsTxtFile>;
     static from(url: string, content: string, proxyUrl?: string): RobotsTxtFile;
     getCrawlDelay(userAgent?: string): number | undefined;
-    getSitemaps(): string[];
+    getSitemaps(options?: RobotsTxtFileSitemapsOptions): string[];
     isAllowed(url: string, userAgent?: string): boolean;
-    parseSitemaps(): Promise<Sitemap>;
-    parseUrlsFromSitemaps(): Promise<string[]>;
+    parseSitemaps(options?: RobotsTxtFileSitemapsOptions): Promise<Sitemap>;
+    parseUrlsFromSitemaps(options?: RobotsTxtFileSitemapsOptions): Promise<string[]>;
+}
+
+// @public (undocumented)
+export interface RobotsTxtFileSitemapsOptions {
+    enqueueStrategy?: EnqueueStrategy | `${EnqueueStrategy}`;
 }
 
 // @public
