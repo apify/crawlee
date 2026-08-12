@@ -267,7 +267,10 @@ beforeEach(async () => {
 
 describe('SitemapRequestLoader', () => {
     test('requests are available before the sitemap is fully loaded', async () => {
-        const list = await SitemapRequestLoader.open({ sitemapUrls: [`${url}/sitemap-stream.xml`], enqueueStrategy: 'all' });
+        const list = await SitemapRequestLoader.open({
+            sitemapUrls: [`${url}/sitemap-stream.xml`],
+            enqueueStrategy: 'all',
+        });
 
         while (await list.isEmpty()) {
             await sleep(20);
@@ -287,7 +290,10 @@ describe('SitemapRequestLoader', () => {
     });
 
     test('retry sitemap load on error', async () => {
-        const list = await SitemapRequestLoader.open({ sitemapUrls: [`${url}/sitemap-unreliable.xml`], enqueueStrategy: 'all' });
+        const list = await SitemapRequestLoader.open({
+            sitemapUrls: [`${url}/sitemap-unreliable.xml`],
+            enqueueStrategy: 'all',
+        });
 
         for await (const request of list) {
             await list.markRequestAsHandled(request);
@@ -297,7 +303,10 @@ describe('SitemapRequestLoader', () => {
     });
 
     test('broken off sitemap load resurrects correctly and does not duplicate / lose requests', async () => {
-        const list = await SitemapRequestLoader.open({ sitemapUrls: [`${url}/sitemap-unreliable-break-off.xml`], enqueueStrategy: 'all' });
+        const list = await SitemapRequestLoader.open({
+            sitemapUrls: [`${url}/sitemap-unreliable-break-off.xml`],
+            enqueueStrategy: 'all',
+        });
 
         const urls = new Set<string>();
 
@@ -319,7 +328,10 @@ describe('SitemapRequestLoader', () => {
     });
 
     test('teardown works', async () => {
-        const list = await SitemapRequestLoader.open({ sitemapUrls: [`${url}/sitemap-index.xml`], enqueueStrategy: 'all' });
+        const list = await SitemapRequestLoader.open({
+            sitemapUrls: [`${url}/sitemap-index.xml`],
+            enqueueStrategy: 'all',
+        });
 
         for await (const request of list) {
             await list.markRequestAsHandled(request);
@@ -377,7 +389,10 @@ describe('SitemapRequestLoader', () => {
     });
 
     test('draining the request list between sitemaps', async () => {
-        const list = await SitemapRequestLoader.open({ sitemapUrls: [`${url}/sitemap-index.xml`], enqueueStrategy: 'all' });
+        const list = await SitemapRequestLoader.open({
+            sitemapUrls: [`${url}/sitemap-index.xml`],
+            enqueueStrategy: 'all',
+        });
 
         while (await list.isEmpty()) {
             await sleep(20);
@@ -412,7 +427,10 @@ describe('SitemapRequestLoader', () => {
     });
 
     test('for..await syntax works with SitemapRequestLoader', async () => {
-        const list = await SitemapRequestLoader.open({ sitemapUrls: [`${url}/sitemap-index.xml`], enqueueStrategy: 'all' });
+        const list = await SitemapRequestLoader.open({
+            sitemapUrls: [`${url}/sitemap-index.xml`],
+            enqueueStrategy: 'all',
+        });
 
         for await (const request of list) {
             await list.markRequestAsHandled(request);
@@ -510,7 +528,11 @@ describe('SitemapRequestLoader', () => {
     });
 
     test('persists state', async () => {
-        const options = { sitemapUrls: [`${url}/sitemap-stream.xml`], persistStateKey: 'some-key', enqueueStrategy: 'all' as const };
+        const options = {
+            sitemapUrls: [`${url}/sitemap-stream.xml`],
+            persistStateKey: 'some-key',
+            enqueueStrategy: 'all' as const,
+        };
         const list = await SitemapRequestLoader.open(options);
 
         const firstRequest = await list.fetchNextRequest();

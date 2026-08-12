@@ -18,6 +18,7 @@ import type { CrawleeLoggerOptions } from '@crawlee/types';
 import type { DatasetBackend } from '@crawlee/types';
 import type { DatasetInfo } from '@crawlee/types';
 import { Dictionary } from '@crawlee/types';
+import { EnqueueStrategy } from '@crawlee/utils';
 import type { HttpRequestOptions } from '@crawlee/types';
 import type { ISession } from '@crawlee/types';
 import type { ISessionPool } from '@crawlee/types';
@@ -496,13 +497,7 @@ export interface DefaultStorageIdentifier {
 // @public
 export type EnqueueLinksOptions = ExtractLinksOptions & EnqueueUrlsOptions;
 
-// @public
-export enum EnqueueStrategy {
-    All = "all",
-    SameDomain = "same-domain",
-    SameHostname = "same-hostname",
-    SameOrigin = "same-origin"
-}
+export { EnqueueStrategy }
 
 // @public
 export type EnqueueStrategyOption = EnqueueStrategy | 'all' | 'same-domain' | 'same-hostname' | 'same-origin';
@@ -1798,7 +1793,9 @@ export class SessionPool implements ISessionPool {
     // (undocumented)
     resetStore(options?: PersistenceOptions): Promise<void>;
     retiredSessionsCount(): Promise<number>;
-    teardown(): Promise<void>;
+    teardown(input?: {
+        persistState?: boolean;
+    }): Promise<void>;
     usableSessionsCount(): Promise<number>;
 }
 
@@ -1845,6 +1842,7 @@ export class SitemapRequestLoader implements IRequestLoader {
 
 // @public (undocumented)
 export interface SitemapRequestLoaderOptions extends UrlConstraints {
+    enqueueStrategy?: EnqueueStrategy | `${EnqueueStrategy}`;
     httpClient?: BaseHttpClient;
     maxBufferSize?: number;
     parseSitemapOptions?: Omit<ParseSitemapOptions, 'emitNestedSitemaps' | 'maxDepth'>;
