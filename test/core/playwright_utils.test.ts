@@ -435,22 +435,19 @@ describe('playwrightUtils', () => {
     });
 
     describe('handleCloudflareChallenge() challenge detection', () => {
-        // the function itself is not a named export, it is only reachable via the internal `playwrightUtils` object
+        // not a named export, only reachable via the internal `playwrightUtils` object
         const { handleCloudflareChallenge } = playwrightUtils.playwrightUtils;
         let browser: Browser;
         let page: Page;
 
-        // Detection-only options: no real clicking, no waiting, so an unsolved challenge
-        // fails fast with a SessionError instead of spending ~20 seconds in the click loop.
-        // A fresh object per call, since `handleCloudflareChallenge` assigns default callbacks into it.
+        // no clicking or waiting, so an unsolved challenge fails fast instead of spending ~20s in the click loop
         const fastOptions = () => ({
             sleepSecs: 0,
             preChallengeSleepSecs: 0,
             clickCallback: async () => {},
         });
 
-        // Challenge page markup as rendered by the current (2026) Cloudflare template:
-        // the ray ID sits under `.footer-wrapper > div`, with no `.diagnostic-wrapper`.
+        // markup as rendered by the current (2026) Cloudflare challenge template
         const currentChallengeBody = `
             <div class="main-wrapper" role="main"><div class="main-content">
                 <h1>example.com</h1>
@@ -462,7 +459,7 @@ describe('playwrightUtils', () => {
                 <div class="footer-link-wrapper"><span class="footer-text">Performance and Security by Cloudflare</span></div>
             </div></div></div>`;
 
-        // Older template, where the ray ID was nested under `.diagnostic-wrapper`.
+        // the older template, with the `.diagnostic-wrapper` element
         const oldChallengeBody = `
             <div class="main-wrapper" role="main"><div class="main-content">
                 <h1>example.com</h1>
