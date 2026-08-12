@@ -859,7 +859,7 @@ export abstract class BrowserCrawler<
         if (typeof response === 'object' && typeof response.status === 'function') {
             const status: number = response.status();
 
-            this.stats.registerStatusCode(status);
+            this.statistics.registerStatusCode(status);
 
             // Ahead of the error-status throw below: a 429 the user opted into treating as an error is still a
             // rate limit the domain should back off from.

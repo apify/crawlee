@@ -11,9 +11,9 @@ import BasicSource from '!!raw-loader!./custom_statistics_basic.ts';
 import ValidatedSource from '!!raw-loader!./custom_statistics_validated.ts';
 import AdaptiveSource from '!!raw-loader!./custom_statistics_adaptive.ts';
 
-Every crawler collects run statistics — requests finished, failures, retries, durations — into a <ApiLink to="core/class/Statistics">`Statistics`</ApiLink> instance exposed as `crawler.stats`. You can track your own counters in the same place, and get the persistence, logging and lifecycle handling that the built-in fields already have.
+Every crawler collects run statistics — requests finished, failures, retries, durations — into a <ApiLink to="core/class/Statistics">`Statistics`</ApiLink> instance exposed as `crawler.statistics`. You can track your own counters in the same place, and get the persistence, logging and lifecycle handling that the built-in fields already have.
 
-Keeping a counter in a plain variable works right up until the run is interrupted. Statistics state is written to the key-value store and restored on migration or resurrect, so a counter that lives in `stats.state` survives a run that a plain variable would not.
+Keeping a counter in a plain variable works right up until the run is interrupted. Statistics state is written to the key-value store and restored on migration or resurrect, so a counter that lives in `statistics.state` survives a run that a plain variable would not.
 
 ## Declaring custom fields
 
@@ -21,7 +21,7 @@ Pass <ApiLink to="core/interface/StatisticsOptions#stateExtension">`stateExtensi
 
 <CodeBlock className="language-typescript">{BasicSource}</CodeBlock>
 
-The field types flow through to `crawler.stats.state`, so they are available anywhere you hold the crawler, not just where you hold the statistics instance. Reading an undeclared field is a compile-time error.
+The field types flow through to `crawler.statistics.state`, so they are available anywhere you hold the crawler, not just where you hold the statistics instance. Reading an undeclared field is a compile-time error.
 
 <ApiLink to="core/interface/StatisticStateExtensionOptions#defaultState">`defaultState`</ApiLink> is also what `reset()` restores, and it determines which keys are read back from a persisted record. A field you add later simply keeps its default when an older record is restored, so growing the state between runs does not need a migration.
 

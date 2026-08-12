@@ -219,7 +219,7 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
     protected runRequestHandler(crawlingContext: ExtendedContext): Promise<void>;
     get sessionPool(): ISessionPool;
     setStatusMessage(message: string, options?: SetStatusMessageOptions): void;
-    get stats(): IStatistics<StatisticStateExtension>;
+    get statistics(): IStatistics<StatisticStateExtension>;
     stop(reason?: string): void;
     teardown(): Promise<void>;
     protected throwOnBlockedRequest(statusCode: number): void;

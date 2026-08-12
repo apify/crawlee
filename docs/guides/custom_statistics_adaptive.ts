@@ -19,4 +19,4 @@ const crawler = new AdaptivePlaywrightCrawler({
 
 await crawler.run(['https://crawlee.dev']);
 
-console.log(`Handled ${crawler.stats.state.httpOnlyRequestHandlerRuns} requests without a browser`);
+console.log(`Handled ${crawler.statistics.state.httpOnlyRequestHandlerRuns} requests without a browser`);

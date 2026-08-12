@@ -71,7 +71,7 @@ const adaptiveStatisticStateSchema = z.object({
 
 /**
  * The extra statistics fields {@apilink AdaptivePlaywrightCrawler} tracks on top of the built-in
- * {@apilink StatisticState} ones. They are available on `crawler.stats.state` and are persisted with the rest of
+ * {@apilink StatisticState} ones. They are available on `crawler.statistics.state` and are persisted with the rest of
  * the statistics.
  */
 export type AdaptivePlaywrightCrawlerStatisticState = z.infer<typeof adaptiveStatisticStateSchema>;
@@ -658,7 +658,7 @@ export class AdaptivePlaywrightCrawler<
         try {
             if (renderingTypePrediction.renderingType === 'static' && !shouldDetectRenderingType) {
                 crawlingContext.log.debug(`Running HTTP-only request handler for ${crawlingContext.request.url}`);
-                this.stats.state.httpOnlyRequestHandlerRuns++;
+                this.statistics.state.httpOnlyRequestHandlerRuns++;
 
                 const plainHTTPRun = await this.crawlOne(
                     'static',
@@ -693,12 +693,12 @@ export class AdaptivePlaywrightCrawler<
                     crawlingContext.log.warning(
                         `HTTP-only request handler returned a suspicious result for ${crawlingContext.request.url}`,
                     );
-                    this.stats.state.renderingTypeMispredictions++;
+                    this.statistics.state.renderingTypeMispredictions++;
                 }
             }
 
             crawlingContext.log.debug(`Running browser request handler for ${crawlingContext.request.url}`);
-            this.stats.state.browserRequestHandlerRuns++;
+            this.statistics.state.browserRequestHandlerRuns++;
 
             // Run the request handler in a browser. The copy of the crawler state is kept so that we can perform
             // a rendering type detection if necessary. Without this measure, the HTTP request handler would run

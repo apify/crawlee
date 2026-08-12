@@ -510,7 +510,7 @@ export interface BasicCrawlerOptions<
      * implementing {@apilink IStatistics}.
      *
      * Custom fields declared via {@apilink StatisticsOptions.stateExtension|`stateExtension`} are carried over to
-     * {@apilink BasicCrawler.stats|`crawler.stats.state`}:
+     * {@apilink BasicCrawler.statistics|`crawler.statistics.state`}:
      *
      * ```ts
      * const statistics = new Statistics({ stateExtension: { defaultState: { productsFound: 0 } } });
@@ -523,8 +523,8 @@ export interface BasicCrawlerOptions<
      * });
      *
      * await crawler.run();
-     * // the custom fields are typed on `crawler.stats` too
-     * console.log(crawler.stats.state.productsFound);
+     * // the custom fields are typed on `crawler.statistics` too
+     * console.log(crawler.statistics.state.productsFound);
      * ```
      */
     statistics?: IStatistics<StatisticStateExtension>;
@@ -715,15 +715,15 @@ export class BasicCrawler<
      */
     static #useStateAnonymousIndices = new Set<number>();
 
-    /** Backs the {@apilink BasicCrawler.stats|`stats`} getter. */
-    #statsDep: OwnedOrInjected<IStatistics<StatisticStateExtension>, Statistics<StatisticStateExtension>>;
+    /** Backs the {@apilink BasicCrawler.statistics|`statistics`} getter. */
+    #statisticsDep: OwnedOrInjected<IStatistics<StatisticStateExtension>, Statistics<StatisticStateExtension>>;
 
     /**
      * The statistics instance collecting the crawler's run statistics - either the injected `statistics` option or a
      * crawler-built default. Typed as {@apilink IStatistics} so custom implementations can be plugged in.
      */
-    get stats(): IStatistics<StatisticStateExtension> {
-        return this.#statsDep.value;
+    get statistics(): IStatistics<StatisticStateExtension> {
+        return this.#statisticsDep.value;
     }
 
     /**
@@ -858,7 +858,7 @@ export class BasicCrawler<
     protected readonly maxRequestsPerCrawl?: number;
 
     private get handledRequestsCount(): number {
-        return this.stats.state.requestsFinished + this.stats.state.requestsFailed;
+        return this.statistics.state.requestsFinished + this.statistics.state.requestsFailed;
     }
 
     #statusMessageLoggingInterval: number;
@@ -1130,7 +1130,7 @@ export class BasicCrawler<
             this.maxRequestRetries = maxRequestRetries;
             this.maxCrawlDepth = maxCrawlDepth;
             this.#sameDomainDelaySecs = sameDomainDelaySecs;
-            this.#statsDep = OwnedOrInjected.resolve<
+            this.#statisticsDep = OwnedOrInjected.resolve<
                 IStatistics<StatisticStateExtension>,
                 Statistics<StatisticStateExtension>
             >(
@@ -1208,7 +1208,7 @@ export class BasicCrawler<
                     // Started here, rather than in `handleRequest`, so that a failure during context pipeline
                     // initialization (e.g. a browser page timing out before the request handler ever runs) is
                     // still accounted for by `failJob` below - which is a no-op without a matching `startJob`.
-                    this.stats.startJob(request.id || request.uniqueKey);
+                    this.statistics.startJob(request.id || request.uniqueKey);
 
                     const crawlingContext = { request } as { request: Request } & Partial<CrawlingContext>;
                     try {
@@ -1230,7 +1230,7 @@ export class BasicCrawler<
                         // ContextPipelineInterruptedError means the request was intentionally skipped
                         // (e.g., doesn't match enqueue strategy after redirect). Just return gracefully.
                         if (error instanceof ContextPipelineInterruptedError) {
-                            this.stats.discardJob(request.id || request.uniqueKey);
+                            this.statistics.discardJob(request.id || request.uniqueKey);
                             await this.timeoutAndRetry(
                                 async () => this.requestManager?.markRequestAsHandled(request),
                                 this.internalTimeoutMillis,
@@ -1582,13 +1582,13 @@ export class BasicCrawler<
     }
 
     private getPeriodicLogger() {
-        let previousState = { ...this.stats.state };
+        let previousState = { ...this.statistics.state };
 
         const getOperationMode = (): { mode: 'ERROR' | 'REGULAR'; failedDelta: number } => {
-            const { requestsFailed } = this.stats.state;
+            const { requestsFailed } = this.statistics.state;
             const { requestsFailed: previousRequestsFailed } = previousState;
 
-            previousState = { ...this.stats.state };
+            previousState = { ...this.statistics.state };
 
             const failedDelta = requestsFailed - previousRequestsFailed;
 
@@ -1607,15 +1607,15 @@ export class BasicCrawler<
                 message = `Experiencing problems, ${failedDelta} failed requests in the past ${this.#statusMessageLoggingInterval} seconds.`;
             } else {
                 const total = await this.requestManager?.getTotalCount();
-                message = `Crawled ${this.stats.state.requestsFinished}${total ? `/${total}` : ''} pages, ${
-                    this.stats.state.requestsFailed
+                message = `Crawled ${this.statistics.state.requestsFinished}${total ? `/${total}` : ''} pages, ${
+                    this.statistics.state.requestsFailed
                 } failed requests, desired concurrency ${this.concurrencySystem?.desiredConcurrency ?? 0}.`;
             }
 
             if (this.#statusMessageCallback) {
                 await this.#statusMessageCallback({
                     crawler: this as any,
-                    state: this.stats.state,
+                    state: this.statistics.state,
                     previousState,
                     message,
                 });
@@ -1673,7 +1673,7 @@ export class BasicCrawler<
             }
 
             // A supplied statistics instance keeps whatever state it was handed - only wipe a default we built.
-            await this.#statsDep.ifOwned(async (stats) => {
+            await this.#statisticsDep.ifOwned(async (stats) => {
                 stats.reset();
                 await stats.resetStore();
             });
@@ -1696,7 +1696,7 @@ export class BasicCrawler<
 
         try {
             await this.init();
-            await this.stats.startCapturing();
+            await this.statistics.startCapturing();
         } catch (error) {
             // Clean up here before propagating, otherwise a failed startup would leave the process hanging.
             await this.teardown().catch((teardownError) => {
@@ -1732,29 +1732,29 @@ export class BasicCrawler<
             await this.#autoscaledPool!.run();
         } finally {
             await this.teardown();
-            await this.stats.stopCapturing();
+            await this.statistics.stopCapturing();
 
             process.off('SIGINT', sigintHandler);
             eventManager.off(EventType.MIGRATING, boundPauseOnMigration);
             eventManager.off(EventType.ABORTING, boundPauseOnMigration);
 
-            const finalStats = this.stats.calculate();
+            const finalStats = this.statistics.calculate();
             stats = {
-                requestsFinished: this.stats.state.requestsFinished,
-                requestsFailed: this.stats.state.requestsFailed,
-                retryHistogram: this.stats.requestRetryHistogram,
+                requestsFinished: this.statistics.state.requestsFinished,
+                requestsFailed: this.statistics.state.requestsFailed,
+                retryHistogram: this.statistics.requestRetryHistogram,
                 ...finalStats,
             };
             this.log.info('Final request statistics:', stats as unknown as Record<string, unknown>);
 
-            if (this.stats.errorTracker.total !== 0) {
+            if (this.statistics.errorTracker.total !== 0) {
                 const prettify = ([count, info]: [number, string[]]) =>
                     `${count}x: ${info.at(-1)!.trim()} (${info[0]})`;
 
                 this.log.info(`Error analysis:`, {
-                    totalErrors: this.stats.errorTracker.total,
-                    uniqueErrors: this.stats.errorTracker.getUniqueErrorCount(),
-                    mostCommonErrors: this.stats.errorTracker.getMostPopularErrors(3).map(prettify),
+                    totalErrors: this.statistics.errorTracker.total,
+                    uniqueErrors: this.statistics.errorTracker.getUniqueErrorCount(),
+                    mostCommonErrors: this.statistics.errorTracker.getMostPopularErrors(3).map(prettify),
                 });
             }
 
@@ -1773,9 +1773,9 @@ export class BasicCrawler<
 
             periodicLogger.stop();
             this.setStatusMessage(
-                `Finished! Total ${this.stats.state.requestsFinished + this.stats.state.requestsFailed} requests: ${
-                    this.stats.state.requestsFinished
-                } succeeded, ${this.stats.state.requestsFailed} failed.`,
+                `Finished! Total ${this.statistics.state.requestsFinished + this.statistics.state.requestsFailed} requests: ${
+                    this.statistics.state.requestsFinished
+                } succeeded, ${this.statistics.state.requestsFailed} failed.`,
                 { isStatusMessageTerminal: true, level: 'INFO' },
             );
 
@@ -2535,7 +2535,7 @@ export class BasicCrawler<
             }
         })();
 
-        await Promise.all([requestManagerPersistPromise, this.stats.persistState?.()]);
+        await Promise.all([requestManagerPersistPromise, this.statistics.persistState?.()]);
     }
 
     /**
@@ -2582,7 +2582,7 @@ export class BasicCrawler<
             );
             isRequestLocked = false; // markRequestAsHandled succeeded and unlocked the request
 
-            this.stats.finishJob(statisticsId, request.retryCount);
+            this.statistics.finishJob(statisticsId, request.retryCount);
 
             // reclaim session if request finishes successfully
             request.state = RequestState.DONE;
@@ -2748,7 +2748,7 @@ export class BasicCrawler<
         const shouldRetryRequest = this.canRequestBeRetried(request, error);
 
         if (shouldRetryRequest) {
-            await this.stats.errorTrackerRetry.addAsync(error, crawlingContext);
+            await this.statistics.errorTrackerRetry.addAsync(error, crawlingContext);
             await this.errorHandler?.(
                 crawlingContext as CrawlingContext & Partial<ExtendedContext>, // valid cast - ExtendedContext transitively extends CrawlingContext
                 error,
@@ -2786,16 +2786,16 @@ export class BasicCrawler<
         // This is to make sure the error snapshot is not duplicated in the errorTrackerRetry and errorTracker objects.
         const { noRetry, maxRetries } = request;
         if (noRetry || !maxRetries) {
-            await this.stats.errorTracker.addAsync(error, crawlingContext);
+            await this.statistics.errorTracker.addAsync(error, crawlingContext);
         } else {
-            this.stats.errorTracker.add(error);
+            this.statistics.errorTracker.add(error);
         }
 
         // If we get here, the request is either not retryable
         // or failed more than retryCount times and will not be retried anymore.
         // Mark the request as failed and do not retry.
         await source.markRequestAsHandled(request);
-        this.stats.failJob(request.id || request.uniqueKey, request.retryCount);
+        this.statistics.failJob(request.id || request.uniqueKey, request.retryCount);
 
         await this.handleFailedRequestHandler(crawlingContext, error); // This function prints an error message.
     }
