@@ -9,8 +9,6 @@ import type { Awaitable } from '@crawlee/types';
 import { BaseHttpClient } from '@crawlee/http-client';
 import { BasicCrawler } from '@crawlee/basic';
 import { BasicCrawlerOptions } from '@crawlee/basic';
-import type { BrowserController } from '@crawlee/browser-pool';
-import type { BrowserPlugin } from '@crawlee/browser-pool';
 import type { BrowserPluginOptions } from '@crawlee/browser-pool';
 import type { BrowserPoolHooks } from '@crawlee/browser-pool';
 import type { BrowserPoolOptions } from '@crawlee/browser-pool';
@@ -26,13 +24,15 @@ import { EventManager } from '@crawlee/basic';
 import type { ExtractLinksOptions } from '@crawlee/basic';
 import type { GetUserDataFromRequest } from '@crawlee/basic';
 import type { IBrowserPool } from '@crawlee/types';
-import type { InferBrowserPluginArray } from '@crawlee/browser-pool';
-import type { LaunchContext } from '@crawlee/browser-pool';
 import type { LoadedRequest } from '@crawlee/basic';
+import type { RemoteBrowserPoolOptions } from '@crawlee/browser-pool';
 import { Request as Request_2 } from '@crawlee/basic';
 import type { RequestHandler } from '@crawlee/basic';
 import type { RouterHandler } from '@crawlee/basic';
 import { z } from 'zod';
+
+// @public
+export function assertBrowserPoolNotConfigured(crawlerName: string, ignoredOptions: Dictionary): void;
 
 // Not exported by the entry point; reachable only as a referenced type.
 // @public (undocumented)
@@ -43,9 +43,10 @@ interface BaseResponse {
 }
 
 // @public
-export abstract class BrowserCrawler<Page extends CommonPage = CommonPage, Response extends BaseResponse = BaseResponse, InternalBrowserPoolOptions extends BrowserPoolOptions = BrowserPoolOptions, LaunchOptions extends Dictionary | undefined = Dictionary, Context extends BrowserCrawlingContext<Page, Response> = BrowserCrawlingContext<Page, Response>, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>, StatisticStateExtension extends object = {}, GoToOptions extends Dictionary = Dictionary> extends BasicCrawler<Context, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
-    protected constructor(options: BrowserCrawlerOptions<Page, Response, Context, ContextExtension, ExtendedContext, BrowserPoolOptions, Routes, StatisticStateExtension> & {
+export abstract class BrowserCrawler<Page extends CommonPage = CommonPage, Response extends BaseResponse = BaseResponse, LaunchOptions extends Dictionary | undefined = Dictionary, Context extends BrowserCrawlingContext<Page, Response> = BrowserCrawlingContext<Page, Response>, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>, StatisticStateExtension extends object = {}, GoToOptions extends Dictionary = Dictionary> extends BasicCrawler<Context, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
+    protected constructor(options: BrowserCrawlerOptions<Page, Response, Context, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> & {
         contextPipelineBuilder: () => ContextPipeline<CrawlingContext, Context>;
+        browserPoolBuilder: (remoteBrowser?: CrawlerRemoteBrowserOptions) => OwnedBrowserPool<Page>;
     });
     get browserPool(): IBrowserPool<Page>;
     // (undocumented)
@@ -66,10 +67,9 @@ export abstract class BrowserCrawler<Page extends CommonPage = CommonPage, Respo
         preNavigationHooks: z.ZodDefault<z.ZodCustom<unknown[], unknown[]>>;
         postNavigationHooks: z.ZodDefault<z.ZodCustom<unknown[], unknown[]>>;
         launchContext: z.ZodDefault<z.ZodCustom<Dictionary, Dictionary>>;
-        headless: z.ZodOptional<z.ZodUnion<readonly [z.ZodBoolean, z.ZodString]>>;
         browserPool: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
+        browserPoolBuilder: z.ZodOptional<z.ZodCustom<(...args: any[]) => unknown, (...args: any[]) => unknown>>;
         remoteBrowser: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
-        browserPoolOptions: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
         saveResponseCookies: z.ZodDefault<z.ZodBoolean>;
         proxyConfiguration: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
         ignoreIframes: z.ZodDefault<z.ZodBoolean>;
@@ -122,10 +122,9 @@ export abstract class BrowserCrawler<Page extends CommonPage = CommonPage, Respo
         preNavigationHooks: z.ZodDefault<z.ZodCustom<unknown[], unknown[]>>;
         postNavigationHooks: z.ZodDefault<z.ZodCustom<unknown[], unknown[]>>;
         launchContext: z.ZodDefault<z.ZodCustom<Dictionary, Dictionary>>;
-        headless: z.ZodOptional<z.ZodUnion<readonly [z.ZodBoolean, z.ZodString]>>;
         browserPool: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
+        browserPoolBuilder: z.ZodOptional<z.ZodCustom<(...args: any[]) => unknown, (...args: any[]) => unknown>>;
         remoteBrowser: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
-        browserPoolOptions: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
         saveResponseCookies: z.ZodDefault<z.ZodBoolean>;
         proxyConfiguration: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
         ignoreIframes: z.ZodDefault<z.ZodBoolean>;
@@ -176,12 +175,10 @@ export abstract class BrowserCrawler<Page extends CommonPage = CommonPage, Respo
 }
 
 // @public (undocumented)
-export interface BrowserCrawlerOptions<Page extends CommonPage = CommonPage, Response extends BaseResponse = BaseResponse, Context extends BrowserCrawlingContext<Page, Response> = BrowserCrawlingContext<Page, Response>, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension, InternalBrowserPoolOptions extends BrowserPoolOptions = BrowserPoolOptions, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>, StatisticStateExtension extends object = {}, __BrowserPlugins extends BrowserPlugin[] = InferBrowserPluginArray<InternalBrowserPoolOptions['browserPlugins']>, __BrowserControllerReturn extends BrowserController = ReturnType<__BrowserPlugins[number]['createController']>, __LaunchContextReturn extends LaunchContext = ReturnType<__BrowserPlugins[number]['createLaunchContext']>> extends Omit<BasicCrawlerOptions<Context, ContextExtension, ExtendedContext, Routes, StatisticStateExtension>, 'requestHandler' | 'failedRequestHandler' | 'errorHandler'> {
+export interface BrowserCrawlerOptions<Page extends CommonPage = CommonPage, Response extends BaseResponse = BaseResponse, Context extends BrowserCrawlingContext<Page, Response> = BrowserCrawlingContext<Page, Response>, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>, StatisticStateExtension extends object = {}> extends Omit<BasicCrawlerOptions<Context, ContextExtension, ExtendedContext, Routes, StatisticStateExtension>, 'requestHandler' | 'failedRequestHandler' | 'errorHandler'> {
     browserPool?: IBrowserPool<Page>;
-    browserPoolOptions?: Partial<BrowserPoolOptions> & Partial<BrowserPoolHooks<__BrowserControllerReturn, __LaunchContextReturn>>;
     errorHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
     failedRequestHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
-    headless?: boolean | 'new' | 'old';
     ignoreIframes?: boolean;
     ignoreShadowRoots?: boolean;
     // (undocumented)
@@ -219,6 +216,19 @@ export interface BrowserLaunchContext<TOptions, Launcher> extends BrowserPluginO
     userAgent?: string;
     userDataDir?: string;
 }
+
+// @public
+export type LauncherBrowserPoolOptions = Omit<BrowserPoolOptions, 'browserPlugins'> & {
+    [Hook in keyof BrowserPoolHooks<any, any, any>]?: readonly ((...args: any[]) => unknown)[];
+};
+
+// @public
+export type LauncherRemoteBrowserPoolOptions = Omit<RemoteBrowserPoolOptions, 'browserPlugins'>;
+
+// @public
+export type OwnedBrowserPool<Page> = IBrowserPool<Page> & {
+    destroy: () => Promise<void>;
+};
 
 
 export * from "@crawlee/basic";

@@ -8,17 +8,16 @@ import type {
     RouteSchemas,
     RoutesFromSchemas,
 } from '@crawlee/browser';
-import { BrowserCrawler, RequestState, Router } from '@crawlee/browser';
-import type { BrowserPoolOptions, PuppeteerPlugin } from '@crawlee/browser-pool';
-import { parseArgument, schemas, serviceLocator } from '@crawlee/core';
+import { assertBrowserPoolNotConfigured, BrowserCrawler, RequestState, Router } from '@crawlee/browser';
+import { parseArgument, serviceLocator } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/types';
 // @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
 import type { HTTPResponse, LaunchOptions, Page } from 'puppeteer';
 import { z } from 'zod';
 
 import type { EnqueueLinksByClickingElementsOptions } from './enqueue-links/click-elements.js';
+import { puppeteerBrowserPool, remotePuppeteerBrowserPool } from './puppeteer-browser-pool.js';
 import type { PuppeteerLaunchContext } from './puppeteer-launcher.js';
-import { PuppeteerLauncher } from './puppeteer-launcher.js';
 import type { InterceptHandler } from './utils/puppeteer_request_interception.js';
 import type {
     BlockRequestsOptions,
@@ -54,7 +53,6 @@ export interface PuppeteerCrawlerOptions<
     PuppeteerCrawlingContext,
     ContextExtension,
     ExtendedContext,
-    { browserPlugins: [PuppeteerPlugin] },
     Routes,
     StatisticStateExtension
 > {
@@ -62,6 +60,12 @@ export interface PuppeteerCrawlerOptions<
      * Options used by {@apilink launchPuppeteer} to start new Puppeteer instances.
      */
     launchContext?: PuppeteerLaunchContext;
+
+    /**
+     * Whether to run browser in headless mode. Defaults to `true`.
+     * Can be also set via {@apilink Configuration}.
+     */
+    headless?: boolean | 'new' | 'old';
 
     /**
      * Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies
@@ -182,7 +186,6 @@ export class PuppeteerCrawler<
 > extends BrowserCrawler<
     Page,
     HTTPResponse,
-    { browserPlugins: [PuppeteerPlugin] },
     LaunchOptions,
     PuppeteerCrawlingContext,
     ContextExtension,
@@ -192,7 +195,9 @@ export class PuppeteerCrawler<
 > {
     protected static override optionsShape = {
         ...BrowserCrawler.optionsShape,
-        browserPoolOptions: schemas.anyObject.optional(),
+        // Deliberately looser than the declared type: Puppeteer's own accepted string values have moved over
+        // time (`'new'`/`'old'`, now `'shell'`), and the value is forwarded to it verbatim.
+        headless: z.union([z.boolean(), z.string()]).optional(),
     };
 
     protected static override optionsSchema = z.strictObject(PuppeteerCrawler.optionsShape);
@@ -205,12 +210,14 @@ export class PuppeteerCrawler<
     ) {
         const parsedOptions = parseArgument(options, PuppeteerCrawler.optionsSchema, 'PuppeteerCrawlerOptions');
 
-        const { launchContext, headless, proxyConfiguration, contextPipelineBuilder, ...browserCrawlerOptions } =
-            parsedOptions;
-
-        const browserPoolOptions = {
-            ...parsedOptions.browserPoolOptions,
-        } as BrowserPoolOptions;
+        const {
+            launchContext,
+            headless,
+            configuration,
+            proxyConfiguration,
+            contextPipelineBuilder,
+            ...browserCrawlerOptions
+        } = parsedOptions;
 
         if (launchContext.proxyUrl) {
             throw new Error(
@@ -219,20 +226,13 @@ export class PuppeteerCrawler<
             );
         }
 
-        // `browserPlugins` is working when it's not overridden by `launchContext`,
-        // which for crawlers it is always overridden. Hence the error to use the other option.
-        if (browserPoolOptions.browserPlugins) {
-            throw new Error('browserPoolOptions.browserPlugins is disallowed. Use launchContext.launcher instead.');
+        if (options.browserPool) {
+            // The raw options, not the parsed ones: `launchContext` has a default, so by now it is always set.
+            assertBrowserPoolNotConfigured(new.target.name, {
+                launchContext: options.launchContext,
+                headless: options.headless,
+            });
         }
-
-        if (headless != null) {
-            launchContext.launchOptions ??= {} as LaunchOptions;
-            launchContext.launchOptions.headless = headless as boolean;
-        }
-
-        const puppeteerLauncher = new PuppeteerLauncher(launchContext, parsedOptions.configuration);
-
-        browserPoolOptions.browserPlugins = [puppeteerLauncher.createBrowserPlugin()];
 
         super({
             ...(browserCrawlerOptions as BrowserCrawlerOptions<
@@ -241,13 +241,16 @@ export class PuppeteerCrawler<
                 PuppeteerCrawlingContext,
                 ContextExtension,
                 ExtendedContext,
-                BrowserPoolOptions,
                 Routes,
                 StatisticStateExtension
             >),
             launchContext,
+            configuration,
             proxyConfiguration,
-            browserPoolOptions,
+            browserPoolBuilder: (remoteBrowser) =>
+                remoteBrowser
+                    ? remotePuppeteerBrowserPool({ ...remoteBrowser, launchContext, headless, configuration })
+                    : puppeteerBrowserPool({ launchContext, headless, configuration }),
             contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),
         });
     }

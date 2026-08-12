@@ -1,4 +1,5 @@
 export * from '@crawlee/browser';
+export * from './internals/puppeteer-browser-pool.js';
 export * from './internals/puppeteer-crawler.js';
 export * from './internals/puppeteer-launcher.js';
 

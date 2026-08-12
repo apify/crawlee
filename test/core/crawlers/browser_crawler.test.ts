@@ -191,17 +191,18 @@ describe('BrowserCrawler', () => {
         await (crawler.browserPool as RemoteBrowserPool).destroy();
     });
 
-    test.concurrent('uses browserPool and ignores remoteBrowser when both are set', async () => {
+    test.concurrent('rejects remoteBrowser when a browserPool is passed in', async () => {
         const externalPool = new BrowserPoolClass({ browserPlugins: [new PuppeteerPlugin(puppeteer)] });
 
         try {
-            const crawler = new BrowserCrawlerTest({
-                browserPool: externalPool,
-                remoteBrowser: { endpoint: 'ws://remote:9222' },
-                requestHandler: async () => {},
-            });
-
-            expect(crawler.browserPool).toBe(externalPool);
+            expect(
+                () =>
+                    new BrowserCrawlerTest({
+                        browserPool: externalPool,
+                        remoteBrowser: { endpoint: 'ws://remote:9222' },
+                        requestHandler: async () => {},
+                    }),
+            ).toThrow('`remoteBrowser` cannot be combined with `browserPool`');
         } finally {
             await externalPool.destroy();
         }

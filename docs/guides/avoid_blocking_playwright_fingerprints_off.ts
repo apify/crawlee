@@ -1,8 +1,8 @@
-import { PlaywrightCrawler } from 'crawlee';
+import { PlaywrightCrawler, playwrightBrowserPool } from 'crawlee';
 
 const crawler = new PlaywrightCrawler({
-    browserPoolOptions: {
+    browserPool: playwrightBrowserPool({
         useFingerprints: false,
-    },
+    }),
     // ...
 });
