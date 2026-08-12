@@ -76,8 +76,11 @@ await Actor.main(async () => {
     const crawler = new PuppeteerCrawler({
         maxRequestsPerCrawl: 10,
         preNavigationHooks: [
-            (_crawlingContext, goToOptions) => {
-                goToOptions.waitUntil = ['networkidle2'];
+            async ({ page, gotoOptions }) => {
+                await page.evaluateOnNewDocument(() => {
+                    localStorage.setItem('themeExitPopup', 'true');
+                });
+                gotoOptions.waitUntil = ['networkidle2'];
             },
         ],
         async requestHandler({ page, request, log, enqueueLinks, injectJQuery }) {

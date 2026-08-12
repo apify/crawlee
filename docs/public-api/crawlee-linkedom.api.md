@@ -4,6 +4,7 @@
 
 ```ts
 
+import type { BatchAddRequestsResult } from '@crawlee/types';
 import * as cheerio from 'cheerio';
 import { CheerioRoot } from '@crawlee/utils/internal';
 import { ContextPipeline } from '@crawlee/http';
@@ -33,14 +34,14 @@ export function createLinkeDOMRouter<Context extends LinkeDOMCrawlingContext = L
 
 // @public
 export class LinkeDOMCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends LinkeDOMCrawlingContext = LinkeDOMCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<LinkeDOMCrawlingContext['request']>>> extends HttpCrawler<LinkeDOMCrawlingContext, ContextExtension, ExtendedContext, Routes> {
-    constructor(options: LinkeDOMCrawlerOptions<ContextExtension, ExtendedContext, any, any, Routes>);
+    constructor(options?: LinkeDOMCrawlerOptions<ContextExtension, ExtendedContext, any, any, Routes>);
     // (undocumented)
     protected buildContextPipeline(): ContextPipeline<CrawlingContext<Dictionary>, InternalHttpCrawlingContext<any, any> & {
     readonly window: Window;
     readonly body: string;
     readonly document: Document;
     } & {
-    enqueueLinks: (enqueueOptions?: LinkeDOMCrawlerEnqueueLinksOptions) => Promise<unknown>;
+    enqueueLinks: (enqueueOptions?: LinkeDOMCrawlerEnqueueLinksOptions) => Promise<BatchAddRequestsResult>;
     waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
     parseWithCheerio(selector?: string, _timeoutMs?: number): Promise<cheerio.CheerioAPI>;
     }>;
@@ -61,6 +62,7 @@ export interface LinkeDOMCrawlingContext<UserData extends Dictionary = any, // w
 JSONData extends Dictionary = any> extends InternalHttpCrawlingContext<UserData, JSONData> {
     // (undocumented)
     document: Document;
+    enqueueLinks(options?: LinkeDOMCrawlerEnqueueLinksOptions): Promise<BatchAddRequestsResult>;
     parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
     waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
     // (undocumented)

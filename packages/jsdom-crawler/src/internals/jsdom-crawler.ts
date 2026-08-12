@@ -23,7 +23,7 @@ import {
     Router,
     tryAbsoluteURL,
 } from '@crawlee/http';
-import type { Dictionary } from '@crawlee/types';
+import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 import { type CheerioRoot } from '@crawlee/utils/internal';
 import { type RobotsTxtFile, sleep } from '@crawlee/utils';
 import type { DOMWindow } from 'jsdom';
@@ -97,6 +97,11 @@ export interface JSDOMCrawlingContext<
      * ```
      */
     parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
+
+    /**
+     * Helper function for extracting URLs from the parsed HTML and adding them to the request queue.
+     */
+    enqueueLinks(options?: EnqueueLinksOptions): Promise<BatchAddRequestsResult>;
 }
 
 export type JSDOMRequestHandler<
@@ -360,7 +365,7 @@ export class JSDOMCrawler<
 
         return {
             enqueueLinks: async (enqueueOptions?: EnqueueLinksOptions) => {
-                return domCrawlerEnqueueLinks({
+                return (await domCrawlerEnqueueLinks({
                     // `originalEnqueueLinks` clamps `limit` by the remaining `maxRequestsPerCrawl` budget itself;
                     // pre-clamping it here would make the crawler log the internal limit as a user-provided one
                     options: enqueueOptions,
@@ -371,7 +376,7 @@ export class JSDOMCrawler<
                     originalRequestUrl: crawlingContext.request.url,
                     finalRequestUrl: crawlingContext.request.loadedUrl,
                     enqueueLinks: originalEnqueueLinks,
-                });
+                })) as BatchAddRequestsResult; // TODO make this type safe, see https://github.com/apify/crawlee/issues/4024
             },
             async waitForSelector(selector: string, timeoutMs = 5_000) {
                 const cheerio = await import('cheerio');
