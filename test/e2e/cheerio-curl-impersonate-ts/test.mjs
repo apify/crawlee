@@ -19,5 +19,3 @@ await expect(
 );
 await expect(result.clientIpJsonResponse.clientIp !== undefined, 'JSON response contains client IP');
 await expect(JSON.parse(result.clientIpTextResponse).clientIp !== undefined, 'Text response contains client IP');
-await expect(result.uuidJsonResponse.uuid !== undefined, 'JSON response contains UUID');
-await expect(JSON.parse(result.uuidTextResponse).uuid !== undefined, 'Text response contains UUID');

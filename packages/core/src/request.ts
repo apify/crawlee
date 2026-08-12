@@ -225,7 +225,10 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
             userData.label = label;
         }
 
-        this.#userData = { __crawlee: {}, ...userData };
+        // Read `__crawlee` explicitly - on a `userData` coming from another Request instance the
+        // bag is non-enumerable, so the spread alone would silently drop the internal state
+        // (e.g. `skipNavigation`) when a request is re-wrapped after a storage round trip.
+        this.#userData = { __crawlee: (userData as Dictionary).__crawlee ?? {}, ...userData };
 
         // `userData` must stay an enumerable own accessor — serialization in the storages relies on it
         Object.defineProperties(this, {

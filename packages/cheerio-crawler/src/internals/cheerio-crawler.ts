@@ -265,7 +265,7 @@ export class CheerioCrawler<
                     originalRequestUrl: crawlingContext.request.url,
                     finalRequestUrl: crawlingContext.request.loadedUrl,
                     enqueueLinks: originalEnqueueLinks,
-                })) as BatchAddRequestsResult; // TODO make this type safe
+                })) as BatchAddRequestsResult; // TODO make this type safe, see https://github.com/apify/crawlee/issues/4024
             },
             waitForSelector: async (selector: string, _timeoutMs?: number) => {
                 if (crawlingContext.$(selector).get().length === 0) {

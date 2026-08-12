@@ -14,14 +14,6 @@ const expectedCookies = [
         name: 'hook_request',
         value: 'true',
     },
-    {
-        name: 'got_options_upper_case',
-        value: 'true',
-    },
-    {
-        name: 'got_options_lower_case',
-        value: 'true',
-    },
 ];
 
 const mainOptions = {
@@ -36,21 +28,9 @@ await Actor.main(async () => {
     const crawler = new CheerioCrawler({
         additionalMimeTypes: ['application/json'],
         preNavigationHooks: [
-            ({ session, request }, gotOptions) => {
-                session.setCookies(
-                    [
-                        {
-                            name: 'session',
-                            value: 'true',
-                        },
-                    ],
-                    request.url,
-                );
+            async ({ session, request }) => {
+                await session.setCookie('session=true', request.url);
                 request.headers.cookie = 'hook_request=true';
-
-                gotOptions.headers ??= {};
-                gotOptions.headers.Cookie = 'got_options_upper_case=true';
-                gotOptions.headers.cookie = 'got_options_lower_case=true';
             },
         ],
         async requestHandler({ json }) {

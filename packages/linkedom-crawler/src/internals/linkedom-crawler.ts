@@ -23,7 +23,7 @@ import {
     Router,
     tryAbsoluteURL,
 } from '@crawlee/http';
-import type { Dictionary } from '@crawlee/types';
+import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 import { type CheerioRoot } from '@crawlee/utils/internal';
 import { type RobotsTxtFile, sleep } from '@crawlee/utils';
 import * as cheerio from 'cheerio';
@@ -90,6 +90,11 @@ export interface LinkeDOMCrawlingContext<
      * ```
      */
     parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
+
+    /**
+     * Helper function for extracting URLs from the parsed HTML and adding them to the request queue.
+     */
+    enqueueLinks(options?: LinkeDOMCrawlerEnqueueLinksOptions): Promise<BatchAddRequestsResult>;
 }
 
 export type LinkeDOMRequestHandler<
@@ -180,7 +185,7 @@ export class LinkeDOMCrawler<
 > extends HttpCrawler<LinkeDOMCrawlingContext, ContextExtension, ExtendedContext, Routes> {
     static #parser = new DOMParser();
 
-    constructor(options: LinkeDOMCrawlerOptions<ContextExtension, ExtendedContext, any, any, Routes>) {
+    constructor(options: LinkeDOMCrawlerOptions<ContextExtension, ExtendedContext, any, any, Routes> = {}) {
         const { contextPipelineBuilder, ...rest } = options;
 
         super({
@@ -244,23 +249,23 @@ export class LinkeDOMCrawler<
         }
     }
 
-    private async addHelpers(crawlingContext: InternalHttpCrawlingContext & { body: string }) {
+    private async addHelpers(crawlingContext: InternalHttpCrawlingContext & { body: string; window: Window }) {
         const originalEnqueueLinks = crawlingContext.enqueueLinks;
 
         return {
             enqueueLinks: async (enqueueOptions?: LinkeDOMCrawlerEnqueueLinksOptions) => {
-                return linkedomCrawlerEnqueueLinks({
+                return (await linkedomCrawlerEnqueueLinks({
                     // `originalEnqueueLinks` clamps `limit` by the remaining `maxRequestsPerCrawl` budget itself;
                     // pre-clamping it here would make the crawler log the internal limit as a user-provided one
                     options: enqueueOptions,
-                    window: document.defaultView,
+                    window: crawlingContext.window,
                     requestManager: await this.getRequestManager(),
                     robotsTxtFile: await this.getRobotsTxtFileForUrl(crawlingContext.request.url),
                     onSkippedRequest: this.handleSkippedRequest,
                     originalRequestUrl: crawlingContext.request.url,
                     finalRequestUrl: crawlingContext.request.loadedUrl,
                     enqueueLinks: originalEnqueueLinks,
-                });
+                })) as BatchAddRequestsResult; // TODO make this type safe, see https://github.com/apify/crawlee/issues/4024
             },
             async waitForSelector(selector: string, timeoutMs = 5_000) {
                 const $ = cheerio.load(crawlingContext.body);
