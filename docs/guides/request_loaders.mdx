@@ -191,7 +191,7 @@ const crawler = new CheerioCrawler({
 
 This is what the crawler's own <ApiLink to="basic-crawler/interface/BasicCrawlerOptions#sameDomainDelaySecs">`sameDomainDelaySecs`</ApiLink> option is built on — it wraps the crawler's request manager in a `ThrottlingRequestManager` configured exactly like the above. Dropping `minCrawlDelaySecs` is just as useful: 429 backoff and robots.txt `Crawl-delay` then apply to every domain, with no pacing of your own on top.
 
-A queue per domain is not free, so a run may only throttle `maxThrottledDomains` of them (1000 by default) before it throws. If you are crawling more domains than that, pace the crawl with `maxRequestsPerMinute` instead. The list of domains discovered so far is kept in the default key-value store, under `persistStateKey`, so that a restart reopens their queues rather than leaving whatever they still hold uncrawled.
+A queue per domain is not free, so a run may only throttle `maxThrottledDomains` of them (100 by default) before it throws. If you are crawling more domains than that, pace the crawl with `maxRequestsPerMinute` instead. The list of domains discovered so far is kept in the default key-value store, under `persistStateKey`, so that a restart reopens their queues rather than leaving whatever they still hold uncrawled.
 
 ## Request manager tandem
 

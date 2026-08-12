@@ -648,6 +648,22 @@ describe('ThrottlingRequestManager', () => {
             await expect(manager.addRequest({ url: 'https://three.com/1' })).rejects.toThrow(/maxThrottledDomains/);
         });
 
+        test('a batch that overflows maxThrottledDomains still stores the requests that fit', async () => {
+            const manager = new ThrottlingRequestManager({
+                inner: await createQueue(),
+                domains: 'all',
+                maxThrottledDomains: 50,
+            });
+
+            const urls = Array.from({ length: 100 }, (_, i) => `https://${i}.com`);
+            const error = await manager.addRequestsBatched(urls).catch((e: Error) => e);
+
+            expect(error).toBeInstanceOf(Error);
+            // The other 49 domains that did not fit either are named, not just the first one to overflow.
+            expect((error as Error).message).toMatch(/49 other new domain\(s\)/);
+            expect(await manager.getTotalCount()).toBe(50);
+        });
+
         test('a restart reopens the queues of domains the previous run discovered', async () => {
             const firstRun = new ThrottlingRequestManager({ inner: await createQueue(), domains: 'all' });
             await firstRun.addRequest({ url: 'https://example.com/left-behind' });

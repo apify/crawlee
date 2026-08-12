@@ -129,7 +129,7 @@ export interface ThrottlingRequestManagerOptions<T extends IRequestManager = IRe
      * bound would drown the storage backend in them.
      *
      * Only domains discovered under `domains: 'all'` count against this; an explicit list is taken at face value.
-     * @default 1000
+     * @default 100
      */
     maxThrottledDomains?: number;
 
@@ -271,56 +271,58 @@ const DEFAULT_PERSIST_STATE_KEY = 'CRAWLEE_THROTTLED_DOMAINS';
 export class ThrottlingRequestManager<T extends IRequestManager = IRequestManager>
     implements IRequestManager, SupportsDomainThrottling
 {
-    private readonly inner: T;
-    private readonly requestManagerOpener: RequestManagerOpener<T>;
-    private readonly baseDelayMs: number;
-    private readonly maxDelayMs: number;
-    private readonly maxDomainStallMs: number;
-    private readonly minCrawlDelayMs: number;
-    private readonly throttlesEveryDomain: boolean;
-    private readonly throttleBy: 'hostname' | 'registrableDomain';
-    private readonly maxThrottledDomains: number;
-    private readonly persistStateKey: string;
+    readonly #inner: T;
+    readonly #requestManagerOpener: RequestManagerOpener<T>;
+    readonly #baseDelayMs: number;
+    readonly #maxDelayMs: number;
+    readonly #maxDomainStallMs: number;
+    readonly #minCrawlDelayMs: number;
+    readonly #throttlesEveryDomain: boolean;
+    readonly #throttleBy: 'hostname' | 'registrableDomain';
+    readonly #maxThrottledDomains: number;
+    readonly #persistStateKey: string;
 
+    readonly #subManagers = new Map<string, Promise<T>>();
+
+    // Not `#private`, unlike the rest: the tests reach for these two.
     private readonly domainStates = new Map<string, DomainState>();
-    private readonly subManagers = new Map<string, Promise<T>>();
     private readonly log: CrawleeLogger;
 
     /** Domains from the `domains` option, which are throttled whether or not the crawl ever visits them. */
-    private readonly listedDomains = new Set<string>();
+    readonly #listedDomains = new Set<string>();
 
     /**
      * Domains picked up at runtime under `domains: 'all'`. Persisted, because unlike the listed ones there
      * is nothing to rediscover them from at startup - and a sub-queue nobody reopens is a sub-queue whose
      * requests are never crawled.
      */
-    private readonly discoveredDomains = new Set<string>();
+    readonly #discoveredDomains = new Set<string>();
 
     /**
      * Requests currently held by the consumer that came out of the wrapped manager rather than a sub-queue.
      * They have to go back where they came from: routing them by domain would mark them handled in a queue
      * that has never heard of them, leaving the wrapped manager to hand them out over and over.
      */
-    private readonly inFlightFromInner = new Set<string>();
-    private domainListStore?: KeyValueStore;
-    private lastDomainListWrite: Promise<unknown> = Promise.resolve();
-    private queuedDomainListWrite?: Promise<void>;
+    readonly #inFlightFromInner = new Set<string>();
+    #domainListStore?: KeyValueStore;
+    #lastDomainListWrite: Promise<unknown> = Promise.resolve();
+    #queuedDomainListWrite?: Promise<void>;
 
     /**
      * Sub-managers are keyed by a stable alias, so with `purgeOnStart` disabled they outlive the process. They
      * must therefore be reopened for every known domain rather than created on first insert - otherwise a
      * restart sees an empty map, reports the crawl finished, and strands whatever the previous run left in them.
      */
-    private subManagersReady?: Promise<void>;
+    #subManagersReady?: Promise<void>;
 
     /** Batches still being added in the background; keeps {@apilink ThrottlingRequestManager.isFinished} honest. */
-    private inProgressBatchCount = 0;
+    #inProgressBatchCount = 0;
 
-    private readonly warnedAbout = new Set<string>();
+    readonly #warnedAbout = new Set<string>();
 
     /** Whether any domain at all may end up throttled - listed up front, or discovered as the crawl runs. */
-    private get throttlingEnabled(): boolean {
-        return this.listedDomains.size > 0 || this.throttlesEveryDomain;
+    get #throttlingEnabled(): boolean {
+        return this.#listedDomains.size > 0 || this.#throttlesEveryDomain;
     }
 
     constructor(
@@ -329,18 +331,18 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     ) {
         parseArgument(options, throttlingRequestManagerOptionsSchema, 'ThrottlingRequestManagerOptions');
 
-        this.inner = options.inner;
-        this.requestManagerOpener =
+        this.#inner = options.inner;
+        this.#requestManagerOpener =
             options.requestManagerOpener ??
             ((idOrAlias, opts) => RequestQueue.open(idOrAlias, opts) as unknown as Promise<T>);
-        this.baseDelayMs = (options.baseDelaySecs ?? 2) * 1000;
-        this.maxDelayMs = (options.maxDelaySecs ?? 60) * 1000;
-        this.maxDomainStallMs = (options.maxDomainStallSecs ?? 900) * 1000;
-        this.minCrawlDelayMs = (options.minCrawlDelaySecs ?? 0) * 1000;
-        this.throttlesEveryDomain = options.domains === 'all';
-        this.throttleBy = options.throttleBy ?? 'hostname';
-        this.maxThrottledDomains = options.maxThrottledDomains ?? 1000;
-        this.persistStateKey = options.persistStateKey ?? DEFAULT_PERSIST_STATE_KEY;
+        this.#baseDelayMs = (options.baseDelaySecs ?? 2) * 1000;
+        this.#maxDelayMs = (options.maxDelaySecs ?? 60) * 1000;
+        this.#maxDomainStallMs = (options.maxDomainStallSecs ?? 900) * 1000;
+        this.#minCrawlDelayMs = (options.minCrawlDelaySecs ?? 0) * 1000;
+        this.#throttlesEveryDomain = options.domains === 'all';
+        this.#throttleBy = options.throttleBy ?? 'hostname';
+        this.#maxThrottledDomains = options.maxThrottledDomains ?? 100;
+        this.#persistStateKey = options.persistStateKey ?? DEFAULT_PERSIST_STATE_KEY;
         this.log = serviceLocator.getLogger().child({ prefix: 'ThrottlingRequestManager' });
 
         for (const domain of Array.isArray(options.domains) ? options.domains : []) {
@@ -355,8 +357,8 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
                 );
             }
 
-            const key = this.domainKey(hostname);
-            this.listedDomains.add(key);
+            const key = this.#domainKey(hostname);
+            this.#listedDomains.add(key);
             this.domainStates.set(key, newDomainState(key));
         }
     }
@@ -366,10 +368,10 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
      *
      * @param hostname A hostname as `URL` reports it, so in punycode and possibly with a root dot.
      */
-    private domainKey(hostname: string): string {
+    #domainKey(hostname: string): string {
         const normalized = normalizeHostname(hostname);
 
-        if (this.throttleBy === 'hostname') {
+        if (this.#throttleBy === 'hostname') {
             return normalized;
         }
 
@@ -380,15 +382,15 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
 
     /** The wrapped manager, holding every request whose domain is not throttled. */
     get innerManager(): T {
-        return this.inner;
+        return this.#inner;
     }
 
     /** Warns once about sources that cannot be routed by domain, because their URLs are not known yet. */
-    private warnIfNotRoutable(requestLike: Source): void {
-        if ('requestsFromUrl' in requestLike && requestLike.requestsFromUrl !== undefined && this.throttlingEnabled) {
+    #warnIfNotRoutable(requestLike: Source): void {
+        if ('requestsFromUrl' in requestLike && requestLike.requestsFromUrl !== undefined && this.#throttlingEnabled) {
             // The URL list is only fetched once the owning manager expands it, so we cannot know which domains
             // it covers and cannot route it. Warn instead of silently exempting those URLs from throttling.
-            this.warnOnce(
+            this.#warnOnce(
                 'urlListNotRouted',
                 `Requests loaded via \`requestsFromUrl\` cannot be routed to a per-domain queue, because their URLs ` +
                     `are not known at insertion time. They will be added to the inner request manager and will not ` +
@@ -397,84 +399,100 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         }
     }
 
-    private warnOnce(key: string, message: string): void {
-        if (this.warnedAbout.has(key)) {
+    #warnOnce(key: string, message: string): void {
+        if (this.#warnedAbout.has(key)) {
             return;
         }
-        this.warnedAbout.add(key);
+        this.#warnedAbout.add(key);
         this.log.warning(message);
     }
 
-    private extractDomain(url: string): string {
+    #extractDomain(url: string): string {
         try {
-            return this.domainKey(new URL(url).hostname);
+            return this.#domainKey(new URL(url).hostname);
         } catch {
             return '';
         }
     }
 
-    private getDomainState(url: string): DomainState | null {
-        const domain = this.extractDomain(url);
+    #getDomainState(url: string): DomainState | null {
+        const domain = this.#extractDomain(url);
         return this.domainStates.get(domain) ?? null;
     }
 
     /**
      * The manager that owns a URL's requests, opening a sub-queue for its domain if this is the first time we
-     * have seen it and every domain is throttled.
+     * have seen it and every domain is throttled. `null` means the domain is new and `maxThrottledDomains`
+     * leaves no room for it.
      */
-    private async selectManager(url: string): Promise<T> {
-        await this.ensureSubManagers();
+    async #selectManager(url: string): Promise<T | null> {
+        await this.#ensureSubManagers();
 
-        const domain = this.extractDomain(url);
+        const domain = this.#extractDomain(url);
 
-        if (!domain || !(this.listedDomains.has(domain) || this.throttlesEveryDomain)) {
-            return this.inner;
+        if (!domain || !(this.#listedDomains.has(domain) || this.#throttlesEveryDomain)) {
+            return this.#inner;
         }
 
-        if (!this.listedDomains.has(domain) && !this.discoveredDomains.has(domain)) {
-            this.assertRoomForDomain(domain);
-            this.discoveredDomains.add(domain);
+        if (!this.#listedDomains.has(domain) && !this.#discoveredDomains.has(domain)) {
+            if (this.#discoveredDomains.size >= this.#maxThrottledDomains) {
+                return null;
+            }
+
+            this.#discoveredDomains.add(domain);
             // Written before the request lands in the sub-queue: a crash in between would leave that queue
             // with nothing to reopen it, and the crawl would silently drop everything in it.
-            await this.persistDiscoveredDomains();
+            await this.#persistDiscoveredDomains();
         }
 
-        return this.subManagerFor(domain);
+        return this.#subManagerFor(domain);
     }
 
-    private assertRoomForDomain(domain: string): void {
-        if (this.discoveredDomains.size < this.maxThrottledDomains) {
-            return;
+    async #selectManagerOrThrow(url: string): Promise<T> {
+        const manager = await this.#selectManager(url);
+
+        if (!manager) {
+            throw this.#throttledDomainLimitError([this.#extractDomain(url)]);
         }
 
-        throw new Error(
-            `Refusing to throttle "${domain}": ${this.maxThrottledDomains} domains are already being throttled ` +
-                `(\`maxThrottledDomains\`). Each of them holds a request queue of its own, so a crawl that keeps ` +
-                `discovering new domains will bury the storage backend in them. Narrow the crawl down, pace it ` +
-                `with \`maxRequestsPerMinute\` instead, or raise \`maxThrottledDomains\` if you are prepared to ` +
-                `pay for it.`,
+        return manager;
+    }
+
+    #throttledDomainLimitError(domains: string[]): Error {
+        const [first, ...rest] = domains;
+        const named = rest.slice(0, 10);
+        const ellipsis = rest.length > named.length ? ', ...' : '';
+        const others =
+            rest.length > 0 ? ` (and ${rest.length} other new domain(s): ${named.join(', ')}${ellipsis})` : '';
+
+        return new Error(
+            `Refusing to throttle "${first}"${others}: ${this.#maxThrottledDomains} domains are already being ` +
+                `throttled (\`maxThrottledDomains\`). Each of them holds a request queue of its own, so a crawl ` +
+                `that keeps discovering new domains will bury the storage backend in them. Narrow the crawl down, ` +
+                `pace it with \`maxRequestsPerMinute\` instead, or raise \`maxThrottledDomains\` if you are ` +
+                `prepared to pay for it.`,
         );
     }
 
     /** Opens the domain's sub-queue, or returns the one already opened (or being opened) for it. */
-    private subManagerFor(domain: string): Promise<T> {
-        let subManager = this.subManagers.get(domain);
+    #subManagerFor(domain: string): Promise<T> {
+        let subManager = this.#subManagers.get(domain);
 
         if (!subManager) {
-            subManager = this.requestManagerOpener(
+            subManager = this.#requestManagerOpener(
                 // Backends use the alias as a directory name, and an IPv6 literal is full of characters
                 // Windows will not accept. Ordinary hostnames survive this untouched.
                 { alias: `throttled-${encodeURIComponent(domain)}` },
                 { configuration: this.config },
             );
-            this.subManagers.set(domain, subManager);
-            this.ensureDomainState(domain);
+            this.#subManagers.set(domain, subManager);
+            this.#ensureDomainState(domain);
         }
 
         return subManager;
     }
 
-    private ensureDomainState(domain: string): DomainState {
+    #ensureDomainState(domain: string): DomainState {
         let state = this.domainStates.get(domain);
 
         if (!state) {
@@ -489,42 +507,42 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
      * Coalesces the writes of the discovered domain list: callers that arrive while one is in flight share the
      * single write queued behind it, which snapshots the set once it starts and so covers all of them.
      */
-    private async persistDiscoveredDomains(): Promise<void> {
-        this.queuedDomainListWrite ??= this.lastDomainListWrite
+    async #persistDiscoveredDomains(): Promise<void> {
+        this.#queuedDomainListWrite ??= this.#lastDomainListWrite
             // A failed write must not poison the ones behind it - they will rewrite the whole set anyway.
             .catch(() => {})
             .then(async () => {
-                this.queuedDomainListWrite = undefined;
-                await this.domainListStore!.setValue(this.persistStateKey, Array.from(this.discoveredDomains));
+                this.#queuedDomainListWrite = undefined;
+                await this.#domainListStore!.setValue(this.#persistStateKey, Array.from(this.#discoveredDomains));
             });
-        this.lastDomainListWrite = this.queuedDomainListWrite;
+        this.#lastDomainListWrite = this.#queuedDomainListWrite;
 
-        await this.queuedDomainListWrite;
+        await this.#queuedDomainListWrite;
     }
 
-    private async ensureSubManagers(): Promise<void> {
-        this.subManagersReady ??= (async () => {
-            if (this.throttlesEveryDomain) {
-                this.domainListStore = await KeyValueStore.open(null, { configuration: this.config });
+    async #ensureSubManagers(): Promise<void> {
+        this.#subManagersReady ??= (async () => {
+            if (this.#throttlesEveryDomain) {
+                this.#domainListStore = await KeyValueStore.open(null, { configuration: this.config });
 
-                for (const domain of (await this.domainListStore.getValue<string[]>(this.persistStateKey)) ?? []) {
-                    this.discoveredDomains.add(domain);
+                for (const domain of (await this.#domainListStore.getValue<string[]>(this.#persistStateKey)) ?? []) {
+                    this.#discoveredDomains.add(domain);
                 }
             }
 
             await Promise.all(
-                Array.from([...this.listedDomains, ...this.discoveredDomains], async (domain) =>
-                    this.subManagerFor(domain),
+                Array.from([...this.#listedDomains, ...this.#discoveredDomains], async (domain) =>
+                    this.#subManagerFor(domain),
                 ),
             );
         })();
 
-        await this.subManagersReady;
+        await this.#subManagersReady;
     }
 
-    private async getSubManagers(): Promise<T[]> {
-        await this.ensureSubManagers();
-        return Promise.all(this.subManagers.values());
+    async #getSubManagers(): Promise<T[]> {
+        await this.#ensureSubManagers();
+        return Promise.all(this.#subManagers.values());
     }
 
     /**
@@ -533,10 +551,10 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
      * A domain whose sub-queue has not been opened yet is skipped - a robots.txt `Crawl-delay` gives a domain a
      * clock before its first request gives it a queue, and there is nothing to fetch from until then.
      */
-    private fetchableDomains(): string[] {
+    #fetchableDomains(): string[] {
         const now = Date.now();
         return Array.from(this.domainStates.values())
-            .filter((state) => now >= throttledUntil(state) && this.subManagers.has(state.domain))
+            .filter((state) => now >= throttledUntil(state) && this.#subManagers.has(state.domain))
             .sort((a, b) => throttledUntil(a) - throttledUntil(b))
             .map((state) => state.domain);
     }
@@ -547,7 +565,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
      * @returns `false` if the domain is not configured for throttling, in which case this is a no-op.
      */
     recordDomainDelay(url: string, retryAfterMs?: number | null): boolean {
-        const state = this.getDomainState(url);
+        const state = this.#getDomainState(url);
         if (!state) {
             return false;
         }
@@ -578,16 +596,16 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         state.consecutive429Count += 1;
 
         const retryAfterGiven = retryAfterMs !== undefined && retryAfterMs !== null;
-        let delayMs = retryAfterGiven ? retryAfterMs : this.baseDelayMs * Math.pow(2, state.consecutive429Count - 1);
+        let delayMs = retryAfterGiven ? retryAfterMs : this.#baseDelayMs * Math.pow(2, state.consecutive429Count - 1);
 
-        if (delayMs > this.maxDelayMs) {
+        if (delayMs > this.#maxDelayMs) {
             const source = retryAfterGiven ? 'Retry-After header' : 'exponential backoff';
             this.log.warning(
                 `Capping ${source} delay of ${(delayMs / 1000).toFixed(1)}s for domain "${state.domain}" ` +
-                    `to maxDelaySecs (${(this.maxDelayMs / 1000).toFixed(1)}s); the domain may continue to rate-limit. ` +
+                    `to maxDelaySecs (${(this.#maxDelayMs / 1000).toFixed(1)}s); the domain may continue to rate-limit. ` +
                     `Consider increasing maxDelaySecs if this recurs.`,
             );
-            delayMs = this.maxDelayMs;
+            delayMs = this.#maxDelayMs;
         }
 
         state.backoffUntil = now + delayMs;
@@ -610,15 +628,15 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
      * @returns `false` if the domain is not throttled, in which case this is a no-op.
      */
     setCrawlDelay(url: string, delaySeconds: number): boolean {
-        const domain = this.extractDomain(url);
+        const domain = this.#extractDomain(url);
 
-        if (!domain || !(this.listedDomains.has(domain) || this.throttlesEveryDomain)) {
+        if (!domain || !(this.#listedDomains.has(domain) || this.#throttlesEveryDomain)) {
             return false;
         }
 
         // The crawler reads robots.txt before it enqueues a domain's first request, so the clock can predate
         // the sub-queue it will end up pacing.
-        const state = this.ensureDomainState(domain);
+        const state = this.#ensureDomainState(domain);
 
         if (state.declaredCrawlDelayMs === null) {
             state.declaredCrawlDelayMs = delaySeconds * 1000;
@@ -638,7 +656,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
      * `Crawl-delay` is being obeyed, not stonewalled.
      */
     async assertNoStalledDomains(): Promise<void> {
-        await this.ensureSubManagers();
+        await this.#ensureSubManagers();
 
         const now = Date.now();
         const candidates = Array.from(this.domainStates.values()).filter(
@@ -647,14 +665,14 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
             // arriving with the idle time already on it.
             (state) =>
                 state.rateLimitedSince !== 0 &&
-                now - state.lastRateLimitedAt <= this.maxDomainStallMs &&
-                now - state.rateLimitedSince > this.maxDomainStallMs,
+                now - state.lastRateLimitedAt <= this.#maxDomainStallMs &&
+                now - state.rateLimitedSince > this.#maxDomainStallMs,
         );
 
         const stalled = (
             await Promise.all(
                 candidates.map(async (state) => {
-                    const subManager = await this.subManagers.get(state.domain);
+                    const subManager = await this.#subManagers.get(state.domain);
                     return subManager && !(await subManager.isEmpty()) ? state : null;
                 }),
             )
@@ -670,15 +688,15 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
 
         throw new PersistentRateLimitError(
             `Giving up: ${summary} rate-limited every request for longer than maxDomainStallSecs ` +
-                `(${(this.maxDomainStallMs / 1000).toFixed(0)}s). Waiting longer will not help - lower the ` +
+                `(${(this.#maxDomainStallMs / 1000).toFixed(0)}s). Waiting longer will not help - lower the ` +
                 `crawler's concurrency, or drop these domains. Their requests are still queued, so re-running ` +
                 `with \`purgeOnStart\` disabled will resume them if the rate limit lifts.`,
         );
     }
 
     /** Records that a domain let a request through, which ends any rate-limit run stall detection was timing. */
-    private recordProgress(url: string): void {
-        const state = this.getDomainState(url);
+    #recordProgress(url: string): void {
+        const state = this.#getDomainState(url);
         if (state) {
             state.rateLimitedSince = 0;
         }
@@ -687,9 +705,9 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     // --- IRequestManager Implementation ---
 
     async addRequest(requestLike: Source, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo> {
-        this.warnIfNotRoutable(requestLike);
+        this.#warnIfNotRoutable(requestLike);
 
-        const manager = await this.selectManager(requestLike.url ?? '');
+        const manager = await this.#selectManagerOrThrow(requestLike.url ?? '');
         return manager.addRequest(requestLike, options);
     }
 
@@ -704,7 +722,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         requests: RequestsLike,
         options: AddRequestsBatchedOptions = {},
     ): Promise<AddRequestsBatchedResult> {
-        await this.ensureSubManagers();
+        await this.#ensureSubManagers();
 
         // Normalized up front so the shared batching helper - and `requestsOverLimit` - only ever see `Source`.
         async function* iterateRequests(): AsyncGenerator<Source> {
@@ -724,10 +742,20 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
             // deduplication themselves.
             processChunk: async (chunk) => {
                 const byManager = new Map<T, Source[]>();
-                for (const request of chunk) {
-                    this.warnIfNotRoutable(request);
+                // Collected, not thrown on sight, so an overflow does not discard the requests that fit.
+                const overflowing = new Set<string>();
 
-                    const manager = await this.selectManager(request.url ?? '');
+                for (const request of chunk) {
+                    this.#warnIfNotRoutable(request);
+
+                    const url = request.url ?? '';
+                    const manager = await this.#selectManager(url);
+
+                    if (!manager) {
+                        overflowing.add(this.#extractDomain(url));
+                        continue;
+                    }
+
                     const bucket = byManager.get(manager);
                     if (bucket) {
                         bucket.push(request);
@@ -747,14 +775,18 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
                     ),
                 );
 
+                if (overflowing.size > 0) {
+                    throw this.#throttledDomainLimitError(Array.from(overflowing));
+                }
+
                 return results.flatMap((result) => result.addedRequests);
             },
 
             // Keeps the crawler from concluding it is finished while batches are still landing.
             trackBackgroundBatches: (batches) => {
-                this.inProgressBatchCount += 1;
+                this.#inProgressBatchCount += 1;
                 void batches.finally(() => {
-                    this.inProgressBatchCount -= 1;
+                    this.#inProgressBatchCount -= 1;
                 });
             },
         });
@@ -764,14 +796,14 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         request: Request,
         options?: RequestQueueOperationOptions,
     ): Promise<RequestQueueOperationInfo | null> {
-        const manager = await this.managerHolding(request);
+        const manager = await this.#managerHolding(request);
         return manager.reclaimRequest(request, options);
     }
 
     async markRequestAsHandled(request: Request): Promise<RequestQueueOperationInfo | void | null> {
-        const manager = await this.managerHolding(request);
+        const manager = await this.#managerHolding(request);
         // Reached whether the request succeeded or ran out of retries; either way the domain answered us.
-        this.recordProgress(request.url);
+        this.#recordProgress(request.url);
         return manager.markRequestAsHandled(request);
     }
 
@@ -779,26 +811,26 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
      * The manager a request in the consumer's hands has to be given back to - the one it was fetched from,
      * which is only the same as the one its domain routes to if it was routed in the first place.
      */
-    private async managerHolding(request: Request): Promise<T> {
+    async #managerHolding(request: Request): Promise<T> {
         const key = request.id ?? request.uniqueKey;
 
-        if (this.inFlightFromInner.delete(key)) {
-            return this.inner;
+        if (this.#inFlightFromInner.delete(key)) {
+            return this.#inner;
         }
 
-        return this.selectManager(request.url);
+        return this.#selectManagerOrThrow(request.url);
     }
 
     async getTotalCount(): Promise<number> {
-        return this.sumOverManagers((manager) => manager.getTotalCount());
+        return this.#sumOverManagers((manager) => manager.getTotalCount());
     }
 
     async getPendingCount(): Promise<number> {
-        return this.sumOverManagers((manager) => manager.getPendingCount());
+        return this.#sumOverManagers((manager) => manager.getPendingCount());
     }
 
     async getHandledCount(): Promise<number> {
-        return this.sumOverManagers((manager) => manager.getHandledCount());
+        return this.#sumOverManagers((manager) => manager.getHandledCount());
     }
 
     /**
@@ -808,23 +840,23 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
      * this idles for the backoff instead of spinning on a fetch that cannot succeed yet.
      */
     async isEmpty(): Promise<boolean> {
-        await this.ensureSubManagers();
+        await this.#ensureSubManagers();
 
         const fetchable = await Promise.all(
-            this.fetchableDomains().map(async (domain) => this.subManagers.get(domain)!),
+            this.#fetchableDomains().map(async (domain) => this.#subManagers.get(domain)!),
         );
-        const results = await Promise.all([this.inner, ...fetchable].map(async (manager) => manager.isEmpty()));
+        const results = await Promise.all([this.#inner, ...fetchable].map(async (manager) => manager.isEmpty()));
 
         return results.every(Boolean);
     }
 
     /** Unlike {@apilink ThrottlingRequestManager.isEmpty}, throttled requests still count as outstanding work. */
     async isFinished(): Promise<boolean> {
-        if (this.inProgressBatchCount > 0) {
+        if (this.#inProgressBatchCount > 0) {
             return false;
         }
 
-        return this.everyManager((manager) => manager.isFinished());
+        return this.#everyManager((manager) => manager.isFinished());
     }
 
     /**
@@ -832,7 +864,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
      * site rather than of the run, so it survives.
      */
     async purge(): Promise<void> {
-        await this.inner.purge?.();
+        await this.#inner.purge?.();
         await this.purgeDomainQueues();
     }
 
@@ -843,7 +875,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
      * call where a full {@apilink ThrottlingRequestManager.purge|`purge()`} would not be.
      */
     async purgeDomainQueues(): Promise<void> {
-        const subManagers = await this.getSubManagers();
+        const subManagers = await this.#getSubManagers();
         await Promise.all(subManagers.map(async (manager) => manager.purge?.()));
 
         for (const state of this.domainStates.values()) {
@@ -857,21 +889,21 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     }
 
     async setExpectedRequestProcessingTimeSecs(secs: number): Promise<void> {
-        await this.forEachManager((manager) => manager.setExpectedRequestProcessingTimeSecs?.(secs));
+        await this.#forEachManager((manager) => manager.setExpectedRequestProcessingTimeSecs?.(secs));
     }
 
-    private async forEachManager(fn: (manager: T) => Promise<unknown> | undefined): Promise<void> {
+    async #forEachManager(fn: (manager: T) => Promise<unknown> | undefined): Promise<void> {
         // `fn` targets optional members, so it may return nothing - the wrapper normalizes that for `Promise.all`.
-        await Promise.all([this.inner, ...(await this.getSubManagers())].map(async (manager) => fn(manager)));
+        await Promise.all([this.#inner, ...(await this.#getSubManagers())].map(async (manager) => fn(manager)));
     }
 
-    private async sumOverManagers(fn: (manager: T) => Promise<number>): Promise<number> {
-        const counts = await Promise.all([this.inner, ...(await this.getSubManagers())].map(fn));
+    async #sumOverManagers(fn: (manager: T) => Promise<number>): Promise<number> {
+        const counts = await Promise.all([this.#inner, ...(await this.#getSubManagers())].map(fn));
         return counts.reduce((a, b) => a + b, 0);
     }
 
-    private async everyManager(fn: (manager: T) => Promise<boolean>): Promise<boolean> {
-        const results = await Promise.all([this.inner, ...(await this.getSubManagers())].map(fn));
+    async #everyManager(fn: (manager: T) => Promise<boolean>): Promise<boolean> {
+        const results = await Promise.all([this.#inner, ...(await this.#getSubManagers())].map(fn));
         return results.every(Boolean);
     }
 
@@ -884,21 +916,21 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
      * reports `true` meanwhile so the crawler's task loop idles rather than spins.
      */
     async fetchNextRequest<R extends Dictionary = Dictionary>(): Promise<Request<R> | null> {
-        await this.ensureSubManagers();
+        await this.#ensureSubManagers();
 
-        for (const domain of this.fetchableDomains()) {
+        for (const domain of this.#fetchableDomains()) {
             const state = this.domainStates.get(domain)!;
 
             // Armed while the fetch below is still suspended, so that a concurrent `fetchNextRequest` cannot
             // find the domain fetchable and dispatch into the same window - which would pace each task
             // rather than the domain.
             const crawlDelayUntilBefore = state.crawlDelayUntil;
-            const delayMs = crawlDelayMs(state, this.minCrawlDelayMs);
+            const delayMs = crawlDelayMs(state, this.#minCrawlDelayMs);
             if (delayMs > 0) {
                 state.crawlDelayUntil = Date.now() + delayMs;
             }
 
-            const request = await (await this.subManagers.get(domain)!).fetchNextRequest<R>();
+            const request = await (await this.#subManagers.get(domain)!).fetchNextRequest<R>();
             if (request) {
                 return request;
             }
@@ -907,17 +939,17 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
             state.crawlDelayUntil = crawlDelayUntilBefore;
         }
 
-        const request = await this.inner.fetchNextRequest<R>();
+        const request = await this.#inner.fetchNextRequest<R>();
 
         if (request !== null) {
-            this.inFlightFromInner.add(request.id ?? request.uniqueKey);
+            this.#inFlightFromInner.add(request.id ?? request.uniqueKey);
         }
 
-        if (request !== null && this.throttlesEveryDomain) {
+        if (request !== null && this.#throttlesEveryDomain) {
             // Requests that were never routed by domain - a `RequestList`, a `requestsFromUrl` expansion - are
             // handed out as fast as the crawler asks for them, because there is no per-domain queue to hold
             // them back in.
-            this.warnOnce(
+            this.#warnOnce(
                 'innerNotThrottled',
                 `Requests read directly from the wrapped request manager (for instance from a \`RequestList\` or a ` +
                     `\`requestsFromUrl\` list) are not throttled, because they are not stored per domain. Enqueue ` +
@@ -938,12 +970,12 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     }
 
     async persistState(): Promise<void> {
-        await this.forEachManager((manager) => manager.persistState?.());
+        await this.#forEachManager((manager) => manager.persistState?.());
     }
 
     async drop(): Promise<void> {
-        await this.forEachManager((manager) => (manager as { drop?(): Promise<void> }).drop?.());
-        this.subManagers.clear();
-        this.subManagersReady = undefined;
+        await this.#forEachManager((manager) => (manager as { drop?(): Promise<void> }).drop?.());
+        this.#subManagers.clear();
+        this.#subManagersReady = undefined;
     }
 }
