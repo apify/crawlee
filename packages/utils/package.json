@@ -51,6 +51,7 @@
         "file-type": "^21.0.0",
         "robots-parser": "^3.0.1",
         "sax": "^1.4.1",
+        "tldts": "^7.0.6",
         "tslib": "^2.8.1",
         "whatwg-mimetype": "^4.0.0",
         "zod": "catalog:"
