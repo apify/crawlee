@@ -312,6 +312,30 @@ async function copyPackages(dirName) {
     const destPackagesDir = join(dirName, 'packages');
     await fs.remove(destPackagesDir);
 
+    // npm (used when building the actor on the platform) understands neither pnpm's `workspace:`
+    // protocol nor its `catalog:` protocol. Parse the catalog from pnpm-workspace.yaml so
+    // `catalog:` deps can be rewritten to their pinned versions below.
+    const workspaceYaml = await fs.readFile(
+        join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'pnpm-workspace.yaml'),
+        'utf8',
+    );
+    const catalog = new Map();
+    let inCatalog = false;
+    for (const line of workspaceYaml.split('\n')) {
+        if (/^catalog:\s*$/.test(line)) {
+            inCatalog = true;
+            continue;
+        }
+        if (inCatalog) {
+            const match = /^\s+([^\s:]+):\s*(\S+)\s*$/.exec(line);
+            if (!match) {
+                inCatalog = false;
+                continue;
+            }
+            catalog.set(match[1], match[2]);
+        }
+    }
+
     const { dependencies, overrides } = await fs.readJSON(join(dirName, 'package.json'));
 
     if (overrides?.apify) {
@@ -361,7 +385,22 @@ async function copyPackages(dirName) {
             if (!deps) continue;
 
             for (const [depName, depVersion] of Object.entries(deps)) {
-                if (typeof depVersion !== 'string' || !depVersion.startsWith('workspace:')) {
+                if (typeof depVersion !== 'string') {
+                    continue;
+                }
+
+                if (depVersion.startsWith('catalog:')) {
+                    const resolved = catalog.get(depName);
+                    if (!resolved) {
+                        throw new Error(
+                            `Cannot resolve catalog dependency "${depName}" for package "${packageDirName}"`,
+                        );
+                    }
+                    deps[depName] = resolved;
+                    continue;
+                }
+
+                if (!depVersion.startsWith('workspace:')) {
                     continue;
                 }
 
