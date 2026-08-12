@@ -20,4 +20,8 @@ export const validators = {
         validator: ow.isValid(value, ow.object.hasKeys('fetchNextRequest', 'addRequest')),
         message: (label: string) => `Expected argument '${label}' to be a RequestQueue, got something else.`,
     }),
+    requestManager: (value: Dictionary) => ({
+        validator: ow.isValid(value, ow.object.hasKeys('fetchNextRequest', 'addRequest', 'addRequestsBatched')),
+        message: (label: string) => `Expected argument '${label}' to be an IRequestManager, got something else.`,
+    }),
 };

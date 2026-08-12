@@ -26,7 +26,7 @@ import {
     RequestValidationError,
     Router,
 } from '@crawlee/basic';
-import { RequestState, SessionPool, Statistics } from '@crawlee/core';
+import { RequestManagerTandem, RequestState, SessionPool, Statistics } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/utils';
 import { RobotsTxtFile, sleep } from '@crawlee/utils';
 import express from 'express';
@@ -93,6 +93,23 @@ describe('BasicCrawler', () => {
         await crawler.run(['https://example.com']);
 
         expect(process.listenerCount('SIGINT')).toBe(count - 1);
+    });
+
+    test('should accept a request manager and crawl from it', async () => {
+        const requestList = await RequestList.open(null, ['https://example.com/1']);
+        const requestQueue = await RequestQueue.open();
+        const processed: string[] = [];
+
+        const basicCrawler = new BasicCrawler({
+            requestManager: new RequestManagerTandem(requestList, requestQueue),
+            requestHandler: async ({ request }) => {
+                processed.push(request.url);
+            },
+        });
+
+        await basicCrawler.run();
+
+        expect(processed).toEqual(['https://example.com/1']);
     });
 
     test('should run in parallel thru all the requests', async () => {

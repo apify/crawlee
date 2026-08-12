@@ -587,6 +587,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
     protected static optionsShape = {
         requestList: ow.optional.object.validate(validators.requestList),
         requestQueue: ow.optional.object.validate(validators.requestQueue),
+        requestManager: ow.optional.object.validate(validators.requestManager),
         // Subclasses override this function instead of passing it
         // in constructor, so this validation needs to apply only
         // if the user creates an instance of BasicCrawler directly.
