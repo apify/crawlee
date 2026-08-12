@@ -1,7 +1,6 @@
 import os from 'node:os';
 
 import {
-    ClientLoadSignal,
     Configuration,
     type EventLoopLoadSignal,
     EventType,
@@ -9,6 +8,7 @@ import {
     MemoryLoadSignal,
     serviceLocator,
     Snapshotter,
+    StorageBackendLoadSignal,
 } from '@crawlee/core';
 import type { MemoryInfo } from '../../../packages/core/src/system-info/memory-info.js';
 import * as utils from '../../../packages/core/src/system-info/memory-info.js';
@@ -46,18 +46,18 @@ describe('Snapshotter', () => {
     test('should collect snapshots with some values', async () => {
         serviceLocator.setConfiguration(new Configuration({ systemInfoIntervalMillis: 100 }));
 
-        // mock client data
-        const apifyClient = serviceLocator.getStorageBackend();
-        const oldStats = apifyClient.stats;
-        apifyClient.stats = {} as any;
-        apifyClient.stats!.rateLimitErrors = [0, 0, 0];
+        // mock storage backend data
+        const storageBackend = serviceLocator.getStorageBackend();
+        const oldStats = storageBackend.stats;
+        storageBackend.stats = {} as any;
+        storageBackend.stats!.rateLimitErrors = [0, 0, 0];
         const snapshotter = new Snapshotter();
         const events = serviceLocator.getEventManager();
         await events.init();
         await snapshotter.start(START_CONTEXT);
 
         await sleep(625);
-        apifyClient.stats!.rateLimitErrors = [0, 0, 2];
+        storageBackend.stats!.rateLimitErrors = [0, 0, 2];
         await sleep(625);
 
         await snapshotter.stop();
@@ -65,7 +65,7 @@ describe('Snapshotter', () => {
         const memorySnapshots = sampleOf(snapshotter, 'memInfo');
         const eventLoopSnapshots = sampleOf(snapshotter, 'eventLoopInfo');
         const cpuSnapshots = sampleOf(snapshotter, 'cpuInfo');
-        const clientSnapshots = sampleOf(snapshotter, 'clientInfo');
+        const storageBackendSnapshots = sampleOf(snapshotter, 'storageBackendInfo');
 
         expect(Array.isArray(cpuSnapshots)).toBe(true);
         expect(cpuSnapshots.length).toBeGreaterThanOrEqual(1);
@@ -91,15 +91,15 @@ describe('Snapshotter', () => {
             expect(typeof ss.exceededMillis).toBe('number');
         });
 
-        expect(Array.isArray(clientSnapshots)).toBe(true);
-        expect(clientSnapshots.length).toBeGreaterThanOrEqual(1);
-        clientSnapshots.forEach((ss) => {
+        expect(Array.isArray(storageBackendSnapshots)).toBe(true);
+        expect(storageBackendSnapshots.length).toBeGreaterThanOrEqual(1);
+        storageBackendSnapshots.forEach((ss) => {
             expect(ss.createdAt).toBeInstanceOf(Date);
             expect(typeof ss.isOverloaded).toBe('boolean');
             expect(typeof ss.rateLimitErrorCount).toBe('number');
         });
 
-        apifyClient.stats = oldStats;
+        storageBackend.stats = oldStats;
     });
 
     test('should override default timers', async () => {
@@ -313,35 +313,35 @@ describe('Snapshotter', () => {
         await memorySignal.stop();
     });
 
-    test('correctly marks clientOverloaded', async () => {
-        // mock client data
-        const apifyClient = serviceLocator.getStorageBackend();
-        const oldStats = apifyClient.stats;
-        apifyClient.stats = {} as any;
-        apifyClient.stats!.rateLimitErrors = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    test('correctly marks storageBackendOverloaded', async () => {
+        // mock storage backend data
+        const storageBackend = serviceLocator.getStorageBackend();
+        const oldStats = storageBackend.stats;
+        storageBackend.stats = {} as any;
+        storageBackend.stats!.rateLimitErrors = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 
-        const clientSignal = new ClientLoadSignal({ maxErrors: 1 });
-        await clientSignal.start(START_CONTEXT);
-        clientSignal.handle(noop);
-        apifyClient.stats!.rateLimitErrors = [1, 1, 1, 0, 0, 0, 0, 0, 0, 0];
-        clientSignal.handle(noop);
-        apifyClient.stats!.rateLimitErrors = [10, 5, 2, 0, 0, 0, 0, 0, 0, 0];
-        clientSignal.handle(noop);
-        apifyClient.stats!.rateLimitErrors = [100, 24, 4, 2, 0, 0, 0, 0, 0, 0];
-        clientSignal.handle(noop);
+        const storageBackendSignal = new StorageBackendLoadSignal({ maxErrors: 1 });
+        await storageBackendSignal.start(START_CONTEXT);
+        storageBackendSignal.handle(noop);
+        storageBackend.stats!.rateLimitErrors = [1, 1, 1, 0, 0, 0, 0, 0, 0, 0];
+        storageBackendSignal.handle(noop);
+        storageBackend.stats!.rateLimitErrors = [10, 5, 2, 0, 0, 0, 0, 0, 0, 0];
+        storageBackendSignal.handle(noop);
+        storageBackend.stats!.rateLimitErrors = [100, 24, 4, 2, 0, 0, 0, 0, 0, 0];
+        storageBackendSignal.handle(noop);
 
         // `start()` takes a baseline snapshot immediately (the measuring interval fires on its first tick), so the
         // four driven below follow it.
-        const clientSnapshots = clientSignal.getSample().slice(1);
+        const storageBackendSnapshots = storageBackendSignal.getSample().slice(1);
 
-        expect(clientSnapshots.length).toBe(4);
-        expect(clientSnapshots[0].isOverloaded).toBe(false);
-        expect(clientSnapshots[1].isOverloaded).toBe(false);
-        expect(clientSnapshots[2].isOverloaded).toBe(false);
-        expect(clientSnapshots[3].isOverloaded).toBe(true);
+        expect(storageBackendSnapshots.length).toBe(4);
+        expect(storageBackendSnapshots[0].isOverloaded).toBe(false);
+        expect(storageBackendSnapshots[1].isOverloaded).toBe(false);
+        expect(storageBackendSnapshots[2].isOverloaded).toBe(false);
+        expect(storageBackendSnapshots[3].isOverloaded).toBe(true);
 
-        await clientSignal.stop();
-        apifyClient.stats = oldStats;
+        await storageBackendSignal.stop();
+        storageBackend.stats = oldStats;
     });
 
     test('a signal sample is limited by the requested duration', async () => {

@@ -1,5 +1,3 @@
-import type { ClientLoadSignalOptions } from './client_load_signal.js';
-import { ClientLoadSignal } from './client_load_signal.js';
 import type { CpuLoadSignalOptions } from './cpu_load_signal.js';
 import { CpuLoadSignal } from './cpu_load_signal.js';
 import type { EventLoopLoadSignalOptions } from './event_loop_load_signal.js';
@@ -7,6 +5,8 @@ import { EventLoopLoadSignal } from './event_loop_load_signal.js';
 import type { LoadSignal, LoadSignalStartContext } from './load_signal.js';
 import type { MemoryLoadSignalOptions } from './memory_load_signal.js';
 import { MemoryLoadSignal } from './memory_load_signal.js';
+import type { StorageBackendLoadSignalOptions } from './storage_backend_load_signal.js';
+import { StorageBackendLoadSignal } from './storage_backend_load_signal.js';
 
 /**
  * The load signals a {@apilink ConcurrencySystem} watches to decide whether the machine is overloaded.
@@ -39,11 +39,11 @@ export interface LoadSignalsOptions {
     cpu?: CpuLoadSignalOptions | false;
 
     /**
-     * Tuning for the built-in {@apilink ClientLoadSignal} (snapshot interval + error limit + overload ratio), or
-     * `false` to switch it off — worth doing when the storage backend reports no rate-limit statistics, since the
+     * Tuning for the built-in {@apilink StorageBackendLoadSignal} (snapshot interval + error limit + overload ratio),
+     * or `false` to switch it off — worth doing when the storage backend reports no rate-limit statistics, since the
      * signal otherwise polls it every second to no purpose.
      */
-    client?: ClientLoadSignalOptions | false;
+    storageBackend?: StorageBackendLoadSignalOptions | false;
 
     /**
      * Additional {@apilink LoadSignal} implementations — e.g. navigation timeouts or proxy health — evaluated
@@ -64,19 +64,19 @@ export type SnapshotterOptions = Omit<LoadSignalsOptions, 'custom'>;
 
 /**
  * Owns the four built-in {@apilink LoadSignal} instances — {@apilink MemoryLoadSignal},
- * {@apilink EventLoopLoadSignal}, {@apilink CpuLoadSignal} and {@apilink ClientLoadSignal} — constructing the ones
- * that were not switched off and driving their shared lifecycle.
+ * {@apilink EventLoopLoadSignal}, {@apilink CpuLoadSignal} and {@apilink StorageBackendLoadSignal} — constructing
+ * the ones that were not switched off and driving their shared lifecycle.
  *
  * Configured indirectly through {@apilink ConcurrencySystemOptions.loadSignals|`loadSignals`}, whose per-signal bags
  * are simply forwarded to the corresponding constructor.
  * @internal
  */
 export class Snapshotter {
-    // Absent when switched off through the corresponding option (e.g. `client: false`).
+    // Absent when switched off through the corresponding option (e.g. `storageBackend: false`).
     readonly #memorySignal?: MemoryLoadSignal;
     readonly #eventLoopSignal?: EventLoopLoadSignal;
     readonly #cpuSignal?: CpuLoadSignal;
-    readonly #clientSignal?: ClientLoadSignal;
+    readonly #storageBackendSignal?: StorageBackendLoadSignal;
 
     /**
      * Returns the enabled built-in signals, so `SystemStatus` can iterate them alongside any custom `LoadSignal`
@@ -88,7 +88,7 @@ export class Snapshotter {
             this.#memorySignal,
             this.#eventLoopSignal,
             this.#cpuSignal,
-            this.#clientSignal,
+            this.#storageBackendSignal,
         ];
 
         return builtin.filter((signal): signal is LoadSignal => signal !== undefined);
@@ -98,14 +98,14 @@ export class Snapshotter {
      * @param [options] All `Snapshotter` configuration options.
      */
     constructor(options: SnapshotterOptions = {}) {
-        const { memory = {}, eventLoop = {}, cpu = {}, client = {} } = options;
+        const { memory = {}, eventLoop = {}, cpu = {}, storageBackend = {} } = options;
 
         // Each signal resolves its own ambient dependencies when started, and is told the window it will be sampled
         // over then too - so there is nothing to thread in here beyond the caller's tuning.
         if (memory !== false) this.#memorySignal = new MemoryLoadSignal(memory);
         if (eventLoop !== false) this.#eventLoopSignal = new EventLoopLoadSignal(eventLoop);
         if (cpu !== false) this.#cpuSignal = new CpuLoadSignal(cpu);
-        if (client !== false) this.#clientSignal = new ClientLoadSignal(client);
+        if (storageBackend !== false) this.#storageBackendSignal = new StorageBackendLoadSignal(storageBackend);
     }
 
     /**

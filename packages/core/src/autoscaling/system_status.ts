@@ -8,10 +8,10 @@ import type { LoadSignalsOptions, Snapshotter } from './snapshotter.js';
 export interface SystemInfo {
     /** If false, system is being overloaded. */
     isSystemIdle: boolean;
-    memInfo: ClientInfo;
-    eventLoopInfo: ClientInfo;
-    cpuInfo: ClientInfo;
-    clientInfo: ClientInfo;
+    memInfo: LoadSignalInfo;
+    eventLoopInfo: LoadSignalInfo;
+    cpuInfo: LoadSignalInfo;
+    storageBackendInfo: LoadSignalInfo;
     memTotalBytes?: number;
     memCurrentBytes?: number;
     /**
@@ -34,7 +34,7 @@ export interface SystemInfo {
      * Status of additional load signals beyond the built-in four.
      * Keys are `LoadSignal.name` values, values are overload info.
      */
-    loadSignalInfo?: Record<string, ClientInfo>;
+    loadSignalInfo?: Record<string, LoadSignalInfo>;
 }
 
 /**
@@ -78,13 +78,13 @@ export interface SystemStatusOptions {
     /**
      * Additional load signals to include in the system status evaluation.
      * These are evaluated alongside the built-in memory, CPU, event loop,
-     * and client signals. If any signal reports overload, the system is
-     * considered overloaded. Each signal carries its own overload ratio.
+     * and storage backend signals. If any signal reports overload, the system
+     * is considered overloaded. Each signal carries its own overload ratio.
      */
     loadSignals?: LoadSignal[];
 }
 
-export interface ClientInfo {
+export interface LoadSignalInfo {
     isOverloaded: boolean;
     limitRatio: number;
     actualRatio: number;
@@ -108,7 +108,7 @@ const BUILTIN_SIGNAL_OPTION_KEYS: Record<string, keyof LoadSignalsOptions> = {
     memInfo: 'memory',
     eventLoopInfo: 'eventLoop',
     cpuInfo: 'cpu',
-    clientInfo: 'client',
+    storageBackendInfo: 'storageBackend',
 };
 
 const BUILTIN_SIGNAL_NAMES = new Set(Object.keys(BUILTIN_SIGNAL_OPTION_KEYS));
@@ -225,10 +225,10 @@ export class SystemStatus {
             memInfo: { isOverloaded: false, limitRatio: 0, actualRatio: 0 },
             eventLoopInfo: { isOverloaded: false, limitRatio: 0, actualRatio: 0 },
             cpuInfo: { isOverloaded: false, limitRatio: 0, actualRatio: 0 },
-            clientInfo: { isOverloaded: false, limitRatio: 0, actualRatio: 0 },
+            storageBackendInfo: { isOverloaded: false, limitRatio: 0, actualRatio: 0 },
         };
 
-        let loadSignalInfo: Record<string, ClientInfo> | undefined;
+        let loadSignalInfo: Record<string, LoadSignalInfo> | undefined;
 
         for (const signal of this.#signals) {
             const sample = signal.getSample(sampleDurationMillis);
