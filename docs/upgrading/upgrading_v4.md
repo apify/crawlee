@@ -1869,7 +1869,7 @@ new ConcurrencySystem({
         memory: { maxUsedRatio: 0.8, overloadedRatio: 0.2 },
         eventLoop: { snapshotIntervalSecs: 2, maxBlockedMillis: 100, overloadedRatio: 0.7 },
         cpu: { overloadedRatio: 0.4 },
-        client: { snapshotIntervalSecs: 1, maxErrors: 3, overloadedRatio: 0.3 },
+        storageBackend: { snapshotIntervalSecs: 1, maxErrors: 3, overloadedRatio: 0.3 },
         custom: [myProxyHealthSignal],
     },
     // the two evaluation windows are policy, alongside the scaling options
@@ -1878,11 +1878,13 @@ new ConcurrencySystem({
 });
 ```
 
+The signal that watches storage rate-limit errors follows the [`StorageClient` → `StorageBackend` rename](#storagebackend-interface-simplified): the option is `loadSignals.storageBackend`, the class `StorageBackendLoadSignal`, and its verdict is reported as `SystemInfo.storageBackendInfo`. The type of that verdict, `ClientInfo`, is now `LoadSignalInfo` — it backs every signal's entry, not just this one.
+
 In detail: the four `max*OverloadedRatio` options of `SystemStatusOptions` were **removed** (each signal now owns its overload ratio, set in its own bag), custom signals moved from `systemStatusOptions.loadSignals` to `loadSignals.custom`, and the two evaluation windows — `snapshotHistorySecs` (autoscaling) and `currentHistorySecs` (task gating) — are plain options on `ConcurrencySystemOptions`, since they apply to every signal alike rather than to any one of them.
 
-Two related capabilities are new, and covered in the [scaling guide](../guides/scaling-crawlers#load-signals): a built-in signal can be switched **off** with `false`, and each built-in is also a public class (`MemoryLoadSignal`, `EventLoopLoadSignal`, `CpuLoadSignal`, `ClientLoadSignal`) you can construct to wrap or adapt.
+Two related capabilities are new, and covered in the [scaling guide](../guides/scaling-crawlers#load-signals): a built-in signal can be switched **off** with `false`, and each built-in is also a public class (`MemoryLoadSignal`, `EventLoopLoadSignal`, `CpuLoadSignal`, `StorageBackendLoadSignal`) you can construct to wrap or adapt.
 
-A duplicate signal name now **throws**, where naming a custom signal after a built-in (`memInfo`, `eventLoopInfo`, `cpuInfo`, `clientInfo`) used to look like an override but never was one: the built-in kept running and kept holding concurrency down, while your signal only overwrote its field in the reported `SystemInfo`. To take a built-in's place, switch it off:
+A duplicate signal name now **throws**, where naming a custom signal after a built-in (`memInfo`, `eventLoopInfo`, `cpuInfo`, `storageBackendInfo`) used to look like an override but never was one: the built-in kept running and kept holding concurrency down, while your signal only overwrote its field in the reported `SystemInfo`. To take a built-in's place, switch it off:
 
 ```typescript
 new ConcurrencySystem({

@@ -1,4 +1,4 @@
-import type { ClientInfo } from './system_status.js';
+import type { LoadSignalInfo } from './system_status.js';
 import { weightedAvg } from './weighted_avg.js';
 
 /**
@@ -26,7 +26,7 @@ export interface LoadSignalStartContext {
  * A signal that reports whether a particular resource is overloaded. The {@apilink ConcurrencySystem} aggregates
  * several of them — if any one reports overload, the system is overloaded.
  *
- * The built-in signals cover memory, CPU, event loop and storage-client rate limits. Implement this interface to add
+ * The built-in signals cover memory, CPU, event loop and storage backend rate limits. Implement this interface to add
  * your own (navigation timeouts, proxy health, …) and pass them via
  * {@apilink LoadSignalsOptions.custom|`loadSignals.custom`}; {@apilink SnapshotStore} does the time-windowed
  * bookkeeping if you want it. Each built-in is also a public class, so one can be *wrapped* rather than reimplemented
@@ -36,8 +36,8 @@ export interface LoadSignal {
     /**
      * This signal's key in the reported {@apilink SystemInfo}, also used in logging — so it must be unique among the
      * signals of one {@apilink ConcurrencySystem}, which throws on a duplicate. The four built-in names (`memInfo`,
-     * `eventLoopInfo`, `cpuInfo`, `clientInfo`) land in the correspondingly named `SystemInfo` fields rather than the
-     * `loadSignalInfo` bag; taking one over means switching that built-in off.
+     * `eventLoopInfo`, `cpuInfo`, `storageBackendInfo`) land in the correspondingly named `SystemInfo` fields rather
+     * than the `loadSignalInfo` bag; taking one over means switching that built-in off.
      */
     readonly name: string;
 
@@ -125,7 +125,8 @@ export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
 
     /**
      * Direct, unwindowed access to the underlying array — used by signals whose handler needs the previous snapshot
-     * to compute a delta (e.g. the event loop and client signals read the last entry to measure change since it).
+     * to compute a delta (e.g. the event loop and storage backend signals read the last entry to measure change since
+     * it).
      */
     getAll(): T[] {
         return this.#snapshots;
@@ -148,7 +149,7 @@ export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
  * evaluation logic used by `SystemStatus` for all signal types.
  * @internal
  */
-export function evaluateLoadSignalSample(sample: LoadSnapshot[], overloadedRatio: number): ClientInfo {
+export function evaluateLoadSignalSample(sample: LoadSnapshot[], overloadedRatio: number): LoadSignalInfo {
     if (sample.length === 0) {
         return {
             isOverloaded: false,

@@ -191,19 +191,19 @@ describe('ConcurrencySystem', () => {
             // The other three built-ins are untouched — each still reports under its own default ratio.
             expect(status.eventLoopInfo.limitRatio).toBe(0.6);
             expect(status.cpuInfo.limitRatio).toBe(0.4);
-            expect(status.clientInfo.limitRatio).toBe(0.3);
+            expect(status.storageBackendInfo.limitRatio).toBe(0.3);
         });
 
         test('built-in signals can be switched off with `false`', async () => {
             const system = new ConcurrencySystem({
-                loadSignals: { client: false, eventLoop: false },
+                loadSignals: { storageBackend: false, eventLoop: false },
             });
 
             await system.start();
             try {
                 // A disabled signal cannot report overload, so the status shows it as idle rather than omitting it.
                 const status = system.getCurrentStatus();
-                expect(status.clientInfo).toEqual({ isOverloaded: false, limitRatio: 0, actualRatio: 0 });
+                expect(status.storageBackendInfo).toEqual({ isOverloaded: false, limitRatio: 0, actualRatio: 0 });
                 expect(status.eventLoopInfo).toEqual({ isOverloaded: false, limitRatio: 0, actualRatio: 0 });
                 expect(status.isSystemIdle).toBe(true);
 
@@ -218,7 +218,7 @@ describe('ConcurrencySystem', () => {
 
         test('switching every built-in signal off leaves the system permanently idle', async () => {
             const system = new ConcurrencySystem({
-                loadSignals: { memory: false, eventLoop: false, cpu: false, client: false },
+                loadSignals: { memory: false, eventLoop: false, cpu: false, storageBackend: false },
             });
 
             // @ts-expect-error Accessing private prop

@@ -99,8 +99,8 @@ export interface ConcurrencySystemOptions {
 
     /**
      * The signals that tell the system whether the machine is overloaded: per-resource tuning for the built-in four
-     * (memory, event loop, CPU, client) plus any {@apilink LoadSignalsOptions.custom|`custom`} implementations of
-     * your own. See {@apilink LoadSignalsOptions}.
+     * (memory, event loop, CPU, storage backend) plus any {@apilink LoadSignalsOptions.custom|`custom`}
+     * implementations of your own. See {@apilink LoadSignalsOptions}.
      */
     loadSignals?: LoadSignalsOptions;
 

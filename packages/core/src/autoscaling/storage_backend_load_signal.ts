@@ -7,23 +7,24 @@ import { serviceLocator } from '../service_locator.js';
 import type { LoadSignal, LoadSignalStartContext, LoadSnapshot } from './load_signal.js';
 import { SnapshotStore } from './load_signal.js';
 
-const CLIENT_RATE_LIMIT_ERROR_RETRY_COUNT = 2;
+const RATE_LIMIT_ERROR_RETRY_COUNT = 2;
 
 /**
- * A snapshot produced by the built-in client (rate-limit) signal.
+ * A snapshot produced by the built-in storage backend (rate-limit) signal.
  * @internal
  */
-export interface ClientSnapshot extends LoadSnapshot {
+export interface StorageBackendSnapshot extends LoadSnapshot {
     rateLimitErrorCount: number;
 }
 
 /**
- * Tuning for the built-in **client** (rate-limit) load signal, as accepted both by {@apilink ClientLoadSignal} and by
- * the {@apilink LoadSignalsOptions.client|`client`} shorthand on {@apilink LoadSignalsOptions}.
+ * Tuning for the built-in **storage backend** (rate-limit) load signal, as accepted both by
+ * {@apilink StorageBackendLoadSignal} and by the
+ * {@apilink LoadSignalsOptions.storageBackend|`storageBackend`} shorthand on {@apilink LoadSignalsOptions}.
  */
-export interface ClientLoadSignalOptions {
+export interface StorageBackendLoadSignalOptions {
     /**
-     * Defines the interval of checking the current state of the remote API client, in seconds.
+     * Defines the interval of checking the current state of the storage backend, in seconds.
      * @default 1
      */
     snapshotIntervalSecs?: number;
@@ -35,7 +36,7 @@ export interface ClientLoadSignalOptions {
     maxErrors?: number;
 
     /**
-     * Maximum ratio of overloaded snapshots in a sample before the client counts as overloaded.
+     * Maximum ratio of overloaded snapshots in a sample before the storage backend counts as overloaded.
      * @default 0.3
      */
     overloadedRatio?: number;
@@ -47,22 +48,22 @@ export interface ClientLoadSignalOptions {
  *
  * Built by default; construct one yourself only to wrap or adapt it — see {@apilink LoadSignal}.
  *
- * Switch it off entirely ({@apilink LoadSignalsOptions.client|`client: false`}) if the storage backend reports no
- * rate-limit statistics, since it otherwise polls it every second to no purpose.
+ * Switch it off entirely ({@apilink LoadSignalsOptions.storageBackend|`storageBackend: false`}) if the storage backend
+ * reports no rate-limit statistics, since it otherwise polls it every second to no purpose.
  *
  * @category Scaling
  */
-export class ClientLoadSignal implements LoadSignal {
-    readonly name = 'clientInfo';
+export class StorageBackendLoadSignal implements LoadSignal {
+    readonly name = 'storageBackendInfo';
     readonly overloadedRatio: number;
 
-    readonly #store = new SnapshotStore<ClientSnapshot>();
+    readonly #store = new SnapshotStore<StorageBackendSnapshot>();
     readonly #intervalMillis: number;
     readonly #maxErrors: number;
     #interval?: BetterIntervalID;
-    #client?: StorageBackend;
+    #storageBackend?: StorageBackend;
 
-    constructor(options: ClientLoadSignalOptions = {}) {
+    constructor(options: StorageBackendLoadSignalOptions = {}) {
         this.overloadedRatio = options.overloadedRatio ?? 0.3;
         this.#intervalMillis = (options.snapshotIntervalSecs ?? 1) * 1000;
         this.#maxErrors = options.maxErrors ?? 3;
@@ -72,19 +73,19 @@ export class ClientLoadSignal implements LoadSignal {
     async start(context: LoadSignalStartContext): Promise<void> {
         this.#store.useSampleWindow(context.maxSampleWindowMillis);
         // A new session starts from a clean slate, or its first measurement diffs the error count against the previous
-        // session's — possibly against a different backend, since the client is resolved afresh just below.
+        // session's — possibly against a different backend, since it is resolved afresh just below.
         this.#store.clear();
 
         // Resolved here rather than in the constructor, where asking for the backend would instantiate a default one
         // as a side effect - long before the crawler that owns the run has had a chance to register its own.
-        this.#client = serviceLocator.getStorageBackend();
+        this.#storageBackend = serviceLocator.getStorageBackend();
         this.#interval = betterSetInterval(this.handle, this.#intervalMillis);
     }
 
     async stop(): Promise<void> {
         if (this.#interval) betterClearInterval(this.#interval);
         this.#interval = undefined;
-        this.#client = undefined;
+        this.#storageBackend = undefined;
     }
 
     getSample(sampleDurationMillis?: number): LoadSnapshot[] {
@@ -99,10 +100,10 @@ export class ClientLoadSignal implements LoadSignal {
     handle(intervalCallback: () => unknown): void {
         const now = new Date();
 
-        const allErrorCounts = this.#client?.stats?.rateLimitErrors ?? [];
-        const currentErrCount = allErrorCounts[CLIENT_RATE_LIMIT_ERROR_RETRY_COUNT] || 0;
+        const allErrorCounts = this.#storageBackend?.stats?.rateLimitErrors ?? [];
+        const currentErrCount = allErrorCounts[RATE_LIMIT_ERROR_RETRY_COUNT] || 0;
 
-        const snapshot: ClientSnapshot = {
+        const snapshot: StorageBackendSnapshot = {
             createdAt: now,
             isOverloaded: false,
             rateLimitErrorCount: currentErrCount,
