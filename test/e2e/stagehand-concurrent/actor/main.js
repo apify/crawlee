@@ -1,4 +1,4 @@
-import { StagehandCrawler } from '@crawlee/stagehand';
+import { StagehandCrawler, stagehandBrowserPool } from '@crawlee/stagehand';
 import { Actor } from 'apify';
 import { z } from 'zod';
 
@@ -21,15 +21,15 @@ await Actor.main(async () => {
     const crawler = new StagehandCrawler({
         maxConcurrency: 3,
         maxRequestsPerCrawl: 3,
-        // Force one page per browser to ensure multiple browsers are used
-        browserPoolOptions: {
+        browserPool: stagehandBrowserPool({
+            // Force one page per browser to ensure multiple browsers are used
             maxOpenPagesPerBrowser: 1,
-        },
-        stagehandOptions: {
-            env: 'LOCAL',
-            model: 'anthropic/claude-haiku-4-5-20251001',
-            verbose: 0,
-        },
+            stagehandOptions: {
+                env: 'LOCAL',
+                model: 'anthropic/claude-haiku-4-5-20251001',
+                verbose: 0,
+            },
+        }),
         async requestHandler({ page, request, log, pushData }) {
             log.info(`Processing ${request.loadedUrl}`);
 

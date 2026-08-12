@@ -54,6 +54,7 @@ The purely mechanical renames, collected in one place. Where a row links to a se
 | `(await enqueueLinks()).processedRequests` | `(await enqueueLinks()).addedRequests` ([details](#enqueuelinks-return-value-reshaped-addrequestsbatchedresult-instead-of-batchaddrequestsresult)) |
 | `autoscaledPoolOptions` | `taskLoopOptions` ([narrowed](#autoscaledpooloptions-is-now-taskloopoptions-and-no-longer-carries-concurrency-config)) |
 | `crawler.stats` | `crawler.statistics` ([retyped](#statisticsoptions-is-replaced-by-a-statistics-instance)) |
+| `browserPoolOptions` | `browserPool` + a `*BrowserPool()` factory ([details](#browserpooloptions-is-removed)) |
 | `gotScraping` (from `@crawlee/utils`) | `GotScrapingHttpClient` (`@crawlee/got-scraping-client`) |
 | `SDK_`-prefixed internal KVS keys | `CRAWLEE_`-prefixed ([details](#internal-kvs-keys-renamed)) |
 | `ArgumentError` (from `ow`) | `ArgumentValidationError` ([details](#argument-validation-errors-use-zod)) |
@@ -443,6 +444,42 @@ The `persistCookiesPerSession` crawler option has been renamed to `saveResponseC
 Previously, `BrowserCrawler` with `saveResponseCookies` (formerly `persistCookiesPerSession`) only copied cookies from the page into the session after navigation and **before** `requestHandler` ran. Cookies set during the handler — login flows, `page.setCookie()`, or XHR/`fetch` `Set-Cookie` responses — were not stored on the session for later requests.
 
 In v4, when `saveResponseCookies` is enabled (the default), browser cookies are also re-read and stored in the session cookie jar **after** `requestHandler` completes. If you relied on handler-set cookies staying page-local and not affecting later requests on the same session, set `saveResponseCookies: false` or clear/overwrite cookies on the session explicitly.
+
+### `browserPoolOptions` is removed
+
+`browserPoolOptions` is gone from every browser crawler. It was a second way of configuring the very pool that the `browserPool` option accepts, and the two could not be combined — passing a pool made the options silently disappear.
+
+Build the pool with the factory that matches your crawler instead. Each factory takes every `BrowserPool` option plus the crawler's own `launchContext` and `headless`, and derives the browser plugin from them, so the pool can never mismatch the crawler it is passed to:
+
+| crawler | factory | remote counterpart |
+| --- | --- | --- |
+| `PlaywrightCrawler` | `playwrightBrowserPool()` | `remotePlaywrightBrowserPool()` |
+| `PuppeteerCrawler` | `puppeteerBrowserPool()` | `remotePuppeteerBrowserPool()` |
+| `StagehandCrawler` | `stagehandBrowserPool()` | `remoteStagehandBrowserPool()` |
+
+**Before:**
+```typescript
+const crawler = new PlaywrightCrawler({
+    browserPoolOptions: { useFingerprints: false },
+    launchContext: { launcher: firefox },
+});
+```
+
+**After:**
+```typescript
+const crawler = new PlaywrightCrawler({
+    browserPool: playwrightBrowserPool({
+        useFingerprints: false,
+        launchContext: { launcher: firefox },
+    }),
+});
+```
+
+Building the pool outside the crawler has one consequence worth knowing: a pool passed as `browserPool` is borrowed, so the crawler never destroys it, and the options that would have configured a pool of the crawler's own — `launchContext`, `headless` and `remoteBrowser` — are now **rejected** instead of silently ignored. Move them into the factory call.
+
+`remoteBrowser` keeps working on its own for the terse case; reach for a `remote*BrowserPool()` factory when you also want to tune the pool wrapping the remote connection, or to share one remote pool between crawlers.
+
+`headless` is now declared on each concrete crawler rather than on `BrowserCrawler`, so the puppeteer-only `'new'` and `'old'` values are only accepted by `PuppeteerCrawler`.
 
 ### `ignoreSslErrors` is renamed to `ignoreTlsErrors`
 

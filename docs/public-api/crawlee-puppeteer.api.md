@@ -8,10 +8,13 @@ import { BaseHttpClient } from '@crawlee/http-client';
 import { BatchAddRequestsResult } from '@crawlee/types';
 import type { Browser } from 'puppeteer';
 import { BrowserCrawler } from '@crawlee/browser';
-import type { BrowserCrawlerOptions } from '@crawlee/browser';
+import { BrowserCrawlerOptions } from '@crawlee/browser';
 import type { BrowserCrawlingContext } from '@crawlee/browser';
 import type { BrowserHook } from '@crawlee/browser';
 import type { BrowserLaunchContext } from '@crawlee/browser';
+import type { BrowserPool } from '@crawlee/browser-pool';
+import type { BrowserPoolHooks } from '@crawlee/browser-pool';
+import type { BrowserPoolOptions } from '@crawlee/browser-pool';
 import { CheerioAPI } from '@crawlee/browser';
 import { CheerioRoot } from '@crawlee/utils/internal';
 import type { ClickOptions } from 'puppeteer';
@@ -27,6 +30,8 @@ import { IRequestManager } from '@crawlee/browser';
 import type { LaunchOptions } from 'puppeteer';
 import type { Page } from 'puppeteer';
 import { PuppeteerPlugin } from '@crawlee/browser-pool';
+import type { RemoteBrowserPool } from '@crawlee/browser-pool';
+import type { RemoteBrowserPoolOptions } from '@crawlee/browser-pool';
 import { Request as Request_2 } from '@crawlee/browser';
 import type { RequestTransform } from '@crawlee/browser';
 import type { ResponseForRequest } from 'puppeteer';
@@ -145,6 +150,21 @@ export function launchPuppeteer(launchContext?: PuppeteerLaunchContext, configur
 // @public
 function parseWithCheerio(page: Page, ignoreShadowRoots?: boolean, ignoreIframes?: boolean): Promise<CheerioRoot>;
 
+// @public
+export type PuppeteerBrowserPool = BrowserPool<{
+    browserPlugins: [PuppeteerPlugin];
+}, [PuppeteerPlugin]>;
+
+// @public
+export function puppeteerBrowserPool(options?: PuppeteerBrowserPoolOptions): PuppeteerBrowserPool;
+
+// @public (undocumented)
+export interface PuppeteerBrowserPoolOptions extends Omit<BrowserPoolOptions, 'browserPlugins'>, BrowserPoolHooks<ReturnType<PuppeteerPlugin['createController']>, ReturnType<PuppeteerPlugin['createLaunchContext']>, Page> {
+    configuration?: Configuration;
+    headless?: boolean | 'new' | 'old';
+    launchContext?: PuppeteerLaunchContext;
+}
+
 declare namespace puppeteerClickElements {
     export {
         enqueueLinksByClickingElements,
@@ -172,9 +192,7 @@ interface PuppeteerContextUtils {
 }
 
 // @public
-export class PuppeteerCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends PuppeteerCrawlingContext = PuppeteerCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<PuppeteerCrawlingContext['request']>>, StatisticStateExtension extends object = {}> extends BrowserCrawler<Page, HTTPResponse, {
-    browserPlugins: [PuppeteerPlugin];
-}, LaunchOptions, PuppeteerCrawlingContext, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
+export class PuppeteerCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends PuppeteerCrawlingContext = PuppeteerCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<PuppeteerCrawlingContext['request']>>, StatisticStateExtension extends object = {}> extends BrowserCrawler<Page, HTTPResponse, LaunchOptions, PuppeteerCrawlingContext, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
     constructor(options?: PuppeteerCrawlerOptions<ContextExtension, ExtendedContext, Routes, StatisticStateExtension>);
     // (undocumented)
     protected buildContextPipeline(): ContextPipeline<CrawlingContext<Dictionary>, BrowserCrawlingContext<Page, HTTPResponse, Dictionary, Dictionary> & {
@@ -195,13 +213,13 @@ export class PuppeteerCrawler<ContextExtension = Dictionary<never>, ExtendedCont
     protected navigationHandler(crawlingContext: PuppeteerCrawlingContext, gotoOptions: PuppeteerDirectNavigationOptions): Promise<HTTPResponse | null>;
     // (undocumented)
     protected static optionsSchema: z.ZodObject<{
-        browserPoolOptions: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
+        headless: z.ZodOptional<z.ZodUnion<readonly [z.ZodBoolean, z.ZodString]>>;
         navigationTimeoutSecs: z.ZodDefault<z.ZodCustom<number, number>>;
         preNavigationHooks: z.ZodDefault<z.ZodCustom<unknown[], unknown[]>>;
         postNavigationHooks: z.ZodDefault<z.ZodCustom<unknown[], unknown[]>>;
         launchContext: z.ZodDefault<z.ZodCustom<Dictionary, Dictionary>>;
-        headless: z.ZodOptional<z.ZodUnion<readonly [z.ZodBoolean, z.ZodString]>>;
         browserPool: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
+        browserPoolBuilder: z.ZodOptional<z.ZodCustom<(...args: any[]) => unknown, (...args: any[]) => unknown>>;
         remoteBrowser: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
         saveResponseCookies: z.ZodDefault<z.ZodBoolean>;
         proxyConfiguration: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
@@ -251,13 +269,13 @@ export class PuppeteerCrawler<ContextExtension = Dictionary<never>, ExtendedCont
     }, z.core.$strict>;
     // (undocumented)
     protected static optionsShape: {
-        browserPoolOptions: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
+        headless: z.ZodOptional<z.ZodUnion<readonly [z.ZodBoolean, z.ZodString]>>;
         navigationTimeoutSecs: z.ZodDefault<z.ZodCustom<number, number>>;
         preNavigationHooks: z.ZodDefault<z.ZodCustom<unknown[], unknown[]>>;
         postNavigationHooks: z.ZodDefault<z.ZodCustom<unknown[], unknown[]>>;
         launchContext: z.ZodDefault<z.ZodCustom<Dictionary, Dictionary>>;
-        headless: z.ZodOptional<z.ZodUnion<readonly [z.ZodBoolean, z.ZodString]>>;
         browserPool: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
+        browserPoolBuilder: z.ZodOptional<z.ZodCustom<(...args: any[]) => unknown, (...args: any[]) => unknown>>;
         remoteBrowser: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
         saveResponseCookies: z.ZodDefault<z.ZodBoolean>;
         proxyConfiguration: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
@@ -308,9 +326,8 @@ export class PuppeteerCrawler<ContextExtension = Dictionary<never>, ExtendedCont
 }
 
 // @public (undocumented)
-export interface PuppeteerCrawlerOptions<ContextExtension = Dictionary<never>, ExtendedContext extends PuppeteerCrawlingContext = PuppeteerCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<PuppeteerCrawlingContext['request']>>, StatisticStateExtension extends object = {}> extends BrowserCrawlerOptions<Page, HTTPResponse, PuppeteerCrawlingContext, ContextExtension, ExtendedContext, {
-    browserPlugins: [PuppeteerPlugin];
-}, Routes, StatisticStateExtension> {
+export interface PuppeteerCrawlerOptions<ContextExtension = Dictionary<never>, ExtendedContext extends PuppeteerCrawlingContext = PuppeteerCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<PuppeteerCrawlingContext['request']>>, StatisticStateExtension extends object = {}> extends BrowserCrawlerOptions<Page, HTTPResponse, PuppeteerCrawlingContext, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
+    headless?: boolean | 'new' | 'old';
     launchContext?: PuppeteerLaunchContext;
     postNavigationHooks?: BrowserHook<PuppeteerCrawlingContext<GetUserDataFromRequest<ExtendedContext['request']>>, ContextExtension>[];
     preNavigationHooks?: BrowserHook<PuppeteerCrawlingContext<GetUserDataFromRequest<ExtendedContext['request']>>, ContextExtension>[];
@@ -377,6 +394,13 @@ declare namespace puppeteerUtils {
         removeInterceptRequestHandler,
         puppeteerUtils_2 as puppeteerUtils
     }
+}
+
+// @public
+export function remotePuppeteerBrowserPool(options: RemotePuppeteerBrowserPoolOptions): RemoteBrowserPool<Page>;
+
+// @public (undocumented)
+export interface RemotePuppeteerBrowserPoolOptions extends Pick<PuppeteerBrowserPoolOptions, 'launchContext' | 'headless' | 'configuration'>, Omit<RemoteBrowserPoolOptions, 'browserPlugins'> {
 }
 
 // @public

@@ -18,6 +18,7 @@ import {
     createPuppeteerRouter,
     ProxyConfiguration,
     PuppeteerCrawler,
+    puppeteerBrowserPool,
     RequestList,
     RequestQueue,
     RequestValidationError,
@@ -115,7 +116,7 @@ describe('PuppeteerCrawler', () => {
 
         const puppeteerCrawler = new PuppeteerCrawler({
             requestList: requestListLarge,
-            browserPoolOptions: { useFingerprints: false },
+            browserPool: puppeteerBrowserPool({ useFingerprints: false }),
             minConcurrency: 1,
             maxConcurrency: 1,
             requestHandler,
@@ -275,14 +276,14 @@ describe('PuppeteerCrawler', () => {
         const crawler = new PuppeteerCrawler({
             requestQueue,
             navigationTimeoutSecs: 0.005,
-            browserPoolOptions: {
+            browserPool: puppeteerBrowserPool({
                 preLaunchHooks: [
                     async () => {
                         // Do some async work that's longer than navigationTimeoutSecs
                         await sleep(20);
                     },
                 ],
-            },
+            }),
             requestHandler,
         });
 
@@ -363,16 +364,16 @@ describe('PuppeteerCrawler', () => {
         expect(sessions.size).toBe(3); // 3 different sessions used
     });
 
-    test('shallow clones browserPoolOptions before normalization', () => {
+    test('does not mutate the launchContext it was given', () => {
         const options = {
-            browserPoolOptions: {},
+            launchContext: {},
+            headless: false,
             requestHandler: async () => {},
         };
 
         void new PuppeteerCrawler(options);
-        void new PuppeteerCrawler(options);
 
-        expect(Object.keys(options.browserPoolOptions).length).toBe(0);
+        expect(options.launchContext).toEqual({});
     });
 
     if (os.platform() !== 'darwin') {
@@ -397,16 +398,14 @@ describe('PuppeteerCrawler', () => {
             const puppeteerCrawler = new PuppeteerCrawler({
                 requestList: requestListLarge,
 
-                launchContext: {
-                    useIncognitoPages: true,
-                },
-                browserPoolOptions: {
+                browserPool: puppeteerBrowserPool({
+                    launchContext: { useIncognitoPages: true },
                     prePageCreateHooks: [
                         (_id, _controller, options) => {
                             options!.proxyBypassList = ['<-loopback>'];
                         },
                     ],
-                },
+                }),
                 proxyConfiguration,
                 requestHandler: async ({ page }) => {
                     const content = await page.content();

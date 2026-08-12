@@ -4,7 +4,13 @@ import os from 'node:os';
 
 import type { PlaywrightCrawlingContext, PlaywrightGotoOptions, Request } from '@crawlee/playwright';
 import { type ConcurrencySystem, MemoryStorageBackend, serviceLocator } from '@crawlee/core';
-import { createPlaywrightRouter, PlaywrightCrawler, RequestList, RequestValidationError } from '@crawlee/playwright';
+import {
+    createPlaywrightRouter,
+    PlaywrightCrawler,
+    playwrightBrowserPool,
+    RequestList,
+    RequestValidationError,
+} from '@crawlee/playwright';
 import type { Cheerio, CheerioAPI, CheerioRoot, Element } from '@crawlee/utils/internal';
 import { sleep } from '@crawlee/utils';
 import express from 'express';
@@ -101,10 +107,10 @@ describe('PlaywrightCrawler', () => {
             };
 
             const playwrightCrawler = new PlaywrightCrawler({
-                launchContext: {
-                    launcher: playwright[browser],
-                },
-                browserPoolOptions: { useFingerprints: false },
+                browserPool: playwrightBrowserPool({
+                    launchContext: { launcher: playwright[browser] },
+                    useFingerprints: false,
+                }),
                 requestList: requestListLarge,
                 minConcurrency: 1,
                 maxConcurrency: 1,
@@ -134,9 +140,7 @@ describe('PlaywrightCrawler', () => {
 
         const crawler = new PlaywrightCrawler({
             maxRequestRetries: 0,
-            browserPoolOptions: {
-                operationTimeoutSecs: 0.001,
-            },
+            browserPool: playwrightBrowserPool({ operationTimeoutSecs: 0.001 }),
             requestHandler: async ({ request }) => {
                 success.push(request.url);
             },
@@ -182,16 +186,49 @@ describe('PlaywrightCrawler', () => {
         expect(options!.timeout).toEqual(timeoutSecs * 1000);
     });
 
-    test('shallow clones browserPoolOptions before normalization', () => {
+    test('does not mutate the launchContext it was given', () => {
         const options = {
-            browserPoolOptions: {},
+            launchContext: {},
+            headless: false,
             requestHandler: async () => {},
         };
 
         void new PlaywrightCrawler(options);
-        void new PlaywrightCrawler(options);
 
-        expect(Object.keys(options.browserPoolOptions).length).toBe(0);
+        expect(options.launchContext).toEqual({});
+    });
+
+    describe('playwrightBrowserPool', () => {
+        test('runs a plugin for the requested browser and forwards the pool options', () => {
+            const browserPool = playwrightBrowserPool({
+                maxOpenPagesPerBrowser: 3,
+                headless: false,
+                launchContext: { launcher: playwright.firefox },
+            });
+
+            expect(browserPool.maxOpenPagesPerBrowser).toBe(3);
+            expect(browserPool.browserPlugins).toHaveLength(1);
+            expect(browserPool.browserPlugins[0].library).toBe(playwright.firefox);
+            expect(browserPool.browserPlugins[0].launchOptions).toMatchObject({ headless: false });
+        });
+
+        test('turns off fingerprint injection when a custom userAgent is given', () => {
+            expect(
+                playwrightBrowserPool({ launchContext: { userAgent: 'Definitely Not A Crawler' } }).useFingerprints,
+            ).toBe(false);
+        });
+
+        test('is rejected by the crawler alongside the options that would configure its own pool', () => {
+            const browserPool = playwrightBrowserPool();
+
+            expect(() => new PlaywrightCrawler({ browserPool, headless: false })).toThrow(
+                'PlaywrightCrawler: `headless` cannot be combined with `browserPool`',
+            );
+            expect(
+                () => new PlaywrightCrawler({ browserPool, launchContext: { launcher: playwright.firefox } }),
+            ).toThrow('PlaywrightCrawler: `launchContext` cannot be combined with `browserPool`');
+            expect(() => new PlaywrightCrawler({ browserPool })).not.toThrow();
+        });
     });
 
     test.each([{ useIncognitoPages: true }, { useIncognitoPages: false }])(
@@ -209,14 +246,11 @@ describe('PlaywrightCrawler', () => {
 
             const playwrightCrawler = new PlaywrightCrawler({
                 maxConcurrency: 1,
-                launchContext: {
-                    useIncognitoPages,
-                    launchOptions,
-                },
-                browserPoolOptions: {
+                browserPool: playwrightBrowserPool({
+                    launchContext: { useIncognitoPages, launchOptions },
                     // don't overwrite locale with fingerprint's locale
                     useFingerprints: false,
-                },
+                }),
                 requestHandler: async ({ page }) => {
                     [timezone, locale, reducedMotion] = await Promise.all([
                         page.evaluate(() => Intl.DateTimeFormat().resolvedOptions().timeZone),
