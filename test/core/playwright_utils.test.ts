@@ -433,4 +433,73 @@ describe('playwrightUtils', () => {
             await browser.close();
         }
     });
+
+    describe('handleCloudflareChallenge() challenge detection', () => {
+        // the function itself is not a named export, it is only reachable via the internal `playwrightUtils` object
+        const { handleCloudflareChallenge } = playwrightUtils.playwrightUtils;
+        let browser: Browser;
+        let page: Page;
+
+        // Detection-only options: no real clicking, no waiting, so an unsolved challenge
+        // fails fast with a SessionError instead of spending ~20 seconds in the click loop.
+        // A fresh object per call, since `handleCloudflareChallenge` assigns default callbacks into it.
+        const fastOptions = () => ({
+            sleepSecs: 0,
+            preChallengeSleepSecs: 0,
+            clickCallback: async () => {},
+        });
+
+        // Challenge page markup as rendered by the current (2026) Cloudflare template:
+        // the ray ID sits under `.footer-wrapper > div`, with no `.diagnostic-wrapper`.
+        const currentChallengeBody = `
+            <div class="main-wrapper" role="main"><div class="main-content">
+                <h1>example.com</h1>
+                <h2>Performing security verification</h2>
+                <div style="display: grid;"><div><div><input type="hidden" name="cf-turnstile-response" id="cf-chl-widget-2swmi_response"></div></div></div>
+            </div></div>
+            <div class="footer" role="contentinfo"><div class="footer-inner"><div class="footer-wrapper">
+                <div><div class="ray-id">Ray ID: <code>a29d9a9cff4fb9e4</code></div></div>
+                <div class="footer-link-wrapper"><span class="footer-text">Performance and Security by Cloudflare</span></div>
+            </div></div></div>`;
+
+        // Older template, where the ray ID was nested under `.diagnostic-wrapper`.
+        const oldChallengeBody = `
+            <div class="main-wrapper" role="main"><div class="main-content">
+                <h1>example.com</h1>
+                <div><input type="hidden" name="cf-turnstile-response" id="cf-chl-widget-2swmi_response"></div>
+            </div></div>
+            <div class="footer" role="contentinfo"><div class="footer-inner"><div class="footer-wrapper"><div class="diagnostic-wrapper">
+                <div class="ray-id">Ray ID: <code>a29d9a9cff4fb9e4</code></div>
+            </div></div></div></div>`;
+
+        beforeAll(async () => {
+            browser = await chromium.launch({ headless: true });
+            page = await browser.newPage();
+        });
+
+        afterAll(async () => {
+            await browser.close();
+        });
+
+        test('detects the current challenge markup', async () => {
+            await page.setContent(`<html><body>${currentChallengeBody}</body></html>`);
+            await expect(
+                handleCloudflareChallenge(page, 'https://example.com', undefined, fastOptions()),
+            ).rejects.toThrow(/Blocked by Cloudflare/);
+        });
+
+        test('detects the old challenge markup', async () => {
+            await page.setContent(`<html><body>${oldChallengeBody}</body></html>`);
+            await expect(
+                handleCloudflareChallenge(page, 'https://example.com', undefined, fastOptions()),
+            ).rejects.toThrow(/Blocked by Cloudflare/);
+        });
+
+        test('resolves without detection on a regular page', async () => {
+            await page.setContent('<html><body><h1>Welcome</h1></body></html>');
+            await expect(
+                handleCloudflareChallenge(page, 'https://example.com', undefined, fastOptions()),
+            ).resolves.toBeUndefined();
+        });
+    });
 });
