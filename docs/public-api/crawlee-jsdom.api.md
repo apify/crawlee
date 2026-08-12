@@ -4,10 +4,10 @@
 
 ```ts
 
+import { AddRequestsBatchedResult } from '@crawlee/http';
 import { AnyPredicate } from 'ow';
 import { ArrayPredicate } from 'ow';
 import { BasePredicate } from 'ow';
-import { BatchAddRequestsResult } from '@crawlee/types';
 import { BooleanPredicate } from 'ow';
 import { CheerioAPI } from 'cheerio';
 import { CheerioRoot } from '@crawlee/utils/internal';
@@ -54,7 +54,7 @@ export class JSDOMCrawler<ContextExtension = Dictionary<never>, ExtendedContext 
     readonly document: Document;
     } & {
     extractLinks: (options?: ExtractLinksOptions) => Promise<string[]>;
-    enqueueLinks: (options?: EnqueueLinksOptions) => Promise<BatchAddRequestsResult>;
+    enqueueLinks: (options?: EnqueueLinksOptions) => Promise<AddRequestsBatchedResult>;
     waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
     parseWithCheerio(selector?: string, _timeoutMs?: number): Promise<CheerioAPI>;
     }>;

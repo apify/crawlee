@@ -574,19 +574,15 @@ describe('enqueueLinks()', () => {
                 // Custom mock that checks for Request instances - we wrap addRequestsBatched to verify that
                 // request options returned by transformRequestFunction are converted to Request instances
                 requestQueue.addRequestsBatched = async (requests, options) => {
-                    const items: (Request | string)[] = [];
+                    const items: Request[] = [];
                     for await (const request of requests) {
-                        if (request === 'https://example.com') {
-                            items.push(request); // the seed request, not yet converted to a `Request`
-                            continue;
-                        }
                         if (!(request instanceof Request)) {
                             throw new Error(
                                 `Expected Request instance but got plain object: ${JSON.stringify(request)}`,
                             );
                         }
                         items.push(request);
-                        enqueued.push(request);
+                        if (request.url !== 'https://example.com') enqueued.push(request);
                     }
                     return originalAddRequestsBatched(items, options);
                 };

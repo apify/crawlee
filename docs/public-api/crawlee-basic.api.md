@@ -25,6 +25,7 @@ import { Dataset } from '@crawlee/core';
 import type { DatasetExportOptions } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/types';
 import { Element as Element_2 } from '@crawlee/utils/internal';
+import type { EnqueueUrlsOptions } from '@crawlee/core';
 import type { EventManager } from '@crawlee/core';
 import type { FinalStatistics } from '@crawlee/core';
 import type { GetUserDataFromRequest } from '@crawlee/core';
@@ -239,7 +240,7 @@ export { CheerioAPI }
 export { CheerioRoot }
 
 // @public (undocumented)
-export interface CrawlerAddRequestsOptions extends AddRequestsBatchedOptions {
+export interface CrawlerAddRequestsOptions extends AddRequestsBatchedOptions, EnqueueUrlsOptions {
 }
 
 // @public (undocumented)

@@ -4,7 +4,7 @@
 
 ```ts
 
-import { BatchAddRequestsResult } from '@crawlee/types';
+import { AddRequestsBatchedResult } from '@crawlee/http';
 import * as cheerio from 'cheerio';
 import { CheerioRoot } from '@crawlee/utils/internal';
 import { ContextPipeline } from '@crawlee/http';
@@ -43,7 +43,7 @@ export class LinkeDOMCrawler<ContextExtension = Dictionary<never>, ExtendedConte
     readonly document: Document;
     } & {
     extractLinks: (options?: ExtractLinksOptions) => Promise<string[]>;
-    enqueueLinks: (options?: EnqueueLinksOptions) => Promise<BatchAddRequestsResult>;
+    enqueueLinks: (options?: EnqueueLinksOptions) => Promise<AddRequestsBatchedResult>;
     waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
     parseWithCheerio(selector?: string, _timeoutMs?: number): Promise<cheerio.CheerioAPI>;
     }>;

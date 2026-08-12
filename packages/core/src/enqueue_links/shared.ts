@@ -196,6 +196,16 @@ export function filterRequestOptionsByPatterns(
         .filter((opts) => opts !== null);
 }
 
+function isAbsoluteUrl(url: string): boolean {
+    try {
+        // eslint-disable-next-line no-new
+        new URL(url);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
 /**
  * @ignore
  */
@@ -224,7 +234,12 @@ export function createRequestOptions(
             }
         })
         .map((requestOptions) => {
-            requestOptions.url = new URL(requestOptions.url, options.baseUrl).href;
+            // Leave already-absolute URLs untouched - re-deriving them via `new URL()` would normalize them
+            // (e.g. adding a trailing slash to a bare domain), which is surprising for URLs that didn't need
+            // resolving against `baseUrl` in the first place.
+            if (!isAbsoluteUrl(requestOptions.url)) {
+                requestOptions.url = new URL(requestOptions.url, options.baseUrl).href;
+            }
             requestOptions.userData ??= options.userData ?? {};
 
             if (typeof options.label === 'string') {

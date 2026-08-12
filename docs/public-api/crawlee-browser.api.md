@@ -4,13 +4,13 @@
 
 ```ts
 
+import type { AddRequestsBatchedResult } from '@crawlee/basic';
 import { AnyPredicate } from 'ow';
 import { ArrayPredicate } from 'ow';
 import type { Awaitable } from '@crawlee/types';
 import { BasePredicate } from 'ow';
 import { BasicCrawler } from '@crawlee/basic';
 import { BasicCrawlerOptions } from '@crawlee/basic';
-import type { BatchAddRequestsResult } from '@crawlee/types';
 import { BooleanPredicate } from 'ow';
 import type { BrowserController } from '@crawlee/browser-pool';
 import type { BrowserPlugin } from '@crawlee/browser-pool';
@@ -139,7 +139,7 @@ export interface BrowserCrawlerOptions<Page extends CommonPage = CommonPage, Res
 // @public (undocumented)
 export interface BrowserCrawlingContext<Page extends CommonPage = CommonPage, Response extends BaseResponse = BaseResponse, UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 GoToOptions extends Dictionary = Dictionary> extends CrawlingContext<UserData> {
-    enqueueLinks: (options?: EnqueueLinksOptions) => Promise<BatchAddRequestsResult>;
+    enqueueLinks: (options?: EnqueueLinksOptions) => Promise<AddRequestsBatchedResult>;
     extractLinks: (options?: ExtractLinksOptions) => Promise<string[]>;
     gotoOptions: GoToOptions;
     page: Page;

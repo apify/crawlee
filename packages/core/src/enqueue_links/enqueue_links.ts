@@ -1,5 +1,4 @@
 import type { Dictionary } from '@crawlee/types';
-import { type RobotsTxtFile } from '@crawlee/utils';
 import { getDomain } from 'tldts';
 
 import type { RequestQueueOperationOptions } from '../storages/request_queue.js';
@@ -132,19 +131,6 @@ export interface EnqueueUrlsOptions extends RequestQueueOperationOptions {
      * You can use this option to wait for adding all of them.
      */
     waitForAllRequestsToBeAdded?: boolean;
-
-    /**
-     * RobotsTxtFile instance for the current request that triggered the `enqueueLinks`.
-     * If provided, disallowed URLs will be ignored.
-     */
-    robotsTxtFile?: Pick<RobotsTxtFile, 'isAllowed'>;
-
-    /**
-     * Mirrors {@apilink BasicCrawlerOptions.respectRobotsTxtFile}: pass `false` to disable filtering or
-     * `{ userAgent }` to evaluate rules for a specific user-agent. Defaults to `*` when
-     * {@apilink EnqueueUrlsOptions.robotsTxtFile|`robotsTxtFile`} is provided.
-     */
-    respectRobotsTxtFile?: boolean | { userAgent?: string };
 
     /**
      * When a request is skipped for some reason, you can use this callback to act on it.

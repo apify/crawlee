@@ -1,4 +1,5 @@
 import type {
+    AddRequestsBatchedResult,
     CrawlingContext,
     EnqueueLinksOptions,
     ErrorHandler,
@@ -13,8 +14,14 @@ import type {
     RouteSchemas,
     RoutesFromSchemas,
 } from '@crawlee/http';
-import { HttpCrawler, NavigationSkippedError, resolveBaseUrlForEnqueueLinksFiltering, Router } from '@crawlee/http';
-import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
+import {
+    EnqueueStrategy,
+    HttpCrawler,
+    NavigationSkippedError,
+    resolveBaseUrlForEnqueueLinksFiltering,
+    Router,
+} from '@crawlee/http';
+import type { Dictionary } from '@crawlee/types';
 import { type CheerioRoot, extractUrlsFromCheerio } from '@crawlee/utils/internal';
 import type { CheerioAPI, CheerioOptions } from 'cheerio';
 import * as cheerio from 'cheerio';
@@ -92,7 +99,7 @@ export interface CheerioCrawlingContext<
     /**
      * Helper function for extracting URLs from the parsed HTML and adding them to the request queue.
      */
-    enqueueLinks(options?: EnqueueLinksOptions): Promise<BatchAddRequestsResult>;
+    enqueueLinks(options?: EnqueueLinksOptions): Promise<AddRequestsBatchedResult>;
 }
 
 export type CheerioRequestHandler<
@@ -246,7 +253,7 @@ export class CheerioCrawler<
     }
 
     private async addHelpers(crawlingContext: InternalHttpCrawlingContext & { $: CheerioAPI }) {
-        const enqueueUrls = crawlingContext.enqueueUrls;
+        const addRequests = crawlingContext.addRequests;
 
         const extractLinks = async (options?: ExtractLinksOptions): Promise<string[]> => {
             if (!crawlingContext.$) {
@@ -271,9 +278,12 @@ export class CheerioCrawler<
                 });
 
                 const urls = await extractLinks(options);
-                const { selector: _selector, ...enqueueUrlsOptions } = options;
 
-                return enqueueUrls(urls, { ...enqueueUrlsOptions, baseUrl });
+                return addRequests(urls, {
+                    ...options,
+                    baseUrl,
+                    strategy: options.strategy ?? EnqueueStrategy.SameHostname,
+                });
             },
             waitForSelector: async (selector: string, _timeoutMs?: number) => {
                 if (crawlingContext.$(selector).get().length === 0) {

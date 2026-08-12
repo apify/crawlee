@@ -1,4 +1,5 @@
 import type {
+    AddRequestsBatchedResult,
     BasicCrawlerOptions,
     BasicCrawlingContext,
     ContextMiddleware,
@@ -17,6 +18,7 @@ import {
     browserPoolCookieToToughCookie,
     ContextPipeline,
     cookieStringToToughCookie,
+    EnqueueStrategy,
     NavigationSkippedError,
     OwnedOrInjected,
     remainingNavigationWindowMillis,
@@ -39,14 +41,7 @@ import type {
     LaunchContext,
 } from '@crawlee/browser-pool';
 import { BrowserPool, RemoteBrowserPool } from '@crawlee/browser-pool';
-import type {
-    Awaitable,
-    BatchAddRequestsResult,
-    Cookie as CookieObject,
-    Dictionary,
-    IBrowserPool,
-    ISession,
-} from '@crawlee/types';
+import type { Awaitable, Cookie as CookieObject, Dictionary, IBrowserPool, ISession } from '@crawlee/types';
 import { CLOUDFLARE_RETRY_CSS_SELECTORS, RETRY_CSS_SELECTORS } from '@crawlee/utils/internal';
 import { sleep } from '@crawlee/utils';
 import ow from 'ow';
@@ -105,7 +100,7 @@ export interface BrowserCrawlingContext<
     /**
      * Helper function for extracting URLs from the current page and adding them to the request queue.
      */
-    enqueueLinks: (options?: EnqueueLinksOptions) => Promise<BatchAddRequestsResult>;
+    enqueueLinks: (options?: EnqueueLinksOptions) => Promise<AddRequestsBatchedResult>;
 }
 
 export type BrowserHook<Context = BrowserCrawlingContext, ContextExtension = {}> = (
@@ -598,7 +593,7 @@ export abstract class BrowserCrawler<
         });
         tryCancel();
 
-        const enqueueUrls = crawlingContext.enqueueUrls;
+        const addRequests = crawlingContext.addRequests;
 
         const extractLinks = async (options?: ExtractLinksOptions): Promise<string[]> => {
             return extractUrlsFromPage(
@@ -628,9 +623,12 @@ export abstract class BrowserCrawler<
                 });
 
                 const urls = await extractLinks(options);
-                const { selector: _selector, ...enqueueUrlsOptions } = options;
 
-                return (await enqueueUrls(urls, { ...enqueueUrlsOptions, baseUrl })) as BatchAddRequestsResult; // TODO make this type safe
+                return addRequests(urls, {
+                    ...options,
+                    baseUrl,
+                    strategy: options.strategy ?? EnqueueStrategy.SameHostname,
+                });
             },
         };
     }

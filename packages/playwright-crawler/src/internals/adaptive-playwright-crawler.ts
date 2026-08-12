@@ -14,6 +14,7 @@ import { extractUrlsFromPage } from '@crawlee/browser';
 import type { CheerioCrawlingContext } from '@crawlee/cheerio';
 import { CheerioCrawler } from '@crawlee/cheerio';
 import type {
+    AddRequestsBatchedResult,
     ContextPipeline,
     CrawleeLogger,
     CrawlingContext,
@@ -30,13 +31,14 @@ import type {
 } from '@crawlee/core';
 import {
     createStorageTransaction,
+    EnqueueStrategy,
     OwnedOrInjected,
     RequestHandlerError,
     resolveBaseUrlForEnqueueLinksFiltering,
     Router,
     Statistics,
 } from '@crawlee/core';
-import type { BatchAddRequestsResult, Dictionary, Awaitable } from '@crawlee/types';
+import type { Dictionary, Awaitable } from '@crawlee/types';
 import { type CheerioRoot, extractUrlsFromCheerio } from '@crawlee/utils/internal';
 import { type Cheerio } from 'cheerio';
 import type { AnyNode } from 'domhandler';
@@ -783,7 +785,7 @@ export class AdaptivePlaywrightCrawler<
         urls: readonly string[],
         options: EnqueueLinksOptions,
         request: RestrictedCrawlingContext['request'],
-    ): Promise<BatchAddRequestsResult> {
+    ): Promise<AddRequestsBatchedResult> {
         const baseUrl = resolveBaseUrlForEnqueueLinksFiltering({
             enqueueStrategy: options?.strategy,
             finalRequestUrl: request.loadedUrl,
@@ -791,9 +793,15 @@ export class AdaptivePlaywrightCrawler<
             userProvidedBaseUrl: options?.baseUrl,
         });
 
+        const requestsWithDepth = this.addCrawlDepthRequestGenerator(urls, request.crawlDepth + 1);
+
         // The per-attempt transaction buffers these (the queue policy defaults to `deferred` here),
         // so a discarded attempt's enqueues never reach the queue.
-        return await this.enqueueUrls(urls, { ...options, baseUrl }, request);
+        return await this.addRequests(requestsWithDepth, {
+            ...options,
+            baseUrl,
+            strategy: options.strategy ?? EnqueueStrategy.SameHostname,
+        });
     }
 
     private createLogProxy(log: CrawleeLogger, logs: LogProxyCall[]) {

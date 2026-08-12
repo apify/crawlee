@@ -14,6 +14,7 @@ import type {
     RoutesFromSchemas,
 } from '@crawlee/http';
 import {
+    EnqueueStrategy,
     HttpCrawler,
     NavigationSkippedError,
     resolveBaseUrlForEnqueueLinksFiltering,
@@ -358,7 +359,7 @@ export class JSDOMCrawler<
     }
 
     private async addHelpers(crawlingContext: InternalHttpCrawlingContext & { body: string; window: DOMWindow }) {
-        const enqueueUrls = crawlingContext.enqueueUrls;
+        const addRequests = crawlingContext.addRequests;
 
         const extractLinks = async (options?: ExtractLinksOptions): Promise<string[]> => {
             if (!crawlingContext.window) {
@@ -383,9 +384,12 @@ export class JSDOMCrawler<
                 });
 
                 const urls = await extractLinks(options);
-                const { selector: _selector, ...enqueueUrlsOptions } = options;
 
-                return enqueueUrls(urls, { ...enqueueUrlsOptions, baseUrl });
+                return addRequests(urls, {
+                    ...options,
+                    baseUrl,
+                    strategy: options.strategy ?? EnqueueStrategy.SameHostname,
+                });
             },
             async waitForSelector(selector: string, timeoutMs = 5_000) {
                 const cheerio = await import('cheerio');

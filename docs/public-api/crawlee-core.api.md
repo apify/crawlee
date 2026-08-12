@@ -36,7 +36,6 @@ import type { QueueOperationInfo } from '@crawlee/types';
 import type { ReadonlyDeep } from 'type-fest';
 import type { RequestQueueBackend } from '@crawlee/types';
 import type { RequestQueueInfo } from '@crawlee/types';
-import { RobotsTxtFile } from '@crawlee/utils';
 import type { SendRequestOptions } from '@crawlee/types';
 import type { SessionFingerprint } from '@crawlee/types';
 import { SessionState } from '@crawlee/types';
@@ -542,10 +541,6 @@ export interface EnqueueUrlsOptions extends RequestQueueOperationOptions {
     label?: string;
     limit?: number;
     onSkippedRequest?: SkippedRequestCallback;
-    respectRobotsTxtFile?: boolean | {
-        userAgent?: string;
-    };
-    robotsTxtFile?: Pick<RobotsTxtFile, 'isAllowed'>;
     sessionId?: string;
     skipNavigation?: boolean;
     strategy?: EnqueueStrategyOption;
@@ -1587,8 +1582,7 @@ export interface ResponseLike {
 
 // @public (undocumented)
 export interface RestrictedCrawlingContext<UserData extends Dictionary = Dictionary> {
-    addRequests: (requestsLike: ReadonlyDeep<(string | Source)[]>, options?: ReadonlyDeep<RequestQueueOperationOptions>) => Promise<void>;
-    enqueueUrls: (urls: ReadonlyDeep<readonly string[]>, options?: ReadonlyDeep<Omit<EnqueueUrlsOptions, 'robotsTxtFile'>>) => Promise<BatchAddRequestsResult>;
+    addRequests: (requestsLike: ReadonlyDeep<(string | Source)[]>, options?: ReadonlyDeep<EnqueueUrlsOptions>) => Promise<AddRequestsBatchedResult>;
     getKeyValueStore: (identifier?: string | StorageIdentifier) => Promise<Pick<KeyValueStore, 'id' | 'name' | 'getValue' | 'getAutoSavedValue' | 'setValue' | 'getPublicUrl'>>;
     // (undocumented)
     id: string;
@@ -1612,15 +1606,15 @@ export interface RouteOptions {
 }
 
 // @public
-export class Router<Context extends Omit<RestrictedCrawlingContext, 'enqueueUrls'>, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>> {
+export class Router<Context extends RestrictedCrawlingContext, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>> {
     addDefaultHandler<UserData extends Dictionary = DefaultRouteUserData<Routes, GetUserDataFromRequest<Context['request']>>>(handler: (ctx: RouterHandlerContext<Context, UserData, Routes>) => Awaitable<void>, options?: RouteOptions): void;
     addHandler<Label extends keyof Routes & string>(label: Label, handler: (ctx: RouterHandlerContext<Context, Routes[Label], Routes>) => Awaitable<void>, options?: RouteOptions): void;
     addHandler<UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(label: RouterLabel<Routes>, handler: (ctx: RouterHandlerContext<Context, UserData, Routes>) => Awaitable<void>, options?: RouteOptions): void;
-    static create<Context extends Omit<RestrictedCrawlingContext, 'enqueueUrls'> = CrawlingContext, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
+    static create<Context extends RestrictedCrawlingContext = CrawlingContext, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
     // (undocumented)
-    static create<Context extends Omit<RestrictedCrawlingContext, 'enqueueUrls'> = CrawlingContext, UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
+    static create<Context extends RestrictedCrawlingContext = CrawlingContext, UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
     // (undocumented)
-    static create<Context extends Omit<RestrictedCrawlingContext, 'enqueueUrls'> = CrawlingContext, const Schemas extends RouteSchemas = RouteSchemas>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
+    static create<Context extends RestrictedCrawlingContext = CrawlingContext, const Schemas extends RouteSchemas = RouteSchemas>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
     getHandler(label?: string | symbol): (ctx: Context) => Awaitable<void>;
     getMaxTimeoutSecs(): number | undefined;
     getTimeoutSecs(label?: string | symbol): number | undefined;
@@ -1628,7 +1622,7 @@ export class Router<Context extends Omit<RestrictedCrawlingContext, 'enqueueUrls
 }
 
 // @public (undocumented)
-export interface RouterHandler<Context extends Omit<RestrictedCrawlingContext, 'enqueueUrls'> = CrawlingContext, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>> extends Router<Context, Routes> {
+export interface RouterHandler<Context extends RestrictedCrawlingContext = CrawlingContext, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>> extends Router<Context, Routes> {
     // (undocumented)
     (ctx: Context): Awaitable<void>;
 }
@@ -2185,7 +2179,7 @@ export interface ThrottlingRequestManagerOptions<T extends IRequestManager = IRe
 export { tryAbsoluteURL }
 
 // @public
-export type TypedContextAddRequests<Routes extends Record<keyof Routes, Dictionary>> = (requestsLike: ReadonlyDeep<LabeledSource<Routes>[]>, options?: ReadonlyDeep<RequestQueueOperationOptions>) => Promise<void>;
+export type TypedContextAddRequests<Routes extends Record<keyof Routes, Dictionary>> = (requestsLike: ReadonlyDeep<LabeledSource<Routes>[]>, options?: ReadonlyDeep<EnqueueUrlsOptions>) => Promise<AddRequestsBatchedResult>;
 
 // @public
 export type TypedContextEnqueueLinks<EnqueueLinks, Routes extends Record<keyof Routes, Dictionary>> = EnqueueLinks extends (options?: infer Options) => infer Result ? (options?: TypedEnqueueLinksOptions<Options, Routes>) => Result : EnqueueLinks extends (options: infer Options) => infer Result ? (options: TypedEnqueueLinksOptions<Options, Routes>) => Result : EnqueueLinks;
