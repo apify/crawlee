@@ -43,8 +43,8 @@ interface BaseResponse {
 }
 
 // @public
-export abstract class BrowserCrawler<Page extends CommonPage = CommonPage, Response extends BaseResponse = BaseResponse, LaunchOptions extends Dictionary | undefined = Dictionary, Context extends BrowserCrawlingContext<Page, Response> = BrowserCrawlingContext<Page, Response>, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>, GoToOptions extends Dictionary = Dictionary> extends BasicCrawler<Context, ContextExtension, ExtendedContext, Routes> {
-    protected constructor(options: BrowserCrawlerOptions<Page, Response, Context, ContextExtension, ExtendedContext> & {
+export abstract class BrowserCrawler<Page extends CommonPage = CommonPage, Response extends BaseResponse = BaseResponse, LaunchOptions extends Dictionary | undefined = Dictionary, Context extends BrowserCrawlingContext<Page, Response> = BrowserCrawlingContext<Page, Response>, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>, StatisticStateExtension extends object = {}, GoToOptions extends Dictionary = Dictionary> extends BasicCrawler<Context, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
+    protected constructor(options: BrowserCrawlerOptions<Page, Response, Context, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> & {
         contextPipelineBuilder: () => ContextPipeline<CrawlingContext, Context>;
         browserPoolBuilder: (remoteBrowser?: CrawlerRemoteBrowserOptions) => OwnedBrowserPool<Page>;
     });
@@ -175,7 +175,7 @@ export abstract class BrowserCrawler<Page extends CommonPage = CommonPage, Respo
 }
 
 // @public (undocumented)
-export interface BrowserCrawlerOptions<Page extends CommonPage = CommonPage, Response extends BaseResponse = BaseResponse, Context extends BrowserCrawlingContext<Page, Response> = BrowserCrawlingContext<Page, Response>, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>> extends Omit<BasicCrawlerOptions<Context, ContextExtension, ExtendedContext>, 'requestHandler' | 'failedRequestHandler' | 'errorHandler'> {
+export interface BrowserCrawlerOptions<Page extends CommonPage = CommonPage, Response extends BaseResponse = BaseResponse, Context extends BrowserCrawlingContext<Page, Response> = BrowserCrawlingContext<Page, Response>, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>, StatisticStateExtension extends object = {}> extends Omit<BasicCrawlerOptions<Context, ContextExtension, ExtendedContext, Routes, StatisticStateExtension>, 'requestHandler' | 'failedRequestHandler' | 'errorHandler'> {
     browserPool?: IBrowserPool<Page>;
     errorHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
     failedRequestHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;

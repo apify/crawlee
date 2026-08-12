@@ -16,6 +16,45 @@ const DEFAULT_PERSISTENCE_TIMEOUT_MILLIS = 60_000;
  */
 export type StateConversion<TFrom, TTo> = ((value: TFrom) => Awaitable<TTo>) | StandardSchemaV1<TFrom, TTo>;
 
+/**
+ * A {@apilink StateConversion} for a caller that cannot await one - {@apilink Statistics}, whose `toJSON()` is
+ * synchronous, being the reason this exists.
+ *
+ * Only the function arm can be narrowed here: a Standard Schema is free to validate asynchronously, so a schema
+ * that does is rejected when it runs rather than when it is passed.
+ */
+export type SyncStateConversion<TFrom, TTo> = ((value: TFrom) => TTo) | StandardSchemaV1<TFrom, TTo>;
+
+/**
+ * Applies a {@apilink SyncStateConversion}, throwing a {@apilink StateValidationError} for a schema that rejects
+ * the value.
+ *
+ * @internal
+ */
+export function convertStateSync<TFrom, TTo>(
+    conversion: SyncStateConversion<TFrom, TTo>,
+    value: TFrom,
+    persistStateKey: string,
+): TTo {
+    if (typeof conversion === 'function') {
+        return conversion(value);
+    }
+
+    const result = conversion['~standard'].validate(value);
+
+    if ('then' in result) {
+        throw new Error(
+            `The state conversion for '${persistStateKey}' validated asynchronously, which this caller cannot await.`,
+        );
+    }
+
+    if (result.issues) {
+        throw new StateValidationError(persistStateKey, result.issues);
+    }
+
+    return result.value;
+}
+
 export interface RecoverableStatePersistenceOptions {
     /**
      * The key under which the state is stored in the KeyValueStore

@@ -53,7 +53,16 @@ export interface PlaywrightCrawlerOptions<
         string,
         GetUserDataFromRequest<PlaywrightCrawlingContext['request']>
     >,
-> extends BrowserCrawlerOptions<Page, Response, PlaywrightCrawlingContext, ContextExtension, ExtendedContext, Routes> {
+    StatisticStateExtension extends object = {},
+> extends BrowserCrawlerOptions<
+    Page,
+    Response,
+    PlaywrightCrawlingContext,
+    ContextExtension,
+    ExtendedContext,
+    Routes,
+    StatisticStateExtension
+> {
     /**
      * The same options as used by {@apilink launchPlaywright}.
      */
@@ -204,6 +213,7 @@ export class PlaywrightCrawler<
         string,
         GetUserDataFromRequest<PlaywrightCrawlingContext['request']>
     >,
+    StatisticStateExtension extends object = {},
 > extends BrowserCrawler<
     Page,
     Response,
@@ -211,7 +221,8 @@ export class PlaywrightCrawler<
     PlaywrightCrawlingContext,
     ContextExtension,
     ExtendedContext,
-    Routes
+    Routes,
+    StatisticStateExtension
 > {
     protected static override optionsShape = {
         ...BrowserCrawler.optionsShape,
@@ -224,7 +235,9 @@ export class PlaywrightCrawler<
     /**
      * All `PlaywrightCrawler` parameters are passed via an options object.
      */
-    constructor(options: PlaywrightCrawlerOptions<ContextExtension, ExtendedContext, Routes> = {}) {
+    constructor(
+        options: PlaywrightCrawlerOptions<ContextExtension, ExtendedContext, Routes, StatisticStateExtension> = {},
+    ) {
         const parsedOptions = parseArgument(options, PlaywrightCrawler.optionsSchema, 'PlaywrightCrawlerOptions');
 
         const { launchContext, headless, configuration, contextPipelineBuilder, ...browserCrawlerOptions } =
@@ -246,7 +259,12 @@ export class PlaywrightCrawler<
         }
 
         super({
-            ...(browserCrawlerOptions as unknown as PlaywrightCrawlerOptions<ContextExtension, ExtendedContext>),
+            ...(browserCrawlerOptions as unknown as PlaywrightCrawlerOptions<
+                ContextExtension,
+                ExtendedContext,
+                Routes,
+                StatisticStateExtension
+            >),
             launchContext,
             configuration,
             browserPoolBuilder: (remoteBrowser) =>

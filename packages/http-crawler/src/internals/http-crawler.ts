@@ -84,7 +84,8 @@ export interface HttpCrawlerOptions<
     ContextExtension = Dictionary<never>,
     ExtendedContext extends Context = Context & ContextExtension,
     Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
-> extends BasicCrawlerOptions<Context, ContextExtension, ExtendedContext, Routes> {
+    StatisticStateExtension extends object = {},
+> extends BasicCrawlerOptions<Context, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
     /**
      * Timeout for the whole navigation phase, given in seconds. A single window shared by the
      * `preNavigationHooks`, the navigation (the HTTP request to the resource), and the `postNavigationHooks` -
@@ -350,7 +351,8 @@ export class HttpCrawler<
     ContextExtension = Dictionary<never>,
     ExtendedContext extends Context = Context & ContextExtension,
     Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
-> extends BasicCrawler<Context, ContextExtension, ExtendedContext, Routes> {
+    StatisticStateExtension extends object = {},
+> extends BasicCrawler<Context, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
     // Internal storage uses the base (non-extended) context types. The public option types are
     // extension-aware for consumer DX, but internally the pipeline composes hooks against the
     // concrete crawling context, which does not statically carry `ContextExtension`. The members
@@ -384,7 +386,7 @@ export class HttpCrawler<
      * All `HttpCrawlerOptions` parameters are passed via an options object.
      */
     constructor(
-        options: HttpCrawlerOptions<Context, ContextExtension, ExtendedContext> &
+        options: HttpCrawlerOptions<Context, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> &
             RequireContextPipeline<InternalHttpCrawlingContext, Context> = {} as any,
     ) {
         const {

@@ -129,8 +129,9 @@ export interface BrowserCrawlerOptions<
     ContextExtension = Dictionary<never>,
     ExtendedContext extends Context = Context & ContextExtension,
     Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
+    StatisticStateExtension extends object = {},
 > extends Omit<
-    BasicCrawlerOptions<Context, ContextExtension, ExtendedContext>,
+    BasicCrawlerOptions<Context, ContextExtension, ExtendedContext, Routes, StatisticStateExtension>,
     // Overridden with browser context
     'requestHandler' | 'failedRequestHandler' | 'errorHandler'
 > {
@@ -359,8 +360,9 @@ export abstract class BrowserCrawler<
     ContextExtension = Dictionary<never>,
     ExtendedContext extends Context = Context & ContextExtension,
     Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
+    StatisticStateExtension extends object = {},
     GoToOptions extends Dictionary = Dictionary,
-> extends BasicCrawler<Context, ContextExtension, ExtendedContext, Routes> {
+> extends BasicCrawler<Context, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
     /** Backs the {@apilink BrowserCrawler.browserPool|`browserPool`} getter. */
     #browserPoolDep: OwnedOrInjected<IBrowserPool<Page>, OwnedBrowserPool<Page>>;
 
@@ -407,7 +409,15 @@ export abstract class BrowserCrawler<
      * All `BrowserCrawler` parameters are passed via an options object.
      */
     protected constructor(
-        options: BrowserCrawlerOptions<Page, Response, Context, ContextExtension, ExtendedContext> & {
+        options: BrowserCrawlerOptions<
+            Page,
+            Response,
+            Context,
+            ContextExtension,
+            ExtendedContext,
+            Routes,
+            StatisticStateExtension
+        > & {
             contextPipelineBuilder: () => ContextPipeline<CrawlingContext, Context>;
             /**
              * Builds the pool the crawler owns, used only when the user injected no `browserPool`. Supplied by the

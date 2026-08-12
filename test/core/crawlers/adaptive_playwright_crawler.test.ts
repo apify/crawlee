@@ -10,6 +10,7 @@ import {
     KeyValueStore,
     MemoryStorageBackend,
     serviceLocator,
+    Statistics,
 } from '@crawlee/core';
 import type {
     AdaptivePlaywrightCrawlerContext,
@@ -19,6 +20,7 @@ import type {
 } from '@crawlee/playwright';
 import {
     AdaptivePlaywrightCrawler,
+    adaptivePlaywrightCrawlerStatisticState,
     BasicCrawler,
     createAdaptivePlaywrightRouter,
     fullResultComparator,
@@ -442,6 +444,47 @@ describe('AdaptivePlaywrightCrawler', () => {
 
         expect(requestHandler).toHaveBeenCalledTimes(2);
         expect(resultChecker).toHaveBeenCalledTimes(1);
+
+        expect(crawler.stats.state).toMatchObject({
+            httpOnlyRequestHandlerRuns: 1,
+            renderingTypeMispredictions: 1,
+            browserRequestHandlerRuns: 1,
+        });
+    });
+
+    test('should track its own fields alongside those of an injected statistics instance', async () => {
+        const statistics = new Statistics({
+            stateExtension: {
+                deserialize: adaptivePlaywrightCrawlerStatisticState.deserialize.extend({
+                    productsFound: z.number().default(0),
+                }),
+            },
+        });
+
+        // Instantiated directly (rather than via `makeOneshotCrawler`) so that the `StatisticStateExtension`
+        // generic is inferred from the injected instance rather than defaulted by the helper's parameter type.
+        const crawler = new AdaptivePlaywrightCrawler({
+            statistics,
+            renderingTypeDetectionRatio: 0.1,
+            maxConcurrency: 1,
+            maxRequestRetries: 0,
+            maxRequestsPerCrawl: 1,
+            requestList: await RequestList.open({
+                sources: [new URL(`http://${HOSTNAME}:${port}/static`).toString()],
+            }),
+            renderingTypePredictor: makeRiggedRenderingTypePredictor({
+                detectionProbabilityRecommendation: 0,
+                renderingType: 'static',
+            }),
+            requestHandler: async ({ querySelectorAll }) => {
+                statistics.state.productsFound += (await querySelectorAll('h1')).length;
+            },
+        });
+
+        await crawler.run();
+
+        expect(crawler.stats.state.productsFound).toEqual(1);
+        expect(crawler.stats.state.httpOnlyRequestHandlerRuns).toEqual(1);
     });
 
     describe('shouldPropagateError', () => {

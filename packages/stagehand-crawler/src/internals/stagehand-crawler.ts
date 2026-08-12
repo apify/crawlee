@@ -251,13 +251,15 @@ export interface StagehandCrawlerOptions<
         string,
         GetUserDataFromRequest<StagehandCrawlingContext['request']>
     >,
+    StatisticStateExtension extends object = {},
 > extends BrowserCrawlerOptions<
     StagehandPage,
     Response,
     StagehandCrawlingContext,
     ContextExtension,
     ExtendedContext,
-    Routes
+    Routes,
+    StatisticStateExtension
 > {
     /**
      * Stagehand-specific configuration options.
@@ -399,6 +401,7 @@ export class StagehandCrawler<
         string,
         GetUserDataFromRequest<StagehandCrawlingContext['request']>
     >,
+    StatisticStateExtension extends object = {},
 > extends BrowserCrawler<
     StagehandPage,
     Response,
@@ -406,7 +409,8 @@ export class StagehandCrawler<
     StagehandCrawlingContext,
     ContextExtension,
     ExtendedContext,
-    Routes
+    Routes,
+    StatisticStateExtension
 > {
     protected static override optionsShape = {
         ...BrowserCrawler.optionsShape,
@@ -421,7 +425,9 @@ export class StagehandCrawler<
      *
      * @param options - Crawler configuration options
      */
-    constructor(options: StagehandCrawlerOptions<ContextExtension, ExtendedContext, Routes> = {}) {
+    constructor(
+        options: StagehandCrawlerOptions<ContextExtension, ExtendedContext, Routes, StatisticStateExtension> = {},
+    ) {
         const parsedOptions = parseArgument(options, StagehandCrawler.optionsSchema, 'StagehandCrawlerOptions');
 
         const {
@@ -443,7 +449,12 @@ export class StagehandCrawler<
         }
 
         super({
-            ...(browserCrawlerOptions as StagehandCrawlerOptions<ContextExtension, ExtendedContext>),
+            ...(browserCrawlerOptions as StagehandCrawlerOptions<
+                ContextExtension,
+                ExtendedContext,
+                Routes,
+                StatisticStateExtension
+            >),
             launchContext,
             configuration,
             // The pool serves plain Playwright pages - a page only becomes a `StagehandPage` further down the

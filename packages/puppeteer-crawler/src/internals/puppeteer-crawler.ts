@@ -46,13 +46,15 @@ export interface PuppeteerCrawlerOptions<
         string,
         GetUserDataFromRequest<PuppeteerCrawlingContext['request']>
     >,
+    StatisticStateExtension extends object = {},
 > extends BrowserCrawlerOptions<
     Page,
     HTTPResponse,
     PuppeteerCrawlingContext,
     ContextExtension,
     ExtendedContext,
-    Routes
+    Routes,
+    StatisticStateExtension
 > {
     /**
      * Options used by {@apilink launchPuppeteer} to start new Puppeteer instances.
@@ -180,6 +182,7 @@ export class PuppeteerCrawler<
         string,
         GetUserDataFromRequest<PuppeteerCrawlingContext['request']>
     >,
+    StatisticStateExtension extends object = {},
 > extends BrowserCrawler<
     Page,
     HTTPResponse,
@@ -187,7 +190,8 @@ export class PuppeteerCrawler<
     PuppeteerCrawlingContext,
     ContextExtension,
     ExtendedContext,
-    Routes
+    Routes,
+    StatisticStateExtension
 > {
     protected static override optionsShape = {
         ...BrowserCrawler.optionsShape,
@@ -201,7 +205,9 @@ export class PuppeteerCrawler<
     /**
      * All `PuppeteerCrawler` parameters are passed via an options object.
      */
-    constructor(options: PuppeteerCrawlerOptions<ContextExtension, ExtendedContext, Routes> = {}) {
+    constructor(
+        options: PuppeteerCrawlerOptions<ContextExtension, ExtendedContext, Routes, StatisticStateExtension> = {},
+    ) {
         const parsedOptions = parseArgument(options, PuppeteerCrawler.optionsSchema, 'PuppeteerCrawlerOptions');
 
         const {
@@ -234,7 +240,9 @@ export class PuppeteerCrawler<
                 HTTPResponse,
                 PuppeteerCrawlingContext,
                 ContextExtension,
-                ExtendedContext
+                ExtendedContext,
+                Routes,
+                StatisticStateExtension
             >),
             launchContext,
             configuration,
