@@ -1,4 +1,5 @@
 import {
+    ArgumentValidationError,
     Configuration,
     deserializeArray,
     EventType,
@@ -11,6 +12,7 @@ import {
     serviceLocator,
     STATE_PERSISTENCE_KEY,
 } from '@crawlee/core';
+import { BaseHttpClient } from '@crawlee/http-client';
 import { sleep } from '@crawlee/utils';
 import { beforeAll, type MockedFunction } from 'vitest';
 
@@ -28,24 +30,18 @@ function shuffle(array: unknown[]): unknown[] {
     return out;
 }
 
-let mockHttpClient = vitest.mockObject({
-    async sendRequest(_request: any, _options?: any) {
-        return new Response();
-    },
-    async stream() {
-        return new Response();
-    },
-});
+// `vitest.mockObject` clones the object and drops its prototype, so build the mock manually to
+// keep it an `instanceof BaseHttpClient`.
+const createMockHttpClient = () =>
+    Object.assign(Object.create(BaseHttpClient.prototype) as BaseHttpClient, {
+        sendRequest: vitest.fn(async (_request?: any, _options?: any) => new Response()),
+        stream: vitest.fn(async () => new Response()),
+    });
+
+let mockHttpClient = createMockHttpClient();
 
 beforeEach(async () => {
-    mockHttpClient = vitest.mockObject({
-        async sendRequest() {
-            return new Response();
-        },
-        async stream() {
-            return new Response();
-        },
-    });
+    mockHttpClient = createMockHttpClient();
 });
 
 describe('RequestList', () => {
@@ -670,29 +666,17 @@ describe('RequestList', () => {
             expect(setValueSpy).not.toBeCalled();
         });
 
-        test('should throw on invalid parameters', async () => {
-            const args = [[], ['x', {}], ['x', 6, {}], ['x', [], []]] as const;
-            for (const arg of args) {
-                try {
-                    // @ts-ignore
-                    await RequestList.open(...arg);
-                    throw new Error('wrong error');
-                } catch (err) {
-                    const e = err as Error;
-                    expect(e.message).not.toBe('wrong error');
-                    if (/argument to be of type `string`/.exec(e.message)) {
-                        expect(e.message).toMatch('received type `undefined`');
-                    } else if (/argument to be of type `array`/.exec(e.message)) {
-                        const isMatched =
-                            /received type `Object`/.exec(e.message) ||
-                            /received type `number`/.exec(e.message) ||
-                            /received type `undefined`/.exec(e.message);
-                        expect(isMatched).toBeTruthy();
-                    } else if (/argument to be of type `null`/.exec(e.message)) {
-                        expect(e.message).toMatch('received type `undefined`');
-                    }
-                }
-            }
+        test.each([
+            [[], 'Invalid input: expected array'],
+            [['x', {}], 'Invalid input: expected array'],
+            [['x', 6, {}], 'Invalid input: expected array'],
+            [['x', [], []], 'Invalid input: expected object'],
+            [[6, []], 'Invalid input: expected string, received the number `6`'],
+        ])('open(...%j) should throw on invalid argument (%s)', async (args, message) => {
+            // @ts-expect-error JS-side validation
+            await expect(RequestList.open(...args)).rejects.toThrow(ArgumentValidationError);
+            // @ts-expect-error JS-side validation
+            await expect(RequestList.open(...args)).rejects.toThrow(message);
         });
     });
 

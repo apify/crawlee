@@ -1,7 +1,16 @@
 import type { Dictionary, ProxyInfo } from '@crawlee/types';
-import ow from 'ow';
+import { z } from 'zod';
 
 import type { Request } from './request.js';
+import { parseArgument, schemas } from './validators.js';
+
+const proxyConfigurationOptionsSchema = z.strictObject({
+    proxyUrls: z
+        .array(z.union([z.url(), z.null()]))
+        .nonempty()
+        .optional(),
+    newUrlFunction: schemas.anyFunction.optional(),
+});
 
 export interface ProxyConfigurationFunction {
     (options?: { request?: Request }): string | null | Promise<string | null>;
@@ -112,15 +121,10 @@ export class ProxyConfiguration implements IProxyConfiguration {
             );
         }
 
-        ow(
-            rest,
-            ow.object.exactShape({
-                proxyUrls: ow.optional.array.nonEmpty.ofType(ow.any(ow.string.url, ow.null)),
-                newUrlFunction: ow.optional.function,
-            }),
+        const { proxyUrls, newUrlFunction } = parseArgument(
+            rest as ProxyConfigurationOptions,
+            proxyConfigurationOptionsSchema,
         );
-
-        const { proxyUrls, newUrlFunction } = options;
 
         if (proxyUrls && newUrlFunction) this.throwCannotCombineCustomMethods();
         if (!proxyUrls && !newUrlFunction && validateRequired) this.throwNoOptionsProvided();

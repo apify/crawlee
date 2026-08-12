@@ -12,7 +12,7 @@ import type {
     RequestQueueOperationOptions,
     Source,
 } from '@crawlee/cheerio';
-import { ResponseWithUrl } from '@crawlee/http-client';
+import { BaseHttpClient, ResponseWithUrl } from '@crawlee/http-client';
 import { PlaywrightCrawler } from '@crawlee/playwright';
 import { RobotsTxtFile } from '@crawlee/utils';
 
@@ -68,17 +68,28 @@ async function createRequestQueueMock(seedUrl = 'https://example.com') {
     return { enqueued, requestQueue };
 }
 
-// Reports its own request URL back as the loaded URL, so `enqueueLinks()`'s hostname/domain-based
-// strategies see whatever start URL a test navigates to, regardless of where the content is actually served from.
-const fixtureHttpClient = {
-    async sendRequest(request: { url: string | URL }) {
-        return new ResponseWithUrl(HTML, {
+// Serves fixed HTML for every request, reporting the request's own URL back as the loaded URL so
+// `enqueueLinks()`'s hostname/domain-based strategies see whatever start URL a test navigates to,
+// regardless of where the content is actually served from.
+class FixtureHttpClient extends BaseHttpClient {
+    constructor(private readonly html: string) {
+        super();
+    }
+
+    protected async fetch(): Promise<Response> {
+        throw new Error('FixtureHttpClient.fetch() should never be called - sendRequest() is overridden directly.');
+    }
+
+    override async sendRequest(request: { url: string | URL }): Promise<Response> {
+        return new ResponseWithUrl(this.html, {
             url: request.url.toString(),
             status: 200,
             headers: { 'content-type': 'text/html; charset=utf-8' },
         });
-    },
-};
+    }
+}
+
+const fixtureHttpClient = new FixtureHttpClient(HTML);
 
 async function runCheerioEnqueueLinks(
     enqueueOptions: EnqueueLinksOptions,
@@ -298,6 +309,28 @@ describe('enqueueLinks()', () => {
             expect(enqueued).toHaveLength(2);
             expect(enqueued[0].url).toBe('https://example.com/a/b/first');
             expect(enqueued[1].url).toBe('https://example.com/a/b/third');
+        });
+
+        test('throws when include is an empty array', async () => {
+            const { requestQueue } = await createRequestQueueMock();
+            let caughtError: unknown;
+
+            const crawler = new CheerioCrawler({
+                requestManager: requestQueue,
+                httpClient: fixtureHttpClient,
+                requestHandler: async ({ enqueueLinks }) => {
+                    try {
+                        await enqueueLinks({ selector: '.click', include: [] });
+                    } catch (error) {
+                        caughtError = error;
+                    }
+                },
+            });
+
+            await crawler.run(['https://example.com']);
+
+            expect(caughtError).toBeInstanceOf(Error);
+            expect((caughtError as Error).message).toMatch(/at `include`/);
         });
 
         test('works with no include/exclude filters (enqueues all matching strategy)', async () => {
@@ -696,15 +729,7 @@ describe('enqueueLinks()', () => {
         ];
 
         const robotsHtml = `<html><body>${urls.map((url) => `<a href="${url}">link</a>`).join('')}</body></html>`;
-        const robotsHttpClient = {
-            async sendRequest(request: { url: string | URL }) {
-                return new ResponseWithUrl(robotsHtml, {
-                    url: request.url.toString(),
-                    status: 200,
-                    headers: { 'content-type': 'text/html; charset=utf-8' },
-                });
-            },
-        };
+        const robotsHttpClient = new FixtureHttpClient(robotsHtml);
 
         async function runWithRobotsTxt(respectRobotsTxtFile?: boolean | { userAgent?: string }) {
             const { enqueued, requestQueue } = await createRequestQueueMock();

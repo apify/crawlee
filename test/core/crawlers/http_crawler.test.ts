@@ -12,7 +12,7 @@ import {
     SessionPool,
     ThrottlingRequestManager,
 } from '@crawlee/http';
-import { ResponseWithUrl } from '@crawlee/http-client';
+import { BaseHttpClient, ResponseWithUrl } from '@crawlee/http-client';
 import { sleep } from '@crawlee/utils';
 import iconv from 'iconv-lite';
 
@@ -554,15 +554,15 @@ test('works with a custom HttpClient', async () => {
 
             results.push(await (await sendRequest()).text());
         },
-        httpClient: {
-            async sendRequest(request) {
+        httpClient: Object.assign(Object.create(BaseHttpClient.prototype) as BaseHttpClient, {
+            async sendRequest(request: Request) {
                 return new ResponseWithUrl('<html><head><title>Schmexample Domain</title></head></html>', {
                     url: request.url.toString(),
                     status: 200,
                     headers: { 'content-type': 'text/html; charset=utf-8' },
                 });
             },
-        },
+        }),
     });
 
     await crawler.run([url]);

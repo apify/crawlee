@@ -6,7 +6,7 @@ import {
     serviceLocator,
     type Source,
 } from '@crawlee/cheerio';
-import { ResponseWithUrl } from '@crawlee/http-client';
+import { BaseHttpClient, ResponseWithUrl } from '@crawlee/http-client';
 
 const HTML = `
 <html>
@@ -26,6 +26,20 @@ const HTML = `
 // which matters here since some tests call `runEnqueueLinks()` more than once against the same queue.
 const SEED_HOSTNAME = 'seed.example';
 let seedCounter = 0;
+
+class FixtureHttpClient extends BaseHttpClient {
+    protected async fetch(): Promise<Response> {
+        throw new Error('FixtureHttpClient.fetch() should never be called - sendRequest() is overridden directly.');
+    }
+
+    override async sendRequest(request: { url: string | URL }): Promise<Response> {
+        return new ResponseWithUrl(HTML, {
+            url: request.url.toString(),
+            status: 200,
+            headers: { 'content-type': 'text/html; charset=utf-8' },
+        });
+    }
+}
 
 /**
  * Runs `enqueueLinks(options)` against a single-page crawl of `HTML`, seeded at a fresh URL each time, and
@@ -47,15 +61,7 @@ async function runEnqueueLinks(options: EnqueueLinksOptions, requestManager: Req
 
     const crawler = new CheerioCrawler({
         requestManager,
-        httpClient: {
-            async sendRequest(request) {
-                return new ResponseWithUrl(HTML, {
-                    url: request.url.toString(),
-                    status: 200,
-                    headers: { 'content-type': 'text/html; charset=utf-8' },
-                });
-            },
-        },
+        httpClient: new FixtureHttpClient(),
         requestHandler: async ({ request, enqueueLinks }) => {
             if (request.url !== seedUrl) return;
             await enqueueLinks({ ...options, baseUrl: 'https://example.com' });

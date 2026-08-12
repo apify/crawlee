@@ -136,10 +136,44 @@ if (options['pin-versions']) {
     writeFileSync(pkgPath, `${JSON.stringify(pkgJson, null, 4)}\n`);
 }
 
+/**
+ * `catalog:` specifiers are a pnpm workspace feature; lerna publishes the manifest verbatim,
+ * so they have to be inlined with the versions from `pnpm-workspace.yaml` before publishing.
+ */
+function getCatalogVersions(): Record<string, string> {
+    const workspaceYaml = readFileSync(resolve(root, 'pnpm-workspace.yaml')).toString();
+    const catalogBlock = workspaceYaml.match(/^catalog:\n((?: {2}.+\n)+)/m)?.[1] ?? '';
+    const versions: Record<string, string> = {};
+
+    for (const line of catalogBlock.split('\n')) {
+        const match = line.match(/^ {2}["']?([^"':]+)["']?:\s*["']?(.+?)["']?\s*$/);
+        if (match) versions[match[1]] = match[2];
+    }
+
+    return versions;
+}
+
 copy('README.md', root, target);
 copy('LICENSE.md', root, target);
 copy('package.json', process.cwd(), target);
 rewrite(resolve(target, 'package.json'), (pkg) => {
-    return pkg.replace(/dist\//g, '').replace(/src\/(.*)\.ts/g, '$1.js');
+    const catalog = getCatalogVersions();
+    const manifest = JSON.parse(pkg.replace(/dist\//g, '').replace(/src\/(.*)\.ts/g, '$1.js'));
+
+    for (const deps of [
+        manifest.dependencies,
+        manifest.devDependencies,
+        manifest.peerDependencies,
+        manifest.optionalDependencies,
+    ]) {
+        for (const dep of Object.keys(deps ?? {})) {
+            if (deps[dep] === 'catalog:') {
+                if (!catalog[dep]) throw new Error(`Missing catalog entry for '${dep}' in pnpm-workspace.yaml`);
+                deps[dep] = catalog[dep];
+            }
+        }
+    }
+
+    return `${JSON.stringify(manifest, null, 4)}\n`;
 });
 rewrite(resolve(target, 'utils.js'), (pkg) => pkg.replace('../package.json', './package.json'));

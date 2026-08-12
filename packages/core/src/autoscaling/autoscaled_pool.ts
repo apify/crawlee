@@ -1,4 +1,4 @@
-import ow from 'ow';
+import { z } from 'zod';
 
 import { addTimeoutToPromise } from '@apify/timeout';
 import type { BetterIntervalID } from '@apify/utilities';
@@ -8,6 +8,28 @@ import type { ConcurrencyConsumer, IConcurrencySystem } from './concurrency_syst
 import { CriticalError } from '../errors.js';
 import type { CrawleeLogger } from '../log.js';
 import { serviceLocator } from '../service_locator.js';
+import { parseArgument, schemas, validators } from '../validators.js';
+
+// `schemas.anyObject` and `objectWithKeys`-based validators pass values through by reference
+// (object schemas return a pruned plain copy), so class instances like loggers and the
+// concurrency system keep their prototype.
+const autoscaledPoolOptionsSchema = z.strictObject({
+    runTaskFunction: schemas.anyFunction,
+    isFinishedFunction: schemas.anyFunction,
+    isTaskReadyFunction: schemas.anyFunction,
+    maybeRunIntervalSecs: schemas.anyNumber
+        .refine((value) => value > 0, 'Expected a number greater than 0')
+        .default(0.5),
+    taskTimeoutSecs: schemas.anyNumber
+        .refine((value) => value >= 0, 'Expected a number greater than or equal to 0')
+        .default(0),
+    log: validators.logger.default(() => serviceLocator.getLogger()),
+    concurrencySystem: schemas.anyObject,
+    consumer: schemas.anyObject.refine(
+        (value) => typeof value.id === 'string' && value.id.length > 0,
+        "Expected an object with a non-empty string 'id'",
+    ),
+});
 
 /**
  * The two predicates that steer a task loop: *is there work ready?* and *are we done?* These are the parts of the loop
@@ -151,30 +173,16 @@ export class AutoscaledPool {
     #ownConcurrency = 0;
 
     constructor(options: AutoscaledPoolOptions) {
-        ow(
-            options,
-            ow.object.exactShape({
-                runTaskFunction: ow.function,
-                isFinishedFunction: ow.function,
-                isTaskReadyFunction: ow.function,
-                maybeRunIntervalSecs: ow.optional.number.greaterThan(0),
-                taskTimeoutSecs: ow.optional.number.greaterThanOrEqual(0),
-                log: ow.optional.object,
-                concurrencySystem: ow.object,
-                consumer: ow.object.partialShape({ id: ow.string.nonEmpty }),
-            }),
-        );
-
         const {
             runTaskFunction,
             isFinishedFunction,
             isTaskReadyFunction,
-            maybeRunIntervalSecs = 0.5,
-            taskTimeoutSecs = 0,
-            log = serviceLocator.getLogger(),
+            maybeRunIntervalSecs,
+            taskTimeoutSecs,
+            log,
             concurrencySystem,
             consumer,
-        } = options;
+        } = parseArgument(options, autoscaledPoolOptionsSchema, 'AutoscaledPoolOptions');
 
         this.#log = log.child({ prefix: 'AutoscaledPool' });
 

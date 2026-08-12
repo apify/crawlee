@@ -3,8 +3,7 @@ import crypto from 'node:crypto';
 import util from 'node:util';
 
 import type { AllowedHttpMethods, Dictionary } from '@crawlee/types';
-import type { BasePredicate } from 'ow';
-import ow from 'ow';
+import { z } from 'zod';
 
 import { cryptoRandomObjectId, normalizeUrl } from '@apify/utilities';
 
@@ -12,30 +11,11 @@ import type { EnqueueStrategyOption } from './enqueue_links/enqueue_links.js';
 import type { SkippedRequestReason } from './enqueue_links/shared.js';
 import { serviceLocator } from './service_locator.js';
 import { keys } from './typedefs.js';
+import { parseArgument, schemas } from './validators.js';
 
-// new properties on the Request object breaks serialization
-const requestOptionalPredicates = {
-    id: ow.optional.string,
-    loadedUrl: ow.optional.string.url,
-    uniqueKey: ow.optional.string,
-    method: ow.optional.string,
-    payload: ow.optional.any(ow.string, ow.uint8Array),
-    noRetry: ow.optional.boolean,
-    retryCount: ow.optional.number,
-    sessionId: ow.optional.string,
-    maxRetries: ow.optional.number,
-    errorMessages: ow.optional.array.ofType(ow.string),
-    headers: ow.optional.object,
-    userData: ow.optional.object,
-    label: ow.optional.string,
-    handledAt: ow.optional.any(ow.string.date, ow.date),
-    keepUrlFragment: ow.optional.boolean,
-    useExtendedUniqueKey: ow.optional.boolean,
-    alwaysEnqueue: ow.optional.boolean,
-    skipNavigation: ow.optional.boolean,
-    crawlDepth: ow.optional.number.greaterThanOrEqual(0),
-    state: ow.optional.number.greaterThanOrEqual(0).lessThanOrEqual(6),
-};
+const dateString = z.string().refine((value) => !Number.isNaN(Date.parse(value)), {
+    message: 'Invalid input: expected a date string',
+});
 
 export enum RequestState {
     UNPROCESSED,
@@ -47,6 +27,39 @@ export enum RequestState {
     ERROR,
     SKIPPED,
 }
+
+const requestUrlSchema = z.object({ url: z.string() });
+
+// new properties on the Request object breaks serialization
+const requestOptionalSchemaShapes: Record<string, z.ZodType> = {
+    id: z.string().optional(),
+    loadedUrl: z.url().optional(),
+    uniqueKey: z.string().optional(),
+    method: z.string().optional(),
+    payload: z.union([z.string(), z.instanceof(Uint8Array)]).optional(),
+    noRetry: z.boolean().optional(),
+    retryCount: schemas.anyNumber.optional(),
+    sessionId: z.string().optional(),
+    maxRetries: schemas.anyNumber.optional(),
+    errorMessages: schemas.arrayOf(z.string(), 'strings').optional(),
+    headers: z.looseObject({}).optional(),
+    userData: z.looseObject({}).optional(),
+    label: z.string().optional(),
+    handledAt: z.union([dateString, z.date()]).optional(),
+    keepUrlFragment: z.boolean().optional(),
+    useExtendedUniqueKey: z.boolean().optional(),
+    alwaysEnqueue: z.boolean().optional(),
+    skipNavigation: z.boolean().optional(),
+    crawlDepth: schemas.anyNumber
+        .refine((value) => value >= 0, 'Expected a number greater than or equal to 0')
+        .optional(),
+    state: z.enum(RequestState).optional(),
+};
+
+// Each schema is wrapped in a single-key object so validation errors carry the property name.
+const requestOptionalSchemas: Partial<Record<string, z.ZodType>> = Object.fromEntries(
+    Object.entries(requestOptionalSchemaShapes).map(([key, schema]) => [key, z.object({ [key]: schema })]),
+);
 
 /**
  * Represents a URL to be crawled, optionally including HTTP method, headers, payload and other metadata.
@@ -141,23 +154,30 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
      * `Request` parameters including the URL, HTTP method and headers, and others.
      */
     constructor(options: RequestOptions<UserData>) {
-        ow(options, 'RequestOptions', ow.object);
-        ow(options.url, 'RequestOptions.url', ow.string);
-        // 'ow' validation is slow, because it checks all predicates
+        // A bare URL is a common slip — point at the object form instead of a generic type error.
+        if (typeof options === 'string') {
+            throw new TypeError(
+                `\`Request\` options must be an object, got the string '${options}'. ` +
+                    'Did you mean `new Request({ url })`?',
+            );
+        }
+
+        parseArgument(options, schemas.anyObject, 'RequestOptions');
+        parseArgument(options, requestUrlSchema, 'RequestOptions');
+        // Full-shape validation is slow, because it checks all predicates
         // even if the validated object has only 1 property.
         // This custom validation loop iterates only over existing
         // properties and speeds up the validation cca 3-fold.
-        // See https://github.com/sindresorhus/ow/issues/193
         keys(options).forEach((prop) => {
             // skip url, because it is validated above
             if (prop === 'url') {
                 return;
             }
 
-            const predicate = requestOptionalPredicates[prop as keyof typeof requestOptionalPredicates];
+            const schema = requestOptionalSchemas[prop as string];
             const value = options[prop];
-            if (predicate) {
-                ow(value, `RequestOptions.${prop}`, predicate as BasePredicate);
+            if (schema) {
+                parseArgument({ [prop]: value }, schema, 'RequestOptions');
             }
         });
 

@@ -32,6 +32,7 @@ import {
     createStorageTransaction,
     EnqueueStrategy,
     OwnedOrInjected,
+    parseArgument,
     RequestHandlerError,
     resolveBaseUrlForEnqueueLinksFiltering,
     Router,
@@ -41,8 +42,8 @@ import type { Dictionary, Awaitable } from '@crawlee/types';
 import { type CheerioRoot, extractUrlsFromCheerio } from '@crawlee/utils/internal';
 import { type Cheerio } from 'cheerio';
 import type { AnyNode } from 'domhandler';
-import ow from 'ow';
 import type { Page } from 'playwright';
+import { z } from 'zod';
 
 import { addTimeoutToPromise } from '@apify/timeout';
 
@@ -354,8 +355,13 @@ export class AdaptivePlaywrightCrawler<
             ...rest
         } = options;
 
-        // The user's value is replaced by `false` in the `super` call below — validate it separately.
-        ow(transactionalStorage, 'transactionalStorage', BasicCrawler.optionsShape.transactionalStorage);
+        // The user's value is replaced by `false` in the `super` call below — validate it separately,
+        // wrapped in an object so the error still names the field.
+        parseArgument(
+            { transactionalStorage },
+            z.object({ transactionalStorage: BasicCrawler.optionsShape.transactionalStorage }),
+            'AdaptivePlaywrightCrawlerOptions',
+        );
 
         // Per-attempt buffering is load-bearing here: the handler runs up to twice per request and the
         // losing attempt's writes must be discardable.

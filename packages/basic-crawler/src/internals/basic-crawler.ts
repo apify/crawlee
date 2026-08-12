@@ -6,12 +6,10 @@ import type {
     AddRequestsBatchedResult,
     AutoscaledPoolOptions,
     ConcurrencySystemOptions,
-    Configuration,
     CrawleeLogger,
     CrawlingContext,
     DatasetExportOptions,
     EnqueueUrlsOptions,
-    EventManager,
     EventStatusMessageData,
     FinalStatistics,
     GetUserDataFromRequest,
@@ -40,6 +38,7 @@ import {
     BLOCKED_STATUS_CODES,
     buildEnqueueStrategyPatterns,
     ConcurrencySystem,
+    Configuration,
     constructUrlPatternObjects,
     ContextPipeline,
     ContextPipelineCleanupError,
@@ -52,6 +51,7 @@ import {
     currentStorageTransaction,
     Dataset,
     EnqueueStrategy,
+    EventManager,
     EventType,
     filterRequestOptionsByPatterns,
     getObjectType,
@@ -63,6 +63,7 @@ import {
     NavigationSkippedError,
     NonRetryableError,
     OwnedOrInjected,
+    parseArgument,
     purgeDefaultStorages,
     RequestHandlerError,
     parseRetryAfterHeader,
@@ -73,6 +74,7 @@ import {
     RetryRequestError,
     supportsDomainThrottling,
     Router,
+    schemas,
     ServiceLocator,
     serviceLocator,
     Session,
@@ -83,10 +85,9 @@ import {
     validators,
     withDirectStorageAccess,
 } from '@crawlee/core';
-import { FetchHttpClient } from '@crawlee/http-client';
+import { BaseHttpClient, FetchHttpClient } from '@crawlee/http-client';
 import type {
     Awaitable,
-    BaseHttpClient,
     Dictionary,
     ISession,
     ISessionPool,
@@ -96,9 +97,9 @@ import type {
 } from '@crawlee/types';
 import { isAsyncIterable, isIterable, ROTATE_PROXY_ERRORS } from '@crawlee/utils/internal';
 import { RobotsTxtFile } from '@crawlee/utils';
-import ow, { ArgumentError, type BasePredicate } from 'ow';
 import { getDomain } from 'tldts';
 import type { ReadonlyDeep } from 'type-fest';
+import { z } from 'zod';
 
 import { LruCache } from '@apify/datastructures';
 import { addTimeoutToPromise, extendTimeout, TimeoutError } from '@apify/timeout';
@@ -113,10 +114,11 @@ import {
 } from './request-timeout.js';
 import { createSendRequest } from './send-request.js';
 
-class LazyDefaultHttpClient implements BaseHttpClient {
+class LazyDefaultHttpClient extends BaseHttpClient {
     readonly #delegatePromise: Promise<BaseHttpClient>;
 
     constructor(options?: { logger?: CrawleeLogger }) {
+        super(options);
         this.#delegatePromise = import('@crawlee/impit-client')
             .then(({ ImpitHttpClient }) => new ImpitHttpClient(options))
             .catch(() => {
@@ -128,7 +130,11 @@ class LazyDefaultHttpClient implements BaseHttpClient {
             });
     }
 
-    async sendRequest(...args: Parameters<BaseHttpClient['sendRequest']>): Promise<Response> {
+    protected fetch(): Promise<Response> {
+        throw new Error('LazyDefaultHttpClient delegates `sendRequest` entirely; `fetch` is never called.');
+    }
+
+    override async sendRequest(...args: Parameters<BaseHttpClient['sendRequest']>): Promise<Response> {
         return (await this.#delegatePromise).sendRequest(...args);
     }
 }
@@ -150,6 +156,35 @@ const deferredCleanupKey = Symbol('deferredCleanup');
 
 // The request timeout plumbing (the window helper, the context symbols, and the race) lives in its own module.
 export { navigationDeadlineKey, remainingNavigationWindowMillis } from './request-timeout.js';
+
+const urlPatternSchema = z.union([
+    z.string(),
+    z.instanceof(RegExp),
+    schemas.objectWithKeys(['glob']),
+    schemas.objectWithKeys(['regexp']),
+]);
+
+// `looseObject` (rather than `strictObject`) lets subclasses forward their own extraction-only options
+// (e.g. `selector`) straight through without having to strip them out first.
+const addRequestsOptionsSchema = z.looseObject({
+    forefront: z.boolean().optional(),
+    cache: z.boolean().optional(),
+    waitForAllRequestsToBeAdded: z.boolean().optional(),
+    batchSize: schemas.anyNumber.optional(),
+    waitBetweenBatchesMillis: schemas.anyNumber.optional(),
+    maxNewRequests: schemas.anyNumber.optional(),
+    limit: schemas.anyNumber.optional(),
+    baseUrl: z.string().optional(),
+    userData: schemas.anyObject.optional(),
+    label: z.string().optional(),
+    sessionId: z.string().optional(),
+    skipNavigation: z.boolean().optional(),
+    include: schemas.arrayOf(urlPatternSchema, 'URL patterns').min(1).optional(),
+    exclude: schemas.arrayOf(urlPatternSchema, 'URL patterns').optional(),
+    transformRequestFunction: schemas.anyFunction.optional(),
+    strategy: z.enum(EnqueueStrategy).optional(),
+    onSkippedRequest: schemas.anyFunction.optional(),
+});
 
 /** The in-flight context, carrying the timeout slots ({@apilink raceWithTimeout} hangs its extender on them). */
 type PendingCrawlingContext = { request: Request } & Partial<CrawlingContext> & RequestTimeoutContext;
@@ -833,61 +868,64 @@ export class BasicCrawler<
     };
 
     protected static optionsShape = {
-        contextPipelineBuilder: ow.optional.object,
-        extendContext: ow.optional.function,
+        contextPipelineBuilder: schemas.anyObject.optional(),
+        extendContext: schemas.anyFunction.optional(),
 
-        requestList: ow.optional.object.validate(validators.requestList),
-        requestQueue: ow.optional.object.validate(validators.requestQueue),
-        requestManager: ow.optional.object,
+        requestList: validators.requestList.optional(),
+        requestQueue: validators.requestQueue.optional(),
+        requestManager: validators.requestManager.optional(),
         // Subclasses override this function instead of passing it
         // in constructor, so this validation needs to apply only
         // if the user creates an instance of BasicCrawler directly.
-        requestHandler: ow.optional.function,
-        requestHandlerTimeoutSecs: ow.optional.number,
-        errorHandler: ow.optional.function,
-        failedRequestHandler: ow.optional.function,
-        maxRequestRetries: ow.optional.number,
-        sameDomainDelaySecs: ow.optional.number,
-        maxRequestsPerCrawl: ow.optional.number,
-        maxCrawlDepth: ow.optional.number,
-        taskLoopOptions: ow.optional.object,
-        concurrencySystem: ow.optional.object,
-        sessionPool: ow.optional.object.validate(validators.sessionPool),
-        proxyConfiguration: ow.optional.object.validate(validators.proxyConfiguration),
+        requestHandler: schemas.anyFunction.optional(),
+        requestHandlerTimeoutSecs: schemas.anyNumber.optional(),
+        errorHandler: schemas.anyFunction.optional(),
+        failedRequestHandler: schemas.anyFunction.optional(),
+        maxRequestRetries: schemas.anyNumber.default(3),
+        sameDomainDelaySecs: schemas.anyNumber.default(0),
+        maxRequestsPerCrawl: schemas.anyNumber.optional(),
+        maxCrawlDepth: schemas.anyNumber.optional(),
+        // No zod default — subclasses provide their own fallback (e.g. HTTP-optimized pool options).
+        taskLoopOptions: schemas.anyObject.optional(),
+        concurrencySystem: schemas.anyObject.optional(),
+        sessionPool: validators.sessionPool.optional(),
+        proxyConfiguration: validators.proxyConfiguration.optional(),
 
-        statusMessageLoggingInterval: ow.optional.number,
-        statusMessageCallback: ow.optional.function,
+        statusMessageLoggingInterval: schemas.anyNumber.default(10),
+        statusMessageCallback: schemas.anyFunction.optional(),
 
-        additionalHttpErrorStatusCodes: ow.optional.array.ofType(ow.number),
-        ignoreHttpErrorStatusCodes: ow.optional.array.ofType(ow.number),
+        additionalHttpErrorStatusCodes: schemas.arrayOf(schemas.anyNumber, 'numbers').default(() => []),
+        ignoreHttpErrorStatusCodes: schemas.arrayOf(schemas.anyNumber, 'numbers').default(() => []),
 
-        blockedStatusCodes: ow.optional.array.ofType(ow.number),
-        retryOnBlocked: ow.optional.boolean,
-        respectRobotsTxtFile: ow.optional.any(ow.boolean, ow.object),
-        transactionalStorage: ow.optional.any(
-            ow.boolean,
-            ow.object.exactShape({
-                requestQueue: ow.optional.string.oneOf(['deferred', 'writeThrough']),
-            }),
-        ) as BasePredicate<boolean | Partial<StorageWritePolicy> | undefined>,
-        onSkippedRequest: ow.optional.function,
-        httpClient: ow.optional.object,
+        blockedStatusCodes: schemas.arrayOf(schemas.anyNumber, 'numbers').optional(),
+        retryOnBlocked: z.boolean().default(false),
+        respectRobotsTxtFile: z.union([z.boolean(), schemas.anyObject]).default(false),
+        transactionalStorage: z
+            .union([z.boolean(), z.strictObject({ requestQueue: z.enum(['deferred', 'writeThrough']).optional() })])
+            .optional(),
+        onSkippedRequest: schemas.anyFunction.optional(),
+        httpClient: schemas.httpClient.optional(),
 
-        configuration: ow.optional.object,
-        storageBackend: ow.optional.object,
-        eventManager: ow.optional.object,
-        logger: ow.optional.object,
+        configuration: z.instanceof(Configuration).optional(),
+        storageBackend: validators.storageBackend.optional(),
+        eventManager: z.instanceof(EventManager).optional(),
+        logger: validators.logger.optional(),
 
         // AutoscaledPool shorthands
-        minConcurrency: ow.optional.number,
-        maxConcurrency: ow.optional.number,
-        maxRequestsPerMinute: ow.optional.number.integerOrInfinite.positive.greaterThanOrEqual(1),
-        keepAlive: ow.optional.boolean,
+        minConcurrency: schemas.anyNumber.optional(),
+        maxConcurrency: schemas.anyNumber.optional(),
+        maxRequestsPerMinute: schemas.anyNumber
+            .refine((value) => Number.isInteger(value) || value === Infinity, 'Expected an integer or infinite number')
+            .refine((value) => value >= 1, 'Expected a number greater than or equal to 1')
+            .optional(),
+        keepAlive: z.boolean().optional(),
 
-        statistics: ow.optional.object,
+        statistics: schemas.anyObject.optional(),
 
-        id: ow.optional.string,
+        id: z.string().optional(),
     };
+
+    protected static optionsSchema = z.strictObject(BasicCrawler.optionsShape);
 
     /**
      * All `BasicCrawler` parameters are passed via an options object.
@@ -896,7 +934,7 @@ export class BasicCrawler<
         options: BasicCrawlerOptions<Context, ContextExtension, ExtendedContext, Routes> &
             RequireContextPipeline<CrawlingContext, Context> = {} as any, // cast because the constructor logic handles missing `contextPipelineBuilder` - the type is just for DX
     ) {
-        ow(options, 'BasicCrawlerOptions', ow.object.exactShape(BasicCrawler.optionsShape));
+        const parsedOptions = parseArgument(options, BasicCrawler.optionsSchema, 'BasicCrawlerOptions');
 
         const {
             // oxlint-disable-next-line typescript/no-deprecated -- still accepted and folded into `requestManager` for back-compat
@@ -904,8 +942,8 @@ export class BasicCrawler<
             // oxlint-disable-next-line typescript/no-deprecated -- still accepted and folded into `requestManager` for back-compat
             requestQueue,
             requestManager,
-            maxRequestRetries = 3,
-            sameDomainDelaySecs = 0,
+            maxRequestRetries,
+            sameDomainDelaySecs,
             maxRequestsPerCrawl,
             maxCrawlDepth,
             taskLoopOptions = {},
@@ -914,8 +952,8 @@ export class BasicCrawler<
             sessionPool,
             proxyConfiguration,
 
-            additionalHttpErrorStatusCodes = [],
-            ignoreHttpErrorStatusCodes = [],
+            additionalHttpErrorStatusCodes,
+            ignoreHttpErrorStatusCodes,
 
             // Service locator options
             configuration,
@@ -929,21 +967,21 @@ export class BasicCrawler<
             maxRequestsPerMinute,
 
             blockedStatusCodes: blockedStatusCodesInput,
-            retryOnBlocked = false,
-            respectRobotsTxtFile = false,
+            retryOnBlocked,
+            respectRobotsTxtFile,
             transactionalStorage,
             onSkippedRequest,
             requestHandler,
             requestHandlerTimeoutSecs,
             errorHandler,
             failedRequestHandler,
-            statusMessageLoggingInterval = 10,
+            statusMessageLoggingInterval,
             statusMessageCallback,
             statistics,
             httpClient,
 
             id,
-        } = options;
+        } = parsedOptions;
 
         // All concurrency configuration lives on the `ConcurrencySystem`, so the shortcuts have nowhere to go once
         // one is supplied - and silently dropping a `maxConcurrency` the user asked for is how crawls end up
@@ -952,11 +990,10 @@ export class BasicCrawler<
             concurrencySystem !== undefined &&
             (minConcurrency !== undefined || maxConcurrency !== undefined || maxRequestsPerMinute !== undefined)
         ) {
-            throw new ArgumentError(
+            throw new Error(
                 'The `minConcurrency`/`maxConcurrency`/`maxRequestsPerMinute` shortcuts cannot be combined with ' +
                     '`concurrencySystem` - they configure the default `ConcurrencySystem` that a supplied one ' +
                     'replaces. Pass them to the `ConcurrencySystem` constructor instead.',
-                this.constructor,
             );
         }
 
@@ -989,8 +1026,8 @@ export class BasicCrawler<
         try {
             serviceLocatorScope.enterScope();
             this.#contextPipelineOptions = {
-                contextPipelineBuilder: options.contextPipelineBuilder,
-                extendContext: options.extendContext,
+                contextPipelineBuilder: parsedOptions.contextPipelineBuilder,
+                extendContext: parsedOptions.extendContext,
             };
 
             this.#log = serviceLocator.getLogger().child({ prefix: this.constructor.name });
@@ -1933,44 +1970,11 @@ export class BasicCrawler<
     ): Promise<CrawlerAddRequestsResult> {
         await this.getRequestManager();
 
-        const urlPatternValidator = ow.any(
-            ow.string,
-            ow.regExp,
-            ow.object.hasKeys('glob'),
-            ow.object.hasKeys('regexp'),
-        );
+        if (!isIterable(requests) && !isAsyncIterable(requests)) {
+            throw new Error(`Expected an iterable or async iterable, got ${getObjectType(requests)}`);
+        }
 
-        ow(
-            requests,
-            ow.object
-                .is((value: unknown) => isIterable(value) || isAsyncIterable(value))
-                .message((value) => `Expected an iterable or async iterable, got ${getObjectType(value)}`),
-        );
-
-        // `partialShape` (rather than `exactShape`) lets subclasses forward their own extraction-only options
-        // (e.g. `selector`) straight through without having to strip them out first.
-        ow(
-            options as any,
-            ow.object.partialShape({
-                forefront: ow.optional.boolean,
-                cache: ow.optional.boolean,
-                waitForAllRequestsToBeAdded: ow.optional.boolean,
-                batchSize: ow.optional.number,
-                waitBetweenBatchesMillis: ow.optional.number,
-                maxNewRequests: ow.optional.number,
-                limit: ow.optional.number,
-                baseUrl: ow.optional.string,
-                userData: ow.optional.object,
-                label: ow.optional.string,
-                sessionId: ow.optional.string,
-                skipNavigation: ow.optional.boolean,
-                include: ow.optional.array.minLength(1).ofType(urlPatternValidator),
-                exclude: ow.optional.array.ofType(urlPatternValidator),
-                transformRequestFunction: ow.optional.function,
-                strategy: ow.optional.string.oneOf(Object.values(EnqueueStrategy)),
-                onSkippedRequest: ow.optional.function,
-            }),
-        );
+        parseArgument(options, addRequestsOptionsSchema, 'EnqueueUrlsOptions');
 
         // `label`/`userData` apply to every request this call produces, so a single upfront validation
         // against the label's schema covers them all and fails the whole call fast, rather than failing

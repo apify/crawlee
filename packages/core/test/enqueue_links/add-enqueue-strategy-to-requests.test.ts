@@ -7,7 +7,7 @@ import {
     serviceLocator,
     type Source,
 } from 'crawlee';
-import { ResponseWithUrl } from '@crawlee/http-client';
+import { BaseHttpClient, ResponseWithUrl } from '@crawlee/http-client';
 
 const HTML = `
 <html>
@@ -25,6 +25,24 @@ const HTML = `
     </body>
 </html>
 `;
+
+class FixtureHttpClient extends BaseHttpClient {
+    constructor(private readonly html: string) {
+        super();
+    }
+
+    protected async fetch(): Promise<Response> {
+        throw new Error('FixtureHttpClient.fetch() should never be called - sendRequest() is overridden directly.');
+    }
+
+    override async sendRequest(request: { url: string | URL }): Promise<Response> {
+        return new ResponseWithUrl(this.html, {
+            url: request.url.toString(),
+            status: 200,
+            headers: { 'content-type': 'text/html; charset=utf-8' },
+        });
+    }
+}
 
 /**
  * Runs `enqueueLinks(options)` against a single-page crawl of `html`, seeded at `originalRequestUrl`, and
@@ -46,15 +64,7 @@ async function runEnqueueLinks(html: string, options: EnqueueLinksOptions, origi
 
     const crawler = new CheerioCrawler({
         requestManager: requestQueue,
-        httpClient: {
-            async sendRequest(request) {
-                return new ResponseWithUrl(html, {
-                    url: request.url.toString(),
-                    status: 200,
-                    headers: { 'content-type': 'text/html; charset=utf-8' },
-                });
-            },
-        },
+        httpClient: new FixtureHttpClient(html),
         requestHandler: async ({ request, enqueueLinks }) => {
             if (request.url !== originalRequestUrl) return;
             await enqueueLinks(options);

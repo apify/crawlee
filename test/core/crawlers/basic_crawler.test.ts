@@ -36,6 +36,7 @@ import {
 } from '@crawlee/basic';
 import type { CalculatedStatistics, IConcurrencySystem, IStatistics } from '@crawlee/core';
 import { ConcurrencySystem, MemoryStorageBackend, RequestState } from '@crawlee/core';
+import { BaseHttpClient } from '@crawlee/http-client';
 import type { Dictionary, ISession, ProxyInfo } from '@crawlee/types';
 import { RobotsTxtFile, sleep } from '@crawlee/utils';
 import express from 'express';
@@ -2290,12 +2291,13 @@ describe('BasicCrawler', () => {
             const captured: (boolean | undefined)[] = [];
 
             const crawler = new BasicCrawler({
-                httpClient: {
-                    async sendRequest(request, options) {
+                // Carries the BaseHttpClient prototype so the crawler's `z.instanceof` validation accepts it.
+                httpClient: Object.assign(Object.create(BaseHttpClient.prototype) as BaseHttpClient, {
+                    async sendRequest(_request: globalThis.Request, options?: { ignoreTlsErrors?: boolean }) {
                         captured.push(options?.ignoreTlsErrors);
                         return new Response('ok');
                     },
-                },
+                }),
                 async requestHandler({ sendRequest }) {
                     await sendRequest({}, { ignoreTlsErrors: true });
                 },
