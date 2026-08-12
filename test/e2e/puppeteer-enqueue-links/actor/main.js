@@ -1,6 +1,5 @@
 import { Actor } from 'apify';
 import { Dataset, PuppeteerCrawler } from '@crawlee/puppeteer';
-import deepEqual from 'deep-equal';
 
 const mainOptions = {
     exit: Actor.isAtHome(),
@@ -24,7 +23,7 @@ await Actor.main(async () => {
             const results = await enqueueLinks();
 
             if (loadedUrl.startsWith('https://drive')) {
-                const isEqual = deepEqual(results, { processedRequests: [], unprocessedRequests: [] });
+                const isEqual = results.addedRequests.length === 0;
                 await Dataset.pushData({ isEqual });
             }
         },

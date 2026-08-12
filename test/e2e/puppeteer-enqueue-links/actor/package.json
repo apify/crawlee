@@ -11,7 +11,6 @@
         "@crawlee/puppeteer": "file:./packages/puppeteer-crawler",
         "@crawlee/types": "file:./packages/types",
         "@crawlee/utils": "file:./packages/utils",
-        "deep-equal": "^2.0.5",
         "idcac-playwright": "^0.2.0",
         "puppeteer": "*"
     },
