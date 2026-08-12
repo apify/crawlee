@@ -45,6 +45,7 @@
         "coverage": "vitest --coverage",
         "publish:next": "lerna publish from-package --contents dist --dist-tag v4 --force-publish --yes",
         "release:next": "pnpm build && pnpm publish:next",
+        "publish:rc": "lerna publish from-package --contents dist --dist-tag rc --force-publish --yes",
         "publish:prod": "lerna publish from-package --contents dist --force-publish --yes",
         "release:prod": "pnpm build && pnpm publish:prod",
         "release:pin-versions": "turbo run copy -- -- --pin-versions",
