@@ -71,7 +71,7 @@ describe('purgeDefaultStorages', () => {
 
         await Promise.all(
             Array.from({ length: 3 }, async () => {
-                await purgeDefaultStorages({ onlyPurgeOnce: true, storageBackend: client, config });
+                await purgeDefaultStorages({ onlyPurgeOnce: true, storageBackend: client, configuration: config });
                 if (purging) {
                     purgedWhileAlreadyPurging = true;
                 }

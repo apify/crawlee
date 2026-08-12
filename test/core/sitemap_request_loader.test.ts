@@ -572,7 +572,7 @@ describe('SitemapRequestLoader', () => {
         expect(restoredRequest!.userData).toMatchObject(userDataPayload);
     });
 
-    async function collectUrls(list: SitemapRequestList): Promise<string[]> {
+    async function collectUrls(list: SitemapRequestLoader): Promise<string[]> {
         const urls: string[] = [];
         for await (const request of list) {
             urls.push(request.url);
@@ -582,13 +582,13 @@ describe('SitemapRequestLoader', () => {
     }
 
     test('default `same-hostname` strategy drops cross-host URL entries', async () => {
-        const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/cross-host-content.xml`] });
+        const list = await SitemapRequestLoader.open({ sitemapUrls: [`${url}/cross-host-content.xml`] });
         expect(await collectUrls(list)).toEqual([`${url}/same-host-page`]);
     });
 
     test('`enqueueStrategy: all` keeps cross-host URL entries', async () => {
         const cross = url.replace('localhost', '127.0.0.1');
-        const list = await SitemapRequestList.open({
+        const list = await SitemapRequestLoader.open({
             sitemapUrls: [`${url}/cross-host-content.xml`],
             enqueueStrategy: 'all',
         });
@@ -598,14 +598,14 @@ describe('SitemapRequestLoader', () => {
     });
 
     test('default `same-hostname` strategy drops cross-host nested sitemaps before fetching them', async () => {
-        const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/cross-host-index.xml`] });
+        const list = await SitemapRequestLoader.open({ sitemapUrls: [`${url}/cross-host-index.xml`] });
         // The cross-host nested sitemap is never fetched, so its `child-page` URL is absent.
         expect(await collectUrls(list)).toEqual([]);
     });
 
     test('`enqueueStrategy: all` follows cross-host nested sitemaps', async () => {
         const cross = url.replace('localhost', '127.0.0.1');
-        const list = await SitemapRequestList.open({
+        const list = await SitemapRequestLoader.open({
             sitemapUrls: [`${url}/cross-host-index.xml`],
             enqueueStrategy: 'all',
         });
@@ -613,7 +613,7 @@ describe('SitemapRequestLoader', () => {
     });
 
     test('non-http(s) schemes are dropped even with `enqueueStrategy: all`', async () => {
-        const list = await SitemapRequestList.open({
+        const list = await SitemapRequestLoader.open({
             sitemapUrls: [`${url}/mixed-scheme.xml`],
             enqueueStrategy: 'all',
         });
@@ -621,7 +621,7 @@ describe('SitemapRequestLoader', () => {
     });
 
     test('the selected enqueue strategy is stamped onto emitted requests', async () => {
-        const list = await SitemapRequestList.open({ sitemapUrls: [`${url}/cross-host-content.xml`] });
+        const list = await SitemapRequestLoader.open({ sitemapUrls: [`${url}/cross-host-content.xml`] });
         const request = await list.fetchNextRequest();
 
         expect(request).not.toBe(null);
@@ -633,7 +633,7 @@ describe('SitemapRequestLoader', () => {
         // `maxBufferSize: 1` makes the background loader block on backpressure right after
         // pushing the first URL. Persisting the state at that moment swaps the underlying stream,
         // which used to orphan the pending push and hang the loading indefinitely.
-        const list = await SitemapRequestList.open({
+        const list = await SitemapRequestLoader.open({
             sitemapUrls: [`${url}/sitemap.xml`],
             persistStateKey: 'backpressure-persist',
             maxBufferSize: 1,

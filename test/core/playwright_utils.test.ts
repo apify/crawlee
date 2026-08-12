@@ -485,21 +485,21 @@ describe('playwrightUtils', () => {
         test('detects the current challenge markup', async () => {
             await page.setContent(`<html><body>${currentChallengeBody}</body></html>`);
             await expect(
-                handleCloudflareChallenge(page, 'https://example.com', undefined, fastOptions()),
+                handleCloudflareChallenge(page, 'https://example.com', fastOptions()),
             ).rejects.toThrow(/Blocked by Cloudflare/);
         });
 
         test('detects the old challenge markup', async () => {
             await page.setContent(`<html><body>${oldChallengeBody}</body></html>`);
             await expect(
-                handleCloudflareChallenge(page, 'https://example.com', undefined, fastOptions()),
+                handleCloudflareChallenge(page, 'https://example.com', fastOptions()),
             ).rejects.toThrow(/Blocked by Cloudflare/);
         });
 
         test('resolves without detection on a regular page', async () => {
             await page.setContent('<html><body><h1>Welcome</h1></body></html>');
             await expect(
-                handleCloudflareChallenge(page, 'https://example.com', undefined, fastOptions()),
+                handleCloudflareChallenge(page, 'https://example.com', fastOptions()),
             ).resolves.toBeUndefined();
         });
     });

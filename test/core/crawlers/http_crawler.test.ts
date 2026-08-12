@@ -342,11 +342,11 @@ test('handles cookies from redirects when the session already has cookies', asyn
     const results: string[] = [];
 
     const crawler = new HttpCrawler({
-        sessionPoolOptions: {
+        sessionPool: new SessionPool({
             maxPoolSize: 1,
             // isolated so that cookies stored by the other tests don't leak in
-            persistStateKey: 'SDK_SESSION_POOL_STATE_setCookie',
-        },
+            persistStateKey: 'CRAWLEE_SESSION_POOL_STATE_setCookie',
+        }),
         maxConcurrency: 1,
         requestHandler: async ({ body }) => {
             results.push(body.toString());
