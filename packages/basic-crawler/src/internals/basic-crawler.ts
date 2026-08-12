@@ -1731,8 +1731,8 @@ export class BasicCrawler<
         try {
             await this.#autoscaledPool!.run();
         } finally {
-            await this.teardown();
             await this.stats.stopCapturing();
+            await this.teardown();
 
             process.off('SIGINT', sigintHandler);
             eventManager.off(EventType.MIGRATING, boundPauseOnMigration);
@@ -2154,7 +2154,11 @@ export class BasicCrawler<
             // Only log the limit message when an explicit `limit` was passed (not the internal
             // `maxRequestsPerCrawl`-derived one), and only once per call.
             if (options.limit !== undefined && allSkipped.some((s) => s.reason === 'limit')) {
-                this.log.info(`Skipping requests in this call due to the enqueueLinks limit of ${options.limit}.`);
+                this.log.info(
+                    requestLimit === options.limit
+                        ? `Skipping requests in this call due to the enqueueLinks limit of ${options.limit}.`
+                        : `Skipping requests in this call due to the remaining maxRequestsPerCrawl budget of ${requestLimit}, which is lower than the enqueueLinks limit of ${options.limit}.`,
+                );
             }
 
             await Promise.all(
@@ -2871,13 +2875,18 @@ export class BasicCrawler<
      * To stop the crawler gracefully (waiting for all running requests to finish), use {@apilink BasicCrawler.stop|`crawler.stop()`} instead.
      */
     async teardown(): Promise<void> {
-        serviceLocator.getEventManager().emit(EventType.PERSIST_STATE, { isMigrating: false });
+        // When this crawler initialized the event manager, its close() call emits
+        // the final persistence event after the crawler-specific state has been
+        // saved. External event managers still need an explicit event here.
+        if (!this.#closeEvents) {
+            serviceLocator.getEventManager().emit(EventType.PERSIST_STATE, { isMigrating: false });
+        }
+
+        await this.#sessionPoolDep.ifOwned(async (pool) => pool.teardown({ persistState: this.#closeEvents ?? false }));
 
         if (this.#closeEvents) {
             await serviceLocator.getEventManager().close();
         }
-
-        await this.#sessionPoolDep.ifOwned((pool) => pool.teardown());
 
         await this.#autoscaledPool?.abort();
         await this.#concurrencySystemDep?.ifOwned((system) => system.stop());

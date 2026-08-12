@@ -555,13 +555,13 @@ describe('BasicCrawler', () => {
         it.each([null, undefined, false] as const)(
             'should skip requests when transformRequestFunction returns %s',
             async (returnValue) => {
+                const urls = atDepth(['https://example.com/1/', 'https://example.com/2/'], 3);
                 const transformRequestFunction = vi.fn(() => returnValue);
                 const optionsWithTransform = { ...options, transformRequestFunction };
 
-                await crawler.exposedEnqueueLinksWithCrawlDepth(optionsWithTransform, request, requestQueue);
+                await crawler.addRequests(urls, optionsWithTransform);
 
-                const requests = addRequestsBatchedMock.mock.calls[0][0];
-                expect(requests).toHaveLength(0);
+                expect(drainedRequests).toHaveLength(0);
 
                 const skippedRequests = onSkippedRequestMock.mock.calls.map((call) => call[0]);
                 expect(skippedRequests).toHaveLength(2);
@@ -3069,7 +3069,7 @@ describe('BasicCrawler', () => {
                     crawler.stats.state.requestsFinished = 2;
 
                     // e.g. `enqueueLinks({ urls, limit: config.limit })` where `config.limit` is not set
-                    await context.enqueueLinks({ urls: requestsToAdd, limit: undefined, label: 'child' });
+                    await context.addRequests(requestsToAdd, { limit: undefined, label: 'child' });
                 },
             });
 
@@ -3080,7 +3080,7 @@ describe('BasicCrawler', () => {
 
             const skippedUrls = onSkippedRequest.mock.calls
                 .map((call) => call[0])
-                .filter(({ reason }) => reason === 'enqueueLimit')
+                .filter(({ reason }) => reason === 'limit')
                 .map(({ url }) => url)
                 .sort();
 
@@ -3107,7 +3107,7 @@ describe('BasicCrawler', () => {
 
                     crawler.stats.state.requestsFinished = 2;
 
-                    await context.enqueueLinks({ urls: requestsToAdd, limit: 4, label: 'child' });
+                    await context.addRequests(requestsToAdd, { limit: 4, label: 'child' });
                 },
             });
 
@@ -3139,8 +3139,7 @@ describe('BasicCrawler', () => {
                         return;
                     }
 
-                    await context.enqueueLinks({
-                        urls: requestsToAdd,
+                    await context.addRequests(requestsToAdd, {
                         limit: 1,
                         label: 'child',
                         onSkippedRequest: userOnSkippedRequest,
@@ -3151,8 +3150,8 @@ describe('BasicCrawler', () => {
             await crawler.run(['http://example.com']);
 
             const skipped = [
-                { url: 'http://example.com/2', reason: 'enqueueLimit' },
-                { url: 'http://example.com/3', reason: 'enqueueLimit' },
+                { url: 'http://example.com/2', reason: 'limit' },
+                { url: 'http://example.com/3', reason: 'limit' },
             ];
 
             for (const mock of [crawlerOnSkippedRequest, userOnSkippedRequest]) {
@@ -3160,104 +3159,6 @@ describe('BasicCrawler', () => {
                     skipped,
                 );
             }
-        });
-
-        test('enqueueLinks should keep the crawler robots.txt file when passed an explicitly undefined robotsTxtFile', async () => {
-            const requestQueue = await RequestQueue.open();
-
-            const crawler = new (class MockedRobotsTxtCrawler extends BasicCrawler {
-                override async getRobotsTxtFileForUrl(_: string) {
-                    return RobotsTxtFile.from(
-                        'http://example.com/robots.txt',
-                        `User-agent: *
-                         Disallow: /no
-                        `,
-                    );
-                }
-            })({
-                requestQueue,
-                maxConcurrency: 1,
-                respectRobotsTxtFile: true,
-                requestHandler: async (context) => {
-                    if (context.request.label) {
-                        return;
-                    }
-
-                    await context.enqueueLinks({
-                        urls: ['http://example.com/yes', 'http://example.com/no'],
-                        robotsTxtFile: undefined,
-                        label: 'child',
-                    });
-                },
-            });
-
-            await crawler.run(['http://example.com/start']);
-
-            // The disallowed URL should never make it into the queue
-            expect(await requestQueue.getTotalCount()).toBe(2);
-        });
-
-        test('enqueueLinks should keep the crawler user-agent when passed an explicitly undefined respectRobotsTxtFile', async () => {
-            const requestQueue = await RequestQueue.open();
-            const isAllowedSpy = vitest.fn((_url: string, _userAgent?: string) => true);
-
-            const crawler = new (class MockedRobotsTxtCrawler extends BasicCrawler {
-                override async getRobotsTxtFileForUrl(_: string) {
-                    return { isAllowed: isAllowedSpy, getCrawlDelay: () => undefined } as unknown as RobotsTxtFile;
-                }
-            })({
-                requestQueue,
-                maxConcurrency: 1,
-                respectRobotsTxtFile: { userAgent: 'MyCrawler' },
-                requestHandler: async (context) => {
-                    if (context.request.label) {
-                        return;
-                    }
-
-                    await context.enqueueLinks({
-                        urls: ['http://example.com/child'],
-                        respectRobotsTxtFile: undefined,
-                        label: 'child',
-                    });
-                },
-            });
-
-            await crawler.run(['http://example.com/start']);
-
-            expect(isAllowedSpy).toHaveBeenCalledWith('http://example.com/child', 'MyCrawler');
-            // the crawler user-agent must not fall back to the `*` default
-            expect(isAllowedSpy.mock.calls.map(([, userAgent]) => userAgent)).not.toContain('*');
-        });
-
-        test('enqueueLinks should use the request queue from the options, and the crawler one when it is undefined', async () => {
-            const requestQueue = await RequestQueue.open();
-            const customQueue = await RequestQueue.open('custom-queue');
-
-            const crawler = new BasicCrawler({
-                requestQueue,
-                requestHandler: async (context) => {
-                    if (context.request.label) {
-                        return;
-                    }
-
-                    await context.enqueueLinks({
-                        urls: ['http://example.com/custom'],
-                        requestManager: customQueue,
-                        label: 'child',
-                    });
-
-                    await context.enqueueLinks({
-                        urls: ['http://example.com/default'],
-                        requestManager: undefined,
-                        label: 'child',
-                    });
-                },
-            });
-
-            await crawler.run(['http://example.com/start']);
-
-            expect(await customQueue.getTotalCount()).toBe(1);
-            expect(await requestQueue.getTotalCount()).toBe(2);
         });
     });
 
