@@ -2014,33 +2014,24 @@ export class BasicCrawler<
                     continue;
                 }
 
-                let filtered = [requestOptions];
-                if (urlPatternObjects.length === 0) {
-                    filtered = filterRequestOptionsByPatterns(
-                        filtered,
-                        enqueueStrategyPatterns.length > 0 ? enqueueStrategyPatterns : undefined,
-                        urlExcludePatternObjects,
-                        strategy,
-                        (url) => allSkipped.push({ url, reason: 'filters' }),
-                    );
-                } else {
-                    // Filter by user patterns first (with exclude)...
-                    filtered = filterRequestOptionsByPatterns(
-                        filtered,
-                        urlPatternObjects,
-                        urlExcludePatternObjects,
-                        strategy,
-                        (url) => allSkipped.push({ url, reason: 'filters' }),
-                    );
-                    // ...then filter by the enqueue strategy (making this an AND check)
-                    filtered = filterRequestOptionsByPatterns(
-                        filtered,
-                        enqueueStrategyPatterns.length > 0 ? enqueueStrategyPatterns : undefined,
-                        [],
-                        strategy,
-                        (url) => allSkipped.push({ url, reason: 'filters' }),
-                    );
-                }
+                const onSkippedFilterUrl = (url: string) => allSkipped.push({ url, reason: 'filters' });
+
+                // Filter by user patterns first (with exclude)...
+                let filtered = filterRequestOptionsByPatterns(
+                    [requestOptions],
+                    urlPatternObjects.length > 0 ? urlPatternObjects : undefined,
+                    urlExcludePatternObjects,
+                    strategy,
+                    onSkippedFilterUrl,
+                );
+                // ...then filter by the enqueue strategy (making this an AND check)
+                filtered = filterRequestOptionsByPatterns(
+                    filtered,
+                    enqueueStrategyPatterns.length > 0 ? enqueueStrategyPatterns : undefined,
+                    [],
+                    strategy,
+                    onSkippedFilterUrl,
+                );
 
                 if (filtered.length === 0) {
                     continue;
