@@ -1879,7 +1879,7 @@ export interface SitemapRequestLoaderOptions extends UrlConstraints {
 
 // @public (undocumented)
 export type SkippedRequestCallback = (args: {
-    url: string;
+    request: Request_2;
     reason: SkippedRequestReason;
 }) => Awaitable<void>;
 

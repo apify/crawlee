@@ -4,7 +4,7 @@ import ow from 'ow';
 import { getDomain } from 'tldts';
 import type { SetRequired } from 'type-fest';
 
-import type { RequestOptions } from '../request.js';
+import type { RequestOptions, Source } from '../request.js';
 import { Request } from '../request.js';
 import type { IRequestManager } from '../storages/request_manager.js';
 import type {
@@ -23,6 +23,7 @@ import {
     applyRequestTransform,
     constructUrlPatternObjects,
     createRequestOptions,
+    createSkippedRequestArgs,
     filterRequestOptionsByPatterns,
 } from './shared.js';
 
@@ -356,17 +357,11 @@ export async function enqueueLinks(
         }
     }
 
-    async function reportSkippedRequests(
-        skippedRequests: { url: string; skippedReason?: SkippedRequestReason }[],
-        reason: SkippedRequestReason,
-    ) {
+    async function reportSkippedRequests(skippedRequests: Source[], reason: SkippedRequestReason) {
         if (onSkippedRequest && skippedRequests.length > 0) {
             await Promise.all(
-                skippedRequests.map((request) => {
-                    return onSkippedRequest({
-                        url: request.url,
-                        reason: request.skippedReason ?? reason,
-                    }) as Promise<void>;
+                skippedRequests.map((source) => {
+                    return onSkippedRequest(createSkippedRequestArgs(source, reason)) as Promise<void>;
                 }),
             );
         }
@@ -384,7 +379,7 @@ export async function enqueueLinks(
                 return true;
             }
 
-            skippedRequests.push(request);
+            if (onSkippedRequest) skippedRequests.push(request);
             return false;
         });
 
@@ -392,7 +387,7 @@ export async function enqueueLinks(
     }
 
     async function createFilteredRequests() {
-        const skippedRequests: string[] = [];
+        const skippedRequests: RequestOptions[] = [];
 
         // Step 1: Filter request options by exclude patterns, user include patterns, and strategy patterns.
         let filteredOptions: RequestOptions[];
@@ -402,7 +397,7 @@ export async function enqueueLinks(
                 enqueueStrategyPatterns.length > 0 ? enqueueStrategyPatterns : undefined,
                 urlExcludePatternObjects,
                 options.strategy,
-                (url) => skippedRequests.push(url),
+                onSkippedRequest ? (opts) => skippedRequests.push(opts) : undefined,
             );
         } else {
             // Filter by user patterns first (with exclude)
@@ -411,7 +406,7 @@ export async function enqueueLinks(
                 urlPatternObjects,
                 urlExcludePatternObjects,
                 options.strategy,
-                (url) => skippedRequests.push(url),
+                onSkippedRequest ? (opts) => skippedRequests.push(opts) : undefined,
             );
             // ...then filter by the enqueue links strategy (making this an AND check)
             filteredOptions = filterRequestOptionsByPatterns(
@@ -419,20 +414,19 @@ export async function enqueueLinks(
                 enqueueStrategyPatterns.length > 0 ? enqueueStrategyPatterns : undefined,
                 [],
                 options.strategy,
-                (url) => skippedRequests.push(url),
+                onSkippedRequest ? (opts) => skippedRequests.push(opts) : undefined,
             );
         }
 
-        await reportSkippedRequests(
-            skippedRequests.map((url) => ({ url })),
-            'filters',
-        );
+        await reportSkippedRequests(skippedRequests, 'filters');
 
         // Step 2: Apply transformRequestFunction on request options - it has the highest priority
         if (transformRequestFunction) {
             const skippedByTransform: RequestOptions[] = [];
-            filteredOptions = applyRequestTransform(filteredOptions, transformRequestFunction, (r) =>
-                skippedByTransform.push(r),
+            filteredOptions = applyRequestTransform(
+                filteredOptions,
+                transformRequestFunction,
+                onSkippedRequest ? (r) => skippedByTransform.push(r) : undefined,
             );
             await reportSkippedRequests(skippedByTransform, 'transform');
         }
@@ -451,10 +445,7 @@ export async function enqueueLinks(
     );
 
     if (requestsOverLimit?.length !== undefined && requestsOverLimit.length > 0) {
-        await reportSkippedRequests(
-            requestsOverLimit.map((r) => ({ url: typeof r === 'string' ? r : r.url! })),
-            'enqueueLimit',
-        );
+        await reportSkippedRequests(requestsOverLimit, 'enqueueLimit');
     }
 
     return { processedRequests: addedRequests, unprocessedRequests: [] };
