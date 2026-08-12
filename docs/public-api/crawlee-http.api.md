@@ -112,7 +112,7 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any> =
     // (undocumented)
     protected static optionsSchema: z.ZodObject<{
         navigationTimeoutSecs: z.ZodDefault<z.ZodCustom<number, number>>;
-        ignoreSslErrors: z.ZodDefault<z.ZodBoolean>;
+        ignoreTlsErrors: z.ZodDefault<z.ZodBoolean>;
         additionalMimeTypes: z.ZodDefault<z.ZodArray<z.ZodString>>;
         suggestResponseEncoding: z.ZodOptional<z.ZodString>;
         forceResponseEncoding: z.ZodOptional<z.ZodString>;
@@ -165,7 +165,7 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any> =
     // (undocumented)
     protected static optionsShape: {
         navigationTimeoutSecs: z.ZodDefault<z.ZodCustom<number, number>>;
-        ignoreSslErrors: z.ZodDefault<z.ZodBoolean>;
+        ignoreTlsErrors: z.ZodDefault<z.ZodBoolean>;
         additionalMimeTypes: z.ZodDefault<z.ZodArray<z.ZodString>>;
         suggestResponseEncoding: z.ZodOptional<z.ZodString>;
         forceResponseEncoding: z.ZodOptional<z.ZodString>;
@@ -221,7 +221,7 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any> =
 export interface HttpCrawlerOptions<Context extends InternalHttpCrawlingContext = InternalHttpCrawlingContext, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>> extends BasicCrawlerOptions<Context, ContextExtension, ExtendedContext, Routes> {
     additionalMimeTypes?: string[];
     forceResponseEncoding?: string;
-    ignoreSslErrors?: boolean;
+    ignoreTlsErrors?: boolean;
     navigationTimeoutSecs?: number;
     postNavigationHooks?: ((crawlingContext: CrawlingContextWithResponse & ContextExtension) => Awaitable<void | Partial<CrawlingContextWithResponse>>)[];
     preNavigationHooks?: InternalHttpHook<CrawlingContext<any>, ContextExtension>[];

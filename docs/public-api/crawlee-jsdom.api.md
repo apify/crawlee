@@ -56,7 +56,7 @@ export class JSDOMCrawler<ContextExtension = Dictionary<never>, ExtendedContext 
         runScripts: z.ZodOptional<z.ZodBoolean>;
         hideInternalConsole: z.ZodOptional<z.ZodBoolean>;
         navigationTimeoutSecs: z.ZodDefault<z.ZodCustom<number, number>>;
-        ignoreSslErrors: z.ZodDefault<z.ZodBoolean>;
+        ignoreTlsErrors: z.ZodDefault<z.ZodBoolean>;
         additionalMimeTypes: z.ZodDefault<z.ZodArray<z.ZodString>>;
         suggestResponseEncoding: z.ZodOptional<z.ZodString>;
         forceResponseEncoding: z.ZodOptional<z.ZodString>;
@@ -111,7 +111,7 @@ export class JSDOMCrawler<ContextExtension = Dictionary<never>, ExtendedContext 
         runScripts: z.ZodOptional<z.ZodBoolean>;
         hideInternalConsole: z.ZodOptional<z.ZodBoolean>;
         navigationTimeoutSecs: z.ZodDefault<z.ZodCustom<number, number>>;
-        ignoreSslErrors: z.ZodDefault<z.ZodBoolean>;
+        ignoreTlsErrors: z.ZodDefault<z.ZodBoolean>;
         additionalMimeTypes: z.ZodDefault<z.ZodArray<z.ZodString>>;
         suggestResponseEncoding: z.ZodOptional<z.ZodString>;
         forceResponseEncoding: z.ZodOptional<z.ZodString>;
