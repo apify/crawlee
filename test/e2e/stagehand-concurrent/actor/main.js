@@ -11,7 +11,12 @@ const mainOptions = {
 };
 
 await Actor.main(async () => {
-    const browserIds = new Set();
+    // Playwright's Browser has no `process()`, so number the instances by object identity.
+    const browserIds = new Map();
+    const getBrowserId = (browser) => {
+        if (!browserIds.has(browser)) browserIds.set(browser, `browser-${browserIds.size + 1}`);
+        return browserIds.get(browser);
+    };
 
     const crawler = new StagehandCrawler({
         maxConcurrency: 3,
@@ -29,9 +34,7 @@ await Actor.main(async () => {
             log.info(`Processing ${request.loadedUrl}`);
 
             // Track which browser instance handled this request via the underlying Playwright browser
-            const browser = page.context().browser();
-            const browserId = browser?.process()?.pid ?? 'unknown';
-            browserIds.add(browserId);
+            const browserId = getBrowserId(page.context().browser());
 
             // Simple extraction - just get the page title
             const result = await page.extract(

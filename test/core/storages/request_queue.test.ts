@@ -337,6 +337,13 @@ describe('RequestQueue remote', () => {
             bar: true,
             crawlDepth: 10,
         });
+        // Re-wrapping userData that comes from another Request instance (where `__crawlee` is
+        // non-enumerable) must preserve the internal state instead of dropping it via the spread.
+        const r4 = new Request({ url, method, userData: r1.userData });
+        expect(r4.skipNavigation).toBe(true);
+        expect(r4.maxRetries).toBe(5);
+        expect(r4.crawlDepth).toBe(10);
+        expect(r1.userData.__crawlee).toMatchObject({ skipNavigation: true, maxRetries: 5 });
         const desc2 = Object.getOwnPropertyDescriptor(r2.userData, '__crawlee');
         expect(desc2!.enumerable).toBe(false);
         expect(r2.maxRetries).toBeUndefined();

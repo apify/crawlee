@@ -48,8 +48,8 @@ import type { RouterRoutes as RouterRoutes_2 } from '@crawlee/core';
 import type { RouteSchemas } from '@crawlee/browser';
 import type { RoutesFromSchemas } from '@crawlee/browser';
 import type { SkippedRequestCallback } from '@crawlee/browser';
+import type { StatisticPersistedState } from '@crawlee/core';
 import { Statistics } from '@crawlee/core';
-import type { StatisticsOptions } from '@crawlee/core';
 import type { StatisticState } from '@crawlee/core';
 import type { StorageTransactionView } from '@crawlee/core';
 import type { UrlPatternInput } from '@crawlee/browser';
@@ -120,14 +120,24 @@ export interface AdaptivePlaywrightCrawlerOptions<ContextExtension = Dictionary<
 
 // Not exported by the entry point; reachable only as a referenced type.
 // @public (undocumented)
+interface AdaptivePlaywrightCrawlerPersistedStatisticState extends StatisticPersistedState {
+    // (undocumented)
+    browserRequestHandlerRuns?: number;
+    // (undocumented)
+    httpOnlyRequestHandlerRuns?: number;
+    // (undocumented)
+    renderingTypeMispredictions?: number;
+}
+
+// Not exported by the entry point; reachable only as a referenced type.
+// @public (undocumented)
 class AdaptivePlaywrightCrawlerStatistics extends Statistics {
-    constructor(options?: StatisticsOptions);
     // (undocumented)
-    protected maybeLoadStatistics(): Promise<void>;
+    protected defaultState(): AdaptivePlaywrightCrawlerStatisticState;
     // (undocumented)
-    reset(): void;
+    protected deserializeState(persistedState: AdaptivePlaywrightCrawlerPersistedStatisticState): AdaptivePlaywrightCrawlerStatisticState;
     // (undocumented)
-    state: AdaptivePlaywrightCrawlerStatisticState;
+    get state(): AdaptivePlaywrightCrawlerStatisticState;
     // (undocumented)
     trackBrowserRequestHandlerRun(): void;
     // (undocumented)

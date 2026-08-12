@@ -111,7 +111,7 @@ export interface ThrottlingRequestManagerOptions<T extends IRequestManager = IRe
      *
      * A domain that keeps answering 429 for this long is not going to be crawled by waiting longer - the
      * concurrency is too high for it, or it has blocked us outright. Its requests are deliberately left in
-     * their queue, so re-running the crawl without purging storages picks them up once the domain recovers.
+     * their queue, so re-running the crawl with `purgeOnStart` disabled picks them up once the domain recovers.
      *
      * A crawler running with `keepAlive` is exempt - outliving a domain that will not let us through is the
      * whole point there.
@@ -201,9 +201,9 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     private readonly log: CrawleeLogger;
 
     /**
-     * Sub-managers are keyed by a stable alias, so they outlive the process. They must therefore be reopened
-     * for every configured domain rather than created on first insert - otherwise a restart sees an empty map,
-     * reports the crawl finished, and strands whatever the previous run left in them.
+     * Sub-managers are keyed by a stable alias, so with `purgeOnStart` disabled they outlive the process. They
+     * must therefore be reopened for every configured domain rather than created on first insert - otherwise a
+     * restart sees an empty map, reports the crawl finished, and strands whatever the previous run left in them.
      */
     private subManagersReady?: Promise<void>;
 

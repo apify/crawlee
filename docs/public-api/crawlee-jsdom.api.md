@@ -5,6 +5,7 @@
 ```ts
 
 import { BaseHttpClient } from '@crawlee/http-client';
+import type { BatchAddRequestsResult } from '@crawlee/types';
 import { CheerioAPI } from 'cheerio';
 import { CheerioRoot } from '@crawlee/utils/internal';
 import { Configuration } from '@crawlee/http';
@@ -46,7 +47,7 @@ export class JSDOMCrawler<ContextExtension = Dictionary<never>, ExtendedContext 
     readonly body: string;
     readonly document: Document;
     } & {
-    enqueueLinks: (enqueueOptions?: EnqueueLinksOptions) => Promise<unknown>;
+    enqueueLinks: (enqueueOptions?: EnqueueLinksOptions) => Promise<BatchAddRequestsResult>;
     waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
     parseWithCheerio(selector?: string, _timeoutMs?: number): Promise<CheerioAPI>;
     }>;
@@ -178,6 +179,7 @@ JSONData extends Dictionary = any> extends InternalHttpCrawlingContext<UserData,
     body: string;
     // (undocumented)
     document: Document;
+    enqueueLinks(options?: EnqueueLinksOptions): Promise<BatchAddRequestsResult>;
     parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
     waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
     // (undocumented)
