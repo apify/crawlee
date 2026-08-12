@@ -19,6 +19,7 @@ import {
     enqueueLinks,
     HttpCrawler,
     NavigationSkippedError,
+    parseArgument,
     resolveBaseUrlForEnqueueLinksFiltering,
     Router,
     tryAbsoluteURL,
@@ -28,7 +29,7 @@ import { type CheerioRoot } from '@crawlee/utils/internal';
 import { type RobotsTxtFile, sleep } from '@crawlee/utils';
 import type { DOMWindow } from 'jsdom';
 import { JSDOM, ResourceLoader, VirtualConsole } from 'jsdom';
-import ow from 'ow';
+import { z } from 'zod';
 
 import { addTimeoutToPromise } from '@apify/timeout';
 
@@ -201,16 +202,23 @@ export class JSDOMCrawler<
 > extends HttpCrawler<JSDOMCrawlingContext, ContextExtension, ExtendedContext, Routes> {
     protected static override optionsShape = {
         ...HttpCrawler.optionsShape,
-        runScripts: ow.optional.boolean,
-        hideInternalConsole: ow.optional.boolean,
+        runScripts: z.boolean().optional(),
+        hideInternalConsole: z.boolean().optional(),
     };
+
+    protected static override optionsSchema = z.strictObject(JSDOMCrawler.optionsShape);
 
     #runScripts: boolean;
     #hideInternalConsole: boolean;
     #virtualConsole: VirtualConsole | null = null;
 
     constructor(options: JSDOMCrawlerOptions<ContextExtension, ExtendedContext, any, any, Routes> = {}) {
-        const { runScripts = false, hideInternalConsole = false, contextPipelineBuilder, ...httpOptions } = options;
+        const {
+            runScripts = false,
+            hideInternalConsole = false,
+            contextPipelineBuilder,
+            ...httpOptions
+        } = parseArgument(options, JSDOMCrawler.optionsSchema, 'JSDOMCrawlerOptions');
 
         super({
             ...httpOptions,

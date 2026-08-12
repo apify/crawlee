@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import type { BaseHttpClient } from '@crawlee/types';
+import { BaseHttpClient } from '@crawlee/http-client';
 import { URL_WITH_COMMAS_REGEX } from '@crawlee/utils/internal';
 import { downloadListOfUrls, extractUrls } from '@crawlee/utils';
 
@@ -15,11 +15,11 @@ describe('downloadListOfUrls()', () => {
             .split(/[\r\n]+/g)
             .map((u) => u.trim());
 
-        const mockClient: BaseHttpClient = {
+        const mockClient = Object.assign(Object.create(BaseHttpClient.prototype) as BaseHttpClient, {
             async sendRequest() {
                 return new Response(text);
             },
-        };
+        });
 
         await expect(
             downloadListOfUrls({

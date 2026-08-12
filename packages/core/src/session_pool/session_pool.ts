@@ -1,6 +1,6 @@
 import type { Dictionary, ISessionPool } from '@crawlee/types';
 import { AsyncQueue } from '@sapphire/async-queue';
-import ow from 'ow';
+import { z } from 'zod';
 
 import type { PersistenceOptions } from '../crawlers/statistics.js';
 import type { EventManager } from '../events/event_manager.js';
@@ -8,6 +8,7 @@ import { EventType } from '../events/event_manager.js';
 import type { CrawleeLogger } from '../log.js';
 import { serviceLocator } from '../service_locator.js';
 import { KeyValueStore } from '../storages/key_value_store.js';
+import { parseArgument, schemas, validators } from '../validators.js';
 import { MAX_POOL_SIZE, PERSIST_STATE_KEY } from './consts.js';
 import { createDefaultSessionFingerprint } from './fingerprint.js';
 import type { SessionOptions } from './session.js';
@@ -15,6 +16,23 @@ import { Session } from './session.js';
 
 const SESSION_REUSE_STRATEGIES = ['random', 'round-robin', 'use-until-failure'] as const;
 export type SessionReuseStrategy = (typeof SESSION_REUSE_STRATEGIES)[number];
+
+// `schemas.anyObject` passes values through by reference (object schemas return a pruned plain
+// copy), so class instances like loggers keep their prototype.
+const sessionPoolOptionsSchema = z.strictObject({
+    id: z.union([schemas.anyNumber, z.string()]).optional(),
+    maxPoolSize: schemas.anyNumber.default(MAX_POOL_SIZE),
+    persistStateKeyValueStoreId: z.string().optional(),
+    persistStateKey: z.string().optional(),
+    createSessionFunction: schemas.anyFunction.optional(),
+    sessionOptions: schemas.anyObject.default(() => ({})),
+    log: validators.logger.default(() => serviceLocator.getLogger()),
+    persistenceOptions: schemas.anyObject.default(() => ({ enable: true })),
+    sessionReuseStrategy: z.enum(SESSION_REUSE_STRATEGIES).default('random'),
+});
+const createSessionOptionsSchema = z.strictObject({
+    sessionOptions: schemas.anyObject.default(() => ({})),
+});
 
 /**
  * Factory user-function which creates customized {@apilink Session} instances.
@@ -154,34 +172,17 @@ export class SessionPool implements ISessionPool {
     #roundRobinIndex = 0;
 
     constructor(options: SessionPoolOptions = {}) {
-        ow(
-            options,
-            ow.object.exactShape({
-                id: ow.optional.any(ow.number, ow.string),
-                maxPoolSize: ow.optional.number,
-                persistStateKeyValueStoreId: ow.optional.string,
-                persistStateKey: ow.optional.string,
-                createSessionFunction: ow.optional.function,
-                sessionOptions: ow.optional.object,
-                log: ow.optional.object,
-                persistenceOptions: ow.optional.object,
-                sessionReuseStrategy: ow.optional.string.oneOf([...SESSION_REUSE_STRATEGIES]),
-            }),
-        );
-
         const {
             id,
-            maxPoolSize = MAX_POOL_SIZE,
+            maxPoolSize,
             persistStateKeyValueStoreId,
             persistStateKey,
             createSessionFunction,
-            sessionOptions = {},
-            log = serviceLocator.getLogger(),
-            persistenceOptions = {
-                enable: true,
-            },
-            sessionReuseStrategy = 'random',
-        } = options;
+            sessionOptions,
+            log,
+            persistenceOptions,
+            sessionReuseStrategy,
+        } = parseArgument(options, sessionPoolOptionsSchema);
 
         this.id = id != null ? String(id) : String(SessionPool.#nextId++);
         this.#sessionReuseStrategy = sessionReuseStrategy;
@@ -433,8 +434,7 @@ export class SessionPool implements ISessionPool {
      * @returns New session.
      */
     private async defaultCreateSessionFunction(options: { sessionOptions?: SessionOptions } = {}): Promise<Session> {
-        ow(options, ow.object.exactShape({ sessionOptions: ow.optional.object }));
-        const { sessionOptions = {} } = options;
+        const { sessionOptions } = parseArgument(options, createSessionOptionsSchema);
 
         return new Session(sessionOptions);
     }

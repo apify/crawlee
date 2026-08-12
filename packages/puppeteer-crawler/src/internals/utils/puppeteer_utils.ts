@@ -23,14 +23,14 @@ import { createRequire } from 'node:module';
 import vm from 'node:vm';
 
 import type { Request } from '@crawlee/browser';
-import { Configuration, KeyValueStore, serviceLocator, validators } from '@crawlee/browser';
+import { Configuration, KeyValueStore, parseArgument, schemas, serviceLocator, validators } from '@crawlee/browser';
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 import { type CheerioRoot } from '@crawlee/utils/internal';
 import { expandShadowRoots, sleep } from '@crawlee/utils';
 import type { ProtocolMapping } from 'devtools-protocol/types/protocol-mapping.js';
-import ow from 'ow';
 // @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
 import type { HTTPRequest as PuppeteerRequest, HTTPResponse, Page, ResponseForRequest } from 'puppeteer';
+import { z } from 'zod';
 
 import { LruCache } from '@apify/datastructures';
 
@@ -44,6 +44,38 @@ const jqueryPath = require.resolve('jquery');
 
 const MAX_INJECT_FILE_CACHE_SIZE = 10;
 const DEFAULT_BLOCK_REQUEST_URL_PATTERNS = ['.css', '.jpg', '.jpeg', '.png', '.svg', '.gif', '.woff', '.pdf', '.zip'];
+
+const filePathSchema = z.string();
+const injectFileOptionsSchema = z.strictObject({
+    surviveNavigations: z.boolean().optional(),
+});
+const responseUrlRulesSchema = schemas.arrayOf(z.union([z.string(), z.instanceof(RegExp)]), 'strings or RegExps');
+const gotoExtendedRequestSchema = z.looseObject({
+    url: z.url(),
+    method: z.string().optional(),
+    headers: schemas.anyObject.optional(),
+    payload: z.union([z.string(), z.instanceof(Uint8Array)]).optional(),
+});
+const blockRequestsOptionsSchema = z.strictObject({
+    urlPatterns: schemas.arrayOf(z.string(), 'strings').default(DEFAULT_BLOCK_REQUEST_URL_PATTERNS),
+    extraUrlPatterns: schemas.arrayOf(z.string(), 'strings').default(() => []),
+});
+const infiniteScrollOptionsSchema = z.strictObject({
+    timeoutSecs: schemas.anyNumber.default(0),
+    maxScrollHeight: schemas.anyNumber.default(0),
+    waitForSecs: schemas.anyNumber.default(4),
+    scrollDownAndUp: z.boolean().default(false),
+    buttonSelector: z.string().optional(),
+    stopScrollCallback: schemas.anyFunction.optional(),
+});
+const saveSnapshotOptionsSchema = z.strictObject({
+    key: z.string().min(1).default('SNAPSHOT'),
+    screenshotQuality: schemas.anyNumber.default(50),
+    saveScreenshot: z.boolean().default(true),
+    saveHtml: z.boolean().default(true),
+    keyValueStoreName: z.string().optional(),
+    configuration: schemas.anyObject.optional(),
+});
 
 const getLog = () => serviceLocator.getChildLog('Puppeteer Utils');
 
@@ -120,14 +152,9 @@ const injectedFilesCache = new LruCache({ maxLength: MAX_INJECT_FILE_CACHE_SIZE 
  * @param [options]
  */
 export async function injectFile(page: Page, filePath: string, options: InjectFileOptions = {}): Promise<unknown> {
-    ow(page, ow.object.validate(validators.browserPage));
-    ow(filePath, ow.string);
-    ow(
-        options,
-        ow.object.exactShape({
-            surviveNavigations: ow.optional.boolean,
-        }),
-    );
+    parseArgument(page, validators.browserPage);
+    parseArgument(filePath, filePathSchema);
+    const { surviveNavigations } = parseArgument(options, injectFileOptionsSchema);
 
     let contents = injectedFilesCache.get(filePath);
     if (!contents) {
@@ -135,7 +162,7 @@ export async function injectFile(page: Page, filePath: string, options: InjectFi
         injectedFilesCache.add(filePath, contents);
     }
     const evalP = page.evaluate(contents);
-    if (options.surviveNavigations) {
+    if (surviveNavigations) {
         page.on('framenavigated', async () =>
             page
                 .evaluate(contents)
@@ -173,7 +200,7 @@ export async function injectFile(page: Page, filePath: string, options: InjectFi
  * @param [options.surviveNavigations] Opt-out option to disable the JQuery reinjection after navigation.
  */
 export async function injectJQuery(page: Page, options?: { surviveNavigations?: boolean }): Promise<unknown> {
-    ow(page, ow.object.validate(validators.browserPage));
+    parseArgument(page, validators.browserPage);
     return injectFile(page, jqueryPath, { surviveNavigations: options?.surviveNavigations ?? true });
 }
 
@@ -194,7 +221,7 @@ export async function parseWithCheerio(
     ignoreShadowRoots = false,
     ignoreIframes = false,
 ): Promise<CheerioRoot> {
-    ow(page, ow.object.validate(validators.browserPage));
+    parseArgument(page, validators.browserPage);
 
     if (page.frames().length > 1 && !ignoreIframes) {
         const frames = await page.$$('iframe');
@@ -282,16 +309,8 @@ export async function parseWithCheerio(
  * @param [options]
  */
 export async function blockRequests(page: Page, options: BlockRequestsOptions = {}): Promise<void> {
-    ow(page, ow.object.validate(validators.browserPage));
-    ow(
-        options,
-        ow.object.exactShape({
-            urlPatterns: ow.optional.array.ofType(ow.string),
-            extraUrlPatterns: ow.optional.array.ofType(ow.string),
-        }),
-    );
-
-    const { urlPatterns = DEFAULT_BLOCK_REQUEST_URL_PATTERNS, extraUrlPatterns = [] } = options;
+    parseArgument(page, validators.browserPage);
+    const { urlPatterns, extraUrlPatterns } = parseArgument(options, blockRequestsOptionsSchema);
 
     const patternsToBlock = [...urlPatterns, ...extraUrlPatterns];
 
@@ -368,9 +387,9 @@ export async function cacheResponses(
     cache: Dictionary<Partial<ResponseForRequest>>,
     responseUrlRules: (string | RegExp)[],
 ): Promise<void> {
-    ow(page, ow.object.validate(validators.browserPage));
-    ow(cache, ow.object);
-    ow(responseUrlRules, ow.array.ofType(ow.any(ow.string, ow.regExp)));
+    parseArgument(page, validators.browserPage);
+    parseArgument(cache, schemas.anyObject);
+    parseArgument(responseUrlRules, responseUrlRulesSchema);
 
     serviceLocator
         .getLogger()
@@ -476,17 +495,9 @@ export async function gotoExtended(
     request: Request,
     gotoOptions: DirectNavigationOptions = {},
 ): Promise<HTTPResponse | null> {
-    ow(page, ow.object.validate(validators.browserPage));
-    ow(
-        request,
-        ow.object.partialShape({
-            url: ow.string.url,
-            method: ow.optional.string,
-            headers: ow.optional.object,
-            payload: ow.optional.any(ow.string, ow.uint8Array),
-        }),
-    );
-    ow(gotoOptions, ow.object);
+    parseArgument(page, validators.browserPage);
+    parseArgument(request, gotoExtendedRequestSchema);
+    parseArgument(gotoOptions, schemas.anyObject);
 
     gotoOptions = { ...gotoOptions };
 
@@ -588,27 +599,9 @@ export interface InfiniteScrollOptions {
  * @param [options]
  */
 export async function infiniteScroll(page: Page, options: InfiniteScrollOptions = {}): Promise<void> {
-    ow(page, ow.object.validate(validators.browserPage));
-    ow(
-        options,
-        ow.object.exactShape({
-            timeoutSecs: ow.optional.number,
-            maxScrollHeight: ow.optional.number,
-            waitForSecs: ow.optional.number,
-            scrollDownAndUp: ow.optional.boolean,
-            buttonSelector: ow.optional.string,
-            stopScrollCallback: ow.optional.function,
-        }),
-    );
-
-    const {
-        timeoutSecs = 0,
-        maxScrollHeight = 0,
-        waitForSecs = 4,
-        scrollDownAndUp = false,
-        buttonSelector,
-        stopScrollCallback,
-    } = options;
+    parseArgument(page, validators.browserPage);
+    const { timeoutSecs, maxScrollHeight, waitForSecs, scrollDownAndUp, buttonSelector, stopScrollCallback } =
+        parseArgument(options, infiniteScrollOptionsSchema);
 
     let finished;
     const startTime = Date.now();
@@ -753,27 +746,11 @@ export interface SaveSnapshotOptions {
  * @param [options]
  */
 export async function saveSnapshot(page: Page, options: SaveSnapshotOptions = {}): Promise<void> {
-    ow(page, ow.object.validate(validators.browserPage));
-    ow(
+    parseArgument(page, validators.browserPage);
+    const { key, screenshotQuality, saveScreenshot, saveHtml, keyValueStoreName, configuration } = parseArgument(
         options,
-        ow.object.exactShape({
-            key: ow.optional.string.nonEmpty,
-            screenshotQuality: ow.optional.number,
-            saveScreenshot: ow.optional.boolean,
-            saveHtml: ow.optional.boolean,
-            keyValueStoreName: ow.optional.string,
-            configuration: ow.optional.object,
-        }),
+        saveSnapshotOptionsSchema,
     );
-
-    const {
-        key = 'SNAPSHOT',
-        screenshotQuality = 50,
-        saveScreenshot = true,
-        saveHtml = true,
-        keyValueStoreName,
-        configuration,
-    } = options;
 
     try {
         const store = await KeyValueStore.open(keyValueStoreName ? { name: keyValueStoreName } : null, {
@@ -823,7 +800,7 @@ ${error.message}
 }
 
 export async function closeCookieModals(page: Page): Promise<void> {
-    ow(page, ow.object.validate(validators.browserPage));
+    parseArgument(page, validators.browserPage);
     const idcac = await getIdcacPlaywright();
 
     if (idcac?.getInjectableScript()) {

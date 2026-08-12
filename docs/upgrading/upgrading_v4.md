@@ -54,6 +54,7 @@ The purely mechanical renames, collected in one place. Where a row links to a se
 | `autoscaledPoolOptions` | `taskLoopOptions` ([narrowed](#autoscaledpooloptions-is-now-taskloopoptions-and-no-longer-carries-concurrency-config)) |
 | `gotScraping` (from `@crawlee/utils`) | `GotScrapingHttpClient` (`@crawlee/got-scraping-client`) |
 | `SDK_`-prefixed internal KVS keys | `CRAWLEE_`-prefixed ([details](#internal-kvs-keys-renamed)) |
+| `ArgumentError` (from `ow`) | `ArgumentValidationError` ([details](#argument-validation-errors-use-zod)) |
 
 ## Changes most users will hit
 
@@ -74,6 +75,42 @@ Support for older TypeScript versions was dropped. Crawlee ships compiled JavaSc
 ### Cheerio v1
 
 Previously, we kept the dependency on cheerio locked to the latest RC version, since there were many breaking changes introduced in v1.0. This release bumps cheerio to the stable v1. Also, we now use the default `parse5` internally.
+
+### Argument validation errors use zod
+
+Argument validation moved from `ow` to [zod](https://zod.dev). Invalid inputs now throw `ArgumentValidationError` (previously ow's `ArgumentError`) — update any code catching it by name or `instanceof`.
+
+The messages read field-first and name the received type, value, and the validated interface:
+
+```text
+// v3 (ow)
+Expected property `maxRequestRetries` to be of type `number` but received type `string` in object `HttpCrawlerOptions`
+
+// v4 (zod)
+Invalid input: expected number, received the string `3` at `maxRequestRetries` in `HttpCrawlerOptions`
+```
+
+Unlike ow, all problems are reported at once (one line per issue), and arrays name their element type:
+
+```text
+Invalid input: expected number, received the string `many` at `maxRequestRetries` in `HttpCrawlerOptions`
+Invalid input: expected an array of numbers, received the number `500` at `additionalHttpErrorStatusCodes` in `HttpCrawlerOptions`
+```
+
+For programmatic handling, the error exposes zod's structured output — `error.issues` (the [zod issues](https://zod.dev/error-customization) array) and `error.cause` (the raw `ZodError`):
+
+```ts
+try {
+    new CheerioCrawler({ maxRequestRetries: '3' } as any);
+} catch (error) {
+    if (error instanceof ArgumentValidationError) {
+        error.issues[0].path; // ['maxRequestRetries']
+        error.cause; // ZodError
+    }
+}
+```
+
+One behavioral change: options validated against class interfaces (`httpClient`, `configuration`, `eventManager`) now require actual instances (`instanceof BaseHttpClient`, …) rather than duck-typed plain objects — extend the class (or `Object.create(BaseHttpClient.prototype)` in tests) instead of passing an object literal.
 
 ### Zod 4.1+ required
 

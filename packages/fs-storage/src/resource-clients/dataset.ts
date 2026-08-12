@@ -1,6 +1,6 @@
 import type * as storage from '@crawlee/types';
 import type { CrawleeLogger, Dictionary } from '@crawlee/types';
-import { s } from '@sapphire/shapeshift';
+import { parseArgument, schemas } from '@crawlee/utils/internal';
 
 import type { FileSystemDatasetClient as NativeFileSystemDatasetBackend } from '@crawlee/fs-storage-native';
 
@@ -91,13 +91,7 @@ export class DatasetBackend<Data extends Dictionary = Dictionary>
             );
         }
 
-        const { desc, limit, offset } = s
-            .object({
-                desc: s.boolean().optional(),
-                limit: s.number().int().optional(),
-                offset: s.number().int().optional(),
-            })
-            .parse(options);
+        const { desc, limit, offset } = parseArgument(options, schemas.datasetListItemsOptions);
 
         const page = await this.#nativeBackend.getData(offset ?? 0, limit, desc ?? false, false);
 

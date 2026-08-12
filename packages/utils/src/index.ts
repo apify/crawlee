@@ -7,3 +7,4 @@ export * as social from './internals/social.js';
 export * from './internals/open_graph_parser.js';
 export * from './internals/robots.js';
 export * from './internals/sitemap.js';
+export * from './internals/validation.js';

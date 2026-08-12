@@ -13,17 +13,37 @@ import {
     constructUrlPatternObjects,
     createRequestOptions,
     filterRequestOptionsByPatterns,
+    parseArgument,
+    urlPatternSchema,
     Request as CrawleeRequest,
+    schemas,
     serviceLocator,
 } from '@crawlee/browser';
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
-import ow from 'ow';
 import type { Frame, Page, Request, Route } from 'playwright';
+import { z } from 'zod';
 
 const STARTING_Z_INDEX = 2147400000;
 const getLog = () => serviceLocator.getChildLog('Playwright Click Elements');
 
 type ClickOptions = Parameters<Page['click']>[1];
+
+const enqueueLinksByClickingElementsOptionsSchema = z.strictObject({
+    page: schemas.objectWithKeys(['goto', 'evaluate']),
+    requestManager: schemas.objectWithKeys(['fetchNextRequest', 'addRequestsBatched']),
+    selector: z.string(),
+    userData: schemas.anyObject.optional(),
+    clickOptions: schemas.anyObject.optional(),
+    include: schemas.arrayOf(urlPatternSchema, 'URL patterns').optional(),
+    exclude: schemas.arrayOf(urlPatternSchema, 'URL patterns').optional(),
+    transformRequestFunction: schemas.anyFunction.optional(),
+    waitForPageIdleSecs: schemas.anyNumber.default(1),
+    maxWaitForPageIdleSecs: schemas.anyNumber.default(5),
+    label: z.string().optional(),
+    forefront: z.boolean().optional(),
+    skipNavigation: z.boolean().optional(),
+    onSkippedRequest: schemas.anyFunction.optional(),
+});
 
 export interface EnqueueLinksByClickingElementsOptions {
     /**
@@ -195,26 +215,10 @@ export interface EnqueueLinksByClickingElementsOptions {
 export async function enqueueLinksByClickingElements(
     options: EnqueueLinksByClickingElementsOptions,
 ): Promise<BatchAddRequestsResult> {
-    const urlPatternValidator = ow.any(ow.string, ow.regExp, ow.object.hasKeys('glob'), ow.object.hasKeys('regexp'));
-
-    ow(
+    const parsedOptions = parseArgument(
         options,
-        ow.object.exactShape({
-            page: ow.object.hasKeys('goto', 'evaluate'),
-            requestManager: ow.object.hasKeys('fetchNextRequest', 'addRequestsBatched'),
-            selector: ow.string,
-            userData: ow.optional.object,
-            clickOptions: ow.optional.object,
-            include: ow.optional.array.ofType(urlPatternValidator),
-            exclude: ow.optional.array.ofType(urlPatternValidator),
-            transformRequestFunction: ow.optional.function,
-            waitForPageIdleSecs: ow.optional.number,
-            maxWaitForPageIdleSecs: ow.optional.number,
-            label: ow.optional.string,
-            forefront: ow.optional.boolean,
-            skipNavigation: ow.optional.boolean,
-            onSkippedRequest: ow.optional.function,
-        }),
+        enqueueLinksByClickingElementsOptionsSchema,
+        'EnqueueLinksByClickingElementsOptions',
     );
 
     const {
@@ -225,11 +229,11 @@ export async function enqueueLinksByClickingElements(
         include,
         exclude,
         transformRequestFunction,
-        waitForPageIdleSecs = 1,
-        maxWaitForPageIdleSecs = 5,
+        waitForPageIdleSecs,
+        maxWaitForPageIdleSecs,
         forefront,
         onSkippedRequest,
-    } = options;
+    } = parsedOptions;
 
     const waitForPageIdleMillis = waitForPageIdleSecs * 1000;
     const maxWaitForPageIdleMillis = maxWaitForPageIdleSecs * 1000;
@@ -244,7 +248,7 @@ export async function enqueueLinksByClickingElements(
         maxWaitForPageIdleMillis,
         clickOptions,
     });
-    const requestOptions = createRequestOptions(interceptedRequests, options);
+    const requestOptions = createRequestOptions(interceptedRequests, parsedOptions);
     const skippedByFilters: string[] = [];
     let filteredOptions = filterRequestOptionsByPatterns(
         requestOptions,

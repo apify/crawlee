@@ -1,30 +1,14 @@
 import { randomUUID } from 'node:crypto';
 
 import type * as storage from '@crawlee/types';
+import { parseArgument, schemas } from '@crawlee/utils/internal';
 import { AsyncQueue } from '@sapphire/async-queue';
-import { s } from '@sapphire/shapeshift';
+import { z } from 'zod';
 import type { MemoryStorageBackend } from '../memory-storage.js';
 import { purgeNullsFromObject, uniqueKeyToRequestId } from '../utils.js';
 import { BaseClient } from './common/base-client.js';
 
-const requestShape = s
-    .object({
-        id: s.string(),
-        url: s.string().url({ allowedProtocols: ['http:', 'https:'] }),
-        uniqueKey: s.string(),
-        method: s.string().optional(),
-        retryCount: s.number().int().optional(),
-        handledAt: s.union([s.string(), s.date().valid()]).optional(),
-    })
-    .passthrough();
-
-const requestShapeWithoutId = requestShape.omit(['id']);
-
-const batchRequestShapeWithoutId = requestShapeWithoutId.array();
-
-const requestOptionsShape = s.object({
-    forefront: s.boolean().optional(),
-});
+const uniqueKeySchema = z.string();
 
 export interface RequestQueueBackendOptions {
     name?: string;
@@ -248,8 +232,8 @@ export class RequestQueueBackend extends BaseClient implements storage.RequestQu
         requests: storage.RequestSchema[],
         options: storage.RequestQueueOperationOptions = {},
     ): Promise<storage.BatchAddRequestsResult> {
-        batchRequestShapeWithoutId.parse(requests);
-        requestOptionsShape.parse(options);
+        parseArgument(requests, schemas.storageRequestBatch);
+        parseArgument(options, schemas.requestQueueOperationOptions);
 
         // Serialize against other mutators (and the head scans in `isEmpty`/`isFinished`) so that the
         // shared `requests` map, `forefrontRequestIds` array and request counts are not corrupted by a
@@ -309,7 +293,7 @@ export class RequestQueueBackend extends BaseClient implements storage.RequestQu
     }
 
     async getRequest(uniqueKey: string): Promise<storage.UpdateRequestSchema | undefined> {
-        s.string().parse(uniqueKey);
+        parseArgument(uniqueKey, uniqueKeySchema);
         this.updateTimestamps(false);
         const id = uniqueKeyToRequestId(uniqueKey);
         const json = this.#requests.get(id)?.json;
@@ -317,7 +301,7 @@ export class RequestQueueBackend extends BaseClient implements storage.RequestQu
     }
 
     async markRequestAsHandled(request: storage.UpdateRequestSchema): Promise<storage.QueueOperationInfo | undefined> {
-        requestShape.parse(request);
+        parseArgument(request, schemas.storageRequest);
         this.updateTimestamps(false);
 
         // Serialize against other mutators (and the head scans in `isEmpty`/`isFinished`) so the shared
@@ -369,8 +353,8 @@ export class RequestQueueBackend extends BaseClient implements storage.RequestQu
         request: storage.UpdateRequestSchema,
         options: storage.RequestQueueOperationOptions = {},
     ): Promise<storage.QueueOperationInfo | undefined> {
-        requestShape.parse(request);
-        requestOptionsShape.parse(options);
+        parseArgument(request, schemas.storageRequest);
+        parseArgument(options, schemas.requestQueueOperationOptions);
         this.updateTimestamps(false);
 
         // Serialize against other mutators (and the head scans in `isEmpty`/`isFinished`) so the shared

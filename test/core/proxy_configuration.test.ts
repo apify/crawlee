@@ -1,4 +1,4 @@
-import { ProxyConfiguration } from '@crawlee/core';
+import { ArgumentValidationError, ProxyConfiguration } from '@crawlee/core';
 
 describe('ProxyConfiguration', () => {
     test('newUrl() should return proxy URL', async () => {
@@ -146,26 +146,16 @@ describe('ProxyConfiguration', () => {
             }
         });
 
-        test('should throw proxyUrls array is empty', async () => {
-            try {
-                const proxyConfiguration = new ProxyConfiguration({
-                    proxyUrls: [],
-                });
-                throw new Error('wrong error');
-            } catch (err) {
-                expect((err as Error).message).toMatch('Expected property array `proxyUrls` to not be empty');
-            }
+        test('should throw proxyUrls array is empty', () => {
+            const create = () => new ProxyConfiguration({ proxyUrls: [] });
+            expect(create).toThrow(ArgumentValidationError);
+            expect(create).toThrow(/Too small.*at `proxyUrls`/);
         });
 
-        test('should throw invalid custom URL form', async () => {
-            try {
-                const proxyConfiguration = new ProxyConfiguration({
-                    proxyUrls: ['http://proxy.com:1111*invalid_url'],
-                });
-                throw new Error('wrong error');
-            } catch (err) {
-                expect((err as Error).message).toMatch('to be a URL, got `http://proxy.com:1111*invalid_url`');
-            }
+        test('should throw invalid custom URL form', () => {
+            const create = () => new ProxyConfiguration({ proxyUrls: ['http://proxy.com:1111*invalid_url'] });
+            expect(create).toThrow(ArgumentValidationError);
+            expect(create).toThrow(/at `proxyUrls\[0\]`/);
         });
     });
 });
