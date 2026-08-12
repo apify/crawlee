@@ -45,7 +45,7 @@ const crawler = new AdaptivePlaywrightCrawler({
     },
 });
 
-// The v4 crawler.log (CrawleeLogger) has no setLevel; raise the level on the global @apify/log instead.
+// CrawleeLogger has no setLevel; raise the level on the global @apify/log instead.
 log.setLevel(LogLevel.DEBUG);
 
 await crawler.run(['https://crawlee.dev/js/docs/next/examples/accept-user-input']);

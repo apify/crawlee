@@ -28,8 +28,6 @@ await Actor.main(async () => {
     const crawler = new CheerioCrawler({
         additionalMimeTypes: ['application/json'],
         preNavigationHooks: [
-            // v4 hooks receive only the crawling context (no gotOptions), and the
-            // Session cookie API is setCookie(rawCookie, url).
             async ({ session, request }) => {
                 await session.setCookie('session=true', request.url);
                 request.headers.cookie = 'hook_request=true';

@@ -263,7 +263,7 @@ export class LinkeDOMCrawler<
                     onSkippedRequest: this.handleSkippedRequest,
                     originalRequestUrl: crawlingContext.request.url,
                     finalRequestUrl: crawlingContext.request.loadedUrl,
-                })) as BatchAddRequestsResult; // TODO make this type safe
+                })) as BatchAddRequestsResult; // TODO make this type safe, see https://github.com/apify/crawlee/issues/4024
             },
             async waitForSelector(selector: string, timeoutMs = 5_000) {
                 const $ = cheerio.load(crawlingContext.body);

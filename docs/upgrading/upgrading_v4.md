@@ -266,37 +266,6 @@ Renamed properties — `Dataset.config`, `KeyValueStore.config`, `Snapshotter.co
 
 The `configuration` crawler option is unchanged, as are `serviceLocator.getConfiguration()` and `serviceLocator.setConfiguration()`.
 
-### The `log` crawler option is replaced by `logger`
-
-The crawler constructors no longer accept a `log` option with an `@apify/log` `Log` instance. Pass a `logger` implementing the `CrawleeLogger` interface instead. To keep using an `@apify/log` instance (e.g. a `child()` with a custom prefix), wrap it in the `ApifyLogAdapter` from `@crawlee/core`:
-
-```ts
-// v3
-import { CheerioCrawler, log } from 'crawlee';
-
-const crawler = new CheerioCrawler({
-    log: log.child({ prefix: 'MyCrawler' }),
-});
-
-// v4
-import { ApifyLogAdapter, CheerioCrawler, log } from 'crawlee';
-
-const crawler = new CheerioCrawler({
-    logger: new ApifyLogAdapter(log.child({ prefix: 'MyCrawler' })),
-});
-```
-
-Related: `crawler.log` and the crawling context `log` are typed as `CrawleeLogger`, which has no `setLevel()` method - level filtering belongs to the underlying logging library. With the default logger, set the level on the global `@apify/log` instance instead:
-
-```ts
-// v3
-crawler.log.setLevel(LogLevel.DEBUG);
-
-// v4
-import log, { LogLevel } from '@apify/log';
-log.setLevel(LogLevel.DEBUG);
-```
-
 ### Navigation and the request handler are timed separately
 
 In v3, navigation ran inside the request handler's time window, and the two options were summed (plus an undocumented 10 second buffer) to form the actual limit. Setting `requestHandlerTimeoutSecs: 60` on a `PlaywrightCrawler` therefore produced errors complaining about 130 seconds.
@@ -467,40 +436,6 @@ preNavigationHooks: [
     },
 ],
 ```
-
-### `handleCloudflareChallenge` hooks must return the response
-
-In v3, calling `handleCloudflareChallenge()` in a `postNavigationHooks` entry was enough on its own - the helper received the session and removed `403` from the session pool's blocked status codes, so the challenge page (which is served with a 403 status) did not trip the blocked-request detection.
-
-In v4, blocked status code handling is internal to the crawler and runs *after* the post-navigation hooks, and the helper no longer touches it. Instead, `handleCloudflareChallenge()` returns the reloaded `Response` after solving the challenge, and the hook must return it as the new context response - otherwise the crawler still sees the original 403 challenge response and throws a `SessionError` before your `requestHandler` runs, even when the challenge was solved successfully.
-
-Use the pre-wrapped `handleCloudflareChallengeHook()` (it also handles the no-challenge case), or return the response yourself:
-
-```ts
-// v3
-postNavigationHooks: [
-    async ({ handleCloudflareChallenge }) => {
-        await handleCloudflareChallenge();
-    },
-],
-
-// v4
-import { handleCloudflareChallengeHook } from 'crawlee';
-
-postNavigationHooks: [handleCloudflareChallengeHook()],
-
-// v4 (manual equivalent)
-postNavigationHooks: [
-    async ({ handleCloudflareChallenge }) => {
-        // Returning `{ response: undefined }` would clobber the navigation response
-        // when there was no challenge, so only return it when one was solved.
-        const response = await handleCloudflareChallenge();
-        return response && { response };
-    },
-],
-```
-
-If you called the standalone `playwrightUtils.handleCloudflareChallenge(page, url, session, options)` directly, note that the `session` parameter is gone - the v4 signature is `handleCloudflareChallenge(page, url, options)`, so an options object passed in the old fourth position would be silently ignored.
 
 ### Removed crawling context properties
 
@@ -853,6 +788,37 @@ The exported handler types were reshaped accordingly. `ErrorHandler` and `Reques
 
 `serialize` and `deserialize` now take and return values rather than strings (so v3 records will not load) and each also accept a [Standard Schema](https://standardschema.dev) — a zod codec works as `deserialize` directly — `reset()` is synchronous, no longer clears the persisted record (the new `resetStore()` does) and doubles as a way to establish the state without awaiting `initialize()`, `persistStateKvsName` and `persistStateKvsId` collapsed into a single `keyValueStore` option taking a store (or a pending `KeyValueStore.open()`), `defaultState` also accepts a factory (which you need for a state `structuredClone` cannot rebuild, as the deep copy no longer goes through `serialize`/`deserialize`), and there is a new `persistenceTimeoutMillis` option. `teardown()` is no longer terminal — `initialize()` can be called again to open another persistence window — and a write that fails during a periodic `PERSIST_STATE` or during `teardown()` is warned about rather than thrown. A direct `persistState()` still throws.
 
+### The `log` crawler option is replaced by `logger`
+
+The crawler constructors no longer accept a `log` option with an `@apify/log` `Log` instance. Pass a `logger` implementing the `CrawleeLogger` interface instead. To keep using an `@apify/log` instance (e.g. a `child()` with a custom prefix), wrap it in the `ApifyLogAdapter` from `@crawlee/core`:
+
+```ts
+// v3
+import { CheerioCrawler, log } from 'crawlee';
+
+const crawler = new CheerioCrawler({
+    log: log.child({ prefix: 'MyCrawler' }),
+});
+
+// v4
+import { ApifyLogAdapter, CheerioCrawler, log } from 'crawlee';
+
+const crawler = new CheerioCrawler({
+    logger: new ApifyLogAdapter(log.child({ prefix: 'MyCrawler' })),
+});
+```
+
+Related: `crawler.log` and the crawling context `log` are typed as `CrawleeLogger`, which has no `setLevel()` method - level filtering belongs to the underlying logging library. With the default logger, set the level on the global `@apify/log` instance instead:
+
+```ts
+// v3
+crawler.log.setLevel(LogLevel.DEBUG);
+
+// v4
+import log, { LogLevel } from '@apify/log';
+log.setLevel(LogLevel.DEBUG);
+```
+
 ### The `log` property is typed as `CrawleeLogger`
 
 The `log` property exposed throughout the public API (on the crawling context, `Statistics`, `EventManager`, `SessionOptions`, `Dataset`, etc.) is now typed as the `CrawleeLogger` interface (from `@crawlee/types`) rather than the concrete `Log` class from `@apify/log`. If you consume it structurally — calling `log.info(...)`, `log.debug(...)`, `log.child(...)` — nothing changes. You only need to act if you explicitly annotated a variable or parameter with the `Log` type from `@apify/log` and assigned `context.log` to it; type it as `CrawleeLogger` instead.
@@ -1123,6 +1089,40 @@ If you don't pass a predictor, nothing changes: the crawler builds one from `ren
 ### Remove `experimentalContainers` option
 
 This experimental option relied on an outdated manifest version for browser extensions, it is not possible to achieve this with the currently supported versions.
+
+### `handleCloudflareChallenge` hooks must return the response
+
+In v3, calling `handleCloudflareChallenge()` in a `postNavigationHooks` entry was enough on its own - the helper received the session and removed `403` from the session pool's blocked status codes, so the challenge page (which is served with a 403 status) did not trip the blocked-request detection.
+
+In v4, blocked status code handling is internal to the crawler and runs *after* the post-navigation hooks, and the helper no longer touches it. Instead, `handleCloudflareChallenge()` returns the reloaded `Response` after solving the challenge, and the hook must return it as the new context response - otherwise the crawler still sees the original 403 challenge response and throws a `SessionError` before your `requestHandler` runs, even when the challenge was solved successfully.
+
+Use the pre-wrapped `handleCloudflareChallengeHook()` (it also handles the no-challenge case), or return the response yourself:
+
+```ts
+// v3
+postNavigationHooks: [
+    async ({ handleCloudflareChallenge }) => {
+        await handleCloudflareChallenge();
+    },
+],
+
+// v4
+import { handleCloudflareChallengeHook } from 'crawlee';
+
+postNavigationHooks: [handleCloudflareChallengeHook()],
+
+// v4 (manual equivalent)
+postNavigationHooks: [
+    async ({ handleCloudflareChallenge }) => {
+        // Returning `{ response: undefined }` would clobber the navigation response
+        // when there was no challenge, so only return it when one was solved.
+        const response = await handleCloudflareChallenge();
+        return response && { response };
+    },
+],
+```
+
+If you called the standalone `playwrightUtils.handleCloudflareChallenge(page, url, session, options)` directly, note that the `session` parameter is gone - the v4 signature is `handleCloudflareChallenge(page, url, options)`, so an options object passed in the old fourth position would be silently ignored.
 
 ## Only if you customize crawler statistics
 

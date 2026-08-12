@@ -40,8 +40,6 @@ await Actor.main(async () => {
                 });
             },
         ],
-        // The hook returns the post-challenge response - otherwise the original 403 challenge
-        // response would propagate and the crawler would throw on the blocked status code.
         // verbose keeps the challenge detection visible in the nightly run logs
         postNavigationHooks: [handleCloudflareChallengeHook({ verbose: true })],
         launchContext: {

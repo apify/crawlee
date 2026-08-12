@@ -18,7 +18,7 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                # TODO(v4): re-enable LOCAL once @apify/storage-local supports v4
+                # TODO(v4): re-enable LOCAL once @apify/storage-local supports v4, see https://github.com/apify/crawlee/issues/3406
                 storage: [ MEMORY, PLATFORM ]
 
         steps:

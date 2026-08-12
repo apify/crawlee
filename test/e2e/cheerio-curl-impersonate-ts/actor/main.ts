@@ -66,7 +66,6 @@ class CurlImpersonateHttpClient extends BaseHttpClient {
 
 const crawler = new CheerioCrawler({
     async requestHandler(context) {
-        // sendRequest returns a WHATWG Response in v4
         const text = await (
             await context.sendRequest({
                 url: 'https://api.apify.com/v2/browser-info',

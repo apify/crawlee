@@ -15,11 +15,11 @@ await Actor.main(async () => {
         proxyConfiguration: await Actor.createProxyConfiguration(),
         maxRequestsPerCrawl: 10,
         preNavigationHooks: [
-            async ({ page, gotoOptions: goToOptions }) => {
+            async ({ page, gotoOptions }) => {
                 await page.evaluateOnNewDocument(() => {
                     localStorage.setItem('themeExitPopup', 'true');
                 });
-                goToOptions.waitUntil = ['networkidle2'];
+                gotoOptions.waitUntil = ['networkidle2'];
             },
         ],
         async requestHandler({ page, request, log, enqueueLinks, injectJQuery }) {

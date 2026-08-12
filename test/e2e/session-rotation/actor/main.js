@@ -12,7 +12,6 @@ const mainOptions = {
 await Actor.main(async () => {
     const crawler = new PlaywrightCrawler({
         maxRequestRetries: 10,
-        // v4 dropped `sessionPoolOptions` - session tuning is done by passing a custom pool.
         sessionPool: new SessionPool({
             createSessionFunction: async (opts) =>
                 new Session({
@@ -21,8 +20,8 @@ await Actor.main(async () => {
                 }),
         }),
         requestHandler: async ({ session, registerDeferredCleanup }) => {
-            // v4 wraps the handler in a storage transaction, so a plain pushData would be
-            // rolled back when the handler throws. Deferred cleanups run outside of it.
+            // The handler runs in a storage transaction, so a plain pushData would be rolled
+            // back when the handler throws. Deferred cleanups run outside of it.
             const { id, usageCount, errorScore } = session;
             registerDeferredCleanup(async () => {
                 await Actor.pushData({ id, usageCount, errorScore });

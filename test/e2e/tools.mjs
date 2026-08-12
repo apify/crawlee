@@ -50,9 +50,8 @@ export function getStorage(dirName) {
  */
 export async function getStats(dirName) {
     const dir = getStorage(dirName);
-    // fs-storage stores the default (unnamed) stores under the `__default__` alias
-    // and writes key-value records extensionless (the filename is the record key).
-    const path = join(dir, `key_value_stores/__default__/CRAWLEE_CRAWLER_STATISTICS_0`);
+    // fs-storage writes key-value records extensionless (the filename is the record key).
+    const path = join(dir, `key_value_stores/default/CRAWLEE_CRAWLER_STATISTICS_0`);
 
     if (!existsSync(path)) {
         return false;
@@ -413,7 +412,7 @@ export async function getApifyToken() {
  */
 export async function getDatasetItems(dirName) {
     const dir = getStorage(dirName);
-    const datasetPath = join(dir, 'datasets/__default__/');
+    const datasetPath = join(dir, 'datasets/default/');
 
     if (!existsSync(datasetPath)) {
         return [];
@@ -444,7 +443,7 @@ export async function getDatasetItems(dirName) {
  */
 export async function getLocalKeyValueStoreItems(dirName, kvName) {
     const dir = getStorage(dirName);
-    const storePath = join(dir, 'key_value_stores', kvName === 'default' ? '__default__' : kvName);
+    const storePath = join(dir, 'key_value_stores', kvName);
 
     if (!existsSync(storePath)) {
         return undefined;

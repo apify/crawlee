@@ -12,7 +12,6 @@ if (process.env.STORAGE_IMPLEMENTATION === 'LOCAL') {
 
 const crawler = new CheerioCrawler({
     async requestHandler(context) {
-        // sendRequest returns a WHATWG Response in v4
         const text = await (
             await context.sendRequest({
                 url: 'https://api.apify.com/v2/browser-info',
@@ -34,7 +33,7 @@ const crawler = new CheerioCrawler({
         });
     },
     httpClient: new ImpitHttpClient({ browser: Browser.Firefox }),
-    // The random default session fingerprint would override the client's `browser`
+    // The random default session fingerprint would override the client's browser
     // impersonation, so pin the sessions to Firefox as well.
     sessionPool: new SessionPool({
         createSessionFunction: async (opts) =>

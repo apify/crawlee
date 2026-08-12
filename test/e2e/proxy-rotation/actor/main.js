@@ -10,7 +10,6 @@ const mainOptions = {
 };
 
 await Actor.main(async () => {
-    // v4 dropped `sessionPoolOptions` - session tuning is done by passing a custom pool.
     const proxyConfiguration = await Actor.createProxyConfiguration();
     const sessionPool = new SessionPool({
         createSessionFunction: async (opts) =>

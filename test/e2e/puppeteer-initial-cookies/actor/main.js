@@ -27,8 +27,6 @@ const mainOptions = {
 await Actor.main(async () => {
     const crawler = new PuppeteerCrawler({
         preNavigationHooks: [
-            // v4 hooks receive only the crawling context (gotoOptions is a context field),
-            // and the Session cookie API is setCookie(rawCookie, url).
             async ({ session, request, gotoOptions }) => {
                 await session.setCookie('session=true', request.url);
                 request.headers.cookie = 'hook_request=true';
