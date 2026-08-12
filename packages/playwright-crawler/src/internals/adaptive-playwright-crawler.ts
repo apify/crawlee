@@ -22,7 +22,6 @@ import type {
     RestrictedCrawlingContext,
     RouterRoutes,
     StatisticPersistedState,
-    StatisticsOptions,
     StatisticState,
     StorageTransaction,
     StorageTransactionView,
@@ -71,33 +70,28 @@ interface AdaptivePlaywrightCrawlerPersistedStatisticState extends StatisticPers
 }
 
 class AdaptivePlaywrightCrawlerStatistics extends Statistics {
-    override state: AdaptivePlaywrightCrawlerStatisticState = null as any; // this needs to be assigned for a valid override, but the initialization is done by a reset() call from the parent constructor
-
-    constructor(options: StatisticsOptions = {}) {
-        super(options);
-        this.reset();
+    override get state(): AdaptivePlaywrightCrawlerStatisticState {
+        return super.state;
     }
 
-    override reset(): void {
-        super.reset();
-        this.state.httpOnlyRequestHandlerRuns = 0;
-        this.state.browserRequestHandlerRuns = 0;
-        this.state.renderingTypeMispredictions = 0;
+    protected override defaultState(): AdaptivePlaywrightCrawlerStatisticState {
+        return {
+            ...super.defaultState(),
+            httpOnlyRequestHandlerRuns: 0,
+            browserRequestHandlerRuns: 0,
+            renderingTypeMispredictions: 0,
+        };
     }
 
-    protected override async maybeLoadStatistics(): Promise<void> {
-        await super.maybeLoadStatistics();
-        const savedState = await this.keyValueStore?.getValue<AdaptivePlaywrightCrawlerPersistedStatisticState>(
-            this.persistStateKey,
-        );
-
-        if (!savedState) {
-            return;
-        }
-
-        this.state.httpOnlyRequestHandlerRuns = savedState.httpOnlyRequestHandlerRuns;
-        this.state.browserRequestHandlerRuns = savedState.browserRequestHandlerRuns;
-        this.state.renderingTypeMispredictions = savedState.renderingTypeMispredictions;
+    protected override deserializeState(
+        persistedState: AdaptivePlaywrightCrawlerPersistedStatisticState,
+    ): AdaptivePlaywrightCrawlerStatisticState {
+        return {
+            ...super.deserializeState(persistedState),
+            httpOnlyRequestHandlerRuns: persistedState.httpOnlyRequestHandlerRuns,
+            browserRequestHandlerRuns: persistedState.browserRequestHandlerRuns,
+            renderingTypeMispredictions: persistedState.renderingTypeMispredictions,
+        };
     }
 
     trackHttpOnlyRequestHandlerRun(): void {
