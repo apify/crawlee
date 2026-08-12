@@ -606,12 +606,14 @@ describe('Sitemap', () => {
     });
 
     it('logs one aggregated warning per sitemap for dropped URL entries', async () => {
-        const spy = vi.spyOn(log, 'warning');
+        const warning = vi.fn();
 
-        await Sitemap.load('http://not-exists.com/cross_host_urls.xml');
+        await Sitemap.load('http://not-exists.com/cross_host_urls.xml', undefined, {
+            logger: { warning, debug: vi.fn(), info: vi.fn(), error: vi.fn() } as any,
+        });
 
-        expect(spy).toHaveBeenCalledTimes(1);
-        expect(spy).toHaveBeenCalledWith(
+        expect(warning).toHaveBeenCalledTimes(1);
+        expect(warning).toHaveBeenCalledWith(
             expect.stringContaining('Skipped 1 URL(s) from sitemap http://not-exists.com/cross_host_urls.xml'),
         );
     });

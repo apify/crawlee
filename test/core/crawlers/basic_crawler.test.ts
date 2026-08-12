@@ -568,8 +568,8 @@ describe('BasicCrawler', () => {
 
                 const skippedRequests = onSkippedRequestMock.mock.calls.map((call) => call[0]);
                 expect(skippedRequests).toHaveLength(2);
-                expect(skippedRequests[0]).toStrictEqual({ url: 'https://example.com/1/', reason: 'filters' });
-                expect(skippedRequests[1]).toStrictEqual({ url: 'https://example.com/2/', reason: 'filters' });
+                expect(skippedRequests[0]).toStrictEqual({ url: 'https://example.com/1/', reason: 'transform' });
+                expect(skippedRequests[1]).toStrictEqual({ url: 'https://example.com/2/', reason: 'transform' });
             },
         );
 
@@ -1972,39 +1972,36 @@ describe('BasicCrawler', () => {
 
     describe('Uses SessionPool', () => {
         it('persists statistics and the session pool once when finishing', async () => {
-            const persistStatistics = vitest.spyOn(Statistics.prototype, 'persistState');
-            const persistSessionPool = vitest.spyOn(SessionPool.prototype, 'persistState');
+            const setValue = vitest.spyOn(KeyValueStore.prototype, 'setValue');
             const crawler = new BasicCrawler({
                 requestHandler: async () => {
-                    persistStatistics.mockClear();
-                    persistSessionPool.mockClear();
+                    setValue.mockClear();
                 },
             });
 
             await crawler.run(['https://example.com']);
 
-            expect(persistStatistics).toHaveBeenCalledTimes(1);
-            expect(persistSessionPool).toHaveBeenCalledTimes(1);
+            const persistedKeys = setValue.mock.calls.map(([key]) => key);
+            expect(persistedKeys.filter((key) => key.startsWith('CRAWLEE_CRAWLER_STATISTICS'))).toHaveLength(1);
+            expect(persistedKeys.filter((key) => key.startsWith('CRAWLEE_SESSION_POOL_STATE'))).toHaveLength(1);
         });
 
         it('persists the session pool once with a shared event manager', async () => {
-            const persistStatistics = vitest.spyOn(Statistics.prototype, 'persistState');
-            const persistSessionPool = vitest.spyOn(SessionPool.prototype, 'persistState');
             await serviceLocator.getEventManager().init();
+            const setValue = vitest.spyOn(KeyValueStore.prototype, 'setValue');
             const crawler = new BasicCrawler({
                 requestHandler: async () => {
-                    persistStatistics.mockClear();
-                    persistSessionPool.mockClear();
+                    setValue.mockClear();
                 },
             });
 
             await crawler.run(['https://example.com']);
             expect(serviceLocator.getEventManager().listenerCount(EventType.PERSIST_STATE)).toBe(0);
-            expect(persistSessionPool).toHaveBeenCalledTimes(1);
             await serviceLocator.getEventManager().close();
 
-            expect(persistStatistics).toHaveBeenCalledTimes(1);
-            expect(persistSessionPool).toHaveBeenCalledTimes(1);
+            const persistedKeys = setValue.mock.calls.map(([key]) => key);
+            expect(persistedKeys.filter((key) => key.startsWith('CRAWLEE_CRAWLER_STATISTICS'))).toHaveLength(1);
+            expect(persistedKeys.filter((key) => key.startsWith('CRAWLEE_SESSION_POOL_STATE'))).toHaveLength(1);
         });
 
         it('should use SessionPool', async () => {
@@ -2971,7 +2968,7 @@ describe('BasicCrawler', () => {
             await crawler.run(['http://example.com']);
 
             // 2 requests already finished and 1 is in progress, so only 2 more fit into the limit
-            expect(requestQueue.getTotalCount()).toBe(3);
+            expect(await requestQueue.getTotalCount()).toBe(3);
 
             const skippedUrls = onSkippedRequest.mock.calls
                 .map((call) => call[0])
@@ -3011,7 +3008,7 @@ describe('BasicCrawler', () => {
             await crawler.run(['http://example.com']);
 
             // The user limit of 4 is higher than what's left of maxRequestsPerCrawl, so only 2 are enqueued
-            expect(requestQueue.getTotalCount()).toBe(3);
+            expect(await requestQueue.getTotalCount()).toBe(3);
 
             // ...and the log message must not blame the user limit of 4 for it
             expect(infoSpy).toHaveBeenCalledWith(
@@ -3089,7 +3086,7 @@ describe('BasicCrawler', () => {
             await crawler.run(['http://example.com/start']);
 
             // The disallowed URL should never make it into the queue
-            expect(requestQueue.getTotalCount()).toBe(2);
+            expect(await requestQueue.getTotalCount()).toBe(2);
         });
 
         test('enqueueLinks should keep the crawler user-agent when passed an explicitly undefined respectRobotsTxtFile', async () => {
@@ -3098,7 +3095,7 @@ describe('BasicCrawler', () => {
 
             const crawler = new (class MockedRobotsTxtCrawler extends BasicCrawler {
                 override async getRobotsTxtFileForUrl(_: string) {
-                    return { isAllowed: isAllowedSpy } as unknown as RobotsTxtFile;
+                    return { isAllowed: isAllowedSpy, getCrawlDelay: () => undefined } as unknown as RobotsTxtFile;
                 }
             })({
                 requestQueue,
@@ -3151,8 +3148,8 @@ describe('BasicCrawler', () => {
 
             await crawler.run(['http://example.com/start']);
 
-            expect(customQueue.getTotalCount()).toBe(1);
-            expect(requestQueue.getTotalCount()).toBe(2);
+            expect(await customQueue.getTotalCount()).toBe(1);
+            expect(await requestQueue.getTotalCount()).toBe(2);
         });
     });
 
