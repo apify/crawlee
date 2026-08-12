@@ -755,8 +755,7 @@ async function handleCloudflareChallenge(
 
     options.isChallengeCallback ??= async () => {
         return await page.evaluate(async () => {
-            // Cloudflare keeps reshuffling the wrapper elements between `.footer-inner` and `.ray-id`,
-            // so only the stable outer classes are matched.
+            // Cloudflare keeps reshuffling the wrappers between `.footer-inner` and `.ray-id`, so only the stable outer classes are matched
             return !!document.querySelector('.footer .footer-inner .ray-id');
         });
     };
