@@ -1,8 +1,8 @@
-import { PuppeteerCrawler } from 'crawlee';
+import { PuppeteerCrawler, puppeteerBrowserPool } from 'crawlee';
 
 const crawler = new PuppeteerCrawler({
-    browserPoolOptions: {
+    browserPool: puppeteerBrowserPool({
         useFingerprints: false,
-    },
+    }),
     // ...
 });

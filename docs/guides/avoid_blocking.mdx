@@ -45,7 +45,7 @@ In certain cases we want to narrow down the fingerprints used - e.g. specify a c
 
 ## Disabling browser fingerprints
 
-On the contrary, sometimes we want to entirely disable the usage of browser fingerprints. This is easy to do with Crawlee too. All we have to do is set the `useFingerprints` option of the `browserPoolOptions` to `false`:
+On the contrary, sometimes we want to entirely disable the usage of browser fingerprints. This is easy to do with Crawlee too. All we have to do is build the crawler's browser pool with `useFingerprints` set to `false`:
 
 <Tabs groupId="avoid_blocking">
     <TabItem value="playwright" label="PlaywrightCrawler" default>

@@ -159,10 +159,10 @@ export interface RemoteBrowserPoolOptions {
 }
 
 /**
- * The remote-connection configuration a browser crawler accepts on its `remoteBrowser` option. It is the
- * {@apilink RemoteBrowserPoolOptions} a user supplies *minus* the parts the crawler provides itself — the
- * `browserPlugins` (the crawler builds the correct one for its browser) and `browserPoolOptions` (taken from
- * the crawler's own `browserPoolOptions`). This is what makes the crawler path both terse and mismatch-proof.
+ * The remote-connection configuration a browser crawler accepts on its `remoteBrowser` option: the
+ * {@apilink RemoteBrowserPoolOptions} minus the `browserPlugins` (the crawler builds the correct one for its
+ * browser, which is what makes this path mismatch-proof) and minus `browserPoolOptions` — tuning the wrapping
+ * pool means building the pool yourself, through the `remote*BrowserPool()` factory for your crawler.
  */
 export type CrawlerRemoteBrowserOptions = Omit<RemoteBrowserPoolOptions, 'browserPlugins' | 'browserPoolOptions'>;
 

@@ -1,4 +1,4 @@
-import { Dataset, handleCloudflareChallengeHook, PlaywrightCrawler } from '@crawlee/playwright';
+import { Dataset, handleCloudflareChallengeHook, PlaywrightCrawler, playwrightBrowserPool } from '@crawlee/playwright';
 import { Actor } from 'apify';
 import { launchOptions } from 'camoufox-js';
 import { firefox } from 'playwright';
@@ -16,9 +16,17 @@ await Actor.main(async () => {
         // The target hard-blocks datacenter IP ranges outright (block page, not a solvable
         // challenge), so this test needs residential exit nodes.
         proxyConfiguration: await Actor.createProxyConfiguration({ groups: ['RESIDENTIAL'] }),
-        // Camoufox ships its own anti-detection; Crawlee's fingerprint injection conflicts with it
-        // and keeps Cloudflare from ever clearing the challenge.
-        browserPoolOptions: { useFingerprints: false },
+        browserPool: playwrightBrowserPool({
+            // Camoufox ships its own anti-detection; Crawlee's fingerprint injection conflicts with it
+            // and keeps Cloudflare from ever clearing the challenge.
+            useFingerprints: false,
+            launchContext: {
+                launcher: firefox,
+                launchOptions: await launchOptions({
+                    headless: true,
+                }),
+            },
+        }),
         preNavigationHooks: [
             async ({ page }) => {
                 // TODO: remove this hook once a Camoufox build with daijro/camoufox#625 is released.
@@ -42,12 +50,6 @@ await Actor.main(async () => {
         ],
         // verbose keeps the challenge detection visible in the nightly run logs
         postNavigationHooks: [handleCloudflareChallengeHook({ verbose: true })],
-        launchContext: {
-            launcher: firefox,
-            launchOptions: await launchOptions({
-                headless: true,
-            }),
-        },
         async requestHandler({ page, parseWithCheerio }) {
             const isBlocked = await page
                 .evaluate(async () => {

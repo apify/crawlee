@@ -13,12 +13,15 @@ import { BaseHttpClient } from '@crawlee/http-client';
 import type { Browser } from 'playwright';
 import type { BrowserController } from '@crawlee/browser-pool';
 import { BrowserCrawler } from '@crawlee/browser';
-import type { BrowserCrawlerOptions } from '@crawlee/browser';
+import { BrowserCrawlerOptions } from '@crawlee/browser';
 import type { BrowserCrawlingContext } from '@crawlee/browser';
 import type { BrowserHook } from '@crawlee/browser';
 import type { BrowserLaunchContext } from '@crawlee/browser';
 import { BrowserPlugin } from '@crawlee/browser-pool';
 import type { BrowserPluginOptions } from '@crawlee/browser-pool';
+import type { BrowserPool } from '@crawlee/browser-pool';
+import type { BrowserPoolHooks } from '@crawlee/browser-pool';
+import type { BrowserPoolOptions } from '@crawlee/browser-pool';
 import type { BrowserType } from 'playwright';
 import { Configuration } from '@crawlee/browser';
 import type { ContextPipeline } from '@crawlee/browser';
@@ -35,6 +38,8 @@ import { ModelConfiguration } from '@browserbasehq/stagehand';
 import type { NonStreamingAgentInstance } from '@browserbasehq/stagehand';
 import { ObserveOptions } from '@browserbasehq/stagehand';
 import type { Page } from 'playwright';
+import type { RemoteBrowserPool } from '@crawlee/browser-pool';
+import type { RemoteBrowserPoolOptions } from '@crawlee/browser-pool';
 import type { RequestHandler } from '@crawlee/browser';
 import type { Response as Response_2 } from 'playwright';
 import type { RouterHandler } from '@crawlee/browser';
@@ -70,12 +75,33 @@ export { ModelConfiguration }
 
 export { ObserveOptions }
 
+// @public
+export function remoteStagehandBrowserPool(options: RemoteStagehandBrowserPoolOptions): RemoteBrowserPool<Page>;
+
+// @public (undocumented)
+export interface RemoteStagehandBrowserPoolOptions extends Pick<StagehandBrowserPoolOptions, 'launchContext' | 'stagehandOptions' | 'headless' | 'configuration'>, Omit<RemoteBrowserPoolOptions, 'browserPlugins'> {
+}
+
 export { Stagehand }
 
 // @public
-export class StagehandCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends StagehandCrawlingContext = StagehandCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<StagehandCrawlingContext['request']>>, StatisticStateExtension extends object = {}> extends BrowserCrawler<StagehandPage, Response_2, {
+export type StagehandBrowserPool = BrowserPool<{
     browserPlugins: [StagehandPlugin];
-}, LaunchOptions, StagehandCrawlingContext, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
+}, [StagehandPlugin]>;
+
+// @public
+export function stagehandBrowserPool(options?: StagehandBrowserPoolOptions): StagehandBrowserPool;
+
+// @public (undocumented)
+export interface StagehandBrowserPoolOptions extends Omit<BrowserPoolOptions, 'browserPlugins'>, BrowserPoolHooks<ReturnType<StagehandPlugin['createController']>, ReturnType<StagehandPlugin['createLaunchContext']>, Page> {
+    configuration?: Configuration;
+    headless?: boolean;
+    launchContext?: StagehandLaunchContext;
+    stagehandOptions?: StagehandOptions;
+}
+
+// @public
+export class StagehandCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends StagehandCrawlingContext = StagehandCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<StagehandCrawlingContext['request']>>, StatisticStateExtension extends object = {}> extends BrowserCrawler<StagehandPage, Response_2, LaunchOptions, StagehandCrawlingContext, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
     constructor(options?: StagehandCrawlerOptions<ContextExtension, ExtendedContext, Routes, StatisticStateExtension>);
     // (undocumented)
     protected buildContextPipeline(): ContextPipeline<CrawlingContext, StagehandCrawlingContext>;
@@ -83,13 +109,13 @@ export class StagehandCrawler<ContextExtension = Dictionary<never>, ExtendedCont
     // (undocumented)
     protected static optionsSchema: z.ZodObject<{
         stagehandOptions: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
-        browserPoolOptions: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
+        headless: z.ZodOptional<z.ZodBoolean>;
         navigationTimeoutSecs: z.ZodDefault<z.ZodCustom<number, number>>;
         preNavigationHooks: z.ZodDefault<z.ZodCustom<unknown[], unknown[]>>;
         postNavigationHooks: z.ZodDefault<z.ZodCustom<unknown[], unknown[]>>;
         launchContext: z.ZodDefault<z.ZodCustom<Dictionary, Dictionary>>;
-        headless: z.ZodOptional<z.ZodUnion<readonly [z.ZodBoolean, z.ZodString]>>;
         browserPool: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
+        browserPoolBuilder: z.ZodOptional<z.ZodCustom<(...args: any[]) => unknown, (...args: any[]) => unknown>>;
         remoteBrowser: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
         saveResponseCookies: z.ZodDefault<z.ZodBoolean>;
         proxyConfiguration: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
@@ -140,13 +166,13 @@ export class StagehandCrawler<ContextExtension = Dictionary<never>, ExtendedCont
     // (undocumented)
     protected static optionsShape: {
         stagehandOptions: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
-        browserPoolOptions: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
+        headless: z.ZodOptional<z.ZodBoolean>;
         navigationTimeoutSecs: z.ZodDefault<z.ZodCustom<number, number>>;
         preNavigationHooks: z.ZodDefault<z.ZodCustom<unknown[], unknown[]>>;
         postNavigationHooks: z.ZodDefault<z.ZodCustom<unknown[], unknown[]>>;
         launchContext: z.ZodDefault<z.ZodCustom<Dictionary, Dictionary>>;
-        headless: z.ZodOptional<z.ZodUnion<readonly [z.ZodBoolean, z.ZodString]>>;
         browserPool: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
+        browserPoolBuilder: z.ZodOptional<z.ZodCustom<(...args: any[]) => unknown, (...args: any[]) => unknown>>;
         remoteBrowser: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
         saveResponseCookies: z.ZodDefault<z.ZodBoolean>;
         proxyConfiguration: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
@@ -197,9 +223,8 @@ export class StagehandCrawler<ContextExtension = Dictionary<never>, ExtendedCont
 }
 
 // @public
-export interface StagehandCrawlerOptions<ContextExtension = Dictionary<never>, ExtendedContext extends StagehandCrawlingContext = StagehandCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<StagehandCrawlingContext['request']>>, StatisticStateExtension extends object = {}> extends BrowserCrawlerOptions<StagehandPage, Response_2, StagehandCrawlingContext, ContextExtension, ExtendedContext, {
-    browserPlugins: [StagehandPlugin];
-}, Routes, StatisticStateExtension> {
+export interface StagehandCrawlerOptions<ContextExtension = Dictionary<never>, ExtendedContext extends StagehandCrawlingContext = StagehandCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<StagehandCrawlingContext['request']>>, StatisticStateExtension extends object = {}> extends BrowserCrawlerOptions<StagehandPage, Response_2, StagehandCrawlingContext, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
+    headless?: boolean;
     launchContext?: StagehandLaunchContext;
     postNavigationHooks?: BrowserHook<StagehandCrawlingContext<GetUserDataFromRequest<ExtendedContext['request']>>, ContextExtension>[];
     preNavigationHooks?: BrowserHook<StagehandCrawlingContext<GetUserDataFromRequest<ExtendedContext['request']>>, ContextExtension>[];

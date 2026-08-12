@@ -11,7 +11,7 @@
  *
  * With the wrapper removed, request 2's body should report no cookies.
  */
-import { PlaywrightCrawler } from 'crawlee';
+import { PlaywrightCrawler, remotePlaywrightBrowserPool } from 'crawlee';
 import { expect, test } from 'vitest';
 
 import { BROWSERLESS_URL, httpbin } from './helpers.js';
@@ -24,11 +24,11 @@ test.skipIf(!process.env.CRAWLEE_DIFFICULT_TESTS)(
         const observations: { controllerId: string; body: { cookies: Record<string, string> } }[] = [];
         const controllerIdByPage = new WeakMap<object, string>();
 
-        const crawler = new PlaywrightCrawler({
-            remoteBrowser: {
-                endpoint: BROWSERLESS_URL,
-                maxOpenBrowsers: 1,
-            },
+        // Tuning the pool that wraps the remote connection means building it here rather than using the
+        // crawler's terser `remoteBrowser` option - and owning its teardown as a result.
+        const browserPool = remotePlaywrightBrowserPool({
+            endpoint: BROWSERLESS_URL,
+            maxOpenBrowsers: 1,
             browserPoolOptions: {
                 retireBrowserAfterPageCount: 10, // keep the same browser across both requests
                 maxOpenPagesPerBrowser: 2,
@@ -38,6 +38,10 @@ test.skipIf(!process.env.CRAWLEE_DIFFICULT_TESTS)(
                     },
                 ],
             },
+        });
+
+        const crawler = new PlaywrightCrawler({
+            browserPool,
             saveResponseCookies: false, // remove Session-based propagation
             maxConcurrency: 1,
             maxRequestsPerCrawl: 2,
@@ -50,7 +54,11 @@ test.skipIf(!process.env.CRAWLEE_DIFFICULT_TESTS)(
             },
         });
 
-        await crawler.run([httpbin('/cookies/set?TOKEN=integration-test'), httpbin('/cookies')]);
+        try {
+            await crawler.run([httpbin('/cookies/set?TOKEN=integration-test'), httpbin('/cookies')]);
+        } finally {
+            await browserPool.destroy();
+        }
 
         expect(observations).toHaveLength(2);
         // Same browser handled both requests — otherwise the assertion below proves nothing.
