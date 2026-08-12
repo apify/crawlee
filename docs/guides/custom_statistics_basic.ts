@@ -2,7 +2,7 @@ import { CheerioCrawler, Statistics } from 'crawlee';
 
 // Declare the extra fields and their initial values. Their types flow into `statistics.state`.
 const statistics = new Statistics({
-    defaultState: { productsFound: 0 },
+    stateExtension: { defaultState: { productsFound: 0 } },
 });
 
 const crawler = new CheerioCrawler({

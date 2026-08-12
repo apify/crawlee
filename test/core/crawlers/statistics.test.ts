@@ -1,7 +1,8 @@
 import type { StatisticsOptions } from '@crawlee/core';
-import type { StatisticPersistedState, StatisticState } from '@crawlee/core';
+import type { StatisticPersistedState } from '@crawlee/core';
 import { EventType, KeyValueStore, MemoryStorageBackend, serviceLocator, Statistics } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/types';
+import { z } from 'zod';
 
 describe('Statistics', () => {
     const getPerMinute = (jobCount: number, totalTickMillis: number) => {
@@ -37,12 +38,16 @@ describe('Statistics', () => {
 
     describe('persist state', () => {
         // needs to go first for predictability
-        test('should increment id by each new consecutive instance', () => {
+        test('should increment id by each new consecutive instance', async () => {
             expect(stats.id).toEqual('0');
             // @ts-expect-error Accessing private prop
             expect(Statistics.id).toEqual(1);
-            // @ts-expect-error Accessing private prop
-            expect(stats.persistStateKey).toEqual('CRAWLEE_CRAWLER_STATISTICS_0');
+
+            // the id is what the record is keyed by
+            await stats.startCapturing();
+            await stats.stopCapturing();
+            expect(await store.getValue('CRAWLEE_CRAWLER_STATISTICS_0')).not.toBeNull();
+
             const [n1, n2] = [new Statistics(), new Statistics()];
             expect(n1.id).toEqual('1');
             expect(n2.id).toEqual('2');
@@ -149,30 +154,6 @@ describe('Statistics', () => {
             });
 
             await stats.stopCapturing();
-        });
-
-        test('should persist the extra fields of a subclass', async () => {
-            type ExtendedState = StatisticState & { productsFound: number };
-
-            class ExtendedStatistics extends Statistics {
-                override get state(): ExtendedState {
-                    return super.state as ExtendedState;
-                }
-
-                protected override defaultState(): ExtendedState {
-                    return { ...super.defaultState(), productsFound: 0 };
-                }
-            }
-
-            const extended = new ExtendedStatistics({ id: 'extended' });
-            await extended.startCapturing();
-            extended.state.productsFound = 7;
-            await extended.persistState();
-
-            // The record schema knows nothing about them, and must not drop them on the way through.
-            expect(await store.getValue(persistStateKey(extended))).toMatchObject({ productsFound: 7 });
-
-            await extended.stopCapturing();
         });
 
         test('should keep the shape of the persisted record', async () => {
@@ -434,7 +415,7 @@ describe('Statistics', () => {
     describe('custom state fields', () => {
         /** Persists `productsFound: 7` and one finished request under `id`. */
         const persistCustomState = async (id: string) => {
-            const stats = new Statistics({ id, defaultState: { productsFound: 0 } });
+            const stats = new Statistics({ id, stateExtension: { defaultState: { productsFound: 0 } } });
 
             await stats.startCapturing();
             stats.startJob(0);
@@ -444,7 +425,7 @@ describe('Statistics', () => {
         };
 
         /** Loads whatever was persisted under `options.id` and returns the resulting state. */
-        const loadState = async <T extends object>(options: StatisticsOptions<T>) => {
+        const loadState = async <T extends object, P extends object = T>(options: StatisticsOptions<T, P>) => {
             const stats = new Statistics(options);
 
             await stats.startCapturing();
@@ -455,7 +436,7 @@ describe('Statistics', () => {
 
         test('should expose the custom fields and restore their defaults on reset', () => {
             const stats = new Statistics({
-                defaultState: { productsFound: 0, seenPerDomain: {} as Record<string, number> },
+                stateExtension: { defaultState: { productsFound: 0, seenPerDomain: {} as Record<string, number> } },
             });
 
             stats.state.productsFound += 3;
@@ -466,7 +447,7 @@ describe('Statistics', () => {
             // the nested default is cloned per reset, not shared with the previous state
             expect(stats.state.seenPerDomain).toEqual({});
 
-            // @ts-expect-error `categoriesFound` was not declared in `defaultState`
+            // @ts-expect-error `categoriesFound` was not declared
             stats.state.categoriesFound = 1;
         });
 
@@ -476,7 +457,7 @@ describe('Statistics', () => {
             const state = await loadState({
                 id: 'grown-stats',
                 // `categoriesFound` was declared after the state above was persisted
-                defaultState: { productsFound: 0, categoriesFound: 42 },
+                stateExtension: { defaultState: { productsFound: 0, categoriesFound: 42 } },
             });
 
             expect(state.productsFound).toEqual(7);
@@ -484,23 +465,118 @@ describe('Statistics', () => {
         });
 
         test('should reject a custom field that collides with a built-in one', () => {
-            expect(() => new Statistics({ defaultState: { requestsFinished: 999 } })).toThrow(
+            expect(() => new Statistics({ stateExtension: { defaultState: { requestsFinished: 999 } } })).toThrow(
                 /`requestsFinished` collides with a built-in one/,
             );
         });
 
-        test('should give the custom fields the same shape before and after a restore', async () => {
-            // a value that does not survive the key-value store must not survive a reset() either
-            const defaultState = { lastSeenAt: new Date('2020-01-01T00:00:00.000Z') };
+        test('should keep a default value that JSON cannot carry', () => {
+            const stats = new Statistics({ stateExtension: { defaultState: { budget: Infinity } } });
 
-            const stats = new Statistics({ id: 'json-shaped-stats', defaultState });
+            stats.state.budget -= 1;
+            stats.reset();
+
+            // `structuredClone`, as in RecoverableState - the JSON the record is written as would make this a `null`
+            expect(stats.state.budget).toEqual(Infinity);
+        });
+
+        describe('with a deserialize conversion', () => {
+            const productsFound = z.object({ productsFound: z.number().default(0) });
+
+            test('should derive the defaults from the conversion', () => {
+                const stats = new Statistics({ stateExtension: { deserialize: productsFound } });
+
+                expect(stats.state.productsFound).toEqual(0);
+
+                stats.state.productsFound += 3;
+                stats.reset();
+
+                expect(stats.state.productsFound).toEqual(0);
+            });
+
+            test('should throw when the defaults cannot be derived', () => {
+                expect(
+                    () => new Statistics({ stateExtension: { deserialize: z.object({ productsFound: z.number() }) } }),
+                ).toThrow(/Could not derive the default values .* give every field a default/s);
+            });
+
+            test('should restore the custom fields it validates', async () => {
+                await persistCustomState('validated-stats');
+
+                const state = await loadState({
+                    id: 'validated-stats',
+                    stateExtension: { deserialize: productsFound },
+                });
+
+                expect(state.productsFound).toEqual(7);
+            });
+
+            test('should start only the custom fields from scratch on a record it rejects', async () => {
+                await persistCustomState('corrupt-custom-stats');
+
+                const record = (await store.getValue<Dictionary>(`CRAWLEE_CRAWLER_STATISTICS_corrupt-custom-stats`))!;
+                await store.setValue(`CRAWLEE_CRAWLER_STATISTICS_corrupt-custom-stats`, {
+                    ...record,
+                    productsFound: 'plenty',
+                });
+
+                const stats = new Statistics({
+                    id: 'corrupt-custom-stats',
+                    stateExtension: { deserialize: productsFound },
+                });
+                // @ts-expect-error Accessing private prop
+                const warningSpy = vitest.spyOn(stats.log, 'warning').mockImplementation(() => {});
+
+                await stats.startCapturing();
+
+                expect(warningSpy).toHaveBeenCalledWith(
+                    expect.stringContaining('starting those from scratch'),
+                    expect.objectContaining({ persistStateKey: 'CRAWLEE_CRAWLER_STATISTICS_corrupt-custom-stats' }),
+                );
+                // the custom field lost its value, the crawler's own counters did not
+                expect(stats.state.productsFound).toEqual(0);
+                expect(stats.state.requestsFinished).toEqual(1);
+
+                await stats.stopCapturing();
+            });
+
+            test('should take the record at its word without one', async () => {
+                await persistCustomState('trusted-stats');
+
+                const record = (await store.getValue<Dictionary>(`CRAWLEE_CRAWLER_STATISTICS_trusted-stats`))!;
+                await store.setValue(`CRAWLEE_CRAWLER_STATISTICS_trusted-stats`, {
+                    ...record,
+                    productsFound: 'plenty',
+                });
+
+                const state = await loadState({
+                    id: 'trusted-stats',
+                    stateExtension: { defaultState: { productsFound: 0 } },
+                });
+
+                // the documented cost of declaring the fields without a conversion to check them with
+                expect(state.productsFound).toEqual('plenty');
+            });
+        });
+
+        test('should round-trip a field that is not JSON through a serialize/deserialize pair', async () => {
+            const stateExtension = {
+                deserialize: z.object({ lastSeenAt: z.coerce.date().default(() => new Date(0)) }),
+                serialize: ({ lastSeenAt }: { lastSeenAt: Date }) => ({ lastSeenAt: lastSeenAt.toISOString() }),
+            };
+
+            const stats = new Statistics({ id: 'date-stats', stateExtension });
             await stats.startCapturing();
+            stats.state.lastSeenAt = new Date('2020-01-01T00:00:00.000Z');
             await stats.stopCapturing();
 
-            const restored = await loadState({ id: 'json-shaped-stats', defaultState });
+            expect(await store.getValue<Dictionary>('CRAWLEE_CRAWLER_STATISTICS_date-stats')).toMatchObject({
+                lastSeenAt: '2020-01-01T00:00:00.000Z',
+            });
 
-            expect(restored.lastSeenAt).toEqual(stats.state.lastSeenAt);
-            expect(stats.state.lastSeenAt).toEqual('2020-01-01T00:00:00.000Z');
+            const restored = await loadState({ id: 'date-stats', stateExtension });
+
+            expect(restored.lastSeenAt).toEqual(new Date('2020-01-01T00:00:00.000Z'));
         });
     });
 

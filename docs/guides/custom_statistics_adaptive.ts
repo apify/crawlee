@@ -1,10 +1,12 @@
-import { AdaptivePlaywrightCrawler, defaultAdaptivePlaywrightCrawlerStatisticState, Statistics } from 'crawlee';
+import { AdaptivePlaywrightCrawler, adaptivePlaywrightCrawlerStatisticState, Statistics } from 'crawlee';
+import { z } from 'zod';
 
 const statistics = new Statistics({
-    defaultState: {
+    stateExtension: {
         // The adaptive crawler tracks fields of its own, so an injected instance has to carry them too.
-        ...defaultAdaptivePlaywrightCrawlerStatisticState,
-        productsFound: 0,
+        deserialize: adaptivePlaywrightCrawlerStatisticState.deserialize.extend({
+            productsFound: z.number().default(0),
+        }),
     },
 });
 

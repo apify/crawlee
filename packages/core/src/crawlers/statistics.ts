@@ -1,7 +1,8 @@
 import { z } from 'zod';
 
 import type { CrawleeLogger } from '../log.js';
-import { RecoverableState } from '../recoverable_state.js';
+import type { SyncStateConversion } from '../recoverable_state.js';
+import { convertStateSync, RecoverableState } from '../recoverable_state.js';
 import { serviceLocator } from '../service_locator.js';
 import { KeyValueStore } from '../storages/key_value_store.js';
 import { parseArgument, schemas, validators } from '../validators.js';
@@ -33,7 +34,7 @@ const statisticsOptionsSchema = z.strictObject({
     persistenceOptions: schemas.anyObject.default(() => ({ enable: true })),
     saveErrorSnapshots: z.boolean().default(false),
     id: z.union([schemas.anyNumber, z.string()]).optional(),
-    defaultState: schemas.anyObject.default(() => ({})),
+    stateExtension: schemas.anyObject.default(() => ({})),
 });
 
 const errorTrackerConfig = {
@@ -53,41 +54,40 @@ const errorTrackerConfig = {
  * `null`. Both {@apilink Statistics.serializeState} and {@apilink Statistics.deserializeState} run through this,
  * which is what keeps them describing the same record.
  *
- * Nothing is optional on purpose: `serializeState` has always written every field, so a record missing one is not
- * one of ours and is discarded whole rather than partially trusted - a counter restored as a string would poison
- * every later increment.
+ * Nothing is optional on purpose: the record has always carried every field, so one missing a field is not one of
+ * ours and is discarded whole rather than partially trusted - a counter restored as a string would poison every
+ * later increment.
+ *
+ * Custom fields are not this schema's business either way: they are added to the record after the encode and
+ * validated by their own conversion on the way back, so the keys it does not know about are simply dropped here.
  */
-const persistedStatisticState = z
-    .object({
-        requestsFinished: z.number(),
-        requestsFailed: z.number(),
-        requestsRetries: z.number(),
-        requestsFailedPerMinute: z.number().nullable(),
-        requestsFinishedPerMinute: z.number().nullable(),
-        requestMinDurationMillis: z.number().nullable(),
-        requestMaxDurationMillis: z.number(),
-        requestTotalFailedDurationMillis: z.number(),
-        requestTotalFinishedDurationMillis: z.number(),
-        crawlerStartedAt: z.string().nullable(),
-        crawlerFinishedAt: z.string().nullable(),
-        statsPersistedAt: z.string(),
-        crawlerRuntimeMillis: z.number(),
-        crawlerLastStartTimestamp: z.number(),
-        // A retry count that never occurred leaves a hole in the live histogram, written out as a `null`. We
-        // once saw a record whose histogram was not an array at all and crashed the crawler on load.
-        requestRetryHistogram: z.array(z.number().nullable()),
-        statsId: z.string(),
-        requestAvgFailedDurationMillis: z.number().nullable(),
-        requestAvgFinishedDurationMillis: z.number().nullable(),
-        requestTotalDurationMillis: z.number(),
-        requestsTotal: z.number(),
-        requestsWithStatusCode: z.record(z.string(), z.number()),
-        errors: z.record(z.string(), z.unknown()),
-        retryErrors: z.record(z.string(), z.unknown()),
-    })
-    // A subclass tracking extra fields spreads them into the record; they are none of this schema's business,
-    // but they must not be dropped on the way through it.
-    .catchall(z.unknown());
+const persistedStatisticState = z.object({
+    requestsFinished: z.number(),
+    requestsFailed: z.number(),
+    requestsRetries: z.number(),
+    requestsFailedPerMinute: z.number().nullable(),
+    requestsFinishedPerMinute: z.number().nullable(),
+    requestMinDurationMillis: z.number().nullable(),
+    requestMaxDurationMillis: z.number(),
+    requestTotalFailedDurationMillis: z.number(),
+    requestTotalFinishedDurationMillis: z.number(),
+    crawlerStartedAt: z.string().nullable(),
+    crawlerFinishedAt: z.string().nullable(),
+    statsPersistedAt: z.string(),
+    crawlerRuntimeMillis: z.number(),
+    crawlerLastStartTimestamp: z.number(),
+    // A retry count that never occurred leaves a hole in the live histogram, written out as a `null`. We
+    // once saw a record whose histogram was not an array at all and crashed the crawler on load.
+    requestRetryHistogram: z.array(z.number().nullable()),
+    statsId: z.string(),
+    requestAvgFailedDurationMillis: z.number().nullable(),
+    requestAvgFinishedDurationMillis: z.number().nullable(),
+    requestTotalDurationMillis: z.number(),
+    requestsTotal: z.number(),
+    requestsWithStatusCode: z.record(z.string(), z.number()),
+    errors: z.record(z.string(), z.unknown()),
+    retryErrors: z.record(z.string(), z.unknown()),
+});
 
 /** `Infinity` is what the statistics use for "nothing to average yet"; JSON has only `null` for it. */
 function finiteOrNull(value: number): number | null {
@@ -99,8 +99,7 @@ function finiteOrNull(value: number): number | null {
  *
  * Built per instance rather than kept as a constant because a record carries three things the state does not: the
  * instance `id`, the derived aggregates of the overridable {@apilink Statistics.calculate}, and - on the way back -
- * the fields that are rebuilt from {@apilink Statistics.defaultState} rather than restored, the error trackers
- * among them.
+ * the fields that are rebuilt from the instance's default state rather than restored, the error trackers among them.
  *
  * The model side is deliberately opaque: zod rebuilds what it validates, and `state.errors` has to stay the very
  * object the error trackers write into, not a copy of it.
@@ -187,7 +186,7 @@ export interface PersistenceOptions {
  * plugged in without subclassing the crawler.
  *
  * `StateExtension` describes the custom fields tracked alongside the built-in {@apilink StatisticState} ones - see
- * {@apilink StatisticsOptions.defaultState}.
+ * {@apilink StatisticsOptions.stateExtension}.
  *
  * The owned-only mutators the crawler uses to *own* a default it built - `reset()`/`resetStore()` - are deliberately
  * absent: an injected instance is borrowed, and the crawler never wipes it. Those live on the concrete
@@ -271,12 +270,15 @@ export interface CalculatedStatistics {
  * under the key `CRAWLEE_CRAWLER_STATISTICS_*`, persists between
  * migrations and abort/resurrect
  *
- * Custom fields are tracked by passing {@apilink StatisticsOptions.defaultState|`defaultState`} - the extra fields
- * are then part of {@apilink Statistics.state|`state`}, persisted and restored along with the built-in ones.
+ * Custom fields are tracked by passing {@apilink StatisticsOptions.stateExtension|`stateExtension`} - the extra fields are then part
+ * of {@apilink Statistics.state|`state`}, persisted and restored along with the built-in ones.
  *
  * @category Crawlers
  */
-export class Statistics<StateExtension extends object = {}> implements IStatistics<StateExtension> {
+export class Statistics<
+    StateExtension extends object = {},
+    PersistedStateExtension extends object = StateExtension,
+> implements IStatistics<StateExtension> {
     // kept as TS-private: statistics tests read the static counter directly
     private static id = 0;
 
@@ -295,13 +297,15 @@ export class Statistics<StateExtension extends object = {}> implements IStatisti
      */
     readonly id: string;
 
-    protected readonly persistStateKey: string;
+    readonly #persistStateKey: string;
     readonly #stateCodec: ReturnType<typeof buildStatisticStateCodec>;
     readonly #recoverableState: RecoverableState<
         StatisticState & StateExtension,
-        StatisticPersistedState & StateExtension
+        StatisticPersistedState & PersistedStateExtension
     >;
-    readonly #defaultStateExtension: StateExtension;
+    readonly #stateExtension: StatisticStateExtensionOptions<StateExtension, PersistedStateExtension>;
+    readonly #defaultStateExtension: () => StateExtension;
+    readonly #stateExtensionKeys: readonly (keyof StateExtension)[];
     #logIntervalMillis: number;
     #logMessage: string;
     #requestsInProgress = new Map<number | string, Job>();
@@ -324,9 +328,9 @@ export class Statistics<StateExtension extends object = {}> implements IStatisti
 
     /**
      * Construct a statistics instance to pass to a crawler via its `statistics` option, e.g. to preconfigure
-     * persistence or error snapshots, share it across sequential runs, or track extra fields via `defaultState`.
+     * persistence or error snapshots, share it across sequential runs, or track extra fields via `state`.
      */
-    constructor(options: StatisticsOptions<StateExtension> = {}) {
+    constructor(options: StatisticsOptions<StateExtension, PersistedStateExtension> = {}) {
         const {
             logIntervalSecs,
             logMessage,
@@ -335,43 +339,48 @@ export class Statistics<StateExtension extends object = {}> implements IStatisti
             persistenceOptions,
             saveErrorSnapshots,
             id,
-            defaultState,
+            stateExtension,
         } = parseArgument(options, statisticsOptionsSchema);
 
         this.id = id ?? String(Statistics.id++);
-        this.persistStateKey = `CRAWLEE_CRAWLER_STATISTICS_${this.id}`;
+        this.#persistStateKey = `CRAWLEE_CRAWLER_STATISTICS_${this.id}`;
 
         this.log = (log ?? serviceLocator.getLogger()).child({ prefix: 'Statistics' });
         this.errorTracker = new ErrorTracker({ ...errorTrackerConfig, saveErrorSnapshots });
         this.errorTrackerRetry = new ErrorTracker({ ...errorTrackerConfig, saveErrorSnapshots });
         this.#logIntervalMillis = logIntervalSecs * 1000;
         this.#logMessage = logMessage;
-        this.#defaultStateExtension = defaultState as StateExtension;
+        this.#stateExtension = stateExtension as StatisticStateExtensionOptions<
+            StateExtension,
+            PersistedStateExtension
+        >;
+        this.#defaultStateExtension = this.#resolveDefaultStateExtension(this.#stateExtension);
+        this.#stateExtensionKeys = Object.keys(this.#defaultStateExtension()) as (keyof StateExtension)[];
 
-        for (const key of Object.keys(defaultState)) {
-            if (key in this.#builtInDefaultState()) {
+        for (const key of this.#stateExtensionKeys) {
+            if ((key as string) in this.#builtInDefaultState()) {
                 throw new Error(
-                    `The custom statistics field \`${key}\` collides with a built-in one - it would shadow the ` +
-                        'value the crawler tracks. Rename it in `defaultState`.',
+                    `The custom statistics field \`${String(key)}\` collides with a built-in one - it would shadow ` +
+                        'the value the crawler tracks. Rename it in `stateExtension`.',
                 );
             }
         }
 
-        // Late-bound on purpose - both hooks are override points, and a subclass's must be the ones that run.
+        // `calculate()` is late-bound on purpose - it is an override point, and a subclass's must be the one that runs.
         this.#stateCodec = buildStatisticStateCodec({
             statsId: this.id,
-            defaultState: () => this.defaultState(),
+            defaultState: () => this.#defaultState(),
             calculate: () => this.calculate(),
         });
 
         this.#recoverableState = new RecoverableState({
-            persistStateKey: this.persistStateKey,
+            persistStateKey: this.#persistStateKey,
             persistenceEnabled: persistenceOptions.enable,
             keyValueStore,
             logger: this.log,
-            defaultState: () => this.defaultState(),
-            serialize: (state) => this.serializeState(state),
-            deserialize: (persistedState) => this.deserializeState(persistedState),
+            defaultState: () => this.#defaultState(),
+            serialize: (state) => this.#serializeState(state),
+            deserialize: (persistedState) => this.#deserializeState(persistedState),
         });
 
         // initialize by "resetting"
@@ -390,25 +399,50 @@ export class Statistics<StateExtension extends object = {}> implements IStatisti
         this.#requestsInProgress.clear();
     }
 
-    /**
-     * The pristine state a new instance starts with and {@apilink Statistics.reset} restores.
-     *
-     * A subclass tracking extra fields declares their initial values here.
-     */
-    protected defaultState(): StatisticState & StateExtension {
+    /** The pristine state a new instance starts with and {@apilink Statistics.reset} restores. */
+    #defaultState(): StatisticState & StateExtension {
         return {
             ...this.#builtInDefaultState(),
-            ...this.#cloneDefaultStateExtension(),
+            ...this.#defaultStateExtension(),
         };
     }
 
     /**
-     * A copy of the custom state defaults, so that mutating the state never writes through to the defaults of a
-     * later `reset()`. Copied through JSON rather than `structuredClone` on purpose: the state round-trips through
-     * the key-value store, and a value that does not survive that must not appear to survive a `reset()` either.
+     * The factory behind the custom half of the default state - it has to hand out a fresh object every time, or a
+     * `reset()` would write through to the defaults of the next one.
+     *
+     * With no `defaultState` given, the defaults are what `deserialize` makes of an empty record. That keeps a
+     * single declaration of the custom fields - a schema with a `.default()` per field is enough - and the defaults
+     * cannot then disagree with the conversion that has to accept them back.
      */
-    #cloneDefaultStateExtension(): StateExtension {
-        return JSON.parse(JSON.stringify(this.#defaultStateExtension)) as StateExtension;
+    #resolveDefaultStateExtension(
+        options: StatisticStateExtensionOptions<StateExtension, PersistedStateExtension>,
+    ): () => StateExtension {
+        const { defaultState, deserialize } = options;
+
+        if (typeof defaultState === 'function') {
+            return defaultState;
+        }
+
+        if (defaultState !== undefined) {
+            return () => structuredClone(defaultState);
+        }
+
+        if (deserialize === undefined) {
+            return () => ({}) as StateExtension;
+        }
+
+        return () => {
+            try {
+                return convertStateSync(deserialize, {}, this.#persistStateKey);
+            } catch (error) {
+                throw new Error(
+                    'Could not derive the default values of the custom statistics fields from `stateExtension.deserialize` - ' +
+                        'give every field a default, or declare `stateExtension.defaultState` explicitly.',
+                    { cause: error },
+                );
+            }
+        };
     }
 
     /** The built-in half of {@apilink Statistics.defaultState}, before any custom fields are merged over it. */
@@ -587,21 +621,17 @@ export class Statistics<StateExtension extends object = {}> implements IStatisti
         await this.#recoverableState
             .persistState()
             .catch((error) =>
-                this.log.warning(`Failed to persist the statistics to ${this.persistStateKey}`, { error }),
+                this.log.warning(`Failed to persist the statistics to ${this.#persistStateKey}`, { error }),
             );
     }
 
-    /**
-     * Rebuilds the state from a persisted record.
-     *
-     * A subclass tracking extra fields restores them here, on top of the result of `super.deserializeState()`.
-     */
-    protected deserializeState(
-        persistedState: StatisticPersistedState & Partial<StateExtension>,
+    /** Rebuilds the state from a persisted record. */
+    #deserializeState(
+        persistedState: StatisticPersistedState & Partial<PersistedStateExtension>,
     ): StatisticState & StateExtension {
-        // The cast is the index signature the `catchall` puts on the schema and an interface cannot have, plus the
-        // custom fields, whose type is open here - the record is an unvalidated blob off the key-value store either
-        // way, which is what the decode is for.
+        // The cast covers the custom fields, whose type is open here - and the record is an unvalidated blob off the
+        // key-value store either way, which is what the decode is for. Their keys are not in the schema, so the
+        // decode drops them; `#restoreStateExtension` is what brings them back.
         const restored = z.safeDecode(
             this.#stateCodec,
             persistedState as unknown as z.input<typeof persistedStatisticState>,
@@ -611,35 +641,58 @@ export class Statistics<StateExtension extends object = {}> implements IStatisti
             // Statistics are bookkeeping - a record that cannot be made sense of is worth a warning and a fresh
             // start, not a failed crawl.
             this.log.warning('Received invalid state from Key-value store, starting the statistics from scratch.', {
-                persistStateKey: this.persistStateKey,
+                persistStateKey: this.#persistStateKey,
                 issues: restored.error.issues,
             });
 
-            return this.defaultState();
+            return this.#defaultState();
         }
 
-        this.log.debug('Recreating state from KeyValueStore', { persistStateKey: this.persistStateKey });
+        this.log.debug('Recreating state from KeyValueStore', { persistStateKey: this.#persistStateKey });
 
-        return { ...this.defaultState(), ...restored.data, ...this.#restoreStateExtension(persistedState) };
+        return { ...this.#defaultState(), ...restored.data, ...this.#restoreStateExtension(persistedState) };
     }
 
     /**
-     * The custom {@apilink StatisticsOptions.defaultState|`defaultState`} fields as they were persisted. The codec
-     * only rebuilds the built-in ones, and a field the record does not carry - one declared after the record was
-     * written - keeps the default it already has.
+     * The custom {@apilink StatisticsOptions.stateExtension|`stateExtension`} fields as they were persisted - the codec only rebuilds
+     * the built-in ones.
+     *
+     * Given a `deserialize`, the whole record goes through it, so a field the record does not carry - one declared
+     * after the record was written - comes back as whatever default the conversion gives it. Without one, the
+     * declared keys are copied over as they were persisted and a missing one keeps the default it already has.
      */
-    #restoreStateExtension(persistedState: Partial<StateExtension>): Partial<StateExtension> {
-        const restored: Partial<StateExtension> = {};
+    #restoreStateExtension(persistedState: Partial<PersistedStateExtension>): Partial<StateExtension> {
+        const { deserialize } = this.#stateExtension;
 
-        for (const key of Object.keys(this.#defaultStateExtension) as (keyof StateExtension)[]) {
-            const persistedValue = persistedState[key];
+        if (deserialize === undefined) {
+            const restored: Partial<StateExtension> = {};
 
-            if (persistedValue !== undefined) {
-                restored[key] = persistedValue;
+            for (const key of this.#stateExtensionKeys) {
+                // The record is an unvalidated blob and there is no conversion to check it with, so this is the
+                // caller's word for it - the state ends up holding whatever was written. The two halves only line
+                // up at all because the fields are persisted as they are without a `serialize`.
+                const persistedValue = (persistedState as unknown as Partial<StateExtension>)[key];
+
+                if (persistedValue !== undefined) {
+                    restored[key] = persistedValue;
+                }
             }
+
+            return restored;
         }
 
-        return restored;
+        try {
+            return convertStateSync(deserialize, persistedState, this.#persistStateKey);
+        } catch (error) {
+            // Same policy as a built-in field that cannot be made sense of, but scoped to the custom ones - a
+            // corrupt counter of your own is no reason to throw away the crawler's.
+            this.log.warning(
+                'Received invalid custom statistics fields from Key-value store, starting those from scratch.',
+                { persistStateKey: this.#persistStateKey, error },
+            );
+
+            return {};
+        }
     }
 
     #stopLogging(): void {
@@ -653,25 +706,57 @@ export class Statistics<StateExtension extends object = {}> implements IStatisti
      * Builds the record written to the key value store, merging in the derived aggregates so that a consumer
      * reading the record does not have to reconstruct them.
      */
-    protected serializeState(state: StatisticState & StateExtension): StatisticPersistedState & StateExtension {
-        // The codec spreads whatever the state carries beyond the fields it names, so the custom ones ride along;
-        // the schema's `catchall` is what keeps them from being dropped on the way through it.
-        return z.encode(this.#stateCodec, state) as StatisticPersistedState & StateExtension;
+    #serializeState(state: StatisticState & StateExtension): StatisticPersistedState & PersistedStateExtension {
+        const { builtIn, extension } = this.#splitState(state);
+
+        return {
+            ...z.encode(this.#stateCodec, builtIn),
+            ...this.#serializeStateExtension(extension),
+        } as StatisticPersistedState & PersistedStateExtension;
+    }
+
+    /** The custom {@apilink StatisticsOptions.stateExtension|`stateExtension`} fields as they go into the record. */
+    #serializeStateExtension(extension: StateExtension): PersistedStateExtension {
+        const { serialize } = this.#stateExtension;
+
+        if (serialize === undefined) {
+            return extension as unknown as PersistedStateExtension;
+        }
+
+        // Unlike the way back, a failure here throws: the value is the caller's own, and a record written from a
+        // state that does not match its own declaration is not worth having.
+        return convertStateSync(serialize, extension, this.#persistStateKey);
+    }
+
+    /** Separates the declared custom fields from the built-in ones, so that each half goes through its own conversion. */
+    #splitState(state: StatisticState & StateExtension): { builtIn: StatisticState; extension: StateExtension } {
+        const builtIn: StatisticState & Partial<StateExtension> = { ...state };
+        const extension = {} as StateExtension;
+
+        for (const key of this.#stateExtensionKeys) {
+            extension[key] = state[key];
+            delete builtIn[key];
+        }
+
+        return { builtIn, extension };
     }
 
     /**
      * Make this class serializable when called with `JSON.stringify(statsInstance)` directly
      * or through `keyValueStore.setValue('KEY', statsInstance)`
      */
-    toJSON(): StatisticPersistedState & StateExtension {
-        return this.serializeState(this.state);
+    toJSON(): StatisticPersistedState & PersistedStateExtension {
+        return this.#serializeState(this.state);
     }
 }
 
 /**
  * Configuration for the {@apilink Statistics} instance used by the crawler
  */
-export interface StatisticsOptions<StateExtension extends object = {}> {
+export interface StatisticsOptions<
+    StateExtension extends object = {},
+    PersistedStateExtension extends object = StateExtension,
+> {
     /**
      * Interval in seconds to log the current statistics
      * @default 60
@@ -718,16 +803,62 @@ export interface StatisticsOptions<StateExtension extends object = {}> {
     id?: string;
 
     /**
-     * Initial values of custom fields to track alongside the built-in {@apilink StatisticState} ones. The fields
-     * become part of {@apilink Statistics.state|`state`} (typed as such), are persisted with the rest of the state,
-     * and are restored on migration or resurrect. `reset()` returns them to these values.
+     * Custom fields to track alongside the built-in {@apilink StatisticState} ones. They become part of
+     * {@apilink Statistics.state|`state`} (typed as such), are persisted with the rest of the state, and are
+     * restored on migration or resurrect.
      *
      * ```ts
-     * const statistics = new Statistics({ defaultState: { productsFound: 0 } });
+     * const statistics = new Statistics({ stateExtension: { defaultState: { productsFound: 0 } } });
      * statistics.state.productsFound++;
      * ```
      */
-    defaultState?: StateExtension;
+    stateExtension?: StatisticStateExtensionOptions<StateExtension, PersistedStateExtension>;
+}
+
+/**
+ * How the custom fields of {@apilink StatisticsOptions.stateExtension} are initialized and converted to and from the
+ * persisted record - the same three things {@apilink RecoverableStateOptions} asks for, scoped to the custom half
+ * of the statistics state.
+ */
+export interface StatisticStateExtensionOptions<
+    StateExtension extends object,
+    PersistedStateExtension extends object = StateExtension,
+> {
+    /**
+     * The values the fields start with, and the ones {@apilink Statistics.reset} restores. A plain value is
+     * deep-copied with `structuredClone` each time it is used; pass a factory for a state `structuredClone` cannot
+     * rebuild.
+     *
+     * Can be omitted when `deserialize` supplies its own defaults, which is then the single place the fields are
+     * declared - see the example on {@apilink StatisticStateExtensionOptions.deserialize|`deserialize`}.
+     */
+    defaultState?: StateExtension | (() => StateExtension);
+
+    /**
+     * Rebuilds the custom fields from the persisted record, and the place to validate them before trusting them.
+     * Receives the whole record, so it has to supply a value for every field - `.default()` in a schema, or
+     * {@apilink StatisticStateExtensionOptions.defaultState|`defaultState`} alongside a conversion that copes with
+     * a missing field itself.
+     *
+     * ```ts
+     * const statistics = new Statistics({
+     *     stateExtension: { deserialize: z.object({ productsFound: z.number().default(0) }) },
+     * });
+     * ```
+     *
+     * Without it, the declared fields are restored as they were persisted - which is a record off the key-value
+     * store taken at its word, `productsFound` included in whatever type it happens to hold.
+     *
+     * A conversion that rejects the record costs the custom fields their persisted values (they start from the
+     * defaults, with a warning) and nothing else.
+     */
+    deserialize?: SyncStateConversion<unknown, StateExtension>;
+
+    /**
+     * Converts the custom fields to the JSON-serializable form they are persisted in. Not needed for fields that
+     * already are one - pair it with `deserialize` for the fields that are not.
+     */
+    serialize?: SyncStateConversion<StateExtension, PersistedStateExtension>;
 }
 
 /**

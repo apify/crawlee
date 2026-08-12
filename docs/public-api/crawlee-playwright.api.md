@@ -115,17 +115,30 @@ export interface AdaptivePlaywrightCrawlerOptions<ContextExtension = Dictionary<
 }
 
 // @public
-export interface AdaptivePlaywrightCrawlerStatisticState {
-    browserRequestHandlerRuns: number;
-    httpOnlyRequestHandlerRuns: number;
-    renderingTypeMispredictions: number;
-}
+export type AdaptivePlaywrightCrawlerStatisticState = z.infer<typeof adaptiveStatisticStateSchema>;
+
+// @public
+export const adaptivePlaywrightCrawlerStatisticState: {
+    deserialize: z.ZodObject<{
+        httpOnlyRequestHandlerRuns: z.ZodDefault<z.ZodNumber>;
+        browserRequestHandlerRuns: z.ZodDefault<z.ZodNumber>;
+        renderingTypeMispredictions: z.ZodDefault<z.ZodNumber>;
+    }, z.core.$strip>;
+};
 
 // Not exported by the entry point; reachable only as a referenced type.
 // @public (undocumented)
 type AdaptivePostNavigationHook<ContextExtension = Dictionary<never>> = BrowserHook<Omit<AdaptiveHookContext, 'request'> & {
     request: LoadedRequest<Request_3>;
 }, ContextExtension>;
+
+// Not exported by the entry point; reachable only as a referenced type.
+// @public (undocumented)
+const adaptiveStatisticStateSchema: z.ZodObject<{
+    httpOnlyRequestHandlerRuns: z.ZodDefault<z.ZodNumber>;
+    browserRequestHandlerRuns: z.ZodDefault<z.ZodNumber>;
+    renderingTypeMispredictions: z.ZodDefault<z.ZodNumber>;
+}, z.core.$strip>;
 
 // @public
 function blockRequests(page: Page, options?: BlockRequestsOptions): Promise<void>;
@@ -174,9 +187,6 @@ export function createPlaywrightRouter<Context extends PlaywrightCrawlingContext
 
 // @public (undocumented)
 export function createPlaywrightRouter<Context extends PlaywrightCrawlingContext = PlaywrightCrawlingContext, const Schemas extends RouteSchemas = RouteSchemas>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
-
-// @public
-export const defaultAdaptivePlaywrightCrawlerStatisticState: AdaptivePlaywrightCrawlerStatisticState;
 
 // @public
 function enqueueLinksByClickingElements(options: EnqueueLinksByClickingElementsOptions): Promise<BatchAddRequestsResult>;

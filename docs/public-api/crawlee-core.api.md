@@ -1939,31 +1939,25 @@ export interface StatisticPersistedState extends Omit<StatisticState, 'statsPers
 }
 
 // @public
-export class Statistics<StateExtension extends object = {}> implements IStatistics<StateExtension> {
-    constructor(options?: StatisticsOptions<StateExtension>);
+export class Statistics<StateExtension extends object = {}, PersistedStateExtension extends object = StateExtension> implements IStatistics<StateExtension> {
+    constructor(options?: StatisticsOptions<StateExtension, PersistedStateExtension>);
     calculate(): CalculatedStatistics;
-    protected defaultState(): StatisticState & StateExtension;
-    protected deserializeState(persistedState: StatisticPersistedState & Partial<StateExtension>): StatisticState & StateExtension;
     readonly errorTracker: ErrorTracker;
     readonly errorTrackerRetry: ErrorTracker;
     readonly id: string;
     persistState(): Promise<void>;
-    // (undocumented)
-    protected readonly persistStateKey: string;
     registerStatusCode(code: number): void;
     get requestRetryHistogram(): number[];
     reset(): void;
     resetStore(): Promise<void>;
-    protected serializeState(state: StatisticState & StateExtension): StatisticPersistedState & StateExtension;
     startCapturing(): Promise<void>;
     get state(): StatisticState & StateExtension;
     stopCapturing(): Promise<void>;
-    toJSON(): StatisticPersistedState & StateExtension;
+    toJSON(): StatisticPersistedState & PersistedStateExtension;
 }
 
 // @public
-export interface StatisticsOptions<StateExtension extends object = {}> {
-    defaultState?: StateExtension;
+export interface StatisticsOptions<StateExtension extends object = {}, PersistedStateExtension extends object = StateExtension> {
     id?: string;
     keyValueStore?: KeyValueStore;
     log?: CrawleeLogger;
@@ -1971,6 +1965,7 @@ export interface StatisticsOptions<StateExtension extends object = {}> {
     logMessage?: string;
     persistenceOptions?: PersistenceOptions;
     saveErrorSnapshots?: boolean;
+    stateExtension?: StatisticStateExtensionOptions<StateExtension, PersistedStateExtension>;
 }
 
 // @public
@@ -2009,6 +2004,13 @@ export interface StatisticState {
     retryErrors: Record<string, unknown>;
     // (undocumented)
     statsPersistedAt: Date | string | null;
+}
+
+// @public
+export interface StatisticStateExtensionOptions<StateExtension extends object, PersistedStateExtension extends object = StateExtension> {
+    defaultState?: StateExtension | (() => StateExtension);
+    deserialize?: SyncStateConversion<unknown, StateExtension>;
+    serialize?: SyncStateConversion<StateExtension, PersistedStateExtension>;
 }
 
 export { StorageBackend }
@@ -2137,6 +2139,9 @@ export interface SupportsDomainThrottling {
 
 // @public
 export function supportsDomainThrottling(manager: unknown): manager is SupportsDomainThrottling;
+
+// @public
+export type SyncStateConversion<TFrom, TTo> = ((value: TFrom) => TTo) | StandardSchemaV1<TFrom, TTo>;
 
 // @public
 export interface SystemInfo {

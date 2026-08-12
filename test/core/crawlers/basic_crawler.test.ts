@@ -2130,7 +2130,7 @@ describe('BasicCrawler', () => {
         it('exposes the custom state fields of a supplied instance on crawler.stats', async () => {
             const stats = new Statistics({
                 persistenceOptions: { enable: false },
-                defaultState: { productsFound: 0 },
+                stateExtension: { defaultState: { productsFound: 0 } },
             });
 
             const crawler = new BasicCrawler({

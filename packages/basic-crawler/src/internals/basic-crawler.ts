@@ -509,11 +509,11 @@ export interface BasicCrawlerOptions<
      * will not `reset()` it between `run()` calls. Accepts the built-in {@apilink Statistics} or any object
      * implementing {@apilink IStatistics}.
      *
-     * Custom fields declared via {@apilink StatisticsOptions.defaultState|`defaultState`} are carried over to
+     * Custom fields declared via {@apilink StatisticsOptions.stateExtension|`stateExtension`} are carried over to
      * {@apilink BasicCrawler.stats|`crawler.stats.state`}:
      *
      * ```ts
-     * const statistics = new Statistics({ defaultState: { productsFound: 0 } });
+     * const statistics = new Statistics({ stateExtension: { defaultState: { productsFound: 0 } } });
      *
      * const crawler = new BasicCrawler({
      *     statistics,
@@ -1136,7 +1136,7 @@ export class BasicCrawler<
             >(
                 statistics,
                 // A crawler-built default tracks the built-in fields only. A non-empty `StatisticStateExtension` can
-                // only be satisfied by an injected instance carrying the matching `defaultState`, so this branch does
+                // only be satisfied by an injected instance carrying the matching `state`, so this branch does
                 // not run in that case - hence the cast.
                 () =>
                     new Statistics({

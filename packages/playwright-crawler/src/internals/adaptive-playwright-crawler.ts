@@ -22,6 +22,7 @@ import type {
     GetUserDataFromRequest,
     RestrictedCrawlingContext,
     RouterRoutes,
+    StatisticStateExtensionOptions,
     StorageTransaction,
     StorageTransactionView,
     StorageWritePolicy,
@@ -57,31 +58,31 @@ type Result<TResult> =
     | { result: TResult; ok: true; logs?: LogProxyCall[] }
     | { error: unknown; ok: false; logs?: LogProxyCall[] };
 
+const adaptiveStatisticStateSchema = z.object({
+    /** How many requests were handled by the HTTP-only request handler. */
+    httpOnlyRequestHandlerRuns: z.number().default(0),
+
+    /** How many requests were handled in a browser. */
+    browserRequestHandlerRuns: z.number().default(0),
+
+    /** How many times the HTTP-only handler produced a result the `resultChecker` rejected. */
+    renderingTypeMispredictions: z.number().default(0),
+});
+
 /**
  * The extra statistics fields {@apilink AdaptivePlaywrightCrawler} tracks on top of the built-in
  * {@apilink StatisticState} ones. They are available on `crawler.stats.state` and are persisted with the rest of
  * the statistics.
  */
-export interface AdaptivePlaywrightCrawlerStatisticState {
-    /** How many requests were handled by the HTTP-only request handler. */
-    httpOnlyRequestHandlerRuns: number;
-
-    /** How many requests were handled in a browser. */
-    browserRequestHandlerRuns: number;
-
-    /** How many times the HTTP-only handler produced a result the `resultChecker` rejected. */
-    renderingTypeMispredictions: number;
-}
+export type AdaptivePlaywrightCrawlerStatisticState = z.infer<typeof adaptiveStatisticStateSchema>;
 
 /**
- * The initial values of the {@apilink AdaptivePlaywrightCrawlerStatisticState} fields. Spread it into the
- * `defaultState` of a {@apilink Statistics} instance to be injected into an {@apilink AdaptivePlaywrightCrawler},
- * which needs those fields to be present.
+ * The {@apilink AdaptivePlaywrightCrawlerStatisticState} fields as a {@apilink Statistics} state extension, defaults
+ * and all. A {@apilink Statistics} instance to be injected into an {@apilink AdaptivePlaywrightCrawler} has to carry
+ * them - `deserialize.extend()` your own fields onto this one and pass the result as `stateExtension`.
  */
-export const defaultAdaptivePlaywrightCrawlerStatisticState: AdaptivePlaywrightCrawlerStatisticState = {
-    httpOnlyRequestHandlerRuns: 0,
-    browserRequestHandlerRuns: 0,
-    renderingTypeMispredictions: 0,
+export const adaptivePlaywrightCrawlerStatisticState = {
+    deserialize: adaptiveStatisticStateSchema,
 };
 
 export interface AdaptivePlaywrightCrawlerContext<
@@ -352,8 +353,8 @@ export class AdaptivePlaywrightCrawler<
         );
 
         // The extra fields are only tracked if the injected instance was built with them - the types enforce that,
-        // but plain JS callers would otherwise silently increment `undefined` into a sticky `NaN`. Spread
-        // `defaultAdaptivePlaywrightCrawlerStatisticState` into the instance's `defaultState` to satisfy this.
+        // but plain JS callers would otherwise silently increment `undefined` into a sticky `NaN`. Extend
+        // `adaptivePlaywrightCrawlerStatisticState` to satisfy this.
         if (statistics !== undefined) {
             ow(
                 statistics.state,
@@ -390,7 +391,8 @@ export class AdaptivePlaywrightCrawler<
                 statistics ??
                 new Statistics({
                     logMessage: `${AdaptivePlaywrightCrawler.name} request statistics:`,
-                    defaultState: defaultAdaptivePlaywrightCrawlerStatisticState as StatisticStateExtension,
+                    stateExtension:
+                        adaptivePlaywrightCrawlerStatisticState as StatisticStateExtensionOptions<StatisticStateExtension>,
                 }),
             contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),
             // The base crawler must not wrap requests in a transaction of its own - this crawler opens
