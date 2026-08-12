@@ -3,6 +3,15 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.18.1](https://github.com/apify/crawlee/compare/v3.18.0...v3.18.1) (2026-08-12)
+
+### Bug Fixes
+
+* **core:** do not purge storages that are already in use ([#3988](https://github.com/apify/crawlee/issues/3988)) ([8e8c75b](https://github.com/apify/crawlee/commit/8e8c75beaa6dcb5c7fe671fbc8fad430fd7af516)), closes [#3156](https://github.com/apify/crawlee/issues/3156)
+* **playwright:** update handleCloudflareChallenge for new Cloudflare challenge markup ([#4019](https://github.com/apify/crawlee/issues/4019)) ([379f629](https://github.com/apify/crawlee/commit/379f629b657c5457fa8cc0333df43b0d83d67464)), closes [#3717](https://github.com/apify/crawlee/issues/3717) [#3717](https://github.com/apify/crawlee/issues/3717)
+* respect `maxCrawlDepth` in `JSDOM/LinkeDOM` context `enqueueLinks` ([#4021](https://github.com/apify/crawlee/issues/4021)) ([4d34aea](https://github.com/apify/crawlee/commit/4d34aeab6d78d1bd0bbe27418daf621f28a3524c)), closes [#3927](https://github.com/apify/crawlee/issues/3927) [#4020](https://github.com/apify/crawlee/issues/4020)
+
+
 # [3.18.0](https://github.com/apify/crawlee/compare/v3.17.0...v3.18.0) (2026-08-04)
 
 ### Bug Fixes
