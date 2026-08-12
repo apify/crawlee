@@ -296,6 +296,8 @@ export class JSDOMCrawler extends HttpCrawler<JSDOMCrawlingContext> {
             }
         }
 
+        const originalEnqueueLinks = crawlingContext.enqueueLinks;
+
         return {
             window,
             get body() {
@@ -306,13 +308,16 @@ export class JSDOMCrawler extends HttpCrawler<JSDOMCrawlingContext> {
             },
             enqueueLinks: async (enqueueOptions?: EnqueueLinksOptions) => {
                 return domCrawlerEnqueueLinks({
-                    options: { ...enqueueOptions, limit: this.calculateEnqueuedRequestLimit(enqueueOptions?.limit) },
+                    // `originalEnqueueLinks` clamps `limit` by the remaining `maxRequestsPerCrawl` budget itself;
+                    // pre-clamping it here would make the crawler log the internal limit as a user-provided one
+                    options: enqueueOptions,
                     window,
                     requestQueue: await this.getRequestQueue(),
                     robotsTxtFile: await this.getRobotsTxtFileForUrl(crawlingContext.request.url),
                     onSkippedRequest: this.handleSkippedRequest,
                     originalRequestUrl: crawlingContext.request.url,
                     finalRequestUrl: crawlingContext.request.loadedUrl,
+                    enqueueLinks: originalEnqueueLinks,
                 });
             },
         };
