@@ -1,12 +1,12 @@
 import { URL } from 'node:url';
 
-import type { Awaitable } from '@crawlee/types';
+import type { Awaitable, Dictionary } from '@crawlee/types';
 import { Minimatch } from 'minimatch';
 import { z } from 'zod';
 
 import type { RequestOptions } from '../request.js';
 import { schemas } from '../validators.js';
-import type { EnqueueLinksOptions } from './enqueue_links.js';
+import type { EnqueueStrategyOption } from './enqueue_links.js';
 
 export { tryAbsoluteURL } from '@crawlee/utils/internal';
 
@@ -177,7 +177,7 @@ export function filterRequestOptionsByPatterns(
     requestOptions: RequestOptions[],
     includePatterns: UrlPatternObject[] | undefined,
     excludePatterns: UrlPatternObject[] = [],
-    strategy?: EnqueueLinksOptions['strategy'],
+    strategy?: EnqueueStrategyOption,
     onSkippedUrl?: (url: string) => void,
 ): RequestOptions[] {
     const excludeMatchers = excludePatterns.map(createPatternObjectMatcher);
@@ -209,15 +209,29 @@ export function filterRequestOptionsByPatterns(
         .filter((opts) => opts !== null);
 }
 
+function isAbsoluteUrl(url: string): boolean {
+    try {
+        // eslint-disable-next-line no-new
+        new URL(url);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
 /**
  * @ignore
  */
 export function createRequestOptions(
     sources: readonly (string | Record<string, unknown>)[],
-    options: Pick<
-        EnqueueLinksOptions,
-        'label' | 'userData' | 'baseUrl' | 'skipNavigation' | 'sessionId' | 'strategy'
-    > = {},
+    options: {
+        label?: string;
+        userData?: Dictionary;
+        baseUrl?: string;
+        skipNavigation?: boolean;
+        sessionId?: string;
+        strategy?: EnqueueStrategyOption;
+    } = {},
 ): RequestOptions[] {
     return sources
         .map((src) =>
@@ -233,7 +247,12 @@ export function createRequestOptions(
             }
         })
         .map((requestOptions) => {
-            requestOptions.url = new URL(requestOptions.url, options.baseUrl).href;
+            // Leave already-absolute URLs untouched - re-deriving them via `new URL()` would normalize them
+            // (e.g. adding a trailing slash to a bare domain), which is surprising for URLs that didn't need
+            // resolving against `baseUrl` in the first place.
+            if (!isAbsoluteUrl(requestOptions.url)) {
+                requestOptions.url = new URL(requestOptions.url, options.baseUrl).href;
+            }
             requestOptions.userData ??= options.userData ?? {};
 
             if (typeof options.label === 'string') {

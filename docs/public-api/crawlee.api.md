@@ -5,7 +5,6 @@
 ```ts
 
 import { downloadListOfUrls } from '@crawlee/utils';
-import { enqueueLinks } from '@crawlee/core';
 import { Log } from '@apify/log';
 import { parseOpenGraph } from '@crawlee/utils';
 import { playwrightUtils } from '@crawlee/playwright';
@@ -18,7 +17,6 @@ export const utils: {
     puppeteer: typeof puppeteerUtils;
     playwright: typeof playwrightUtils;
     log: Log;
-    enqueueLinks: typeof enqueueLinks;
     social: typeof social;
     sleep: typeof sleep;
     downloadListOfUrls: typeof downloadListOfUrls;

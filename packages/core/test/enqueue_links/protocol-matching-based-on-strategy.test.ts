@@ -1,12 +1,13 @@
-import { load } from 'cheerio';
-import type { CheerioRoot } from 'crawlee';
 import {
-    cheerioCrawlerEnqueueLinks,
+    CheerioCrawler,
     EnqueueStrategy,
     MemoryStorageBackend,
     RequestQueue,
     serviceLocator,
+    type Source,
 } from 'crawlee';
+import { extractUrlsFromCheerio } from '@crawlee/utils/internal';
+import { load } from 'cheerio';
 
 const HTML = `
 <html>
@@ -22,61 +23,50 @@ const HTML = `
 </html>
 `;
 
-type MemoryRequestQueueBackend = Awaited<ReturnType<MemoryStorageBackend['createRequestQueueBackend']>>;
+/**
+ * Runs `crawler.addRequests()` against the links extracted from `HTML`, resolved relative to `baseUrl` -
+ * the address `enqueueLinks()` would normally anchor the strategy to - and returns the resulting URLs.
+ */
+async function enqueuedUrls(strategy: EnqueueStrategy, baseUrl: string): Promise<Set<string>> {
+    const enqueued: Source[] = [];
+    const requestQueue = await RequestQueue.open();
+    const originalAddRequests = requestQueue.addRequests.bind(requestQueue);
+    requestQueue.addRequests = async (requests, addOptions) => {
+        const items: Source[] = [];
+        for await (const request of requests) {
+            items.push(typeof request === 'string' ? { url: request } : (request as Source));
+        }
+        enqueued.push(...items);
+        return originalAddRequests(items, addOptions);
+    };
 
-/** Collect the URLs of all requests in the queue, regardless of order. */
-async function enqueuedUrls(requestQueue: RequestQueue): Promise<Set<string>> {
-    const items = await (requestQueue.backend as MemoryRequestQueueBackend).listItems();
-    return new Set(items.map((item) => item.url));
+    const crawler = new CheerioCrawler({ requestManager: requestQueue });
+    const urls = extractUrlsFromCheerio(load(HTML), 'a', baseUrl);
+    await crawler.addRequests(urls, { baseUrl, strategy });
+
+    return new Set(enqueued.map((item) => item.url!));
 }
 
 describe('enqueueLinks() - matching and ignoring http/https protocol differences', () => {
-    let $: CheerioRoot;
     beforeEach(() => {
         serviceLocator.setStorageBackend(new MemoryStorageBackend());
-        $ = load(HTML);
     });
 
     test('SameHostname should ignore protocol difference', async () => {
-        const requestQueue = await RequestQueue.open();
-
-        await cheerioCrawlerEnqueueLinks({
-            options: { selector: 'a', strategy: EnqueueStrategy.SameHostname },
-            $,
-            requestManager: requestQueue,
-            originalRequestUrl: 'https://example.com',
-        });
-
-        expect(await enqueuedUrls(requestQueue)).toEqual(
+        expect(await enqueuedUrls(EnqueueStrategy.SameHostname, 'https://example.com')).toEqual(
             new Set(['https://example.com/first', 'http://example.com/second']),
         );
     });
 
     test('SameDomain should ignore protocol difference', async () => {
-        const requestQueue = await RequestQueue.open();
-
-        await cheerioCrawlerEnqueueLinks({
-            options: { selector: 'a', strategy: EnqueueStrategy.SameDomain },
-            $,
-            requestManager: requestQueue,
-            originalRequestUrl: 'http://example.com',
-        });
-
-        expect(await enqueuedUrls(requestQueue)).toEqual(
+        expect(await enqueuedUrls(EnqueueStrategy.SameDomain, 'http://example.com')).toEqual(
             new Set(['https://example.com/first', 'http://example.com/second']),
         );
     });
 
     test('SameOrigin should respect protocol', async () => {
-        const requestQueue = await RequestQueue.open();
-
-        await cheerioCrawlerEnqueueLinks({
-            options: { selector: 'a', strategy: EnqueueStrategy.SameOrigin },
-            $,
-            requestManager: requestQueue,
-            originalRequestUrl: 'https://example.com',
-        });
-
-        expect(await enqueuedUrls(requestQueue)).toEqual(new Set(['https://example.com/first']));
+        expect(await enqueuedUrls(EnqueueStrategy.SameOrigin, 'https://example.com')).toEqual(
+            new Set(['https://example.com/first']),
+        );
     });
 });
