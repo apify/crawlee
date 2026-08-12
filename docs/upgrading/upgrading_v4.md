@@ -464,6 +464,27 @@ const crawler = new CheerioCrawler({
 
 Previously, the crawling context extended a `Record` type, allowing to access any property. This was changed to a strict type, which means that you can only access properties that are defined in the context.
 
+### The default HTTP client is now `impit`
+
+The HTTP crawlers (and `sendRequest`) no longer use `got-scraping` by default. The default client is now `ImpitHttpClient` from the optional `@crawlee/impit-client` package (a Rust-based client with TLS fingerprint impersonation); when it is not installed, the crawlers fall back to a plain `fetch`-based client with a logged warning (no proxy support or impersonation). To keep using `got-scraping`, install `@crawlee/got-scraping-client` and pass `httpClient: new GotScrapingHttpClient()` explicitly.
+
+Note that the session's fingerprint drives the impersonation: each new session gets a randomized realistic fingerprint by default, and its `browser` hint overrides the `browser` option passed to the `ImpitHttpClient` constructor. To force a specific browser family, pin the fingerprint on the sessions instead:
+
+```ts
+const crawler = new CheerioCrawler({
+    httpClient: new ImpitHttpClient({ browser: Browser.Firefox }),
+    sessionPool: new SessionPool({
+        createSessionFunction: async (opts) =>
+            new Session({
+                ...opts?.sessionOptions,
+                fingerprint: { browser: 'firefox', platform: 'linux', device: 'desktop' },
+            }),
+    }),
+});
+```
+
+See the [Avoid getting blocked](https://crawlee.dev/js/docs/guides/avoid-blocking) guide for how the session fingerprint interacts with both HTTP and browser crawlers.
+
 ### `HttpClient` instances return `Response` objects
 
 The interface of `HttpClient` instances was changed to return the [native `Response` objects](https://developer.mozilla.org/en-US/docs/Web/API/Response) instead of custom `HttpResponse` objects.
@@ -584,6 +605,19 @@ The mechanism can be disabled entirely with `transactionalStorage: false` on any
 - `checkStorageAccess` and `withCheckedStorageAccess` are superseded by the transaction mechanism; the per-call-site helper is now `withDirectStorageAccess()`.
 - The experimental `AdaptivePlaywrightCrawler` no longer needs its bespoke write-buffering machinery: the `preventDirectStorageAccess` option is gone (direct storage calls are now captured by the per-attempt transaction instead of throwing), and `RequestHandlerResult` is replaced by the read-only `StorageTransactionView`, which the `resultChecker` / `resultComparator` callbacks (and `fullResultComparator`) now receive. The view keeps the familiar accessors (`datasetItems`, `enqueuedUrls`, `keyValueStoreChanges`), so most callbacks only need a type change. The `calls` and `enqueuedUrlLists` accessors are gone — `requestsFromUrl` sources are now expanded when added, so the fetched URLs appear in `enqueuedUrls` (and are what `fullResultComparator` compares).
 
+### `storageObject` is removed from storage classes
+
+The `storageObject` property (the raw backend record exposed on `Dataset`, `KeyValueStore` and `RequestQueue` instances) is removed. The commonly used fields are available directly on the instance as `id` and `name`, and `Dataset.getInfo()` returns the full metadata:
+
+```ts
+// v3
+const { id, name } = dataset.storageObject;
+
+// v4
+const { id, name } = dataset;
+const info = await dataset.getInfo();
+```
+
 ### `KeyValueStore.getPublicUrl` is now async
 
 The `KeyValueStore.getPublicUrl` method is now asynchronous and reads the public URL directly from the storage backend.
@@ -629,6 +663,26 @@ await enqueueLinks({
     include: [/^https:\/\/crawlee\.dev\/.*$/],
     // or, when the pattern is simple, an equivalent glob:
     // include: ['https://crawlee.dev/**'],
+});
+```
+
+#### `include` patterns no longer replace the enqueue strategy
+
+In v3, providing any URL patterns (`globs`, `regexps`, `pseudoUrls`) disabled the default enqueue strategy - the patterns were the only filter. In v4, the `strategy` **always applies** and is combined with `include` using AND logic: a URL must match an `include` pattern *and* satisfy the strategy (default `same-hostname`) to be enqueued. This mirrors the behavior of Crawlee for Python.
+
+The practical consequence: patterns that used to match URLs on other hostnames (e.g. subdomains) now silently enqueue nothing unless you relax the strategy explicitly:
+
+```ts
+// v3 - the glob alone allowed subdomains
+await enqueueLinks({
+    globs: ['https://*.example.com/'],
+});
+
+// v4 - the default same-hostname strategy would filter the subdomains out again,
+// so relax it explicitly
+await enqueueLinks({
+    include: ['https://*.example.com/'],
+    strategy: 'same-domain',
 });
 ```
 
@@ -733,6 +787,37 @@ The exported handler types were reshaped accordingly. `ErrorHandler` and `Reques
 ### `RecoverableState` reshaped
 
 `serialize` and `deserialize` now take and return values rather than strings (so v3 records will not load) and each also accept a [Standard Schema](https://standardschema.dev) — a zod codec works as `deserialize` directly — `reset()` is synchronous, no longer clears the persisted record (the new `resetStore()` does) and doubles as a way to establish the state without awaiting `initialize()`, `persistStateKvsName` and `persistStateKvsId` collapsed into a single `keyValueStore` option taking a store (or a pending `KeyValueStore.open()`), `defaultState` also accepts a factory (which you need for a state `structuredClone` cannot rebuild, as the deep copy no longer goes through `serialize`/`deserialize`), and there is a new `persistenceTimeoutMillis` option. `teardown()` is no longer terminal — `initialize()` can be called again to open another persistence window — and a write that fails during a periodic `PERSIST_STATE` or during `teardown()` is warned about rather than thrown. A direct `persistState()` still throws.
+
+### The `log` crawler option is replaced by `logger`
+
+The crawler constructors no longer accept a `log` option with an `@apify/log` `Log` instance. Pass a `logger` implementing the `CrawleeLogger` interface instead. To keep using an `@apify/log` instance (e.g. a `child()` with a custom prefix), wrap it in the `ApifyLogAdapter` from `@crawlee/core`:
+
+```ts
+// v3
+import { CheerioCrawler, log } from 'crawlee';
+
+const crawler = new CheerioCrawler({
+    log: log.child({ prefix: 'MyCrawler' }),
+});
+
+// v4
+import { ApifyLogAdapter, CheerioCrawler, log } from 'crawlee';
+
+const crawler = new CheerioCrawler({
+    logger: new ApifyLogAdapter(log.child({ prefix: 'MyCrawler' })),
+});
+```
+
+Related: `crawler.log` and the crawling context `log` are typed as `CrawleeLogger`, which has no `setLevel()` method - level filtering belongs to the underlying logging library. With the default logger, set the level on the global `@apify/log` instance instead:
+
+```ts
+// v3
+crawler.log.setLevel(LogLevel.DEBUG);
+
+// v4
+import log, { LogLevel } from '@apify/log';
+log.setLevel(LogLevel.DEBUG);
+```
 
 ### The `log` property is typed as `CrawleeLogger`
 
@@ -1004,6 +1089,40 @@ If you don't pass a predictor, nothing changes: the crawler builds one from `ren
 ### Remove `experimentalContainers` option
 
 This experimental option relied on an outdated manifest version for browser extensions, it is not possible to achieve this with the currently supported versions.
+
+### `handleCloudflareChallenge` hooks must return the response
+
+In v3, calling `handleCloudflareChallenge()` in a `postNavigationHooks` entry was enough on its own - the helper received the session and removed `403` from the session pool's blocked status codes, so the challenge page (which is served with a 403 status) did not trip the blocked-request detection.
+
+In v4, blocked status code handling is internal to the crawler and runs *after* the post-navigation hooks, and the helper no longer touches it. Instead, `handleCloudflareChallenge()` returns the reloaded `Response` after solving the challenge, and the hook must return it as the new context response - otherwise the crawler still sees the original 403 challenge response and throws a `SessionError` before your `requestHandler` runs, even when the challenge was solved successfully.
+
+Use the pre-wrapped `handleCloudflareChallengeHook()` (it also handles the no-challenge case), or return the response yourself:
+
+```ts
+// v3
+postNavigationHooks: [
+    async ({ handleCloudflareChallenge }) => {
+        await handleCloudflareChallenge();
+    },
+],
+
+// v4
+import { handleCloudflareChallengeHook } from 'crawlee';
+
+postNavigationHooks: [handleCloudflareChallengeHook()],
+
+// v4 (manual equivalent)
+postNavigationHooks: [
+    async ({ handleCloudflareChallenge }) => {
+        // Returning `{ response: undefined }` would clobber the navigation response
+        // when there was no challenge, so only return it when one was solved.
+        const response = await handleCloudflareChallenge();
+        return response && { response };
+    },
+],
+```
+
+If you called the standalone `playwrightUtils.handleCloudflareChallenge(page, url, session, options)` directly, note that the `session` parameter is gone - the v4 signature is `handleCloudflareChallenge(page, url, options)`, so an options object passed in the old fourth position would be silently ignored.
 
 ## Only if you customize crawler statistics
 
@@ -1725,6 +1844,7 @@ Besides the resource-detection helpers above, several other `@crawlee/utils` exp
 - **Removed URL helpers:** `filterUrl(target, origin, strategy)`, `matchesEnqueueStrategy(strategy, target, origin)`, and the `UNSUPPORTED_SCHEME_MESSAGE` constant. URL filtering by enqueue strategy is now internal to `enqueueLinks`. The related `filterRequestsByPatterns(requests, patterns?, onSkippedUrl?)` function (from `@crawlee/core`) was removed for the same reason — pattern-based request filtering now happens inside `enqueueLinks`.
 - **Relocated enums/types:** `EnqueueStrategy` now lives in `@crawlee/core` and `SearchParams` in `@crawlee/types`. They are no longer re-exported from `@crawlee/utils`, so `import { EnqueueStrategy } from '@crawlee/utils'` breaks — import them from `crawlee` (the meta-package) or from `@crawlee/core` / `@crawlee/types` instead.
 - **Removed `RobotsFile` alias:** `RobotsFile` was an alias for the `RobotsTxtFile` class and is removed. Rename any usage to `RobotsTxtFile`; the class itself is unchanged apart from the signature change described below.
+- **Split into public and `/internal` entry points:** the main `@crawlee/utils` entry now exposes only the user-facing helpers (`sleep`, `htmlToText`, `extractUrls`, `downloadListOfUrls`, `expandShadowRoots`, the `social` namespace, the Open Graph parser, and the robots/sitemap utilities). Helpers that primarily serve the crawler packages - e.g. `URL_NO_COMMAS_REGEX`, `URL_WITH_COMMAS_REGEX`, `extractUrlsFromCheerio`, `tryAbsoluteURL`, the `CheerioRoot` type, and the blocked-detection and iterable helpers - moved to the `@crawlee/utils/internal` entry point. They keep working, but imports need updating: `import { URL_NO_COMMAS_REGEX } from '@crawlee/utils/internal'`. As the name suggests, the internal entry follows no semver guarantees.
 
 #### `RobotsTxtFile.find` signature changed; sitemap options removed
 

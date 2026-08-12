@@ -103,6 +103,24 @@ describe('BasicCrawler', () => {
         serviceLocator.setStorageBackend(new MemoryStorageBackend());
     });
 
+    test('crawler-scoped service locator inherits ambient services that are not explicitly overridden', async () => {
+        const ambientBackend = serviceLocator.getStorageBackend();
+
+        let seenBackend: unknown;
+        // Passing only a `logger` creates a crawler-scoped service locator - it must inherit the
+        // ambient storage backend rather than falling back to the default file-system one.
+        const crawler = new BasicCrawler({
+            logger: serviceLocator.getLogger(),
+            requestHandler: async () => {
+                seenBackend = serviceLocator.getStorageBackend();
+            },
+        });
+
+        await crawler.run(['https://example.com']);
+
+        expect(seenBackend).toBe(ambientBackend);
+    });
+
     test('does not leak sigint events', async () => {
         let count = 0;
 

@@ -5,14 +5,19 @@ import type * as storage from '@crawlee/types';
 import type { CrawleeLogger } from '@crawlee/types';
 import { s } from '@sapphire/shapeshift';
 
-import {
-    FileSystemDatasetClient as NativeDatasetBackend,
-    FileSystemKeyValueStoreClient as NativeKeyValueStoreBackend,
-    FileSystemRequestQueueClient as NativeRequestQueueBackend,
-} from '@crawlee/fs-storage-native';
 import { DatasetBackend } from './resource-clients/dataset.js';
 import { KeyValueStoreBackend } from './resource-clients/key-value-store.js';
 import { RequestQueueBackend } from './resource-clients/request-queue.js';
+
+// The native package throws at load time on platforms without a published binary (e.g.
+// linux musl), and `@crawlee/core` imports this module eagerly via its service locator.
+// Load it lazily so merely importing `@crawlee/fs-storage` stays safe everywhere and the
+// native binding is only loaded when a file-system storage is actually used.
+let nativeModule: Promise<typeof import('@crawlee/fs-storage-native')> | undefined;
+async function importNativeModule() {
+    nativeModule ??= import('@crawlee/fs-storage-native');
+    return nativeModule;
+}
 
 /** The alias `@crawlee/core` opens the default (unnamed) storage under. */
 const DEFAULT_STORAGE_ALIAS = '__default__';
@@ -125,7 +130,9 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
             return found;
         }
 
-        const nativeBackend = await NativeDatasetBackend.open(id, name, alias, this.localDataDirectory);
+        const nativeBackend = await (
+            await importNativeModule()
+        ).FileSystemDatasetClient.open(id, name, alias, this.localDataDirectory);
         const newStore = await DatasetBackend.create({
             name: alias ? undefined : (name ?? cacheKey),
             cacheKey,
@@ -150,7 +157,9 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
             return found;
         }
 
-        const nativeBackend = await NativeKeyValueStoreBackend.open(id, name, alias, this.localDataDirectory);
+        const nativeBackend = await (
+            await importNativeModule()
+        ).FileSystemKeyValueStoreClient.open(id, name, alias, this.localDataDirectory);
         const newStore = await KeyValueStoreBackend.create({
             name: alias ? undefined : (name ?? cacheKey),
             cacheKey,
@@ -175,7 +184,9 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
             return found;
         }
 
-        const nativeBackend = await NativeRequestQueueBackend.open(
+        const nativeBackend = await (
+            await importNativeModule()
+        ).FileSystemRequestQueueClient.open(
             id,
             name,
             alias,

@@ -13,11 +13,11 @@ const crawler = new PuppeteerCrawler({
     proxyConfiguration: await Actor.createProxyConfiguration(),
     maxRequestsPerCrawl: 10,
     preNavigationHooks: [
-        async ({ page }, goToOptions) => {
+        async ({ page, gotoOptions }) => {
             await page.evaluateOnNewDocument(() => {
                 localStorage.setItem('themeExitPopup', 'true');
             });
-            goToOptions.waitUntil = ['networkidle2'];
+            gotoOptions.waitUntil = ['networkidle2'];
         },
     ],
 });

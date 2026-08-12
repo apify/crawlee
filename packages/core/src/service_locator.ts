@@ -84,6 +84,18 @@ interface ServiceLocatorInterface {
     getStorageInstanceManager(): StorageInstanceManager;
 
     /**
+     * Returns the currently set services without triggering the implicit creation of defaults.
+     * Used to inherit already-materialized services into crawler-scoped service locators.
+     * @internal
+     */
+    getServicesIfSet(): {
+        configuration?: Configuration;
+        eventManager?: EventManager;
+        storageBackend?: StorageBackend;
+        logger?: CrawleeLogger;
+    };
+
+    /**
      * Resets the service locator to its initial state.
      * Used mainly for testing purposes.
      * @internal
@@ -153,6 +165,21 @@ export class ServiceLocator implements ServiceLocatorInterface {
         this.#eventManager = eventManager;
         this.#storageBackend = storageBackend;
         this.#logger = logger;
+    }
+
+    /** @internal */
+    getServicesIfSet(): {
+        configuration?: Configuration;
+        eventManager?: EventManager;
+        storageBackend?: StorageBackend;
+        logger?: CrawleeLogger;
+    } {
+        return {
+            configuration: this.#configuration,
+            eventManager: this.#eventManager,
+            storageBackend: this.#storageBackend,
+            logger: this.#logger,
+        };
     }
 
     getConfiguration(): Configuration {

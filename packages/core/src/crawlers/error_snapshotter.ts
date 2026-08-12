@@ -116,7 +116,7 @@ export class ErrorSnapshotter {
     }
 
     /**
-     * Save the HTML snapshot of the page, and return the fileName with the extension.
+     * Save the HTML snapshot of the page, and return the key it was stored under.
      */
     async saveHTMLSnapshot(
         html: string,
@@ -125,7 +125,9 @@ export class ErrorSnapshotter {
     ): Promise<string | undefined> {
         try {
             await keyValueStore.setValue(fileName, html, { contentType: 'text/html' });
-            return `${fileName}.html`;
+            // The record key is `fileName` - returning it with an `.html` suffix (as v3 did,
+            // where local storage put the extension in the key) would break `getPublicUrl`.
+            return fileName;
         } catch {
             return undefined;
         }

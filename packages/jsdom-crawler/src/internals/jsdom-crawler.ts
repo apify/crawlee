@@ -23,7 +23,7 @@ import {
     Router,
     tryAbsoluteURL,
 } from '@crawlee/http';
-import type { Dictionary } from '@crawlee/types';
+import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 import { type CheerioRoot } from '@crawlee/utils/internal';
 import { type RobotsTxtFile, sleep } from '@crawlee/utils';
 import type { DOMWindow } from 'jsdom';
@@ -97,6 +97,11 @@ export interface JSDOMCrawlingContext<
      * ```
      */
     parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
+
+    /**
+     * Helper function for extracting URLs from the parsed HTML and adding them to the request queue.
+     */
+    enqueueLinks(options?: EnqueueLinksOptions): Promise<BatchAddRequestsResult>;
 }
 
 export type JSDOMRequestHandler<
@@ -358,7 +363,7 @@ export class JSDOMCrawler<
     private async addHelpers(crawlingContext: InternalHttpCrawlingContext & { body: string; window: DOMWindow }) {
         return {
             enqueueLinks: async (enqueueOptions?: EnqueueLinksOptions) => {
-                return domCrawlerEnqueueLinks({
+                return (await domCrawlerEnqueueLinks({
                     options: {
                         ...enqueueOptions,
                         limit: await this.calculateEnqueuedRequestLimit(enqueueOptions?.limit),
@@ -369,7 +374,7 @@ export class JSDOMCrawler<
                     onSkippedRequest: this.handleSkippedRequest,
                     originalRequestUrl: crawlingContext.request.url,
                     finalRequestUrl: crawlingContext.request.loadedUrl,
-                });
+                })) as BatchAddRequestsResult; // TODO make this type safe, see https://github.com/apify/crawlee/issues/4024
             },
             async waitForSelector(selector: string, timeoutMs = 5_000) {
                 const cheerio = await import('cheerio');
