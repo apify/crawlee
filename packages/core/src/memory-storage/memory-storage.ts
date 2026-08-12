@@ -7,6 +7,9 @@ import { DatasetBackend } from './resource-clients/dataset.js';
 import { KeyValueStoreBackend } from './resource-clients/key-value-store.js';
 import { RequestQueueBackend } from './resource-clients/request-queue.js';
 
+/** The alias the default (unnamed) storage is opened under. */
+const DEFAULT_STORAGE_ALIAS = '__default__';
+
 export interface MemoryStorageOptions {
     /**
      * Optional logger for MemoryStorageBackend warnings.
@@ -39,30 +42,32 @@ export class MemoryStorageBackend implements storage.StorageBackend {
         return this.#instanceCacheKey;
     }
 
-    private static resolveStorageKey(options: { id?: string; name?: string; alias?: string }): {
+    static #resolveStorageKey(options: { id?: string; name?: string; alias?: string }): {
         isAlias: boolean;
-        cacheKey: string | undefined;
+        cacheKey: string;
     } {
-        const isAlias = 'alias' in options && !!options.alias;
-        const rawKey = isAlias ? options.alias : (options.name ?? options.id);
+        // No identifier at all means the default storage, which is opened under the reserved alias —
+        // same rule as `resolveStorageIdentifier` in the storage frontends, so that a backend used
+        // directly lands on the very storage the frontends would have opened.
+        const alias = options.alias || (!options.id && !options.name ? DEFAULT_STORAGE_ALIAS : undefined);
+        // `alias` covers the identifier-less case, so one of the three is always set.
+        const rawKey = alias ?? options.name ?? options.id!;
         // Normalize the internal __default__ alias to the user-facing 'default' name.
-        const cacheKey = rawKey === '__default__' ? 'default' : rawKey;
-        return { isAlias, cacheKey };
+        const cacheKey = rawKey === DEFAULT_STORAGE_ALIAS ? 'default' : rawKey;
+        return { isAlias: alias !== undefined, cacheKey };
     }
 
     async createDatasetBackend(options: storage.StorageIdentifier = {}): Promise<storage.DatasetBackend> {
-        const { isAlias, cacheKey } = MemoryStorageBackend.resolveStorageKey(options);
+        const { isAlias, cacheKey } = MemoryStorageBackend.#resolveStorageKey(options);
 
-        if (cacheKey) {
-            const found = this.datasetBackendCache.find(
-                (store) =>
-                    store.id === cacheKey ||
-                    store.name?.toLowerCase() === cacheKey.toLowerCase() ||
-                    store.cacheKey.toLowerCase() === cacheKey.toLowerCase(),
-            );
-            if (found) {
-                return found;
-            }
+        const found = this.datasetBackendCache.find(
+            (store) =>
+                store.id === cacheKey ||
+                store.name?.toLowerCase() === cacheKey.toLowerCase() ||
+                store.cacheKey.toLowerCase() === cacheKey.toLowerCase(),
+        );
+        if (found) {
+            return found;
         }
 
         const newStore = new DatasetBackend({
@@ -76,18 +81,16 @@ export class MemoryStorageBackend implements storage.StorageBackend {
     }
 
     async createKeyValueStoreBackend(options: storage.StorageIdentifier = {}): Promise<storage.KeyValueStoreBackend> {
-        const { isAlias, cacheKey } = MemoryStorageBackend.resolveStorageKey(options);
+        const { isAlias, cacheKey } = MemoryStorageBackend.#resolveStorageKey(options);
 
-        if (cacheKey) {
-            const found = this.keyValueStoreBackendCache.find(
-                (store) =>
-                    store.id === cacheKey ||
-                    store.name?.toLowerCase() === cacheKey.toLowerCase() ||
-                    store.cacheKey.toLowerCase() === cacheKey.toLowerCase(),
-            );
-            if (found) {
-                return found;
-            }
+        const found = this.keyValueStoreBackendCache.find(
+            (store) =>
+                store.id === cacheKey ||
+                store.name?.toLowerCase() === cacheKey.toLowerCase() ||
+                store.cacheKey.toLowerCase() === cacheKey.toLowerCase(),
+        );
+        if (found) {
+            return found;
         }
 
         const newStore = new KeyValueStoreBackend({
@@ -101,18 +104,16 @@ export class MemoryStorageBackend implements storage.StorageBackend {
     }
 
     async createRequestQueueBackend(options: storage.StorageIdentifier = {}): Promise<RequestQueueBackend> {
-        const { isAlias, cacheKey } = MemoryStorageBackend.resolveStorageKey(options);
+        const { isAlias, cacheKey } = MemoryStorageBackend.#resolveStorageKey(options);
 
-        if (cacheKey) {
-            const found = this.requestQueueBackendCache.find(
-                (queue) =>
-                    queue.id === cacheKey ||
-                    queue.name?.toLowerCase() === cacheKey.toLowerCase() ||
-                    queue.cacheKey.toLowerCase() === cacheKey.toLowerCase(),
-            );
-            if (found) {
-                return found;
-            }
+        const found = this.requestQueueBackendCache.find(
+            (queue) =>
+                queue.id === cacheKey ||
+                queue.name?.toLowerCase() === cacheKey.toLowerCase() ||
+                queue.cacheKey.toLowerCase() === cacheKey.toLowerCase(),
+        );
+        if (found) {
+            return found;
         }
 
         const newStore = new RequestQueueBackend({
@@ -147,34 +148,31 @@ export class MemoryStorageBackend implements storage.StorageBackend {
     }
 
     /**
-     * Cleans up the default storages before the run starts. For the in-memory storage this simply
-     * resets the in-memory state of the cached default dataset, key-value store and request queue.
-     *
-     * As with `FileSystemStorageBackend`, the run's input (the `INPUT` key in the default key-value
-     * store) is preserved — only the rest of the default storages is cleared.
+     * Cleans up the run-scoped storages before the run starts. For the in-memory storage this simply
+     * resets the in-memory state of the cached backends.
      */
     async purge(): Promise<void> {
-        // The run default is opened via `{ alias: '__default__' }`, which `resolveStorageKey`
-        // normalizes to `cacheKey === 'default'` (with `name === undefined`) — that is the clause
-        // that actually matches it. The `name === 'default'` clause additionally covers a store a user
-        // explicitly opened via `{ name: 'default' }`. (`'__default__'` never reaches `cacheKey`,
-        // as it is always normalized to `'default'` first, so it does not need to be checked here.)
+        // `#resolveStorageKey` leaves `name` unset for the default and alias-keyed storages, which is what
+        // marks them as run-scoped. `'default'` is the exception — it collapses onto the default storage.
+        const isRunScoped = (store: { name?: string }) => store.name === undefined || store.name === 'default';
+
         const isDefault = (store: { name?: string; cacheKey: string }) =>
             store.name === 'default' || store.cacheKey === 'default';
 
-        const purgeDefaults = async <T extends { name?: string; cacheKey: string }>(
+        const purgeRunScoped = async <T extends { name?: string; cacheKey: string }>(
             cache: T[],
             purgeStore: (store: T) => Promise<void>,
         ) => {
-            await Promise.all(cache.filter(isDefault).map(async (store) => purgeStore(store)));
+            await Promise.all(cache.filter(isRunScoped).map(async (store) => purgeStore(store)));
         };
 
         await Promise.all([
-            // Preserve the run input (INPUT) when purging the default key-value store, matching
-            // `FileSystemStorageBackend`.
-            purgeDefaults(this.keyValueStoreBackendCache, async (store) => store.purgeExceptInput()),
-            purgeDefaults(this.datasetBackendCache, async (store) => store.purge()),
-            purgeDefaults(this.requestQueueBackendCache, async (store) => store.purge()),
+            // Only the default store holds the run input, so it is the only one that keeps `INPUT`.
+            purgeRunScoped(this.keyValueStoreBackendCache, async (store) =>
+                isDefault(store) ? store.purgeExceptInput() : store.purge(),
+            ),
+            purgeRunScoped(this.datasetBackendCache, async (store) => store.purge()),
+            purgeRunScoped(this.requestQueueBackendCache, async (store) => store.purge()),
         ]);
     }
 
