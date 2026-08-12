@@ -3,6 +3,7 @@ import { RecoverableState } from '@crawlee/core';
 import LogisticRegression from 'ml-logistic-regression';
 import { Matrix } from 'ml-matrix';
 import stringComparison from 'string-comparison';
+import { z } from 'zod';
 
 export type RenderingType = 'clientOnly' | 'static';
 
@@ -63,6 +64,51 @@ export interface IRenderingTypePredictor {
     storeResult(requests: Request | Request[], renderingType: RenderingType): void;
 }
 
+const renderingType = z.enum(['clientOnly', 'static'] as const satisfies readonly RenderingType[]);
+
+const predictorState = z.object({
+    logreg: z.instanceof(LogisticRegression),
+    detectionResults: z.map(renderingType, z.map(z.string().optional(), z.array(z.array(z.string())))),
+});
+
+const persistedState = z.object({
+    logreg: z
+        .record(z.string(), z.unknown())
+        .prefault(() => new LogisticRegression({ numSteps: 1000, learningRate: 0.05 }).toJSON()),
+    detectionResults: z
+        .array(
+            z.object({
+                renderingType,
+                urlPartsByLabel: z.array(
+                    z.object({
+                        label: z.string().optional(),
+                        urlParts: z.array(z.array(z.string())),
+                    }),
+                ),
+            }),
+        )
+        .prefault([]),
+});
+
+const stateCodec = z.codec(persistedState, predictorState, {
+    decode: ({ logreg, detectionResults }) => ({
+        logreg: LogisticRegression.load(logreg),
+        detectionResults: new Map(
+            detectionResults.map(({ renderingType, urlPartsByLabel }) => [
+                renderingType,
+                new Map(urlPartsByLabel.map(({ label, urlParts }) => [label, urlParts])),
+            ]),
+        ),
+    }),
+    encode: ({ logreg, detectionResults }) => ({
+        logreg: logreg.toJSON(),
+        detectionResults: Array.from(detectionResults.entries()).map(([renderingType, urlPartsByLabel]) => ({
+            renderingType,
+            urlPartsByLabel: Array.from(urlPartsByLabel.entries()).map(([label, urlParts]) => ({ label, urlParts })),
+        })),
+    }),
+});
+
 /**
  * Stores rendering type information for previously crawled URLs and predicts the rendering type for URLs that have yet to be crawled and recommends when rendering type detection should be performed.
  *
@@ -71,44 +117,15 @@ export interface IRenderingTypePredictor {
 export class RenderingTypePredictor implements IRenderingTypePredictor {
     #detectionRatio: number;
     // kept as TS-private: tests reach for it at runtime
-    private state: RecoverableState<{
-        logreg: LogisticRegression;
-        detectionResults: Map<RenderingType, Map<string | undefined, URLComponents[]>>;
-    }>;
+    private state: RecoverableState<z.infer<typeof predictorState>, z.input<typeof persistedState>>;
 
     constructor({ detectionRatio, persistenceOptions }: RenderingTypePredictorOptions) {
         this.#detectionRatio = detectionRatio;
         this.state = new RecoverableState({
-            defaultState: {
-                logreg: new LogisticRegression({ numSteps: 1000, learningRate: 0.05 }),
-                detectionResults: new Map<RenderingType, Map<string | undefined, URLComponents[]>>(),
-            },
-            serialize: (state) =>
-                JSON.stringify({
-                    logreg: state.logreg.toJSON(),
-                    detectionResults: Array.from(state.detectionResults.entries()).map(
-                        ([renderingType, urlPartsByLabel]) => ({
-                            renderingType,
-                            urlPartsByLabel: Array.from(urlPartsByLabel.entries()).map(([label, urlParts]) => ({
-                                label,
-                                urlParts,
-                            })),
-                        }),
-                    ),
-                }),
-            deserialize: (serializedState) => {
-                const { logreg, detectionResults = [] } = JSON.parse(serializedState);
-
-                return {
-                    logreg: LogisticRegression.load(logreg),
-                    detectionResults: new Map(
-                        detectionResults.map((serializedItem: any) => [
-                            serializedItem.renderingType,
-                            new Map(serializedItem.urlPartsByLabel.map((item: any) => [item.label, item.urlParts])),
-                        ]),
-                    ),
-                };
-            },
+            defaultState: () => stateCodec.decode({}),
+            // The codec validates in the decode direction, so it is a Standard Schema as-is; encoding needs a call.
+            deserialize: stateCodec,
+            serialize: (state) => stateCodec.encode(state),
             persistStateKey: 'rendering-type-predictor-state',
             persistenceEnabled: true,
             ...persistenceOptions,

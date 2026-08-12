@@ -17,6 +17,26 @@ export class CriticalError extends NonRetryableError {}
 export class MissingRouteError extends CriticalError {}
 
 /**
+ * A schema validation issue, structurally compatible with `StandardSchemaV1.Issue`. Declared here so that
+ * error types do not have to depend on `@standard-schema/spec`.
+ */
+export interface SchemaIssue {
+    readonly message: string;
+    readonly path?: readonly (PropertyKey | { key: PropertyKey })[];
+}
+
+function formatIssues(issues: readonly SchemaIssue[]): string {
+    return issues
+        .map((issue) => {
+            const path = (issue.path ?? [])
+                .map((segment) => (typeof segment === 'object' ? segment.key : segment))
+                .join('.');
+            return `- ${path ? `${path}: ` : ''}${issue.message}`;
+        })
+        .join('\n');
+}
+
+/**
  * Thrown when a request's `userData` does not match the {@apilink RouteSchemas|Standard Schema} registered for its label.
  *
  * As the `userData` does not change between attempts, this error is non-retryable.
@@ -24,21 +44,24 @@ export class MissingRouteError extends CriticalError {}
 export class RequestValidationError extends NonRetryableError {
     constructor(
         readonly label: string | symbol,
-        readonly issues: readonly {
-            readonly message: string;
-            readonly path?: readonly (PropertyKey | { key: PropertyKey })[];
-        }[],
+        readonly issues: readonly SchemaIssue[],
     ) {
-        const details = issues
-            .map((issue) => {
-                const path = (issue.path ?? [])
-                    .map((segment) => (typeof segment === 'object' ? segment.key : segment))
-                    .join('.');
-                return `- ${path ? `${path}: ` : ''}${issue.message}`;
-            })
-            .join('\n');
+        super(`Request userData for label '${String(label)}' failed schema validation:\n${formatIssues(issues)}`);
+    }
+}
 
-        super(`Request userData for label '${String(label)}' failed schema validation:\n${details}`);
+/**
+ * Thrown by {@apilink RecoverableState} when a persisted state record does not match its `stateSchema`.
+ *
+ * Whether a corrupt record should abort the run or be discarded in favour of the defaults depends on what the
+ * state is for, so {@apilink RecoverableState.initialize} always throws and leaves the choice to the caller.
+ */
+export class StateValidationError extends Error {
+    constructor(
+        readonly persistStateKey: string,
+        readonly issues: readonly SchemaIssue[],
+    ) {
+        super(`State persisted under key '${persistStateKey}' failed schema validation:\n${formatIssues(issues)}`);
     }
 }
 
