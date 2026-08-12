@@ -1930,7 +1930,7 @@ export class StateValidationError extends Error {
 }
 
 // @public
-export interface StatisticPersistedState extends Omit<StatisticState, 'statsPersistedAt' | 'crawlerStartedAt' | 'crawlerFinishedAt' | 'requestMinDurationMillis' | 'requestRetryHistogram' | 'instanceStart'> {
+export interface StatisticPersistedState extends Omit<StatisticState, 'statsPersistedAt' | 'crawlerStartedAt' | 'crawlerFinishedAt' | 'requestMinDurationMillis' | 'requestsFailedPerMinute' | 'requestsFinishedPerMinute' | 'requestRetryHistogram' | 'instanceStart'> {
     // (undocumented)
     crawlerFinishedAt: string | null;
     crawlerLastStartTimestamp: number;
@@ -1942,6 +1942,10 @@ export interface StatisticPersistedState extends Omit<StatisticState, 'statsPers
     // (undocumented)
     requestMinDurationMillis: number | null;
     requestRetryHistogram: (number | null)[];
+    // (undocumented)
+    requestsFailedPerMinute: number | null;
+    // (undocumented)
+    requestsFinishedPerMinute: number | null;
     // (undocumented)
     requestsTotal: number;
     // (undocumented)

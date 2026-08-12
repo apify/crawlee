@@ -50,8 +50,8 @@ const persistedStatisticState = z
         requestsFinished: z.number(),
         requestsFailed: z.number(),
         requestsRetries: z.number(),
-        requestsFailedPerMinute: z.number(),
-        requestsFinishedPerMinute: z.number(),
+        requestsFailedPerMinute: z.number().nullable(),
+        requestsFinishedPerMinute: z.number().nullable(),
         requestMinDurationMillis: z.number().nullable(),
         requestMaxDurationMillis: z.number(),
         requestTotalFailedDurationMillis: z.number(),
@@ -124,8 +124,15 @@ function buildStatisticStateCodec(statistics: {
         encode: (state) => {
             const { requestsWithStatusCode, errors, retryErrors, requestRetryHistogram, instanceStart, ...counters } =
                 state;
-            const { requestAvgFailedDurationMillis, requestAvgFinishedDurationMillis, ...aggregates } =
-                statistics.calculate();
+            // Every rate and average `calculate()` derives is `Infinity` until the run is long enough, or until
+            // something has finished or failed, to divide by.
+            const {
+                requestAvgFailedDurationMillis,
+                requestAvgFinishedDurationMillis,
+                requestsFailedPerMinute,
+                requestsFinishedPerMinute,
+                ...aggregates
+            } = statistics.calculate();
 
             return {
                 ...counters,
@@ -141,6 +148,8 @@ function buildStatisticStateCodec(statistics: {
                 ...aggregates,
                 requestAvgFailedDurationMillis: finiteOrNull(requestAvgFailedDurationMillis),
                 requestAvgFinishedDurationMillis: finiteOrNull(requestAvgFinishedDurationMillis),
+                requestsFailedPerMinute: finiteOrNull(requestsFailedPerMinute),
+                requestsFinishedPerMinute: finiteOrNull(requestsFinishedPerMinute),
                 requestsWithStatusCode,
                 errors,
                 retryErrors,
@@ -658,10 +667,14 @@ export interface StatisticPersistedState extends Omit<
     | 'crawlerStartedAt'
     | 'crawlerFinishedAt'
     | 'requestMinDurationMillis'
+    | 'requestsFailedPerMinute'
+    | 'requestsFinishedPerMinute'
     | 'requestRetryHistogram'
     | 'instanceStart'
 > {
     statsId: string;
+    requestsFailedPerMinute: number | null;
+    requestsFinishedPerMinute: number | null;
     /** ISO strings - the live state keeps these as `Date`s. */
     crawlerStartedAt: string | null;
     crawlerFinishedAt: string | null;

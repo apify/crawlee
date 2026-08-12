@@ -129,6 +129,27 @@ describe('Statistics', () => {
             await restored.stopCapturing();
         });
 
+        test('should write the record when the run is too short to have a rate', async () => {
+            // Everything inside one millisecond: `calculate()` divides by a zero-length run and reports the
+            // per-minute rates as `Infinity`, which the record can only carry as `null`.
+            stats.startJob(0);
+            stats.finishJob(0, 0);
+            stats.startJob(1);
+            stats.failJob(1, 0);
+
+            await stats.startCapturing();
+            await stats.persistState();
+
+            expect(await store.getValue<StatisticPersistedState>(persistStateKey(stats))).toMatchObject({
+                requestsFinished: 1,
+                requestsFailed: 1,
+                requestsFinishedPerMinute: null,
+                requestsFailedPerMinute: null,
+            });
+
+            await stats.stopCapturing();
+        });
+
         test('should persist the extra fields of a subclass', async () => {
             type ExtendedState = StatisticState & { productsFound: number };
 
