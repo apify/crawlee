@@ -4,7 +4,7 @@
 
 ```ts
 
-import { AddRequestsBatchedResult } from '@crawlee/http';
+import type { AddRequestsBatchedResult } from '@crawlee/http';
 import { AnyPredicate } from 'ow';
 import { ArrayPredicate } from 'ow';
 import { BasePredicate } from 'ow';
@@ -126,6 +126,7 @@ JSONData extends Dictionary = any> extends InternalHttpCrawlingContext<UserData,
     body: string;
     // (undocumented)
     document: Document;
+    enqueueLinks(options?: EnqueueLinksOptions): Promise<AddRequestsBatchedResult>;
     extractLinks(options?: ExtractLinksOptions): Promise<string[]>;
     parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
     waitForSelector(selector: string, timeoutMs?: number): Promise<void>;

@@ -1,4 +1,5 @@
 import type {
+    AddRequestsBatchedResult,
     CrawlingContext,
     EnqueueLinksOptions,
     ErrorHandler,
@@ -91,6 +92,11 @@ export interface LinkeDOMCrawlingContext<
      * Extracts URLs from the parsed DOM, without adding them to the request queue.
      */
     extractLinks(options?: ExtractLinksOptions): Promise<string[]>;
+
+    /**
+     * Helper function for extracting URLs from the parsed DOM and adding them to the request queue.
+     */
+    enqueueLinks(options?: EnqueueLinksOptions): Promise<AddRequestsBatchedResult>;
 }
 
 export type LinkeDOMRequestHandler<

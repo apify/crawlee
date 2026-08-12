@@ -4,7 +4,7 @@
 
 ```ts
 
-import { AddRequestsBatchedResult } from '@crawlee/http';
+import type { AddRequestsBatchedResult } from '@crawlee/http';
 import * as cheerio from 'cheerio';
 import { CheerioRoot } from '@crawlee/utils/internal';
 import { ContextPipeline } from '@crawlee/http';
@@ -60,6 +60,7 @@ export interface LinkeDOMCrawlingContext<UserData extends Dictionary = any, // w
 JSONData extends Dictionary = any> extends InternalHttpCrawlingContext<UserData, JSONData> {
     // (undocumented)
     document: Document;
+    enqueueLinks(options?: EnqueueLinksOptions): Promise<AddRequestsBatchedResult>;
     extractLinks(options?: ExtractLinksOptions): Promise<string[]>;
     parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
     waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
