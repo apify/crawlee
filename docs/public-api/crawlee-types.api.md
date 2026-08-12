@@ -440,6 +440,7 @@ export type SearchParams = string | URLSearchParams | Record<string, string | nu
 export interface SendRequestOptions {
     // (undocumented)
     cookieJar?: CookieJar;
+    ignoreTlsErrors?: boolean;
     proxyUrl?: string;
     // (undocumented)
     session?: ISession;

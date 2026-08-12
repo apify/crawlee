@@ -75,6 +75,13 @@ export interface SendRequestOptions {
      * Note that setting this manually can interfere with session proxy rotation.
      */
     proxyUrl?: string;
+
+    /**
+     * When `true`, TLS certificate errors are ignored for this request. Also enabled by
+     * `session.proxyInfo.ignoreTlsErrors` (MITM proxies). Best-effort: clients that cannot
+     * disable TLS verification (e.g. the native fetch fallback) ignore it.
+     */
+    ignoreTlsErrors?: boolean;
 }
 
 export interface StreamOptions extends SendRequestOptions {

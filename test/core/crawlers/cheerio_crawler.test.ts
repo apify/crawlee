@@ -201,21 +201,32 @@ describe('CheerioCrawler', () => {
         );
     });
 
-    test('should ignore ssl by default', async () => {
-        const sources = [{ url: 'http://example.com/?q=1' }];
-        const requestList = await RequestList.open(null, sources);
-        const requestHandler = () => {};
+    test('forwards ignoreTlsErrors to the http client', async () => {
+        const captured: (boolean | undefined)[] = [];
+        const fetchClient = new FetchHttpClient();
+        const capturingClient = {
+            sendRequest: async (request: globalThis.Request, options?: { ignoreTlsErrors?: boolean }) => {
+                captured.push(options?.ignoreTlsErrors);
+                return fetchClient.sendRequest(request, options);
+            },
+        };
 
-        const cheerioCrawler = new CheerioCrawler({
-            requestList,
+        const defaultCrawler = new CheerioCrawler({
+            httpClient: capturingClient,
             maxConcurrency: 1,
-            requestHandler,
+            requestHandler: () => {},
         });
+        await defaultCrawler.run([`${serverAddress}/?tls=default`]);
 
-        await cheerioCrawler.run();
+        const strictCrawler = new CheerioCrawler({
+            httpClient: capturingClient,
+            ignoreTlsErrors: false,
+            maxConcurrency: 1,
+            requestHandler: () => {},
+        });
+        await strictCrawler.run([`${serverAddress}/?tls=strict`]);
 
-        // @ts-expect-error Accessing private prop
-        expect(cheerioCrawler.ignoreSslErrors).toBeTruthy();
+        expect(captured).toEqual([true, false]);
     });
 
     test('should work with skipNavigation', async () => {
