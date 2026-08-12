@@ -36,6 +36,7 @@ export function createSendRequest(httpClient: BaseHttpClient, originRequest: Cra
             cookieJar: overrideOptions?.cookieJar ?? session.cookieJar,
             timeoutMillis: overrideOptions.timeoutMillis,
             signal: overrideOptions.signal,
+            ignoreTlsErrors: overrideOptions.ignoreTlsErrors,
         });
     };
 }

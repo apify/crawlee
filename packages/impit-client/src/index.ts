@@ -91,13 +91,16 @@ export class ImpitHttpClient extends BaseHttpClient {
      * @inheritDoc
      */
     async fetch(request: Request, options?: RequestInit & CustomFetchOptions): Promise<Response> {
-        const { proxyUrl, redirect, signal, fingerprint } = options ?? {};
+        const { proxyUrl, redirect, signal, fingerprint, ignoreTlsErrors } = options ?? {};
 
         const impitBrowser = this.resolveImpitBrowser(fingerprint);
 
         const impit = this.getClient({
             ...this.#impitOptions,
             ...(impitBrowser ? { browser: impitBrowser } : {}),
+            // The per-request flag (from the crawler option or a MITM proxy session)
+            // can only enable ignoring, never override a constructor-level `true`.
+            ...(ignoreTlsErrors ? { ignoreTlsErrors: true } : {}),
             proxyUrl,
             followRedirects: redirect === 'follow',
         });

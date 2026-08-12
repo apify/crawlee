@@ -55,6 +55,8 @@ export interface ProxyInfo {
 
     /**
      * When `true`, the proxy is likely intercepting HTTPS traffic and is able to view and modify its content.
+     * The built-in HTTP clients and the browser pool disable TLS certificate verification for the session's
+     * requests when this is set.
      *
      * @default false
      */

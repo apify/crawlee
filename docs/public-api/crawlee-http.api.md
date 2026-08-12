@@ -117,7 +117,7 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any> =
     // (undocumented)
     protected static optionsShape: {
         navigationTimeoutSecs: NumberPredicate & BasePredicate<number | undefined>;
-        ignoreSslErrors: BooleanPredicate & BasePredicate<boolean | undefined>;
+        ignoreTlsErrors: BooleanPredicate & BasePredicate<boolean | undefined>;
         additionalMimeTypes: ArrayPredicate<string>;
         suggestResponseEncoding: StringPredicate & BasePredicate<string | undefined>;
         forceResponseEncoding: StringPredicate & BasePredicate<string | undefined>;
@@ -168,7 +168,7 @@ export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any> =
 export interface HttpCrawlerOptions<Context extends InternalHttpCrawlingContext = InternalHttpCrawlingContext, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>> extends BasicCrawlerOptions<Context, ContextExtension, ExtendedContext, Routes> {
     additionalMimeTypes?: string[];
     forceResponseEncoding?: string;
-    ignoreSslErrors?: boolean;
+    ignoreTlsErrors?: boolean;
     navigationTimeoutSecs?: number;
     postNavigationHooks?: ((crawlingContext: CrawlingContextWithResponse & ContextExtension) => Awaitable<void | Partial<CrawlingContextWithResponse>>)[];
     preNavigationHooks?: InternalHttpHook<CrawlingContext<any>, ContextExtension>[];

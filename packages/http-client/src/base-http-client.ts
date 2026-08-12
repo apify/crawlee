@@ -33,6 +33,15 @@ export interface CustomFetchOptions {
      * rest on a best-effort basis. Sourced from `SendRequestOptions.session.fingerprint`.
      */
     fingerprint?: SessionFingerprint;
+
+    /**
+     * When `true`, TLS certificate errors should be ignored for this request.
+     * Set when `SendRequestOptions.ignoreTlsErrors` is passed (e.g. from the
+     * `ignoreTlsErrors` crawler option) or when the session's proxy is a MITM
+     * proxy (`session.proxyInfo.ignoreTlsErrors`). Best-effort: clients that
+     * cannot disable TLS verification ignore it.
+     */
+    ignoreTlsErrors?: boolean;
 }
 
 /**
@@ -105,6 +114,7 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
         cookieJar: CookieJar;
         signal?: AbortSignal;
         fingerprint?: SessionFingerprint;
+        ignoreTlsErrors?: boolean;
     }> {
         const proxyUrl = options?.proxyUrl ?? options?.session?.proxyInfo?.url;
         const cookieJar = options?.cookieJar ?? options?.session?.cookieJar ?? (await this.#createDefaultCookieJar());
@@ -114,6 +124,7 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
             cookieJar,
             signal,
             fingerprint: options?.session?.fingerprint,
+            ignoreTlsErrors: options?.ignoreTlsErrors || options?.session?.proxyInfo?.ignoreTlsErrors,
         };
     }
 
@@ -176,7 +187,7 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
         let currentRequest = initialRequest;
         let redirectCount = 0;
 
-        const { proxyUrl, cookieJar, signal, fingerprint } = await this.resolveRequestContext(options);
+        const { proxyUrl, cookieJar, signal, fingerprint, ignoreTlsErrors } = await this.resolveRequestContext(options);
         currentRequest = initialRequest.clone();
 
         while (true) {
@@ -187,6 +198,7 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
                 proxyUrl,
                 cookieJar,
                 fingerprint,
+                ignoreTlsErrors,
                 redirect: 'manual',
             });
 
