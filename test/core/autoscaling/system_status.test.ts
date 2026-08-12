@@ -33,9 +33,9 @@ describe('SystemStatus', () => {
             readonly memSnapshots: any[],
             readonly loopSnapshots: any[],
             readonly cpuSnapshots: any[],
-            readonly clientSnapshots: any[],
+            readonly storageBackendSnapshots: any[],
             readonly overloadedRatios: Partial<
-                Record<'memInfo' | 'eventLoopInfo' | 'cpuInfo' | 'clientInfo', number>
+                Record<'memInfo' | 'eventLoopInfo' | 'cpuInfo' | 'storageBackendInfo', number>
             > = {},
         ) {}
 
@@ -44,7 +44,11 @@ describe('SystemStatus', () => {
                 mockSignal('memInfo', this.memSnapshots, this.overloadedRatios.memInfo),
                 mockSignal('eventLoopInfo', this.loopSnapshots, this.overloadedRatios.eventLoopInfo),
                 mockSignal('cpuInfo', this.cpuSnapshots, this.overloadedRatios.cpuInfo),
-                mockSignal('clientInfo', this.clientSnapshots, this.overloadedRatios.clientInfo),
+                mockSignal(
+                    'storageBackendInfo',
+                    this.storageBackendSnapshots,
+                    this.overloadedRatios.storageBackendInfo,
+                ),
             ];
         }
 
@@ -60,8 +64,8 @@ describe('SystemStatus', () => {
             return this.cpuSnapshots.slice(-offset);
         }
 
-        getClientSample(offset: number) {
-            return this.clientSnapshots.slice(-offset);
+        getStorageBackendSample(offset: number) {
+            return this.storageBackendSnapshots.slice(-offset);
         }
     }
 
@@ -146,7 +150,7 @@ describe('SystemStatus', () => {
 
     test('should overload when threshold is crossed', () => {
         const snaps = generateSnapsSync(50, true);
-        const ratios = (r: number) => ({ memInfo: r, eventLoopInfo: r, cpuInfo: r, clientInfo: r });
+        const ratios = (r: number) => ({ memInfo: r, eventLoopInfo: r, cpuInfo: r, storageBackendInfo: r });
 
         // At exactly 0.5, the 50% overloaded sample should NOT trigger (uses >)
         let systemStatus = new SystemStatus({
@@ -162,13 +166,13 @@ describe('SystemStatus', () => {
         expect(systemStatus.getCurrentStatus().isSystemIdle).toBe(false);
         expect(systemStatus.getHistoricalStatus().isSystemIdle).toBe(false);
 
-        // Memory & eventLoop at threshold, CPU & client below → still overloaded
+        // Memory & eventLoop at threshold, CPU & storage backend below → still overloaded
         systemStatus = new SystemStatus({
             snapshotter: new MockSnapshotter(snaps, snaps, snaps, snaps, {
                 memInfo: 0.5,
                 eventLoopInfo: 0.5,
                 cpuInfo: 0.49,
-                clientInfo: 0.49,
+                storageBackendInfo: 0.49,
             }) as any,
         });
         expect(systemStatus.getCurrentStatus().isSystemIdle).toBe(false);
@@ -183,7 +187,7 @@ describe('SystemStatus', () => {
     });
 
     test('should show different values for now and lately', () => {
-        const ratios = { memInfo: 0.5, eventLoopInfo: 0.5, cpuInfo: 0.5, clientInfo: 0.5 };
+        const ratios = { memInfo: 0.5, eventLoopInfo: 0.5, cpuInfo: 0.5, storageBackendInfo: 0.5 };
         // The "now" window is configuration, so each width gets its own instance rather than a mutated one.
         const statusWithCurrentWindow = (snaps: any[], currentHistoryMillis: number) =>
             new SystemStatus({

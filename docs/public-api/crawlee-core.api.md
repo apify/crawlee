@@ -148,38 +148,6 @@ export interface CalculatedStatistics {
     requestTotalDurationMillis: number;
 }
 
-// @public (undocumented)
-export interface ClientInfo {
-    // (undocumented)
-    actualRatio: number;
-    // (undocumented)
-    isOverloaded: boolean;
-    // (undocumented)
-    limitRatio: number;
-}
-
-// @public
-export class ClientLoadSignal implements LoadSignal {
-    constructor(options?: ClientLoadSignalOptions);
-    // (undocumented)
-    getSample(sampleDurationMillis?: number): LoadSnapshot[];
-    // (undocumented)
-    readonly name = "clientInfo";
-    // (undocumented)
-    readonly overloadedRatio: number;
-    // (undocumented)
-    start(context: LoadSignalStartContext): Promise<void>;
-    // (undocumented)
-    stop(): Promise<void>;
-}
-
-// @public
-export interface ClientLoadSignalOptions {
-    maxErrors?: number;
-    overloadedRatio?: number;
-    snapshotIntervalSecs?: number;
-}
-
 // @public
 export const coerceBoolean: z.ZodPreprocess<z.ZodBoolean>;
 
@@ -1032,13 +1000,23 @@ export interface LoadSignal {
     stop(): Promise<void>;
 }
 
+// @public (undocumented)
+export interface LoadSignalInfo {
+    // (undocumented)
+    actualRatio: number;
+    // (undocumented)
+    isOverloaded: boolean;
+    // (undocumented)
+    limitRatio: number;
+}
+
 // @public
 export interface LoadSignalsOptions {
-    client?: ClientLoadSignalOptions | false;
     cpu?: CpuLoadSignalOptions | false;
     custom?: LoadSignal[];
     eventLoop?: EventLoopLoadSignalOptions | false;
     memory?: MemoryLoadSignalOptions | false;
+    storageBackend?: StorageBackendLoadSignalOptions | false;
 }
 
 // @public
@@ -2040,6 +2018,28 @@ export interface StatisticState {
 
 export { StorageBackend }
 
+// @public
+export class StorageBackendLoadSignal implements LoadSignal {
+    constructor(options?: StorageBackendLoadSignalOptions);
+    // (undocumented)
+    getSample(sampleDurationMillis?: number): LoadSnapshot[];
+    // (undocumented)
+    readonly name = "storageBackendInfo";
+    // (undocumented)
+    readonly overloadedRatio: number;
+    // (undocumented)
+    start(context: LoadSignalStartContext): Promise<void>;
+    // (undocumented)
+    stop(): Promise<void>;
+}
+
+// @public
+export interface StorageBackendLoadSignalOptions {
+    maxErrors?: number;
+    overloadedRatio?: number;
+    snapshotIntervalSecs?: number;
+}
+
 export { StorageIdentifier }
 
 // @public
@@ -2146,19 +2146,19 @@ export function supportsDomainThrottling(manager: unknown): manager is SupportsD
 // @public
 export interface SystemInfo {
     // (undocumented)
-    clientInfo: ClientInfo;
+    cpuInfo: LoadSignalInfo;
     // (undocumented)
-    cpuInfo: ClientInfo;
-    // (undocumented)
-    eventLoopInfo: ClientInfo;
+    eventLoopInfo: LoadSignalInfo;
     isSystemIdle: boolean;
-    loadSignalInfo?: Record<string, ClientInfo>;
+    loadSignalInfo?: Record<string, LoadSignalInfo>;
     // (undocumented)
     memCurrentBytes?: number;
     // (undocumented)
-    memInfo: ClientInfo;
+    memInfo: LoadSignalInfo;
     // (undocumented)
     memTotalBytes?: number;
+    // (undocumented)
+    storageBackendInfo: LoadSignalInfo;
 }
 
 // @public
