@@ -16,5 +16,5 @@ const crawler = new CheerioCrawler({
 
 await crawler.run(['https://crawlee.dev']);
 
-// The custom fields are typed on `crawler.stats` too.
-console.log(`Found ${crawler.stats.state.productsFound} products`);
+// The custom fields are typed on `crawler.statistics` too.
+console.log(`Found ${crawler.statistics.state.productsFound} products`);

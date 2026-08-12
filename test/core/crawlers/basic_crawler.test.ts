@@ -816,7 +816,7 @@ describe('BasicCrawler', () => {
             });
 
             // need to monkeypatch the stats class, otherwise it will never finish
-            basicCrawler.stats.persistState = async () => Promise.resolve();
+            basicCrawler.statistics.persistState = async () => Promise.resolve();
             await persistPromise;
 
             expect(finished).toBe(false);
@@ -2129,7 +2129,7 @@ describe('BasicCrawler', () => {
                 requestHandler: async () => {},
             });
 
-            expect(crawler.stats).toBeInstanceOf(Statistics);
+            expect(crawler.statistics).toBeInstanceOf(Statistics);
         });
 
         it('records into a supplied Statistics instance', async () => {
@@ -2140,7 +2140,7 @@ describe('BasicCrawler', () => {
                 requestHandler: async () => {},
             });
 
-            expect(crawler.stats).toBe(stats);
+            expect(crawler.statistics).toBe(stats);
 
             await crawler.run();
 
@@ -2170,7 +2170,7 @@ describe('BasicCrawler', () => {
             };
 
             const crawler = new BasicCrawler({ statistics: customStats, requestHandler: async () => {} });
-            expect(crawler.stats).toBe(customStats);
+            expect(crawler.statistics).toBe(customStats);
 
             await crawler.run([{ url: 'https://example.com' }]);
 
@@ -2178,7 +2178,7 @@ describe('BasicCrawler', () => {
             expect(customStats.state.requestsFinished).toBe(1);
         });
 
-        it('exposes the custom state fields of a supplied instance on crawler.stats', async () => {
+        it('exposes the custom state fields of a supplied instance on crawler.statistics', async () => {
             const stats = new Statistics({
                 persistenceOptions: { enable: false },
                 stateExtension: { defaultState: { productsFound: 0 } },
@@ -2194,9 +2194,9 @@ describe('BasicCrawler', () => {
             await crawler.run([{ url: 'https://example.com' }]);
 
             // typed through the crawler, not just through the instance we constructed
-            expect(crawler.stats.state.productsFound).toBe(2);
+            expect(crawler.statistics.state.productsFound).toBe(2);
             // @ts-expect-error only the fields declared in `defaultState` are exposed
-            void crawler.stats.state.categoriesFound;
+            void crawler.statistics.state.categoriesFound;
         });
 
         it('does not reset a supplied instance between runs, but does reset a default', async () => {
@@ -2217,16 +2217,16 @@ describe('BasicCrawler', () => {
             const owningCrawler = new BasicCrawler({
                 requestHandler: async () => {},
             });
-            // `crawler.stats` is typed as `IStatistics`, which omits the owned-only `reset()` - the default is a
+            // `crawler.statistics` is typed as `IStatistics`, which omits the owned-only `reset()` - the default is a
             // concrete `Statistics`, so cast to spy on it.
-            const ownedResetSpy = vitest.spyOn(owningCrawler.stats as Statistics, 'reset');
+            const ownedResetSpy = vitest.spyOn(owningCrawler.statistics as Statistics, 'reset');
 
             await owningCrawler.run([{ url: 'https://example.com', uniqueKey: 'owned-1' }]);
             await owningCrawler.run([{ url: 'https://example.com', uniqueKey: 'owned-2' }]);
 
             // A crawler-owned default is wiped at the start of each run.
             expect(ownedResetSpy).toHaveBeenCalled();
-            expect(owningCrawler.stats.state.requestsFinished).toBe(1);
+            expect(owningCrawler.statistics.state.requestsFinished).toBe(1);
         });
     });
 
@@ -2404,7 +2404,7 @@ describe('BasicCrawler', () => {
                 requestHandler: async () => {},
             });
 
-            crawler.stats.state.requestsFinished = 2;
+            crawler.statistics.state.requestsFinished = 2;
 
             // Try to add 6 requests - should only add 3 due to limit
             const requestsToAdd = [
@@ -2437,7 +2437,7 @@ describe('BasicCrawler', () => {
                 requestHandler: async () => {},
             });
 
-            crawler.stats.state.requestsFinished = 1;
+            crawler.statistics.state.requestsFinished = 1;
 
             // First call - should add 2 requests (2 more slots to go)
             await crawler.addRequests(['http://example.com/1', 'http://example.com/2']);
@@ -2486,7 +2486,7 @@ describe('BasicCrawler', () => {
                 requestHandler: async () => {},
             });
 
-            crawler.stats.state.requestsFinished = 0;
+            crawler.statistics.state.requestsFinished = 0;
 
             // Mock robots.txt checking to disallow some URLs
             vitest.spyOn(crawler as any, 'isAllowedBasedOnRobotsTxtFile').mockImplementation(async (url) => {
@@ -2695,7 +2695,7 @@ describe('BasicCrawler', () => {
                 await crawler.run(['http://example.com/1']);
                 await crawler.run(['http://example.com/1']);
 
-                expect(crawler.stats.state.requestsFinished).toBe(1);
+                expect(crawler.statistics.state.requestsFinished).toBe(1);
             });
 
             test('refuses to be combined with a request manager that throttles on its own', async () => {
@@ -2813,7 +2813,7 @@ describe('BasicCrawler', () => {
                         return;
                     }
 
-                    crawler.stats.state.requestsFinished = 2;
+                    crawler.statistics.state.requestsFinished = 2;
 
                     await context.addRequests(requestsToAdd, { label: 'not-undefined' });
                 },
@@ -3500,8 +3500,8 @@ describe('BasicCrawler', () => {
             await crawlerA.run([{ url: `http://${HOSTNAME}:${port}` }]);
             await crawlerB.run([{ url: `http://${HOSTNAME}:${port}` }]);
 
-            expect(crawlerA.stats.state.requestsFinished).toBe(1);
-            expect(crawlerB.stats.state.requestsFinished).toBe(1);
+            expect(crawlerA.statistics.state.requestsFinished).toBe(1);
+            expect(crawlerB.statistics.state.requestsFinished).toBe(1);
         });
     });
 

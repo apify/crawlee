@@ -723,7 +723,7 @@ export class HttpCrawler<
         const contentType = { type, encoding };
 
         if (status >= 400 && status <= 599) {
-            this.stats.registerStatusCode(status);
+            this.statistics.registerStatusCode(status);
         }
 
         if (this.isErrorStatusCode(status)) {
