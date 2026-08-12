@@ -35,7 +35,7 @@ export class GotScrapingHttpClient extends BaseHttpClient {
     }
 
     override async fetch(request: Request, options?: RequestInit & CustomFetchOptions): Promise<Response> {
-        const { proxyUrl, redirect } = options ?? {};
+        const { proxyUrl, redirect, ignoreTlsErrors } = options ?? {};
 
         if (!this.validateRequest(request)) {
             throw new Error(`The HTTP method CONNECT is not supported by the GotScrapingHttpClient.`);
@@ -49,6 +49,7 @@ export class GotScrapingHttpClient extends BaseHttpClient {
             proxyUrl,
             signal: options?.signal ?? undefined,
             followRedirect: redirect === 'follow',
+            ...(ignoreTlsErrors ? { https: { rejectUnauthorized: false } } : {}),
         });
 
         const responseHeaders = this.parseHeaders(gotResult.headers);
