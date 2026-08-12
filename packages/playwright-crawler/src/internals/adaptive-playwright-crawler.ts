@@ -356,14 +356,14 @@ export class AdaptivePlaywrightCrawler<
         // but plain JS callers would otherwise silently increment `undefined` into a sticky `NaN`. Extend
         // `adaptivePlaywrightCrawlerStatisticState` to satisfy this.
         if (statistics !== undefined) {
-            ow(
+            parseArgument(
                 statistics.state,
-                'statistics.state',
-                ow.object.partialShape({
-                    httpOnlyRequestHandlerRuns: ow.number,
-                    browserRequestHandlerRuns: ow.number,
-                    renderingTypeMispredictions: ow.number,
+                z.object({
+                    httpOnlyRequestHandlerRuns: z.number(),
+                    browserRequestHandlerRuns: z.number(),
+                    renderingTypeMispredictions: z.number(),
                 }),
+                'statistics.state',
             );
         }
 
