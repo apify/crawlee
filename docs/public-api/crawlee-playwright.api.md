@@ -82,6 +82,7 @@ export class AdaptivePlaywrightCrawler<ContextExtension = Dictionary<never>, Ext
         readonly querySelectorAll: AdaptivePlaywrightCrawlerContext["querySelectorAll"];
         readonly waitForSelector: AdaptivePlaywrightCrawlerContext["waitForSelector"];
         readonly parseWithCheerio: AdaptivePlaywrightCrawlerContext["parseWithCheerio"];
+        readonly enqueueLinks: AdaptivePlaywrightCrawlerContext["enqueueLinks"];
     }>;
     // (undocumented)
     protected init(): Promise<void>;

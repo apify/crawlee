@@ -1,5 +1,12 @@
-import { cheerioCrawlerEnqueueLinks, MemoryStorageBackend, RequestQueue, serviceLocator } from '@crawlee/cheerio';
-import type { CheerioAPI } from 'cheerio';
+import {
+    CheerioCrawler,
+    type EnqueueUrlsOptions,
+    MemoryStorageBackend,
+    RequestQueue,
+    serviceLocator,
+    type Source,
+} from '@crawlee/cheerio';
+import { extractUrlsFromCheerio } from '@crawlee/utils/internal';
 import { load } from 'cheerio';
 
 const HTML = `
@@ -16,48 +23,47 @@ const HTML = `
 </html>
 `;
 
-type MemoryRequestQueueBackend = Awaited<ReturnType<MemoryStorageBackend['createRequestQueueBackend']>>;
+const BASE_URL = 'https://example.com';
 
-/** Collect all requests currently in the queue (order not significant). */
-async function collect(requestQueue: RequestQueue) {
-    return (requestQueue.backend as MemoryRequestQueueBackend).listItems();
+/**
+ * Runs `crawler.addRequests()` against the `selector`-matched links extracted from `HTML`, resolved relative
+ * to `BASE_URL`, and returns everything added.
+ */
+async function runEnqueueLinks(
+    { selector = 'a', ...options }: EnqueueUrlsOptions & { selector?: string },
+    requestManager: RequestQueue,
+): Promise<Source[]> {
+    const enqueued: Source[] = [];
+    const originalAddRequests = requestManager.addRequests.bind(requestManager);
+    requestManager.addRequests = async (requests, addOptions) => {
+        const items: Source[] = [];
+        for await (const request of requests) {
+            items.push(typeof request === 'string' ? { url: request } : (request as Source));
+        }
+        enqueued.push(...items);
+        return originalAddRequests(items, addOptions);
+    };
+
+    const crawler = new CheerioCrawler({ requestManager });
+    const urls = extractUrlsFromCheerio(load(HTML), selector, BASE_URL);
+    await crawler.addRequests(urls, { baseUrl: BASE_URL, ...options });
+
+    return enqueued;
 }
 
 describe("enqueueLinks() - userData shouldn't be changed and outer label must take priority", () => {
-    let $: CheerioAPI;
     beforeEach(() => {
         serviceLocator.setStorageBackend(new MemoryStorageBackend());
-        $ = load(HTML);
     });
 
     test('multiple enqueues with different labels', async () => {
         const requestQueue = await RequestQueue.open();
 
         const userData = { foo: 'bar' };
-        await cheerioCrawlerEnqueueLinks({
-            options: {
-                selector: 'a.first',
-                userData,
-                label: 'first',
-            },
-            $,
-            requestManager: requestQueue,
-            originalRequestUrl: 'https://example.com',
-        });
+        const first = await runEnqueueLinks({ selector: 'a.first', userData, label: 'first' }, requestQueue);
+        const second = await runEnqueueLinks({ selector: 'a.second', userData, label: 'second' }, requestQueue);
 
-        await cheerioCrawlerEnqueueLinks({
-            options: {
-                selector: 'a.second',
-                userData,
-                label: 'second',
-            },
-            $,
-            requestManager: requestQueue,
-            originalRequestUrl: 'https://example.com',
-        });
-
-        const enqueued = await collect(requestQueue);
-        const byUrl = Object.fromEntries(enqueued.map((r) => [r.url, r.userData?.label]));
+        const byUrl = Object.fromEntries([...first, ...second].map((r) => [r.url, (r as any).userData?.label]));
         expect(byUrl).toEqual({
             'https://example.com/first': 'first',
             'https://example.com/second': 'second',
@@ -69,54 +75,30 @@ describe("enqueueLinks() - userData shouldn't be changed and outer label must ta
 
         const userData = { foo: 'bar', label: 'bogus' };
         const originalUserData = JSON.stringify(userData);
-        await cheerioCrawlerEnqueueLinks({
-            options: {
-                selector: 'a.first',
-                userData,
-                label: 'first',
-            },
-            $,
-            requestManager: requestQueue,
-            originalRequestUrl: 'https://example.com',
-        });
+        const enqueued = await runEnqueueLinks({ selector: 'a.first', userData, label: 'first' }, requestQueue);
         const userDataAfterEnqueue = JSON.stringify(userData);
         expect(userDataAfterEnqueue).toEqual(originalUserData);
 
-        const enqueued = await collect(requestQueue);
         expect(enqueued).toHaveLength(1);
         expect(enqueued[0].url).toBe('https://example.com/first');
-        expect(enqueued[0].userData?.label).toBe('first');
+        expect((enqueued[0] as any).userData?.label).toBe('first');
     });
 
     test('sets sessionId on all enqueued requests', async () => {
         const requestQueue = await RequestQueue.open();
 
-        await cheerioCrawlerEnqueueLinks({
-            options: {
-                sessionId: 'my-session',
-            },
-            $,
-            requestManager: requestQueue,
-            originalRequestUrl: 'https://example.com',
-        });
+        const enqueued = await runEnqueueLinks({ sessionId: 'my-session' }, requestQueue);
 
-        const enqueued = await collect(requestQueue);
         expect(enqueued).toHaveLength(2);
-        expect(enqueued.every((r) => r.userData?.__crawlee?.sessionId === 'my-session')).toBe(true);
+        expect(enqueued.every((r) => (r as any).userData?.__crawlee?.sessionId === 'my-session')).toBe(true);
     });
 
     test('does not set sessionId when option is not provided', async () => {
         const requestQueue = await RequestQueue.open();
 
-        await cheerioCrawlerEnqueueLinks({
-            options: {},
-            $,
-            requestManager: requestQueue,
-            originalRequestUrl: 'https://example.com',
-        });
+        const enqueued = await runEnqueueLinks({}, requestQueue);
 
-        const enqueued = await collect(requestQueue);
         expect(enqueued).toHaveLength(2);
-        expect(enqueued.every((r) => r.userData?.__crawlee?.sessionId === undefined)).toBe(true);
+        expect(enqueued.every((r) => (r as any).userData?.__crawlee?.sessionId === undefined)).toBe(true);
     });
 });

@@ -4,8 +4,8 @@
 
 ```ts
 
+import type { AddRequestsBatchedResult } from '@crawlee/http';
 import { BaseHttpClient } from '@crawlee/http-client';
-import type { BatchAddRequestsResult } from '@crawlee/types';
 import { CheerioAPI } from 'cheerio';
 import { CheerioRoot } from '@crawlee/utils/internal';
 import { Configuration } from '@crawlee/http';
@@ -16,6 +16,7 @@ import type { DOMWindow } from 'jsdom';
 import type { EnqueueLinksOptions } from '@crawlee/http';
 import type { ErrorHandler } from '@crawlee/http';
 import { EventManager } from '@crawlee/http';
+import type { ExtractLinksOptions } from '@crawlee/http';
 import type { GetUserDataFromRequest } from '@crawlee/http';
 import { HttpCrawler } from '@crawlee/http';
 import type { HttpCrawlerOptions } from '@crawlee/http';
@@ -47,7 +48,8 @@ export class JSDOMCrawler<ContextExtension = Dictionary<never>, ExtendedContext 
     readonly body: string;
     readonly document: Document;
     } & {
-    enqueueLinks: (enqueueOptions?: EnqueueLinksOptions) => Promise<BatchAddRequestsResult>;
+    extractLinks: (options?: ExtractLinksOptions) => Promise<string[]>;
+    enqueueLinks: (options?: EnqueueLinksOptions) => Promise<AddRequestsBatchedResult>;
     waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
     parseWithCheerio(selector?: string, _timeoutMs?: number): Promise<CheerioAPI>;
     }>;
@@ -179,7 +181,8 @@ JSONData extends Dictionary = any> extends InternalHttpCrawlingContext<UserData,
     body: string;
     // (undocumented)
     document: Document;
-    enqueueLinks(options?: EnqueueLinksOptions): Promise<BatchAddRequestsResult>;
+    enqueueLinks(options?: EnqueueLinksOptions): Promise<AddRequestsBatchedResult>;
+    extractLinks(options?: ExtractLinksOptions): Promise<string[]>;
     parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
     waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
     // (undocumented)

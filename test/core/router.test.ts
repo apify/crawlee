@@ -450,7 +450,7 @@ describe('Router', () => {
             router.addHandler('PRODUCT', async ({ addRequests, enqueueLinks }) => {
                 // context methods are typed from the route map
                 await addRequests([{ url: 'https://e.com/c', label: 'CATEGORY', userData: { categoryId: 'c1' } }]);
-                await enqueueLinks({ urls: ['https://e.com/p'], label: 'PRODUCT', userData: { sku: 's', price: 1 } });
+                await enqueueLinks({ label: 'PRODUCT', userData: { sku: 's', price: 1 } });
                 // @ts-expect-error wrong userData shape for the label
                 await addRequests([{ url: 'https://e.com/p', label: 'PRODUCT', userData: { categoryId: 'x' } }]);
                 // @ts-expect-error label not present in the route map

@@ -4,11 +4,11 @@
 
 ```ts
 
+import type { AddRequestsBatchedResult } from '@crawlee/basic';
 import type { Awaitable } from '@crawlee/types';
 import { BaseHttpClient } from '@crawlee/http-client';
 import { BasicCrawler } from '@crawlee/basic';
 import { BasicCrawlerOptions } from '@crawlee/basic';
-import type { BatchAddRequestsResult } from '@crawlee/types';
 import type { BrowserController } from '@crawlee/browser-pool';
 import type { BrowserPlugin } from '@crawlee/browser-pool';
 import type { BrowserPluginOptions } from '@crawlee/browser-pool';
@@ -23,6 +23,7 @@ import type { Dictionary } from '@crawlee/types';
 import type { EnqueueLinksOptions } from '@crawlee/basic';
 import type { ErrorHandler } from '@crawlee/basic';
 import { EventManager } from '@crawlee/basic';
+import type { ExtractLinksOptions } from '@crawlee/basic';
 import type { GetUserDataFromRequest } from '@crawlee/basic';
 import type { IBrowserPool } from '@crawlee/types';
 import type { InferBrowserPluginArray } from '@crawlee/browser-pool';
@@ -196,7 +197,8 @@ export interface BrowserCrawlerOptions<Page extends CommonPage = CommonPage, Res
 // @public (undocumented)
 export interface BrowserCrawlingContext<Page extends CommonPage = CommonPage, Response extends BaseResponse = BaseResponse, UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 GoToOptions extends Dictionary = Dictionary> extends CrawlingContext<UserData> {
-    enqueueLinks: (options?: EnqueueLinksOptions) => Promise<BatchAddRequestsResult>;
+    enqueueLinks: (options?: EnqueueLinksOptions) => Promise<AddRequestsBatchedResult>;
+    extractLinks: (options?: ExtractLinksOptions) => Promise<string[]>;
     gotoOptions: GoToOptions;
     page: Page;
     request: LoadedRequest<Request_2<UserData>>;

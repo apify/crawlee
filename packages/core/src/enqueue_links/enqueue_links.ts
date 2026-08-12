@@ -1,51 +1,30 @@
-import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
-import { EnqueueStrategy, type RobotsTxtFile } from '@crawlee/utils';
+import type { Dictionary } from '@crawlee/types';
+import { EnqueueStrategy } from '@crawlee/utils';
 import { getDomain } from 'tldts';
-import type { SetRequired } from 'type-fest';
-import { z } from 'zod';
 
-import type { RequestOptions } from '../request.js';
-import { Request } from '../request.js';
-import type { IRequestManager } from '../storages/request_manager.js';
-import type {
-    AddRequestsBatchedOptions,
-    AddRequestsBatchedResult,
-    RequestQueueOperationOptions,
-} from '../storages/request_queue.js';
-import { parseArgument, schemas } from '../validators.js';
-import type {
-    RequestTransform,
-    SkippedRequestCallback,
-    SkippedRequestReason,
-    UrlPatternInput,
-    UrlPatternObject,
-} from './shared.js';
-import {
-    applyRequestTransform,
-    constructUrlPatternObjects,
-    createRequestOptions,
-    filterRequestOptionsByPatterns,
-    urlPatternSchema,
-} from './shared.js';
+import type { RequestQueueOperationOptions } from '../storages/request_queue.js';
+import type { RequestTransform, SkippedRequestCallback, UrlPatternInput, UrlPatternObject } from './shared.js';
 
-export { EnqueueStrategy };
-
-export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
-    /**
-     * Limit the amount of actually enqueued URLs to this number. Useful for testing across the entire crawling scope.
-     * When called from a crawler context, the limit is further capped by what's left of the crawler's
-     * {@apilink BasicCrawlerOptions.maxRequestsPerCrawl|`maxRequestsPerCrawl`} budget.
-     */
-    limit?: number;
-
-    /** An array of URLs to enqueue. */
-    urls?: readonly string[];
-
-    /** A request manager to which the URLs will be enqueued. */
-    requestManager?: IRequestManager;
-
-    /** A CSS selector matching links to be enqueued. */
+/**
+ * Options shared by the `extractLinks()` context helper across crawler types.
+ */
+export interface ExtractLinksOptions {
+    /** A CSS selector matching links to be extracted. */
     selector?: string;
+
+    /**
+     * A base URL that will be used to resolve relative URLs when using Cheerio. Ignored when using Puppeteer,
+     * since the relative URL resolution is done inside the browser automatically.
+     */
+    baseUrl?: string;
+}
+
+/**
+ * Options accepted by the `enqueueUrls()` context helper exposed by `BasicCrawler`.
+ */
+export interface EnqueueUrlsOptions extends RequestQueueOperationOptions {
+    /** Limit the amount of actually enqueued URLs to this number. Useful for testing across the entire crawling scope. */
+    limit?: number;
 
     /** Sets {@apilink Request.userData} for newly enqueued requests. */
     userData?: Dictionary;
@@ -67,8 +46,7 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
     skipNavigation?: boolean;
 
     /**
-     * A base URL that will be used to resolve relative URLs when using Cheerio. Ignored when using Puppeteer,
-     * since the relative URL resolution is done inside the browser automatically.
+     * A base URL that will be used to resolve relative URLs.
      */
     baseUrl?: string;
 
@@ -80,11 +58,11 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
      * Glob matching is always case-insensitive.
      * If you need case-sensitive matching, use a `RegExp`.
      *
-     * The patterns are combined with the {@apilink EnqueueLinksOptions.strategy|`strategy`} using AND logic - a URL
+     * The patterns are combined with the {@apilink EnqueueUrlsOptions.strategy|`strategy`} using AND logic - a URL
      * must match at least one `include` pattern **and** satisfy the strategy to be enqueued. To match URLs across
      * hostnames, pass an explicit {@apilink EnqueueStrategy.All} strategy.
      *
-     * If `undefined`, the links are enqueued based on the {@apilink EnqueueLinksOptions.strategy|`strategy`} alone.
+     * If `undefined`, the links are enqueued based on the {@apilink EnqueueUrlsOptions.strategy|`strategy`} alone.
      * Passing an empty array is not allowed.
      */
     include?: readonly UrlPatternInput[];
@@ -147,7 +125,7 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
      *
      * @default EnqueueStrategy.SameHostname
      */
-    strategy?: EnqueueStrategy | 'all' | 'same-domain' | 'same-hostname' | 'same-origin';
+    strategy?: EnqueueStrategyOption;
 
     /**
      * By default, only the first batch (1000) of found requests will be added to the queue before resolving the call.
@@ -156,266 +134,22 @@ export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
     waitForAllRequestsToBeAdded?: boolean;
 
     /**
-     * RobotsTxtFile instance for the current request that triggered the `enqueueLinks`.
-     * If provided, disallowed URLs will be ignored.
-     */
-    robotsTxtFile?: Pick<RobotsTxtFile, 'isAllowed'>;
-
-    /**
-     * Mirrors {@apilink BasicCrawlerOptions.respectRobotsTxtFile}: pass `false` to disable filtering or
-     * `{ userAgent }` to evaluate rules for a specific user-agent. Defaults to `*` when
-     * {@apilink EnqueueLinksOptions.robotsTxtFile|`robotsTxtFile`} is provided.
-     */
-    respectRobotsTxtFile?: boolean | { userAgent?: string };
-
-    /**
      * When a request is skipped for some reason, you can use this callback to act on it.
      * This is currently fired for requests skipped
      * 1. based on robots.txt file,
      * 2. because they don't match enqueueLinks filters,
      * 3. or because the maxRequestsPerCrawl limit has been reached
-     *
-     * When calling `enqueueLinks` through a crawler context, this callback runs in addition to (after) the
-     * crawler-level `onSkippedRequest`, it does not replace it.
      */
     onSkippedRequest?: SkippedRequestCallback;
 }
 
-// `schemas.anyObject` passes values through by reference (object schemas return a pruned plain
-// copy), so `userData` keeps its identity for the enqueued requests.
-const enqueueLinksOptionsSchema = z.strictObject({
-    urls: schemas.arrayOf(z.string(), 'strings'),
-    requestManager: schemas.objectWithKeys(['addRequestsBatched']),
-    robotsTxtFile: schemas.objectWithKeys(['isAllowed']).optional(),
-    respectRobotsTxtFile: z.union([z.boolean(), z.strictObject({ userAgent: z.string().optional() })]).optional(),
-    onSkippedRequest: schemas.anyFunction.optional(),
-    forefront: z.boolean().optional(),
-    skipNavigation: z.boolean().optional(),
-    sessionId: z.string().optional(),
-    limit: schemas.anyNumber.optional(),
-    selector: z.string().optional(),
-    baseUrl: z.string().optional(),
-    userData: schemas.anyObject.optional(),
-    label: z.string().optional(),
-    include: schemas.arrayOf(urlPatternSchema, 'URL patterns').min(1).optional(),
-    exclude: schemas.arrayOf(urlPatternSchema, 'URL patterns').optional(),
-    transformRequestFunction: schemas.anyFunction.optional(),
-    strategy: z.enum(EnqueueStrategy).optional(),
-    waitForAllRequestsToBeAdded: z.boolean().optional(),
-});
+/** The combined options accepted by a crawler context's `enqueueLinks()` helper: `extractLinks()` + `enqueueUrls()`. */
+export type EnqueueLinksOptions = ExtractLinksOptions & EnqueueUrlsOptions;
 
-/**
- * This function enqueues the urls provided to the {@apilink RequestQueue} provided. If you want to automatically find and enqueue links,
- * you should use the context-aware `enqueueLinks` function provided on the crawler contexts.
- *
- * Optionally, the function allows you to filter the target links' URLs using an array of glob or regexp patterns.
- *
- * **Example usage**
- *
- * ```javascript
- * await enqueueLinks({
- *   urls: aListOfFoundUrls,
- *   requestManager,
- *   selector: 'a.product-detail',
- *   include: [
- *       'https://www.example.com/handbags/*',
- *       'https://www.example.com/purses/*'
- *   ],
- * });
- * ```
- *
- * @param options All `enqueueLinks()` parameters are passed via an options object.
- * @returns Promise that resolves to {@apilink BatchAddRequestsResult} object.
- */
-export async function enqueueLinks(
-    options: SetRequired<Omit<EnqueueLinksOptions, 'requestManager'>, 'urls'> & {
-        requestManager: {
-            addRequestsBatched: (
-                requests: Request<Dictionary>[],
-                options: AddRequestsBatchedOptions,
-            ) => Promise<AddRequestsBatchedResult>;
-        };
-    },
-): Promise<BatchAddRequestsResult> {
-    if (!options || Object.keys(options).length === 0) {
-        throw new RangeError(
-            [
-                'enqueueLinks() was called without the required options. You can only do that when you use the `crawlingContext.enqueueLinks()` method in request handlers.',
-                'Check out our guide on how to use enqueueLinks() here: https://crawlee.dev/js/docs/examples/crawl-relative-links',
-            ].join('\n'),
-        );
-    }
+export { EnqueueStrategy };
 
-    const parsedOptions = parseArgument(options, enqueueLinksOptionsSchema, 'EnqueueLinksOptions');
-
-    const {
-        requestManager,
-        limit,
-        urls,
-        include,
-        exclude,
-        transformRequestFunction,
-        forefront,
-        waitForAllRequestsToBeAdded,
-        robotsTxtFile,
-        onSkippedRequest,
-    } = parsedOptions;
-
-    const urlExcludePatternObjects: UrlPatternObject[] = exclude?.length ? constructUrlPatternObjects(exclude) : [];
-    const urlPatternObjects: UrlPatternObject[] = include?.length ? constructUrlPatternObjects(include) : [];
-
-    // The strategy always applies, even when `include` patterns are provided - the two are AND-ed together
-    // (a URL must match an `include` pattern *and* satisfy the strategy). This mirrors crawlee-python.
-    parsedOptions.strategy ??= EnqueueStrategy.SameHostname;
-
-    const enqueueStrategyPatterns: UrlPatternObject[] = [];
-
-    if (parsedOptions.baseUrl) {
-        const url = new URL(parsedOptions.baseUrl);
-
-        switch (parsedOptions.strategy) {
-            case EnqueueStrategy.SameHostname:
-                // We need to get the origin of the passed in domain in the event someone sets baseUrl
-                // to an url like https://example.com/deep/default/path and one of the found urls is an
-                // absolute relative path (/path/to/page)
-                enqueueStrategyPatterns.push({ glob: ignoreHttpSchema(`${url.origin}/**`) });
-                break;
-            case EnqueueStrategy.SameDomain: {
-                // Get the actual hostname from the base url
-                const baseUrlHostname = getDomain(url.hostname, { mixedInputs: false });
-
-                if (baseUrlHostname) {
-                    // We have a hostname, so we can use it to match all links on the page that point to it and any subdomains of it
-                    url.hostname = baseUrlHostname;
-                    enqueueStrategyPatterns.push(
-                        { glob: ignoreHttpSchema(`${url.origin.replace(baseUrlHostname, `*.${baseUrlHostname}`)}/**`) },
-                        { glob: ignoreHttpSchema(`${url.origin}/**`) },
-                    );
-                } else {
-                    // We don't have a hostname (can happen for ips for instance), so reproduce the same behavior
-                    // as SameDomainAndSubdomain
-                    enqueueStrategyPatterns.push({ glob: ignoreHttpSchema(`${url.origin}/**`) });
-                }
-
-                break;
-            }
-            case EnqueueStrategy.SameOrigin: {
-                // The same behavior as SameHostname, but respecting the protocol of the URL
-                enqueueStrategyPatterns.push({ glob: `${url.origin}/**` });
-                break;
-            }
-            case EnqueueStrategy.All:
-            default:
-                enqueueStrategyPatterns.push({ glob: `http{s,}://**` });
-                break;
-        }
-    }
-
-    async function reportSkippedRequests(
-        skippedRequests: { url: string; skippedReason?: SkippedRequestReason }[],
-        reason: SkippedRequestReason,
-    ) {
-        if (onSkippedRequest && skippedRequests.length > 0) {
-            await Promise.all(
-                skippedRequests.map((request) => {
-                    return onSkippedRequest({
-                        url: request.url,
-                        reason: request.skippedReason ?? reason,
-                    }) as Promise<void>;
-                }),
-            );
-        }
-    }
-
-    let requestOptions = createRequestOptions(urls, parsedOptions);
-
-    if (robotsTxtFile && parsedOptions.respectRobotsTxtFile !== false) {
-        const robotsUserAgent =
-            typeof parsedOptions.respectRobotsTxtFile === 'object'
-                ? (parsedOptions.respectRobotsTxtFile.userAgent ?? '*')
-                : '*';
-        const skippedRequests: RequestOptions[] = [];
-
-        requestOptions = requestOptions.filter((request) => {
-            if (robotsTxtFile.isAllowed(request.url, robotsUserAgent)) {
-                return true;
-            }
-
-            skippedRequests.push(request);
-            return false;
-        });
-
-        await reportSkippedRequests(skippedRequests, 'robotsTxt');
-    }
-
-    async function createFilteredRequests() {
-        const skippedRequests: string[] = [];
-
-        // Step 1: Filter request options by exclude patterns, user include patterns, and strategy patterns.
-        let filteredOptions: RequestOptions[];
-        if (urlPatternObjects.length === 0) {
-            filteredOptions = filterRequestOptionsByPatterns(
-                requestOptions,
-                enqueueStrategyPatterns.length > 0 ? enqueueStrategyPatterns : undefined,
-                urlExcludePatternObjects,
-                parsedOptions.strategy,
-                (url) => skippedRequests.push(url),
-            );
-        } else {
-            // Filter by user patterns first (with exclude)
-            const afterUserPatterns = filterRequestOptionsByPatterns(
-                requestOptions,
-                urlPatternObjects,
-                urlExcludePatternObjects,
-                parsedOptions.strategy,
-                (url) => skippedRequests.push(url),
-            );
-            // ...then filter by the enqueue links strategy (making this an AND check)
-            filteredOptions = filterRequestOptionsByPatterns(
-                afterUserPatterns,
-                enqueueStrategyPatterns.length > 0 ? enqueueStrategyPatterns : undefined,
-                [],
-                parsedOptions.strategy,
-                (url) => skippedRequests.push(url),
-            );
-        }
-
-        await reportSkippedRequests(
-            skippedRequests.map((url) => ({ url })),
-            'filters',
-        );
-
-        // Step 2: Apply transformRequestFunction on request options - it has the highest priority
-        if (transformRequestFunction) {
-            const skippedByTransform: RequestOptions[] = [];
-            filteredOptions = applyRequestTransform(filteredOptions, transformRequestFunction, (r) =>
-                skippedByTransform.push(r),
-            );
-            await reportSkippedRequests(skippedByTransform, 'transform');
-        }
-
-        // Step 3: Create Request instances from the final request options
-        return filteredOptions.map((opts) => new Request(opts));
-    }
-
-    const { addedRequests, requestsOverLimit } = await requestManager.addRequestsBatched(
-        await createFilteredRequests(),
-        {
-            forefront,
-            waitForAllRequestsToBeAdded,
-            maxNewRequests: limit,
-        },
-    );
-
-    if (requestsOverLimit?.length !== undefined && requestsOverLimit.length > 0) {
-        await reportSkippedRequests(
-            requestsOverLimit.map((r) => ({ url: typeof r === 'string' ? r : r.url! })),
-            'enqueueLimit',
-        );
-    }
-
-    return { processedRequests: addedRequests, unprocessedRequests: [] };
-}
+/** The `strategy` option accepted by {@apilink ExtractLinksOptions} and {@apilink EnqueueUrlsOptions}. */
+export type EnqueueStrategyOption = EnqueueStrategy | 'all' | 'same-domain' | 'same-hostname' | 'same-origin';
 
 /**
  * @internal
@@ -445,8 +179,8 @@ export function resolveBaseUrlForEnqueueLinksFiltering({
     }
 
     // If the user wants to ensure the same domain is accessed, regardless of subdomains, we check to ensure the domains match
-    // If they don't (we went off domain via a redirect), we keep filtering against the original domain - returning
-    // undefined here would disable the filtering entirely and enqueue every link on the redirected page
+    // Returning undefined here is intentional! If the domains don't match, having no baseUrl in enqueueLinks will cause it to not enqueue anything
+    // which is the intended behavior (since we went off domain)
     if (enqueueStrategy === EnqueueStrategy.SameDomain) {
         const originalHostname = getDomain(originalUrlOrigin, { mixedInputs: false })!;
         const finalHostname = getDomain(finalUrlOrigin, { mixedInputs: false })!;
@@ -455,7 +189,7 @@ export function resolveBaseUrlForEnqueueLinksFiltering({
             return finalUrlOrigin;
         }
 
-        return originalUrlOrigin;
+        return undefined;
     }
 
     // Always enqueue urls that are from the same origin in all other cases, as the filtering happens on the original request url, even if there was a redirect
@@ -468,9 +202,48 @@ export function resolveBaseUrlForEnqueueLinksFiltering({
  */
 export interface ResolveBaseUrl {
     userProvidedBaseUrl?: string;
-    enqueueStrategy?: EnqueueLinksOptions['strategy'];
+    enqueueStrategy?: EnqueueStrategyOption;
     originalRequestUrl: string;
     finalRequestUrl?: string;
+}
+
+/**
+ * @internal
+ * Builds the glob patterns a URL must match to satisfy the given enqueue `strategy`, anchored at `baseUrl`.
+ */
+export function buildEnqueueStrategyPatterns(baseUrl: string, strategy: EnqueueStrategyOption): UrlPatternObject[] {
+    const url = new URL(baseUrl);
+
+    switch (strategy) {
+        case EnqueueStrategy.SameHostname:
+            // We need to get the origin of the passed in domain in the event someone sets baseUrl
+            // to an url like https://example.com/deep/default/path and one of the found urls is an
+            // absolute relative path (/path/to/page)
+            return [{ glob: ignoreHttpSchema(`${url.origin}/**`) }];
+        case EnqueueStrategy.SameDomain: {
+            // Get the actual hostname from the base url
+            const baseUrlHostname = getDomain(url.hostname, { mixedInputs: false });
+
+            if (baseUrlHostname) {
+                // We have a hostname, so we can use it to match all links on the page that point to it and any subdomains of it
+                url.hostname = baseUrlHostname;
+                return [
+                    { glob: ignoreHttpSchema(`${url.origin.replace(baseUrlHostname, `*.${baseUrlHostname}`)}/**`) },
+                    { glob: ignoreHttpSchema(`${url.origin}/**`) },
+                ];
+            }
+
+            // We don't have a hostname (can happen for ips for instance), so reproduce the same behavior
+            // as SameDomainAndSubdomain
+            return [{ glob: ignoreHttpSchema(`${url.origin}/**`) }];
+        }
+        case EnqueueStrategy.SameOrigin:
+            // The same behavior as SameHostname, but respecting the protocol of the URL
+            return [{ glob: `${url.origin}/**` }];
+        case EnqueueStrategy.All:
+        default:
+            return [{ glob: `http{s,}://**` }];
+    }
 }
 
 /**

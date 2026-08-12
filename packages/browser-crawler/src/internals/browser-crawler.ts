@@ -1,24 +1,24 @@
 import type {
+    AddRequestsBatchedResult,
     BasicCrawlerOptions,
     BasicCrawlingContext,
     ContextMiddleware,
     CrawlingContext,
     EnqueueLinksOptions,
     ErrorHandler,
+    ExtractLinksOptions,
     GetUserDataFromRequest,
-    IRequestManager,
     LoadedRequest,
     Request,
     RequestHandler,
     RouterHandler,
-    SkippedRequestCallback,
 } from '@crawlee/basic';
 import {
     BasicCrawler,
     browserPoolCookieToToughCookie,
     ContextPipeline,
     cookieStringToToughCookie,
-    enqueueLinks,
+    EnqueueStrategy,
     NavigationSkippedError,
     OwnedOrInjected,
     parseArgument,
@@ -43,18 +43,9 @@ import type {
     LaunchContext,
 } from '@crawlee/browser-pool';
 import { BrowserPool, RemoteBrowserPool } from '@crawlee/browser-pool';
-import type {
-    Awaitable,
-    BatchAddRequestsResult,
-    Cookie as CookieObject,
-    Dictionary,
-    IBrowserPool,
-    ISession,
-} from '@crawlee/types';
-import type { RobotsTxtFile } from '@crawlee/utils';
+import type { Awaitable, Cookie as CookieObject, Dictionary, IBrowserPool, ISession } from '@crawlee/types';
 import { CLOUDFLARE_RETRY_CSS_SELECTORS, RETRY_CSS_SELECTORS } from '@crawlee/utils/internal';
 import { sleep } from '@crawlee/utils';
-import type { ReadonlyDeep } from 'type-fest';
 import { z } from 'zod';
 
 import { addTimeoutToPromise, TimeoutError, tryCancel } from '@apify/timeout';
@@ -104,9 +95,14 @@ export interface BrowserCrawlingContext<
     gotoOptions: GoToOptions;
 
     /**
+     * Extracts URLs from the current page, without adding them to the request queue.
+     */
+    extractLinks: (options?: ExtractLinksOptions) => Promise<string[]>;
+
+    /**
      * Helper function for extracting URLs from the current page and adding them to the request queue.
      */
-    enqueueLinks: (options?: EnqueueLinksOptions) => Promise<BatchAddRequestsResult>;
+    enqueueLinks: (options?: EnqueueLinksOptions) => Promise<AddRequestsBatchedResult>;
 }
 
 export type BrowserHook<Context = BrowserCrawlingContext, ContextExtension = {}> = (
@@ -604,7 +600,15 @@ export abstract class BrowserCrawler<
         });
         tryCancel();
 
-        const contextEnqueueLinks = crawlingContext.enqueueLinks;
+        const addRequests = crawlingContext.addRequests;
+
+        const extractLinks = async (options?: ExtractLinksOptions): Promise<string[]> => {
+            return extractUrlsFromPage(
+                page as any,
+                options?.selector ?? 'a',
+                options?.baseUrl ?? crawlingContext.request.loadedUrl ?? crawlingContext.request.url,
+            );
+        };
 
         return {
             page,
@@ -616,19 +620,22 @@ export abstract class BrowserCrawler<
             get gotoOptions(): Dictionary {
                 throw new Error('The `gotoOptions` property is not available until `prepareNavigation` runs.');
             },
-            enqueueLinks: async (enqueueOptions: EnqueueLinksOptions = {}) => {
-                return (await browserCrawlerEnqueueLinks({
-                    // `contextEnqueueLinks` clamps `limit` by the remaining `maxRequestsPerCrawl` budget itself;
-                    // pre-clamping it here would make the crawler log the internal limit as a user-provided one
-                    options: enqueueOptions,
-                    page,
-                    requestManager: await this.getRequestManager(),
-                    robotsTxtFile: await this.getRobotsTxtFileForUrl(crawlingContext.request.url),
-                    onSkippedRequest: this.handleSkippedRequest,
-                    originalRequestUrl: crawlingContext.request.url,
+            extractLinks,
+            enqueueLinks: async (options: EnqueueLinksOptions = {}) => {
+                const baseUrl = resolveBaseUrlForEnqueueLinksFiltering({
+                    enqueueStrategy: options.strategy,
                     finalRequestUrl: crawlingContext.request.loadedUrl,
-                    enqueueLinks: contextEnqueueLinks,
-                })) as BatchAddRequestsResult; // TODO make this type safe
+                    originalRequestUrl: crawlingContext.request.url,
+                    userProvidedBaseUrl: options.baseUrl,
+                });
+
+                const urls = await extractLinks(options);
+
+                return addRequests(urls, {
+                    ...options,
+                    baseUrl,
+                    strategy: options.strategy ?? EnqueueStrategy.SameHostname,
+                });
             },
         };
     }
@@ -879,70 +886,6 @@ export abstract class BrowserCrawler<
         await this.#browserPoolDep.ifOwned((pool) => pool.destroy());
         await super.teardown();
     }
-}
-
-/** @internal */
-interface EnqueueLinksInternalOptions {
-    options?: ReadonlyDeep<Omit<EnqueueLinksOptions, 'requestManager'>> & Pick<EnqueueLinksOptions, 'requestManager'>;
-    page: CommonPage;
-    requestManager: IRequestManager;
-    robotsTxtFile?: RobotsTxtFile;
-    onSkippedRequest?: SkippedRequestCallback;
-    originalRequestUrl: string;
-    finalRequestUrl?: string;
-}
-
-/** @internal */
-interface BoundEnqueueLinksInternalOptions {
-    enqueueLinks: BasicCrawlingContext['enqueueLinks'];
-    options?: ReadonlyDeep<Omit<EnqueueLinksOptions, 'requestManager'>> & Pick<EnqueueLinksOptions, 'requestManager'>;
-    originalRequestUrl: string;
-    finalRequestUrl?: string;
-    page: CommonPage;
-}
-
-/** @internal */
-function containsEnqueueLinks(
-    options: EnqueueLinksInternalOptions | BoundEnqueueLinksInternalOptions,
-): options is BoundEnqueueLinksInternalOptions {
-    return !!(options as BoundEnqueueLinksInternalOptions).enqueueLinks;
-}
-
-/** @internal */
-export async function browserCrawlerEnqueueLinks(
-    options: EnqueueLinksInternalOptions | BoundEnqueueLinksInternalOptions,
-) {
-    const { options: enqueueLinksOptions, finalRequestUrl, originalRequestUrl, page } = options;
-
-    const baseUrl = resolveBaseUrlForEnqueueLinksFiltering({
-        enqueueStrategy: enqueueLinksOptions?.strategy,
-        finalRequestUrl,
-        originalRequestUrl,
-        userProvidedBaseUrl: enqueueLinksOptions?.baseUrl,
-    });
-
-    const urls = await extractUrlsFromPage(
-        page as any,
-        enqueueLinksOptions?.selector ?? 'a',
-        enqueueLinksOptions?.baseUrl ?? finalRequestUrl ?? originalRequestUrl,
-    );
-
-    if (containsEnqueueLinks(options)) {
-        return options.enqueueLinks({
-            urls,
-            ...enqueueLinksOptions,
-            baseUrl,
-        });
-    }
-
-    return enqueueLinks({
-        requestManager: options.requestManager,
-        robotsTxtFile: options.robotsTxtFile,
-        onSkippedRequest: options.onSkippedRequest,
-        urls,
-        ...(enqueueLinksOptions as EnqueueLinksOptions),
-        baseUrl,
-    });
 }
 
 /**
