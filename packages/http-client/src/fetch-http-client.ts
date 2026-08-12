@@ -9,7 +9,6 @@ import { BaseHttpClient, type CustomFetchOptions } from './base-http-client.js';
  */
 export class FetchHttpClient extends BaseHttpClient {
     #logger?: CrawleeLogger;
-    #warnedIgnoreTlsErrors = false;
 
     constructor(options?: { logger?: CrawleeLogger }) {
         super(options);
@@ -17,9 +16,8 @@ export class FetchHttpClient extends BaseHttpClient {
     }
 
     override async fetch(request: Request, options?: RequestInit & CustomFetchOptions): Promise<Response> {
-        if (options?.ignoreTlsErrors && !this.#warnedIgnoreTlsErrors) {
-            this.#warnedIgnoreTlsErrors = true;
-            this.#logger?.warning(
+        if (options?.ignoreTlsErrors) {
+            this.#logger?.warningOnce(
                 'FetchHttpClient cannot disable TLS certificate verification, the `ignoreTlsErrors` option is ignored. ' +
                     'Install the optional @crawlee/impit-client dependency to make it work.',
             );

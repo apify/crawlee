@@ -188,17 +188,15 @@ describe('BaseHttpClient TLS error handling', () => {
         expect(client.lastFetchOptions?.ignoreTlsErrors).toBeUndefined();
     });
 
-    test('FetchHttpClient warns once when ignoreTlsErrors is requested', async () => {
-        const warning = vitest.fn();
-        const client = new FetchHttpClient({ logger: { warning } as any });
+    test('FetchHttpClient warns when ignoreTlsErrors is requested', async () => {
+        const warningOnce = vitest.fn();
+        const client = new FetchHttpClient({ logger: { warningOnce } as any });
 
         await client.sendRequest(new Request(url), { ignoreTlsErrors: true });
-        await client.sendRequest(new Request(url), { ignoreTlsErrors: true });
-        expect(warning).toHaveBeenCalledTimes(1);
-        expect(warning).toHaveBeenCalledWith(expect.stringContaining('ignoreTlsErrors'));
+        expect(warningOnce).toHaveBeenCalledWith(expect.stringContaining('ignoreTlsErrors'));
 
-        const quietClient = new FetchHttpClient({ logger: { warning } as any });
-        await quietClient.sendRequest(new Request(url));
-        expect(warning).toHaveBeenCalledTimes(1);
+        warningOnce.mockClear();
+        await client.sendRequest(new Request(url));
+        expect(warningOnce).not.toHaveBeenCalled();
     });
 });
