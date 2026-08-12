@@ -93,11 +93,11 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
         return `FileSystemStorageBackend:${resolve(this.localDataDirectory)}`;
     }
 
-    private static resolveStorageKey(options: { id?: string; name?: string; alias?: string }): {
+    static #resolveStorageKey(options: { id?: string; name?: string; alias?: string }): {
         id?: string;
         name?: string;
         alias?: string;
-        cacheKey: string | undefined;
+        cacheKey: string;
     } {
         // No identifier at all means the default storage, which is opened under the reserved alias —
         // same rule as `resolveStorageIdentifier` in @crawlee/core, so that a backend used directly
@@ -107,29 +107,28 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
         // in `default`, which is what the docs, the project templates and every pre-existing local
         // `storage/` directory expect. Normalizing here keeps the cache key and the directory in step.
         const alias = requestedAlias === DEFAULT_STORAGE_ALIAS ? DEFAULT_STORAGE_DIRECTORY : requestedAlias;
-        const cacheKey = alias ?? options.name ?? options.id;
+        // `alias` covers the identifier-less case, so one of the three is always set.
+        const cacheKey = alias ?? options.name ?? options.id!;
         return { id: options.id, name: options.name, alias, cacheKey };
     }
 
     async createDatasetBackend(options: storage.StorageIdentifier = {}): Promise<storage.DatasetBackend> {
-        const { id, name, alias, cacheKey } = FileSystemStorageBackend.resolveStorageKey(options);
+        const { id, name, alias, cacheKey } = FileSystemStorageBackend.#resolveStorageKey(options);
 
-        if (cacheKey) {
-            const found = this.datasetBackendCache.find(
-                (store) =>
-                    store.id === cacheKey ||
-                    store.name?.toLowerCase() === cacheKey.toLowerCase() ||
-                    store.cacheKey.toLowerCase() === cacheKey.toLowerCase(),
-            );
-            if (found) {
-                return found;
-            }
+        const found = this.datasetBackendCache.find(
+            (store) =>
+                store.id === cacheKey ||
+                store.name?.toLowerCase() === cacheKey.toLowerCase() ||
+                store.cacheKey.toLowerCase() === cacheKey.toLowerCase(),
+        );
+        if (found) {
+            return found;
         }
 
         const nativeBackend = await NativeDatasetBackend.open(id, name, alias, this.localDataDirectory);
         const newStore = await DatasetBackend.create({
             name: alias ? undefined : (name ?? cacheKey),
-            cacheKey: cacheKey ?? '',
+            cacheKey,
             nativeBackend,
             logger: this.logger,
         });
@@ -139,24 +138,22 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
     }
 
     async createKeyValueStoreBackend(options: storage.StorageIdentifier = {}): Promise<storage.KeyValueStoreBackend> {
-        const { id, name, alias, cacheKey } = FileSystemStorageBackend.resolveStorageKey(options);
+        const { id, name, alias, cacheKey } = FileSystemStorageBackend.#resolveStorageKey(options);
 
-        if (cacheKey) {
-            const found = this.keyValueStoreBackendCache.find(
-                (store) =>
-                    store.id === cacheKey ||
-                    store.name?.toLowerCase() === cacheKey.toLowerCase() ||
-                    store.cacheKey.toLowerCase() === cacheKey.toLowerCase(),
-            );
-            if (found) {
-                return found;
-            }
+        const found = this.keyValueStoreBackendCache.find(
+            (store) =>
+                store.id === cacheKey ||
+                store.name?.toLowerCase() === cacheKey.toLowerCase() ||
+                store.cacheKey.toLowerCase() === cacheKey.toLowerCase(),
+        );
+        if (found) {
+            return found;
         }
 
         const nativeBackend = await NativeKeyValueStoreBackend.open(id, name, alias, this.localDataDirectory);
         const newStore = await KeyValueStoreBackend.create({
             name: alias ? undefined : (name ?? cacheKey),
-            cacheKey: cacheKey ?? '',
+            cacheKey,
             nativeBackend,
             logger: this.logger,
         });
@@ -166,18 +163,16 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
     }
 
     async createRequestQueueBackend(options: storage.StorageIdentifier = {}): Promise<storage.RequestQueueBackend> {
-        const { id, name, alias, cacheKey } = FileSystemStorageBackend.resolveStorageKey(options);
+        const { id, name, alias, cacheKey } = FileSystemStorageBackend.#resolveStorageKey(options);
 
-        if (cacheKey) {
-            const found = this.requestQueueBackendCache.find(
-                (queue) =>
-                    queue.id === cacheKey ||
-                    queue.name?.toLowerCase() === cacheKey.toLowerCase() ||
-                    queue.cacheKey.toLowerCase() === cacheKey.toLowerCase(),
-            );
-            if (found) {
-                return found;
-            }
+        const found = this.requestQueueBackendCache.find(
+            (queue) =>
+                queue.id === cacheKey ||
+                queue.name?.toLowerCase() === cacheKey.toLowerCase() ||
+                queue.cacheKey.toLowerCase() === cacheKey.toLowerCase(),
+        );
+        if (found) {
+            return found;
         }
 
         const nativeBackend = await NativeRequestQueueBackend.open(
@@ -191,7 +186,7 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
         );
         const newStore = await RequestQueueBackend.create({
             name: alias ? undefined : (name ?? cacheKey),
-            cacheKey: cacheKey ?? '',
+            cacheKey,
             nativeBackend,
             logger: this.logger,
         });
@@ -235,7 +230,7 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
         // has a matching directory. We therefore read the real id from the metadata and only report
         // existence when it equals the queried string. This matches upstream PR #3800/#3808 and
         // prevents a named storage from being re-resolved as `{ id: name }` on a subsequent run.
-        const resolvedId = await FileSystemStorageBackend.resolveStorageIdOnDisk(baseDir, id);
+        const resolvedId = await FileSystemStorageBackend.#resolveStorageIdOnDisk(baseDir, id);
         return resolvedId === id;
     }
 
@@ -247,13 +242,10 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
      * back to scanning sibling directories for one whose metadata id equals `entryNameOrId` (the case
      * of a storage opened by name and later looked up by its auto-assigned id).
      */
-    private static async resolveStorageIdOnDisk(
-        baseDirectory: string,
-        entryNameOrId: string,
-    ): Promise<string | undefined> {
+    static async #resolveStorageIdOnDisk(baseDirectory: string, entryNameOrId: string): Promise<string | undefined> {
         // Directory named exactly after the string: return its real (metadata) id, which may differ
         // from the string when the string is a name rather than an id.
-        const directId = (await FileSystemStorageBackend.readMetadata(resolve(baseDirectory, entryNameOrId)))?.id;
+        const directId = (await FileSystemStorageBackend.#readMetadata(resolve(baseDirectory, entryNameOrId)))?.id;
         if (directId !== undefined) {
             return directId;
         }
@@ -271,7 +263,7 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
                 continue;
             }
 
-            const metadataId = (await FileSystemStorageBackend.readMetadata(resolve(baseDirectory, directory.name)))
+            const metadataId = (await FileSystemStorageBackend.#readMetadata(resolve(baseDirectory, directory.name)))
                 ?.id;
             if (metadataId === entryNameOrId) {
                 return metadataId;
@@ -282,9 +274,7 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
     }
 
     /** Read a storage directory's `__metadata__.json`, or `undefined` if there is none to read. */
-    private static async readMetadata(
-        storageDirectory: string,
-    ): Promise<{ id?: string; name?: string | null } | undefined> {
+    static async #readMetadata(storageDirectory: string): Promise<{ id?: string; name?: string | null } | undefined> {
         try {
             const fileContent = await readFile(resolve(storageDirectory, '__metadata__.json'), 'utf8');
             return JSON.parse(fileContent) as { id?: string; name?: string | null };
@@ -295,27 +285,23 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
     }
 
     /**
-     * Cleans up the storages that belong to a single run before the run starts:
-     *  - the default dataset and request queue, plus every alias-keyed one;
-     *  - all records from the default key-value store except for the "INPUT" key, and all records from
-     *    every alias-keyed key-value store.
-     *
-     * Named storages are the opt-in way of keeping data across runs, so they are left untouched.
+     * Cleans up the run-scoped storages before the run starts, sweeping the storage directories so that
+     * leftovers from a previous process are caught too.
      */
     async purge(): Promise<void> {
         await Promise.all([
-            this.purgeRunScopedStorages(
+            this.#purgeRunScopedStorages(
                 this.keyValueStoresDirectory,
                 async (alias) => this.createKeyValueStoreBackend({ alias }) as Promise<KeyValueStoreBackend>,
                 // Only the default store holds the run input, so it is the only one that keeps `INPUT`.
                 async (store, isDefault) => (isDefault ? store.purgeExceptInput() : store.purge()),
             ),
-            this.purgeRunScopedStorages(
+            this.#purgeRunScopedStorages(
                 this.datasetsDirectory,
                 async (alias) => this.createDatasetBackend({ alias }) as Promise<DatasetBackend>,
                 async (store) => store.purge(),
             ),
-            this.purgeRunScopedStorages(
+            this.#purgeRunScopedStorages(
                 this.requestQueuesDirectory,
                 async (alias) => this.createRequestQueueBackend({ alias }) as Promise<RequestQueueBackend>,
                 async (store) => store.purge(),
@@ -324,14 +310,11 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
     }
 
     /**
-     * Purge every run-scoped storage under `storagesDirectory` — the default one and every alias-keyed
-     * one, whether or not it has been opened in this process yet.
-     *
-     * Storages are opened through `open` rather than purged on disk directly, both so that a leftover
-     * from a previous process is reachable at all, and so that a storage already open in this process is
-     * purged through the very backend the run is using instead of a divergent second one.
+     * Purge every run-scoped storage under `storagesDirectory`, whether or not it has been opened in this
+     * process yet. Storages are opened rather than emptied on disk directly, so that one already open
+     * under the same name or alias is purged through the backend the run is using, not a second one.
      */
-    private async purgeRunScopedStorages<T>(
+    async #purgeRunScopedStorages<T>(
         storagesDirectory: string,
         open: (alias: string) => Promise<T>,
         purgeStorage: (storage: T, isDefault: boolean) => Promise<void>,
@@ -340,13 +323,13 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
         // up with it opened (and cached) exactly as it was before. Deduplicating by cache key then keeps
         // it to a single open: every run after the first also finds its `default` directory on disk, and
         // opening the same storage twice concurrently would race two backends onto one directory.
-        const aliasesByCacheKey = new Map<string | undefined, string>();
+        const aliasesByCacheKey = new Map<string, string>();
 
         for (const alias of [
             DEFAULT_STORAGE_ALIAS,
-            ...(await FileSystemStorageBackend.listUnnamedStorages(storagesDirectory)),
+            ...(await FileSystemStorageBackend.#listUnnamedStorages(storagesDirectory)),
         ]) {
-            const { cacheKey } = FileSystemStorageBackend.resolveStorageKey({ alias });
+            const { cacheKey } = FileSystemStorageBackend.#resolveStorageKey({ alias });
             if (!aliasesByCacheKey.has(cacheKey)) {
                 aliasesByCacheKey.set(cacheKey, alias);
             }
@@ -362,12 +345,13 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
     /**
      * The directory names of the on-disk storages under `storagesDirectory` that Crawlee created without
      * a name — the default storage and every alias-keyed one. Since the directory is named after the
-     * storage's `name ?? alias ?? id`, the name is read from the metadata rather than guessed.
+     * storage's `name ?? alias`, the name is read from the metadata rather than guessed.
      *
-     * A directory with no readable `__metadata__.json` was not created by Crawlee (a hand-placed input
-     * directory, say), so it is left out — purging it would destroy data we never wrote.
+     * Two kinds of directory are left out, as purging them would destroy data this process never wrote:
+     * one without a readable `__metadata__.json` (not written by Crawlee — a hand-placed input directory,
+     * say), and one named after its own id, which is reachable only by `{ id }` and so is not run-scoped.
      */
-    private static async listUnnamedStorages(storagesDirectory: string): Promise<string[]> {
+    static async #listUnnamedStorages(storagesDirectory: string): Promise<string[]> {
         let directories;
         try {
             directories = await opendir(storagesDirectory);
@@ -382,8 +366,8 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
                 continue;
             }
 
-            const metadata = await FileSystemStorageBackend.readMetadata(resolve(storagesDirectory, directory.name));
-            if (metadata !== undefined && typeof metadata.name !== 'string') {
+            const metadata = await FileSystemStorageBackend.#readMetadata(resolve(storagesDirectory, directory.name));
+            if (metadata !== undefined && typeof metadata.name !== 'string' && metadata.id !== directory.name) {
                 unnamed.push(directory.name);
             }
         }

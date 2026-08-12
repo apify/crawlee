@@ -239,6 +239,21 @@ describe('storage aliases', () => {
             expect(dataset1).toBe(dataset2);
         });
 
+        test('string identifier opens named storage', async () => {
+            const dataset = await Dataset.open('test-named');
+            expect(dataset.name).toBe('test-named');
+        });
+
+        test('{ name } identifier opens named storage', async () => {
+            const dataset = await Dataset.open({ name: 'test-named-obj' });
+            expect(dataset.name).toBe('test-named-obj');
+        });
+
+        test('{ alias } identifier opens alias storage', async () => {
+            const dataset = await Dataset.open({ alias: 'test-alias' });
+            expect(dataset.name).toBeUndefined();
+        });
+
         describe('at the backend level', () => {
             const localStorageDir = resolve(import.meta.dirname, '..', 'tmp', 'fs-aliases', cryptoRandomObjectId(10));
 
@@ -263,21 +278,6 @@ describe('storage aliases', () => {
                     expect(await backend.createDatasetBackend()).toBe(aliased);
                 },
             );
-        });
-
-        test('string identifier opens named storage', async () => {
-            const dataset = await Dataset.open('test-named');
-            expect(dataset.name).toBe('test-named');
-        });
-
-        test('{ name } identifier opens named storage', async () => {
-            const dataset = await Dataset.open({ name: 'test-named-obj' });
-            expect(dataset.name).toBe('test-named-obj');
-        });
-
-        test('{ alias } identifier opens alias storage', async () => {
-            const dataset = await Dataset.open({ alias: 'test-alias' });
-            expect(dataset.name).toBeUndefined();
         });
     });
 

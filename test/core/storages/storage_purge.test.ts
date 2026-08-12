@@ -1,4 +1,4 @@
-import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 import { FileSystemStorageBackend } from '@crawlee/fs-storage';
@@ -17,8 +17,7 @@ const pendingCount = async (queue: RequestQueueBackend) => (await queue.getMetad
 
 const readInput = async (store: KeyValueStoreBackend) => (await store.getValue('INPUT'))?.value.toString();
 
-const writeInput = async (store: KeyValueStoreBackend) =>
-    store.setValue({ key: 'INPUT', value: '{"run":"input"}', contentType: 'application/json; charset=utf-8' });
+const input = { key: 'INPUT', value: '{"run":"input"}', contentType: 'application/json; charset=utf-8' };
 
 afterAll(async () => {
     await rm(temporaryRoot, { force: true, recursive: true });
@@ -26,9 +25,6 @@ afterAll(async () => {
 
 // A `purgeOnStart` purge wipes the storages that belong to a single run: the default one and any
 // alias-keyed one. Named storages are the opt-in "keep this across runs" mechanism and must survive.
-//
-// The default storage is opened through the reserved `__default__` alias throughout, the way the
-// storage frontends do — see `storage_aliases.test.ts` for what that alias resolves to.
 describe.each([
     ['MemoryStorageBackend', (): StorageBackend => new MemoryStorageBackend()],
     [
@@ -39,9 +35,9 @@ describe.each([
     test('empties alias-keyed storages along with the default one', async () => {
         const backend = createBackend();
 
-        const defaultQueue = await backend.createRequestQueueBackend({ alias: '__default__' });
+        const defaultQueue = await backend.createRequestQueueBackend();
         const aliasQueue = await backend.createRequestQueueBackend({ alias: 'run-scoped' });
-        const defaultDataset = await backend.createDatasetBackend({ alias: '__default__' });
+        const defaultDataset = await backend.createDatasetBackend();
         const aliasDataset = await backend.createDatasetBackend({ alias: 'run-scoped' });
 
         await defaultQueue.addBatchOfRequests([requestOf('https://example.com/default')]);
@@ -77,15 +73,15 @@ describe.each([
     test('keeps INPUT in the default key-value store but not in an alias-keyed one', async () => {
         const backend = createBackend();
 
-        const defaultStore = await backend.createKeyValueStoreBackend({ alias: '__default__' });
+        const defaultStore = await backend.createKeyValueStoreBackend();
         const aliasStore = await backend.createKeyValueStoreBackend({ alias: 'run-scoped' });
 
-        await writeInput(defaultStore);
-        await writeInput(aliasStore);
+        await defaultStore.setValue(input);
+        await aliasStore.setValue(input);
 
         await backend.purge!();
 
-        expect(await readInput(defaultStore)).toBe('{"run":"input"}');
+        expect(await readInput(defaultStore)).toBe(input.value);
         expect(await readInput(aliasStore)).toBeUndefined();
     });
 });
@@ -134,24 +130,43 @@ describe('FileSystemStorageBackend.purge over a pre-existing storage directory',
         const store = await backend.createKeyValueStoreBackend({ name: 'hand-placed' });
         expect(await readInput(store)).toBe('{"hand":"placed"}');
     });
+
+    // An unnamed storage whose directory is named after its own id can only be reached through
+    // `{ id }` — not a run-scoped identifier, so it is not ours to empty.
+    test('leaves an unnamed storage directory named after its own id alone', async () => {
+        const ownDirectory = temporaryDirectory();
+        const firstRun = new FileSystemStorageBackend({ localDataDirectory: ownDirectory });
+        const dataset = await firstRun.createDatasetBackend({ name: 'seed' });
+        await dataset.pushData([{ from: 'another-tool' }]);
+        await firstRun.teardown();
+
+        // Turn the fixture into an unnamed storage living in an id-named directory.
+        const metadataPath = resolve(firstRun.datasetsDirectory, 'seed', '__metadata__.json');
+        const metadata = JSON.parse(await readFile(metadataPath, 'utf8')) as { id: string };
+        const { id } = metadata;
+        await writeFile(metadataPath, JSON.stringify({ ...metadata, name: null }));
+        await rename(resolve(firstRun.datasetsDirectory, 'seed'), resolve(firstRun.datasetsDirectory, id));
+
+        const secondRun = new FileSystemStorageBackend({ localDataDirectory: ownDirectory });
+        await secondRun.purge();
+
+        const reopened = await secondRun.createDatasetBackend({ id });
+        await expect(reopened.getData()).resolves.toMatchObject({ items: [{ from: 'another-tool' }] });
+    });
 });
 
-// The symptom from the issue: every crawler instance past the first gets an `__default_<id>__` queue
-// from `openOwnedRequestQueue`, so leaking those across runs makes a second crawler silently resume
-// the previous run's requests even with `purgeOnStart` enabled.
+// Every crawler instance past the first gets an `__default_<id>__` queue from `openOwnedRequestQueue`,
+// so leaking those across runs makes a second crawler silently resume the previous run's requests even
+// with `purgeOnStart` enabled.
 describe('purgeDefaultStorages', () => {
-    const localDataDirectory = temporaryDirectory();
-
     afterEach(() => {
         serviceLocator.reset();
     });
 
-    test('clears the default queue, however it was opened', async () => {
+    test('clears the default queue', async () => {
         serviceLocator.setStorageBackend(new FileSystemStorageBackend({ localDataDirectory: temporaryDirectory() }));
 
         const defaultQueue = await RequestQueue.open();
-        expect(await RequestQueue.open({ alias: '__default__' })).toBe(defaultQueue);
-
         await defaultQueue.addRequest({ url: 'https://example.com/stale' });
         await purgeDefaultStorages();
 
@@ -159,6 +174,7 @@ describe('purgeDefaultStorages', () => {
     });
 
     test('clears a crawler-owned alias queue left behind by a previous run', async () => {
+        const localDataDirectory = temporaryDirectory();
         serviceLocator.setStorageBackend(new FileSystemStorageBackend({ localDataDirectory }));
         const firstRun = await RequestQueue.open({ alias: '__default_1__' });
         await firstRun.addRequest({ url: 'https://example.com/left-behind' });

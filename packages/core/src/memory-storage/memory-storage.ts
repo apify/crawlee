@@ -42,33 +42,32 @@ export class MemoryStorageBackend implements storage.StorageBackend {
         return this.#instanceCacheKey;
     }
 
-    private static resolveStorageKey(options: { id?: string; name?: string; alias?: string }): {
+    static #resolveStorageKey(options: { id?: string; name?: string; alias?: string }): {
         isAlias: boolean;
-        cacheKey: string | undefined;
+        cacheKey: string;
     } {
         // No identifier at all means the default storage, which is opened under the reserved alias —
         // same rule as `resolveStorageIdentifier` in the storage frontends, so that a backend used
         // directly lands on the very storage the frontends would have opened.
         const alias = options.alias || (!options.id && !options.name ? DEFAULT_STORAGE_ALIAS : undefined);
-        const rawKey = alias ?? options.name ?? options.id;
+        // `alias` covers the identifier-less case, so one of the three is always set.
+        const rawKey = alias ?? options.name ?? options.id!;
         // Normalize the internal __default__ alias to the user-facing 'default' name.
         const cacheKey = rawKey === DEFAULT_STORAGE_ALIAS ? 'default' : rawKey;
         return { isAlias: alias !== undefined, cacheKey };
     }
 
     async createDatasetBackend(options: storage.StorageIdentifier = {}): Promise<storage.DatasetBackend> {
-        const { isAlias, cacheKey } = MemoryStorageBackend.resolveStorageKey(options);
+        const { isAlias, cacheKey } = MemoryStorageBackend.#resolveStorageKey(options);
 
-        if (cacheKey) {
-            const found = this.datasetBackendCache.find(
-                (store) =>
-                    store.id === cacheKey ||
-                    store.name?.toLowerCase() === cacheKey.toLowerCase() ||
-                    store.cacheKey.toLowerCase() === cacheKey.toLowerCase(),
-            );
-            if (found) {
-                return found;
-            }
+        const found = this.datasetBackendCache.find(
+            (store) =>
+                store.id === cacheKey ||
+                store.name?.toLowerCase() === cacheKey.toLowerCase() ||
+                store.cacheKey.toLowerCase() === cacheKey.toLowerCase(),
+        );
+        if (found) {
+            return found;
         }
 
         const newStore = new DatasetBackend({
@@ -82,18 +81,16 @@ export class MemoryStorageBackend implements storage.StorageBackend {
     }
 
     async createKeyValueStoreBackend(options: storage.StorageIdentifier = {}): Promise<storage.KeyValueStoreBackend> {
-        const { isAlias, cacheKey } = MemoryStorageBackend.resolveStorageKey(options);
+        const { isAlias, cacheKey } = MemoryStorageBackend.#resolveStorageKey(options);
 
-        if (cacheKey) {
-            const found = this.keyValueStoreBackendCache.find(
-                (store) =>
-                    store.id === cacheKey ||
-                    store.name?.toLowerCase() === cacheKey.toLowerCase() ||
-                    store.cacheKey.toLowerCase() === cacheKey.toLowerCase(),
-            );
-            if (found) {
-                return found;
-            }
+        const found = this.keyValueStoreBackendCache.find(
+            (store) =>
+                store.id === cacheKey ||
+                store.name?.toLowerCase() === cacheKey.toLowerCase() ||
+                store.cacheKey.toLowerCase() === cacheKey.toLowerCase(),
+        );
+        if (found) {
+            return found;
         }
 
         const newStore = new KeyValueStoreBackend({
@@ -107,18 +104,16 @@ export class MemoryStorageBackend implements storage.StorageBackend {
     }
 
     async createRequestQueueBackend(options: storage.StorageIdentifier = {}): Promise<RequestQueueBackend> {
-        const { isAlias, cacheKey } = MemoryStorageBackend.resolveStorageKey(options);
+        const { isAlias, cacheKey } = MemoryStorageBackend.#resolveStorageKey(options);
 
-        if (cacheKey) {
-            const found = this.requestQueueBackendCache.find(
-                (queue) =>
-                    queue.id === cacheKey ||
-                    queue.name?.toLowerCase() === cacheKey.toLowerCase() ||
-                    queue.cacheKey.toLowerCase() === cacheKey.toLowerCase(),
-            );
-            if (found) {
-                return found;
-            }
+        const found = this.requestQueueBackendCache.find(
+            (queue) =>
+                queue.id === cacheKey ||
+                queue.name?.toLowerCase() === cacheKey.toLowerCase() ||
+                queue.cacheKey.toLowerCase() === cacheKey.toLowerCase(),
+        );
+        if (found) {
+            return found;
         }
 
         const newStore = new RequestQueueBackend({
@@ -153,19 +148,12 @@ export class MemoryStorageBackend implements storage.StorageBackend {
     }
 
     /**
-     * Cleans up the run-scoped storages before the run starts: the default one and every alias-keyed
-     * one. For the in-memory storage this simply resets the in-memory state of the cached backends.
-     *
-     * Named storages are the opt-in way to keep data across runs, so they are left untouched. The run's
-     * input (the `INPUT` key in the default key-value store) is preserved as well, matching
-     * `FileSystemStorageBackend`.
+     * Cleans up the run-scoped storages before the run starts. For the in-memory storage this simply
+     * resets the in-memory state of the cached backends.
      */
     async purge(): Promise<void> {
-        // Alias-keyed and default storages are unnamed (`resolveStorageKey` only sets `name` for named
-        // ones), which is what marks them as belonging to a single run — same rule as crawlee-python's
-        // `_purge_if_needed`. The extra `name === 'default'` clause covers a store opened via
-        // `{ name: 'default' }`: that collapses onto the same `cacheKey` as the default storage, so the
-        // cached backend the run's default resolves to may well carry that name.
+        // `#resolveStorageKey` leaves `name` unset for the default and alias-keyed storages, which is what
+        // marks them as run-scoped. `'default'` is the exception — it collapses onto the default storage.
         const isRunScoped = (store: { name?: string }) => store.name === undefined || store.name === 'default';
 
         const isDefault = (store: { name?: string; cacheKey: string }) =>

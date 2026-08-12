@@ -3,9 +3,8 @@ import { resolve } from 'node:path';
 
 import { FileSystemStorageBackend } from '@crawlee/fs-storage';
 
-// The default storage lives in `default`, not in the `__default__` alias @crawlee/core opens it under.
-// That alias is an internal sentinel; letting it reach the disk orphans every `storage/` directory
-// written by an earlier run and breaks the documented local input path.
+// The default storage lives in `default`. The alias @crawlee/core opens it under is an internal
+// sentinel, and letting that reach the disk orphans every `storage/` directory an earlier run wrote.
 describe('the default storage on disk', () => {
     const tmpLocation = resolve(import.meta.dirname, './tmp/default-storage-layout');
 
@@ -16,9 +15,9 @@ describe('the default storage on disk', () => {
     test('every default storage lands in a `default` directory', async () => {
         const storage = new FileSystemStorageBackend({ localDataDirectory: tmpLocation });
 
-        await storage.createDatasetBackend({ alias: '__default__' });
-        await storage.createKeyValueStoreBackend({ alias: '__default__' });
-        await storage.createRequestQueueBackend({ alias: '__default__' });
+        await storage.createDatasetBackend();
+        await storage.createKeyValueStoreBackend();
+        await storage.createRequestQueueBackend();
 
         expect(await readdir(storage.datasetsDirectory)).toEqual(['default']);
         expect(await readdir(storage.keyValueStoresDirectory)).toEqual(['default']);
@@ -35,12 +34,11 @@ describe('the default storage on disk', () => {
             JSON.stringify({ hello: 'world' }),
         );
 
-        const defaultStore = await storage.createKeyValueStoreBackend({ alias: '__default__' });
+        const defaultStore = await storage.createKeyValueStoreBackend();
 
         expect((await defaultStore.getValue('INPUT'))?.value.toString()).toBe(JSON.stringify({ hello: 'world' }));
     });
 
-    // ...and it has to survive the start-of-run purge, which is the whole point of preserving INPUT.
     test('keeps a hand-placed INPUT.json across a purge', async () => {
         const storage = new FileSystemStorageBackend({ localDataDirectory: tmpLocation });
         await mkdir(resolve(storage.keyValueStoresDirectory, 'default'), { recursive: true });
@@ -51,7 +49,7 @@ describe('the default storage on disk', () => {
 
         await storage.purge();
 
-        const defaultStore = await storage.createKeyValueStoreBackend({ alias: '__default__' });
+        const defaultStore = await storage.createKeyValueStoreBackend();
         expect((await defaultStore.getValue('INPUT'))?.value.toString()).toBe(JSON.stringify({ hello: 'world' }));
     });
 });
