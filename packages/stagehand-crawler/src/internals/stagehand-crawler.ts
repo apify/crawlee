@@ -252,6 +252,7 @@ export interface StagehandCrawlerOptions<
         string,
         GetUserDataFromRequest<StagehandCrawlingContext['request']>
     >,
+    StatisticStateExtension extends object = {},
 > extends BrowserCrawlerOptions<
     StagehandPage,
     Response,
@@ -259,7 +260,8 @@ export interface StagehandCrawlerOptions<
     ContextExtension,
     ExtendedContext,
     { browserPlugins: [StagehandPlugin] },
-    Routes
+    Routes,
+    StatisticStateExtension
 > {
     /**
      * Stagehand-specific configuration options.
@@ -395,6 +397,7 @@ export class StagehandCrawler<
         string,
         GetUserDataFromRequest<StagehandCrawlingContext['request']>
     >,
+    StatisticStateExtension extends object = {},
 > extends BrowserCrawler<
     StagehandPage,
     Response,
@@ -403,7 +406,8 @@ export class StagehandCrawler<
     StagehandCrawlingContext,
     ContextExtension,
     ExtendedContext,
-    Routes
+    Routes,
+    StatisticStateExtension
 > {
     protected static override optionsShape = {
         ...BrowserCrawler.optionsShape,
@@ -418,7 +422,9 @@ export class StagehandCrawler<
      *
      * @param options - Crawler configuration options
      */
-    constructor(options: StagehandCrawlerOptions<ContextExtension, ExtendedContext, Routes> = {}) {
+    constructor(
+        options: StagehandCrawlerOptions<ContextExtension, ExtendedContext, Routes, StatisticStateExtension> = {},
+    ) {
         const parsedOptions = parseArgument(options, StagehandCrawler.optionsSchema, 'StagehandCrawlerOptions');
 
         const {
@@ -442,7 +448,12 @@ export class StagehandCrawler<
 
         // Initialize BrowserCrawler with Stagehand plugin and fingerprinting enabled
         super({
-            ...(browserCrawlerOptions as StagehandCrawlerOptions<ContextExtension, ExtendedContext>),
+            ...(browserCrawlerOptions as StagehandCrawlerOptions<
+                ContextExtension,
+                ExtendedContext,
+                Routes,
+                StatisticStateExtension
+            >),
             launchContext,
             browserPoolOptions,
             contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),

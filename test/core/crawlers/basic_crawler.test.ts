@@ -2178,6 +2178,27 @@ describe('BasicCrawler', () => {
             expect(customStats.state.requestsFinished).toBe(1);
         });
 
+        it('exposes the custom state fields of a supplied instance on crawler.stats', async () => {
+            const stats = new Statistics({
+                persistenceOptions: { enable: false },
+                stateExtension: { defaultState: { productsFound: 0 } },
+            });
+
+            const crawler = new BasicCrawler({
+                statistics: stats,
+                requestHandler: async () => {
+                    stats.state.productsFound += 2;
+                },
+            });
+
+            await crawler.run([{ url: 'https://example.com' }]);
+
+            // typed through the crawler, not just through the instance we constructed
+            expect(crawler.stats.state.productsFound).toBe(2);
+            // @ts-expect-error only the fields declared in `defaultState` are exposed
+            void crawler.stats.state.categoriesFound;
+        });
+
         it('does not reset a supplied instance between runs, but does reset a default', async () => {
             const stats = new Statistics({ persistenceOptions: { enable: false } });
             const injectingCrawler = new BasicCrawler({
