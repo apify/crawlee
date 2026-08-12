@@ -11,7 +11,7 @@
         "@crawlee/playwright": "file:./packages/playwright-crawler",
         "@crawlee/types": "file:./packages/types",
         "@crawlee/utils": "file:./packages/utils",
-        "camoufox-js": "^0.12.0",
+        "camoufox-js": "^0.11.0",
         "playwright": "1.60.0"
     },
     "overrides": {
