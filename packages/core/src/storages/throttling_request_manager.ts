@@ -35,9 +35,7 @@ const throttlingRequestManagerOptionsSchema = z.strictObject({
         .refine((value) => value >= 0, 'Expected a number greater than or equal to 0')
         .optional(),
     throttleBy: z.enum(['hostname', 'registrableDomain']).optional(),
-    maxThrottledDomains: schemas.anyNumber
-        .refine((value) => value > 0, 'Expected a number greater than 0')
-        .optional(),
+    maxThrottledDomains: schemas.anyNumber.refine((value) => value > 0, 'Expected a number greater than 0').optional(),
     persistStateKey: z.string().nonempty().optional(),
 });
 
