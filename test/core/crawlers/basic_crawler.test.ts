@@ -35,7 +35,7 @@ import {
     ThrottlingRequestManager,
 } from '@crawlee/basic';
 import type { CalculatedStatistics, IConcurrencySystem, IStatistics } from '@crawlee/core';
-import { ConcurrencySystem, Dataset, MemoryStorageBackend, RequestState, SessionPool, Statistics } from '@crawlee/core';
+import { ConcurrencySystem, MemoryStorageBackend, RequestState } from '@crawlee/core';
 import { BaseHttpClient } from '@crawlee/http-client';
 import type { Dictionary, ISession, ProxyInfo } from '@crawlee/types';
 import { RobotsTxtFile, sleep } from '@crawlee/utils';
@@ -3137,13 +3137,13 @@ describe('BasicCrawler', () => {
 
                     await context.enqueueLinks({
                         urls: ['http://example.com/custom'],
-                        requestQueue: customQueue,
+                        requestManager: customQueue,
                         label: 'child',
                     });
 
                     await context.enqueueLinks({
                         urls: ['http://example.com/default'],
-                        requestQueue: undefined,
+                        requestManager: undefined,
                         label: 'child',
                     });
                 },

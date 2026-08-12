@@ -745,11 +745,11 @@ describe('enqueueLinks()', () => {
         });
 
         test('ignores an explicitly undefined baseUrl and keeps the resolved one', async () => {
-            const { enqueued, requestQueue } = createRequestQueueMock();
+            const { enqueued, requestQueue } = await createRequestQueueMock();
             await cheerioCrawlerEnqueueLinks({
                 options: { strategy: EnqueueStrategy.SameDomain, baseUrl: undefined },
                 $,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
             });
 
@@ -769,7 +769,7 @@ describe('enqueueLinks()', () => {
                 options: { strategy: EnqueueStrategy.SameDomain, baseUrl: undefined },
                 $,
                 originalRequestUrl: 'https://example.com',
-                enqueueLinks: async (options) => {
+                enqueueLinks: async (options?: { baseUrl?: string }) => {
                     forwardedBaseUrl = options?.baseUrl;
                     return { processedRequests: [], unprocessedRequests: [] };
                 },
@@ -779,11 +779,11 @@ describe('enqueueLinks()', () => {
         });
 
         test('keeps filtering by the original domain with the strategy of same-domain after an off-domain redirect', async () => {
-            const { enqueued, requestQueue } = createRequestQueueMock();
+            const { enqueued, requestQueue } = await createRequestQueueMock();
             await cheerioCrawlerEnqueueLinks({
                 options: { strategy: EnqueueStrategy.SameDomain },
                 $,
-                requestQueue,
+                requestManager: requestQueue,
                 originalRequestUrl: 'https://example.com',
                 finalRequestUrl: 'https://another.com/',
             });
