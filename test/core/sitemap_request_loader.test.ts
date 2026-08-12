@@ -576,7 +576,7 @@ describe('SitemapRequestLoader', () => {
         const urls: string[] = [];
         for await (const request of list) {
             urls.push(request.url);
-            await list.markRequestHandled(request);
+            await list.markRequestAsHandled(request);
         }
         return urls;
     }
@@ -649,7 +649,7 @@ describe('SitemapRequestLoader', () => {
 
         const urls = new Set<string>();
         for await (const request of list) {
-            await list.markRequestHandled(request);
+            await list.markRequestAsHandled(request);
             urls.add(request.url);
         }
 
