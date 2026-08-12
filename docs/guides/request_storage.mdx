@@ -80,7 +80,7 @@ See the dedicated [Request loaders](./request-loaders) guide for details on load
 
 ## Cleaning up the storages
 
-Default storages are purged before the crawler starts if not specified otherwise. This happens as early as when we try to open some storage (e.g. via `RequestQueue.open()`) or when we try to work with a default storage via one of the helper methods (e.g. `crawler.addRequests()` that under the hood calls `RequestQueue.open()`). If we don't work with storages explicitly in our code, the purging will eventually happen when the `run` method of our crawler is executed. In case we need to purge the storages sooner, we can use the <ApiLink to="core/function/purgeDefaultStorages">`purgeDefaultStorages()`</ApiLink> helper explicitly:
+Run-scoped storages - the default one and any opened with an `alias` - are purged before the crawler starts if not specified otherwise. Storages opened with a `name` persist across runs and are never purged. This happens as early as when we try to open some storage (e.g. via `RequestQueue.open()`) or when we try to work with a default storage via one of the helper methods (e.g. `crawler.addRequests()` that under the hood calls `RequestQueue.open()`). If we don't work with storages explicitly in our code, the purging will eventually happen when the `run` method of our crawler is executed. In case we need to purge the storages sooner, we can use the <ApiLink to="core/function/purgeDefaultStorages">`purgeDefaultStorages()`</ApiLink> helper explicitly:
 
 ```javascript
 import { purgeDefaultStorages } from 'crawlee';
@@ -88,4 +88,4 @@ import { purgeDefaultStorages } from 'crawlee';
 await purgeDefaultStorages();
 ```
 
-Calling this function will clean up the default request storage directory (and also the request list stored in default key-value store). This is a shortcut for running (optional) `purge` method on the <ApiLink to="core/interface/StorageBackend">`StorageBackend`</ApiLink> interface, in other words it will call the `purge` method of the underlying storage implementation we are currently using. You can make sure the storage is purged only once for a given execution context if you set `onlyPurgeOnce` to `true` in the `options` object.
+Calling this function will clean up the run-scoped request storage directories - the default queue and any alias-keyed one - along with the request list stored in the default key-value store. This is a shortcut for running (optional) `purge` method on the <ApiLink to="core/interface/StorageBackend">`StorageBackend`</ApiLink> interface, in other words it will call the `purge` method of the underlying storage implementation we are currently using. You can make sure the storage is purged only once for a given execution context if you set `onlyPurgeOnce` to `true` in the `options` object.
