@@ -392,10 +392,12 @@ export interface RequestQueueBackend {
  * Identifies a storage by its ID, name, or alias. At most one may be provided.
  *
  * - `{ id }` — open a pre-existing storage by its unique ID.
- * - `{ name }` — open or create a globally named storage (persists across runs).
+ * - `{ name }` — open or create a globally named storage (persists across runs). The name `default`
+ *   is reserved: it resolves to the default storage, and is emptied on start along with it.
  * - `{ alias }` — open or create a run-scoped unnamed storage identified by this alias.
  *   The alias is used locally (e.g. as a directory name or cache key) but the storage
- *   itself has no persistent name. Use this for non-default unnamed storages.
+ *   itself has no persistent name. Use this for non-default unnamed storages. Like the
+ *   default storage, an aliased one is emptied on start unless `purgeOnStart` is disabled.
  * - `{}` / omitted — open the default storage.
  */
 export type StorageIdentifier =
@@ -456,6 +458,11 @@ export interface StorageBackend {
      * `StorageBackend` implementations automatically get separate cache partitions.
      */
     getStorageBackendCacheKey?(): string;
+
+    /**
+     * Empty the run-scoped storages — the default one and every alias-keyed one, including any left
+     * behind by a previous run. Named storages persist across runs, as does the default store's `INPUT`.
+     */
     purge?(): Promise<void>;
     teardown?(): Promise<void>;
     stats?: { rateLimitErrors: number[] };

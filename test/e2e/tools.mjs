@@ -6,7 +6,7 @@ import { dirname, join } from 'node:path';
 import { setTimeout } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 
-import { URL_NO_COMMAS_REGEX } from '@crawlee/utils';
+import { URL_NO_COMMAS_REGEX } from '@crawlee/utils/internal';
 import { Actor, ApifyClient } from 'apify';
 import fs from 'fs-extra';
 import { got } from 'got';
@@ -22,7 +22,8 @@ function execSync(command, options) {
 /**
  * @param {string} name
  */
-const isPrivateEntry = (name) => name === 'CRAWLEE_CRAWLER_STATISTICS_0' || name === 'CRAWLEE_SESSION_POOL_STATE';
+const isPrivateEntry = (name) =>
+    name.startsWith('CRAWLEE_CRAWLER_STATISTICS') || name.startsWith('CRAWLEE_SESSION_POOL_STATE');
 
 export const SKIPPED_TEST_CLOSE_CODE = 404;
 
@@ -49,7 +50,8 @@ export function getStorage(dirName) {
  */
 export async function getStats(dirName) {
     const dir = getStorage(dirName);
-    const path = join(dir, `key_value_stores/default/CRAWLEE_CRAWLER_STATISTICS_0.json`);
+    // fs-storage writes key-value records extensionless (the filename is the record key).
+    const path = join(dir, `key_value_stores/default/CRAWLEE_CRAWLER_STATISTICS_0`);
 
     if (!existsSync(path)) {
         return false;
@@ -179,7 +181,12 @@ export async function runActor(dirName, memory = 4096) {
             // id: runId,
             buildId,
             userId,
+            status: runStatus,
         } = await client.run(runId).waitForFinish();
+
+        if (runStatus !== 'SUCCEEDED') {
+            console.log(`[run] actor run finished with status ${runStatus} - the assertions below will likely fail`);
+        }
 
         getKeyValueStoreItems = async (name) => {
             const kvResult = await client.keyValueStore(name ? `${userId}/${name}` : defaultKeyValueStoreId).get();
@@ -452,7 +459,8 @@ export async function getLocalKeyValueStoreItems(dirName, kvName) {
         const filePath = join(storePath, fileName.name);
         const buffer = await readFile(filePath);
 
-        const name = fileName.name.split('.').slice(0, -1).join('.');
+        // fs-storage writes records extensionless — the filename is the record key.
+        const name = fileName.name;
 
         if (isPrivateEntry(name)) {
             continue;

@@ -14,7 +14,7 @@ overrides:
   tar: ^7.5.16
   lerna>js-yaml: ^4.2.0
   lerna>minimatch: ^3.1.4
-  apify: 4.0.0-beta.19
+  apify: ^4.0.0-beta.24
   apify>@crawlee/core: workspace:*
   apify>@crawlee/types: workspace:*
   apify>@crawlee/utils: workspace:*
@@ -49,6 +49,9 @@ importers:
       '@crawlee/core':
         specifier: workspace:*
         version: link:packages/core
+      '@crawlee/http-client':
+        specifier: workspace:*
+        version: link:packages/http-client
       '@crawlee/impit-client':
         specifier: workspace:*
         version: link:packages/impit-client
@@ -67,6 +70,9 @@ importers:
       '@crawlee/stagehand':
         specifier: workspace:*
         version: link:packages/stagehand-crawler
+      '@crawlee/types':
+        specifier: workspace:*
+        version: link:packages/types
       '@crawlee/utils':
         specifier: workspace:*
         version: link:packages/utils
@@ -143,8 +149,8 @@ importers:
         specifier: ^4.0.16
         version: 4.1.4(vitest@4.1.4)
       apify:
-        specifier: 4.0.0-beta.19
-        version: 4.0.0-beta.19(bufferutil@4.1.0)
+        specifier: ^4.0.0-beta.24
+        version: 4.0.0-beta.24(bufferutil@4.1.0)
       apify-node-curl-impersonate:
         specifier: ^1.0.23
         version: 1.0.29
@@ -266,8 +272,8 @@ importers:
         specifier: workspace:*
         version: link:../packages/stagehand-crawler
       apify:
-        specifier: 4.0.0-beta.19
-        version: 4.0.0-beta.19(bufferutil@4.1.0)
+        specifier: ^4.0.0-beta.24
+        version: 4.0.0-beta.24(bufferutil@4.1.0)
       crawlee:
         specifier: workspace:*
         version: link:../packages/crawlee
@@ -526,7 +532,7 @@ importers:
         specifier: ^4.41.0
         version: 4.41.0
       zod:
-        specifier: ^3.24.0 || ^4.0.0
+        specifier: ^4.1.0
         version: 4.3.6
 
   packages/crawlee:
@@ -807,6 +813,9 @@ importers:
       type-fest:
         specifier: ^4.0.0
         version: 4.41.0
+      zod:
+        specifier: ^4.1.0
+        version: 4.3.6
 
   packages/puppeteer-crawler:
     dependencies:
@@ -1303,9 +1312,6 @@ packages:
     resolution: {integrity: sha512-VHIswI7rD/R4bToeIDuJ9WJXt+qr5SdhfoZ9RzdjmCs9mgy7l0P4RugQEUCcU+WB4sfImbd4CKwzXcn0uYx1yw==}
     engines: {node: '>= 0.10'}
     hasBin: true
-
-  '@apify/timeout@0.3.3':
-    resolution: {integrity: sha512-lyvwMXee8SJNjNyxhr+nSTNyvjyoxbxol51xikq9VytFOPNSEMz8N02mUAuLVJNqrnqCBFRybjeqZdg4Y5AZlA==}
 
   '@apify/timeout@0.4.4':
     resolution: {integrity: sha512-WOjdkuNRSo09ikse47t6jIW4R55FEmZdOaoUTbSmpwfmNNHVht+iTgoqeHIVr7vvI9s+mtTmvzPoesoZa0cjVA==}
@@ -5276,8 +5282,8 @@ packages:
   apify-node-curl-impersonate@1.0.29:
     resolution: {integrity: sha512-5Oa9VE5rpDBdRgg71Vl09bqraw5RV0nyL6+rnOzIrVe+YCFCOyjj1KwsCz92gPNjGXGQG53w005la3dCTTrgdw==}
 
-  apify@4.0.0-beta.19:
-    resolution: {integrity: sha512-p6fgxlqOqwtYX77u6MZiWjvNlcJwjkGGDJ9HVt56UEBC88q+n5igZgWgPpgj/WHp9yajTf7WtAdZUO16qKa75A==}
+  apify@4.0.0-beta.24:
+    resolution: {integrity: sha512-CPoMf/o8SJ0rq/yPtHXIabT0ldcKD59q0r9Tgs+AN47txC4JlskyG0S1ck1HNGbuhPuGyX4blWR6yib7TugYOw==}
     engines: {node: '>=22.0.0'}
 
   aproba@2.0.0:
@@ -12944,8 +12950,6 @@ snapshots:
     dependencies:
       event-stream: 3.3.4
 
-  '@apify/timeout@0.3.3': {}
-
   '@apify/timeout@0.4.4': {}
 
   '@apify/tsconfig@0.2.0': {}
@@ -17790,12 +17794,13 @@ snapshots:
 
   apify-node-curl-impersonate@1.0.29: {}
 
-  apify@4.0.0-beta.19(bufferutil@4.1.0):
+  apify@4.0.0-beta.24(bufferutil@4.1.0):
     dependencies:
       '@apify/consts': 2.52.1
+      '@apify/datastructures': 2.0.4
       '@apify/input_secrets': 1.2.30
       '@apify/log': 2.5.35
-      '@apify/timeout': 0.3.3
+      '@apify/timeout': 0.4.4
       '@apify/utilities': 2.27.0
       '@crawlee/core': link:packages/core
       '@crawlee/types': link:packages/types

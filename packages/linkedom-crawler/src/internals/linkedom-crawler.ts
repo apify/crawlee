@@ -187,7 +187,7 @@ export class LinkeDOMCrawler<
 > extends HttpCrawler<LinkeDOMCrawlingContext, ContextExtension, ExtendedContext, Routes> {
     static #parser = new DOMParser();
 
-    constructor(options: LinkeDOMCrawlerOptions<ContextExtension, ExtendedContext, any, any, Routes>) {
+    constructor(options: LinkeDOMCrawlerOptions<ContextExtension, ExtendedContext, any, any, Routes> = {}) {
         const { contextPipelineBuilder, ...rest } = options;
 
         super({

@@ -10,7 +10,7 @@ export interface EventManagerOptions {
     persistStateIntervalMillis: number;
 }
 
-export const enum EventType {
+export enum EventType {
     PERSIST_STATE = 'persistState',
     SYSTEM_INFO = 'systemInfo',
     MIGRATING = 'migrating',

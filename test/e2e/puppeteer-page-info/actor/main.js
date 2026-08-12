@@ -12,8 +12,8 @@ const mainOptions = {
 await Actor.main(async () => {
     const crawler = new PuppeteerCrawler({
         preNavigationHooks: [
-            (_ctx, goToOptions) => {
-                goToOptions.waitUntil = ['networkidle2'];
+            ({ gotoOptions }) => {
+                gotoOptions.waitUntil = ['networkidle2'];
             },
         ],
         async requestHandler({ page, enqueueLinks, request }) {

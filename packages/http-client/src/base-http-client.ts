@@ -1,10 +1,10 @@
 import type {
     BaseHttpClient as BaseHttpClientInterface,
+    CookieJar,
     CrawleeLogger,
     SendRequestOptions,
     SessionFingerprint,
 } from '@crawlee/types';
-import { CookieJar } from 'tough-cookie';
 
 /**
  * Per-request options handed to a concrete client's `fetch` implementation.
@@ -33,6 +33,15 @@ export interface CustomFetchOptions {
      * rest on a best-effort basis. Sourced from `SendRequestOptions.session.fingerprint`.
      */
     fingerprint?: SessionFingerprint;
+
+    /**
+     * When `true`, TLS certificate errors should be ignored for this request.
+     * Set when `SendRequestOptions.ignoreTlsErrors` is passed (e.g. from the
+     * `ignoreTlsErrors` crawler option) or when the session's proxy is a MITM
+     * proxy (`session.proxyInfo.ignoreTlsErrors`). Best-effort: clients that
+     * cannot disable TLS verification ignore it.
+     */
+    ignoreTlsErrors?: boolean;
 }
 
 /**
@@ -100,21 +109,28 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
         }
     }
 
-    private resolveRequestContext(options?: SendRequestOptions): {
+    private async resolveRequestContext(options?: SendRequestOptions): Promise<{
         proxyUrl?: string;
         cookieJar: CookieJar;
         signal?: AbortSignal;
         fingerprint?: SessionFingerprint;
-    } {
+        ignoreTlsErrors?: boolean;
+    }> {
         const proxyUrl = options?.proxyUrl ?? options?.session?.proxyInfo?.url;
-        const cookieJar = options?.cookieJar ?? options?.session?.cookieJar ?? new CookieJar();
+        const cookieJar = options?.cookieJar ?? options?.session?.cookieJar ?? (await this.#createDefaultCookieJar());
         const signal = this.createAbortSignal(options?.signal, options?.timeoutMillis);
         return {
             proxyUrl,
-            cookieJar: cookieJar as CookieJar,
+            cookieJar,
             signal,
             fingerprint: options?.session?.fingerprint,
+            ignoreTlsErrors: options?.ignoreTlsErrors || options?.session?.proxyInfo?.ignoreTlsErrors,
         };
+    }
+
+    async #createDefaultCookieJar(): Promise<CookieJar> {
+        const { CookieJar: ToughCookieJar } = await import('tough-cookie');
+        return new ToughCookieJar();
     }
 
     private createAbortSignal(signal?: AbortSignal, timeoutMillis?: number): AbortSignal | undefined {
@@ -171,7 +187,7 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
         let currentRequest = initialRequest;
         let redirectCount = 0;
 
-        const { proxyUrl, cookieJar, signal, fingerprint } = this.resolveRequestContext(options);
+        const { proxyUrl, cookieJar, signal, fingerprint, ignoreTlsErrors } = await this.resolveRequestContext(options);
         currentRequest = initialRequest.clone();
 
         while (true) {
@@ -182,6 +198,7 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
                 proxyUrl,
                 cookieJar,
                 fingerprint,
+                ignoreTlsErrors,
                 redirect: 'manual',
             });
 

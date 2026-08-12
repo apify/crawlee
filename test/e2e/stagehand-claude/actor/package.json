@@ -3,8 +3,7 @@
     "version": "0.0.1",
     "description": "Stagehand Test - Claude/Anthropic",
     "dependencies": {
-        "apify": "next-v4",
-        "@apify/storage-local": "^3.0.0",
+        "apify": "^4.0.0-beta.24",
         "@browserbasehq/stagehand": "^3.0.7",
         "@crawlee/basic": "file:./packages/basic-crawler",
         "@crawlee/browser": "file:./packages/browser-crawler",

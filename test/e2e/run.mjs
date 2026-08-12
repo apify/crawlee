@@ -158,12 +158,12 @@ if (isMainThread) {
             for (let attempt = 0; attempt < 5; attempt++) {
                 try {
                     execSync(`pnpm exec camoufox-js fetch`, { stdio: 'inherit' });
+                    break;
                 } catch (e) {
                     console.error('Failed to fetch Camoufox', e);
                     if (attempt === 4) throw e;
                     console.log(`Retrying to fetch Camoufox (attempt ${attempt + 2}/5)...`);
                     await new Promise((resolve) => setTimeout(resolve, 10e3));
-                    continue;
                 }
             }
         }

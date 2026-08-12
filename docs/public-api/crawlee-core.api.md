@@ -693,7 +693,7 @@ export interface EventStatusMessageData {
 }
 
 // @public (undocumented)
-export const enum EventType {
+export enum EventType {
     // (undocumented)
     ABORTING = "aborting",
     // (undocumented)
@@ -842,7 +842,7 @@ export interface IStatistics {
     readonly errorTrackerRetry: ErrorTracker;
     failJob(id: number | string, retryCount: number): void;
     finishJob(id: number | string, retryCount: number): void;
-    persistState?(options?: PersistenceOptions): Promise<void>;
+    persistState?(): Promise<void>;
     registerStatusCode(code: number): void;
     readonly requestRetryHistogram: number[];
     startCapturing(): Promise<void>;
@@ -1212,32 +1212,31 @@ export interface RecordOptions {
 }
 
 // @public
-export class RecoverableState<TStateModel = Record<string, unknown>> {
-    constructor(options: RecoverableStateOptions<TStateModel>);
+export class RecoverableState<TStateModel = Record<string, unknown>, TPersistedState = TStateModel> {
+    constructor(options: RecoverableStateOptions<TStateModel, TPersistedState>);
     get currentValue(): TStateModel;
     initialize(): Promise<TStateModel>;
-    persistState(eventData?: {
-        isMigrating: boolean;
-    }): Promise<void>;
-    reset(): Promise<void>;
+    persistState(eventData?: Record<string, unknown>): Promise<void>;
+    reset(): void;
+    resetStore(): Promise<void>;
     teardown(): Promise<void>;
 }
 
 // @public
-export interface RecoverableStateOptions<TStateModel = Record<string, unknown>> extends RecoverableStatePersistenceOptions {
+export interface RecoverableStateOptions<TStateModel = Record<string, unknown>, TPersistedState = TStateModel> extends RecoverableStatePersistenceOptions {
     configuration?: Configuration;
-    defaultState: TStateModel;
-    deserialize?: (serializedState: string) => TStateModel;
+    defaultState: TStateModel | (() => TStateModel);
+    deserialize?: StateConversion<TPersistedState, TStateModel>;
     logger?: CrawleeLogger;
-    serialize?: (state: TStateModel) => string;
+    serialize?: StateConversion<TStateModel, TPersistedState>;
 }
 
 // @public (undocumented)
 export interface RecoverableStatePersistenceOptions {
+    keyValueStore?: KeyValueStore | PromiseLike<KeyValueStore>;
     persistenceEnabled?: boolean;
+    persistenceTimeoutMillis?: number;
     persistStateKey: string;
-    persistStateKvsId?: string;
-    persistStateKvsName?: string;
 }
 
 // @public (undocumented)
@@ -1549,19 +1548,9 @@ export interface RequestTransform {
 
 // @public
 export class RequestValidationError extends NonRetryableError {
-    constructor(label: string | symbol, issues: readonly {
-        readonly message: string;
-        readonly path?: readonly (PropertyKey | {
-            key: PropertyKey;
-        })[];
-    }[]);
+    constructor(label: string | symbol, issues: readonly SchemaIssue[]);
     // (undocumented)
-    readonly issues: readonly {
-        readonly message: string;
-        readonly path?: readonly (PropertyKey | {
-            key: PropertyKey;
-        })[];
-    }[];
+    readonly issues: readonly SchemaIssue[];
     // (undocumented)
     readonly label: string | symbol;
 }
@@ -1660,6 +1649,16 @@ export type RoutesFromSchemas<Schemas extends RouteSchemas> = {
 } ? {
     [defaultRoute]: SchemaUserData<Schemas[typeof defaultRoute]>;
 } : {});
+
+// @public
+export interface SchemaIssue {
+    // (undocumented)
+    readonly message: string;
+    // (undocumented)
+    readonly path?: readonly (PropertyKey | {
+        key: PropertyKey;
+    })[];
+}
 
 // Not exported by the entry point; reachable only as a referenced type.
 // @public
@@ -1913,15 +1912,34 @@ export type Source = (Partial<RequestOptions> & {
 }) | Request_2;
 
 // @public
-export interface StatisticPersistedState extends Omit<StatisticState, 'statsPersistedAt'> {
+export type StateConversion<TFrom, TTo> = ((value: TFrom) => Awaitable<TTo>) | StandardSchemaV1<TFrom, TTo>;
+
+// @public
+export class StateValidationError extends Error {
+    constructor(persistStateKey: string, issues: readonly SchemaIssue[]);
     // (undocumented)
+    readonly issues: readonly SchemaIssue[];
+    // (undocumented)
+    readonly persistStateKey: string;
+}
+
+// @public
+export interface StatisticPersistedState extends Omit<StatisticState, 'statsPersistedAt' | 'crawlerStartedAt' | 'crawlerFinishedAt' | 'requestMinDurationMillis' | 'requestsFailedPerMinute' | 'requestsFinishedPerMinute' | 'requestRetryHistogram' | 'instanceStart'> {
+    // (undocumented)
+    crawlerFinishedAt: string | null;
     crawlerLastStartTimestamp: number;
+    crawlerStartedAt: string | null;
     // (undocumented)
-    requestAvgFailedDurationMillis: number;
+    requestAvgFailedDurationMillis: number | null;
     // (undocumented)
-    requestAvgFinishedDurationMillis: number;
+    requestAvgFinishedDurationMillis: number | null;
     // (undocumented)
-    requestRetryHistogram: number[];
+    requestMinDurationMillis: number | null;
+    requestRetryHistogram: (number | null)[];
+    // (undocumented)
+    requestsFailedPerMinute: number | null;
+    // (undocumented)
+    requestsFinishedPerMinute: number | null;
     // (undocumented)
     requestsTotal: number;
     // (undocumented)
@@ -1936,22 +1954,21 @@ export interface StatisticPersistedState extends Omit<StatisticState, 'statsPers
 export class Statistics implements IStatistics {
     constructor(options?: StatisticsOptions);
     calculate(): CalculatedStatistics;
+    protected defaultState(): StatisticState;
+    protected deserializeState(persistedState: StatisticPersistedState): StatisticState;
     readonly errorTracker: ErrorTracker;
     readonly errorTrackerRetry: ErrorTracker;
     readonly id: string;
-    // (undocumented)
-    protected keyValueStore?: KeyValueStore;
-    protected maybeLoadStatistics(): Promise<void>;
-    persistState(options?: PersistenceOptions): Promise<void>;
+    persistState(): Promise<void>;
     // (undocumented)
     protected readonly persistStateKey: string;
     registerStatusCode(code: number): void;
-    readonly requestRetryHistogram: number[];
+    get requestRetryHistogram(): number[];
     reset(): void;
-    // (undocumented)
-    resetStore(options?: PersistenceOptions): Promise<void>;
+    resetStore(): Promise<void>;
+    protected serializeState(state: StatisticState): StatisticPersistedState;
     startCapturing(): Promise<void>;
-    state: StatisticState;
+    get state(): StatisticState;
     stopCapturing(): Promise<void>;
     toJSON(): StatisticPersistedState;
 }
@@ -1977,10 +1994,12 @@ export interface StatisticState {
     crawlerStartedAt: Date | string | null;
     // (undocumented)
     errors: Record<string, unknown>;
+    instanceStart: number;
     // (undocumented)
     requestMaxDurationMillis: number;
     // (undocumented)
     requestMinDurationMillis: number;
+    requestRetryHistogram: number[];
     // (undocumented)
     requestsFailed: number;
     // (undocumented)

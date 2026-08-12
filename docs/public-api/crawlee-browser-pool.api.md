@@ -32,13 +32,13 @@ export interface AnonymizeProxySugarOptions {
 }
 
 // @public (undocumented)
-export const enum BROWSER_CONTROLLER_EVENTS {
+export enum BROWSER_CONTROLLER_EVENTS {
     // (undocumented)
     BROWSER_CLOSED = "browserClosed"
 }
 
 // @public (undocumented)
-export const enum BROWSER_POOL_EVENTS {
+export enum BROWSER_POOL_EVENTS {
     // (undocumented)
     BROWSER_CLOSED = "browserClosed",
     // (undocumented)
@@ -336,7 +336,7 @@ export interface CreateLaunchContextOptions<Library extends CommonLibrary, Libra
 export const DEFAULT_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36";
 
 // @public (undocumented)
-export const enum DeviceCategory {
+export enum DeviceCategory {
     desktop = "desktop",
     mobile = "mobile"
 }
@@ -438,7 +438,7 @@ export interface LaunchContextOptions<Library extends CommonLibrary = CommonLibr
 export { NewPageOptions }
 
 // @public (undocumented)
-export const enum OperatingSystemsName {
+export enum OperatingSystemsName {
     android = "android",
     ios = "ios",
     // (undocumented)

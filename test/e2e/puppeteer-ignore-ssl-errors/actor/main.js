@@ -16,8 +16,8 @@ await Actor.main(async () => {
         maxConcurrency: 2,
         launchContext: { launchOptions: { acceptInsecureCerts: true } },
         preNavigationHooks: [
-            (_ctx, goToOptions) => {
-                goToOptions.waitUntil = ['networkidle2'];
+            ({ gotoOptions }) => {
+                gotoOptions.waitUntil = ['networkidle2'];
             },
         ],
         async requestHandler({ page, enqueueLinks, request, log }) {
@@ -30,6 +30,7 @@ await Actor.main(async () => {
                 log.info('Bad ssl page opened!');
                 await enqueueLinks({
                     include: ['https://*.badssl.com/'],
+                    strategy: 'same-domain',
                     label: 'DETAIL',
                     selector: '.group a.bad',
                 });

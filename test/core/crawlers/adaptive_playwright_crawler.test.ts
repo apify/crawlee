@@ -805,11 +805,8 @@ describe('AdaptivePlaywrightCrawler', () => {
 
         // Verify that the regression model was actually saved to the key-value store
         const store = await KeyValueStore.open();
-        const storedState = await store.getValue<string>('rendering-type-predictor-state');
-        expect(storedState).not.toBeNull();
-
-        const parsedState = JSON.parse(storedState!);
-        expect(parsedState).toHaveProperty('logreg');
+        const storedState = await store.getValue('rendering-type-predictor-state');
+        expect(storedState).toHaveProperty('logreg');
 
         // Test that the persisted state can be successfully restored
         // by creating a new RenderingTypePredictor and seeing if it initializes without error

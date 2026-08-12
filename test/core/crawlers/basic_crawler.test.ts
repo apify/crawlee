@@ -102,6 +102,24 @@ describe('BasicCrawler', () => {
         serviceLocator.setStorageBackend(new MemoryStorageBackend());
     });
 
+    test('crawler-scoped service locator inherits ambient services that are not explicitly overridden', async () => {
+        const ambientBackend = serviceLocator.getStorageBackend();
+
+        let seenBackend: unknown;
+        // Passing only a `logger` creates a crawler-scoped service locator - it must inherit the
+        // ambient storage backend rather than falling back to the default file-system one.
+        const crawler = new BasicCrawler({
+            logger: serviceLocator.getLogger(),
+            requestHandler: async () => {
+                seenBackend = serviceLocator.getStorageBackend();
+            },
+        });
+
+        await crawler.run(['https://example.com']);
+
+        expect(seenBackend).toBe(ambientBackend);
+    });
+
     test('does not leak sigint events', async () => {
         let count = 0;
 
@@ -2266,6 +2284,26 @@ describe('BasicCrawler', () => {
                     body: html,
                 },
             ]);
+        });
+
+        test('forwards ignoreTlsErrors to the http client', async () => {
+            const captured: (boolean | undefined)[] = [];
+
+            const crawler = new BasicCrawler({
+                httpClient: {
+                    async sendRequest(request, options) {
+                        captured.push(options?.ignoreTlsErrors);
+                        return new Response('ok');
+                    },
+                },
+                async requestHandler({ sendRequest }) {
+                    await sendRequest({}, { ignoreTlsErrors: true });
+                },
+            });
+
+            await crawler.run([url]);
+
+            expect(captured).toEqual([true]);
         });
 
         test('proxyUrl TypeScript support', async () => {

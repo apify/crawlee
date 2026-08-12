@@ -440,6 +440,7 @@ export type SearchParams = string | URLSearchParams | Record<string, string | nu
 export interface SendRequestOptions {
     // (undocumented)
     cookieJar?: CookieJar;
+    ignoreTlsErrors?: boolean;
     proxyUrl?: string;
     // (undocumented)
     session?: ISession;
@@ -570,7 +571,6 @@ export interface StorageBackend {
     createKeyValueStoreBackend(options?: StorageIdentifier): Promise<KeyValueStoreBackend>;
     createRequestQueueBackend(options?: StorageIdentifier): Promise<RequestQueueBackend>;
     getStorageBackendCacheKey?(): string;
-    // (undocumented)
     purge?(): Promise<void>;
     // (undocumented)
     stats?: {
