@@ -4,7 +4,7 @@ import type { AddressInfo } from 'node:net';
 import type { CustomFetchOptions } from '@crawlee/http-client';
 import { BaseHttpClient, FetchHttpClient } from '@crawlee/http-client';
 import { CookieJar } from 'tough-cookie';
-import { afterAll, beforeAll, describe, expect, test } from 'vitest';
+import { afterAll, beforeAll, describe, expect, test, vitest } from 'vitest';
 
 let server: http.Server;
 let url: string;
@@ -186,5 +186,19 @@ describe('BaseHttpClient TLS error handling', () => {
         await client.sendRequest(new Request(url));
 
         expect(client.lastFetchOptions?.ignoreTlsErrors).toBeUndefined();
+    });
+
+    test('FetchHttpClient warns once when ignoreTlsErrors is requested', async () => {
+        const warning = vitest.fn();
+        const client = new FetchHttpClient({ logger: { warning } as any });
+
+        await client.sendRequest(new Request(url), { ignoreTlsErrors: true });
+        await client.sendRequest(new Request(url), { ignoreTlsErrors: true });
+        expect(warning).toHaveBeenCalledTimes(1);
+        expect(warning).toHaveBeenCalledWith(expect.stringContaining('ignoreTlsErrors'));
+
+        const quietClient = new FetchHttpClient({ logger: { warning } as any });
+        await quietClient.sendRequest(new Request(url));
+        expect(warning).toHaveBeenCalledTimes(1);
     });
 });

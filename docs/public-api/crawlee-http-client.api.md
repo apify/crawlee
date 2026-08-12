@@ -29,6 +29,9 @@ export interface CustomFetchOptions {
 
 // @public
 export class FetchHttpClient extends BaseHttpClient {
+    constructor(options?: {
+        logger?: CrawleeLogger;
+    });
     // (undocumented)
     fetch(request: Request, options?: RequestInit & CustomFetchOptions): Promise<Response>;
 }
