@@ -13,7 +13,9 @@ const mainOptions = {
 
 await Actor.main(async () => {
     const crawler = new PlaywrightCrawler({
-        proxyConfiguration: await Actor.createProxyConfiguration(),
+        // The target hard-blocks datacenter IP ranges outright (block page, not a solvable
+        // challenge), so this test needs residential exit nodes.
+        proxyConfiguration: await Actor.createProxyConfiguration({ groups: ['RESIDENTIAL'] }),
         // Camoufox ships its own anti-detection; Crawlee's fingerprint injection conflicts with it
         // and keeps Cloudflare from ever clearing the challenge.
         browserPoolOptions: { useFingerprints: false },
@@ -40,7 +42,8 @@ await Actor.main(async () => {
         ],
         // The hook returns the post-challenge response - otherwise the original 403 challenge
         // response would propagate and the crawler would throw on the blocked status code.
-        postNavigationHooks: [handleCloudflareChallengeHook()],
+        // verbose keeps the challenge detection visible in the nightly run logs
+        postNavigationHooks: [handleCloudflareChallengeHook({ verbose: true })],
         launchContext: {
             launcher: firefox,
             launchOptions: await launchOptions({

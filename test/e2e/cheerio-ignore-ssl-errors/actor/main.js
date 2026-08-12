@@ -1,6 +1,5 @@
 import { Actor } from 'apify';
 import { CheerioCrawler, Dataset } from '@crawlee/cheerio';
-import { ImpitHttpClient } from '@crawlee/impit-client';
 
 const mainOptions = {
     exit: Actor.isAtHome(),
