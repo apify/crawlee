@@ -2,8 +2,10 @@ import { URL } from 'node:url';
 
 import type { Awaitable } from '@crawlee/types';
 import { Minimatch } from 'minimatch';
+import { z } from 'zod';
 
 import type { RequestOptions } from '../request.js';
+import { schemas } from '../validators.js';
 import type { EnqueueLinksOptions } from './enqueue_links.js';
 
 export { tryAbsoluteURL } from '@crawlee/utils/internal';
@@ -36,6 +38,17 @@ export type RegExpInput = RegExp | RegExpObject;
 
 /** Unified URL pattern input — accepts glob strings, glob objects, RegExp instances, or regexp objects. */
 export type UrlPatternInput = GlobInput | RegExpInput;
+
+/**
+ * Accepts one {@apilink UrlPatternInput} — a glob string, a RegExp instance, or a `{ glob }` / `{ regexp }` object.
+ * @internal
+ */
+export const urlPatternSchema = z.union([
+    z.string(),
+    z.instanceof(RegExp),
+    schemas.objectWithKeys(['glob']),
+    schemas.objectWithKeys(['regexp']),
+]) as z.ZodType<UrlPatternInput>;
 
 export type SkippedRequestReason =
     | 'robotsTxt'

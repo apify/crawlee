@@ -10,11 +10,11 @@ import type {
 } from '@crawlee/browser';
 import { BrowserCrawler, RequestState, Router } from '@crawlee/browser';
 import type { BrowserPoolOptions, PuppeteerPlugin } from '@crawlee/browser-pool';
-import { serviceLocator } from '@crawlee/core';
+import { parseArgument, schemas, serviceLocator } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/types';
-import ow from 'ow';
 // @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
 import type { HTTPResponse, LaunchOptions, Page } from 'puppeteer';
+import { z } from 'zod';
 
 import type { EnqueueLinksByClickingElementsOptions } from './enqueue-links/click-elements.js';
 import type { PuppeteerLaunchContext } from './puppeteer-launcher.js';
@@ -188,25 +188,22 @@ export class PuppeteerCrawler<
 > {
     protected static override optionsShape = {
         ...BrowserCrawler.optionsShape,
-        browserPoolOptions: ow.optional.object,
+        browserPoolOptions: schemas.anyObject.optional(),
     };
+
+    protected static override optionsSchema = z.strictObject(PuppeteerCrawler.optionsShape);
 
     /**
      * All `PuppeteerCrawler` parameters are passed via an options object.
      */
     constructor(options: PuppeteerCrawlerOptions<ContextExtension, ExtendedContext, Routes> = {}) {
-        ow(options, 'PuppeteerCrawlerOptions', ow.object.exactShape(PuppeteerCrawler.optionsShape));
+        const parsedOptions = parseArgument(options, PuppeteerCrawler.optionsSchema, 'PuppeteerCrawlerOptions');
 
-        const {
-            launchContext = {},
-            headless,
-            proxyConfiguration,
-            contextPipelineBuilder,
-            ...browserCrawlerOptions
-        } = options;
+        const { launchContext, headless, proxyConfiguration, contextPipelineBuilder, ...browserCrawlerOptions } =
+            parsedOptions;
 
         const browserPoolOptions = {
-            ...options.browserPoolOptions,
+            ...parsedOptions.browserPoolOptions,
         } as BrowserPoolOptions;
 
         if (launchContext.proxyUrl) {
@@ -227,7 +224,7 @@ export class PuppeteerCrawler<
             launchContext.launchOptions.headless = headless as boolean;
         }
 
-        const puppeteerLauncher = new PuppeteerLauncher(launchContext, options.configuration);
+        const puppeteerLauncher = new PuppeteerLauncher(launchContext, parsedOptions.configuration);
 
         browserPoolOptions.browserPlugins = [puppeteerLauncher.createBrowserPlugin()];
 

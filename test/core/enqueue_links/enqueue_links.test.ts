@@ -625,7 +625,7 @@ describe('enqueueLinks()', () => {
                     requestManager: requestQueue,
                     originalRequestUrl: 'https://example.com',
                 }),
-            ).rejects.toThrow();
+            ).rejects.toThrow(/at `include`/);
         });
 
         test('works with no include/exclude filters (enqueues all matching strategy)', async () => {

@@ -5,7 +5,8 @@ import { StringDecoder } from 'node:string_decoder';
 import { createGunzip } from 'node:zlib';
 
 import { FetchHttpClient } from '@crawlee/http-client';
-import type { BaseHttpClient, CrawleeLogger } from '@crawlee/types';
+import type { BaseHttpClient } from '@crawlee/http-client';
+import type { CrawleeLogger } from '@crawlee/types';
 // Imported as a type only so `sax` (a fairly heavy parser) isn't loaded eagerly with @crawlee/utils.
 import type * as sax from 'sax';
 import MIMEType from 'whatwg-mimetype';

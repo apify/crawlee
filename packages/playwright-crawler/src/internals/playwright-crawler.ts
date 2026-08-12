@@ -9,11 +9,11 @@ import type {
     RouteSchemas,
     RoutesFromSchemas,
 } from '@crawlee/browser';
-import { BrowserCrawler, RequestState, Router, serviceLocator } from '@crawlee/browser';
+import { BrowserCrawler, parseArgument, RequestState, Router, schemas, serviceLocator } from '@crawlee/browser';
 import type { BrowserPoolOptions, PlaywrightPlugin } from '@crawlee/browser-pool';
 import type { Dictionary } from '@crawlee/types';
-import ow from 'ow';
 import type { Download, LaunchOptions, Page, Response } from 'playwright';
+import { z } from 'zod';
 
 import type { EnqueueLinksByClickingElementsOptions } from './enqueue-links/click-elements.js';
 import type { PlaywrightLaunchContext } from './playwright-launcher.js';
@@ -211,22 +211,22 @@ export class PlaywrightCrawler<
 > {
     protected static override optionsShape = {
         ...BrowserCrawler.optionsShape,
-        browserPoolOptions: ow.optional.object,
-        launcher: ow.optional.object,
-        ignoreIframes: ow.optional.boolean,
-        ignoreShadowRoots: ow.optional.boolean,
+        browserPoolOptions: schemas.anyObject.optional(),
+        launcher: schemas.anyObject.optional(),
     };
+
+    protected static override optionsSchema = z.strictObject(PlaywrightCrawler.optionsShape);
 
     /**
      * All `PlaywrightCrawler` parameters are passed via an options object.
      */
     constructor(options: PlaywrightCrawlerOptions<ContextExtension, ExtendedContext, Routes> = {}) {
-        ow(options, 'PlaywrightCrawlerOptions', ow.object.exactShape(PlaywrightCrawler.optionsShape));
+        const parsedOptions = parseArgument(options, PlaywrightCrawler.optionsSchema, 'PlaywrightCrawlerOptions');
 
-        const { launchContext = {}, headless, contextPipelineBuilder, ...browserCrawlerOptions } = options;
+        const { launchContext, headless, contextPipelineBuilder, ...browserCrawlerOptions } = parsedOptions;
 
         const browserPoolOptions = {
-            ...options.browserPoolOptions,
+            ...parsedOptions.browserPoolOptions,
         } as BrowserPoolOptions;
 
         if (launchContext.proxyUrl) {
@@ -247,7 +247,7 @@ export class PlaywrightCrawler<
             launchContext.launchOptions.headless = headless as boolean;
         }
 
-        const playwrightLauncher = new PlaywrightLauncher(launchContext, options.configuration);
+        const playwrightLauncher = new PlaywrightLauncher(launchContext, parsedOptions.configuration);
 
         browserPoolOptions.browserPlugins = [playwrightLauncher.createBrowserPlugin()];
 

@@ -4,10 +4,18 @@
 
 ```ts
 
-import type { BaseHttpClient } from '@crawlee/types';
+import type { BaseHttpClient } from '@crawlee/http-client';
 import type { CheerioAPI } from 'cheerio';
 import type { CrawleeLogger } from '@crawlee/types';
 import type { Dictionary } from '@crawlee/types';
+import type { z } from 'zod';
+
+// @public
+export class ArgumentValidationError extends Error {
+    constructor(error: z.ZodError, value: unknown, label?: string);
+    readonly cause: z.ZodError;
+    readonly issues: z.ZodError['issues'];
+}
 
 // Not exported by the entry point; reachable only as a referenced type.
 // @public (undocumented)

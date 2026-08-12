@@ -59,8 +59,8 @@
         "content-type": "^1.0.5",
         "iconv-lite": "^0.7.2",
         "mime-types": "^3.0.1",
-        "ow": "^2.0.0",
         "tslib": "^2.8.1",
-        "type-fest": "^4.41.0"
+        "type-fest": "^4.41.0",
+        "zod": "catalog:"
     }
 }
