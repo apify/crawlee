@@ -39,7 +39,14 @@ export interface CheerioCrawlerOptions<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     Routes extends Record<keyof Routes, Dictionary> = Record<string, UserData>,
-> extends HttpCrawlerOptions<CheerioCrawlingContext<UserData, JSONData>, ContextExtension, ExtendedContext, Routes> {}
+    StatisticStateExtension extends object = {},
+> extends HttpCrawlerOptions<
+    CheerioCrawlingContext<UserData, JSONData>,
+    ContextExtension,
+    ExtendedContext,
+    Routes,
+    StatisticStateExtension
+> {}
 
 export type CheerioHook<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -193,11 +200,14 @@ export class CheerioCrawler<
         string,
         GetUserDataFromRequest<CheerioCrawlingContext['request']>
     >,
-> extends HttpCrawler<CheerioCrawlingContext, ContextExtension, ExtendedContext, Routes> {
+    StatisticStateExtension extends object = {},
+> extends HttpCrawler<CheerioCrawlingContext, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
     /**
      * All `CheerioCrawler` parameters are passed via an options object.
      */
-    constructor(options?: CheerioCrawlerOptions<ContextExtension, ExtendedContext, any, any, Routes>) {
+    constructor(
+        options?: CheerioCrawlerOptions<ContextExtension, ExtendedContext, any, any, Routes, StatisticStateExtension>,
+    ) {
         const { contextPipelineBuilder, ...rest } = options ?? {};
 
         super({

@@ -44,7 +44,14 @@ export interface JSDOMCrawlerOptions<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     Routes extends Record<keyof Routes, Dictionary> = Record<string, UserData>,
-> extends HttpCrawlerOptions<JSDOMCrawlingContext<UserData, JSONData>, ContextExtension, ExtendedContext, Routes> {
+    StatisticStateExtension extends object = {},
+> extends HttpCrawlerOptions<
+    JSDOMCrawlingContext<UserData, JSONData>,
+    ContextExtension,
+    ExtendedContext,
+    Routes,
+    StatisticStateExtension
+> {
     /**
      * Download and run scripts.
      */
@@ -203,7 +210,8 @@ export class JSDOMCrawler<
         string,
         GetUserDataFromRequest<JSDOMCrawlingContext['request']>
     >,
-> extends HttpCrawler<JSDOMCrawlingContext, ContextExtension, ExtendedContext, Routes> {
+    StatisticStateExtension extends object = {},
+> extends HttpCrawler<JSDOMCrawlingContext, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
     protected static override optionsShape = {
         ...HttpCrawler.optionsShape,
         runScripts: z.boolean().optional(),
@@ -216,7 +224,9 @@ export class JSDOMCrawler<
     #hideInternalConsole: boolean;
     #virtualConsole: VirtualConsole | null = null;
 
-    constructor(options: JSDOMCrawlerOptions<ContextExtension, ExtendedContext, any, any, Routes> = {}) {
+    constructor(
+        options: JSDOMCrawlerOptions<ContextExtension, ExtendedContext, any, any, Routes, StatisticStateExtension> = {},
+    ) {
         const {
             runScripts = false,
             hideInternalConsole = false,

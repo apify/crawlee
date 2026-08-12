@@ -73,10 +73,10 @@ export { ObserveOptions }
 export { Stagehand }
 
 // @public
-export class StagehandCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends StagehandCrawlingContext = StagehandCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<StagehandCrawlingContext['request']>>> extends BrowserCrawler<StagehandPage, Response_2, {
+export class StagehandCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends StagehandCrawlingContext = StagehandCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<StagehandCrawlingContext['request']>>, StatisticStateExtension extends object = {}> extends BrowserCrawler<StagehandPage, Response_2, {
     browserPlugins: [StagehandPlugin];
-}, LaunchOptions, StagehandCrawlingContext, ContextExtension, ExtendedContext, Routes> {
-    constructor(options?: StagehandCrawlerOptions<ContextExtension, ExtendedContext, Routes>);
+}, LaunchOptions, StagehandCrawlingContext, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
+    constructor(options?: StagehandCrawlerOptions<ContextExtension, ExtendedContext, Routes, StatisticStateExtension>);
     // (undocumented)
     protected buildContextPipeline(): ContextPipeline<CrawlingContext, StagehandCrawlingContext>;
     protected navigationHandler(crawlingContext: StagehandCrawlingContext, gotoOptions: StagehandGotoOptions): Promise<Response_2 | null>;
@@ -197,9 +197,9 @@ export class StagehandCrawler<ContextExtension = Dictionary<never>, ExtendedCont
 }
 
 // @public
-export interface StagehandCrawlerOptions<ContextExtension = Dictionary<never>, ExtendedContext extends StagehandCrawlingContext = StagehandCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<StagehandCrawlingContext['request']>>> extends BrowserCrawlerOptions<StagehandPage, Response_2, StagehandCrawlingContext, ContextExtension, ExtendedContext, {
+export interface StagehandCrawlerOptions<ContextExtension = Dictionary<never>, ExtendedContext extends StagehandCrawlingContext = StagehandCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<StagehandCrawlingContext['request']>>, StatisticStateExtension extends object = {}> extends BrowserCrawlerOptions<StagehandPage, Response_2, StagehandCrawlingContext, ContextExtension, ExtendedContext, {
     browserPlugins: [StagehandPlugin];
-}, Routes> {
+}, Routes, StatisticStateExtension> {
     launchContext?: StagehandLaunchContext;
     postNavigationHooks?: BrowserHook<StagehandCrawlingContext<GetUserDataFromRequest<ExtendedContext['request']>>, ContextExtension>[];
     preNavigationHooks?: BrowserHook<StagehandCrawlingContext<GetUserDataFromRequest<ExtendedContext['request']>>, ContextExtension>[];
