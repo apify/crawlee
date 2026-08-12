@@ -84,6 +84,7 @@ export class RobotsTxtFile {
      * @param [proxyUrl] a proxy to be used for fetching the robots.txt file
      */
     static from(url: string, content: string, proxyUrl?: string): RobotsTxtFile {
+        // @ts-ignore
         return new RobotsTxtFile(url, robotsParser(url, content), proxyUrl);
     }
 
@@ -128,6 +129,7 @@ export class RobotsTxtFile {
             );
         }
 
+        // @ts-ignore
         return new RobotsTxtFile(url, robotsParser(url.toString(), await response.text()), proxyUrl, logger);
     }
 
