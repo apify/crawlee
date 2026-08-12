@@ -755,9 +755,9 @@ async function handleCloudflareChallenge(
 
     options.isChallengeCallback ??= async () => {
         return await page.evaluate(async () => {
-            // Cloudflare nests the ray ID under varying wrapper elements, so we match by descendants
-            // instead of a direct-child chain (e.g. a `.footer-wrapper` was inserted in between).
-            return !!document.querySelector('.footer .footer-inner .diagnostic-wrapper .ray-id');
+            // Cloudflare keeps reshuffling the wrapper elements between `.footer-inner` and `.ray-id`,
+            // so only the stable outer classes are matched.
+            return !!document.querySelector('.footer .footer-inner .ray-id');
         });
     };
 
