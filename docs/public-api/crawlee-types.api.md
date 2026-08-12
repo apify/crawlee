@@ -571,7 +571,6 @@ export interface StorageBackend {
     createKeyValueStoreBackend(options?: StorageIdentifier): Promise<KeyValueStoreBackend>;
     createRequestQueueBackend(options?: StorageIdentifier): Promise<RequestQueueBackend>;
     getStorageBackendCacheKey?(): string;
-    // (undocumented)
     purge?(): Promise<void>;
     // (undocumented)
     stats?: {
