@@ -606,8 +606,8 @@ describe('AdaptivePlaywrightCrawler', () => {
                             strategy: 'same-hostname',
                         });
 
-                        for (const processedRequest of result.processedRequests) {
-                            enqueuedUrls.add(processedRequest.uniqueKey);
+                        for (const addedRequest of result.addedRequests) {
+                            enqueuedUrls.add(addedRequest.uniqueKey);
                         }
                     }
                 },
