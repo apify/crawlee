@@ -23,11 +23,15 @@ export abstract class BaseHttpClient implements BaseHttpClient_2 {
 export interface CustomFetchOptions {
     cookieJar?: CookieJar;
     fingerprint?: SessionFingerprint;
+    ignoreTlsErrors?: boolean;
     proxyUrl?: string;
 }
 
 // @public
 export class FetchHttpClient extends BaseHttpClient {
+    constructor(options?: {
+        logger?: CrawleeLogger;
+    });
     // (undocumented)
     fetch(request: Request, options?: RequestInit & CustomFetchOptions): Promise<Response>;
 }

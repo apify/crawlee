@@ -401,6 +401,14 @@ Previously, `BrowserCrawler` with `saveResponseCookies` (formerly `persistCookie
 
 In v4, when `saveResponseCookies` is enabled (the default), browser cookies are also re-read and stored in the session cookie jar **after** `requestHandler` completes. If you relied on handler-set cookies staying page-local and not affecting later requests on the same session, set `saveResponseCookies: false` or clear/overwrite cookies on the session explicitly.
 
+### `ignoreSslErrors` is renamed to `ignoreTlsErrors`
+
+The crawler option is renamed to `ignoreTlsErrors`, matching the naming used everywhere else in v4 (`session.proxyInfo.ignoreTlsErrors`, the browser pool, the impit client). The old `ignoreSslErrors` name is no longer accepted — rename it in your crawler options. Behavior is unchanged from v3: the option defaults to `true` and HTTP crawlers accept invalid TLS certificates by default.
+
+Under the hood the crawler now forwards the option to the HTTP client as `SendRequestOptions.ignoreTlsErrors` on every navigation request, and the same flag is enabled automatically for MITM proxy sessions (`session.proxyInfo.ignoreTlsErrors`), matching the browser crawlers.
+
+This only affects custom `BaseHttpClient` implementations: honor `ignoreTlsErrors` (from `SendRequestOptions`, or `CustomFetchOptions` when extending the `BaseHttpClient` class from `@crawlee/http-client`) if your client can disable TLS verification. The built-in impit and got-scraping clients do; the native fetch fallback cannot, so it warns and ignores the flag.
+
 ### `preNavigationHooks` in `HttpCrawler` no longer accepts `gotOptions` object
 
 The `preNavigationHooks` option in `HttpCrawler` subclasses no longer accepts the `gotOptions` object as a second parameter. Modify the `crawlingContext` fields (e.g. `.request`) directly instead.
@@ -685,7 +693,7 @@ This is intentional: these were never a supported API. If you relied on overridi
 The change spans, among others:
 
 - **`BasicCrawler`** — `unexpectedStop`, `requestHandlerTimeoutMillis`, `sameDomainDelayMillis`, `domainAccessedTime`, `handledRequestsCount`, `statusMessageLoggingInterval`, `statusMessageCallback`, `ignoreHttpErrorStatusCodes`, `taskLoopOptions` (was `autoscaledPoolOptions`), `autoscaledPool`, `respectRobotsTxtFile`, and the helpers `buildBasicContextPipeline`, `validateRequestUserData`, `pauseOnMigration`, `fetchNextRequest`, `delayRequest`, `handleRequest`, `timeoutAndRetry`, `isTaskReadyFunction`, `defaultIsFinishedFunction`, `requestFunctionErrorHandler`, `handleFailedRequestHandler`, `canRequestBeRetried`
-- **`HttpCrawler`** — `preNavigationHooks`, `postNavigationHooks`, `saveResponseCookies`, `navigationTimeoutMillis`, `ignoreSslErrors`, `suggestResponseEncoding`, `forceResponseEncoding`, `supportedMimeTypes`, and the helpers `requestFunction`, `parseResponse`, `getRequestOptions`, `encodeResponse`, `extendSupportedMimeTypes`, `handleRequestTimeout`
+- **`HttpCrawler`** — `preNavigationHooks`, `postNavigationHooks`, `saveResponseCookies`, `navigationTimeoutMillis`, `suggestResponseEncoding`, `forceResponseEncoding`, `supportedMimeTypes`, and the helpers `requestFunction`, `parseResponse`, `getRequestOptions`, `encodeResponse`, `extendSupportedMimeTypes`, `handleRequestTimeout`
 - **`AutoscaledPool`** — the whole class is `@internal` in v4, so its members are not enumerated here; see [`AutoscaledPool` is no longer public API](#autoscaledpool-is-no-longer-public-api)
 - **`SessionPool`** — all pool internals (`log`, `maxPoolSize`, `createSessionFunction`, `keyValueStore`, `sessions`, `sessionMap`, `sessionOptions`, `persistStateKey`, `persistStateKeyValueStoreId`, `events`, `persistenceOptions`, `sessionReuseStrategy`, and the helpers `ensureInitialized`, `maybeLoadSessionPool`, `registerSession`, `createSession`, `hasSpaceForSession`, `pickSession`, `removeRetiredSessions`, `getRandomIndex`, `defaultCreateSessionFunction`)
 - **`Session`** — `maybeSelfRetire` (`userData` is now `readonly`)

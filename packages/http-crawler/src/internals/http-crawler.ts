@@ -89,9 +89,14 @@ export interface HttpCrawlerOptions<
     navigationTimeoutSecs?: number;
 
     /**
-     * If set to true, SSL certificate errors will be ignored.
+     * If set to `true`, TLS/SSL certificate errors are ignored. Forwarded to the HTTP client as
+     * {@apilink SendRequestOptions.ignoreTlsErrors|`ignoreTlsErrors`} on every navigation request, so custom
+     * {@apilink BaseHttpClient} implementations should honor that flag (the built-in impit and got-scraping
+     * clients do; the native fetch fallback cannot disable TLS verification and warns instead).
+     *
+     * @default true
      */
-    ignoreSslErrors?: boolean;
+    ignoreTlsErrors?: boolean;
 
     /**
      * Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies
@@ -348,8 +353,7 @@ export class HttpCrawler<
     #postNavigationHooks: InternalHttpPostNavigationHook[];
     #saveResponseCookies: boolean;
     #navigationTimeoutMillis: number;
-    // kept as TS-private: tests read it at runtime
-    private ignoreSslErrors: boolean;
+    #ignoreTlsErrors: boolean;
     #suggestResponseEncoding?: string;
     #forceResponseEncoding?: string;
     readonly #supportedMimeTypes: Set<string>;
@@ -358,7 +362,7 @@ export class HttpCrawler<
         ...BasicCrawler.optionsShape,
 
         navigationTimeoutSecs: ow.optional.number,
-        ignoreSslErrors: ow.optional.boolean,
+        ignoreTlsErrors: ow.optional.boolean,
         additionalMimeTypes: ow.optional.array.ofType(ow.string),
         suggestResponseEncoding: ow.optional.string,
         forceResponseEncoding: ow.optional.string,
@@ -379,7 +383,7 @@ export class HttpCrawler<
 
         const {
             navigationTimeoutSecs = 30,
-            ignoreSslErrors = true,
+            ignoreTlsErrors = true,
             additionalMimeTypes = [],
             suggestResponseEncoding,
             forceResponseEncoding,
@@ -409,7 +413,7 @@ export class HttpCrawler<
         }
 
         this.#navigationTimeoutMillis = navigationTimeoutSecs * 1000;
-        this.ignoreSslErrors = ignoreSslErrors;
+        this.#ignoreTlsErrors = ignoreTlsErrors;
         this.#suggestResponseEncoding = suggestResponseEncoding;
         this.#forceResponseEncoding = forceResponseEncoding;
         // Cast away the extension-aware option types to the base internal storage types (see the field
@@ -764,23 +768,12 @@ export class HttpCrawler<
             timeout: this.#navigationTimeoutMillis,
             sessionToken: session,
             headers: request.headers,
-            https: {
-                rejectUnauthorized: !this.ignoreSslErrors,
-            },
             body: undefined as string | undefined,
         };
 
         if (requestOptions.headers?.cookie || requestOptions.headers?.Cookie) {
             requestOptions.headers!.Cookie = this.getCookieHeaderFromRequest(request);
             delete requestOptions.headers!.cookie;
-        }
-
-        // Disable SSL verification for MITM proxies
-        if (session.proxyInfo?.ignoreTlsErrors) {
-            requestOptions.https = {
-                ...requestOptions.https,
-                rejectUnauthorized: false,
-            };
         }
 
         if (/PATCH|POST|PUT/.test(request.method)) requestOptions.body = request.payload ?? '';
@@ -911,6 +904,7 @@ export class HttpCrawler<
                 cookieJar,
                 signal: cancelSignal,
                 timeoutMillis: cancelSignal ? undefined : opts.timeout,
+                ignoreTlsErrors: this.#ignoreTlsErrors,
             },
         );
 
