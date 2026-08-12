@@ -7,7 +7,7 @@ import { z } from 'zod';
 
 import { cryptoRandomObjectId, normalizeUrl } from '@apify/utilities';
 
-import type { EnqueueLinksOptions } from './enqueue_links/enqueue_links.js';
+import type { EnqueueStrategyOption } from './enqueue_links/enqueue_links.js';
 import type { SkippedRequestReason } from './enqueue_links/shared.js';
 import { serviceLocator } from './service_locator.js';
 import { keys } from './typedefs.js';
@@ -417,11 +417,11 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
         }
     }
 
-    private get enqueueStrategy(): EnqueueLinksOptions['strategy'] | undefined {
+    private get enqueueStrategy(): EnqueueStrategyOption | undefined {
         return this.userData.__crawlee?.enqueueStrategy;
     }
 
-    private set enqueueStrategy(value: EnqueueLinksOptions['strategy']) {
+    private set enqueueStrategy(value: EnqueueStrategyOption | undefined) {
         if (!this.userData.__crawlee) {
             (this.userData as Dictionary).__crawlee = { enqueueStrategy: value };
         } else {
@@ -651,7 +651,7 @@ export interface RequestOptions<UserData extends Dictionary = Dictionary> {
     lockExpiresAt?: Date;
 
     /** @internal */
-    enqueueStrategy?: EnqueueLinksOptions['strategy'];
+    enqueueStrategy?: EnqueueStrategyOption;
 }
 
 export interface PushErrorMessageOptions {

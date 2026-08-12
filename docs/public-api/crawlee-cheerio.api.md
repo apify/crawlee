@@ -4,7 +4,7 @@
 
 ```ts
 
-import type { BatchAddRequestsResult } from '@crawlee/types';
+import type { AddRequestsBatchedResult } from '@crawlee/http';
 import * as cheerio from 'cheerio';
 import type { CheerioAPI } from 'cheerio';
 import { CheerioRoot } from '@crawlee/utils/internal';
@@ -13,6 +13,7 @@ import type { CrawlingContext } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
 import type { EnqueueLinksOptions } from '@crawlee/http';
 import type { ErrorHandler } from '@crawlee/http';
+import type { ExtractLinksOptions } from '@crawlee/http';
 import type { GetUserDataFromRequest } from '@crawlee/http';
 import { HttpCrawler } from '@crawlee/http';
 import type { HttpCrawlerOptions } from '@crawlee/http';
@@ -32,7 +33,8 @@ export class CheerioCrawler<ContextExtension = Dictionary<never>, ExtendedContex
     readonly body: string;
     readonly $: CheerioAPI;
     } & {
-    enqueueLinks: (enqueueOptions?: EnqueueLinksOptions) => Promise<BatchAddRequestsResult>;
+    extractLinks: (options?: ExtractLinksOptions) => Promise<string[]>;
+    enqueueLinks: (options?: EnqueueLinksOptions) => Promise<AddRequestsBatchedResult>;
     waitForSelector: (selector: string, _timeoutMs?: number) => Promise<void>;
     parseWithCheerio: (selector?: string, timeoutMs?: number) => Promise<CheerioAPI>;
     }>;
@@ -49,7 +51,8 @@ export interface CheerioCrawlingContext<UserData extends Dictionary = any, // wi
 JSONData extends Dictionary = any> extends InternalHttpCrawlingContext<UserData, JSONData> {
     $: cheerio.CheerioAPI;
     body: string;
-    enqueueLinks(options?: EnqueueLinksOptions): Promise<BatchAddRequestsResult>;
+    enqueueLinks(options?: EnqueueLinksOptions): Promise<AddRequestsBatchedResult>;
+    extractLinks(options?: ExtractLinksOptions): Promise<string[]>;
     parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
     waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
 }

@@ -1,30 +1,28 @@
 import type {
-    BasicCrawlingContext,
+    AddRequestsBatchedResult,
     CrawlingContext,
     EnqueueLinksOptions,
     ErrorHandler,
+    ExtractLinksOptions,
     GetUserDataFromRequest,
     HttpCrawlerOptions,
     InternalHttpCrawlingContext,
     InternalHttpHook,
-    IRequestManager,
     RequestHandler,
     RouterHandler,
     RouterRoutes,
     RouteSchemas,
     RoutesFromSchemas,
-    SkippedRequestCallback,
 } from '@crawlee/http';
 import {
-    enqueueLinks,
+    EnqueueStrategy,
     HttpCrawler,
     NavigationSkippedError,
     resolveBaseUrlForEnqueueLinksFiltering,
     Router,
 } from '@crawlee/http';
-import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
+import type { Dictionary } from '@crawlee/types';
 import { type CheerioRoot, extractUrlsFromCheerio } from '@crawlee/utils/internal';
-import { type RobotsTxtFile } from '@crawlee/utils';
 import type { CheerioAPI, CheerioOptions } from 'cheerio';
 import * as cheerio from 'cheerio';
 import { parseDocument } from 'htmlparser2';
@@ -94,9 +92,14 @@ export interface CheerioCrawlingContext<
     parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
 
     /**
+     * Extracts URLs from the parsed HTML, without adding them to the request queue.
+     */
+    extractLinks(options?: ExtractLinksOptions): Promise<string[]>;
+
+    /**
      * Helper function for extracting URLs from the parsed HTML and adding them to the request queue.
      */
-    enqueueLinks(options?: EnqueueLinksOptions): Promise<BatchAddRequestsResult>;
+    enqueueLinks(options?: EnqueueLinksOptions): Promise<AddRequestsBatchedResult>;
 }
 
 export type CheerioRequestHandler<
@@ -250,23 +253,37 @@ export class CheerioCrawler<
     }
 
     private async addHelpers(crawlingContext: InternalHttpCrawlingContext & { $: CheerioAPI }) {
-        const originalEnqueueLinks = crawlingContext.enqueueLinks;
+        const addRequests = crawlingContext.addRequests;
+
+        const extractLinks = async (options?: ExtractLinksOptions): Promise<string[]> => {
+            if (!crawlingContext.$) {
+                throw new Error('Cannot extract links because the DOM is not available.');
+            }
+
+            return extractUrlsFromCheerio(
+                crawlingContext.$,
+                options?.selector ?? 'a',
+                options?.baseUrl ?? crawlingContext.request.loadedUrl ?? crawlingContext.request.url,
+            );
+        };
 
         return {
-            enqueueLinks: async (enqueueOptions?: EnqueueLinksOptions) => {
-                return (await cheerioCrawlerEnqueueLinks({
-                    options: {
-                        ...enqueueOptions,
-                        limit: await this.calculateEnqueuedRequestLimit(enqueueOptions?.limit),
-                    },
-                    $: crawlingContext.$,
-                    requestManager: await this.getRequestManager(),
-                    robotsTxtFile: await this.getRobotsTxtFileForUrl(crawlingContext.request.url),
-                    onSkippedRequest: this.handleSkippedRequest,
-                    originalRequestUrl: crawlingContext.request.url,
+            extractLinks,
+            enqueueLinks: async (options: EnqueueLinksOptions = {}) => {
+                const baseUrl = resolveBaseUrlForEnqueueLinksFiltering({
+                    enqueueStrategy: options.strategy,
                     finalRequestUrl: crawlingContext.request.loadedUrl,
-                    enqueueLinks: originalEnqueueLinks,
-                })) as BatchAddRequestsResult; // TODO make this type safe, see https://github.com/apify/crawlee/issues/4024
+                    originalRequestUrl: crawlingContext.request.url,
+                    userProvidedBaseUrl: options.baseUrl,
+                });
+
+                const urls = await extractLinks(options);
+
+                return addRequests(urls, {
+                    ...options,
+                    baseUrl,
+                    strategy: options.strategy ?? EnqueueStrategy.SameHostname,
+                });
             },
             waitForSelector: async (selector: string, _timeoutMs?: number) => {
                 if (crawlingContext.$(selector).get().length === 0) {
@@ -282,70 +299,6 @@ export class CheerioCrawler<
             },
         };
     }
-}
-
-interface EnqueueLinksInternalOptions {
-    options?: EnqueueLinksOptions;
-    $: cheerio.CheerioAPI | null;
-    requestManager: IRequestManager;
-    robotsTxtFile?: RobotsTxtFile;
-    onSkippedRequest?: SkippedRequestCallback;
-    originalRequestUrl: string;
-    finalRequestUrl?: string;
-}
-
-interface BoundEnqueueLinksInternalOptions {
-    enqueueLinks: BasicCrawlingContext['enqueueLinks'];
-    options?: EnqueueLinksOptions;
-    $: cheerio.CheerioAPI | null;
-    originalRequestUrl: string;
-    finalRequestUrl?: string;
-}
-
-/** @internal */
-function containsEnqueueLinks(
-    options: EnqueueLinksInternalOptions | BoundEnqueueLinksInternalOptions,
-): options is BoundEnqueueLinksInternalOptions {
-    return !!(options as BoundEnqueueLinksInternalOptions).enqueueLinks;
-}
-
-/** @internal */
-export async function cheerioCrawlerEnqueueLinks(
-    options: EnqueueLinksInternalOptions | BoundEnqueueLinksInternalOptions,
-) {
-    const { options: enqueueLinksOptions, $, originalRequestUrl, finalRequestUrl } = options;
-    if (!$) {
-        throw new Error('Cannot enqueue links because the DOM is not available.');
-    }
-
-    const baseUrl = resolveBaseUrlForEnqueueLinksFiltering({
-        enqueueStrategy: enqueueLinksOptions?.strategy,
-        finalRequestUrl,
-        originalRequestUrl,
-        userProvidedBaseUrl: enqueueLinksOptions?.baseUrl,
-    });
-
-    const urls = extractUrlsFromCheerio(
-        $,
-        enqueueLinksOptions?.selector ?? 'a',
-        enqueueLinksOptions?.baseUrl ?? finalRequestUrl ?? originalRequestUrl,
-    );
-
-    if (containsEnqueueLinks(options)) {
-        return options.enqueueLinks({
-            urls,
-            baseUrl,
-            ...enqueueLinksOptions,
-        });
-    }
-    return enqueueLinks({
-        requestManager: options.requestManager,
-        robotsTxtFile: options.robotsTxtFile,
-        onSkippedRequest: options.onSkippedRequest,
-        urls,
-        baseUrl,
-        ...enqueueLinksOptions,
-    });
 }
 
 /**
