@@ -1,4 +1,5 @@
 export * from '@crawlee/browser';
+export * from './internals/playwright-browser-pool.js';
 export * from './internals/playwright-crawler.js';
 export * from './internals/playwright-launcher.js';
 export * from './internals/adaptive-playwright-crawler.js';

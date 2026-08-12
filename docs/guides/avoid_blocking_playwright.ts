@@ -1,8 +1,8 @@
-import { PlaywrightCrawler } from 'crawlee';
+import { PlaywrightCrawler, playwrightBrowserPool } from 'crawlee';
 import { BrowserName, DeviceCategory, OperatingSystemsName } from '@crawlee/browser-pool';
 
 const crawler = new PlaywrightCrawler({
-    browserPoolOptions: {
+    browserPool: playwrightBrowserPool({
         useFingerprints: true, // this is the default
         fingerprintOptions: {
             fingerprintGeneratorOptions: {
@@ -16,6 +16,6 @@ const crawler = new PlaywrightCrawler({
                 operatingSystems: [OperatingSystemsName.windows],
             },
         },
-    },
+    }),
     // ...
 });

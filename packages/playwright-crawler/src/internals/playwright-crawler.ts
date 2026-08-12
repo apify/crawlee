@@ -9,15 +9,22 @@ import type {
     RouteSchemas,
     RoutesFromSchemas,
 } from '@crawlee/browser';
-import { BrowserCrawler, parseArgument, RequestState, Router, schemas, serviceLocator } from '@crawlee/browser';
-import type { BrowserPoolOptions, PlaywrightPlugin } from '@crawlee/browser-pool';
+import {
+    assertBrowserPoolNotConfigured,
+    BrowserCrawler,
+    parseArgument,
+    RequestState,
+    Router,
+    schemas,
+    serviceLocator,
+} from '@crawlee/browser';
 import type { Dictionary } from '@crawlee/types';
 import type { Download, LaunchOptions, Page, Response } from 'playwright';
 import { z } from 'zod';
 
 import type { EnqueueLinksByClickingElementsOptions } from './enqueue-links/click-elements.js';
+import { playwrightBrowserPool, remotePlaywrightBrowserPool } from './playwright-browser-pool.js';
 import type { PlaywrightLaunchContext } from './playwright-launcher.js';
-import { PlaywrightLauncher } from './playwright-launcher.js';
 import type {
     BlockRequestsOptions,
     DirectNavigationOptions,
@@ -53,7 +60,6 @@ export interface PlaywrightCrawlerOptions<
     PlaywrightCrawlingContext,
     ContextExtension,
     ExtendedContext,
-    { browserPlugins: [PlaywrightPlugin] },
     Routes,
     StatisticStateExtension
 > {
@@ -61,6 +67,12 @@ export interface PlaywrightCrawlerOptions<
      * The same options as used by {@apilink launchPlaywright}.
      */
     launchContext?: PlaywrightLaunchContext;
+
+    /**
+     * Whether to run browser in headless mode. Defaults to `true`.
+     * Can be also set via {@apilink Configuration}.
+     */
+    headless?: boolean;
 
     /**
      * Function that is called to process each request.
@@ -205,7 +217,6 @@ export class PlaywrightCrawler<
 > extends BrowserCrawler<
     Page,
     Response,
-    { browserPlugins: [PlaywrightPlugin] },
     LaunchOptions,
     PlaywrightCrawlingContext,
     ContextExtension,
@@ -215,7 +226,7 @@ export class PlaywrightCrawler<
 > {
     protected static override optionsShape = {
         ...BrowserCrawler.optionsShape,
-        browserPoolOptions: schemas.anyObject.optional(),
+        headless: z.boolean().optional(),
         launcher: schemas.anyObject.optional(),
     };
 
@@ -229,11 +240,8 @@ export class PlaywrightCrawler<
     ) {
         const parsedOptions = parseArgument(options, PlaywrightCrawler.optionsSchema, 'PlaywrightCrawlerOptions');
 
-        const { launchContext, headless, contextPipelineBuilder, ...browserCrawlerOptions } = parsedOptions;
-
-        const browserPoolOptions = {
-            ...parsedOptions.browserPoolOptions,
-        } as BrowserPoolOptions;
+        const { launchContext, headless, configuration, contextPipelineBuilder, ...browserCrawlerOptions } =
+            parsedOptions;
 
         if (launchContext.proxyUrl) {
             throw new Error(
@@ -242,20 +250,13 @@ export class PlaywrightCrawler<
             );
         }
 
-        // `browserPlugins` is working when it's not overridden by `launchContext`,
-        // which for crawlers it is always overridden. Hence the error to use the other option.
-        if (browserPoolOptions.browserPlugins) {
-            throw new Error('browserPoolOptions.browserPlugins is disallowed. Use launchContext.launcher instead.');
+        if (options.browserPool) {
+            // The raw options, not the parsed ones: `launchContext` has a default, so by now it is always set.
+            assertBrowserPoolNotConfigured(new.target.name, {
+                launchContext: options.launchContext,
+                headless: options.headless,
+            });
         }
-
-        if (headless != null) {
-            launchContext.launchOptions ??= {} as LaunchOptions;
-            launchContext.launchOptions.headless = headless as boolean;
-        }
-
-        const playwrightLauncher = new PlaywrightLauncher(launchContext, parsedOptions.configuration);
-
-        browserPoolOptions.browserPlugins = [playwrightLauncher.createBrowserPlugin()];
 
         super({
             ...(browserCrawlerOptions as unknown as PlaywrightCrawlerOptions<
@@ -265,7 +266,11 @@ export class PlaywrightCrawler<
                 StatisticStateExtension
             >),
             launchContext,
-            browserPoolOptions,
+            configuration,
+            browserPoolBuilder: (remoteBrowser) =>
+                remoteBrowser
+                    ? remotePlaywrightBrowserPool({ ...remoteBrowser, launchContext, headless, configuration })
+                    : playwrightBrowserPool({ launchContext, headless, configuration }),
             contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),
         });
     }

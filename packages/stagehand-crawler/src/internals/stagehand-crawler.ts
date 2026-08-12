@@ -19,22 +19,21 @@ import type {
     CrawlingContext,
     GetUserDataFromRequest,
     LoadedContext,
+    OwnedBrowserPool,
     RequestHandler,
     RouterHandler,
     RouterRoutes,
     RouteSchemas,
     RoutesFromSchemas,
 } from '@crawlee/browser';
-import { BrowserCrawler, parseArgument, Router, schemas } from '@crawlee/browser';
-import type { BrowserPoolOptions } from '@crawlee/browser-pool';
+import { assertBrowserPoolNotConfigured, BrowserCrawler, parseArgument, Router, schemas } from '@crawlee/browser';
 import type { Dictionary } from '@crawlee/types';
 import type { LaunchOptions, Page, Response } from 'playwright';
 import { z } from 'zod';
 
+import { remoteStagehandBrowserPool, stagehandBrowserPool } from './stagehand-browser-pool';
 import type { StagehandController } from './stagehand-controller';
 import type { StagehandLaunchContext } from './stagehand-launcher';
-import { StagehandLauncher } from './stagehand-launcher';
-import type { StagehandPlugin } from './stagehand-plugin';
 import { enhancePageWithStagehand } from './utils/stagehand-utils';
 
 /**
@@ -259,7 +258,6 @@ export interface StagehandCrawlerOptions<
     StagehandCrawlingContext,
     ContextExtension,
     ExtendedContext,
-    { browserPlugins: [StagehandPlugin] },
     Routes,
     StatisticStateExtension
 > {
@@ -273,6 +271,12 @@ export interface StagehandCrawlerOptions<
      * Launch context with Stagehand-specific options.
      */
     launchContext?: StagehandLaunchContext;
+
+    /**
+     * Whether to run browser in headless mode. Defaults to `true`.
+     * Can be also set via {@apilink Configuration}.
+     */
+    headless?: boolean;
 
     /**
      * Function that is called to process each request.
@@ -401,7 +405,6 @@ export class StagehandCrawler<
 > extends BrowserCrawler<
     StagehandPage,
     Response,
-    { browserPlugins: [StagehandPlugin] },
     LaunchOptions,
     StagehandCrawlingContext,
     ContextExtension,
@@ -412,7 +415,7 @@ export class StagehandCrawler<
     protected static override optionsShape = {
         ...BrowserCrawler.optionsShape,
         stagehandOptions: schemas.anyObject.optional(),
-        browserPoolOptions: schemas.anyObject.optional(),
+        headless: z.boolean().optional(),
     };
 
     protected static override optionsSchema = z.strictObject(StagehandCrawler.optionsShape);
@@ -428,25 +431,23 @@ export class StagehandCrawler<
         const parsedOptions = parseArgument(options, StagehandCrawler.optionsSchema, 'StagehandCrawlerOptions');
 
         const {
-            stagehandOptions = {},
+            stagehandOptions,
             launchContext,
+            headless,
+            configuration,
             contextPipelineBuilder,
             ...browserCrawlerOptions
         } = parsedOptions;
 
-        const browserPoolOptions = {
-            ...parsedOptions.browserPoolOptions,
-        } as BrowserPoolOptions;
+        if (options.browserPool) {
+            // The raw options, not the parsed ones: `launchContext` has a default, so by now it is always set.
+            assertBrowserPoolNotConfigured(new.target.name, {
+                launchContext: options.launchContext,
+                stagehandOptions: options.stagehandOptions,
+                headless: options.headless,
+            });
+        }
 
-        // Create launcher with Stagehand plugin
-        const launcher = new StagehandLauncher({
-            ...launchContext,
-            stagehandOptions,
-        });
-
-        browserPoolOptions.browserPlugins = [launcher.createBrowserPlugin()];
-
-        // Initialize BrowserCrawler with Stagehand plugin and fingerprinting enabled
         super({
             ...(browserCrawlerOptions as StagehandCrawlerOptions<
                 ContextExtension,
@@ -455,7 +456,24 @@ export class StagehandCrawler<
                 StatisticStateExtension
             >),
             launchContext,
-            browserPoolOptions,
+            configuration,
+            // The pool serves plain Playwright pages - a page only becomes a `StagehandPage` further down the
+            // pipeline, once `setUpStagehand` enhances it - so its page type is narrower than the crawler's.
+            browserPoolBuilder: (remoteBrowser) =>
+                (remoteBrowser
+                    ? remoteStagehandBrowserPool({
+                          ...remoteBrowser,
+                          launchContext,
+                          stagehandOptions,
+                          headless,
+                          configuration,
+                      })
+                    : stagehandBrowserPool({
+                          launchContext,
+                          stagehandOptions,
+                          headless,
+                          configuration,
+                      })) as unknown as OwnedBrowserPool<StagehandPage>,
             contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),
         });
     }
