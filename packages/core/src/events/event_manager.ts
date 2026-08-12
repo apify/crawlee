@@ -66,7 +66,8 @@ export abstract class EventManager {
 
     constructor(options: EventManagerOptions) {
         this.#persistStateIntervalMillis = options.persistStateIntervalMillis;
-        this.events.setMaxListeners(50);
+        // One MIGRATING listener per RequestQueue, and ThrottlingRequestManager opens one per domain.
+        this.events.setMaxListeners(150);
     }
 
     /**

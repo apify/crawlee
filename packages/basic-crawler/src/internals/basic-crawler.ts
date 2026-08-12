@@ -81,6 +81,7 @@ import {
     SessionError,
     SessionPool,
     Statistics,
+    ThrottlingRequestManager,
     validateUserData,
     validators,
     withDirectStorageAccess,
@@ -349,7 +350,11 @@ export interface BasicCrawlerOptions<
     maxRequestRetries?: number;
 
     /**
-     * Indicates how much time (in seconds) to wait before crawling another same domain request.
+     * Indicates how much time (in seconds) to wait before crawling another same domain request. Subdomains are
+     * paced together with the site they belong to.
+     *
+     * Wraps the crawler's request manager in a {@apilink ThrottlingRequestManager}; pass one as `requestManager`
+     * yourself to configure it further.
      * @default 0
      */
     sameDomainDelaySecs?: number;
@@ -829,8 +834,7 @@ export class BasicCrawler<
     protected readonly internalTimeoutMillis: number;
     protected readonly maxRequestRetries: number;
     protected readonly maxCrawlDepth?: number;
-    #sameDomainDelayMillis: number;
-    #domainAccessedTime: Map<string, number>;
+    #sameDomainDelaySecs: number;
     protected readonly maxRequestsPerCrawl?: number;
 
     private get handledRequestsCount(): number {
@@ -1044,6 +1048,15 @@ export class BasicCrawler<
                         'The `requestManager` option cannot be used in conjunction with `requestList` and/or `requestQueue`',
                     );
                 }
+                // Both would pace the same domains, from different keys and with no idea of one another.
+                if (sameDomainDelaySecs > 0 && supportsDomainThrottling(requestManager)) {
+                    throw new Error(
+                        'The `sameDomainDelaySecs` option cannot be combined with a `requestManager` that throttles ' +
+                            'per domain on its own. Configure the delay on the manager instead, via the ' +
+                            '`minCrawlDelaySecs` option of `ThrottlingRequestManager`.',
+                    );
+                }
+
                 this.requestManager = requestManager;
             } else if (requestList !== undefined && requestQueue !== undefined) {
                 // Combine the read-only list with the writable queue into a tandem.
@@ -1062,7 +1075,6 @@ export class BasicCrawler<
             this.proxyConfiguration = proxyConfiguration;
             this.#statusMessageLoggingInterval = statusMessageLoggingInterval;
             this.#statusMessageCallback = statusMessageCallback as StatusMessageCallback;
-            this.#domainAccessedTime = new Map();
             this.#robotsTxtFileCache = new LruCache({ maxLength: 1000 });
             this.handleSkippedRequest = this.handleSkippedRequest.bind(this);
 
@@ -1097,7 +1109,7 @@ export class BasicCrawler<
 
             this.maxRequestRetries = maxRequestRetries;
             this.maxCrawlDepth = maxCrawlDepth;
-            this.#sameDomainDelayMillis = sameDomainDelaySecs * 1000;
+            this.#sameDomainDelaySecs = sameDomainDelaySecs;
             this.#statsDep = OwnedOrInjected.resolve<IStatistics, Statistics>(
                 statistics,
                 () =>
@@ -1163,7 +1175,7 @@ export class BasicCrawler<
                     if (!source) throw new Error('Request provider is not initialized!');
 
                     const request = await this.resolveRequest();
-                    if (!request || this.delayRequest(request, source)) {
+                    if (!request) {
                         return;
                     }
 
@@ -1623,8 +1635,15 @@ export class BasicCrawler<
             const managerToPurge =
                 this.#ownedRequestQueue.maybeValue ?? (purgeRequestQueue === true ? this.requestManager : undefined);
 
-            if (managerToPurge?.purge && shouldPurge) {
-                await managerToPurge.purge();
+            if (shouldPurge) {
+                await managerToPurge?.purge?.();
+
+                // The per-domain queues a `sameDomainDelaySecs` wrapper created are the crawler's own, whatever
+                // sits underneath them - so they are emptied even when the manager they wrap is spared. Purging
+                // the wrapper itself has already covered them.
+                if (this.requestManager instanceof ThrottlingRequestManager && managerToPurge !== this.requestManager) {
+                    await this.requestManager.purgeDomainQueues();
+                }
             }
 
             // A supplied statistics instance keeps whatever state it was handed - only wipe a default we built.
@@ -1793,6 +1812,20 @@ export class BasicCrawler<
     async getRequestManager(): Promise<IRequestManager> {
         if (!this.requestManager) {
             this.requestManager = await this.openOwnedRequestQueue();
+        }
+
+        // Wrapped here rather than in the constructor, because the manager being wrapped may only be opened at
+        // this point - and because everything that enqueues goes through here first, so nothing slips past the
+        // wrapper into the queue it hides.
+        if (this.#sameDomainDelaySecs > 0 && !supportsDomainThrottling(this.requestManager)) {
+            this.requestManager = new ThrottlingRequestManager({
+                inner: this.requestManager,
+                domains: 'all',
+                minCrawlDelaySecs: this.#sameDomainDelaySecs,
+                // What `sameDomainDelaySecs` has always meant: one clock for a site, subdomains included.
+                throttleBy: 'registrableDomain',
+                persistStateKey: `CRAWLEE_THROTTLED_DOMAINS_${this.identity.id}`,
+            });
         }
 
         // Apply the processing-time hint here (an async lifecycle point) rather than in the constructor,
@@ -2488,39 +2521,6 @@ export class BasicCrawler<
         }
 
         return this.requestManager.fetchNextRequest();
-    }
-
-    /**
-     * Delays processing of the request based on the `sameDomainDelaySecs` option,
-     * adding it back to the queue after the timeout passes. Returns `true` if the request
-     * should be ignored and will be reclaimed to the queue once ready.
-     */
-    private delayRequest(request: Request, source: IRequestManager) {
-        const domain = getDomain(request.url);
-
-        if (!domain || !request) {
-            return false;
-        }
-
-        const now = Date.now();
-        const lastAccessTime = this.#domainAccessedTime.get(domain);
-
-        if (!lastAccessTime || now - lastAccessTime >= this.#sameDomainDelayMillis) {
-            this.#domainAccessedTime.set(domain, now);
-            return false;
-        }
-
-        const delay = lastAccessTime + this.#sameDomainDelayMillis - now;
-        this.log.debug(
-            `Request ${request.url} (${request.id}) will be reclaimed after ${delay} milliseconds due to same domain delay`,
-        );
-        setTimeout(async () => {
-            this.log.debug(`Adding request ${request.url} (${request.id}) back to the queue`);
-
-            await source.reclaimRequest(request, { forefront: request.userData?.__crawlee?.forefront });
-        }, delay);
-
-        return true;
     }
 
     /** Handles a single request - runs the request handler with retries, error handling, and lifecycle management. */

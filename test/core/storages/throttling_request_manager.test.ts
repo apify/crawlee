@@ -1,5 +1,6 @@
 import type { AddRequestsBatchedResult } from '@crawlee/core';
 import {
+    KeyValueStore,
     MemoryStorageBackend,
     PersistentRateLimitError,
     RequestQueue,
@@ -228,6 +229,22 @@ describe('ThrottlingRequestManager', () => {
 
         expect(warning).toHaveBeenCalledTimes(1);
         expect(warning.mock.calls[0][0]).toMatch(/requestsFromUrl/);
+    });
+
+    test('a request fetched from the inner manager is handed back to it', async () => {
+        const inner = await createQueue();
+        const manager = new ThrottlingRequestManager({ inner, domains: ['example.com'] });
+
+        // Bypasses routing, exactly as a `RequestList` transfer or a `requestsFromUrl` expansion does - so the
+        // request sits in the inner manager despite belonging to a throttled domain.
+        await inner.addRequest({ url: 'https://example.com/1' });
+
+        const request = (await manager.fetchNextRequest())!;
+        await manager.markRequestAsHandled(request);
+
+        // Marking it handled in its domain's sub-queue instead would leave the inner manager serving it forever.
+        expect(await manager.isFinished()).toBe(true);
+        expect(await inner.getPendingCount()).toBe(0);
     });
 
     test('recordDomainDelay enforces throttling and fair scheduling', async () => {
@@ -516,6 +533,175 @@ describe('ThrottlingRequestManager', () => {
 
         await manager.addRequest({ url: 'https://example.com/1' });
         expect((await manager.fetchNextRequest())!.url).toBe('https://example.com/1');
+    });
+
+    describe("domains: 'all'", () => {
+        test('gives every domain a queue of its own, the first time it is seen', async () => {
+            const inner = await createQueue();
+            const manager = new ThrottlingRequestManager({ inner, domains: 'all' });
+
+            await manager.addRequest({ url: 'https://example.com/1' });
+            await manager.addRequestsBatched([{ url: 'https://other.com/1' }]);
+
+            // Nothing was left unrouted, and no domain had to be named up front for that.
+            expect(await inner.getTotalCount()).toBe(0);
+            expect(await manager.getTotalCount()).toBe(2);
+        });
+
+        test('backs off a domain nobody listed', async () => {
+            // No delay configured at all: the point is that an unlisted domain still gets a clock, which is
+            // what makes its 429s actionable.
+            const manager = new ThrottlingRequestManager({ inner: await createQueue(), domains: 'all' });
+
+            await manager.addRequest({ url: 'https://example.com/1' });
+
+            expect(manager.recordDomainDelay('https://example.com/1', 60_000)).toBe(true);
+            expect(await manager.fetchNextRequest()).toBeNull();
+        });
+
+        test('paces one domain without holding back the others', async () => {
+            const manager = new ThrottlingRequestManager({
+                inner: await createQueue(),
+                domains: 'all',
+                minCrawlDelaySecs: 0.5,
+            });
+
+            await manager.addRequest({ url: 'https://example.com/1' });
+            await manager.addRequest({ url: 'https://example.com/2' });
+            await manager.addRequest({ url: 'https://other.com/1' });
+
+            expect((await manager.fetchNextRequest())!.url).toBe('https://example.com/1');
+            // example.com is spending its delay, so the unrelated domain goes first...
+            expect((await manager.fetchNextRequest())!.url).toBe('https://other.com/1');
+            // ...and until the delay is up there is nothing else to hand out.
+            expect(await manager.fetchNextRequest()).toBeNull();
+
+            const start = Date.now();
+            const next = await pollForNextRequest(manager);
+
+            expect(Date.now() - start).toBeGreaterThanOrEqual(250);
+            expect(next.url).toBe('https://example.com/2');
+        });
+
+        test('a longer robots.txt crawl-delay wins over the floor', async () => {
+            const manager = new ThrottlingRequestManager({
+                inner: await createQueue(),
+                domains: 'all',
+                minCrawlDelaySecs: 0.01,
+            });
+
+            // Robots.txt is read before the domain's first request is enqueued, so the delay lands on a domain
+            // the manager has never seen.
+            expect(manager.setCrawlDelay('https://example.com/robots.txt', 60)).toBe(true);
+
+            await manager.addRequest({ url: 'https://example.com/1' });
+            await manager.addRequest({ url: 'https://example.com/2' });
+
+            expect((await manager.fetchNextRequest())!.url).toBe('https://example.com/1');
+            await sleep(50);
+            expect(await manager.fetchNextRequest()).toBeNull();
+        });
+
+        test('throttleBy: registrableDomain gives a site and its subdomains one clock', async () => {
+            const manager = new ThrottlingRequestManager({
+                inner: await createQueue(),
+                domains: 'all',
+                minCrawlDelaySecs: 60,
+                throttleBy: 'registrableDomain',
+            });
+
+            await manager.addRequest({ url: 'https://a.example.com/1' });
+            await manager.addRequest({ url: 'https://b.example.com/1' });
+
+            expect((await manager.fetchNextRequest())!.url).toBe('https://a.example.com/1');
+            // A different host, but the same site - so it waits out the delay rather than doubling the rate.
+            expect(await manager.fetchNextRequest()).toBeNull();
+            expect(domainState(manager, 'example.com')).toBeDefined();
+        });
+
+        test('hosts with no registrable domain are still paced per hostname', async () => {
+            const manager = new ThrottlingRequestManager({
+                inner: await createQueue(),
+                domains: 'all',
+                minCrawlDelaySecs: 60,
+                throttleBy: 'registrableDomain',
+            });
+
+            await manager.addRequest({ url: 'http://127.0.0.1:8080/1' });
+            await manager.addRequest({ url: 'http://localhost:8080/1' });
+
+            expect(await manager.fetchNextRequest()).not.toBeNull();
+            // Two hosts that tldts cannot reduce to a common site, so they do not share a queue either.
+            expect(await manager.fetchNextRequest()).not.toBeNull();
+        });
+
+        test('refuses to throttle more domains than maxThrottledDomains', async () => {
+            const manager = new ThrottlingRequestManager({
+                inner: await createQueue(),
+                domains: 'all',
+                maxThrottledDomains: 2,
+            });
+
+            await manager.addRequest({ url: 'https://one.com/1' });
+            await manager.addRequest({ url: 'https://two.com/1' });
+
+            await expect(manager.addRequest({ url: 'https://three.com/1' })).rejects.toThrow(/maxThrottledDomains/);
+        });
+
+        test('a batch that overflows maxThrottledDomains still stores the requests that fit', async () => {
+            const manager = new ThrottlingRequestManager({
+                inner: await createQueue(),
+                domains: 'all',
+                maxThrottledDomains: 50,
+            });
+
+            const urls = Array.from({ length: 100 }, (_, i) => `https://${i}.com`);
+            const error = await manager.addRequestsBatched(urls).catch((e: Error) => e);
+
+            expect(error).toBeInstanceOf(Error);
+            // The other 49 domains that did not fit either are named, not just the first one to overflow.
+            expect((error as Error).message).toMatch(/49 other new domain\(s\)/);
+            expect(await manager.getTotalCount()).toBe(50);
+        });
+
+        test('a restart reopens the queues of domains the previous run discovered', async () => {
+            const firstRun = new ThrottlingRequestManager({ inner: await createQueue(), domains: 'all' });
+            await firstRun.addRequest({ url: 'https://example.com/left-behind' });
+
+            // A restart builds a brand new manager over the same storage backend, with nothing but the
+            // persisted domain list to tell it that queue exists.
+            const secondRun = new ThrottlingRequestManager({ inner: await createQueue(), domains: 'all' });
+
+            expect(await secondRun.getPendingCount()).toBe(1);
+            expect((await pollForNextRequest(secondRun)).url).toBe('https://example.com/left-behind');
+        });
+
+        test('a domain is recorded before its first request lands in the sub-queue', async () => {
+            const order: string[] = [];
+            const store = await KeyValueStore.open();
+            vitest.spyOn(store, 'setValue').mockImplementation(async () => {
+                order.push('persist');
+            });
+
+            const manager = new ThrottlingRequestManager({
+                inner: await createQueue(),
+                domains: 'all',
+                requestManagerOpener: async (identifier, options) => {
+                    const queue = await RequestQueue.open(identifier, options);
+                    const addRequest = queue.addRequest.bind(queue);
+                    queue.addRequest = async (...args) => {
+                        order.push('add');
+                        return addRequest(...args);
+                    };
+                    return queue;
+                },
+            });
+
+            await manager.addRequest({ url: 'https://example.com/1' });
+
+            // The other order would let a crash strand that request in a queue nothing knows to reopen.
+            expect(order).toEqual(['persist', 'add']);
+        });
     });
 
     test('setCrawlDelay sets crawl-delay successfully', async () => {
