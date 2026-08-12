@@ -1,12 +1,13 @@
 import {
     CheerioCrawler,
-    type EnqueueLinksOptions,
+    type EnqueueUrlsOptions,
     MemoryStorageBackend,
     RequestQueue,
     serviceLocator,
     type Source,
 } from '@crawlee/cheerio';
-import { BaseHttpClient, ResponseWithUrl } from '@crawlee/http-client';
+import { extractUrlsFromCheerio } from '@crawlee/utils/internal';
+import { load } from 'cheerio';
 
 const HTML = `
 <html>
@@ -22,32 +23,16 @@ const HTML = `
 </html>
 `;
 
-// Each call gets its own seed URL - a queue that's already handled a seed won't re-run the handler for it,
-// which matters here since some tests call `runEnqueueLinks()` more than once against the same queue.
-const SEED_HOSTNAME = 'seed.example';
-let seedCounter = 0;
-
-class FixtureHttpClient extends BaseHttpClient {
-    protected async fetch(): Promise<Response> {
-        throw new Error('FixtureHttpClient.fetch() should never be called - sendRequest() is overridden directly.');
-    }
-
-    override async sendRequest(request: { url: string | URL }): Promise<Response> {
-        return new ResponseWithUrl(HTML, {
-            url: request.url.toString(),
-            status: 200,
-            headers: { 'content-type': 'text/html; charset=utf-8' },
-        });
-    }
-}
+const BASE_URL = 'https://example.com';
 
 /**
- * Runs `enqueueLinks(options)` against a single-page crawl of `HTML`, seeded at a fresh URL each time, and
- * returns everything it added (captured as it's added, since the crawl processes - and thus removes from
- * the pending queue - everything it enqueues).
+ * Runs `crawler.addRequests()` against the `selector`-matched links extracted from `HTML`, resolved relative
+ * to `BASE_URL`, and returns everything added.
  */
-async function runEnqueueLinks(options: EnqueueLinksOptions, requestManager: RequestQueue): Promise<Source[]> {
-    const seedUrl = `https://${SEED_HOSTNAME}/${seedCounter++}`;
+async function runEnqueueLinks(
+    { selector = 'a', ...options }: EnqueueUrlsOptions & { selector?: string },
+    requestManager: RequestQueue,
+): Promise<Source[]> {
     const enqueued: Source[] = [];
     const originalAddRequests = requestManager.addRequests.bind(requestManager);
     requestManager.addRequests = async (requests, addOptions) => {
@@ -55,20 +40,13 @@ async function runEnqueueLinks(options: EnqueueLinksOptions, requestManager: Req
         for await (const request of requests) {
             items.push(typeof request === 'string' ? { url: request } : (request as Source));
         }
-        enqueued.push(...items.filter((item) => new URL(item.url!).hostname !== SEED_HOSTNAME));
+        enqueued.push(...items);
         return originalAddRequests(items, addOptions);
     };
 
-    const crawler = new CheerioCrawler({
-        requestManager,
-        httpClient: new FixtureHttpClient(),
-        requestHandler: async ({ request, enqueueLinks }) => {
-            if (request.url !== seedUrl) return;
-            await enqueueLinks({ ...options, baseUrl: 'https://example.com' });
-        },
-    });
-
-    await crawler.run([seedUrl]);
+    const crawler = new CheerioCrawler({ requestManager });
+    const urls = extractUrlsFromCheerio(load(HTML), selector, BASE_URL);
+    await crawler.addRequests(urls, { baseUrl: BASE_URL, ...options });
 
     return enqueued;
 }

@@ -1,13 +1,13 @@
 import {
     CheerioCrawler,
-    type EnqueueLinksOptions,
     EnqueueStrategy,
     MemoryStorageBackend,
     RequestQueue,
     serviceLocator,
     type Source,
 } from 'crawlee';
-import { BaseHttpClient, ResponseWithUrl } from '@crawlee/http-client';
+import { extractUrlsFromCheerio } from '@crawlee/utils/internal';
+import { load } from 'cheerio';
 
 const HTML = `
 <html>
@@ -23,26 +23,11 @@ const HTML = `
 </html>
 `;
 
-class FixtureHttpClient extends BaseHttpClient {
-    protected async fetch(): Promise<Response> {
-        throw new Error('FixtureHttpClient.fetch() should never be called - sendRequest() is overridden directly.');
-    }
-
-    override async sendRequest(request: { url: string | URL }): Promise<Response> {
-        return new ResponseWithUrl(HTML, {
-            url: request.url.toString(),
-            status: 200,
-            headers: { 'content-type': 'text/html; charset=utf-8' },
-        });
-    }
-}
-
 /**
- * Runs `enqueueLinks(options)` against a single-page crawl of `HTML`, seeded at `originalRequestUrl`, and
- * returns the URLs `enqueueLinks()` added (captured as it's added, since the crawl processes - and thus
- * removes from the pending queue - everything it enqueues).
+ * Runs `crawler.addRequests()` against the links extracted from `HTML`, resolved relative to `baseUrl` -
+ * the address `enqueueLinks()` would normally anchor the strategy to - and returns the resulting URLs.
  */
-async function enqueuedUrls(options: EnqueueLinksOptions, originalRequestUrl: string): Promise<Set<string>> {
+async function enqueuedUrls(strategy: EnqueueStrategy, baseUrl: string): Promise<Set<string>> {
     const enqueued: Source[] = [];
     const requestQueue = await RequestQueue.open();
     const originalAddRequests = requestQueue.addRequests.bind(requestQueue);
@@ -51,20 +36,13 @@ async function enqueuedUrls(options: EnqueueLinksOptions, originalRequestUrl: st
         for await (const request of requests) {
             items.push(typeof request === 'string' ? { url: request } : (request as Source));
         }
-        enqueued.push(...items.filter((item) => item.url !== originalRequestUrl));
+        enqueued.push(...items);
         return originalAddRequests(items, addOptions);
     };
 
-    const crawler = new CheerioCrawler({
-        requestManager: requestQueue,
-        httpClient: new FixtureHttpClient(),
-        requestHandler: async ({ request, enqueueLinks }) => {
-            if (request.url !== originalRequestUrl) return;
-            await enqueueLinks(options);
-        },
-    });
-
-    await crawler.run([originalRequestUrl]);
+    const crawler = new CheerioCrawler({ requestManager: requestQueue });
+    const urls = extractUrlsFromCheerio(load(HTML), 'a', baseUrl);
+    await crawler.addRequests(urls, { baseUrl, strategy });
 
     return new Set(enqueued.map((item) => item.url!));
 }
@@ -75,20 +53,20 @@ describe('enqueueLinks() - matching and ignoring http/https protocol differences
     });
 
     test('SameHostname should ignore protocol difference', async () => {
-        expect(
-            await enqueuedUrls({ selector: 'a', strategy: EnqueueStrategy.SameHostname }, 'https://example.com'),
-        ).toEqual(new Set(['https://example.com/first', 'http://example.com/second']));
+        expect(await enqueuedUrls(EnqueueStrategy.SameHostname, 'https://example.com')).toEqual(
+            new Set(['https://example.com/first', 'http://example.com/second']),
+        );
     });
 
     test('SameDomain should ignore protocol difference', async () => {
-        expect(
-            await enqueuedUrls({ selector: 'a', strategy: EnqueueStrategy.SameDomain }, 'http://example.com'),
-        ).toEqual(new Set(['https://example.com/first', 'http://example.com/second']));
+        expect(await enqueuedUrls(EnqueueStrategy.SameDomain, 'http://example.com')).toEqual(
+            new Set(['https://example.com/first', 'http://example.com/second']),
+        );
     });
 
     test('SameOrigin should respect protocol', async () => {
-        expect(
-            await enqueuedUrls({ selector: 'a', strategy: EnqueueStrategy.SameOrigin }, 'https://example.com'),
-        ).toEqual(new Set(['https://example.com/first']));
+        expect(await enqueuedUrls(EnqueueStrategy.SameOrigin, 'https://example.com')).toEqual(
+            new Set(['https://example.com/first']),
+        );
     });
 });

@@ -1,13 +1,14 @@
 import {
     CheerioCrawler,
-    type EnqueueLinksOptions,
+    type EnqueueUrlsOptions,
     EnqueueStrategy,
     MemoryStorageBackend,
     RequestQueue,
     serviceLocator,
     type Source,
 } from 'crawlee';
-import { BaseHttpClient, ResponseWithUrl } from '@crawlee/http-client';
+import { extractUrlsFromCheerio } from '@crawlee/utils/internal';
+import { load } from 'cheerio';
 
 const HTML = `
 <html>
@@ -37,26 +38,12 @@ const HTML = `
 
 const SEED_URL = 'https://example.com';
 
-class FixtureHttpClient extends BaseHttpClient {
-    protected async fetch(): Promise<Response> {
-        throw new Error('FixtureHttpClient.fetch() should never be called - sendRequest() is overridden directly.');
-    }
-
-    override async sendRequest(request: { url: string | URL }): Promise<Response> {
-        return new ResponseWithUrl(HTML, {
-            url: request.url.toString(),
-            status: 200,
-            headers: { 'content-type': 'text/html; charset=utf-8' },
-        });
-    }
-}
-
 /**
- * Runs `enqueueLinks(options)` against a single-page crawl of `HTML`, seeded at `SEED_URL`, and returns the
- * URLs `enqueueLinks()` added (captured as it's added, since the crawl processes - and thus removes from the
- * pending queue - everything it enqueues).
+ * Runs `crawler.addRequests()` against the `.click` links extracted from `HTML`, resolved relative to
+ * `SEED_URL` - the address `enqueueLinks()` would normally anchor the strategy to - and returns the
+ * resulting URLs.
  */
-async function enqueuedUrls(options: EnqueueLinksOptions): Promise<Set<string>> {
+async function enqueuedUrls(options: EnqueueUrlsOptions): Promise<Set<string>> {
     const enqueued: Source[] = [];
     const requestQueue = await RequestQueue.open();
     const originalAddRequests = requestQueue.addRequests.bind(requestQueue);
@@ -65,20 +52,13 @@ async function enqueuedUrls(options: EnqueueLinksOptions): Promise<Set<string>> 
         for await (const request of requests) {
             items.push(typeof request === 'string' ? { url: request } : (request as Source));
         }
-        enqueued.push(...items.filter((item) => item.url !== SEED_URL));
+        enqueued.push(...items);
         return originalAddRequests(items, addOptions);
     };
 
-    const crawler = new CheerioCrawler({
-        requestManager: requestQueue,
-        httpClient: new FixtureHttpClient(),
-        requestHandler: async ({ request, enqueueLinks }) => {
-            if (request.url !== SEED_URL) return;
-            await enqueueLinks(options);
-        },
-    });
-
-    await crawler.run([SEED_URL]);
+    const crawler = new CheerioCrawler({ requestManager: requestQueue });
+    const urls = extractUrlsFromCheerio(load(HTML), '.click', SEED_URL);
+    await crawler.addRequests(urls, { baseUrl: SEED_URL, ...options });
 
     return new Set(enqueued.map((item) => item.url!));
 }
@@ -91,7 +71,7 @@ describe('enqueueLinks() - combining user patterns with enqueue strategies', () 
     test('works with include and same domain strategy', async () => {
         const include = ['**/first'];
 
-        expect(await enqueuedUrls({ selector: '.click', include, strategy: EnqueueStrategy.SameDomain })).toEqual(
+        expect(await enqueuedUrls({ include, strategy: EnqueueStrategy.SameDomain })).toEqual(
             new Set(['https://example.com/a/b/first']),
         );
     });
@@ -99,13 +79,13 @@ describe('enqueueLinks() - combining user patterns with enqueue strategies', () 
     test('works with include and all domains strategy', async () => {
         const include = ['**/first'];
 
-        expect(await enqueuedUrls({ selector: '.click', include, strategy: EnqueueStrategy.All })).toEqual(
+        expect(await enqueuedUrls({ include, strategy: EnqueueStrategy.All })).toEqual(
             new Set(['https://example.com/a/b/first', 'https://another.com/a/first']),
         );
     });
 
     test('works with no user provided patterns but with same domain strategy', async () => {
-        expect(await enqueuedUrls({ selector: '.click', strategy: EnqueueStrategy.SameDomain })).toEqual(
+        expect(await enqueuedUrls({ strategy: EnqueueStrategy.SameDomain })).toEqual(
             new Set(['https://example.com/a/b/first', 'https://example.com/a/b/third']),
         );
     });
@@ -114,13 +94,13 @@ describe('enqueueLinks() - combining user patterns with enqueue strategies', () 
         const include = ['**/first'];
         const exclude = ['**/first'];
 
-        expect(await enqueuedUrls({ selector: '.click', include, exclude })).toEqual(new Set());
+        expect(await enqueuedUrls({ include, exclude })).toEqual(new Set());
     });
 
     test('works with exclude only', async () => {
         const exclude = ['**/second', '**/third', 'https://another.com/**'];
 
-        expect(await enqueuedUrls({ selector: '.click', exclude, strategy: EnqueueStrategy.All })).toEqual(
+        expect(await enqueuedUrls({ exclude, strategy: EnqueueStrategy.All })).toEqual(
             new Set(['https://example.com/a/b/first', 'http://cool.com/']),
         );
     });
