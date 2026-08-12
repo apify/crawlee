@@ -934,6 +934,9 @@ importers:
       sax:
         specifier: ^1.4.1
         version: 1.6.0
+      tldts:
+        specifier: ^7.0.6
+        version: 7.0.28
       tslib:
         specifier: ^2.8.1
         version: 2.8.1
