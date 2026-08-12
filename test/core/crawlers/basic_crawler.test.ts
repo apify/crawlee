@@ -3066,7 +3066,7 @@ describe('BasicCrawler', () => {
                         return;
                     }
 
-                    crawler.stats.state.requestsFinished = 2;
+                    crawler.statistics.state.requestsFinished = 2;
 
                     // e.g. `enqueueLinks({ urls, limit: config.limit })` where `config.limit` is not set
                     await context.addRequests(requestsToAdd, { limit: undefined, label: 'child' });
@@ -3105,7 +3105,7 @@ describe('BasicCrawler', () => {
                         return;
                     }
 
-                    crawler.stats.state.requestsFinished = 2;
+                    crawler.statistics.state.requestsFinished = 2;
 
                     await context.addRequests(requestsToAdd, { limit: 4, label: 'child' });
                 },
