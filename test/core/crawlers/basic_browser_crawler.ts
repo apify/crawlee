@@ -1,4 +1,5 @@
-import type { PuppeteerPlugin } from '@crawlee/browser-pool';
+import type { BrowserPlugin, BrowserPoolHooks, BrowserPoolOptions, PuppeteerPlugin } from '@crawlee/browser-pool';
+import { BrowserPool, RemoteBrowserPool } from '@crawlee/browser-pool';
 import type {
     BrowserCrawlerOptions,
     BrowserCrawlingContext,
@@ -12,16 +13,34 @@ import type { HTTPResponse, LaunchOptions, Page } from 'puppeteer';
 
 export type TestCrawlingContext = BrowserCrawlingContext<Page, HTTPResponse, Dictionary>;
 
-export class BrowserCrawlerTest extends BrowserCrawler<
-    Page,
-    HTTPResponse,
-    { browserPlugins: [PuppeteerPlugin] },
-    LaunchOptions,
-    TestCrawlingContext
-> {
-    constructor(options: Partial<BrowserCrawlerOptions<Page, HTTPResponse, TestCrawlingContext>> = {}) {
+type TestBrowserPoolOptions = BrowserPoolOptions<PuppeteerPlugin> &
+    BrowserPoolHooks<
+        ReturnType<PuppeteerPlugin['createController']>,
+        ReturnType<PuppeteerPlugin['createLaunchContext']>,
+        Page
+    >;
+
+export class BrowserCrawlerTest extends BrowserCrawler<Page, HTTPResponse, LaunchOptions, TestCrawlingContext> {
+    constructor(
+        options: Partial<BrowserCrawlerOptions<Page, HTTPResponse, TestCrawlingContext>> & {
+            /**
+             * The concrete crawlers derive their plugin from a `launchContext`; this bare test subclass has no
+             * launcher, so tests hand it the pool options - `browserPlugins` included - directly.
+             */
+            browserPoolOptions?: TestBrowserPoolOptions;
+        } = {},
+    ) {
+        const { browserPoolOptions, ...browserCrawlerOptions } = options;
+
         super({
-            ...options,
+            ...browserCrawlerOptions,
+            browserPoolBuilder: (remoteBrowser) =>
+                remoteBrowser
+                    ? new RemoteBrowserPool<Page>({
+                          ...remoteBrowser,
+                          browserPlugins: browserPoolOptions!.browserPlugins as unknown as BrowserPlugin[],
+                      })
+                    : new BrowserPool(browserPoolOptions!),
             contextPipelineBuilder: () => this.buildContextPipeline(),
         });
     }

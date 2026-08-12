@@ -32,17 +32,7 @@ import {
     tryAbsoluteURL,
     validators,
 } from '@crawlee/basic';
-import type {
-    BrowserController,
-    BrowserPlugin,
-    BrowserPoolHooks,
-    BrowserPoolOptions,
-    CommonPage,
-    CrawlerRemoteBrowserOptions,
-    InferBrowserPluginArray,
-    LaunchContext,
-} from '@crawlee/browser-pool';
-import { BrowserPool, RemoteBrowserPool } from '@crawlee/browser-pool';
+import type { CommonPage, CrawlerRemoteBrowserOptions } from '@crawlee/browser-pool';
 import type { Awaitable, Cookie as CookieObject, Dictionary, IBrowserPool, ISession } from '@crawlee/types';
 import { CLOUDFLARE_RETRY_CSS_SELECTORS, RETRY_CSS_SELECTORS } from '@crawlee/utils/internal';
 import { sleep } from '@crawlee/utils';
@@ -63,7 +53,26 @@ interface BaseResponse {
  * additionally exposes `destroy()` — the crawler only ever tears down pools it created, which is why {@apilink IBrowserPool}
  * itself intentionally omits `destroy`.
  */
-type OwnedBrowserPool<Page> = IBrowserPool<Page> & { destroy: () => Promise<void> };
+export type OwnedBrowserPool<Page> = IBrowserPool<Page> & { destroy: () => Promise<void> };
+
+/**
+ * Rejects options that exist only to configure the browser pool the crawler would have built for itself.
+ * Accepting them alongside a pre-built `browserPool` and quietly ignoring them is how `browserPoolOptions` grew
+ * into a second, half-working way of configuring the same pool.
+ */
+export function assertBrowserPoolNotConfigured(crawlerName: string, ignoredOptions: Dictionary): void {
+    const names = Object.keys(ignoredOptions).filter((name) => ignoredOptions[name] !== undefined);
+
+    if (names.length === 0) {
+        return;
+    }
+
+    throw new Error(
+        `${crawlerName}: ${names.map((name) => `\`${name}\``).join(', ')} cannot be combined with \`browserPool\`, ` +
+            `${names.length > 1 ? 'they configure' : 'it configures'} the browser pool the crawler would build for ` +
+            'itself. Configure the pool you pass in instead.',
+    );
+}
 
 type ContextDifference<T, U> = Omit<U, keyof T> & Partial<U>;
 
@@ -119,11 +128,7 @@ export interface BrowserCrawlerOptions<
     Context extends BrowserCrawlingContext<Page, Response> = BrowserCrawlingContext<Page, Response>,
     ContextExtension = Dictionary<never>,
     ExtendedContext extends Context = Context & ContextExtension,
-    InternalBrowserPoolOptions extends BrowserPoolOptions = BrowserPoolOptions,
     Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
-    __BrowserPlugins extends BrowserPlugin[] = InferBrowserPluginArray<InternalBrowserPoolOptions['browserPlugins']>,
-    __BrowserControllerReturn extends BrowserController = ReturnType<__BrowserPlugins[number]['createController']>,
-    __LaunchContextReturn extends LaunchContext = ReturnType<__BrowserPlugins[number]['createLaunchContext']>,
 > extends Omit<
     BasicCrawlerOptions<Context, ContextExtension, ExtendedContext>,
     // Overridden with browser context
@@ -132,9 +137,17 @@ export interface BrowserCrawlerOptions<
     launchContext?: BrowserLaunchContext<any, any>;
 
     /**
-     * An existing browser pool instance to use. When provided, the crawler will use this pool directly instead of
-     * constructing a new one from `browserPoolOptions`, enabling browser sharing across multiple crawlers. The crawler
-     * will not tear down a shared pool — the caller is responsible for its lifecycle.
+     * The browser pool the crawler should serve its pages from. This is the single way to run a pool with
+     * non-default options: build one with the factory that matches your crawler
+     * ({@apilink playwrightBrowserPool}, {@apilink puppeteerBrowserPool}, {@apilink stagehandBrowserPool}) - it
+     * accepts every {@apilink BrowserPoolOptions|`BrowserPool` option} and supplies the correct browser plugin
+     * itself, so the pool can never mismatch the crawler.
+     *
+     * A pool passed in this way is borrowed, not owned: the crawler will not tear it down, which is what makes it
+     * shareable across crawlers. Since the crawler then builds nothing itself, the options that configure its own
+     * pool (`launchContext`, `headless`, `remoteBrowser`) are rejected rather than silently ignored.
+     *
+     * When omitted, the crawler builds - and tears down - a default pool for its own browser.
      */
     browserPool?: IBrowserPool<Page>;
 
@@ -146,8 +159,9 @@ export interface BrowserCrawlerOptions<
      * crawler. Supply the connection details only: a static `endpoint` URL, a function returning one per launch,
      * or a {@apilink RemoteBrowserProvider}.
      *
-     * Ignored when `browserPool` is set. For sharing a remote pool across crawlers, construct a
-     * {@apilink RemoteBrowserPool} yourself and pass it as `browserPool` instead.
+     * Cannot be combined with `browserPool`. To tune the pool wrapping the remote connection, or to share it
+     * across crawlers, build it with the remote factory for your crawler ({@apilink remotePlaywrightBrowserPool},
+     * {@apilink remotePuppeteerBrowserPool}, {@apilink remoteStagehandBrowserPool}) and pass it as `browserPool`.
      */
     remoteBrowser?: CrawlerRemoteBrowserOptions;
 
@@ -201,13 +215,6 @@ export interface BrowserCrawlerOptions<
      * represents the last error thrown during processing of the request.
      */
     failedRequestHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
-
-    /**
-     * Custom options passed to the underlying {@apilink BrowserPool} constructor.
-     * We can tweak those to fine-tune browser management.
-     */
-    browserPoolOptions?: Partial<BrowserPoolOptions> &
-        Partial<BrowserPoolHooks<__BrowserControllerReturn, __LaunchContextReturn>>;
 
     /**
      * Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies
@@ -276,12 +283,6 @@ export interface BrowserCrawlerOptions<
      * Defines whether the cookies should be persisted for sessions. Enabled by default.
      */
     saveResponseCookies?: boolean;
-
-    /**
-     * Whether to run browser in headless mode. Defaults to `true`.
-     * Can be also set via {@apilink Configuration}.
-     */
-    headless?: boolean | 'new' | 'old'; // `new`/`old` are for puppeteer only
 
     /**
      * Whether to ignore custom elements (and their #shadow-roots) when processing the page content via `parseWithCheerio` helper.
@@ -353,7 +354,6 @@ function isNavigationTimeoutError(error: Error): boolean {
 export abstract class BrowserCrawler<
     Page extends CommonPage = CommonPage,
     Response extends BaseResponse = BaseResponse,
-    InternalBrowserPoolOptions extends BrowserPoolOptions = BrowserPoolOptions,
     LaunchOptions extends Dictionary | undefined = Dictionary,
     Context extends BrowserCrawlingContext<Page, Response> = BrowserCrawlingContext<Page, Response>,
     ContextExtension = Dictionary<never>,
@@ -392,10 +392,9 @@ export abstract class BrowserCrawler<
         postNavigationHooks: schemas.anyArray.default(() => []),
 
         launchContext: schemas.anyObject.default(() => ({})),
-        headless: z.union([z.boolean(), z.string()]).optional(),
         browserPool: validators.browserPool.optional(),
+        browserPoolBuilder: schemas.anyFunction.optional(),
         remoteBrowser: schemas.anyObject.optional(),
-        browserPoolOptions: schemas.anyObject.optional(),
         saveResponseCookies: z.boolean().default(true),
         proxyConfiguration: validators.proxyConfiguration.optional(),
         ignoreIframes: z.boolean().default(false),
@@ -410,6 +409,12 @@ export abstract class BrowserCrawler<
     protected constructor(
         options: BrowserCrawlerOptions<Page, Response, Context, ContextExtension, ExtendedContext> & {
             contextPipelineBuilder: () => ContextPipeline<CrawlingContext, Context>;
+            /**
+             * Builds the pool the crawler owns, used only when the user injected no `browserPool`. Supplied by the
+             * concrete crawler, which is the only place that knows which browser plugin to run - that is also why
+             * `remoteBrowser` is handed to it rather than acted upon here.
+             */
+            browserPoolBuilder: (remoteBrowser?: CrawlerRemoteBrowserOptions) => OwnedBrowserPool<Page>;
         },
     ) {
         const {
@@ -418,16 +423,19 @@ export abstract class BrowserCrawler<
             launchContext,
             browserPool,
             remoteBrowser,
-            browserPoolOptions,
             preNavigationHooks,
             postNavigationHooks,
-            headless,
             ignoreIframes,
             ignoreShadowRoots,
             contextPipelineBuilder,
+            browserPoolBuilder,
             extendContext,
             ...basicCrawlerOptions
         } = parseArgument(options, BrowserCrawler.optionsSchema, 'BrowserCrawlerOptions');
+
+        if (browserPool) {
+            assertBrowserPoolNotConfigured(new.target.name, { remoteBrowser });
+        }
 
         const skipGuard = <Ctx extends Context>(
             action: (ctx: Ctx) => Awaitable<void | Partial<Ctx>>,
@@ -489,44 +497,9 @@ export abstract class BrowserCrawler<
         this.ignoreIframes = ignoreIframes;
         this.ignoreShadowRoots = ignoreShadowRoots;
 
-        if (headless != null) {
-            this.launchContext.launchOptions ??= {} as LaunchOptions;
-            (this.launchContext.launchOptions as Dictionary).headless = headless;
-        }
-
         this.#saveResponseCookies = saveResponseCookies;
 
-        // `browserPool` wins over `remoteBrowser` — a passed-in pool is used as-is (borrowed), the sugar is ignored.
-        // The default is only built when no pool was injected, so all the option/launchContext fiddling below stays
-        // inside the factory.
-        this.#browserPoolDep = OwnedOrInjected.resolve(browserPool, () => {
-            const resolvedBrowserPoolOptions = browserPoolOptions ?? ({} as Partial<BrowserPoolOptions>);
-
-            if (launchContext?.userAgent) {
-                if (resolvedBrowserPoolOptions.useFingerprints)
-                    this.log.info('Custom user agent provided, disabling automatic browser fingerprint injection!');
-                resolvedBrowserPoolOptions.useFingerprints = false;
-            }
-
-            if (remoteBrowser) {
-                // The crawler already built the right plugin for its browser — hand it to a RemoteBrowserPool so the
-                // remote connection is always for the matching browser (no plugin to construct, no way to mismatch).
-                const { browserPlugins, ...remoteBrowserPoolOptions } = resolvedBrowserPoolOptions;
-                return new RemoteBrowserPool({
-                    browserPlugins: browserPlugins as BrowserPlugin[],
-                    ...remoteBrowser,
-                    browserPoolOptions: remoteBrowserPoolOptions as any,
-                }) as OwnedBrowserPool<Page>;
-            }
-
-            // Double cast: `BrowserPool` implements `IBrowserPool<PageReturn>`, where `PageReturn` is derived from the
-            // plugin/controller generics and doesn't overlap with the crawler's free `Page` type param, so TS won't
-            // narrow it directly. The concrete pool does satisfy the `Page`/`destroy` contract at runtime — this is the
-            // long-standing `Page` variance gap, not a `destroy`-related hole.
-            return new BrowserPool<InternalBrowserPoolOptions>({
-                ...(resolvedBrowserPoolOptions as any),
-            }) as unknown as OwnedBrowserPool<Page>;
-        });
+        this.#browserPoolDep = OwnedOrInjected.resolve(browserPool, () => browserPoolBuilder(remoteBrowser));
     }
 
     protected override getNavigationTimeoutMillis(): number {

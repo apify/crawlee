@@ -12,10 +12,13 @@ import type { BasicCrawlerOptions } from '@crawlee/basic';
 import { BatchAddRequestsResult } from '@crawlee/types';
 import type { Browser } from 'playwright';
 import { BrowserCrawler } from '@crawlee/browser';
-import type { BrowserCrawlerOptions } from '@crawlee/browser';
+import { BrowserCrawlerOptions } from '@crawlee/browser';
 import type { BrowserCrawlingContext } from '@crawlee/browser';
 import type { BrowserHook } from '@crawlee/browser';
 import type { BrowserLaunchContext } from '@crawlee/browser';
+import type { BrowserPool } from '@crawlee/browser-pool';
+import type { BrowserPoolHooks } from '@crawlee/browser-pool';
+import type { BrowserPoolOptions } from '@crawlee/browser-pool';
 import type { BrowserType } from 'playwright';
 import { Cheerio } from 'cheerio';
 import { CheerioAPI } from '@crawlee/browser';
@@ -37,6 +40,8 @@ import type { LoadedRequest } from '@crawlee/browser';
 import type { Page } from 'playwright';
 import { PlaywrightPlugin } from '@crawlee/browser-pool';
 import type { RecoverableStatePersistenceOptions } from '@crawlee/core';
+import type { RemoteBrowserPool } from '@crawlee/browser-pool';
+import type { RemoteBrowserPoolOptions } from '@crawlee/browser-pool';
 import type { Request as Request_2 } from '@crawlee/core';
 import { Request as Request_3 } from '@crawlee/browser';
 import type { RequestHandler } from '@crawlee/browser';
@@ -300,6 +305,21 @@ export function launchPlaywright(launchContext?: PlaywrightLaunchContext, config
 // @public
 function parseWithCheerio(page: Page, ignoreShadowRoots?: boolean, ignoreIframes?: boolean): Promise<CheerioRoot>;
 
+// @public
+export type PlaywrightBrowserPool = BrowserPool<{
+    browserPlugins: [PlaywrightPlugin];
+}, [PlaywrightPlugin]>;
+
+// @public
+export function playwrightBrowserPool(options?: PlaywrightBrowserPoolOptions): PlaywrightBrowserPool;
+
+// @public (undocumented)
+export interface PlaywrightBrowserPoolOptions extends Omit<BrowserPoolOptions, 'browserPlugins'>, BrowserPoolHooks<ReturnType<PlaywrightPlugin['createController']>, ReturnType<PlaywrightPlugin['createLaunchContext']>, Page> {
+    configuration?: Configuration;
+    headless?: boolean;
+    launchContext?: PlaywrightLaunchContext;
+}
+
 declare namespace playwrightClickElements {
     export {
         enqueueLinksByClickingElements,
@@ -326,9 +346,7 @@ interface PlaywrightContextUtils {
 }
 
 // @public
-export class PlaywrightCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends PlaywrightCrawlingContext = PlaywrightCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<PlaywrightCrawlingContext['request']>>> extends BrowserCrawler<Page, Response_2, {
-    browserPlugins: [PlaywrightPlugin];
-}, LaunchOptions, PlaywrightCrawlingContext, ContextExtension, ExtendedContext, Routes> {
+export class PlaywrightCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends PlaywrightCrawlingContext = PlaywrightCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<PlaywrightCrawlingContext['request']>>> extends BrowserCrawler<Page, Response_2, LaunchOptions, PlaywrightCrawlingContext, ContextExtension, ExtendedContext, Routes> {
     constructor(options?: PlaywrightCrawlerOptions<ContextExtension, ExtendedContext, Routes>);
     // (undocumented)
     protected buildContextPipeline(): ContextPipeline<CrawlingContext<Dictionary>, BrowserCrawlingContext<Page, Response_2, Dictionary, Dictionary> & {
@@ -349,14 +367,14 @@ export class PlaywrightCrawler<ContextExtension = Dictionary<never>, ExtendedCon
     protected navigationHandler(crawlingContext: PlaywrightCrawlingContext, gotoOptions: PlaywrightDirectNavigationOptions): Promise<Response_2 | null>;
     // (undocumented)
     protected static optionsSchema: z.ZodObject<{
-        browserPoolOptions: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
+        headless: z.ZodOptional<z.ZodBoolean>;
         launcher: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
         navigationTimeoutSecs: z.ZodDefault<z.ZodCustom<number, number>>;
         preNavigationHooks: z.ZodDefault<z.ZodCustom<unknown[], unknown[]>>;
         postNavigationHooks: z.ZodDefault<z.ZodCustom<unknown[], unknown[]>>;
         launchContext: z.ZodDefault<z.ZodCustom<Dictionary, Dictionary>>;
-        headless: z.ZodOptional<z.ZodUnion<readonly [z.ZodBoolean, z.ZodString]>>;
         browserPool: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
+        browserPoolBuilder: z.ZodOptional<z.ZodCustom<(...args: any[]) => unknown, (...args: any[]) => unknown>>;
         remoteBrowser: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
         saveResponseCookies: z.ZodDefault<z.ZodBoolean>;
         proxyConfiguration: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
@@ -406,14 +424,14 @@ export class PlaywrightCrawler<ContextExtension = Dictionary<never>, ExtendedCon
     }, z.core.$strict>;
     // (undocumented)
     protected static optionsShape: {
-        browserPoolOptions: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
+        headless: z.ZodOptional<z.ZodBoolean>;
         launcher: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
         navigationTimeoutSecs: z.ZodDefault<z.ZodCustom<number, number>>;
         preNavigationHooks: z.ZodDefault<z.ZodCustom<unknown[], unknown[]>>;
         postNavigationHooks: z.ZodDefault<z.ZodCustom<unknown[], unknown[]>>;
         launchContext: z.ZodDefault<z.ZodCustom<Dictionary, Dictionary>>;
-        headless: z.ZodOptional<z.ZodUnion<readonly [z.ZodBoolean, z.ZodString]>>;
         browserPool: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
+        browserPoolBuilder: z.ZodOptional<z.ZodCustom<(...args: any[]) => unknown, (...args: any[]) => unknown>>;
         remoteBrowser: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
         saveResponseCookies: z.ZodDefault<z.ZodBoolean>;
         proxyConfiguration: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
@@ -464,9 +482,8 @@ export class PlaywrightCrawler<ContextExtension = Dictionary<never>, ExtendedCon
 }
 
 // @public (undocumented)
-export interface PlaywrightCrawlerOptions<ContextExtension = Dictionary<never>, ExtendedContext extends PlaywrightCrawlingContext = PlaywrightCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<PlaywrightCrawlingContext['request']>>> extends BrowserCrawlerOptions<Page, Response_2, PlaywrightCrawlingContext, ContextExtension, ExtendedContext, {
-    browserPlugins: [PlaywrightPlugin];
-}, Routes> {
+export interface PlaywrightCrawlerOptions<ContextExtension = Dictionary<never>, ExtendedContext extends PlaywrightCrawlingContext = PlaywrightCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<PlaywrightCrawlingContext['request']>>> extends BrowserCrawlerOptions<Page, Response_2, PlaywrightCrawlingContext, ContextExtension, ExtendedContext, Routes> {
+    headless?: boolean;
     launchContext?: PlaywrightLaunchContext;
     postNavigationHooks?: BrowserHook<PlaywrightCrawlingContext<GetUserDataFromRequest<ExtendedContext['request']>>, ContextExtension>[];
     preNavigationHooks?: BrowserHook<PlaywrightCrawlingContext<GetUserDataFromRequest<ExtendedContext['request']>>, ContextExtension>[];
@@ -523,6 +540,13 @@ declare namespace playwrightUtils {
         enqueueLinksByClickingElements,
         playwrightUtils_2 as playwrightUtils
     }
+}
+
+// @public
+export function remotePlaywrightBrowserPool(options: RemotePlaywrightBrowserPoolOptions): RemoteBrowserPool<Page>;
+
+// @public (undocumented)
+export interface RemotePlaywrightBrowserPoolOptions extends Pick<PlaywrightBrowserPoolOptions, 'launchContext' | 'headless' | 'configuration'>, Omit<RemoteBrowserPoolOptions, 'browserPlugins'> {
 }
 
 // @public (undocumented)

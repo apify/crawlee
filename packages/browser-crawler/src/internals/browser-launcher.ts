@@ -2,8 +2,15 @@ import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import os from 'node:os';
 
-import { Configuration, schemas } from '@crawlee/basic';
-import type { BrowserPlugin, BrowserPluginOptions } from '@crawlee/browser-pool';
+import { Configuration, schemas, serviceLocator } from '@crawlee/basic';
+import type {
+    BrowserPlugin,
+    BrowserPluginOptions,
+    BrowserPoolHooks,
+    BrowserPoolOptions,
+    RemoteBrowserPoolOptions,
+} from '@crawlee/browser-pool';
+import { BrowserPool, RemoteBrowserPool } from '@crawlee/browser-pool';
 import type { Constructor, Dictionary } from '@crawlee/types';
 import { z } from 'zod';
 
@@ -83,6 +90,21 @@ export interface BrowserLaunchContext<TOptions, Launcher> extends BrowserPluginO
      */
     launcher?: Launcher;
 }
+
+/**
+ * The {@apilink BrowserPool} options a launcher-built pool accepts: everything the pool itself takes except
+ * `browserPlugins`, which the launcher derives from its launch context. The hooks are deliberately unconstrained -
+ * the browser they run against is only known to the concrete `*BrowserPool()` factory, which is where the
+ * caller-facing types are pinned down.
+ */
+export type LauncherBrowserPoolOptions = Omit<BrowserPoolOptions, 'browserPlugins'> & {
+    [Hook in keyof BrowserPoolHooks<any, any, any>]?: readonly ((...args: any[]) => unknown)[];
+};
+
+/**
+ * The {@apilink RemoteBrowserPool} counterpart of {@apilink LauncherBrowserPoolOptions}.
+ */
+export type LauncherRemoteBrowserPoolOptions = Omit<RemoteBrowserPoolOptions, 'browserPlugins'>;
 
 /**
  * Abstract class for creating browser launchers, such as `PlaywrightLauncher` and `PuppeteerLauncher`.
@@ -171,6 +193,54 @@ export abstract class BrowserLauncher<
             launchOptions: this.createLaunchOptions(),
             ...this.otherLaunchContextProps,
         });
+    }
+
+    /**
+     * Builds a {@apilink BrowserPool} running a single plugin for this launcher's browser. Shared body of the
+     * per-library `*BrowserPool()` factories, which exist so that configuring a pool never requires assembling
+     * a plugin by hand — and therefore never lets the plugin drift away from the crawler it is used with.
+     * @internal
+     */
+    createBrowserPool(options: LauncherBrowserPoolOptions = {}): BrowserPool<{ browserPlugins: [Plugin] }, [Plugin]> {
+        // The hook types `BrowserPool` derives from `Plugin` are unresolvable while `Plugin` is still a free type
+        // parameter, so the argument cannot be checked here. The concrete `*BrowserPool()` factories are where the
+        // caller-facing hook types get pinned down.
+        return new BrowserPool<{ browserPlugins: [Plugin] }, [Plugin]>({
+            ...this.resolveFingerprinting(options),
+            browserPlugins: [this.createBrowserPlugin()],
+        } as any);
+    }
+
+    /**
+     * The {@apilink RemoteBrowserPool} counterpart of {@apilink BrowserLauncher.createBrowserPool}: the launcher
+     * supplies the plugin, the caller supplies the remote connection details.
+     * @internal
+     */
+    createRemoteBrowserPool<Page>(options: LauncherRemoteBrowserPoolOptions): RemoteBrowserPool<Page> {
+        return new RemoteBrowserPool<Page>({
+            ...options,
+            browserPlugins: [this.createBrowserPlugin()],
+            browserPoolOptions: this.resolveFingerprinting(options.browserPoolOptions ?? {}),
+        });
+    }
+
+    /**
+     * A custom `userAgent` and Crawlee's fingerprint injection would both write the same headers, so an
+     * explicitly requested user agent wins.
+     */
+    private resolveFingerprinting<T extends { useFingerprints?: boolean }>(options: T): T {
+        if (!this.userAgent) {
+            return options;
+        }
+
+        if (options.useFingerprints) {
+            serviceLocator
+                .getLogger()
+                .child({ prefix: 'BrowserLauncher' })
+                .info('Custom user agent provided, disabling automatic browser fingerprint injection!');
+        }
+
+        return { ...options, useFingerprints: false };
     }
 
     /**
