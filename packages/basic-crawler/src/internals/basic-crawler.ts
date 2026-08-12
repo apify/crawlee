@@ -1017,11 +1017,10 @@ export class BasicCrawler<
                 }
                 // Both would pace the same domains, from different keys and with no idea of one another.
                 if (sameDomainDelaySecs > 0 && supportsDomainThrottling(requestManager)) {
-                    throw new ArgumentError(
+                    throw new Error(
                         'The `sameDomainDelaySecs` option cannot be combined with a `requestManager` that throttles ' +
                             'per domain on its own. Configure the delay on the manager instead, via the ' +
-                            '`sameDomainDelaySecs` option of `ThrottlingRequestManager`.',
-                        this.constructor,
+                            '`minCrawlDelaySecs` option of `ThrottlingRequestManager`.',
                     );
                 }
 
