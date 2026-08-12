@@ -398,7 +398,7 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
         return this.userData.__crawlee?.enqueueStrategy;
     }
 
-    private set enqueueStrategy(value: EnqueueStrategyOption) {
+    private set enqueueStrategy(value: EnqueueStrategyOption | undefined) {
         if (!this.userData.__crawlee) {
             (this.userData as Dictionary).__crawlee = { enqueueStrategy: value };
         } else {

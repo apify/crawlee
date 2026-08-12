@@ -4,6 +4,7 @@
 
 ```ts
 
+import { BatchAddRequestsResult } from '@crawlee/types';
 import * as cheerio from 'cheerio';
 import { CheerioRoot } from '@crawlee/utils/internal';
 import { ContextPipeline } from '@crawlee/http';
@@ -11,6 +12,7 @@ import type { CrawlingContext } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
 import type { EnqueueLinksOptions } from '@crawlee/http';
 import type { ErrorHandler } from '@crawlee/http';
+import type { ExtractLinksOptions } from '@crawlee/http';
 import type { GetUserDataFromRequest } from '@crawlee/http';
 import { HttpCrawler } from '@crawlee/http';
 import type { HttpCrawlerOptions } from '@crawlee/http';
@@ -40,14 +42,11 @@ export class LinkeDOMCrawler<ContextExtension = Dictionary<never>, ExtendedConte
     readonly body: string;
     readonly document: Document;
     } & {
-    enqueueLinks: (enqueueOptions?: LinkeDOMCrawlerEnqueueLinksOptions) => Promise<unknown>;
+    extractLinks: (options?: ExtractLinksOptions) => Promise<string[]>;
+    enqueueLinks: (options?: EnqueueLinksOptions) => Promise<BatchAddRequestsResult>;
     waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
     parseWithCheerio(selector?: string, _timeoutMs?: number): Promise<cheerio.CheerioAPI>;
     }>;
-}
-
-// @public (undocumented)
-export interface LinkeDOMCrawlerEnqueueLinksOptions extends Omit<EnqueueLinksOptions, 'urls' | 'requestManager'> {
 }
 
 // @public (undocumented)
@@ -61,6 +60,7 @@ export interface LinkeDOMCrawlingContext<UserData extends Dictionary = any, // w
 JSONData extends Dictionary = any> extends InternalHttpCrawlingContext<UserData, JSONData> {
     // (undocumented)
     document: Document;
+    extractLinks(options?: ExtractLinksOptions): Promise<string[]>;
     parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
     waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
     // (undocumented)

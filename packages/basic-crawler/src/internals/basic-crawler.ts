@@ -2633,8 +2633,12 @@ export class BasicCrawler<
         ) {
             if (onSkippedRequest && skippedRequests.length > 0) {
                 await Promise.all(
-                    skippedRequests.map((skippedRequest) =>
-                        onSkippedRequest({ url: skippedRequest.url, reason: skippedRequest.skippedReason ?? reason }),
+                    skippedRequests.map(
+                        (skippedRequest) =>
+                            onSkippedRequest({
+                                url: skippedRequest.url,
+                                reason: skippedRequest.skippedReason ?? reason,
+                            }) as Promise<void>,
                     ),
                 );
             }

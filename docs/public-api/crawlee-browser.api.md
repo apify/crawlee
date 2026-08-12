@@ -24,6 +24,7 @@ import type { CrawlingContext } from '@crawlee/basic';
 import type { Dictionary } from '@crawlee/types';
 import type { EnqueueLinksOptions } from '@crawlee/basic';
 import type { ErrorHandler } from '@crawlee/basic';
+import type { ExtractLinksOptions } from '@crawlee/basic';
 import type { GetUserDataFromRequest } from '@crawlee/basic';
 import type { IBrowserPool } from '@crawlee/types';
 import type { InferBrowserPluginArray } from '@crawlee/browser-pool';
@@ -139,6 +140,7 @@ export interface BrowserCrawlerOptions<Page extends CommonPage = CommonPage, Res
 export interface BrowserCrawlingContext<Page extends CommonPage = CommonPage, Response extends BaseResponse = BaseResponse, UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 GoToOptions extends Dictionary = Dictionary> extends CrawlingContext<UserData> {
     enqueueLinks: (options?: EnqueueLinksOptions) => Promise<BatchAddRequestsResult>;
+    extractLinks: (options?: ExtractLinksOptions) => Promise<string[]>;
     gotoOptions: GoToOptions;
     page: Page;
     request: LoadedRequest<Request_2<UserData>>;

@@ -40,7 +40,6 @@ import { RobotsTxtFile } from '@crawlee/utils';
 import type { SendRequestOptions } from '@crawlee/types';
 import type { SessionFingerprint } from '@crawlee/types';
 import { SessionState } from '@crawlee/types';
-import type { SetRequired } from 'type-fest';
 import type { StandardSchemaV1 } from '@standard-schema/spec';
 import type * as storage from '@crawlee/types';
 import { StorageBackend } from '@crawlee/types';
@@ -327,7 +326,6 @@ export { CrawleeLoggerOptions }
 
 // @public (undocumented)
 export interface CrawlingContext<UserData extends Dictionary = Dictionary> extends RestrictedCrawlingContext<UserData> {
-    enqueueLinks(options: ReadonlyDeep<Omit<SetRequired<EnqueueLinksOptions, 'urls'>, 'requestManager' | 'robotsTxtFile'>> & Pick<EnqueueLinksOptions, 'requestManager' | 'robotsTxtFile'>): Promise<unknown>;
     extendTimeout(secs: number): void;
     registerDeferredCleanup(cleanup: () => Promise<unknown>): void;
     sendRequest: (requestOverrides?: Partial<HttpRequestOptions>, optionsOverrides?: SendRequestOptions) => Promise<Response>;
@@ -523,34 +521,7 @@ export interface DefaultStorageIdentifier {
 }
 
 // @public
-export function enqueueLinks(options: SetRequired<Omit<EnqueueLinksOptions, 'requestManager'>, 'urls'> & {
-    requestManager: {
-        addRequestsBatched: (requests: Request_2<Dictionary>[], options: AddRequestsBatchedOptions) => Promise<AddRequestsBatchedResult>;
-    };
-}): Promise<BatchAddRequestsResult>;
-
-// @public (undocumented)
-export interface EnqueueLinksOptions extends RequestQueueOperationOptions {
-    baseUrl?: string;
-    exclude?: readonly UrlPatternInput[];
-    include?: readonly UrlPatternInput[];
-    label?: string;
-    limit?: number;
-    onSkippedRequest?: SkippedRequestCallback;
-    requestManager?: IRequestManager;
-    respectRobotsTxtFile?: boolean | {
-        userAgent?: string;
-    };
-    robotsTxtFile?: Pick<RobotsTxtFile, 'isAllowed'>;
-    selector?: string;
-    sessionId?: string;
-    skipNavigation?: boolean;
-    strategy?: EnqueueStrategy | 'all' | 'same-domain' | 'same-hostname' | 'same-origin';
-    transformRequestFunction?: RequestTransform;
-    urls?: readonly string[];
-    userData?: Dictionary;
-    waitForAllRequestsToBeAdded?: boolean;
-}
+export type EnqueueLinksOptions = ExtractLinksOptions & EnqueueUrlsOptions;
 
 // @public
 export enum EnqueueStrategy {
@@ -558,6 +529,29 @@ export enum EnqueueStrategy {
     SameDomain = "same-domain",
     SameHostname = "same-hostname",
     SameOrigin = "same-origin"
+}
+
+// @public
+export type EnqueueStrategyOption = EnqueueStrategy | 'all' | 'same-domain' | 'same-hostname' | 'same-origin';
+
+// @public
+export interface EnqueueUrlsOptions extends RequestQueueOperationOptions {
+    baseUrl?: string;
+    exclude?: readonly UrlPatternInput[];
+    include?: readonly UrlPatternInput[];
+    label?: string;
+    limit?: number;
+    onSkippedRequest?: SkippedRequestCallback;
+    respectRobotsTxtFile?: boolean | {
+        userAgent?: string;
+    };
+    robotsTxtFile?: Pick<RobotsTxtFile, 'isAllowed'>;
+    sessionId?: string;
+    skipNavigation?: boolean;
+    strategy?: EnqueueStrategyOption;
+    transformRequestFunction?: RequestTransform;
+    userData?: Dictionary;
+    waitForAllRequestsToBeAdded?: boolean;
 }
 
 // @public
@@ -736,6 +730,12 @@ export type ExplicitStorageIdentifier = {
     name?: never;
     alias: string;
 };
+
+// @public
+export interface ExtractLinksOptions {
+    baseUrl?: string;
+    selector?: string;
+}
 
 // @public (undocumented)
 export function field<T extends z.ZodType>(schema: T, envVar?: string | string[]): ConfigField<T>;
@@ -1588,7 +1588,7 @@ export interface ResponseLike {
 // @public (undocumented)
 export interface RestrictedCrawlingContext<UserData extends Dictionary = Dictionary> {
     addRequests: (requestsLike: ReadonlyDeep<(string | Source)[]>, options?: ReadonlyDeep<RequestQueueOperationOptions>) => Promise<void>;
-    enqueueLinks: (options: ReadonlyDeep<Omit<SetRequired<EnqueueLinksOptions, 'urls'>, 'requestManager' | 'robotsTxtFile'>>) => Promise<unknown>;
+    enqueueUrls: (urls: ReadonlyDeep<readonly string[]>, options?: ReadonlyDeep<Omit<EnqueueUrlsOptions, 'robotsTxtFile'>>) => Promise<BatchAddRequestsResult>;
     getKeyValueStore: (identifier?: string | StorageIdentifier) => Promise<Pick<KeyValueStore, 'id' | 'name' | 'getValue' | 'getAutoSavedValue' | 'setValue' | 'getPublicUrl'>>;
     // (undocumented)
     id: string;
@@ -1612,15 +1612,15 @@ export interface RouteOptions {
 }
 
 // @public
-export class Router<Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'>, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>> {
+export class Router<Context extends Omit<RestrictedCrawlingContext, 'enqueueUrls'>, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>> {
     addDefaultHandler<UserData extends Dictionary = DefaultRouteUserData<Routes, GetUserDataFromRequest<Context['request']>>>(handler: (ctx: RouterHandlerContext<Context, UserData, Routes>) => Awaitable<void>, options?: RouteOptions): void;
     addHandler<Label extends keyof Routes & string>(label: Label, handler: (ctx: RouterHandlerContext<Context, Routes[Label], Routes>) => Awaitable<void>, options?: RouteOptions): void;
     addHandler<UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(label: RouterLabel<Routes>, handler: (ctx: RouterHandlerContext<Context, UserData, Routes>) => Awaitable<void>, options?: RouteOptions): void;
-    static create<Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'> = CrawlingContext, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
+    static create<Context extends Omit<RestrictedCrawlingContext, 'enqueueUrls'> = CrawlingContext, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
     // (undocumented)
-    static create<Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'> = CrawlingContext, UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
+    static create<Context extends Omit<RestrictedCrawlingContext, 'enqueueUrls'> = CrawlingContext, UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
     // (undocumented)
-    static create<Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'> = CrawlingContext, const Schemas extends RouteSchemas = RouteSchemas>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
+    static create<Context extends Omit<RestrictedCrawlingContext, 'enqueueUrls'> = CrawlingContext, const Schemas extends RouteSchemas = RouteSchemas>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
     getHandler(label?: string | symbol): (ctx: Context) => Awaitable<void>;
     getMaxTimeoutSecs(): number | undefined;
     getTimeoutSecs(label?: string | symbol): number | undefined;
@@ -1628,7 +1628,7 @@ export class Router<Context extends Omit<RestrictedCrawlingContext, 'enqueueLink
 }
 
 // @public (undocumented)
-export interface RouterHandler<Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'> = CrawlingContext, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>> extends Router<Context, Routes> {
+export interface RouterHandler<Context extends Omit<RestrictedCrawlingContext, 'enqueueUrls'> = CrawlingContext, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>> extends Router<Context, Routes> {
     // (undocumented)
     (ctx: Context): Awaitable<void>;
 }

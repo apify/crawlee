@@ -7,6 +7,7 @@
 import { AnyPredicate } from 'ow';
 import { ArrayPredicate } from 'ow';
 import { BasePredicate } from 'ow';
+import { BatchAddRequestsResult } from '@crawlee/types';
 import { BooleanPredicate } from 'ow';
 import { CheerioAPI } from 'cheerio';
 import { CheerioRoot } from '@crawlee/utils/internal';
@@ -16,6 +17,7 @@ import type { Dictionary } from '@crawlee/types';
 import type { DOMWindow } from 'jsdom';
 import type { EnqueueLinksOptions } from '@crawlee/http';
 import type { ErrorHandler } from '@crawlee/http';
+import type { ExtractLinksOptions } from '@crawlee/http';
 import type { GetUserDataFromRequest } from '@crawlee/http';
 import { HttpCrawler } from '@crawlee/http';
 import type { HttpCrawlerOptions } from '@crawlee/http';
@@ -51,7 +53,8 @@ export class JSDOMCrawler<ContextExtension = Dictionary<never>, ExtendedContext 
     readonly body: string;
     readonly document: Document;
     } & {
-    enqueueLinks: (enqueueOptions?: EnqueueLinksOptions) => Promise<unknown>;
+    extractLinks: (options?: ExtractLinksOptions) => Promise<string[]>;
+    enqueueLinks: (options?: EnqueueLinksOptions) => Promise<BatchAddRequestsResult>;
     waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
     parseWithCheerio(selector?: string, _timeoutMs?: number): Promise<CheerioAPI>;
     }>;
@@ -123,6 +126,7 @@ JSONData extends Dictionary = any> extends InternalHttpCrawlingContext<UserData,
     body: string;
     // (undocumented)
     document: Document;
+    extractLinks(options?: ExtractLinksOptions): Promise<string[]>;
     parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
     waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
     // (undocumented)
