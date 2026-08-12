@@ -58,11 +58,11 @@
     "dependencies": {
         "@apify/log": "^2.4.0",
         "@apify/timeout": "^0.4.0",
-        "@crawlee/browser": "^3.18.1",
-        "@crawlee/browser-pool": "^3.18.1",
-        "@crawlee/core": "^3.18.1",
-        "@crawlee/types": "^3.18.1",
-        "@crawlee/utils": "^3.18.1",
+        "@crawlee/browser": "3.18.1",
+        "@crawlee/browser-pool": "3.18.1",
+        "@crawlee/core": "3.18.1",
+        "@crawlee/types": "3.18.1",
+        "@crawlee/utils": "3.18.1",
         "ow": "^0.28.1",
         "tslib": "^2.4.0"
     },
