@@ -30,13 +30,9 @@ describe('RenderingTypePredictor', () => {
             // eslint-disable-next-line dot-notation
             await predictor['state'].persistState(); // Access private state for persistence
 
-            // RecoverableState persists with a `text/plain` content type on purpose (it owns
-            // (de)serialization), so the frontend hands back the raw serialized string here.
-            const serializedState = await store.getValue<string>(persistStateKey);
-            expect(serializedState).not.toBeNull();
-            const parsedState = JSON.parse(serializedState!);
-            expect(parsedState).toHaveProperty('logreg');
-            expect(parsedState).toHaveProperty('detectionResults');
+            const persistedState = await store.getValue(persistStateKey);
+            expect(persistedState).toHaveProperty('logreg');
+            expect(persistedState).toHaveProperty('detectionResults');
 
             // Create a new predictor and verify it restores the state
             const restoredPredictor = new RenderingTypePredictor({
