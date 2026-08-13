@@ -683,23 +683,30 @@ export async function handleCloudflareChallenge(
     options: HandleCloudflareChallengeOptions = {},
     response?: Response,
 ): Promise<Response | undefined> {
-    options.isBlockedCallback ??= async () => {
-        const isBlocked = await page.evaluate(() => {
-            return document.querySelector('h1')?.textContent?.trim().includes('Sorry, you have been blocked');
+    // The options object may outlive this call (the pre-wrapped hook reuses one instance for all
+    // requests and retries), so the defaults are kept local instead of being memoized on `options` -
+    // memoizing them would pin the closed-over `page` of the first call forever.
+    const isBlockedCallback =
+        options.isBlockedCallback ??
+        (async (p: Page) => {
+            const isBlocked = await p.evaluate(() => {
+                return document.querySelector('h1')?.textContent?.trim().includes('Sorry, you have been blocked');
+            });
+            return !!isBlocked;
         });
-        return !!isBlocked;
-    };
 
-    options.isChallengeCallback ??= async () => {
-        return await page.evaluate(async () => {
-            // Cloudflare keeps reshuffling the wrapper elements between `.footer-inner` and `.ray-id`,
-            // so only the stable outer classes are matched.
-            return !!document.querySelector('.footer .footer-inner .ray-id');
+    const isChallengeCallback =
+        options.isChallengeCallback ??
+        (async (p: Page) => {
+            return await p.evaluate(async () => {
+                // Cloudflare keeps reshuffling the wrapper elements between `.footer-inner` and `.ray-id`,
+                // so only the stable outer classes are matched.
+                return !!document.querySelector('.footer .footer-inner .ray-id');
+            });
         });
-    };
 
     const retryBlocked = async () => {
-        const isBlocked = await options.isBlockedCallback!(page).catch(() => false);
+        const isBlocked = await isBlockedCallback(page).catch(() => false);
 
         if (isBlocked) {
             throw new SessionError(`Blocked by Cloudflare when processing ${url}`);
@@ -708,10 +715,10 @@ export async function handleCloudflareChallenge(
 
     // check if we ended up on the CF challenge page
     const isChallenge = async () => {
-        return options.isChallengeCallback!(page).catch(async () => {
+        return isChallengeCallback(page).catch(async () => {
             // the challenge page navigates itself, which destroys the context of an in-flight check
             await page.waitForLoadState('domcontentloaded').catch(() => {});
-            return options.isChallengeCallback!(page).catch(() => false);
+            return isChallengeCallback(page).catch(() => false);
         });
     };
 
