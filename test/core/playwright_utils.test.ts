@@ -503,6 +503,25 @@ describe('playwrightUtils', () => {
             ).resolves.toBeUndefined();
         });
 
+        test('detects the challenge on a new page when the same options object is reused across calls', async () => {
+            // the pre-wrapped hook from `handleCloudflareChallengeHook()` passes one options object to
+            // every call, spanning retries (and their new pages) - the detection must not stick to the
+            // page of the first call
+            const options = fastOptions();
+
+            const firstPage = await browser.newPage();
+            await firstPage.setContent(`<html><body>${currentChallengeBody}</body></html>`);
+            await expect(handleCloudflareChallenge(firstPage, 'https://example.com', options)).rejects.toThrow(
+                /Blocked by Cloudflare/,
+            );
+            await firstPage.close();
+
+            await page.setContent(`<html><body>${currentChallengeBody}</body></html>`);
+            await expect(handleCloudflareChallenge(page, 'https://example.com', options)).rejects.toThrow(
+                /Blocked by Cloudflare/,
+            );
+        });
+
         test('detects challenge markup that renders only after the load event on a 403 response', async () => {
             await page.setContent('<html><body><h1>Loading</h1></body></html>');
             await page.evaluate((body) => {
