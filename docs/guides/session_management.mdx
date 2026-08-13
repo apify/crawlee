@@ -234,7 +234,23 @@ const listingCrawler = new CheerioCrawler({ sessionPool, requestHandler: async (
 const detailCrawler = new PlaywrightCrawler({ sessionPool, requestHandler: async () => { /* ... */ } });
 ```
 
-A pool you construct yourself is owned by you, not the crawler — the crawler will never tear it down or reset it between runs. Call <ApiLink to="core/class/SessionPool#teardown">`teardown()`</ApiLink> when you are done with it to persist its final state and stop listening for persistence events.
+A pool you construct yourself is owned by you, not the crawler — the crawler will never tear it down or reset it between runs. Dispose of it with `await using` when you are done, which persists its final state and stops it listening for persistence events:
+
+```js
+import { CheerioCrawler, SessionPool } from 'crawlee';
+
+await using sessionPool = new SessionPool({ maxPoolSize: 100 });
+
+const crawler = new CheerioCrawler({ sessionPool, requestHandler: async () => { /* ... */ } });
+await crawler.run(['https://crawlee.dev']);
+// sessionPool is torn down here, even if the crawl throws
+```
+
+:::note Requires Node.js 24
+
+The `await using` syntax needs Node.js 24 or later. On Node.js 22 call <ApiLink to="core/class/SessionPool#teardown">`teardown()`</ApiLink> yourself instead — it is what the disposal hook calls anyway.
+
+:::
 
 ## Custom session pools
 

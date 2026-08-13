@@ -1,4 +1,4 @@
-import { KeyValueStore, MemoryStorageBackend, Request, serviceLocator } from '@crawlee/core';
+import { EventType, KeyValueStore, MemoryStorageBackend, Request, serviceLocator } from '@crawlee/core';
 import { RenderingTypePredictor } from '@crawlee/playwright';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -58,6 +58,26 @@ describe('RenderingTypePredictor', () => {
             const prediction = predictor.predict(new Request({ url: 'https://example.com/test' }));
             expect(prediction.renderingType).toBe('clientOnly');
             expect(prediction.detectionProbabilityRecommendation).toBe(1);
+        });
+
+        it('should persist state and stop listening on teardown', async () => {
+            const persistStateKey = 'rendering-type-predictor-teardown';
+            const events = serviceLocator.getEventManager();
+
+            const predictor = new RenderingTypePredictor({
+                detectionRatio: 0.1,
+                persistenceOptions: { persistStateKey },
+            });
+            await predictor.initialize();
+            predictor.storeResult(new Request({ url: 'https://example.com/static-page' }), 'static');
+
+            const listenersBefore = events.listenerCount(EventType.PERSIST_STATE);
+
+            await predictor.teardown();
+
+            expect(events.listenerCount(EventType.PERSIST_STATE)).toBe(listenersBefore - 1);
+            const store = await KeyValueStore.open();
+            expect(await store.getValue(persistStateKey)).toHaveProperty('detectionResults');
         });
     });
 });

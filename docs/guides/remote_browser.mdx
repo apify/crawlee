@@ -58,6 +58,29 @@ For Playwright you can choose the protocol via the `remoteBrowser.connection.pro
 
 `remoteBrowser` builds a pool the crawler owns and tears down. To share one remote pool across multiple crawlers, construct a <ApiLink to="browser-pool/class/RemoteBrowserPool">`RemoteBrowserPool`</ApiLink> yourself and pass it as the `browserPool` option instead — a pool supplied that way is never destroyed by the crawler, so you control its lifecycle. Use `remoteBrowser` *or* `browserPool`, not both.
 
+Declare it with `await using` and the browsers (and their remote sessions) are released once you are done with the pool:
+
+```ts
+import { PlaywrightPlugin, RemoteBrowserPool } from '@crawlee/browser-pool';
+import { PlaywrightCrawler } from 'crawlee';
+import playwright from 'playwright';
+
+await using browserPool = new RemoteBrowserPool({
+    browserPlugins: [new PlaywrightPlugin(playwright.chromium)],
+    endpoint: 'wss://production-sfo.browserless.io?token=xxx',
+    maxOpenBrowsers: 2,
+});
+
+await new PlaywrightCrawler({ browserPool, requestHandler: async () => { /* ... */ } }).run(['https://crawlee.dev']);
+await new PlaywrightCrawler({ browserPool, requestHandler: async () => { /* ... */ } }).run(['https://apify.com']);
+```
+
+:::note Requires Node.js 24
+
+The `await using` syntax needs Node.js 24 or later. On Node.js 22 call <ApiLink to="browser-pool/class/RemoteBrowserPool#destroy">`destroy()`</ApiLink> yourself instead — it is what the disposal hook calls anyway.
+
+:::
+
 ## Limitations
 
 - **`headless` and `launchOptions` don't apply.** The remote service controls headless mode and browser flags; configure them on the service side.

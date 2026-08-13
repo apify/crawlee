@@ -160,6 +160,8 @@ export interface ConcurrencyConsumer {
 
 // @public
 export class ConcurrencySystem implements IConcurrencySystem {
+    // (undocumented)
+    [Symbol.asyncDispose](): Promise<void>;
     constructor(options?: ConcurrencySystemOptions);
     // (undocumented)
     get currentConcurrency(): number;
@@ -1778,6 +1780,8 @@ export interface SessionOptions {
 
 // @public
 export class SessionPool implements ISessionPool {
+    // (undocumented)
+    [Symbol.asyncDispose](): Promise<void>;
     constructor(options?: SessionPoolOptions);
     addSession(options?: Session | SessionOptions): Promise<void>;
     getSession(sessionId?: string): Promise<Session | undefined>;

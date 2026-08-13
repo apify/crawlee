@@ -820,6 +820,9 @@ export class AdaptivePlaywrightCrawler<
 
     override async teardown() {
         await super.teardown();
+        // Mirrors the owned-only `initialize()` in `init()` - without this, the predictor we built keeps its
+        // PERSIST_STATE listener registered after the crawl and never gets a final write.
+        await this.#renderingTypePredictor.ifOwned((predictor) => predictor.teardown());
         for (const hook of this.#teardownHooks) {
             await hook();
         }

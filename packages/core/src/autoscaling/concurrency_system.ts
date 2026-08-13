@@ -409,6 +409,10 @@ export class ConcurrencySystem implements IConcurrencySystem {
         this.#running = true;
     }
 
+    async [Symbol.asyncDispose](): Promise<void> {
+        await this.stop();
+    }
+
     /**
      * Stops the snapshotter and intervals. Idempotent and safe to call even if the system was never started.
      */
