@@ -689,7 +689,9 @@ export interface HandleCloudflareChallengeOptions {
  *
  * On a successfully solved challenge the page is reloaded and the new {@apilink Response} is returned, so
  * it can be propagated back to the crawling context via a hook return value (see
- * {@apilink handleCloudflareChallengeHook}).
+ * {@apilink handleCloudflareChallengeHook}). Thanks to that, the 403 status of the challenge page does not
+ * need to be removed from `blockedStatusCodes` - a solved challenge replaces the response before the
+ * blocked-status check runs, and an unsolved one is retried with a fresh session.
  *
  * Works best with camoufox.
  *
@@ -703,11 +705,13 @@ export interface HandleCloudflareChallengeOptions {
  * @param page Playwright [`Page`](https://playwright.dev/docs/api/class-page) object
  * @param url current URL for request identification, only used for logging
  * @param [options]
+ * @param [response] navigation response, used to poll for late-rendered challenge markup when it signals a likely challenge
  */
 async function handleCloudflareChallenge(
     page: Page,
     url: string,
     options: HandleCloudflareChallengeOptions = {},
+    response?: Response,
 ): Promise<Response | undefined> {
     options.isBlockedCallback ??= async () => {
         const isBlocked = await page.evaluate(() => {
@@ -737,7 +741,20 @@ async function handleCloudflareChallenge(
         return options.isChallengeCallback!(page).catch(() => false);
     };
 
-    if (!(await isChallenge())) {
+    // The challenge markup can finish rendering only after the `load` event, so when the response signals
+    // a likely challenge (403 status or the `cf-mitigated` header), poll for it instead of checking once.
+    const likelyChallenge = response?.status() === 403 || response?.headers()['cf-mitigated'] === 'challenge';
+
+    let detected = await isChallenge();
+
+    for (let i = 0; !detected && likelyChallenge && i < 10; i++) {
+        // a hard-blocked page never turns into a challenge, so fail fast instead of finishing the poll
+        await retryBlocked();
+        await sleep(500);
+        detected = await isChallenge();
+    }
+
+    if (!detected) {
         await retryBlocked();
         return undefined;
     }

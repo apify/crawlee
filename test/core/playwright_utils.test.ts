@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import { MemoryStorageBackend, serviceLocator } from '@crawlee/core';
 import { KeyValueStore, launchPlaywright, playwrightUtils, Request } from '@crawlee/playwright';
-import type { Browser, Page } from 'playwright';
+import type { Browser, Page, Response } from 'playwright';
 import { chromium } from 'playwright';
 import { runExampleComServer } from '../shared/_helper.js';
 
@@ -501,6 +501,85 @@ describe('playwrightUtils', () => {
             await expect(
                 handleCloudflareChallenge(page, 'https://example.com', fastOptions()),
             ).resolves.toBeUndefined();
+        });
+
+        test('detects challenge markup that renders only after the load event on a 403 response', async () => {
+            await page.setContent('<html><body><h1>Loading</h1></body></html>');
+            await page.evaluate((body) => {
+                setTimeout(() => {
+                    document.body.innerHTML = body;
+                }, 1500);
+            }, currentChallengeBody);
+
+            const response = { status: () => 403, headers: () => ({}) } as unknown as Response;
+            await expect(
+                handleCloudflareChallenge(page, 'https://example.com', fastOptions(), response),
+            ).rejects.toThrow(/Blocked by Cloudflare/);
+        });
+
+        test('detects a late-rendered challenge via the cf-mitigated response header', async () => {
+            await page.setContent('<html><body><h1>Loading</h1></body></html>');
+            await page.evaluate((body) => {
+                setTimeout(() => {
+                    document.body.innerHTML = body;
+                }, 1500);
+            }, currentChallengeBody);
+
+            const response = {
+                status: () => 200,
+                headers: () => ({ 'cf-mitigated': 'challenge' }),
+            } as unknown as Response;
+            await expect(
+                handleCloudflareChallenge(page, 'https://example.com', fastOptions(), response),
+            ).rejects.toThrow(/Blocked by Cloudflare/);
+        });
+
+        test('fails fast on a hard-blocked 403 page instead of polling for challenge markup', async () => {
+            await page.setContent('<html><body><h1>Sorry, you have been blocked</h1></body></html>');
+            const response = { status: () => 403, headers: () => ({}) } as unknown as Response;
+            const start = Date.now();
+            await expect(
+                handleCloudflareChallenge(page, 'https://example.com', fastOptions(), response),
+            ).rejects.toThrow(/Blocked by Cloudflare/);
+            expect(Date.now() - start).toBeLessThan(4000);
+        }, 10_000);
+
+        test('resolves without detection on a plain 403 page without challenge markup', async () => {
+            await page.setContent('<html><body><h1>Forbidden</h1></body></html>');
+            const response = { status: () => 403, headers: () => ({}) } as unknown as Response;
+            await expect(
+                handleCloudflareChallenge(page, 'https://example.com', fastOptions(), response),
+            ).resolves.toBeUndefined();
+        }, 10_000);
+
+        test('returns the reloaded response once the challenge is solved', async () => {
+            let served = 0;
+            await page.route('**/cf-test', async (route) => {
+                served += 1;
+                await route.fulfill({
+                    status: served === 1 ? 403 : 200,
+                    contentType: 'text/html',
+                    body:
+                        served === 1
+                            ? `<html><body>${currentChallengeBody}</body></html>`
+                            : '<html><body><h1>Welcome</h1></body></html>',
+                });
+            });
+
+            try {
+                await page.goto('https://example.com/cf-test');
+                const response = await handleCloudflareChallenge(page, 'https://example.com/cf-test', {
+                    ...fastOptions(),
+                    // simulate a solved challenge by removing the challenge markup
+                    clickCallback: async () => {
+                        await page.evaluate(() => document.querySelector('.footer')?.remove());
+                    },
+                });
+
+                expect(response?.status()).toBe(200);
+            } finally {
+                await page.unroute('**/cf-test');
+            }
         });
     });
 });
