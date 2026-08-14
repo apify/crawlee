@@ -378,7 +378,7 @@ export class HttpCrawler<
         postNavigationHooks: schemas.anyArray.default(() => []),
     };
 
-    protected static override optionsSchema = z.strictObject(HttpCrawler.optionsShape);
+    protected static optionsSchema = z.strictObject(HttpCrawler.optionsShape);
 
     /**
      * All `HttpCrawlerOptions` parameters are passed via an options object.

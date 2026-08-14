@@ -406,7 +406,7 @@ export abstract class BrowserCrawler<
         ignoreShadowRoots: z.boolean().default(false),
     };
 
-    protected static override optionsSchema = z.strictObject(BrowserCrawler.optionsShape);
+    protected static optionsSchema = z.strictObject(BrowserCrawler.optionsShape);
 
     /**
      * All `BrowserCrawler` parameters are passed via an options object.
