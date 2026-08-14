@@ -11,7 +11,8 @@ import {
     RequestList,
     RequestValidationError,
 } from '@crawlee/playwright';
-import type { Cheerio, CheerioAPI, CheerioRoot, Element } from '@crawlee/utils/internal';
+import type { Cheerio, CheerioAPI } from 'cheerio';
+import type { Element } from 'domhandler';
 import { sleep } from '@crawlee/utils';
 import express from 'express';
 import playwright from 'playwright';
@@ -305,7 +306,6 @@ describe('PlaywrightCrawler', () => {
             // Checking that types are correct
             const $ = await crawlingContext.parseWithCheerio();
 
-            const _cheerioRootType: CheerioRoot = $;
             const _apiType: CheerioAPI = $;
             const _cheerioElementType: Cheerio<Element> = $('div');
         };

@@ -3,7 +3,6 @@ import type { CheerioAPI } from 'cheerio';
 
 import { tryAbsoluteURL } from './extract-urls.js';
 
-export type CheerioRoot = CheerioAPI;
 export type { CheerioAPI, Cheerio } from 'cheerio';
 export type { Element } from 'domhandler';
 
@@ -39,7 +38,7 @@ const BLOCK_TAGS_REGEX =
  * @param htmlOrCheerioElement HTML text or parsed HTML represented using a [cheerio](https://www.npmjs.com/package/cheerio) function.
  * @return Plain text
  */
-export async function htmlToText(htmlOrCheerioElement: string | CheerioRoot): Promise<string> {
+export async function htmlToText(htmlOrCheerioElement: string | CheerioAPI): Promise<string> {
     const { load } = await import('cheerio');
 
     if (!htmlOrCheerioElement) return '';

@@ -8,9 +8,6 @@ import type { AddRequestsBatchedOptions } from '@crawlee/core';
 import type { AddRequestsBatchedResult } from '@crawlee/core';
 import type { Awaitable } from '@crawlee/types';
 import { BaseHttpClient } from '@crawlee/http-client';
-import { Cheerio } from '@crawlee/utils/internal';
-import { CheerioAPI } from '@crawlee/utils/internal';
-import { CheerioRoot } from '@crawlee/utils/internal';
 import { ConcurrencySystem } from '@crawlee/core';
 import { ConcurrencySystemOptions } from '@crawlee/core';
 import { Configuration } from '@crawlee/core';
@@ -20,7 +17,6 @@ import { CrawlingContext } from '@crawlee/core';
 import { Dataset } from '@crawlee/core';
 import type { DatasetExportOptions } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/types';
-import { Element as Element_2 } from '@crawlee/utils/internal';
 import type { EnqueueUrlsOptions } from '@crawlee/core';
 import { EventManager } from '@crawlee/core';
 import type { FinalStatistics } from '@crawlee/core';
@@ -276,12 +272,6 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = CrawlingC
 export interface BasicCrawlingContext<UserData extends Dictionary = Dictionary> extends CrawlingContext<UserData> {
 }
 
-export { Cheerio }
-
-export { CheerioAPI }
-
-export { CheerioRoot }
-
 // @public (undocumented)
 export interface CrawlerAddRequestsOptions extends AddRequestsBatchedOptions, EnqueueUrlsOptions {
 }
@@ -318,8 +308,6 @@ export interface CreateContextOptions {
     // (undocumented)
     session: ISession;
 }
-
-export { Element_2 as Element }
 
 // @public
 export type ErrorHandler<BaseContext extends CrawlingContext = CrawlingContext, ExtendedContext extends BaseContext = BaseContext> = (inputs: BaseContext & Partial<ExtendedContext>, error: Error) => Awaitable<void>;

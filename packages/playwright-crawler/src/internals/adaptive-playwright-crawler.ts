@@ -38,8 +38,8 @@ import {
     Statistics,
 } from '@crawlee/core';
 import type { Dictionary, Awaitable } from '@crawlee/types';
-import { type CheerioRoot, extractUrlsFromCheerio } from '@crawlee/utils/internal';
-import { type Cheerio } from 'cheerio';
+import { extractUrlsFromCheerio } from '@crawlee/utils/internal';
+import { type Cheerio, type CheerioAPI } from 'cheerio';
 import type { AnyNode } from 'domhandler';
 import type { Page } from 'playwright';
 import { z } from 'zod';
@@ -138,7 +138,7 @@ export interface AdaptivePlaywrightCrawlerContext<
      * });
      * ```
      */
-    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
+    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioAPI>;
 
     enqueueLinks(options?: EnqueueLinksOptions): Promise<unknown>;
 }

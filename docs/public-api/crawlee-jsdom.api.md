@@ -6,7 +6,7 @@
 
 import type { AddRequestsBatchedResult } from '@crawlee/http';
 import { BaseHttpClient } from '@crawlee/http-client';
-import { CheerioRoot } from '@crawlee/utils/internal';
+import type { CheerioAPI } from 'cheerio';
 import { Configuration } from '@crawlee/http';
 import type { ContextPipeline } from '@crawlee/http';
 import type { CrawlingContext } from '@crawlee/http';
@@ -173,7 +173,7 @@ JSONData extends Dictionary = any> extends InternalHttpCrawlingContext<UserData,
     document: Document;
     enqueueLinks(options?: EnqueueLinksOptions): Promise<AddRequestsBatchedResult>;
     extractLinks(options?: ExtractLinksOptions): Promise<string[]>;
-    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
+    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioAPI>;
     waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
     // (undocumented)
     window: DOMWindow;

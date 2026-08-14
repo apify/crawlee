@@ -21,7 +21,7 @@ import type { BrowserPoolHooks } from '@crawlee/browser-pool';
 import type { BrowserPoolOptions } from '@crawlee/browser-pool';
 import type { BrowserType } from 'playwright';
 import { Cheerio } from 'cheerio';
-import { CheerioRoot } from '@crawlee/utils/internal';
+import { CheerioAPI } from 'cheerio';
 import { Configuration } from '@crawlee/browser';
 import type { ContextPipeline } from '@crawlee/browser';
 import type { ContextPipeline as ContextPipeline_2 } from '@crawlee/core';
@@ -89,7 +89,7 @@ export interface AdaptivePlaywrightCrawlerContext<UserData extends Dictionary = 
     // (undocumented)
     enqueueLinks(options?: EnqueueLinksOptions): Promise<unknown>;
     page: Page;
-    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
+    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioAPI>;
     querySelector(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
     querySelectorAll(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
     // (undocumented)
@@ -269,7 +269,7 @@ export interface IRenderingTypePredictor {
 export function launchPlaywright(launchContext?: PlaywrightLaunchContext, configuration?: Configuration): Promise<Browser>;
 
 // @public
-function parseWithCheerio(page: Page, ignoreShadowRoots?: boolean, ignoreIframes?: boolean): Promise<CheerioRoot>;
+function parseWithCheerio(page: Page, ignoreShadowRoots?: boolean, ignoreIframes?: boolean): Promise<CheerioAPI>;
 
 // @public
 export type PlaywrightBrowserPool = BrowserPool<{
@@ -306,7 +306,7 @@ interface PlaywrightContextUtils {
     injectFile(filePath: string, options?: InjectFileOptions): Promise<unknown>;
     injectJQuery(): Promise<unknown>;
     listDownloads(): Promise<Download[]>;
-    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
+    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioAPI>;
     saveSnapshot(options?: SaveSnapshotOptions): Promise<void>;
     waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
 }

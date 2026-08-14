@@ -5,15 +5,9 @@ import type { AddressInfo } from 'node:net';
 import os from 'node:os';
 import { promisify } from 'node:util';
 
-import type {
-    Cheerio,
-    CheerioAPI,
-    CheerioRoot,
-    Element,
-    PuppeteerCrawlingContext,
-    PuppeteerGoToOptions,
-    Request,
-} from '@crawlee/puppeteer';
+import type { PuppeteerCrawlingContext, PuppeteerGoToOptions, Request } from '@crawlee/puppeteer';
+import type { Cheerio, CheerioAPI } from 'cheerio';
+import type { Element } from 'domhandler';
 import {
     createPuppeteerRouter,
     ProxyConfiguration,
@@ -434,7 +428,6 @@ describe('PuppeteerCrawler', () => {
             // Checking that types are correct
             const $ = await crawlingContext.parseWithCheerio();
 
-            const _cheerioRootType: CheerioRoot = $;
             const _apiType: CheerioAPI = $;
             const _cheerioElementType: Cheerio<Element> = $('div');
         };

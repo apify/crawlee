@@ -35,7 +35,8 @@ import {
 } from '@crawlee/core';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import type { Awaitable, Dictionary, ISession } from '@crawlee/types';
-import { type CheerioRoot, RETRY_CSS_SELECTORS } from '@crawlee/utils/internal';
+import { RETRY_CSS_SELECTORS } from '@crawlee/utils/internal';
+import type { CheerioAPI } from 'cheerio';
 import type { RequestLike, ResponseLike } from 'content-type';
 import contentTypeParser from 'content-type';
 import iconv from 'iconv-lite';
@@ -264,7 +265,7 @@ export interface InternalHttpCrawlingContext<
      * });
      * ```
      */
-    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
+    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioAPI>;
 }
 
 export interface HttpCrawlingContext<

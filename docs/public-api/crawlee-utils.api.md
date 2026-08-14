@@ -17,10 +17,6 @@ export class ArgumentValidationError extends Error {
     readonly issues: z.ZodError['issues'];
 }
 
-// Not exported by the entry point; reachable only as a referenced type.
-// @public (undocumented)
-type CheerioRoot = CheerioAPI;
-
 // @public
 const DISCORD_REGEX: RegExp;
 
@@ -85,7 +81,7 @@ const FACEBOOK_REGEX: RegExp;
 const FACEBOOK_REGEX_GLOBAL: RegExp;
 
 // @public
-export function htmlToText(htmlOrCheerioElement: string | CheerioRoot): Promise<string>;
+export function htmlToText(htmlOrCheerioElement: string | CheerioAPI): Promise<string>;
 
 // @public
 const INSTAGRAM_REGEX: RegExp;

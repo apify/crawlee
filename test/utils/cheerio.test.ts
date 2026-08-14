@@ -1,10 +1,10 @@
-import type { CheerioRoot } from '@crawlee/utils/internal';
 import { htmlToText } from '@crawlee/utils';
+import type { CheerioAPI } from 'cheerio';
 import * as cheerio from 'cheerio';
 
 import * as htmlToTextData from '../shared/data/html_to_text_test_data.js';
 
-const checkHtmlToText = async (html: string | CheerioRoot, expectedText: string, hasBody = false) => {
+const checkHtmlToText = async (html: string | CheerioAPI, expectedText: string, hasBody = false) => {
     const text1 = await htmlToText(html);
     expect(text1).toEqual(expectedText);
 

@@ -15,7 +15,7 @@ import type { BrowserLaunchContext } from '@crawlee/browser';
 import type { BrowserPool } from '@crawlee/browser-pool';
 import type { BrowserPoolHooks } from '@crawlee/browser-pool';
 import type { BrowserPoolOptions } from '@crawlee/browser-pool';
-import { CheerioRoot } from '@crawlee/utils/internal';
+import type { CheerioAPI } from 'cheerio';
 import type { ClickOptions } from 'puppeteer';
 import { Configuration } from '@crawlee/browser';
 import type { ContextPipeline } from '@crawlee/browser';
@@ -147,7 +147,7 @@ function isTargetRelevant(page: Page, target: Target): boolean;
 export function launchPuppeteer(launchContext?: PuppeteerLaunchContext, configuration?: Configuration): Promise<Browser>;
 
 // @public
-function parseWithCheerio(page: Page, ignoreShadowRoots?: boolean, ignoreIframes?: boolean): Promise<CheerioRoot>;
+function parseWithCheerio(page: Page, ignoreShadowRoots?: boolean, ignoreIframes?: boolean): Promise<CheerioAPI>;
 
 // @public
 export type PuppeteerBrowserPool = BrowserPool<{
@@ -184,7 +184,7 @@ interface PuppeteerContextUtils {
     infiniteScroll(options?: InfiniteScrollOptions): Promise<void>;
     injectFile(filePath: string, options?: InjectFileOptions): Promise<unknown>;
     injectJQuery(): Promise<unknown>;
-    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
+    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioAPI>;
     removeInterceptRequestHandler(handler: InterceptHandler): Promise<void>;
     saveSnapshot(options?: SaveSnapshotOptions): Promise<void>;
     waitForSelector(selector: string, timeoutMs?: number): Promise<void>;

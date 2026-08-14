@@ -8,7 +8,7 @@ import type { Awaitable } from '@crawlee/types';
 import { BaseHttpClient } from '@crawlee/http-client';
 import { BasicCrawler } from '@crawlee/basic';
 import { BasicCrawlerOptions } from '@crawlee/basic';
-import { CheerioRoot } from '@crawlee/utils/internal';
+import type { CheerioAPI } from 'cheerio';
 import { ConcurrencySystem } from '@crawlee/basic';
 import type { ConcurrencySystemOptions } from '@crawlee/basic';
 import { Configuration } from '@crawlee/basic';
@@ -247,7 +247,7 @@ JSONData extends JsonValue = any> extends CrawlingContextWithResponse<UserData> 
         encoding: BufferEncoding;
     };
     json: JSONData;
-    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
+    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioAPI>;
     waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
 }
 

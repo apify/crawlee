@@ -33,7 +33,7 @@ import {
     validators,
 } from '@crawlee/browser';
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
-import { type CheerioRoot } from '@crawlee/utils/internal';
+import type { CheerioAPI } from 'cheerio';
 import { expandShadowRoots, sleep } from '@crawlee/utils';
 import type { Download, Page, Response, Route } from 'playwright';
 import { z } from 'zod';
@@ -589,7 +589,7 @@ export async function parseWithCheerio(
     page: Page,
     ignoreShadowRoots = false,
     ignoreIframes = false,
-): Promise<CheerioRoot> {
+): Promise<CheerioAPI> {
     parseArgument(page, validators.browserPage);
 
     const html = ignoreShadowRoots
@@ -928,7 +928,7 @@ export interface PlaywrightContextUtils {
      * });
      * ```
      */
-    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
+    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioAPI>;
 
     /**
      * Scrolls to the bottom of a page, or until it times out.
