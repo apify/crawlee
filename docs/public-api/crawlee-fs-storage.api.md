@@ -5,53 +5,7 @@
 ```ts
 
 import type { CrawleeLogger } from '@crawlee/types';
-import type { Dictionary } from '@crawlee/types';
-import type { FileSystemDatasetClient } from '@crawlee/fs-storage-native';
-import type { FileSystemKeyValueStoreClient } from '@crawlee/fs-storage-native';
-import type { FileSystemRequestQueueClient } from '@crawlee/fs-storage-native';
 import type * as storage from '@crawlee/types';
-
-// Not exported by the entry point; reachable only as a referenced type.
-// @public
-abstract class CachedIdClient {
-    protected cachedId: string;
-    get id(): string;
-}
-
-// Not exported by the entry point; reachable only as a referenced type.
-// @public
-class DatasetBackend<Data extends Dictionary = Dictionary> extends CachedIdClient implements storage.DatasetBackend<Data> {
-    constructor(options: DatasetBackendOptions);
-    // (undocumented)
-    readonly cacheKey: string;
-    // (undocumented)
-    static create<Data extends Dictionary = Dictionary>(options: DatasetBackendOptions): Promise<DatasetBackend<Data>>;
-    // (undocumented)
-    get datasetDirectory(): string;
-    // (undocumented)
-    drop(): Promise<void>;
-    // (undocumented)
-    getData(options?: storage.DatasetBackendListOptions): Promise<storage.PaginatedList<Data>>;
-    // (undocumented)
-    getMetadata(): Promise<storage.DatasetInfo>;
-    // (undocumented)
-    readonly name?: string;
-    // (undocumented)
-    purge(): Promise<void>;
-    // (undocumented)
-    pushData(items: Data[]): Promise<void>;
-}
-
-// Not exported by the entry point; reachable only as a referenced type.
-// @public (undocumented)
-interface DatasetBackendOptions {
-    cacheKey: string;
-    // (undocumented)
-    logger?: CrawleeLogger;
-    name?: string;
-    // (undocumented)
-    nativeBackend: FileSystemDatasetClient;
-}
 
 // @public
 export class FileSystemStorageBackend implements storage.StorageBackend {
@@ -63,12 +17,8 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
     // (undocumented)
     createRequestQueueBackend(options?: storage.StorageIdentifier): Promise<storage.RequestQueueBackend>;
     // (undocumented)
-    readonly datasetBackendCache: DatasetBackend[];
-    // (undocumented)
     readonly datasetsDirectory: string;
     getStorageBackendCacheKey(): string;
-    // (undocumented)
-    readonly keyValueStoreBackendCache: KeyValueStoreBackend[];
     // (undocumented)
     readonly keyValueStoresDirectory: string;
     // (undocumented)
@@ -78,8 +28,6 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
     purge(): Promise<void>;
     // (undocumented)
     readonly requestQueueAccess: 'single' | 'shared';
-    // (undocumented)
-    readonly requestQueueBackendCache: RequestQueueBackend[];
     // (undocumented)
     readonly requestQueuesDirectory: string;
     // (undocumented)
@@ -92,95 +40,6 @@ export interface FileSystemStorageOptions {
     localDataDirectory: string;
     logger?: CrawleeLogger;
     requestQueueAccess?: 'single' | 'shared';
-}
-
-// Not exported by the entry point; reachable only as a referenced type.
-// @public
-class KeyValueStoreBackend extends CachedIdClient implements storage.KeyValueStoreBackend {
-    constructor(options: KeyValueStoreBackendOptions);
-    // (undocumented)
-    readonly cacheKey: string;
-    // (undocumented)
-    static create(options: KeyValueStoreBackendOptions): Promise<KeyValueStoreBackend>;
-    // (undocumented)
-    deleteValue(key: string): Promise<void>;
-    // (undocumented)
-    drop(): Promise<void>;
-    // (undocumented)
-    getMetadata(): Promise<storage.KeyValueStoreInfo>;
-    getPublicUrl(key: string): Promise<string | undefined>;
-    // (undocumented)
-    getValue(key: string): Promise<storage.KeyValueStoreRecord | undefined>;
-    // (undocumented)
-    get keyValueStoreDirectory(): string;
-    // (undocumented)
-    listKeys(options?: storage.KeyValueStoreListKeysOptions): Promise<storage.KeyValueStoreListKeysResult>;
-    // (undocumented)
-    readonly name?: string;
-    // (undocumented)
-    purge(): Promise<void>;
-    purgeExceptInput(): Promise<void>;
-    recordExists(key: string): Promise<boolean>;
-    // (undocumented)
-    setValue(record: storage.KeyValueStoreInputRecord): Promise<void>;
-}
-
-// Not exported by the entry point; reachable only as a referenced type.
-// @public (undocumented)
-interface KeyValueStoreBackendOptions {
-    cacheKey: string;
-    // (undocumented)
-    logger?: CrawleeLogger;
-    name?: string;
-    // (undocumented)
-    nativeBackend: FileSystemKeyValueStoreClient;
-}
-
-// Not exported by the entry point; reachable only as a referenced type.
-// @public
-class RequestQueueBackend extends CachedIdClient implements storage.RequestQueueBackend {
-    constructor(options: RequestQueueBackendOptions);
-    // (undocumented)
-    addBatchOfRequests(requests: storage.RequestSchema[], options?: storage.RequestQueueOperationOptions): Promise<storage.BatchAddRequestsResult>;
-    // (undocumented)
-    readonly cacheKey: string;
-    // (undocumented)
-    static create(options: RequestQueueBackendOptions): Promise<RequestQueueBackend>;
-    // (undocumented)
-    drop(): Promise<void>;
-    // (undocumented)
-    fetchNextRequest(): Promise<storage.UpdateRequestSchema | undefined>;
-    // (undocumented)
-    getMetadata(): Promise<storage.RequestQueueInfo>;
-    // (undocumented)
-    getRequest(uniqueKey: string): Promise<storage.UpdateRequestSchema | undefined>;
-    // (undocumented)
-    isEmpty(): Promise<boolean>;
-    // (undocumented)
-    isFinished(): Promise<boolean>;
-    // (undocumented)
-    markRequestAsHandled(request: storage.UpdateRequestSchema): Promise<storage.QueueOperationInfo | undefined>;
-    // (undocumented)
-    readonly name?: string;
-    persistState(): Promise<void>;
-    // (undocumented)
-    purge(): Promise<void>;
-    // (undocumented)
-    reclaimRequest(request: storage.UpdateRequestSchema, options?: storage.RequestQueueOperationOptions): Promise<storage.QueueOperationInfo | undefined>;
-    // (undocumented)
-    get requestQueueDirectory(): string;
-    setExpectedRequestProcessingTimeSecs(secs: number): Promise<void>;
-}
-
-// Not exported by the entry point; reachable only as a referenced type.
-// @public (undocumented)
-interface RequestQueueBackendOptions {
-    cacheKey: string;
-    // (undocumented)
-    logger?: CrawleeLogger;
-    name?: string;
-    // (undocumented)
-    nativeBackend: FileSystemRequestQueueClient;
 }
 
 // (No @packageDocumentation comment for this package)

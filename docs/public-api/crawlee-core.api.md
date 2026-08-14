@@ -352,47 +352,6 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     values(options?: DatasetIteratorOptions): AsyncIterable<Data> & Promise<Data[]>;
 }
 
-// Not exported by the entry point; reachable only as a referenced type.
-// @public (undocumented)
-class DatasetBackend_2<Data extends Dictionary = Dictionary> extends BaseClient implements storage.DatasetBackend<Data> {
-    constructor(options: DatasetBackendOptions);
-    // (undocumented)
-    accessedAt: Date;
-    cacheKey: string;
-    // (undocumented)
-    createdAt: Date;
-    // (undocumented)
-    drop(): Promise<void>;
-    // (undocumented)
-    getData(options?: storage.DatasetBackendListOptions): Promise<storage.PaginatedList<Data>>;
-    // (undocumented)
-    getMetadata(): Promise<storage.DatasetInfo>;
-    // (undocumented)
-    itemCount: number;
-    // (undocumented)
-    modifiedAt: Date;
-    // (undocumented)
-    name?: string;
-    // (undocumented)
-    purge(): Promise<void>;
-    // (undocumented)
-    pushData(items: Data[]): Promise<void>;
-    // (undocumented)
-    toDatasetInfo(): storage.DatasetInfo;
-}
-
-// Not exported by the entry point; reachable only as a referenced type.
-// @public (undocumented)
-interface DatasetBackendOptions {
-    cacheKey?: string;
-    // (undocumented)
-    id?: string;
-    // (undocumented)
-    name?: string;
-    // (undocumented)
-    storageBackend: MemoryStorageBackend;
-}
-
 // @public
 export interface DatasetConsumer<Data> {
     // (undocumented)
@@ -876,52 +835,6 @@ export class KeyValueStore {
     values<T = unknown>(options?: KeyValueStoreIteratorOptions): AsyncIterable<T> & Promise<T[]>;
 }
 
-// Not exported by the entry point; reachable only as a referenced type.
-// @public (undocumented)
-class KeyValueStoreBackend_2 extends BaseClient implements storage.KeyValueStoreBackend {
-    constructor(options: KeyValueStoreBackendOptions);
-    // (undocumented)
-    accessedAt: Date;
-    cacheKey: string;
-    // (undocumented)
-    createdAt: Date;
-    // (undocumented)
-    deleteValue(key: string): Promise<void>;
-    // (undocumented)
-    drop(): Promise<void>;
-    // (undocumented)
-    getMetadata(): Promise<storage.KeyValueStoreInfo>;
-    getPublicUrl(key: string): Promise<string | undefined>;
-    // (undocumented)
-    getValue(key: string): Promise<storage.KeyValueStoreRecord | undefined>;
-    // (undocumented)
-    listKeys(options?: storage.KeyValueStoreListKeysOptions): Promise<storage.KeyValueStoreListKeysResult>;
-    // (undocumented)
-    modifiedAt: Date;
-    // (undocumented)
-    name?: string;
-    // (undocumented)
-    purge(): Promise<void>;
-    purgeExceptInput(): Promise<void>;
-    recordExists(key: string): Promise<boolean>;
-    // (undocumented)
-    setValue(record: storage.KeyValueStoreInputRecord): Promise<void>;
-    // (undocumented)
-    toKeyValueStoreInfo(): storage.KeyValueStoreInfo;
-}
-
-// Not exported by the entry point; reachable only as a referenced type.
-// @public (undocumented)
-interface KeyValueStoreBackendOptions {
-    cacheKey?: string;
-    // (undocumented)
-    id?: string;
-    // (undocumented)
-    name?: string;
-    // (undocumented)
-    storageBackend: MemoryStorageBackend;
-}
-
 // @public (undocumented)
 export interface KeyValueStoreIteratorOptions {
     prefix?: string;
@@ -1080,16 +993,10 @@ export class MemoryStorageBackend implements storage.StorageBackend {
     createKeyValueStoreBackend(options?: storage.StorageIdentifier): Promise<storage.KeyValueStoreBackend>;
     // (undocumented)
     createRequestQueueBackend(options?: storage.StorageIdentifier): Promise<RequestQueueBackend_2>;
-    // (undocumented)
-    readonly datasetBackendCache: DatasetBackend_2[];
     getStorageBackendCacheKey(): string;
-    // (undocumented)
-    readonly keyValueStoreBackendCache: KeyValueStoreBackend_2[];
     // (undocumented)
     readonly logger?: CrawleeLogger;
     purge(): Promise<void>;
-    // (undocumented)
-    readonly requestQueueBackendCache: RequestQueueBackend_2[];
     // (undocumented)
     storageExists(id: string, type: 'Dataset' | 'KeyValueStore' | 'RequestQueue'): Promise<boolean>;
     teardown(): Promise<void>;

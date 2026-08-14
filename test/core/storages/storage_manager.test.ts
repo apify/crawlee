@@ -6,15 +6,12 @@ beforeEach(async () => {
 
 describe('StorageManager', () => {
     test('failed openStorage call does not block subsequent calls (#3661)', async () => {
-        const goodBackend = serviceLocator.getStorageBackend();
-        // Delegate to the real backend via the prototype chain so the mock still satisfies
-        // the StorageBackend interface validation.
-        const failingBackend = Object.assign(Object.create(goodBackend), {
+        // A real instance, so every method the open path calls (`purge`, `getStorageBackendCacheKey`)
+        // operates on its own state - only the failing call is stubbed.
+        const failingBackend = Object.assign(new MemoryStorageBackend(), {
             createDatasetBackend: () => {
                 throw new Error('boom');
             },
-            // The inherited method reads a private field that only the real instance carries.
-            getStorageBackendCacheKey: () => 'FailingBackend',
         });
 
         await expect(Dataset.open('will-fail', { storageBackend: failingBackend as any })).rejects.toThrow('boom');

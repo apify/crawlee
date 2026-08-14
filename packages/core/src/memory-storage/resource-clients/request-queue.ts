@@ -88,17 +88,14 @@ export class RequestQueueBackend extends BaseClient implements storage.RequestQu
         await this.#queueStateMutex.wait();
 
         try {
-            const storeIndex = this.storageBackend.requestQueueBackendCache.findIndex((queue) => queue.id === this.id);
-
-            if (storeIndex !== -1) {
-                const [oldBackend] = this.storageBackend.requestQueueBackendCache.splice(storeIndex, 1);
-                oldBackend.pendingRequestCount = 0;
+            if (this.storageBackend.evictBackend('RequestQueue', this.id)) {
+                this.pendingRequestCount = 0;
                 // Clear all in-memory state, consistent with `purge`. Clearing `requests` alone would
                 // leave dangling ids in `forefrontRequestIds`/`inProgressRequestIds`, which a later head
                 // scan would resolve to a missing request and dereference.
-                oldBackend.#requests.clear();
-                oldBackend.#forefrontRequestIds = [];
-                oldBackend.#inProgressRequestIds.clear();
+                this.#requests.clear();
+                this.#forefrontRequestIds = [];
+                this.#inProgressRequestIds.clear();
             }
         } finally {
             this.#queueStateMutex.shift();
