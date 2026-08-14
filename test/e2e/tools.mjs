@@ -235,13 +235,21 @@ export async function runActor(dirName, memory = 4096) {
         const runTook = (runFinishedAt.getTime() - runStartedAt.getTime()) / 1000;
         console.log(`[run] View run: https://console.apify.com/view/runs/${runId} [run took ${runTook}s]`);
 
-        const { items: kvKeys } = await client.keyValueStore(defaultKeyValueStoreId).listKeys();
-        const [statsKey] = kvKeys
-            .map(({ key }) => key)
-            .filter((key) => isCrawlerStatisticsKey(key))
-            .sort();
-        const statsRecord = statsKey && (await client.keyValueStore(defaultKeyValueStoreId).getRecord(statsKey));
-        stats = statsRecord?.value;
+        // The statistics record is persisted during the crawler teardown and the platform KVS is
+        // eventually consistent, so a single lookup right after the run can race the write and crash
+        // the whole test on `stats.requestsFinished`. Retry briefly and fall back to an empty object,
+        // so a genuinely missing record fails the assertions instead of throwing a TypeError.
+        let statsRecord;
+        for (let attempt = 0; attempt < 10 && !statsRecord; attempt++) {
+            if (attempt > 0) await setTimeout(3000);
+            const { items: kvKeys } = await client.keyValueStore(defaultKeyValueStoreId).listKeys();
+            const [statsKey] = kvKeys
+                .map(({ key }) => key)
+                .filter((key) => isCrawlerStatisticsKey(key))
+                .sort();
+            statsRecord = statsKey ? await client.keyValueStore(defaultKeyValueStoreId).getRecord(statsKey) : undefined;
+        }
+        stats = statsRecord?.value ?? {};
 
         const { items } = await client.dataset(defaultDatasetId).listItems();
         datasetItems = items;
