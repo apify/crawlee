@@ -63,7 +63,6 @@ import {
     NavigationSkippedError,
     NonRetryableError,
     OwnedOrInjected,
-    parseArgument,
     purgeDefaultStorages,
     RequestHandlerError,
     parseRetryAfterHeader,
@@ -74,7 +73,6 @@ import {
     RetryRequestError,
     supportsDomainThrottling,
     Router,
-    schemas,
     ServiceLocator,
     serviceLocator,
     Session,
@@ -96,7 +94,7 @@ import type {
     SetStatusMessageOptions,
     StorageBackend,
 } from '@crawlee/types';
-import { isAsyncIterable, isIterable, ROTATE_PROXY_ERRORS } from '@crawlee/utils/internal';
+import { isAsyncIterable, isIterable, parseArgument, ROTATE_PROXY_ERRORS, schemas } from '@crawlee/utils/internal';
 import { RobotsTxtFile } from '@crawlee/utils';
 import { getDomain } from 'tldts';
 import type { ReadonlyDeep } from 'type-fest';

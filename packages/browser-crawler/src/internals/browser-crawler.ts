@@ -21,20 +21,23 @@ import {
     EnqueueStrategy,
     NavigationSkippedError,
     OwnedOrInjected,
-    parseArgument,
     remainingNavigationWindowMillis,
     RequestState,
     RequestThrottledError,
     resolveBaseUrlForEnqueueLinksFiltering,
-    schemas,
     SessionError,
     toughCookieToBrowserPoolCookie,
-    tryAbsoluteURL,
     validators,
 } from '@crawlee/basic';
 import type { CommonPage, CrawlerRemoteBrowserOptions } from '@crawlee/browser-pool';
 import type { Awaitable, Cookie as CookieObject, Dictionary, IBrowserPool, ISession } from '@crawlee/types';
-import { CLOUDFLARE_RETRY_CSS_SELECTORS, RETRY_CSS_SELECTORS } from '@crawlee/utils/internal';
+import {
+    CLOUDFLARE_RETRY_CSS_SELECTORS,
+    parseArgument,
+    RETRY_CSS_SELECTORS,
+    schemas,
+    tryAbsoluteURL,
+} from '@crawlee/utils/internal';
 import { sleep } from '@crawlee/utils';
 import { z } from 'zod';
 

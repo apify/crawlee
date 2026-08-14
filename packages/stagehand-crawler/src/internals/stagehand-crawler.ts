@@ -26,8 +26,9 @@ import type {
     RouteSchemas,
     RoutesFromSchemas,
 } from '@crawlee/browser';
-import { assertBrowserPoolNotConfigured, BrowserCrawler, parseArgument, Router, schemas } from '@crawlee/browser';
+import { assertBrowserPoolNotConfigured, BrowserCrawler, Router } from '@crawlee/browser';
 import type { Dictionary } from '@crawlee/types';
+import { parseArgument, schemas } from '@crawlee/utils/internal';
 import type { LaunchOptions, Page, Response } from 'playwright';
 import { z } from 'zod';
 

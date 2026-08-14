@@ -19,14 +19,13 @@ import {
     EnqueueStrategy,
     HttpCrawler,
     NavigationSkippedError,
-    parseArgument,
     resolveBaseUrlForEnqueueLinksFiltering,
     Router,
-    tryAbsoluteURL,
 } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
 import type { CheerioAPI } from 'cheerio';
 import { sleep } from '@crawlee/utils';
+import { parseArgument, tryAbsoluteURL } from '@crawlee/utils/internal';
 import type { DOMWindow } from 'jsdom';
 import { JSDOM, ResourceLoader, VirtualConsole } from 'jsdom';
 import { z } from 'zod';

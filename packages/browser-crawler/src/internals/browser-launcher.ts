@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import os from 'node:os';
 
-import { Configuration, schemas, serviceLocator } from '@crawlee/basic';
+import { Configuration, serviceLocator } from '@crawlee/basic';
 import type {
     BrowserPlugin,
     BrowserPluginOptions,
@@ -12,6 +12,7 @@ import type {
 } from '@crawlee/browser-pool';
 import { BrowserPool, RemoteBrowserPool } from '@crawlee/browser-pool';
 import type { Constructor, Dictionary } from '@crawlee/types';
+import { schemas } from '@crawlee/utils/internal';
 import { z } from 'zod';
 
 const DEFAULT_VIEWPORT = {

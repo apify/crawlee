@@ -31,7 +31,6 @@ import { LoggerJson } from '@apify/log';
 import type { LoggerOptions } from '@apify/log';
 import { LoggerText } from '@apify/log';
 import { LogLevel } from '@apify/log';
-import { parseArgument } from '@crawlee/utils';
 import { ParseSitemapOptions } from '@crawlee/utils';
 import type { ProcessedRequest } from '@crawlee/types';
 import type { ProxyInfo } from '@crawlee/types';
@@ -39,7 +38,6 @@ import type { QueueOperationInfo } from '@crawlee/types';
 import type { ReadonlyDeep } from 'type-fest';
 import type { RequestQueueBackend } from '@crawlee/types';
 import type { RequestQueueInfo } from '@crawlee/types';
-import { schemas } from '@crawlee/utils/internal';
 import type { SendRequestOptions } from '@crawlee/types';
 import type { SessionFingerprint } from '@crawlee/types';
 import { SessionState } from '@crawlee/types';
@@ -47,7 +45,6 @@ import type { StandardSchemaV1 } from '@standard-schema/spec';
 import type * as storage from '@crawlee/types';
 import { StorageBackend } from '@crawlee/types';
 import { StorageIdentifier } from '@crawlee/types';
-import { tryAbsoluteURL } from '@crawlee/utils/internal';
 import { z } from 'zod';
 import { ZodType } from 'zod';
 
@@ -1123,8 +1120,6 @@ interface NewUrlOptions {
 export class NonRetryableError extends Error {
 }
 
-export { parseArgument }
-
 // @public
 export function parseRetryAfterHeader(value?: string | null): number | null;
 
@@ -1640,8 +1635,6 @@ export interface SchemaIssue {
         key: PropertyKey;
     })[];
 }
-
-export { schemas }
 
 // Not exported by the entry point; reachable only as a referenced type.
 // @public
@@ -2213,8 +2206,6 @@ export interface ThrottlingRequestManagerOptions<T extends IRequestManager = IRe
     requestManagerOpener?: RequestManagerOpener<T>;
     throttleBy?: 'hostname' | 'registrableDomain';
 }
-
-export { tryAbsoluteURL }
 
 // @public
 export type TypedContextAddRequests<Routes extends Record<keyof Routes, Dictionary>> = (requestsLike: ReadonlyDeep<LabeledSource<Routes>[]>, options?: ReadonlyDeep<EnqueueUrlsOptions>) => Promise<AddRequestsBatchedResult>;

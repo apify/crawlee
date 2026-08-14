@@ -21,11 +21,11 @@ import {
     NavigationSkippedError,
     resolveBaseUrlForEnqueueLinksFiltering,
     Router,
-    tryAbsoluteURL,
 } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
 import type { CheerioAPI } from 'cheerio';
 import { sleep } from '@crawlee/utils';
+import { tryAbsoluteURL } from '@crawlee/utils/internal';
 import * as cheerio from 'cheerio';
 import { DOMParser } from 'linkedom/cached';
 

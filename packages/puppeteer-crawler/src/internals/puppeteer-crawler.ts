@@ -11,8 +11,9 @@ import type {
     RoutesFromSchemas,
 } from '@crawlee/browser';
 import { assertBrowserPoolNotConfigured, BrowserCrawler, RequestState, Router } from '@crawlee/browser';
-import { parseArgument, serviceLocator } from '@crawlee/core';
+import { serviceLocator } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/types';
+import { parseArgument } from '@crawlee/utils/internal';
 // @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
 import type { HTTPResponse, LaunchOptions, Page } from 'puppeteer';
 import { z } from 'zod';

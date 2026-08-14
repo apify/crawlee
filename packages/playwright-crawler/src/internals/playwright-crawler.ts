@@ -11,16 +11,9 @@ import type {
     RouteSchemas,
     RoutesFromSchemas,
 } from '@crawlee/browser';
-import {
-    assertBrowserPoolNotConfigured,
-    BrowserCrawler,
-    parseArgument,
-    RequestState,
-    Router,
-    schemas,
-    serviceLocator,
-} from '@crawlee/browser';
+import { assertBrowserPoolNotConfigured, BrowserCrawler, RequestState, Router, serviceLocator } from '@crawlee/browser';
 import type { Dictionary } from '@crawlee/types';
+import { parseArgument, schemas } from '@crawlee/utils/internal';
 import type { Download, LaunchOptions, Page, Response } from 'playwright';
 import { z } from 'zod';
 

@@ -13,13 +13,12 @@ import {
     constructUrlPatternObjects,
     createRequestOptions,
     filterRequestOptionsByPatterns,
-    parseArgument,
     urlPatternSchema,
     Request as CrawleeRequest,
-    schemas,
     serviceLocator,
 } from '@crawlee/browser';
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
+import { parseArgument, schemas } from '@crawlee/utils/internal';
 import type { Frame, Page, Request, Route } from 'playwright';
 import { z } from 'zod';
 

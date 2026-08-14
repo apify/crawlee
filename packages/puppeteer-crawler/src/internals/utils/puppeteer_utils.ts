@@ -23,10 +23,11 @@ import { createRequire } from 'node:module';
 import vm from 'node:vm';
 
 import type { Request } from '@crawlee/browser';
-import { Configuration, KeyValueStore, parseArgument, schemas, serviceLocator, validators } from '@crawlee/browser';
+import { Configuration, KeyValueStore, serviceLocator, validators } from '@crawlee/browser';
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 import type { CheerioAPI } from 'cheerio';
 import { expandShadowRoots, sleep } from '@crawlee/utils';
+import { parseArgument, schemas } from '@crawlee/utils/internal';
 import type { ProtocolMapping } from 'devtools-protocol/types/protocol-mapping.js';
 // @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
 import type { HTTPRequest as PuppeteerRequest, HTTPResponse, Page, ResponseForRequest } from 'puppeteer';

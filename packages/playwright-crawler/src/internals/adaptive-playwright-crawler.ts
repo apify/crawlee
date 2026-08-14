@@ -31,14 +31,13 @@ import {
     createStorageTransaction,
     EnqueueStrategy,
     OwnedOrInjected,
-    parseArgument,
     RequestHandlerError,
     resolveBaseUrlForEnqueueLinksFiltering,
     Router,
     Statistics,
 } from '@crawlee/core';
 import type { Dictionary, Awaitable } from '@crawlee/types';
-import { extractUrlsFromCheerio } from '@crawlee/utils/internal';
+import { extractUrlsFromCheerio, parseArgument } from '@crawlee/utils/internal';
 import { type Cheerio, type CheerioAPI } from 'cheerio';
 import type { AnyNode } from 'domhandler';
 import type { Page } from 'playwright';

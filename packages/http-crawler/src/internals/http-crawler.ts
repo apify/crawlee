@@ -26,16 +26,10 @@ import {
     Router,
     SessionError,
 } from '@crawlee/basic';
-import {
-    type LoadedRequest,
-    RequestThrottledError,
-    getCookiesFromResponse,
-    parseArgument,
-    schemas,
-} from '@crawlee/core';
+import { type LoadedRequest, RequestThrottledError, getCookiesFromResponse } from '@crawlee/core';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import type { Awaitable, Dictionary, ISession } from '@crawlee/types';
-import { RETRY_CSS_SELECTORS } from '@crawlee/utils/internal';
+import { parseArgument, RETRY_CSS_SELECTORS, schemas } from '@crawlee/utils/internal';
 import type { CheerioAPI } from 'cheerio';
 import type { RequestLike, ResponseLike } from 'content-type';
 import contentTypeParser from 'content-type';
@@ -327,7 +321,10 @@ export type HttpRequestHandler<
  * **Example usage:**
  *
  * ```javascript
- * import { HttpCrawler, Dataset } from '@crawlee/http';
+ * import {
+    HttpCrawler,
+    Dataset,
+} from '@crawlee/http';
  *
  * const crawler = new HttpCrawler({
  *     requestList,
