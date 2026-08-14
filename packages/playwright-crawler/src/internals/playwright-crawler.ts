@@ -219,12 +219,16 @@ export class PlaywrightCrawler<
     Routes,
     StatisticStateExtension
 > {
+    /**
+     * @internal
+     */
     protected static override optionsShape = {
         ...BrowserCrawler.optionsShape,
         headless: z.boolean().optional(),
         launcher: schemas.anyObject.optional(),
     };
 
+    /** @internal */
     protected static override optionsSchema = z.strictObject(PlaywrightCrawler.optionsShape);
 
     /**

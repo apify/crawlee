@@ -889,6 +889,9 @@ export class BasicCrawler<
         extendContext?: (context: CrawlingContext) => Awaitable<ContextExtension>;
     };
 
+    /**
+     * @internal
+     */
     protected static optionsShape = {
         contextPipelineBuilder: schemas.anyObject.optional(),
         extendContext: schemas.anyFunction.optional(),

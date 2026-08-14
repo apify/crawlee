@@ -74,11 +74,15 @@ export interface PuppeteerLaunchContext extends BrowserLaunchContext<PuppeteerPl
  * @ignore
  */
 export class PuppeteerLauncher extends BrowserLauncher<PuppeteerPlugin, unknown> {
+    /**
+     * @internal
+     */
     protected static override optionsShape = {
         ...BrowserLauncher.optionsShape,
         launcher: schemas.anyObject.optional(),
     };
 
+    /** @internal */
     protected static override optionsSchema = z.strictObject(PuppeteerLauncher.optionsShape);
 
     /**

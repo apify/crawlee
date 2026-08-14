@@ -127,6 +127,9 @@ export abstract class BrowserLauncher<
     Plugin!: T;
     userAgent?: string;
 
+    /**
+     * @internal
+     */
     protected static optionsShape = {
         proxyUrl: z.url().optional(),
         useChrome: z.boolean().optional(),
@@ -138,6 +141,7 @@ export abstract class BrowserLauncher<
         userAgent: z.string().optional(),
     };
 
+    /** @internal */
     protected static optionsSchema = z.strictObject(BrowserLauncher.optionsShape);
 
     static requireLauncherOrThrow<T>(launcher: string, apifyImageName: string): T {

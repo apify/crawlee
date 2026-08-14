@@ -387,6 +387,9 @@ export abstract class BrowserCrawler<
     readonly #postNavigationHooks: BrowserHook<Context>[];
     readonly #saveResponseCookies: boolean;
 
+    /**
+     * @internal
+     */
     protected static override optionsShape = {
         ...BasicCrawler.optionsShape,
 
@@ -406,6 +409,7 @@ export abstract class BrowserCrawler<
         ignoreShadowRoots: z.boolean().default(false),
     };
 
+    /** @internal */
     protected static optionsSchema = z.strictObject(BrowserCrawler.optionsShape);
 
     /**

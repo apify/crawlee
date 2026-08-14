@@ -196,6 +196,9 @@ export class PuppeteerCrawler<
     Routes,
     StatisticStateExtension
 > {
+    /**
+     * @internal
+     */
     protected static override optionsShape = {
         ...BrowserCrawler.optionsShape,
         // Deliberately looser than the declared type: Puppeteer's own accepted string values have moved over
@@ -203,6 +206,7 @@ export class PuppeteerCrawler<
         headless: z.union([z.boolean(), z.string()]).optional(),
     };
 
+    /** @internal */
     protected static override optionsSchema = z.strictObject(PuppeteerCrawler.optionsShape);
 
     /**

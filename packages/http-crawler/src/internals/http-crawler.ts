@@ -364,6 +364,9 @@ export class HttpCrawler<
     #forceResponseEncoding?: string;
     readonly #supportedMimeTypes: Set<string>;
 
+    /**
+     * @internal
+     */
     protected static override optionsShape = {
         ...BasicCrawler.optionsShape,
 
@@ -378,6 +381,7 @@ export class HttpCrawler<
         postNavigationHooks: schemas.anyArray.default(() => []),
     };
 
+    /** @internal */
     protected static optionsSchema = z.strictObject(HttpCrawler.optionsShape);
 
     /**

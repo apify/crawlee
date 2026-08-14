@@ -413,12 +413,16 @@ export class StagehandCrawler<
     Routes,
     StatisticStateExtension
 > {
+    /**
+     * @internal
+     */
     protected static override optionsShape = {
         ...BrowserCrawler.optionsShape,
         stagehandOptions: schemas.anyObject.optional(),
         headless: z.boolean().optional(),
     };
 
+    /** @internal */
     protected static override optionsSchema = z.strictObject(StagehandCrawler.optionsShape);
 
     /**

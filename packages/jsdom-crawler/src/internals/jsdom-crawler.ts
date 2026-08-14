@@ -212,12 +212,16 @@ export class JSDOMCrawler<
     >,
     StatisticStateExtension extends object = {},
 > extends HttpCrawler<JSDOMCrawlingContext, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
+    /**
+     * @internal
+     */
     protected static override optionsShape = {
         ...HttpCrawler.optionsShape,
         runScripts: z.boolean().optional(),
         hideInternalConsole: z.boolean().optional(),
     };
 
+    /** @internal */
     protected static override optionsSchema = z.strictObject(JSDOMCrawler.optionsShape);
 
     #runScripts: boolean;

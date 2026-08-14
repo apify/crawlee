@@ -78,6 +78,9 @@ export interface PlaywrightLaunchContext extends BrowserLaunchContext<LaunchOpti
  * @ignore
  */
 export class PlaywrightLauncher extends BrowserLauncher<PlaywrightPlugin> {
+    /**
+     * @internal
+     */
     protected static override optionsShape = {
         ...BrowserLauncher.optionsShape,
         // Passthrough schemas — the launcher module object must keep its prototype through parsing.
@@ -85,6 +88,7 @@ export class PlaywrightLauncher extends BrowserLauncher<PlaywrightPlugin> {
         launchContextOptions: schemas.anyObject.optional(),
     };
 
+    /** @internal */
     protected static override optionsSchema = z.strictObject(PlaywrightLauncher.optionsShape);
 
     /**

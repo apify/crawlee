@@ -4,7 +4,6 @@
 
 ```ts
 
-import { BaseHttpClient } from '@crawlee/http-client';
 import type { BatchAddRequestsResult } from '@crawlee/types';
 import type { Browser } from 'puppeteer';
 import { BrowserCrawler } from '@crawlee/browser';
@@ -21,7 +20,6 @@ import { Configuration } from '@crawlee/browser';
 import type { ContextPipeline } from '@crawlee/browser';
 import type { CrawlingContext } from '@crawlee/browser';
 import { Dictionary } from '@crawlee/types';
-import { EventManager } from '@crawlee/browser';
 import type { GetUserDataFromRequest } from '@crawlee/browser';
 import type { HTTPRequest } from 'puppeteer';
 import type { HTTPResponse } from 'puppeteer';
@@ -41,7 +39,6 @@ import type { RoutesFromSchemas } from '@crawlee/browser';
 import type { SkippedRequestCallback } from '@crawlee/browser';
 import type { Target } from 'puppeteer';
 import type { UrlPatternInput } from '@crawlee/browser';
-import { z } from 'zod';
 
 // @public
 function addInterceptRequestHandler(page: Page, handler: InterceptHandler): Promise<void>;
@@ -197,118 +194,6 @@ export class PuppeteerCrawler<ContextExtension = Dictionary<never>, ExtendedCont
     protected buildContextPipeline(): ContextPipeline<CrawlingContext, PuppeteerCrawlingContext>;
     // (undocumented)
     protected navigationHandler(crawlingContext: PuppeteerCrawlingContext, gotoOptions: PuppeteerDirectNavigationOptions): Promise<HTTPResponse | null>;
-    // (undocumented)
-    protected static optionsSchema: z.ZodObject<{
-        headless: z.ZodOptional<z.ZodUnion<readonly [z.ZodBoolean, z.ZodString]>>;
-        navigationTimeoutSecs: z.ZodDefault<z.ZodCustom<number, number>>;
-        preNavigationHooks: z.ZodDefault<z.ZodCustom<unknown[], unknown[]>>;
-        postNavigationHooks: z.ZodDefault<z.ZodCustom<unknown[], unknown[]>>;
-        launchContext: z.ZodDefault<z.ZodCustom<Dictionary, Dictionary>>;
-        browserPool: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
-        browserPoolBuilder: z.ZodOptional<z.ZodCustom<(...args: any[]) => unknown, (...args: any[]) => unknown>>;
-        remoteBrowser: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
-        saveResponseCookies: z.ZodDefault<z.ZodBoolean>;
-        proxyConfiguration: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
-        ignoreIframes: z.ZodDefault<z.ZodBoolean>;
-        ignoreShadowRoots: z.ZodDefault<z.ZodBoolean>;
-        contextPipelineBuilder: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
-        extendContext: z.ZodOptional<z.ZodCustom<(...args: any[]) => unknown, (...args: any[]) => unknown>>;
-        requestList: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
-        requestQueue: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
-        requestManager: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
-        requestHandler: z.ZodOptional<z.ZodCustom<(...args: any[]) => unknown, (...args: any[]) => unknown>>;
-        requestHandlerTimeoutSecs: z.ZodOptional<z.ZodCustom<number, number>>;
-        errorHandler: z.ZodOptional<z.ZodCustom<(...args: any[]) => unknown, (...args: any[]) => unknown>>;
-        failedRequestHandler: z.ZodOptional<z.ZodCustom<(...args: any[]) => unknown, (...args: any[]) => unknown>>;
-        maxRequestRetries: z.ZodDefault<z.ZodCustom<number, number>>;
-        sameDomainDelaySecs: z.ZodDefault<z.ZodCustom<number, number>>;
-        maxRequestsPerCrawl: z.ZodOptional<z.ZodCustom<number, number>>;
-        maxCrawlDepth: z.ZodOptional<z.ZodCustom<number, number>>;
-        taskLoopOptions: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
-        concurrencySystem: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
-        sessionPool: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
-        statusMessageLoggingInterval: z.ZodDefault<z.ZodCustom<number, number>>;
-        statusMessageCallback: z.ZodOptional<z.ZodCustom<(...args: any[]) => unknown, (...args: any[]) => unknown>>;
-        additionalHttpErrorStatusCodes: z.ZodDefault<z.ZodArray<z.ZodCustom<number, number>>>;
-        ignoreHttpErrorStatusCodes: z.ZodDefault<z.ZodArray<z.ZodCustom<number, number>>>;
-        blockedStatusCodes: z.ZodOptional<z.ZodArray<z.ZodCustom<number, number>>>;
-        retryOnBlocked: z.ZodDefault<z.ZodBoolean>;
-        respectRobotsTxtFile: z.ZodDefault<z.ZodUnion<readonly [z.ZodBoolean, z.ZodCustom<Dictionary, Dictionary>]>>;
-        transactionalStorage: z.ZodOptional<z.ZodUnion<readonly [z.ZodBoolean, z.ZodObject<{
-            requestQueue: z.ZodOptional<z.ZodEnum<{
-                deferred: "deferred";
-                writeThrough: "writeThrough";
-            }>>;
-        }, z.core.$strict>]>>;
-        onSkippedRequest: z.ZodOptional<z.ZodCustom<(...args: any[]) => unknown, (...args: any[]) => unknown>>;
-        httpClient: z.ZodOptional<z.ZodCustom<BaseHttpClient, BaseHttpClient>>;
-        configuration: z.ZodOptional<z.ZodCustom<Configuration, Configuration>>;
-        storageBackend: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
-        eventManager: z.ZodOptional<z.ZodCustom<EventManager, EventManager>>;
-        logger: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
-        minConcurrency: z.ZodOptional<z.ZodCustom<number, number>>;
-        maxConcurrency: z.ZodOptional<z.ZodCustom<number, number>>;
-        maxRequestsPerMinute: z.ZodOptional<z.ZodCustom<number, number>>;
-        keepAlive: z.ZodOptional<z.ZodBoolean>;
-        statistics: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
-        id: z.ZodOptional<z.ZodString>;
-    }, z.core.$strict>;
-    // (undocumented)
-    protected static optionsShape: {
-        headless: z.ZodOptional<z.ZodUnion<readonly [z.ZodBoolean, z.ZodString]>>;
-        navigationTimeoutSecs: z.ZodDefault<z.ZodCustom<number, number>>;
-        preNavigationHooks: z.ZodDefault<z.ZodCustom<unknown[], unknown[]>>;
-        postNavigationHooks: z.ZodDefault<z.ZodCustom<unknown[], unknown[]>>;
-        launchContext: z.ZodDefault<z.ZodCustom<Dictionary, Dictionary>>;
-        browserPool: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
-        browserPoolBuilder: z.ZodOptional<z.ZodCustom<(...args: any[]) => unknown, (...args: any[]) => unknown>>;
-        remoteBrowser: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
-        saveResponseCookies: z.ZodDefault<z.ZodBoolean>;
-        proxyConfiguration: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
-        ignoreIframes: z.ZodDefault<z.ZodBoolean>;
-        ignoreShadowRoots: z.ZodDefault<z.ZodBoolean>;
-        contextPipelineBuilder: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
-        extendContext: z.ZodOptional<z.ZodCustom<(...args: any[]) => unknown, (...args: any[]) => unknown>>;
-        requestList: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
-        requestQueue: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
-        requestManager: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
-        requestHandler: z.ZodOptional<z.ZodCustom<(...args: any[]) => unknown, (...args: any[]) => unknown>>;
-        requestHandlerTimeoutSecs: z.ZodOptional<z.ZodCustom<number, number>>;
-        errorHandler: z.ZodOptional<z.ZodCustom<(...args: any[]) => unknown, (...args: any[]) => unknown>>;
-        failedRequestHandler: z.ZodOptional<z.ZodCustom<(...args: any[]) => unknown, (...args: any[]) => unknown>>;
-        maxRequestRetries: z.ZodDefault<z.ZodCustom<number, number>>;
-        sameDomainDelaySecs: z.ZodDefault<z.ZodCustom<number, number>>;
-        maxRequestsPerCrawl: z.ZodOptional<z.ZodCustom<number, number>>;
-        maxCrawlDepth: z.ZodOptional<z.ZodCustom<number, number>>;
-        taskLoopOptions: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
-        concurrencySystem: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
-        sessionPool: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
-        statusMessageLoggingInterval: z.ZodDefault<z.ZodCustom<number, number>>;
-        statusMessageCallback: z.ZodOptional<z.ZodCustom<(...args: any[]) => unknown, (...args: any[]) => unknown>>;
-        additionalHttpErrorStatusCodes: z.ZodDefault<z.ZodArray<z.ZodCustom<number, number>>>;
-        ignoreHttpErrorStatusCodes: z.ZodDefault<z.ZodArray<z.ZodCustom<number, number>>>;
-        blockedStatusCodes: z.ZodOptional<z.ZodArray<z.ZodCustom<number, number>>>;
-        retryOnBlocked: z.ZodDefault<z.ZodBoolean>;
-        respectRobotsTxtFile: z.ZodDefault<z.ZodUnion<readonly [z.ZodBoolean, z.ZodCustom<Dictionary, Dictionary>]>>;
-        transactionalStorage: z.ZodOptional<z.ZodUnion<readonly [z.ZodBoolean, z.ZodObject<{
-            requestQueue: z.ZodOptional<z.ZodEnum<{
-                deferred: "deferred";
-                writeThrough: "writeThrough";
-            }>>;
-        }, z.core.$strict>]>>;
-        onSkippedRequest: z.ZodOptional<z.ZodCustom<(...args: any[]) => unknown, (...args: any[]) => unknown>>;
-        httpClient: z.ZodOptional<z.ZodCustom<BaseHttpClient, BaseHttpClient>>;
-        configuration: z.ZodOptional<z.ZodCustom<Configuration, Configuration>>;
-        storageBackend: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
-        eventManager: z.ZodOptional<z.ZodCustom<EventManager, EventManager>>;
-        logger: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
-        minConcurrency: z.ZodOptional<z.ZodCustom<number, number>>;
-        maxConcurrency: z.ZodOptional<z.ZodCustom<number, number>>;
-        maxRequestsPerMinute: z.ZodOptional<z.ZodCustom<number, number>>;
-        keepAlive: z.ZodOptional<z.ZodBoolean>;
-        statistics: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
-        id: z.ZodOptional<z.ZodString>;
-    };
 }
 
 // @public (undocumented)
