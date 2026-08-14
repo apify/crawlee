@@ -381,6 +381,10 @@ export class SessionPool implements ISessionPool {
             );
     }
 
+    async [Symbol.asyncDispose](): Promise<void> {
+        await this.teardown({ persistState: true });
+    }
+
     /**
      * Removes listener from `persistState` event.
      * This function should be called after you are done with using the `SessionPool` instance.

@@ -900,15 +900,33 @@ describe('AdaptivePlaywrightCrawler', () => {
             await expect(store.getValue<string>('rendering-type-predictor-state')).resolves.not.toBeNull();
         });
 
-        test('does not initialize an injected predictor', async () => {
+        test('tears down the predictor it built itself', async () => {
+            const crawler = new AdaptivePlaywrightCrawler({
+                requestHandler,
+                renderingTypeDetectionRatio: 1,
+                maxConcurrency: 1,
+                maxRequestRetries: 0,
+                maxRequestsPerCrawl: 1,
+                requestList: await RequestList.open({ sources: [`http://${HOSTNAME}:${port}/static`] }),
+            });
+
+            await crawler.run();
+
+            // The predictor keeps a PERSIST_STATE listener from the moment it is initialized, so a leftover
+            // listener after the run means the owned predictor was never torn down.
+            expect(serviceLocator.getEventManager().listenerCount(EventType.PERSIST_STATE)).toBe(0);
+        });
+
+        test('does not initialize or tear down an injected predictor', async () => {
             const renderingTypePredictor = {
                 ...makeRiggedRenderingTypePredictor({
                     detectionProbabilityRecommendation: 0,
                     renderingType: 'static',
                 }),
-                // Not part of the predictor contract the crawler depends on - a borrowed instance is set up by
-                // whoever created it, so the crawler must keep its hands off.
+                // Not part of the predictor contract the crawler depends on - a borrowed instance is set up (and
+                // disposed of) by whoever created it, so the crawler must keep its hands off.
                 initialize: vi.fn(async () => {}),
+                teardown: vi.fn(async () => {}),
             };
 
             const crawler = await makeOneshotCrawler({ requestHandler, renderingTypePredictor }, [
@@ -919,6 +937,7 @@ describe('AdaptivePlaywrightCrawler', () => {
 
             expect(renderingTypePredictor.predict).toHaveBeenCalledOnce();
             expect(renderingTypePredictor.initialize).not.toHaveBeenCalled();
+            expect(renderingTypePredictor.teardown).not.toHaveBeenCalled();
         });
     });
 

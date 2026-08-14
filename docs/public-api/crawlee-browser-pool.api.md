@@ -170,6 +170,8 @@ export interface BrowserPluginOptions<LibraryOptions> {
 
 // @public
 export class BrowserPool<Options extends BrowserPoolOptions = BrowserPoolOptions, BrowserPlugins extends BrowserPlugin[] = InferBrowserPluginArray<Options['browserPlugins']>, BrowserControllerReturn extends BrowserController = ReturnType<BrowserPlugins[number]['createController']>, LaunchContextReturn extends LaunchContext = ReturnType<BrowserPlugins[number]['createLaunchContext']>, PageOptions = Parameters<BrowserControllerReturn['newPage']>[0], PageReturn extends UnwrapPromise<ReturnType<BrowserControllerReturn['newPage']>> = UnwrapPromise<ReturnType<BrowserControllerReturn['newPage']>>> extends TypedEmitter<BrowserPoolEvents<BrowserControllerReturn, PageReturn>> implements IBrowserPool<PageReturn> {
+    // (undocumented)
+    [Symbol.asyncDispose](): Promise<void>;
     constructor(options: Options & BrowserPoolHooks<BrowserControllerReturn, LaunchContextReturn, PageReturn>);
     // (undocumented)
     activeBrowserControllers: Set<BrowserControllerReturn>;
@@ -568,6 +570,8 @@ export type RemoteBrowserEndpoint = string | ((options?: {
 
 // @public
 export class RemoteBrowserPool<Page = unknown> implements IBrowserPool<Page> {
+    // (undocumented)
+    [Symbol.asyncDispose](): Promise<void>;
     constructor(options: RemoteBrowserPoolOptions);
     readonly browserPool: BrowserPool;
     // (undocumented)
