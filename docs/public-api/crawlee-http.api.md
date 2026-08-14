@@ -13,6 +13,7 @@ import { ConcurrencySystem } from '@crawlee/basic';
 import type { ConcurrencySystemOptions } from '@crawlee/basic';
 import { Configuration } from '@crawlee/basic';
 import { ContextPipeline } from '@crawlee/basic';
+import type { ContextPipeline as ContextPipeline_2 } from '@crawlee/core';
 import type { CrawlingContext } from '@crawlee/basic';
 import type { CrawlingContext as CrawlingContext_2 } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/types';
@@ -25,7 +26,6 @@ import { Request as Request_2 } from '@crawlee/basic';
 import type { Request as Request_3 } from '@crawlee/core';
 import { RequestHandler } from '@crawlee/basic';
 import type { RequireContextPipeline } from '@crawlee/basic';
-import { ResponseWithUrl } from '@crawlee/http-client';
 import { RouterHandler } from '@crawlee/basic';
 import { RouterRoutes } from '@crawlee/basic';
 import type { RouteSchemas } from '@crawlee/basic';
@@ -62,15 +62,7 @@ export function createHttpRouter<Context extends HttpCrawlingContext = HttpCrawl
 export class FileDownload extends BasicCrawler<FileDownloadCrawlingContext> {
     constructor(options?: BasicCrawlerOptions<FileDownloadCrawlingContext>);
     // (undocumented)
-    protected buildContextPipeline(): ContextPipeline<CrawlingContext_2<Dictionary>, CrawlingContext_2<Dictionary> & {
-    request: LoadedRequest<Request_3>;
-    response: ResponseWithUrl;
-    contentType: {
-    type: string;
-    encoding: BufferEncoding;
-    };
-    [kBodyDrained]: Promise<void>;
-    }>;
+    protected buildContextPipeline(): ContextPipeline_2<CrawlingContext_2, FileDownloadCrawlingContext>;
 }
 
 // @public (undocumented)
@@ -261,9 +253,6 @@ JSONData extends JsonValue = any> extends CrawlingContextWithResponse<UserData> 
 
 // @public (undocumented)
 export type InternalHttpHook<Context, ContextExtension = {}> = (crawlingContext: Context & ContextExtension) => Awaitable<void | Partial<Context>>;
-
-// @public (undocumented)
-const kBodyDrained: unique symbol;
 
 // @public
 export function MinimumSpeedStream(input: {

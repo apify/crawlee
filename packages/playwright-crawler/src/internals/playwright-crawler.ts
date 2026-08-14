@@ -2,6 +2,8 @@ import type {
     BrowserCrawlerOptions,
     BrowserCrawlingContext,
     BrowserHook,
+    ContextPipeline,
+    CrawlingContext,
     GetUserDataFromRequest,
     RequestHandler,
     RouterHandler,
@@ -275,7 +277,7 @@ export class PlaywrightCrawler<
         });
     }
 
-    protected override buildContextPipeline() {
+    protected override buildContextPipeline(): ContextPipeline<CrawlingContext, PlaywrightCrawlingContext> {
         return super.buildContextPipeline().compose({ action: this.enhanceContext.bind(this) });
     }
 

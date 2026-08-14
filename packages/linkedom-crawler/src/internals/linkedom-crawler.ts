@@ -1,5 +1,6 @@
 import type {
     AddRequestsBatchedResult,
+    ContextPipeline,
     CrawlingContext,
     EnqueueLinksOptions,
     ErrorHandler,
@@ -213,7 +214,7 @@ export class LinkeDOMCrawler<
         });
     }
 
-    protected override buildContextPipeline() {
+    protected override buildContextPipeline(): ContextPipeline<CrawlingContext, LinkeDOMCrawlingContext> {
         return super
             .buildContextPipeline()
             .compose({

@@ -6,9 +6,8 @@
 
 import type { AddRequestsBatchedResult } from '@crawlee/http';
 import * as cheerio from 'cheerio';
-import type { CheerioAPI } from 'cheerio';
 import { CheerioRoot } from '@crawlee/utils/internal';
-import { ContextPipeline } from '@crawlee/http';
+import type { ContextPipeline } from '@crawlee/http';
 import type { CrawlingContext } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
 import type { EnqueueLinksOptions } from '@crawlee/http';
@@ -29,15 +28,7 @@ import type { RoutesFromSchemas } from '@crawlee/http';
 export class CheerioCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends CheerioCrawlingContext = CheerioCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<CheerioCrawlingContext['request']>>, StatisticStateExtension extends object = {}> extends HttpCrawler<CheerioCrawlingContext, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
     constructor(options?: CheerioCrawlerOptions<ContextExtension, ExtendedContext, any, any, Routes, StatisticStateExtension>);
     // (undocumented)
-    protected buildContextPipeline(): ContextPipeline<CrawlingContext<Dictionary>, InternalHttpCrawlingContext<any, any> & {
-    readonly body: string;
-    readonly $: CheerioAPI;
-    } & {
-    extractLinks: (options?: ExtractLinksOptions) => Promise<string[]>;
-    enqueueLinks: (options?: EnqueueLinksOptions) => Promise<AddRequestsBatchedResult>;
-    waitForSelector: (selector: string, _timeoutMs?: number) => Promise<void>;
-    parseWithCheerio: (selector?: string, timeoutMs?: number) => Promise<CheerioAPI>;
-    }>;
+    protected buildContextPipeline(): ContextPipeline<CrawlingContext, CheerioCrawlingContext>;
 }
 
 // @public (undocumented)

@@ -473,7 +473,7 @@ export class AdaptivePlaywrightCrawler<
         return await super.init();
     }
 
-    protected override buildContextPipeline() {
+    protected override buildContextPipeline(): ContextPipeline<CrawlingContext, AdaptivePlaywrightCrawlerContext> {
         const errorMessage = (prop: string) =>
             `The \`${prop}\` property is not available on the outer context pipeline of AdaptivePlaywrightCrawler - it is provided by the inner (static/browser) pipelines`;
 

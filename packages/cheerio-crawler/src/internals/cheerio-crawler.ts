@@ -1,5 +1,6 @@
 import type {
     AddRequestsBatchedResult,
+    ContextPipeline,
     CrawlingContext,
     EnqueueLinksOptions,
     ErrorHandler,
@@ -216,7 +217,7 @@ export class CheerioCrawler<
         });
     }
 
-    protected override buildContextPipeline() {
+    protected override buildContextPipeline(): ContextPipeline<CrawlingContext, CheerioCrawlingContext> {
         return super
             .buildContextPipeline()
             .compose({

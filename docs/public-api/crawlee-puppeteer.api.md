@@ -5,7 +5,7 @@
 ```ts
 
 import { BaseHttpClient } from '@crawlee/http-client';
-import { BatchAddRequestsResult } from '@crawlee/types';
+import type { BatchAddRequestsResult } from '@crawlee/types';
 import type { Browser } from 'puppeteer';
 import { BrowserCrawler } from '@crawlee/browser';
 import { BrowserCrawlerOptions } from '@crawlee/browser';
@@ -15,12 +15,11 @@ import type { BrowserLaunchContext } from '@crawlee/browser';
 import type { BrowserPool } from '@crawlee/browser-pool';
 import type { BrowserPoolHooks } from '@crawlee/browser-pool';
 import type { BrowserPoolOptions } from '@crawlee/browser-pool';
-import { CheerioAPI } from '@crawlee/browser';
 import { CheerioRoot } from '@crawlee/utils/internal';
 import type { ClickOptions } from 'puppeteer';
 import { Configuration } from '@crawlee/browser';
-import { ContextPipeline } from '@crawlee/browser';
-import { CrawlingContext } from '@crawlee/browser';
+import type { ContextPipeline } from '@crawlee/browser';
+import type { CrawlingContext } from '@crawlee/browser';
 import { Dictionary } from '@crawlee/types';
 import { EventManager } from '@crawlee/browser';
 import type { GetUserDataFromRequest } from '@crawlee/browser';
@@ -195,20 +194,7 @@ interface PuppeteerContextUtils {
 export class PuppeteerCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends PuppeteerCrawlingContext = PuppeteerCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<PuppeteerCrawlingContext['request']>>, StatisticStateExtension extends object = {}> extends BrowserCrawler<Page, HTTPResponse, LaunchOptions, PuppeteerCrawlingContext, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
     constructor(options?: PuppeteerCrawlerOptions<ContextExtension, ExtendedContext, Routes, StatisticStateExtension>);
     // (undocumented)
-    protected buildContextPipeline(): ContextPipeline<CrawlingContext<Dictionary>, BrowserCrawlingContext<Page, HTTPResponse, Dictionary, Dictionary> & {
-    injectFile: (filePath: string, options?: InjectFileOptions) => Promise<unknown>;
-    injectJQuery: () => Promise<void>;
-    waitForSelector: (selector: string, timeoutMs?: number) => Promise<void>;
-    parseWithCheerio: (selector?: string, timeoutMs?: number) => Promise<CheerioAPI>;
-    enqueueLinksByClickingElements: (options: Omit<EnqueueLinksByClickingElementsOptions, "page" | "requestManager">) => Promise<BatchAddRequestsResult>;
-    blockRequests: (options?: BlockRequestsOptions) => Promise<void>;
-    compileScript: (scriptString: string, ctx?: Dictionary) => CompiledScriptFunction;
-    addInterceptRequestHandler: (handler: InterceptHandler) => Promise<void>;
-    removeInterceptRequestHandler: (handler: InterceptHandler) => Promise<void>;
-    infiniteScroll: (options?: InfiniteScrollOptions) => Promise<void>;
-    saveSnapshot: (options?: SaveSnapshotOptions) => Promise<void>;
-    closeCookieModals: () => Promise<void>;
-    }>;
+    protected buildContextPipeline(): ContextPipeline<CrawlingContext, PuppeteerCrawlingContext>;
     // (undocumented)
     protected navigationHandler(crawlingContext: PuppeteerCrawlingContext, gotoOptions: PuppeteerDirectNavigationOptions): Promise<HTTPResponse | null>;
     // (undocumented)

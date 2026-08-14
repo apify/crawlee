@@ -6,10 +6,9 @@
 
 import type { AddRequestsBatchedResult } from '@crawlee/http';
 import { BaseHttpClient } from '@crawlee/http-client';
-import { CheerioAPI } from 'cheerio';
 import { CheerioRoot } from '@crawlee/utils/internal';
 import { Configuration } from '@crawlee/http';
-import { ContextPipeline } from '@crawlee/http';
+import type { ContextPipeline } from '@crawlee/http';
 import type { CrawlingContext } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
 import type { DOMWindow } from 'jsdom';
@@ -43,16 +42,7 @@ export function createJSDOMRouter<Context extends JSDOMCrawlingContext = JSDOMCr
 export class JSDOMCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends JSDOMCrawlingContext = JSDOMCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<JSDOMCrawlingContext['request']>>, StatisticStateExtension extends object = {}> extends HttpCrawler<JSDOMCrawlingContext, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
     constructor(options?: JSDOMCrawlerOptions<ContextExtension, ExtendedContext, any, any, Routes, StatisticStateExtension>);
     // (undocumented)
-    protected buildContextPipeline(): ContextPipeline<CrawlingContext<Dictionary>, InternalHttpCrawlingContext<any, any> & {
-    readonly window: DOMWindow;
-    readonly body: string;
-    readonly document: Document;
-    } & {
-    extractLinks: (options?: ExtractLinksOptions) => Promise<string[]>;
-    enqueueLinks: (options?: EnqueueLinksOptions) => Promise<AddRequestsBatchedResult>;
-    waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
-    parseWithCheerio(selector?: string, _timeoutMs?: number): Promise<CheerioAPI>;
-    }>;
+    protected buildContextPipeline(): ContextPipeline<CrawlingContext, JSDOMCrawlingContext>;
     getVirtualConsole(): VirtualConsole;
     // (undocumented)
     protected static optionsSchema: z.ZodObject<{

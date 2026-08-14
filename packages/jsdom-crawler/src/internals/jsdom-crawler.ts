@@ -1,5 +1,6 @@
 import type {
     AddRequestsBatchedResult,
+    ContextPipeline,
     CrawlingContext,
     EnqueueLinksOptions,
     ErrorHandler,
@@ -243,7 +244,7 @@ export class JSDOMCrawler<
         this.#hideInternalConsole = hideInternalConsole;
     }
 
-    protected override buildContextPipeline() {
+    protected override buildContextPipeline(): ContextPipeline<CrawlingContext, JSDOMCrawlingContext> {
         return super
             .buildContextPipeline()
             .compose({

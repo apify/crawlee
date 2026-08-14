@@ -2,6 +2,8 @@ import type {
     BrowserCrawlerOptions,
     BrowserCrawlingContext,
     BrowserHook,
+    ContextPipeline,
+    CrawlingContext,
     GetUserDataFromRequest,
     RouterHandler,
     RouterRoutes,
@@ -255,7 +257,7 @@ export class PuppeteerCrawler<
         });
     }
 
-    protected override buildContextPipeline() {
+    protected override buildContextPipeline(): ContextPipeline<CrawlingContext, PuppeteerCrawlingContext> {
         return super.buildContextPipeline().compose({ action: this.enhanceContext.bind(this) });
     }
 
