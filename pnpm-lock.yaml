@@ -85,6 +85,9 @@ importers:
       '@microsoft/api-extractor':
         specifier: ^7.58.9
         version: 7.58.9(@types/node@24.12.2)
+      '@oxlint/plugins':
+        specifier: ^1.62.0
+        version: 1.62.0
       '@playwright/browser-chromium':
         specifier: 1.61.1
         version: 1.61.1
@@ -3748,6 +3751,10 @@ packages:
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [x64]
     os: [win32]
+
+  '@oxlint/plugins@1.62.0':
+    resolution: {integrity: sha512-BgKRw631mImmxuGuRoWaRT8AvNSJCfJvR7lDzP1jR3sBAa7q8P/Ii+lcEOEFZsfcfpkXLyUKGEQLYXWqb60wvw==}
+    engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
 
   '@peculiar/asn1-cms@2.6.1':
     resolution: {integrity: sha512-vdG4fBF6Lkirkcl53q6eOdn3XYKt+kJTG59edgRZORlg/3atWWEReRCx5rYE1ZzTTX6vLK5zDMjHh7vbrcXGtw==}
@@ -16219,6 +16226,8 @@ snapshots:
 
   '@oxlint/binding-win32-x64-msvc@1.62.0':
     optional: true
+
+  '@oxlint/plugins@1.62.0': {}
 
   '@peculiar/asn1-cms@2.6.1':
     dependencies:
