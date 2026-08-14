@@ -75,6 +75,12 @@ Support for older TypeScript versions was dropped. Crawlee ships compiled JavaSc
 
 Previously, we kept the dependency on cheerio locked to the latest RC version, since there were many breaking changes introduced in v1.0. This release bumps cheerio to the stable v1. Also, we now use the default `parse5` internally.
 
+### Installing with `--omit=optional` breaks native dependencies
+
+Crawlee v4 relies on more native, prebuilt dependencies than v3 did — notably the `impit` HTTP client and the `@crawlee/fs-storage-native` package backing `@crawlee/fs-storage`. Like other napi-rs-based packages, these ship one platform-specific binary per OS/architecture, distributed as `optionalDependencies` so that npm installs only the one matching your platform.
+
+Running `npm install --omit=optional` (or the equivalent `yarn`/`pnpm` flag) skips all optional dependencies, including these platform binaries, so the native dependencies fail to install correctly. If your Dockerfile or install scripts carried over `--omit=optional` from a v3 project template, remove it — it is no longer safe to use with Crawlee v4.
+
 ### Deprecated crawler options are removed
 
 The crawler following options are removed:
