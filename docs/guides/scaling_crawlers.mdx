@@ -62,6 +62,12 @@ With that warning aside, this is how we pass those options. One thing to watch: 
 	{ConcurrencySystemSource}
 </CodeBlock>
 
+:::note Requires Node.js 24
+
+The `await using` syntax needs Node.js 24 or later. On Node.js 22 call <ApiLink to="core/class/ConcurrencySystem#stop">`stop()`</ApiLink> yourself in a `finally` block instead — it is what the disposal hook calls anyway.
+
+:::
+
 :::tip Capping the combined concurrency of several crawlers
 
 Injecting the *same* `ConcurrencySystem` instance into several crawlers makes them share a single concurrency budget, capping their combined parallelism instead of letting each crawler scale independently.

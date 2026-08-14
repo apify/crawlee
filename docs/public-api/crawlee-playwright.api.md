@@ -530,6 +530,8 @@ export type RenderingType = 'clientOnly' | 'static';
 
 // @public
 export class RenderingTypePredictor implements IRenderingTypePredictor {
+    // (undocumented)
+    [Symbol.asyncDispose](): Promise<void>;
     constructor(input: RenderingTypePredictorOptions);
     initialize(): Promise<void>;
     predict(input: Request_2): {
@@ -537,6 +539,7 @@ export class RenderingTypePredictor implements IRenderingTypePredictor {
         detectionProbabilityRecommendation: number;
     };
     storeResult(requests: Request_2 | Request_2[], renderingType: RenderingType): void;
+    teardown(): Promise<void>;
 }
 
 // Not exported by the entry point; reachable only as a referenced type.

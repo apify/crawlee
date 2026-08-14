@@ -289,6 +289,10 @@ export class RemoteBrowserPool<Page = unknown> implements IBrowserPool<Page> {
         return this.#pool.injectPageState(page, state);
     }
 
+    async [Symbol.asyncDispose](): Promise<void> {
+        await this.destroy();
+    }
+
     /** Closes all browsers, releases any still-open remote sessions, and tears down the wrapped pool. */
     async destroy(): Promise<void> {
         await this.browserPool.destroy();

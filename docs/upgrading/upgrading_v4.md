@@ -17,7 +17,7 @@ This page summarizes the breaking changes in Crawlee v4. There are many, so the 
 
 - **Timeouts that mean what they say.** Navigation and the request handler are [timed separately](#navigation-and-the-request-handler-are-timed-separately) — no more mysteriously summed limits — and a single route can get [its own timeout](#per-route-and-per-request-handler-timeouts) or extend it mid-flight.
 - **Composable crawling context.** The new `extendContext` option and `ContextPipeline` composition replace subclassing tricks for [adding members to the crawling context](#crawling-context-no-longer-includes-a-reference-to-the-crawler-itself).
-- **Bring your own implementation.** Crawlers now accept any [`ISessionPool`](#custom-sessionpool-implementations-via-the-isessionpool-interface), [`IBrowserPool`](#custom-browserpool-implementations-via-the-ibrowserpool-interface), [`IRenderingTypePredictor`](#custom-rendering-type-predictors-via-the-irenderingtypepredictor-interface), [`IRequestManager`](#request-loaders-and-managers) or [`IStatistics`](#statisticsoptions-is-replaced-by-a-statistics-instance) — and never tear down an instance they did not create.
+- **Bring your own implementation.** Crawlers now accept any [`ISessionPool`](#custom-sessionpool-implementations-via-the-isessionpool-interface), [`IBrowserPool`](#custom-browserpool-implementations-via-the-ibrowserpool-interface), [`IRenderingTypePredictor`](#custom-rendering-type-predictors-via-the-irenderingtypepredictor-interface), [`IRequestManager`](#request-loaders-and-managers) or [`IStatistics`](#statisticsoptions-is-replaced-by-a-statistics-instance) — and never tear down an instance they did not create, which [`await using` now does for you](#collaborators-you-own-are-disposable).
 - **One concurrency budget for several crawlers.** The new [`ConcurrencySystem`](#autoscaling-moved-to-concurrencysystem) can be shared between crawlers, capping their combined concurrency instead of letting each one oversubscribe the host.
 - **Native `fetch` types.** HTTP clients and `context.response` now use the [standard `Response`](#crawlingcontextresponse-is-now-of-type-response), and `got-scraping` is an [opt-in dependency](#http-client-packages-and-basehttpclient-reshaped) instead of a mandatory one.
 - **The session is the rotation unit.** A session carries its proxy, cookies and error score, and is rotated as a whole when blocked — replacing [proxy tiers](#tieredproxyurls-is-removed-from-proxyconfiguration) and [session rotation counters](#maxsessionrotations-and-requestsessionrotationcount-are-removed).
@@ -70,6 +70,19 @@ Crawlee v4 is a native ESM package now. It can be still consumed from a CJS proj
 ### Node 22+ required
 
 Support for older node versions was dropped.
+
+### Collaborators you own are disposable
+
+A crawler never tears down an instance it did not build, so anything you construct and pass in — `SessionPool`, `ConcurrencySystem`, `BrowserPool`, `RemoteBrowserPool`, `RenderingTypePredictor` — is yours to shut down. All of them implement `Symbol.asyncDispose`, so `await using` does it for you:
+
+```typescript
+await using concurrencySystem = new ConcurrencySystem({ maxConcurrency: 20 });
+await concurrencySystem.start();
+
+await Promise.all([a.run(), b.run()]);
+```
+
+The hook calls the same `stop()` / `teardown()` / `destroy()` method as before, and those stay — `await using` needs Node.js 24, and v4 supports Node.js 22.
 
 ### TypeScript 5.8+ required
 
@@ -1758,6 +1771,8 @@ try {
     await concurrencySystem.stop();
 }
 ```
+
+On Node.js 24, `await using` replaces the `try`/`finally` — see [collaborators you own are disposable](#collaborators-you-own-are-disposable).
 
 #### `AutoscaledPool` is no longer public API
 

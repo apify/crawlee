@@ -768,6 +768,10 @@ export class BrowserPool<
         await Promise.all(promises);
     }
 
+    async [Symbol.asyncDispose](): Promise<void> {
+        await this.destroy();
+    }
+
     /**
      * Closes all managed browsers and tears down the pool.
      */

@@ -140,6 +140,17 @@ export class RenderingTypePredictor implements IRenderingTypePredictor {
     }
 
     /**
+     * Stop persisting the model, writing it out one last time. `initialize()` reopens the persistence window.
+     */
+    async teardown(): Promise<void> {
+        await this.state.teardown();
+    }
+
+    async [Symbol.asyncDispose](): Promise<void> {
+        await this.teardown();
+    }
+
+    /**
      * Predict the rendering type for a given URL and request label.
      */
     public predict({ url, loadedUrl, label }: Request): {
