@@ -132,6 +132,12 @@ One behavioral change: options validated against class interfaces (`httpClient`,
 
 `@crawlee/core` used to accept zod 3 as well; it now needs 4.1 or newer, for the codecs it validates persisted state with. Zod is an ordinary dependency rather than a peer, so a project pinned to zod 3 keeps working — it just ends up with both versions installed.
 
+### Installing with `--omit=optional` breaks native dependencies
+
+Crawlee v4 relies on more native, prebuilt dependencies than v3 did — notably the `impit` HTTP client and the `@crawlee/fs-storage-native` package backing `@crawlee/fs-storage`. Like other napi-rs-based packages, these ship one platform-specific binary per OS/architecture, distributed as `optionalDependencies` so that npm installs only the one matching your platform.
+
+Running `npm install --omit=optional` (or the equivalent `yarn`/`pnpm` flag) skips all optional dependencies, including these platform binaries, so the native dependencies fail to install correctly. If your Dockerfile or install scripts carried over `--omit=optional` from a v3 project template, remove it — it is no longer safe to use with Crawlee v4.
+
 ### Deprecated crawler options are removed
 
 The crawler following options are removed:
