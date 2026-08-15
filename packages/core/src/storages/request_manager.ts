@@ -42,3 +42,17 @@ export interface IRequestManager extends IRequestLoader {
      */
     setExpectedRequestProcessingTimeSecs?(secs: number): Promise<void>;
 }
+
+/**
+ * A request manager that delegates work to one or more inner request managers.
+ * Allows capability probes to inspect underlying wrapped managers recursively.
+ */
+export interface DelegatingRequestManager {
+    /**
+     * Returns the inner request manager(s) wrapped or delegated to by this manager.
+     */
+    getDelegatedManager?():
+        | IRequestManager
+        | Promise<IRequestManager>
+        | (IRequestManager | Promise<IRequestManager>)[];
+}

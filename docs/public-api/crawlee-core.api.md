@@ -1223,10 +1223,19 @@ export interface RequestListState {
 }
 
 // @public
+export interface DelegatingRequestManager {
+    // (undocumented)
+    getDelegatedManager?(): IRequestManager | Promise<IRequestManager> | (IRequestManager | Promise<IRequestManager>)[];
+}
+
+// @public
+export function findDomainThrottlingManager(manager: unknown, visited?: Set<unknown>): Promise<SupportsDomainThrottling | null>;
+
+// @public
 export type RequestManagerOpener<T extends IRequestManager = IRequestManager> = (identifier: string | StorageIdentifier, options?: StorageOpenOptions) => Promise<T>;
 
 // @public
-export class RequestManagerTandem implements IRequestManager {
+export class RequestManagerTandem implements IRequestManager, DelegatingRequestManager {
     // (undocumented)
     [Symbol.asyncIterator](): AsyncGenerator<Request_2<Dictionary>, void, unknown>;
     constructor(requestLoader: IRequestLoader, requestManager: IRequestManager | (() => IRequestManager | Promise<IRequestManager>));
@@ -1235,6 +1244,8 @@ export class RequestManagerTandem implements IRequestManager {
     // (undocumented)
     addRequestsBatched(requests: RequestsLike, options?: AddRequestsBatchedOptions): Promise<AddRequestsBatchedResult>;
     fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request_2<T> | null>;
+    // (undocumented)
+    getDelegatedManager(): IRequestManager | Promise<IRequestManager>;
     // (undocumented)
     getHandledCount(): Promise<number>;
     // (undocumented)
@@ -2070,7 +2081,7 @@ export interface TaskLoopPredicates {
 }
 
 // @public
-export class ThrottlingRequestManager<T extends IRequestManager = IRequestManager> implements IRequestManager, SupportsDomainThrottling {
+export class ThrottlingRequestManager<T extends IRequestManager = IRequestManager> implements IRequestManager, SupportsDomainThrottling, DelegatingRequestManager {
     // (undocumented)
     [Symbol.asyncIterator](): AsyncGenerator<Request_2<Dictionary>, void, unknown>;
     constructor(options: ThrottlingRequestManagerOptions<T>, config?: Configuration);
@@ -2081,6 +2092,8 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     // (undocumented)
     drop(): Promise<void>;
     fetchNextRequest<R extends Dictionary = Dictionary>(): Promise<Request_2<R> | null>;
+    // (undocumented)
+    getDelegatedManager(): T;
     // (undocumented)
     getHandledCount(): Promise<number>;
     // (undocumented)

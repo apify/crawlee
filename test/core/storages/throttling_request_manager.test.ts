@@ -1,8 +1,11 @@
 import type { AddRequestsBatchedResult } from '@crawlee/core';
 import {
+    findDomainThrottlingManager,
     KeyValueStore,
     MemoryStorageBackend,
     PersistentRateLimitError,
+    RequestList,
+    RequestManagerTandem,
     RequestQueue,
     serviceLocator,
     ThrottlingRequestManager,
@@ -725,5 +728,33 @@ describe('ThrottlingRequestManager', () => {
 
         expect(Date.now() - start).toBeGreaterThanOrEqual(150);
         expect(req2.url).toBe('https://example.com/2');
+    });
+
+    describe('findDomainThrottlingManager & DelegatingRequestManager (#3999)', () => {
+        test('finds ThrottlingRequestManager directly', async () => {
+            const inner = await createQueue();
+            const manager = new ThrottlingRequestManager({ inner, domains: ['example.com'] });
+            const resolved = await findDomainThrottlingManager(manager);
+            expect(resolved).toBe(manager);
+        });
+
+        test('unwraps ThrottlingRequestManager wrapped inside RequestManagerTandem', async () => {
+            const inner = await createQueue();
+            const list = await RequestList.open(null, ['https://example.com/1']);
+            const throttler = new ThrottlingRequestManager({ inner, domains: ['example.com'] });
+            const tandem = new RequestManagerTandem(list, throttler);
+
+            const resolved = await findDomainThrottlingManager(tandem);
+            expect(resolved).toBe(throttler);
+        });
+
+        test('safely handles circular references via visited set', async () => {
+            const objA: any = {};
+            const objB: any = { getDelegatedManager: () => objA };
+            objA.getDelegatedManager = () => objB;
+
+            const resolved = await findDomainThrottlingManager(objA);
+            expect(resolved).toBeNull();
+        });
     });
 });

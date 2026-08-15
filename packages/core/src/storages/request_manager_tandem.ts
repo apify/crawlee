@@ -4,7 +4,7 @@ import type { CrawleeLogger } from '../log.js';
 import type { Request, Source } from '../request.js';
 import { serviceLocator } from '../service_locator.js';
 import type { IRequestLoader } from './request_loader.js';
-import type { IRequestManager, RequestsLike } from './request_manager.js';
+import type { DelegatingRequestManager, IRequestManager, RequestsLike } from './request_manager.js';
 import type {
     AddRequestsBatchedOptions,
     AddRequestsBatchedResult,
@@ -17,7 +17,7 @@ import type {
  * {@apilink IRequestManager} (such as a `RequestQueue`).
  * It first reads requests from the loader and then, when needed, transfers them in batches to the manager.
  */
-export class RequestManagerTandem implements IRequestManager {
+export class RequestManagerTandem implements IRequestManager, DelegatingRequestManager {
     #log: CrawleeLogger;
     #requestLoader: IRequestLoader;
     #requestManagerPromise?: Promise<IRequestManager>;
@@ -63,6 +63,13 @@ export class RequestManagerTandem implements IRequestManager {
             }
         }
         return this.#resolvedRequestManager;
+    }
+
+    /**
+     * Returns the inner writable request manager, resolving it synchronously if already opened or asynchronously otherwise.
+     */
+    getDelegatedManager(): IRequestManager | Promise<IRequestManager> {
+        return this.#resolvedRequestManager ?? this.getRequestManager();
     }
 
     /**

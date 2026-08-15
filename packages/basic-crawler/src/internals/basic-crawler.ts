@@ -71,6 +71,7 @@ import {
     RequestQueue,
     RequestState,
     RetryRequestError,
+    findDomainThrottlingManager,
     supportsDomainThrottling,
     Router,
     ServiceLocator,
@@ -882,6 +883,7 @@ export class BasicCrawler<
     readonly #onSkippedRequest?: SkippedRequestCallback;
     #closeEvents?: boolean;
     #loggedPerRun = new Set<string>();
+    #throttlingManager?: SupportsDomainThrottling | null;
     readonly #robotsTxtFileCache: LruCache<RobotsTxtFile>;
     readonly #identity: CrawlerIdentity;
     readonly #contextPipelineOptions: {
@@ -1070,7 +1072,7 @@ export class BasicCrawler<
                     );
                 }
                 // Both would pace the same domains, from different keys and with no idea of one another.
-                if (sameDomainDelaySecs > 0 && supportsDomainThrottling(requestManager)) {
+                if (sameDomainDelaySecs > 0 && (await findDomainThrottlingManager(requestManager))) {
                     throw new Error(
                         'The `sameDomainDelaySecs` option cannot be combined with a `requestManager` that throttles ' +
                             'per domain on its own. Configure the delay on the manager instead, via the ' +
@@ -1320,8 +1322,10 @@ export class BasicCrawler<
 
                     // Checked here because this runs only once nothing is in flight, which is exactly when a
                     // crawl that cannot progress looks indistinguishable from one that is merely waiting.
-                    if (!keepAlive && supportsDomainThrottling(this.requestManager)) {
-                        await this.requestManager.assertNoStalledDomains();
+                    const throttlingManager =
+                        this.#throttlingManager ?? (await findDomainThrottlingManager(this.requestManager));
+                    if (!keepAlive && throttlingManager) {
+                        await throttlingManager.assertNoStalledDomains();
                     }
 
                     const isFinished = isFinishedFunction
@@ -1843,7 +1847,9 @@ export class BasicCrawler<
         // Wrapped here rather than in the constructor, because the manager being wrapped may only be opened at
         // this point - and because everything that enqueues goes through here first, so nothing slips past the
         // wrapper into the queue it hides.
-        if (this.#sameDomainDelaySecs > 0 && !supportsDomainThrottling(this.requestManager)) {
+        this.#throttlingManager = await findDomainThrottlingManager(this.requestManager);
+
+        if (this.#sameDomainDelaySecs > 0 && !this.#throttlingManager) {
             this.requestManager = new ThrottlingRequestManager({
                 inner: this.requestManager,
                 domains: 'all',
@@ -1852,6 +1858,7 @@ export class BasicCrawler<
                 throttleBy: 'registrableDomain',
                 persistStateKey: `CRAWLEE_THROTTLED_DOMAINS_${this.#identity.id}`,
             });
+            this.#throttlingManager = this.requestManager;
         }
 
         // Apply the processing-time hint here (an async lifecycle point) rather than in the constructor,
@@ -2437,9 +2444,9 @@ export class BasicCrawler<
      *  {@apilink RequestThrottledError} rather than treating the response as a blocked session.
      */
     protected recordDomainRateLimit(url: string, retryAfterHeader?: string | null): boolean {
+        const manager = this.#throttlingManager ?? (supportsDomainThrottling(this.requestManager) ? this.requestManager : null);
         if (
-            supportsDomainThrottling(this.requestManager) &&
-            this.requestManager.recordDomainDelay(url, parseRetryAfterHeader(retryAfterHeader))
+            manager?.recordDomainDelay(url, parseRetryAfterHeader(retryAfterHeader))
         ) {
             return true;
         }
@@ -2464,7 +2471,8 @@ export class BasicCrawler<
      * because a manager that does throttle still drops the delay for a domain missing from its `domains` list.
      */
     private applyCrawlDelay(url: string, delaySeconds: number): void {
-        if (supportsDomainThrottling(this.requestManager) && this.requestManager.setCrawlDelay(url, delaySeconds)) {
+        const manager = this.#throttlingManager ?? (supportsDomainThrottling(this.requestManager) ? this.requestManager : null);
+        if (manager?.setCrawlDelay(url, delaySeconds)) {
             return;
         }
 

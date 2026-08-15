@@ -13,7 +13,7 @@ import { normalizeHostname } from '../url.js';
 import { parseArgument, schemas } from '../validators.js';
 import { drainRequestBatches } from './batched_adds.js';
 import { KeyValueStore } from './key_value_store.js';
-import type { IRequestManager, RequestsLike } from './request_manager.js';
+import type { DelegatingRequestManager, IRequestManager, RequestsLike } from './request_manager.js';
 import type {
     AddRequestsBatchedOptions,
     AddRequestsBatchedResult,
@@ -75,6 +75,44 @@ export function supportsDomainThrottling(manager: unknown): manager is SupportsD
         typeof candidate.setCrawlDelay === 'function' &&
         typeof candidate.assertNoStalledDomains === 'function'
     );
+}
+
+/**
+ * Resolves an object supporting domain throttling by unwrapping any delegating request managers.
+ * Includes a `visited` set to prevent circular recursion stack overflow errors.
+ */
+export async function findDomainThrottlingManager(
+    manager: unknown,
+    visited = new Set<unknown>(),
+): Promise<SupportsDomainThrottling | null> {
+    if (!manager || typeof manager !== 'object' || visited.has(manager)) {
+        return null;
+    }
+
+    visited.add(manager);
+
+    if (supportsDomainThrottling(manager)) {
+        return manager;
+    }
+
+    const delegator = manager as Partial<DelegatingRequestManager>;
+    if (typeof delegator.getDelegatedManager === 'function') {
+        const delegated = await delegator.getDelegatedManager();
+        if (Array.isArray(delegated)) {
+            for (const item of delegated) {
+                const resolved = await item;
+                const found = await findDomainThrottlingManager(resolved, visited);
+                if (found) {
+                    return found;
+                }
+            }
+        } else if (delegated) {
+            const resolved = await delegated;
+            return findDomainThrottlingManager(resolved, visited);
+        }
+    }
+
+    return null;
 }
 
 /** Options for {@apilink ThrottlingRequestManager}. */
@@ -267,7 +305,7 @@ const DEFAULT_PERSIST_STATE_KEY = 'CRAWLEE_THROTTLED_DOMAINS';
  * @category Sources
  */
 export class ThrottlingRequestManager<T extends IRequestManager = IRequestManager>
-    implements IRequestManager, SupportsDomainThrottling
+    implements IRequestManager, SupportsDomainThrottling, DelegatingRequestManager
 {
     readonly #inner: T;
     readonly #requestManagerOpener: RequestManagerOpener<T>;
@@ -381,6 +419,11 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     /** The wrapped manager, holding every request whose domain is not throttled. */
     get innerManager(): T {
         return this.#inner;
+    }
+
+    /** Returns the inner request manager wrapped by this manager. */
+    getDelegatedManager(): T {
+        return this.innerManager;
     }
 
     /** Warns once about sources that cannot be routed by domain, because their URLs are not known yet. */
