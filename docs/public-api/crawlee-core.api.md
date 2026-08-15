@@ -1223,7 +1223,7 @@ export interface RequestListState {
 }
 
 // @public
-export type RequestManagerOpener<T extends IRequestManager = IRequestManager> = (identifier: string | StorageIdentifier, options?: StorageOpenOptions) => Promise<T>;
+export type RequestManagerOpener<T extends IRequestManager = IRequestManager> = (identifier?: string | StorageIdentifier | null, options?: StorageOpenOptions) => Promise<T>;
 
 // @public
 export class RequestManagerTandem implements IRequestManager {

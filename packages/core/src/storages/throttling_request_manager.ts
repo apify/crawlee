@@ -28,14 +28,22 @@ const throttlingRequestManagerOptionsSchema = z.strictObject({
     inner: schemas.anyObject.optional(),
     domains: z.union([schemas.arrayOf(z.string().nonempty(), 'non-empty strings'), z.literal('all')]),
     requestManagerOpener: schemas.anyFunction.optional(),
-    baseDelaySecs: schemas.anyNumber.refine((value: number) => value > 0, 'Expected a number greater than 0').optional(),
-    maxDelaySecs: schemas.anyNumber.refine((value: number) => value > 0, 'Expected a number greater than 0').optional(),
-    maxDomainStallSecs: schemas.anyNumber.refine((value: number) => value > 0, 'Expected a number greater than 0').optional(),
+    baseDelaySecs: schemas.anyNumber
+        .refine((value: number) => value > 0, 'Expected a number greater than 0')
+        .optional(),
+    maxDelaySecs: schemas.anyNumber
+        .refine((value: number) => value > 0, 'Expected a number greater than 0')
+        .optional(),
+    maxDomainStallSecs: schemas.anyNumber
+        .refine((value: number) => value > 0, 'Expected a number greater than 0')
+        .optional(),
     minCrawlDelaySecs: schemas.anyNumber
         .refine((value: number) => value >= 0, 'Expected a number greater than or equal to 0')
         .optional(),
     throttleBy: z.enum(['hostname', 'registrableDomain']).optional(),
-    maxThrottledDomains: schemas.anyNumber.refine((value: number) => value > 0, 'Expected a number greater than 0').optional(),
+    maxThrottledDomains: schemas.anyNumber
+        .refine((value: number) => value > 0, 'Expected a number greater than 0')
+        .optional(),
     persistStateKey: z.string().nonempty().optional(),
 });
 
