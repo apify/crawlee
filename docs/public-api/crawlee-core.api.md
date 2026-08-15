@@ -2108,7 +2108,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
 export interface ThrottlingRequestManagerOptions<T extends IRequestManager = IRequestManager> {
     baseDelaySecs?: number;
     domains: string[] | 'all';
-    inner: T;
+    inner?: T;
     maxDelaySecs?: number;
     maxDomainStallSecs?: number;
     maxThrottledDomains?: number;
