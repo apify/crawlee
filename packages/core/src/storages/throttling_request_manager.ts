@@ -47,7 +47,7 @@ const throttlingRequestManagerOptionsSchema = z.strictObject({
  * concrete type and storage backend of the manager being wrapped.
  */
 export type RequestManagerOpener<T extends IRequestManager = IRequestManager> = (
-    identifier: string | StorageIdentifier,
+    identifier?: string | StorageIdentifier | null,
     options?: StorageOpenOptions,
 ) => Promise<T>;
 
@@ -380,7 +380,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
 
     /** The wrapped manager, holding every request whose domain is not throttled. */
     get innerManager(): T {
-        return this.#inner;
+        return this.#inner!;
     }
 
     /** Warns once about sources that cannot be routed by domain, because their URLs are not known yet. */
@@ -817,7 +817,8 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         const key = request.id ?? request.uniqueKey;
 
         if (this.#inFlightFromInner.delete(key)) {
-            return this.#inner;
+            await this.#ensureSubManagers();
+            return this.#inner!;
         }
 
         return this.#selectManagerOrThrow(request.url);
@@ -847,7 +848,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         const fetchable = await Promise.all(
             this.#fetchableDomains().map(async (domain) => this.#subManagers.get(domain)!),
         );
-        const results = await Promise.all([this.#inner, ...fetchable].map(async (manager) => manager.isEmpty()));
+        const results = await Promise.all([this.#inner!, ...fetchable].map(async (manager) => manager.isEmpty()));
 
         return results.every(Boolean);
     }
