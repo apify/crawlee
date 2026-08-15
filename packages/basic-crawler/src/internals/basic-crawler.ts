@@ -1851,7 +1851,7 @@ export class BasicCrawler<
         this.#throttlingManager = await findDomainThrottlingManager(this.requestManager);
 
         if (this.#sameDomainDelaySecs > 0 && !this.#throttlingManager) {
-            this.requestManager = new ThrottlingRequestManager({
+            const throttlingManager = new ThrottlingRequestManager({
                 inner: this.requestManager,
                 domains: 'all',
                 minCrawlDelaySecs: this.#sameDomainDelaySecs,
@@ -1859,7 +1859,8 @@ export class BasicCrawler<
                 throttleBy: 'registrableDomain',
                 persistStateKey: `CRAWLEE_THROTTLED_DOMAINS_${this.#identity.id}`,
             });
-            this.#throttlingManager = this.requestManager;
+            this.requestManager = throttlingManager;
+            this.#throttlingManager = throttlingManager;
         }
 
         // Apply the processing-time hint here (an async lifecycle point) rather than in the constructor,
