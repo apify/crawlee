@@ -861,6 +861,19 @@ export class RequestQueue implements IStorage, IRequestManager {
     }
 
     /**
+     * @inheritdoc
+     * Unlike {@link RequestQueue.setExpectedRequestProcessingTimeSecs}, which sizes every future lock,
+     * this only touches the one request it is given.
+     */
+    async extendRequestProcessingTimeSecs(request: Request, secs: number): Promise<boolean> {
+        if (!request.id) {
+            return false;
+        }
+
+        return (await this.backend.extendRequestProcessingTimeSecs?.(request.id, secs)) ?? false;
+    }
+
+    /**
      * Caches information about request to beware of unneeded addRequest() calls.
      */
     private cacheRequest(cacheKey: string, queueOperationInfo: RequestQueueOperationInfo): void {

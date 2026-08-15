@@ -1,8 +1,11 @@
+import { rm } from 'node:fs/promises';
+import { resolve } from 'node:path';
 /* eslint-disable dot-notation */
 
 import { CrawlingRequest } from '@crawlee/basic';
 import { MemoryStorageBackend, ProxyConfiguration, Request, RequestQueue, serviceLocator } from '@crawlee/core';
 import { BaseHttpClient } from '@crawlee/http-client';
+import { FileSystemStorageBackend } from '@crawlee/fs-storage';
 import { sleep } from '@crawlee/utils';
 
 // `vitest.mockObject` clones the object and drops its prototype, so build the mock manually to
@@ -393,6 +396,38 @@ describe('RequestQueue remote', () => {
             await queue.setExpectedRequestProcessingTimeSecs(30);
             await queue.setExpectedRequestProcessingTimeSecs(120);
             expect(spy).toHaveBeenCalledTimes(2);
+        });
+    });
+
+    describe('extendRequestProcessingTimeSecs', () => {
+        test('forwards the request id and extension to the backend', async () => {
+            // The file-system backend actually locks fetched requests; the spy observes
+            // the real forwarding and the real lock extension.
+            const tmpLocation = resolve(import.meta.dirname, './tmp/extend-forwarding');
+            serviceLocator.reset();
+            serviceLocator.setStorageBackend(new FileSystemStorageBackend({ localDataDirectory: tmpLocation }));
+            try {
+                const queue = await RequestQueue.open();
+                await queue.addRequest({ url: 'http://example.com/a' });
+                const fetched = await queue.fetchNextRequest();
+                expect(fetched).not.toBeNull();
+
+                const stub = vitest.spyOn(queue.backend, 'extendRequestProcessingTimeSecs');
+
+                await expect(queue.extendRequestProcessingTimeSecs(fetched!, 30)).resolves.toBe(true);
+                expect(stub).toHaveBeenCalledExactlyOnceWith(fetched!.id, 30);
+            } finally {
+                await rm(tmpLocation, { force: true, recursive: true });
+            }
+        });
+
+        test('resolves to false when the backend does not implement per-request locking', async () => {
+            const queue = await RequestQueue.open();
+            await queue.addRequest({ url: 'http://example.com/a' });
+            const fetched = await queue.fetchNextRequest();
+            expect(fetched).not.toBeNull();
+
+            await expect(queue.extendRequestProcessingTimeSecs(fetched!, 30)).resolves.toBe(false);
         });
     });
 

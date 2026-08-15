@@ -427,6 +427,7 @@ export interface IRequestManager extends IRequestLoader {
     addRequest(requestLike: Source, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo>;
     // (undocumented)
     addRequestsBatched(requests: RequestsLike, options?: AddRequestsBatchedOptions): Promise<AddRequestsBatchedResult>;
+    extendRequestProcessingTimeSecs?(request: Request_2, secs: number): Promise<boolean>;
     purge?(): Promise<void>;
     reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
     recordPacingSignal(signal: PacingSignal): boolean;
@@ -781,6 +782,8 @@ export class RequestManagerTandem implements IRequestManager {
     // (undocumented)
     addRequestsBatched(requests: RequestsLike, options?: AddRequestsBatchedOptions): Promise<AddRequestsBatchedResult>;
     checkReadiness(): Promise<RequestSourceStatus>;
+    // (undocumented)
+    extendRequestProcessingTimeSecs(request: Request_2, secs: number): Promise<boolean>;
     fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request_2<T> | null>;
     // (undocumented)
     getHandledCount(): Promise<number>;
@@ -827,6 +830,7 @@ export class RequestQueue implements IStorage, IRequestManager {
     readonly backend: RequestQueueBackend;
     checkReadiness(): Promise<RequestLoaderStatus>;
     drop(): Promise<void>;
+    extendRequestProcessingTimeSecs(request: Request_2, secs: number): Promise<boolean>;
     fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request_2<T> | null>;
     getHandledCount(): Promise<number>;
     getInfo(): Promise<RequestQueueInfo>;

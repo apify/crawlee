@@ -1,4 +1,5 @@
 import { readFile, rm } from 'node:fs/promises';
+import { resolve } from 'node:path';
 import type { Server } from 'node:http';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
@@ -44,6 +45,7 @@ import {
 } from '@crawlee/basic';
 import { MemoryStorageBackend } from '@crawlee/core';
 import { BaseHttpClient } from '@crawlee/http-client';
+import { FileSystemStorageBackend } from '@crawlee/fs-storage';
 import type { Dictionary, ISession, ProxyInfo } from '@crawlee/types';
 import { RobotsTxtFile, sleep } from '@crawlee/utils';
 import express from 'express';
@@ -1896,6 +1898,43 @@ describe('BasicCrawler', () => {
 
         // extending only the handler would be pointless if the backstop cut it down anyway
         expect(failed).toHaveLength(0);
+    });
+
+    test('context.extendTimeout prolongs the request lock on a locking request manager', async () => {
+        serviceLocator.reset();
+        // The file-system backend is the real locking one: its queue takes actual locks,
+        // so the whole crawler -> queue -> backend -> native lock handoff runs.
+        const tmpLocation = resolve(import.meta.dirname, './tmp/extend-timeout-lock');
+        serviceLocator.setStorageBackend(new FileSystemStorageBackend({ localDataDirectory: tmpLocation }));
+
+        const requestQueue = await RequestQueue.open();
+        const extendSpy = vitest.spyOn(requestQueue.backend, 'extendRequestProcessingTimeSecs');
+
+        try {
+            let sawFailure = false;
+
+            const crawler = new BasicCrawler({
+                requestManager: requestQueue,
+                requestHandlerTimeoutSecs: 60,
+                maxRequestRetries: 0,
+                requestHandler: async ({ request, extendTimeout }) => {
+                    await sleep(50);
+                    extendTimeout(42);
+                    expect(request.id).toBeTruthy();
+                },
+                failedRequestHandler: async () => {
+                    sawFailure = true;
+                },
+            });
+
+            await crawler.run(['https://example.com']);
+
+            expect(sawFailure).toBe(false);
+            expect(extendSpy).toHaveBeenCalledExactlyOnceWith(expect.any(String), 42);
+            await expect(extendSpy.mock.results[0]!.value).resolves.toBe(true);
+        } finally {
+            await rm(tmpLocation, { force: true, recursive: true });
+        }
     });
 
     test('a route can override requestHandlerTimeoutSecs, other routes keep the default', async () => {
