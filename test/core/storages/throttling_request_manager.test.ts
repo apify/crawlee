@@ -726,4 +726,24 @@ describe('ThrottlingRequestManager', () => {
         expect(Date.now() - start).toBeGreaterThanOrEqual(150);
         expect(req2.url).toBe('https://example.com/2');
     });
+
+    test('Optional inner option: defaults to a RequestQueue when inner is omitted', async () => {
+        const manager = new ThrottlingRequestManager({
+            domains: ['example.com'],
+        });
+
+        // Adding requests to non-throttled and throttled domains
+        await manager.addRequest({ url: 'https://other.com/a' });
+        await manager.addRequest({ url: 'https://example.com/a' });
+
+        expect(await manager.getTotalCount()).toBe(2);
+
+        const req1 = await manager.fetchNextRequest();
+        expect(req1!.url).toBe('https://example.com/a');
+
+        const req2 = await manager.fetchNextRequest();
+        expect(req2!.url).toBe('https://other.com/a');
+
+        expect(await manager.fetchNextRequest()).toBeNull();
+    });
 });
