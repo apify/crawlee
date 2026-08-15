@@ -75,6 +75,16 @@ export class RequestQueueBackend extends CachedIdClient implements storage.Reque
         await this.#nativeBackend.setExpectedRequestProcessingTime(secs);
     }
 
+    /**
+     * Extends the in-progress lock the native client holds on a fetched request, so extra
+     * processing time asked for via `context.extendTimeout` does not run out while the request
+     * is still being worked on. Resolves to `false` when the native client no longer holds
+     * the request locked.
+     */
+    async prolongRequestLock(requestId: string, secs: number): Promise<boolean> {
+        return this.#nativeBackend.prolongRequestLock(requestId, secs);
+    }
+
     async getMetadata(): Promise<storage.RequestQueueInfo> {
         return this.#nativeBackend.getMetadata();
     }

@@ -245,4 +245,8 @@ export class RequestManagerTandem implements IRequestManager {
     recordPacingSignal(signal: PacingSignal): boolean {
         return this.#resolvedRequestManager?.recordPacingSignal(signal) ?? false;
     }
+
+    async prolongRequestLock(request: Request, secs: number): Promise<boolean> {
+        return (await this.getRequestManager()).prolongRequestLock?.(request, secs) ?? false;
+    }
 }
