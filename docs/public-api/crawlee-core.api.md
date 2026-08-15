@@ -1232,6 +1232,9 @@ export interface DelegatingRequestManager {
 export function findDomainThrottlingManager(manager: unknown, visited?: Set<unknown>): Promise<SupportsDomainThrottling | null>;
 
 // @public
+export function findDomainThrottlingManagerSync(manager: unknown, visited?: Set<unknown>): SupportsDomainThrottling | null;
+
+// @public
 export type RequestManagerOpener<T extends IRequestManager = IRequestManager> = (identifier: string | StorageIdentifier, options?: StorageOpenOptions) => Promise<T>;
 
 // @public

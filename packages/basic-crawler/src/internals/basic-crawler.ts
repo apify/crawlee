@@ -72,7 +72,8 @@ import {
     RequestState,
     RetryRequestError,
     findDomainThrottlingManager,
-    supportsDomainThrottling,
+    findDomainThrottlingManagerSync,
+    type SupportsDomainThrottling,
     Router,
     ServiceLocator,
     serviceLocator,
@@ -1072,7 +1073,7 @@ export class BasicCrawler<
                     );
                 }
                 // Both would pace the same domains, from different keys and with no idea of one another.
-                if (sameDomainDelaySecs > 0 && (await findDomainThrottlingManager(requestManager))) {
+                if (sameDomainDelaySecs > 0 && findDomainThrottlingManagerSync(requestManager)) {
                     throw new Error(
                         'The `sameDomainDelaySecs` option cannot be combined with a `requestManager` that throttles ' +
                             'per domain on its own. Configure the delay on the manager instead, via the ' +
@@ -2444,10 +2445,8 @@ export class BasicCrawler<
      *  {@apilink RequestThrottledError} rather than treating the response as a blocked session.
      */
     protected recordDomainRateLimit(url: string, retryAfterHeader?: string | null): boolean {
-        const manager = this.#throttlingManager ?? (supportsDomainThrottling(this.requestManager) ? this.requestManager : null);
-        if (
-            manager?.recordDomainDelay(url, parseRetryAfterHeader(retryAfterHeader))
-        ) {
+        const manager = this.#throttlingManager ?? findDomainThrottlingManagerSync(this.requestManager);
+        if (manager?.recordDomainDelay(url, parseRetryAfterHeader(retryAfterHeader))) {
             return true;
         }
 
@@ -2471,7 +2470,7 @@ export class BasicCrawler<
      * because a manager that does throttle still drops the delay for a domain missing from its `domains` list.
      */
     private applyCrawlDelay(url: string, delaySeconds: number): void {
-        const manager = this.#throttlingManager ?? (supportsDomainThrottling(this.requestManager) ? this.requestManager : null);
+        const manager = this.#throttlingManager ?? findDomainThrottlingManagerSync(this.requestManager);
         if (manager?.setCrawlDelay(url, delaySeconds)) {
             return;
         }

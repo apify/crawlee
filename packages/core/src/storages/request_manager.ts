@@ -51,8 +51,5 @@ export interface DelegatingRequestManager {
     /**
      * Returns the inner request manager(s) wrapped or delegated to by this manager.
      */
-    getDelegatedManager?():
-        | IRequestManager
-        | Promise<IRequestManager>
-        | (IRequestManager | Promise<IRequestManager>)[];
+    getDelegatedManager?(): IRequestManager | Promise<IRequestManager> | (IRequestManager | Promise<IRequestManager>)[];
 }

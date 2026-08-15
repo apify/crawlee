@@ -1,8 +1,6 @@
 import { JSDOMCrawler, ProxyConfiguration, SessionPool } from 'crawlee';
 
-const proxyConfiguration = new ProxyConfiguration({
-    /* opts */
-});
+const proxyConfiguration = new ProxyConfiguration({/* opts */});
 
 const crawler = new JSDOMCrawler({
     // To use the proxy IP session rotation logic, you must turn the proxy usage on.
