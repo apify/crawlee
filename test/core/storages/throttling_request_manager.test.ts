@@ -247,6 +247,46 @@ describe('ThrottlingRequestManager', () => {
         expect(await inner.getPendingCount()).toBe(0);
     });
 
+    test('a request the inner manager holds is paced by its domain like any other', async () => {
+        const inner = await createQueue();
+        const manager = new ThrottlingRequestManager({ inner, domains: ['example.com'], baseDelaySecs: 0.5 });
+
+        // The same bypass as above, so the request belongs to a throttled domain without being stored per domain.
+        await inner.addRequest({ url: 'https://example.com/1' });
+
+        const request = (await manager.fetchNextRequest())!;
+        expect(manager.recordDomainDelay(request.url)).toBe(true);
+        // What the crawler does with the `RequestThrottledError` a 429 raises: reclaim, no retry spent.
+        await manager.reclaimRequest(request);
+
+        // Handing it straight back would have the crawler hammer the domain that just turned it away, and
+        // nothing else would slow it down - a deferred request costs neither a retry nor session reputation.
+        expect(await manager.fetchNextRequest()).toBeNull();
+        expect(await manager.isEmpty()).toBe(true);
+        // ...while the request is still outstanding work rather than lost.
+        expect(await manager.isFinished()).toBe(false);
+
+        const start = Date.now();
+        const again = await pollForNextRequest(manager);
+
+        expect(Date.now() - start).toBeGreaterThanOrEqual(400);
+        expect(again.url).toBe('https://example.com/1');
+    });
+
+    test('a domain being held back does not stop the inner manager serving the others', async () => {
+        const inner = await createQueue();
+        const manager = new ThrottlingRequestManager({ inner, domains: ['example.com'], baseDelaySecs: 60 });
+
+        await inner.addRequest({ url: 'https://example.com/held-back' });
+        await inner.addRequest({ url: 'https://other.com/free' });
+
+        expect(manager.recordDomainDelay('https://example.com/held-back')).toBe(true);
+
+        // The throttled one is at the head of the queue, and skipping it must not mean skipping the queue.
+        const request = await manager.fetchNextRequest();
+        expect(request!.url).toBe('https://other.com/free');
+    });
+
     test('recordDomainDelay enforces throttling and fair scheduling', async () => {
         const inner = await createQueue();
         const manager = new ThrottlingRequestManager({
@@ -421,6 +461,24 @@ describe('ThrottlingRequestManager', () => {
             await manager.markRequestAsHandled((await pollForNextRequest(manager))!);
 
             await expect(manager.assertNoStalledDomains()).resolves.toBeUndefined();
+        });
+
+        test('work the inner manager holds keeps a stalling domain in view', async () => {
+            const manager = await stallingManager();
+            const inner = manager.innerManager;
+
+            // Its sub-queue stays empty, so this request is the only sign the domain still has work left.
+            await inner.addRequest({ url: 'https://example.com/1' });
+
+            const request = (await manager.fetchNextRequest())!;
+            manager.recordDomainDelay(request.url);
+            await manager.reclaimRequest(request);
+            stallFor(manager, 'example.com');
+
+            // Sweeping it is what finds the request; without it the crawl would wait on the domain forever.
+            await manager.fetchNextRequest();
+
+            await expect(manager.assertNoStalledDomains()).rejects.toThrow(PersistentRateLimitError);
         });
 
         test('a domain that has run out of work is finished, not stalled', async () => {
