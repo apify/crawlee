@@ -968,7 +968,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     }
 
     async persistState(): Promise<void> {
-        await this.#forEachManager((manager) => manager.persistState?.());
+        await this.#forEachManager((manager) => (manager as { persistState?(): Promise<void> }).persistState?.());
     }
 
     async drop(): Promise<void> {

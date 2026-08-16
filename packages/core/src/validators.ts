@@ -15,7 +15,7 @@ export const validators = {
         "Expected an object implementing the IProxyConfiguration interface (missing 'newProxyInfo'), got something else.",
     ),
     requestList: schemas.objectWithKeys(
-        ['fetchNextRequest', 'persistState'],
+        ['fetchNextRequest', 'isFinished'],
         'Expected a RequestList, got something else.',
     ),
     requestQueue: schemas.objectWithKeys(

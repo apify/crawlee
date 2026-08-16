@@ -96,13 +96,6 @@ export interface IRequestLoader {
     markRequestAsHandled(request: Request): Promise<RequestQueueOperationInfo | void | null>;
 
     /**
-     * Persists the current state of the loader into the default {@apilink KeyValueStore}.
-     *
-     * Not all loaders support persistence; implementations that do not should leave this `undefined`.
-     */
-    persistState?(): Promise<void>;
-
-    /**
      * Combines the loader with a request manager to support adding and reclaiming requests.
      *
      * @param requestManager Request manager to combine the loader with. If not provided, the default
