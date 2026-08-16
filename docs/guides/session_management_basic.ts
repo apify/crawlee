@@ -2,7 +2,9 @@ import { BasicCrawler, ProxyConfiguration, SessionPool } from 'crawlee';
 import { Impit } from 'impit';
 import { Cookie } from 'tough-cookie';
 
-const proxyConfiguration = new ProxyConfiguration({/* opts */});
+const proxyConfiguration = new ProxyConfiguration({
+    /* opts */
+});
 
 const crawler = new BasicCrawler({
     // Overrides default Session pool configuration.
