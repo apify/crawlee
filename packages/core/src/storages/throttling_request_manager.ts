@@ -113,7 +113,7 @@ export async function findDomainThrottlingManager(
                 }
             }
         } else if (delegated) {
-            const resolved = await delegated;
+            const resolved = delegated;
             return findDomainThrottlingManager(resolved, visited);
         }
     }
