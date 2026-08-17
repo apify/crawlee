@@ -33,6 +33,7 @@
         "@apify/timeout": "^0.4.4",
         "@crawlee/core": "workspace:*",
         "@crawlee/types": "workspace:*",
+        "@crawlee/utils": "workspace:*",
         "fingerprint-generator": "^2.1.68",
         "fingerprint-injector": "^2.1.68",
         "lodash.merge": "^4.6.2",

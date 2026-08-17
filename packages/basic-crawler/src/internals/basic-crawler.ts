@@ -63,7 +63,6 @@ import {
     NavigationSkippedError,
     NonRetryableError,
     OwnedOrInjected,
-    parseArgument,
     purgeDefaultStorages,
     RequestHandlerError,
     parseRetryAfterHeader,
@@ -74,7 +73,6 @@ import {
     RetryRequestError,
     supportsDomainThrottling,
     Router,
-    schemas,
     ServiceLocator,
     serviceLocator,
     Session,
@@ -96,7 +94,7 @@ import type {
     SetStatusMessageOptions,
     StorageBackend,
 } from '@crawlee/types';
-import { isAsyncIterable, isIterable, ROTATE_PROXY_ERRORS } from '@crawlee/utils/internal';
+import { isAsyncIterable, isIterable, parseArgument, ROTATE_PROXY_ERRORS, schemas } from '@crawlee/utils/internal';
 import { RobotsTxtFile } from '@crawlee/utils';
 import { getDomain } from 'tldts';
 import type { ReadonlyDeep } from 'type-fest';
@@ -699,7 +697,7 @@ export class BasicCrawler<
     Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
     StatisticStateExtension extends object = {},
 > {
-    protected static readonly CRAWLEE_STATE_KEY = 'CRAWLEE_STATE';
+    static readonly #CRAWLEE_STATE_KEY = 'CRAWLEE_STATE';
 
     /**
      * Tracks the number of crawler instances created. The first crawler uses the default
@@ -847,15 +845,15 @@ export class BasicCrawler<
     }
 
     protected readonly requestHandler!: RequestHandler<ExtendedContext>;
-    protected readonly errorHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
-    protected readonly failedRequestHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
+    readonly #errorHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
+    readonly #failedRequestHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
     // kept as TS-private: tests read it at runtime
     private requestHandlerTimeoutMillis!: number;
     protected readonly internalTimeoutMillis: number;
-    protected readonly maxRequestRetries: number;
-    protected readonly maxCrawlDepth?: number;
+    readonly #maxRequestRetries: number;
+    readonly #maxCrawlDepth?: number;
     #sameDomainDelaySecs: number;
-    protected readonly maxRequestsPerCrawl?: number;
+    readonly #maxRequestsPerCrawl?: number;
 
     private get handledRequestsCount(): number {
         return this.statistics.state.requestsFinished + this.statistics.state.requestsFailed;
@@ -881,16 +879,19 @@ export class BasicCrawler<
     readonly #transactionalStorageEnabled: boolean;
     /** The resolved per-storage-type write policy overrides forwarded to each request's transaction. */
     readonly #storageWritePolicy: Partial<StorageWritePolicy>;
-    protected readonly onSkippedRequest?: SkippedRequestCallback;
+    readonly #onSkippedRequest?: SkippedRequestCallback;
     #closeEvents?: boolean;
     #loggedPerRun = new Set<string>();
     readonly #robotsTxtFileCache: LruCache<RobotsTxtFile>;
-    protected readonly identity: CrawlerIdentity;
+    readonly #identity: CrawlerIdentity;
     readonly #contextPipelineOptions: {
         contextPipelineBuilder?: () => ContextPipeline<CrawlingContext, Context>;
         extendContext?: (context: CrawlingContext) => Awaitable<ContextExtension>;
     };
 
+    /**
+     * @internal
+     */
     protected static optionsShape = {
         contextPipelineBuilder: schemas.anyObject.optional(),
         extendContext: schemas.anyFunction.optional(),
@@ -949,7 +950,7 @@ export class BasicCrawler<
         id: z.string().optional(),
     };
 
-    protected static optionsSchema = z.strictObject(BasicCrawler.optionsShape);
+    static #optionsSchema = z.strictObject(BasicCrawler.optionsShape);
 
     /**
      * All `BasicCrawler` parameters are passed via an options object.
@@ -958,7 +959,7 @@ export class BasicCrawler<
         options: BasicCrawlerOptions<Context, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> &
             RequireContextPipeline<CrawlingContext, Context> = {} as any, // cast because the constructor logic handles missing `contextPipelineBuilder` - the type is just for DX
     ) {
-        const parsedOptions = parseArgument(options, BasicCrawler.optionsSchema, 'BasicCrawlerOptions');
+        const parsedOptions = parseArgument(options, BasicCrawler.#optionsSchema, 'BasicCrawlerOptions');
 
         const {
             // oxlint-disable-next-line typescript/no-deprecated -- still accepted and folded into `requestManager` for back-compat
@@ -1060,7 +1061,7 @@ export class BasicCrawler<
             serviceLocator.getConfiguration();
 
             const instanceIndex = BasicCrawler.instanceCount++;
-            this.identity = { instanceIndex, hasExplicitId: id !== undefined, id: id ?? String(instanceIndex) };
+            this.#identity = { instanceIndex, hasExplicitId: id !== undefined, id: id ?? String(instanceIndex) };
 
             if (requestManager !== undefined) {
                 if (requestList !== undefined || requestQueue !== undefined) {
@@ -1096,14 +1097,13 @@ export class BasicCrawler<
             this.#statusMessageLoggingInterval = statusMessageLoggingInterval;
             this.#statusMessageCallback = statusMessageCallback as StatusMessageCallback;
             this.#robotsTxtFileCache = new LruCache({ maxLength: 1000 });
-            this.handleSkippedRequest = this.handleSkippedRequest.bind(this);
 
             this.additionalHttpErrorStatusCodes = new Set([...additionalHttpErrorStatusCodes]);
             this.#ignoreHttpErrorStatusCodes = new Set([...ignoreHttpErrorStatusCodes]);
 
             this.requestHandler = requestHandler ?? this.router;
-            this.failedRequestHandler = failedRequestHandler;
-            this.errorHandler = errorHandler;
+            this.#failedRequestHandler = failedRequestHandler;
+            this.#errorHandler = errorHandler;
 
             if (requestHandlerTimeoutSecs) {
                 this.requestHandlerTimeoutMillis = requestHandlerTimeoutSecs * 1000;
@@ -1120,15 +1120,15 @@ export class BasicCrawler<
                 | undefined;
             this.#transactionalStorageEnabled = transactionalStorageOption !== false;
             this.#storageWritePolicy = typeof transactionalStorageOption === 'object' ? transactionalStorageOption : {};
-            this.onSkippedRequest = onSkippedRequest;
+            this.#onSkippedRequest = onSkippedRequest;
 
             // allow at least 5min for internal timeouts
             this.internalTimeoutMillis =
                 serviceLocator.getConfiguration().internalTimeoutMillis ??
                 Math.max(this.requestHandlerTimeoutMillis * 2, 300e3);
 
-            this.maxRequestRetries = maxRequestRetries;
-            this.maxCrawlDepth = maxCrawlDepth;
+            this.#maxRequestRetries = maxRequestRetries;
+            this.#maxCrawlDepth = maxCrawlDepth;
             this.#sameDomainDelaySecs = sameDomainDelaySecs;
             this.#statisticsDep = OwnedOrInjected.resolve<
                 IStatistics<StatisticStateExtension>,
@@ -1142,7 +1142,7 @@ export class BasicCrawler<
                     new Statistics({
                         logMessage: `${this.constructor.name} request statistics:`,
                         log: this.log,
-                        id: this.identity.id,
+                        id: this.#identity.id,
                     }) as Statistics<StatisticStateExtension>,
             );
 
@@ -1182,10 +1182,10 @@ export class BasicCrawler<
 
             this.internalTimeoutMillis = Math.min(this.internalTimeoutMillis, maxSignedInteger);
 
-            this.maxRequestsPerCrawl = maxRequestsPerCrawl;
+            this.#maxRequestsPerCrawl = maxRequestsPerCrawl;
 
             const isMaxPagesExceeded = () =>
-                this.maxRequestsPerCrawl && this.maxRequestsPerCrawl <= this.handledRequestsCount;
+                this.#maxRequestsPerCrawl && this.#maxRequestsPerCrawl <= this.handledRequestsCount;
 
             // eslint-disable-next-line prefer-const
             let { isFinishedFunction, isTaskReadyFunction } = taskLoopOptions;
@@ -1285,7 +1285,7 @@ export class BasicCrawler<
                         this.logOncePerRun(
                             'shuttingDown',
                             'Crawler reached the maxRequestsPerCrawl limit of ' +
-                                `${this.maxRequestsPerCrawl} requests and will shut down soon. Requests that are in progress will be allowed to finish.`,
+                                `${this.#maxRequestsPerCrawl} requests and will shut down soon. Requests that are in progress will be allowed to finish.`,
                         );
                         return false;
                     }
@@ -1304,7 +1304,7 @@ export class BasicCrawler<
                 isFinishedFunction: async () => {
                     if (isMaxPagesExceeded()) {
                         this.log.info(
-                            `Earlier, the crawler reached the maxRequestsPerCrawl limit of ${this.maxRequestsPerCrawl} requests ` +
+                            `Earlier, the crawler reached the maxRequestsPerCrawl limit of ${this.#maxRequestsPerCrawl} requests ` +
                                 'and all requests that were in progress at that time have now finished. ' +
                                 `In total, the crawler processed ${this.handledRequestsCount} requests and will shut down.`,
                         );
@@ -1400,7 +1400,7 @@ export class BasicCrawler<
             );
             request.state = RequestState.SKIPPED;
             request.noRetry = true;
-            await this.handleSkippedRequest({
+            await this.#handleSkippedRequest({
                 url: request.url,
                 reason: 'robotsTxt',
             });
@@ -1534,7 +1534,7 @@ export class BasicCrawler<
                     request.noRetry = true;
                     request.state = RequestState.SKIPPED;
 
-                    await this.handleSkippedRequest({ url: request.url, reason: 'redirect' });
+                    await this.#handleSkippedRequest({ url: request.url, reason: 'redirect' });
 
                     throw new ContextPipelineInterruptedError(message);
                 }
@@ -1574,7 +1574,7 @@ export class BasicCrawler<
         // Setting the status message is not a storage concern, so we intentionally don't route it
         // through the storage client anymore.
         serviceLocator.getEventManager().emit(EventType.STATUS_MESSAGE, {
-            crawlerId: this.identity.id,
+            crawlerId: this.#identity.id,
             message,
             isStatusMessageTerminal: options.isStatusMessageTerminal,
             level: options.level,
@@ -1850,7 +1850,7 @@ export class BasicCrawler<
                 minCrawlDelaySecs: this.#sameDomainDelaySecs,
                 // What `sameDomainDelaySecs` has always meant: one clock for a site, subdomains included.
                 throttleBy: 'registrableDomain',
-                persistStateKey: `CRAWLEE_THROTTLED_DOMAINS_${this.identity.id}`,
+                persistStateKey: `CRAWLEE_THROTTLED_DOMAINS_${this.#identity.id}`,
             });
         }
 
@@ -1881,7 +1881,7 @@ export class BasicCrawler<
     private async openOwnedRequestQueue(): Promise<RequestQueue> {
         // The first crawler instance uses the default queue (null identifier);
         // subsequent instances get their own queue via a unique alias so they don't collide.
-        const identifier = this.identity.instanceIndex === 0 ? null : { alias: `__default_${this.identity.id}__` };
+        const identifier = this.#identity.instanceIndex === 0 ? null : { alias: `__default_${this.#identity.id}__` };
 
         const requestQueue = await RequestQueue.open(identifier, { configuration: serviceLocator.getConfiguration() });
         return this.#ownedRequestQueue.set(requestQueue);
@@ -1939,12 +1939,12 @@ export class BasicCrawler<
     async useState<State extends Dictionary = Dictionary>(defaultValue = {} as State): Promise<State> {
         const kvs = await KeyValueStore.open(null, { configuration: serviceLocator.getConfiguration() });
 
-        if (this.identity.hasExplicitId) {
-            const stateKey = `${BasicCrawler.CRAWLEE_STATE_KEY}_${this.identity.id}`;
+        if (this.#identity.hasExplicitId) {
+            const stateKey = `${BasicCrawler.#CRAWLEE_STATE_KEY}_${this.#identity.id}`;
             return kvs.getAutoSavedValue<State>(stateKey, defaultValue);
         }
 
-        BasicCrawler.#useStateAnonymousIndices.add(this.identity.instanceIndex);
+        BasicCrawler.#useStateAnonymousIndices.add(this.#identity.instanceIndex);
 
         if (BasicCrawler.#useStateAnonymousIndices.size > 1) {
             serviceLocator
@@ -1957,27 +1957,27 @@ export class BasicCrawler<
                 );
         }
 
-        return kvs.getAutoSavedValue<State>(BasicCrawler.CRAWLEE_STATE_KEY, defaultValue);
+        return kvs.getAutoSavedValue<State>(BasicCrawler.#CRAWLEE_STATE_KEY, defaultValue);
     }
 
-    protected async getPendingRequestCountApproximation(): Promise<number> {
+    async #getPendingRequestCountApproximation(): Promise<number> {
         return (await this.requestManager?.getPendingCount()) ?? 0;
     }
 
-    protected async calculateEnqueuedRequestLimit(explicitLimit?: number): Promise<number | undefined> {
-        if (this.maxRequestsPerCrawl === undefined) {
+    async #calculateEnqueuedRequestLimit(explicitLimit?: number): Promise<number | undefined> {
+        if (this.#maxRequestsPerCrawl === undefined) {
             return explicitLimit;
         }
 
         const limit = Math.max(
             0,
-            this.maxRequestsPerCrawl - this.handledRequestsCount - (await this.getPendingRequestCountApproximation()),
+            this.#maxRequestsPerCrawl - this.handledRequestsCount - (await this.#getPendingRequestCountApproximation()),
         );
 
         return Math.min(limit, explicitLimit ?? Infinity);
     }
 
-    protected async handleSkippedRequest(options: Parameters<SkippedRequestCallback>[0]): Promise<void> {
+    async #handleSkippedRequest(options: Parameters<SkippedRequestCallback>[0]): Promise<void> {
         // A skipped request is a *successful* outcome, but the interrupt still unwinds through the
         // transaction scope, which rolls back - so the skip bookkeeping must write directly.
         await withDirectStorageAccess(async () => {
@@ -1985,18 +1985,18 @@ export class BasicCrawler<
                 this.logOncePerRun(
                     'maxRequestsPerCrawl',
                     'The number of requests enqueued by the crawler reached the maxRequestsPerCrawl limit of ' +
-                        `${this.maxRequestsPerCrawl} requests and no further requests will be added.`,
+                        `${this.#maxRequestsPerCrawl} requests and no further requests will be added.`,
                 );
             }
 
             if (options.reason === 'depth') {
                 this.logOncePerRun(
                     'maxCrawlDepth',
-                    `The crawler reached the maxCrawlDepth limit of ${this.maxCrawlDepth} and no further requests will be enqueued.`,
+                    `The crawler reached the maxCrawlDepth limit of ${this.#maxCrawlDepth} and no further requests will be enqueued.`,
                 );
             }
 
-            await this.onSkippedRequest?.(options);
+            await this.#onSkippedRequest?.(options);
         });
     }
 
@@ -2044,7 +2044,7 @@ export class BasicCrawler<
             await this.validateRequestUserData({ label: options.label, userData: options.userData });
         }
 
-        const requestLimit = await this.calculateEnqueuedRequestLimit(options.limit);
+        const requestLimit = await this.#calculateEnqueuedRequestLimit(options.limit);
 
         const strategy = options.strategy ?? EnqueueStrategy.All;
         const urlExcludePatternObjects: UrlPatternObject[] = options.exclude?.length
@@ -2060,7 +2060,7 @@ export class BasicCrawler<
             : [];
 
         const isAllowedBasedOnRobotsTxtFile = this.isAllowedBasedOnRobotsTxtFile.bind(this);
-        const maxCrawlDepth = this.maxCrawlDepth;
+        const maxCrawlDepth = this.#maxCrawlDepth;
         const validateRequestUserData = this.validateRequestUserData.bind(this);
 
         const allSkipped: { url: string; reason: SkippedRequestReason }[] = [];
@@ -2163,7 +2163,7 @@ export class BasicCrawler<
 
             await Promise.all(
                 allSkipped.map(async ({ url, reason }) => {
-                    await this.handleSkippedRequest({ url, reason });
+                    await this.#handleSkippedRequest({ url, reason });
                     await options.onSkippedRequest?.({ url, reason });
                 }),
             );
@@ -2291,7 +2291,7 @@ export class BasicCrawler<
         this.#autoscaledPool = new AutoscaledPool({
             ...this.taskLoopOptions,
             concurrencySystem: this.#concurrencySystemDep.value,
-            consumer: this.identity,
+            consumer: this.#identity,
         });
 
         await this.getRequestManager();
@@ -2753,7 +2753,7 @@ export class BasicCrawler<
 
         if (shouldRetryRequest) {
             await this.statistics.errorTrackerRetry.addAsync(error, crawlingContext);
-            await this.errorHandler?.(
+            await this.#errorHandler?.(
                 crawlingContext as CrawlingContext & Partial<ExtendedContext>, // valid cast - ExtendedContext transitively extends CrawlingContext
                 error,
             );
@@ -2811,8 +2811,8 @@ export class BasicCrawler<
 
         this.log.error(`Request failed and reached maximum retries. ${message}`, { id, url, method, uniqueKey });
 
-        if (this.failedRequestHandler) {
-            await this.failedRequestHandler?.(
+        if (this.#failedRequestHandler) {
+            await this.#failedRequestHandler?.(
                 crawlingContext as CrawlingContext & Partial<ExtendedContext>, // valid cast - ExtendedContext transitively extends CrawlingContext
                 error,
             );
@@ -2863,7 +2863,7 @@ export class BasicCrawler<
         }
 
         // Ensure there are more retries available for the request
-        const maxRequestRetries = request.maxRetries ?? this.maxRequestRetries;
+        const maxRequestRetries = request.maxRetries ?? this.#maxRequestRetries;
         return request.retryCount < maxRequestRetries;
     }
 

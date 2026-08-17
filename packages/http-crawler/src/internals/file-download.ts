@@ -2,7 +2,7 @@ import { Transform } from 'node:stream';
 
 import type { BasicCrawlerOptions } from '@crawlee/basic';
 import { BasicCrawler } from '@crawlee/basic';
-import type { CrawlingContext, LoadedRequest, Request } from '@crawlee/core';
+import type { ContextPipeline, CrawlingContext, LoadedRequest, Request } from '@crawlee/core';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import type { Dictionary } from '@crawlee/types';
 
@@ -167,7 +167,7 @@ export class FileDownload extends BasicCrawler<FileDownloadCrawlingContext> {
         });
     }
 
-    protected override buildContextPipeline() {
+    protected override buildContextPipeline(): ContextPipeline<CrawlingContext, FileDownloadCrawlingContext> {
         return super.buildContextPipeline().compose({
             action: async (context) => this.initiateDownload(context),
             cleanup: async (context) => {

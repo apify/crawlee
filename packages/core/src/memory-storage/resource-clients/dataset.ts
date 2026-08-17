@@ -63,12 +63,9 @@ export class DatasetBackend<Data extends Dictionary = Dictionary>
     }
 
     async drop(): Promise<void> {
-        const storeIndex = this.storageBackend.datasetBackendCache.findIndex((store) => store.id === this.id);
-
-        if (storeIndex !== -1) {
-            const [oldBackend] = this.storageBackend.datasetBackendCache.splice(storeIndex, 1);
-            oldBackend.itemCount = 0;
-            oldBackend.#datasetEntries.clear();
+        if (this.storageBackend.evictBackend('Dataset', this.id)) {
+            this.itemCount = 0;
+            this.#datasetEntries.clear();
         }
     }
 

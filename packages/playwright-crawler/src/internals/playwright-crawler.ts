@@ -2,6 +2,8 @@ import type {
     BrowserCrawlerOptions,
     BrowserCrawlingContext,
     BrowserHook,
+    ContextPipeline,
+    CrawlingContext,
     GetUserDataFromRequest,
     RequestHandler,
     RouterHandler,
@@ -9,16 +11,9 @@ import type {
     RouteSchemas,
     RoutesFromSchemas,
 } from '@crawlee/browser';
-import {
-    assertBrowserPoolNotConfigured,
-    BrowserCrawler,
-    parseArgument,
-    RequestState,
-    Router,
-    schemas,
-    serviceLocator,
-} from '@crawlee/browser';
+import { assertBrowserPoolNotConfigured, BrowserCrawler, RequestState, Router, serviceLocator } from '@crawlee/browser';
 import type { Dictionary } from '@crawlee/types';
+import { parseArgument, schemas } from '@crawlee/utils/internal';
 import type { Download, LaunchOptions, Page, Response } from 'playwright';
 import { z } from 'zod';
 
@@ -224,12 +219,16 @@ export class PlaywrightCrawler<
     Routes,
     StatisticStateExtension
 > {
+    /**
+     * @internal
+     */
     protected static override optionsShape = {
         ...BrowserCrawler.optionsShape,
         headless: z.boolean().optional(),
         launcher: schemas.anyObject.optional(),
     };
 
+    /** @internal */
     protected static override optionsSchema = z.strictObject(PlaywrightCrawler.optionsShape);
 
     /**
@@ -275,7 +274,7 @@ export class PlaywrightCrawler<
         });
     }
 
-    protected override buildContextPipeline() {
+    protected override buildContextPipeline(): ContextPipeline<CrawlingContext, PlaywrightCrawlingContext> {
         return super.buildContextPipeline().compose({ action: this.enhanceContext.bind(this) });
     }
 

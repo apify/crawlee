@@ -31,7 +31,6 @@ import { LoggerJson } from '@apify/log';
 import type { LoggerOptions } from '@apify/log';
 import { LoggerText } from '@apify/log';
 import { LogLevel } from '@apify/log';
-import { parseArgument } from '@crawlee/utils';
 import { ParseSitemapOptions } from '@crawlee/utils';
 import type { ProcessedRequest } from '@crawlee/types';
 import type { ProxyInfo } from '@crawlee/types';
@@ -39,7 +38,6 @@ import type { QueueOperationInfo } from '@crawlee/types';
 import type { ReadonlyDeep } from 'type-fest';
 import type { RequestQueueBackend } from '@crawlee/types';
 import type { RequestQueueInfo } from '@crawlee/types';
-import { schemas } from '@crawlee/utils/internal';
 import type { SendRequestOptions } from '@crawlee/types';
 import type { SessionFingerprint } from '@crawlee/types';
 import { SessionState } from '@crawlee/types';
@@ -47,7 +45,6 @@ import type { StandardSchemaV1 } from '@standard-schema/spec';
 import type * as storage from '@crawlee/types';
 import { StorageBackend } from '@crawlee/types';
 import { StorageIdentifier } from '@crawlee/types';
-import { tryAbsoluteURL } from '@crawlee/utils/internal';
 import { z } from 'zod';
 import { ZodType } from 'zod';
 
@@ -355,47 +352,6 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     reduce<T>(iteratee: DatasetReducer<T, Data>, memo: T, options?: DatasetIteratorOptions): Promise<T>;
     get stats(): DatasetStats;
     values(options?: DatasetIteratorOptions): AsyncIterable<Data> & Promise<Data[]>;
-}
-
-// Not exported by the entry point; reachable only as a referenced type.
-// @public (undocumented)
-class DatasetBackend_2<Data extends Dictionary = Dictionary> extends BaseClient implements storage.DatasetBackend<Data> {
-    constructor(options: DatasetBackendOptions);
-    // (undocumented)
-    accessedAt: Date;
-    cacheKey: string;
-    // (undocumented)
-    createdAt: Date;
-    // (undocumented)
-    drop(): Promise<void>;
-    // (undocumented)
-    getData(options?: storage.DatasetBackendListOptions): Promise<storage.PaginatedList<Data>>;
-    // (undocumented)
-    getMetadata(): Promise<storage.DatasetInfo>;
-    // (undocumented)
-    itemCount: number;
-    // (undocumented)
-    modifiedAt: Date;
-    // (undocumented)
-    name?: string;
-    // (undocumented)
-    purge(): Promise<void>;
-    // (undocumented)
-    pushData(items: Data[]): Promise<void>;
-    // (undocumented)
-    toDatasetInfo(): storage.DatasetInfo;
-}
-
-// Not exported by the entry point; reachable only as a referenced type.
-// @public (undocumented)
-interface DatasetBackendOptions {
-    cacheKey?: string;
-    // (undocumented)
-    id?: string;
-    // (undocumented)
-    name?: string;
-    // (undocumented)
-    storageBackend: MemoryStorageBackend;
 }
 
 // @public
@@ -881,52 +837,6 @@ export class KeyValueStore {
     values<T = unknown>(options?: KeyValueStoreIteratorOptions): AsyncIterable<T> & Promise<T[]>;
 }
 
-// Not exported by the entry point; reachable only as a referenced type.
-// @public (undocumented)
-class KeyValueStoreBackend_2 extends BaseClient implements storage.KeyValueStoreBackend {
-    constructor(options: KeyValueStoreBackendOptions);
-    // (undocumented)
-    accessedAt: Date;
-    cacheKey: string;
-    // (undocumented)
-    createdAt: Date;
-    // (undocumented)
-    deleteValue(key: string): Promise<void>;
-    // (undocumented)
-    drop(): Promise<void>;
-    // (undocumented)
-    getMetadata(): Promise<storage.KeyValueStoreInfo>;
-    getPublicUrl(key: string): Promise<string | undefined>;
-    // (undocumented)
-    getValue(key: string): Promise<storage.KeyValueStoreRecord | undefined>;
-    // (undocumented)
-    listKeys(options?: storage.KeyValueStoreListKeysOptions): Promise<storage.KeyValueStoreListKeysResult>;
-    // (undocumented)
-    modifiedAt: Date;
-    // (undocumented)
-    name?: string;
-    // (undocumented)
-    purge(): Promise<void>;
-    purgeExceptInput(): Promise<void>;
-    recordExists(key: string): Promise<boolean>;
-    // (undocumented)
-    setValue(record: storage.KeyValueStoreInputRecord): Promise<void>;
-    // (undocumented)
-    toKeyValueStoreInfo(): storage.KeyValueStoreInfo;
-}
-
-// Not exported by the entry point; reachable only as a referenced type.
-// @public (undocumented)
-interface KeyValueStoreBackendOptions {
-    cacheKey?: string;
-    // (undocumented)
-    id?: string;
-    // (undocumented)
-    name?: string;
-    // (undocumented)
-    storageBackend: MemoryStorageBackend;
-}
-
 // @public (undocumented)
 export interface KeyValueStoreIteratorOptions {
     prefix?: string;
@@ -1085,16 +995,10 @@ export class MemoryStorageBackend implements storage.StorageBackend {
     createKeyValueStoreBackend(options?: storage.StorageIdentifier): Promise<storage.KeyValueStoreBackend>;
     // (undocumented)
     createRequestQueueBackend(options?: storage.StorageIdentifier): Promise<RequestQueueBackend_2>;
-    // (undocumented)
-    readonly datasetBackendCache: DatasetBackend_2[];
     getStorageBackendCacheKey(): string;
-    // (undocumented)
-    readonly keyValueStoreBackendCache: KeyValueStoreBackend_2[];
     // (undocumented)
     readonly logger?: CrawleeLogger;
     purge(): Promise<void>;
-    // (undocumented)
-    readonly requestQueueBackendCache: RequestQueueBackend_2[];
     // (undocumented)
     storageExists(id: string, type: 'Dataset' | 'KeyValueStore' | 'RequestQueue'): Promise<boolean>;
     teardown(): Promise<void>;
@@ -1124,8 +1028,6 @@ interface NewUrlOptions {
 // @public
 export class NonRetryableError extends Error {
 }
-
-export { parseArgument }
 
 // @public
 export function parseRetryAfterHeader(value?: string | null): number | null;
@@ -1642,8 +1544,6 @@ export interface SchemaIssue {
         key: PropertyKey;
     })[];
 }
-
-export { schemas }
 
 // Not exported by the entry point; reachable only as a referenced type.
 // @public
@@ -2217,8 +2117,6 @@ export interface ThrottlingRequestManagerOptions<T extends IRequestManager = IRe
     requestManagerOpener?: RequestManagerOpener<T>;
     throttleBy?: 'hostname' | 'registrableDomain';
 }
-
-export { tryAbsoluteURL }
 
 // @public
 export type TypedContextAddRequests<Routes extends Record<keyof Routes, Dictionary>> = (requestsLike: ReadonlyDeep<LabeledSource<Routes>[]>, options?: ReadonlyDeep<EnqueueUrlsOptions>) => Promise<AddRequestsBatchedResult>;

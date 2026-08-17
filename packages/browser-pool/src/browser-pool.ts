@@ -1,7 +1,8 @@
 import { AsyncResource } from 'node:async_hooks';
 
-import { type CrawleeLogger, parseArgument, schemas, SessionError, serviceLocator } from '@crawlee/core';
+import { type CrawleeLogger, SessionError, serviceLocator } from '@crawlee/core';
 import type { IBrowserPool, NewPageOptions, PageState } from '@crawlee/types';
+import { parseArgument, schemas } from '@crawlee/utils/internal';
 import type { BrowserFingerprintWithHeaders } from 'fingerprint-generator';
 import { FingerprintGenerator } from 'fingerprint-generator';
 import { FingerprintInjector } from 'fingerprint-injector';

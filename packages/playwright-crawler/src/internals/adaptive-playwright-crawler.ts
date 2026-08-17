@@ -31,15 +31,14 @@ import {
     createStorageTransaction,
     EnqueueStrategy,
     OwnedOrInjected,
-    parseArgument,
     RequestHandlerError,
     resolveBaseUrlForEnqueueLinksFiltering,
     Router,
     Statistics,
 } from '@crawlee/core';
 import type { Dictionary, Awaitable } from '@crawlee/types';
-import { type CheerioRoot, extractUrlsFromCheerio } from '@crawlee/utils/internal';
-import { type Cheerio } from 'cheerio';
+import { extractUrlsFromCheerio, parseArgument } from '@crawlee/utils/internal';
+import { type Cheerio, type CheerioAPI } from 'cheerio';
 import type { AnyNode } from 'domhandler';
 import type { Page } from 'playwright';
 import { z } from 'zod';
@@ -138,7 +137,7 @@ export interface AdaptivePlaywrightCrawlerContext<
      * });
      * ```
      */
-    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
+    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioAPI>;
 
     enqueueLinks(options?: EnqueueLinksOptions): Promise<unknown>;
 }
@@ -473,7 +472,7 @@ export class AdaptivePlaywrightCrawler<
         return await super.init();
     }
 
-    protected override buildContextPipeline() {
+    protected override buildContextPipeline(): ContextPipeline<CrawlingContext, AdaptivePlaywrightCrawlerContext> {
         const errorMessage = (prop: string) =>
             `The \`${prop}\` property is not available on the outer context pipeline of AdaptivePlaywrightCrawler - it is provided by the inner (static/browser) pipelines`;
 

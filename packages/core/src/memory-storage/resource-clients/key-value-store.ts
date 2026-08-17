@@ -80,11 +80,8 @@ export class KeyValueStoreBackend extends BaseClient implements storage.KeyValue
     }
 
     async drop(): Promise<void> {
-        const storeIndex = this.storageBackend.keyValueStoreBackendCache.findIndex((store) => store.id === this.id);
-
-        if (storeIndex !== -1) {
-            const [oldBackend] = this.storageBackend.keyValueStoreBackendCache.splice(storeIndex, 1);
-            oldBackend.#keyValueEntries.clear();
+        if (this.storageBackend.evictBackend('KeyValueStore', this.id)) {
+            this.#keyValueEntries.clear();
         }
     }
 

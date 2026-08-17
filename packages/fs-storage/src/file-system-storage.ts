@@ -77,9 +77,9 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
     readonly logger?: CrawleeLogger;
     readonly requestQueueAccess: 'single' | 'shared';
 
-    readonly keyValueStoreBackendCache: KeyValueStoreBackend[] = [];
-    readonly datasetBackendCache: DatasetBackend[] = [];
-    readonly requestQueueBackendCache: RequestQueueBackend[] = [];
+    readonly #keyValueStoreBackendCache: KeyValueStoreBackend[] = [];
+    readonly #datasetBackendCache: DatasetBackend[] = [];
+    readonly #requestQueueBackendCache: RequestQueueBackend[] = [];
 
     constructor(options: FileSystemStorageOptions) {
         const { logger, requestQueueAccess, localDataDirectory } = parseArgument(
@@ -127,7 +127,7 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
     async createDatasetBackend(options: storage.StorageIdentifier = {}): Promise<storage.DatasetBackend> {
         const { id, name, alias, cacheKey } = FileSystemStorageBackend.#resolveStorageKey(options);
 
-        const found = this.datasetBackendCache.find(
+        const found = this.#datasetBackendCache.find(
             (store) =>
                 store.id === cacheKey ||
                 store.name?.toLowerCase() === cacheKey.toLowerCase() ||
@@ -146,7 +146,7 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
             nativeBackend,
             logger: this.logger,
         });
-        this.datasetBackendCache.push(newStore);
+        this.#datasetBackendCache.push(newStore);
 
         return newStore;
     }
@@ -154,7 +154,7 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
     async createKeyValueStoreBackend(options: storage.StorageIdentifier = {}): Promise<storage.KeyValueStoreBackend> {
         const { id, name, alias, cacheKey } = FileSystemStorageBackend.#resolveStorageKey(options);
 
-        const found = this.keyValueStoreBackendCache.find(
+        const found = this.#keyValueStoreBackendCache.find(
             (store) =>
                 store.id === cacheKey ||
                 store.name?.toLowerCase() === cacheKey.toLowerCase() ||
@@ -173,7 +173,7 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
             nativeBackend,
             logger: this.logger,
         });
-        this.keyValueStoreBackendCache.push(newStore);
+        this.#keyValueStoreBackendCache.push(newStore);
 
         return newStore;
     }
@@ -181,7 +181,7 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
     async createRequestQueueBackend(options: storage.StorageIdentifier = {}): Promise<storage.RequestQueueBackend> {
         const { id, name, alias, cacheKey } = FileSystemStorageBackend.#resolveStorageKey(options);
 
-        const found = this.requestQueueBackendCache.find(
+        const found = this.#requestQueueBackendCache.find(
             (queue) =>
                 queue.id === cacheKey ||
                 queue.name?.toLowerCase() === cacheKey.toLowerCase() ||
@@ -208,7 +208,7 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
             nativeBackend,
             logger: this.logger,
         });
-        this.requestQueueBackendCache.push(newStore);
+        this.#requestQueueBackendCache.push(newStore);
 
         return newStore;
     }
@@ -219,15 +219,15 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
 
         switch (type) {
             case 'Dataset':
-                backends = this.datasetBackendCache;
+                backends = this.#datasetBackendCache;
                 baseDir = this.datasetsDirectory;
                 break;
             case 'KeyValueStore':
-                backends = this.keyValueStoreBackendCache;
+                backends = this.#keyValueStoreBackendCache;
                 baseDir = this.keyValueStoresDirectory;
                 break;
             case 'RequestQueue':
-                backends = this.requestQueueBackendCache;
+                backends = this.#requestQueueBackendCache;
                 baseDir = this.requestQueuesDirectory;
                 break;
             default:
@@ -400,6 +400,6 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
      * are not stuck (until their lock expires) for the next consumer of the same on-disk queue.
      */
     async teardown(): Promise<void> {
-        await Promise.all(this.requestQueueBackendCache.map(async (queue) => queue.persistState()));
+        await Promise.all(this.#requestQueueBackendCache.map(async (queue) => queue.persistState()));
     }
 }

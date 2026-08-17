@@ -1,7 +1,8 @@
 import { EventEmitter } from 'node:events';
 
-import { parseArgument, schemas, serviceLocator } from '@crawlee/browser';
+import { serviceLocator } from '@crawlee/browser';
 import type { Dictionary } from '@crawlee/types';
+import { parseArgument, schemas } from '@crawlee/utils/internal';
 // @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
 import type { HTTPRequest, HTTPRequest as PuppeteerRequest, Page } from 'puppeteer';
 

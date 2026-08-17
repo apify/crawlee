@@ -1,5 +1,6 @@
 import type { BrowserLaunchContext } from '@crawlee/browser';
-import { BrowserLauncher, Configuration, parseArgument, schemas } from '@crawlee/browser';
+import { BrowserLauncher, Configuration } from '@crawlee/browser';
+import { parseArgument, schemas } from '@crawlee/utils/internal';
 import type { BrowserType, LaunchOptions } from 'playwright';
 import { z } from 'zod';
 
@@ -63,6 +64,9 @@ export interface StagehandLaunchContext extends BrowserLaunchContext<LaunchOptio
  * @ignore
  */
 export class StagehandLauncher extends BrowserLauncher<StagehandPlugin> {
+    /**
+     * @internal
+     */
     protected static override optionsShape = {
         ...BrowserLauncher.optionsShape,
         // Passthrough schemas — the launcher module object must keep its prototype through parsing.
@@ -71,6 +75,7 @@ export class StagehandLauncher extends BrowserLauncher<StagehandPlugin> {
         stagehandOptions: schemas.anyObject.optional(),
     };
 
+    /** @internal */
     protected static override optionsSchema = z.strictObject(StagehandLauncher.optionsShape);
 
     readonly #stagehandOptions: StagehandOptions;

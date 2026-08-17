@@ -393,6 +393,9 @@ importers:
       '@crawlee/types':
         specifier: workspace:*
         version: link:../types
+      '@crawlee/utils':
+        specifier: workspace:*
+        version: link:../utils
       fingerprint-generator:
         specifier: ^2.1.68
         version: 2.1.82

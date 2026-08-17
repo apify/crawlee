@@ -5,17 +5,13 @@
 ```ts
 
 import type { AddRequestsBatchedResult } from '@crawlee/http';
-import { BaseHttpClient } from '@crawlee/http-client';
-import { CheerioAPI } from 'cheerio';
-import { CheerioRoot } from '@crawlee/utils/internal';
-import { Configuration } from '@crawlee/http';
-import { ContextPipeline } from '@crawlee/http';
+import type { CheerioAPI } from 'cheerio';
+import type { ContextPipeline } from '@crawlee/http';
 import type { CrawlingContext } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
 import type { DOMWindow } from 'jsdom';
 import type { EnqueueLinksOptions } from '@crawlee/http';
 import type { ErrorHandler } from '@crawlee/http';
-import { EventManager } from '@crawlee/http';
 import type { ExtractLinksOptions } from '@crawlee/http';
 import type { GetUserDataFromRequest } from '@crawlee/http';
 import { HttpCrawler } from '@crawlee/http';
@@ -28,7 +24,6 @@ import type { RouterRoutes } from '@crawlee/http';
 import type { RouteSchemas } from '@crawlee/http';
 import type { RoutesFromSchemas } from '@crawlee/http';
 import { VirtualConsole } from 'jsdom';
-import { z } from 'zod';
 
 // @public
 export function createJSDOMRouter<Context extends JSDOMCrawlingContext = JSDOMCrawlingContext, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
@@ -43,127 +38,8 @@ export function createJSDOMRouter<Context extends JSDOMCrawlingContext = JSDOMCr
 export class JSDOMCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends JSDOMCrawlingContext = JSDOMCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<JSDOMCrawlingContext['request']>>, StatisticStateExtension extends object = {}> extends HttpCrawler<JSDOMCrawlingContext, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
     constructor(options?: JSDOMCrawlerOptions<ContextExtension, ExtendedContext, any, any, Routes, StatisticStateExtension>);
     // (undocumented)
-    protected buildContextPipeline(): ContextPipeline<CrawlingContext<Dictionary>, InternalHttpCrawlingContext<any, any> & {
-    readonly window: DOMWindow;
-    readonly body: string;
-    readonly document: Document;
-    } & {
-    extractLinks: (options?: ExtractLinksOptions) => Promise<string[]>;
-    enqueueLinks: (options?: EnqueueLinksOptions) => Promise<AddRequestsBatchedResult>;
-    waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
-    parseWithCheerio(selector?: string, _timeoutMs?: number): Promise<CheerioAPI>;
-    }>;
+    protected buildContextPipeline(): ContextPipeline<CrawlingContext, JSDOMCrawlingContext>;
     getVirtualConsole(): VirtualConsole;
-    // (undocumented)
-    protected static optionsSchema: z.ZodObject<{
-        runScripts: z.ZodOptional<z.ZodBoolean>;
-        hideInternalConsole: z.ZodOptional<z.ZodBoolean>;
-        navigationTimeoutSecs: z.ZodDefault<z.ZodCustom<number, number>>;
-        ignoreTlsErrors: z.ZodDefault<z.ZodBoolean>;
-        additionalMimeTypes: z.ZodDefault<z.ZodArray<z.ZodString>>;
-        suggestResponseEncoding: z.ZodOptional<z.ZodString>;
-        forceResponseEncoding: z.ZodOptional<z.ZodString>;
-        saveResponseCookies: z.ZodDefault<z.ZodBoolean>;
-        preNavigationHooks: z.ZodDefault<z.ZodCustom<unknown[], unknown[]>>;
-        postNavigationHooks: z.ZodDefault<z.ZodCustom<unknown[], unknown[]>>;
-        contextPipelineBuilder: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
-        extendContext: z.ZodOptional<z.ZodCustom<(...args: any[]) => unknown, (...args: any[]) => unknown>>;
-        requestList: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
-        requestQueue: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
-        requestManager: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
-        requestHandler: z.ZodOptional<z.ZodCustom<(...args: any[]) => unknown, (...args: any[]) => unknown>>;
-        requestHandlerTimeoutSecs: z.ZodOptional<z.ZodCustom<number, number>>;
-        errorHandler: z.ZodOptional<z.ZodCustom<(...args: any[]) => unknown, (...args: any[]) => unknown>>;
-        failedRequestHandler: z.ZodOptional<z.ZodCustom<(...args: any[]) => unknown, (...args: any[]) => unknown>>;
-        maxRequestRetries: z.ZodDefault<z.ZodCustom<number, number>>;
-        sameDomainDelaySecs: z.ZodDefault<z.ZodCustom<number, number>>;
-        maxRequestsPerCrawl: z.ZodOptional<z.ZodCustom<number, number>>;
-        maxCrawlDepth: z.ZodOptional<z.ZodCustom<number, number>>;
-        taskLoopOptions: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
-        concurrencySystem: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
-        sessionPool: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
-        proxyConfiguration: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
-        statusMessageLoggingInterval: z.ZodDefault<z.ZodCustom<number, number>>;
-        statusMessageCallback: z.ZodOptional<z.ZodCustom<(...args: any[]) => unknown, (...args: any[]) => unknown>>;
-        additionalHttpErrorStatusCodes: z.ZodDefault<z.ZodArray<z.ZodCustom<number, number>>>;
-        ignoreHttpErrorStatusCodes: z.ZodDefault<z.ZodArray<z.ZodCustom<number, number>>>;
-        blockedStatusCodes: z.ZodOptional<z.ZodArray<z.ZodCustom<number, number>>>;
-        retryOnBlocked: z.ZodDefault<z.ZodBoolean>;
-        respectRobotsTxtFile: z.ZodDefault<z.ZodUnion<readonly [z.ZodBoolean, z.ZodCustom<Dictionary, Dictionary>]>>;
-        transactionalStorage: z.ZodOptional<z.ZodUnion<readonly [z.ZodBoolean, z.ZodObject<{
-            requestQueue: z.ZodOptional<z.ZodEnum<{
-                deferred: "deferred";
-                writeThrough: "writeThrough";
-            }>>;
-        }, z.core.$strict>]>>;
-        onSkippedRequest: z.ZodOptional<z.ZodCustom<(...args: any[]) => unknown, (...args: any[]) => unknown>>;
-        httpClient: z.ZodOptional<z.ZodCustom<BaseHttpClient, BaseHttpClient>>;
-        configuration: z.ZodOptional<z.ZodCustom<Configuration, Configuration>>;
-        storageBackend: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
-        eventManager: z.ZodOptional<z.ZodCustom<EventManager, EventManager>>;
-        logger: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
-        minConcurrency: z.ZodOptional<z.ZodCustom<number, number>>;
-        maxConcurrency: z.ZodOptional<z.ZodCustom<number, number>>;
-        maxRequestsPerMinute: z.ZodOptional<z.ZodCustom<number, number>>;
-        keepAlive: z.ZodOptional<z.ZodBoolean>;
-        statistics: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
-        id: z.ZodOptional<z.ZodString>;
-    }, z.core.$strict>;
-    // (undocumented)
-    protected static optionsShape: {
-        runScripts: z.ZodOptional<z.ZodBoolean>;
-        hideInternalConsole: z.ZodOptional<z.ZodBoolean>;
-        navigationTimeoutSecs: z.ZodDefault<z.ZodCustom<number, number>>;
-        ignoreTlsErrors: z.ZodDefault<z.ZodBoolean>;
-        additionalMimeTypes: z.ZodDefault<z.ZodArray<z.ZodString>>;
-        suggestResponseEncoding: z.ZodOptional<z.ZodString>;
-        forceResponseEncoding: z.ZodOptional<z.ZodString>;
-        saveResponseCookies: z.ZodDefault<z.ZodBoolean>;
-        preNavigationHooks: z.ZodDefault<z.ZodCustom<unknown[], unknown[]>>;
-        postNavigationHooks: z.ZodDefault<z.ZodCustom<unknown[], unknown[]>>;
-        contextPipelineBuilder: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
-        extendContext: z.ZodOptional<z.ZodCustom<(...args: any[]) => unknown, (...args: any[]) => unknown>>;
-        requestList: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
-        requestQueue: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
-        requestManager: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
-        requestHandler: z.ZodOptional<z.ZodCustom<(...args: any[]) => unknown, (...args: any[]) => unknown>>;
-        requestHandlerTimeoutSecs: z.ZodOptional<z.ZodCustom<number, number>>;
-        errorHandler: z.ZodOptional<z.ZodCustom<(...args: any[]) => unknown, (...args: any[]) => unknown>>;
-        failedRequestHandler: z.ZodOptional<z.ZodCustom<(...args: any[]) => unknown, (...args: any[]) => unknown>>;
-        maxRequestRetries: z.ZodDefault<z.ZodCustom<number, number>>;
-        sameDomainDelaySecs: z.ZodDefault<z.ZodCustom<number, number>>;
-        maxRequestsPerCrawl: z.ZodOptional<z.ZodCustom<number, number>>;
-        maxCrawlDepth: z.ZodOptional<z.ZodCustom<number, number>>;
-        taskLoopOptions: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
-        concurrencySystem: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
-        sessionPool: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
-        proxyConfiguration: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
-        statusMessageLoggingInterval: z.ZodDefault<z.ZodCustom<number, number>>;
-        statusMessageCallback: z.ZodOptional<z.ZodCustom<(...args: any[]) => unknown, (...args: any[]) => unknown>>;
-        additionalHttpErrorStatusCodes: z.ZodDefault<z.ZodArray<z.ZodCustom<number, number>>>;
-        ignoreHttpErrorStatusCodes: z.ZodDefault<z.ZodArray<z.ZodCustom<number, number>>>;
-        blockedStatusCodes: z.ZodOptional<z.ZodArray<z.ZodCustom<number, number>>>;
-        retryOnBlocked: z.ZodDefault<z.ZodBoolean>;
-        respectRobotsTxtFile: z.ZodDefault<z.ZodUnion<readonly [z.ZodBoolean, z.ZodCustom<Dictionary, Dictionary>]>>;
-        transactionalStorage: z.ZodOptional<z.ZodUnion<readonly [z.ZodBoolean, z.ZodObject<{
-            requestQueue: z.ZodOptional<z.ZodEnum<{
-                deferred: "deferred";
-                writeThrough: "writeThrough";
-            }>>;
-        }, z.core.$strict>]>>;
-        onSkippedRequest: z.ZodOptional<z.ZodCustom<(...args: any[]) => unknown, (...args: any[]) => unknown>>;
-        httpClient: z.ZodOptional<z.ZodCustom<BaseHttpClient, BaseHttpClient>>;
-        configuration: z.ZodOptional<z.ZodCustom<Configuration, Configuration>>;
-        storageBackend: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
-        eventManager: z.ZodOptional<z.ZodCustom<EventManager, EventManager>>;
-        logger: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
-        minConcurrency: z.ZodOptional<z.ZodCustom<number, number>>;
-        maxConcurrency: z.ZodOptional<z.ZodCustom<number, number>>;
-        maxRequestsPerMinute: z.ZodOptional<z.ZodCustom<number, number>>;
-        keepAlive: z.ZodOptional<z.ZodBoolean>;
-        statistics: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
-        id: z.ZodOptional<z.ZodString>;
-    };
 }
 
 // @public (undocumented)
@@ -183,7 +59,7 @@ JSONData extends Dictionary = any> extends InternalHttpCrawlingContext<UserData,
     document: Document;
     enqueueLinks(options?: EnqueueLinksOptions): Promise<AddRequestsBatchedResult>;
     extractLinks(options?: ExtractLinksOptions): Promise<string[]>;
-    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
+    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioAPI>;
     waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
     // (undocumented)
     window: DOMWindow;

@@ -1,6 +1,7 @@
 import type { BrowserLaunchContext } from '@crawlee/browser';
-import { BrowserLauncher, Configuration, parseArgument, schemas } from '@crawlee/browser';
+import { BrowserLauncher, Configuration } from '@crawlee/browser';
 import { PlaywrightPlugin } from '@crawlee/browser-pool';
+import { parseArgument, schemas } from '@crawlee/utils/internal';
 import type { Browser, BrowserType, LaunchOptions } from 'playwright';
 import { z } from 'zod';
 
@@ -77,6 +78,9 @@ export interface PlaywrightLaunchContext extends BrowserLaunchContext<LaunchOpti
  * @ignore
  */
 export class PlaywrightLauncher extends BrowserLauncher<PlaywrightPlugin> {
+    /**
+     * @internal
+     */
     protected static override optionsShape = {
         ...BrowserLauncher.optionsShape,
         // Passthrough schemas — the launcher module object must keep its prototype through parsing.
@@ -84,6 +88,7 @@ export class PlaywrightLauncher extends BrowserLauncher<PlaywrightPlugin> {
         launchContextOptions: schemas.anyObject.optional(),
     };
 
+    /** @internal */
     protected static override optionsSchema = z.strictObject(PlaywrightLauncher.optionsShape);
 
     /**

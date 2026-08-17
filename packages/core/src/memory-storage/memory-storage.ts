@@ -26,9 +26,9 @@ export class MemoryStorageBackend implements storage.StorageBackend {
      */
     readonly #instanceCacheKey = `MemoryStorageBackend:${randomUUID()}`;
 
-    readonly keyValueStoreBackendCache: KeyValueStoreBackend[] = [];
-    readonly datasetBackendCache: DatasetBackend[] = [];
-    readonly requestQueueBackendCache: RequestQueueBackend[] = [];
+    readonly #keyValueStoreBackendCache: KeyValueStoreBackend[] = [];
+    readonly #datasetBackendCache: DatasetBackend[] = [];
+    readonly #requestQueueBackendCache: RequestQueueBackend[] = [];
 
     constructor(options: MemoryStorageOptions = {}) {
         this.logger = options.logger;
@@ -40,6 +40,42 @@ export class MemoryStorageBackend implements storage.StorageBackend {
      */
     getStorageBackendCacheKey(): string {
         return this.#instanceCacheKey;
+    }
+
+    /**
+     * Evict a cached backend so that a dropped storage is no longer resolved by `createXBackend`,
+     * reported by `storageExists` or visited by `purge`. Returns whether the backend was cached, which
+     * tells the caller whether it still owns in-memory state worth clearing.
+     *
+     * The resource clients own their own entry's lifetime but must not reach into the caches directly.
+     * Because a client is only ever constructed by `createXBackend`, which caches it immediately, the
+     * entry matching `id` is always the caller itself.
+     * @internal
+     */
+    evictBackend(type: 'Dataset' | 'KeyValueStore' | 'RequestQueue', id: string): boolean {
+        let cache: { id: string }[];
+
+        switch (type) {
+            case 'Dataset':
+                cache = this.#datasetBackendCache;
+                break;
+            case 'KeyValueStore':
+                cache = this.#keyValueStoreBackendCache;
+                break;
+            case 'RequestQueue':
+                cache = this.#requestQueueBackendCache;
+                break;
+        }
+
+        const index = cache.findIndex((entry) => entry.id === id);
+
+        if (index === -1) {
+            return false;
+        }
+
+        cache.splice(index, 1);
+
+        return true;
     }
 
     static #resolveStorageKey(options: { id?: string; name?: string; alias?: string }): {
@@ -60,7 +96,7 @@ export class MemoryStorageBackend implements storage.StorageBackend {
     async createDatasetBackend(options: storage.StorageIdentifier = {}): Promise<storage.DatasetBackend> {
         const { isAlias, cacheKey } = MemoryStorageBackend.#resolveStorageKey(options);
 
-        const found = this.datasetBackendCache.find(
+        const found = this.#datasetBackendCache.find(
             (store) =>
                 store.id === cacheKey ||
                 store.name?.toLowerCase() === cacheKey.toLowerCase() ||
@@ -75,7 +111,7 @@ export class MemoryStorageBackend implements storage.StorageBackend {
             cacheKey,
             storageBackend: this,
         });
-        this.datasetBackendCache.push(newStore);
+        this.#datasetBackendCache.push(newStore);
 
         return newStore;
     }
@@ -83,7 +119,7 @@ export class MemoryStorageBackend implements storage.StorageBackend {
     async createKeyValueStoreBackend(options: storage.StorageIdentifier = {}): Promise<storage.KeyValueStoreBackend> {
         const { isAlias, cacheKey } = MemoryStorageBackend.#resolveStorageKey(options);
 
-        const found = this.keyValueStoreBackendCache.find(
+        const found = this.#keyValueStoreBackendCache.find(
             (store) =>
                 store.id === cacheKey ||
                 store.name?.toLowerCase() === cacheKey.toLowerCase() ||
@@ -98,7 +134,7 @@ export class MemoryStorageBackend implements storage.StorageBackend {
             cacheKey,
             storageBackend: this,
         });
-        this.keyValueStoreBackendCache.push(newStore);
+        this.#keyValueStoreBackendCache.push(newStore);
 
         return newStore;
     }
@@ -106,7 +142,7 @@ export class MemoryStorageBackend implements storage.StorageBackend {
     async createRequestQueueBackend(options: storage.StorageIdentifier = {}): Promise<RequestQueueBackend> {
         const { isAlias, cacheKey } = MemoryStorageBackend.#resolveStorageKey(options);
 
-        const found = this.requestQueueBackendCache.find(
+        const found = this.#requestQueueBackendCache.find(
             (queue) =>
                 queue.id === cacheKey ||
                 queue.name?.toLowerCase() === cacheKey.toLowerCase() ||
@@ -121,7 +157,7 @@ export class MemoryStorageBackend implements storage.StorageBackend {
             cacheKey,
             storageBackend: this,
         });
-        this.requestQueueBackendCache.push(newStore);
+        this.#requestQueueBackendCache.push(newStore);
 
         return newStore;
     }
@@ -131,13 +167,13 @@ export class MemoryStorageBackend implements storage.StorageBackend {
 
         switch (type) {
             case 'Dataset':
-                backends = this.datasetBackendCache;
+                backends = this.#datasetBackendCache;
                 break;
             case 'KeyValueStore':
-                backends = this.keyValueStoreBackendCache;
+                backends = this.#keyValueStoreBackendCache;
                 break;
             case 'RequestQueue':
-                backends = this.requestQueueBackendCache;
+                backends = this.#requestQueueBackendCache;
                 break;
             default:
                 return false;
@@ -168,11 +204,11 @@ export class MemoryStorageBackend implements storage.StorageBackend {
 
         await Promise.all([
             // Only the default store holds the run input, so it is the only one that keeps `INPUT`.
-            purgeRunScoped(this.keyValueStoreBackendCache, async (store) =>
+            purgeRunScoped(this.#keyValueStoreBackendCache, async (store) =>
                 isDefault(store) ? store.purgeExceptInput() : store.purge(),
             ),
-            purgeRunScoped(this.datasetBackendCache, async (store) => store.purge()),
-            purgeRunScoped(this.requestQueueBackendCache, async (store) => store.purge()),
+            purgeRunScoped(this.#datasetBackendCache, async (store) => store.purge()),
+            purgeRunScoped(this.#requestQueueBackendCache, async (store) => store.purge()),
         ]);
     }
 

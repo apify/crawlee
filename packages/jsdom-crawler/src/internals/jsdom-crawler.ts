@@ -1,5 +1,6 @@
 import type {
     AddRequestsBatchedResult,
+    ContextPipeline,
     CrawlingContext,
     EnqueueLinksOptions,
     ErrorHandler,
@@ -18,14 +19,13 @@ import {
     EnqueueStrategy,
     HttpCrawler,
     NavigationSkippedError,
-    parseArgument,
     resolveBaseUrlForEnqueueLinksFiltering,
     Router,
-    tryAbsoluteURL,
 } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
-import { type CheerioRoot } from '@crawlee/utils/internal';
+import type { CheerioAPI } from 'cheerio';
 import { sleep } from '@crawlee/utils';
+import { parseArgument, tryAbsoluteURL } from '@crawlee/utils/internal';
 import type { DOMWindow } from 'jsdom';
 import { JSDOM, ResourceLoader, VirtualConsole } from 'jsdom';
 import { z } from 'zod';
@@ -103,7 +103,7 @@ export interface JSDOMCrawlingContext<
      * });
      * ```
      */
-    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
+    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioAPI>;
 
     /**
      * Extracts URLs from the parsed DOM, without adding them to the request queue.
@@ -212,12 +212,16 @@ export class JSDOMCrawler<
     >,
     StatisticStateExtension extends object = {},
 > extends HttpCrawler<JSDOMCrawlingContext, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
+    /**
+     * @internal
+     */
     protected static override optionsShape = {
         ...HttpCrawler.optionsShape,
         runScripts: z.boolean().optional(),
         hideInternalConsole: z.boolean().optional(),
     };
 
+    /** @internal */
     protected static override optionsSchema = z.strictObject(JSDOMCrawler.optionsShape);
 
     #runScripts: boolean;
@@ -243,7 +247,7 @@ export class JSDOMCrawler<
         this.#hideInternalConsole = hideInternalConsole;
     }
 
-    protected override buildContextPipeline() {
+    protected override buildContextPipeline(): ContextPipeline<CrawlingContext, JSDOMCrawlingContext> {
         return super
             .buildContextPipeline()
             .compose({

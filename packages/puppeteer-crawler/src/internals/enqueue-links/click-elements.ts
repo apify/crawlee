@@ -13,13 +13,12 @@ import {
     constructUrlPatternObjects,
     createRequestOptions,
     filterRequestOptionsByPatterns,
-    parseArgument,
     urlPatternSchema,
     Request,
-    schemas,
     serviceLocator,
 } from '@crawlee/browser';
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
+import { parseArgument, schemas } from '@crawlee/utils/internal';
 // @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
 import type { ClickOptions, Frame, HTTPRequest as PuppeteerRequest, Page, Target } from 'puppeteer';
 import { z } from 'zod';

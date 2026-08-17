@@ -8,8 +8,6 @@ import type { RequestOptions } from '../request.js';
 import { schemas } from '../validators.js';
 import type { EnqueueStrategyOption } from './enqueue_links.js';
 
-export { tryAbsoluteURL } from '@crawlee/utils/internal';
-
 const MAX_ENQUEUE_LINKS_CACHE_SIZE = 1000;
 
 /**

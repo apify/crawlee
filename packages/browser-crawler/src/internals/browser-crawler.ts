@@ -21,20 +21,23 @@ import {
     EnqueueStrategy,
     NavigationSkippedError,
     OwnedOrInjected,
-    parseArgument,
     remainingNavigationWindowMillis,
     RequestState,
     RequestThrottledError,
     resolveBaseUrlForEnqueueLinksFiltering,
-    schemas,
     SessionError,
     toughCookieToBrowserPoolCookie,
-    tryAbsoluteURL,
     validators,
 } from '@crawlee/basic';
 import type { CommonPage, CrawlerRemoteBrowserOptions } from '@crawlee/browser-pool';
 import type { Awaitable, Cookie as CookieObject, Dictionary, IBrowserPool, ISession } from '@crawlee/types';
-import { CLOUDFLARE_RETRY_CSS_SELECTORS, RETRY_CSS_SELECTORS } from '@crawlee/utils/internal';
+import {
+    CLOUDFLARE_RETRY_CSS_SELECTORS,
+    parseArgument,
+    RETRY_CSS_SELECTORS,
+    schemas,
+    tryAbsoluteURL,
+} from '@crawlee/utils/internal';
 import { sleep } from '@crawlee/utils';
 import { z } from 'zod';
 
@@ -384,6 +387,9 @@ export abstract class BrowserCrawler<
     readonly #postNavigationHooks: BrowserHook<Context>[];
     readonly #saveResponseCookies: boolean;
 
+    /**
+     * @internal
+     */
     protected static override optionsShape = {
         ...BasicCrawler.optionsShape,
 
@@ -403,7 +409,8 @@ export abstract class BrowserCrawler<
         ignoreShadowRoots: z.boolean().default(false),
     };
 
-    protected static override optionsSchema = z.strictObject(BrowserCrawler.optionsShape);
+    /** @internal */
+    protected static optionsSchema = z.strictObject(BrowserCrawler.optionsShape);
 
     /**
      * All `BrowserCrawler` parameters are passed via an options object.

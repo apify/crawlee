@@ -26,16 +26,11 @@ import {
     Router,
     SessionError,
 } from '@crawlee/basic';
-import {
-    type LoadedRequest,
-    RequestThrottledError,
-    getCookiesFromResponse,
-    parseArgument,
-    schemas,
-} from '@crawlee/core';
+import { type LoadedRequest, RequestThrottledError, getCookiesFromResponse } from '@crawlee/core';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import type { Awaitable, Dictionary, ISession } from '@crawlee/types';
-import { type CheerioRoot, RETRY_CSS_SELECTORS } from '@crawlee/utils/internal';
+import { parseArgument, RETRY_CSS_SELECTORS, schemas } from '@crawlee/utils/internal';
+import type { CheerioAPI } from 'cheerio';
 import type { RequestLike, ResponseLike } from 'content-type';
 import contentTypeParser from 'content-type';
 import iconv from 'iconv-lite';
@@ -264,7 +259,7 @@ export interface InternalHttpCrawlingContext<
      * });
      * ```
      */
-    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
+    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioAPI>;
 }
 
 export interface HttpCrawlingContext<
@@ -366,6 +361,9 @@ export class HttpCrawler<
     #forceResponseEncoding?: string;
     readonly #supportedMimeTypes: Set<string>;
 
+    /**
+     * @internal
+     */
     protected static override optionsShape = {
         ...BasicCrawler.optionsShape,
 
@@ -380,7 +378,8 @@ export class HttpCrawler<
         postNavigationHooks: schemas.anyArray.default(() => []),
     };
 
-    protected static override optionsSchema = z.strictObject(HttpCrawler.optionsShape);
+    /** @internal */
+    protected static optionsSchema = z.strictObject(HttpCrawler.optionsShape);
 
     /**
      * All `HttpCrawlerOptions` parameters are passed via an options object.
