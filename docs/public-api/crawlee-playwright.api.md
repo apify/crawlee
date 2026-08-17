@@ -23,6 +23,7 @@ import type { BrowserType } from 'playwright';
 import { Cheerio } from 'cheerio';
 import { CheerioAPI } from '@crawlee/browser';
 import { CheerioRoot } from '@crawlee/utils/internal';
+import { CloseCookieModalsOptions } from '@crawlee/browser';
 import { Configuration } from '@crawlee/browser';
 import { ContextPipeline } from '@crawlee/browser';
 import type { ContextPipeline as ContextPipeline_2 } from '@crawlee/core';
@@ -159,7 +160,7 @@ interface BlockRequestsOptions {
 type ClickOptions = Parameters<Page['click']>[1];
 
 // @public (undocumented)
-function closeCookieModals(page: Page): Promise<void>;
+function closeCookieModals(page: Page, options?: CloseCookieModalsOptions): Promise<void>;
 
 // @public (undocumented)
 type CompiledScriptFunction = (params: CompiledScriptParams) => Promise<unknown>;
@@ -308,7 +309,7 @@ declare namespace playwrightClickElements {
 // @public (undocumented)
 interface PlaywrightContextUtils {
     blockRequests(options?: BlockRequestsOptions): Promise<void>;
-    closeCookieModals(): Promise<void>;
+    closeCookieModals(options?: CloseCookieModalsOptions): Promise<void>;
     compileScript(scriptString: string, ctx?: Dictionary): CompiledScriptFunction;
     enqueueLinksByClickingElements(options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestManager'>): Promise<BatchAddRequestsResult>;
     handleCloudflareChallenge(options?: HandleCloudflareChallengeOptions): Promise<Response_2 | undefined>;
@@ -336,7 +337,7 @@ export class PlaywrightCrawler<ContextExtension = Dictionary<never>, ExtendedCon
     saveSnapshot: (options?: SaveSnapshotOptions) => Promise<void>;
     enqueueLinksByClickingElements: (options: Omit<EnqueueLinksByClickingElementsOptions, "page" | "requestManager">) => Promise<BatchAddRequestsResult>;
     compileScript: (scriptString: string, ctx?: Dictionary) => CompiledScriptFunction;
-    closeCookieModals: () => Promise<void>;
+    closeCookieModals: (options?: CloseCookieModalsOptions) => Promise<void>;
     handleCloudflareChallenge: (options?: HandleCloudflareChallengeOptions) => Promise<Response_2 | undefined>;
     }>;
     // (undocumented)
@@ -513,6 +514,7 @@ declare namespace playwrightUtils {
         SaveSnapshotOptions,
         HandleCloudflareChallengeOptions,
         PlaywrightContextUtils,
+        CloseCookieModalsOptions,
         enqueueLinksByClickingElements,
         playwrightUtils_2 as playwrightUtils
     }

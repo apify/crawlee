@@ -217,6 +217,13 @@ export interface BrowserLaunchContext<TOptions, Launcher> extends BrowserPluginO
     userDataDir?: string;
 }
 
+// @public (undocumented)
+export interface CloseCookieModalsOptions {
+    enableHeuristicDetection?: boolean;
+    mode?: 'optOut' | 'optIn';
+    timeoutMillis?: number;
+}
+
 // @public
 export type LauncherBrowserPoolOptions = Omit<BrowserPoolOptions, 'browserPlugins'> & {
     [Hook in keyof BrowserPoolHooks<any, any, any>]?: readonly ((...args: any[]) => unknown)[];

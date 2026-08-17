@@ -332,6 +332,41 @@ describe('playwrightUtils', () => {
         });
     });
 
+    describe('closeCookieModals()', () => {
+        let browser: Browser;
+        beforeAll(async () => {
+            browser = await launchPlaywright(launchContext);
+        });
+        afterAll(async () => {
+            await browser.close();
+        });
+
+        test('opts out of the cookie consent', async () => {
+            const page = await browser.newPage();
+            await page.goto(`${serverAddress}/special/cookie-modal`);
+            await playwrightUtils.closeCookieModals(page);
+
+            expect(await page.locator('._brlbs-bar-wrap').count()).toBe(0);
+            expect(await page.evaluate(() => (window as any).consentChoice)).toBe('essential');
+        }, 60_000);
+
+        test('opts in when asked to', async () => {
+            const page = await browser.newPage();
+            await page.goto(`${serverAddress}/special/cookie-modal`);
+            await playwrightUtils.closeCookieModals(page, { mode: 'optIn' });
+
+            expect(await page.evaluate(() => (window as any).consentChoice)).toBe('all');
+        }, 60_000);
+
+        test('gives up on pages without a cookie modal', async () => {
+            const page = await browser.newPage();
+            await page.goto(serverAddress);
+            await playwrightUtils.closeCookieModals(page, { timeoutMillis: 2_000 });
+
+            expect(await page.evaluate(() => (window as any).consentChoice)).toBeUndefined();
+        }, 60_000);
+    });
+
     describe('infiniteScroll()', () => {
         function isAtBottom() {
             return window.innerHeight + window.pageYOffset >= document.body.offsetHeight;

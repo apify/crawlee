@@ -196,6 +196,20 @@ console.log('Hello world!');
             <p>Some content from inside of an iframe.</p>
         </body>
     </html>`,
+    // Markup of a cookie consent modal matching the "borlabs" autoconsent rule.
+    cookieModal: `
+    <html>
+    <body>
+        <h1>Hello world</h1>
+        <div class="_brlbs-bar-wrap">
+            <div class="_brlbs-block-content">
+                <p>We use cookies</p>
+                <button class="brlbs-btn-accept-all" onclick="window.consentChoice = 'all'; this.closest('._brlbs-bar-wrap').remove()">Accept all</button>
+                <button class="brlbs-btn-accept-only-essential" onclick="window.consentChoice = 'essential'; this.closest('._brlbs-bar-wrap').remove()">Only essential</button>
+            </div>
+        </div>
+    </body>
+    </html>`,
     shadowRoots: `
     <html>
     <body>
@@ -329,6 +343,10 @@ export async function runExampleComServer(): Promise<[Server, number]> {
 
         special.get('/inside-iframe', (_req, res) => {
             res.type('html').send(responseSamples.insideIframe);
+        });
+
+        special.get('/cookie-modal', (_req, res) => {
+            res.type('html').send(responseSamples.cookieModal);
         });
 
         special.get('/shadow-root', (_req, res) => {

@@ -228,6 +228,33 @@ describe('puppeteerUtils', () => {
             });
         });
 
+        describe('closeCookieModals()', () => {
+            let browser: Browser;
+            beforeAll(async () => {
+                browser = await launchPuppeteer(launchContext);
+            });
+            afterAll(async () => {
+                await browser.close();
+            });
+
+            test('opts out of the cookie consent', async () => {
+                const page = await browser.newPage();
+                await page.goto(`${serverAddress}/special/cookie-modal`);
+                await puppeteerUtils.closeCookieModals(page);
+
+                expect(await page.$('._brlbs-bar-wrap')).toBeNull();
+                expect(await page.evaluate(() => (window as any).consentChoice)).toBe('essential');
+            }, 60_000);
+
+            test('opts in when asked to', async () => {
+                const page = await browser.newPage();
+                await page.goto(`${serverAddress}/special/cookie-modal`);
+                await puppeteerUtils.closeCookieModals(page, { mode: 'optIn' });
+
+                expect(await page.evaluate(() => (window as any).consentChoice)).toBe('all');
+            }, 60_000);
+        });
+
         describe('blockRequests()', () => {
             let browser: Browser = null as any;
             beforeAll(async () => {
