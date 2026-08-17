@@ -236,7 +236,6 @@ describe('ConcurrencySystem', () => {
         test('a SnapshotStore-based signal sizes its retention from the start context', async () => {
             const store = new SnapshotStore();
             // Before starting, retention is unbounded so nothing is pruned until the store learns its real window.
-            // @ts-expect-error Accessing private prop
             expect(store.historyMillis).toBe(Infinity);
 
             const system = new ConcurrencySystem({
@@ -259,7 +258,6 @@ describe('ConcurrencySystem', () => {
             await system.stop();
 
             // No out-of-band knowledge needed - the window came from the system that drives the signal.
-            // @ts-expect-error Accessing private prop
             expect(store.historyMillis).toBe(90_000);
         });
 

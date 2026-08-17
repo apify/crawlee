@@ -143,7 +143,7 @@ describe('AdaptivePlaywrightCrawler', () => {
         // `__default_<n>__` alias). Since every test wipes storage and starts fresh, the counter must be
         // reset too — otherwise later crawlers open aliased queues that are out of sync with the freshly
         // reset storage, and the crawler restores a stale handled-request count and processes nothing.
-        (BasicCrawler as unknown as { instanceCount: number }).instanceCount = 0;
+        BasicCrawler.resetInstanceCount();
     });
 
     // Test setup helpers

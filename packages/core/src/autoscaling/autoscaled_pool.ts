@@ -18,15 +18,15 @@ const autoscaledPoolOptionsSchema = z.strictObject({
     isFinishedFunction: schemas.anyFunction,
     isTaskReadyFunction: schemas.anyFunction,
     maybeRunIntervalSecs: schemas.anyNumber
-        .refine((value) => value > 0, 'Expected a number greater than 0')
+        .refine((value: number) => value > 0, 'Expected a number greater than 0')
         .default(0.5),
     taskTimeoutSecs: schemas.anyNumber
-        .refine((value) => value >= 0, 'Expected a number greater than or equal to 0')
+        .refine((value: number) => value >= 0, 'Expected a number greater than or equal to 0')
         .default(0),
     log: validators.logger.default(() => serviceLocator.getLogger()),
     concurrencySystem: schemas.anyObject,
     consumer: schemas.anyObject.refine(
-        (value) => typeof value.id === 'string' && value.id.length > 0,
+        (value: { id?: string }) => typeof value.id === 'string' && value.id.length > 0,
         "Expected an object with a non-empty string 'id'",
     ),
 });
@@ -51,6 +51,12 @@ export interface TaskLoopPredicates {
      * keeps resolving to `true`, `isFinishedFunction()` will never be called.
      */
     isFinishedFunction?: () => Promise<boolean>;
+
+    /**
+     * How often the pool should check if a new task is ready, in seconds.
+     * @default 0.5
+     */
+    maybeRunIntervalSecs?: number;
 }
 
 /** @internal */
@@ -182,7 +188,11 @@ export class AutoscaledPool {
             log,
             concurrencySystem,
             consumer,
-        } = parseArgument(options, autoscaledPoolOptionsSchema, 'AutoscaledPoolOptions');
+        } = parseArgument(
+            options,
+            autoscaledPoolOptionsSchema,
+            'AutoscaledPoolOptions',
+        ) as Required<AutoscaledPoolOptions>;
 
         this.#log = log.child({ prefix: 'AutoscaledPool' });
 

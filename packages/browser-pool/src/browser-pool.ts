@@ -31,7 +31,7 @@ const PAGE_CLOSE_KILL_TIMEOUT_MILLIS = 1000;
 const BROWSER_KILLER_INTERVAL_MILLIS = 10 * 1000;
 
 const browserPoolOptionsSchema = z.strictObject({
-    browserPlugins: schemas.anyArray.refine((value) => value.length >= 1, 'Expected a non-empty array'),
+    browserPlugins: schemas.anyArray.refine((value: unknown[]) => value.length >= 1, 'Expected a non-empty array'),
     maxOpenPagesPerBrowser: schemas.anyNumber.default(20),
     retireBrowserAfterPageCount: schemas.anyNumber.default(100),
     operationTimeoutSecs: schemas.anyNumber.default(15),
@@ -351,11 +351,7 @@ export class BrowserPool<
     fingerprintGenerator?: FingerprintGenerator;
     fingerprintCache?: QuickLRU<string, BrowserFingerprintWithHeaders>;
 
-    // kept as TS-private: tests replace this interval through bracket access
-    private browserKillerInterval? = setInterval(
-        async () => this.closeInactiveRetiredBrowsers(),
-        BROWSER_KILLER_INTERVAL_MILLIS,
-    );
+    #browserKillerInterval?: ReturnType<typeof setInterval>;
 
     #browserRetireInterval?: NodeJS.Timeout;
 
@@ -366,7 +362,11 @@ export class BrowserPool<
         super();
         this.#log = serviceLocator.getLogger().child({ prefix: 'BrowserPool' });
 
-        this.browserKillerInterval!.unref();
+        this.#browserKillerInterval = setInterval(
+            async () => this.closeInactiveRetiredBrowsers(),
+            BROWSER_KILLER_INTERVAL_MILLIS,
+        );
+        this.#browserKillerInterval.unref();
 
         const {
             browserPlugins,
@@ -599,8 +599,7 @@ export class BrowserPool<
     ) {
         // This is needed for concurrent newPage calls to wait for the browser launch.
         // It's not ideal though, we need to come up with a better API.
-        // eslint-disable-next-line dot-notation -- accessing private property
-        await browserController['isActivePromise'];
+        await browserController.isActivePromise;
         tryCancel();
 
         const finalPageOptions = browserController.launchContext.useIncognitoPages ? pageOptions : undefined;
@@ -777,9 +776,9 @@ export class BrowserPool<
      * Closes all managed browsers and tears down the pool.
      */
     async destroy(): Promise<void> {
-        clearInterval(this.browserKillerInterval!);
+        clearInterval(this.#browserKillerInterval!);
         clearInterval(this.#browserRetireInterval!);
-        this.browserKillerInterval = undefined;
+        this.#browserKillerInterval = undefined;
         this.#browserRetireInterval = undefined;
 
         await this.closeAllBrowsers();
@@ -894,7 +893,7 @@ export class BrowserPool<
     private async closeInactiveRetiredBrowsers() {
         const closedBrowserIds: string[] = [];
 
-        for (const controller of this.retiredBrowserControllers) {
+        for (const controller of Array.from(this.retiredBrowserControllers)) {
             const millisSinceLastPageOpened = Date.now() - controller.lastPageOpenedAt;
             const isBrowserIdle = millisSinceLastPageOpened >= this.closeInactiveBrowserAfterMillis;
             const isBrowserEmpty = controller.activePages === 0;
@@ -902,8 +901,8 @@ export class BrowserPool<
             if (isBrowserIdle || isBrowserEmpty) {
                 const { id } = controller;
                 this.#log.debug('Closing retired browser.', { id });
-                await controller.close();
                 this.retiredBrowserControllers.delete(controller);
+                await controller.close();
                 closedBrowserIds.push(id);
             }
         }

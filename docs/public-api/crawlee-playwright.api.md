@@ -6,9 +6,10 @@
 
 import type { AnyNode } from 'domhandler';
 import type { Awaitable } from '@crawlee/types';
+import { BaseHttpClient } from '@crawlee/http-client';
 import { BasicCrawler } from '@crawlee/basic';
 import type { BasicCrawlerOptions } from '@crawlee/basic';
-import type { BatchAddRequestsResult } from '@crawlee/types';
+import { BatchAddRequestsResult } from '@crawlee/types';
 import type { Browser } from 'playwright';
 import { BrowserCrawler } from '@crawlee/browser';
 import { BrowserCrawlerOptions } from '@crawlee/browser';
@@ -20,15 +21,17 @@ import type { BrowserPoolHooks } from '@crawlee/browser-pool';
 import type { BrowserPoolOptions } from '@crawlee/browser-pool';
 import type { BrowserType } from 'playwright';
 import { Cheerio } from 'cheerio';
-import { CheerioAPI } from 'cheerio';
+import { CheerioAPI } from '@crawlee/browser';
+import { CheerioRoot } from '@crawlee/utils/internal';
 import { Configuration } from '@crawlee/browser';
-import type { ContextPipeline } from '@crawlee/browser';
+import { ContextPipeline } from '@crawlee/browser';
 import type { ContextPipeline as ContextPipeline_2 } from '@crawlee/core';
-import type { CrawlingContext } from '@crawlee/browser';
+import { CrawlingContext } from '@crawlee/browser';
 import type { CrawlingContext as CrawlingContext_2 } from '@crawlee/core';
 import { Dictionary } from '@crawlee/types';
 import type { Download } from 'playwright';
 import type { EnqueueLinksOptions } from '@crawlee/core';
+import { EventManager } from '@crawlee/browser';
 import type { GetUserDataFromRequest } from '@crawlee/browser';
 import type { GetUserDataFromRequest as GetUserDataFromRequest_2 } from '@crawlee/core';
 import { IRequestManager } from '@crawlee/browser';
@@ -73,7 +76,16 @@ interface AdaptiveHookContext extends Pick<AdaptivePlaywrightCrawlerContext, 'id
 export class AdaptivePlaywrightCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest_2<AdaptivePlaywrightCrawlerContext['request']>>, StatisticStateExtension extends AdaptivePlaywrightCrawlerStatisticState = AdaptivePlaywrightCrawlerStatisticState> extends BasicCrawler<AdaptivePlaywrightCrawlerContext, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
     constructor(options?: AdaptivePlaywrightCrawlerOptions<ContextExtension, ExtendedContext, Routes, StatisticStateExtension>);
     // (undocumented)
-    protected buildContextPipeline(): ContextPipeline_2<CrawlingContext_2, AdaptivePlaywrightCrawlerContext>;
+    protected buildContextPipeline(): ContextPipeline_2<CrawlingContext_2<Dictionary>, CrawlingContext_2<Dictionary> & {
+        readonly request: LoadedRequest<Request_3<Dictionary>>;
+        readonly response: Response;
+        readonly page: Page;
+        readonly querySelector: AdaptivePlaywrightCrawlerContext["querySelector"];
+        readonly querySelectorAll: AdaptivePlaywrightCrawlerContext["querySelectorAll"];
+        readonly waitForSelector: AdaptivePlaywrightCrawlerContext["waitForSelector"];
+        readonly parseWithCheerio: AdaptivePlaywrightCrawlerContext["parseWithCheerio"];
+        readonly enqueueLinks: AdaptivePlaywrightCrawlerContext["enqueueLinks"];
+    }>;
     // (undocumented)
     protected init(): Promise<void>;
     // (undocumented)
@@ -87,7 +99,7 @@ export interface AdaptivePlaywrightCrawlerContext<UserData extends Dictionary = 
     // (undocumented)
     enqueueLinks(options?: EnqueueLinksOptions): Promise<unknown>;
     page: Page;
-    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioAPI>;
+    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
     querySelector(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
     querySelectorAll(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
     // (undocumented)
@@ -267,7 +279,7 @@ export interface IRenderingTypePredictor {
 export function launchPlaywright(launchContext?: PlaywrightLaunchContext, configuration?: Configuration): Promise<Browser>;
 
 // @public
-function parseWithCheerio(page: Page, ignoreShadowRoots?: boolean, ignoreIframes?: boolean): Promise<CheerioAPI>;
+function parseWithCheerio(page: Page, ignoreShadowRoots?: boolean, ignoreIframes?: boolean): Promise<CheerioRoot>;
 
 // @public
 export type PlaywrightBrowserPool = BrowserPool<{
@@ -304,7 +316,7 @@ interface PlaywrightContextUtils {
     injectFile(filePath: string, options?: InjectFileOptions): Promise<unknown>;
     injectJQuery(): Promise<unknown>;
     listDownloads(): Promise<Download[]>;
-    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioAPI>;
+    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
     saveSnapshot(options?: SaveSnapshotOptions): Promise<void>;
     waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
 }
@@ -313,9 +325,136 @@ interface PlaywrightContextUtils {
 export class PlaywrightCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends PlaywrightCrawlingContext = PlaywrightCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<PlaywrightCrawlingContext['request']>>, StatisticStateExtension extends object = {}> extends BrowserCrawler<Page, Response_2, LaunchOptions, PlaywrightCrawlingContext, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
     constructor(options?: PlaywrightCrawlerOptions<ContextExtension, ExtendedContext, Routes, StatisticStateExtension>);
     // (undocumented)
-    protected buildContextPipeline(): ContextPipeline<CrawlingContext, PlaywrightCrawlingContext>;
+    protected buildContextPipeline(): ContextPipeline<CrawlingContext<Dictionary>, BrowserCrawlingContext<Page, Response_2, Dictionary, Dictionary> & {
+    injectFile: (filePath: string, options?: InjectFileOptions) => Promise<unknown>;
+    injectJQuery: () => Promise<void>;
+    blockRequests: (options?: BlockRequestsOptions) => Promise<void>;
+    waitForSelector: (selector: string, timeoutMs?: number) => Promise<void>;
+    parseWithCheerio: (selector?: string, timeoutMs?: number) => Promise<CheerioAPI>;
+    infiniteScroll: (options?: InfiniteScrollOptions) => Promise<void>;
+    listDownloads: () => Promise<Download[]>;
+    saveSnapshot: (options?: SaveSnapshotOptions) => Promise<void>;
+    enqueueLinksByClickingElements: (options: Omit<EnqueueLinksByClickingElementsOptions, "page" | "requestManager">) => Promise<BatchAddRequestsResult>;
+    compileScript: (scriptString: string, ctx?: Dictionary) => CompiledScriptFunction;
+    closeCookieModals: () => Promise<void>;
+    handleCloudflareChallenge: (options?: HandleCloudflareChallengeOptions) => Promise<Response_2 | undefined>;
+    }>;
     // (undocumented)
     protected navigationHandler(crawlingContext: PlaywrightCrawlingContext, gotoOptions: PlaywrightDirectNavigationOptions): Promise<Response_2 | null>;
+    // (undocumented)
+    protected static optionsSchema: z.ZodObject<{
+        headless: z.ZodOptional<z.ZodBoolean>;
+        launcher: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
+        navigationTimeoutSecs: z.ZodDefault<z.ZodCustom<number, number>>;
+        preNavigationHooks: z.ZodDefault<z.ZodCustom<unknown[], unknown[]>>;
+        postNavigationHooks: z.ZodDefault<z.ZodCustom<unknown[], unknown[]>>;
+        launchContext: z.ZodDefault<z.ZodCustom<Dictionary, Dictionary>>;
+        browserPool: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
+        browserPoolBuilder: z.ZodOptional<z.ZodCustom<(...args: any[]) => unknown, (...args: any[]) => unknown>>;
+        remoteBrowser: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
+        saveResponseCookies: z.ZodDefault<z.ZodBoolean>;
+        proxyConfiguration: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
+        ignoreIframes: z.ZodDefault<z.ZodBoolean>;
+        ignoreShadowRoots: z.ZodDefault<z.ZodBoolean>;
+        contextPipelineBuilder: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
+        extendContext: z.ZodOptional<z.ZodCustom<(...args: any[]) => unknown, (...args: any[]) => unknown>>;
+        requestList: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
+        requestQueue: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
+        requestManager: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
+        requestHandler: z.ZodOptional<z.ZodCustom<(...args: any[]) => unknown, (...args: any[]) => unknown>>;
+        requestHandlerTimeoutSecs: z.ZodOptional<z.ZodCustom<number, number>>;
+        errorHandler: z.ZodOptional<z.ZodCustom<(...args: any[]) => unknown, (...args: any[]) => unknown>>;
+        failedRequestHandler: z.ZodOptional<z.ZodCustom<(...args: any[]) => unknown, (...args: any[]) => unknown>>;
+        maxRequestRetries: z.ZodDefault<z.ZodCustom<number, number>>;
+        sameDomainDelaySecs: z.ZodDefault<z.ZodCustom<number, number>>;
+        maxRequestsPerCrawl: z.ZodOptional<z.ZodCustom<number, number>>;
+        maxCrawlDepth: z.ZodOptional<z.ZodCustom<number, number>>;
+        taskLoopOptions: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
+        concurrencySystem: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
+        sessionPool: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
+        statusMessageLoggingInterval: z.ZodDefault<z.ZodCustom<number, number>>;
+        statusMessageCallback: z.ZodOptional<z.ZodCustom<(...args: any[]) => unknown, (...args: any[]) => unknown>>;
+        additionalHttpErrorStatusCodes: z.ZodDefault<z.ZodArray<z.ZodCustom<number, number>>>;
+        ignoreHttpErrorStatusCodes: z.ZodDefault<z.ZodArray<z.ZodCustom<number, number>>>;
+        blockedStatusCodes: z.ZodOptional<z.ZodArray<z.ZodCustom<number, number>>>;
+        retryOnBlocked: z.ZodDefault<z.ZodBoolean>;
+        respectRobotsTxtFile: z.ZodDefault<z.ZodUnion<readonly [z.ZodBoolean, z.ZodCustom<Dictionary, Dictionary>]>>;
+        transactionalStorage: z.ZodOptional<z.ZodUnion<readonly [z.ZodBoolean, z.ZodObject<{
+            requestQueue: z.ZodOptional<z.ZodEnum<{
+                deferred: "deferred";
+                writeThrough: "writeThrough";
+            }>>;
+        }, z.core.$strict>]>>;
+        onSkippedRequest: z.ZodOptional<z.ZodCustom<(...args: any[]) => unknown, (...args: any[]) => unknown>>;
+        httpClient: z.ZodOptional<z.ZodCustom<BaseHttpClient, BaseHttpClient>>;
+        configuration: z.ZodOptional<z.ZodCustom<Configuration, Configuration>>;
+        storageBackend: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
+        eventManager: z.ZodOptional<z.ZodCustom<EventManager, EventManager>>;
+        logger: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
+        minConcurrency: z.ZodOptional<z.ZodCustom<number, number>>;
+        maxConcurrency: z.ZodOptional<z.ZodCustom<number, number>>;
+        maxRequestsPerMinute: z.ZodOptional<z.ZodCustom<number, number>>;
+        keepAlive: z.ZodOptional<z.ZodBoolean>;
+        statistics: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
+        id: z.ZodOptional<z.ZodString>;
+    }, z.core.$strict>;
+    // (undocumented)
+    protected static optionsShape: {
+        headless: z.ZodOptional<z.ZodBoolean>;
+        launcher: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
+        navigationTimeoutSecs: z.ZodDefault<z.ZodCustom<number, number>>;
+        preNavigationHooks: z.ZodDefault<z.ZodCustom<unknown[], unknown[]>>;
+        postNavigationHooks: z.ZodDefault<z.ZodCustom<unknown[], unknown[]>>;
+        launchContext: z.ZodDefault<z.ZodCustom<Dictionary, Dictionary>>;
+        browserPool: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
+        browserPoolBuilder: z.ZodOptional<z.ZodCustom<(...args: any[]) => unknown, (...args: any[]) => unknown>>;
+        remoteBrowser: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
+        saveResponseCookies: z.ZodDefault<z.ZodBoolean>;
+        proxyConfiguration: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
+        ignoreIframes: z.ZodDefault<z.ZodBoolean>;
+        ignoreShadowRoots: z.ZodDefault<z.ZodBoolean>;
+        contextPipelineBuilder: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
+        extendContext: z.ZodOptional<z.ZodCustom<(...args: any[]) => unknown, (...args: any[]) => unknown>>;
+        requestList: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
+        requestQueue: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
+        requestManager: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
+        requestHandler: z.ZodOptional<z.ZodCustom<(...args: any[]) => unknown, (...args: any[]) => unknown>>;
+        requestHandlerTimeoutSecs: z.ZodOptional<z.ZodCustom<number, number>>;
+        errorHandler: z.ZodOptional<z.ZodCustom<(...args: any[]) => unknown, (...args: any[]) => unknown>>;
+        failedRequestHandler: z.ZodOptional<z.ZodCustom<(...args: any[]) => unknown, (...args: any[]) => unknown>>;
+        maxRequestRetries: z.ZodDefault<z.ZodCustom<number, number>>;
+        sameDomainDelaySecs: z.ZodDefault<z.ZodCustom<number, number>>;
+        maxRequestsPerCrawl: z.ZodOptional<z.ZodCustom<number, number>>;
+        maxCrawlDepth: z.ZodOptional<z.ZodCustom<number, number>>;
+        taskLoopOptions: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
+        concurrencySystem: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
+        sessionPool: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
+        statusMessageLoggingInterval: z.ZodDefault<z.ZodCustom<number, number>>;
+        statusMessageCallback: z.ZodOptional<z.ZodCustom<(...args: any[]) => unknown, (...args: any[]) => unknown>>;
+        additionalHttpErrorStatusCodes: z.ZodDefault<z.ZodArray<z.ZodCustom<number, number>>>;
+        ignoreHttpErrorStatusCodes: z.ZodDefault<z.ZodArray<z.ZodCustom<number, number>>>;
+        blockedStatusCodes: z.ZodOptional<z.ZodArray<z.ZodCustom<number, number>>>;
+        retryOnBlocked: z.ZodDefault<z.ZodBoolean>;
+        respectRobotsTxtFile: z.ZodDefault<z.ZodUnion<readonly [z.ZodBoolean, z.ZodCustom<Dictionary, Dictionary>]>>;
+        transactionalStorage: z.ZodOptional<z.ZodUnion<readonly [z.ZodBoolean, z.ZodObject<{
+            requestQueue: z.ZodOptional<z.ZodEnum<{
+                deferred: "deferred";
+                writeThrough: "writeThrough";
+            }>>;
+        }, z.core.$strict>]>>;
+        onSkippedRequest: z.ZodOptional<z.ZodCustom<(...args: any[]) => unknown, (...args: any[]) => unknown>>;
+        httpClient: z.ZodOptional<z.ZodCustom<BaseHttpClient, BaseHttpClient>>;
+        configuration: z.ZodOptional<z.ZodCustom<Configuration, Configuration>>;
+        storageBackend: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
+        eventManager: z.ZodOptional<z.ZodCustom<EventManager, EventManager>>;
+        logger: z.ZodOptional<z.ZodType<Dictionary<any>, unknown, z.core.$ZodTypeInternals<Dictionary<any>, unknown>>>;
+        minConcurrency: z.ZodOptional<z.ZodCustom<number, number>>;
+        maxConcurrency: z.ZodOptional<z.ZodCustom<number, number>>;
+        maxRequestsPerMinute: z.ZodOptional<z.ZodCustom<number, number>>;
+        keepAlive: z.ZodOptional<z.ZodBoolean>;
+        statistics: z.ZodOptional<z.ZodCustom<Dictionary, Dictionary>>;
+        id: z.ZodOptional<z.ZodString>;
+    };
 }
 
 // @public (undocumented)
@@ -395,6 +534,8 @@ export class RenderingTypePredictor implements IRenderingTypePredictor {
     [Symbol.asyncDispose](): Promise<void>;
     constructor(input: RenderingTypePredictorOptions);
     initialize(): Promise<void>;
+    // (undocumented)
+    persistState(): Promise<void>;
     predict(input: Request_2): {
         renderingType: RenderingType;
         detectionProbabilityRecommendation: number;

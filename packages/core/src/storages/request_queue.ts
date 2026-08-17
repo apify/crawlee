@@ -126,8 +126,11 @@ export class RequestQueue implements IStorage, IRequestManager {
 
     readonly log: CrawleeLogger;
 
-    // kept as TS-private: request_queue tests read this cache directly
-    private requestCache: LruCache<RequestLruItem>;
+    #requestCache: LruCache<RequestLruItem>;
+
+    get requestCache(): LruCache<RequestLruItem> {
+        return this.#requestCache;
+    }
 
     /**
      * Remembers the `requestId` of every request already submitted to the client — including background
@@ -138,8 +141,15 @@ export class RequestQueue implements IStorage, IRequestManager {
 
     #queuePausedForMigration = false;
 
-    // kept as TS-private: packages/core/test request-queue tests write this counter directly
-    private inProgressRequestBatchCount = 0;
+    #inProgressRequestBatchCount = 0;
+
+    get inProgressRequestBatchCount(): number {
+        return this.#inProgressRequestBatchCount;
+    }
+
+    set inProgressRequestBatchCount(value: number) {
+        this.#inProgressRequestBatchCount = value;
+    }
 
     /**
      * The largest expected request-processing time (in seconds) seen so far via
@@ -176,7 +186,7 @@ export class RequestQueue implements IStorage, IRequestManager {
 
         this.#proxyConfiguration = options.proxyConfiguration;
 
-        this.requestCache = new LruCache({ maxLength: MAX_CACHED_REQUESTS });
+        this.#requestCache = new LruCache({ maxLength: MAX_CACHED_REQUESTS });
         this.#requestSeenCache = new RequestDeduplicationCache();
         this.log = serviceLocator.getLogger().child({ prefix: `RequestQueue(${this.id}, ${this.name ?? 'no-name'})` });
 
@@ -658,9 +668,9 @@ export class RequestQueue implements IStorage, IRequestManager {
             },
 
             trackBackgroundBatches: (batches) => {
-                this.inProgressRequestBatchCount += 1;
+                this.#inProgressRequestBatchCount += 1;
                 void batches.finally(() => {
-                    this.inProgressRequestBatchCount -= 1;
+                    this.#inProgressRequestBatchCount -= 1;
                 });
             },
         });
@@ -904,9 +914,9 @@ export class RequestQueue implements IStorage, IRequestManager {
         await this.backend.purge();
 
         // Reset in-memory bookkeeping so the queue behaves as if freshly opened.
-        this.requestCache.clear();
+        this.#requestCache.clear();
         this.#requestSeenCache.clear();
-        this.inProgressRequestBatchCount = 0;
+        this.#inProgressRequestBatchCount = 0;
 
         // Reset the expected-processing-time high-water mark too, otherwise the monotonic-raise guard
         // in `setExpectedRequestProcessingTimeSecs` would let a value raised in an earlier run leak into a

@@ -154,18 +154,29 @@ export class SessionPool implements ISessionPool {
     readonly id: string;
     #log: CrawleeLogger;
     #sessions: Session[] = [];
-    // kept as TS-private: session_pool tests read/override the members below directly
-    private maxPoolSize: number;
-    private createSessionFunction: CreateSession;
-    private keyValueStore?: KeyValueStore;
-    private sessionMap = new Map<string, Session>();
-    private sessionOptions: SessionOptions;
-    private persistStateKeyValueStoreId?: string;
-    private persistStateKey: string;
+    readonly maxPoolSize: number;
+    #createSessionFunction: CreateSession;
+    #keyValueStore?: KeyValueStore;
+    #sessionMap = new Map<string, Session>();
+    #sessionOptions: SessionOptions;
+    #persistStateKeyValueStoreId?: string;
+    #persistStateKey: string;
     #listener?: () => Promise<void>;
     #events: EventManager;
     #persistenceOptions: PersistenceOptions;
     #sessionReuseStrategy: SessionReuseStrategy;
+
+    get sessionOptions(): SessionOptions {
+        return this.#sessionOptions;
+    }
+
+    get persistStateKey(): string {
+        return this.#persistStateKey;
+    }
+
+    get persistStateKeyValueStoreId(): string | undefined {
+        return this.#persistStateKeyValueStoreId;
+    }
 
     #initPromise?: Promise<void>;
     #queue = new AsyncQueue();
@@ -192,19 +203,20 @@ export class SessionPool implements ISessionPool {
 
         // Pool Configuration
         this.maxPoolSize = maxPoolSize;
-        this.createSessionFunction = createSessionFunction || this.defaultCreateSessionFunction;
+        this.#createSessionFunction = createSessionFunction || this.defaultCreateSessionFunction;
 
         // Session configuration. The pool-scoped logger is merged into per-call sessionOptions inside
         // `invokeCreateSessionFunction`, so every Session inherits it without custom createSessionFunctions
         // having to know about it.
-        this.sessionOptions = {
+        this.#sessionOptions = {
             ...sessionOptions,
             log: this.#log,
         };
 
         // Session keyValueStore
-        this.persistStateKeyValueStoreId = persistStateKeyValueStoreId;
-        this.persistStateKey = persistStateKey ?? `${PERSIST_STATE_KEY}_${this.id}`;
+        this.#persistStateKeyValueStoreId = persistStateKeyValueStoreId;
+        this.#persistStateKey =
+            persistStateKey ?? (persistStateKeyValueStoreId ? PERSIST_STATE_KEY : `${PERSIST_STATE_KEY}_${this.id}`);
     }
 
     /**
@@ -239,16 +251,13 @@ export class SessionPool implements ISessionPool {
             return;
         }
 
-        this.keyValueStore = await KeyValueStore.open(
-            this.persistStateKeyValueStoreId ? { id: this.persistStateKeyValueStoreId } : null,
-            {
-                configuration: serviceLocator.getConfiguration(),
-            },
-        );
+        this.#keyValueStore = await KeyValueStore.open(this.#persistStateKeyValueStoreId ?? null, {
+            configuration: serviceLocator.getConfiguration(),
+        });
 
-        if (!this.persistStateKeyValueStoreId) {
+        if (!this.#persistStateKeyValueStoreId) {
             this.#log.debug(
-                `No 'persistStateKeyValueStoreId' options specified, this session pool's data has been saved in the KeyValueStore with the id: ${this.keyValueStore.id}`,
+                `No 'persistStateKeyValueStoreId' options specified, this session pool's data has been saved in the KeyValueStore with the id: ${this.#keyValueStore.id}`,
             );
         }
 
@@ -269,7 +278,7 @@ export class SessionPool implements ISessionPool {
         await this.ensureInitialized();
         const { id } = options;
         if (id) {
-            const sessionExists = this.sessionMap.has(id);
+            const sessionExists = this.#sessionMap.has(id);
             if (sessionExists) {
                 throw new Error(`Cannot add session with id '${id}' as it already exists in the pool`);
             }
@@ -313,7 +322,7 @@ export class SessionPool implements ISessionPool {
         await this.#queue.wait();
         try {
             if (sessionId) {
-                const session = this.sessionMap.get(sessionId);
+                const session = this.#sessionMap.get(sessionId);
                 if (session?.isUsable()) return session;
                 return undefined;
             }
@@ -341,7 +350,7 @@ export class SessionPool implements ISessionPool {
         }
 
         await this.ensureInitialized();
-        await this.keyValueStore?.setValue(this.persistStateKey, null);
+        await this.#keyValueStore?.setValue(this.#persistStateKey, null);
     }
 
     /**
@@ -363,21 +372,22 @@ export class SessionPool implements ISessionPool {
      * @param options - Override the persistence options provided in the constructor
      */
     async persistState(options?: PersistenceOptions): Promise<void> {
-        if (!this.#persistenceOptions.enable && !options?.enable) {
+        const enable = options?.enable ?? this.#persistenceOptions.enable;
+        if (!enable) {
             return;
         }
 
         await this.ensureInitialized();
 
         this.#log.debug('Persisting state', {
-            persistStateKeyValueStoreId: this.persistStateKeyValueStoreId,
-            persistStateKey: this.persistStateKey,
+            persistStateKeyValueStoreId: this.#persistStateKeyValueStoreId,
+            persistStateKey: this.#persistStateKey,
         });
 
-        await this.keyValueStore
-            ?.setValue(this.persistStateKey, await this.getState())
+        await this.#keyValueStore
+            ?.setValue(this.#persistStateKey, await this.getState())
             .catch((error) =>
-                this.#log.warning(`Failed to persist the session pool stats to ${this.persistStateKey}`, { error }),
+                this.#log.warning(`Failed to persist the session pool stats to ${this.#persistStateKey}`, { error }),
             );
     }
 
@@ -408,7 +418,7 @@ export class SessionPool implements ISessionPool {
         this.#sessions = this.#sessions.filter((storedSession) => {
             if (storedSession.isUsable()) return true;
 
-            this.sessionMap.delete(storedSession.id);
+            this.#sessionMap.delete(storedSession.id);
             this.#log.debug(`Removed Session - ${storedSession.id}`);
 
             return false;
@@ -421,7 +431,7 @@ export class SessionPool implements ISessionPool {
      */
     private registerSession(newSession: Session) {
         this.#sessions.push(newSession);
-        this.sessionMap.set(newSession.id, newSession);
+        this.#sessionMap.set(newSession.id, newSession);
     }
 
     /**
@@ -456,10 +466,10 @@ export class SessionPool implements ISessionPool {
     private async invokeCreateSessionFunction(perCallOptions?: SessionOptions): Promise<Session> {
         const sessionOptions: SessionOptions = {
             fingerprint: createDefaultSessionFingerprint(),
-            ...this.sessionOptions,
+            ...this.#sessionOptions,
             ...perCallOptions,
         };
-        return this.createSessionFunction({ sessionOptions });
+        return this.#createSessionFunction({ sessionOptions });
     }
 
     /**
@@ -509,14 +519,16 @@ export class SessionPool implements ISessionPool {
      * If the state was persisted it loads the `SessionPool` from the persisted state.
      */
     private async maybeLoadSessionPool(): Promise<void> {
-        const loadedSessionPool = await this.keyValueStore?.getValue<{ sessions: Dictionary[] }>(this.persistStateKey);
+        const loadedSessionPool = await this.#keyValueStore?.getValue<{ sessions: Dictionary[] }>(
+            this.#persistStateKey,
+        );
 
         if (!loadedSessionPool) return;
 
         // Invalidate old sessions and load active sessions only
         this.#log.debug('Recreating state from KeyValueStore', {
-            persistStateKeyValueStoreId: this.persistStateKeyValueStoreId,
-            persistStateKey: this.persistStateKey,
+            persistStateKeyValueStoreId: this.#persistStateKeyValueStoreId,
+            persistStateKey: this.#persistStateKey,
         });
 
         for (const sessionObject of loadedSessionPool.sessions) {

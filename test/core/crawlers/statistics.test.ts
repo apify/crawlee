@@ -32,8 +32,7 @@ describe('Statistics', () => {
     });
 
     afterAll(async () => {
-        // eslint-disable-next-line dot-notation
-        Statistics['id'] = 0;
+        Statistics.resetId();
     });
 
     describe('persist state', () => {

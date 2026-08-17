@@ -50,7 +50,6 @@ export default defineConfig({
                     '_getCookies',
                     '_setCookies',
                     '_read',
-                    '_currentConcurrency',
                     '__crawlee',
                     '__purged',
                     '__originalHistory__',

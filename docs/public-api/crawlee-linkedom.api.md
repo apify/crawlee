@@ -5,8 +5,9 @@
 ```ts
 
 import type { AddRequestsBatchedResult } from '@crawlee/http';
-import type { CheerioAPI } from 'cheerio';
-import type { ContextPipeline } from '@crawlee/http';
+import * as cheerio from 'cheerio';
+import { CheerioRoot } from '@crawlee/utils/internal';
+import { ContextPipeline } from '@crawlee/http';
 import type { CrawlingContext } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
 import type { EnqueueLinksOptions } from '@crawlee/http';
@@ -36,7 +37,16 @@ export function createLinkeDOMRouter<Context extends LinkeDOMCrawlingContext = L
 export class LinkeDOMCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends LinkeDOMCrawlingContext = LinkeDOMCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<LinkeDOMCrawlingContext['request']>>, StatisticStateExtension extends object = {}> extends HttpCrawler<LinkeDOMCrawlingContext, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
     constructor(options?: LinkeDOMCrawlerOptions<ContextExtension, ExtendedContext, any, any, Routes, StatisticStateExtension>);
     // (undocumented)
-    protected buildContextPipeline(): ContextPipeline<CrawlingContext, LinkeDOMCrawlingContext>;
+    protected buildContextPipeline(): ContextPipeline<CrawlingContext<Dictionary>, InternalHttpCrawlingContext<any, any> & {
+    readonly window: Window;
+    readonly body: string;
+    readonly document: Document;
+    } & {
+    extractLinks: (options?: ExtractLinksOptions) => Promise<string[]>;
+    enqueueLinks: (options?: EnqueueLinksOptions) => Promise<AddRequestsBatchedResult>;
+    waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
+    parseWithCheerio(selector?: string, _timeoutMs?: number): Promise<cheerio.CheerioAPI>;
+    }>;
 }
 
 // @public (undocumented)
@@ -52,7 +62,7 @@ JSONData extends Dictionary = any> extends InternalHttpCrawlingContext<UserData,
     document: Document;
     enqueueLinks(options?: EnqueueLinksOptions): Promise<AddRequestsBatchedResult>;
     extractLinks(options?: ExtractLinksOptions): Promise<string[]>;
-    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioAPI>;
+    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
     waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
     // (undocumented)
     window: Window;

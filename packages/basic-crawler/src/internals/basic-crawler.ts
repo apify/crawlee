@@ -704,8 +704,12 @@ export class BasicCrawler<
      * request queue; subsequent ones get their own queue via a unique alias so they don't
      * collide.
      */
-    // kept as TS-private: tests reset the counter at runtime
-    private static instanceCount = 0;
+    static #instanceCount = 0;
+
+    /** @internal Reset static instance counter for test isolation. */
+    static resetInstanceCount(): void {
+        BasicCrawler.#instanceCount = 0;
+    }
 
     /**
      * Tracks crawler instances that accessed shared state without having an explicit id.
@@ -845,10 +849,9 @@ export class BasicCrawler<
     }
 
     protected readonly requestHandler!: RequestHandler<ExtendedContext>;
-    readonly #errorHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
-    readonly #failedRequestHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
-    // kept as TS-private: tests read it at runtime
-    private requestHandlerTimeoutMillis!: number;
+    protected readonly errorHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
+    protected readonly failedRequestHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
+    protected readonly requestHandlerTimeoutMillis!: number;
     protected readonly internalTimeoutMillis: number;
     readonly #maxRequestRetries: number;
     readonly #maxCrawlDepth?: number;
@@ -870,8 +873,7 @@ export class BasicCrawler<
      * {@apilink ConcurrencySystem} instead, and the loop's `consumer` identity is the crawler's own, so neither is
      * settable here.
      */
-    // kept as TS-private: tests mutate it at runtime
-    private taskLoopOptions: Omit<AutoscaledPoolOptions, 'concurrencySystem' | 'consumer'>;
+    #taskLoopOptions: Omit<AutoscaledPoolOptions, 'concurrencySystem' | 'consumer'>;
     protected readonly httpClient: BaseHttpClient;
     protected readonly retryOnBlocked: boolean;
     #respectRobotsTxtFile: boolean | { userAgent?: string };
@@ -940,8 +942,11 @@ export class BasicCrawler<
         minConcurrency: schemas.anyNumber.optional(),
         maxConcurrency: schemas.anyNumber.optional(),
         maxRequestsPerMinute: schemas.anyNumber
-            .refine((value) => Number.isInteger(value) || value === Infinity, 'Expected an integer or infinite number')
-            .refine((value) => value >= 1, 'Expected a number greater than or equal to 1')
+            .refine(
+                (value: number) => Number.isInteger(value) || value === Infinity,
+                'Expected an integer or infinite number',
+            )
+            .refine((value: number) => value >= 1, 'Expected a number greater than or equal to 1')
             .optional(),
         keepAlive: z.boolean().optional(),
 
@@ -959,7 +964,9 @@ export class BasicCrawler<
         options: BasicCrawlerOptions<Context, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> &
             RequireContextPipeline<CrawlingContext, Context> = {} as any, // cast because the constructor logic handles missing `contextPipelineBuilder` - the type is just for DX
     ) {
-        const parsedOptions = parseArgument(options, BasicCrawler.#optionsSchema, 'BasicCrawlerOptions');
+        const parsedOptions = parseArgument(options, BasicCrawler.#optionsSchema, 'BasicCrawlerOptions') as Required<
+            BasicCrawlerOptions<Context, ContextExtension, ExtendedContext, Routes, StatisticStateExtension>
+        >;
 
         const {
             // oxlint-disable-next-line typescript/no-deprecated -- still accepted and folded into `requestManager` for back-compat
@@ -1060,7 +1067,7 @@ export class BasicCrawler<
             // Initialize the Configuration instance to avoid lazy loading in the components
             serviceLocator.getConfiguration();
 
-            const instanceIndex = BasicCrawler.instanceCount++;
+            const instanceIndex = BasicCrawler.#instanceCount++;
             this.#identity = { instanceIndex, hasExplicitId: id !== undefined, id: id ?? String(instanceIndex) };
 
             if (requestManager !== undefined) {
@@ -1102,8 +1109,8 @@ export class BasicCrawler<
             this.#ignoreHttpErrorStatusCodes = new Set([...ignoreHttpErrorStatusCodes]);
 
             this.requestHandler = requestHandler ?? this.router;
-            this.#failedRequestHandler = failedRequestHandler;
-            this.#errorHandler = errorHandler;
+            this.failedRequestHandler = failedRequestHandler;
+            this.errorHandler = errorHandler;
 
             if (requestHandlerTimeoutSecs) {
                 this.requestHandlerTimeoutMillis = requestHandlerTimeoutSecs * 1000;
@@ -1195,7 +1202,9 @@ export class BasicCrawler<
                 isFinishedFunction = async () => false;
             }
 
-            const crawlerOwnedTaskLoopConfiguration: Partial<typeof this.taskLoopOptions> = {
+            const crawlerOwnedTaskLoopConfiguration: Partial<
+                Omit<AutoscaledPoolOptions, 'concurrencySystem' | 'consumer'>
+            > = {
                 runTaskFunction: async () => {
                     const source = this.requestManager;
                     if (!source) throw new Error('Request provider is not initialized!');
@@ -1340,7 +1349,7 @@ export class BasicCrawler<
                 log: this.log,
             };
 
-            this.taskLoopOptions = { ...taskLoopOptions, ...crawlerOwnedTaskLoopConfiguration };
+            this.#taskLoopOptions = { ...taskLoopOptions, ...crawlerOwnedTaskLoopConfiguration };
 
             this.#resolveConcurrencySystem = () =>
                 OwnedOrInjected.resolve<IConcurrencySystem, ConcurrencySystem>(concurrencySystem, () =>
@@ -2289,7 +2298,7 @@ export class BasicCrawler<
         await this.#concurrencySystemDep.ifOwned((system) => system.start());
 
         this.#autoscaledPool = new AutoscaledPool({
-            ...this.taskLoopOptions,
+            ...this.#taskLoopOptions,
             concurrencySystem: this.#concurrencySystemDep.value,
             consumer: this.#identity,
         });
@@ -2753,7 +2762,7 @@ export class BasicCrawler<
 
         if (shouldRetryRequest) {
             await this.statistics.errorTrackerRetry.addAsync(error, crawlingContext);
-            await this.#errorHandler?.(
+            await this.errorHandler?.(
                 crawlingContext as CrawlingContext & Partial<ExtendedContext>, // valid cast - ExtendedContext transitively extends CrawlingContext
                 error,
             );
@@ -2811,8 +2820,8 @@ export class BasicCrawler<
 
         this.log.error(`Request failed and reached maximum retries. ${message}`, { id, url, method, uniqueKey });
 
-        if (this.#failedRequestHandler) {
-            await this.#failedRequestHandler?.(
+        if (this.failedRequestHandler) {
+            await this.failedRequestHandler?.(
                 crawlingContext as CrawlingContext & Partial<ExtendedContext>, // valid cast - ExtendedContext transitively extends CrawlingContext
                 error,
             );

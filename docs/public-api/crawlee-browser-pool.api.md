@@ -69,6 +69,8 @@ export abstract class BrowserController<Library extends CommonLibrary = CommonLi
     readonly id: string;
     // (undocumented)
     isActive: boolean;
+    // (undocumented)
+    get isActivePromise(): Promise<void>;
     kill(): Promise<void>;
     // (undocumented)
     protected abstract _kill(): Promise<void>;

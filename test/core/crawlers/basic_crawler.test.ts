@@ -1305,16 +1305,13 @@ describe('BasicCrawler', () => {
                     isTaskReadyFunctionCalled = true;
                     return Promise.resolve(!isFinished);
                 },
+                maybeRunIntervalSecs: 0.05,
             },
             requestHandler: async ({ request }) => {
                 await sleep(10);
                 processed.push(request);
             },
         });
-
-        // Speed up the test
-        // @ts-expect-error Accessing private prop
-        basicCrawler.taskLoopOptions.maybeRunIntervalSecs = 0.05;
 
         const request0 = new Request({ url: 'http://example.com/0' });
         const request1 = new Request({ url: 'http://example.com/1' });
@@ -1366,15 +1363,14 @@ describe('BasicCrawler', () => {
         const basicCrawler = new BasicCrawler({
             requestQueue,
             keepAlive: true,
+            taskLoopOptions: {
+                maybeRunIntervalSecs: 0.05,
+            },
             requestHandler: async ({ request }) => {
                 await sleep(10);
                 processed.push(request);
             },
         });
-
-        // Speed up the test
-        // @ts-expect-error Accessing private prop
-        basicCrawler.taskLoopOptions.maybeRunIntervalSecs = 0.05;
 
         const request0 = new Request({ url: 'http://example.com/0' });
         const request1 = new Request({ url: 'http://example.com/1' });
@@ -1800,10 +1796,8 @@ describe('BasicCrawler', () => {
         });
 
         const maxSignedInteger = 2 ** 31 - 1;
-        // @ts-expect-error Accessing private prop
-        expect(crawler.requestHandlerTimeoutMillis).toBe(maxSignedInteger);
-        // @ts-expect-error Accessing private prop
-        expect(crawler.internalTimeoutMillis).toBe(maxSignedInteger);
+        expect((crawler as any).requestHandlerTimeoutMillis).toBe(maxSignedInteger);
+        expect((crawler as any).internalTimeoutMillis).toBe(maxSignedInteger);
     });
 
     test('should not log stack trace for timeout errors by default', async () => {
