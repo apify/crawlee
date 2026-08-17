@@ -321,10 +321,7 @@ export type HttpRequestHandler<
  * **Example usage:**
  *
  * ```javascript
- * import {
-    HttpCrawler,
-    Dataset,
-} from '@crawlee/http';
+ * import { HttpCrawler, Dataset } from '@crawlee/http';
  *
  * const crawler = new HttpCrawler({
  *     requestList,
