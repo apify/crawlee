@@ -1260,12 +1260,6 @@ postNavigationHooks: [
 
 If you called the standalone `playwrightUtils.handleCloudflareChallenge(page, url, session, options)` directly, note that the `session` parameter is gone - the v4 signature is `handleCloudflareChallenge(page, url, options)`, so an options object passed in the old fourth position would be silently ignored.
 
-### `closeCookieModals` is powered by autoconsent
-
-In v3, `closeCookieModals()` injected the *I Don't Care About Cookies* script from the `idcac-playwright` package, which you had to install yourself because its GPL license was incompatible with Crawlee's. That package is unmaintained, so v4 replaces it with [autoconsent](https://github.com/duckduckgo/autoconsent), which ships with Crawlee - the `idcac-playwright` peer dependency is gone and can be removed from your project.
-
-Instead of hiding the modal, autoconsent goes through the consent flow and rejects all optional cookies (pass `{ mode: 'optIn' }` to accept them instead). This means the call now waits for the flow to finish, up to `timeoutMillis` (10 seconds by default) - on pages without a cookie modal it keeps looking for one until that timeout is reached.
-
 ## Only if you customize crawler statistics
 
 Applies when you passed `statisticsOptions` to a crawler, subclassed `Statistics`, or passed type arguments to `BrowserCrawler`/`BrowserCrawlerOptions`.
