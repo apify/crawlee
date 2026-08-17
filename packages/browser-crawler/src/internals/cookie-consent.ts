@@ -2,30 +2,22 @@ import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 
 import { serviceLocator } from '@crawlee/basic';
-import type { ContentScriptMessage, IndexedCMPRuleset, RuleBundle } from '@duckduckgo/autoconsent';
+import type { Config, ContentScriptMessage, IndexedCMPRuleset, RuleBundle } from '@duckduckgo/autoconsent';
 
+// `require.resolve` picks the CommonJS bundle, which - unlike the ESM one - can be injected into a page as is.
 const require = createRequire(import.meta.url);
 
-export interface CloseCookieModalsOptions {
-    /**
-     * Whether to reject (`optOut`) or accept (`optIn`) the cookie consent.
-     * @default 'optOut'
-     */
-    mode?: 'optOut' | 'optIn';
-
+/**
+ * The [autoconsent configuration](https://github.com/duckduckgo/autoconsent/blob/main/docs/api.md), passed
+ * through as is. `enabled` and `isMainWorld` are managed by Crawlee and are therefore not accepted.
+ */
+export interface CloseCookieModalsOptions extends Partial<Omit<Config, 'enabled' | 'isMainWorld'>> {
     /**
      * How long to wait for the consent flow to finish, in milliseconds. On pages without a cookie modal,
      * the detection keeps retrying until this timeout is reached.
      * @default 10_000
      */
     timeoutMillis?: number;
-
-    /**
-     * Enables heuristic detection of cookie modals that no autoconsent rule matches. Since the buttons are
-     * picked based on their text, this may interact with the page in unexpected ways.
-     * @default false
-     */
-    enableHeuristicDetection?: boolean;
 }
 
 /**
@@ -85,12 +77,13 @@ async function getFullRules() {
 async function closeCookieModalsInFrame(
     frame: EvaluableFrame,
     mainFrame: boolean,
-    options: Required<CloseCookieModalsOptions>,
+    timeoutMillis: number,
+    config: Partial<Config>,
 ) {
     const { filterCompactRules } = await import('@duckduckgo/autoconsent');
 
     const rules: RuleBundle =
-        options.mode === 'optIn'
+        config.autoAction === 'optIn'
             ? { autoconsent: await getFullRules() }
             : {
                   autoconsent: [],
@@ -99,7 +92,7 @@ async function closeCookieModalsInFrame(
 
     await frame.evaluate(await getInjectableScript());
     await frame.evaluate(
-        async ({ rules, mode, timeoutMillis, enableHeuristicDetection }: any) => {
+        async ({ rules, timeoutMillis, config }: any) => {
             const AutoConsent = (globalThis as any).crawleeAutoconsent.default;
 
             await new Promise<void>((resolve) => {
@@ -114,18 +107,11 @@ async function closeCookieModalsInFrame(
                     if (message.type === 'report' && message.state.lifecycle === 'nothingDetected') finish();
                 });
 
-                consent.initialize(
-                    {
-                        isMainWorld: true,
-                        autoAction: mode,
-                        enableHeuristicDetection,
-                        heuristicMode: enableHeuristicDetection ? 'tier2' : 'off',
-                    },
-                    rules,
-                );
+                // We drive autoconsent from the page itself, so it has to evaluate its snippets there too.
+                consent.initialize({ ...config, isMainWorld: true }, rules);
             });
         },
-        { ...options, rules },
+        { rules, timeoutMillis, config },
     );
 }
 
@@ -134,20 +120,14 @@ async function closeCookieModalsInFrame(
  * @internal
  */
 export async function closeCookieModals(page: EvaluablePage, options: CloseCookieModalsOptions = {}): Promise<void> {
-    const resolvedOptions: Required<CloseCookieModalsOptions> = {
-        mode: 'optOut',
-        timeoutMillis: 10_000,
-        enableHeuristicDetection: false,
-        ...options,
-    };
-
+    const { timeoutMillis = 10_000, ...config } = options;
     const mainFrame = page.mainFrame();
 
     // Some consent popups (e.g. Sourcepoint) live in an iframe and can only be handled from inside it.
     await Promise.all(
         page.frames().map(async (frame) => {
             // Frames that navigate or detach mid-flight reject the evaluation, there is nothing to act on.
-            await closeCookieModalsInFrame(frame, frame === mainFrame, resolvedOptions).catch((error) =>
+            await closeCookieModalsInFrame(frame, frame === mainFrame, timeoutMillis, config).catch((error) =>
                 serviceLocator.getChildLog('Cookie Consent').debug('Failed to handle cookie modals', { error }),
             );
         }),

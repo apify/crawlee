@@ -249,7 +249,7 @@ describe('puppeteerUtils', () => {
             test('opts in when asked to', async () => {
                 const page = await browser.newPage();
                 await page.goto(`${serverAddress}/special/cookie-modal`);
-                await puppeteerUtils.closeCookieModals(page, { mode: 'optIn' });
+                await puppeteerUtils.closeCookieModals(page, { autoAction: 'optIn' });
 
                 expect(await page.evaluate(() => (window as any).consentChoice)).toBe('all');
             }, 60_000);
