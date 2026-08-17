@@ -366,6 +366,9 @@ importers:
       '@crawlee/utils':
         specifier: workspace:*
         version: link:../utils
+      '@duckduckgo/autoconsent':
+        specifier: ^16.22.0
+        version: 16.22.0
       playwright:
         specifier: '*'
         version: 1.61.1
@@ -585,9 +588,6 @@ importers:
       '@crawlee/utils':
         specifier: workspace:*
         version: link:../utils
-      idcac-playwright:
-        specifier: '*'
-        version: 0.2.0
       import-local:
         specifier: ^3.2.0
         version: 3.2.0
@@ -792,9 +792,6 @@ importers:
       cheerio:
         specifier: ^1.0.0
         version: 1.2.0
-      idcac-playwright:
-        specifier: ^0.2.0
-        version: 0.2.0
       jquery:
         specifier: ^3.7.1
         version: 3.7.1
@@ -846,9 +843,6 @@ importers:
       devtools-protocol:
         specifier: '*'
         version: 0.0.1638949
-      idcac-playwright:
-        specifier: ^0.2.0
-        version: 0.2.0
       jquery:
         specifier: ^3.7.1
         version: 3.7.1
@@ -2599,6 +2593,9 @@ packages:
   '@docusaurus/utils@3.10.2':
     resolution: {integrity: sha512-xx0W3eav2uW1NRIpuHJWNwLTC15xPNjU4Uxi9NSnd3swYC96BE3vFiT93SD8s24kmAAWNwgZwfZ2fghGZ01Lcw==}
     engines: {node: '>=20.0'}
+
+  '@duckduckgo/autoconsent@16.22.0':
+    resolution: {integrity: sha512-0hdhNpUysHqC4EimRT/LnJ27we5b719UNeHktrFwVxJ0eYcSd3SfynEb8x3+Fkw6uo4I/zT/ZaYu9sZgKCHl3A==}
 
   '@emnapi/core@1.9.2':
     resolution: {integrity: sha512-UC+ZhH3XtczQYfOlu3lNEkdW/p4dsJ1r/bP7H8+rhao3TTTMO1ATq/4DdIi23XuGoFY+Cz0JmCbdVl0hz9jZcA==}
@@ -7954,9 +7951,6 @@ packages:
     peerDependencies:
       postcss: ^8.1.0
 
-  idcac-playwright@0.2.0:
-    resolution: {integrity: sha512-qJH7vQgq3TKnhea/3Z3jlEJL7NC9vK9BkLClAzQHVRepBtq1fWfSI4fSuMKcPq7nDUTTlIEIS+vU+GRwwR1BXw==}
-
   identifier-regex@1.0.1:
     resolution: {integrity: sha512-ZrYyM0sozNPZlvBvE7Oq9Bn44n0qKGrYu5sQ0JzMUnjIhpgWYE2JB6aBoFwEYdPjqj7jPyxXTMJiHDOxDfd8yw==}
     engines: {node: '>=18'}
@@ -11741,6 +11735,12 @@ packages:
   tldts-core@7.0.28:
     resolution: {integrity: sha512-7W5Efjhsc3chVdFhqtaU0KtK32J37Zcr9RKtID54nG+tIpcY79CQK/veYPODxtD/LJ4Lue66jvrQzIX2Z2/pUQ==}
 
+  tldts-core@7.4.10:
+    resolution: {integrity: sha512-KnQjp53ZekKgm/r3l+u8kJGGzYgrWdP8+Mql7a4vijh2WE0IrZWspQj/TpTxDho/YxO+AnOZnIjQcCD+q6iJsw==}
+
+  tldts-experimental@7.4.10:
+    resolution: {integrity: sha512-l+FUGTqw3cYLnM6uL45IhdIG1ue9N7ZnMe9ZFC0S3/ROTL6xkJrUFQvsjfqSD9YzywDvgWj9uRZTXib3v3bnHw==}
+
   tldts@6.1.86:
     resolution: {integrity: sha512-WMi/OQ2axVTf/ykqCQgXiIct+mSQDFdH2fkwhPwgEwvJ1kSzZRiinb0zF2Xb8u4+OqPChmyI6MEu4EezNJz+FQ==}
     hasBin: true
@@ -15127,6 +15127,10 @@ snapshots:
       - supports-color
       - uglify-js
       - webpack-cli
+
+  '@duckduckgo/autoconsent@16.22.0':
+    dependencies:
+      tldts-experimental: 7.4.10
 
   '@emnapi/core@1.9.2':
     dependencies:
@@ -21217,8 +21221,6 @@ snapshots:
     dependencies:
       postcss: 8.5.9
 
-  idcac-playwright@0.2.0: {}
-
   identifier-regex@1.0.1:
     dependencies:
       reserved-identifiers: 1.2.0
@@ -25835,6 +25837,12 @@ snapshots:
   tldts-core@6.1.86: {}
 
   tldts-core@7.0.28: {}
+
+  tldts-core@7.4.10: {}
+
+  tldts-experimental@7.4.10:
+    dependencies:
+      tldts-core: 7.4.10
 
   tldts@6.1.86:
     dependencies:

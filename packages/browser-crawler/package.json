@@ -48,6 +48,7 @@
     },
     "dependencies": {
         "@apify/timeout": "^0.4.4",
+        "@duckduckgo/autoconsent": "^16.22.0",
         "@crawlee/basic": "workspace:*",
         "@crawlee/browser-pool": "workspace:*",
         "@crawlee/types": "workspace:*",

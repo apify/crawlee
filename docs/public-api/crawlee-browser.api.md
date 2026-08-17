@@ -13,6 +13,7 @@ import type { BrowserPluginOptions } from '@crawlee/browser-pool';
 import type { BrowserPoolHooks } from '@crawlee/browser-pool';
 import type { BrowserPoolOptions } from '@crawlee/browser-pool';
 import type { CommonPage } from '@crawlee/browser-pool';
+import type { Config } from '@duckduckgo/autoconsent';
 import { Configuration } from '@crawlee/basic';
 import { ContextPipeline } from '@crawlee/basic';
 import type { CrawlerRemoteBrowserOptions } from '@crawlee/browser-pool';
@@ -215,6 +216,11 @@ export interface BrowserLaunchContext<TOptions, Launcher> extends BrowserPluginO
     useIncognitoPages?: boolean;
     userAgent?: string;
     userDataDir?: string;
+}
+
+// @public
+export interface CloseCookieModalsOptions extends Partial<Omit<Config, 'enabled' | 'isMainWorld'>> {
+    timeoutMillis?: number;
 }
 
 // @public
