@@ -13,6 +13,7 @@ export default defineConfig({
         'packages/templates/scripts/**',
         'test/e2e/**',
     ],
+    jsPlugins: ['./scripts/oxlint-plugin.ts'],
     globals: {
         vi: 'readonly',
         vitest: 'readonly',
@@ -56,6 +57,9 @@ export default defineConfig({
                 ],
             },
         ],
+        // Counterpart to `no-underscore-dangle` above: private members should be native `#` fields,
+        // not the TypeScript `private` modifier. `warn` until the existing usages are migrated.
+        'crawlee/prefer-private-fields': 'warn',
 
         'typescript/consistent-type-imports': ['error', { disallowTypeAnnotations: false }],
         'typescript/consistent-type-definitions': ['error', 'interface'],

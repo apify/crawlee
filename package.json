@@ -75,6 +75,7 @@
         "@crawlee/types": "workspace:*",
         "@crawlee/utils": "workspace:*",
         "@microsoft/api-extractor": "^7.58.9",
+        "@oxlint/plugins": "^1.62.0",
         "@playwright/browser-chromium": "1.61.1",
         "@playwright/browser-firefox": "1.61.1",
         "@playwright/browser-webkit": "1.61.1",
