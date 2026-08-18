@@ -36,7 +36,7 @@ jobs:
             matrix:
                 # We don't test on Windows as the tests are flaky
                 os: [ ubuntu-22.04 ]
-                node-version: [ 22, 24 ]
+                node-version: [ 22, 24, 26 ]
 
         runs-on: ${{ matrix.os }}
 
@@ -157,7 +157,8 @@ jobs:
     version-docs:
         needs: release
         runs-on: ubuntu-22.04
-        if: (github.event.inputs.version == 'minor' || github.event.inputs.version == 'major')
+        # docs snapshots are only ever generated from master — maintenance branches must not trigger them
+        if: github.ref == 'refs/heads/master' && (github.event.inputs.version == 'minor' || github.event.inputs.version == 'major')
 
         steps:
             -   name: Checkout repository

@@ -2,9 +2,9 @@ name: Check
 
 on:
     push:
-        branches: [ master, v4, renovate/** ]
+        branches: [ master, renovate/** ]
     pull_request:
-        branches: [ master, v4 ]
+        branches: [ master ]
 
 env:
     RETRY_TESTS: 1
@@ -25,7 +25,7 @@ jobs:
                 # tests on windows are extremely unstable
                 # os: [ ubuntu-22.04, windows-2019 ]
                 os: [ ubuntu-22.04 ]
-                node-version: [ 22, 24 ]
+                node-version: [ 22, 24, 26 ]
 
         steps:
             -   name: Checkout repository
@@ -100,7 +100,7 @@ jobs:
 
     docs:
         name: Docs build
-        if: (!contains(github.event.head_commit.message, '[skip ci]') && github.ref != 'refs/heads/master' && github.ref != 'refs/heads/v4')
+        if: (!contains(github.event.head_commit.message, '[skip ci]') && github.ref != 'refs/heads/master')
         runs-on: ubuntu-22.04
         steps:
             -   name: Checkout Source code
@@ -261,7 +261,7 @@ jobs:
 
     release_next:
         name: Release @next
-        if: github.event_name == 'push' && contains(github.event.ref, 'v4') && (!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, 'docs:'))
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && (!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, 'docs:'))
         needs: build_and_test
         runs-on: ubuntu-22.04
 
