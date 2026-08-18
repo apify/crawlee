@@ -2,9 +2,9 @@ name: Check
 
 on:
     push:
-        branches: [ master, renovate/** ]
+        branches: [ 3.x, renovate/** ]
     pull_request:
-        branches: [ master ]
+        branches: [ 3.x ]
 
 env:
     YARN_IGNORE_NODE: 1
@@ -102,7 +102,7 @@ jobs:
 
     docs:
         name: Docs build
-        if: (!contains(github.event.head_commit.message, '[skip ci]') && github.ref != 'refs/heads/master')
+        if: (!contains(github.event.head_commit.message, '[skip ci]') && github.ref != 'refs/heads/3.x')
         runs-on: ubuntu-22.04
         steps:
             -   name: Checkout Source code
@@ -286,7 +286,7 @@ jobs:
 
     release_next:
         name: Release @next
-        if: github.event_name == 'push' && contains(github.event.ref, 'master') && (!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, 'docs:'))
+        if: github.event_name == 'push' && github.ref == 'refs/heads/3.x' && (!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, 'docs:'))
         needs: build_and_test
         runs-on: ubuntu-22.04
 
