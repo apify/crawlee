@@ -100,6 +100,69 @@ jobs:
                 env:
                     YARN_IGNORE_NODE: 1
 
+    bun_test:
+        name: Bun Compatibility
+        if: (!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, 'docs:'))
+        runs-on: ubuntu-22.04
+
+        steps:
+            -   name: Checkout repository
+                uses: actions/checkout@v7
+
+            -   name: Use Node.js 24
+                uses: actions/setup-node@v6
+                with:
+                    node-version: 24
+                    package-manager-cache: false
+
+            -   name: Setup Bun
+                uses: oven-sh/setup-bun@v2
+                with:
+                    bun-version: latest
+
+            -   name: Enable corepack
+                run: |
+                    corepack enable
+                    corepack prepare yarn@stable --activate
+
+            -   name: Activate cache for Node.js 24
+                uses: actions/setup-node@v6
+                with:
+                    cache: 'yarn'
+
+            -   name: Turbo cache
+                id: turbo-cache
+                uses: actions/cache@v5
+                with:
+                    path: .turbo
+                    key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
+                    restore-keys: |
+                        turbo-${{ github.job }}-${{ github.ref_name }}-
+
+            -   name: Install Dependencies
+                run: yarn
+                env:
+                    YARN_IGNORE_NODE: 1
+
+            -   name: Build
+                run: yarn ci:build
+                env:
+                    YARN_IGNORE_NODE: 1
+
+            -   name: Bun compatibility tests
+                run: |
+                    bun run vitest run \
+                        test/core/runtime.test.ts \
+                        test/core/proxy_configuration.test.ts \
+                        test/core/base_http_client.test.ts \
+                        test/core/crawlers/http_crawler.test.ts \
+                        test/core/storages/ \
+                        test/core/session_pool/ \
+                        test/core/router.test.ts \
+                        test/core/error_tracker.test.ts
+                env:
+                    YARN_IGNORE_NODE: 1
+
     docs:
         name: Docs build
         if: (!contains(github.event.head_commit.message, '[skip ci]') && github.ref != 'refs/heads/master')
