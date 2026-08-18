@@ -9,27 +9,18 @@ import type { BrowserContext } from 'playwright';
 import type { BrowserFingerprintWithHeaders } from 'fingerprint-generator';
 import type { BrowserType } from 'playwright';
 import type { Cookie } from '@crawlee/types';
-import { CrawleeLogger } from '@crawlee/core';
 import { CriticalError } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/types';
 import { EventEmitter } from 'node:events';
-import { FingerprintGenerator as FingerprintGenerator_2 } from 'fingerprint-generator';
+import { FingerprintGenerator } from 'fingerprint-generator';
 import type { FingerprintGeneratorOptions as FingerprintGeneratorOptions_2 } from 'fingerprint-generator';
-import { FingerprintInjector } from 'fingerprint-injector';
 import { IBrowserPool } from '@crawlee/types';
 import { NewPageOptions } from '@crawlee/types';
 import type { Page } from 'playwright';
 import type { PageState } from '@crawlee/types';
 import type Puppeteer from 'puppeteer';
 import type * as PuppeteerTypes from 'puppeteer';
-import QuickLRU from 'quick-lru';
 import { TypedEmitter } from 'tiny-typed-emitter';
-
-// @public (undocumented)
-export interface AnonymizeProxySugarOptions {
-    // (undocumented)
-    ignoreProxyCertificate?: boolean;
-}
 
 // @public (undocumented)
 export enum BROWSER_CONTROLLER_EVENTS {
@@ -39,8 +30,6 @@ export enum BROWSER_CONTROLLER_EVENTS {
 
 // @public (undocumented)
 export enum BROWSER_POOL_EVENTS {
-    // (undocumented)
-    BROWSER_CLOSED = "browserClosed",
     // (undocumented)
     BROWSER_LAUNCHED = "browserLaunched",
     // (undocumented)
@@ -67,27 +56,17 @@ export abstract class BrowserController<Library extends CommonLibrary = CommonLi
     protected abstract _getCookies(page: NewPageResult): Promise<Cookie[]>;
     // (undocumented)
     readonly id: string;
-    // (undocumented)
-    isActive: boolean;
     kill(): Promise<void>;
     // (undocumented)
     protected abstract _kill(): Promise<void>;
-    // (undocumented)
-    lastPageOpenedAt: number;
     launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>;
     // (undocumented)
-    protected readonly log: CrawleeLogger;
-    // (undocumented)
     protected abstract _newPage(pageOptions?: NewPageOptions): Promise<NewPageResult>;
-    // (undocumented)
-    abstract normalizeProxyOptions(proxyUrl: string | undefined, pageOptions: any): Record<string, unknown>;
     proxyUrl?: string;
     // (undocumented)
     setCookies(page: NewPageResult, cookies: Cookie[]): Promise<void>;
     // (undocumented)
     protected abstract _setCookies(page: NewPageResult, cookies: Cookie[]): Promise<void>;
-    // (undocumented)
-    totalPages: number;
     waitForActive(): Promise<void>;
 }
 
@@ -114,15 +93,6 @@ export enum BrowserName {
     safari = "safari"
 }
 
-// Not exported by the entry point; reachable only as a referenced type.
-// @public (undocumented)
-interface BrowserOptions {
-    // (undocumented)
-    browserContext: BrowserContext;
-    // (undocumented)
-    version: string;
-}
-
 // @public
 export abstract class BrowserPlugin<Library extends CommonLibrary = CommonLibrary, LibraryOptions extends Dictionary | undefined = Parameters<Library['launch']>[0], LaunchResult extends CommonBrowser = UnwrapPromise<ReturnType<Library['launch']>>, NewPageOptions = Parameters<LaunchResult['newPage']>[0], NewPageResult = UnwrapPromise<ReturnType<LaunchResult['newPage']>>> {
     constructor(library: Library, options?: BrowserPluginOptions<LibraryOptions>);
@@ -145,8 +115,6 @@ export abstract class BrowserPlugin<Library extends CommonLibrary = CommonLibrar
     readonly launchOptions: LibraryOptions;
     // (undocumented)
     readonly library: Library;
-    // (undocumented)
-    protected readonly log: CrawleeLogger;
     // (undocumented)
     readonly name: string;
     // (undocumented)
@@ -175,71 +143,25 @@ export class BrowserPool<Options extends BrowserPoolOptions = BrowserPoolOptions
     [Symbol.asyncDispose](): Promise<void>;
     constructor(options: Options & BrowserPoolHooks<BrowserControllerReturn, LaunchContextReturn, PageReturn>);
     // (undocumented)
-    activeBrowserControllers: Set<BrowserControllerReturn>;
-    // (undocumented)
     browserPlugins: BrowserPlugins;
     closeAllBrowsers(): Promise<void>;
-    // (undocumented)
-    closeInactiveBrowserAfterMillis: number;
     closePage(page: PageReturn, options?: {
         error?: Error;
     }): Promise<void>;
     destroy(): Promise<void>;
     extractPageState(page: PageReturn): Promise<PageState>;
     // (undocumented)
-    fingerprintCache?: QuickLRU<string, BrowserFingerprintWithHeaders>;
-    // (undocumented)
-    fingerprintGenerator?: FingerprintGenerator_2;
-    // (undocumented)
-    fingerprintInjector?: FingerprintInjector;
-    // (undocumented)
-    fingerprintOptions: FingerprintOptions;
+    fingerprintGenerator?: FingerprintGenerator;
     getBrowserControllerByPage(page: PageReturn): BrowserControllerReturn | undefined;
     getPage(id: string): PageReturn | undefined;
     getPageId(page: PageReturn): string | undefined;
-    hasActiveBrowserWithFreeCapacity(): boolean;
-    hasFreeBrowserSlot(): boolean;
     injectPageState(page: PageReturn, state: PageState): Promise<void>;
-    // (undocumented)
-    maxOpenBrowsers: number;
-    // (undocumented)
-    maxOpenPagesPerBrowser: number;
     newPage(options?: BrowserPoolNewPageOptions<PageOptions, BrowserPlugins[number]>): Promise<PageReturn>;
     newPageInNewBrowser(options?: BrowserPoolNewPageInNewBrowserOptions<PageOptions, BrowserPlugins[number]>): Promise<PageReturn>;
     newPageWithEachPlugin(optionsList?: Omit<BrowserPoolNewPageOptions<PageOptions, BrowserPlugins[number]>, 'browserPlugin'>[]): Promise<PageReturn[]>;
-    // (undocumented)
-    operationTimeoutMillis: number;
-    // (undocumented)
-    pageCounter: number;
-    // (undocumented)
-    pageIds: WeakMap<PageReturn, string>;
-    // (undocumented)
-    pages: Map<string, PageReturn>;
-    // (undocumented)
-    pageToBrowserController: WeakMap<PageReturn, BrowserControllerReturn>;
-    // (undocumented)
-    postLaunchHooks: PostLaunchHook<BrowserControllerReturn>[];
-    // (undocumented)
-    postPageCloseHooks: PostPageCloseHook<BrowserControllerReturn>[];
-    // (undocumented)
-    postPageCreateHooks: PostPageCreateHook<BrowserControllerReturn, PageReturn>[];
-    // (undocumented)
-    preLaunchHooks: PreLaunchHook<LaunchContextReturn>[];
-    // (undocumented)
-    prePageCloseHooks: PrePageCloseHook<BrowserControllerReturn, PageReturn>[];
-    // (undocumented)
-    prePageCreateHooks: PrePageCreateHook<BrowserControllerReturn, PageOptions>[];
     retireAllBrowsers(): void;
-    // (undocumented)
-    retireBrowserAfterPageCount: number;
     retireBrowserByPage(page: PageReturn): void;
     retireBrowserController(browserController: BrowserControllerReturn): void;
-    // (undocumented)
-    retiredBrowserControllers: Set<BrowserControllerReturn>;
-    // (undocumented)
-    startingBrowserControllers: Set<BrowserControllerReturn>;
-    // (undocumented)
-    useFingerprints?: boolean;
 }
 
 // @public (undocumented)
@@ -293,14 +215,6 @@ export interface BrowserPoolOptions<Plugin extends BrowserPlugin = BrowserPlugin
     useFingerprints?: boolean;
 }
 
-// @public (undocumented)
-export interface BrowserSpecification {
-    httpVersion?: HttpVersion;
-    maxVersion?: number;
-    minVersion?: number;
-    name: BrowserName;
-}
-
 // Not exported by the entry point; reachable only as a referenced type.
 // @public (undocumented)
 interface CommonBrowser {
@@ -345,12 +259,6 @@ export enum DeviceCategory {
 }
 
 // @public (undocumented)
-export interface FingerprintGenerator {
-    // (undocumented)
-    getFingerprint: (fingerprintGeneratorOptions?: FingerprintGeneratorOptions) => GetFingerprintReturn;
-}
-
-// @public (undocumented)
 export interface FingerprintGeneratorOptions extends Partial<FingerprintGeneratorOptions_2> {
 }
 
@@ -360,16 +268,6 @@ export interface FingerprintOptions {
     fingerprintGeneratorOptions?: FingerprintGeneratorOptions;
     useFingerprintCache?: boolean;
 }
-
-// @public (undocumented)
-export interface GetFingerprintReturn {
-    // (undocumented)
-    fingerprint: BrowserFingerprintWithHeaders;
-}
-
-// Not exported by the entry point; reachable only as a referenced type.
-// @public
-type HttpVersion = (typeof SUPPORTED_HTTP_VERSIONS)[number];
 
 // @public
 export interface IBrowserController<Page = unknown> {
@@ -430,7 +328,6 @@ export interface LaunchContextOptions<Library extends CommonLibrary = CommonLibr
     browserPlugin: BrowserPlugin<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>;
     id?: string;
     ignoreProxyCertificate?: boolean;
-    isRemote?: boolean;
     launchOptions: LibraryOptions;
     // (undocumented)
     proxyUrl?: string;
@@ -456,7 +353,6 @@ export enum OperatingSystemsName {
 export class PlaywrightBrowser extends EventEmitter {
     // (undocumented)
     [Symbol.asyncDispose](): Promise<void>;
-    constructor(options: BrowserOptions);
     // (undocumented)
     browserType(): BrowserType;
     // (undocumented)
@@ -490,8 +386,6 @@ export class PlaywrightController extends BrowserController<BrowserType, SafePar
     // (undocumented)
     protected _newPage(contextOptions?: SafeParameters<Browser['newPage']>[0]): Promise<Page>;
     // (undocumented)
-    normalizeProxyOptions(proxyUrl: string | undefined, pageOptions: any): Record<string, unknown>;
-    // (undocumented)
     protected _setCookies(page: Page, cookies: Cookie[]): Promise<void>;
 }
 
@@ -505,7 +399,6 @@ export class PlaywrightPlugin extends BrowserPlugin<BrowserType, SafeParameters<
     protected isChromiumBasedBrowser(): boolean;
     // (undocumented)
     protected _launch(launchContext: LaunchContext<BrowserType>): Promise<Browser>;
-    useRemoteConnection(connection: RemoteConnection, parameters?: RemoteConnectionParameters): void;
 }
 
 // @public
@@ -537,8 +430,6 @@ export class PuppeteerController extends BrowserController<typeof Puppeteer, Pup
     // (undocumented)
     protected _newPage(contextOptions?: PuppeteerNewPageOptions): Promise<PuppeteerTypes.Page>;
     // (undocumented)
-    normalizeProxyOptions(proxyUrl: string | undefined, pageOptions: any): Record<string, unknown>;
-    // (undocumented)
     protected _setCookies(page: PuppeteerTypes.Page, cookies: Cookie[]): Promise<void>;
 }
 
@@ -561,7 +452,6 @@ export class PuppeteerPlugin extends BrowserPlugin<typeof Puppeteer, PuppeteerTy
     protected isChromiumBasedBrowser(_launchContext: LaunchContext<typeof Puppeteer, PuppeteerTypes.LaunchOptions, PuppeteerTypes.Browser, PuppeteerNewPageOptions>): boolean;
     // (undocumented)
     protected _launch(launchContext: LaunchContext<typeof Puppeteer, PuppeteerTypes.LaunchOptions, PuppeteerTypes.Browser, PuppeteerNewPageOptions>): Promise<PuppeteerTypes.Browser>;
-    useRemoteConnection(connection: RemoteConnection, parameters?: RemoteConnectionParameters): void;
 }
 
 // @public
@@ -574,7 +464,6 @@ export class RemoteBrowserPool<Page = unknown> implements IBrowserPool<Page> {
     // (undocumented)
     [Symbol.asyncDispose](): Promise<void>;
     constructor(options: RemoteBrowserPoolOptions);
-    readonly browserPool: BrowserPool;
     // (undocumented)
     closePage(page: Page, options?: {
         error?: Error;
@@ -600,7 +489,6 @@ export interface RemoteBrowserPoolOptions {
         endpoint: string;
         context?: Record<string, unknown>;
     }) => unknown;
-    slotPollIntervalMillis?: number;
 }
 
 // @public
@@ -644,10 +532,6 @@ export interface ResolvedRemoteEndpoint {
 // Not exported by the entry point; reachable only as a referenced type.
 // @public
 type SafeParameters<T extends (...args: any) => any> = unknown[] extends Parameters<T> ? any : Parameters<T>;
-
-// Not exported by the entry point; reachable only as a referenced type.
-// @public (undocumented)
-const SUPPORTED_HTTP_VERSIONS: readonly ['1', '2'];
 
 // @public (undocumented)
 export type UnwrapPromise<T> = T extends PromiseLike<infer R> ? UnwrapPromise<R> : T;

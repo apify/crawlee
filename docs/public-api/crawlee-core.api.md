@@ -18,12 +18,11 @@ import type { CrawleeLoggerOptions } from '@crawlee/types';
 import type { DatasetBackend } from '@crawlee/types';
 import type { DatasetInfo } from '@crawlee/types';
 import { Dictionary } from '@crawlee/types';
-import { EnqueueStrategy } from '@crawlee/utils';
+import { EnqueueStrategy } from '@crawlee/utils/internal';
 import type { HttpRequestOptions } from '@crawlee/types';
 import type { ISession } from '@crawlee/types';
 import type { ISessionPool } from '@crawlee/types';
 import type { KeyValueStoreBackend } from '@crawlee/types';
-import type { KeyValueStoreInfo } from '@crawlee/types';
 import type { LiteralUnion } from 'type-fest';
 import { Log } from '@apify/log';
 import log from '@apify/log';
@@ -32,7 +31,7 @@ import { LoggerJson } from '@apify/log';
 import type { LoggerOptions } from '@apify/log';
 import { LoggerText } from '@apify/log';
 import { LogLevel } from '@apify/log';
-import { ParseSitemapOptions } from '@crawlee/utils';
+import type { ParseSitemapOptions } from '@crawlee/utils';
 import type { ProcessedRequest } from '@crawlee/types';
 import type { ProxyInfo } from '@crawlee/types';
 import type { QueueOperationInfo } from '@crawlee/types';
@@ -76,14 +75,6 @@ export class ApifyLogAdapter extends BaseCrawleeLogger {
 
 export { ArgumentValidationError }
 
-// Not exported by the entry point; reachable only as a referenced type.
-// @public (undocumented)
-class BaseClient {
-    constructor(id: string);
-    // (undocumented)
-    id: string;
-}
-
 // @public
 export abstract class BaseCrawleeLogger implements CrawleeLogger {
     constructor(options?: Partial<CrawleeLoggerOptions>);
@@ -116,23 +107,7 @@ export abstract class BaseCrawleeLogger implements CrawleeLogger {
 }
 
 // @public (undocumented)
-export const BLOCKED_STATUS_CODES: number[];
-
-// Not exported by the entry point; reachable only as a referenced type.
-// @public (undocumented)
-interface BrowserCrawlingContext {
-    // (undocumented)
-    saveSnapshot: (options: {
-        key: string;
-    }) => Promise<void>;
-}
-
-// Not exported by the entry point; reachable only as a referenced type.
-// @public (undocumented)
-interface BrowserPage {
-    // (undocumented)
-    content: () => Promise<string>;
-}
+export const BLOCKED_STATUS_CODES: readonly number[];
 
 // @public
 export interface CalculatedStatistics {
@@ -164,7 +139,6 @@ export class ConcurrencySystem implements IConcurrencySystem {
     // (undocumented)
     get currentConcurrency(): number;
     get desiredConcurrency(): number;
-    set desiredConcurrency(value: number);
     getCurrentStatus(): SystemInfo;
     hasCapacityForTask(_consumer?: ConcurrencyConsumer): boolean;
     get isRunning(): boolean;
@@ -233,16 +207,6 @@ export abstract class ContextPipeline<TContextBase, TCrawlingContext extends TCo
     abstract chain<TFinalContext extends TCrawlingContext>(other: ContextPipeline<TCrawlingContext, TFinalContext>): ContextPipeline<TContextBase, TFinalContext>;
     abstract compose<TCrawlingContextExtension>(middleware: ContextMiddleware<TCrawlingContext, TCrawlingContextExtension>): ContextPipeline<TContextBase, TCrawlingContext & TCrawlingContextExtension>;
     static create<TContextBase>(): ContextPipeline<TContextBase, TContextBase>;
-}
-
-// @public (undocumented)
-export class ContextPipelineCleanupError extends CriticalError {
-    constructor(error: unknown, options?: ErrorOptions);
-}
-
-// @public (undocumented)
-export class ContextPipelineInitializationError extends Error {
-    constructor(error: unknown, options?: ErrorOptions);
 }
 
 // @public (undocumented)
@@ -324,8 +288,6 @@ export class CriticalError extends NonRetryableError {
 export class Dataset<Data extends Dictionary = Dictionary> {
     [Symbol.asyncIterator](): AsyncGenerator<Data, void, undefined>;
     // (undocumented)
-    backend: DatasetBackend<Data>;
-    // (undocumented)
     readonly configuration: Configuration;
     drop(): Promise<void>;
     entries(options?: DatasetIteratorOptions): AsyncIterable<[number, Data]> & Promise<[number, Data][]>;
@@ -340,12 +302,10 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     static getData<Data extends Dictionary = Dictionary>(options?: DatasetDataOptions): Promise<DatasetContent<Data>>;
     getInfo(): Promise<DatasetInfo>;
     // (undocumented)
-    id: string;
-    // (undocumented)
-    log: CrawleeLogger;
+    readonly id: string;
     map<R>(iteratee: DatasetMapper<Data, R>, options?: DatasetIteratorOptions): Promise<R[]>;
     // (undocumented)
-    name?: string;
+    readonly name?: string;
     static open<Data extends Dictionary = Dictionary>(identifier?: string | StorageIdentifier | null, options?: StorageOpenOptions): Promise<Dataset<Data>>;
     pushData(data: Data | Data[]): Promise<void>;
     reduce(iteratee: DatasetReducer<Data, Data>): Promise<Data | undefined>;
@@ -401,26 +361,8 @@ export interface DatasetIteratorOptions extends Omit<DatasetDataOptions, 'offset
 }
 
 // @public
-export interface DatasetJournalEntry {
-    items: Dictionary[];
-    // (undocumented)
-    recordedAt: Date;
-    // (undocumented)
-    storageId: string;
-    // (undocumented)
-    type: 'dataset';
-}
-
-// @public
 export interface DatasetMapper<Data, R> {
     (item: Data, index: number): Awaitable<R>;
-}
-
-// @public (undocumented)
-export interface DatasetOptions {
-    // (undocumented)
-    backend: DatasetBackend;
-    metadata: DatasetInfo;
 }
 
 // @public
@@ -491,37 +433,6 @@ export interface ErrnoException extends Error {
     syscall?: string;
 }
 
-// Not exported by the entry point; reachable only as a referenced type.
-// @public (undocumented)
-interface ErrorSnapshot {
-    // (undocumented)
-    htmlFileName?: string;
-    // (undocumented)
-    htmlFileUrl?: string;
-    // (undocumented)
-    screenshotFileName?: string;
-    // (undocumented)
-    screenshotFileUrl?: string;
-}
-
-// @public
-export class ErrorSnapshotter {
-    // (undocumented)
-    static readonly BASE_MESSAGE = "An error occurred";
-    captureSnapshot(error: ErrnoException, context: CrawlingContext & SnapshottableProperties): Promise<ErrorSnapshot>;
-    contextCaptureSnapshot(context: BrowserCrawlingContext, fileName: string): Promise<SnapshotResult | undefined>;
-    generateFilename(error: ErrnoException): string;
-    // (undocumented)
-    static readonly MAX_ERROR_CHARACTERS = 30;
-    // (undocumented)
-    static readonly MAX_FILENAME_LENGTH = 250;
-    // (undocumented)
-    static readonly MAX_HASH_LENGTH = 30;
-    saveHTMLSnapshot(html: string, keyValueStore: Pick<KeyValueStore, 'setValue'>, fileName: string): Promise<string | undefined>;
-    // (undocumented)
-    static readonly SNAPSHOT_PREFIX = "ERROR_SNAPSHOT";
-}
-
 // @public
 export class ErrorTracker {
     constructor(options?: Partial<ErrorTrackerOptions>);
@@ -529,19 +440,13 @@ export class ErrorTracker {
     add(error: ErrnoException): void;
     addAsync(error: ErrnoException, context?: CrawlingContext): Promise<void>;
     // (undocumented)
-    captureSnapshot(storage: Record<string, unknown>, error: ErrnoException, context: CrawlingContext & SnapshottableProperties): Promise<void>;
-    // (undocumented)
-    errorSnapshotter?: ErrorSnapshotter;
-    // (undocumented)
     getMostPopularErrors(count: number): [number, string[]][];
     // (undocumented)
     getUniqueErrorCount(): number;
     // (undocumented)
     reset(): void;
-    // (undocumented)
-    result: Record<string, unknown>;
-    // (undocumented)
-    total: number;
+    get result(): Record<string, unknown>;
+    get total(): number;
 }
 
 // @public (undocumented)
@@ -709,10 +614,6 @@ export interface GlobObject {
     glob: string;
 }
 
-// Not exported by the entry point; reachable only as a referenced type.
-// @public (undocumented)
-type Hashable = string;
-
 // @public
 export interface IConcurrencySystem {
     readonly currentConcurrency: number;
@@ -734,7 +635,9 @@ interface Intervals {
 
 // @public
 export interface IProxyConfiguration {
-    newProxyInfo(options?: NewUrlOptions): Promise<ProxyInfo | undefined>;
+    newProxyInfo(options?: {
+        request?: Request_2;
+    }): Promise<ProxyInfo | undefined>;
 }
 
 // @public
@@ -788,20 +691,6 @@ export interface IStorage {
 }
 
 // @public
-export interface JournaledRequest {
-    // (undocumented)
-    label?: string;
-    snapshot?: Dictionary;
-    // (undocumented)
-    uniqueKey: string;
-    // (undocumented)
-    url: string;
-}
-
-// @public (undocumented)
-export type JournalEntry = DatasetJournalEntry | KeyValueStoreJournalEntry | RequestQueueJournalEntry;
-
-// @public
 export interface KeyConsumer {
     // (undocumented)
     (key: string, index: number, info: {
@@ -846,26 +735,6 @@ export interface KeyValueStoreIteratorOptions {
 }
 
 // @public
-export interface KeyValueStoreJournalEntry {
-    // (undocumented)
-    key: string;
-    // (undocumented)
-    options?: RecordOptions;
-    // (undocumented)
-    storageId: string;
-    // (undocumented)
-    type: 'keyValueStore';
-    value: unknown;
-}
-
-// @public (undocumented)
-export interface KeyValueStoreOptions {
-    // (undocumented)
-    backend: KeyValueStoreBackend;
-    metadata: KeyValueStoreInfo;
-}
-
-// @public
 export interface KeyValueStoreRawRecord {
     // (undocumented)
     contentType: string | null;
@@ -893,8 +762,8 @@ export type LabeledSource<Routes extends Record<keyof Routes, Dictionary>> = str
     label?: undefined;
 })));
 
-// @public (undocumented)
-export type LoadedRequest<R extends Request_2> = WithRequired<R, 'id' | 'loadedUrl'>;
+// @public
+export type LoadedRequest<R extends Request_2> = R & Required<Pick<R, 'id' | 'loadedUrl'>>;
 
 // @public
 export interface LoadSignal {
@@ -965,9 +834,6 @@ export { LoggerText }
 
 export { LogLevel }
 
-// @public (undocumented)
-export const MAX_POOL_SIZE = 1000;
-
 // @public
 export class MemoryLoadSignal implements LoadSignal {
     constructor(options?: MemoryLoadSignalOptions);
@@ -997,7 +863,7 @@ export class MemoryStorageBackend implements storage.StorageBackend {
     // (undocumented)
     createKeyValueStoreBackend(options?: storage.StorageIdentifier): Promise<storage.KeyValueStoreBackend>;
     // (undocumented)
-    createRequestQueueBackend(options?: storage.StorageIdentifier): Promise<RequestQueueBackend_2>;
+    createRequestQueueBackend(options?: storage.StorageIdentifier): Promise<storage.RequestQueueBackend>;
     getStorageBackendCacheKey(): string;
     // (undocumented)
     readonly logger?: CrawleeLogger;
@@ -1019,13 +885,6 @@ export class MissingSessionError extends Error {
 
 // @public
 export class NavigationSkippedError extends NonRetryableError {
-}
-
-// Not exported by the entry point; reachable only as a referenced type.
-// @public (undocumented)
-interface NewUrlOptions {
-    // (undocumented)
-    request?: Request_2;
 }
 
 // @public
@@ -1058,9 +917,6 @@ export function parseRetryAfterHeader(value?: string | null): number | null;
 // @public
 export function parseValue(body: Buffer | ArrayBuffer | string, contentTypeHeader: string | null): string | Buffer | ArrayBuffer | Record<string, unknown>;
 
-// @public (undocumented)
-export const PERSIST_STATE_KEY = "CRAWLEE_SESSION_POOL_STATE";
-
 // @public
 export interface PersistenceOptions {
     enable?: boolean;
@@ -1075,8 +931,12 @@ export class ProxyConfiguration implements IProxyConfiguration {
     constructor(options?: ProxyConfigurationOptions);
     // (undocumented)
     readonly isManInTheMiddle = false;
-    newProxyInfo(options?: NewUrlOptions): Promise<ProxyInfo | undefined>;
-    newUrl(options?: NewUrlOptions): Promise<string | undefined>;
+    newProxyInfo(options?: {
+        request?: Request_2;
+    }): Promise<ProxyInfo | undefined>;
+    newUrl(options?: {
+        request?: Request_2;
+    }): Promise<string | undefined>;
 }
 
 // @public (undocumented)
@@ -1090,7 +950,7 @@ export interface ProxyConfigurationFunction {
 // @public (undocumented)
 export interface ProxyConfigurationOptions {
     newUrlFunction?: ProxyConfigurationFunction;
-    proxyUrls?: UrlList;
+    proxyUrls?: (string | null)[];
 }
 
 // Not exported by the entry point; reachable only as a referenced type.
@@ -1180,8 +1040,6 @@ class Request_2<UserData extends Dictionary = Dictionary> {
     set sessionId(value: string | undefined);
     get skipNavigation(): boolean;
     set skipNavigation(value: boolean);
-    get skippedReason(): SkippedRequestReason | undefined;
-    set skippedReason(value: SkippedRequestReason | undefined);
     get state(): RequestState;
     set state(value: RequestState);
     uniqueKey: string;
@@ -1189,11 +1047,6 @@ class Request_2<UserData extends Dictionary = Dictionary> {
     userData: UserData;
 }
 export { Request_2 as Request }
-
-// @public (undocumented)
-export class RequestHandlerError extends Error {
-    constructor(error: unknown, options?: ErrorOptions);
-}
 
 // @public
 export class RequestList implements IRequestLoader {
@@ -1210,7 +1063,7 @@ export class RequestList implements IRequestLoader {
     getTotalCount(): Promise<number>;
     // (undocumented)
     markRequestAsHandled(request: Request_2): Promise<void>;
-    static open(listNameOrOptions: string | null | RequestListOptions, sources?: RequestListSource[], options?: RequestListOptions): Promise<RequestList>;
+    static open(listNameOrOptions: string | null | RequestListOptions, sources?: (string | Source)[], options?: RequestListOptions): Promise<RequestList>;
     // (undocumented)
     persistState(): Promise<void>;
     teardown(): Promise<void>;
@@ -1224,17 +1077,13 @@ export interface RequestListOptions {
     persistRequestsKey?: string;
     persistStateKey?: string;
     proxyConfiguration?: IProxyConfiguration;
-    sources?: RequestListSource[];
+    sources?: (string | Source)[];
     sourcesFunction?: RequestListSourcesFunction;
     state?: RequestListState;
 }
 
-// Not exported by the entry point; reachable only as a referenced type.
 // @public (undocumented)
-type RequestListSource = string | Source;
-
-// @public (undocumented)
-export type RequestListSourcesFunction = () => Promise<RequestListSource[]>;
+export type RequestListSourcesFunction = () => Promise<(string | Source)[]>;
 
 // @public
 export interface RequestListState {
@@ -1247,9 +1096,6 @@ export interface RequestListState {
 export type RequestLoaderStatus = Exclude<RequestSourceStatus, {
     status: 'stalled';
 }>;
-
-// @public
-export type RequestManagerOpener<T extends IRequestManager = IRequestManager> = (identifier?: string | StorageIdentifier | null, options?: StorageOpenOptions) => Promise<T>;
 
 // @public
 export class RequestManagerTandem implements IRequestManager {
@@ -1329,71 +1175,6 @@ export class RequestQueue implements IStorage, IRequestManager {
     get stats(): RequestQueueStats;
 }
 
-// Not exported by the entry point; reachable only as a referenced type.
-// @public (undocumented)
-class RequestQueueBackend_2 extends BaseClient implements storage.RequestQueueBackend {
-    constructor(options: RequestQueueBackendOptions);
-    // (undocumented)
-    accessedAt: Date;
-    // (undocumented)
-    addBatchOfRequests(requests: storage.RequestSchema[], options?: storage.RequestQueueOperationOptions): Promise<storage.BatchAddRequestsResult>;
-    cacheKey: string;
-    // (undocumented)
-    createdAt: Date;
-    // (undocumented)
-    drop(): Promise<void>;
-    // (undocumented)
-    fetchNextRequest(): Promise<storage.UpdateRequestSchema | undefined>;
-    // (undocumented)
-    getMetadata(): Promise<storage.RequestQueueInfo>;
-    // (undocumented)
-    getRequest(uniqueKey: string): Promise<storage.UpdateRequestSchema | undefined>;
-    // (undocumented)
-    handledRequestCount: number;
-    // (undocumented)
-    isEmpty(): Promise<boolean>;
-    // (undocumented)
-    isFinished(): Promise<boolean>;
-    listItems(): Promise<storage.UpdateRequestSchema[]>;
-    // (undocumented)
-    markRequestAsHandled(request: storage.UpdateRequestSchema): Promise<storage.QueueOperationInfo | undefined>;
-    // (undocumented)
-    modifiedAt: Date;
-    // (undocumented)
-    name?: string;
-    // (undocumented)
-    pendingRequestCount: number;
-    // (undocumented)
-    purge(): Promise<void>;
-    // (undocumented)
-    reclaimRequest(request: storage.UpdateRequestSchema, options?: storage.RequestQueueOperationOptions): Promise<storage.QueueOperationInfo | undefined>;
-    // (undocumented)
-    toRequestQueueInfo(): storage.RequestQueueInfo;
-}
-
-// Not exported by the entry point; reachable only as a referenced type.
-// @public (undocumented)
-interface RequestQueueBackendOptions {
-    cacheKey?: string;
-    // (undocumented)
-    id?: string;
-    // (undocumented)
-    name?: string;
-    // (undocumented)
-    storageBackend: MemoryStorageBackend;
-}
-
-// @public
-export interface RequestQueueJournalEntry {
-    // (undocumented)
-    forefront: boolean;
-    // (undocumented)
-    requests: JournaledRequest[];
-    // (undocumented)
-    type: 'requestQueue';
-    writeThrough: boolean;
-}
-
 // @public (undocumented)
 export interface RequestQueueOperationInfo extends QueueOperationInfo {
     // (undocumented)
@@ -1405,14 +1186,6 @@ export interface RequestQueueOperationInfo extends QueueOperationInfo {
 // @public (undocumented)
 export interface RequestQueueOperationOptions {
     forefront?: boolean;
-}
-
-// @public (undocumented)
-export interface RequestQueueOptions {
-    // (undocumented)
-    backend: RequestQueueBackend;
-    metadata: RequestQueueInfo;
-    proxyConfiguration?: IProxyConfiguration;
 }
 
 // @public
@@ -1480,23 +1253,10 @@ export class RequestValidationError extends NonRetryableError {
 // @public (undocumented)
 export type ResolvedConfigValues = FieldsOutput<typeof crawleeConfigFields>;
 
-// @public
-export function resolveStorageIdentifier(identifier: string | StorageIdentifier | null | undefined, storageBackend: StorageBackend, storageType: 'Dataset' | 'KeyValueStore' | 'RequestQueue'): Promise<ExplicitStorageIdentifier>;
-
-// @public (undocumented)
-export interface ResponseLike {
-    // (undocumented)
-    headers?: Record<string, string | string[] | undefined> | (() => Record<string, string | string[] | undefined>);
-    // (undocumented)
-    url?: string | (() => string);
-}
-
 // @public (undocumented)
 export interface RestrictedCrawlingContext<UserData extends Dictionary = Dictionary> {
     addRequests: (requestsLike: ReadonlyDeep<(string | Source)[]>, options?: ReadonlyDeep<EnqueueUrlsOptions>) => Promise<AddRequestsBatchedResult>;
     getKeyValueStore: (identifier?: string | StorageIdentifier) => Promise<Pick<KeyValueStore, 'id' | 'name' | 'getValue' | 'getAutoSavedValue' | 'setValue' | 'getPublicUrl'>>;
-    // (undocumented)
-    id: string;
     log: CrawleeLogger;
     proxyInfo?: ProxyInfo;
     pushData(data: ReadonlyDeep<Parameters<Dataset['pushData']>[0]>, datasetIdentifier?: string | StorageIdentifier): Promise<void>;
@@ -1527,8 +1287,6 @@ export class Router<Context extends RestrictedCrawlingContext, Routes extends Re
     // (undocumented)
     static create<Context extends RestrictedCrawlingContext = CrawlingContext, const Schemas extends RouteSchemas = RouteSchemas>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
     getHandler(label?: string | symbol): (ctx: Context) => Awaitable<void>;
-    getMaxTimeoutSecs(): number | undefined;
-    getTimeoutSecs(label?: string | symbol): number | undefined;
     use(middleware: (ctx: Context) => Awaitable<void>): void;
 }
 
@@ -1611,10 +1369,6 @@ export class ServiceLocator implements ServiceLocatorInterface {
     // (undocumented)
     getStorageBackend(): StorageBackend;
     // (undocumented)
-    getStorageInstanceManager(): StorageInstanceManager;
-    // (undocumented)
-    reset(): void;
-    // (undocumented)
     setConfiguration(configuration: Configuration): void;
     // (undocumented)
     setEventManager(eventManager: EventManager): void;
@@ -1635,7 +1389,6 @@ interface ServiceLocatorInterface {
     getEventManager(): EventManager;
     getLogger(): CrawleeLogger;
     getStorageBackend(): StorageBackend;
-    getStorageInstanceManager(): StorageInstanceManager;
     setConfiguration(configuration: Configuration): void;
     setEventManager(eventManager: EventManager): void;
     setLogger(logger: CrawleeLogger): void;
@@ -1659,7 +1412,6 @@ export class Session implements ISession {
     get fingerprint(): SessionFingerprint | undefined;
     set fingerprint(fingerprint: SessionFingerprint | undefined);
     getCookieString(url: string): Promise<string>;
-    getState(): SessionState;
     // (undocumented)
     readonly id: string;
     isBlocked(): boolean;
@@ -1683,10 +1435,6 @@ export class Session implements ISession {
     readonly userData: Dictionary;
 }
 
-// Not exported by the entry point; reachable only as a referenced type.
-// @public (undocumented)
-const SESSION_REUSE_STRATEGIES: readonly ['random', 'round-robin', 'use-until-failure'];
-
 // @public
 export class SessionError extends Error {
     constructor(message?: string);
@@ -1703,8 +1451,6 @@ export interface SessionOptions {
     expiresAt?: Date;
     fingerprint?: SessionFingerprint;
     id?: string;
-    // (undocumented)
-    log?: CrawleeLogger;
     maxAgeSecs?: number;
     maxErrorScore?: number;
     maxUsageCount?: number;
@@ -1753,7 +1499,7 @@ export interface SessionPoolOptions {
 }
 
 // @public (undocumented)
-export type SessionReuseStrategy = (typeof SESSION_REUSE_STRATEGIES)[number];
+export type SessionReuseStrategy = 'random' | 'round-robin' | 'use-until-failure';
 
 // @public
 export class SitemapRequestLoader implements IRequestLoader {
@@ -1804,14 +1550,6 @@ export type SkippedRequestCallback = (args: {
 // @public (undocumented)
 export type SkippedRequestReason = 'robotsTxt' | 'limit' | 'enqueueLimit' | 'filters' | 'transform' | 'redirect' | 'depth';
 
-// @public (undocumented)
-export interface SnapshotResult {
-    // (undocumented)
-    htmlFileName?: string;
-    // (undocumented)
-    screenshotFileName?: string;
-}
-
 // @public
 export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
     clear(): void;
@@ -1819,15 +1557,6 @@ export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
     getSample(sampleDurationMillis?: number): T[];
     push(snapshot: T, now?: Date): void;
     useSampleWindow(maxSampleWindowMillis: number): void;
-}
-
-// Not exported by the entry point; reachable only as a referenced type.
-// @public (undocumented)
-interface SnapshottableProperties {
-    // (undocumented)
-    body?: unknown;
-    // (undocumented)
-    page?: BrowserPage;
 }
 
 // @public (undocumented)
@@ -1981,7 +1710,7 @@ export class StorageInstanceManager {
     clearCache(): void;
     openStorage<TStorage extends IStorage>(cls: Constructor<TStorage>, input: (ExplicitStorageIdentifier | DefaultStorageIdentifier) & {
         backendOpener: () => Promise<DatasetBackend | KeyValueStoreBackend | RequestQueueBackend>;
-        backendCacheKey: Hashable;
+        backendCacheKey: string;
     }): Promise<TStorage>;
     removeFromCache(instance: IStorage): void;
 }
@@ -1992,13 +1721,6 @@ export interface StorageOpenOptions {
     httpClient?: BaseHttpClient;
     proxyConfiguration?: IProxyConfiguration;
     storageBackend?: StorageBackend;
-}
-
-// @public
-export class StorageStatsTracker<T extends Record<keyof T, number>> {
-    constructor(initial: T);
-    add(key: keyof T, by?: number): void;
-    get current(): T;
 }
 
 // @public
@@ -2016,13 +1738,11 @@ export class StorageTransaction implements StorageTransactionView {
         label?: string;
     }[];
     get isActive(): boolean;
-    readonly journal: JournalEntry[];
     // (undocumented)
     get keyValueStoreChanges(): Record<string, Record<string, {
         changedValue: unknown;
         options?: RecordOptions;
     }>>;
-    readonly policy: StorageWritePolicy;
     rollback(): void;
     run<T>(callback: () => Awaitable<T>): Promise<T>;
     // (undocumented)
@@ -2105,8 +1825,6 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     addRequest(requestLike: Source, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo>;
     addRequestsBatched(requests: RequestsLike, options?: AddRequestsBatchedOptions): Promise<AddRequestsBatchedResult>;
     checkReadiness(): Promise<RequestSourceStatus>;
-    // (undocumented)
-    drop(): Promise<void>;
     fetchNextRequest<R extends Dictionary = Dictionary>(): Promise<Request_2<R> | null>;
     // (undocumented)
     getHandledCount(): Promise<number>;
@@ -2114,7 +1832,6 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     getPendingCount(): Promise<number>;
     // (undocumented)
     getTotalCount(): Promise<number>;
-    get innerManager(): T | undefined;
     // (undocumented)
     markRequestAsHandled(request: Request_2): Promise<RequestQueueOperationInfo | void | null>;
     // (undocumented)
@@ -2137,7 +1854,6 @@ export interface ThrottlingRequestManagerOptions<T extends IRequestManager = IRe
     maxThrottledDomains?: number;
     minCrawlDelaySecs?: number;
     persistStateKey?: string;
-    requestManagerOpener?: RequestManagerOpener<T>;
     throttleBy?: 'hostname' | 'registrableDomain';
 }
 
@@ -2166,20 +1882,8 @@ interface UrlConstraints {
     include?: readonly UrlPatternInput[];
 }
 
-// Not exported by the entry point; reachable only as a referenced type.
-// @public (undocumented)
-type UrlList = (string | null)[];
-
 // @public
 export type UrlPatternInput = GlobInput | RegExpInput;
-
-// @public (undocumented)
-export interface UrlPatternObject {
-    // (undocumented)
-    glob?: string;
-    // (undocumented)
-    regexp?: RegExp;
-}
 
 // @public
 export function useState<State extends Dictionary = Dictionary>(name?: string, defaultValue?: State, options?: UseStateOptions): Promise<State>;
@@ -2193,11 +1897,6 @@ export interface UseStateOptions {
 
 // @public
 export function withDirectStorageAccess<T>(callback: () => Awaitable<T>): Promise<T>;
-
-// @public (undocumented)
-export type WithRequired<T, K extends keyof T> = T & {
-    [P in K]-?: T[P];
-};
 
 // @public
 export function withStorageTransaction<T>(callback: (transaction: StorageTransaction) => Awaitable<T>, options?: StorageTransactionOptions): Promise<T>;

@@ -4,29 +4,9 @@
 
 ```ts
 
-import { downloadListOfUrls } from '@crawlee/utils';
-import { Log } from '@apify/log';
-import { parseOpenGraph } from '@crawlee/utils';
-import { playwrightUtils } from '@crawlee/playwright';
-import { puppeteerUtils } from '@crawlee/puppeteer';
-import { sleep } from '@crawlee/utils';
-import { social } from '@crawlee/utils';
-
-// @public (undocumented)
-export const utils: {
-    puppeteer: typeof puppeteerUtils;
-    playwright: typeof playwrightUtils;
-    log: Log;
-    social: typeof social;
-    sleep: typeof sleep;
-    downloadListOfUrls: typeof downloadListOfUrls;
-    parseOpenGraph: typeof parseOpenGraph;
-};
-
 
 export * from "@crawlee/basic";
 export * from "@crawlee/browser";
-export * from "@crawlee/browser-pool";
 export * from "@crawlee/cheerio";
 export * from "@crawlee/core";
 export * from "@crawlee/fs-storage";

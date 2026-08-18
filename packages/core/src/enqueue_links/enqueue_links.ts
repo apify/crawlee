@@ -1,5 +1,5 @@
 import type { Dictionary } from '@crawlee/types';
-import { EnqueueStrategy } from '@crawlee/utils';
+import { EnqueueStrategy } from '@crawlee/utils/internal';
 import { getDomain } from 'tldts';
 
 import type { RequestQueueOperationOptions } from '../storages/request_queue.js';

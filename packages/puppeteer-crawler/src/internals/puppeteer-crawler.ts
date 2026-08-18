@@ -10,12 +10,12 @@ import type {
     RouteSchemas,
     RoutesFromSchemas,
 } from '@crawlee/browser';
-import { assertBrowserPoolNotConfigured, BrowserCrawler, RequestState, Router } from '@crawlee/browser';
+import { BrowserCrawler, RequestState, Router } from '@crawlee/browser';
 import { serviceLocator } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/types';
-import { parseArgument } from '@crawlee/utils/internal';
+import { assertBrowserPoolNotConfigured, parseArgument, schemas } from '@crawlee/utils/internal';
 // @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
-import type { HTTPResponse, LaunchOptions, Page } from 'puppeteer';
+import type { HTTPResponse, Page } from 'puppeteer';
 import { z } from 'zod';
 
 import type { EnqueueLinksByClickingElementsOptions } from './enqueue-links/click-elements.js';
@@ -30,7 +30,7 @@ import type {
     PuppeteerContextUtils,
     SaveSnapshotOptions,
 } from './utils/puppeteer_utils.js';
-import { gotoExtended, puppeteerUtils } from './utils/puppeteer_utils.js';
+import * as puppeteerUtils from './utils/puppeteer_utils.js';
 
 export type PuppeteerGoToOptions = NonNullable<Parameters<Page['goto']>[1]>;
 
@@ -189,7 +189,6 @@ export class PuppeteerCrawler<
 > extends BrowserCrawler<
     Page,
     HTTPResponse,
-    LaunchOptions,
     PuppeteerCrawlingContext,
     ContextExtension,
     ExtendedContext,
@@ -201,6 +200,7 @@ export class PuppeteerCrawler<
      */
     protected static override optionsShape = {
         ...BrowserCrawler.optionsShape,
+        launchContext: schemas.anyObject.default(() => ({})),
         // Deliberately looser than the declared type: Puppeteer's own accepted string values have moved over
         // time (`'new'`/`'old'`, now `'shell'`), and the value is forwarded to it verbatim.
         headless: z.union([z.boolean(), z.string()]).optional(),
@@ -251,7 +251,6 @@ export class PuppeteerCrawler<
                 Routes,
                 StatisticStateExtension
             >),
-            launchContext,
             configuration,
             proxyConfiguration,
             browserPoolBuilder: (remoteBrowser) =>
@@ -322,7 +321,7 @@ export class PuppeteerCrawler<
         crawlingContext: PuppeteerCrawlingContext,
         gotoOptions: DirectNavigationOptions,
     ) {
-        return gotoExtended(crawlingContext.page, crawlingContext.request, gotoOptions);
+        return puppeteerUtils.gotoExtended(crawlingContext.page, crawlingContext.request, gotoOptions);
     }
 }
 

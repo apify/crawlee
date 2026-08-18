@@ -4,7 +4,6 @@ import { z } from 'zod';
 import { tryCancel } from '@apify/timeout';
 
 import { Configuration } from '../configuration.js';
-import type { CrawleeLogger } from '../log.js';
 import { serviceLocator } from '../service_locator.js';
 import { parseArgument, schemas, validators } from '../validators.js';
 import type { DatasetJournalEntry, JournalEntry } from './transaction.js';
@@ -192,10 +191,10 @@ export interface DatasetExportToOptions extends DatasetExportOptions {
  * @category Result Stores
  */
 export class Dataset<Data extends Dictionary = Dictionary> {
-    id: string;
-    name?: string;
-    backend: DatasetBackend<Data>;
-    log: CrawleeLogger;
+    readonly id: string;
+    readonly name?: string;
+    // kept as TS-private: dataset tests spy on the backend directly
+    private readonly backend: DatasetBackend<Data>;
 
     readonly #statsTracker = new StorageStatsTracker<DatasetStats>({
         readCount: 0,
@@ -212,7 +211,6 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         this.id = options.metadata.id;
         this.name = options.metadata.name;
         this.backend = options.backend;
-        this.log = serviceLocator.getLogger().child({ prefix: 'Dataset' });
     }
 
     /**
@@ -895,6 +893,7 @@ export interface DatasetReducer<T, Data> {
     (memo: T, item: Data, index: number): Awaitable<T>;
 }
 
+/** @internal */
 export interface DatasetOptions {
     /** Resolved metadata for the dataset, as returned by the backend's `getMetadata()`. */
     metadata: DatasetInfo;

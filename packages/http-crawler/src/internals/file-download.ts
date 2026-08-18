@@ -1,15 +1,11 @@
-import { Transform } from 'node:stream';
-
-import type { BasicCrawlerOptions } from '@crawlee/basic';
+import type { BasicCrawlerOptions, ContextPipeline, CrawlingContext, LoadedRequest, Request } from '@crawlee/basic';
 import { BasicCrawler } from '@crawlee/basic';
-import type { ContextPipeline, CrawlingContext, LoadedRequest, Request } from '@crawlee/core';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import type { Dictionary } from '@crawlee/types';
 
 import type {
     ErrorHandler,
     GetUserDataFromRequest,
-    InternalHttpHook,
     RequestHandler,
     RouterHandler,
     RouterRoutes,
@@ -26,10 +22,6 @@ export type FileDownloadErrorHandler<
     ContextExtension = Dictionary<never>,
 > = ErrorHandler<CrawlingContext, FileDownloadCrawlingContext<UserData> & ContextExtension>;
 
-export type FileDownloadHook<
-    UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-> = InternalHttpHook<FileDownloadCrawlingContext<UserData>>;
-
 export interface FileDownloadCrawlingContext<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 > extends CrawlingContext<UserData> {
@@ -43,99 +35,17 @@ export type FileDownloadRequestHandler<
 > = RequestHandler<FileDownloadCrawlingContext<UserData>>;
 
 /**
- * Creates a transform stream that throws an error if the source data speed is below the specified minimum speed.
- * This `Transform` checks the amount of data every `checkProgressInterval` milliseconds.
- * If the stream has received less than `minSpeedKbps * historyLengthMs / 1000` bytes in the last `historyLengthMs` milliseconds,
- * it will throw an error.
- *
- * Can be used e.g. to abort a download if the network speed is too slow.
- * @returns Transform stream that monitors the speed of the incoming data.
- */
-export function MinimumSpeedStream({
-    minSpeedKbps,
-    historyLengthMs = 10e3,
-    checkProgressInterval: checkProgressIntervalMs = 5e3,
-}: {
-    minSpeedKbps: number;
-    historyLengthMs?: number;
-    checkProgressInterval?: number;
-}): Transform {
-    let snapshots: { timestamp: number; bytes: number }[] = [];
-
-    const checkInterval = setInterval(() => {
-        const now = Date.now();
-
-        snapshots = snapshots.filter((snapshot) => now - snapshot.timestamp < historyLengthMs);
-        const totalBytes = snapshots.reduce((acc, snapshot) => acc + snapshot.bytes, 0);
-        const elapsed = (now - (snapshots[0]?.timestamp ?? 0)) / 1000;
-
-        if (totalBytes / 1024 / elapsed < minSpeedKbps) {
-            clearInterval(checkInterval);
-            stream.emit('error', new Error(`Stream speed too slow, aborting...`));
-        }
-    }, checkProgressIntervalMs);
-
-    const stream = new Transform({
-        transform: (chunk, _, callback) => {
-            snapshots.push({ timestamp: Date.now(), bytes: chunk.length });
-            callback(null, chunk);
-        },
-        final: (callback) => {
-            clearInterval(checkInterval);
-            callback();
-        },
-    });
-
-    return stream;
-}
-
-/**
- * Creates a transform stream that logs the progress of the incoming data.
- * This `Transform` calls the `logProgress` function every `loggingInterval` milliseconds with the number of bytes received so far.
- *
- * Can be used e.g. to log the progress of a download.
- * @returns Transform stream logging the progress of the incoming data.
- */
-export function ByteCounterStream({
-    logTransferredBytes,
-    loggingInterval = 5000,
-}: {
-    logTransferredBytes: (transferredBytes: number) => void;
-    loggingInterval?: number;
-}): Transform {
-    let transferredBytes = 0;
-    let lastLogTime = Date.now();
-
-    return new Transform({
-        transform: (chunk, _, callback) => {
-            transferredBytes += chunk.length;
-
-            if (Date.now() - lastLogTime > loggingInterval) {
-                lastLogTime = Date.now();
-                logTransferredBytes(transferredBytes);
-            }
-
-            callback(null, chunk);
-        },
-        flush: (callback) => {
-            logTransferredBytes(transferredBytes);
-            callback();
-        },
-    });
-}
-
-/**
  * Provides a framework for downloading files in parallel using plain HTTP requests. The URLs to download are fed either from a static list of URLs or they can be added on the fly from another crawler.
  *
  * Since `FileDownload` uses raw HTTP requests to download the files, it is very fast and bandwidth-efficient.
  * However, it doesn't parse the content - if you need to e.g. extract data from the downloaded files,
  * you might need to use {@apilink CheerioCrawler}, {@apilink PuppeteerCrawler} or {@apilink PlaywrightCrawler} instead.
  *
- * `FileCrawler` downloads each URL using a plain HTTP request and then invokes the user-provided {@apilink FileDownloadOptions.requestHandler} where the user can specify what to do with the downloaded data.
+ * `FileCrawler` downloads each URL using a plain HTTP request and then invokes the user-provided {@apilink BasicCrawlerOptions.requestHandler} where the user can specify what to do with the downloaded data.
  *
- * The source URLs are represented using {@apilink Request} objects that are fed from the {@apilink IRequestManager|request manager} provided via the {@apilink FileDownloadOptions.requestManager|`requestManager`} constructor option (a {@apilink RequestQueue} is itself a request manager). To read from a read-only source such as a {@apilink RequestList} while still being able to enqueue new requests, combine it with a queue into a {@apilink RequestManagerTandem} via {@apilink IRequestLoader.toTandem|`requestLoader.toTandem()`} and pass the result as `requestManager`.
+ * The source URLs are represented using {@apilink Request} objects that are fed from the {@apilink IRequestManager|request manager} provided via the {@apilink BasicCrawlerOptions.requestManager|`requestManager`} constructor option (a {@apilink RequestQueue} is itself a request manager). To read from a read-only source such as a {@apilink RequestList} while still being able to enqueue new requests, combine it with a queue into a {@apilink RequestManagerTandem} via {@apilink IRequestLoader.toTandem|`requestLoader.toTandem()`} and pass the result as `requestManager`.
  *
- * > The {@apilink FileDownloadOptions.requestList|`requestList`} and {@apilink FileDownloadOptions.requestQueue|`requestQueue`} options are deprecated; they are still accepted and folded into a single `requestManager` for back-compat.
+ * > The {@apilink BasicCrawlerOptions.requestList|`requestList`} and {@apilink BasicCrawlerOptions.requestQueue|`requestQueue`} options are deprecated; they are still accepted and folded into a single `requestManager` for back-compat.
  *
  * The crawler finishes when there are no more {@apilink Request} objects to crawl.
  *
@@ -172,11 +82,11 @@ export class FileDownload extends BasicCrawler<FileDownloadCrawlingContext> {
     constructor(options: BasicCrawlerOptions<FileDownloadCrawlingContext> = {}) {
         super({
             ...options,
-            contextPipelineBuilder: () => this.buildContextPipeline(),
+            contextPipelineBuilder: () => this.#buildContextPipeline(),
         });
     }
 
-    protected override buildContextPipeline(): ContextPipeline<CrawlingContext, FileDownloadCrawlingContext> {
+    #buildContextPipeline(): ContextPipeline<CrawlingContext, FileDownloadCrawlingContext> {
         return super.buildContextPipeline().compose({
             action: async (context) => this.initiateDownload(context),
             cleanup: async (context) => {

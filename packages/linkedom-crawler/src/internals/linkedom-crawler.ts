@@ -8,7 +8,6 @@ import type {
     GetUserDataFromRequest,
     HttpCrawlerOptions,
     InternalHttpCrawlingContext,
-    InternalHttpHook,
     RequestHandler,
     RouterHandler,
     RouterRoutes,
@@ -23,7 +22,6 @@ import {
     Router,
 } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
-import type { CheerioAPI } from 'cheerio';
 import { sleep } from '@crawlee/utils';
 import { tryAbsoluteURL } from '@crawlee/utils/internal';
 import * as cheerio from 'cheerio';
@@ -50,11 +48,6 @@ export interface LinkeDOMCrawlerOptions<
     StatisticStateExtension
 > {}
 
-export type LinkeDOMHook<
-    UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-> = InternalHttpHook<LinkeDOMCrawlingContext<UserData, JSONData>>;
-
 export interface LinkeDOMCrawlingContext<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -66,35 +59,6 @@ export interface LinkeDOMCrawlingContext<
     // so we specify the type as the native Document type from lib.dom.d.ts
     // even though it's not technically 100% correct
     document: Document;
-
-    /**
-     * Wait for an element matching the selector to appear.
-     * Timeout defaults to 5s.
-     *
-     * **Example usage:**
-     * ```ts
-     * async requestHandler({ waitForSelector, parseWithCheerio }) {
-     *     await waitForSelector('article h1');
-     *     const $ = await parseWithCheerio();
-     *     const title = $('title').text();
-     * });
-     * ```
-     */
-    waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
-
-    /**
-     * Returns Cheerio handle, allowing to work with the data same way as with {@apilink CheerioCrawler}.
-     * When provided with the `selector` argument, it will first look for the selector with a 5s timeout.
-     *
-     * **Example usage:**
-     * ```javascript
-     * async requestHandler({ parseWithCheerio }) {
-     *     const $ = await parseWithCheerio();
-     *     const title = $('title').text();
-     * });
-     * ```
-     */
-    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioAPI>;
 
     /**
      * Extracts URLs from the parsed DOM, without adding them to the request queue.

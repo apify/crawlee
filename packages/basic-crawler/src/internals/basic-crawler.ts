@@ -29,7 +29,6 @@ import type {
     StorageWritePolicy,
     TaskLoopOptions,
     TypedRequestsLike,
-    UrlPatternObject,
 } from '@crawlee/core';
 import {
     applyRequestTransform,
@@ -90,7 +89,6 @@ import type {
     Dictionary,
     ISession,
     ISessionPool,
-    ProxyInfo,
     SetStatusMessageOptions,
     StorageBackend,
 } from '@crawlee/types';
@@ -821,18 +819,16 @@ export class BasicCrawler<
      * pipelines expect the basic crawler fields to already be present in the context at runtime.
      *
      * Context built with this pipeline can be passed into multiple crawler pipelines at once.
-     * This is used e.g. in the {@apilink AdaptivePlaywrightCrawler|`AdaptivePlaywrightCrawler`}.
      */
-    get basicContextPipeline(): ContextPipeline<{ request: Request }, CrawlingContext> {
-        if (this.#basicContextPipeline === undefined) {
-            this.#basicContextPipeline = this.buildBasicContextPipeline();
-        }
+    get #basicPipeline(): ContextPipeline<{ request: Request }, CrawlingContext> {
+        this.#basicContextPipeline ??= this.buildBasicContextPipeline();
 
         return this.#basicContextPipeline;
     }
 
     #contextPipeline?: ContextPipeline<CrawlingContext, ExtendedContext>;
 
+    /** @internal */
     get contextPipeline(): ContextPipeline<CrawlingContext, ExtendedContext> {
         if (this.#contextPipeline === undefined) {
             this.#contextPipeline = this.buildFinalContextPipeline();
@@ -841,8 +837,8 @@ export class BasicCrawler<
         return this.#contextPipeline;
     }
 
-    running = false;
-    hasFinishedBefore = false;
+    #running = false;
+    #hasFinishedBefore = false;
     #unexpectedStop = false;
 
     #log!: CrawleeLogger;
@@ -1267,7 +1263,7 @@ export class BasicCrawler<
                                 // catch-all for that - see `raceWithTimeout` for why it is a bare timer, not a timeout frame.
                                 await this.withRequestTimeout(
                                     crawlingContext,
-                                    this.basicContextPipeline
+                                    this.#basicPipeline
                                         .chain(this.contextPipeline)
                                         .call(crawlingContext, (ctx) => this.handleRequest(ctx, source, request)),
                                 ),
@@ -1605,7 +1601,7 @@ export class BasicCrawler<
      * @param error The error to check.
      */
     protected isProxyError(error: Error): boolean {
-        return ROTATE_PROXY_ERRORS.some((x: string) => (this.getMessageFromError(error) as any)?.includes(x));
+        return ROTATE_PROXY_ERRORS.some((x: string) => this.getMessageFromError(error).includes(x));
     }
 
     /**
@@ -1694,7 +1690,7 @@ export class BasicCrawler<
      * @param [options] Options for the request queue.
      */
     async run(requests?: TypedRequestsLike<Routes>, options?: CrawlerRunOptions): Promise<FinalStatistics> {
-        if (this.running) {
+        if (this.#running) {
             throw new Error(
                 'This crawler instance is already running, you can add more requests to it via `crawler.addRequests()`.',
             );
@@ -1702,7 +1698,7 @@ export class BasicCrawler<
 
         const { purgeRequestQueue, ...addRequestsOptions } = options ?? {};
 
-        if (this.hasFinishedBefore) {
+        if (this.#hasFinishedBefore) {
             // When executing the run method for the second time explicitly,
             // we need to purge the RQ to allow processing the same requests again — this is important so users can
             // pass in failed requests back to the `crawler.run()`, otherwise they would be considered as handled and
@@ -1733,7 +1729,7 @@ export class BasicCrawler<
         }
 
         this.#unexpectedStop = false;
-        this.running = true;
+        this.#running = true;
         this.#loggedPerRun.clear();
 
         await purgeDefaultStorages({
@@ -1756,7 +1752,7 @@ export class BasicCrawler<
             });
 
             // The run never began, so let the instance be run again instead of leaving it wedged as `running`.
-            this.running = false;
+            this.#running = false;
             throw error;
         }
 
@@ -1831,8 +1827,8 @@ export class BasicCrawler<
                 { isStatusMessageTerminal: true, level: 'INFO' },
             );
 
-            this.running = false;
-            this.hasFinishedBefore = true;
+            this.#running = false;
+            this.#hasFinishedBefore = true;
         }
 
         return stats;
@@ -2083,17 +2079,11 @@ export class BasicCrawler<
         const requestLimit = await this.#calculateEnqueuedRequestLimit(options.limit);
 
         const strategy = options.strategy ?? EnqueueStrategy.All;
-        const urlExcludePatternObjects: UrlPatternObject[] = options.exclude?.length
-            ? constructUrlPatternObjects(options.exclude)
-            : [];
-        const urlPatternObjects: UrlPatternObject[] = options.include?.length
-            ? constructUrlPatternObjects(options.include)
-            : [];
+        const urlExcludePatternObjects = options.exclude?.length ? constructUrlPatternObjects(options.exclude) : [];
+        const urlPatternObjects = options.include?.length ? constructUrlPatternObjects(options.include) : [];
         // The strategy always applies, even when `include` patterns are provided - the two are AND-ed together
         // (a URL must match an `include` pattern *and* satisfy the strategy). This mirrors crawlee-python.
-        const enqueueStrategyPatterns: UrlPatternObject[] = options.baseUrl
-            ? buildEnqueueStrategyPatterns(options.baseUrl, strategy)
-            : [];
+        const enqueueStrategyPatterns = options.baseUrl ? buildEnqueueStrategyPatterns(options.baseUrl, strategy) : [];
 
         const isAllowedBasedOnRobotsTxtFile = this.isAllowedBasedOnRobotsTxtFile.bind(this);
         const maxCrawlDepth = this.#maxCrawlDepth;
@@ -2523,6 +2513,7 @@ export class BasicCrawler<
         );
     }
 
+    /** @internal */
     protected async getRobotsTxtFileForUrl(url: string): Promise<RobotsTxtFile | undefined> {
         if (!this.#respectRobotsTxtFile) {
             return undefined;
@@ -2905,7 +2896,7 @@ export class BasicCrawler<
      * @param error The error received
      * @returns The message to be logged
      */
-    protected getMessageFromError(error: Error, forceStack = false) {
+    protected getMessageFromError(error: Error, forceStack = false): string {
         if ([TypeError, SyntaxError, ReferenceError].some((type) => error instanceof type)) {
             forceStack = true;
         }
@@ -2916,7 +2907,8 @@ export class BasicCrawler<
         const userLine = stackLines.find((line) => line.includes(baseDir) && !line.includes('node_modules'));
 
         if (error instanceof TimeoutError) {
-            return process.env.CRAWLEE_VERBOSE_LOG ? error.stack : error.message || error; // stack in timeout errors does not really help
+            // stack in timeout errors does not really help
+            return (process.env.CRAWLEE_VERBOSE_LOG && error.stack) || error.message;
         }
 
         return process.env.CRAWLEE_VERBOSE_LOG || forceStack
@@ -3042,12 +3034,6 @@ export class BasicCrawler<
             }
         }
     }
-}
-
-export interface CreateContextOptions {
-    request: Request;
-    session: ISession;
-    proxyInfo?: ProxyInfo;
 }
 
 export interface CrawlerAddRequestsOptions extends AddRequestsBatchedOptions, EnqueueUrlsOptions {}

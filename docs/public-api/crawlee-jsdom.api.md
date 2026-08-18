@@ -5,8 +5,6 @@
 ```ts
 
 import type { AddRequestsBatchedResult } from '@crawlee/http';
-import type { CheerioAPI } from 'cheerio';
-import type { ContextPipeline } from '@crawlee/http';
 import type { CrawlingContext } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
 import type { DOMWindow } from 'jsdom';
@@ -17,7 +15,6 @@ import type { GetUserDataFromRequest } from '@crawlee/http';
 import { HttpCrawler } from '@crawlee/http';
 import type { HttpCrawlerOptions } from '@crawlee/http';
 import type { InternalHttpCrawlingContext } from '@crawlee/http';
-import type { InternalHttpHook } from '@crawlee/http';
 import type { RequestHandler } from '@crawlee/http';
 import type { RouterHandler } from '@crawlee/http';
 import type { RouterRoutes } from '@crawlee/http';
@@ -34,11 +31,9 @@ export function createJSDOMRouter<Context extends JSDOMCrawlingContext = JSDOMCr
 // @public (undocumented)
 export function createJSDOMRouter<Context extends JSDOMCrawlingContext = JSDOMCrawlingContext, const Schemas extends RouteSchemas = RouteSchemas>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
 
-// @public (undocumented)
+// @public
 export class JSDOMCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends JSDOMCrawlingContext = JSDOMCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<JSDOMCrawlingContext['request']>>, StatisticStateExtension extends object = {}> extends HttpCrawler<JSDOMCrawlingContext, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
     constructor(options?: JSDOMCrawlerOptions<ContextExtension, ExtendedContext, any, any, Routes, StatisticStateExtension>);
-    // (undocumented)
-    protected buildContextPipeline(): ContextPipeline<CrawlingContext, JSDOMCrawlingContext>;
     getVirtualConsole(): VirtualConsole;
 }
 
@@ -59,8 +54,6 @@ JSONData extends Dictionary = any> extends InternalHttpCrawlingContext<UserData,
     document: Document;
     enqueueLinks(options?: EnqueueLinksOptions): Promise<AddRequestsBatchedResult>;
     extractLinks(options?: ExtractLinksOptions): Promise<string[]>;
-    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioAPI>;
-    waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
     // (undocumented)
     window: DOMWindow;
 }
@@ -69,10 +62,6 @@ JSONData extends Dictionary = any> extends InternalHttpCrawlingContext<UserData,
 export type JSDOMErrorHandler<UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 ContextExtension = Dictionary<never>> = ErrorHandler<CrawlingContext, JSDOMCrawlingContext<UserData, JSONData> & ContextExtension>;
-
-// @public (undocumented)
-export type JSDOMHook<UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-JSONData extends Dictionary = any> = InternalHttpHook<JSDOMCrawlingContext<UserData, JSONData>>;
 
 // @public (undocumented)
 export type JSDOMRequestHandler<UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler

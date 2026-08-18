@@ -46,10 +46,11 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test, vitest } from 
 import { z } from 'zod';
 
 import { startExpressAppPromise } from '../../shared/_helper.js';
+// `createRequestQueueBackend` is typed with the `@crawlee/types` interface, so the memory-specific
+// `listItems()` helper these tests use has to come from the implementation class itself.
+import type { RequestQueueBackend as MemoryRequestQueueBackend } from '../../../packages/core/src/memory-storage/resource-clients/request-queue.js';
 
 import log from '@apify/log';
-
-type MemoryRequestQueueBackend = Awaited<ReturnType<MemoryStorageBackend['createRequestQueueBackend']>>;
 
 describe('BasicCrawler', () => {
     let logLevel: number;
@@ -353,8 +354,9 @@ describe('BasicCrawler', () => {
 
         await crawler.run(['https://example.com/1']);
         const firstSystem = crawler.concurrencySystem! as ConcurrencySystem;
-        // Simulate scaling state left behind by the first run.
-        firstSystem.desiredConcurrency = 42;
+        // Simulate scaling state left behind by the first run - `desiredConcurrency` is autoscaler-owned, so it is
+        // pushed up indirectly, by raising the floor it is clamped against.
+        firstSystem.minConcurrency = 42;
 
         await crawler.run(['https://example.com/2']);
         const secondSystem = crawler.concurrencySystem!;

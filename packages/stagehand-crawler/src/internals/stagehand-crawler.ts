@@ -18,7 +18,6 @@ import type {
     ContextPipeline,
     CrawlingContext,
     GetUserDataFromRequest,
-    LoadedContext,
     OwnedBrowserPool,
     RequestHandler,
     RouterHandler,
@@ -26,10 +25,10 @@ import type {
     RouteSchemas,
     RoutesFromSchemas,
 } from '@crawlee/browser';
-import { assertBrowserPoolNotConfigured, BrowserCrawler, Router } from '@crawlee/browser';
+import { BrowserCrawler, Router } from '@crawlee/browser';
 import type { Dictionary } from '@crawlee/types';
-import { parseArgument, schemas } from '@crawlee/utils/internal';
-import type { LaunchOptions, Page, Response } from 'playwright';
+import { assertBrowserPoolNotConfigured, parseArgument, schemas } from '@crawlee/utils/internal';
+import type { Page, Response } from 'playwright';
 import { z } from 'zod';
 
 import { remoteStagehandBrowserPool, stagehandBrowserPool } from './stagehand-browser-pool';
@@ -238,11 +237,6 @@ export type StagehandHook<
 > = BrowserHook<StagehandCrawlingContext<UserData>>;
 
 /**
- * Request handler for StagehandCrawler.
- */
-export interface StagehandRequestHandler extends RequestHandler<LoadedContext<StagehandCrawlingContext>> {}
-
-/**
  * Options for StagehandCrawler.
  */
 export interface StagehandCrawlerOptions<
@@ -324,9 +318,8 @@ export interface StagehandCrawlerOptions<
      * ```
      */
     // Both union members must share the exact same call signature, otherwise TS cannot contextually type
-    // an inline `requestHandler({ page, request, ... })`. `StagehandRequestHandler` wraps the context in
-    // `LoadedContext`, while the router member uses `ExtendedContext`; since `StagehandCrawlingContext`
-    // already carries a `LoadedRequest`, using `ExtendedContext` for both keeps the signatures identical.
+    // an inline `requestHandler({ page, request, ... })`. `StagehandCrawlingContext` already carries a
+    // `LoadedRequest`, so using `ExtendedContext` for both keeps the signatures identical.
     requestHandler?: RouterHandler<ExtendedContext, Routes> | RequestHandler<ExtendedContext>;
 
     /**
@@ -406,7 +399,6 @@ export class StagehandCrawler<
 > extends BrowserCrawler<
     StagehandPage,
     Response,
-    LaunchOptions,
     StagehandCrawlingContext,
     ContextExtension,
     ExtendedContext,
@@ -418,6 +410,7 @@ export class StagehandCrawler<
      */
     protected static override optionsShape = {
         ...BrowserCrawler.optionsShape,
+        launchContext: schemas.anyObject.default(() => ({})),
         stagehandOptions: schemas.anyObject.optional(),
         headless: z.boolean().optional(),
     };
@@ -460,7 +453,6 @@ export class StagehandCrawler<
                 Routes,
                 StatisticStateExtension
             >),
-            launchContext,
             configuration,
             // The pool serves plain Playwright pages - a page only becomes a `StagehandPage` further down the
             // pipeline, once `setUpStagehand` enhances it - so its page type is narrower than the crawler's.

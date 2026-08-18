@@ -80,6 +80,7 @@ interface ServiceLocatorInterface {
 
     /**
      * Get the storage instance manager (shared across all storage types).
+     * @internal
      */
     getStorageInstanceManager(): StorageInstanceManager;
 
@@ -294,6 +295,7 @@ export class ServiceLocator implements ServiceLocatorInterface {
         return this.getLogger().child({ prefix });
     }
 
+    /** @internal */
     getStorageInstanceManager(): StorageInstanceManager {
         if (!ServiceLocator.#storageInstanceManager) {
             ServiceLocator.#storageInstanceManager = new StorageInstanceManager();
@@ -301,6 +303,7 @@ export class ServiceLocator implements ServiceLocatorInterface {
         return ServiceLocator.#storageInstanceManager;
     }
 
+    /** @internal */
     reset(): void {
         this.#configuration = undefined;
         this.#eventManager = undefined;
