@@ -9,13 +9,26 @@ import type { CrawleeLogger } from '../log.js';
 import { serviceLocator } from '../service_locator.js';
 import { KeyValueStore } from '../storages/key_value_store.js';
 import { parseArgument, schemas, validators } from '../validators.js';
-import { MAX_POOL_SIZE, PERSIST_STATE_KEY } from './consts.js';
 import { createDefaultSessionFingerprint } from './fingerprint.js';
 import type { SessionOptions } from './session.js';
 import { Session } from './session.js';
 
-const SESSION_REUSE_STRATEGIES = ['random', 'round-robin', 'use-until-failure'] as const;
-export type SessionReuseStrategy = (typeof SESSION_REUSE_STRATEGIES)[number];
+/** Default upper bound on the number of sessions the pool keeps around. */
+const MAX_POOL_SIZE = 1000;
+
+/** Prefix of the default key the pool persists its state under; the pool id is appended to it. */
+const PERSIST_STATE_KEY = 'CRAWLEE_SESSION_POOL_STATE';
+
+export type SessionReuseStrategy = 'random' | 'round-robin' | 'use-until-failure';
+
+// Runtime mirror of `SessionReuseStrategy` for the zod schema below. Declared this way round - and not as
+// `typeof SESSION_REUSE_STRATEGIES[number]` - so the public type is a plain literal union that does not drag
+// the array into the API surface. `satisfies` keeps the array from naming a strategy the type does not have.
+const SESSION_REUSE_STRATEGIES = [
+    'random',
+    'round-robin',
+    'use-until-failure',
+] as const satisfies readonly SessionReuseStrategy[];
 
 // `schemas.anyObject` passes values through by reference (object schemas return a pruned plain
 // copy), so class instances like loggers keep their prototype.

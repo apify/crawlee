@@ -34,12 +34,12 @@ export interface StagehandPluginOptions extends BrowserPluginOptions<LaunchOptio
  * - Some fingerprinting options may not be fully applied (Stagehand controls browser launch)
  */
 export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, PlaywrightBrowser> {
-    readonly stagehandOptions: StagehandOptions;
+    readonly #stagehandOptions: StagehandOptions;
     readonly #stagehandInstances: WeakMap<PlaywrightBrowser, Stagehand> = new WeakMap();
 
     constructor(library: BrowserType, options: StagehandPluginOptions = {}) {
         super(library, options);
-        this.stagehandOptions = options.stagehandOptions ?? {};
+        this.#stagehandOptions = options.stagehandOptions ?? {};
     }
 
     /**
@@ -51,7 +51,7 @@ export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, P
         // Import Stagehand dynamically to avoid peer dependency issues
         const { Stagehand } = await import('@browserbasehq/stagehand');
 
-        const isLocal = this.stagehandOptions.env === 'LOCAL' || !this.stagehandOptions.env;
+        const isLocal = this.#stagehandOptions.env === 'LOCAL' || !this.#stagehandOptions.env;
 
         // Use anonymizeProxy to handle proxy authentication transparently
         const [anonymizedProxyUrl, closeAnonymizedProxy] = await anonymizeProxySugar(proxyUrl, undefined, undefined, {
@@ -60,20 +60,20 @@ export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, P
 
         // Build model configuration
         // For LOCAL env, we merge apiKey into the model config since Stagehand expects it there
-        let modelConfig = this.stagehandOptions.model;
-        if (isLocal && this.stagehandOptions.apiKey) {
+        let modelConfig = this.#stagehandOptions.model;
+        if (isLocal && this.#stagehandOptions.apiKey) {
             const modelName = typeof modelConfig === 'string' ? modelConfig : modelConfig?.modelName;
             modelConfig = {
                 ...(typeof modelConfig === 'object' ? modelConfig : {}),
                 ...(modelName ? { modelName } : {}),
-                apiKey: this.stagehandOptions.apiKey,
+                apiKey: this.#stagehandOptions.apiKey,
             } as any;
         }
 
         // Build Stagehand configuration by spreading our options and adding launch options
         const stagehandConfig: V3Options = {
-            ...this.stagehandOptions,
-            env: this.stagehandOptions.env ?? 'LOCAL',
+            ...this.#stagehandOptions,
+            env: this.#stagehandOptions.env ?? 'LOCAL',
             model: modelConfig,
             localBrowserLaunchOptions: isLocal
                 ? {
@@ -178,7 +178,7 @@ export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, P
      */
     private augmentLaunchError(error: unknown, launchContext: LaunchContext<BrowserType>): Error {
         const message = error instanceof Error ? error.message : String(error);
-        const model = this.stagehandOptions.model;
+        const model = this.#stagehandOptions.model;
 
         let helpText = '';
 
@@ -199,12 +199,5 @@ export class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, P
                 `Model: ${model}${helpText}`,
             { cause: error },
         );
-    }
-
-    /**
-     * Gets the Stagehand instance for a given browser.
-     */
-    getStagehandForBrowser(browser: PlaywrightBrowser): Stagehand | undefined {
-        return this.#stagehandInstances.get(browser);
     }
 }

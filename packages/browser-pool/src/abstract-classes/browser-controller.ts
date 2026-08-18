@@ -113,6 +113,13 @@ export abstract class BrowserController<
     implements IBrowserController<NewPageResult>
 {
     readonly id = nanoid();
+
+    /**
+     * Kept `protected` rather than `#private` because the concrete controllers in this package are
+     * separate classes — an ES private field would not be visible to them.
+     *
+     * @internal
+     */
     protected readonly log!: CrawleeLogger;
 
     /**
@@ -136,12 +143,15 @@ export abstract class BrowserController<
      */
     proxyUrl?: string;
 
+    /** @internal */
     isActive = false;
 
     activePages = 0;
 
+    /** @internal */
     totalPages = 0;
 
+    /** @internal */
     lastPageOpenedAt = Date.now();
 
     #activate!: () => void;
@@ -260,31 +270,18 @@ export abstract class BrowserController<
         return this._getCookies(page);
     }
 
-    /**
-     * @private
-     */
     protected abstract _close(): Promise<void>;
-    /**
-     * @private
-     */
+
     protected abstract _kill(): Promise<void>;
-    /**
-     * @private
-     */
+
     protected abstract _newPage(pageOptions?: NewPageOptions): Promise<NewPageResult>;
 
-    /**
-     * @private
-     */
     protected abstract _setCookies(page: NewPageResult, cookies: Cookie[]): Promise<void>;
 
-    /**
-     * @private
-     */
     protected abstract _getCookies(page: NewPageResult): Promise<Cookie[]>;
 
     /**
-     * @private
+     * @internal
      */
     abstract normalizeProxyOptions(proxyUrl: string | undefined, pageOptions: any): Record<string, unknown>;
 }

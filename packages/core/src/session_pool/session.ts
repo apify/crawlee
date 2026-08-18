@@ -87,6 +87,7 @@ export interface SessionOptions {
      */
     retired?: boolean;
 
+    /** @internal */
     log?: CrawleeLogger;
     errorScore?: number;
     cookieJar?: CookieJar;
@@ -266,6 +267,7 @@ export class Session implements ISession {
     /**
      * Gets session state for persistence in KeyValueStore.
      * @returns Represents session internal state.
+     * @internal
      */
     getState(): SessionState {
         return {

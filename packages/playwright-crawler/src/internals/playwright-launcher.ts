@@ -83,9 +83,8 @@ export class PlaywrightLauncher extends BrowserLauncher<PlaywrightPlugin> {
      */
     protected static override optionsShape = {
         ...BrowserLauncher.optionsShape,
-        // Passthrough schemas — the launcher module object must keep its prototype through parsing.
+        // Passthrough schema — the launcher module object must keep its prototype through parsing.
         launcher: schemas.anyObject.optional(),
-        launchContextOptions: schemas.anyObject.optional(),
     };
 
     /** @internal */

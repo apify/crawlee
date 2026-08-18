@@ -8,7 +8,6 @@ import type {
     GetUserDataFromRequest,
     HttpCrawlerOptions,
     InternalHttpCrawlingContext,
-    InternalHttpHook,
     RequestHandler,
     RouterHandler,
     RouterRoutes,
@@ -49,11 +48,6 @@ export interface CheerioCrawlerOptions<
     StatisticStateExtension
 > {}
 
-export type CheerioHook<
-    UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-> = InternalHttpHook<CheerioCrawlingContext<UserData, JSONData>>;
-
 export interface CheerioCrawlingContext<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -67,37 +61,7 @@ export interface CheerioCrawlingContext<
      * The [Cheerio](https://cheerio.js.org/) object with parsed HTML.
      * Cheerio is available only for HTML and XML content types.
      */
-    $: cheerio.CheerioAPI;
-
-    /**
-     * Wait for an element matching the selector to appear. Timeout is ignored.
-     *
-     * **Example usage:**
-     * ```ts
-     * async requestHandler({ waitForSelector, parseWithCheerio }) {
-     *     await waitForSelector('article h1');
-     *     const $ = await parseWithCheerio();
-     *     const title = $('title').text();
-     * });
-     * ```
-     */
-    waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
-
-    /**
-     * Returns Cheerio handle, this is here to unify the crawler API, so they all have this handy method.
-     * It has the same return type as the `$` context property, use it only if you are abstracting your workflow to
-     * support different context types in one handler.
-     * When provided with the `selector` argument, it will throw if it's not available.
-     *
-     * **Example usage:**
-     * ```ts
-     * async requestHandler({ parseWithCheerio }) {
-     *     const $ = await parseWithCheerio();
-     *     const title = $('title').text();
-     * });
-     * ```
-     */
-    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioAPI>;
+    $: CheerioAPI;
 
     /**
      * Extracts URLs from the parsed HTML, without adding them to the request queue.

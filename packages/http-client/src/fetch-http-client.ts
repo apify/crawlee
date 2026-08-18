@@ -15,7 +15,7 @@ export class FetchHttpClient extends BaseHttpClient {
         this.#logger = options?.logger;
     }
 
-    override async fetch(request: Request, options?: RequestInit & CustomFetchOptions): Promise<Response> {
+    protected override async fetch(request: Request, options?: RequestInit & CustomFetchOptions): Promise<Response> {
         if (options?.ignoreTlsErrors) {
             this.#logger?.warningOnce(
                 'FetchHttpClient cannot disable TLS certificate verification, the `ignoreTlsErrors` option is ignored. ' +

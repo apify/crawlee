@@ -127,18 +127,33 @@ export class ContextPipelineInterruptedError extends Error {
     }
 }
 
+/**
+ * Wraps whatever a context-initialization middleware threw. Constructed and unwrapped by the crawlers; never
+ * part of what a user handler sees.
+ * @internal
+ */
 export class ContextPipelineInitializationError extends Error {
     constructor(error: unknown, options?: ErrorOptions) {
         super(undefined, { cause: error, ...options });
     }
 }
 
+/**
+ * Wraps whatever a context-cleanup middleware threw. Constructed and unwrapped by the crawlers; never part of
+ * what a user handler sees.
+ * @internal
+ */
 export class ContextPipelineCleanupError extends CriticalError {
     constructor(error: unknown, options?: ErrorOptions) {
         super(undefined, { cause: error, ...options });
     }
 }
 
+/**
+ * Wraps whatever the request handler threw, so the crawler can tell handler failures from pipeline failures.
+ * The crawler unwraps it before reporting, so users only ever see the `cause`.
+ * @internal
+ */
 export class RequestHandlerError extends Error {
     constructor(error: unknown, options?: ErrorOptions) {
         super(undefined, { cause: error, ...options });
