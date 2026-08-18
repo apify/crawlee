@@ -4,10 +4,10 @@ import Link from '@docusaurus/Link';
 import { useDocsVersion } from '@docusaurus/plugin-content-docs/client';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 
-const { version: packageJsonVersion } = require('../../../packages/crawlee/package.json');
+const versions = require('../../versions.json');
 
-const [major, minor] = packageJsonVersion.split('.');
-const stable = [major, minor].join('.');
+// the latest snapshot is served unversioned at /js/api, same logic as in NavbarItem/ComponentTypes.js
+const stable = versions[0];
 
 const ApiLink = ({ to, children }) => {
     const version = useDocsVersion();

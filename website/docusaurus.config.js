@@ -99,6 +99,12 @@ module.exports = {
                     sidebarPath: './sidebars.js',
                     rehypePlugins: [externalLinkProcessor],
                     disableVersioning: !!process.env.CRAWLEE_DOCS_FAST,
+                    versions: {
+                        // drop the label once 4.0.0 is stable and the 4.0 snapshot exists
+                        current: {
+                            label: '4.0 (RC)',
+                        },
+                    },
                     editUrl: (doc) => {
                         return `https://github.com/apify/crawlee/edit/master/website/${doc.versionDocsDirPath}/${doc.docPath}`;
                     },
