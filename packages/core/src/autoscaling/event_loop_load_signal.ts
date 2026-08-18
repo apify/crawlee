@@ -2,13 +2,18 @@ import type { LoadSnapshot } from './load_signal';
 import { SnapshotStore } from './load_signal';
 
 export interface EventLoopSnapshot extends LoadSnapshot {
+    /** Event-loop delay above the configured threshold, in milliseconds. */
     exceededMillis: number;
 }
 
 export interface EventLoopLoadSignalOptions {
+    /** Interval between event-loop measurements, in seconds. */
     eventLoopSnapshotIntervalSecs?: number;
+    /** Delay threshold that marks a measurement as overloaded, in milliseconds. */
     maxBlockedMillis?: number;
+    /** Fraction of overloaded snapshots required to mark the signal overloaded. */
     overloadedRatio?: number;
+    /** Duration for which snapshots are retained, in milliseconds. */
     snapshotHistoryMillis?: number;
 }
 

@@ -6,14 +6,20 @@ import { SnapshotStore } from './load_signal';
 const CLIENT_RATE_LIMIT_ERROR_RETRY_COUNT = 2;
 
 export interface ClientSnapshot extends LoadSnapshot {
+    /** Number of storage-client rate-limit errors observed at collection time. */
     rateLimitErrorCount: number;
 }
 
 export interface ClientLoadSignalOptions {
+    /** Storage client whose rate-limit statistics should be monitored. */
     client: StorageClient;
+    /** Interval between client snapshots, in seconds. */
     clientSnapshotIntervalSecs?: number;
+    /** Number of new rate-limit errors that marks the client as overloaded. */
     maxClientErrors?: number;
+    /** Fraction of overloaded snapshots required to mark the signal overloaded. */
     overloadedRatio?: number;
+    /** Duration for which snapshots are retained, in milliseconds. */
     snapshotHistoryMillis?: number;
 }
 

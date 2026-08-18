@@ -15,13 +15,13 @@ From now on, Crawlee for Python will strictly follow [semantic versioning](https
 
 ## What's new in Crawlee for Python v1
 
-- [New storage client system](#new-storage-client-system)
-- [Adaptive Playwright crawler](#adaptive-playwright-crawler)
-- [Impit HTTP client](#impit-http-client)
-- [Sitemap request loader](#sitemap-request-loader)
-- [Robots exclusion standard](#robots-exclusion-standard)
-- [Fingerprinting](#fingerprinting)
-- [Open telemetry](#open-telemetry)
+- [New storage client system](https://crawlee.dev/blog/crawlee-for-python-v1#new-storage-client-system)
+- [Adaptive Playwright crawler](https://crawlee.dev/blog/crawlee-for-python-v1#adaptive-playwright-crawler)
+- [Impit HTTP client](https://crawlee.dev/blog/crawlee-for-python-v1#impit-http-client)
+- [Sitemap request loader](https://crawlee.dev/blog/crawlee-for-python-v1#sitemap-request-loader)
+- [Robots exclusion standard](https://crawlee.dev/blog/crawlee-for-python-v1#robots-exclusion-standard)
+- [Fingerprinting](https://crawlee.dev/blog/crawlee-for-python-v1#fingerprinting)
+- [Open telemetry](https://crawlee.dev/blog/crawlee-for-python-v1#open-telemetry)
 
 ![Crawlee for Python v1.0](./img/crawlee_v100.webp)
 

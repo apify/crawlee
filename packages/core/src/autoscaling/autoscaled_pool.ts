@@ -14,6 +14,7 @@ import { Snapshotter } from './snapshotter';
 import type { SystemInfo, SystemStatusOptions } from './system_status';
 import { SystemStatus } from './system_status';
 
+/** Configuration for an {@apilink AutoscaledPool} instance. */
 export interface AutoscaledPoolOptions {
     /**
      * A function that performs an asynchronous resource-intensive task.
@@ -127,6 +128,7 @@ export interface AutoscaledPoolOptions {
      */
     maxTasksPerMinute?: number;
 
+    /** Logger used for pool lifecycle and scaling messages. Defaults to Crawlee's global logger. */
     log?: Log;
 }
 
@@ -216,6 +218,7 @@ export class AutoscaledPool {
     private tasksDonePerSecondInterval?: BetterIntervalID;
     private _tasksPerMinute: number[] = Array.from({ length: 60 }, () => 0);
 
+    /** Creates an auto-scaling pool with the supplied task and resource policies. */
     constructor(
         options: AutoscaledPoolOptions,
         private readonly config = Configuration.getGlobalConfig(),

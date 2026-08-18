@@ -12,6 +12,7 @@ import type { BrowserPlugin, CommonBrowser, CommonLibrary } from './browser-plug
 
 const PROCESS_KILL_TIMEOUT_MILLIS = 5000;
 
+/** Events emitted by a browser controller. */
 export interface BrowserControllerEvents<
     Library extends CommonLibrary,
     LibraryOptions extends Dictionary | undefined = Parameters<Library['launch']>[0],
@@ -39,6 +40,7 @@ export abstract class BrowserController<
     NewPageOptions = Parameters<LaunchResult['newPage']>[0],
     NewPageResult = UnwrapPromise<ReturnType<LaunchResult['newPage']>>,
 > extends TypedEmitter<BrowserControllerEvents<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>> {
+    /** Unique identifier for this browser controller. */
     id = nanoid();
 
     /**
@@ -68,12 +70,16 @@ export abstract class BrowserController<
      */
     proxyUrl?: string;
 
+    /** Whether the controller has been activated and can open pages. */
     isActive = false;
 
+    /** Number of pages currently open through this controller. */
     activePages = 0;
 
+    /** Total number of pages opened by this controller. */
     totalPages = 0;
 
+    /** Timestamp when the most recent page was opened. */
     lastPageOpenedAt = Date.now();
 
     private _activate!: () => void;
@@ -176,10 +182,12 @@ export abstract class BrowserController<
         return page;
     }
 
+    /** Sets cookies on a browser page. */
     async setCookies(page: NewPageResult, cookies: Cookie[]): Promise<void> {
         return this._setCookies(page, cookies);
     }
 
+    /** Reads cookies currently associated with a browser page. */
     async getCookies(page: NewPageResult): Promise<Cookie[]> {
         return this._getCookies(page);
     }
