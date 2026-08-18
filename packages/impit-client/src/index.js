@@ -1,0 +1,103 @@
+import { BaseHttpClient, ResponseWithUrl } from '@crawlee/http-client';
+import { Impit } from 'impit';
+import { LruCache } from '@apify/datastructures';
+// Concrete impit impersonation profiles per browser family. The plain `chrome` /
+// `firefox` aliases fall back to the oldest available version, which is a
+// fingerprint giveaway — we pick one of these explicitly instead. Keep in sync
+// with impit's `Browser` type when bumping the dependency.
+const IMPIT_VERSIONS_BY_BROWSER = {
+    chrome: [
+        'chrome100',
+        'chrome101',
+        'chrome104',
+        'chrome107',
+        'chrome110',
+        'chrome116',
+        'chrome124',
+        'chrome125',
+        'chrome131',
+        'chrome136',
+        'chrome142',
+    ],
+    firefox: ['firefox128', 'firefox133', 'firefox135', 'firefox144'],
+};
+export const Browser = {
+    'Chrome': 'chrome',
+    'Firefox': 'firefox',
+};
+/**
+ * A HTTP client implementation based on the `impit` library.
+ */
+export class ImpitHttpClient extends BaseHttpClient {
+    #impitOptions;
+    #cacheClients;
+    /**
+     * Enables reuse of `impit` clients for the same set of options.
+     * This is useful for performance reasons, as creating
+     * a new client for each request breaks TCP connection
+     * (and other resources) reuse.
+     */
+    #clientCache = new LruCache({ maxLength: 10 });
+    /**
+     * Stable impit impersonation version per fingerprint object, so the same
+     * session keeps impersonating the same browser version across requests
+     * instead of rerolling on every call.
+     */
+    #impitBrowserByFingerprint = new WeakMap();
+    getClient(options) {
+        if (!this.#cacheClients) {
+            return new Impit(options);
+        }
+        const { cookieJar, ...rest } = options;
+        const cacheKey = JSON.stringify(rest);
+        const existingClient = this.#clientCache.get(cacheKey);
+        if (existingClient && (!cookieJar || existingClient.cookieJar === cookieJar)) {
+            return existingClient.client;
+        }
+        const client = new Impit(options);
+        this.#clientCache.add(cacheKey, { client, cookieJar: cookieJar });
+        return client;
+    }
+    /**
+     * @param options.cacheClients Whether to cache `impit` clients between requests. Defaults to `true`.
+     */
+    constructor(options) {
+        super({ logger: options?.logger });
+        const { cacheClients = true, logger: _logger, ...impitOptions } = options ?? {};
+        this.#impitOptions = impitOptions;
+        this.#cacheClients = cacheClients;
+    }
+    /**
+     * @inheritDoc
+     */
+    async fetch(request, options) {
+        const { proxyUrl, redirect, signal, fingerprint, ignoreTlsErrors } = options ?? {};
+        const impitBrowser = this.resolveImpitBrowser(fingerprint);
+        const impit = this.getClient({
+            ...this.#impitOptions,
+            ...(impitBrowser ? { browser: impitBrowser } : {}),
+            // The per-request flag (from the crawler option or a MITM proxy session)
+            // can only enable ignoring, never override a constructor-level `true`.
+            ...(ignoreTlsErrors ? { ignoreTlsErrors: true } : {}),
+            proxyUrl,
+            followRedirects: redirect === 'follow',
+        });
+        const response = await impit.fetch(request, { signal: signal ?? undefined });
+        // todo - cast shouldn't be needed here, impit returns `Uint8Array`
+        return new ResponseWithUrl(response.body, response);
+    }
+    resolveImpitBrowser(fingerprint) {
+        if (!fingerprint?.browser)
+            return undefined;
+        const cached = this.#impitBrowserByFingerprint.get(fingerprint);
+        if (cached)
+            return cached;
+        // impit can only impersonate Chrome and Firefox. Map other (Chromium-based or
+        // unsupported) families like `edge`/`safari` onto Chrome so the request still
+        // carries realistic browser headers instead of impit's bare `*/*` defaults.
+        const versions = IMPIT_VERSIONS_BY_BROWSER[fingerprint.browser] ?? IMPIT_VERSIONS_BY_BROWSER.chrome;
+        const picked = versions[Math.floor(Math.random() * versions.length)];
+        this.#impitBrowserByFingerprint.set(fingerprint, picked);
+        return picked;
+    }
+}

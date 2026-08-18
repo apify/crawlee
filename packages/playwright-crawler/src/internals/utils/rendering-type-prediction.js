@@ -1,0 +1,164 @@
+import { RecoverableState } from '@crawlee/core';
+import LogisticRegression from 'ml-logistic-regression';
+import { Matrix } from 'ml-matrix';
+import stringComparison from 'string-comparison';
+import { z } from 'zod';
+const urlComponents = (url) => {
+    return [url.hostname, ...url.pathname.split('/')];
+};
+const calculateUrlSimilarity = (a, b) => {
+    const values = [];
+    if (a[0] !== b[0]) {
+        return 0;
+    }
+    const maxLength = Math.max(a.length, b.length);
+    // Only the hostname is present (no path components to compare) - the hosts already match.
+    if (maxLength <= 1) {
+        return 1;
+    }
+    for (let i = 1; i < maxLength; i++) {
+        values.push(stringComparison.jaroWinkler.similarity(a[i] ?? '', b[i] ?? '') > 0.8 ? 1 : 0);
+    }
+    // The first component (index 0, the hostname) is excluded from the comparison above,
+    // so it must also be excluded from the denominator of the weighted average.
+    return sum(values) / (maxLength - 1);
+};
+const sum = (values) => values.reduce((acc, value) => acc + value);
+const mean = (values) => (values.length > 0 ? sum(values) / values.length : undefined);
+const renderingType = z.enum(['clientOnly', 'static']);
+const predictorState = z.object({
+    logreg: z.instanceof(LogisticRegression),
+    detectionResults: z.map(renderingType, z.map(z.string().optional(), z.array(z.array(z.string())))),
+});
+const persistedState = z.object({
+    logreg: z
+        .record(z.string(), z.unknown())
+        .prefault(() => new LogisticRegression({ numSteps: 1000, learningRate: 0.05 }).toJSON()),
+    detectionResults: z
+        .array(z.object({
+        renderingType,
+        urlPartsByLabel: z.array(z.object({
+            label: z.string().optional(),
+            urlParts: z.array(z.array(z.string())),
+        })),
+    }))
+        .prefault([]),
+});
+const stateCodec = z.codec(persistedState, predictorState, {
+    decode: ({ logreg, detectionResults }) => ({
+        logreg: LogisticRegression.load(logreg),
+        detectionResults: new Map(detectionResults.map(({ renderingType, urlPartsByLabel }) => [
+            renderingType,
+            new Map(urlPartsByLabel.map(({ label, urlParts }) => [label, urlParts])),
+        ])),
+    }),
+    encode: ({ logreg, detectionResults }) => ({
+        logreg: logreg.toJSON(),
+        detectionResults: Array.from(detectionResults.entries()).map(([renderingType, urlPartsByLabel]) => ({
+            renderingType,
+            urlPartsByLabel: Array.from(urlPartsByLabel.entries()).map(([label, urlParts]) => ({ label, urlParts })),
+        })),
+    }),
+});
+/**
+ * Stores rendering type information for previously crawled URLs and predicts the rendering type for URLs that have yet to be crawled and recommends when rendering type detection should be performed.
+ *
+ * @experimental
+ */
+export class RenderingTypePredictor {
+    #detectionRatio;
+    #state;
+    constructor({ detectionRatio, persistenceOptions }) {
+        this.#detectionRatio = detectionRatio;
+        this.#state = new RecoverableState({
+            defaultState: () => stateCodec.decode({}),
+            // The codec validates in the decode direction, so it is a Standard Schema as-is; encoding needs a call.
+            deserialize: stateCodec,
+            serialize: (state) => stateCodec.encode(state),
+            persistStateKey: 'rendering-type-predictor-state',
+            persistenceEnabled: true,
+            ...persistenceOptions,
+        });
+    }
+    async persistState() {
+        await this.#state.persistState();
+    }
+    /**
+     * Initialize the predictor by restoring persisted state.
+     */
+    async initialize() {
+        await this.#state.initialize();
+    }
+    /**
+     * Stop persisting the model, writing it out one last time. `initialize()` reopens the persistence window.
+     */
+    async teardown() {
+        await this.#state.teardown();
+    }
+    async [Symbol.asyncDispose]() {
+        await this.teardown();
+    }
+    /**
+     * Predict the rendering type for a given URL and request label.
+     */
+    predict({ url, loadedUrl, label }) {
+        const { logreg } = this.#state.currentValue;
+        if (logreg.classifiers.length === 0) {
+            return { renderingType: 'clientOnly', detectionProbabilityRecommendation: 1 };
+        }
+        const predictionUrl = new URL(loadedUrl ?? url);
+        const urlFeature = new Matrix([this.calculateFeatureVector(urlComponents(predictionUrl), label)]);
+        const [prediction] = logreg.predict(urlFeature);
+        const scores = [logreg.classifiers[0].testScores(urlFeature), logreg.classifiers[1].testScores(urlFeature)];
+        return {
+            renderingType: prediction === 1 ? 'static' : 'clientOnly',
+            detectionProbabilityRecommendation: Math.abs(scores[0] - scores[1]) < 0.1
+                ? 1
+                : this.#detectionRatio * Math.max(1, 5 - this.resultCount(label)),
+        };
+    }
+    /**
+     * Store the rendering type for a given URL and request label. This updates the underlying prediction model, which may be costly.
+     */
+    storeResult(requests, renderingType) {
+        const state = this.#state.currentValue;
+        for (const { url, loadedUrl, label } of Array.isArray(requests) ? requests : [requests]) {
+            const resultUrl = new URL(loadedUrl ?? url);
+            if (!state.detectionResults.has(renderingType)) {
+                state.detectionResults.set(renderingType, new Map());
+            }
+            if (!state.detectionResults.get(renderingType).has(label)) {
+                state.detectionResults.get(renderingType).set(label, []);
+            }
+            state.detectionResults.get(renderingType).get(label).push(urlComponents(resultUrl));
+        }
+        this.retrain();
+    }
+    resultCount(label) {
+        return Array.from(this.#state.currentValue.detectionResults.values())
+            .map((results) => results.get(label)?.length ?? 0)
+            .reduce((acc, value) => acc + value, 0);
+    }
+    calculateFeatureVector(url, label) {
+        return [
+            mean((this.#state.currentValue.detectionResults.get('static')?.get(label) ?? []).map((otherUrl) => calculateUrlSimilarity(url, otherUrl) ?? 0)) ?? 0,
+            mean((this.#state.currentValue.detectionResults.get('clientOnly')?.get(label) ?? []).map((otherUrl) => calculateUrlSimilarity(url, otherUrl) ?? 0)) ?? 0,
+        ];
+    }
+    retrain() {
+        const X = [
+            [0, 1],
+            [1, 0],
+        ];
+        const Y = [0, 1];
+        for (const [renderingType, urlsByLabel] of this.#state.currentValue.detectionResults.entries()) {
+            for (const [label, urls] of urlsByLabel) {
+                for (const url of urls) {
+                    X.push(this.calculateFeatureVector(url, label));
+                    Y.push(renderingType === 'static' ? 1 : 0);
+                }
+            }
+        }
+        this.#state.currentValue.logreg.train(new Matrix(X), Matrix.columnVector(Y));
+    }
+}

@@ -1,0 +1,607 @@
+import { z } from 'zod';
+import { tryCancel } from '@apify/timeout';
+import { Configuration } from '../configuration.js';
+import { serviceLocator } from '../service_locator.js';
+import { parseArgument, schemas, validators } from '../validators.js';
+import { activeStorageTransaction, rejectOperationInTransaction, snapshotValue } from './transaction.js';
+import { KeyValueStore } from './key_value_store.js';
+import { StorageStatsTracker } from './storage_stats.js';
+import { resolveStorageIdentifier } from './storage_instance_manager.js';
+import { createDualIterable, purgeDefaultStorages } from './utils.js';
+const openOptionsSchema = z.strictObject({
+    configuration: z.instanceof(Configuration).optional(),
+    storageBackend: validators.storageBackend.optional(),
+});
+/** @internal */
+export const DATASET_ITERATORS_DEFAULT_LIMIT = 10000;
+/**
+ * Validates that the given value is a plain JSON-serializable object
+ * (not an array, not a primitive, not circular).
+ *
+ * @param item The value to validate.
+ * @param index Optional index for error messages when validating inside an array.
+ * @ignore
+ */
+export function assertJsonSerializable(item, index) {
+    const s = typeof index === 'number' ? ` at index ${index} ` : ' ';
+    const isItemObject = item && typeof item === 'object' && !Array.isArray(item);
+    if (!isItemObject) {
+        throw new Error(`Data item${s}is not an object. You can push only objects into a dataset.`);
+    }
+    try {
+        JSON.stringify(item);
+    }
+    catch (e) {
+        const err = e;
+        throw new Error(`Data item${s}is not serializable to JSON.\nCause: ${err.message}`);
+    }
+}
+/**
+ * The `Dataset` class represents a store for structured data where each object stored has the same attributes,
+ * such as online store products or real estate offers. You can imagine it as a table,
+ * where each object is a row and its attributes are columns.
+ * Dataset is an append-only storage - you can only add new records to it but you cannot modify or remove existing records.
+ * Typically it is used to store crawling results.
+ *
+ * Do not instantiate this class directly, use the
+ * {@apilink Dataset.open} function instead.
+ *
+ * `Dataset` stores its data either on local disk or in the Apify cloud,
+ * depending on whether the `APIFY_LOCAL_STORAGE_DIR` or `APIFY_TOKEN` environment variables are set.
+ *
+ * If the `APIFY_LOCAL_STORAGE_DIR` environment variable is set, the data is stored in
+ * the local directory in the following files:
+ * ```
+ * {APIFY_LOCAL_STORAGE_DIR}/datasets/{DATASET_ID}/{INDEX}.json
+ * ```
+ * Note that `{DATASET_ID}` is the name or ID of the dataset. The default dataset has ID: `default`,
+ * unless you override it by setting the `APIFY_DEFAULT_DATASET_ID` environment variable.
+ * Each dataset item is stored as a separate JSON file, where `{INDEX}` is a zero-based index of the item in the dataset.
+ *
+ * If the `APIFY_TOKEN` environment variable is set but `APIFY_LOCAL_STORAGE_DIR` not, the data is stored in the
+ * [Apify Dataset](https://docs.apify.com/storage/dataset)
+ * cloud storage. Note that you can force usage of the cloud storage also by passing the `forceCloud`
+ * option to {@apilink Dataset.open} function,
+ * even if the `APIFY_LOCAL_STORAGE_DIR` variable is set.
+ *
+ * **Example usage:**
+ *
+ * ```javascript
+ * // Write a single row to the default dataset
+ * await Dataset.pushData({ col1: 123, col2: 'val2' });
+ *
+ * // Open a named dataset
+ * const dataset = await Dataset.open('some-name');
+ *
+ * // Write a single row
+ * await dataset.pushData({ foo: 'bar' });
+ *
+ * // Write multiple rows
+ * await dataset.pushData([
+ *   { foo: 'bar2', col2: 'val2' },
+ *   { col3: 123 },
+ * ]);
+ *
+ * // Export the entirety of the dataset to one file in the key-value store
+ * await dataset.exportToCSV('MY-DATA');
+ * ```
+ * @category Result Stores
+ */
+export class Dataset {
+    configuration;
+    id;
+    name;
+    backend;
+    log;
+    #statsTracker = new StorageStatsTracker({
+        readCount: 0,
+        writeCount: 0,
+    });
+    /**
+     * @internal
+     */
+    constructor(options, configuration = Configuration.getGlobalConfiguration()) {
+        this.configuration = configuration;
+        this.id = options.metadata.id;
+        this.name = options.metadata.name;
+        this.backend = options.backend;
+        this.log = serviceLocator.getLogger().child({ prefix: 'Dataset' });
+    }
+    /**
+     * Backend-independent usage counters tracked for this dataset (read / write operations issued to
+     * the underlying storage backend). Counted per backend call.
+     */
+    get stats() {
+        return this.#statsTracker.current;
+    }
+    /**
+     * Stores an object or an array of objects to the dataset.
+     * The function returns a promise that resolves when the operation finishes.
+     * It has no result, but throws on invalid args or other errors.
+     *
+     * **IMPORTANT**: Make sure to use the `await` keyword when calling `pushData()`,
+     * otherwise the crawler process might finish before the data is stored!
+     *
+     * @param data Object or array of objects containing data to be stored in the default dataset.
+     *   The objects must be serializable to JSON.
+     */
+    async pushData(data) {
+        const transaction = activeStorageTransaction();
+        parseArgument(data, schemas.anyObject);
+        // Normalize to array and validate each item
+        const items = Array.isArray(data) ? data : [data];
+        for (let i = 0; i < items.length; i++) {
+            assertJsonSerializable(items[i], i);
+        }
+        if (transaction) {
+            // One snapshot serves both the reads and the commit replay, so the two cannot disagree.
+            transaction.recordJournalEntry({
+                type: 'dataset',
+                participant: this,
+                storageId: this.id,
+                items: snapshotValue(items),
+                recordedAt: new Date(),
+            });
+            return;
+        }
+        this.#statsTracker.add('writeCount');
+        await this.backend.pushData(items);
+    }
+    /**
+     * Returns {@apilink DatasetContent} object holding the items in the dataset based on the provided parameters.
+     */
+    async getData(options = {}) {
+        try {
+            return await this.readPage(options);
+        }
+        catch (e) {
+            const error = e;
+            if (error.message.includes('Cannot create a string longer than')) {
+                throw new Error('dataset.getData(): The response is too large for parsing. You can fix this by lowering the "limit" option.');
+            }
+            throw e;
+        }
+    }
+    /**
+     * The single transaction-aware page read all dataset read paths go through — both `getData()` and
+     * the private `fetchPages()`. Returns the real page concatenated with the current transaction's
+     * buffered items, with `offset` / `limit` / `desc` windowing applied across the concatenation.
+     */
+    async readPage(options) {
+        const buffered = this.bufferedJournalEntries()?.flatMap((entry) => entry.items);
+        // Every branch below hits the backend exactly once.
+        this.#statsTracker.add('readCount');
+        if (!buffered?.length) {
+            return this.backend.getData(options);
+        }
+        const { offset = 0, limit, desc = false } = options;
+        if (!desc) {
+            const realPage = await this.backend.getData(options);
+            // Buffered items sit past `realPage.total`, so the window bounds must come from that - not
+            // from the page's shortfall, which `skipEmpty` produces without exhausting the real items.
+            const bufferedStart = Math.max(0, offset - realPage.total);
+            const bufferedEnd = limit === undefined ? buffered.length : Math.max(0, offset + limit - realPage.total);
+            const items = [...realPage.items, ...buffered.slice(bufferedStart, bufferedEnd)];
+            return {
+                items,
+                total: realPage.total + buffered.length,
+                offset,
+                // A caller that passed no limit wants everything, so the backend-reported `limit` is
+                // passed through - backends are free to report a page size or a sentinel there.
+                limit: limit ?? realPage.limit,
+                count: items.length,
+                desc,
+            };
+        }
+        // Descending order: the buffered items are the newest, so they come first, reversed.
+        const reversedBuffer = [...buffered].reverse();
+        const fromBuffer = limit === undefined ? reversedBuffer.slice(offset) : reversedBuffer.slice(offset, offset + limit);
+        const needed = limit === undefined ? Infinity : limit - fromBuffer.length;
+        if (needed <= 0) {
+            // The whole window is served from the buffer; only the real total is missing.
+            const { itemCount } = await this.backend.getMetadata();
+            return {
+                items: fromBuffer,
+                total: itemCount + buffered.length,
+                offset,
+                limit: limit,
+                count: fromBuffer.length,
+                desc,
+            };
+        }
+        const realPage = await this.backend.getData({
+            ...options,
+            offset: Math.max(0, offset - buffered.length),
+            ...(limit === undefined ? {} : { limit: needed }),
+        });
+        return {
+            items: [...fromBuffer, ...realPage.items],
+            total: realPage.total + buffered.length,
+            offset,
+            limit: limit ?? realPage.limit,
+            count: fromBuffer.length + realPage.items.length,
+            desc,
+        };
+    }
+    /** The active transaction's buffered writes to this dataset, derived from its journal. */
+    bufferedJournalEntries() {
+        const transaction = activeStorageTransaction();
+        return transaction?.journal.filter((entry) => entry.type === 'dataset' && entry.participant === this);
+    }
+    /** @internal */
+    async commitJournalEntries(entries) {
+        const items = [];
+        for (const entry of entries) {
+            if (entry.type === 'dataset') {
+                items.push(...entry.items);
+            }
+        }
+        // One backend call with all journaled items, in order - as close to atomic as the backend allows.
+        // Straight to the backend: the items were validated and snapshotted at write time.
+        if (items.length > 0) {
+            this.#statsTracker.add('writeCount');
+            await this.backend.pushData(items);
+        }
+    }
+    /**
+     * Returns all the data from the dataset. This will iterate through the whole dataset
+     * via the `listItems()` client method, which gives you only paginated results.
+     */
+    async export(options = {}) {
+        tryCancel();
+        const items = [];
+        for await (const page of this.fetchPages(options)) {
+            items.push(...page.items);
+        }
+        return items;
+    }
+    /**
+     * Save the entirety of the dataset's contents into one file within a key-value store.
+     *
+     * @param key The name of the value to save the data in.
+     * @param [options] An optional options object where you can provide the dataset and target KVS name.
+     * @param [contentType] Only JSON and CSV are supported currently, defaults to JSON.
+     */
+    async exportTo(key, options, contentType) {
+        const kvStore = await KeyValueStore.open(options?.toKVS ?? null, { configuration: this.configuration });
+        const items = await this.export(options);
+        if (contentType === 'text/csv') {
+            // To handle empty dataset exports gracefully.
+            if (items.length === 0) {
+                await kvStore.setValue(key, '', { contentType });
+                return items;
+            }
+            const keys = options?.collectAllKeys
+                ? Array.from(new Set(items.flatMap(Object.keys)))
+                : Object.keys(items[0]);
+            const { stringify } = await import('csv-stringify/sync');
+            const value = stringify([
+                keys,
+                ...items.map((item) => {
+                    return keys.map((k) => item[k]);
+                }),
+            ]);
+            await kvStore.setValue(key, value, { contentType });
+            return items;
+        }
+        if (contentType === 'application/json') {
+            await kvStore.setValue(key, items);
+            return items;
+        }
+        throw new Error(`Unsupported content type: ${contentType}`);
+    }
+    /**
+     * Save entire default dataset's contents into one JSON file within a key-value store.
+     *
+     * @param key The name of the value to save the data in.
+     * @param [options] An optional options object where you can provide the target KVS name.
+     */
+    async exportToJSON(key, options) {
+        await this.exportTo(key, options, 'application/json');
+    }
+    /**
+     * Save entire default dataset's contents into one CSV file within a key-value store.
+     *
+     * @param key The name of the value to save the data in.
+     * @param [options] An optional options object where you can provide the target KVS name.
+     */
+    async exportToCSV(key, options) {
+        await this.exportTo(key, options, 'text/csv');
+    }
+    /**
+     * Save entire default dataset's contents into one JSON file within a key-value store.
+     *
+     * @param key The name of the value to save the data in.
+     * @param [options] An optional options object where you can provide the dataset and target KVS name.
+     */
+    static async exportToJSON(key, options) {
+        tryCancel();
+        const dataset = await this.open(options?.fromDataset);
+        await dataset.exportToJSON(key, options);
+    }
+    /**
+     * Save entire default dataset's contents into one CSV file within a key-value store.
+     *
+     * @param key The name of the value to save the data in.
+     * @param [options] An optional options object where you can provide the dataset and target KVS name.
+     */
+    static async exportToCSV(key, options) {
+        tryCancel();
+        const dataset = await this.open(options?.fromDataset);
+        await dataset.exportToCSV(key, options);
+    }
+    /**
+     * Returns an object containing general information about the dataset.
+     *
+     * **Example:**
+     * ```
+     * {
+     *   id: "WkzbQMuFYuamGv3YF",
+     *   name: "my-dataset",
+     *   createdAt: new Date("2015-12-12T07:34:14.202Z"),
+     *   modifiedAt: new Date("2015-12-13T08:36:13.202Z"),
+     *   accessedAt: new Date("2015-12-14T08:36:13.202Z"),
+     *   itemCount: 14,
+     * }
+     * ```
+     *
+     * @throws If the underlying storage no longer exists (e.g. it was deleted externally).
+     */
+    async getInfo() {
+        const buffered = this.bufferedJournalEntries();
+        const metadata = await this.backend.getMetadata();
+        if (buffered?.length) {
+            const lastWriteAt = buffered[buffered.length - 1].recordedAt;
+            return {
+                ...metadata,
+                itemCount: metadata.itemCount + buffered.reduce((sum, entry) => sum + entry.items.length, 0),
+                modifiedAt: metadata.modifiedAt > lastWriteAt ? metadata.modifiedAt : lastWriteAt,
+            };
+        }
+        return metadata;
+    }
+    /**
+     * Iterates over dataset items, yielding each in turn to an `iteratee` function.
+     * Each invocation of `iteratee` is called with two arguments: `(item, index)`.
+     *
+     * If the `iteratee` function returns a Promise then it is awaited before the next call.
+     * If it throws an error, the iteration is aborted and the `forEach` function throws the error.
+     *
+     * **Example usage**
+     * ```javascript
+     * const dataset = await Dataset.open('my-results');
+     * await dataset.forEach(async (item, index) => {
+     *   console.log(`Item at ${index}: ${JSON.stringify(item)}`);
+     * });
+     * ```
+     *
+     * @param iteratee A function that is called for every item in the dataset.
+     * @param [options] All `forEach()` parameters.
+     * @param [index] Specifies the initial index number passed to the `iteratee` function.
+     * @default 0
+     */
+    async forEach(iteratee, options = {}, index = 0) {
+        tryCancel();
+        if (!options.offset)
+            options.offset = 0;
+        if (options.format && options.format !== 'json')
+            throw new Error('Dataset.forEach/map/reduce() support only a "json" format.');
+        if (!options.limit)
+            options.limit = DATASET_ITERATORS_DEFAULT_LIMIT;
+        const { items, total, limit, offset } = await this.getData(options);
+        for (const item of items) {
+            await iteratee(item, index++);
+        }
+        const newOffset = offset + limit;
+        if (newOffset >= total)
+            return;
+        const newOpts = { ...options, offset: newOffset };
+        await this.forEach(iteratee, newOpts, index);
+    }
+    /**
+     * Produces a new array of values by mapping each value in list through a transformation function `iteratee()`.
+     * Each invocation of `iteratee()` is called with two arguments: `(element, index)`.
+     *
+     * If `iteratee` returns a `Promise` then it's awaited before a next call.
+     *
+     * @param iteratee
+     * @param [options] All `map()` parameters.
+     */
+    async map(iteratee, options = {}) {
+        tryCancel();
+        const result = [];
+        await this.forEach(async (item, index) => {
+            const res = await iteratee(item, index);
+            result.push(res);
+        }, options);
+        return result;
+    }
+    async reduce(iteratee, memo, options = {}) {
+        tryCancel();
+        let currentMemo = memo;
+        const wrappedFunc = async (item, index) => {
+            if (index === 0 && currentMemo === undefined) {
+                currentMemo = item;
+            }
+            else {
+                // We are guaranteed that currentMemo is instanciated, since we are either not on
+                // the first iteration, or memo was already set by the user.
+                currentMemo = await iteratee(currentMemo, item, index);
+            }
+        };
+        await this.forEach(wrappedFunc, options);
+        return currentMemo;
+    }
+    async *fetchEntryPages(options) {
+        let index = options.offset ?? 0;
+        for await (const page of this.fetchPages(options)) {
+            yield {
+                ...page,
+                items: page.items.map((item) => [index++, item]),
+            };
+        }
+    }
+    async *fetchPages(options, pageSize = DATASET_ITERATORS_DEFAULT_LIMIT) {
+        let offset = options.offset ?? 0;
+        const totalLimit = options.limit;
+        let yielded = 0;
+        while (true) {
+            const fetchLimit = totalLimit !== undefined ? Math.min(pageSize, totalLimit - yielded) : pageSize;
+            if (fetchLimit <= 0)
+                break;
+            const page = await this.readPage({ ...options, offset, limit: fetchLimit });
+            yield page;
+            yielded += page.items.length;
+            if (page.items.length < fetchLimit || offset + page.items.length >= page.total)
+                break;
+            offset += page.items.length;
+        }
+    }
+    /**
+     * Returns dataset items.
+     *
+     * When awaited (`await dataset.values()`), returns all items as a flat `Data[]` array.
+     * When used as an async iterable (`for await...of`), iterates over all items across pages
+     * without loading everything into memory at once.
+     *
+     * **Example usage:**
+     * ```javascript
+     * const dataset = await Dataset.open('my-results');
+     *
+     * // Iterate over all items (memory-efficient for large datasets)
+     * for await (const item of dataset.values()) {
+     *   console.log(item);
+     * }
+     *
+     * // Or fetch all items at once
+     * const items = await dataset.values();
+     * console.log(items);
+     * ```
+     *
+     * @param options Options for the iteration.
+     */
+    values(options = {}) {
+        tryCancel();
+        return createDualIterable({
+            createPages: () => this.fetchPages(options),
+            extractItems: (page) => page.items,
+        });
+    }
+    /**
+     * Returns dataset entries (index-value pairs).
+     *
+     * When awaited (`await dataset.entries()`), returns all entries as a flat `[index, item][]` array.
+     * When used as an async iterable (`for await...of`), iterates over all entries across pages
+     * without loading everything into memory at once.
+     *
+     * **Example usage:**
+     * ```javascript
+     * const dataset = await Dataset.open('my-results');
+     *
+     * // Iterate over all entries
+     * for await (const [index, item] of dataset.entries()) {
+     *   console.log(`Item at ${index}: ${JSON.stringify(item)}`);
+     * }
+     *
+     * // Or fetch all at once
+     * const entries = await dataset.entries();
+     * console.log(entries);
+     * ```
+     *
+     * @param options Options for the iteration.
+     */
+    entries(options = {}) {
+        tryCancel();
+        return createDualIterable({
+            createPages: () => this.fetchEntryPages(options),
+            extractItems: (page) => page.items,
+        });
+    }
+    /**
+     * Default async iterator for the dataset, iterating over items.
+     * Allows using the dataset directly in a `for await...of` loop.
+     *
+     * **Example usage:**
+     * ```javascript
+     * const dataset = await Dataset.open('my-results');
+     * for await (const item of dataset) {
+     *   console.log(item);
+     * }
+     * ```
+     */
+    async *[Symbol.asyncIterator]() {
+        yield* this.values();
+    }
+    /**
+     * Removes the dataset either from the Apify cloud storage or from the local directory,
+     * depending on the mode of operation.
+     */
+    async drop() {
+        rejectOperationInTransaction('Dataset.drop()');
+        await this.backend.drop();
+        serviceLocator.getStorageInstanceManager().removeFromCache(this);
+    }
+    /**
+     * Opens a dataset and returns a promise resolving to an instance of the {@apilink Dataset} class.
+     *
+     * Datasets are used to store structured data where each object stored has the same attributes,
+     * such as online store products or real estate offers.
+     * The actual data is stored either on the local filesystem or in the cloud.
+     *
+     * For more details and code examples, see the {@apilink Dataset} class.
+     *
+     * @param [identifier]
+     *   ID or name of the dataset to be opened. If a string is provided, it will first be
+     *   looked up as an ID; if no such storage exists, it will be treated as a name.
+     *   If `null` or `undefined`, the function returns the default dataset associated with the crawler run.
+     * @param [options] Storage manager options.
+     */
+    static async open(identifier, options = {}) {
+        tryCancel();
+        const parsedOptions = parseArgument(options, openOptionsSchema);
+        const configuration = parsedOptions.configuration ?? Configuration.getGlobalConfiguration();
+        const storageBackend = parsedOptions.storageBackend ?? serviceLocator.getStorageBackend();
+        await purgeDefaultStorages({ onlyPurgeOnce: true, storageBackend, configuration });
+        const resolved = await resolveStorageIdentifier(identifier, storageBackend, 'Dataset');
+        return serviceLocator.getStorageInstanceManager().openStorage(this, {
+            ...resolved,
+            backendOpener: () => storageBackend.createDatasetBackend(resolved),
+            backendCacheKey: storageBackend.getStorageBackendCacheKey?.() ?? storageBackend.constructor.name,
+        });
+    }
+    /**
+     * Stores an object or an array of objects to the default {@apilink Dataset} of the current crawler run.
+     *
+     * This is just a convenient shortcut for {@apilink Dataset.pushData}.
+     * For example, calling the following code:
+     * ```javascript
+     * await Dataset.pushData({ myValue: 123 });
+     * ```
+     *
+     * is equivalent to:
+     * ```javascript
+     * const dataset = await Dataset.open();
+     * await dataset.pushData({ myValue: 123 });
+     * ```
+     *
+     * For more information, see {@apilink Dataset.open} and {@apilink Dataset.pushData}
+     *
+     * **IMPORTANT**: Make sure to use the `await` keyword when calling `pushData()`,
+     * otherwise the crawler process might finish before the data are stored!
+     *
+     * @param item Object or array of objects containing data to be stored in the default dataset.
+     * The objects must be serializable to JSON and the JSON representation of each object must be smaller than 9MB.
+     * @ignore
+     */
+    static async pushData(item) {
+        const dataset = await this.open();
+        return dataset.pushData(item);
+    }
+    /**
+     * Returns {@apilink DatasetContent} object holding the items in the dataset based on the provided parameters.
+     */
+    static async getData(options = {}) {
+        const dataset = await this.open();
+        return dataset.getData(options);
+    }
+}

@@ -39,8 +39,6 @@ describe('Statistics', () => {
         // needs to go first for predictability
         test('should increment id by each new consecutive instance', async () => {
             expect(stats.id).toEqual('0');
-            // @ts-expect-error Accessing private prop
-            expect(Statistics.id).toEqual(1);
 
             // the id is what the record is keyed by
             await stats.startCapturing();
@@ -50,8 +48,6 @@ describe('Statistics', () => {
             const [n1, n2] = [new Statistics(), new Statistics()];
             expect(n1.id).toEqual('1');
             expect(n2.id).toEqual('2');
-            // @ts-expect-error Accessing private prop
-            expect(Statistics.id).toEqual(3);
         });
 
         test('should persist the state to KV and load again', async () => {

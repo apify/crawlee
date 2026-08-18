@@ -1,0 +1,652 @@
+/* eslint-disable dot-notation -- Accessing private properties */
+import http from 'node:http';
+import { promisify } from 'node:util';
+import { sleep } from 'crawlee';
+import playwright from 'playwright';
+// @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), vitest executes tests as ESM, so its alllll gooooood
+import puppeteer from 'puppeteer';
+import { addTimeoutToPromise } from '@apify/timeout';
+import { BrowserPool } from '../../packages/browser-pool/src/browser-pool.js';
+import { BROWSER_POOL_EVENTS } from '../../packages/browser-pool/src/events.js';
+import { BrowserName, OperatingSystemsName } from '../../packages/browser-pool/src/fingerprinting/types.js';
+import { PlaywrightPlugin } from '../../packages/browser-pool/src/playwright/playwright-plugin.js';
+import { PuppeteerPlugin } from '../../packages/browser-pool/src/puppeteer/puppeteer-plugin.js';
+import { createProxyServer } from './browser-plugins/create-proxy-server.js';
+const fingerprintingMatrix = [
+    [
+        'Playwright - persistent',
+        new PlaywrightPlugin(playwright.chromium, {
+            useIncognitoPages: false,
+        }),
+    ],
+    [
+        'Playwright - Incognito',
+        new PlaywrightPlugin(playwright.chromium, {
+            useIncognitoPages: true,
+        }),
+    ],
+    [
+        'Puppeteer - Persistent',
+        new PuppeteerPlugin(puppeteer, {
+            useIncognitoPages: false,
+        }),
+    ],
+    [
+        'Puppeteer - Incognito',
+        new PuppeteerPlugin(puppeteer, {
+            useIncognitoPages: true,
+        }),
+    ],
+];
+// Tests could be generated from this blueprint for each plugin
+describe.each([
+    ['Puppeteer', new PuppeteerPlugin(puppeteer)],
+    ['Playwright', new PlaywrightPlugin(playwright.chromium)], // Chromium is faster than firefox and webkit
+])('BrowserPool - %s', (_, plugin) => {
+    let browserPool;
+    beforeEach(async () => {
+        vitest.clearAllMocks();
+        browserPool = new BrowserPool({
+            browserPlugins: [plugin],
+            closeInactiveBrowserAfterSecs: 2,
+            retireInactiveBrowserAfterSecs: 2,
+        });
+    });
+    afterEach(async () => {
+        await browserPool?.destroy();
+    });
+    let target;
+    let unprotectedProxy;
+    let protectedProxy;
+    beforeAll(async () => {
+        target = http.createServer((request, response) => {
+            response.end(request.socket.remoteAddress);
+        });
+        await promisify(target.listen.bind(target))(0, '127.0.0.1');
+        unprotectedProxy = createProxyServer('127.0.0.2', '', '');
+        await unprotectedProxy.listen();
+        protectedProxy = createProxyServer('127.0.0.3', 'foo', 'bar');
+        await protectedProxy.listen();
+    });
+    afterAll(async () => {
+        await promisify(target.close.bind(target))();
+        await unprotectedProxy.close(false);
+        await protectedProxy.close(false);
+    });
+    describe('Initialization & retirement', () => {
+        test('should retire browsers', async () => {
+            await browserPool.newPage();
+            browserPool.retireAllBrowsers();
+            expect(browserPool.startingBrowserControllers.size).toBe(0);
+            expect(browserPool.activeBrowserControllers.size).toBe(0);
+            expect(browserPool.retiredBrowserControllers.size).toBe(1);
+        });
+        test('should destroy pool', async () => {
+            const page = await browserPool.newPage();
+            const browserController = browserPool.getBrowserControllerByPage(page);
+            vitest.spyOn(browserController, 'close');
+            await browserPool.destroy();
+            expect(browserController.close).toHaveBeenCalled();
+            expect(browserPool.startingBrowserControllers.size).toBe(0);
+            expect(browserPool.activeBrowserControllers.size).toBe(0);
+            expect(browserPool.retiredBrowserControllers.size).toBe(0);
+        });
+    });
+    describe('Basic user functionality', () => {
+        // Basic user facing functionality
+        test('should open new page', async () => {
+            const page = await browserPool.newPage();
+            expect(page.goto).toBeDefined();
+            expect(page.close).toBeDefined();
+        });
+        // https://github.com/apify/crawlee/issues/3670
+        test('should not leak aborted cancelTask between concurrent newPage calls', async () => {
+            const previousTimeout = browserPool.operationTimeoutMillis;
+            browserPool.operationTimeoutMillis = 1;
+            // Each newPage call is wrapped in its own outer addTimeoutToPromise,
+            // matching how BasicCrawler wraps _runRequestHandler. Without the fix,
+            // queued limiter callbacks inherit the previous task's aborted
+            // cancelTask via AsyncLocalStorage propagation through p-limit, causing
+            // their first tryCancel() to throw InternalTimeoutError pre-emptively;
+            // that error then gets silently swallowed by the outer wrap.
+            const results = await Promise.allSettled(Array.from({ length: 5 }, () => addTimeoutToPromise(async () => browserPool.newPage(), 60_000, 'outer timed out')));
+            browserPool.operationTimeoutMillis = previousTimeout;
+            browserPool.retireAllBrowsers();
+            // All calls must reject — none should silently resolve with undefined.
+            expect(results.every((r) => r.status === 'rejected')).toBe(true);
+            // Each rejection should reflect this call's own newPage timeout, not
+            // a leaked "canceled due to a timeout" from a sibling's aborted context.
+            for (const r of results) {
+                expect(r.status === 'rejected' && r.reason.message).toMatch(/browserController\.newPage\(\) (failed|timed out)/);
+            }
+        });
+        // TODO: this test is very flaky in the CI
+        test.skip('should allow early aborting in case of outer timeout', async () => {
+            const timeout = browserPool.operationTimeoutMillis;
+            browserPool.operationTimeoutMillis = 500;
+            // @ts-expect-error mocking private method
+            const spy = vitest.spyOn(BrowserPool.prototype, 'executeHooks');
+            await browserPool.newPage();
+            expect(spy).toBeCalledTimes(4);
+            spy.mockReset();
+            await expect(addTimeoutToPromise(async () => browserPool.newPage(), 10, 'opening new page timed out')).rejects.toThrowError('opening new page timed out');
+            // We terminated early enough so only preLaunchHooks were not executed,
+            // thanks to `tryCancel()` calls after each await. If we did not run
+            // inside `addTimeoutToPromise()`, this would not work and we would get
+            // 4 calls instead of just one.
+            expect(spy).toBeCalledTimes(1);
+            browserPool.operationTimeoutMillis = timeout;
+            browserPool.retireAllBrowsers();
+        });
+        test('should open new page in incognito context', async () => {
+            const browserPoolIncognito = new BrowserPool({
+                browserPlugins: [new PlaywrightPlugin(playwright.chromium, { useIncognitoPages: true })],
+                closeInactiveBrowserAfterSecs: 2,
+            });
+            const page = await browserPoolIncognito.newPage();
+            await browserPoolIncognito.newPage();
+            await browserPoolIncognito.newPage();
+            expect(page.context().pages()).toHaveLength(1);
+        });
+        test('should open new page in new browser', async () => {
+            vitest.spyOn(plugin, 'launch');
+            await browserPool.newPage();
+            await browserPool.newPageInNewBrowser();
+            await browserPool.newPageInNewBrowser();
+            expect(browserPool.startingBrowserControllers.size).toBe(0);
+            expect(browserPool.activeBrowserControllers.size).toBe(3);
+            expect(plugin.launch).toHaveBeenCalledTimes(3);
+        });
+        test('should correctly override page close', async () => {
+            // @ts-expect-error Private function
+            vitest.spyOn(browserPool, 'overridePageClose');
+            const page = await browserPool.newPage();
+            expect(browserPool['overridePageClose']).toBeCalled();
+            const controller = browserPool.getBrowserControllerByPage(page);
+            expect(controller.activePages).toEqual(1);
+            expect(controller.totalPages).toEqual(1);
+            await page.close();
+            expect(controller.activePages).toEqual(0);
+            expect(controller.totalPages).toEqual(1);
+        });
+        test('should retire browser after page count', async () => {
+            browserPool.retireBrowserAfterPageCount = 2;
+            vitest.spyOn(browserPool, 'retireBrowserController');
+            expect(browserPool.activeBrowserControllers.size).toBe(0);
+            await browserPool.newPage();
+            await browserPool.newPage();
+            await browserPool.newPage();
+            expect(browserPool.activeBrowserControllers.size).toBe(1);
+            expect(browserPool.retiredBrowserControllers.size).toBe(1);
+            expect(browserPool.retireBrowserController).toBeCalledTimes(1);
+        });
+        test('should allow max pages per browser', async () => {
+            browserPool.maxOpenPagesPerBrowser = 1;
+            // @ts-expect-error Private function
+            vitest.spyOn(browserPool, 'launchBrowser');
+            await browserPool.newPage();
+            expect(browserPool.activeBrowserControllers.size).toBe(1);
+            await browserPool.newPage();
+            expect(browserPool.activeBrowserControllers.size).toBe(2);
+            await browserPool.newPage();
+            expect(browserPool.activeBrowserControllers.size).toBe(3);
+            expect(browserPool['launchBrowser']).toBeCalledTimes(3);
+        });
+        test('should allow max pages per browser - no race condition', async () => {
+            browserPool.maxOpenPagesPerBrowser = 1;
+            // @ts-expect-error Private function
+            vitest.spyOn(browserPool, 'launchBrowser');
+            const usePlugin = {
+                browserPlugin: plugin,
+            };
+            await Promise.all([browserPool.newPage(usePlugin), browserPool.newPage(usePlugin)]);
+            expect(browserPool.activeBrowserControllers.size).toBe(2);
+            expect(browserPool['launchBrowser']).toBeCalledTimes(2);
+        });
+        test('should close retired browsers', async () => {
+            vitest.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'setTimeout'] });
+            await browserPool.destroy();
+            browserPool = new BrowserPool({
+                browserPlugins: [plugin],
+                closeInactiveBrowserAfterSecs: 2,
+                retireInactiveBrowserAfterSecs: 2,
+            });
+            try {
+                browserPool.retireBrowserAfterPageCount = 1;
+                expect(browserPool.retiredBrowserControllers.size).toBe(0);
+                const page = await browserPool.newPage();
+                const controller = browserPool.getBrowserControllerByPage(page);
+                vitest.spyOn(controller, 'close');
+                expect(browserPool.retiredBrowserControllers.size).toBe(1);
+                await page.close();
+                await vitest.advanceTimersByTimeAsync(10000);
+                expect(controller.close).toHaveBeenCalled();
+                expect(browserPool.retiredBrowserControllers.size).toBe(0);
+            }
+            finally {
+                vitest.useRealTimers();
+            }
+        });
+        describe('hooks', () => {
+            test('should run hooks in series with custom args', async () => {
+                const indexArray = [];
+                const createAsyncHookReturningIndex = (i) => async () => {
+                    const index = await new Promise((resolve) => setTimeout(() => resolve(i), 100));
+                    indexArray.push(index);
+                };
+                const hooks = new Array(10);
+                for (let i = 0; i < hooks.length; i++) {
+                    hooks[i] = createAsyncHookReturningIndex(i);
+                }
+                await browserPool['executeHooks'](hooks);
+                expect(indexArray).toHaveLength(10);
+                indexArray.forEach((v, index) => expect(v).toEqual(index));
+            });
+            test('browser lifecycle works correctly', async () => {
+                let resolvePreLaunchHook = null;
+                let resolvePostLaunchHook = null;
+                const preLaunchPromise = new Promise((resolve) => {
+                    resolvePreLaunchHook = resolve;
+                });
+                const postLaunchPromise = new Promise((resolve) => {
+                    resolvePostLaunchHook = resolve;
+                });
+                browserPool.preLaunchHooks = [...browserPool.preLaunchHooks, async () => preLaunchPromise];
+                browserPool.postLaunchHooks = [...browserPool.postLaunchHooks, async () => postLaunchPromise];
+                const newPagePromise = browserPool.newPage();
+                await sleep(200);
+                expect(browserPool.startingBrowserControllers.size).toBe(1);
+                expect(browserPool.activeBrowserControllers.size).toBe(0);
+                expect(browserPool.retiredBrowserControllers.size).toBe(0);
+                await sleep(5e3); // Make the wait longer than the browser pool's retireInactiveBrowserAfterSecs + closeInactiveBrowserAfterSecs
+                resolvePreLaunchHook();
+                resolvePostLaunchHook();
+                const page = await newPagePromise;
+                expect(browserPool.startingBrowserControllers.size).toBe(0);
+                expect(browserPool.activeBrowserControllers.size).toBe(1);
+                expect(browserPool.retiredBrowserControllers.size).toBe(0);
+                await page.evaluate('() => {}'); // Make sure the page is usable
+                await page.close();
+            });
+            describe('preLaunchHooks', () => {
+                test('should evaluate hook before launching browser with correct args', async () => {
+                    const myAsyncHook = async () => Promise.resolve();
+                    browserPool.preLaunchHooks.push(myAsyncHook);
+                    // @ts-expect-error Private function
+                    vitest.spyOn(browserPool, 'executeHooks');
+                    const page = await browserPool.newPage();
+                    const pageId = browserPool.getPageId(page);
+                    const { launchContext } = browserPool.getBrowserControllerByPage(page);
+                    expect(browserPool['executeHooks']).toHaveBeenNthCalledWith(1, browserPool.preLaunchHooks, pageId, launchContext);
+                });
+                // We had a problem where if the first newPage() call, which launches
+                // a browser failed in hooks, then the browserController would get stuck
+                // in limbo and subsequent newPage() calls would never resolve.
+                test('error in hook does not leave browser stuck in limbo', async () => {
+                    const errorMessage = 'pre-launch failed';
+                    browserPool.preLaunchHooks = [
+                        async () => {
+                            throw new Error(errorMessage);
+                        },
+                    ];
+                    const attempts = 5;
+                    for (let i = 0; i < attempts; i++) {
+                        try {
+                            await browserPool.newPage();
+                        }
+                        catch (err) {
+                            expect(err.message).toBe(errorMessage);
+                        }
+                    }
+                    expect(browserPool.activeBrowserControllers.size).toBe(0);
+                    expect.assertions(attempts + 1);
+                });
+            });
+            describe('postLaunchHooks', () => {
+                test('should evaluate hook after launching browser with correct args', async () => {
+                    const myAsyncHook = async () => Promise.resolve();
+                    browserPool.postLaunchHooks = [myAsyncHook];
+                    // @ts-expect-error Private function
+                    vitest.spyOn(browserPool, 'executeHooks');
+                    const page = await browserPool.newPage();
+                    const pageId = browserPool.getPageId(page);
+                    const browserController = browserPool.getBrowserControllerByPage(page);
+                    expect(browserPool['executeHooks']).toHaveBeenNthCalledWith(2, browserPool.postLaunchHooks, pageId, browserController);
+                });
+                // We had a problem where if the first newPage() call, which launches
+                // a browser failed in hooks, then the browserController would get stuck
+                // in limbo and subsequent newPage() calls would never resolve.
+                test('error in hook does not leave browser stuck in limbo', async () => {
+                    const errorMessage = 'post-launch failed';
+                    const controllers = [];
+                    browserPool.postLaunchHooks = [
+                        async (_pageId, browserController) => {
+                            controllers.push(browserController);
+                            throw new Error(errorMessage);
+                        },
+                    ];
+                    const attempts = 5;
+                    for (let i = 0; i < attempts; i++) {
+                        try {
+                            await browserPool.newPage();
+                        }
+                        catch (err) {
+                            expect(err.message).toBe(errorMessage);
+                        }
+                    }
+                    // Wait until all browsers are closed. This will only resolve if all close,
+                    // if it does not resolve, the test will timeout and fail.
+                    await new Promise((resolve) => {
+                        const int = setInterval(() => {
+                            const stillWaiting = controllers.some((c) => c.isActive);
+                            if (!stillWaiting) {
+                                clearInterval(int);
+                                resolve();
+                            }
+                        }, 10);
+                    });
+                    expect(browserPool.activeBrowserControllers.size).toBe(0);
+                    expect.assertions(attempts + 1);
+                });
+            });
+            describe('prePageCreateHooks', () => {
+                test('should evaluate hook after launching browser with correct args', async () => {
+                    const myAsyncHook = async () => Promise.resolve();
+                    browserPool.prePageCreateHooks = [myAsyncHook];
+                    // @ts-expect-error Private function
+                    vitest.spyOn(browserPool, 'executeHooks');
+                    const page = await browserPool.newPage();
+                    const pageId = browserPool.getPageId(page);
+                    const browserController = browserPool.getBrowserControllerByPage(page);
+                    expect(browserPool['executeHooks']).toHaveBeenNthCalledWith(3, browserPool.prePageCreateHooks, pageId, browserController, browserController.launchContext.useIncognitoPages ? {} : undefined);
+                });
+            });
+            describe('postPageCreateHooks', () => {
+                test('should evaluate hook after launching browser with correct args', async () => {
+                    const myAsyncHook = async () => Promise.resolve();
+                    browserPool.postPageCreateHooks = [myAsyncHook];
+                    // @ts-expect-error Private function
+                    vitest.spyOn(browserPool, 'executeHooks');
+                    const page = await browserPool.newPage();
+                    const browserController = browserPool.getBrowserControllerByPage(page);
+                    expect(browserPool['executeHooks']).toHaveBeenNthCalledWith(4, browserPool.postPageCreateHooks, page, browserController);
+                });
+            });
+            describe('prePageCloseHooks', () => {
+                test('should evaluate hook after launching browser with correct args', async () => {
+                    const myAsyncHook = async () => Promise.resolve();
+                    browserPool.prePageCloseHooks = [myAsyncHook];
+                    // @ts-expect-error Private function
+                    vitest.spyOn(browserPool, 'executeHooks');
+                    const page = await browserPool.newPage();
+                    await page.close();
+                    const browserController = browserPool.getBrowserControllerByPage(page);
+                    expect(browserPool['executeHooks']).toHaveBeenNthCalledWith(5, browserPool.prePageCloseHooks, page, browserController);
+                });
+            });
+            describe('postPageCloseHooks', () => {
+                test('should evaluate hook after launching browser with correct args', async () => {
+                    const myAsyncHook = async () => Promise.resolve();
+                    browserPool.postPageCloseHooks = [myAsyncHook];
+                    // @ts-expect-error Private function
+                    vitest.spyOn(browserPool, 'executeHooks');
+                    const page = await browserPool.newPage();
+                    const pageId = browserPool.getPageId(page);
+                    await page.close();
+                    const browserController = browserPool.getBrowserControllerByPage(page);
+                    expect(browserPool['executeHooks']).toHaveBeenNthCalledWith(6, browserPool.postPageCloseHooks, pageId, browserController);
+                });
+            });
+            describe('default browser automation masking', () => {
+                describe.each(fingerprintingMatrix)('%s', (_name, fingerprintPlugin) => {
+                    let browserPoolWithDefaults;
+                    let page;
+                    beforeEach(async () => {
+                        browserPoolWithDefaults = new BrowserPool({
+                            browserPlugins: [fingerprintPlugin],
+                            closeInactiveBrowserAfterSecs: 2,
+                        });
+                        page = await browserPoolWithDefaults.newPage();
+                    });
+                    afterEach(async () => {
+                        if (page)
+                            await page.close();
+                        await browserPoolWithDefaults.destroy();
+                    });
+                    test('should hide webdriver', async () => {
+                        await page.goto(`file://${import.meta.dirname}/test.html`);
+                        const webdriver = await page.evaluate(() => {
+                            return navigator.webdriver;
+                        });
+                        // Can be undefined or false, depending on the chrome version.
+                        expect(webdriver).toBeFalsy();
+                    });
+                });
+            });
+            describe('fingerprinting', () => {
+                describe.each(fingerprintingMatrix)('%s', (_name, fingerprintPlugin) => {
+                    let browserPoolWithFP;
+                    let page;
+                    beforeEach(async () => {
+                        browserPoolWithFP = new BrowserPool({
+                            browserPlugins: [fingerprintPlugin],
+                            closeInactiveBrowserAfterSecs: 2,
+                            useFingerprints: true,
+                        });
+                        page = await browserPoolWithFP.newPage();
+                    });
+                    afterEach(async () => {
+                        if (page)
+                            await page.close();
+                        await browserPoolWithFP.destroy();
+                    });
+                    test('should override fingerprint', async () => {
+                        await page.goto(`file://${import.meta.dirname}/test.html`);
+                        // @ts-expect-error mistypings
+                        const browserController = browserPoolWithFP.getBrowserControllerByPage(page);
+                        const data = await page.evaluate(() => {
+                            return {
+                                hardwareConcurrency: navigator.hardwareConcurrency,
+                                userAgent: navigator.userAgent,
+                            };
+                        });
+                        // @ts-expect-error mistypings
+                        const { fingerprint } = browserController.launchContext
+                            .fingerprint;
+                        expect(data.hardwareConcurrency).toBe(fingerprint?.navigator.hardwareConcurrency);
+                        expect(data.userAgent).toBe(fingerprint?.navigator.userAgent);
+                    });
+                    test('should hide webdriver', async () => {
+                        await page.goto(`file://${import.meta.dirname}/test.html`);
+                        const webdriver = await page.evaluate(() => {
+                            return navigator.webdriver;
+                        });
+                        // Can be undefined or false, depending on the chrome version.
+                        expect(webdriver).toBeFalsy();
+                    });
+                });
+                describe('caching', () => {
+                    const commonOptions = {
+                        browserPlugins: [
+                            new PlaywrightPlugin(playwright.chromium, {
+                                useIncognitoPages: true,
+                            }),
+                        ],
+                    };
+                    let browserPoolCache;
+                    afterEach(async () => {
+                        await browserPoolCache.destroy();
+                    });
+                    test('should use fingerprint cache by default', async () => {
+                        browserPoolCache = new BrowserPool({
+                            ...commonOptions,
+                            useFingerprints: true,
+                        });
+                        expect(browserPoolCache.fingerprintCache).toBeDefined();
+                    });
+                    test('should turn off cache', async () => {
+                        browserPoolCache = new BrowserPool({
+                            ...commonOptions,
+                            useFingerprints: true,
+                            fingerprintOptions: {
+                                useFingerprintCache: false,
+                            },
+                        });
+                        expect(browserPoolCache.fingerprintCache).toBeUndefined();
+                    });
+                    test('should limit cache size', async () => {
+                        browserPoolCache = new BrowserPool({
+                            ...commonOptions,
+                            useFingerprints: true,
+                            fingerprintOptions: {
+                                fingerprintCacheSize: 1,
+                            },
+                        });
+                        // cast to any type in order to access the maxSize property for testing purposes.
+                        const cache = browserPoolCache.fingerprintCache;
+                        expect(cache.maxSize).toBe(1);
+                    });
+                    test('should cache fingerprints', async () => {
+                        browserPoolCache = new BrowserPool({
+                            ...commonOptions,
+                            useFingerprints: true,
+                            preLaunchHooks: [
+                                (_pageId, launchContext) => {
+                                    // @ts-expect-error issue caused by generics
+                                    launchContext.extend({ session: { id: '123' } });
+                                },
+                            ],
+                        });
+                        const mock = vitest.fn();
+                        browserPoolCache.fingerprintInjector.attachFingerprintToPlaywright = mock;
+                        const page = await browserPoolCache.newPageInNewBrowser();
+                        expect(mock.mock.calls[0][1]).toBeDefined();
+                        const page2 = await browserPoolCache.newPageInNewBrowser();
+                        await page.close();
+                        await page2.close();
+                        // expect fingerprint parameter of the first call to equal fingerprint parameter of the second call
+                        expect(mock.mock.calls[0][1]).toBe(mock.mock.calls[1][1]);
+                    });
+                });
+            });
+            describe('generator configuration', () => {
+                const commonOptions = {
+                    browserPlugins: [
+                        new PlaywrightPlugin(playwright.firefox, {
+                            useIncognitoPages: true,
+                        }),
+                    ],
+                };
+                let browserPoolConfig;
+                afterEach(async () => {
+                    await browserPoolConfig.destroy();
+                });
+                test('should use native os and browser', async () => {
+                    browserPoolConfig = new BrowserPool({
+                        ...commonOptions,
+                        useFingerprints: true,
+                    });
+                    const oldGet = browserPoolConfig.fingerprintGenerator.getFingerprint;
+                    const mock = vitest.fn((options) => {
+                        return oldGet.bind(browserPoolConfig.fingerprintGenerator)(options);
+                    });
+                    browserPoolConfig.fingerprintGenerator.getFingerprint = mock;
+                    const page = await browserPoolConfig.newPage();
+                    await page.close();
+                    const defaultOptions = mock.mock.calls[0][0];
+                    expect(defaultOptions.browsers.includes('firefox')).toBe(true);
+                    let os;
+                    switch (process.platform) {
+                        case 'darwin':
+                            os = 'macos';
+                            break;
+                        case 'win32':
+                            os = 'windows';
+                            break;
+                        default:
+                            os = 'linux';
+                    }
+                    expect(defaultOptions.operatingSystems.includes(os)).toBe(true);
+                });
+                test('should allow changing options', async () => {
+                    browserPoolConfig = new BrowserPool({
+                        ...commonOptions,
+                        useFingerprints: true,
+                        fingerprintOptions: {
+                            fingerprintGeneratorOptions: {
+                                operatingSystems: [OperatingSystemsName.windows],
+                                browsers: [BrowserName.chrome],
+                            },
+                        },
+                    });
+                    const oldGet = browserPoolConfig.fingerprintGenerator.getFingerprint;
+                    const mock = vitest.fn((options) => {
+                        return oldGet.bind(browserPoolConfig.fingerprintGenerator)(options);
+                    });
+                    browserPoolConfig.fingerprintGenerator.getFingerprint = mock;
+                    const page = await browserPoolConfig.newPageInNewBrowser();
+                    await page.close();
+                    const [options] = mock.mock.calls[0];
+                    expect(options.operatingSystems.includes('windows')).toBe(true);
+                    expect(options.browsers.includes('chrome')).toBe(true);
+                });
+            });
+        });
+        describe('events', () => {
+            test(`should emit ${BROWSER_POOL_EVENTS.BROWSER_LAUNCHED} event`, async () => {
+                browserPool.maxOpenPagesPerBrowser = 1;
+                let calls = 0;
+                let argument;
+                browserPool.on(BROWSER_POOL_EVENTS.BROWSER_LAUNCHED, (arg) => {
+                    argument = arg;
+                    calls++;
+                });
+                await browserPool.newPage();
+                const page = await browserPool.newPage();
+                expect(calls).toEqual(2);
+                expect(argument).toEqual(browserPool.getBrowserControllerByPage(page));
+            });
+            test(`should emit ${BROWSER_POOL_EVENTS.BROWSER_RETIRED} event`, async () => {
+                browserPool.retireBrowserAfterPageCount = 1;
+                let calls = 0;
+                let argument;
+                browserPool.on(BROWSER_POOL_EVENTS.BROWSER_RETIRED, (arg) => {
+                    argument = arg;
+                    calls++;
+                });
+                await browserPool.newPage();
+                const page = await browserPool.newPage();
+                expect(calls).toEqual(2);
+                expect(argument).toEqual(browserPool.getBrowserControllerByPage(page));
+            });
+            test(`should emit ${BROWSER_POOL_EVENTS.PAGE_CREATED} event`, async () => {
+                let calls = 0;
+                let argument;
+                browserPool.on(BROWSER_POOL_EVENTS.PAGE_CREATED, (arg) => {
+                    argument = arg;
+                    calls++;
+                });
+                const page = await browserPool.newPage();
+                expect(argument).toEqual(page);
+                const page2 = await browserPool.newPage();
+                expect(calls).toEqual(2);
+                expect(argument).toEqual(page2);
+            });
+            test(`should emit ${BROWSER_POOL_EVENTS.PAGE_CLOSED} event`, async () => {
+                let calls = 0;
+                let argument;
+                browserPool.on(BROWSER_POOL_EVENTS.PAGE_CLOSED, (arg) => {
+                    argument = arg;
+                    calls++;
+                });
+                const page = await browserPool.newPage();
+                await page.close();
+                expect(argument).toEqual(page);
+                const page2 = await browserPool.newPage();
+                await page2.close();
+                expect(calls).toEqual(2);
+                expect(argument).toEqual(page2);
+            });
+        });
+    });
+});

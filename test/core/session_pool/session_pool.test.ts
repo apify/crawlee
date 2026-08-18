@@ -164,7 +164,7 @@ describe('SessionPool - testing session pool', () => {
 
             await new Promise<void>((resolve) => {
                 const interval = setInterval(async () => {
-                    const state = await store.getValue('SDK_SESSION_POOL_STATE');
+                    const state = await store.getValue(sessionPool.persistStateKey);
                     if (state) {
                         resolve();
                         clearInterval(interval);
@@ -172,7 +172,7 @@ describe('SessionPool - testing session pool', () => {
                 }, 100);
             });
 
-            const state = await store.getValue('SDK_SESSION_POOL_STATE');
+            const state = await store.getValue(sessionPool.persistStateKey);
 
             expect(await sessionPool.getState()).toEqual(state);
         });

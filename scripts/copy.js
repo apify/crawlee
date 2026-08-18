@@ -1,0 +1,148 @@
+/* eslint-disable import/no-dynamic-require */
+import { execSync } from 'node:child_process';
+import { copyFileSync, readFileSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import { resolve } from 'node:path';
+const require = createRequire(import.meta.url);
+const options = process.argv.slice(2).reduce((args, arg) => {
+    const [key, value] = arg.split('=');
+    args[key.substring(2)] = value ?? true;
+    return args;
+}, {});
+function copy(filename, from, to) {
+    copyFileSync(resolve(from, filename), resolve(to, filename));
+}
+function rewrite(path, replacer) {
+    try {
+        const file = readFileSync(path).toString();
+        const replaced = replacer(file);
+        writeFileSync(path, replaced);
+    }
+    catch {
+        // not found
+    }
+}
+let rootVersion;
+function getRootVersion(bump = true) {
+    if (rootVersion) {
+        return rootVersion;
+    }
+    const pkg = require(resolve(root, './lerna.json'));
+    rootVersion = pkg.version.replace(/^(\d+\.\d+\.\d+)-?.*$/, '$1');
+    if (bump) {
+        const parts = rootVersion.split('.');
+        const inc = bump ? 1 : 0;
+        const canary = String(options.canary).toLowerCase();
+        switch (canary) {
+            case 'major': {
+                parts[0] = `${+parts[0] + inc}`;
+                parts[1] = '0';
+                parts[2] = '0';
+                break;
+            }
+            case 'minor': {
+                parts[1] = `${+parts[0] + inc}`;
+                parts[2] = '0';
+                break;
+            }
+            case 'patch':
+            default:
+                parts[2] = `${+parts[2] + inc}`;
+        }
+        rootVersion = parts.join('.');
+    }
+    return rootVersion;
+}
+/**
+ * Checks next dev version number based on the `crawlee` meta package via `npm show`.
+ * We always use this package, so we ensure the version is the same for each package in the monorepo.
+ */
+function getNextVersion() {
+    const versions = [];
+    try {
+        const versionString = execSync(`npm show @crawlee/core versions --json`, { encoding: 'utf8', stdio: 'pipe' });
+        const parsed = JSON.parse(versionString);
+        versions.push(...parsed);
+    }
+    catch {
+        // the package might not have been published yet
+    }
+    const version = getRootVersion();
+    if (versions.some((v) => v === version)) {
+        console.error(`before-deploy: A release with version ${version} already exists. Please increment version accordingly.`);
+        process.exit(1);
+    }
+    const preid = options.preid ?? 'alpha';
+    const prereleaseNumbers = versions
+        .filter((v) => v.startsWith(`${version}-${preid}.`))
+        .map((v) => Number(v.match(/\.(\d+)$/)?.[1]));
+    const lastPrereleaseNumber = Math.max(-1, ...prereleaseNumbers);
+    return `${version}-${preid}.${lastPrereleaseNumber + 1}`;
+}
+// as we publish only the dist folder, we need to copy some meta files inside (readme/license/package.json)
+// also changes paths inside the copied `package.json` (`dist/index.js` -> `index.js`)
+const root = resolve(import.meta.dirname, '..');
+const target = resolve(process.cwd(), 'dist');
+const pkgPath = resolve(process.cwd(), 'package.json');
+if (options.canary) {
+    const pkgJson = require(pkgPath);
+    const nextVersion = getNextVersion();
+    pkgJson.version = nextVersion;
+    for (const dep of Object.keys(pkgJson.dependencies)) {
+        if ((dep.startsWith('@crawlee/') && dep !== '@crawlee/fs-storage-native') || dep === 'crawlee') {
+            const prefix = pkgJson.dependencies[dep].startsWith('^') ? '^' : '';
+            pkgJson.dependencies[dep] = prefix + nextVersion;
+        }
+    }
+    console.info(`canary: setting version to ${nextVersion}`);
+    writeFileSync(pkgPath, `${JSON.stringify(pkgJson, null, 4)}\n`);
+}
+if (options['pin-versions']) {
+    const pkgJson = require(pkgPath);
+    const version = getRootVersion(false);
+    for (const dep of Object.keys(pkgJson.dependencies ?? {})) {
+        if ((dep.startsWith('@crawlee/') && dep !== '@crawlee/fs-storage-native') || dep === 'crawlee') {
+            pkgJson.dependencies[dep] = version;
+        }
+    }
+    console.info(`pin-versions: version ${version}`, pkgJson.dependencies);
+    writeFileSync(pkgPath, `${JSON.stringify(pkgJson, null, 4)}\n`);
+}
+/**
+ * `catalog:` specifiers are a pnpm workspace feature; lerna publishes the manifest verbatim,
+ * so they have to be inlined with the versions from `pnpm-workspace.yaml` before publishing.
+ */
+function getCatalogVersions() {
+    const workspaceYaml = readFileSync(resolve(root, 'pnpm-workspace.yaml')).toString();
+    const catalogBlock = workspaceYaml.match(/^catalog:\n((?: {2}.+\n)+)/m)?.[1] ?? '';
+    const versions = {};
+    for (const line of catalogBlock.split('\n')) {
+        const match = line.match(/^ {2}["']?([^"':]+)["']?:\s*["']?(.+?)["']?\s*$/);
+        if (match)
+            versions[match[1]] = match[2];
+    }
+    return versions;
+}
+copy('README.md', root, target);
+copy('LICENSE.md', root, target);
+copy('package.json', process.cwd(), target);
+rewrite(resolve(target, 'package.json'), (pkg) => {
+    const catalog = getCatalogVersions();
+    const manifest = JSON.parse(pkg.replace(/dist\//g, '').replace(/src\/(.*)\.ts/g, '$1.js'));
+    for (const deps of [
+        manifest.dependencies,
+        manifest.devDependencies,
+        manifest.peerDependencies,
+        manifest.optionalDependencies,
+    ]) {
+        for (const dep of Object.keys(deps ?? {})) {
+            if (deps[dep] === 'catalog:') {
+                if (!catalog[dep])
+                    throw new Error(`Missing catalog entry for '${dep}' in pnpm-workspace.yaml`);
+                deps[dep] = catalog[dep];
+            }
+        }
+    }
+    return `${JSON.stringify(manifest, null, 4)}\n`;
+});
+rewrite(resolve(target, 'utils.js'), (pkg) => pkg.replace('../package.json', './package.json'));

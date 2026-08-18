@@ -1,0 +1,873 @@
+import { inspect } from 'node:util';
+import { isAsyncIterable, isIterable } from '@crawlee/utils/internal';
+import { downloadListOfUrls } from '@crawlee/utils';
+import { z } from 'zod';
+import { LruCache } from '@apify/datastructures';
+import { tryCancel } from '@apify/timeout';
+import { Configuration } from '../configuration.js';
+import { getObjectType } from '../debug.js';
+import { EventType } from '../events/event_manager.js';
+import { Request } from '../request.js';
+import { serviceLocator } from '../service_locator.js';
+import { parseArgument, schemas, validators } from '../validators.js';
+import { activeStorageTransaction, rejectOperationInTransaction } from './transaction.js';
+import { drainRequestBatches } from './batched_adds.js';
+import { StorageStatsTracker } from './storage_stats.js';
+import { resolveStorageIdentifier } from './storage_instance_manager.js';
+import { getRequestId, purgeDefaultStorages } from './utils.js';
+import { RequestDeduplicationCache } from './request_dedup_cache.js';
+/**
+ * The maximum number of requests cached locally to avoid redundant calls to the storage backend.
+ * @internal
+ */
+const MAX_CACHED_REQUESTS = 2_000_000;
+const iterableSchema = z.custom((value) => isIterable(value) || isAsyncIterable(value), {
+    error: (issue) => `Expected an iterable or async iterable, got ${getObjectType(issue.input)}`,
+});
+const operationOptionsSchema = z.strictObject({
+    forefront: z.boolean().default(false),
+});
+const addRequestsOptionsSchema = z.strictObject({
+    forefront: z.boolean().default(false),
+    cache: z.boolean().default(true),
+});
+const addRequestsBatchedOptionsSchema = z.strictObject({
+    forefront: z.boolean().optional(),
+    waitForAllRequestsToBeAdded: z.boolean().default(false),
+    batchSize: schemas.anyNumber.default(1000),
+    waitBetweenBatchesMillis: schemas.anyNumber.default(1000),
+    maxNewRequests: schemas.anyNumber.optional(),
+});
+const newRequestLikeSchema = z.looseObject({
+    url: z.string(),
+    id: z.undefined().optional(),
+});
+const handledRequestSchema = z.looseObject({
+    id: z.string(),
+    uniqueKey: z.string(),
+    handledAt: z.string().optional(),
+});
+const reclaimedRequestSchema = z.looseObject({
+    id: z.string(),
+    uniqueKey: z.string(),
+});
+const uniqueKeySchema = z.string();
+const openOptionsSchema = z.strictObject({
+    configuration: z.instanceof(Configuration).optional(),
+    storageBackend: validators.storageBackend.optional(),
+    proxyConfiguration: validators.proxyConfiguration.optional(),
+    httpClient: schemas.httpClient.optional(),
+});
+/**
+ * Represents a queue of URLs to crawl, which is used for deep crawling of websites
+ * where you start with several URLs and then recursively
+ * follow links to other pages. The data structure supports both breadth-first and depth-first crawling orders.
+ *
+ * Each URL is represented using an instance of the {@apilink Request} class.
+ * The queue can only contain unique URLs. More precisely, it can only contain {@apilink Request} instances
+ * with distinct `uniqueKey` properties. By default, `uniqueKey` is generated from the URL, but it can also be overridden.
+ * To add a single URL multiple times to the queue,
+ * corresponding {@apilink Request} objects will need to have different `uniqueKey` properties.
+ *
+ * Do not instantiate this class directly, use the {@apilink RequestQueue.open} function instead.
+ *
+ * `RequestQueue` is used by {@apilink BasicCrawler}, {@apilink CheerioCrawler}, {@apilink PuppeteerCrawler}
+ * and {@apilink PlaywrightCrawler} as a source of URLs to crawl.
+ * Unlike {@apilink RequestList}, `RequestQueue` supports dynamic adding and removing of requests.
+ * On the other hand, the queue is not optimized for operations that add or remove a large number of URLs in a batch.
+ *
+ * **Example usage:**
+ *
+ * ```javascript
+ * // Open the default request queue associated with the crawler run
+ * const queue = await RequestQueue.open();
+ *
+ * // Open a named request queue
+ * const queueWithName = await RequestQueue.open('some-name');
+ *
+ * // Enqueue few requests
+ * await queue.addRequest({ url: 'http://example.com/aaa' });
+ * await queue.addRequest({ url: 'http://example.com/bbb' });
+ * await queue.addRequest({ url: 'http://example.com/foo/bar' }, { forefront: true });
+ * ```
+ * @category Sources
+ */
+export class RequestQueue {
+    id;
+    name;
+    backend;
+    #proxyConfiguration;
+    log;
+    #requestCache;
+    get requestCache() {
+        return this.#requestCache;
+    }
+    /**
+     * Remembers the `requestId` of every request already submitted to the client — including background
+     * batches that `requestCache` skips — so overlapping URL sets aren't re-submitted.
+     * See {@link RequestDeduplicationCache} for why this is a separate, cheaper cache.
+     */
+    #requestSeenCache;
+    #queuePausedForMigration = false;
+    #inProgressRequestBatchCount = 0;
+    get inProgressRequestBatchCount() {
+        return this.#inProgressRequestBatchCount;
+    }
+    set inProgressRequestBatchCount(value) {
+        this.#inProgressRequestBatchCount = value;
+    }
+    /**
+     * The largest expected request-processing time (in seconds) seen so far via
+     * {@link setExpectedRequestProcessingTimeSecs}. Used to ensure that value is only ever raised, never
+     * lowered, before being forwarded to the storage backend.
+     */
+    #expectedRequestProcessingSecs = 0;
+    #httpClient;
+    #events;
+    #statsTracker = new StorageStatsTracker({
+        writeCount: 0,
+        headItemReadCount: 0,
+    });
+    /**
+     * Backend-independent usage counters tracked for this request queue (write operations and
+     * queue-head reads issued to the underlying storage backend). Counted per backend call.
+     */
+    get stats() {
+        return this.#statsTracker.current;
+    }
+    /**
+     * @internal
+     */
+    constructor(options) {
+        this.id = options.metadata.id;
+        this.name = options.metadata.name;
+        this.#events = serviceLocator.getEventManager();
+        this.backend = options.backend;
+        this.#proxyConfiguration = options.proxyConfiguration;
+        this.#requestCache = new LruCache({ maxLength: MAX_CACHED_REQUESTS });
+        this.#requestSeenCache = new RequestDeduplicationCache();
+        this.log = serviceLocator.getLogger().child({ prefix: `RequestQueue(${this.id}, ${this.name ?? 'no-name'})` });
+        this.#events.on(EventType.MIGRATING, async () => {
+            this.#queuePausedForMigration = true;
+        });
+    }
+    /**
+     * Returns the total number of requests in the queue (i.e. pending + handled).
+     *
+     * Survives restarts and actor migrations.
+     */
+    async getTotalCount() {
+        const { totalRequestCount } = await this.getInfo();
+        return totalRequestCount;
+    }
+    /**
+     * Returns the total number of pending requests in the queue.
+     *
+     * Survives restarts and Actor migrations.
+     */
+    async getPendingCount() {
+        const { totalRequestCount, handledRequestCount } = await this.getInfo();
+        return totalRequestCount - handledRequestCount;
+    }
+    /**
+     * Adds a request to the queue.
+     *
+     * If a request with the same `uniqueKey` property is already present in the queue,
+     * it will not be updated. You can find out whether this happened from the resulting
+     * {@apilink QueueOperationInfo} object.
+     *
+     * To add multiple requests to the queue by extracting links from a webpage,
+     * see the {@apilink enqueueLinks} helper function.
+     *
+     * @param requestLike {@apilink Request} object or vanilla object with request data.
+     * Note that the function sets the `uniqueKey` and `id` fields to the passed Request.
+     * @param [options] Request queue operation options.
+     */
+    async addRequest(requestLike, options = {}) {
+        const transaction = activeStorageTransaction();
+        parseArgument(requestLike, schemas.anyObject);
+        const { forefront } = parseArgument(options, operationOptionsSchema);
+        if ('requestsFromUrl' in requestLike) {
+            const requests = await this.fetchRequestsFromUrl(requestLike);
+            const processedRequests = await this.addFetchedRequests(requestLike, requests, options);
+            return { ...processedRequests[0], forefront };
+        }
+        parseArgument(requestLike, newRequestLikeSchema);
+        const request = requestLike instanceof Request ? requestLike : new Request(requestLike);
+        if (transaction?.policy.requestQueue === 'deferred') {
+            return this.addRequestDeferred(transaction, request, forefront);
+        }
+        const cacheKey = getRequestId(request.uniqueKey);
+        const cachedInfo = this.requestCache.get(cacheKey);
+        if (cachedInfo) {
+            request.id = cachedInfo.id;
+            this.recordRequestJournalEntry(transaction, [request], forefront, true);
+            return {
+                wasAlreadyPresent: true,
+                // We may assume that if request is in local cache then also the information if the
+                // request was already handled is there because just one client should be using one queue.
+                wasAlreadyHandled: cachedInfo.isHandled,
+                requestId: cachedInfo.id,
+                uniqueKey: cachedInfo.uniqueKey,
+                forefront,
+            };
+        }
+        this.#statsTracker.add('writeCount');
+        const { processedRequests } = await this.backend.addBatchOfRequests([request], { forefront });
+        this.recordRequestJournalEntry(transaction, [request], forefront, true);
+        const queueOperationInfo = {
+            ...processedRequests[0],
+            uniqueKey: request.uniqueKey,
+            forefront,
+        };
+        this.cacheRequest(cacheKey, queueOperationInfo);
+        this.#requestSeenCache.add(cacheKey, request.id);
+        return queueOperationInfo;
+    }
+    /**
+     * Journals an addition for introspection only; these entries are never replayed. A no-op unless the
+     * transaction is open, so detached and outliving writers stay out of the journal.
+     */
+    recordRequestJournalEntry(transaction, requests, forefront, writeThrough) {
+        if (!transaction?.isActive || requests.length === 0)
+            return;
+        transaction.recordJournalEntry({
+            type: 'requestQueue',
+            participant: this,
+            requests: requests.map((request) => ({
+                url: request.url,
+                uniqueKey: request.uniqueKey,
+                label: request.label,
+            })),
+            forefront,
+            writeThrough,
+        });
+    }
+    /**
+     * The requests buffered by the given transaction for this queue, keyed by `uniqueKey` — a dedup
+     * index derived from the transaction journal.
+     */
+    bufferedRequests(transaction) {
+        const buffered = new Map();
+        // Only `deferred` records snapshots, so scanning the journal under `writeThrough` never finds any.
+        if (transaction.policy.requestQueue !== 'deferred')
+            return buffered;
+        for (const entry of transaction.journal) {
+            if (entry.type !== 'requestQueue' || entry.participant !== this)
+                continue;
+            for (const request of entry.requests) {
+                if (request.snapshot !== undefined)
+                    buffered.set(request.uniqueKey, request.snapshot);
+            }
+        }
+        return buffered;
+    }
+    /**
+     * Adds a request under the `deferred` policy: journaled now, really added by the commit replay.
+     * A new request's `requestId` is the local `uniqueKey` hash and is **provisional** — never write it
+     * to `request.id` or the dedup caches. Dedup is cheapest-first: buffer, caches, then a backend probe.
+     */
+    async addRequestDeferred(transaction, request, forefront, buffered = this.bufferedRequests(transaction)) {
+        // This transaction's own buffered adds; the shared caches never see them (provisional ids).
+        if (buffered.has(request.uniqueKey)) {
+            this.recordRequestJournalEntry(transaction, [request], forefront, false);
+            return {
+                wasAlreadyPresent: true,
+                wasAlreadyHandled: false,
+                requestId: getRequestId(request.uniqueKey),
+                uniqueKey: request.uniqueKey,
+                forefront,
+            };
+        }
+        // The caches hold real backend ids. Only *writing* provisional ids to them would be wrong;
+        // reading saves a probe. Same lookup as the write-through path.
+        const cacheKey = getRequestId(request.uniqueKey);
+        const cachedInfo = this.requestCache.get(cacheKey);
+        const knownRequestId = cachedInfo?.id ?? this.#requestSeenCache.get(cacheKey);
+        if (knownRequestId) {
+            this.recordRequestJournalEntry(transaction, [request], forefront, false);
+            return {
+                wasAlreadyPresent: true,
+                // The dedup cache doesn't track the handled state; only the full record does.
+                wasAlreadyHandled: cachedInfo?.isHandled ?? false,
+                requestId: knownRequestId,
+                uniqueKey: request.uniqueKey,
+                forefront,
+            };
+        }
+        // The caches are bounded, so a miss is not proof of absence - probe for an accurate answer.
+        const existing = await this.backend.getRequest(request.uniqueKey);
+        if (existing) {
+            this.recordRequestJournalEntry(transaction, [request], forefront, false);
+            return {
+                wasAlreadyPresent: true,
+                wasAlreadyHandled: existing.handledAt != null,
+                requestId: existing.id,
+                uniqueKey: request.uniqueKey,
+                forefront,
+            };
+        }
+        // The entry below *is* the write, so a transaction closed during the probe must not receive it -
+        // pass through instead, per the closed-transaction rule. Under `deferred` that can land an
+        // addition a rollback would have discarded; dedup bounds that cost, silent loss is unbounded.
+        if (!transaction.isActive) {
+            return await this.addRequest(request, { forefront });
+        }
+        const snapshot = JSON.parse(JSON.stringify(request));
+        // Strip-list, not allow-list: every user-facing field flows through, including ones added to
+        // `Request` in the future. The exceptions are `id` and `handledAt`, the two backend-owned
+        // lifecycle fields.
+        delete snapshot.id;
+        delete snapshot.handledAt;
+        transaction.recordJournalEntry({
+            type: 'requestQueue',
+            participant: this,
+            requests: [{ url: request.url, uniqueKey: request.uniqueKey, label: request.label, snapshot }],
+            forefront,
+            writeThrough: false,
+        });
+        buffered.set(request.uniqueKey, snapshot);
+        return {
+            wasAlreadyPresent: false,
+            wasAlreadyHandled: false,
+            requestId: getRequestId(request.uniqueKey),
+            uniqueKey: request.uniqueKey,
+            forefront,
+        };
+    }
+    /** @internal */
+    async commitJournalEntries(entries) {
+        // Replay through `backend.addBatchOfRequests`, *not* the batched frontend wrapper - the wrapper
+        // resolves after the first chunk and sleeps between the rest, neither of which commit may
+        // inherit. One call per `forefront` flag; the order of forefront additions is arbitrary anyway.
+        for (const forefront of [false, true]) {
+            const requests = entries.flatMap((entry) => entry.type === 'requestQueue' && entry.forefront === forefront
+                ? // Requests without a snapshot were deduplicated or written through; nothing to replay.
+                    entry.requests
+                        .filter((journaled) => journaled.snapshot !== undefined)
+                        .map((journaled) => new Request(journaled.snapshot))
+                : []);
+            if (requests.length === 0)
+                continue;
+            this.#statsTracker.add('writeCount');
+            const { processedRequests, unprocessedRequests } = await this.backend.addBatchOfRequests(requests, {
+                forefront,
+            });
+            // Only now, with the real backend-assigned ids, may the shared dedup caches be populated.
+            for (const processed of processedRequests) {
+                const cacheKey = getRequestId(processed.uniqueKey);
+                this.cacheRequest(cacheKey, { ...processed, forefront });
+                this.#requestSeenCache.add(cacheKey, processed.requestId);
+            }
+            if (unprocessedRequests.length > 0) {
+                // Warn and skip, rather than retry or fail. `unprocessedRequests` is what remains after
+                // the backend's own transient-error handling - a semantic rejection that retrying here
+                // would only re-poke. And failing the commit would let one malformed request hold the
+                // whole transaction hostage.
+                this.log.warning('Some requests were rejected by the request queue while committing a storage transaction and will be skipped. ' +
+                    "This usually means the request data is malformed (e.g. an invalid 'userData' shape).", { unprocessedRequests });
+            }
+        }
+    }
+    /**
+     * Adds requests to the queue in batches of 25. This method will wait till all the requests are added
+     * to the queue before resolving. You should prefer using `queue.addRequestsBatched()` or `crawler.addRequests()`
+     * if you don't want to block the processing, as those methods will only wait for the initial 1000 requests,
+     * start processing right after that happens, and continue adding more in the background.
+     *
+     * If a request passed in is already present due to its `uniqueKey` property being the same,
+     * it will not be updated. You can find out whether this happened by finding the request in the resulting
+     * {@apilink BatchAddRequestsResult} object.
+     *
+     * @param requestsLike {@apilink Request} objects or vanilla objects with request data.
+     * Note that the function sets the `uniqueKey` and `id` fields to the passed requests if missing.
+     * @param [options] Request queue operation options.
+     */
+    async addRequests(requestsLike, options = {}) {
+        const transaction = activeStorageTransaction();
+        parseArgument(requestsLike, iterableSchema);
+        const { forefront, cache } = parseArgument(options, addRequestsOptionsSchema);
+        const uniqueKeyToCacheKey = new Map();
+        const getCachedRequestId = (uniqueKey) => {
+            const cached = uniqueKeyToCacheKey.get(uniqueKey);
+            if (cached)
+                return cached;
+            const newCacheKey = getRequestId(uniqueKey);
+            uniqueKeyToCacheKey.set(uniqueKey, newCacheKey);
+            return newCacheKey;
+        };
+        const results = {
+            processedRequests: [],
+            unprocessedRequests: [],
+        };
+        const requests = [];
+        for await (const requestLike of requestsLike) {
+            if (typeof requestLike === 'string') {
+                requests.push(new Request({ url: requestLike }));
+            }
+            else if ('requestsFromUrl' in requestLike) {
+                const fetchedRequests = await this.fetchRequestsFromUrl(requestLike);
+                await this.addFetchedRequests(requestLike, fetchedRequests, options);
+            }
+            else {
+                requests.push(requestLike instanceof Request ? requestLike : new Request(requestLike));
+            }
+        }
+        if (transaction?.policy.requestQueue === 'deferred') {
+            const buffered = this.bufferedRequests(transaction);
+            for (const request of requests) {
+                results.processedRequests.push(await this.addRequestDeferred(transaction, request, forefront, buffered));
+            }
+            return results;
+        }
+        this.recordRequestJournalEntry(transaction, requests, forefront, true);
+        const requestsToAdd = new Map();
+        for (const request of requests) {
+            const cacheKey = getCachedRequestId(request.uniqueKey);
+            // Prefer the full `requestCache` record; fall back to the dedup cache for background batches it skips.
+            const cachedInfo = this.requestCache.get(cacheKey);
+            const knownRequestId = cachedInfo?.id ?? this.#requestSeenCache.get(cacheKey);
+            if (knownRequestId) {
+                request.id = knownRequestId;
+                results.processedRequests.push({
+                    wasAlreadyPresent: true,
+                    // The dedup cache doesn't track the handled state; only the full record does.
+                    wasAlreadyHandled: cachedInfo?.isHandled ?? false,
+                    requestId: knownRequestId,
+                    uniqueKey: request.uniqueKey,
+                });
+            }
+            else if (!requestsToAdd.has(request.uniqueKey)) {
+                requestsToAdd.set(request.uniqueKey, request);
+            }
+        }
+        // Early exit if all provided requests were already added
+        if (!requestsToAdd.size) {
+            return results;
+        }
+        this.#statsTracker.add('writeCount');
+        const apiResults = await this.backend.addBatchOfRequests([...requestsToAdd.values()], { forefront });
+        // Report unprocessed requests
+        results.unprocessedRequests = apiResults.unprocessedRequests;
+        // Add all new requests to the requestCache
+        for (const newRequest of apiResults.processedRequests) {
+            // Add the new request to the processed list
+            results.processedRequests.push(newRequest);
+            const cacheKey = getCachedRequestId(newRequest.uniqueKey);
+            if (cache) {
+                this.cacheRequest(cacheKey, { ...newRequest, forefront });
+            }
+            // Unlike `requestCache`, populate this on every batch (including background ones).
+            this.#requestSeenCache.add(cacheKey, newRequest.requestId);
+        }
+        return results;
+    }
+    /**
+     * Adds requests to the queue in batches. By default, it will resolve after the initial batch is added, and continue
+     * adding the rest in the background. You can configure the batch size via `batchSize` option and the sleep time in between
+     * the batches via `waitBetweenBatchesMillis`. If you want to wait for all batches to be added to the queue, you can use
+     * the `waitForAllRequestsToBeAdded` promise you get in the response object.
+     *
+     * @param requests The requests to add
+     * @param options Options for the request queue
+     */
+    async addRequestsBatched(requests, options = {}) {
+        parseArgument(requests, iterableSchema);
+        const { forefront, waitForAllRequestsToBeAdded, batchSize, waitBetweenBatchesMillis, maxNewRequests } = parseArgument(options, addRequestsBatchedOptionsSchema);
+        const addRequest = this.addRequest.bind(this);
+        async function* generateRequests() {
+            for await (const opts of requests) {
+                // Validate the input
+                if (typeof opts === 'object' && opts !== null) {
+                    if (opts.url !== undefined && typeof opts.url !== 'string') {
+                        throw new Error(`Request options are not valid, the 'url' property is not a string. Input: ${inspect(opts)}`);
+                    }
+                    if (opts.id !== undefined) {
+                        throw new Error(`Request options are not valid, the 'id' property must not be present. Input: ${inspect(opts)}`);
+                    }
+                    if (opts.requestsFromUrl !== undefined &&
+                        typeof opts.requestsFromUrl !== 'string') {
+                        throw new Error(`Request options are not valid, the 'requestsFromUrl' property is not a string. Input: ${inspect(opts)}`);
+                    }
+                }
+                if (opts && typeof opts === 'object' && 'requestsFromUrl' in opts) {
+                    // Handle URL lists right away
+                    await addRequest(opts, { forefront });
+                }
+                else {
+                    // Yield valid requests
+                    yield typeof opts === 'string' ? { url: opts } : opts;
+                }
+            }
+        }
+        return drainRequestBatches({
+            items: generateRequests(),
+            batchSize,
+            waitBetweenBatchesMillis,
+            waitForAllRequestsToBeAdded,
+            maxNewRequests,
+            /**
+             * Requests the backend reports as unprocessed are warned about and skipped rather than retried:
+             * `unprocessedRequests` is what remains after the backend's own transient-error handling - a
+             * semantic rejection (e.g. a malformed `userData` shape) that re-sending would only re-poke.
+             * Retrying transient failures is the storage backend's job, not the frontend's.
+             */
+            processChunk: async (chunk, isInitial) => {
+                const { processedRequests, unprocessedRequests } = await this.addRequests(chunk, {
+                    forefront,
+                    cache: isInitial,
+                });
+                if (unprocessedRequests.length > 0) {
+                    this.log.warning('Some requests were rejected by the request queue and will be skipped. ' +
+                        "This usually means the request data is malformed (e.g. an invalid 'userData' shape).", { unprocessedRequests });
+                }
+                return processedRequests;
+            },
+            trackBackgroundBatches: (batches) => {
+                this.#inProgressRequestBatchCount += 1;
+                void batches.finally(() => {
+                    this.#inProgressRequestBatchCount -= 1;
+                });
+            },
+        });
+    }
+    /**
+     * Gets the request from the queue specified by its `uniqueKey`.
+     *
+     * @param uniqueKey Unique key of the request.
+     * @returns Returns the request object, or `null` if it was not found.
+     */
+    async getRequest(uniqueKey) {
+        const transaction = activeStorageTransaction();
+        parseArgument(uniqueKey, uniqueKeySchema);
+        // Requests buffered by the active transaction (under the `deferred` write policy) are visible to it.
+        const buffered = transaction && this.bufferedRequests(transaction).get(uniqueKey);
+        if (buffered) {
+            return new Request(buffered);
+        }
+        const requestOptions = await this.backend.getRequest(uniqueKey);
+        if (!requestOptions)
+            return null;
+        return new Request(requestOptions);
+    }
+    /**
+     * Returns a next request in the queue to be processed, or `null` if there are no more pending requests.
+     *
+     * Once you successfully finish processing of the request, you need to call
+     * {@apilink RequestQueue.markRequestAsHandled}
+     * to mark the request as handled in the queue. If there was some error in processing the request,
+     * call {@apilink RequestQueue.reclaimRequest} instead,
+     * so that the queue will give the request to some other consumer in another call to the `fetchNextRequest` function.
+     *
+     * Note that the `null` return value doesn't mean the queue processing finished,
+     * it means there are currently no pending requests.
+     * To check whether all requests in queue were finished,
+     * use {@apilink RequestQueue.isFinished} instead.
+     *
+     * @returns
+     *   Returns the request object or `null` if there are no more pending requests.
+     */
+    async fetchNextRequest() {
+        rejectOperationInTransaction('RequestQueue.fetchNextRequest()', 'it is part of the crawler request-processing bookkeeping, which a transaction must not affect.');
+        if (this.#queuePausedForMigration) {
+            return null;
+        }
+        this.#statsTracker.add('headItemReadCount');
+        const requestOptions = await this.backend.fetchNextRequest();
+        if (!requestOptions)
+            return null;
+        return new Request(requestOptions);
+    }
+    /**
+     * Marks a request that was previously returned by the
+     * {@apilink RequestQueue.fetchNextRequest}
+     * function as handled after successful processing.
+     * Handled requests will never again be returned by the `fetchNextRequest` function.
+     */
+    async markRequestAsHandled(request) {
+        rejectOperationInTransaction('RequestQueue.markRequestAsHandled()', 'it is part of the crawler request-processing bookkeeping, which a transaction must not affect.');
+        parseArgument(request, handledRequestSchema);
+        const forefront = this.requestCache.get(getRequestId(request.uniqueKey))?.forefront ?? false;
+        const handledAt = request.handledAt ?? new Date().toISOString();
+        this.#statsTracker.add('writeCount');
+        const processedRequest = await this.backend.markRequestAsHandled({
+            ...request,
+            handledAt,
+        });
+        // The request was not in progress (e.g. already handled) — nothing to do.
+        if (!processedRequest) {
+            return null;
+        }
+        request.handledAt = handledAt;
+        const queueOperationInfo = {
+            ...processedRequest,
+            uniqueKey: request.uniqueKey,
+            forefront,
+        };
+        this.cacheRequest(getRequestId(request.uniqueKey), queueOperationInfo);
+        return queueOperationInfo;
+    }
+    /**
+     * Reclaims a failed request back to the queue, so that it can be returned for processing later again
+     * by another call to {@apilink RequestQueue.fetchNextRequest}.
+     * The request record in the queue is updated using the provided `request` parameter.
+     * For example, this lets you store the number of retries or error messages for the request.
+     */
+    async reclaimRequest(request, options = {}) {
+        rejectOperationInTransaction('RequestQueue.reclaimRequest()', 'it is part of the crawler request-processing bookkeeping, which a transaction must not affect.');
+        parseArgument(request, reclaimedRequestSchema);
+        const { forefront } = parseArgument(options, operationOptionsSchema);
+        this.#statsTracker.add('writeCount');
+        const processedRequest = await this.backend.reclaimRequest(request, {
+            forefront,
+        });
+        // The request was not in progress — nothing to reclaim.
+        if (!processedRequest) {
+            return null;
+        }
+        const queueOperationInfo = {
+            ...processedRequest,
+            uniqueKey: request.uniqueKey,
+            forefront,
+        };
+        this.cacheRequest(getRequestId(request.uniqueKey), queueOperationInfo);
+        return queueOperationInfo;
+    }
+    /**
+     * Resolves to `true` if the next call to {@apilink RequestQueue.fetchNextRequest} would return
+     * `null`, i.e. there are no pending requests to fetch right now. Otherwise it resolves to `false`.
+     *
+     * Note that even if the queue is empty, there might be some requests currently being processed
+     * (fetched but not yet handled or reclaimed). An empty queue therefore does not mean crawling is
+     * finished — those in-progress requests may still be reclaimed, and background tasks may still be
+     * adding more requests. To check whether all activity in the queue has finished, use
+     * {@apilink RequestQueue.isFinished}.
+     */
+    async isEmpty() {
+        const transaction = activeStorageTransaction();
+        // Requests buffered by the active transaction count as pending from its point of view.
+        if (transaction && this.bufferedRequests(transaction).size > 0) {
+            return false;
+        }
+        return this.backend.isEmpty();
+    }
+    /**
+     * Resolves to `true` if all requests were already handled and there are no more left — including no
+     * requests currently in progress (fetched but not yet handled or reclaimed, including requests
+     * locked by other clients sharing the same queue) and no background add operations still in flight.
+     *
+     * Due to the nature of distributed storage used by the queue, the function may occasionally return
+     * a false negative, but it shall never return a false positive.
+     */
+    async isFinished() {
+        const transaction = activeStorageTransaction();
+        // We are not finished if we're still adding new requests in the background.
+        if (this.inProgressRequestBatchCount > 0) {
+            return false;
+        }
+        // Requests buffered by the active transaction count as pending from its point of view.
+        if (transaction && this.bufferedRequests(transaction).size > 0) {
+            return false;
+        }
+        return this.backend.isFinished();
+    }
+    /**
+     * Tells the queue how long a consumer expects to hold a fetched request before marking it handled
+     * or reclaiming it (typically the request-handler timeout plus padding), so that a storage backend
+     * that reserves requests via locking does not hand the same request out again while it is still
+     * being processed.
+     *
+     * Several consumers may share one queue (and therefore one client) in a single process, so we only
+     * ever raise the reservation duration, never lower it — otherwise a short-lived consumer could cut
+     * short the reservation of a long-lived one and have its in-flight request stolen.
+     */
+    async setExpectedRequestProcessingTimeSecs(secs) {
+        if (secs <= this.#expectedRequestProcessingSecs) {
+            return;
+        }
+        this.#expectedRequestProcessingSecs = secs;
+        await this.backend.setExpectedRequestProcessingTimeSecs?.(secs);
+    }
+    /**
+     * Caches information about request to beware of unneeded addRequest() calls.
+     */
+    cacheRequest(cacheKey, queueOperationInfo) {
+        // Remove the previous entry, as otherwise our cache will never update 👀
+        this.requestCache.remove(cacheKey);
+        this.requestCache.add(cacheKey, {
+            id: queueOperationInfo.requestId,
+            isHandled: queueOperationInfo.wasAlreadyHandled,
+            uniqueKey: queueOperationInfo.uniqueKey,
+            hydrated: null,
+            lockExpiresAt: null,
+            forefront: queueOperationInfo.forefront,
+        });
+    }
+    /**
+     * Removes the queue either from the Apify Cloud storage or from the local database,
+     * depending on the mode of operation.
+     */
+    async drop() {
+        rejectOperationInTransaction('RequestQueue.drop()');
+        await this.backend.drop();
+        serviceLocator.getStorageInstanceManager().removeFromCache(this);
+    }
+    /**
+     * Remove all requests from the queue but keep the queue itself, resetting it
+     * so it can be reused (e.g. across multiple `crawler.run()` calls).
+     */
+    async purge() {
+        rejectOperationInTransaction('RequestQueue.purge()');
+        await this.backend.purge();
+        // Reset in-memory bookkeeping so the queue behaves as if freshly opened.
+        this.#requestCache.clear();
+        this.#requestSeenCache.clear();
+        this.#inProgressRequestBatchCount = 0;
+        // Reset the expected-processing-time high-water mark too, otherwise the monotonic-raise guard
+        // in `setExpectedRequestProcessingTimeSecs` would let a value raised in an earlier run leak into a
+        // later one and silently swallow a lower hint (the queue is meant to be reusable across runs).
+        this.#expectedRequestProcessingSecs = 0;
+    }
+    /**
+     * @inheritdoc
+     */
+    async *[Symbol.asyncIterator]() {
+        while (true) {
+            const req = await this.fetchNextRequest();
+            if (!req)
+                break;
+            yield req;
+        }
+    }
+    /**
+     * Returns the number of handled requests.
+     *
+     * This function is just a convenient shortcut for:
+     *
+     * ```javascript
+     * const { handledRequestCount } = await queue.getInfo();
+     * ```
+     * @inheritdoc
+     */
+    async getHandledCount() {
+        // NOTE: We keep this function for compatibility with RequestList.getHandledCount()
+        const { handledRequestCount } = await this.getInfo();
+        return handledRequestCount;
+    }
+    /**
+     * Returns an object containing general information about the request queue.
+     *
+     * **Example:**
+     * ```
+     * {
+     *   id: "WkzbQMuFYuamGv3YF",
+     *   name: "my-queue",
+     *   createdAt: new Date("2015-12-12T07:34:14.202Z"),
+     *   modifiedAt: new Date("2015-12-13T08:36:13.202Z"),
+     *   accessedAt: new Date("2015-12-14T08:36:13.202Z"),
+     *   totalRequestCount: 25,
+     *   handledRequestCount: 5,
+     *   pendingRequestCount: 20,
+     * }
+     * ```
+     *
+     * @throws If the underlying storage no longer exists (e.g. it was deleted externally).
+     */
+    async getInfo() {
+        const transaction = activeStorageTransaction();
+        const metadata = await this.backend.getMetadata();
+        const bufferedCount = transaction ? this.bufferedRequests(transaction).size : 0;
+        if (bufferedCount > 0) {
+            return {
+                ...metadata,
+                totalRequestCount: metadata.totalRequestCount + bufferedCount,
+                pendingRequestCount: metadata.pendingRequestCount + bufferedCount,
+            };
+        }
+        return metadata;
+    }
+    /**
+     * Fetches URLs from requestsFromUrl and returns them in format of list of requests
+     */
+    async fetchRequestsFromUrl(source) {
+        const { requestsFromUrl, regex, ...sharedOpts } = source;
+        // Download remote resource and parse URLs.
+        let urlsArr;
+        try {
+            urlsArr = await this.downloadListOfUrls({
+                url: requestsFromUrl,
+                urlRegExp: regex,
+                proxyUrl: (await this.#proxyConfiguration?.newProxyInfo())?.url,
+            });
+        }
+        catch (err) {
+            throw new Error(`Cannot fetch a request list from ${requestsFromUrl}: ${err}`);
+        }
+        // Skip if resource contained no URLs.
+        if (!urlsArr.length) {
+            this.log.warning('The fetched list contains no valid URLs.', { requestsFromUrl, regex });
+            return [];
+        }
+        return urlsArr.map((url) => ({ url, ...sharedOpts }));
+    }
+    /**
+     * Adds all fetched requests from a URL from a remote resource.
+     */
+    async addFetchedRequests(source, fetchedRequests, options) {
+        const { requestsFromUrl, regex } = source;
+        const { addedRequests } = await this.addRequestsBatched(fetchedRequests, options);
+        this.log.info('Fetched and loaded Requests from a remote resource.', {
+            requestsFromUrl,
+            regex,
+            fetchedCount: fetchedRequests.length,
+            importedCount: addedRequests.length,
+            duplicateCount: fetchedRequests.length - addedRequests.length,
+            sample: JSON.stringify(fetchedRequests.slice(0, 5)),
+        });
+        return addedRequests;
+    }
+    /**
+     * @internal wraps public utility for mocking purposes
+     */
+    async downloadListOfUrls(options) {
+        return downloadListOfUrls({
+            ...options,
+            httpClient: this.#httpClient,
+        });
+    }
+    /**
+     * Opens a request queue and returns a promise resolving to an instance
+     * of the {@apilink RequestQueue} class.
+     *
+     * {@apilink RequestQueue} represents a queue of URLs to crawl, which is stored either on local filesystem or in the cloud.
+     * The queue is used for deep crawling of websites, where you start with several URLs and then
+     * recursively follow links to other pages. The data structure supports both breadth-first
+     * and depth-first crawling orders.
+     *
+     * For more details and code examples, see the {@apilink RequestQueue} class.
+     *
+     * @param [identifier]
+     *   ID or name of the request queue to be opened. If a string is provided, it will first be
+     *   looked up as an ID; if no such storage exists, it will be treated as a name.
+     *   If `null` or `undefined`, the function returns the default request queue associated with the crawler run.
+     * @param [options] Open Request Queue options.
+     */
+    static async open(identifier, options = {}) {
+        tryCancel();
+        const parsedOptions = parseArgument(options, openOptionsSchema);
+        const storageBackend = parsedOptions.storageBackend ?? serviceLocator.getStorageBackend();
+        const configuration = parsedOptions.configuration ?? serviceLocator.getConfiguration();
+        await purgeDefaultStorages({ onlyPurgeOnce: true, storageBackend, configuration });
+        const resolved = await resolveStorageIdentifier(identifier, storageBackend, 'RequestQueue');
+        const queue = await serviceLocator
+            .getStorageInstanceManager()
+            .openStorage(this, {
+            ...resolved,
+            backendOpener: () => storageBackend.createRequestQueueBackend(resolved),
+            backendCacheKey: storageBackend.getStorageBackendCacheKey?.() ?? storageBackend.constructor.name,
+        });
+        queue.#proxyConfiguration = parsedOptions.proxyConfiguration;
+        queue.#httpClient = parsedOptions.httpClient;
+        return queue;
+    }
+}

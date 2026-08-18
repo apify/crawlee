@@ -1,0 +1,407 @@
+import { AsyncQueue } from '@sapphire/async-queue';
+import { z } from 'zod';
+import { EventType } from '../events/event_manager.js';
+import { serviceLocator } from '../service_locator.js';
+import { KeyValueStore } from '../storages/key_value_store.js';
+import { parseArgument, schemas, validators } from '../validators.js';
+import { MAX_POOL_SIZE, PERSIST_STATE_KEY } from './consts.js';
+import { createDefaultSessionFingerprint } from './fingerprint.js';
+import { Session } from './session.js';
+const SESSION_REUSE_STRATEGIES = ['random', 'round-robin', 'use-until-failure'];
+// `schemas.anyObject` passes values through by reference (object schemas return a pruned plain
+// copy), so class instances like loggers keep their prototype.
+const sessionPoolOptionsSchema = z.strictObject({
+    id: z.union([schemas.anyNumber, z.string()]).optional(),
+    maxPoolSize: schemas.anyNumber.default(MAX_POOL_SIZE),
+    persistStateKeyValueStoreId: z.string().optional(),
+    persistStateKey: z.string().optional(),
+    createSessionFunction: schemas.anyFunction.optional(),
+    sessionOptions: schemas.anyObject.default(() => ({})),
+    log: validators.logger.default(() => serviceLocator.getLogger()),
+    persistenceOptions: schemas.anyObject.default(() => ({ enable: true })),
+    sessionReuseStrategy: z.enum(SESSION_REUSE_STRATEGIES).default('random'),
+});
+const createSessionOptionsSchema = z.strictObject({
+    sessionOptions: schemas.anyObject.default(() => ({})),
+});
+/**
+ * Handles the rotation, creation and persistence of user-like sessions.
+ * Creates a pool of {@apilink Session} instances, that are randomly rotated.
+ * When some session is marked as blocked, it is removed and new one is created instead (the pool never returns an unusable session).
+ * Learn more in the {@doclink guides/session-management | Session management guide}.
+ *
+ * Session pool is already integrated into crawlers and is always active.
+ * All public methods are lazy-initialized — the pool initializes itself on first use.
+ *
+ * You can configure the pool with many options. See the {@apilink SessionPoolOptions}.
+ * Session pool is by default persisted in default {@apilink KeyValueStore}.
+ * If you want to have one pool for all runs you have to specify
+ * {@apilink SessionPoolOptions.persistStateKeyValueStoreId}.
+ *
+ * **Advanced usage:**
+ *
+ * ```javascript
+ * const sessionPool = new SessionPool({
+ *     maxPoolSize: 25,
+ *     sessionOptions:{
+ *          maxAgeSecs: 10,
+ *          maxUsageCount: 150, // for example when you know that the site blocks after 150 requests.
+ *     },
+ *     persistStateKeyValueStoreId: 'my-key-value-store-for-sessions',
+ *     persistStateKey: 'my-session-pool',
+ * });
+ *
+ * // Get random session from the pool
+ * const session1 = await sessionPool.getSession();
+ * const session2 = await sessionPool.getSession();
+ * const session3 = await sessionPool.getSession();
+ *
+ * // Now you can mark the session either failed or successful
+ *
+ * // Marks session as bad after unsuccessful usage -> it increases error count (soft retire)
+ * session1.markBad()
+ *
+ * // Marks as successful.
+ * session2.markGood()
+ *
+ * // Retires session -> session is removed from the pool
+ * session3.retire()
+ *
+ * ```
+ *
+ * **Default session allocation flow:*
+ * 1. Until the `SessionPool` reaches `maxPoolSize`, new sessions are created, provided to the user and added to the pool
+ * 2. Blocked/retired sessions stay in the pool but are never provided to the user
+ * 3. Once the pool is full (live plus blocked session count reaches `maxPoolSize`), a random session from the pool is provided.
+ * 4. If a blocked session would be picked, instead all blocked sessions are evicted from the pool and a new session is created and provided
+ *
+ * @category Scaling
+ */
+export class SessionPool {
+    static #nextId = 0;
+    id;
+    #log;
+    #sessions = [];
+    maxPoolSize;
+    #createSessionFunction;
+    #keyValueStore;
+    #sessionMap = new Map();
+    #sessionOptions;
+    #persistStateKeyValueStoreId;
+    #persistStateKey;
+    #listener;
+    #events;
+    #persistenceOptions;
+    #sessionReuseStrategy;
+    get sessionOptions() {
+        return this.#sessionOptions;
+    }
+    get persistStateKey() {
+        return this.#persistStateKey;
+    }
+    get persistStateKeyValueStoreId() {
+        return this.#persistStateKeyValueStoreId;
+    }
+    #initPromise;
+    #queue = new AsyncQueue();
+    #roundRobinIndex = 0;
+    constructor(options = {}) {
+        const { id, maxPoolSize, persistStateKeyValueStoreId, persistStateKey, createSessionFunction, sessionOptions, log, persistenceOptions, sessionReuseStrategy, } = parseArgument(options, sessionPoolOptionsSchema);
+        this.id = id != null ? String(id) : String(SessionPool.#nextId++);
+        this.#sessionReuseStrategy = sessionReuseStrategy;
+        this.#events = serviceLocator.getEventManager();
+        this.#log = log.child({ prefix: 'SessionPool' });
+        this.#persistenceOptions = persistenceOptions;
+        // Pool Configuration
+        this.maxPoolSize = maxPoolSize;
+        this.#createSessionFunction = createSessionFunction || this.defaultCreateSessionFunction;
+        // Session configuration. The pool-scoped logger is merged into per-call sessionOptions inside
+        // `invokeCreateSessionFunction`, so every Session inherits it without custom createSessionFunctions
+        // having to know about it.
+        this.#sessionOptions = {
+            ...sessionOptions,
+            log: this.#log,
+        };
+        // Session keyValueStore
+        this.#persistStateKeyValueStoreId = persistStateKeyValueStoreId;
+        this.#persistStateKey =
+            persistStateKey ?? (persistStateKeyValueStoreId ? PERSIST_STATE_KEY : `${PERSIST_STATE_KEY}_${this.id}`);
+    }
+    /**
+     * Gets count of usable sessions in the pool.
+     */
+    async usableSessionsCount() {
+        await this.ensureInitialized();
+        return this.#sessions.filter((session) => session.isUsable()).length;
+    }
+    /**
+     * Gets count of retired sessions in the pool.
+     */
+    async retiredSessionsCount() {
+        await this.ensureInitialized();
+        return this.#sessions.filter((session) => !session.isUsable()).length;
+    }
+    /**
+     * Starts periodic state persistence and potentially loads SessionPool state from {@apilink KeyValueStore}.
+     * Called automatically on first use of any public method.
+     */
+    async ensureInitialized() {
+        if (!this.#initPromise) {
+            this.#initPromise = this.setupPool();
+        }
+        return this.#initPromise;
+    }
+    async setupPool() {
+        if (!this.#persistenceOptions.enable) {
+            return;
+        }
+        this.#keyValueStore = await KeyValueStore.open(this.#persistStateKeyValueStoreId ? { id: this.#persistStateKeyValueStoreId } : null, {
+            configuration: serviceLocator.getConfiguration(),
+        });
+        if (!this.#persistStateKeyValueStoreId) {
+            this.#log.debug(`No 'persistStateKeyValueStoreId' options specified, this session pool's data has been saved in the KeyValueStore with the id: ${this.#keyValueStore.id}`);
+        }
+        // in case of migration happened and SessionPool state should be restored from the keyValueStore.
+        await this.maybeLoadSessionPool();
+        this.#listener = this.persistState.bind(this);
+        this.#events.on(EventType.PERSIST_STATE, this.#listener);
+    }
+    /**
+     * Adds a new session to the session pool. The pool automatically creates sessions up to the maximum size of the pool,
+     * but this allows you to add more sessions once the max pool size is reached.
+     * This also allows you to add session with overridden session options (e.g. with specific session id).
+     * @param [options] The configuration options for the session being added to the session pool.
+     */
+    async addSession(options = {}) {
+        await this.ensureInitialized();
+        const { id } = options;
+        if (id) {
+            const sessionExists = this.#sessionMap.has(id);
+            if (sessionExists) {
+                throw new Error(`Cannot add session with id '${id}' as it already exists in the pool`);
+            }
+        }
+        if (!this.hasSpaceForSession()) {
+            this.removeRetiredSessions();
+        }
+        const newSession = options instanceof Session ? options : await this.invokeCreateSessionFunction(options);
+        this.#log.debug(`Adding new Session - ${newSession.id}`);
+        this.registerSession(newSession);
+    }
+    /**
+     * Adds a new session to the session pool. The pool automatically creates sessions up to the maximum size of the pool,
+     * but this allows you to add more sessions once the max pool size is reached.
+     * This also allows you to add session with overridden session options (e.g. with specific session id).
+     * @param [options] The configuration options for the session being added to the session pool.
+     */
+    async newSession(sessionOptions) {
+        await this.ensureInitialized();
+        const newSession = await this.invokeCreateSessionFunction(sessionOptions);
+        this.registerSession(newSession);
+        return newSession;
+    }
+    /**
+     * Gets session.
+     * If there is space for new session, it creates and returns new session.
+     * If the session pool is full, it picks a session from the pool,
+     * If the picked session is usable it is returned, otherwise it creates and returns a new one.
+     * @param [sessionId] If provided, it returns the usable session with this id, `undefined` otherwise.
+     */
+    async getSession(sessionId) {
+        await this.ensureInitialized();
+        await this.#queue.wait();
+        try {
+            if (sessionId) {
+                const session = this.#sessionMap.get(sessionId);
+                if (session?.isUsable())
+                    return session;
+                return undefined;
+            }
+            const pickedSession = this.pickSession();
+            if (pickedSession)
+                return pickedSession;
+            if (this.hasSpaceForSession()) {
+                return await this.createSession();
+            }
+            this.removeRetiredSessions();
+            return await this.createSession();
+        }
+        finally {
+            this.#queue.shift();
+        }
+    }
+    /**
+     * @param options - Override the persistence options provided in the constructor
+     */
+    async resetStore(options) {
+        if (!this.#persistenceOptions.enable && !options?.enable) {
+            return;
+        }
+        await this.ensureInitialized();
+        await this.#keyValueStore?.setValue(this.#persistStateKey, null);
+    }
+    /**
+     * Returns an object representing the internal state of the `SessionPool` instance.
+     * Note that the object's fields can change in future releases.
+     */
+    async getState() {
+        await this.ensureInitialized();
+        return {
+            usableSessionsCount: await this.usableSessionsCount(),
+            retiredSessionsCount: await this.retiredSessionsCount(),
+            sessions: this.#sessions.map((session) => session.getState()),
+        };
+    }
+    /**
+     * Persists the current state of the `SessionPool` into the default {@apilink KeyValueStore}.
+     * The state is persisted automatically in regular intervals.
+     * @param options - Override the persistence options provided in the constructor
+     */
+    async persistState(options) {
+        const enable = options?.enable ?? this.#persistenceOptions.enable;
+        if (!enable) {
+            return;
+        }
+        await this.ensureInitialized();
+        this.#log.debug('Persisting state', {
+            persistStateKeyValueStoreId: this.#persistStateKeyValueStoreId,
+            persistStateKey: this.#persistStateKey,
+        });
+        await this.#keyValueStore
+            ?.setValue(this.#persistStateKey, await this.getState())
+            .catch((error) => this.#log.warning(`Failed to persist the session pool stats to ${this.#persistStateKey}`, { error }));
+    }
+    async [Symbol.asyncDispose]() {
+        await this.teardown({ persistState: true });
+    }
+    /**
+     * Removes listener from `persistState` event.
+     * This function should be called after you are done with using the `SessionPool` instance.
+     * @param options - Set `persistState` to false when the final state was already persisted by the event manager.
+     */
+    async teardown({ persistState = true } = {}) {
+        if (!this.#initPromise)
+            return;
+        await this.ensureInitialized();
+        if (this.#listener) {
+            this.#events.off(EventType.PERSIST_STATE, this.#listener);
+        }
+        if (persistState) {
+            await this.persistState();
+        }
+    }
+    /**
+     * Removes retired `Session` instances from `SessionPool`.
+     */
+    removeRetiredSessions() {
+        this.#sessions = this.#sessions.filter((storedSession) => {
+            if (storedSession.isUsable())
+                return true;
+            this.#sessionMap.delete(storedSession.id);
+            this.#log.debug(`Removed Session - ${storedSession.id}`);
+            return false;
+        });
+    }
+    /**
+     * Adds `Session` instance to `SessionPool`.
+     * @param newSession `Session` instance to be added.
+     */
+    registerSession(newSession) {
+        this.#sessions.push(newSession);
+        this.#sessionMap.set(newSession.id, newSession);
+    }
+    /**
+     * Gets random index.
+     */
+    getRandomIndex() {
+        return Math.floor(Math.random() * this.#sessions.length);
+    }
+    /**
+     * Creates new session without any extra behavior.
+     * @param [options]
+     * @param [options.sessionOptions] The configuration options for the session being created.
+     * @returns New session.
+     */
+    async defaultCreateSessionFunction(options = {}) {
+        const { sessionOptions } = parseArgument(options, createSessionOptionsSchema);
+        return new Session(sessionOptions);
+    }
+    /**
+     * Invokes `createSessionFunction` with `sessionOptions` already merged from pool-wide defaults and
+     * the supplied per-call overrides, so custom implementations don't need to spread `pool.sessionOptions` themselves.
+     *
+     * A default {@apilink SessionFingerprint} is generated up front (host OS as
+     * `platform`, a random valid `browser`/`device` for that platform). Pool-wide
+     * and per-call options override it, and a persisted fingerprint coming
+     * through `maybeLoadSessionPool` naturally wins because it arrives in
+     * `perCallOptions`.
+     */
+    async invokeCreateSessionFunction(perCallOptions) {
+        const sessionOptions = {
+            fingerprint: createDefaultSessionFingerprint(),
+            ...this.#sessionOptions,
+            ...perCallOptions,
+        };
+        return this.#createSessionFunction({ sessionOptions });
+    }
+    /**
+     * Creates new session and adds it to the pool.
+     * @returns Newly created `Session` instance.
+     */
+    async createSession() {
+        const newSession = await this.invokeCreateSessionFunction();
+        this.registerSession(newSession);
+        this.#log.debug(`Created new Session - ${newSession.id}`);
+        return newSession;
+    }
+    /**
+     * Decides whether there is enough space for creating new session.
+     */
+    hasSpaceForSession() {
+        return this.#sessions.length < this.maxPoolSize;
+    }
+    /**
+     * Picks a session from the `SessionPool` according to the configured `sessionReuseStrategy`.
+     * Returns `undefined` when no session should be reused and a new one should be created instead.
+     */
+    pickSession() {
+        if (this.#sessionReuseStrategy !== 'use-until-failure' && this.hasSpaceForSession())
+            return undefined;
+        if (this.#sessionReuseStrategy === 'use-until-failure') {
+            return this.#sessions.find((session) => session.isUsable());
+        }
+        let picked;
+        if (this.#sessionReuseStrategy === 'round-robin') {
+            const index = this.#roundRobinIndex % this.#sessions.length;
+            this.#roundRobinIndex = index + 1;
+            picked = this.#sessions[index];
+        }
+        else {
+            picked = this.#sessions[this.getRandomIndex()];
+        }
+        return picked.isUsable() ? picked : undefined;
+    }
+    /**
+     * Potentially loads `SessionPool`.
+     * If the state was persisted it loads the `SessionPool` from the persisted state.
+     */
+    async maybeLoadSessionPool() {
+        const loadedSessionPool = await this.#keyValueStore?.getValue(this.#persistStateKey);
+        if (!loadedSessionPool)
+            return;
+        // Invalidate old sessions and load active sessions only
+        this.#log.debug('Recreating state from KeyValueStore', {
+            persistStateKeyValueStoreId: this.#persistStateKeyValueStoreId,
+            persistStateKey: this.#persistStateKey,
+        });
+        for (const sessionObject of loadedSessionPool.sessions) {
+            sessionObject.createdAt = new Date(sessionObject.createdAt);
+            sessionObject.expiresAt = new Date(sessionObject.expiresAt);
+            const recreatedSession = await this.invokeCreateSessionFunction(sessionObject);
+            if (recreatedSession.isUsable()) {
+                this.registerSession(recreatedSession);
+            }
+        }
+        this.#log.debug(`${this.#sessions.length} active sessions loaded from KeyValueStore`);
+    }
+}
