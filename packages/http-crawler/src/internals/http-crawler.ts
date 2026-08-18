@@ -824,11 +824,8 @@ export class HttpCrawler<
         // Delete any possible lowercased header for cookie as they are merged in _applyCookies under the uppercase Cookie header
         Reflect.deleteProperty(requestOptions.headers!, 'cookie');
 
-        // TODO this is incorrect, the check for man in the middle needs to be done
-        //   on individual proxy level, not on the `proxyConfiguration` level,
-        //   because users can use normal + MITM proxies in a single configuration.
-        // Disable SSL verification for MITM proxies
-        if (this.proxyConfiguration && this.proxyConfiguration.isManInTheMiddle) {
+        // Disable SSL verification only for the selected MITM proxy URL (not the whole configuration).
+        if (proxyUrl && this.proxyConfiguration?.isProxyManInTheMiddle(proxyUrl)) {
             requestOptions.https = {
                 ...requestOptions.https,
                 rejectUnauthorized: false,

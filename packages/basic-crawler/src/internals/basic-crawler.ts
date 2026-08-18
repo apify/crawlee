@@ -14,6 +14,7 @@ import type {
     IRequestList,
     IRequestManager,
     LoadedContext,
+    ProxyConfiguration,
     ProxyInfo,
     Request,
     RequestsLike,
@@ -1462,12 +1463,33 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
                 return cachedRobotsTxtFile;
             }
 
-            const robotsTxtFile = await RobotsTxtFile.find(url);
+            const proxyUrl = await this.getProxyUrlForRobotsTxt(url);
+            const robotsTxtFile = await RobotsTxtFile.find(url, proxyUrl);
             this.robotsTxtFileCache.add(origin, robotsTxtFile);
 
             return robotsTxtFile;
         } catch (e: any) {
             this.log.warning(`Failed to fetch robots.txt for request ${url}`);
+            return undefined;
+        }
+    }
+
+    /**
+     * Resolves a proxy URL for fetching robots.txt using the crawler's proxy configuration when available.
+     * This keeps robots lookups on the same network path as page requests (geo rules, IP allowlists, no direct IP leak).
+     */
+    protected async getProxyUrlForRobotsTxt(url: string): Promise<string | undefined> {
+        const proxyConfiguration = (this as { proxyConfiguration?: ProxyConfiguration }).proxyConfiguration;
+        if (!proxyConfiguration) {
+            return undefined;
+        }
+
+        try {
+            const proxyInfo = await proxyConfiguration.newProxyInfo(undefined, {
+                request: { url } as Request,
+            });
+            return proxyInfo?.url;
+        } catch {
             return undefined;
         }
     }
