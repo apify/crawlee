@@ -7,7 +7,7 @@ RUN npm --quiet set progress=false \
     && npm install --only=prod \
     && npm update
 
-FROM apify/actor-node-playwright-chrome:24-1.58.2-beta
+FROM apify/actor-node-playwright-chrome:24-1.62.1-beta
 
 # The browser base images ship a preinstalled node_modules - wipe it so the
 # builder tree (with file: symlinks) can be copied over cleanly.
