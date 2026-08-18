@@ -1288,6 +1288,7 @@ export class BasicCrawler<Context extends CrawlingContext = BasicCrawlingContext
 
         const result = await this.requestManager!.addRequestsBatched(filteredRequests(), {
             ...options,
+            waitForAllRequestsToBeAdded: options.waitForAllRequestsToBeAdded || requestLimit !== undefined,
             maxNewRequests: requestLimit,
         });
 
