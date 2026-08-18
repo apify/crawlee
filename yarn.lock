@@ -1151,7 +1151,7 @@ __metadata:
     playwright: "npm:1.62.1"
     portastic: "npm:^1.0.1"
     proxy: "npm:^1.0.2"
-    puppeteer: "npm:25.7.0"
+    puppeteer: "npm:25.8.0"
     rimraf: "npm:^6.0.0"
     tsx: "npm:^4.4.0"
     turbo: "npm:^2.1.0"
@@ -11390,17 +11390,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"puppeteer-core@npm:25.7.0":
-  version: 25.7.0
-  resolution: "puppeteer-core@npm:25.7.0"
+"puppeteer-core@npm:25.8.0":
+  version: 25.8.0
+  resolution: "puppeteer-core@npm:25.8.0"
   dependencies:
-    "@puppeteer/browsers": "npm:3.2.0"
+    "@puppeteer/browsers": "npm:3.2.1"
     chromium-bidi: "npm:17.0.2"
     devtools-protocol: "npm:0.0.1666840"
     typed-query-selector: "npm:^2.12.2"
     webdriver-bidi-protocol: "npm:0.4.2"
     ws: "npm:^8.21.1"
-  checksum: 10c0/fe16bca7d1c37617e8d92fd66898d165c1ce556750e9ec68d4da7e858794dd418d0335c3e64c20a583a5c6ea239ceb616ea7bd8f95182e7356ed0d5d767fbd98
+  checksum: 10c0/9aa70e52b0dda14e9d966e9858e9cf472c8c7d06f230f84c41c3f45f7c604ac27a2ecc33743457248f4ec6e9576d33060eb59b43ef13d3c7dde00be9710dbc74
   languageName: node
   linkType: hard
 
@@ -11417,19 +11417,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"puppeteer@npm:25.7.0":
-  version: 25.7.0
-  resolution: "puppeteer@npm:25.7.0"
+"puppeteer@npm:25.8.0":
+  version: 25.8.0
+  resolution: "puppeteer@npm:25.8.0"
   dependencies:
-    "@puppeteer/browsers": "npm:3.2.0"
+    "@puppeteer/browsers": "npm:3.2.1"
     chromium-bidi: "npm:17.0.2"
     devtools-protocol: "npm:0.0.1666840"
     lilconfig: "npm:^3.1.3"
-    puppeteer-core: "npm:25.7.0"
+    puppeteer-core: "npm:25.8.0"
     typed-query-selector: "npm:^2.12.2"
   bin:
     puppeteer: lib/puppeteer/node/cli.js
-  checksum: 10c0/2c9c04a7665a1fd8b65f49eb410a9ffa48295e8f022fe71266116d97cf70a8b6960c75d47289a4cd7704ed7532196c78e7dad17fcfbad2fd172b489fca1243bf
+  checksum: 10c0/2b62c2e18abda3e9f3bc3e9192e1c600d8bb8b72d4453aebabfdff285763da0389a1023ebf1f1a0717a3aa4e6aedf2183a123ff2b3c82ec070f82c5ffc69d9f5
   languageName: node
   linkType: hard
 
