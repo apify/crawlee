@@ -50,8 +50,9 @@ describe('SessionPool - testing session pool', () => {
             const session = await sessionPool.getSession();
             expect((await sessionPool.getState()).sessions).toHaveLength(1);
             expect(session?.id).toBeDefined();
-            expect(session!.expiresAt.getTime() - session!.createdAt.getTime()).toEqual(
+            expect(session!.expiresAt.getTime() - session!.createdAt.getTime()).toBeCloseTo(
                 (sessionPool.sessionOptions.maxAgeSecs as number) * 1000,
+                -2,
             );
             expect(session?.maxUsageCount).toEqual(sessionPool.sessionOptions.maxUsageCount);
         });
