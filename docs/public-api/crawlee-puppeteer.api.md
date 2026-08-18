@@ -24,20 +24,17 @@ import type { GetUserDataFromRequest } from '@crawlee/browser';
 import type { HTTPRequest } from 'puppeteer';
 import type { HTTPResponse } from 'puppeteer';
 import { IRequestManager } from '@crawlee/browser';
-import type { LaunchOptions } from 'puppeteer';
 import type { Page } from 'puppeteer';
 import { PuppeteerPlugin } from '@crawlee/browser-pool';
 import type { RemoteBrowserPool } from '@crawlee/browser-pool';
 import type { RemoteBrowserPoolOptions } from '@crawlee/browser-pool';
 import { Request as Request_2 } from '@crawlee/browser';
 import type { RequestTransform } from '@crawlee/browser';
-import type { ResponseForRequest } from 'puppeteer';
 import type { RouterHandler } from '@crawlee/browser';
 import type { RouterRoutes } from '@crawlee/browser';
 import type { RouteSchemas } from '@crawlee/browser';
 import type { RoutesFromSchemas } from '@crawlee/browser';
 import type { SkippedRequestCallback } from '@crawlee/browser';
-import type { Target } from 'puppeteer';
 import type { UrlPatternInput } from '@crawlee/browser';
 
 // @public
@@ -47,25 +44,19 @@ function addInterceptRequestHandler(page: Page, handler: InterceptHandler): Prom
 function blockRequests(page: Page, options?: BlockRequestsOptions): Promise<void>;
 
 // @public (undocumented)
-export interface BlockRequestsOptions {
+interface BlockRequestsOptions {
     extraUrlPatterns?: string[];
     urlPatterns?: string[];
 }
-
-// @public @deprecated
-const blockResources: (page: Page, resourceTypes?: string[]) => Promise<void>;
-
-// @public @deprecated
-function cacheResponses(page: Page, cache: Dictionary<Partial<ResponseForRequest>>, responseUrlRules: (string | RegExp)[]): Promise<void>;
 
 // @public (undocumented)
 function closeCookieModals(page: Page): Promise<void>;
 
 // @public (undocumented)
-export type CompiledScriptFunction = (params: CompiledScriptParams) => Promise<unknown>;
+type CompiledScriptFunction = (params: CompiledScriptParams) => Promise<unknown>;
 
 // @public (undocumented)
-export interface CompiledScriptParams {
+interface CompiledScriptParams {
     // (undocumented)
     page: Page;
     // (undocumented)
@@ -112,7 +103,7 @@ function gotoExtended(page: Page, request: Request_2, gotoOptions?: PuppeteerDir
 function infiniteScroll(page: Page, options?: InfiniteScrollOptions): Promise<void>;
 
 // @public (undocumented)
-export interface InfiniteScrollOptions {
+interface InfiniteScrollOptions {
     buttonSelector?: string;
     maxScrollHeight?: number;
     scrollDownAndUp?: boolean;
@@ -125,7 +116,7 @@ export interface InfiniteScrollOptions {
 function injectFile(page: Page, filePath: string, options?: InjectFileOptions): Promise<unknown>;
 
 // @public (undocumented)
-export interface InjectFileOptions {
+interface InjectFileOptions {
     surviveNavigations?: boolean;
 }
 
@@ -136,9 +127,6 @@ function injectJQuery(page: Page, options?: {
 
 // @public (undocumented)
 export type InterceptHandler = (request: HTTPRequest) => unknown;
-
-// @public
-function isTargetRelevant(page: Page, target: Target): boolean;
 
 // @public
 export function launchPuppeteer(launchContext?: PuppeteerLaunchContext, configuration?: Configuration): Promise<Browser>;
@@ -161,16 +149,6 @@ export interface PuppeteerBrowserPoolOptions extends Omit<BrowserPoolOptions, 'b
     launchContext?: PuppeteerLaunchContext;
 }
 
-declare namespace puppeteerClickElements {
-    export {
-        enqueueLinksByClickingElements,
-        clickElementsAndInterceptNavigationRequests,
-        isTargetRelevant,
-        clickElements,
-        EnqueueLinksByClickingElementsOptions
-    }
-}
-
 // @public (undocumented)
 interface PuppeteerContextUtils {
     addInterceptRequestHandler(handler: InterceptHandler): Promise<void>;
@@ -188,7 +166,7 @@ interface PuppeteerContextUtils {
 }
 
 // @public
-export class PuppeteerCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends PuppeteerCrawlingContext = PuppeteerCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<PuppeteerCrawlingContext['request']>>, StatisticStateExtension extends object = {}> extends BrowserCrawler<Page, HTTPResponse, LaunchOptions, PuppeteerCrawlingContext, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
+export class PuppeteerCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends PuppeteerCrawlingContext = PuppeteerCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<PuppeteerCrawlingContext['request']>>, StatisticStateExtension extends object = {}> extends BrowserCrawler<Page, HTTPResponse, PuppeteerCrawlingContext, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
     constructor(options?: PuppeteerCrawlerOptions<ContextExtension, ExtendedContext, Routes, StatisticStateExtension>);
     // (undocumented)
     protected buildContextPipeline(): ContextPipeline<CrawlingContext, PuppeteerCrawlingContext>;
@@ -230,22 +208,12 @@ export interface PuppeteerLaunchContext extends BrowserLaunchContext<PuppeteerPl
     useIncognitoPages?: boolean;
 }
 
-declare namespace puppeteerRequestInterception {
-    export {
-        addInterceptRequestHandler,
-        removeInterceptRequestHandler,
-        InterceptHandler
-    }
-}
-
 declare namespace puppeteerUtils {
     export {
         injectFile,
         injectJQuery,
         parseWithCheerio,
         blockRequests,
-        sendCDPCommand,
-        cacheResponses,
         compileScript,
         gotoExtended,
         infiniteScroll,
@@ -256,14 +224,12 @@ declare namespace puppeteerUtils {
         BlockRequestsOptions,
         CompiledScriptParams,
         CompiledScriptFunction,
-        blockResources,
         InfiniteScrollOptions,
         SaveSnapshotOptions,
         PuppeteerContextUtils,
         enqueueLinksByClickingElements,
         addInterceptRequestHandler,
-        removeInterceptRequestHandler,
-        puppeteerUtils_2 as puppeteerUtils
+        removeInterceptRequestHandler
     }
 }
 
@@ -281,7 +247,7 @@ function removeInterceptRequestHandler(page: Page, handler: InterceptHandler): P
 function saveSnapshot(page: Page, options?: SaveSnapshotOptions): Promise<void>;
 
 // @public (undocumented)
-export interface SaveSnapshotOptions {
+interface SaveSnapshotOptions {
     configuration?: Configuration;
     key?: string;
     keyValueStoreName?: string | null;

@@ -154,7 +154,11 @@ export interface RemoteBrowserPoolOptions {
     connection?: RemoteConnectionParameters;
     /** Extra {@apilink BrowserPool} options (lifecycle hooks, page limits, fingerprinting, …). */
     browserPoolOptions?: Omit<BrowserPoolOptions, 'browserPlugins'> & BrowserPoolHooks<any, any, any>;
-    /** Fallback poll interval (ms) while waiting for a free browser slot. The wait is event-driven; this only bounds it. @default 500 */
+    /**
+     * Fallback poll interval (ms) while waiting for a free browser slot. The wait is event-driven; this only bounds it.
+     * @default 500
+     * @internal
+     */
     slotPollIntervalMillis?: number;
 }
 
@@ -198,7 +202,11 @@ export type CrawlerRemoteBrowserOptions = Omit<RemoteBrowserPoolOptions, 'browse
  * @category Browser management
  */
 export class RemoteBrowserPool<Page = unknown> implements IBrowserPool<Page> {
-    /** The wrapped pool that performs the remote connections and serves pages. */
+    /**
+     * The wrapped pool that performs the remote connections and serves pages.
+     *
+     * @internal
+     */
     readonly browserPool: BrowserPool;
 
     /** The wrapped pool viewed through the {@apilink IBrowserPool} contract (the bare type widens pages to `never`). */

@@ -6,7 +6,6 @@ import type {
     RequestTransform,
     SkippedRequestCallback,
     UrlPatternInput,
-    UrlPatternObject,
 } from '@crawlee/browser';
 import {
     applyRequestTransform,
@@ -237,8 +236,8 @@ export async function enqueueLinksByClickingElements(
     const waitForPageIdleMillis = waitForPageIdleSecs * 1000;
     const maxWaitForPageIdleMillis = maxWaitForPageIdleSecs * 1000;
 
-    const urlExcludePatternObjects: UrlPatternObject[] = exclude?.length ? constructUrlPatternObjects(exclude) : [];
-    const urlPatternObjects: UrlPatternObject[] = include?.length ? constructUrlPatternObjects(include) : [];
+    const urlExcludePatternObjects = exclude?.length ? constructUrlPatternObjects(exclude) : [];
+    const urlPatternObjects = include?.length ? constructUrlPatternObjects(include) : [];
 
     const interceptedRequests = await clickElementsAndInterceptNavigationRequests({
         page,

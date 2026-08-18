@@ -10,7 +10,7 @@ interface BrowserCrawlingContext {
     saveSnapshot: (options: { key: string }) => Promise<void>;
 }
 
-export interface SnapshotResult {
+interface SnapshotResult {
     screenshotFileName?: string;
     htmlFileName?: string;
 }
@@ -21,6 +21,12 @@ interface ErrorSnapshot {
     htmlFileName?: string;
     htmlFileUrl?: string;
 }
+
+const MAX_ERROR_CHARACTERS = 30;
+const MAX_HASH_LENGTH = 30;
+const MAX_FILENAME_LENGTH = 250;
+const BASE_MESSAGE = 'An error occurred';
+const SNAPSHOT_PREFIX = 'ERROR_SNAPSHOT';
 
 /**
  * ErrorSnapshotter class is used to capture a screenshot of the page and a snapshot of the HTML when an error occurs during web crawling.
@@ -35,12 +41,6 @@ interface ErrorSnapshot {
  * ```
  */
 export class ErrorSnapshotter {
-    static readonly MAX_ERROR_CHARACTERS = 30;
-    static readonly MAX_HASH_LENGTH = 30;
-    static readonly MAX_FILENAME_LENGTH = 250;
-    static readonly BASE_MESSAGE = 'An error occurred';
-    static readonly SNAPSHOT_PREFIX = 'ERROR_SNAPSHOT';
-
     /**
      * Capture a snapshot of the error context.
      */
@@ -58,13 +58,13 @@ export class ErrorSnapshotter {
                 return {};
             }
 
-            const fileName = this.generateFilename(error);
+            const fileName = this.#generateFilename(error);
 
             let screenshotFileName: string | undefined;
             let htmlFileName: string | undefined;
 
             if (page) {
-                const capturedFiles = await this.contextCaptureSnapshot(
+                const capturedFiles = await this.#contextCaptureSnapshot(
                     context as unknown as BrowserCrawlingContext,
                     fileName,
                 );
@@ -77,11 +77,11 @@ export class ErrorSnapshotter {
                 // If the snapshot for browsers failed to capture the HTML, try to capture it from the page content
                 if (!htmlFileName) {
                     const html = await page.content();
-                    htmlFileName = html ? await this.saveHTMLSnapshot(html, keyValueStore, fileName) : undefined;
+                    htmlFileName = html ? await this.#saveHTMLSnapshot(html, keyValueStore, fileName) : undefined;
                 }
             } else if (typeof body === 'string') {
                 // for non-browser contexts
-                htmlFileName = await this.saveHTMLSnapshot(body, keyValueStore, fileName);
+                htmlFileName = await this.#saveHTMLSnapshot(body, keyValueStore, fileName);
             }
 
             return {
@@ -100,7 +100,7 @@ export class ErrorSnapshotter {
      * This function is applicable for browser contexts only.
      * Returns an object containing the filenames of the screenshot and HTML file.
      */
-    async contextCaptureSnapshot(
+    async #contextCaptureSnapshot(
         context: BrowserCrawlingContext,
         fileName: string,
     ): Promise<SnapshotResult | undefined> {
@@ -118,7 +118,7 @@ export class ErrorSnapshotter {
     /**
      * Save the HTML snapshot of the page, and return the key it was stored under.
      */
-    async saveHTMLSnapshot(
+    async #saveHTMLSnapshot(
         html: string,
         keyValueStore: Pick<KeyValueStore, 'setValue'>,
         fileName: string,
@@ -136,9 +136,7 @@ export class ErrorSnapshotter {
     /**
      * Generate a unique fileName for each error snapshot.
      */
-    generateFilename(error: ErrnoException): string {
-        const { SNAPSHOT_PREFIX, BASE_MESSAGE, MAX_HASH_LENGTH, MAX_ERROR_CHARACTERS, MAX_FILENAME_LENGTH } =
-            ErrorSnapshotter;
+    #generateFilename(error: ErrnoException): string {
         // Create a hash of the error stack trace
         const errorStackHash = crypto
             .createHash('sha1')

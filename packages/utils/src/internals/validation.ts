@@ -1,3 +1,4 @@
+import type { Dictionary } from '@crawlee/types';
 import type { z } from 'zod';
 
 /** Formats a zod issue path like `groups[0]` or `countryCode`. */
@@ -148,4 +149,24 @@ export function parseArgument<TValue, TSchema extends z.ZodType>(
     const result = schema.safeParse(value);
     if (!result.success) throw new ArgumentValidationError(result.error, value, label);
     return result.data as TValue & z.output<TSchema>;
+}
+
+/**
+ * Rejects options that exist only to configure the browser pool the crawler would have built for itself.
+ * Accepting them alongside a pre-built `browserPool` and quietly ignoring them is how `browserPoolOptions` grew
+ * into a second, half-working way of configuring the same pool.
+ * @internal
+ */
+export function assertBrowserPoolNotConfigured(crawlerName: string, ignoredOptions: Dictionary): void {
+    const names = Object.keys(ignoredOptions).filter((name) => ignoredOptions[name] !== undefined);
+
+    if (names.length === 0) {
+        return;
+    }
+
+    throw new Error(
+        `${crawlerName}: ${names.map((name) => `\`${name}\``).join(', ')} cannot be combined with \`browserPool\`, ` +
+            `${names.length > 1 ? 'they configure' : 'it configures'} the browser pool the crawler would build for ` +
+            'itself. Configure the pool you pass in instead.',
+    );
 }

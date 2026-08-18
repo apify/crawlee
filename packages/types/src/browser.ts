@@ -1,5 +1,4 @@
 import type { ISession } from './session.js';
-import type { Dictionary } from './utility-types.js';
 
 export interface Cookie {
     /**
@@ -57,11 +56,6 @@ export interface Cookie {
      * This is a temporary ability and it will be removed in the future.
      */
     sourcePort?: number;
-}
-
-export interface BrowserLikeResponse {
-    url(): string;
-    headers(): Dictionary<string | string[]>;
 }
 
 /**

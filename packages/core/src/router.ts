@@ -378,6 +378,7 @@ export class Router<
      * override it and the crawler's own timeout should apply. Falls back to the default route the same way
      * {@apilink Router.getHandler|`getHandler`} does, so a label with no route of its own inherits whatever
      * the default route asked for. Used by the crawler; not meant to be called directly.
+     * @internal
      */
     getTimeoutSecs(label?: string | symbol): number | undefined {
         if (label && this.#routes.has(label)) {
@@ -390,6 +391,7 @@ export class Router<
     /**
      * The longest `requestHandlerTimeoutSecs` any route asked for, or `undefined` when no route overrides it.
      * The crawler needs an upper bound up front, before it knows which routes a run will actually hit.
+     * @internal
      */
     getMaxTimeoutSecs(): number | undefined {
         return this.#timeouts.size > 0 ? Math.max(...this.#timeouts.values()) : undefined;

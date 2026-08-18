@@ -62,7 +62,7 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
      */
     protected abstract fetch(input: Request, init?: RequestInit & CustomFetchOptions): Promise<Response>;
 
-    private async applyCookies(request: Request, cookieJar: CookieJar): Promise<Request> {
+    async #applyCookies(request: Request, cookieJar: CookieJar): Promise<Request> {
         try {
             const requestCookies = request.headers.get('cookie') ?? '';
 
@@ -97,7 +97,7 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
         return request;
     }
 
-    private async setCookies(response: Response, cookieJar: CookieJar): Promise<void> {
+    async #setCookies(response: Response, cookieJar: CookieJar): Promise<void> {
         const setCookieHeaders = response.headers.getSetCookie();
 
         for (const header of setCookieHeaders) {
@@ -109,7 +109,7 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
         }
     }
 
-    private async resolveRequestContext(options?: SendRequestOptions): Promise<{
+    async #resolveRequestContext(options?: SendRequestOptions): Promise<{
         proxyUrl?: string;
         cookieJar: CookieJar;
         signal?: AbortSignal;
@@ -118,7 +118,7 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
     }> {
         const proxyUrl = options?.proxyUrl ?? options?.session?.proxyInfo?.url;
         const cookieJar = options?.cookieJar ?? options?.session?.cookieJar ?? (await this.#createDefaultCookieJar());
-        const signal = this.createAbortSignal(options?.signal, options?.timeoutMillis);
+        const signal = this.#createAbortSignal(options?.signal, options?.timeoutMillis);
         return {
             proxyUrl,
             cookieJar,
@@ -133,7 +133,7 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
         return new ToughCookieJar();
     }
 
-    private createAbortSignal(signal?: AbortSignal, timeoutMillis?: number): AbortSignal | undefined {
+    #createAbortSignal(signal?: AbortSignal, timeoutMillis?: number): AbortSignal | undefined {
         if (signal && timeoutMillis) {
             return AbortSignal.any([signal, AbortSignal.timeout(timeoutMillis)]);
         }
@@ -143,12 +143,12 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
         return timeoutMillis ? AbortSignal.timeout(timeoutMillis) : undefined;
     }
 
-    private isRedirect(response: Response): boolean {
+    #isRedirect(response: Response): boolean {
         const status = response.status;
         return status >= 300 && status < 400 && !!response.headers.get('location');
     }
 
-    private buildRedirectRequest(currentRequest: Request, response: Response, initialRequest: Request): Request {
+    #buildRedirectRequest(currentRequest: Request, response: Response, initialRequest: Request): Request {
         const location = response.headers.get('location')!;
         const nextUrl = new URL(location, response.url ?? currentRequest.url);
 
@@ -187,11 +187,12 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
         let currentRequest = initialRequest;
         let redirectCount = 0;
 
-        const { proxyUrl, cookieJar, signal, fingerprint, ignoreTlsErrors } = await this.resolveRequestContext(options);
+        const { proxyUrl, cookieJar, signal, fingerprint, ignoreTlsErrors } =
+            await this.#resolveRequestContext(options);
         currentRequest = initialRequest.clone();
 
         while (true) {
-            await this.applyCookies(currentRequest, cookieJar);
+            await this.#applyCookies(currentRequest, cookieJar);
 
             const response = await this.fetch(currentRequest, {
                 signal,
@@ -202,13 +203,13 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
                 redirect: 'manual',
             });
 
-            await this.setCookies(response, cookieJar);
+            await this.#setCookies(response, cookieJar);
 
-            if (this.isRedirect(response)) {
+            if (this.#isRedirect(response)) {
                 if (redirectCount++ >= maxRedirects) {
                     throw new Error(`Too many redirects (${maxRedirects}) while requesting ${currentRequest.url}`);
                 }
-                currentRequest = this.buildRedirectRequest(currentRequest, response, initialRequest);
+                currentRequest = this.#buildRedirectRequest(currentRequest, response, initialRequest);
                 continue;
             }
 

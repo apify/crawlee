@@ -5,6 +5,8 @@ import { resolve } from 'node:path';
 import { FileSystemStorageBackend } from '@crawlee/fs-storage';
 import type { KeyValueStoreRecord } from '@crawlee/types';
 
+import { storageLayout } from './storage-layout.js';
+
 // The storage is backed by the native `@crawlee/fs-storage-native` extension, which only serves
 // key-value records it has written itself (tracked via per-record metadata sidecars). The
 // `KeyValueStoreBackend` adapter layers a fallback on top so that value files placed into the store
@@ -23,14 +25,15 @@ describe('fallback to fs for reading', () => {
     const storage = new FileSystemStorageBackend({
         localDataDirectory: tmpLocation,
     });
+    const { keyValueStoresDirectory } = storageLayout(tmpLocation);
 
     const expectedFsDate = new Date(2022, 0, 1);
 
     beforeAll(async () => {
         // "default" store: metadata file + a bare INPUT.json (no per-record metadata sidecar).
-        await mkdir(resolve(storage.keyValueStoresDirectory, 'default'), { recursive: true });
+        await mkdir(resolve(keyValueStoresDirectory, 'default'), { recursive: true });
         await writeFile(
-            resolve(storage.keyValueStoresDirectory, 'default/__metadata__.json'),
+            resolve(keyValueStoresDirectory, 'default/__metadata__.json'),
             JSON.stringify({
                 id: randomUUID(),
                 name: 'default',
@@ -40,33 +43,30 @@ describe('fallback to fs for reading', () => {
             }),
         );
         await writeFile(
-            resolve(storage.keyValueStoresDirectory, 'default/INPUT.json'),
+            resolve(keyValueStoresDirectory, 'default/INPUT.json'),
             JSON.stringify({ foo: 'bar but from fs' }),
         );
 
         // "other" store: a bare INPUT.json with no store metadata file at all.
-        await mkdir(resolve(storage.keyValueStoresDirectory, 'other'), { recursive: true });
+        await mkdir(resolve(keyValueStoresDirectory, 'other'), { recursive: true });
         await writeFile(
-            resolve(storage.keyValueStoresDirectory, 'other/INPUT.json'),
+            resolve(keyValueStoresDirectory, 'other/INPUT.json'),
             JSON.stringify({ foo: 'bar but from fs' }),
         );
 
         // "no-ext" store: a value file with no extension — loaded as raw text.
-        await mkdir(resolve(storage.keyValueStoresDirectory, 'no-ext'), { recursive: true });
-        await writeFile(
-            resolve(storage.keyValueStoresDirectory, 'no-ext/INPUT'),
-            JSON.stringify({ foo: 'bar but from fs' }),
-        );
+        await mkdir(resolve(keyValueStoresDirectory, 'no-ext'), { recursive: true });
+        await writeFile(resolve(keyValueStoresDirectory, 'no-ext/INPUT'), JSON.stringify({ foo: 'bar but from fs' }));
 
         // "invalid-json" store: a malformed INPUT.json — ignored.
-        await mkdir(resolve(storage.keyValueStoresDirectory, 'invalid-json'), { recursive: true });
-        await writeFile(resolve(storage.keyValueStoresDirectory, 'invalid-json/INPUT.json'), '{');
+        await mkdir(resolve(keyValueStoresDirectory, 'invalid-json'), { recursive: true });
+        await writeFile(resolve(keyValueStoresDirectory, 'invalid-json/INPUT.json'), '{');
 
         // "non-input" store: a bare value file under a non-INPUT key. The bare-file fallback is scoped
         // to the run input, so this file is NOT readable out-of-band — only `INPUT`-keyed bare files are.
-        await mkdir(resolve(storage.keyValueStoresDirectory, 'non-input'), { recursive: true });
+        await mkdir(resolve(keyValueStoresDirectory, 'non-input'), { recursive: true });
         await writeFile(
-            resolve(storage.keyValueStoresDirectory, 'non-input/some-key.json'),
+            resolve(keyValueStoresDirectory, 'non-input/some-key.json'),
             JSON.stringify({ foo: 'bar but from fs' }),
         );
     });
@@ -194,7 +194,7 @@ describe('fallback to fs for reading', () => {
         // only `INPUT` is listed and the bare `INPUT.json` variant is suppressed.
         await collisionStore.setValue({ key: 'INPUT', value: 'tracked', contentType: 'text/plain; charset=utf-8' });
         await writeFile(
-            resolve(storage.keyValueStoresDirectory, 'input-collision/INPUT.json'),
+            resolve(keyValueStoresDirectory, 'input-collision/INPUT.json'),
             JSON.stringify({ foo: 'bare' }),
         );
 
@@ -222,12 +222,13 @@ const BARE_VARIANTS = [
 describe('run-input bare-file reachability (one variant per store)', () => {
     const tmpLocation = resolve(import.meta.dirname, './tmp/fs-reachability-isolated');
     const storage = new FileSystemStorageBackend({ localDataDirectory: tmpLocation });
+    const { keyValueStoresDirectory } = storageLayout(tmpLocation);
 
     const storeNameFor = (file: string) => `reach-${file.toLowerCase().replace('.', '-')}`;
 
     beforeAll(async () => {
         for (const { file, payload } of BARE_VARIANTS) {
-            const dir = resolve(storage.keyValueStoresDirectory, storeNameFor(file));
+            const dir = resolve(keyValueStoresDirectory, storeNameFor(file));
             await mkdir(dir, { recursive: true });
             await writeFile(resolve(dir, file), payload);
         }
@@ -274,9 +275,10 @@ describe('run-input bare-file reachability (one variant per store)', () => {
 describe('run-input bare-file reachability (all variants in one store)', () => {
     const tmpLocation = resolve(import.meta.dirname, './tmp/fs-reachability-shared');
     const storage = new FileSystemStorageBackend({ localDataDirectory: tmpLocation });
+    const { keyValueStoresDirectory } = storageLayout(tmpLocation);
 
     beforeAll(async () => {
-        const dir = resolve(storage.keyValueStoresDirectory, 'all-variants');
+        const dir = resolve(keyValueStoresDirectory, 'all-variants');
         await mkdir(dir, { recursive: true });
         for (const { file, payload } of BARE_VARIANTS) {
             await writeFile(resolve(dir, file), payload);

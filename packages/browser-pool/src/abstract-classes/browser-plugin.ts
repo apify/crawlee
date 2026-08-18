@@ -107,7 +107,15 @@ export abstract class BrowserPlugin<
     NewPageResult = UnwrapPromise<ReturnType<LaunchResult['newPage']>>,
 > {
     readonly name = this.constructor.name;
+
+    /**
+     * Kept `protected` rather than `#private` because the concrete plugins in this package are separate
+     * classes — an ES private field would not be visible to them.
+     *
+     * @internal
+     */
     protected readonly log!: CrawleeLogger;
+
     readonly library: Library;
     readonly launchOptions: LibraryOptions;
     readonly proxyUrl?: string;
@@ -322,9 +330,6 @@ export abstract class BrowserPlugin<
         throw new BrowserLaunchError(`${errorMessage.join('\n')}\u200b`, { cause });
     }
 
-    /**
-     * @private
-     */
     protected abstract addProxyToLaunchOptions(
         launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>,
     ): Promise<void>;
@@ -333,9 +338,6 @@ export abstract class BrowserPlugin<
         launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>,
     ): boolean;
 
-    /**
-     * @private
-     */
     protected abstract _launch(
         launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>,
     ): Promise<LaunchResult>;

@@ -5,7 +5,7 @@
  * **Example usage:**
  *
  * ```javascript
- * import { launchPuppeteer, utils } from 'crawlee';
+ * import { launchPuppeteer, puppeteerUtils } from 'crawlee';
  *
  * // Open https://www.example.com in Puppeteer
  * const browser = await launchPuppeteer();
@@ -13,7 +13,7 @@
  * await page.goto('https://www.example.com');
  *
  * // Inject jQuery into a page
- * await utils.puppeteer.injectJQuery(page);
+ * await puppeteerUtils.injectJQuery(page);
  * ```
  * @module puppeteerUtils
  */
@@ -26,11 +26,11 @@ import type { Request } from '@crawlee/browser';
 import { Configuration, KeyValueStore, serviceLocator, validators } from '@crawlee/browser';
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 import type { CheerioAPI } from 'cheerio';
-import { expandShadowRoots, sleep } from '@crawlee/utils';
-import { parseArgument, schemas } from '@crawlee/utils/internal';
+import { sleep } from '@crawlee/utils';
+import { expandShadowRoots, parseArgument, schemas } from '@crawlee/utils/internal';
 import type { ProtocolMapping } from 'devtools-protocol/types/protocol-mapping.js';
 // @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
-import type { HTTPRequest as PuppeteerRequest, HTTPResponse, Page, ResponseForRequest } from 'puppeteer';
+import type { HTTPRequest as PuppeteerRequest, HTTPResponse, Page } from 'puppeteer';
 import { z } from 'zod';
 
 import { LruCache } from '@apify/datastructures';
@@ -50,7 +50,6 @@ const filePathSchema = z.string();
 const injectFileOptionsSchema = z.strictObject({
     surviveNavigations: z.boolean().optional(),
 });
-const responseUrlRulesSchema = schemas.arrayOf(z.union([z.string(), z.instanceof(RegExp)]), 'strings or RegExps');
 const gotoExtendedRequestSchema = z.looseObject({
     url: z.url(),
     method: z.string().optional(),
@@ -187,7 +186,7 @@ export async function injectFile(page: Page, filePath: string, options: InjectFi
  *
  * **Example usage:**
  * ```javascript
- * await utils.puppeteer.injectJQuery(page);
+ * await puppeteerUtils.injectJQuery(page);
  * const title = await page.evaluate(() => {
  *   return $('head title').text();
  * });
@@ -210,7 +209,7 @@ export async function injectJQuery(page: Page, options?: { surviveNavigations?: 
  *
  * **Example usage:**
  * ```javascript
- * const $ = await utils.puppeteer.parseWithCheerio(page);
+ * const $ = await puppeteerUtils.parseWithCheerio(page);
  * const title = $('title').text();
  * ```
  *
@@ -293,13 +292,13 @@ export async function parseWithCheerio(
  *
  * **Example usage**
  * ```javascript
- * import { launchPuppeteer, utils } from 'crawlee';
+ * import { launchPuppeteer, puppeteerUtils } from 'crawlee';
  *
  * const browser = await launchPuppeteer();
  * const page = await browser.newPage();
  *
  * // Block all requests to URLs that include `adsbygoogle.js` and also all defaults.
- * await utils.puppeteer.blockRequests(page, {
+ * await puppeteerUtils.blockRequests(page, {
  *     extraUrlPatterns: ['adsbygoogle.js'],
  * });
  *
@@ -322,7 +321,7 @@ export async function blockRequests(page: Page, options: BlockRequestsOptions = 
 /**
  * @internal
  */
-export async function sendCDPCommand<T extends keyof ProtocolMapping.Commands>(
+async function sendCDPCommand<T extends keyof ProtocolMapping.Commands>(
     page: Page,
     command: T,
     ...args: ProtocolMapping.Commands[T]['paramsType']
@@ -346,95 +345,6 @@ export async function sendCDPCommand<T extends keyof ProtocolMapping.Commands>(
     throw new Error(
         `Cannot detect CDP client for Puppeteer ${parsed.version}. You should report this to Crawlee, mentioning the puppeteer version you are using.`,
     );
-}
-
-/**
- * `blockResources()` has a high impact on performance in recent versions of Puppeteer.
- * Until this resolves, please use `utils.puppeteer.blockRequests()`.
- * @deprecated
- */
-export const blockResources = async (page: Page, resourceTypes = ['stylesheet', 'font', 'image', 'media']) => {
-    serviceLocator
-        .getLogger()
-        .deprecated(
-            'utils.puppeteer.blockResources() has a high impact on performance in recent versions of Puppeteer. ' +
-                'Until this resolves, please use utils.puppeteer.blockRequests()',
-        );
-    await addInterceptRequestHandler(page, async (request) => {
-        const type = request.resourceType();
-        if (resourceTypes.includes(type)) await request.abort();
-        else await request.continue();
-    });
-};
-
-/**
- * *NOTE:* In recent versions of Puppeteer using this function entirely disables browser cache which resolves in sub-optimal
- * performance. Until this resolves, we suggest just relying on the in-browser cache unless absolutely necessary.
- *
- * Enables caching of intercepted responses into a provided object. Automatically enables request interception in Puppeteer.
- * *IMPORTANT*: Caching responses stores them to memory, so too loose rules could cause memory leaks for longer running crawlers.
- *   This issue should be resolved or atleast mitigated in future iterations of this feature.
- * @param page
- *   Puppeteer [`Page`](https://pptr.dev/api/puppeteer.page) object.
- * @param cache
- *   Object in which responses are stored
- * @param responseUrlRules
- *   List of rules that are used to check if the response should be cached.
- *   String rules are compared as page.url().includes(rule) while RegExp rules are evaluated as rule.test(page.url()).
- * @deprecated
- */
-export async function cacheResponses(
-    page: Page,
-    cache: Dictionary<Partial<ResponseForRequest>>,
-    responseUrlRules: (string | RegExp)[],
-): Promise<void> {
-    parseArgument(page, validators.browserPage);
-    parseArgument(cache, schemas.anyObject);
-    parseArgument(responseUrlRules, responseUrlRulesSchema);
-
-    serviceLocator
-        .getLogger()
-        .deprecated(
-            'utils.puppeteer.cacheResponses() has a high impact on performance ' +
-                "in recent versions of Puppeteer so it's use is discouraged until this issue resolves.",
-        );
-
-    await addInterceptRequestHandler(page, async (request) => {
-        const url = request.url();
-
-        if (cache[url]) {
-            await request.respond(cache[url]);
-            return;
-        }
-
-        await request.continue();
-    });
-
-    page.on('response', async (response) => {
-        const url = response.url();
-
-        // Response is already cached, do nothing
-        if (cache[url]) return;
-
-        const shouldCache = responseUrlRules.some((rule) => {
-            if (typeof rule === 'string') return url.includes(rule);
-            if (rule instanceof RegExp) return rule.test(url);
-            return false;
-        });
-
-        try {
-            if (shouldCache) {
-                const buffer = await response.buffer();
-                cache[url] = {
-                    status: response.status(),
-                    headers: response.headers(),
-                    body: buffer,
-                };
-            }
-        } catch {
-            // ignore errors, usually means that buffer is empty or broken connection
-        }
-    });
 }
 
 /**
@@ -1070,19 +980,3 @@ export interface PuppeteerContextUtils {
 }
 
 export { enqueueLinksByClickingElements, addInterceptRequestHandler, removeInterceptRequestHandler };
-
-/** @internal */
-export const puppeteerUtils = {
-    injectFile,
-    injectJQuery,
-    enqueueLinksByClickingElements,
-    blockRequests,
-    compileScript,
-    gotoExtended,
-    addInterceptRequestHandler,
-    removeInterceptRequestHandler,
-    infiniteScroll,
-    saveSnapshot,
-    parseWithCheerio,
-    closeCookieModals,
-};

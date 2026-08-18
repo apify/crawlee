@@ -8,32 +8,21 @@ import type { Awaitable } from '@crawlee/types';
 import { BasicCrawler } from '@crawlee/basic';
 import { BasicCrawlerOptions } from '@crawlee/basic';
 import type { CheerioAPI } from 'cheerio';
-import { ConcurrencySystem } from '@crawlee/basic';
 import type { ConcurrencySystemOptions } from '@crawlee/basic';
-import { ContextPipeline } from '@crawlee/basic';
-import type { ContextPipeline as ContextPipeline_2 } from '@crawlee/core';
 import type { CrawlingContext } from '@crawlee/basic';
-import type { CrawlingContext as CrawlingContext_2 } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/types';
 import { ErrorHandler } from '@crawlee/basic';
 import { GetUserDataFromRequest } from '@crawlee/basic';
 import type { JsonValue } from 'type-fest';
 import { LoadedRequest } from '@crawlee/core';
+import type { LoadedRequest as LoadedRequest_2 } from '@crawlee/basic';
 import { Request as Request_2 } from '@crawlee/basic';
-import type { Request as Request_3 } from '@crawlee/core';
 import { RequestHandler } from '@crawlee/basic';
 import type { RequireContextPipeline } from '@crawlee/basic';
 import { RouterHandler } from '@crawlee/basic';
 import { RouterRoutes } from '@crawlee/basic';
 import { RouteSchemas } from '@crawlee/basic';
 import { RoutesFromSchemas } from '@crawlee/basic';
-import { Transform } from 'node:stream';
-
-// @public
-export function ByteCounterStream(input: {
-    logTransferredBytes: (transferredBytes: number) => void;
-    loggingInterval?: number;
-}): Transform;
 
 // Not exported by the entry point; reachable only as a referenced type.
 // @public (undocumented)
@@ -63,29 +52,24 @@ export function createHttpRouter<Context extends HttpCrawlingContext = HttpCrawl
 // @public
 export class FileDownload extends BasicCrawler<FileDownloadCrawlingContext> {
     constructor(options?: BasicCrawlerOptions<FileDownloadCrawlingContext>);
-    // (undocumented)
-    protected buildContextPipeline(): ContextPipeline_2<CrawlingContext_2, FileDownloadCrawlingContext>;
 }
 
 // @public (undocumented)
-export interface FileDownloadCrawlingContext<UserData extends Dictionary = any> extends CrawlingContext_2<UserData> {
+export interface FileDownloadCrawlingContext<UserData extends Dictionary = any> extends CrawlingContext<UserData> {
     // (undocumented)
     contentType: {
         type: string;
         encoding: BufferEncoding;
     };
     // (undocumented)
-    request: LoadedRequest<Request_3<UserData>>;
+    request: LoadedRequest_2<Request_2<UserData>>;
     // (undocumented)
     response: Response;
 }
 
 // @public (undocumented)
 export type FileDownloadErrorHandler<UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-ContextExtension = Dictionary<never>> = ErrorHandler<CrawlingContext_2, FileDownloadCrawlingContext<UserData> & ContextExtension>;
-
-// @public (undocumented)
-export type FileDownloadHook<UserData extends Dictionary = any> = InternalHttpHook<FileDownloadCrawlingContext<UserData>>;
+ContextExtension = Dictionary<never>> = ErrorHandler<CrawlingContext, FileDownloadCrawlingContext<UserData> & ContextExtension>;
 
 // @public (undocumented)
 export type FileDownloadRequestHandler<UserData extends Dictionary = any> = RequestHandler<FileDownloadCrawlingContext<UserData>>;
@@ -96,13 +80,6 @@ export const HTTP_OPTIMIZED_CONCURRENCY_SYSTEM_OPTIONS: ConcurrencySystemOptions
 // @public
 export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any> = InternalHttpCrawlingContext, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>, StatisticStateExtension extends object = {}> extends BasicCrawler<Context, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
     constructor(options?: HttpCrawlerOptions<Context, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> & RequireContextPipeline<InternalHttpCrawlingContext, Context>);
-    // (undocumented)
-    protected buildContextPipeline(): ContextPipeline<CrawlingContext, InternalHttpCrawlingContext>;
-    protected createDefaultConcurrencySystem(options: ConcurrencySystemOptions): ConcurrencySystem;
-    // (undocumented)
-    protected getNavigationTimeoutMillis(): number;
-    // (undocumented)
-    protected isRequestBlocked(crawlingContext: InternalHttpCrawlingContext): Promise<string | false>;
 }
 
 // @public (undocumented)
@@ -111,7 +88,7 @@ export interface HttpCrawlerOptions<Context extends InternalHttpCrawlingContext 
     forceResponseEncoding?: string;
     ignoreTlsErrors?: boolean;
     navigationTimeoutSecs?: number;
-    postNavigationHooks?: ((crawlingContext: CrawlingContextWithResponse & ContextExtension) => Awaitable<void | Partial<CrawlingContextWithResponse>>)[];
+    postNavigationHooks?: InternalHttpHook<CrawlingContextWithResponse, ContextExtension>[];
     preNavigationHooks?: InternalHttpHook<CrawlingContext<any>, ContextExtension>[];
     saveResponseCookies?: boolean;
     suggestResponseEncoding?: string;
@@ -125,10 +102,6 @@ export interface HttpCrawlingContext<UserData extends Dictionary = any, JSONData
 export type HttpErrorHandler<UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 JSONData extends JsonValue = any, // with default to Dictionary we cant use a typed router in untyped crawler
 ContextExtension = Dictionary<never>> = ErrorHandler<CrawlingContext, HttpCrawlingContext<UserData, JSONData> & ContextExtension>;
-
-// @public (undocumented)
-export type HttpHook<UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-JSONData extends JsonValue = any> = InternalHttpHook<HttpCrawlingContext<UserData, JSONData>>;
 
 // @public (undocumented)
 export type HttpRequestHandler<UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -149,13 +122,6 @@ JSONData extends JsonValue = any> extends CrawlingContextWithResponse<UserData> 
 
 // @public (undocumented)
 export type InternalHttpHook<Context, ContextExtension = {}> = (crawlingContext: Context & ContextExtension) => Awaitable<void | Partial<Context>>;
-
-// @public
-export function MinimumSpeedStream(input: {
-    minSpeedKbps: number;
-    historyLengthMs?: number;
-    checkProgressInterval?: number;
-}): Transform;
 
 
 export * from "@crawlee/basic";

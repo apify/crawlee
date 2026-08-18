@@ -203,12 +203,13 @@ describe('PlaywrightCrawler', () => {
     describe('playwrightBrowserPool', () => {
         test('runs a plugin for the requested browser and forwards the pool options', () => {
             const browserPool = playwrightBrowserPool({
-                maxOpenPagesPerBrowser: 3,
+                useFingerprints: false,
                 headless: false,
                 launchContext: { launcher: playwright.firefox },
             });
 
-            expect(browserPool.maxOpenPagesPerBrowser).toBe(3);
+            // The pool keeps its options private; `useFingerprints` is observable through the generator.
+            expect(browserPool.fingerprintGenerator).toBeUndefined();
             expect(browserPool.browserPlugins).toHaveLength(1);
             expect(browserPool.browserPlugins[0].library).toBe(playwright.firefox);
             expect(browserPool.browserPlugins[0].launchOptions).toMatchObject({ headless: false });
@@ -216,8 +217,9 @@ describe('PlaywrightCrawler', () => {
 
         test('turns off fingerprint injection when a custom userAgent is given', () => {
             expect(
-                playwrightBrowserPool({ launchContext: { userAgent: 'Definitely Not A Crawler' } }).useFingerprints,
-            ).toBe(false);
+                playwrightBrowserPool({ launchContext: { userAgent: 'Definitely Not A Crawler' } })
+                    .fingerprintGenerator,
+            ).toBeUndefined();
         });
 
         test('is rejected by the crawler alongside the options that would configure its own pool', () => {

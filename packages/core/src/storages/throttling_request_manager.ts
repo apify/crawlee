@@ -46,8 +46,10 @@ const throttlingRequestManagerOptionsSchema = z.strictObject({
  *
  * {@apilink ThrottlingRequestManager} calls this once per configured domain, so every per-domain queue shares the
  * concrete type and storage backend of the manager being wrapped.
+ *
+ * Not exported: the only option that takes one is `@internal`.
  */
-export type RequestManagerOpener<T extends IRequestManager = IRequestManager> = (
+type RequestManagerOpener<T extends IRequestManager = IRequestManager> = (
     identifier?: string | StorageIdentifier | null,
     options?: StorageOpenOptions,
 ) => Promise<T>;
@@ -124,6 +126,7 @@ export interface ThrottlingRequestManagerOptions<T extends IRequestManager = IRe
     /**
      * Opens the per-domain queues, one per throttled domain, each under the alias `throttled-<domain>`.
      * @default RequestQueue.open
+     * @internal
      */
     requestManagerOpener?: RequestManagerOpener<T>;
 
@@ -384,6 +387,8 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
      * The wrapped manager, holding every request whose domain is not throttled. `undefined` until an `inner`
      * passed as a factory is resolved - reading this never forces it, because a getter should not open a queue
      * behind a caller's back.
+     *
+     * @internal
      */
     get innerManager(): T | undefined {
         return this.#resolvedInner;
@@ -1113,6 +1118,10 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         await this.#forEachManager((manager) => manager.persistState?.());
     }
 
+    /**
+     * Drops every managed storage - the wrapped manager and each per-domain queue.
+     * @internal
+     */
     async drop(): Promise<void> {
         await this.#forEachManager((manager) => (manager as { drop?(): Promise<void> }).drop?.());
         this.#subManagers.clear();

@@ -5,8 +5,16 @@ export * from './request_list.js';
 export type * from './request_loader.js';
 export type * from './request_manager.js';
 export * from './request_queue.js';
-export * from './storage_instance_manager.js';
-export * from './storage_stats.js';
+// `resolveStorageIdentifier` is deliberately absent: it is an internal helper of the storage frontends.
+export type {
+    DefaultStorageIdentifier,
+    ExplicitStorageIdentifier,
+    IStorage,
+    StorageIdentifier,
+} from './storage_instance_manager.js';
+export { StorageInstanceManager } from './storage_instance_manager.js';
+// `StorageStatsTracker` is deliberately absent: it is the mutable counter backing the `stats` getters.
+export type { DatasetStats, KeyValueStoreStats, RequestQueueStats } from './storage_stats.js';
 export * from './utils.js';
 export * from './transaction.js';
 export * from './sitemap_request_loader.js';
