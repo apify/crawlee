@@ -25,8 +25,8 @@ import { RequestHandler } from '@crawlee/basic';
 import type { RequireContextPipeline } from '@crawlee/basic';
 import { RouterHandler } from '@crawlee/basic';
 import { RouterRoutes } from '@crawlee/basic';
-import type { RouteSchemas } from '@crawlee/basic';
-import type { RoutesFromSchemas } from '@crawlee/basic';
+import { RouteSchemas } from '@crawlee/basic';
+import { RoutesFromSchemas } from '@crawlee/basic';
 import { Transform } from 'node:stream';
 
 // @public
@@ -43,7 +43,13 @@ interface CrawlingContextWithResponse<UserData extends Dictionary = any> extends
 }
 
 // @public
-export function createFileRouter<Context extends FileDownloadCrawlingContext = FileDownloadCrawlingContext, UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(routes?: RouterRoutes<Context, UserData>): RouterHandler<Context, Record<string, GetUserDataFromRequest<Context["request"]>>>;
+export function createFileRouter<Context extends FileDownloadCrawlingContext = FileDownloadCrawlingContext, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
+
+// @public (undocumented)
+export function createFileRouter<Context extends FileDownloadCrawlingContext = FileDownloadCrawlingContext, UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
+
+// @public (undocumented)
+export function createFileRouter<Context extends FileDownloadCrawlingContext = FileDownloadCrawlingContext, const Schemas extends RouteSchemas = RouteSchemas>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
 
 // @public
 export function createHttpRouter<Context extends HttpCrawlingContext = HttpCrawlingContext, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
