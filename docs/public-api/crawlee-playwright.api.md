@@ -395,8 +395,6 @@ export class RenderingTypePredictor implements IRenderingTypePredictor {
     [Symbol.asyncDispose](): Promise<void>;
     constructor(input: RenderingTypePredictorOptions);
     initialize(): Promise<void>;
-    // (undocumented)
-    persistState(): Promise<void>;
     predict(input: Request_2): {
         renderingType: RenderingType;
         detectionProbabilityRecommendation: number;

@@ -131,10 +131,6 @@ export class RenderingTypePredictor implements IRenderingTypePredictor {
         });
     }
 
-    async persistState(): Promise<void> {
-        await this.#state.persistState();
-    }
-
     /**
      * Initialize the predictor by restoring persisted state.
      */

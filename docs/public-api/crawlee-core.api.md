@@ -104,8 +104,6 @@ export abstract class BaseCrawleeLogger implements CrawleeLogger {
     info(message: string, data?: Record<string, unknown>): void;
     abstract logWithLevel(level: number, message: string, data?: Record<string, unknown>): void;
     // (undocumented)
-    protected options: CrawleeLoggerOptions;
-    // (undocumented)
     perf(message: string, data?: Record<string, unknown>): void;
     // (undocumented)
     setOptions(options: Partial<CrawleeLoggerOptions>): void;
@@ -115,8 +113,6 @@ export abstract class BaseCrawleeLogger implements CrawleeLogger {
     warning(message: string, data?: Record<string, unknown>): void;
     // (undocumented)
     warningOnce(message: string): void;
-    // (undocumented)
-    protected readonly warningsLogged: Set<string>;
 }
 
 // @public (undocumented)
@@ -1723,19 +1719,11 @@ export class SessionPool implements ISessionPool {
     }>;
     // (undocumented)
     readonly id: string;
-    // (undocumented)
-    readonly maxPoolSize: number;
     newSession(sessionOptions?: SessionOptions): Promise<Session>;
     persistState(options?: PersistenceOptions): Promise<void>;
     // (undocumented)
-    get persistStateKey(): string;
-    // (undocumented)
-    get persistStateKeyValueStoreId(): string | undefined;
-    // (undocumented)
     resetStore(options?: PersistenceOptions): Promise<void>;
     retiredSessionsCount(): Promise<number>;
-    // (undocumented)
-    get sessionOptions(): SessionOptions;
     teardown(input?: {
         persistState?: boolean;
     }): Promise<void>;

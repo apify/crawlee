@@ -1796,7 +1796,6 @@ describe('BasicCrawler', () => {
         });
 
         const maxSignedInteger = 2 ** 31 - 1;
-        expect((crawler as any).requestHandlerTimeoutMillis).toBe(maxSignedInteger);
         expect((crawler as any).internalTimeoutMillis).toBe(maxSignedInteger);
     });
 
@@ -2038,8 +2037,8 @@ describe('BasicCrawler', () => {
             });
             await crawler.run();
 
-            // @ts-expect-error private symbol
-            expect(crawler.sessionPool.maxPoolSize).toEqual(10);
+            expect(crawler.sessionPool).toBeDefined();
+            expect((await crawler.sessionPool.getState()).sessions).toHaveLength(1);
         });
 
         it('should accept a pre-initialized SessionPool instance', async () => {

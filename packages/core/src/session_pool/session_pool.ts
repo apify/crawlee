@@ -154,7 +154,7 @@ export class SessionPool implements ISessionPool {
     readonly id: string;
     #log: CrawleeLogger;
     #sessions: Session[] = [];
-    readonly maxPoolSize: number;
+    #maxPoolSize: number;
     #createSessionFunction: CreateSession;
     #keyValueStore?: KeyValueStore;
     #sessionMap = new Map<string, Session>();
@@ -165,18 +165,6 @@ export class SessionPool implements ISessionPool {
     #events: EventManager;
     #persistenceOptions: PersistenceOptions;
     #sessionReuseStrategy: SessionReuseStrategy;
-
-    get sessionOptions(): SessionOptions {
-        return this.#sessionOptions;
-    }
-
-    get persistStateKey(): string {
-        return this.#persistStateKey;
-    }
-
-    get persistStateKeyValueStoreId(): string | undefined {
-        return this.#persistStateKeyValueStoreId;
-    }
 
     #initPromise?: Promise<void>;
     #queue = new AsyncQueue();
@@ -202,7 +190,7 @@ export class SessionPool implements ISessionPool {
         this.#persistenceOptions = persistenceOptions;
 
         // Pool Configuration
-        this.maxPoolSize = maxPoolSize;
+        this.#maxPoolSize = maxPoolSize;
         this.#createSessionFunction = createSessionFunction || this.defaultCreateSessionFunction;
 
         // Session configuration. The pool-scoped logger is merged into per-call sessionOptions inside
@@ -488,7 +476,7 @@ export class SessionPool implements ISessionPool {
      * Decides whether there is enough space for creating new session.
      */
     private hasSpaceForSession(): boolean {
-        return this.#sessions.length < this.maxPoolSize;
+        return this.#sessions.length < this.#maxPoolSize;
     }
 
     /**

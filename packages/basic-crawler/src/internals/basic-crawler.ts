@@ -101,7 +101,7 @@ import type { ReadonlyDeep } from 'type-fest';
 import { z } from 'zod';
 
 import { LruCache } from '@apify/datastructures';
-import { addTimeoutToPromise, extendTimeout, TimeoutError } from '@apify/timeout';
+import { addTimeoutToPromise, extendTimeout, TimeoutError, tryCancel } from '@apify/timeout';
 import { cryptoRandomObjectId } from '@apify/utilities';
 
 import {
@@ -849,9 +849,9 @@ export class BasicCrawler<
     }
 
     protected readonly requestHandler!: RequestHandler<ExtendedContext>;
-    protected readonly errorHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
-    protected readonly failedRequestHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
-    protected readonly requestHandlerTimeoutMillis!: number;
+    readonly #errorHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
+    readonly #failedRequestHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
+    #requestHandlerTimeoutMillis!: number;
     protected readonly internalTimeoutMillis: number;
     readonly #maxRequestRetries: number;
     readonly #maxCrawlDepth?: number;
@@ -1109,13 +1109,13 @@ export class BasicCrawler<
             this.#ignoreHttpErrorStatusCodes = new Set([...ignoreHttpErrorStatusCodes]);
 
             this.requestHandler = requestHandler ?? this.router;
-            this.failedRequestHandler = failedRequestHandler;
-            this.errorHandler = errorHandler;
+            this.#failedRequestHandler = failedRequestHandler;
+            this.#errorHandler = errorHandler;
 
             if (requestHandlerTimeoutSecs) {
-                this.requestHandlerTimeoutMillis = requestHandlerTimeoutSecs * 1000;
+                this.#requestHandlerTimeoutMillis = requestHandlerTimeoutSecs * 1000;
             } else {
-                this.requestHandlerTimeoutMillis = 60_000;
+                this.#requestHandlerTimeoutMillis = 60_000;
             }
 
             this.retryOnBlocked = retryOnBlocked;
@@ -1132,7 +1132,7 @@ export class BasicCrawler<
             // allow at least 5min for internal timeouts
             this.internalTimeoutMillis =
                 serviceLocator.getConfiguration().internalTimeoutMillis ??
-                Math.max(this.requestHandlerTimeoutMillis * 2, 300e3);
+                Math.max(this.#requestHandlerTimeoutMillis * 2, 300e3);
 
             this.#maxRequestRetries = maxRequestRetries;
             this.#maxCrawlDepth = maxCrawlDepth;
@@ -1178,13 +1178,13 @@ export class BasicCrawler<
             this.blockedStatusCodes = new Set(blockedStatusCodesInput ?? BLOCKED_STATUS_CODES);
 
             const maxSignedInteger = 2 ** 31 - 1;
-            if (this.requestHandlerTimeoutMillis > maxSignedInteger) {
+            if (this.#requestHandlerTimeoutMillis > maxSignedInteger) {
                 this.log.warning(
-                    `requestHandlerTimeoutMillis ${this.requestHandlerTimeoutMillis}` +
+                    `requestHandlerTimeoutMillis ${this.#requestHandlerTimeoutMillis}` +
                         ` does not fit a signed 32-bit integer. Limiting the value to ${maxSignedInteger}`,
                 );
 
-                this.requestHandlerTimeoutMillis = maxSignedInteger;
+                this.#requestHandlerTimeoutMillis = maxSignedInteger;
             }
 
             this.internalTimeoutMillis = Math.min(this.internalTimeoutMillis, maxSignedInteger);
@@ -1908,7 +1908,7 @@ export class BasicCrawler<
         // which routes a run will hit, so reserve for the longest one any route asked for. The hint is
         // raise-only, so erring high here is safe.
         const maxRouteTimeoutSecs = (this.requestHandler as Partial<RouterHandler>).getMaxTimeoutSecs?.() ?? 0;
-        const handlerTimeoutSecs = Math.max(this.requestHandlerTimeoutMillis / 1000, maxRouteTimeoutSecs);
+        const handlerTimeoutSecs = Math.max(this.#requestHandlerTimeoutMillis / 1000, maxRouteTimeoutSecs);
 
         await requestManager.setExpectedRequestProcessingTimeSecs?.(Math.max(handlerTimeoutSecs + 5, 60));
     }
@@ -2188,6 +2188,7 @@ export class BasicCrawler<
         data: Parameters<Dataset['pushData']>[0],
         datasetIdentifier?: string | StorageIdentifier,
     ): Promise<void> {
+        tryCancel();
         const dataset = await this.getDataset(datasetIdentifier);
         return dataset.pushData(data);
     }
@@ -2338,7 +2339,7 @@ export class BasicCrawler<
      */
     private resolveRequestHandlerTimeoutMillis(
         label: string | undefined,
-        fallbackMillis = this.requestHandlerTimeoutMillis,
+        fallbackMillis = this.#requestHandlerTimeoutMillis,
     ): number {
         return this.getRouteTimeoutMillis(label) ?? fallbackMillis;
     }
@@ -2762,7 +2763,7 @@ export class BasicCrawler<
 
         if (shouldRetryRequest) {
             await this.statistics.errorTrackerRetry.addAsync(error, crawlingContext);
-            await this.errorHandler?.(
+            await this.#errorHandler?.(
                 crawlingContext as CrawlingContext & Partial<ExtendedContext>, // valid cast - ExtendedContext transitively extends CrawlingContext
                 error,
             );
@@ -2820,8 +2821,8 @@ export class BasicCrawler<
 
         this.log.error(`Request failed and reached maximum retries. ${message}`, { id, url, method, uniqueKey });
 
-        if (this.failedRequestHandler) {
-            await this.failedRequestHandler?.(
+        if (this.#failedRequestHandler) {
+            await this.#failedRequestHandler?.(
                 crawlingContext as CrawlingContext & Partial<ExtendedContext>, // valid cast - ExtendedContext transitively extends CrawlingContext
                 error,
             );

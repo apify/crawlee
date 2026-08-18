@@ -61,11 +61,7 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
     // (undocumented)
     get contextPipeline(): ContextPipeline<CrawlingContext, ExtendedContext>;
     protected createDefaultConcurrencySystem(options: ConcurrencySystemOptions): ConcurrencySystem;
-    // (undocumented)
-    protected readonly errorHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
     exportData<Data>(path: string, format?: 'json' | 'csv', options?: DatasetExportOptions): Promise<Data[]>;
-    // (undocumented)
-    protected readonly failedRequestHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
     // (undocumented)
     protected getCookieHeaderFromRequest(request: Request_2): string;
     getData(...args: Parameters<Dataset['getData']>): ReturnType<Dataset['getData']>;
@@ -94,8 +90,6 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
     protected recordDomainRateLimit(url: string, retryAfterHeader?: string | null): boolean;
     // (undocumented)
     protected readonly requestHandler: RequestHandler<ExtendedContext>;
-    // (undocumented)
-    protected readonly requestHandlerTimeoutMillis: number;
     protected requestManager?: IRequestManager;
     resume(): void;
     // (undocumented)

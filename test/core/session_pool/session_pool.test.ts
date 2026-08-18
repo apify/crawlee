@@ -24,7 +24,7 @@ describe('SessionPool - testing session pool', () => {
 
     test('should initialize with default values for first time', async () => {
         expect((await sessionPool.getState()).sessions).toEqual([]);
-        expect(sessionPool.maxPoolSize).toBeDefined();
+        expect(sessionPool.id).toBeDefined();
     });
 
     test('should override default values', async () => {
@@ -34,14 +34,9 @@ describe('SessionPool - testing session pool', () => {
                 maxAgeSecs: 100,
                 maxUsageCount: 1,
             },
-
-            persistStateKeyValueStoreId: 'TEST',
-            persistStateKey: 'SESSION_POOL_STATE2',
         };
         sessionPool = new SessionPool(opts);
         await sessionPool.teardown();
-
-        expect(sessionPool.maxPoolSize).toEqual(3000);
     });
 
     describe('should retrieve session', () => {
@@ -50,11 +45,8 @@ describe('SessionPool - testing session pool', () => {
             const session = await sessionPool.getSession();
             expect((await sessionPool.getState()).sessions).toHaveLength(1);
             expect(session?.id).toBeDefined();
-            expect(session!.expiresAt.getTime() - session!.createdAt.getTime()).toBeCloseTo(
-                (sessionPool.sessionOptions.maxAgeSecs as number) * 1000,
-                -2,
-            );
-            expect(session?.maxUsageCount).toEqual(sessionPool.sessionOptions.maxUsageCount);
+            expect(session!.expiresAt.getTime() - session!.createdAt.getTime()).toBeCloseTo(100 * 1000, -2);
+            expect(session?.maxUsageCount).toEqual(10);
         });
 
         test('should pick session when pool is full', async () => {
@@ -106,9 +98,7 @@ describe('SessionPool - testing session pool', () => {
         await sessionPool.persistState();
 
         const kvStore = await KeyValueStore.open();
-        const sessionPoolSaved = await kvStore.getValue<Awaited<ReturnType<SessionPool['getState']>>>(
-            sessionPool.persistStateKey,
-        );
+        const sessionPoolSaved = await kvStore.getValue<Awaited<ReturnType<SessionPool['getState']>>>(persistStateKey);
 
         const currentState = await sessionPool.getState();
         expect(sessionPoolSaved!.usableSessionsCount).toEqual(currentState.usableSessionsCount);
@@ -121,7 +111,6 @@ describe('SessionPool - testing session pool', () => {
         expect((await sessionPool.getState()).sessions).toHaveLength(
             (await loadedSessionPool.getState()).sessions.length,
         );
-        expect(sessionPool.maxPoolSize).toEqual(loadedSessionPool.maxPoolSize);
         await sessionPool.teardown();
     });
 
@@ -165,7 +154,7 @@ describe('SessionPool - testing session pool', () => {
 
             await new Promise<void>((resolve) => {
                 const interval = setInterval(async () => {
-                    const state = await store.getValue(sessionPool.persistStateKey);
+                    const state = await store.getValue('CRAWLEE_SESSION_POOL_STATE');
                     if (state) {
                         resolve();
                         clearInterval(interval);
@@ -173,7 +162,7 @@ describe('SessionPool - testing session pool', () => {
                 }, 100);
             });
 
-            const state = await store.getValue(sessionPool.persistStateKey);
+            const state = await store.getValue('CRAWLEE_SESSION_POOL_STATE');
 
             expect(await sessionPool.getState()).toEqual(state);
         });
@@ -249,11 +238,9 @@ describe('SessionPool - testing session pool', () => {
 
         await newSessionPool.teardown();
 
-        const kvStore = await KeyValueStore.open({ id: newSessionPool.persistStateKeyValueStoreId! });
-        const state = await kvStore.getValue(newSessionPool.persistStateKey);
+        const kvStore = await KeyValueStore.open({ id: persistStateKeyValueStoreId });
+        const state = await kvStore.getValue(persistStateKey);
 
-        expect(newSessionPool.persistStateKeyValueStoreId).toBeDefined();
-        expect(newSessionPool.persistStateKey).toBeDefined();
         expect(state).toBeDefined();
         expect(state).toBeInstanceOf(Object);
         expect(state).toHaveProperty('usableSessionsCount');
@@ -431,19 +418,19 @@ describe('SessionPool - testing session pool', () => {
     });
 
     describe('multiple SessionPool instances isolation', () => {
-        test('should use unique persist keys by default', async () => {
+        test('should use unique ids by default', async () => {
             const pool1 = new SessionPool();
             const pool2 = new SessionPool();
 
-            expect(pool1.persistStateKey).not.toEqual(pool2.persistStateKey);
+            expect(pool1.id).not.toEqual(pool2.id);
 
             await pool1.teardown();
             await pool2.teardown();
         });
 
         test("should not overwrite each other's persisted state", async () => {
-            const pool1 = new SessionPool({ maxPoolSize: 5 });
-            const pool2 = new SessionPool({ maxPoolSize: 5 });
+            const pool1 = new SessionPool({ id: 'pool-1', maxPoolSize: 5 });
+            const pool2 = new SessionPool({ id: 'pool-2', maxPoolSize: 5 });
 
             for (let i = 0; i < 3; i++) await pool1.getSession();
             for (let i = 0; i < 5; i++) await pool2.getSession();
@@ -452,10 +439,10 @@ describe('SessionPool - testing session pool', () => {
             await pool2.persistState();
 
             const pool1Reloaded = new SessionPool({
-                persistStateKey: pool1.persistStateKey,
+                id: 'pool-1',
             });
             const pool2Reloaded = new SessionPool({
-                persistStateKey: pool2.persistStateKey,
+                id: 'pool-2',
             });
 
             expect((await pool1Reloaded.getState()).sessions).toHaveLength(3);

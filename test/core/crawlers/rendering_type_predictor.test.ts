@@ -27,7 +27,7 @@ describe('RenderingTypePredictor', () => {
 
             // Persist the state
             const store = await KeyValueStore.open();
-            await predictor.persistState();
+            await predictor.teardown();
 
             const persistedState = await store.getValue(persistStateKey);
             expect(persistedState).toHaveProperty('logreg');
