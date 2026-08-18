@@ -22,7 +22,11 @@ export class PuppeteerPlugin extends BrowserPlugin<
     PuppeteerTypes.Browser,
     PuppeteerNewPageOptions
 > {
-    /** Pages share cookies/storage on the remote browser (Puppeteer defaults to non-incognito). */
+    /**
+     * Pages share cookies/storage on the remote browser (Puppeteer defaults to non-incognito).
+     *
+     * @internal
+     */
     override useRemoteConnection(connection: RemoteConnection, parameters: RemoteConnectionParameters = {}): void {
         super.useRemoteConnection(connection, parameters);
 

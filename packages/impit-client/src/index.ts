@@ -54,7 +54,7 @@ export class ImpitHttpClient extends BaseHttpClient {
      */
     #impitBrowserByFingerprint = new WeakMap<SessionFingerprint, ImpitBrowser>();
 
-    private getClient(options: ImpitOptions): Impit {
+    #getClient(options: ImpitOptions): Impit {
         if (!this.#cacheClients) {
             return new Impit(options);
         }
@@ -90,12 +90,12 @@ export class ImpitHttpClient extends BaseHttpClient {
     /**
      * @inheritDoc
      */
-    async fetch(request: Request, options?: RequestInit & CustomFetchOptions): Promise<Response> {
+    protected override async fetch(request: Request, options?: RequestInit & CustomFetchOptions): Promise<Response> {
         const { proxyUrl, redirect, signal, fingerprint, ignoreTlsErrors } = options ?? {};
 
-        const impitBrowser = this.resolveImpitBrowser(fingerprint);
+        const impitBrowser = this.#resolveImpitBrowser(fingerprint);
 
-        const impit = this.getClient({
+        const impit = this.#getClient({
             ...this.#impitOptions,
             ...(impitBrowser ? { browser: impitBrowser } : {}),
             // The per-request flag (from the crawler option or a MITM proxy session)
@@ -111,7 +111,7 @@ export class ImpitHttpClient extends BaseHttpClient {
         return new ResponseWithUrl(response.body, response);
     }
 
-    private resolveImpitBrowser(fingerprint?: SessionFingerprint): ImpitBrowser | undefined {
+    #resolveImpitBrowser(fingerprint?: SessionFingerprint): ImpitBrowser | undefined {
         if (!fingerprint?.browser) return undefined;
 
         const cached = this.#impitBrowserByFingerprint.get(fingerprint);

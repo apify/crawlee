@@ -94,16 +94,6 @@ describe('ConcurrencySystem', () => {
             expect(system.desiredConcurrency).toBe(20);
         });
 
-        test('desiredConcurrency is held within the current bounds', () => {
-            const system = new ConcurrencySystem({ minConcurrency: 5, maxConcurrency: 50 });
-
-            system.desiredConcurrency = 500;
-            expect(system.desiredConcurrency).toBe(50);
-
-            system.desiredConcurrency = 1;
-            expect(system.desiredConcurrency).toBe(5);
-        });
-
         test('the maximum wins a contradictory pair of bounds', () => {
             const system = new ConcurrencySystem({ minConcurrency: 10, maxConcurrency: 100, desiredConcurrency: 50 });
 
@@ -701,8 +691,9 @@ describe('ConcurrencySystem', () => {
             const first = makeBorrower('first');
             const second = makeBorrower('second');
 
-            // Tuning happens on the governor its owner holds; the pools only report it, read-only.
-            system.desiredConcurrency = 42;
+            // Tuning happens on the governor its owner holds; the pools only report it, read-only. `desiredConcurrency`
+            // is autoscaler-owned, so it is retuned by moving the bounds it is clamped into.
+            system.minConcurrency = 42;
             expect(first.desiredConcurrency).toBe(42);
             expect(second.desiredConcurrency).toBe(42);
         });

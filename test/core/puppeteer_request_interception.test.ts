@@ -1,13 +1,13 @@
 import type { Server } from 'node:http';
 
 import { sleep } from '@crawlee/utils';
-import { launchPuppeteer, utils } from 'crawlee';
+import { launchPuppeteer, puppeteerUtils } from 'crawlee';
 // @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
 import type { HTTPRequest } from 'puppeteer';
 
 import { runExampleComServer } from '../shared/_helper.js';
 
-const { addInterceptRequestHandler, removeInterceptRequestHandler } = utils.puppeteer;
+const { addInterceptRequestHandler, removeInterceptRequestHandler } = puppeteerUtils;
 
 let serverAddress = 'http://localhost:';
 let port: number;
@@ -21,7 +21,7 @@ beforeAll(async () => {
 afterAll(() => {
     server.close();
 });
-describe('utils.puppeteer.addInterceptRequestHandler|removeInterceptRequestHandler()', () => {
+describe('puppeteerUtils.addInterceptRequestHandler|removeInterceptRequestHandler()', () => {
     test('should allow multiple handlers', async () => {
         const browser = await launchPuppeteer({ launchOptions: { headless: true } });
 
@@ -209,7 +209,7 @@ describe('utils.puppeteer.addInterceptRequestHandler|removeInterceptRequestHandl
     });
 });
 
-describe('utils.puppeteer.removeInterceptRequestHandler()', () => {
+describe('puppeteerUtils.removeInterceptRequestHandler()', () => {
     test('works', async () => {
         const browser = await launchPuppeteer({ launchOptions: { headless: true } });
 

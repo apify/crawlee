@@ -412,6 +412,7 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
 
     /**
      * Reason for skipping this request.
+     * @internal
      */
     get skippedReason(): SkippedRequestReason | undefined {
         return this.userData.__crawlee?.skippedReason;
@@ -419,6 +420,7 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
 
     /**
      * Reason for skipping this request.
+     * @internal
      */
     set skippedReason(value: SkippedRequestReason | undefined) {
         if (!this.userData.__crawlee) {

@@ -8,7 +8,6 @@ import { Action } from '@browserbasehq/stagehand';
 import { ActOptions } from '@browserbasehq/stagehand';
 import { ActResult } from '@browserbasehq/stagehand';
 import { AgentConfig } from '@browserbasehq/stagehand';
-import { AgentResult } from '@browserbasehq/stagehand';
 import type { Browser } from 'playwright';
 import type { BrowserController } from '@crawlee/browser-pool';
 import { BrowserCrawler } from '@crawlee/browser';
@@ -31,7 +30,6 @@ import type { GetUserDataFromRequest } from '@crawlee/browser';
 import type { LaunchContext } from '@crawlee/browser-pool';
 import type { LaunchOptions } from 'playwright';
 import type { LLMClient } from '@browserbasehq/stagehand';
-import type { LoadedContext } from '@crawlee/browser';
 import { ModelConfiguration } from '@browserbasehq/stagehand';
 import type { NonStreamingAgentInstance } from '@browserbasehq/stagehand';
 import { ObserveOptions } from '@browserbasehq/stagehand';
@@ -55,8 +53,6 @@ export { ActOptions }
 export { ActResult }
 
 export { AgentConfig }
-
-export { AgentResult }
 
 // @public
 export function createStagehandRouter<Context extends StagehandCrawlingContext = StagehandCrawlingContext, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
@@ -99,7 +95,7 @@ export interface StagehandBrowserPoolOptions extends Omit<BrowserPoolOptions, 'b
 }
 
 // @public
-export class StagehandCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends StagehandCrawlingContext = StagehandCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<StagehandCrawlingContext['request']>>, StatisticStateExtension extends object = {}> extends BrowserCrawler<StagehandPage, Response_2, LaunchOptions, StagehandCrawlingContext, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
+export class StagehandCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends StagehandCrawlingContext = StagehandCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<StagehandCrawlingContext['request']>>, StatisticStateExtension extends object = {}> extends BrowserCrawler<StagehandPage, Response_2, StagehandCrawlingContext, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
     constructor(options?: StagehandCrawlerOptions<ContextExtension, ExtendedContext, Routes, StatisticStateExtension>);
     // (undocumented)
     protected buildContextPipeline(): ContextPipeline<CrawlingContext, StagehandCrawlingContext>;
@@ -130,13 +126,9 @@ export type StagehandHook<UserData extends Dictionary = any> = BrowserHook<Stage
 
 // @public
 export interface StagehandLaunchContext extends BrowserLaunchContext<LaunchOptions, BrowserType> {
-    launcher?: BrowserType;
     launchOptions?: LaunchOptions & Parameters<BrowserType['launchPersistentContext']>[1];
     proxyUrl?: string;
-    stagehandOptions?: StagehandOptions;
     useChrome?: boolean;
-    useIncognitoPages?: boolean;
-    userDataDir?: string;
 }
 
 // @public
@@ -174,27 +166,14 @@ class StagehandPlugin extends BrowserPlugin<BrowserType, LaunchOptions, Browser>
     constructor(library: BrowserType, options?: StagehandPluginOptions);
     protected addProxyToLaunchOptions(launchContext: LaunchContext<BrowserType>): Promise<void>;
     createController(): BrowserController<BrowserType, LaunchOptions, Browser>;
-    getStagehandForBrowser(browser: Browser): Stagehand | undefined;
     protected isChromiumBasedBrowser(): boolean;
     protected _launch(launchContext: LaunchContext<BrowserType>): Promise<Browser>;
-    // (undocumented)
-    readonly stagehandOptions: StagehandOptions;
 }
 
 // Not exported by the entry point; reachable only as a referenced type.
 // @public
 interface StagehandPluginOptions extends BrowserPluginOptions<LaunchOptions> {
     stagehandOptions?: StagehandOptions;
-}
-
-// @public
-export interface StagehandRequestHandler extends RequestHandler<LoadedContext<StagehandCrawlingContext>> {
-}
-
-declare namespace stagehandUtils {
-    export {
-        enhancePageWithStagehand
-    }
 }
 
 

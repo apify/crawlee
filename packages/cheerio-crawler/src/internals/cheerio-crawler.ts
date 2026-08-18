@@ -38,11 +38,6 @@ export interface CheerioCrawlerOptions<
     StatisticStateExtension
 > {}
 
-export type CheerioHook<
-    UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-> = InternalHttpHook<CheerioCrawlingContext<UserData, JSONData>>;
-
 export interface CheerioCrawlingContext<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
