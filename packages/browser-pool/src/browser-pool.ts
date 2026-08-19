@@ -599,7 +599,7 @@ export class BrowserPool<
     ) {
         // This is needed for concurrent newPage calls to wait for the browser launch.
         // It's not ideal though, we need to come up with a better API.
-        await browserController.isActivePromise;
+        await browserController.waitForActive();
         tryCancel();
 
         const finalPageOptions = browserController.launchContext.useIncognitoPages ? pageOptions : undefined;

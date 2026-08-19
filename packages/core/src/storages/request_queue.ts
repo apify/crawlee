@@ -143,14 +143,6 @@ export class RequestQueue implements IStorage, IRequestManager {
 
     #inProgressRequestBatchCount = 0;
 
-    get inProgressRequestBatchCount(): number {
-        return this.#inProgressRequestBatchCount;
-    }
-
-    set inProgressRequestBatchCount(value: number) {
-        this.#inProgressRequestBatchCount = value;
-    }
-
     /**
      * The largest expected request-processing time (in seconds) seen so far via
      * {@link setExpectedRequestProcessingTimeSecs}. Used to ensure that value is only ever raised, never
@@ -845,7 +837,7 @@ export class RequestQueue implements IStorage, IRequestManager {
         const transaction = activeStorageTransaction();
 
         // We are not finished if we're still adding new requests in the background.
-        if (this.inProgressRequestBatchCount > 0) {
+        if (this.#inProgressRequestBatchCount > 0) {
             return false;
         }
 

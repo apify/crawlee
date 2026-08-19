@@ -1313,9 +1313,6 @@ export class RequestQueue implements IStorage, IRequestManager {
     getTotalCount(): Promise<number>;
     // (undocumented)
     readonly id: string;
-    // (undocumented)
-    get inProgressRequestBatchCount(): number;
-    set inProgressRequestBatchCount(value: number);
     isEmpty(): Promise<boolean>;
     isFinished(): Promise<boolean>;
     // (undocumented)

@@ -69,8 +69,6 @@ export abstract class BrowserController<Library extends CommonLibrary = CommonLi
     readonly id: string;
     // (undocumented)
     isActive: boolean;
-    // (undocumented)
-    get isActivePromise(): Promise<void>;
     kill(): Promise<void>;
     // (undocumented)
     protected abstract _kill(): Promise<void>;
@@ -90,6 +88,7 @@ export abstract class BrowserController<Library extends CommonLibrary = CommonLi
     protected abstract _setCookies(page: NewPageResult, cookies: Cookie[]): Promise<void>;
     // (undocumented)
     totalPages: number;
+    waitForActive(): Promise<void>;
 }
 
 // @public (undocumented)

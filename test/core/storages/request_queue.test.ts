@@ -680,8 +680,11 @@ describe('RequestQueue background batches', () => {
         // Previously the async promise executor swallowed the throw: this promise never settled at all.
         await expect(result.waitForAllRequestsToBeAdded).rejects.toThrow('backend exploded');
 
-        // ...and the in-flight batch counter stayed stuck, so the queue claimed to be unfinished forever.
-        await sleep(10);
-        expect(queue['inProgressRequestBatchCount']).toBe(0);
+        // ...and the in-flight batch counter was reset so the queue can finish once handled.
+        const req = await queue.fetchNextRequest();
+        if (req) {
+            await queue.markRequestAsHandled(req);
+        }
+        expect(await queue.isFinished()).toBe(true);
     }, 10_000);
 });

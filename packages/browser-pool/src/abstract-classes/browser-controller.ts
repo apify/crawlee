@@ -150,8 +150,11 @@ export abstract class BrowserController<
         this.#activate = resolve;
     });
 
-    get isActivePromise(): Promise<void> {
-        return this.#isActivePromise;
+    /**
+     * Returns a promise that resolves once the browser controller has been activated.
+     */
+    async waitForActive(): Promise<void> {
+        await this.#isActivePromise;
     }
 
     #commitBrowser!: () => void;

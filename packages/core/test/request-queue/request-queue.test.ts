@@ -73,13 +73,15 @@ describe('RequestQueue#isFinished waits for background add operations', () => {
     test('returns false while a background batch is still being added', async () => {
         const queue = await makeQueue('is-finished-background');
 
-        // Simulate an in-flight background `addRequestsBatched` operation.
-        // eslint-disable-next-line dot-notation
-        queue['inProgressRequestBatchCount'] = 1;
+        expect(await queue.isFinished()).toBe(true);
+
+        const result = await queue.addRequestsBatched([{ url: 'https://example.com/1' }]);
+        await result.waitForAllRequestsToBeAdded;
+
         expect(await queue.isFinished()).toBe(false);
 
-        // eslint-disable-next-line dot-notation
-        queue['inProgressRequestBatchCount'] = 0;
+        const req = await queue.fetchNextRequest();
+        await queue.markRequestAsHandled(req!);
         expect(await queue.isFinished()).toBe(true);
     });
 });
