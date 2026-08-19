@@ -22,8 +22,6 @@ import type { BrowserPoolHooks } from '@crawlee/browser-pool';
 import type { BrowserPoolOptions } from '@crawlee/browser-pool';
 import type { BrowserType } from 'playwright';
 import { Configuration } from '@crawlee/browser';
-import type { ContextPipeline } from '@crawlee/browser';
-import type { CrawlingContext } from '@crawlee/browser';
 import type { Dictionary } from '@crawlee/types';
 import { ExtractOptions } from '@browserbasehq/stagehand';
 import type { GetUserDataFromRequest } from '@crawlee/browser';
@@ -97,8 +95,6 @@ export interface StagehandBrowserPoolOptions extends Omit<BrowserPoolOptions, 'b
 // @public
 export class StagehandCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends StagehandCrawlingContext = StagehandCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<StagehandCrawlingContext['request']>>, StatisticStateExtension extends object = {}> extends BrowserCrawler<StagehandPage, Response_2, StagehandCrawlingContext, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
     constructor(options?: StagehandCrawlerOptions<ContextExtension, ExtendedContext, Routes, StatisticStateExtension>);
-    // (undocumented)
-    protected buildContextPipeline(): ContextPipeline<CrawlingContext, StagehandCrawlingContext>;
     protected navigationHandler(crawlingContext: StagehandCrawlingContext, gotoOptions: StagehandGotoOptions): Promise<Response_2 | null>;
 }
 

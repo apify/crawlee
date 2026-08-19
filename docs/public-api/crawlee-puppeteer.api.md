@@ -17,8 +17,6 @@ import type { BrowserPoolOptions } from '@crawlee/browser-pool';
 import type { CheerioAPI } from 'cheerio';
 import type { ClickOptions } from 'puppeteer';
 import { Configuration } from '@crawlee/browser';
-import type { ContextPipeline } from '@crawlee/browser';
-import type { CrawlingContext } from '@crawlee/browser';
 import { Dictionary } from '@crawlee/types';
 import type { GetUserDataFromRequest } from '@crawlee/browser';
 import type { HTTPRequest } from 'puppeteer';
@@ -168,8 +166,6 @@ interface PuppeteerContextUtils {
 // @public
 export class PuppeteerCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends PuppeteerCrawlingContext = PuppeteerCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<PuppeteerCrawlingContext['request']>>, StatisticStateExtension extends object = {}> extends BrowserCrawler<Page, HTTPResponse, PuppeteerCrawlingContext, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
     constructor(options?: PuppeteerCrawlerOptions<ContextExtension, ExtendedContext, Routes, StatisticStateExtension>);
-    // (undocumented)
-    protected buildContextPipeline(): ContextPipeline<CrawlingContext, PuppeteerCrawlingContext>;
     // (undocumented)
     protected navigationHandler(crawlingContext: PuppeteerCrawlingContext, gotoOptions: PuppeteerDirectNavigationOptions): Promise<HTTPResponse | null>;
 }

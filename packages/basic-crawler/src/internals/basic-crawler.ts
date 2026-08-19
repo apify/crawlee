@@ -1460,14 +1460,6 @@ export class BasicCrawler<
         return {};
     }
 
-    /**
-     * Builds the subclass-specific context pipeline that transforms a `CrawlingContext` into the crawler's target context type.
-     * Subclasses should override this to add their own pipeline stages.
-     */
-    protected buildContextPipeline(): ContextPipeline<CrawlingContext, CrawlingContext> {
-        return ContextPipeline.create<CrawlingContext>();
-    }
-
     private createBaseContext(context: PendingCrawlingContext) {
         const deferredCleanup: (() => Promise<unknown>)[] = [];
 
@@ -1545,7 +1537,7 @@ export class BasicCrawler<
 
     private buildFinalContextPipeline(): ContextPipeline<CrawlingContext, ExtendedContext> {
         const subclassPipeline = (this.#contextPipelineOptions.contextPipelineBuilder?.() ??
-            this.buildContextPipeline()) as ContextPipeline<CrawlingContext, Context>;
+            ContextPipeline.create<CrawlingContext>()) as ContextPipeline<CrawlingContext, Context>;
 
         // `extendContext` runs *before* the subclass navigation pipeline (which includes the
         // pre/post-navigation hooks). This makes the extension visible to those hooks and to the
