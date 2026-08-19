@@ -2024,21 +2024,23 @@ describe('BasicCrawler', () => {
             const url = 'https://example.com';
             const requestList = await RequestList.open({ sources: [{ url }] });
 
+            const sessionPool = new SessionPool({
+                maxPoolSize: 10,
+                persistStateKey: 'POOL',
+            });
+
             const crawler = new BasicCrawler({
                 requestList,
                 requestHandlerTimeoutSecs: 0.01,
                 maxRequestRetries: 1,
-                sessionPool: new SessionPool({
-                    maxPoolSize: 10,
-                    persistStateKey: 'POOL',
-                }),
+                sessionPool,
                 requestHandler: async () => {},
                 failedRequestHandler: async () => {},
             });
             await crawler.run();
 
             expect(crawler.sessionPool).toBeDefined();
-            expect((await crawler.sessionPool.getState()).sessions).toHaveLength(1);
+            expect((await sessionPool.getState()).sessions).toHaveLength(1);
         });
 
         it('should accept a pre-initialized SessionPool instance', async () => {
