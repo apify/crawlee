@@ -471,11 +471,11 @@ export class StagehandCrawler<
                           headless,
                           configuration,
                       })) as unknown as OwnedBrowserPool<StagehandPage>,
-            contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),
+            contextPipelineBuilder: contextPipelineBuilder ?? (() => this.#buildContextPipeline()),
         });
     }
 
-    protected override buildContextPipeline(): ContextPipeline<CrawlingContext, StagehandCrawlingContext> {
+    #buildContextPipeline(): ContextPipeline<CrawlingContext, StagehandCrawlingContext> {
         return super.buildContextPipeline().compose({ action: this.setUpStagehand.bind(this) });
     }
 

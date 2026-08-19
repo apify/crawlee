@@ -257,11 +257,11 @@ export class PuppeteerCrawler<
                 remoteBrowser
                     ? remotePuppeteerBrowserPool({ ...remoteBrowser, launchContext, headless, configuration })
                     : puppeteerBrowserPool({ launchContext, headless, configuration }),
-            contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),
+            contextPipelineBuilder: contextPipelineBuilder ?? (() => this.#buildContextPipeline()),
         });
     }
 
-    protected override buildContextPipeline(): ContextPipeline<CrawlingContext, PuppeteerCrawlingContext> {
+    #buildContextPipeline(): ContextPipeline<CrawlingContext, PuppeteerCrawlingContext> {
         return super.buildContextPipeline().compose({ action: this.enhanceContext.bind(this) });
     }
 

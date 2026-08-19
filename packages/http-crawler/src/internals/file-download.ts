@@ -1,7 +1,5 @@
-import { Transform } from 'node:stream';
-
-import type { BasicCrawlerOptions, ContextPipeline, CrawlingContext, LoadedRequest } from '@crawlee/basic';
-import { BasicCrawler } from '@crawlee/basic';
+import type { BasicCrawlerOptions, CrawlingContext, LoadedRequest } from '@crawlee/basic';
+import { BasicCrawler, ContextPipeline } from '@crawlee/basic';
 import type { Request } from '@crawlee/core';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import type { Dictionary } from '@crawlee/types';
@@ -52,14 +50,19 @@ export type FileDownloadRequestHandler<
  *
  * The crawler finishes when there are no more {@apilink Request} objects to crawl.
  *
- * We can use the `preNavigationHooks` to adjust the crawling context before the request is made:
+ * `FileDownload` has no `preNavigationHooks` / `postNavigationHooks` options. To adjust the crawling context before
+ * the request is made, pass your own {@apilink BasicCrawlerOptions.contextPipelineBuilder|`contextPipelineBuilder`}:
  *
- * ```
- * preNavigationHooks: [
- *     (crawlingContext) => {
+ * ```ts
+ * const crawler = new FileDownload({
+ *     contextPipelineBuilder: () =>
+ *         ContextPipeline.create<CrawlingContext>().compose({
+ *             action: async (context) => ({ ...context, myField: 123 }),
+ *         }),
+ *     requestHandler({ myField }) {
  *         // ...
  *     },
- * ]
+ * });
  * ```
  *
  * New requests are only dispatched when there is enough free CPU and memory available, as judged by the crawler's {@apilink ConcurrencySystem}. Concurrency is tuned via the `minConcurrency`, `maxConcurrency` and `maxRequestsPerMinute` options of the `FileCrawler` constructor, or, for finer control, by injecting a pre-configured {@apilink ConcurrencySystem|`concurrencySystem`}.
@@ -85,12 +88,12 @@ export class FileDownload extends BasicCrawler<FileDownloadCrawlingContext> {
     constructor(options: BasicCrawlerOptions<FileDownloadCrawlingContext> = {}) {
         super({
             ...options,
-            contextPipelineBuilder: () => this.#buildContextPipeline(),
+            contextPipelineBuilder: options.contextPipelineBuilder ?? (() => this.#buildContextPipeline()),
         });
     }
 
     #buildContextPipeline(): ContextPipeline<CrawlingContext, FileDownloadCrawlingContext> {
-        return super.buildContextPipeline().compose({
+        return ContextPipeline.create<CrawlingContext>().compose({
             action: async (context) => this.initiateDownload(context),
             cleanup: async (context) => {
                 if (!context.response.bodyUsed) {
