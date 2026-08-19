@@ -42,17 +42,17 @@ jobs:
 
         steps:
             -   name: Checkout repository
-                uses: actions/checkout@v7
+                uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
             -   name: Use Node.js ${{ matrix.node-version }}
-                uses: actions/setup-node@v7
+                uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
                 with:
                     node-version: ${{ matrix.node-version }}
                     package-manager-cache: false
 
             -   name: Turbo cache
                 id: turbo-cache
-                uses: actions/cache@v6
+                uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
                 with:
                     path: .turbo
                     key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
@@ -78,20 +78,20 @@ jobs:
 
         steps:
             -   name: Checkout repository
-                uses: actions/checkout@v7
+                uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
                 with:
                     token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
                     fetch-depth: 0
 
             -   name: Use Node.js 24
-                uses: actions/setup-node@v7
+                uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
                 with:
                     node-version: 24
                     package-manager-cache: false
 
             -   name: Turbo cache
                 id: turbo-cache
-                uses: actions/cache@v6
+                uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
                 with:
                     path: .turbo
                     key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
@@ -130,7 +130,7 @@ jobs:
 
             -   name: Commit changes
                 id: commit
-                uses: EndBug/add-and-commit@v11
+                uses: EndBug/add-and-commit@645ecc0dd0a57f4d86d26c0aa5fc42c0a856fbca # v11.0.0
                 with:
                   author_name: Apify Release Bot
                   author_email: noreply@apify.com
@@ -148,7 +148,7 @@ jobs:
                       }
 
             -   name: Trigger Docker image builds
-                uses: peter-evans/repository-dispatch@v4
+                uses: peter-evans/repository-dispatch@28959ce8df70de7be546dd1250a005dd32156697 # v4.0.1
                 with:
                     token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
                     repository: apify/apify-actor-docker
@@ -162,14 +162,14 @@ jobs:
 
         steps:
             -   name: Checkout repository
-                uses: actions/checkout@v7
+                uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
                 with:
                     ref: ${{ github.event.repository.default_branch }}
                     token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
                     fetch-depth: 0
 
             -   name: Use Node.js 24
-                uses: actions/setup-node@v7
+                uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
                 with:
                     node-version: 24
                     package-manager-cache: false
@@ -193,7 +193,7 @@ jobs:
                     pnpm docusaurus api:version $MAJOR_MINOR
 
             -   name: Commit and push the version snapshot
-                uses: EndBug/add-and-commit@v11
+                uses: EndBug/add-and-commit@645ecc0dd0a57f4d86d26c0aa5fc42c0a856fbca # v11.0.0
                 with:
                     author_name: Apify Release Bot
                     author_email: noreply@apify.com
