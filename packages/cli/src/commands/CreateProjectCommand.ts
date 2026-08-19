@@ -1,7 +1,6 @@
 import { execSync } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
-import { get } from 'node:https';
 import { dirname, join, resolve } from 'node:path';
 import { setTimeout } from 'node:timers/promises';
 
@@ -89,26 +88,13 @@ async function downloadTemplateFilesToDisk(template: Template, destinationDirect
 }
 
 async function downloadFile(url: string) {
-    return new Promise<Buffer>((promiseResolve, reject) => {
-        get(url, async (res) => {
-            const bytes: Buffer[] = [];
+    const parsedUrl = new URL(url);
 
-            res.on('error', (err) => reject(err));
+    if (parsedUrl.protocol !== 'file:') {
+        throw new Error(`Unsupported template file protocol: ${parsedUrl.protocol}`);
+    }
 
-            for await (const byte of res) {
-                bytes.push(byte);
-            }
-
-            const buff = Buffer.concat(bytes);
-
-            if (res.statusCode !== 200) {
-                reject(new Error(`Received ${res.statusCode} ${res.statusMessage}: ${buff.toString('utf8')}`));
-                return;
-            }
-
-            promiseResolve(buff);
-        }).on('error', (err) => reject(err));
-    });
+    return readFile(parsedUrl);
 }
 
 export class CreateProjectCommand<T> implements CommandModule<T, CreateProjectArgs> {

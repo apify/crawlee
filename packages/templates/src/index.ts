@@ -1,9 +1,15 @@
-import https from 'node:https';
+import { readFile } from 'node:fs/promises';
+import { join, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
-export const MANIFEST_URL = 'https://raw.githubusercontent.com/apify/crawlee/master/packages/templates/manifest.json';
+const packageRoot = resolve(__dirname, '..');
+const templatesDirectory = join(packageRoot, 'templates');
+const manifestPath = join(packageRoot, 'manifest.json');
+
+export const MANIFEST_URL = pathToFileURL(manifestPath).toString();
 
 function templateFileUrl(templateName: string, path: string) {
-    return `https://raw.githubusercontent.com/apify/crawlee/master/packages/templates/templates/${templateName}/${path}`;
+    return pathToFileURL(join(templatesDirectory, templateName, path)).toString();
 }
 
 interface SharedTemplateData {
@@ -11,7 +17,7 @@ interface SharedTemplateData {
     description: string;
 }
 
-// Data received from the github file
+// Data loaded from the packaged manifest file
 interface RawTemplate extends SharedTemplateData {
     files: string[];
 }
@@ -35,29 +41,7 @@ export interface Manifest {
 }
 
 export async function fetchManifest(): Promise<Manifest> {
-    const rawManifest = await new Promise<RawManifest>((resolve, reject) => {
-        https
-            .get(MANIFEST_URL, (res) => {
-                let json = '';
-                res.on('data', (chunk) => {
-                    json += chunk;
-                })
-                    .once('end', () => {
-                        if (res.statusCode === 200) {
-                            try {
-                                const data = JSON.parse(json);
-                                resolve(data);
-                            } catch (e) {
-                                reject(e);
-                            }
-                        } else {
-                            reject(new Error(`Status: ${res.statusCode}\n${json}`));
-                        }
-                    })
-                    .on('error', (err) => reject(err));
-            })
-            .on('error', (err) => reject(err));
-    });
+    const rawManifest = JSON.parse(await readFile(manifestPath, 'utf8')) as RawManifest;
 
     const newTemplates: Template[] = rawManifest.templates.map((original) => {
         return {
