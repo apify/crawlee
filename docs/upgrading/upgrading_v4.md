@@ -1612,7 +1612,30 @@ The option means the same thing as in v3 — subdomains included, it still paces
 
 #### `BasicCrawler.requestList` and `BasicCrawler.requestQueue` fields removed
 
-The public `requestList` and `requestQueue` instance fields are gone. The crawler exposes a single `protected requestManager?: IRequestManager` instead. Access the active manager via the new async `getRequestManager()` method.
+The public `requestList` and `requestQueue` instance fields are gone. The crawler exposes a single read-only `protected requestManager` getter instead. Access the active manager via the new async `getRequestManager()` method.
+
+#### `BasicCrawler.requestManager` is read-only
+
+`requestManager` is now a getter over a native `#requestManager` field, so a subclass can read it but can no longer assign to it. The crawler owns the manager's lifecycle — it resolves the `requestManager` / `requestList` / `requestQueue` options, opens a default queue when none was given, and wraps the result in a `ThrottlingRequestManager` when `sameDomainDelaySecs` is set — and assigning over it from a subclass skipped those steps.
+
+Inject your own manager through the constructor option instead, and read the resolved one with `getRequestManager()`:
+
+**Before:**
+```typescript
+class MyCrawler extends BasicCrawler {
+    protected override async init() {
+        await super.init();
+        this.requestManager = await MyRequestQueue.open();
+    }
+}
+```
+
+**After:**
+```typescript
+const crawler = new MyCrawler({ requestManager: await MyRequestQueue.open() });
+```
+
+Being a native `#` field, it is also no longer visible to `Object.keys()`, object spread or `JSON.stringify()`.
 
 #### `getRequestQueue()` deprecated in favor of `getRequestManager()`
 

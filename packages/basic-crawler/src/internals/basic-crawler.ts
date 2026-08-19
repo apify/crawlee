@@ -722,12 +722,16 @@ export class BasicCrawler<
         return this.#statisticsDep.value;
     }
 
+    #requestManager?: IRequestManager;
+
     /**
      * The main request-handling component of the crawler. It manages the requests that the crawler processes,
      * combining any provided request loader and/or queue. It's initialized during the crawler startup or lazily
      * via {@apilink BasicCrawler.getRequestManager|`getRequestManager()`}.
      */
-    protected requestManager?: IRequestManager;
+    protected get requestManager(): IRequestManager | undefined {
+        return this.#requestManager;
+    }
 
     /** Backs the {@apilink BasicCrawler.sessionPool|`sessionPool`} getter. */
     #sessionPoolDep: OwnedOrInjected<ISessionPool, SessionPool>;
@@ -1072,18 +1076,18 @@ export class BasicCrawler<
                     );
                 }
 
-                this.requestManager = requestManager;
+                this.#requestManager = requestManager;
             } else if (requestList !== undefined && requestQueue !== undefined) {
                 // Combine the read-only list with the writable queue into a tandem.
-                this.requestManager = new RequestManagerTandem(requestList, requestQueue);
+                this.#requestManager = new RequestManagerTandem(requestList, requestQueue);
             } else if (requestQueue !== undefined) {
                 // A RequestQueue is itself a request manager.
-                this.requestManager = requestQueue;
+                this.#requestManager = requestQueue;
             } else if (requestList !== undefined) {
                 // A lone read-only `requestList` (deprecated option) is combined with a lazily-opened default queue
                 // into a tandem, so that its requests are read first and new ones can still be enqueued during the
                 // crawl. The queue is opened on first use; the tandem also forwards `persistState()` to the loader.
-                this.requestManager = new RequestManagerTandem(requestList, () => this.openOwnedRequestQueue());
+                this.#requestManager = new RequestManagerTandem(requestList, () => this.openOwnedRequestQueue());
             }
 
             this.httpClient = httpClient ?? new LazyDefaultHttpClient({ logger: this.log });
@@ -1824,16 +1828,16 @@ export class BasicCrawler<
      * if none has been configured or opened yet.
      */
     async getRequestManager(): Promise<IRequestManager> {
-        if (!this.requestManager) {
-            this.requestManager = await this.openOwnedRequestQueue();
+        if (!this.#requestManager) {
+            this.#requestManager = await this.openOwnedRequestQueue();
         }
 
         // Wrapped here rather than in the constructor, because the manager being wrapped may only be opened at
         // this point - and because everything that enqueues goes through here first, so nothing slips past the
         // wrapper into the queue it hides.
-        if (this.#sameDomainDelaySecs > 0 && !supportsDomainThrottling(this.requestManager)) {
-            this.requestManager = new ThrottlingRequestManager({
-                inner: this.requestManager,
+        if (this.#sameDomainDelaySecs > 0 && !supportsDomainThrottling(this.#requestManager)) {
+            this.#requestManager = new ThrottlingRequestManager({
+                inner: this.#requestManager,
                 domains: 'all',
                 minCrawlDelaySecs: this.#sameDomainDelaySecs,
                 // What `sameDomainDelaySecs` has always meant: one clock for a site, subdomains included.
@@ -1847,10 +1851,10 @@ export class BasicCrawler<
         // but guard so we do not re-issue it on every call.
         if (!this.#requestManagerTimeoutsApplied) {
             this.#requestManagerTimeoutsApplied = true;
-            await this.applyRequestManagerTimeouts(this.requestManager);
+            await this.applyRequestManagerTimeouts(this.#requestManager);
         }
 
-        return this.requestManager;
+        return this.#requestManager;
     }
 
     /**

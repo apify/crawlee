@@ -489,8 +489,7 @@ describe('BasicCrawler', () => {
         let drainedRequests: any[];
         let options: EnqueueLinksOptions;
         let requestQueue: RequestQueue;
-
-        const crawler = new BasicCrawler({ maxCrawlDepth: 3 });
+        let crawler: BasicCrawler;
 
         // Mimics what `context.addRequests()` would have tagged the URLs with, based on the current
         // request's `crawlDepth`.
@@ -513,9 +512,12 @@ describe('BasicCrawler', () => {
             };
             requestQueue = {
                 addRequestsBatched: addRequestsBatchedMock as RequestQueue['addRequestsBatched'],
+                // Only `addRequestsBatched` is exercised here; the other two exist because the
+                // `requestManager` option is validated structurally.
+                fetchNextRequest: (async () => null) as unknown as RequestQueue['fetchNextRequest'],
+                addRequest: (async () => ({})) as unknown as RequestQueue['addRequest'],
             } as RequestQueue;
-            // eslint-disable-next-line dot-notation -- private field on the crawler, injected for the mock
-            crawler['requestManager'] = requestQueue;
+            crawler = new BasicCrawler({ maxCrawlDepth: 3, requestManager: requestQueue });
         });
 
         it('should generate requests with maxCrawlDepth', async () => {
