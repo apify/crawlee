@@ -140,16 +140,16 @@
             "oxfmt --write --no-error-on-unmatched-pattern"
         ]
     },
-    "packageManager": "pnpm@11.0.9",
+    "packageManager": "pnpm@11.22.0",
     "devEngines": {
         "packageManager": {
             "name": "pnpm",
-            "version": "11.0.9",
+            "version": "11.22.0",
             "onFail": "error"
         }
     },
     "volta": {
         "node": "24.18.0",
-        "pnpm": "11.0.9"
+        "pnpm": "11.22.0"
     }
 }
