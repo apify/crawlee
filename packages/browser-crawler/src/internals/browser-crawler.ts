@@ -497,8 +497,7 @@ export abstract class BrowserCrawler<
         return this.#navigationTimeoutMillis;
     }
 
-    /** @internal */
-    protected override buildContextPipeline(): ContextPipeline<
+    protected buildContextPipeline(): ContextPipeline<
         CrawlingContext,
         BrowserCrawlingContext<Page, Response, Dictionary>
     > {

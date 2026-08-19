@@ -204,15 +204,14 @@ export class JSDOMCrawler<
 
         super({
             ...httpOptions,
-            contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),
+            contextPipelineBuilder: contextPipelineBuilder ?? (() => this.#buildContextPipeline()),
         });
 
         this.#runScripts = runScripts;
         this.#hideInternalConsole = hideInternalConsole;
     }
 
-    /** @internal */
-    protected override buildContextPipeline(): ContextPipeline<CrawlingContext, JSDOMCrawlingContext> {
+    #buildContextPipeline(): ContextPipeline<CrawlingContext, JSDOMCrawlingContext> {
         return super
             .buildContextPipeline()
             .compose({

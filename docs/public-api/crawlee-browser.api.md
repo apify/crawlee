@@ -10,6 +10,7 @@ import { BasicCrawler } from '@crawlee/basic';
 import { BasicCrawlerOptions } from '@crawlee/basic';
 import type { BrowserPluginOptions } from '@crawlee/browser-pool';
 import type { CommonPage } from '@crawlee/browser-pool';
+import { ContextPipeline } from '@crawlee/basic';
 import type { CrawlerRemoteBrowserOptions } from '@crawlee/browser-pool';
 import type { CrawlingContext } from '@crawlee/basic';
 import type { Dictionary } from '@crawlee/types';
@@ -34,6 +35,8 @@ interface BaseResponse {
 // @public
 export abstract class BrowserCrawler<Page extends CommonPage = CommonPage, Response extends BaseResponse = BaseResponse, Context extends BrowserCrawlingContext<Page, Response> = BrowserCrawlingContext<Page, Response>, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>, StatisticStateExtension extends object = {}, GoToOptions extends Dictionary = Dictionary> extends BasicCrawler<Context, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
     get browserPool(): IBrowserPool<Page>;
+    // (undocumented)
+    protected buildContextPipeline(): ContextPipeline<CrawlingContext, BrowserCrawlingContext<Page, Response, Dictionary>>;
     // (undocumented)
     protected readonly ignoreIframes: boolean;
     // (undocumented)

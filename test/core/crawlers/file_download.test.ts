@@ -5,7 +5,8 @@ import { pipeline } from 'node:stream/promises';
 import { ReadableStream } from 'node:stream/web';
 import { setTimeout } from 'node:timers/promises';
 
-import { FileDownload } from '@crawlee/http';
+import type { CrawlingContext, LoadedRequest, Request } from '@crawlee/http';
+import { ContextPipeline, FileDownload } from '@crawlee/http';
 import { FetchHttpClient } from '@crawlee/http-client';
 import express from 'express';
 import { startExpressAppPromise } from '../../shared/_helper.js';
@@ -199,4 +200,36 @@ test('crawler waits for the stream to be consumed', async () => {
 
     expect(bufferedData.length).toBe(5 * 1024);
     expect(bufferedData).toEqual(await ReadableStreamGenerator.getUint8Array(5 * 1024, 789));
+});
+
+test('honours a user-supplied contextPipelineBuilder', async () => {
+    let builderCalls = 0;
+    const bodies: string[] = [];
+
+    const crawler = new FileDownload({
+        maxRequestRetries: 0,
+        contextPipelineBuilder: () => {
+            builderCalls++;
+
+            return ContextPipeline.create<CrawlingContext>().compose({
+                action: async (context) => ({
+                    request: context.request as LoadedRequest<Request>,
+                    response: new Response('stubbed'),
+                    contentType: { type: 'text/plain', encoding: 'utf8' as BufferEncoding },
+                }),
+            });
+        },
+        requestHandler: async ({ response }) => {
+            bodies.push(await response.text());
+        },
+    });
+
+    const fileUrl = new URL('/file?size=1024&seed=123', url).toString();
+
+    const stats = await crawler.run([fileUrl]);
+
+    expect(stats.requestsFailed).toBe(0);
+    expect(builderCalls).toBe(1);
+    // The supplied pipeline replaces the built-in download, so the handler sees the stub, not the file.
+    expect(bodies).toEqual(['stubbed']);
 });

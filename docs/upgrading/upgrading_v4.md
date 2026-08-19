@@ -916,7 +916,9 @@ These are still present at runtime, but they are excluded from the documented su
 
 `HttpCrawler.isRequestBlocked` and `FileDownload.buildContextPipeline` are now `private`. Block detection is configured through `retryOnBlocked` and `blockedStatusCodes`; to add your own checks, throw a `SessionError` from a `postNavigationHook`. To extend the `FileDownload` context pipeline, pass a `contextPipelineBuilder` to the constructor rather than subclassing.
 
-`HttpCrawler.buildContextPipeline`, `HttpCrawler.getNavigationTimeoutMillis`, `HttpCrawler.createDefaultConcurrencySystem` and `JSDOMCrawler.buildContextPipeline` stay `protected` and overridable, but are now marked `@internal` — they are implementation seams shared with `@crawlee/cheerio`, `@crawlee/jsdom` and `@crawlee/linkedom`, and their signatures may change in a minor release.
+`HttpCrawler.buildContextPipeline` and `BrowserCrawler.buildContextPipeline` stay `protected` and overridable, and are supported extension points: they are the two levels that genuinely compose context stages, so override one of them to add your own. `BasicCrawler.buildContextPipeline` is gone — it only ever returned an empty pipeline — and the builders on `CheerioCrawler`, `JSDOMCrawler`, `LinkeDOMCrawler`, `PlaywrightCrawler`, `AdaptivePlaywrightCrawler`, `PuppeteerCrawler` and `StagehandCrawler` are now `#private`. If you were overriding one of those, pass a `contextPipelineBuilder` to the constructor instead.
+
+`HttpCrawler.getNavigationTimeoutMillis` and `HttpCrawler.createDefaultConcurrencySystem` stay `protected` and overridable, but are marked `@internal` — they are implementation seams shared with `@crawlee/cheerio`, `@crawlee/jsdom` and `@crawlee/linkedom`, and their signatures may change in a minor release.
 
 ### The protected `getMessageFromError()` returns `string`
 

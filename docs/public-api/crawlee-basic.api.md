@@ -49,7 +49,6 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
     addRequests(requests: ReadonlyDeep<TypedRequestsLike<Routes>>, options?: CrawlerAddRequestsOptions): Promise<CrawlerAddRequestsResult>;
     // (undocumented)
     protected blockedStatusCodes: Set<number>;
-    protected buildContextPipeline(): ContextPipeline<CrawlingContext, CrawlingContext>;
     get concurrencySystem(): IConcurrencySystem | undefined;
     protected createDefaultConcurrencySystem(options: ConcurrencySystemOptions): ConcurrencySystem;
     exportData<Data>(path: string, format?: 'json' | 'csv', options?: DatasetExportOptions): Promise<Data[]>;

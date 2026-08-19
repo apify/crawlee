@@ -9,13 +9,14 @@ import { BasicCrawler } from '@crawlee/basic';
 import { BasicCrawlerOptions } from '@crawlee/basic';
 import type { CheerioAPI } from 'cheerio';
 import type { ConcurrencySystemOptions } from '@crawlee/basic';
-import type { CrawlingContext } from '@crawlee/basic';
+import { ContextPipeline } from '@crawlee/basic';
+import { CrawlingContext } from '@crawlee/basic';
 import type { Dictionary } from '@crawlee/types';
 import { ErrorHandler } from '@crawlee/basic';
 import { GetUserDataFromRequest } from '@crawlee/basic';
 import type { JsonValue } from 'type-fest';
 import { LoadedRequest } from '@crawlee/core';
-import type { LoadedRequest as LoadedRequest_2 } from '@crawlee/basic';
+import { LoadedRequest as LoadedRequest_2 } from '@crawlee/basic';
 import { Request as Request_2 } from '@crawlee/basic';
 import { RequestHandler } from '@crawlee/basic';
 import type { RequireContextPipeline } from '@crawlee/basic';
@@ -80,6 +81,8 @@ export const HTTP_OPTIMIZED_CONCURRENCY_SYSTEM_OPTIONS: ConcurrencySystemOptions
 // @public
 export class HttpCrawler<Context extends InternalHttpCrawlingContext<any, any> = InternalHttpCrawlingContext, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>, StatisticStateExtension extends object = {}> extends BasicCrawler<Context, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
     constructor(options?: HttpCrawlerOptions<Context, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> & RequireContextPipeline<InternalHttpCrawlingContext, Context>);
+    // (undocumented)
+    protected buildContextPipeline(): ContextPipeline<CrawlingContext, InternalHttpCrawlingContext>;
 }
 
 // @public (undocumented)

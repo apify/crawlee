@@ -447,8 +447,7 @@ export class HttpCrawler<
         });
     }
 
-    /** @internal */
-    protected override buildContextPipeline(): ContextPipeline<CrawlingContext, InternalHttpCrawlingContext> {
+    protected buildContextPipeline(): ContextPipeline<CrawlingContext, InternalHttpCrawlingContext> {
         // When navigation is skipped, `prepareHttpRequest` has already installed throwing getters for
         // the response-derived members, so the guarded action is bypassed and the context left untouched.
         const skipGuard = <Ctx extends CrawlingContext, Ext>(
