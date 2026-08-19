@@ -1,9 +1,9 @@
+import { CrawleeInstrumentation } from '@crawlee/otel';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc';
 import { resourceFromAttributes } from '@opentelemetry/resources';
-import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { NodeSDK } from '@opentelemetry/sdk-node';
-import { CrawleeInstrumentation } from '@crawlee/otel';
-import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
+import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
+import { ATTR_HTTP_REQUEST_METHOD, ATTR_SERVICE_NAME, ATTR_URL_FULL } from '@opentelemetry/semantic-conventions';
 
 const crawleeInstrumentation = new CrawleeInstrumentation({
     // Disable default request handling instrumentation
@@ -36,8 +36,8 @@ const crawleeInstrumentation = new CrawleeInstrumentation({
             spanOptions(context: any) {
                 return {
                     attributes: {
-                        'http.url': context.request.url,
-                        'http.method': context.request.method,
+                        [ATTR_URL_FULL]: context.request.url,
+                        [ATTR_HTTP_REQUEST_METHOD]: context.request.method,
                     },
                 };
             },
@@ -50,7 +50,7 @@ const resource = resourceFromAttributes({
 });
 
 const traceExporter = new OTLPTraceExporter({
-    url: 'http://localhost:4317/v1/traces',
+    url: 'http://localhost:4317',
 });
 
 export const sdk = new NodeSDK({

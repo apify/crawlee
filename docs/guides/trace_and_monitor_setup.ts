@@ -1,10 +1,8 @@
-import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc';
-import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-grpc';
-import { resourceFromAttributes } from '@opentelemetry/resources';
-import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
-import { BatchLogRecordProcessor } from '@opentelemetry/sdk-logs';
-import { NodeSDK } from '@opentelemetry/sdk-node';
 import { CrawleeInstrumentation } from '@crawlee/otel';
+import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc';
+import { resourceFromAttributes } from '@opentelemetry/resources';
+import { NodeSDK } from '@opentelemetry/sdk-node';
+import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions';
 
 // Create a resource that identifies your service
@@ -15,12 +13,10 @@ const resource = resourceFromAttributes({
 });
 
 // Configure exporters to send data to Jaeger via OTLP
+// The gRPC exporter takes the collector endpoint without a signal path - unlike the HTTP one,
+// which would use `http://localhost:4318/v1/traces`.
 const traceExporter = new OTLPTraceExporter({
-    url: 'http://localhost:4317/v1/traces',
-});
-
-const logExporter = new OTLPLogExporter({
-    url: 'http://localhost:4317/v1/logs',
+    url: 'http://localhost:4317',
 });
 
 // Create the Crawlee instrumentation
@@ -30,7 +26,6 @@ const crawleeInstrumentation = new CrawleeInstrumentation();
 export const sdk = new NodeSDK({
     resource,
     spanProcessors: [new BatchSpanProcessor(traceExporter)],
-    logRecordProcessors: [new BatchLogRecordProcessor(logExporter)],
     instrumentations: [crawleeInstrumentation],
 });
 
@@ -39,8 +34,17 @@ sdk.start();
 
 console.log('OpenTelemetry initialized');
 
-// Graceful shutdown
-process.on('SIGTERM', async () => {
+// This file is preloaded before the crawler, so it also owns flushing the buffered telemetry on the way out.
+const shutdown = async () => {
     await sdk.shutdown();
-    process.exit(0);
+};
+
+// `beforeExit` covers a script that simply runs to completion...
+process.once('beforeExit', () => {
+    void shutdown();
+});
+
+// ...while signals have to be handled separately, as they do not emit `beforeExit`.
+process.once('SIGTERM', () => {
+    void shutdown().then(() => process.exit(0));
 });

@@ -1,4 +1,5 @@
 import { CrawleeInstrumentation } from '@crawlee/otel';
+import { ATTR_HTTP_REQUEST_METHOD, ATTR_URL_FULL } from '@opentelemetry/semantic-conventions';
 
 import { baseConfig, requestHandlingInstrumentationMethods } from '../src/constants';
 
@@ -212,32 +213,46 @@ describe('requestHandlingInstrumentationMethods', () => {
         }
     });
 
-    test('runRequestHandler methods have spanOptions with request attributes', () => {
-        const runRequestHandlerMethods = requestHandlingInstrumentationMethods.filter(
-            (m: { methodName: string }) => m.methodName === '_runRequestHandler',
-        );
+    test.each([
+        // [methodName, index of the crawling context in the argument list]
+        ['_runRequestHandler', 0],
+        ['_handleNavigation', 0],
+        ['_handleFailedRequestHandler', 0],
+        // `_requestFunctionErrorHandler(error, crawlingContext, source)`
+        ['_requestFunctionErrorHandler', 1],
+    ])('%s reads request attributes from argument %i', (methodName, contextArgIndex) => {
+        const methods = requestHandlingInstrumentationMethods.filter((m) => m.methodName === methodName);
+        expect(methods.length).toBeGreaterThan(0);
 
-        for (const method of runRequestHandlerMethods) {
-            expect(method.spanOptions).toBeDefined();
+        const mockContext = {
+            request: {
+                id: 'test-id',
+                url: 'https://example.com',
+                method: 'GET',
+                retryCount: 0,
+            },
+        };
+        const args = Array.from({ length: contextArgIndex + 1 });
+        args[contextArgIndex] = mockContext;
+
+        for (const method of methods) {
             expect(typeof method.spanOptions).toBe('function');
 
-            // Test the spanOptions function with mock context
-            const mockContext = {
-                request: {
-                    id: 'test-id',
-                    url: 'https://example.com',
-                    method: 'GET',
-                    retryCount: 0,
-                },
-            };
-
             // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
-            const options = (method.spanOptions as Function)(mockContext);
-            expect(options.attributes).toBeDefined();
-            expect(options.attributes['crawlee.request.id']).toBe('test-id');
-            expect(options.attributes['crawlee.request.url']).toBe('https://example.com');
-            expect(options.attributes['crawlee.request.method']).toBe('GET');
-            expect(options.attributes['crawlee.request.retry_count']).toBe(0);
+            const options = (method.spanOptions as Function)(...args);
+            expect(options.attributes).toEqual({
+                'crawlee.request.id': 'test-id',
+                [ATTR_URL_FULL]: 'https://example.com',
+                [ATTR_HTTP_REQUEST_METHOD]: 'GET',
+                'crawlee.request.retry_count': 0,
+            });
         }
+    });
+
+    test('request attributes are empty when the argument is not a crawling context', () => {
+        const method = requestHandlingInstrumentationMethods.find((m) => m.methodName === '_runRequestHandler')!;
+
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
+        expect((method.spanOptions as Function)(undefined)).toEqual({ attributes: {} });
     });
 });

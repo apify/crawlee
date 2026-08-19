@@ -1,5 +1,4 @@
 import { CheerioCrawler } from 'crawlee';
-import { sdk } from './setup.js';
 
 const crawler = new CheerioCrawler({
     maxRequestsPerCrawl: 10,
@@ -16,6 +15,5 @@ const crawler = new CheerioCrawler({
 
 await crawler.run(['https://crawlee.dev']);
 
-// Ensure all telemetry is flushed before exiting
-await sdk.shutdown();
+// The setup file flushes the telemetry on exit.
 console.log('Crawl complete. View traces at http://localhost:16686');

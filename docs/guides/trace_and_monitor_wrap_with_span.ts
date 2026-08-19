@@ -1,6 +1,7 @@
-import { CheerioCrawler } from 'crawlee';
 import { wrapWithSpan } from '@crawlee/otel';
 import { context, trace } from '@opentelemetry/api';
+import { ATTR_EXCEPTION_MESSAGE, ATTR_HTTP_REQUEST_METHOD, ATTR_URL_FULL } from '@opentelemetry/semantic-conventions';
+import { CheerioCrawler } from 'crawlee';
 
 const crawler = new CheerioCrawler({
     maxRequestsPerCrawl: 10,
@@ -33,8 +34,8 @@ const crawler = new CheerioCrawler({
             // Add attributes to the span
             spanOptions: ({ request }) => ({
                 attributes: {
-                    'crawlee.request.url': request.url,
-                    'crawlee.request.method': request.method,
+                    [ATTR_URL_FULL]: request.url,
+                    [ATTR_HTTP_REQUEST_METHOD]: request.method,
                 },
             }),
         },
@@ -63,8 +64,8 @@ const crawler = new CheerioCrawler({
             spanName: ({ request }) => `error-handler ${request.url}`,
             spanOptions: ({ request }, error) => ({
                 attributes: {
-                    'crawlee.request.url': request.url,
-                    'error.message': error.message,
+                    [ATTR_URL_FULL]: request.url,
+                    [ATTR_EXCEPTION_MESSAGE]: error.message,
                 },
             }),
         },

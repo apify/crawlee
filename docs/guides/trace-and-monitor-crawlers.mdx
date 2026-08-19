@@ -4,9 +4,6 @@ title: Trace and monitor crawlers
 description: How to use OpenTelemetry to trace and monitor your crawlers
 ---
 
-import ApiLink from '@site/src/components/ApiLink';
-import Tabs from '@theme/Tabs';
-import TabItem from '@theme/TabItem';
 import CodeBlock from '@theme/CodeBlock';
 
 import SetupSource from '!!raw-loader!./trace_and_monitor_setup.ts';
@@ -54,7 +51,7 @@ For more details about the Jaeger setup, see the [getting started section](https
 To instrument your Crawlee crawler, you need to install the `@crawlee/otel` package along with the OpenTelemetry SDK packages:
 
 ```bash npm2yarn
-npm install @crawlee/otel @opentelemetry/api @opentelemetry/api-logs @opentelemetry/sdk-node @opentelemetry/exporter-trace-otlp-grpc @opentelemetry/exporter-logs-otlp-grpc @opentelemetry/sdk-logs
+npm install @crawlee/otel @opentelemetry/api @opentelemetry/api-logs @opentelemetry/sdk-node @opentelemetry/exporter-trace-otlp-grpc
 ```
 
 ## Instrument the crawler
@@ -63,7 +60,8 @@ OpenTelemetry instrumentation must be set up **before** importing Crawlee or any
 
 ### Setup file
 
-Create a setup file that initializes OpenTelemetry with the Crawlee instrumentation:
+Create a setup file that initializes OpenTelemetry with the Crawlee instrumentation. Because the exporters buffer
+data, the setup file is also where the SDK is shut down, so that everything is flushed before the process exits:
 
 <CodeBlock language="ts" title="src/setup.ts">
     {SetupSource}
@@ -87,13 +85,20 @@ npx tsx --import ./src/setup.ts ./src/main.ts
 
 The `--import` flag ensures the OpenTelemetry setup runs before any other code, which is required for the automatic instrumentation to work properly.
 
+:::caution Bundled crawlers are not instrumented
+
+The automatic instrumentation patches the Crawlee classes as the modules are loaded, which works for both CommonJS and
+ESM projects. It does not work if the Crawlee packages are inlined into a bundle, because then there is no module load
+to intercept - exclude them from the bundle, or use `wrapWithSpan` instead, which wraps your own functions directly
+and does not rely on patching.
+
+:::
+
 ## Analyze the results
 
 In the Jaeger UI, you can search for different traces, apply filtering, compare traces, view their detailed attributes, view timing details, and more. For a detailed description of the tool's capabilities, please refer to the [Jaeger documentation](https://www.jaegertracing.io/docs/latest/).
 
 ![Jaeger search view](/img/jaeger-search.png)
-
-You can use different tools to consume the OpenTelemetry data that might better suit your needs. Please see the list of known [vendors in OpenTelemetry documentation](https://opentelemetry.io/ecosystem/vendors/).
 
 ## Customize the instrumentation
 
@@ -144,7 +149,7 @@ The `wrapWithSpan` function accepts these options:
 |--------|------|-------------|
 | `spanName` | `string \| ((...args) => string)` | Static name or function that receives the handler arguments and returns a span name |
 | `spanOptions` | `SpanOptions \| ((...args) => SpanOptions)` | Static options or function that returns OpenTelemetry SpanOptions including attributes |
-| `tracer` | `Tracer` | Custom tracer instance (defaults to `trace.getTracer('crawlee')`) |
+| `tracer` | `Tracer` | Custom tracer instance. Defaults to the tracer of the registered `CrawleeInstrumentation`, or to a tracer from the global provider when no instrumentation is registered. |
 
 ### Accessing the current span
 
@@ -194,9 +199,49 @@ When `requestHandlingInstrumentation` is enabled (the default), the following me
 | `HttpCrawler` | `_handleNavigation` | `crawlee.http.handleNavigation` |
 | `HttpCrawler` | `_runRequestHandler` | `crawlee.http.runRequestHandler` |
 
-Request handler spans include these attributes automatically:
-- `crawlee.request.id`
-- `crawlee.request.url`
-- `crawlee.request.method`
-- `crawlee.request.retry_count`
+Every instrumented span carries the `code.function.name` attribute. Spans of the methods that receive a crawling
+context (the request handlers, navigation handlers and error handlers) additionally include:
+
+- `url.full` - the request URL
+- `http.request.method` - the request method
+- `crawlee.request.id` - the Crawlee request ID
+- `crawlee.request.retry_count` - how many times the request has been retried
+
+`url.full` and `http.request.method` are the stable [OpenTelemetry semantic conventions](https://opentelemetry.io/docs/specs/semconv/),
+so traces stay comparable with the rest of your instrumented stack. Crawlee-specific data that has no semantic
+convention keeps the `crawlee.` prefix.
+
+## Forwarded logs
+
+With `logInstrumentation` enabled (the default), Crawlee logs are emitted as OpenTelemetry log records. The Apify log
+level is mapped onto the OpenTelemetry severity (`SOFT_FAIL` and `WARNING` both become `WARN`, `PERF` becomes `DEBUG`),
+the structured `data` of the log call becomes the log record attributes, and errors are recorded as the
+`exception.type`, `exception.message` and `exception.stacktrace` attributes.
+
+:::caution Jaeger does not accept OpenTelemetry logs
+
+The records only go somewhere once you add a log record processor to the SDK, and the backend has to implement the
+OTLP logs service. Jaeger is a tracing backend and does not - pointing a log exporter at the `jaegertracing/all-in-one`
+container above makes every log batch fail with
+`UNIMPLEMENTED: unknown service opentelemetry.proto.collector.logs.v1.LogsService`. Send the logs to an
+[OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) or a backend that ingests them instead.
+
+:::
+
+To export the logs, install `@opentelemetry/sdk-logs` along with a log exporter and add a log record processor to the
+setup file:
+
+```ts title="src/setup.ts"
+import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-grpc';
+import { BatchLogRecordProcessor } from '@opentelemetry/sdk-logs';
+
+export const sdk = new NodeSDK({
+    // ... the trace configuration from above
+    logRecordProcessors: [
+        new BatchLogRecordProcessor(new OTLPLogExporter({ url: 'http://localhost:4317' })),
+    ],
+});
+```
+
+Set `logInstrumentation: false` if you would rather keep the Crawlee logs out of OpenTelemetry entirely.
 

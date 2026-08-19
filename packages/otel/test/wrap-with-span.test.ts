@@ -45,7 +45,8 @@ describe('wrapWithSpan', () => {
             const spans = exporter.getFinishedSpans();
             expect(spans).toHaveLength(1);
             expect(spans[0].name).toBe('test-span');
-            expect(spans[0].status.code).toBe(SpanStatusCode.OK);
+            // Instrumentation leaves successful spans UNSET so consumers can set their own status.
+            expect(spans[0].status.code).toBe(SpanStatusCode.UNSET);
         });
 
         test('wraps an async function and creates a span', async () => {
@@ -68,7 +69,24 @@ describe('wrapWithSpan', () => {
             const spans = exporter.getFinishedSpans();
             expect(spans).toHaveLength(1);
             expect(spans[0].name).toBe('async-span');
-            expect(spans[0].status.code).toBe(SpanStatusCode.OK);
+            expect(spans[0].status.code).toBe(SpanStatusCode.UNSET);
+        });
+
+        test('keeps a sync function synchronous', async () => {
+            const fn = vi.fn(() => 'sync-result');
+            const wrapped = wrapWithSpan(fn, {
+                spanName: 'sync-span',
+                tracer: provider.getTracer('test-tracer'),
+            });
+
+            const result = wrapped();
+
+            expect(result).toBe('sync-result');
+            expect(result).not.toBeInstanceOf(Promise);
+
+            // The span of a sync function is closed before the call returns.
+            await processor.forceFlush();
+            expect(exporter.getFinishedSpans()).toHaveLength(1);
         });
 
         test('passes arguments to the wrapped function', async () => {
@@ -92,8 +110,7 @@ describe('wrapWithSpan', () => {
                 tracer: provider.getTracer('test-tracer'),
             });
 
-            // wrapWithSpan always returns a Promise at runtime
-            await Promise.resolve(wrapped());
+            wrapped();
             await processor.forceFlush();
 
             const spans = exporter.getFinishedSpans();
@@ -106,8 +123,7 @@ describe('wrapWithSpan', () => {
                 tracer: provider.getTracer('test-tracer'),
             });
 
-            // wrapWithSpan always returns a Promise at runtime
-            await Promise.resolve(wrapped());
+            wrapped();
             await processor.forceFlush();
 
             const spans = exporter.getFinishedSpans();
@@ -127,7 +143,8 @@ describe('wrapWithSpan', () => {
                 tracer: provider.getTracer('test-tracer'),
             });
 
-            await expect(wrapped()).rejects.toThrow('Test error');
+            // A sync function throws synchronously - it is not turned into a rejected promise.
+            expect(() => wrapped()).toThrow('Test error');
 
             await processor.forceFlush();
 
@@ -345,7 +362,7 @@ describe('wrapWithSpan', () => {
             expect(scope.version).toBe('1.0.0');
         });
 
-        test('defaults to crawlee tracer', async () => {
+        test('uses the tracer handed over by the instrumentation', async () => {
             const fn = vi.fn(() => 'result');
             const tracer = trace.getTracer('crawlee');
             SpanWrapper.getInstance().setTracer(tracer);
@@ -362,10 +379,32 @@ describe('wrapWithSpan', () => {
             const scope = span.instrumentationScope ?? span.instrumentationLibrary;
             expect(scope.name).toBe('crawlee');
         });
+
+        test('falls back to the global tracer provider when no tracer was set', async () => {
+            // Nothing has handed a tracer over - wrapping must still work instead of throwing.
+            SpanWrapper.getInstance().setTracer(undefined as any);
+
+            const wrapped = wrapWithSpan(() => 'result', { spanName: 'fallback-span' });
+
+            expect(wrapped()).toBe('result');
+
+            await processor.forceFlush();
+
+            const spans = exporter.getFinishedSpans();
+            expect(spans).toHaveLength(1);
+            expect(spans[0].name).toBe('fallback-span');
+            const scope = (spans[0] as any).instrumentationScope ?? (spans[0] as any).instrumentationLibrary;
+            expect(scope.name).toBe('@crawlee/otel');
+        });
     });
 
     describe('this context', () => {
-        test('preserves this context for regular functions', async () => {
+        beforeEach(() => {
+            // Do not depend on a tracer set by an earlier test.
+            SpanWrapper.getInstance().setTracer(provider.getTracer('test-tracer'));
+        });
+
+        test('preserves this context for regular functions', () => {
             const obj = {
                 value: 42,
                 getValue() {
@@ -374,8 +413,7 @@ describe('wrapWithSpan', () => {
             };
 
             const wrapped = wrapWithSpan(obj.getValue, { spanName: 'this-span' });
-            // wrapWithSpan always returns a Promise at runtime
-            const result = await Promise.resolve(wrapped.call(obj));
+            const result = wrapped.call(obj);
 
             expect(result).toBe(42);
         });
@@ -394,8 +432,7 @@ describe('wrapWithSpan', () => {
                 },
             });
 
-            // wrapWithSpan always returns a Promise at runtime
-            await Promise.resolve(wrapped.call(obj));
+            wrapped.call(obj);
 
             await processor.forceFlush();
 

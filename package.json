@@ -62,6 +62,7 @@
         "@commitlint/config-conventional": "^20.0.0",
         "@opentelemetry/api": "^1.9.0",
         "@opentelemetry/api-logs": "^0.210.0",
+        "@opentelemetry/sdk-logs": "^0.210.0",
         "@opentelemetry/sdk-trace-base": "^2.0.0",
         "@opentelemetry/sdk-trace-node": "^2.0.0",
         "@playwright/browser-chromium": "1.56.1",
