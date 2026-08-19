@@ -2,6 +2,7 @@ build
 dist
 build-docs
 node_modules
+yarn.lock
 *.log
 *.pid
 *.seed
@@ -13,6 +14,7 @@ logs
 pids
 .idea
 .vscode
+.zed
 package-lock.json
 tmp
 jsconfig.json
@@ -25,8 +27,12 @@ apify_storage
 crawlee_storage
 storage
 .turbo
-.npmrc
 test/e2e/**/packages
 
-# we use corepack, no need to commit yarn binary
 .yarn
+
+# Local vitest config overrides
+vitest.config.local.mts
+
+# API Extractor intermediate reports (the committed reports live in docs/public-api/*.api.md)
+docs/public-api/temp

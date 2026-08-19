@@ -1,7 +1,59 @@
-import { Configuration, EventType, KeyValueStore } from '@crawlee/core';
+import { addTimeoutToPromise, storage as timeoutStorage } from '@apify/timeout';
+import type { Configuration, CrawleeLogger } from '@crawlee/core';
+import { EventType, KeyValueStore, serviceLocator, StateValidationError } from '@crawlee/core';
+import type { Awaitable } from '@crawlee/types';
+import type { StandardSchemaV1 } from '@standard-schema/spec';
 
-import type { Log } from '@apify/log';
-import log from '@apify/log';
+const DEFAULT_PERSISTENCE_TIMEOUT_MILLIS = 60_000;
+
+/**
+ * One direction of the conversion between the state model and its persisted form - either a plain function, or a
+ * [Standard Schema](https://standardschema.dev) whose validated output is the result.
+ *
+ * A schema that fails to validate makes {@apilink RecoverableState} throw a {@apilink StateValidationError}. Zod
+ * codecs work directly, as their validation *is* the decode direction; use `(state) => codec.encode(state)` for the
+ * other one.
+ */
+export type StateConversion<TFrom, TTo> = ((value: TFrom) => Awaitable<TTo>) | StandardSchemaV1<TFrom, TTo>;
+
+/**
+ * A {@apilink StateConversion} for a caller that cannot await one - {@apilink Statistics}, whose `toJSON()` is
+ * synchronous, being the reason this exists.
+ *
+ * Only the function arm can be narrowed here: a Standard Schema is free to validate asynchronously, so a schema
+ * that does is rejected when it runs rather than when it is passed.
+ */
+export type SyncStateConversion<TFrom, TTo> = ((value: TFrom) => TTo) | StandardSchemaV1<TFrom, TTo>;
+
+/**
+ * Applies a {@apilink SyncStateConversion}, throwing a {@apilink StateValidationError} for a schema that rejects
+ * the value.
+ *
+ * @internal
+ */
+export function convertStateSync<TFrom, TTo>(
+    conversion: SyncStateConversion<TFrom, TTo>,
+    value: TFrom,
+    persistStateKey: string,
+): TTo {
+    if (typeof conversion === 'function') {
+        return conversion(value);
+    }
+
+    const result = conversion['~standard'].validate(value);
+
+    if ('then' in result) {
+        throw new Error(
+            `The state conversion for '${persistStateKey}' validated asynchronously, which this caller cannot await.`,
+        );
+    }
+
+    if (result.issues) {
+        throw new StateValidationError(persistStateKey, result.issues);
+    }
+
+    return result.value;
+}
 
 export interface RecoverableStatePersistenceOptions {
     /**
@@ -15,51 +67,54 @@ export interface RecoverableStatePersistenceOptions {
     persistenceEnabled?: boolean;
 
     /**
-     * The name of the KeyValueStore to use for persistence.
-     * If neither a name nor an id are supplied, the default store will be used.
+     * The KeyValueStore to persist into, defaulting to the default store. Accepts a pending
+     * {@apilink KeyValueStore.open} so that callers do not have to be async to point at a specific store.
      */
-    persistStateKvsName?: string;
+    keyValueStore?: KeyValueStore | PromiseLike<KeyValueStore>;
 
     /**
-     * The identifier of the KeyValueStore to use for persistence.
-     * If neither a name nor an id are supplied, the default store will be used.
+     * Time limit for a single load or save of the state, in milliseconds.
+     * @default 60_000
      */
-    persistStateKvsId?: string;
+    persistenceTimeoutMillis?: number;
 }
 
 /**
  * Options for configuring the RecoverableState
  */
-export interface RecoverableStateOptions<TStateModel = Record<string, unknown>>
-    extends RecoverableStatePersistenceOptions {
+export interface RecoverableStateOptions<
+    TStateModel = Record<string, unknown>,
+    TPersistedState = TStateModel,
+> extends RecoverableStatePersistenceOptions {
     /**
-     * The default state used if no persisted state is found.
-     * A deep copy is made each time the state is used.
+     * The state used when no persisted state is found, and the state {@apilink RecoverableState.reset} restores.
+     *
+     * A plain value is deep-copied with `structuredClone` each time it is used, so pass a factory for a state
+     * that `structuredClone` cannot rebuild - one holding class instances, say, or one derived from a schema.
      */
-    defaultState: TStateModel;
+    defaultState: TStateModel | (() => TStateModel);
 
     /**
      * A logger instance for logging operations related to state persistence
      */
-    logger?: Log;
+    logger?: CrawleeLogger;
 
     /**
-     * Configuration instance to use
+     * Configuration instance to use when opening the KeyValueStore
      */
-    config?: Configuration;
+    configuration?: Configuration;
 
     /**
-     * Optional function to transform the state to a JSON string before persistence.
-     * If not provided, JSON.stringify will be used.
+     * Optional conversion of the state to a plain JSON-serializable value before it is persisted.
+     * If not provided, the state is persisted as is.
      */
-    serialize?: (state: TStateModel) => string;
+    serialize?: StateConversion<TStateModel, TPersistedState>;
 
     /**
-     * Optional function to transform a JSON-serialized object back to the state model.
-     * If not provided, JSON.parse is used.
-     * It is advisable to perform validation in this function and to throw an exception if it fails.
+     * Optional conversion of a persisted value back to the state model, and the place to validate a record before
+     * trusting it. If not provided, the persisted value is used as is.
      */
-    deserialize?: (serializedState: string) => TStateModel;
+    deserialize?: StateConversion<TPersistedState, TStateModel>;
 }
 
 /**
@@ -72,65 +127,103 @@ export interface RecoverableStateOptions<TStateModel = Record<string, unknown>>
  * The state is represented by a plain JavaScript object that can be serialized to and deserialized from JSON.
  * The class automatically hooks into the event system to persist state when needed.
  */
-export class RecoverableState<TStateModel = Record<string, unknown>> {
-    private readonly defaultState: TStateModel;
-    private state: TStateModel | null = null;
-    private readonly persistenceEnabled: boolean;
-    private readonly persistStateKey: string;
-    private readonly persistStateKvsName?: string;
-    private readonly persistStateKvsId?: string;
-    private keyValueStore: KeyValueStore | null = null;
-    private readonly log: Log;
-    private readonly config: Configuration;
-    private readonly serialize: (state: TStateModel) => string;
-    private readonly deserialize: (serializedState: string) => TStateModel;
+export class RecoverableState<TStateModel = Record<string, unknown>, TPersistedState = TStateModel> {
+    readonly #defaultState: () => TStateModel;
+    #state: TStateModel | null = null;
+    #initialized = false;
+    #listening = false;
+    readonly #persistenceEnabled: boolean;
+    readonly #persistStateKey: string;
+    readonly #persistenceTimeoutMillis: number;
+    readonly #configuration?: Configuration;
+    #keyValueStore: KeyValueStore | PromiseLike<KeyValueStore> | null;
+    readonly #log: CrawleeLogger;
+    readonly #serialize: (state: TStateModel) => Promise<TPersistedState>;
+    readonly #deserialize: (persistedState: TPersistedState) => Promise<TStateModel>;
+    readonly #persistStateQuietly: (eventData?: Record<string, unknown>) => Promise<void>;
 
     /**
      * Initialize a new recoverable state object.
      *
      * @param options Configuration options for the recoverable state
      */
-    constructor(options: RecoverableStateOptions<TStateModel>) {
-        this.defaultState = options.defaultState;
-        this.persistStateKey = options.persistStateKey;
-        this.persistenceEnabled = options.persistenceEnabled ?? false;
-        this.persistStateKvsName = options.persistStateKvsName;
-        this.persistStateKvsId = options.persistStateKvsId;
-        this.log = options.logger ?? log.child({ prefix: 'RecoverableState' });
-        this.config = options.config ?? Configuration.getGlobalConfig();
-        this.serialize = options.serialize ?? JSON.stringify;
-        this.deserialize = options.deserialize ?? JSON.parse;
+    constructor(options: RecoverableStateOptions<TStateModel, TPersistedState>) {
+        const { defaultState } = options;
+        this.#defaultState =
+            typeof defaultState === 'function'
+                ? (defaultState as () => TStateModel)
+                : () => structuredClone(defaultState);
 
-        this.persistState = this.persistState.bind(this);
+        this.#persistStateKey = options.persistStateKey;
+        this.#persistenceEnabled = options.persistenceEnabled ?? false;
+        this.#persistenceTimeoutMillis = options.persistenceTimeoutMillis ?? DEFAULT_PERSISTENCE_TIMEOUT_MILLIS;
+        this.#configuration = options.configuration;
+        this.#keyValueStore = options.keyValueStore ?? null;
+        this.#log = options.logger ?? serviceLocator.getLogger().child({ prefix: 'RecoverableState' });
+        this.#serialize = this.#toConversion(options.serialize);
+        this.#deserialize = this.#toConversion(options.deserialize);
+
+        // The automatic persists, where a rejection has nowhere useful to go - the event manager does not catch
+        // listener errors, and throwing from teardown would bury the outcome of the work it cleans up after.
+        this.#persistStateQuietly = async (eventData) =>
+            this.persistState(eventData).catch((error) =>
+                this.#log.warning(`Failed to persist the state under key '${this.#persistStateKey}'.`, { error }),
+            );
+    }
+
+    /** Normalizes a conversion option into a function. Absent conversions pass the value through unchanged. */
+    #toConversion<TFrom, TTo>(conversion: StateConversion<TFrom, TTo> | undefined): (value: TFrom) => Promise<TTo> {
+        if (conversion === undefined) {
+            return async (value) => value as unknown as TTo;
+        }
+
+        if (typeof conversion === 'function') {
+            return async (value) => conversion(value);
+        }
+
+        return async (value) => {
+            const result = await conversion['~standard'].validate(value);
+
+            if (result.issues) {
+                throw new StateValidationError(this.#persistStateKey, result.issues);
+            }
+
+            return result.value;
+        };
     }
 
     /**
      * Initialize the recoverable state.
      *
-     * This method must be called before using the recoverable state. It loads the saved state
-     * if persistence is enabled and registers the object to listen for PERSIST_STATE events.
+     * If persistence is enabled, this method loads the saved state and registers the object to listen for
+     * PERSIST_STATE events. A state established beforehand by {@apilink RecoverableState.reset} survives if there
+     * is no record to restore.
+     *
+     * Calling this again after a {@apilink RecoverableState.teardown} starts a new persistence window - the
+     * listener is registered again and the record reloaded.
      *
      * @returns The loaded state object
      */
     async initialize(): Promise<TStateModel> {
-        if (this.state !== null && this.state !== undefined) {
+        if (this.#initialized) {
             return this.currentValue;
         }
 
-        if (!this.persistenceEnabled) {
-            this.state = this.deserialize(this.serialize(this.defaultState));
-            return this.currentValue;
+        if (this.#persistenceEnabled) {
+            this.#keyValueStore ??= KeyValueStore.open(null, {
+                configuration: this.#configuration ?? serviceLocator.getConfiguration(),
+            });
+            await this.#resolveKeyValueStore();
+            serviceLocator.getEventManager().on(EventType.PERSIST_STATE, this.#persistStateQuietly);
+            this.#listening = true;
         }
 
-        this.keyValueStore = await KeyValueStore.open(this.persistStateKvsName ?? this.persistStateKvsId, {
-            config: this.config,
-        });
+        // Flipped before the record is loaded, so that a caller catching a `StateValidationError` is left with a
+        // fully wired object running on the default state rather than a half-initialized one.
+        this.#initialized = true;
+        this.#state ??= this.#defaultState();
 
-        await this.loadSavedState();
-
-        // Register for persist state events
-        const eventManager = this.config.getEventManager();
-        eventManager.on(EventType.PERSIST_STATE, this.persistState);
+        await this.#loadSavedState();
 
         return this.currentValue;
     }
@@ -139,82 +232,157 @@ export class RecoverableState<TStateModel = Record<string, unknown>> {
      * Clean up resources used by the recoverable state.
      *
      * If persistence is enabled, this method deregisters the object from PERSIST_STATE events
-     * and persists the current state one last time.
+     * and persists the current state one last time, warning rather than throwing if that write fails - cleanup
+     * runs when the work is already done, and failing it would bury whatever the caller was doing. The in-memory
+     * state is left alone, and {@apilink RecoverableState.initialize} can be called again to open a new
+     * persistence window.
      */
     async teardown(): Promise<void> {
-        if (!this.persistenceEnabled || !this.persistState) {
+        this.#initialized = false;
+
+        if (!this.#persistenceEnabled) {
             return;
         }
 
-        const eventManager = this.config.getEventManager();
-        eventManager.off(EventType.PERSIST_STATE, this.persistState);
-        await this.persistState();
+        serviceLocator.getEventManager().off(EventType.PERSIST_STATE, this.#persistStateQuietly);
+        this.#listening = false;
+        await this.#persistStateQuietly();
     }
 
     /**
      * Get the current state.
+     *
+     * Throws until the state has been established, by either {@apilink RecoverableState.initialize} or the
+     * synchronous {@apilink RecoverableState.reset} - the latter being how a caller that cannot await in its
+     * constructor gets a usable state right away.
      */
     get currentValue(): TStateModel {
-        if (this.state === null) {
-            throw new Error('Recoverable state has not yet been loaded');
+        if (this.#state === null) {
+            throw new Error('Recoverable state has not yet been loaded - call initialize() or reset() first');
         }
 
-        return this.state;
+        return this.#state;
     }
 
     /**
-     * Reset the state to the default values and clear any persisted state.
+     * Reset the in-memory state to the default values, leaving any persisted record alone.
      *
-     * Resets the current state to the default state and, if persistence is enabled,
-     * clears the persisted state from the KeyValueStore.
+     * Use {@apilink RecoverableState.resetStore} to clear the persisted record as well.
      */
-    async reset(): Promise<void> {
-        this.state = this.deserialize(this.serialize(this.defaultState));
+    reset(): void {
+        this.#state = this.#defaultState();
+    }
 
-        if (this.persistenceEnabled) {
-            if (this.keyValueStore === null) {
-                throw new Error('Recoverable state has not yet been initialized');
-            }
-
-            await this.keyValueStore.setValue(this.persistStateKey, null);
+    /**
+     * Clear the persisted state record, leaving the in-memory state alone.
+     *
+     * This is a between-lifecycles operation - its point is to stop the next {@apilink RecoverableState.initialize}
+     * from restoring the record, so it throws while PERSIST_STATE events are still being handled, where the next
+     * one would write the record straight back. Use {@apilink RecoverableState.reset} to reset the state itself,
+     * or {@apilink RecoverableState.teardown} before clearing the record.
+     *
+     * A no-op if persistence is disabled or no KeyValueStore is available yet.
+     */
+    async resetStore(): Promise<void> {
+        if (this.#listening) {
+            throw new Error(
+                `Cannot clear the state persisted under key '${this.#persistStateKey}' while it is still being persisted periodically - the next PERSIST_STATE event would write it straight back. Use reset() to reset the state itself, or teardown() before clearing the record.`,
+            );
         }
+
+        if (!this.#persistenceEnabled) {
+            return;
+        }
+
+        const keyValueStore = await this.#resolveKeyValueStore();
+
+        if (keyValueStore === null) {
+            return;
+        }
+
+        await this.#withTimeout(
+            async () => keyValueStore.setValue(this.#persistStateKey, null),
+            'Clearing the persisted state',
+        );
     }
 
     /**
      * Persist the current state to the KeyValueStore.
      *
      * This method is typically called in response to a PERSIST_STATE event, but can also be called
-     * directly when needed.
+     * directly when needed. It is a no-op if persistence is disabled, if no KeyValueStore is available yet, or if
+     * there is no state to write. A failed write only rejects here - the periodic and teardown ones warn instead.
      *
      * @param eventData Optional data associated with a PERSIST_STATE event
      */
-    async persistState(eventData?: { isMigrating: boolean }): Promise<void> {
-        this.log.debug(`Persisting state of the RecoverableState (eventData=${JSON.stringify(eventData)}).`);
-
-        if (this.keyValueStore === null || this.state === null) {
-            throw new Error('Recoverable state has not yet been initialized');
+    async persistState(eventData?: Record<string, unknown>): Promise<void> {
+        if (!this.#persistenceEnabled || this.#state === null) {
+            return;
         }
 
-        if (this.persistenceEnabled) {
-            await this.keyValueStore.setValue(this.persistStateKey, this.serialize(this.state), {
-                contentType: 'text/plain', // HACK - the result is expected to be JSON, but we do this to avoid the implicit JSON.parse in `KeyValueStore.getValue`
-            });
+        const keyValueStore = await this.#resolveKeyValueStore();
+
+        if (keyValueStore === null) {
+            return;
         }
+
+        this.#log.debug(`Persisting state of the RecoverableState (eventData=${JSON.stringify(eventData)}).`);
+
+        const serializedState = await this.#serialize(this.currentValue);
+
+        await this.#withTimeout(
+            async () => keyValueStore.setValue(this.#persistStateKey, serializedState),
+            'Persisting the state',
+        );
+    }
+
+    /** Awaits a store handed over as a pending `open()`, keeping the resolved instance for later calls. */
+    async #resolveKeyValueStore(): Promise<KeyValueStore | null> {
+        if (this.#keyValueStore === null) {
+            return null;
+        }
+
+        this.#keyValueStore = await this.#keyValueStore;
+
+        return this.#keyValueStore;
     }
 
     /**
-     * Load the saved state from the KeyValueStore
+     * Load the saved state from the KeyValueStore. Leaves the current state alone if there is no record to load.
      */
-    private async loadSavedState(): Promise<void> {
-        if (this.keyValueStore === null) {
-            throw new Error('Recoverable state has not yet been initialized');
+    async #loadSavedState(): Promise<void> {
+        if (!this.#persistenceEnabled) {
+            return;
         }
 
-        const storedState = await this.keyValueStore.getValue(this.persistStateKey);
-        if (storedState === null || storedState === undefined) {
-            this.state = this.deserialize(this.serialize(this.defaultState));
-        } else {
-            this.state = this.deserialize(storedState as string);
+        const keyValueStore = await this.#resolveKeyValueStore();
+
+        if (keyValueStore === null) {
+            return;
         }
+
+        const storedState = await this.#withTimeout(
+            async () => keyValueStore.getValue(this.#persistStateKey),
+            'Loading the persisted state',
+        );
+
+        if (storedState === null || storedState === undefined) {
+            return;
+        }
+
+        this.#state = await this.#deserialize(storedState as TPersistedState);
+    }
+
+    async #withTimeout<T>(operation: () => Promise<T>, description: string): Promise<T> {
+        // `@apify/timeout` shares one `AbortController` across nested frames and `KeyValueStore` checks it on
+        // every operation, so a teardown-time persist running inside an already-expired request handler timeout
+        // would be aborted before it started. Hence a fresh timeout context.
+        return timeoutStorage.exit(async () =>
+            addTimeoutToPromise(
+                operation,
+                this.#persistenceTimeoutMillis,
+                `${description} under key '${this.#persistStateKey}' timed out after ${this.#persistenceTimeoutMillis / 1000} seconds.`,
+            ),
+        );
     }
 }

@@ -18,7 +18,6 @@ In this guide, we'll show you how to set up OpenTelemetry and instrument your Cr
 ## Set up Jaeger
 
 This guide will show you how to set up the environment locally to run the example code and visualize the telemetry data in Jaeger running in a [Docker](https://docs.docker.com/engine/install/) container.
-
 To start the preconfigured Docker container, create a `docker-compose.yml` file:
 
 ```yaml
@@ -51,7 +50,7 @@ For more details about the Jaeger setup, see the [getting started section](https
 To instrument your Crawlee crawler, you need to install the `@crawlee/otel` package along with the OpenTelemetry SDK packages:
 
 ```bash npm2yarn
-npm install @crawlee/otel @opentelemetry/api @opentelemetry/api-logs @opentelemetry/sdk-node @opentelemetry/exporter-trace-otlp-grpc
+npm install @crawlee/otel @opentelemetry/api @opentelemetry/api-logs @opentelemetry/sdk-node @opentelemetry/sdk-trace-base @opentelemetry/resources @opentelemetry/semantic-conventions @opentelemetry/exporter-trace-otlp-grpc
 ```
 
 ## Instrument the crawler
@@ -80,17 +79,40 @@ Now create your crawler. The `CrawleeInstrumentation` will automatically instrum
 Run your crawler with the setup file imported first:
 
 ```bash
-npx tsx --import ./src/setup.ts ./src/main.ts
+npx tsx --experimental-loader=@opentelemetry/instrumentation/hook.mjs --import ./src/setup.ts ./src/main.ts
 ```
 
-The `--import` flag ensures the OpenTelemetry setup runs before any other code, which is required for the automatic instrumentation to work properly.
+The `--import` flag ensures the OpenTelemetry setup runs before any other code, which is required for the automatic
+instrumentation to work properly. The `--experimental-loader` flag installs the OpenTelemetry module hook, which the
+instrumentation needs in order to patch the Crawlee classes as they are imported.
 
-:::caution Bundled crawlers are not instrumented
+:::caution The module hook is required
 
-The automatic instrumentation patches the Crawlee classes as the modules are loaded, which works for both CommonJS and
-ESM projects. It does not work if the Crawlee packages are inlined into a bundle, because then there is no module load
-to intercept - exclude them from the bundle, or use `wrapWithSpan` instead, which wraps your own functions directly
-and does not rely on patching.
+Crawlee is published as ECMAScript modules, so the automatic instrumentation can only patch the crawler classes when
+Node.js is started with the OpenTelemetry loader hook shown above. Without it the crawler runs normally but no spans
+are produced. The same applies if the Crawlee packages are inlined into a bundle - there is then no module load left to
+intercept, so exclude them from the bundle.
+
+`wrapWithSpan` is unaffected by both, as it wraps your own functions directly rather than relying on patching.
+
+:::
+
+:::caution Linked installs also need `--preserve-symlinks`
+
+Patching additionally requires the package to resolve to a path inside a `node_modules` directory. That holds for a
+normal install (npm, yarn and pnpm alike), but not for a package symlinked out to a working copy - `npm link`, a
+`file:` dependency, or a workspace in a monorepo. Node resolves those to their real location, which has no
+`node_modules` segment, so the hook cannot match the file back to the package name. Add
+`--preserve-symlinks --preserve-symlinks-main` in that case, so that the symlinked path is kept.
+
+The examples on this page live in the Crawlee repository, where the packages are workspace symlinks - so this is how
+you run the one above from the repository root:
+
+```bash
+cd docs && npx tsx --preserve-symlinks --preserve-symlinks-main \
+    --experimental-loader=@opentelemetry/instrumentation/hook.mjs \
+    --import ./guides/trace_and_monitor_setup.ts ./guides/trace_and_monitor_basic.ts
+```
 
 :::
 
@@ -107,7 +129,7 @@ The `CrawleeInstrumentation` class provides several configuration options to cus
 | Option | Default | Description |
 |--------|---------|-------------|
 | `enabled` | `true` | Enable or disable the instrumentation entirely |
-| `requestHandlingInstrumentation` | `true` | Instrument core crawler methods like `run`, `_runTaskFunction`, navigation handlers |
+| `requestHandlingInstrumentation` | `true` | Instrument the core request handling methods of the crawlers |
 | `logInstrumentation` | `true` | Forward Crawlee logs to OpenTelemetry logs |
 | `customInstrumentation` | `[]` | Array of custom class methods to instrument |
 
@@ -190,17 +212,20 @@ When `requestHandlingInstrumentation` is enabled (the default), the following me
 | Crawler | Method | Span Name |
 |---------|--------|-----------|
 | `BasicCrawler` | `run` | `crawlee.crawler.run` |
-| `BasicCrawler` | `_runTaskFunction` | `crawlee.crawler.runTaskFunction` |
-| `BasicCrawler` | `_requestFunctionErrorHandler` | `crawlee.crawler.requestFunctionErrorHandler` |
-| `BasicCrawler` | `_handleFailedRequestHandler` | `crawlee.crawler.handleFailedRequestHandler` |
-| `BasicCrawler` | `_executeHooks` | `crawlee.crawler.executeHooks` |
-| `BrowserCrawler` | `_handleNavigation` | `crawlee.browser.handleNavigation` |
-| `BrowserCrawler` | `_runRequestHandler` | `crawlee.browser.runRequestHandler` |
-| `HttpCrawler` | `_handleNavigation` | `crawlee.http.handleNavigation` |
-| `HttpCrawler` | `_runRequestHandler` | `crawlee.http.runRequestHandler` |
+| `BasicCrawler` | `handleRequest` | `crawlee.crawler.handleRequest` |
+| `BasicCrawler` | `runRequestHandler` | `crawlee.crawler.runRequestHandler` |
+| `BasicCrawler` | `requestFunctionErrorHandler` | `crawlee.crawler.requestFunctionErrorHandler` |
+| `BasicCrawler` | `handleFailedRequestHandler` | `crawlee.crawler.handleFailedRequestHandler` |
+| `HttpCrawler` | `makeHttpRequest` | `crawlee.http.makeHttpRequest` |
+| `BrowserCrawler` | `navigate` | `crawlee.browser.navigate` |
 
-Every instrumented span carries the `code.function.name` attribute. Spans of the methods that receive a crawling
-context (the request handlers, navigation handlers and error handlers) additionally include:
+`crawlee.http.makeHttpRequest` and `crawlee.browser.navigate` are recorded as client spans, since they are the calls
+that leave your process. The rest are internal spans.
+
+Every automatically instrumented span carries the `code.function.name` attribute - spans you create yourself with
+`wrapWithSpan` carry only the attributes you give them. The `crawlee.crawler.run` span additionally carries
+`crawlee.crawler.type` with the class name of the crawler that is running, and spans of the methods that receive a
+crawling context (the request handlers, navigation handlers and error handlers) also include:
 
 - `url.full` - the request URL
 - `http.request.method` - the request method
@@ -213,10 +238,16 @@ convention keeps the `crawlee.` prefix.
 
 ## Forwarded logs
 
-With `logInstrumentation` enabled (the default), Crawlee logs are emitted as OpenTelemetry log records. The Apify log
+With `logInstrumentation` enabled (the default), Crawlee logs are emitted as OpenTelemetry log records. The Crawlee log
 level is mapped onto the OpenTelemetry severity (`SOFT_FAIL` and `WARNING` both become `WARN`, `PERF` becomes `DEBUG`),
-the structured `data` of the log call becomes the log record attributes, and errors are recorded as the
+the structured `data` of the log call becomes the log record attributes, and any `Error` in it is recorded as the
 `exception.type`, `exception.message` and `exception.stacktrace` attributes.
+
+This works for whichever logger you configure. The instrumentation patches the logging methods Crawlee derives in
+`BaseCrawleeLogger`, so a Winston, Pino or hand-written adapter is forwarded just like the default one.
+
+Crawlee leaves level filtering to the underlying logging library, so every message is forwarded regardless of the
+configured log level - filter them in your OpenTelemetry pipeline instead.
 
 :::caution Jaeger does not accept OpenTelemetry logs
 

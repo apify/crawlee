@@ -1,12 +1,13 @@
 import type { Cookie } from '@crawlee/types';
+// @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
 import type Puppeteer from 'puppeteer';
+// @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
 import type * as PuppeteerTypes from 'puppeteer';
 
 import { tryCancel } from '@apify/timeout';
 
-import { BrowserController } from '../abstract-classes/browser-controller';
-import { anonymizeProxySugar } from '../anonymize-proxy';
-import { log } from '../logger';
+import { BrowserController } from '../abstract-classes/browser-controller.js';
+import { anonymizeProxySugar } from '../anonymize-proxy.js';
 
 export interface PuppeteerNewPageOptions extends PuppeteerTypes.BrowserContextOptions {
     proxyUsername?: string;
@@ -31,7 +32,7 @@ export class PuppeteerController extends BrowserController<
         const password = decodeURIComponent(url.password);
 
         return {
-            proxyServer: url.origin,
+            proxyServer: `${url.protocol}//${url.host}`,
             proxyUsername: username,
             proxyPassword: password,
             proxyBypassList: pageOptions?.proxyBypassList,
@@ -41,9 +42,7 @@ export class PuppeteerController extends BrowserController<
     protected async _newPage(contextOptions?: PuppeteerNewPageOptions): Promise<PuppeteerTypes.Page> {
         if (contextOptions !== undefined) {
             if (!this.launchContext.useIncognitoPages) {
-                throw new Error(
-                    'A new page can be created with provided context only when using incognito pages or experimental containers.',
-                );
+                throw new Error('A new page can be created with provided context only when using incognito pages.');
             }
 
             let close = async () => {};
@@ -52,6 +51,7 @@ export class PuppeteerController extends BrowserController<
                     contextOptions.proxyServer,
                     contextOptions.proxyUsername,
                     contextOptions.proxyPassword,
+                    { ignoreProxyCertificate: this.launchContext.ignoreProxyCertificate },
                 );
 
                 if (anonymizedProxyUrl) {
@@ -90,7 +90,7 @@ export class PuppeteerController extends BrowserController<
                     try {
                         await context.close();
                     } catch (error: any) {
-                        log.exception(error, 'Failed to close context.');
+                        this.log.exception(error, 'Failed to close context.');
                     } finally {
                         await close();
                     }
@@ -122,7 +122,7 @@ export class PuppeteerController extends BrowserController<
         const browserProcess = this.browser.process();
 
         if (!browserProcess) {
-            log.debug('Browser was connected using the `puppeteer.connect` method no browser to kill.');
+            this.log.debug('Browser was connected using the `puppeteer.connect` method no browser to kill.');
             return;
         }
 
@@ -137,15 +137,26 @@ export class PuppeteerController extends BrowserController<
             await this.browser.close();
             clearTimeout(timeout);
         } catch (error) {
-            log.debug('Browser was already killed.', { error });
+            this.log.debug('Browser was already killed.', { error });
         }
     }
 
     protected async _getCookies(page: PuppeteerTypes.Page): Promise<Cookie[]> {
-        return page.cookies();
+        const cookies = await page.browserContext().cookies();
+        // Puppeteer 25+ can report `sameSite: 'Default'`, which means the attribute is unspecified.
+        return cookies.map(({ sameSite, ...rest }) => ({
+            ...rest,
+            sameSite: (sameSite as string | undefined) === 'Default' ? undefined : (sameSite as Cookie['sameSite']),
+        }));
     }
 
     protected async _setCookies(page: PuppeteerTypes.Page, cookies: Cookie[]): Promise<void> {
-        return page.setCookie(...cookies);
+        // BrowserContext.setCookie requires `url` or `domain`; the page-level API used to back-fill
+        // the page's current URL for us. Replicate that so callers who pass neither don't get rejected.
+        const pageUrl = page.url();
+        const normalized = cookies.map((cookie) =>
+            cookie.url || cookie.domain ? cookie : { ...cookie, url: pageUrl },
+        );
+        return page.browserContext().setCookie(...(normalized as PuppeteerTypes.CookieData[]));
     }
 }

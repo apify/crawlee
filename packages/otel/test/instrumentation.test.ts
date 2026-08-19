@@ -95,7 +95,7 @@ describe('CrawleeInstrumentation', () => {
 
             const definitions = (instrumentation as any).init();
 
-            const logDefinition = definitions.find((d: any) => d.name === '@apify/log');
+            const logDefinition = definitions.find((d: any) => d.name === '@crawlee/core');
             expect(logDefinition).toBeDefined();
         });
 
@@ -107,7 +107,7 @@ describe('CrawleeInstrumentation', () => {
 
             const definitions = (instrumentation as any).init();
 
-            const logDefinition = definitions.find((d: any) => d.name === '@apify/log');
+            const logDefinition = definitions.find((d: any) => d.name === '@crawlee/core');
             expect(logDefinition).toBeUndefined();
         });
 
@@ -168,10 +168,10 @@ describe('requestHandlingInstrumentationMethods', () => {
 
         const methodNames = basicMethods.map((m: { methodName: any }) => m.methodName);
         expect(methodNames).toContain('run');
-        expect(methodNames).toContain('_runTaskFunction');
-        expect(methodNames).toContain('_requestFunctionErrorHandler');
-        expect(methodNames).toContain('_handleFailedRequestHandler');
-        expect(methodNames).toContain('_executeHooks');
+        expect(methodNames).toContain('handleRequest');
+        expect(methodNames).toContain('runRequestHandler');
+        expect(methodNames).toContain('requestFunctionErrorHandler');
+        expect(methodNames).toContain('handleFailedRequestHandler');
     });
 
     test('contains expected BrowserCrawler methods', () => {
@@ -182,8 +182,7 @@ describe('requestHandlingInstrumentationMethods', () => {
         expect(browserMethods.length).toBeGreaterThan(0);
 
         const methodNames = browserMethods.map((m: { methodName: any }) => m.methodName);
-        expect(methodNames).toContain('_handleNavigation');
-        expect(methodNames).toContain('_runRequestHandler');
+        expect(methodNames).toContain('navigate');
     });
 
     test('contains expected HttpCrawler methods', () => {
@@ -194,8 +193,7 @@ describe('requestHandlingInstrumentationMethods', () => {
         expect(httpMethods.length).toBeGreaterThan(0);
 
         const methodNames = httpMethods.map((m: { methodName: any }) => m.methodName);
-        expect(methodNames).toContain('_handleNavigation');
-        expect(methodNames).toContain('_runRequestHandler');
+        expect(methodNames).toContain('makeHttpRequest');
     });
 
     test('all methods have valid moduleName starting with @crawlee/', () => {
@@ -215,11 +213,13 @@ describe('requestHandlingInstrumentationMethods', () => {
 
     test.each([
         // [methodName, index of the crawling context in the argument list]
-        ['_runRequestHandler', 0],
-        ['_handleNavigation', 0],
-        ['_handleFailedRequestHandler', 0],
-        // `_requestFunctionErrorHandler(error, crawlingContext, source)`
-        ['_requestFunctionErrorHandler', 1],
+        ['handleRequest', 0],
+        ['runRequestHandler', 0],
+        ['makeHttpRequest', 0],
+        ['navigate', 0],
+        ['handleFailedRequestHandler', 0],
+        // `requestFunctionErrorHandler(error, crawlingContext, request, source)`
+        ['requestFunctionErrorHandler', 1],
     ])('%s reads request attributes from argument %i', (methodName, contextArgIndex) => {
         const methods = requestHandlingInstrumentationMethods.filter((m) => m.methodName === methodName);
         expect(methods.length).toBeGreaterThan(0);
@@ -250,7 +250,7 @@ describe('requestHandlingInstrumentationMethods', () => {
     });
 
     test('request attributes are empty when the argument is not a crawling context', () => {
-        const method = requestHandlingInstrumentationMethods.find((m) => m.methodName === '_runRequestHandler')!;
+        const method = requestHandlingInstrumentationMethods.find((m) => m.methodName === 'runRequestHandler')!;
 
         // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
         expect((method.spanOptions as Function)(undefined)).toEqual({ attributes: {} });

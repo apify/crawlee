@@ -2,61 +2,72 @@ import type {
     BrowserCrawlerOptions,
     BrowserCrawlingContext,
     BrowserHook,
-    BrowserRequestHandler,
+    ContextPipeline,
+    CrawlingContext,
     GetUserDataFromRequest,
-    LoadedContext,
+    RequestHandler,
+    RouterHandler,
     RouterRoutes,
+    RouteSchemas,
+    RoutesFromSchemas,
 } from '@crawlee/browser';
-import { BrowserCrawler, Configuration, Router } from '@crawlee/browser';
-import type { BrowserPoolOptions, PlaywrightController, PlaywrightPlugin } from '@crawlee/browser-pool';
+import { assertBrowserPoolNotConfigured, BrowserCrawler, RequestState, Router, serviceLocator } from '@crawlee/browser';
 import type { Dictionary } from '@crawlee/types';
-import ow from 'ow';
-import type { LaunchOptions, Page, Response } from 'playwright';
+import { parseArgument, schemas } from '@crawlee/utils/internal';
+import type { Download, LaunchOptions, Page, Response } from 'playwright';
+import { z } from 'zod';
 
-import type { PlaywrightLaunchContext } from './playwright-launcher';
-import { PlaywrightLauncher } from './playwright-launcher';
-import type { DirectNavigationOptions, PlaywrightContextUtils } from './utils/playwright-utils';
-import { gotoExtended, registerUtilsToContext } from './utils/playwright-utils';
+import type { EnqueueLinksByClickingElementsOptions } from './enqueue-links/click-elements.js';
+import { playwrightBrowserPool, remotePlaywrightBrowserPool } from './playwright-browser-pool.js';
+import type { PlaywrightLaunchContext } from './playwright-launcher.js';
+import type {
+    BlockRequestsOptions,
+    DirectNavigationOptions,
+    HandleCloudflareChallengeOptions,
+    InfiniteScrollOptions,
+    InjectFileOptions,
+    PlaywrightContextUtils,
+    SaveSnapshotOptions,
+} from './utils/playwright-utils.js';
+import { gotoExtended, playwrightUtils } from './utils/playwright-utils.js';
 
-export interface PlaywrightCrawlingContext<UserData extends Dictionary = Dictionary>
-    extends BrowserCrawlingContext<PlaywrightCrawler, Page, Response, PlaywrightController, UserData>,
-        PlaywrightContextUtils {}
-export interface PlaywrightHook extends BrowserHook<PlaywrightCrawlingContext, PlaywrightGotoOptions> {}
-export interface PlaywrightRequestHandler extends BrowserRequestHandler<LoadedContext<PlaywrightCrawlingContext>> {}
-export type PlaywrightGotoOptions = Dictionary & Parameters<Page['goto']>[1];
+export type PlaywrightGotoOptions = NonNullable<Parameters<Page['goto']>[1]>;
 
-export interface PlaywrightCrawlerOptions
-    extends BrowserCrawlerOptions<PlaywrightCrawlingContext, { browserPlugins: [PlaywrightPlugin] }> {
+export interface PlaywrightCrawlingContext<
+    UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
+>
+    extends BrowserCrawlingContext<Page, Response, UserData, PlaywrightGotoOptions>, PlaywrightContextUtils {}
+export type PlaywrightHook<
+    UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
+> = BrowserHook<PlaywrightCrawlingContext<UserData>>;
+
+export interface PlaywrightCrawlerOptions<
+    ContextExtension = Dictionary<never>,
+    ExtendedContext extends PlaywrightCrawlingContext = PlaywrightCrawlingContext & ContextExtension,
+    Routes extends Record<keyof Routes, Dictionary> = Record<
+        string,
+        GetUserDataFromRequest<PlaywrightCrawlingContext['request']>
+    >,
+    StatisticStateExtension extends object = {},
+> extends BrowserCrawlerOptions<
+    Page,
+    Response,
+    PlaywrightCrawlingContext,
+    ContextExtension,
+    ExtendedContext,
+    Routes,
+    StatisticStateExtension
+> {
     /**
      * The same options as used by {@apilink launchPlaywright}.
      */
     launchContext?: PlaywrightLaunchContext;
 
     /**
-     * Function that is called to process each request.
-     *
-     * The function receives the {@apilink PlaywrightCrawlingContext} as an argument, where:
-     * - `request` is an instance of the {@apilink Request} object with details about the URL to open, HTTP method etc.
-     * - `page` is an instance of the `Playwright`
-     * [`Page`](https://playwright.dev/docs/api/class-page)
-     * - `browserController` is an instance of the
-     * [`BrowserController`](https://github.com/apify/browser-pool#browsercontroller),
-     * - `response` is an instance of the `Playwright`
-     * [`Response`](https://playwright.dev/docs/api/class-response),
-     * which is the main resource response as returned by `page.goto(request.url)`.
-     *
-     * The function must return a promise, which is then awaited by the crawler.
-     *
-     * If the function throws an exception, the crawler will try to re-crawl the
-     * request later, up to `option.maxRequestRetries` times.
-     * If all the retries fail, the crawler calls the function
-     * provided to the `failedRequestHandler` parameter.
-     * To make this work, you should **always**
-     * let your function throw exceptions rather than catch them.
-     * The exceptions are logged to the request using the
-     * {@apilink Request.pushErrorMessage} function.
+     * Whether to run browser in headless mode. Defaults to `true`.
+     * Can be also set via {@apilink Configuration}.
      */
-    requestHandler?: PlaywrightRequestHandler;
+    headless?: boolean;
 
     /**
      * Function that is called to process each request.
@@ -65,8 +76,6 @@ export interface PlaywrightCrawlerOptions
      * - `request` is an instance of the {@apilink Request} object with details about the URL to open, HTTP method etc.
      * - `page` is an instance of the `Playwright`
      * [`Page`](https://playwright.dev/docs/api/class-page)
-     * - `browserController` is an instance of the
-     * [`BrowserController`](https://github.com/apify/browser-pool#browsercontroller),
      * - `response` is an instance of the `Playwright`
      * [`Response`](https://playwright.dev/docs/api/class-response),
      * which is the main resource response as returned by `page.goto(request.url)`.
@@ -81,34 +90,34 @@ export interface PlaywrightCrawlerOptions
      * let your function throw exceptions rather than catch them.
      * The exceptions are logged to the request using the
      * {@apilink Request.pushErrorMessage} function.
-     *
-     * @deprecated `handlePageFunction` has been renamed to `requestHandler` and will be removed in a future version.
-     * @ignore
      */
-    handlePageFunction?: PlaywrightRequestHandler;
+    requestHandler?: RouterHandler<ExtendedContext, Routes> | RequestHandler<ExtendedContext>;
 
     /**
      * Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies
-     * or browser properties before navigation. The function accepts two parameters, `crawlingContext` and `gotoOptions`,
-     * which are passed to the `page.goto()` function the crawler calls to navigate.
+     * or browser properties before navigation. The function receives the `crawlingContext`; the options object
+     * forwarded to `page.goto()` is available as `crawlingContext.gotoOptions` and can be mutated in place.
+     * A hook may optionally return a partial object whose properties are merged into the crawling context
+     * (e.g. to override context members for subsequent hooks and pipeline stages).
      * Example:
      * ```
      * preNavigationHooks: [
-     *     async (crawlingContext, gotoOptions) => {
-     *         const { page } = crawlingContext;
+     *     async ({ page, gotoOptions }) => {
      *         await page.evaluate((attr) => { window.foo = attr; }, 'bar');
+     *         gotoOptions.timeout = 60_000;
      *     },
      * ]
      * ```
-     *
-     * Modyfing `pageOptions` is supported only in Playwright incognito.
-     * See {@apilink PrePageCreateHook}
      */
-    preNavigationHooks?: PlaywrightHook[];
+    preNavigationHooks?: BrowserHook<
+        PlaywrightCrawlingContext<GetUserDataFromRequest<ExtendedContext['request']>>,
+        ContextExtension
+    >[];
 
     /**
      * Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
-     * The function accepts `crawlingContext` as the only parameter.
+     * The function accepts `crawlingContext` as the only parameter. A hook may optionally return a partial object
+     * whose properties are merged into the crawling context (e.g. to override `response` after solving a challenge).
      * Example:
      * ```
      * postNavigationHooks: [
@@ -121,7 +130,10 @@ export interface PlaywrightCrawlerOptions
      * ]
      * ```
      */
-    postNavigationHooks?: PlaywrightHook[];
+    postNavigationHooks?: BrowserHook<
+        PlaywrightCrawlingContext<GetUserDataFromRequest<ExtendedContext['request']>>,
+        ContextExtension
+    >[];
 }
 
 /**
@@ -135,24 +147,26 @@ export interface PlaywrightCrawlerOptions
  * If the target website doesn't need JavaScript, consider using {@apilink CheerioCrawler},
  * which downloads the pages using raw HTTP requests and is about 10x faster.
  *
- * The source URLs are represented using {@apilink Request} objects that are fed from
- * {@apilink RequestList} or {@apilink RequestQueue} instances provided by the {@apilink PlaywrightCrawlerOptions.requestList}
- * or {@apilink PlaywrightCrawlerOptions.requestQueue} constructor options, respectively.
+ * The source URLs are represented using {@apilink Request} objects that are fed from the
+ * {@apilink IRequestManager|request manager} provided via the {@apilink PlaywrightCrawlerOptions.requestManager|`requestManager`}
+ * constructor option (a {@apilink RequestQueue} is itself a request manager). To read from a read-only source such
+ * as a {@apilink RequestList} while still being able to enqueue new requests, combine it with a queue into a
+ * {@apilink RequestManagerTandem} via {@apilink IRequestLoader.toTandem|`requestLoader.toTandem()`} and pass the
+ * result as `requestManager`.
  *
- * If both {@apilink PlaywrightCrawlerOptions.requestList} and {@apilink PlaywrightCrawlerOptions.requestQueue} are used,
- * the instance first processes URLs from the {@apilink RequestList} and automatically enqueues all of them
- * to {@apilink RequestQueue} before it starts their processing. This ensures that a single URL is not crawled multiple times.
+ * > The {@apilink PlaywrightCrawlerOptions.requestList|`requestList`} and {@apilink PlaywrightCrawlerOptions.requestQueue|`requestQueue`}
+ * > options are deprecated; they are still accepted and folded into a single `requestManager` for back-compat.
  *
  * The crawler finishes when there are no more {@apilink Request} objects to crawl.
  *
  * `PlaywrightCrawler` opens a new Chrome page (i.e. tab) for each {@apilink Request} object to crawl
  * and then calls the function provided by user as the {@apilink PlaywrightCrawlerOptions.requestHandler} option.
  *
- * New pages are only opened when there is enough free CPU and memory available,
- * using the functionality provided by the {@apilink AutoscaledPool} class.
- * All {@apilink AutoscaledPool} configuration options can be passed to the {@apilink PlaywrightCrawlerOptions.autoscaledPoolOptions}
- * parameter of the `PlaywrightCrawler` constructor. For user convenience, the `minConcurrency` and `maxConcurrency`
- * {@apilink AutoscaledPoolOptions} are available directly in the `PlaywrightCrawler` constructor.
+ * New pages are only opened when there is enough free CPU and memory available, as judged by the crawler's
+ * {@apilink ConcurrencySystem}.
+ * Concurrency is tuned via the `minConcurrency`, `maxConcurrency` and `maxRequestsPerMinute` options of the
+ * `PlaywrightCrawler` constructor, or, for finer control, by injecting a pre-configured
+ * {@apilink ConcurrencySystem|`concurrencySystem`}.
  *
  * Note that the pool of Playwright instances is internally managed by the [BrowserPool](https://github.com/apify/browser-pool) class.
  *
@@ -187,31 +201,46 @@ export interface PlaywrightCrawlerOptions
  * ```
  * @category Crawlers
  */
-export class PlaywrightCrawler extends BrowserCrawler<
-    { browserPlugins: [PlaywrightPlugin] },
+export class PlaywrightCrawler<
+    ContextExtension = Dictionary<never>,
+    ExtendedContext extends PlaywrightCrawlingContext = PlaywrightCrawlingContext & ContextExtension,
+    Routes extends Record<keyof Routes, Dictionary> = Record<
+        string,
+        GetUserDataFromRequest<PlaywrightCrawlingContext['request']>
+    >,
+    StatisticStateExtension extends object = {},
+> extends BrowserCrawler<
+    Page,
+    Response,
     LaunchOptions,
-    PlaywrightCrawlingContext
+    PlaywrightCrawlingContext,
+    ContextExtension,
+    ExtendedContext,
+    Routes,
+    StatisticStateExtension
 > {
+    /**
+     * @internal
+     */
     protected static override optionsShape = {
         ...BrowserCrawler.optionsShape,
-        browserPoolOptions: ow.optional.object,
-        launcher: ow.optional.object,
+        headless: z.boolean().optional(),
+        launcher: schemas.anyObject.optional(),
     };
+
+    /** @internal */
+    protected static override optionsSchema = z.strictObject(PlaywrightCrawler.optionsShape);
 
     /**
      * All `PlaywrightCrawler` parameters are passed via an options object.
      */
     constructor(
-        private readonly options: PlaywrightCrawlerOptions = {},
-        override readonly config = Configuration.getGlobalConfig(),
+        options: PlaywrightCrawlerOptions<ContextExtension, ExtendedContext, Routes, StatisticStateExtension> = {},
     ) {
-        ow(options, 'PlaywrightCrawlerOptions', ow.object.exactShape(PlaywrightCrawler.optionsShape));
+        const parsedOptions = parseArgument(options, PlaywrightCrawler.optionsSchema, 'PlaywrightCrawlerOptions');
 
-        const { launchContext = {}, headless, ...browserCrawlerOptions } = options;
-
-        const browserPoolOptions = {
-            ...options.browserPoolOptions,
-        } as BrowserPoolOptions;
+        const { launchContext, headless, configuration, contextPipelineBuilder, ...browserCrawlerOptions } =
+            parsedOptions;
 
         if (launchContext.proxyUrl) {
             throw new Error(
@@ -220,35 +249,120 @@ export class PlaywrightCrawler extends BrowserCrawler<
             );
         }
 
-        // `browserPlugins` is working when it's not overridden by `launchContext`,
-        // which for crawlers it is always overridden. Hence the error to use the other option.
-        if (browserPoolOptions.browserPlugins) {
-            throw new Error('browserPoolOptions.browserPlugins is disallowed. Use launchContext.launcher instead.');
+        if (options.browserPool) {
+            // The raw options, not the parsed ones: `launchContext` has a default, so by now it is always set.
+            assertBrowserPoolNotConfigured(new.target.name, {
+                launchContext: options.launchContext,
+                headless: options.headless,
+            });
         }
 
-        if (headless != null) {
-            launchContext.launchOptions ??= {} as LaunchOptions;
-            launchContext.launchOptions.headless = headless as boolean;
-        }
-
-        const playwrightLauncher = new PlaywrightLauncher(launchContext, config);
-
-        browserPoolOptions.browserPlugins = [playwrightLauncher.createBrowserPlugin()];
-
-        super({ ...browserCrawlerOptions, launchContext, browserPoolOptions }, config);
+        super({
+            ...(browserCrawlerOptions as unknown as PlaywrightCrawlerOptions<
+                ContextExtension,
+                ExtendedContext,
+                Routes,
+                StatisticStateExtension
+            >),
+            launchContext,
+            configuration,
+            browserPoolBuilder: (remoteBrowser) =>
+                remoteBrowser
+                    ? remotePlaywrightBrowserPool({ ...remoteBrowser, launchContext, headless, configuration })
+                    : playwrightBrowserPool({ launchContext, headless, configuration }),
+            contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),
+        });
     }
 
-    protected override async _runRequestHandler(context: PlaywrightCrawlingContext) {
-        registerUtilsToContext(context, this.options);
-        await super._runRequestHandler(context);
+    protected override buildContextPipeline(): ContextPipeline<CrawlingContext, PlaywrightCrawlingContext> {
+        return super.buildContextPipeline().compose({ action: this.enhanceContext.bind(this) });
     }
 
-    protected override async _navigationHandler(
+    protected override async navigationHandler(
         crawlingContext: PlaywrightCrawlingContext,
         gotoOptions: DirectNavigationOptions,
     ) {
         return gotoExtended(crawlingContext.page, crawlingContext.request, gotoOptions);
     }
+
+    private async enhanceContext(context: BrowserCrawlingContext<Page, Response, Dictionary>) {
+        const waitForSelector = async (selector: string, timeoutMs = 5_000) => {
+            const locator = context.page.locator(selector).first();
+            await locator.waitFor({ timeout: timeoutMs, state: 'attached' });
+        };
+
+        const downloads: Download[] = [];
+        context.page.on('download', (download) => downloads.push(download));
+
+        return {
+            injectFile: async (filePath: string, options?: InjectFileOptions) =>
+                playwrightUtils.injectFile(context.page, filePath, options),
+            injectJQuery: async () => {
+                if (context.request.state === RequestState.BEFORE_NAV) {
+                    context.log.warning(
+                        'Using injectJQuery() in preNavigationHooks leads to unstable results. Use it in a postNavigationHook or a requestHandler instead.',
+                    );
+                    await playwrightUtils.injectJQuery(context.page);
+                    return;
+                }
+                await playwrightUtils.injectJQuery(context.page, { surviveNavigations: false });
+            },
+            blockRequests: async (options?: BlockRequestsOptions) =>
+                playwrightUtils.blockRequests(context.page, options),
+            waitForSelector,
+            parseWithCheerio: async (selector?: string, timeoutMs = 5_000) => {
+                if (selector) {
+                    await waitForSelector(selector, timeoutMs);
+                }
+
+                return playwrightUtils.parseWithCheerio(context.page, this.ignoreShadowRoots, this.ignoreIframes);
+            },
+            infiniteScroll: async (options?: InfiniteScrollOptions) =>
+                playwrightUtils.infiniteScroll(context.page, options),
+            listDownloads: async () => downloads,
+            saveSnapshot: async (options?: SaveSnapshotOptions) =>
+                playwrightUtils.saveSnapshot(context.page, {
+                    ...options,
+                    configuration: serviceLocator.getConfiguration(),
+                }),
+            enqueueLinksByClickingElements: async (
+                options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestManager'>,
+            ) =>
+                playwrightUtils.enqueueLinksByClickingElements({
+                    ...options,
+                    page: context.page,
+                    requestManager: this.requestManager!,
+                }),
+            compileScript: (scriptString: string, ctx?: Dictionary) => playwrightUtils.compileScript(scriptString, ctx),
+            closeCookieModals: async () => playwrightUtils.closeCookieModals(context.page),
+            handleCloudflareChallenge: async (options?: HandleCloudflareChallengeOptions) => {
+                return playwrightUtils.handleCloudflareChallenge(context.page, context.request.url, options);
+            },
+        };
+    }
+}
+
+/**
+ * Returns a `postNavigationHooks`-ready hook that runs {@apilink PlaywrightContextUtils.handleCloudflareChallenge}
+ * and propagates the post-challenge {@apilink Response} back into the crawling context via its return value.
+ *
+ * **Example usage**
+ * ```ts
+ * import { PlaywrightCrawler, handleCloudflareChallengeHook } from 'crawlee';
+ *
+ * const crawler = new PlaywrightCrawler({
+ *     postNavigationHooks: [handleCloudflareChallengeHook()],
+ * });
+ * ```
+ */
+export function handleCloudflareChallengeHook(options?: HandleCloudflareChallengeOptions): PlaywrightHook {
+    return async (context) => {
+        const response = await context.handleCloudflareChallenge(options);
+        if (response !== undefined) {
+            return { response };
+        }
+        return undefined;
+    };
 }
 
 /**
@@ -277,7 +391,16 @@ export class PlaywrightCrawler extends BrowserCrawler<
  */
 export function createPlaywrightRouter<
     Context extends PlaywrightCrawlingContext = PlaywrightCrawlingContext,
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
+>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
+export function createPlaywrightRouter<
+    Context extends PlaywrightCrawlingContext = PlaywrightCrawlingContext,
     UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
->(routes?: RouterRoutes<Context, UserData>) {
-    return Router.create<Context>(routes);
+>(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
+export function createPlaywrightRouter<
+    Context extends PlaywrightCrawlingContext = PlaywrightCrawlingContext,
+    const Schemas extends RouteSchemas = RouteSchemas,
+>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
+export function createPlaywrightRouter(routesOrSchemas?: any): any {
+    return Router.create(routesOrSchemas);
 }

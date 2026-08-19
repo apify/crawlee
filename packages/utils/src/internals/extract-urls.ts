@@ -1,7 +1,23 @@
-import ow from 'ow';
+import { FetchHttpClient } from '@crawlee/http-client';
+import type { BaseHttpClient } from '@crawlee/http-client';
+import { z } from 'zod';
 
-import { URL_NO_COMMAS_REGEX } from './general';
-import { gotScraping } from './gotScraping';
+import { URL_NO_COMMAS_REGEX } from './general.js';
+import { httpClient as httpClientSchema } from './schemas.js';
+import { parseArgument } from './validation.js';
+
+const downloadListOfUrlsOptionsSchema = z.strictObject({
+    url: z.url(),
+    encoding: z.string().default('utf8'),
+    urlRegExp: z.instanceof(RegExp).default(URL_NO_COMMAS_REGEX),
+    proxyUrl: z.string().optional(),
+    httpClient: httpClientSchema.default(() => new FetchHttpClient()),
+});
+
+const extractUrlsOptionsSchema = z.strictObject({
+    string: z.string(),
+    urlRegExp: z.instanceof(RegExp).default(URL_NO_COMMAS_REGEX),
+});
 
 export interface DownloadListOfUrlsOptions {
     /**
@@ -24,6 +40,11 @@ export interface DownloadListOfUrlsOptions {
 
     /** Allows to use a proxy for the download request. */
     proxyUrl?: string;
+
+    /**
+     * Custom HTTP client to use for downloading the file.
+     */
+    httpClient?: BaseHttpClient;
 }
 
 /**
@@ -31,26 +52,21 @@ export interface DownloadListOfUrlsOptions {
  * Optionally, custom regular expression and encoding may be provided.
  */
 export async function downloadListOfUrls(options: DownloadListOfUrlsOptions): Promise<string[]> {
-    ow(
-        options,
-        ow.object.exactShape({
-            url: ow.string.url,
-            encoding: ow.optional.string,
-            urlRegExp: ow.optional.regExp,
-            proxyUrl: ow.optional.string,
-        }),
-    );
-    const { url, encoding = 'utf8', urlRegExp = URL_NO_COMMAS_REGEX, proxyUrl } = options;
+    const { url, encoding, urlRegExp, proxyUrl, httpClient } = parseArgument(options, downloadListOfUrlsOptionsSchema);
 
     // Try to detect wrong urls and fix them. Currently, detects only sharing url instead of csv download one.
-    const match = url.match(/^(https:\/\/docs\.google\.com\/spreadsheets\/d\/(?:\w|-)+)\/?/);
+    const match = /^(https:\/\/docs\.google\.com\/spreadsheets\/d\/(?:\w|-)+)\/?/.exec(url);
     let fixedUrl = url;
 
     if (match) {
         fixedUrl = `${match[1]}/gviz/tq?tqx=out:csv`;
     }
 
-    const { body: string } = await gotScraping({ url: fixedUrl, encoding, proxyUrl });
+    const response = await httpClient.sendRequest(new Request(fixedUrl, { method: 'GET' }), {
+        proxyUrl,
+    });
+
+    const string = new TextDecoder(encoding).decode(new Uint8Array(await response.arrayBuffer()));
 
     return extractUrls({ string, urlRegExp });
 }
@@ -72,16 +88,9 @@ export interface ExtractUrlsOptions {
  * Collects all URLs in an arbitrary string to an array, optionally using a custom regular expression.
  */
 export function extractUrls(options: ExtractUrlsOptions): string[] {
-    ow(
-        options,
-        ow.object.exactShape({
-            string: ow.string,
-            urlRegExp: ow.optional.regExp,
-        }),
-    );
-    const lines = options.string.split('\n');
+    const { string, urlRegExp } = parseArgument(options, extractUrlsOptionsSchema);
+    const lines = string.split('\n');
     const result: string[] = [];
-    const urlRegExp = options.urlRegExp ?? URL_NO_COMMAS_REGEX;
 
     for (const line of lines) {
         result.push(...(line.match(urlRegExp) ?? []));

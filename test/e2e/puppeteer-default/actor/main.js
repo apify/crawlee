@@ -12,8 +12,8 @@ const mainOptions = {
 await Actor.main(async () => {
     const crawler = new PuppeteerCrawler({
         preNavigationHooks: [
-            (_ctx, goToOptions) => {
-                goToOptions.waitUntil = ['networkidle2'];
+            ({ gotoOptions }) => {
+                gotoOptions.waitUntil = ['networkidle2'];
             },
         ],
         async requestHandler({ page, enqueueLinks, request, infiniteScroll }) {
@@ -22,7 +22,7 @@ await Actor.main(async () => {
             const pageTitle = await page.title();
             await Dataset.pushData({ url, pageTitle });
             await enqueueLinks({
-                globs: ['**/3.12/examples/*'],
+                include: ['**/3.12/examples/*'],
             });
         },
     });

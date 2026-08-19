@@ -1,8 +1,8 @@
 import type { Cookie as CookieObject } from '@crawlee/types';
 import { Cookie, CookieJar } from 'tough-cookie';
 
-import { log } from './log';
-import { CookieParseError } from './session_pool/errors';
+import { serviceLocator } from './service_locator.js';
+import { CookieParseError } from './session_pool/errors.js';
 
 export interface ResponseLike {
     url?: string | (() => string);
@@ -12,16 +12,14 @@ export interface ResponseLike {
 /**
  * @internal
  */
-export function getCookiesFromResponse(response: ResponseLike): Cookie[] {
-    const headers = typeof response.headers === 'function' ? response.headers() : response.headers;
-    const cookieHeader = headers?.['set-cookie'] || '';
+export function getCookiesFromResponse(response: Response): Cookie[] {
+    const headers = response.headers;
+    const cookieHeaders = headers.getSetCookie();
 
     try {
-        return Array.isArray(cookieHeader)
-            ? cookieHeader.map((cookie) => Cookie.parse(cookie)!)
-            : [Cookie.parse(cookieHeader)!];
+        return cookieHeaders.map((cookie) => Cookie.parse(cookie)!);
     } catch (e) {
-        throw new CookieParseError(cookieHeader);
+        throw new CookieParseError(cookieHeaders);
     }
 }
 
@@ -61,19 +59,24 @@ export function toughCookieToBrowserPoolCookie(toughCookie: Cookie): CookieObjec
 /**
  * Transforms browser-pool cookie to tough-cookie.
  * @param cookieObject Cookie object (for instance from the `page.cookies` method).
+ * @param maxAgeSecs Fallback expiration in seconds when the cookie itself has no `expires`.
+ * When omitted, such a cookie is stored as a session cookie (no automatic expiration).
  * @internal
  */
-export function browserPoolCookieToToughCookie(cookieObject: CookieObject, maxAgeSecs: number) {
+export function browserPoolCookieToToughCookie(cookieObject: CookieObject, maxAgeSecs?: number) {
     const isExpiresValid = cookieObject.expires && typeof cookieObject.expires === 'number' && cookieObject.expires > 0;
-    const expires = isExpiresValid
-        ? new Date(cookieObject.expires! * 1000)
-        : getDefaultCookieExpirationDate(maxAgeSecs);
+    let expires: Date | 'Infinity' | undefined;
+    if (isExpiresValid) {
+        expires = new Date(cookieObject.expires! * 1000);
+    } else if (maxAgeSecs != null) {
+        expires = getDefaultCookieExpirationDate(maxAgeSecs);
+    }
     const domainHasLeadingDot = cookieObject.domain?.startsWith?.('.');
     const domain = domainHasLeadingDot ? cookieObject.domain?.slice?.(1) : cookieObject.domain;
     return new Cookie({
         key: cookieObject.name,
         value: cookieObject.value,
-        expires,
+        ...(expires !== undefined && { expires }),
         domain,
         path: cookieObject.path,
         secure: cookieObject.secure,
@@ -116,15 +119,21 @@ export function mergeCookies(url: string, sourceCookies: string[]): string {
             // ignore extra spaces
             if (!cookieString) continue;
 
-            const cookie = Cookie.parse(cookieString)!;
+            const cookie = Cookie.parse(cookieString);
+            if (!cookie) {
+                serviceLocator.getLogger().warning(`Skipping malformed cookie fragment: '${cookieString}'`);
+                continue;
+            }
             const similarKeyCookie = jar.getCookiesSync(url).find((c) => {
                 return cookie.key !== c.key && cookie.key.toLowerCase() === c.key.toLowerCase();
             });
 
             if (similarKeyCookie) {
-                log.deprecated(
-                    `Found cookies with similar name during cookie merging: '${cookie.key}' and '${similarKeyCookie.key}'`,
-                );
+                serviceLocator
+                    .getLogger()
+                    .warningOnce(
+                        `Found cookies with similar name during cookie merging: '${cookie.key}' and '${similarKeyCookie.key}'`,
+                    );
             }
 
             jar.setCookieSync(cookie, url);

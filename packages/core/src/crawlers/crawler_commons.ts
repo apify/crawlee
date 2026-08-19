@@ -1,37 +1,100 @@
-import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
-// @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types, so its alllll gooooood
-import type { OptionsInit, Response as GotResponse } from 'got-scraping';
+import type { Dictionary, HttpRequestOptions, ISession, ProxyInfo, SendRequestOptions } from '@crawlee/types';
 import type { ReadonlyDeep } from 'type-fest';
 
-import type { Configuration } from '../configuration';
-import type { EnqueueLinksOptions } from '../enqueue_links/enqueue_links';
-import type { Log } from '../log';
-import type { ProxyInfo } from '../proxy_configuration';
-import type { Request, Source } from '../request';
-import type { Session } from '../session_pool/session';
-import type { Dataset, RecordOptions, RequestQueueOperationOptions } from '../storages';
-import { KeyValueStore } from '../storages';
+import type { EnqueueUrlsOptions } from '../enqueue_links/enqueue_links.js';
+import type { CrawleeLogger } from '../log.js';
+import type { Request, RequestOptions, Source } from '../request.js';
+import type { StorageIdentifier } from '../storages/storage_instance_manager.js';
+import type { Dataset } from '../storages/dataset.js';
+import type { KeyValueStore } from '../storages/key_value_store.js';
+import type { AddRequestsBatchedResult } from '../storages/request_queue.js';
 
 /** @internal */
 export type IsAny<T> = 0 extends 1 & T ? true : false;
 
-/** @internal */
+/**
+ * A request input (URL string, request-options object, or {@apilink Request}) whose `userData` is typed
+ * according to its `label`, based on a router's route map.
+ *
+ * When the route map is open (the default `Record<string, ...>`), this is just the regular loose
+ * {@apilink Source} input. When the map declares concrete labels, providing a `label` requires the matching
+ * `userData` shape and rejects labels not present in the map; unlabeled requests keep loose `userData`.
+ */
+export type LabeledSource<Routes extends Record<keyof Routes, Dictionary>> = string extends keyof Routes
+    ? string | Source
+    :
+          | string
+          | Request
+          | ({ requestsFromUrl?: string; regex?: RegExp } & (
+                | {
+                      [Label in keyof Routes & string]: Omit<Partial<RequestOptions<Routes[Label]>>, 'label'> & {
+                          label: Label;
+                      };
+                  }[keyof Routes & string]
+                | (Omit<Partial<RequestOptions>, 'label'> & { label?: undefined })
+            ));
+
+/**
+ * The iterable/array of {@apilink LabeledSource} inputs accepted by the label-aware `addRequests`/`run`
+ * methods of a crawler bound to a typed router.
+ * @internal
+ */
+export type TypedRequestsLike<Routes extends Record<keyof Routes, Dictionary>> =
+    | AsyncIterable<LabeledSource<Routes>>
+    | Iterable<LabeledSource<Routes>>
+    | LabeledSource<Routes>[];
+
+/**
+ * The label-aware `addRequests` method signature exposed on a request handler's context when the crawler is
+ * bound to a typed router. Mirrors {@apilink RestrictedCrawlingContext.addRequests} with typed sources.
+ */
+export type TypedContextAddRequests<Routes extends Record<keyof Routes, Dictionary>> = (
+    requestsLike: ReadonlyDeep<LabeledSource<Routes>[]>,
+    options?: ReadonlyDeep<EnqueueUrlsOptions>,
+) => Promise<AddRequestsBatchedResult>;
+
+/**
+ * An `enqueueLinks`-options object with its `label`/`userData` retyped according to a router's route map: a
+ * declared `label` requires the matching `userData` shape (unknown labels are rejected), while unlabeled
+ * calls keep loose `userData`. Returns the options unchanged when the route map is open (the default).
+ */
+type TypedEnqueueLinksOptions<Options, Routes extends Record<keyof Routes, Dictionary>> = string extends keyof Routes
+    ? Options
+    : Omit<Options, 'label' | 'userData'> &
+          (
+              | { [Label in keyof Routes & string]: { label: Label; userData?: Routes[Label] } }[keyof Routes & string]
+              | { label?: undefined; userData?: Dictionary }
+          );
+
+/**
+ * Transforms a context's existing `enqueueLinks` method so that the `label`/`userData` in its options follow
+ * the router's route map, while preserving everything else about the signature (argument optionality and
+ * return type, which differ between crawler types).
+ */
+export type TypedContextEnqueueLinks<
+    EnqueueLinks,
+    Routes extends Record<keyof Routes, Dictionary>,
+> = EnqueueLinks extends (options?: infer Options) => infer Result
+    ? (options?: TypedEnqueueLinksOptions<Options, Routes>) => Result
+    : EnqueueLinks extends (options: infer Options) => infer Result
+      ? (options: TypedEnqueueLinksOptions<Options, Routes>) => Result
+      : EnqueueLinks;
+
 export type WithRequired<T, K extends keyof T> = T & { [P in K]-?: T[P] };
 
 export type LoadedRequest<R extends Request> = WithRequired<R, 'id' | 'loadedUrl'>;
 
 /** @internal */
-export type LoadedContext<Context extends RestrictedCrawlingContext> = IsAny<Context> extends true
-    ? Context
-    : {
-          request: LoadedRequest<Context['request']>;
-      } & Omit<Context, 'request'>;
+export type LoadedContext<Context extends RestrictedCrawlingContext> =
+    IsAny<Context> extends true
+        ? Context
+        : {
+              request: LoadedRequest<Context['request']>;
+          } & Omit<Context, 'request'>;
 
-export interface RestrictedCrawlingContext<UserData extends Dictionary = Dictionary>
-    // we need `Record<string & {}, unknown>` here, otherwise `Omit<Context>` is resolved badly
-    extends Record<string & {}, unknown> {
+export interface RestrictedCrawlingContext<UserData extends Dictionary = Dictionary> {
     id: string;
-    session?: Session;
+    session: ISession;
 
     /**
      * An object with information about currently used proxy by the crawler
@@ -51,44 +114,24 @@ export interface RestrictedCrawlingContext<UserData extends Dictionary = Diction
      *
      * @param [data] Data to be pushed to the default dataset.
      */
-    pushData(data: ReadonlyDeep<Parameters<Dataset['pushData']>[0]>, datasetIdOrName?: string): Promise<void>;
+    pushData(
+        data: ReadonlyDeep<Parameters<Dataset['pushData']>[0]>,
+        datasetIdentifier?: string | StorageIdentifier,
+    ): Promise<void>;
 
     /**
-     * This function automatically finds and enqueues links from the current page, adding them to the {@apilink RequestQueue}
-     * currently used by the crawler.
+     * Add requests directly to the request queue currently used by the crawler.
      *
-     * Optionally, the function allows you to filter the target links' URLs using an array of globs or regular expressions
-     * and override settings of the enqueued {@apilink Request} objects.
-     *
-     * Check out the [Crawl a website with relative links](https://crawlee.dev/js/docs/examples/crawl-relative-links) example
-     * for more details regarding its usage.
-     *
-     * **Example usage**
-     *
-     * ```ts
-     * async requestHandler({ enqueueLinks }) {
-     *     await enqueueLinks({
-     *       globs: [
-     *           'https://www.example.com/handbags/*',
-     *       ],
-     *     });
-     * },
-     * ```
-     *
-     * @param [options] All `enqueueLinks()` parameters are passed via an options object.
-     */
-    enqueueLinks: (options?: ReadonlyDeep<Omit<EnqueueLinksOptions, 'requestQueue'>>) => Promise<unknown>;
-
-    /**
-     * Add requests directly to the request queue.
+     * Optionally, the function allows you to filter the target URLs using an array of glob or regexp patterns,
+     * the same way {@apilink CrawlingContext.enqueueLinks|`enqueueLinks`} does for extracted links.
      *
      * @param requests The requests to add
      * @param options Options for the request queue
      */
     addRequests: (
         requestsLike: ReadonlyDeep<(string | Source)[]>,
-        options?: ReadonlyDeep<RequestQueueOperationOptions>,
-    ) => Promise<void>;
+        options?: ReadonlyDeep<EnqueueUrlsOptions>,
+    ) => Promise<AddRequestsBatchedResult>;
 
     /**
      * Returns the state - a piece of mutable persistent data shared across all the request handler runs.
@@ -99,56 +142,18 @@ export interface RestrictedCrawlingContext<UserData extends Dictionary = Diction
      * Get a key-value store with given name or id, or the default one for the crawler.
      */
     getKeyValueStore: (
-        idOrName?: string,
+        identifier?: string | StorageIdentifier,
     ) => Promise<Pick<KeyValueStore, 'id' | 'name' | 'getValue' | 'getAutoSavedValue' | 'setValue' | 'getPublicUrl'>>;
 
     /**
      * A preconfigured logger for the request handler.
      */
-    log: Log;
+    log: CrawleeLogger;
 }
 
-export interface CrawlingContext<Crawler = unknown, UserData extends Dictionary = Dictionary>
-    extends RestrictedCrawlingContext<UserData> {
-    crawler: Crawler;
-
+export interface CrawlingContext<UserData extends Dictionary = Dictionary> extends RestrictedCrawlingContext<UserData> {
     /**
-     * This function automatically finds and enqueues links from the current page, adding them to the {@apilink RequestQueue}
-     * currently used by the crawler.
-     *
-     * Optionally, the function allows you to filter the target links' URLs using an array of globs or regular expressions
-     * and override settings of the enqueued {@apilink Request} objects.
-     *
-     * Check out the [Crawl a website with relative links](https://crawlee.dev/js/docs/examples/crawl-relative-links) example
-     * for more details regarding its usage.
-     *
-     * **Example usage**
-     *
-     * ```ts
-     * async requestHandler({ enqueueLinks }) {
-     *     await enqueueLinks({
-     *       globs: [
-     *           'https://www.example.com/handbags/*',
-     *       ],
-     *     });
-     * },
-     * ```
-     *
-     * @param [options] All `enqueueLinks()` parameters are passed via an options object.
-     * @returns Promise that resolves to {@apilink BatchAddRequestsResult} object.
-     */
-    enqueueLinks(
-        options?: ReadonlyDeep<Omit<EnqueueLinksOptions, 'requestQueue'>> & Pick<EnqueueLinksOptions, 'requestQueue'>,
-    ): Promise<BatchAddRequestsResult>;
-
-    /**
-     * Get a key-value store with given name or id, or the default one for the crawler.
-     */
-    getKeyValueStore: (idOrName?: string) => Promise<KeyValueStore>;
-
-    /**
-     * Fires HTTP request via [`got-scraping`](https://crawlee.dev/js/docs/guides/got-scraping), allowing to override the request
-     * options on the fly.
+     * Fires HTTP request via the internal HTTP client, allowing to override the request options on the fly.
      *
      * This is handy when you work with a browser crawler but want to execute some requests outside it (e.g. API requests).
      * Check the [Skipping navigations for certain requests](https://crawlee.dev/js/docs/examples/skip-navigation) example for
@@ -163,146 +168,38 @@ export interface CrawlingContext<Crawler = unknown, UserData extends Dictionary 
      * },
      * ```
      */
-    sendRequest<Response = string>(overrideOptions?: Partial<OptionsInit>): Promise<GotResponse<Response>>;
-}
-
-/**
- * A partial implementation of {@apilink RestrictedCrawlingContext} that stores parameters of calls to context methods for later inspection.
- *
- * @experimental
- */
-export class RequestHandlerResult {
-    private _keyValueStoreChanges: Record<string, Record<string, { changedValue: unknown; options?: RecordOptions }>> =
-        {};
-
-    private pushDataCalls: Parameters<RestrictedCrawlingContext['pushData']>[] = [];
-
-    private addRequestsCalls: Parameters<RestrictedCrawlingContext['addRequests']>[] = [];
-
-    constructor(
-        private config: Configuration,
-        private crawleeStateKey: string,
-    ) {}
+    sendRequest: (
+        requestOverrides?: Partial<HttpRequestOptions>,
+        optionsOverrides?: SendRequestOptions,
+    ) => Promise<Response>;
 
     /**
-     * A record of calls to {@apilink RestrictedCrawlingContext.pushData}, {@apilink RestrictedCrawlingContext.addRequests}, {@apilink RestrictedCrawlingContext.enqueueLinks} made by a request handler.
+     * Register a function to be called at the very end of the request handling process. This is useful for resources that should be accessible to error handlers, for instance.
+     *
+     * The callback runs *outside* the request's storage transaction, so storage writes made here are
+     * applied immediately and are **not** rolled back when the request fails. In
+     * {@apilink AdaptivePlaywrightCrawler} it also runs once per request handler attempt, so a write
+     * here can land more than once for a single request. Push results from the request handler itself.
      */
-    get calls(): ReadonlyDeep<{
-        pushData: Parameters<RestrictedCrawlingContext['pushData']>[];
-        addRequests: Parameters<RestrictedCrawlingContext['addRequests']>[];
-    }> {
-        return {
-            pushData: this.pushDataCalls,
-            addRequests: this.addRequestsCalls,
-        };
-    }
+    registerDeferredCleanup(cleanup: () => Promise<unknown>): void;
 
     /**
-     * A record of changes made to key-value stores by a request handler.
+     * Gives the current request `secs` more seconds to finish, for when how long it needs is only apparent
+     * once it is already running - a listing page that turns out to have far more to scroll through than
+     * usual, say. Prefer `requestHandlerTimeoutSecs`, or a per-route override via
+     * {@apilink Router.addHandler|`router.addHandler`}, whenever the time needed is known up front.
+     *
+     * ```ts
+     * router.addHandler('LIST', async ({ extendTimeout, page }) => {
+     *     const pageCount = await countPages(page);
+     *     extendTimeout(pageCount * 10);
+     *     await scrapeAllPages(page);
+     * });
+     * ```
+     *
+     * Extends the request handler's own timeout and the crawler's internal one together, so the extension
+     * is not immediately undone by the latter. Calling it from a handler that has already timed out does
+     * nothing.
      */
-    get keyValueStoreChanges(): ReadonlyDeep<
-        Record<string, Record<string, { changedValue: unknown; options?: RecordOptions }>>
-    > {
-        return this._keyValueStoreChanges;
-    }
-
-    /**
-     * Items added to datasets by a request handler.
-     */
-    get datasetItems(): ReadonlyDeep<{ item: Dictionary; datasetIdOrName?: string }[]> {
-        return this.pushDataCalls.flatMap(([data, datasetIdOrName]) =>
-            (Array.isArray(data) ? data : [data]).map((item) => ({ item, datasetIdOrName })),
-        );
-    }
-
-    /**
-     * URLs enqueued to the request queue by a request handler, either via {@apilink RestrictedCrawlingContext.addRequests} or {@apilink RestrictedCrawlingContext.enqueueLinks}
-     */
-    get enqueuedUrls(): ReadonlyDeep<{ url: string; label?: string }[]> {
-        const result: { url: string; label?: string }[] = [];
-
-        for (const [requests] of this.addRequestsCalls) {
-            for (const request of requests) {
-                if (
-                    typeof request === 'object' &&
-                    (!('requestsFromUrl' in request) || request.requestsFromUrl !== undefined) &&
-                    request.url !== undefined
-                ) {
-                    result.push({ url: request.url, label: request.label });
-                } else if (typeof request === 'string') {
-                    result.push({ url: request });
-                }
-            }
-        }
-
-        return result;
-    }
-
-    /**
-     * URL lists enqueued to the request queue by a request handler via {@apilink RestrictedCrawlingContext.addRequests} using the `requestsFromUrl` option.
-     */
-    get enqueuedUrlLists(): ReadonlyDeep<{ listUrl: string; label?: string }[]> {
-        const result: { listUrl: string; label?: string }[] = [];
-
-        for (const [requests] of this.addRequestsCalls) {
-            for (const request of requests) {
-                if (
-                    typeof request === 'object' &&
-                    'requestsFromUrl' in request &&
-                    request.requestsFromUrl !== undefined
-                ) {
-                    result.push({ listUrl: request.requestsFromUrl, label: request.label });
-                }
-            }
-        }
-
-        return result;
-    }
-
-    pushData: RestrictedCrawlingContext['pushData'] = async (data, datasetIdOrName) => {
-        this.pushDataCalls.push([data, datasetIdOrName]);
-    };
-
-    addRequests: RestrictedCrawlingContext['addRequests'] = async (requests, options = {}) => {
-        this.addRequestsCalls.push([requests, options]);
-    };
-
-    useState: RestrictedCrawlingContext['useState'] = async (defaultValue) => {
-        const store = await this.getKeyValueStore(undefined);
-        return await store.getAutoSavedValue(this.crawleeStateKey, defaultValue);
-    };
-
-    getKeyValueStore: RestrictedCrawlingContext['getKeyValueStore'] = async (idOrName) => {
-        const store = await KeyValueStore.open(idOrName, { config: this.config });
-
-        return {
-            id: this.idOrDefault(idOrName),
-            name: idOrName,
-            getValue: async (key) => this.getKeyValueStoreChangedValue(idOrName, key) ?? (await store.getValue(key)),
-            setValue: async (key, value, options) => {
-                this.setKeyValueStoreChangedValue(idOrName, key, value, options);
-            },
-            getAutoSavedValue: store.getAutoSavedValue.bind(store),
-            getPublicUrl: store.getPublicUrl.bind(store),
-        };
-    };
-
-    private idOrDefault = (idOrName?: string): string => idOrName ?? this.config.get('defaultKeyValueStoreId');
-
-    private getKeyValueStoreChangedValue = (idOrName: string | undefined, key: string) => {
-        const id = this.idOrDefault(idOrName);
-        this._keyValueStoreChanges[id] ??= {};
-        return this.keyValueStoreChanges[id][key]?.changedValue ?? null;
-    };
-
-    private setKeyValueStoreChangedValue = (
-        idOrName: string | undefined,
-        key: string,
-        changedValue: unknown,
-        options?: RecordOptions,
-    ) => {
-        const id = this.idOrDefault(idOrName);
-        this._keyValueStoreChanges[id] ??= {};
-        this._keyValueStoreChanges[id][key] = { changedValue, options };
-    };
+    extendTimeout(secs: number): void;
 }

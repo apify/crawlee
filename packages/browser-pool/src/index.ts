@@ -22,33 +22,45 @@
  *
  * @module browser-pool
  */
-export * from './browser-pool';
-export * from './playwright/playwright-plugin';
-export * from './puppeteer/puppeteer-plugin';
-export * from './events';
-export {
-    BrowserName,
-    DeviceCategory,
-    OperatingSystemsName,
-} from './fingerprinting/types';
-export { BrowserController, BrowserControllerEvents } from './abstract-classes/browser-controller';
-export { PuppeteerController } from './puppeteer/puppeteer-controller';
-export { PlaywrightController } from './playwright/playwright-controller';
-export { PlaywrightBrowser } from './playwright/playwright-browser';
-export {
-    CommonPage,
-    CommonLibrary,
-    BrowserPlugin,
-    BrowserPluginOptions,
-    CreateLaunchContextOptions,
-    BrowserLaunchError,
-    DEFAULT_USER_AGENT,
-} from './abstract-classes/browser-plugin';
-export { LaunchContext, LaunchContextOptions } from './launch-context';
-export {
+export * from './browser-pool.js';
+export * from './playwright/playwright-plugin.js';
+export * from './puppeteer/puppeteer-plugin.js';
+export * from './events.js';
+export type {
     BrowserSpecification,
     FingerprintGenerator,
     FingerprintGeneratorOptions,
     GetFingerprintReturn,
-} from './fingerprinting/types';
-export { InferBrowserPluginArray, UnwrapPromise } from './utils';
+} from './fingerprinting/types.js';
+export { BrowserName, DeviceCategory, OperatingSystemsName } from './fingerprinting/types.js';
+export type {
+    BrowserControllerEvents,
+    IBrowserController,
+    IBrowserLaunchContext,
+} from './abstract-classes/browser-controller.js';
+export { BrowserController } from './abstract-classes/browser-controller.js';
+export { PuppeteerController } from './puppeteer/puppeteer-controller.js';
+export { PlaywrightController } from './playwright/playwright-controller.js';
+export { PlaywrightBrowser } from './playwright/playwright-browser.js';
+export type {
+    CommonPage,
+    CommonLibrary,
+    BrowserPluginOptions,
+    CreateLaunchContextOptions,
+} from './abstract-classes/browser-plugin.js';
+export { BrowserPlugin, BrowserLaunchError, DEFAULT_USER_AGENT } from './abstract-classes/browser-plugin.js';
+export type { LaunchContextOptions } from './launch-context.js';
+export { LaunchContext } from './launch-context.js';
+export { RemoteBrowserProvider } from './remote-browser-provider.js';
+export { RemoteBrowserPool } from './remote-browser-pool.js';
+export type {
+    RemoteBrowserPoolOptions,
+    CrawlerRemoteBrowserOptions,
+    RemoteBrowserEndpoint,
+    ResolvedRemoteEndpoint,
+    RemoteConnection,
+    RemoteConnectionParameters,
+} from './remote-browser-pool.js';
+export type { InferBrowserPluginArray, UnwrapPromise } from './utils.js';
+export { anonymizeProxySugar, type AnonymizeProxySugarOptions } from './anonymize-proxy.js';
+export type { IBrowserPool, NewPageOptions } from '@crawlee/types';

@@ -1,9 +1,10 @@
 import type { Attributes } from '@opentelemetry/api';
+import { SpanKind } from '@opentelemetry/api';
 import { SeverityNumber } from '@opentelemetry/api-logs';
 import { ATTR_HTTP_REQUEST_METHOD, ATTR_URL_FULL } from '@opentelemetry/semantic-conventions';
 
-import type { CrawlingContextLike } from './internal-types';
-import type { ClassMethodToInstrument, CrawleeInstrumentationConfig } from './types';
+import type { CrawlingContextLike, LoggerMethodDefinition } from './internal-types.js';
+import type { ClassMethodToInstrument, CrawleeInstrumentationConfig } from './types.js';
 
 export const PACKAGE_NAME = '@crawlee/otel';
 
@@ -14,10 +15,7 @@ export const UNKNOWN_PACKAGE_VERSION = '0.0.0';
  * Versions of the instrumented Crawlee packages this instrumentation knows how to patch. Methods that are missing
  * in the resolved version are skipped with a warning instead of breaking the module load.
  */
-export const SUPPORTED_CRAWLEE_VERSIONS = ['^3.0.0'];
-
-/** Versions of `@apify/log` this instrumentation knows how to patch. Kept in sync with what Crawlee depends on. */
-export const SUPPORTED_APIFY_LOG_VERSIONS = ['^2.4.0'];
+export const SUPPORTED_CRAWLEE_VERSIONS = ['^4.0.0'];
 
 export const baseConfig: CrawleeInstrumentationConfig = {
     enabled: true,
@@ -63,15 +61,28 @@ export const requestHandlingInstrumentationMethods: ClassMethodToInstrument[] = 
     {
         moduleName: '@crawlee/basic',
         className: 'BasicCrawler',
-        methodName: '_runTaskFunction',
-        spanName: 'crawlee.crawler.runTaskFunction',
+        methodName: 'handleRequest',
+        spanName: 'crawlee.crawler.handleRequest',
+        // `handleRequest(crawlingContext, requestSource, request)`
+        spanOptions(crawlingContext: CrawlingContextLike) {
+            return { attributes: requestAttributes(crawlingContext) };
+        },
     },
     {
         moduleName: '@crawlee/basic',
         className: 'BasicCrawler',
-        methodName: '_requestFunctionErrorHandler',
+        methodName: 'runRequestHandler',
+        spanName: 'crawlee.crawler.runRequestHandler',
+        spanOptions(crawlingContext: CrawlingContextLike) {
+            return { attributes: requestAttributes(crawlingContext) };
+        },
+    },
+    {
+        moduleName: '@crawlee/basic',
+        className: 'BasicCrawler',
+        methodName: 'requestFunctionErrorHandler',
         spanName: 'crawlee.crawler.requestFunctionErrorHandler',
-        // `_requestFunctionErrorHandler(error, crawlingContext, source)`
+        // `requestFunctionErrorHandler(error, crawlingContext, request, source)`
         spanOptions(_error: Error, crawlingContext: CrawlingContextLike) {
             return { attributes: requestAttributes(crawlingContext) };
         },
@@ -79,52 +90,30 @@ export const requestHandlingInstrumentationMethods: ClassMethodToInstrument[] = 
     {
         moduleName: '@crawlee/basic',
         className: 'BasicCrawler',
-        methodName: '_handleFailedRequestHandler',
+        methodName: 'handleFailedRequestHandler',
         spanName: 'crawlee.crawler.handleFailedRequestHandler',
         spanOptions(crawlingContext: CrawlingContextLike) {
             return { attributes: requestAttributes(crawlingContext) };
         },
     },
     {
-        moduleName: '@crawlee/basic',
-        className: 'BasicCrawler',
-        methodName: '_executeHooks',
-        spanName: 'crawlee.crawler.executeHooks',
-    },
-    {
-        moduleName: '@crawlee/browser',
-        className: 'BrowserCrawler',
-        methodName: '_handleNavigation',
-        spanName: 'crawlee.browser.handleNavigation',
+        moduleName: '@crawlee/http',
+        className: 'HttpCrawler',
+        methodName: 'makeHttpRequest',
+        spanName: 'crawlee.http.makeHttpRequest',
         spanOptions(crawlingContext: CrawlingContextLike) {
-            return { attributes: requestAttributes(crawlingContext) };
+            // An outbound HTTP call, so a client span rather than the default internal one.
+            return { kind: SpanKind.CLIENT, attributes: requestAttributes(crawlingContext) };
         },
     },
     {
         moduleName: '@crawlee/browser',
         className: 'BrowserCrawler',
-        methodName: '_runRequestHandler',
-        spanName: 'crawlee.browser.runRequestHandler',
+        methodName: 'navigate',
+        spanName: 'crawlee.browser.navigate',
         spanOptions(crawlingContext: CrawlingContextLike) {
-            return { attributes: requestAttributes(crawlingContext) };
-        },
-    },
-    {
-        moduleName: '@crawlee/http',
-        className: 'HttpCrawler',
-        methodName: '_handleNavigation',
-        spanName: 'crawlee.http.handleNavigation',
-        spanOptions(crawlingContext: CrawlingContextLike) {
-            return { attributes: requestAttributes(crawlingContext) };
-        },
-    },
-    {
-        moduleName: '@crawlee/http',
-        className: 'HttpCrawler',
-        methodName: '_runRequestHandler',
-        spanName: 'crawlee.http.runRequestHandler',
-        spanOptions(crawlingContext: CrawlingContextLike) {
-            return { attributes: requestAttributes(crawlingContext) };
+            // The browser navigation is the outbound call here.
+            return { kind: SpanKind.CLIENT, attributes: requestAttributes(crawlingContext) };
         },
     },
 ] as const;
@@ -168,3 +157,37 @@ export const apifyLogLevelNameMap: Record<number, string> = {
     5: 'DEBUG',
     6: 'PERF',
 } as const;
+
+/**
+ * The logging methods to instrument, with the level each logs at.
+ *
+ * These live on `BaseCrawleeLogger.prototype`, which every Crawlee logger derives from, so patching them forwards logs
+ * from any logger implementation - the default Apify one as well as a Winston, Pino or hand-written adapter. Each of
+ * them dispatches straight to the abstract `logWithLevel`, which the adapter implements, so a call is only seen once.
+ * `warningOnce` and `deprecated` are covered through `warning`.
+ */
+export const loggerMethods: LoggerMethodDefinition[] = [
+    { methodName: 'error', level: 1, read: (args) => readMessageAndData(args) },
+    {
+        methodName: 'exception',
+        level: 1,
+        // `exception(exception, message, data)` - the error comes first.
+        read: (args) => ({
+            message: String(args[1] ?? ''),
+            data: { ...(args[2] as Record<string, unknown> | undefined), exception: args[0] },
+        }),
+    },
+    { methodName: 'softFail', level: 2, read: (args) => readMessageAndData(args) },
+    { methodName: 'warning', level: 3, read: (args) => readMessageAndData(args) },
+    { methodName: 'info', level: 4, read: (args) => readMessageAndData(args) },
+    { methodName: 'debug', level: 5, read: (args) => readMessageAndData(args) },
+    { methodName: 'perf', level: 6, read: (args) => readMessageAndData(args) },
+];
+
+/** The shape shared by every logging method except `exception`: `(message, data?)`. */
+function readMessageAndData(args: unknown[]) {
+    return {
+        message: String(args[0] ?? ''),
+        data: args[1] as Record<string, unknown> | undefined,
+    };
+}

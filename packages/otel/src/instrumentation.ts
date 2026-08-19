@@ -1,3 +1,4 @@
+// oxlint-disable no-underscore-dangle -- `_wrap`, `_unwrap` and `_diag` are inherited from `InstrumentationBase`.
 import type { SpanOptions, TracerProvider } from '@opentelemetry/api';
 import { SeverityNumber } from '@opentelemetry/api-logs';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
@@ -7,15 +8,15 @@ import {
     apifyLogLevelMap,
     apifyLogLevelNameMap,
     baseConfig,
+    loggerMethods,
     PACKAGE_NAME,
     requestHandlingInstrumentationMethods,
-    SUPPORTED_APIFY_LOG_VERSIONS,
     SUPPORTED_CRAWLEE_VERSIONS,
-} from './constants';
-import type { ApifyLogLike, ClassMethodPatchDefinition, ModuleDefinition } from './internal-types';
-import type { CrawleeInstrumentationConfig } from './types';
-import { buildLogAttributes, buildModuleDefinitions, getPackageVersion } from './utilities';
-import { SpanWrapper, wrapWithSpan } from './wrapWithSpan';
+} from './constants.js';
+import type { ClassMethodPatchDefinition, LoggerMethodDefinition, ModuleDefinition } from './internal-types.js';
+import type { CrawleeInstrumentationConfig } from './types.js';
+import { buildLogAttributes, buildModuleDefinitions, getPackageVersion } from './utilities.js';
+import { SpanWrapper, wrapWithSpan } from './wrapWithSpan.js';
 
 export class CrawleeInstrumentation extends InstrumentationBase<CrawleeInstrumentationConfig> {
     constructor(config: CrawleeInstrumentationConfig = {}) {
@@ -48,17 +49,26 @@ export class CrawleeInstrumentation extends InstrumentationBase<CrawleeInstrumen
         if (this.getConfig().logInstrumentation) {
             definitions.push(
                 new InstrumentationNodeModuleDefinition(
-                    '@apify/log',
-                    SUPPORTED_APIFY_LOG_VERSIONS,
+                    '@crawlee/core',
+                    SUPPORTED_CRAWLEE_VERSIONS,
                     (moduleExports) => {
-                        const prototype = this.getPrototype(moduleExports, '@apify/log', 'Log', 'internal');
-                        if (prototype) {
-                            this._wrap(prototype, 'internal', this._getLogPatch());
+                        for (const method of loggerMethods) {
+                            const prototype = this.getPrototype(
+                                moduleExports,
+                                '@crawlee/core',
+                                'BaseCrawleeLogger',
+                                method.methodName,
+                            );
+                            if (prototype) {
+                                this._wrap(prototype, method.methodName, this.getLogPatch(method));
+                            }
                         }
                         return moduleExports;
                     },
                     (moduleExports) => {
-                        this.unwrapIfWrapped(moduleExports?.Log?.prototype, 'internal');
+                        for (const method of loggerMethods) {
+                            this.unwrapIfWrapped(moduleExports?.BaseCrawleeLogger?.prototype, method.methodName);
+                        }
                         return moduleExports;
                     },
                 ),
@@ -136,29 +146,25 @@ export class CrawleeInstrumentation extends InstrumentationBase<CrawleeInstrumen
         };
     }
 
-    private _getLogPatch() {
-        // eslint-disable-next-line @typescript-eslint/no-this-alias
+    private getLogPatch(method: LoggerMethodDefinition) {
+        // oxlint-disable-next-line no-this-alias
         const instrumentation = this;
 
-        return function wrapLog(original: ApifyLogLike['internal']): ApifyLogLike['internal'] {
-            return function wrappedLog(
-                this: ApifyLogLike,
-                level: number,
-                message: string,
-                data?: unknown,
-                exception?: unknown,
-            ): void {
-                // `Log.internal` drops anything below the configured level, so mirror that check before emitting.
-                if (this.getLevel() >= level) {
-                    instrumentation.logger.emit({
-                        severityNumber: apifyLogLevelMap[level] ?? SeverityNumber.UNSPECIFIED,
-                        severityText: apifyLogLevelNameMap[level],
-                        body: message,
-                        attributes: buildLogAttributes(data, exception),
-                    });
-                }
-                // `internal` is synchronous and returns void - keep it that way.
-                original.call(this, level, message, data, exception);
+        return function wrapLog(original: (...args: any[]) => void) {
+            return function wrappedLog(this: unknown, ...args: any[]): void {
+                const { message, data } = method.read(args);
+
+                // Crawlee leaves level filtering to the logging library, so everything is forwarded and the
+                // OpenTelemetry pipeline decides what to keep.
+                instrumentation.logger.emit({
+                    severityNumber: apifyLogLevelMap[method.level] ?? SeverityNumber.UNSPECIFIED,
+                    severityText: apifyLogLevelNameMap[method.level],
+                    body: message,
+                    attributes: buildLogAttributes(data),
+                });
+
+                // These methods are synchronous and return void - keep them that way.
+                original.apply(this, args);
             };
         };
     }

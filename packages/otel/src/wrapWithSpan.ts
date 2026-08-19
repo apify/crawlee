@@ -1,20 +1,20 @@
 import type { Exception, Span, SpanOptions, Tracer } from '@opentelemetry/api';
 import { SpanStatusCode, trace } from '@opentelemetry/api';
 
-import { PACKAGE_NAME } from './constants';
-import { getPackageVersion } from './utilities';
+import { PACKAGE_NAME } from './constants.js';
+import { getPackageVersion } from './utilities.js';
 
 export class SpanWrapper {
-    private static _instance: SpanWrapper;
-    private _tracer: Tracer | undefined;
+    static #instance: SpanWrapper;
+    #tracer: Tracer | undefined;
 
     public setTracer(tracer: Tracer): void {
-        this._tracer = tracer;
+        this.#tracer = tracer;
     }
 
     public static getInstance(): SpanWrapper {
-        SpanWrapper._instance ??= new SpanWrapper();
-        return SpanWrapper._instance;
+        SpanWrapper.#instance ??= new SpanWrapper();
+        return SpanWrapper.#instance;
     }
 
     public wrapWithSpan<Args extends unknown[], Return>(
@@ -32,7 +32,7 @@ export class SpanWrapper {
             // instrumentation is registered, we fall back to the global API, which returns a tracer that either
             // delegates to the globally registered provider or is a no-op - so wrapping never fails on its own.
             const tracer =
-                options?.tracer ?? instrumentation._tracer ?? trace.getTracer(PACKAGE_NAME, getPackageVersion());
+                options?.tracer ?? instrumentation.#tracer ?? trace.getTracer(PACKAGE_NAME, getPackageVersion());
             const spanName =
                 typeof options?.spanName === 'function'
                     ? options.spanName.apply(this, args)
@@ -92,8 +92,15 @@ function recordError(span: Span, err: unknown): void {
 
 /**
  * Wraps a function with OpenTelemetry span instrumentation.
- * Uses separate Args/Return generics to enable TypeScript contextual typing -
- * the types flow from the expected handler type (e.g. requestHandler) to the callbacks.
+ *
+ * `Args` and `Return` are separate generics so that the argument types flow through to the `spanName` and `spanOptions`
+ * callbacks. They are inferred from the wrapped function, so annotate its parameters when assigning the result to an
+ * option whose type is a union - `requestHandler` accepts both a router and a plain handler, and TypeScript cannot
+ * infer parameter types through a union of function types:
+ *
+ * ```ts
+ * requestHandler: wrapWithSpan(async ({ request }: CheerioCrawlingContext) => { ... })
+ * ```
  *
  * Synchronous functions stay synchronous, asynchronous ones keep their span open until the returned promise settles.
  *

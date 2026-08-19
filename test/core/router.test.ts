@@ -1,7 +1,18 @@
 import { BasicCrawler } from '@crawlee/basic';
 import type { CrawlingContext } from '@crawlee/core';
-import { MissingRouteError, Router } from '@crawlee/core';
-import { createPlaywrightRouter, type PlaywrightCrawlingContext } from 'crawlee';
+import { defaultRoute, MissingRouteError, Request, RequestValidationError, Router } from '@crawlee/core';
+import {
+    CheerioCrawler,
+    type CheerioCrawlingContext,
+    createCheerioRouter,
+    createPlaywrightRouter,
+    createPuppeteerRouter,
+    PlaywrightCrawler,
+    type PlaywrightCrawlingContext,
+    PuppeteerCrawler,
+    type PuppeteerCrawlingContext,
+} from 'crawlee';
+import { z } from 'zod';
 
 describe('Router', () => {
     test('should be callable and route based on the label', async () => {
@@ -90,6 +101,33 @@ describe('Router', () => {
         ]);
     });
 
+    test('should expose the per-route timeouts, falling back the same way as getHandler', async () => {
+        const router = Router.create();
+
+        router.addHandler('SLOW', async () => {}, { requestHandlerTimeoutSecs: 120 });
+        router.addHandler('PLAIN', async () => {});
+        router.addDefaultHandler(async () => {}, { requestHandlerTimeoutSecs: 30 });
+
+        expect(router.getTimeoutSecs('SLOW')).toBe(120);
+        // a route of its own with no override means the crawler's own timeout, not the default route's
+        expect(router.getTimeoutSecs('PLAIN')).toBeUndefined();
+        // no route of its own, so it inherits the default route - handler and timeout alike
+        expect(router.getTimeoutSecs('UNKNOWN')).toBe(30);
+        expect(router.getTimeoutSecs()).toBe(30);
+
+        expect(router.getMaxTimeoutSecs()).toBe(120);
+    });
+
+    test('getMaxTimeoutSecs is undefined when no route overrides the timeout', async () => {
+        const router = Router.create();
+
+        router.addHandler('A', async () => {});
+        router.addDefaultHandler(async () => {});
+
+        expect(router.getMaxTimeoutSecs()).toBeUndefined();
+        expect(router.getTimeoutSecs('A')).toBeUndefined();
+    });
+
     test('should be possible to define routes when creating router', async () => {
         const logs: string[] = [];
         // it should be possible to define router inline when creating router
@@ -172,5 +210,316 @@ describe('Router', () => {
         router.addDefaultHandler<{ foo: 'bar' }>((ctx) => {
             testType<'bar'>(ctx.request.userData.foo);
         });
+    });
+
+    test('addHandler infers userData from a declared route map', async () => {
+        const testType = <T>(t: T): void => {};
+
+        interface Routes {
+            PRODUCT: { sku: string; price: number };
+            CATEGORY: { categoryId: string };
+        }
+
+        const router: Router<CrawlingContext, Routes> = {
+            addHandler: () => {},
+            addDefaultHandler: () => {},
+        } as any;
+
+        router.addHandler('PRODUCT', (ctx) => {
+            testType<string>(ctx.request.userData.sku);
+            testType<number>(ctx.request.userData.price);
+        });
+
+        router.addHandler('CATEGORY', (ctx) => {
+            testType<string>(ctx.request.userData.categoryId);
+        });
+
+        // @ts-expect-error unknown labels are rejected when a route map is declared
+        router.addHandler('UNKNOWN', () => {});
+
+        router.addDefaultHandler((ctx) => {
+            // the default handler is a fallback for any request, so userData stays loosely typed
+            testType<Record<string, unknown>>(ctx.request.userData);
+        });
+    });
+
+    test('factory infers userData from a route map passed as the second type argument', async () => {
+        const testType = <T>(t: T): void => {};
+
+        interface Routes {
+            PRODUCT: { sku: string; price: number };
+            CATEGORY: { categoryId: string };
+        }
+
+        // the documented two-argument form: `Routes` is the second type argument of the factory
+        const router = createCheerioRouter<CheerioCrawlingContext, Routes>();
+
+        router.addHandler('PRODUCT', (ctx) => {
+            testType<string>(ctx.request.userData.sku);
+            testType<number>(ctx.request.userData.price);
+        });
+
+        router.addHandler('CATEGORY', (ctx) => {
+            testType<string>(ctx.request.userData.categoryId);
+        });
+
+        // @ts-expect-error unknown labels are rejected when a route map is declared
+        router.addHandler('UNKNOWN', () => {});
+    });
+
+    test('factory keeps the legacy flat-userData generic working (backwards compatibility)', async () => {
+        const testType = <T>(t: T): void => {};
+
+        // a flat `userData` shape (with a scalar field) resolves to the legacy open-map router,
+        // so any label is accepted and `userData` is typed as the passed shape
+        const router = createCheerioRouter<CheerioCrawlingContext, { token: string }>();
+
+        router.addHandler('anyLabel', (ctx) => {
+            testType<string>(ctx.request.userData.token);
+        });
+
+        router.addHandler('anotherLabel', (ctx) => {
+            testType<string>(ctx.request.userData.token);
+        });
+    });
+
+    test('schema map infers userData types and validates them at dispatch', async () => {
+        const testType = <T>(t: T): void => {};
+
+        const logs: string[] = [];
+        const router = createCheerioRouter({
+            PRODUCT: z.object({ sku: z.string(), price: z.coerce.number() }),
+            CATEGORY: z.object({ categoryId: z.string() }),
+        });
+
+        router.addHandler('PRODUCT', async (ctx) => {
+            // inferred from the schema (note: price is coerced to a number)
+            testType<string>(ctx.request.userData.sku);
+            testType<number>(ctx.request.userData.price);
+            logs.push(`product ${ctx.request.userData.sku} @ ${ctx.request.userData.price}`);
+        });
+
+        // @ts-expect-error unknown labels are still rejected when a schema map is declared
+        router.addHandler('UNKNOWN', () => {});
+
+        const log = { info: vitest.fn(), warn: vitest.fn(), debug: vitest.fn() };
+
+        // valid userData passes and is replaced with the parsed (coerced) value
+        const validRequest = {
+            loadedUrl: 'https://example.com/p',
+            label: 'PRODUCT',
+            userData: { sku: 'A1', price: '42' },
+        };
+        await router({ request: validRequest, log } as any);
+        expect(logs).toEqual(['product A1 @ 42']);
+        expect(validRequest.userData.price).toBe(42);
+
+        // invalid userData throws a RequestValidationError before the handler runs
+        await expect(
+            router({
+                request: { loadedUrl: 'https://example.com/p', label: 'PRODUCT', userData: { sku: 123 } },
+                log,
+            } as any),
+        ).rejects.toThrow(RequestValidationError);
+    });
+
+    test('schema validation preserves the request label and internal metadata on a real Request', async () => {
+        const router = createCheerioRouter({
+            PRODUCT: z.object({ sku: z.string() }),
+        });
+
+        const handled: { label?: string; sku?: string; crawlDepth?: number } = {};
+        router.addHandler('PRODUCT', async ({ request }) => {
+            handled.label = request.label;
+            handled.sku = request.userData.sku;
+            handled.crawlDepth = request.crawlDepth;
+        });
+
+        const log = { info: vitest.fn(), warn: vitest.fn(), debug: vitest.fn() };
+
+        // a real Request keeps `label` inside `userData` and `crawlDepth` inside the non-enumerable `__crawlee`;
+        // both must survive the schema replacing `userData` with the parsed (label-less) value.
+        const request = new Request({ url: 'https://example.com/p', label: 'PRODUCT', userData: { sku: 'A1' } });
+        request.crawlDepth = 3;
+
+        await router({ request, log } as any);
+
+        expect(handled).toEqual({ label: 'PRODUCT', sku: 'A1', crawlDepth: 3 });
+        expect(request.label).toBe('PRODUCT');
+        expect(request.crawlDepth).toBe(3);
+    });
+
+    test('schema map leaves requests without a registered label untouched', async () => {
+        const logs: string[] = [];
+        const router = createCheerioRouter({
+            PRODUCT: z.object({ sku: z.string() }),
+        });
+
+        router.addDefaultHandler(async (ctx) => {
+            logs.push(`default ${ctx.request.label ?? 'none'}`);
+        });
+
+        const log = { info: vitest.fn(), warn: vitest.fn(), debug: vitest.fn() };
+
+        // a label with no schema is not validated and falls through to the default handler
+        await router({
+            request: { loadedUrl: 'https://example.com/o', label: 'OTHER', userData: { anything: true } },
+            log,
+        } as any);
+        expect(logs).toEqual(['default OTHER']);
+    });
+
+    test('a defaultRoute schema validates requests that fall through to the default handler', async () => {
+        const seen: [string, Record<string, unknown>][] = [];
+        const router = createCheerioRouter({
+            PRODUCT: z.object({ sku: z.string() }),
+            [defaultRoute]: z.object({ page: z.coerce.number() }),
+        });
+
+        router.addHandler('PRODUCT', async ({ request }) => {
+            seen.push(['PRODUCT', request.userData]);
+        });
+        router.addDefaultHandler(async ({ request }) => {
+            seen.push(['default', request.userData]);
+        });
+
+        const log = { info: vitest.fn(), warn: vitest.fn(), debug: vitest.fn() };
+
+        // an unregistered label falls through to the default handler and is validated + coerced by its schema
+        await router({
+            request: { loadedUrl: 'https://example.com/l', label: 'LIST', userData: { page: '2' } },
+            log,
+        } as any);
+        // a registered label keeps using its own schema, not the default one
+        await router({
+            request: { loadedUrl: 'https://example.com/p', label: 'PRODUCT', userData: { sku: 'x' } },
+            log,
+        } as any);
+
+        expect(seen).toEqual([
+            ['default', { page: 2, label: 'LIST' }],
+            ['PRODUCT', { sku: 'x', label: 'PRODUCT' }],
+        ]);
+
+        // a default-route request whose userData violates the default schema throws
+        await expect(
+            router({
+                request: { loadedUrl: 'https://example.com/x', label: 'X', userData: { page: 'not-a-number' } },
+                log,
+            } as any),
+        ).rejects.toThrow(RequestValidationError);
+    });
+
+    test('a defaultRoute schema also types the default handler userData', () => {
+        // type-level only: never executed, it just has to type-check
+        const typeOnly = () => {
+            const testType = <T>(_v: T): void => {};
+
+            const router = createCheerioRouter({
+                PRODUCT: z.object({ sku: z.string() }),
+                [defaultRoute]: z.object({ page: z.coerce.number() }),
+            });
+
+            router.addDefaultHandler(({ request }) => {
+                // inferred from the defaultRoute schema
+                testType<number>(request.userData.page);
+                // @ts-expect-error page is a number, not a string — proves it is not typed as `any`
+                testType<string>(request.userData.page);
+            });
+
+            // without a defaultRoute schema, the default handler stays loosely typed as before
+            const plain = createCheerioRouter({ PRODUCT: z.object({ sku: z.string() }) });
+            plain.addDefaultHandler(({ request }) => {
+                testType<unknown>(request.userData.anything);
+            });
+        };
+
+        expect(typeof typeOnly).toBe('function');
+    });
+
+    test('crawler infers the route map from a typed requestHandler and types addRequests/context', () => {
+        // type-level only: the block is never executed, it just has to type-check
+        const typeOnly = async () => {
+            interface Routes {
+                PRODUCT: { sku: string; price: number };
+                CATEGORY: { categoryId: string };
+            }
+
+            const router = createCheerioRouter<CheerioCrawlingContext, Routes>();
+
+            router.addHandler('PRODUCT', async ({ addRequests, enqueueLinks }) => {
+                // context methods are typed from the route map
+                await addRequests([{ url: 'https://e.com/c', label: 'CATEGORY', userData: { categoryId: 'c1' } }]);
+                await enqueueLinks({ label: 'PRODUCT', userData: { sku: 's', price: 1 } });
+                // @ts-expect-error wrong userData shape for the label
+                await addRequests([{ url: 'https://e.com/p', label: 'PRODUCT', userData: { categoryId: 'x' } }]);
+                // @ts-expect-error label not present in the route map
+                await addRequests([{ url: 'https://e.com/x', label: 'NOPE' }]);
+            });
+
+            // the crawler infers `Routes` from the typed router passed as `requestHandler`
+            const crawler = new CheerioCrawler({ requestHandler: router });
+
+            await crawler.addRequests([{ url: 'https://e.com/p', label: 'PRODUCT', userData: { sku: 's', price: 1 } }]);
+            await crawler.run([
+                'https://e.com',
+                { url: 'https://e.com/c', label: 'CATEGORY', userData: { categoryId: 'c1' } },
+            ]);
+            // @ts-expect-error wrong userData shape for the label
+            await crawler.addRequests([{ url: 'https://e.com/p', label: 'PRODUCT', userData: { categoryId: 'x' } }]);
+            // @ts-expect-error label not present in the route map
+            await crawler.addRequests([{ url: 'https://e.com/x', label: 'NOPE' }]);
+        };
+
+        expect(typeof typeOnly).toBe('function');
+    });
+
+    test('browser crawler also infers the route map from a typed requestHandler', () => {
+        // type-level only: never executed
+        const typeOnly = async () => {
+            interface Routes {
+                PRODUCT: { sku: string };
+            }
+
+            const router = createPlaywrightRouter<PlaywrightCrawlingContext, Routes>();
+
+            router.addHandler('PRODUCT', async ({ addRequests }) => {
+                await addRequests([{ url: 'https://e.com/p', label: 'PRODUCT', userData: { sku: 's' } }]);
+                // @ts-expect-error wrong userData shape for the label
+                await addRequests([{ url: 'https://e.com/p', label: 'PRODUCT', userData: { sku: 1 } }]);
+                // @ts-expect-error label not present in the route map
+                await addRequests([{ url: 'https://e.com/x', label: 'NOPE' }]);
+            });
+
+            const crawler = new PlaywrightCrawler({ requestHandler: router });
+
+            await crawler.addRequests([{ url: 'https://e.com/p', label: 'PRODUCT', userData: { sku: 's' } }]);
+            // @ts-expect-error wrong userData shape for the label
+            await crawler.addRequests([{ url: 'https://e.com/p', label: 'PRODUCT', userData: { sku: 1 } }]);
+            // @ts-expect-error label not present in the route map
+            await crawler.addRequests([{ url: 'https://e.com/x', label: 'NOPE' }]);
+        };
+
+        expect(typeof typeOnly).toBe('function');
+    });
+
+    test('puppeteer crawler infers the route map too (inherited requestHandler path)', () => {
+        // type-level only: never executed
+        const typeOnly = async () => {
+            interface Routes {
+                PRODUCT: { sku: string };
+            }
+
+            const router = createPuppeteerRouter<PuppeteerCrawlingContext, Routes>();
+            const crawler = new PuppeteerCrawler({ requestHandler: router });
+
+            await crawler.addRequests([{ url: 'https://e.com/p', label: 'PRODUCT', userData: { sku: 's' } }]);
+            // @ts-expect-error wrong userData shape for the label
+            await crawler.addRequests([{ url: 'https://e.com/p', label: 'PRODUCT', userData: { sku: 1 } }]);
+            // @ts-expect-error label not present in the route map
+            await crawler.addRequests([{ url: 'https://e.com/x', label: 'NOPE' }]);
+        };
+
+        expect(typeof typeOnly).toBe('function');
     });
 });

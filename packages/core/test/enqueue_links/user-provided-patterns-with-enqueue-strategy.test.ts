@@ -1,10 +1,14 @@
+import {
+    CheerioCrawler,
+    type EnqueueUrlsOptions,
+    EnqueueStrategy,
+    MemoryStorageBackend,
+    RequestQueue,
+    serviceLocator,
+    type Source,
+} from 'crawlee';
+import { extractUrlsFromCheerio } from '@crawlee/utils/internal';
 import { load } from 'cheerio';
-import type { CheerioRoot, Source } from 'crawlee';
-import { cheerioCrawlerEnqueueLinks, Configuration, EnqueueStrategy, RequestQueue } from 'crawlee';
-
-import log from '@apify/log';
-
-const apifyClient = Configuration.getStorageClient();
 
 const HTML = `
 <html>
@@ -32,134 +36,72 @@ const HTML = `
 </html>
 `;
 
-function createRequestQueueMock() {
-    const enqueued: Source[] = [];
-    const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
+const SEED_URL = 'https://example.com';
 
-    // @ts-expect-error Override method for testing
-    requestQueue.addRequests = async function (requests) {
-        enqueued.push(...requests);
-        return { processedRequests: requests, unprocessedRequests: [] as never[] };
+/**
+ * Runs `crawler.addRequests()` against the `.click` links extracted from `HTML`, resolved relative to
+ * `SEED_URL` - the address `enqueueLinks()` would normally anchor the strategy to - and returns the
+ * resulting URLs.
+ */
+async function enqueuedUrls(options: EnqueueUrlsOptions): Promise<Set<string>> {
+    const enqueued: Source[] = [];
+    const requestQueue = await RequestQueue.open();
+    const originalAddRequests = requestQueue.addRequests.bind(requestQueue);
+    requestQueue.addRequests = async (requests, addOptions) => {
+        const items: Source[] = [];
+        for await (const request of requests) {
+            items.push(typeof request === 'string' ? { url: request } : (request as Source));
+        }
+        enqueued.push(...items);
+        return originalAddRequests(items, addOptions);
     };
 
-    return { enqueued, requestQueue };
+    const crawler = new CheerioCrawler({ requestManager: requestQueue });
+    const urls = extractUrlsFromCheerio(load(HTML), '.click', SEED_URL);
+    await crawler.addRequests(urls, { baseUrl: SEED_URL, ...options });
+
+    return new Set(enqueued.map((item) => item.url!));
 }
 
 describe('enqueueLinks() - combining user patterns with enqueue strategies', () => {
-    let ll: number;
-    beforeAll(() => {
-        ll = log.getLevel();
-        log.setLevel(log.LEVELS.ERROR);
-    });
-
-    afterAll(() => {
-        log.setLevel(ll);
-    });
-
-    let $: CheerioRoot;
     beforeEach(() => {
-        $ = load(HTML);
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
     });
 
-    test('works with globs and same domain strategy', async () => {
-        const { enqueued, requestQueue } = createRequestQueueMock();
+    test('works with include and same domain strategy', async () => {
+        const include = ['**/first'];
 
-        const globs = ['**/first'];
-
-        await cheerioCrawlerEnqueueLinks({
-            options: {
-                selector: '.click',
-                globs,
-                strategy: EnqueueStrategy.SameDomain,
-            },
-            $,
-            requestQueue,
-            originalRequestUrl: 'https://example.com',
-        });
-
-        expect(enqueued).toHaveLength(1);
-
-        expect(enqueued[0].url).toBe('https://example.com/a/b/first');
+        expect(await enqueuedUrls({ include, strategy: EnqueueStrategy.SameDomain })).toEqual(
+            new Set(['https://example.com/a/b/first']),
+        );
     });
 
-    test('works with globs and all domains strategy', async () => {
-        const { enqueued, requestQueue } = createRequestQueueMock();
+    test('works with include and all domains strategy', async () => {
+        const include = ['**/first'];
 
-        const globs = ['**/first'];
-
-        await cheerioCrawlerEnqueueLinks({
-            options: {
-                selector: '.click',
-                globs,
-                strategy: EnqueueStrategy.All,
-            },
-            $,
-            requestQueue,
-            originalRequestUrl: 'https://example.com',
-        });
-
-        expect(enqueued).toHaveLength(2);
-
-        expect(enqueued[0].url).toBe('https://example.com/a/b/first');
-        expect(enqueued[1].url).toBe('https://another.com/a/first');
+        expect(await enqueuedUrls({ include, strategy: EnqueueStrategy.All })).toEqual(
+            new Set(['https://example.com/a/b/first', 'https://another.com/a/first']),
+        );
     });
 
     test('works with no user provided patterns but with same domain strategy', async () => {
-        const { enqueued, requestQueue } = createRequestQueueMock();
-
-        await cheerioCrawlerEnqueueLinks({
-            options: {
-                selector: '.click',
-                strategy: EnqueueStrategy.SameDomain,
-            },
-            $,
-            requestQueue,
-            originalRequestUrl: 'https://example.com',
-        });
-
-        expect(enqueued).toHaveLength(2);
-        expect(enqueued[0].url).toBe('https://example.com/a/b/first');
-        expect(enqueued[1].url).toBe('https://example.com/a/b/third');
+        expect(await enqueuedUrls({ strategy: EnqueueStrategy.SameDomain })).toEqual(
+            new Set(['https://example.com/a/b/first', 'https://example.com/a/b/third']),
+        );
     });
 
-    test('works with globs and exclude', async () => {
-        const { enqueued, requestQueue } = createRequestQueueMock();
-
-        const globs = ['**/first'];
+    test('works with include and exclude', async () => {
+        const include = ['**/first'];
         const exclude = ['**/first'];
 
-        await cheerioCrawlerEnqueueLinks({
-            options: {
-                selector: '.click',
-                globs,
-                exclude,
-            },
-            $,
-            requestQueue,
-            originalRequestUrl: 'https://example.com',
-        });
-
-        expect(enqueued).toHaveLength(0);
+        expect(await enqueuedUrls({ include, exclude })).toEqual(new Set());
     });
 
     test('works with exclude only', async () => {
-        const { enqueued, requestQueue } = createRequestQueueMock();
-
         const exclude = ['**/second', '**/third', 'https://another.com/**'];
 
-        await cheerioCrawlerEnqueueLinks({
-            options: {
-                selector: '.click',
-                exclude,
-                strategy: EnqueueStrategy.All,
-            },
-            $,
-            requestQueue,
-            originalRequestUrl: 'https://example.com',
-        });
-
-        expect(enqueued).toHaveLength(2);
-        expect(enqueued[0].url).toBe('https://example.com/a/b/first');
-        expect(enqueued[1].url).toBe('http://cool.com/');
+        expect(await enqueuedUrls({ exclude, strategy: EnqueueStrategy.All })).toEqual(
+            new Set(['https://example.com/a/b/first', 'http://cool.com/']),
+        );
     });
 });

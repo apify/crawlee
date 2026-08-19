@@ -2,42 +2,20 @@ import type { BinaryLike } from 'node:crypto';
 import crypto from 'node:crypto';
 import util from 'node:util';
 
-import type { Dictionary } from '@crawlee/types';
-import type { BasePredicate } from 'ow';
-import ow from 'ow';
+import type { AllowedHttpMethods, Dictionary } from '@crawlee/types';
+import { z } from 'zod';
 
-import { normalizeUrl } from '@apify/utilities';
+import { cryptoRandomObjectId, normalizeUrl } from '@apify/utilities';
 
-import type { EnqueueLinksOptions } from './enqueue_links/enqueue_links';
-import type { SkippedRequestReason } from './enqueue_links/shared';
-import { log as defaultLog } from './log';
-import type { AllowedHttpMethods } from './typedefs';
-import { keys } from './typedefs';
+import type { EnqueueStrategyOption } from './enqueue_links/enqueue_links.js';
+import type { SkippedRequestReason } from './enqueue_links/shared.js';
+import { serviceLocator } from './service_locator.js';
+import { keys } from './typedefs.js';
+import { parseArgument, schemas } from './validators.js';
 
-// new properties on the Request object breaks serialization
-const log = defaultLog.child({ prefix: 'Request' });
-
-const requestOptionalPredicates = {
-    id: ow.optional.string,
-    loadedUrl: ow.optional.string.url,
-    uniqueKey: ow.optional.string,
-    method: ow.optional.string,
-    payload: ow.optional.any(ow.string, ow.uint8Array),
-    noRetry: ow.optional.boolean,
-    retryCount: ow.optional.number,
-    sessionRotationCount: ow.optional.number,
-    maxRetries: ow.optional.number,
-    errorMessages: ow.optional.array.ofType(ow.string),
-    headers: ow.optional.object,
-    userData: ow.optional.object,
-    label: ow.optional.string,
-    handledAt: ow.optional.any(ow.string.date, ow.date),
-    keepUrlFragment: ow.optional.boolean,
-    useExtendedUniqueKey: ow.optional.boolean,
-    skipNavigation: ow.optional.boolean,
-    crawlDepth: ow.optional.number.greaterThanOrEqual(0),
-    state: ow.optional.number.greaterThanOrEqual(0).lessThanOrEqual(6),
-};
+const dateString = z.string().refine((value) => !Number.isNaN(Date.parse(value)), {
+    message: 'Invalid input: expected a date string',
+});
 
 export enum RequestState {
     UNPROCESSED,
@@ -49,6 +27,39 @@ export enum RequestState {
     ERROR,
     SKIPPED,
 }
+
+const requestUrlSchema = z.object({ url: z.string() });
+
+// new properties on the Request object breaks serialization
+const requestOptionalSchemaShapes: Record<string, z.ZodType> = {
+    id: z.string().optional(),
+    loadedUrl: z.url().optional(),
+    uniqueKey: z.string().optional(),
+    method: z.string().optional(),
+    payload: z.union([z.string(), z.instanceof(Uint8Array)]).optional(),
+    noRetry: z.boolean().optional(),
+    retryCount: schemas.anyNumber.optional(),
+    sessionId: z.string().optional(),
+    maxRetries: schemas.anyNumber.optional(),
+    errorMessages: schemas.arrayOf(z.string(), 'strings').optional(),
+    headers: z.looseObject({}).optional(),
+    userData: z.looseObject({}).optional(),
+    label: z.string().optional(),
+    handledAt: z.union([dateString, z.date()]).optional(),
+    keepUrlFragment: z.boolean().optional(),
+    useExtendedUniqueKey: z.boolean().optional(),
+    alwaysEnqueue: z.boolean().optional(),
+    skipNavigation: z.boolean().optional(),
+    crawlDepth: schemas.anyNumber
+        .refine((value) => value >= 0, 'Expected a number greater than or equal to 0')
+        .optional(),
+    state: z.enum(RequestState).optional(),
+};
+
+// Each schema is wrapped in a single-key object so validation errors carry the property name.
+const requestOptionalSchemas: Partial<Record<string, z.ZodType>> = Object.fromEntries(
+    Object.entries(requestOptionalSchemaShapes).map(([key, schema]) => [key, z.object({ [key]: schema })]),
+);
 
 /**
  * Represents a URL to be crawled, optionally including HTTP method, headers, payload and other metadata.
@@ -81,7 +92,7 @@ export enum RequestState {
  * ```
  * @category Sources
  */
-export class Request<UserData extends Dictionary = Dictionary> {
+class CrawleeRequest<UserData extends Dictionary = Dictionary> {
     /** Request ID */
     id?: string;
 
@@ -123,9 +134,14 @@ export class Request<UserData extends Dictionary = Dictionary> {
     headers?: Record<string, string>;
 
     /** Private store for the custom user data assigned to the request. */
-    private _userData: Record<string, any> = {};
+    #userData: Record<string, any> = {};
 
-    /** Custom user data assigned to the request. */
+    /**
+     * Custom user data assigned to the request.
+     *
+     * All data stored in `userData` must be JSON-serializable.
+     * Storing non-serializable values (e.g. functions, symbols) may result in unexpected results.
+     */
     userData: UserData = {} as UserData;
 
     /**
@@ -138,23 +154,30 @@ export class Request<UserData extends Dictionary = Dictionary> {
      * `Request` parameters including the URL, HTTP method and headers, and others.
      */
     constructor(options: RequestOptions<UserData>) {
-        ow(options, 'RequestOptions', ow.object);
-        ow(options.url, 'RequestOptions.url', ow.string);
-        // 'ow' validation is slow, because it checks all predicates
+        // A bare URL is a common slip — point at the object form instead of a generic type error.
+        if (typeof options === 'string') {
+            throw new TypeError(
+                `\`Request\` options must be an object, got the string '${options}'. ` +
+                    'Did you mean `new Request({ url })`?',
+            );
+        }
+
+        parseArgument(options, schemas.anyObject, 'RequestOptions');
+        parseArgument(options, requestUrlSchema, 'RequestOptions');
+        // Full-shape validation is slow, because it checks all predicates
         // even if the validated object has only 1 property.
         // This custom validation loop iterates only over existing
         // properties and speeds up the validation cca 3-fold.
-        // See https://github.com/sindresorhus/ow/issues/193
         keys(options).forEach((prop) => {
             // skip url, because it is validated above
             if (prop === 'url') {
                 return;
             }
 
-            const predicate = requestOptionalPredicates[prop as keyof typeof requestOptionalPredicates];
+            const schema = requestOptionalSchemas[prop as string];
             const value = options[prop];
-            if (predicate) {
-                ow(value, `RequestOptions.${prop}`, predicate as BasePredicate);
+            if (schema) {
+                parseArgument({ [prop]: value }, schema, 'RequestOptions');
             }
         });
 
@@ -166,7 +189,7 @@ export class Request<UserData extends Dictionary = Dictionary> {
             payload,
             noRetry = false,
             retryCount = 0,
-            sessionRotationCount = 0,
+            sessionId,
             maxRetries,
             errorMessages = [],
             headers = {},
@@ -175,13 +198,14 @@ export class Request<UserData extends Dictionary = Dictionary> {
             handledAt,
             keepUrlFragment = false,
             useExtendedUniqueKey = false,
+            alwaysEnqueue = false,
             skipNavigation,
             enqueueStrategy,
             crawlDepth,
         } = options as RequestOptions & {
             loadedUrl?: string;
             retryCount?: number;
-            sessionRotationCount?: number;
+            sessionId?: string;
             errorMessages?: string[];
             handledAt?: string | Date;
         };
@@ -192,16 +216,27 @@ export class Request<UserData extends Dictionary = Dictionary> {
 
         if (method === 'GET' && payload) throw new Error('Request with GET method cannot have a payload.');
 
+        if (uniqueKey && alwaysEnqueue) {
+            throw new Error('`alwaysEnqueue` cannot be used together with a custom `uniqueKey`.');
+        }
+
         this.id = id;
         this.url = url;
         this.loadedUrl = loadedUrl;
         this.uniqueKey =
-            uniqueKey || Request.computeUniqueKey({ url, method, payload, keepUrlFragment, useExtendedUniqueKey });
+            uniqueKey ||
+            CrawleeRequest.computeUniqueKey({
+                url,
+                method,
+                payload,
+                keepUrlFragment,
+                useExtendedUniqueKey,
+                alwaysEnqueue,
+            });
         this.method = method;
         this.payload = payload;
         this.noRetry = noRetry;
         this.retryCount = retryCount;
-        this.sessionRotationCount = sessionRotationCount;
         this.errorMessages = [...errorMessages];
         this.headers = { ...headers };
         this.handledAt = (handledAt as unknown) instanceof Date ? (handledAt as Date).toISOString() : handledAt!;
@@ -210,37 +245,38 @@ export class Request<UserData extends Dictionary = Dictionary> {
             userData.label = label;
         }
 
+        // Read `__crawlee` explicitly - on a `userData` coming from another Request instance the
+        // bag is non-enumerable, so the spread alone would silently drop the internal state
+        // (e.g. `skipNavigation`) when a request is re-wrapped after a storage round trip.
+        this.#userData = { __crawlee: (userData as Dictionary).__crawlee ?? {}, ...userData };
+
+        // `userData` must stay an enumerable own accessor — serialization in the storages relies on it
         Object.defineProperties(this, {
-            _userData: {
-                value: { __crawlee: {}, ...userData },
-                enumerable: false,
-                writable: true,
-            },
             userData: {
-                get: () => this._userData,
+                get: () => this.#userData,
                 set: (value: Record<string, any>) => {
                     Object.defineProperties(value, {
                         __crawlee: {
-                            value: this._userData.__crawlee,
+                            value: this.#userData.__crawlee,
                             enumerable: false,
                             writable: true,
                         },
                         toJSON: {
                             value: () => {
-                                if (Object.keys(this._userData.__crawlee).length > 0) {
+                                if (Object.keys(this.#userData.__crawlee).length > 0) {
                                     return {
-                                        ...this._userData,
-                                        __crawlee: this._userData.__crawlee,
+                                        ...this.#userData,
+                                        __crawlee: this.#userData.__crawlee,
                                     };
                                 }
 
-                                return this._userData;
+                                return this.#userData;
                             },
                             enumerable: false,
                             writable: true,
                         },
                     });
-                    this._userData = value;
+                    this.#userData = value;
                 },
                 enumerable: true,
             },
@@ -252,6 +288,7 @@ export class Request<UserData extends Dictionary = Dictionary> {
         if (skipNavigation != null) this.skipNavigation = skipNavigation;
         if (maxRetries != null) this.maxRetries = maxRetries;
         if (crawlDepth != null) this.userData.__crawlee.crawlDepth ??= crawlDepth;
+        if (sessionId) this.sessionId = sessionId;
 
         // If it's already set, don't override it (for instance when fetching from storage)
         if (enqueueStrategy) {
@@ -259,12 +296,36 @@ export class Request<UserData extends Dictionary = Dictionary> {
         }
     }
 
-    /** Tells the crawler processing this request to skip the navigation and process the request directly. */
+    /**
+     * Converts the Crawlee Request object to a `fetch` API Request object.
+     * @returns The native `fetch` API Request object.
+     */
+    public intoFetchAPIRequest(): Request {
+        return new Request(this.url, {
+            method: this.method,
+            headers: this.headers,
+            body: this.payload,
+        });
+    }
+
+    /**
+     * Tells the crawler processing this request to skip the navigation and process the request directly.
+     *
+     * When this is set to `true`, the crawling context will not contain the results of the navigation
+     * (e.g. `response`, `body`, `contentType`, `$` or `request.loadedUrl`).
+     * Accessing these properties will throw a {@apilink NavigationSkippedError} at runtime.
+     */
     get skipNavigation(): boolean {
         return this.userData.__crawlee?.skipNavigation ?? false;
     }
 
-    /** Tells the crawler processing this request to skip the navigation and process the request directly. */
+    /**
+     * Tells the crawler processing this request to skip the navigation and process the request directly.
+     *
+     * When this is set to `true`, the crawling context will not contain the results of the navigation
+     * (e.g. `response`, `body`, `contentType`, `$` or `request.loadedUrl`).
+     * Accessing these properties will throw a {@apilink NavigationSkippedError} at runtime.
+     */
     set skipNavigation(value: boolean) {
         if (!this.userData.__crawlee) {
             (this.userData as Dictionary).__crawlee = { skipNavigation: value };
@@ -290,18 +351,14 @@ export class Request<UserData extends Dictionary = Dictionary> {
         this.userData.__crawlee.crawlDepth = value;
     }
 
-    /** Indicates the number of times the crawling of the request has rotated the session due to a session or a proxy error. */
-    get sessionRotationCount(): number {
-        return this.userData.__crawlee?.sessionRotationCount ?? 0;
+    /** ID of a session to use for this request. When set, the crawler will fetch this session from the session pool instead of creating a new one. */
+    get sessionId(): string | undefined {
+        return this.userData.__crawlee?.sessionId;
     }
 
-    /** Indicates the number of times the crawling of the request has rotated the session due to a session or a proxy error. */
-    set sessionRotationCount(value: number) {
-        if (!this.userData.__crawlee) {
-            (this.userData as Dictionary).__crawlee = { sessionRotationCount: value };
-        } else {
-            this.userData.__crawlee.sessionRotationCount = value;
-        }
+    set sessionId(value: string | undefined) {
+        (this.userData as Dictionary).__crawlee ??= {};
+        this.userData.__crawlee.sessionId = value;
     }
 
     /** shortcut for getting `request.userData.label` */
@@ -342,11 +399,29 @@ export class Request<UserData extends Dictionary = Dictionary> {
         }
     }
 
-    private get enqueueStrategy(): EnqueueLinksOptions['strategy'] | undefined {
+    /**
+     * Reason for skipping this request.
+     */
+    get skippedReason(): SkippedRequestReason | undefined {
+        return this.userData.__crawlee?.skippedReason;
+    }
+
+    /**
+     * Reason for skipping this request.
+     */
+    set skippedReason(value: SkippedRequestReason | undefined) {
+        if (!this.userData.__crawlee) {
+            (this.userData as Dictionary).__crawlee = { skippedReason: value };
+        } else {
+            this.userData.__crawlee.skippedReason = value;
+        }
+    }
+
+    private get enqueueStrategy(): EnqueueStrategyOption | undefined {
         return this.userData.__crawlee?.enqueueStrategy;
     }
 
-    private set enqueueStrategy(value: EnqueueLinksOptions['strategy']) {
+    private set enqueueStrategy(value: EnqueueStrategyOption | undefined) {
         if (!this.userData.__crawlee) {
             (this.userData as Dictionary).__crawlee = { enqueueStrategy: value };
         } else {
@@ -399,16 +474,6 @@ export class Request<UserData extends Dictionary = Dictionary> {
         this.errorMessages.push(message);
     }
 
-    // TODO: only for better BC, remove in v4
-    protected _computeUniqueKey(options: ComputeUniqueKeyOptions) {
-        return Request.computeUniqueKey(options);
-    }
-
-    // TODO: only for better BC, remove in v4
-    protected _hashPayload(payload: BinaryLike): string {
-        return Request.hashPayload(payload);
-    }
-
     /** @internal */
     static computeUniqueKey({
         url,
@@ -416,22 +481,34 @@ export class Request<UserData extends Dictionary = Dictionary> {
         payload,
         keepUrlFragment = false,
         useExtendedUniqueKey = false,
+        alwaysEnqueue = false,
     }: ComputeUniqueKeyOptions) {
         const normalizedMethod = method.toUpperCase();
         const normalizedUrl = normalizeUrl(url, keepUrlFragment) || url; // It returns null when url is invalid, causing weird errors.
+
+        let uniqueKey: string;
+
         if (!useExtendedUniqueKey) {
             if (normalizedMethod !== 'GET' && payload) {
-                // Using log.deprecated to log only once. We should add log.once or some such.
-                log.deprecated(
-                    `We've encountered a ${normalizedMethod} Request with a payload. ` +
-                        'This is fine. Just letting you know that if your requests point to the same URL ' +
-                        'and differ only in method and payload, you should see the "useExtendedUniqueKey" option of Request constructor.',
-                );
+                serviceLocator
+                    .getLogger()
+                    .warningOnce(
+                        `We've encountered a ${normalizedMethod} Request with a payload. ` +
+                            'This is fine. Just letting you know that if your requests point to the same URL ' +
+                            'and differ only in method and payload, you should see the "useExtendedUniqueKey" option of Request constructor.',
+                    );
             }
-            return normalizedUrl;
+            uniqueKey = normalizedUrl;
+        } else {
+            const payloadHash = payload ? CrawleeRequest.hashPayload(payload) : '';
+            uniqueKey = `${normalizedMethod}|${payloadHash}|${normalizedUrl}`;
         }
-        const payloadHash = payload ? Request.hashPayload(payload) : '';
-        return `${normalizedMethod}(${payloadHash}):${normalizedUrl}`;
+
+        if (alwaysEnqueue) {
+            uniqueKey = `${cryptoRandomObjectId(17)}|${uniqueKey}`;
+        }
+
+        return uniqueKey;
     }
 
     /** @internal */
@@ -458,7 +535,7 @@ export interface RequestOptions<UserData extends Dictionary = Dictionary> {
      * The `keepUrlFragment` option determines whether URL hash fragment is included in the `uniqueKey` or not.
      *
      * The `useExtendedUniqueKey` options determines whether method and payload are included in the `uniqueKey`,
-     * producing a `uniqueKey` in the following format: `METHOD(payloadHash):normalizedUrl`. This is useful
+     * producing a `uniqueKey` in the following format: `METHOD|payloadHash|normalizedUrl`. This is useful
      * when requests point to the same URL, but with different methods and payloads. For example: form submits.
      *
      * Pass an arbitrary non-empty text value to the `uniqueKey` property
@@ -486,6 +563,9 @@ export interface RequestOptions<UserData extends Dictionary = Dictionary> {
     /**
      * Custom user data assigned to the request. Use this to save any request related data to the
      * request's scope, keeping them accessible on retries, failures etc.
+     *
+     * All data stored in `userData` must be JSON-serializable.
+     * Storing non-serializable values (e.g. functions, symbols) may result in unexpected results.
      */
     userData?: UserData;
 
@@ -512,14 +592,32 @@ export interface RequestOptions<UserData extends Dictionary = Dictionary> {
     useExtendedUniqueKey?: boolean;
 
     /**
+     * If `true` then a random value is included in the `uniqueKey` computation, ensuring the request
+     * is always enqueued even if a request with the same URL (and method/payload) is already present
+     * in the queue. Cannot be used together with a custom `uniqueKey`.
+     * @default false
+     */
+    alwaysEnqueue?: boolean;
+
+    /**
      * The `true` value indicates that the request will not be automatically retried on error.
      * @default false
      */
     noRetry?: boolean;
 
     /**
+     * ID of a session from the crawler's `SessionPool` to use for this request.
+     * When set, the crawler will fetch this session from the pool instead of creating a new one.
+     */
+    sessionId?: string;
+
+    /**
      * If set to `true` then the crawler processing this request evaluates
      * the `requestHandler` immediately without prior browser navigation.
+     *
+     * When enabled, the crawling context will not contain the results of the navigation
+     * (e.g. `response`, `body`, `contentType`, `$` or `request.loadedUrl`).
+     * Accessing these properties will throw a {@apilink NavigationSkippedError} at runtime.
      * @default false
      */
     skipNavigation?: boolean;
@@ -553,7 +651,7 @@ export interface RequestOptions<UserData extends Dictionary = Dictionary> {
     lockExpiresAt?: Date;
 
     /** @internal */
-    enqueueStrategy?: EnqueueLinksOptions['strategy'];
+    enqueueStrategy?: EnqueueStrategyOption;
 }
 
 export interface PushErrorMessageOptions {
@@ -570,12 +668,15 @@ interface ComputeUniqueKeyOptions {
     payload?: string | Buffer;
     keepUrlFragment?: boolean;
     useExtendedUniqueKey?: boolean;
+    alwaysEnqueue?: boolean;
 }
 
-export type Source = (Partial<RequestOptions> & { requestsFromUrl?: string; regex?: RegExp }) | Request;
+export type Source = (Partial<RequestOptions> & { requestsFromUrl?: string; regex?: RegExp }) | CrawleeRequest;
 
 /** @internal */
 export interface InternalSource {
     requestsFromUrl: string;
     regex?: RegExp;
 }
+
+export { CrawleeRequest as Request };

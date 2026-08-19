@@ -1,6 +1,7 @@
 import { wrapWithSpan } from '@crawlee/otel';
 import { context, trace } from '@opentelemetry/api';
 import { ATTR_EXCEPTION_MESSAGE, ATTR_HTTP_REQUEST_METHOD, ATTR_URL_FULL } from '@opentelemetry/semantic-conventions';
+import type { CheerioCrawlingContext, CrawlingContext } from 'crawlee';
 import { CheerioCrawler } from 'crawlee';
 
 const crawler = new CheerioCrawler({
@@ -8,7 +9,7 @@ const crawler = new CheerioCrawler({
 
     // Wrap the request handler with a custom span
     requestHandler: wrapWithSpan(
-        async ({ request, $, enqueueLinks, log }) => {
+        async ({ request, $, enqueueLinks, log }: CheerioCrawlingContext) => {
             // Access the current span to add custom attributes
             const span = trace.getSpan(context.active());
 
@@ -25,14 +26,14 @@ const crawler = new CheerioCrawler({
             log.info(`Scraped page`, { url: request.url, title });
 
             await enqueueLinks({
-                globs: ['https://crawlee.dev/**'],
+                include: ['https://crawlee.dev/**'],
             });
         },
         {
             // Dynamic span name based on the request
-            spanName: ({ request }) => `scrape ${request.url}`,
+            spanName: ({ request }: CheerioCrawlingContext) => `scrape ${request.url}`,
             // Add attributes to the span
-            spanOptions: ({ request }) => ({
+            spanOptions: ({ request }: CheerioCrawlingContext) => ({
                 attributes: {
                     [ATTR_URL_FULL]: request.url,
                     [ATTR_HTTP_REQUEST_METHOD]: request.method,
@@ -44,7 +45,7 @@ const crawler = new CheerioCrawler({
     // Wrap hooks with spans
     preNavigationHooks: [
         wrapWithSpan(
-            ({ log }) => {
+            ({ log }: CheerioCrawlingContext) => {
                 log.debug('Pre-navigation hook executed');
             },
             {
@@ -55,14 +56,14 @@ const crawler = new CheerioCrawler({
 
     // Wrap error handlers
     errorHandler: wrapWithSpan(
-        ({ request, log }, error) => {
+        ({ request, log }: CrawlingContext, error: Error) => {
             log.error(`Request failed: ${request.url}`, {
                 error: error.message,
             });
         },
         {
-            spanName: ({ request }) => `error-handler ${request.url}`,
-            spanOptions: ({ request }, error) => ({
+            spanName: ({ request }: CrawlingContext) => `error-handler ${request.url}`,
+            spanOptions: ({ request }: CrawlingContext, error: Error) => ({
                 attributes: {
                     [ATTR_URL_FULL]: request.url,
                     [ATTR_EXCEPTION_MESSAGE]: error.message,
@@ -72,7 +73,7 @@ const crawler = new CheerioCrawler({
     ),
 
     failedRequestHandler: wrapWithSpan(
-        ({ request, log }, error) => {
+        ({ request, log }: CrawlingContext, error: Error) => {
             log.error(`Request permanently failed: ${request.url}`, {
                 error: error.message,
             });

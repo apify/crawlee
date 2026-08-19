@@ -1,8 +1,8 @@
-import { PuppeteerCrawler } from 'crawlee';
+import { PuppeteerCrawler, puppeteerBrowserPool } from 'crawlee';
 import { BrowserName, DeviceCategory } from '@crawlee/browser-pool';
 
 const crawler = new PuppeteerCrawler({
-    browserPoolOptions: {
+    browserPool: puppeteerBrowserPool({
         useFingerprints: true, // this is the default
         fingerprintOptions: {
             fingerprintGeneratorOptions: {
@@ -11,6 +11,6 @@ const crawler = new PuppeteerCrawler({
                 locales: ['en-US'],
             },
         },
-    },
+    }),
     // ...
 });

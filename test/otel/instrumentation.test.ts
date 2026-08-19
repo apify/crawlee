@@ -2,25 +2,26 @@ import type { Server } from 'node:http';
 
 import * as basicModule from '@crawlee/basic';
 import { CheerioCrawler } from '@crawlee/cheerio';
+import { MemoryStorageBackend, serviceLocator } from '@crawlee/core';
 import * as httpModule from '@crawlee/http';
 import { CrawleeInstrumentation } from '@crawlee/otel';
 import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
 import { InMemorySpanExporter, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { ATTR_CODE_FUNCTION_NAME, ATTR_HTTP_REQUEST_METHOD, ATTR_URL_FULL } from '@opentelemetry/semantic-conventions';
-import { runExampleComServer } from 'test/shared/_helper';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 
 import log from '@apify/log';
+
+import { runExampleComServer } from '../shared/_helper.js';
 
 /**
  * Drives a real crawler through the real instrumented Crawlee classes.
  *
- * The module patches are applied directly instead of through the `require` hook: inside this monorepo the
- * `@crawlee/*` entries in `node_modules` are symlinks to `packages/*`, so Node resolves them to a path with no
- * `node_modules` segment and `require-in-the-middle` cannot map the file back to the package name. That affects only
- * how the patch is delivered - everything the instrumentation itself does (which prototypes get wrapped, the span
- * tree, the attributes, error handling, context propagation across the crawler's async boundaries) is exercised here.
+ * The module patches are applied directly instead of through the module loader hook: inside this monorepo the
+ * `@crawlee/*` entries in `node_modules` are symlinks to `packages/*`, so they resolve to a path with no
+ * `node_modules` segment for the hook to match. That affects only how the patch is delivered - everything the
+ * instrumentation itself does (which prototypes get wrapped, the span tree, the attributes, error handling, context
+ * propagation across the crawler's async boundaries) is exercised here.
  */
 interface PatchableModuleDefinition {
     name: string;
@@ -40,8 +41,6 @@ function moduleDefinition(instrumentation: CrawleeInstrumentation, moduleName: s
 }
 
 describe('CrawleeInstrumentation against a real crawler', () => {
-    const localStorageEmulator = new MemoryStorageEmulator();
-
     let server: Server;
     let serverAddress: string;
     let logLevel: number;
@@ -64,6 +63,7 @@ describe('CrawleeInstrumentation against a real crawler', () => {
         provider.register();
 
         const instrumentation = new CrawleeInstrumentation({ logInstrumentation: false });
+        instrumentation.setTracerProvider(provider);
         patched = [
             { definition: moduleDefinition(instrumentation, '@crawlee/basic'), moduleExports: basicModule },
             { definition: moduleDefinition(instrumentation, '@crawlee/http'), moduleExports: httpModule },
@@ -84,13 +84,9 @@ describe('CrawleeInstrumentation against a real crawler', () => {
         log.setLevel(logLevel);
     });
 
-    beforeEach(async () => {
+    beforeEach(() => {
         exporter.reset();
-        await localStorageEmulator.init();
-    });
-
-    afterAll(async () => {
-        await localStorageEmulator.destroy();
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
     });
 
     const byName = (spans: ReadableSpan[], name: string) => spans.filter((s) => s.name === name);
@@ -104,8 +100,6 @@ describe('CrawleeInstrumentation against a real crawler', () => {
         let seenUrl: string | undefined;
 
         const crawler = new CheerioCrawler({
-            minConcurrency: 1,
-            maxConcurrency: 1,
             maxRequestsPerCrawl: 1,
             async requestHandler({ $, request }) {
                 expect($('title').text()).toBe('Example Domain');
@@ -117,23 +111,20 @@ describe('CrawleeInstrumentation against a real crawler', () => {
 
         const spans = exporter.getFinishedSpans();
 
-        // Every instrumented method reported a span, and they all came from this instrumentation.
         expect(spans.length).toBeGreaterThan(0);
         expect(new Set(spans.map((s) => (s.instrumentationScope ?? (s as any).instrumentationLibrary)?.name))).toEqual(
             new Set(['@crawlee/otel']),
         );
 
         const run = one(spans, 'crawlee.crawler.run');
-        const task = one(spans, 'crawlee.crawler.runTaskFunction');
-        const requestHandler = one(spans, 'crawlee.http.runRequestHandler');
-        const navigation = one(spans, 'crawlee.http.handleNavigation');
-        expect(byName(spans, 'crawlee.crawler.executeHooks').length).toBeGreaterThan(0);
+        const handleRequest = one(spans, 'crawlee.crawler.handleRequest');
+        const requestHandler = one(spans, 'crawlee.crawler.runRequestHandler');
+        const httpRequest = one(spans, 'crawlee.http.makeHttpRequest');
 
         // A single trace, correctly nested - this only holds if the context survives the crawler's async boundaries.
         expect(new Set(spans.map((s) => s.spanContext().traceId)).size).toBe(1);
-        expect(task.parentSpanContext?.spanId).toBe(run.spanContext().spanId);
-        expect(requestHandler.parentSpanContext?.spanId).toBe(task.spanContext().spanId);
-        expect(navigation.parentSpanContext?.spanId).toBe(requestHandler.spanContext().spanId);
+        expect(handleRequest.parentSpanContext?.spanId).toBe(run.spanContext().spanId);
+        expect(requestHandler.parentSpanContext?.spanId).toBe(handleRequest.spanContext().spanId);
 
         // Nothing failed, so the instrumentation leaves the status unset.
         expect(requestHandler.status.code).toBe(0);
@@ -143,19 +134,17 @@ describe('CrawleeInstrumentation against a real crawler', () => {
         expect(requestHandler.attributes).toMatchObject({
             [ATTR_URL_FULL]: seenUrl,
             [ATTR_HTTP_REQUEST_METHOD]: 'GET',
-            [ATTR_CODE_FUNCTION_NAME]: 'HttpCrawler._runRequestHandler',
+            [ATTR_CODE_FUNCTION_NAME]: 'BasicCrawler.runRequestHandler',
             'crawlee.request.retry_count': 0,
         });
         expect(requestHandler.attributes['crawlee.request.id']).toEqual(expect.any(String));
-        expect(navigation.attributes[ATTR_URL_FULL]).toBe(seenUrl);
+        expect(httpRequest.attributes[ATTR_URL_FULL]).toBe(seenUrl);
     });
 
     test('records the failure on the request handler span and on the error handlers', async () => {
         let seenUrl: string | undefined;
 
         const crawler = new CheerioCrawler({
-            minConcurrency: 1,
-            maxConcurrency: 1,
             maxRequestsPerCrawl: 1,
             maxRequestRetries: 0,
             requestHandler({ request }) {
@@ -168,7 +157,7 @@ describe('CrawleeInstrumentation against a real crawler', () => {
 
         const spans = exporter.getFinishedSpans();
 
-        const requestHandler = one(spans, 'crawlee.http.runRequestHandler');
+        const requestHandler = one(spans, 'crawlee.crawler.runRequestHandler');
         expect(requestHandler.status.code).toBe(2); // SpanStatusCode.ERROR
         expect(requestHandler.status.message).toBe('handler exploded');
         expect(requestHandler.events.map((e) => e.name)).toContain('exception');
@@ -180,14 +169,11 @@ describe('CrawleeInstrumentation against a real crawler', () => {
         expect(errorHandler.attributes[ATTR_URL_FULL]).toBe(seenUrl);
         expect(failedHandler.attributes[ATTR_URL_FULL]).toBe(seenUrl);
 
-        // The crawl itself still failed the request rather than swallowing the error.
         expect(requestHandler.spanContext().traceId).toBe(errorHandler.spanContext().traceId);
     });
 
     test('increments the retry count attribute across attempts', async () => {
         const crawler = new CheerioCrawler({
-            minConcurrency: 1,
-            maxConcurrency: 1,
             maxRequestsPerCrawl: 1,
             maxRequestRetries: 1,
             requestHandler() {
@@ -197,7 +183,7 @@ describe('CrawleeInstrumentation against a real crawler', () => {
 
         await crawler.run([serverAddress]);
 
-        const retryCounts = byName(exporter.getFinishedSpans(), 'crawlee.http.runRequestHandler')
+        const retryCounts = byName(exporter.getFinishedSpans(), 'crawlee.crawler.runRequestHandler')
             .map((s) => s.attributes['crawlee.request.retry_count'])
             .sort();
 

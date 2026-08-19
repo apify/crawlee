@@ -2,7 +2,7 @@
   "packages": [
     "packages/*"
   ],
-  "version": "3.15.3",
+  "version": "3.18.1",
   "command": {
     "version": {
       "conventionalCommits": true,
@@ -13,7 +13,7 @@
       "assets": []
     }
   },
-  "npmClient": "yarn",
+  "npmClient": "pnpm",
   "useNx": false,
   "ignoreChanges": [
     "**/test/**",

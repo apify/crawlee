@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 
 import { diag } from '@opentelemetry/api';
 import type { LogAttributes } from '@opentelemetry/api-logs';
@@ -8,9 +9,9 @@ import {
     ATTR_EXCEPTION_TYPE,
 } from '@opentelemetry/semantic-conventions';
 
-import { PACKAGE_NAME, UNKNOWN_PACKAGE_VERSION } from './constants';
-import type { ModuleDefinition } from './internal-types';
-import type { ClassMethodToInstrument } from './types';
+import { PACKAGE_NAME, UNKNOWN_PACKAGE_VERSION } from './constants.js';
+import type { ModuleDefinition } from './internal-types.js';
+import type { ClassMethodToInstrument } from './types.js';
 
 interface OtelPackageJson {
     version: string;
@@ -21,7 +22,8 @@ let packageFile: OtelPackageJson | undefined;
 function getPackageJson(): OtelPackageJson {
     if (!packageFile) {
         try {
-            const packageFilePath = require.resolve(`${PACKAGE_NAME}/package.json`);
+            // The package is ESM, so `require` has to be recreated from the module URL.
+            const packageFilePath = createRequire(import.meta.url).resolve(`${PACKAGE_NAME}/package.json`);
             packageFile = JSON.parse(readFileSync(packageFilePath, 'utf8')) as OtelPackageJson;
         } catch (err) {
             // The version is only reported as the instrumentation scope version, so a failure here must not be fatal.
@@ -37,27 +39,31 @@ export function getPackageVersion(): string {
 }
 
 /**
- * Turns the `data` and `exception` arguments of `@apify/log` into OpenTelemetry log attributes.
- * Errors are mapped onto the semantic convention attributes, because their own properties are not enumerable
- * and would be dropped by a plain object spread.
+ * Turns the structured `data` of a Crawlee log call into OpenTelemetry log attributes.
+ *
+ * Crawlee folds a logged error into `data`, so any `Error` value found there is mapped onto the semantic convention
+ * attributes - its own properties are not enumerable and would otherwise be dropped.
  */
-export function buildLogAttributes(data?: unknown, exception?: unknown): LogAttributes {
+export function buildLogAttributes(data?: unknown): LogAttributes {
     const attributes: LogAttributes = {};
 
-    if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
-        Object.assign(attributes, data);
-    } else if (data !== undefined) {
-        attributes['crawlee.log.data'] = String(data);
+    if (typeof data !== 'object' || data === null || Array.isArray(data)) {
+        if (data !== undefined) {
+            attributes['crawlee.log.data'] = String(data);
+        }
+        return attributes;
     }
 
-    if (exception instanceof Error) {
-        attributes[ATTR_EXCEPTION_TYPE] = exception.name;
-        attributes[ATTR_EXCEPTION_MESSAGE] = exception.message;
-        if (exception.stack) {
-            attributes[ATTR_EXCEPTION_STACKTRACE] = exception.stack;
+    for (const [key, value] of Object.entries(data)) {
+        if (value instanceof Error) {
+            attributes[ATTR_EXCEPTION_TYPE] = value.name;
+            attributes[ATTR_EXCEPTION_MESSAGE] = value.message;
+            if (value.stack) {
+                attributes[ATTR_EXCEPTION_STACKTRACE] = value.stack;
+            }
+        } else {
+            attributes[key] = value as LogAttributes[string];
         }
-    } else if (exception !== undefined) {
-        attributes[ATTR_EXCEPTION_MESSAGE] = String(exception);
     }
 
     return attributes;

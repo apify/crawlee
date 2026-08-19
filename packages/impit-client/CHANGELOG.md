@@ -3,6 +3,50 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.18.1](https://github.com/apify/crawlee/compare/v3.18.0...v3.18.1) (2026-08-12)
+
+**Note:** Version bump only for package @crawlee/impit-client
+
+
+
+
+
+# [3.18.0](https://github.com/apify/crawlee/compare/v3.17.0...v3.18.0) (2026-08-04)
+
+### Bug Fixes
+
+* **impit-client:** honor redirect handler for session cookie parity ([#3938](https://github.com/apify/crawlee/issues/3938)) ([9371301](https://github.com/apify/crawlee/commit/9371301b21f733a5b5f5c2a092512ec34f511843))
+
+### Features
+
+* **impit-client:** add `cacheClients` option to disable `Impit` client reuse ([#3771](https://github.com/apify/crawlee/issues/3771)) ([af9cb8c](https://github.com/apify/crawlee/commit/af9cb8c68c8299e39fd2c40c3ff411e35d8a03f3)), closes [#3769](https://github.com/apify/crawlee/issues/3769) [#3769](https://github.com/apify/crawlee/issues/3769)
+
+
+# [3.17.0](https://github.com/apify/crawlee/compare/v3.16.0...v3.17.0) (2026-06-04)
+
+**Note:** Version bump only for package @crawlee/impit-client
+
+
+
+
+
+# [3.16.0](https://github.com/apify/crawlee/compare/v3.15.3...v3.16.0) (2026-02-06)
+
+
+### Bug Fixes
+
+* certain redirect responses change request methods ([#3296](https://github.com/apify/crawlee/issues/3296)) ([efac644](https://github.com/apify/crawlee/commit/efac644af2e2fbe942087f160dbd843d9ce3521e)), closes [#2586](https://github.com/apify/crawlee/issues/2586)
+* **impit-client:** pause fromWeb stream to prevent early consumption ([#3347](https://github.com/apify/crawlee/issues/3347)) ([72aacb4](https://github.com/apify/crawlee/commit/72aacb44eaa4802ba81583b4639787d0570f9626)), closes [#555](https://github.com/apify/crawlee/issues/555)
+
+
+### Performance Improvements
+
+* drop `tsbuildinfo` from published packages ([#3243](https://github.com/apify/crawlee/issues/3243)) ([3450f27](https://github.com/apify/crawlee/commit/3450f27880afb9e9d857a54d9212b54c397aed91)), closes [#3239](https://github.com/apify/crawlee/issues/3239)
+
+
+
+
+
 ## [3.15.3](https://github.com/apify/crawlee/compare/v3.15.2...v3.15.3) (2025-11-10)
 
 **Note:** Version bump only for package @crawlee/impit-client

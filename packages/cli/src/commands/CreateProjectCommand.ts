@@ -1,15 +1,14 @@
 import { execSync } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
-import { readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { get } from 'node:https';
 import { dirname, join, resolve } from 'node:path';
 import { setTimeout } from 'node:timers/promises';
 
 import type { Template } from '@crawlee/templates';
 import { fetchManifest } from '@crawlee/templates';
+import { input, select } from '@inquirer/prompts';
 import colors from 'ansi-colors';
-import { ensureDir } from 'fs-extra';
-import { prompt } from 'inquirer';
 import type { ArgumentsCamelCase, Argv, CommandModule } from 'yargs';
 
 interface CreateProjectArgs {
@@ -76,7 +75,7 @@ async function downloadTemplateFilesToDisk(template: Template, destinationDirect
                 // Make sure the folder for the file exists
                 const fileDirName = dirname(file.path);
                 const fileFolder = resolve(destinationDirectory, fileDirName);
-                await ensureDir(fileFolder);
+                await mkdir(fileFolder, { recursive: true });
 
                 // Write the actual file
                 await writeFile(resolve(destinationDirectory, file.path), buffer);
@@ -138,22 +137,17 @@ export class CreateProjectCommand<T> implements CommandModule<T, CreateProjectAr
 
         // Check proper format of projectName
         if (!projectName) {
-            const projectNamePrompt = await prompt([
-                {
-                    name: 'projectName',
-                    message: 'Name of the new project folder:',
-                    type: 'input',
-                    validate: (promptText) => {
-                        try {
-                            validateProjectName(promptText);
-                        } catch (err: any) {
-                            return err.message;
-                        }
-                        return true;
-                    },
+            projectName = await input({
+                message: 'Name of the new project folder:',
+                validate: (promptText) => {
+                    try {
+                        validateProjectName(promptText);
+                    } catch (err: any) {
+                        return err.message;
+                    }
+                    return true;
                 },
-            ]);
-            ({ projectName } = projectNamePrompt);
+            });
         } else {
             validateProjectName(projectName);
         }
@@ -165,16 +159,11 @@ export class CreateProjectCommand<T> implements CommandModule<T, CreateProjectAr
         }));
 
         if (!template) {
-            const answer = await prompt([
-                {
-                    type: 'list',
-                    name: 'template',
-                    message: 'Please select the template for your new Crawlee project',
-                    default: choices[0],
-                    choices,
-                },
-            ]);
-            template = answer.template;
+            template = await select({
+                message: 'Please select the template for your new Crawlee project',
+                default: choices[0],
+                choices,
+            });
         }
 
         const projectDir = join(process.cwd(), projectName!);
@@ -198,7 +187,7 @@ export class CreateProjectCommand<T> implements CommandModule<T, CreateProjectAr
         );
 
         // Run npm install in project dir.
-        const npm = /^win/.test(process.platform) ? 'npm.cmd' : 'npm';
+        const npm = process.platform.startsWith('win') ? 'npm.cmd' : 'npm';
         execSync(`${npm} install`, { cwd: projectDir, stdio: 'inherit' });
 
         console.log(

@@ -1,20 +1,17 @@
-import type { Dictionary } from '@crawlee/core';
-import { Configuration, KeyValueStore, useState } from '@crawlee/core';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
+import type { Dictionary, StorageBackend } from '@crawlee/types';
+import {
+    Configuration,
+    KeyValueStore,
+    MemoryStorageBackend,
+    purgeDefaultStorages,
+    serviceLocator,
+    useState,
+} from '@crawlee/core';
 
 describe('useState', () => {
-    const emulator = new MemoryStorageEmulator();
-
-    beforeAll(async () => {
-        Configuration.getGlobalConfig().set('persistStateIntervalMillis', 1e3);
-    });
-
     beforeEach(async () => {
-        await emulator.init();
-    });
-
-    afterAll(async () => {
-        await emulator.destroy();
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
+        serviceLocator.setConfiguration(new Configuration({ persistStateIntervalMillis: 1e3 }));
     });
 
     it('Should initialize with the provided value', async () => {
@@ -45,7 +42,7 @@ describe('useState', () => {
         state.hello = 'foo';
         state.foo = ['fizz'];
 
-        const manager = Configuration.getEventManager();
+        const manager = serviceLocator.getEventManager();
 
         await manager.init();
 
@@ -61,5 +58,33 @@ describe('useState', () => {
         expect(data).toHaveProperty('foo');
 
         await manager.close();
+    });
+});
+
+describe('purgeDefaultStorages', () => {
+    it('makes concurrent callers wait for an in-flight purge', async () => {
+        let purging = false;
+        let purgedWhileAlreadyPurging = false;
+
+        const client = {
+            async purge() {
+                purging = true;
+                await new Promise((resolve) => setTimeout(resolve, 50));
+                purging = false;
+            },
+        } as unknown as StorageBackend;
+
+        const config = new Configuration({ purgeOnStart: true });
+
+        await Promise.all(
+            Array.from({ length: 3 }, async () => {
+                await purgeDefaultStorages({ onlyPurgeOnce: true, storageBackend: client, configuration: config });
+                if (purging) {
+                    purgedWhileAlreadyPurging = true;
+                }
+            }),
+        );
+
+        expect(purgedWhileAlreadyPurging).toBe(false);
     });
 });

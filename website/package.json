@@ -1,54 +1,54 @@
 {
+    "name": "crawlee-website",
+    "private": true,
     "scripts": {
         "examples": "docusaurus-examples",
-        "postinstall": "npx patch-package",
         "start": "rimraf .docusaurus && docusaurus start",
         "start:fast": "rimraf .docusaurus && CRAWLEE_DOCS_FAST=1 docusaurus start",
-        "build": "rimraf .docusaurus && node --max_old_space_size=16000 node_modules/@docusaurus/core/bin/docusaurus.mjs build",
+        "build": "rimraf .docusaurus && NODE_OPTIONS=--max-old-space-size=16000 docusaurus build",
         "publish-gh-pages": "docusaurus-publish",
         "write-translations": "docusaurus write-translations",
         "version": "docusaurus version",
         "rename-version": "docusaurus rename-version",
         "prettify": "prettier --write --config ./tools/docs-prettier.config.js ../docs/guides/*.md",
         "swizzle": "docusaurus swizzle",
-        "deploy": "rimraf .docusaurus && node --max_old_space_size=16000 node_modules/@docusaurus/core/bin/docusaurus.mjs deploy",
+        "deploy": "rimraf .docusaurus && NODE_OPTIONS=--max-old-space-size=16000 docusaurus deploy",
         "docusaurus": "docusaurus",
         "postbuild": "node ./tools/joinLlmsFiles.mjs"
     },
     "devDependencies": {
-        "@apify/eslint-config-ts": "^0.4.0",
-        "@apify/tsconfig": "^0.1.0",
-        "@docusaurus/module-type-aliases": "3.9.2",
-        "@docusaurus/types": "3.9.2",
+        "@apify/eslint-config-ts": "0.4.1",
+        "@apify/tsconfig": "^0.2.0",
+        "@docusaurus/module-type-aliases": "3.10.2",
+        "@docusaurus/types": "3.10.2",
         "@types/react": "^19.0.0",
-        "@typescript-eslint/eslint-plugin": "^7.0.0",
-        "@typescript-eslint/parser": "^7.0.0",
-        "eslint": "^8.35.0",
-        "eslint-plugin-react": "^7.32.2",
-        "eslint-plugin-react-hooks": "^7.0.0",
+        "@typescript-eslint/eslint-plugin": "7.18.0",
+        "@typescript-eslint/parser": "7.18.0",
+        "eslint": "8.57.1",
+        "eslint-plugin-react": "7.37.5",
+        "eslint-plugin-react-hooks": "7.0.1",
         "fs-extra": "^11.1.0",
-        "patch-package": "^8.0.0",
         "path-browserify": "^1.0.1",
         "prettier": "^3.0.0",
         "rimraf": "^6.0.0",
-        "typescript": "^5.8.3"
+        "typescript": "^6.0.0"
     },
     "dependencies": {
-        "@apify/docusaurus-plugin-typedoc-api": "^4.4.8",
+        "@apify/docusaurus-plugin-typedoc-api": "5.1.16",
         "@apify/ui-icons": "^1.23.0",
         "@apify/utilities": "^2.8.0",
-        "@docusaurus/core": "3.9.2",
-        "@docusaurus/faster": "3.9.2",
-        "@docusaurus/mdx-loader": "3.9.2",
-        "@docusaurus/plugin-client-redirects": "3.9.2",
-        "@docusaurus/plugin-content-docs": "3.9.2",
-        "@docusaurus/preset-classic": "3.9.2",
-        "@docusaurus/theme-common": "3.9.2",
-        "@docusaurus/theme-mermaid": "^3.9.2",
+        "@docusaurus/core": "3.10.2",
+        "@docusaurus/faster": "3.10.2",
+        "@docusaurus/mdx-loader": "3.10.2",
+        "@docusaurus/plugin-client-redirects": "3.10.2",
+        "@docusaurus/plugin-content-docs": "3.10.2",
+        "@docusaurus/preset-classic": "3.10.2",
+        "@docusaurus/theme-common": "3.10.2",
+        "@docusaurus/theme-mermaid": "3.10.2",
         "@giscus/react": "^3.0.0",
         "@mdx-js/react": "^3.0.1",
         "@signalwire/docusaurus-plugin-llms-txt": "^1.2.1",
-        "axios": "^1.11.0",
+        "axios": "^1.16.0",
         "buffer": "^6.0.3",
         "clsx": "^2.0.0",
         "crypto-browserify": "^3.12.0",
@@ -64,6 +64,11 @@
         "stream-browserify": "^3.0.0",
         "unist-util-visit": "^5.0.0"
     },
+    "packageManager": "pnpm@10.24.0",
+    "volta": {
+        "node": "24.13.0",
+        "pnpm": "10.24.0"
+    },
     "browserslist": {
         "production": [
             ">0.5%",
@@ -75,9 +80,5 @@
             "last 3 firefox version",
             "last 5 safari version"
         ]
-    },
-    "resolutions": {
-        "@rspack/core": "1.5.8"
-    },
-    "packageManager": "yarn@4.10.3"
+    }
 }

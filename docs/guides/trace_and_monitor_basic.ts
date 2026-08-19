@@ -8,7 +8,7 @@ const crawler = new CheerioCrawler({
         log.info(`Crawled ${request.url}`, { title });
 
         await enqueueLinks({
-            globs: ['https://crawlee.dev/**'],
+            include: ['https://crawlee.dev/**'],
         });
     },
 });

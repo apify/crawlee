@@ -39,8 +39,12 @@ export interface CrawlingContextLike {
     request?: RequestLike;
 }
 
-/** The subset of the `@apify/log` `Log` class this instrumentation relies on. */
-export interface ApifyLogLike {
-    getLevel(): number;
-    internal(level: number, message: string, data?: unknown, exception?: unknown): void;
+/** One of the logging methods `BaseCrawleeLogger` provides, and how to read a log record out of a call to it. */
+export interface LoggerMethodDefinition {
+    /** The method on `BaseCrawleeLogger.prototype` to patch. */
+    methodName: string;
+    /** The Crawlee log level this method logs at. */
+    level: number;
+    /** Pulls the message and the structured data out of the call arguments, which differ per method. */
+    read: (args: unknown[]) => { message: string; data?: Record<string, unknown> };
 }

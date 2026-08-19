@@ -1,8 +1,8 @@
 import type { Dictionary } from '@crawlee/types';
 import type { BrowserFingerprintWithHeaders } from 'fingerprint-generator';
 
-import type { BrowserPlugin, CommonBrowser, CommonLibrary } from './abstract-classes/browser-plugin';
-import type { UnwrapPromise } from './utils';
+import type { BrowserPlugin, CommonBrowser, CommonLibrary } from './abstract-classes/browser-plugin.js';
+import type { UnwrapPromise } from './utils.js';
 
 /**
  * `LaunchContext` holds information about the launched browser. It's useful
@@ -47,17 +47,21 @@ export interface LaunchContextOptions<
      */
     useIncognitoPages?: boolean;
     /**
-     * @experimental
-     * Like `useIncognitoPages`, but for persistent contexts, so cache is used for faster loading.
-     * Works best with Firefox. Unstable on Chromium.
-     */
-    experimentalContainers?: boolean;
-    /**
      * Path to a User Data Directory, which stores browser session data like cookies and local storage.
      */
     userDataDir?: string;
     proxyUrl?: string;
-    proxyTier?: number;
+    /**
+     * If set to `true`, TLS certificate errors from the upstream proxy will be ignored.
+     * This is useful when using HTTPS proxies with self-signed certificates.
+     */
+    ignoreProxyCertificate?: boolean;
+    /**
+     * Whether this launch context represents a connection to a remote browser
+     * rather than a locally launched one.
+     * @default false
+     */
+    isRemote?: boolean;
 }
 
 export class LaunchContext<
@@ -72,14 +76,22 @@ export class LaunchContext<
     launchOptions: LibraryOptions;
     useIncognitoPages: boolean;
     browserPerProxy?: boolean;
-    experimentalContainers: boolean;
     userDataDir: string;
-    proxyTier?: number;
+    readonly isRemote: boolean;
+    ignoreProxyCertificate?: boolean;
 
-    private _proxyUrl?: string;
-    private readonly _reservedFieldNames = [...Reflect.ownKeys(this), 'extend'];
+    #proxyUrl?: string;
+    readonly #reservedFieldNames: (string | symbol)[];
 
     fingerprint?: BrowserFingerprintWithHeaders;
+
+    /**
+     * Token identifying the remote browser session this context connected to, set by the plugin and read by
+     * the {@apilink RemoteBrowserPool} to release the session on close. Only present for remote connections.
+     * @internal
+     */
+    remoteToken?: number;
+
     [K: PropertyKey]: unknown;
 
     constructor(options: LaunchContextOptions<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>) {
@@ -90,9 +102,9 @@ export class LaunchContext<
             proxyUrl,
             useIncognitoPages,
             browserPerProxy,
-            experimentalContainers,
             userDataDir = '',
-            proxyTier,
+            ignoreProxyCertificate,
+            isRemote,
         } = options;
 
         this.id = id;
@@ -100,11 +112,15 @@ export class LaunchContext<
         this.launchOptions = launchOptions;
         this.browserPerProxy = browserPerProxy ?? false;
         this.useIncognitoPages = useIncognitoPages ?? false;
-        this.experimentalContainers = experimentalContainers ?? false;
         this.userDataDir = userDataDir;
-        this.proxyTier = proxyTier;
+        this.ignoreProxyCertificate = ignoreProxyCertificate ?? false;
+        this.isRemote = isRemote ?? false;
 
-        this._proxyUrl = proxyUrl;
+        this.#proxyUrl = proxyUrl;
+
+        // Computed here (not in a field initializer) so that all fields already exist; the accessors live on
+        // the prototype, so they are never own keys and have to be listed explicitly.
+        this.#reservedFieldNames = [...Reflect.ownKeys(this), 'proxyUrl', 'remoteToken', 'extend'];
     }
 
     /**
@@ -116,7 +132,7 @@ export class LaunchContext<
      */
     extend<T extends Record<PropertyKey, unknown>>(fields: T): void {
         Object.entries(fields).forEach(([key, value]) => {
-            if (this._reservedFieldNames.includes(key)) {
+            if (this.#reservedFieldNames.includes(key)) {
                 throw new Error(`Cannot extend LaunchContext with key: ${key}, because it's reserved.`);
             } else {
                 Reflect.set(this, key, value);
@@ -130,6 +146,7 @@ export class LaunchContext<
      */
     set proxyUrl(url: string | undefined) {
         if (!url) {
+            this.#proxyUrl = undefined;
             return;
         }
 
@@ -139,13 +156,13 @@ export class LaunchContext<
         urlInstance.hash = '';
 
         // https://www.chromium.org/developers/design-documents/network-settings/#command-line-options-for-proxy-settings
-        this._proxyUrl = urlInstance.href.slice(0, -1);
+        this.#proxyUrl = urlInstance.href.slice(0, -1);
     }
 
     /**
      * Returns the proxy URL of the browser.
      */
     get proxyUrl(): string | undefined {
-        return this._proxyUrl;
+        return this.#proxyUrl;
     }
 }

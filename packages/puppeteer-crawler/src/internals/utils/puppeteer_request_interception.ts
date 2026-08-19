@@ -1,12 +1,14 @@
 import { EventEmitter } from 'node:events';
 
-import type { Dictionary } from '@crawlee/utils';
-import ow from 'ow';
+import { serviceLocator } from '@crawlee/browser';
+import type { Dictionary } from '@crawlee/types';
+import { parseArgument, schemas } from '@crawlee/utils/internal';
+// @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
 import type { HTTPRequest, HTTPRequest as PuppeteerRequest, Page } from 'puppeteer';
 
-import log from '@apify/log';
-
 export type InterceptHandler = (request: PuppeteerRequest) => unknown;
+
+const pageSchema = schemas.objectWithKeys(['goto', 'evaluate']);
 
 // We use weak maps here so that the content gets discarded after page gets closed.
 const pageInterceptRequestHandlersMap: WeakMap<Page, InterceptHandler[]> = new WeakMap(); // Maps page to an array of request interception handlers.
@@ -158,8 +160,8 @@ async function handleRequest(request: PuppeteerRequest, interceptRequestHandlers
  * @param handler Request interception handler.
  */
 export async function addInterceptRequestHandler(page: Page, handler: InterceptHandler): Promise<void> {
-    ow(page, ow.object.hasKeys('goto', 'evaluate'));
-    ow(handler, ow.function);
+    parseArgument(page, pageSchema);
+    parseArgument(handler, schemas.anyFunction);
 
     if (!pageInterceptRequestHandlersMap.has(page)) {
         pageInterceptRequestHandlersMap.set(page, []);
@@ -201,8 +203,8 @@ export async function addInterceptRequestHandler(page: Page, handler: InterceptH
  * @param handler Request interception handler.
  */
 export async function removeInterceptRequestHandler(page: Page, handler: InterceptHandler): Promise<void> {
-    ow(page, ow.object.hasKeys('goto', 'evaluate'));
-    ow(handler, ow.function);
+    parseArgument(page, pageSchema);
+    parseArgument(handler, schemas.anyFunction);
 
     const handlersArray = pageInterceptRequestHandlersMap.get(page)!.filter((item) => item !== handler);
 
@@ -222,7 +224,7 @@ export async function removeInterceptRequestHandler(page: Page, handler: Interce
                         await disableRequestInterception(page);
                         interceptedRequestsInProgress.removeListener('delete', onDelete);
                     } catch (error) {
-                        log.debug('Error while disabling request interception', { error });
+                        serviceLocator.getLogger().debug('Error while disabling request interception', { error });
                     }
                 }
             };

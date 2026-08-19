@@ -5,29 +5,32 @@ import type { AddressInfo } from 'node:net';
 import os from 'node:os';
 import { promisify } from 'node:util';
 
-import type {
-    Cheerio,
-    CheerioAPI,
-    CheerioRoot,
-    Element,
-    PuppeteerCrawlingContext,
-    PuppeteerGoToOptions,
-    Request,
+import type { PuppeteerCrawlingContext, PuppeteerGoToOptions, Request } from '@crawlee/puppeteer';
+import type { Cheerio, CheerioAPI } from 'cheerio';
+import type { Element } from 'domhandler';
+import {
+    createPuppeteerRouter,
+    ProxyConfiguration,
+    PuppeteerCrawler,
+    puppeteerBrowserPool,
+    RequestList,
+    RequestQueue,
+    RequestValidationError,
+    Session,
+    SessionPool,
 } from '@crawlee/puppeteer';
-import { ProxyConfiguration, PuppeteerCrawler, RequestList, RequestQueue, Session } from '@crawlee/puppeteer';
-import type { Cookie } from '@crawlee/types';
+import { type ConcurrencySystem, MemoryStorageBackend, serviceLocator } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
 import type { Server as ProxyChainServer } from 'proxy-chain';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
+import { z } from 'zod';
 
 import log from '@apify/log';
 
-import { createProxyServer } from '../create-proxy-server';
+import { createProxyServer } from '../create-proxy-server.js';
 
 describe('PuppeteerCrawler', () => {
     let prevEnvHeadless: string;
     let logLevel: number;
-    const localStorageEmulator = new MemoryStorageEmulator();
     let requestList: RequestList;
     let servers: ProxyChainServer[];
     let target: Server;
@@ -68,14 +71,10 @@ describe('PuppeteerCrawler', () => {
     });
 
     beforeEach(async () => {
-        await localStorageEmulator.init();
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
 
         const sources = [serverUrl];
         requestList = await RequestList.open(`sources-${Math.random() * 10000}`, sources);
-    });
-
-    afterAll(async () => {
-        await localStorageEmulator.destroy();
     });
 
     afterAll(async () => {
@@ -105,18 +104,13 @@ describe('PuppeteerCrawler', () => {
             asserts.push(response!.status() === 200);
             request.userData.title = await page.title();
             processed.push(request);
-            asserts.push(
-                !response!
-                    .request()
-                    .headers()
-                    ['user-agent'].match(/headless/i),
-            );
+            asserts.push(!/headless/i.exec(response!.request().headers()['user-agent']));
             asserts.push(!(await page.evaluate(() => window.navigator.webdriver)));
         };
 
         const puppeteerCrawler = new PuppeteerCrawler({
             requestList: requestListLarge,
-            browserPoolOptions: { useFingerprints: false },
+            browserPool: puppeteerBrowserPool({ useFingerprints: false }),
             minConcurrency: 1,
             maxConcurrency: 1,
             requestHandler,
@@ -127,7 +121,7 @@ describe('PuppeteerCrawler', () => {
 
         await puppeteerCrawler.run();
 
-        expect(puppeteerCrawler.autoscaledPool!.minConcurrency).toBe(1);
+        expect((puppeteerCrawler.concurrencySystem! as ConcurrencySystem).minConcurrency).toBe(1);
         expect(processed).toHaveLength(6);
         expect(failed).toHaveLength(0);
 
@@ -150,7 +144,7 @@ describe('PuppeteerCrawler', () => {
             maxConcurrency: 1,
             requestHandler: () => {},
             preNavigationHooks: [
-                (_context, gotoOptions) => {
+                ({ gotoOptions }) => {
                     options = gotoOptions;
                 },
             ],
@@ -276,14 +270,14 @@ describe('PuppeteerCrawler', () => {
         const crawler = new PuppeteerCrawler({
             requestQueue,
             navigationTimeoutSecs: 0.005,
-            browserPoolOptions: {
+            browserPool: puppeteerBrowserPool({
                 preLaunchHooks: [
                     async () => {
                         // Do some async work that's longer than navigationTimeoutSecs
                         await sleep(20);
                     },
                 ],
-            },
+            }),
             requestHandler,
         });
 
@@ -312,32 +306,23 @@ describe('PuppeteerCrawler', () => {
     });
 
     test('should set cookies assigned to session to page', async () => {
-        const cookies: Cookie[] = [
-            {
-                name: 'example_cookie_name',
-                domain: '127.0.0.1',
-                value: 'example_cookie_value',
-                expires: -1,
-            } as never,
-        ];
-
         let pageCookies;
         let sessionCookies;
 
         const puppeteerCrawler = new PuppeteerCrawler({
             requestList,
-            useSessionPool: true,
-            persistCookiesPerSession: true,
-            sessionPoolOptions: {
-                createSessionFunction: (sessionPool) => {
-                    const session = new Session({ sessionPool });
-                    session.setCookies(cookies, serverUrl);
+
+            saveResponseCookies: true,
+            sessionPool: new SessionPool({
+                createSessionFunction: async () => {
+                    const session = new Session();
+                    await session.cookieJar.setCookie('example_cookie_name=example_cookie_value', serverUrl);
                     return session;
                 },
-            },
+            }),
             requestHandler: async ({ page, session }) => {
                 pageCookies = await page.cookies().then((cks) => cks.map((c) => `${c.name}=${c.value}`).join('; '));
-                sessionCookies = session!.getCookieString(serverUrl);
+                sessionCookies = await session!.cookieJar.getCookieString(serverUrl);
             },
         });
 
@@ -361,11 +346,6 @@ describe('PuppeteerCrawler', () => {
                 },
             },
             maxConcurrency: 1,
-            sessionPoolOptions: {
-                sessionOptions: {
-                    maxUsageCount: 1,
-                },
-            },
             proxyConfiguration,
             requestHandler: async ({ proxyInfo, session }) => {
                 proxies.add(proxyInfo!.url);
@@ -378,16 +358,16 @@ describe('PuppeteerCrawler', () => {
         expect(sessions.size).toBe(3); // 3 different sessions used
     });
 
-    test('shallow clones browserPoolOptions before normalization', () => {
+    test('does not mutate the launchContext it was given', () => {
         const options = {
-            browserPoolOptions: {},
+            launchContext: {},
+            headless: false,
             requestHandler: async () => {},
         };
 
         void new PuppeteerCrawler(options);
-        void new PuppeteerCrawler(options);
 
-        expect(Object.keys(options.browserPoolOptions).length).toBe(0);
+        expect(options.launchContext).toEqual({});
     });
 
     if (os.platform() !== 'darwin') {
@@ -411,17 +391,15 @@ describe('PuppeteerCrawler', () => {
 
             const puppeteerCrawler = new PuppeteerCrawler({
                 requestList: requestListLarge,
-                useSessionPool: true,
-                launchContext: {
-                    useIncognitoPages: true,
-                },
-                browserPoolOptions: {
+
+                browserPool: puppeteerBrowserPool({
+                    launchContext: { useIncognitoPages: true },
                     prePageCreateHooks: [
                         (_id, _controller, options) => {
                             options!.proxyBypassList = ['<-loopback>'];
                         },
                     ],
-                },
+                }),
                 proxyConfiguration,
                 requestHandler: async ({ page }) => {
                     const content = await page.content();
@@ -450,7 +428,6 @@ describe('PuppeteerCrawler', () => {
             // Checking that types are correct
             const $ = await crawlingContext.parseWithCheerio();
 
-            const _cheerioRootType: CheerioRoot = $;
             const _apiType: CheerioAPI = $;
             const _cheerioElementType: Cheerio<Element> = $('div');
         };
@@ -462,5 +439,16 @@ describe('PuppeteerCrawler', () => {
             requestHandler,
         });
         await puppeteerCrawler.run();
+    });
+
+    test('validates userData against the router schema when adding requests', async () => {
+        const router = createPuppeteerRouter({ DETAIL: z.object({ id: z.string() }) });
+        router.addHandler('DETAIL', async () => {});
+
+        const crawler = new PuppeteerCrawler({ requestHandler: router });
+
+        await expect(
+            crawler.addRequests([{ url: 'https://example.com/a', label: 'DETAIL', userData: { id: 123 } }] as never),
+        ).rejects.toThrow(RequestValidationError);
     });
 });

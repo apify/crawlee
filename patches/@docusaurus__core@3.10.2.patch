@@ -1,0 +1,19 @@
+diff --git a/lib/client/ClientLifecyclesDispatcher.js b/lib/client/ClientLifecyclesDispatcher.js
+index 903f8dc30b2e044fd5e1cb868ac5698b13186292..b6b60bfa5237af5d5598e3e2051760da00321159 100644
+--- a/lib/client/ClientLifecyclesDispatcher.js
++++ b/lib/client/ClientLifecyclesDispatcher.js
+@@ -30,9 +30,11 @@ function scrollAfterNavigation({ location, previousLocation, }) {
+         window.scrollTo(0, 0);
+     }
+     else {
+-        const id = decodeURIComponent(hash.substring(1));
+-        const element = document.getElementById(id);
+-        element?.scrollIntoView();
++        setTimeout(() => {
++            const id = decodeURIComponent(hash.substring(1));
++            const element = document.getElementById(id);
++            element?.scrollIntoView();
++        }, 100);
+     }
+ }
+ function ClientLifecyclesDispatcher({ children, location, previousLocation, }) {

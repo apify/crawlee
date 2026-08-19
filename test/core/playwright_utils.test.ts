@@ -1,11 +1,11 @@
 import type { Server } from 'node:http';
 import path from 'node:path';
 
+import { MemoryStorageBackend, serviceLocator } from '@crawlee/core';
 import { KeyValueStore, launchPlaywright, playwrightUtils, Request } from '@crawlee/playwright';
 import type { Browser, Page } from 'playwright';
 import { chromium } from 'playwright';
-import { runExampleComServer } from 'test/shared/_helper';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
+import { runExampleComServer } from '../shared/_helper.js';
 
 import log from '@apify/log';
 
@@ -26,7 +26,6 @@ afterAll(() => {
 
 describe('playwrightUtils', () => {
     let ll: number;
-    const localStorageEmulator = new MemoryStorageEmulator();
 
     beforeAll(async () => {
         ll = log.getLevel();
@@ -34,12 +33,11 @@ describe('playwrightUtils', () => {
     });
 
     beforeEach(async () => {
-        await localStorageEmulator.init();
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
     });
 
     afterAll(async () => {
         log.setLevel(ll);
-        await localStorageEmulator.destroy();
     });
 
     test('injectFile()', async () => {
@@ -50,9 +48,13 @@ describe('playwrightUtils', () => {
             // @ts-expect-error
             let result = await page.evaluate(() => window.injectedVariable === 42);
             expect(result).toBe(false);
-            await playwrightUtils.injectFile(page, path.join(__dirname, '..', 'shared', 'data', 'inject_file.txt'), {
-                surviveNavigations: true,
-            });
+            await playwrightUtils.injectFile(
+                page,
+                path.join(import.meta.dirname, '..', 'shared', 'data', 'inject_file.txt'),
+                {
+                    surviveNavigations: true,
+                },
+            );
             // @ts-expect-error
             result = await page.evaluate(() => window.injectedVariable);
             expect(result).toBe(42);
@@ -75,7 +77,10 @@ describe('playwrightUtils', () => {
             // @ts-expect-error
             result = await page.evaluate(() => window.injectedVariable === 42);
             expect(result).toBe(false);
-            await playwrightUtils.injectFile(page, path.join(__dirname, '..', 'shared', 'data', 'inject_file.txt'));
+            await playwrightUtils.injectFile(
+                page,
+                path.join(import.meta.dirname, '..', 'shared', 'data', 'inject_file.txt'),
+            );
             // @ts-expect-error
             result = await page.evaluate(() => window.injectedVariable);
             expect(result).toBe(42);
@@ -184,6 +189,25 @@ describe('playwrightUtils', () => {
         }
     });
 
+    test('parseWithCheerio() iframe expansion works with Trusted Types CSP', async () => {
+        const browser = await launchPlaywright(launchContext);
+
+        try {
+            const page = await browser.newPage();
+            await page.goto(new URL('/special/outside-iframe-csp', serverAddress).toString());
+
+            const $ = await playwrightUtils.parseWithCheerio(page);
+
+            const headings = $('h1')
+                .map((_, el) => $(el).text())
+                .get();
+
+            expect(headings).toEqual(['Outside iframe', 'In iframe']);
+        } finally {
+            await browser.close();
+        }
+    });
+
     describe('blockRequests()', () => {
         let browser: Browser = null as any;
         beforeAll(async () => {
@@ -251,6 +275,33 @@ describe('playwrightUtils', () => {
         }
     }, 60_000);
 
+    test('gotoExtended() applies headers natively for GET requests without a payload', async () => {
+        const browser = await chromium.launch({ headless: true });
+
+        try {
+            const page = await browser.newPage();
+            const routeSpy = vitest.spyOn(page, 'route');
+            const deprecatedSpy = vitest.spyOn(log, 'deprecated');
+
+            const request = new Request({
+                url: `${serverAddress}/special/getDebug`,
+                headers: {
+                    'User-Agent': 'Demo UA',
+                },
+            });
+
+            const response = await playwrightUtils.gotoExtended(page, request);
+
+            const { method, headers } = JSON.parse(await response!.text());
+            expect(method).toBe('GET');
+            expect(headers['user-agent']).toBe('Demo UA');
+            expect(routeSpy).not.toHaveBeenCalled();
+            expect(deprecatedSpy).not.toHaveBeenCalled();
+        } finally {
+            await browser.close();
+        }
+    }, 60_000);
+
     describe('shadow root expansion', () => {
         let browser: Browser;
         beforeAll(async () => {
@@ -266,8 +317,8 @@ describe('playwrightUtils', () => {
             const result = await playwrightUtils.parseWithCheerio(page, true);
 
             const text = result('body').text().trim();
-            expect([...text.matchAll(/\[GOOD\]/g)]).toHaveLength(0);
-            expect([...text.matchAll(/\[BAD\]/g)]).toHaveLength(0);
+            expect([...text.matchAll(/\[GOOD]/g)]).toHaveLength(0);
+            expect([...text.matchAll(/\[BAD]/g)]).toHaveLength(0);
         });
 
         test('expansion works', async () => {
@@ -276,8 +327,8 @@ describe('playwrightUtils', () => {
             const result = await playwrightUtils.parseWithCheerio(page);
 
             const text = result('body').text().trim();
-            expect([...text.matchAll(/\[GOOD\]/g)]).toHaveLength(2);
-            expect([...text.matchAll(/\[BAD\]/g)]).toHaveLength(0);
+            expect([...text.matchAll(/\[GOOD]/g)]).toHaveLength(2);
+            expect([...text.matchAll(/\[BAD]/g)]).toHaveLength(0);
         });
     });
 
@@ -385,5 +436,71 @@ describe('playwrightUtils', () => {
         } finally {
             await browser.close();
         }
+    });
+
+    describe('handleCloudflareChallenge() challenge detection', () => {
+        // not a named export, only reachable via the internal `playwrightUtils` object
+        const { handleCloudflareChallenge } = playwrightUtils.playwrightUtils;
+        let browser: Browser;
+        let page: Page;
+
+        // no clicking or waiting, so an unsolved challenge fails fast instead of spending ~20s in the click loop
+        const fastOptions = () => ({
+            sleepSecs: 0,
+            preChallengeSleepSecs: 0,
+            clickCallback: async () => {},
+        });
+
+        // markup as rendered by the current (2026) Cloudflare challenge template
+        const currentChallengeBody = `
+            <div class="main-wrapper" role="main"><div class="main-content">
+                <h1>example.com</h1>
+                <h2>Performing security verification</h2>
+                <div style="display: grid;"><div><div><input type="hidden" name="cf-turnstile-response" id="cf-chl-widget-2swmi_response"></div></div></div>
+            </div></div>
+            <div class="footer" role="contentinfo"><div class="footer-inner"><div class="footer-wrapper">
+                <div><div class="ray-id">Ray ID: <code>a29d9a9cff4fb9e4</code></div></div>
+                <div class="footer-link-wrapper"><span class="footer-text">Performance and Security by Cloudflare</span></div>
+            </div></div></div>`;
+
+        // the older template, with the `.diagnostic-wrapper` element
+        const oldChallengeBody = `
+            <div class="main-wrapper" role="main"><div class="main-content">
+                <h1>example.com</h1>
+                <div><input type="hidden" name="cf-turnstile-response" id="cf-chl-widget-2swmi_response"></div>
+            </div></div>
+            <div class="footer" role="contentinfo"><div class="footer-inner"><div class="footer-wrapper"><div class="diagnostic-wrapper">
+                <div class="ray-id">Ray ID: <code>a29d9a9cff4fb9e4</code></div>
+            </div></div></div></div>`;
+
+        beforeAll(async () => {
+            browser = await chromium.launch({ headless: true });
+            page = await browser.newPage();
+        });
+
+        afterAll(async () => {
+            await browser.close();
+        });
+
+        test('detects the current challenge markup', async () => {
+            await page.setContent(`<html><body>${currentChallengeBody}</body></html>`);
+            await expect(handleCloudflareChallenge(page, 'https://example.com', fastOptions())).rejects.toThrow(
+                /Blocked by Cloudflare/,
+            );
+        });
+
+        test('detects the old challenge markup', async () => {
+            await page.setContent(`<html><body>${oldChallengeBody}</body></html>`);
+            await expect(handleCloudflareChallenge(page, 'https://example.com', fastOptions())).rejects.toThrow(
+                /Blocked by Cloudflare/,
+            );
+        });
+
+        test('resolves without detection on a regular page', async () => {
+            await page.setContent('<html><body><h1>Welcome</h1></body></html>');
+            await expect(
+                handleCloudflareChallenge(page, 'https://example.com', fastOptions()),
+            ).resolves.toBeUndefined();
+        });
     });
 });

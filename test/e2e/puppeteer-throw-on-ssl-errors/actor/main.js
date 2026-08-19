@@ -13,8 +13,8 @@ await Actor.main(async () => {
     const crawler = new PuppeteerCrawler({
         launchContext: { launchOptions: { acceptInsecureCerts: false } }, // This is the default
         preNavigationHooks: [
-            (_ctx, goToOptions) => {
-                goToOptions.waitUntil = ['networkidle2'];
+            ({ gotoOptions }) => {
+                gotoOptions.waitUntil = ['networkidle2'];
             },
         ],
         async requestHandler({ page, enqueueLinks, request, log }) {
@@ -26,7 +26,9 @@ await Actor.main(async () => {
             if (label === 'START') {
                 log.info('Bad ssl page opened!');
                 await enqueueLinks({
-                    globs: [{ glob: 'https://*.badssl.com/', userData: { label: 'DETAIL' } }],
+                    include: ['https://*.badssl.com/'],
+                    strategy: 'same-domain',
+                    label: 'DETAIL',
                     selector: '.group a.bad',
                 });
             } else if (label === 'DETAIL') {

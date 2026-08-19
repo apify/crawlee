@@ -26,12 +26,12 @@ const crawleeInstrumentation = new CrawleeInstrumentation({
             },
         },
         {
-            moduleName: '@crawlee/http',
-            className: 'HttpCrawler',
-            methodName: '_runRequestHandler',
+            moduleName: '@crawlee/basic',
+            className: 'BasicCrawler',
+            methodName: 'runRequestHandler',
             // Dynamic span name using the context argument
             spanName(context: any) {
-                return `http.request ${context.request.url}`;
+                return `request ${context.request.url}`;
             },
             spanOptions(context: any) {
                 return {
@@ -60,3 +60,19 @@ export const sdk = new NodeSDK({
 });
 
 sdk.start();
+
+// Like the setup file above, this one is preloaded before the crawler, so it also owns flushing the buffered
+// telemetry on the way out - without this the batched spans are dropped when the process exits.
+const shutdown = async () => {
+    await sdk.shutdown();
+};
+
+// `beforeExit` covers a script that simply runs to completion...
+process.once('beforeExit', () => {
+    void shutdown();
+});
+
+// ...while signals have to be handled separately, as they do not emit `beforeExit`.
+process.once('SIGTERM', () => {
+    void shutdown().then(() => process.exit(0));
+});

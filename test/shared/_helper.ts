@@ -4,9 +4,11 @@ import path from 'node:path';
 import { setTimeout } from 'node:timers/promises';
 
 import bodyParser from 'body-parser';
-import { entries } from 'crawlee';
 import type { Application } from 'express';
 import express from 'express';
+import iconv from 'iconv-lite';
+
+import { entries } from './typedefs.js';
 
 export const startExpressAppPromise = async (app: Application, port: number) => {
     return new Promise<Server>((resolve) => {
@@ -24,8 +26,8 @@ export const responseSamples = {
         '    <title>Web Scraping, Data Extraction and Automation &#xb7; Apify</title>\n' +
         '</item>\n' +
         '</items>',
-    complexXml: fs.readFileSync(path.join(__dirname, 'data/complex.xml'), 'utf-8'),
-    image: fs.readFileSync(path.join(__dirname, 'data/apify.png')),
+    complexXml: fs.readFileSync(path.join(import.meta.dirname, 'data/complex.xml'), 'utf-8'),
+    image: fs.readFileSync(path.join(import.meta.dirname, 'data/apify.png')),
     html: `<!doctype html>
     <html>
     <head>
@@ -320,6 +322,11 @@ export async function runExampleComServer(): Promise<[Server, number]> {
             res.type('html').send(responseSamples.outsideIframe);
         });
 
+        special.get('/outside-iframe-csp', (_req, res) => {
+            res.setHeader('Content-Security-Policy', "require-trusted-types-for 'script'");
+            res.type('html').send(responseSamples.outsideIframe);
+        });
+
         special.get('/inside-iframe', (_req, res) => {
             res.type('html').send(responseSamples.insideIframe);
         });
@@ -330,6 +337,24 @@ export async function runExampleComServer(): Promise<[Server, number]> {
 
         special.get('/html-entities', (_req, res) => {
             res.type('html').send('&quot;&lt;&gt;"<>');
+        });
+
+        special.get('/meta-charset', (_req, res) => {
+            const text = 'Žluťoučký kůň';
+            const html = `<html><head><meta http-equiv="Content-Type" content="text/html; charset=windows-1250"></head><body>${text}</body></html>`;
+            res.setHeader('content-type', 'text/html');
+            res.end(iconv.encode(html, 'windows-1250'));
+        });
+
+        special.get('/set-cookie', (req, res) => {
+            const cookieName = (req.query.name as string) || 'testCookie';
+            const cookieValue = (req.query.value as string) || 'testValue';
+            res.setHeader('set-cookie', `${cookieName}=${cookieValue}; Path=/`);
+            res.type('html').send('<html><body>Cookie set</body></html>');
+        });
+
+        special.get('/get-cookies', (req, res) => {
+            res.json({ cookies: req.headers.cookie || '' });
         });
     })();
 
@@ -349,7 +374,7 @@ export async function runExampleComServer(): Promise<[Server, number]> {
     app.use('/special', special);
     app.use('/cacheable', cacheable);
 
-    app.get('**/*', async (req, res) => {
+    app.get('{*splat}', async (req, res) => {
         await setTimeout(50);
         res.send(responseSamples.html);
     });

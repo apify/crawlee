@@ -2,25 +2,33 @@
   "name": "crawlee-docs",
   "description": "Documentation and examples for Crawlee. This package is not published to npm, only used locally for TS build checks.",
   "type": "module",
-  "packageManager": "yarn@4.10.3",
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "typescript": "^5.9.3"
+    "typescript": "^6.0.0"
   },
   "dependencies": {
+    "@crawlee/browser-pool": "workspace:*",
+    "@crawlee/core": "workspace:*",
+    "@crawlee/got-scraping-client": "workspace:*",
+    "@crawlee/http-client": "workspace:*",
+    "@crawlee/impit-client": "workspace:*",
+    "@crawlee/otel": "workspace:*",
+    "@crawlee/stagehand": "workspace:*",
     "@opentelemetry/api": "^1.9.0",
-    "@opentelemetry/api-logs": "^0.210.0",
-    "@opentelemetry/exporter-logs-otlp-grpc": "^0.210.0",
     "@opentelemetry/exporter-trace-otlp-grpc": "^0.210.0",
     "@opentelemetry/resources": "^2.0.0",
-    "@opentelemetry/sdk-logs": "^0.210.0",
     "@opentelemetry/sdk-node": "^0.210.0",
     "@opentelemetry/sdk-trace-base": "^2.0.0",
     "@opentelemetry/semantic-conventions": "^1.39.0",
+    "apify": "*",
+    "crawlee": "workspace:*",
+    "impit": "^0.14.2",
+    "pino": "^9.6.0",
     "playwright-extra": "^4.3.6",
     "puppeteer-extra": "^3.3.6",
-    "puppeteer-extra-plugin-stealth": "^2.11.2"
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "winston": "^3.17.0"
   }
 }

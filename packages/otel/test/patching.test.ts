@@ -52,7 +52,7 @@ describe('automatic instrumentation', () => {
         class HttpCrawler {
             public seen: string[] = [];
 
-            async _runRequestHandler(crawlingContext: { request: { url: string } }) {
+            async makeHttpRequest(crawlingContext: { request: { url: string } }) {
                 this.seen.push(crawlingContext.request.url);
                 return 'handled';
             }
@@ -64,7 +64,7 @@ describe('automatic instrumentation', () => {
         const crawler = new HttpCrawler();
         const context = { request: { id: 'req-1', url: 'https://example.com', method: 'GET', retryCount: 2 } };
 
-        await expect(crawler._runRequestHandler(context)).resolves.toBe('handled');
+        await expect(crawler.makeHttpRequest(context)).resolves.toBe('handled');
         // The original behaviour is preserved.
         expect(crawler.seen).toEqual(['https://example.com']);
 
@@ -72,23 +72,23 @@ describe('automatic instrumentation', () => {
 
         const spans = exporter.getFinishedSpans();
         expect(spans).toHaveLength(1);
-        expect(spans[0].name).toBe('crawlee.http.runRequestHandler');
+        expect(spans[0].name).toBe('crawlee.http.makeHttpRequest');
         expect(spans[0].attributes).toEqual({
             'crawlee.request.id': 'req-1',
             [ATTR_URL_FULL]: 'https://example.com',
             [ATTR_HTTP_REQUEST_METHOD]: 'GET',
             'crawlee.request.retry_count': 2,
-            [ATTR_CODE_FUNCTION_NAME]: 'HttpCrawler._runRequestHandler',
+            [ATTR_CODE_FUNCTION_NAME]: 'HttpCrawler.makeHttpRequest',
         });
     });
 
     test('nests the spans of nested instrumented calls', async () => {
         class BasicCrawler {
             async run() {
-                return this._runTaskFunction();
+                return this.handleRequest();
             }
 
-            async _runTaskFunction() {
+            async handleRequest() {
                 return 'done';
             }
         }
@@ -101,7 +101,7 @@ describe('automatic instrumentation', () => {
 
         const spans = exporter.getFinishedSpans();
         const run = spans.find((s: ReadableSpan) => s.name === 'crawlee.crawler.run')!;
-        const task = spans.find((s: ReadableSpan) => s.name === 'crawlee.crawler.runTaskFunction')!;
+        const task = spans.find((s: ReadableSpan) => s.name === 'crawlee.crawler.handleRequest')!;
 
         expect(run).toBeDefined();
         expect(task).toBeDefined();
@@ -188,28 +188,47 @@ describe('log instrumentation', () => {
         await loggerProvider.shutdown();
     });
 
-    /** Minimal stand-in for the `@apify/log` `Log` class. */
-    function createLogModule(level = 4) {
+    /**
+     * Minimal stand-in for `BaseCrawleeLogger`, mirroring how the real one derives every logging method from the
+     * abstract `logWithLevel` that each adapter implements.
+     */
+    function createLogModule() {
         const calls: unknown[][] = [];
 
-        class Log {
-            getLevel() {
-                return level;
+        class BaseCrawleeLogger {
+            logWithLevel(...args: unknown[]): void {
+                calls.push(args);
             }
 
-            internal(...args: unknown[]): void {
-                calls.push(args);
+            error(message: string, data?: Record<string, unknown>) {
+                this.logWithLevel(1, message, data);
+            }
+
+            exception(exception: Error, message: string, data?: Record<string, unknown>) {
+                this.logWithLevel(1, `${message}: ${exception.message}`, { ...data, exception });
+            }
+
+            warning(message: string, data?: Record<string, unknown>) {
+                this.logWithLevel(3, message, data);
+            }
+
+            warningOnce(message: string) {
+                this.warning(message);
+            }
+
+            info(message: string, data?: Record<string, unknown>) {
+                this.logWithLevel(4, message, data);
             }
         }
 
-        return { moduleExports: { Log }, calls };
+        return { moduleExports: { BaseCrawleeLogger }, calls };
     }
 
     function patchLog(moduleExports: any) {
         const instrumentation = new CrawleeInstrumentation({ requestHandlingInstrumentation: false });
         instrumentation.setLoggerProvider(loggerProvider);
 
-        const definition = (instrumentation as any).init().find((d: any) => d.name === '@apify/log') as {
+        const definition = (instrumentation as any).init().find((d: any) => d.name === '@crawlee/core') as {
             patch: (e: any) => any;
         };
 
@@ -220,9 +239,10 @@ describe('log instrumentation', () => {
         const { moduleExports, calls } = createLogModule();
         patchLog(moduleExports);
 
-        new moduleExports.Log().internal(4, 'hello', { foo: 'bar' });
+        new moduleExports.BaseCrawleeLogger().info('hello', { foo: 'bar' });
 
-        expect(calls).toEqual([[4, 'hello', { foo: 'bar' }, undefined]]);
+        // The original still runs, so the underlying logger keeps printing.
+        expect(calls).toEqual([[4, 'hello', { foo: 'bar' }]]);
 
         const records = logExporter.getFinishedLogRecords();
         expect(records).toHaveLength(1);
@@ -236,7 +256,23 @@ describe('log instrumentation', () => {
         const { moduleExports } = createLogModule();
         patchLog(moduleExports);
 
-        expect(new moduleExports.Log().internal(4, 'hello')).toBeUndefined();
+        expect(new moduleExports.BaseCrawleeLogger().info('hello')).toBeUndefined();
+    });
+
+    test('forwards a log from any logger implementation, and only once per call', () => {
+        const { moduleExports } = createLogModule();
+        patchLog(moduleExports);
+
+        // A custom adapter only implements `logWithLevel`; the derived methods come from the base class.
+        class WinstonLikeAdapter extends moduleExports.BaseCrawleeLogger {}
+
+        new WinstonLikeAdapter().warning('from a custom adapter');
+        // `warningOnce` routes through `warning`, so it must not emit twice.
+        new WinstonLikeAdapter().warningOnce('once');
+
+        const records = logExporter.getFinishedLogRecords();
+        expect(records.map((r) => r.body)).toEqual(['from a custom adapter', 'once']);
+        expect(records.every((r) => r.severityNumber === SeverityNumber.WARN)).toBe(true);
     });
 
     test('maps an exception onto the semantic convention attributes', () => {
@@ -244,23 +280,12 @@ describe('log instrumentation', () => {
         patchLog(moduleExports);
 
         const error = new TypeError('boom');
-        new moduleExports.Log().internal(1, 'failed', undefined, error);
+        new moduleExports.BaseCrawleeLogger().exception(error, 'failed');
 
         const record = logExporter.getFinishedLogRecords()[0] as LogRecord;
         expect(record.severityNumber).toBe(SeverityNumber.ERROR);
         expect(record.attributes[ATTR_EXCEPTION_TYPE]).toBe('TypeError');
         expect(record.attributes[ATTR_EXCEPTION_MESSAGE]).toBe('boom');
         expect(record.attributes[ATTR_EXCEPTION_STACKTRACE]).toContain('TypeError: boom');
-    });
-
-    test('does not forward records below the configured log level', () => {
-        const { moduleExports, calls } = createLogModule(3); // WARNING
-        patchLog(moduleExports);
-
-        new moduleExports.Log().internal(5, 'debug message');
-
-        expect(logExporter.getFinishedLogRecords()).toHaveLength(0);
-        // The original still decides what to print.
-        expect(calls).toHaveLength(1);
     });
 });

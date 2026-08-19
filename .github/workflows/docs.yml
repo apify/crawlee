@@ -17,43 +17,34 @@ jobs:
         runs-on: ubuntu-22.04
 
         steps:
-            -   uses: actions/checkout@v6
+            -   uses: actions/checkout@v7
 
-            -   name: Use Node.js 20
-                uses: actions/setup-node@v6
+            -   name: Use Node.js 24
+                uses: actions/setup-node@v7
                 with:
                     node-version: 24
                     package-manager-cache: false
 
-            -   name: Enable corepack
-                run: |
-                    corepack enable
-                    corepack prepare yarn@stable --activate
+            -   uses: apify/workflows/pnpm-install@main
 
             -   name: Build & deploy docs
                 run: |
-                    # install project deps
-                    yarn
-                    # go to website dir
                     cd website
-                    # install website deps
-                    yarn
-                    # build the docs
-                    yarn build
+                    pnpm build
                 env:
                     APIFY_SIGNING_TOKEN: ${{ secrets.APIFY_SIGNING_TOKEN }}
                     SEGMENT_TOKEN: ${{ secrets.SEGMENT_TOKEN }}
 
             -   name: Set up GitHub Pages
-                uses: actions/configure-pages@v5
+                uses: actions/configure-pages@v6
 
             -   name: Upload GitHub Pages artifact
-                uses: actions/upload-pages-artifact@v4
+                uses: actions/upload-pages-artifact@v5
                 with:
                     path: ./website/build
 
             -   name: Deploy artifact to GitHub Pages
-                uses: actions/deploy-pages@v4
+                uses: actions/deploy-pages@v5
 
             -   name: Invalidate CloudFront cache
                 run: |

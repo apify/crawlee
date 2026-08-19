@@ -1,15 +1,19 @@
 import {
+    ArgumentValidationError,
     Configuration,
     deserializeArray,
     EventType,
     KeyValueStore,
+    MemoryStorageBackend,
     ProxyConfiguration,
     Request,
     RequestList,
+    REQUESTS_PERSISTENCE_KEY,
+    serviceLocator,
+    STATE_PERSISTENCE_KEY,
 } from '@crawlee/core';
-import type { gotScraping } from '@crawlee/utils';
+import { BaseHttpClient } from '@crawlee/http-client';
 import { sleep } from '@crawlee/utils';
-import { MemoryStorageEmulator } from 'test/shared/MemoryStorageEmulator';
 import { beforeAll, type MockedFunction } from 'vitest';
 
 import log from '@apify/log';
@@ -26,38 +30,34 @@ function shuffle(array: unknown[]): unknown[] {
     return out;
 }
 
-vitest.mock('@crawlee/utils/src/internals/gotScraping', async () => {
-    return {
-        gotScraping: vitest.fn(),
-    };
-});
+// `vitest.mockObject` clones the object and drops its prototype, so build the mock manually to
+// keep it an `instanceof BaseHttpClient`.
+const createMockHttpClient = () =>
+    Object.assign(Object.create(BaseHttpClient.prototype) as BaseHttpClient, {
+        sendRequest: vitest.fn(async (_request?: any, _options?: any) => new Response()),
+        stream: vitest.fn(async () => new Response()),
+    });
 
-let gotScrapingSpy: MockedFunction<typeof gotScraping>;
+let mockHttpClient = createMockHttpClient();
 
-beforeAll(async () => {
-    // @ts-ignore for some reason, this fails when the project is not built :/
-    const { gotScraping } = await import('@crawlee/utils');
-    gotScrapingSpy = vitest.mocked(gotScraping);
+beforeEach(async () => {
+    mockHttpClient = createMockHttpClient();
 });
 
 describe('RequestList', () => {
     let ll: number;
-    const emulator = new MemoryStorageEmulator();
-    const events = Configuration.getEventManager();
-
     beforeAll(() => {
         ll = log.getLevel();
         log.setLevel(log.LEVELS.ERROR);
     });
 
     beforeEach(async () => {
-        await emulator.init();
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
         vitest.restoreAllMocks();
     });
 
     afterAll(async () => {
         log.setLevel(ll);
-        await emulator.destroy();
     });
 
     test('should not accept to pages with same uniqueKey', async () => {
@@ -75,7 +75,7 @@ describe('RequestList', () => {
         expect(await requestList.isFinished()).toBe(false);
         expect(await requestList.fetchNextRequest()).toBe(null);
 
-        await requestList.markRequestHandled(req!);
+        await requestList.markRequestAsHandled(req!);
 
         expect(await requestList.isEmpty()).toBe(true);
         expect(await requestList.isFinished()).toBe(true);
@@ -89,8 +89,7 @@ describe('RequestList', () => {
         await expect(requestList.isEmpty()).rejects.toThrow();
         await expect(requestList.isFinished()).rejects.toThrow();
         expect(() => requestList.getState()).toThrowError();
-        await expect(requestList.markRequestHandled(requestObj)).rejects.toThrow();
-        await expect(requestList.reclaimRequest(requestObj)).rejects.toThrow();
+        await expect(requestList.markRequestAsHandled(requestObj)).rejects.toThrow();
         await expect(requestList.fetchNextRequest()).rejects.toThrow();
 
         await requestList.initialize();
@@ -99,9 +98,7 @@ describe('RequestList', () => {
         await expect(requestList.isFinished()).resolves.not.toThrow();
         expect(() => requestList.getState()).not.toThrowError();
         await expect(requestList.fetchNextRequest()).resolves.not.toThrow();
-        await expect(requestList.reclaimRequest(requestObj)).resolves.not.toThrow();
-        await expect(requestList.fetchNextRequest()).resolves.not.toThrow();
-        await expect(requestList.markRequestHandled(requestObj)).resolves.not.toThrow();
+        await expect(requestList.markRequestAsHandled(requestObj)).resolves.not.toThrow();
     });
 
     test('should correctly initialize itself', async () => {
@@ -121,16 +118,17 @@ describe('RequestList', () => {
 
         const r1 = await originalList.fetchNextRequest(); // 1
         const r2 = await originalList.fetchNextRequest(); // 2
-        await originalList.fetchNextRequest(); // 3
+        await originalList.fetchNextRequest(); // 3 - left in progress
         const r4 = await originalList.fetchNextRequest(); // 4
-        const r5 = await originalList.fetchNextRequest(); // 5
-        await originalList.fetchNextRequest(); // 6
+        await originalList.fetchNextRequest(); // 5 - left in progress
+        await originalList.fetchNextRequest(); // 6 - left in progress
 
-        await originalList.markRequestHandled(r1!);
-        await originalList.markRequestHandled(r2!);
-        await originalList.markRequestHandled(r4!);
-        await originalList.reclaimRequest(r5!);
+        await originalList.markRequestAsHandled(r1!);
+        await originalList.markRequestAsHandled(r2!);
+        await originalList.markRequestAsHandled(r4!);
 
+        // Requests 3, 5 and 6 were in progress when the state was persisted, so they must be
+        // re-crawled (before the remaining, never-fetched requests 7 and 8).
         const newList = await RequestList.open({
             sources: sourcesCopy,
             state: originalList.getState(),
@@ -164,7 +162,7 @@ describe('RequestList', () => {
     });
 
     test('should correctly load list from hosted files in correct order', async () => {
-        const spy = vitest.spyOn(RequestList.prototype as any, '_downloadListOfUrls');
+        const spy = vitest.spyOn(RequestList.prototype as any, 'downloadListOfUrls');
         const list1 = ['https://example.com', 'https://google.com', 'https://wired.com'];
         const list2 = ['https://another.com', 'https://page.com'];
         spy.mockImplementationOnce(() => new Promise((resolve) => setTimeout(() => resolve(list1) as any, 100)) as any);
@@ -191,9 +189,11 @@ describe('RequestList', () => {
     test('should use regex parameter to parse urls', async () => {
         const listStr = 'kjnjkn"https://example.com/a/b/c?q=1#abc";,"HTTP://google.com/a/b/c";dgg:dd';
         const listArr = ['https://example.com', 'HTTP://google.com'];
-        gotScrapingSpy.mockResolvedValue({ body: listStr } as any);
 
         const regex = /(https:\/\/example.com|HTTP:\/\/google.com)/g;
+
+        mockHttpClient.sendRequest.mockResolvedValueOnce(new Response(listStr));
+
         const requestList = await RequestList.open({
             sources: [
                 {
@@ -202,12 +202,14 @@ describe('RequestList', () => {
                     regex,
                 },
             ],
+            httpClient: mockHttpClient,
         });
 
         expect(await requestList.fetchNextRequest()).toMatchObject({ method: 'GET', url: listArr[0] });
         expect(await requestList.fetchNextRequest()).toMatchObject({ method: 'GET', url: listArr[1] });
 
-        expect(gotScrapingSpy).toBeCalledWith({ url: 'http://example.com/list-1', encoding: 'utf8' });
+        expect(mockHttpClient.sendRequest).toBeCalled();
+        expect(mockHttpClient.sendRequest.mock.calls[0][0].url).toBe('http://example.com/list-1');
     });
 
     test('should fix gdoc sharing url in `requestsFromUrl` automatically (GH issue #639)', async () => {
@@ -223,21 +225,22 @@ describe('RequestList', () => {
         const correctUrl =
             'https://docs.google.com/spreadsheets/d/11UGSBOSXy5Ov2WEP9nr4kSIxQJmH18zh-5onKtBsovU/gviz/tq?tqx=out:csv';
 
-        gotScrapingSpy.mockResolvedValue({ body: JSON.stringify(list) } as any);
+        mockHttpClient.sendRequest.mockImplementation(async () => new Response(list.join('\n')));
 
         const requestList = await RequestList.open({
             sources: wrongUrls.map((requestsFromUrl) => ({ requestsFromUrl })),
+            httpClient: mockHttpClient,
         });
 
         expect(await requestList.fetchNextRequest()).toMatchObject({ method: 'GET', url: list[0] });
         expect(await requestList.fetchNextRequest()).toMatchObject({ method: 'GET', url: list[1] });
         expect(await requestList.fetchNextRequest()).toMatchObject({ method: 'GET', url: list[2] });
 
-        expect(gotScrapingSpy).toBeCalledWith({ url: correctUrl, encoding: 'utf8' });
+        expect(mockHttpClient.sendRequest.mock.calls[0][0]?.url).toBe(correctUrl);
     });
 
     test('should handle requestsFromUrl with no URLs', async () => {
-        const spy = vitest.spyOn(RequestList.prototype as any, '_downloadListOfUrls');
+        const spy = vitest.spyOn(RequestList.prototype as any, 'downloadListOfUrls');
         spy.mockResolvedValueOnce([]);
 
         const requestList = await RequestList.open({
@@ -258,7 +261,7 @@ describe('RequestList', () => {
     test('should use the defined proxy server when using `requestsFromUrl`', async () => {
         const proxyUrls = ['http://proxyurl.usedforthe.download', 'http://another.proxy.url'];
 
-        const spy = vitest.spyOn(RequestList.prototype as any, '_downloadListOfUrls');
+        const spy = vitest.spyOn(RequestList.prototype as any, 'downloadListOfUrls');
         spy.mockResolvedValue([]);
 
         const proxyConfiguration = new ProxyConfiguration({
@@ -277,180 +280,46 @@ describe('RequestList', () => {
         expect(spy).not.toBeCalledWith(expect.not.objectContaining({ proxyUrl: expect.any(String) }));
     });
 
-    test('should correctly handle reclaimed pages', async () => {
+    test('tracks in-progress requests through the crawl lifecycle', async () => {
         const requestList = await RequestList.open({
             sources: [
                 { url: 'https://example.com/1' },
                 { url: 'https://example.com/2' },
                 { url: 'https://example.com/3' },
-                { url: 'https://example.com/4' },
-                { url: 'https://example.com/5' },
-                { url: 'https://example.com/6' },
             ],
         });
-
-        //
-        // Fetch first 5 urls
-        //
 
         const request1 = await requestList.fetchNextRequest();
         const request2 = await requestList.fetchNextRequest();
-        const request3 = await requestList.fetchNextRequest();
-        const request4 = await requestList.fetchNextRequest();
-        const request5 = await requestList.fetchNextRequest();
 
         expect(request1!.url).toBe('https://example.com/1');
         expect(request2!.url).toBe('https://example.com/2');
+        expect(requestList.getState()).toEqual({
+            inProgress: ['https://example.com/1', 'https://example.com/2'],
+            nextIndex: 2,
+            nextUniqueKey: 'https://example.com/3',
+        });
+        expect(await requestList.isEmpty()).toBe(false);
+        expect(await requestList.isFinished()).toBe(false);
+        expect(requestList.inProgress.size).toBe(2);
+
+        await requestList.markRequestAsHandled(request1!);
+        await requestList.markRequestAsHandled(request2!);
+
+        expect(requestList.getState()).toEqual({
+            inProgress: [],
+            nextIndex: 2,
+            nextUniqueKey: 'https://example.com/3',
+        });
+
+        const request3 = await requestList.fetchNextRequest();
         expect(request3!.url).toBe('https://example.com/3');
-        expect(request4!.url).toBe('https://example.com/4');
-        expect(request5!.url).toBe('https://example.com/5');
-        expect(requestList.getState()).toEqual({
-            inProgress: [
-                'https://example.com/1',
-                'https://example.com/2',
-                'https://example.com/3',
-                'https://example.com/4',
-                'https://example.com/5',
-            ],
-            nextIndex: 5,
-            nextUniqueKey: 'https://example.com/6',
-        });
-        expect(await requestList.isEmpty()).toBe(false);
-        expect(await requestList.isFinished()).toBe(false);
-        expect(requestList.inProgress.size).toBe(5);
-        expect(requestList.reclaimed.size).toBe(0);
-
-        //
-        // Mark 1st, 2nd handled
-        // Reclaim 3rd 4th
-        //
-
-        await requestList.markRequestHandled(request1!);
-        await requestList.markRequestHandled(request2!);
-        await requestList.reclaimRequest(request3!);
-        await requestList.reclaimRequest(request4!);
-
-        expect(requestList.getState()).toEqual({
-            inProgress: ['https://example.com/3', 'https://example.com/4', 'https://example.com/5'],
-            nextIndex: 5,
-            nextUniqueKey: 'https://example.com/6',
-        });
-        expect(await requestList.isEmpty()).toBe(false);
-        expect(await requestList.isFinished()).toBe(false);
-        expect(requestList.inProgress).toEqual(expect.objectContaining(requestList.reclaimed));
-
-        //
-        // Mark 5th handled
-        //
-
-        await requestList.markRequestHandled(request5!);
-
-        expect(requestList.getState()).toEqual({
-            inProgress: ['https://example.com/3', 'https://example.com/4'],
-            nextIndex: 5,
-            nextUniqueKey: 'https://example.com/6',
-        });
-        expect(await requestList.isEmpty()).toBe(false);
-        expect(await requestList.isFinished()).toBe(false);
-        expect(requestList.inProgress).toEqual(expect.objectContaining(requestList.reclaimed));
-
-        //
-        // Fetch 3rd and 4th
-        // Mark 4th handled
-        //
-
-        const reclaimed3 = await requestList.fetchNextRequest();
-        expect(reclaimed3!.url).toBe('https://example.com/3');
-        const reclaimed4 = await requestList.fetchNextRequest();
-        expect(reclaimed4!.url).toBe('https://example.com/4');
-        await requestList.markRequestHandled(request4!);
-
-        expect(requestList.getState()).toEqual({
-            inProgress: ['https://example.com/3'],
-            nextIndex: 5,
-            nextUniqueKey: 'https://example.com/6',
-        });
-        expect(await requestList.isEmpty()).toBe(false);
-        expect(await requestList.isFinished()).toBe(false);
-        expect(requestList.inProgress).toEqual(expect.objectContaining(requestList.reclaimed));
-
-        //
-        // Mark 3rd handled
-        //
-
-        await requestList.markRequestHandled(request3!);
-
-        expect(requestList.getState()).toEqual({
-            inProgress: [],
-            nextIndex: 5,
-            nextUniqueKey: 'https://example.com/6',
-        });
-        expect(await requestList.isEmpty()).toBe(false);
-        expect(await requestList.isFinished()).toBe(false);
-        expect(requestList.inProgress).toEqual(expect.objectContaining(requestList.reclaimed));
-
-        //
-        // Fetch 6th
-        //
-
-        const request6 = await requestList.fetchNextRequest();
-
-        expect(request6!.url).toBe('https://example.com/6');
         expect(await requestList.fetchNextRequest()).toBe(null);
-        expect(requestList.getState()).toEqual({
-            inProgress: ['https://example.com/6'],
-            nextIndex: 6,
-            nextUniqueKey: null,
-        });
         expect(await requestList.isEmpty()).toBe(true);
         expect(await requestList.isFinished()).toBe(false);
-        expect(requestList.inProgress).toEqual(expect.objectContaining(requestList.reclaimed));
 
-        //
-        // Reclaim 6th
-        //
-
-        await requestList.reclaimRequest(request6!);
-
-        expect(requestList.getState()).toEqual({
-            inProgress: ['https://example.com/6'],
-            nextIndex: 6,
-            nextUniqueKey: null,
-        });
-        expect(await requestList.isEmpty()).toBe(false);
-        expect(await requestList.isFinished()).toBe(false);
-        expect(requestList.inProgress).toEqual(expect.objectContaining(requestList.reclaimed));
-
-        //
-        // Fetch 6th
-        //
-
-        const reclaimed6 = await requestList.fetchNextRequest();
-
-        expect(reclaimed6!.url).toBe('https://example.com/6');
-        expect(requestList.getState()).toEqual({
-            inProgress: ['https://example.com/6'],
-            nextIndex: 6,
-            nextUniqueKey: null,
-        });
-        expect(await requestList.isEmpty()).toBe(true);
-        expect(await requestList.isFinished()).toBe(false);
-        expect(requestList.inProgress).toEqual(expect.objectContaining(requestList.reclaimed));
-
-        //
-        // Mark 6th handled
-        //
-
-        await requestList.markRequestHandled(reclaimed6!);
-
-        expect(requestList.getState()).toEqual({
-            inProgress: [],
-            nextIndex: 6,
-            nextUniqueKey: null,
-        });
-        expect(await requestList.isEmpty()).toBe(true);
+        await requestList.markRequestAsHandled(request3!);
         expect(await requestList.isFinished()).toBe(true);
-        expect(requestList.inProgress).toEqual(expect.objectContaining(requestList.reclaimed));
     });
 
     test('should correctly persist its state when persistStateKey is set', async () => {
@@ -474,27 +343,23 @@ describe('RequestList', () => {
         expect(requestList.isStatePersisted).toBe(true);
 
         // Fetch one request and check that state is not persisted.
-        const request1 = await requestList.fetchNextRequest();
+        await requestList.fetchNextRequest();
         expect(requestList.isStatePersisted).toBe(false);
 
         // Persist state.
         setValueSpy.mockResolvedValueOnce();
-        events.emit(EventType.PERSIST_STATE);
+        serviceLocator.getEventManager().emit(EventType.PERSIST_STATE);
         await sleep(20);
         expect(requestList.isStatePersisted).toBe(true);
 
         // Do some other changes and persist it again.
         const request2 = await requestList.fetchNextRequest();
         expect(requestList.isStatePersisted).toBe(false);
-        await requestList.markRequestHandled(request2!);
+        await requestList.markRequestAsHandled(request2!);
         expect(requestList.isStatePersisted).toBe(false);
         setValueSpy.mockResolvedValueOnce();
-        events.emit(EventType.PERSIST_STATE);
+        serviceLocator.getEventManager().emit(EventType.PERSIST_STATE);
         await sleep(20);
-        expect(requestList.isStatePersisted).toBe(true);
-
-        // Reclaim event doesn't change the state.
-        await requestList.reclaimRequest(request1!);
         expect(requestList.isStatePersisted).toBe(true);
 
         // Now initiate new request list from saved state and check that it's same as state
@@ -502,6 +367,22 @@ describe('RequestList', () => {
         getValueSpy.mockResolvedValueOnce(requestList.getState());
         const requestList2 = await RequestList.open(optsCopy);
         expect(requestList2.getState()).toEqual(requestList.getState());
+    });
+
+    test('teardown removes the persist state listener when persistStateKey is set', async () => {
+        const events = serviceLocator.getEventManager();
+        const listenerCountBefore = events.listenerCount(EventType.PERSIST_STATE);
+
+        const requestList = await RequestList.open({
+            sources: [{ url: 'https://example.com/1' }],
+            persistStateKey: 'teardown-key',
+        });
+
+        expect(events.listenerCount(EventType.PERSIST_STATE)).toBe(listenerCountBefore + 1);
+
+        await requestList.teardown();
+
+        expect(events.listenerCount(EventType.PERSIST_STATE)).toBe(listenerCountBefore);
     });
 
     test('should correctly persist its sources when persistRequestsKey is set', async () => {
@@ -547,7 +428,7 @@ describe('RequestList', () => {
         const PERSIST_REQUESTS_KEY = 'some-key';
         const getValueSpy = vitest.spyOn(KeyValueStore.prototype, 'getValue');
         const setValueSpy = vitest.spyOn(KeyValueStore.prototype, 'setValue');
-        const spy = vitest.spyOn(RequestList.prototype as any, '_downloadListOfUrls');
+        const spy = vitest.spyOn(RequestList.prototype as any, 'downloadListOfUrls');
         let persistedRequests: any;
 
         const opts = {
@@ -610,7 +491,7 @@ describe('RequestList', () => {
         reqs = shuffle(reqs) as typeof reqs;
 
         for (let i = 0; i < reqs.length; i++) {
-            await requestList.reclaimRequest(reqs[i]);
+            await requestList.markRequestAsHandled(reqs[i]);
         }
     });
 
@@ -627,7 +508,7 @@ describe('RequestList', () => {
             sources,
         });
 
-        expect(requestList.length()).toBe(4);
+        await expect(requestList.getTotalCount()).resolves.toBe(4);
     });
 
     test('it gets correct handledCount()', async () => {
@@ -643,19 +524,16 @@ describe('RequestList', () => {
             sources,
         });
 
-        const req1 = await requestList.fetchNextRequest();
+        await requestList.fetchNextRequest();
         const req2 = await requestList.fetchNextRequest();
         const req3 = await requestList.fetchNextRequest();
-        expect(requestList.handledCount()).toBe(0);
+        expect(await requestList.getHandledCount()).toBe(0);
 
-        await requestList.markRequestHandled(req2!);
-        expect(requestList.handledCount()).toBe(1);
+        await requestList.markRequestAsHandled(req2!);
+        expect(await requestList.getHandledCount()).toBe(1);
 
-        await requestList.markRequestHandled(req3!);
-        expect(requestList.handledCount()).toBe(2);
-
-        await requestList.reclaimRequest(req1!);
-        expect(requestList.handledCount()).toBe(2);
+        await requestList.markRequestAsHandled(req3!);
+        expect(await requestList.getHandledCount()).toBe(2);
     });
 
     test('should correctly keep duplicate URLs while keepDuplicateUrls is set', async () => {
@@ -672,7 +550,7 @@ describe('RequestList', () => {
             keepDuplicateUrls: true,
         });
 
-        expect(requestList.length()).toBe(4);
+        await expect(requestList.getTotalCount()).resolves.toBe(4);
 
         log.setLevel(log.LEVELS.INFO);
         const warnSpy = vitest.spyOn(console, 'warn').mockImplementation(() => {});
@@ -687,7 +565,7 @@ describe('RequestList', () => {
             keepDuplicateUrls: true,
         });
 
-        expect(requestList.length()).toBe(6);
+        await expect(requestList.getTotalCount()).resolves.toBe(6);
         expect(warnSpy).toBeCalled();
         expect(warnSpy.mock.calls[0][0]).toMatch(`Check your sources' unique keys.`);
 
@@ -695,27 +573,30 @@ describe('RequestList', () => {
     });
 
     describe('Apify.RequestList.open()', () => {
+        /** The keys a spied {@apilink KeyValueStore} method was called with, in call order. */
+        const keysPassedTo = (spy: MockedFunction<any>) => spy.mock.calls.map(([key]: [string]) => key);
+
         test('should work', async () => {
             const getValueSpy = vitest.spyOn(KeyValueStore.prototype, 'getValue');
             const setValueSpy = vitest.spyOn(KeyValueStore.prototype, 'setValue');
 
             const name = 'xxx';
-            const SDK_KEY = `SDK_${name}`;
+            const CRAWLEE_KEY = `CRAWLEE_${name}`;
             const sources = [{ url: 'https://example.com' }];
 
             const rl = await RequestList.open(name, sources);
             expect(rl).toBeInstanceOf(RequestList);
             // @ts-expect-error accessing private var
-            expect(rl.persistStateKey.startsWith(SDK_KEY)).toBe(true);
-            // @ts-expect-error accessing private var
-            expect(rl.persistRequestsKey.startsWith(SDK_KEY)).toBe(true);
-            // @ts-expect-error accessing private var
             expect(rl.sources).toEqual([]);
-            // @ts-expect-error accessing private var
-            expect(rl.isInitialized).toBe(true);
+            // An uninitialized list throws here, so this is the observable form of "open() initialized it".
+            await expect(rl.isEmpty()).resolves.toBe(false);
 
-            expect(getValueSpy).toBeCalledTimes(2);
-            expect(setValueSpy).toBeCalledTimes(1);
+            // The persistence keys are derived from the list name, which shows in the keys it reads and writes.
+            expect(keysPassedTo(getValueSpy)).toEqual([
+                `${CRAWLEE_KEY}-${STATE_PERSISTENCE_KEY}`,
+                `${CRAWLEE_KEY}-${REQUESTS_PERSISTENCE_KEY}`,
+            ]);
+            expect(keysPassedTo(setValueSpy)).toEqual([`${CRAWLEE_KEY}-${REQUESTS_PERSISTENCE_KEY}`]);
         });
 
         test('should work with string sources', async () => {
@@ -723,22 +604,20 @@ describe('RequestList', () => {
             const setValueSpy = vitest.spyOn(KeyValueStore.prototype, 'setValue');
 
             const name = 'xxx';
-            const SDK_KEY = `SDK_${name}`;
+            const CRAWLEE_KEY = `CRAWLEE_${name}`;
             const sources = ['https://example.com'];
             const requests = sources.map((url) => ({ url, uniqueKey: url }));
 
             const rl = await RequestList.open(name, sources);
             expect(rl).toBeInstanceOf(RequestList);
-            // @ts-expect-error accessing private var
-            expect(rl.persistStateKey.startsWith(SDK_KEY)).toBe(true);
-            // @ts-expect-error accessing private var
-            expect(rl.persistRequestsKey.startsWith(SDK_KEY)).toBe(true);
             expect(rl.requests).toEqual(requests);
-            // @ts-expect-error accessing private var
-            expect(rl.isInitialized).toBe(true);
+            await expect(rl.isEmpty()).resolves.toBe(false);
 
-            expect(getValueSpy).toBeCalledTimes(2);
-            expect(setValueSpy).toBeCalledTimes(1);
+            expect(keysPassedTo(getValueSpy)).toEqual([
+                `${CRAWLEE_KEY}-${STATE_PERSISTENCE_KEY}`,
+                `${CRAWLEE_KEY}-${REQUESTS_PERSISTENCE_KEY}`,
+            ]);
+            expect(keysPassedTo(setValueSpy)).toEqual([`${CRAWLEE_KEY}-${REQUESTS_PERSISTENCE_KEY}`]);
         });
 
         test('should correctly pass options', async () => {
@@ -746,7 +625,7 @@ describe('RequestList', () => {
             const setValueSpy = vitest.spyOn(KeyValueStore.prototype, 'setValue');
 
             const name = 'xxx';
-            const SDK_KEY = `SDK_${name}`;
+            const CRAWLEE_KEY = `CRAWLEE_${name}`;
             let counter = 0;
             const sources = [{ url: 'https://example.com' }];
             const requests = sources.map(({ url }) => ({ url, uniqueKey: `${url}-${counter++}` }));
@@ -757,18 +636,16 @@ describe('RequestList', () => {
 
             const rl = await RequestList.open(name, sources, options);
             expect(rl).toBeInstanceOf(RequestList);
-            // @ts-expect-error accessing private var
-            expect(rl.persistStateKey.startsWith(SDK_KEY)).toBe(true);
-            // @ts-expect-error accessing private var
-            expect(rl.persistRequestsKey.startsWith(SDK_KEY)).toBe(true);
+            // The counter suffix on the unique key is what `keepDuplicateUrls: true` does.
             expect(rl.requests).toEqual(requests);
-            // @ts-expect-error accessing private var
-            expect(rl.isInitialized).toBe(true);
-            // @ts-expect-error accessing private var
-            expect(rl.keepDuplicateUrls).toBe(true);
+            await expect(rl.isEmpty()).resolves.toBe(false);
 
-            expect(getValueSpy).toBeCalledTimes(2);
-            expect(setValueSpy).toBeCalledTimes(1);
+            // The list name wins over the `persistStateKey` option.
+            expect(keysPassedTo(getValueSpy)).toEqual([
+                `${CRAWLEE_KEY}-${STATE_PERSISTENCE_KEY}`,
+                `${CRAWLEE_KEY}-${REQUESTS_PERSISTENCE_KEY}`,
+            ]);
+            expect(keysPassedTo(setValueSpy)).toEqual([`${CRAWLEE_KEY}-${REQUESTS_PERSISTENCE_KEY}`]);
         });
 
         test('should work with null name', async () => {
@@ -781,41 +658,25 @@ describe('RequestList', () => {
 
             const rl = await RequestList.open(name, sources);
             expect(rl).toBeInstanceOf(RequestList);
-            // @ts-expect-error accessing private var
-            expect(rl.persistStateKey == null).toBe(true);
-            // @ts-expect-error accessing private var
-            expect(rl.persistRequestsKey == null).toBe(true);
             expect(rl.requests).toEqual(requests);
-            // @ts-expect-error accessing private var
-            expect(rl.isInitialized).toBe(true);
+            await expect(rl.isEmpty()).resolves.toBe(false);
 
+            // A nameless list has no persistence keys, so it never touches the store.
             expect(getValueSpy).not.toBeCalled();
             expect(setValueSpy).not.toBeCalled();
         });
 
-        test('should throw on invalid parameters', async () => {
-            const args = [[], ['x', {}], ['x', 6, {}], ['x', [], []]] as const;
-            for (const arg of args) {
-                try {
-                    // @ts-ignore
-                    await RequestList.open(...arg);
-                    throw new Error('wrong error');
-                } catch (err) {
-                    const e = err as Error;
-                    expect(e.message).not.toBe('wrong error');
-                    if (e.message.match('argument to be of type `string`')) {
-                        expect(e.message).toMatch('received type `undefined`');
-                    } else if (e.message.match('argument to be of type `array`')) {
-                        const isMatched =
-                            e.message.match('received type `Object`') ||
-                            e.message.match('received type `number`') ||
-                            e.message.match('received type `undefined`');
-                        expect(isMatched).toBeTruthy();
-                    } else if (e.message.match('argument to be of type `null`')) {
-                        expect(e.message).toMatch('received type `undefined`');
-                    }
-                }
-            }
+        test.each([
+            [[], 'Invalid input: expected array'],
+            [['x', {}], 'Invalid input: expected array'],
+            [['x', 6, {}], 'Invalid input: expected array'],
+            [['x', [], []], 'Invalid input: expected object'],
+            [[6, []], 'Invalid input: expected string, received the number `6`'],
+        ])('open(...%j) should throw on invalid argument (%s)', async (args, message) => {
+            // @ts-expect-error JS-side validation
+            await expect(RequestList.open(...args)).rejects.toThrow(ArgumentValidationError);
+            // @ts-expect-error JS-side validation
+            await expect(RequestList.open(...args)).rejects.toThrow(message);
         });
     });
 
@@ -845,4 +706,17 @@ describe('RequestList', () => {
     //     const initMemory = getMemoryInMbytes();
     //     console.log(initMemory, 'MB');
     // });
+});
+
+describe('Request', () => {
+    test('alwaysEnqueue makes requests to the same URL have different unique keys', () => {
+        const request1 = new Request({ url: 'https://example.com', alwaysEnqueue: true });
+        const request2 = new Request({ url: 'https://example.com', alwaysEnqueue: true });
+
+        expect(request1.uniqueKey).not.toBe(request2.uniqueKey);
+    });
+
+    test('alwaysEnqueue throws when combined with a custom uniqueKey', () => {
+        expect(() => new Request({ url: 'https://example.com', uniqueKey: 'custom', alwaysEnqueue: true })).toThrow();
+    });
 });

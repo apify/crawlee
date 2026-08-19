@@ -1,38 +1,31 @@
-import { MemoryStorage } from '@crawlee/memory-storage';
-import type { RequestQueueInfo } from '@crawlee/types';
-import { Configuration, RequestQueue } from 'crawlee';
+import { MemoryStorageBackend } from '@crawlee/core';
+import type { RequestQueueBackend } from '@crawlee/types';
+import { RequestQueue, serviceLocator } from 'crawlee';
 
-const originalClient = Configuration.getStorageClient();
-Configuration.useStorageClient(new MemoryStorage({ persistStorage: false, writeMetadata: false }));
+let rqClient: RequestQueueBackend;
 
-afterAll(() => {
-    Configuration.useStorageClient(originalClient);
-});
-
-let requestQueueInfo: RequestQueueInfo;
-
-beforeAll(async () => {
-    requestQueueInfo = await Configuration.getStorageClient()
-        .requestQueues()
-        .getOrCreate('test-request-queue-not-called-on-cached-request');
+beforeEach(async () => {
+    const storage = new MemoryStorageBackend();
+    serviceLocator.setStorageBackend(storage);
+    rqClient = await storage.createRequestQueueBackend({ name: 'test-request-queue-not-called-on-cached-request' });
 });
 
 describe('RequestQueue#addRequest should not call the API if the request is already in the queue', () => {
     test('should not call the API if the request is already in the queue', async () => {
-        const requestQueue = new RequestQueue({ id: requestQueueInfo.id, client: Configuration.getStorageClient() });
+        const rqInfo = await rqClient.getMetadata();
+        const requestQueue = new RequestQueue({ metadata: rqInfo, backend: rqClient });
 
-        const clientSpy = vitest.spyOn(requestQueue.client, 'addRequest');
+        const clientSpy = vitest.spyOn(requestQueue.backend, 'addBatchOfRequests');
 
-        const requestData = await requestQueue.addRequest({ url: 'https://example.com' });
+        await requestQueue.addRequest({ url: 'https://example.com' });
 
         expect(clientSpy).toHaveBeenCalledTimes(1);
 
-        await requestQueue.markRequestHandled({
-            id: requestData.requestId,
-            url: 'https://example.com',
-            uniqueKey: requestData.uniqueKey,
-        } as any);
+        // Fetch and handle the request so it leaves the pending queue.
+        const fetched = await requestQueue.fetchNextRequest();
+        await requestQueue.markRequestAsHandled(fetched!);
 
+        // Adding the same request again is served from the local cache and must not hit the client.
         await requestQueue.addRequest({ url: 'https://example.com' });
 
         expect(clientSpy).toHaveBeenCalledTimes(1);
@@ -41,20 +34,20 @@ describe('RequestQueue#addRequest should not call the API if the request is alre
 
 describe('RequestQueue#addRequests should not call the API if the request is already in the queue', () => {
     test('should not call the API if the request is already in the queue', async () => {
-        const requestQueue = new RequestQueue({ id: requestQueueInfo.id, client: Configuration.getStorageClient() });
+        const rqInfo = await rqClient.getMetadata();
+        const requestQueue = new RequestQueue({ metadata: rqInfo, backend: rqClient });
 
-        const clientSpy = vitest.spyOn(requestQueue.client, 'batchAddRequests');
+        const clientSpy = vitest.spyOn(requestQueue.backend, 'addBatchOfRequests');
 
-        const requestData = await requestQueue.addRequests([{ url: 'https://example2.com' }]);
+        await requestQueue.addRequests([{ url: 'https://example2.com' }]);
 
         expect(clientSpy).toHaveBeenCalledTimes(1);
 
-        await requestQueue.markRequestHandled({
-            id: requestData.processedRequests[0].requestId,
-            uniqueKey: requestData.processedRequests[0].uniqueKey,
-            url: 'https://example2.com',
-        } as any);
+        // Fetch and handle the request so it leaves the pending queue.
+        const fetched = await requestQueue.fetchNextRequest();
+        await requestQueue.markRequestAsHandled(fetched!);
 
+        // Adding the same request again is served from the local cache and must not hit the client.
         await requestQueue.addRequests([{ url: 'https://example2.com' }]);
 
         expect(clientSpy).toHaveBeenCalledTimes(1);

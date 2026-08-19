@@ -1,10 +1,9 @@
+import { FetchHttpClient } from '@crawlee/http-client';
 import nock from 'nock';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
-import log from '@apify/log';
-
-import type { SitemapUrl } from '../src/internals/sitemap';
-import { parseSitemap, Sitemap } from '../src/internals/sitemap';
+import type { SitemapUrl } from '../src/internals/sitemap.js';
+import { discoverValidSitemaps, parseSitemap, Sitemap } from '../src/internals/sitemap.js';
 
 describe('Sitemap', () => {
     beforeEach(() => {
@@ -217,6 +216,60 @@ describe('Sitemap', () => {
                     'http://not-exists.com/catalog?item=79&desc=vacation_somalia',
                 ].join('\n'),
             )
+            // urlset mixing a same-host and a cross-host URL entry (for enqueue-strategy filtering)
+            .get('/cross_host_urls.xml')
+            .reply(
+                200,
+                [
+                    '<?xml version="1.0" encoding="UTF-8"?>',
+                    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+                    '<url><loc>http://not-exists.com/local-page</loc></url>',
+                    '<url><loc>http://other.test/cross-page</loc></url>',
+                    '</urlset>',
+                ].join('\n'),
+            )
+            // sitemap index pointing at a cross-host nested sitemap
+            .get('/cross_host_index.xml')
+            .reply(
+                200,
+                [
+                    '<?xml version="1.0" encoding="UTF-8"?>',
+                    '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+                    '<sitemap><loc>http://other.test/child.xml</loc></sitemap>',
+                    '</sitemapindex>',
+                ].join('\n'),
+            )
+            // urlset mixing a valid http URL with non-http(s) schemes
+            .get('/bad_schemes.xml')
+            .reply(
+                200,
+                [
+                    '<?xml version="1.0" encoding="UTF-8"?>',
+                    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+                    '<url><loc>http://not-exists.com/ok</loc></url>',
+                    '<url><loc>mailto:foo@bar.com</loc></url>',
+                    '<url><loc>javascript:alert(1)</loc></url>',
+                    '<url><loc>ftp://example.com/file.txt</loc></url>',
+                    '</urlset>',
+                ].join('\n'),
+            )
+            .get('*')
+            .reply(404);
+
+        // A cross-host server whose child sitemap is served, so a *followed* nested reference would surface
+        // `child-page`. Under the default `same-hostname` strategy it must never be fetched.
+        nock('http://other.test')
+            .persist()
+            .get('/child.xml')
+            .reply(
+                200,
+                [
+                    '<?xml version="1.0" encoding="UTF-8"?>',
+                    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+                    '<url><loc>http://other.test/child-page</loc></url>',
+                    '</urlset>',
+                ].join('\n'),
+            )
             .get('*')
             .reply(404);
 
@@ -233,7 +286,9 @@ describe('Sitemap', () => {
     });
 
     it('extracts urls from sitemaps', async () => {
-        const sitemap = await Sitemap.load('http://not-exists.com/sitemap_child.xml');
+        const sitemap = await Sitemap.load('http://not-exists.com/sitemap_child.xml', undefined, {
+            httpClient: new FetchHttpClient(),
+        });
         expect(new Set(sitemap.urls)).toEqual(
             new Set([
                 'http://not-exists.com/',
@@ -248,7 +303,11 @@ describe('Sitemap', () => {
     it('extracts metadata from sitemaps', async () => {
         const items: SitemapUrl[] = [];
 
-        for await (const item of parseSitemap([{ type: 'url', url: 'http://not-exists.com/sitemap_child.xml' }])) {
+        for await (const item of parseSitemap(
+            [{ type: 'url', url: 'http://not-exists.com/sitemap_child.xml' }],
+            undefined,
+            { httpClient: new FetchHttpClient() },
+        )) {
             items.push(item);
         }
 
@@ -264,7 +323,9 @@ describe('Sitemap', () => {
     });
 
     it('extracts urls from gzipped sitemaps', async () => {
-        const sitemap = await Sitemap.load('http://not-exists.com/sitemap_child.xml.gz');
+        const sitemap = await Sitemap.load('http://not-exists.com/sitemap_child.xml.gz', undefined, {
+            httpClient: new FetchHttpClient(),
+        });
         expect(new Set(sitemap.urls)).toEqual(
             new Set([
                 'http://not-exists.com/',
@@ -277,12 +338,16 @@ describe('Sitemap', () => {
     });
 
     it('identifies incorrect gzipped sitemaps as malformed', async () => {
-        const sitemap = await Sitemap.load('http://not-exists.com/invalid_sitemap_child.xml.gz');
+        const sitemap = await Sitemap.load('http://not-exists.com/invalid_sitemap_child.xml.gz', undefined, {
+            httpClient: new FetchHttpClient(),
+        });
         expect(new Set(sitemap.urls)).toEqual(new Set([]));
     });
 
     it('follows links in sitemap indexes', async () => {
-        const sitemap = await Sitemap.load('http://not-exists.com/sitemap_parent.xml');
+        const sitemap = await Sitemap.load('http://not-exists.com/sitemap_parent.xml', undefined, {
+            httpClient: new FetchHttpClient(),
+        });
         expect(new Set(sitemap.urls)).toEqual(
             new Set([
                 'http://not-exists.com/',
@@ -294,18 +359,51 @@ describe('Sitemap', () => {
         );
     });
 
+    it('respects nestedSitemapFilter when following sitemap indexes', async () => {
+        const items: SitemapUrl[] = [];
+
+        for await (const item of parseSitemap(
+            [{ type: 'url', url: 'http://not-exists.com/sitemap_parent.xml' }],
+            undefined,
+            {
+                nestedSitemapFilter: (url) => !url.includes('sitemap_child_2'),
+            },
+        )) {
+            items.push(item);
+        }
+
+        expect(items).toHaveLength(5);
+        expect(items.every((item) => item.originSitemapUrl === 'http://not-exists.com/sitemap_child.xml')).toBe(true);
+    });
+
+    it('follows all nested sitemaps when nestedSitemapFilter is not provided', async () => {
+        const items: SitemapUrl[] = [];
+
+        for await (const item of parseSitemap([{ type: 'url', url: 'http://not-exists.com/sitemap_parent.xml' }])) {
+            items.push(item);
+        }
+
+        expect(items).toHaveLength(10);
+    });
+
     it('does not break on invalid xml', async () => {
-        const sitemap = await Sitemap.load('http://not-exists.com/not_actual_xml.xml');
+        const sitemap = await Sitemap.load('http://not-exists.com/not_actual_xml.xml', undefined, {
+            httpClient: new FetchHttpClient(),
+        });
         expect(sitemap.urls).toEqual([]);
     });
 
     it('handles CDATA in loc tags', async () => {
-        const sitemap = await Sitemap.load('http://not-exists.com/sitemap_cdata.xml');
+        const sitemap = await Sitemap.load('http://not-exists.com/sitemap_cdata.xml', undefined, {
+            httpClient: new FetchHttpClient(),
+        });
         expect(new Set(sitemap.urls)).toEqual(new Set(['http://not-exists.com/catalog']));
     });
 
     it('autodetects sitemaps', async () => {
-        const sitemap = await Sitemap.tryCommonNames('http://not-exists.com/arbitrary_url?search=xyz');
+        const sitemap = await Sitemap.tryCommonNames('http://not-exists.com/arbitrary_url?search=xyz', undefined, {
+            httpClient: new FetchHttpClient(),
+        });
         expect(new Set(sitemap.urls)).toEqual(
             new Set([
                 'http://not-exists.com/catalog?item=80&desc=vacation_turkey',
@@ -317,16 +415,22 @@ describe('Sitemap', () => {
     });
 
     it('keeps quiet if autodetection does not find anything', async () => {
-        const spy = vi.spyOn(log, 'warning');
+        const logger = { warning: vi.fn(), warningOnce: vi.fn() } as any;
 
-        const sitemap = await Sitemap.tryCommonNames('http://not-exists-2.com/arbitrary_url?search=xyz');
+        const sitemap = await Sitemap.tryCommonNames('http://not-exists-2.com/arbitrary_url?search=xyz', undefined, {
+            httpClient: new FetchHttpClient(),
+            logger,
+        });
 
         expect(sitemap.urls).toHaveLength(0);
-        expect(spy).not.toHaveBeenCalled();
+        expect(logger.warning).not.toHaveBeenCalled();
+        expect(logger.warningOnce).not.toHaveBeenCalled();
     });
 
     it('handles sitemap.txt correctly', async () => {
-        const sitemap = await Sitemap.load('http://not-exists.com/sitemap.txt');
+        const sitemap = await Sitemap.load('http://not-exists.com/sitemap.txt', undefined, {
+            httpClient: new FetchHttpClient(),
+        });
         expect(new Set(sitemap.urls)).toEqual(
             new Set([
                 'http://not-exists.com/catalog?item=78&desc=vacation_crete',
@@ -336,14 +440,20 @@ describe('Sitemap', () => {
     });
 
     it('handles pretty-printed XML correctly', async () => {
-        const sitemap = await Sitemap.load('http://not-exists.com/sitemap_pretty.xml');
+        const sitemap = await Sitemap.load('http://not-exists.com/sitemap_pretty.xml', undefined, {
+            httpClient: new FetchHttpClient(),
+        });
         expect(new Set(sitemap.urls)).toEqual(new Set(['http://not-exists.com/catalog?item=80&desc=vacation_turkey']));
     });
 
     it('extracts metadata from pretty-printed XML', async () => {
         const items: SitemapUrl[] = [];
 
-        for await (const item of parseSitemap([{ type: 'url', url: 'http://not-exists.com/sitemap_pretty.xml' }])) {
+        for await (const item of parseSitemap(
+            [{ type: 'url', url: 'http://not-exists.com/sitemap_pretty.xml' }],
+            undefined,
+            { httpClient: new FetchHttpClient() },
+        )) {
             items.push(item);
         }
 
@@ -359,7 +469,9 @@ describe('Sitemap', () => {
     });
 
     it('handles pretty-printed nested sitemaps XML correctly', async () => {
-        const sitemap = await Sitemap.load('http://not-exists.com/sitemap_parent_pretty.xml');
+        const sitemap = await Sitemap.load('http://not-exists.com/sitemap_parent_pretty.xml', undefined, {
+            httpClient: new FetchHttpClient(),
+        });
         expect(new Set(sitemap.urls)).toEqual(
             new Set([
                 'http://not-exists.com/',
@@ -396,6 +508,39 @@ describe('Sitemap', () => {
         );
     });
 
+    it('does not leak metadata from a url without loc and drops invalid lastmod', async () => {
+        const items: SitemapUrl[] = [];
+
+        for await (const item of parseSitemap([
+            {
+                type: 'raw',
+                content: [
+                    '<?xml version="1.0" encoding="UTF-8"?>',
+                    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+                    '<url>',
+                    '<loc>http://not-exists.com/a</loc>',
+                    '<lastmod>not-a-date</lastmod>',
+                    '</url>',
+                    '<url>',
+                    '<lastmod>2020-01-01</lastmod>',
+                    '<priority>0.5</priority>',
+                    '</url>',
+                    '<url>',
+                    '<loc>http://not-exists.com/c</loc>',
+                    '</url>',
+                    '</urlset>',
+                ].join('\n'),
+            },
+        ])) {
+            items.push(item);
+        }
+
+        expect(items.map((item) => item.loc)).toEqual(['http://not-exists.com/a', 'http://not-exists.com/c']);
+        expect(items[0].lastmod).toBeUndefined();
+        expect(items[1].lastmod).toBeUndefined();
+        expect(items[1].priority).toBeUndefined();
+    });
+
     it('loads sitemaps that reference other sitemaps from string', async () => {
         const sitemap = await Sitemap.fromXmlString(
             [
@@ -411,6 +556,8 @@ describe('Sitemap', () => {
                 '</sitemap>',
                 '</sitemapindex>',
             ].join('\n'),
+            undefined,
+            { httpClient: new FetchHttpClient() },
         );
 
         expect(new Set(sitemap.urls)).toEqual(
@@ -425,7 +572,9 @@ describe('Sitemap', () => {
     });
 
     it("loads XML sitemap even though it's gzipped according to file extension", async () => {
-        const sitemap = await Sitemap.load('http://not-exists.com/non_gzipped_sitemap.xml.gz');
+        const sitemap = await Sitemap.load('http://not-exists.com/non_gzipped_sitemap.xml.gz', undefined, {
+            httpClient: new FetchHttpClient(),
+        });
 
         expect(new Set(sitemap.urls)).toEqual(
             new Set([
@@ -436,7 +585,9 @@ describe('Sitemap', () => {
     });
 
     it("loads gzipped sitemap even though it's not gzipped according to file extension", async () => {
-        const sitemap = await Sitemap.load('http://not-exists.com/sneakily_gzipped_sitemap.xml');
+        const sitemap = await Sitemap.load('http://not-exists.com/sneakily_gzipped_sitemap.xml', undefined, {
+            httpClient: new FetchHttpClient(),
+        });
 
         expect(new Set(sitemap.urls)).toEqual(
             new Set([
@@ -447,5 +598,300 @@ describe('Sitemap', () => {
                 'http://not-exists.com/catalog?item=83&desc=vacation_usa',
             ]),
         );
+    });
+
+    it('drops cross-host URL entries under the default same-hostname strategy', async () => {
+        const sitemap = await Sitemap.load('http://not-exists.com/cross_host_urls.xml');
+        expect(sitemap.urls).toEqual(['http://not-exists.com/local-page']);
+    });
+
+    it('logs one aggregated warning per sitemap for dropped URL entries', async () => {
+        const warning = vi.fn();
+
+        await Sitemap.load('http://not-exists.com/cross_host_urls.xml', undefined, {
+            logger: { warning, debug: vi.fn(), info: vi.fn(), error: vi.fn() } as any,
+        });
+
+        expect(warning).toHaveBeenCalledTimes(1);
+        expect(warning).toHaveBeenCalledWith(
+            expect.stringContaining('Skipped 1 URL(s) from sitemap http://not-exists.com/cross_host_urls.xml'),
+        );
+    });
+
+    it('keeps cross-host URL entries when enqueueStrategy is "all"', async () => {
+        const sitemap = await Sitemap.load('http://not-exists.com/cross_host_urls.xml', undefined, {
+            enqueueStrategy: 'all',
+        });
+        expect(new Set(sitemap.urls)).toEqual(
+            new Set(['http://not-exists.com/local-page', 'http://other.test/cross-page']),
+        );
+    });
+
+    it('does not fetch cross-host nested sitemaps under the default same-hostname strategy', async () => {
+        const sitemap = await Sitemap.load('http://not-exists.com/cross_host_index.xml');
+        // If the cross-host nested sitemap were fetched, `child-page` would appear in the result.
+        expect(sitemap.urls).toEqual([]);
+    });
+
+    it('follows cross-host nested sitemaps when enqueueStrategy is "all"', async () => {
+        const sitemap = await Sitemap.load('http://not-exists.com/cross_host_index.xml', undefined, {
+            enqueueStrategy: 'all',
+        });
+        expect(sitemap.urls).toEqual(['http://other.test/child-page']);
+    });
+
+    it('drops non-http(s) scheme entries even when enqueueStrategy is "all"', async () => {
+        const sitemap = await Sitemap.load('http://not-exists.com/bad_schemes.xml', undefined, {
+            enqueueStrategy: 'all',
+        });
+        expect(sitemap.urls).toEqual(['http://not-exists.com/ok']);
+    });
+});
+
+describe('discoverValidSitemaps', () => {
+    beforeEach(() => {
+        nock.disableNetConnect();
+    });
+
+    afterEach(() => {
+        nock.cleanAll();
+        nock.enableNetConnect();
+    });
+
+    it('extracts sitemap from robots.txt', async () => {
+        nock('http://sitemap-discovery.com')
+            .get('/robots.txt')
+            .reply(200, 'Sitemap: http://sitemap-discovery.com/some-sitemap.xml')
+            .head('/some-sitemap.xml')
+            .reply(200, '')
+            .head('/sitemap.xml')
+            .reply(404, '')
+            .head('/sitemap.txt')
+            .reply(404, '')
+            .head('/sitemap_index.xml')
+            .reply(404, '');
+
+        const urls = [];
+        for await (const url of discoverValidSitemaps(['http://sitemap-discovery.com'])) {
+            urls.push(url);
+        }
+
+        expect(urls).toEqual(['http://sitemap-discovery.com/some-sitemap.xml']);
+    });
+
+    it('discovers cross-host sitemaps referenced in robots.txt', async () => {
+        nock('http://sitemap-discovery.com')
+            .get('/robots.txt')
+            .reply(200, 'Sitemap: http://cdn.other-host.com/some-sitemap.xml')
+            .head('/sitemap.xml')
+            .reply(404, '')
+            .head('/sitemap.txt')
+            .reply(404, '')
+            .head('/sitemap_index.xml')
+            .reply(404, '');
+
+        const urls = [];
+        for await (const url of discoverValidSitemaps(['http://sitemap-discovery.com'])) {
+            urls.push(url);
+        }
+
+        // Cross-host sitemap is surfaced; host scoping is applied at load time.
+        expect(urls).toEqual(['http://cdn.other-host.com/some-sitemap.xml']);
+    });
+
+    it('extracts sitemap from well-known paths if robots.txt is missing', async () => {
+        nock('http://sitemap-discovery.com')
+            .get('/robots.txt')
+            .reply(404)
+            .head('/sitemap.xml')
+            .reply(200, '')
+            .head('/sitemap.txt')
+            .reply(404, '')
+            .head('/sitemap_index.xml')
+            .reply(404, '');
+
+        const urls = [];
+        for await (const url of discoverValidSitemaps(['http://sitemap-discovery.com'])) {
+            urls.push(url);
+        }
+
+        expect(urls).toEqual(['http://sitemap-discovery.com/sitemap.xml']);
+    });
+
+    it('extracts sitemap from well-known paths if robots.txt is missing (txt)', async () => {
+        nock('http://sitemap-discovery.com')
+            .get('/robots.txt')
+            .reply(404)
+            .head('/sitemap.xml')
+            .reply(404, '')
+            .head('/sitemap.txt')
+            .reply(200, '')
+            .head('/sitemap_index.xml')
+            .reply(404, '');
+
+        const urls = [];
+        for await (const url of discoverValidSitemaps(['http://sitemap-discovery.com'])) {
+            urls.push(url);
+        }
+
+        expect(urls).toEqual(['http://sitemap-discovery.com/sitemap.txt']);
+    });
+
+    it('extracts sitemap from well-known paths if robots.txt is missing (sitemap_index.xml)', async () => {
+        nock('http://sitemap-discovery.com')
+            .get('/robots.txt')
+            .reply(404)
+            .head('/sitemap.xml')
+            .reply(404, '')
+            .head('/sitemap.txt')
+            .reply(404, '')
+            .head('/sitemap_index.xml')
+            .reply(200, '');
+
+        const urls = [];
+        for await (const url of discoverValidSitemaps(['http://sitemap-discovery.com'])) {
+            urls.push(url);
+        }
+
+        expect(urls).toEqual(['http://sitemap-discovery.com/sitemap_index.xml']);
+    });
+
+    it('extracts sitemap from input url', async () => {
+        nock('http://sitemap-discovery.com').get('/robots.txt').reply(404);
+
+        const urls = [];
+        for await (const url of discoverValidSitemaps(['http://sitemap-discovery.com/sitemap.xml'])) {
+            urls.push(url);
+        }
+
+        expect(urls).toEqual(['http://sitemap-discovery.com/sitemap.xml']);
+    });
+
+    it('extracts sitemaps from multiple domains with mixed order', async () => {
+        nock('http://domain-a.com')
+            .get('/robots.txt')
+            .delay(10)
+            .reply(404)
+            .head('/sitemap.xml')
+            .delay(30)
+            .reply(200, '')
+            .head('/sitemap.txt')
+            .delay(50)
+            .reply(200, '')
+            .head('/sitemap_index.xml')
+            .reply(404);
+
+        nock('http://domain-b.com')
+            .get('/robots.txt')
+            .delay(20)
+            .reply(404)
+            .head('/sitemap.xml')
+            .delay(40)
+            .reply(200, '')
+            .head('/sitemap.txt')
+            .delay(60)
+            .reply(200, '')
+            .head('/sitemap_index.xml')
+            .reply(404);
+
+        const urls = [];
+        for await (const url of discoverValidSitemaps(['http://domain-a.com', 'http://domain-b.com'])) {
+            urls.push(url);
+        }
+
+        expect(urls.slice().sort()).toEqual(
+            [
+                'http://domain-a.com/sitemap.xml',
+                'http://domain-b.com/sitemap.xml',
+                'http://domain-a.com/sitemap.txt',
+                'http://domain-b.com/sitemap.txt',
+            ].sort(),
+        );
+    });
+
+    it('aborts when timeoutMillis elapses', async () => {
+        nock('http://slow-site.com')
+            .get('/robots.txt')
+            .delay(5_000)
+            .reply(200, 'Sitemap: http://slow-site.com/sitemap.xml');
+
+        const start = Date.now();
+        const urls = [];
+        for await (const url of discoverValidSitemaps(['http://slow-site.com'], { timeoutMillis: 100 })) {
+            urls.push(url);
+        }
+        const elapsed = Date.now() - start;
+
+        expect(urls).toEqual([]);
+        expect(elapsed).toBeLessThan(2_000);
+    });
+
+    it('aborts when external signal is triggered', async () => {
+        nock('http://slow-site.com')
+            .get('/robots.txt')
+            .delay(5_000)
+            .reply(200, 'Sitemap: http://slow-site.com/sitemap.xml');
+
+        const ac = new AbortController();
+        setTimeout(() => ac.abort(), 100);
+
+        const start = Date.now();
+        const urls = [];
+        for await (const url of discoverValidSitemaps(['http://slow-site.com'], {
+            timeoutMillis: 60_000,
+            signal: ac.signal,
+        })) {
+            urls.push(url);
+        }
+        const elapsed = Date.now() - start;
+
+        expect(urls).toEqual([]);
+        expect(elapsed).toBeLessThan(2_000);
+    });
+
+    it('aborts immediately when signal is already aborted', async () => {
+        nock('http://slow-site.com')
+            .get('/robots.txt')
+            .delay(5_000)
+            .reply(200, 'Sitemap: http://slow-site.com/sitemap.xml');
+
+        const ac = new AbortController();
+        ac.abort();
+
+        const start = Date.now();
+        const urls = [];
+        for await (const url of discoverValidSitemaps(['http://slow-site.com'], { signal: ac.signal })) {
+            urls.push(url);
+        }
+        const elapsed = Date.now() - start;
+
+        expect(urls).toEqual([]);
+        expect(elapsed).toBeLessThan(1_000);
+    });
+
+    it('requestTimeoutMillis aborts slow robots.txt without killing the whole discovery', async () => {
+        nock('http://slow-site.com')
+            .get('/robots.txt')
+            .delay(5_000)
+            .reply(200, 'Sitemap: http://slow-site.com/sitemap.xml')
+            .head('/sitemap.xml')
+            .reply(200, '')
+            .head('/sitemap.txt')
+            .reply(404, '')
+            .head('/sitemap_index.xml')
+            .reply(404, '');
+
+        const start = Date.now();
+        const urls = [];
+        for await (const url of discoverValidSitemaps(['http://slow-site.com'], {
+            timeoutMillis: 30_000,
+            requestTimeoutMillis: 100,
+        })) {
+            urls.push(url);
+        }
+        const elapsed = Date.now() - start;
+
+        expect(urls).toEqual(['http://slow-site.com/sitemap.xml']);
+        expect(elapsed).toBeLessThan(2_000);
     });
 });

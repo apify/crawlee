@@ -3,6 +3,54 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.18.1](https://github.com/apify/crawlee/compare/v3.18.0...v3.18.1) (2026-08-12)
+
+**Note:** Version bump only for package @crawlee/browser
+
+
+
+
+
+# [3.18.0](https://github.com/apify/crawlee/compare/v3.17.0...v3.18.0) (2026-08-04)
+
+### Bug Fixes
+
+* **core:** ignore explicitly undefined baseUrl in enqueueLinks helpers ([#3924](https://github.com/apify/crawlee/issues/3924)) ([a58a9c1](https://github.com/apify/crawlee/commit/a58a9c1417c34c2a45a10f3855c4bee721a480ae))
+* **core:** keep crawler enqueue limits when options carry explicit undefined ([#3927](https://github.com/apify/crawlee/issues/3927)) ([5f1b0ab](https://github.com/apify/crawlee/commit/5f1b0ab480f297100d2db70f646825b92f70f21a)), closes [#3924](https://github.com/apify/crawlee/issues/3924) [#3924](https://github.com/apify/crawlee/issues/3924)
+
+### Features
+
+* opt-in schema validation of request userData per router label ([#3851](https://github.com/apify/crawlee/issues/3851)) ([c7347f9](https://github.com/apify/crawlee/commit/c7347f94f72980b7c424fb4fc7dc8f990f360d70)), closes [#3747](https://github.com/apify/crawlee/issues/3747) [#3748](https://github.com/apify/crawlee/issues/3748) [#3747](https://github.com/apify/crawlee/issues/3747) [#3082](https://github.com/apify/crawlee/issues/3082)
+* support `puppeteer@25` ([#3869](https://github.com/apify/crawlee/issues/3869)) ([1430062](https://github.com/apify/crawlee/commit/1430062c2ba49c32ecb4cd4a14edd2d9a71c7ac3)), closes [#3772](https://github.com/apify/crawlee/issues/3772)
+
+
+# [3.17.0](https://github.com/apify/crawlee/compare/v3.16.0...v3.17.0) (2026-06-04)
+
+
+### Bug Fixes
+
+* BrowserCrawler closes ctx.page before errorHandler runs on navig… ([#3655](https://github.com/apify/crawlee/issues/3655)) ([ab34886](https://github.com/apify/crawlee/commit/ab348864b31edebb45e2e11f3ded3489131dcc0f))
+
+
+### Features
+
+* add `ignoreProxyCertificate` option for the internal `proxy-chain` instance ([#3418](https://github.com/apify/crawlee/issues/3418)) ([02eec66](https://github.com/apify/crawlee/commit/02eec66ecfaef94dd9903940d7969e72cf4b1fd1)), closes [#3369](https://github.com/apify/crawlee/issues/3369)
+
+
+
+
+
+# [3.16.0](https://github.com/apify/crawlee/compare/v3.15.3...v3.16.0) (2026-02-06)
+
+
+### Performance Improvements
+
+* drop `tsbuildinfo` from published packages ([#3243](https://github.com/apify/crawlee/issues/3243)) ([3450f27](https://github.com/apify/crawlee/commit/3450f27880afb9e9d857a54d9212b54c397aed91)), closes [#3239](https://github.com/apify/crawlee/issues/3239)
+
+
+
+
+
 ## [3.15.3](https://github.com/apify/crawlee/compare/v3.15.2...v3.15.3) (2025-11-10)
 
 **Note:** Version bump only for package @crawlee/browser

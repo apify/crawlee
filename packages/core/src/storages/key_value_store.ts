@@ -1,53 +1,52 @@
-import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
-
-import type { Dictionary, KeyValueStoreClient, StorageClient } from '@crawlee/types';
-import JSON5 from 'json5';
-import ow, { ArgumentError } from 'ow';
+import type {
+    Awaitable,
+    Dictionary,
+    KeyValueStoreBackend,
+    KeyValueStoreInfo,
+    KeyValueStoreItemData,
+} from '@crawlee/types';
+import { z } from 'zod';
 
 import { KEY_VALUE_STORE_KEY_REGEX } from '@apify/consts';
-import log from '@apify/log';
-import { jsonStringifyExtended } from '@apify/utilities';
+import { tryCancel } from '@apify/timeout';
 
-import { Configuration } from '../configuration';
-import type { Awaitable } from '../typedefs';
-import { checkStorageAccess } from './access_checking';
-import type { StorageManagerOptions } from './storage_manager';
-import { StorageManager } from './storage_manager';
-import { purgeDefaultStorages } from './utils';
+import { Configuration } from '../configuration.js';
+import { serviceLocator } from '../service_locator.js';
+import { parseArgument, schemas, validators } from '../validators.js';
+import type { JournalEntry, KeyValueStoreJournalEntry } from './transaction.js';
+import {
+    activeStorageTransaction,
+    operationRejectedInTransaction,
+    rejectOperationInTransaction,
+    snapshotValue,
+    withDirectStorageAccess,
+} from './transaction.js';
+import { parseValue, serializeValue } from './key_value_store_codec.js';
+import type { KeyValueStoreStats } from './storage_stats.js';
+import { StorageStatsTracker } from './storage_stats.js';
+import type { StorageOpenOptions } from './utils.js';
+import type { StorageIdentifier } from './storage_instance_manager.js';
+import { resolveStorageIdentifier } from './storage_instance_manager.js';
+import { createDualIterable, purgeDefaultStorages } from './utils.js';
+import { isBuffer, isStream } from '../byte_utils.js';
 
-/**
- * Helper function to possibly stringify value if options.contentType is not set.
- *
- * @ignore
- */
-export const maybeStringify = <T>(value: T, options: { contentType?: string }) => {
-    // If contentType is missing, value will be stringified to JSON
-    if (options.contentType === null || options.contentType === undefined) {
-        options.contentType = 'application/json; charset=utf-8';
+/** @internal */
+const KVS_KEYS_DEFAULT_LIMIT = 1000;
 
-        try {
-            // Format JSON to simplify debugging, the overheads with compression is negligible
-            value = jsonStringifyExtended(value as Dictionary, null, 2) as unknown as T;
-        } catch (e) {
-            const error = e as Error;
-            // Give more meaningful error message
-            if (error.message?.includes('Invalid string length')) {
-                error.message = 'Object is too large';
-            }
-            throw new Error(`The "value" parameter cannot be stringified to JSON: ${error.message}`);
-        }
-
-        if (value === undefined) {
-            throw new Error(
-                'The "value" parameter was stringified to JSON and returned undefined. ' +
-                    "Make sure you're not trying to stringify an undefined value.",
-            );
-        }
-    }
-
-    return value;
-};
+const keySchema = z.string().nonempty();
+const setValueKeySchema = z.string().nonempty().regex(KEY_VALUE_STORE_KEY_REGEX, {
+    message: `The "key" argument must be at most 256 characters long and only contain the following characters: a-zA-Z0-9!-_.'()`,
+});
+const recordOptionsSchema = z.strictObject({
+    contentType: z.string().nonempty().optional(),
+});
+const iteratorOptionsSchema = z.strictObject({
+    prefix: z.string().optional(),
+});
+const openOptionsSchema = z.strictObject({
+    configuration: z.instanceof(Configuration).optional(),
+    storageBackend: validators.storageBackend.optional(),
+});
 
 /**
  * The `KeyValueStore` class represents a key-value store, a simple data storage that is used
@@ -108,24 +107,38 @@ export const maybeStringify = <T>(value: T, options: { contentType?: string }) =
 export class KeyValueStore {
     readonly id: string;
     readonly name?: string;
-    readonly storageObject?: Record<string, unknown>;
-    private readonly client: KeyValueStoreClient;
-    private persistStateEventStarted = false;
+    // kept as TS-private: key_value_store tests spy on the backend directly
+    private readonly backend: KeyValueStoreBackend;
+    #persistStateEventStarted = false;
 
     /** Cache for persistent (auto-saved) values. When we try to set such value, the cache will be updated automatically. */
-    private readonly cache = new Map<string, Dictionary>();
+    readonly #cache = new Map<string, Dictionary>();
+
+    readonly #statsTracker = new StorageStatsTracker<KeyValueStoreStats>({
+        readCount: 0,
+        writeCount: 0,
+        deleteCount: 0,
+        listCount: 0,
+    });
 
     /**
      * @internal
      */
     constructor(
         options: KeyValueStoreOptions,
-        readonly config = Configuration.getGlobalConfig(),
+        readonly configuration = Configuration.getGlobalConfiguration(),
     ) {
-        this.id = options.id;
-        this.name = options.name;
-        this.storageObject = options.storageObject;
-        this.client = options.client.keyValueStore(this.id);
+        this.id = options.metadata.id;
+        this.name = options.metadata.name;
+        this.backend = options.backend;
+    }
+
+    /**
+     * Backend-independent usage counters tracked for this key-value store (read / write / delete /
+     * list operations issued to the underlying storage backend). Counted per backend call.
+     */
+    get stats(): KeyValueStoreStats {
+        return this.#statsTracker.current;
     }
 
     /**
@@ -225,12 +238,108 @@ export class KeyValueStore {
      *   on the MIME content type of the record, or `null` if the key is missing from the store.
      */
     async getValue<T = unknown>(key: string, defaultValue?: T): Promise<T | null> {
-        checkStorageAccess();
+        tryCancel();
 
-        ow(key, ow.string.nonEmpty);
-        const record = await this.client.getRecord(key);
+        parseArgument(key, keySchema);
+        const record = await this.readRecord(key);
 
-        return (record?.value as T) ?? defaultValue ?? null;
+        // A missing record falls back to the default; a record that parses to a falsy value (including
+        // a stored literal `null`) is returned verbatim, so callers can tell "stored null" from "absent".
+        if (!record) {
+            return defaultValue ?? null;
+        }
+
+        // Storage backends are byte transports — the value is raw bytes; the frontend parses it here.
+        return parseValue(record.value, record.contentType ?? null) as T;
+    }
+
+    /**
+     * The active transaction's last buffered write per key for this store, derived from its journal.
+     * An entry with a `null` value is a tombstone (an in-transaction deletion).
+     */
+    private bufferedJournalEntries(): Map<string, KeyValueStoreJournalEntry> | undefined {
+        const transaction = activeStorageTransaction();
+        if (!transaction) return undefined;
+
+        const lastWritePerKey = new Map<string, KeyValueStoreJournalEntry>();
+
+        for (const entry of transaction.journal) {
+            if (entry.type === 'keyValueStore' && entry.participant === this) {
+                lastWritePerKey.set(entry.key, entry);
+            }
+        }
+
+        return lastWritePerKey;
+    }
+
+    /**
+     * The single transaction-aware record read shared by `getValue`, `getRecord`, `recordExists` and the
+     * listing paths: buffered key → serialized through the standard codec (same fidelity as a real
+     * round-trip); tombstoned key → `null`; otherwise the backend.
+     *
+     * The per-key buffered lookup requires the whole journal to be reduced to a last-write-per-key map,
+     * which is O(journal). Single-record callers let it default (rebuilt per call); the listing paths,
+     * which read many keys, pass a map built once so the read stays O(1) per key instead of O(journal).
+     */
+    private async readRecord(
+        key: string,
+        buffered = this.bufferedJournalEntries(),
+    ): Promise<{ value: Buffer | ArrayBuffer; contentType: string | null } | null> {
+        const entry = buffered?.get(key);
+
+        if (entry) {
+            if (entry.value === null) {
+                return null;
+            }
+
+            const serialized = serializeValue(entry.value, entry.options?.contentType);
+            return {
+                value: normalizeSerializedValue(serialized.value),
+                contentType: serialized.contentType ?? null,
+            };
+        }
+
+        this.#statsTracker.add('readCount');
+        const record = await this.backend.getValue(key);
+        if (!record) return null;
+
+        return {
+            value: record.value,
+            contentType: record.contentType ?? null,
+        };
+    }
+
+    /**
+     * Reads a record from the key-value store without parsing the value.
+     *
+     * Use this when you need the raw bytes and the content type — for example, to run your own
+     * parser (`simdjson`, a custom XML library, etc.) or to forward the bytes verbatim.
+     *
+     * There is no symmetric `setRecord` method, because {@apilink KeyValueStore.setValue} already
+     * passes a `Buffer` (or `string` / `Stream`) through unchanged when an explicit `contentType`
+     * is provided. To write pre-serialized bytes, call
+     * `setValue(key, buffer, { contentType: 'application/json; charset=utf-8' })`.
+     *
+     * Returns `null` if the record does not exist.
+     *
+     * **Example usage:**
+     * ```javascript
+     * const store = await KeyValueStore.open();
+     * const record = await store.getRecord('huge.json');
+     * if (record) {
+     *     const data = simdjson.parse(record.value);
+     * }
+     * ```
+     *
+     * @param key
+     *   Unique key of the record. It can be at most 256 characters long and only consist
+     *   of the following characters: `a`-`z`, `A`-`Z`, `0`-`9` and `!-_.'()`
+     */
+    async getRecord(key: string): Promise<KeyValueStoreRawRecord | null> {
+        tryCancel();
+
+        parseArgument(key, keySchema);
+        return this.readRecord(key);
     }
 
     /**
@@ -240,60 +349,128 @@ export class KeyValueStore {
      * @returns `true` if the record exists, `false` if it does not.
      */
     async recordExists(key: string): Promise<boolean> {
-        checkStorageAccess();
+        tryCancel();
 
-        ow(key, ow.string.nonEmpty);
-        return this.client.recordExists(key);
+        parseArgument(key, keySchema);
+
+        const entry = this.bufferedJournalEntries()?.get(key);
+        if (entry) {
+            return entry.value !== null;
+        }
+
+        return this.backend.recordExists(key);
     }
 
     async getAutoSavedValue<T extends Dictionary = Dictionary>(key: string, defaultValue = {} as T): Promise<T> {
-        checkStorageAccess();
+        tryCancel();
 
-        if (this.cache.has(key)) {
-            return this.cache.get(key) as T;
+        if (this.#cache.has(key)) {
+            return this.#cache.get(key) as T;
         }
 
-        const value = await this.getValue<T>(key, defaultValue);
+        // Auto-saved state is deliberately *not* transactional. The direct read bypasses any active
+        // transaction - a buffered value seeded into this shared cache would survive a rollback forever.
+        const value = await withDirectStorageAccess(async () => this.getValue<T>(key, defaultValue));
 
         // The await above could have run in parallel with another call to this function. If the other call finished more quickly,
         // the value will in cache at this point, and returning the new fetched value would introduce two different instances of
         // the auto-saved object, and only the latter one would be persisted.
         // Therefore we re-check the cache here, and if such race condition happened, we drop the fetched value and return the cached one.
-        if (this.cache.has(key)) {
-            return this.cache.get(key) as T;
+        if (this.#cache.has(key)) {
+            return this.#cache.get(key) as T;
         }
 
-        this.cache.set(key, value!);
+        this.#cache.set(key, value!);
         this.ensurePersistStateEvent();
 
         return value!;
     }
 
     private ensurePersistStateEvent(): void {
-        if (this.persistStateEventStarted) {
+        if (this.#persistStateEventStarted) {
             return;
         }
 
-        // use half the interval of `persistState` to avoid race conditions
-        const persistStateIntervalMillis = this.config.get('persistStateIntervalMillis')!;
-        const timeoutSecs = persistStateIntervalMillis / 2_000;
-
-        this.config.getEventManager().on('persistState', async () => {
+        serviceLocator.getEventManager().on('persistState', async () => {
             const promises: Promise<void>[] = [];
 
-            for (const [key, value] of this.cache) {
+            for (const [key, value] of this.#cache) {
                 promises.push(
-                    this.setValue(key, value, {
-                        timeoutSecs,
-                        doNotRetryTimeouts: true,
-                    }).catch((error) => log.warning(`Failed to persist the state value to ${key}`, { error })),
+                    this.setValue(key, value).catch((error) =>
+                        serviceLocator.getLogger().warning(`Failed to persist the state value to ${key}`, { error }),
+                    ),
                 );
             }
 
             await Promise.all(promises);
         });
 
-        this.persistStateEventStarted = true;
+        this.#persistStateEventStarted = true;
+    }
+
+    private async *fetchKeyValuePages<T>(
+        options: KeyValueStoreIteratorOptions,
+        mapRecord: (key: string, value: unknown) => T,
+    ): AsyncGenerator<T[]> {
+        // Reduce the journal once for the whole iteration, not once per key inside `readRecord`.
+        const buffered = this.bufferedJournalEntries();
+
+        for await (const page of this.fetchKeyPages(options, buffered)) {
+            const results: T[] = [];
+            for (const item of page) {
+                // The shared transaction-aware read, so a key that exists only in the transaction resolves
+                // here instead of being dropped (`values()` would disagree with `keys()` on length).
+                const record = await this.readRecord(item.key, buffered);
+                if (record) {
+                    const parsed = parseValue(record.value, record.contentType ?? null);
+                    results.push(mapRecord(item.key, parsed));
+                }
+            }
+            yield results;
+        }
+    }
+
+    private async *fetchKeyPages(
+        options: KeyValueStoreIteratorOptions,
+        buffered = this.bufferedJournalEntries(),
+        limit = KVS_KEYS_DEFAULT_LIMIT,
+    ): AsyncGenerator<KeyValueStoreItemData[]> {
+        // Buffered keys are emitted first, then the real pages with any buffered (or tombstoned) key
+        // skipped - a merge-join is not an option, since `listKeys` promises no sort order.
+        const shadowedKeys = new Set<string>();
+
+        if (buffered) {
+            const bufferedItems: KeyValueStoreItemData[] = [];
+
+            for (const [key, entry] of buffered) {
+                shadowedKeys.add(key);
+
+                if (entry.value === null) continue;
+                if (options.prefix !== undefined && !key.startsWith(options.prefix)) continue;
+
+                bufferedItems.push(bufferedKeyItemData(key, entry));
+            }
+
+            if (bufferedItems.length > 0) {
+                bufferedItems.sort((a, b) => (a.key < b.key ? -1 : 1));
+                yield bufferedItems;
+            }
+        }
+
+        let exclusiveStartKey: string | undefined;
+
+        while (true) {
+            this.#statsTracker.add('listCount');
+            const { items, isTruncated, nextExclusiveStartKey } = await this.backend.listKeys({
+                ...options,
+                exclusiveStartKey,
+                limit,
+            });
+            yield shadowedKeys.size > 0 ? items.filter((item) => !shadowedKeys.has(item.key)) : items;
+            if (!isTruncated) break;
+            // Paginate from the raw backend cursor - it may reject a key it did not hand out.
+            exclusiveStartKey = nextExclusiveStartKey;
+        }
     }
 
     /**
@@ -340,73 +517,96 @@ export class KeyValueStore {
      * @param [options] Record options.
      */
     async setValue<T>(key: string, value: T | null, options: RecordOptions = {}): Promise<void> {
-        checkStorageAccess();
+        const transaction = activeStorageTransaction();
 
-        ow(key, 'key', ow.string.nonEmpty);
-        ow(
-            key,
-            ow.string.validate((k) => ({
-                validator: ow.isValid(k, ow.string.matches(KEY_VALUE_STORE_KEY_REGEX)),
-                message: `The "key" argument "${key}" must be at most 256 characters long and only contain the following characters: a-zA-Z0-9!-_.'()`,
-            })),
-        );
-        if (
-            options.contentType &&
-            !(
-                ow.isValid(value, ow.any(ow.string, ow.uint8Array)) ||
-                (ow.isValid(value, ow.object) && typeof (value as Dictionary).pipe === 'function')
-            )
-        ) {
-            throw new ArgumentError(
-                'The "value" parameter must be a String, Buffer or Stream when "options.contentType" is specified.',
-                this.setValue,
+        parseArgument(key, setValueKeySchema);
+        if (options.contentType && !(typeof value === 'string' || isBuffer(value) || isStream(value))) {
+            throw new Error(
+                'The "value" parameter must be a String, Buffer, ArrayBuffer, TypedArray, or Stream when "options.contentType" is specified.',
             );
         }
-        ow(
-            options,
-            ow.object.exactShape({
-                contentType: ow.optional.string.nonEmpty,
-                timeoutSecs: ow.optional.number,
-                doNotRetryTimeouts: ow.optional.boolean,
-            }),
-        );
+        // The parse result is a fresh copy, so we never update what user passed.
+        const optionsCopy = parseArgument(options, recordOptionsSchema);
 
-        // Make copy of options, don't update what user passed.
-        const optionsCopy = { ...options };
+        // The whole transaction branch sits *above* the auto-saved cache update below, so a buffered
+        // write touches nothing outside the journal. That cache is shared, process-lifetime frontend
+        // state, so mutating it here would survive a rollback and later be persisted by `persistState`.
+        // The commit replay re-enters this method with no active transaction and updates it then.
+        if (transaction) {
+            if (isStream(value)) {
+                // A stream cannot serve both a read-your-own-writes read and the commit replay. The
+                // transaction is known-active here, so throw directly rather than via the conditional guard.
+                throw operationRejectedInTransaction(
+                    `KeyValueStore.setValue() with a stream value (key "${key}")`,
+                    'a stream can only be consumed once, so it cannot be buffered until commit.',
+                );
+            }
+
+            // Validation only, result discarded: the journal snapshot (`structuredClone`) accepts values
+            // JSON cannot, which would otherwise only throw at a later read or at commit.
+            if (value !== null) {
+                serializeValue(value, optionsCopy.contentType);
+            }
+
+            // One snapshot serves both the reads and the commit replay; `null` is a tombstone.
+            transaction.recordJournalEntry({
+                type: 'keyValueStore',
+                participant: this,
+                storageId: this.id,
+                key,
+                value: value === null ? null : snapshotValue(value),
+                options: optionsCopy,
+            });
+            return;
+        }
 
         // If we try to set the value of a cached state to a different reference, we need to update the cache accordingly.
-        const cachedValue = this.cache.get(key);
+        const cachedValue = this.#cache.get(key);
 
         if (cachedValue && cachedValue !== value) {
             if (value === null) {
                 // Cached state can be only object, so a propagation of `null` means removing all its properties.
-                Object.keys(cachedValue).forEach((k) => this.cache.delete(k));
+                Object.keys(cachedValue).forEach((k) => this.#cache.delete(k));
             } else if (typeof value === 'object') {
                 // We need to remove the keys that are no longer present in the new value.
                 Object.keys(cachedValue)
                     .filter((k) => !(k in (value as Dictionary)))
-                    .forEach((k) => this.cache.delete(k));
+                    .forEach((k) => this.#cache.delete(k));
                 // And update the existing ones + add new ones.
                 Object.assign(cachedValue, value);
             }
         }
 
         // In this case delete the record.
-        if (value === null) return this.client.deleteRecord(key);
+        if (value === null) {
+            this.#statsTracker.add('deleteCount');
+            return this.backend.deleteValue(key);
+        }
 
-        value = maybeStringify(value, optionsCopy);
+        const serialized = serializeValue(value, optionsCopy.contentType);
 
-        return this.client.setRecord(
-            {
-                key,
-                value,
-                contentType: optionsCopy.contentType,
-            },
-            {
-                timeoutSecs: optionsCopy.timeoutSecs,
-                doNotRetryTimeouts: optionsCopy.doNotRetryTimeouts,
-            },
-        );
+        this.#statsTracker.add('writeCount');
+        return this.backend.setValue({
+            key,
+            value: serialized.value,
+            contentType: serialized.contentType,
+        });
+    }
+
+    /** @internal */
+    async commitJournalEntries(entries: JournalEntry[]): Promise<void> {
+        // One `setValue` per key, last write wins - idempotent under retry.
+        const lastWritePerKey = new Map<string, { value: unknown; options?: RecordOptions }>();
+
+        for (const entry of entries) {
+            if (entry.type === 'keyValueStore') {
+                lastWritePerKey.set(entry.key, { value: entry.value, options: entry.options });
+            }
+        }
+
+        for (const [key, { value, options }] of lastWritePerKey) {
+            await this.setValue(key, value, options);
+        }
     }
 
     /**
@@ -414,25 +614,24 @@ export class KeyValueStore {
      * depending on the mode of operation.
      */
     async drop(): Promise<void> {
-        checkStorageAccess();
+        rejectOperationInTransaction('KeyValueStore.drop()');
 
-        await this.client.delete();
-        const manager = StorageManager.getManager(KeyValueStore, this.config);
-        manager.closeStorage(this);
+        await this.backend.drop();
+        serviceLocator.getStorageInstanceManager().removeFromCache(this);
     }
 
     /** @internal */
     clearCache(): void {
-        checkStorageAccess();
+        rejectOperationInTransaction('KeyValueStore.clearCache()');
 
-        this.cache.clear();
+        this.#cache.clear();
     }
 
     /**
      * Iterates over key-value store keys, yielding each in turn to an `iteratee` function.
      * Each invocation of `iteratee` is called with three arguments: `(key, index, info)`, where `key`
      * is the record key, `index` is a zero-based index of the key in the current iteration
-     * (regardless of `options.exclusiveStartKey`) and `info` is an object that contains a single property `size`
+     * and `info` is an object that contains a single property `size`
      * indicating size of the record in bytes.
      *
      * If the `iteratee` function returns a Promise then it is awaited before the next call.
@@ -450,43 +649,143 @@ export class KeyValueStore {
      * @param [options] All `forEachKey()` parameters.
      */
     async forEachKey(iteratee: KeyConsumer, options: KeyValueStoreIteratorOptions = {}): Promise<void> {
-        checkStorageAccess();
+        tryCancel();
 
-        return this._forEachKey(iteratee, options);
+        parseArgument(iteratee, schemas.anyFunction);
+        const parsedOptions = parseArgument(options, iteratorOptionsSchema);
+
+        let index = 0;
+
+        for await (const page of this.fetchKeyPages(parsedOptions)) {
+            for (const item of page) {
+                await iteratee(item.key, index++, { size: item.size });
+            }
+        }
     }
 
-    private async _forEachKey(
-        iteratee: KeyConsumer,
-        options: KeyValueStoreIteratorOptions = {},
-        index = 0,
-    ): Promise<void> {
-        const { exclusiveStartKey, prefix, collection } = options;
-        ow(iteratee, ow.function);
-        ow(
-            options,
-            ow.object.exactShape({
-                exclusiveStartKey: ow.optional.string,
-                prefix: ow.optional.string,
-                collection: ow.optional.string,
-            }),
-        );
+    /**
+     * Returns key-value store keys.
+     *
+     * When awaited (`await store.keys()`), returns all keys as a flat `string[]` array.
+     * When used as an async iterable (`for await...of`), iterates over all keys across pages
+     * without loading everything into memory at once.
+     *
+     * **Example usage:**
+     * ```javascript
+     * const keyValueStore = await KeyValueStore.open();
+     *
+     * // Iterate over all keys (memory-efficient for large stores)
+     * for await (const key of keyValueStore.keys()) {
+     *   console.log(key);
+     * }
+     *
+     * // Or fetch all keys at once
+     * const allKeys = await keyValueStore.keys();
+     * console.log(allKeys);
+     * ```
+     *
+     * @param options Options for the iteration.
+     */
+    keys(options: KeyValueStoreIteratorOptions = {}): AsyncIterable<string> & Promise<string[]> {
+        tryCancel();
 
-        const response = await this.client.listKeys({ exclusiveStartKey, prefix, collection });
-        const { nextExclusiveStartKey, isTruncated, items } = response;
-        for (const item of items) {
-            await iteratee(item.key, index++, { size: item.size });
-        }
-        return isTruncated
-            ? this._forEachKey(iteratee, { exclusiveStartKey: nextExclusiveStartKey, prefix, collection }, index)
-            : undefined; // [].forEach() returns undefined.
+        return createDualIterable({
+            createPages: () => this.fetchKeyPages(options),
+            extractItems: (page) => page.map((item) => item.key),
+        });
+    }
+
+    /**
+     * Returns key-value store values.
+     *
+     * When awaited (`await store.values()`), returns all values as a flat `T[]` array.
+     * When used as an async iterable (`for await...of`), iterates over all values across pages
+     * without loading everything into memory at once.
+     *
+     * **Example usage:**
+     * ```javascript
+     * const keyValueStore = await KeyValueStore.open();
+     *
+     * // Iterate over all values (memory-efficient for large stores)
+     * for await (const value of keyValueStore.values()) {
+     *   console.log(value);
+     * }
+     *
+     * // Or fetch all values at once
+     * const allValues = await keyValueStore.values();
+     * console.log(allValues);
+     * ```
+     *
+     * @param options Options for the iteration.
+     */
+    values<T = unknown>(options: KeyValueStoreIteratorOptions = {}): AsyncIterable<T> & Promise<T[]> {
+        tryCancel();
+
+        return createDualIterable({
+            createPages: () => this.fetchKeyValuePages<T>(options, (_key, value) => value as T),
+            extractItems: (page) => page,
+        });
+    }
+
+    /**
+     * Returns key-value store entries (key-value pairs).
+     *
+     * When awaited (`await store.entries()`), returns all entries as a flat `[key, value][]` array.
+     * When used as an async iterable (`for await...of`), iterates over all entries across pages
+     * without loading everything into memory at once.
+     *
+     * **Example usage:**
+     * ```javascript
+     * const keyValueStore = await KeyValueStore.open();
+     *
+     * // Iterate over all entries (memory-efficient for large stores)
+     * for await (const [key, value] of keyValueStore.entries()) {
+     *   console.log(`${key}: ${value}`);
+     * }
+     *
+     * // Or fetch all entries at once
+     * const allEntries = await keyValueStore.entries();
+     * console.log(allEntries);
+     * ```
+     *
+     * @param options Options for the iteration.
+     */
+    entries<T = unknown>(
+        options: KeyValueStoreIteratorOptions = {},
+    ): AsyncIterable<[string, T]> & Promise<[string, T][]> {
+        tryCancel();
+
+        return createDualIterable({
+            createPages: () => this.fetchKeyValuePages<[string, T]>(options, (key, value) => [key, value as T]),
+            extractItems: (page) => page,
+        });
+    }
+
+    /**
+     * Default async iterator for the key-value store, iterating over entries (key-value pairs).
+     * Allows using the store directly in a `for await...of` loop.
+     *
+     * **Example usage:**
+     * ```javascript
+     * const keyValueStore = await KeyValueStore.open();
+     * for await (const [key, value] of keyValueStore) {
+     *   console.log(`${key}: ${value}`);
+     * }
+     * ```
+     */
+    async *[Symbol.asyncIterator]<T = unknown>(): AsyncGenerator<[string, T], void, undefined> {
+        yield* this.entries<T>();
     }
 
     /**
      * Returns a file URL for the given key.
+     *
+     * If the record does not exist or has no associated file path (i.e., it is not stored as a file), returns `undefined`.
+     *
+     * @param key The key of the record to generate the public URL for.
      */
-    getPublicUrl(key: string): string {
-        const name = this.name ?? this.config.get('defaultKeyValueStoreId');
-        return `file://${process.cwd()}/storage/key_value_stores/${name}/${key}`;
+    async getPublicUrl(key: string): Promise<string | undefined> {
+        return this.backend.getPublicUrl(key);
     }
 
     /**
@@ -498,31 +797,32 @@ export class KeyValueStore {
      *
      * For more details and code examples, see the {@apilink KeyValueStore} class.
      *
-     * @param [storeIdOrName]
-     *   ID or name of the key-value store to be opened. If `null` or `undefined`,
-     *   the function returns the default key-value store associated with the crawler run.
+     * @param [identifier]
+     *   ID or name of the key-value store to be opened. If a string is provided, it will first be
+     *   looked up as an ID; if no such storage exists, it will be treated as a name.
+     *   If `null` or `undefined`, the function returns the default key-value store associated with the crawler run.
      * @param [options] Storage manager options.
      */
-    static async open(storeIdOrName?: string | null, options: StorageManagerOptions = {}): Promise<KeyValueStore> {
-        checkStorageAccess();
+    static async open(
+        identifier?: string | StorageIdentifier | null,
+        options: StorageOpenOptions = {},
+    ): Promise<KeyValueStore> {
+        tryCancel();
 
-        ow(storeIdOrName, ow.optional.any(ow.string, ow.null));
-        ow(
-            options,
-            ow.object.exactShape({
-                config: ow.optional.object.instanceOf(Configuration),
-                storageClient: ow.optional.object,
-            }),
-        );
+        const parsedOptions = parseArgument(options, openOptionsSchema);
 
-        options.config ??= Configuration.getGlobalConfig();
-        options.storageClient ??= options.config.getStorageClient();
+        const configuration = parsedOptions.configuration ?? Configuration.getGlobalConfiguration();
+        const storageBackend = parsedOptions.storageBackend ?? serviceLocator.getStorageBackend();
 
-        await purgeDefaultStorages({ onlyPurgeOnce: true, client: options.storageClient, config: options.config });
+        await purgeDefaultStorages({ onlyPurgeOnce: true, storageBackend, configuration });
 
-        const manager = StorageManager.getManager(this, options.config);
+        const resolved = await resolveStorageIdentifier(identifier, storageBackend, 'KeyValueStore');
 
-        return manager.openStorage(storeIdOrName, options.storageClient);
+        return serviceLocator.getStorageInstanceManager().openStorage<KeyValueStore>(this, {
+            ...resolved,
+            backendOpener: () => storageBackend.createKeyValueStoreBackend(resolved),
+            backendCacheKey: storageBackend.getStorageBackendCacheKey?.() ?? storageBackend.constructor.name,
+        });
     }
 
     /**
@@ -618,6 +918,23 @@ export class KeyValueStore {
     }
 
     /**
+     * Reads a record from the default {@apilink KeyValueStore} associated with the current crawler run
+     * without parsing the value.
+     *
+     * This is just a convenient shortcut for {@apilink KeyValueStore.getRecord}. Returns `null` if the
+     * record does not exist.
+     *
+     * @param key
+     *   Unique key of the record. It can be at most 256 characters long and only consist
+     *   of the following characters: `a`-`z`, `A`-`Z`, `0`-`9` and `!-_.'()`
+     * @ignore
+     */
+    static async getRecord(key: string): Promise<KeyValueStoreRawRecord | null> {
+        const store = await this.open();
+        return store.getRecord(key);
+    }
+
+    /**
      * Tests whether a record with the given key exists in the default {@apilink KeyValueStore} associated with the current crawler run.
      * @param key The queried record key.
      * @returns `true` if the record exists, `false` if it does not.
@@ -670,8 +987,9 @@ export class KeyValueStore {
 
     /**
      * Gets the crawler input value from the default {@apilink KeyValueStore} associated with the current crawler run.
-     * By default, it will try to find root input files (either extension-less, `.json` or `.txt`),
-     * or alternatively read the input from the default {@apilink KeyValueStore}.
+     *
+     * The input is read from the default {@apilink KeyValueStore} under the configured input key
+     * (`CRAWLEE_INPUT_KEY`, default `INPUT`).
      *
      * Note that the `getInput()` function does not cache the value read from the key-value store.
      * If you need to use the input multiple times in your crawler,
@@ -689,33 +1007,32 @@ export class KeyValueStore {
      */
     static async getInput<T = Dictionary | string | Buffer>(): Promise<T | null> {
         const store = await this.open();
-        const inputKey = store.config.get('inputKey')!;
-
-        const cwd = process.cwd();
-        const possibleExtensions = ['', '.json', '.txt'];
-
-        // Attempt to read input from root file instead of key-value store
-        for (const extension of possibleExtensions) {
-            const inputFile = join(cwd, `${inputKey}${extension}`);
-            let input: Buffer;
-
-            // Try getting the file from the file system
-            try {
-                input = await readFile(inputFile);
-            } catch {
-                continue;
-            }
-
-            // Attempt to parse as JSON, or return the input as is otherwise
-            try {
-                return JSON5.parse(input.toString()) as T;
-            } catch {
-                return input as unknown as T;
-            }
-        }
-
-        return store.getValue<T>(inputKey);
+        return store.getValue<T>(store.configuration.inputKey);
     }
+}
+
+/** Normalizes a codec-serialized value into the `Buffer | ArrayBuffer` shape raw record reads promise. */
+function normalizeSerializedValue(value: ReturnType<typeof serializeValue>['value']): Buffer | ArrayBuffer {
+    if (typeof value === 'string') {
+        return Buffer.from(value);
+    }
+
+    if (ArrayBuffer.isView(value)) {
+        return Buffer.isBuffer(value) ? value : Buffer.from(value.buffer, value.byteOffset, value.byteLength);
+    }
+
+    return value as Buffer | ArrayBuffer;
+}
+
+/** Computes the key listing item (serialized byte size and content type) of a buffered entry. */
+function bufferedKeyItemData(key: string, entry: { value: unknown; options?: RecordOptions }): KeyValueStoreItemData {
+    const serialized = serializeValue(entry.value, entry.options?.contentType);
+
+    return {
+        key,
+        size: normalizeSerializedValue(serialized.value).byteLength,
+        contentType: serialized.contentType,
+    };
 }
 
 /**
@@ -732,10 +1049,18 @@ export interface KeyConsumer {
 }
 
 export interface KeyValueStoreOptions {
-    id: string;
-    name?: string;
-    client: StorageClient;
-    storageObject?: Record<string, unknown>;
+    /** Resolved metadata for the key-value store, as returned by the backend's `getMetadata()`. */
+    metadata: KeyValueStoreInfo;
+    backend: KeyValueStoreBackend;
+}
+
+/**
+ * A raw, unparsed key-value store record as returned by {@apilink KeyValueStore.getRecord}: the
+ * verbatim bytes plus the content type, with parsing left to the caller.
+ */
+export interface KeyValueStoreRawRecord {
+    value: Buffer | ArrayBuffer;
+    contentType: string | null;
 }
 
 export interface RecordOptions {
@@ -743,29 +1068,11 @@ export interface RecordOptions {
      * Specifies a custom MIME content type of the record.
      */
     contentType?: string;
-
-    /**
-     * Specifies a custom timeout for the `set-record` API call, in seconds.
-     */
-    timeoutSecs?: number;
-
-    /**
-     * If set to `true`, the `set-record` API call will not be retried if it times out.
-     */
-    doNotRetryTimeouts?: boolean;
 }
 
 export interface KeyValueStoreIteratorOptions {
     /**
-     * All keys up to this one (including) are skipped from the result.
-     */
-    exclusiveStartKey?: string;
-    /**
      * If set, only keys that start with this prefix are returned.
      */
     prefix?: string;
-    /**
-     * Collection name to use for listing keys.
-     */
-    collection?: string;
 }

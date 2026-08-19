@@ -3,6 +3,62 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.18.1](https://github.com/apify/crawlee/compare/v3.18.0...v3.18.1) (2026-08-12)
+
+**Note:** Version bump only for package @crawlee/basic
+
+
+
+
+
+# [3.18.0](https://github.com/apify/crawlee/compare/v3.17.0...v3.18.0) (2026-08-04)
+
+### Bug Fixes
+
+* avoid duplicate final crawler persistence ([#3866](https://github.com/apify/crawlee/issues/3866)) ([79dd6c4](https://github.com/apify/crawlee/commit/79dd6c41eff144914ddb7fa6e04a65e9b8b762e0)), closes [#3167](https://github.com/apify/crawlee/issues/3167)
+* **basic-crawler:** declare `@apify/datastructures` as a dependency ([#3815](https://github.com/apify/crawlee/issues/3815)) ([4e9d227](https://github.com/apify/crawlee/commit/4e9d227d7711f10662800d4079c4f958368bc063))
+* **core:** keep crawler enqueue limits when options carry explicit undefined ([#3927](https://github.com/apify/crawlee/issues/3927)) ([5f1b0ab](https://github.com/apify/crawlee/commit/5f1b0ab480f297100d2db70f646825b92f70f21a)), closes [#3924](https://github.com/apify/crawlee/issues/3924) [#3924](https://github.com/apify/crawlee/issues/3924)
+* make crawler terminal status message reliably delivered ([#3733](https://github.com/apify/crawlee/issues/3733)) ([7aed264](https://github.com/apify/crawlee/commit/7aed264f1cd9e993ffab93e314e9c7318b30d43d))
+* respect falsy transformRequestFunction return in context enqueueLinks ([#3925](https://github.com/apify/crawlee/issues/3925)) ([6cb4fc3](https://github.com/apify/crawlee/commit/6cb4fc392f43e7ad42d56114372eb8ad79aeff74)), closes [#3920](https://github.com/apify/crawlee/issues/3920)
+
+### Features
+
+* opt-in schema validation of request userData per router label ([#3851](https://github.com/apify/crawlee/issues/3851)) ([c7347f9](https://github.com/apify/crawlee/commit/c7347f94f72980b7c424fb4fc7dc8f990f360d70)), closes [#3747](https://github.com/apify/crawlee/issues/3747) [#3748](https://github.com/apify/crawlee/issues/3748) [#3747](https://github.com/apify/crawlee/issues/3747) [#3082](https://github.com/apify/crawlee/issues/3082)
+* type-safe router labels via per-label userData map ([#3747](https://github.com/apify/crawlee/issues/3747)) ([1124aca](https://github.com/apify/crawlee/commit/1124aca3c5eb527c097decd7263a6816c411369e)), closes [#3082](https://github.com/apify/crawlee/issues/3082)
+
+
+# [3.17.0](https://github.com/apify/crawlee/compare/v3.16.0...v3.17.0) (2026-06-04)
+
+
+### Bug Fixes
+
+* correct failed requests delta count in periodic log message ([#3482](https://github.com/apify/crawlee/issues/3482)) ([a098f42](https://github.com/apify/crawlee/commit/a098f420efdcec4b1827327c012c6eb365460838))
+* Correctly track the number of requests handled by a crawler ([#3410](https://github.com/apify/crawlee/issues/3410)) ([b2296ce](https://github.com/apify/crawlee/commit/b2296cea708fa1e83bfdf20d94067bfa51a2e2ed)), closes [#3083](https://github.com/apify/crawlee/issues/3083) [#3330](https://github.com/apify/crawlee/issues/3330)
+* honor custom respectRobotsTxtFile userAgent in enqueueLinks ([#3578](https://github.com/apify/crawlee/issues/3578)) ([1d2528b](https://github.com/apify/crawlee/commit/1d2528b9a0e13841a0acf918e754d42862e84912))
+* Prevent accidental request dropping with `maxRequestsPerCrawl` ([#3531](https://github.com/apify/crawlee/issues/3531)) ([b23319b](https://github.com/apify/crawlee/commit/b23319bbe8c171541f17f343f718867e25bdb620))
+
+
+
+
+
+# [3.16.0](https://github.com/apify/crawlee/compare/v3.15.3...v3.16.0) (2026-02-06)
+
+
+### Bug Fixes
+
+* **core:** ensure `maxCrawlDepth` warning is logged only once ([#3337](https://github.com/apify/crawlee/issues/3337)) ([9d01334](https://github.com/apify/crawlee/commit/9d013342c539dd76783bea3cf807041445d3f8f5)), closes [#3336](https://github.com/apify/crawlee/issues/3336)
+* handle multiple `BasicCrawler.stop()` calls correctly ([#3324](https://github.com/apify/crawlee/issues/3324)) ([9c0580b](https://github.com/apify/crawlee/commit/9c0580b0c6fefe6f62ce28adacab27c02e7599f1)), closes [#3257](https://github.com/apify/crawlee/issues/3257)
+* suppress info message for undefined maxRequestsPerCrawl ([#3237](https://github.com/apify/crawlee/issues/3237)) ([f3d9a79](https://github.com/apify/crawlee/commit/f3d9a7967da19fc55837b2433b5dfae312e4b8a7))
+
+
+### Performance Improvements
+
+* drop `tsbuildinfo` from published packages ([#3243](https://github.com/apify/crawlee/issues/3243)) ([3450f27](https://github.com/apify/crawlee/commit/3450f27880afb9e9d857a54d9212b54c397aed91)), closes [#3239](https://github.com/apify/crawlee/issues/3239)
+
+
+
+
+
 ## [3.15.3](https://github.com/apify/crawlee/compare/v3.15.2...v3.15.3) (2025-11-10)
 
 

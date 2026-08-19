@@ -3,6 +3,64 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.18.1](https://github.com/apify/crawlee/compare/v3.18.0...v3.18.1) (2026-08-12)
+
+**Note:** Version bump only for package @crawlee/utils
+
+
+
+
+
+# [3.18.0](https://github.com/apify/crawlee/compare/v3.17.0...v3.18.0) (2026-08-04)
+
+### Bug Fixes
+
+* filter sitemap-derived URLs by enqueue strategy ([#3797](https://github.com/apify/crawlee/issues/3797)) ([9dc3160](https://github.com/apify/crawlee/commit/9dc3160e6b83c549c29c188b7a88fdc8a612be62))
+* **sitemap:** recognize sitemap_index as a valid input sitemap url ([#3909](https://github.com/apify/crawlee/issues/3909)) ([eacab5e](https://github.com/apify/crawlee/commit/eacab5e155aeb5dca62cd0c03ef3553be65dd32b))
+* **utils:** advance the CPU tick baseline in systemInfoV2 getCurrentCpuTicks ([#3824](https://github.com/apify/crawlee/issues/3824)) ([bb23800](https://github.com/apify/crawlee/commit/bb238007e34009371807742ba11ecbb9974887b3))
+* **utils:** allow apostrophes and asterisks in extracted URLs ([#3790](https://github.com/apify/crawlee/issues/3790)) ([e9baffd](https://github.com/apify/crawlee/commit/e9baffd78ec42079d5c9a8a6e62d43a594ae42c8)), closes [#2755](https://github.com/apify/crawlee/issues/2755)
+* **utils:** prevent ReDoS in social email regex ([#3845](https://github.com/apify/crawlee/issues/3845)) ([d6a2b39](https://github.com/apify/crawlee/commit/d6a2b39252c0f00290e75a73def057fd39625525))
+* **utils:** prevent sitemap metadata leak across url without loc ([#3795](https://github.com/apify/crawlee/issues/3795)) ([895ed62](https://github.com/apify/crawlee/commit/895ed6264d7eadc5306b92303aeb99bff41cb286))
+* **utils:** use article:* selectors for article Open Graph properties ([#3789](https://github.com/apify/crawlee/issues/3789)) ([b660506](https://github.com/apify/crawlee/commit/b6605065fc4d7b692bcdac3ee2004042e8de7457))
+
+
+# [3.17.0](https://github.com/apify/crawlee/compare/v3.16.0...v3.17.0) (2026-06-04)
+
+
+### Bug Fixes
+
+* add network timeouts to discoverValidSitemaps to prevent indefinite hangs ([#3429](https://github.com/apify/crawlee/issues/3429)) ([ee90835](https://github.com/apify/crawlee/commit/ee90835d2cbbea55815f6e417450b8c3d6b140ce))
+* **core:** apply object searchParams in HTTP request options ([#3622](https://github.com/apify/crawlee/issues/3622)) ([d32946e](https://github.com/apify/crawlee/commit/d32946efbdc95bf71dfcae67b4509244e1857956))
+* log warning when Sitemap.load returns empty sitemap due to loading error ([#3462](https://github.com/apify/crawlee/issues/3462)) ([2cf9c1c](https://github.com/apify/crawlee/commit/2cf9c1cd9fca21ea5113ee1404dae3a6a652fec0))
+* Prevent accidental request dropping with `maxRequestsPerCrawl` ([#3531](https://github.com/apify/crawlee/issues/3531)) ([b23319b](https://github.com/apify/crawlee/commit/b23319bbe8c171541f17f343f718867e25bdb620))
+* prevent v3 sitemap discovery init hangs in discoverValidSitemaps ([#3434](https://github.com/apify/crawlee/issues/3434)) ([6c04f92](https://github.com/apify/crawlee/commit/6c04f923ceca6963e25ad73ebd41e480b0d7c0e4)), closes [#3412](https://github.com/apify/crawlee/issues/3412)
+* using GET for candidate checks - sitemaps ([#3464](https://github.com/apify/crawlee/issues/3464)) ([f82eb04](https://github.com/apify/crawlee/commit/f82eb04673b6a9afd0e56dac374a2fa5c91b42e0)), closes [#3463](https://github.com/apify/crawlee/issues/3463)
+
+
+### Features
+
+* **utils:** add sitemapFilter option to parseSitemap ([#3557](https://github.com/apify/crawlee/issues/3557)) ([1d4f6b9](https://github.com/apify/crawlee/commit/1d4f6b9ca44b8224f14584c337bd80209eea3819))
+
+
+
+
+
+# [3.16.0](https://github.com/apify/crawlee/compare/v3.15.3...v3.16.0) (2026-02-06)
+
+
+### Bug Fixes
+
+* more permissive accept ([#3373](https://github.com/apify/crawlee/issues/3373)) ([d03af1b](https://github.com/apify/crawlee/commit/d03af1bee6bceae54f18e36386bbeaabdeaf3c2a)), closes [#3242](https://github.com/apify/crawlee/issues/3242)
+
+
+### Features
+
+* **utils:** add `discoverValidSitemaps` utility ([#3339](https://github.com/apify/crawlee/issues/3339)) ([29f52ed](https://github.com/apify/crawlee/commit/29f52eddd4992b6b78b96c27e5424074a33f2496))
+
+
+
+
+
 ## [3.15.3](https://github.com/apify/crawlee/compare/v3.15.2...v3.15.3) (2025-11-10)
 
 **Note:** Version bump only for package @crawlee/utils

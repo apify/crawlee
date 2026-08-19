@@ -1,1 +1,1 @@
-yarn format
+pnpm exec lint-staged

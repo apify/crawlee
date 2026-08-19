@@ -3,6 +3,58 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.18.1](https://github.com/apify/crawlee/compare/v3.18.0...v3.18.1) (2026-08-12)
+
+**Note:** Version bump only for package @crawlee/browser-pool
+
+
+
+
+
+# [3.18.0](https://github.com/apify/crawlee/compare/v3.17.0...v3.18.0) (2026-08-04)
+
+### Features
+
+* support `puppeteer@25` ([#3869](https://github.com/apify/crawlee/issues/3869)) ([1430062](https://github.com/apify/crawlee/commit/1430062c2ba49c32ecb4cd4a14edd2d9a71c7ac3)), closes [#3772](https://github.com/apify/crawlee/issues/3772)
+
+
+# [3.17.0](https://github.com/apify/crawlee/compare/v3.16.0...v3.17.0) (2026-06-04)
+
+
+### Bug Fixes
+
+* bind `Browser.pages()` correctly in `PuppeteerPlugin` ([#3439](https://github.com/apify/crawlee/issues/3439)) ([c3a4b3b](https://github.com/apify/crawlee/commit/c3a4b3b0d5be63f1f7a779ff43560ab2b426f3bb))
+* **browser-pool:** allow unsetting launch context proxy URL ([#3621](https://github.com/apify/crawlee/issues/3621)) ([d5ab219](https://github.com/apify/crawlee/commit/d5ab219ec65289a6117c9273a93e2a70dbb5793a))
+* **browser-pool:** preserve caller's AbortContext across p-limit queue ([#3673](https://github.com/apify/crawlee/issues/3673)) ([c4d58d9](https://github.com/apify/crawlee/commit/c4d58d96a53800d48c375f2e0357546a9e754417)), closes [#3670](https://github.com/apify/crawlee/issues/3670)
+* BrowserCrawler closes ctx.page before errorHandler runs on navig… ([#3655](https://github.com/apify/crawlee/issues/3655)) ([ab34886](https://github.com/apify/crawlee/commit/ab348864b31edebb45e2e11f3ded3489131dcc0f))
+* parse proxy URLs correctly when using `useIncognitoPages` ([#3433](https://github.com/apify/crawlee/issues/3433)) ([db2bb68](https://github.com/apify/crawlee/commit/db2bb6817e0d193471330aeed30d1ead8ecee465))
+* unref BrowserController.close() fallback timer to avoid keeping Node alive longer than needed ([#3671](https://github.com/apify/crawlee/issues/3671)) ([eef94d4](https://github.com/apify/crawlee/commit/eef94d441503c3ee879f396d86a96a5ac7d0edc8))
+
+
+### Features
+
+* add `ignoreProxyCertificate` option for the internal `proxy-chain` instance ([#3418](https://github.com/apify/crawlee/issues/3418)) ([02eec66](https://github.com/apify/crawlee/commit/02eec66ecfaef94dd9903940d7969e72cf4b1fd1)), closes [#3369](https://github.com/apify/crawlee/issues/3369)
+
+
+
+
+
+# [3.16.0](https://github.com/apify/crawlee/compare/v3.15.3...v3.16.0) (2026-02-06)
+
+
+### Features
+
+* add `@crawlee/stagehand` package for AI-powered browser automation ([#3331](https://github.com/apify/crawlee/issues/3331)) ([a89cb5a](https://github.com/apify/crawlee/commit/a89cb5abc06ddaa841c98b9b29af13b14dea98f5)), closes [#3064](https://github.com/apify/crawlee/issues/3064)
+
+
+### Performance Improvements
+
+* drop `tsbuildinfo` from published packages ([#3243](https://github.com/apify/crawlee/issues/3243)) ([3450f27](https://github.com/apify/crawlee/commit/3450f27880afb9e9d857a54d9212b54c397aed91)), closes [#3239](https://github.com/apify/crawlee/issues/3239)
+
+
+
+
+
 ## [3.15.3](https://github.com/apify/crawlee/compare/v3.15.2...v3.15.3) (2025-11-10)
 
 **Note:** Version bump only for package @crawlee/browser-pool

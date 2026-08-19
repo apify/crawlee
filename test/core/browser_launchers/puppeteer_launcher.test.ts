@@ -6,16 +6,16 @@ import path from 'node:path';
 import util from 'node:util';
 
 import { BrowserLauncher, launchPuppeteer } from '@crawlee/puppeteer';
-import type { Dictionary } from '@crawlee/utils';
+import type { Dictionary } from '@crawlee/types';
 // @ts-expect-error no types
 import basicAuthParser from 'basic-auth-parser';
 // @ts-expect-error no types
 import portastic from 'portastic';
-// @ts-expect-error no types
-import proxy from 'proxy';
+import { createProxy } from 'proxy';
+// @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
 import type { Browser, Page } from 'puppeteer';
 
-import { runExampleComServer } from '../../shared/_helper';
+import { runExampleComServer } from '../../shared/_helper.js';
 
 let prevEnvHeadless: string | undefined;
 let proxyServer: Server;
@@ -64,7 +64,7 @@ beforeAll(() => {
 
             httpServer.on('error', reject);
 
-            proxyServer = proxy(httpServer);
+            proxyServer = createProxy(httpServer);
             proxyServer.listen(ports[0], () => {
                 proxyPort = (proxyServer.address() as AddressInfo).port;
                 resolve();
@@ -199,7 +199,7 @@ describe('launchPuppeteer()', () => {
     });
 
     test('supports useChrome option', async () => {
-        const spy = vitest.spyOn(BrowserLauncher.prototype as any, '_getTypicalChromeExecutablePath');
+        const spy = vitest.spyOn(BrowserLauncher.prototype as any, 'getTypicalChromeExecutablePath');
 
         let browser;
         const opts = {
@@ -287,7 +287,7 @@ describe('launchPuppeteer()', () => {
     });
 
     test('supports userDataDir', async () => {
-        const userDataDir = path.join(__dirname, 'userDataPuppeteer');
+        const userDataDir = path.join(import.meta.dirname, 'userDataPuppeteer');
 
         let browser;
         try {

@@ -8,15 +8,18 @@ const packages = [
     'basic-crawler',
     'browser-crawler',
     'http-crawler',
+    'http-client',
     'cheerio-crawler',
     'puppeteer-crawler',
     'playwright-crawler',
     'jsdom-crawler',
     'linkedom-crawler',
-    'memory-storage',
+    'stagehand-crawler',
+    'fs-storage',
     'utils',
     'types',
     'impit-client',
+    'got-scraping-client',
     'otel',
 ];
 const packagesOrder = [
@@ -26,14 +29,17 @@ const packagesOrder = [
     '@crawlee/puppeteer',
     '@crawlee/jsdom',
     '@crawlee/linkedom',
+    '@crawlee/stagehand',
     '@crawlee/basic',
     '@crawlee/http',
+    '@crawlee/http-client',
     '@crawlee/browser',
-    '@crawlee/memory-storage',
+    '@crawlee/fs-storage',
     '@crawlee/browser-pool',
     '@crawlee/utils',
     '@crawlee/types',
     '@crawlee/impit-client',
+    '@crawlee/got-scraping-client',
     '@crawlee/otel',
 ];
 
@@ -66,7 +72,7 @@ module.exports = {
         '@docusaurus/theme-mermaid',
     ],
     future: {
-        experimental_faster: {
+        faster: {
             // ssgWorkerThreads: true,
             swcJsLoader: true,
             swcJsMinimizer: true,
@@ -90,10 +96,17 @@ module.exports = {
                     showLastUpdateAuthor: true,
                     showLastUpdateTime: true,
                     path: '../docs',
+                    exclude: ['**/node_modules/**'],
                     routeBasePath: 'js/docs',
                     sidebarPath: './sidebars.js',
                     rehypePlugins: [externalLinkProcessor],
                     disableVersioning: !!process.env.CRAWLEE_DOCS_FAST,
+                    versions: {
+                        // drop the label once 4.0.0 is stable and the 4.0 snapshot exists
+                        current: {
+                            label: '4.0 (RC)',
+                        },
+                    },
                     editUrl: (doc) => {
                         return `https://github.com/apify/crawlee/edit/master/website/${doc.versionDocsDirPath}/${doc.docPath}`;
                     },
@@ -165,6 +178,22 @@ module.exports = {
                     {
                         from: '/js/docs/guides/apify-platform',
                         to: '/js/docs/deployment/apify-platform',
+                    },
+                    {
+                        from: '/js/docs/3.13/experiments/experiments-system-infomation-v2',
+                        to: '/js/docs/3.13/experiments/experiments-system-information-v2',
+                    },
+                    {
+                        from: '/js/docs/3.14/experiments/experiments-system-infomation-v2',
+                        to: '/js/docs/3.14/experiments/experiments-system-information-v2',
+                    },
+                    {
+                        from: '/js/docs/3.15/experiments/experiments-system-infomation-v2',
+                        to: '/js/docs/3.15/experiments/experiments-system-information-v2',
+                    },
+                    {
+                        from: '/js/docs/3.16/experiments/experiments-system-infomation-v2',
+                        to: '/js/docs/3.16/experiments/experiments-system-information-v2',
                     },
                 ],
                 // createRedirects(existingPath) {
@@ -272,10 +301,6 @@ module.exports = {
             sidebar: {
                 hideable: true,
             },
-        },
-        announcementBar: {
-            id: `apify-1m-challenge`,
-            content: `<b><a href="https://apify.com/challenge">Apify $1M Challenge 💰</a></b> Earn and win building with Crawlee!`,
         },
         navbar: {
             hideOnScroll: true,
