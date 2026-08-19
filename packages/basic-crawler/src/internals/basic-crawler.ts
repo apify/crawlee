@@ -730,12 +730,16 @@ export class BasicCrawler<
         return this.#statisticsDep.value;
     }
 
+    #requestManager?: IRequestManager;
+
     /**
      * The main request-handling component of the crawler. It manages the requests that the crawler processes,
      * combining any provided request loader and/or queue. It's initialized during the crawler startup or lazily
      * via {@apilink BasicCrawler.getRequestManager|`getRequestManager()`}.
      */
-    protected requestManager?: IRequestManager;
+    protected get requestManager(): IRequestManager | undefined {
+        return this.#requestManager;
+    }
 
     /** Backs the {@apilink BasicCrawler.sessionPool|`sessionPool`} getter. */
     #sessionPoolDep: OwnedOrInjected<ISessionPool, SessionPool>;
@@ -1124,13 +1128,13 @@ export class BasicCrawler<
             if (requestList !== undefined) {
                 // The list is read first, while new requests still have somewhere writable to go; the tandem also
                 // forwards `persistState()` to the loader.
-                this.requestManager = new RequestManagerTandem(
+                this.#requestManager = new RequestManagerTandem(
                     requestList,
                     writableManager ?? (() => this.openOwnedRequestQueue()),
                 );
             } else if (writableManager !== undefined) {
                 // A RequestQueue is itself a request manager.
-                this.requestManager = writableManager;
+                this.#requestManager = writableManager;
             }
 
             this.httpClient = httpClient ?? new LazyDefaultHttpClient({ logger: this.log });
@@ -1876,19 +1880,20 @@ export class BasicCrawler<
      * if none has been configured or opened yet.
      */
     async getRequestManager(): Promise<IRequestManager> {
-        if (!this.requestManager) {
-            this.requestManager = await this.openOwnedRequestQueue();
+        if (!this.#requestManager) {
+            this.#requestManager = await this.openOwnedRequestQueue();
         }
+
 
         // Apply the processing-time hint here (an async lifecycle point) rather than in the constructor,
         // now that `setExpectedRequestProcessingTimeSecs` is async. The hint is raise-only and idempotent,
         // but guard so we do not re-issue it on every call.
         if (!this.#requestManagerTimeoutsApplied) {
             this.#requestManagerTimeoutsApplied = true;
-            await this.applyRequestManagerTimeouts(this.requestManager);
+            await this.applyRequestManagerTimeouts(this.#requestManager);
         }
 
-        return this.requestManager;
+        return this.#requestManager;
     }
 
     /**
