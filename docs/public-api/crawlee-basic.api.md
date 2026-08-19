@@ -76,7 +76,7 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
     protected recordDomainRateLimit(url: string, retryAfterHeader?: string | null): boolean;
     // (undocumented)
     protected readonly requestHandler: RequestHandler<ExtendedContext>;
-    protected requestManager?: IRequestManager;
+    protected get requestManager(): IRequestManager | undefined;
     resume(): void;
     // (undocumented)
     protected readonly retryOnBlocked: boolean;
