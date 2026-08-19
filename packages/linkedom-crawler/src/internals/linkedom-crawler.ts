@@ -174,11 +174,11 @@ export class LinkeDOMCrawler<
 
         super({
             ...rest,
-            contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),
+            contextPipelineBuilder: contextPipelineBuilder ?? (() => this.#buildContextPipeline()),
         });
     }
 
-    protected override buildContextPipeline(): ContextPipeline<CrawlingContext, LinkeDOMCrawlingContext> {
+    #buildContextPipeline(): ContextPipeline<CrawlingContext, LinkeDOMCrawlingContext> {
         return super
             .buildContextPipeline()
             .compose({

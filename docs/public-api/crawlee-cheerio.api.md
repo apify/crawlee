@@ -6,7 +6,6 @@
 
 import type { AddRequestsBatchedResult } from '@crawlee/http';
 import type { CheerioAPI } from 'cheerio';
-import type { ContextPipeline } from '@crawlee/http';
 import type { CrawlingContext } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
 import type { EnqueueLinksOptions } from '@crawlee/http';
@@ -25,8 +24,6 @@ import type { RoutesFromSchemas } from '@crawlee/http';
 // @public
 export class CheerioCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends CheerioCrawlingContext = CheerioCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<CheerioCrawlingContext['request']>>, StatisticStateExtension extends object = {}> extends HttpCrawler<CheerioCrawlingContext, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
     constructor(options?: CheerioCrawlerOptions<ContextExtension, ExtendedContext, any, any, Routes, StatisticStateExtension>);
-    // (undocumented)
-    protected buildContextPipeline(): ContextPipeline<CrawlingContext, CheerioCrawlingContext>;
 }
 
 // @public (undocumented)

@@ -255,11 +255,11 @@ export class PlaywrightCrawler<
                 remoteBrowser
                     ? remotePlaywrightBrowserPool({ ...remoteBrowser, launchContext, headless, configuration })
                     : playwrightBrowserPool({ launchContext, headless, configuration }),
-            contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),
+            contextPipelineBuilder: contextPipelineBuilder ?? (() => this.#buildContextPipeline()),
         });
     }
 
-    protected override buildContextPipeline(): ContextPipeline<CrawlingContext, PlaywrightCrawlingContext> {
+    #buildContextPipeline(): ContextPipeline<CrawlingContext, PlaywrightCrawlingContext> {
         return super.buildContextPipeline().compose({ action: this.enhanceContext.bind(this) });
     }
 
