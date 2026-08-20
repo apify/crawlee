@@ -770,6 +770,7 @@ export interface IStatistics<StateExtension extends object = {}> {
     failJob(id: number | string, retryCount: number): void;
     finishJob(id: number | string, retryCount: number): void;
     persistState?(): Promise<void>;
+    registerRetry?(retryCount: number): void;
     registerStatusCode(code: number): void;
     readonly requestRetryHistogram: number[];
     startCapturing(): Promise<void>;
@@ -1848,6 +1849,7 @@ export class Statistics<StateExtension extends object = {}, PersistedStateExtens
     readonly errorTrackerRetry: ErrorTracker;
     readonly id: string;
     persistState(): Promise<void>;
+    registerRetry(retryCount: number): void;
     registerStatusCode(code: number): void;
     get requestRetryHistogram(): number[];
     reset(): void;

@@ -644,8 +644,11 @@ export class Statistics<
             this.requestRetryHistogram.push(0);
         }
 
-        if (retryCount === 0 || this.requestRetryHistogram[retryCount] === 0) {
+        if (retryCount === 0) {
+            this.requestRetryHistogram[0]++;
+        } else if (this.requestRetryHistogram[retryCount] === 0) {
             this.requestRetryHistogram[retryCount]++;
+            this.state.requestsRetries += retryCount;
         }
     }
 
