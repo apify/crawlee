@@ -692,6 +692,9 @@ describe('BrowserCrawler', () => {
             },
             requestList,
             saveResponseCookies: true,
+            // The handoff only happens between requests: cookies set in a handler are flushed to the
+            // session jar after it returns, so cookie-2 must not start before cookie-1 has finished.
+            maxConcurrency: 1,
             sessionPool: new SessionPool({
                 maxPoolSize: 1,
             }),
