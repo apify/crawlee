@@ -18,10 +18,23 @@ export interface IStorage {
     name?: string;
 }
 
+/** Lets a storage instance reopen itself against the same backend and identifier — see `RequestQueue.purge()`. */
+export interface StorageOpenContext<TBackend = DatasetBackend | KeyValueStoreBackend | RequestQueueBackend> {
+    /** Unset when the storage was opened by id or name. */
+    alias?: string;
+    backendCacheKey: Hashable;
+    /** Creates the storage anew if it no longer exists. */
+    openBackend: () => Promise<TBackend>;
+}
+
 type Hashable = string;
 
-/** Reserved alias for the default (unnamed) storage. */
-const DEFAULT_STORAGE_ALIAS = '__default__';
+/**
+ * Reserved alias for the default (unnamed) storage.
+ *
+ * @internal
+ */
+export const DEFAULT_STORAGE_ALIAS = '__default__';
 
 type CacheTier = Map<Constructor<IStorage>, Map<string, Map<Hashable, IStorage>>>;
 
@@ -257,7 +270,12 @@ export class StorageInstanceManager {
 
             // Storage frontends are thin wrappers over the backend. We hand them the resolved metadata
             // we just fetched (so `id`/`name` etc. are available synchronously) along with the backend.
-            const instance = new cls({ metadata: storageInfo, backend: subBackend });
+            const instance = new cls({
+                metadata: storageInfo,
+                backend: subBackend,
+                // Lets the storage reopen itself later on — see `RequestQueue.purge()`.
+                openContext: { alias, backendCacheKey, openBackend: backendOpener } satisfies StorageOpenContext,
+            });
 
             // Atomic cache writes (no awaits between these).
             this.#cache.set(cls, instance, backendCacheKey, alias);
@@ -279,6 +297,19 @@ export class StorageInstanceManager {
      */
     removeFromCache(instance: IStorage): void {
         this.#cache.removeFromCache(instance);
+    }
+
+    /**
+     * Re-register an instance that reopened its own backend, so `open()` keeps returning it instead of opening
+     * the storage twice. Counterpart of the {@link removeFromCache} in `drop()`.
+     *
+     * @internal
+     */
+    recacheStorage(
+        instance: IStorage,
+        { alias, backendCacheKey }: Pick<StorageOpenContext, 'alias' | 'backendCacheKey'>,
+    ): void {
+        this.#cache.set(instance.constructor as Constructor<IStorage>, instance, backendCacheKey, alias);
     }
 
     /**

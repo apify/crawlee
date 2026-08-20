@@ -37,7 +37,7 @@ import {
 import type { CalculatedStatistics, IConcurrencySystem, IStatistics } from '@crawlee/core';
 import { ConcurrencySystem, MemoryStorageBackend, RequestState } from '@crawlee/core';
 import { BaseHttpClient } from '@crawlee/http-client';
-import type { Dictionary, ISession, ProxyInfo } from '@crawlee/types';
+import type { Dictionary, ISession, ProxyInfo, StorageBackend } from '@crawlee/types';
 import { RobotsTxtFile, sleep } from '@crawlee/utils';
 import express from 'express';
 import type { Mock } from 'vitest';
@@ -45,6 +45,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test, vitest } from 
 import { z } from 'zod';
 
 import { startExpressAppPromise } from '../../shared/_helper.js';
+import { StorageBackendWithoutPurge } from '../../shared/storage_backend_without_purge.js';
 
 import log from '@apify/log';
 
@@ -427,6 +428,38 @@ describe('BasicCrawler', () => {
             'https://example.com/second/0',
             'https://example.com/second/1',
         ]);
+    });
+
+    describe.each([
+        ['a backend that can purge a queue', (): StorageBackend => new MemoryStorageBackend()],
+        ['a backend that cannot', (): StorageBackend => new StorageBackendWithoutPurge()],
+    ])('a second run() with %s', (_backendName, createBackend) => {
+        beforeEach(() => {
+            serviceLocator.reset(); // replace the shared backend this suite's `beforeEach` installed
+            serviceLocator.setStorageBackend(createBackend());
+        });
+
+        const crawlTwice = async (purgeRequestQueue: boolean) => {
+            const processed: string[] = [];
+            const crawler = new BasicCrawler({
+                requestHandler: async ({ request }) => {
+                    processed.push(request.url);
+                },
+            });
+
+            await crawler.run(['https://example.com/only']);
+            await crawler.run(['https://example.com/only'], { purgeRequestQueue });
+
+            return processed;
+        };
+
+        test('re-crawls the same requests when the queue is purged', async () => {
+            await expect(crawlTwice(true)).resolves.toEqual(['https://example.com/only', 'https://example.com/only']);
+        });
+
+        test('leaves already handled requests alone when it is not', async () => {
+            await expect(crawlTwice(false)).resolves.toEqual(['https://example.com/only']);
+        });
     });
 
     test('addRequests should respect maxCrawlDepth', async () => {

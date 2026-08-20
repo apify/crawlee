@@ -65,8 +65,13 @@ export interface DatasetBackend<Data extends Dictionary = Dictionary> {
     /** Remove the dataset and all its data. */
     drop(): Promise<void>;
 
-    /** Remove all items from the dataset but keep the dataset itself. */
-    purge(): Promise<void>;
+    /**
+     * Remove all items from the dataset but keep the dataset itself.
+     *
+     * Optional — a backend that cannot empty a dataset in place omits it, and `Dataset.purge()` then drops and
+     * recreates an alias-opened dataset, or refuses outright for one referenced by identity.
+     */
+    purge?(): Promise<void>;
 
     /** Add items to the dataset. */
     pushData(items: Data[]): Promise<void>;
@@ -178,8 +183,13 @@ export interface KeyValueStoreBackend {
     /** Remove the key-value store and all its data. */
     drop(): Promise<void>;
 
-    /** Remove all records from the store but keep the store itself. */
-    purge(): Promise<void>;
+    /**
+     * Remove all records from the store but keep the store itself.
+     *
+     * Optional — a backend that cannot empty a store in place omits it, and `KeyValueStore.purge()` then drops
+     * and recreates an alias-opened store, or refuses outright for one referenced by identity.
+     */
+    purge?(): Promise<void>;
 
     /**
      * Get a record by key. Returns the raw bytes plus content type, or `undefined` if not found.
@@ -291,8 +301,13 @@ export interface RequestQueueBackend {
     /** Remove the request queue and all its data. */
     drop(): Promise<void>;
 
-    /** Remove all requests from the queue but keep the queue itself. */
-    purge(): Promise<void>;
+    /**
+     * Remove all requests from the queue but keep the queue itself.
+     *
+     * Optional — a backend that cannot empty a queue in place omits it, and `RequestQueue.purge()` drops and
+     * recreates the queue instead.
+     */
+    purge?(): Promise<void>;
 
     /**
      * Add a batch of requests to the queue.

@@ -600,7 +600,7 @@ If you explicitly pass a `requestQueue` (or `requestManager`) to the crawler, th
 
 When calling `crawler.run()` multiple times on the same crawler instance, v3 would drop the default request queue and create a fresh one between runs. In v4, the crawler **purges** the queue instead — clearing all requests and resetting internal counters, but keeping the same queue object. This is more efficient and avoids edge cases around stale references.
 
-The new `purge()` method is available on `RequestQueue` and is also defined as an optional method on the `IRequestManager` interface.
+The new `purge()` method is available on `Dataset`, `KeyValueStore` and `RequestQueue`, and is also defined as an optional method on the `IRequestManager` interface. When the storage backend cannot empty a storage in place, a run-scoped one is dropped and recreated instead — so it comes back empty under a new id — while a storage referenced by identity (named, opened by id, or a dataset/key-value store whose id the run publishes) throws rather than being silently replaced.
 
 By default, only queues that the crawler created itself (the "owned" queue) are purged between runs — a user-supplied queue is never touched unless you explicitly opt in. The `purgeRequestQueue` option in `CrawlerRunOptions` controls this behavior:
 
@@ -633,6 +633,8 @@ await crawler.run(['https://example.com/first']);
 // Explicitly purge the user-supplied queue before the second run:
 await crawler.run(['https://example.com/second'], { purgeRequestQueue: true });
 ```
+
+On a storage backend that cannot empty a queue in place (the Apify platform, for one), the crawler's own queue is dropped and recreated instead, so it comes back empty under a new id. A queue you supplied yourself and asked to have purged with `purgeRequestQueue: true` throws instead when it is named or was opened by id — replacing it would hand you a different queue than the one you passed in.
 
 ### Storage `.open()` now also accepts `{ id?, name? }`
 
@@ -1557,7 +1559,7 @@ The sub-backend interfaces (`DatasetBackend`, `KeyValueStoreBackend`, `RequestQu
 | `get()` | `getMetadata()` |
 | `update()` | Removed |
 | `delete()` | `drop()` |
-| _(n/a)_ | `purge()` (new — clears data, keeps storage) |
+| _(n/a)_ | `purge()` (new, **optional** — clears data, keeps storage; omit it when the storage cannot be emptied in place) |
 
 **`DatasetBackend`:**
 
@@ -1596,10 +1598,13 @@ The request queue backend was reduced from 12 methods to 10. The distributed-loc
 | `deleteRequest(id)` | Removed |
 | _(n/a)_ | `isEmpty()` (new — `true` when no pending requests are left to fetch) |
 | _(n/a)_ | `isFinished()` (new — `true` when no pending **and** no in-progress requests remain) |
+| _(n/a)_ | `purge()` (new, **optional** — empties the queue in place; omit it when the storage cannot do that) |
 
 The lifecycle is now: `fetchNextRequest()` hands out a pending request and marks it in progress; once processed, call `markRequestAsHandled(request)`; on failure call `reclaimRequest(request, { forefront? })` to return it to the queue.
 
 Methods that may have "nothing" to return now consistently resolve to `undefined` rather than `null`. `fetchNextRequest()` resolves to `undefined` when there is nothing to fetch, and `markRequestAsHandled()` / `reclaimRequest()` resolve to `undefined` when the request is not something the backend is currently processing (a no-op, not an error). This matches the `undefined` already returned by `getRequest()`, `KeyValueStoreBackend.getValue()`, and `getPublicUrl()`, so the whole backend family uses a single "absent" sentinel. If you implemented a custom backend that returned `null` from these methods, return `undefined` instead.
+
+`purge()` is the one optional method here: a backend that cannot empty a storage in place leaves it out, and the frontend drops the storage and re-opens it through the matching `create*Backend()` instead. Such a backend therefore has to create the storage anew when asked for one whose id no longer exists. Storages referenced by identity are never replaced that way.
 
 `RequestQueueBackend.isEmpty()` and `RequestQueueBackend.isFinished()` answer two different questions:
 
@@ -1672,7 +1677,7 @@ If you implemented a custom `StorageBackend`, you need to:
 
 1. Remove your `*CollectionClient` classes.
 2. Replace the six getter methods (`dataset`, `datasets`, `keyValueStore`, `keyValueStores`, `requestQueue`, `requestQueues`) with three async factory methods (`createDatasetBackend`, `createKeyValueStoreBackend`, `createRequestQueueBackend`). Each factory should handle both opening an existing storage and creating a new one.
-3. Apply the sub-backend renames listed above (`get` → `getMetadata`, `delete` → `drop`, etc.) and implement the new `purge()` method.
+3. Apply the sub-backend renames listed above (`get` → `getMetadata`, `delete` → `drop`, etc.) and implement the new `purge()` method wherever your storage can empty itself in place — it is optional on all three sub-backends (see above).
 
 ### `MemoryStorage` split into `FileSystemStorageBackend` and `MemoryStorageBackend`
 
