@@ -20,6 +20,7 @@ const packages = [
     'types',
     'impit-client',
     'got-scraping-client',
+    'otel',
 ];
 const packagesOrder = [
     '@crawlee/core',
@@ -39,6 +40,7 @@ const packagesOrder = [
     '@crawlee/types',
     '@crawlee/impit-client',
     '@crawlee/got-scraping-client',
+    '@crawlee/otel',
 ];
 
 /** @type {Partial<import('@docusaurus/types').DocusaurusConfig>} */
