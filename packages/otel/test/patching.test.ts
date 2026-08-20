@@ -289,3 +289,128 @@ describe('log instrumentation', () => {
         expect(record.attributes[ATTR_EXCEPTION_STACKTRACE]).toContain('TypeError: boom');
     });
 });
+
+/**
+ * An instrumentation must not be able to change the behaviour of the code it patches. Everything the instrumentation
+ * itself does - reading the log arguments, emitting the record, resolving a user supplied span name or attributes -
+ * runs inside the application's call path, so a failure in any of it has to stay contained.
+ */
+describe('telemetry failures are contained', () => {
+    let provider: NodeTracerProvider;
+    let exporter: InMemorySpanExporter;
+    let processor: SimpleSpanProcessor;
+
+    beforeAll(() => {
+        exporter = new InMemorySpanExporter();
+        processor = new SimpleSpanProcessor(exporter);
+        provider = new NodeTracerProvider({ spanProcessors: [processor] });
+    });
+
+    beforeEach(() => exporter.reset());
+
+    afterAll(async () => {
+        await provider.shutdown();
+    });
+
+    /** A logger provider whose records never make it out, standing in for a throwing log record processor. */
+    const explodingLoggerProvider = {
+        getLogger: () => ({
+            emit: () => {
+                throw new Error('log record processor exploded');
+            },
+        }),
+    } as unknown as LoggerProvider;
+
+    function patchLogger(loggerProvider: LoggerProvider) {
+        const calls: unknown[][] = [];
+
+        class BaseCrawleeLogger {
+            logWithLevel(...args: unknown[]): void {
+                calls.push(args);
+            }
+
+            info(message: unknown, data?: Record<string, unknown>) {
+                this.logWithLevel(4, message, data);
+            }
+        }
+
+        const instrumentation = new CrawleeInstrumentation({ requestHandlingInstrumentation: false });
+        instrumentation.setLoggerProvider(loggerProvider);
+        const definition = (instrumentation as any).init().find((d: any) => d.name === '@crawlee/core') as {
+            patch: (e: any) => any;
+        };
+        definition.patch({ BaseCrawleeLogger });
+
+        return { logger: new BaseCrawleeLogger(), calls };
+    }
+
+    test('a throwing log pipeline does not swallow the application log call', () => {
+        const { logger, calls } = patchLogger(explodingLoggerProvider);
+
+        expect(() => logger.info('hello', { foo: 'bar' })).not.toThrow();
+        expect(calls).toEqual([[4, 'hello', { foo: 'bar' }]]);
+    });
+
+    test('a message that cannot be stringified does not swallow the application log call', () => {
+        const { logger, calls } = patchLogger(
+            new LoggerProvider({ processors: [new SimpleLogRecordProcessor(new InMemoryLogRecordExporter())] }),
+        );
+        const hostile = {
+            toString() {
+                throw new Error('nope');
+            },
+        };
+
+        expect(() => logger.info(hostile)).not.toThrow();
+        expect(calls).toEqual([[4, hostile, undefined]]);
+    });
+
+    function patchWithFailingHook(hook: 'spanName' | 'spanOptions') {
+        class BasicCrawler {
+            async handleRequest() {
+                return 'done';
+            }
+        }
+
+        const instrumentation = new CrawleeInstrumentation({
+            requestHandlingInstrumentation: false,
+            logInstrumentation: false,
+            customInstrumentation: [
+                {
+                    moduleName: '@crawlee/basic',
+                    className: 'BasicCrawler',
+                    methodName: 'handleRequest',
+                    spanName: 'crawlee.crawler.handleRequest',
+                    [hook]: () => {
+                        throw new Error(`${hook} exploded`);
+                    },
+                },
+            ],
+        });
+        instrumentation.setTracerProvider(provider);
+        const definition = (instrumentation as any).init().find((d: any) => d.name === '@crawlee/basic') as {
+            patch: (e: any) => any;
+        };
+        definition.patch({ BasicCrawler });
+
+        return new BasicCrawler();
+    }
+
+    test('a throwing spanName callback does not break the patched method', async () => {
+        await expect(patchWithFailingHook('spanName').handleRequest()).resolves.toBe('done');
+
+        await processor.forceFlush();
+        // The span is still recorded, under the method's default name.
+        expect(exporter.getFinishedSpans().map((s: ReadableSpan) => s.name)).toEqual(['BasicCrawler.handleRequest']);
+    });
+
+    test('a throwing spanOptions callback does not break the patched method', async () => {
+        await expect(patchWithFailingHook('spanOptions').handleRequest()).resolves.toBe('done');
+
+        await processor.forceFlush();
+        const spans = exporter.getFinishedSpans();
+        expect(spans.map((s: ReadableSpan) => s.name)).toEqual(['crawlee.crawler.handleRequest']);
+        // The attributes the instrumentation itself adds are unaffected by the failing callback.
+        expect(spans[0].attributes).toEqual({ [ATTR_CODE_FUNCTION_NAME]: 'BasicCrawler.handleRequest' });
+    });
+});

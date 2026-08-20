@@ -4,6 +4,9 @@ import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
 import { InMemorySpanExporter, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 
+// Reached directly rather than through the package entry point: resetting the shared tracer is not public API.
+import { setSharedTracer } from '../../packages/otel/src/wrapWithSpan.js';
+
 /**
  * The instrumentation is always constructed before the SDK is configured, so these tests cover that ordering for
  * both ways a provider reaches it: registered globally, or handed over explicitly. The explicit case used to emit
@@ -12,6 +15,10 @@ import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
  */
 describe('tracer wiring', () => {
     const scopeOf = (span: ReadableSpan) => (span.instrumentationScope ?? (span as any).instrumentationLibrary)?.name;
+
+    // `wrapWithSpan` shares one tracer per process, so a test that asserts the fallback has to start from a clean one
+    // no matter which of these ran first.
+    beforeEach(() => setSharedTracer(undefined));
 
     test('emits spans when the provider is registered globally', async () => {
         const exporter = new InMemorySpanExporter();

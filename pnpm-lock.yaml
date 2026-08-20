@@ -826,6 +826,9 @@ importers:
       '@opentelemetry/api-logs':
         specifier: ^0.210.0
         version: 0.210.0
+      semver:
+        specifier: ^7.7.0
+        version: 7.7.4
 
   packages/playwright-crawler:
     dependencies:

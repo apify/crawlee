@@ -50,6 +50,7 @@
     },
     "devDependencies": {
         "@opentelemetry/api": "^1.9.0",
-        "@opentelemetry/api-logs": "^0.210.0"
+        "@opentelemetry/api-logs": "^0.210.0",
+        "semver": "^7.7.0"
     }
 }

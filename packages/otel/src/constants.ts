@@ -14,8 +14,17 @@ export const UNKNOWN_PACKAGE_VERSION = '0.0.0';
 /**
  * Versions of the instrumented Crawlee packages this instrumentation knows how to patch. Methods that are missing
  * in the resolved version are skipped with a warning instead of breaking the module load.
+ *
+ * Spelled out rather than written as `^4.0.0`, because a caret range never matches a prerelease and every published
+ * Crawlee v4 is one (`4.0.0-beta.x`, `4.0.0-rc.x`). The explicit `-0` bounds admit prereleases of 4.0.0 itself, and
+ * `includePrerelease` on the module definitions extends that to prereleases of later v4 minors.
+ *
+ * `@opentelemetry/instrumentation` only consults this when the loader hands it the module's base directory, which the
+ * ESM hook does not do - so today a wrong range here would not stop anything from being patched. It is still declared
+ * correctly rather than left as documentation: the range is what decides whether a module is patched as soon as a base
+ * directory is available, and being silently skipped is not a failure mode worth leaving armed.
  */
-export const SUPPORTED_CRAWLEE_VERSIONS = ['^4.0.0'];
+export const SUPPORTED_CRAWLEE_VERSIONS = ['>=4.0.0-0 <5.0.0-0'];
 
 export const baseConfig: CrawleeInstrumentationConfig = {
     enabled: true,
@@ -53,7 +62,7 @@ export const requestHandlingInstrumentationMethods: ClassMethodToInstrument[] = 
         spanOptions() {
             return {
                 attributes: {
-                    'crawlee.crawler.type': this.constructor.name, // crawler context propagated from the wrapWithSpan function
+                    'crawlee.crawler.type': this.constructor.name,
                 },
             };
         },
@@ -71,6 +80,18 @@ export const requestHandlingInstrumentationMethods: ClassMethodToInstrument[] = 
     {
         moduleName: '@crawlee/basic',
         className: 'BasicCrawler',
+        methodName: 'runRequestHandler',
+        spanName: 'crawlee.crawler.runRequestHandler',
+        spanOptions(crawlingContext: CrawlingContextLike) {
+            return { attributes: requestAttributes(crawlingContext) };
+        },
+    },
+    {
+        // `AdaptivePlaywrightCrawler` replaces `runRequestHandler` outright instead of calling `super`, so the
+        // `BasicCrawler` patch above never fires for it. `BrowserCrawler` does call `super`, which is why it needs
+        // no entry of its own.
+        moduleName: '@crawlee/playwright',
+        className: 'AdaptivePlaywrightCrawler',
         methodName: 'runRequestHandler',
         spanName: 'crawlee.crawler.runRequestHandler',
         spanOptions(crawlingContext: CrawlingContextLike) {

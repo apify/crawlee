@@ -126,7 +126,7 @@ describe('buildModuleDefinitions', () => {
         expect(definitions).toHaveLength(1);
         expect(definitions[0].classMethodPatches).toHaveLength(1);
         expect(definitions[0].classMethodPatches[0].spanName).toBe('first-span');
-        expect(diagWarnSpy).toHaveBeenCalledWith('Method BasicCrawler.run is already instrumented. Skipping.');
+        expect(diagWarnSpy).toHaveBeenCalledWith(expect.stringContaining('Keeping the first definition'));
     });
 
     test('allows same method name on different classes', () => {

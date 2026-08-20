@@ -35,16 +35,25 @@ sdk.start();
 console.log('OpenTelemetry initialized');
 
 // This file is preloaded before the crawler, so it also owns flushing the buffered telemetry on the way out.
-const shutdown = async () => {
-    await sdk.shutdown();
+let shuttingDown: Promise<void> | undefined;
+
+const shutdown = () => {
+    // Every handler below can fire, and the SDK must only be shut down once.
+    shuttingDown ??= sdk.shutdown();
+    return shuttingDown;
 };
 
-// `beforeExit` covers a script that simply runs to completion...
-process.once('beforeExit', () => {
+// `beforeExit` covers a script that simply runs to completion. The flush it starts is async work, so Node keeps the
+// process alive for it and then fires `beforeExit` once more - hence `on` rather than `once`, and hence `shutdown`
+// having to be idempotent.
+process.on('beforeExit', () => {
     void shutdown();
 });
 
-// ...while signals have to be handled separately, as they do not emit `beforeExit`.
-process.once('SIGTERM', () => {
-    void shutdown().then(() => process.exit(0));
-});
+// Signals have to be handled separately, as they do not emit `beforeExit`. `SIGINT` is the one you send by pressing
+// Ctrl-C, so without it a local run loses whatever the exporter had not sent yet.
+for (const signal of ['SIGINT', 'SIGTERM'] as const) {
+    process.once(signal, () => {
+        void shutdown().then(() => process.exit(0));
+    });
+}

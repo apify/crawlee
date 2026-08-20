@@ -1,5 +1,7 @@
 import { CrawleeInstrumentation } from '@crawlee/otel';
 import { ATTR_HTTP_REQUEST_METHOD, ATTR_URL_FULL } from '@opentelemetry/semantic-conventions';
+import { isWrapped } from '@opentelemetry/instrumentation';
+import { satisfies } from 'semver';
 
 import { baseConfig, requestHandlingInstrumentationMethods } from '../src/constants';
 
@@ -28,6 +30,23 @@ describe('CrawleeInstrumentation', () => {
                 requestHandlingInstrumentation: false, // overridden
                 logInstrumentation: false, // overridden
                 customInstrumentation: [], // default
+            });
+        });
+
+        test('an explicitly undefined flag keeps its default', () => {
+            // What `{ logInstrumentation: options.logs }` produces when the caller has no opinion about it.
+            const instrumentation = new CrawleeInstrumentation({
+                enabled: undefined,
+                requestHandlingInstrumentation: undefined,
+                logInstrumentation: undefined,
+                customInstrumentation: undefined,
+            });
+
+            expect(instrumentation.getConfig()).toMatchObject({
+                enabled: true,
+                requestHandlingInstrumentation: true,
+                logInstrumentation: true,
+                customInstrumentation: [],
             });
         });
 
@@ -112,25 +131,32 @@ describe('CrawleeInstrumentation', () => {
         });
 
         test('combines default and custom instrumentation', () => {
-            const customMethods = [
-                {
-                    moduleName: '@crawlee/basic',
-                    className: 'BasicCrawler',
-                    methodName: 'customMethod',
-                    spanName: 'custom.span',
-                },
-            ];
-
             const instrumentation = new CrawleeInstrumentation({
                 requestHandlingInstrumentation: true,
                 logInstrumentation: false,
-                customInstrumentation: customMethods,
+                customInstrumentation: [
+                    {
+                        moduleName: '@crawlee/basic',
+                        className: 'BasicCrawler',
+                        methodName: 'customMethod',
+                        spanName: 'custom.span',
+                    },
+                ],
             });
 
-            const definitions = (instrumentation as any).init();
+            const definition = (instrumentation as any).init().find((d: any) => d.name === '@crawlee/basic') as {
+                patch: (e: any) => any;
+            };
 
-            // Should have definitions for basic, browser, and http modules
-            expect(definitions.length).toBeGreaterThan(0);
+            class BasicCrawler {
+                run() {}
+                customMethod() {}
+            }
+            definition.patch({ BasicCrawler });
+
+            // Both the built-in method and the configured one, rather than just a non-empty definition list.
+            expect(isWrapped(BasicCrawler.prototype.run)).toBe(true);
+            expect(isWrapped(BasicCrawler.prototype.customMethod)).toBe(true);
         });
     });
 
@@ -238,7 +264,7 @@ describe('requestHandlingInstrumentationMethods', () => {
         for (const method of methods) {
             expect(typeof method.spanOptions).toBe('function');
 
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
+            // oxlint-disable-next-line no-unsafe-function-type
             const options = (method.spanOptions as Function)(...args);
             expect(options.attributes).toEqual({
                 'crawlee.request.id': 'test-id',
@@ -252,7 +278,46 @@ describe('requestHandlingInstrumentationMethods', () => {
     test('request attributes are empty when the argument is not a crawling context', () => {
         const method = requestHandlingInstrumentationMethods.find((m) => m.methodName === 'runRequestHandler')!;
 
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
+        // oxlint-disable-next-line no-unsafe-function-type
         expect((method.spanOptions as Function)(undefined)).toEqual({ attributes: {} });
+    });
+});
+
+/**
+ * `@opentelemetry/instrumentation` decides whether to patch a module with
+ * `semver.satisfies(moduleVersion, supportedVersion, { includePrerelease })` and silently leaves the module alone when
+ * that is false, so this reads both inputs off the definitions the instrumentation actually produces rather than
+ * restating the literal. Crawlee v4 is published exclusively under prerelease tags, which a caret range never matches.
+ */
+describe('supported Crawlee versions', () => {
+    const definitions = () => (new CrawleeInstrumentation() as any).init() as any[];
+
+    const isSupported = (definition: any, version: string) =>
+        (definition.supportedVersions as string[]).some((range) =>
+            satisfies(version, range, { includePrerelease: definition.includePrerelease }),
+        );
+
+    test('covers every instrumented module', () => {
+        expect(
+            definitions()
+                .map((d) => d.name)
+                .sort(),
+        ).toEqual(['@crawlee/basic', '@crawlee/browser', '@crawlee/core', '@crawlee/http', '@crawlee/playwright']);
+    });
+
+    // The first two are the versions currently behind the `v4` and `rc` dist-tags.
+    test.each(['4.0.0-beta.140', '4.0.0-rc.0', '4.0.0', '4.1.0', '4.1.0-beta.3', '4.9.9'])(
+        'patches Crawlee %s',
+        (version) => {
+            for (const definition of definitions()) {
+                expect(isSupported(definition, version), `${definition.name} rejected ${version}`).toBe(true);
+            }
+        },
+    );
+
+    test.each(['3.13.0', '5.0.0', '5.0.0-beta.0'])('leaves Crawlee %s alone', (version) => {
+        for (const definition of definitions()) {
+            expect(isSupported(definition, version), `${definition.name} accepted ${version}`).toBe(false);
+        }
     });
 });
