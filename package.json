@@ -130,6 +130,7 @@
         "tsx": "^4.19.4",
         "turbo": "^2.10.11",
         "typescript": "^7.0.2",
+        "typescript-v6": "npm:typescript@^6.0.0",
         "vite-tsconfig-paths": "^5.1.4",
         "vitest": "^4.1.0-beta.6",
         "zod": "catalog:"

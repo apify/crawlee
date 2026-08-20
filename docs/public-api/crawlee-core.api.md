@@ -1648,7 +1648,7 @@ export class Session implements ISession {
 
 // Not exported by the entry point; reachable only as a referenced type.
 // @public (undocumented)
-const SESSION_REUSE_STRATEGIES: readonly ["random", "round-robin", "use-until-failure"];
+const SESSION_REUSE_STRATEGIES: readonly ['random', 'round-robin', 'use-until-failure'];
 
 // @public
 export class SessionError extends Error {
