@@ -18,15 +18,15 @@ const autoscaledPoolOptionsSchema = z.strictObject({
     isFinishedFunction: schemas.anyFunction,
     isTaskReadyFunction: schemas.anyFunction,
     maybeRunIntervalSecs: schemas.anyNumber
-        .refine((value: number) => value > 0, 'Expected a number greater than 0')
+        .refine((value) => value > 0, 'Expected a number greater than 0')
         .default(0.5),
     taskTimeoutSecs: schemas.anyNumber
-        .refine((value: number) => value >= 0, 'Expected a number greater than or equal to 0')
+        .refine((value) => value >= 0, 'Expected a number greater than or equal to 0')
         .default(0),
     log: validators.logger.default(() => serviceLocator.getLogger()),
     concurrencySystem: schemas.anyObject,
     consumer: schemas.anyObject.refine(
-        (value: { id?: string }) => typeof value.id === 'string' && value.id.length > 0,
+        (value) => typeof value?.id === 'string' && value.id.length > 0,
         "Expected an object with a non-empty string 'id'",
     ),
 });

@@ -938,11 +938,8 @@ export class BasicCrawler<
         minConcurrency: schemas.anyNumber.optional(),
         maxConcurrency: schemas.anyNumber.optional(),
         maxRequestsPerMinute: schemas.anyNumber
-            .refine(
-                (value: number) => Number.isInteger(value) || value === Infinity,
-                'Expected an integer or infinite number',
-            )
-            .refine((value: number) => value >= 1, 'Expected a number greater than or equal to 1')
+            .refine((value) => Number.isInteger(value) || value === Infinity, 'Expected an integer or infinite number')
+            .refine((value) => value >= 1, 'Expected a number greater than or equal to 1')
             .optional(),
         keepAlive: z.boolean().optional(),
 

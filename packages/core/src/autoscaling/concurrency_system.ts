@@ -24,19 +24,15 @@ const concurrencySystemOptionsSchema = z.strictObject({
     scaleUpStepRatio: z.number().gt(0).lt(1).default(0.05),
     scaleDownStepRatio: z.number().gt(0).lt(1).default(0.05),
     loggingIntervalSecs: schemas.anyNumber
-        .refine((value: number) => value > 0, 'Expected a number greater than 0')
+        .refine((value) => value > 0, 'Expected a number greater than 0')
         .nullish()
         .default(60),
     autoscaleIntervalSecs: schemas.anyNumber
-        .refine((value: number) => value > 0, 'Expected a number greater than 0')
+        .refine((value) => value > 0, 'Expected a number greater than 0')
         .default(10),
     loadSignals: schemas.anyObject.default(() => ({})),
-    snapshotHistorySecs: schemas.anyNumber
-        .refine((value: number) => value > 0, 'Expected a number greater than 0')
-        .optional(),
-    currentHistorySecs: schemas.anyNumber
-        .refine((value: number) => value > 0, 'Expected a number greater than 0')
-        .optional(),
+    snapshotHistorySecs: schemas.anyNumber.refine((value) => value > 0, 'Expected a number greater than 0').optional(),
+    currentHistorySecs: schemas.anyNumber.refine((value) => value > 0, 'Expected a number greater than 0').optional(),
     log: validators.logger.default(() => serviceLocator.getLogger()),
     maxTasksPerMinute: z
         .union([z.number().int().gte(1), z.literal(Number.POSITIVE_INFINITY)])

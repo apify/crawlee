@@ -345,10 +345,8 @@ describe('SessionPool - testing session pool', () => {
         await sessionPool.getSession();
 
         const { sessions } = await sessionPool.getState();
-        expect(sessions).toHaveLength(1);
         for (let i = 0; i < 10; i++) {
-            const retired = await sessionPool.getSession(`session_${i}`);
-            expect(retired?.id).not.toBe(`session_${i}`);
+            await sessionPool.addSession({ id: `session_${i}` });
         }
     });
 

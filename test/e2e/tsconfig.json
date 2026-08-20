@@ -1,12 +1,10 @@
 {
-    "extends": "../../tsconfig.json",
+    "extends": "../tsconfig.json",
     "compilerOptions": {
-        "module": "NodeNext",
-        "moduleResolution": "NodeNext",
+        "module": "ESNext",
         "target": "ESNext",
         "allowJs": true,
         "checkJs": true
     },
-    "include": ["./**/*.mjs", "./**/*.ts"],
-    "exclude": ["**/fixtures/*"]
+    "include": ["./**/*.mjs", "./**/*.ts"]
 }

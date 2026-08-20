@@ -31,7 +31,7 @@ const PAGE_CLOSE_KILL_TIMEOUT_MILLIS = 1000;
 const BROWSER_KILLER_INTERVAL_MILLIS = 10 * 1000;
 
 const browserPoolOptionsSchema = z.strictObject({
-    browserPlugins: schemas.anyArray.refine((value: unknown[]) => value.length >= 1, 'Expected a non-empty array'),
+    browserPlugins: schemas.anyArray.refine((value) => value.length >= 1, 'Expected a non-empty array'),
     maxOpenPagesPerBrowser: schemas.anyNumber.default(20),
     retireBrowserAfterPageCount: schemas.anyNumber.default(100),
     operationTimeoutSecs: schemas.anyNumber.default(15),

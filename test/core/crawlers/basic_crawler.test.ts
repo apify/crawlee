@@ -1796,8 +1796,7 @@ describe('BasicCrawler', () => {
         });
 
         const maxSignedInteger = 2 ** 31 - 1;
-        // @ts-expect-error Accessing private prop
-        expect(crawler.requestHandlerTimeoutMillis).toBe(maxSignedInteger);
+        expect(crawler['resolveRequestHandlerTimeoutMillis'](undefined)).toBe(maxSignedInteger);
         // @ts-expect-error Accessing private prop
         expect(crawler.internalTimeoutMillis).toBe(maxSignedInteger);
     });

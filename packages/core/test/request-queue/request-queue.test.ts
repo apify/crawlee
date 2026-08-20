@@ -95,16 +95,16 @@ describe('RequestQueue#isFinished waits for background add operations', () => {
             { batchSize: 1, waitBetweenBatchesMillis: 0 },
         );
 
+        const req1 = await queue.fetchNextRequest();
+        expect(req1).toBeDefined();
+        await queue.markRequestAsHandled(req1!);
+
         // While the 2nd batch is in flight in the background, isFinished() reports false.
         expect(await queue.isFinished()).toBe(false);
 
         // Unblock the background batch and wait for it to complete.
         resolveBatch();
         await result.waitForAllRequestsToBeAdded;
-
-        const req1 = await queue.fetchNextRequest();
-        expect(req1).toBeDefined();
-        await queue.markRequestAsHandled(req1!);
 
         const req2 = await queue.fetchNextRequest();
         expect(req2).toBeDefined();
