@@ -112,6 +112,7 @@ describe.each([
             expect(browserPool.startingBrowserControllers.size).toBe(0);
             expect(browserPool.activeBrowserControllers.size).toBe(0);
             expect(browserPool.retiredBrowserControllers.size).toBe(0);
+            expect(browserPool['browserKillerInterval']).toBeUndefined();
         });
     });
 
@@ -273,32 +274,35 @@ describe.each([
         });
 
         test('should close retired browsers', async () => {
-            vitest.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
-            await browserPool.destroy();
-            browserPool = new BrowserPool({
-                browserPlugins: [plugin],
-                closeInactiveBrowserAfterSecs: 2,
-                retireInactiveBrowserAfterSecs: 2,
-            });
-            try {
-                browserPool.retireBrowserAfterPageCount = 1;
+            browserPool.retireBrowserAfterPageCount = 1;
 
-                expect(browserPool.retiredBrowserControllers.size).toBe(0);
+            clearInterval(browserPool['browserKillerInterval']!);
 
-                const page = await browserPool.newPage();
-                const controller = browserPool.getBrowserControllerByPage(page)!;
-                vitest.spyOn(controller, 'close');
+            browserPool['browserKillerInterval'] = setInterval(
+                async () => browserPool['closeInactiveRetiredBrowsers'](),
+                100,
+            );
 
-                expect(browserPool.retiredBrowserControllers.size).toBe(1);
-                await page.close();
+            // @ts-expect-error Private function
+            vitest.spyOn(browserPool!, 'closeRetiredBrowserWithNoPages');
+            expect(browserPool.retiredBrowserControllers.size).toBe(0);
 
-                await vitest.advanceTimersByTimeAsync(10000);
+            const page = await browserPool.newPage();
+            const controller = browserPool.getBrowserControllerByPage(page)!;
+            vitest.spyOn(controller, 'close');
 
-                expect(controller.close).toHaveBeenCalled();
-                expect(browserPool.retiredBrowserControllers.size).toBe(0);
-            } finally {
-                vitest.useRealTimers();
-            }
+            expect(browserPool.retiredBrowserControllers.size).toBe(1);
+            await page.close();
+
+            await new Promise<void>((resolve) =>
+                setTimeout(() => {
+                    resolve();
+                }, 1000),
+            );
+
+            expect(browserPool['closeRetiredBrowserWithNoPages']).toHaveBeenCalled();
+            expect(controller.close).toHaveBeenCalled();
+            expect(browserPool.retiredBrowserControllers.size).toBe(0);
         });
 
         describe('hooks', () => {

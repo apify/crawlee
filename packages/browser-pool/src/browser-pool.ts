@@ -351,7 +351,11 @@ export class BrowserPool<
     fingerprintGenerator?: FingerprintGenerator;
     fingerprintCache?: QuickLRU<string, BrowserFingerprintWithHeaders>;
 
-    #browserKillerInterval?: ReturnType<typeof setInterval>;
+    // kept as TS-private: tests replace this interval through bracket access
+    private browserKillerInterval? = setInterval(
+        async () => this.closeInactiveRetiredBrowsers(),
+        BROWSER_KILLER_INTERVAL_MILLIS,
+    );
 
     #browserRetireInterval?: NodeJS.Timeout;
 
@@ -362,11 +366,7 @@ export class BrowserPool<
         super();
         this.#log = serviceLocator.getLogger().child({ prefix: 'BrowserPool' });
 
-        this.#browserKillerInterval = setInterval(
-            async () => this.closeInactiveRetiredBrowsers(),
-            BROWSER_KILLER_INTERVAL_MILLIS,
-        );
-        this.#browserKillerInterval.unref();
+        this.browserKillerInterval!.unref();
 
         const {
             browserPlugins,
@@ -776,9 +776,9 @@ export class BrowserPool<
      * Closes all managed browsers and tears down the pool.
      */
     async destroy(): Promise<void> {
-        clearInterval(this.#browserKillerInterval!);
+        clearInterval(this.browserKillerInterval!);
         clearInterval(this.#browserRetireInterval!);
-        this.#browserKillerInterval = undefined;
+        this.browserKillerInterval = undefined;
         this.#browserRetireInterval = undefined;
 
         await this.closeAllBrowsers();
