@@ -5,6 +5,7 @@ import type { AddressInfo } from 'node:net';
 
 import type {
     BasicCrawlerOptions,
+    CrawlerRunOptions,
     EnqueueLinksOptions,
     ErrorHandler,
     RequestHandler,
@@ -439,7 +440,7 @@ describe('BasicCrawler', () => {
             serviceLocator.setStorageBackend(createBackend());
         });
 
-        const crawlTwice = async (purgeRequestQueue: boolean) => {
+        const crawlTwice = async (secondRunOptions?: CrawlerRunOptions) => {
             const processed: string[] = [];
             const crawler = new BasicCrawler({
                 requestHandler: async ({ request }) => {
@@ -448,17 +449,25 @@ describe('BasicCrawler', () => {
             });
 
             await crawler.run(['https://example.com/only']);
-            await crawler.run(['https://example.com/only'], { purgeRequestQueue });
+            await crawler.run(['https://example.com/only'], secondRunOptions);
 
             return processed;
         };
 
-        test('re-crawls the same requests when the queue is purged', async () => {
-            await expect(crawlTwice(true)).resolves.toEqual(['https://example.com/only', 'https://example.com/only']);
+        // Purging the crawler's own queue is opt-out, so omitting the option has to behave like `true`.
+        test('re-crawls the same requests by default', async () => {
+            await expect(crawlTwice()).resolves.toEqual(['https://example.com/only', 'https://example.com/only']);
         });
 
-        test('leaves already handled requests alone when it is not', async () => {
-            await expect(crawlTwice(false)).resolves.toEqual(['https://example.com/only']);
+        test('re-crawls the same requests with purgeRequestQueue: true', async () => {
+            await expect(crawlTwice({ purgeRequestQueue: true })).resolves.toEqual([
+                'https://example.com/only',
+                'https://example.com/only',
+            ]);
+        });
+
+        test('leaves already handled requests alone with purgeRequestQueue: false', async () => {
+            await expect(crawlTwice({ purgeRequestQueue: false })).resolves.toEqual(['https://example.com/only']);
         });
     });
 
