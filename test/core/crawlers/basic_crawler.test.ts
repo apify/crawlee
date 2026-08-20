@@ -2626,6 +2626,37 @@ describe('BasicCrawler', () => {
                 expect(warning.mock.calls[0][0]).toMatch(/does not pace that domain/);
                 expect(warning.mock.calls[0][0]).toMatch(/example\.com/);
             });
+
+            test('is honoured for requests that started life in a `requestList`', async () => {
+                const visits: number[] = [];
+                const crawler = new (class MockedRobotsTxtCrawler extends BasicCrawler {
+                    override async getRobotsTxtFileForUrl(_: string) {
+                        return RobotsTxtFile.from('http://example.com/robots.txt', 'User-agent: *\nCrawl-delay: 0.5\n');
+                    }
+                })({
+                    respectRobotsTxtFile: true,
+                    requestList: await RequestList.open(null, [
+                        'http://example.com/1',
+                        'http://example.com/2',
+                        'http://example.com/3',
+                    ]),
+                    // The pacer this builds sits *inside* the tandem the crawler makes for the list, and the
+                    // tandem forwards the crawl-delay down to it. Its own floor is negligible, so the delay
+                    // observed below can only come from robots.txt.
+                    sameDomainDelaySecs: 0.01,
+                    requestHandler: async () => {
+                        visits.push(Date.now());
+                    },
+                });
+
+                await crawler.run();
+
+                // robots.txt is only read while the first request is being processed, so the delay it declares
+                // first bites between the second and the third - by which point the requests have been through
+                // the tandem's transfer and into a per-domain queue, which is the composition under test.
+                expect(visits).toHaveLength(3);
+                expect(visits[2] - visits[1]).toBeGreaterThanOrEqual(400);
+            });
         });
 
         describe('sameDomainDelaySecs', () => {
@@ -2682,13 +2713,15 @@ describe('BasicCrawler', () => {
                 expect(reclaimed).toEqual([]);
             });
 
-            test('a crawl fed by a requestList still finishes', async () => {
-                // Those requests are transferred straight into the wrapped manager, so they are never routed by
-                // domain - and have to be handed back to it rather than to the queue their domain would own.
+            test('paces requests that came from a `requestList`, and still finishes the crawl', async () => {
+                // The pacer sits inside the tandem, which is the only position from which a list's requests reach
+                // a per-domain queue - and once there they have to be handed back to it rather than to the queue
+                // their domain would own, or the crawl would never finish.
                 const requestList = await RequestList.open(null, ['http://example.com/1', 'http://example.com/2']);
-                const { visits } = await crawlerVisiting([], { requestList, sameDomainDelaySecs: 0.1 });
+                const { visits } = await crawlerVisiting([], { requestList, sameDomainDelaySecs: 0.5 });
 
                 expect(visits.map(({ url }) => url).sort()).toEqual(['http://example.com/1', 'http://example.com/2']);
+                expect(visits[1].at - visits[0].at).toBeGreaterThanOrEqual(400);
             });
 
             test('a second run() crawls the same requests again', async () => {
@@ -2701,6 +2734,69 @@ describe('BasicCrawler', () => {
                 await crawler.run(['http://example.com/1']);
 
                 expect(crawler.statistics.state.requestsFinished).toBe(1);
+            });
+
+            test('a second run() over a supplied manager asks which storage to purge', async () => {
+                // The pacer's per-domain queues are the crawler's, the manager underneath them is the caller's,
+                // and a purge cannot respect both. Rather than pick one silently, say so.
+                const crawler = new BasicCrawler({
+                    requestQueue: await RequestQueue.open(),
+                    sameDomainDelaySecs: 0.05,
+                    requestHandler: async () => {},
+                });
+
+                await crawler.run(['http://example.com/1']);
+
+                await expect(crawler.run(['http://example.com/1'])).rejects.toThrow(
+                    /Cannot decide what to purge.*purgeRequestQueue/s,
+                );
+            });
+
+            test.each([true, false])('a second run() with purgeRequestQueue: %s does not ask', async (purge) => {
+                const crawler = new BasicCrawler({
+                    requestQueue: await RequestQueue.open(),
+                    sameDomainDelaySecs: 0.05,
+                    requestHandler: async () => {},
+                });
+
+                await crawler.run(['http://example.com/1']);
+
+                await expect(
+                    crawler.run(['http://example.com/1'], { purgeRequestQueue: purge }),
+                ).resolves.toBeDefined();
+            });
+
+            test('a second run() purges everything the crawler opened itself, without being asked', async () => {
+                // Nothing here came from the caller, so there is no ambiguity to raise - and one purge from the
+                // outside in has to reach the per-domain queues, or the second run would crawl nothing.
+                let visits = 0;
+                const crawler = new BasicCrawler({
+                    sameDomainDelaySecs: 0.05,
+                    requestHandler: async () => {
+                        visits += 1;
+                    },
+                });
+
+                await crawler.run(['http://example.com/1']);
+                await crawler.run(['http://example.com/1']);
+
+                expect(visits).toBe(2);
+            });
+
+            test('wraps a user `requestManager` rather than replacing it', async () => {
+                const requestManager = await RequestQueue.open();
+
+                const { crawler, visits } = await crawlerVisiting(['http://example.com/1', 'http://example.com/2'], {
+                    requestManager,
+                    sameDomainDelaySecs: 0.5,
+                });
+
+                const active = await crawler.getRequestManager();
+                expect(active).toBeInstanceOf(ThrottlingRequestManager);
+                expect((active as ThrottlingRequestManager<RequestQueue>).innerManager).toBe(requestManager);
+
+                expect(visits).toHaveLength(2);
+                expect(visits[1].at - visits[0].at).toBeGreaterThanOrEqual(400);
             });
 
             test('refuses to be combined with a request manager that throttles on its own', async () => {

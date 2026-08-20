@@ -611,6 +611,8 @@ By default, only queues that the crawler created itself (the "owned" queue) are 
 | `true` | Purged | Purged |
 | `false` | Not purged | Not purged |
 
+One combination has no sensible default: `sameDomainDelaySecs` over a request manager you supplied. The per-domain queues that have to be emptied are the crawler's, the manager underneath them is yours, and a purge cannot respect both — so a repeated `run()` throws and asks you to pass `purgeRequestQueue` explicitly rather than guessing.
+
 ```typescript
 // The purge happens automatically between run() calls:
 const crawler = new BasicCrawler({ requestHandler: async ({ request }) => { /* ... */ } });
@@ -1536,11 +1538,11 @@ It is also what enforces robots.txt `Crawl-delay` directives — with `respectRo
 
 #### `sameDomainDelaySecs` is now backed by `ThrottlingRequestManager`
 
-The option means the same thing as in v3 — subdomains included, it still paces a whole site rather than a single host — but it no longer holds delayed requests in memory and re-enqueues them. The crawler now wraps its request manager in a `ThrottlingRequestManager`, which gives every domain a request queue of its own so a delayed request waits in storage. Consequences worth knowing about:
+`sameDomainDelaySecs` still works and still means what it did in v3 — subdomains included, it paces a whole registrable domain rather than a single host. What changed is the machinery underneath: instead of holding delayed requests in an in-memory map and re-enqueueing them, the crawler wraps its request manager in a `ThrottlingRequestManager`, which gives every domain a request queue of its own, so a delayed request waits in storage. Consequences worth knowing about:
 
 - A crawl that discovers more than `maxThrottledDomains` domains (100 by default) throws instead of quietly running out of steam. Pass your own `ThrottlingRequestManager` as `requestManager` to raise the ceiling — or crawl fewer sites.
-- Combining `sameDomainDelaySecs` with a `requestManager` that throttles per domain on its own now throws. Configure the delay on that manager instead, via its `domains: 'all'` and `minCrawlDelaySecs` options.
-- Requests that never pass through the request manager — those from the deprecated `requestList` option, or from a `requestsFromUrl` list — are not paced, and the crawler warns when it hands one out.
+- Combining `sameDomainDelaySecs` with a `ThrottlingRequestManager` passed as `requestManager` now throws — both would pace the same domains from separate keys. Configure the delay on that manager instead, via its `minCrawlDelaySecs` option.
+- Requests that never pass through the request manager — those from a `requestsFromUrl` list — are not paced, and the crawler warns when it hands one out.
 
 #### `BasicCrawler.requestList` and `BasicCrawler.requestQueue` fields removed
 

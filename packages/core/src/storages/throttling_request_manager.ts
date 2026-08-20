@@ -26,7 +26,7 @@ import type { StorageIdentifier } from './storage_instance_manager.js';
 import type { StorageOpenOptions } from './utils.js';
 
 const throttlingRequestManagerOptionsSchema = z.strictObject({
-    inner: schemas.anyObject,
+    inner: z.union([schemas.anyObject, schemas.anyFunction]),
     domains: z.union([schemas.arrayOf(z.string().nonempty(), 'non-empty strings'), z.literal('all')]),
     requestManagerOpener: schemas.anyFunction.optional(),
     baseDelaySecs: schemas.anyNumber.refine((value) => value > 0, 'Expected a number greater than 0').optional(),
@@ -57,8 +57,11 @@ export interface ThrottlingRequestManagerOptions<T extends IRequestManager = IRe
     /**
      * The request manager to wrap, usually a {@apilink RequestQueue}. Requests for domains that are not throttled
      * are stored here.
+     *
+     * May be passed as a factory function so that the throttler can be constructed synchronously and the manager
+     * underneath it opened lazily on first use (e.g. a lazily-opened default {@apilink RequestQueue}).
      */
-    inner: T;
+    inner: T | (() => T | Promise<T>);
 
     /**
      * Which domains to throttle: a list of hostnames, or `'all'` for every domain the crawl encounters.
@@ -228,6 +231,10 @@ const DEFAULT_PERSIST_STATE_KEY = 'CRAWLEE_THROTTLED_DOMAINS';
  * Which domains get those clocks is {@apilink ThrottlingRequestManagerOptions.domains|`domains`} - a list, or
  * `'all'` for every domain the crawl encounters.
  *
+ * Pass one as a crawler's `requestManager` to pace what it crawls. The crawlers' `sameDomainDelaySecs` shorthand
+ * builds one for you, configured with `domains: 'all'` and `throttleBy: 'registrableDomain'`; construct it
+ * yourself when you want to name the domains or tune the delays.
+ *
  * The 429 and robots.txt `Crawl-delay` signals a crawler feeds it arrive through
  * {@apilink IRequestManager.recordPacingSignal|`recordPacingSignal`}, which every wrapping manager forwards - so
  * this works wherever it sits in a composition, including inside a {@apilink RequestManagerTandem}.
@@ -247,7 +254,9 @@ const DEFAULT_PERSIST_STATE_KEY = 'CRAWLEE_THROTTLED_DOMAINS';
  * @category Sources
  */
 export class ThrottlingRequestManager<T extends IRequestManager = IRequestManager> implements IRequestManager {
-    readonly #inner: T;
+    readonly #innerFactory: () => T | Promise<T>;
+    #innerPromise?: Promise<T>;
+    #resolvedInner?: T;
     readonly #requestManagerOpener: RequestManagerOpener<T>;
     readonly #baseDelayMs: number;
     readonly #maxDelayMs: number;
@@ -294,6 +303,12 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     /** Batches still being added in the background; keeps {@apilink ThrottlingRequestManager.readiness} honest. */
     #inProgressBatchCount = 0;
 
+    /**
+     * The latest expected request-processing time hinted via {@link setExpectedRequestProcessingTimeSecs},
+     * remembered so it can be applied to the wrapped manager once it is lazily resolved.
+     */
+    #expectedRequestProcessingSecs?: number;
+
     readonly #warnedAbout = new Set<string>();
 
     /** Whether any domain at all may end up throttled - listed up front, or discovered as the crawl runs. */
@@ -307,7 +322,15 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     ) {
         parseArgument(options, throttlingRequestManagerOptionsSchema, 'ThrottlingRequestManagerOptions');
 
-        this.#inner = options.inner;
+        if (typeof options.inner === 'function') {
+            this.#innerFactory = options.inner;
+        } else {
+            // Nothing to open, so it is available from the start - which is what makes `innerManager`
+            // `undefined` only while a factory has yet to be forced, and lets bookkeeping reach it as before.
+            this.#resolvedInner = options.inner;
+            this.#innerFactory = () => this.#resolvedInner!;
+        }
+
         this.#requestManagerOpener =
             options.requestManagerOpener ??
             ((idOrAlias, opts) => RequestQueue.open(idOrAlias, opts) as unknown as Promise<T>);
@@ -356,9 +379,35 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         return getDomain(normalized, { mixedInputs: false }) ?? normalized;
     }
 
-    /** The wrapped manager, holding every request whose domain is not throttled. */
-    get innerManager(): T {
-        return this.#inner;
+    /**
+     * The wrapped manager, holding every request whose domain is not throttled.
+     *
+     * `undefined` only while an `inner` passed as a factory has not been resolved yet - reading this never
+     * forces it, because opening a queue is not something a getter should do behind a caller's back.
+     */
+    get innerManager(): T | undefined {
+        return this.#resolvedInner;
+    }
+
+    /**
+     * Resolves the wrapped manager, opening it lazily (via the factory) on first use and memoizing the result.
+     *
+     * Memoized for identity as much as for cost: {@link addRequestsBatched} groups a chunk by manager identity,
+     * and {@link reclaimRequest} decides where an in-flight request goes back by comparing against it. A fresh
+     * instance per call would split those batches and reclaim requests into a manager that never handed them out.
+     */
+    async #getInner(): Promise<T> {
+        if (this.#resolvedInner === undefined) {
+            this.#innerPromise ??= Promise.resolve(this.#innerFactory());
+            this.#resolvedInner = await this.#innerPromise;
+
+            // Apply any hint received before the manager was resolved.
+            if (this.#expectedRequestProcessingSecs !== undefined) {
+                await this.#resolvedInner.setExpectedRequestProcessingTimeSecs?.(this.#expectedRequestProcessingSecs);
+            }
+        }
+
+        return this.#resolvedInner;
     }
 
     /** Warns once about sources that cannot be routed by domain, because their URLs are not known yet. */
@@ -407,7 +456,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         const domain = this.#extractDomain(url);
 
         if (!domain || !(this.#listedDomains.has(domain) || this.#throttlesEveryDomain)) {
-            return this.#inner;
+            return this.#getInner();
         }
 
         if (!this.#listedDomains.has(domain) && !this.#discoveredDomains.has(domain)) {
@@ -792,8 +841,10 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     async #managerHolding(request: Request): Promise<T> {
         const key = request.id ?? request.uniqueKey;
 
+        // A key in `#inFlightFromInner` can only have been put there by a fetch from the wrapped manager, so
+        // it having been resolved is implied - no need to force it here.
         if (this.#inFlightFromInner.delete(key)) {
-            return this.#inner;
+            return this.#resolvedInner!;
         }
 
         return this.#selectManagerOrThrow(request.url);
@@ -866,7 +917,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
 
         const probed = (
             await Promise.all([
-                this.#inner.readiness(),
+                (await this.#getInner()).readiness(),
                 ...dispatchable.map(async (subManager) => (await subManager).readiness()),
             ])
         ).reduce(joinRequestSourceStates);
@@ -920,17 +971,16 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
      * site rather than of the run, so it survives.
      */
     async purge(): Promise<void> {
-        await this.#inner.purge?.();
-        await this.purgeDomainQueues();
+        await this.#resolvedInner?.purge?.();
+        await this.#purgeDomainQueues();
     }
 
     /**
-     * Empties the per-domain queues, leaving the wrapped manager alone.
-     *
-     * Those queues are this manager's own no matter who owns the one it wraps, which is what makes this safe to
-     * call where a full {@apilink ThrottlingRequestManager.purge|`purge()`} would not be.
+     * Empties the per-domain queues, leaving the wrapped manager alone. Those queues are this manager's own no
+     * matter who owns the one it wraps, which is why {@apilink ThrottlingRequestManager.purge|`purge()`} splits
+     * into the two halves rather than fanning out over everything.
      */
-    async purgeDomainQueues(): Promise<void> {
+    async #purgeDomainQueues(): Promise<void> {
         const subManagers = await this.#getSubManagers();
         await Promise.all(subManagers.map(async (manager) => manager.purge?.()));
 
@@ -945,16 +995,32 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     }
 
     async setExpectedRequestProcessingTimeSecs(secs: number): Promise<void> {
+        // Remembered so that a wrapped manager opened later still gets the hint, rather than opening one now
+        // just to pass it along.
+        this.#expectedRequestProcessingSecs = secs;
         await this.#forEachManager((manager) => manager.setExpectedRequestProcessingTimeSecs?.(secs));
     }
 
+    /**
+     * Runs `fn` over the sub-queues and, if it has been resolved, the wrapped manager.
+     *
+     * Bookkeeping - purging, persisting, dropping, hinting - never forces a lazily-opened `inner`: opening a
+     * queue purely to tell it something is the side-effecting probe this class exists to avoid.
+     */
     async #forEachManager(fn: (manager: T) => Promise<unknown> | undefined): Promise<void> {
+        const managers = await this.#getSubManagers();
+
+        if (this.#resolvedInner !== undefined) {
+            managers.push(this.#resolvedInner);
+        }
+
         // `fn` targets optional members, so it may return nothing - the wrapper normalizes that for `Promise.all`.
-        await Promise.all([this.#inner, ...(await this.#getSubManagers())].map(async (manager) => fn(manager)));
+        await Promise.all(managers.map(async (manager) => fn(manager)));
     }
 
     async #sumOverManagers(fn: (manager: T) => Promise<number>): Promise<number> {
-        const counts = await Promise.all([this.#inner, ...(await this.#getSubManagers())].map(fn));
+        // Counts have to include the wrapped manager, so this one does resolve it.
+        const counts = await Promise.all([await this.#getInner(), ...(await this.#getSubManagers())].map(fn));
         return counts.reduce((a, b) => a + b, 0);
     }
 
@@ -991,7 +1057,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
             state.crawlDelayUntil = crawlDelayUntilBefore;
         }
 
-        const request = await this.#inner.fetchNextRequest<R>();
+        const request = await (await this.#getInner()).fetchNextRequest<R>();
 
         if (request !== null) {
             this.#inFlightFromInner.add(request.id ?? request.uniqueKey);

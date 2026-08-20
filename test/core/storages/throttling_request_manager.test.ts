@@ -1,4 +1,4 @@
-import type { AddRequestsBatchedResult } from '@crawlee/core';
+import type { AddRequestsBatchedResult, ThrottlingRequestManagerOptions } from '@crawlee/core';
 import {
     KeyValueStore,
     MemoryStorageBackend,
@@ -243,6 +243,92 @@ describe('ThrottlingRequestManager', () => {
         // Marking it handled in its domain's sub-queue instead would leave the inner manager serving it forever.
         expect((await manager.readiness()).status).toBe('finished');
         expect(await inner.getPendingCount()).toBe(0);
+    });
+
+    describe('a lazily-opened inner manager', () => {
+        const throttling = { domains: ['example.com'] } satisfies Omit<
+            ThrottlingRequestManagerOptions<RequestQueue>,
+            'inner'
+        >;
+
+        test('is resolved once, so a whole batch lands in - and is handed back to - one instance', async () => {
+            const factory = vitest.fn(async () => createQueue());
+            const manager = new ThrottlingRequestManager({ ...throttling, inner: factory });
+
+            await manager.addRequestsBatched([
+                { url: 'https://example.com/1' },
+                { url: 'https://other.com/1' },
+                { url: 'https://example.com/2' },
+            ]);
+
+            const inner = manager.innerManager!;
+            expect(await inner.getTotalCount()).toBe(1);
+            expect(await manager.getTotalCount()).toBe(3);
+
+            // Drain the batch through the manager. The inner-routed request is the one that matters: handed
+            // back to a second instance, it would leave this one serving it forever.
+            for (let i = 0; i < 3; i++) {
+                await manager.markRequestAsHandled(await pollForNextRequest(manager));
+            }
+
+            expect((await manager.readiness()).status).toBe('finished');
+            expect(await inner.getPendingCount()).toBe(0);
+            expect(factory).toHaveBeenCalledTimes(1);
+        });
+
+        test('is not forced by bookkeeping', async () => {
+            const factory = vitest.fn(async () => createQueue());
+            const manager = new ThrottlingRequestManager({ ...throttling, inner: factory });
+
+            await manager.purge();
+            await manager.persistState();
+            await manager.setExpectedRequestProcessingTimeSecs(600);
+            await manager.drop();
+
+            expect(factory).not.toHaveBeenCalled();
+            expect(manager.innerManager).toBeUndefined();
+        });
+
+        test('receives an expected-processing-time hint given before it was resolved', async () => {
+            const inner = await createQueue();
+            const setHint = vitest.spyOn(inner, 'setExpectedRequestProcessingTimeSecs');
+            const manager = new ThrottlingRequestManager({ ...throttling, inner: () => inner });
+
+            await manager.setExpectedRequestProcessingTimeSecs(600);
+            expect(setHint).not.toHaveBeenCalled();
+
+            await manager.fetchNextRequest();
+
+            expect(setHint).toHaveBeenCalledWith(600);
+        });
+
+        test('is opened by readiness(), so requests left in it by a previous run are not missed', async () => {
+            // Without purgeOnStart, an unopened queue may still hold work; reporting `finished` for it would
+            // end the crawl without anyone ever looking.
+            await (await createQueue('leftover-inner')).addRequest({ url: 'https://other.com/left-behind' });
+
+            const manager = new ThrottlingRequestManager({
+                ...throttling,
+                inner: () => createQueue('leftover-inner'),
+            });
+
+            expect((await manager.readiness()).status).toBe('ready');
+            expect(manager.innerManager).toBeDefined();
+        });
+
+        test('is exposed by innerManager only once resolved, which reading it never triggers', async () => {
+            const inner = await createQueue();
+            const factory = vitest.fn(() => inner);
+            const manager = new ThrottlingRequestManager({ ...throttling, inner: factory });
+
+            expect(manager.innerManager).toBeUndefined();
+            expect(factory).not.toHaveBeenCalled();
+
+            await manager.addRequest({ url: 'https://other.com/1' });
+
+            expect(manager.innerManager).toBe(inner);
+            expect(factory).toHaveBeenCalledTimes(1);
+        });
     });
 
     test('recordPacingSignal enforces throttling and fair scheduling', async () => {

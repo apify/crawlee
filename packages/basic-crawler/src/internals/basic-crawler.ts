@@ -352,8 +352,10 @@ export interface BasicCrawlerOptions<
      * Indicates how much time (in seconds) to wait before crawling another same domain request. Subdomains are
      * paced together with the site they belong to.
      *
-     * Wraps the crawler's request manager in a {@apilink ThrottlingRequestManager}; pass one as `requestManager`
-     * yourself to configure it further.
+     * Shorthand for wrapping the crawler's request manager in a {@apilink ThrottlingRequestManager} with
+     * `domains: 'all'` and `throttleBy: 'registrableDomain'`. Construct one yourself and pass it as
+     * `requestManager` when you want to name the domains, tune the 429 backoff, or pace an existing manager of
+     * your own - the two cannot be combined.
      * @default 0
      */
     sameDomainDelaySecs?: number;
@@ -743,13 +745,6 @@ export class BasicCrawler<
     }
 
     /**
-     * Tracks **only** the queue the crawler opens for itself — not the {@apilink RequestManagerTandem} that may wrap it
-     * around a user-supplied `requestList` — so the owned-only purge between repeated `run()` calls never reaches
-     * through to a borrowed loader. Filled lazily in {@apilink BasicCrawler.openOwnedRequestQueue|`openOwnedRequestQueue()`}.
-     */
-    #ownedRequestQueue = OwnedOrInjected.resolve<RequestQueue>();
-
-    /**
      * Whether the request-processing-time hint has already been forwarded to the request manager. The hint
      * derives only from `requestHandlerTimeoutMillis` (constant for the crawler's lifetime) and is raise-only,
      * so it only needs to be applied once, at the first async access of the manager.
@@ -860,7 +855,20 @@ export class BasicCrawler<
     protected readonly internalTimeoutMillis: number;
     readonly #maxRequestRetries: number;
     readonly #maxCrawlDepth?: number;
-    #sameDomainDelaySecs: number;
+    /**
+     * How much of what {@apilink BasicCrawler.requestManager} reaches the crawler may empty between repeated
+     * `run()` calls.
+     *
+     * - `all` — nothing under it came from the caller, so one `purge()` on the outside covers everything,
+     *   including any per-domain queues {@apilink BasicCrawlerOptions.sameDomainDelaySecs|`sameDomainDelaySecs`}
+     *   opened underneath.
+     * - `none` — the caller supplied it and the crawler put nothing of its own inside, so it is left alone
+     *   unless `purgeRequestQueue: true` says otherwise.
+     * - `ambiguous` — the caller supplied it *and* `sameDomainDelaySecs` put per-domain queues underneath, so a
+     *   purge would empty their storage along with ours, and skipping it would leave ours stale. There is no
+     *   right answer, so a repeated `run()` asks for one rather than guessing.
+     */
+    readonly #purgeableExtent: 'all' | 'none' | 'ambiguous';
     readonly #maxRequestsPerCrawl?: number;
 
     private get handledRequestsCount(): number {
@@ -1070,33 +1078,61 @@ export class BasicCrawler<
             const instanceIndex = BasicCrawler.instanceCount++;
             this.#identity = { instanceIndex, hasExplicitId: id !== undefined, id: id ?? String(instanceIndex) };
 
-            if (requestManager !== undefined) {
-                if (requestList !== undefined || requestQueue !== undefined) {
-                    throw new Error(
-                        'The `requestManager` option cannot be used in conjunction with `requestList` and/or `requestQueue`',
-                    );
-                }
-                // Both would pace the same domains, from different keys and with no idea of one another.
-                if (sameDomainDelaySecs > 0 && requestManager instanceof ThrottlingRequestManager) {
-                    throw new Error(
-                        'The `sameDomainDelaySecs` option cannot be combined with a `requestManager` that throttles ' +
-                            'per domain on its own. Configure the delay on the manager instead, via the ' +
-                            '`minCrawlDelaySecs` option of `ThrottlingRequestManager`.',
-                    );
-                }
+            if (requestManager !== undefined && (requestList !== undefined || requestQueue !== undefined)) {
+                throw new Error(
+                    'The `requestManager` option cannot be used in conjunction with `requestList` and/or `requestQueue`',
+                );
+            }
 
-                this.requestManager = requestManager;
-            } else if (requestList !== undefined && requestQueue !== undefined) {
-                // Combine the read-only list with the writable queue into a tandem.
-                this.requestManager = new RequestManagerTandem(requestList, requestQueue);
-            } else if (requestQueue !== undefined) {
+            // Both would pace the same domains, from separate keys and with no idea of one another. Checked by
+            // type rather than by looking for `recordDomainDelay`: every wrapping manager now forwards that
+            // method, so its presence says nothing about whether anything underneath actually paces.
+            if (sameDomainDelaySecs > 0 && requestManager instanceof ThrottlingRequestManager) {
+                throw new Error(
+                    'The `sameDomainDelaySecs` option cannot be combined with a `ThrottlingRequestManager` passed ' +
+                        'as `requestManager` - both would pace the same domains, from separate keys and with no ' +
+                        'idea of one another. Configure the delay on that manager instead, via its ' +
+                        '`minCrawlDelaySecs` option.',
+                );
+            }
+
+            const suppliedManager = requestManager ?? requestQueue;
+
+            // Whatever the crawler opens itself is its own to empty between runs; a manager the caller supplied
+            // is not. `sameDomainDelaySecs` over a supplied manager is both at once - see `#purgeableExtent`.
+            if (suppliedManager === undefined) {
+                this.#purgeableExtent = 'all';
+            } else {
+                this.#purgeableExtent = sameDomainDelaySecs > 0 ? 'ambiguous' : 'none';
+            }
+
+            // `sameDomainDelaySecs` is shorthand for a `ThrottlingRequestManager` over whatever the crawler was
+            // going to read from. Built here rather than at first use so that it can be placed *inside* the
+            // tandem below, which is where a loader's transferred requests pass through it.
+            const writableManager =
+                sameDomainDelaySecs > 0
+                    ? new ThrottlingRequestManager({
+                          domains: 'all',
+                          minCrawlDelaySecs: sameDomainDelaySecs,
+                          // What `sameDomainDelaySecs` has always meant: one clock for a site, subdomains included.
+                          throttleBy: 'registrableDomain',
+                          persistStateKey: `CRAWLEE_THROTTLED_DOMAINS_${this.#identity.id}`,
+                          // A factory, because the default queue is only opened on first use.
+                          inner: suppliedManager ?? (() => this.openOwnedRequestQueue()),
+                      })
+                    : suppliedManager;
+
+            if (requestList !== undefined) {
+                // A read-only `requestList` is combined with a writable manager into a tandem, so that its requests
+                // are read first and new ones can still be enqueued during the crawl. The queue is opened on first
+                // use; the tandem also forwards `persistState()` to the loader.
+                this.requestManager = new RequestManagerTandem(
+                    requestList,
+                    writableManager ?? (() => this.openOwnedRequestQueue()),
+                );
+            } else if (writableManager !== undefined) {
                 // A RequestQueue is itself a request manager.
-                this.requestManager = requestQueue;
-            } else if (requestList !== undefined) {
-                // A lone read-only `requestList` (deprecated option) is combined with a lazily-opened default queue
-                // into a tandem, so that its requests are read first and new ones can still be enqueued during the
-                // crawl. The queue is opened on first use; the tandem also forwards `persistState()` to the loader.
-                this.requestManager = new RequestManagerTandem(requestList, () => this.openOwnedRequestQueue());
+                this.requestManager = writableManager;
             }
 
             this.httpClient = httpClient ?? new LazyDefaultHttpClient({ logger: this.log });
@@ -1136,7 +1172,6 @@ export class BasicCrawler<
 
             this.#maxRequestRetries = maxRequestRetries;
             this.#maxCrawlDepth = maxCrawlDepth;
-            this.#sameDomainDelaySecs = sameDomainDelaySecs;
             this.#statisticsDep = OwnedOrInjected.resolve<
                 IStatistics<StatisticStateExtension>,
                 Statistics<StatisticStateExtension>
@@ -1670,22 +1705,22 @@ export class BasicCrawler<
             // we need to purge the RQ to allow processing the same requests again — this is important so users can
             // pass in failed requests back to the `crawler.run()`, otherwise they would be considered as handled and
             // ignored — as a failed request is still handled.
-            // By default (`purgeRequestQueue` unset), only the queue we opened ourselves is purged.
-            // When `purgeRequestQueue` is explicitly `true`, we also purge a user-supplied manager.
+            // By default (`purgeRequestQueue` unset), only storage the crawler opened itself is purged.
+            // When `purgeRequestQueue` is explicitly `true`, a caller-supplied manager is purged as well.
             // When `purgeRequestQueue` is explicitly `false`, nothing is purged.
-            const shouldPurge = purgeRequestQueue !== false;
-            const managerToPurge =
-                this.#ownedRequestQueue.maybeValue ?? (purgeRequestQueue === true ? this.requestManager : undefined);
+            if (purgeRequestQueue === undefined && this.#purgeableExtent === 'ambiguous') {
+                throw new Error(
+                    'Cannot decide what to purge before running again: `sameDomainDelaySecs` paces the request ' +
+                        'manager you supplied, so the per-domain queues that have to be emptied are the ' +
+                        "crawler's while the manager underneath them is yours. Say which you want: " +
+                        '`run(requests, { purgeRequestQueue: true })` empties both, `false` empties neither.',
+                );
+            }
 
-            if (shouldPurge) {
-                await managerToPurge?.purge?.();
-
-                // The per-domain queues a `sameDomainDelaySecs` wrapper created are the crawler's own, whatever
-                // sits underneath them - so they are emptied even when the manager they wrap is spared. Purging
-                // the wrapper itself has already covered them.
-                if (this.requestManager instanceof ThrottlingRequestManager && managerToPurge !== this.requestManager) {
-                    await this.requestManager.purgeDomainQueues();
-                }
+            if (purgeRequestQueue !== false && (this.#purgeableExtent === 'all' || purgeRequestQueue === true)) {
+                // One call from the outside in: whatever the request manager wraps, a pacer's per-domain queues
+                // included, is either the crawler's own or explicitly cleared for purging by now.
+                await this.requestManager?.purge?.();
             }
 
             // A supplied statistics instance keeps whatever state it was handed - only wipe a default we built.
@@ -1856,20 +1891,6 @@ export class BasicCrawler<
             this.requestManager = await this.openOwnedRequestQueue();
         }
 
-        // Wrapped here rather than in the constructor, because the manager being wrapped may only be opened at
-        // this point - and because everything that enqueues goes through here first, so nothing slips past the
-        // wrapper into the queue it hides.
-        if (this.#sameDomainDelaySecs > 0 && !(this.requestManager instanceof ThrottlingRequestManager)) {
-            this.requestManager = new ThrottlingRequestManager({
-                inner: this.requestManager,
-                domains: 'all',
-                minCrawlDelaySecs: this.#sameDomainDelaySecs,
-                // What `sameDomainDelaySecs` has always meant: one clock for a site, subdomains included.
-                throttleBy: 'registrableDomain',
-                persistStateKey: `CRAWLEE_THROTTLED_DOMAINS_${this.#identity.id}`,
-            });
-        }
-
         // Apply the processing-time hint here (an async lifecycle point) rather than in the constructor,
         // now that `setExpectedRequestProcessingTimeSecs` is async. The hint is raise-only and idempotent,
         // but guard so we do not re-issue it on every call.
@@ -1890,8 +1911,8 @@ export class BasicCrawler<
     }
 
     /**
-     * Opens the default {@apilink RequestQueue}, applies the crawler's timeouts to it and records it as the
-     * crawler-owned queue (so it gets purged between repeated `run()` calls).
+     * Opens the default {@apilink RequestQueue} — the one the crawler reads from when the caller supplied
+     * nothing, and therefore the one it may empty between repeated `run()` calls.
      * @private
      */
     private async openOwnedRequestQueue(): Promise<RequestQueue> {
@@ -1899,8 +1920,7 @@ export class BasicCrawler<
         // subsequent instances get their own queue via a unique alias so they don't collide.
         const identifier = this.#identity.instanceIndex === 0 ? null : { alias: `__default_${this.#identity.id}__` };
 
-        const requestQueue = await RequestQueue.open(identifier, { configuration: serviceLocator.getConfiguration() });
-        return this.#ownedRequestQueue.set(requestQueue);
+        return RequestQueue.open(identifier, { configuration: serviceLocator.getConfiguration() });
     }
 
     /**

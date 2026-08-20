@@ -2107,13 +2107,12 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     getPendingCount(): Promise<number>;
     // (undocumented)
     getTotalCount(): Promise<number>;
-    get innerManager(): T;
+    get innerManager(): T | undefined;
     // (undocumented)
     markRequestAsHandled(request: Request_2): Promise<RequestQueueOperationInfo | void | null>;
     // (undocumented)
     persistState(): Promise<void>;
     purge(): Promise<void>;
-    purgeDomainQueues(): Promise<void>;
     readiness(): Promise<RequestSourceState>;
     // (undocumented)
     reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
@@ -2126,7 +2125,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
 export interface ThrottlingRequestManagerOptions<T extends IRequestManager = IRequestManager> {
     baseDelaySecs?: number;
     domains: string[] | 'all';
-    inner: T;
+    inner: T | (() => T | Promise<T>);
     maxDelaySecs?: number;
     maxDomainStallSecs?: number;
     maxThrottledDomains?: number;
