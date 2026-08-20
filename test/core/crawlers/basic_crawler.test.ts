@@ -1796,7 +1796,10 @@ describe('BasicCrawler', () => {
         });
 
         const maxSignedInteger = 2 ** 31 - 1;
-        expect((crawler as any).internalTimeoutMillis).toBe(maxSignedInteger);
+        // @ts-expect-error Accessing private prop
+        expect(crawler.requestHandlerTimeoutMillis).toBe(maxSignedInteger);
+        // @ts-expect-error Accessing private prop
+        expect(crawler.internalTimeoutMillis).toBe(maxSignedInteger);
     });
 
     test('should not log stack trace for timeout errors by default', async () => {

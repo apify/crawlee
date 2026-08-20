@@ -679,9 +679,8 @@ describe('RequestQueue background batches', () => {
 
         // ...and the in-flight batch counter was reset so the queue can finish once handled.
         const req = await queue.fetchNextRequest();
-        if (req) {
-            await queue.markRequestAsHandled(req);
-        }
+        expect(req).toBeDefined();
+        await queue.markRequestAsHandled(req!);
         expect(await queue.isFinished()).toBe(true);
     }, 10_000);
 });

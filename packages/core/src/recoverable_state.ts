@@ -1,10 +1,6 @@
 import { addTimeoutToPromise, storage as timeoutStorage } from '@apify/timeout';
-import type { Configuration } from './configuration.js';
-import { StateValidationError } from './errors.js';
-import { EventType } from './events/event_manager.js';
-import type { CrawleeLogger } from './log.js';
-import { serviceLocator } from './service_locator.js';
-import { KeyValueStore } from './storages/key_value_store.js';
+import type { Configuration, CrawleeLogger } from '@crawlee/core';
+import { EventType, KeyValueStore, serviceLocator, StateValidationError } from '@crawlee/core';
 import type { Awaitable } from '@crawlee/types';
 import type { StandardSchemaV1 } from '@standard-schema/spec';
 

@@ -813,6 +813,8 @@ export class AdaptivePlaywrightCrawler<
                     };
                 }
                 const value = Reflect.get(target, propertyName, target);
+                // Bind non-intercepted methods to the target instance so private #-fields
+                // (e.g. BaseCrawleeLogger.#options, #warningsLogged) do not throw TypeError at runtime.
                 if (typeof value === 'function') {
                     return value.bind(target);
                 }

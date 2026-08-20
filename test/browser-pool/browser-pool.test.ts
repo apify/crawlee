@@ -273,7 +273,7 @@ describe.each([
         });
 
         test('should close retired browsers', async () => {
-            vitest.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'setTimeout'] });
+            vitest.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
             await browserPool.destroy();
             browserPool = new BrowserPool({
                 browserPlugins: [plugin],

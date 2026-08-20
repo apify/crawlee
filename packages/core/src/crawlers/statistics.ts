@@ -281,11 +281,6 @@ export class Statistics<
 > implements IStatistics<StateExtension> {
     static #id = 0;
 
-    /** @internal Reset static counter for test isolation. */
-    static resetId(): void {
-        Statistics.#id = 0;
-    }
-
     /**
      * An error tracker for final retry errors.
      */

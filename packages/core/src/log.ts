@@ -36,8 +36,10 @@ export type { CrawleeLogger, CrawleeLoggerOptions };
  * ```
  */
 export abstract class BaseCrawleeLogger implements CrawleeLogger {
+    // Note: If wrapping logger in a Proxy, unbound methods calling #-fields throw TypeError
+    // unless bound to the target (see createLogProxy in adaptive-playwright-crawler.ts).
     #options: CrawleeLoggerOptions;
-    #warningsLogged = new Set<string>();
+    readonly #warningsLogged = new Set<string>();
 
     constructor(options: Partial<CrawleeLoggerOptions> = {}) {
         this.#options = options;

@@ -893,7 +893,7 @@ export class BrowserPool<
     private async closeInactiveRetiredBrowsers() {
         const closedBrowserIds: string[] = [];
 
-        for (const controller of Array.from(this.retiredBrowserControllers)) {
+        for (const controller of this.retiredBrowserControllers) {
             const millisSinceLastPageOpened = Date.now() - controller.lastPageOpenedAt;
             const isBrowserIdle = millisSinceLastPageOpened >= this.closeInactiveBrowserAfterMillis;
             const isBrowserEmpty = controller.activePages === 0;
@@ -901,8 +901,8 @@ export class BrowserPool<
             if (isBrowserIdle || isBrowserEmpty) {
                 const { id } = controller;
                 this.#log.debug('Closing retired browser.', { id });
-                this.retiredBrowserControllers.delete(controller);
                 await controller.close();
+                this.retiredBrowserControllers.delete(controller);
                 closedBrowserIds.push(id);
             }
         }

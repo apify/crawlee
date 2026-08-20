@@ -73,11 +73,6 @@ export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
 
     #historyMillis = Infinity;
 
-    /** Retention window in milliseconds. Unbounded until {@apilink SnapshotStore.useSampleWindow|`useSampleWindow()`}. */
-    get historyMillis(): number {
-        return this.#historyMillis;
-    }
-
     /**
      * Sizes retention to the window the signal will be sampled over, as handed to it in
      * {@apilink LoadSignal.start|`start()`}. Until this is called nothing is pruned at all, so a signal that ignores

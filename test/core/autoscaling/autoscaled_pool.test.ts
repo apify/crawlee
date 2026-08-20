@@ -205,14 +205,14 @@ describe('AutoscaledPool', () => {
             pool.system.autoscale(cb);
             expect(pool.desiredConcurrency).toBe(2); // because currentConcurrency is not high enough;
 
-            (pool.system as any).tryRegisterTaskStart();
-            (pool.system as any).tryRegisterTaskStart();
+            systemOf(pool).tryRegisterTaskStart();
+            systemOf(pool).tryRegisterTaskStart();
             // @ts-expect-error Calling private method on the governor
             pool.system.autoscale(cb);
             expect(pool.desiredConcurrency).toBe(3);
 
             systemStatus.okNow = false; // this should have no effect
-            (pool.system as any).tryRegisterTaskStart();
+            systemOf(pool).tryRegisterTaskStart();
             // @ts-expect-error Calling private method on the governor
             pool.system.autoscale(cb);
             expect(pool.desiredConcurrency).toBe(4);
@@ -227,10 +227,11 @@ describe('AutoscaledPool', () => {
             // Should not scale because current concurrency is too low.
             systemOf(pool).desiredConcurrency = 50;
             const targetConcurrency = Math.floor(
-                pool.desiredConcurrency * (pool.system as any).desiredConcurrencyRatio,
+                // @ts-expect-error Accessing private prop on the governor
+                pool.desiredConcurrency * pool.system.desiredConcurrencyRatio,
             );
             for (let i = 0; i < targetConcurrency - 1; i++) {
-                (pool.system as any).tryRegisterTaskStart();
+                systemOf(pool).tryRegisterTaskStart();
             }
             systemStatus.okLately = true;
             // @ts-expect-error Calling private method on the governor
@@ -238,7 +239,7 @@ describe('AutoscaledPool', () => {
             expect(pool.desiredConcurrency).toBe(50);
 
             // Should scale because we bumped up current concurrency.
-            (pool.system as any).tryRegisterTaskStart();
+            systemOf(pool).tryRegisterTaskStart();
             let newConcurrency =
                 // @ts-expect-error Accessing private prop on the governor
                 pool.desiredConcurrency + Math.ceil(pool.desiredConcurrency * pool.system.scaleUpStepRatio);

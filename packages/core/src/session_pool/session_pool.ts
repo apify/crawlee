@@ -203,8 +203,7 @@ export class SessionPool implements ISessionPool {
 
         // Session keyValueStore
         this.#persistStateKeyValueStoreId = persistStateKeyValueStoreId;
-        this.#persistStateKey =
-            persistStateKey ?? (persistStateKeyValueStoreId ? PERSIST_STATE_KEY : `${PERSIST_STATE_KEY}_${this.id}`);
+        this.#persistStateKey = persistStateKey ?? `${PERSIST_STATE_KEY}_${this.id}`;
     }
 
     /**
@@ -239,9 +238,12 @@ export class SessionPool implements ISessionPool {
             return;
         }
 
-        this.#keyValueStore = await KeyValueStore.open(this.#persistStateKeyValueStoreId ?? null, {
-            configuration: serviceLocator.getConfiguration(),
-        });
+        this.#keyValueStore = await KeyValueStore.open(
+            this.#persistStateKeyValueStoreId ? { id: this.#persistStateKeyValueStoreId } : null,
+            {
+                configuration: serviceLocator.getConfiguration(),
+            },
+        );
 
         if (!this.#persistStateKeyValueStoreId) {
             this.#log.debug(
@@ -360,8 +362,7 @@ export class SessionPool implements ISessionPool {
      * @param options - Override the persistence options provided in the constructor
      */
     async persistState(options?: PersistenceOptions): Promise<void> {
-        const enable = options?.enable ?? this.#persistenceOptions.enable;
-        if (!enable) {
+        if (!this.#persistenceOptions.enable && !options?.enable) {
             return;
         }
 

@@ -586,7 +586,6 @@ describe('RequestList', () => {
 
             const rl = await RequestList.open(name, sources);
             expect(rl).toBeInstanceOf(RequestList);
-            expect(rl.sources).toEqual([]);
             // An uninitialized list throws here, so this is the observable form of "open() initialized it".
             await expect(rl.isEmpty()).resolves.toBe(false);
 

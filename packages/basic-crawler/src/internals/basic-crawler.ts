@@ -704,12 +704,8 @@ export class BasicCrawler<
      * request queue; subsequent ones get their own queue via a unique alias so they don't
      * collide.
      */
-    static #instanceCount = 0;
-
-    /** @internal Reset static instance counter for test isolation. */
-    static resetInstanceCount(): void {
-        BasicCrawler.#instanceCount = 0;
-    }
+    // kept as TS-private: tests reset the counter at runtime
+    private static instanceCount = 0;
 
     /**
      * Tracks crawler instances that accessed shared state without having an explicit id.
@@ -964,9 +960,7 @@ export class BasicCrawler<
         options: BasicCrawlerOptions<Context, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> &
             RequireContextPipeline<CrawlingContext, Context> = {} as any, // cast because the constructor logic handles missing `contextPipelineBuilder` - the type is just for DX
     ) {
-        const parsedOptions = parseArgument(options, BasicCrawler.#optionsSchema, 'BasicCrawlerOptions') as Required<
-            BasicCrawlerOptions<Context, ContextExtension, ExtendedContext, Routes, StatisticStateExtension>
-        >;
+        const parsedOptions = parseArgument(options, BasicCrawler.#optionsSchema, 'BasicCrawlerOptions');
 
         const {
             // oxlint-disable-next-line typescript/no-deprecated -- still accepted and folded into `requestManager` for back-compat
@@ -1067,7 +1061,7 @@ export class BasicCrawler<
             // Initialize the Configuration instance to avoid lazy loading in the components
             serviceLocator.getConfiguration();
 
-            const instanceIndex = BasicCrawler.#instanceCount++;
+            const instanceIndex = BasicCrawler.instanceCount++;
             this.#identity = { instanceIndex, hasExplicitId: id !== undefined, id: id ?? String(instanceIndex) };
 
             if (requestManager !== undefined) {

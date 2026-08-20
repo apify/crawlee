@@ -75,13 +75,41 @@ describe('RequestQueue#isFinished waits for background add operations', () => {
 
         expect(await queue.isFinished()).toBe(true);
 
-        const result = await queue.addRequestsBatched([{ url: 'https://example.com/1' }]);
-        await result.waitForAllRequestsToBeAdded;
+        let callCount = 0;
+        let resolveBatch!: () => void;
+        const batchBlocked = new Promise<void>((resolve) => {
+            resolveBatch = resolve;
+        });
 
+        const originalAddRequests = queue.addRequests.bind(queue);
+        vitest.spyOn(queue, 'addRequests').mockImplementation(async (...args) => {
+            callCount++;
+            if (callCount > 1) {
+                await batchBlocked;
+            }
+            return originalAddRequests(...args);
+        });
+
+        const result = await queue.addRequestsBatched(
+            [{ url: 'https://example.com/1' }, { url: 'https://example.com/2' }],
+            { batchSize: 1, waitBetweenBatchesMillis: 0 },
+        );
+
+        // While the 2nd batch is in flight in the background, isFinished() reports false.
         expect(await queue.isFinished()).toBe(false);
 
-        const req = await queue.fetchNextRequest();
-        await queue.markRequestAsHandled(req!);
+        // Unblock the background batch and wait for it to complete.
+        resolveBatch();
+        await result.waitForAllRequestsToBeAdded;
+
+        const req1 = await queue.fetchNextRequest();
+        expect(req1).toBeDefined();
+        await queue.markRequestAsHandled(req1!);
+
+        const req2 = await queue.fetchNextRequest();
+        expect(req2).toBeDefined();
+        await queue.markRequestAsHandled(req2!);
+
         expect(await queue.isFinished()).toBe(true);
     });
 });

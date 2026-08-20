@@ -143,7 +143,8 @@ describe('AdaptivePlaywrightCrawler', () => {
         // `__default_<n>__` alias). Since every test wipes storage and starts fresh, the counter must be
         // reset too — otherwise later crawlers open aliased queues that are out of sync with the freshly
         // reset storage, and the crawler restores a stale handled-request count and processes nothing.
-        BasicCrawler.resetInstanceCount();
+        // @ts-expect-error Reset private static instance counter for test isolation
+        BasicCrawler.instanceCount = 0;
     });
 
     // Test setup helpers
@@ -964,5 +965,28 @@ describe('AdaptivePlaywrightCrawler', () => {
 
         const maxHint = Math.max(...hintSpy.mock.calls.map((call) => call[0]));
         expect(maxHint).toBeGreaterThanOrEqual(300);
+    });
+
+    test('proxied logger supports non-intercepted methods accessing private #-fields without throwing', async () => {
+        let warningCalled = false;
+        const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = async ({ log }) => {
+            // Calling log.warning calls BaseCrawleeLogger methods reading #-fields (#options, #warningsLogged)
+            expect(() => log.warning('test warning message')).not.toThrow();
+            warningCalled = true;
+        };
+
+        const crawler = await makeOneshotCrawler(
+            {
+                requestHandler,
+                renderingTypePredictor: makeRiggedRenderingTypePredictor({
+                    renderingType: 'clientOnly',
+                    detectionProbabilityRecommendation: 0,
+                }),
+            },
+            [`http://${HOSTNAME}:${port}/static`],
+        );
+
+        await crawler.run();
+        expect(warningCalled).toBe(true);
     });
 });

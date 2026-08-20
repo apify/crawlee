@@ -31,10 +31,6 @@ describe('Statistics', () => {
         stats = null as any;
     });
 
-    afterAll(async () => {
-        Statistics.resetId();
-    });
-
     describe('persist state', () => {
         // needs to go first for predictability
         test('should increment id by each new consecutive instance', async () => {

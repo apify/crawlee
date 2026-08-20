@@ -312,10 +312,6 @@ export class RequestList implements IRequestLoader {
     #proxyConfiguration?: IProxyConfiguration;
     #httpClient?: BaseHttpClient;
 
-    get sources(): RequestListSource[] {
-        return this.#sources;
-    }
-
     /**
      * To create new instance of `RequestList` we need to use `RequestList.open()` factory method.
      * @param options All `RequestList` configuration options

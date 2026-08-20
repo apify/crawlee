@@ -235,8 +235,11 @@ describe('ConcurrencySystem', () => {
 
         test('a SnapshotStore-based signal sizes its retention from the start context', async () => {
             const store = new SnapshotStore();
-            // Before starting, retention is unbounded so nothing is pruned until the store learns its real window.
-            expect(store.historyMillis).toBe(Infinity);
+            const t0 = new Date(1_000_000);
+            store.push({ createdAt: t0, isOverloaded: false });
+            // Before starting, retention is unbounded so a 200s gap is NOT pruned.
+            store.push({ createdAt: new Date(1_200_000), isOverloaded: false });
+            expect(store.getAll()).toHaveLength(2);
 
             const system = new ConcurrencySystem({
                 loadSignals: {
@@ -257,8 +260,9 @@ describe('ConcurrencySystem', () => {
             await system.start();
             await system.stop();
 
-            // No out-of-band knowledge needed - the window came from the system that drives the signal.
-            expect(store.historyMillis).toBe(90_000);
+            // After learning its 90s window, adding a snapshot 100s after t0 prunes t0.
+            store.push({ createdAt: new Date(1_200_000 + 100_000), isOverloaded: false });
+            expect(store.getAll().some((s) => s.createdAt.getTime() === t0.getTime())).toBe(false);
         });
 
         test('a restarted built-in signal is not judged on measurements from before the downtime', async () => {

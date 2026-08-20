@@ -1,14 +1,5 @@
-import {
-    BaseCrawleeLogger,
-    EventType,
-    KeyValueStore,
-    MemoryStorageBackend,
-    serviceLocator,
-    Session,
-    SessionPool,
-} from '@crawlee/core';
-
-import { entries } from '../../shared/typedefs.js';
+import { EventType, KeyValueStore, MemoryStorageBackend, serviceLocator, Session, SessionPool } from '@crawlee/core';
+import type { SessionOptions } from '@crawlee/core';
 
 describe('SessionPool - testing session pool', () => {
     let sessionPool: SessionPool;
@@ -28,14 +19,31 @@ describe('SessionPool - testing session pool', () => {
     });
 
     test('should override default values', async () => {
+        let customFunctionCalled = false;
+        const persistStateKey = 'CUSTOM_KEY';
         const opts = {
-            maxPoolSize: 3000,
+            maxPoolSize: 5,
             sessionOptions: {
                 maxAgeSecs: 100,
                 maxUsageCount: 1,
             },
+            persistStateKey,
+            createSessionFunction: (options?: { sessionOptions?: SessionOptions }) => {
+                customFunctionCalled = true;
+                return new Session(options?.sessionOptions);
+            },
         };
         sessionPool = new SessionPool(opts);
+
+        const session = await sessionPool.getSession();
+        expect(customFunctionCalled).toBe(true);
+        expect(session!.maxUsageCount).toBe(1);
+        expect(session!.expiresAt.getTime() - session!.createdAt.getTime()).toBeCloseTo(100 * 1000, -2);
+
+        await sessionPool.persistState();
+        const kvStore = await KeyValueStore.open();
+        expect(await kvStore.getValue(persistStateKey)).toBeDefined();
+
         await sessionPool.teardown();
     });
 
@@ -51,14 +59,14 @@ describe('SessionPool - testing session pool', () => {
 
         test('should pick session when pool is full', async () => {
             sessionPool = new SessionPool({ maxPoolSize: 2 });
-            await sessionPool.getSession();
-            await sessionPool.getSession();
+            const s1 = await sessionPool.getSession();
+            const s2 = await sessionPool.getSession();
 
-            let isCalled = false;
-            const session = await sessionPool.getSession();
-            if (session) isCalled = true;
-
-            expect(isCalled).toBe(true);
+            const s3 = await sessionPool.getSession();
+            expect(s3).toBeDefined();
+            // When pool is full (size 2), getting another session reuses one rather than growing the pool.
+            expect((await sessionPool.getState()).sessions).toHaveLength(2);
+            expect([s1?.id, s2?.id]).toContain(s3?.id);
         });
 
         test('should delete picked session when it is unusable and create a new one', async () => {
@@ -137,7 +145,10 @@ describe('SessionPool - testing session pool', () => {
         const KV_STORE = 'SESSION-TEST';
 
         beforeEach(async () => {
-            sessionPool = new SessionPool({ persistStateKeyValueStoreId: KV_STORE });
+            sessionPool = new SessionPool({
+                persistStateKeyValueStoreId: KV_STORE,
+                persistStateKey: 'CRAWLEE_SESSION_POOL_STATE',
+            });
         });
 
         afterEach(async () => {
@@ -316,6 +327,10 @@ describe('SessionPool - testing session pool', () => {
 
         const { sessions } = await sessionPool.getState();
         expect(sessions).toHaveLength(10);
+        for (const session of sessions) {
+            const byId = await sessionPool.getSession(session.id);
+            expect(byId?.id).toBe(session.id);
+        }
     });
 
     test('should correctly remove retired sessions both from array and session map', async () => {
@@ -331,6 +346,10 @@ describe('SessionPool - testing session pool', () => {
 
         const { sessions } = await sessionPool.getState();
         expect(sessions).toHaveLength(1);
+        for (let i = 0; i < 10; i++) {
+            const retired = await sessionPool.getSession(`session_${i}`);
+            expect(retired?.id).not.toBe(`session_${i}`);
+        }
     });
 
     describe('sessionReuseStrategy', () => {
