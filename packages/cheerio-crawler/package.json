@@ -50,8 +50,8 @@
         "@crawlee/http": "workspace:*",
         "@crawlee/types": "workspace:*",
         "@crawlee/utils": "workspace:*",
-        "cheerio": "^1.0.0",
-        "htmlparser2": "^10.0.0",
+        "cheerio": "^1.2.0",
+        "htmlparser2": "^10.1.0",
         "tslib": "^2.8.1"
     }
 }

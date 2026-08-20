@@ -6,7 +6,7 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "typescript": "^6.0.0"
+    "typescript": "^6.0.3"
   },
   "dependencies": {
     "@crawlee/browser-pool": "workspace:*",
@@ -17,11 +17,11 @@
     "@crawlee/stagehand": "workspace:*",
     "apify": "*",
     "crawlee": "workspace:*",
-    "impit": "^0.14.2",
-    "pino": "^9.6.0",
+    "impit": "^0.14.3",
+    "pino": "^9.14.0",
     "playwright-extra": "^4.3.6",
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2",
-    "winston": "^3.17.0"
+    "winston": "^3.19.0"
   }
 }

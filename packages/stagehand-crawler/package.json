@@ -56,7 +56,7 @@
         "access": "public"
     },
     "dependencies": {
-        "@apify/timeout": "^0.4.4",
+        "@apify/timeout": "^0.4.9",
         "@crawlee/browser": "workspace:*",
         "@crawlee/browser-pool": "workspace:*",
         "@crawlee/core": "workspace:*",
@@ -79,6 +79,6 @@
     },
     "devDependencies": {
         "@browserbasehq/stagehand": "3.0.7",
-        "playwright": "^1.60.0"
+        "playwright": "^1.61.1"
     }
 }
