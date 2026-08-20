@@ -921,6 +921,9 @@ describe('BrowserCrawler', () => {
             sessionPool: new SessionPool({
                 maxPoolSize: 1,
             }),
+            // A strictly serial [0..5] is only well-defined one request at a time: two handlers running
+            // together read the same `usageCount` before either marks the session good.
+            maxConcurrency: 1,
             requestHandler: async ({ session }) => {
                 sessionUsageHistory.push((session as Session).usageCount);
             },
