@@ -7,6 +7,7 @@ import { Configuration } from '../configuration.js';
 import type { IProxyConfiguration } from '../proxy_configuration.js';
 import { serviceLocator } from '../service_locator.js';
 import { KeyValueStore } from './key_value_store.js';
+import type { IStorage, StorageOpenContext } from './storage_instance_manager.js';
 
 /**
  * Options for purging default storage.
@@ -82,6 +83,30 @@ export async function purgeDefaultStorages(
     }
 
     await casted.__purged;
+}
+
+/**
+ * Empty a storage whose backend cannot purge it in place, by dropping it and opening a fresh one under the
+ * same identifier. `adopt` rebinds the caller's own backend and id — the instance itself is kept and
+ * re-registered, so everyone already holding it (and every later `open()`) works against the replacement.
+ *
+ * Only safe for a run-scoped storage nobody references by identity: the replacement has a different id.
+ *
+ * @internal
+ */
+export async function recreateStorage<TBackend extends { getMetadata(): Promise<{ id: string }> }>(
+    storage: IStorage & { drop(): Promise<void> },
+    openContext: StorageOpenContext<TBackend>,
+    adopt: (backend: TBackend, id: string) => void,
+): Promise<void> {
+    // Drops the contents along with the storage, and unregisters this instance...
+    await storage.drop();
+
+    const backend = await openContext.openBackend();
+    adopt(backend, (await backend.getMetadata()).id);
+
+    // ...so register it again under its new id, keeping `open()` on this same instance.
+    serviceLocator.getStorageInstanceManager().recacheStorage(storage, openContext);
 }
 
 export interface UseStateOptions {
