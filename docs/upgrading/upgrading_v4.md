@@ -1412,6 +1412,31 @@ const total = await requestList.getTotalCount();
 const handled = await requestList.getHandledCount();
 ```
 
+#### `IRequestManager` gained `recordPacingSignal()`
+
+v3 had no way for a crawler to tell a request source that a domain wants to be left alone for a while — a 429 could only retire the session, and a robots.txt `Crawl-delay` was not enforced at all. `IRequestManager` now carries one member for exactly that:
+
+```typescript
+recordPacingSignal(url: string, signal: PacingSignal): boolean;
+
+type PacingSignal =
+    // the source turned a request away because we were going too fast
+    | { reason: 'rateLimited'; waitMs?: number; scope?: PacingScope }
+    // it declared a standing floor on how often it may be requested
+    | { reason: 'minInterval'; intervalMs: number; scope: PacingScope };
+
+// suggests the two Crawlee itself uses, accepts any string
+type PacingScope = LiteralUnion<'hostname' | 'registrableDomain', string>;
+```
+
+The crawler reports the first when a response rate-limits it (an HTTP 429, carrying the `Retry-After` delay if there was one) and the second for a `Crawl-delay` directive it read from robots.txt — but nothing in the payload names either mechanism, so a manager never has to know where a signal came from. It returns `true` if the manager took responsibility for the signal, which is how the crawler knows whether to treat a rate limit as a paced retry rather than as a blocked response. `ThrottlingRequestManager` implements it; every delay is in milliseconds.
+
+`scope` says how much of the URL space a signal covers. It is an open union — `PacingScope` suggests `'hostname'` and `'registrableDomain'`, which are what Crawlee's own reporters send and what `ThrottlingRequestManager` understands, but any string is accepted, so a pacer keyed on something other than a host (an account, an API key, a platform tenant) can be reported to in its own vocabulary. It is required on `minInterval`, because whoever declares an interval knows what it applies to, and optional on `rateLimited`, because a 429 rarely says whether the limit was per host, per account or per address — omitting it asks the manager to pace at whatever granularity it groups requests by.
+
+A manager may apply a signal to a **wider** scope than it was given — a floor that holds for one host still holds when a whole site is paced by it — but never to a narrower one, which would leave part of what the signal covers running unpaced. `ThrottlingRequestManager` holds one request queue per group, so `throttleBy` is the finest granularity it can express: it widens a `'hostname'`-scoped signal when grouping by `'registrableDomain'` (which is what `sameDomainDelaySecs` configures, and what a robots.txt `Crawl-delay` therefore gets), and **throws** on a signal scoped wider than its grouping or named in a vocabulary it does not speak, rather than quietly under-applying it.
+
+It is required, not optional: reporting a signal is never a question of whether the manager supports it. A manager that does not pace — a plain `RequestQueue` — returns `false`, and the crawler warns that the signal had nowhere to go. A manager that **wraps** another forwards it, as `RequestManagerTandem` does, so that a pacer nested inside a composition still receives it. Forwarding is also why this is one method taking a discriminated payload rather than a method per signal: a wrapper passes the value along without knowing what is in it, and a new kind of signal costs implementors nothing.
+
 #### `isEmpty()` / `isFinished()` replaced by `readiness()`
 
 The two predicates v3 put on `IRequestList` and `IRequestManager` (and on `RequestList`, `RequestQueue` and `RequestProvider`) are replaced by a single `readiness()` call, on `IRequestLoader`, `IRequestManager` and every implementation:

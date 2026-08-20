@@ -2599,7 +2599,7 @@ describe('BasicCrawler', () => {
                 expect(readiness.status === 'waiting' && readiness.readyAt).toBeGreaterThan(Date.now() + 4_000);
             });
 
-            test('warns when the request manager cannot honour it', async () => {
+            test('warns naming the options that would honour it when nothing paces the domain', async () => {
                 const crawler = crawlerWithCrawlDelay({ requestQueue: await RequestQueue.open() });
                 const warning = vitest.spyOn(crawler.log, 'warning').mockImplementation(() => {});
 
@@ -2607,9 +2607,10 @@ describe('BasicCrawler', () => {
 
                 expect(warning).toHaveBeenCalledTimes(1);
                 expect(warning.mock.calls[0][0]).toMatch(/crawl-delay of 5s/);
+                expect(warning.mock.calls[0][0]).toMatch(/`sameDomainDelaySecs`.*`ThrottlingRequestManager`/s);
             });
 
-            test('warns when the domain is missing from the manager `domains` list', async () => {
+            test('warns naming the domain when it is missing from the manager `domains` list', async () => {
                 const requestManager = new ThrottlingRequestManager({
                     inner: await RequestQueue.open(),
                     domains: ['some-other-domain.com'],
@@ -2619,7 +2620,10 @@ describe('BasicCrawler', () => {
 
                 await crawler.addRequests(['http://example.com/1']);
 
+                // Same warning as when nothing paces at all: a manager that does not cover the domain and one
+                // that paces nothing both answer `false`, and the fix named in the message covers either.
                 expect(warning).toHaveBeenCalledTimes(1);
+                expect(warning.mock.calls[0][0]).toMatch(/does not pace that domain/);
                 expect(warning.mock.calls[0][0]).toMatch(/example\.com/);
             });
         });

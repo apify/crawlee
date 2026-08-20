@@ -24,7 +24,7 @@ Request loaders extend the functionality of the <ApiLink to="core/class/RequestQ
 The request loader abstractions are built around two interfaces and a couple of helpers:
 
 - <ApiLink to="core/interface/IRequestLoader">`IRequestLoader`</ApiLink>: The base interface for reading requests in a crawl.
-- <ApiLink to="core/interface/IRequestManager">`IRequestManager`</ApiLink>: Extends `IRequestLoader` with write capabilities (adding and reclaiming requests).
+- <ApiLink to="core/interface/IRequestManager">`IRequestManager`</ApiLink>: Extends `IRequestLoader` with write capabilities (adding and reclaiming requests), and with the pacing signals a crawler reports back.
 - <ApiLink to="core/class/RequestManagerTandem">`RequestManagerTandem`</ApiLink>: Combines a read-only `IRequestLoader` with a writable `IRequestManager`.
 - <ApiLink to="core/class/ThrottlingRequestManager">`ThrottlingRequestManager`</ApiLink>: Wraps a writable `IRequestManager` and paces requests per domain.
 
@@ -64,6 +64,7 @@ class IRequestManager {
     + addRequest()
     + addRequestsBatched()
     + reclaimRequest()
+    + recordPacingSignal()
     + purge()
 }
 
@@ -133,6 +134,14 @@ The loader supports filtering URLs using glob patterns and regular expressions, 
 
 The <ApiLink to="core/interface/IRequestManager">`IRequestManager`</ApiLink> interface extends `IRequestLoader` with **write** capabilities. In addition to reading requests, a request manager can add new requests and reclaim failed ones. This is essential for dynamic crawling, where new URLs emerge during the crawl, or when requests fail and need to be retried. The <ApiLink to="core/class/RequestQueue">`RequestQueue`</ApiLink> is the primary built-in request manager — see the [Request storage](./request-storage) guide for details.
 
+### Pacing signals
+
+A manager decides *when* each request goes out, so it is also where a crawler reports back what a site said about the pace it wants to be crawled at. That arrives through one method, <ApiLink to="core/interface/IRequestManager#recordPacingSignal">`recordPacingSignal()`</ApiLink>: a source refused a request because we were going too fast (`reason: 'rateLimited'`, optionally carrying the wait it asked for), or a source declared a standing floor on how often it may be requested (`reason: 'minInterval'`, carrying that interval). Nothing in the payload names HTTP status codes, response headers or robots.txt — where a signal came from is the crawler's business, not the manager's.
+
+Every signal also carries a `scope`: how much of the URL space it covers. `'hostname'` and `'registrableDomain'` are what Crawlee's own reporters send, and the type suggests them, but it accepts any string — so a pacer keyed on something other than a host, an account or an API key say, can be reported to in its own vocabulary. A manager may apply a signal to a **wider** scope than it was given, since a floor that holds for one host still holds when a whole site is paced by it, but never to a narrower one, which would leave part of what the signal covers running unpaced.
+
+Two things follow for anyone implementing the interface. The method is required, so reporting a signal is never a question of whether a manager supports it: one that does not pace — a plain queue — returns `false`, and the crawler warns that the signal was dropped. A manager that **wraps** another one forwards it, as <ApiLink to="core/class/RequestManagerTandem">`RequestManagerTandem`</ApiLink> does, or a pacer nested inside a composition goes deaf; forwarding needs no knowledge of the payload, which is why this is one method taking a value rather than a method per kind of signal.
+
 ## Per-domain throttling
 
 Some sites answer bursts of traffic with HTTP 429 (Too Many Requests) rather than an outright block. By default a 429 is treated as a blocked session: the session is retired and the request is retried straight away on a fresh one, which churns through proxies without actually slowing down.
@@ -157,11 +166,13 @@ const crawler = new CheerioCrawler({
 });
 ```
 
+The pacer works wherever you put it: pass it to the crawler directly as above, or nest it inside a [tandem](#request-manager-tandem) as the writable side of a loader — the tandem forwards the crawler's [pacing signals](#pacing-signals) to the manager it wraps, so listed domains are paced either way.
+
 Requests for a listed domain are routed into their own queue as they are added. When one of those domains answers with a 429, the crawler honours its `Retry-After` header — or backs off exponentially from `baseDelaySecs` up to `maxDelaySecs` if there is none — and holds that domain's requests back for the duration. Requests for every other domain keep flowing at full speed, the throttled request is retried later without counting against `maxRequestRetries`, and its session is left alone, because a rate limit says nothing about the session.
 
 Because a throttled request costs no retries, a domain that never stops rate-limiting would otherwise keep the crawl alive forever. If one goes `maxDomainStallSecs` without letting a single request through, the crawl shuts down with a `PersistentRateLimitError` — at that point the concurrency is too high for that domain, or it has blocked you outright, and waiting longer will not help. Its requests are left in their queue on purpose, so re-running the crawl with `purgeOnStart` disabled resumes them if the rate limit lifts. A crawler running with `keepAlive` is exempt, since staying up regardless is what it was asked to do.
 
-Matching is exact and case-insensitive, with no wildcard support, so list each subdomain you care about — or set `throttleBy: 'registrableDomain'`, which groups a site and all of its subdomains under a single set of clocks.
+Matching is exact and case-insensitive, with no wildcard support, so list each subdomain you care about — or set `throttleBy: 'registrableDomain'`, which groups a site and all of its subdomains under a single set of clocks. That grouping is also the finest granularity this manager can pace at, since holding a domain back means holding its queue back: a [pacing signal](#pacing-signals) scoped more narrowly is applied to the whole group, and one scoped more widely throws rather than being quietly under-applied.
 
 ### The two clocks
 

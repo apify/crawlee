@@ -14,7 +14,7 @@ import { drainRequestBatches } from './batched_adds.js';
 import { KeyValueStore } from './key_value_store.js';
 import type { RequestSourceState } from './request_loader.js';
 import { joinRequestSourceStates } from './request_loader.js';
-import type { IRequestManager, RequestsLike } from './request_manager.js';
+import type { IRequestManager, PacingSignal, RequestsLike } from './request_manager.js';
 import type {
     AddRequestsBatchedOptions,
     AddRequestsBatchedResult,
@@ -51,26 +51,6 @@ export type RequestManagerOpener<T extends IRequestManager = IRequestManager> = 
     identifier: string | StorageIdentifier,
     options?: StorageOpenOptions,
 ) => Promise<T>;
-
-/**
- * A request manager that can pace requests per domain, as {@apilink ThrottlingRequestManager} does.
- *
- * The crawlers detect this structurally rather than by type, so a wrapper can opt in by forwarding these two
- * methods without {@apilink IRequestManager} having to know that throttling exists.
- */
-export interface SupportsDomainThrottling {
-    /** @see {@apilink ThrottlingRequestManager.recordDomainDelay} */
-    recordDomainDelay(url: string, retryAfterMs?: number | null): boolean;
-    /** @see {@apilink ThrottlingRequestManager.setCrawlDelay} */
-    setCrawlDelay(url: string, delaySeconds: number): boolean;
-}
-
-/** Whether `manager` can pace requests per domain. */
-export function supportsDomainThrottling(manager: unknown): manager is SupportsDomainThrottling {
-    const candidate = manager as Partial<SupportsDomainThrottling> | null | undefined;
-
-    return typeof candidate?.recordDomainDelay === 'function' && typeof candidate.setCrawlDelay === 'function';
-}
 
 /** Options for {@apilink ThrottlingRequestManager}. */
 export interface ThrottlingRequestManagerOptions<T extends IRequestManager = IRequestManager> {
@@ -248,6 +228,10 @@ const DEFAULT_PERSIST_STATE_KEY = 'CRAWLEE_THROTTLED_DOMAINS';
  * Which domains get those clocks is {@apilink ThrottlingRequestManagerOptions.domains|`domains`} - a list, or
  * `'all'` for every domain the crawl encounters.
  *
+ * The 429 and robots.txt `Crawl-delay` signals a crawler feeds it arrive through
+ * {@apilink IRequestManager.recordPacingSignal|`recordPacingSignal`}, which every wrapping manager forwards - so
+ * this works wherever it sits in a composition, including inside a {@apilink RequestManagerTandem}.
+ *
  * **Example usage:**
  *
  * ```ts
@@ -262,9 +246,7 @@ const DEFAULT_PERSIST_STATE_KEY = 'CRAWLEE_THROTTLED_DOMAINS';
  *
  * @category Sources
  */
-export class ThrottlingRequestManager<T extends IRequestManager = IRequestManager>
-    implements IRequestManager, SupportsDomainThrottling
-{
+export class ThrottlingRequestManager<T extends IRequestManager = IRequestManager> implements IRequestManager {
     readonly #inner: T;
     readonly #requestManagerOpener: RequestManagerOpener<T>;
     readonly #baseDelayMs: number;
@@ -554,11 +536,61 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     }
 
     /**
-     * Records a 429 response and puts the URL's domain into backoff.
+     * Records a pacing signal for the URL's domain: a refusal puts it into backoff, a declared interval becomes
+     * its crawl delay.
      *
      * @returns `false` if the domain is not configured for throttling, in which case this is a no-op.
+     * @throws If the signal's scope is one this manager cannot honour - see {@link assertScopeHonourable}.
+     * @inheritdoc
      */
-    recordDomainDelay(url: string, retryAfterMs?: number | null): boolean {
+    recordPacingSignal(url: string, signal: PacingSignal): boolean {
+        this.#assertScopeHonourable(signal.scope);
+
+        return signal.reason === 'rateLimited'
+            ? this.#recordRateLimit(url, signal.waitMs)
+            : this.#recordDeclaredInterval(url, signal.intervalMs);
+    }
+
+    /**
+     * Throws unless a signal scoped to `scope` can be honoured as declared or wider.
+     *
+     * This manager holds one request queue per group, and holding a domain back means holding its queue back, so
+     * {@apilink ThrottlingRequestManagerOptions.throttleBy|`throttleBy`} is the finest granularity it can
+     * express. A signal scoped more narrowly than that is honoured by pacing the whole group - a floor that
+     * holds for one host still holds when the whole site is paced by it. A signal scoped more widely, or in a
+     * vocabulary this manager does not speak, cannot be honoured at all: applying it to one group would leave
+     * the rest of what it covers running unpaced, which is worse than saying so.
+     */
+    #assertScopeHonourable(scope: string | undefined): void {
+        // No scope means the reporter cannot tell how far the signal reaches - most refusals - so our own
+        // grouping is as good an answer as there is.
+        if (scope === undefined || scope === this.#throttleBy) {
+            return;
+        }
+
+        if (scope === 'hostname' && this.#throttleBy === 'registrableDomain') {
+            // Not worth a warning: grouping by registrable domain is a deliberate "pace the whole site,
+            // subdomains included", so widening a per-host signal to it is what the caller asked for.
+            this.log.debug(
+                `Applying a pacing signal scoped to "hostname" across the whole registrable domain, because that ` +
+                    `is how this manager groups requests (\`throttleBy\`). Sibling subdomains are paced with it.`,
+            );
+            return;
+        }
+
+        throw new Error(
+            `Cannot honour a pacing signal scoped to "${scope}": this manager groups requests by ` +
+                `"${this.#throttleBy}" and holds one request queue per group, so that is the widest scope it can ` +
+                `hold back at once. Applying the signal anyway would leave part of what it covers unpaced. ` +
+                (scope === 'registrableDomain'
+                    ? 'Set `throttleBy: "registrableDomain"` to group requests that way.'
+                    : 'This manager only understands the scopes "hostname" and "registrableDomain"; pace by ' +
+                      `"${scope}" with a request manager that groups requests by it.`),
+        );
+    }
+
+    /** Puts the URL's domain into backoff after a refusal, doubling from `baseDelaySecs` if it keeps refusing. */
+    #recordRateLimit(url: string, waitMs?: number): boolean {
         const state = this.#getDomainState(url);
         if (!state) {
             return false;
@@ -589,11 +621,11 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
 
         state.consecutive429Count += 1;
 
-        const retryAfterGiven = retryAfterMs !== undefined && retryAfterMs !== null;
-        let delayMs = retryAfterGiven ? retryAfterMs : this.#baseDelayMs * Math.pow(2, state.consecutive429Count - 1);
+        const waitGiven = waitMs !== undefined;
+        let delayMs = waitGiven ? waitMs : this.#baseDelayMs * Math.pow(2, state.consecutive429Count - 1);
 
         if (delayMs > this.#maxDelayMs) {
-            const source = retryAfterGiven ? 'Retry-After header' : 'exponential backoff';
+            const source = waitGiven ? 'requested wait' : 'exponential backoff';
             this.log.warning(
                 `Capping ${source} delay of ${(delayMs / 1000).toFixed(1)}s for domain "${state.domain}" ` +
                     `to maxDelaySecs (${(this.#maxDelayMs / 1000).toFixed(1)}s); the domain may continue to rate-limit. ` +
@@ -614,14 +646,14 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     }
 
     /**
-     * Records the `Crawl-delay` a domain's robots.txt asked for, which becomes its crawl delay unless
+     * Records a declared minimum interval for a domain, which becomes its crawl delay unless
      * {@apilink ThrottlingRequestManagerOptions.minCrawlDelaySecs|`minCrawlDelaySecs`} asks for longer.
      *
      * The first value wins, so a robots.txt re-fetch cannot change the cadence mid-crawl.
      *
      * @returns `false` if the domain is not throttled, in which case this is a no-op.
      */
-    setCrawlDelay(url: string, delaySeconds: number): boolean {
+    #recordDeclaredInterval(url: string, intervalMs: number): boolean {
         const domain = this.#extractDomain(url);
 
         if (!domain || !(this.#listedDomains.has(domain) || this.#throttlesEveryDomain)) {
@@ -633,8 +665,8 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         const state = this.#ensureDomainState(domain);
 
         if (state.declaredCrawlDelayMs === null) {
-            state.declaredCrawlDelayMs = delaySeconds * 1000;
-            this.log.debug(`Set crawl-delay for domain "${state.domain}" to ${delaySeconds}s`);
+            state.declaredCrawlDelayMs = intervalMs;
+            this.log.debug(`Set crawl-delay for domain "${state.domain}" to ${(intervalMs / 1000).toFixed(1)}s`);
         }
 
         return true;

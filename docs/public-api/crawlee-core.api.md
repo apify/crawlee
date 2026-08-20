@@ -24,6 +24,7 @@ import type { ISession } from '@crawlee/types';
 import type { ISessionPool } from '@crawlee/types';
 import type { KeyValueStoreBackend } from '@crawlee/types';
 import type { KeyValueStoreInfo } from '@crawlee/types';
+import type { LiteralUnion } from 'type-fest';
 import { Log } from '@apify/log';
 import log from '@apify/log';
 import { Logger } from '@apify/log';
@@ -757,6 +758,7 @@ export interface IRequestManager extends IRequestLoader {
     addRequestsBatched(requests: RequestsLike, options?: AddRequestsBatchedOptions): Promise<AddRequestsBatchedResult>;
     purge?(): Promise<void>;
     reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
+    recordPacingSignal(url: string, signal: PacingSignal): boolean;
     setExpectedRequestProcessingTimeSecs?(secs: number): Promise<void>;
 }
 
@@ -1031,6 +1033,20 @@ export class NonRetryableError extends Error {
 }
 
 // @public
+export type PacingScope = LiteralUnion<'hostname' | 'registrableDomain', string>;
+
+// @public
+export type PacingSignal = {
+    reason: 'rateLimited';
+    waitMs?: number;
+    scope?: PacingScope;
+} | {
+    reason: 'minInterval';
+    intervalMs: number;
+    scope: PacingScope;
+};
+
+// @public
 export function parseRetryAfterHeader(value?: string | null): number | null;
 
 // @public
@@ -1252,6 +1268,7 @@ export class RequestManagerTandem implements IRequestManager {
     readiness(): Promise<RequestSourceState>;
     // (undocumented)
     reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
+    recordPacingSignal(url: string, signal: PacingSignal): boolean;
     setExpectedRequestProcessingTimeSecs(secs: number): Promise<void>;
 }
 
@@ -1301,6 +1318,7 @@ export class RequestQueue implements IStorage, IRequestManager {
     purge(): Promise<void>;
     readiness(): Promise<RequestLoaderState>;
     reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
+    recordPacingSignal(_url: string, _signal: PacingSignal): boolean;
     setExpectedRequestProcessingTimeSecs(secs: number): Promise<void>;
     get stats(): RequestQueueStats;
 }
@@ -2041,17 +2059,6 @@ export interface StorageWritePolicy {
 }
 
 // @public
-export interface SupportsDomainThrottling {
-    // (undocumented)
-    recordDomainDelay(url: string, retryAfterMs?: number | null): boolean;
-    // (undocumented)
-    setCrawlDelay(url: string, delaySeconds: number): boolean;
-}
-
-// @public
-export function supportsDomainThrottling(manager: unknown): manager is SupportsDomainThrottling;
-
-// @public
 export type SyncStateConversion<TFrom, TTo> = ((value: TFrom) => TTo) | StandardSchemaV1<TFrom, TTo>;
 
 // @public
@@ -2084,7 +2091,7 @@ export interface TaskLoopPredicates {
 }
 
 // @public
-export class ThrottlingRequestManager<T extends IRequestManager = IRequestManager> implements IRequestManager, SupportsDomainThrottling {
+export class ThrottlingRequestManager<T extends IRequestManager = IRequestManager> implements IRequestManager {
     // (undocumented)
     [Symbol.asyncIterator](): AsyncGenerator<Request_2<Dictionary>, void, unknown>;
     constructor(options: ThrottlingRequestManagerOptions<T>, config?: Configuration);
@@ -2110,8 +2117,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     readiness(): Promise<RequestSourceState>;
     // (undocumented)
     reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
-    recordDomainDelay(url: string, retryAfterMs?: number | null): boolean;
-    setCrawlDelay(url: string, delaySeconds: number): boolean;
+    recordPacingSignal(url: string, signal: PacingSignal): boolean;
     // (undocumented)
     setExpectedRequestProcessingTimeSecs(secs: number): Promise<void>;
 }

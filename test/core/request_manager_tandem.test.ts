@@ -7,6 +7,7 @@ import {
     RequestManagerTandem,
     RequestQueue,
     serviceLocator,
+    ThrottlingRequestManager,
 } from '@crawlee/core';
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from 'vitest';
 
@@ -265,6 +266,58 @@ describe('RequestManagerTandem', () => {
         // Subsequent operations reuse the same memoized queue.
         await tandem.readiness();
         expect(factory).toHaveBeenCalledTimes(1);
+    });
+
+    test('forwards the pacing signals to the manager it wraps', async () => {
+        // The reason those signals live on `IRequestManager`: a pacer nested in here has to keep receiving the
+        // crawler's 429s and robots.txt crawl delays, or a `requestList` crawl is silently unpaced.
+        const requestList = await RequestList.open(null, [{ url: 'https://example.com/1' }]);
+        const throttler = new ThrottlingRequestManager({
+            inner: await RequestQueue.open(),
+            domains: ['example.com'],
+        });
+
+        const tandem = new RequestManagerTandem(requestList, throttler);
+
+        expect(
+            tandem.recordPacingSignal('https://example.com/1', {
+                reason: 'minInterval',
+                intervalMs: 5_000,
+                scope: 'hostname',
+            }),
+        ).toBe(true);
+        expect(tandem.recordPacingSignal('https://example.com/1', { reason: 'rateLimited', waitMs: 1_000 })).toBe(true);
+
+        // A domain the pacer does not cover is reported back as unpaced rather than silently swallowed, so the
+        // crawler can warn about it.
+        expect(
+            tandem.recordPacingSignal('https://other.com/1', {
+                reason: 'minInterval',
+                intervalMs: 5_000,
+                scope: 'hostname',
+            }),
+        ).toBe(false);
+        expect(tandem.recordPacingSignal('https://other.com/1', { reason: 'rateLimited', waitMs: 1_000 })).toBe(false);
+
+        // ...and the pacer actually acted on them: the domain is held back until both clocks run out.
+        await expect(throttler.readiness()).resolves.toMatchObject({ status: 'waiting' });
+    });
+
+    test('reports the pacing signals as unhandled when the manager cannot pace', async () => {
+        const requestList = await RequestList.open(null, [{ url: 'https://example.com/1' }]);
+        const tandem = new RequestManagerTandem(requestList, await RequestQueue.open());
+
+        // A plain queue paces nothing, so signals of either kind come back `false` for the crawler to warn about.
+        expect(tandem.recordPacingSignal('https://example.com/1', { reason: 'rateLimited', waitMs: 1_000 })).toBe(
+            false,
+        );
+        expect(
+            tandem.recordPacingSignal('https://example.com/1', {
+                reason: 'minInterval',
+                intervalMs: 5_000,
+                scope: 'hostname',
+            }),
+        ).toBe(false);
     });
 
     test('persistState forwards to the read-only loader', async () => {

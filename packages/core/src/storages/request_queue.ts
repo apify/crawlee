@@ -32,7 +32,7 @@ import type { JournalEntry, StorageTransaction } from './transaction.js';
 import { activeStorageTransaction, rejectOperationInTransaction } from './transaction.js';
 import { drainRequestBatches } from './batched_adds.js';
 import type { RequestLoaderState } from './request_loader.js';
-import type { IRequestManager, RequestsLike } from './request_manager.js';
+import type { IRequestManager, PacingSignal, RequestsLike } from './request_manager.js';
 import type { RequestQueueStats } from './storage_stats.js';
 import { StorageStatsTracker } from './storage_stats.js';
 import type { IStorage, StorageIdentifier } from './storage_instance_manager.js';
@@ -799,6 +799,16 @@ export class RequestQueue implements IStorage, IRequestManager {
         this.cacheRequest(getRequestId(request.uniqueKey), queueOperationInfo);
 
         return queueOperationInfo;
+    }
+
+    /**
+     * A queue hands requests out as fast as they are asked for; pacing is a job for a manager wrapped around it,
+     * such as {@apilink ThrottlingRequestManager}. Answering `false` is what lets a crawler warn that the signal
+     * had nowhere to go.
+     * @inheritdoc
+     */
+    recordPacingSignal(_url: string, _signal: PacingSignal): boolean {
+        return false;
     }
 
     /**

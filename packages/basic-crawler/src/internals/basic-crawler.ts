@@ -72,7 +72,6 @@ import {
     RequestQueue,
     RequestState,
     RetryRequestError,
-    supportsDomainThrottling,
     Router,
     ServiceLocator,
     serviceLocator,
@@ -1078,7 +1077,7 @@ export class BasicCrawler<
                     );
                 }
                 // Both would pace the same domains, from different keys and with no idea of one another.
-                if (sameDomainDelaySecs > 0 && supportsDomainThrottling(requestManager)) {
+                if (sameDomainDelaySecs > 0 && requestManager instanceof ThrottlingRequestManager) {
                     throw new Error(
                         'The `sameDomainDelaySecs` option cannot be combined with a `requestManager` that throttles ' +
                             'per domain on its own. Configure the delay on the manager instead, via the ' +
@@ -1860,7 +1859,7 @@ export class BasicCrawler<
         // Wrapped here rather than in the constructor, because the manager being wrapped may only be opened at
         // this point - and because everything that enqueues goes through here first, so nothing slips past the
         // wrapper into the queue it hides.
-        if (this.#sameDomainDelaySecs > 0 && !supportsDomainThrottling(this.requestManager)) {
+        if (this.#sameDomainDelaySecs > 0 && !(this.requestManager instanceof ThrottlingRequestManager)) {
             this.requestManager = new ThrottlingRequestManager({
                 inner: this.requestManager,
                 domains: 'all',
@@ -2448,16 +2447,18 @@ export class BasicCrawler<
     }
 
     /**
-     * Records an HTTP 429 against the URL's domain so the request manager can pace the retry.
+     * Records an HTTP 429 against the URL's domain so the request manager can hold the retry back.
      *
      * @param retryAfterHeader The raw `Retry-After` response header, if the server sent one.
-     * @returns `true` if a manager took responsibility for the delay, in which case the caller should throw
+     * @returns `true` if the manager took responsibility for the delay, in which case the caller should throw
      *  {@apilink RequestThrottledError} rather than treating the response as a blocked session.
      */
     protected recordDomainRateLimit(url: string, retryAfterHeader?: string | null): boolean {
         if (
-            supportsDomainThrottling(this.requestManager) &&
-            this.requestManager.recordDomainDelay(url, parseRetryAfterHeader(retryAfterHeader))
+            this.requestManager?.recordPacingSignal(url, {
+                reason: 'rateLimited',
+                waitMs: parseRetryAfterHeader(retryAfterHeader) ?? undefined,
+            })
         ) {
             return true;
         }
@@ -2465,33 +2466,37 @@ export class BasicCrawler<
         const domain = hostnameOrUrl(url);
         this.logOncePerRun(
             `rateLimitNotThrottled:${domain}`,
-            `"${domain}" responded with HTTP 429 (Too Many Requests), but nothing is set up to back off from it, ` +
-                'so the response is handled like any other, with no per-domain delay. ' +
-                `Pass a \`ThrottlingRequestManager\` as \`requestManager\` and include "${domain}" in its \`domains\` ` +
-                'option to honour `Retry-After` and apply exponential backoff instead.',
+            `"${domain}" responded with HTTP 429 (Too Many Requests), but the crawler's request manager does not ` +
+                'pace that domain, so the response is handled like any other, with no per-domain delay. Set ' +
+                `\`sameDomainDelaySecs\`, or pass a \`ThrottlingRequestManager\` covering "${domain}" as ` +
+                '`requestManager`, to honour `Retry-After` and apply exponential backoff instead.',
             'warning',
         );
 
         return false;
     }
 
-    /**
-     * Hands a robots.txt `Crawl-delay` to the request manager, warning if nothing is able to honour it.
-     *
-     * The warning is driven by whether the delay was actually accepted rather than by the type of the manager,
-     * because a manager that does throttle still drops the delay for a domain missing from its `domains` list.
-     */
+    /** Hands a robots.txt `Crawl-delay` to the request manager, warning if it will not be honoured. */
     private applyCrawlDelay(url: string, delaySeconds: number): void {
-        if (supportsDomainThrottling(this.requestManager) && this.requestManager.setCrawlDelay(url, delaySeconds)) {
+        // robots.txt is per-origin, and the closest thing the pacing vocabulary has is the hostname - slightly
+        // wider (http and https to one host share a clock), which is the safe direction to err in.
+        if (
+            this.requestManager?.recordPacingSignal(url, {
+                reason: 'minInterval',
+                intervalMs: delaySeconds * 1000,
+                scope: 'hostname',
+            })
+        ) {
             return;
         }
 
         const domain = hostnameOrUrl(url);
         this.logOncePerRun(
             `crawlDelayIgnored:${domain}`,
-            `robots.txt for "${domain}" defines a crawl-delay of ${delaySeconds}s, but nothing is set up to honour it, ` +
-                'so requests to that domain will not be paced. Pass a `ThrottlingRequestManager` as `requestManager` ' +
-                `and include "${domain}" in its \`domains\` option to enforce the delay.`,
+            `robots.txt for "${domain}" defines a crawl-delay of ${delaySeconds}s, but the crawler's request ` +
+                'manager does not pace that domain, so its requests will not be paced. Set ' +
+                `\`sameDomainDelaySecs\`, or pass a \`ThrottlingRequestManager\` covering "${domain}" as ` +
+                '`requestManager`.',
             'warning',
         );
     }
