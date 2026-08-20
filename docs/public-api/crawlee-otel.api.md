@@ -6,7 +6,7 @@
 
 import { InstrumentationBase } from '@opentelemetry/instrumentation';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
-import { InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
+import type { InstrumentationModuleDefinition } from '@opentelemetry/instrumentation';
 import type { SpanOptions } from '@opentelemetry/api';
 import type { Tracer } from '@opentelemetry/api';
 import type { TracerProvider } from '@opentelemetry/api';
@@ -29,7 +29,7 @@ export interface ClassMethodToInstrument extends ClassMethodPatchDefinition {
 export class CrawleeInstrumentation extends InstrumentationBase<CrawleeInstrumentationConfig> {
     constructor(config?: CrawleeInstrumentationConfig);
     // (undocumented)
-    protected init(): InstrumentationNodeModuleDefinition[];
+    protected init(): InstrumentationModuleDefinition[];
     setTracerProvider(tracerProvider: TracerProvider): void;
 }
 
@@ -62,11 +62,11 @@ export interface RequestLike {
 }
 
 // @public
-export const wrapWithSpan: <Args extends unknown[], Return>(fn: (...args: Args) => Return, options?: {
+export function wrapWithSpan<Args extends unknown[], Return>(fn: (...args: Args) => Return, options?: {
     spanName?: string | ((...args: Args) => string);
     spanOptions?: SpanOptions | ((...args: Args) => SpanOptions);
     tracer?: Tracer;
-}) => (...args: Args) => Return;
+}): (...args: Args) => Return;
 
 // (No @packageDocumentation comment for this package)
 

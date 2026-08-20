@@ -3,7 +3,7 @@ import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
 import { InMemorySpanExporter, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 
-import { SpanWrapper, wrapWithSpan } from '../src/wrapWithSpan';
+import { setSharedTracer, wrapWithSpan } from '../src/wrapWithSpan';
 
 describe('wrapWithSpan', () => {
     let provider: NodeTracerProvider;
@@ -365,7 +365,7 @@ describe('wrapWithSpan', () => {
         test('uses the tracer handed over by the instrumentation', async () => {
             const fn = vi.fn(() => 'result');
             const tracer = trace.getTracer('crawlee');
-            SpanWrapper.getInstance().setTracer(tracer);
+            setSharedTracer(tracer);
             const wrapped = wrapWithSpan(fn);
 
             await wrapped();
@@ -382,7 +382,7 @@ describe('wrapWithSpan', () => {
 
         test('falls back to the global tracer provider when no tracer was set', async () => {
             // Nothing has handed a tracer over - wrapping must still work instead of throwing.
-            SpanWrapper.getInstance().setTracer(undefined as any);
+            setSharedTracer(undefined);
 
             const wrapped = wrapWithSpan(() => 'result', { spanName: 'fallback-span' });
 
@@ -401,7 +401,7 @@ describe('wrapWithSpan', () => {
     describe('this context', () => {
         beforeEach(() => {
             // Do not depend on a tracer set by an earlier test.
-            SpanWrapper.getInstance().setTracer(provider.getTracer('test-tracer'));
+            setSharedTracer(provider.getTracer('test-tracer'));
         });
 
         test('preserves this context for regular functions', () => {

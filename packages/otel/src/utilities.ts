@@ -69,6 +69,12 @@ export function buildLogAttributes(data?: unknown): LogAttributes {
     return attributes;
 }
 
+/**
+ * Groups the methods to instrument by the module that owns them, dropping duplicates.
+ *
+ * The first definition of a method wins. `CrawleeInstrumentation` passes `customInstrumentation` ahead of the built-in
+ * list, so configuring a method that is already instrumented overrides the built-in span rather than being ignored.
+ */
 export function buildModuleDefinitions(methodsToInstrument: ClassMethodToInstrument[]): ModuleDefinition[] {
     const definitions: ModuleDefinition[] = [];
 
@@ -97,8 +103,10 @@ export function buildModuleDefinitions(methodsToInstrument: ClassMethodToInstrum
                 spanOptions: method.spanOptions,
             });
         } else {
-            diag.warn(`Method ${method.className}.${method.methodName} is already instrumented. Skipping.`);
-            continue;
+            diag.warn(
+                `Method ${method.className}.${method.methodName} is instrumented more than once. Keeping the first ` +
+                    `definition, which is the \`customInstrumentation\` entry when one exists for the method.`,
+            );
         }
     }
     return definitions;

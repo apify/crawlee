@@ -210,9 +210,14 @@ When `requestHandlingInstrumentation` is enabled (the default), the following me
 | `BasicCrawler` | `handleFailedRequestHandler` | `crawlee.crawler.handleFailedRequestHandler` |
 | `HttpCrawler` | `makeHttpRequest` | `crawlee.http.makeHttpRequest` |
 | `BrowserCrawler` | `navigate` | `crawlee.browser.navigate` |
+| `AdaptivePlaywrightCrawler` | `runRequestHandler` | `crawlee.crawler.runRequestHandler` |
 
 `crawlee.http.makeHttpRequest` and `crawlee.browser.navigate` are recorded as client spans, since they are the calls
 that leave your process. The rest are internal spans.
+
+Every crawler inherits the `BasicCrawler` methods, so the table covers all of them. `AdaptivePlaywrightCrawler` is
+listed separately only because it replaces `runRequestHandler` with its own implementation, which is instrumented in
+its place - a run of it still produces one `crawlee.crawler.runRequestHandler` span per request.
 
 Every automatically instrumented span carries the `code.function.name` attribute - spans you create yourself with
 `wrapWithSpan` carry only the attributes you give them. The `crawlee.crawler.run` span additionally carries
@@ -240,6 +245,10 @@ This works for whichever logger you configure. The instrumentation patches the l
 
 Crawlee leaves level filtering to the underlying logging library, so every message is forwarded regardless of the
 configured log level - filter them in your OpenTelemetry pipeline instead.
+
+The record body is the message as it was passed to the log call, not the line the logger prints: a `perf` record has no
+`[PERF]` prefix, and an `exception` record carries the message on its own with the error in the `exception.*`
+attributes instead of appended to it. Match the two by attribute rather than by grepping for the printed line.
 
 :::caution Jaeger does not accept OpenTelemetry logs
 

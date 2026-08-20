@@ -1,6 +1,7 @@
 // oxlint-disable no-underscore-dangle -- `_wrap`, `_unwrap` and `_diag` are inherited from `InstrumentationBase`.
 import type { SpanOptions, TracerProvider } from '@opentelemetry/api';
 import { SeverityNumber } from '@opentelemetry/api-logs';
+import type { InstrumentationModuleDefinition } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition, isWrapped } from '@opentelemetry/instrumentation';
 import { ATTR_CODE_FUNCTION_NAME } from '@opentelemetry/semantic-conventions';
 
@@ -16,11 +17,44 @@ import {
 import type { ClassMethodPatchDefinition, LoggerMethodDefinition, ModuleDefinition } from './internal-types.js';
 import type { CrawleeInstrumentationConfig } from './types.js';
 import { buildLogAttributes, buildModuleDefinitions, getPackageVersion } from './utilities.js';
-import { SpanWrapper, wrapWithSpan } from './wrapWithSpan.js';
+import { resolveSpanName, resolveSpanOptions, setSharedTracer, wrapWithSpan } from './wrapWithSpan.js';
+
+/**
+ * Builds a module definition for one of the instrumented Crawlee packages.
+ *
+ * `InstrumentationNodeModuleDefinition` does not take `includePrerelease` through its constructor, but
+ * `InstrumentationBase` reads it off the definition when it decides whether to patch a resolved module version, so it
+ * is set here. Without it, {@link SUPPORTED_CRAWLEE_VERSIONS} would only cover prereleases of `4.0.0` and every
+ * `4.x.0-beta` would go uninstrumented.
+ */
+function crawleeModuleDefinition(
+    moduleName: string,
+    patch: (moduleExports: any) => any,
+    unpatch: (moduleExports: any) => any,
+): InstrumentationModuleDefinition {
+    const definition: InstrumentationModuleDefinition = new InstrumentationNodeModuleDefinition(
+        moduleName,
+        SUPPORTED_CRAWLEE_VERSIONS,
+        patch,
+        unpatch,
+    );
+    definition.includePrerelease = true;
+    return definition;
+}
 
 export class CrawleeInstrumentation extends InstrumentationBase<CrawleeInstrumentationConfig> {
     constructor(config: CrawleeInstrumentationConfig = {}) {
-        super(PACKAGE_NAME, getPackageVersion(), { ...baseConfig, ...config });
+        // Each flag is resolved on its own rather than by spreading `config` over `baseConfig`: a spread lets an
+        // explicit `undefined` - which is what `{ logInstrumentation: options.logs }` produces when `options.logs`
+        // is not set - overwrite the default with nothing and quietly disable the feature.
+        super(PACKAGE_NAME, getPackageVersion(), {
+            ...config,
+            enabled: config.enabled ?? baseConfig.enabled,
+            requestHandlingInstrumentation:
+                config.requestHandlingInstrumentation ?? baseConfig.requestHandlingInstrumentation,
+            logInstrumentation: config.logInstrumentation ?? baseConfig.logInstrumentation,
+            customInstrumentation: config.customInstrumentation ?? baseConfig.customInstrumentation,
+        });
     }
 
     /**
@@ -35,10 +69,10 @@ export class CrawleeInstrumentation extends InstrumentationBase<CrawleeInstrumen
      */
     public override setTracerProvider(tracerProvider: TracerProvider): void {
         super.setTracerProvider(tracerProvider);
-        SpanWrapper.getInstance().setTracer(this.tracer);
+        setSharedTracer(this.tracer);
     }
 
-    protected init(): InstrumentationNodeModuleDefinition[] {
+    protected init(): InstrumentationModuleDefinition[] {
         const methodsToInstrument = [...(this.getConfig().customInstrumentation ?? [])];
         if (this.getConfig().requestHandlingInstrumentation) {
             methodsToInstrument.push(...requestHandlingInstrumentationMethods);
@@ -48,9 +82,8 @@ export class CrawleeInstrumentation extends InstrumentationBase<CrawleeInstrumen
 
         if (this.getConfig().logInstrumentation) {
             definitions.push(
-                new InstrumentationNodeModuleDefinition(
+                crawleeModuleDefinition(
                     '@crawlee/core',
-                    SUPPORTED_CRAWLEE_VERSIONS,
                     (moduleExports) => {
                         for (const method of loggerMethods) {
                             const prototype = this.getPrototype(
@@ -77,11 +110,10 @@ export class CrawleeInstrumentation extends InstrumentationBase<CrawleeInstrumen
         return definitions;
     }
 
-    private instantiateModuleDefinitions(moduleDefinitions: ModuleDefinition[]): InstrumentationNodeModuleDefinition[] {
+    private instantiateModuleDefinitions(moduleDefinitions: ModuleDefinition[]): InstrumentationModuleDefinition[] {
         return moduleDefinitions.map((definition) => {
-            return new InstrumentationNodeModuleDefinition(
+            return crawleeModuleDefinition(
                 definition.moduleName,
-                SUPPORTED_CRAWLEE_VERSIONS,
                 (moduleExports) => {
                     for (const patch of definition.classMethodPatches) {
                         const prototype = this.getPrototype(
@@ -133,14 +165,19 @@ export class CrawleeInstrumentation extends InstrumentationBase<CrawleeInstrumen
 
     private applyClassMethodPatch(patch: ClassMethodPatchDefinition): (original: any) => any {
         const { spanName, spanOptions } = patch;
-        const codeAttributes = { [ATTR_CODE_FUNCTION_NAME]: `${patch.className}.${patch.methodName}` };
+        const qualifiedName = `${patch.className}.${patch.methodName}`;
+        const codeAttributes = { [ATTR_CODE_FUNCTION_NAME]: qualifiedName };
 
+        // Both options are resolved through the guarded helpers, so that a throwing callback costs only what the
+        // caller supplied - the span itself, its name and the attributes added here all survive.
         return function wrap(original: (...args: unknown[]) => any) {
             return wrapWithSpan(original, {
-                spanName: spanName ?? `${patch.className}.${patch.methodName}`,
+                spanName(this: unknown, ...args: unknown[]): string {
+                    return resolveSpanName(spanName, qualifiedName, this, args);
+                },
                 spanOptions(this: unknown, ...args: unknown[]): SpanOptions {
-                    const resolved = typeof spanOptions === 'function' ? spanOptions.apply(this, args) : spanOptions;
-                    return { ...resolved, attributes: { ...codeAttributes, ...resolved?.attributes } };
+                    const resolved = resolveSpanOptions(spanOptions, this, args);
+                    return { ...resolved, attributes: { ...codeAttributes, ...resolved.attributes } };
                 },
             });
         };
@@ -152,20 +189,39 @@ export class CrawleeInstrumentation extends InstrumentationBase<CrawleeInstrumen
 
         return function wrapLog(original: (...args: any[]) => void) {
             return function wrappedLog(this: unknown, ...args: any[]): void {
-                const { message, data } = method.read(args);
-
-                // Crawlee leaves level filtering to the logging library, so everything is forwarded and the
-                // OpenTelemetry pipeline decides what to keep.
-                instrumentation.logger.emit({
-                    severityNumber: apifyLogLevelMap[method.level] ?? SeverityNumber.UNSPECIFIED,
-                    severityText: apifyLogLevelNameMap[method.level],
-                    body: message,
-                    attributes: buildLogAttributes(data),
-                });
-
-                // These methods are synchronous and return void - keep them that way.
-                original.apply(this, args);
+                // The application's own logging runs first and its outcome is never affected by the forwarding,
+                // which matters most where Crawlee logs from inside a `catch` - `handleFailedRequestHandler`.
+                // These methods are synchronous and return void, so keep them that way.
+                try {
+                    original.apply(this, args);
+                } finally {
+                    instrumentation.forwardLogRecord(method, args);
+                }
             };
         };
+    }
+
+    /**
+     * Emits one Crawlee log call as an OpenTelemetry log record.
+     *
+     * Everything here - reading the arguments, stringifying the message, handing the record to the SDK - runs inside
+     * the application's own call to `log.info()` and friends, so a failure anywhere in it is reported and dropped
+     * rather than raised.
+     */
+    private forwardLogRecord(method: LoggerMethodDefinition, args: unknown[]): void {
+        try {
+            const { message, data } = method.read(args);
+
+            // Crawlee leaves level filtering to the logging library, so everything is forwarded and the
+            // OpenTelemetry pipeline decides what to keep.
+            this.logger.emit({
+                severityNumber: apifyLogLevelMap[method.level] ?? SeverityNumber.UNSPECIFIED,
+                severityText: apifyLogLevelNameMap[method.level],
+                body: message,
+                attributes: buildLogAttributes(data),
+            });
+        } catch (err) {
+            this._diag.warn(`Failed to forward a Crawlee log record to OpenTelemetry: ${err}`);
+        }
     }
 }
