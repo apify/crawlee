@@ -128,10 +128,6 @@ export class RequestQueue implements IStorage, IRequestManager {
 
     #requestCache: LruCache<RequestLruItem>;
 
-    get requestCache(): LruCache<RequestLruItem> {
-        return this.#requestCache;
-    }
-
     /**
      * Remembers the `requestId` of every request already submitted to the client — including background
      * batches that `requestCache` skips — so overlapping URL sets aren't re-submitted.
@@ -246,7 +242,7 @@ export class RequestQueue implements IStorage, IRequestManager {
         }
 
         const cacheKey = getRequestId(request.uniqueKey);
-        const cachedInfo = this.requestCache.get(cacheKey);
+        const cachedInfo = this.#requestCache.get(cacheKey);
 
         if (cachedInfo) {
             request.id = cachedInfo.id;
@@ -348,7 +344,7 @@ export class RequestQueue implements IStorage, IRequestManager {
         // The caches hold real backend ids. Only *writing* provisional ids to them would be wrong;
         // reading saves a probe. Same lookup as the write-through path.
         const cacheKey = getRequestId(request.uniqueKey);
-        const cachedInfo = this.requestCache.get(cacheKey);
+        const cachedInfo = this.#requestCache.get(cacheKey);
         const knownRequestId = cachedInfo?.id ?? this.#requestSeenCache.get(cacheKey);
 
         if (knownRequestId) {
@@ -527,7 +523,7 @@ export class RequestQueue implements IStorage, IRequestManager {
         for (const request of requests) {
             const cacheKey = getCachedRequestId(request.uniqueKey);
             // Prefer the full `requestCache` record; fall back to the dedup cache for background batches it skips.
-            const cachedInfo = this.requestCache.get(cacheKey);
+            const cachedInfo = this.#requestCache.get(cacheKey);
             const knownRequestId = cachedInfo?.id ?? this.#requestSeenCache.get(cacheKey);
 
             if (knownRequestId) {
@@ -739,7 +735,7 @@ export class RequestQueue implements IStorage, IRequestManager {
 
         parseArgument(request, handledRequestSchema);
 
-        const forefront = this.requestCache.get(getRequestId(request.uniqueKey))?.forefront ?? false;
+        const forefront = this.#requestCache.get(getRequestId(request.uniqueKey))?.forefront ?? false;
 
         const handledAt = request.handledAt ?? new Date().toISOString();
         this.#statsTracker.add('writeCount');
@@ -873,9 +869,9 @@ export class RequestQueue implements IStorage, IRequestManager {
      */
     private cacheRequest(cacheKey: string, queueOperationInfo: RequestQueueOperationInfo): void {
         // Remove the previous entry, as otherwise our cache will never update 👀
-        this.requestCache.remove(cacheKey);
+        this.#requestCache.remove(cacheKey);
 
-        this.requestCache.add(cacheKey, {
+        this.#requestCache.add(cacheKey, {
             id: queueOperationInfo.requestId,
             isHandled: queueOperationInfo.wasAlreadyHandled,
             uniqueKey: queueOperationInfo.uniqueKey,

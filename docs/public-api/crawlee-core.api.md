@@ -31,7 +31,6 @@ import { LoggerJson } from '@apify/log';
 import type { LoggerOptions } from '@apify/log';
 import { LoggerText } from '@apify/log';
 import { LogLevel } from '@apify/log';
-import { LruCache } from '@apify/datastructures';
 import { ParseSitemapOptions } from '@crawlee/utils';
 import type { ProcessedRequest } from '@crawlee/types';
 import type { ProxyInfo } from '@crawlee/types';
@@ -1227,23 +1226,6 @@ export interface RequestListState {
     nextUniqueKey: string | null;
 }
 
-// Not exported by the entry point; reachable only as a referenced type.
-// @public (undocumented)
-interface RequestLruItem {
-    // (undocumented)
-    forefront: boolean;
-    // (undocumented)
-    hydrated: Request_2 | null;
-    // (undocumented)
-    id: string;
-    // (undocumented)
-    isHandled: boolean;
-    // (undocumented)
-    lockExpiresAt: number | null;
-    // (undocumented)
-    uniqueKey: string;
-}
-
 // @public
 export type RequestManagerOpener<T extends IRequestManager = IRequestManager> = (identifier: string | StorageIdentifier, options?: StorageOpenOptions) => Promise<T>;
 
@@ -1323,8 +1305,6 @@ export class RequestQueue implements IStorage, IRequestManager {
     static open(identifier?: string | StorageIdentifier | null, options?: StorageOpenOptions): Promise<RequestQueue>;
     purge(): Promise<void>;
     reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
-    // (undocumented)
-    get requestCache(): LruCache<RequestLruItem>;
     setExpectedRequestProcessingTimeSecs(secs: number): Promise<void>;
     get stats(): RequestQueueStats;
 }
@@ -2088,11 +2068,15 @@ export interface SystemInfo {
     storageBackendInfo: LoadSignalInfo;
 }
 
+// @public (undocumented)
+export interface TaskLoopOptions extends TaskLoopPredicates {
+    maybeRunIntervalSecs?: number;
+}
+
 // @public
 export interface TaskLoopPredicates {
     isFinishedFunction?: () => Promise<boolean>;
     isTaskReadyFunction?: () => Promise<boolean>;
-    maybeRunIntervalSecs?: number;
 }
 
 // @public

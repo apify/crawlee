@@ -51,7 +51,9 @@ export interface TaskLoopPredicates {
      * keeps resolving to `true`, `isFinishedFunction()` will never be called.
      */
     isFinishedFunction?: () => Promise<boolean>;
+}
 
+export interface TaskLoopOptions extends TaskLoopPredicates {
     /**
      * How often the pool should check if a new task is ready, in seconds.
      * @default 0.5
@@ -60,7 +62,7 @@ export interface TaskLoopPredicates {
 }
 
 /** @internal */
-export interface AutoscaledPoolOptions extends TaskLoopPredicates {
+export interface AutoscaledPoolOptions extends TaskLoopOptions {
     /**
      * The governor that decides whether there is free compute for one more task. Typically a
      * {@apilink ConcurrencySystem}, but any {@apilink IConcurrencySystem} works. Share a single instance across
@@ -82,13 +84,6 @@ export interface AutoscaledPoolOptions extends TaskLoopPredicates {
      * The function must either be labeled `async` or return a promise.
      */
     runTaskFunction?: () => Promise<unknown>;
-
-    /**
-     * Indicates how often the pool should call the `runTaskFunction()` to start a new task, in seconds.
-     * This has no effect on starting new tasks immediately after a task completes.
-     * @default 0.5
-     */
-    maybeRunIntervalSecs?: number;
 
     /**
      * Timeout in which the `runTaskFunction` needs to finish, given in seconds.

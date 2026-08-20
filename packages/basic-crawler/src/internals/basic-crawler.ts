@@ -27,7 +27,7 @@ import type {
     StatisticState,
     StorageIdentifier,
     StorageWritePolicy,
-    TaskLoopPredicates,
+    TaskLoopOptions,
     TypedRequestsLike,
     UrlPatternObject,
 } from '@crawlee/core';
@@ -380,7 +380,7 @@ export interface BasicCrawlerOptions<
      * Concurrency is configured elsewhere — through the `minConcurrency`/`maxConcurrency`/`maxRequestsPerMinute`
      * shortcuts, or a {@apilink BasicCrawlerOptions.concurrencySystem|`concurrencySystem`} for finer control.
      */
-    taskLoopOptions?: TaskLoopPredicates;
+    taskLoopOptions?: TaskLoopOptions;
 
     /**
      * A pre-configured concurrency governor — the component that decides whether there is free compute for one more

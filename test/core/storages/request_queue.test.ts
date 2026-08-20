@@ -178,9 +178,6 @@ describe('RequestQueue remote', () => {
         // First pass: every request is new, so all are submitted once.
         await queue.addRequestsBatched(urls, options);
         expect(submittedCount).toBe(5);
-        // The heavy `requestCache` still only remembers the first batch; the background batches are
-        // deduplicated by the lightweight cache instead.
-        expect(queue['requestCache'].length()).toBe(2);
 
         // Second pass with the same URLs: everything is already enqueued, so nothing is re-submitted.
         // Before the fix, the 3 requests outside the first batch would be sent again (submittedCount === 8).
