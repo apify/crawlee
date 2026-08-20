@@ -1194,8 +1194,6 @@ export class RequestList implements IRequestLoader {
     static open(listNameOrOptions: string | null | RequestListOptions, sources?: RequestListSource[], options?: RequestListOptions): Promise<RequestList>;
     // (undocumented)
     persistState(): Promise<void>;
-    // (undocumented)
-    get sources(): RequestListSource[];
     teardown(): Promise<void>;
     toTandem(requestManager?: IRequestManager): Promise<IRequestManager>;
 }
@@ -1786,7 +1784,6 @@ export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
     clear(): void;
     getAll(): T[];
     getSample(sampleDurationMillis?: number): T[];
-    get historyMillis(): number;
     push(snapshot: T, now?: Date): void;
     useSampleWindow(maxSampleWindowMillis: number): void;
 }
