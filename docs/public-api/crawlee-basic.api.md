@@ -4,23 +4,23 @@
 
 ```ts
 
-import type { AddRequestsBatchedOptions } from '@crawlee/core';
-import type { AddRequestsBatchedResult } from '@crawlee/core';
+import { AddRequestsBatchedOptions } from '@crawlee/core';
+import { AddRequestsBatchedResult } from '@crawlee/core';
 import type { Awaitable } from '@crawlee/types';
 import { BaseHttpClient } from '@crawlee/http-client';
 import { ConcurrencySystem } from '@crawlee/core';
 import { ConcurrencySystemOptions } from '@crawlee/core';
 import { Configuration } from '@crawlee/core';
 import { ContextPipeline } from '@crawlee/core';
-import type { CrawleeLogger } from '@crawlee/core';
+import { CrawleeLogger } from '@crawlee/core';
 import { CrawlingContext } from '@crawlee/core';
 import { Dataset } from '@crawlee/core';
-import type { DatasetExportOptions } from '@crawlee/core';
+import { DatasetExportOptions } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/types';
-import type { EnqueueUrlsOptions } from '@crawlee/core';
+import { EnqueueUrlsOptions } from '@crawlee/core';
 import { EventManager } from '@crawlee/core';
-import type { FinalStatistics } from '@crawlee/core';
-import type { GetUserDataFromRequest } from '@crawlee/core';
+import { FinalStatistics } from '@crawlee/core';
+import { GetUserDataFromRequest } from '@crawlee/core';
 import { IConcurrencySystem } from '@crawlee/core';
 import { IProxyConfiguration } from '@crawlee/core';
 import { IRequestLoader } from '@crawlee/core';
@@ -33,17 +33,17 @@ import type { ReadonlyDeep } from 'type-fest';
 import { Request as Request_2 } from '@crawlee/core';
 import { RequestQueue } from '@crawlee/core';
 import { RobotsTxtFile } from '@crawlee/utils';
-import type { RouterHandler } from '@crawlee/core';
-import type { RouterRoutes } from '@crawlee/core';
+import { RouterHandler } from '@crawlee/core';
+import { RouterRoutes } from '@crawlee/core';
 import type { SetStatusMessageOptions } from '@crawlee/types';
-import type { SkippedRequestCallback } from '@crawlee/core';
-import type { StatisticState } from '@crawlee/core';
+import { SkippedRequestCallback } from '@crawlee/core';
+import { StatisticState } from '@crawlee/core';
 import type { StorageBackend } from '@crawlee/types';
-import type { StorageIdentifier } from '@crawlee/core';
+import { StorageIdentifier } from '@crawlee/core';
 import { StorageWritePolicy } from '@crawlee/core';
-import type { TaskLoopPredicates } from '@crawlee/core';
+import { TaskLoopPredicates } from '@crawlee/core';
 import { TimeoutError } from '@apify/timeout';
-import type { TypedRequestsLike } from '@crawlee/core';
+import { TypedRequestsLike } from '@crawlee/core';
 
 // @public (undocumented)
 export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>, StatisticStateExtension extends object = {}> {
