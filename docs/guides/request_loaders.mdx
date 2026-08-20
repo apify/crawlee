@@ -55,8 +55,7 @@ class IRequestLoader {
     + getHandledCount()
     + fetchNextRequest()
     + markRequestAsHandled()
-    + isEmpty()
-    + isFinished()
+    + readiness()
     + toTandem()
 }
 
@@ -102,7 +101,7 @@ A crawler reads its requests from a single <ApiLink to="core/interface/IRequestM
 
 ## Request loaders
 
-The <ApiLink to="core/interface/IRequestLoader">`IRequestLoader`</ApiLink> interface defines the foundation for fetching requests during a crawl. It provides methods for basic operations like retrieving the next request, marking requests as handled, and checking whether the loader is empty or finished. It is intentionally **read-only** — it does not allow adding new requests. Concrete implementations such as <ApiLink to="core/class/RequestList">`RequestList`</ApiLink> build on this interface to handle specific scenarios. You can create your own custom loader that reads from an external file, web endpoint, database, or any other data source.
+The <ApiLink to="core/interface/IRequestLoader">`IRequestLoader`</ApiLink> interface defines the foundation for fetching requests during a crawl. It provides methods for basic operations like retrieving the next request, marking requests as handled, and reporting whether the loader has a request ready, is waiting on one, or is done. It is intentionally **read-only** — it does not allow adding new requests. Concrete implementations such as <ApiLink to="core/class/RequestList">`RequestList`</ApiLink> build on this interface to handle specific scenarios. You can create your own custom loader that reads from an external file, web endpoint, database, or any other data source.
 
 ### Request list
 

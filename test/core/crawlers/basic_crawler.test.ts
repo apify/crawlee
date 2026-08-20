@@ -199,8 +199,7 @@ describe('BasicCrawler', () => {
 
         expect((basicCrawler.concurrencySystem! as ConcurrencySystem).minConcurrency).toBe(25);
         expect(processed).toEqual(sourcesCopy);
-        expect(await requestList.isFinished()).toBe(true);
-        expect(await requestList.isEmpty()).toBe(true);
+        expect((await requestList.readiness()).status).toBe('finished');
     });
 
     test('accepts a `requestManager` and crawls from it', async () => {
@@ -680,8 +679,7 @@ describe('BasicCrawler', () => {
         expect(state.processed).toEqual(sourcesCopy);
         expect(state.processed).toBe(processed);
         expect(state.processed).toEqual(sourcesCopy);
-        expect(await requestList.isFinished()).toBe(true);
-        expect(await requestList.isEmpty()).toBe(true);
+        expect((await requestList.readiness()).status).toBe('finished');
     });
 
     test('print a warning on sharing state between two crawlers', async () => {
@@ -820,8 +818,7 @@ describe('BasicCrawler', () => {
             await persistPromise;
 
             expect(finished).toBe(false);
-            expect(await requestList.isFinished()).toBe(false);
-            expect(await requestList.isEmpty()).toBe(false);
+            expect((await requestList.readiness()).status).toBe('ready');
             expect(processed.length).toBe(200);
 
             expect(getValueSpy).toBeCalled();
@@ -873,8 +870,7 @@ describe('BasicCrawler', () => {
         expect(processed['http://example.com/2'].errorMessages).toHaveLength(11);
         expect(processed['http://example.com/2'].retryCount).toBe(10);
 
-        expect(await requestList.isFinished()).toBe(true);
-        expect(await requestList.isEmpty()).toBe(true);
+        expect((await requestList.readiness()).status).toBe('finished');
     });
 
     test('should retry failed requests based on `request.maxRetries`', async () => {
@@ -908,8 +904,7 @@ describe('BasicCrawler', () => {
         expect(processed['http://example.com/3'].errorMessages).toHaveLength(2);
         expect(processed['http://example.com/3'].retryCount).toBe(1);
 
-        expect(await requestList.isFinished()).toBe(true);
-        expect(await requestList.isEmpty()).toBe(true);
+        expect((await requestList.readiness()).status).toBe('finished');
     });
 
     test('should not retry requests with noRetry set to true', async () => {
@@ -960,8 +955,7 @@ describe('BasicCrawler', () => {
 
         expect(failedRequestHandlerCalls).toBe(3);
 
-        expect(await requestList.isFinished()).toBe(true);
-        expect(await requestList.isEmpty()).toBe(true);
+        expect((await requestList.readiness()).status).toBe('finished');
     });
 
     test('should correctly track request.state', async () => {
@@ -1074,8 +1068,7 @@ describe('BasicCrawler', () => {
         expect(failed['http://example.com/3'].retryCount).toBe(3);
         expect(Object.values(failed)).toHaveLength(3);
         expect(Object.values(processed)).toHaveLength(0);
-        expect(await requestList.isFinished()).toBe(true);
-        expect(await requestList.isEmpty()).toBe(true);
+        expect((await requestList.readiness()).status).toBe('finished');
         errors.forEach((error) => expect(error).toBeInstanceOf(Error));
     });
 
@@ -1113,8 +1106,7 @@ describe('BasicCrawler', () => {
         expect(failed['http://example.com/3'].errorMessages).toHaveLength(1);
         expect(failed['http://example.com/3'].retryCount).toBe(0);
         expect(Object.values(failed)).toHaveLength(3);
-        expect(await requestList.isFinished()).toBe(true);
-        expect(await requestList.isEmpty()).toBe(true);
+        expect((await requestList.readiness()).status).toBe('finished');
         errors.forEach((error) => expect(error).toBeInstanceOf(NonRetryableError));
     });
 
@@ -1164,7 +1156,7 @@ describe('BasicCrawler', () => {
         await expect(basicCrawler.run()).rejects.toThrow(CriticalError);
 
         expect(failedRequestHandler).not.toBeCalled();
-        expect(await requestList.isFinished()).toBe(false);
+        expect((await requestList.readiness()).status).toBe('ready');
     });
 
     test('should crash on MissingRouteError', async () => {
@@ -1244,8 +1236,13 @@ describe('BasicCrawler', () => {
             .mockReturnValue(Promise.resolve() as any);
         const reclaimReq = vitest.spyOn(requestQueue, 'reclaimRequest').mockReturnValue(Promise.resolve() as any);
 
-        vitest.spyOn(requestQueue, 'isEmpty').mockImplementation(async () => queueContent.length <= 0);
-        vitest.spyOn(requestQueue, 'isFinished').mockResolvedValueOnce(true);
+        // The queue has something to hand over for as long as the stubbed content lasts, and is done once
+        // it runs out. The first probe reporting `finished` is masked by the request list, which still has
+        // requests to transfer into the queue at that point.
+        vitest
+            .spyOn(requestQueue, 'readiness')
+            .mockImplementation(async () => (queueContent.length > 0 ? { status: 'ready' } : { status: 'finished' }))
+            .mockResolvedValueOnce({ status: 'finished' });
 
         await basicCrawler.run();
 
@@ -1265,15 +1262,14 @@ describe('BasicCrawler', () => {
         expect(processed['http://example.com/1'].errorMessages).toHaveLength(4);
         expect(processed['http://example.com/1'].retryCount).toBe(3);
 
-        expect(await requestList.isFinished()).toBe(true);
-        expect(await requestList.isEmpty()).toBe(true);
+        expect((await requestList.readiness()).status).toBe('finished');
 
         vitest.restoreAllMocks();
     });
 
     test('should say that task is not ready requestList is not set and requestQueue is empty', async () => {
         const requestQueue = await RequestQueue.open({ id: 'xxx' });
-        requestQueue.isEmpty = async () => Promise.resolve(true);
+        requestQueue.readiness = async () => Promise.resolve({ status: 'waiting' });
 
         const crawler = new BasicCrawler({
             requestQueue,
@@ -1331,10 +1327,11 @@ describe('BasicCrawler', () => {
             return Promise.resolve() as any;
         });
 
-        const isFinishedOrig = vitest.spyOn(requestQueue, 'isFinished');
-
+        // The queue's own state does not decide anything here: it reports `finished` as soon as it runs dry,
+        // and the crawl carries on anyway because the task loop asks the custom `isFinishedFunction`, which
+        // returns false until both requests have been handled.
         requestQueue.fetchNextRequest = async () => queue.pop()!;
-        requestQueue.isEmpty = async () => Promise.resolve(!queue.length);
+        requestQueue.readiness = async () => (queue.length ? { status: 'ready' } : { status: 'finished' });
 
         // Add requests with buffer time for crawler startup.
         // Use longer delays to avoid flakiness under CPU load from parallel tests.
@@ -1345,7 +1342,6 @@ describe('BasicCrawler', () => {
 
         expect(markRequestAsHandled).toBeCalledWith(request0);
         expect(markRequestAsHandled).toBeCalledWith(request1);
-        expect(isFinishedOrig).not.toBeCalled();
         expect(isFinishedFunctionCalled).toBe(true);
         expect(isTaskReadyFunctionCalled).toBe(true);
 
@@ -1380,10 +1376,10 @@ describe('BasicCrawler', () => {
             .spyOn(requestQueue, 'markRequestAsHandled')
             .mockReturnValue(Promise.resolve() as any);
 
-        const isFinishedOrig = vitest.spyOn(requestQueue, 'isFinished');
-
+        // The queue reports `finished` whenever it has run dry - `keepAlive` is what keeps the crawler alive
+        // through those gaps, until `teardown()` ends the run.
         requestQueue.fetchNextRequest = async () => Promise.resolve(queue.pop()!);
-        requestQueue.isEmpty = async () => Promise.resolve(!queue.length);
+        requestQueue.readiness = async () => (queue.length ? { status: 'ready' } : { status: 'finished' });
 
         // Use longer delays to avoid flakiness under CPU load from parallel tests.
         setTimeout(() => queue.push(request0), 500);
@@ -1396,7 +1392,6 @@ describe('BasicCrawler', () => {
 
         expect(markRequestAsHandled).toBeCalledWith(request0);
         expect(markRequestAsHandled).toBeCalledWith(request1);
-        expect(isFinishedOrig).not.toBeCalled();
 
         // TODO: see why the request1 was passed as a second parameter to includes
         expect(processed.includes(request0)).toBe(true);
@@ -2587,12 +2582,21 @@ describe('BasicCrawler', () => {
 
                 // The robots.txt `Crawl-delay: 5` must have reached the manager, not merely been survivable.
                 await requestManager.fetchNextRequest();
-                const state = (requestManager as any).domainStates.get('example.com');
+                // `domainStates` is TS-private, and deliberately not `#private`, so that tests can read it.
+                const { domainStates } = requestManager as unknown as {
+                    domainStates: Map<string, { declaredCrawlDelayMs: number; crawlDelayUntil: number }>;
+                };
+                const state = domainStates.get('example.com')!;
                 expect(state.declaredCrawlDelayMs).toBe(5_000);
 
                 // ...and it paces dispatch: the next request is held back rather than served immediately.
                 expect(state.crawlDelayUntil).toBeGreaterThan(Date.now() + 4_000);
                 expect(await requestManager.fetchNextRequest()).toBeNull();
+
+                // The manager reports when it will have work again, rather than leaving the crawler to guess.
+                const readiness = await requestManager.readiness();
+                expect(readiness).toMatchObject({ status: 'waiting' });
+                expect(readiness.status === 'waiting' && readiness.readyAt).toBeGreaterThan(Date.now() + 4_000);
             });
 
             test('warns when the request manager cannot honour it', async () => {
@@ -3536,7 +3540,7 @@ describe('BasicCrawler', () => {
             await crawler.addRequests([{ url: 'https://example.com/b', label: 'DETAIL', userData: { id: 'ok' } }]);
 
             const queue = await crawler.getRequestQueue();
-            expect(await queue.isEmpty()).toBe(false);
+            expect((await queue.readiness()).status).toBe('ready');
         });
 
         test('crawler.addRequests excludes the Crawlee-managed label when validating (strict schemas)', async () => {
@@ -3550,7 +3554,7 @@ describe('BasicCrawler', () => {
             ]);
 
             const queue = await crawler.getRequestQueue();
-            expect(await queue.isEmpty()).toBe(false);
+            expect((await queue.readiness()).status).toBe('ready');
         });
 
         test('a schema that declares the label opts into validating it', async () => {
@@ -3626,7 +3630,7 @@ describe('BasicCrawler', () => {
                 { url: 'https://example.com/p', label: 'LIST', userData: { page: 2 } },
             ] as never);
             const queue = await crawler.getRequestQueue();
-            expect(await queue.isEmpty()).toBe(false);
+            expect((await queue.readiness()).status).toBe('ready');
         });
 
         test('context.addRequests validates userData against the label schema', async () => {
@@ -3657,7 +3661,7 @@ describe('BasicCrawler', () => {
             ] as never);
 
             const queue = await crawler.getRequestQueue();
-            expect(await queue.isEmpty()).toBe(false);
+            expect((await queue.readiness()).status).toBe('ready');
         });
 
         test('a plain (non-router) requestHandler skips validation entirely', async () => {
@@ -3666,7 +3670,7 @@ describe('BasicCrawler', () => {
             await crawler.addRequests([{ url: 'https://example.com/e', label: 'DETAIL', userData: { id: 123 } }]);
 
             const queue = await crawler.getRequestQueue();
-            expect(await queue.isEmpty()).toBe(false);
+            expect((await queue.readiness()).status).toBe('ready');
         });
 
         test('validation runs at the crawler level; direct requestQueue calls bypass it', async () => {

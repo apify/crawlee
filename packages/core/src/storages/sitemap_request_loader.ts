@@ -14,7 +14,7 @@ import { Request } from '../request.js';
 import { serviceLocator } from '../service_locator.js';
 import { parseArgument, schemas } from '../validators.js';
 import { KeyValueStore } from './key_value_store.js';
-import type { IRequestLoader } from './request_loader.js';
+import type { IRequestLoader, RequestLoaderState } from './request_loader.js';
 import type { IRequestManager } from './request_manager.js';
 import { purgeDefaultStorages } from './utils.js';
 
@@ -181,7 +181,7 @@ export class SitemapRequestLoader implements IRequestLoader {
      * If the loading was aborted before the sitemaps were fully loaded, the request list might be missing some URLs.
      * The `isSitemapFullyLoaded` method can be used to check if the sitemaps were fully loaded.
      *
-     * If the loading is aborted and all the requests are handled, `isFinished()` will return `true`.
+     * If the loading is aborted and all the requests are handled, `readiness()` will report `finished`.
      */
     #abortLoading = false;
 
@@ -470,17 +470,18 @@ export class SitemapRequestLoader implements IRequestLoader {
     /**
      * @inheritDoc
      */
-    async isFinished(): Promise<boolean> {
-        return (
-            (await this.isEmpty()) && this.inProgress.size === 0 && (this.isSitemapFullyLoaded() || this.#abortLoading)
-        );
-    }
+    async readiness(): Promise<RequestLoaderState> {
+        if (this.#urlQueueStream.readableLength > 0) {
+            return { status: 'ready' };
+        }
 
-    /**
-     * @inheritDoc
-     */
-    async isEmpty(): Promise<boolean> {
-        return this.#urlQueueStream.readableLength === 0;
+        // The sitemap parser is still running, so more URLs may yet arrive - on no schedule we could name,
+        // hence no `readyAt`. `fetchNextRequest` parks on the stream's `readable` event for the same signal.
+        if (!this.isSitemapFullyLoaded() && !this.#abortLoading) {
+            return { status: 'waiting' };
+        }
+
+        return this.inProgress.size === 0 ? { status: 'finished' } : { status: 'waiting' };
     }
 
     /**
@@ -598,7 +599,7 @@ export class SitemapRequestLoader implements IRequestLoader {
      * @inheritDoc
      */
     async *[Symbol.asyncIterator]() {
-        while (!(await this.isFinished())) {
+        while ((await this.readiness()).status !== 'finished') {
             const request = await this.fetchNextRequest();
             if (!request) break;
 

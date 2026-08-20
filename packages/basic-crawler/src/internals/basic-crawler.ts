@@ -63,6 +63,7 @@ import {
     NavigationSkippedError,
     NonRetryableError,
     OwnedOrInjected,
+    PersistentRateLimitError,
     purgeDefaultStorages,
     RequestHandlerError,
     parseRetryAfterHeader,
@@ -792,6 +793,15 @@ export class BasicCrawler<
     #autoscaledPool?: AutoscaledPool;
 
     /**
+     * A pending nudge of the task loop, armed when the request manager announces the moment it will have work
+     * again. At most one is outstanding.
+     */
+    #taskLoopWakeTimer?: NodeJS.Timeout;
+
+    /** When the pending wake-up is due, so an earlier one can replace a later one. */
+    #taskLoopWakeAt = 0;
+
+    /**
      * A reference to the underlying {@apilink IProxyConfiguration} instance that manages the crawler's proxies.
      * Only available if used by the crawler.
      */
@@ -1318,15 +1328,22 @@ export class BasicCrawler<
                         return true;
                     }
 
-                    // Checked here because this runs only once nothing is in flight, which is exactly when a
-                    // crawl that cannot progress looks indistinguishable from one that is merely waiting.
-                    if (!keepAlive && supportsDomainThrottling(this.requestManager)) {
-                        await this.requestManager.assertNoStalledDomains();
+                    // The request manager's state is read here, and a `stalled` one acted on only here, for
+                    // the same reason: `maybeFinish()` calls this exclusively once nothing is in flight
+                    // (`autoscaled_pool.ts`), which is both when a crawl that cannot progress becomes
+                    // distinguishable from one that is merely waiting, and the only point at which throwing
+                    // does not abandon requests mid-processing - a throw out of `isTaskReadyFunction` rejects
+                    // the pool while it still has tasks running.
+                    const state = await this.requestManager?.readiness();
+
+                    // Under `keepAlive`, outliving a domain that will not let us through is the whole point.
+                    if (state?.status === 'stalled' && !keepAlive) {
+                        throw new PersistentRateLimitError(`Giving up: ${state.reason}`);
                     }
 
                     const isFinished = isFinishedFunction
                         ? await isFinishedFunction()
-                        : await this.defaultIsFinishedFunction();
+                        : state === undefined || state.status === 'finished';
 
                     if (isFinished) {
                         const reason = isFinishedFunction
@@ -2518,10 +2535,10 @@ export class BasicCrawler<
         }
 
         const requestManagerPersistPromise = (async () => {
-            // The request manager persists its read-only loader's state, if it has one that supports persistence
-            // (e.g. a tandem wrapping a `RequestList`). For a plain `RequestQueue`, this is a no-op.
+            // The request manager persists its read-only loader's state, if it has one that supports
+            // persistence (e.g. a tandem wrapping a `RequestList`). For a plain `RequestQueue`, this is a no-op.
             if (this.requestManager?.persistState) {
-                if (await this.requestManager.isFinished()) return;
+                if ((await this.requestManager.readiness()).status === 'finished') return;
                 await this.requestManager.persistState().catch((err) => {
                     if (err.message.includes('Cannot persist state.')) {
                         this.log.error(
@@ -2694,17 +2711,58 @@ export class BasicCrawler<
     }
 
     /**
-     * Returns true if either RequestList or RequestQueue have a request ready for processing.
+     * Whether the request manager has a request ready for processing.
+     *
+     * A manager that is only `waiting` gets a wake-up scheduled for the moment it says it will have work
+     * again, so a crawl paced by a per-domain delay resumes on that clock rather than on the task loop's
+     * polling interval.
      */
     private async isTaskReadyFunction() {
-        return this.requestManager !== undefined && !(await this.requestManager.isEmpty());
+        if (this.requestManager === undefined) {
+            return false;
+        }
+
+        const state = await this.requestManager.readiness();
+
+        if (state.status === 'waiting' && state.readyAt !== undefined) {
+            this.#scheduleTaskLoopWake(state.readyAt);
+        }
+
+        return state.status === 'ready';
     }
 
     /**
-     * Returns true if both RequestList and RequestQueue have all requests finished.
+     * Nudges the task loop at `readyAt`, on a single timer that is only ever replaced by an earlier one.
+     *
+     * The pool polls on its own every `maybeRunIntervalSecs` (0.5s by default), so this only shortens the
+     * wait for a manager that knows exactly when it will have work - hence one timer rather than one per
+     * probe, and `unref`'d so a pending wake-up never keeps the process alive.
      */
-    private async defaultIsFinishedFunction() {
-        return !this.requestManager || (await this.requestManager.isFinished());
+    #scheduleTaskLoopWake(readyAt: number): void {
+        if (this.#taskLoopWakeTimer !== undefined) {
+            if (this.#taskLoopWakeAt <= readyAt) {
+                return;
+            }
+            clearTimeout(this.#taskLoopWakeTimer);
+        }
+
+        this.#taskLoopWakeAt = readyAt;
+        this.#taskLoopWakeTimer = setTimeout(
+            () => {
+                this.#taskLoopWakeTimer = undefined;
+                void this.#autoscaledPool?.notify();
+            },
+            Math.max(0, readyAt - Date.now()),
+        );
+        this.#taskLoopWakeTimer.unref();
+    }
+
+    /** Drops a pending task-loop wake-up, so a finished run leaves no timer behind. */
+    #clearTaskLoopWake(): void {
+        if (this.#taskLoopWakeTimer !== undefined) {
+            clearTimeout(this.#taskLoopWakeTimer);
+            this.#taskLoopWakeTimer = undefined;
+        }
     }
 
     /**
@@ -2889,6 +2947,7 @@ export class BasicCrawler<
             await serviceLocator.getEventManager().close();
         }
 
+        this.#clearTaskLoopWake();
         await this.#autoscaledPool?.abort();
         await this.#concurrencySystemDep?.ifOwned((system) => system.stop());
     }

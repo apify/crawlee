@@ -70,7 +70,7 @@ describe('RequestQueue remote', () => {
         expect(await queue.fetchNextRequest()).toBeNull();
     });
 
-    test('a handled request is not fetched again and isFinished() becomes true', async () => {
+    test('a handled request is not fetched again and readiness() reports finished', async () => {
         const queue = await RequestQueue.open();
 
         await queue.addRequest({ url: 'http://example.com/a' });
@@ -81,7 +81,7 @@ describe('RequestQueue remote', () => {
         await queue.markRequestAsHandled(fetched!);
 
         expect(await queue.fetchNextRequest()).toBeNull();
-        expect(await queue.isFinished()).toBe(true);
+        expect((await queue.readiness()).status).toBe('finished');
     });
 
     test('a reclaimed request is fetched again; reclaim with forefront returns it to the front', async () => {
@@ -220,25 +220,22 @@ describe('RequestQueue remote', () => {
         expect(retrievedUrls.map((x) => new URL(x).pathname)).toEqual(['/1', '/2', '/3', '/4', '/5', '/6']);
     });
 
-    test('isEmpty() reflects fetchable requests while isFinished() accounts for in-progress ones', async () => {
+    test('readiness() distinguishes a fetchable queue from an in-progress one', async () => {
         const queue = await RequestQueue.open();
 
         await queue.addRequest({ url: 'http://example.com/a' });
-        // There is a pending request, so the queue is neither empty nor finished.
-        expect(await queue.isEmpty()).toBe(false);
-        expect(await queue.isFinished()).toBe(false);
+        // There is a pending request waiting to be fetched, so the queue is ready.
+        expect((await queue.readiness()).status).toBe('ready');
 
         const fetched = await queue.fetchNextRequest();
-        // The request is now in progress (locked), not handled. There is nothing left to fetch, so the
-        // queue is empty — but it is not finished, since the in-progress request might still be
-        // reclaimed. That "not finished" signal keeps a crawler running while the request is processed.
-        expect(await queue.isEmpty()).toBe(true);
-        expect(await queue.isFinished()).toBe(false);
+        // The request is now in progress (locked), not handled. There is nothing left to fetch, but the
+        // queue is not finished either, since the in-progress request might still be reclaimed - so it
+        // reports `waiting`. That signal keeps a crawler running while the request is processed.
+        expect((await queue.readiness()).status).toBe('waiting');
 
         await queue.markRequestAsHandled(fetched!);
-        // Now the request is handled and gone, so the queue is both empty and finished.
-        expect(await queue.isEmpty()).toBe(true);
-        expect(await queue.isFinished()).toBe(true);
+        // Now the request is handled and gone, so the queue is finished.
+        expect((await queue.readiness()).status).toBe('finished');
     });
 
     test('should accept plain object in addRequest()', async () => {
@@ -590,7 +587,7 @@ describe('RequestQueue (request lifecycle)', () => {
         await queue.markRequestAsHandled(first!);
 
         expect(await queue.fetchNextRequest()).toBeNull();
-        expect(await queue.isFinished()).toBe(true);
+        expect((await queue.readiness()).status).toBe('finished');
     });
 
     test('`fetchNextRequest` order respects `forefront` enqueues', async () => {
@@ -659,7 +656,7 @@ describe('RequestQueue background batches', () => {
         serviceLocator.setStorageBackend(new MemoryStorageBackend());
     });
 
-    test('a failing background batch rejects instead of hanging, and stops blocking isFinished', async () => {
+    test('a failing background batch rejects instead of hanging, and stops blocking readiness()', async () => {
         const queue = await RequestQueue.open();
 
         let batches = 0;
@@ -681,6 +678,6 @@ describe('RequestQueue background batches', () => {
         const req = await queue.fetchNextRequest();
         expect(req).toBeDefined();
         await queue.markRequestAsHandled(req!);
-        expect(await queue.isFinished()).toBe(true);
+        expect((await queue.readiness()).status).toBe('finished');
     }, 10_000);
 });

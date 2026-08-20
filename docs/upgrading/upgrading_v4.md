@@ -47,6 +47,7 @@ The purely mechanical renames, collected in one place. Where a row links to a se
 | `RobotsFile` | `RobotsTxtFile` |
 | `markRequestHandled()` | `markRequestAsHandled()` |
 | `requestList.length()` / `requestList.handledCount()` | `await getTotalCount()` / `await getHandledCount()` |
+| `requestList.isEmpty()` / `requestList.isFinished()` | `await readiness()` ([details](#isempty--isfinished-replaced-by-readiness)) |
 | `Dataset.listItems()` | `Dataset.getData()` / `Dataset.values()` ([details](#datasetlistitems-replaced-by-datasetgetdata-and-datasetvalues)) |
 | crawler options `requestList` / `requestQueue` | `requestManager` ([details](#crawler-requestlist--requestqueue-options-deprecated-in-favor-of-requestmanager)) |
 | `enqueueLinks({ requestQueue })` | `enqueueLinks({ requestManager })` |
@@ -1389,6 +1390,7 @@ The harmonized loader interface differs from the old `IRequestList` in a few way
 | _(n/a)_ | `getPendingCount(): Promise<number>` (new) |
 | `handledCount(): number` | `getHandledCount(): Promise<number>` (renamed and now async) |
 | `markRequestHandled(request)` | `markRequestAsHandled(request)` (renamed) |
+| `isEmpty(): Promise<boolean>` and `isFinished(): Promise<boolean>` | `readiness(): Promise<RequestSourceState>` ([details](#isempty--isfinished-replaced-by-readiness)) |
 | `reclaimRequest()` on the interface | Removed from the read-only loaders entirely; reclaiming is a write operation that lives only on `IRequestManager` (e.g. `RequestQueue`, `RequestManagerTandem`) |
 | `inProgress: Set<string>` on the interface | Removed from the interface |
 | `persistState(): Promise<void>` (required) | `persistState?(): Promise<void>` (optional) |
@@ -1409,6 +1411,32 @@ const handled = requestList.handledCount();
 const total = await requestList.getTotalCount();
 const handled = await requestList.getHandledCount();
 ```
+
+#### `isEmpty()` / `isFinished()` replaced by `readiness()`
+
+The two predicates v3 put on `IRequestList` and `IRequestManager` (and on `RequestList`, `RequestQueue` and `RequestProvider`) are replaced by a single `readiness()` call, on `IRequestLoader`, `IRequestManager` and every implementation:
+
+```typescript
+type RequestSourceState =
+    | { status: 'ready' } // a fetch is expected to hand something over  (v3: `!isEmpty()`)
+    | { status: 'waiting'; readyAt?: number } // nothing now, not done   (v3: `isEmpty() && !isFinished()`)
+    | { status: 'stalled'; reason: string } // holding requests it cannot make progress on
+    | { status: 'finished' }; // nothing left at all                     (v3: `isFinished()`)
+```
+
+```diff
+-if (!(await manager.isEmpty())) { /* fetch */ }
++if ((await manager.readiness()).status === 'ready') { /* fetch */ }
+
+-if (await manager.isFinished()) { /* stop */ }
++if ((await manager.readiness()).status === 'finished') { /* stop */ }
+```
+
+Two probes became one, which matters because a crawler's task loop runs them several times a second. The two extra states are things the boolean pair could not express: `waiting` carries an optional `readyAt` timestamp, so a source that is deliberately holding requests back — a rate-limited domain, say — can say *when* it will have work again instead of leaving the crawler to poll; and `stalled` lets a source report that it is holding requests it cannot make progress on, which the crawler turns into a `PersistentRateLimitError`.
+
+If you implemented `IRequestList` or `IRequestManager` yourself, replace the two methods with `readiness()`. Return `ready` without evaluating anything further — that is the answer callers ask for most often and the one they can act on immediately. If your implementation reads from two sources and has to combine their states, the precedence is `ready` > `stalled` > `waiting` > `finished`, and a combined `waiting` carries the earlier of the two `readyAt` values (or none, if neither source named one).
+
+**Storage backends keep the two booleans** — see [`StorageBackend` interface simplified](#storagebackend-interface-simplified).
 
 #### Combining a list and a queue: `toTandem()`
 
@@ -1477,7 +1505,7 @@ const crawler = new CheerioCrawler({
 });
 ```
 
-For the domains you list, a 429 is treated as a rate limit before `blockedStatusCodes` is consulted at all — it honours `Retry-After` (or backs off exponentially), holds only that domain's requests back, and leaves both the session and the request's retry budget untouched. Removing 429 from `blockedStatusCodes` therefore only affects domains the manager does not cover; you do not need to touch it to adopt throttling. Because those retries are free, a domain that never stops rate-limiting would keep the crawl alive indefinitely — so one that goes `maxDomainStallSecs` (15 minutes by default) without letting a single request through shuts the crawl down with a `PersistentRateLimitError`, leaving its requests queued for a later run — unless `keepAlive` is set, which exempts the crawl.
+For the domains you list, a 429 is treated as a rate limit before `blockedStatusCodes` is consulted at all — it honours `Retry-After` (or backs off exponentially), holds only that domain's requests back, and leaves both the session and the request's retry budget untouched. Removing 429 from `blockedStatusCodes` therefore only affects domains the manager does not cover; you do not need to touch it to adopt throttling. Because those retries are free, a domain that never stops rate-limiting would keep the crawl alive indefinitely — so one that goes `maxDomainStallSecs` (15 minutes by default) without letting a single request through shuts the crawl down with a `PersistentRateLimitError`, leaving its requests queued for a later run — unless `keepAlive` is set, where outliving such a domain is the point.
 
 It is also what enforces robots.txt `Crawl-delay` directives — with `respectRobotsTxtFile` enabled and no throttling manager covering the domain, the directive is ignored and the crawler warns about it. See the [request loaders guide](../guides/request-loaders#per-domain-throttling).
 
@@ -1605,6 +1633,8 @@ Methods that may have "nothing" to return now consistently resolve to `undefined
 
 - `isEmpty()` is the weak check — `true` when the next `fetchNextRequest()` would return `undefined`, i.e. there is nothing left to fetch right now. Requests that are currently in progress (fetched but not yet handled or reclaimed) are **not** counted, because they are not fetchable. This is what drives the crawler's task scheduling.
 - `isFinished()` is the strong check — `true` only when there are no pending requests **and** no requests currently in progress (including those locked by other clients sharing the queue). This is what determines whether crawling is actually done. An in-progress request keeps the queue *empty but not finished*, which is what stops a crawler from shutting down while a request is still being processed.
+
+The loader and manager frontends do **not** draw that distinction — `IRequestLoader` and `IRequestManager` answer both questions with one [`readiness()`](#isempty--isfinished-replaced-by-readiness) call. The split lives at the backend boundary because that is the layer where the two questions really are two separate storage lookups; a frontend that split them too would either probe twice per scheduling decision or lose the distinction, whereas a backend that answers one at a time costs its caller nothing.
 
 The separate `RequestQueueV1`/`RequestQueueV2` classes (and the `RequestProvider` base class) have been removed. They no longer differ in behavior — request coordination is now internal to the storage backend — so they are merged into a single `RequestQueue` class. Replace any `RequestQueueV1`, `RequestQueueV2`, or `RequestProvider` imports with `RequestQueue`.
 

@@ -31,6 +31,7 @@ import { parseArgument, schemas, validators } from '../validators.js';
 import type { JournalEntry, StorageTransaction } from './transaction.js';
 import { activeStorageTransaction, rejectOperationInTransaction } from './transaction.js';
 import { drainRequestBatches } from './batched_adds.js';
+import type { RequestLoaderState } from './request_loader.js';
 import type { IRequestManager, RequestsLike } from './request_manager.js';
 import type { RequestQueueStats } from './storage_stats.js';
 import { StorageStatsTracker } from './storage_stats.js';
@@ -801,48 +802,34 @@ export class RequestQueue implements IStorage, IRequestManager {
     }
 
     /**
-     * Resolves to `true` if the next call to {@apilink RequestQueue.fetchNextRequest} would return
-     * `null`, i.e. there are no pending requests to fetch right now. Otherwise it resolves to `false`.
+     * Reports whether the queue has a request to hand over, is waiting on one, or is done.
      *
-     * Note that even if the queue is empty, there might be some requests currently being processed
-     * (fetched but not yet handled or reclaimed). An empty queue therefore does not mean crawling is
-     * finished — those in-progress requests may still be reclaimed, and background tasks may still be
-     * adding more requests. To check whether all activity in the queue has finished, use
-     * {@apilink RequestQueue.isFinished}.
+     * `waiting` covers a queue with nothing left to fetch that is not finished either — requests are in
+     * progress (fetched but not yet handled or reclaimed, possibly by another client sharing the queue), or
+     * a background add is still landing. There is no clock on either, so no `readyAt` is offered.
+     *
+     * Due to the nature of distributed storage used by the queue, `finished` may occasionally arrive a probe
+     * or two late, but it is never reported early.
      */
-    async isEmpty(): Promise<boolean> {
+    async readiness(): Promise<RequestLoaderState> {
         const transaction = activeStorageTransaction();
 
         // Requests buffered by the active transaction count as pending from its point of view.
         if (transaction && this.bufferedRequests(transaction).size > 0) {
-            return false;
+            return { status: 'ready' };
         }
 
-        return this.backend.isEmpty();
-    }
-
-    /**
-     * Resolves to `true` if all requests were already handled and there are no more left — including no
-     * requests currently in progress (fetched but not yet handled or reclaimed, including requests
-     * locked by other clients sharing the same queue) and no background add operations still in flight.
-     *
-     * Due to the nature of distributed storage used by the queue, the function may occasionally return
-     * a false negative, but it shall never return a false positive.
-     */
-    async isFinished(): Promise<boolean> {
-        const transaction = activeStorageTransaction();
+        // Something fetchable outranks everything below, so this is the only backend call a probe needs.
+        if (!(await this.backend.isEmpty())) {
+            return { status: 'ready' };
+        }
 
         // We are not finished if we're still adding new requests in the background.
         if (this.#inProgressRequestBatchCount > 0) {
-            return false;
+            return { status: 'waiting' };
         }
 
-        // Requests buffered by the active transaction count as pending from its point of view.
-        if (transaction && this.bufferedRequests(transaction).size > 0) {
-            return false;
-        }
-
-        return this.backend.isFinished();
+        return (await this.backend.isFinished()) ? { status: 'finished' } : { status: 'waiting' };
     }
 
     /**

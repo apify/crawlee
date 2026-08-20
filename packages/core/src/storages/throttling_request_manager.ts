@@ -4,7 +4,6 @@ import { getDomain } from 'tldts';
 import { z } from 'zod';
 
 import type { Configuration } from '../configuration.js';
-import { PersistentRateLimitError } from '../errors.js';
 import { asyncifyIterable } from '../iterables.js';
 import type { CrawleeLogger } from '../log.js';
 import type { Request, Source } from '../request.js';
@@ -13,6 +12,8 @@ import { normalizeHostname } from '../url.js';
 import { parseArgument, schemas } from '../validators.js';
 import { drainRequestBatches } from './batched_adds.js';
 import { KeyValueStore } from './key_value_store.js';
+import type { RequestSourceState } from './request_loader.js';
+import { joinRequestSourceStates } from './request_loader.js';
 import type { IRequestManager, RequestsLike } from './request_manager.js';
 import type {
     AddRequestsBatchedOptions,
@@ -54,7 +55,7 @@ export type RequestManagerOpener<T extends IRequestManager = IRequestManager> = 
 /**
  * A request manager that can pace requests per domain, as {@apilink ThrottlingRequestManager} does.
  *
- * The crawlers detect this structurally rather than by type, so a wrapper can opt in by forwarding these three
+ * The crawlers detect this structurally rather than by type, so a wrapper can opt in by forwarding these two
  * methods without {@apilink IRequestManager} having to know that throttling exists.
  */
 export interface SupportsDomainThrottling {
@@ -62,19 +63,13 @@ export interface SupportsDomainThrottling {
     recordDomainDelay(url: string, retryAfterMs?: number | null): boolean;
     /** @see {@apilink ThrottlingRequestManager.setCrawlDelay} */
     setCrawlDelay(url: string, delaySeconds: number): boolean;
-    /** @see {@apilink ThrottlingRequestManager.assertNoStalledDomains} */
-    assertNoStalledDomains(): Promise<void>;
 }
 
 /** Whether `manager` can pace requests per domain. */
 export function supportsDomainThrottling(manager: unknown): manager is SupportsDomainThrottling {
     const candidate = manager as Partial<SupportsDomainThrottling> | null | undefined;
 
-    return (
-        typeof candidate?.recordDomainDelay === 'function' &&
-        typeof candidate.setCrawlDelay === 'function' &&
-        typeof candidate.assertNoStalledDomains === 'function'
-    );
+    return typeof candidate?.recordDomainDelay === 'function' && typeof candidate.setCrawlDelay === 'function';
 }
 
 /** Options for {@apilink ThrottlingRequestManager}. */
@@ -236,8 +231,9 @@ const DEFAULT_PERSIST_STATE_KEY = 'CRAWLEE_THROTTLED_DOMAINS';
  *
  * {@apilink ThrottlingRequestManager.fetchNextRequest|`fetchNextRequest()`} serves the domain that has been waiting
  * longest and skips any that are backing off, falling back to the wrapped manager. It never blocks: while every
- * remaining request belongs to a throttled domain it returns `null` and {@apilink ThrottlingRequestManager.isEmpty}
- * reports `true`, so the crawler idles instead of holding a concurrency slot open.
+ * remaining request belongs to a throttled domain it returns `null` and
+ * {@apilink ThrottlingRequestManager.readiness|`readiness()`} reports `waiting` with the moment the earliest of
+ * them comes due, so the crawler idles instead of holding a concurrency slot open.
  *
  * Each throttled domain runs two independent clocks, and may be dispatched to once **both** have run out:
  * - **Backoff**, set by HTTP 429 responses - honouring `Retry-After`, and otherwise doubling from `baseDelaySecs`.
@@ -313,7 +309,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
      */
     #subManagersReady?: Promise<void>;
 
-    /** Batches still being added in the background; keeps {@apilink ThrottlingRequestManager.isFinished} honest. */
+    /** Batches still being added in the background; keeps {@apilink ThrottlingRequestManager.readiness} honest. */
     #inProgressBatchCount = 0;
 
     readonly #warnedAbout = new Set<string>();
@@ -644,54 +640,6 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         return true;
     }
 
-    /**
-     * Throws {@apilink PersistentRateLimitError} if any domain has been rate-limiting us past
-     * {@apilink ThrottlingRequestManagerOptions.maxDomainStallSecs|`maxDomainStallSecs`} without letting a single
-     * request through.
-     *
-     * A domain qualifies only while it still has queued requests and is actively rate-limiting - a domain that
-     * has simply run out of work is finished, not stalled, and one being waited out under a long robots.txt
-     * `Crawl-delay` is being obeyed, not stonewalled.
-     */
-    async assertNoStalledDomains(): Promise<void> {
-        await this.#ensureSubManagers();
-
-        const now = Date.now();
-        const candidates = Array.from(this.domainStates.values()).filter(
-            // Together: it is still turning us away, and has been doing so without a break for longer than the
-            // window. A domain that has simply been idle starts this clock at its first 429 rather than
-            // arriving with the idle time already on it.
-            (state) =>
-                state.rateLimitedSince !== 0 &&
-                now - state.lastRateLimitedAt <= this.#maxDomainStallMs &&
-                now - state.rateLimitedSince > this.#maxDomainStallMs,
-        );
-
-        const stalled = (
-            await Promise.all(
-                candidates.map(async (state) => {
-                    const subManager = await this.#subManagers.get(state.domain);
-                    return subManager && !(await subManager.isEmpty()) ? state : null;
-                }),
-            )
-        ).filter((state) => state !== null);
-
-        if (stalled.length === 0) {
-            return;
-        }
-
-        const summary = stalled
-            .map((state) => `"${state.domain}" (${((now - state.rateLimitedSince) / 1000).toFixed(0)}s)`)
-            .join(', ');
-
-        throw new PersistentRateLimitError(
-            `Giving up: ${summary} rate-limited every request for longer than maxDomainStallSecs ` +
-                `(${(this.#maxDomainStallMs / 1000).toFixed(0)}s). Waiting longer will not help - lower the ` +
-                `crawler's concurrency, or drop these domains. Their requests are still queued, so re-running ` +
-                `with \`purgeOnStart\` disabled will resume them if the rate limit lifts.`,
-        );
-    }
-
     /** Records that a domain let a request through, which ends any rate-limit run stall detection was timing. */
     #recordProgress(url: string): void {
         const state = this.#getDomainState(url);
@@ -832,29 +780,107 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     }
 
     /**
-     * Whether the next {@apilink ThrottlingRequestManager.fetchNextRequest} would return `null`.
+     * Reports whether anything can be dispatched right now, and if not, when — or why never.
      *
-     * Requests waiting on a throttled domain count as unavailable, so a crawler whose task loop is gated on
-     * this idles for the backoff instead of spinning on a fetch that cannot succeed yet.
+     * One traversal of the domain clocks answers all of it. A domain whose delays have run out is probed
+     * along with the wrapped manager; the rest only contribute the moment they come due, so a probe costs
+     * one call per *dispatchable* source rather than one per throttled domain. Throttled requests count as
+     * outstanding work, so a crawler gated on this idles for the backoff instead of concluding it is done.
+     *
+     * Work anywhere else outranks a stalling domain - `ready` from the wrapped manager or from a domain that is
+     * not stonewalling us is returned without ever looking at the stall clocks, so one hopeless domain never
+     * ends a crawl that is making progress elsewhere. What it cannot outrank is *itself*: see the traversal.
      */
-    async isEmpty(): Promise<boolean> {
+    async readiness(): Promise<RequestSourceState> {
         await this.#ensureSubManagers();
 
-        const fetchable = await Promise.all(
-            this.#fetchableDomains().map(async (domain) => this.#subManagers.get(domain)!),
-        );
-        const results = await Promise.all([this.#inner, ...fetchable].map(async (manager) => manager.isEmpty()));
+        const now = Date.now();
+        const dispatchable: Promise<T>[] = [];
+        /** The moment the earliest still-throttled domain comes due, if any is. */
+        let readyAt: number | undefined;
+        let stallCandidates: DomainState[] | undefined;
 
-        return results.every(Boolean);
-    }
+        for (const state of this.domainStates.values()) {
+            // A robots.txt `Crawl-delay` gives a domain a clock before its first request gives it a queue.
+            // Until then there is nothing to fetch from it and nothing to wait for.
+            if (!this.#subManagers.has(state.domain)) {
+                continue;
+            }
 
-    /** Unlike {@apilink ThrottlingRequestManager.isEmpty}, throttled requests still count as outstanding work. */
-    async isFinished(): Promise<boolean> {
-        if (this.#inProgressBatchCount > 0) {
-            return false;
+            if (
+                // Together: the domain is still turning us away, and has been doing so without a break for
+                // longer than the window. A domain that has simply been idle starts this clock at its first
+                // 429 rather than arriving with the idle time already on it.
+                state.rateLimitedSince !== 0 &&
+                now - state.lastRateLimitedAt <= this.#maxDomainStallMs &&
+                now - state.rateLimitedSince > this.#maxDomainStallMs
+            ) {
+                // Left out of the dispatchable set below and handled only by the stall check: a domain that has
+                // been rate-limiting every request for the whole window is not progress just because its
+                // backoff momentarily lapsed - being briefly dispatchable is what it does between 429s, and
+                // counting that as `ready` would mask the very state we are here to report.
+                (stallCandidates ??= []).push(state);
+                continue;
+            }
+
+            const until = throttledUntil(state);
+
+            if (now >= until) {
+                dispatchable.push(this.#subManagers.get(state.domain)!);
+            } else if (readyAt === undefined || until < readyAt) {
+                readyAt = until;
+            }
         }
 
-        return this.#everyManager((manager) => manager.isFinished());
+        const probed = (
+            await Promise.all([
+                this.#inner.readiness(),
+                ...dispatchable.map(async (subManager) => (await subManager).readiness()),
+            ])
+        ).reduce(joinRequestSourceStates);
+
+        // Anything dispatchable outranks a stalled or throttled domain, so we stop here without touching them.
+        if (probed.status === 'ready') {
+            return probed;
+        }
+
+        if (stallCandidates !== undefined) {
+            const stalled = (
+                await Promise.all(
+                    stallCandidates.map(async (state) =>
+                        (await (await this.#subManagers.get(state.domain)!).readiness()).status === 'ready'
+                            ? state
+                            : null,
+                    ),
+                )
+            ).filter((state) => state !== null);
+
+            if (stalled.length > 0) {
+                const summary = stalled
+                    .map((state) => `"${state.domain}" (${((now - state.rateLimitedSince) / 1000).toFixed(0)}s)`)
+                    .join(', ');
+
+                return {
+                    status: 'stalled',
+                    reason:
+                        `${summary} rate-limited every request for longer than maxDomainStallSecs ` +
+                        `(${(this.#maxDomainStallMs / 1000).toFixed(0)}s). Waiting longer will not help - lower the ` +
+                        `crawler's concurrency, or drop these domains. Their requests are still queued, so ` +
+                        `re-running with \`purgeOnStart\` disabled will resume them if the rate limit lifts.`,
+                };
+            }
+        }
+
+        if (readyAt !== undefined) {
+            return joinRequestSourceStates(probed, { status: 'waiting', readyAt });
+        }
+
+        // Batches still landing in the background are work nobody can see in a queue yet.
+        if (this.#inProgressBatchCount > 0 && probed.status === 'finished') {
+            return { status: 'waiting' };
+        }
+
+        return probed;
     }
 
     /**
@@ -900,18 +926,14 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         return counts.reduce((a, b) => a + b, 0);
     }
 
-    async #everyManager(fn: (manager: T) => Promise<boolean>): Promise<boolean> {
-        const results = await Promise.all([this.#inner, ...(await this.#getSubManagers())].map(fn));
-        return results.every(Boolean);
-    }
-
     /**
      * Returns the next request from a domain that is not backing off, or from the inner manager.
      *
      * Returns `null` while every remaining request belongs to a throttled domain - it never waits the backoff
      * out, because a consumer parked in here holds a concurrency slot, which the autoscaler reads as spare
-     * capacity and answers by scaling up. Callers poll instead, and {@apilink ThrottlingRequestManager.isEmpty}
-     * reports `true` meanwhile so the crawler's task loop idles rather than spins.
+     * capacity and answers by scaling up. Callers poll instead, and
+     * {@apilink ThrottlingRequestManager.readiness|`readiness()`} reports `waiting` meanwhile so the crawler's
+     * task loop idles rather than spins.
      */
     async fetchNextRequest<R extends Dictionary = Dictionary>(): Promise<Request<R> | null> {
         await this.#ensureSubManagers();

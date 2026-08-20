@@ -1,3 +1,4 @@
+import type { RequestLoaderState } from '@crawlee/core';
 import {
     log,
     MemoryStorageBackend,
@@ -142,62 +143,43 @@ describe('RequestManagerTandem', () => {
         await expect(tandem.getTotalCount()).resolves.toBe(3);
     });
 
-    test('isFinished returns true only when both list and queue are finished', async () => {
+    test('readiness joins the loader and the manager, and the manager never masks the loader', async () => {
         const requestList = await RequestList.open(null, [{ url: 'https://example.com/1' }]);
         const requestQueue = await RequestQueue.open();
 
         const tandem = new RequestManagerTandem(requestList, requestQueue);
 
-        // Mock the isFinished methods
-        vi.spyOn(requestList, 'isFinished').mockResolvedValue(false);
-        vi.spyOn(requestQueue, 'isFinished').mockResolvedValue(false);
+        const listReadiness = vi.spyOn(requestList, 'readiness');
+        const queueReadiness = vi.spyOn(requestQueue, 'readiness');
 
-        // Neither is finished, so tandem should not be finished
-        expect(await tandem.isFinished()).toBe(false);
+        const readiness = async (list: RequestLoaderState, queue: RequestLoaderState) => {
+            listReadiness.mockResolvedValue(list);
+            queueReadiness.mockResolvedValue(queue);
+            return tandem.readiness();
+        };
 
-        // Only list is finished
-        vi.spyOn(requestList, 'isFinished').mockResolvedValue(true);
-        vi.spyOn(requestQueue, 'isFinished').mockResolvedValue(false);
-        expect(await tandem.isFinished()).toBe(false);
+        // Work in either half is work for the tandem.
+        await expect(readiness({ status: 'ready' }, { status: 'finished' })).resolves.toEqual({ status: 'ready' });
+        await expect(readiness({ status: 'finished' }, { status: 'ready' })).resolves.toEqual({ status: 'ready' });
 
-        // Only queue is finished
-        vi.spyOn(requestList, 'isFinished').mockResolvedValue(false);
-        vi.spyOn(requestQueue, 'isFinished').mockResolvedValue(true);
-        expect(await tandem.isFinished()).toBe(false);
+        // Including while the manager is holding something back: a backoff on the manager side must not freeze
+        // the loader's unrelated requests for the length of it.
+        await expect(readiness({ status: 'ready' }, { status: 'waiting', readyAt: 42 })).resolves.toEqual({
+            status: 'ready',
+        });
 
-        // Both are finished
-        vi.spyOn(requestList, 'isFinished').mockResolvedValue(true);
-        vi.spyOn(requestQueue, 'isFinished').mockResolvedValue(true);
-        expect(await tandem.isFinished()).toBe(true);
-    });
+        // With nothing fetchable in either half, whichever one is still working decides - and its wake-up time
+        // carries through.
+        await expect(readiness({ status: 'waiting' }, { status: 'finished' })).resolves.toEqual({ status: 'waiting' });
+        await expect(readiness({ status: 'finished' }, { status: 'waiting', readyAt: 42 })).resolves.toEqual({
+            status: 'waiting',
+            readyAt: 42,
+        });
 
-    test('isEmpty returns true only when both list and queue are empty', async () => {
-        const requestList = await RequestList.open(null, [{ url: 'https://example.com/1' }]);
-        const requestQueue = await RequestQueue.open();
-
-        const tandem = new RequestManagerTandem(requestList, requestQueue);
-
-        // Mock the isEmpty methods
-        vi.spyOn(requestList, 'isEmpty').mockResolvedValue(false);
-        vi.spyOn(requestQueue, 'isEmpty').mockResolvedValue(false);
-
-        // Neither is empty, so tandem should not be empty
-        expect(await tandem.isEmpty()).toBe(false);
-
-        // Only list is empty
-        vi.spyOn(requestList, 'isEmpty').mockResolvedValue(true);
-        vi.spyOn(requestQueue, 'isEmpty').mockResolvedValue(false);
-        expect(await tandem.isEmpty()).toBe(false);
-
-        // Only queue is empty
-        vi.spyOn(requestList, 'isEmpty').mockResolvedValue(false);
-        vi.spyOn(requestQueue, 'isEmpty').mockResolvedValue(true);
-        expect(await tandem.isEmpty()).toBe(false);
-
-        // Both are empty
-        vi.spyOn(requestList, 'isEmpty').mockResolvedValue(true);
-        vi.spyOn(requestQueue, 'isEmpty').mockResolvedValue(true);
-        expect(await tandem.isEmpty()).toBe(true);
+        // Only both being done makes the tandem done.
+        await expect(readiness({ status: 'finished' }, { status: 'finished' })).resolves.toEqual({
+            status: 'finished',
+        });
     });
 
     test('drops the request and marks it handled on the loader when transfer fails', async () => {
@@ -281,7 +263,7 @@ describe('RequestManagerTandem', () => {
         expect(factory).toHaveBeenCalledTimes(1);
 
         // Subsequent operations reuse the same memoized queue.
-        await tandem.isFinished();
+        await tandem.readiness();
         expect(factory).toHaveBeenCalledTimes(1);
     });
 

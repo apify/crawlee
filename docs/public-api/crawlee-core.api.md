@@ -743,10 +743,9 @@ export interface IRequestLoader {
     getHandledCount(): Promise<number>;
     getPendingCount(): Promise<number>;
     getTotalCount(): Promise<number>;
-    isEmpty(): Promise<boolean>;
-    isFinished(): Promise<boolean>;
     markRequestAsHandled(request: Request_2): Promise<RequestQueueOperationInfo | void | null>;
     persistState?(): Promise<void>;
+    readiness(): Promise<RequestSourceState>;
     toTandem?(requestManager?: IRequestManager): Promise<IRequestManager>;
 }
 
@@ -1186,14 +1185,12 @@ export class RequestList implements IRequestLoader {
     getState(): RequestListState;
     getTotalCount(): Promise<number>;
     // (undocumented)
-    isEmpty(): Promise<boolean>;
-    // (undocumented)
-    isFinished(): Promise<boolean>;
-    // (undocumented)
     markRequestAsHandled(request: Request_2): Promise<void>;
     static open(listNameOrOptions: string | null | RequestListOptions, sources?: RequestListSource[], options?: RequestListOptions): Promise<RequestList>;
     // (undocumented)
     persistState(): Promise<void>;
+    // (undocumented)
+    readiness(): Promise<RequestLoaderState>;
     teardown(): Promise<void>;
     toTandem(requestManager?: IRequestManager): Promise<IRequestManager>;
 }
@@ -1225,6 +1222,11 @@ export interface RequestListState {
 }
 
 // @public
+export type RequestLoaderState = Exclude<RequestSourceState, {
+    status: 'stalled';
+}>;
+
+// @public
 export type RequestManagerOpener<T extends IRequestManager = IRequestManager> = (identifier: string | StorageIdentifier, options?: StorageOpenOptions) => Promise<T>;
 
 // @public
@@ -1244,13 +1246,10 @@ export class RequestManagerTandem implements IRequestManager {
     // (undocumented)
     getTotalCount(): Promise<number>;
     // (undocumented)
-    isEmpty(): Promise<boolean>;
-    // (undocumented)
-    isFinished(): Promise<boolean>;
-    // (undocumented)
     markRequestAsHandled(request: Request_2): Promise<RequestQueueOperationInfo | void | null>;
     persistState(): Promise<void>;
     purge(): Promise<void>;
+    readiness(): Promise<RequestSourceState>;
     // (undocumented)
     reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
     setExpectedRequestProcessingTimeSecs(secs: number): Promise<void>;
@@ -1293,8 +1292,6 @@ export class RequestQueue implements IStorage, IRequestManager {
     getTotalCount(): Promise<number>;
     // (undocumented)
     readonly id: string;
-    isEmpty(): Promise<boolean>;
-    isFinished(): Promise<boolean>;
     // (undocumented)
     readonly log: CrawleeLogger;
     markRequestAsHandled(request: Request_2): Promise<RequestQueueOperationInfo | null>;
@@ -1302,6 +1299,7 @@ export class RequestQueue implements IStorage, IRequestManager {
     readonly name?: string;
     static open(identifier?: string | StorageIdentifier | null, options?: StorageOpenOptions): Promise<RequestQueue>;
     purge(): Promise<void>;
+    readiness(): Promise<RequestLoaderState>;
     reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
     setExpectedRequestProcessingTimeSecs(secs: number): Promise<void>;
     get stats(): RequestQueueStats;
@@ -1401,6 +1399,19 @@ export interface RequestQueueStats {
 
 // @public (undocumented)
 export type RequestsLike = AsyncIterable<Source | string> | Iterable<Source | string> | (Source | string)[];
+
+// @public
+export type RequestSourceState = {
+    status: 'ready';
+} | {
+    status: 'waiting';
+    readyAt?: number;
+} | {
+    status: 'stalled';
+    reason: string;
+} | {
+    status: 'finished';
+};
 
 // @public (undocumented)
 export enum RequestState {
@@ -1732,16 +1743,14 @@ export class SitemapRequestLoader implements IRequestLoader {
     getPendingCount(): Promise<number>;
     // (undocumented)
     getTotalCount(): Promise<number>;
-    // (undocumented)
-    isEmpty(): Promise<boolean>;
-    // (undocumented)
-    isFinished(): Promise<boolean>;
     isSitemapFullyLoaded(): boolean;
     // (undocumented)
     markRequestAsHandled(request: Request_2): Promise<void>;
     static open(options: SitemapRequestLoaderOptions): Promise<SitemapRequestLoader>;
     // (undocumented)
     persistState(): Promise<void>;
+    // (undocumented)
+    readiness(): Promise<RequestLoaderState>;
     teardown(): Promise<void>;
     toTandem(requestManager?: IRequestManager): Promise<IRequestManager>;
 }
@@ -2034,8 +2043,6 @@ export interface StorageWritePolicy {
 // @public
 export interface SupportsDomainThrottling {
     // (undocumented)
-    assertNoStalledDomains(): Promise<void>;
-    // (undocumented)
     recordDomainDelay(url: string, retryAfterMs?: number | null): boolean;
     // (undocumented)
     setCrawlDelay(url: string, delaySeconds: number): boolean;
@@ -2084,7 +2091,6 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     // (undocumented)
     addRequest(requestLike: Source, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo>;
     addRequestsBatched(requests: RequestsLike, options?: AddRequestsBatchedOptions): Promise<AddRequestsBatchedResult>;
-    assertNoStalledDomains(): Promise<void>;
     // (undocumented)
     drop(): Promise<void>;
     fetchNextRequest<R extends Dictionary = Dictionary>(): Promise<Request_2<R> | null>;
@@ -2095,14 +2101,13 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     // (undocumented)
     getTotalCount(): Promise<number>;
     get innerManager(): T;
-    isEmpty(): Promise<boolean>;
-    isFinished(): Promise<boolean>;
     // (undocumented)
     markRequestAsHandled(request: Request_2): Promise<RequestQueueOperationInfo | void | null>;
     // (undocumented)
     persistState(): Promise<void>;
     purge(): Promise<void>;
     purgeDomainQueues(): Promise<void>;
+    readiness(): Promise<RequestSourceState>;
     // (undocumented)
     reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
     recordDomainDelay(url: string, retryAfterMs?: number | null): boolean;
