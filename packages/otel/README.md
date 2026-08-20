@@ -4,8 +4,8 @@ This package provides [OpenTelemetry](https://opentelemetry.io/) instrumentation
 handling pipeline of the crawlers and forwards Crawlee logs to OpenTelemetry, so you can analyze crawler runs in any
 OpenTelemetry-compatible backend (Jaeger, Zipkin, Signoz, ...).
 
-For a step-by-step walkthrough, including setting up a local Jaeger instance, see the
-[Trace and monitor crawlers](https://crawlee.dev/js/docs/guides/trace-and-monitor-crawlers) guide.
+For a step-by-step walkthrough, including setting up a local Jaeger instance, see the "Trace and monitor crawlers"
+guide in the [Crawlee documentation](https://crawlee.dev).
 
 ## Installation
 
