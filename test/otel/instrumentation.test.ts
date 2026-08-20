@@ -17,11 +17,11 @@ import { runExampleComServer } from '../shared/_helper.js';
 /**
  * Drives a real crawler through the real instrumented Crawlee classes.
  *
- * The module patches are applied directly instead of through the module loader hook: inside this monorepo the
- * `@crawlee/*` entries in `node_modules` are symlinks to `packages/*`, so they resolve to a path with no
- * `node_modules` segment for the hook to match. That affects only how the patch is delivered - everything the
+ * The module patches are applied directly rather than through Node's module hook, which would otherwise have to be
+ * registered before Vitest loads any Crawlee module. Only the delivery of the patch is bypassed - everything the
  * instrumentation itself does (which prototypes get wrapped, the span tree, the attributes, error handling, context
- * propagation across the crawler's async boundaries) is exercised here.
+ * propagation across the crawler's async boundaries) is exercised here. The hook path is covered by running the
+ * guide's own examples; see docs/guides/trace-and-monitor-crawlers.mdx.
  */
 interface PatchableModuleDefinition {
     name: string;
