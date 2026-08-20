@@ -148,7 +148,11 @@ beforeAll(async () => {
         res.end();
     });
 
+    // `?linger=<ms>` (default 200) holds the response open after the two URL entries, so a test can act
+    // while this sub-sitemap is still loading.
     app.get('/sitemap-stream-linger.xml', async (req, res) => {
+        const lingerMillis = Number(req.query.linger ?? 200);
+
         async function* stream() {
             yield [
                 '<?xml version="1.0" encoding="UTF-8"?>',
@@ -161,7 +165,7 @@ beforeAll(async () => {
                 '</url>',
             ].join('\n');
 
-            await sleep(200);
+            await sleep(lingerMillis);
 
             yield '</urlset>';
         }
@@ -173,14 +177,17 @@ beforeAll(async () => {
         res.end();
     });
 
+    // Index over the lingering sub-sitemap (2 URLs) followed by a plain one (5 URLs).
     app.get('/sitemap-index.xml', async (req, res) => {
+        const linger = req.query.linger === undefined ? '' : `?linger=${Number(req.query.linger)}`;
+
         res.setHeader('content-type', 'text/xml');
         res.write(
             [
                 '<?xml version="1.0" encoding="UTF-8"?>',
                 '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
                 '<sitemap>',
-                `<loc>${url}/sitemap-stream-linger.xml</loc>`,
+                `<loc>${url}/sitemap-stream-linger.xml${linger}</loc>`,
                 '</sitemap>',
                 '<sitemap>',
                 `<loc>${url}/sitemap.xml</loc>`,
@@ -444,12 +451,17 @@ describe('SitemapRequestLoader', () => {
         const controller = new AbortController();
 
         const list = await SitemapRequestLoader.open({
-            sitemapUrls: [`${url}/sitemap-index.xml`],
+            // The first sub-sitemap stays open for 5s, so the abort below always lands mid-index.
+            sitemapUrls: [`${url}/sitemap-index.xml?linger=5000`],
             signal: controller.signal,
             enqueueStrategy: 'all',
         });
 
-        await sleep(50); // Loads the first sub-sitemap, but not the second
+        // Abort while the first sub-sitemap is still streaming - waiting for its URLs rather than for a fixed duration.
+        while (await list.isEmpty()) {
+            await sleep(10);
+        }
+
         controller.abort();
 
         for await (const request of list) {
@@ -463,8 +475,10 @@ describe('SitemapRequestLoader', () => {
 
     test('timeout option works', async () => {
         const list = await SitemapRequestLoader.open({
-            sitemapUrls: [`${url}/sitemap-index.xml`],
-            timeoutMillis: 50, // Loads the first sub-sitemap, but not the second
+            // The timeout has to fire after the first sub-sitemap streamed its URLs but before it closes;
+            // the test then runs for the whole linger, since the abort cannot interrupt an in-flight fetch.
+            sitemapUrls: [`${url}/sitemap-index.xml?linger=2000`],
+            timeoutMillis: 500,
             enqueueStrategy: 'all',
         });
 
@@ -479,21 +493,27 @@ describe('SitemapRequestLoader', () => {
 
     test('resurrection does not resume aborted loading', async () => {
         const options = {
-            sitemapUrls: [`${url}/sitemap-index.xml`],
+            sitemapUrls: [`${url}/sitemap-index.xml?linger=5000`],
             persistStateKey: 'resurrection-abort',
-            timeoutMillis: 50,
             enqueueStrategy: 'all' as const,
         };
 
         {
-            const list = await SitemapRequestLoader.open(options);
+            const controller = new AbortController();
+            const list = await SitemapRequestLoader.open({ ...options, signal: controller.signal });
 
-            await sleep(50);
+            // Abort while the first sub-sitemap is still streaming, so the state is persisted with the
+            // load aborted half-way through the index.
+            while (await list.isEmpty()) {
+                await sleep(10);
+            }
 
-            await expect(list.isEmpty()).resolves.toBe(false);
+            controller.abort();
             await list.persistState();
         }
 
+        // Deliberately no signal and no timeout here: only the restored abort flag can stop the second
+        // sub-sitemap from being fetched.
         const newList = await SitemapRequestLoader.open(options);
         for await (const request of newList) {
             await newList.markRequestAsHandled(request);
