@@ -17,8 +17,18 @@ npm install @crawlee/otel @opentelemetry/api @opentelemetry/api-logs @openteleme
 
 ## Example usage
 
-Register `CrawleeInstrumentation` with the OpenTelemetry SDK **before** Crawlee is imported - the instrumentation
-patches the crawler classes as they are loaded. The usual way to guarantee that is a separate setup file:
+Crawlee is published as ECMAScript modules, so the crawler classes can only be patched through Node's module hook.
+Register it in its own file, preloaded ahead of everything else:
+
+```typescript
+// register-hook.ts
+import { register } from 'node:module';
+import { pathToFileURL } from 'node:url';
+
+register('@opentelemetry/instrumentation/hook.mjs', pathToFileURL('./'));
+```
+
+Then configure the SDK in a setup file, which also has to load before Crawlee:
 
 ```typescript
 // setup.ts
@@ -34,8 +44,12 @@ sdk.start();
 ```
 
 ```bash
-node --import ./setup.js ./main.js
+node --import ./register-hook.js --import ./setup.js ./main.js
 ```
+
+Without the hook the crawler runs normally but no spans are produced. Register it with `register()` from a preloaded
+file as shown - `--experimental-loader=@opentelemetry/instrumentation/hook.mjs` patches the classes but the spans do
+not come out the other end.
 
 Spans for `BasicCrawler`, `HttpCrawler` and `BrowserCrawler` request handling are then created automatically.
 
@@ -66,14 +80,5 @@ const crawler = new CheerioCrawler({
 | `requestHandlingInstrumentation` | `true` | Instrument the core request handling methods of the crawlers. |
 | `logInstrumentation` | `true` | Forward Crawlee logs to OpenTelemetry logs. |
 | `customInstrumentation` | `[]` | Additional `@crawlee/*` class methods to instrument. |
-
-## A note on linked installs
-
-The automatic instrumentation patches the Crawlee classes when their module is loaded, which requires the package to
-resolve to a path inside a `node_modules` directory. That is true of a normal install (npm, yarn and pnpm alike), but
-not of a package symlinked out to a working copy - `npm link`, a `file:` dependency, or a workspace in this monorepo.
-Node resolves those to their real location, which has no `node_modules` segment, so the hook cannot match the file back
-to the package name and no spans are produced. Either run Node with `--preserve-symlinks --preserve-symlinks-main`, so
-that the symlinked path is kept and the hook can match it, or use `wrapWithSpan`, which does not rely on patching.
 
 > This package is part of the [Crawlee](https://crawlee.dev) monorepo.

@@ -6,6 +6,7 @@ description: How to use OpenTelemetry to trace and monitor your crawlers
 
 import CodeBlock from '@theme/CodeBlock';
 
+import RegisterHookSource from '!!raw-loader!./trace_and_monitor_register_hook.ts';
 import SetupSource from '!!raw-loader!./trace_and_monitor_setup.ts';
 import BasicExampleSource from '!!raw-loader!./trace_and_monitor_basic.ts';
 import WrapWithSpanSource from '!!raw-loader!./trace_and_monitor_wrap_with_span.ts';
@@ -57,6 +58,15 @@ npm install @crawlee/otel @opentelemetry/api @opentelemetry/api-logs @openteleme
 
 OpenTelemetry instrumentation must be set up **before** importing Crawlee or any other instrumented modules. The easiest way to do this is to create a separate setup file and import it first using Node.js's `--import` flag.
 
+### Module hook
+
+Crawlee is published as ECMAScript modules, so the automatic instrumentation can only patch the crawler classes through
+Node's module hook. Register it in its own file, which is preloaded ahead of everything else:
+
+<CodeBlock language="ts" title="src/register-hook.ts">
+    {RegisterHookSource}
+</CodeBlock>
+
 ### Setup file
 
 Create a setup file that initializes OpenTelemetry with the Crawlee instrumentation. Because the exporters buffer
@@ -79,42 +89,24 @@ Now create your crawler. The `CrawleeInstrumentation` will automatically instrum
 Run your crawler with the setup file imported first:
 
 ```bash
-npx tsx --experimental-loader=@opentelemetry/instrumentation/hook.mjs --import ./src/setup.ts ./src/main.ts
+npx tsx --import ./src/register-hook.ts --import ./src/setup.ts ./src/main.ts
 ```
 
-The `--import` flag ensures the OpenTelemetry setup runs before any other code, which is required for the automatic
-instrumentation to work properly. The `--experimental-loader` flag installs the OpenTelemetry module hook, which the
-instrumentation needs in order to patch the Crawlee classes as they are imported.
+The `--import` flags run in order, before any of your own code: the hook is installed first, then the OpenTelemetry SDK
+starts, and only then is the crawler loaded and patched.
 
-:::caution The module hook is required
-
-Crawlee is published as ECMAScript modules, so the automatic instrumentation can only patch the crawler classes when
-Node.js is started with the OpenTelemetry loader hook shown above. Without it the crawler runs normally but no spans
-are produced. The same applies if the Crawlee packages are inlined into a bundle - there is then no module load left to
-intercept, so exclude them from the bundle.
-
-`wrapWithSpan` is unaffected by both, as it wraps your own functions directly rather than relying on patching.
-
-:::
-
-:::caution Linked installs also need `--preserve-symlinks`
-
-Patching additionally requires the package to resolve to a path inside a `node_modules` directory. That holds for a
-normal install (npm, yarn and pnpm alike), but not for a package symlinked out to a working copy - `npm link`, a
-`file:` dependency, or a workspace in a monorepo. Node resolves those to their real location, which has no
-`node_modules` segment, so the hook cannot match the file back to the package name. Add
-`--preserve-symlinks --preserve-symlinks-main` in that case, so that the symlinked path is kept.
-
-The examples on this page live in the Crawlee repository, where the packages are workspace symlinks - so this is how
-you run the one above from the repository root:
+The examples on this page live in the Crawlee repository, so to run this one from a checkout, from the repository root:
 
 ```bash
-cd docs && npx tsx --preserve-symlinks --preserve-symlinks-main \
-    --experimental-loader=@opentelemetry/instrumentation/hook.mjs \
-    --import ./guides/trace_and_monitor_setup.ts ./guides/trace_and_monitor_basic.ts
+pnpm exec tsx --import ./docs/guides/trace_and_monitor_register_hook.ts \
+    --import ./docs/guides/trace_and_monitor_setup.ts \
+    ./docs/guides/trace_and_monitor_basic.ts
 ```
 
-:::
+## Troubleshoot instrumentation setup
+
+Proper setup of instrumentation depends on your specific environment setup. Please refer to the [OTEL documentation](https://github.com/open-telemetry/opentelemetry-js/blob/main/doc/esm-support.md).
+
 
 ## Analyze the results
 
