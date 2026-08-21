@@ -4,7 +4,6 @@ import { z } from 'zod';
 
 import { cryptoRandomObjectId } from '@apify/utilities';
 
-import { getDefaultCookieExpirationDate } from '../cookie_utils.js';
 import type { CrawleeLogger } from '../log.js';
 import { serviceLocator } from '../service_locator.js';
 import { parseArgument, schemas, validators } from '../validators.js';
@@ -62,7 +61,10 @@ export interface SessionOptions {
     /** Date of creation. */
     createdAt?: Date;
 
-    /** Date of expiration. */
+    /**
+     * Date of expiration.
+     * @default createdAt + maxAgeSecs
+     */
     expiresAt?: Date;
 
     /**
@@ -191,7 +193,8 @@ export class Session implements ISession {
             retired,
             log,
             fingerprint,
-            expiresAt = getDefaultCookieExpirationDate(maxAgeSecs),
+            // Anchored to `createdAt` rather than to "now", so the documented `createdAt + maxAgeSecs` holds.
+            expiresAt = new Date(createdAt.getTime() + maxAgeSecs * 1000),
         } = parseArgument(options, sessionOptionsSchema);
 
         this.#log = log.child({ prefix: 'Session' });
