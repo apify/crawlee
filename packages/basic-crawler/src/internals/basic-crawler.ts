@@ -2065,10 +2065,10 @@ export class BasicCrawler<
         const maxCrawlDepth = this.#maxCrawlDepth;
         const validateRequestUserData = this.validateRequestUserData.bind(this);
 
-        type SkippedRequestInfo = {
+        interface SkippedRequestInfo {
             requestOptions: ReturnType<typeof createRequestOptions>[number];
             reason: SkippedRequestReason;
-        };
+        }
 
         const allSkipped: SkippedRequestInfo[] = [];
 
