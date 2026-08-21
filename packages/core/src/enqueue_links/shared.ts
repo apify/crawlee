@@ -4,7 +4,7 @@ import type { Awaitable, Dictionary } from '@crawlee/types';
 import { Minimatch } from 'minimatch';
 import { z } from 'zod';
 
-import type { RequestOptions } from '../request.js';
+import type { Request, RequestOptions } from '../request.js';
 import { schemas } from '../validators.js';
 import type { EnqueueStrategyOption } from './enqueue_links.js';
 
@@ -57,7 +57,12 @@ export type SkippedRequestReason =
     | 'redirect'
     | 'depth';
 
-export type SkippedRequestCallback = (args: { url: string; reason: SkippedRequestReason }) => Awaitable<void>;
+export type SkippedRequestCallback = (args: {
+    /** @deprecated Use `request.url` instead. */
+    url: string;
+    request: Request;
+    reason: SkippedRequestReason;
+}) => Awaitable<void>;
 
 /**
  * @ignore

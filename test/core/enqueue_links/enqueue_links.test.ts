@@ -667,11 +667,15 @@ describe('enqueueLinks()', () => {
                 expect(enqueued[0].userData).toEqual({ label: 'global-label' });
 
                 const skippedCalls = onSkippedRequest.mock.calls.map(
-                    (call: unknown[]) => call[0] as { url: string; reason: string },
+                    (call: unknown[]) => call[0] as { url: string; request: Request; reason: string },
                 );
                 const transformSkipped = skippedCalls.filter((s) => s.url === 'https://example.com/a/b/first');
                 expect(transformSkipped).toHaveLength(1);
-                expect(transformSkipped[0]).toEqual({ url: 'https://example.com/a/b/first', reason: 'transform' });
+                expect(transformSkipped[0]).toMatchObject({
+                    url: 'https://example.com/a/b/first',
+                    reason: 'transform',
+                });
+                expect(transformSkipped[0]!.request).toBeInstanceOf(Request);
                 const unchangedSkipped = skippedCalls.filter((s) => s.url === 'https://example.com/a/b/third');
                 expect(unchangedSkipped).toHaveLength(0);
             });
@@ -699,11 +703,15 @@ describe('enqueueLinks()', () => {
                 expect(enqueued[0].url).toBe('https://example.com/a/b/third');
 
                 const skippedCalls = onSkippedRequest.mock.calls.map(
-                    (call: unknown[]) => call[0] as { url: string; reason: string },
+                    (call: unknown[]) => call[0] as { url: string; request: Request; reason: string },
                 );
                 const transformSkipped = skippedCalls.filter((s) => s.url === 'https://example.com/a/b/first');
                 expect(transformSkipped).toHaveLength(1);
-                expect(transformSkipped[0]).toEqual({ url: 'https://example.com/a/b/first', reason: 'transform' });
+                expect(transformSkipped[0]).toMatchObject({
+                    url: 'https://example.com/a/b/first',
+                    reason: 'transform',
+                });
+                expect(transformSkipped[0]!.request).toBeInstanceOf(Request);
             });
         });
     });

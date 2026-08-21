@@ -1401,7 +1401,7 @@ export class BasicCrawler<
             request.state = RequestState.SKIPPED;
             request.noRetry = true;
             await this.#handleSkippedRequest({
-                url: request.url,
+                request,
                 reason: 'robotsTxt',
             });
 
@@ -1534,7 +1534,7 @@ export class BasicCrawler<
                     request.noRetry = true;
                     request.state = RequestState.SKIPPED;
 
-                    await this.#handleSkippedRequest({ url: request.url, reason: 'redirect' });
+                    await this.#handleSkippedRequest({ request, reason: 'redirect' });
 
                     throw new ContextPipelineInterruptedError(message);
                 }
@@ -1977,10 +1977,12 @@ export class BasicCrawler<
         return Math.min(limit, explicitLimit ?? Infinity);
     }
 
-    async #handleSkippedRequest(options: Parameters<SkippedRequestCallback>[0]): Promise<void> {
+    async #handleSkippedRequest(options: Omit<Parameters<SkippedRequestCallback>[0], 'url'>): Promise<void> {
         // A skipped request is a *successful* outcome, but the interrupt still unwinds through the
         // transaction scope, which rolls back - so the skip bookkeeping must write directly.
         await withDirectStorageAccess(async () => {
+            const skippedRequest = { url: options.request.url, ...options };
+
             if (options.reason === 'limit') {
                 this.logOncePerRun(
                     'maxRequestsPerCrawl',
@@ -1996,7 +1998,7 @@ export class BasicCrawler<
                 );
             }
 
-            await this.#onSkippedRequest?.(options);
+            await this.#onSkippedRequest?.(skippedRequest);
         });
     }
 
@@ -2063,7 +2065,12 @@ export class BasicCrawler<
         const maxCrawlDepth = this.#maxCrawlDepth;
         const validateRequestUserData = this.validateRequestUserData.bind(this);
 
-        const allSkipped: { url: string; reason: SkippedRequestReason }[] = [];
+        interface SkippedRequestInfo {
+            requestOptions: ReturnType<typeof createRequestOptions>[number];
+            reason: SkippedRequestReason;
+        }
+
+        const allSkipped: SkippedRequestInfo[] = [];
 
         async function* filteredRequests() {
             for await (const request of requests) {
@@ -2077,16 +2084,17 @@ export class BasicCrawler<
                 }
 
                 if (maxCrawlDepth !== undefined && requestOptions.crawlDepth! > maxCrawlDepth) {
-                    allSkipped.push({ url: requestOptions.url, reason: 'depth' });
+                    allSkipped.push({ requestOptions, reason: 'depth' });
                     continue;
                 }
 
                 if (!(await isAllowedBasedOnRobotsTxtFile(requestOptions.url))) {
-                    allSkipped.push({ url: requestOptions.url, reason: 'robotsTxt' });
+                    allSkipped.push({ requestOptions, reason: 'robotsTxt' });
                     continue;
                 }
 
-                const onSkippedFilterUrl = (url: string) => allSkipped.push({ url, reason: 'filters' });
+                const onSkippedFilterUrl = (url: string) =>
+                    allSkipped.push({ requestOptions: { ...requestOptions, url }, reason: 'filters' });
 
                 // Filter by user patterns first (with exclude)...
                 let filtered = filterRequestOptionsByPatterns(
@@ -2113,7 +2121,7 @@ export class BasicCrawler<
 
                 if (options.transformRequestFunction) {
                     const transformed = applyRequestTransform([finalOptions], options.transformRequestFunction, (r) =>
-                        allSkipped.push({ url: r.url, reason: r.skippedReason ?? 'transform' }),
+                        allSkipped.push({ requestOptions: r, reason: r.skippedReason ?? 'transform' }),
                     );
 
                     if (transformed.length === 0) {
@@ -2139,11 +2147,20 @@ export class BasicCrawler<
         // Report requests skipped due to the maxNewRequests budget (i.e. maxRequestsPerCrawl limit, or an
         // explicit `limit` option)
         for (const request of result.requestsOverLimit ?? []) {
-            allSkipped.push({ url: typeof request === 'string' ? request : request.url!, reason: 'limit' });
+            const [requestOptions] = createRequestOptions(
+                [typeof request === 'string' ? request : (request as Record<string, unknown>)],
+                { ...options, strategy },
+            );
+
+            if (requestOptions) {
+                allSkipped.push({ requestOptions, reason: 'limit' });
+            }
         }
 
         if (allSkipped.length > 0) {
-            const skippedRobotsUrls = allSkipped.filter((s) => s.reason === 'robotsTxt').map((s) => s.url);
+            const skippedRobotsUrls = allSkipped
+                .filter((s) => s.reason === 'robotsTxt')
+                .map((s) => s.requestOptions.url);
             if (skippedRobotsUrls.length > 0) {
                 this.log.warning(
                     `Some requests were skipped because they were disallowed based on the robots.txt file`,
@@ -2162,9 +2179,11 @@ export class BasicCrawler<
             }
 
             await Promise.all(
-                allSkipped.map(async ({ url, reason }) => {
-                    await this.#handleSkippedRequest({ url, reason });
-                    await options.onSkippedRequest?.({ url, reason });
+                allSkipped.map(async ({ requestOptions, reason }) => {
+                    const request = new Request(requestOptions);
+
+                    await this.#handleSkippedRequest({ request, reason });
+                    await options.onSkippedRequest?.({ url: request.url, request, reason });
                 }),
             );
         }

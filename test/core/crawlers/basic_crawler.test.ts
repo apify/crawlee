@@ -535,8 +535,10 @@ describe('BasicCrawler', () => {
 
             const skippedRequests = onSkippedRequestMock.mock.calls.map((call) => call[0]);
             expect(skippedRequests).toHaveLength(2);
-            expect(skippedRequests[0]).toStrictEqual({ url: 'https://example.com/1/', reason: 'depth' });
-            expect(skippedRequests[1]).toStrictEqual({ url: 'https://example.com/2/', reason: 'depth' });
+            expect(skippedRequests[0]).toMatchObject({ url: 'https://example.com/1/', reason: 'depth' });
+            expect(skippedRequests[1]).toMatchObject({ url: 'https://example.com/2/', reason: 'depth' });
+            expect(skippedRequests[0].request).toBeInstanceOf(Request);
+            expect(skippedRequests[1].request).toBeInstanceOf(Request);
         });
 
         it('should respect user provided transformRequestFunction', async () => {
@@ -565,8 +567,10 @@ describe('BasicCrawler', () => {
 
                 const skippedRequests = onSkippedRequestMock.mock.calls.map((call) => call[0]);
                 expect(skippedRequests).toHaveLength(2);
-                expect(skippedRequests[0]).toStrictEqual({ url: 'https://example.com/1/', reason: 'transform' });
-                expect(skippedRequests[1]).toStrictEqual({ url: 'https://example.com/2/', reason: 'transform' });
+                expect(skippedRequests[0]).toMatchObject({ url: 'https://example.com/1/', reason: 'transform' });
+                expect(skippedRequests[1]).toMatchObject({ url: 'https://example.com/2/', reason: 'transform' });
+                expect(skippedRequests[0].request).toBeInstanceOf(Request);
+                expect(skippedRequests[1].request).toBeInstanceOf(Request);
             },
         );
 
@@ -585,8 +589,10 @@ describe('BasicCrawler', () => {
             // The skipped reason should be 'depth', not 'transform'
             const skippedRequests = onSkippedRequestMock.mock.calls.map((call) => call[0]);
             expect(skippedRequests).toHaveLength(2);
-            expect(skippedRequests[0]).toStrictEqual({ url: 'https://example.com/1/', reason: 'depth' });
-            expect(skippedRequests[1]).toStrictEqual({ url: 'https://example.com/2/', reason: 'depth' });
+            expect(skippedRequests[0]).toMatchObject({ url: 'https://example.com/1/', reason: 'depth' });
+            expect(skippedRequests[1]).toMatchObject({ url: 'https://example.com/2/', reason: 'depth' });
+            expect(skippedRequests[0].request).toBeInstanceOf(Request);
+            expect(skippedRequests[1].request).toBeInstanceOf(Request);
         });
     });
 
@@ -3155,9 +3161,10 @@ describe('BasicCrawler', () => {
             ];
 
             for (const mock of [crawlerOnSkippedRequest, userOnSkippedRequest]) {
-                expect(mock.mock.calls.map((call) => call[0]).sort((a, b) => a.url.localeCompare(b.url))).toEqual(
-                    skipped,
-                );
+                const calls = mock.mock.calls.map((call) => call[0]).sort((a, b) => a.url.localeCompare(b.url));
+                expect(calls).toMatchObject(skipped);
+                expect(calls[0].request).toBeInstanceOf(Request);
+                expect(calls[1].request).toBeInstanceOf(Request);
             }
         });
     });
