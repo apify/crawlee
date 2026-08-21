@@ -27,7 +27,7 @@ import type {
     StatisticState,
     StorageIdentifier,
     StorageWritePolicy,
-    TaskLoopPredicates,
+    TaskLoopOptions,
     TypedRequestsLike,
     UrlPatternObject,
 } from '@crawlee/core';
@@ -101,7 +101,7 @@ import type { ReadonlyDeep } from 'type-fest';
 import { z } from 'zod';
 
 import { LruCache } from '@apify/datastructures';
-import { addTimeoutToPromise, extendTimeout, TimeoutError } from '@apify/timeout';
+import { addTimeoutToPromise, extendTimeout, TimeoutError, tryCancel } from '@apify/timeout';
 import { cryptoRandomObjectId } from '@apify/utilities';
 
 import {
@@ -380,7 +380,7 @@ export interface BasicCrawlerOptions<
      * Concurrency is configured elsewhere — through the `minConcurrency`/`maxConcurrency`/`maxRequestsPerMinute`
      * shortcuts, or a {@apilink BasicCrawlerOptions.concurrencySystem|`concurrencySystem`} for finer control.
      */
-    taskLoopOptions?: TaskLoopPredicates;
+    taskLoopOptions?: TaskLoopOptions;
 
     /**
      * A pre-configured concurrency governor — the component that decides whether there is free compute for one more
@@ -847,8 +847,7 @@ export class BasicCrawler<
     protected readonly requestHandler!: RequestHandler<ExtendedContext>;
     readonly #errorHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
     readonly #failedRequestHandler?: ErrorHandler<CrawlingContext, ExtendedContext>;
-    // kept as TS-private: tests read it at runtime
-    private requestHandlerTimeoutMillis!: number;
+    #requestHandlerTimeoutMillis!: number;
     protected readonly internalTimeoutMillis: number;
     readonly #maxRequestRetries: number;
     readonly #maxCrawlDepth?: number;
@@ -870,8 +869,7 @@ export class BasicCrawler<
      * {@apilink ConcurrencySystem} instead, and the loop's `consumer` identity is the crawler's own, so neither is
      * settable here.
      */
-    // kept as TS-private: tests mutate it at runtime
-    private taskLoopOptions: Omit<AutoscaledPoolOptions, 'concurrencySystem' | 'consumer'>;
+    #taskLoopOptions: Omit<AutoscaledPoolOptions, 'concurrencySystem' | 'consumer'>;
     protected readonly httpClient: BaseHttpClient;
     protected readonly retryOnBlocked: boolean;
     #respectRobotsTxtFile: boolean | { userAgent?: string };
@@ -1106,9 +1104,9 @@ export class BasicCrawler<
             this.#errorHandler = errorHandler;
 
             if (requestHandlerTimeoutSecs) {
-                this.requestHandlerTimeoutMillis = requestHandlerTimeoutSecs * 1000;
+                this.#requestHandlerTimeoutMillis = requestHandlerTimeoutSecs * 1000;
             } else {
-                this.requestHandlerTimeoutMillis = 60_000;
+                this.#requestHandlerTimeoutMillis = 60_000;
             }
 
             this.retryOnBlocked = retryOnBlocked;
@@ -1125,7 +1123,7 @@ export class BasicCrawler<
             // allow at least 5min for internal timeouts
             this.internalTimeoutMillis =
                 serviceLocator.getConfiguration().internalTimeoutMillis ??
-                Math.max(this.requestHandlerTimeoutMillis * 2, 300e3);
+                Math.max(this.#requestHandlerTimeoutMillis * 2, 300e3);
 
             this.#maxRequestRetries = maxRequestRetries;
             this.#maxCrawlDepth = maxCrawlDepth;
@@ -1171,13 +1169,13 @@ export class BasicCrawler<
             this.blockedStatusCodes = new Set(blockedStatusCodesInput ?? BLOCKED_STATUS_CODES);
 
             const maxSignedInteger = 2 ** 31 - 1;
-            if (this.requestHandlerTimeoutMillis > maxSignedInteger) {
+            if (this.#requestHandlerTimeoutMillis > maxSignedInteger) {
                 this.log.warning(
-                    `requestHandlerTimeoutMillis ${this.requestHandlerTimeoutMillis}` +
+                    `requestHandlerTimeoutMillis ${this.#requestHandlerTimeoutMillis}` +
                         ` does not fit a signed 32-bit integer. Limiting the value to ${maxSignedInteger}`,
                 );
 
-                this.requestHandlerTimeoutMillis = maxSignedInteger;
+                this.#requestHandlerTimeoutMillis = maxSignedInteger;
             }
 
             this.internalTimeoutMillis = Math.min(this.internalTimeoutMillis, maxSignedInteger);
@@ -1195,7 +1193,9 @@ export class BasicCrawler<
                 isFinishedFunction = async () => false;
             }
 
-            const crawlerOwnedTaskLoopConfiguration: Partial<typeof this.taskLoopOptions> = {
+            const crawlerOwnedTaskLoopConfiguration: Partial<
+                Omit<AutoscaledPoolOptions, 'concurrencySystem' | 'consumer'>
+            > = {
                 runTaskFunction: async () => {
                     const source = this.requestManager;
                     if (!source) throw new Error('Request provider is not initialized!');
@@ -1340,7 +1340,7 @@ export class BasicCrawler<
                 log: this.log,
             };
 
-            this.taskLoopOptions = { ...taskLoopOptions, ...crawlerOwnedTaskLoopConfiguration };
+            this.#taskLoopOptions = { ...taskLoopOptions, ...crawlerOwnedTaskLoopConfiguration };
 
             this.#resolveConcurrencySystem = () =>
                 OwnedOrInjected.resolve<IConcurrencySystem, ConcurrencySystem>(concurrencySystem, () =>
@@ -1899,7 +1899,7 @@ export class BasicCrawler<
         // which routes a run will hit, so reserve for the longest one any route asked for. The hint is
         // raise-only, so erring high here is safe.
         const maxRouteTimeoutSecs = (this.requestHandler as Partial<RouterHandler>).getMaxTimeoutSecs?.() ?? 0;
-        const handlerTimeoutSecs = Math.max(this.requestHandlerTimeoutMillis / 1000, maxRouteTimeoutSecs);
+        const handlerTimeoutSecs = Math.max(this.#requestHandlerTimeoutMillis / 1000, maxRouteTimeoutSecs);
 
         await requestManager.setExpectedRequestProcessingTimeSecs?.(Math.max(handlerTimeoutSecs + 5, 60));
     }
@@ -2179,6 +2179,7 @@ export class BasicCrawler<
         data: Parameters<Dataset['pushData']>[0],
         datasetIdentifier?: string | StorageIdentifier,
     ): Promise<void> {
+        tryCancel();
         const dataset = await this.getDataset(datasetIdentifier);
         return dataset.pushData(data);
     }
@@ -2289,7 +2290,7 @@ export class BasicCrawler<
         await this.#concurrencySystemDep.ifOwned((system) => system.start());
 
         this.#autoscaledPool = new AutoscaledPool({
-            ...this.taskLoopOptions,
+            ...this.#taskLoopOptions,
             concurrencySystem: this.#concurrencySystemDep.value,
             consumer: this.#identity,
         });
@@ -2329,7 +2330,7 @@ export class BasicCrawler<
      */
     private resolveRequestHandlerTimeoutMillis(
         label: string | undefined,
-        fallbackMillis = this.requestHandlerTimeoutMillis,
+        fallbackMillis = this.#requestHandlerTimeoutMillis,
     ): number {
         return this.getRouteTimeoutMillis(label) ?? fallbackMillis;
     }

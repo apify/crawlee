@@ -601,26 +601,28 @@ describe('BrowserCrawler', () => {
             sources: [{ url: 'http://example.com/?q=1' }],
         });
 
+        const sessionPool = new SessionPool({
+            sessionOptions: {
+                maxUsageCount: 1,
+            },
+            persistStateKeyValueStoreId: 'abc',
+        });
+
         const crawler = new BrowserCrawlerTest({
             requestList,
             browserPoolOptions: {
                 browserPlugins: [puppeteerPlugin],
             },
-
             saveResponseCookies: false,
-            sessionPool: new SessionPool({
-                sessionOptions: {
-                    maxUsageCount: 1,
-                },
-                persistStateKeyValueStoreId: 'abc',
-            }),
+            sessionPool,
             requestHandler: async () => {},
         });
 
-        // @ts-expect-error Accessing private prop
-        expect(crawler.sessionPool.sessionOptions.maxUsageCount).toBe(1);
-        // @ts-expect-error Accessing private prop
-        expect(crawler.sessionPool.persistStateKeyValueStoreId).toBe('abc');
+        expect(crawler.sessionPool).toBe(sessionPool);
+        const session = await sessionPool.getSession();
+        expect(session).toBeDefined();
+        const state = await sessionPool.getState();
+        expect(state.sessions[0].maxUsageCount).toBe(1);
     });
 
     test.skip('should persist cookies per session', async () => {

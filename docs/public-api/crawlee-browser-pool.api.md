@@ -88,6 +88,7 @@ export abstract class BrowserController<Library extends CommonLibrary = CommonLi
     protected abstract _setCookies(page: NewPageResult, cookies: Cookie[]): Promise<void>;
     // (undocumented)
     totalPages: number;
+    waitForActive(): Promise<void>;
 }
 
 // @public (undocumented)

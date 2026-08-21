@@ -146,10 +146,16 @@ export abstract class BrowserController<
 
     #activate!: () => void;
 
-    // kept as TS-private: `BrowserPool` awaits it through cross-object bracket access
-    private isActivePromise = new Promise<void>((resolve) => {
+    #isActivePromise = new Promise<void>((resolve) => {
         this.#activate = resolve;
     });
+
+    /**
+     * Returns a promise that resolves once the browser controller has been activated.
+     */
+    async waitForActive(): Promise<void> {
+        await this.#isActivePromise;
+    }
 
     #commitBrowser!: () => void;
 
@@ -238,7 +244,7 @@ export abstract class BrowserController<
     async newPage(pageOptions?: NewPageOptions): Promise<NewPageResult> {
         this.activePages++;
         this.totalPages++;
-        await this.isActivePromise;
+        await this.#isActivePromise;
         const page = await this._newPage(pageOptions);
         tryCancel();
         this.lastPageOpenedAt = Date.now();

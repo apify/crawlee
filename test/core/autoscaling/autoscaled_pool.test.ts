@@ -205,15 +205,14 @@ describe('AutoscaledPool', () => {
             pool.system.autoscale(cb);
             expect(pool.desiredConcurrency).toBe(2); // because currentConcurrency is not high enough;
 
-            // @ts-expect-error Overwriting readonly private prop
-            pool.system._currentConcurrency = 2;
+            systemOf(pool).tryRegisterTaskStart();
+            systemOf(pool).tryRegisterTaskStart();
             // @ts-expect-error Calling private method on the governor
             pool.system.autoscale(cb);
             expect(pool.desiredConcurrency).toBe(3);
 
             systemStatus.okNow = false; // this should have no effect
-            // @ts-expect-error Overwriting readonly private prop
-            pool.system._currentConcurrency = 3;
+            systemOf(pool).tryRegisterTaskStart();
             // @ts-expect-error Calling private method on the governor
             pool.system.autoscale(cb);
             expect(pool.desiredConcurrency).toBe(4);
@@ -227,20 +226,20 @@ describe('AutoscaledPool', () => {
         test('works with high values', () => {
             // Should not scale because current concurrency is too low.
             systemOf(pool).desiredConcurrency = 50;
-            // @ts-expect-error Overwriting readonly private prop
-            pool.system._currentConcurrency =
+            const targetConcurrency = Math.floor(
                 // @ts-expect-error Accessing private prop on the governor
-                Math.floor(pool.desiredConcurrency * pool.system.desiredConcurrencyRatio) - 1;
+                pool.desiredConcurrency * pool.system.desiredConcurrencyRatio,
+            );
+            for (let i = 0; i < targetConcurrency - 1; i++) {
+                systemOf(pool).tryRegisterTaskStart();
+            }
             systemStatus.okLately = true;
             // @ts-expect-error Calling private method on the governor
             pool.system.autoscale(cb);
             expect(pool.desiredConcurrency).toBe(50);
 
             // Should scale because we bumped up current concurrency.
-            // @ts-expect-error Overwriting readonly private prop
-            pool.system._currentConcurrency =
-                // @ts-expect-error Accessing private prop on the governor
-                Math.floor(pool.desiredConcurrency * pool.system.desiredConcurrencyRatio);
+            systemOf(pool).tryRegisterTaskStart();
             let newConcurrency =
                 // @ts-expect-error Accessing private prop on the governor
                 pool.desiredConcurrency + Math.ceil(pool.desiredConcurrency * pool.system.scaleUpStepRatio);
@@ -280,17 +279,16 @@ describe('AutoscaledPool', () => {
             systemStatus.okNow = false;
             systemOf(pool).desiredConcurrency = 10;
 
-            // Spy on the governor's concurrency accounting - that is where per-task current concurrency now lives.
-            // @ts-expect-error Overwriting readonly private prop on the governor
-            pool.system._currentConcurrency = pool.currentConcurrency;
-            Object.defineProperty(pool.system, 'currentConcurrency', {
-                get() {
-                    return this._currentConcurrency;
-                },
-                set(v) {
-                    concurrencyLog.push(v);
-                    this._currentConcurrency = v;
-                },
+            const origStart = pool.system.tryRegisterTaskStart.bind(pool.system);
+            const origEnd = pool.system.registerTaskEnd.bind(pool.system);
+            vitest.spyOn(pool.system, 'tryRegisterTaskStart').mockImplementation((consumer) => {
+                const res = origStart(consumer);
+                concurrencyLog.push(pool.system.currentConcurrency);
+                return res;
+            });
+            vitest.spyOn(pool.system, 'registerTaskEnd').mockImplementation((consumer) => {
+                origEnd(consumer);
+                concurrencyLog.push(pool.system.currentConcurrency);
             });
 
             expect(pool.currentConcurrency).toBe(0);

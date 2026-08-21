@@ -1305,16 +1305,13 @@ describe('BasicCrawler', () => {
                     isTaskReadyFunctionCalled = true;
                     return Promise.resolve(!isFinished);
                 },
+                maybeRunIntervalSecs: 0.05,
             },
             requestHandler: async ({ request }) => {
                 await sleep(10);
                 processed.push(request);
             },
         });
-
-        // Speed up the test
-        // @ts-expect-error Accessing private prop
-        basicCrawler.taskLoopOptions.maybeRunIntervalSecs = 0.05;
 
         const request0 = new Request({ url: 'http://example.com/0' });
         const request1 = new Request({ url: 'http://example.com/1' });
@@ -1366,15 +1363,14 @@ describe('BasicCrawler', () => {
         const basicCrawler = new BasicCrawler({
             requestQueue,
             keepAlive: true,
+            taskLoopOptions: {
+                maybeRunIntervalSecs: 0.05,
+            },
             requestHandler: async ({ request }) => {
                 await sleep(10);
                 processed.push(request);
             },
         });
-
-        // Speed up the test
-        // @ts-expect-error Accessing private prop
-        basicCrawler.taskLoopOptions.maybeRunIntervalSecs = 0.05;
 
         const request0 = new Request({ url: 'http://example.com/0' });
         const request1 = new Request({ url: 'http://example.com/1' });
@@ -1800,8 +1796,7 @@ describe('BasicCrawler', () => {
         });
 
         const maxSignedInteger = 2 ** 31 - 1;
-        // @ts-expect-error Accessing private prop
-        expect(crawler.requestHandlerTimeoutMillis).toBe(maxSignedInteger);
+        expect(crawler['resolveRequestHandlerTimeoutMillis'](undefined)).toBe(maxSignedInteger);
         // @ts-expect-error Accessing private prop
         expect(crawler.internalTimeoutMillis).toBe(maxSignedInteger);
     });
@@ -2031,21 +2026,23 @@ describe('BasicCrawler', () => {
             const url = 'https://example.com';
             const requestList = await RequestList.open({ sources: [{ url }] });
 
+            const sessionPool = new SessionPool({
+                maxPoolSize: 10,
+                persistStateKey: 'POOL',
+            });
+
             const crawler = new BasicCrawler({
                 requestList,
                 requestHandlerTimeoutSecs: 0.01,
                 maxRequestRetries: 1,
-                sessionPool: new SessionPool({
-                    maxPoolSize: 10,
-                    persistStateKey: 'POOL',
-                }),
+                sessionPool,
                 requestHandler: async () => {},
                 failedRequestHandler: async () => {},
             });
             await crawler.run();
 
-            // @ts-expect-error private symbol
-            expect(crawler.sessionPool.maxPoolSize).toEqual(10);
+            expect(crawler.sessionPool).toBeDefined();
+            expect((await sessionPool.getState()).sessions).toHaveLength(1);
         });
 
         it('should accept a pre-initialized SessionPool instance', async () => {

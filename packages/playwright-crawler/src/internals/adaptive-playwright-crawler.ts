@@ -806,13 +806,19 @@ export class AdaptivePlaywrightCrawler<
 
     private createLogProxy(log: CrawleeLogger, logs: LogProxyCall[]) {
         return new Proxy(log, {
-            get(target: CrawleeLogger, propertyName: (typeof proxyLogMethods)[number], receiver: any) {
+            get(target: CrawleeLogger, propertyName: (typeof proxyLogMethods)[number]) {
                 if (proxyLogMethods.includes(propertyName)) {
                     return (...args: unknown[]) => {
                         logs.push([target, propertyName, ...args]);
                     };
                 }
-                return Reflect.get(target, propertyName, receiver);
+                const value = Reflect.get(target, propertyName, target);
+                // Bind non-intercepted methods to the target instance so private #-fields
+                // (e.g. BaseCrawleeLogger.#options, #warningsLogged) do not throw TypeError at runtime.
+                if (typeof value === 'function') {
+                    return value.bind(target);
+                }
+                return value;
             },
         });
     }
