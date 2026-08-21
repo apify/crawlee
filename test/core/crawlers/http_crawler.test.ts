@@ -8,6 +8,7 @@ import {
     ConcurrencySystem,
     HttpCrawler,
     PersistentRateLimitError,
+    RequestList,
     RequestQueue,
     SessionPool,
     ThrottlingRequestManager,
@@ -678,6 +679,37 @@ test('a domain that never stops rate-limiting shuts the crawl down instead of ha
 
     // The request is deliberately left queued, so a later run can pick it up if the rate limit lifts.
     expect(await crawler.getRequestManager().then((manager) => manager.getPendingCount())).toBe(1);
+}, 30_000);
+
+test('a domain is paced even when its requests come from the wrapped manager', async () => {
+    let hits = 0;
+    router.set('/from-a-list', (req, res) => {
+        hits++;
+        res.statusCode = 429;
+        res.end();
+    });
+
+    // The documented way to crawl a list of URLs while still being able to enqueue new ones. Those requests
+    // live in the wrapped manager rather than in a per-domain sub-queue, and a 429 costs them no retry, so
+    // nothing but the backoff itself can hold them back.
+    const requestList = await RequestList.open(null, [`${url}/from-a-list`]);
+
+    const crawler = new HttpCrawler({
+        requestManager: new ThrottlingRequestManager({
+            inner: await requestList.toTandem(await RequestQueue.open()),
+            domains: ['127.0.0.1'],
+            baseDelaySecs: 0.5,
+            maxDelaySecs: 1,
+            maxDomainStallSecs: 1,
+        }),
+        maxRequestRetries: 0,
+        requestHandler: async () => {},
+    });
+
+    await expect(crawler.run()).rejects.toThrow(PersistentRateLimitError);
+
+    // A handful of paced attempts, rather than one per turn of the task loop for as long as the crawl lives.
+    expect(hits).toBeLessThan(10);
 }, 30_000);
 
 test('`keepAlive` outlives a domain that never stops rate-limiting', async () => {
