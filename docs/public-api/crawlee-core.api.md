@@ -1223,7 +1223,7 @@ export interface RequestListState {
 }
 
 // @public
-export type RequestManagerOpener<T extends IRequestManager = IRequestManager> = (identifier: string | StorageIdentifier, options?: StorageOpenOptions) => Promise<T>;
+export type RequestManagerOpener<T extends IRequestManager = IRequestManager> = (identifier?: string | StorageIdentifier | null, options?: StorageOpenOptions) => Promise<T>;
 
 // @public
 export class RequestManagerTandem implements IRequestManager {
@@ -2108,7 +2108,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
 export interface ThrottlingRequestManagerOptions<T extends IRequestManager = IRequestManager> {
     baseDelaySecs?: number;
     domains: string[] | 'all';
-    inner: T;
+    inner?: T;
     maxDelaySecs?: number;
     maxDomainStallSecs?: number;
     maxThrottledDomains?: number;

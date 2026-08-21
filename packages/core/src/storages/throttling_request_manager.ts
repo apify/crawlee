@@ -25,17 +25,23 @@ import type { StorageIdentifier } from './storage_instance_manager.js';
 import type { StorageOpenOptions } from './utils.js';
 
 const throttlingRequestManagerOptionsSchema = z.strictObject({
-    inner: schemas.anyObject,
+    inner: schemas.anyObject.optional(),
     domains: z.union([schemas.arrayOf(z.string().nonempty(), 'non-empty strings'), z.literal('all')]),
     requestManagerOpener: schemas.anyFunction.optional(),
-    baseDelaySecs: schemas.anyNumber.refine((value) => value > 0, 'Expected a number greater than 0').optional(),
-    maxDelaySecs: schemas.anyNumber.refine((value) => value > 0, 'Expected a number greater than 0').optional(),
-    maxDomainStallSecs: schemas.anyNumber.refine((value) => value > 0, 'Expected a number greater than 0').optional(),
+    baseDelaySecs: schemas.anyNumber
+        .refine((value: number) => value > 0, 'Expected a number greater than 0')
+        .optional(),
+    maxDelaySecs: schemas.anyNumber.refine((value: number) => value > 0, 'Expected a number greater than 0').optional(),
+    maxDomainStallSecs: schemas.anyNumber
+        .refine((value: number) => value > 0, 'Expected a number greater than 0')
+        .optional(),
     minCrawlDelaySecs: schemas.anyNumber
-        .refine((value) => value >= 0, 'Expected a number greater than or equal to 0')
+        .refine((value: number) => value >= 0, 'Expected a number greater than or equal to 0')
         .optional(),
     throttleBy: z.enum(['hostname', 'registrableDomain']).optional(),
-    maxThrottledDomains: schemas.anyNumber.refine((value) => value > 0, 'Expected a number greater than 0').optional(),
+    maxThrottledDomains: schemas.anyNumber
+        .refine((value: number) => value > 0, 'Expected a number greater than 0')
+        .optional(),
     persistStateKey: z.string().nonempty().optional(),
 });
 
@@ -47,7 +53,7 @@ const throttlingRequestManagerOptionsSchema = z.strictObject({
  * concrete type and storage backend of the manager being wrapped.
  */
 export type RequestManagerOpener<T extends IRequestManager = IRequestManager> = (
-    identifier: string | StorageIdentifier,
+    identifier?: string | StorageIdentifier | null,
     options?: StorageOpenOptions,
 ) => Promise<T>;
 
@@ -81,9 +87,9 @@ export function supportsDomainThrottling(manager: unknown): manager is SupportsD
 export interface ThrottlingRequestManagerOptions<T extends IRequestManager = IRequestManager> {
     /**
      * The request manager to wrap, usually a {@apilink RequestQueue}. Requests for domains that are not throttled
-     * are stored here.
+     * are stored here. If not provided, a default queue will be opened.
      */
-    inner: T;
+    inner?: T;
 
     /**
      * Which domains to throttle: a list of hostnames, or `'all'` for every domain the crawl encounters.
@@ -269,7 +275,7 @@ const DEFAULT_PERSIST_STATE_KEY = 'CRAWLEE_THROTTLED_DOMAINS';
 export class ThrottlingRequestManager<T extends IRequestManager = IRequestManager>
     implements IRequestManager, SupportsDomainThrottling
 {
-    readonly #inner: T;
+    #inner?: T;
     readonly #requestManagerOpener: RequestManagerOpener<T>;
     readonly #baseDelayMs: number;
     readonly #maxDelayMs: number;
@@ -380,7 +386,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
 
     /** The wrapped manager, holding every request whose domain is not throttled. */
     get innerManager(): T {
-        return this.#inner;
+        return this.#inner!;
     }
 
     /** Warns once about sources that cannot be routed by domain, because their URLs are not known yet. */
@@ -429,7 +435,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         const domain = this.#extractDomain(url);
 
         if (!domain || !(this.#listedDomains.has(domain) || this.#throttlesEveryDomain)) {
-            return this.#inner;
+            return this.#inner!;
         }
 
         if (!this.#listedDomains.has(domain) && !this.#discoveredDomains.has(domain)) {
@@ -520,6 +526,10 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
 
     async #ensureSubManagers(): Promise<void> {
         this.#subManagersReady ??= (async () => {
+            if (!this.#inner) {
+                this.#inner = await this.#requestManagerOpener(null, { configuration: this.config });
+            }
+
             if (this.#throttlesEveryDomain) {
                 this.#domainListStore = await KeyValueStore.open(null, { configuration: this.config });
 
@@ -813,7 +823,8 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         const key = request.id ?? request.uniqueKey;
 
         if (this.#inFlightFromInner.delete(key)) {
-            return this.#inner;
+            await this.#ensureSubManagers();
+            return this.#inner!;
         }
 
         return this.#selectManagerOrThrow(request.url);
@@ -843,7 +854,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         const fetchable = await Promise.all(
             this.#fetchableDomains().map(async (domain) => this.#subManagers.get(domain)!),
         );
-        const results = await Promise.all([this.#inner, ...fetchable].map(async (manager) => manager.isEmpty()));
+        const results = await Promise.all([this.#inner!, ...fetchable].map(async (manager) => manager.isEmpty()));
 
         return results.every(Boolean);
     }
@@ -862,7 +873,8 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
      * site rather than of the run, so it survives.
      */
     async purge(): Promise<void> {
-        await this.#inner.purge?.();
+        await this.#ensureSubManagers();
+        await this.#inner!.purge?.();
         await this.purgeDomainQueues();
     }
 
@@ -891,17 +903,20 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     }
 
     async #forEachManager(fn: (manager: T) => Promise<unknown> | undefined): Promise<void> {
+        await this.#ensureSubManagers();
         // `fn` targets optional members, so it may return nothing - the wrapper normalizes that for `Promise.all`.
-        await Promise.all([this.#inner, ...(await this.#getSubManagers())].map(async (manager) => fn(manager)));
+        await Promise.all([this.#inner!, ...(await this.#getSubManagers())].map(async (manager) => fn(manager)));
     }
 
     async #sumOverManagers(fn: (manager: T) => Promise<number>): Promise<number> {
-        const counts = await Promise.all([this.#inner, ...(await this.#getSubManagers())].map(fn));
+        await this.#ensureSubManagers();
+        const counts = await Promise.all([this.#inner!, ...(await this.#getSubManagers())].map(fn));
         return counts.reduce((a, b) => a + b, 0);
     }
 
     async #everyManager(fn: (manager: T) => Promise<boolean>): Promise<boolean> {
-        const results = await Promise.all([this.#inner, ...(await this.#getSubManagers())].map(fn));
+        await this.#ensureSubManagers();
+        const results = await Promise.all([this.#inner!, ...(await this.#getSubManagers())].map(fn));
         return results.every(Boolean);
     }
 
@@ -937,7 +952,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
             state.crawlDelayUntil = crawlDelayUntilBefore;
         }
 
-        const request = await this.#inner.fetchNextRequest<R>();
+        const request = await this.#inner!.fetchNextRequest<R>();
 
         if (request !== null) {
             this.#inFlightFromInner.add(request.id ?? request.uniqueKey);
