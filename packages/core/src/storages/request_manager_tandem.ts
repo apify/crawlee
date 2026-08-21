@@ -244,4 +244,12 @@ export class RequestManagerTandem implements IRequestManager {
         this.#expectedRequestProcessingSecs = secs;
         await this.#resolvedRequestManager?.setExpectedRequestProcessingTimeSecs?.(secs);
     }
+
+    /**
+     * Forwards to the writable request manager, which is where requests are fetched from and locked.
+     * @inheritdoc
+     */
+    async prolongRequestLock(request: Request, secs: number): Promise<boolean> {
+        return (await this.getRequestManager()).prolongRequestLock?.(request, secs) ?? false;
+    }
 }

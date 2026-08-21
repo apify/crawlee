@@ -247,6 +247,42 @@ describe('ThrottlingRequestManager', () => {
         expect(await inner.getPendingCount()).toBe(0);
     });
 
+    test('prolongRequestLock reaches the manager holding the request without disturbing its routing', async () => {
+        const inner = await createQueue();
+        const manager = new ThrottlingRequestManager({ inner, domains: ['example.com'] });
+
+        // One request routed to its domain's sub-queue, one left in the inner manager.
+        await manager.addRequest({ url: 'https://example.com/routed' });
+        await inner.addRequest({ url: 'https://example.com/inner' });
+
+        const innerStub = vi.fn(async () => true);
+        (inner.backend as any).prolongRequestLock = innerStub;
+
+        const routed = (await manager.fetchNextRequest())!;
+        expect(routed.url).toBe('https://example.com/routed');
+        const fromInner = (await manager.fetchNextRequest())!;
+        expect(fromInner.url).toBe('https://example.com/inner');
+
+        // The sub-queue is opened with a deterministic alias and the instance manager caches frontends,
+        // so re-opening it yields the same `RequestQueue` the manager routes to.
+        const subQueue = await RequestQueue.open({ alias: 'throttled-example.com' });
+        const subStub = vi.fn(async () => true);
+        (subQueue.backend as any).prolongRequestLock = subStub;
+
+        await expect(manager.prolongRequestLock(routed, 30)).resolves.toBe(true);
+        expect(subStub).toHaveBeenCalledExactlyOnceWith(routed.id, 30);
+        expect(innerStub).not.toHaveBeenCalled();
+
+        // Prolonging a request still held by the inner manager must not consume the in-flight marker
+        // that later routes `markRequestAsHandled` back to it.
+        await expect(manager.prolongRequestLock(fromInner, 30)).resolves.toBe(true);
+        expect(innerStub).toHaveBeenCalledExactlyOnceWith(fromInner.id, 30);
+        expect(subStub).toHaveBeenCalledTimes(1);
+
+        await manager.markRequestAsHandled(fromInner);
+        expect(await inner.getPendingCount()).toBe(0);
+    });
+
     test('recordDomainDelay enforces throttling and fair scheduling', async () => {
         const inner = await createQueue();
         const manager = new ThrottlingRequestManager({

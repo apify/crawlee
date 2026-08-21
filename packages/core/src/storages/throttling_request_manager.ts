@@ -890,6 +890,20 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         await this.#forEachManager((manager) => manager.setExpectedRequestProcessingTimeSecs?.(secs));
     }
 
+    /**
+     * Routes to the manager holding the request, exactly like {@link ThrottlingRequestManager.markRequestAsHandled}
+     * and {@link ThrottlingRequestManager.reclaimRequest} do — but without consuming the in-flight marker
+     * that later routes those calls: prolonging a lock does not hand the request back.
+     * @inheritdoc
+     */
+    async prolongRequestLock(request: Request, secs: number): Promise<boolean> {
+        const key = request.id ?? request.uniqueKey;
+
+        const manager = this.#inFlightFromInner.has(key) ? this.#inner : await this.#selectManagerOrThrow(request.url);
+
+        return (await manager.prolongRequestLock?.(request, secs)) ?? false;
+    }
+
     async #forEachManager(fn: (manager: T) => Promise<unknown> | undefined): Promise<void> {
         // `fn` targets optional members, so it may return nothing - the wrapper normalizes that for `Promise.all`.
         await Promise.all([this.#inner, ...(await this.#getSubManagers())].map(async (manager) => fn(manager)));

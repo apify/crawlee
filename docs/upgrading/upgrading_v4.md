@@ -1591,7 +1591,7 @@ The request queue backend was reduced from 12 methods to 10. The distributed-loc
 | `updateRequest(request, opts?)` | `markRequestAsHandled(request)` / `reclaimRequest(request, opts?)` |
 | `listHead(opts?)` | `fetchNextRequest()` (returns a single request, marks it in progress) |
 | `listAndLockHead(opts)` | Removed (locking is internal to the client) |
-| `prolongRequestLock(id, opts)` | Removed |
+| `prolongRequestLock(id, opts)` | `prolongRequestLock(requestId, secs)` (optional — per-request lock extension for locking backends; wired to `context.extendTimeout`) |
 | `deleteRequestLock(id, opts?)` | Removed |
 | `deleteRequest(id)` | Removed |
 | _(n/a)_ | `isEmpty()` (new — `true` when no pending requests are left to fetch) |
