@@ -9,6 +9,9 @@ import type { Readable } from 'node:stream';
 // @public (undocumented)
 export type AllowedHttpMethods = 'GET' | 'HEAD' | 'POST' | 'PUT' | 'DELETE' | 'TRACE' | 'OPTIONS' | 'CONNECT' | 'PATCH' | 'get' | 'head' | 'post' | 'put' | 'delete' | 'trace' | 'options' | 'connect' | 'patch';
 
+// @public (undocumented)
+export type Awaitable<T> = T | PromiseLike<T>;
+
 // @public
 export interface BaseHttpClient {
     sendRequest(request: Request, options?: SendRequestOptions): Promise<Response>;
@@ -21,6 +24,9 @@ export interface BatchAddRequestsResult {
     // (undocumented)
     unprocessedRequests: UnprocessedRequest[];
 }
+
+// @public (undocumented)
+export type Constructor<T = unknown> = new (...args: any[]) => T;
 
 // @public (undocumented)
 export interface Cookie {

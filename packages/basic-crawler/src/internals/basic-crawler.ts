@@ -1938,7 +1938,6 @@ export class BasicCrawler<
 
     /**
      * Opens the default {@apilink RequestQueue} — the crawler's own, read from when the caller supplied nothing.
-     * @private
      */
     private async openOwnedRequestQueue(): Promise<RequestQueue> {
         // The first crawler instance uses the default queue (null identifier);
