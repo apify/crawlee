@@ -336,7 +336,13 @@ export class PlaywrightCrawler<
             compileScript: (scriptString: string, ctx?: Dictionary) => playwrightUtils.compileScript(scriptString, ctx),
             closeCookieModals: async () => playwrightUtils.closeCookieModals(context.page),
             handleCloudflareChallenge: async (options?: HandleCloudflareChallengeOptions) => {
-                return playwrightUtils.handleCloudflareChallenge(context.page, context.request.url, options);
+                let response: Response | undefined;
+                try {
+                    response = context.response;
+                } catch {
+                    // the `response` getter throws before navigation (or when navigation produced no response)
+                }
+                return playwrightUtils.handleCloudflareChallenge(context.page, context.request.url, options, response);
             },
         };
     }
@@ -345,6 +351,11 @@ export class PlaywrightCrawler<
 /**
  * Returns a `postNavigationHooks`-ready hook that runs {@apilink PlaywrightContextUtils.handleCloudflareChallenge}
  * and propagates the post-challenge {@apilink Response} back into the crawling context via its return value.
+ *
+ * Cloudflare serves its challenge pages with a 403 status, which is part of the default `blockedStatusCodes`.
+ * Keep it there - the hook runs before the blocked-status check and replaces the response on a solved
+ * challenge, so solved requests pass it, while unsolved or undetected challenges keep the 403 and get
+ * retried with a fresh session.
  *
  * **Example usage**
  * ```ts
