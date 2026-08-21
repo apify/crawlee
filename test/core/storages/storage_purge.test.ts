@@ -121,9 +121,12 @@ describe('FileSystemStorageBackend.purge over a pre-existing storage directory',
     // input directory. Purging it would delete data we never wrote.
     test('leaves a storage directory it did not create alone', async () => {
         const foreignDirectory = temporaryDirectory();
+        // The `<type>` directories the backend writes under its `localDataDirectory` are part of the
+        // documented on-disk layout, so they are joined here rather than read back off the backend.
+        const keyValueStoresDirectory = resolve(foreignDirectory, 'key_value_stores');
         const backend = new FileSystemStorageBackend({ localDataDirectory: foreignDirectory });
-        await mkdir(resolve(backend.keyValueStoresDirectory, 'hand-placed'), { recursive: true });
-        await writeFile(resolve(backend.keyValueStoresDirectory, 'hand-placed', 'INPUT.json'), '{"hand":"placed"}');
+        await mkdir(resolve(keyValueStoresDirectory, 'hand-placed'), { recursive: true });
+        await writeFile(resolve(keyValueStoresDirectory, 'hand-placed', 'INPUT.json'), '{"hand":"placed"}');
 
         await backend.purge();
 
@@ -135,17 +138,18 @@ describe('FileSystemStorageBackend.purge over a pre-existing storage directory',
     // `{ id }` — not a run-scoped identifier, so it is not ours to empty.
     test('leaves an unnamed storage directory named after its own id alone', async () => {
         const ownDirectory = temporaryDirectory();
+        const datasetsDirectory = resolve(ownDirectory, 'datasets');
         const firstRun = new FileSystemStorageBackend({ localDataDirectory: ownDirectory });
         const dataset = await firstRun.createDatasetBackend({ name: 'seed' });
         await dataset.pushData([{ from: 'another-tool' }]);
         await firstRun.teardown();
 
         // Turn the fixture into an unnamed storage living in an id-named directory.
-        const metadataPath = resolve(firstRun.datasetsDirectory, 'seed', '__metadata__.json');
+        const metadataPath = resolve(datasetsDirectory, 'seed', '__metadata__.json');
         const metadata = JSON.parse(await readFile(metadataPath, 'utf8')) as { id: string };
         const { id } = metadata;
         await writeFile(metadataPath, JSON.stringify({ ...metadata, name: null }));
-        await rename(resolve(firstRun.datasetsDirectory, 'seed'), resolve(firstRun.datasetsDirectory, id));
+        await rename(resolve(datasetsDirectory, 'seed'), resolve(datasetsDirectory, id));
 
         const secondRun = new FileSystemStorageBackend({ localDataDirectory: ownDirectory });
         await secondRun.purge();

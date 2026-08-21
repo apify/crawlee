@@ -33,22 +33,16 @@ export class FetchHttpClient extends BaseHttpClient {
         logger?: CrawleeLogger;
     });
     // (undocumented)
-    fetch(request: Request, options?: RequestInit & CustomFetchOptions): Promise<Response>;
-}
-
-// @public (undocumented)
-export interface IResponseWithUrl extends Response {
-    // (undocumented)
-    url: string;
+    protected fetch(request: Request, options?: RequestInit & CustomFetchOptions): Promise<Response>;
 }
 
 // @public
-export class ResponseWithUrl extends Response implements IResponseWithUrl {
+export class ResponseWithUrl extends Response {
     constructor(body: BodyInit | null, init: ResponseInit & {
         url?: string;
     });
     // (undocumented)
-    url: string;
+    readonly url: string;
 }
 
 // (No @packageDocumentation comment for this package)

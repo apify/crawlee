@@ -1,7 +1,7 @@
 import { schemas } from '@crawlee/utils/internal';
 
-export { ArgumentValidationError, parseArgument } from '@crawlee/utils';
-export { schemas } from '@crawlee/utils/internal';
+export { ArgumentValidationError } from '@crawlee/utils';
+export { parseArgument, schemas } from '@crawlee/utils/internal';
 
 /** @internal */
 export const validators = {

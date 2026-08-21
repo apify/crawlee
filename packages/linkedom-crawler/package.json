@@ -47,8 +47,6 @@
         "access": "public"
     },
     "dependencies": {
-        "@apify/timeout": "^0.4.4",
-        "@apify/utilities": "^2.15.5",
         "@crawlee/http": "workspace:*",
         "@crawlee/types": "workspace:*",
         "@crawlee/utils": "workspace:*",

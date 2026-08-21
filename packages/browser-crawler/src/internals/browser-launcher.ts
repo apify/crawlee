@@ -98,14 +98,14 @@ export interface BrowserLaunchContext<TOptions, Launcher> extends BrowserPluginO
  * the browser they run against is only known to the concrete `*BrowserPool()` factory, which is where the
  * caller-facing types are pinned down.
  */
-export type LauncherBrowserPoolOptions = Omit<BrowserPoolOptions, 'browserPlugins'> & {
+type LauncherBrowserPoolOptions = Omit<BrowserPoolOptions, 'browserPlugins'> & {
     [Hook in keyof BrowserPoolHooks<any, any, any>]?: readonly ((...args: any[]) => unknown)[];
 };
 
 /**
  * The {@apilink RemoteBrowserPool} counterpart of {@apilink LauncherBrowserPoolOptions}.
  */
-export type LauncherRemoteBrowserPoolOptions = Omit<RemoteBrowserPoolOptions, 'browserPlugins'>;
+type LauncherRemoteBrowserPoolOptions = Omit<RemoteBrowserPoolOptions, 'browserPlugins'>;
 
 /**
  * Abstract class for creating browser launchers, such as `PlaywrightLauncher` and `PuppeteerLauncher`.

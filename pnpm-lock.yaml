@@ -913,9 +913,6 @@ importers:
       '@apify/timeout':
         specifier: ^0.4.4
         version: 0.4.4
-      '@apify/utilities':
-        specifier: ^2.7.10
-        version: 2.27.0
       '@crawlee/http':
         specifier: workspace:*
         version: link:../http-crawler
@@ -943,12 +940,6 @@ importers:
 
   packages/linkedom-crawler:
     dependencies:
-      '@apify/timeout':
-        specifier: ^0.4.4
-        version: 0.4.4
-      '@apify/utilities':
-        specifier: ^2.15.5
-        version: 2.27.0
       '@crawlee/http':
         specifier: workspace:*
         version: link:../http-crawler

@@ -332,19 +332,12 @@ export class ConcurrencySystem implements IConcurrencySystem {
     /**
      * Gets the desired concurrency for the system,
      * which is an estimated number of parallel tasks that the system can currently support.
+     *
+     * Read-only: the value is owned by the autoscaler, which recomputes it from the load signals on every tick.
+     * Tune the budget through `minConcurrency`/`maxConcurrency` instead.
      */
     get desiredConcurrency(): number {
         return this.#desiredConcurrency;
-    }
-
-    /**
-     * Sets the desired concurrency for the system, i.e. the number of tasks that should be running
-     * in parallel if there's large enough supply of tasks.
-     */
-    set desiredConcurrency(value: number) {
-        parseArgument(value, concurrencySchema);
-        this.#desiredConcurrency = value;
-        this.clampDesiredConcurrency();
     }
 
     /**

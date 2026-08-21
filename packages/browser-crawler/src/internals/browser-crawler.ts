@@ -32,6 +32,7 @@ import {
 import type { CommonPage, CrawlerRemoteBrowserOptions } from '@crawlee/browser-pool';
 import type { Awaitable, Cookie as CookieObject, Dictionary, IBrowserPool, ISession } from '@crawlee/types';
 import {
+    assertBrowserPoolNotConfigured,
     CLOUDFLARE_RETRY_CSS_SELECTORS,
     parseArgument,
     RETRY_CSS_SELECTORS,
@@ -42,8 +43,6 @@ import { sleep } from '@crawlee/utils';
 import { z } from 'zod';
 
 import { addTimeoutToPromise, TimeoutError, tryCancel } from '@apify/timeout';
-
-import type { BrowserLaunchContext } from './browser-launcher.js';
 
 interface BaseResponse {
     status(): number;
@@ -57,25 +56,6 @@ interface BaseResponse {
  * itself intentionally omits `destroy`.
  */
 export type OwnedBrowserPool<Page> = IBrowserPool<Page> & { destroy: () => Promise<void> };
-
-/**
- * Rejects options that exist only to configure the browser pool the crawler would have built for itself.
- * Accepting them alongside a pre-built `browserPool` and quietly ignoring them is how `browserPoolOptions` grew
- * into a second, half-working way of configuring the same pool.
- */
-export function assertBrowserPoolNotConfigured(crawlerName: string, ignoredOptions: Dictionary): void {
-    const names = Object.keys(ignoredOptions).filter((name) => ignoredOptions[name] !== undefined);
-
-    if (names.length === 0) {
-        return;
-    }
-
-    throw new Error(
-        `${crawlerName}: ${names.map((name) => `\`${name}\``).join(', ')} cannot be combined with \`browserPool\`, ` +
-            `${names.length > 1 ? 'they configure' : 'it configures'} the browser pool the crawler would build for ` +
-            'itself. Configure the pool you pass in instead.',
-    );
-}
 
 type ContextDifference<T, U> = Omit<U, keyof T> & Partial<U>;
 
@@ -138,8 +118,6 @@ export interface BrowserCrawlerOptions<
     // Overridden with browser context
     'requestHandler' | 'failedRequestHandler' | 'errorHandler'
 > {
-    launchContext?: BrowserLaunchContext<any, any>;
-
     /**
      * The browser pool the crawler should serve its pages from. This is the single way to run a pool with
      * non-default options: build one with the factory that matches your crawler
@@ -358,7 +336,6 @@ function isNavigationTimeoutError(error: Error): boolean {
 export abstract class BrowserCrawler<
     Page extends CommonPage = CommonPage,
     Response extends BaseResponse = BaseResponse,
-    LaunchOptions extends Dictionary | undefined = Dictionary,
     Context extends BrowserCrawlingContext<Page, Response> = BrowserCrawlingContext<Page, Response>,
     ContextExtension = Dictionary<never>,
     ExtendedContext extends Context = Context & ContextExtension,
@@ -376,8 +353,6 @@ export abstract class BrowserCrawler<
     get browserPool(): IBrowserPool<Page> {
         return this.#browserPoolDep.value;
     }
-
-    launchContext: BrowserLaunchContext<LaunchOptions, unknown>;
 
     protected readonly ignoreShadowRoots: boolean;
     protected readonly ignoreIframes: boolean;
@@ -399,7 +374,6 @@ export abstract class BrowserCrawler<
         preNavigationHooks: schemas.anyArray.default(() => []),
         postNavigationHooks: schemas.anyArray.default(() => []),
 
-        launchContext: schemas.anyObject.default(() => ({})),
         browserPool: validators.browserPool.optional(),
         browserPoolBuilder: schemas.anyFunction.optional(),
         remoteBrowser: schemas.anyObject.optional(),
@@ -414,6 +388,7 @@ export abstract class BrowserCrawler<
 
     /**
      * All `BrowserCrawler` parameters are passed via an options object.
+     * @internal
      */
     protected constructor(
         options: BrowserCrawlerOptions<
@@ -437,7 +412,6 @@ export abstract class BrowserCrawler<
         const {
             navigationTimeoutSecs,
             saveResponseCookies,
-            launchContext,
             browserPool,
             remoteBrowser,
             preNavigationHooks,
@@ -504,7 +478,6 @@ export abstract class BrowserCrawler<
             extendContext,
         });
 
-        this.launchContext = launchContext;
         this.#navigationTimeoutMillis = navigationTimeoutSecs * 1000;
         // The public option hooks are extension-aware; internal storage uses the base context type
         // (the pipeline composes hooks against the concrete context, which does not statically carry
@@ -519,11 +492,12 @@ export abstract class BrowserCrawler<
         this.#browserPoolDep = OwnedOrInjected.resolve(browserPool, () => browserPoolBuilder(remoteBrowser));
     }
 
+    /** @internal */
     protected override getNavigationTimeoutMillis(): number {
         return this.#navigationTimeoutMillis;
     }
 
-    protected override buildContextPipeline(): ContextPipeline<
+    protected buildContextPipeline(): ContextPipeline<
         CrawlingContext,
         BrowserCrawlingContext<Page, Response, Dictionary>
     > {
@@ -748,6 +722,7 @@ export abstract class BrowserCrawler<
     /**
      * Runs the user request handler, then re-reads browser cookies so login flows /
      * `page.setCookie` / XHR `Set-Cookie` updates are stored for later requests.
+     * @internal
      */
     protected override async runRequestHandler(crawlingContext: ExtendedContext): Promise<void> {
         try {
@@ -818,7 +793,7 @@ export abstract class BrowserCrawler<
      */
     private throwIfProxyError(error: Error) {
         if (this.isProxyError(error)) {
-            throw new SessionError(this.getMessageFromError(error) as string);
+            throw new SessionError(this.getMessageFromError(error));
         }
     }
 

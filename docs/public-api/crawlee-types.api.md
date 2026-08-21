@@ -9,6 +9,9 @@ import type { Readable } from 'node:stream';
 // @public (undocumented)
 export type AllowedHttpMethods = 'GET' | 'HEAD' | 'POST' | 'PUT' | 'DELETE' | 'TRACE' | 'OPTIONS' | 'CONNECT' | 'PATCH' | 'get' | 'head' | 'post' | 'put' | 'delete' | 'trace' | 'options' | 'connect' | 'patch';
 
+// @public (undocumented)
+export type Awaitable<T> = T | PromiseLike<T>;
+
 // @public
 export interface BaseHttpClient {
     sendRequest(request: Request, options?: SendRequestOptions): Promise<Response>;
@@ -23,12 +26,7 @@ export interface BatchAddRequestsResult {
 }
 
 // @public (undocumented)
-export interface BrowserLikeResponse {
-    // (undocumented)
-    headers(): Dictionary<string | string[]>;
-    // (undocumented)
-    url(): string;
-}
+export type Constructor<T = unknown> = new (...args: any[]) => T;
 
 // @public (undocumented)
 export interface Cookie {
@@ -164,33 +162,17 @@ export interface HttpRequest {
     // (undocumented)
     followRedirect?: boolean | ((response: any) => boolean);
     // (undocumented)
-    headerGenerator?: {
-        getHeaders: (options: Record<string, unknown>) => Record<string, string>;
-    };
-    // (undocumented)
-    headerGeneratorOptions?: Record<string, unknown>;
-    // (undocumented)
     headers?: Headers;
-    // (undocumented)
-    insecureHTTPParser?: boolean;
-    // (undocumented)
-    maxRedirects?: number;
     // (undocumented)
     method?: AllowedHttpMethods;
     // (undocumented)
     proxyUrl?: string;
     // (undocumented)
-    sessionToken?: object;
-    // (undocumented)
     signal?: AbortSignal;
-    // (undocumented)
-    throwHttpErrors?: boolean;
     // (undocumented)
     timeout?: number;
     // (undocumented)
     url: string | URL;
-    // (undocumented)
-    useHeaderGenerator?: boolean;
 }
 
 // @public
@@ -358,12 +340,6 @@ export interface QueueOperationInfo {
     wasAlreadyHandled: boolean;
     wasAlreadyPresent: boolean;
 }
-
-// @public
-export type RedirectHandler = (redirectResponse: Response, updatedRequest: {
-    url?: string | URL;
-    headers: Headers;
-}) => void;
 
 // @public
 export interface RequestQueueBackend {
@@ -599,12 +575,6 @@ export type StorageIdentifier = {
     name?: never;
     alias?: never;
 };
-
-// @public (undocumented)
-export interface StreamOptions extends SendRequestOptions {
-    // (undocumented)
-    onRedirect?: RedirectHandler;
-}
 
 // @public (undocumented)
 export interface UnprocessedRequest {

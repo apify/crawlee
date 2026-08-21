@@ -53,6 +53,7 @@ export interface TransactionParticipant {
 
 /**
  * A single dataset write (`pushData`) recorded in a transaction journal.
+ * @internal
  */
 export interface DatasetJournalEntry {
     type: 'dataset';
@@ -66,6 +67,7 @@ export interface DatasetJournalEntry {
 
 /**
  * A single key-value store write (`setValue`) recorded in a transaction journal.
+ * @internal
  */
 export interface KeyValueStoreJournalEntry {
     type: 'keyValueStore';
@@ -80,6 +82,7 @@ export interface KeyValueStoreJournalEntry {
 
 /**
  * A request recorded in a transaction journal.
+ * @internal
  */
 export interface JournaledRequest {
     url: string;
@@ -94,6 +97,7 @@ export interface JournaledRequest {
 
 /**
  * A batch of request queue additions recorded in a transaction journal.
+ * @internal
  */
 export interface RequestQueueJournalEntry {
     type: 'requestQueue';
@@ -105,6 +109,7 @@ export interface RequestQueueJournalEntry {
     writeThrough: boolean;
 }
 
+/** @internal */
 export type JournalEntry = DatasetJournalEntry | KeyValueStoreJournalEntry | RequestQueueJournalEntry;
 
 /**
@@ -163,11 +168,13 @@ const COMMIT_ORDER: JournalEntry['type'][] = ['keyValueStore', 'requestQueue', '
  * handler unless `transactionalStorage: false` is set.
  */
 export class StorageTransaction implements StorageTransactionView {
-    /** The ordered, append-only journal — the source of truth for commit, introspection and reads. */
+    /**
+     * The ordered, append-only journal — the source of truth for commit, introspection and reads.
+     * @internal
+     */
     readonly journal: JournalEntry[] = [];
 
-    /** Per-storage-type write policy. */
-    readonly policy: StorageWritePolicy;
+    readonly #policy: StorageWritePolicy;
 
     readonly #commitTimeoutMillis: number;
 
@@ -177,8 +184,16 @@ export class StorageTransaction implements StorageTransactionView {
 
     /** @internal */
     constructor(options: StorageTransactionOptions = {}) {
-        this.policy = { ...DEFAULT_STORAGE_WRITE_POLICY, ...options.policy };
+        this.#policy = { ...DEFAULT_STORAGE_WRITE_POLICY, ...options.policy };
         this.#commitTimeoutMillis = options.commitTimeoutMillis ?? DEFAULT_COMMIT_TIMEOUT_MILLIS;
+    }
+
+    /**
+     * Per-storage-type write policy.
+     * @internal
+     */
+    get policy(): StorageWritePolicy {
+        return this.#policy;
     }
 
     get state(): StorageTransactionState {

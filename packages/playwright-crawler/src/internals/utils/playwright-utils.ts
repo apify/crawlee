@@ -25,8 +25,8 @@ import vm from 'node:vm';
 import { Configuration, KeyValueStore, type Request, serviceLocator, SessionError, validators } from '@crawlee/browser';
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 import type { CheerioAPI } from 'cheerio';
-import { expandShadowRoots, sleep } from '@crawlee/utils';
-import { parseArgument, schemas } from '@crawlee/utils/internal';
+import { sleep } from '@crawlee/utils';
+import { expandShadowRoots, parseArgument, schemas } from '@crawlee/utils/internal';
 import type { Download, Page, Response, Route } from 'playwright';
 import { z } from 'zod';
 
@@ -34,7 +34,6 @@ import { LruCache } from '@apify/datastructures';
 
 import type { EnqueueLinksByClickingElementsOptions } from '../enqueue-links/click-elements.js';
 import { enqueueLinksByClickingElements } from '../enqueue-links/click-elements.js';
-import { RenderingTypePredictor } from './rendering-type-prediction.js';
 
 const getLog = () => serviceLocator.getChildLog('Playwright Utils');
 
@@ -704,7 +703,7 @@ export interface HandleCloudflareChallengeOptions {
  * @param url current URL for request identification, only used for logging
  * @param [options]
  */
-async function handleCloudflareChallenge(
+export async function handleCloudflareChallenge(
     page: Page,
     url: string,
     options: HandleCloudflareChallengeOptions = {},
@@ -1068,19 +1067,3 @@ export interface PlaywrightContextUtils {
 }
 
 export { enqueueLinksByClickingElements };
-
-/** @internal */
-export const playwrightUtils = {
-    injectFile,
-    injectJQuery,
-    gotoExtended,
-    blockRequests,
-    enqueueLinksByClickingElements,
-    parseWithCheerio,
-    infiniteScroll,
-    saveSnapshot,
-    compileScript,
-    closeCookieModals,
-    RenderingTypePredictor,
-    handleCloudflareChallenge,
-};

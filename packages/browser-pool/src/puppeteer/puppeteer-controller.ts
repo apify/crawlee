@@ -22,6 +22,7 @@ export class PuppeteerController extends BrowserController<
     PuppeteerTypes.Browser,
     PuppeteerNewPageOptions
 > {
+    /** @internal */
     normalizeProxyOptions(proxyUrl: string | undefined, pageOptions: any): Record<string, unknown> {
         if (!proxyUrl) {
             return {};

@@ -1005,16 +1005,17 @@ describe('BrowserCrawler', () => {
                     browserPlugins: [puppeteerPlugin],
                     maxOpenPagesPerBrowser: 1,
                     retireBrowserAfterPageCount: 1,
+                    postLaunchHooks: [
+                        (_pageId, browserController) => {
+                            browserProxies.push((browserController as PuppeteerController).launchContext.proxyUrl!);
+                        },
+                    ],
                 },
                 requestList,
                 requestHandler: async () => {},
                 proxyConfiguration,
                 maxRequestRetries: 0,
                 maxConcurrency: 1,
-            });
-
-            (browserCrawler.browserPool as BrowserPool).postLaunchHooks.push((_pageId, browserController) => {
-                browserProxies.push((browserController as PuppeteerController).launchContext.proxyUrl!);
             });
 
             await browserCrawler.run();

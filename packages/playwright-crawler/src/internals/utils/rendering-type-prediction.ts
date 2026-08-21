@@ -116,7 +116,7 @@ const stateCodec = z.codec(persistedState, predictorState, {
  */
 export class RenderingTypePredictor implements IRenderingTypePredictor {
     #detectionRatio: number;
-    #state: RecoverableState<z.infer<typeof predictorState>, z.input<typeof persistedState>>;
+    readonly #state: RecoverableState<z.infer<typeof predictorState>, z.input<typeof persistedState>>;
 
     constructor({ detectionRatio, persistenceOptions }: RenderingTypePredictorOptions) {
         this.#detectionRatio = detectionRatio;
