@@ -700,7 +700,7 @@ export class RequestQueue implements IStorage, IRequestManager {
      * Note that the `null` return value doesn't mean the queue processing finished,
      * it means there are currently no pending requests.
      * To check whether all requests in queue were finished,
-     * use {@apilink RequestQueue.isFinished} instead.
+     * use {@apilink RequestQueue.readiness} instead.
      *
      * @returns
      *   Returns the request object or `null` if there are no more pending requests.

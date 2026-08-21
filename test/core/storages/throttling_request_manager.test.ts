@@ -466,6 +466,23 @@ describe('ThrottlingRequestManager', () => {
         expect(await subQueue.getPendingCount()).toBe(0);
     });
 
+    test('purges its own queues even when the wrapped manager refuses', async () => {
+        // A caller-supplied manager on a storage backend that cannot empty a queue in place refuses outright
+        // rather than quietly doing nothing. The per-domain queues are this manager's own whatever the wrapped
+        // one does, so a refusal must not leave them stale.
+        const inner = await createQueue();
+        const manager = new ThrottlingRequestManager({ inner, domains: ['example.com'] });
+        await manager.addRequest({ url: 'https://example.com/stale' });
+
+        const subQueue = await RequestQueue.open({ alias: 'throttled-example.com' });
+        expect(await subQueue.getPendingCount()).toBe(1);
+
+        vitest.spyOn(inner, 'purge').mockRejectedValue(new Error('cannot empty a request queue in place'));
+
+        await expect(manager.purge()).rejects.toThrow('cannot empty a request queue in place');
+        expect(await subQueue.getPendingCount()).toBe(0);
+    });
+
     describe('stall detection', () => {
         const stallingManager = async () =>
             new ThrottlingRequestManager({

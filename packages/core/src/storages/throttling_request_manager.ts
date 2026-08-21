@@ -971,8 +971,8 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
      * site rather than of the run, so it survives.
      */
     async purge(): Promise<void> {
-        await this.#resolvedInner?.purge?.();
         await this.#purgeDomainQueues();
+        await this.#resolvedInner?.purge?.();
     }
 
     /**
