@@ -92,6 +92,7 @@ describe('RequestList', () => {
         await expect(requestList.markRequestAsHandled(requestObj)).rejects.toThrow();
         await expect(requestList.fetchNextRequest()).rejects.toThrow();
 
+        // @ts-expect-error private method
         await requestList.initialize();
 
         await expect(requestList.isEmpty()).resolves.not.toThrow();

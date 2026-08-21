@@ -5,7 +5,9 @@ import { basename, dirname, relative, resolve } from 'node:path';
 
 import { Extractor, ExtractorConfig, type IConfigFile } from '@microsoft/api-extractor';
 import { globbySync } from 'globby';
-import ts from 'typescript';
+// The workspace `typescript` is the TS 7 native compiler, which no longer ships the JS API
+// this script parses reports with; `typescript-v6` is an npm alias to classic TypeScript.
+import ts from 'typescript-v6';
 
 /**
  * Generates (`--verify` to check) a per-package map of the public type-level interface of

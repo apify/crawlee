@@ -646,7 +646,7 @@ type SafeParameters<T extends (...args: any) => any> = unknown[] extends Paramet
 
 // Not exported by the entry point; reachable only as a referenced type.
 // @public (undocumented)
-const SUPPORTED_HTTP_VERSIONS: readonly ["1", "2"];
+const SUPPORTED_HTTP_VERSIONS: readonly ['1', '2'];
 
 // @public (undocumented)
 export type UnwrapPromise<T> = T extends PromiseLike<infer R> ? UnwrapPromise<R> : T;
