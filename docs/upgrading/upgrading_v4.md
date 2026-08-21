@@ -47,6 +47,7 @@ The purely mechanical renames, collected in one place. Where a row links to a se
 | `RobotsFile` | `RobotsTxtFile` |
 | `markRequestHandled()` | `markRequestAsHandled()` |
 | `requestList.length()` / `requestList.handledCount()` | `await getTotalCount()` / `await getHandledCount()` |
+| `requestList.isEmpty()` / `requestList.isFinished()` | `await readiness()` ([details](#isempty--isfinished-replaced-by-readiness)) |
 | `Dataset.listItems()` | `Dataset.getData()` / `Dataset.values()` ([details](#datasetlistitems-replaced-by-datasetgetdata-and-datasetvalues)) |
 | crawler options `requestList` / `requestQueue` | `requestManager` ([details](#crawler-requestlist--requestqueue-options-deprecated-in-favor-of-requestmanager)) |
 | `enqueueLinks({ requestQueue })` | `enqueueLinks({ requestManager })` |
@@ -609,6 +610,8 @@ By default, only queues that the crawler created itself (the "owned" queue) are 
 | omitted (default) | Purged | Not purged |
 | `true` | Purged | Purged |
 | `false` | Not purged | Not purged |
+
+One combination has no sensible default: `sameDomainDelaySecs` over a request manager you supplied. The per-domain queues that have to be emptied are the crawler's, the manager underneath them is yours, and a purge cannot respect both — so a repeated `run()` throws and asks you to pass `purgeRequestQueue` explicitly rather than guessing.
 
 ```typescript
 // The purge happens automatically between run() calls:
@@ -1389,6 +1392,7 @@ The harmonized loader interface differs from the old `IRequestList` in a few way
 | _(n/a)_ | `getPendingCount(): Promise<number>` (new) |
 | `handledCount(): number` | `getHandledCount(): Promise<number>` (renamed and now async) |
 | `markRequestHandled(request)` | `markRequestAsHandled(request)` (renamed) |
+| `isEmpty(): Promise<boolean>` and `isFinished(): Promise<boolean>` | `readiness(): Promise<RequestSourceState>` ([details](#isempty--isfinished-replaced-by-readiness)) |
 | `reclaimRequest()` on the interface | Removed from the read-only loaders entirely; reclaiming is a write operation that lives only on `IRequestManager` (e.g. `RequestQueue`, `RequestManagerTandem`) |
 | `inProgress: Set<string>` on the interface | Removed from the interface |
 | `persistState(): Promise<void>` (required) | `persistState?(): Promise<void>` (optional) |
@@ -1409,6 +1413,57 @@ const handled = requestList.handledCount();
 const total = await requestList.getTotalCount();
 const handled = await requestList.getHandledCount();
 ```
+
+#### `IRequestManager` gained `recordPacingSignal()`
+
+v3 had no way for a crawler to tell a request source that a domain wants to be left alone for a while — a 429 could only retire the session, and a robots.txt `Crawl-delay` was not enforced at all. `IRequestManager` now carries one member for exactly that:
+
+```typescript
+recordPacingSignal(url: string, signal: PacingSignal): boolean;
+
+type PacingSignal =
+    // the source turned a request away because we were going too fast
+    | { reason: 'rateLimited'; waitMs?: number; scope?: PacingScope }
+    // it declared a standing floor on how often it may be requested
+    | { reason: 'minInterval'; intervalMs: number; scope: PacingScope };
+
+// suggests the two Crawlee itself uses, accepts any string
+type PacingScope = LiteralUnion<'hostname' | 'registrableDomain', string>;
+```
+
+The crawler reports the first when a response rate-limits it (an HTTP 429, carrying the `Retry-After` delay if there was one) and the second for a `Crawl-delay` directive it read from robots.txt — but nothing in the payload names either mechanism, so a manager never has to know where a signal came from. It returns `true` if the manager took responsibility for the signal, which is how the crawler knows whether to treat a rate limit as a paced retry rather than as a blocked response. `ThrottlingRequestManager` implements it; every delay is in milliseconds.
+
+`scope` says how much of the URL space a signal covers. It is an open union — `PacingScope` suggests `'hostname'` and `'registrableDomain'`, which are what Crawlee's own reporters send and what `ThrottlingRequestManager` understands, but any string is accepted, so a pacer keyed on something other than a host (an account, an API key, a platform tenant) can be reported to in its own vocabulary. It is required on `minInterval`, because whoever declares an interval knows what it applies to, and optional on `rateLimited`, because a 429 rarely says whether the limit was per host, per account or per address — omitting it asks the manager to pace at whatever granularity it groups requests by.
+
+A manager may apply a signal to a **wider** scope than it was given — a floor that holds for one host still holds when a whole site is paced by it — but never to a narrower one, which would leave part of what the signal covers running unpaced. `ThrottlingRequestManager` holds one request queue per group, so `throttleBy` is the finest granularity it can express: it widens a `'hostname'`-scoped signal when grouping by `'registrableDomain'` (which is what `sameDomainDelaySecs` configures, and what a robots.txt `Crawl-delay` therefore gets), and **throws** on a signal scoped wider than its grouping or named in a vocabulary it does not speak, rather than quietly under-applying it.
+
+It is required, not optional: reporting a signal is never a question of whether the manager supports it. A manager that does not pace — a plain `RequestQueue` — returns `false`, and the crawler warns that the signal had nowhere to go. A manager that **wraps** another forwards it, as `RequestManagerTandem` does, so that a pacer nested inside a composition still receives it. Forwarding is also why this is one method taking a discriminated payload rather than a method per signal: a wrapper passes the value along without knowing what is in it, and a new kind of signal costs implementors nothing.
+
+#### `isEmpty()` / `isFinished()` replaced by `readiness()`
+
+The two predicates v3 put on `IRequestList` and `IRequestManager` (and on `RequestList`, `RequestQueue` and `RequestProvider`) are replaced by a single `readiness()` call, on `IRequestLoader`, `IRequestManager` and every implementation:
+
+```typescript
+type RequestSourceState =
+    | { status: 'ready' } // a fetch is expected to hand something over  (v3: `!isEmpty()`)
+    | { status: 'waiting'; readyAt?: number } // nothing now, not done   (v3: `isEmpty() && !isFinished()`)
+    | { status: 'stalled'; reason: string } // holding requests it cannot make progress on
+    | { status: 'finished' }; // nothing left at all                     (v3: `isFinished()`)
+```
+
+```diff
+-if (!(await manager.isEmpty())) { /* fetch */ }
++if ((await manager.readiness()).status === 'ready') { /* fetch */ }
+
+-if (await manager.isFinished()) { /* stop */ }
++if ((await manager.readiness()).status === 'finished') { /* stop */ }
+```
+
+Two probes became one, which matters because a crawler's task loop runs them several times a second. The two extra states are things the boolean pair could not express: `waiting` carries an optional `readyAt` timestamp, so a source that is deliberately holding requests back — a rate-limited domain, say — can say *when* it will have work again instead of leaving the crawler to poll; and `stalled` lets a source report that it is holding requests it cannot make progress on, which the crawler turns into a `PersistentRateLimitError`.
+
+If you implemented `IRequestList` or `IRequestManager` yourself, replace the two methods with `readiness()`. Return `ready` without evaluating anything further — that is the answer callers ask for most often and the one they can act on immediately. If your implementation reads from two sources and has to combine their states, the precedence is `ready` > `stalled` > `waiting` > `finished`, and a combined `waiting` carries the earlier of the two `readyAt` values (or none, if neither source named one).
+
+**Storage backends keep the two booleans** — see [`StorageBackend` interface simplified](#storagebackend-interface-simplified).
 
 #### Combining a list and a queue: `toTandem()`
 
@@ -1477,17 +1532,17 @@ const crawler = new CheerioCrawler({
 });
 ```
 
-For the domains you list, a 429 is treated as a rate limit before `blockedStatusCodes` is consulted at all — it honours `Retry-After` (or backs off exponentially), holds only that domain's requests back, and leaves both the session and the request's retry budget untouched. Removing 429 from `blockedStatusCodes` therefore only affects domains the manager does not cover; you do not need to touch it to adopt throttling. Because those retries are free, a domain that never stops rate-limiting would keep the crawl alive indefinitely — so one that goes `maxDomainStallSecs` (15 minutes by default) without letting a single request through shuts the crawl down with a `PersistentRateLimitError`, leaving its requests queued for a later run — unless `keepAlive` is set, which exempts the crawl.
+For the domains you list, a 429 is treated as a rate limit before `blockedStatusCodes` is consulted at all — it honours `Retry-After` (or backs off exponentially), holds only that domain's requests back, and leaves both the session and the request's retry budget untouched. Removing 429 from `blockedStatusCodes` therefore only affects domains the manager does not cover; you do not need to touch it to adopt throttling. Because those retries are free, a domain that never stops rate-limiting would keep the crawl alive indefinitely — so one that goes `maxDomainStallSecs` (15 minutes by default) without letting a single request through shuts the crawl down with a `PersistentRateLimitError`, leaving its requests queued for a later run — unless `keepAlive` is set, where outliving such a domain is the point.
 
 It is also what enforces robots.txt `Crawl-delay` directives — with `respectRobotsTxtFile` enabled and no throttling manager covering the domain, the directive is ignored and the crawler warns about it. See the [request loaders guide](../guides/request-loaders#per-domain-throttling).
 
 #### `sameDomainDelaySecs` is now backed by `ThrottlingRequestManager`
 
-The option means the same thing as in v3 — subdomains included, it still paces a whole site rather than a single host — but it no longer holds delayed requests in memory and re-enqueues them. The crawler now wraps its request manager in a `ThrottlingRequestManager`, which gives every domain a request queue of its own so a delayed request waits in storage. Consequences worth knowing about:
+`sameDomainDelaySecs` still works and still means what it did in v3 — subdomains included, it paces a whole registrable domain rather than a single host. What changed is the machinery underneath: instead of holding delayed requests in an in-memory map and re-enqueueing them, the crawler wraps its request manager in a `ThrottlingRequestManager`, which gives every domain a request queue of its own, so a delayed request waits in storage. Consequences worth knowing about:
 
 - A crawl that discovers more than `maxThrottledDomains` domains (100 by default) throws instead of quietly running out of steam. Pass your own `ThrottlingRequestManager` as `requestManager` to raise the ceiling — or crawl fewer sites.
-- Combining `sameDomainDelaySecs` with a `requestManager` that throttles per domain on its own now throws. Configure the delay on that manager instead, via its `domains: 'all'` and `minCrawlDelaySecs` options.
-- Requests that never pass through the request manager — those from the deprecated `requestList` option, or from a `requestsFromUrl` list — are not paced, and the crawler warns when it hands one out.
+- Combining `sameDomainDelaySecs` with a `ThrottlingRequestManager` passed as `requestManager` now throws — both would pace the same domains from separate keys. Configure the delay on that manager instead, via its `minCrawlDelaySecs` option.
+- Requests that never pass through the request manager — those from a `requestsFromUrl` list — are not paced, and the crawler warns when it hands one out.
 
 #### `BasicCrawler.requestList` and `BasicCrawler.requestQueue` fields removed
 
@@ -1605,6 +1660,8 @@ Methods that may have "nothing" to return now consistently resolve to `undefined
 
 - `isEmpty()` is the weak check — `true` when the next `fetchNextRequest()` would return `undefined`, i.e. there is nothing left to fetch right now. Requests that are currently in progress (fetched but not yet handled or reclaimed) are **not** counted, because they are not fetchable. This is what drives the crawler's task scheduling.
 - `isFinished()` is the strong check — `true` only when there are no pending requests **and** no requests currently in progress (including those locked by other clients sharing the queue). This is what determines whether crawling is actually done. An in-progress request keeps the queue *empty but not finished*, which is what stops a crawler from shutting down while a request is still being processed.
+
+The loader and manager frontends do **not** draw that distinction — `IRequestLoader` and `IRequestManager` answer both questions with one [`readiness()`](#isempty--isfinished-replaced-by-readiness) call. The split lives at the backend boundary because that is the layer where the two questions really are two separate storage lookups; a frontend that split them too would either probe twice per scheduling decision or lose the distinction, whereas a backend that answers one at a time costs its caller nothing.
 
 The separate `RequestQueueV1`/`RequestQueueV2` classes (and the `RequestProvider` base class) have been removed. They no longer differ in behavior — request coordination is now internal to the storage backend — so they are merged into a single `RequestQueue` class. Replace any `RequestQueueV1`, `RequestQueueV2`, or `RequestProvider` imports with `RequestQueue`.
 
