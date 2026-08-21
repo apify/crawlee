@@ -1875,6 +1875,9 @@ type TypedEnqueueLinksOptions<Options, Routes extends Record<keyof Routes, Dicti
     userData?: Dictionary;
 });
 
+// @public
+export type TypedRequestsLike<Routes extends Record<keyof Routes, Dictionary>> = AsyncIterable<LabeledSource<Routes>> | Iterable<LabeledSource<Routes>> | LabeledSource<Routes>[];
+
 // Not exported by the entry point; reachable only as a referenced type.
 // @public (undocumented)
 interface UrlConstraints {
