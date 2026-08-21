@@ -346,6 +346,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     // (undocumented)
     name?: string;
     static open<Data extends Dictionary = Dictionary>(identifier?: string | StorageIdentifier | null, options?: StorageOpenOptions): Promise<Dataset<Data>>;
+    purge(): Promise<void>;
     pushData(data: Data | Data[]): Promise<void>;
     reduce(iteratee: DatasetReducer<Data, Data>): Promise<Data | undefined>;
     reduce(iteratee: DatasetReducer<Data, Data>, memo: undefined, options: DatasetIteratorOptions): Promise<Data | undefined>;
@@ -420,6 +421,7 @@ export interface DatasetOptions {
     // (undocumented)
     backend: DatasetBackend;
     metadata: DatasetInfo;
+    openContext?: StorageOpenContext<DatasetBackend>;
 }
 
 // @public
@@ -812,7 +814,7 @@ export interface KeyConsumer {
 export class KeyValueStore {
     [Symbol.asyncIterator]<T = unknown>(): AsyncGenerator<[string, T], void, undefined>;
     // (undocumented)
-    readonly backend: KeyValueStoreBackend;
+    get backend(): KeyValueStoreBackend;
     // (undocumented)
     readonly configuration: Configuration;
     drop(): Promise<void>;
@@ -827,11 +829,12 @@ export class KeyValueStore {
     getValue<T = unknown>(key: string): Promise<T | null>;
     getValue<T = unknown>(key: string, defaultValue: T): Promise<T>;
     // (undocumented)
-    readonly id: string;
+    get id(): string;
     keys(options?: KeyValueStoreIteratorOptions): AsyncIterable<string> & Promise<string[]>;
     // (undocumented)
     readonly name?: string;
     static open(identifier?: string | StorageIdentifier | null, options?: StorageOpenOptions): Promise<KeyValueStore>;
+    purge(): Promise<void>;
     recordExists(key: string): Promise<boolean>;
     static recordExists(key: string): Promise<boolean>;
     setValue<T>(key: string, value: T | null, options?: RecordOptions): Promise<void>;
@@ -862,6 +865,7 @@ export interface KeyValueStoreOptions {
     // (undocumented)
     backend: KeyValueStoreBackend;
     metadata: KeyValueStoreInfo;
+    openContext?: StorageOpenContext<KeyValueStoreBackend>;
 }
 
 // @public
@@ -1283,7 +1287,7 @@ export class RequestQueue implements IStorage, IRequestManager {
     addRequests(requestsLike: RequestsLike, options?: RequestQueueOperationOptions): Promise<BatchAddRequestsResult>;
     addRequestsBatched(requests: ReadonlyDeep<RequestsLike>, options?: AddRequestsBatchedOptions): Promise<AddRequestsBatchedResult>;
     // (undocumented)
-    readonly backend: RequestQueueBackend;
+    get backend(): RequestQueueBackend;
     drop(): Promise<void>;
     fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request_2<T> | null>;
     getHandledCount(): Promise<number>;
@@ -1292,11 +1296,11 @@ export class RequestQueue implements IStorage, IRequestManager {
     getRequest<T extends Dictionary = Dictionary>(uniqueKey: string): Promise<Request_2<T> | null>;
     getTotalCount(): Promise<number>;
     // (undocumented)
-    readonly id: string;
+    get id(): string;
     isEmpty(): Promise<boolean>;
     isFinished(): Promise<boolean>;
     // (undocumented)
-    readonly log: CrawleeLogger;
+    get log(): CrawleeLogger;
     markRequestAsHandled(request: Request_2): Promise<RequestQueueOperationInfo | null>;
     // (undocumented)
     readonly name?: string;
@@ -1390,6 +1394,7 @@ export interface RequestQueueOptions {
     // (undocumented)
     backend: RequestQueueBackend;
     metadata: RequestQueueInfo;
+    openContext?: StorageOpenContext<RequestQueueBackend>;
     proxyConfiguration?: IProxyConfiguration;
 }
 
@@ -1951,6 +1956,14 @@ export class StorageInstanceManager {
         backendCacheKey: Hashable;
     }): Promise<TStorage>;
     removeFromCache(instance: IStorage): void;
+}
+
+// @public
+export interface StorageOpenContext<TBackend = DatasetBackend | KeyValueStoreBackend | RequestQueueBackend> {
+    alias?: string;
+    // (undocumented)
+    backendCacheKey: Hashable;
+    openBackend: () => Promise<TBackend>;
 }
 
 // @public

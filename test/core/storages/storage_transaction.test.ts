@@ -278,7 +278,7 @@ describe('Dataset in a transaction', () => {
         dataset.backend = {
             getMetadata: async () => realBackend.getMetadata(),
             drop: async () => realBackend.drop(),
-            purge: async () => realBackend.purge(),
+            purge: realBackend.purge?.bind(realBackend),
             pushData: async (items) => realBackend.pushData(items),
             getData: async (options) => {
                 const page = await realBackend.getData(options);
@@ -344,11 +344,12 @@ describe('Dataset in a transaction', () => {
         expect(pushDataSpy).toHaveBeenCalledWith([{ n: 1 }, { n: 2 }, { n: 3 }]);
     });
 
-    test('drop is rejected inside a transaction and allowed under withDirectStorageAccess', async () => {
+    test('drop and purge are rejected inside a transaction and allowed under withDirectStorageAccess', async () => {
         const dataset = await Dataset.open();
 
         await withStorageTransaction(async () => {
             await expect(dataset.drop()).rejects.toThrow(/cannot be used inside a storage transaction/);
+            await expect(dataset.purge()).rejects.toThrow(/cannot be used inside a storage transaction/);
             await withDirectStorageAccess(async () => dataset.drop());
         });
     });
@@ -588,11 +589,12 @@ describe('KeyValueStore in a transaction', () => {
         await expect(store.getValue('COMMITTED_STATE')).resolves.toEqual({ a: 2 });
     });
 
-    test('drop and clearCache are rejected inside a transaction', async () => {
+    test('drop, purge and clearCache are rejected inside a transaction', async () => {
         const store = await KeyValueStore.open();
 
         await withStorageTransaction(async () => {
             await expect(store.drop()).rejects.toThrow(/cannot be used inside a storage transaction/);
+            await expect(store.purge()).rejects.toThrow(/cannot be used inside a storage transaction/);
             expect(() => store.clearCache()).toThrow(/cannot be used inside a storage transaction/);
         });
     });

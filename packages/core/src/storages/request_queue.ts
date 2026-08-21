@@ -34,10 +34,10 @@ import { drainRequestBatches } from './batched_adds.js';
 import type { IRequestManager, RequestsLike } from './request_manager.js';
 import type { RequestQueueStats } from './storage_stats.js';
 import { StorageStatsTracker } from './storage_stats.js';
-import type { IStorage, StorageIdentifier } from './storage_instance_manager.js';
+import type { IStorage, StorageIdentifier, StorageOpenContext } from './storage_instance_manager.js';
 import type { StorageOpenOptions } from './utils.js';
 import { resolveStorageIdentifier } from './storage_instance_manager.js';
-import { getRequestId, purgeDefaultStorages } from './utils.js';
+import { getRequestId, purgeDefaultStorages, recreateStorage } from './utils.js';
 import { RequestDeduplicationCache } from './request_dedup_cache.js';
 
 /**
@@ -119,12 +119,28 @@ const openOptionsSchema = z.strictObject({
  * @category Sources
  */
 export class RequestQueue implements IStorage, IRequestManager {
-    readonly id: string;
+    /** Rebound when {@apilink RequestQueue.purge|`purge()`} recreates the queue, hence the read-only accessors. */
+    #id: string;
+    #backend: RequestQueueBackend;
+    #log: CrawleeLogger;
+
     readonly name?: string;
-    readonly backend: RequestQueueBackend;
     #proxyConfiguration?: IProxyConfiguration;
 
-    readonly log: CrawleeLogger;
+    /** How this queue was opened — `purge()` rebuilds it through this. */
+    readonly #openContext?: StorageOpenContext<RequestQueueBackend>;
+
+    get id(): string {
+        return this.#id;
+    }
+
+    get backend(): RequestQueueBackend {
+        return this.#backend;
+    }
+
+    get log(): CrawleeLogger {
+        return this.#log;
+    }
 
     #requestCache: LruCache<RequestLruItem>;
 
@@ -167,16 +183,19 @@ export class RequestQueue implements IStorage, IRequestManager {
      * @internal
      */
     constructor(options: RequestQueueOptions) {
-        this.id = options.metadata.id;
+        this.#id = options.metadata.id;
         this.name = options.metadata.name;
         this.#events = serviceLocator.getEventManager();
-        this.backend = options.backend;
+        this.#backend = options.backend;
+        this.#openContext = options.openContext;
 
         this.#proxyConfiguration = options.proxyConfiguration;
 
         this.#requestCache = new LruCache({ maxLength: MAX_CACHED_REQUESTS });
         this.#requestSeenCache = new RequestDeduplicationCache();
-        this.log = serviceLocator.getLogger().child({ prefix: `RequestQueue(${this.id}, ${this.name ?? 'no-name'})` });
+        this.#log = serviceLocator
+            .getLogger()
+            .child({ prefix: `RequestQueue(${this.#id}, ${this.name ?? 'no-name'})` });
 
         this.#events.on(EventType.MIGRATING, async () => {
             this.#queuePausedForMigration = true;
@@ -895,13 +914,47 @@ export class RequestQueue implements IStorage, IRequestManager {
     /**
      * Remove all requests from the queue but keep the queue itself, resetting it
      * so it can be reused (e.g. across multiple `crawler.run()` calls).
+     *
+     * A backend that cannot empty a queue in place omits {@apilink RequestQueueBackend.purge}; a run-scoped
+     * queue is then dropped and recreated, so this instance ends up on a fresh queue with a different
+     * {@apilink RequestQueue.id|`id`}.
+     *
+     * @throws If the queue can neither be emptied nor safely replaced — a named queue or one opened by id is
+     * referenced by identity, so a fresh queue would not be the one the caller asked for.
      */
     async purge(): Promise<void> {
         rejectOperationInTransaction('RequestQueue.purge()');
 
-        await this.backend.purge();
+        if (this.backend.purge) {
+            await this.backend.purge();
+            this.#resetLocalState();
+            return;
+        }
 
-        // Reset in-memory bookkeeping so the queue behaves as if freshly opened.
+        const cannotEmpty = `Storage backend "${this.backend.constructor.name}" cannot empty a request queue in place`;
+        const openContext = this.#openContext;
+
+        if (openContext?.alias === undefined) {
+            throw new Error(
+                `${cannotEmpty}, and queue "${this.name ?? this.id}" must not be silently replaced by a fresh one - ` +
+                    `drop it and open a new one if that is what you mean.`,
+            );
+        }
+
+        this.log.warning(`${cannotEmpty}, so queue "${this.id}" is dropped and recreated under a new id.`);
+
+        await recreateStorage(this, openContext, (backend, id) => {
+            this.#backend = backend;
+            this.#id = id;
+            // The log prefix carries the id.
+            this.#log = serviceLocator.getLogger().child({ prefix: `RequestQueue(${id}, ${this.name ?? 'no-name'})` });
+        });
+
+        this.#resetLocalState();
+    }
+
+    /** Forget everything known about the queue's contents, so it behaves as if freshly opened. */
+    #resetLocalState(): void {
         this.#requestCache.clear();
         this.#requestSeenCache.clear();
         this.#inProgressRequestBatchCount = 0;
@@ -1098,6 +1151,9 @@ export interface RequestQueueOptions {
     /** Resolved metadata for the request queue, as returned by the backend's `getMetadata()`. */
     metadata: RequestQueueInfo;
     backend: RequestQueueBackend;
+
+    /** Supplied by `StorageInstanceManager.openStorage()`; without it, `purge()` cannot recreate the queue. */
+    openContext?: StorageOpenContext<RequestQueueBackend>;
 
     /**
      * Used to pass the proxy configuration for the `requestsFromUrl` objects.

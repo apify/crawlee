@@ -5,6 +5,7 @@ import type { AddressInfo } from 'node:net';
 
 import type {
     BasicCrawlerOptions,
+    CrawlerRunOptions,
     EnqueueLinksOptions,
     ErrorHandler,
     RequestHandler,
@@ -37,7 +38,7 @@ import {
 import type { CalculatedStatistics, IConcurrencySystem, IStatistics } from '@crawlee/core';
 import { ConcurrencySystem, MemoryStorageBackend, RequestState } from '@crawlee/core';
 import { BaseHttpClient } from '@crawlee/http-client';
-import type { Dictionary, ISession, ProxyInfo } from '@crawlee/types';
+import type { Dictionary, ISession, ProxyInfo, StorageBackend } from '@crawlee/types';
 import { RobotsTxtFile, sleep } from '@crawlee/utils';
 import express from 'express';
 import type { Mock } from 'vitest';
@@ -45,6 +46,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test, vitest } from 
 import { z } from 'zod';
 
 import { startExpressAppPromise } from '../../shared/_helper.js';
+import { StorageBackendWithoutPurge } from '../../shared/storage_backend_without_purge.js';
 
 import log from '@apify/log';
 
@@ -427,6 +429,46 @@ describe('BasicCrawler', () => {
             'https://example.com/second/0',
             'https://example.com/second/1',
         ]);
+    });
+
+    describe.each([
+        ['a backend that can purge a queue', (): StorageBackend => new MemoryStorageBackend()],
+        ['a backend that cannot', (): StorageBackend => new StorageBackendWithoutPurge()],
+    ])('a second run() with %s', (_backendName, createBackend) => {
+        beforeEach(() => {
+            serviceLocator.reset(); // replace the shared backend this suite's `beforeEach` installed
+            serviceLocator.setStorageBackend(createBackend());
+        });
+
+        const crawlTwice = async (secondRunOptions?: CrawlerRunOptions) => {
+            const processed: string[] = [];
+            const crawler = new BasicCrawler({
+                requestHandler: async ({ request }) => {
+                    processed.push(request.url);
+                },
+            });
+
+            await crawler.run(['https://example.com/only']);
+            await crawler.run(['https://example.com/only'], secondRunOptions);
+
+            return processed;
+        };
+
+        // Purging the crawler's own queue is opt-out, so omitting the option has to behave like `true`.
+        test('re-crawls the same requests by default', async () => {
+            await expect(crawlTwice()).resolves.toEqual(['https://example.com/only', 'https://example.com/only']);
+        });
+
+        test('re-crawls the same requests with purgeRequestQueue: true', async () => {
+            await expect(crawlTwice({ purgeRequestQueue: true })).resolves.toEqual([
+                'https://example.com/only',
+                'https://example.com/only',
+            ]);
+        });
+
+        test('leaves already handled requests alone with purgeRequestQueue: false', async () => {
+            await expect(crawlTwice({ purgeRequestQueue: false })).resolves.toEqual(['https://example.com/only']);
+        });
     });
 
     test('addRequests should respect maxCrawlDepth', async () => {
