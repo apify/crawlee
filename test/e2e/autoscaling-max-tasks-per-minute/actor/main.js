@@ -1,10 +1,12 @@
 import { Actor } from 'apify';
-import { BasicCrawler, log as defaultLog, LogLevel } from '@crawlee/basic';
+import { ApifyLogAdapter, BasicCrawler, log as defaultLog, LogLevel } from '@crawlee/basic';
 
-const crawlerLogger = defaultLog.child({
-    prefix: 'AutoscalingTest',
-    level: LogLevel.INFO,
-});
+const crawlerLogger = new ApifyLogAdapter(
+    defaultLog.child({
+        prefix: 'AutoscalingTest',
+        level: LogLevel.INFO,
+    }),
+);
 
 const mainOptions = {
     exit: Actor.isAtHome(),
@@ -18,8 +20,8 @@ let crawlCalledAt = Date.now();
 
 await Actor.main(async () => {
     const crawler = new BasicCrawler({
-        log: crawlerLogger,
-        autoscaledPoolOptions: { maxTasksPerMinute: 1 },
+        logger: crawlerLogger,
+        maxRequestsPerMinute: 1,
         requestHandler({ log }) {
             log.info(`Crawler requestHandler called after ${Date.now() - crawlCalledAt}ms`);
             crawlCalledAt = Date.now();

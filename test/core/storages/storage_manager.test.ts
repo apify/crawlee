@@ -1,31 +1,20 @@
-import { Configuration, Dataset } from '@crawlee/core';
-
-import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator';
-
-const localStorageEmulator = new MemoryStorageEmulator();
+import { Dataset, MemoryStorageBackend, serviceLocator } from '@crawlee/core';
 
 beforeEach(async () => {
-    await localStorageEmulator.init();
-});
-
-afterAll(async () => {
-    await localStorageEmulator.destroy();
+    serviceLocator.setStorageBackend(new MemoryStorageBackend());
 });
 
 describe('StorageManager', () => {
     test('failed openStorage call does not block subsequent calls (#3661)', async () => {
-        const goodClient = Configuration.getStorageClient();
-        const failingClient = {
-            ...goodClient,
-            datasets: () => {
+        // A real instance, so every method the open path calls (`purge`, `getStorageBackendCacheKey`)
+        // operates on its own state - only the failing call is stubbed.
+        const failingBackend = Object.assign(new MemoryStorageBackend(), {
+            createDatasetBackend: () => {
                 throw new Error('boom');
             },
-            dataset: () => {
-                throw new Error('boom');
-            },
-        };
+        });
 
-        await expect(Dataset.open('will-fail', { storageClient: failingClient as any })).rejects.toThrow('boom');
+        await expect(Dataset.open('will-fail', { storageBackend: failingBackend as any })).rejects.toThrow('boom');
 
         await expect(
             Promise.race([

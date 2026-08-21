@@ -1,8 +1,9 @@
 import type { BrowserLaunchContext } from '@crawlee/browser';
 import { BrowserLauncher, Configuration } from '@crawlee/browser';
 import { PlaywrightPlugin } from '@crawlee/browser-pool';
-import ow from 'ow';
+import { parseArgument, schemas } from '@crawlee/utils/internal';
 import type { Browser, BrowserType, LaunchOptions } from 'playwright';
+import { z } from 'zod';
 
 /**
  * Apify extends the launch options of Playwright.
@@ -59,13 +60,6 @@ export interface PlaywrightLaunchContext extends BrowserLaunchContext<LaunchOpti
     useIncognitoPages?: boolean;
 
     /**
-     * @experimental
-     * Like `useIncognitoPages`, but for persistent contexts, so cache is used for faster loading.
-     * Works best with Firefox. Unstable on Chromium.
-     */
-    experimentalContainers?: boolean;
-
-    /**
      * Sets the [User Data Directory](https://chromium.googlesource.com/chromium/src/+/master/docs/user_data_dir.md) path.
      * The user data directory contains profile data such as history, bookmarks, and cookies, as well as other per-installation local state.
      * If not specified, a temporary directory is used instead.
@@ -84,40 +78,47 @@ export interface PlaywrightLaunchContext extends BrowserLaunchContext<LaunchOpti
  * @ignore
  */
 export class PlaywrightLauncher extends BrowserLauncher<PlaywrightPlugin> {
+    /**
+     * @internal
+     */
     protected static override optionsShape = {
         ...BrowserLauncher.optionsShape,
-        launcher: ow.optional.object,
-        launchContextOptions: ow.optional.object,
+        // Passthrough schemas — the launcher module object must keep its prototype through parsing.
+        launcher: schemas.anyObject.optional(),
+        launchContextOptions: schemas.anyObject.optional(),
     };
+
+    /** @internal */
+    protected static override optionsSchema = z.strictObject(PlaywrightLauncher.optionsShape);
 
     /**
      * All `PlaywrightLauncher` parameters are passed via this launchContext object.
      */
     constructor(
         launchContext: PlaywrightLaunchContext = {},
-        override readonly config = Configuration.getGlobalConfig(),
+        override readonly configuration = Configuration.getGlobalConfiguration(),
     ) {
-        ow(launchContext, 'PlaywrightLauncherOptions', ow.object.exactShape(PlaywrightLauncher.optionsShape));
+        const parsedContext = parseArgument(launchContext, PlaywrightLauncher.optionsSchema, 'PlaywrightLaunchContext');
 
         const {
             launcher = BrowserLauncher.requireLauncherOrThrow<typeof import('playwright')>(
                 'playwright',
                 'apify/actor-node-playwright-*',
             ).chromium,
-        } = launchContext;
+        } = parsedContext;
 
-        const { launchOptions = {}, ...rest } = launchContext;
+        const { launchOptions = {}, ...rest } = parsedContext;
 
         super(
             {
                 ...rest,
                 launchOptions: {
                     ...launchOptions,
-                    executablePath: getDefaultExecutablePath(launchContext, config),
+                    executablePath: getDefaultExecutablePath(parsedContext, configuration),
                 },
                 launcher,
             },
-            config,
+            configuration,
         );
 
         this.Plugin = PlaywrightPlugin;
@@ -129,8 +130,11 @@ export class PlaywrightLauncher extends BrowserLauncher<PlaywrightPlugin> {
  * @returns default path to browser.
  * @ignore
  */
-function getDefaultExecutablePath(launchContext: PlaywrightLaunchContext, config: Configuration): string | undefined {
-    const pathFromPlaywrightImage = config.get('defaultBrowserPath');
+function getDefaultExecutablePath(
+    launchContext: PlaywrightLaunchContext,
+    configuration: Configuration,
+): string | undefined {
+    const pathFromPlaywrightImage = configuration.defaultBrowserPath;
     const { launchOptions = {} } = launchContext;
 
     if (launchOptions.executablePath) {
@@ -177,15 +181,15 @@ function getDefaultExecutablePath(launchContext: PlaywrightLaunchContext, config
  *   Optional settings passed to `browserType.launch()`. In addition to
  *   [Playwright's options](https://playwright.dev/docs/api/class-browsertype?_highlight=launch#browsertypelaunchoptions)
  *   the object may contain our own  {@apilink PlaywrightLaunchContext} that enable additional features.
- * @param [config]
+ * @param [configuration]
  * @returns
  *   Promise that resolves to Playwright's `Browser` instance.
  */
 export async function launchPlaywright(
     launchContext?: PlaywrightLaunchContext,
-    config = Configuration.getGlobalConfig(),
+    configuration = Configuration.getGlobalConfiguration(),
 ): Promise<Browser> {
-    const playwrightLauncher = new PlaywrightLauncher(launchContext, config);
+    const playwrightLauncher = new PlaywrightLauncher(launchContext, configuration);
 
     return playwrightLauncher.launch();
 }

@@ -1,4 +1,4 @@
-import { Dataset, PlaywrightCrawler } from '@crawlee/playwright';
+import { Dataset, handleCloudflareChallengeHook, PlaywrightCrawler, playwrightBrowserPool } from '@crawlee/playwright';
 import { Actor } from 'apify';
 import { launchOptions } from 'camoufox-js';
 import { firefox } from 'playwright';
@@ -13,10 +13,25 @@ const mainOptions = {
 
 await Actor.main(async () => {
     const crawler = new PlaywrightCrawler({
-        proxyConfiguration: await Actor.createProxyConfiguration(),
-        // Camoufox ships its own anti-detection; Crawlee's fingerprint injection conflicts with it
-        // and keeps Cloudflare from ever clearing the challenge.
-        browserPoolOptions: { useFingerprints: false },
+        // The target hard-blocks datacenter IP ranges outright (block page, not a solvable
+        // challenge), so this test needs residential exit nodes.
+        proxyConfiguration: await Actor.createProxyConfiguration({ groups: ['RESIDENTIAL'] }),
+        // Cloudflare serves its challenge with a 403 status. v3's handleCloudflareChallenge removed
+        // 403 from the session pool's blocked status codes itself; in v4 that is an explicit crawler
+        // option, and keeping 403 in the default set would fail challenged requests before the hook
+        // below gets a chance to solve them on retries.
+        blockedStatusCodes: [401, 429],
+        browserPool: playwrightBrowserPool({
+            // Camoufox ships its own anti-detection; Crawlee's fingerprint injection conflicts with it
+            // and keeps Cloudflare from ever clearing the challenge.
+            useFingerprints: false,
+            launchContext: {
+                launcher: firefox,
+                launchOptions: await launchOptions({
+                    headless: true,
+                }),
+            },
+        }),
         preNavigationHooks: [
             async ({ page }) => {
                 // TODO: remove this hook once a Camoufox build with daijro/camoufox#625 is released.
@@ -38,21 +53,12 @@ await Actor.main(async () => {
                 });
             },
         ],
-        postNavigationHooks: [
-            async ({ handleCloudflareChallenge }) => {
-                await handleCloudflareChallenge();
-            },
-        ],
-        launchContext: {
-            launcher: firefox,
-            launchOptions: await launchOptions({
-                headless: true,
-            }),
-        },
+        // verbose keeps the challenge detection visible in the nightly run logs
+        postNavigationHooks: [handleCloudflareChallengeHook({ verbose: true })],
         async requestHandler({ page, parseWithCheerio }) {
             const isBlocked = await page
                 .evaluate(async () => {
-                    return !!document.querySelector('.footer .footer-inner .diagnostic-wrapper .ray-id');
+                    return !!document.querySelector('.footer .footer-inner .ray-id');
                 })
                 .catch(() => false);
             const $ = await parseWithCheerio();

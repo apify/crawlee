@@ -18,9 +18,9 @@ import type { Server as ProxyChainServer } from 'proxy-chain';
 import type { Browser } from 'puppeteer';
 // @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), vitest executes tests as ESM, so its alllll gooooood
 import puppeteer from 'puppeteer';
+import { runExampleComServer } from '../../shared/_helper.js';
 
-import { runExampleComServer } from '../../shared/_helper';
-import { createProxyServer } from './create-proxy-server';
+import { createProxyServer } from './create-proxy-server.js';
 
 // Firefox browser launch is significantly slower than Chromium/WebKit (~12s vs <1s).
 // Under CPU load from parallel tests, it can exceed 2 minutes. Use 5 minute timeout.
@@ -82,7 +82,7 @@ const runPluginTest = <
                 id,
                 launchOptions,
                 browserPlugin: plugin,
-                _proxyUrl: proxyUrl.slice(0, -1),
+                proxyUrl: proxyUrl.slice(0, -1),
                 one: 1,
                 useIncognitoPages: false,
             };
@@ -93,7 +93,7 @@ const runPluginTest = <
             expect(context.id).toEqual(desiredObject.id);
             expect(context.launchOptions).toEqual(desiredObject.launchOptions);
             expect(context.browserPlugin).toEqual(desiredObject.browserPlugin);
-            expect(context['_proxyUrl']).toEqual(desiredObject._proxyUrl); // eslint-disable-line
+            expect(context.proxyUrl).toEqual(desiredObject.proxyUrl);
             expect(context.one).toEqual(desiredObject.one);
             expect(context.useIncognitoPages).toEqual(desiredObject.useIncognitoPages);
         });
@@ -176,7 +176,7 @@ const runPluginTest = <
                     expect(false).toBe(true);
                 } catch (error: any) {
                     expect(error.message).toBe(
-                        'A new page can be created with provided context only when using incognito pages or experimental containers.',
+                        'A new page can be created with provided context only when using incognito pages.',
                     );
                 }
             } finally {
@@ -626,6 +626,20 @@ describe('Plugins', () => {
                     expect(version1).toEqual(browser.version());
                 });
 
+                test('should return browser type', async () => {
+                    const plugin = new PlaywrightPlugin(playwright[browserName]);
+
+                    const launchContext = plugin.createLaunchContext({ useIncognitoPages: false });
+                    browser = await plugin.launch(launchContext);
+                    expect(browser.browserType()).toBe(playwright[browserName]);
+
+                    await browser.close();
+
+                    const launchContext2 = plugin.createLaunchContext({ useIncognitoPages: true });
+                    browser = await plugin.launch(launchContext2);
+                    expect(browser.browserType()).toBe(playwright[browserName]);
+                });
+
                 test('should return all contexts', async () => {
                     const plugin = new PlaywrightPlugin(playwright[browserName]);
 
@@ -634,8 +648,9 @@ describe('Plugins', () => {
                     const contexts = browser.contexts();
                     expect(contexts).toHaveLength(1);
 
-                    // Cast to any to access private property
-                    expect(contexts[0]).toEqual((browser as any)._browserContext);
+                    // the returned context is the one new pages are created in
+                    const page = await browser.newPage();
+                    expect(page.context()).toBe(contexts[0]);
                 });
 
                 test('should return correct connected status', async () => {

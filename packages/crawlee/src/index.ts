@@ -1,4 +1,4 @@
-import { enqueueLinks, log } from '@crawlee/core';
+import { log } from '@crawlee/core';
 import { playwrightUtils } from '@crawlee/playwright';
 import { puppeteerUtils } from '@crawlee/puppeteer';
 import { downloadListOfUrls, parseOpenGraph, sleep, social } from '@crawlee/utils';
@@ -14,13 +14,12 @@ export * from '@crawlee/cheerio';
 export * from '@crawlee/puppeteer';
 export * from '@crawlee/playwright';
 export * from '@crawlee/browser-pool';
-export * from '@crawlee/memory-storage';
+export * from '@crawlee/fs-storage';
 
 export const utils = {
     puppeteer: puppeteerUtils,
     playwright: playwrightUtils,
     log,
-    enqueueLinks,
     social,
     sleep,
     downloadListOfUrls,

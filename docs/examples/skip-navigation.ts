@@ -1,17 +1,22 @@
 import { PlaywrightCrawler, KeyValueStore } from 'crawlee';
 
 // Create a key value store for all images we find
-const imageStore = await KeyValueStore.open('images');
+const imageStore = await KeyValueStore.open({ name: 'images' });
 
 const crawler = new PlaywrightCrawler({
     async requestHandler({ request, page, sendRequest }) {
         // The request should have the navigation skipped
         if (request.skipNavigation) {
             // Request the image and get its buffer back
-            const imageResponse = await sendRequest({ responseType: 'buffer' });
+            const imageResponse = await sendRequest();
 
-            // Save the image in the key-value store
-            await imageStore.setValue(`${request.userData.key}.png`, imageResponse.body);
+            // Saves the image in the key-value store.
+            //
+            // Note: For large-scale file downloads, consider using FileDownload crawler:
+            // https://crawlee.dev/js/api/http-crawler/class/FileDownload
+            await imageStore.setValue(`${request.userData.key}.svg`, await imageResponse.bytes(), {
+                contentType: 'image/svg+xml',
+            });
 
             // Prevent executing the rest of the code as we do not need it
             return;

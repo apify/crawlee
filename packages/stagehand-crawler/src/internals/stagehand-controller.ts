@@ -1,10 +1,9 @@
 import type { Stagehand } from '@browserbasehq/stagehand';
 import { BrowserController } from '@crawlee/browser-pool';
+import { serviceLocator } from '@crawlee/core';
 import type { Cookie } from '@crawlee/types';
 import { sleep } from '@crawlee/utils';
 import type { Browser as PlaywrightBrowser, BrowserType, LaunchOptions, Page } from 'playwright';
-
-import log from '@apify/log';
 
 import type { StagehandPlugin } from './stagehand-plugin';
 
@@ -22,25 +21,25 @@ import type { StagehandPlugin } from './stagehand-plugin';
  * @ignore
  */
 export class StagehandController extends BrowserController<BrowserType, LaunchOptions, PlaywrightBrowser> {
-    private stagehand: Stagehand | null = null;
-    private readonly stagehandInstances: WeakMap<PlaywrightBrowser, Stagehand>;
+    #stagehand: Stagehand | null = null;
+    readonly #stagehandInstances: WeakMap<PlaywrightBrowser, Stagehand>;
 
     constructor(browserPlugin: StagehandPlugin, stagehandInstances: WeakMap<PlaywrightBrowser, Stagehand>) {
         super(browserPlugin);
-        this.stagehandInstances = stagehandInstances;
+        this.#stagehandInstances = stagehandInstances;
     }
 
     /**
      * Gets the Stagehand instance associated with this controller's browser.
      */
     getStagehand(): Stagehand {
-        if (!this.stagehand) {
-            this.stagehand = this.stagehandInstances.get(this.browser)!;
-            if (!this.stagehand) {
+        if (!this.#stagehand) {
+            this.#stagehand = this.#stagehandInstances.get(this.browser)!;
+            if (!this.#stagehand) {
                 throw new Error('Stagehand instance not found for browser');
             }
         }
-        return this.stagehand;
+        return this.#stagehand;
     }
 
     /**
@@ -177,7 +176,7 @@ export class StagehandController extends BrowserController<BrowserType, LaunchOp
         try {
             await stagehand.close();
         } catch (error) {
-            log.error('Error closing Stagehand', { error });
+            serviceLocator.getLogger().error('Error closing Stagehand', { error });
         }
     }
 

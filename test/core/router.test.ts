@@ -2,10 +2,15 @@ import { BasicCrawler } from '@crawlee/basic';
 import type { CrawlingContext } from '@crawlee/core';
 import { defaultRoute, MissingRouteError, Request, RequestValidationError, Router } from '@crawlee/core';
 import {
+    CheerioCrawler,
     type CheerioCrawlingContext,
     createCheerioRouter,
     createPlaywrightRouter,
+    createPuppeteerRouter,
+    PlaywrightCrawler,
     type PlaywrightCrawlingContext,
+    PuppeteerCrawler,
+    type PuppeteerCrawlingContext,
 } from 'crawlee';
 import { z } from 'zod';
 
@@ -94,6 +99,33 @@ describe('Router', () => {
             'middleware 3: https://example.com/C',
             'label C handled with url https://example.com/C',
         ]);
+    });
+
+    test('should expose the per-route timeouts, falling back the same way as getHandler', async () => {
+        const router = Router.create();
+
+        router.addHandler('SLOW', async () => {}, { requestHandlerTimeoutSecs: 120 });
+        router.addHandler('PLAIN', async () => {});
+        router.addDefaultHandler(async () => {}, { requestHandlerTimeoutSecs: 30 });
+
+        expect(router.getTimeoutSecs('SLOW')).toBe(120);
+        // a route of its own with no override means the crawler's own timeout, not the default route's
+        expect(router.getTimeoutSecs('PLAIN')).toBeUndefined();
+        // no route of its own, so it inherits the default route - handler and timeout alike
+        expect(router.getTimeoutSecs('UNKNOWN')).toBe(30);
+        expect(router.getTimeoutSecs()).toBe(30);
+
+        expect(router.getMaxTimeoutSecs()).toBe(120);
+    });
+
+    test('getMaxTimeoutSecs is undefined when no route overrides the timeout', async () => {
+        const router = Router.create();
+
+        router.addHandler('A', async () => {});
+        router.addDefaultHandler(async () => {});
+
+        expect(router.getMaxTimeoutSecs()).toBeUndefined();
+        expect(router.getTimeoutSecs('A')).toBeUndefined();
     });
 
     test('should be possible to define routes when creating router', async () => {
@@ -400,6 +432,92 @@ describe('Router', () => {
             plain.addDefaultHandler(({ request }) => {
                 testType<unknown>(request.userData.anything);
             });
+        };
+
+        expect(typeof typeOnly).toBe('function');
+    });
+
+    test('crawler infers the route map from a typed requestHandler and types addRequests/context', () => {
+        // type-level only: the block is never executed, it just has to type-check
+        const typeOnly = async () => {
+            interface Routes {
+                PRODUCT: { sku: string; price: number };
+                CATEGORY: { categoryId: string };
+            }
+
+            const router = createCheerioRouter<CheerioCrawlingContext, Routes>();
+
+            router.addHandler('PRODUCT', async ({ addRequests, enqueueLinks }) => {
+                // context methods are typed from the route map
+                await addRequests([{ url: 'https://e.com/c', label: 'CATEGORY', userData: { categoryId: 'c1' } }]);
+                await enqueueLinks({ label: 'PRODUCT', userData: { sku: 's', price: 1 } });
+                // @ts-expect-error wrong userData shape for the label
+                await addRequests([{ url: 'https://e.com/p', label: 'PRODUCT', userData: { categoryId: 'x' } }]);
+                // @ts-expect-error label not present in the route map
+                await addRequests([{ url: 'https://e.com/x', label: 'NOPE' }]);
+            });
+
+            // the crawler infers `Routes` from the typed router passed as `requestHandler`
+            const crawler = new CheerioCrawler({ requestHandler: router });
+
+            await crawler.addRequests([{ url: 'https://e.com/p', label: 'PRODUCT', userData: { sku: 's', price: 1 } }]);
+            await crawler.run([
+                'https://e.com',
+                { url: 'https://e.com/c', label: 'CATEGORY', userData: { categoryId: 'c1' } },
+            ]);
+            // @ts-expect-error wrong userData shape for the label
+            await crawler.addRequests([{ url: 'https://e.com/p', label: 'PRODUCT', userData: { categoryId: 'x' } }]);
+            // @ts-expect-error label not present in the route map
+            await crawler.addRequests([{ url: 'https://e.com/x', label: 'NOPE' }]);
+        };
+
+        expect(typeof typeOnly).toBe('function');
+    });
+
+    test('browser crawler also infers the route map from a typed requestHandler', () => {
+        // type-level only: never executed
+        const typeOnly = async () => {
+            interface Routes {
+                PRODUCT: { sku: string };
+            }
+
+            const router = createPlaywrightRouter<PlaywrightCrawlingContext, Routes>();
+
+            router.addHandler('PRODUCT', async ({ addRequests }) => {
+                await addRequests([{ url: 'https://e.com/p', label: 'PRODUCT', userData: { sku: 's' } }]);
+                // @ts-expect-error wrong userData shape for the label
+                await addRequests([{ url: 'https://e.com/p', label: 'PRODUCT', userData: { sku: 1 } }]);
+                // @ts-expect-error label not present in the route map
+                await addRequests([{ url: 'https://e.com/x', label: 'NOPE' }]);
+            });
+
+            const crawler = new PlaywrightCrawler({ requestHandler: router });
+
+            await crawler.addRequests([{ url: 'https://e.com/p', label: 'PRODUCT', userData: { sku: 's' } }]);
+            // @ts-expect-error wrong userData shape for the label
+            await crawler.addRequests([{ url: 'https://e.com/p', label: 'PRODUCT', userData: { sku: 1 } }]);
+            // @ts-expect-error label not present in the route map
+            await crawler.addRequests([{ url: 'https://e.com/x', label: 'NOPE' }]);
+        };
+
+        expect(typeof typeOnly).toBe('function');
+    });
+
+    test('puppeteer crawler infers the route map too (inherited requestHandler path)', () => {
+        // type-level only: never executed
+        const typeOnly = async () => {
+            interface Routes {
+                PRODUCT: { sku: string };
+            }
+
+            const router = createPuppeteerRouter<PuppeteerCrawlingContext, Routes>();
+            const crawler = new PuppeteerCrawler({ requestHandler: router });
+
+            await crawler.addRequests([{ url: 'https://e.com/p', label: 'PRODUCT', userData: { sku: 's' } }]);
+            // @ts-expect-error wrong userData shape for the label
+            await crawler.addRequests([{ url: 'https://e.com/p', label: 'PRODUCT', userData: { sku: 1 } }]);
+            // @ts-expect-error label not present in the route map
+            await crawler.addRequests([{ url: 'https://e.com/x', label: 'NOPE' }]);
         };
 
         expect(typeof typeOnly).toBe('function');

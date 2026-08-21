@@ -76,8 +76,11 @@ await Actor.main(async () => {
     const crawler = new PuppeteerCrawler({
         maxRequestsPerCrawl: 10,
         preNavigationHooks: [
-            (_crawlingContext, goToOptions) => {
-                goToOptions.waitUntil = ['networkidle2'];
+            async ({ page, gotoOptions }) => {
+                await page.evaluateOnNewDocument(() => {
+                    localStorage.setItem('themeExitPopup', 'true');
+                });
+                gotoOptions.waitUntil = ['networkidle2'];
             },
         ],
         async requestHandler({ page, request, log, enqueueLinks, injectJQuery }) {
@@ -97,7 +100,7 @@ await Actor.main(async () => {
                     await enqueueLinks({
                         selector: 'a.product-item__image-wrapper',
                         label: 'DETAIL',
-                        globs: [`${baseUrl}/*/*`],
+                        include: [`${baseUrl}/*/*`],
                     });
                     log.info(`Enqueued actors for page ${pageNo}`);
                     log.info('Loading the next page');

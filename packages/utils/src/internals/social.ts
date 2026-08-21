@@ -1,6 +1,4 @@
-import * as cheerio from 'cheerio';
-
-import { htmlToText } from './cheerio';
+import { htmlToText } from './cheerio.js';
 
 // Regex inspired by https://zapier.com/blog/extract-links-email-phone-regex/
 // The dot-atom local part and domain labels use RFC 5321 length bounds ({1,64}, {0,62})
@@ -661,7 +659,12 @@ export const DISCORD_REGEX_GLOBAL = new RegExp(DISCORD_REGEX_STRING, 'ig');
  *   so that the caller doesn't need to parse the HTML document again, if needed.
  * @return An object with the social handles.
  */
-export function parseHandlesFromHtml(html: string, data: Record<string, unknown> | null = null): SocialHandles {
+export async function parseHandlesFromHtml(
+    html: string,
+    data: Record<string, unknown> | null = null,
+): Promise<SocialHandles> {
+    const cheerio = await import('cheerio');
+
     const result: SocialHandles = {
         emails: [],
         phones: [],
@@ -678,10 +681,10 @@ export function parseHandlesFromHtml(html: string, data: Record<string, unknown>
 
     if ((typeof html as unknown) !== 'string') return result;
 
-    const $ = cheerio.load(html, { decodeEntities: true });
+    const $ = cheerio.load(html, { xml: { decodeEntities: true } });
     if (data) data.$ = $;
 
-    const text = htmlToText($);
+    const text = await htmlToText($);
     if (data) data.text = text;
 
     // NOTE: we need to parse each text separately, orherwise we might concatenate unrelated texts

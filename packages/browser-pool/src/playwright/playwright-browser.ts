@@ -11,21 +11,20 @@ export interface BrowserOptions {
  * Browser wrapper created to have consistent API with persistent and non-persistent contexts.
  */
 export class PlaywrightBrowser extends EventEmitter {
-    private _browserContext: BrowserContext;
-    private _version: string;
-    private _isConnected = true;
-    private _browserType?: BrowserType;
+    #browserContext: BrowserContext;
+    #version: string;
+    #isConnected = true;
+    #browserType?: BrowserType;
 
     constructor(options: BrowserOptions) {
         super();
 
         const { browserContext, version } = options;
-        this._browserContext = browserContext;
+        this.#browserContext = browserContext;
+        this.#version = version;
 
-        this._version = version;
-
-        this._browserContext.once('close', () => {
-            this._isConnected = false;
+        this.#browserContext.once('close', () => {
+            this.#isConnected = false;
             this.emit('disconnected');
         });
     }
@@ -35,32 +34,32 @@ export class PlaywrightBrowser extends EventEmitter {
     }
 
     async close(): Promise<void> {
-        await this._browserContext.close();
+        await this.#browserContext.close();
     }
 
     contexts(): BrowserContext[] {
-        return [this._browserContext];
+        return [this.#browserContext];
     }
 
     isConnected(): boolean {
-        return this._isConnected;
+        return this.#isConnected;
     }
 
     version(): string {
-        return this._version;
+        return this.#version;
     }
 
     /** @internal */
-    _setBrowserType(browserType: BrowserType): void {
-        this._browserType = browserType;
+    setBrowserType(browserType: BrowserType): void {
+        this.#browserType = browserType;
     }
 
     browserType(): BrowserType {
-        return this._browserType!;
+        return this.#browserType!;
     }
 
     async newPage(...args: Parameters<BrowserContext['newPage']>): ReturnType<BrowserContext['newPage']> {
-        return this._browserContext.newPage(...args);
+        return this.#browserContext.newPage(...args);
     }
 
     async newContext(): Promise<never> {

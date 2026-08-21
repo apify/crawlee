@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.18.1](https://github.com/apify/crawlee/compare/v3.18.0...v3.18.1) (2026-08-12)
+
+### Bug Fixes
+
+* **core:** do not purge storages that are already in use ([#3988](https://github.com/apify/crawlee/issues/3988)) ([8e8c75b](https://github.com/apify/crawlee/commit/8e8c75beaa6dcb5c7fe671fbc8fad430fd7af516)), closes [#3156](https://github.com/apify/crawlee/issues/3156)
+
+
 # [3.18.0](https://github.com/apify/crawlee/compare/v3.17.0...v3.18.0) (2026-08-04)
 
 ### Bug Fixes

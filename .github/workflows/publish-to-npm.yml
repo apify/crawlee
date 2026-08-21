@@ -8,7 +8,7 @@ on:
                 required: true
                 type: string
             dist-tag:
-                description: NPM dist-tag (prod or next)
+                description: NPM dist-tag (prod, next or rc)
                 required: false
                 type: string
                 default: 'prod'
@@ -19,7 +19,7 @@ on:
                 required: true
                 type: string
             dist-tag:
-                description: NPM dist-tag (prod or next)
+                description: NPM dist-tag (prod, next or rc)
                 required: false
                 type: string
                 default: 'prod'
@@ -37,76 +37,86 @@ jobs:
         name: Publish to NPM (${{ inputs.dist-tag }})
         runs-on: ubuntu-22.04
         steps:
-            - uses: actions/checkout@v7
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
                   ref: ${{ inputs.ref }}
                   token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
                   fetch-depth: 0
 
             - name: Use Node.js 24
-              uses: actions/setup-node@v7
+              uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
               with:
                   node-version: 24
                   package-manager-cache: false
 
-            - name: Enable corepack
-              run: |
-                  corepack enable
-                  corepack prepare yarn@stable --activate
-
-            - name: Activate cache for Node.js 24
-              uses: actions/setup-node@v7
-              with:
-                  cache: 'yarn'
-
             - name: Turbo cache
               id: turbo-cache
-              uses: actions/cache@v6
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
               with:
                   path: .turbo
                   key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
                   restore-keys: |
                       turbo-${{ github.job }}-${{ github.ref_name }}-
 
-            - name: Install dependencies
-              run: yarn
+            - uses: apify/workflows/pnpm-install@main
 
             - name: Build packages
-              run: yarn ci:build
+              run: pnpm ci:build
 
             - name: Bump canary versions
-              if: inputs.dist-tag == 'next'
+              if: inputs.dist-tag != 'prod'
               run: |
-                    yarn turbo copy --force -- --canary --preid=beta
+                    pnpm turbo copy --force -- --canary=major --preid=${{ inputs.dist-tag == 'rc' && 'rc' || 'beta' }}
 
             - name: Commit changes
-              if: inputs.dist-tag == 'next'
-              uses: EndBug/add-and-commit@v10
+              if: inputs.dist-tag != 'prod'
+              uses: EndBug/add-and-commit@645ecc0dd0a57f4d86d26c0aa5fc42c0a856fbca # v11.0.0
               id: commit
               with:
                 author_name: Apify Release Bot
                 author_email: noreply@apify.com
-                message: 'chore: bump canary versions [skip ci]'
+                message: "chore: bump ${{ inputs.dist-tag == 'rc' && 'RC' || 'canary' }} versions [skip ci]"
                 push: false
 
             - name: Publish to NPM (@latest)
               if: inputs.dist-tag == 'prod'
-              uses: nick-fields/retry@v4
+              uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
               with:
                   timeout_minutes: 10
                   max_attempts: 5
                   retry_wait_seconds: 30
-                  command: git checkout . && yarn publish:prod --yes
+                  command: git checkout . && pnpm publish:prod
               env:
                   GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
 
             - name: Publish to NPM (@next)
-              if: inputs.dist-tag == 'next'
-              uses: nick-fields/retry@v4
+              if: inputs.dist-tag != 'prod' && inputs.dist-tag != 'rc'
+              uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
               with:
                   timeout_minutes: 10
                   max_attempts: 5
                   retry_wait_seconds: 30
-                  command: git checkout . && yarn publish:next --yes
+                  command: git checkout . && pnpm publish:next
               env:
                   GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
+
+            - name: Publish to NPM (@rc)
+              if: inputs.dist-tag == 'rc'
+              uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
+              with:
+                  timeout_minutes: 10
+                  max_attempts: 5
+                  retry_wait_seconds: 30
+                  command: git checkout . && pnpm publish:rc
+              env:
+                  GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
+
+            # RC releases produce no changelog and no commit on the branch, only a git tag
+            # pointing at the released commit (the version bump lives only on npm).
+            - name: Create git tag
+              if: inputs.dist-tag == 'rc'
+              run: |
+                  VERSION=$(node -p "require('./packages/core/dist/package.json').version")
+                  git reset --hard HEAD~1
+                  git tag "v$VERSION"
+                  git push origin "refs/tags/v$VERSION"

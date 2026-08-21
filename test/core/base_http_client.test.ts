@@ -1,4 +1,7 @@
-import { processHttpRequestOptions } from '@crawlee/core';
+import { Readable } from 'node:stream';
+import { text } from 'node:stream/consumers';
+
+import { processHttpRequestOptions } from '../../packages/http-crawler/src/internals/utils.js';
 
 describe('processHttpRequestOptions', () => {
     test('applies search parameters to the request URL', () => {
@@ -19,13 +22,13 @@ describe('processHttpRequestOptions', () => {
         expect(() =>
             processHttpRequestOptions({
                 url: 'https://example.com',
-                body: 'body',
+                body: Readable.from('body'),
                 json: { hello: 'world' },
             }),
         ).toThrow('At most one of `body`, `form` and `json` may be specified in sendRequest arguments');
     });
 
-    test('serializes form body and sets default content type', () => {
+    test('serializes form body and sets default content type', async () => {
         const request = processHttpRequestOptions({
             url: 'https://example.com',
             form: {
@@ -33,23 +36,25 @@ describe('processHttpRequestOptions', () => {
             },
         });
 
-        expect(request.body).toBe('hello=world');
-        expect(request.headers).toEqual({ 'content-type': 'application/x-www-form-urlencoded' });
+        await expect(text(request.body!)).resolves.toBe('hello=world');
+        expect(Object.fromEntries(request.headers!.entries())).toEqual({
+            'content-type': 'application/x-www-form-urlencoded',
+        });
     });
 
-    test('serializes JSON body and keeps user content type', () => {
+    test('serializes JSON body and keeps user content type', async () => {
         const request = processHttpRequestOptions({
             url: 'https://example.com',
-            headers: {
+            headers: new Headers({
                 'content-type': 'application/vnd.api+json',
-            },
+            }),
             json: {
                 hello: 'world',
             },
         });
 
-        expect(request.body).toBe('{"hello":"world"}');
-        expect(request.headers).toEqual({ 'content-type': 'application/vnd.api+json' });
+        await expect(text(request.body!)).resolves.toBe('{"hello":"world"}');
+        expect(Object.fromEntries(request.headers!.entries())).toEqual({ 'content-type': 'application/vnd.api+json' });
     });
 
     test('sets basic authorization header from username and password', () => {
@@ -59,6 +64,6 @@ describe('processHttpRequestOptions', () => {
             password: 'pass',
         });
 
-        expect(request.headers).toEqual({ authorization: 'Basic dXNlcjpwYXNz' });
+        expect(Object.fromEntries(request.headers!.entries())).toEqual({ authorization: 'Basic dXNlcjpwYXNz' });
     });
 });

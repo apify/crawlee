@@ -11,7 +11,7 @@ const mainOptions = {
 
 await Actor.main(async () => {
     const crawler = new CheerioCrawler({
-        ignoreSslErrors: true,
+        ignoreTlsErrors: true,
         async requestHandler({ $, enqueueLinks, request, log }) {
             const {
                 url,
@@ -21,7 +21,9 @@ await Actor.main(async () => {
             if (label === 'START') {
                 log.info('Bad ssl page opened!');
                 await enqueueLinks({
-                    globs: [{ glob: 'https://*.badssl.com/', userData: { label: 'DETAIL' } }],
+                    include: ['https://*.badssl.com/'],
+                    strategy: 'same-domain',
+                    label: 'DETAIL',
                     selector: '.group a.bad',
                 });
             } else if (label === 'DETAIL') {

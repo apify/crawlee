@@ -6,11 +6,10 @@ import { dirname, join } from 'node:path';
 import { setTimeout } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 
+import { URL_NO_COMMAS_REGEX } from '@crawlee/utils/internal';
 import { Actor, ApifyClient } from 'apify';
 import fs from 'fs-extra';
 import { got } from 'got';
-
-import { URL_NO_COMMAS_REGEX } from '../../packages/utils/dist/index.mjs';
 
 /**
  * @param {string} command
@@ -25,12 +24,12 @@ function execSync(command, options) {
  * the base crawler created and installs its own, which lands on the next id.
  * @param {string} name
  */
-const isCrawlerStatisticsKey = (name) => name.startsWith('SDK_CRAWLER_STATISTICS_');
+const isCrawlerStatisticsKey = (name) => name.startsWith('CRAWLEE_CRAWLER_STATISTICS');
 
 /**
  * @param {string} name
  */
-const isPrivateEntry = (name) => isCrawlerStatisticsKey(name) || name === 'SDK_SESSION_POOL_STATE';
+const isPrivateEntry = (name) => isCrawlerStatisticsKey(name) || name.startsWith('CRAWLEE_SESSION_POOL_STATE');
 
 export const SKIPPED_TEST_CLOSE_CODE = 404;
 
@@ -56,6 +55,7 @@ export function getStorage(dirName) {
  * @param {string} dirName
  */
 export async function getStats(dirName) {
+    // fs-storage writes key-value records extensionless (the filename is the record key).
     const dir = join(getStorage(dirName), 'key_value_stores/default');
 
     if (!existsSync(dir)) {
@@ -192,7 +192,12 @@ export async function runActor(dirName, memory = 4096) {
             // id: runId,
             buildId,
             userId,
+            status: runStatus,
         } = await client.run(runId).waitForFinish();
+
+        if (runStatus !== 'SUCCEEDED') {
+            console.log(`[run] actor run finished with status ${runStatus} - the assertions below will likely fail`);
+        }
 
         getKeyValueStoreItems = async (name) => {
             const kvResult = await client.keyValueStore(name ? `${userId}/${name}` : defaultKeyValueStoreId).get();
@@ -215,6 +220,7 @@ export async function runActor(dirName, memory = 4096) {
                     }),
                 );
 
+                // eslint-disable-next-line no-shadow
                 return entries.filter(({ name }) => !isPrivateEntry(name));
             }
 
@@ -229,13 +235,21 @@ export async function runActor(dirName, memory = 4096) {
         const runTook = (runFinishedAt.getTime() - runStartedAt.getTime()) / 1000;
         console.log(`[run] View run: https://console.apify.com/view/runs/${runId} [run took ${runTook}s]`);
 
-        const { items: kvKeys } = await client.keyValueStore(defaultKeyValueStoreId).listKeys();
-        const [statsKey] = kvKeys
-            .map(({ key }) => key)
-            .filter((key) => isCrawlerStatisticsKey(key))
-            .sort();
-        const statsRecord = statsKey && (await client.keyValueStore(defaultKeyValueStoreId).getRecord(statsKey));
-        stats = statsRecord?.value;
+        // The statistics record is persisted during the crawler teardown and the platform KVS is
+        // eventually consistent, so a single lookup right after the run can race the write and crash
+        // the whole test on `stats.requestsFinished`. Retry briefly and fall back to an empty object,
+        // so a genuinely missing record fails the assertions instead of throwing a TypeError.
+        let statsRecord;
+        for (let attempt = 0; attempt < 10 && !statsRecord; attempt++) {
+            if (attempt > 0) await setTimeout(3000);
+            const { items: kvKeys } = await client.keyValueStore(defaultKeyValueStoreId).listKeys();
+            const [statsKey] = kvKeys
+                .map(({ key }) => key)
+                .filter((key) => isCrawlerStatisticsKey(key))
+                .sort();
+            statsRecord = statsKey ? await client.keyValueStore(defaultKeyValueStoreId).getRecord(statsKey) : undefined;
+        }
+        stats = statsRecord?.value ?? {};
 
         const { items } = await client.dataset(defaultDatasetId).listItems();
         datasetItems = items;
@@ -306,24 +320,110 @@ async function copyPackages(dirName) {
     const destPackagesDir = join(dirName, 'packages');
     await fs.remove(destPackagesDir);
 
+    // npm (used when building the actor on the platform) understands neither pnpm's `workspace:`
+    // protocol nor its `catalog:` protocol. Parse the catalog from pnpm-workspace.yaml so
+    // `catalog:` deps can be rewritten to their pinned versions below.
+    const workspaceYaml = await fs.readFile(
+        join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'pnpm-workspace.yaml'),
+        'utf8',
+    );
+    const catalog = new Map();
+    let inCatalog = false;
+    for (const line of workspaceYaml.split('\n')) {
+        if (/^catalog:\s*$/.test(line)) {
+            inCatalog = true;
+            continue;
+        }
+        if (inCatalog) {
+            const match = /^\s+([^\s:]+):\s*(\S+)\s*$/.exec(line);
+            if (!match) {
+                inCatalog = false;
+                continue;
+            }
+            catalog.set(match[1], match[2]);
+        }
+    }
+
     const { dependencies, overrides } = await fs.readJSON(join(dirName, 'package.json'));
 
     if (overrides?.apify) {
         Object.assign(dependencies, overrides.apify);
     }
 
-    for (const dependency of Object.values(dependencies)) {
-        if (!dependency.startsWith('file:')) {
-            continue;
+    // Build a map of `@crawlee/*` package name -> its directory name under `packages/`.
+    // The two don't always match (e.g. `@crawlee/basic` lives in `basic-crawler`).
+    const packageNameToDir = new Map();
+    for (const entry of await readdir(srcPackagesDir, { withFileTypes: true })) {
+        if (!entry.isDirectory()) continue;
+        try {
+            const { name } = await fs.readJSON(join(srcPackagesDir, entry.name, 'package.json'));
+            if (name) packageNameToDir.set(name, entry.name);
+        } catch {
+            // ignore directories without a readable package.json
         }
+    }
 
-        const packageDirName = dependency.split('/').pop();
+    // Seed the copy queue with the packages referenced by the actor via `file:` deps,
+    // then transitively pull in every `@crawlee/*` dependency they need.
+    const queue = [];
+    for (const dependency of Object.values(dependencies)) {
+        if (typeof dependency === 'string' && dependency.startsWith('file:')) {
+            queue.push(dependency.split('/').pop());
+        }
+    }
+
+    const copied = new Set();
+    while (queue.length > 0) {
+        const packageDirName = queue.shift();
+        if (copied.has(packageDirName)) continue;
+        copied.add(packageDirName);
+
         const srcDir = join(srcPackagesDir, packageDirName, 'dist');
         const destDir = join(destPackagesDir, packageDirName, 'dist');
         await fs.copy(srcDir, destDir);
+
         const srcPackageFile = join(srcPackagesDir, packageDirName, 'package.json');
+        const pkg = await fs.readJSON(srcPackageFile);
+
+        // npm (used when building the actor on the platform) does not understand pnpm's
+        // `workspace:` protocol, so rewrite internal `@crawlee/*` deps to sibling `file:`
+        // references and make sure those packages get copied as well.
+        for (const depGroup of ['dependencies', 'optionalDependencies', 'peerDependencies']) {
+            const deps = pkg[depGroup];
+            if (!deps) continue;
+
+            for (const [depName, depVersion] of Object.entries(deps)) {
+                if (typeof depVersion !== 'string') {
+                    continue;
+                }
+
+                if (depVersion.startsWith('catalog:')) {
+                    const resolved = catalog.get(depName);
+                    if (!resolved) {
+                        throw new Error(
+                            `Cannot resolve catalog dependency "${depName}" for package "${packageDirName}"`,
+                        );
+                    }
+                    deps[depName] = resolved;
+                    continue;
+                }
+
+                if (!depVersion.startsWith('workspace:')) {
+                    continue;
+                }
+
+                const depDir = packageNameToDir.get(depName);
+                if (!depDir) {
+                    throw new Error(`Cannot resolve workspace dependency "${depName}" for package "${packageDirName}"`);
+                }
+
+                deps[depName] = `file:../${depDir}`;
+                queue.push(depDir);
+            }
+        }
+
         const destPackageFile = join(destPackagesDir, packageDirName, 'package.json');
-        await fs.copy(srcPackageFile, destPackageFile);
+        await fs.writeJSON(destPackageFile, pkg, { spaces: 4 });
     }
 }
 
@@ -420,7 +520,8 @@ export async function getLocalKeyValueStoreItems(dirName, kvName) {
         const filePath = join(storePath, fileName.name);
         const buffer = await readFile(filePath);
 
-        const name = fileName.name.split('.').slice(0, -1).join('.');
+        // fs-storage writes records extensionless — the filename is the record key.
+        const name = fileName.name;
 
         if (isPrivateEntry(name)) {
             continue;
@@ -477,7 +578,7 @@ export async function skipTest(reason) {
  * @returns {boolean}
  */
 function checkDatasetItem(item, propName) {
-    if (!item.hasOwnProperty(propName)) {
+    if (!Object.hasOwn(item, propName)) {
         return false;
     }
 

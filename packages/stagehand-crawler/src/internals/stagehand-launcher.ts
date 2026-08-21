@@ -1,7 +1,8 @@
 import type { BrowserLaunchContext } from '@crawlee/browser';
 import { BrowserLauncher, Configuration } from '@crawlee/browser';
-import ow from 'ow';
+import { parseArgument, schemas } from '@crawlee/utils/internal';
 import type { BrowserType, LaunchOptions } from 'playwright';
+import { z } from 'zod';
 
 import type { StagehandOptions } from './stagehand-crawler';
 import { StagehandPlugin } from './stagehand-plugin';
@@ -63,23 +64,30 @@ export interface StagehandLaunchContext extends BrowserLaunchContext<LaunchOptio
  * @ignore
  */
 export class StagehandLauncher extends BrowserLauncher<StagehandPlugin> {
+    /**
+     * @internal
+     */
     protected static override optionsShape = {
         ...BrowserLauncher.optionsShape,
-        launcher: ow.optional.object,
-        launchContextOptions: ow.optional.object,
-        stagehandOptions: ow.optional.object,
+        // Passthrough schemas — the launcher module object must keep its prototype through parsing.
+        launcher: schemas.anyObject.optional(),
+        launchContextOptions: schemas.anyObject.optional(),
+        stagehandOptions: schemas.anyObject.optional(),
     };
 
-    private readonly stagehandOptions: StagehandOptions;
+    /** @internal */
+    protected static override optionsSchema = z.strictObject(StagehandLauncher.optionsShape);
+
+    readonly #stagehandOptions: StagehandOptions;
 
     /**
      * All StagehandLauncher parameters are passed via the launchContext object.
      */
     constructor(
         launchContext: StagehandLaunchContext = {},
-        override readonly config = Configuration.getGlobalConfig(),
+        override readonly configuration = Configuration.getGlobalConfiguration(),
     ) {
-        ow(launchContext, 'StagehandLaunchContext', ow.object.exactShape(StagehandLauncher.optionsShape));
+        const parsedContext = parseArgument(launchContext, StagehandLauncher.optionsSchema, 'StagehandLaunchContext');
 
         const {
             launcher = BrowserLauncher.requireLauncherOrThrow<typeof import('playwright')>(
@@ -87,9 +95,9 @@ export class StagehandLauncher extends BrowserLauncher<StagehandPlugin> {
                 'apify/actor-node-playwright-*',
             ).chromium,
             stagehandOptions = {},
-        } = launchContext;
+        } = parsedContext;
 
-        const { launchOptions = {}, ...rest } = launchContext;
+        const { launchOptions = {}, ...rest } = parsedContext;
 
         // Call super first before initializing properties
         super(
@@ -97,14 +105,14 @@ export class StagehandLauncher extends BrowserLauncher<StagehandPlugin> {
                 ...rest,
                 launchOptions: {
                     ...launchOptions,
-                    executablePath: getDefaultExecutablePath(launchContext, config),
+                    executablePath: getDefaultExecutablePath(parsedContext, configuration),
                 },
                 launcher,
             },
-            config,
+            configuration,
         );
 
-        this.stagehandOptions = {
+        this.#stagehandOptions = {
             env: 'LOCAL',
             model: 'openai/gpt-4.1-mini',
             ...stagehandOptions,
@@ -121,7 +129,7 @@ export class StagehandLauncher extends BrowserLauncher<StagehandPlugin> {
             ...this.otherLaunchContextProps,
             proxyUrl: this.proxyUrl,
             launchOptions: this.createLaunchOptions(),
-            stagehandOptions: this.stagehandOptions, // Set AFTER to override any unresolved options
+            stagehandOptions: this.#stagehandOptions, // Set AFTER to override any unresolved options
         });
     }
 }
@@ -130,8 +138,11 @@ export class StagehandLauncher extends BrowserLauncher<StagehandPlugin> {
  * Gets the default executable path for the browser.
  * @ignore
  */
-function getDefaultExecutablePath(launchContext: StagehandLaunchContext, config: Configuration): string | undefined {
-    const pathFromPlaywrightImage = config.get('defaultBrowserPath');
+function getDefaultExecutablePath(
+    launchContext: StagehandLaunchContext,
+    configuration: Configuration,
+): string | undefined {
+    const pathFromPlaywrightImage = configuration.defaultBrowserPath;
     const { launchOptions = {} } = launchContext;
 
     if (launchOptions.executablePath) {

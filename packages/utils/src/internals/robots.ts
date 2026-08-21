@@ -1,15 +1,11 @@
-// @ts-expect-error This throws a compilation error due to got-scraping being ESM only but we only import types, so its alllll gooooood
-import type { HTTPError as HTTPErrorClass } from 'got-scraping';
+import { FetchHttpClient } from '@crawlee/http-client';
+import type { BaseHttpClient } from '@crawlee/http-client';
+import type { CrawleeLogger } from '@crawlee/types';
 import type { Robot } from 'robots-parser';
 import robotsParser from 'robots-parser';
 
-import log from '@apify/log';
-
-import { gotScraping } from './gotScraping';
-import { Sitemap } from './sitemap';
-import { type EnqueueStrategy, filterUrl } from './url';
-
-let HTTPError: typeof HTTPErrorClass;
+import { Sitemap } from './sitemap.js';
+import { type EnqueueStrategy, filterUrl } from './url.js';
 
 export interface RobotsTxtFileSitemapsOptions {
     /**
@@ -39,30 +35,46 @@ export interface RobotsTxtFileSitemapsOptions {
  * ```
  */
 export class RobotsTxtFile {
+    #url: string;
+    #robots: Pick<Robot, 'isAllowed' | 'getSitemaps' | 'getCrawlDelay'>;
+    #proxyUrl?: string;
+    #logger?: CrawleeLogger;
+
     private constructor(
-        private url: string,
-        private robots: Pick<Robot, 'isAllowed' | 'getSitemaps'>,
-        private proxyUrl?: string,
-    ) {}
+        url: string,
+        robots: Pick<Robot, 'isAllowed' | 'getSitemaps' | 'getCrawlDelay'>,
+        proxyUrl?: string,
+        logger?: CrawleeLogger,
+    ) {
+        this.#url = url;
+        this.#robots = robots;
+        this.#proxyUrl = proxyUrl;
+        this.#logger = logger;
+    }
 
     /**
      * Determine the location of a robots.txt file for a URL and fetch it.
      * @param url the URL to fetch robots.txt for
-     * @param [proxyUrl] a proxy to be used for fetching the robots.txt file
      * @param [options] additional options
      * @param [options.signal] an AbortSignal to cancel the request
      * @param [options.timeoutMillis] timeout in milliseconds for the request
+     * @param [options.proxyUrl] a proxy to be used for fetching the robots.txt file
      */
     static async find(
         url: string,
-        proxyUrl?: string,
-        options?: { signal?: AbortSignal; timeoutMillis?: number },
+        options?: {
+            signal?: AbortSignal;
+            timeoutMillis?: number;
+            proxyUrl?: string;
+            httpClient?: BaseHttpClient;
+            logger?: CrawleeLogger;
+        },
     ): Promise<RobotsTxtFile> {
         const robotsTxtFileUrl = new URL(url);
         robotsTxtFileUrl.pathname = '/robots.txt';
         robotsTxtFileUrl.search = '';
 
-        return RobotsTxtFile.load(robotsTxtFileUrl.toString(), proxyUrl, options);
+        return RobotsTxtFile.load(robotsTxtFileUrl.toString(), options);
     }
 
     /**
@@ -72,46 +84,61 @@ export class RobotsTxtFile {
      * @param [proxyUrl] a proxy to be used for fetching the robots.txt file
      */
     static from(url: string, content: string, proxyUrl?: string): RobotsTxtFile {
+        // @ts-ignore
         return new RobotsTxtFile(url, robotsParser(url, content), proxyUrl);
     }
 
-    protected static async load(
+    private static async load(
         url: string,
-        proxyUrl?: string,
-        options?: { signal?: AbortSignal; timeoutMillis?: number },
+        options?: {
+            signal?: AbortSignal;
+            timeoutMillis?: number;
+            proxyUrl?: string;
+            httpClient?: BaseHttpClient;
+            logger?: CrawleeLogger;
+        },
     ): Promise<RobotsTxtFile> {
-        if (!HTTPError) {
-            HTTPError = (await import('got-scraping')).HTTPError;
+        const { proxyUrl, logger, httpClient = new FetchHttpClient() } = options || {};
+
+        const response = await httpClient.sendRequest(new Request(url, { method: 'GET' }), {
+            proxyUrl,
+            timeoutMillis: options?.timeoutMillis,
+            signal: options?.signal,
+        });
+
+        if (response.status < 200 || response.status >= 300) {
+            throw new Error(`Failed to load robots.txt from ${url}: HTTP ${response.status}`);
         }
 
-        try {
-            const response = await gotScraping({
+        if (response.status === 404) {
+            return new RobotsTxtFile(
                 url,
-                proxyUrl,
-                method: 'GET',
-                responseType: 'text',
-                signal: options?.signal,
-                ...(options?.timeoutMillis ? { timeout: { request: options.timeoutMillis } } : {}),
-            });
-
-            return new RobotsTxtFile(url, robotsParser(url.toString(), response.body), proxyUrl);
-        } catch (e) {
-            if (e instanceof HTTPError && e.response.statusCode === 404) {
-                return new RobotsTxtFile(
-                    url,
-                    {
-                        isAllowed() {
-                            return true;
-                        },
-                        getSitemaps() {
-                            return [];
-                        },
+                {
+                    isAllowed() {
+                        return true;
                     },
-                    proxyUrl,
-                );
-            }
-            throw e;
+                    getSitemaps() {
+                        return [];
+                    },
+                    getCrawlDelay() {
+                        return undefined;
+                    },
+                },
+                proxyUrl,
+                logger,
+            );
         }
+
+        // @ts-ignore
+        return new RobotsTxtFile(url, robotsParser(url.toString(), await response.text()), proxyUrl, logger);
+    }
+
+    /**
+     * Get crawl delay for a given user agent.
+     * @param [userAgent] relevant user agent, default to `*`
+     */
+    getCrawlDelay(userAgent = '*'): number | undefined {
+        return this.#robots.getCrawlDelay(userAgent);
     }
 
     /**
@@ -120,7 +147,7 @@ export class RobotsTxtFile {
      * @param [userAgent] relevant user agent, default to `*`
      */
     isAllowed(url: string, userAgent = '*'): boolean {
-        return this.robots.isAllowed(url, userAgent) ?? true; // `undefined` means that there is no explicit rule for the requested URL - assume it's allowed
+        return this.#robots.isAllowed(url, userAgent) ?? true; // `undefined` means that there is no explicit rule for the requested URL - assume it's allowed
     }
 
     /**
@@ -132,11 +159,13 @@ export class RobotsTxtFile {
         const { enqueueStrategy = 'same-hostname' } = options;
         const sitemaps: string[] = [];
 
-        for (const sitemapUrl of this.robots.getSitemaps()) {
+        for (const sitemapUrl of this.#robots.getSitemaps()) {
             // `filterUrl` tolerates an unparseable origin (returns not-allowed) rather than throwing.
-            const { allowed, reason } = filterUrl(sitemapUrl, this.url, enqueueStrategy);
+            const { allowed, reason } = filterUrl(sitemapUrl, this.#url, enqueueStrategy);
             if (!allowed) {
-                log.warning(`Skipping sitemap ${sitemapUrl} listed in robots.txt at ${this.url}: ${reason}.`);
+                this.#logger?.warning(
+                    `Skipping sitemap ${sitemapUrl} listed in robots.txt at ${this.#url}: ${reason}.`,
+                );
                 continue;
             }
             sitemaps.push(sitemapUrl);
@@ -150,7 +179,7 @@ export class RobotsTxtFile {
      * and the sitemap parser.
      */
     async parseSitemaps(options: RobotsTxtFileSitemapsOptions = {}): Promise<Sitemap> {
-        return Sitemap.load(this.getSitemaps(options), this.proxyUrl, options);
+        return Sitemap.load(this.getSitemaps(options), this.#proxyUrl, { ...options, logger: this.#logger });
     }
 
     /**
@@ -161,6 +190,3 @@ export class RobotsTxtFile {
         return (await this.parseSitemaps(options)).urls;
     }
 }
-
-// to stay backwards compatible
-export { RobotsTxtFile as RobotsFile };

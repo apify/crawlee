@@ -1,12 +1,10 @@
 import type { Dictionary } from '@crawlee/types';
-import type { CheerioAPI, load } from 'cheerio';
-import * as cheerio from 'cheerio';
+import type { CheerioAPI } from 'cheerio';
 
-import { tryAbsoluteURL } from './extract-urls';
+import { tryAbsoluteURL } from './extract-urls.js';
 
-/** @deprecated use CheerioAPI instead */
-export type CheerioRoot = ReturnType<typeof load>;
-export type { CheerioAPI, Cheerio, Element } from 'cheerio';
+export type { CheerioAPI, Cheerio } from 'cheerio';
+export type { Element } from 'domhandler';
 
 // NOTE: We are skipping 'noscript' since it's content is evaluated as text, instead of HTML elements. That damages the results.
 const SKIP_TAGS_REGEX = /^(script|style|canvas|svg|noscript)$/i;
@@ -30,24 +28,22 @@ const BLOCK_TAGS_REGEX =
  *
  * Note that the function uses [cheerio](https://www.npmjs.com/package/cheerio) to parse the HTML.
  * Optionally, to avoid duplicate parsing of HTML and thus improve performance, you can pass
- * an existing Cheerio object to the function instead of the HTML text. The HTML should be parsed
- * with the `decodeEntities` option set to `true`. For example:
+ * an existing Cheerio object to the function instead of the HTML text.
  *
  * ```javascript
  * import * as cheerio from 'cheerio';
  * const html = '<html><body>Some text</body></html>';
- * const text = htmlToText(cheerio.load(html, { decodeEntities: true }));
+ * const text = htmlToText(cheerio.load(html));
  * ```
  * @param htmlOrCheerioElement HTML text or parsed HTML represented using a [cheerio](https://www.npmjs.com/package/cheerio) function.
  * @return Plain text
  */
-export function htmlToText(htmlOrCheerioElement: string | CheerioRoot): string {
+export async function htmlToText(htmlOrCheerioElement: string | CheerioAPI): Promise<string> {
+    const { load } = await import('cheerio');
+
     if (!htmlOrCheerioElement) return '';
 
-    const $ =
-        typeof htmlOrCheerioElement === 'function'
-            ? htmlOrCheerioElement
-            : cheerio.load(htmlOrCheerioElement, { decodeEntities: true });
+    const $ = typeof htmlOrCheerioElement === 'function' ? htmlOrCheerioElement : load(htmlOrCheerioElement);
     let text = '';
 
     const process = (elems: Dictionary) => {
@@ -57,7 +53,7 @@ export function htmlToText(htmlOrCheerioElement: string | CheerioRoot): string {
             if (elem.type === 'text') {
                 // Compress spaces, unless we're inside <pre> element
                 let compr;
-                if (elem.parent && elem.parent.tagName === 'pre') compr = elem.data;
+                if (elem.parent?.tagName === 'pre') compr = elem.data;
                 else compr = elem.data.replace(/\s+/g, ' ');
                 // If text is empty or ends with a whitespace, don't add the leading whitespace
                 if (compr.startsWith(' ') && /(^|\s)$/.test(text)) compr = compr.substring(1);

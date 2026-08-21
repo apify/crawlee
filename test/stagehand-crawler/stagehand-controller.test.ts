@@ -1,7 +1,7 @@
-import log from '@apify/log';
+import { serviceLocator } from '@crawlee/core';
 
-import { StagehandController } from '../../packages/stagehand-crawler/src/internals/stagehand-controller';
-import type { StagehandPlugin } from '../../packages/stagehand-crawler/src/internals/stagehand-plugin';
+import { StagehandController } from '../../packages/stagehand-crawler/src/internals/stagehand-controller.js';
+import type { StagehandPlugin } from '../../packages/stagehand-crawler/src/internals/stagehand-plugin.js';
 
 describe('StagehandController', () => {
     let mockPlugin: StagehandPlugin;
@@ -140,8 +140,9 @@ describe('StagehandController', () => {
         const controller = new StagehandController(mockPlugin, stagehandInstances);
         (controller as any).browser = mockBrowser;
 
-        // Mock log.error to prevent output and verify it's called
-        const logErrorSpy = vi.spyOn(log, 'error').mockImplementation(() => {});
+        // Mock logger.error to prevent output and verify it's called
+        const logger = serviceLocator.getLogger();
+        const logErrorSpy = vi.spyOn(logger, 'error').mockImplementation(() => {});
 
         // Should not throw
         await expect((controller as any)._close()).resolves.toBeUndefined();

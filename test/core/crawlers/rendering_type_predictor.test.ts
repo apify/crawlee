@@ -1,18 +1,10 @@
-import { Request } from '@crawlee/core';
+import { EventType, KeyValueStore, MemoryStorageBackend, Request, serviceLocator } from '@crawlee/core';
 import { RenderingTypePredictor } from '@crawlee/playwright';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-
-import { MemoryStorageEmulator } from '../../shared/MemoryStorageEmulator';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 describe('RenderingTypePredictor', () => {
-    const localStorageEmulator = new MemoryStorageEmulator();
-
     beforeEach(async () => {
-        await localStorageEmulator.init();
-    });
-
-    afterEach(async () => {
-        await localStorageEmulator.destroy();
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
     });
 
     describe('persistence', () => {
@@ -34,18 +26,13 @@ describe('RenderingTypePredictor', () => {
             predictor.storeResult(clientRequest, 'clientOnly');
 
             // Persist the state
-            const store = localStorageEmulator.getKeyValueStore();
+            const store = await KeyValueStore.open();
             // eslint-disable-next-line dot-notation
             await predictor['state'].persistState(); // Access private state for persistence
 
-            // Verify state was persisted
-            const persistedRecord = await store.getRecord(persistStateKey);
-            expect(persistedRecord).not.toBeNull();
-            expect(persistedRecord?.value).toBeDefined();
-
-            const parsedState = JSON.parse(persistedRecord!.value as string);
-            expect(parsedState).toHaveProperty('logreg');
-            expect(parsedState).toHaveProperty('detectionResults');
+            const persistedState = await store.getValue(persistStateKey);
+            expect(persistedState).toHaveProperty('logreg');
+            expect(persistedState).toHaveProperty('detectionResults');
 
             // Create a new predictor and verify it restores the state
             const restoredPredictor = new RenderingTypePredictor({
@@ -71,6 +58,26 @@ describe('RenderingTypePredictor', () => {
             const prediction = predictor.predict(new Request({ url: 'https://example.com/test' }));
             expect(prediction.renderingType).toBe('clientOnly');
             expect(prediction.detectionProbabilityRecommendation).toBe(1);
+        });
+
+        it('should persist state and stop listening on teardown', async () => {
+            const persistStateKey = 'rendering-type-predictor-teardown';
+            const events = serviceLocator.getEventManager();
+
+            const predictor = new RenderingTypePredictor({
+                detectionRatio: 0.1,
+                persistenceOptions: { persistStateKey },
+            });
+            await predictor.initialize();
+            predictor.storeResult(new Request({ url: 'https://example.com/static-page' }), 'static');
+
+            const listenersBefore = events.listenerCount(EventType.PERSIST_STATE);
+
+            await predictor.teardown();
+
+            expect(events.listenerCount(EventType.PERSIST_STATE)).toBe(listenersBefore - 1);
+            const store = await KeyValueStore.open();
+            expect(await store.getValue(persistStateKey)).toHaveProperty('detectionResults');
         });
     });
 });

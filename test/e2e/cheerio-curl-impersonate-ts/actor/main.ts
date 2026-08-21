@@ -1,16 +1,6 @@
-import { Readable } from 'node:stream';
-
-import type { Dictionary } from '@crawlee/cheerio';
 import { CheerioCrawler } from '@crawlee/cheerio';
-import type {
-    BaseHttpClient,
-    BaseHttpResponseData,
-    HttpRequest,
-    HttpResponse,
-    RedirectHandler,
-    ResponseTypes,
-    StreamingHttpResponse,
-} from '@crawlee/core';
+import { BaseHttpClient, type CustomFetchOptions, ResponseWithUrl } from '@crawlee/http-client';
+import type { Dictionary } from '@crawlee/types';
 import { Actor } from 'apify';
 import { CurlImpersonate } from 'apify-node-curl-impersonate';
 
@@ -25,157 +15,73 @@ interface CurlImpersonateHttpClientOptions {
     impersonate?: ConstructorParameters<typeof CurlImpersonate>[1]['impersonate'];
 }
 
-type CurlResponse = Awaited<ReturnType<CurlImpersonate['makeRequest']>>;
+/**
+ * A v4 `BaseHttpClient` implementation backed by `apify-node-curl-impersonate`.
+ * The base class provides redirect following, proxy and cookie handling - this
+ * only performs the raw request and wraps the result in a fetch `Response`.
+ */
+class CurlImpersonateHttpClient extends BaseHttpClient {
+    constructor(private options: CurlImpersonateHttpClientOptions = {}) {
+        super();
+    }
 
-class CurlImpersonateHttpClient implements BaseHttpClient {
-    constructor(private options: CurlImpersonateHttpClientOptions = {}) {}
+    protected async fetch(request: Request, init?: RequestInit & CustomFetchOptions): Promise<Response> {
+        const headers: Record<string, string> = {};
+        request.headers.forEach((value, key) => {
+            headers[key] = value;
+        });
 
-    protected async curlOptionsForRequest(request: HttpRequest<any>) {
-        const result = {
-            method: request.method ?? 'get',
-            headers: request.headers ?? {},
-            flags: ['--compressed'],
+        const flags = ['--compressed'];
+        if (init?.proxyUrl) {
+            flags.push('--proxy', init.proxyUrl);
+        }
+
+        const curl = new CurlImpersonate(request.url, {
+            method: request.method,
+            headers,
+            flags,
             impersonate: this.options.impersonate,
+            followRedirects: false,
             debugLogger: () => {},
-        };
+        });
 
-        if (request.proxyUrl !== undefined) {
-            result.flags.push('--proxy', request.proxyUrl);
-        }
+        const response = await curl.makeRequest();
 
-        if (request.cookieJar) {
-            result.headers.cookie = (await (request.cookieJar as any)?.getCookieString?.(request.url.toString())) ?? '';
-        }
-
-        return result;
-    }
-
-    protected shouldRedirect(request: HttpRequest, response: CurlResponse, redirectUrls: URL[]): boolean {
-        if (request.maxRedirects !== undefined && request.maxRedirects <= redirectUrls.length) {
-            return false;
-        }
-
-        if (request.followRedirect instanceof Function) {
-            return request.followRedirect(response);
-        }
-
-        return request.followRedirect === undefined || request.followRedirect;
-    }
-
-    protected async performRequest(request: HttpRequest<any>, onRedirect?: RedirectHandler) {
-        let response: CurlResponse | undefined;
-        const redirectUrls: URL[] = [];
-
-        const updatedRequest: Required<Pick<HttpRequest, 'url' | 'headers'>> = {
-            url: request.url.toString(),
-            headers: {},
-        };
-
-        while (true) {
-            const impersonate = new CurlImpersonate(updatedRequest.url.toString(), {
-                ...(await this.curlOptionsForRequest(request)),
-                followRedirects: false,
-            });
-
-            response = await impersonate.makeRequest();
-
-            if (response.statusCode >= 300 && response.statusCode < 400) {
-                if (!this.shouldRedirect(request, response, redirectUrls)) {
-                    break;
-                }
-
-                updatedRequest.url = response.responseHeaders.location;
-                updatedRequest.headers = response.responseHeaders;
-                redirectUrls.push(new URL(updatedRequest.url));
-                onRedirect?.(this.transformResponse(response, redirectUrls), updatedRequest);
-            } else if (request.throwHttpErrors !== false && response.statusCode >= 400) {
-                throw Object.assign(new Error(`Error status code encountered - ${response.statusCode}`), {
-                    request,
-                    response,
-                });
-            } else {
-                break;
+        // The parsed curl headers include the status line as a key (e.g. "HTTP/2 200 "),
+        // which the fetch Headers constructor rejects - keep only valid header names.
+        const responseHeaders: Record<string, string> = {};
+        for (const [name, value] of Object.entries(response.responseHeaders ?? {})) {
+            if (/^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/.test(name)) {
+                responseHeaders[name] = String(value);
             }
         }
 
-        return { ...response, redirectUrls };
-    }
-
-    protected transformResponse(response: CurlResponse, redirectUrls: URL[]): BaseHttpResponseData {
-        return {
-            redirectUrls,
-            url: response.url,
-            ip: response.ipAddress,
-            statusCode: response.statusCode,
-            headers: response.responseHeaders,
-            trailers: {}, // TODO apify-node-curl-impersonate doesn't seem to expose this
-            complete: true,
-        };
-    }
-
-    async sendRequest<TResponseType extends keyof ResponseTypes = 'text'>(
-        request: HttpRequest<TResponseType>,
-    ): Promise<HttpResponse<TResponseType>> {
-        const response = await this.performRequest(request);
-
-        const body = ((): ResponseTypes[TResponseType] => {
-            const buffer = Buffer.from(response.response, request.encoding);
-
-            switch (request.responseType) {
-                case 'buffer':
-                    return buffer as ResponseTypes[TResponseType];
-                case 'json':
-                    return JSON.parse(buffer.toString());
-                default:
-                    return buffer.toString() as ResponseTypes[TResponseType];
-            }
-        })();
-
-        return {
-            request,
-            body,
-            ...this.transformResponse(response, response.redirectUrls),
-        };
-    }
-
-    async stream(request: HttpRequest, onRedirect?: RedirectHandler): Promise<StreamingHttpResponse> {
-        const response = await this.performRequest(request, onRedirect);
-
-        const stream = new Readable();
-        stream.push(response.response);
-        stream.push(null);
-
-        return {
-            request,
-            url: response.url,
-            ip: response.ipAddress,
-            statusCode: response.statusCode,
-            stream,
-            complete: true,
-            downloadProgress: { percent: 100, transferred: response.response.length },
-            uploadProgress: { percent: 100, transferred: 0 },
-            redirectUrls: response.redirectUrls,
-            headers: response.responseHeaders,
-            trailers: {},
-        };
+        return new ResponseWithUrl(response.response, {
+            status: response.statusCode,
+            headers: responseHeaders,
+            url: response.url ?? request.url,
+        });
     }
 }
 
 const crawler = new CheerioCrawler({
     async requestHandler(context) {
-        const { body: text } = await context.sendRequest({
-            url: 'https://api.apify.com/v2/browser-info',
-        });
+        const text = await (
+            await context.sendRequest({
+                url: 'https://api.apify.com/v2/browser-info',
+            })
+        ).text();
 
-        const { body: json } = await context.sendRequest<Dictionary>({
-            url: 'https://api.apify.com/v2/browser-info',
-            responseType: 'json',
-        });
+        const json = (await (
+            await context.sendRequest({
+                url: 'https://api.apify.com/v2/browser-info',
+            })
+        ).json()) as Dictionary;
 
         await context.pushData({
             body: context.body,
             title: context.$('title').text(),
-            userAgent: json.headers['user-agent'],
+            userAgent: (json.headers as Dictionary)['user-agent'],
             clientIpTextResponse: text,
             clientIpJsonResponse: json,
         });

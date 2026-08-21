@@ -15,24 +15,26 @@ import type {
     BrowserCrawlerOptions,
     BrowserCrawlingContext,
     BrowserHook,
-    BrowserRequestHandler,
+    ContextPipeline,
+    CrawlingContext,
     GetUserDataFromRequest,
     LoadedContext,
+    OwnedBrowserPool,
+    RequestHandler,
     RouterHandler,
     RouterRoutes,
     RouteSchemas,
     RoutesFromSchemas,
 } from '@crawlee/browser';
-import { BrowserCrawler, Configuration, Router } from '@crawlee/browser';
+import { assertBrowserPoolNotConfigured, BrowserCrawler, Router } from '@crawlee/browser';
 import type { Dictionary } from '@crawlee/types';
-import ow from 'ow';
+import { parseArgument, schemas } from '@crawlee/utils/internal';
 import type { LaunchOptions, Page, Response } from 'playwright';
-import type { z } from 'zod';
+import { z } from 'zod';
 
+import { remoteStagehandBrowserPool, stagehandBrowserPool } from './stagehand-browser-pool';
 import type { StagehandController } from './stagehand-controller';
 import type { StagehandLaunchContext } from './stagehand-launcher';
-import { StagehandLauncher } from './stagehand-launcher';
-import type { StagehandPlugin } from './stagehand-plugin';
 import { enhancePageWithStagehand } from './utils/stagehand-utils';
 
 /**
@@ -172,7 +174,7 @@ export interface StagehandPage extends Page {
      * );
      * ```
      */
-    extract<T>(instruction: string, schema: z.ZodSchema<T>, options?: Omit<ExtractOptions, 'page'>): Promise<T>;
+    extract<T>(instruction: string, schema: z.ZodType<T>, options?: Omit<ExtractOptions, 'page'>): Promise<T>;
 
     /**
      * Observe the page and get AI-suggested actions.
@@ -207,8 +209,14 @@ export interface StagehandPage extends Page {
 /**
  * Crawling context for StagehandCrawler with enhanced page object.
  */
-export interface StagehandCrawlingContext<UserData extends Dictionary = Dictionary>
-    extends BrowserCrawlingContext<StagehandCrawler, StagehandPage, Response, StagehandController, UserData> {
+/**
+ * Goto options for StagehandCrawler navigation.
+ */
+export type StagehandGotoOptions = NonNullable<Parameters<Page['goto']>[1]>;
+
+export interface StagehandCrawlingContext<
+    UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
+> extends BrowserCrawlingContext<StagehandPage, Response, UserData, StagehandGotoOptions> {
     /**
      * Enhanced Playwright page with Stagehand AI methods.
      * Use page.act(), page.extract(), page.observe(), page.agent() for AI-powered operations.
@@ -225,23 +233,35 @@ export interface StagehandCrawlingContext<UserData extends Dictionary = Dictiona
 /**
  * Hook function for StagehandCrawler.
  */
-export interface StagehandHook extends BrowserHook<StagehandCrawlingContext, StagehandGotoOptions> {}
+export type StagehandHook<
+    UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
+> = BrowserHook<StagehandCrawlingContext<UserData>>;
 
 /**
  * Request handler for StagehandCrawler.
  */
-export interface StagehandRequestHandler extends BrowserRequestHandler<LoadedContext<StagehandCrawlingContext>> {}
-
-/**
- * Goto options for StagehandCrawler navigation.
- */
-export type StagehandGotoOptions = Dictionary & Parameters<Page['goto']>[1];
+export interface StagehandRequestHandler extends RequestHandler<LoadedContext<StagehandCrawlingContext>> {}
 
 /**
  * Options for StagehandCrawler.
  */
-export interface StagehandCrawlerOptions
-    extends BrowserCrawlerOptions<StagehandCrawlingContext, { browserPlugins: [StagehandPlugin] }> {
+export interface StagehandCrawlerOptions<
+    ContextExtension = Dictionary<never>,
+    ExtendedContext extends StagehandCrawlingContext = StagehandCrawlingContext & ContextExtension,
+    Routes extends Record<keyof Routes, Dictionary> = Record<
+        string,
+        GetUserDataFromRequest<StagehandCrawlingContext['request']>
+    >,
+    StatisticStateExtension extends object = {},
+> extends BrowserCrawlerOptions<
+    StagehandPage,
+    Response,
+    StagehandCrawlingContext,
+    ContextExtension,
+    ExtendedContext,
+    Routes,
+    StatisticStateExtension
+> {
     /**
      * Stagehand-specific configuration options.
      * These options configure the AI behavior and Browserbase integration.
@@ -254,12 +274,17 @@ export interface StagehandCrawlerOptions
     launchContext?: StagehandLaunchContext;
 
     /**
+     * Whether to run browser in headless mode. Defaults to `true`.
+     * Can be also set via {@apilink Configuration}.
+     */
+    headless?: boolean;
+
+    /**
      * Function that is called to process each request.
      *
      * The function receives the {@apilink StagehandCrawlingContext} as an argument, where:
      * - `request` is an instance of the {@apilink Request} object with details about the URL to open, HTTP method etc.
      * - `page` is an enhanced Playwright [`Page`](https://playwright.dev/docs/api/class-page) with AI methods
-     * - `browserController` is an instance of {@apilink StagehandController}
      * - `response` is the main resource response as returned by `page.goto(request.url)`
      * - `stagehand` is the Stagehand instance for advanced control
      *
@@ -298,22 +323,27 @@ export interface StagehandCrawlerOptions
      * }
      * ```
      */
-    requestHandler?: StagehandRequestHandler;
-
-    /**
-     * Function called when request handling fails after all retries.
-     */
-    failedRequestHandler?: StagehandRequestHandler;
+    // Both union members must share the exact same call signature, otherwise TS cannot contextually type
+    // an inline `requestHandler({ page, request, ... })`. `StagehandRequestHandler` wraps the context in
+    // `LoadedContext`, while the router member uses `ExtendedContext`; since `StagehandCrawlingContext`
+    // already carries a `LoadedRequest`, using `ExtendedContext` for both keeps the signatures identical.
+    requestHandler?: RouterHandler<ExtendedContext, Routes> | RequestHandler<ExtendedContext>;
 
     /**
      * Async functions that are sequentially evaluated before the navigation.
      */
-    preNavigationHooks?: StagehandHook[];
+    preNavigationHooks?: BrowserHook<
+        StagehandCrawlingContext<GetUserDataFromRequest<ExtendedContext['request']>>,
+        ContextExtension
+    >[];
 
     /**
      * Async functions that are sequentially evaluated after the navigation.
      */
-    postNavigationHooks?: StagehandHook[];
+    postNavigationHooks?: BrowserHook<
+        StagehandCrawlingContext<GetUserDataFromRequest<ExtendedContext['request']>>,
+        ContextExtension
+    >[];
 }
 
 /**
@@ -365,23 +395,35 @@ export interface StagehandCrawlerOptions
  * await crawler.run(['https://example.com']);
  * ```
  */
-export class StagehandCrawler extends BrowserCrawler<
-    { browserPlugins: [StagehandPlugin] },
+export class StagehandCrawler<
+    ContextExtension = Dictionary<never>,
+    ExtendedContext extends StagehandCrawlingContext = StagehandCrawlingContext & ContextExtension,
+    Routes extends Record<keyof Routes, Dictionary> = Record<
+        string,
+        GetUserDataFromRequest<StagehandCrawlingContext['request']>
+    >,
+    StatisticStateExtension extends object = {},
+> extends BrowserCrawler<
+    StagehandPage,
+    Response,
     LaunchOptions,
-    StagehandCrawlingContext
+    StagehandCrawlingContext,
+    ContextExtension,
+    ExtendedContext,
+    Routes,
+    StatisticStateExtension
 > {
+    /**
+     * @internal
+     */
     protected static override optionsShape = {
         ...BrowserCrawler.optionsShape,
-        stagehandOptions: ow.optional.object,
-        browserPoolOptions: ow.optional.object,
+        stagehandOptions: schemas.anyObject.optional(),
+        headless: z.boolean().optional(),
     };
 
-    /** Set while `_runRequestHandler` has swapped `userProvidedRequestHandler` for its page-enhancing wrapper. */
-    private unwrappedRequestHandler?: BrowserRequestHandler<StagehandCrawlingContext>;
-
-    protected override get userRequestHandler(): BrowserRequestHandler<StagehandCrawlingContext> {
-        return this.unwrappedRequestHandler ?? super.userRequestHandler;
-    }
+    /** @internal */
+    protected static override optionsSchema = z.strictObject(StagehandCrawler.optionsShape);
 
     /**
      * Creates a new instance of StagehandCrawler.
@@ -389,93 +431,110 @@ export class StagehandCrawler extends BrowserCrawler<
      * @param options - Crawler configuration options
      */
     constructor(
-        options: StagehandCrawlerOptions = {},
-        override readonly config = Configuration.getGlobalConfig(),
+        options: StagehandCrawlerOptions<ContextExtension, ExtendedContext, Routes, StatisticStateExtension> = {},
     ) {
+        const parsedOptions = parseArgument(options, StagehandCrawler.optionsSchema, 'StagehandCrawlerOptions');
+
         const {
-            stagehandOptions = {},
-            launchContext = {},
-            browserPoolOptions = {},
+            stagehandOptions,
+            launchContext,
+            headless,
+            configuration,
+            contextPipelineBuilder,
             ...browserCrawlerOptions
-        } = options;
+        } = parsedOptions;
 
-        // Validate options
-        ow(options, 'StagehandCrawlerOptions', ow.object.exactShape(StagehandCrawler.optionsShape));
+        if (options.browserPool) {
+            // The raw options, not the parsed ones: `launchContext` has a default, so by now it is always set.
+            assertBrowserPoolNotConfigured(new.target.name, {
+                launchContext: options.launchContext,
+                stagehandOptions: options.stagehandOptions,
+                headless: options.headless,
+            });
+        }
 
-        // Create launcher with Stagehand plugin
-        const launcher = new StagehandLauncher(
-            {
-                ...launchContext,
-                stagehandOptions,
-            },
-            config,
-        );
+        super({
+            ...(browserCrawlerOptions as StagehandCrawlerOptions<
+                ContextExtension,
+                ExtendedContext,
+                Routes,
+                StatisticStateExtension
+            >),
+            launchContext,
+            configuration,
+            // The pool serves plain Playwright pages - a page only becomes a `StagehandPage` further down the
+            // pipeline, once `setUpStagehand` enhances it - so its page type is narrower than the crawler's.
+            browserPoolBuilder: (remoteBrowser) =>
+                (remoteBrowser
+                    ? remoteStagehandBrowserPool({
+                          ...remoteBrowser,
+                          launchContext,
+                          stagehandOptions,
+                          headless,
+                          configuration,
+                      })
+                    : stagehandBrowserPool({
+                          launchContext,
+                          stagehandOptions,
+                          headless,
+                          configuration,
+                      })) as unknown as OwnedBrowserPool<StagehandPage>,
+            contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),
+        });
+    }
 
-        // Initialize BrowserCrawler with Stagehand plugin and fingerprinting enabled
-        super(
-            {
-                ...browserCrawlerOptions,
-                launchContext,
-                browserPoolOptions: {
-                    ...browserPoolOptions,
-                    browserPlugins: [launcher.createBrowserPlugin()],
-                    // Enable fingerprinting by default for anti-blocking
-                    useFingerprints: browserPoolOptions.useFingerprints ?? true,
-                },
-            },
-            config,
-        );
+    protected override buildContextPipeline(): ContextPipeline<CrawlingContext, StagehandCrawlingContext> {
+        return super.buildContextPipeline().compose({ action: this.setUpStagehand.bind(this) });
     }
 
     /**
-     * Overrides the request handler to enhance the page with Stagehand AI methods.
+     * Resolves the {@apilink StagehandController} that owns the given page, or
+     * `undefined` when the pool does not expose controllers (e.g. a custom
+     * {@apilink IBrowserPool} implementation).
      *
-     * The pattern here is:
-     * 1. Store the original userProvidedRequestHandler
-     * 2. Replace it with a wrapper that enhances the page first
-     * 3. Call super (which creates page/browserController, then calls our wrapper)
-     * 4. Our wrapper enhances the page and calls the original handler
-     * 5. Restore the original handler
-     *
-     * This is similar to how PlaywrightCrawler adds utility methods via registerUtilsToContext,
-     * but we need to actually transform the page object to add Stagehand AI methods.
+     * Stagehand needs direct controller access to reach the `Stagehand`
+     * instance bound to the page's browser, which is why it reaches past the
+     * {@apilink IBrowserPool} abstraction here.
      */
-    protected override async _runRequestHandler(crawlingContext: StagehandCrawlingContext): Promise<void> {
-        // Store the original handler (could be this.requestHandler or this.router)
-        const originalHandler = this.userProvidedRequestHandler!;
-
-        // Keep `userRequestHandler` pointing at the unwrapped handler: the swap below is live while the user's
-        // handler runs, which is exactly when `context.addRequests`/`enqueueLinks` resolve router metadata.
-        this.unwrappedRequestHandler = originalHandler;
-
-        // Replace with a wrapper that enhances the page before calling the user's handler
-        this.userProvidedRequestHandler = async (ctx: any) => {
-            // Get Stagehand instance from controller
-            const stagehand = (ctx.browserController as StagehandController).getStagehand();
-            ctx.stagehand = stagehand;
-
-            // Enhance page with AI methods (page.act(), page.extract(), etc.)
-            ctx.page = enhancePageWithStagehand(ctx.page, stagehand) as StagehandPage;
-
-            // Call the original user handler
-            return originalHandler(ctx);
-        };
-
-        try {
-            // Call parent - this creates the page and eventually calls our wrapped handler
-            await super._runRequestHandler(crawlingContext);
-        } finally {
-            // Restore original handler
-            this.userProvidedRequestHandler = originalHandler;
-            this.unwrappedRequestHandler = undefined;
+    private getBrowserControllerByPage(page: StagehandPage): StagehandController | undefined {
+        if ('getBrowserControllerByPage' in this.browserPool) {
+            return (
+                this.browserPool as unknown as {
+                    getBrowserControllerByPage(page: StagehandPage): StagehandController | undefined;
+                }
+            ).getBrowserControllerByPage(page);
         }
+
+        return undefined;
+    }
+
+    /**
+     * Enhance the page with Stagehand AI methods.
+     */
+    private async setUpStagehand(crawlingContext: {
+        page: Page;
+    }): Promise<{ stagehand: Stagehand; page: StagehandPage }> {
+        const controller = this.getBrowserControllerByPage(crawlingContext.page as StagehandPage);
+
+        if (!controller) {
+            throw new Error(
+                'Could not resolve StagehandController for page — is the browser pool configured correctly?',
+            );
+        }
+
+        const stagehand = controller.getStagehand();
+
+        return {
+            stagehand,
+            page: enhancePageWithStagehand(crawlingContext.page, stagehand),
+        };
     }
 
     /**
      * Navigation handler for Stagehand crawler.
      * Uses standard Playwright navigation.
      */
-    protected override async _navigationHandler(
+    protected override async navigationHandler(
         crawlingContext: StagehandCrawlingContext,
         gotoOptions: StagehandGotoOptions,
     ): Promise<Response | null> {
@@ -500,7 +559,7 @@ export class StagehandCrawler extends BrowserCrawler<
  * });
  *
  * router.addDefaultHandler(async ({ page, enqueueLinks }) => {
- *   await enqueueLinks({ globs: ['https://example.com/products/*'] });
+ *   await enqueueLinks({ include: ['https://example.com/products/*'] });
  * });
  *
  * const crawler = new StagehandCrawler({

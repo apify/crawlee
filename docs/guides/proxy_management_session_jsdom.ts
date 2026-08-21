@@ -5,8 +5,7 @@ const proxyConfiguration = new ProxyConfiguration({
 });
 
 const crawler = new JSDOMCrawler({
-    useSessionPool: true,
-    persistCookiesPerSession: true,
+    saveResponseCookies: true,
     proxyConfiguration,
     // ...
 });
