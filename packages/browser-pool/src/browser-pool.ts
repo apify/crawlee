@@ -884,7 +884,6 @@ export class BrowserPool<
 
     /**
      * Picks plugins round robin.
-     * @private
      */
     private pickBrowserPlugin() {
         const pluginIndex = this.#pageCounter % this.browserPlugins.length;

@@ -56,7 +56,6 @@ export class RequestManagerTandem implements IRequestManager {
 
     /**
      * Resolves the writable request manager, opening it lazily (via the factory) on first use and memoizing the result.
-     * @private
      */
     private async getRequestManager(): Promise<IRequestManager> {
         if (this.#resolvedRequestManager === undefined) {
@@ -79,7 +78,6 @@ export class RequestManagerTandem implements IRequestManager {
      *
      * @returns `true` if a request was successfully transferred (or there was nothing to transfer), and `false` if a
      *  transfer was attempted but failed - in which case the caller should not fetch from the manager this round.
-     * @private
      */
     private async transferNextRequestToQueue(): Promise<boolean> {
         const request = await this.#requestLoader.fetchNextRequest();
