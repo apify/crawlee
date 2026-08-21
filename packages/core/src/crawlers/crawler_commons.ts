@@ -37,7 +37,6 @@ export type LabeledSource<Routes extends Record<keyof Routes, Dictionary>> = str
 /**
  * The iterable/array of {@apilink LabeledSource} inputs accepted by the label-aware `addRequests`/`run`
  * methods of a crawler bound to a typed router.
- * @internal
  */
 export type TypedRequestsLike<Routes extends Record<keyof Routes, Dictionary>> =
     | AsyncIterable<LabeledSource<Routes>>

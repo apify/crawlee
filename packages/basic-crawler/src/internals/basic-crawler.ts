@@ -1868,7 +1868,6 @@ export class BasicCrawler<
     /**
      * Opens the default {@apilink RequestQueue}, applies the crawler's timeouts to it and records it as the
      * crawler-owned queue (so it gets purged between repeated `run()` calls).
-     * @private
      */
     private async openOwnedRequestQueue(): Promise<RequestQueue> {
         // The first crawler instance uses the default queue (null identifier);

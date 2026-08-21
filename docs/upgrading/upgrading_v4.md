@@ -307,7 +307,6 @@ Renamed options — pass `configuration` instead of `config`:
 - `Dataset.open()`, `KeyValueStore.open()` and `RequestQueue.open()` (`StorageOpenOptions`)
 - `useState()` (`UseStateOptions`)
 - `purgeDefaultStorages()` (both the options object and the legacy positional argument)
-- `new Snapshotter()` (`SnapshotterOptions`)
 - `saveSnapshot()` in `@crawlee/playwright` and `@crawlee/puppeteer` (`SaveSnapshotOptions`)
 - `RecoverableStateOptions`, `RequestListOptions`, `CpuLoadSignalOptions` and `MemoryLoadSignalOptions`
 
@@ -321,7 +320,7 @@ const store = await KeyValueStore.open(null, { config: new Configuration({ persi
 const store = await KeyValueStore.open(null, { configuration: new Configuration({ persistStorage: false }) });
 ```
 
-Renamed properties — `Dataset.config`, `KeyValueStore.config`, `Snapshotter.config` and `BrowserLauncher.config` (including `PuppeteerLauncher`) are now `.configuration`.
+Renamed properties — `Dataset.config`, `KeyValueStore.config` and `BrowserLauncher.config` (including `PuppeteerLauncher`) are now `.configuration`.
 
 The `configuration` crawler option is unchanged, as are `serviceLocator.getConfiguration()` and `serviceLocator.setConfiguration()`.
 
