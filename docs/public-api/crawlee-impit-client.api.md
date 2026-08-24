@@ -11,8 +11,8 @@ import { ImpitOptions } from 'impit';
 
 // @public (undocumented)
 export const Browser: {
-    readonly Chrome: "chrome";
-    readonly Firefox: "firefox";
+    readonly Chrome: 'chrome';
+    readonly Firefox: 'firefox';
 };
 
 // @public

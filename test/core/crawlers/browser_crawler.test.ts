@@ -601,26 +601,28 @@ describe('BrowserCrawler', () => {
             sources: [{ url: 'http://example.com/?q=1' }],
         });
 
+        const sessionPool = new SessionPool({
+            sessionOptions: {
+                maxUsageCount: 1,
+            },
+            persistStateKeyValueStoreId: 'abc',
+        });
+
         const crawler = new BrowserCrawlerTest({
             requestList,
             browserPoolOptions: {
                 browserPlugins: [puppeteerPlugin],
             },
-
             saveResponseCookies: false,
-            sessionPool: new SessionPool({
-                sessionOptions: {
-                    maxUsageCount: 1,
-                },
-                persistStateKeyValueStoreId: 'abc',
-            }),
+            sessionPool,
             requestHandler: async () => {},
         });
 
-        // @ts-expect-error Accessing private prop
-        expect(crawler.sessionPool.sessionOptions.maxUsageCount).toBe(1);
-        // @ts-expect-error Accessing private prop
-        expect(crawler.sessionPool.persistStateKeyValueStoreId).toBe('abc');
+        expect(crawler.sessionPool).toBe(sessionPool);
+        const session = await sessionPool.getSession();
+        expect(session).toBeDefined();
+        const state = await sessionPool.getState();
+        expect(state.sessions[0].maxUsageCount).toBe(1);
     });
 
     test.skip('should persist cookies per session', async () => {
@@ -692,6 +694,9 @@ describe('BrowserCrawler', () => {
             },
             requestList,
             saveResponseCookies: true,
+            // The handoff only happens between requests: cookies set in a handler are flushed to the
+            // session jar after it returns, so cookie-2 must not start before cookie-1 has finished.
+            maxConcurrency: 1,
             sessionPool: new SessionPool({
                 maxPoolSize: 1,
             }),
@@ -921,6 +926,9 @@ describe('BrowserCrawler', () => {
             sessionPool: new SessionPool({
                 maxPoolSize: 1,
             }),
+            // A strictly serial [0..5] is only well-defined one request at a time: two handlers running
+            // together read the same `usageCount` before either marks the session good.
+            maxConcurrency: 1,
             requestHandler: async ({ session }) => {
                 sessionUsageHistory.push((session as Session).usageCount);
             },

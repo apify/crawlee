@@ -73,13 +73,43 @@ describe('RequestQueue#isFinished waits for background add operations', () => {
     test('returns false while a background batch is still being added', async () => {
         const queue = await makeQueue('is-finished-background');
 
-        // Simulate an in-flight background `addRequestsBatched` operation.
-        // eslint-disable-next-line dot-notation
-        queue['inProgressRequestBatchCount'] = 1;
+        expect(await queue.isFinished()).toBe(true);
+
+        let callCount = 0;
+        let resolveBatch!: () => void;
+        const batchBlocked = new Promise<void>((resolve) => {
+            resolveBatch = resolve;
+        });
+
+        const originalAddRequests = queue.addRequests.bind(queue);
+        vitest.spyOn(queue, 'addRequests').mockImplementation(async (...args) => {
+            callCount++;
+            if (callCount > 1) {
+                await batchBlocked;
+            }
+            return originalAddRequests(...args);
+        });
+
+        const result = await queue.addRequestsBatched(
+            [{ url: 'https://example.com/1' }, { url: 'https://example.com/2' }],
+            { batchSize: 1, waitBetweenBatchesMillis: 0 },
+        );
+
+        const req1 = await queue.fetchNextRequest();
+        expect(req1).toBeDefined();
+        await queue.markRequestAsHandled(req1!);
+
+        // While the 2nd batch is in flight in the background, isFinished() reports false.
         expect(await queue.isFinished()).toBe(false);
 
-        // eslint-disable-next-line dot-notation
-        queue['inProgressRequestBatchCount'] = 0;
+        // Unblock the background batch and wait for it to complete.
+        resolveBatch();
+        await result.waitForAllRequestsToBeAdded;
+
+        const req2 = await queue.fetchNextRequest();
+        expect(req2).toBeDefined();
+        await queue.markRequestAsHandled(req2!);
+
         expect(await queue.isFinished()).toBe(true);
     });
 });

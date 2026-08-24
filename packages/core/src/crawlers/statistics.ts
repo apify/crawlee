@@ -279,8 +279,7 @@ export class Statistics<
     StateExtension extends object = {},
     PersistedStateExtension extends object = StateExtension,
 > implements IStatistics<StateExtension> {
-    // kept as TS-private: statistics tests read the static counter directly
-    private static id = 0;
+    static #id = 0;
 
     /**
      * An error tracker for final retry errors.
@@ -342,7 +341,7 @@ export class Statistics<
             stateExtension,
         } = parseArgument(options, statisticsOptionsSchema);
 
-        this.id = id ?? String(Statistics.id++);
+        this.id = id ?? String(Statistics.#id++);
         this.#persistStateKey = `CRAWLEE_CRAWLER_STATISTICS_${this.id}`;
 
         this.log = (log ?? serviceLocator.getLogger()).child({ prefix: 'Statistics' });

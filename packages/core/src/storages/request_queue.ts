@@ -126,8 +126,7 @@ export class RequestQueue implements IStorage, IRequestManager {
 
     readonly log: CrawleeLogger;
 
-    // kept as TS-private: request_queue tests read this cache directly
-    private requestCache: LruCache<RequestLruItem>;
+    #requestCache: LruCache<RequestLruItem>;
 
     /**
      * Remembers the `requestId` of every request already submitted to the client — including background
@@ -138,8 +137,7 @@ export class RequestQueue implements IStorage, IRequestManager {
 
     #queuePausedForMigration = false;
 
-    // kept as TS-private: packages/core/test request-queue tests write this counter directly
-    private inProgressRequestBatchCount = 0;
+    #inProgressRequestBatchCount = 0;
 
     /**
      * The largest expected request-processing time (in seconds) seen so far via
@@ -176,7 +174,7 @@ export class RequestQueue implements IStorage, IRequestManager {
 
         this.#proxyConfiguration = options.proxyConfiguration;
 
-        this.requestCache = new LruCache({ maxLength: MAX_CACHED_REQUESTS });
+        this.#requestCache = new LruCache({ maxLength: MAX_CACHED_REQUESTS });
         this.#requestSeenCache = new RequestDeduplicationCache();
         this.log = serviceLocator.getLogger().child({ prefix: `RequestQueue(${this.id}, ${this.name ?? 'no-name'})` });
 
@@ -244,7 +242,7 @@ export class RequestQueue implements IStorage, IRequestManager {
         }
 
         const cacheKey = getRequestId(request.uniqueKey);
-        const cachedInfo = this.requestCache.get(cacheKey);
+        const cachedInfo = this.#requestCache.get(cacheKey);
 
         if (cachedInfo) {
             request.id = cachedInfo.id;
@@ -346,7 +344,7 @@ export class RequestQueue implements IStorage, IRequestManager {
         // The caches hold real backend ids. Only *writing* provisional ids to them would be wrong;
         // reading saves a probe. Same lookup as the write-through path.
         const cacheKey = getRequestId(request.uniqueKey);
-        const cachedInfo = this.requestCache.get(cacheKey);
+        const cachedInfo = this.#requestCache.get(cacheKey);
         const knownRequestId = cachedInfo?.id ?? this.#requestSeenCache.get(cacheKey);
 
         if (knownRequestId) {
@@ -525,7 +523,7 @@ export class RequestQueue implements IStorage, IRequestManager {
         for (const request of requests) {
             const cacheKey = getCachedRequestId(request.uniqueKey);
             // Prefer the full `requestCache` record; fall back to the dedup cache for background batches it skips.
-            const cachedInfo = this.requestCache.get(cacheKey);
+            const cachedInfo = this.#requestCache.get(cacheKey);
             const knownRequestId = cachedInfo?.id ?? this.#requestSeenCache.get(cacheKey);
 
             if (knownRequestId) {
@@ -658,9 +656,9 @@ export class RequestQueue implements IStorage, IRequestManager {
             },
 
             trackBackgroundBatches: (batches) => {
-                this.inProgressRequestBatchCount += 1;
+                this.#inProgressRequestBatchCount += 1;
                 void batches.finally(() => {
-                    this.inProgressRequestBatchCount -= 1;
+                    this.#inProgressRequestBatchCount -= 1;
                 });
             },
         });
@@ -737,7 +735,7 @@ export class RequestQueue implements IStorage, IRequestManager {
 
         parseArgument(request, handledRequestSchema);
 
-        const forefront = this.requestCache.get(getRequestId(request.uniqueKey))?.forefront ?? false;
+        const forefront = this.#requestCache.get(getRequestId(request.uniqueKey))?.forefront ?? false;
 
         const handledAt = request.handledAt ?? new Date().toISOString();
         this.#statsTracker.add('writeCount');
@@ -835,7 +833,7 @@ export class RequestQueue implements IStorage, IRequestManager {
         const transaction = activeStorageTransaction();
 
         // We are not finished if we're still adding new requests in the background.
-        if (this.inProgressRequestBatchCount > 0) {
+        if (this.#inProgressRequestBatchCount > 0) {
             return false;
         }
 
@@ -871,9 +869,9 @@ export class RequestQueue implements IStorage, IRequestManager {
      */
     private cacheRequest(cacheKey: string, queueOperationInfo: RequestQueueOperationInfo): void {
         // Remove the previous entry, as otherwise our cache will never update 👀
-        this.requestCache.remove(cacheKey);
+        this.#requestCache.remove(cacheKey);
 
-        this.requestCache.add(cacheKey, {
+        this.#requestCache.add(cacheKey, {
             id: queueOperationInfo.requestId,
             isHandled: queueOperationInfo.wasAlreadyHandled,
             uniqueKey: queueOperationInfo.uniqueKey,
@@ -904,9 +902,9 @@ export class RequestQueue implements IStorage, IRequestManager {
         await this.backend.purge();
 
         // Reset in-memory bookkeeping so the queue behaves as if freshly opened.
-        this.requestCache.clear();
+        this.#requestCache.clear();
         this.#requestSeenCache.clear();
-        this.inProgressRequestBatchCount = 0;
+        this.#inProgressRequestBatchCount = 0;
 
         // Reset the expected-processing-time high-water mark too, otherwise the monotonic-raise guard
         // in `setExpectedRequestProcessingTimeSecs` would let a value raised in an earlier run leak into a
