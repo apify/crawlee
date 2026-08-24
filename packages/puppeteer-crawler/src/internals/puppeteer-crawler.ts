@@ -24,6 +24,7 @@ import type { PuppeteerLaunchContext } from './puppeteer-launcher.js';
 import type { InterceptHandler } from './utils/puppeteer_request_interception.js';
 import type {
     BlockRequestsOptions,
+    CloseCookieModalsOptions,
     DirectNavigationOptions,
     InfiniteScrollOptions,
     InjectFileOptions,
@@ -314,7 +315,8 @@ export class PuppeteerCrawler<
                     ...options,
                     configuration: serviceLocator.getConfiguration(),
                 }),
-            closeCookieModals: async () => puppeteerUtils.closeCookieModals(context.page),
+            closeCookieModals: async (options?: CloseCookieModalsOptions) =>
+                puppeteerUtils.closeCookieModals(context.page, options),
         };
     }
 

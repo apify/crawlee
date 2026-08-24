@@ -22,8 +22,14 @@ import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import vm from 'node:vm';
 
-import type { Request } from '@crawlee/browser';
-import { Configuration, KeyValueStore, serviceLocator, validators } from '@crawlee/browser';
+import type { CloseCookieModalsOptions, Request } from '@crawlee/browser';
+import {
+    closeCookieModals as closeCookieModalsHelper,
+    Configuration,
+    KeyValueStore,
+    serviceLocator,
+    validators,
+} from '@crawlee/browser';
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
 import type { CheerioAPI } from 'cheerio';
 import { expandShadowRoots, sleep } from '@crawlee/utils';
@@ -778,35 +784,10 @@ export async function saveSnapshot(page: Page, options: SaveSnapshotOptions = {}
     }
 }
 
-let idcacPlaywright: null | { getInjectableScript: () => string } = null;
-async function getIdcacPlaywright() {
-    if (idcacPlaywright) return idcacPlaywright;
-
-    try {
-        idcacPlaywright = await import('idcac-playwright');
-    } catch (error: any) {
-        getLog().warning(`Failed to import 'idcac-playwright'.
-
-We recently made idcac-playwright an optional dependency due to licensing issues.
-To use this feature, please install it manually by running
-
-npm install idcac-playwright
-
-Original error message follows:
-
-${error.message}
-`);
-    }
-    return idcacPlaywright;
-}
-
-export async function closeCookieModals(page: Page): Promise<void> {
+export async function closeCookieModals(page: Page, options: CloseCookieModalsOptions = {}): Promise<void> {
     parseArgument(page, validators.browserPage);
-    const idcac = await getIdcacPlaywright();
 
-    if (idcac?.getInjectableScript()) {
-        await page.evaluate(idcac.getInjectableScript());
-    }
+    await closeCookieModalsHelper(page, options);
 }
 
 export interface PuppeteerContextUtils {
@@ -1055,19 +1036,13 @@ export interface PuppeteerContextUtils {
     saveSnapshot(options?: SaveSnapshotOptions): Promise<void>;
 
     /**
-     * Tries to close cookie consent modals on the page. Based on the I Don't Care About Cookies browser extension.
-     *
-     * Note that this method requires the idcac-playwright package to be installed.
-     * Crawlee does not include it by default due to licensing issues.
-     *
-     * To use this method, please install the package manually by running:
-     *
-     * ```bash
-     * npm install idcac-playwright
-     * ```
+     * Tries to close cookie consent modals on the page, using the
+     * [autoconsent](https://github.com/duckduckgo/autoconsent) rules. Opts out of the consent by default.
      */
-    closeCookieModals(): Promise<void>;
+    closeCookieModals(options?: CloseCookieModalsOptions): Promise<void>;
 }
+
+export type { CloseCookieModalsOptions };
 
 export { enqueueLinksByClickingElements, addInterceptRequestHandler, removeInterceptRequestHandler };
 

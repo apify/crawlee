@@ -60,13 +60,9 @@
         "zod": "catalog:"
     },
     "peerDependencies": {
-        "idcac-playwright": "^0.2.0",
         "puppeteer": "*"
     },
     "peerDependenciesMeta": {
-        "idcac-playwright": {
-            "optional": true
-        },
         "puppeteer": {
             "optional": true
         }

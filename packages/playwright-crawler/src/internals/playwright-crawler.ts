@@ -22,6 +22,7 @@ import { playwrightBrowserPool, remotePlaywrightBrowserPool } from './playwright
 import type { PlaywrightLaunchContext } from './playwright-launcher.js';
 import type {
     BlockRequestsOptions,
+    CloseCookieModalsOptions,
     DirectNavigationOptions,
     HandleCloudflareChallengeOptions,
     InfiniteScrollOptions,
@@ -334,7 +335,8 @@ export class PlaywrightCrawler<
                     requestManager: this.requestManager!,
                 }),
             compileScript: (scriptString: string, ctx?: Dictionary) => playwrightUtils.compileScript(scriptString, ctx),
-            closeCookieModals: async () => playwrightUtils.closeCookieModals(context.page),
+            closeCookieModals: async (options?: CloseCookieModalsOptions) =>
+                playwrightUtils.closeCookieModals(context.page, options),
             handleCloudflareChallenge: async (options?: HandleCloudflareChallengeOptions) => {
                 return playwrightUtils.handleCloudflareChallenge(context.page, context.request.url, options);
             },

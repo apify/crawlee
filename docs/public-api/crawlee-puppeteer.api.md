@@ -16,6 +16,7 @@ import type { BrowserPoolHooks } from '@crawlee/browser-pool';
 import type { BrowserPoolOptions } from '@crawlee/browser-pool';
 import type { CheerioAPI } from 'cheerio';
 import type { ClickOptions } from 'puppeteer';
+import type { CloseCookieModalsOptions } from '@crawlee/browser';
 import { Configuration } from '@crawlee/browser';
 import type { ContextPipeline } from '@crawlee/browser';
 import type { CrawlingContext } from '@crawlee/browser';
@@ -59,7 +60,7 @@ const blockResources: (page: Page, resourceTypes?: string[]) => Promise<void>;
 function cacheResponses(page: Page, cache: Dictionary<Partial<ResponseForRequest>>, responseUrlRules: (string | RegExp)[]): Promise<void>;
 
 // @public (undocumented)
-function closeCookieModals(page: Page): Promise<void>;
+function closeCookieModals(page: Page, options?: CloseCookieModalsOptions): Promise<void>;
 
 // @public (undocumented)
 export type CompiledScriptFunction = (params: CompiledScriptParams) => Promise<unknown>;
@@ -175,7 +176,7 @@ declare namespace puppeteerClickElements {
 interface PuppeteerContextUtils {
     addInterceptRequestHandler(handler: InterceptHandler): Promise<void>;
     blockRequests(options?: BlockRequestsOptions): Promise<void>;
-    closeCookieModals(): Promise<void>;
+    closeCookieModals(options?: CloseCookieModalsOptions): Promise<void>;
     compileScript(scriptString: string, ctx?: Dictionary): CompiledScriptFunction;
     enqueueLinksByClickingElements(options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestManager'>): Promise<BatchAddRequestsResult>;
     infiniteScroll(options?: InfiniteScrollOptions): Promise<void>;
@@ -260,6 +261,7 @@ declare namespace puppeteerUtils {
         InfiniteScrollOptions,
         SaveSnapshotOptions,
         PuppeteerContextUtils,
+        CloseCookieModalsOptions,
         enqueueLinksByClickingElements,
         addInterceptRequestHandler,
         removeInterceptRequestHandler,
