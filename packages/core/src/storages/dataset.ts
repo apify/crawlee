@@ -235,6 +235,8 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      *   The objects must be serializable to JSON.
      */
     async pushData(data: Data | Data[]): Promise<void> {
+        tryCancel();
+
         const transaction = activeStorageTransaction();
 
         parseArgument(data, schemas.anyObject);

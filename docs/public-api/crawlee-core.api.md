@@ -813,6 +813,8 @@ export interface KeyConsumer {
 export class KeyValueStore {
     [Symbol.asyncIterator]<T = unknown>(): AsyncGenerator<[string, T], void, undefined>;
     // (undocumented)
+    readonly backend: KeyValueStoreBackend;
+    // (undocumented)
     readonly configuration: Configuration;
     drop(): Promise<void>;
     entries<T = unknown>(options?: KeyValueStoreIteratorOptions): AsyncIterable<[string, T]> & Promise<[string, T][]>;
@@ -1651,7 +1653,7 @@ export class Session implements ISession {
 
 // Not exported by the entry point; reachable only as a referenced type.
 // @public (undocumented)
-const SESSION_REUSE_STRATEGIES: readonly ["random", "round-robin", "use-until-failure"];
+const SESSION_REUSE_STRATEGIES: readonly ['random', 'round-robin', 'use-until-failure'];
 
 // @public
 export class SessionError extends Error {
@@ -2064,6 +2066,11 @@ export interface SystemInfo {
     memTotalBytes?: number;
     // (undocumented)
     storageBackendInfo: LoadSignalInfo;
+}
+
+// @public (undocumented)
+export interface TaskLoopOptions extends TaskLoopPredicates {
+    maybeRunIntervalSecs?: number;
 }
 
 // @public

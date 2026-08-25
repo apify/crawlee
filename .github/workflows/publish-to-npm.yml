@@ -37,21 +37,21 @@ jobs:
         name: Publish to NPM (${{ inputs.dist-tag }})
         runs-on: ubuntu-22.04
         steps:
-            - uses: actions/checkout@v7
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
                   ref: ${{ inputs.ref }}
                   token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
                   fetch-depth: 0
 
             - name: Use Node.js 24
-              uses: actions/setup-node@v7
+              uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
               with:
                   node-version: 24
                   package-manager-cache: false
 
             - name: Turbo cache
               id: turbo-cache
-              uses: actions/cache@v6
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
               with:
                   path: .turbo
                   key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
@@ -70,7 +70,7 @@ jobs:
 
             - name: Commit changes
               if: inputs.dist-tag != 'prod'
-              uses: EndBug/add-and-commit@v11
+              uses: EndBug/add-and-commit@645ecc0dd0a57f4d86d26c0aa5fc42c0a856fbca # v11.0.0
               id: commit
               with:
                 author_name: Apify Release Bot
@@ -80,7 +80,7 @@ jobs:
 
             - name: Publish to NPM (@latest)
               if: inputs.dist-tag == 'prod'
-              uses: nick-fields/retry@v4
+              uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
               with:
                   timeout_minutes: 10
                   max_attempts: 5
@@ -91,7 +91,7 @@ jobs:
 
             - name: Publish to NPM (@next)
               if: inputs.dist-tag != 'prod' && inputs.dist-tag != 'rc'
-              uses: nick-fields/retry@v4
+              uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
               with:
                   timeout_minutes: 10
                   max_attempts: 5
@@ -102,7 +102,7 @@ jobs:
 
             - name: Publish to NPM (@rc)
               if: inputs.dist-tag == 'rc'
-              uses: nick-fields/retry@v4
+              uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
               with:
                   timeout_minutes: 10
                   max_attempts: 5

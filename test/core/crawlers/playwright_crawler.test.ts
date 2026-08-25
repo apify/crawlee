@@ -2,7 +2,7 @@ import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import os from 'node:os';
 
-import type { PlaywrightCrawlingContext, PlaywrightGotoOptions, Request } from '@crawlee/playwright';
+import type { PlaywrightCrawlingContext, Request } from '@crawlee/playwright';
 import { type ConcurrencySystem, MemoryStorageBackend, serviceLocator } from '@crawlee/core';
 import {
     createPlaywrightRouter,
@@ -169,7 +169,8 @@ describe('PlaywrightCrawler', () => {
 
     test('should override goto timeout with navigationTimeoutSecs', async () => {
         const timeoutSecs = 10;
-        let options: PlaywrightGotoOptions;
+        // Captured by value: `navigate()` narrows the live `gotoOptions` down to the remaining navigation window.
+        let gotoTimeout: number | undefined;
         const playwrightCrawler = new PlaywrightCrawler({
             requestList,
             maxRequestRetries: 0,
@@ -177,14 +178,14 @@ describe('PlaywrightCrawler', () => {
             requestHandler: () => {},
             preNavigationHooks: [
                 ({ gotoOptions }) => {
-                    options = gotoOptions;
+                    gotoTimeout = gotoOptions.timeout;
                 },
             ],
             navigationTimeoutSecs: timeoutSecs,
         });
 
         await playwrightCrawler.run();
-        expect(options!.timeout).toEqual(timeoutSecs * 1000);
+        expect(gotoTimeout).toEqual(timeoutSecs * 1000);
     });
 
     test('does not mutate the launchContext it was given', () => {

@@ -27,8 +27,7 @@ describe('RenderingTypePredictor', () => {
 
             // Persist the state
             const store = await KeyValueStore.open();
-            // eslint-disable-next-line dot-notation
-            await predictor['state'].persistState(); // Access private state for persistence
+            await predictor.teardown();
 
             const persistedState = await store.getValue(persistStateKey);
             expect(persistedState).toHaveProperty('logreg');
