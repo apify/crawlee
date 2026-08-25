@@ -746,7 +746,6 @@ export interface IRequestLoader {
     isEmpty(): Promise<boolean>;
     isFinished(): Promise<boolean>;
     markRequestAsHandled(request: Request_2): Promise<RequestQueueOperationInfo | void | null>;
-    persistState?(): Promise<void>;
     toTandem?(requestManager?: IRequestManager): Promise<IRequestManager>;
 }
 
@@ -1249,7 +1248,6 @@ export class RequestManagerTandem implements IRequestManager {
     isFinished(): Promise<boolean>;
     // (undocumented)
     markRequestAsHandled(request: Request_2): Promise<RequestQueueOperationInfo | void | null>;
-    persistState(): Promise<void>;
     purge(): Promise<void>;
     // (undocumented)
     reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;

@@ -812,7 +812,10 @@ describe('BasicCrawler', () => {
             const processed: { url: string }[] = [];
             const requestList = await RequestList.open('reqList', sources);
             const requestHandler: RequestHandler = async ({ request }) => {
-                if (request.url.endsWith('200')) serviceLocator.getEventManager().emit(event);
+                if (request.url.endsWith('200')) {
+                    serviceLocator.getEventManager().emit(event);
+                    serviceLocator.getEventManager().emit(EventType.PERSIST_STATE);
+                }
                 processed.push({ url: request.url });
             };
 

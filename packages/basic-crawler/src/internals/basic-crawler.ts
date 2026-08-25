@@ -2532,30 +2532,7 @@ export class BasicCrawler<
             });
         }
 
-        const requestManagerPersistPromise = (async () => {
-            // The request manager persists its read-only loader's state, if it has one that supports persistence
-            // (e.g. a tandem wrapping a `RequestList`). For a plain `RequestQueue`, this is a no-op.
-            if (this.requestManager?.persistState) {
-                if (await this.requestManager.isFinished()) return;
-                await this.requestManager.persistState().catch((err) => {
-                    if (err.message.includes('Cannot persist state.')) {
-                        this.log.error(
-                            "The crawler attempted to persist its request list's state and failed due to missing or " +
-                                'invalid configuration. Make sure to use either RequestList.open() or the "stateKeyPrefix" option of RequestList ' +
-                                'constructor to ensure your crawling state is persisted through host migrations and restarts.',
-                        );
-                    } else {
-                        this.log.exception(
-                            err,
-                            'An unexpected error occurred when the crawler ' +
-                                "attempted to persist its request list's state.",
-                        );
-                    }
-                });
-            }
-        })();
-
-        await Promise.all([requestManagerPersistPromise, this.statistics.persistState?.()]);
+        await this.statistics.persistState?.();
     }
 
     /**
