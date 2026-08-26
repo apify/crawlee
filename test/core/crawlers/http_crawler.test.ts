@@ -194,6 +194,18 @@ test('concurrency shortcuts coexist with the HTTP-optimized defaults', async () 
     expect(crawler.asConfigured!.desiredConcurrency).toBe(5);
 });
 
+test('initialConcurrency overrides the HTTP-optimized starting concurrency', async () => {
+    const crawler = new ObservableHttpCrawler({
+        initialConcurrency: 3,
+        maxRequestRetries: 0,
+        requestHandler: () => {},
+    });
+
+    await crawler.run([url]);
+
+    expect(crawler.asConfigured!.desiredConcurrency).toBe(3);
+});
+
 test('parseWithCheerio works', async () => {
     const results: string[] = [];
 

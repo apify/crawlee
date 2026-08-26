@@ -124,6 +124,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = CrawlingC
     httpClient?: BaseHttpClient;
     id?: string;
     ignoreHttpErrorStatusCodes?: number[];
+    initialConcurrency?: number;
     keepAlive?: boolean;
     logger?: CrawleeLogger;
     maxConcurrency?: number;

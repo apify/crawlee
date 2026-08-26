@@ -276,7 +276,7 @@ describe('BasicCrawler', () => {
         expect(bookedFor).toEqual(new Set(['crawler-a', 'crawler-b']));
     });
 
-    test.each(['minConcurrency', 'maxConcurrency', 'maxRequestsPerMinute'] as const)(
+    test.each(['minConcurrency', 'maxConcurrency', 'initialConcurrency', 'maxRequestsPerMinute'] as const)(
         'throws when %s is combined with a supplied concurrencySystem',
         (shortcut) => {
             expect(
@@ -624,6 +624,7 @@ describe('BasicCrawler', () => {
         const collect = (crawler: BasicCrawler) => ({
             minConcurrency: (crawler.concurrencySystem! as ConcurrencySystem).minConcurrency,
             maxConcurrency: (crawler.concurrencySystem! as ConcurrencySystem).maxConcurrency,
+            desiredConcurrency: (crawler.concurrencySystem! as ConcurrencySystem).desiredConcurrency,
             // eslint-disable-next-line dot-notation -- private member on the governor
             maxTasksPerMinute: (crawler.concurrencySystem! as ConcurrencySystem)['maxTasksPerMinute'],
         });
@@ -634,11 +635,17 @@ describe('BasicCrawler', () => {
             requestHandler,
             minConcurrency: 123,
             maxConcurrency: 456,
+            initialConcurrency: 234,
             maxRequestsPerMinute: 789,
         });
 
         // An injected system carries its own config (the shortcuts are rejected alongside one, see above).
-        const injectedSystem = new ConcurrencySystem({ minConcurrency: 16, maxConcurrency: 32, maxTasksPerMinute: 64 });
+        const injectedSystem = new ConcurrencySystem({
+            minConcurrency: 16,
+            maxConcurrency: 32,
+            desiredConcurrency: 24,
+            maxTasksPerMinute: 64,
+        });
         const injected = new BasicCrawler({
             requestList,
             requestHandler,
@@ -650,8 +657,18 @@ describe('BasicCrawler', () => {
         await Promise.all([shortcuts.run(), injected.run()]);
         await injectedSystem.stop();
 
-        expect(collect(shortcuts)).toEqual({ minConcurrency: 123, maxConcurrency: 456, maxTasksPerMinute: 789 });
-        expect(collect(injected)).toEqual({ minConcurrency: 16, maxConcurrency: 32, maxTasksPerMinute: 64 });
+        expect(collect(shortcuts)).toEqual({
+            minConcurrency: 123,
+            maxConcurrency: 456,
+            desiredConcurrency: 234,
+            maxTasksPerMinute: 789,
+        });
+        expect(collect(injected)).toEqual({
+            minConcurrency: 16,
+            maxConcurrency: 32,
+            desiredConcurrency: 24,
+            maxTasksPerMinute: 64,
+        });
         // The injected system is the very instance the pool uses.
         expect(injected.concurrencySystem!).toBe(injectedSystem);
     });

@@ -395,8 +395,8 @@ export interface BasicCrawlerOptions<
      * single budget. Each crawler still builds and drives its own {@apilink AutoscaledPool}; only the load/scaling
      * accounting is shared.
      *
-     * Mutually exclusive with the `minConcurrency`/`maxConcurrency`/`maxRequestsPerMinute` shortcuts, which configure
-     * the default system this one replaces — combining the two throws.
+     * Mutually exclusive with the `minConcurrency`/`maxConcurrency`/`initialConcurrency`/`maxRequestsPerMinute`
+     * shortcuts, which configure the default system this one replaces — combining the two throws.
      *
      * You own a supplied system's lifecycle: `start()` it before `run()` (which throws otherwise) and `stop()` it once
      * every crawler borrowing it has finished. The crawler does neither on your behalf.
@@ -418,6 +418,13 @@ export interface BasicCrawlerOptions<
      * {@apilink ConcurrencySystem}.
      */
     maxConcurrency?: number;
+
+    /**
+     * Sets the concurrency (parallelism) the crawl starts with, before any scaling happens. Shortcut for the
+     * {@apilink ConcurrencySystemOptions.desiredConcurrency|`desiredConcurrency`} option of the crawler's default
+     * {@apilink ConcurrencySystem}. Defaults to `minConcurrency`.
+     */
+    initialConcurrency?: number;
 
     /**
      * The maximum number of requests per minute the crawler should run.
@@ -955,6 +962,7 @@ export class BasicCrawler<
         // AutoscaledPool shorthands
         minConcurrency: schemas.anyNumber.optional(),
         maxConcurrency: schemas.anyNumber.optional(),
+        initialConcurrency: schemas.anyNumber.optional(),
         maxRequestsPerMinute: schemas.anyNumber
             .refine((value) => Number.isInteger(value) || value === Infinity, 'Expected an integer or infinite number')
             .refine((value) => value >= 1, 'Expected a number greater than or equal to 1')
@@ -1005,6 +1013,7 @@ export class BasicCrawler<
             // AutoscaledPool shorthands
             minConcurrency,
             maxConcurrency,
+            initialConcurrency,
             maxRequestsPerMinute,
 
             blockedStatusCodes: blockedStatusCodesInput,
@@ -1029,12 +1038,15 @@ export class BasicCrawler<
         // hammering a site.
         if (
             concurrencySystem !== undefined &&
-            (minConcurrency !== undefined || maxConcurrency !== undefined || maxRequestsPerMinute !== undefined)
+            (minConcurrency !== undefined ||
+                maxConcurrency !== undefined ||
+                initialConcurrency !== undefined ||
+                maxRequestsPerMinute !== undefined)
         ) {
             throw new Error(
-                'The `minConcurrency`/`maxConcurrency`/`maxRequestsPerMinute` shortcuts cannot be combined with ' +
-                    '`concurrencySystem` - they configure the default `ConcurrencySystem` that a supplied one ' +
-                    'replaces. Pass them to the `ConcurrencySystem` constructor instead.',
+                'The `minConcurrency`/`maxConcurrency`/`initialConcurrency`/`maxRequestsPerMinute` shortcuts ' +
+                    'cannot be combined with `concurrencySystem` - they configure the default `ConcurrencySystem` ' +
+                    'that a supplied one replaces. Pass them to the `ConcurrencySystem` constructor instead.',
             );
         }
 
@@ -1399,6 +1411,9 @@ export class BasicCrawler<
                         minConcurrency,
                         maxConcurrency,
                         maxTasksPerMinute: maxRequestsPerMinute,
+                        // Spread conditionally - an explicit `undefined` would clobber a subclass default, see
+                        // `HTTP_OPTIMIZED_CONCURRENCY_SYSTEM_OPTIONS`.
+                        ...(initialConcurrency !== undefined && { desiredConcurrency: initialConcurrency }),
                         log: this.log,
                     }),
                 );
@@ -1409,7 +1424,7 @@ export class BasicCrawler<
 
     /**
      * Builds the crawler-owned default {@apilink ConcurrencySystem} from the resolved
-     * `minConcurrency`/`maxConcurrency`/`maxRequestsPerMinute` shortcuts. Not called when a
+     * `minConcurrency`/`maxConcurrency`/`initialConcurrency`/`maxRequestsPerMinute` shortcuts. Not called when a
      * {@apilink BasicCrawlerOptions.concurrencySystem|`concurrencySystem`} was injected.
      *
      * Subclasses may override this to tune the default system (e.g. {@apilink HttpCrawler} raises the starting
