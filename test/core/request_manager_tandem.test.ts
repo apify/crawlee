@@ -280,27 +280,39 @@ describe('RequestManagerTandem', () => {
         const tandem = new RequestManagerTandem(requestList, throttler);
 
         expect(
-            tandem.recordPacingSignal('https://example.com/1', {
+            tandem.recordPacingSignal({
+                url: 'https://example.com/1',
                 reason: 'minInterval',
                 intervalMs: 5_000,
                 scope: 'hostname',
             }),
         ).toBe(true);
-        expect(tandem.recordPacingSignal('https://example.com/1', { reason: 'rateLimited', waitMs: 1_000 })).toBe(true);
+        expect(tandem.recordPacingSignal({ url: 'https://example.com/1', reason: 'rateLimited', waitMs: 1_000 })).toBe(
+            true,
+        );
 
         // A domain the pacer does not cover is reported back as unpaced rather than silently swallowed, so the
         // crawler can warn about it.
         expect(
-            tandem.recordPacingSignal('https://other.com/1', {
+            tandem.recordPacingSignal({
+                url: 'https://other.com/1',
                 reason: 'minInterval',
                 intervalMs: 5_000,
                 scope: 'hostname',
             }),
         ).toBe(false);
-        expect(tandem.recordPacingSignal('https://other.com/1', { reason: 'rateLimited', waitMs: 1_000 })).toBe(false);
+        expect(tandem.recordPacingSignal({ url: 'https://other.com/1', reason: 'rateLimited', waitMs: 1_000 })).toBe(
+            false,
+        );
 
         // ...and the pacer actually acted on them: the domain is held back until both clocks run out.
         await expect(throttler.checkReadiness()).resolves.toMatchObject({ status: 'waiting' });
+
+        // A floor covering every domain reaches it the same way, and this pacer covers only `example.com`, so
+        // it says so rather than take one it would under-apply.
+        expect(() =>
+            tandem.recordPacingSignal({ reason: 'minIntervalEverywhere', intervalMs: 5_000, scope: 'hostname' }),
+        ).toThrow(/domains: 'all'/);
     });
 
     test('reports the pacing signals as unhandled when the manager cannot pace', async () => {
@@ -308,14 +320,22 @@ describe('RequestManagerTandem', () => {
         const tandem = new RequestManagerTandem(requestList, await RequestQueue.open());
 
         // A plain queue paces nothing, so signals of either kind come back `false` for the crawler to warn about.
-        expect(tandem.recordPacingSignal('https://example.com/1', { reason: 'rateLimited', waitMs: 1_000 })).toBe(
+        expect(tandem.recordPacingSignal({ url: 'https://example.com/1', reason: 'rateLimited', waitMs: 1_000 })).toBe(
             false,
         );
         expect(
-            tandem.recordPacingSignal('https://example.com/1', {
+            tandem.recordPacingSignal({
+                url: 'https://example.com/1',
                 reason: 'minInterval',
                 intervalMs: 5_000,
                 scope: 'hostname',
+            }),
+        ).toBe(false);
+        expect(
+            tandem.recordPacingSignal({
+                reason: 'minIntervalEverywhere',
+                intervalMs: 5_000,
+                scope: 'registrableDomain',
             }),
         ).toBe(false);
     });

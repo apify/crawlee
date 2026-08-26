@@ -758,7 +758,7 @@ export interface IRequestManager extends IRequestLoader {
     addRequestsBatched(requests: RequestsLike, options?: AddRequestsBatchedOptions): Promise<AddRequestsBatchedResult>;
     purge?(): Promise<void>;
     reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
-    recordPacingSignal(url: string, signal: PacingSignal): boolean;
+    recordPacingSignal(signal: PacingSignal): boolean;
     setExpectedRequestProcessingTimeSecs?(secs: number): Promise<void>;
 }
 
@@ -1038,10 +1038,16 @@ export type PacingScope = LiteralUnion<'hostname' | 'registrableDomain', string>
 // @public
 export type PacingSignal = {
     reason: 'rateLimited';
+    url: string;
     waitMs?: number;
     scope?: PacingScope;
 } | {
     reason: 'minInterval';
+    url: string;
+    intervalMs: number;
+    scope: PacingScope;
+} | {
+    reason: 'minIntervalEverywhere';
     intervalMs: number;
     scope: PacingScope;
 };
@@ -1268,7 +1274,7 @@ export class RequestManagerTandem implements IRequestManager {
     purge(): Promise<void>;
     // (undocumented)
     reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
-    recordPacingSignal(url: string, signal: PacingSignal): boolean;
+    recordPacingSignal(signal: PacingSignal): boolean;
     setExpectedRequestProcessingTimeSecs(secs: number): Promise<void>;
 }
 
@@ -1318,7 +1324,7 @@ export class RequestQueue implements IStorage, IRequestManager {
     static open(identifier?: string | StorageIdentifier | null, options?: StorageOpenOptions): Promise<RequestQueue>;
     purge(): Promise<void>;
     reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
-    recordPacingSignal(_url: string, _signal: PacingSignal): boolean;
+    recordPacingSignal(_signal: PacingSignal): boolean;
     setExpectedRequestProcessingTimeSecs(secs: number): Promise<void>;
     get stats(): RequestQueueStats;
 }
@@ -2116,7 +2122,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     purge(): Promise<void>;
     // (undocumented)
     reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
-    recordPacingSignal(url: string, signal: PacingSignal): boolean;
+    recordPacingSignal(signal: PacingSignal): boolean;
     // (undocumented)
     setExpectedRequestProcessingTimeSecs(secs: number): Promise<void>;
 }

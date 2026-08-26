@@ -807,7 +807,7 @@ export class RequestQueue implements IStorage, IRequestManager {
      * had nowhere to go.
      * @inheritdoc
      */
-    recordPacingSignal(_url: string, _signal: PacingSignal): boolean {
+    recordPacingSignal(_signal: PacingSignal): boolean {
         return false;
     }
 

@@ -352,10 +352,11 @@ export interface BasicCrawlerOptions<
      * Indicates how much time (in seconds) to wait before crawling another same domain request. Subdomains are
      * paced together with the site they belong to.
      *
-     * Shorthand for wrapping the crawler's request manager in a {@apilink ThrottlingRequestManager} with
-     * `domains: 'all'` and `throttleBy: 'registrableDomain'`. Construct one yourself and pass it as
-     * `requestManager` when you want to name the domains, tune the 429 backoff, or pace an existing manager of
-     * your own - the two cannot be combined.
+     * A floor, offered to the crawler's request manager as a `minIntervalEverywhere`
+     * {@apilink PacingSignal}. A manager that paces every domain it dispatches to takes it
+     * (a {@apilink ThrottlingRequestManager} with `domains: 'all'`, wherever it sits in a composition), so its
+     * own clocks are the only ones in play. When nothing there paces, the crawler wraps its request manager in a
+     * `ThrottlingRequestManager` with `domains: 'all'` and `throttleBy: 'registrableDomain'` of its own.
      * @default 0
      */
     sameDomainDelaySecs?: number;
@@ -1084,43 +1085,48 @@ export class BasicCrawler<
                 );
             }
 
-            // Both would pace the same domains, from separate keys and with no idea of one another. Checked by
-            // type rather than by looking for `recordDomainDelay`: every wrapping manager now forwards that
-            // method, so its presence says nothing about whether anything underneath actually paces.
-            if (sameDomainDelaySecs > 0 && requestManager instanceof ThrottlingRequestManager) {
-                throw new Error(
-                    'The `sameDomainDelaySecs` option cannot be combined with a `ThrottlingRequestManager` passed ' +
-                        'as `requestManager` - both would pace the same domains, from separate keys and with no ' +
-                        'idea of one another. Configure the delay on that manager instead, via its ' +
-                        '`minCrawlDelaySecs` option.',
-                );
-            }
-
             const suppliedManager = requestManager ?? requestQueue;
 
+            // `sameDomainDelaySecs` is a floor under the pace of every domain, so offer it to whatever the
+            // crawler was going to read from before building a pacer of our own. Anything that paces takes it
+            // (through any number of wrappers, since they all forward), and two clocks for one domain never come
+            // into existence. Nothing there paces if the answer is `false`, which is what makes the throttler
+            // below necessary rather than duplicative.
+            //
+            // `registrableDomain` is what `sameDomainDelaySecs` has always meant: one clock for a site,
+            // subdomains included.
+            const floorTaken =
+                sameDomainDelaySecs > 0 &&
+                (suppliedManager?.recordPacingSignal({
+                    reason: 'minIntervalEverywhere',
+                    intervalMs: sameDomainDelaySecs * 1000,
+                    scope: 'registrableDomain',
+                }) ??
+                    false);
+
+            const pacerNeeded = sameDomainDelaySecs > 0 && !floorTaken;
+
             // Whatever the crawler opens itself is its own to empty between runs; a manager the caller supplied
-            // is not. `sameDomainDelaySecs` over a supplied manager is both at once - see `#purgeableExtent`.
+            // is not. A pacer of ours over a supplied manager is both at once - see `#purgeableExtent`. A floor
+            // the manager took adds no storage, so it leaves the caller's manager as untouched as no delay at all.
             if (suppliedManager === undefined) {
                 this.#purgeableExtent = 'all';
             } else {
-                this.#purgeableExtent = sameDomainDelaySecs > 0 ? 'ambiguous' : 'none';
+                this.#purgeableExtent = pacerNeeded ? 'ambiguous' : 'none';
             }
 
-            // `sameDomainDelaySecs` is shorthand for a `ThrottlingRequestManager` over whatever the crawler was
-            // going to read from. Built here rather than at first use so that it can be placed *inside* the
-            // tandem below, which is where a loader's transferred requests pass through it.
-            const writableManager =
-                sameDomainDelaySecs > 0
-                    ? new ThrottlingRequestManager({
-                          domains: 'all',
-                          minCrawlDelaySecs: sameDomainDelaySecs,
-                          // What `sameDomainDelaySecs` has always meant: one clock for a site, subdomains included.
-                          throttleBy: 'registrableDomain',
-                          persistStateKey: `CRAWLEE_THROTTLED_DOMAINS_${this.#identity.id}`,
-                          // A factory, because the default queue is only opened on first use.
-                          inner: suppliedManager ?? (() => this.openOwnedRequestQueue()),
-                      })
-                    : suppliedManager;
+            // Built here rather than at first use so that it can be placed *inside* the tandem below, which is
+            // where a loader's transferred requests pass through it.
+            const writableManager = pacerNeeded
+                ? new ThrottlingRequestManager({
+                      domains: 'all',
+                      minCrawlDelaySecs: sameDomainDelaySecs,
+                      throttleBy: 'registrableDomain',
+                      persistStateKey: `CRAWLEE_THROTTLED_DOMAINS_${this.#identity.id}`,
+                      // A factory, because the default queue is only opened on first use.
+                      inner: suppliedManager ?? (() => this.openOwnedRequestQueue()),
+                  })
+                : suppliedManager;
 
             if (requestList !== undefined) {
                 // A read-only `requestList` is combined with a writable manager into a tandem, so that its requests
@@ -2475,8 +2481,9 @@ export class BasicCrawler<
      */
     protected recordDomainRateLimit(url: string, retryAfterHeader?: string | null): boolean {
         if (
-            this.requestManager?.recordPacingSignal(url, {
+            this.requestManager?.recordPacingSignal({
                 reason: 'rateLimited',
+                url,
                 waitMs: parseRetryAfterHeader(retryAfterHeader) ?? undefined,
             })
         ) {
@@ -2501,8 +2508,9 @@ export class BasicCrawler<
         // robots.txt is per-origin, and the closest thing the pacing vocabulary has is the hostname - slightly
         // wider (http and https to one host share a clock), which is the safe direction to err in.
         if (
-            this.requestManager?.recordPacingSignal(url, {
+            this.requestManager?.recordPacingSignal({
                 reason: 'minInterval',
+                url,
                 intervalMs: delaySeconds * 1000,
                 scope: 'hostname',
             })

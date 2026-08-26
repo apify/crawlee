@@ -26,6 +26,7 @@ import {
     ProxyConfiguration,
     Request,
     RequestList,
+    RequestManagerTandem,
     RequestQueue,
     RequestValidationError,
     Router,
@@ -2858,10 +2859,54 @@ describe('BasicCrawler', () => {
                 expect(visits[1].at - visits[0].at).toBeGreaterThanOrEqual(400);
             });
 
-            test('refuses to be combined with a request manager that throttles on its own', async () => {
+            test('hands the delay to a manager that paces requests itself', async () => {
+                const requestManager = new ThrottlingRequestManager({
+                    inner: await RequestQueue.open(),
+                    domains: 'all',
+                    throttleBy: 'registrableDomain',
+                });
+
+                const { crawler, visits } = await crawlerVisiting(['http://example.com/1', 'http://example.com/2'], {
+                    requestManager,
+                    sameDomainDelaySecs: 0.5,
+                });
+
+                // Nothing was built around it: the delay went in as a floor, so the caller's manager is still
+                // the one pacing - one clock per domain, and their configuration intact.
+                await expect(crawler.getRequestManager()).resolves.toBe(requestManager);
+
+                expect(visits).toHaveLength(2);
+                expect(visits[1].at - visits[0].at).toBeGreaterThanOrEqual(400);
+            });
+
+            test('reaches a pacing manager through a wrapper', async () => {
+                // A tandem is not a pacer, but it forwards pacing signals, so the throttler behind it takes the
+                // floor just as it would on its own - no wrapper type is inspected on the way.
+                const throttler = new ThrottlingRequestManager({
+                    inner: await RequestQueue.open(),
+                    domains: 'all',
+                    throttleBy: 'registrableDomain',
+                });
+                const requestManager = new RequestManagerTandem(
+                    await RequestList.open(null, ['http://example.com/1', 'http://example.com/2']),
+                    throttler,
+                );
+
+                const { crawler, visits } = await crawlerVisiting([], { requestManager, sameDomainDelaySecs: 0.5 });
+
+                await expect(crawler.getRequestManager()).resolves.toBe(requestManager);
+
+                expect(visits).toHaveLength(2);
+                expect(visits[1].at - visits[0].at).toBeGreaterThanOrEqual(400);
+            });
+
+            test('refuses a manager that paces only some of the domains it holds', async () => {
+                // The floor covers every domain the crawl reaches; a manager pacing one listed domain cannot
+                // honour it, and taking it anyway would leave the rest running flat out.
                 const requestManager = new ThrottlingRequestManager({
                     inner: await RequestQueue.open(),
                     domains: ['example.com'],
+                    throttleBy: 'registrableDomain',
                 });
 
                 expect(
@@ -2871,7 +2916,29 @@ describe('BasicCrawler', () => {
                             sameDomainDelaySecs: 1,
                             requestHandler: async () => {},
                         }),
-                ).toThrow(/ThrottlingRequestManager/);
+                ).toThrow(/domains: 'all'/);
+            });
+
+            test('a second run() leaves a manager that took the delay alone', async () => {
+                // The counterpart of the ambiguity above: with the floor absorbed, the crawler put no storage
+                // of its own underneath the caller's manager, so there is nothing to ask about.
+                let visits = 0;
+                const crawler = new BasicCrawler({
+                    requestManager: new ThrottlingRequestManager({
+                        inner: await RequestQueue.open(),
+                        domains: 'all',
+                        throttleBy: 'registrableDomain',
+                    }),
+                    sameDomainDelaySecs: 0.05,
+                    requestHandler: async () => {
+                        visits += 1;
+                    },
+                });
+
+                await crawler.run(['http://example.com/1']);
+                await crawler.run(['http://example.com/1']);
+
+                expect(visits).toBe(1);
             });
         });
 

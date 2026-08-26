@@ -14,7 +14,7 @@ import { drainRequestBatches } from './batched_adds.js';
 import { KeyValueStore } from './key_value_store.js';
 import type { RequestSourceStatus } from './request_loader.js';
 import { joinRequestSourceStatuses } from './request_loader.js';
-import type { IRequestManager, PacingSignal, RequestsLike } from './request_manager.js';
+import type { IRequestManager, PacingScope, PacingSignal, RequestsLike } from './request_manager.js';
 import type {
     AddRequestsBatchedOptions,
     AddRequestsBatchedResult,
@@ -82,7 +82,8 @@ export interface ThrottlingRequestManagerOptions<T extends IRequestManager = IRe
     /**
      * A floor under the crawl delay of every throttled domain, in seconds - the proactive clock described on
      * {@apilink ThrottlingRequestManager}. A domain whose robots.txt asks for a longer `Crawl-delay` gets the
-     * longer one; this is a minimum, not an override.
+     * longer one; this is a minimum, not an override. A `minIntervalEverywhere` {@apilink PacingSignal} - how a
+     * crawler hands over its `sameDomainDelaySecs` - raises this floor at runtime, and never lowers it.
      * @default 0
      */
     minCrawlDelaySecs?: number;
@@ -233,9 +234,10 @@ const DEFAULT_PERSIST_STATE_KEY = 'CRAWLEE_THROTTLED_DOMAINS';
  *
  * Pass one as a crawler's `requestManager` to pace what it crawls. The crawlers' `sameDomainDelaySecs` shorthand
  * builds one for you, configured with `domains: 'all'` and `throttleBy: 'registrableDomain'`; construct it
- * yourself when you want to name the domains or tune the delays.
+ * yourself when you want to name the domains or tune the delays. Passing one that covers every domain also means
+ * `sameDomainDelaySecs` lands on it as a floor rather than putting a second pacer around it.
  *
- * The 429 and robots.txt `Crawl-delay` signals a crawler feeds it arrive through
+ * The 429 and robots.txt `Crawl-delay` signals a crawler feeds it, and that floor, all arrive through
  * {@apilink IRequestManager.recordPacingSignal|`recordPacingSignal`}, which every wrapping manager forwards - so
  * this works wherever it sits in a composition, including inside a {@apilink RequestManagerTandem}.
  *
@@ -261,7 +263,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     readonly #baseDelayMs: number;
     readonly #maxDelayMs: number;
     readonly #maxDomainStallMs: number;
-    readonly #minCrawlDelayMs: number;
+    #minCrawlDelayMs: number;
     readonly #throttlesEveryDomain: boolean;
     readonly #throttleBy: 'hostname' | 'registrableDomain';
     readonly #maxThrottledDomains: number;
@@ -585,19 +587,59 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     }
 
     /**
-     * Records a pacing signal for the URL's domain: a refusal puts it into backoff, a declared interval becomes
-     * its crawl delay.
+     * Records a pacing signal: a refusal puts the URL's domain into backoff, a declared interval becomes its
+     * crawl delay, and a crawl-wide floor raises {@link recordEverywhereFloor|the floor under all of them}.
      *
-     * @returns `false` if the domain is not configured for throttling, in which case this is a no-op.
+     * @returns `false` if the domain the signal covers is not configured for throttling, in which case this is
+     *  a no-op.
      * @throws If the signal's scope is one this manager cannot honour - see {@link assertScopeHonourable}.
      * @inheritdoc
      */
-    recordPacingSignal(url: string, signal: PacingSignal): boolean {
+    recordPacingSignal(signal: PacingSignal): boolean {
+        if (signal.reason === 'minIntervalEverywhere') {
+            return this.#recordEverywhereFloor(signal.intervalMs, signal.scope);
+        }
+
         this.#assertScopeHonourable(signal.scope);
 
         return signal.reason === 'rateLimited'
-            ? this.#recordRateLimit(url, signal.waitMs)
-            : this.#recordDeclaredInterval(url, signal.intervalMs);
+            ? this.#recordRateLimit(signal.url, signal.waitMs)
+            : this.#recordDeclaredInterval(signal.url, signal.intervalMs);
+    }
+
+    /**
+     * Raises the floor under every throttled domain's crawl delay - the same thing
+     * {@apilink ThrottlingRequestManagerOptions.minCrawlDelaySecs|`minCrawlDelaySecs`} configures, declared at
+     * runtime by whoever owns the crawl rather than by a source.
+     *
+     * A floor, so the longer of it and the domain's own `Crawl-delay` is what actually paces the domain.
+     *
+     * @returns `false` if this manager paces nothing at all, in which case there is no floor to raise.
+     * @throws If it paces some domains but not all of them: holding back only the listed ones would leave the
+     *  rest of what the floor covers running unpaced, which is worse than saying so.
+     */
+    #recordEverywhereFloor(intervalMs: number, scope: PacingScope): boolean {
+        // Before the scope check, unlike a per-domain signal: a manager configured to pace nothing has no
+        // grouping worth objecting about, and answering `false` is what lets the caller pace it from outside.
+        if (!this.#throttlingEnabled) {
+            return false;
+        }
+
+        this.#assertScopeHonourable(scope);
+
+        if (!this.#throttlesEveryDomain) {
+            throw new Error(
+                `Cannot honour a crawl-delay floor covering every domain: this manager only paces the domains ` +
+                    `it was given (${Array.from(this.#listedDomains).join(', ')}), so everything else would run ` +
+                    `unpaced. Set \`domains: 'all'\` to pace whatever the crawl encounters, or declare the floor ` +
+                    `on this manager yourself via \`minCrawlDelaySecs\`.`,
+            );
+        }
+
+        this.#minCrawlDelayMs = Math.max(this.#minCrawlDelayMs, intervalMs);
+        this.log.debug(`Crawl-delay floor for every domain set to ${(this.#minCrawlDelayMs / 1000).toFixed(1)}s`);
+
+        return true;
     }
 
     /**

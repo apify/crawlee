@@ -611,7 +611,7 @@ By default, only queues that the crawler created itself (the "owned" queue) are 
 | `true` | Purged | Purged |
 | `false` | Not purged | Not purged |
 
-One combination has no sensible default: `sameDomainDelaySecs` over a request manager you supplied. The per-domain queues that have to be emptied are the crawler's, the manager underneath them is yours, and a purge cannot respect both — so a repeated `run()` throws and asks you to pass `purgeRequestQueue` explicitly rather than guessing.
+One combination has no sensible default: `sameDomainDelaySecs` over a request manager you supplied that does not pace requests itself. The per-domain queues that have to be emptied are the crawler's, the manager underneath them is yours, and a purge cannot respect both — so a repeated `run()` throws and asks you to pass `purgeRequestQueue` explicitly rather than guessing. A manager that takes the delay as a floor gets no queues of ours underneath it, so it is left alone like any other supplied manager.
 
 ```typescript
 // The purge happens automatically between run() calls:
@@ -1419,13 +1419,15 @@ const handled = await requestList.getHandledCount();
 v3 had no way for a crawler to tell a request source that a domain wants to be left alone for a while — a 429 could only retire the session, and a robots.txt `Crawl-delay` was not enforced at all. `IRequestManager` now carries one member for exactly that:
 
 ```typescript
-recordPacingSignal(url: string, signal: PacingSignal): boolean;
+recordPacingSignal(signal: PacingSignal): boolean;
 
 type PacingSignal =
     // the source turned a request away because we were going too fast
-    | { reason: 'rateLimited'; waitMs?: number; scope?: PacingScope }
+    | { reason: 'rateLimited'; url: string; waitMs?: number; scope?: PacingScope }
     // it declared a standing floor on how often it may be requested
-    | { reason: 'minInterval'; intervalMs: number; scope: PacingScope };
+    | { reason: 'minInterval'; url: string; intervalMs: number; scope: PacingScope }
+    // the operator asked for a floor under every domain, `sameDomainDelaySecs` being one
+    | { reason: 'minIntervalEverywhere'; intervalMs: number; scope: PacingScope };
 
 // suggests the two Crawlee itself uses, accepts any string
 type PacingScope = LiteralUnion<'hostname' | 'registrableDomain', string>;
@@ -1438,6 +1440,8 @@ The crawler reports the first when a response rate-limits it (an HTTP 429, carry
 A manager may apply a signal to a **wider** scope than it was given — a floor that holds for one host still holds when a whole site is paced by it — but never to a narrower one, which would leave part of what the signal covers running unpaced. `ThrottlingRequestManager` holds one request queue per group, so `throttleBy` is the finest granularity it can express: it widens a `'hostname'`-scoped signal when grouping by `'registrableDomain'` (which is what `sameDomainDelaySecs` configures, and what a robots.txt `Crawl-delay` therefore gets), and **throws** on a signal scoped wider than its grouping or named in a vocabulary it does not speak, rather than quietly under-applying it.
 
 It is required, not optional: reporting a signal is never a question of whether the manager supports it. A manager that does not pace — a plain `RequestQueue` — returns `false`, and the crawler warns that the signal had nowhere to go. A manager that **wraps** another forwards it, as `RequestManagerTandem` does, so that a pacer nested inside a composition still receives it. Forwarding is also why this is one method taking a discriminated payload rather than a method per signal: a wrapper passes the value along without knowing what is in it, and a new kind of signal costs implementors nothing.
+
+`minIntervalEverywhere` is the crawl-wide variant: a floor under the pace of **every** domain the manager dispatches to, declared by whoever owns the crawl rather than by a source, which is why it is the one variant with no `url`. It is how `sameDomainDelaySecs` reaches a manager that already paces — the crawler reports the floor and only builds a `ThrottlingRequestManager` of its own when nothing takes it. A manager that paces only *some* of its domains **throws** on it, since holding back the ones it knows about would leave the rest running unpaced.
 
 #### `isEmpty()` / `isFinished()` replaced by `checkReadiness()`
 
@@ -1538,10 +1542,10 @@ It is also what enforces robots.txt `Crawl-delay` directives — with `respectRo
 
 #### `sameDomainDelaySecs` is now backed by `ThrottlingRequestManager`
 
-`sameDomainDelaySecs` still works and still means what it did in v3 — subdomains included, it paces a whole registrable domain rather than a single host. What changed is the machinery underneath: instead of holding delayed requests in an in-memory map and re-enqueueing them, the crawler wraps its request manager in a `ThrottlingRequestManager`, which gives every domain a request queue of its own, so a delayed request waits in storage. Consequences worth knowing about:
+`sameDomainDelaySecs` still works and still means what it did in v3 — subdomains included, it paces a whole registrable domain rather than a single host. What changed is the machinery underneath: it is now a floor reported to the crawler's request manager as a [pacing signal](#irequestmanager-gained-recordpacingsignal), and only when nothing there paces does the crawler wrap its manager in a `ThrottlingRequestManager`, which gives every domain a request queue of its own so a delayed request waits in storage rather than in an in-memory map. Consequences worth knowing about:
 
 - A crawl that discovers more than `maxThrottledDomains` domains (100 by default) throws instead of quietly running out of steam. Pass your own `ThrottlingRequestManager` as `requestManager` to raise the ceiling — or crawl fewer sites.
-- Combining `sameDomainDelaySecs` with a `ThrottlingRequestManager` passed as `requestManager` now throws — both would pace the same domains from separate keys. Configure the delay on that manager instead, via its `minCrawlDelaySecs` option.
+- Combining `sameDomainDelaySecs` with a manager that paces requests itself no longer throws, and no longer produces two clocks for one domain: a `ThrottlingRequestManager` covering every domain (`domains: 'all'`, `throttleBy: 'registrableDomain'`) takes the delay as its `minCrawlDelaySecs` floor, wherever it sits in a composition. One that paces only *some* domains cannot honour a floor covering all of them and throws instead — set `domains: 'all'` on it, or configure the delay on it yourself and drop the option.
 - Requests that never pass through the request manager — those from a `requestsFromUrl` list — are not paced, and the crawler warns when it hands one out.
 
 #### `BasicCrawler.requestList` and `BasicCrawler.requestQueue` fields removed

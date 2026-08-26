@@ -45,18 +45,19 @@ export interface IRequestManager extends IRequestLoader {
     setExpectedRequestProcessingTimeSecs?(secs: number): Promise<void>;
 
     /**
-     * Records something the URL's domain said about the pace it wants to be crawled at, so that a manager which
-     * paces its own dispatch can hold that domain's requests back before handing any more out.
+     * Records something said about the pace requests should go out at, so that a manager which paces its own
+     * dispatch can hold them back before handing any more out. The signal says what it applies to, so a manager
+     * that paces nothing - or that wraps one which does - never has to take it apart.
      *
      * Required rather than optional, so that reporting a signal is never a question of whether the manager
      * supports it. A manager that does not pace returns `false`; one that wraps another forwards the call, so
      * that a pacer nested inside a composition still receives it.
      *
      * @returns `true` if the manager took responsibility for the signal. A crawler reads this to decide whether
-     *  to treat a rate limit as a paced retry rather than as an ordinary blocked response, and to warn when a
-     *  signal was dropped.
+     *  to treat a rate limit as a paced retry rather than as an ordinary blocked response, to warn when a
+     *  signal was dropped, and to tell whether a composition paces at all before adding a pacer of its own.
      */
-    recordPacingSignal(url: string, signal: PacingSignal): boolean;
+    recordPacingSignal(signal: PacingSignal): boolean;
 }
 
 /**
@@ -73,13 +74,15 @@ export interface IRequestManager extends IRequestLoader {
 export type PacingScope = LiteralUnion<'hostname' | 'registrableDomain', string>;
 
 /**
- * Something a source told a crawler about the pace it wants to be crawled at, reported to a request manager
- * through {@apilink IRequestManager.recordPacingSignal}.
+ * Something said about the pace requests should go out at, reported to a request manager through
+ * {@apilink IRequestManager.recordPacingSignal}.
  *
  * One shape rather than a method per channel: a manager that paces switches on `reason`, one that merely wraps
  * another forwards the value without knowing what is in it, and a new kind of signal costs the interface
- * nothing. Nothing here names the mechanism it came from - HTTP status codes, response headers and robots.txt
- * are the crawler's business, not the manager's - and every delay is in milliseconds.
+ * nothing. That is also why the `url` a signal is about travels in the value rather than beside it - the
+ * crawl-wide variant has no URL to name, and a wrapper is none the wiser. Nothing here names the mechanism a
+ * signal came from - HTTP status codes, response headers and robots.txt are the crawler's business, not the
+ * manager's - and every delay is in milliseconds.
  *
  * ## Scope
  *
@@ -100,6 +103,8 @@ export type PacingSignal =
            * if the source keeps refusing, and lets that decay once it stops.
            */
           reason: 'rateLimited';
+          /** The URL that was turned away. */
+          url: string;
           /** How long the source asked us to wait before trying again, if it said. */
           waitMs?: number;
           /**
@@ -116,11 +121,26 @@ export type PacingSignal =
            * of the run, so a pacer keeps it for the whole crawl.
            */
           reason: 'minInterval';
+          /** A URL of the source that declared the interval. */
+          url: string;
           /** The declared minimum interval between two requests to the source. */
           intervalMs: number;
           /**
            * How much of the URL space the declared interval covers. Required, because whoever declares an
            * interval knows what it applies to.
            */
+          scope: PacingScope;
+      }
+    | {
+          /**
+           * A standing floor under the pace of **every** domain the manager dispatches to, declared by whoever
+           * owns the crawl rather than by a source — a crawler's `sameDomainDelaySecs` is one. A manager that
+           * paces only some of the domains it holds MUST throw rather than take it, since holding back the ones
+           * it knows about would leave the rest running unpaced.
+           */
+          reason: 'minIntervalEverywhere';
+          /** The declared minimum interval between two requests to any one source. */
+          intervalMs: number;
+          /** At what granularity the floor applies — each hostname, or each registrable domain. */
           scope: PacingScope;
       };

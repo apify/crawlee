@@ -244,12 +244,22 @@ describe('RequestQueue remote', () => {
         // Required on `IRequestManager`, so reporting a signal is never a question of whether the manager
         // supports it - a queue hands requests out as fast as they are asked for and says so, which is what
         // lets a crawler warn that the signal had nowhere to go.
-        expect(queue.recordPacingSignal('http://example.com/a', { reason: 'rateLimited', waitMs: 1_000 })).toBe(false);
+        expect(queue.recordPacingSignal({ url: 'http://example.com/a', reason: 'rateLimited', waitMs: 1_000 })).toBe(
+            false,
+        );
         expect(
-            queue.recordPacingSignal('http://example.com/a', {
+            queue.recordPacingSignal({
+                url: 'http://example.com/a',
                 reason: 'minInterval',
                 intervalMs: 1_000,
                 scope: 'hostname',
+            }),
+        ).toBe(false);
+        expect(
+            queue.recordPacingSignal({
+                reason: 'minIntervalEverywhere',
+                intervalMs: 1_000,
+                scope: 'registrableDomain',
             }),
         ).toBe(false);
     });
