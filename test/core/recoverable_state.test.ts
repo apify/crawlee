@@ -563,14 +563,21 @@ describe('RecoverableState', () => {
             await expect(recoverableState.resetStore()).resolves.not.toThrow();
         });
 
-        test('resetStore should be a no-op without a store', async () => {
+        test('resetStore before the first initialize should clear the record in the default store', async () => {
+            const store = await KeyValueStore.open();
+            await store.setValue('test-key', { ...defaultState, counter: 42 });
+
             const recoverableState = new RecoverableState({
                 defaultState,
                 persistStateKey: 'test-key',
                 persistenceEnabled: true,
             });
 
-            await expect(recoverableState.resetStore()).resolves.not.toThrow();
+            await recoverableState.resetStore();
+
+            expect(await store.getValue('test-key')).toBeNull();
+            expect(await recoverableState.initialize()).toMatchObject({ counter: 0 });
+            await recoverableState.teardown();
         });
     });
 
