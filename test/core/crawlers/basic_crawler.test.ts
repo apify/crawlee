@@ -2766,6 +2766,65 @@ describe('BasicCrawler', () => {
                 ).resolves.toBeDefined();
             });
 
+            test('a second run() asks even when the first routed nothing by domain', async () => {
+                // The question is about the shape of the configuration, not about what the queues happen to
+                // hold. A first run fed only from the caller's manager opens no per-domain queue, but the next
+                // one that enqueues anything would put the crawler's storage under the caller's manager just
+                // the same. Firing only when such a queue already exists would make identical code throw or
+                // not depending on run history - so the guard fires on the combination, reliably.
+                const requestQueue = await RequestQueue.open();
+                await requestQueue.addRequest({ url: 'http://example.com/pre-added-1' });
+                await requestQueue.addRequest({ url: 'http://example.com/pre-added-2' });
+
+                const visits: number[] = [];
+                const crawler = new BasicCrawler({
+                    requestQueue,
+                    sameDomainDelaySecs: 2,
+                    requestHandler: async () => {
+                        visits.push(Date.now());
+                    },
+                });
+
+                await crawler.run();
+
+                // The precondition, established rather than assumed: both requests came straight from the
+                // caller's manager, so no per-domain queue was ever opened - one would have paced them 2s apart.
+                expect(visits).toHaveLength(2);
+                expect(visits[1] - visits[0]).toBeLessThan(1000);
+
+                await expect(crawler.run()).rejects.toThrow(/Cannot decide what to purge/);
+            });
+
+            test('a second run() asks for a supplied `requestManager`, not just a `requestQueue`', async () => {
+                const crawler = new BasicCrawler({
+                    requestManager: await RequestQueue.open(),
+                    sameDomainDelaySecs: 0.05,
+                    requestHandler: async () => {},
+                });
+
+                await crawler.run(['http://example.com/1']);
+
+                await expect(crawler.run(['http://example.com/1'])).rejects.toThrow(/Cannot decide what to purge/);
+            });
+
+            test('a second run() leaves a supplied manager alone when nothing paces it', async () => {
+                // The contrast that makes the question above worth asking: with no `sameDomainDelaySecs` the
+                // crawler puts nothing of its own inside the caller's manager, so there is no ambiguity to
+                // raise. It is left untouched, and still holds the request it handled.
+                let visits = 0;
+                const crawler = new BasicCrawler({
+                    requestQueue: await RequestQueue.open(),
+                    requestHandler: async () => {
+                        visits += 1;
+                    },
+                });
+
+                await crawler.run(['http://example.com/1']);
+                await crawler.run(['http://example.com/1']);
+
+                expect(visits).toBe(1);
+            });
+
             test('a second run() purges everything the crawler opened itself, without being asked', async () => {
                 // Nothing here came from the caller, so there is no ambiguity to raise - and one purge from the
                 // outside in has to reach the per-domain queues, or the second run would crawl nothing.
