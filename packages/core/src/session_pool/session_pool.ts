@@ -1,11 +1,10 @@
-import type { Dictionary, ISessionPool } from '@crawlee/types';
+import type { Dictionary, ISessionPool, SessionState } from '@crawlee/types';
 import { AsyncQueue } from '@sapphire/async-queue';
 import { z } from 'zod';
 
 import type { PersistenceOptions } from '../crawlers/statistics.js';
-import type { EventManager } from '../events/event_manager.js';
-import { EventType } from '../events/event_manager.js';
 import type { CrawleeLogger } from '../log.js';
+import { RecoverableState } from '../recoverable_state.js';
 import { serviceLocator } from '../service_locator.js';
 import { KeyValueStore } from '../storages/key_value_store.js';
 import { parseArgument, schemas, validators } from '../validators.js';
@@ -153,18 +152,28 @@ export class SessionPool implements ISessionPool {
 
     readonly id: string;
     #log: CrawleeLogger;
-    #sessions: Session[] = [];
     #maxPoolSize: number;
     #createSessionFunction: CreateSession;
-    #keyValueStore?: KeyValueStore;
     #sessionMap = new Map<string, Session>();
     #sessionOptions: SessionOptions;
     #persistStateKeyValueStoreId?: string;
     #persistStateKey: string;
-    #listener?: () => Promise<void>;
-    #events: EventManager;
     #persistenceOptions: PersistenceOptions;
     #sessionReuseStrategy: SessionReuseStrategy;
+
+    /**
+     * The sessions live in a {@apilink RecoverableState} that handles the loading, recreation and periodic
+     * persistence of the record under `persistStateKey`.
+     */
+    readonly #state: RecoverableState<SessionPoolInternalState, SessionPoolPersistedState>;
+
+    get #sessions(): Session[] {
+        return this.#state.currentValue.sessions;
+    }
+
+    set #sessions(sessions: Session[]) {
+        this.#state.currentValue.sessions = sessions;
+    }
 
     #initPromise?: Promise<void>;
     #queue = new AsyncQueue();
@@ -185,7 +194,6 @@ export class SessionPool implements ISessionPool {
 
         this.id = id != null ? String(id) : String(SessionPool.#nextId++);
         this.#sessionReuseStrategy = sessionReuseStrategy;
-        this.#events = serviceLocator.getEventManager();
         this.#log = log.child({ prefix: 'SessionPool' });
         this.#persistenceOptions = persistenceOptions;
 
@@ -204,6 +212,23 @@ export class SessionPool implements ISessionPool {
         // Session keyValueStore
         this.#persistStateKeyValueStoreId = persistStateKeyValueStoreId;
         this.#persistStateKey = persistStateKey ?? `${PERSIST_STATE_KEY}_${this.id}`;
+
+        this.#state = new RecoverableState({
+            defaultState: () => ({ sessions: [] as Session[] }),
+            persistStateKey: this.#persistStateKey,
+            persistenceEnabled: !!this.#persistenceOptions.enable,
+            logger: this.#log,
+            keyValueStore:
+                this.#persistenceOptions.enable && persistStateKeyValueStoreId
+                    ? KeyValueStore.open(
+                          { id: persistStateKeyValueStoreId },
+                          { configuration: serviceLocator.getConfiguration() },
+                      )
+                    : undefined,
+            serialize: (state) => this.#buildPersistedState(state.sessions),
+            deserialize: async (persisted) => this.#recreateSessions(persisted),
+        });
+        this.#state.reset();
     }
 
     /**
@@ -234,28 +259,9 @@ export class SessionPool implements ISessionPool {
     }
 
     private async setupPool(): Promise<void> {
-        if (!this.#persistenceOptions.enable) {
-            return;
-        }
-
-        this.#keyValueStore = await KeyValueStore.open(
-            this.#persistStateKeyValueStoreId ? { id: this.#persistStateKeyValueStoreId } : null,
-            {
-                configuration: serviceLocator.getConfiguration(),
-            },
-        );
-
-        if (!this.#persistStateKeyValueStoreId) {
-            this.#log.debug(
-                `No 'persistStateKeyValueStoreId' options specified, this session pool's data has been saved in the KeyValueStore with the id: ${this.#keyValueStore.id}`,
-            );
-        }
-
-        // in case of migration happened and SessionPool state should be restored from the keyValueStore.
-        await this.maybeLoadSessionPool();
-
-        this.#listener = this.persistState.bind(this);
-        this.#events.on(EventType.PERSIST_STATE, this.#listener);
+        // Restores the sessions persisted before a migration or restart, and starts the periodic state
+        // persistence. A no-op when persistence is disabled.
+        await this.#state.initialize();
     }
 
     /**
@@ -332,15 +338,25 @@ export class SessionPool implements ISessionPool {
     }
 
     /**
-     * @param options - Override the persistence options provided in the constructor
+     * Discards all sessions in the pool, both usable and retired, resetting it to a blank state.
+     *
+     * The persisted record is left alone - use {@apilink SessionPool.resetStore} to clear that as well.
      */
-    async resetStore(options?: PersistenceOptions) {
-        if (!this.#persistenceOptions.enable && !options?.enable) {
-            return;
-        }
+    reset(): void {
+        this.#state.reset();
+        this.#sessionMap.clear();
+        this.#roundRobinIndex = 0;
+    }
 
-        await this.ensureInitialized();
-        await this.#keyValueStore?.setValue(this.#persistStateKey, null);
+    /**
+     * Clears the persisted pool record, leaving the in-memory sessions alone.
+     *
+     * Throws while the state is still being persisted periodically - the next PERSIST_STATE event would write
+     * the record straight back. Call {@apilink SessionPool.teardown} first, or use {@apilink SessionPool.reset}
+     * to discard the sessions themselves. A no-op if persistence is disabled.
+     */
+    async resetStore(): Promise<void> {
+        await this.#state.resetStore();
     }
 
     /**
@@ -349,20 +365,15 @@ export class SessionPool implements ISessionPool {
      */
     async getState() {
         await this.ensureInitialized();
-        return {
-            usableSessionsCount: await this.usableSessionsCount(),
-            retiredSessionsCount: await this.retiredSessionsCount(),
-            sessions: this.#sessions.map((session) => session.getState()),
-        };
+        return this.#buildPersistedState(this.#sessions);
     }
 
     /**
      * Persists the current state of the `SessionPool` into the default {@apilink KeyValueStore}.
      * The state is persisted automatically in regular intervals.
-     * @param options - Override the persistence options provided in the constructor
      */
-    async persistState(options?: PersistenceOptions): Promise<void> {
-        if (!this.#persistenceOptions.enable && !options?.enable) {
+    async persistState(): Promise<void> {
+        if (!this.#persistenceOptions.enable) {
             return;
         }
 
@@ -373,8 +384,8 @@ export class SessionPool implements ISessionPool {
             persistStateKey: this.#persistStateKey,
         });
 
-        await this.#keyValueStore
-            ?.setValue(this.#persistStateKey, await this.getState())
+        await this.#state
+            .persistState()
             .catch((error) =>
                 this.#log.warning(`Failed to persist the session pool stats to ${this.#persistStateKey}`, { error }),
             );
@@ -392,12 +403,7 @@ export class SessionPool implements ISessionPool {
     async teardown({ persistState = true }: { persistState?: boolean } = {}): Promise<void> {
         if (!this.#initPromise) return;
         await this.ensureInitialized();
-        if (this.#listener) {
-            this.#events.off(EventType.PERSIST_STATE, this.#listener);
-        }
-        if (persistState) {
-            await this.persistState();
-        }
+        await this.#state.teardown({ persistState });
     }
 
     /**
@@ -503,33 +509,50 @@ export class SessionPool implements ISessionPool {
         return picked.isUsable() ? picked : undefined;
     }
 
-    /**
-     * Potentially loads `SessionPool`.
-     * If the state was persisted it loads the `SessionPool` from the persisted state.
-     */
-    private async maybeLoadSessionPool(): Promise<void> {
-        const loadedSessionPool = await this.#keyValueStore?.getValue<{ sessions: Dictionary[] }>(
-            this.#persistStateKey,
-        );
+    /** The persisted form of the pool - the `serialize` half of the {@apilink RecoverableState}. */
+    #buildPersistedState(sessions: Session[]): SessionPoolPersistedState {
+        return {
+            usableSessionsCount: sessions.filter((session) => session.isUsable()).length,
+            retiredSessionsCount: sessions.filter((session) => !session.isUsable()).length,
+            sessions: sessions.map((session) => session.getState()),
+        };
+    }
 
-        if (!loadedSessionPool) return;
-
+    /** Recreates the sessions of a persisted record - the `deserialize` half of the {@apilink RecoverableState}. */
+    async #recreateSessions(persisted: SessionPoolPersistedState): Promise<SessionPoolInternalState> {
         // Invalidate old sessions and load active sessions only
         this.#log.debug('Recreating state from KeyValueStore', {
             persistStateKeyValueStoreId: this.#persistStateKeyValueStoreId,
             persistStateKey: this.#persistStateKey,
         });
 
-        for (const sessionObject of loadedSessionPool.sessions) {
+        const sessions: Session[] = [];
+
+        for (const sessionObject of persisted.sessions as Dictionary[]) {
             sessionObject.createdAt = new Date(sessionObject.createdAt as string);
             sessionObject.expiresAt = new Date(sessionObject.expiresAt as string);
             const recreatedSession = await this.invokeCreateSessionFunction(sessionObject);
 
             if (recreatedSession.isUsable()) {
-                this.registerSession(recreatedSession);
+                sessions.push(recreatedSession);
+                this.#sessionMap.set(recreatedSession.id, recreatedSession);
             }
         }
 
-        this.#log.debug(`${this.#sessions.length} active sessions loaded from KeyValueStore`);
+        this.#log.debug(`${sessions.length} active sessions loaded from KeyValueStore`);
+
+        return { sessions };
     }
+}
+
+/** The live state of a {@apilink SessionPool}, as kept by its {@apilink RecoverableState}. */
+interface SessionPoolInternalState {
+    sessions: Session[];
+}
+
+/** The shape of the persisted {@apilink SessionPool} record, as returned by {@apilink SessionPool.getState}. */
+interface SessionPoolPersistedState {
+    usableSessionsCount: number;
+    retiredSessionsCount: number;
+    sessions: SessionState[];
 }

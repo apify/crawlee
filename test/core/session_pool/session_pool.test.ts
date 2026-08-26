@@ -18,6 +18,61 @@ describe('SessionPool - testing session pool', () => {
         expect(sessionPool.id).toBeDefined();
     });
 
+    test('reset should discard the sessions but leave the persisted record alone', async () => {
+        const persistStateKey = 'RESET_TEST';
+        sessionPool = new SessionPool({ persistStateKey });
+
+        const session = await sessionPool.getSession();
+        await sessionPool.persistState();
+
+        sessionPool.reset();
+
+        expect((await sessionPool.getState()).sessions).toEqual([]);
+        expect(await sessionPool.getSession(session!.id)).toBeUndefined();
+
+        const kvStore = await KeyValueStore.open();
+        expect(await kvStore.getValue(persistStateKey)).toBeDefined();
+
+        await sessionPool.teardown({ persistState: false });
+    });
+
+    test('resetStore should throw while persisting periodically and clear the record after teardown', async () => {
+        const persistStateKey = 'RESET_STORE_TEST';
+        sessionPool = new SessionPool({ persistStateKey });
+
+        await sessionPool.getSession();
+        await sessionPool.persistState();
+
+        await expect(sessionPool.resetStore()).rejects.toThrow('Use reset() to reset the state itself');
+
+        await sessionPool.teardown();
+        const kvStore = await KeyValueStore.open();
+        expect(await kvStore.getValue(persistStateKey)).toBeDefined();
+
+        await sessionPool.resetStore();
+        expect(await kvStore.getValue(persistStateKey)).toBeNull();
+    });
+
+    test('resetStore before first use should clear the record without restoring old sessions', async () => {
+        const persistStateKey = 'RESET_STORE_FRESH_TEST';
+
+        const firstPool = new SessionPool({ persistStateKey });
+        await firstPool.getSession();
+        await firstPool.teardown();
+
+        const kvStore = await KeyValueStore.open();
+        expect(await kvStore.getValue(persistStateKey)).toBeDefined();
+
+        // A custom store id makes the record reachable before the pool initializes.
+        const secondPool = new SessionPool({ persistStateKey, persistStateKeyValueStoreId: kvStore.id });
+        await secondPool.resetStore();
+
+        expect(await kvStore.getValue(persistStateKey)).toBeNull();
+        expect((await secondPool.getState()).sessions).toEqual([]);
+
+        await secondPool.teardown({ persistState: false });
+    });
+
     test('should override default values', async () => {
         let customFunctionCalled = false;
         const persistStateKey = 'CUSTOM_KEY';

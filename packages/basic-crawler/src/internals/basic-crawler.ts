@@ -1731,7 +1731,11 @@ export class BasicCrawler<
                 stats.reset();
                 await stats.resetStore();
             });
-            await this.#sessionPoolDep.ifOwned((pool) => pool.resetStore());
+            // A session pool the crawler built follows the same blank-slate rule as its statistics.
+            await this.#sessionPoolDep.ifOwned(async (pool) => {
+                pool.reset();
+                await pool.resetStore();
+            });
         }
 
         this.#unexpectedStop = false;
