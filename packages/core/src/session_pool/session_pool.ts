@@ -259,8 +259,6 @@ export class SessionPool implements ISessionPool {
     }
 
     private async setupPool(): Promise<void> {
-        // Restores the sessions persisted before a migration or restart, and starts the periodic state
-        // persistence. A no-op when persistence is disabled.
         await this.#state.initialize();
     }
 
