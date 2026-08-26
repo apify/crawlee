@@ -366,8 +366,6 @@ export class RequestList implements IRequestLoader {
 
         // The proxy configuration used for `requestsFromUrl` requests.
         this.#proxyConfiguration = proxyConfiguration;
-
-        this.persistState = this.persistState.bind(this);
     }
 
     /**
