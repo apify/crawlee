@@ -143,7 +143,7 @@ describe('ThrottlingRequestManager', () => {
         );
 
         // The inner manager reports itself finished as soon as its own batch lands, but ours must not -
-        // there is still a batch in flight behind it, so it is waiting rather than done.
+        // there is still a batch in flight behind it.
         expect((await manager.checkReadiness()).status).toBe('waiting');
 
         await result.waitForAllRequestsToBeAdded;
@@ -265,8 +265,8 @@ describe('ThrottlingRequestManager', () => {
             expect(await inner.getTotalCount()).toBe(1);
             expect(await manager.getTotalCount()).toBe(3);
 
-            // Drain the batch through the manager. The inner-routed request is the one that matters: handed
-            // back to a second instance, it would leave this one serving it forever.
+            // The inner-routed request is the one that matters: handed back to a second instance, it would leave
+            // this one serving it forever.
             for (let i = 0; i < 3; i++) {
                 await manager.markRequestAsHandled(await pollForNextRequest(manager));
             }
@@ -303,8 +303,7 @@ describe('ThrottlingRequestManager', () => {
         });
 
         test('is opened by checkReadiness(), so requests left in it by a previous run are not missed', async () => {
-            // Without purgeOnStart, an unopened queue may still hold work; reporting `finished` for it would
-            // end the crawl without anyone ever looking.
+            // Without purgeOnStart, an unopened queue may still hold work nobody would ever look at.
             await (await createQueue('leftover-inner')).addRequest({ url: 'https://other.com/left-behind' });
 
             const manager = new ThrottlingRequestManager({
@@ -342,24 +341,21 @@ describe('ThrottlingRequestManager', () => {
         await manager.addRequest({ url: 'https://example.com/1' });
         await manager.addRequest({ url: 'https://foo.com/1' });
 
-        // Long enough that a loaded box cannot race the assertions below - the clock is rewound at the end
-        // rather than waited out, so the length costs the test nothing.
+        // Long enough that a loaded box cannot race the assertions below - the backoff is zeroed, never waited out.
         expect(
             manager.recordPacingSignal({ url: 'https://example.com/1', reason: 'rateLimited', waitMs: 10_000 }),
         ).toBe(true);
 
-        // The throttled domain is skipped in favour of one that is free, rather than holding the crawl up.
+        // The throttled domain is skipped rather than holding the crawl up.
         expect((await manager.fetchNextRequest())!.url).toBe('https://foo.com/1');
 
-        // With foo.com drained and example.com still waiting, there is nothing to hand over - and the manager
-        // says so rather than blocking the caller...
+        // Nothing left to hand over - and the manager says so rather than blocking the caller...
         expect(await manager.fetchNextRequest()).toBeNull();
         const waiting = await manager.checkReadiness();
         // ...while still reporting the throttled request as outstanding work, due once its backoff runs out.
         expect(waiting).toMatchObject({ status: 'waiting' });
         expect(waiting.status === 'waiting' && waiting.readyAt).toBeGreaterThan(Date.now());
 
-        // And once that backoff has run out, it is handed over.
         domainState(manager, 'example.com').backoffUntil = 0;
         expect((await manager.fetchNextRequest())!.url).toBe('https://example.com/1');
     });
@@ -467,9 +463,7 @@ describe('ThrottlingRequestManager', () => {
     });
 
     test('purges its own queues even when the wrapped manager refuses', async () => {
-        // A caller-supplied manager on a storage backend that cannot empty a queue in place refuses outright
-        // rather than quietly doing nothing. The per-domain queues are this manager's own whatever the wrapped
-        // one does, so a refusal must not leave them stale.
+        // A backend that cannot empty a queue in place refuses outright rather than quietly doing nothing.
         const inner = await createQueue();
         const manager = new ThrottlingRequestManager({ inner, domains: ['example.com'] });
         await manager.addRequest({ url: 'https://example.com/stale' });
@@ -531,8 +525,6 @@ describe('ThrottlingRequestManager', () => {
         });
 
         test('work elsewhere outranks a stalling domain', async () => {
-            // The other side of the same coin: one hopeless domain must not end a crawl that is getting
-            // somewhere, which is why the crawler only ever acts on `stalled`.
             const manager = await stallingManager();
             await manager.addRequest({ url: 'https://example.com/1' });
             manager.recordPacingSignal({ url: 'https://example.com/1', reason: 'rateLimited' });
@@ -892,10 +884,8 @@ describe('ThrottlingRequestManager', () => {
 
     describe('pacing signal scope', () => {
         test('a signal narrower than the grouping is honoured across the whole group', async () => {
-            // robots.txt is per-origin, so a `Crawl-delay` read from one subdomain is hostname-scoped. Under
-            // registrable-domain grouping the manager cannot hold one host back on its own - it holds one queue
-            // per group - so it paces the whole site. That satisfies what the directive asked for and then some,
-            // which is the only direction it is safe to err in.
+            // robots.txt is per-origin, so a `Crawl-delay` read from one subdomain is hostname-scoped - and the
+            // manager holds one queue per group, so it cannot hold a single host back.
             const manager = new ThrottlingRequestManager({
                 inner: await createQueue(),
                 domains: 'all',
@@ -920,8 +910,7 @@ describe('ThrottlingRequestManager', () => {
         });
 
         test('a signal wider than the grouping throws instead of being under-applied', async () => {
-            // Grouping by hostname, told about a constraint that covers a whole registrable domain: pacing one
-            // host would leave its siblings running flat out, so the manager refuses rather than pretend.
+            // Pacing one host would leave its siblings running flat out, so the manager refuses rather than pretend.
             const manager = new ThrottlingRequestManager({ inner: await createQueue(), domains: 'all' });
 
             expect(() =>
@@ -937,16 +926,14 @@ describe('ThrottlingRequestManager', () => {
         test('a scope it does not speak throws', async () => {
             const manager = new ThrottlingRequestManager({ inner: await createQueue(), domains: 'all' });
 
-            // A per-account or per-API-key limit is a real thing to be told about, and this manager keys on
-            // hostnames, so it cannot act on one.
+            // A per-account limit is a real thing to be told about, but this manager keys on hostnames.
             expect(() =>
                 manager.recordPacingSignal({ url: 'https://example.com/1', reason: 'rateLimited', scope: 'account' }),
             ).toThrow(/only understands the scopes "hostname" and "registrableDomain"/);
         });
 
         test('an unscoped signal is applied at the grouping, whatever that is', async () => {
-            // The usual case for a refusal: a 429 does not say whether the limit was per host, per account or
-            // per address, so the reporter says nothing and the manager uses its own grouping.
+            // A 429 does not say whether the limit was per host, per account or per address, so nothing is declared.
             const manager = new ThrottlingRequestManager({
                 inner: await createQueue(),
                 domains: 'all',
@@ -973,7 +960,6 @@ describe('ThrottlingRequestManager', () => {
 
             expect(manager.recordPacingSignal(floor(60_000))).toBe(true);
 
-            // Nobody declared anything about this domain; the floor covers it because it covers everything.
             await manager.addRequest({ url: 'https://example.com/1' });
             await manager.addRequest({ url: 'https://example.com/2' });
 
@@ -1006,8 +992,6 @@ describe('ThrottlingRequestManager', () => {
         });
 
         test('a manager that paces only some domains throws instead of leaving the rest unpaced', async () => {
-            // Same reasoning as a signal scoped wider than the grouping: pacing the one listed domain and
-            // letting the rest run flat out is not honouring a floor that covers everything.
             const manager = new ThrottlingRequestManager({
                 inner: await createQueue(),
                 domains: ['example.com'],
@@ -1018,7 +1002,6 @@ describe('ThrottlingRequestManager', () => {
         });
 
         test('a floor at a finer grain than the grouping throws, like any other signal', async () => {
-            // Grouping by hostname cannot hold a whole registrable domain back, so it says so.
             const manager = new ThrottlingRequestManager({ inner: await createQueue(), domains: 'all' });
 
             expect(() => manager.recordPacingSignal(floor(1_000))).toThrow(/groups requests by "hostname"/);

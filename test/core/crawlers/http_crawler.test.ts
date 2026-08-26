@@ -751,9 +751,8 @@ test('a 429 on a request taken from a `requestList` is paced too', async () => {
     });
 
     const crawler = new HttpCrawler({
-        // The tandem forwards the 429 signal to the pacer nested inside it, so a request the crawler
-        // transfers out of the list is backed off and re-queued instead of being handed straight to the
-        // handler again.
+        // The tandem forwards the 429 to the pacer nested inside it, so a request transferred out of the
+        // list is backed off rather than handed straight back to the handler.
         requestManager: await requestList.toTandem(throttler),
         maxRequestRetries: 0,
         requestHandler: async ({ request }) => {
@@ -788,12 +787,10 @@ test('an unthrottled 429 is handled like any other response, with a single warni
 
     const stats = await crawler.run([`${url}/429-unthrottled`]);
 
-    // No pacer, so the 429 stays a plain blocked response: it costs the request its only retry and fails,
-    // with no second attempt to the domain.
+    // No pacer, so the 429 stays a plain blocked response and costs the request its only retry.
     expect(stats.requestsFailed).toBe(1);
     expect(hits).toBe(1);
 
-    // Warned once for the whole run, and the message says how to opt into pacing.
     const rateLimitWarnings = warning.mock.calls.filter(([message]) => message.includes('HTTP 429'));
     expect(rateLimitWarnings).toHaveLength(1);
     expect(rateLimitWarnings[0][0]).toMatch(/`sameDomainDelaySecs`.*`ThrottlingRequestManager`/s);

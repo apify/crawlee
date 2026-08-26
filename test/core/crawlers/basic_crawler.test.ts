@@ -1254,9 +1254,8 @@ describe('BasicCrawler', () => {
             .mockReturnValue(Promise.resolve() as any);
         const reclaimReq = vitest.spyOn(requestQueue, 'reclaimRequest').mockReturnValue(Promise.resolve() as any);
 
-        // The queue has something to hand over for as long as the stubbed content lasts, and is done once
-        // it runs out. The first probe reporting `finished` is masked by the request list, which still has
-        // requests to transfer into the queue at that point.
+        // The first probe reporting `finished` is masked by the request list, which still has requests to
+        // transfer into the queue at that point.
         vitest
             .spyOn(requestQueue, 'checkReadiness')
             .mockImplementation(async () => (queueContent.length > 0 ? { status: 'ready' } : { status: 'finished' }))
@@ -1345,9 +1344,8 @@ describe('BasicCrawler', () => {
             return Promise.resolve() as any;
         });
 
-        // The queue's own state does not decide anything here: it reports `finished` as soon as it runs dry,
-        // and the crawl carries on anyway because the task loop asks the custom `isFinishedFunction`, which
-        // returns false until both requests have been handled.
+        // The stub reports `finished` as soon as the queue runs dry; the crawl carries on because the task loop
+        // defers to the custom `isFinishedFunction`.
         requestQueue.fetchNextRequest = async () => queue.pop()!;
         requestQueue.checkReadiness = async () => (queue.length ? { status: 'ready' } : { status: 'finished' });
 
@@ -1394,7 +1392,7 @@ describe('BasicCrawler', () => {
             .spyOn(requestQueue, 'markRequestAsHandled')
             .mockReturnValue(Promise.resolve() as any);
 
-        // The queue reports `finished` whenever it has run dry - `keepAlive` is what keeps the crawler alive
+        // The stub reports `finished` whenever the queue runs dry - `keepAlive` is what carries the crawler
         // through those gaps, until `teardown()` ends the run.
         requestQueue.fetchNextRequest = async () => Promise.resolve(queue.pop()!);
         requestQueue.checkReadiness = async () => (queue.length ? { status: 'ready' } : { status: 'finished' });
@@ -2611,7 +2609,6 @@ describe('BasicCrawler', () => {
                 expect(state.crawlDelayUntil).toBeGreaterThan(Date.now() + 4_000);
                 expect(await requestManager.fetchNextRequest()).toBeNull();
 
-                // The manager reports when it will have work again, rather than leaving the crawler to guess.
                 const readiness = await requestManager.checkReadiness();
                 expect(readiness).toMatchObject({ status: 'waiting' });
                 expect(readiness.status === 'waiting' && readiness.readyAt).toBeGreaterThan(Date.now() + 4_000);
@@ -2638,8 +2635,7 @@ describe('BasicCrawler', () => {
 
                 await crawler.addRequests(['http://example.com/1']);
 
-                // Same warning as when nothing paces at all: a manager that does not cover the domain and one
-                // that paces nothing both answer `false`, and the fix named in the message covers either.
+                // Same warning as when nothing paces at all - the fix it names covers either case.
                 expect(warning).toHaveBeenCalledTimes(1);
                 expect(warning.mock.calls[0][0]).toMatch(/does not pace that domain/);
                 expect(warning.mock.calls[0][0]).toMatch(/example\.com/);
@@ -2658,9 +2654,7 @@ describe('BasicCrawler', () => {
                         'http://example.com/2',
                         'http://example.com/3',
                     ]),
-                    // The pacer this builds sits *inside* the tandem the crawler makes for the list, and the
-                    // tandem forwards the crawl-delay down to it. Its own floor is negligible, so the delay
-                    // observed below can only come from robots.txt.
+                    // Negligible on its own, so the delay observed below can only come from robots.txt.
                     sameDomainDelaySecs: 0.01,
                     requestHandler: async () => {
                         visits.push(Date.now());
@@ -2669,9 +2663,8 @@ describe('BasicCrawler', () => {
 
                 await crawler.run();
 
-                // robots.txt is only read while the first request is being processed, so the delay it declares
-                // first bites between the second and the third - by which point the requests have been through
-                // the tandem's transfer and into a per-domain queue, which is the composition under test.
+                // robots.txt is only read while the first request is in flight, so the delay it declares first
+                // bites between the second and the third.
                 expect(visits).toHaveLength(3);
                 expect(visits[2] - visits[1]).toBeGreaterThanOrEqual(400);
             });
@@ -2732,9 +2725,8 @@ describe('BasicCrawler', () => {
             });
 
             test('paces requests that came from a `requestList`, and still finishes the crawl', async () => {
-                // The pacer sits inside the tandem, which is the only position from which a list's requests reach
-                // a per-domain queue - and once there they have to be handed back to it rather than to the queue
-                // their domain would own, or the crawl would never finish.
+                // The tandem is the only position from which a list's requests reach a per-domain queue, and
+                // once there they have to be handed back to it, or the crawl would never finish.
                 const requestList = await RequestList.open(null, ['http://example.com/1', 'http://example.com/2']);
                 const { visits } = await crawlerVisiting([], { requestList, sameDomainDelaySecs: 0.5 });
 
@@ -2755,8 +2747,8 @@ describe('BasicCrawler', () => {
             });
 
             test('a second run() over a supplied manager asks which storage to purge', async () => {
-                // The pacer's per-domain queues are the crawler's, the manager underneath them is the caller's,
-                // and a purge cannot respect both. Rather than pick one silently, say so.
+                // A purge cannot respect both the crawler's per-domain queues and the caller's manager
+                // underneath them, so rather than pick one silently, say so.
                 const crawler = new BasicCrawler({
                     requestQueue: await RequestQueue.open(),
                     sameDomainDelaySecs: 0.05,
@@ -2785,11 +2777,9 @@ describe('BasicCrawler', () => {
             });
 
             test('a second run() asks even when the first routed nothing by domain', async () => {
-                // The question is about the shape of the configuration, not about what the queues happen to
-                // hold. A first run fed only from the caller's manager opens no per-domain queue, but the next
-                // one that enqueues anything would put the crawler's storage under the caller's manager just
-                // the same. Firing only when such a queue already exists would make identical code throw or
-                // not depending on run history - so the guard fires on the combination, reliably.
+                // The guard fires on the shape of the configuration, not on what the queues happen to hold:
+                // keying it on an existing per-domain queue would make identical code throw or not depending
+                // on run history.
                 const requestQueue = await RequestQueue.open();
                 await requestQueue.addRequest({ url: 'http://example.com/pre-added-1' });
                 await requestQueue.addRequest({ url: 'http://example.com/pre-added-2' });
@@ -2805,8 +2795,8 @@ describe('BasicCrawler', () => {
 
                 await crawler.run();
 
-                // The precondition, established rather than assumed: both requests came straight from the
-                // caller's manager, so no per-domain queue was ever opened - one would have paced them 2s apart.
+                // Precondition, established rather than assumed: no per-domain queue was opened, since one
+                // would have paced these 2s apart.
                 expect(visits).toHaveLength(2);
                 expect(visits[1] - visits[0]).toBeLessThan(1000);
 
@@ -2827,8 +2817,7 @@ describe('BasicCrawler', () => {
 
             test('a second run() leaves a supplied manager alone when nothing paces it', async () => {
                 // The contrast that makes the question above worth asking: with no `sameDomainDelaySecs` the
-                // crawler puts nothing of its own inside the caller's manager, so there is no ambiguity to
-                // raise. It is left untouched, and still holds the request it handled.
+                // crawler puts nothing of its own inside the caller's manager, so there is nothing to ask about.
                 let visits = 0;
                 const crawler = new BasicCrawler({
                     requestQueue: await RequestQueue.open(),
@@ -2844,8 +2833,8 @@ describe('BasicCrawler', () => {
             });
 
             test('a second run() purges everything the crawler opened itself, without being asked', async () => {
-                // Nothing here came from the caller, so there is no ambiguity to raise - and one purge from the
-                // outside in has to reach the per-domain queues, or the second run would crawl nothing.
+                // Nothing came from the caller, so there is nothing to ask about - and the purge has to reach
+                // the per-domain queues, or the second run would crawl nothing.
                 let visits = 0;
                 const crawler = new BasicCrawler({
                     sameDomainDelaySecs: 0.05,

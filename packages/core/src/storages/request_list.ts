@@ -609,8 +609,7 @@ export class RequestList implements IRequestLoader {
             return { status: 'ready' };
         }
 
-        // `#requestsToRetry` is a subset of `inProgress`, so an exhausted list with nothing in progress
-        // really has nothing left to re-serve.
+        // `#requestsToRetry` is a subset of `inProgress`, so nothing in progress means nothing left to re-serve.
         return this.inProgress.size === 0 ? { status: 'finished' } : { status: 'waiting' };
     }
 

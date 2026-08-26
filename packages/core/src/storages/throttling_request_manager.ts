@@ -56,10 +56,8 @@ export type RequestManagerOpener<T extends IRequestManager = IRequestManager> = 
 export interface ThrottlingRequestManagerOptions<T extends IRequestManager = IRequestManager> {
     /**
      * The request manager to wrap, usually a {@apilink RequestQueue}. Requests for domains that are not throttled
-     * are stored here.
-     *
-     * May be passed as a factory function so that the throttler can be constructed synchronously and the manager
-     * underneath it opened lazily on first use (e.g. a lazily-opened default {@apilink RequestQueue}).
+     * are stored here. May be a factory, so that the throttler can be constructed synchronously and the manager
+     * under it opened only on first use.
      */
     inner: T | (() => T | Promise<T>);
 
@@ -82,8 +80,8 @@ export interface ThrottlingRequestManagerOptions<T extends IRequestManager = IRe
     /**
      * A floor under the crawl delay of every throttled domain, in seconds - the proactive clock described on
      * {@apilink ThrottlingRequestManager}. A domain whose robots.txt asks for a longer `Crawl-delay` gets the
-     * longer one; this is a minimum, not an override. A `minIntervalEverywhere` {@apilink PacingSignal} - how a
-     * crawler hands over its `sameDomainDelaySecs` - raises this floor at runtime, and never lowers it.
+     * longer one; this is a minimum, not an override. A `minIntervalEverywhere` {@apilink PacingSignal} raises
+     * this floor at runtime, and never lowers it.
      * @default 0
      */
     minCrawlDelaySecs?: number;
@@ -232,14 +230,13 @@ const DEFAULT_PERSIST_STATE_KEY = 'CRAWLEE_THROTTLED_DOMAINS';
  * Which domains get those clocks is {@apilink ThrottlingRequestManagerOptions.domains|`domains`} - a list, or
  * `'all'` for every domain the crawl encounters.
  *
- * Pass one as a crawler's `requestManager` to pace what it crawls. The crawlers' `sameDomainDelaySecs` shorthand
- * builds one for you, configured with `domains: 'all'` and `throttleBy: 'registrableDomain'`; construct it
- * yourself when you want to name the domains or tune the delays - one covering every domain also makes
- * `sameDomainDelaySecs` land on it as a floor instead of adding a second pacer.
+ * Pass one as a crawler's `requestManager`; the `sameDomainDelaySecs` shorthand builds one with `domains: 'all'`
+ * and `throttleBy: 'registrableDomain'`. Construct it yourself to name the domains or tune the delays - one
+ * covering every domain also makes `sameDomainDelaySecs` land on it as a floor rather than adding a second pacer.
  *
- * The 429 and robots.txt `Crawl-delay` signals a crawler feeds it, and that floor, all arrive through
- * {@apilink IRequestManager.recordPacingSignal|`recordPacingSignal`}, which every wrapping manager forwards - so
- * this works wherever it sits in a composition, including inside a {@apilink RequestManagerTandem}.
+ * Signals - 429s, robots.txt `Crawl-delay`, that floor - arrive through
+ * {@apilink IRequestManager.recordPacingSignal|`recordPacingSignal`}, which wrapping managers forward, so this
+ * works wherever it sits in a composition, including inside a {@apilink RequestManagerTandem}.
  *
  * **Example usage:**
  *
@@ -305,10 +302,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     /** Batches still being added in the background; keeps {@apilink ThrottlingRequestManager.checkReadiness} honest. */
     #inProgressBatchCount = 0;
 
-    /**
-     * The latest expected request-processing time hinted via {@link setExpectedRequestProcessingTimeSecs},
-     * remembered so it can be applied to the wrapped manager once it is lazily resolved.
-     */
+    /** The latest {@link setExpectedRequestProcessingTimeSecs} hint, kept for a wrapped manager resolved later. */
     #expectedRequestProcessingSecs?: number;
 
     readonly #warnedAbout = new Set<string>();
@@ -327,8 +321,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         if (typeof options.inner === 'function') {
             this.#innerFactory = options.inner;
         } else {
-            // Nothing to open, so it is available from the start - which is what makes `innerManager`
-            // `undefined` only while a factory has yet to be forced, and lets bookkeeping reach it as before.
+            // Nothing to open: resolved from the start, so `innerManager` and bookkeeping see it immediately.
             this.#resolvedInner = options.inner;
             this.#innerFactory = () => this.#resolvedInner!;
         }
@@ -382,28 +375,26 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     }
 
     /**
-     * The wrapped manager, holding every request whose domain is not throttled.
-     *
-     * `undefined` only while an `inner` passed as a factory has not been resolved yet - reading this never
-     * forces it, because opening a queue is not something a getter should do behind a caller's back.
+     * The wrapped manager, holding every request whose domain is not throttled. `undefined` until an `inner`
+     * passed as a factory is resolved - reading this never forces it, because a getter should not open a queue
+     * behind a caller's back.
      */
     get innerManager(): T | undefined {
         return this.#resolvedInner;
     }
 
     /**
-     * Resolves the wrapped manager, opening it lazily (via the factory) on first use and memoizing the result.
+     * Resolves the wrapped manager, opening a factory `inner` on first use and memoizing it.
      *
-     * Memoized for identity as much as for cost: {@link addRequestsBatched} groups a chunk by manager identity,
-     * and {@link reclaimRequest} decides where an in-flight request goes back by comparing against it. A fresh
-     * instance per call would split those batches and reclaim requests into a manager that never handed them out.
+     * Memoized for identity as much as for cost: {@link addRequestsBatched} groups by manager identity and
+     * {@link reclaimRequest} compares against it, so a fresh instance per call would split batches and reclaim
+     * requests into a manager that never handed them out.
      */
     async #getInner(): Promise<T> {
         if (this.#resolvedInner === undefined) {
             this.#innerPromise ??= Promise.resolve(this.#innerFactory());
             this.#resolvedInner = await this.#innerPromise;
 
-            // Apply any hint received before the manager was resolved.
             if (this.#expectedRequestProcessingSecs !== undefined) {
                 await this.#resolvedInner.setExpectedRequestProcessingTimeSecs?.(this.#expectedRequestProcessingSecs);
             }
@@ -590,8 +581,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
      * Records a pacing signal: a refusal puts the URL's domain into backoff, a declared interval becomes its
      * crawl delay, and a crawl-wide floor raises {@link recordEverywhereFloor|the floor under all of them}.
      *
-     * @returns `false` if the domain the signal covers is not configured for throttling, in which case this is
-     *  a no-op.
+     * @returns `false` if the domain the signal covers is not throttled, in which case this is a no-op.
      * @throws If the signal's scope is one this manager cannot honour - see {@link assertScopeHonourable}.
      * @inheritdoc
      */
@@ -608,17 +598,16 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     }
 
     /**
-     * Raises the floor under every throttled domain's crawl delay - the runtime form of
-     * {@apilink ThrottlingRequestManagerOptions.minCrawlDelaySecs|`minCrawlDelaySecs`}, so the longer of it and a
-     * domain's own `Crawl-delay` wins.
+     * The runtime form of {@apilink ThrottlingRequestManagerOptions.minCrawlDelaySecs|`minCrawlDelaySecs`}: raises
+     * the floor under every throttled domain's crawl delay.
      *
-     * @returns `false` if this manager paces nothing at all, in which case there is no floor to raise.
-     * @throws If it paces some domains but not all of them - holding back only those would leave the rest of
-     *  what the floor covers unpaced.
+     * @returns `false` if this manager paces nothing at all, so there is no floor to raise.
+     * @throws If it paces some domains but not all - holding back only those would leave the rest of what the
+     *  floor covers unpaced.
      */
     #recordEverywhereFloor(intervalMs: number, scope: PacingScope): boolean {
-        // Before the scope check, unlike a per-domain signal: a manager that paces nothing has no grouping
-        // worth objecting about, and `false` lets the caller pace it from outside.
+        // Before the scope check: a manager that paces nothing has no grouping worth objecting about, and
+        // `false` lets the caller pace it from outside.
         if (!this.#throttlingEnabled) {
             return false;
         }
@@ -643,23 +632,20 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     /**
      * Throws unless a signal scoped to `scope` can be honoured as declared or wider.
      *
-     * This manager holds one request queue per group, and holding a domain back means holding its queue back, so
-     * {@apilink ThrottlingRequestManagerOptions.throttleBy|`throttleBy`} is the finest granularity it can
-     * express. A signal scoped more narrowly than that is honoured by pacing the whole group - a floor that
-     * holds for one host still holds when the whole site is paced by it. A signal scoped more widely, or in a
-     * vocabulary this manager does not speak, cannot be honoured at all: applying it to one group would leave
-     * the rest of what it covers running unpaced, which is worse than saying so.
+     * Holding a domain back means holding its queue back, so
+     * {@apilink ThrottlingRequestManagerOptions.throttleBy|`throttleBy`} is the finest granularity this manager
+     * can express: a narrower scope is honoured by pacing the whole group, while a wider or unknown one must
+     * throw rather than under-apply, because pacing one group would leave the rest of what it covers unpaced.
      */
     #assertScopeHonourable(scope: string | undefined): void {
-        // No scope means the reporter cannot tell how far the signal reaches - most refusals - so our own
-        // grouping is as good an answer as there is.
+        // No scope means the reporter cannot tell how far the signal reaches, so our own grouping is as good
+        // an answer as there is.
         if (scope === undefined || scope === this.#throttleBy) {
             return;
         }
 
         if (scope === 'hostname' && this.#throttleBy === 'registrableDomain') {
-            // Not worth a warning: grouping by registrable domain is a deliberate "pace the whole site,
-            // subdomains included", so widening a per-host signal to it is what the caller asked for.
+            // Only debug: grouping by registrable domain deliberately paces whole sites, subdomains included.
             this.log.debug(
                 `Applying a pacing signal scoped to "hostname" across the whole registrable domain, because that ` +
                     `is how this manager groups requests (\`throttleBy\`). Sibling subdomains are paced with it.`,
@@ -881,8 +867,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     async #managerHolding(request: Request): Promise<T> {
         const key = request.id ?? request.uniqueKey;
 
-        // A key in `#inFlightFromInner` can only have been put there by a fetch from the wrapped manager, so
-        // it having been resolved is implied - no need to force it here.
+        // Only a fetch from the wrapped manager puts a key here, so it is necessarily resolved already.
         if (this.#inFlightFromInner.delete(key)) {
             return this.#resolvedInner!;
         }
@@ -905,43 +890,38 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     /**
      * Reports whether anything can be dispatched right now, and if not, when — or why never.
      *
-     * One traversal of the domain clocks answers all of it. A domain whose delays have run out is probed
-     * along with the wrapped manager; the rest only contribute the moment they come due, so a probe costs
-     * one call per *dispatchable* source rather than one per throttled domain. Throttled requests count as
-     * outstanding work, so a crawler gated on this idles for the backoff instead of concluding it is done.
+     * One traversal of the domain clocks answers all of it: only domains whose delays have run out are probed,
+     * the rest merely contribute the moment they come due. Throttled requests count as outstanding work, so a
+     * crawler gated on this idles for the backoff instead of concluding it is done.
      *
-     * Work anywhere else outranks a stalling domain - `ready` from the wrapped manager or from a domain that is
-     * not stonewalling us is returned without ever looking at the stall clocks, so one hopeless domain never
-     * ends a crawl that is making progress elsewhere. What it cannot outrank is *itself*: see the traversal.
+     * `ready` from anywhere else outranks a stalling domain and is returned without looking at the stall clocks,
+     * so one hopeless domain never ends a crawl making progress elsewhere. It cannot outrank itself, though -
+     * see the traversal.
      */
     async checkReadiness(): Promise<RequestSourceStatus> {
         await this.#ensureSubManagers();
 
         const now = Date.now();
         const dispatchable: Promise<T>[] = [];
-        /** The moment the earliest still-throttled domain comes due, if any is. */
         let readyAt: number | undefined;
         let stallCandidates: DomainState[] | undefined;
 
         for (const state of this.domainStates.values()) {
-            // A robots.txt `Crawl-delay` gives a domain a clock before its first request gives it a queue.
-            // Until then there is nothing to fetch from it and nothing to wait for.
+            // A `Crawl-delay` can give a domain a clock before its first request gives it a queue - nothing
+            // to fetch from and nothing to wait for until then.
             if (!this.#subManagers.has(state.domain)) {
                 continue;
             }
 
             if (
-                // Together: the domain is still turning us away, and has been doing so without a break for
-                // longer than the window. A domain that has simply been idle starts this clock at its first
-                // 429 rather than arriving with the idle time already on it.
+                // Together: still turning us away, and has been without a break for longer than the window - a
+                // domain that has merely been idle starts this clock at its first 429, not with idle time on it.
                 state.rateLimitedSince !== 0 &&
                 now - state.lastRateLimitedAt <= this.#maxDomainStallMs &&
                 now - state.rateLimitedSince > this.#maxDomainStallMs
             ) {
-                // Left out of the dispatchable set below and handled only by the stall check: a domain that has
-                // been rate-limiting every request for the whole window is not progress just because its
-                // backoff momentarily lapsed - being briefly dispatchable is what it does between 429s, and
-                // counting that as `ready` would mask the very state we are here to report.
+                // Deliberately not dispatchable: a domain that has refused every request for the whole window
+                // is not progress just because its backoff momentarily lapsed - that is what it does between 429s.
                 (stallCandidates ??= []).push(state);
                 continue;
             }
@@ -1016,9 +996,8 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     }
 
     /**
-     * Empties the per-domain queues, leaving the wrapped manager alone. Those queues are this manager's own no
-     * matter who owns the one it wraps, which is why {@apilink ThrottlingRequestManager.purge|`purge()`} splits
-     * into the two halves rather than fanning out over everything.
+     * Empties the per-domain queues, leaving the wrapped manager alone - those queues are this manager's own no
+     * matter who owns the one it wraps.
      */
     async #purgeDomainQueues(): Promise<void> {
         const subManagers = await this.#getSubManagers();
@@ -1035,17 +1014,14 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     }
 
     async setExpectedRequestProcessingTimeSecs(secs: number): Promise<void> {
-        // Remembered so that a wrapped manager opened later still gets the hint, rather than opening one now
-        // just to pass it along.
+        // Remembered so a manager opened later still gets the hint, without opening one now just to pass it along.
         this.#expectedRequestProcessingSecs = secs;
         await this.#forEachManager((manager) => manager.setExpectedRequestProcessingTimeSecs?.(secs));
     }
 
     /**
-     * Runs `fn` over the sub-queues and, if it has been resolved, the wrapped manager.
-     *
-     * Bookkeeping - purging, persisting, dropping, hinting - never forces a lazily-opened `inner`: opening a
-     * queue purely to tell it something is the side-effecting probe this class exists to avoid.
+     * Runs `fn` over the sub-queues and, if it has been resolved, the wrapped manager - bookkeeping never forces
+     * a lazily-opened `inner`, since there is no point opening a queue purely to tell it something.
      */
     async #forEachManager(fn: (manager: T) => Promise<unknown> | undefined): Promise<void> {
         const managers = await this.#getSubManagers();

@@ -475,8 +475,7 @@ export class SitemapRequestLoader implements IRequestLoader {
             return { status: 'ready' };
         }
 
-        // The sitemap parser is still running, so more URLs may yet arrive - on no schedule we could name,
-        // hence no `readyAt`. `fetchNextRequest` parks on the stream's `readable` event for the same signal.
+        // The parser is still running, so more URLs may yet arrive - on no schedule, hence no `readyAt`.
         if (!this.isSitemapFullyLoaded() && !this.#abortLoading) {
             return { status: 'waiting' };
         }

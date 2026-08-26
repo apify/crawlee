@@ -803,8 +803,7 @@ export class RequestQueue implements IStorage, IRequestManager {
 
     /**
      * A queue hands requests out as fast as they are asked for; pacing is a job for a manager wrapped around it,
-     * such as {@apilink ThrottlingRequestManager}. Answering `false` is what lets a crawler warn that the signal
-     * had nowhere to go.
+     * such as {@apilink ThrottlingRequestManager}.
      * @inheritdoc
      */
     recordPacingSignal(_signal: PacingSignal): boolean {
@@ -814,12 +813,11 @@ export class RequestQueue implements IStorage, IRequestManager {
     /**
      * Reports whether the queue has a request to hand over, is waiting on one, or is done.
      *
-     * `waiting` covers a queue with nothing left to fetch that is not finished either — requests are in
-     * progress (fetched but not yet handled or reclaimed, possibly by another client sharing the queue), or
-     * a background add is still landing. There is no clock on either, so no `readyAt` is offered.
+     * `waiting` means requests are in progress (fetched but not yet handled or reclaimed, possibly by another
+     * client sharing the queue) or a background add is still landing; neither has a clock, so no `readyAt`.
      *
-     * Due to the nature of distributed storage used by the queue, `finished` may occasionally arrive a probe
-     * or two late, but it is never reported early.
+     * Due to the nature of distributed storage used by the queue, `finished` may occasionally arrive a probe or
+     * two late, but it is never reported early.
      */
     async checkReadiness(): Promise<RequestLoaderStatus> {
         const transaction = activeStorageTransaction();

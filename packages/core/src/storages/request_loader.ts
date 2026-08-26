@@ -5,23 +5,22 @@ import type { IRequestManager } from './request_manager.js';
 import type { RequestQueueOperationInfo } from './request_queue.js';
 
 /**
- * What a request source can tell a consumer about its own availability, in a single answer.
+ * A request source's own availability, in a single answer.
  *
  * - `ready` — the next {@apilink IRequestLoader.fetchNextRequest} is expected to hand something over.
- * - `waiting` — nothing to fetch right now, but the source is not done either: requests are in progress,
- *   are being added in the background, or are being held back until `readyAt`.
- * - `stalled` — the source is holding requests it cannot make progress on. Only a manager that paces its
- *   own dispatch can reach this; see {@apilink ThrottlingRequestManager}.
- * - `finished` — everything has been handled and nothing is left.
+ * - `waiting` — nothing to fetch right now, but the source is not done: requests are in progress, are being
+ *   added in the background, or are held back until `readyAt`.
+ * - `stalled` — the source holds requests it cannot make progress on. Only a manager that paces its own
+ *   dispatch can reach this; see {@apilink ThrottlingRequestManager}.
+ * - `finished` — everything has been handled.
  */
 export type RequestSourceStatus =
     | { status: 'ready' }
     | {
           status: 'waiting';
           /**
-           * A `Date.now()` timestamp at which the source expects to become `ready`, when it knows one.
-           * Absent when the wait is on something without a clock (an in-progress request, a background
-           * add), in which case a consumer has nothing better to do than poll.
+           * A `Date.now()` timestamp at which the source expects to become `ready`. Absent when the wait has
+           * no clock (an in-progress request, a background add), leaving a consumer to poll.
            */
           readyAt?: number;
       }
@@ -32,16 +31,14 @@ export type RequestSourceStatus =
 export type RequestLoaderStatus = Exclude<RequestSourceStatus, { status: 'stalled' }>;
 
 /**
- * Combines the statuses of two request sources read as one, with the precedence
- * `ready` > `stalled` > `waiting` > `finished`.
+ * Combines two request sources' statuses, with the precedence `ready` > `stalled` > `waiting` > `finished`.
  *
- * Binary and non-variadic on purpose: this sits on the probe path a task loop runs several times a
- * second, and folding a pair allocates nothing.
+ * Binary rather than variadic on purpose: it is on the task loop's probe path and folding a pair allocates
+ * nothing.
  *
  * @internal
  */
 export function joinRequestSourceStatuses(a: RequestSourceStatus, b: RequestSourceStatus): RequestSourceStatus {
-    // `ready` if either is: with two sources read as one, work anywhere is work.
     if (a.status === 'ready') {
         return a;
     }
@@ -49,14 +46,11 @@ export function joinRequestSourceStatuses(a: RequestSourceStatus, b: RequestSour
         return b;
     }
 
-    // `ready` outranking `stalled` above means a stalled source is masked while the other one still has
-    // work - which is deliberate, and matches what the crawler did before this was a single answer: the
-    // stall check was only ever reached from `isFinishedFunction`, which the task loop calls exclusively
-    // when nothing is in flight and nothing is ready. "Fixing" the masking turns a crawl that is making
-    // progress elsewhere into a `PersistentRateLimitError`.
-    //
-    // `stalled` outranking `waiting` is parity with the same call site, which fired regardless of what
-    // other domains' clocks were doing.
+    // `ready` outranking `stalled` masks a stalled source while the other still has work. That is parity with
+    // the crawler before this was a single answer: the stall check was only reached from `isFinishedFunction`,
+    // which the task loop calls only when nothing is in flight and nothing is ready. "Fixing" the masking
+    // turns a crawl that is progressing elsewhere into a `PersistentRateLimitError`. `stalled` outranking
+    // `waiting` is the same parity - that call site fired regardless of other domains' clocks.
     if (a.status === 'stalled') {
         return a;
     }
@@ -65,15 +59,14 @@ export function joinRequestSourceStatuses(a: RequestSourceStatus, b: RequestSour
     }
 
     if (a.status === 'waiting') {
-        // The earlier of the two known wake-up times; unknown if neither source announced one, in which
-        // case the consumer is left polling.
+        // The earlier of the two known wake-up times - unknown only if neither source announced one.
         if (b.status !== 'waiting' || b.readyAt === undefined) {
             return a;
         }
         return a.readyAt !== undefined && a.readyAt <= b.readyAt ? a : b;
     }
 
-    // `a` is finished, so `b` decides: `waiting` if it is still working, `finished` otherwise.
+    // `a` is finished, so `b` decides.
     return b;
 }
 
@@ -128,12 +121,8 @@ export interface IRequestLoader {
      * Reports whether the loader has a request to hand over, is waiting on one, or is done — see
      * {@apilink RequestSourceStatus}.
      *
-     * A consumer's task loop is gated on this, so an implementation MUST return `ready` without evaluating
-     * anything further: that is the answer that costs a caller nothing to act on, and the one it asks for
-     * most often.
-     *
-     * Because a source may be backed by distributed storage, `finished` may occasionally arrive late — but
-     * it is never wrong: a loader that reports `finished` has nothing left.
+     * A consumer's task loop is gated on this, so implementations MUST answer `ready` before evaluating
+     * anything else. `finished` may arrive late behind distributed storage, but it is never wrong.
      */
     checkReadiness(): Promise<RequestSourceStatus>;
 

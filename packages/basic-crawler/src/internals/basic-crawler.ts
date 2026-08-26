@@ -352,11 +352,9 @@ export interface BasicCrawlerOptions<
      * Indicates how much time (in seconds) to wait before crawling another same domain request. Subdomains are
      * paced together with the site they belong to.
      *
-     * A floor, offered to the crawler's request manager as a `minIntervalEverywhere`
-     * {@apilink PacingSignal}. A manager that paces every domain it dispatches to takes it
-     * (a {@apilink ThrottlingRequestManager} with `domains: 'all'`, wherever it sits in a composition), so its
-     * own clocks are the only ones in play. When nothing there paces, the crawler wraps its request manager in a
-     * `ThrottlingRequestManager` with `domains: 'all'` and `throttleBy: 'registrableDomain'` of its own.
+     * Offered to the crawler's request manager as a `minIntervalEverywhere` {@apilink PacingSignal}; a manager that
+     * already paces every domain it dispatches to takes it, so no domain ends up with two clocks. Otherwise the
+     * crawler wraps its request manager in a {@apilink ThrottlingRequestManager} of its own.
      * @default 0
      */
     sameDomainDelaySecs?: number;
@@ -794,10 +792,7 @@ export class BasicCrawler<
      */
     #autoscaledPool?: AutoscaledPool;
 
-    /**
-     * A pending nudge of the task loop, armed when the request manager announces the moment it will have work
-     * again. At most one is outstanding.
-     */
+    /** A pending nudge of the task loop, armed when the request manager announces when it will have work again. */
     #taskLoopWakeTimer?: NodeJS.Timeout;
 
     /** When the pending wake-up is due, so an earlier one can replace a later one. */
@@ -864,17 +859,13 @@ export class BasicCrawler<
     readonly #maxRequestRetries: number;
     readonly #maxCrawlDepth?: number;
     /**
-     * How much of what {@apilink BasicCrawler.requestManager} reaches the crawler may empty between repeated
-     * `run()` calls.
+     * How much of {@apilink BasicCrawler.requestManager} the crawler may empty between repeated `run()` calls.
      *
-     * - `all` — nothing under it came from the caller, so one `purge()` on the outside covers everything,
-     *   including any per-domain queues {@apilink BasicCrawlerOptions.sameDomainDelaySecs|`sameDomainDelaySecs`}
-     *   opened underneath.
-     * - `none` — the caller supplied it and the crawler put nothing of its own inside, so it is left alone
-     *   unless `purgeRequestQueue: true` says otherwise.
-     * - `ambiguous` — the caller supplied it *and* `sameDomainDelaySecs` put per-domain queues underneath, so a
-     *   purge would empty their storage along with ours, and skipping it would leave ours stale. There is no
-     *   right answer, so a repeated `run()` asks for one rather than guessing.
+     * - `all` — nothing under it came from the caller, so one `purge()` on the outside covers everything.
+     * - `none` — the caller supplied it and the crawler put nothing of its own inside.
+     * - `ambiguous` — the caller supplied it, but `sameDomainDelaySecs` put the crawler's own per-domain queues
+     *   underneath: purging empties the caller's storage too, skipping leaves ours stale. A repeated `run()` asks
+     *   rather than guessing.
      */
     readonly #purgeableExtent: 'all' | 'none' | 'ambiguous';
     readonly #maxRequestsPerCrawl?: number;
@@ -1135,9 +1126,8 @@ export class BasicCrawler<
                 : suppliedManager;
 
             if (requestList !== undefined) {
-                // A read-only `requestList` is combined with a writable manager into a tandem, so that its requests
-                // are read first and new ones can still be enqueued during the crawl. The queue is opened on first
-                // use; the tandem also forwards `persistState()` to the loader.
+                // The list is read first, while new requests still have somewhere writable to go; the tandem also
+                // forwards `persistState()` to the loader.
                 this.requestManager = new RequestManagerTandem(
                     requestList,
                     writableManager ?? (() => this.openOwnedRequestQueue()),
@@ -1374,12 +1364,9 @@ export class BasicCrawler<
                         return true;
                     }
 
-                    // The request manager's state is read here, and a `stalled` one acted on only here, for
-                    // the same reason: `maybeFinish()` calls this exclusively once nothing is in flight
-                    // (`autoscaled_pool.ts`), which is both when a crawl that cannot progress becomes
-                    // distinguishable from one that is merely waiting, and the only point at which throwing
-                    // does not abandon requests mid-processing - a throw out of `isTaskReadyFunction` rejects
-                    // the pool while it still has tasks running.
+                    // `maybeFinish()` calls this only once nothing is in flight (`autoscaled_pool.ts`) - the point
+                    // where a crawl that cannot progress becomes distinguishable from one that is merely waiting,
+                    // and the only place where throwing does not abandon requests mid-processing.
                     const state = await this.requestManager?.checkReadiness();
 
                     // Under `keepAlive`, outliving a domain that will not let us through is the whole point.
@@ -1720,9 +1707,8 @@ export class BasicCrawler<
             // we need to purge the RQ to allow processing the same requests again — this is important so users can
             // pass in failed requests back to the `crawler.run()`, otherwise they would be considered as handled and
             // ignored — as a failed request is still handled.
-            // By default (`purgeRequestQueue` unset), only storage the crawler opened itself is purged.
-            // When `purgeRequestQueue` is explicitly `true`, a caller-supplied manager is purged as well.
-            // When `purgeRequestQueue` is explicitly `false`, nothing is purged.
+            // `purgeRequestQueue` unset purges only storage the crawler opened itself (see `#purgeableExtent`);
+            // `true` also purges a caller-supplied manager, `false` purges nothing.
             if (purgeRequestQueue === undefined && this.#purgeableExtent === 'ambiguous') {
                 throw new Error(
                     'Cannot decide what to purge before running again: `sameDomainDelaySecs` paces the request ' +
@@ -1733,8 +1719,8 @@ export class BasicCrawler<
             }
 
             if (purgeRequestQueue !== false && (this.#purgeableExtent === 'all' || purgeRequestQueue === true)) {
-                // One call from the outside in: whatever the request manager wraps, a pacer's per-domain queues
-                // included, is either the crawler's own or explicitly cleared for purging by now.
+                // One call from the outside in reaches everything the manager wraps, a pacer's per-domain queues
+                // included.
                 await this.requestManager?.purge?.();
             }
 
@@ -1926,8 +1912,7 @@ export class BasicCrawler<
     }
 
     /**
-     * Opens the default {@apilink RequestQueue} — the one the crawler reads from when the caller supplied
-     * nothing, and therefore the one it may empty between repeated `run()` calls.
+     * Opens the default {@apilink RequestQueue} — the crawler's own, read from when the caller supplied nothing.
      * @private
      */
     private async openOwnedRequestQueue(): Promise<RequestQueue> {
@@ -2514,8 +2499,8 @@ export class BasicCrawler<
 
     /** Hands a robots.txt `Crawl-delay` to the request manager, warning if it will not be honoured. */
     private applyCrawlDelay(url: string, delaySeconds: number): void {
-        // robots.txt is per-origin, and the closest thing the pacing vocabulary has is the hostname - slightly
-        // wider (http and https to one host share a clock), which is the safe direction to err in.
+        // robots.txt is per-origin; `hostname` is the closest pacing scope and errs wide (http and https to one
+        // host share a clock).
         if (
             this.requestManager?.recordPacingSignal({
                 reason: 'minInterval',
@@ -2753,11 +2738,8 @@ export class BasicCrawler<
     }
 
     /**
-     * Whether the request manager has a request ready for processing.
-     *
-     * A manager that is only `waiting` gets a wake-up scheduled for the moment it says it will have work
-     * again, so a crawl paced by a per-domain delay resumes on that clock rather than on the task loop's
-     * polling interval.
+     * Whether the request manager has a request ready for processing. A manager that is only `waiting` also gets a
+     * wake-up scheduled, so a paced crawl resumes on its clock rather than on the task loop's polling interval.
      */
     private async isTaskReadyFunction() {
         if (this.requestManager === undefined) {
@@ -2774,11 +2756,9 @@ export class BasicCrawler<
     }
 
     /**
-     * Nudges the task loop at `readyAt`, on a single timer that is only ever replaced by an earlier one.
-     *
-     * The pool polls on its own every `maybeRunIntervalSecs` (0.5s by default), so this only shortens the
-     * wait for a manager that knows exactly when it will have work - hence one timer rather than one per
-     * probe, and `unref`'d so a pending wake-up never keeps the process alive.
+     * Nudges the task loop at `readyAt`, on a single timer that only an earlier one replaces. The pool polls anyway
+     * every `maybeRunIntervalSecs` (0.5s by default), so this only shortens the wait - hence one timer rather than
+     * one per probe, and `unref`'d so it never keeps the process alive.
      */
     #scheduleTaskLoopWake(readyAt: number): void {
         if (this.#taskLoopWakeTimer !== undefined) {

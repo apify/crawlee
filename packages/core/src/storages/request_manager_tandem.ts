@@ -48,8 +48,7 @@ export class RequestManagerTandem implements IRequestManager {
         if (typeof requestManager === 'function') {
             this.#requestManagerFactory = requestManager;
         } else {
-            // Nothing to open, so it is available from the start - which is what lets the synchronous pacing
-            // signals below reach it without forcing anything.
+            // Nothing to open, so mark it resolved up front - synchronous pacing signals can then reach it.
             this.#resolvedRequestManager = requestManager;
             this.#requestManagerFactory = () => requestManager;
         }
@@ -108,14 +107,12 @@ export class RequestManagerTandem implements IRequestManager {
     }
 
     /**
-     * Fetches the next request from the request manager, first transferring one from the loader if the
-     * loader still has anything to hand over.
+     * Fetches the next request, transferring one from the loader first if the loader still has work.
      * @inheritdoc
      */
     async fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request<T> | null> {
-        // Transfer while the loader still has something to hand over. Only the loader's own state decides
-        // this: a manager waiting out a backoff must not freeze the loader's unrelated requests for the
-        // length of it.
+        // Only the loader's own state decides this: a manager waiting out a backoff must not freeze the
+        // loader's unrelated requests for the length of it.
         if ((await this.#requestLoader.checkReadiness()).status === 'ready') {
             // If the transfer failed, the request was dropped; don't fetch from the manager this round (matching
             // crawlee-python behaviour). The next `fetchNextRequest()` call will pick up where we left off.
@@ -129,8 +126,7 @@ export class RequestManagerTandem implements IRequestManager {
     }
 
     /**
-     * The loader and the manager read as one source: work in either one makes the tandem `ready`, and only both
-     * being done makes it `finished`.
+     * The loader and the manager read as one source.
      * @inheritdoc
      */
     async checkReadiness(): Promise<RequestSourceStatus> {
@@ -249,11 +245,9 @@ export class RequestManagerTandem implements IRequestManager {
     }
 
     /**
-     * Forwards a pacing signal to the writable manager, which is where a pacer would sit — the loader side is
-     * read-only and dispatches nothing of its own.
-     *
-     * Only a resolved manager can be signalled - the tandem will not open a queue to answer a question about
-     * pacing - which costs nothing, since an unresolved one is a factory no request has come out of yet.
+     * Forwards a pacing signal to the writable manager - the loader side is read-only and dispatches nothing of
+     * its own. Only a resolved manager is signalled; the tandem will not open a queue to answer a question about
+     * pacing.
      * @inheritdoc
      */
     recordPacingSignal(signal: PacingSignal): boolean {

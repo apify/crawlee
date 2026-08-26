@@ -224,26 +224,22 @@ describe('RequestQueue remote', () => {
         const queue = await RequestQueue.open();
 
         await queue.addRequest({ url: 'http://example.com/a' });
-        // There is a pending request waiting to be fetched, so the queue is ready.
         expect((await queue.checkReadiness()).status).toBe('ready');
 
         const fetched = await queue.fetchNextRequest();
-        // The request is now in progress (locked), not handled. There is nothing left to fetch, but the
-        // queue is not finished either, since the in-progress request might still be reclaimed - so it
-        // reports `waiting`. That signal keeps a crawler running while the request is processed.
+        // The in-progress request is locked, not handled, and might still be reclaimed - `waiting` rather than
+        // `finished` is what keeps a crawler running while the request is processed.
         expect((await queue.checkReadiness()).status).toBe('waiting');
 
         await queue.markRequestAsHandled(fetched!);
-        // Now the request is handled and gone, so the queue is finished.
         expect((await queue.checkReadiness()).status).toBe('finished');
     });
 
     test('recordPacingSignal() reports that a plain queue paces nothing', async () => {
         const queue = await RequestQueue.open();
 
-        // Required on `IRequestManager`, so reporting a signal is never a question of whether the manager
-        // supports it - a queue hands requests out as fast as they are asked for and says so, which is what
-        // lets a crawler warn that the signal had nowhere to go.
+        // Required on `IRequestManager`, so `false` never means "unsupported" - it means nothing here paces,
+        // which is what lets a crawler warn that the signal had nowhere to go.
         expect(queue.recordPacingSignal({ url: 'http://example.com/a', reason: 'rateLimited', waitMs: 1_000 })).toBe(
             false,
         );

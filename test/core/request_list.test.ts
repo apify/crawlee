@@ -137,7 +137,7 @@ describe('RequestList', () => {
         expect((await newList.fetchNextRequest())!.url).toBe('https://example.com/6');
         expect((await newList.fetchNextRequest())!.url).toBe('https://example.com/7');
         expect((await newList.fetchNextRequest())!.url).toBe('https://example.com/8');
-        // All five re-served requests are still in progress, so the list is drained but not done.
+        // None of the five re-served requests was handled, so they are all still in progress.
         expect((await newList.checkReadiness()).status).toBe('waiting');
     });
 

@@ -1,8 +1,7 @@
 import type { RequestSourceStatus } from '@crawlee/core';
 import { describe, expect, test } from 'vitest';
 
-// Not part of the public surface - the tandem and the throttler are its only callers, so it is reached the way
-// the other internal helpers are tested.
+// Not part of the public surface, so it is reached the way the other internal helpers are tested.
 import { joinRequestSourceStatuses } from '../../../packages/core/src/storages/request_loader.js';
 
 describe('joinRequestSourceStatuses', () => {
@@ -61,7 +60,6 @@ describe('joinRequestSourceStatuses', () => {
     });
 
     test('no wake-up time is invented when neither source knows one', () => {
-        // The consumer is left to poll rather than being handed a made-up deadline.
         expect(joinRequestSourceStatuses(waiting, waiting)).toEqual({ status: 'waiting' });
     });
 });

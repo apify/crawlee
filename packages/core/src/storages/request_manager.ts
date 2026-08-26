@@ -46,14 +46,12 @@ export interface IRequestManager extends IRequestLoader {
 
     /**
      * Records something said about the pace requests should go out at, so that a manager which paces its own
-     * dispatch can hold them back before handing any more out.
+     * dispatch can hold requests back.
      *
-     * Required rather than optional, so that reporting a signal is never a question of whether the manager
-     * supports it. A manager that does not pace returns `false`; one that wraps another forwards the call, so
-     * that a pacer nested inside a composition still receives it.
+     * Required rather than optional, so that a wrapping manager always forwards it and a pacer nested in a
+     * composition still receives it; a manager that does not pace returns `false`.
      *
-     * @returns `true` if the manager took responsibility for the signal - which also tells a caller whether
-     *  anything in a composition paces at all.
+     * @returns `true` if anything in the composition took responsibility for the signal.
      */
     recordPacingSignal(signal: PacingSignal): boolean;
 }
@@ -61,13 +59,9 @@ export interface IRequestManager extends IRequestLoader {
 /**
  * How much of the URL space a {@apilink PacingSignal} covers.
  *
- * Open on purpose. `'hostname'` and `'registrableDomain'` are what Crawlee's own reporters send and what
- * {@apilink ThrottlingRequestManager} understands, so the type suggests them; any other string is still
- * accepted, which is what lets a pacer keyed on something else - an account, an API key, a platform tenant - be
- * reported to in its own vocabulary without this interface having to hear about it.
- *
- * A manager's own configuration is free to be stricter: {@apilink ThrottlingRequestManagerOptions.throttleBy}
- * is a closed union of the two it supports, so a typo there is a compile error rather than a signal it throws on.
+ * Open on purpose: `'hostname'` and `'registrableDomain'` are what Crawlee's own reporters send and what
+ * {@apilink ThrottlingRequestManager} understands, but any string is accepted, so a pacer keyed on something
+ * else can be reported to in its own vocabulary.
  */
 export type PacingScope = LiteralUnion<'hostname' | 'registrableDomain', string>;
 
@@ -75,17 +69,12 @@ export type PacingScope = LiteralUnion<'hostname' | 'registrableDomain', string>
  * Something said about the pace requests should go out at, reported to a request manager through
  * {@apilink IRequestManager.recordPacingSignal}.
  *
- * One shape rather than a method per channel: a manager that paces switches on `reason`, one that merely wraps
- * another forwards the value without knowing what is in it, and a new kind of signal costs the interface
- * nothing. It is also why the `url` travels inside the value: the crawl-wide variant has none to name.
- * Nothing here names the mechanism a signal came from - HTTP status codes, response headers and robots.txt are
- * the crawler's business, not the manager's - and every delay is in milliseconds.
+ * One shape rather than a method per channel: a pacing manager switches on `reason`, a wrapping one forwards the
+ * value without knowing what is in it, and a new kind of signal costs the interface nothing. The `url` travels
+ * inside the value because the crawl-wide variant has none. Nothing here names the mechanism a signal came
+ * from - status codes, headers and robots.txt are the crawler's business - and every delay is in milliseconds.
  *
  * ## Scope
- *
- * `scope` names how much of the URL space a signal covers. It is an open union: the two values Crawlee's own
- * reporters and {@apilink ThrottlingRequestManager} speak are suggested by the type, but any string is
- * accepted - see {@apilink PacingScope}.
  *
  * A manager may apply a signal to a **wider** scope than it was given - a floor that holds for one host still
  * holds when a whole site is paced by it - but never to a narrower one, which would leave some of the URLs the
@@ -96,8 +85,8 @@ export type PacingSignal =
     | {
           /**
            * The source turned a request away because we were going too fast — an HTTP 429 or 503, an exhausted
-           * API quota, a platform-side limiter. Reactive and transient: a pacer typically backs off, escalating
-           * if the source keeps refusing, and lets that decay once it stops.
+           * quota. Reactive and transient: a pacer typically backs off while refusals continue, and lets that
+           * decay once they stop.
            */
           reason: 'rateLimited';
           /** The URL that was turned away. */
@@ -105,27 +94,23 @@ export type PacingSignal =
           /** How long the source asked us to wait before trying again, if it said. */
           waitMs?: number;
           /**
-           * How far this refusal reaches, if the reporter can tell. Usually it cannot — a 429 rarely says
-           * whether the limit was per host, per account or per address — and leaving it out asks the manager to
-           * apply the signal however it happens to group requests.
+           * How far this refusal reaches, if the reporter can tell — a 429 rarely says. Left out, it asks the
+           * manager to apply the signal however it happens to group requests.
            */
           scope?: PacingScope;
       }
     | {
           /**
            * The source declared a standing floor on how often it may be requested — a robots.txt `Crawl-delay`,
-           * a documented quota, a platform hint. Proactive and constant: a property of the source rather than
-           * of the run, so a pacer keeps it for the whole crawl.
+           * a documented quota. A property of the source rather than of the run, so a pacer keeps it for the
+           * whole crawl.
            */
           reason: 'minInterval';
           /** A URL of the source that declared the interval. */
           url: string;
           /** The declared minimum interval between two requests to the source. */
           intervalMs: number;
-          /**
-           * How much of the URL space the declared interval covers. Required, because whoever declares an
-           * interval knows what it applies to.
-           */
+          /** Required, since whoever declares an interval knows what it applies to. */
           scope: PacingScope;
       }
     | {
@@ -137,6 +122,6 @@ export type PacingSignal =
           reason: 'minIntervalEverywhere';
           /** The declared minimum interval between two requests to any one source. */
           intervalMs: number;
-          /** At what granularity the floor applies — each hostname, or each registrable domain. */
+          /** At what granularity the floor applies. */
           scope: PacingScope;
       };

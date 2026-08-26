@@ -52,10 +52,8 @@ describe('RequestQueue#checkReadiness treats in-progress requests differently fr
         const request = await queue.fetchNextRequest();
         expect(request).not.toBe(null);
 
-        // The fetched request is in progress (locked), not handled. There is nothing left to fetch, but
-        // the queue is not finished either — the in-progress request might still be reclaimed — so it
-        // reports `waiting`, and that is what prevents a crawler from shutting down while a request is
-        // still being processed.
+        // The in-progress request is locked, not handled, and might still be reclaimed — reporting `waiting`
+        // rather than `finished` is what prevents a crawler from shutting down while it is being processed.
         expect((await queue.checkReadiness()).status).toBe('waiting');
     });
 
@@ -97,8 +95,7 @@ describe('RequestQueue#checkReadiness waits for background add operations', () =
         expect(req1).toBeDefined();
         await queue.markRequestAsHandled(req1!);
 
-        // Nothing is fetchable, but the 2nd batch is still in flight in the background, so the queue is
-        // not done yet.
+        // The 2nd batch is still in flight in the background.
         expect((await queue.checkReadiness()).status).toBe('waiting');
 
         // Unblock the background batch and wait for it to complete.

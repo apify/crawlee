@@ -159,25 +159,20 @@ describe('RequestManagerTandem', () => {
             return tandem.checkReadiness();
         };
 
-        // Work in either half is work for the tandem.
         await expect(readiness({ status: 'ready' }, { status: 'finished' })).resolves.toEqual({ status: 'ready' });
         await expect(readiness({ status: 'finished' }, { status: 'ready' })).resolves.toEqual({ status: 'ready' });
 
-        // Including while the manager is holding something back: a backoff on the manager side must not freeze
-        // the loader's unrelated requests for the length of it.
+        // A backoff on the manager side must not freeze the loader's unrelated requests for the length of it.
         await expect(readiness({ status: 'ready' }, { status: 'waiting', readyAt: 42 })).resolves.toEqual({
             status: 'ready',
         });
 
-        // With nothing fetchable in either half, whichever one is still working decides - and its wake-up time
-        // carries through.
         await expect(readiness({ status: 'waiting' }, { status: 'finished' })).resolves.toEqual({ status: 'waiting' });
         await expect(readiness({ status: 'finished' }, { status: 'waiting', readyAt: 42 })).resolves.toEqual({
             status: 'waiting',
             readyAt: 42,
         });
 
-        // Only both being done makes the tandem done.
         await expect(readiness({ status: 'finished' }, { status: 'finished' })).resolves.toEqual({
             status: 'finished',
         });
@@ -269,8 +264,6 @@ describe('RequestManagerTandem', () => {
     });
 
     test('forwards the pacing signals to the manager it wraps', async () => {
-        // The reason those signals live on `IRequestManager`: a pacer nested in here has to keep receiving the
-        // crawler's 429s and robots.txt crawl delays, or a `requestList` crawl is silently unpaced.
         const requestList = await RequestList.open(null, [{ url: 'https://example.com/1' }]);
         const throttler = new ThrottlingRequestManager({
             inner: await RequestQueue.open(),
@@ -291,7 +284,7 @@ describe('RequestManagerTandem', () => {
             true,
         );
 
-        // A domain the pacer does not cover is reported back as unpaced rather than silently swallowed, so the
+        // A domain the pacer does not cover comes back as unpaced rather than silently swallowed, so the
         // crawler can warn about it.
         expect(
             tandem.recordPacingSignal({
@@ -305,7 +298,7 @@ describe('RequestManagerTandem', () => {
             false,
         );
 
-        // ...and the pacer actually acted on them: the domain is held back until both clocks run out.
+        // ...and the pacer acted on the signals rather than merely accepting them.
         await expect(throttler.checkReadiness()).resolves.toMatchObject({ status: 'waiting' });
 
         // A floor covering every domain reaches it the same way, and this pacer covers only `example.com`.
@@ -318,7 +311,6 @@ describe('RequestManagerTandem', () => {
         const requestList = await RequestList.open(null, [{ url: 'https://example.com/1' }]);
         const tandem = new RequestManagerTandem(requestList, await RequestQueue.open());
 
-        // A plain queue paces nothing, so signals of either kind come back `false` for the crawler to warn about.
         expect(tandem.recordPacingSignal({ url: 'https://example.com/1', reason: 'rateLimited', waitMs: 1_000 })).toBe(
             false,
         );
