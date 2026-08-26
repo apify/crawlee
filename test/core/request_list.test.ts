@@ -587,8 +587,8 @@ describe('RequestList', () => {
 
             // The persistence keys are derived from the list name, which shows in the keys it reads and writes.
             expect(keysPassedTo(getValueSpy)).toEqual([
-                `${CRAWLEE_KEY}-${STATE_PERSISTENCE_KEY}`,
                 `${CRAWLEE_KEY}-${REQUESTS_PERSISTENCE_KEY}`,
+                `${CRAWLEE_KEY}-${STATE_PERSISTENCE_KEY}`,
             ]);
             expect(keysPassedTo(setValueSpy)).toEqual([`${CRAWLEE_KEY}-${REQUESTS_PERSISTENCE_KEY}`]);
         });
@@ -608,8 +608,8 @@ describe('RequestList', () => {
             await expect(rl.checkReadiness()).resolves.toEqual({ status: 'ready' });
 
             expect(keysPassedTo(getValueSpy)).toEqual([
-                `${CRAWLEE_KEY}-${STATE_PERSISTENCE_KEY}`,
                 `${CRAWLEE_KEY}-${REQUESTS_PERSISTENCE_KEY}`,
+                `${CRAWLEE_KEY}-${STATE_PERSISTENCE_KEY}`,
             ]);
             expect(keysPassedTo(setValueSpy)).toEqual([`${CRAWLEE_KEY}-${REQUESTS_PERSISTENCE_KEY}`]);
         });
@@ -636,8 +636,8 @@ describe('RequestList', () => {
 
             // The list name wins over the `persistStateKey` option.
             expect(keysPassedTo(getValueSpy)).toEqual([
-                `${CRAWLEE_KEY}-${STATE_PERSISTENCE_KEY}`,
                 `${CRAWLEE_KEY}-${REQUESTS_PERSISTENCE_KEY}`,
+                `${CRAWLEE_KEY}-${STATE_PERSISTENCE_KEY}`,
             ]);
             expect(keysPassedTo(setValueSpy)).toEqual([`${CRAWLEE_KEY}-${REQUESTS_PERSISTENCE_KEY}`]);
         });
