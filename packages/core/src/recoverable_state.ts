@@ -115,6 +115,24 @@ export interface RecoverableStateOptions<
      * trusting it. If not provided, the persisted value is used as is.
      */
     deserialize?: StateConversion<TPersistedState, TStateModel>;
+
+    /**
+     * A persisted record to restore instead of reading one from the KeyValueStore. It runs through `deserialize`
+     * like a loaded record would and wins even when a stored record exists. The first load consumes it; saves are
+     * unaffected. It also applies when persistence is disabled, where there is no store to read from anyway.
+     */
+    initialState?: TPersistedState;
+
+    /**
+     * When given, a save is skipped while this returns `false` - the caller's way of saying nothing has changed
+     * since the last write. Pair it with `onPersisted` to maintain the flag behind it.
+     */
+    shouldPersist?: () => boolean;
+
+    /**
+     * Called after every successful save, typically to lower the dirty flag behind `shouldPersist`.
+     */
+    onPersisted?: () => void;
 }
 
 /**
@@ -141,6 +159,9 @@ export class RecoverableState<TStateModel = Record<string, unknown>, TPersistedS
     readonly #serialize: (state: TStateModel) => Promise<TPersistedState>;
     readonly #deserialize: (persistedState: TPersistedState) => Promise<TStateModel>;
     readonly #persistStateQuietly: (eventData?: Record<string, unknown>) => Promise<void>;
+    readonly #shouldPersist?: () => boolean;
+    readonly #onPersisted?: () => void;
+    #initialState: { record: TPersistedState } | null;
 
     /**
      * Initialize a new recoverable state object.
@@ -162,6 +183,16 @@ export class RecoverableState<TStateModel = Record<string, unknown>, TPersistedS
         this.#log = options.logger ?? serviceLocator.getLogger().child({ prefix: 'RecoverableState' });
         this.#serialize = this.#toConversion(options.serialize);
         this.#deserialize = this.#toConversion(options.deserialize);
+        this.#shouldPersist = options.shouldPersist;
+        this.#onPersisted = options.onPersisted;
+        this.#initialState = options.initialState !== undefined ? { record: options.initialState } : null;
+
+        // A pending open() may reject before anything here awaits it. Observe the rejection so it surfaces on
+        // first use rather than as an unhandled rejection - most immediately when persistence is disabled and
+        // nothing ever awaits the store.
+        if (this.#keyValueStore !== null) {
+            Promise.resolve(this.#keyValueStore).then(undefined, () => {});
+        }
 
         // The automatic persists, where a rejection has nowhere useful to go - the event manager does not catch
         // listener errors, and throwing from teardown would bury the outcome of the work it cleans up after.
@@ -197,7 +228,8 @@ export class RecoverableState<TStateModel = Record<string, unknown>, TPersistedS
      *
      * If persistence is enabled, this method loads the saved state and registers the object to listen for
      * PERSIST_STATE events. A state established beforehand by {@apilink RecoverableState.reset} survives if there
-     * is no record to restore.
+     * is no record to restore. A record supplied through the `initialState` option is restored instead of the
+     * stored one.
      *
      * Calling this again after a {@apilink RecoverableState.teardown} starts a new persistence window - the
      * listener is registered again and the record reloaded.
@@ -236,8 +268,11 @@ export class RecoverableState<TStateModel = Record<string, unknown>, TPersistedS
      * runs when the work is already done, and failing it would bury whatever the caller was doing. The in-memory
      * state is left alone, and {@apilink RecoverableState.initialize} can be called again to open a new
      * persistence window.
+     *
+     * @param options Pass `persistState: false` to skip the final write - for a caller whose final persist has
+     * already happened some other way, such as through a closing event manager's last PERSIST_STATE event.
      */
-    async teardown(): Promise<void> {
+    async teardown(options: { persistState?: boolean } = {}): Promise<void> {
         this.#initialized = false;
 
         if (!this.#persistenceEnabled) {
@@ -246,7 +281,10 @@ export class RecoverableState<TStateModel = Record<string, unknown>, TPersistedS
 
         serviceLocator.getEventManager().off(EventType.PERSIST_STATE, this.#persistStateQuietly);
         this.#listening = false;
-        await this.#persistStateQuietly();
+
+        if (options.persistState ?? true) {
+            await this.#persistStateQuietly();
+        }
     }
 
     /**
@@ -310,13 +348,18 @@ export class RecoverableState<TStateModel = Record<string, unknown>, TPersistedS
      * Persist the current state to the KeyValueStore.
      *
      * This method is typically called in response to a PERSIST_STATE event, but can also be called
-     * directly when needed. It is a no-op if persistence is disabled, if no KeyValueStore is available yet, or if
-     * there is no state to write. A failed write only rejects here - the periodic and teardown ones warn instead.
+     * directly when needed. It is a no-op if persistence is disabled, if no KeyValueStore is available yet, if
+     * there is no state to write, or if `shouldPersist` reports the state as unchanged. A failed write only
+     * rejects here - the periodic and teardown ones warn instead.
      *
      * @param eventData Optional data associated with a PERSIST_STATE event
      */
     async persistState(eventData?: Record<string, unknown>): Promise<void> {
         if (!this.#persistenceEnabled || this.#state === null) {
+            return;
+        }
+
+        if (this.#shouldPersist !== undefined && !this.#shouldPersist()) {
             return;
         }
 
@@ -334,6 +377,8 @@ export class RecoverableState<TStateModel = Record<string, unknown>, TPersistedS
             async () => keyValueStore.setValue(this.#persistStateKey, serializedState),
             'Persisting the state',
         );
+
+        this.#onPersisted?.();
     }
 
     /** Awaits a store handed over as a pending `open()`, keeping the resolved instance for later calls. */
@@ -349,8 +394,16 @@ export class RecoverableState<TStateModel = Record<string, unknown>, TPersistedS
 
     /**
      * Load the saved state from the KeyValueStore. Leaves the current state alone if there is no record to load.
+     * A record supplied through the `initialState` option is restored instead of the stored one, once.
      */
     async #loadSavedState(): Promise<void> {
+        if (this.#initialState !== null) {
+            const { record } = this.#initialState;
+            this.#initialState = null;
+            this.#state = await this.#deserialize(record);
+            return;
+        }
+
         if (!this.#persistenceEnabled) {
             return;
         }
