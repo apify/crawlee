@@ -46,16 +46,14 @@ export interface IRequestManager extends IRequestLoader {
 
     /**
      * Records something said about the pace requests should go out at, so that a manager which paces its own
-     * dispatch can hold them back before handing any more out. The signal says what it applies to, so a manager
-     * that paces nothing - or that wraps one which does - never has to take it apart.
+     * dispatch can hold them back before handing any more out.
      *
      * Required rather than optional, so that reporting a signal is never a question of whether the manager
      * supports it. A manager that does not pace returns `false`; one that wraps another forwards the call, so
      * that a pacer nested inside a composition still receives it.
      *
-     * @returns `true` if the manager took responsibility for the signal. A crawler reads this to decide whether
-     *  to treat a rate limit as a paced retry rather than as an ordinary blocked response, to warn when a
-     *  signal was dropped, and to tell whether a composition paces at all before adding a pacer of its own.
+     * @returns `true` if the manager took responsibility for the signal - which also tells a caller whether
+     *  anything in a composition paces at all.
      */
     recordPacingSignal(signal: PacingSignal): boolean;
 }
@@ -79,10 +77,9 @@ export type PacingScope = LiteralUnion<'hostname' | 'registrableDomain', string>
  *
  * One shape rather than a method per channel: a manager that paces switches on `reason`, one that merely wraps
  * another forwards the value without knowing what is in it, and a new kind of signal costs the interface
- * nothing. That is also why the `url` a signal is about travels in the value rather than beside it - the
- * crawl-wide variant has no URL to name, and a wrapper is none the wiser. Nothing here names the mechanism a
- * signal came from - HTTP status codes, response headers and robots.txt are the crawler's business, not the
- * manager's - and every delay is in milliseconds.
+ * nothing. It is also why the `url` travels inside the value: the crawl-wide variant has none to name.
+ * Nothing here names the mechanism a signal came from - HTTP status codes, response headers and robots.txt are
+ * the crawler's business, not the manager's - and every delay is in milliseconds.
  *
  * ## Scope
  *
@@ -134,9 +131,8 @@ export type PacingSignal =
     | {
           /**
            * A standing floor under the pace of **every** domain the manager dispatches to, declared by whoever
-           * owns the crawl rather than by a source — a crawler's `sameDomainDelaySecs` is one. A manager that
-           * paces only some of the domains it holds MUST throw rather than take it, since holding back the ones
-           * it knows about would leave the rest running unpaced.
+           * owns the crawl rather than by a source — a crawler's `sameDomainDelaySecs`. A manager that paces only
+           * some of its domains MUST throw rather than under-apply it.
            */
           reason: 'minIntervalEverywhere';
           /** The declared minimum interval between two requests to any one source. */

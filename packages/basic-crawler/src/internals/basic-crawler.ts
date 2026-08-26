@@ -1087,36 +1087,30 @@ export class BasicCrawler<
 
             const suppliedManager = requestManager ?? requestQueue;
 
-            // `sameDomainDelaySecs` is a floor under the pace of every domain, so offer it to whatever the
-            // crawler was going to read from before building a pacer of our own. Anything that paces takes it
-            // (through any number of wrappers, since they all forward), and two clocks for one domain never come
-            // into existence. Nothing there paces if the answer is `false`, which is what makes the throttler
-            // below necessary rather than duplicative.
-            //
-            // `registrableDomain` is what `sameDomainDelaySecs` has always meant: one clock for a site,
-            // subdomains included.
+            // Offered before building a pacer of our own: anything that paces takes the floor - through any
+            // number of wrappers, since they all forward - so no domain ends up with two clocks.
             const floorTaken =
                 sameDomainDelaySecs > 0 &&
                 (suppliedManager?.recordPacingSignal({
                     reason: 'minIntervalEverywhere',
                     intervalMs: sameDomainDelaySecs * 1000,
+                    // What `sameDomainDelaySecs` has always meant: one clock per site, subdomains included.
                     scope: 'registrableDomain',
                 }) ??
                     false);
 
             const pacerNeeded = sameDomainDelaySecs > 0 && !floorTaken;
 
-            // Whatever the crawler opens itself is its own to empty between runs; a manager the caller supplied
-            // is not. A pacer of ours over a supplied manager is both at once - see `#purgeableExtent`. A floor
-            // the manager took adds no storage, so it leaves the caller's manager as untouched as no delay at all.
+            // Our per-domain queues under a manager the caller owns is the case with no right answer; a floor
+            // it took leaves nothing of ours behind. See `#purgeableExtent`.
             if (suppliedManager === undefined) {
                 this.#purgeableExtent = 'all';
             } else {
                 this.#purgeableExtent = pacerNeeded ? 'ambiguous' : 'none';
             }
 
-            // Built here rather than at first use so that it can be placed *inside* the tandem below, which is
-            // where a loader's transferred requests pass through it.
+            // Built here rather than at first use so it can sit *inside* the tandem below, which is where a
+            // loader's transferred requests pass through it.
             const writableManager = pacerNeeded
                 ? new ThrottlingRequestManager({
                       domains: 'all',

@@ -1006,8 +1006,8 @@ describe('ThrottlingRequestManager', () => {
         });
 
         test('a manager that paces only some domains throws instead of leaving the rest unpaced', async () => {
-            // The same reasoning as a signal scoped wider than the grouping: covering one listed domain and
-            // letting everything else run flat out is not honouring a floor that covers every domain.
+            // Same reasoning as a signal scoped wider than the grouping: pacing the one listed domain and
+            // letting the rest run flat out is not honouring a floor that covers everything.
             const manager = new ThrottlingRequestManager({
                 inner: await createQueue(),
                 domains: ['example.com'],
@@ -1018,8 +1018,7 @@ describe('ThrottlingRequestManager', () => {
         });
 
         test('a floor at a finer grain than the grouping throws, like any other signal', async () => {
-            // Grouping by hostname cannot hold a whole registrable domain back, so it says so rather than pace
-            // one host and let its siblings run.
+            // Grouping by hostname cannot hold a whole registrable domain back, so it says so.
             const manager = new ThrottlingRequestManager({ inner: await createQueue(), domains: 'all' });
 
             expect(() => manager.recordPacingSignal(floor(1_000))).toThrow(/groups requests by "hostname"/);

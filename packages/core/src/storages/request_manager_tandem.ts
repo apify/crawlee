@@ -252,10 +252,8 @@ export class RequestManagerTandem implements IRequestManager {
      * Forwards a pacing signal to the writable manager, which is where a pacer would sit — the loader side is
      * read-only and dispatches nothing of its own.
      *
-     * Only a manager that has already been resolved can be signalled, and the tandem will not open a queue to
-     * answer a question about pacing. Nothing is lost by that: an unresolved manager is a factory the tandem has
-     * not needed yet, so neither a 429 nor a robots.txt read has happened for any domain it holds, and a floor
-     * reported as unhandled leaves the caller to pace the tandem from outside.
+     * Only a resolved manager can be signalled - the tandem will not open a queue to answer a question about
+     * pacing - which costs nothing, since an unresolved one is a factory no request has come out of yet.
      * @inheritdoc
      */
     recordPacingSignal(signal: PacingSignal): boolean {

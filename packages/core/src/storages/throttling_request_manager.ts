@@ -234,8 +234,8 @@ const DEFAULT_PERSIST_STATE_KEY = 'CRAWLEE_THROTTLED_DOMAINS';
  *
  * Pass one as a crawler's `requestManager` to pace what it crawls. The crawlers' `sameDomainDelaySecs` shorthand
  * builds one for you, configured with `domains: 'all'` and `throttleBy: 'registrableDomain'`; construct it
- * yourself when you want to name the domains or tune the delays. Passing one that covers every domain also means
- * `sameDomainDelaySecs` lands on it as a floor rather than putting a second pacer around it.
+ * yourself when you want to name the domains or tune the delays - one covering every domain also makes
+ * `sameDomainDelaySecs` land on it as a floor instead of adding a second pacer.
  *
  * The 429 and robots.txt `Crawl-delay` signals a crawler feeds it, and that floor, all arrive through
  * {@apilink IRequestManager.recordPacingSignal|`recordPacingSignal`}, which every wrapping manager forwards - so
@@ -608,19 +608,17 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     }
 
     /**
-     * Raises the floor under every throttled domain's crawl delay - the same thing
-     * {@apilink ThrottlingRequestManagerOptions.minCrawlDelaySecs|`minCrawlDelaySecs`} configures, declared at
-     * runtime by whoever owns the crawl rather than by a source.
-     *
-     * A floor, so the longer of it and the domain's own `Crawl-delay` is what actually paces the domain.
+     * Raises the floor under every throttled domain's crawl delay - the runtime form of
+     * {@apilink ThrottlingRequestManagerOptions.minCrawlDelaySecs|`minCrawlDelaySecs`}, so the longer of it and a
+     * domain's own `Crawl-delay` wins.
      *
      * @returns `false` if this manager paces nothing at all, in which case there is no floor to raise.
-     * @throws If it paces some domains but not all of them: holding back only the listed ones would leave the
-     *  rest of what the floor covers running unpaced, which is worse than saying so.
+     * @throws If it paces some domains but not all of them - holding back only those would leave the rest of
+     *  what the floor covers unpaced.
      */
     #recordEverywhereFloor(intervalMs: number, scope: PacingScope): boolean {
-        // Before the scope check, unlike a per-domain signal: a manager configured to pace nothing has no
-        // grouping worth objecting about, and answering `false` is what lets the caller pace it from outside.
+        // Before the scope check, unlike a per-domain signal: a manager that paces nothing has no grouping
+        // worth objecting about, and `false` lets the caller pace it from outside.
         if (!this.#throttlingEnabled) {
             return false;
         }

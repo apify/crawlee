@@ -308,8 +308,7 @@ describe('RequestManagerTandem', () => {
         // ...and the pacer actually acted on them: the domain is held back until both clocks run out.
         await expect(throttler.checkReadiness()).resolves.toMatchObject({ status: 'waiting' });
 
-        // A floor covering every domain reaches it the same way, and this pacer covers only `example.com`, so
-        // it says so rather than take one it would under-apply.
+        // A floor covering every domain reaches it the same way, and this pacer covers only `example.com`.
         expect(() =>
             tandem.recordPacingSignal({ reason: 'minIntervalEverywhere', intervalMs: 5_000, scope: 'hostname' }),
         ).toThrow(/domains: 'all'/);

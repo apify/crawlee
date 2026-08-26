@@ -2871,8 +2871,7 @@ describe('BasicCrawler', () => {
                     sameDomainDelaySecs: 0.5,
                 });
 
-                // Nothing was built around it: the delay went in as a floor, so the caller's manager is still
-                // the one pacing - one clock per domain, and their configuration intact.
+                // Nothing was built around it, so the caller's manager is still the only thing pacing.
                 await expect(crawler.getRequestManager()).resolves.toBe(requestManager);
 
                 expect(visits).toHaveLength(2);
@@ -2880,8 +2879,8 @@ describe('BasicCrawler', () => {
             });
 
             test('reaches a pacing manager through a wrapper', async () => {
-                // A tandem is not a pacer, but it forwards pacing signals, so the throttler behind it takes the
-                // floor just as it would on its own - no wrapper type is inspected on the way.
+                // A tandem is not a pacer but forwards signals, so the throttler behind it takes the floor -
+                // no wrapper type is inspected on the way.
                 const throttler = new ThrottlingRequestManager({
                     inner: await RequestQueue.open(),
                     domains: 'all',
@@ -2901,8 +2900,7 @@ describe('BasicCrawler', () => {
             });
 
             test('refuses a manager that paces only some of the domains it holds', async () => {
-                // The floor covers every domain the crawl reaches; a manager pacing one listed domain cannot
-                // honour it, and taking it anyway would leave the rest running flat out.
+                // Taking a floor that covers every domain would leave everything but `example.com` unpaced.
                 const requestManager = new ThrottlingRequestManager({
                     inner: await RequestQueue.open(),
                     domains: ['example.com'],
@@ -2920,8 +2918,7 @@ describe('BasicCrawler', () => {
             });
 
             test('a second run() leaves a manager that took the delay alone', async () => {
-                // The counterpart of the ambiguity above: with the floor absorbed, the crawler put no storage
-                // of its own underneath the caller's manager, so there is nothing to ask about.
+                // The floor put no storage of ours underneath it, so there is no purge to ask about.
                 let visits = 0;
                 const crawler = new BasicCrawler({
                     requestManager: new ThrottlingRequestManager({
