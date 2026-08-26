@@ -644,6 +644,144 @@ describe('RecoverableState', () => {
         });
     });
 
+    describe('shouldPersist and onPersisted', () => {
+        test('should skip the write while shouldPersist returns false', async () => {
+            const store = await KeyValueStore.open();
+            const setValue = vi.spyOn(store, 'setValue');
+            let dirty = false;
+
+            const recoverableState = new RecoverableState({
+                defaultState,
+                persistStateKey: 'test-key',
+                persistenceEnabled: true,
+                keyValueStore: store,
+                shouldPersist: () => dirty,
+                onPersisted: () => {
+                    dirty = false;
+                },
+            });
+
+            await recoverableState.initialize();
+
+            await recoverableState.persistState();
+            expect(setValue).not.toHaveBeenCalled();
+
+            recoverableState.currentValue.counter = 42;
+            dirty = true;
+            await recoverableState.persistState();
+            expect(setValue).toHaveBeenCalledTimes(1);
+            expect(dirty).toBe(false);
+
+            // The flag was lowered by onPersisted, so the next write is skipped again.
+            await recoverableState.persistState();
+            expect(setValue).toHaveBeenCalledTimes(1);
+
+            await recoverableState.teardown();
+            expect(setValue).toHaveBeenCalledTimes(1);
+        });
+
+        test('should not call onPersisted when the write fails', async () => {
+            const store = await KeyValueStore.open();
+            vi.spyOn(store, 'setValue').mockRejectedValue(new Error('store is on fire'));
+            const onPersisted = vi.fn();
+
+            const recoverableState = new RecoverableState({
+                defaultState,
+                persistStateKey: 'test-key',
+                persistenceEnabled: true,
+                keyValueStore: store,
+                onPersisted,
+            });
+
+            await recoverableState.initialize();
+
+            await expect(recoverableState.persistState()).rejects.toThrow('store is on fire');
+            expect(onPersisted).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('initialState', () => {
+        test('should restore the supplied record through deserialize, even over a stored one', async () => {
+            await (await KeyValueStore.open()).setValue('test-key', { ...defaultState, counter: 7 });
+
+            const deserialize = vi.fn((persisted: TestState) => ({ ...persisted, message: 'deserialized' }));
+
+            const recoverableState = new RecoverableState({
+                defaultState,
+                persistStateKey: 'test-key',
+                persistenceEnabled: true,
+                deserialize,
+                initialState: { ...defaultState, counter: 42 },
+            });
+
+            const state = await recoverableState.initialize();
+
+            expect(state.counter).toBe(42);
+            expect(state.message).toBe('deserialized');
+            expect(deserialize).toHaveBeenCalledTimes(1);
+        });
+
+        test('should apply the supplied record when persistence is disabled', async () => {
+            const recoverableState = new RecoverableState({
+                defaultState,
+                persistStateKey: 'test-key',
+                persistenceEnabled: false,
+                initialState: { ...defaultState, counter: 42 },
+            });
+
+            expect((await recoverableState.initialize()).counter).toBe(42);
+        });
+
+        test('should be consumed by the first load, letting later loads read the record', async () => {
+            const recoverableState = new RecoverableState({
+                defaultState,
+                persistStateKey: 'test-key',
+                persistenceEnabled: true,
+                initialState: { ...defaultState, counter: 42 },
+            });
+
+            await recoverableState.initialize();
+            recoverableState.currentValue.counter = 100;
+            await recoverableState.teardown();
+
+            // The teardown persisted counter=100; a reload must restore that, not the consumed seed.
+            expect((await recoverableState.initialize()).counter).toBe(100);
+            await recoverableState.teardown();
+        });
+    });
+
+    test('teardown should skip the final write when asked to', async () => {
+        const store = await KeyValueStore.open();
+        const setValue = vi.spyOn(store, 'setValue');
+
+        const recoverableState = new RecoverableState({
+            defaultState,
+            persistStateKey: 'test-key',
+            persistenceEnabled: true,
+            keyValueStore: store,
+        });
+
+        await recoverableState.initialize();
+        await recoverableState.teardown({ persistState: false });
+
+        expect(setValue).not.toHaveBeenCalled();
+        expect(serviceLocator.getEventManager().listenerCount(EventType.PERSIST_STATE)).toBe(0);
+    });
+
+    test('should surface a rejected pending open() on first use, not as an unhandled rejection', async () => {
+        const recoverableState = new RecoverableState({
+            defaultState,
+            persistStateKey: 'test-key',
+            persistenceEnabled: true,
+            keyValueStore: Promise.reject(new Error('store exploded')),
+        });
+
+        // Give an unhandled rejection the chance to fire - vitest would fail the test if it did.
+        await sleep(10);
+
+        await expect(recoverableState.initialize()).rejects.toThrow('store exploded');
+    });
+
     test('should time out a persistence call that takes too long', async () => {
         const store = await KeyValueStore.open();
         vi.spyOn(store, 'setValue').mockImplementation(async () => sleep(1000));
