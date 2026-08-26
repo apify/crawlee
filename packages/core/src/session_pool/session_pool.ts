@@ -549,7 +549,7 @@ interface SessionPoolInternalState {
 }
 
 /** The shape of the persisted {@apilink SessionPool} record, as returned by {@apilink SessionPool.getState}. */
-interface SessionPoolPersistedState {
+export interface SessionPoolPersistedState {
     usableSessionsCount: number;
     retiredSessionsCount: number;
     sessions: SessionState[];
