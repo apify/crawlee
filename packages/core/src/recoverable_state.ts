@@ -242,10 +242,7 @@ export class RecoverableState<TStateModel = Record<string, unknown>, TPersistedS
         }
 
         if (this.#persistenceEnabled) {
-            this.#keyValueStore ??= KeyValueStore.open(null, {
-                configuration: this.#configuration ?? serviceLocator.getConfiguration(),
-            });
-            await this.#resolveKeyValueStore();
+            await this.#openKeyValueStore();
             serviceLocator.getEventManager().on(EventType.PERSIST_STATE, this.#persistStateQuietly);
             this.#listening = true;
         }
@@ -319,7 +316,7 @@ export class RecoverableState<TStateModel = Record<string, unknown>, TPersistedS
      * one would write the record straight back. Use {@apilink RecoverableState.reset} to reset the state itself,
      * or {@apilink RecoverableState.teardown} before clearing the record.
      *
-     * A no-op if persistence is disabled or no KeyValueStore is available yet.
+     * A no-op if persistence is disabled.
      */
     async resetStore(): Promise<void> {
         if (this.#listening) {
@@ -332,11 +329,7 @@ export class RecoverableState<TStateModel = Record<string, unknown>, TPersistedS
             return;
         }
 
-        const keyValueStore = await this.#resolveKeyValueStore();
-
-        if (keyValueStore === null) {
-            return;
-        }
+        const keyValueStore = await this.#openKeyValueStore();
 
         await this.#withTimeout(
             async () => keyValueStore.setValue(this.#persistStateKey, null),
@@ -379,6 +372,15 @@ export class RecoverableState<TStateModel = Record<string, unknown>, TPersistedS
         );
 
         this.#onPersisted?.();
+    }
+
+    /** Falls back to the default store when none was supplied - persistence has to write somewhere. */
+    async #openKeyValueStore(): Promise<KeyValueStore> {
+        this.#keyValueStore ??= KeyValueStore.open(null, {
+            configuration: this.#configuration ?? serviceLocator.getConfiguration(),
+        });
+
+        return (await this.#resolveKeyValueStore())!;
     }
 
     /** Awaits a store handed over as a pending `open()`, keeping the resolved instance for later calls. */
