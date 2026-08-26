@@ -12,8 +12,8 @@ import { normalizeHostname } from '../url.js';
 import { parseArgument, schemas } from '../validators.js';
 import { drainRequestBatches } from './batched_adds.js';
 import { KeyValueStore } from './key_value_store.js';
-import type { RequestSourceState } from './request_loader.js';
-import { joinRequestSourceStates } from './request_loader.js';
+import type { RequestSourceStatus } from './request_loader.js';
+import { joinRequestSourceStatuses } from './request_loader.js';
 import type { IRequestManager, PacingSignal, RequestsLike } from './request_manager.js';
 import type {
     AddRequestsBatchedOptions,
@@ -215,8 +215,8 @@ const DEFAULT_PERSIST_STATE_KEY = 'CRAWLEE_THROTTLED_DOMAINS';
  * {@apilink ThrottlingRequestManager.fetchNextRequest|`fetchNextRequest()`} serves the domain that has been waiting
  * longest and skips any that are backing off, falling back to the wrapped manager. It never blocks: while every
  * remaining request belongs to a throttled domain it returns `null` and
- * {@apilink ThrottlingRequestManager.readiness|`readiness()`} reports `waiting` with the moment the earliest of
- * them comes due, so the crawler idles instead of holding a concurrency slot open.
+ * {@apilink ThrottlingRequestManager.checkReadiness|`checkReadiness()`} reports `waiting` with the moment the
+ * earliest of them comes due, so the crawler idles instead of holding a concurrency slot open.
  *
  * Each throttled domain runs two independent clocks, and may be dispatched to once **both** have run out:
  * - **Backoff**, set by HTTP 429 responses - honouring `Retry-After`, and otherwise doubling from `baseDelaySecs`.
@@ -300,7 +300,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
      */
     #subManagersReady?: Promise<void>;
 
-    /** Batches still being added in the background; keeps {@apilink ThrottlingRequestManager.readiness} honest. */
+    /** Batches still being added in the background; keeps {@apilink ThrottlingRequestManager.checkReadiness} honest. */
     #inProgressBatchCount = 0;
 
     /**
@@ -874,7 +874,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
      * not stonewalling us is returned without ever looking at the stall clocks, so one hopeless domain never
      * ends a crawl that is making progress elsewhere. What it cannot outrank is *itself*: see the traversal.
      */
-    async readiness(): Promise<RequestSourceState> {
+    async checkReadiness(): Promise<RequestSourceStatus> {
         await this.#ensureSubManagers();
 
         const now = Date.now();
@@ -917,10 +917,10 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
 
         const probed = (
             await Promise.all([
-                (await this.#getInner()).readiness(),
-                ...dispatchable.map(async (subManager) => (await subManager).readiness()),
+                (await this.#getInner()).checkReadiness(),
+                ...dispatchable.map(async (subManager) => (await subManager).checkReadiness()),
             ])
-        ).reduce(joinRequestSourceStates);
+        ).reduce(joinRequestSourceStatuses);
 
         // Anything dispatchable outranks a stalled or throttled domain, so we stop here without touching them.
         if (probed.status === 'ready') {
@@ -931,7 +931,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
             const stalled = (
                 await Promise.all(
                     stallCandidates.map(async (state) =>
-                        (await (await this.#subManagers.get(state.domain)!).readiness()).status === 'ready'
+                        (await (await this.#subManagers.get(state.domain)!).checkReadiness()).status === 'ready'
                             ? state
                             : null,
                     ),
@@ -955,7 +955,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         }
 
         if (readyAt !== undefined) {
-            return joinRequestSourceStates(probed, { status: 'waiting', readyAt });
+            return joinRequestSourceStatuses(probed, { status: 'waiting', readyAt });
         }
 
         // Batches still landing in the background are work nobody can see in a queue yet.
@@ -1030,8 +1030,8 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
      * Returns `null` while every remaining request belongs to a throttled domain - it never waits the backoff
      * out, because a consumer parked in here holds a concurrency slot, which the autoscaler reads as spare
      * capacity and answers by scaling up. Callers poll instead, and
-     * {@apilink ThrottlingRequestManager.readiness|`readiness()`} reports `waiting` meanwhile so the crawler's
-     * task loop idles rather than spins.
+     * {@apilink ThrottlingRequestManager.checkReadiness|`checkReadiness()`} reports `waiting` meanwhile so the
+     * crawler's task loop idles rather than spins.
      */
     async fetchNextRequest<R extends Dictionary = Dictionary>(): Promise<Request<R> | null> {
         await this.#ensureSubManagers();

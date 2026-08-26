@@ -12,7 +12,7 @@ import { createDeserialize, serializeArray } from '../serialization.js';
 import { serviceLocator } from '../service_locator.js';
 import { parseArgument, schemas, validators } from '../validators.js';
 import { KeyValueStore } from './key_value_store.js';
-import type { IRequestLoader, RequestLoaderState } from './request_loader.js';
+import type { IRequestLoader, RequestLoaderStatus } from './request_loader.js';
 import type { IRequestManager } from './request_manager.js';
 import { purgeDefaultStorages } from './utils.js';
 
@@ -602,7 +602,7 @@ export class RequestList implements IRequestLoader {
     /**
      * @inheritDoc
      */
-    async readiness(): Promise<RequestLoaderState> {
+    async checkReadiness(): Promise<RequestLoaderStatus> {
         this.ensureIsInitialized();
 
         if (this.#requestsToRetry.length > 0 || this.#nextIndex < this.requests.length) {

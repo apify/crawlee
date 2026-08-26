@@ -1368,7 +1368,7 @@ export class BasicCrawler<
                     // distinguishable from one that is merely waiting, and the only point at which throwing
                     // does not abandon requests mid-processing - a throw out of `isTaskReadyFunction` rejects
                     // the pool while it still has tasks running.
-                    const state = await this.requestManager?.readiness();
+                    const state = await this.requestManager?.checkReadiness();
 
                     // Under `keepAlive`, outliving a domain that will not let us through is the whole point.
                     if (state?.status === 'stalled' && !keepAlive) {
@@ -2563,7 +2563,7 @@ export class BasicCrawler<
             // The request manager persists its read-only loader's state, if it has one that supports
             // persistence (e.g. a tandem wrapping a `RequestList`). For a plain `RequestQueue`, this is a no-op.
             if (this.requestManager?.persistState) {
-                if ((await this.requestManager.readiness()).status === 'finished') return;
+                if ((await this.requestManager.checkReadiness()).status === 'finished') return;
                 await this.requestManager.persistState().catch((err) => {
                     if (err.message.includes('Cannot persist state.')) {
                         this.log.error(
@@ -2747,7 +2747,7 @@ export class BasicCrawler<
             return false;
         }
 
-        const state = await this.requestManager.readiness();
+        const state = await this.requestManager.checkReadiness();
 
         if (state.status === 'waiting' && state.readyAt !== undefined) {
             this.#scheduleTaskLoopWake(state.readyAt);

@@ -1,18 +1,18 @@
-import type { RequestSourceState } from '@crawlee/core';
+import type { RequestSourceStatus } from '@crawlee/core';
 import { describe, expect, test } from 'vitest';
 
 // Not part of the public surface - the tandem and the throttler are its only callers, so it is reached the way
 // the other internal helpers are tested.
-import { joinRequestSourceStates } from '../../../packages/core/src/storages/request_loader.js';
+import { joinRequestSourceStatuses } from '../../../packages/core/src/storages/request_loader.js';
 
-describe('joinRequestSourceStates', () => {
-    const ready = { status: 'ready' } as const satisfies RequestSourceState;
+describe('joinRequestSourceStatuses', () => {
+    const ready = { status: 'ready' } as const satisfies RequestSourceStatus;
     const stalled = {
         status: 'stalled',
         reason: 'example.com is stonewalling us',
-    } as const satisfies RequestSourceState;
-    const waiting = { status: 'waiting' } as const satisfies RequestSourceState;
-    const finished = { status: 'finished' } as const satisfies RequestSourceState;
+    } as const satisfies RequestSourceStatus;
+    const waiting = { status: 'waiting' } as const satisfies RequestSourceStatus;
+    const finished = { status: 'finished' } as const satisfies RequestSourceStatus;
 
     // Both directions of every pair, because the join has to be commutative for two sources read as one.
     test.each([
@@ -26,35 +26,35 @@ describe('joinRequestSourceStates', () => {
         [waiting, waiting, waiting],
         [waiting, finished, waiting],
         [finished, finished, finished],
-    ] satisfies [RequestSourceState, RequestSourceState, RequestSourceState][])(
+    ] satisfies [RequestSourceStatus, RequestSourceStatus, RequestSourceStatus][])(
         '$0.status + $1.status -> $2.status',
         (a, b, expected) => {
-            expect(joinRequestSourceStates(a, b)).toEqual(expected);
-            expect(joinRequestSourceStates(b, a)).toEqual(expected);
+            expect(joinRequestSourceStatuses(a, b)).toEqual(expected);
+            expect(joinRequestSourceStatuses(b, a)).toEqual(expected);
         },
     );
 
     test('a stalled source is masked while the other one still has work', () => {
         // The crawler turns `stalled` into a `PersistentRateLimitError`, so this precedence is what keeps a
         // crawl that is making progress elsewhere from being abandoned over one hopeless domain.
-        expect(joinRequestSourceStates(stalled, ready)).toEqual(ready);
+        expect(joinRequestSourceStatuses(stalled, ready)).toEqual(ready);
     });
 
     test('the earlier of two known wake-up times wins', () => {
         expect(
-            joinRequestSourceStates({ status: 'waiting', readyAt: 200 }, { status: 'waiting', readyAt: 100 }),
+            joinRequestSourceStatuses({ status: 'waiting', readyAt: 200 }, { status: 'waiting', readyAt: 100 }),
         ).toEqual({ status: 'waiting', readyAt: 100 });
         expect(
-            joinRequestSourceStates({ status: 'waiting', readyAt: 100 }, { status: 'waiting', readyAt: 200 }),
+            joinRequestSourceStatuses({ status: 'waiting', readyAt: 100 }, { status: 'waiting', readyAt: 200 }),
         ).toEqual({ status: 'waiting', readyAt: 100 });
     });
 
     test('a known wake-up time survives a source that has none', () => {
-        expect(joinRequestSourceStates(waiting, { status: 'waiting', readyAt: 100 })).toEqual({
+        expect(joinRequestSourceStatuses(waiting, { status: 'waiting', readyAt: 100 })).toEqual({
             status: 'waiting',
             readyAt: 100,
         });
-        expect(joinRequestSourceStates({ status: 'waiting', readyAt: 100 }, finished)).toEqual({
+        expect(joinRequestSourceStatuses({ status: 'waiting', readyAt: 100 }, finished)).toEqual({
             status: 'waiting',
             readyAt: 100,
         });
@@ -62,6 +62,6 @@ describe('joinRequestSourceStates', () => {
 
     test('no wake-up time is invented when neither source knows one', () => {
         // The consumer is left to poll rather than being handed a made-up deadline.
-        expect(joinRequestSourceStates(waiting, waiting)).toEqual({ status: 'waiting' });
+        expect(joinRequestSourceStatuses(waiting, waiting)).toEqual({ status: 'waiting' });
     });
 });

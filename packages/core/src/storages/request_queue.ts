@@ -31,7 +31,7 @@ import { parseArgument, schemas, validators } from '../validators.js';
 import type { JournalEntry, StorageTransaction } from './transaction.js';
 import { activeStorageTransaction, rejectOperationInTransaction } from './transaction.js';
 import { drainRequestBatches } from './batched_adds.js';
-import type { RequestLoaderState } from './request_loader.js';
+import type { RequestLoaderStatus } from './request_loader.js';
 import type { IRequestManager, PacingSignal, RequestsLike } from './request_manager.js';
 import type { RequestQueueStats } from './storage_stats.js';
 import { StorageStatsTracker } from './storage_stats.js';
@@ -700,7 +700,7 @@ export class RequestQueue implements IStorage, IRequestManager {
      * Note that the `null` return value doesn't mean the queue processing finished,
      * it means there are currently no pending requests.
      * To check whether all requests in queue were finished,
-     * use {@apilink RequestQueue.readiness} instead.
+     * use {@apilink RequestQueue.checkReadiness} instead.
      *
      * @returns
      *   Returns the request object or `null` if there are no more pending requests.
@@ -821,7 +821,7 @@ export class RequestQueue implements IStorage, IRequestManager {
      * Due to the nature of distributed storage used by the queue, `finished` may occasionally arrive a probe
      * or two late, but it is never reported early.
      */
-    async readiness(): Promise<RequestLoaderState> {
+    async checkReadiness(): Promise<RequestLoaderStatus> {
         const transaction = activeStorageTransaction();
 
         // Requests buffered by the active transaction count as pending from its point of view.

@@ -740,13 +740,13 @@ export interface IProxyConfiguration {
 // @public
 export interface IRequestLoader {
     [Symbol.asyncIterator](): AsyncGenerator<Request_2>;
+    checkReadiness(): Promise<RequestSourceStatus>;
     fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request_2<T> | null>;
     getHandledCount(): Promise<number>;
     getPendingCount(): Promise<number>;
     getTotalCount(): Promise<number>;
     markRequestAsHandled(request: Request_2): Promise<RequestQueueOperationInfo | void | null>;
     persistState?(): Promise<void>;
-    readiness(): Promise<RequestSourceState>;
     toTandem?(requestManager?: IRequestManager): Promise<IRequestManager>;
 }
 
@@ -1194,6 +1194,8 @@ export class RequestList implements IRequestLoader {
     // (undocumented)
     [Symbol.asyncIterator](): AsyncGenerator<Request_2<Dictionary>, void, unknown>;
     // (undocumented)
+    checkReadiness(): Promise<RequestLoaderStatus>;
+    // (undocumented)
     fetchNextRequest(): Promise<Request_2 | null>;
     // (undocumented)
     getHandledCount(): Promise<number>;
@@ -1205,8 +1207,6 @@ export class RequestList implements IRequestLoader {
     static open(listNameOrOptions: string | null | RequestListOptions, sources?: RequestListSource[], options?: RequestListOptions): Promise<RequestList>;
     // (undocumented)
     persistState(): Promise<void>;
-    // (undocumented)
-    readiness(): Promise<RequestLoaderState>;
     teardown(): Promise<void>;
     toTandem(requestManager?: IRequestManager): Promise<IRequestManager>;
 }
@@ -1238,7 +1238,7 @@ export interface RequestListState {
 }
 
 // @public
-export type RequestLoaderState = Exclude<RequestSourceState, {
+export type RequestLoaderStatus = Exclude<RequestSourceStatus, {
     status: 'stalled';
 }>;
 
@@ -1254,6 +1254,7 @@ export class RequestManagerTandem implements IRequestManager {
     addRequest(requestLike: Source, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo>;
     // (undocumented)
     addRequestsBatched(requests: RequestsLike, options?: AddRequestsBatchedOptions): Promise<AddRequestsBatchedResult>;
+    checkReadiness(): Promise<RequestSourceStatus>;
     fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request_2<T> | null>;
     // (undocumented)
     getHandledCount(): Promise<number>;
@@ -1265,7 +1266,6 @@ export class RequestManagerTandem implements IRequestManager {
     markRequestAsHandled(request: Request_2): Promise<RequestQueueOperationInfo | void | null>;
     persistState(): Promise<void>;
     purge(): Promise<void>;
-    readiness(): Promise<RequestSourceState>;
     // (undocumented)
     reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
     recordPacingSignal(url: string, signal: PacingSignal): boolean;
@@ -1300,6 +1300,7 @@ export class RequestQueue implements IStorage, IRequestManager {
     addRequestsBatched(requests: ReadonlyDeep<RequestsLike>, options?: AddRequestsBatchedOptions): Promise<AddRequestsBatchedResult>;
     // (undocumented)
     readonly backend: RequestQueueBackend;
+    checkReadiness(): Promise<RequestLoaderStatus>;
     drop(): Promise<void>;
     fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request_2<T> | null>;
     getHandledCount(): Promise<number>;
@@ -1316,7 +1317,6 @@ export class RequestQueue implements IStorage, IRequestManager {
     readonly name?: string;
     static open(identifier?: string | StorageIdentifier | null, options?: StorageOpenOptions): Promise<RequestQueue>;
     purge(): Promise<void>;
-    readiness(): Promise<RequestLoaderState>;
     reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
     recordPacingSignal(_url: string, _signal: PacingSignal): boolean;
     setExpectedRequestProcessingTimeSecs(secs: number): Promise<void>;
@@ -1419,7 +1419,7 @@ export interface RequestQueueStats {
 export type RequestsLike = AsyncIterable<Source | string> | Iterable<Source | string> | (Source | string)[];
 
 // @public
-export type RequestSourceState = {
+export type RequestSourceStatus = {
     status: 'ready';
 } | {
     status: 'waiting';
@@ -1754,6 +1754,8 @@ export class SitemapRequestLoader implements IRequestLoader {
     // (undocumented)
     [Symbol.asyncIterator](): AsyncGenerator<Request_2<Dictionary>, void, unknown>;
     // (undocumented)
+    checkReadiness(): Promise<RequestLoaderStatus>;
+    // (undocumented)
     fetchNextRequest(): Promise<Request_2 | null>;
     // (undocumented)
     getHandledCount(): Promise<number>;
@@ -1767,8 +1769,6 @@ export class SitemapRequestLoader implements IRequestLoader {
     static open(options: SitemapRequestLoaderOptions): Promise<SitemapRequestLoader>;
     // (undocumented)
     persistState(): Promise<void>;
-    // (undocumented)
-    readiness(): Promise<RequestLoaderState>;
     teardown(): Promise<void>;
     toTandem(requestManager?: IRequestManager): Promise<IRequestManager>;
 }
@@ -2098,6 +2098,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     // (undocumented)
     addRequest(requestLike: Source, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo>;
     addRequestsBatched(requests: RequestsLike, options?: AddRequestsBatchedOptions): Promise<AddRequestsBatchedResult>;
+    checkReadiness(): Promise<RequestSourceStatus>;
     // (undocumented)
     drop(): Promise<void>;
     fetchNextRequest<R extends Dictionary = Dictionary>(): Promise<Request_2<R> | null>;
@@ -2113,7 +2114,6 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     // (undocumented)
     persistState(): Promise<void>;
     purge(): Promise<void>;
-    readiness(): Promise<RequestSourceState>;
     // (undocumented)
     reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
     recordPacingSignal(url: string, signal: PacingSignal): boolean;

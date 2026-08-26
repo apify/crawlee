@@ -3,8 +3,8 @@ import type { Dictionary } from '@crawlee/types';
 import type { CrawleeLogger } from '../log.js';
 import type { Request, Source } from '../request.js';
 import { serviceLocator } from '../service_locator.js';
-import type { IRequestLoader, RequestSourceState } from './request_loader.js';
-import { joinRequestSourceStates } from './request_loader.js';
+import type { IRequestLoader, RequestSourceStatus } from './request_loader.js';
+import { joinRequestSourceStatuses } from './request_loader.js';
 import type { IRequestManager, PacingSignal, RequestsLike } from './request_manager.js';
 import type {
     AddRequestsBatchedOptions,
@@ -116,7 +116,7 @@ export class RequestManagerTandem implements IRequestManager {
         // Transfer while the loader still has something to hand over. Only the loader's own state decides
         // this: a manager waiting out a backoff must not freeze the loader's unrelated requests for the
         // length of it.
-        if ((await this.#requestLoader.readiness()).status === 'ready') {
+        if ((await this.#requestLoader.checkReadiness()).status === 'ready') {
             // If the transfer failed, the request was dropped; don't fetch from the manager this round (matching
             // crawlee-python behaviour). The next `fetchNextRequest()` call will pick up where we left off.
             if (!(await this.transferNextRequestToQueue())) {
@@ -133,14 +133,14 @@ export class RequestManagerTandem implements IRequestManager {
      * being done makes it `finished`.
      * @inheritdoc
      */
-    async readiness(): Promise<RequestSourceState> {
+    async checkReadiness(): Promise<RequestSourceStatus> {
         const requestManager = await this.getRequestManager();
-        const [loaderState, managerState] = await Promise.all([
-            this.#requestLoader.readiness(),
-            requestManager.readiness(),
+        const [loaderStatus, managerStatus] = await Promise.all([
+            this.#requestLoader.checkReadiness(),
+            requestManager.checkReadiness(),
         ]);
 
-        return joinRequestSourceStates(loaderState, managerState);
+        return joinRequestSourceStatuses(loaderStatus, managerStatus);
     }
 
     /**

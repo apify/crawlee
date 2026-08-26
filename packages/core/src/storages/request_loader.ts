@@ -14,7 +14,7 @@ import type { RequestQueueOperationInfo } from './request_queue.js';
  *   own dispatch can reach this; see {@apilink ThrottlingRequestManager}.
  * - `finished` — everything has been handled and nothing is left.
  */
-export type RequestSourceState =
+export type RequestSourceStatus =
     | { status: 'ready' }
     | {
           status: 'waiting';
@@ -29,10 +29,10 @@ export type RequestSourceState =
     | { status: 'finished' };
 
 /** Loaders never stall — only a manager that paces its own dispatch can. */
-export type RequestLoaderState = Exclude<RequestSourceState, { status: 'stalled' }>;
+export type RequestLoaderStatus = Exclude<RequestSourceStatus, { status: 'stalled' }>;
 
 /**
- * Combines the states of two request sources read as one, with the precedence
+ * Combines the statuses of two request sources read as one, with the precedence
  * `ready` > `stalled` > `waiting` > `finished`.
  *
  * Binary and non-variadic on purpose: this sits on the probe path a task loop runs several times a
@@ -40,7 +40,7 @@ export type RequestLoaderState = Exclude<RequestSourceState, { status: 'stalled'
  *
  * @internal
  */
-export function joinRequestSourceStates(a: RequestSourceState, b: RequestSourceState): RequestSourceState {
+export function joinRequestSourceStatuses(a: RequestSourceStatus, b: RequestSourceStatus): RequestSourceStatus {
     // `ready` if either is: with two sources read as one, work anywhere is work.
     if (a.status === 'ready') {
         return a;
@@ -99,7 +99,7 @@ export function joinRequestSourceStates(a: RequestSourceState, b: RequestSourceS
  * - **Restarts and migrations:** loaders that persist their state (see {@apilink IRequestLoader.persistState})
  *   treat in-progress requests as interrupted and re-serve them after a restart. A request that is fetched
  *   but never marked handled will be crawled again.
- * - **Termination detection:** {@apilink IRequestLoader.readiness} only reports `finished` once nothing is
+ * - **Termination detection:** {@apilink IRequestLoader.checkReadiness} only reports `finished` once nothing is
  *   in progress. Leaving a request unmarked keeps the crawler running indefinitely.
  * - **Bookkeeping:** the handled and pending counts are derived from the set of in-progress requests, so
  *   skipping {@apilink IRequestLoader.markRequestAsHandled} corrupts {@apilink IRequestLoader.getHandledCount}
@@ -126,7 +126,7 @@ export interface IRequestLoader {
 
     /**
      * Reports whether the loader has a request to hand over, is waiting on one, or is done — see
-     * {@apilink RequestSourceState}.
+     * {@apilink RequestSourceStatus}.
      *
      * A consumer's task loop is gated on this, so an implementation MUST return `ready` without evaluating
      * anything further: that is the answer that costs a caller nothing to act on, and the one it asks for
@@ -135,7 +135,7 @@ export interface IRequestLoader {
      * Because a source may be backed by distributed storage, `finished` may occasionally arrive late — but
      * it is never wrong: a loader that reports `finished` has nothing left.
      */
-    readiness(): Promise<RequestSourceState>;
+    checkReadiness(): Promise<RequestSourceStatus>;
 
     /**
      * Gets the next {@apilink Request} to process, or `null` if there are no more pending requests.
@@ -159,7 +159,7 @@ export interface IRequestLoader {
      *
      * Call this once you are done with the request — whether processing succeeded or was abandoned after
      * exhausting retries. Because a loader cannot take a request back, marking it handled is the only way to
-     * signal completion; failing to do so prevents {@apilink IRequestLoader.readiness} from ever reporting
+     * signal completion; failing to do so prevents {@apilink IRequestLoader.checkReadiness} from ever reporting
      * `finished` and skews the handled and pending counts. See the request lifecycle contract on
      * {@apilink IRequestLoader}.
      */

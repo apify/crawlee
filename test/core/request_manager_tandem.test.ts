@@ -1,4 +1,4 @@
-import type { RequestLoaderState } from '@crawlee/core';
+import type { RequestLoaderStatus } from '@crawlee/core';
 import {
     log,
     MemoryStorageBackend,
@@ -150,13 +150,13 @@ describe('RequestManagerTandem', () => {
 
         const tandem = new RequestManagerTandem(requestList, requestQueue);
 
-        const listReadiness = vi.spyOn(requestList, 'readiness');
-        const queueReadiness = vi.spyOn(requestQueue, 'readiness');
+        const listReadiness = vi.spyOn(requestList, 'checkReadiness');
+        const queueReadiness = vi.spyOn(requestQueue, 'checkReadiness');
 
-        const readiness = async (list: RequestLoaderState, queue: RequestLoaderState) => {
+        const readiness = async (list: RequestLoaderStatus, queue: RequestLoaderStatus) => {
             listReadiness.mockResolvedValue(list);
             queueReadiness.mockResolvedValue(queue);
-            return tandem.readiness();
+            return tandem.checkReadiness();
         };
 
         // Work in either half is work for the tandem.
@@ -264,7 +264,7 @@ describe('RequestManagerTandem', () => {
         expect(factory).toHaveBeenCalledTimes(1);
 
         // Subsequent operations reuse the same memoized queue.
-        await tandem.readiness();
+        await tandem.checkReadiness();
         expect(factory).toHaveBeenCalledTimes(1);
     });
 
@@ -300,7 +300,7 @@ describe('RequestManagerTandem', () => {
         expect(tandem.recordPacingSignal('https://other.com/1', { reason: 'rateLimited', waitMs: 1_000 })).toBe(false);
 
         // ...and the pacer actually acted on them: the domain is held back until both clocks run out.
-        await expect(throttler.readiness()).resolves.toMatchObject({ status: 'waiting' });
+        await expect(throttler.checkReadiness()).resolves.toMatchObject({ status: 'waiting' });
     });
 
     test('reports the pacing signals as unhandled when the manager cannot pace', async () => {

@@ -279,11 +279,13 @@ describe('SitemapRequestLoader', () => {
             enqueueStrategy: 'all',
         });
 
-        while ((await list.readiness()).status !== 'ready') {
+        while ((await list.checkReadiness()).status !== 'ready') {
             await sleep(20);
         }
 
-        await expect(list.readiness(), 'list should have a request available').resolves.toEqual({ status: 'ready' });
+        await expect(list.checkReadiness(), 'list should have a request available').resolves.toEqual({
+            status: 'ready',
+        });
 
         const firstRequest = await list.fetchNextRequest();
         expect(firstRequest).not.toBe(null);
@@ -348,7 +350,7 @@ describe('SitemapRequestLoader', () => {
         }
 
         expect(await list.getHandledCount()).toBe(2);
-        await expect(list.readiness()).resolves.toEqual({ status: 'finished' });
+        await expect(list.checkReadiness()).resolves.toEqual({ status: 'finished' });
         await expect(list.fetchNextRequest()).resolves.toBe(null);
     });
 
@@ -400,13 +402,13 @@ describe('SitemapRequestLoader', () => {
             enqueueStrategy: 'all',
         });
 
-        while ((await list.readiness()).status !== 'ready') {
+        while ((await list.checkReadiness()).status !== 'ready') {
             await sleep(20);
         }
 
         const firstBatch: Request[] = [];
 
-        while ((await list.readiness()).status === 'ready') {
+        while ((await list.checkReadiness()).status === 'ready') {
             const request = await list.fetchNextRequest();
             firstBatch.push(request!);
             await list.markRequestAsHandled(request!);
@@ -414,13 +416,13 @@ describe('SitemapRequestLoader', () => {
 
         expect(firstBatch).toHaveLength(2);
 
-        while ((await list.readiness()).status !== 'ready') {
+        while ((await list.checkReadiness()).status !== 'ready') {
             await sleep(20);
         }
 
         const secondBatch: Request[] = [];
 
-        while ((await list.readiness()).status === 'ready') {
+        while ((await list.checkReadiness()).status === 'ready') {
             const request = await list.fetchNextRequest();
             secondBatch.push(request!);
             await list.markRequestAsHandled(request!);
@@ -428,7 +430,7 @@ describe('SitemapRequestLoader', () => {
 
         expect(secondBatch).toHaveLength(5);
 
-        await expect(list.readiness()).resolves.toEqual({ status: 'finished' });
+        await expect(list.checkReadiness()).resolves.toEqual({ status: 'finished' });
         expect(await list.getHandledCount()).toBe(7);
     });
 
@@ -442,7 +444,7 @@ describe('SitemapRequestLoader', () => {
             await list.markRequestAsHandled(request);
         }
 
-        await expect(list.readiness()).resolves.toEqual({ status: 'finished' });
+        await expect(list.checkReadiness()).resolves.toEqual({ status: 'finished' });
         expect(await list.getHandledCount()).toBe(7);
     });
 
@@ -457,7 +459,7 @@ describe('SitemapRequestLoader', () => {
         });
 
         // Abort once the first sub-sitemap streamed a URL - waiting for that rather than for a fixed duration.
-        while ((await list.readiness()).status !== 'ready') {
+        while ((await list.checkReadiness()).status !== 'ready') {
             await sleep(10);
         }
 
@@ -467,7 +469,7 @@ describe('SitemapRequestLoader', () => {
             await list.markRequestAsHandled(request);
         }
 
-        await expect(list.readiness()).resolves.toEqual({ status: 'finished' });
+        await expect(list.checkReadiness()).resolves.toEqual({ status: 'finished' });
         expect(list.isSitemapFullyLoaded()).toBe(false);
         expect(await list.getHandledCount()).toBe(2);
     });
@@ -485,7 +487,7 @@ describe('SitemapRequestLoader', () => {
             await list.markRequestAsHandled(request);
         }
 
-        await expect(list.readiness()).resolves.toEqual({ status: 'finished' });
+        await expect(list.checkReadiness()).resolves.toEqual({ status: 'finished' });
         expect(list.isSitemapFullyLoaded()).toBe(false);
         expect(await list.getHandledCount()).toBe(2);
     });
@@ -503,7 +505,7 @@ describe('SitemapRequestLoader', () => {
 
             // Abort while the first sub-sitemap is still streaming, so the state is persisted with the
             // load aborted half-way through the index.
-            while ((await list.readiness()).status !== 'ready') {
+            while ((await list.checkReadiness()).status !== 'ready') {
                 await sleep(10);
             }
 
@@ -526,16 +528,16 @@ describe('SitemapRequestLoader', () => {
         const requests: Request[] = [];
 
         // The sitemap may still be parsing at this point, so `ready` and `waiting` are both fine here.
-        expect((await list.readiness()).status).not.toBe('finished');
+        expect((await list.checkReadiness()).status).not.toBe('finished');
 
-        while ((await list.readiness()).status !== 'finished') {
+        while ((await list.checkReadiness()).status !== 'finished') {
             const request = await list.fetchNextRequest();
             if (!request) break;
             await list.markRequestAsHandled(request);
             requests.push(request);
         }
 
-        await expect(list.readiness()).resolves.toEqual({ status: 'finished' });
+        await expect(list.checkReadiness()).resolves.toEqual({ status: 'finished' });
         expect(requests.map((it) => it.url)).toEqual([
             'http://not-exists.com/',
             'http://not-exists.com/catalog?item=12&desc=vacation_hawaii',
@@ -561,9 +563,9 @@ describe('SitemapRequestLoader', () => {
         await list.persistState();
 
         const newList = await SitemapRequestLoader.open(options);
-        await expect(newList.readiness()).resolves.toEqual({ status: 'ready' });
+        await expect(newList.checkReadiness()).resolves.toEqual({ status: 'ready' });
 
-        while ((await newList.readiness()).status !== 'finished') {
+        while ((await newList.checkReadiness()).status !== 'finished') {
             const request = await newList.fetchNextRequest();
             if (!request) break;
             await newList.markRequestAsHandled(request);
@@ -683,7 +685,7 @@ describe('SitemapRequestLoader', () => {
         });
 
         // Wait until the first URL is buffered, i.e. the loader is parked on backpressure.
-        while ((await list.readiness()).status !== 'ready') {
+        while ((await list.checkReadiness()).status !== 'ready') {
             await sleep(20);
         }
 
@@ -696,7 +698,7 @@ describe('SitemapRequestLoader', () => {
         }
 
         expect(list.isSitemapFullyLoaded()).toBe(true);
-        await expect(list.readiness()).resolves.toEqual({ status: 'finished' });
+        await expect(list.checkReadiness()).resolves.toEqual({ status: 'finished' });
         expect(urls).toEqual(
             new Set([
                 'http://not-exists.com/',

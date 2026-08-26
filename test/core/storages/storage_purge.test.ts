@@ -170,7 +170,7 @@ describe('purgeDefaultStorages', () => {
         await defaultQueue.addRequest({ url: 'https://example.com/stale' });
         await purgeDefaultStorages();
 
-        expect((await defaultQueue.readiness()).status).toBe('finished');
+        expect((await defaultQueue.checkReadiness()).status).toBe('finished');
     });
 
     test('clears a crawler-owned alias queue left behind by a previous run', async () => {
@@ -185,6 +185,6 @@ describe('purgeDefaultStorages', () => {
         await purgeDefaultStorages();
 
         const secondRun = await RequestQueue.open({ alias: '__default_1__' });
-        expect((await secondRun.readiness()).status).toBe('finished');
+        expect((await secondRun.checkReadiness()).status).toBe('finished');
     });
 });

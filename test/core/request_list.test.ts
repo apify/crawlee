@@ -66,17 +66,17 @@ describe('RequestList', () => {
             { url: 'https://example.com/1#same' },
         ]);
 
-        expect((await requestList.readiness()).status).toBe('ready');
+        expect((await requestList.checkReadiness()).status).toBe('ready');
 
         const req = await requestList.fetchNextRequest();
 
         expect(req!.url).toBe('https://example.com/1');
-        expect((await requestList.readiness()).status).toBe('waiting');
+        expect((await requestList.checkReadiness()).status).toBe('waiting');
         expect(await requestList.fetchNextRequest()).toBe(null);
 
         await requestList.markRequestAsHandled(req!);
 
-        expect((await requestList.readiness()).status).toBe('finished');
+        expect((await requestList.checkReadiness()).status).toBe('finished');
     });
 
     test('must be initialized before using any of the methods', async () => {
@@ -84,7 +84,7 @@ describe('RequestList', () => {
         const requestList = new RequestList({ sources: [{ url: 'https://example.com' }] });
         const requestObj = new Request({ url: 'https://example.com' });
 
-        await expect(requestList.readiness()).rejects.toThrow();
+        await expect(requestList.checkReadiness()).rejects.toThrow();
         expect(() => requestList.getState()).toThrowError();
         await expect(requestList.markRequestAsHandled(requestObj)).rejects.toThrow();
         await expect(requestList.fetchNextRequest()).rejects.toThrow();
@@ -92,7 +92,7 @@ describe('RequestList', () => {
         // @ts-expect-error private method
         await requestList.initialize();
 
-        await expect(requestList.readiness()).resolves.not.toThrow();
+        await expect(requestList.checkReadiness()).resolves.not.toThrow();
         expect(() => requestList.getState()).not.toThrowError();
         await expect(requestList.fetchNextRequest()).resolves.not.toThrow();
         await expect(requestList.markRequestAsHandled(requestObj)).resolves.not.toThrow();
@@ -131,14 +131,14 @@ describe('RequestList', () => {
             state: originalList.getState(),
         });
 
-        expect((await newList.readiness()).status).toBe('ready');
+        expect((await newList.checkReadiness()).status).toBe('ready');
         expect((await newList.fetchNextRequest())!.url).toBe('https://example.com/3');
         expect((await newList.fetchNextRequest())!.url).toBe('https://example.com/5');
         expect((await newList.fetchNextRequest())!.url).toBe('https://example.com/6');
         expect((await newList.fetchNextRequest())!.url).toBe('https://example.com/7');
         expect((await newList.fetchNextRequest())!.url).toBe('https://example.com/8');
         // All five re-served requests are still in progress, so the list is drained but not done.
-        expect((await newList.readiness()).status).toBe('waiting');
+        expect((await newList.checkReadiness()).status).toBe('waiting');
     });
 
     test('`RequestList` is `for .. await` iterable', async () => {
@@ -297,7 +297,7 @@ describe('RequestList', () => {
             nextIndex: 2,
             nextUniqueKey: 'https://example.com/3',
         });
-        expect((await requestList.readiness()).status).toBe('ready');
+        expect((await requestList.checkReadiness()).status).toBe('ready');
         expect(requestList.inProgress.size).toBe(2);
 
         await requestList.markRequestAsHandled(request1!);
@@ -312,10 +312,10 @@ describe('RequestList', () => {
         const request3 = await requestList.fetchNextRequest();
         expect(request3!.url).toBe('https://example.com/3');
         expect(await requestList.fetchNextRequest()).toBe(null);
-        expect((await requestList.readiness()).status).toBe('waiting');
+        expect((await requestList.checkReadiness()).status).toBe('waiting');
 
         await requestList.markRequestAsHandled(request3!);
-        expect((await requestList.readiness()).status).toBe('finished');
+        expect((await requestList.checkReadiness()).status).toBe('finished');
     });
 
     test('should correctly persist its state when persistStateKey is set', async () => {
@@ -583,7 +583,7 @@ describe('RequestList', () => {
             const rl = await RequestList.open(name, sources);
             expect(rl).toBeInstanceOf(RequestList);
             // An uninitialized list throws here, so this is the observable form of "open() initialized it".
-            await expect(rl.readiness()).resolves.toEqual({ status: 'ready' });
+            await expect(rl.checkReadiness()).resolves.toEqual({ status: 'ready' });
 
             // The persistence keys are derived from the list name, which shows in the keys it reads and writes.
             expect(keysPassedTo(getValueSpy)).toEqual([
@@ -605,7 +605,7 @@ describe('RequestList', () => {
             const rl = await RequestList.open(name, sources);
             expect(rl).toBeInstanceOf(RequestList);
             expect(rl.requests).toEqual(requests);
-            await expect(rl.readiness()).resolves.toEqual({ status: 'ready' });
+            await expect(rl.checkReadiness()).resolves.toEqual({ status: 'ready' });
 
             expect(keysPassedTo(getValueSpy)).toEqual([
                 `${CRAWLEE_KEY}-${STATE_PERSISTENCE_KEY}`,
@@ -632,7 +632,7 @@ describe('RequestList', () => {
             expect(rl).toBeInstanceOf(RequestList);
             // The counter suffix on the unique key is what `keepDuplicateUrls: true` does.
             expect(rl.requests).toEqual(requests);
-            await expect(rl.readiness()).resolves.toEqual({ status: 'ready' });
+            await expect(rl.checkReadiness()).resolves.toEqual({ status: 'ready' });
 
             // The list name wins over the `persistStateKey` option.
             expect(keysPassedTo(getValueSpy)).toEqual([
@@ -653,7 +653,7 @@ describe('RequestList', () => {
             const rl = await RequestList.open(name, sources);
             expect(rl).toBeInstanceOf(RequestList);
             expect(rl.requests).toEqual(requests);
-            await expect(rl.readiness()).resolves.toEqual({ status: 'ready' });
+            await expect(rl.checkReadiness()).resolves.toEqual({ status: 'ready' });
 
             // A nameless list has no persistence keys, so it never touches the store.
             expect(getValueSpy).not.toBeCalled();

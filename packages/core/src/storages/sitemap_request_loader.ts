@@ -14,7 +14,7 @@ import { Request } from '../request.js';
 import { serviceLocator } from '../service_locator.js';
 import { parseArgument, schemas } from '../validators.js';
 import { KeyValueStore } from './key_value_store.js';
-import type { IRequestLoader, RequestLoaderState } from './request_loader.js';
+import type { IRequestLoader, RequestLoaderStatus } from './request_loader.js';
 import type { IRequestManager } from './request_manager.js';
 import { purgeDefaultStorages } from './utils.js';
 
@@ -181,7 +181,7 @@ export class SitemapRequestLoader implements IRequestLoader {
      * If the loading was aborted before the sitemaps were fully loaded, the request list might be missing some URLs.
      * The `isSitemapFullyLoaded` method can be used to check if the sitemaps were fully loaded.
      *
-     * If the loading is aborted and all the requests are handled, `readiness()` will report `finished`.
+     * If the loading is aborted and all the requests are handled, `checkReadiness()` will report `finished`.
      */
     #abortLoading = false;
 
@@ -470,7 +470,7 @@ export class SitemapRequestLoader implements IRequestLoader {
     /**
      * @inheritDoc
      */
-    async readiness(): Promise<RequestLoaderState> {
+    async checkReadiness(): Promise<RequestLoaderStatus> {
         if (this.#urlQueueStream.readableLength > 0) {
             return { status: 'ready' };
         }
@@ -599,7 +599,7 @@ export class SitemapRequestLoader implements IRequestLoader {
      * @inheritDoc
      */
     async *[Symbol.asyncIterator]() {
-        while ((await this.readiness()).status !== 'finished') {
+        while ((await this.checkReadiness()).status !== 'finished') {
             const request = await this.fetchNextRequest();
             if (!request) break;
 

@@ -41,7 +41,7 @@ describe('RequestQueue#fetchNextRequest delegates to the client', () => {
     });
 });
 
-describe('RequestQueue#readiness treats in-progress requests differently from handled ones', () => {
+describe('RequestQueue#checkReadiness treats in-progress requests differently from handled ones', () => {
     let queue: RequestQueue;
 
     beforeAll(async () => {
@@ -56,22 +56,22 @@ describe('RequestQueue#readiness treats in-progress requests differently from ha
         // the queue is not finished either — the in-progress request might still be reclaimed — so it
         // reports `waiting`, and that is what prevents a crawler from shutting down while a request is
         // still being processed.
-        expect((await queue.readiness()).status).toBe('waiting');
+        expect((await queue.checkReadiness()).status).toBe('waiting');
     });
 
     test('handling the in-progress request finishes the queue', async () => {
         const request = await queue.getRequest('0');
         await queue.markRequestAsHandled(request!);
 
-        expect((await queue.readiness()).status).toBe('finished');
+        expect((await queue.checkReadiness()).status).toBe('finished');
     });
 });
 
-describe('RequestQueue#readiness waits for background add operations', () => {
+describe('RequestQueue#checkReadiness waits for background add operations', () => {
     test('reports waiting while a background batch is still being added', async () => {
         const queue = await makeQueue('is-finished-background');
 
-        expect((await queue.readiness()).status).toBe('finished');
+        expect((await queue.checkReadiness()).status).toBe('finished');
 
         let callCount = 0;
         let resolveBatch!: () => void;
@@ -99,7 +99,7 @@ describe('RequestQueue#readiness waits for background add operations', () => {
 
         // Nothing is fetchable, but the 2nd batch is still in flight in the background, so the queue is
         // not done yet.
-        expect((await queue.readiness()).status).toBe('waiting');
+        expect((await queue.checkReadiness()).status).toBe('waiting');
 
         // Unblock the background batch and wait for it to complete.
         resolveBatch();
@@ -109,6 +109,6 @@ describe('RequestQueue#readiness waits for background add operations', () => {
         expect(req2).toBeDefined();
         await queue.markRequestAsHandled(req2!);
 
-        expect((await queue.readiness()).status).toBe('finished');
+        expect((await queue.checkReadiness()).status).toBe('finished');
     });
 });
