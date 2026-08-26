@@ -148,14 +148,13 @@ Two things follow for implementors. The method is required, so reporting is neve
 
 Some sites answer bursts of traffic with HTTP 429 (Too Many Requests) rather than an outright block. By default a 429 is treated as a blocked session: the session is retired and the request is retried straight away on a fresh one, which churns through proxies without actually slowing down.
 
-The <ApiLink to="core/class/ThrottlingRequestManager">`ThrottlingRequestManager`</ApiLink> handles it at the scheduling layer instead. Wrap your request manager in it and list the domains you want paced:
+The <ApiLink to="core/class/ThrottlingRequestManager">`ThrottlingRequestManager`</ApiLink> handles it at the scheduling layer instead. List the domains you want paced:
 
 ```ts
-import { CheerioCrawler, RequestQueue, ThrottlingRequestManager } from 'crawlee';
+import { CheerioCrawler, ThrottlingRequestManager } from 'crawlee';
 
 const crawler = new CheerioCrawler({
     requestManager: new ThrottlingRequestManager({
-        inner: await RequestQueue.open(),
         domains: ['api.example.com'],
         // optional, these are the defaults
         baseDelaySecs: 2,
@@ -167,6 +166,8 @@ const crawler = new CheerioCrawler({
     },
 });
 ```
+
+Requests for domains it does not pace go to the default request queue, opened on first use. Pass `inner` to wrap a manager of your own instead — a queue you opened, or a [tandem](#request-manager-tandem) over a `requestList`.
 
 The pacer works wherever you put it: pass it to the crawler directly as above, or nest it inside a [tandem](#request-manager-tandem) as the writable side of a loader — the tandem forwards the crawler's [pacing signals](#pacing-signals) to the manager it wraps, so listed domains are paced either way.
 
@@ -190,7 +191,6 @@ Every throttled domain runs two of them, and is dispatched to once both have run
 ```ts
 const crawler = new CheerioCrawler({
     requestManager: new ThrottlingRequestManager({
-        inner: await RequestQueue.open(),
         domains: 'all',
         minCrawlDelaySecs: 1,
         throttleBy: 'registrableDomain',

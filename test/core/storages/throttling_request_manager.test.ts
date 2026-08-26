@@ -1,4 +1,4 @@
-import type { AddRequestsBatchedResult, ThrottlingRequestManagerOptions } from '@crawlee/core';
+import type { AddRequestsBatchedResult, StorageIdentifier, ThrottlingRequestManagerOptions } from '@crawlee/core';
 import {
     KeyValueStore,
     MemoryStorageBackend,
@@ -327,6 +327,52 @@ describe('ThrottlingRequestManager', () => {
 
             expect(manager.innerManager).toBe(inner);
             expect(factory).toHaveBeenCalledTimes(1);
+        });
+
+        describe('omitted entirely', () => {
+            test('opens the default queue on first use, and not before', async () => {
+                const manager = new ThrottlingRequestManager({ domains: ['example.com'] });
+
+                expect(manager.innerManager).toBeUndefined();
+
+                await manager.addRequest({ url: 'https://other.com/1' });
+
+                expect(manager.innerManager).toBeInstanceOf(RequestQueue);
+                expect((await manager.fetchNextRequest())!.url).toBe('https://other.com/1');
+            });
+
+            test('routes throttled domains by domain as usual', async () => {
+                const manager = new ThrottlingRequestManager({
+                    domains: 'all',
+                    throttleBy: 'registrableDomain',
+                    minCrawlDelaySecs: 60,
+                });
+
+                await manager.addRequest({ url: 'https://example.com/1' });
+                await manager.addRequest({ url: 'https://example.com/2' });
+
+                expect((await manager.fetchNextRequest())!.url).toBe('https://example.com/1');
+                // Paced, so nothing of the second request until the delay runs out - and the default queue,
+                // opened for the requests nobody routed, is empty rather than serving it.
+                expect(await manager.fetchNextRequest()).toBeNull();
+                expect(await manager.innerManager!.getTotalCount()).toBe(0);
+            });
+
+            test('is honoured by `requestManagerOpener`, so the default is not hardcoded', async () => {
+                const opener = vitest.fn(async (identifier?: string | StorageIdentifier | null) =>
+                    RequestQueue.open(identifier ?? 'substituted-default'),
+                );
+                const manager = new ThrottlingRequestManager({
+                    domains: ['example.com'],
+                    requestManagerOpener: opener,
+                });
+
+                await manager.addRequest({ url: 'https://other.com/1' });
+
+                // Called with no identifier for the wrapped manager, and with an alias per throttled domain.
+                expect(opener).toHaveBeenCalledWith(null, expect.anything());
+                expect(manager.innerManager!.name).toBe('substituted-default');
+            });
         });
     });
 

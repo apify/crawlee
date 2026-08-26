@@ -1527,7 +1527,6 @@ A lone `requestList` now runs through a tandem over an auto-opened queue (rather
 ```typescript
 const crawler = new CheerioCrawler({
     requestManager: new ThrottlingRequestManager({
-        inner: await RequestQueue.open(),
         domains: ['api.example.com'],
     }),
     requestHandler,

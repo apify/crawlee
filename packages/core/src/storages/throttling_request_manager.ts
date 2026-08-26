@@ -26,7 +26,7 @@ import type { StorageIdentifier } from './storage_instance_manager.js';
 import type { StorageOpenOptions } from './utils.js';
 
 const throttlingRequestManagerOptionsSchema = z.strictObject({
-    inner: z.union([schemas.anyObject, schemas.anyFunction]),
+    inner: z.union([schemas.anyObject, schemas.anyFunction]).optional(),
     domains: z.union([schemas.arrayOf(z.string().nonempty(), 'non-empty strings'), z.literal('all')]),
     requestManagerOpener: schemas.anyFunction.optional(),
     baseDelaySecs: schemas.anyNumber.refine((value) => value > 0, 'Expected a number greater than 0').optional(),
@@ -48,7 +48,7 @@ const throttlingRequestManagerOptionsSchema = z.strictObject({
  * concrete type and storage backend of the manager being wrapped.
  */
 export type RequestManagerOpener<T extends IRequestManager = IRequestManager> = (
-    identifier: string | StorageIdentifier,
+    identifier?: string | StorageIdentifier | null,
     options?: StorageOpenOptions,
 ) => Promise<T>;
 
@@ -58,8 +58,11 @@ export interface ThrottlingRequestManagerOptions<T extends IRequestManager = IRe
      * The request manager to wrap, usually a {@apilink RequestQueue}. Requests for domains that are not throttled
      * are stored here. May be a factory, so that the throttler can be constructed synchronously and the manager
      * under it opened only on first use.
+     *
+     * Omitted, the default request queue is opened on first use through
+     * {@apilink ThrottlingRequestManagerOptions.requestManagerOpener|`requestManagerOpener`}.
      */
-    inner: T | (() => T | Promise<T>);
+    inner?: T | (() => T | Promise<T>);
 
     /**
      * Which domains to throttle: a list of hostnames, or `'all'` for every domain the crawl encounters.
@@ -243,7 +246,6 @@ const DEFAULT_PERSIST_STATE_KEY = 'CRAWLEE_THROTTLED_DOMAINS';
  * ```ts
  * const crawler = new CheerioCrawler({
  *     requestManager: new ThrottlingRequestManager({
- *         inner: await RequestQueue.open(),
  *         domains: ['api.example.com', 'slow-site.org'],
  *     }),
  *     requestHandler: async ({ request }) => { ... },
@@ -318,7 +320,11 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     ) {
         parseArgument(options, throttlingRequestManagerOptionsSchema, 'ThrottlingRequestManagerOptions');
 
-        if (typeof options.inner === 'function') {
+        if (options.inner === undefined) {
+            // Deferred like any other factory, so a manager nobody fetches from opens no storage. The opener is
+            // assigned below and read only when this runs.
+            this.#innerFactory = () => this.#requestManagerOpener(null, { configuration: this.config });
+        } else if (typeof options.inner === 'function') {
             this.#innerFactory = options.inner;
         } else {
             // Nothing to open: resolved from the start, so `innerManager` and bookkeeping see it immediately.
