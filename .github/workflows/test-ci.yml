@@ -32,17 +32,17 @@ jobs:
 
         steps:
             -   name: Checkout repository
-                uses: actions/checkout@v7
+                uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
             -   name: Use Node.js ${{ matrix.node-version }}
-                uses: actions/setup-node@v7
+                uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
                 with:
                     node-version: ${{ matrix.node-version }}
                     package-manager-cache: false
 
             -   name: Turbo cache
                 id: turbo-cache
-                uses: actions/cache@v6
+                uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
                 with:
                     path: .turbo
                     key: turbo-${{ github.job }}-${{ matrix.node-version }}-${{ github.ref_name }}-${{ github.sha }}
@@ -76,17 +76,17 @@ jobs:
 
         steps:
             -   name: Checkout repository
-                uses: actions/checkout@v6
+                uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
             -   name: Use Node.js 24
-                uses: actions/setup-node@v6
+                uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
                 with:
                     node-version: 24
                     package-manager-cache: false
 
             -   name: Turbo cache
                 id: turbo-cache
-                uses: actions/cache@v5
+                uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
                 with:
                     path: .turbo
                     key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
@@ -107,17 +107,17 @@ jobs:
         runs-on: ubuntu-22.04
         steps:
             -   name: Checkout Source code
-                uses: actions/checkout@v7
+                uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
             -   name: Use Node.js 24
-                uses: actions/setup-node@v7
+                uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
                 with:
                     node-version: 24
                     package-manager-cache: false
 
             -   name: Turbo cache
                 id: turbo-cache
-                uses: actions/cache@v6
+                uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
                 with:
                     path: .turbo
                     key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
@@ -237,17 +237,17 @@ jobs:
 
         steps:
             -   name: Checkout repository
-                uses: actions/checkout@v7
+                uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
             -   name: Use Node.js 24
-                uses: actions/setup-node@v7
+                uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
                 with:
                     node-version: 24
                     package-manager-cache: false
 
             -   name: Turbo cache
                 id: turbo-cache
-                uses: actions/cache@v6
+                uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
                 with:
                     path: .turbo
                     key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
@@ -270,20 +270,20 @@ jobs:
 
         steps:
             -   name: Checkout repository
-                uses: actions/checkout@v7
+                uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
                 with:
                     token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
                     fetch-depth: 0
 
             -   name: Use Node.js 24
-                uses: actions/setup-node@v7
+                uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
                 with:
                     node-version: 24
                     package-manager-cache: false
 
             -   name: Turbo cache
                 id: turbo-cache
-                uses: actions/cache@v6
+                uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
                 with:
                     path: .turbo
                     key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
@@ -331,7 +331,7 @@ jobs:
                     echo "crawlee=$crawlee" | tee -a $GITHUB_OUTPUT
 
             -   name: Trigger Docker image builds
-                uses: peter-evans/repository-dispatch@v4
+                uses: peter-evans/repository-dispatch@28959ce8df70de7be546dd1250a005dd32156697 # v4.0.1
                 # Trigger next images only if we have something new pushed
                 if: github.ref == 'refs/heads/master' && steps.changed-packages.outputs.changed_packages != '0'
                 with:

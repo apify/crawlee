@@ -5,7 +5,7 @@ import type { AddressInfo } from 'node:net';
 import os from 'node:os';
 import { promisify } from 'node:util';
 
-import type { PuppeteerCrawlingContext, PuppeteerGoToOptions, Request } from '@crawlee/puppeteer';
+import type { PuppeteerCrawlingContext, Request } from '@crawlee/puppeteer';
 import type { Cheerio, CheerioAPI } from 'cheerio';
 import type { Element } from 'domhandler';
 import {
@@ -137,7 +137,8 @@ describe('PuppeteerCrawler', () => {
 
     test('should override goto timeout with navigationTimeoutSecs', async () => {
         const timeoutSecs = 10;
-        let options: PuppeteerGoToOptions;
+        // Captured by value: `navigate()` narrows the live `gotoOptions` down to the remaining navigation window.
+        let gotoTimeout: number | undefined;
         const puppeteerCrawler = new PuppeteerCrawler({
             requestList,
             maxRequestRetries: 0,
@@ -145,14 +146,14 @@ describe('PuppeteerCrawler', () => {
             requestHandler: () => {},
             preNavigationHooks: [
                 ({ gotoOptions }) => {
-                    options = gotoOptions;
+                    gotoTimeout = gotoOptions.timeout;
                 },
             ],
             navigationTimeoutSecs: timeoutSecs,
         });
 
         await puppeteerCrawler.run();
-        expect(options!.timeout).toEqual(timeoutSecs * 1000);
+        expect(gotoTimeout).toEqual(timeoutSecs * 1000);
     });
 
     test('should throw if launchOptions.proxyUrl is supplied', async () => {

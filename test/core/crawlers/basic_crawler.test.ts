@@ -276,7 +276,7 @@ describe('BasicCrawler', () => {
         expect(bookedFor).toEqual(new Set(['crawler-a', 'crawler-b']));
     });
 
-    test.each(['minConcurrency', 'maxConcurrency', 'maxRequestsPerMinute'] as const)(
+    test.each(['minConcurrency', 'maxConcurrency', 'initialConcurrency', 'maxRequestsPerMinute'] as const)(
         'throws when %s is combined with a supplied concurrencySystem',
         (shortcut) => {
             expect(
@@ -624,6 +624,7 @@ describe('BasicCrawler', () => {
         const collect = (crawler: BasicCrawler) => ({
             minConcurrency: (crawler.concurrencySystem! as ConcurrencySystem).minConcurrency,
             maxConcurrency: (crawler.concurrencySystem! as ConcurrencySystem).maxConcurrency,
+            desiredConcurrency: (crawler.concurrencySystem! as ConcurrencySystem).desiredConcurrency,
             // eslint-disable-next-line dot-notation -- private member on the governor
             maxTasksPerMinute: (crawler.concurrencySystem! as ConcurrencySystem)['maxTasksPerMinute'],
         });
@@ -634,11 +635,17 @@ describe('BasicCrawler', () => {
             requestHandler,
             minConcurrency: 123,
             maxConcurrency: 456,
+            initialConcurrency: 234,
             maxRequestsPerMinute: 789,
         });
 
         // An injected system carries its own config (the shortcuts are rejected alongside one, see above).
-        const injectedSystem = new ConcurrencySystem({ minConcurrency: 16, maxConcurrency: 32, maxTasksPerMinute: 64 });
+        const injectedSystem = new ConcurrencySystem({
+            minConcurrency: 16,
+            maxConcurrency: 32,
+            desiredConcurrency: 24,
+            maxTasksPerMinute: 64,
+        });
         const injected = new BasicCrawler({
             requestList,
             requestHandler,
@@ -650,8 +657,18 @@ describe('BasicCrawler', () => {
         await Promise.all([shortcuts.run(), injected.run()]);
         await injectedSystem.stop();
 
-        expect(collect(shortcuts)).toEqual({ minConcurrency: 123, maxConcurrency: 456, maxTasksPerMinute: 789 });
-        expect(collect(injected)).toEqual({ minConcurrency: 16, maxConcurrency: 32, maxTasksPerMinute: 64 });
+        expect(collect(shortcuts)).toEqual({
+            minConcurrency: 123,
+            maxConcurrency: 456,
+            desiredConcurrency: 234,
+            maxTasksPerMinute: 789,
+        });
+        expect(collect(injected)).toEqual({
+            minConcurrency: 16,
+            maxConcurrency: 32,
+            desiredConcurrency: 24,
+            maxTasksPerMinute: 64,
+        });
         // The injected system is the very instance the pool uses.
         expect(injected.concurrencySystem!).toBe(injectedSystem);
     });
@@ -1305,16 +1322,13 @@ describe('BasicCrawler', () => {
                     isTaskReadyFunctionCalled = true;
                     return Promise.resolve(!isFinished);
                 },
+                maybeRunIntervalSecs: 0.05,
             },
             requestHandler: async ({ request }) => {
                 await sleep(10);
                 processed.push(request);
             },
         });
-
-        // Speed up the test
-        // @ts-expect-error Accessing private prop
-        basicCrawler.taskLoopOptions.maybeRunIntervalSecs = 0.05;
 
         const request0 = new Request({ url: 'http://example.com/0' });
         const request1 = new Request({ url: 'http://example.com/1' });
@@ -1366,15 +1380,14 @@ describe('BasicCrawler', () => {
         const basicCrawler = new BasicCrawler({
             requestQueue,
             keepAlive: true,
+            taskLoopOptions: {
+                maybeRunIntervalSecs: 0.05,
+            },
             requestHandler: async ({ request }) => {
                 await sleep(10);
                 processed.push(request);
             },
         });
-
-        // Speed up the test
-        // @ts-expect-error Accessing private prop
-        basicCrawler.taskLoopOptions.maybeRunIntervalSecs = 0.05;
 
         const request0 = new Request({ url: 'http://example.com/0' });
         const request1 = new Request({ url: 'http://example.com/1' });
@@ -1800,8 +1813,7 @@ describe('BasicCrawler', () => {
         });
 
         const maxSignedInteger = 2 ** 31 - 1;
-        // @ts-expect-error Accessing private prop
-        expect(crawler.requestHandlerTimeoutMillis).toBe(maxSignedInteger);
+        expect(crawler['resolveRequestHandlerTimeoutMillis'](undefined)).toBe(maxSignedInteger);
         // @ts-expect-error Accessing private prop
         expect(crawler.internalTimeoutMillis).toBe(maxSignedInteger);
     });
@@ -2031,21 +2043,23 @@ describe('BasicCrawler', () => {
             const url = 'https://example.com';
             const requestList = await RequestList.open({ sources: [{ url }] });
 
+            const sessionPool = new SessionPool({
+                maxPoolSize: 10,
+                persistStateKey: 'POOL',
+            });
+
             const crawler = new BasicCrawler({
                 requestList,
                 requestHandlerTimeoutSecs: 0.01,
                 maxRequestRetries: 1,
-                sessionPool: new SessionPool({
-                    maxPoolSize: 10,
-                    persistStateKey: 'POOL',
-                }),
+                sessionPool,
                 requestHandler: async () => {},
                 failedRequestHandler: async () => {},
             });
             await crawler.run();
 
-            // @ts-expect-error private symbol
-            expect(crawler.sessionPool.maxPoolSize).toEqual(10);
+            expect(crawler.sessionPool).toBeDefined();
+            expect((await sessionPool.getState()).sessions).toHaveLength(1);
         });
 
         it('should accept a pre-initialized SessionPool instance', async () => {

@@ -107,8 +107,7 @@ const openOptionsSchema = z.strictObject({
 export class KeyValueStore {
     readonly id: string;
     readonly name?: string;
-    // kept as TS-private: key_value_store tests spy on the backend directly
-    private readonly backend: KeyValueStoreBackend;
+    readonly backend: KeyValueStoreBackend;
     #persistStateEventStarted = false;
 
     /** Cache for persistent (auto-saved) values. When we try to set such value, the cache will be updated automatically. */

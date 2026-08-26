@@ -25,10 +25,7 @@ describe('KeyValueStore', () => {
         const recordStr = JSON.stringify(record, null, 2);
 
         // Set record
-        const mockSetValue = vitest
-            // @ts-expect-error Accessing private property
-            .spyOn(store.backend, 'setValue')
-            .mockResolvedValueOnce(undefined);
+        const mockSetValue = vitest.spyOn(store.backend, 'setValue').mockResolvedValueOnce(undefined);
 
         await store.setValue('key-1', record);
 
@@ -40,15 +37,12 @@ describe('KeyValueStore', () => {
         });
 
         // Get Record
-        const mockGetValue = vitest
-            // @ts-expect-error Accessing private property
-            .spyOn(store.backend, 'getValue')
-            .mockResolvedValueOnce({
-                key: 'key-1',
-                // The client now returns raw bytes; the frontend parses them.
-                value: Buffer.from(recordStr),
-                contentType: 'application/json; charset=utf-8',
-            });
+        const mockGetValue = vitest.spyOn(store.backend, 'getValue').mockResolvedValueOnce({
+            key: 'key-1',
+            // The client now returns raw bytes; the frontend parses them.
+            value: Buffer.from(recordStr),
+            contentType: 'application/json; charset=utf-8',
+        });
 
         const response = await store.getValue('key-1');
 
@@ -57,10 +51,7 @@ describe('KeyValueStore', () => {
         expect(response).toEqual(record);
 
         // Record Exists
-        const mockRecordExists = vitest
-            // @ts-expect-error Accessing private property
-            .spyOn(store.backend, 'recordExists')
-            .mockResolvedValueOnce(true);
+        const mockRecordExists = vitest.spyOn(store.backend, 'recordExists').mockResolvedValueOnce(true);
 
         const exists = await store.recordExists('key-1');
 
@@ -69,10 +60,7 @@ describe('KeyValueStore', () => {
         expect(exists).toBe(true);
 
         // Delete Record
-        const mockDeleteValue = vitest
-            // @ts-expect-error Accessing private property
-            .spyOn(store.backend, 'deleteValue')
-            .mockResolvedValueOnce(undefined);
+        const mockDeleteValue = vitest.spyOn(store.backend, 'deleteValue').mockResolvedValueOnce(undefined);
 
         await store.setValue('key-1', null);
 
@@ -80,10 +68,7 @@ describe('KeyValueStore', () => {
         expect(mockDeleteValue).toHaveBeenCalledWith('key-1');
 
         // Drop store
-        const mockDrop = vitest
-            // @ts-expect-error Accessing private property
-            .spyOn(store.backend, 'drop')
-            .mockResolvedValueOnce(undefined);
+        const mockDrop = vitest.spyOn(store.backend, 'drop').mockResolvedValueOnce(undefined);
 
         await store.drop();
 
@@ -234,10 +219,7 @@ describe('KeyValueStore', () => {
         test('correctly adds charset to content type', async () => {
             const store = await KeyValueStore.open();
 
-            const mockSetValue = vitest
-                // @ts-expect-error Accessing private property
-                .spyOn(store.backend, 'setValue')
-                .mockResolvedValueOnce(undefined);
+            const mockSetValue = vitest.spyOn(store.backend, 'setValue').mockResolvedValueOnce(undefined);
 
             await store.setValue('key-1', 'xxxx', { contentType: 'text/plain; charset=utf-8' });
 
@@ -255,10 +237,7 @@ describe('KeyValueStore', () => {
             const record = { foo: 'bar' };
             const recordStr = JSON.stringify(record, null, 2);
 
-            const mockSetValue = vitest
-                // @ts-expect-error Accessing private property
-                .spyOn(store.backend, 'setValue')
-                .mockResolvedValueOnce(undefined);
+            const mockSetValue = vitest.spyOn(store.backend, 'setValue').mockResolvedValueOnce(undefined);
 
             await store.setValue('key-1', record);
 
@@ -273,10 +252,7 @@ describe('KeyValueStore', () => {
         test('correctly passes raw string values', async () => {
             const store = await KeyValueStore.open();
 
-            const mockSetValue = vitest
-                // @ts-expect-error Accessing private property
-                .spyOn(store.backend, 'setValue')
-                .mockResolvedValueOnce(undefined);
+            const mockSetValue = vitest.spyOn(store.backend, 'setValue').mockResolvedValueOnce(undefined);
 
             await store.setValue('key-1', 'xxxx', { contentType: 'text/plain; charset=utf-8' });
 
@@ -291,10 +267,7 @@ describe('KeyValueStore', () => {
         test('correctly passes raw Buffer values', async () => {
             const store = await KeyValueStore.open();
 
-            const mockSetValue = vitest
-                // @ts-expect-error Accessing private property
-                .spyOn(store.backend, 'setValue')
-                .mockResolvedValueOnce(undefined);
+            const mockSetValue = vitest.spyOn(store.backend, 'setValue').mockResolvedValueOnce(undefined);
 
             const value = Buffer.from('some text value');
             await store.setValue('key-1', value, { contentType: 'image/jpeg; charset=something' });
@@ -310,10 +283,7 @@ describe('KeyValueStore', () => {
         test('correctly passes a stream', async () => {
             const store = await KeyValueStore.open();
 
-            const mockSetValue = vitest
-                // @ts-expect-error Accessing private property
-                .spyOn(store.backend, 'setValue')
-                .mockResolvedValueOnce(undefined);
+            const mockSetValue = vitest.spyOn(store.backend, 'setValue').mockResolvedValueOnce(undefined);
 
             const value = new PassThrough();
             await store.setValue('key-1', value, { contentType: 'plain/text' });
@@ -515,7 +485,6 @@ describe('KeyValueStore', () => {
         test('should work remotely', async () => {
             const store = await KeyValueStore.open();
 
-            // @ts-expect-error Accessing private property
             const mockListKeys = vitest.spyOn(store.backend, 'listKeys');
             mockListKeys.mockResolvedValueOnce({
                 items: [
