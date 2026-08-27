@@ -636,7 +636,7 @@ describe('RequestQueue in a transaction', () => {
                 await expect(queue.getRequest('https://example.com/a')).resolves.toMatchObject({
                     url: 'https://example.com/a',
                 });
-                await expect(queue.isEmpty()).resolves.toBe(false);
+                await expect(queue.checkReadiness()).resolves.toEqual({ status: 'ready' });
                 const queueInfo = await queue.getInfo();
                 expect(queueInfo.pendingRequestCount).toBe(1);
 

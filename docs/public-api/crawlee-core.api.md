@@ -24,6 +24,7 @@ import type { ISession } from '@crawlee/types';
 import type { ISessionPool } from '@crawlee/types';
 import type { KeyValueStoreBackend } from '@crawlee/types';
 import type { KeyValueStoreInfo } from '@crawlee/types';
+import type { LiteralUnion } from 'type-fest';
 import { Log } from '@apify/log';
 import log from '@apify/log';
 import { Logger } from '@apify/log';
@@ -739,12 +740,11 @@ export interface IProxyConfiguration {
 // @public
 export interface IRequestLoader {
     [Symbol.asyncIterator](): AsyncGenerator<Request_2>;
+    checkReadiness(): Promise<RequestSourceStatus>;
     fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request_2<T> | null>;
     getHandledCount(): Promise<number>;
     getPendingCount(): Promise<number>;
     getTotalCount(): Promise<number>;
-    isEmpty(): Promise<boolean>;
-    isFinished(): Promise<boolean>;
     markRequestAsHandled(request: Request_2): Promise<RequestQueueOperationInfo | void | null>;
     persistState?(): Promise<void>;
     toTandem?(requestManager?: IRequestManager): Promise<IRequestManager>;
@@ -758,6 +758,7 @@ export interface IRequestManager extends IRequestLoader {
     addRequestsBatched(requests: RequestsLike, options?: AddRequestsBatchedOptions): Promise<AddRequestsBatchedResult>;
     purge?(): Promise<void>;
     reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
+    recordPacingSignal(signal: PacingSignal): boolean;
     setExpectedRequestProcessingTimeSecs?(secs: number): Promise<void>;
 }
 
@@ -1032,6 +1033,26 @@ export class NonRetryableError extends Error {
 }
 
 // @public
+export type PacingScope = LiteralUnion<'hostname' | 'registrableDomain', string>;
+
+// @public
+export type PacingSignal = {
+    reason: 'rateLimited';
+    url: string;
+    waitMs?: number;
+    scope?: PacingScope;
+} | {
+    reason: 'minInterval';
+    url: string;
+    intervalMs: number;
+    scope: PacingScope;
+} | {
+    reason: 'minIntervalEverywhere';
+    intervalMs: number;
+    scope: PacingScope;
+};
+
+// @public
 export function parseRetryAfterHeader(value?: string | null): number | null;
 
 // @public
@@ -1179,16 +1200,14 @@ export class RequestList implements IRequestLoader {
     // (undocumented)
     [Symbol.asyncIterator](): AsyncGenerator<Request_2<Dictionary>, void, unknown>;
     // (undocumented)
+    checkReadiness(): Promise<RequestLoaderStatus>;
+    // (undocumented)
     fetchNextRequest(): Promise<Request_2 | null>;
     // (undocumented)
     getHandledCount(): Promise<number>;
     getPendingCount(): Promise<number>;
     getState(): RequestListState;
     getTotalCount(): Promise<number>;
-    // (undocumented)
-    isEmpty(): Promise<boolean>;
-    // (undocumented)
-    isFinished(): Promise<boolean>;
     // (undocumented)
     markRequestAsHandled(request: Request_2): Promise<void>;
     static open(listNameOrOptions: string | null | RequestListOptions, sources?: RequestListSource[], options?: RequestListOptions): Promise<RequestList>;
@@ -1225,7 +1244,12 @@ export interface RequestListState {
 }
 
 // @public
-export type RequestManagerOpener<T extends IRequestManager = IRequestManager> = (identifier: string | StorageIdentifier, options?: StorageOpenOptions) => Promise<T>;
+export type RequestLoaderStatus = Exclude<RequestSourceStatus, {
+    status: 'stalled';
+}>;
+
+// @public
+export type RequestManagerOpener<T extends IRequestManager = IRequestManager> = (identifier?: string | StorageIdentifier | null, options?: StorageOpenOptions) => Promise<T>;
 
 // @public
 export class RequestManagerTandem implements IRequestManager {
@@ -1236,6 +1260,7 @@ export class RequestManagerTandem implements IRequestManager {
     addRequest(requestLike: Source, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo>;
     // (undocumented)
     addRequestsBatched(requests: RequestsLike, options?: AddRequestsBatchedOptions): Promise<AddRequestsBatchedResult>;
+    checkReadiness(): Promise<RequestSourceStatus>;
     fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request_2<T> | null>;
     // (undocumented)
     getHandledCount(): Promise<number>;
@@ -1244,15 +1269,12 @@ export class RequestManagerTandem implements IRequestManager {
     // (undocumented)
     getTotalCount(): Promise<number>;
     // (undocumented)
-    isEmpty(): Promise<boolean>;
-    // (undocumented)
-    isFinished(): Promise<boolean>;
-    // (undocumented)
     markRequestAsHandled(request: Request_2): Promise<RequestQueueOperationInfo | void | null>;
     persistState(): Promise<void>;
     purge(): Promise<void>;
     // (undocumented)
     reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
+    recordPacingSignal(signal: PacingSignal): boolean;
     setExpectedRequestProcessingTimeSecs(secs: number): Promise<void>;
 }
 
@@ -1284,6 +1306,7 @@ export class RequestQueue implements IStorage, IRequestManager {
     addRequestsBatched(requests: ReadonlyDeep<RequestsLike>, options?: AddRequestsBatchedOptions): Promise<AddRequestsBatchedResult>;
     // (undocumented)
     readonly backend: RequestQueueBackend;
+    checkReadiness(): Promise<RequestLoaderStatus>;
     drop(): Promise<void>;
     fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request_2<T> | null>;
     getHandledCount(): Promise<number>;
@@ -1293,8 +1316,6 @@ export class RequestQueue implements IStorage, IRequestManager {
     getTotalCount(): Promise<number>;
     // (undocumented)
     readonly id: string;
-    isEmpty(): Promise<boolean>;
-    isFinished(): Promise<boolean>;
     // (undocumented)
     readonly log: CrawleeLogger;
     markRequestAsHandled(request: Request_2): Promise<RequestQueueOperationInfo | null>;
@@ -1303,6 +1324,7 @@ export class RequestQueue implements IStorage, IRequestManager {
     static open(identifier?: string | StorageIdentifier | null, options?: StorageOpenOptions): Promise<RequestQueue>;
     purge(): Promise<void>;
     reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
+    recordPacingSignal(_signal: PacingSignal): boolean;
     setExpectedRequestProcessingTimeSecs(secs: number): Promise<void>;
     get stats(): RequestQueueStats;
 }
@@ -1401,6 +1423,19 @@ export interface RequestQueueStats {
 
 // @public (undocumented)
 export type RequestsLike = AsyncIterable<Source | string> | Iterable<Source | string> | (Source | string)[];
+
+// @public
+export type RequestSourceStatus = {
+    status: 'ready';
+} | {
+    status: 'waiting';
+    readyAt?: number;
+} | {
+    status: 'stalled';
+    reason: string;
+} | {
+    status: 'finished';
+};
 
 // @public (undocumented)
 export enum RequestState {
@@ -1725,6 +1760,8 @@ export class SitemapRequestLoader implements IRequestLoader {
     // (undocumented)
     [Symbol.asyncIterator](): AsyncGenerator<Request_2<Dictionary>, void, unknown>;
     // (undocumented)
+    checkReadiness(): Promise<RequestLoaderStatus>;
+    // (undocumented)
     fetchNextRequest(): Promise<Request_2 | null>;
     // (undocumented)
     getHandledCount(): Promise<number>;
@@ -1732,10 +1769,6 @@ export class SitemapRequestLoader implements IRequestLoader {
     getPendingCount(): Promise<number>;
     // (undocumented)
     getTotalCount(): Promise<number>;
-    // (undocumented)
-    isEmpty(): Promise<boolean>;
-    // (undocumented)
-    isFinished(): Promise<boolean>;
     isSitemapFullyLoaded(): boolean;
     // (undocumented)
     markRequestAsHandled(request: Request_2): Promise<void>;
@@ -2032,19 +2065,6 @@ export interface StorageWritePolicy {
 }
 
 // @public
-export interface SupportsDomainThrottling {
-    // (undocumented)
-    assertNoStalledDomains(): Promise<void>;
-    // (undocumented)
-    recordDomainDelay(url: string, retryAfterMs?: number | null): boolean;
-    // (undocumented)
-    setCrawlDelay(url: string, delaySeconds: number): boolean;
-}
-
-// @public
-export function supportsDomainThrottling(manager: unknown): manager is SupportsDomainThrottling;
-
-// @public
 export type SyncStateConversion<TFrom, TTo> = ((value: TFrom) => TTo) | StandardSchemaV1<TFrom, TTo>;
 
 // @public
@@ -2077,14 +2097,14 @@ export interface TaskLoopPredicates {
 }
 
 // @public
-export class ThrottlingRequestManager<T extends IRequestManager = IRequestManager> implements IRequestManager, SupportsDomainThrottling {
+export class ThrottlingRequestManager<T extends IRequestManager = IRequestManager> implements IRequestManager {
     // (undocumented)
     [Symbol.asyncIterator](): AsyncGenerator<Request_2<Dictionary>, void, unknown>;
     constructor(options: ThrottlingRequestManagerOptions<T>, config?: Configuration);
     // (undocumented)
     addRequest(requestLike: Source, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo>;
     addRequestsBatched(requests: RequestsLike, options?: AddRequestsBatchedOptions): Promise<AddRequestsBatchedResult>;
-    assertNoStalledDomains(): Promise<void>;
+    checkReadiness(): Promise<RequestSourceStatus>;
     // (undocumented)
     drop(): Promise<void>;
     fetchNextRequest<R extends Dictionary = Dictionary>(): Promise<Request_2<R> | null>;
@@ -2094,19 +2114,15 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     getPendingCount(): Promise<number>;
     // (undocumented)
     getTotalCount(): Promise<number>;
-    get innerManager(): T;
-    isEmpty(): Promise<boolean>;
-    isFinished(): Promise<boolean>;
+    get innerManager(): T | undefined;
     // (undocumented)
     markRequestAsHandled(request: Request_2): Promise<RequestQueueOperationInfo | void | null>;
     // (undocumented)
     persistState(): Promise<void>;
     purge(): Promise<void>;
-    purgeDomainQueues(): Promise<void>;
     // (undocumented)
     reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
-    recordDomainDelay(url: string, retryAfterMs?: number | null): boolean;
-    setCrawlDelay(url: string, delaySeconds: number): boolean;
+    recordPacingSignal(signal: PacingSignal): boolean;
     // (undocumented)
     setExpectedRequestProcessingTimeSecs(secs: number): Promise<void>;
 }
@@ -2115,7 +2131,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
 export interface ThrottlingRequestManagerOptions<T extends IRequestManager = IRequestManager> {
     baseDelaySecs?: number;
     domains: string[] | 'all';
-    inner: T;
+    inner?: T | (() => T | Promise<T>);
     maxDelaySecs?: number;
     maxDomainStallSecs?: number;
     maxThrottledDomains?: number;

@@ -12,7 +12,7 @@ import { createDeserialize, serializeArray } from '../serialization.js';
 import { serviceLocator } from '../service_locator.js';
 import { parseArgument, schemas, validators } from '../validators.js';
 import { KeyValueStore } from './key_value_store.js';
-import type { IRequestLoader } from './request_loader.js';
+import type { IRequestLoader, RequestLoaderStatus } from './request_loader.js';
 import type { IRequestManager } from './request_manager.js';
 import { purgeDefaultStorages } from './utils.js';
 
@@ -602,19 +602,15 @@ export class RequestList implements IRequestLoader {
     /**
      * @inheritDoc
      */
-    async isEmpty(): Promise<boolean> {
+    async checkReadiness(): Promise<RequestLoaderStatus> {
         this.ensureIsInitialized();
 
-        return this.#requestsToRetry.length === 0 && this.#nextIndex >= this.requests.length;
-    }
+        if (this.#requestsToRetry.length > 0 || this.#nextIndex < this.requests.length) {
+            return { status: 'ready' };
+        }
 
-    /**
-     * @inheritDoc
-     */
-    async isFinished(): Promise<boolean> {
-        this.ensureIsInitialized();
-
-        return this.inProgress.size === 0 && this.#nextIndex >= this.requests.length;
+        // `#requestsToRetry` is a subset of `inProgress`, so nothing in progress means nothing left to re-serve.
+        return this.inProgress.size === 0 ? { status: 'finished' } : { status: 'waiting' };
     }
 
     /**

@@ -63,6 +63,7 @@ import {
     NavigationSkippedError,
     NonRetryableError,
     OwnedOrInjected,
+    PersistentRateLimitError,
     purgeDefaultStorages,
     RequestHandlerError,
     parseRetryAfterHeader,
@@ -71,7 +72,6 @@ import {
     RequestQueue,
     RequestState,
     RetryRequestError,
-    supportsDomainThrottling,
     Router,
     ServiceLocator,
     serviceLocator,
@@ -352,8 +352,9 @@ export interface BasicCrawlerOptions<
      * Indicates how much time (in seconds) to wait before crawling another same domain request. Subdomains are
      * paced together with the site they belong to.
      *
-     * Wraps the crawler's request manager in a {@apilink ThrottlingRequestManager}; pass one as `requestManager`
-     * yourself to configure it further.
+     * Offered to the crawler's request manager as a `minIntervalEverywhere` {@apilink PacingSignal}; a manager that
+     * already paces every domain it dispatches to takes it, so no domain ends up with two clocks. Otherwise the
+     * crawler wraps its request manager in a {@apilink ThrottlingRequestManager} of its own.
      * @default 0
      */
     sameDomainDelaySecs?: number;
@@ -750,13 +751,6 @@ export class BasicCrawler<
     }
 
     /**
-     * Tracks **only** the queue the crawler opens for itself — not the {@apilink RequestManagerTandem} that may wrap it
-     * around a user-supplied `requestList` — so the owned-only purge between repeated `run()` calls never reaches
-     * through to a borrowed loader. Filled lazily in {@apilink BasicCrawler.openOwnedRequestQueue|`openOwnedRequestQueue()`}.
-     */
-    #ownedRequestQueue = OwnedOrInjected.resolve<RequestQueue>();
-
-    /**
      * Whether the request-processing-time hint has already been forwarded to the request manager. The hint
      * derives only from `requestHandlerTimeoutMillis` (constant for the crawler's lifetime) and is raise-only,
      * so it only needs to be applied once, at the first async access of the manager.
@@ -797,6 +791,12 @@ export class BasicCrawler<
      * {@apilink BasicCrawler.concurrencySystem|`concurrencySystem`}.
      */
     #autoscaledPool?: AutoscaledPool;
+
+    /** A pending nudge of the task loop, armed when the request manager announces when it will have work again. */
+    #taskLoopWakeTimer?: NodeJS.Timeout;
+
+    /** When the pending wake-up is due, so an earlier one can replace a later one. */
+    #taskLoopWakeAt = 0;
 
     /**
      * A reference to the underlying {@apilink IProxyConfiguration} instance that manages the crawler's proxies.
@@ -858,7 +858,16 @@ export class BasicCrawler<
     protected readonly internalTimeoutMillis: number;
     readonly #maxRequestRetries: number;
     readonly #maxCrawlDepth?: number;
-    #sameDomainDelaySecs: number;
+    /**
+     * How much of {@apilink BasicCrawler.requestManager} the crawler may empty between repeated `run()` calls.
+     *
+     * - `all` — nothing under it came from the caller, so one `purge()` on the outside covers everything.
+     * - `none` — the caller supplied it and the crawler put nothing of its own inside.
+     * - `ambiguous` — the caller supplied it, but `sameDomainDelaySecs` put the crawler's own per-domain queues
+     *   underneath: purging empties the caller's storage too, skipping leaves ours stale. A repeated `run()` asks
+     *   rather than guessing.
+     */
+    readonly #purgeableExtent: 'all' | 'none' | 'ambiguous';
     readonly #maxRequestsPerCrawl?: number;
 
     private get handledRequestsCount(): number {
@@ -1073,33 +1082,59 @@ export class BasicCrawler<
             const instanceIndex = BasicCrawler.instanceCount++;
             this.#identity = { instanceIndex, hasExplicitId: id !== undefined, id: id ?? String(instanceIndex) };
 
-            if (requestManager !== undefined) {
-                if (requestList !== undefined || requestQueue !== undefined) {
-                    throw new Error(
-                        'The `requestManager` option cannot be used in conjunction with `requestList` and/or `requestQueue`',
-                    );
-                }
-                // Both would pace the same domains, from different keys and with no idea of one another.
-                if (sameDomainDelaySecs > 0 && supportsDomainThrottling(requestManager)) {
-                    throw new Error(
-                        'The `sameDomainDelaySecs` option cannot be combined with a `requestManager` that throttles ' +
-                            'per domain on its own. Configure the delay on the manager instead, via the ' +
-                            '`minCrawlDelaySecs` option of `ThrottlingRequestManager`.',
-                    );
-                }
+            if (requestManager !== undefined && (requestList !== undefined || requestQueue !== undefined)) {
+                throw new Error(
+                    'The `requestManager` option cannot be used in conjunction with `requestList` and/or `requestQueue`',
+                );
+            }
 
-                this.requestManager = requestManager;
-            } else if (requestList !== undefined && requestQueue !== undefined) {
-                // Combine the read-only list with the writable queue into a tandem.
-                this.requestManager = new RequestManagerTandem(requestList, requestQueue);
-            } else if (requestQueue !== undefined) {
+            const suppliedManager = requestManager ?? requestQueue;
+
+            // Offered before building a pacer of our own: anything that paces takes the floor - through any
+            // number of wrappers, since they all forward - so no domain ends up with two clocks.
+            const floorTaken =
+                sameDomainDelaySecs > 0 &&
+                (suppliedManager?.recordPacingSignal({
+                    reason: 'minIntervalEverywhere',
+                    intervalMs: sameDomainDelaySecs * 1000,
+                    // What `sameDomainDelaySecs` has always meant: one clock per site, subdomains included.
+                    scope: 'registrableDomain',
+                }) ??
+                    false);
+
+            const pacerNeeded = sameDomainDelaySecs > 0 && !floorTaken;
+
+            // Our per-domain queues under a manager the caller owns is the case with no right answer; a floor
+            // it took leaves nothing of ours behind. See `#purgeableExtent`.
+            if (suppliedManager === undefined) {
+                this.#purgeableExtent = 'all';
+            } else {
+                this.#purgeableExtent = pacerNeeded ? 'ambiguous' : 'none';
+            }
+
+            // Built here rather than at first use so it can sit *inside* the tandem below, which is where a
+            // loader's transferred requests pass through it.
+            const writableManager = pacerNeeded
+                ? new ThrottlingRequestManager({
+                      domains: 'all',
+                      minCrawlDelaySecs: sameDomainDelaySecs,
+                      throttleBy: 'registrableDomain',
+                      persistStateKey: `CRAWLEE_THROTTLED_DOMAINS_${this.#identity.id}`,
+                      // A factory, because the default queue is only opened on first use.
+                      inner: suppliedManager ?? (() => this.openOwnedRequestQueue()),
+                  })
+                : suppliedManager;
+
+            if (requestList !== undefined) {
+                // The list is read first, while new requests still have somewhere writable to go; the tandem also
+                // forwards `persistState()` to the loader.
+                this.requestManager = new RequestManagerTandem(
+                    requestList,
+                    writableManager ?? (() => this.openOwnedRequestQueue()),
+                );
+            } else if (writableManager !== undefined) {
                 // A RequestQueue is itself a request manager.
-                this.requestManager = requestQueue;
-            } else if (requestList !== undefined) {
-                // A lone read-only `requestList` (deprecated option) is combined with a lazily-opened default queue
-                // into a tandem, so that its requests are read first and new ones can still be enqueued during the
-                // crawl. The queue is opened on first use; the tandem also forwards `persistState()` to the loader.
-                this.requestManager = new RequestManagerTandem(requestList, () => this.openOwnedRequestQueue());
+                this.requestManager = writableManager;
             }
 
             this.httpClient = httpClient ?? new LazyDefaultHttpClient({ logger: this.log });
@@ -1139,7 +1174,6 @@ export class BasicCrawler<
 
             this.#maxRequestRetries = maxRequestRetries;
             this.#maxCrawlDepth = maxCrawlDepth;
-            this.#sameDomainDelaySecs = sameDomainDelaySecs;
             this.#statisticsDep = OwnedOrInjected.resolve<
                 IStatistics<StatisticStateExtension>,
                 Statistics<StatisticStateExtension>
@@ -1330,15 +1364,19 @@ export class BasicCrawler<
                         return true;
                     }
 
-                    // Checked here because this runs only once nothing is in flight, which is exactly when a
-                    // crawl that cannot progress looks indistinguishable from one that is merely waiting.
-                    if (!keepAlive && supportsDomainThrottling(this.requestManager)) {
-                        await this.requestManager.assertNoStalledDomains();
+                    // `maybeFinish()` calls this only once nothing is in flight (`autoscaled_pool.ts`) - the point
+                    // where a crawl that cannot progress becomes distinguishable from one that is merely waiting,
+                    // and the only place where throwing does not abandon requests mid-processing.
+                    const state = await this.requestManager?.checkReadiness();
+
+                    // Under `keepAlive`, outliving a domain that will not let us through is the whole point.
+                    if (state?.status === 'stalled' && !keepAlive) {
+                        throw new PersistentRateLimitError(`Giving up: ${state.reason}`);
                     }
 
                     const isFinished = isFinishedFunction
                         ? await isFinishedFunction()
-                        : await this.defaultIsFinishedFunction();
+                        : state === undefined || state.status === 'finished';
 
                     if (isFinished) {
                         const reason = isFinishedFunction
@@ -1669,22 +1707,21 @@ export class BasicCrawler<
             // we need to purge the RQ to allow processing the same requests again — this is important so users can
             // pass in failed requests back to the `crawler.run()`, otherwise they would be considered as handled and
             // ignored — as a failed request is still handled.
-            // By default (`purgeRequestQueue` unset), only the queue we opened ourselves is purged.
-            // When `purgeRequestQueue` is explicitly `true`, we also purge a user-supplied manager.
-            // When `purgeRequestQueue` is explicitly `false`, nothing is purged.
-            const shouldPurge = purgeRequestQueue !== false;
-            const managerToPurge =
-                this.#ownedRequestQueue.maybeValue ?? (purgeRequestQueue === true ? this.requestManager : undefined);
+            // `purgeRequestQueue` unset purges only storage the crawler opened itself (see `#purgeableExtent`);
+            // `true` also purges a caller-supplied manager, `false` purges nothing.
+            if (purgeRequestQueue === undefined && this.#purgeableExtent === 'ambiguous') {
+                throw new Error(
+                    'Cannot decide what to purge before running again: `sameDomainDelaySecs` paces the request ' +
+                        'manager you supplied, so the per-domain queues that have to be emptied are the ' +
+                        "crawler's while the manager underneath them is yours. Say which you want: " +
+                        '`run(requests, { purgeRequestQueue: true })` empties both, `false` empties neither.',
+                );
+            }
 
-            if (shouldPurge) {
-                await managerToPurge?.purge?.();
-
-                // The per-domain queues a `sameDomainDelaySecs` wrapper created are the crawler's own, whatever
-                // sits underneath them - so they are emptied even when the manager they wrap is spared. Purging
-                // the wrapper itself has already covered them.
-                if (this.requestManager instanceof ThrottlingRequestManager && managerToPurge !== this.requestManager) {
-                    await this.requestManager.purgeDomainQueues();
-                }
+            if (purgeRequestQueue !== false && (this.#purgeableExtent === 'all' || purgeRequestQueue === true)) {
+                // One call from the outside in reaches everything the manager wraps, a pacer's per-domain queues
+                // included.
+                await this.requestManager?.purge?.();
             }
 
             // A supplied statistics instance keeps whatever state it was handed - only wipe a default we built.
@@ -1855,20 +1892,6 @@ export class BasicCrawler<
             this.requestManager = await this.openOwnedRequestQueue();
         }
 
-        // Wrapped here rather than in the constructor, because the manager being wrapped may only be opened at
-        // this point - and because everything that enqueues goes through here first, so nothing slips past the
-        // wrapper into the queue it hides.
-        if (this.#sameDomainDelaySecs > 0 && !supportsDomainThrottling(this.requestManager)) {
-            this.requestManager = new ThrottlingRequestManager({
-                inner: this.requestManager,
-                domains: 'all',
-                minCrawlDelaySecs: this.#sameDomainDelaySecs,
-                // What `sameDomainDelaySecs` has always meant: one clock for a site, subdomains included.
-                throttleBy: 'registrableDomain',
-                persistStateKey: `CRAWLEE_THROTTLED_DOMAINS_${this.#identity.id}`,
-            });
-        }
-
         // Apply the processing-time hint here (an async lifecycle point) rather than in the constructor,
         // now that `setExpectedRequestProcessingTimeSecs` is async. The hint is raise-only and idempotent,
         // but guard so we do not re-issue it on every call.
@@ -1889,8 +1912,7 @@ export class BasicCrawler<
     }
 
     /**
-     * Opens the default {@apilink RequestQueue}, applies the crawler's timeouts to it and records it as the
-     * crawler-owned queue (so it gets purged between repeated `run()` calls).
+     * Opens the default {@apilink RequestQueue} — the crawler's own, read from when the caller supplied nothing.
      * @private
      */
     private async openOwnedRequestQueue(): Promise<RequestQueue> {
@@ -1898,8 +1920,7 @@ export class BasicCrawler<
         // subsequent instances get their own queue via a unique alias so they don't collide.
         const identifier = this.#identity.instanceIndex === 0 ? null : { alias: `__default_${this.#identity.id}__` };
 
-        const requestQueue = await RequestQueue.open(identifier, { configuration: serviceLocator.getConfiguration() });
-        return this.#ownedRequestQueue.set(requestQueue);
+        return RequestQueue.open(identifier, { configuration: serviceLocator.getConfiguration() });
     }
 
     /**
@@ -2446,16 +2467,19 @@ export class BasicCrawler<
     }
 
     /**
-     * Records an HTTP 429 against the URL's domain so the request manager can pace the retry.
+     * Records an HTTP 429 against the URL's domain so the request manager can hold the retry back.
      *
      * @param retryAfterHeader The raw `Retry-After` response header, if the server sent one.
-     * @returns `true` if a manager took responsibility for the delay, in which case the caller should throw
+     * @returns `true` if the manager took responsibility for the delay, in which case the caller should throw
      *  {@apilink RequestThrottledError} rather than treating the response as a blocked session.
      */
     protected recordDomainRateLimit(url: string, retryAfterHeader?: string | null): boolean {
         if (
-            supportsDomainThrottling(this.requestManager) &&
-            this.requestManager.recordDomainDelay(url, parseRetryAfterHeader(retryAfterHeader))
+            this.requestManager?.recordPacingSignal({
+                reason: 'rateLimited',
+                url,
+                waitMs: parseRetryAfterHeader(retryAfterHeader) ?? undefined,
+            })
         ) {
             return true;
         }
@@ -2463,33 +2487,38 @@ export class BasicCrawler<
         const domain = hostnameOrUrl(url);
         this.logOncePerRun(
             `rateLimitNotThrottled:${domain}`,
-            `"${domain}" responded with HTTP 429 (Too Many Requests), but nothing is set up to back off from it, ` +
-                'so the response is handled like any other, with no per-domain delay. ' +
-                `Pass a \`ThrottlingRequestManager\` as \`requestManager\` and include "${domain}" in its \`domains\` ` +
-                'option to honour `Retry-After` and apply exponential backoff instead.',
+            `"${domain}" responded with HTTP 429 (Too Many Requests), but the crawler's request manager does not ` +
+                'pace that domain, so the response is handled like any other, with no per-domain delay. Set ' +
+                `\`sameDomainDelaySecs\`, or pass a \`ThrottlingRequestManager\` covering "${domain}" as ` +
+                '`requestManager`, to honour `Retry-After` and apply exponential backoff instead.',
             'warning',
         );
 
         return false;
     }
 
-    /**
-     * Hands a robots.txt `Crawl-delay` to the request manager, warning if nothing is able to honour it.
-     *
-     * The warning is driven by whether the delay was actually accepted rather than by the type of the manager,
-     * because a manager that does throttle still drops the delay for a domain missing from its `domains` list.
-     */
+    /** Hands a robots.txt `Crawl-delay` to the request manager, warning if it will not be honoured. */
     private applyCrawlDelay(url: string, delaySeconds: number): void {
-        if (supportsDomainThrottling(this.requestManager) && this.requestManager.setCrawlDelay(url, delaySeconds)) {
+        // robots.txt is per-origin; `hostname` is the closest pacing scope and errs wide (http and https to one
+        // host share a clock).
+        if (
+            this.requestManager?.recordPacingSignal({
+                reason: 'minInterval',
+                url,
+                intervalMs: delaySeconds * 1000,
+                scope: 'hostname',
+            })
+        ) {
             return;
         }
 
         const domain = hostnameOrUrl(url);
         this.logOncePerRun(
             `crawlDelayIgnored:${domain}`,
-            `robots.txt for "${domain}" defines a crawl-delay of ${delaySeconds}s, but nothing is set up to honour it, ` +
-                'so requests to that domain will not be paced. Pass a `ThrottlingRequestManager` as `requestManager` ' +
-                `and include "${domain}" in its \`domains\` option to enforce the delay.`,
+            `robots.txt for "${domain}" defines a crawl-delay of ${delaySeconds}s, but the crawler's request ` +
+                'manager does not pace that domain, so its requests will not be paced. Set ' +
+                `\`sameDomainDelaySecs\`, or pass a \`ThrottlingRequestManager\` covering "${domain}" as ` +
+                '`requestManager`.',
             'warning',
         );
     }
@@ -2533,10 +2562,10 @@ export class BasicCrawler<
         }
 
         const requestManagerPersistPromise = (async () => {
-            // The request manager persists its read-only loader's state, if it has one that supports persistence
-            // (e.g. a tandem wrapping a `RequestList`). For a plain `RequestQueue`, this is a no-op.
+            // The request manager persists its read-only loader's state, if it has one that supports
+            // persistence (e.g. a tandem wrapping a `RequestList`). For a plain `RequestQueue`, this is a no-op.
             if (this.requestManager?.persistState) {
-                if (await this.requestManager.isFinished()) return;
+                if ((await this.requestManager.checkReadiness()).status === 'finished') return;
                 await this.requestManager.persistState().catch((err) => {
                     if (err.message.includes('Cannot persist state.')) {
                         this.log.error(
@@ -2709,17 +2738,53 @@ export class BasicCrawler<
     }
 
     /**
-     * Returns true if either RequestList or RequestQueue have a request ready for processing.
+     * Whether the request manager has a request ready for processing. A manager that is only `waiting` also gets a
+     * wake-up scheduled, so a paced crawl resumes on its clock rather than on the task loop's polling interval.
      */
     private async isTaskReadyFunction() {
-        return this.requestManager !== undefined && !(await this.requestManager.isEmpty());
+        if (this.requestManager === undefined) {
+            return false;
+        }
+
+        const state = await this.requestManager.checkReadiness();
+
+        if (state.status === 'waiting' && state.readyAt !== undefined) {
+            this.#scheduleTaskLoopWake(state.readyAt);
+        }
+
+        return state.status === 'ready';
     }
 
     /**
-     * Returns true if both RequestList and RequestQueue have all requests finished.
+     * Nudges the task loop at `readyAt`, on a single timer that only an earlier one replaces. The pool polls anyway
+     * every `maybeRunIntervalSecs` (0.5s by default), so this only shortens the wait - hence one timer rather than
+     * one per probe, and `unref`'d so it never keeps the process alive.
      */
-    private async defaultIsFinishedFunction() {
-        return !this.requestManager || (await this.requestManager.isFinished());
+    #scheduleTaskLoopWake(readyAt: number): void {
+        if (this.#taskLoopWakeTimer !== undefined) {
+            if (this.#taskLoopWakeAt <= readyAt) {
+                return;
+            }
+            clearTimeout(this.#taskLoopWakeTimer);
+        }
+
+        this.#taskLoopWakeAt = readyAt;
+        this.#taskLoopWakeTimer = setTimeout(
+            () => {
+                this.#taskLoopWakeTimer = undefined;
+                void this.#autoscaledPool?.notify();
+            },
+            Math.max(0, readyAt - Date.now()),
+        );
+        this.#taskLoopWakeTimer.unref();
+    }
+
+    /** Drops a pending task-loop wake-up, so a finished run leaves no timer behind. */
+    #clearTaskLoopWake(): void {
+        if (this.#taskLoopWakeTimer !== undefined) {
+            clearTimeout(this.#taskLoopWakeTimer);
+            this.#taskLoopWakeTimer = undefined;
+        }
     }
 
     /**
@@ -2904,6 +2969,7 @@ export class BasicCrawler<
             await serviceLocator.getEventManager().close();
         }
 
+        this.#clearTaskLoopWake();
         await this.#autoscaledPool?.abort();
         await this.#concurrencySystemDep?.ifOwned((system) => system.stop());
     }
