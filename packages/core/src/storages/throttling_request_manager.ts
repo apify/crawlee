@@ -428,6 +428,16 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         return this.#resolvedInner;
     }
 
+    /**
+     * Notes that a request landed in `manager`. If that is the wrapped one, what it holds has changed, so
+     * whatever an earlier sweep concluded about it no longer holds.
+     */
+    #noteRequestRouted(manager: T): void {
+        if (manager === this.#resolvedInner) {
+            this.#innerBlockedUntil = 0;
+        }
+    }
+
     /** Warns once about sources that cannot be routed by domain, because their URLs are not known yet. */
     #warnIfNotRoutable(requestLike: Source): void {
         if ('requestsFromUrl' in requestLike && requestLike.requestsFromUrl !== undefined && this.#throttlingEnabled) {
@@ -789,10 +799,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
 
         const manager = await this.#selectManagerOrThrow(requestLike.url ?? '');
 
-        if (manager === this.#resolvedInner) {
-            // What it holds has changed, so whatever an earlier sweep concluded about it no longer holds.
-            this.#innerBlockedUntil = 0;
-        }
+        this.#noteRequestRouted(manager);
 
         return manager.addRequest(requestLike, options);
     }
@@ -842,9 +849,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
                         continue;
                     }
 
-                    if (manager === this.#resolvedInner) {
-                        this.#innerBlockedUntil = 0;
-                    }
+                    this.#noteRequestRouted(manager);
 
                     const bucket = byManager.get(manager);
                     if (bucket) {
@@ -888,9 +893,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     ): Promise<RequestQueueOperationInfo | null> {
         const manager = await this.#managerHolding(request);
 
-        if (manager === this.#resolvedInner) {
-            this.#innerBlockedUntil = 0;
-        }
+        this.#noteRequestRouted(manager);
 
         return manager.reclaimRequest(request, options);
     }
