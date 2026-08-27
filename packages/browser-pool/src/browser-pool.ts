@@ -974,8 +974,13 @@ export class BrowserPool<
     }
 
     /**
-     * Returns `true` if the pool can accept a new browser launch without exceeding
-     * {@link BrowserPoolOptions.maxOpenBrowsers}. Counts starting, active, and retired browsers.
+     * Returns `true` if the pool can accept a new browser launch without exceeding `maxOpenBrowsers`.
+     * Counts starting, active, and retired browsers.
+     *
+     * A plain `BrowserPool` leaves `maxOpenBrowsers` at `Infinity`, so this only returns `false` when something
+     * has set a cap — {@apilink RemoteBrowserPool} does, from its own
+     * {@apilink RemoteBrowserPoolOptions.maxOpenBrowsers|`maxOpenBrowsers`} option. There is no
+     * `BrowserPoolOptions` key for it.
      *
      * @internal
      */

@@ -256,8 +256,11 @@ The `await using` syntax needs Node.js 24 or later. On Node.js 22 call <ApiLink 
 
 A crawler accepts any object implementing the <ApiLink to="types/interface/ISessionPool">`ISessionPool`</ApiLink> interface as its `sessionPool` option, not just the built-in `SessionPool`. The contract is intentionally tiny — a single `getSession()` / `getSession(id)` method that hands out an <ApiLink to="types/interface/ISession">`ISession`</ApiLink> for a request. This lets you plug in a remote, shared, or database-backed session strategy without subclassing `SessionPool` or copying its internals.
 
+`ISessionPool` and `ISession` are owned by `@crawlee/types`, which the `crawlee` meta-package does not re-export — add it to your dependencies to import them.
+
 ```ts
-import { BasicCrawler, Session, type ISessionPool } from 'crawlee';
+import { BasicCrawler, Session } from 'crawlee';
+import type { ISessionPool } from '@crawlee/types';
 
 class MySessionPool implements ISessionPool {
     private readonly sessions = new Map<string, Session>();
