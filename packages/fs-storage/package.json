@@ -42,7 +42,7 @@
         "access": "public"
     },
     "dependencies": {
-        "@crawlee/fs-storage-native": "0.1.5-beta.18",
+        "@crawlee/fs-storage-native": "0.2.0",
         "@crawlee/types": "workspace:*",
         "@crawlee/utils": "workspace:*",
         "zod": "catalog:"
