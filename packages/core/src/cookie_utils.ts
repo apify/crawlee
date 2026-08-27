@@ -4,11 +4,6 @@ import { Cookie, CookieJar } from 'tough-cookie';
 import { serviceLocator } from './service_locator.js';
 import { CookieParseError } from './session_pool/errors.js';
 
-export interface ResponseLike {
-    url?: string | (() => string);
-    headers?: Record<string, string | string[] | undefined> | (() => Record<string, string | string[] | undefined>);
-}
-
 /**
  * @internal
  */

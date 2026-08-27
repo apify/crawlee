@@ -8,6 +8,30 @@ promise backwards compatibility**.
 They are produced by [API Extractor](https://api-extractor.com/) from the built
 `dist/index.d.ts` of each package.
 
+## What a tag means
+
+These reports are an **inventory of backwards-compatibility promises**. Membership is the
+promise; the tags are how a member joins or leaves it.
+
+- **Untagged — promised.** In the report, and covered by backwards compatibility. The codebase
+  does not use explicit `@public` tags, so untagged is the default and anything you add is
+  promised unless you say otherwise.
+- **`@internal` (and the legacy `@ignore`) — not promised.** Trimmed from the report. It is
+  still exported, still present in the published `.d.ts`, and still has working
+  auto-completion. You may use it; it may change or disappear in any release, including a
+  patch.
+
+**We deliberately do not strip these members from the `.d.ts`.** No `stripInternal`, no
+parallel "internal build". Two reasons: crawlee's own packages consume plenty of each other's
+internals, and an escape hatch that lets someone unblock themselves — knowingly, at their own
+risk — is worth more than one we have taken away. So the tag is a statement about *support*,
+not about *access*.
+
+The practical consequence when reviewing: tagging something `@internal` does not make it
+harder to reach, it only stops us owing anyone stability on it. Reach for `#private` or TS
+`private` when a member genuinely should be unreachable, and for `@internal` when it should be
+reachable but unsupported. Both are legitimate; they answer different questions.
+
 ## Workflow
 
 - After changing any package's public surface, regenerate the reports and commit them:
@@ -35,11 +59,12 @@ They are produced by [API Extractor](https://api-extractor.com/) from the built
 
 ## Notes
 
-- The reports are generated as API Extractor's **`public`** variant, so symbols tagged
-  `@internal` (`@alpha`/`@beta` too) are excluded — only `@public` surface is tracked.
-  The legacy `@ignore` tag counts as `@internal` here; the generator rewrites it before
-  extraction, so an `@ignore`-d symbol is excluded too and cannot be referenced from a
-  `@public` signature.
+- Mechanically, the reports are API Extractor's **`public`** variant, so `@internal`
+  (`@alpha`/`@beta` too) is excluded. `@ignore` is a TypeDoc-era tag that API Extractor does
+  not act on, so the generator rewrites it to `@internal` before extraction — see `IGNORE_TAG`
+  in `scripts/api-extractor/run.ts`. It rewrites nothing else, which is worth knowing:
+  **`@private` is inert here.** A member whose only tag is `@private` stays in the report and
+  stays promised, so it is not a way to de-promise anything — use `@internal`.
   The generator stages the variant as `<name>.public.api.md` under `temp/` and promotes it
   onto the committed `<name>.api.md`, so the tracked filenames stay stable.
 - API Extractor builds the import list before it trims the non-`@public` declarations and
@@ -73,11 +98,31 @@ They are produced by [API Extractor](https://api-extractor.com/) from the built
 - `@crawlee/cli` and `@crawlee/templates` are deliberately excluded — they are tooling
   (a CLI binary and project scaffolding), not an importable API where we promise BC. The
   exclude list lives in `scripts/api-extractor/run.ts`.
+- `crawlee.api.md` looks almost empty — eleven `export *` lines and no declarations — and that
+  is correct rather than a gap. The meta-package re-exports; it declares nothing of its own.
+  Everything it hands you belongs to a constituent package and is already inventoried there, so
+  a break in any of it shows up in that package's report first. Only two kinds of change are
+  meta-package-only, and this report catches both: dropping an `export *` line, and changing
+  something the meta-package declares itself — the `utils` bag that used to live here was in
+  the report, and its removal showed up as a diff. Listing the ~380 re-exported names instead
+  would restate promises where they are not made and churn on every constituent change.
+
+  The case that looks like a hole is not one. If two constituents ever export *different*
+  symbols under the same name, TypeScript raises `TS2308` ("has already exported a member
+  named …") in `packages/crawlee/src/index.ts`, so the build fails — the name does not quietly
+  drop out of the barrel. Several hundred names are re-exported by more than one constituent
+  today; every one of them is a single symbol reached by several paths, which is fine and
+  raises nothing.
 - The generator lives in `scripts/api-extractor/`. It temporarily strips the build's
   injected `// @ts-ignore` comment lines from the `.d.ts` files (restoring them
   afterwards) because API Extractor's AST walker trips over some of them; a small number
   of packages additionally need a sanitized-mirror fallback. See the comments in
   `scripts/api-extractor/run.ts` for details.
-- These reports now cover only the `@public` surface. Further shrinking them — genuinely
-  hiding class internals (untagged `protected`/`_`-prefixed members) rather than merely
-  tagging them — is the goal tracked in issue #3109.
+- **The reports are an inventory of what we promise, not a measure of how much code is
+  reachable.** A symbol is in a report because we have committed to not breaking it; a symbol
+  is absent because we have not. Absent does *not* mean inaccessible, and making it
+  inaccessible is explicitly not the goal — see "What a tag means" above. Shrinking a report
+  is therefore only ever a *consequence* of deciding that something was never a promise, never
+  a target in its own right. A change that removes entries without changing any decision has
+  achieved nothing; a change that adds entries because we decided to support something is a
+  success. Issue #3109 tracks that decision-making, not a line count.

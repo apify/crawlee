@@ -5,16 +5,15 @@ import type {
     ContextPipeline,
     CrawlingContext,
     GetUserDataFromRequest,
-    RequestHandler,
     RouterHandler,
     RouterRoutes,
     RouteSchemas,
     RoutesFromSchemas,
 } from '@crawlee/browser';
-import { assertBrowserPoolNotConfigured, BrowserCrawler, RequestState, Router, serviceLocator } from '@crawlee/browser';
+import { BrowserCrawler, RequestState, Router, serviceLocator } from '@crawlee/browser';
 import type { Dictionary } from '@crawlee/types';
-import { parseArgument, schemas } from '@crawlee/utils/internal';
-import type { Download, LaunchOptions, Page, Response } from 'playwright';
+import { assertBrowserPoolNotConfigured, parseArgument, schemas } from '@crawlee/utils/internal';
+import type { Download, Page, Response } from 'playwright';
 import { z } from 'zod';
 
 import type { EnqueueLinksByClickingElementsOptions } from './enqueue-links/click-elements.js';
@@ -29,7 +28,19 @@ import type {
     PlaywrightContextUtils,
     SaveSnapshotOptions,
 } from './utils/playwright-utils.js';
-import { gotoExtended, playwrightUtils } from './utils/playwright-utils.js';
+import {
+    blockRequests,
+    closeCookieModals,
+    compileScript,
+    enqueueLinksByClickingElements,
+    gotoExtended,
+    handleCloudflareChallenge,
+    infiniteScroll,
+    injectFile,
+    injectJQuery,
+    parseWithCheerio,
+    saveSnapshot,
+} from './utils/playwright-utils.js';
 
 export type PlaywrightGotoOptions = NonNullable<Parameters<Page['goto']>[1]>;
 
@@ -68,30 +79,6 @@ export interface PlaywrightCrawlerOptions<
      * Can be also set via {@apilink Configuration}.
      */
     headless?: boolean;
-
-    /**
-     * Function that is called to process each request.
-     *
-     * The function receives the {@apilink PlaywrightCrawlingContext} as an argument, where:
-     * - `request` is an instance of the {@apilink Request} object with details about the URL to open, HTTP method etc.
-     * - `page` is an instance of the `Playwright`
-     * [`Page`](https://playwright.dev/docs/api/class-page)
-     * - `response` is an instance of the `Playwright`
-     * [`Response`](https://playwright.dev/docs/api/class-response),
-     * which is the main resource response as returned by `page.goto(request.url)`.
-     *
-     * The function must return a promise, which is then awaited by the crawler.
-     *
-     * If the function throws an exception, the crawler will try to re-crawl the
-     * request later, up to `option.maxRequestRetries` times.
-     * If all the retries fail, the crawler calls the function
-     * provided to the `failedRequestHandler` parameter.
-     * To make this work, you should **always**
-     * let your function throw exceptions rather than catch them.
-     * The exceptions are logged to the request using the
-     * {@apilink Request.pushErrorMessage} function.
-     */
-    requestHandler?: RouterHandler<ExtendedContext, Routes> | RequestHandler<ExtendedContext>;
 
     /**
      * Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies
@@ -212,7 +199,6 @@ export class PlaywrightCrawler<
 > extends BrowserCrawler<
     Page,
     Response,
-    LaunchOptions,
     PlaywrightCrawlingContext,
     ContextExtension,
     ExtendedContext,
@@ -224,8 +210,8 @@ export class PlaywrightCrawler<
      */
     protected static override optionsShape = {
         ...BrowserCrawler.optionsShape,
+        launchContext: schemas.anyObject.default(() => ({})),
         headless: z.boolean().optional(),
-        launcher: schemas.anyObject.optional(),
     };
 
     /** @internal */
@@ -264,17 +250,16 @@ export class PlaywrightCrawler<
                 Routes,
                 StatisticStateExtension
             >),
-            launchContext,
             configuration,
             browserPoolBuilder: (remoteBrowser) =>
                 remoteBrowser
                     ? remotePlaywrightBrowserPool({ ...remoteBrowser, launchContext, headless, configuration })
                     : playwrightBrowserPool({ launchContext, headless, configuration }),
-            contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),
+            contextPipelineBuilder: contextPipelineBuilder ?? (() => this.#buildContextPipeline()),
         });
     }
 
-    protected override buildContextPipeline(): ContextPipeline<CrawlingContext, PlaywrightCrawlingContext> {
+    #buildContextPipeline(): ContextPipeline<CrawlingContext, PlaywrightCrawlingContext> {
         return super.buildContextPipeline().compose({ action: this.enhanceContext.bind(this) });
     }
 
@@ -296,47 +281,45 @@ export class PlaywrightCrawler<
 
         return {
             injectFile: async (filePath: string, options?: InjectFileOptions) =>
-                playwrightUtils.injectFile(context.page, filePath, options),
+                injectFile(context.page, filePath, options),
             injectJQuery: async () => {
                 if (context.request.state === RequestState.BEFORE_NAV) {
                     context.log.warning(
                         'Using injectJQuery() in preNavigationHooks leads to unstable results. Use it in a postNavigationHook or a requestHandler instead.',
                     );
-                    await playwrightUtils.injectJQuery(context.page);
+                    await injectJQuery(context.page);
                     return;
                 }
-                await playwrightUtils.injectJQuery(context.page, { surviveNavigations: false });
+                await injectJQuery(context.page, { surviveNavigations: false });
             },
-            blockRequests: async (options?: BlockRequestsOptions) =>
-                playwrightUtils.blockRequests(context.page, options),
+            blockRequests: async (options?: BlockRequestsOptions) => blockRequests(context.page, options),
             waitForSelector,
             parseWithCheerio: async (selector?: string, timeoutMs = 5_000) => {
                 if (selector) {
                     await waitForSelector(selector, timeoutMs);
                 }
 
-                return playwrightUtils.parseWithCheerio(context.page, this.ignoreShadowRoots, this.ignoreIframes);
+                return parseWithCheerio(context.page, this.ignoreShadowRoots, this.ignoreIframes);
             },
-            infiniteScroll: async (options?: InfiniteScrollOptions) =>
-                playwrightUtils.infiniteScroll(context.page, options),
+            infiniteScroll: async (options?: InfiniteScrollOptions) => infiniteScroll(context.page, options),
             listDownloads: async () => downloads,
             saveSnapshot: async (options?: SaveSnapshotOptions) =>
-                playwrightUtils.saveSnapshot(context.page, {
+                saveSnapshot(context.page, {
                     ...options,
                     configuration: serviceLocator.getConfiguration(),
                 }),
             enqueueLinksByClickingElements: async (
                 options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestManager'>,
             ) =>
-                playwrightUtils.enqueueLinksByClickingElements({
+                enqueueLinksByClickingElements({
                     ...options,
                     page: context.page,
                     requestManager: this.requestManager!,
                 }),
-            compileScript: (scriptString: string, ctx?: Dictionary) => playwrightUtils.compileScript(scriptString, ctx),
-            closeCookieModals: async () => playwrightUtils.closeCookieModals(context.page),
+            compileScript: (scriptString: string, ctx?: Dictionary) => compileScript(scriptString, ctx),
+            closeCookieModals: async () => closeCookieModals(context.page),
             handleCloudflareChallenge: async (options?: HandleCloudflareChallengeOptions) => {
-                return playwrightUtils.handleCloudflareChallenge(context.page, context.request.url, options);
+                return handleCloudflareChallenge(context.page, context.request.url, options);
             },
         };
     }

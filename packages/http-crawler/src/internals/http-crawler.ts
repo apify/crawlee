@@ -48,7 +48,8 @@ const HTML_AND_XML_MIME_TYPES = ['text/html', 'text/xml', 'application/xhtml+xml
 const APPLICATION_JSON_MIME_TYPE = 'application/json';
 /**
  * A higher starting concurrency and a relaxed event loop signal, since HTTP-only crawling barely touches the event
- * loop. {@apilink HttpCrawler} folds these into the {@apilink ConcurrencySystem} it builds by default.
+ * loop. {@apilink HttpCrawler} folds these into the {@apilink ConcurrencySystem} it builds by default, with your own
+ * concurrency shortcuts (`minConcurrency`, `maxConcurrency`, `maxRequestsPerMinute`) kept on top.
  *
  * A {@apilink BasicCrawlerOptions.concurrencySystem|`concurrencySystem`} you supply yourself replaces that default
  * wholesale, tuning included, so spread these options in if you want to keep it:
@@ -140,9 +141,7 @@ export interface HttpCrawlerOptions<
      * ]
      * ```
      */
-    postNavigationHooks?: ((
-        crawlingContext: CrawlingContextWithResponse & ContextExtension,
-    ) => Awaitable<void | Partial<CrawlingContextWithResponse>>)[];
+    postNavigationHooks?: InternalHttpHook<CrawlingContextWithResponse, ContextExtension>[];
 
     /**
      * An array of [MIME types](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Complete_list_of_MIME_types)
@@ -188,11 +187,6 @@ export type InternalHttpHook<Context, ContextExtension = {}> = (
     crawlingContext: Context & ContextExtension,
 ) => Awaitable<void | Partial<Context>>;
 
-export type HttpHook<
-    UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    JSONData extends JsonValue = any, // with default to Dictionary we cant use a typed router in untyped crawler
-> = InternalHttpHook<HttpCrawlingContext<UserData, JSONData>>;
-
 interface CrawlingContextWithResponse<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 > extends CrawlingContext<UserData> {
@@ -206,10 +200,6 @@ interface CrawlingContextWithResponse<
      */
     response: Response;
 }
-
-type InternalHttpPostNavigationHook = (
-    crawlingContext: CrawlingContextWithResponse,
-) => Awaitable<void | Partial<CrawlingContextWithResponse>>;
 
 export interface InternalHttpCrawlingContext<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -234,7 +224,11 @@ export interface InternalHttpCrawlingContext<
     contentType: { type: string; encoding: BufferEncoding };
 
     /**
-     * Wait for an element matching the selector to appear. Timeout is ignored.
+     * Wait for an element matching the selector to appear.
+     *
+     * `HttpCrawler` and {@apilink CheerioCrawler} parse a response that is already fully downloaded, so there is
+     * nothing to wait for and `timeoutMs` is ignored. {@apilink JSDOMCrawler} and {@apilink LinkeDOMCrawler} poll for
+     * the selector instead, with `timeoutMs` defaulting to 5s.
      *
      * **Example usage:**
      * ```ts
@@ -249,7 +243,12 @@ export interface InternalHttpCrawlingContext<
 
     /**
      * Returns Cheerio handle for `page.content()`, allowing to work with the data same way as with {@apilink CheerioCrawler}.
-     * When provided with the `selector` argument, it will throw if it's not available.
+     * This is here to unify the crawler API, so they all have this handy method - in {@apilink CheerioCrawler} it has
+     * the same return type as the `$` context property, so use it only if you are abstracting your workflow to
+     * support different context types in one handler.
+     *
+     * When provided with the `selector` argument, it will throw if it's not available. {@apilink JSDOMCrawler} and
+     * {@apilink LinkeDOMCrawler} wait for the selector first, with `timeoutMs` defaulting to 5s.
      *
      * **Example usage:**
      * ```ts
@@ -353,7 +352,7 @@ export class HttpCrawler<
     // concrete crawling context, which does not statically carry `ContextExtension`. The members
     // added by `extendContext` are present at runtime regardless.
     #preNavigationHooks: InternalHttpHook<CrawlingContext>[];
-    #postNavigationHooks: InternalHttpPostNavigationHook[];
+    #postNavigationHooks: InternalHttpHook<CrawlingContextWithResponse>[];
     #saveResponseCookies: boolean;
     #navigationTimeoutMillis: number;
     #ignoreTlsErrors: boolean;
@@ -429,22 +428,18 @@ export class HttpCrawler<
         this.#preNavigationHooks = preNavigationHooks as InternalHttpHook<CrawlingContext>[];
         this.#postNavigationHooks = [
             ({ request, response }) => this.abortDownloadOfBody(request, response!),
-            ...(postNavigationHooks as InternalHttpPostNavigationHook[]),
+            ...(postNavigationHooks as InternalHttpHook<CrawlingContextWithResponse>[]),
         ];
 
         this.#saveResponseCookies = saveResponseCookies;
     }
 
+    /** @internal */
     protected override getNavigationTimeoutMillis(): number {
         return this.#navigationTimeoutMillis;
     }
 
-    /**
-     * Folds {@apilink HTTP_OPTIMIZED_CONCURRENCY_SYSTEM_OPTIONS} into the default system, keeping the user's
-     * concurrency shortcuts on top. Not called for a supplied
-     * {@apilink BasicCrawlerOptions.concurrencySystem|`concurrencySystem`} — spread the constant into it yourself to
-     * keep the tuning.
-     */
+    /** @internal */
     protected override createDefaultConcurrencySystem(options: ConcurrencySystemOptions): ConcurrencySystem {
         return super.createDefaultConcurrencySystem({
             ...HTTP_OPTIMIZED_CONCURRENCY_SYSTEM_OPTIONS,
@@ -452,7 +447,7 @@ export class HttpCrawler<
         });
     }
 
-    protected override buildContextPipeline(): ContextPipeline<CrawlingContext, InternalHttpCrawlingContext> {
+    protected buildContextPipeline(): ContextPipeline<CrawlingContext, InternalHttpCrawlingContext> {
         // When navigation is skipped, `prepareHttpRequest` has already installed throwing getters for
         // the response-derived members, so the guarded action is bypassed and the context left untouched.
         const skipGuard = <Ctx extends CrawlingContext, Ext>(
@@ -664,13 +659,13 @@ export class HttpCrawler<
 
     private async handleBlockedRequestByContent(crawlingContext: InternalHttpCrawlingContext): Promise<{}> {
         if (this.retryOnBlocked) {
-            const error = await this.isRequestBlocked(crawlingContext);
+            const error = await this.#isRequestBlocked(crawlingContext);
             if (error) throw new SessionError(error);
         }
         return {};
     }
 
-    protected async isRequestBlocked(crawlingContext: InternalHttpCrawlingContext): Promise<string | false> {
+    async #isRequestBlocked(crawlingContext: InternalHttpCrawlingContext): Promise<string | false> {
         if (HTML_AND_XML_MIME_TYPES.includes(crawlingContext.contentType.type)) {
             const $ = await crawlingContext.parseWithCheerio();
 
@@ -694,7 +689,7 @@ export class HttpCrawler<
      * received content type matches text/html, application/xml, application/xhtml+xml.
      */
     private async requestFunction({ request, session, proxyUrl }: RequestFunctionOptions): Promise<Response> {
-        const opts = this.getRequestOptions(request, session, proxyUrl);
+        const opts = this.getRequestOptions(request, proxyUrl);
 
         try {
             return await this.requestAsBrowser(opts, session);
@@ -705,7 +700,7 @@ export class HttpCrawler<
             }
 
             if (this.isProxyError(e as Error)) {
-                throw new SessionError(this.getMessageFromError(e as Error) as string);
+                throw new SessionError(this.getMessageFromError(e as Error));
             } else {
                 throw e;
             }
@@ -767,13 +762,12 @@ export class HttpCrawler<
     /**
      * Combines the provided `requestOptions` with mandatory (non-overridable) values.
      */
-    private getRequestOptions(request: CrawleeRequest, session: ISession, proxyUrl?: string) {
+    private getRequestOptions(request: CrawleeRequest, proxyUrl?: string) {
         const requestOptions = {
             url: request.url,
             method: request.method,
             proxyUrl,
             timeout: this.#navigationTimeoutMillis,
-            sessionToken: session,
             headers: request.headers,
             body: undefined as string | undefined,
         };

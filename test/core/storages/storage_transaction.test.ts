@@ -13,6 +13,7 @@ import {
     withStorageTransaction,
 } from '@crawlee/core';
 import { BaseHttpClient } from '@crawlee/http-client';
+import type { DatasetBackend } from '@crawlee/types';
 
 import { storage as timeoutStorage } from '@apify/timeout';
 
@@ -57,6 +58,7 @@ describe('StorageTransaction', () => {
 
         test('double commit does not double-flush', async () => {
             const dataset = await Dataset.open();
+            // @ts-expect-error Accessing private property
             const pushDataSpy = vitest.spyOn(dataset.backend, 'pushData');
 
             const transaction = createStorageTransaction();
@@ -71,6 +73,7 @@ describe('StorageTransaction', () => {
         test('a commit that throws lands in `failed` and later writes pass through', async () => {
             const dataset = await Dataset.open();
             const store = await KeyValueStore.open();
+            // @ts-expect-error Accessing private property
             vitest.spyOn(dataset.backend, 'pushData').mockRejectedValueOnce(new Error('backend exploded'));
 
             const transaction = createStorageTransaction();
@@ -202,6 +205,7 @@ describe('StorageTransaction', () => {
 
             // `failed` is the terminal state that neither `rollback()` nor an `open` check reaches -
             // dispose must release the journaled snapshots regardless of the outcome.
+            // @ts-expect-error Accessing private property
             vitest.spyOn(dataset.backend, 'pushData').mockRejectedValueOnce(new Error('boom'));
             await expect(transaction.commit()).rejects.toThrow('boom');
             expect(transaction.state).toBe('failed');
@@ -274,8 +278,9 @@ describe('Dataset in a transaction', () => {
 
         // A backend honouring `skipEmpty` / `clean` / `unwind` returns fewer items than asked for while
         // the real items are far from exhausted - `total` stays honest, the page is just filtered.
-        const realBackend = dataset.backend;
-        dataset.backend = {
+        // @ts-expect-error Accessing private property
+        const realBackend: DatasetBackend<{ n: number }> = dataset.backend;
+        const stubBackend: DatasetBackend<{ n: number }> = {
             getMetadata: async () => realBackend.getMetadata(),
             drop: async () => realBackend.drop(),
             purge: async () => realBackend.purge(),
@@ -286,6 +291,8 @@ describe('Dataset in a transaction', () => {
                 return { ...page, items, count: items.length };
             },
         };
+        // @ts-expect-error Accessing private property
+        dataset.backend = stubBackend;
 
         await withStorageTransaction(async (transaction) => {
             await dataset.pushData([{ n: 100 }, { n: 101 }]);
@@ -309,6 +316,7 @@ describe('Dataset in a transaction', () => {
 
     test('values are captured at write time with full fidelity', async () => {
         const dataset = await Dataset.open();
+        // @ts-expect-error Accessing private property
         const pushDataSpy = vitest.spyOn(dataset.backend, 'pushData');
 
         const when = new Date('2023-01-01T00:00:00Z');
@@ -333,6 +341,7 @@ describe('Dataset in a transaction', () => {
 
     test('items from multiple pushData calls are committed in order, in a single backend call', async () => {
         const dataset = await Dataset.open();
+        // @ts-expect-error Accessing private property
         const pushDataSpy = vitest.spyOn(dataset.backend, 'pushData');
 
         await withStorageTransaction(async () => {

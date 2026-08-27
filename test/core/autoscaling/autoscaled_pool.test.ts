@@ -149,13 +149,13 @@ describe('AutoscaledPool', () => {
 
         const promise = pool.run();
 
-        // Concurrency is tuned on the governor; the pool only reflects it as read-only telemetry.
+        // Concurrency is tuned on the governor; the pool only reflects it as read-only telemetry. `desiredConcurrency`
+        // is autoscaler-owned, so it is retuned indirectly - by moving the bounds it is clamped into.
         system.minConcurrency = 4;
-        system.maxConcurrency = 14;
-        system.desiredConcurrency = 7;
+        system.maxConcurrency = 7;
 
         expect(system.minConcurrency).toBe(4);
-        expect(system.maxConcurrency).toBe(14);
+        expect(system.maxConcurrency).toBe(7);
         expect(pool.desiredConcurrency).toBe(7);
 
         await promise;
@@ -223,9 +223,20 @@ describe('AutoscaledPool', () => {
             expect(pool.desiredConcurrency).toBe(3);
         });
 
-        test('works with high values', () => {
+        test('works with high values', async () => {
+            // A starting budget of 50 has to be configured, since `desiredConcurrency` is autoscaler-owned.
+            pool = await makePool(
+                {
+                    runTaskFunction: async () => {},
+                    isFinishedFunction: async () => false,
+                    isTaskReadyFunction: async () => true,
+                },
+                { minConcurrency: 1, maxConcurrency: 100, desiredConcurrency: 50 },
+            );
+            // @ts-expect-error Mock
+            pool.system.systemStatus = systemStatus;
+
             // Should not scale because current concurrency is too low.
-            systemOf(pool).desiredConcurrency = 50;
             const targetConcurrency = Math.floor(
                 // @ts-expect-error Accessing private prop on the governor
                 pool.desiredConcurrency * pool.system.desiredConcurrencyRatio,
@@ -272,12 +283,11 @@ describe('AutoscaledPool', () => {
                     isFinishedFunction: async () => count >= limit,
                     isTaskReadyFunction: async () => count < limit,
                 },
-                { minConcurrency: 1, maxConcurrency: 100 },
+                { minConcurrency: 1, maxConcurrency: 100, desiredConcurrency: 10 },
             );
             // @ts-expect-error Mock
             pool.system.systemStatus = systemStatus;
             systemStatus.okNow = false;
-            systemOf(pool).desiredConcurrency = 10;
 
             const origStart = pool.system.tryRegisterTaskStart.bind(pool.system);
             const origEnd = pool.system.registerTaskEnd.bind(pool.system);

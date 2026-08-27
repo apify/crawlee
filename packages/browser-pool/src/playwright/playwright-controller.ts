@@ -12,6 +12,7 @@ export class PlaywrightController extends BrowserController<
     SafeParameters<BrowserType['launch']>[0],
     Browser
 > {
+    /** @internal */
     normalizeProxyOptions(proxyUrl: string | undefined, pageOptions: any): Record<string, unknown> {
         if (!proxyUrl) {
             return {};

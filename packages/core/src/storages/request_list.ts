@@ -77,7 +77,7 @@ export interface RequestListOptions {
      * ]
      * ```
      */
-    sources?: RequestListSource[];
+    sources?: (string | Source)[];
 
     /**
      * A function that will be called to get the sources for the `RequestList`, but only if `RequestList`
@@ -307,7 +307,7 @@ export class RequestList implements IRequestLoader {
     #initialState?: RequestListState;
     #store?: KeyValueStore;
     #keepDuplicateUrls: boolean;
-    #sources: RequestListSource[];
+    #sources: (string | Source)[];
     #sourcesFunction?: RequestListSourcesFunction;
     #proxyConfiguration?: IProxyConfiguration;
     #httpClient?: BaseHttpClient;
@@ -734,7 +734,7 @@ export class RequestList implements IRequestLoader {
      * If the `source` parameter is a string or plain object and not an instance
      * of a `Request`, then the function creates a `Request` instance.
      */
-    private addRequest(source: RequestListSource) {
+    private addRequest(source: string | Source) {
         let request: Request | RequestOptions;
         const type = typeof source;
 
@@ -895,7 +895,7 @@ export class RequestList implements IRequestLoader {
      */
     static async open(
         listNameOrOptions: string | null | RequestListOptions,
-        sources?: RequestListSource[],
+        sources?: (string | Source)[],
         options: RequestListOptions = {},
     ): Promise<RequestList> {
         if (listNameOrOptions != null && typeof listNameOrOptions === 'object') {
@@ -965,5 +965,4 @@ export interface RequestListState {
     inProgress: string[];
 }
 
-type RequestListSource = string | Source;
-export type RequestListSourcesFunction = () => Promise<RequestListSource[]>;
+export type RequestListSourcesFunction = () => Promise<(string | Source)[]>;

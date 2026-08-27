@@ -25,14 +25,11 @@ import { IConcurrencySystem } from '@crawlee/core';
 import { IProxyConfiguration } from '@crawlee/core';
 import { IRequestLoader } from '@crawlee/core';
 import { IRequestManager } from '@crawlee/core';
-import type { ISession } from '@crawlee/types';
 import type { ISessionPool } from '@crawlee/types';
 import { IStatistics } from '@crawlee/core';
-import type { ProxyInfo } from '@crawlee/types';
 import type { ReadonlyDeep } from 'type-fest';
 import { Request as Request_2 } from '@crawlee/core';
 import { RequestQueue } from '@crawlee/core';
-import { RobotsTxtFile } from '@crawlee/utils';
 import type { RouterHandler } from '@crawlee/core';
 import type { RouterRoutes } from '@crawlee/core';
 import type { SetStatusMessageOptions } from '@crawlee/types';
@@ -42,7 +39,6 @@ import type { StorageBackend } from '@crawlee/types';
 import type { StorageIdentifier } from '@crawlee/core';
 import { StorageWritePolicy } from '@crawlee/core';
 import type { TaskLoopOptions } from '@crawlee/core';
-import { TimeoutError } from '@apify/timeout';
 import type { TypedRequestsLike } from '@crawlee/core';
 
 // @public (undocumented)
@@ -51,30 +47,20 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
     // (undocumented)
     protected readonly additionalHttpErrorStatusCodes: Set<number>;
     addRequests(requests: ReadonlyDeep<TypedRequestsLike<Routes>>, options?: CrawlerAddRequestsOptions): Promise<CrawlerAddRequestsResult>;
-    get basicContextPipeline(): ContextPipeline<{
-        request: Request_2;
-    }, CrawlingContext>;
     // (undocumented)
     protected blockedStatusCodes: Set<number>;
-    protected buildContextPipeline(): ContextPipeline<CrawlingContext, CrawlingContext>;
     get concurrencySystem(): IConcurrencySystem | undefined;
-    // (undocumented)
-    get contextPipeline(): ContextPipeline<CrawlingContext, ExtendedContext>;
     protected createDefaultConcurrencySystem(options: ConcurrencySystemOptions): ConcurrencySystem;
     exportData<Data>(path: string, format?: 'json' | 'csv', options?: DatasetExportOptions): Promise<Data[]>;
     // (undocumented)
     protected getCookieHeaderFromRequest(request: Request_2): string;
     getData(...args: Parameters<Dataset['getData']>): ReturnType<Dataset['getData']>;
     getDataset(identifier?: string | StorageIdentifier): Promise<Dataset>;
-    protected getMessageFromError(error: Error, forceStack?: boolean): string | TimeoutError | undefined;
+    protected getMessageFromError(error: Error, forceStack?: boolean): string;
     protected getNavigationTimeoutMillis(): number;
     getRequestManager(): Promise<IRequestManager>;
     // @deprecated (undocumented)
     getRequestQueue(): Promise<IRequestManager>;
-    // (undocumented)
-    protected getRobotsTxtFileForUrl(url: string): Promise<RobotsTxtFile | undefined>;
-    // (undocumented)
-    hasFinishedBefore: boolean;
     // (undocumented)
     protected readonly httpClient: BaseHttpClient;
     protected init(): Promise<void>;
@@ -90,14 +76,12 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
     protected recordDomainRateLimit(url: string, retryAfterHeader?: string | null): boolean;
     // (undocumented)
     protected readonly requestHandler: RequestHandler<ExtendedContext>;
-    protected requestManager?: IRequestManager;
+    protected get requestManager(): IRequestManager | undefined;
     resume(): void;
     // (undocumented)
     protected readonly retryOnBlocked: boolean;
     readonly router: RouterHandler<Context, Routes>;
     run(requests?: TypedRequestsLike<Routes>, options?: CrawlerRunOptions): Promise<FinalStatistics>;
-    // (undocumented)
-    running: boolean;
     // (undocumented)
     protected runRequestHandler(crawlingContext: ExtendedContext): Promise<void>;
     get sessionPool(): ISessionPool;
@@ -178,16 +162,6 @@ export function createBasicRouter<Context extends BasicCrawlingContext = BasicCr
 
 // @public (undocumented)
 export function createBasicRouter<Context extends BasicCrawlingContext = BasicCrawlingContext, UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
-
-// @public (undocumented)
-export interface CreateContextOptions {
-    // (undocumented)
-    proxyInfo?: ProxyInfo;
-    // (undocumented)
-    request: Request_2;
-    // (undocumented)
-    session: ISession;
-}
 
 // @public
 export type ErrorHandler<BaseContext extends CrawlingContext = CrawlingContext, ExtendedContext extends BaseContext = BaseContext> = (inputs: BaseContext & Partial<ExtendedContext>, error: Error) => Awaitable<void>;

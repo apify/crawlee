@@ -17,11 +17,6 @@ const MAX_ENQUEUE_LINKS_CACHE_SIZE = 1000;
  */
 const enqueueLinksPatternCache = new Map();
 
-export interface UrlPatternObject {
-    glob?: string;
-    regexp?: RegExp;
-}
-
 export interface GlobObject {
     glob: string;
 }
@@ -144,6 +139,16 @@ export function constructRegExpObjectsFromRegExps(regexps: readonly RegExpInput[
 
         return regexpObject;
     });
+}
+
+/**
+ * The compiled form of a {@apilink UrlPatternInput}, produced by {@apilink constructUrlPatternObjects}. Deliberately
+ * not re-exported from the package entry point — it is an implementation detail of the pattern matching helpers.
+ * @internal
+ */
+export interface UrlPatternObject {
+    glob?: string;
+    regexp?: RegExp;
 }
 
 /**

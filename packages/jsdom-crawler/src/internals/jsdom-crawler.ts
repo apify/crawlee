@@ -8,7 +8,6 @@ import type {
     GetUserDataFromRequest,
     HttpCrawlerOptions,
     InternalHttpCrawlingContext,
-    InternalHttpHook,
     RequestHandler,
     RouterHandler,
     RouterRoutes,
@@ -23,7 +22,6 @@ import {
     Router,
 } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
-import type { CheerioAPI } from 'cheerio';
 import { sleep } from '@crawlee/utils';
 import { parseArgument, tryAbsoluteURL } from '@crawlee/utils/internal';
 import type { DOMWindow } from 'jsdom';
@@ -62,11 +60,6 @@ export interface JSDOMCrawlerOptions<
     hideInternalConsole?: boolean;
 }
 
-export type JSDOMHook<
-    UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-    JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-> = InternalHttpHook<JSDOMCrawlingContext<UserData, JSONData>>;
-
 export interface JSDOMCrawlingContext<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -75,35 +68,6 @@ export interface JSDOMCrawlingContext<
     document: Document;
 
     body: string;
-
-    /**
-     * Wait for an element matching the selector to appear.
-     * Timeout defaults to 5s.
-     *
-     * **Example usage:**
-     * ```ts
-     * async requestHandler({ waitForSelector, parseWithCheerio }) {
-     *     await waitForSelector('article h1');
-     *     const $ = await parseWithCheerio();
-     *     const title = $('title').text();
-     * });
-     * ```
-     */
-    waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
-
-    /**
-     * Returns Cheerio handle, allowing to work with the data same way as with {@apilink CheerioCrawler}.
-     * When provided with the `selector` argument, it will first look for the selector with a 5s timeout.
-     *
-     * **Example usage:**
-     * ```javascript
-     * async requestHandler({ parseWithCheerio }) {
-     *     const $ = await parseWithCheerio();
-     *     const title = $('title').text();
-     * });
-     * ```
-     */
-    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioAPI>;
 
     /**
      * Extracts URLs from the parsed DOM, without adding them to the request queue.
@@ -120,6 +84,13 @@ export type JSDOMRequestHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 > = RequestHandler<JSDOMCrawlingContext<UserData, JSONData>>;
+
+const resources = new ResourceLoader({
+    // Copy from /packages/browser-pool/src/abstract-classes/browser-plugin.ts:17
+    // in order not to include the entire package here
+    userAgent:
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36',
+});
 
 /**
  * Provides a framework for the parallel crawling of web pages using plain HTTP requests and
@@ -196,13 +167,6 @@ export type JSDOMRequestHandler<
  * ```
  * @category Crawlers
  */
-const resources = new ResourceLoader({
-    // Copy from /packages/browser-pool/src/abstract-classes/browser-plugin.ts:17
-    // in order not to include the entire package here
-    userAgent:
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36',
-});
-
 export class JSDOMCrawler<
     ContextExtension = Dictionary<never>,
     ExtendedContext extends JSDOMCrawlingContext = JSDOMCrawlingContext & ContextExtension,
@@ -240,14 +204,14 @@ export class JSDOMCrawler<
 
         super({
             ...httpOptions,
-            contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),
+            contextPipelineBuilder: contextPipelineBuilder ?? (() => this.#buildContextPipeline()),
         });
 
         this.#runScripts = runScripts;
         this.#hideInternalConsole = hideInternalConsole;
     }
 
-    protected override buildContextPipeline(): ContextPipeline<CrawlingContext, JSDOMCrawlingContext> {
+    #buildContextPipeline(): ContextPipeline<CrawlingContext, JSDOMCrawlingContext> {
         return super
             .buildContextPipeline()
             .compose({
@@ -274,7 +238,7 @@ export class JSDOMCrawler<
      * });
      * ```
      */
-    getVirtualConsole() {
+    getVirtualConsole(): VirtualConsole {
         if (this.#virtualConsole) {
             return this.#virtualConsole;
         }

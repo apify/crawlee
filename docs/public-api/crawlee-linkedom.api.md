@@ -5,8 +5,6 @@
 ```ts
 
 import type { AddRequestsBatchedResult } from '@crawlee/http';
-import type { CheerioAPI } from 'cheerio';
-import type { ContextPipeline } from '@crawlee/http';
 import type { CrawlingContext } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
 import type { EnqueueLinksOptions } from '@crawlee/http';
@@ -16,7 +14,6 @@ import type { GetUserDataFromRequest } from '@crawlee/http';
 import { HttpCrawler } from '@crawlee/http';
 import type { HttpCrawlerOptions } from '@crawlee/http';
 import type { InternalHttpCrawlingContext } from '@crawlee/http';
-import type { InternalHttpHook } from '@crawlee/http';
 import type { RequestHandler } from '@crawlee/http';
 import type { RouterHandler } from '@crawlee/http';
 import type { RouterRoutes } from '@crawlee/http';
@@ -35,8 +32,6 @@ export function createLinkeDOMRouter<Context extends LinkeDOMCrawlingContext = L
 // @public
 export class LinkeDOMCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends LinkeDOMCrawlingContext = LinkeDOMCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<LinkeDOMCrawlingContext['request']>>, StatisticStateExtension extends object = {}> extends HttpCrawler<LinkeDOMCrawlingContext, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
     constructor(options?: LinkeDOMCrawlerOptions<ContextExtension, ExtendedContext, any, any, Routes, StatisticStateExtension>);
-    // (undocumented)
-    protected buildContextPipeline(): ContextPipeline<CrawlingContext, LinkeDOMCrawlingContext>;
 }
 
 // @public (undocumented)
@@ -52,8 +47,6 @@ JSONData extends Dictionary = any> extends InternalHttpCrawlingContext<UserData,
     document: Document;
     enqueueLinks(options?: EnqueueLinksOptions): Promise<AddRequestsBatchedResult>;
     extractLinks(options?: ExtractLinksOptions): Promise<string[]>;
-    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioAPI>;
-    waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
     // (undocumented)
     window: Window;
 }
@@ -62,10 +55,6 @@ JSONData extends Dictionary = any> extends InternalHttpCrawlingContext<UserData,
 export type LinkeDOMErrorHandler<UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 ContextExtension = Dictionary<never>> = ErrorHandler<CrawlingContext, LinkeDOMCrawlingContext<UserData, JSONData> & ContextExtension>;
-
-// @public (undocumented)
-export type LinkeDOMHook<UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-JSONData extends Dictionary = any> = InternalHttpHook<LinkeDOMCrawlingContext<UserData, JSONData>>;
 
 // @public (undocumented)
 export type LinkeDOMRequestHandler<UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler

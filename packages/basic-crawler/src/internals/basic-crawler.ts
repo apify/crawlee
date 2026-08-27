@@ -29,7 +29,6 @@ import type {
     StorageWritePolicy,
     TaskLoopOptions,
     TypedRequestsLike,
-    UrlPatternObject,
 } from '@crawlee/core';
 import {
     applyRequestTransform,
@@ -90,7 +89,6 @@ import type {
     Dictionary,
     ISession,
     ISessionPool,
-    ProxyInfo,
     SetStatusMessageOptions,
     StorageBackend,
 } from '@crawlee/types';
@@ -732,12 +730,16 @@ export class BasicCrawler<
         return this.#statisticsDep.value;
     }
 
+    #requestManager?: IRequestManager;
+
     /**
      * The main request-handling component of the crawler. It manages the requests that the crawler processes,
      * combining any provided request loader and/or queue. It's initialized during the crawler startup or lazily
      * via {@apilink BasicCrawler.getRequestManager|`getRequestManager()`}.
      */
-    protected requestManager?: IRequestManager;
+    protected get requestManager(): IRequestManager | undefined {
+        return this.#requestManager;
+    }
 
     /** Backs the {@apilink BasicCrawler.sessionPool|`sessionPool`} getter. */
     #sessionPoolDep: OwnedOrInjected<ISessionPool, SessionPool>;
@@ -821,18 +823,16 @@ export class BasicCrawler<
      * pipelines expect the basic crawler fields to already be present in the context at runtime.
      *
      * Context built with this pipeline can be passed into multiple crawler pipelines at once.
-     * This is used e.g. in the {@apilink AdaptivePlaywrightCrawler|`AdaptivePlaywrightCrawler`}.
      */
-    get basicContextPipeline(): ContextPipeline<{ request: Request }, CrawlingContext> {
-        if (this.#basicContextPipeline === undefined) {
-            this.#basicContextPipeline = this.buildBasicContextPipeline();
-        }
+    get #basicPipeline(): ContextPipeline<{ request: Request }, CrawlingContext> {
+        this.#basicContextPipeline ??= this.buildBasicContextPipeline();
 
         return this.#basicContextPipeline;
     }
 
     #contextPipeline?: ContextPipeline<CrawlingContext, ExtendedContext>;
 
+    /** @internal */
     get contextPipeline(): ContextPipeline<CrawlingContext, ExtendedContext> {
         if (this.#contextPipeline === undefined) {
             this.#contextPipeline = this.buildFinalContextPipeline();
@@ -841,8 +841,8 @@ export class BasicCrawler<
         return this.#contextPipeline;
     }
 
-    running = false;
-    hasFinishedBefore = false;
+    #running = false;
+    #hasFinishedBefore = false;
     #unexpectedStop = false;
 
     #log!: CrawleeLogger;
@@ -1128,13 +1128,13 @@ export class BasicCrawler<
             if (requestList !== undefined) {
                 // The list is read first, while new requests still have somewhere writable to go; the tandem also
                 // forwards `persistState()` to the loader.
-                this.requestManager = new RequestManagerTandem(
+                this.#requestManager = new RequestManagerTandem(
                     requestList,
                     writableManager ?? (() => this.openOwnedRequestQueue()),
                 );
             } else if (writableManager !== undefined) {
                 // A RequestQueue is itself a request manager.
-                this.requestManager = writableManager;
+                this.#requestManager = writableManager;
             }
 
             this.httpClient = httpClient ?? new LazyDefaultHttpClient({ logger: this.log });
@@ -1267,7 +1267,7 @@ export class BasicCrawler<
                                 // catch-all for that - see `raceWithTimeout` for why it is a bare timer, not a timeout frame.
                                 await this.withRequestTimeout(
                                     crawlingContext,
-                                    this.basicContextPipeline
+                                    this.#basicPipeline
                                         .chain(this.contextPipeline)
                                         .call(crawlingContext, (ctx) => this.handleRequest(ctx, source, request)),
                                 ),
@@ -1464,14 +1464,6 @@ export class BasicCrawler<
         return {};
     }
 
-    /**
-     * Builds the subclass-specific context pipeline that transforms a `CrawlingContext` into the crawler's target context type.
-     * Subclasses should override this to add their own pipeline stages.
-     */
-    protected buildContextPipeline(): ContextPipeline<CrawlingContext, CrawlingContext> {
-        return ContextPipeline.create<CrawlingContext>();
-    }
-
     private createBaseContext(context: PendingCrawlingContext) {
         const deferredCleanup: (() => Promise<unknown>)[] = [];
 
@@ -1549,7 +1541,7 @@ export class BasicCrawler<
 
     private buildFinalContextPipeline(): ContextPipeline<CrawlingContext, ExtendedContext> {
         const subclassPipeline = (this.#contextPipelineOptions.contextPipelineBuilder?.() ??
-            this.buildContextPipeline()) as ContextPipeline<CrawlingContext, Context>;
+            ContextPipeline.create<CrawlingContext>()) as ContextPipeline<CrawlingContext, Context>;
 
         // `extendContext` runs *before* the subclass navigation pipeline (which includes the
         // pre/post-navigation hooks). This makes the extension visible to those hooks and to the
@@ -1605,7 +1597,7 @@ export class BasicCrawler<
      * @param error The error to check.
      */
     protected isProxyError(error: Error): boolean {
-        return ROTATE_PROXY_ERRORS.some((x: string) => (this.getMessageFromError(error) as any)?.includes(x));
+        return ROTATE_PROXY_ERRORS.some((x: string) => this.getMessageFromError(error).includes(x));
     }
 
     /**
@@ -1694,7 +1686,7 @@ export class BasicCrawler<
      * @param [options] Options for the request queue.
      */
     async run(requests?: TypedRequestsLike<Routes>, options?: CrawlerRunOptions): Promise<FinalStatistics> {
-        if (this.running) {
+        if (this.#running) {
             throw new Error(
                 'This crawler instance is already running, you can add more requests to it via `crawler.addRequests()`.',
             );
@@ -1702,7 +1694,7 @@ export class BasicCrawler<
 
         const { purgeRequestQueue, ...addRequestsOptions } = options ?? {};
 
-        if (this.hasFinishedBefore) {
+        if (this.#hasFinishedBefore) {
             // When executing the run method for the second time explicitly,
             // we need to purge the RQ to allow processing the same requests again — this is important so users can
             // pass in failed requests back to the `crawler.run()`, otherwise they would be considered as handled and
@@ -1733,7 +1725,7 @@ export class BasicCrawler<
         }
 
         this.#unexpectedStop = false;
-        this.running = true;
+        this.#running = true;
         this.#loggedPerRun.clear();
 
         await purgeDefaultStorages({
@@ -1756,7 +1748,7 @@ export class BasicCrawler<
             });
 
             // The run never began, so let the instance be run again instead of leaving it wedged as `running`.
-            this.running = false;
+            this.#running = false;
             throw error;
         }
 
@@ -1831,8 +1823,8 @@ export class BasicCrawler<
                 { isStatusMessageTerminal: true, level: 'INFO' },
             );
 
-            this.running = false;
-            this.hasFinishedBefore = true;
+            this.#running = false;
+            this.#hasFinishedBefore = true;
         }
 
         return stats;
@@ -1888,19 +1880,20 @@ export class BasicCrawler<
      * if none has been configured or opened yet.
      */
     async getRequestManager(): Promise<IRequestManager> {
-        if (!this.requestManager) {
-            this.requestManager = await this.openOwnedRequestQueue();
+        if (!this.#requestManager) {
+            this.#requestManager = await this.openOwnedRequestQueue();
         }
+
 
         // Apply the processing-time hint here (an async lifecycle point) rather than in the constructor,
         // now that `setExpectedRequestProcessingTimeSecs` is async. The hint is raise-only and idempotent,
         // but guard so we do not re-issue it on every call.
         if (!this.#requestManagerTimeoutsApplied) {
             this.#requestManagerTimeoutsApplied = true;
-            await this.applyRequestManagerTimeouts(this.requestManager);
+            await this.applyRequestManagerTimeouts(this.#requestManager);
         }
 
-        return this.requestManager;
+        return this.#requestManager;
     }
 
     /**
@@ -1913,7 +1906,6 @@ export class BasicCrawler<
 
     /**
      * Opens the default {@apilink RequestQueue} — the crawler's own, read from when the caller supplied nothing.
-     * @private
      */
     private async openOwnedRequestQueue(): Promise<RequestQueue> {
         // The first crawler instance uses the default queue (null identifier);
@@ -2083,17 +2075,11 @@ export class BasicCrawler<
         const requestLimit = await this.#calculateEnqueuedRequestLimit(options.limit);
 
         const strategy = options.strategy ?? EnqueueStrategy.All;
-        const urlExcludePatternObjects: UrlPatternObject[] = options.exclude?.length
-            ? constructUrlPatternObjects(options.exclude)
-            : [];
-        const urlPatternObjects: UrlPatternObject[] = options.include?.length
-            ? constructUrlPatternObjects(options.include)
-            : [];
+        const urlExcludePatternObjects = options.exclude?.length ? constructUrlPatternObjects(options.exclude) : [];
+        const urlPatternObjects = options.include?.length ? constructUrlPatternObjects(options.include) : [];
         // The strategy always applies, even when `include` patterns are provided - the two are AND-ed together
         // (a URL must match an `include` pattern *and* satisfy the strategy). This mirrors crawlee-python.
-        const enqueueStrategyPatterns: UrlPatternObject[] = options.baseUrl
-            ? buildEnqueueStrategyPatterns(options.baseUrl, strategy)
-            : [];
+        const enqueueStrategyPatterns = options.baseUrl ? buildEnqueueStrategyPatterns(options.baseUrl, strategy) : [];
 
         const isAllowedBasedOnRobotsTxtFile = this.isAllowedBasedOnRobotsTxtFile.bind(this);
         const maxCrawlDepth = this.#maxCrawlDepth;
@@ -2523,6 +2509,7 @@ export class BasicCrawler<
         );
     }
 
+    /** @internal */
     protected async getRobotsTxtFileForUrl(url: string): Promise<RobotsTxtFile | undefined> {
         if (!this.#respectRobotsTxtFile) {
             return undefined;
@@ -2905,7 +2892,7 @@ export class BasicCrawler<
      * @param error The error received
      * @returns The message to be logged
      */
-    protected getMessageFromError(error: Error, forceStack = false) {
+    protected getMessageFromError(error: Error, forceStack = false): string {
         if ([TypeError, SyntaxError, ReferenceError].some((type) => error instanceof type)) {
             forceStack = true;
         }
@@ -2916,7 +2903,8 @@ export class BasicCrawler<
         const userLine = stackLines.find((line) => line.includes(baseDir) && !line.includes('node_modules'));
 
         if (error instanceof TimeoutError) {
-            return process.env.CRAWLEE_VERBOSE_LOG ? error.stack : error.message || error; // stack in timeout errors does not really help
+            // stack in timeout errors does not really help
+            return (process.env.CRAWLEE_VERBOSE_LOG && error.stack) || error.message;
         }
 
         return process.env.CRAWLEE_VERBOSE_LOG || forceStack
@@ -3042,12 +3030,6 @@ export class BasicCrawler<
             }
         }
     }
-}
-
-export interface CreateContextOptions {
-    request: Request;
-    session: ISession;
-    proxyInfo?: ProxyInfo;
 }
 
 export interface CrawlerAddRequestsOptions extends AddRequestsBatchedOptions, EnqueueUrlsOptions {}

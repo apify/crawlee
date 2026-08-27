@@ -5,13 +5,10 @@ import type { AddressInfo } from 'node:net';
 import path from 'node:path';
 import util from 'node:util';
 
-import {
-    BrowserLauncher,
-    Configuration,
-    launchPlaywright,
-    PlaywrightLauncher,
-    serviceLocator,
-} from '@crawlee/playwright';
+import { BrowserLauncher, Configuration, launchPlaywright, serviceLocator } from '@crawlee/playwright';
+// `PlaywrightLauncher` is intentionally not part of the package's public exports; these tests need the
+// class itself to inspect `createBrowserPlugin()` without launching a browser.
+import { PlaywrightLauncher } from '../../../packages/playwright-crawler/src/internals/playwright-launcher.js';
 // @ts-expect-error no types
 import basicAuthParser from 'basic-auth-parser';
 import type { Browser, BrowserType } from 'playwright';

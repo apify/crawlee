@@ -1,29 +1,58 @@
-import type { KeyValueStore } from '@crawlee/core';
-import { ErrorSnapshotter } from '@crawlee/core';
+import type { CrawlingContext } from '@crawlee/core';
+import { ErrorTracker } from '@crawlee/core';
 import { describe, expect, test, vitest } from 'vitest';
 
-describe('ErrorSnapshotter', () => {
-    test('saveHTMLSnapshot returns the record key it stored the snapshot under', async () => {
-        const snapshotter = new ErrorSnapshotter();
+// `ErrorSnapshotter` is a module-internal collaborator of `ErrorTracker`; it is exercised
+// through the only public entry point that reaches it - `new ErrorTracker({ saveErrorSnapshots: true })`.
+describe('error snapshotter', () => {
+    // All grouping disabled, so the captured snapshot URLs land directly on `tracker.result`.
+    const newTracker = () =>
+        new ErrorTracker({
+            saveErrorSnapshots: true,
+            showStackTrace: false,
+            showErrorCode: false,
+            showErrorName: false,
+            showErrorMessage: false,
+        });
+
+    const contextWithStore = (keyValueStore: unknown) =>
+        ({
+            body: '<html></html>',
+            getKeyValueStore: async () => keyValueStore,
+        }) as unknown as CrawlingContext;
+
+    test('stores the HTML snapshot under the record key it resolves the public URL for', async () => {
         const setValue = vitest.fn(async () => {});
-        const keyValueStore = { setValue } as unknown as KeyValueStore;
+        const getPublicUrl = vitest.fn(async (key: string) => `https://example.com/${key}`);
+        const tracker = newTracker();
 
-        const key = await snapshotter.saveHTMLSnapshot('<html></html>', keyValueStore, 'ERROR_SNAPSHOT_foo');
+        await tracker.addAsync(new Error('some error'), contextWithStore({ setValue, getPublicUrl }));
 
-        expect(setValue).toHaveBeenCalledWith('ERROR_SNAPSHOT_foo', '<html></html>', { contentType: 'text/html' });
-        // The returned value must be the actual record key (no appended extension),
-        // as it is fed to `keyValueStore.getPublicUrl()`.
-        expect(key).toBe('ERROR_SNAPSHOT_foo');
+        expect(setValue).toHaveBeenCalledTimes(1);
+        const [key, value, options] = setValue.mock.calls[0] as unknown as [string, string, unknown];
+        expect(key).toMatch(/^ERROR_SNAPSHOT/);
+        expect(value).toBe('<html></html>');
+        expect(options).toEqual({ contentType: 'text/html' });
+        // The public URL must be resolved for the actual record key (no appended extension).
+        expect(getPublicUrl).toHaveBeenCalledWith(key);
+        expect(tracker.result.firstErrorHtmlUrl).toBe(`https://example.com/${key}`);
     });
 
-    test('saveHTMLSnapshot returns undefined when storing fails', async () => {
-        const snapshotter = new ErrorSnapshotter();
-        const keyValueStore = {
-            setValue: async () => {
-                throw new Error('nope');
-            },
-        } as unknown as KeyValueStore;
+    test('records no snapshot URL when storing fails', async () => {
+        const getPublicUrl = vitest.fn(async (key: string) => `https://example.com/${key}`);
+        const tracker = newTracker();
 
-        await expect(snapshotter.saveHTMLSnapshot('<html></html>', keyValueStore, 'KEY')).resolves.toBeUndefined();
+        await tracker.addAsync(
+            new Error('some error'),
+            contextWithStore({
+                setValue: async () => {
+                    throw new Error('nope');
+                },
+                getPublicUrl,
+            }),
+        );
+
+        expect(getPublicUrl).not.toHaveBeenCalled();
+        expect(tracker.result.firstErrorHtmlUrl).toBeUndefined();
     });
 });
