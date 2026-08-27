@@ -61,8 +61,8 @@ reachable but unsupported. Both are legitimate; they answer different questions.
 
 - Mechanically, the reports are API Extractor's **`public`** variant, so `@internal`
   (`@alpha`/`@beta` too) is excluded. `@ignore` is a TypeDoc-era tag that API Extractor does
-  not act on, so the generator rewrites it to `@internal` before extraction — see `IGNORE_TAG`
-  in `scripts/api-extractor/run.ts`. It rewrites nothing else, which is worth knowing:
+  not act on, so the generator rewrites it to `@internal` before extraction. It rewrites
+  nothing else, which is worth knowing:
   **`@private` is inert here.** A member whose only tag is `@private` stays in the report and
   stays promised, so it is not a way to de-promise anything — use `@internal`.
   The generator stages the variant as `<name>.public.api.md` under `temp/` and promotes it
@@ -97,7 +97,8 @@ reachable but unsupported. Both are legitimate; they answer different questions.
   files) and is git-ignored.
 - `@crawlee/cli` and `@crawlee/templates` are deliberately excluded — they are tooling
   (a CLI binary and project scaffolding), not an importable API where we promise BC. The
-  exclude list lives in `scripts/api-extractor/run.ts`.
+  exclusions are passed as `--exclude` by the `api:check` / `api:extract` scripts in
+  `package.json`.
 - `crawlee.api.md` looks almost empty — eleven `export *` lines and no declarations — and that
   is correct rather than a gap. The meta-package re-exports; it declares nothing of its own.
   Everything it hands you belongs to a constituent package and is already inventoried there, so
@@ -113,11 +114,13 @@ reachable but unsupported. Both are legitimate; they answer different questions.
   drop out of the barrel. Several hundred names are re-exported by more than one constituent
   today; every one of them is a single symbol reached by several paths, which is fine and
   raises nothing.
-- The generator lives in `scripts/api-extractor/`. It temporarily strips the build's
-  injected `// @ts-ignore` comment lines from the `.d.ts` files (restoring them
-  afterwards) because API Extractor's AST walker trips over some of them; a small number
-  of packages additionally need a sanitized-mirror fallback. See the comments in
-  `scripts/api-extractor/run.ts` for details.
+- The generator lives in its own repository,
+  [`apify/api-extractor-report`](https://github.com/apify/api-extractor-report), and runs via
+  `pnpm dlx` from the `api:check` / `api:extract` scripts — it is not vendored here, so its
+  behaviour is pinned by that repository rather than by this one. It temporarily strips the
+  build's injected `// @ts-ignore` comment lines from the `.d.ts` files (restoring them
+  afterwards) because API Extractor's AST walker trips over some of them; a small number of
+  packages additionally need a sanitized-mirror fallback.
 - **The reports are an inventory of what we promise, not a measure of how much code is
   reachable.** A symbol is in a report because we have committed to not breaking it; a symbol
   is absent because we have not. Absent does *not* mean inaccessible, and making it
