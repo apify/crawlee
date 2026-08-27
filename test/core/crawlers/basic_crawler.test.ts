@@ -588,6 +588,95 @@ describe('BasicCrawler', () => {
             expect(skippedRequests[0]).toStrictEqual({ url: 'https://example.com/1/', reason: 'depth' });
             expect(skippedRequests[1]).toStrictEqual({ url: 'https://example.com/2/', reason: 'depth' });
         });
+
+        test('reports filtered requests discovered in background batches', async () => {
+            const onSkippedRequest = vitest.fn();
+            const crawler = new BasicCrawler({
+                requestHandler: async () => {},
+                onSkippedRequest,
+            });
+
+            const inScope = Array.from({ length: 2_000 }, (_, i) => `https://example.com/ok/${i}`);
+            const outOfScope = Array.from({ length: 50 }, (_, i) => `https://other.com/no/${i}`);
+
+            const { addedRequests, waitForAllRequestsToBeAdded } = await crawler.addRequests(
+                [...inScope, ...outOfScope],
+                {
+                    include: ['https://example.com/**'],
+                },
+            );
+            const backgroundAddedRequests = await waitForAllRequestsToBeAdded;
+
+            expect(addedRequests).toHaveLength(1_000);
+            expect(backgroundAddedRequests).toHaveLength(1_000);
+            expect(onSkippedRequest.mock.calls.map(([skipped]) => skipped)).toEqual(
+                outOfScope.map((url) => ({ url, reason: 'filters' })),
+            );
+        });
+
+        test('background onSkippedRequest rejection rejects the background completion promise', async () => {
+            const crawler = new BasicCrawler({
+                requestHandler: async () => {},
+                onSkippedRequest: async () => {
+                    throw new Error('onSkippedRequest failed');
+                },
+            });
+
+            const { addedRequests, waitForAllRequestsToBeAdded } = await crawler.addRequests(
+                [
+                    'https://example.com/1',
+                    'https://example.com/2',
+                    'https://example.com/3',
+                    'https://example.com/4',
+                    'https://other.com/no',
+                ],
+                {
+                    batchSize: 2,
+                    waitBetweenBatchesMillis: 0,
+                    include: ['https://example.com/**'],
+                },
+            );
+
+            expect(addedRequests).toHaveLength(2);
+            await expect(waitForAllRequestsToBeAdded).rejects.toThrow('onSkippedRequest failed');
+        });
+
+        test('drains foreground and background robots.txt skips exactly once', async () => {
+            const onSkippedRequest = vitest.fn();
+            const crawler = new BasicCrawler({
+                requestHandler: async () => {},
+                onSkippedRequest,
+            });
+            vitest
+                .spyOn(crawler as any, 'isAllowedBasedOnRobotsTxtFile')
+                .mockImplementation(async (url: unknown) => !String(url).includes('/denied'));
+            const warningSpy = vitest.spyOn(crawler.log, 'warning');
+
+            const foregroundDenied = 'https://example.com/denied/foreground';
+            const backgroundDenied = 'https://example.com/denied/background';
+            const { waitForAllRequestsToBeAdded } = await crawler.addRequests(
+                [
+                    foregroundDenied,
+                    'https://example.com/1',
+                    'https://example.com/2',
+                    'https://example.com/3',
+                    'https://example.com/4',
+                    backgroundDenied,
+                ],
+                { batchSize: 2, waitBetweenBatchesMillis: 0 },
+            );
+            await waitForAllRequestsToBeAdded;
+
+            expect(onSkippedRequest.mock.calls.map(([skipped]) => skipped)).toEqual([
+                { url: foregroundDenied, reason: 'robotsTxt' },
+                { url: backgroundDenied, reason: 'robotsTxt' },
+            ]);
+            expect(
+                warningSpy.mock.calls
+                    .filter(([message]) => message.includes('robots.txt'))
+                    .map(([, details]) => details),
+            ).toEqual([{ skipped: [foregroundDenied] }, { skipped: [backgroundDenied] }]);
+        });
     });
 
     it('addCrawlDepthRequestGenerator() should generate requests with maxCrawlDepth', async () => {

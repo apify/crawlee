@@ -2101,6 +2101,38 @@ export class BasicCrawler<
 
         const allSkipped: { url: string; reason: SkippedRequestReason }[] = [];
 
+        const reportSkippedRequests = async () => {
+            const skippedRequests = allSkipped.splice(0);
+            if (skippedRequests.length === 0) {
+                return;
+            }
+
+            const skippedRobotsUrls = skippedRequests.filter((s) => s.reason === 'robotsTxt').map((s) => s.url);
+            if (skippedRobotsUrls.length > 0) {
+                this.log.warning(
+                    `Some requests were skipped because they were disallowed based on the robots.txt file`,
+                    { skipped: skippedRobotsUrls },
+                );
+            }
+
+            // Only log the limit message when an explicit `limit` was passed (not the internal
+            // `maxRequestsPerCrawl`-derived one), and only once per call.
+            if (options.limit !== undefined && skippedRequests.some((s) => s.reason === 'limit')) {
+                this.log.info(
+                    requestLimit === options.limit
+                        ? `Skipping requests in this call due to the enqueueLinks limit of ${options.limit}.`
+                        : `Skipping requests in this call due to the remaining maxRequestsPerCrawl budget of ${requestLimit}, which is lower than the enqueueLinks limit of ${options.limit}.`,
+                );
+            }
+
+            await Promise.all(
+                skippedRequests.map(async ({ url, reason }) => {
+                    await this.#handleSkippedRequest({ url, reason });
+                    await options.onSkippedRequest?.({ url, reason });
+                }),
+            );
+        };
+
         async function* filteredRequests() {
             for await (const request of requests) {
                 const [requestOptions] = createRequestOptions(
@@ -2178,34 +2210,17 @@ export class BasicCrawler<
             allSkipped.push({ url: typeof request === 'string' ? request : request.url!, reason: 'limit' });
         }
 
-        if (allSkipped.length > 0) {
-            const skippedRobotsUrls = allSkipped.filter((s) => s.reason === 'robotsTxt').map((s) => s.url);
-            if (skippedRobotsUrls.length > 0) {
-                this.log.warning(
-                    `Some requests were skipped because they were disallowed based on the robots.txt file`,
-                    { skipped: skippedRobotsUrls },
-                );
-            }
+        await reportSkippedRequests();
 
-            // Only log the limit message when an explicit `limit` was passed (not the internal
-            // `maxRequestsPerCrawl`-derived one), and only once per call.
-            if (options.limit !== undefined && allSkipped.some((s) => s.reason === 'limit')) {
-                this.log.info(
-                    requestLimit === options.limit
-                        ? `Skipping requests in this call due to the enqueueLinks limit of ${options.limit}.`
-                        : `Skipping requests in this call due to the remaining maxRequestsPerCrawl budget of ${requestLimit}, which is lower than the enqueueLinks limit of ${options.limit}.`,
-                );
-            }
+        const waitForAllRequestsToBeAdded = result.waitForAllRequestsToBeAdded.then(async (addedRequests) => {
+            await reportSkippedRequests();
+            return addedRequests;
+        });
+        // Keep callback failures observable to callers that await this promise without emitting an unhandled rejection
+        // when callers intentionally leave background additions running, matching `drainRequestBatches` behavior.
+        void waitForAllRequestsToBeAdded.catch(() => {});
 
-            await Promise.all(
-                allSkipped.map(async ({ url, reason }) => {
-                    await this.#handleSkippedRequest({ url, reason });
-                    await options.onSkippedRequest?.({ url, reason });
-                }),
-            );
-        }
-
-        return result;
+        return { ...result, waitForAllRequestsToBeAdded };
     }
 
     /**
