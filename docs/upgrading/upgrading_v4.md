@@ -556,6 +556,10 @@ const crawler = new CheerioCrawler({
 
 `extendContext` runs **before navigation**, so the members it returns are visible to the `preNavigationHooks`, `postNavigationHooks`, and the `requestHandler` alike. As a consequence, the `context` passed to `extendContext` is the pre-navigation context and does **not** include navigation-dependent members (e.g. `page`, `response`, `$`, `body`). If your extension needs to read those, do it in a `postNavigationHook` or the `requestHandler` instead.
 
+#### Crawling context no longer includes `closeCookieModals`
+
+The `closeCookieModals` context helper is removed from the Playwright and Puppeteer crawlers, along with the `playwrightUtils.closeCookieModals` / `puppeteerUtils.closeCookieModals` functions and the optional `idcac-playwright` peer dependency they were built on. That package is unmaintained and has licensing problems; see [apify/crawlee#3987](https://github.com/apify/crawlee/issues/3987) for the search for a replacement. Until then, inject a consent-handling library of your choice — e.g. [`@duckduckgo/autoconsent`](https://github.com/duckduckgo/autoconsent/) — from a `postNavigationHook`.
+
 ### Crawling context is strictly typed
 
 Previously, the crawling context extended a `Record` type, allowing to access any property. This was changed to a strict type, which means that you can only access properties that are defined in the context.
@@ -2123,6 +2127,7 @@ The full list of removed exports and members, for ctrl-F purposes. Where a repla
 - `FileDownloadOptions.streamHandler` - streaming should now be handled directly in the `requestHandler` instead
 - `playwrightUtils.registerUtilsToContext` and `puppeteerUtils.registerUtilsToContext` - this is now added to the context via `ContextPipeline` composition
 - `context.blockResources` and `context.cacheResponses` — no longer attached to the crawling context. The functionality is still available as deprecated functions, accessible both via the `puppeteerUtils` namespace (`puppeteerUtils.blockResources`, `puppeteerUtils.cacheResponses`) and as top-level exports from `@crawlee/puppeteer` (`import { blockResources, cacheResponses } from '@crawlee/puppeteer'`). Unlike the old context helpers, these take an explicit `page` argument — e.g. `await blockResources(page)`. Both are `@deprecated` and will be removed in a future release, so migrate away from them.
+- `context.closeCookieModals`, `playwrightUtils.closeCookieModals` and `puppeteerUtils.closeCookieModals` — removed along with the optional `idcac-playwright` peer dependency (see [Crawling context no longer includes `closeCookieModals`](#crawling-context-no-longer-includes-closecookiemodals))
 - `Configuration.systemInfoV2` / `CRAWLEE_SYSTEM_INFO_V2` environment variable — the v2 behavior is now the default (see [Available resource detection](#available-resource-detection))
 - `checkAndSerialize` and `chunkBySize` functions (from `@crawlee/core`) — value (de)serialization now lives in the `KeyValueStore` frontend; use `serializeValue` / `parseValue` (see [`maybeStringify` is removed](#maybestringify-is-removed))
 - `BASIC_CRAWLER_TIMEOUT_BUFFER_SECS` constant (from `@crawlee/basic`) — was an internal timeout buffer, no longer exported
