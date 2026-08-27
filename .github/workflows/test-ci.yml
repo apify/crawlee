@@ -18,6 +18,9 @@ jobs:
         name: Build & Test
         if: (!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, 'docs:'))
         runs-on: ${{ matrix.os }}
+        # A green run is ~5-10 min; without a cap a flaky test that leaks a handle hangs to the
+        # 6h default and wastes a full runner. 30 min is a wide margin that still fails fast.
+        timeout-minutes: 30
 
         strategy:
             fail-fast: false

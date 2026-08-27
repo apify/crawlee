@@ -1,3 +1,4 @@
+import type { RequestLoaderStatus } from '@crawlee/core';
 import {
     log,
     MemoryStorageBackend,
@@ -6,6 +7,7 @@ import {
     RequestManagerTandem,
     RequestQueue,
     serviceLocator,
+    ThrottlingRequestManager,
 } from '@crawlee/core';
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from 'vitest';
 
@@ -142,62 +144,38 @@ describe('RequestManagerTandem', () => {
         await expect(tandem.getTotalCount()).resolves.toBe(3);
     });
 
-    test('isFinished returns true only when both list and queue are finished', async () => {
+    test('readiness joins the loader and the manager, and the manager never masks the loader', async () => {
         const requestList = await RequestList.open(null, [{ url: 'https://example.com/1' }]);
         const requestQueue = await RequestQueue.open();
 
         const tandem = new RequestManagerTandem(requestList, requestQueue);
 
-        // Mock the isFinished methods
-        vi.spyOn(requestList, 'isFinished').mockResolvedValue(false);
-        vi.spyOn(requestQueue, 'isFinished').mockResolvedValue(false);
+        const listReadiness = vi.spyOn(requestList, 'checkReadiness');
+        const queueReadiness = vi.spyOn(requestQueue, 'checkReadiness');
 
-        // Neither is finished, so tandem should not be finished
-        expect(await tandem.isFinished()).toBe(false);
+        const readiness = async (list: RequestLoaderStatus, queue: RequestLoaderStatus) => {
+            listReadiness.mockResolvedValue(list);
+            queueReadiness.mockResolvedValue(queue);
+            return tandem.checkReadiness();
+        };
 
-        // Only list is finished
-        vi.spyOn(requestList, 'isFinished').mockResolvedValue(true);
-        vi.spyOn(requestQueue, 'isFinished').mockResolvedValue(false);
-        expect(await tandem.isFinished()).toBe(false);
+        await expect(readiness({ status: 'ready' }, { status: 'finished' })).resolves.toEqual({ status: 'ready' });
+        await expect(readiness({ status: 'finished' }, { status: 'ready' })).resolves.toEqual({ status: 'ready' });
 
-        // Only queue is finished
-        vi.spyOn(requestList, 'isFinished').mockResolvedValue(false);
-        vi.spyOn(requestQueue, 'isFinished').mockResolvedValue(true);
-        expect(await tandem.isFinished()).toBe(false);
+        // A backoff on the manager side must not freeze the loader's unrelated requests for the length of it.
+        await expect(readiness({ status: 'ready' }, { status: 'waiting', readyAt: 42 })).resolves.toEqual({
+            status: 'ready',
+        });
 
-        // Both are finished
-        vi.spyOn(requestList, 'isFinished').mockResolvedValue(true);
-        vi.spyOn(requestQueue, 'isFinished').mockResolvedValue(true);
-        expect(await tandem.isFinished()).toBe(true);
-    });
+        await expect(readiness({ status: 'waiting' }, { status: 'finished' })).resolves.toEqual({ status: 'waiting' });
+        await expect(readiness({ status: 'finished' }, { status: 'waiting', readyAt: 42 })).resolves.toEqual({
+            status: 'waiting',
+            readyAt: 42,
+        });
 
-    test('isEmpty returns true only when both list and queue are empty', async () => {
-        const requestList = await RequestList.open(null, [{ url: 'https://example.com/1' }]);
-        const requestQueue = await RequestQueue.open();
-
-        const tandem = new RequestManagerTandem(requestList, requestQueue);
-
-        // Mock the isEmpty methods
-        vi.spyOn(requestList, 'isEmpty').mockResolvedValue(false);
-        vi.spyOn(requestQueue, 'isEmpty').mockResolvedValue(false);
-
-        // Neither is empty, so tandem should not be empty
-        expect(await tandem.isEmpty()).toBe(false);
-
-        // Only list is empty
-        vi.spyOn(requestList, 'isEmpty').mockResolvedValue(true);
-        vi.spyOn(requestQueue, 'isEmpty').mockResolvedValue(false);
-        expect(await tandem.isEmpty()).toBe(false);
-
-        // Only queue is empty
-        vi.spyOn(requestList, 'isEmpty').mockResolvedValue(false);
-        vi.spyOn(requestQueue, 'isEmpty').mockResolvedValue(true);
-        expect(await tandem.isEmpty()).toBe(false);
-
-        // Both are empty
-        vi.spyOn(requestList, 'isEmpty').mockResolvedValue(true);
-        vi.spyOn(requestQueue, 'isEmpty').mockResolvedValue(true);
-        expect(await tandem.isEmpty()).toBe(true);
+        await expect(readiness({ status: 'finished' }, { status: 'finished' })).resolves.toEqual({
+            status: 'finished',
+        });
     });
 
     test('drops the request and marks it handled on the loader when transfer fails', async () => {
@@ -281,8 +259,76 @@ describe('RequestManagerTandem', () => {
         expect(factory).toHaveBeenCalledTimes(1);
 
         // Subsequent operations reuse the same memoized queue.
-        await tandem.isFinished();
+        await tandem.checkReadiness();
         expect(factory).toHaveBeenCalledTimes(1);
+    });
+
+    test('forwards the pacing signals to the manager it wraps', async () => {
+        const requestList = await RequestList.open(null, [{ url: 'https://example.com/1' }]);
+        const throttler = new ThrottlingRequestManager({
+            inner: await RequestQueue.open(),
+            domains: ['example.com'],
+        });
+
+        const tandem = new RequestManagerTandem(requestList, throttler);
+
+        expect(
+            tandem.recordPacingSignal({
+                url: 'https://example.com/1',
+                reason: 'minInterval',
+                intervalMs: 5_000,
+                scope: 'hostname',
+            }),
+        ).toBe(true);
+        expect(tandem.recordPacingSignal({ url: 'https://example.com/1', reason: 'rateLimited', waitMs: 1_000 })).toBe(
+            true,
+        );
+
+        // A domain the pacer does not cover comes back as unpaced rather than silently swallowed, so the
+        // crawler can warn about it.
+        expect(
+            tandem.recordPacingSignal({
+                url: 'https://other.com/1',
+                reason: 'minInterval',
+                intervalMs: 5_000,
+                scope: 'hostname',
+            }),
+        ).toBe(false);
+        expect(tandem.recordPacingSignal({ url: 'https://other.com/1', reason: 'rateLimited', waitMs: 1_000 })).toBe(
+            false,
+        );
+
+        // ...and the pacer acted on the signals rather than merely accepting them.
+        await expect(throttler.checkReadiness()).resolves.toMatchObject({ status: 'waiting' });
+
+        // A floor covering every domain reaches it the same way, and this pacer covers only `example.com`.
+        expect(() =>
+            tandem.recordPacingSignal({ reason: 'minIntervalEverywhere', intervalMs: 5_000, scope: 'hostname' }),
+        ).toThrow(/domains: 'all'/);
+    });
+
+    test('reports the pacing signals as unhandled when the manager cannot pace', async () => {
+        const requestList = await RequestList.open(null, [{ url: 'https://example.com/1' }]);
+        const tandem = new RequestManagerTandem(requestList, await RequestQueue.open());
+
+        expect(tandem.recordPacingSignal({ url: 'https://example.com/1', reason: 'rateLimited', waitMs: 1_000 })).toBe(
+            false,
+        );
+        expect(
+            tandem.recordPacingSignal({
+                url: 'https://example.com/1',
+                reason: 'minInterval',
+                intervalMs: 5_000,
+                scope: 'hostname',
+            }),
+        ).toBe(false);
+        expect(
+            tandem.recordPacingSignal({
+                reason: 'minIntervalEverywhere',
+                intervalMs: 5_000,
+                scope: 'registrableDomain',
+            }),
+        ).toBe(false);
     });
 
     test('persistState forwards to the read-only loader', async () => {
