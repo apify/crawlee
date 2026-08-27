@@ -1637,7 +1637,7 @@ The sub-backend interfaces (`DatasetBackend`, `KeyValueStoreBackend`, `RequestQu
 
 **`RequestQueueBackend`:**
 
-The request queue backend was reduced from 12 methods to 11. The distributed-locking protocol (`listAndLockHead` → `prolongRequestLock` → `deleteRequestLock`) and the queue-head/consistency bookkeeping that used to live in the `RequestQueue` frontend have been removed from the interface; coordinating multiple clients accessing the same queue (e.g. request locking on the Apify platform) is now an internal concern of the backend implementation.
+The request queue backend still has 12 methods, but its surface was reshaped. The frontend-owned distributed-locking protocol (`listAndLockHead` → `prolongRequestLock` → `deleteRequestLock`) was removed; only an optional per-request `prolongRequestLock` hook remains for locking backends. Queue-head and consistency bookkeeping are now internal concerns of the backend implementation.
 
 | Before (v3) | After (v4) |
 |---|---|
