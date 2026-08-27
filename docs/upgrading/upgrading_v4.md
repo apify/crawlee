@@ -558,7 +558,7 @@ const crawler = new CheerioCrawler({
 
 #### Crawling context no longer includes `closeCookieModals`
 
-The `closeCookieModals` context helper is removed from the Playwright and Puppeteer crawlers, along with the `playwrightUtils.closeCookieModals` / `puppeteerUtils.closeCookieModals` functions and the optional `idcac-playwright` peer dependency they were built on. That package is unmaintained and has licensing problems; see [apify/crawlee#3987](https://github.com/apify/crawlee/issues/3987) for the search for a replacement. Until then, handle cookie consent with a library of your choice from a `postNavigationHook`.
+The `closeCookieModals` context helper is removed from the Playwright and Puppeteer crawlers, along with the `playwrightUtils.closeCookieModals` / `puppeteerUtils.closeCookieModals` functions and the optional `idcac-playwright` peer dependency they were built on.
 
 ### Crawling context is strictly typed
 
