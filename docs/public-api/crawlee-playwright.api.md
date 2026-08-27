@@ -147,9 +147,6 @@ interface BlockRequestsOptions {
 type ClickOptions = Parameters<Page['click']>[1];
 
 // @public (undocumented)
-function closeCookieModals(page: Page): Promise<void>;
-
-// @public (undocumented)
 type CompiledScriptFunction = (params: CompiledScriptParams) => Promise<unknown>;
 
 // @public (undocumented)
@@ -296,7 +293,6 @@ declare namespace playwrightClickElements {
 // @public (undocumented)
 interface PlaywrightContextUtils {
     blockRequests(options?: BlockRequestsOptions): Promise<void>;
-    closeCookieModals(): Promise<void>;
     compileScript(scriptString: string, ctx?: Dictionary): CompiledScriptFunction;
     enqueueLinksByClickingElements(options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestManager'>): Promise<BatchAddRequestsResult>;
     handleCloudflareChallenge(options?: HandleCloudflareChallengeOptions): Promise<Response_2 | undefined>;
@@ -364,7 +360,6 @@ declare namespace playwrightUtils {
         infiniteScroll,
         saveSnapshot,
         parseWithCheerio,
-        closeCookieModals,
         InjectFileOptions,
         BlockRequestsOptions,
         PlaywrightDirectNavigationOptions as DirectNavigationOptions,
