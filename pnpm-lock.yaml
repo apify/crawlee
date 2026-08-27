@@ -790,9 +790,6 @@ importers:
       '@crawlee/utils':
         specifier: workspace:*
         version: link:../utils
-      idcac-playwright:
-        specifier: '*'
-        version: 0.2.0
       import-local:
         specifier: ^3.2.0
         version: 3.2.0
@@ -997,9 +994,6 @@ importers:
       cheerio:
         specifier: ^1.0.0
         version: 1.2.0
-      idcac-playwright:
-        specifier: ^0.2.0
-        version: 0.2.0
       jquery:
         specifier: ^3.7.1
         version: 3.7.1
@@ -1051,9 +1045,6 @@ importers:
       devtools-protocol:
         specifier: '*'
         version: 0.0.1666840
-      idcac-playwright:
-        specifier: ^0.2.0
-        version: 0.2.0
       jquery:
         specifier: ^3.7.1
         version: 3.7.1
@@ -8329,9 +8320,6 @@ packages:
     engines: {node: ^10 || ^12 || >= 14}
     peerDependencies:
       postcss: ^8.1.0
-
-  idcac-playwright@0.2.0:
-    resolution: {integrity: sha512-qJH7vQgq3TKnhea/3Z3jlEJL7NC9vK9BkLClAzQHVRepBtq1fWfSI4fSuMKcPq7nDUTTlIEIS+vU+GRwwR1BXw==}
 
   identifier-regex@1.0.1:
     resolution: {integrity: sha512-ZrYyM0sozNPZlvBvE7Oq9Bn44n0qKGrYu5sQ0JzMUnjIhpgWYE2JB6aBoFwEYdPjqj7jPyxXTMJiHDOxDfd8yw==}
@@ -21960,8 +21948,6 @@ snapshots:
   icss-utils@5.1.0(postcss@8.5.26):
     dependencies:
       postcss: 8.5.26
-
-  idcac-playwright@0.2.0: {}
 
   identifier-regex@1.0.1:
     dependencies:
