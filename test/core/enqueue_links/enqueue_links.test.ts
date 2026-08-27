@@ -445,6 +445,22 @@ describe('enqueueLinks()', () => {
             ]);
         });
 
+        test('ignores an explicitly undefined baseUrl and keeps the resolved one', async () => {
+            const { enqueued, requestQueue } = await createRequestQueueMock();
+            await runCheerioEnqueueLinks(
+                { strategy: EnqueueStrategy.SameDomain, baseUrl: undefined },
+                { requestManager: requestQueue },
+            );
+
+            expect(enqueued.map((r) => r.url)).toEqual([
+                'https://example.com/a/b/first',
+                'https://example.com/a/second',
+                'https://example.com/a/b/third',
+                'https://example.com/x/absolutepath',
+                'https://example.com/y/relativepath',
+            ]);
+        });
+
         test('correctly resolves relative URLs with the strategy of all', async () => {
             const { enqueued, requestQueue } = await createRequestQueueMock();
             await runCheerioEnqueueLinks(
