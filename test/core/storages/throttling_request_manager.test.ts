@@ -278,9 +278,12 @@ describe('ThrottlingRequestManager', () => {
         await inner.addRequest({ url: 'https://example.com/held-back' });
         await inner.addRequest({ url: 'https://other.com/free' });
 
-        expect(manager.recordPacingSignal({ url: 'https://example.com/held-back', reason: 'rateLimited' })).toBe(true);
+        const held = (await manager.fetchNextRequest())!;
+        expect(held.url).toBe('https://example.com/held-back');
+        manager.recordPacingSignal({ url: held.url, reason: 'rateLimited' });
+        await manager.reclaimRequest(held);
 
-        // The throttled one is at the head of the queue, and skipping it must not mean skipping the queue.
+        // The reclaimed request is still ahead of the other one, and skipping it must not mean skipping the queue.
         const request = await manager.fetchNextRequest();
         expect(request!.url).toBe('https://other.com/free');
     });
