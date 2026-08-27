@@ -72,7 +72,7 @@ async function createRequestQueueMock(seedUrl = 'https://example.com') {
 // `enqueueLinks()`'s hostname/domain-based strategies see whatever start URL a test navigates to,
 // regardless of where the content is actually served from.
 class FixtureHttpClient extends BaseHttpClient {
-    constructor(private readonly html: string) {
+    constructor(protected readonly html: string) {
         super();
     }
 
@@ -412,6 +412,36 @@ describe('enqueueLinks()', () => {
                 'http://www.absolute.com/x/absolutepath',
                 'http://www.absolute.com/removethis/y/relativepath',
                 'http://example.absolute.com/hello',
+            ]);
+        });
+
+        test('keeps filtering by the original domain with the strategy of same-domain after an off-domain redirect', async () => {
+            const { enqueued, requestQueue } = await createRequestQueueMock();
+            // Serves the fixture HTML while reporting the load as if it had redirected off-domain.
+            const redirectingHttpClient = new (class extends FixtureHttpClient {
+                override async sendRequest(): Promise<Response> {
+                    return new ResponseWithUrl(this.html, {
+                        url: 'https://another.com/',
+                        status: 200,
+                        headers: { 'content-type': 'text/html; charset=utf-8' },
+                    });
+                }
+            })(HTML);
+
+            const crawler = new CheerioCrawler({
+                requestManager: requestQueue,
+                httpClient: redirectingHttpClient,
+                requestHandler: async ({ request, enqueueLinks }) => {
+                    if (request.url !== 'https://example.com') return;
+                    await enqueueLinks({ strategy: EnqueueStrategy.SameDomain });
+                },
+            });
+            await crawler.run(['https://example.com']);
+
+            expect(enqueued.map((r) => r.url)).toEqual([
+                'https://example.com/a/b/first',
+                'https://example.com/a/second',
+                'https://example.com/a/b/third',
             ]);
         });
 
