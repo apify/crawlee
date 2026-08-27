@@ -36,13 +36,13 @@ export type { CrawleeLogger, CrawleeLoggerOptions };
  * ```
  */
 export abstract class BaseCrawleeLogger implements CrawleeLogger {
-    // kept as TS-private: the adaptive crawler's log proxy calls non-intercepted methods with `this === proxy`,
-    // where `#`-field access would throw at runtime
-    private options: CrawleeLoggerOptions;
-    private readonly warningsLogged = new Set<string>();
+    // Note: If wrapping logger in a Proxy, unbound methods calling #-fields throw TypeError
+    // unless bound to the target (see createLogProxy in adaptive-playwright-crawler.ts).
+    #options: CrawleeLoggerOptions;
+    readonly #warningsLogged = new Set<string>();
 
     constructor(options: Partial<CrawleeLoggerOptions> = {}) {
-        this.options = options;
+        this.#options = options;
     }
 
     /**
@@ -65,11 +65,11 @@ export abstract class BaseCrawleeLogger implements CrawleeLogger {
     protected abstract createChild(options: Partial<CrawleeLoggerOptions>): CrawleeLogger;
 
     getOptions(): CrawleeLoggerOptions {
-        return this.options;
+        return this.#options;
     }
 
     setOptions(options: Partial<CrawleeLoggerOptions>): void {
-        this.options = { ...this.options, ...options };
+        this.#options = { ...this.#options, ...options };
     }
 
     child(options: Partial<CrawleeLoggerOptions>): CrawleeLogger {
@@ -97,8 +97,8 @@ export abstract class BaseCrawleeLogger implements CrawleeLogger {
     }
 
     warningOnce(message: string): void {
-        if (!this.warningsLogged.has(message)) {
-            this.warningsLogged.add(message);
+        if (!this.#warningsLogged.has(message)) {
+            this.#warningsLogged.add(message);
             this.warning(message);
         }
     }
@@ -127,20 +127,19 @@ export abstract class BaseCrawleeLogger implements CrawleeLogger {
  * Users who want to use a different logging library should implement {@apilink BaseCrawleeLogger} directly.
  */
 export class ApifyLogAdapter extends BaseCrawleeLogger {
-    constructor(
-        // kept as a TS-private parameter property: reached through the adaptive crawler's log proxy, see above
-        private readonly apifyLog: Log,
-        options?: Partial<CrawleeLoggerOptions>,
-    ) {
+    readonly #apifyLog: Log;
+
+    constructor(apifyLog: Log, options?: Partial<CrawleeLoggerOptions>) {
         super(options ?? {});
+        this.#apifyLog = apifyLog;
     }
 
     logWithLevel(level: number, message: string, data?: Record<string, unknown>): void {
-        this.apifyLog.internal(level as LogLevel, message, data);
+        this.#apifyLog.internal(level as LogLevel, message, data);
     }
 
     protected createChild(options: Partial<CrawleeLoggerOptions>): CrawleeLogger {
-        return new ApifyLogAdapter(this.apifyLog.child({ prefix: options.prefix ?? null }), {
+        return new ApifyLogAdapter(this.#apifyLog.child({ prefix: options.prefix ?? null }), {
             ...this.getOptions(),
             ...options,
         });

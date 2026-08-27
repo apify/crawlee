@@ -36,7 +36,7 @@ export default defineConfig({
         // Enforces the naming convention from #3108: no `_`-prefixed members; private
         // properties use native `#` fields instead. The allow list covers the template-method
         // hooks that collide with their public wrappers, platform contracts (`Readable._read`),
-        // and documented internals (`__crawlee`, `_currentConcurrency`).
+        // and documented internals (`__crawlee`, `__purged`).
         'no-underscore-dangle': [
             'error',
             {
@@ -50,7 +50,6 @@ export default defineConfig({
                     '_getCookies',
                     '_setCookies',
                     '_read',
-                    '_currentConcurrency',
                     '__crawlee',
                     '__purged',
                     '__originalHistory__',

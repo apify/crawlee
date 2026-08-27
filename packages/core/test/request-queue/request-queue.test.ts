@@ -41,45 +41,71 @@ describe('RequestQueue#fetchNextRequest delegates to the client', () => {
     });
 });
 
-describe('RequestQueue#isEmpty and #isFinished treat in-progress requests differently', () => {
+describe('RequestQueue#checkReadiness treats in-progress requests differently from handled ones', () => {
     let queue: RequestQueue;
 
     beforeAll(async () => {
         queue = await makeQueue('is-empty-vs-is-finished', 1);
     });
 
-    test('a fetched (in-progress) request leaves the queue empty but not finished', async () => {
+    test('a fetched (in-progress) request leaves the queue waiting rather than finished', async () => {
         const request = await queue.fetchNextRequest();
         expect(request).not.toBe(null);
 
-        // The fetched request is in progress (locked), not handled. There is nothing left to fetch, so
-        // the queue is empty (`isEmpty` is the "would fetchNextRequest return null" check). It is not
-        // finished though — the in-progress request might still be reclaimed — and that is what prevents
-        // a crawler from shutting down while a request is still being processed.
-        expect(await queue.isEmpty()).toBe(true);
-        expect(await queue.isFinished()).toBe(false);
+        // The in-progress request is locked, not handled, and might still be reclaimed — reporting `waiting`
+        // rather than `finished` is what prevents a crawler from shutting down while it is being processed.
+        expect((await queue.checkReadiness()).status).toBe('waiting');
     });
 
     test('handling the in-progress request finishes the queue', async () => {
         const request = await queue.getRequest('0');
         await queue.markRequestAsHandled(request!);
 
-        expect(await queue.isEmpty()).toBe(true);
-        expect(await queue.isFinished()).toBe(true);
+        expect((await queue.checkReadiness()).status).toBe('finished');
     });
 });
 
-describe('RequestQueue#isFinished waits for background add operations', () => {
-    test('returns false while a background batch is still being added', async () => {
+describe('RequestQueue#checkReadiness waits for background add operations', () => {
+    test('reports waiting while a background batch is still being added', async () => {
         const queue = await makeQueue('is-finished-background');
 
-        // Simulate an in-flight background `addRequestsBatched` operation.
-        // eslint-disable-next-line dot-notation
-        queue['inProgressRequestBatchCount'] = 1;
-        expect(await queue.isFinished()).toBe(false);
+        expect((await queue.checkReadiness()).status).toBe('finished');
 
-        // eslint-disable-next-line dot-notation
-        queue['inProgressRequestBatchCount'] = 0;
-        expect(await queue.isFinished()).toBe(true);
+        let callCount = 0;
+        let resolveBatch!: () => void;
+        const batchBlocked = new Promise<void>((resolve) => {
+            resolveBatch = resolve;
+        });
+
+        const originalAddRequests = queue.addRequests.bind(queue);
+        vitest.spyOn(queue, 'addRequests').mockImplementation(async (...args) => {
+            callCount++;
+            if (callCount > 1) {
+                await batchBlocked;
+            }
+            return originalAddRequests(...args);
+        });
+
+        const result = await queue.addRequestsBatched(
+            [{ url: 'https://example.com/1' }, { url: 'https://example.com/2' }],
+            { batchSize: 1, waitBetweenBatchesMillis: 0 },
+        );
+
+        const req1 = await queue.fetchNextRequest();
+        expect(req1).toBeDefined();
+        await queue.markRequestAsHandled(req1!);
+
+        // The 2nd batch is still in flight in the background.
+        expect((await queue.checkReadiness()).status).toBe('waiting');
+
+        // Unblock the background batch and wait for it to complete.
+        resolveBatch();
+        await result.waitForAllRequestsToBeAdded;
+
+        const req2 = await queue.fetchNextRequest();
+        expect(req2).toBeDefined();
+        await queue.markRequestAsHandled(req2!);
+
+        expect((await queue.checkReadiness()).status).toBe('finished');
     });
 });

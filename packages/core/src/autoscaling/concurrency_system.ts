@@ -222,8 +222,7 @@ export class ConcurrencySystem implements IConcurrencySystem {
     #minConcurrency: number;
     #maxConcurrency: number;
     #desiredConcurrency: number;
-    // kept as TS-private _-prefixed: autoscaled_pool tests write this backing field directly
-    private _currentConcurrency = 0;
+    #currentConcurrency = 0;
     #lastLoggingTime?: number;
     #tasksPerMinute: number[] = Array.from({ length: 60 }, () => 0);
 
@@ -360,7 +359,7 @@ export class ConcurrencySystem implements IConcurrencySystem {
     }
 
     get currentConcurrency(): number {
-        return this._currentConcurrency;
+        return this.#currentConcurrency;
     }
 
     /** Whether the system is currently monitoring load and autoscaling the budget. */
@@ -466,14 +465,14 @@ export class ConcurrencySystem implements IConcurrencySystem {
     hasCapacityForTask(_consumer?: ConcurrencyConsumer): boolean {
         this.warnIfNotRunning();
 
-        if (this._currentConcurrency >= this.#desiredConcurrency) {
+        if (this.#currentConcurrency >= this.#desiredConcurrency) {
             this.log.perf('Task will not run. Desired concurrency achieved.');
             return false;
         }
 
         const currentStatus = this.systemStatus.getCurrentStatus();
         const { isSystemIdle } = currentStatus;
-        if (!isSystemIdle && this._currentConcurrency >= this.#minConcurrency) {
+        if (!isSystemIdle && this.#currentConcurrency >= this.#minConcurrency) {
             this.log.perf(
                 'Task will not be run. System is overloaded.',
                 currentStatus as unknown as Record<string, unknown>,
@@ -512,14 +511,14 @@ export class ConcurrencySystem implements IConcurrencySystem {
             return false;
         }
 
-        this._currentConcurrency++;
+        this.#currentConcurrency++;
         this.#tasksPerMinute[0]++;
         return true;
     }
 
     /** Returns a slot to the shared budget, whoever booked it. */
     registerTaskEnd(_consumer?: ConcurrencyConsumer): void {
-        this._currentConcurrency--;
+        this.#currentConcurrency--;
     }
 
     /**
@@ -542,7 +541,7 @@ export class ConcurrencySystem implements IConcurrencySystem {
         const { isSystemIdle } = systemStatus;
         const weAreNotAtMax = this.#desiredConcurrency < this.#maxConcurrency;
         const minCurrentConcurrency = Math.floor(this.#desiredConcurrency * this.desiredConcurrencyRatio);
-        const weAreReachingDesiredConcurrency = this._currentConcurrency >= minCurrentConcurrency;
+        const weAreReachingDesiredConcurrency = this.#currentConcurrency >= minCurrentConcurrency;
 
         if (isSystemIdle && weAreNotAtMax && weAreReachingDesiredConcurrency) this.scaleUp(systemStatus);
 
@@ -559,7 +558,7 @@ export class ConcurrencySystem implements IConcurrencySystem {
             } else if (now > this.#lastLoggingTime + this.#loggingIntervalMillis) {
                 this.#lastLoggingTime = now;
                 this.log.info('state', {
-                    currentConcurrency: this._currentConcurrency,
+                    currentConcurrency: this.#currentConcurrency,
                     desiredConcurrency: this.#desiredConcurrency,
                     systemStatus,
                 });

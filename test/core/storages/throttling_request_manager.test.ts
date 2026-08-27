@@ -1,8 +1,7 @@
-import type { AddRequestsBatchedResult } from '@crawlee/core';
+import type { AddRequestsBatchedResult, StorageIdentifier, ThrottlingRequestManagerOptions } from '@crawlee/core';
 import {
     KeyValueStore,
     MemoryStorageBackend,
-    PersistentRateLimitError,
     RequestQueue,
     serviceLocator,
     ThrottlingRequestManager,
@@ -126,15 +125,14 @@ describe('ThrottlingRequestManager', () => {
         expect(produced).toBe(10);
     });
 
-    test('addRequestsBatched keeps isFinished false while background batches are landing', async () => {
+    test('addRequestsBatched keeps checkReadiness() from reporting finished while background batches are landing', async () => {
         const inner = await createQueue();
         // Reports itself done the moment each batch lands, so only our own batch bookkeeping can hold the crawl open.
         const eagerlyFinished = {
             ...inner,
             addRequestsBatched: inner.addRequestsBatched.bind(inner),
             getTotalCount: inner.getTotalCount.bind(inner),
-            isEmpty: async () => true,
-            isFinished: async () => true,
+            checkReadiness: async () => ({ status: 'finished' }) as const,
         } as unknown as RequestQueue;
 
         const manager = new ThrottlingRequestManager({ inner: eagerlyFinished, domains: [] });
@@ -146,7 +144,7 @@ describe('ThrottlingRequestManager', () => {
 
         // The inner manager reports itself finished as soon as its own batch lands, but ours must not -
         // there is still a batch in flight behind it.
-        expect(await manager.isFinished()).toBe(false);
+        expect((await manager.checkReadiness()).status).toBe('waiting');
 
         await result.waitForAllRequestsToBeAdded;
         expect(await manager.getTotalCount()).toBe(2);
@@ -243,7 +241,7 @@ describe('ThrottlingRequestManager', () => {
         await manager.markRequestAsHandled(request);
 
         // Marking it handled in its domain's sub-queue instead would leave the inner manager serving it forever.
-        expect(await manager.isFinished()).toBe(true);
+        expect((await manager.checkReadiness()).status).toBe('finished');
         expect(await inner.getPendingCount()).toBe(0);
     });
 
@@ -255,16 +253,16 @@ describe('ThrottlingRequestManager', () => {
         await inner.addRequest({ url: 'https://example.com/1' });
 
         const request = (await manager.fetchNextRequest())!;
-        expect(manager.recordDomainDelay(request.url)).toBe(true);
+        expect(manager.recordPacingSignal({ url: request.url, reason: 'rateLimited' })).toBe(true);
         // What the crawler does with the `RequestThrottledError` a 429 raises: reclaim, no retry spent.
         await manager.reclaimRequest(request);
 
         // Handing it straight back would have the crawler hammer the domain that just turned it away, and
         // nothing else would slow it down - a deferred request costs neither a retry nor session reputation.
         expect(await manager.fetchNextRequest()).toBeNull();
-        expect(await manager.isEmpty()).toBe(true);
-        // ...while the request is still outstanding work rather than lost.
-        expect(await manager.isFinished()).toBe(false);
+        // Nothing to dispatch until the backoff runs out, while the request is still outstanding work rather
+        // than lost - a manager reporting `ready` here would have the crawler spin, `finished` drop it.
+        expect((await manager.checkReadiness()).status).toBe('waiting');
 
         const start = Date.now();
         const again = await pollForNextRequest(manager);
@@ -280,14 +278,145 @@ describe('ThrottlingRequestManager', () => {
         await inner.addRequest({ url: 'https://example.com/held-back' });
         await inner.addRequest({ url: 'https://other.com/free' });
 
-        expect(manager.recordDomainDelay('https://example.com/held-back')).toBe(true);
+        expect(manager.recordPacingSignal({ url: 'https://example.com/held-back', reason: 'rateLimited' })).toBe(true);
 
         // The throttled one is at the head of the queue, and skipping it must not mean skipping the queue.
         const request = await manager.fetchNextRequest();
         expect(request!.url).toBe('https://other.com/free');
     });
 
-    test('recordDomainDelay enforces throttling and fair scheduling', async () => {
+    describe('a lazily-opened inner manager', () => {
+        const throttling = { domains: ['example.com'] } satisfies Omit<
+            ThrottlingRequestManagerOptions<RequestQueue>,
+            'inner'
+        >;
+
+        test('is resolved once, so a whole batch lands in - and is handed back to - one instance', async () => {
+            const factory = vitest.fn(async () => createQueue());
+            const manager = new ThrottlingRequestManager({ ...throttling, inner: factory });
+
+            await manager.addRequestsBatched([
+                { url: 'https://example.com/1' },
+                { url: 'https://other.com/1' },
+                { url: 'https://example.com/2' },
+            ]);
+
+            const inner = manager.innerManager!;
+            expect(await inner.getTotalCount()).toBe(1);
+            expect(await manager.getTotalCount()).toBe(3);
+
+            // The inner-routed request is the one that matters: handed back to a second instance, it would leave
+            // this one serving it forever.
+            for (let i = 0; i < 3; i++) {
+                await manager.markRequestAsHandled(await pollForNextRequest(manager));
+            }
+
+            expect((await manager.checkReadiness()).status).toBe('finished');
+            expect(await inner.getPendingCount()).toBe(0);
+            expect(factory).toHaveBeenCalledTimes(1);
+        });
+
+        test('is not forced by bookkeeping', async () => {
+            const factory = vitest.fn(async () => createQueue());
+            const manager = new ThrottlingRequestManager({ ...throttling, inner: factory });
+
+            await manager.purge();
+            await manager.persistState();
+            await manager.setExpectedRequestProcessingTimeSecs(600);
+            await manager.drop();
+
+            expect(factory).not.toHaveBeenCalled();
+            expect(manager.innerManager).toBeUndefined();
+        });
+
+        test('receives an expected-processing-time hint given before it was resolved', async () => {
+            const inner = await createQueue();
+            const setHint = vitest.spyOn(inner, 'setExpectedRequestProcessingTimeSecs');
+            const manager = new ThrottlingRequestManager({ ...throttling, inner: () => inner });
+
+            await manager.setExpectedRequestProcessingTimeSecs(600);
+            expect(setHint).not.toHaveBeenCalled();
+
+            await manager.fetchNextRequest();
+
+            expect(setHint).toHaveBeenCalledWith(600);
+        });
+
+        test('is opened by checkReadiness(), so requests left in it by a previous run are not missed', async () => {
+            // Without purgeOnStart, an unopened queue may still hold work nobody would ever look at.
+            await (await createQueue('leftover-inner')).addRequest({ url: 'https://other.com/left-behind' });
+
+            const manager = new ThrottlingRequestManager({
+                ...throttling,
+                inner: () => createQueue('leftover-inner'),
+            });
+
+            expect((await manager.checkReadiness()).status).toBe('ready');
+            expect(manager.innerManager).toBeDefined();
+        });
+
+        test('is exposed by innerManager only once resolved, which reading it never triggers', async () => {
+            const inner = await createQueue();
+            const factory = vitest.fn(() => inner);
+            const manager = new ThrottlingRequestManager({ ...throttling, inner: factory });
+
+            expect(manager.innerManager).toBeUndefined();
+            expect(factory).not.toHaveBeenCalled();
+
+            await manager.addRequest({ url: 'https://other.com/1' });
+
+            expect(manager.innerManager).toBe(inner);
+            expect(factory).toHaveBeenCalledTimes(1);
+        });
+
+        describe('omitted entirely', () => {
+            test('opens the default queue on first use, and not before', async () => {
+                const manager = new ThrottlingRequestManager({ domains: ['example.com'] });
+
+                expect(manager.innerManager).toBeUndefined();
+
+                await manager.addRequest({ url: 'https://other.com/1' });
+
+                expect(manager.innerManager).toBeInstanceOf(RequestQueue);
+                expect((await manager.fetchNextRequest())!.url).toBe('https://other.com/1');
+            });
+
+            test('routes throttled domains by domain as usual', async () => {
+                const manager = new ThrottlingRequestManager({
+                    domains: 'all',
+                    throttleBy: 'registrableDomain',
+                    minCrawlDelaySecs: 60,
+                });
+
+                await manager.addRequest({ url: 'https://example.com/1' });
+                await manager.addRequest({ url: 'https://example.com/2' });
+
+                expect((await manager.fetchNextRequest())!.url).toBe('https://example.com/1');
+                // Paced, so nothing of the second request until the delay runs out - and the default queue,
+                // opened for the requests nobody routed, is empty rather than serving it.
+                expect(await manager.fetchNextRequest()).toBeNull();
+                expect(await manager.innerManager!.getTotalCount()).toBe(0);
+            });
+
+            test('is honoured by `requestManagerOpener`, so the default is not hardcoded', async () => {
+                const opener = vitest.fn(async (identifier?: string | StorageIdentifier | null) =>
+                    RequestQueue.open(identifier ?? 'substituted-default'),
+                );
+                const manager = new ThrottlingRequestManager({
+                    domains: ['example.com'],
+                    requestManagerOpener: opener,
+                });
+
+                await manager.addRequest({ url: 'https://other.com/1' });
+
+                // Called with no identifier for the wrapped manager, and with an alias per throttled domain.
+                expect(opener).toHaveBeenCalledWith(null, expect.anything());
+                expect(manager.innerManager!.name).toBe('substituted-default');
+            });
+        });
+    });
+
+    test('recordPacingSignal enforces throttling and fair scheduling', async () => {
         const inner = await createQueue();
         const manager = new ThrottlingRequestManager({
             inner,
@@ -298,26 +427,23 @@ describe('ThrottlingRequestManager', () => {
         await manager.addRequest({ url: 'https://example.com/1' });
         await manager.addRequest({ url: 'https://foo.com/1' });
 
-        // Record a 500ms delay on example.com
-        const recorded = manager.recordDomainDelay('https://example.com/1', 500);
-        expect(recorded).toBe(true);
+        // Long enough that a loaded box cannot race the assertions below - the backoff is zeroed, never waited out.
+        expect(
+            manager.recordPacingSignal({ url: 'https://example.com/1', reason: 'rateLimited', waitMs: 10_000 }),
+        ).toBe(true);
 
-        // Fetch next request - should fetch foo.com since example.com is throttled
-        const req1 = await manager.fetchNextRequest();
-        expect(req1!.url).toBe('https://foo.com/1');
+        // The throttled domain is skipped rather than holding the crawl up.
+        expect((await manager.fetchNextRequest())!.url).toBe('https://foo.com/1');
 
-        // example.com is still throttled and inner is empty, so there is nothing to fetch right now -
-        // and the manager must say so rather than block the caller.
+        // Nothing left to hand over - and the manager says so rather than blocking the caller...
         expect(await manager.fetchNextRequest()).toBeNull();
-        expect(await manager.isEmpty()).toBe(true);
-        // ...while still reporting the throttled request as outstanding work.
-        expect(await manager.isFinished()).toBe(false);
+        const waiting = await manager.checkReadiness();
+        // ...while still reporting the throttled request as outstanding work, due once its backoff runs out.
+        expect(waiting).toMatchObject({ status: 'waiting' });
+        expect(waiting.status === 'waiting' && waiting.readyAt).toBeGreaterThan(Date.now());
 
-        const start = Date.now();
-        const req2 = await pollForNextRequest(manager);
-
-        expect(Date.now() - start).toBeGreaterThanOrEqual(400);
-        expect(req2.url).toBe('https://example.com/1');
+        domainState(manager, 'example.com').backoffUntil = 0;
+        expect((await manager.fetchNextRequest())!.url).toBe('https://example.com/1');
     });
 
     test('a burst of concurrent 429s advances the backoff only once', async () => {
@@ -330,7 +456,7 @@ describe('ThrottlingRequestManager', () => {
 
         // Eight requests were already in flight when the limit was hit; they all come back 429.
         for (let i = 0; i < 8; i++) {
-            expect(manager.recordDomainDelay('https://example.com/1')).toBe(true);
+            expect(manager.recordPacingSignal({ url: 'https://example.com/1', reason: 'rateLimited' })).toBe(true);
         }
 
         expect(domainState(manager, 'example.com').consecutive429Count).toBe(1);
@@ -345,7 +471,7 @@ describe('ThrottlingRequestManager', () => {
         });
         const state = domainState(manager, 'example.com');
 
-        manager.recordDomainDelay('https://example.com/1');
+        manager.recordPacingSignal({ url: 'https://example.com/1', reason: 'rateLimited' });
 
         // Rewinding both clocks beats sleeping out real delays - a loaded CI box cannot race it.
         const rewind = (ms: number) => {
@@ -355,12 +481,12 @@ describe('ThrottlingRequestManager', () => {
 
         // Past the backoff but still inside the decay window: the next 429 continues the same burst.
         rewind(11_000);
-        manager.recordDomainDelay('https://example.com/1');
+        manager.recordPacingSignal({ url: 'https://example.com/1', reason: 'rateLimited' });
         expect(state.consecutive429Count).toBe(2);
 
         // Past the decay window as well: the domain is treated as recovered and the exponent restarts.
         rewind(41_000);
-        manager.recordDomainDelay('https://example.com/1');
+        manager.recordPacingSignal({ url: 'https://example.com/1', reason: 'rateLimited' });
         expect(state.consecutive429Count).toBe(1);
     });
 
@@ -371,7 +497,7 @@ describe('ThrottlingRequestManager', () => {
             maxDelaySecs: 1,
         });
 
-        manager.recordDomainDelay('https://example.com/1', 3_600_000);
+        manager.recordPacingSignal({ url: 'https://example.com/1', reason: 'rateLimited', waitMs: 3_600_000 });
 
         expect(domainState(manager, 'example.com').backoffUntil).toBeLessThanOrEqual(Date.now() + 1000);
     });
@@ -384,7 +510,7 @@ describe('ThrottlingRequestManager', () => {
         });
 
         await manager.addRequest({ url: 'https://example.com/1' });
-        manager.recordDomainDelay('https://example.com/1', 60_000);
+        manager.recordPacingSignal({ url: 'https://example.com/1', reason: 'rateLimited', waitMs: 60_000 });
 
         const start = Date.now();
         expect(await manager.fetchNextRequest()).toBeNull();
@@ -402,8 +528,7 @@ describe('ThrottlingRequestManager', () => {
         // A restart builds a brand new manager over the same storage backend.
         const secondRun = new ThrottlingRequestManager({ inner: await createQueue(), domains });
 
-        expect(await secondRun.isEmpty()).toBe(false);
-        expect(await secondRun.isFinished()).toBe(false);
+        expect((await secondRun.checkReadiness()).status).toBe('ready');
         expect(await secondRun.getPendingCount()).toBe(1);
         expect((await secondRun.fetchNextRequest())!.url).toBe('https://example.com/left-behind');
     });
@@ -420,6 +545,21 @@ describe('ThrottlingRequestManager', () => {
         const secondRun = new ThrottlingRequestManager({ inner: await createQueue(), domains });
         await secondRun.purge();
 
+        expect(await subQueue.getPendingCount()).toBe(0);
+    });
+
+    test('purges its own queues even when the wrapped manager refuses', async () => {
+        // A backend that cannot empty a queue in place refuses outright rather than quietly doing nothing.
+        const inner = await createQueue();
+        const manager = new ThrottlingRequestManager({ inner, domains: ['example.com'] });
+        await manager.addRequest({ url: 'https://example.com/stale' });
+
+        const subQueue = await RequestQueue.open({ alias: 'throttled-example.com' });
+        expect(await subQueue.getPendingCount()).toBe(1);
+
+        vitest.spyOn(inner, 'purge').mockRejectedValue(new Error('cannot empty a request queue in place'));
+
+        await expect(manager.purge()).rejects.toThrow('cannot empty a request queue in place');
         expect(await subQueue.getPendingCount()).toBe(0);
     });
 
@@ -443,50 +583,87 @@ describe('ThrottlingRequestManager', () => {
         test('gives up on a domain that never lets a request through', async () => {
             const manager = await stallingManager();
             await manager.addRequest({ url: 'https://example.com/1' });
-            manager.recordDomainDelay('https://example.com/1');
+            manager.recordPacingSignal({ url: 'https://example.com/1', reason: 'rateLimited' });
 
-            await expect(manager.assertNoStalledDomains()).resolves.toBeUndefined();
+            expect((await manager.checkReadiness()).status).not.toBe('stalled');
 
             stallFor(manager, 'example.com');
-            await expect(manager.assertNoStalledDomains()).rejects.toThrow(PersistentRateLimitError);
+            expect(await manager.checkReadiness()).toMatchObject({
+                status: 'stalled',
+                reason: expect.stringContaining('example.com'),
+            });
+        });
+
+        test('a lapsed backoff does not let a stalling domain pass for progress', async () => {
+            // A stonewalling domain is dispatchable between one 429 and the next, so whether a probe lands in
+            // that window is a race. It must not decide whether the crawl gives up.
+            const manager = await stallingManager();
+            await manager.addRequest({ url: 'https://example.com/1' });
+            manager.recordPacingSignal({ url: 'https://example.com/1', reason: 'rateLimited' });
+            stallFor(manager, 'example.com');
+
+            // Its backoff has run out, so its own queue would happily hand the request over.
+            domainState(manager, 'example.com').backoffUntil = 0;
+            const subQueue = await RequestQueue.open({ alias: 'throttled-example.com' });
+            await expect(subQueue.checkReadiness()).resolves.toEqual({ status: 'ready' });
+
+            expect((await manager.checkReadiness()).status).toBe('stalled');
+        });
+
+        test('work elsewhere outranks a stalling domain', async () => {
+            const manager = await stallingManager();
+            await manager.addRequest({ url: 'https://example.com/1' });
+            manager.recordPacingSignal({ url: 'https://example.com/1', reason: 'rateLimited' });
+            stallFor(manager, 'example.com');
+
+            await manager.addRequest({ url: 'https://other.com/1' });
+
+            expect((await manager.checkReadiness()).status).toBe('ready');
         });
 
         test('a handled request resets the clock', async () => {
             const manager = await stallingManager();
             await manager.addRequest({ url: 'https://example.com/1' });
             await manager.addRequest({ url: 'https://example.com/2' });
-            manager.recordDomainDelay('https://example.com/1');
+            manager.recordPacingSignal({ url: 'https://example.com/1', reason: 'rateLimited' });
             stallFor(manager, 'example.com');
 
             await manager.markRequestAsHandled((await pollForNextRequest(manager))!);
 
-            await expect(manager.assertNoStalledDomains()).resolves.toBeUndefined();
+            expect((await manager.checkReadiness()).status).not.toBe('stalled');
         });
 
         test('work the inner manager holds keeps a stalling domain in view', async () => {
-            const manager = await stallingManager();
-            const inner = manager.innerManager;
+            // Its own backoff, long enough that the sweep below leaves the wrapped manager blocked - otherwise
+            // the request it holds reads as work anyone can dispatch, which outranks the stall.
+            const manager = new ThrottlingRequestManager({
+                inner: await createQueue(),
+                domains: ['example.com'],
+                baseDelaySecs: 30,
+                maxDomainStallSecs: 30,
+            });
+            const inner = manager.innerManager!;
 
             // Its sub-queue stays empty, so this request is the only sign the domain still has work left.
             await inner.addRequest({ url: 'https://example.com/1' });
 
             const request = (await manager.fetchNextRequest())!;
-            manager.recordDomainDelay(request.url);
+            manager.recordPacingSignal({ url: request.url, reason: 'rateLimited' });
             await manager.reclaimRequest(request);
             stallFor(manager, 'example.com');
 
             // Sweeping it is what finds the request; without it the crawl would wait on the domain forever.
             await manager.fetchNextRequest();
 
-            await expect(manager.assertNoStalledDomains()).rejects.toThrow(PersistentRateLimitError);
+            expect((await manager.checkReadiness()).status).toBe('stalled');
         });
 
         test('a domain that has run out of work is finished, not stalled', async () => {
             const manager = await stallingManager();
-            manager.recordDomainDelay('https://example.com/1');
+            manager.recordPacingSignal({ url: 'https://example.com/1', reason: 'rateLimited' });
             stallFor(manager, 'example.com');
 
-            await expect(manager.assertNoStalledDomains()).resolves.toBeUndefined();
+            expect((await manager.checkReadiness()).status).not.toBe('stalled');
         });
 
         test('a domain that has been idle for longer than the window is not stalled by its first 429', async () => {
@@ -502,16 +679,16 @@ describe('ThrottlingRequestManager', () => {
             await sleep(100);
 
             // The first 429 starts the clock - it does not arrive with the idle time already on it.
-            manager.recordDomainDelay('https://example.com/1');
+            manager.recordPacingSignal({ url: 'https://example.com/1', reason: 'rateLimited' });
 
-            await expect(manager.assertNoStalledDomains()).resolves.toBeUndefined();
+            expect((await manager.checkReadiness()).status).not.toBe('stalled');
         });
 
         test('a domain that was never rate-limited is never stalled', async () => {
             const manager = await stallingManager();
             await manager.addRequest({ url: 'https://example.com/1' });
 
-            await expect(manager.assertNoStalledDomains()).resolves.toBeUndefined();
+            expect((await manager.checkReadiness()).status).not.toBe('stalled');
         });
 
         test('a domain that stopped rate-limiting a while ago is being waited out, not stalled', async () => {
@@ -520,11 +697,11 @@ describe('ThrottlingRequestManager', () => {
 
             // A single old 429, and nothing since - which is what a `Crawl-delay` longer than the stall window
             // looks like. The domain is not turning us away, we are keeping our distance from it.
-            manager.recordDomainDelay('https://example.com/1');
+            manager.recordPacingSignal({ url: 'https://example.com/1', reason: 'rateLimited' });
             stallFor(manager, 'example.com');
             domainState(manager, 'example.com').lastRateLimitedAt -= 60_000;
 
-            await expect(manager.assertNoStalledDomains()).resolves.toBeUndefined();
+            expect((await manager.checkReadiness()).status).not.toBe('stalled');
         });
     });
 
@@ -534,13 +711,20 @@ describe('ThrottlingRequestManager', () => {
             domains: ['example.com'],
         });
 
-        manager.setCrawlDelay('https://example.com/1', 5);
+        manager.recordPacingSignal({
+            url: 'https://example.com/1',
+            reason: 'minInterval',
+            intervalMs: 5_000,
+            scope: 'hostname',
+        });
         await manager.addRequest({ url: 'https://example.com/1' });
         await manager.addRequest({ url: 'https://example.com/2' });
 
         // Dispatching arms the crawl-delay, which used to read as an already-active backoff.
         await manager.fetchNextRequest();
-        expect(manager.recordDomainDelay('https://example.com/1', 30_000)).toBe(true);
+        expect(
+            manager.recordPacingSignal({ url: 'https://example.com/1', reason: 'rateLimited', waitMs: 30_000 }),
+        ).toBe(true);
 
         const state = domainState(manager, 'example.com');
         expect(state.consecutive429Count).toBe(1);
@@ -567,7 +751,12 @@ describe('ThrottlingRequestManager', () => {
             domains: ['example.com'],
         });
 
-        manager.setCrawlDelay('https://example.com/1', 60);
+        manager.recordPacingSignal({
+            url: 'https://example.com/1',
+            reason: 'minInterval',
+            intervalMs: 60_000,
+            scope: 'hostname',
+        });
         for (let i = 0; i < 5; i++) {
             await manager.addRequest({ url: `https://example.com/${i}` });
         }
@@ -584,7 +773,12 @@ describe('ThrottlingRequestManager', () => {
             domains: ['example.com'],
         });
 
-        manager.setCrawlDelay('https://example.com/1', 60);
+        manager.recordPacingSignal({
+            url: 'https://example.com/1',
+            reason: 'minInterval',
+            intervalMs: 60_000,
+            scope: 'hostname',
+        });
 
         // Nothing queued yet, so there is no dispatch for the delay to pace.
         expect(await manager.fetchNextRequest()).toBeNull();
@@ -613,7 +807,9 @@ describe('ThrottlingRequestManager', () => {
 
             await manager.addRequest({ url: 'https://example.com/1' });
 
-            expect(manager.recordDomainDelay('https://example.com/1', 60_000)).toBe(true);
+            expect(
+                manager.recordPacingSignal({ url: 'https://example.com/1', reason: 'rateLimited', waitMs: 60_000 }),
+            ).toBe(true);
             expect(await manager.fetchNextRequest()).toBeNull();
         });
 
@@ -650,7 +846,14 @@ describe('ThrottlingRequestManager', () => {
 
             // Robots.txt is read before the domain's first request is enqueued, so the delay lands on a domain
             // the manager has never seen.
-            expect(manager.setCrawlDelay('https://example.com/robots.txt', 60)).toBe(true);
+            expect(
+                manager.recordPacingSignal({
+                    url: 'https://example.com/robots.txt',
+                    reason: 'minInterval',
+                    intervalMs: 60_000,
+                    scope: 'hostname',
+                }),
+            ).toBe(true);
 
             await manager.addRequest({ url: 'https://example.com/1' });
             await manager.addRequest({ url: 'https://example.com/2' });
@@ -762,14 +965,19 @@ describe('ThrottlingRequestManager', () => {
         });
     });
 
-    test('setCrawlDelay sets crawl-delay successfully', async () => {
+    test('recordPacingSignal sets crawl-delay successfully', async () => {
         const inner = await createQueue();
         const manager = new ThrottlingRequestManager({
             inner,
             domains: ['example.com'],
         });
 
-        manager.setCrawlDelay('https://example.com/1', 0.2); // 0.2 seconds = 200ms
+        manager.recordPacingSignal({
+            url: 'https://example.com/1',
+            reason: 'minInterval',
+            intervalMs: 200,
+            scope: 'hostname',
+        });
 
         await manager.addRequest({ url: 'https://example.com/1' });
         await manager.addRequest({ url: 'https://example.com/2' });
@@ -783,5 +991,131 @@ describe('ThrottlingRequestManager', () => {
 
         expect(Date.now() - start).toBeGreaterThanOrEqual(150);
         expect(req2.url).toBe('https://example.com/2');
+    });
+
+    describe('pacing signal scope', () => {
+        test('a signal narrower than the grouping is honoured across the whole group', async () => {
+            // robots.txt is per-origin, so a `Crawl-delay` read from one subdomain is hostname-scoped - and the
+            // manager holds one queue per group, so it cannot hold a single host back.
+            const manager = new ThrottlingRequestManager({
+                inner: await createQueue(),
+                domains: 'all',
+                throttleBy: 'registrableDomain',
+            });
+
+            expect(
+                manager.recordPacingSignal({
+                    url: 'https://a.example.com/robots.txt',
+                    reason: 'minInterval',
+                    intervalMs: 60_000,
+                    scope: 'hostname',
+                }),
+            ).toBe(true);
+
+            // The sibling subdomain is paced by it too - over-applied, never under-applied.
+            await manager.addRequest({ url: 'https://b.example.com/1' });
+            await manager.addRequest({ url: 'https://b.example.com/2' });
+
+            expect((await manager.fetchNextRequest())!.url).toBe('https://b.example.com/1');
+            expect(await manager.fetchNextRequest()).toBeNull();
+        });
+
+        test('a signal wider than the grouping throws instead of being under-applied', async () => {
+            // Pacing one host would leave its siblings running flat out, so the manager refuses rather than pretend.
+            const manager = new ThrottlingRequestManager({ inner: await createQueue(), domains: 'all' });
+
+            expect(() =>
+                manager.recordPacingSignal({
+                    url: 'https://a.example.com/1',
+                    reason: 'minInterval',
+                    intervalMs: 60_000,
+                    scope: 'registrableDomain',
+                }),
+            ).toThrow(/groups requests by "hostname".*throttleBy: "registrableDomain"/s);
+        });
+
+        test('a scope it does not speak throws', async () => {
+            const manager = new ThrottlingRequestManager({ inner: await createQueue(), domains: 'all' });
+
+            // A per-account limit is a real thing to be told about, but this manager keys on hostnames.
+            expect(() =>
+                manager.recordPacingSignal({ url: 'https://example.com/1', reason: 'rateLimited', scope: 'account' }),
+            ).toThrow(/only understands the scopes "hostname" and "registrableDomain"/);
+        });
+
+        test('an unscoped signal is applied at the grouping, whatever that is', async () => {
+            // A 429 does not say whether the limit was per host, per account or per address, so nothing is declared.
+            const manager = new ThrottlingRequestManager({
+                inner: await createQueue(),
+                domains: 'all',
+                throttleBy: 'registrableDomain',
+            });
+
+            await manager.addRequest({ url: 'https://a.example.com/1' });
+            expect(manager.recordPacingSignal({ url: 'https://a.example.com/1', reason: 'rateLimited' })).toBe(true);
+
+            await expect(manager.checkReadiness()).resolves.toMatchObject({ status: 'waiting' });
+        });
+    });
+
+    describe("reason: 'minIntervalEverywhere'", () => {
+        const floor = (intervalMs: number, scope = 'registrableDomain' as const) =>
+            ({ reason: 'minIntervalEverywhere', intervalMs, scope }) as const;
+
+        test('paces every domain the manager covers, declared or not', async () => {
+            const manager = new ThrottlingRequestManager({
+                inner: await createQueue(),
+                domains: 'all',
+                throttleBy: 'registrableDomain',
+            });
+
+            expect(manager.recordPacingSignal(floor(60_000))).toBe(true);
+
+            await manager.addRequest({ url: 'https://example.com/1' });
+            await manager.addRequest({ url: 'https://example.com/2' });
+
+            expect((await manager.fetchNextRequest())!.url).toBe('https://example.com/1');
+            expect(await manager.fetchNextRequest()).toBeNull();
+        });
+
+        test('is a floor, so a longer configured delay stands', async () => {
+            const manager = new ThrottlingRequestManager({
+                inner: await createQueue(),
+                domains: 'all',
+                throttleBy: 'registrableDomain',
+                minCrawlDelaySecs: 60,
+            });
+
+            expect(manager.recordPacingSignal(floor(1_000))).toBe(true);
+
+            await manager.addRequest({ url: 'https://example.com/1' });
+            await manager.fetchNextRequest();
+
+            // The dispatch armed the configured minute, not the second it was just handed.
+            expect(domainState(manager, 'example.com').crawlDelayUntil).toBeGreaterThan(Date.now() + 30_000);
+        });
+
+        test('a manager that paces nothing reports it as unhandled', async () => {
+            // Answering `false` rather than throwing is what lets a caller pace it from the outside instead.
+            const manager = new ThrottlingRequestManager({ inner: await createQueue(), domains: [] });
+
+            expect(manager.recordPacingSignal(floor(1_000))).toBe(false);
+        });
+
+        test('a manager that paces only some domains throws instead of leaving the rest unpaced', async () => {
+            const manager = new ThrottlingRequestManager({
+                inner: await createQueue(),
+                domains: ['example.com'],
+                throttleBy: 'registrableDomain',
+            });
+
+            expect(() => manager.recordPacingSignal(floor(1_000))).toThrow(/domains: 'all'/);
+        });
+
+        test('a floor at a finer grain than the grouping throws, like any other signal', async () => {
+            const manager = new ThrottlingRequestManager({ inner: await createQueue(), domains: 'all' });
+
+            expect(() => manager.recordPacingSignal(floor(1_000))).toThrow(/groups requests by "hostname"/);
+        });
     });
 });

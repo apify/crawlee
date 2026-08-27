@@ -12,7 +12,7 @@ import { createDeserialize, serializeArray } from '../serialization.js';
 import { serviceLocator } from '../service_locator.js';
 import { parseArgument, schemas, validators } from '../validators.js';
 import { KeyValueStore } from './key_value_store.js';
-import type { IRequestLoader } from './request_loader.js';
+import type { IRequestLoader, RequestLoaderStatus } from './request_loader.js';
 import type { IRequestManager } from './request_manager.js';
 import { purgeDefaultStorages } from './utils.js';
 
@@ -307,8 +307,7 @@ export class RequestList implements IRequestLoader {
     #initialState?: RequestListState;
     #store?: KeyValueStore;
     #keepDuplicateUrls: boolean;
-    // kept as TS-private: request_list tests read this field directly
-    private sources: RequestListSource[];
+    #sources: RequestListSource[];
     #sourcesFunction?: RequestListSourcesFunction;
     #proxyConfiguration?: IProxyConfiguration;
     #httpClient?: BaseHttpClient;
@@ -343,7 +342,7 @@ export class RequestList implements IRequestLoader {
         this.#keepDuplicateUrls = keepDuplicateUrls;
 
         // Will be empty after initialization to save memory.
-        this.sources = sources ? [...sources] : [];
+        this.#sources = sources ? [...sources] : [];
         this.#sourcesFunction = sourcesFunction;
 
         // The proxy configuration used for `requestsFromUrl` requests.
@@ -392,11 +391,11 @@ export class RequestList implements IRequestLoader {
     private async addPersistedRequests(persistedRequests: Buffer): Promise<void> {
         // We don't need the sources so we purge them to
         // prevent them from hanging in memory.
-        for (let i = 0; i < this.sources.length; i++) {
+        for (let i = 0; i < this.#sources.length; i++) {
             // oxlint-disable-next-line typescript/no-array-delete -- intentional, drop the slot so V8 can collect the object
-            delete this.sources[i];
+            delete this.#sources[i];
         }
-        this.sources = [];
+        this.#sources = [];
 
         this.areRequestsPersisted = true;
         const requestStream = createDeserialize(persistedRequests);
@@ -413,13 +412,13 @@ export class RequestList implements IRequestLoader {
      */
     private async addRequestsFromSources(): Promise<void> {
         // We'll load all sources in sequence to ensure that they get loaded in the right order.
-        const sourcesCount = this.sources.length;
+        const sourcesCount = this.#sources.length;
         for (let i = 0; i < sourcesCount; i++) {
-            const source = this.sources[i];
+            const source = this.#sources[i];
             // Using delete here to drop the original object ASAP to free memory
             // .pop would reverse the array and .shift is SLOW.
             // oxlint-disable-next-line typescript/no-array-delete
-            delete this.sources[i];
+            delete this.#sources[i];
 
             if (typeof source === 'object' && (source as Dictionary).requestsFromUrl) {
                 const fetchedRequests = await this.fetchRequestsFromUrl(source as InternalSource);
@@ -430,7 +429,7 @@ export class RequestList implements IRequestLoader {
         }
 
         // Drop the original array full of empty indexes.
-        this.sources = [];
+        this.#sources = [];
 
         if (this.#sourcesFunction) {
             try {
@@ -603,19 +602,15 @@ export class RequestList implements IRequestLoader {
     /**
      * @inheritDoc
      */
-    async isEmpty(): Promise<boolean> {
+    async checkReadiness(): Promise<RequestLoaderStatus> {
         this.ensureIsInitialized();
 
-        return this.#requestsToRetry.length === 0 && this.#nextIndex >= this.requests.length;
-    }
+        if (this.#requestsToRetry.length > 0 || this.#nextIndex < this.requests.length) {
+            return { status: 'ready' };
+        }
 
-    /**
-     * @inheritDoc
-     */
-    async isFinished(): Promise<boolean> {
-        this.ensureIsInitialized();
-
-        return this.inProgress.size === 0 && this.#nextIndex >= this.requests.length;
+        // `#requestsToRetry` is a subset of `inProgress`, so nothing in progress means nothing left to re-serve.
+        return this.inProgress.size === 0 ? { status: 'finished' } : { status: 'waiting' };
     }
 
     /**

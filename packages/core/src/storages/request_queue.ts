@@ -31,7 +31,8 @@ import { parseArgument, schemas, validators } from '../validators.js';
 import type { JournalEntry, StorageTransaction } from './transaction.js';
 import { activeStorageTransaction, rejectOperationInTransaction } from './transaction.js';
 import { drainRequestBatches } from './batched_adds.js';
-import type { IRequestManager, RequestsLike } from './request_manager.js';
+import type { RequestLoaderStatus } from './request_loader.js';
+import type { IRequestManager, PacingSignal, RequestsLike } from './request_manager.js';
 import type { RequestQueueStats } from './storage_stats.js';
 import { StorageStatsTracker } from './storage_stats.js';
 import type { IStorage, StorageIdentifier } from './storage_instance_manager.js';
@@ -126,8 +127,7 @@ export class RequestQueue implements IStorage, IRequestManager {
 
     readonly log: CrawleeLogger;
 
-    // kept as TS-private: request_queue tests read this cache directly
-    private requestCache: LruCache<RequestLruItem>;
+    #requestCache: LruCache<RequestLruItem>;
 
     /**
      * Remembers the `requestId` of every request already submitted to the client — including background
@@ -138,8 +138,7 @@ export class RequestQueue implements IStorage, IRequestManager {
 
     #queuePausedForMigration = false;
 
-    // kept as TS-private: packages/core/test request-queue tests write this counter directly
-    private inProgressRequestBatchCount = 0;
+    #inProgressRequestBatchCount = 0;
 
     /**
      * The largest expected request-processing time (in seconds) seen so far via
@@ -176,7 +175,7 @@ export class RequestQueue implements IStorage, IRequestManager {
 
         this.#proxyConfiguration = options.proxyConfiguration;
 
-        this.requestCache = new LruCache({ maxLength: MAX_CACHED_REQUESTS });
+        this.#requestCache = new LruCache({ maxLength: MAX_CACHED_REQUESTS });
         this.#requestSeenCache = new RequestDeduplicationCache();
         this.log = serviceLocator.getLogger().child({ prefix: `RequestQueue(${this.id}, ${this.name ?? 'no-name'})` });
 
@@ -244,7 +243,7 @@ export class RequestQueue implements IStorage, IRequestManager {
         }
 
         const cacheKey = getRequestId(request.uniqueKey);
-        const cachedInfo = this.requestCache.get(cacheKey);
+        const cachedInfo = this.#requestCache.get(cacheKey);
 
         if (cachedInfo) {
             request.id = cachedInfo.id;
@@ -346,7 +345,7 @@ export class RequestQueue implements IStorage, IRequestManager {
         // The caches hold real backend ids. Only *writing* provisional ids to them would be wrong;
         // reading saves a probe. Same lookup as the write-through path.
         const cacheKey = getRequestId(request.uniqueKey);
-        const cachedInfo = this.requestCache.get(cacheKey);
+        const cachedInfo = this.#requestCache.get(cacheKey);
         const knownRequestId = cachedInfo?.id ?? this.#requestSeenCache.get(cacheKey);
 
         if (knownRequestId) {
@@ -525,7 +524,7 @@ export class RequestQueue implements IStorage, IRequestManager {
         for (const request of requests) {
             const cacheKey = getCachedRequestId(request.uniqueKey);
             // Prefer the full `requestCache` record; fall back to the dedup cache for background batches it skips.
-            const cachedInfo = this.requestCache.get(cacheKey);
+            const cachedInfo = this.#requestCache.get(cacheKey);
             const knownRequestId = cachedInfo?.id ?? this.#requestSeenCache.get(cacheKey);
 
             if (knownRequestId) {
@@ -658,9 +657,9 @@ export class RequestQueue implements IStorage, IRequestManager {
             },
 
             trackBackgroundBatches: (batches) => {
-                this.inProgressRequestBatchCount += 1;
+                this.#inProgressRequestBatchCount += 1;
                 void batches.finally(() => {
-                    this.inProgressRequestBatchCount -= 1;
+                    this.#inProgressRequestBatchCount -= 1;
                 });
             },
         });
@@ -701,7 +700,7 @@ export class RequestQueue implements IStorage, IRequestManager {
      * Note that the `null` return value doesn't mean the queue processing finished,
      * it means there are currently no pending requests.
      * To check whether all requests in queue were finished,
-     * use {@apilink RequestQueue.isFinished} instead.
+     * use {@apilink RequestQueue.checkReadiness} instead.
      *
      * @returns
      *   Returns the request object or `null` if there are no more pending requests.
@@ -737,7 +736,7 @@ export class RequestQueue implements IStorage, IRequestManager {
 
         parseArgument(request, handledRequestSchema);
 
-        const forefront = this.requestCache.get(getRequestId(request.uniqueKey))?.forefront ?? false;
+        const forefront = this.#requestCache.get(getRequestId(request.uniqueKey))?.forefront ?? false;
 
         const handledAt = request.handledAt ?? new Date().toISOString();
         this.#statsTracker.add('writeCount');
@@ -803,48 +802,42 @@ export class RequestQueue implements IStorage, IRequestManager {
     }
 
     /**
-     * Resolves to `true` if the next call to {@apilink RequestQueue.fetchNextRequest} would return
-     * `null`, i.e. there are no pending requests to fetch right now. Otherwise it resolves to `false`.
-     *
-     * Note that even if the queue is empty, there might be some requests currently being processed
-     * (fetched but not yet handled or reclaimed). An empty queue therefore does not mean crawling is
-     * finished — those in-progress requests may still be reclaimed, and background tasks may still be
-     * adding more requests. To check whether all activity in the queue has finished, use
-     * {@apilink RequestQueue.isFinished}.
+     * A queue hands requests out as fast as they are asked for; pacing is a job for a manager wrapped around it,
+     * such as {@apilink ThrottlingRequestManager}.
+     * @inheritdoc
      */
-    async isEmpty(): Promise<boolean> {
-        const transaction = activeStorageTransaction();
-
-        // Requests buffered by the active transaction count as pending from its point of view.
-        if (transaction && this.bufferedRequests(transaction).size > 0) {
-            return false;
-        }
-
-        return this.backend.isEmpty();
+    recordPacingSignal(_signal: PacingSignal): boolean {
+        return false;
     }
 
     /**
-     * Resolves to `true` if all requests were already handled and there are no more left — including no
-     * requests currently in progress (fetched but not yet handled or reclaimed, including requests
-     * locked by other clients sharing the same queue) and no background add operations still in flight.
+     * Reports whether the queue has a request to hand over, is waiting on one, or is done.
      *
-     * Due to the nature of distributed storage used by the queue, the function may occasionally return
-     * a false negative, but it shall never return a false positive.
+     * `waiting` means requests are in progress (fetched but not yet handled or reclaimed, possibly by another
+     * client sharing the queue) or a background add is still landing; neither has a clock, so no `readyAt`.
+     *
+     * Due to the nature of distributed storage used by the queue, `finished` may occasionally arrive a probe or
+     * two late, but it is never reported early.
      */
-    async isFinished(): Promise<boolean> {
+    async checkReadiness(): Promise<RequestLoaderStatus> {
         const transaction = activeStorageTransaction();
-
-        // We are not finished if we're still adding new requests in the background.
-        if (this.inProgressRequestBatchCount > 0) {
-            return false;
-        }
 
         // Requests buffered by the active transaction count as pending from its point of view.
         if (transaction && this.bufferedRequests(transaction).size > 0) {
-            return false;
+            return { status: 'ready' };
         }
 
-        return this.backend.isFinished();
+        // Something fetchable outranks everything below, so this is the only backend call a probe needs.
+        if (!(await this.backend.isEmpty())) {
+            return { status: 'ready' };
+        }
+
+        // We are not finished if we're still adding new requests in the background.
+        if (this.#inProgressRequestBatchCount > 0) {
+            return { status: 'waiting' };
+        }
+
+        return (await this.backend.isFinished()) ? { status: 'finished' } : { status: 'waiting' };
     }
 
     /**
@@ -871,9 +864,9 @@ export class RequestQueue implements IStorage, IRequestManager {
      */
     private cacheRequest(cacheKey: string, queueOperationInfo: RequestQueueOperationInfo): void {
         // Remove the previous entry, as otherwise our cache will never update 👀
-        this.requestCache.remove(cacheKey);
+        this.#requestCache.remove(cacheKey);
 
-        this.requestCache.add(cacheKey, {
+        this.#requestCache.add(cacheKey, {
             id: queueOperationInfo.requestId,
             isHandled: queueOperationInfo.wasAlreadyHandled,
             uniqueKey: queueOperationInfo.uniqueKey,
@@ -904,9 +897,9 @@ export class RequestQueue implements IStorage, IRequestManager {
         await this.backend.purge();
 
         // Reset in-memory bookkeeping so the queue behaves as if freshly opened.
-        this.requestCache.clear();
+        this.#requestCache.clear();
         this.#requestSeenCache.clear();
-        this.inProgressRequestBatchCount = 0;
+        this.#inProgressRequestBatchCount = 0;
 
         // Reset the expected-processing-time high-water mark too, otherwise the monotonic-raise guard
         // in `setExpectedRequestProcessingTimeSecs` would let a value raised in an earlier run leak into a
