@@ -701,9 +701,6 @@ test('a domain is paced even when its requests come from the wrapped manager', a
         res.end();
     });
 
-    // The documented way to crawl a list of URLs while still being able to enqueue new ones. Those requests
-    // live in the wrapped manager rather than in a per-domain sub-queue, and a 429 costs them no retry, so
-    // nothing but the backoff itself can hold them back.
     const requestList = await RequestList.open(null, [`${url}/from-a-list`]);
 
     const crawler = new HttpCrawler({
