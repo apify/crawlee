@@ -535,8 +535,12 @@ describe('BasicCrawler', () => {
 
             const skippedRequests = onSkippedRequestMock.mock.calls.map((call) => call[0]);
             expect(skippedRequests).toHaveLength(2);
-            expect(skippedRequests[0]).toStrictEqual({ url: 'https://example.com/1/', reason: 'depth' });
-            expect(skippedRequests[1]).toStrictEqual({ url: 'https://example.com/2/', reason: 'depth' });
+            expect(skippedRequests[0].reason).toBe('depth');
+            expect(skippedRequests[0].request).toBeInstanceOf(Request);
+            expect(skippedRequests[0].request.url).toBe('https://example.com/1/');
+            expect(skippedRequests[1].reason).toBe('depth');
+            expect(skippedRequests[1].request).toBeInstanceOf(Request);
+            expect(skippedRequests[1].request.url).toBe('https://example.com/2/');
         });
 
         it('should respect user provided transformRequestFunction', async () => {
@@ -565,8 +569,10 @@ describe('BasicCrawler', () => {
 
                 const skippedRequests = onSkippedRequestMock.mock.calls.map((call) => call[0]);
                 expect(skippedRequests).toHaveLength(2);
-                expect(skippedRequests[0]).toStrictEqual({ url: 'https://example.com/1/', reason: 'transform' });
-                expect(skippedRequests[1]).toStrictEqual({ url: 'https://example.com/2/', reason: 'transform' });
+                expect(skippedRequests[0].reason).toBe('transform');
+                expect(skippedRequests[0].request.url).toBe('https://example.com/1/');
+                expect(skippedRequests[1].reason).toBe('transform');
+                expect(skippedRequests[1].request.url).toBe('https://example.com/2/');
             },
         );
 
@@ -585,8 +591,12 @@ describe('BasicCrawler', () => {
             // The skipped reason should be 'depth', not 'transform'
             const skippedRequests = onSkippedRequestMock.mock.calls.map((call) => call[0]);
             expect(skippedRequests).toHaveLength(2);
-            expect(skippedRequests[0]).toStrictEqual({ url: 'https://example.com/1/', reason: 'depth' });
-            expect(skippedRequests[1]).toStrictEqual({ url: 'https://example.com/2/', reason: 'depth' });
+            expect(skippedRequests[0].reason).toBe('depth');
+            expect(skippedRequests[0].request).toBeInstanceOf(Request);
+            expect(skippedRequests[0].request.url).toBe('https://example.com/1/');
+            expect(skippedRequests[1].reason).toBe('depth');
+            expect(skippedRequests[1].request).toBeInstanceOf(Request);
+            expect(skippedRequests[1].request.url).toBe('https://example.com/2/');
         });
     });
 
@@ -3311,7 +3321,7 @@ describe('BasicCrawler', () => {
             const skippedUrls = onSkippedRequest.mock.calls
                 .map((call) => call[0])
                 .filter(({ reason }) => reason === 'limit')
-                .map(({ url }) => url)
+                .map(({ request }) => request.url)
                 .sort();
 
             expect(skippedUrls).toEqual([
@@ -3379,15 +3389,15 @@ describe('BasicCrawler', () => {
 
             await crawler.run(['http://example.com']);
 
-            const skipped = [
-                { url: 'http://example.com/2', reason: 'limit' },
-                { url: 'http://example.com/3', reason: 'limit' },
-            ];
-
             for (const mock of [crawlerOnSkippedRequest, userOnSkippedRequest]) {
-                expect(mock.mock.calls.map((call) => call[0]).sort((a, b) => a.url.localeCompare(b.url))).toEqual(
-                    skipped,
-                );
+                const skipped = mock.mock.calls
+                    .map((call) => ({ url: call[0].request.url, reason: call[0].reason }))
+                    .sort((a, b) => a.url.localeCompare(b.url));
+
+                expect(skipped).toEqual([
+                    { url: 'http://example.com/2', reason: 'limit' },
+                    { url: 'http://example.com/3', reason: 'limit' },
+                ]);
             }
         });
     });
@@ -3559,8 +3569,8 @@ describe('BasicCrawler', () => {
                 maxRequestRetries: 0,
                 respectRobotsTxtFile: true,
                 requestHandler: async () => {},
-                onSkippedRequest: async ({ url, reason }) => {
-                    await (await KeyValueStore.open()).setValue('skipped', { url, reason });
+                onSkippedRequest: async ({ request, reason }) => {
+                    await (await KeyValueStore.open()).setValue('skipped', { url: request.url, reason });
                 },
             });
 

@@ -18,6 +18,7 @@ import type {
     IRequestLoader,
     IRequestManager,
     IStatistics,
+    RequestOptions,
     RequestsLike,
     RouterHandler,
     RouterRoutes,
@@ -45,6 +46,7 @@ import {
     ContextPipelineInitializationError,
     ContextPipelineInterruptedError,
     createRequestOptions,
+    createSkippedRequestArgs,
     createStorageTransaction,
     Request,
     CriticalError,
@@ -1454,7 +1456,7 @@ export class BasicCrawler<
             request.state = RequestState.SKIPPED;
             request.noRetry = true;
             await this.#handleSkippedRequest({
-                url: request.url,
+                request,
                 reason: 'robotsTxt',
             });
 
@@ -1587,7 +1589,7 @@ export class BasicCrawler<
                     request.noRetry = true;
                     request.state = RequestState.SKIPPED;
 
-                    await this.#handleSkippedRequest({ url: request.url, reason: 'redirect' });
+                    await this.#handleSkippedRequest({ request, reason: 'redirect' });
 
                     throw new ContextPipelineInterruptedError(message);
                 }
@@ -2099,7 +2101,12 @@ export class BasicCrawler<
         const maxCrawlDepth = this.#maxCrawlDepth;
         const validateRequestUserData = this.validateRequestUserData.bind(this);
 
-        const allSkipped: { url: string; reason: SkippedRequestReason }[] = [];
+        const allSkipped: { source: string | Source; reason: SkippedRequestReason }[] = [];
+        // A skipped source (which can carry arbitrary userData) is only retained if something reads it -
+        // otherwise the URL alone is enough to build the callback argument and to log with.
+        const hasSkippedRequestCallback =
+            this.#onSkippedRequest !== undefined || options.onSkippedRequest !== undefined;
+        const keepSkippedSource = (source: Source) => (hasSkippedRequestCallback ? source : source.url!);
 
         async function* filteredRequests() {
             for await (const request of requests) {
@@ -2113,16 +2120,17 @@ export class BasicCrawler<
                 }
 
                 if (maxCrawlDepth !== undefined && requestOptions.crawlDepth! > maxCrawlDepth) {
-                    allSkipped.push({ url: requestOptions.url, reason: 'depth' });
+                    allSkipped.push({ source: keepSkippedSource(requestOptions), reason: 'depth' });
                     continue;
                 }
 
                 if (!(await isAllowedBasedOnRobotsTxtFile(requestOptions.url))) {
-                    allSkipped.push({ url: requestOptions.url, reason: 'robotsTxt' });
+                    allSkipped.push({ source: keepSkippedSource(requestOptions), reason: 'robotsTxt' });
                     continue;
                 }
 
-                const onSkippedFilterUrl = (url: string) => allSkipped.push({ url, reason: 'filters' });
+                const onSkippedByFilter = (opts: RequestOptions) =>
+                    allSkipped.push({ source: keepSkippedSource(opts), reason: 'filters' });
 
                 // Filter by user patterns first (with exclude)...
                 let filtered = filterRequestOptionsByPatterns(
@@ -2130,7 +2138,7 @@ export class BasicCrawler<
                     urlPatternObjects.length > 0 ? urlPatternObjects : undefined,
                     urlExcludePatternObjects,
                     strategy,
-                    onSkippedFilterUrl,
+                    onSkippedByFilter,
                 );
                 // ...then filter by the enqueue strategy (making this an AND check)
                 filtered = filterRequestOptionsByPatterns(
@@ -2138,7 +2146,7 @@ export class BasicCrawler<
                     enqueueStrategyPatterns.length > 0 ? enqueueStrategyPatterns : undefined,
                     [],
                     strategy,
-                    onSkippedFilterUrl,
+                    onSkippedByFilter,
                 );
 
                 if (filtered.length === 0) {
@@ -2149,7 +2157,7 @@ export class BasicCrawler<
 
                 if (options.transformRequestFunction) {
                     const transformed = applyRequestTransform([finalOptions], options.transformRequestFunction, (r) =>
-                        allSkipped.push({ url: r.url, reason: r.skippedReason ?? 'transform' }),
+                        allSkipped.push({ source: keepSkippedSource(r), reason: r.skippedReason ?? 'transform' }),
                     );
 
                     if (transformed.length === 0) {
@@ -2175,11 +2183,13 @@ export class BasicCrawler<
         // Report requests skipped due to the maxNewRequests budget (i.e. maxRequestsPerCrawl limit, or an
         // explicit `limit` option)
         for (const request of result.requestsOverLimit ?? []) {
-            allSkipped.push({ url: typeof request === 'string' ? request : request.url!, reason: 'limit' });
+            allSkipped.push({ source: request, reason: 'limit' });
         }
 
         if (allSkipped.length > 0) {
-            const skippedRobotsUrls = allSkipped.filter((s) => s.reason === 'robotsTxt').map((s) => s.url);
+            const skippedRobotsUrls = allSkipped
+                .filter((s) => s.reason === 'robotsTxt')
+                .map(({ source }) => (typeof source === 'string' ? source : source.url!));
             if (skippedRobotsUrls.length > 0) {
                 this.log.warning(
                     `Some requests were skipped because they were disallowed based on the robots.txt file`,
@@ -2198,9 +2208,10 @@ export class BasicCrawler<
             }
 
             await Promise.all(
-                allSkipped.map(async ({ url, reason }) => {
-                    await this.#handleSkippedRequest({ url, reason });
-                    await options.onSkippedRequest?.({ url, reason });
+                allSkipped.map(async ({ source, reason }) => {
+                    const args = createSkippedRequestArgs(source, reason);
+                    await this.#handleSkippedRequest(args);
+                    await options.onSkippedRequest?.(args);
                 }),
             );
         }
