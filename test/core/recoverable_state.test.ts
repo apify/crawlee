@@ -165,6 +165,26 @@ describe('RecoverableState', () => {
         await recoverableState.teardown();
     });
 
+    test('should keep the in-memory state when initialized again after a teardown', async () => {
+        const store = await KeyValueStore.open();
+
+        const recoverableState = new RecoverableState({
+            defaultState,
+            persistStateKey: 'test-key',
+            persistenceEnabled: true,
+        });
+
+        await recoverableState.initialize();
+        recoverableState.currentValue.counter = 42;
+        await recoverableState.teardown();
+
+        // Something the deserialization would not bring back - here, a record changed behind our back.
+        await store.setValue('test-key', { ...defaultState, counter: 7 });
+
+        expect((await recoverableState.initialize()).counter).toBe(42);
+        await recoverableState.teardown();
+    });
+
     test('should warn rather than throw when a periodic persist fails', async () => {
         const store = await KeyValueStore.open();
         vi.spyOn(store, 'setValue').mockRejectedValue(new Error('store is on fire'));

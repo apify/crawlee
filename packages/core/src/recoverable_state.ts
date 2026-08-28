@@ -131,6 +131,7 @@ export class RecoverableState<TStateModel = Record<string, unknown>, TPersistedS
     readonly #defaultState: () => TStateModel;
     #state: TStateModel | null = null;
     #initialized = false;
+    #recordLoaded = false;
     #listening = false;
     readonly #persistenceEnabled: boolean;
     readonly #persistStateKey: string;
@@ -207,7 +208,8 @@ export class RecoverableState<TStateModel = Record<string, unknown>, TPersistedS
      * is no record to restore.
      *
      * Calling this again after a {@apilink RecoverableState.teardown} starts a new persistence window - the
-     * listener is registered again and the record reloaded.
+     * listener is registered again. The record is not reloaded: the in-memory state is what the teardown wrote, and
+     * reloading it would only drop whatever the deserialization leaves out.
      *
      * @returns The loaded state object
      */
@@ -227,7 +229,10 @@ export class RecoverableState<TStateModel = Record<string, unknown>, TPersistedS
         this.#initialized = true;
         this.#state ??= this.#defaultState();
 
-        await this.#loadSavedState();
+        if (!this.#recordLoaded) {
+            this.#recordLoaded = true;
+            await this.#loadSavedState();
+        }
 
         return this.currentValue;
     }
