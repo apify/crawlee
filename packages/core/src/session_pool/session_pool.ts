@@ -390,18 +390,17 @@ export class SessionPool implements ISessionPool {
     }
 
     async [Symbol.asyncDispose](): Promise<void> {
-        await this.teardown({ persistState: true });
+        await this.teardown();
     }
 
     /**
-     * Removes listener from `persistState` event.
+     * Stops the periodic state persistence and persists the state one last time.
      * This function should be called after you are done with using the `SessionPool` instance.
-     * @param options - Set `persistState` to false when the final state was already persisted by the event manager.
      */
-    async teardown({ persistState = true }: { persistState?: boolean } = {}): Promise<void> {
+    async teardown(): Promise<void> {
         if (!this.#initPromise) return;
         await this.ensureInitialized();
-        await this.#state.teardown({ persistState });
+        await this.#state.teardown();
     }
 
     /**

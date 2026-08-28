@@ -336,33 +336,48 @@ describe('RequestList', () => {
         const optsCopy = JSON.parse(JSON.stringify(opts));
 
         const requestList = await RequestList.open(opts);
-        expect(requestList.isStatePersisted).toBe(true);
-
-        // Fetch one request and check that state is not persisted.
         await requestList.fetchNextRequest();
-        expect(requestList.isStatePersisted).toBe(false);
 
         // Persist state.
         setValueSpy.mockResolvedValueOnce();
         serviceLocator.getEventManager().emit(EventType.PERSIST_STATE);
         await sleep(20);
-        expect(requestList.isStatePersisted).toBe(true);
+        expect(setValueSpy).toHaveBeenCalledTimes(1);
+        expect(setValueSpy).toHaveBeenLastCalledWith(`CRAWLEE_${PERSIST_STATE_KEY}`, requestList.getState());
 
         // Do some other changes and persist it again.
         const request2 = await requestList.fetchNextRequest();
-        expect(requestList.isStatePersisted).toBe(false);
         await requestList.markRequestAsHandled(request2!);
-        expect(requestList.isStatePersisted).toBe(false);
         setValueSpy.mockResolvedValueOnce();
         serviceLocator.getEventManager().emit(EventType.PERSIST_STATE);
         await sleep(20);
-        expect(requestList.isStatePersisted).toBe(true);
+        expect(setValueSpy).toHaveBeenCalledTimes(2);
+        expect(setValueSpy).toHaveBeenLastCalledWith(`CRAWLEE_${PERSIST_STATE_KEY}`, requestList.getState());
 
         // Now initiate new request list from saved state and check that it's same as state
         // of original request list.
         getValueSpy.mockResolvedValueOnce(requestList.getState());
         const requestList2 = await RequestList.open(optsCopy);
         expect(requestList2.getState()).toEqual(requestList.getState());
+    });
+
+    test('a persisted record takes precedence over the state option', async () => {
+        const sources = [1, 2, 3].map((i) => ({ url: `https://example.com/${i}` }));
+        const store = await KeyValueStore.open();
+        await store.setValue('CRAWLEE_state-key', {
+            nextIndex: 2,
+            nextUniqueKey: 'https://example.com/3',
+            inProgress: [],
+        });
+
+        const requestList = await RequestList.open({
+            sources,
+            persistStateKey: 'state-key',
+            state: { nextIndex: 1, nextUniqueKey: 'https://example.com/2', inProgress: [] },
+        });
+
+        expect(requestList.getState().nextIndex).toBe(2);
+        await requestList.teardown();
     });
 
     test('teardown removes the persist state listener when persistStateKey is set', async () => {

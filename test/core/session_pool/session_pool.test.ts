@@ -33,7 +33,7 @@ describe('SessionPool - testing session pool', () => {
         const kvStore = await KeyValueStore.open();
         expect(await kvStore.getValue(persistStateKey)).toBeDefined();
 
-        await sessionPool.teardown({ persistState: false });
+        await sessionPool.teardown();
     });
 
     test('resetStore should throw while persisting periodically and clear the record after teardown', async () => {
@@ -70,7 +70,7 @@ describe('SessionPool - testing session pool', () => {
         expect(await kvStore.getValue(persistStateKey)).toBeNull();
         expect((await secondPool.getState()).sessions).toEqual([]);
 
-        await secondPool.teardown({ persistState: false });
+        await secondPool.teardown();
     });
 
     test('should override default values', async () => {
