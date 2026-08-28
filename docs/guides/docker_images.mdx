@@ -67,6 +67,22 @@ FROM apify/actor-node:24-beta
 FROM apify/actor-node-playwright-chrome:24-1.60.0-beta
 ```
 
+### Slim variants
+
+Every Node.js image is also published as a slim variant, with a `-slim` suffix appended to the tag (e.g. `24-slim`, `24-1.60.0-slim`, `24-beta-slim`). Slim images do not preinstall `apify`, `crawlee` or `typescript`. They only ship the browser automation library the image is built around (for example `puppeteer`, `playwright-chromium`, or `camoufox-js` with `impit`), and `apify/actor-node:24-slim` ships no npm packages at all. This makes them smaller and faster to pull, and your project's `package.json` is the single source of truth for dependency versions.
+
+```dockerfile
+# No preinstalled packages, bring your own dependencies.
+FROM apify/actor-node:24-slim
+```
+
+```dockerfile
+# Only Playwright (Chromium) is preinstalled, pinned to match the bundled browser.
+FROM apify/actor-node-playwright-chrome:24-1.60.0-slim
+```
+
+Since nothing but the automation library is preinstalled, make sure `crawlee` and any other runtime dependencies are listed in your `package.json` and installed in your `Dockerfile`. The [version matching](#recommended-approach-pin-both-versions) rules for the automation library still apply.
+
 ## Best practices
 
 For production crawlers, we recommend pinning both the Node.js version **and** the automation library version in your Dockerfile tag. This ensures reproducible builds and prevents unexpected behavior when new versions are released.
@@ -132,7 +148,7 @@ curl -s "https://registry.hub.docker.com/v2/repositories/apify/actor-node-playwr
 
 ### Warning about image size
 
-Browsers are huge. If you don't need them all in your image, it's better to use a smaller image with only the one browser you need.
+Browsers are huge. If you don't need them all in your image, it's better to use a smaller image with only the one browser you need. If you don't need the preinstalled `apify` and `crawlee` packages either, use the [`-slim` variant](#slim-variants).
 
 You should also be careful when installing new dependencies. Nothing prevents you from installing Playwright into the`actor-node-puppeteer-chrome` image, but the resulting image will be about 3 times larger and extremely slow to download and build.
 
