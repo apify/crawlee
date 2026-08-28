@@ -57,7 +57,6 @@ import {
     getObjectType,
     KeyValueStore,
     log,
-    LogLevel,
     mergeCookies,
     MissingSessionError,
     NavigationSkippedError,
@@ -1567,7 +1566,11 @@ export class BasicCrawler<
     setStatusMessage(message: string, options: SetStatusMessageOptions = {}) {
         const data =
             options.isStatusMessageTerminal != null ? { terminal: options.isStatusMessageTerminal } : undefined;
-        this.log.logWithLevel(LogLevel[(options.level as 'DEBUG') ?? 'DEBUG'], message, data);
+        // Each allowed level has its own method on the logger, so this goes through them rather than through
+        // `logWithLevel`, which is abstract and therefore cannot be instrumented.
+        this.log[
+            ({ DEBUG: 'debug', INFO: 'info', WARNING: 'warning', ERROR: 'error' } as const)[options.level ?? 'DEBUG']
+        ](message, data);
 
         // Broadcast the status message through the event system. Consumers (e.g. the Apify SDK) can
         // subscribe to `EventType.STATUS_MESSAGE` and propagate it to their status-reporting backend.

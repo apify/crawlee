@@ -1,3 +1,4 @@
+import { BasicCrawler } from '@crawlee/basic';
 import * as coreModule from '@crawlee/core';
 import { CrawleeInstrumentation } from '@crawlee/otel';
 import { SeverityNumber } from '@opentelemetry/api-logs';
@@ -55,6 +56,21 @@ describe('log forwarding against the real Crawlee logger', () => {
         expect(record.severityNumber).toBe(SeverityNumber.ERROR);
         expect(record.attributes[ATTR_EXCEPTION_TYPE]).toBe('RangeError');
         expect(record.attributes[ATTR_EXCEPTION_MESSAGE]).toBe('out of range');
+    });
+
+    test('forwards a crawler status message', () => {
+        coreModule.serviceLocator.setStorageBackend(new coreModule.MemoryStorageBackend());
+        const crawler = new BasicCrawler({ requestHandler: async () => {} });
+        exporter.reset();
+
+        crawler.setStatusMessage('Crawled 40/100 pages, 2 failed.', { level: 'INFO' });
+
+        // `setStatusMessage` is the one place in Crawlee that logs at a level chosen at runtime. It used to reach for
+        // `logWithLevel`, which is abstract on `BaseCrawleeLogger` and so cannot be patched - the periodic status
+        // messages never reached OpenTelemetry at all.
+        const record = exporter.getFinishedLogRecords().at(-1)!;
+        expect(record.body).toBe('Crawled 40/100 pages, 2 failed.');
+        expect(record.severityNumber).toBe(SeverityNumber.INFO);
     });
 
     test('maps each level onto the matching severity', () => {

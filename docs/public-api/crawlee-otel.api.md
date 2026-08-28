@@ -11,18 +11,13 @@ import type { SpanOptions } from '@opentelemetry/api';
 import type { Tracer } from '@opentelemetry/api';
 import type { TracerProvider } from '@opentelemetry/api';
 
-// @public (undocumented)
-export interface ClassMethodPatchDefinition {
+// @public
+export interface ClassMethodToInstrument {
     className: string;
     methodName: string;
+    moduleName: string;
     spanName?: string | ((this: any, ...args: any[]) => string);
     spanOptions?: SpanOptions | ((this: any, ...args: any[]) => SpanOptions);
-}
-
-// @public (undocumented)
-export interface ClassMethodToInstrument extends ClassMethodPatchDefinition {
-    // (undocumented)
-    moduleName: string;
 }
 
 // @public (undocumented)
@@ -41,24 +36,6 @@ export interface CrawleeInstrumentationConfig extends InstrumentationConfig {
     logInstrumentation?: boolean;
     // (undocumented)
     requestHandlingInstrumentation?: boolean;
-}
-
-// @public
-export interface CrawlingContextLike {
-    // (undocumented)
-    request?: RequestLike;
-}
-
-// @public
-export interface RequestLike {
-    // (undocumented)
-    id?: string;
-    // (undocumented)
-    method?: string;
-    // (undocumented)
-    retryCount?: number;
-    // (undocumented)
-    url?: string;
 }
 
 // @public
