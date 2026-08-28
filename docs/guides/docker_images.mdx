@@ -129,17 +129,15 @@ FROM apify/actor-node-playwright-chrome:24
 
 This makes sure the pre-installed version of Puppeteer or Playwright is not re-installed on build. However, this approach is less predictable because you'll get whatever version was latest when the Docker image was built.
 
-### Start with the full image, switch to slim when done
+### Prefer slim images
 
-While developing, use the full image. It comes with `apify`, `crawlee` and `typescript` preinstalled, so you can iterate without worrying about which dependencies your Dockerfile needs to install. Once the crawler is stable and your `package.json` lists everything it needs, switch the tag to the [`-slim` variant](#slim-variants) for a smaller image and faster builds.
+Use the [`-slim` variant](#slim-variants) unless you have a reason not to. Your `package.json` already lists the dependencies your crawler needs, so the preinstalled `apify`, `crawlee` and `typescript` in the full image are redundant and only make it larger and slower to pull.
 
 ```dockerfile
-# Development
-FROM apify/actor-node-playwright-chrome:24-1.60.0
-
-# Production
 FROM apify/actor-node-playwright-chrome:24-1.60.0-slim
 ```
+
+Reach for the full image when you want to run something quickly without maintaining a `package.json`, or when you rely on the exact preinstalled versions of `apify` and `crawlee`.
 
 ## Finding available tags
 
