@@ -311,6 +311,9 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     /** Batches still being added in the background; keeps {@apilink ThrottlingRequestManager.checkReadiness} honest. */
     #inProgressBatchCount = 0;
 
+    /** Requests moved into a sub-queue, which both managers count. Subtracted below; not persisted. */
+    #migratedFromInner = 0;
+
     /** The latest {@link setExpectedRequestProcessingTimeSecs} hint, kept for a wrapped manager resolved later. */
     #expectedRequestProcessingSecs?: number;
 
@@ -891,7 +894,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     }
 
     async getTotalCount(): Promise<number> {
-        return this.#sumOverManagers((manager) => manager.getTotalCount());
+        return (await this.#sumOverManagers((manager) => manager.getTotalCount())) - this.#migratedFromInner;
     }
 
     async getPendingCount(): Promise<number> {
@@ -899,7 +902,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     }
 
     async getHandledCount(): Promise<number> {
-        return this.#sumOverManagers((manager) => manager.getHandledCount());
+        return (await this.#sumOverManagers((manager) => manager.getHandledCount())) - this.#migratedFromInner;
     }
 
     /**
@@ -1019,6 +1022,8 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     async #purgeDomainQueues(): Promise<void> {
         const subManagers = await this.#getSubManagers();
         await Promise.all(subManagers.map(async (manager) => manager.purge?.()));
+
+        this.#migratedFromInner = 0;
 
         for (const state of this.domainStates.values()) {
             state.consecutive429Count = 0;
@@ -1162,6 +1167,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         }
 
         await inner.markRequestAsHandled(request);
+        this.#migratedFromInner += 1;
     }
 
     async *[Symbol.asyncIterator]() {

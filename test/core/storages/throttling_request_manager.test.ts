@@ -307,8 +307,11 @@ describe('ThrottlingRequestManager', () => {
 
         expect(fetchedFromInner).toHaveBeenCalledTimes(21);
         expect(reclaimedToInner).not.toHaveBeenCalled();
-        // Nothing lost on the way: the backlog waits in the sub-queue, the dispatched one is still outstanding.
+        // Nothing lost on the way, and nothing counted twice: moving a request marks it handled where it came
+        // from, so both managers hold a record of it.
         expect(await manager.getPendingCount()).toBe(21);
+        expect(await manager.getTotalCount()).toBe(21);
+        expect(await manager.getHandledCount()).toBe(0);
 
         fetchedFromInner.mockClear();
         await manager.addRequest({ url: 'https://other.com/behind-it' });
