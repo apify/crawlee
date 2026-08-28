@@ -33,6 +33,55 @@ const createSessionOptionsSchema = z.strictObject({
     sessionOptions: schemas.anyObject.default(() => ({})),
 });
 
+// Only what the recreation reads is pinned down - the rest of a session's state is the session's own business.
+const persistedSessionState = z.custom<SessionState>(
+    (value) =>
+        typeof value === 'object' &&
+        value !== null &&
+        typeof (value as Dictionary).createdAt === 'string' &&
+        typeof (value as Dictionary).expiresAt === 'string',
+    'Expected a persisted session with `createdAt` and `expiresAt` timestamps',
+);
+
+const persistedSessionPoolState = z.object({
+    usableSessionsCount: z.number(),
+    retiredSessionsCount: z.number(),
+    sessions: z.array(persistedSessionState),
+});
+
+/**
+ * The conversion between the pool's sessions and its persisted record. Decoding recreates the sessions through
+ * the pool's factory and keeps only the usable ones, which is why the codec is built per pool.
+ */
+function buildSessionPoolStateCodec(pool: {
+    recreateSession: (sessionState: Dictionary) => Promise<Session>;
+    toRecord: (sessions: Session[]) => SessionPoolPersistedState;
+    log: CrawleeLogger;
+}) {
+    return z.codec(persistedSessionPoolState, z.custom<SessionPoolInternalState>(), {
+        decode: async (record) => {
+            const sessions: Session[] = [];
+
+            for (const sessionState of record.sessions) {
+                const session = await pool.recreateSession({
+                    ...sessionState,
+                    createdAt: new Date(sessionState.createdAt),
+                    expiresAt: new Date(sessionState.expiresAt),
+                });
+
+                if (session.isUsable()) {
+                    sessions.push(session);
+                }
+            }
+
+            pool.log.debug(`${sessions.length} active sessions loaded from KeyValueStore`);
+
+            return { sessions };
+        },
+        encode: ({ sessions }) => pool.toRecord(sessions),
+    });
+}
+
 /**
  * Factory user-function which creates customized {@apilink Session} instances.
  */
@@ -166,6 +215,7 @@ export class SessionPool implements ISessionPool {
      * persistence of the record under `persistStateKey`.
      */
     readonly #state: RecoverableState<SessionPoolInternalState, SessionPoolPersistedState>;
+    readonly #stateCodec: ReturnType<typeof buildSessionPoolStateCodec>;
 
     get #sessions(): Session[] {
         return this.#state.currentValue.sessions;
@@ -213,6 +263,12 @@ export class SessionPool implements ISessionPool {
         this.#persistStateKeyValueStoreId = persistStateKeyValueStoreId;
         this.#persistStateKey = persistStateKey ?? `${PERSIST_STATE_KEY}_${this.id}`;
 
+        this.#stateCodec = buildSessionPoolStateCodec({
+            recreateSession: (sessionState) => this.invokeCreateSessionFunction(sessionState),
+            toRecord: (sessions) => this.#buildPersistedState(sessions),
+            log: this.#log,
+        });
+
         this.#state = new RecoverableState({
             defaultState: () => ({ sessions: [] as Session[] }),
             persistStateKey: this.#persistStateKey,
@@ -225,8 +281,9 @@ export class SessionPool implements ISessionPool {
                           { configuration: serviceLocator.getConfiguration() },
                       )
                     : undefined,
-            serialize: (state) => this.#buildPersistedState(state.sessions),
-            deserialize: async (persisted) => this.#recreateSessions(persisted),
+            // The codec validates in the decode direction, so it is a Standard Schema as-is; encoding needs a call.
+            deserialize: this.#stateCodec,
+            serialize: (state) => this.#stateCodec.encode(state),
         });
         this.#state.reset();
     }
@@ -260,6 +317,10 @@ export class SessionPool implements ISessionPool {
 
     private async setupPool(): Promise<void> {
         await this.#state.initialize();
+
+        for (const session of this.#sessions) {
+            this.#sessionMap.set(session.id, session);
+        }
     }
 
     /**
@@ -510,39 +571,13 @@ export class SessionPool implements ISessionPool {
         return picked.isUsable() ? picked : undefined;
     }
 
-    /** The persisted form of the pool - the `serialize` half of the {@apilink RecoverableState}. */
+    /** The persisted form of the pool, which is also what {@apilink SessionPool.getState} returns. */
     #buildPersistedState(sessions: Session[]): SessionPoolPersistedState {
         return {
             usableSessionsCount: sessions.filter((session) => session.isUsable()).length,
             retiredSessionsCount: sessions.filter((session) => !session.isUsable()).length,
             sessions: sessions.map((session) => session.getState()),
         };
-    }
-
-    /** Recreates the sessions of a persisted record - the `deserialize` half of the {@apilink RecoverableState}. */
-    async #recreateSessions(persisted: SessionPoolPersistedState): Promise<SessionPoolInternalState> {
-        // Invalidate old sessions and load active sessions only
-        this.#log.debug('Recreating state from KeyValueStore', {
-            persistStateKeyValueStoreId: this.#persistStateKeyValueStoreId,
-            persistStateKey: this.#persistStateKey,
-        });
-
-        const sessions: Session[] = [];
-
-        for (const sessionObject of persisted.sessions as Dictionary[]) {
-            sessionObject.createdAt = new Date(sessionObject.createdAt as string);
-            sessionObject.expiresAt = new Date(sessionObject.expiresAt as string);
-            const recreatedSession = await this.invokeCreateSessionFunction(sessionObject);
-
-            if (recreatedSession.isUsable()) {
-                sessions.push(recreatedSession);
-                this.#sessionMap.set(recreatedSession.id, recreatedSession);
-            }
-        }
-
-        this.#log.debug(`${sessions.length} active sessions loaded from KeyValueStore`);
-
-        return { sessions };
     }
 }
 

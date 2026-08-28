@@ -1,4 +1,12 @@
-import { EventType, KeyValueStore, MemoryStorageBackend, serviceLocator, Session, SessionPool } from '@crawlee/core';
+import {
+    EventType,
+    KeyValueStore,
+    MemoryStorageBackend,
+    serviceLocator,
+    Session,
+    SessionPool,
+    StateValidationError,
+} from '@crawlee/core';
 import type { SessionOptions } from '@crawlee/core';
 
 describe('SessionPool - testing session pool', () => {
@@ -16,6 +24,16 @@ describe('SessionPool - testing session pool', () => {
     test('should initialize with default values for first time', async () => {
         expect((await sessionPool.getState()).sessions).toEqual([]);
         expect(sessionPool.id).toBeDefined();
+    });
+
+    test('a corrupt persisted record fails validation instead of crashing the recreation', async () => {
+        const persistStateKey = 'CORRUPT_TEST';
+        const kvStore = await KeyValueStore.open();
+        await kvStore.setValue(persistStateKey, { sessions: [{ id: 'no-timestamps' }] });
+
+        sessionPool = new SessionPool({ persistStateKey });
+
+        await expect(sessionPool.getSession()).rejects.toThrow(StateValidationError);
     });
 
     test('should initialize again on use after teardown, resuming the periodic persistence', async () => {
