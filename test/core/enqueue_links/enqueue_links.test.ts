@@ -72,7 +72,7 @@ async function createRequestQueueMock(seedUrl = 'https://example.com') {
 // `enqueueLinks()`'s hostname/domain-based strategies see whatever start URL a test navigates to,
 // regardless of where the content is actually served from.
 class FixtureHttpClient extends BaseHttpClient {
-    constructor(private readonly html: string) {
+    constructor(protected readonly html: string) {
         super();
     }
 
@@ -415,6 +415,52 @@ describe('enqueueLinks()', () => {
             ]);
         });
 
+        test('keeps filtering by the original domain with the strategy of same-domain after an off-domain redirect', async () => {
+            const { enqueued, requestQueue } = await createRequestQueueMock();
+            // Serves the fixture HTML while reporting the load as if it had redirected off-domain.
+            const redirectingHttpClient = new (class extends FixtureHttpClient {
+                override async sendRequest(): Promise<Response> {
+                    return new ResponseWithUrl(this.html, {
+                        url: 'https://another.com/',
+                        status: 200,
+                        headers: { 'content-type': 'text/html; charset=utf-8' },
+                    });
+                }
+            })(HTML);
+
+            const crawler = new CheerioCrawler({
+                requestManager: requestQueue,
+                httpClient: redirectingHttpClient,
+                requestHandler: async ({ request, enqueueLinks }) => {
+                    if (request.url !== 'https://example.com') return;
+                    await enqueueLinks({ strategy: EnqueueStrategy.SameDomain });
+                },
+            });
+            await crawler.run(['https://example.com']);
+
+            expect(enqueued.map((r) => r.url)).toEqual([
+                'https://example.com/a/b/first',
+                'https://example.com/a/second',
+                'https://example.com/a/b/third',
+            ]);
+        });
+
+        test('ignores an explicitly undefined baseUrl and keeps the resolved one', async () => {
+            const { enqueued, requestQueue } = await createRequestQueueMock();
+            await runCheerioEnqueueLinks(
+                { strategy: EnqueueStrategy.SameDomain, baseUrl: undefined },
+                { requestManager: requestQueue },
+            );
+
+            expect(enqueued.map((r) => r.url)).toEqual([
+                'https://example.com/a/b/first',
+                'https://example.com/a/second',
+                'https://example.com/a/b/third',
+                'https://example.com/x/absolutepath',
+                'https://example.com/y/relativepath',
+            ]);
+        });
+
         test('correctly resolves relative URLs with the strategy of all', async () => {
             const { enqueued, requestQueue } = await createRequestQueueMock();
             await runCheerioEnqueueLinks(
@@ -667,12 +713,12 @@ describe('enqueueLinks()', () => {
                 expect(enqueued[0].userData).toEqual({ label: 'global-label' });
 
                 const skippedCalls = onSkippedRequest.mock.calls.map(
-                    (call: unknown[]) => call[0] as { url: string; reason: string },
+                    (call: unknown[]) => call[0] as { request: Request; reason: string },
                 );
-                const transformSkipped = skippedCalls.filter((s) => s.url === 'https://example.com/a/b/first');
+                const transformSkipped = skippedCalls.filter((s) => s.request.url === 'https://example.com/a/b/first');
                 expect(transformSkipped).toHaveLength(1);
-                expect(transformSkipped[0]).toEqual({ url: 'https://example.com/a/b/first', reason: 'transform' });
-                const unchangedSkipped = skippedCalls.filter((s) => s.url === 'https://example.com/a/b/third');
+                expect(transformSkipped[0].reason).toBe('transform');
+                const unchangedSkipped = skippedCalls.filter((s) => s.request.url === 'https://example.com/a/b/third');
                 expect(unchangedSkipped).toHaveLength(0);
             });
 
@@ -699,11 +745,11 @@ describe('enqueueLinks()', () => {
                 expect(enqueued[0].url).toBe('https://example.com/a/b/third');
 
                 const skippedCalls = onSkippedRequest.mock.calls.map(
-                    (call: unknown[]) => call[0] as { url: string; reason: string },
+                    (call: unknown[]) => call[0] as { request: Request; reason: string },
                 );
-                const transformSkipped = skippedCalls.filter((s) => s.url === 'https://example.com/a/b/first');
+                const transformSkipped = skippedCalls.filter((s) => s.request.url === 'https://example.com/a/b/first');
                 expect(transformSkipped).toHaveLength(1);
-                expect(transformSkipped[0]).toEqual({ url: 'https://example.com/a/b/first', reason: 'transform' });
+                expect(transformSkipped[0].reason).toBe('transform');
             });
         });
     });

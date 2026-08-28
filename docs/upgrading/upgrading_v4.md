@@ -843,6 +843,10 @@ const urls = await extractLinks({ selector: '.product-link' });
 
 The `robotsTxtFile` / `respectRobotsTxtFile` per-call options are removed from `enqueueLinks()` — robots.txt filtering is applied by the crawler consistently via `BasicCrawlerOptions.respectRobotsTxtFile`.
 
+### `onSkippedRequest` receives a `Request` instead of a URL string
+
+The callback now gets `{ request, reason }` instead of `{ url, reason }` — use `request.url` for the URL.
+
 ### Internal KVS keys renamed
 
 Several internal Crawlee keys were prefixed with the `SDK_` prefix for legacy reasons — these keys now start with `CRAWLEE_` instead. These are, e.g., `CRAWLEE_SESSION_POOL_STATE` or `CRAWLEE_CRAWLER_STATISTICS_{n}`.
