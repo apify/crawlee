@@ -371,9 +371,7 @@ describe('RequestList', () => {
             inProgress: [],
         });
 
-        await expect(RequestList.open({ sources, persistStateKey: 'state-key' })).rejects.toThrow(
-            StateValidationError,
-        );
+        await expect(RequestList.open({ sources, persistStateKey: 'state-key' })).rejects.toThrow(StateValidationError);
     });
 
     test('a persisted record takes precedence over the state option', async () => {
