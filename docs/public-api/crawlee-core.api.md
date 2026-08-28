@@ -1127,9 +1127,7 @@ export class RecoverableState<TStateModel = Record<string, unknown>, TPersistedS
     persistState(eventData?: Record<string, unknown>): Promise<void>;
     reset(): void;
     resetStore(): Promise<void>;
-    teardown(options?: {
-        persistState?: boolean;
-    }): Promise<void>;
+    teardown(): Promise<void>;
 }
 
 // @public
@@ -1137,11 +1135,8 @@ export interface RecoverableStateOptions<TStateModel = Record<string, unknown>, 
     configuration?: Configuration;
     defaultState: TStateModel | (() => TStateModel);
     deserialize?: StateConversion<TPersistedState, TStateModel>;
-    initialState?: TPersistedState;
     logger?: CrawleeLogger;
-    onPersisted?: () => void;
     serialize?: StateConversion<TStateModel, TPersistedState>;
-    shouldPersist?: () => boolean;
 }
 
 // @public (undocumented)
@@ -1735,9 +1730,7 @@ export class SessionPool implements ISessionPool {
     reset(): void;
     resetStore(): Promise<void>;
     retiredSessionsCount(): Promise<number>;
-    teardown(input?: {
-        persistState?: boolean;
-    }): Promise<void>;
+    teardown(): Promise<void>;
     usableSessionsCount(): Promise<number>;
 }
 
