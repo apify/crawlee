@@ -103,6 +103,9 @@ The images preconfigure the package managers so that:
 These settings are applied through environment variables (`PNPM_CONFIG_NODE_LINKER`, `YARN_NODE_LINKER`), and both pnpm and yarn give environment variables precedence over `.npmrc` / `.yarnrc.yml`. To use a different linker, override the variable in your `Dockerfile` instead of the config file:
 
 ```dockerfile
+# https://pnpm.io/settings#nodelinker
+ENV PNPM_CONFIG_NODE_LINKER=isolated
+# https://yarnpkg.com/configuration/yarnrc#nodeLinker
 ENV YARN_NODE_LINKER=pnp
 ```
 
