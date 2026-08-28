@@ -6,7 +6,7 @@ import { z } from 'zod';
 import type { Configuration } from '../configuration.js';
 import type { CrawleeLogger } from '../log.js';
 import type { IProxyConfiguration } from '../proxy_configuration.js';
-import { RecoverableState } from '../recoverable_state.js';
+import { convertStateSync, RecoverableState } from '../recoverable_state.js';
 import { type InternalSource, Request, type RequestOptions, type Source } from '../request.js';
 import { createDeserialize, serializeArray } from '../serialization.js';
 import { serviceLocator } from '../service_locator.js';
@@ -24,24 +24,98 @@ export const REQUESTS_PERSISTENCE_KEY = 'REQUEST_LIST_REQUESTS';
 
 const CONTENT_TYPE_BINARY = 'application/octet-stream';
 
+const persistedRequestListState = z.object({
+    nextIndex: z.number().int().nonnegative(),
+    nextUniqueKey: z.string().nullable(),
+    inProgress: z.array(z.string()),
+});
+
 const requestListOptionsSchema = z.strictObject({
     sources: schemas.anyArray.optional(), // check only for array and not subtypes to avoid iteration over the whole thing
     sourcesFunction: schemas.anyFunction.optional(),
     persistStateKey: z.string().optional(),
     persistRequestsKey: z.string().optional(),
-    state: z
-        .strictObject({
-            nextIndex: schemas.anyNumber,
-            nextUniqueKey: z.string(),
-            inProgress: schemas.anyObject, // persisted as an array of unique keys
-        })
-        .optional(),
+    state: persistedRequestListState.optional(),
     keepDuplicateUrls: z.boolean().default(false),
     proxyConfiguration: validators.proxyConfiguration.optional(),
     httpClient: schemas.httpClient.optional(),
 });
 const listNameSchema = z.string().nullish();
 const openOptionsSchema = z.looseObject({});
+
+/**
+ * The conversion between the crawling position and its persisted record. Decoding also checks the record against
+ * the loaded requests, which is why the codec is built per list.
+ */
+function buildRequestListStateCodec(list: {
+    requests: readonly (Request | RequestOptions)[];
+    indexOf: (uniqueKey: string) => number | undefined;
+    log: CrawleeLogger;
+}) {
+    return z.codec(persistedRequestListState, z.custom<RequestListInternalState>(), {
+        decode: (record, ctx) => {
+            const { requests } = list;
+            const { nextIndex, nextUniqueKey } = record;
+            const inconsistent = (message: string) => {
+                ctx.issues.push({ code: 'custom', message, input: record });
+                return z.NEVER;
+            };
+
+            if (nextIndex > requests.length) {
+                return inconsistent('The state object is not consistent with RequestList, too few requests loaded.');
+            }
+            if (nextIndex < requests.length && requests[nextIndex].uniqueKey !== nextUniqueKey) {
+                return inconsistent(
+                    'The state object is not consistent with RequestList the order of URLs seems to have changed.',
+                );
+            }
+
+            const inProgress = new Set(record.inProgress);
+            const deleteFromInProgress: string[] = [];
+            for (const uniqueKey of inProgress) {
+                const index = list.indexOf(uniqueKey);
+                if (index === undefined) {
+                    return inconsistent(
+                        'The state object is not consistent with RequestList. Unknown uniqueKey is present in the state.',
+                    );
+                }
+                if (index >= nextIndex) {
+                    deleteFromInProgress.push(uniqueKey);
+                }
+            }
+
+            // WORKAROUND:
+            // It happened to some users that state object contained something like:
+            // {
+            //   "nextIndex": 11308,
+            //   "nextUniqueKey": "https://www.anychart.com",
+            //   "inProgress": {
+            //      "https://www.ams360.com": true,
+            //      ...
+            //        "https://www.anychart.com": true,
+            // }
+            // Which then caused error "The request is not being processed (uniqueKey: https://www.anychart.com)"
+            // As a workaround, we just remove all inProgress requests whose index >= nextIndex,
+            // since they will be crawled again.
+            if (deleteFromInProgress.length) {
+                list.log.warning(
+                    "RequestList's in-progress field is not consistent, skipping invalid in-progress entries",
+                    { deleteFromInProgress },
+                );
+                for (const uniqueKey of deleteFromInProgress) {
+                    inProgress.delete(uniqueKey);
+                }
+            }
+
+            return { nextIndex, inProgress };
+        },
+        encode: ({ nextIndex, inProgress }) => ({
+            nextIndex,
+            nextUniqueKey: nextIndex < list.requests.length ? list.requests[nextIndex].uniqueKey! : null,
+            inProgress: [...inProgress],
+        }),
+    });
+}
 
 export interface RequestListOptions {
     /**
@@ -278,6 +352,7 @@ export class RequestList implements IRequestLoader {
      * periodic persistence of the record under `persistStateKey`.
      */
     readonly #state: RecoverableState<RequestListInternalState, RequestListState>;
+    readonly #stateCodec: ReturnType<typeof buildRequestListStateCodec>;
 
     /**
      * Set of `uniqueKey`s of requests that were returned by fetchNextRequest().
@@ -336,16 +411,29 @@ export class RequestList implements IRequestLoader {
         this.#persistRequestsKey = persistRequestsKey ? `CRAWLEE_${persistRequestsKey}` : persistRequestsKey;
         this.#httpClient = httpClient;
 
+        this.#stateCodec = buildRequestListStateCodec({
+            requests: this.requests,
+            indexOf: (uniqueKey) => {
+                const index = this.#uniqueKeyToIndex[uniqueKey];
+                return typeof index === 'number' ? index : undefined;
+            },
+            log: this.#log,
+        });
+
+        const stateKey = this.#persistStateKey ?? STATE_PERSISTENCE_KEY;
         this.#state = new RecoverableState({
             // The `state` option is where the list starts when there is no persisted record to restore. The factory
             // runs on `initialize()`, once the requests it is validated against are loaded.
             defaultState: () =>
-                state ? this.#restoreState(state as RequestListState) : { nextIndex: 0, inProgress: new Set<string>() },
-            persistStateKey: this.#persistStateKey ?? STATE_PERSISTENCE_KEY,
+                state
+                    ? convertStateSync(this.#stateCodec, state, stateKey)
+                    : { nextIndex: 0, inProgress: new Set<string>() },
+            persistStateKey: stateKey,
             persistenceEnabled: !!this.#persistStateKey,
             logger: this.#log,
-            serialize: (internalState) => this.#toRecord(internalState),
-            deserialize: (record) => this.#restoreState(record),
+            // The codec validates in the decode direction, so it is a Standard Schema as-is; encoding needs a call.
+            deserialize: this.#stateCodec,
+            serialize: (internalState) => this.#stateCodec.encode(internalState),
         });
 
         // If this option is set then all requests will get a pre-generated unique ID and duplicate URLs will be kept in the list.
@@ -389,6 +477,8 @@ export class RequestList implements IRequestLoader {
         // Restores the crawling position - the requests have to be loaded first, as the record is validated
         // against them. Also starts the periodic state persistence when `persistStateKey` is set.
         await this.#state.initialize();
+        // All in-progress requests were interrupted and need to be re-crawled.
+        this.#requestsToRetry = [...this.inProgress];
         this.#isInitialized = true;
         if (this.#persistRequestsKey && !this.areRequestsPersisted) await this.persistRequests();
 
@@ -499,89 +589,13 @@ export class RequestList implements IRequestLoader {
     }
 
     /**
-     * Restores RequestList state from a persisted record - the `deserialize` half of the {@apilink RecoverableState},
-     * and the place where the record is validated against the loaded requests.
-     */
-    #restoreState(state: RequestListState): RequestListInternalState {
-        // Restore previous state.
-        if (typeof state.nextIndex !== 'number' || state.nextIndex < 0) {
-            throw new Error('The state object is invalid: nextIndex must be a non-negative number.');
-        }
-        if (state.nextIndex > this.requests.length) {
-            throw new Error('The state object is not consistent with RequestList, too few requests loaded.');
-        }
-        if (
-            state.nextIndex < this.requests.length &&
-            this.requests[state.nextIndex].uniqueKey !== state.nextUniqueKey
-        ) {
-            throw new Error(
-                'The state object is not consistent with RequestList the order of URLs seems to have changed.',
-            );
-        }
-
-        const deleteFromInProgress: string[] = [];
-        state.inProgress.forEach((uniqueKey) => {
-            const index = this.#uniqueKeyToIndex[uniqueKey];
-            if (typeof index !== 'number') {
-                throw new Error(
-                    'The state object is not consistent with RequestList. Unknown uniqueKey is present in the state.',
-                );
-            }
-            if (index >= state.nextIndex) {
-                deleteFromInProgress.push(uniqueKey);
-            }
-        });
-
-        const inProgress = new Set(state.inProgress);
-
-        // WORKAROUND:
-        // It happened to some users that state object contained something like:
-        // {
-        //   "nextIndex": 11308,
-        //   "nextUniqueKey": "https://www.anychart.com",
-        //   "inProgress": {
-        //      "https://www.ams360.com": true,
-        //      ...
-        //        "https://www.anychart.com": true,
-        // }
-        // Which then caused error "The request is not being processed (uniqueKey: https://www.anychart.com)"
-        // As a workaround, we just remove all inProgress requests whose index >= nextIndex,
-        // since they will be crawled again.
-        if (deleteFromInProgress.length) {
-            this.#log.warning(
-                "RequestList's in-progress field is not consistent, skipping invalid in-progress entries",
-                {
-                    deleteFromInProgress,
-                },
-            );
-            for (const uniqueKey of deleteFromInProgress) {
-                inProgress.delete(uniqueKey);
-            }
-        }
-
-        // All in-progress requests were interrupted and need to be re-crawled.
-        this.#requestsToRetry = [...inProgress];
-
-        return { nextIndex: state.nextIndex, inProgress };
-    }
-
-    /** The persisted form of the crawling position - the `serialize` half of the {@apilink RecoverableState}. */
-    #toRecord({ nextIndex, inProgress }: RequestListInternalState): RequestListState {
-        return {
-            nextIndex,
-            nextUniqueKey: nextIndex < this.requests.length ? this.requests[nextIndex].uniqueKey! : null,
-            inProgress: [...inProgress],
-        };
-    }
-
-    /**
      * Returns an object representing the internal state of the `RequestList` instance.
      * Note that the object's fields can change in future releases.
      */
     getState(): RequestListState {
         this.ensureIsInitialized();
 
-        return this.#toRecord(this.#state.currentValue);
+        return this.#stateCodec.encode(this.#state.currentValue);
     }
 
     /**

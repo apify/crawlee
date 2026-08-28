@@ -11,6 +11,7 @@ import {
     REQUESTS_PERSISTENCE_KEY,
     serviceLocator,
     STATE_PERSISTENCE_KEY,
+    StateValidationError,
 } from '@crawlee/core';
 import { BaseHttpClient } from '@crawlee/http-client';
 import { sleep } from '@crawlee/utils';
@@ -359,6 +360,20 @@ describe('RequestList', () => {
         getValueSpy.mockResolvedValueOnce(requestList.getState());
         const requestList2 = await RequestList.open(optsCopy);
         expect(requestList2.getState()).toEqual(requestList.getState());
+    });
+
+    test('a persisted record that does not match the sources fails validation', async () => {
+        const sources = [1, 2, 3].map((i) => ({ url: `https://example.com/${i}` }));
+        const store = await KeyValueStore.open();
+        await store.setValue('CRAWLEE_state-key', {
+            nextIndex: 1,
+            nextUniqueKey: 'https://example.com/3',
+            inProgress: [],
+        });
+
+        await expect(RequestList.open({ sources, persistStateKey: 'state-key' })).rejects.toThrow(
+            StateValidationError,
+        );
     });
 
     test('a persisted record takes precedence over the state option', async () => {
