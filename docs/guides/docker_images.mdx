@@ -98,6 +98,17 @@ The images preconfigure the package managers so that:
 - pnpm and yarn install a flat, npm-style `node_modules` (`node-linker=hoisted` for pnpm, `nodeLinker: node-modules` for yarn) instead of a symlinked store or Plug'n'Play, so dependencies resolve without extra loaders.
 - All caches (`NPM_CONFIG_CACHE`, `YARN_CACHE_FOLDER`, pnpm store and cache, `COREPACK_HOME`) live under `/pkg-cache` instead of `$HOME`. The directory only holds throwaway data, so you can `rm -rf /pkg-cache/*` at the end of your `Dockerfile` to reclaim space without touching installed dependencies.
 
+:::note Overriding the linker
+
+These settings are applied through environment variables (`PNPM_CONFIG_NODE_LINKER`, `YARN_NODE_LINKER`), and both pnpm and yarn give environment variables precedence over `.npmrc` / `.yarnrc.yml`. To use a different linker, override the variable in your `Dockerfile` instead of the config file:
+
+```dockerfile
+ENV YARN_NODE_LINKER=pnp
+```
+
+:::
+
+
 ## Best practices
 
 For production crawlers, we recommend pinning both the Node.js version **and** the automation library version in your Dockerfile tag. This ensures reproducible builds and prevents unexpected behavior when new versions are released.
