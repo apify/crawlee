@@ -396,11 +396,15 @@ export class SessionPool implements ISessionPool {
     /**
      * Stops the periodic state persistence and persists the state one last time.
      * This function should be called after you are done with using the `SessionPool` instance.
+     * Using the pool again afterwards initializes it anew.
      */
     async teardown(): Promise<void> {
         if (!this.#initPromise) return;
         await this.ensureInitialized();
         await this.#state.teardown();
+        // The next use initializes the pool again, restoring the record and resuming the periodic persistence -
+        // a crawler that is run twice gets a persisting pool both times.
+        this.#initPromise = undefined;
     }
 
     /**
