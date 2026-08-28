@@ -395,6 +395,32 @@ describe('RequestQueue remote', () => {
         });
     });
 
+    describe('prolongRequestLock', () => {
+        test('forwards the request id and extension to the backend', async () => {
+            const queue = await RequestQueue.open();
+            await queue.addRequest({ url: 'http://example.com/a' });
+            const fetched = await queue.fetchNextRequest();
+            expect(fetched).not.toBeNull();
+
+            // The in-memory client does not lock, so attach a stub to verify the frontend forwarding.
+            const stub = vitest.fn(async () => true);
+            (queue.backend as any).prolongRequestLock = stub;
+
+            await expect(queue.prolongRequestLock(fetched!, 30)).resolves.toBe(true);
+            expect(stub).toHaveBeenCalledExactlyOnceWith(fetched!.id, 30);
+        });
+
+        test('resolves to false when the backend does not implement per-request locking', async () => {
+            const queue = await RequestQueue.open();
+            await queue.addRequest({ url: 'http://example.com/a' });
+            const fetched = await queue.fetchNextRequest();
+            expect(fetched).not.toBeNull();
+
+            // No stub: the in-memory backend leaves the optional method undefined.
+            await expect(queue.prolongRequestLock(fetched!, 30)).resolves.toBe(false);
+        });
+    });
+
     describe('stats', () => {
         test('start at zero', async () => {
             const queue = await RequestQueue.open();

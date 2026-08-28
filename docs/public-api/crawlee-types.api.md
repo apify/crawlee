@@ -375,6 +375,7 @@ export interface RequestQueueBackend {
     isEmpty(): Promise<boolean>;
     isFinished(): Promise<boolean>;
     markRequestAsHandled(request: UpdateRequestSchema): Promise<QueueOperationInfo | undefined>;
+    prolongRequestLock?(requestId: string, secs: number): Promise<boolean>;
     purge(): Promise<void>;
     reclaimRequest(request: UpdateRequestSchema, options?: RequestQueueOperationOptions): Promise<QueueOperationInfo | undefined>;
     setExpectedRequestProcessingTimeSecs?(secs: number): Promise<void>;

@@ -1498,6 +1498,14 @@ export class BasicCrawler<
                 if (context[navigationDeadlineKey] !== undefined) {
                     context[navigationDeadlineKey] += extraMillis;
                 }
+
+                // ...and the request's lock on a locking storage backend, so the extra time is not spent
+                // while the queue still considers the request free to hand out again — possibly to another
+                // consumer sharing it. Best-effort: backends without locking ignore it, and a failure to
+                // prolong must not fail the request that asked for more time.
+                this.requestManager?.prolongRequestLock?.(context.request, secs)?.catch((error) => {
+                    this.log.debug('Prolonging the request lock failed', { url: context.request.url, error });
+                });
             },
             [deferredCleanupKey]: deferredCleanup,
         };

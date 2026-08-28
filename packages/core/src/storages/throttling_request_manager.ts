@@ -1026,6 +1026,22 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     }
 
     /**
+     * Routes to the manager holding the request, exactly like {@link ThrottlingRequestManager.markRequestAsHandled}
+     * and {@link ThrottlingRequestManager.reclaimRequest} do — but without consuming the in-flight marker
+     * that later routes those calls: prolonging a lock does not hand the request back.
+     * @inheritdoc
+     */
+    async prolongRequestLock(request: Request, secs: number): Promise<boolean> {
+        const key = request.id ?? request.uniqueKey;
+
+        const manager = this.#inFlightFromInner.has(key)
+            ? this.#resolvedInner!
+            : await this.#selectManagerOrThrow(request.url);
+
+        return (await manager.prolongRequestLock?.(request, secs)) ?? false;
+    }
+
+    /**
      * Runs `fn` over the sub-queues and, if it has been resolved, the wrapped manager - bookkeeping never forces
      * a lazily-opened `inner`, since there is no point opening a queue purely to tell it something.
      */

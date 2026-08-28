@@ -1632,6 +1632,44 @@ describe('BasicCrawler', () => {
         expect(failed).toHaveLength(0);
     });
 
+    test('context.extendTimeout prolongs the request lock on a locking request manager', async () => {
+        serviceLocator.reset();
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
+
+        const prolonged: { requestId?: string; secs: number }[] = [];
+        // A stand-in for a locking storage backend: per-request prolongation, exactly as a platform
+        // request queue would answer it.
+        const requestQueue = await RequestQueue.open();
+        (requestQueue as any).prolongRequestLock = async (request: Request, secs: number) => {
+            prolonged.push({ requestId: request.id, secs });
+            return true;
+        };
+
+        let sawFailure = false;
+
+        const crawler = new BasicCrawler({
+            requestManager: requestQueue,
+            requestHandlerTimeoutSecs: 60,
+            maxRequestRetries: 0,
+            requestHandler: async ({ request, extendTimeout }) => {
+                await sleep(50);
+                extendTimeout(42);
+                expect(request.id).toBeTruthy();
+            },
+            failedRequestHandler: async () => {
+                sawFailure = true;
+            },
+        });
+
+        await crawler.run(['https://example.com']);
+
+        expect(sawFailure).toBe(false);
+        expect(prolonged).toHaveLength(1);
+        expect(prolonged[0]!.secs).toBe(42);
+        // The prolonged lock is the very request the handler was running for.
+        expect(prolonged[0]!.requestId).toBeTruthy();
+    });
+
     test('a route can override requestHandlerTimeoutSecs, other routes keep the default', async () => {
         const requestList = await RequestList.open({
             sources: [

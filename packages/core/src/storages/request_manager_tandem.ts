@@ -245,6 +245,14 @@ export class RequestManagerTandem implements IRequestManager {
     }
 
     /**
+     * Forwards to the writable request manager, which is where requests are fetched from and locked.
+     * @inheritdoc
+     */
+    async prolongRequestLock(request: Request, secs: number): Promise<boolean> {
+        return (await this.getRequestManager()).prolongRequestLock?.(request, secs) ?? false;
+    }
+
+    /**
      * Forwards a pacing signal to the writable manager - the loader side is read-only and dispatches nothing of
      * its own. Only a resolved manager is signalled; the tandem will not open a queue to answer a question about
      * pacing.

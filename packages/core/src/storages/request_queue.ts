@@ -860,6 +860,25 @@ export class RequestQueue implements IStorage, IRequestManager {
     }
 
     /**
+     * Extends the lock on a request previously returned by {@link RequestQueue.fetchNextRequest} that is
+     * still being processed, on storage backends that reserve requests via locking.
+     *
+     * Unlike {@link RequestQueue.setExpectedRequestProcessingTimeSecs}, which sizes every future lock the
+     * backend hands out, this only touches the one request it is given — so one long request does not
+     * inflate the reservation for everything dequeued after it.
+     *
+     * Resolves to `false` when the backend does not implement per-request locking (the in-memory backend never
+     * hands a request out twice anyway) or no longer holds the request locked.
+     */
+    async prolongRequestLock(request: Request, secs: number): Promise<boolean> {
+        if (!request.id) {
+            return false;
+        }
+
+        return (await this.backend.prolongRequestLock?.(request.id, secs)) ?? false;
+    }
+
+    /**
      * Caches information about request to beware of unneeded addRequest() calls.
      */
     private cacheRequest(cacheKey: string, queueOperationInfo: RequestQueueOperationInfo): void {
