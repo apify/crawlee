@@ -83,6 +83,21 @@ FROM apify/actor-node-playwright-chrome:24-1.60.0-slim
 
 Since nothing but the automation library is preinstalled, make sure `crawlee` and any other runtime dependencies are listed in your `package.json` and installed in your `Dockerfile`. The [version matching](#recommended-approach-pin-both-versions) rules for the automation library still apply.
 
+## Package managers
+
+All Node.js images ship with npm, and [Corepack](https://github.com/nodejs/corepack) enabled with the latest pnpm preinstalled, so you can use npm, yarn or pnpm out of the box. Add a [`packageManager`](https://nodejs.org/api/packages.html#packagemanager) field to your `package.json` and Corepack will provision the exact version you pin.
+
+```json
+{
+    "packageManager": "pnpm@10.24.0"
+}
+```
+
+The images preconfigure the package managers so that:
+
+- pnpm and yarn install a flat, npm-style `node_modules` (`node-linker=hoisted` for pnpm, `nodeLinker: node-modules` for yarn) instead of a symlinked store or Plug'n'Play, so dependencies resolve without extra loaders.
+- All caches (`NPM_CONFIG_CACHE`, `YARN_CACHE_FOLDER`, pnpm store and cache, `COREPACK_HOME`) live under `/pkg-cache` instead of `$HOME`. The directory only holds throwaway data, so you can `rm -rf /pkg-cache/*` at the end of your `Dockerfile` to reclaim space without touching installed dependencies.
+
 ## Best practices
 
 For production crawlers, we recommend pinning both the Node.js version **and** the automation library version in your Dockerfile tag. This ensures reproducible builds and prevents unexpected behavior when new versions are released.
