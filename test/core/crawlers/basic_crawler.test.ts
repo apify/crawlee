@@ -27,6 +27,7 @@ import {
     Request,
     RequestList,
     RequestManagerTandem,
+    STATE_PERSISTENCE_KEY,
     RequestQueue,
     RequestValidationError,
     Router,
@@ -833,8 +834,11 @@ describe('BasicCrawler', () => {
             });
 
             let finished = false;
-            // Mock the call to persist state.
-            setValueSpy.mockImplementationOnce(persistResolve as any);
+            // Resolve on the RequestList's state write triggered by the event - the periodic persistence also
+            // writes it once at run start, before anything was processed.
+            setValueSpy.mockImplementation(async (key) => {
+                if (key.endsWith(STATE_PERSISTENCE_KEY) && processed.length > 0) persistResolve();
+            });
             // The crawler will pause after 200 requests
             const runPromise = basicCrawler.run();
             void runPromise.then(() => {

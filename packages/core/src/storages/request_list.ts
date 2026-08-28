@@ -166,7 +166,8 @@ export interface RequestListOptions {
      * ```
      *
      * Note that the preferred (and simpler) way to persist the state of crawling of the `RequestList`
-     * is to use the `stateKeyPrefix` parameter instead.
+     * is to use the `stateKeyPrefix` parameter instead. When both are set, a record persisted under
+     * {@apilink RequestListOptions.persistStateKey} takes precedence over this option.
      */
     state?: RequestListState;
 
@@ -294,12 +295,6 @@ export class RequestList implements IRequestLoader {
     #requestsToRetry: string[] = [];
 
     /**
-     * Starts as true because until we handle the first request, the list is effectively persisted by doing nothing.
-     * @internal
-     */
-    isStatePersisted = true;
-
-    /**
      * Starts as false because we don't know yet and sources might change in the meantime (eg. download from live list).
      * @internal
      */
@@ -342,20 +337,16 @@ export class RequestList implements IRequestLoader {
         this.#httpClient = httpClient;
 
         this.#state = new RecoverableState({
-            defaultState: () => ({ nextIndex: 0, inProgress: new Set<string>() }),
+            // The `state` option is where the list starts when there is no persisted record to restore. The factory
+            // runs on `initialize()`, once the requests it is validated against are loaded.
+            defaultState: () =>
+                state ? this.#restoreState(state as RequestListState) : { nextIndex: 0, inProgress: new Set<string>() },
             persistStateKey: this.#persistStateKey ?? STATE_PERSISTENCE_KEY,
             persistenceEnabled: !!this.#persistStateKey,
             logger: this.#log,
             serialize: (internalState) => this.#toRecord(internalState),
             deserialize: (record) => this.#restoreState(record),
-            // The `state` option wins over a persisted record, like a record loaded from the store would.
-            initialState: state as RequestListState | undefined,
-            shouldPersist: () => !this.isStatePersisted,
-            onPersisted: () => {
-                this.isStatePersisted = true;
-            },
         });
-        this.#state.reset();
 
         // If this option is set then all requests will get a pre-generated unique ID and duplicate URLs will be kept in the list.
         this.#keepDuplicateUrls = keepDuplicateUrls;
@@ -627,7 +618,6 @@ export class RequestList implements IRequestLoader {
             const request = this.requests[index];
             state.inProgress.add(request.uniqueKey!);
             state.nextIndex++;
-            this.isStatePersisted = false;
             return this.ensureRequest(request, index);
         }
 
@@ -665,7 +655,6 @@ export class RequestList implements IRequestLoader {
         this.ensureIsInitialized();
 
         this.inProgress.delete(uniqueKey);
-        this.isStatePersisted = false;
     }
 
     /**
