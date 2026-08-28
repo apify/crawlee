@@ -3,8 +3,9 @@ import type { Dictionary } from '@crawlee/types';
 import type { CrawleeLogger } from '../log.js';
 import type { Request, Source } from '../request.js';
 import { serviceLocator } from '../service_locator.js';
-import type { IRequestLoader } from './request_loader.js';
-import type { IRequestManager, RequestsLike } from './request_manager.js';
+import type { IRequestLoader, RequestSourceStatus } from './request_loader.js';
+import { joinRequestSourceStatuses } from './request_loader.js';
+import type { IRequestManager, PacingSignal, RequestsLike } from './request_manager.js';
 import type {
     AddRequestsBatchedOptions,
     AddRequestsBatchedResult,
@@ -43,7 +44,14 @@ export class RequestManagerTandem implements IRequestManager {
     ) {
         this.#log = serviceLocator.getLogger().child({ prefix: 'RequestManagerTandem' });
         this.#requestLoader = requestLoader;
-        this.#requestManagerFactory = typeof requestManager === 'function' ? requestManager : () => requestManager;
+
+        if (typeof requestManager === 'function') {
+            this.#requestManagerFactory = requestManager;
+        } else {
+            // Nothing to open, so mark it resolved up front - synchronous pacing signals can then reach it.
+            this.#resolvedRequestManager = requestManager;
+            this.#requestManagerFactory = () => requestManager;
+        }
     }
 
     /**
@@ -99,18 +107,13 @@ export class RequestManagerTandem implements IRequestManager {
     }
 
     /**
-     * Fetches the next request from the request manager. If the manager is empty and the loader
-     * is not finished, it will transfer a request from the loader to the manager first.
+     * Fetches the next request, transferring one from the loader first if the loader still has work.
      * @inheritdoc
      */
     async fetchNextRequest<T extends Dictionary = Dictionary>(): Promise<Request<T> | null> {
-        // First, try to transfer a request from the requestList
-        const [listEmpty, listFinished] = await Promise.all([
-            this.#requestLoader.isEmpty(),
-            this.#requestLoader.isFinished(),
-        ]);
-
-        if (!listEmpty && !listFinished) {
+        // Only the loader's own state decides this: a manager waiting out a backoff must not freeze the
+        // loader's unrelated requests for the length of it.
+        if ((await this.#requestLoader.checkReadiness()).status === 'ready') {
             // If the transfer failed, the request was dropped; don't fetch from the manager this round (matching
             // crawlee-python behaviour). The next `fetchNextRequest()` call will pick up where we left off.
             if (!(await this.transferNextRequestToQueue())) {
@@ -123,21 +126,17 @@ export class RequestManagerTandem implements IRequestManager {
     }
 
     /**
+     * The loader and the manager read as one source.
      * @inheritdoc
      */
-    async isFinished(): Promise<boolean> {
+    async checkReadiness(): Promise<RequestSourceStatus> {
         const requestManager = await this.getRequestManager();
-        const storagesFinished = await Promise.all([this.#requestLoader.isFinished(), requestManager.isFinished()]);
-        return storagesFinished.every(Boolean);
-    }
+        const [loaderStatus, managerStatus] = await Promise.all([
+            this.#requestLoader.checkReadiness(),
+            requestManager.checkReadiness(),
+        ]);
 
-    /**
-     * @inheritdoc
-     */
-    async isEmpty(): Promise<boolean> {
-        const requestManager = await this.getRequestManager();
-        const storagesEmpty = await Promise.all([this.#requestLoader.isEmpty(), requestManager.isEmpty()]);
-        return storagesEmpty.every(Boolean);
+        return joinRequestSourceStatuses(loaderStatus, managerStatus);
     }
 
     /**
@@ -243,5 +242,15 @@ export class RequestManagerTandem implements IRequestManager {
     async setExpectedRequestProcessingTimeSecs(secs: number): Promise<void> {
         this.#expectedRequestProcessingSecs = secs;
         await this.#resolvedRequestManager?.setExpectedRequestProcessingTimeSecs?.(secs);
+    }
+
+    /**
+     * Forwards a pacing signal to the writable manager - the loader side is read-only and dispatches nothing of
+     * its own. Only a resolved manager is signalled; the tandem will not open a queue to answer a question about
+     * pacing.
+     * @inheritdoc
+     */
+    recordPacingSignal(signal: PacingSignal): boolean {
+        return this.#resolvedRequestManager?.recordPacingSignal(signal) ?? false;
     }
 }

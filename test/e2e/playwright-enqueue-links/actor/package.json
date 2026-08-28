@@ -11,7 +11,6 @@
         "@crawlee/playwright": "file:./packages/playwright-crawler",
         "@crawlee/types": "file:./packages/types",
         "@crawlee/utils": "file:./packages/utils",
-        "idcac-playwright": "^0.2.0",
         "playwright": "1.58.2"
     },
     "overrides": {

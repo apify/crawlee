@@ -41,7 +41,7 @@ import type { StatisticState } from '@crawlee/core';
 import type { StorageBackend } from '@crawlee/types';
 import type { StorageIdentifier } from '@crawlee/core';
 import { StorageWritePolicy } from '@crawlee/core';
-import type { TaskLoopPredicates } from '@crawlee/core';
+import type { TaskLoopOptions } from '@crawlee/core';
 import { TimeoutError } from '@apify/timeout';
 import type { TypedRequestsLike } from '@crawlee/core';
 
@@ -124,6 +124,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = CrawlingC
     httpClient?: BaseHttpClient;
     id?: string;
     ignoreHttpErrorStatusCodes?: number[];
+    initialConcurrency?: number;
     keepAlive?: boolean;
     logger?: CrawleeLogger;
     maxConcurrency?: number;
@@ -151,7 +152,7 @@ export interface BasicCrawlerOptions<Context extends CrawlingContext = CrawlingC
     statusMessageCallback?: StatusMessageCallback;
     statusMessageLoggingInterval?: number;
     storageBackend?: StorageBackend;
-    taskLoopOptions?: TaskLoopPredicates;
+    taskLoopOptions?: TaskLoopOptions;
     transactionalStorage?: boolean | Partial<StorageWritePolicy>;
 }
 

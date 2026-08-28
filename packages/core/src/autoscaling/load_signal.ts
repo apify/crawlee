@@ -71,9 +71,7 @@ export interface LoadSignal {
 export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
     #snapshots: T[] = [];
 
-    /** Retention window in milliseconds. Unbounded until {@apilink SnapshotStore.useSampleWindow|`useSampleWindow()`}. */
-    // kept as TS-private: concurrency_system tests read this retention window directly
-    private historyMillis = Infinity;
+    #historyMillis = Infinity;
 
     /**
      * Sizes retention to the window the signal will be sampled over, as handed to it in
@@ -81,7 +79,7 @@ export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
      * its start context grows unboundedly.
      */
     useSampleWindow(maxSampleWindowMillis: number): void {
-        this.historyMillis = maxSampleWindowMillis;
+        this.#historyMillis = maxSampleWindowMillis;
     }
 
     /**
@@ -92,7 +90,7 @@ export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {
         let oldCount = 0;
         for (let i = 0; i < this.#snapshots.length; i++) {
             const { createdAt } = this.#snapshots[i];
-            if (now.getTime() - new Date(createdAt).getTime() > this.historyMillis) oldCount++;
+            if (now.getTime() - new Date(createdAt).getTime() > this.#historyMillis) oldCount++;
             else break;
         }
         if (oldCount) this.#snapshots.splice(0, oldCount);

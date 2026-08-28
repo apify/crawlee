@@ -5,6 +5,72 @@ import type { IRequestManager } from './request_manager.js';
 import type { RequestQueueOperationInfo } from './request_queue.js';
 
 /**
+ * A request source's own availability, in a single answer.
+ *
+ * - `ready` — the next {@apilink IRequestLoader.fetchNextRequest} is expected to hand something over.
+ * - `waiting` — nothing to fetch right now, but the source is not done: requests are in progress, are being
+ *   added in the background, or are held back until `readyAt`.
+ * - `stalled` — the source holds requests it cannot make progress on. Only a manager that paces its own
+ *   dispatch can reach this; see {@apilink ThrottlingRequestManager}.
+ * - `finished` — everything has been handled.
+ */
+export type RequestSourceStatus =
+    | { status: 'ready' }
+    | {
+          status: 'waiting';
+          /**
+           * A `Date.now()` timestamp at which the source expects to become `ready`. Absent when the wait has
+           * no clock (an in-progress request, a background add), leaving a consumer to poll.
+           */
+          readyAt?: number;
+      }
+    | { status: 'stalled'; reason: string }
+    | { status: 'finished' };
+
+/** Loaders never stall — only a manager that paces its own dispatch can. */
+export type RequestLoaderStatus = Exclude<RequestSourceStatus, { status: 'stalled' }>;
+
+/**
+ * Combines two request sources' statuses, with the precedence `ready` > `stalled` > `waiting` > `finished`.
+ *
+ * Binary rather than variadic on purpose: it is on the task loop's probe path and folding a pair allocates
+ * nothing.
+ *
+ * @internal
+ */
+export function joinRequestSourceStatuses(a: RequestSourceStatus, b: RequestSourceStatus): RequestSourceStatus {
+    if (a.status === 'ready') {
+        return a;
+    }
+    if (b.status === 'ready') {
+        return b;
+    }
+
+    // `ready` outranking `stalled` masks a stalled source while the other still has work. That is parity with
+    // the crawler before this was a single answer: the stall check was only reached from `isFinishedFunction`,
+    // which the task loop calls only when nothing is in flight and nothing is ready. "Fixing" the masking
+    // turns a crawl that is progressing elsewhere into a `PersistentRateLimitError`. `stalled` outranking
+    // `waiting` is the same parity - that call site fired regardless of other domains' clocks.
+    if (a.status === 'stalled') {
+        return a;
+    }
+    if (b.status === 'stalled') {
+        return b;
+    }
+
+    if (a.status === 'waiting') {
+        // The earlier of the two known wake-up times - unknown only if neither source announced one.
+        if (b.status !== 'waiting' || b.readyAt === undefined) {
+            return a;
+        }
+        return a.readyAt !== undefined && a.readyAt <= b.readyAt ? a : b;
+    }
+
+    // `a` is finished, so `b` decides.
+    return b;
+}
+
+/**
  * An abstract interface defining a read-only stream of requests to crawl.
  *
  * Request loaders are used to manage and provide access to a storage of crawling requests.
@@ -26,7 +92,7 @@ import type { RequestQueueOperationInfo } from './request_queue.js';
  * - **Restarts and migrations:** loaders that persist their state (see {@apilink IRequestLoader.persistState})
  *   treat in-progress requests as interrupted and re-serve them after a restart. A request that is fetched
  *   but never marked handled will be crawled again.
- * - **Termination detection:** {@apilink IRequestLoader.isFinished} only resolves to `true` once nothing is
+ * - **Termination detection:** {@apilink IRequestLoader.checkReadiness} only reports `finished` once nothing is
  *   in progress. Leaving a request unmarked keeps the crawler running indefinitely.
  * - **Bookkeeping:** the handled and pending counts are derived from the set of in-progress requests, so
  *   skipping {@apilink IRequestLoader.markRequestAsHandled} corrupts {@apilink IRequestLoader.getHandledCount}
@@ -52,21 +118,13 @@ export interface IRequestLoader {
     getHandledCount(): Promise<number>;
 
     /**
-     * Returns `true` if all requests were already handled and there are no more left.
-     */
-    isFinished(): Promise<boolean>;
-
-    /**
-     * Resolves to `true` if the next call to {@apilink IRequestLoader.fetchNextRequest} function
-     * would return `null`, otherwise it resolves to `false`.
-     * Note that even if the loader is empty, there might be some pending requests currently being processed.
+     * Reports whether the loader has a request to hand over, is waiting on one, or is done — see
+     * {@apilink RequestSourceStatus}.
      *
-     * This is a statement about what the *next fetch* would return, not about how much work is left, so it
-     * may report `true` while {@apilink IRequestLoader.getPendingCount} is non-zero - a loader that withholds
-     * requests for a while (as {@apilink ThrottlingRequestManager} does for a rate-limited domain) is empty
-     * for as long as it will not hand anything over. Use `isFinished()` to ask whether the work is done.
+     * A consumer's task loop is gated on this, so implementations MUST answer `ready` before evaluating
+     * anything else. `finished` may arrive late behind distributed storage, but it is never wrong.
      */
-    isEmpty(): Promise<boolean>;
+    checkReadiness(): Promise<RequestSourceStatus>;
 
     /**
      * Gets the next {@apilink Request} to process, or `null` if there are no more pending requests.
@@ -90,8 +148,9 @@ export interface IRequestLoader {
      *
      * Call this once you are done with the request — whether processing succeeded or was abandoned after
      * exhausting retries. Because a loader cannot take a request back, marking it handled is the only way to
-     * signal completion; failing to do so prevents {@apilink IRequestLoader.isFinished} from ever resolving to
-     * `true` and skews the handled and pending counts. See the request lifecycle contract on {@apilink IRequestLoader}.
+     * signal completion; failing to do so prevents {@apilink IRequestLoader.checkReadiness} from ever reporting
+     * `finished` and skews the handled and pending counts. See the request lifecycle contract on
+     * {@apilink IRequestLoader}.
      */
     markRequestAsHandled(request: Request): Promise<RequestQueueOperationInfo | void | null>;
 

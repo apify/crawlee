@@ -148,7 +148,11 @@ beforeAll(async () => {
         res.end();
     });
 
+    // `?linger=<ms>` (default 200) holds the response open after the two URL entries, so a test can act
+    // while this sub-sitemap is still loading.
     app.get('/sitemap-stream-linger.xml', async (req, res) => {
+        const lingerMillis = Number(req.query.linger ?? 200);
+
         async function* stream() {
             yield [
                 '<?xml version="1.0" encoding="UTF-8"?>',
@@ -161,7 +165,7 @@ beforeAll(async () => {
                 '</url>',
             ].join('\n');
 
-            await sleep(200);
+            await sleep(lingerMillis);
 
             yield '</urlset>';
         }
@@ -173,14 +177,17 @@ beforeAll(async () => {
         res.end();
     });
 
+    // Index over the lingering sub-sitemap (2 URLs) followed by a plain one (5 URLs).
     app.get('/sitemap-index.xml', async (req, res) => {
+        const linger = req.query.linger === undefined ? '' : `?linger=${Number(req.query.linger)}`;
+
         res.setHeader('content-type', 'text/xml');
         res.write(
             [
                 '<?xml version="1.0" encoding="UTF-8"?>',
                 '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
                 '<sitemap>',
-                `<loc>${url}/sitemap-stream-linger.xml</loc>`,
+                `<loc>${url}/sitemap-stream-linger.xml${linger}</loc>`,
                 '</sitemap>',
                 '<sitemap>',
                 `<loc>${url}/sitemap.xml</loc>`,
@@ -272,12 +279,13 @@ describe('SitemapRequestLoader', () => {
             enqueueStrategy: 'all',
         });
 
-        while (await list.isEmpty()) {
+        while ((await list.checkReadiness()).status !== 'ready') {
             await sleep(20);
         }
 
-        await expect(list.isFinished(), 'list should not be finished').resolves.toBe(false);
-        await expect(list.isEmpty(), 'list should not be empty').resolves.toBe(false);
+        await expect(list.checkReadiness(), 'list should have a request available').resolves.toEqual({
+            status: 'ready',
+        });
 
         const firstRequest = await list.fetchNextRequest();
         expect(firstRequest).not.toBe(null);
@@ -342,7 +350,7 @@ describe('SitemapRequestLoader', () => {
         }
 
         expect(await list.getHandledCount()).toBe(2);
-        await expect(list.isFinished()).resolves.toBe(true);
+        await expect(list.checkReadiness()).resolves.toEqual({ status: 'finished' });
         await expect(list.fetchNextRequest()).resolves.toBe(null);
     });
 
@@ -394,13 +402,13 @@ describe('SitemapRequestLoader', () => {
             enqueueStrategy: 'all',
         });
 
-        while (await list.isEmpty()) {
+        while ((await list.checkReadiness()).status !== 'ready') {
             await sleep(20);
         }
 
         const firstBatch: Request[] = [];
 
-        while (!(await list.isEmpty())) {
+        while ((await list.checkReadiness()).status === 'ready') {
             const request = await list.fetchNextRequest();
             firstBatch.push(request!);
             await list.markRequestAsHandled(request!);
@@ -408,13 +416,13 @@ describe('SitemapRequestLoader', () => {
 
         expect(firstBatch).toHaveLength(2);
 
-        while (await list.isEmpty()) {
+        while ((await list.checkReadiness()).status !== 'ready') {
             await sleep(20);
         }
 
         const secondBatch: Request[] = [];
 
-        while (!(await list.isEmpty())) {
+        while ((await list.checkReadiness()).status === 'ready') {
             const request = await list.fetchNextRequest();
             secondBatch.push(request!);
             await list.markRequestAsHandled(request!);
@@ -422,7 +430,7 @@ describe('SitemapRequestLoader', () => {
 
         expect(secondBatch).toHaveLength(5);
 
-        await expect(list.isFinished()).resolves.toBe(true);
+        await expect(list.checkReadiness()).resolves.toEqual({ status: 'finished' });
         expect(await list.getHandledCount()).toBe(7);
     });
 
@@ -436,7 +444,7 @@ describe('SitemapRequestLoader', () => {
             await list.markRequestAsHandled(request);
         }
 
-        await expect(list.isFinished()).resolves.toBe(true);
+        await expect(list.checkReadiness()).resolves.toEqual({ status: 'finished' });
         expect(await list.getHandledCount()).toBe(7);
     });
 
@@ -444,27 +452,34 @@ describe('SitemapRequestLoader', () => {
         const controller = new AbortController();
 
         const list = await SitemapRequestLoader.open({
-            sitemapUrls: [`${url}/sitemap-index.xml`],
+            // The first sub-sitemap stays open for 5s, so the abort below always lands mid-index.
+            sitemapUrls: [`${url}/sitemap-index.xml?linger=5000`],
             signal: controller.signal,
             enqueueStrategy: 'all',
         });
 
-        await sleep(50); // Loads the first sub-sitemap, but not the second
+        // Abort once the first sub-sitemap streamed a URL - waiting for that rather than for a fixed duration.
+        while ((await list.checkReadiness()).status !== 'ready') {
+            await sleep(10);
+        }
+
         controller.abort();
 
         for await (const request of list) {
             await list.markRequestAsHandled(request);
         }
 
-        await expect(list.isFinished()).resolves.toBe(true);
+        await expect(list.checkReadiness()).resolves.toEqual({ status: 'finished' });
         expect(list.isSitemapFullyLoaded()).toBe(false);
         expect(await list.getHandledCount()).toBe(2);
     });
 
     test('timeout option works', async () => {
         const list = await SitemapRequestLoader.open({
-            sitemapUrls: [`${url}/sitemap-index.xml`],
-            timeoutMillis: 50, // Loads the first sub-sitemap, but not the second
+            // The timeout has to fire after the first sub-sitemap streamed its URLs but before it closes;
+            // the test then runs for the whole linger, since the abort cannot interrupt an in-flight fetch.
+            sitemapUrls: [`${url}/sitemap-index.xml?linger=2000`],
+            timeoutMillis: 500,
             enqueueStrategy: 'all',
         });
 
@@ -472,28 +487,34 @@ describe('SitemapRequestLoader', () => {
             await list.markRequestAsHandled(request);
         }
 
-        await expect(list.isFinished()).resolves.toBe(true);
+        await expect(list.checkReadiness()).resolves.toEqual({ status: 'finished' });
         expect(list.isSitemapFullyLoaded()).toBe(false);
         expect(await list.getHandledCount()).toBe(2);
     });
 
     test('resurrection does not resume aborted loading', async () => {
         const options = {
-            sitemapUrls: [`${url}/sitemap-index.xml`],
+            sitemapUrls: [`${url}/sitemap-index.xml?linger=5000`],
             persistStateKey: 'resurrection-abort',
-            timeoutMillis: 50,
             enqueueStrategy: 'all' as const,
         };
 
         {
-            const list = await SitemapRequestLoader.open(options);
+            const controller = new AbortController();
+            const list = await SitemapRequestLoader.open({ ...options, signal: controller.signal });
 
-            await sleep(50);
+            // Abort while the first sub-sitemap is still streaming, so the state is persisted with the
+            // load aborted half-way through the index.
+            while ((await list.checkReadiness()).status !== 'ready') {
+                await sleep(10);
+            }
 
-            await expect(list.isEmpty()).resolves.toBe(false);
+            controller.abort();
             await list.persistState();
         }
 
+        // Deliberately no signal and no timeout here: only the restored abort flag can stop the second
+        // sub-sitemap from being fetched.
         const newList = await SitemapRequestLoader.open(options);
         for await (const request of newList) {
             await newList.markRequestAsHandled(request);
@@ -506,16 +527,17 @@ describe('SitemapRequestLoader', () => {
         const list = await SitemapRequestLoader.open({ sitemapUrls: [`${url}/sitemap.xml`], enqueueStrategy: 'all' });
         const requests: Request[] = [];
 
-        await expect(list.isFinished()).resolves.toBe(false);
+        // The sitemap may still be parsing at this point, so `ready` and `waiting` are both fine here.
+        expect((await list.checkReadiness()).status).not.toBe('finished');
 
-        while (!(await list.isFinished())) {
+        while ((await list.checkReadiness()).status !== 'finished') {
             const request = await list.fetchNextRequest();
             if (!request) break;
             await list.markRequestAsHandled(request);
             requests.push(request);
         }
 
-        await expect(list.isEmpty()).resolves.toBe(true);
+        await expect(list.checkReadiness()).resolves.toEqual({ status: 'finished' });
         expect(requests.map((it) => it.url)).toEqual([
             'http://not-exists.com/',
             'http://not-exists.com/catalog?item=12&desc=vacation_hawaii',
@@ -541,9 +563,9 @@ describe('SitemapRequestLoader', () => {
         await list.persistState();
 
         const newList = await SitemapRequestLoader.open(options);
-        await expect(newList.isEmpty()).resolves.toBe(false);
+        await expect(newList.checkReadiness()).resolves.toEqual({ status: 'ready' });
 
-        while (!(await newList.isFinished())) {
+        while ((await newList.checkReadiness()).status !== 'finished') {
             const request = await newList.fetchNextRequest();
             if (!request) break;
             await newList.markRequestAsHandled(request);
@@ -663,7 +685,7 @@ describe('SitemapRequestLoader', () => {
         });
 
         // Wait until the first URL is buffered, i.e. the loader is parked on backpressure.
-        while (await list.isEmpty()) {
+        while ((await list.checkReadiness()).status !== 'ready') {
             await sleep(20);
         }
 
@@ -676,7 +698,7 @@ describe('SitemapRequestLoader', () => {
         }
 
         expect(list.isSitemapFullyLoaded()).toBe(true);
-        await expect(list.isFinished()).resolves.toBe(true);
+        await expect(list.checkReadiness()).resolves.toEqual({ status: 'finished' });
         expect(urls).toEqual(
             new Set([
                 'http://not-exists.com/',
