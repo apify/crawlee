@@ -1,0 +1,40 @@
+{
+    "title": "CRM export simulator input",
+    "type": "object",
+    "schemaVersion": 1,
+    "properties": {
+        "seed": {
+            "title": "Seed",
+            "type": "string",
+            "description": "PRNG seed. The same seed always produces byte-identical exports and the same expected report.",
+            "editor": "textfield",
+            "default": "crm-nightly"
+        },
+        "regionCount": {
+            "title": "Number of regions",
+            "type": "integer",
+            "description": "How many regional exports to generate.",
+            "editor": "number",
+            "default": 8,
+            "minimum": 2
+        },
+        "rowsPerRegion": {
+            "title": "Rows per region",
+            "type": "integer",
+            "description": "Rows in each regional export.",
+            "editor": "number",
+            "default": 5000,
+            "minimum": 10
+        },
+        "duplicateRate": {
+            "title": "Cross-region duplicate rate",
+            "type": "number",
+            "description": "Share of each region's rows that duplicate a contact from another region.",
+            "editor": "number",
+            "default": 0.1,
+            "minimum": 0,
+            "maximum": 0.5
+        }
+    },
+    "required": []
+}

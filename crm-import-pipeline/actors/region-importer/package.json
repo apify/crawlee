@@ -1,0 +1,17 @@
+{
+    "name": "crm-region-importer",
+    "version": "1.0.0",
+    "private": true,
+    "type": "module",
+    "description": "Normalizes one regional CRM export into the crm-normalized and crm-quarantine datasets.",
+    "main": "src/main.js",
+    "scripts": {
+        "start": "node src/main.js"
+    },
+    "dependencies": {
+        "apify": "^3.4.0"
+    },
+    "engines": {
+        "node": ">=20"
+    }
+}

@@ -1,0 +1,10 @@
+{
+    "actorSpecification": 1,
+    "name": "region-importer",
+    "title": "CRM region importer",
+    "description": "Normalizes one regional CRM export into the crm-normalized and crm-quarantine datasets.",
+    "version": "1.0",
+    "buildTag": "latest",
+    "dockerfile": "../Dockerfile",
+    "input": "./input_schema.json"
+}

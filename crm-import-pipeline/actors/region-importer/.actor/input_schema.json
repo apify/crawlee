@@ -1,0 +1,23 @@
+{
+    "title": "CRM region importer input",
+    "type": "object",
+    "schemaVersion": 1,
+    "properties": {
+        "region": {
+            "title": "Region",
+            "type": "integer",
+            "description": "Which regional export to import; reads region-<region>.csv from the crm-exports store.",
+            "editor": "number",
+            "minimum": 1,
+            "prefill": 1
+        },
+        "force": {
+            "title": "Force",
+            "type": "boolean",
+            "description": "Import even when the malformed row rate exceeds 5%, bypassing the circuit breaker.",
+            "editor": "checkbox",
+            "default": false
+        }
+    },
+    "required": ["region"]
+}

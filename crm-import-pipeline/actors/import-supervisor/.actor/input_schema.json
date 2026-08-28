@@ -1,0 +1,72 @@
+{
+    "title": "CRM import supervisor input",
+    "type": "object",
+    "schemaVersion": 1,
+    "properties": {
+        "seed": {
+            "title": "Seed",
+            "type": "string",
+            "description": "Seed passed to export-simulator.",
+            "editor": "textfield",
+            "default": "crm-nightly"
+        },
+        "regions": {
+            "title": "Regions",
+            "type": "array",
+            "description": "Regions to import.",
+            "editor": "json",
+            "default": [1, 2, 3, 4, 5, 6, 7, 8]
+        },
+        "maxConcurrency": {
+            "title": "Max concurrent importers",
+            "type": "integer",
+            "editor": "number",
+            "default": 4,
+            "minimum": 1
+        },
+        "maxAttemptsPerRegion": {
+            "title": "Max attempts per region",
+            "type": "integer",
+            "description": "Including the first attempt. A region that fails is restarted with force=true.",
+            "editor": "number",
+            "default": 3,
+            "minimum": 1
+        },
+        "pollIntervalSecs": {
+            "title": "Run status poll interval (seconds)",
+            "type": "integer",
+            "editor": "number",
+            "default": 5,
+            "minimum": 1
+        },
+        "resetStorages": {
+            "title": "Reset named storages first",
+            "type": "boolean",
+            "description": "Drop crm-normalized, crm-quarantine, crm-master and crm-run-state before starting, so a nightly re-run does not append to yesterday's data.",
+            "editor": "checkbox",
+            "default": true
+        },
+        "actorNamespace": {
+            "title": "Actor namespace",
+            "type": "string",
+            "description": "Username the three worker Actors live under. Defaults to the account running the supervisor.",
+            "editor": "textfield"
+        },
+        "exportSimulatorActorId": {
+            "title": "export-simulator Actor ID",
+            "type": "string",
+            "editor": "textfield"
+        },
+        "regionImporterActorId": {
+            "title": "region-importer Actor ID",
+            "type": "string",
+            "editor": "textfield"
+        },
+        "reconciliationReporterActorId": {
+            "title": "reconciliation-reporter Actor ID",
+            "type": "string",
+            "editor": "textfield"
+        }
+    },
+    "required": []
+}

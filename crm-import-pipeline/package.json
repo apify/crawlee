@@ -1,0 +1,12 @@
+{
+    "name": "crm-import-pipeline",
+    "version": "1.0.0",
+    "private": true,
+    "type": "module",
+    "description": "Nightly CRM import pipeline: four Apify Actors coordinating through named storages and the Actor runs API.",
+    "scripts": {
+        "verify": "node scripts/verify-pipeline.mjs",
+        "sync": "node scripts/sync-shared.mjs",
+        "sync:check": "node scripts/sync-shared.mjs --check"
+    }
+}

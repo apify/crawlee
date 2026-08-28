@@ -1,0 +1,17 @@
+{
+    "name": "crm-import-supervisor",
+    "version": "1.0.0",
+    "private": true,
+    "type": "module",
+    "description": "Orchestrates the nightly CRM import and reconciles the result against the simulator's ground truth.",
+    "main": "src/main.js",
+    "scripts": {
+        "start": "node src/main.js"
+    },
+    "dependencies": {
+        "apify": "^3.4.0"
+    },
+    "engines": {
+        "node": ">=20"
+    }
+}

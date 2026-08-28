@@ -1,0 +1,17 @@
+{
+    "name": "crm-export-simulator",
+    "version": "1.0.0",
+    "private": true,
+    "type": "module",
+    "description": "Generates 8 seeded regional CRM CSV exports plus the ground-truth reconciliation report.",
+    "main": "src/main.js",
+    "scripts": {
+        "start": "node src/main.js"
+    },
+    "dependencies": {
+        "apify": "^3.4.0"
+    },
+    "engines": {
+        "node": ">=20"
+    }
+}

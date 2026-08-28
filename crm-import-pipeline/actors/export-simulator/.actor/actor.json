@@ -1,0 +1,10 @@
+{
+    "actorSpecification": 1,
+    "name": "export-simulator",
+    "title": "CRM export simulator",
+    "description": "Generates 8 seeded regional CRM CSV exports plus the ground-truth reconciliation report.",
+    "version": "1.0",
+    "buildTag": "latest",
+    "dockerfile": "../Dockerfile",
+    "input": "./input_schema.json"
+}

@@ -1,0 +1,17 @@
+{
+    "name": "crm-reconciliation-reporter",
+    "version": "1.0.0",
+    "private": true,
+    "type": "module",
+    "description": "Deduplicates crm-normalized into crm-master and reports the run's reconciliation figures.",
+    "main": "src/main.js",
+    "scripts": {
+        "start": "node src/main.js"
+    },
+    "dependencies": {
+        "apify": "^3.4.0"
+    },
+    "engines": {
+        "node": ">=20"
+    }
+}
