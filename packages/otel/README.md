@@ -4,7 +4,6 @@ This package provides [OpenTelemetry](https://opentelemetry.io/) instrumentation
 handling pipeline of the crawlers and forwards Crawlee logs to OpenTelemetry, so you can analyze crawler runs in any
 OpenTelemetry-compatible backend (Jaeger, Zipkin, Signoz, ...).
 
-
 ## Installation
 
 The OpenTelemetry API packages are peer dependencies, so install them alongside this package:
