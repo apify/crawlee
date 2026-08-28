@@ -18,6 +18,22 @@ describe('SessionPool - testing session pool', () => {
         expect(sessionPool.id).toBeDefined();
     });
 
+    test('should initialize again on use after teardown, resuming the periodic persistence', async () => {
+        const events = serviceLocator.getEventManager();
+        sessionPool = new SessionPool({ persistStateKey: 'REINIT_TEST' });
+
+        await sessionPool.getSession();
+        const listenersWhileRunning = events.listenerCount(EventType.PERSIST_STATE);
+
+        await sessionPool.teardown();
+        expect(events.listenerCount(EventType.PERSIST_STATE)).toBe(listenersWhileRunning - 1);
+
+        expect((await sessionPool.getState()).sessions).toHaveLength(1);
+        expect(events.listenerCount(EventType.PERSIST_STATE)).toBe(listenersWhileRunning);
+
+        await sessionPool.teardown();
+    });
+
     test('reset should discard the sessions but leave the persisted record alone', async () => {
         const persistStateKey = 'RESET_TEST';
         sessionPool = new SessionPool({ persistStateKey });
