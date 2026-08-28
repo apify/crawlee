@@ -69,7 +69,7 @@ FROM apify/actor-node-playwright-chrome:24-1.60.0-beta
 
 ### Slim variants
 
-Every Node.js image is also published as a slim variant, with a `-slim` suffix appended to the tag (e.g. `24-slim`, `24-1.60.0-slim`, `24-beta-slim`). Slim images do not preinstall `apify`, `crawlee` or `typescript`. They only ship the browser automation library the image is built around (for example `puppeteer`, `playwright-chromium`, or `camoufox-js` with `impit`), and `apify/actor-node:24-slim` ships no npm packages at all. This makes them smaller and faster to pull, and your project's `package.json` is the single source of truth for dependency versions.
+Every Node.js image is also published as a slim variant, with a `-slim` suffix appended to the tag (e.g. `24-slim`, `24-1.60.0-slim`, `24-beta-slim`). Slim images do not preinstall `apify`, `crawlee` or `typescript`. They only ship the browser automation library the image is built around (for example `puppeteer`, `playwright`, or `camoufox-js` with `impit`), and `apify/actor-node:24-slim` ships no npm packages at all. This makes them smaller and faster to pull, and your project's `package.json` is the single source of truth for dependency versions.
 
 ```dockerfile
 # No preinstalled packages, bring your own dependencies.
