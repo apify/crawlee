@@ -6,7 +6,8 @@ import { z } from 'zod';
 import type { Configuration } from '../configuration.js';
 import { asyncifyIterable } from '../iterables.js';
 import type { CrawleeLogger } from '../log.js';
-import type { Request, Source } from '../request.js';
+import type { Source } from '../request.js';
+import { Request } from '../request.js';
 import { serviceLocator } from '../service_locator.js';
 import { normalizeHostname } from '../url.js';
 import { parseArgument, schemas } from '../validators.js';
@@ -181,11 +182,6 @@ interface DomainState {
      * `rateLimitedSince` to tell a domain that is still turning us away from one that is merely being waited out.
      */
     lastRateLimitedAt: number;
-    /**
-     * Whether the wrapped manager was found holding a request for this domain. Those requests are not in its
-     * sub-queue, so they are the only trace stall detection has that the domain still has work waiting.
-     */
-    hasInnerBacklog: boolean;
 }
 
 /** The moment a domain may be dispatched to again - whichever of its two independent clocks runs longer. */
@@ -208,18 +204,16 @@ function newDomainState(domain: string): DomainState {
         declaredCrawlDelayMs: null,
         rateLimitedSince: 0,
         lastRateLimitedAt: 0,
-        hasInnerBacklog: false,
     };
 }
 
 const DEFAULT_PERSIST_STATE_KEY = 'CRAWLEE_THROTTLED_DOMAINS';
 
 /**
- * How far into the wrapped manager one sweep looks for a request that can be dispatched. Bounded because the
- * requests it walks past are held in memory until the sweep ends, and a queue holding a million URLs of a
- * single throttled domain would otherwise be pulled into it in full.
+ * How many requests one fetch may move out of the wrapped manager before giving up on finding a dispatchable
+ * one. The next fetch resumes where it left off, and a migrated request is never walked again.
  */
-const MAX_INNER_SWEEP = 1000;
+const MAX_INNER_MIGRATIONS = 1000;
 
 /**
  * A request manager that wraps another one and paces requests per domain.
@@ -306,12 +300,6 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     #domainListStore?: KeyValueStore;
     #lastDomainListWrite: Promise<unknown> = Promise.resolve();
     #queuedDomainListWrite?: Promise<void>;
-
-    /**
-     * Until when the wrapped manager is known to hold nothing but requests for domains that are backing off,
-     * as a `Date.now()` timestamp. Sweeping it again before then would only put the same requests back.
-     */
-    #innerBlockedUntil = 0;
 
     /**
      * Sub-managers are keyed by a stable alias, so with `purgeOnStart` disabled they outlive the process. They
@@ -426,16 +414,6 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         }
 
         return this.#resolvedInner;
-    }
-
-    /**
-     * Notes that a request landed in `manager`. If that is the wrapped one, what it holds has changed, so
-     * whatever an earlier sweep concluded about it no longer holds.
-     */
-    #noteRequestRouted(manager: T): void {
-        if (manager === this.#resolvedInner) {
-            this.#innerBlockedUntil = 0;
-        }
     }
 
     /** Warns once about sources that cannot be routed by domain, because their URLs are not known yet. */
@@ -787,8 +765,6 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         const state = this.#getDomainState(url);
         if (state) {
             state.rateLimitedSince = 0;
-            // Both describe the episode that just ended; a later sweep sets this again if it is still true.
-            state.hasInnerBacklog = false;
         }
     }
 
@@ -798,8 +774,6 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         this.#warnIfNotRoutable(requestLike);
 
         const manager = await this.#selectManagerOrThrow(requestLike.url ?? '');
-
-        this.#noteRequestRouted(manager);
 
         return manager.addRequest(requestLike, options);
     }
@@ -849,8 +823,6 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
                         continue;
                     }
 
-                    this.#noteRequestRouted(manager);
-
                     const bucket = byManager.get(manager);
                     if (bucket) {
                         bucket.push(request);
@@ -892,8 +864,6 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         options?: RequestQueueOperationOptions,
     ): Promise<RequestQueueOperationInfo | null> {
         const manager = await this.#managerHolding(request);
-
-        this.#noteRequestRouted(manager);
 
         return manager.reclaimRequest(request, options);
     }
@@ -980,9 +950,11 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
             }
         }
 
+        const inner = await this.#getInner();
+
         const probed = (
             await Promise.all([
-                this.#checkInnerReadiness(),
+                inner.checkReadiness(),
                 ...dispatchable.map(async (subManager) => (await subManager).checkReadiness()),
             ])
         ).reduce(joinRequestSourceStatuses);
@@ -996,9 +968,6 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
             const stalled = (
                 await Promise.all(
                     stallCandidates.map(async (state) =>
-                        // Requests the wrapped manager holds count too: a domain whose work only lives there
-                        // has an empty sub-queue, and would otherwise be waited on forever.
-                        state.hasInnerBacklog ||
                         (await (await this.#subManagers.get(state.domain)!).checkReadiness()).status === 'ready'
                             ? state
                             : null,
@@ -1035,22 +1004,6 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     }
 
     /**
-     * What the wrapped manager can offer *this* manager, which is not the same as what it holds: while a sweep
-     * has found nothing in it but requests for domains that are backing off, it is `waiting` rather than
-     * `ready`, no matter how much work it reports. Answering `ready` there would send the crawler polling for a
-     * request {@link fetchNextRequest} cannot hand out.
-     */
-    async #checkInnerReadiness(): Promise<RequestSourceStatus> {
-        const status = await (await this.#getInner()).checkReadiness();
-
-        if (status.status === 'ready' && Date.now() < this.#innerBlockedUntil) {
-            return { status: 'waiting', readyAt: this.#innerBlockedUntil };
-        }
-
-        return status;
-    }
-
-    /**
      * Empties every manager and clears the accumulated backoff. A robots.txt `Crawl-delay` is a property of the
      * site rather than of the run, so it survives.
      */
@@ -1067,8 +1020,6 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         const subManagers = await this.#getSubManagers();
         await Promise.all(subManagers.map(async (manager) => manager.purge?.()));
 
-        this.#innerBlockedUntil = 0;
-
         for (const state of this.domainStates.values()) {
             state.consecutive429Count = 0;
             state.backoffUntil = 0;
@@ -1076,7 +1027,6 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
             state.backoffDecaysAt = 0;
             state.rateLimitedSince = 0;
             state.lastRateLimitedAt = 0;
-            state.hasInnerBacklog = false;
         }
     }
 
@@ -1165,60 +1115,53 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     /**
      * The next request the wrapped manager can offer whose domain is not being held back.
      *
-     * Its requests are not stored per domain, so they cannot be skipped the way a sub-queue can - the only way
-     * to find out which domain one belongs to is to take it out. Any that turn out to be backing off go
-     * straight back, because handing one over would have the crawler hammer the domain that just told us to
-     * wait: a request deferred this way costs no retry, so nothing else would ever slow it down.
+     * Its requests are not stored per domain, so they cannot be skipped the way a sub-queue can - the only
+     * way to find out which domain one belongs to is to take it out. One that turns out to be backing off is
+     * moved into its domain's sub-queue, where that domain's clocks hold it back like any other: dispatching
+     * it would have the crawler hammer the domain that just told us to wait, and putting it back would have
+     * every later fetch walk past it again.
      */
     async #fetchFromInner<R extends Dictionary = Dictionary>(): Promise<Request<R> | null> {
-        if (Date.now() < this.#innerBlockedUntil) {
-            return null;
-        }
-
         const inner = await this.#getInner();
 
-        // Held for the length of the sweep rather than reclaimed one by one: a reclaimed request can be
-        // handed straight back by the very next fetch, which would make walking past it impossible.
-        const heldBack: Request[] = [];
-        let heldBackUntil = Infinity;
-        let dispatchable: Request<R> | null = null;
+        for (let migrated = 0; migrated < MAX_INNER_MIGRATIONS; migrated++) {
+            const request = await inner.fetchNextRequest<R>();
 
+            if (request === null) {
+                return null;
+            }
+
+            const state = this.#getDomainState(request.url);
+
+            if (state === null || Date.now() >= throttledUntil(state)) {
+                return request;
+            }
+
+            await this.#migrateToSubQueue(request, inner);
+        }
+
+        return null;
+    }
+
+    /**
+     * Moves a request from the wrapped manager into its domain's sub-queue.
+     *
+     * Added there before it is marked handled here, so that a crash in between duplicates the request rather
+     * than dropping it, and `uniqueKey` absorbs the duplicate. A copy is what lands in the sub-queue: adding
+     * the request itself would overwrite the `id` the wrapped manager knows it by.
+     */
+    async #migrateToSubQueue(request: Request, inner: T): Promise<void> {
         try {
-            while (heldBack.length < MAX_INNER_SWEEP) {
-                const request = await inner.fetchNextRequest<R>();
-
-                if (request === null) {
-                    break;
-                }
-
-                const state = this.#getDomainState(request.url);
-                const until = state ? throttledUntil(state) : 0;
-
-                if (until > Date.now()) {
-                    state!.hasInnerBacklog = true;
-                    heldBackUntil = Math.min(heldBackUntil, until);
-                    heldBack.push(request);
-                    continue;
-                }
-
-                dispatchable = request;
-                break;
-            }
-        } finally {
-            // Backwards and to the front, so the sweep leaves the order it walked through as it found it.
-            for (const request of heldBack.reverse()) {
-                await inner.reclaimRequest(request, { forefront: true });
-            }
+            const subManager = await this.#selectManagerOrThrow(request.url);
+            await subManager.addRequest(new Request({ ...request, id: undefined }));
+        } catch (error) {
+            // Whatever the reason, the request is out of the wrapped manager and in nobody's hands, so it
+            // goes back before the failure is raised.
+            await inner.reclaimRequest(request, { forefront: true });
+            throw error;
         }
 
-        // Nothing it offered could be dispatched, so sweeping it again before the first of those domains is
-        // due would only walk the same requests. `checkReadiness()` reports `waiting` meanwhile, so the
-        // crawler idles instead of spinning through the whole queue on every poll.
-        if (dispatchable === null && heldBackUntil !== Infinity) {
-            this.#innerBlockedUntil = heldBackUntil;
-        }
-
-        return dispatchable;
+        await inner.markRequestAsHandled(request);
     }
 
     async *[Symbol.asyncIterator]() {

@@ -288,6 +288,61 @@ describe('ThrottlingRequestManager', () => {
         expect(request!.url).toBe('https://other.com/free');
     });
 
+    test('the backlog a throttled domain has in the inner manager is moved out of it, not walked again', async () => {
+        const inner = await createQueue();
+        const manager = new ThrottlingRequestManager({ inner, domains: ['example.com'], baseDelaySecs: 60 });
+
+        // The same bypass as above, at the size that makes the cost visible.
+        for (let i = 0; i < 20; i++) {
+            await inner.addRequest({ url: `https://example.com/${i}` });
+        }
+        await inner.addRequest({ url: 'https://other.com/free' });
+
+        manager.recordPacingSignal({ url: 'https://example.com/0', reason: 'rateLimited' });
+
+        const fetchedFromInner = vitest.spyOn(inner, 'fetchNextRequest');
+        const reclaimedToInner = vitest.spyOn(inner, 'reclaimRequest');
+
+        expect((await manager.fetchNextRequest())!.url).toBe('https://other.com/free');
+
+        expect(fetchedFromInner).toHaveBeenCalledTimes(21);
+        expect(reclaimedToInner).not.toHaveBeenCalled();
+        // Nothing lost on the way: the backlog waits in the sub-queue, the dispatched one is still outstanding.
+        expect(await manager.getPendingCount()).toBe(21);
+
+        fetchedFromInner.mockClear();
+        await manager.addRequest({ url: 'https://other.com/behind-it' });
+
+        // The point of moving it: enqueuing no longer re-arms a walk over the backlog, which on a queue whose
+        // every read is a round trip is the whole cost.
+        expect((await manager.fetchNextRequest())!.url).toBe('https://other.com/behind-it');
+        expect(fetchedFromInner).toHaveBeenCalledTimes(1);
+    });
+
+    test('a request whose migration fails goes back to the inner manager instead of being stranded', async () => {
+        const inner = await createQueue();
+        const manager = new ThrottlingRequestManager({
+            inner,
+            domains: ['example.com'],
+            baseDelaySecs: 60,
+            requestManagerOpener: async (identifier, options) => {
+                const queue = await RequestQueue.open(identifier, options);
+                queue.addRequest = async () => {
+                    throw new Error('sub-queue unavailable');
+                };
+                return queue;
+            },
+        });
+
+        await inner.addRequest({ url: 'https://example.com/held-back' });
+        manager.recordPacingSignal({ url: 'https://example.com/held-back', reason: 'rateLimited' });
+
+        await expect(manager.fetchNextRequest()).rejects.toThrow('sub-queue unavailable');
+
+        // Left in progress in a manager nobody will hand it back to, it would be lost for the rest of the run.
+        expect((await inner.fetchNextRequest())!.url).toBe('https://example.com/held-back');
+    });
+
     describe('a lazily-opened inner manager', () => {
         const throttling = { domains: ['example.com'] } satisfies Omit<
             ThrottlingRequestManagerOptions<RequestQueue>,
