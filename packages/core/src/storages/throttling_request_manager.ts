@@ -6,7 +6,8 @@ import { z } from 'zod';
 import type { Configuration } from '../configuration.js';
 import { asyncifyIterable } from '../iterables.js';
 import type { CrawleeLogger } from '../log.js';
-import type { Request, Source } from '../request.js';
+import type { Source } from '../request.js';
+import { Request } from '../request.js';
 import { serviceLocator } from '../service_locator.js';
 import { normalizeHostname } from '../url.js';
 import { parseArgument, schemas } from '../validators.js';
@@ -209,6 +210,12 @@ function newDomainState(domain: string): DomainState {
 const DEFAULT_PERSIST_STATE_KEY = 'CRAWLEE_THROTTLED_DOMAINS';
 
 /**
+ * How many requests one fetch may move out of the wrapped manager before giving up on finding a dispatchable
+ * one. The next fetch resumes where it left off, and a migrated request is never walked again.
+ */
+const MAX_INNER_MIGRATIONS = 1000;
+
+/**
  * A request manager that wraps another one and paces requests per domain.
  *
  * Requests for a throttled domain are routed into their own queue when they are added, so each request lives in
@@ -303,6 +310,9 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
 
     /** Batches still being added in the background; keeps {@apilink ThrottlingRequestManager.checkReadiness} honest. */
     #inProgressBatchCount = 0;
+
+    /** Requests moved into a sub-queue, which both managers count. Subtracted below; not persisted. */
+    #migratedFromInner = 0;
 
     /** The latest {@link setExpectedRequestProcessingTimeSecs} hint, kept for a wrapped manager resolved later. */
     #expectedRequestProcessingSecs?: number;
@@ -767,6 +777,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         this.#warnIfNotRoutable(requestLike);
 
         const manager = await this.#selectManagerOrThrow(requestLike.url ?? '');
+
         return manager.addRequest(requestLike, options);
     }
 
@@ -856,6 +867,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         options?: RequestQueueOperationOptions,
     ): Promise<RequestQueueOperationInfo | null> {
         const manager = await this.#managerHolding(request);
+
         return manager.reclaimRequest(request, options);
     }
 
@@ -882,7 +894,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     }
 
     async getTotalCount(): Promise<number> {
-        return this.#sumOverManagers((manager) => manager.getTotalCount());
+        return (await this.#sumOverManagers((manager) => manager.getTotalCount())) - this.#migratedFromInner;
     }
 
     async getPendingCount(): Promise<number> {
@@ -890,7 +902,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     }
 
     async getHandledCount(): Promise<number> {
-        return this.#sumOverManagers((manager) => manager.getHandledCount());
+        return (await this.#sumOverManagers((manager) => manager.getHandledCount())) - this.#migratedFromInner;
     }
 
     /**
@@ -941,9 +953,11 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
             }
         }
 
+        const inner = await this.#getInner();
+
         const probed = (
             await Promise.all([
-                (await this.#getInner()).checkReadiness(),
+                inner.checkReadiness(),
                 ...dispatchable.map(async (subManager) => (await subManager).checkReadiness()),
             ])
         ).reduce(joinRequestSourceStatuses);
@@ -1008,6 +1022,8 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     async #purgeDomainQueues(): Promise<void> {
         const subManagers = await this.#getSubManagers();
         await Promise.all(subManagers.map(async (manager) => manager.purge?.()));
+
+        this.#migratedFromInner = 0;
 
         for (const state of this.domainStates.values()) {
             state.consecutive429Count = 0;
@@ -1079,7 +1095,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
             state.crawlDelayUntil = crawlDelayUntilBefore;
         }
 
-        const request = await (await this.#getInner()).fetchNextRequest<R>();
+        const request = await this.#fetchFromInner<R>();
 
         if (request !== null) {
             this.#inFlightFromInner.add(request.id ?? request.uniqueKey);
@@ -1099,6 +1115,59 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         }
 
         return request;
+    }
+
+    /**
+     * The next request the wrapped manager can offer whose domain is not being held back.
+     *
+     * Its requests are not stored per domain, so they cannot be skipped the way a sub-queue can - the only
+     * way to find out which domain one belongs to is to take it out. One that turns out to be backing off is
+     * moved into its domain's sub-queue, where that domain's clocks hold it back like any other: dispatching
+     * it would have the crawler hammer the domain that just told us to wait, and putting it back would have
+     * every later fetch walk past it again.
+     */
+    async #fetchFromInner<R extends Dictionary = Dictionary>(): Promise<Request<R> | null> {
+        const inner = await this.#getInner();
+
+        for (let migrated = 0; migrated < MAX_INNER_MIGRATIONS; migrated++) {
+            const request = await inner.fetchNextRequest<R>();
+
+            if (request === null) {
+                return null;
+            }
+
+            const state = this.#getDomainState(request.url);
+
+            if (state === null || Date.now() >= throttledUntil(state)) {
+                return request;
+            }
+
+            await this.#migrateToSubQueue(request, inner);
+        }
+
+        return null;
+    }
+
+    /**
+     * Moves a request from the wrapped manager into its domain's sub-queue.
+     *
+     * Added there before it is marked handled here, so that a crash in between duplicates the request rather
+     * than dropping it, and `uniqueKey` absorbs the duplicate. A copy is what lands in the sub-queue: adding
+     * the request itself would overwrite the `id` the wrapped manager knows it by.
+     */
+    async #migrateToSubQueue(request: Request, inner: T): Promise<void> {
+        try {
+            const subManager = await this.#selectManagerOrThrow(request.url);
+            await subManager.addRequest(new Request({ ...request, id: undefined }));
+        } catch (error) {
+            // Whatever the reason, the request is out of the wrapped manager and in nobody's hands, so it
+            // goes back before the failure is raised.
+            await inner.reclaimRequest(request, { forefront: true });
+            throw error;
+        }
+
+        await inner.markRequestAsHandled(request);
+        this.#migratedFromInner += 1;
     }
 
     async *[Symbol.asyncIterator]() {

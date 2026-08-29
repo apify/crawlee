@@ -245,6 +245,107 @@ describe('ThrottlingRequestManager', () => {
         expect(await inner.getPendingCount()).toBe(0);
     });
 
+    test('a request the inner manager holds is paced by its domain like any other', async () => {
+        const inner = await createQueue();
+        const manager = new ThrottlingRequestManager({ inner, domains: ['example.com'], baseDelaySecs: 0.5 });
+
+        // The same bypass as above, so the request belongs to a throttled domain without being stored per domain.
+        await inner.addRequest({ url: 'https://example.com/1' });
+
+        const request = (await manager.fetchNextRequest())!;
+        expect(manager.recordPacingSignal({ url: request.url, reason: 'rateLimited' })).toBe(true);
+        // What the crawler does with the `RequestThrottledError` a 429 raises: reclaim, no retry spent.
+        await manager.reclaimRequest(request);
+
+        // Handing it straight back would have the crawler hammer the domain that just turned it away, and
+        // nothing else would slow it down - a deferred request costs neither a retry nor session reputation.
+        expect(await manager.fetchNextRequest()).toBeNull();
+        // Nothing to dispatch until the backoff runs out, while the request is still outstanding work rather
+        // than lost - a manager reporting `ready` here would have the crawler spin, `finished` drop it.
+        expect((await manager.checkReadiness()).status).toBe('waiting');
+
+        const start = Date.now();
+        const again = await pollForNextRequest(manager);
+
+        expect(Date.now() - start).toBeGreaterThanOrEqual(400);
+        expect(again.url).toBe('https://example.com/1');
+    });
+
+    test('a domain being held back does not stop the inner manager serving the others', async () => {
+        const inner = await createQueue();
+        const manager = new ThrottlingRequestManager({ inner, domains: ['example.com'], baseDelaySecs: 60 });
+
+        await inner.addRequest({ url: 'https://example.com/held-back' });
+        await inner.addRequest({ url: 'https://other.com/free' });
+
+        const held = (await manager.fetchNextRequest())!;
+        expect(held.url).toBe('https://example.com/held-back');
+        manager.recordPacingSignal({ url: held.url, reason: 'rateLimited' });
+        await manager.reclaimRequest(held);
+
+        // The reclaimed request is still ahead of the other one, and skipping it must not mean skipping the queue.
+        const request = await manager.fetchNextRequest();
+        expect(request!.url).toBe('https://other.com/free');
+    });
+
+    test('the backlog a throttled domain has in the inner manager is moved out of it, not walked again', async () => {
+        const inner = await createQueue();
+        const manager = new ThrottlingRequestManager({ inner, domains: ['example.com'], baseDelaySecs: 60 });
+
+        // The same bypass as above, at the size that makes the cost visible.
+        for (let i = 0; i < 20; i++) {
+            await inner.addRequest({ url: `https://example.com/${i}` });
+        }
+        await inner.addRequest({ url: 'https://other.com/free' });
+
+        manager.recordPacingSignal({ url: 'https://example.com/0', reason: 'rateLimited' });
+
+        const fetchedFromInner = vitest.spyOn(inner, 'fetchNextRequest');
+        const reclaimedToInner = vitest.spyOn(inner, 'reclaimRequest');
+
+        expect((await manager.fetchNextRequest())!.url).toBe('https://other.com/free');
+
+        expect(fetchedFromInner).toHaveBeenCalledTimes(21);
+        expect(reclaimedToInner).not.toHaveBeenCalled();
+        // Nothing lost on the way, and nothing counted twice: moving a request marks it handled where it came
+        // from, so both managers hold a record of it.
+        expect(await manager.getPendingCount()).toBe(21);
+        expect(await manager.getTotalCount()).toBe(21);
+        expect(await manager.getHandledCount()).toBe(0);
+
+        fetchedFromInner.mockClear();
+        await manager.addRequest({ url: 'https://other.com/behind-it' });
+
+        // The point of moving it: enqueuing no longer re-arms a walk over the backlog, which on a queue whose
+        // every read is a round trip is the whole cost.
+        expect((await manager.fetchNextRequest())!.url).toBe('https://other.com/behind-it');
+        expect(fetchedFromInner).toHaveBeenCalledTimes(1);
+    });
+
+    test('a request whose migration fails goes back to the inner manager instead of being stranded', async () => {
+        const inner = await createQueue();
+        const manager = new ThrottlingRequestManager({
+            inner,
+            domains: ['example.com'],
+            baseDelaySecs: 60,
+            requestManagerOpener: async (identifier, options) => {
+                const queue = await RequestQueue.open(identifier, options);
+                queue.addRequest = async () => {
+                    throw new Error('sub-queue unavailable');
+                };
+                return queue;
+            },
+        });
+
+        await inner.addRequest({ url: 'https://example.com/held-back' });
+        manager.recordPacingSignal({ url: 'https://example.com/held-back', reason: 'rateLimited' });
+
+        await expect(manager.fetchNextRequest()).rejects.toThrow('sub-queue unavailable');
+
+        // Left in progress in a manager nobody will hand it back to, it would be lost for the rest of the run.
+        expect((await inner.fetchNextRequest())!.url).toBe('https://example.com/held-back');
+    });
+
     describe('a lazily-opened inner manager', () => {
         const throttling = { domains: ['example.com'] } satisfies Omit<
             ThrottlingRequestManagerOptions<RequestQueue>,
@@ -591,6 +692,31 @@ describe('ThrottlingRequestManager', () => {
             await manager.markRequestAsHandled((await pollForNextRequest(manager))!);
 
             expect((await manager.checkReadiness()).status).not.toBe('stalled');
+        });
+
+        test('work the inner manager holds keeps a stalling domain in view', async () => {
+            // Its own backoff, long enough that the sweep below leaves the wrapped manager blocked - otherwise
+            // the request it holds reads as work anyone can dispatch, which outranks the stall.
+            const manager = new ThrottlingRequestManager({
+                inner: await createQueue(),
+                domains: ['example.com'],
+                baseDelaySecs: 30,
+                maxDomainStallSecs: 30,
+            });
+            const inner = manager.innerManager!;
+
+            // Its sub-queue stays empty, so this request is the only sign the domain still has work left.
+            await inner.addRequest({ url: 'https://example.com/1' });
+
+            const request = (await manager.fetchNextRequest())!;
+            manager.recordPacingSignal({ url: request.url, reason: 'rateLimited' });
+            await manager.reclaimRequest(request);
+            stallFor(manager, 'example.com');
+
+            // Sweeping it is what finds the request; without it the crawl would wait on the domain forever.
+            await manager.fetchNextRequest();
+
+            expect((await manager.checkReadiness()).status).toBe('stalled');
         });
 
         test('a domain that has run out of work is finished, not stalled', async () => {
