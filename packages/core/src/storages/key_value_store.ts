@@ -784,6 +784,18 @@ export class KeyValueStore {
      * @param key The key of the record to generate the public URL for.
      */
     async getPublicUrl(key: string): Promise<string | undefined> {
+        // A buffered write is not on the backend yet, so derive its URL from the key; a tombstone has
+        // none. With no active transaction this allocates nothing and the delegation below is unchanged.
+        const entry = this.bufferedJournalEntries()?.get(key);
+        if (entry) {
+            tryCancel();
+            parseArgument(key, keySchema);
+            if (entry.value === null) {
+                return undefined;
+            }
+            return (await this.backend.getPublicUrlForKey?.(key)) ?? undefined;
+        }
+
         return this.backend.getPublicUrl(key);
     }
 

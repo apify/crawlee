@@ -198,6 +198,24 @@ export class KeyValueStoreBackend extends CachedIdClient implements storage.KeyV
     }
 
     /**
+     * Derives the record's `file://` URL from the key alone, so an uncommitted (transaction-buffered)
+     * record resolves to the URL it will have once committed — where native `getPublicUrl` stats the
+     * on-disk path and returns `undefined`. The value file is named by its exact key, so the URL is a
+     * pure function of it. This mirrors the native construction exactly: `file://` + the raw directory
+     * path (left unencoded, as native does) + the key percent-encoded to the RFC 3986 unreserved set.
+     * @param key The key of the record to generate the public URL for.
+     */
+    async getPublicUrlForKey(key: string): Promise<string | undefined> {
+        parseArgument(key, keySchema);
+
+        const encodedKey = encodeURIComponent(key).replace(
+            /[!'()*]/g,
+            (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`,
+        );
+        return `file://${this.keyValueStoreDirectory}/${encodedKey}`;
+    }
+
+    /**
      * Tests whether a record with the given key exists without retrieving its value.
      *
      * @param key The queried record key.

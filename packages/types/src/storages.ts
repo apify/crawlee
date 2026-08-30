@@ -209,6 +209,13 @@ export interface KeyValueStoreBackend {
     /** Get the public URL for a record, or `undefined` if unavailable. */
     getPublicUrl(key: string): Promise<string | undefined>;
 
+    /**
+     * Like {@link getPublicUrl}, but derives the URL from the key alone without requiring the record to
+     * exist — used to resolve a record buffered in a transaction before it is committed. Optional:
+     * backends with no file URL omit it, and the frontend then returns `undefined` rather than fabricate one.
+     */
+    getPublicUrlForKey?(key: string): Promise<string | undefined>;
+
     /** Check whether a record with the given key exists. */
     recordExists(key: string): Promise<boolean>;
 }
