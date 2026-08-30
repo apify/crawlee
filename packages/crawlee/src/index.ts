@@ -1,7 +1,7 @@
 import { log } from '@crawlee/core';
 import { playwrightUtils } from '@crawlee/playwright';
 import { puppeteerUtils } from '@crawlee/puppeteer';
-import { downloadListOfUrls, parseOpenGraph, sleep, social } from '@crawlee/utils';
+import { downloadListOfUrls, extractStructuredData, parseOpenGraph, sleep, social } from '@crawlee/utils';
 
 export * from '@crawlee/core';
 export * from '@crawlee/utils';
@@ -24,4 +24,5 @@ export const utils = {
     sleep,
     downloadListOfUrls,
     parseOpenGraph,
+    extractStructuredData,
 };
