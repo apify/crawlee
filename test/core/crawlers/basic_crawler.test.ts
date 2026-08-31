@@ -654,6 +654,50 @@ describe('BasicCrawler', () => {
             await expect(waitForAllRequestsToBeAdded).rejects.toThrow('onSkippedRequest failed');
         });
 
+        test('a background onSkippedRequest rejection stays handled when nobody awaits the addition', async () => {
+            const reportStarted = Promise.withResolvers<void>();
+            const crawler = new BasicCrawler({
+                requestHandler: async () => {},
+                onSkippedRequest: async () => {
+                    reportStarted.resolve();
+                    throw new Error('onSkippedRequest failed');
+                },
+            });
+
+            const unhandled: unknown[] = [];
+            const collectUnhandled = (reason: unknown) => unhandled.push(reason);
+            process.on('unhandledRejection', collectUnhandled);
+
+            try {
+                // Deliberately dropping `waitForAllRequestsToBeAdded`: that is the default way to call
+                // `addRequests`, and the background skip report rejecting there must not take the process down.
+                await crawler.addRequests(
+                    [
+                        'https://example.com/1',
+                        'https://example.com/2',
+                        'https://example.com/3',
+                        'https://example.com/4',
+                        'https://other.com/no',
+                    ],
+                    {
+                        batchSize: 2,
+                        waitBetweenBatchesMillis: 0,
+                        include: ['https://example.com/**'],
+                    },
+                );
+
+                await reportStarted.promise;
+                // Node only flags a rejection as unhandled once the tick's microtasks have drained.
+                const nextTick = Promise.withResolvers<void>();
+                setImmediate(nextTick.resolve);
+                await nextTick.promise;
+            } finally {
+                process.off('unhandledRejection', collectUnhandled);
+            }
+
+            expect(unhandled).toEqual([]);
+        });
+
         test('drains foreground and background robots.txt skips exactly once', async () => {
             const onSkippedRequest = vitest.fn();
             const crawler = new BasicCrawler({
