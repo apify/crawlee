@@ -28,6 +28,7 @@ const DROPDOWN_OPTIONS = [
         showExternalIcon: false,
         icon: CopyIcon,
         value: 'copyForLLM',
+        requiresMarkdown: true,
         analytics: {
             buttonText: 'Copy for LLM',
             element: 'llm-buttons.copyForLLM',
@@ -39,6 +40,7 @@ const DROPDOWN_OPTIONS = [
         icon: MarkdownIcon,
         value: 'viewAsMarkdown',
         showExternalIcon: true,
+        requiresMarkdown: true,
         analytics: {
             buttonText: 'View as Markdown',
             element: 'llm-buttons.viewAsMarkdown',
@@ -286,14 +288,14 @@ const Menu = ({
     );
 };
 
-function getButtonText({ status }) {
+function getButtonText({ status, label }) {
     switch (status) {
         case 'loading':
             return 'Copying...';
         case 'copied':
             return 'Copied';
         default:
-            return 'Copy for LLM';
+            return label;
     }
 }
 
@@ -337,22 +339,22 @@ const onCopyAsMarkdownClick = async ({ setCopyingStatus, currentUrl }) => {
 };
 
 const COPYING_STATUS_ICON = {
-    loading: <LoaderIcon size={16} />,
-    copied: <CheckIcon size={16} />,
-    idle: <CopyIcon size={16} />,
+    loading: LoaderIcon,
+    copied: CheckIcon,
 }
 
 const MenuBase = React.forwardRef(({
     copyingStatus,
-    setCopyingStatus,
+    defaultOption,
+    onDefaultOptionClick,
     chevronIconRef,
-    currentUrl,
     ...buttonProps
 }, ref) => {
     const mergedButtonProps = {
         ...buttonProps,
         tabIndex: buttonProps.tabIndex ?? 0,
     };
+    const ButtonIcon = COPYING_STATUS_ICON[copyingStatus] ?? defaultOption.icon;
 
     return (
         <div className={styles.llmButtonWrapper}>
@@ -363,21 +365,15 @@ const MenuBase = React.forwardRef(({
             >
                 <div
                     className={styles.copyUpIconWrapper}
-                    onClick={(event) => {
-                        event.stopPropagation();
-                        onCopyAsMarkdownClick({ setCopyingStatus, currentUrl });
-                    }}
+                    onClick={onDefaultOptionClick}
                 >
-                    {COPYING_STATUS_ICON[copyingStatus]}
+                    <ButtonIcon size={16} />
                 </div>
                 <span
-                    onClick={(event) => {
-                        event.stopPropagation();
-                        onCopyAsMarkdownClick({ setCopyingStatus, currentUrl });
-                    }}
+                    onClick={onDefaultOptionClick}
                     className={styles.llmButtonText}
                 >
-                    {getButtonText({ status: copyingStatus })}
+                    {getButtonText({ status: copyingStatus, label: defaultOption.label })}
                 </span>
                 <div className={styles.chevronIconWrapper}>
                     <ChevronDownIcon
@@ -417,7 +413,7 @@ export default function LLMButtons() {
     const location = useLocation();
     const [copyingStatus, setCopyingStatus] = useState('idle');
     const [currentUrl, setCurrentUrl] = useState('');
-    const [isMarkdownAvailable, setIsMarkdownAvailable] = useState(false);
+    const [isMarkdownAvailable, setIsMarkdownAvailable] = useState(null);
     const chevronIconRef = useRef(null);
 
     useEffect(() => {
@@ -428,7 +424,7 @@ export default function LLMButtons() {
 
     useEffect(() => {
         if (!currentUrl) {
-            setIsMarkdownAvailable(false);
+            setIsMarkdownAvailable(null);
             return undefined;
         }
 
@@ -459,7 +455,7 @@ export default function LLMButtons() {
 
     const menuOptions = useMemo(
         () =>
-            DROPDOWN_OPTIONS.map((option) => {
+            DROPDOWN_OPTIONS.filter((option) => isMarkdownAvailable || !option.requiresMarkdown).map((option) => {
                 const href = getOptionHref(option.value, currentUrl);
 
                 return {
@@ -469,7 +465,24 @@ export default function LLMButtons() {
                     rel: href ? 'noopener noreferrer' : undefined,
                 };
             }),
-        [currentUrl],
+        [currentUrl, isMarkdownAvailable],
+    );
+
+    const defaultOption = menuOptions[0];
+
+    const onDefaultOptionClick = useCallback(
+        (event) => {
+            event.stopPropagation();
+
+            if (defaultOption.value === 'copyForLLM') {
+                onCopyAsMarkdownClick({ setCopyingStatus, currentUrl });
+                return;
+            }
+
+            trackClick(defaultOption.analytics.buttonText, defaultOption.analytics.element);
+            window.open(defaultOption.href, '_blank', 'noopener,noreferrer');
+        },
+        [defaultOption, currentUrl],
     );
 
     const onMenuOptionClick = useCallback(
@@ -490,7 +503,7 @@ export default function LLMButtons() {
         [currentUrl, setCopyingStatus],
     );
 
-    if (!isMarkdownAvailable) {
+    if (isMarkdownAvailable === null) {
         return null;
     }
 
@@ -505,9 +518,9 @@ export default function LLMButtons() {
                 MenuBase: (props) => (
                     <MenuBase
                         copyingStatus={copyingStatus}
-                        setCopyingStatus={setCopyingStatus}
+                        defaultOption={defaultOption}
+                        onDefaultOptionClick={onDefaultOptionClick}
                         chevronIconRef={chevronIconRef}
-                        currentUrl={currentUrl}
                         {...props}
                     />
                 ),
