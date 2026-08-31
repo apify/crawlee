@@ -1,0 +1,156 @@
+---
+id: cookie-modals
+title: "Dismissing cookie modals"
+sidebar_label: "Cookie modals"
+description: Ways to get past cookie consent banners in a Crawlee crawler.
+---
+
+import ApiLink from '@site/src/components/ApiLink';
+
+Cookie consent banners cover the page. They swallow clicks, and some of them hide the content you came for.
+
+Crawlee has no helper for this. The v3 `closeCookieModals` helper is gone in v4. It leaned on a rule list that went stale, and maintaining that list is a project of its own. Use one of the approaches below instead.
+
+The first two target a single site. The rest scale to many.
+
+## Set the consent cookie
+
+Most banners are a check for one cookie. Set it, and the banner never renders. Nothing loads and nothing gets clicked, so this is the fastest option here.
+
+Find the cookie once by hand. Open the site, accept the banner, then read the cookies in your browser devtools.
+
+```ts
+import { PlaywrightCrawler } from 'crawlee';
+
+const crawler = new PlaywrightCrawler({
+    preNavigationHooks: [
+        async ({ session, request }) => {
+            await session.setCookie('cookieconsent_status=dismiss', request.url);
+        },
+    ],
+    async requestHandler({ page, log }) {
+        log.info(await page.title());
+    },
+});
+
+await crawler.run(['https://example.com']);
+```
+
+Crawlee writes the session jar into the browser right before it navigates. A <ApiLink to="core/class/Session#setCookie">`session.setCookie`</ApiLink> call in a `preNavigationHook` therefore lands in time. The same hook works in `CheerioCrawler` and the other HTTP crawlers.
+
+The catch is that every site names the cookie differently. It can also change without warning. You will find out when the banner comes back.
+
+## Click the button
+
+If you know the selector, click it. A `postNavigationHook` runs it on every page.
+
+```ts
+import { PlaywrightCrawler } from 'crawlee';
+
+const crawler = new PlaywrightCrawler({
+    postNavigationHooks: [
+        async ({ page }) => {
+            await page
+                .locator('#onetrust-accept-btn-handler')
+                .click({ timeout: 5_000 })
+                .catch(() => {});
+        },
+    ],
+    async requestHandler({ page, log }) {
+        log.info(await page.title());
+    },
+});
+
+await crawler.run(['https://example.com']);
+```
+
+The `.catch()` is not optional. Plenty of pages show no banner. Without it, the click throws and fails the request.
+
+## Use autoconsent
+
+[`@duckduckgo/autoconsent`](https://github.com/duckduckgo/autoconsent) carries opt-out rules for roughly 300 consent managers. DuckDuckGo ships it in their own browser, so the rules stay current. It is MPL-2.0, which is safe to depend on.
+
+The package has a standalone bundle. It embeds its own rules and needs no wiring. Inject it, and it clicks through the banner on its own.
+
+```bash
+npm install @duckduckgo/autoconsent
+```
+
+```ts
+import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import { dirname, join } from 'node:path';
+import { PlaywrightCrawler } from 'crawlee';
+
+const require = createRequire(import.meta.url);
+
+// The package doesn't export the bundle path, so resolve the main entry and take its sibling.
+const bundlePath = join(dirname(require.resolve('@duckduckgo/autoconsent')), 'autoconsent.standalone.js');
+const autoconsent = readFileSync(bundlePath, 'utf8');
+
+const crawler = new PlaywrightCrawler({
+    preNavigationHooks: [
+        async ({ page }) => {
+            await page.addInitScript({ content: autoconsent });
+        },
+    ],
+    async requestHandler({ page, log }) {
+        log.info(await page.title());
+    },
+});
+
+await crawler.run(['https://example.com']);
+```
+
+Read the bundle once at startup, like above. It is around 400 kB, and reading it per request is wasted work.
+
+On `PuppeteerCrawler`, swap `page.addInitScript({ content: autoconsent })` for `page.evaluateOnNewDocument(autoconsent)`.
+
+Autoconsent does real clicks, so budget a second or two per page. It opts out rather than accepting. When a site matches no rule, nothing happens and the crawl carries on.
+
+## Block the banner instead
+
+You can stop the banner from ever loading. [`@ghostery/adblocker-playwright`](https://github.com/ghostery/adblocker) does it with the same filter lists ad blockers use.
+
+```bash
+npm install @ghostery/adblocker-playwright
+```
+
+```ts
+import { PlaywrightBlocker } from '@ghostery/adblocker-playwright';
+import { PlaywrightCrawler } from 'crawlee';
+
+// Build this once. `fromLists` downloads and parses the list, which is slow.
+const blocker = await PlaywrightBlocker.fromLists(fetch, [
+    'https://secure.fanboy.co.nz/fanboy-cookiemonster.txt',
+]);
+
+const crawler = new PlaywrightCrawler({
+    preNavigationHooks: [
+        async ({ page }) => {
+            await blocker.enableBlockingInPage(page);
+        },
+    ],
+    async requestHandler({ page, log }) {
+        log.info(await page.title());
+    },
+});
+
+await crawler.run(['https://example.com']);
+```
+
+This hides the banner without consenting to anything. Sites that gate their content behind a consent click will still gate it. The same blocker also kills ads and trackers, so pages load faster.
+
+## Ask an LLM
+
+<ApiLink to="stagehand-crawler/class/StagehandCrawler">`StagehandCrawler`</ApiLink> takes plain instructions. No selectors, no rule lists.
+
+```ts
+await page.act('Dismiss the cookie consent banner');
+```
+
+It is the slowest option, and every call costs money. It earns its place when the sites are unknown or change often. See the [Stagehand guide](./stagehand-crawler-guide) for setup.
+
+## Which one to pick
+
+Scraping one site? Set the cookie, or click the button. Scraping many? Reach for autoconsent. Add the blocker on top when you also want fewer ads and faster pages.
