@@ -9,7 +9,7 @@ import ApiLink from '@site/src/components/ApiLink';
 
 Cookie consent banners overlay the page, intercept clicks aimed at the content beneath them, and on some sites withhold the content entirely until consent is recorded. For a crawler this is a navigation problem rather than a legal one: the page loads, but the parts worth extracting are covered or absent.
 
-Crawlee ships no helper for dismissing them. The v3 `closeCookieModals` helper was removed in v4 — it wrapped `idcac-playwright`, an optional, largely unmaintained dependency under GPL-3.0, and its bundled rule list decayed as sites changed. The approaches below replace it using either the crawler's own hooks or a maintained third-party library. The first two target a single known site, the rest generalize across many, and they are ordered by cost.
+Crawlee ships no helper for dismissing them. The v3 `closeCookieModals` helper was removed in v4 — it wrapped `idcac-playwright`, an optional dependency that is licensed under GPL-3.0 and no longer actively maintained. The approaches below replace it using either the crawler's own hooks or a maintained third-party library. The first two target a single known site, the rest generalize across many, and they are ordered by cost.
 
 ## Set the consent cookie
 
