@@ -619,9 +619,9 @@ describe('BasicCrawler', () => {
 
             expect(addedRequests).toHaveLength(1_000);
             expect(backgroundAddedRequests).toHaveLength(1_000);
-            expect(
-                onSkippedRequest.mock.calls.map(([{ request, reason }]) => ({ url: request.url, reason })),
-            ).toEqual(outOfScope.map((url) => ({ url, reason: 'filters' })));
+            expect(onSkippedRequest.mock.calls.map(([{ request, reason }]) => ({ url: request.url, reason }))).toEqual(
+                outOfScope.map((url) => ({ url, reason: 'filters' })),
+            );
         });
 
         test('background onSkippedRequest rejection rejects the background completion promise', async () => {
@@ -677,9 +677,7 @@ describe('BasicCrawler', () => {
             );
             await waitForAllRequestsToBeAdded;
 
-            expect(
-                onSkippedRequest.mock.calls.map(([{ request, reason }]) => ({ url: request.url, reason })),
-            ).toEqual([
+            expect(onSkippedRequest.mock.calls.map(([{ request, reason }]) => ({ url: request.url, reason }))).toEqual([
                 { url: foregroundDenied, reason: 'robotsTxt' },
                 { url: backgroundDenied, reason: 'robotsTxt' },
             ]);
