@@ -462,21 +462,14 @@ export default function LLMButtons() {
             DROPDOWN_OPTIONS.map((option) => {
                 const href = getOptionHref(option.value, currentUrl);
 
-
-                if (option.value === 'viewAsMarkdown') {
-                    if (!isMarkdownAvailable) {
-                        return null;
-                    }
-                }
-
                 return {
                     ...option,
                     href,
                     target: href ? '_blank' : undefined,
                     rel: href ? 'noopener noreferrer' : undefined,
                 };
-            }).filter(Boolean),
-        [currentUrl, isMarkdownAvailable],
+            }),
+        [currentUrl],
     );
 
     const onMenuOptionClick = useCallback(
@@ -496,6 +489,10 @@ export default function LLMButtons() {
         },
         [currentUrl, setCopyingStatus],
     );
+
+    if (!isMarkdownAvailable) {
+        return null;
+    }
 
     return (
         <Menu
