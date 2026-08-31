@@ -598,7 +598,9 @@ describe('BasicCrawler', () => {
             expect(skippedRequests[1].request).toBeInstanceOf(Request);
             expect(skippedRequests[1].request.url).toBe('https://example.com/2/');
         });
+    });
 
+    describe('addRequests() background skip reporting', () => {
         test('reports filtered requests discovered in background batches', async () => {
             const onSkippedRequest = vitest.fn();
             const crawler = new BasicCrawler({
@@ -612,6 +614,7 @@ describe('BasicCrawler', () => {
             const { addedRequests, waitForAllRequestsToBeAdded } = await crawler.addRequests(
                 [...inScope, ...outOfScope],
                 {
+                    waitBetweenBatchesMillis: 0,
                     include: ['https://example.com/**'],
                 },
             );
