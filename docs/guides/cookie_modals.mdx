@@ -58,6 +58,7 @@ import { PlaywrightCrawler } from 'crawlee';
 const crawler = new PlaywrightCrawler({
     postNavigationHooks: [
         async ({ page }) => {
+            // A page with no banner always waits out the full timeout before giving up, so keep it short.
             await page
                 .locator('#onetrust-accept-btn-handler')
                 .click({ timeout: 5_000 })
@@ -74,7 +75,7 @@ await crawler.run(['https://example.com']);
 
 The trailing `.catch()` is required, not merely defensive. Many pages render no banner at all, either because consent was already recorded or because the region is unregulated.
 
-An unhandled locator timeout would fail the request and consume a retry. The explicit timeout bounds the delay on those pages.
+An unhandled locator timeout would fail the request and consume a retry. Every page without a banner spends that timeout in full, so a short value is preferable.
 
 ## Use autoconsent
 
