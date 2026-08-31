@@ -43,6 +43,7 @@ module.exports = {
                 'guides/session-management',
                 'guides/scaling-crawlers',
                 'guides/avoid-blocking',
+                'guides/cookie-modals',
                 'guides/jsdom-crawler-guide',
                 'guides/impit-http-client/impit-http-client',
                 'guides/got-scraping',
