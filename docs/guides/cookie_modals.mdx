@@ -7,17 +7,13 @@ description: Ways to get past cookie consent banners in a Crawlee crawler.
 
 import ApiLink from '@site/src/components/ApiLink';
 
-Cookie consent banners cover the page. They swallow clicks, and some of them hide the content you came for.
+Cookie consent banners overlay the page, intercept clicks aimed at the content beneath them, and on some sites withhold the content entirely until consent is recorded. For a crawler this is a navigation problem rather than a legal one: the page loads, but the parts worth extracting are covered or absent.
 
-Crawlee has no helper for this. The v3 `closeCookieModals` helper is gone in v4. It leaned on a rule list that went stale, and maintaining that list is a project of its own. Use one of the approaches below instead.
-
-The first two target a single site. The rest scale to many.
+Crawlee ships no helper for dismissing them. The v3 `closeCookieModals` helper was removed in v4 — it wrapped `idcac-playwright`, an optional, largely unmaintained dependency under GPL-3.0, and its bundled rule list decayed as sites changed. The approaches below replace it using either the crawler's own hooks or a maintained third-party library. The first two target a single known site, the rest generalize across many, and they are ordered by cost.
 
 ## Set the consent cookie
 
-Most banners are a check for one cookie. Set it, and the banner never renders. Nothing loads and nothing gets clicked, so this is the fastest option here.
-
-Find the cookie once by hand. Open the site, accept the banner, then read the cookies in your browser devtools.
+Most banners render only when a particular cookie is absent, so writing that cookie in advance suppresses the banner entirely. Nothing has to load, render, or be clicked, which makes this by far the cheapest option — and the only one that costs nothing at all per page. The trade-off is that the cookie is site-specific and must be identified once by hand, usually by accepting the banner in an ordinary browser session and reading back the resulting cookies in devtools.
 
 ```ts
 import { PlaywrightCrawler } from 'crawlee';
@@ -36,13 +32,13 @@ const crawler = new PlaywrightCrawler({
 await crawler.run(['https://example.com']);
 ```
 
-Crawlee writes the session jar into the browser right before it navigates. A <ApiLink to="core/class/Session#setCookie">`session.setCookie`</ApiLink> call in a `preNavigationHook` therefore lands in time. The same hook works in `CheerioCrawler` and the other HTTP crawlers.
+<ApiLink to="core/class/Session#setCookie">`session.setCookie`</ApiLink> writes into the session's <ApiLink to="core/class/Session#cookieJar">`cookieJar`</ApiLink>, and the crawler copies that jar into the browser immediately before navigating, so a call inside a <ApiLink to="playwright-crawler/interface/PlaywrightCrawlerOptions#preNavigationHooks">`preNavigationHook`</ApiLink> is applied in time for the first request. The same hook works unchanged in <ApiLink to="cheerio-crawler/class/CheerioCrawler">`CheerioCrawler`</ApiLink> and the other <ApiLink to="http-crawler/class/HttpCrawler">`HttpCrawler`</ApiLink> variants, where the jar is serialized into the `Cookie` header instead of being injected into a browser context. Cookies returned by the site are folded back into the same jar when <ApiLink to="browser-crawler/interface/BrowserCrawlerOptions#saveResponseCookies">`saveResponseCookies`</ApiLink> is enabled, which is the default; the [session management guide](./session-management) covers how the jar is populated, persisted, and rotated.
 
-The catch is that every site names the cookie differently. It can also change without warning. You will find out when the banner comes back.
+The weakness of this approach is fragility. Consent cookie names are undocumented implementation details, they differ on every site, and they can change without notice — at which point the banner silently returns and the crawler starts collecting empty pages.
 
 ## Click the button
 
-If you know the selector, click it. A `postNavigationHook` runs it on every page.
+When the selector is already known, clicking the accept button is the most direct option and adds no dependency. A <ApiLink to="playwright-crawler/interface/PlaywrightCrawlerOptions#postNavigationHooks">`postNavigationHook`</ApiLink> applies it to every page in the crawl without repeating the call in each request handler.
 
 ```ts
 import { PlaywrightCrawler } from 'crawlee';
@@ -64,13 +60,13 @@ const crawler = new PlaywrightCrawler({
 await crawler.run(['https://example.com']);
 ```
 
-The `.catch()` is not optional. Plenty of pages show no banner. Without it, the click throws and fails the request.
+The trailing `.catch()` is required rather than merely defensive: many pages in a crawl render no banner at all, either because consent was already recorded in the session or because the visitor's region is unregulated, and an unhandled locator timeout would fail the request and consume a retry. The explicit timeout bounds the delay on those pages, since the default would otherwise block each one for the full navigation timeout.
 
 ## Use autoconsent
 
-[`@duckduckgo/autoconsent`](https://github.com/duckduckgo/autoconsent) carries opt-out rules for roughly 300 consent managers. DuckDuckGo ships it in their own browser, so the rules stay current. It is MPL-2.0, which is safe to depend on.
+[`@duckduckgo/autoconsent`](https://github.com/duckduckgo/autoconsent) is a rule set covering more than 300 consent management platforms. It is maintained by DuckDuckGo and shipped in their browser extensions, so the rules track changes to the major platforms without any effort on the crawler's side. The license is MPL-2.0, a file-level copyleft that imposes no obligations on surrounding code — unlike the GPL-3.0 package it replaces.
 
-The package has a standalone bundle. It embeds its own rules and needs no wiring. Inject it, and it clicks through the banner on its own.
+The package ships a standalone bundle that embeds its own rules and needs no message-passing bridge between Node and the page. Injecting it is sufficient: it detects the consent manager, walks its opt-out flow, and clicks through unattended.
 
 ```bash
 npm install @duckduckgo/autoconsent
@@ -102,15 +98,13 @@ const crawler = new PlaywrightCrawler({
 await crawler.run(['https://example.com']);
 ```
 
-Read the bundle once at startup, like above. It is around 400 kB, and reading it per request is wasted work.
+The bundle is around 400 kB and is therefore read once at startup rather than on every request. Its path is derived from the resolved main entry because the package's `exports` map does not expose the file directly. On <ApiLink to="puppeteer-crawler/class/PuppeteerCrawler">`PuppeteerCrawler`</ApiLink> the equivalent injection is `page.evaluateOnNewDocument(autoconsent)`.
 
-On `PuppeteerCrawler`, swap `page.addInitScript({ content: autoconsent })` for `page.evaluateOnNewDocument(autoconsent)`.
-
-Autoconsent does real clicks, so budget a second or two per page. It opts out rather than accepting. When a site matches no rule, nothing happens and the crawl carries on.
+Because autoconsent performs real interactions rather than hiding elements, it costs roughly a second or two per page, and it opts out rather than accepting — which keeps tracking cookies out of the session and leaves the crawl in a defensible state. Pages matching no rule are left untouched and the crawl proceeds normally, so the hook is safe to apply across a heterogeneous set of targets.
 
 ## Block the banner instead
 
-You can stop the banner from ever loading. [`@ghostery/adblocker-playwright`](https://github.com/ghostery/adblocker) does it with the same filter lists ad blockers use.
+The opposite approach is to prevent the banner from loading at all. [`@ghostery/adblocker-playwright`](https://github.com/ghostery/adblocker) applies the same filter lists used by consumer ad blockers, of which Fanboy's Cookie List targets consent notices specifically.
 
 ```bash
 npm install @ghostery/adblocker-playwright
@@ -139,18 +133,18 @@ const crawler = new PlaywrightCrawler({
 await crawler.run(['https://example.com']);
 ```
 
-This hides the banner without consenting to anything. Sites that gate their content behind a consent click will still gate it. The same blocker also kills ads and trackers, so pages load faster.
+Constructing the blocker downloads and parses the filter list, so a single instance is built at startup and shared across pages; rebuilding it per request would dominate the crawl's runtime. Blocking suppresses the banner without recording consent, so sites that gate their content behind an explicit consent click remain inaccessible by this route alone. In exchange, the same engine blocks ads and trackers, which reduces page weight and navigation time and makes it worth combining with one of the approaches above.
 
-## Ask an LLM
+## Delegate to an LLM
 
-<ApiLink to="stagehand-crawler/class/StagehandCrawler">`StagehandCrawler`</ApiLink> takes plain instructions. No selectors, no rule lists.
+<ApiLink to="stagehand-crawler/class/StagehandCrawler">`StagehandCrawler`</ApiLink> accepts natural-language instructions and locates the control itself, so neither a selector nor a rule list is needed.
 
 ```ts
 await page.act('Dismiss the cookie consent banner');
 ```
 
-It is the slowest option, and every call costs money. It earns its place when the sites are unknown or change often. See the [Stagehand guide](./stagehand-crawler-guide) for setup.
+This is the slowest option and the only one with a per-call model cost, which restricts it to crawls where the targets are not known in advance or change too often for a maintained selector. It also fails less predictably than a rule set, since the outcome depends on the model's reading of the page. Setup and model configuration are covered in the [StagehandCrawler guide](./stagehand-crawler-guide).
 
-## Which one to pick
+## Choosing between them
 
-Scraping one site? Set the cookie, or click the button. Scraping many? Reach for autoconsent. Add the blocker on top when you also want fewer ads and faster pages.
+For a single known site, setting the consent cookie or clicking the accept button is sufficient and pulls in no dependency. For crawls spanning many sites, autoconsent offers the broadest coverage for the least configuration and is the closest replacement for the removed v3 helper. The blocker composes with either and additionally cuts page load time, while the Stagehand route is best reserved for targets where no selector or rule is known ahead of time.
