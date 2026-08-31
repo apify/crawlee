@@ -13,7 +13,7 @@ For a crawler this is a navigation problem. The page loads, but the parts worth 
 
 Crawlee ships no helper for dismissing them. The v3 `closeCookieModals` helper was removed in v4, as it wrapped `idcac-playwright` — an optional dependency licensed under GPL-3.0 and no longer actively maintained.
 
-The approaches below replace it, using either the crawler's own hooks or a third-party library. The first two target a single known site. The rest generalize across many.
+The approaches below replace it, using either the crawler's own hooks or a third-party library. The first two target a single known site, while the rest generalize across many.
 
 ## Set the consent cookie
 
@@ -50,7 +50,7 @@ The weakness of this approach is fragility. Consent cookie names are undocumente
 
 ## Click the button
 
-When the selector is known, clicking the accept button is the most direct option. It adds no dependency.
+When the selector is known, clicking the accept button is the most direct option, and it adds no dependency.
 
 A <ApiLink to="playwright-crawler/interface/PlaywrightCrawlerOptions#postNavigationHooks">`postNavigationHook`</ApiLink> applies it to every page in the crawl.
 
@@ -82,11 +82,9 @@ An unhandled locator timeout would fail the request and consume a retry. The exp
 
 [`@duckduckgo/autoconsent`](https://github.com/duckduckgo/autoconsent) is a rule set covering more than 300 consent management platforms. DuckDuckGo maintains it and ships it in their browser extensions, so the rules track platform changes.
 
-The license is MPL-2.0. This is a file-level copyleft, and it imposes no obligations on surrounding code — unlike the GPL-3.0 package it replaces.
+The license is MPL-2.0, a file-level copyleft that imposes no obligations on surrounding code — unlike the GPL-3.0 package it replaces.
 
-The package ships a standalone bundle. It embeds its own rules and needs no message-passing bridge between Node and the page.
-
-Injecting it is enough. It detects the consent manager and clicks through the opt-out flow on its own.
+The package ships a standalone bundle that embeds its own rules and needs no message-passing bridge between Node and the page. Injecting it is enough for it to detect the consent manager and click through the opt-out flow on its own.
 
 ```bash
 npm install @duckduckgo/autoconsent
@@ -161,7 +159,11 @@ Constructing the blocker downloads and parses the filter list. A single instance
 
 Blocking suppresses the banner without recording consent. Sites that gate their content behind an explicit consent click stay inaccessible by this route alone.
 
-In exchange, the same engine blocks ads and trackers. That reduces page weight and navigation time, which makes it worth combining with one of the approaches above.
+In exchange, the same engine blocks ads and trackers, which cuts the number of requests each page makes.
+
+Part of that saving is given back, because `enableBlockingInPage` installs a catch-all `page.route` handler and Playwright disables the browser's HTTP cache whenever routing is enabled. Crawlee shares one browser context across pages by default, so assets that would otherwise be cached are refetched on every page.
+
+The blocker is therefore most useful on ad-heavy sites, and least useful when many pages of a crawl share the same large assets.
 
 ## Delegate to an LLM
 
@@ -177,8 +179,8 @@ It also fails less predictably than a rule set, since the outcome depends on the
 
 ## Choosing between them
 
-For a single known site, setting the consent cookie or clicking the button is sufficient. Neither pulls in a dependency.
+For a single known site, setting the consent cookie or clicking the button is sufficient, and neither pulls in a dependency.
 
 For crawls spanning many sites, autoconsent gives the broadest coverage for the least configuration. It is the closest replacement for the removed v3 helper.
 
-The blocker composes with either, and additionally cuts page load time. The Stagehand route is best reserved for targets where no selector or rule is known ahead of time.
+The blocker composes with either, though its effect on load time depends on how ad-heavy the targets are. The Stagehand route is best reserved for targets where no selector or rule is known ahead of time.
