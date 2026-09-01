@@ -120,7 +120,7 @@ export interface DatasetBackend<Data extends Dictionary = Dictionary> {
     drop(): Promise<void>;
     getData(options?: DatasetBackendListOptions): Promise<PaginatedList<Data>>;
     getMetadata(): Promise<DatasetInfo>;
-    purge?(): Promise<void>;
+    purge(): Promise<void>;
     pushData(items: Data[]): Promise<void>;
 }
 
@@ -241,7 +241,7 @@ export interface KeyValueStoreBackend {
     getPublicUrl(key: string): Promise<string | undefined>;
     getValue(key: string): Promise<KeyValueStoreRecord | undefined>;
     listKeys(options?: KeyValueStoreListKeysOptions): Promise<KeyValueStoreListKeysResult>;
-    purge?(): Promise<void>;
+    purge(): Promise<void>;
     recordExists(key: string): Promise<boolean>;
     setValue(record: KeyValueStoreInputRecord): Promise<void>;
 }
@@ -375,7 +375,7 @@ export interface RequestQueueBackend {
     isEmpty(): Promise<boolean>;
     isFinished(): Promise<boolean>;
     markRequestAsHandled(request: UpdateRequestSchema): Promise<QueueOperationInfo | undefined>;
-    purge?(): Promise<void>;
+    purge(): Promise<void>;
     reclaimRequest(request: UpdateRequestSchema, options?: RequestQueueOperationOptions): Promise<QueueOperationInfo | undefined>;
     setExpectedRequestProcessingTimeSecs?(secs: number): Promise<void>;
 }

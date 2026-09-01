@@ -278,7 +278,7 @@ describe('Dataset in a transaction', () => {
         dataset.backend = {
             getMetadata: async () => realBackend.getMetadata(),
             drop: async () => realBackend.drop(),
-            purge: realBackend.purge?.bind(realBackend),
+            purge: async () => realBackend.purge(),
             pushData: async (items) => realBackend.pushData(items),
             getData: async (options) => {
                 const page = await realBackend.getData(options);

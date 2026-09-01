@@ -347,6 +347,7 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     // (undocumented)
     name?: string;
     static open<Data extends Dictionary = Dictionary>(identifier?: string | StorageIdentifier | null, options?: StorageOpenOptions): Promise<Dataset<Data>>;
+    purge(): Promise<void>;
     pushData(data: Data | Data[]): Promise<void>;
     reduce(iteratee: DatasetReducer<Data, Data>): Promise<Data | undefined>;
     reduce(iteratee: DatasetReducer<Data, Data>, memo: undefined, options: DatasetIteratorOptions): Promise<Data | undefined>;
@@ -833,6 +834,7 @@ export class KeyValueStore {
     // (undocumented)
     readonly name?: string;
     static open(identifier?: string | StorageIdentifier | null, options?: StorageOpenOptions): Promise<KeyValueStore>;
+    purge(): Promise<void>;
     recordExists(key: string): Promise<boolean>;
     static recordExists(key: string): Promise<boolean>;
     setValue<T>(key: string, value: T | null, options?: RecordOptions): Promise<void>;

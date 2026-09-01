@@ -4,8 +4,6 @@ import { MemoryStorageBackend, ProxyConfiguration, Request, RequestQueue, servic
 import { BaseHttpClient } from '@crawlee/http-client';
 import { sleep } from '@crawlee/utils';
 
-import { StorageBackendWithoutPurge } from '../../shared/storage_backend_without_purge.js';
-
 // `vitest.mockObject` clones the object and drops its prototype, so build the mock manually to
 // keep it an `instanceof BaseHttpClient`.
 const createMockHttpClient = () =>
@@ -704,58 +702,4 @@ describe('RequestQueue background batches', () => {
         await queue.markRequestAsHandled(req!);
         expect((await queue.checkReadiness()).status).toBe('finished');
     }, 10_000);
-});
-
-describe('RequestQueue purge with a backend that cannot purge in place', () => {
-    beforeEach(async () => {
-        serviceLocator.setStorageBackend(new StorageBackendWithoutPurge());
-        vitest.clearAllMocks();
-    });
-
-    test('drops and recreates an unnamed queue, keeping the frontend usable', async () => {
-        const queue = await RequestQueue.open();
-        await queue.addRequest({ url: 'http://example.com/a' });
-        const originalId = queue.id;
-
-        await queue.purge();
-
-        // The frontend now points at a fresh, empty queue...
-        expect(queue.id).not.toBe(originalId);
-        await expect(queue.isEmpty()).resolves.toBe(true);
-
-        // ...which is the point of purging: an already handled URL can be crawled again.
-        const info = await queue.addRequest({ url: 'http://example.com/a' });
-        expect(info.wasAlreadyPresent).toBe(false);
-        await expect(queue.fetchNextRequest()).resolves.toMatchObject({ url: 'http://example.com/a' });
-
-        // Still the instance the default identifier resolves to - no second frontend for one queue.
-        await expect(RequestQueue.open()).resolves.toBe(queue);
-    });
-
-    test('refuses to replace a named queue', async () => {
-        const queue = await RequestQueue.open('persistent-queue');
-        await queue.addRequest({ url: 'http://example.com/a' });
-        const originalId = queue.id;
-
-        // Dropping a named queue to empty it would destroy data that outlives the run.
-        await expect(queue.purge()).rejects.toThrow(/"persistent-queue" must not be silently replaced/);
-
-        expect(queue.id).toBe(originalId);
-        await expect(queue.isEmpty()).resolves.toBe(false);
-    });
-
-    test('refuses to replace a queue opened by id', async () => {
-        const { id } = await RequestQueue.open({ alias: 'by-id' });
-        // Forget the instance opened via the alias, so the queue below is only known by its id.
-        serviceLocator.getStorageInstanceManager().clearCache();
-
-        const queue = await RequestQueue.open({ id });
-        await queue.addRequest({ url: 'http://example.com/a' });
-
-        // Recreating would hand back a different queue than the one that was explicitly asked for.
-        await expect(queue.purge()).rejects.toThrow(new RegExp(`"${id}" must not be silently replaced`));
-
-        expect(queue.id).toBe(id);
-        await expect(queue.isEmpty()).resolves.toBe(false);
-    });
 });

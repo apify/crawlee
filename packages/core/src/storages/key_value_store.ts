@@ -25,9 +25,9 @@ import { parseValue, serializeValue } from './key_value_store_codec.js';
 import type { KeyValueStoreStats } from './storage_stats.js';
 import { StorageStatsTracker } from './storage_stats.js';
 import type { StorageOpenOptions } from './utils.js';
-import type { StorageIdentifier, StorageOpenContext } from './storage_instance_manager.js';
-import { DEFAULT_STORAGE_ALIAS, resolveStorageIdentifier } from './storage_instance_manager.js';
-import { createDualIterable, purgeDefaultStorages, recreateStorage } from './utils.js';
+import type { StorageIdentifier } from './storage_instance_manager.js';
+import { resolveStorageIdentifier } from './storage_instance_manager.js';
+import { createDualIterable, purgeDefaultStorages } from './utils.js';
 import { isBuffer, isStream } from '../byte_utils.js';
 
 /** @internal */
@@ -105,22 +105,9 @@ const openOptionsSchema = z.strictObject({
  * @category Result Stores
  */
 export class KeyValueStore {
-    /** Rebound when {@apilink KeyValueStore.purge|`purge()`} recreates the store, hence the read-only accessor. */
-    #id: string;
+    readonly id: string;
     readonly name?: string;
-    #backend: KeyValueStoreBackend;
-
-    /** How this store was opened — `purge()` rebuilds it through this. */
-    readonly #openContext?: StorageOpenContext<KeyValueStoreBackend>;
-
-    get id(): string {
-        return this.#id;
-    }
-
-    get backend(): KeyValueStoreBackend {
-        return this.#backend;
-    }
-
+    readonly backend: KeyValueStoreBackend;
     #persistStateEventStarted = false;
 
     /** Cache for persistent (auto-saved) values. When we try to set such value, the cache will be updated automatically. */
@@ -140,10 +127,9 @@ export class KeyValueStore {
         options: KeyValueStoreOptions,
         readonly configuration = Configuration.getGlobalConfiguration(),
     ) {
-        this.#id = options.metadata.id;
+        this.id = options.metadata.id;
         this.name = options.metadata.name;
-        this.#backend = options.backend;
-        this.#openContext = options.openContext;
+        this.backend = options.backend;
     }
 
     /**
@@ -634,42 +620,13 @@ export class KeyValueStore {
     }
 
     /**
-     * Remove all records from the store but keep the store itself.
-     *
-     * When the backend cannot empty a store in place, a run-scoped one is dropped and recreated instead, so this
-     * instance ends up on a fresh, empty store with a different {@apilink KeyValueStore.id|`id`}. The run's
-     * default store is not replaced that way — the run publishes its id, and it is where the run input lives.
-     *
-     * @throws If the store can neither be emptied nor safely replaced.
+     * Removes all records from the store but keeps the store itself, along with its
+     * {@apilink KeyValueStore.id|`id`} and {@apilink KeyValueStore.name|`name`}.
      */
     async purge(): Promise<void> {
         rejectOperationInTransaction('KeyValueStore.purge()');
 
-        if (this.backend.purge) {
-            await this.backend.purge();
-            this.#cache.clear();
-            return;
-        }
-
-        const cannotEmpty = `Storage backend "${this.backend.constructor.name}" cannot empty a key-value store in place`;
-        const openContext = this.#openContext;
-
-        if (openContext?.alias === undefined || openContext.alias === DEFAULT_STORAGE_ALIAS) {
-            throw new Error(
-                `${cannotEmpty}, and store "${this.name ?? this.id}" must not be silently replaced by a fresh one - ` +
-                    `drop it and open a new one if that is what you mean.`,
-            );
-        }
-
-        serviceLocator
-            .getLogger()
-            .warning(`${cannotEmpty}, so store "${this.id}" is dropped and recreated under a new id.`);
-
-        await recreateStorage(this, openContext, (backend, id) => {
-            this.#backend = backend;
-            this.#id = id;
-        });
-
+        await this.backend.purge();
         // The auto-saved values this cache holds are no longer in the store.
         this.#cache.clear();
     }
@@ -1106,9 +1063,6 @@ export interface KeyValueStoreOptions {
     /** Resolved metadata for the key-value store, as returned by the backend's `getMetadata()`. */
     metadata: KeyValueStoreInfo;
     backend: KeyValueStoreBackend;
-
-    /** Supplied by `StorageInstanceManager.openStorage()`; without it, `purge()` cannot recreate the store. */
-    openContext?: StorageOpenContext<KeyValueStoreBackend>;
 }
 
 /**

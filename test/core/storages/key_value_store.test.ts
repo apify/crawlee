@@ -5,8 +5,6 @@ import type { Dictionary } from '@crawlee/types';
 
 import { toBuffer } from '../../../packages/core/src/byte_utils.js';
 
-import { StorageBackendWithoutPurge } from '../../shared/storage_backend_without_purge.js';
-
 beforeEach(async () => {
     serviceLocator.setStorageBackend(new MemoryStorageBackend());
 });
@@ -740,36 +738,5 @@ describe('KeyValueStore.purge', () => {
 
         await store.setValue('key-2', { foo: 'baz' });
         await expect(store.getValue('key-2')).resolves.toEqual({ foo: 'baz' });
-    });
-
-    test('refuses to replace the run default when the backend cannot empty it', async () => {
-        serviceLocator.reset();
-        serviceLocator.setStorageBackend(new StorageBackendWithoutPurge());
-
-        const store = await KeyValueStore.open();
-        await store.setValue('key-1', { foo: 'bar' });
-
-        await expect(store.purge()).rejects.toThrow(/must not be silently replaced/);
-
-        // The default store is where the run input lives and the id the run publishes.
-        await expect(store.getValue('key-1')).resolves.toEqual({ foo: 'bar' });
-    });
-
-    test('drops and recreates an alias-opened store when the backend cannot empty it', async () => {
-        serviceLocator.reset();
-        serviceLocator.setStorageBackend(new StorageBackendWithoutPurge());
-
-        const store = await KeyValueStore.open({ alias: 'scratch' });
-        await store.setValue('key-1', { foo: 'bar' });
-        const originalId = store.id;
-
-        await store.purge();
-
-        expect(store.id).not.toBe(originalId);
-        await expect(store.getValue('key-1')).resolves.toBeNull();
-
-        await store.setValue('key-2', { foo: 'baz' });
-        await expect(store.getValue('key-2')).resolves.toEqual({ foo: 'baz' });
-        await expect(KeyValueStore.open({ alias: 'scratch' })).resolves.toBe(store);
     });
 });

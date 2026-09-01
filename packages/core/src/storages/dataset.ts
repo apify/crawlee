@@ -13,9 +13,9 @@ import { KeyValueStore } from './key_value_store.js';
 import type { DatasetStats } from './storage_stats.js';
 import { StorageStatsTracker } from './storage_stats.js';
 import type { StorageOpenOptions } from './utils.js';
-import type { StorageIdentifier, StorageOpenContext } from './storage_instance_manager.js';
-import { DEFAULT_STORAGE_ALIAS, resolveStorageIdentifier } from './storage_instance_manager.js';
-import { createDualIterable, purgeDefaultStorages, recreateStorage } from './utils.js';
+import type { StorageIdentifier } from './storage_instance_manager.js';
+import { resolveStorageIdentifier } from './storage_instance_manager.js';
+import { createDualIterable, purgeDefaultStorages } from './utils.js';
 
 const openOptionsSchema = z.strictObject({
     configuration: z.instanceof(Configuration).optional(),
@@ -197,9 +197,6 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     backend: DatasetBackend<Data>;
     log: CrawleeLogger;
 
-    /** How this dataset was opened — `purge()` rebuilds it through this. */
-    readonly #openContext?: StorageOpenContext<DatasetBackend<Data>>;
-
     readonly #statsTracker = new StorageStatsTracker<DatasetStats>({
         readCount: 0,
         writeCount: 0,
@@ -215,7 +212,6 @@ export class Dataset<Data extends Dictionary = Dictionary> {
         this.id = options.metadata.id;
         this.name = options.metadata.name;
         this.backend = options.backend;
-        this.#openContext = options.openContext as StorageOpenContext<DatasetBackend<Data>> | undefined;
         this.log = serviceLocator.getLogger().child({ prefix: 'Dataset' });
     }
 
@@ -788,39 +784,13 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     }
 
     /**
-     * Remove all items from the dataset but keep the dataset itself.
-     *
-     * When the backend cannot empty a dataset in place, a run-scoped one is dropped and recreated instead, so
-     * this instance ends up on a fresh, empty dataset with a different {@apilink Dataset.id|`id`}. The run's
-     * default dataset is not replaced that way — the run publishes its id, and everything reading the run's
-     * output (including per-item charging on the Apify platform) would keep pointing at the dropped one.
-     *
-     * @throws If the dataset can neither be emptied nor safely replaced.
+     * Removes all items from the dataset but keeps the dataset itself, along with its
+     * {@apilink Dataset.id|`id`} and {@apilink Dataset.name|`name`}.
      */
     async purge(): Promise<void> {
         rejectOperationInTransaction('Dataset.purge()');
 
-        if (this.backend.purge) {
-            await this.backend.purge();
-            return;
-        }
-
-        const cannotEmpty = `Storage backend "${this.backend.constructor.name}" cannot empty a dataset in place`;
-        const openContext = this.#openContext;
-
-        if (openContext?.alias === undefined || openContext.alias === DEFAULT_STORAGE_ALIAS) {
-            throw new Error(
-                `${cannotEmpty}, and dataset "${this.name ?? this.id}" must not be silently replaced by a fresh ` +
-                    `one - drop it and open a new one if that is what you mean.`,
-            );
-        }
-
-        this.log.warning(`${cannotEmpty}, so dataset "${this.id}" is dropped and recreated under a new id.`);
-
-        await recreateStorage(this, openContext, (backend, id) => {
-            this.backend = backend;
-            this.id = id;
-        });
+        await this.backend.purge();
     }
 
     /**
@@ -939,9 +909,6 @@ export interface DatasetOptions {
     /** Resolved metadata for the dataset, as returned by the backend's `getMetadata()`. */
     metadata: DatasetInfo;
     backend: DatasetBackend;
-
-    /** Supplied by `StorageInstanceManager.openStorage()`; without it, `purge()` cannot recreate the dataset. */
-    openContext?: StorageOpenContext<DatasetBackend>;
 }
 
 export interface DatasetContent<Data> {

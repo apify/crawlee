@@ -9,4 +9,4 @@ const { stats, datasetItems } = await runActor(testActorDirname);
 await expect(stats.requestsFinished < 40, 'crawler.stop() works');
 
 const visitedUrls = new Set(datasetItems.map((x) => x.url));
-await expect(visitedUrls.size === datasetItems.length, 'stateful crawler.run({ purgeRQ: false }) works');
+await expect(visitedUrls.size === datasetItems.length, 'a second crawler.run() resumes the same queue');

@@ -10,8 +10,6 @@ import type { Dictionary } from '@crawlee/types';
 
 import { MAX_PAYLOAD_SIZE_BYTES } from '@apify/consts';
 
-import { StorageBackendWithoutPurge } from '../../shared/storage_backend_without_purge.js';
-
 beforeEach(async () => {
     serviceLocator.setStorageBackend(new MemoryStorageBackend());
 });
@@ -733,48 +731,5 @@ describe('Dataset.purge', () => {
 
         await dataset.pushData({ n: 3 });
         await expect(dataset.getData()).resolves.toMatchObject({ items: [{ n: 3 }] });
-    });
-
-    test('refuses to replace the run default when the backend cannot empty it', async () => {
-        serviceLocator.reset();
-        serviceLocator.setStorageBackend(new StorageBackendWithoutPurge());
-
-        const dataset = await Dataset.open();
-        await dataset.pushData({ n: 1 });
-
-        await expect(dataset.purge()).rejects.toThrow(/must not be silently replaced/);
-
-        // The run publishes the default dataset's id, so its items stay where everything else points.
-        await expect(dataset.getData()).resolves.toMatchObject({ items: [{ n: 1 }] });
-    });
-
-    test('refuses to replace a named dataset when the backend cannot empty it', async () => {
-        serviceLocator.reset();
-        serviceLocator.setStorageBackend(new StorageBackendWithoutPurge());
-
-        const dataset = await Dataset.open('kept-across-runs');
-        await dataset.pushData({ n: 1 });
-
-        await expect(dataset.purge()).rejects.toThrow(/must not be silently replaced/);
-        await expect(dataset.getData()).resolves.toMatchObject({ items: [{ n: 1 }] });
-    });
-
-    test('drops and recreates an alias-opened dataset when the backend cannot empty it', async () => {
-        serviceLocator.reset();
-        serviceLocator.setStorageBackend(new StorageBackendWithoutPurge());
-
-        const dataset = await Dataset.open({ alias: 'scratch' });
-        await dataset.pushData({ n: 1 });
-        const originalId = dataset.id;
-
-        await dataset.purge();
-
-        // Nothing outside the run references an aliased dataset, so a fresh one is a fair substitute.
-        expect(dataset.id).not.toBe(originalId);
-        await expect(dataset.getData()).resolves.toMatchObject({ items: [], total: 0 });
-
-        await dataset.pushData({ n: 2 });
-        await expect(dataset.getData()).resolves.toMatchObject({ items: [{ n: 2 }] });
-        await expect(Dataset.open({ alias: 'scratch' })).resolves.toBe(dataset);
     });
 });
