@@ -206,7 +206,14 @@ export interface KeyValueStoreBackend {
      */
     listKeys(options?: KeyValueStoreListKeysOptions): Promise<KeyValueStoreListKeysResult>;
 
-    /** Get the public URL for a record, or `undefined` if unavailable. */
+    /**
+     * Get the public URL a record with this key has, or `undefined` if the backend exposes no public
+     * URLs at all.
+     *
+     * The URL is derived from the key; implementations MUST NOT check that the record exists. Callers
+     * legitimately ask for the URL of a record that is not on the backend yet — most notably one
+     * buffered in an uncommitted storage transaction — and existence is `recordExists`'s job.
+     */
     getPublicUrl(key: string): Promise<string | undefined>;
 
     /** Check whether a record with the given key exists. */

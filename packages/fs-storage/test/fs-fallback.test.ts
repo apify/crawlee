@@ -176,10 +176,11 @@ describe('fallback to fs for reading', () => {
 
         // `some-key.json` sits on disk with no metadata sidecar. Only `INPUT` keys probe bare files,
         // so this is invisible to every read path: it has no tracked record, and the `.json` extension
-        // probing that would resolve a bare `INPUT` is never attempted for other keys.
+        // probing that would resolve a bare `INPUT` is never attempted for other keys. `getPublicUrl`
+        // is existence-agnostic, so it still answers — with the extensionless key, not the bare file.
         expect(await nonInputStore.getValue('some-key')).toBeUndefined();
         expect(await nonInputStore.recordExists('some-key')).toBe(false);
-        expect(await nonInputStore.getPublicUrl('some-key')).toBeUndefined();
+        expect(await nonInputStore.getPublicUrl('some-key')).toMatch(/^file:\/\/.*\/some-key$/);
 
         // `listKeys` only surfaces bare files for the run-input keys, so `some-key` is not enumerated.
         const { items } = await nonInputStore.listKeys();
@@ -263,7 +264,9 @@ describe('run-input bare-file reachability (one variant per store)', () => {
 
             expect(await store.getValue(key)).toBeUndefined();
             expect(await store.recordExists(key)).toBe(false);
-            expect(await store.getPublicUrl(key)).toBeUndefined();
+            // Existence-agnostic: the URL falls back to the requested key rather than resolving to a
+            // sibling variant's file.
+            expect(await store.getPublicUrl(key)).toMatch(new RegExp(`^file://.*/${key.replace('.', '\\.')}$`));
         });
     });
 });
