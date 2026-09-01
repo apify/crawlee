@@ -779,23 +779,13 @@ export class KeyValueStore {
     /**
      * Returns a file URL for the given key.
      *
-     * If the record does not exist or has no associated file path (i.e., it is not stored as a file), returns `undefined`.
+     * The URL is derived from the key, so it is also returned for a record that does not exist (yet) —
+     * including one written earlier in an uncommitted storage transaction. Returns `undefined` only when
+     * the storage has no file URLs at all (e.g. the in-memory storage).
      *
      * @param key The key of the record to generate the public URL for.
      */
     async getPublicUrl(key: string): Promise<string | undefined> {
-        // A buffered write is not on the backend yet, so derive its URL from the key; a tombstone has
-        // none. With no active transaction this allocates nothing and the delegation below is unchanged.
-        const entry = this.bufferedJournalEntries()?.get(key);
-        if (entry) {
-            tryCancel();
-            parseArgument(key, keySchema);
-            if (entry.value === null) {
-                return undefined;
-            }
-            return (await this.backend.getPublicUrlForKey?.(key)) ?? undefined;
-        }
-
         return this.backend.getPublicUrl(key);
     }
 
