@@ -1731,7 +1731,11 @@ export class BasicCrawler<
                 stats.reset();
                 await stats.resetStore();
             });
-            await this.#sessionPoolDep.ifOwned((pool) => pool.resetStore());
+            // A session pool the crawler built follows the same blank-slate rule as its statistics.
+            await this.#sessionPoolDep.ifOwned(async (pool) => {
+                pool.reset();
+                await pool.resetStore();
+            });
         }
 
         this.#unexpectedStop = false;
@@ -2982,14 +2986,16 @@ export class BasicCrawler<
      * To stop the crawler gracefully (waiting for all running requests to finish), use {@apilink BasicCrawler.stop|`crawler.stop()`} instead.
      */
     async teardown(): Promise<void> {
+        // First, so that the pool writes its final state once - its teardown stops it listening before the
+        // persistence event below goes out.
+        await this.#sessionPoolDep.ifOwned(async (pool) => pool.teardown());
+
         // When this crawler initialized the event manager, its close() call emits
         // the final persistence event after the crawler-specific state has been
         // saved. External event managers still need an explicit event here.
         if (!this.#closeEvents) {
             serviceLocator.getEventManager().emit(EventType.PERSIST_STATE, { isMigrating: false });
         }
-
-        await this.#sessionPoolDep.ifOwned(async (pool) => pool.teardown({ persistState: this.#closeEvents ?? false }));
 
         if (this.#closeEvents) {
             await serviceLocator.getEventManager().close();

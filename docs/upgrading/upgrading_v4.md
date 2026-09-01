@@ -400,6 +400,33 @@ const count = await sessionPool.usableSessionsCount();
 const state = await sessionPool.getState();
 ```
 
+### `SessionPool` and `RequestList` persist through `RecoverableState`
+
+Both now share the persistence machinery `Statistics` already uses: one `PERSIST_STATE` listener, a 60 second timeout on every load and save, and a warning instead of a crash when a periodic write fails. The persisted records keep their shape, so records written by v3 still load. A few method signatures changed along the way.
+
+`SessionPool.persistState()` and `SessionPool.resetStore()` no longer take a `PersistenceOptions` argument. The per-call `{ enable: true }` override never had an effect: with pool-level persistence disabled the pool never opened its store, so the forced write silently did nothing. Drop the argument.
+
+`SessionPool.teardown()` no longer takes `{ persistState }`. It always writes the final state, once.
+
+`SessionPool.resetStore()` now throws while the pool is persisting periodically, because the next `PERSIST_STATE` event would write the record straight back. Previously it also initialized the pool first, which loaded the old sessions into memory only to persist them again. Call `teardown()` first, or use the new `reset()`, which discards the in-memory sessions and leaves the record alone. `BasicCrawler` calls both on a purged re-run for a pool it created.
+
+**Before:**
+```typescript
+await sessionPool.persistState({ enable: true });
+await sessionPool.resetStore(); // mid-run: cleared nothing durable
+await sessionPool.teardown({ persistState: false });
+```
+
+**After:**
+```typescript
+await sessionPool.persistState();
+sessionPool.reset(); // drop the sessions
+await sessionPool.teardown();
+await sessionPool.resetStore(); // clear the record, after teardown
+```
+
+For `RequestList`, the `state` option is now the starting point when there is no persisted record. Previously, with both `state` and `persistStateKey` set, `state` won over the record; the record wins now. The option is also validated up front: `nextIndex` must be a non-negative integer and `inProgress` an array of unique keys. The `@internal` `isStatePersisted` flag is gone, and the state is written on every `PERSIST_STATE` event like the other components do.
+
 ### `retireOnBlockedStatusCodes` is removed from `Session`
 
 `Session.retireOnBlockedStatusCodes` is removed. Blocked status code handling is now internal to the crawler. Configure blocked status codes via the `blockedStatusCodes` crawler option (moved from `sessionPoolOptions`).
