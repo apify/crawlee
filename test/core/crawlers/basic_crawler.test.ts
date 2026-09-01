@@ -3721,6 +3721,55 @@ describe('BasicCrawler', () => {
             await expect(KeyValueStore.getValue('skipped')).resolves.toMatchObject({ reason: 'robotsTxt' });
         });
 
+        test('a crawler started from inside a request handler runs outside the caller transaction', async () => {
+            const handled: string[] = [];
+
+            const inner = new BasicCrawler({
+                requestHandler: async ({ request }) => {
+                    handled.push(request.url);
+                },
+            });
+
+            const outer = new BasicCrawler({
+                maxRequestRetries: 0,
+                requestHandler: async () => {
+                    // Not awaited, and the handler outlives the nested crawl's startup - so the nested
+                    // crawler reads its queue while the outer request's transaction is still open.
+                    const run = inner.run([`http://${HOSTNAME}:${port}/inner`]);
+                    await new Promise((resolve) => setTimeout(resolve, 200));
+                    await run;
+                },
+            });
+
+            await outer.run([`http://${HOSTNAME}:${port}/outer`]);
+
+            expect(handled).toEqual([`http://${HOSTNAME}:${port}/inner`]);
+        });
+
+        test('a nested crawl is not cancelled by the calling request handler timing out', async () => {
+            const handled: string[] = [];
+
+            const inner = new BasicCrawler({
+                maxRequestRetries: 0,
+                requestHandler: async ({ request }) => {
+                    await new Promise((resolve) => setTimeout(resolve, 1500));
+                    handled.push(request.url);
+                },
+            });
+
+            const outer = new BasicCrawler({
+                maxRequestRetries: 0,
+                requestHandlerTimeoutSecs: 1,
+                requestHandler: async () => {
+                    void inner.run([`http://${HOSTNAME}:${port}/inner`]);
+                    await new Promise((resolve) => setTimeout(resolve, 5000));
+                },
+            });
+
+            await outer.run([`http://${HOSTNAME}:${port}/outer`]);
+            await expect.poll(() => handled).toEqual([`http://${HOSTNAME}:${port}/inner`]);
+        });
+
         test('an unrecognized write policy is rejected instead of falling back to the default', () => {
             const make = (transactionalStorage: unknown) =>
                 new BasicCrawler({ requestHandler: async () => {}, transactionalStorage } as any);

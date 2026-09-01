@@ -103,7 +103,7 @@ import type { ReadonlyDeep } from 'type-fest';
 import { z } from 'zod';
 
 import { LruCache } from '@apify/datastructures';
-import { addTimeoutToPromise, extendTimeout, TimeoutError, tryCancel } from '@apify/timeout';
+import { addTimeoutToPromise, extendTimeout, storage as timeoutStorage, TimeoutError, tryCancel } from '@apify/timeout';
 import { cryptoRandomObjectId } from '@apify/utilities';
 
 import {
@@ -1696,6 +1696,13 @@ export class BasicCrawler<
      * @param [options] Options for the request queue.
      */
     async run(requests?: TypedRequestsLike<Routes>, options?: CrawlerRunOptions): Promise<FinalStatistics> {
+        // A crawl is always the top level of its own storage transaction and timeout scope. A crawler
+        // started from inside another crawler's request handler would otherwise inherit that request's
+        // transaction - which rejects the queue reads the crawl needs - and its cancellation signal.
+        return withDirectStorageAccess(async () => timeoutStorage.exit(async () => this.#runCrawl(requests, options)));
+    }
+
+    async #runCrawl(requests?: TypedRequestsLike<Routes>, options?: CrawlerRunOptions): Promise<FinalStatistics> {
         if (this.running) {
             throw new Error(
                 'This crawler instance is already running, you can add more requests to it via `crawler.addRequests()`.',
