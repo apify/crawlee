@@ -42,6 +42,7 @@ module.exports = {
                 'guides/proxy-management',
                 'guides/session-management',
                 'guides/scaling-crawlers',
+                'guides/trace-and-monitor-crawlers',
                 'guides/avoid-blocking',
                 'guides/cookie-modals',
                 'guides/jsdom-crawler-guide',
