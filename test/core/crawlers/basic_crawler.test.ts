@@ -36,7 +36,7 @@ import {
     ThrottlingRequestManager,
 } from '@crawlee/basic';
 import type { CalculatedStatistics, IConcurrencySystem, IStatistics } from '@crawlee/core';
-import { ConcurrencySystem, MemoryStorageBackend, RequestState } from '@crawlee/core';
+import { ConcurrencySystem, LocalEventManager, MemoryStorageBackend, RequestState } from '@crawlee/core';
 import { BaseHttpClient } from '@crawlee/http-client';
 import type { Dictionary, ISession, ProxyInfo } from '@crawlee/types';
 import { RobotsTxtFile, sleep } from '@crawlee/utils';
@@ -388,6 +388,101 @@ describe('BasicCrawler', () => {
         // A failed startup is not a run, so the crawler must not stay wedged as `running`.
         getRequestManager.mockRestore();
         await crawler.run(['https://example.com/2']);
+    });
+
+    describe('teardown during startup', () => {
+        test.each([
+            ['crawler-owned', false],
+            ['injected', true],
+        ])('teardown during startup settles run() with a %s ConcurrencySystem', async (_label, injectSystem) => {
+            const initialized = Promise.withResolvers<void>();
+            const resumeInitialization = Promise.withResolvers<void>();
+            const requestManager = await RequestQueue.open(`delayed-startup-${injectSystem}`);
+            vitest.spyOn(requestManager, 'setExpectedRequestProcessingTimeSecs').mockImplementation(async () => {
+                initialized.resolve();
+                await resumeInitialization.promise;
+            });
+
+            const concurrencySystem = injectSystem ? new ConcurrencySystem({ maxConcurrency: 1 }) : undefined;
+            await concurrencySystem?.start();
+
+            const crawler = new BasicCrawler({
+                keepAlive: true,
+                ...(concurrencySystem && { concurrencySystem }),
+                requestManager,
+                requestHandler: async () => {},
+            });
+            const runPromise = crawler.run().then(
+                () => 'resolved',
+                (error: Error) => `rejected: ${error.message}`,
+            );
+
+            await initialized.promise;
+            await crawler.teardown();
+            resumeInitialization.resolve();
+
+            const outcome = await Promise.race([runPromise, sleep(500).then(() => 'still pending')]);
+
+            // Clean up the broken behavior so the failing test does not leak the pool interval.
+            if (outcome === 'still pending') await crawler.teardown();
+            await concurrencySystem?.stop();
+
+            expect(outcome).toBe('resolved');
+        });
+
+        test.each([
+            ['crawler-owned', false],
+            ['injected', true],
+        ])('teardown before pool creation settles run() with a %s ConcurrencySystem', async (_label, injectSystem) => {
+            const initializationStarted = Promise.withResolvers<void>();
+            const resumeInitialization = Promise.withResolvers<void>();
+            const eventManager = LocalEventManager.fromConfiguration();
+            const initializeEventManager = eventManager.init.bind(eventManager);
+            vitest.spyOn(eventManager, 'init').mockImplementation(async () => {
+                initializationStarted.resolve();
+                await resumeInitialization.promise;
+                await initializeEventManager();
+            });
+
+            const concurrencySystem = injectSystem ? new ConcurrencySystem({ maxConcurrency: 1 }) : undefined;
+            await concurrencySystem?.start();
+
+            const crawler = new BasicCrawler({
+                keepAlive: true,
+                ...(concurrencySystem && { concurrencySystem }),
+                eventManager,
+                requestHandler: async () => {},
+            });
+            const runPromise = crawler.run().then(
+                () => 'resolved',
+                (error: Error) => `rejected: ${error.message}`,
+            );
+
+            await initializationStarted.promise;
+            await crawler.teardown();
+            resumeInitialization.resolve();
+            const outcome = await Promise.race([runPromise, sleep(500).then(() => 'still pending')]);
+
+            // Clean up the broken behavior so the failing test does not leak the pool interval.
+            if (outcome === 'still pending') await crawler.teardown();
+            await concurrencySystem?.stop();
+
+            expect(outcome).toBe('resolved');
+        });
+    });
+
+    test('teardown before run() does not cancel the next run', async () => {
+        const processed: string[] = [];
+        const crawler = new BasicCrawler({
+            requestHandler: async ({ request }) => {
+                processed.push(request.url);
+            },
+        });
+
+        await crawler.teardown();
+        await crawler.run(['https://example.com/after-teardown']);
+
+        expect(processed).toEqual(['https://example.com/after-teardown']);
     });
 
     test('should process 4 requests total when calling run() twice with maxRequestsPerCrawl: 2', async () => {

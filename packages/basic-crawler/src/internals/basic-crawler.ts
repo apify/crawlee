@@ -846,6 +846,7 @@ export class BasicCrawler<
     running = false;
     hasFinishedBefore = false;
     #unexpectedStop = false;
+    #teardownRequested = false;
 
     #log!: CrawleeLogger;
 
@@ -1701,6 +1702,7 @@ export class BasicCrawler<
                 'This crawler instance is already running, you can add more requests to it via `crawler.addRequests()`.',
             );
         }
+        this.#teardownRequested = false;
 
         const { purgeRequestQueue, ...addRequestsOptions } = options ?? {};
 
@@ -1783,7 +1785,7 @@ export class BasicCrawler<
         let stats = {} as FinalStatistics;
 
         try {
-            await this.#autoscaledPool!.run();
+            if (!this.#teardownRequested) await this.#autoscaledPool!.run();
         } finally {
             await this.statistics.stopCapturing();
             await this.teardown();
@@ -2982,6 +2984,8 @@ export class BasicCrawler<
      * To stop the crawler gracefully (waiting for all running requests to finish), use {@apilink BasicCrawler.stop|`crawler.stop()`} instead.
      */
     async teardown(): Promise<void> {
+        this.#teardownRequested = true;
+
         // When this crawler initialized the event manager, its close() call emits
         // the final persistence event after the crawler-specific state has been
         // saved. External event managers still need an explicit event here.
