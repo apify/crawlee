@@ -3733,8 +3733,6 @@ describe('BasicCrawler', () => {
             const outer = new BasicCrawler({
                 maxRequestRetries: 0,
                 requestHandler: async () => {
-                    // Not awaited, and the handler outlives the nested crawl's startup - so the nested
-                    // crawler reads its queue while the outer request's transaction is still open.
                     const run = inner.run([`http://${HOSTNAME}:${port}/inner`]);
                     await new Promise((resolve) => setTimeout(resolve, 200));
                     await run;

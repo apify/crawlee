@@ -1696,9 +1696,6 @@ export class BasicCrawler<
      * @param [options] Options for the request queue.
      */
     async run(requests?: TypedRequestsLike<Routes>, options?: CrawlerRunOptions): Promise<FinalStatistics> {
-        // A crawl is always the top level of its own storage transaction and timeout scope. A crawler
-        // started from inside another crawler's request handler would otherwise inherit that request's
-        // transaction - which rejects the queue reads the crawl needs - and its cancellation signal.
         return withDirectStorageAccess(async () => timeoutStorage.exit(async () => this.#runCrawl(requests, options)));
     }
 
