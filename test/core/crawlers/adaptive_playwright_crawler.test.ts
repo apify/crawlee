@@ -1023,4 +1023,53 @@ describe('AdaptivePlaywrightCrawler', () => {
 
         expect(lastDynamicRequestUserAgent).toBe(distinctiveUserAgent);
     });
+
+    describe('rendering-type detection tracking and draining', () => {
+        test('tracks active detections and drains them', async () => {
+            const crawler = new AdaptivePlaywrightCrawler({
+                requestHandler: async () => {},
+            });
+
+            expect(crawler.runningDetectionCount).toBe(0);
+
+            let resolveDetection!: () => void;
+            const detectionTask = new Promise<void>((resolve) => {
+                resolveDetection = resolve;
+            });
+
+            // Cast to access protected activeDetections
+            const activeDetections = (crawler as any).activeDetections as Set<Promise<unknown>>;
+            activeDetections.add(detectionTask);
+            detectionTask.finally(() => {
+                activeDetections.delete(detectionTask);
+            });
+
+            expect(crawler.runningDetectionCount).toBe(1);
+
+            let drained = false;
+            const drainPromise = crawler.drainRenderingDetections().then(() => {
+                drained = true;
+            });
+
+            expect(drained).toBe(false);
+
+            resolveDetection();
+            await drainPromise;
+
+            expect(drained).toBe(true);
+            expect(crawler.runningDetectionCount).toBe(0);
+        });
+
+        test('automatically calls drainRenderingDetections on teardown', async () => {
+            const crawler = new AdaptivePlaywrightCrawler({
+                requestHandler: async () => {},
+            });
+
+            const drainSpy = vi.spyOn(crawler, 'drainRenderingDetections');
+
+            await crawler.teardown();
+
+            expect(drainSpy).toHaveBeenCalledOnce();
+        });
+    });
 });

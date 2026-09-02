@@ -322,6 +322,11 @@ export class AdaptivePlaywrightCrawler<
      */
     readonly #attemptWritePolicy: Partial<StorageWritePolicy>;
 
+    /**
+     * Holds currently in-flight rendering detection promises.
+     */
+    protected readonly activeDetections = new Set<Promise<unknown>>();
+
     #teardownHooks: (() => Promise<unknown>)[] = [];
 
     constructor(
@@ -753,40 +758,49 @@ export class AdaptivePlaywrightCrawler<
             await browserRun.result.commit();
 
             if (shouldDetectRenderingType) {
-                crawlingContext.log.debug(`Detecting rendering type for ${crawlingContext.request.url}`);
-                // The detection attempt's transaction is never committed - its writes exist only for the
-                // result comparison.
-                const plainHTTPRun = await this.crawlOne(
-                    'static',
-                    crawlingContext,
-                    stateTracker.getStateCopy.bind(stateTracker),
-                    transactions,
-                );
+                const detectionPromise = (async () => {
+                    crawlingContext.log.debug(`Detecting rendering type for ${crawlingContext.request.url}`);
+                    // The detection attempt's transaction is never committed - its writes exist only for the
+                    // result comparison.
+                    const plainHTTPRun = await this.crawlOne(
+                        'static',
+                        crawlingContext,
+                        stateTracker.getStateCopy.bind(stateTracker),
+                        transactions,
+                    );
 
-                const detectionResult: RenderingType | undefined = (() => {
-                    if (!plainHTTPRun.ok) {
-                        return 'clientOnly';
+                    const detectionResult: RenderingType | undefined = (() => {
+                        if (!plainHTTPRun.ok) {
+                            return 'clientOnly';
+                        }
+
+                        const comparisonResult = this.#resultComparator(plainHTTPRun.result, browserRun.result);
+                        if (comparisonResult === true || comparisonResult === 'equal') {
+                            return 'static';
+                        }
+
+                        if (comparisonResult === false || comparisonResult === 'different') {
+                            return 'clientOnly';
+                        }
+
+                        return undefined;
+                    })();
+
+                    crawlingContext.log.debug(
+                        `Detected rendering type ${detectionResult} for ${crawlingContext.request.url}`,
+                    );
+
+                    if (detectionResult !== undefined) {
+                        this.#renderingTypePredictor.value.storeResult(crawlingContext.request, detectionResult);
                     }
-
-                    const comparisonResult = this.#resultComparator(plainHTTPRun.result, browserRun.result);
-                    if (comparisonResult === true || comparisonResult === 'equal') {
-                        return 'static';
-                    }
-
-                    if (comparisonResult === false || comparisonResult === 'different') {
-                        return 'clientOnly';
-                    }
-
-                    return undefined;
                 })();
 
-                crawlingContext.log.debug(
-                    `Detected rendering type ${detectionResult} for ${crawlingContext.request.url}`,
-                );
+                this.activeDetections.add(detectionPromise);
+                detectionPromise.finally(() => {
+                    this.activeDetections.delete(detectionPromise);
+                });
 
-                if (detectionResult !== undefined) {
-                    this.#renderingTypePredictor.value.storeResult(crawlingContext.request, detectionResult);
-                }
+                await detectionPromise;
             }
         } finally {
             // A still-open transaction here belongs to a discarded attempt - roll it back, then release.
@@ -839,7 +853,24 @@ export class AdaptivePlaywrightCrawler<
         });
     }
 
+    /**
+     * Number of rendering-type detections currently running in the background.
+     */
+    get runningDetectionCount(): number {
+        return this.activeDetections.size;
+    }
+
+    /**
+     * Waits for all in-flight rendering-type detections to settle.
+     */
+    async drainRenderingDetections(): Promise<void> {
+        while (this.activeDetections.size > 0) {
+            await Promise.allSettled(Array.from(this.activeDetections));
+        }
+    }
+
     override async teardown() {
+        await this.drainRenderingDetections();
         await super.teardown();
         // Mirrors the owned-only `initialize()` in `init()` - without this, the predictor we built keeps its
         // PERSIST_STATE listener registered after the crawl and never gets a final write.
