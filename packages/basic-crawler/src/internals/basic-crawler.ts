@@ -1780,12 +1780,12 @@ export class BasicCrawler<
                 const alreadyHandled = (await this.requestManager?.getHandledCount().catch(() => 0)) ?? 0;
 
                 if (alreadyHandled > 0) {
-                    this.log.warning(
+                    this.log.warningOnce(
                         `This crawl processed no requests - the request manager holds ${alreadyHandled} ` +
                             `request${alreadyHandled === 1 ? '' : 's'}, all of them already handled, and a failed ` +
                             'request counts as handled too. Nothing empties a queue between runs, so to crawl them ' +
                             'again, purge it (`await queue.purge()`) or use a fresh one (e.g. ' +
-                            '`RequestQueue.open({ alias: "second-run" })`).',
+                            '`RequestQueue.open({ alias: "second-run" })`) with a freshly created crawler instance.',
                     );
                 }
             }
