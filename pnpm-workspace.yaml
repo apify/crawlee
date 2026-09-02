@@ -16,6 +16,12 @@ minimumReleaseAgeExclude:
   - "got-scraping"
 
 overrides:
+  # Test the apify-shared-js v3 betas (next dist-tag) across the workspace
+  "@apify/consts": "3.0.0-beta.2"
+  "@apify/datastructures": "3.0.0-beta.2"
+  "@apify/log": "3.0.0-beta.2"
+  "@apify/timeout": "1.0.0-beta.2"
+  "@apify/utilities": "3.0.0-beta.2"
   # Dedup minimatch to v9 everywhere except inside lerna — lerna 9.x's bundled
   # code (`__toESM(require('minimatch')).default(...)`) only works with v3,
   # whose CJS export *is* the function. Pinning v9 there caused the publish
