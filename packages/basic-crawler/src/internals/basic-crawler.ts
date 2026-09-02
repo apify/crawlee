@@ -102,7 +102,7 @@ import type { ReadonlyDeep } from 'type-fest';
 import { z } from 'zod';
 
 import { LruCache } from '@apify/datastructures';
-import { addTimeoutToPromise, extendTimeout, TimeoutError, tryCancel } from '@apify/timeout';
+import { addTimeoutToPromise, extendTimeout, storage as timeoutStorage, TimeoutError, tryCancel } from '@apify/timeout';
 import { cryptoRandomObjectId } from '@apify/utilities';
 
 import {
@@ -1690,143 +1690,153 @@ export class BasicCrawler<
      * @param [options] Options for adding the initial requests.
      */
     async run(requests?: TypedRequestsLike<Routes>, options?: CrawlerRunOptions): Promise<FinalStatistics> {
-        if (this.running) {
-            throw new Error(
-                'This crawler instance is already running, you can add more requests to it via `crawler.addRequests()`.',
-            );
-        }
-
-        if (this.#hasFinishedBefore) {
-            // A supplied statistics instance keeps whatever state it was handed - only wipe a default we built.
-            await this.#statisticsDep.ifOwned(async (stats) => {
-                stats.reset();
-                await stats.resetStore();
-            });
-            await this.#sessionPoolDep.ifOwned((pool) => pool.resetStore());
-        }
-
-        this.#unexpectedStop = false;
-        this.running = true;
-        this.#loggedPerRun.clear();
-
-        await purgeDefaultStorages({
-            onlyPurgeOnce: true,
-            storageBackend: serviceLocator.getStorageBackend(),
-            configuration: serviceLocator.getConfiguration(),
-        });
-
-        if (requests) {
-            await this.addRequests(requests, options);
-        }
-
-        try {
-            await this.init();
-            await this.statistics.startCapturing();
-        } catch (error) {
-            // Clean up here before propagating, otherwise a failed startup would leave the process hanging.
-            await this.teardown().catch((teardownError) => {
-                this.log.exception(teardownError as Error, 'Cleaning up after a failed crawler startup failed.');
-            });
-
-            // The run never began, so let the instance be run again instead of leaving it wedged as `running`.
-            this.running = false;
-            throw error;
-        }
-
-        const periodicLogger = this.getPeriodicLogger();
-        this.setStatusMessage('Starting the crawler.', { level: 'INFO' });
-
-        const sigintHandler = async () => {
-            this.log.warning(
-                'Pausing... Press CTRL+C again to force exit. To resume, do: CRAWLEE_PURGE_ON_START=0 npm start',
-            );
-            await this.pauseOnMigration();
-            await this.#autoscaledPool!.abort();
-        };
-
-        // Attach a listener to handle migration and aborting events gracefully.
-        const boundPauseOnMigration = this.pauseOnMigration.bind(this);
-        process.once('SIGINT', sigintHandler);
-        const eventManager = serviceLocator.getEventManager();
-        eventManager.on(EventType.MIGRATING, boundPauseOnMigration);
-        eventManager.on(EventType.ABORTING, boundPauseOnMigration);
-
-        let stats = {} as FinalStatistics;
-
-        try {
-            await this.#autoscaledPool!.run();
-        } finally {
-            await this.statistics.stopCapturing();
-            await this.teardown();
-
-            process.off('SIGINT', sigintHandler);
-            eventManager.off(EventType.MIGRATING, boundPauseOnMigration);
-            eventManager.off(EventType.ABORTING, boundPauseOnMigration);
-
-            const finalStats = this.statistics.calculate();
-            stats = {
-                requestsFinished: this.statistics.state.requestsFinished,
-                requestsFailed: this.statistics.state.requestsFailed,
-                retryHistogram: this.statistics.requestRetryHistogram,
-                ...finalStats,
-            };
-            this.log.info('Final request statistics:', stats as unknown as Record<string, unknown>);
-
-            // A crawl that did nothing while the manager holds only handled requests is a mistake whoever
-            // handled them - this run, another crawler on the same queue, or a previous process. Starting
-            // against handled requests is not: that is what resuming a crawl looks like.
-            if (stats.requestsFinished + stats.requestsFailed === 0) {
-                // Never let the diagnostic itself break the run.
-                const alreadyHandled = (await this.requestManager?.getHandledCount().catch(() => 0)) ?? 0;
-
-                if (alreadyHandled > 0) {
-                    this.log.warningOnce(
-                        `This crawl processed no requests - the request manager holds ${alreadyHandled} ` +
-                            `request${alreadyHandled === 1 ? '' : 's'}, all of them already handled, and a failed ` +
-                            'request counts as handled too. Nothing empties a queue between runs, so to crawl them ' +
-                            'again, purge it (`await queue.purge()`) or use a fresh one (e.g. ' +
-                            '`RequestQueue.open({ alias: "second-run" })`) with a freshly created crawler instance.',
+        // A crawl is the top level of its own transaction and timeout scope, not a participant in the caller's.
+        return withDirectStorageAccess(async () =>
+            timeoutStorage.exit(async () => {
+                if (this.running) {
+                    throw new Error(
+                        'This crawler instance is already running, you can add more requests to it via `crawler.addRequests()`.',
                     );
                 }
-            }
 
-            if (this.statistics.errorTracker.total !== 0) {
-                const prettify = ([count, info]: [number, string[]]) =>
-                    `${count}x: ${info.at(-1)!.trim()} (${info[0]})`;
+                if (this.#hasFinishedBefore) {
+                    // A supplied statistics instance keeps whatever state it was handed - only wipe a default we built.
+                    await this.#statisticsDep.ifOwned(async (stats) => {
+                        stats.reset();
+                        await stats.resetStore();
+                    });
+                    await this.#sessionPoolDep.ifOwned((pool) => pool.resetStore());
+                }
 
-                this.log.info(`Error analysis:`, {
-                    totalErrors: this.statistics.errorTracker.total,
-                    uniqueErrors: this.statistics.errorTracker.getUniqueErrorCount(),
-                    mostCommonErrors: this.statistics.errorTracker.getMostPopularErrors(3).map(prettify),
+                this.#unexpectedStop = false;
+                this.running = true;
+                this.#loggedPerRun.clear();
+
+                await purgeDefaultStorages({
+                    onlyPurgeOnce: true,
+                    storageBackend: serviceLocator.getStorageBackend(),
+                    configuration: serviceLocator.getConfiguration(),
                 });
-            }
 
-            const client = serviceLocator.getStorageBackend();
+                if (requests) {
+                    await this.addRequests(requests, options);
+                }
 
-            if (client.teardown) {
-                let finished = false;
-                setTimeout(() => {
-                    if (!finished) {
-                        this.log.info('Waiting for the storage to write its state to file system.');
+                try {
+                    await this.init();
+                    await this.statistics.startCapturing();
+                } catch (error) {
+                    // Clean up here before propagating, otherwise a failed startup would leave the process hanging.
+                    await this.teardown().catch((teardownError) => {
+                        this.log.exception(
+                            teardownError as Error,
+                            'Cleaning up after a failed crawler startup failed.',
+                        );
+                    });
+
+                    // The run never began, so let the instance be run again instead of leaving it wedged as `running`.
+                    this.running = false;
+                    throw error;
+                }
+
+                const periodicLogger = this.getPeriodicLogger();
+                this.setStatusMessage('Starting the crawler.', { level: 'INFO' });
+
+                const sigintHandler = async () => {
+                    this.log.warning(
+                        'Pausing... Press CTRL+C again to force exit. To resume, do: CRAWLEE_PURGE_ON_START=0 npm start',
+                    );
+                    await this.pauseOnMigration();
+                    await this.#autoscaledPool!.abort();
+                };
+
+                // Attach a listener to handle migration and aborting events gracefully.
+                const boundPauseOnMigration = this.pauseOnMigration.bind(this);
+                process.once('SIGINT', sigintHandler);
+                const eventManager = serviceLocator.getEventManager();
+                eventManager.on(EventType.MIGRATING, boundPauseOnMigration);
+                eventManager.on(EventType.ABORTING, boundPauseOnMigration);
+
+                let stats = {} as FinalStatistics;
+
+                try {
+                    await this.#autoscaledPool!.run();
+                } finally {
+                    await this.statistics.stopCapturing();
+                    await this.teardown();
+
+                    process.off('SIGINT', sigintHandler);
+                    eventManager.off(EventType.MIGRATING, boundPauseOnMigration);
+                    eventManager.off(EventType.ABORTING, boundPauseOnMigration);
+
+                    const finalStats = this.statistics.calculate();
+                    stats = {
+                        requestsFinished: this.statistics.state.requestsFinished,
+                        requestsFailed: this.statistics.state.requestsFailed,
+                        retryHistogram: this.statistics.requestRetryHistogram,
+                        ...finalStats,
+                    };
+                    this.log.info('Final request statistics:', stats as unknown as Record<string, unknown>);
+
+                    // A crawl that did nothing while the manager holds only handled requests is a mistake whoever
+                    // handled them - this run, another crawler on the same queue, or a previous process. Starting
+                    // against handled requests is not: that is what resuming a crawl looks like.
+                    if (stats.requestsFinished + stats.requestsFailed === 0) {
+                        // Never let the diagnostic itself break the run.
+                        const alreadyHandled = (await this.requestManager?.getHandledCount().catch(() => 0)) ?? 0;
+
+                        if (alreadyHandled > 0) {
+                            this.log.warningOnce(
+                                'This crawl processed no requests - the request manager holds ' +
+                                    `${alreadyHandled} request${alreadyHandled === 1 ? '' : 's'}, all of them ` +
+                                    'already handled, and a failed request counts as handled too. Nothing ' +
+                                    'empties a queue between runs, so to crawl them again, purge it ' +
+                                    '(`await queue.purge()`) or use a fresh one (e.g. ' +
+                                    '`RequestQueue.open({ alias: "second-run" })`) with a freshly created ' +
+                                    'crawler instance.',
+                            );
+                        }
                     }
-                }, 1000);
-                await client.teardown();
-                finished = true;
-            }
 
-            periodicLogger.stop();
-            this.setStatusMessage(
-                `Finished! Total ${this.statistics.state.requestsFinished + this.statistics.state.requestsFailed} requests: ${
-                    this.statistics.state.requestsFinished
-                } succeeded, ${this.statistics.state.requestsFailed} failed.`,
-                { isStatusMessageTerminal: true, level: 'INFO' },
-            );
+                    if (this.statistics.errorTracker.total !== 0) {
+                        const prettify = ([count, info]: [number, string[]]) =>
+                            `${count}x: ${info.at(-1)!.trim()} (${info[0]})`;
 
-            this.running = false;
-            this.#hasFinishedBefore = true;
-        }
+                        this.log.info(`Error analysis:`, {
+                            totalErrors: this.statistics.errorTracker.total,
+                            uniqueErrors: this.statistics.errorTracker.getUniqueErrorCount(),
+                            mostCommonErrors: this.statistics.errorTracker.getMostPopularErrors(3).map(prettify),
+                        });
+                    }
 
-        return stats;
+                    const client = serviceLocator.getStorageBackend();
+
+                    if (client.teardown) {
+                        let finished = false;
+                        setTimeout(() => {
+                            if (!finished) {
+                                this.log.info('Waiting for the storage to write its state to file system.');
+                            }
+                        }, 1000);
+                        await client.teardown();
+                        finished = true;
+                    }
+
+                    periodicLogger.stop();
+                    this.setStatusMessage(
+                        `Finished! Total ${this.statistics.state.requestsFinished + this.statistics.state.requestsFailed} requests: ${
+                            this.statistics.state.requestsFinished
+                        } succeeded, ${this.statistics.state.requestsFailed} failed.`,
+                        { isStatusMessageTerminal: true, level: 'INFO' },
+                    );
+
+                    this.running = false;
+                    this.#hasFinishedBefore = true;
+                }
+
+                return stats;
+            }),
+        );
     }
 
     /**
