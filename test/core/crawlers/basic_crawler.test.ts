@@ -339,8 +339,13 @@ describe('BasicCrawler', () => {
             requestHandler,
         });
 
+        const queue = await basicCrawler.getRequestQueue();
+
+        // Nothing is emptied between runs, so the same sources are only re-crawled after a purge.
         await basicCrawler.run(sources);
+        await queue.purge?.();
         await basicCrawler.run(sources);
+        await queue.purge?.();
         await basicCrawler.run(sources);
 
         expect(processed).toHaveLength(sourcesCopy.length * 3);
@@ -427,6 +432,63 @@ describe('BasicCrawler', () => {
             'https://example.com/second/0',
             'https://example.com/second/1',
         ]);
+    });
+
+    describe('a crawl that processes nothing', () => {
+        const crawlTwice = async (betweenRuns?: (crawler: BasicCrawler) => Promise<void>) => {
+            const processed: string[] = [];
+            const crawler = new BasicCrawler({
+                requestHandler: async ({ request }) => {
+                    processed.push(request.url);
+                },
+            });
+            const warning = vitest.spyOn(crawler.log, 'warning');
+
+            await crawler.run(['https://example.com/only']);
+            await betweenRuns?.(crawler);
+            await crawler.run(['https://example.com/only']);
+
+            return { processed, warning };
+        };
+
+        test('leaves already handled requests alone and says so', async () => {
+            const { processed, warning } = await crawlTwice();
+
+            expect(processed).toEqual(['https://example.com/only']);
+            expect(warning).toHaveBeenCalledWith(expect.stringMatching(/processed no requests/));
+        });
+
+        test('re-crawls the requests when the queue is purged in between', async () => {
+            const { processed, warning } = await crawlTwice(async (crawler) => {
+                await (await crawler.getRequestQueue()).purge?.();
+            });
+
+            expect(processed).toEqual(['https://example.com/only', 'https://example.com/only']);
+            expect(warning).not.toHaveBeenCalledWith(expect.stringMatching(/processed no requests/));
+        });
+
+        test('warns a crawler on its first run, over a queue another crawler exhausted', async () => {
+            const requestQueue = await RequestQueue.open();
+            const first = new BasicCrawler({ requestQueue, requestHandler: async () => {} });
+            await first.run(['https://example.com/only']);
+
+            const second = new BasicCrawler({ requestQueue, requestHandler: async () => {} });
+            const warning = vitest.spyOn(second.log, 'warning');
+
+            await second.run(['https://example.com/only']);
+
+            expect(warning).toHaveBeenCalledWith(expect.stringMatching(/processed no requests/));
+        });
+
+        test('says nothing when there was nothing to crawl in the first place', async () => {
+            // An empty queue is not evidence of a mistake - only requests that turn out to be handled are.
+            const crawler = new BasicCrawler({ requestHandler: async () => {} });
+            const warning = vitest.spyOn(crawler.log, 'warning');
+
+            await crawler.run();
+
+            expect(warning).not.toHaveBeenCalledWith(expect.stringMatching(/processed no requests/));
+        });
     });
 
     test('addRequests should respect maxCrawlDepth', async () => {
@@ -2880,93 +2942,11 @@ describe('BasicCrawler', () => {
                 expect(visits[1].at - visits[0].at).toBeGreaterThanOrEqual(400);
             });
 
-            test('a second run() crawls the same requests again', async () => {
-                const crawler = new BasicCrawler({
-                    sameDomainDelaySecs: 0.05,
-                    requestHandler: async () => {},
-                });
-
-                await crawler.run(['http://example.com/1']);
-                await crawler.run(['http://example.com/1']);
-
-                expect(crawler.statistics.state.requestsFinished).toBe(1);
-            });
-
-            test('a second run() over a supplied manager asks which storage to purge', async () => {
-                // A purge cannot respect both the crawler's per-domain queues and the caller's manager
-                // underneath them, so rather than pick one silently, say so.
-                const crawler = new BasicCrawler({
-                    requestQueue: await RequestQueue.open(),
-                    sameDomainDelaySecs: 0.05,
-                    requestHandler: async () => {},
-                });
-
-                await crawler.run(['http://example.com/1']);
-
-                await expect(crawler.run(['http://example.com/1'])).rejects.toThrow(
-                    /Cannot decide what to purge.*purgeRequestQueue/s,
-                );
-            });
-
-            test.each([true, false])('a second run() with purgeRequestQueue: %s does not ask', async (purge) => {
-                const crawler = new BasicCrawler({
-                    requestQueue: await RequestQueue.open(),
-                    sameDomainDelaySecs: 0.05,
-                    requestHandler: async () => {},
-                });
-
-                await crawler.run(['http://example.com/1']);
-
-                await expect(
-                    crawler.run(['http://example.com/1'], { purgeRequestQueue: purge }),
-                ).resolves.toBeDefined();
-            });
-
-            test('a second run() asks even when the first routed nothing by domain', async () => {
-                // The guard fires on the shape of the configuration, not on what the queues happen to hold:
-                // keying it on an existing per-domain queue would make identical code throw or not depending
-                // on run history.
-                const requestQueue = await RequestQueue.open();
-                await requestQueue.addRequest({ url: 'http://example.com/pre-added-1' });
-                await requestQueue.addRequest({ url: 'http://example.com/pre-added-2' });
-
-                const visits: number[] = [];
-                const crawler = new BasicCrawler({
-                    requestQueue,
-                    sameDomainDelaySecs: 2,
-                    requestHandler: async () => {
-                        visits.push(Date.now());
-                    },
-                });
-
-                await crawler.run();
-
-                // Precondition, established rather than assumed: no per-domain queue was opened, since one
-                // would have paced these 2s apart.
-                expect(visits).toHaveLength(2);
-                expect(visits[1] - visits[0]).toBeLessThan(1000);
-
-                await expect(crawler.run()).rejects.toThrow(/Cannot decide what to purge/);
-            });
-
-            test('a second run() asks for a supplied `requestManager`, not just a `requestQueue`', async () => {
-                const crawler = new BasicCrawler({
-                    requestManager: await RequestQueue.open(),
-                    sameDomainDelaySecs: 0.05,
-                    requestHandler: async () => {},
-                });
-
-                await crawler.run(['http://example.com/1']);
-
-                await expect(crawler.run(['http://example.com/1'])).rejects.toThrow(/Cannot decide what to purge/);
-            });
-
-            test('a second run() leaves a supplied manager alone when nothing paces it', async () => {
-                // The contrast that makes the question above worth asking: with no `sameDomainDelaySecs` the
-                // crawler puts nothing of its own inside the caller's manager, so there is nothing to ask about.
+            test('a second run() does not crawl the same requests again', async () => {
+                // The per-domain queues the pacer opened are not emptied between runs either.
                 let visits = 0;
                 const crawler = new BasicCrawler({
-                    requestQueue: await RequestQueue.open(),
+                    sameDomainDelaySecs: 0.05,
                     requestHandler: async () => {
                         visits += 1;
                     },
@@ -2976,23 +2956,6 @@ describe('BasicCrawler', () => {
                 await crawler.run(['http://example.com/1']);
 
                 expect(visits).toBe(1);
-            });
-
-            test('a second run() purges everything the crawler opened itself, without being asked', async () => {
-                // Nothing came from the caller, so there is nothing to ask about - and the purge has to reach
-                // the per-domain queues, or the second run would crawl nothing.
-                let visits = 0;
-                const crawler = new BasicCrawler({
-                    sameDomainDelaySecs: 0.05,
-                    requestHandler: async () => {
-                        visits += 1;
-                    },
-                });
-
-                await crawler.run(['http://example.com/1']);
-                await crawler.run(['http://example.com/1']);
-
-                expect(visits).toBe(2);
             });
 
             test('wraps a user `requestManager` rather than replacing it', async () => {
@@ -3067,27 +3030,6 @@ describe('BasicCrawler', () => {
                             requestHandler: async () => {},
                         }),
                 ).toThrow(/domains: 'all'/);
-            });
-
-            test('a second run() leaves a manager that took the delay alone', async () => {
-                // The floor put no storage of ours underneath it, so there is no purge to ask about.
-                let visits = 0;
-                const crawler = new BasicCrawler({
-                    requestManager: new ThrottlingRequestManager({
-                        inner: await RequestQueue.open(),
-                        domains: 'all',
-                        throttleBy: 'registrableDomain',
-                    }),
-                    sameDomainDelaySecs: 0.05,
-                    requestHandler: async () => {
-                        visits += 1;
-                    },
-                });
-
-                await crawler.run(['http://example.com/1']);
-                await crawler.run(['http://example.com/1']);
-
-                expect(visits).toBe(1);
             });
         });
 

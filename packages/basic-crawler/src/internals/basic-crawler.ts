@@ -843,8 +843,13 @@ export class BasicCrawler<
     }
 
     running = false;
-    hasFinishedBefore = false;
+    #hasFinishedBefore = false;
     #unexpectedStop = false;
+
+    /** Whether a `run()` on this instance has already finished - a repeated one continues where it left off. */
+    get hasFinishedBefore(): boolean {
+        return this.#hasFinishedBefore;
+    }
 
     #log!: CrawleeLogger;
 
@@ -859,16 +864,6 @@ export class BasicCrawler<
     protected readonly internalTimeoutMillis: number;
     readonly #maxRequestRetries: number;
     readonly #maxCrawlDepth?: number;
-    /**
-     * How much of {@apilink BasicCrawler.requestManager} the crawler may empty between repeated `run()` calls.
-     *
-     * - `all` — nothing under it came from the caller, so one `purge()` on the outside covers everything.
-     * - `none` — the caller supplied it and the crawler put nothing of its own inside.
-     * - `ambiguous` — the caller supplied it, but `sameDomainDelaySecs` put the crawler's own per-domain queues
-     *   underneath: purging empties the caller's storage too, skipping leaves ours stale. A repeated `run()` asks
-     *   rather than guessing.
-     */
-    readonly #purgeableExtent: 'all' | 'none' | 'ambiguous';
     readonly #maxRequestsPerCrawl?: number;
 
     private get handledRequestsCount(): number {
@@ -1104,14 +1099,6 @@ export class BasicCrawler<
                     false);
 
             const pacerNeeded = sameDomainDelaySecs > 0 && !floorTaken;
-
-            // Our per-domain queues under a manager the caller owns is the case with no right answer; a floor
-            // it took leaves nothing of ours behind. See `#purgeableExtent`.
-            if (suppliedManager === undefined) {
-                this.#purgeableExtent = 'all';
-            } else {
-                this.#purgeableExtent = pacerNeeded ? 'ambiguous' : 'none';
-            }
 
             // Built here rather than at first use so it can sit *inside* the tandem below, which is where a
             // loader's transferred requests pass through it.
@@ -1695,8 +1682,12 @@ export class BasicCrawler<
      * We can use the `requests` parameter to enqueue the initial requests — it is a shortcut for
      * running {@apilink BasicCrawler.addRequests|`crawler.addRequests()`} before {@apilink BasicCrawler.run|`crawler.run()`}.
      *
+     * Calling `run()` again on the same instance keeps crawling the same request manager - requests the previous
+     * run handled (a failed one counts as handled) are not processed again. Purge the queue or open a fresh one
+     * if that is what you want.
+     *
      * @param [requests] The requests to add.
-     * @param [options] Options for the request queue.
+     * @param [options] Options for adding the initial requests.
      */
     async run(requests?: TypedRequestsLike<Routes>, options?: CrawlerRunOptions): Promise<FinalStatistics> {
         // A crawl is the top level of its own transaction and timeout scope, not a participant in the caller's.
@@ -1708,33 +1699,7 @@ export class BasicCrawler<
                     );
                 }
 
-                const { purgeRequestQueue, ...addRequestsOptions } = options ?? {};
-
-                if (this.hasFinishedBefore) {
-                    // When executing the run method for the second time explicitly,
-                    // we need to purge the RQ to allow processing the same requests again — this is important so users can
-                    // pass in failed requests back to the `crawler.run()`, otherwise they would be considered as handled and
-                    // ignored — as a failed request is still handled.
-                    // `purgeRequestQueue` unset purges only storage the crawler opened itself (see `#purgeableExtent`);
-                    // `true` also purges a caller-supplied manager, `false` purges nothing.
-                    if (purgeRequestQueue === undefined && this.#purgeableExtent === 'ambiguous') {
-                        throw new Error(
-                            'Cannot decide what to purge before running again: `sameDomainDelaySecs` paces the request ' +
-                                'manager you supplied, so the per-domain queues that have to be emptied are the ' +
-                                "crawler's while the manager underneath them is yours. Say which you want: " +
-                                '`run(requests, { purgeRequestQueue: true })` empties both, `false` empties neither.',
-                        );
-                    }
-
-                    if (
-                        purgeRequestQueue !== false &&
-                        (this.#purgeableExtent === 'all' || purgeRequestQueue === true)
-                    ) {
-                        // One call from the outside in reaches everything the manager wraps, a pacer's per-domain queues
-                        // included.
-                        await this.requestManager?.purge?.();
-                    }
-
+                if (this.#hasFinishedBefore) {
                     // A supplied statistics instance keeps whatever state it was handed - only wipe a default we built.
                     await this.#statisticsDep.ifOwned(async (stats) => {
                         stats.reset();
@@ -1754,7 +1719,7 @@ export class BasicCrawler<
                 });
 
                 if (requests) {
-                    await this.addRequests(requests, addRequestsOptions);
+                    await this.addRequests(requests, options);
                 }
 
                 try {
@@ -1813,6 +1778,26 @@ export class BasicCrawler<
                     };
                     this.log.info('Final request statistics:', stats as unknown as Record<string, unknown>);
 
+                    // A crawl that did nothing while the manager holds only handled requests is a mistake whoever
+                    // handled them - this run, another crawler on the same queue, or a previous process. Starting
+                    // against handled requests is not: that is what resuming a crawl looks like.
+                    if (stats.requestsFinished + stats.requestsFailed === 0) {
+                        // Never let the diagnostic itself break the run.
+                        const alreadyHandled = (await this.requestManager?.getHandledCount().catch(() => 0)) ?? 0;
+
+                        if (alreadyHandled > 0) {
+                            this.log.warningOnce(
+                                'This crawl processed no requests - the request manager holds ' +
+                                    `${alreadyHandled} request${alreadyHandled === 1 ? '' : 's'}, all of them ` +
+                                    'already handled, and a failed request counts as handled too. Nothing ' +
+                                    'empties a queue between runs, so to crawl them again, purge it ' +
+                                    '(`await queue.purge()`) or use a fresh one (e.g. ' +
+                                    '`RequestQueue.open({ alias: "second-run" })`) with a freshly created ' +
+                                    'crawler instance.',
+                            );
+                        }
+                    }
+
                     if (this.statistics.errorTracker.total !== 0) {
                         const prettify = ([count, info]: [number, string[]]) =>
                             `${count}x: ${info.at(-1)!.trim()} (${info[0]})`;
@@ -1846,7 +1831,7 @@ export class BasicCrawler<
                     );
 
                     this.running = false;
-                    this.hasFinishedBefore = true;
+                    this.#hasFinishedBefore = true;
                 }
 
                 return stats;
@@ -3094,19 +3079,7 @@ export interface CrawlerAddRequestsOptions extends AddRequestsBatchedOptions, En
 
 export interface CrawlerAddRequestsResult extends AddRequestsBatchedResult {}
 
-export interface CrawlerRunOptions extends CrawlerAddRequestsOptions {
-    /**
-     * Controls whether the request queue is purged between repeated `run()` calls on the same crawler instance.
-     * Purging clears all requests and resets internal counters, allowing the same URLs to be processed again.
-     *
-     * - **`undefined`** (default) — only the crawler's own (auto-created) queue is purged.
-     *   A user-supplied `requestQueue` is left untouched.
-     * - **`true`** — the queue is always purged, even if it was supplied by the user.
-     * - **`false`** — nothing is purged. Only genuinely new requests will be processed;
-     *   note that even a failed request is considered handled.
-     */
-    purgeRequestQueue?: boolean;
-}
+export interface CrawlerRunOptions extends CrawlerAddRequestsOptions {}
 
 /** The hostname of `url`, falling back to the whole string when it is not parseable - for log messages only. */
 function hostnameOrUrl(url: string): string {
