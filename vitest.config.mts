@@ -18,6 +18,7 @@ const baseConfig = defineConfig({
     },
     test: {
         globals: true,
+        setupFiles: ['./test/vitest.setup.ts'],
         coverage: {
             provider: 'v8',
             reporter: ['text', 'lcov', 'cobertura'],
@@ -38,8 +39,13 @@ const baseConfig = defineConfig({
             { find: '@crawlee/playwright', replacement: resolve(__dirname, './packages/playwright-crawler/src') },
             { find: '@crawlee/puppeteer', replacement: resolve(__dirname, './packages/puppeteer-crawler/src') },
             { find: '@crawlee/stagehand', replacement: resolve(__dirname, './packages/stagehand-crawler/src') },
-            { find: /^@crawlee\/(.*)\/(.*)$/, replacement: resolve(__dirname, './packages/$1/$2') },
-            { find: /^@crawlee\/(.*)$/, replacement: resolve(__dirname, './packages/$1/src') },
+            { find: '@crawlee/utils/internal', replacement: resolve(__dirname, './packages/utils/src/internal') },
+            // The generic `@crawlee/*` aliases below map specifiers to workspace package sources. They
+            // exclude `@crawlee/fs-storage-native` via a negative lookahead, since it is a real external
+            // (npm) dependency with no `packages/fs-storage-native` source — letting it resolve normally
+            // through node_modules.
+            { find: /^@crawlee\/(?!fs-storage-native)(.*)\/(.*)$/, replacement: resolve(__dirname, './packages/$1/$2') },
+            { find: /^@crawlee\/(?!fs-storage-native)(.*)$/, replacement: resolve(__dirname, './packages/$1/src') },
             { find: /^test\/(.*)$/, replacement: resolve(__dirname, './test/$1') },
         ],
         retry: process.env.RETRY_TESTS ? 3 : 0,

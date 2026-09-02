@@ -1,0 +1,52 @@
+---
+id: custom-statistics
+title: Custom statistics fields
+description: Track your own counters alongside the built-in crawler statistics
+---
+
+import ApiLink from '@site/src/components/ApiLink';
+import CodeBlock from '@theme/CodeBlock';
+
+import BasicSource from '!!raw-loader!./custom_statistics_basic.ts';
+import ValidatedSource from '!!raw-loader!./custom_statistics_validated.ts';
+import AdaptiveSource from '!!raw-loader!./custom_statistics_adaptive.ts';
+
+Every crawler collects run statistics — requests finished, failures, retries, durations — into a <ApiLink to="core/class/Statistics">`Statistics`</ApiLink> instance exposed as `crawler.statistics`. You can track your own counters in the same place, and get the persistence, logging and lifecycle handling that the built-in fields already have.
+
+Keeping a counter in a plain variable works right up until the run is interrupted. Statistics state is written to the key-value store and restored on migration or resurrect, so a counter that lives in `statistics.state` survives a run that a plain variable would not.
+
+## Declaring custom fields
+
+Pass <ApiLink to="core/interface/StatisticsOptions#stateExtension">`stateExtension`</ApiLink> when constructing a <ApiLink to="core/class/Statistics">`Statistics`</ApiLink> instance, and inject it into the crawler via the `statistics` option. The fields become part of `state`, typed exactly as you declared them:
+
+<CodeBlock className="language-typescript">{BasicSource}</CodeBlock>
+
+The field types flow through to `crawler.statistics.state`, so they are available anywhere you hold the crawler, not just where you hold the statistics instance. Reading an undeclared field is a compile-time error.
+
+<ApiLink to="core/interface/StatisticStateExtensionOptions#defaultState">`defaultState`</ApiLink> is also what `reset()` restores, and it determines which keys are read back from a persisted record. A field you add later simply keeps its default when an older record is restored, so growing the state between runs does not need a migration.
+
+## Validating the fields on the way back
+
+Declaring `defaultState` alone means a restored record is taken at its word: whatever `productsFound` holds in the key-value store becomes the state, and an increment on a string that says it is a number poisons every later one. Pass a <ApiLink to="core/interface/StatisticStateExtensionOptions#deserialize">`deserialize`</ApiLink> conversion to check the record before trusting it — either a plain function or, as here, a [Standard Schema](https://standardschema.dev):
+
+<CodeBlock className="language-typescript">{ValidatedSource}</CodeBlock>
+
+A schema that gives every field a default doubles as the declaration of the fields, so `defaultState` can be omitted — one place to add a field, and the defaults cannot drift from the conversion that has to accept them back. If the record fails to validate, the custom fields start from their defaults with a warning; the built-in statistics are unaffected.
+
+The fields have to be JSON-serializable, because the state round-trips through the key-value store. A `Date` or a `Set` comes back from that trip as a string or a plain object, so either keep to numbers, strings, booleans, `null`, and plain arrays and objects of those, or pair `deserialize` with a <ApiLink to="core/interface/StatisticStateExtensionOptions#serialize">`serialize`</ApiLink> that converts them, as `lastSeenAt` does above.
+
+:::note Injected instances are not reset
+
+A crawler resets the statistics it built itself at the start of every `run()`, but never one you passed in — a supplied instance keeps whatever state it was handed. If you reuse a crawler for several runs and want the counters to start from zero each time, call `statistics.reset()` yourself.
+
+:::
+
+## Crawlers that track fields of their own
+
+<ApiLink to="playwright-crawler/class/AdaptivePlaywrightCrawler">`AdaptivePlaywrightCrawler`</ApiLink> tracks a few extra fields itself (how many requests were handled with and without a browser, and how many rendering type mispredictions occurred). It builds a suitable `Statistics` instance by default, so you only need to do anything if you want to add fields of your own — in which case your declaration has to include the crawler's fields as well:
+
+<CodeBlock className="language-typescript">{AdaptiveSource}</CodeBlock>
+
+## Custom statistics implementations
+
+If you need something more than extra fields — reporting to an external metrics backend, for example — the `statistics` option accepts any object implementing <ApiLink to="core/interface/IStatistics">`IStatistics`</ApiLink>, not just the built-in class. The crawler drives it purely through that interface.

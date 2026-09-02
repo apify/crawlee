@@ -1,20 +1,10 @@
-export * from './internals/blocked';
-export * from './internals/cheerio';
-export * from './internals/chunk';
-export * from './internals/extract-urls';
-export * from './internals/general';
-export * from './internals/memory-info';
-export * from './internals/debug';
-export * as social from './internals/social';
-export * from './internals/typedefs';
-export * from './internals/open_graph_parser';
-export * from './internals/gotScraping';
-export * from './internals/iterables';
-export * from './internals/robots';
-export * from './internals/sitemap';
-export * from './internals/url';
-
-export { getCurrentCpuTicksV2 } from './internals/systemInfoV2/cpu-info';
-export { getMemoryInfoV2 } from './internals/systemInfoV2/memory-info';
-
-export { Dictionary, Awaitable, Constructor } from '@crawlee/types';
+export { htmlToText } from './internals/cheerio.js';
+export { downloadListOfUrls, extractUrls } from './internals/extract-urls.js';
+export { EnqueueStrategy } from './internals/url.js';
+export type { DownloadListOfUrlsOptions, ExtractUrlsOptions } from './internals/extract-urls.js';
+export { sleep, expandShadowRoots } from './internals/general.js';
+export * as social from './internals/social.js';
+export * from './internals/open_graph_parser.js';
+export * from './internals/robots.js';
+export * from './internals/sitemap.js';
+export * from './internals/validation.js';

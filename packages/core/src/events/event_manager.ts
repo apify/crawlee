@@ -1,20 +1,56 @@
 import { AsyncEventEmitter } from '@vladfrangu/async_event_emitter';
 
-import log from '@apify/log';
 import type { BetterIntervalID } from '@apify/utilities';
 import { betterClearInterval, betterSetInterval } from '@apify/utilities';
 
-import { Configuration } from '../configuration';
+import { serviceLocator } from '../service_locator.js';
 
-export const enum EventType {
+export interface EventManagerOptions {
+    /** Interval between emitted `persistState` events in milliseconds. */
+    persistStateIntervalMillis: number;
+}
+
+export enum EventType {
     PERSIST_STATE = 'persistState',
     SYSTEM_INFO = 'systemInfo',
     MIGRATING = 'migrating',
     ABORTING = 'aborting',
     EXIT = 'exit',
+    STATUS_MESSAGE = 'statusMessage',
 }
 
-export type EventTypeName = EventType | 'systemInfo' | 'persistState' | 'migrating' | 'aborting' | 'exit';
+export type EventTypeName =
+    | EventType
+    | 'systemInfo'
+    | 'persistState'
+    | 'migrating'
+    | 'aborting'
+    | 'exit'
+    | 'statusMessage';
+
+/**
+ * Payload emitted with the {@apilink EventType.STATUS_MESSAGE|`statusMessage`} event.
+ *
+ * The crawler broadcasts these whenever it wants to report its progress (e.g. periodically, or on
+ * start/finish). Consumers such as the Apify SDK can listen for the event and propagate the message
+ * to the platform. This keeps the crawler decoupled from any specific status-reporting backend.
+ */
+export interface EventStatusMessageData {
+    /**
+     * Identifies the crawler that emitted the message.
+     *
+     * Either the user-provided `id` from the crawler options, or a randomly generated one.
+     * Since a single event manager may be shared by multiple crawlers, consumers can use this
+     * to attribute the message to a specific crawler instance.
+     */
+    crawlerId: string;
+    /** The human-readable status message. */
+    message: string;
+    /** Whether this is the final status message of the run. */
+    isStatusMessageTerminal?: boolean;
+    /** The log level the message was logged with. */
+    level?: 'DEBUG' | 'INFO' | 'WARNING' | 'ERROR';
+}
 
 interface Intervals {
     persistState?: BetterIntervalID;
@@ -25,14 +61,17 @@ export abstract class EventManager {
     protected events = new AsyncEventEmitter();
     protected initialized = false;
     protected intervals: Intervals = {};
-    protected log = log.child({ prefix: 'Events' });
+    protected log = serviceLocator.getLogger().child({ prefix: 'Events' });
+    #persistStateIntervalMillis: number;
 
-    constructor(readonly config = Configuration.getGlobalConfig()) {
-        this.events.setMaxListeners(50);
+    constructor(options: EventManagerOptions) {
+        this.#persistStateIntervalMillis = options.persistStateIntervalMillis;
+        // One MIGRATING listener per RequestQueue, and ThrottlingRequestManager opens one per domain.
+        this.events.setMaxListeners(150);
     }
 
     /**
-     * Initializes the event manager by creating the `persistState` event interval.
+     * Initializes the event manager by starting the `persistState` event interval.
      * This is automatically called at the beginning of `crawler.run()`.
      */
     async init() {
@@ -40,11 +79,11 @@ export abstract class EventManager {
             return;
         }
 
-        const persistStateIntervalMillis = this.config.get('persistStateIntervalMillis')!;
         this.intervals.persistState = betterSetInterval((intervalCallback: () => unknown) => {
             this.emit(EventType.PERSIST_STATE, { isMigrating: false });
             intervalCallback();
-        }, persistStateIntervalMillis);
+        }, this.#persistStateIntervalMillis);
+
         this.initialized = true;
     }
 

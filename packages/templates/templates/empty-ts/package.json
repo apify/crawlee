@@ -8,7 +8,7 @@
         "crawlee": "^3.0.0"
     },
     "devDependencies": {
-        "@apify/tsconfig": "^0.1.0",
+        "@apify/tsconfig": "^0.2.0",
         "tsx": "^4.4.0",
         "typescript": "~6.0.0",
         "@types/node": "^24.0.0"

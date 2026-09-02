@@ -1,7 +1,6 @@
 name: Release @latest
 
 env:
-    YARN_IGNORE_NODE: 1
     RETRY_TESTS: 1
 
 on:
@@ -37,49 +36,39 @@ jobs:
             matrix:
                 # We don't test on Windows as the tests are flaky
                 os: [ ubuntu-22.04 ]
-                node-version: [ 18, 20, 22, 24 ]
+                node-version: [ 22, 24, 26 ]
 
         runs-on: ${{ matrix.os }}
 
         steps:
             -   name: Checkout repository
-                uses: actions/checkout@v6
+                uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
             -   name: Use Node.js ${{ matrix.node-version }}
-                uses: actions/setup-node@v6
+                uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
                 with:
                     node-version: ${{ matrix.node-version }}
                     package-manager-cache: false
 
-            -   name: Enable corepack
-                run: |
-                    corepack enable
-                    corepack prepare yarn@stable --activate
-
-            -   name: Activate cache for Node.js ${{ matrix.node-version }}
-                uses: actions/setup-node@v6
-                with:
-                    cache: 'yarn'
-
             -   name: Turbo cache
                 id: turbo-cache
-                uses: actions/cache@v5
+                uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
                 with:
                     path: .turbo
                     key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
                     restore-keys: |
                         turbo-${{ github.job }}-${{ github.ref_name }}-
 
-            -   name: Install Dependencies
-                run: |
-                    yarn
-                    yarn playwright install --with-deps
+            -   uses: apify/workflows/pnpm-install@main
+
+            -   name: Install Playwright browsers
+                run: pnpm exec playwright install --with-deps
 
             -   name: Build
-                run: yarn ci:build
+                run: pnpm ci:build
 
             -   name: Tests
-                run: yarn test
+                run: pnpm test
 
     release:
         name: "Bump Crawlee: ${{ inputs.version }} version (${{ inputs.custom_version || 'n/a' }} custom version)"
@@ -89,45 +78,34 @@ jobs:
 
         steps:
             -   name: Checkout repository
-                uses: actions/checkout@v6
+                uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
                 with:
                     token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
                     fetch-depth: 0
 
             -   name: Use Node.js 24
-                uses: actions/setup-node@v6
+                uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
                 with:
                     node-version: 24
                     package-manager-cache: false
 
-            -   name: Enable corepack
-                run: |
-                    corepack enable
-                    corepack prepare yarn@stable --activate
-
-            -   name: Activate cache for Node.js 24
-                uses: actions/setup-node@v6
-                with:
-                    cache: 'yarn'
-
             -   name: Turbo cache
                 id: turbo-cache
-                uses: actions/cache@v5
+                uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
                 with:
                     path: .turbo
                     key: turbo-${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
                     restore-keys: |
                         turbo-${{ github.job }}-${{ github.ref_name }}-
 
-            -   name: Install Dependencies
-                run: yarn
+            -   uses: apify/workflows/pnpm-install@main
 
             -   name: Build
-                run: yarn ci:build
+                run: pnpm ci:build
 
             -   name: Bump version to custom version
                 if: ${{ github.event.inputs.version == 'custom' && github.event.inputs.custom_version != '' }}
-                run: yarn lerna version ${{ github.event.inputs.custom_version }} --force-publish --yes
+                run: pnpm exec lerna version ${{ github.event.inputs.custom_version }} --force-publish --yes
                 env:
                     GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
                     GIT_AUTHOR_NAME: Apify Release Bot
@@ -137,7 +115,7 @@ jobs:
 
             -   name: Bump version to ${{ github.event.inputs.version }} version
                 if: ${{ github.event.inputs.version != 'custom' }}
-                run: yarn lerna version ${{ github.event.inputs.version }} --force-publish --yes
+                run: pnpm exec lerna version ${{ github.event.inputs.version }} --force-publish --yes
                 env:
                     GH_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
                     GIT_AUTHOR_NAME: Apify Release Bot
@@ -147,12 +125,12 @@ jobs:
 
             -   name: Pin versions in internal dependencies and update lockfile
                 run: |
-                    yarn release:pin-versions
-                    yarn install --no-immutable
+                    pnpm release:pin-versions
+                    pnpm install --no-frozen-lockfile
 
             -   name: Commit changes
                 id: commit
-                uses: EndBug/add-and-commit@v10
+                uses: EndBug/add-and-commit@645ecc0dd0a57f4d86d26c0aa5fc42c0a856fbca # v11.0.0
                 with:
                   author_name: Apify Release Bot
                   author_email: noreply@apify.com
@@ -160,7 +138,7 @@ jobs:
                   pull: '--rebase --autostash'
 
             -   name: Publish packages
-                uses: apify/actions/execute-workflow@v1.1.2
+                uses: apify/actions/execute-workflow@v1.4.1
                 with:
                     workflow: publish-to-npm.yml
                     inputs: >
@@ -170,7 +148,7 @@ jobs:
                       }
 
             -   name: Trigger Docker image builds
-                uses: peter-evans/repository-dispatch@v4
+                uses: peter-evans/repository-dispatch@28959ce8df70de7be546dd1250a005dd32156697 # v4.0.1
                 with:
                     token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
                     repository: apify/apify-actor-docker
@@ -179,18 +157,19 @@ jobs:
     version-docs:
         needs: release
         runs-on: ubuntu-22.04
-        if: (github.event.inputs.version == 'minor' || github.event.inputs.version == 'major')
+        # docs snapshots are only ever generated from master — maintenance branches must not trigger them
+        if: github.ref == 'refs/heads/master' && (github.event.inputs.version == 'minor' || github.event.inputs.version == 'major')
 
         steps:
             -   name: Checkout repository
-                uses: actions/checkout@v6
+                uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
                 with:
                     ref: ${{ github.event.repository.default_branch }}
                     token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
                     fetch-depth: 0
 
             -   name: Use Node.js 24
-                uses: actions/setup-node@v6
+                uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
                 with:
                     node-version: 24
                     package-manager-cache: false
@@ -198,23 +177,7 @@ jobs:
             -   name: Install jq
                 run: sudo apt-get install jq
 
-            -   name: Enable corepack
-                run: |
-                    corepack enable
-                    corepack prepare yarn@stable --activate
-
-            -   name: Activate cache for Node.js 24
-                uses: actions/setup-node@v6
-                with:
-                    cache: 'yarn'
-
-            -   name: Install dependencies
-                run: |
-                    # install project deps
-                    yarn
-                    # install website deps
-                    cd website
-                    yarn
+            -   uses: apify/workflows/pnpm-install@main
 
             -   name: Snapshot the current version
                 run: |
@@ -226,11 +189,11 @@ jobs:
                     fi
                     echo "VERSION=$VERSION" >> "$GITHUB_ENV"
                     MAJOR_MINOR=$(echo $VERSION | cut -d. -f1,2)
-                    yarn docusaurus docs:version $MAJOR_MINOR
-                    yarn docusaurus api:version $MAJOR_MINOR
+                    pnpm docusaurus docs:version $MAJOR_MINOR
+                    pnpm docusaurus api:version $MAJOR_MINOR
 
             -   name: Commit and push the version snapshot
-                uses: EndBug/add-and-commit@v10
+                uses: EndBug/add-and-commit@645ecc0dd0a57f4d86d26c0aa5fc42c0a856fbca # v11.0.0
                 with:
                     author_name: Apify Release Bot
                     author_email: noreply@apify.com

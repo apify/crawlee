@@ -1,9 +1,8 @@
 #!/usr/bin/env node
 
-// eslint-disable-next-line
-const importLocal = require('import-local');
+import importLocal from 'import-local';
 
-if (!importLocal(__filename)) {
-    // eslint-disable-next-line
-    require('@crawlee/cli');
+// @ts-ignore bad types most likely?
+if (!importLocal(import.meta.url)) {
+    await import('@crawlee/cli');
 }

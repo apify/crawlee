@@ -3,6 +3,33 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.18.1](https://github.com/apify/crawlee/compare/v3.18.0...v3.18.1) (2026-08-12)
+
+### Bug Fixes
+
+* respect `maxCrawlDepth` in `JSDOM/LinkeDOM` context `enqueueLinks` ([#4021](https://github.com/apify/crawlee/issues/4021)) ([4d34aea](https://github.com/apify/crawlee/commit/4d34aeab6d78d1bd0bbe27418daf621f28a3524c)), closes [#3927](https://github.com/apify/crawlee/issues/3927) [#4020](https://github.com/apify/crawlee/issues/4020)
+
+
+# [3.18.0](https://github.com/apify/crawlee/compare/v3.17.0...v3.18.0) (2026-08-04)
+
+### Bug Fixes
+
+* **core:** ignore explicitly undefined baseUrl in enqueueLinks helpers ([#3924](https://github.com/apify/crawlee/issues/3924)) ([a58a9c1](https://github.com/apify/crawlee/commit/a58a9c1417c34c2a45a10f3855c4bee721a480ae))
+
+### Features
+
+* opt-in schema validation of request userData per router label ([#3851](https://github.com/apify/crawlee/issues/3851)) ([c7347f9](https://github.com/apify/crawlee/commit/c7347f94f72980b7c424fb4fc7dc8f990f360d70)), closes [#3747](https://github.com/apify/crawlee/issues/3747) [#3748](https://github.com/apify/crawlee/issues/3748) [#3747](https://github.com/apify/crawlee/issues/3747) [#3082](https://github.com/apify/crawlee/issues/3082)
+* type-safe router labels via per-label userData map ([#3747](https://github.com/apify/crawlee/issues/3747)) ([1124aca](https://github.com/apify/crawlee/commit/1124aca3c5eb527c097decd7263a6816c411369e)), closes [#3082](https://github.com/apify/crawlee/issues/3082)
+
+
+# [3.17.0](https://github.com/apify/crawlee/compare/v3.16.0...v3.17.0) (2026-06-04)
+
+**Note:** Version bump only for package @crawlee/jsdom
+
+
+
+
+
 # [3.16.0](https://github.com/apify/crawlee/compare/v3.15.3...v3.16.0) (2026-02-06)
 
 

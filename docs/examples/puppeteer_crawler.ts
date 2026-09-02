@@ -47,7 +47,7 @@ const crawler = new PuppeteerCrawler({
             selector: '.morelink',
         });
 
-        if (infos.processedRequests.length === 0) log.info(`${request.url} is the last page!`);
+        if (infos.addedRequests.length === 0) log.info(`${request.url} is the last page!`);
     },
 
     // This function is called if the page processing failed more than maxRequestRetries+1 times.

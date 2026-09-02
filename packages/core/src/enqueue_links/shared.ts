@@ -1,61 +1,95 @@
 import { URL } from 'node:url';
 
-import type { Awaitable } from '@crawlee/types';
+import type { Awaitable, Dictionary } from '@crawlee/types';
 import { Minimatch } from 'minimatch';
+import { z } from 'zod';
 
-import { purlToRegExp } from '@apify/pseudo_url';
-
-import type { RequestOptions } from '../request';
-import { Request } from '../request';
-import type { EnqueueLinksOptions } from './enqueue_links';
-
-export { tryAbsoluteURL } from '@crawlee/utils';
+import type { RequestOptions, Source } from '../request.js';
+import { Request } from '../request.js';
+import { schemas } from '../validators.js';
+import type { EnqueueStrategyOption } from './enqueue_links.js';
 
 const MAX_ENQUEUE_LINKS_CACHE_SIZE = 1000;
 
 /**
- * To enable direct use of the Actor UI `globs`/`regexps`/`pseudoUrls` output while keeping high performance,
- * all the regexps from the output are only constructed once and kept in a cache
- * by the `enqueueLinks()` function.
+ * To keep high performance when the same patterns are passed on every `enqueueLinks()` call,
+ * each glob/regexp is only compiled once and then kept in a cache.
  * @ignore
  */
 const enqueueLinksPatternCache = new Map();
 
-export type UrlPatternObject = {
+export interface UrlPatternObject {
     glob?: string;
     regexp?: RegExp;
-} & Pick<RequestOptions, 'method' | 'payload' | 'label' | 'userData' | 'headers'>;
+}
 
-export type PseudoUrlObject = { purl: string } & Pick<
-    RequestOptions,
-    'method' | 'payload' | 'label' | 'userData' | 'headers'
->;
-
-export type PseudoUrlInput = string | PseudoUrlObject;
-
-export type GlobObject = { glob: string } & Pick<
-    RequestOptions,
-    'method' | 'payload' | 'label' | 'userData' | 'headers'
->;
+export interface GlobObject {
+    glob: string;
+}
 
 export type GlobInput = string | GlobObject;
 
-export type RegExpObject = { regexp: RegExp } & Pick<
-    RequestOptions,
-    'method' | 'payload' | 'label' | 'userData' | 'headers'
->;
+export interface RegExpObject {
+    regexp: RegExp;
+}
 
 export type RegExpInput = RegExp | RegExpObject;
 
-export type SkippedRequestReason = 'robotsTxt' | 'limit' | 'enqueueLimit' | 'filters' | 'redirect' | 'depth';
+/** Unified URL pattern input — accepts glob strings, glob objects, RegExp instances, or regexp objects. */
+export type UrlPatternInput = GlobInput | RegExpInput;
 
-export type SkippedRequestCallback = (args: { url: string; reason: SkippedRequestReason }) => Awaitable<void>;
+/**
+ * Accepts one {@apilink UrlPatternInput} — a glob string, a RegExp instance, or a `{ glob }` / `{ regexp }` object.
+ * @internal
+ */
+export const urlPatternSchema = z.union([
+    z.string(),
+    z.instanceof(RegExp),
+    schemas.objectWithKeys(['glob']),
+    schemas.objectWithKeys(['regexp']),
+]) as z.ZodType<UrlPatternInput>;
+
+export type SkippedRequestReason =
+    | 'robotsTxt'
+    | 'limit'
+    | 'enqueueLimit'
+    | 'filters'
+    | 'transform'
+    | 'redirect'
+    | 'depth';
+
+export type SkippedRequestCallback = (args: { request: Request; reason: SkippedRequestReason }) => Awaitable<void>;
+
+/**
+ * Builds the `{ request, reason }` argument passed to a {@apilink SkippedRequestCallback}, constructing the
+ * `Request` lazily on first access to `request` (and caching it) since most skips are never observed by a
+ * real callback and building a `Request` isn't free.
+ * @ignore
+ */
+export function createSkippedRequestArgs(
+    source: string | Source,
+    reason: SkippedRequestReason,
+): Parameters<SkippedRequestCallback>[0] {
+    const sourceReason = typeof source === 'string' ? undefined : source.skippedReason;
+    let request: Request | undefined;
+
+    return {
+        reason: sourceReason ?? reason,
+        get request() {
+            request ??=
+                source instanceof Request
+                    ? source
+                    : new Request(typeof source === 'string' ? { url: source } : (source as RequestOptions));
+            return request;
+        },
+    };
+}
 
 /**
  * @ignore
  */
 export function updateEnqueueLinksPatternCache(
-    item: GlobInput | RegExpInput | PseudoUrlInput,
+    item: GlobInput | RegExpInput,
     pattern: RegExpObject | GlobObject,
 ): void {
     enqueueLinksPatternCache.set(item, pattern);
@@ -63,30 +97,6 @@ export function updateEnqueueLinksPatternCache(
         const key = enqueueLinksPatternCache.keys().next().value;
         enqueueLinksPatternCache.delete(key);
     }
-}
-
-/**
- * Helper factory used in the `enqueueLinks()` and enqueueLinksByClickingElements() function
- * to construct RegExps from PseudoUrl strings.
- * @ignore
- */
-export function constructRegExpObjectsFromPseudoUrls(pseudoUrls: readonly PseudoUrlInput[]): RegExpObject[] {
-    return pseudoUrls.map((item) => {
-        // Get pseudoUrl object from cache.
-        let regexpObject = enqueueLinksPatternCache.get(item);
-        if (regexpObject) return regexpObject;
-
-        if (typeof item === 'string') {
-            regexpObject = { regexp: purlToRegExp(item) };
-        } else {
-            const { purl, ...requestOptions } = item;
-            regexpObject = { regexp: purlToRegExp(purl), ...requestOptions };
-        }
-
-        updateEnqueueLinksPatternCache(item, regexpObject);
-
-        return regexpObject;
-    });
 }
 
 /**
@@ -120,8 +130,7 @@ export function constructGlobObjectsFromGlobs(globs: readonly GlobInput[]): Glob
             if (typeof item === 'string') {
                 globObject = { glob: validateGlobPattern(item) };
             } else {
-                const { glob, ...requestOptions } = item;
-                globObject = { glob: validateGlobPattern(glob), ...requestOptions };
+                globObject = { glob: validateGlobPattern(item.glob) };
             }
 
             updateEnqueueLinksPatternCache(item, globObject);
@@ -154,7 +163,7 @@ export function constructRegExpObjectsFromRegExps(regexps: readonly RegExpInput[
         if (item instanceof RegExp) {
             regexpObject = { regexp: item };
         } else {
-            regexpObject = item;
+            regexpObject = { regexp: item.regexp };
         }
 
         updateEnqueueLinksPatternCache(item, regexpObject);
@@ -164,84 +173,89 @@ export function constructRegExpObjectsFromRegExps(regexps: readonly RegExpInput[
 }
 
 /**
+ * Helper factory used in the `enqueueLinks()` function to construct UrlPatternObjects
+ * from a mixed array of glob strings, glob objects, RegExp instances, and regexp objects.
  * @ignore
  */
-export function createRequests(
-    requestOptions: (string | RequestOptions)[],
-    urlPatternObjects?: UrlPatternObject[],
-    excludePatternObjects: UrlPatternObject[] = [],
-    strategy?: EnqueueLinksOptions['strategy'],
-    onSkippedUrl?: (url: string) => void,
-): Request[] {
-    const excludePatternObjectMatchers = excludePatternObjects.map(createPatternObjectMatcher);
-    const urlPatternObjectMatchers = urlPatternObjects?.map(createPatternObjectMatcher);
+export function constructUrlPatternObjects(patterns: readonly UrlPatternInput[]): UrlPatternObject[] {
+    const result: UrlPatternObject[] = [];
+
+    for (const item of patterns) {
+        if (typeof item === 'string' || 'glob' in item) {
+            result.push(...constructGlobObjectsFromGlobs([item]));
+        } else if (item instanceof RegExp || 'regexp' in item) {
+            result.push(...constructRegExpObjectsFromRegExps([item]));
+        }
+    }
+
+    return result;
+}
+
+/**
+ * Filters request options by URL patterns.
+ *
+ * When `includePatterns` is empty/undefined, all options pass through (only exclude filtering applies).
+ * @ignore
+ */
+export function filterRequestOptionsByPatterns(
+    requestOptions: RequestOptions[],
+    includePatterns: UrlPatternObject[] | undefined,
+    excludePatterns: UrlPatternObject[] = [],
+    strategy?: EnqueueStrategyOption,
+    onSkippedRequestOptions?: (options: RequestOptions) => void,
+): RequestOptions[] {
+    const excludeMatchers = excludePatterns.map(createPatternObjectMatcher);
+    const includeMatchers = includePatterns?.length ? includePatterns.map(createPatternObjectMatcher) : undefined;
 
     return requestOptions
-        .map((opts) => ({ url: typeof opts === 'string' ? opts : opts.url, opts }))
-        .filter(({ url }) => {
-            const matchesExcludePatterns = excludePatternObjectMatchers.some(({ match }) => match(url));
-
-            if (matchesExcludePatterns) {
-                onSkippedUrl?.(url);
+        .filter((opts) => {
+            const matchesExclude = excludeMatchers.some(({ match }) => match(opts.url));
+            if (matchesExclude) {
+                onSkippedRequestOptions?.(opts);
             }
-
-            return !matchesExcludePatterns;
+            return !matchesExclude;
         })
-        .map(({ url, opts }) => {
-            if (!urlPatternObjectMatchers || !urlPatternObjectMatchers.length) {
-                return new Request(typeof opts === 'string' ? { url: opts, enqueueStrategy: strategy } : { ...opts });
+        .map((opts) => {
+            if (!includeMatchers) {
+                return { ...opts, enqueueStrategy: strategy };
             }
 
-            for (const urlPatternObject of urlPatternObjectMatchers) {
-                const { match, glob, regexp, ...requestRegExpOptions } = urlPatternObject;
-                if (match(url)) {
-                    const request =
-                        typeof opts === 'string'
-                            ? { url: opts, ...requestRegExpOptions, enqueueStrategy: strategy }
-                            : { ...opts, ...requestRegExpOptions, enqueueStrategy: strategy };
-
-                    return new Request(request);
+            for (const { match } of includeMatchers) {
+                if (match(opts.url)) {
+                    return { ...opts, enqueueStrategy: strategy };
                 }
             }
 
             // didn't match any positive pattern
-            onSkippedUrl?.(url);
+            onSkippedRequestOptions?.(opts);
             return null;
         })
-        .filter((request) => request) as Request[];
+        .filter((opts) => opts !== null);
 }
 
-export function filterRequestsByPatterns(
-    requests: Request[],
-    patterns?: UrlPatternObject[],
-    onSkippedUrl?: (url: string) => void,
-): Request[] {
-    if (!patterns?.length) {
-        return requests;
+function isAbsoluteUrl(url: string): boolean {
+    try {
+        // eslint-disable-next-line no-new
+        new URL(url);
+        return true;
+    } catch {
+        return false;
     }
-
-    const filtered: Request[] = [];
-    const patternMatchers = patterns?.map(createPatternObjectMatcher);
-
-    for (const request of requests) {
-        const matchingPattern = patternMatchers.find(({ match }) => match(request.url));
-
-        if (matchingPattern !== undefined) {
-            filtered.push(request);
-        } else {
-            onSkippedUrl?.(request.url);
-        }
-    }
-
-    return filtered;
 }
 
 /**
  * @ignore
  */
 export function createRequestOptions(
-    sources: (string | Record<string, unknown>)[],
-    options: Pick<EnqueueLinksOptions, 'label' | 'userData' | 'baseUrl' | 'skipNavigation' | 'strategy'> = {},
+    sources: readonly (string | Record<string, unknown>)[],
+    options: {
+        label?: string;
+        userData?: Dictionary;
+        baseUrl?: string;
+        skipNavigation?: boolean;
+        sessionId?: string;
+        strategy?: EnqueueStrategyOption;
+    } = {},
 ): RequestOptions[] {
     return sources
         .map((src) =>
@@ -257,7 +271,12 @@ export function createRequestOptions(
             }
         })
         .map((requestOptions) => {
-            requestOptions.url = new URL(requestOptions.url, options.baseUrl).href;
+            // Leave already-absolute URLs untouched - re-deriving them via `new URL()` would normalize them
+            // (e.g. adding a trailing slash to a bare domain), which is surprising for URLs that didn't need
+            // resolving against `baseUrl` in the first place.
+            if (!isAbsoluteUrl(requestOptions.url)) {
+                requestOptions.url = new URL(requestOptions.url, options.baseUrl).href;
+            }
             requestOptions.userData ??= options.userData ?? {};
 
             if (typeof options.label === 'string') {
@@ -271,6 +290,10 @@ export function createRequestOptions(
                 requestOptions.skipNavigation = true;
             }
 
+            if (options.sessionId) {
+                requestOptions.sessionId = options.sessionId;
+            }
+
             return requestOptions;
         });
 }
@@ -280,7 +303,7 @@ export function createRequestOptions(
  */
 function createPatternObjectMatcher(urlPatternObject: UrlPatternObject) {
     const { regexp, glob } = urlPatternObject;
-    let match;
+    let match: (url: string) => boolean;
     if (regexp) {
         match = (url: string) => regexp.test(url);
     } else if (glob) {
@@ -289,17 +312,49 @@ function createPatternObjectMatcher(urlPatternObject: UrlPatternObject) {
     } else {
         match = () => false;
     }
-    return { ...urlPatternObject, match };
+    return { match };
 }
 
 /**
- * Takes an Apify {@apilink RequestOptions} object and changes its attributes in a desired way. This user-function is used
- * {@apilink enqueueLinks} to modify requests before enqueuing them.
+ * Takes a {@apilink RequestOptions} object and changes its attributes in a desired way. This user-function is used
+ * by {@apilink enqueueLinks} to modify request options before they are converted to {@apilink Request} instances.
  */
 export interface RequestTransform {
     /**
      * @param original Request options to be modified.
-     * @returns The modified request options to enqueue.
+     * @returns The modified request options to enqueue, `'unchanged'` to keep the original options as-is,
+     *   or a falsy value / `'skip'` to exclude the request from the queue.
      */
-    (original: RequestOptions): RequestOptions | false | undefined | null;
+    (original: RequestOptions): RequestOptions | false | undefined | null | 'skip' | 'unchanged';
+}
+
+/**
+ * Applies a {@apilink RequestTransform} function to a list of request options.
+ * Options for which the transform returns a falsy value are removed from the list.
+ * @param onSkipped Called with the original request options when the transform returns a falsy value (i.e. the request is skipped).
+ * @ignore
+ * @internal
+ */
+export function applyRequestTransform(
+    requestOptions: RequestOptions[],
+    transformFn: RequestTransform,
+    onSkipped?: (requestOptions: RequestOptions) => void,
+): RequestOptions[] {
+    return requestOptions
+        .map((opts) => {
+            const transformed = transformFn(opts);
+            if (transformed === 'skip') {
+                onSkipped?.(opts);
+                return null;
+            }
+            if (transformed === 'unchanged') {
+                return opts;
+            }
+            if (!transformed) {
+                onSkipped?.(opts);
+                return null;
+            }
+            return transformed;
+        })
+        .filter((r): r is RequestOptions => r !== null);
 }

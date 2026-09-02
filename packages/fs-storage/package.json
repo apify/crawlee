@@ -1,0 +1,50 @@
+{
+    "name": "@crawlee/fs-storage",
+    "version": "4.0.0",
+    "description": "A file-system storage implementation of the Apify API",
+    "engines": {
+        "node": ">=22.0.0"
+    },
+    "type": "module",
+    "exports": {
+        ".": "./dist/index.js",
+        "./package.json": "./package.json"
+    },
+    "keywords": [
+        "apify",
+        "api",
+        "filesystem"
+    ],
+    "author": {
+        "name": "Apify",
+        "email": "support@apify.com",
+        "url": "https://apify.com"
+    },
+    "contributors": [
+        "Vlad Frangu <kingdgrizzle@gmail.com>"
+    ],
+    "license": "Apache-2.0",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/apify/crawlee"
+    },
+    "bugs": {
+        "url": "https://github.com/apify/crawlee/issues"
+    },
+    "homepage": "https://crawlee.dev",
+    "scripts": {
+        "build": "pnpm clean && pnpm compile && pnpm copy",
+        "clean": "rimraf ./dist",
+        "compile": "tsc -p tsconfig.build.json",
+        "copy": "tsx ../../scripts/copy.ts"
+    },
+    "publishConfig": {
+        "access": "public"
+    },
+    "dependencies": {
+        "@crawlee/fs-storage-native": "0.2.0",
+        "@crawlee/types": "workspace:*",
+        "@crawlee/utils": "workspace:*",
+        "zod": "catalog:"
+    }
+}

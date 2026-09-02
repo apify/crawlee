@@ -54,10 +54,15 @@
 export * from '@crawlee/browser';
 
 // Export main crawler class
-export {
-    StagehandCrawler,
-    createStagehandRouter,
-} from './internals/stagehand-crawler';
+export { StagehandCrawler, createStagehandRouter } from './internals/stagehand-crawler';
+
+// Export the browser pool factories, which are how a pool with non-default options reaches the crawler
+export { stagehandBrowserPool, remoteStagehandBrowserPool } from './internals/stagehand-browser-pool';
+export type {
+    StagehandBrowserPool,
+    StagehandBrowserPoolOptions,
+    RemoteStagehandBrowserPoolOptions,
+} from './internals/stagehand-browser-pool';
 
 // Export types
 export type {

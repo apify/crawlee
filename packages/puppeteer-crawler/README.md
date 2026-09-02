@@ -16,10 +16,8 @@ The crawler finishes when there are no more [Request](https://crawlee.dev/js/api
 and then calls the function provided by user as the [PuppeteerCrawlerOptions.requestHandler](https://crawlee.dev/js/api/puppeteer-crawler/interface/PuppeteerCrawlerOptions#requestHandler) option.
 
 New pages are only opened when there is enough free CPU and memory available,
-using the functionality provided by the [AutoscaledPool](https://crawlee.dev/js/api/core/class/AutoscaledPool) class.
-All [AutoscaledPool](https://crawlee.dev/js/api/core/class/AutoscaledPool) configuration options can be passed to the [PuppeteerCrawlerOptions.autoscaledPoolOptions](https://crawlee.dev/js/api/puppeteer-crawler/interface/PuppeteerCrawlerOptions#autoscaledPoolOptions)
-parameter of the `PuppeteerCrawler` constructor. For user convenience, the `minConcurrency` and `maxConcurrency`
-[AutoscaledPoolOptions](https://crawlee.dev/js/api/core/interface/AutoscaledPoolOptions) are available directly in the `PuppeteerCrawler` constructor.
+as judged by the crawler's `ConcurrencySystem`.
+Concurrency is tuned via the [`minConcurrency`](https://crawlee.dev/js/api/puppeteer-crawler/interface/PuppeteerCrawlerOptions#minConcurrency), [`maxConcurrency`](https://crawlee.dev/js/api/puppeteer-crawler/interface/PuppeteerCrawlerOptions#maxConcurrency) and [`maxRequestsPerMinute`](https://crawlee.dev/js/api/puppeteer-crawler/interface/PuppeteerCrawlerOptions#maxRequestsPerMinute) options of the `PuppeteerCrawler` constructor, or, for finer control, by injecting a pre-configured [`concurrencySystem`](https://crawlee.dev/js/api/puppeteer-crawler/interface/PuppeteerCrawlerOptions#concurrencySystem).
 
 Note that the pool of Puppeteer instances is internally managed by the [BrowserPool](https://github.com/apify/browser-pool) class.
 

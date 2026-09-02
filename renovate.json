@@ -1,6 +1,6 @@
 {
-	"extends": ["config:base", ":semanticCommitTypeAll(chore)"],
-	"pinVersions": false,
+	"extends": ["config:recommended", ":semanticCommitTypeAll(chore)"],
+	"rangeStrategy": "replace",
 	"separateMajorMinor": false,
 	"dependencyDashboard": false,
 	"semanticCommits": "enabled",
@@ -10,10 +10,12 @@
 		"automerge": true,
 		"automergeType": "branch"
 	},
-	"constraints": {
-		"npm": "^8.0.0"
-	},
 	"packageRules": [
+		{
+			"description": "Freeze eslint tooling until oxlint lands in v4",
+			"matchPackageNames": ["/eslint/"],
+			"enabled": false
+		},
 		{
 			"matchUpdateTypes": ["patch", "minor"],
 			"matchCurrentVersion": "!/^0/",
@@ -21,10 +23,29 @@
 			"groupSlug": "all-non-major",
 			"automerge": true,
 			"automergeType": "branch"
+		},
+		{
+			"description": "camoufox-js dictates the compatible Playwright/Firefox build; do not bump Playwright in the Camoufox template until Camoufox supports the newer version",
+			"matchFileNames": [
+				"packages/templates/templates/camoufox-ts/package.json"
+			],
+			"matchPackageNames": ["playwright"],
+			"enabled": false
+		},
+		{
+			"matchPackageNames": [
+				"@apify/*",
+				"@crawlee/*",
+				"apify-client",
+				"apify",
+				"crawlee",
+				"got-scraping"
+			],
+			"minimumReleaseAge": "0 days"
 		}
 	],
 	"schedule": ["every weekday"],
 	"minimumReleaseAge": "1 day",
 	"internalChecksFilter": "strict",
-	"ignoreDeps": ["crawlee", "cheerio", "yarn"]
+	"ignoreDeps": ["crawlee", "cheerio", "yarn", "@browserbasehq/stagehand"]
 }

@@ -21,15 +21,23 @@ describe('parseOpenGraph', () => {
     const case6 = `<meta property="og:title" content="My Website"/>
     <meta property="og:type" content="website"/>`;
 
-    it('Should scrape properties', () => {
-        expect(parseOpenGraph(case1)).toEqual({
+    const case7 = load(`<meta property="og:type" content="article"/>
+    <meta property="article:published_time" content="2024-01-01T00:00:00Z"/>
+    <meta property="article:modified_time" content="2024-01-02T00:00:00Z"/>
+    <meta property="article:expiration_time" content="2024-01-03T00:00:00Z"/>
+    <meta property="article:author" content="Jane Doe"/>
+    <meta property="article:section" content="Tech"/>
+    <meta property="article:tag" content="ai"/>`);
+
+    it('Should scrape properties', async () => {
+        expect(await parseOpenGraph(case1)).toEqual({
             title: 'Under Pressure',
             type: 'music.song',
         });
     });
 
-    it('Should return a property as an array if there are multiple attributes under the same property name', () => {
-        const parsed = parseOpenGraph(case2) as {
+    it('Should return a property as an array if there are multiple attributes under the same property name', async () => {
+        const parsed = (await parseOpenGraph(case2)) as {
             videoInfo: { actor: { actorValue: string[] } };
         };
 
@@ -38,7 +46,7 @@ describe('parseOpenGraph', () => {
         expect(parsed.videoInfo.actor.actorValue).toContain('bar');
         expect(parsed.videoInfo.actor.actorValue).toContain('baz');
 
-        const parsed2 = parseOpenGraph(case3) as {
+        const parsed2 = (await parseOpenGraph(case3)) as {
             locale: { localeValue: string; alternate: string[] };
         };
 
@@ -47,14 +55,14 @@ describe('parseOpenGraph', () => {
         expect(parsed2.locale.alternate).toContain('bar');
     });
 
-    it('Should parse properties regardless of how deeply they are nested', () => {
-        expect(parseOpenGraph(case4)).toEqual({
+    it('Should parse properties regardless of how deeply they are nested', async () => {
+        expect(await parseOpenGraph(case4)).toEqual({
             musicInfo: { song: { disc: 'hello', track: 'world' } },
         });
     });
 
-    it('Should accept additional OpenGraphProperties', () => {
-        const parsed = parseOpenGraph(case5, [
+    it('Should accept additional OpenGraphProperties', async () => {
+        const parsed = await parseOpenGraph(case5, [
             {
                 name: 'og:custom',
                 outputName: 'custom',
@@ -71,10 +79,24 @@ describe('parseOpenGraph', () => {
         expect(parsed).toEqual({ custom: { test: 'hello' } });
     });
 
-    it('Should accept strings as a substitute for CheerioAPI objects', () => {
-        expect(parseOpenGraph(case6)).toEqual({
+    it('Should accept strings as a substitute for CheerioAPI objects', async () => {
+        expect(await parseOpenGraph(case6)).toEqual({
             title: 'My Website',
             type: 'website',
+        });
+    });
+
+    it('Should parse article properties into articleInfo', async () => {
+        expect(await parseOpenGraph(case7)).toEqual({
+            type: 'article',
+            articleInfo: {
+                publishedTime: '2024-01-01T00:00:00Z',
+                modifiedTime: '2024-01-02T00:00:00Z',
+                expirationTime: '2024-01-03T00:00:00Z',
+                author: 'Jane Doe',
+                section: 'Tech',
+                tag: 'ai',
+            },
         });
     });
 });

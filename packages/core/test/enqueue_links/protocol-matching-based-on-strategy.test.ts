@@ -1,10 +1,13 @@
+import {
+    CheerioCrawler,
+    EnqueueStrategy,
+    MemoryStorageBackend,
+    RequestQueue,
+    serviceLocator,
+    type Source,
+} from 'crawlee';
+import { extractUrlsFromCheerio } from '@crawlee/utils/internal';
 import { load } from 'cheerio';
-import type { CheerioRoot, Source } from 'crawlee';
-import { cheerioCrawlerEnqueueLinks, Configuration, EnqueueStrategy, RequestQueue } from 'crawlee';
-
-import log from '@apify/log';
-
-const apifyClient = Configuration.getStorageClient();
 
 const HTML = `
 <html>
@@ -20,76 +23,50 @@ const HTML = `
 </html>
 `;
 
-function createRequestQueueMock() {
+/**
+ * Runs `crawler.addRequests()` against the links extracted from `HTML`, resolved relative to `baseUrl` -
+ * the address `enqueueLinks()` would normally anchor the strategy to - and returns the resulting URLs.
+ */
+async function enqueuedUrls(strategy: EnqueueStrategy, baseUrl: string): Promise<Set<string>> {
     const enqueued: Source[] = [];
-    const requestQueue = new RequestQueue({ id: 'xxx', client: apifyClient });
-
-    // @ts-expect-error Override method for testing
-    requestQueue.addRequests = async function (requests) {
-        enqueued.push(...requests);
-        return { processedRequests: requests, unprocessedRequests: [] as never[] };
+    const requestQueue = await RequestQueue.open();
+    const originalAddRequests = requestQueue.addRequests.bind(requestQueue);
+    requestQueue.addRequests = async (requests, addOptions) => {
+        const items: Source[] = [];
+        for await (const request of requests) {
+            items.push(typeof request === 'string' ? { url: request } : (request as Source));
+        }
+        enqueued.push(...items);
+        return originalAddRequests(items, addOptions);
     };
 
-    return { enqueued, requestQueue };
+    const crawler = new CheerioCrawler({ requestManager: requestQueue });
+    const urls = extractUrlsFromCheerio(load(HTML), 'a', baseUrl);
+    await crawler.addRequests(urls, { baseUrl, strategy });
+
+    return new Set(enqueued.map((item) => item.url!));
 }
 
 describe('enqueueLinks() - matching and ignoring http/https protocol differences', () => {
-    let ll: number;
-    beforeAll(() => {
-        ll = log.getLevel();
-        log.setLevel(log.LEVELS.ERROR);
-    });
-
-    afterAll(() => {
-        log.setLevel(ll);
-    });
-
-    let $: CheerioRoot;
     beforeEach(() => {
-        $ = load(HTML);
+        serviceLocator.setStorageBackend(new MemoryStorageBackend());
     });
 
     test('SameHostname should ignore protocol difference', async () => {
-        const { enqueued, requestQueue } = createRequestQueueMock();
-
-        await cheerioCrawlerEnqueueLinks({
-            options: { selector: 'a', strategy: EnqueueStrategy.SameHostname },
-            $,
-            requestQueue,
-            originalRequestUrl: 'https://example.com',
-        });
-
-        expect(enqueued).toHaveLength(2);
-        expect(enqueued[0].url).toBe('https://example.com/first');
-        expect(enqueued[1].url).toBe('http://example.com/second');
+        expect(await enqueuedUrls(EnqueueStrategy.SameHostname, 'https://example.com')).toEqual(
+            new Set(['https://example.com/first', 'http://example.com/second']),
+        );
     });
 
     test('SameDomain should ignore protocol difference', async () => {
-        const { enqueued, requestQueue } = createRequestQueueMock();
-
-        await cheerioCrawlerEnqueueLinks({
-            options: { selector: 'a', strategy: EnqueueStrategy.SameDomain },
-            $,
-            requestQueue,
-            originalRequestUrl: 'http://example.com',
-        });
-
-        expect(enqueued).toHaveLength(2);
-        expect(enqueued[0].url).toBe('https://example.com/first');
-        expect(enqueued[1].url).toBe('http://example.com/second');
+        expect(await enqueuedUrls(EnqueueStrategy.SameDomain, 'http://example.com')).toEqual(
+            new Set(['https://example.com/first', 'http://example.com/second']),
+        );
     });
 
     test('SameOrigin should respect protocol', async () => {
-        const { enqueued, requestQueue } = createRequestQueueMock();
-
-        await cheerioCrawlerEnqueueLinks({
-            options: { selector: 'a', strategy: EnqueueStrategy.SameOrigin },
-            $,
-            requestQueue,
-            originalRequestUrl: 'https://example.com',
-        });
-
-        expect(enqueued).toHaveLength(1);
-        expect(enqueued[0].url).toBe('https://example.com/first');
+        expect(await enqueuedUrls(EnqueueStrategy.SameOrigin, 'https://example.com')).toEqual(
+            new Set(['https://example.com/first']),
+        );
     });
 });

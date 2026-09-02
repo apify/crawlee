@@ -5,17 +5,16 @@ const sessionPoolOptions = {
     maxPoolSize: 100,
 };
 
-// Open Session Pool.
-const sessionPool = await SessionPool.open(sessionPoolOptions);
+const sessionPool = new SessionPool(sessionPoolOptions);
 
 // Get session.
 const session = await sessionPool.getSession();
 
 // Increase the errorScore.
-session.markBad();
+session?.markBad();
 
 // Throw away the session.
-session.retire();
+session?.retire();
 
 // Lower the errorScore and mark the session good.
-session.markGood();
+session?.markGood();

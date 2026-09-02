@@ -1,15 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { downloadListOfUrls, extractUrls, URL_WITH_COMMAS_REGEX } from '@crawlee/utils';
+import { BaseHttpClient } from '@crawlee/http-client';
+import { URL_WITH_COMMAS_REGEX } from '@crawlee/utils/internal';
+import { downloadListOfUrls, extractUrls } from '@crawlee/utils';
 
-vitest.mock('@crawlee/utils/src/internals/gotScraping', async () => {
-    return {
-        gotScraping: vitest.fn(),
-    };
-});
-
-const baseDataPath = path.join(__dirname, '..', 'shared', 'data');
+const baseDataPath = path.join(import.meta.dirname, '..', 'shared', 'data');
 
 describe('downloadListOfUrls()', () => {
     test('downloads a list of URLs', async () => {
@@ -19,14 +15,16 @@ describe('downloadListOfUrls()', () => {
             .split(/[\r\n]+/g)
             .map((u) => u.trim());
 
-        // @ts-ignore for some reason, this fails when the project is not built :/
-        const { gotScraping } = await import('@crawlee/utils');
-        const gotScrapingSpy = vitest.mocked(gotScraping);
-        gotScrapingSpy.mockResolvedValueOnce({ body: text });
+        const mockClient = Object.assign(Object.create(BaseHttpClient.prototype) as BaseHttpClient, {
+            async sendRequest() {
+                return new Response(text);
+            },
+        });
 
         await expect(
             downloadListOfUrls({
                 url: 'http://www.nowhere12345.com',
+                httpClient: mockClient,
             }),
         ).resolves.toEqual(arr);
     });
@@ -94,6 +92,19 @@ describe('extractUrls()', () => {
         const { string, array } = getURLData(TRICKY_URL_LIST);
         const extracted = extractUrls({ string });
         expect(extracted).toEqual(array);
+    });
+
+    // https://github.com/apify/crawlee/issues/2755
+    test('extracts URLs with apostrophes in the path', () => {
+        const url = "https://www.zillow.com/homedetails/141-O'Canoe-Pl-Hertford-NC-27944/74398007_zpid/";
+        const extracted = extractUrls({ string: url });
+        expect(extracted).toEqual([url]);
+    });
+
+    test('extracts URLs with asterisks in the path', () => {
+        const url = 'https://example.com/path*star/end';
+        const extracted = extractUrls({ string: url });
+        expect(extracted).toEqual([url]);
     });
 
     test('does not extract invalid URLs', () => {

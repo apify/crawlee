@@ -1,6 +1,5 @@
 import type { Dictionary } from '@crawlee/types';
 import type { CheerioAPI } from 'cheerio';
-import { load } from 'cheerio';
 
 export interface OpenGraphProperty {
     name: string;
@@ -268,32 +267,32 @@ const OPEN_GRAPH_PROPERTIES: OpenGraphProperty[] = [
         outputName: 'articleInfo',
         children: [
             {
-                name: 'music:published_time',
+                name: 'article:published_time',
                 outputName: 'publishedTime',
                 children: [],
             },
             {
-                name: 'music:modified_time',
+                name: 'article:modified_time',
                 outputName: 'modifiedTime',
                 children: [],
             },
             {
-                name: 'music:expiration_time',
+                name: 'article:expiration_time',
                 outputName: 'expirationTime',
                 children: [],
             },
             {
-                name: 'music:author',
+                name: 'article:author',
                 outputName: 'author',
                 children: [],
             },
             {
-                name: 'music:section',
+                name: 'article:section',
                 outputName: 'section',
                 children: [],
             },
             {
-                name: 'music:tag',
+                name: 'article:tag',
                 outputName: 'tag',
                 children: [],
             },
@@ -395,18 +394,22 @@ const parseOpenGraphProperty = (property: OpenGraphProperty, $: CheerioAPI): str
  * Currently existing properties are kept up to date.
  * @returns Scraped OpenGraph properties as an object.
  */
-export function parseOpenGraph(raw: string, additionalProperties?: OpenGraphProperty[]): Dictionary<OpenGraphResult>;
-export function parseOpenGraph($: CheerioAPI, additionalProperties?: OpenGraphProperty[]): Dictionary<OpenGraphResult>;
-export function parseOpenGraph(item: CheerioAPI | string, additionalProperties?: OpenGraphProperty[]) {
+export async function parseOpenGraph(
+    raw: string,
+    additionalProperties?: OpenGraphProperty[],
+): Promise<Dictionary<OpenGraphResult>>;
+export async function parseOpenGraph(
+    $: CheerioAPI,
+    additionalProperties?: OpenGraphProperty[],
+): Promise<Dictionary<OpenGraphResult>>;
+export async function parseOpenGraph(item: CheerioAPI | string, additionalProperties?: OpenGraphProperty[]) {
+    const { load } = await import('cheerio');
     const $ = typeof item === 'string' ? load(item) : item;
 
-    return [...(additionalProperties || []), ...OPEN_GRAPH_PROPERTIES].reduce(
-        (acc, curr) => {
-            return {
-                ...acc,
-                ...optionalSpread(curr.outputName, parseOpenGraphProperty(curr, $)),
-            };
-        },
-        {} as Dictionary<OpenGraphResult>,
-    );
+    return [...(additionalProperties || []), ...OPEN_GRAPH_PROPERTIES].reduce((acc, curr) => {
+        return {
+            ...acc,
+            ...optionalSpread(curr.outputName, parseOpenGraphProperty(curr, $)),
+        };
+    }, {} as Dictionary<OpenGraphResult>);
 }

@@ -1,30 +1,51 @@
-import type { TieredProxy } from '@crawlee/core';
+import { AsyncResource } from 'node:async_hooks';
+
+import { type CrawleeLogger, SessionError, serviceLocator } from '@crawlee/core';
+import type { IBrowserPool, NewPageOptions, PageState } from '@crawlee/types';
+import { parseArgument, schemas } from '@crawlee/utils/internal';
 import type { BrowserFingerprintWithHeaders } from 'fingerprint-generator';
 import { FingerprintGenerator } from 'fingerprint-generator';
 import { FingerprintInjector } from 'fingerprint-injector';
 import { nanoid } from 'nanoid';
-import ow from 'ow';
 import pLimit from 'p-limit';
 import QuickLRU from 'quick-lru';
 import { TypedEmitter } from 'tiny-typed-emitter';
+import { z } from 'zod';
 
 import { addTimeoutToPromise, tryCancel } from '@apify/timeout';
 
-import type { BrowserController } from './abstract-classes/browser-controller';
-import type { BrowserPlugin } from './abstract-classes/browser-plugin';
-import { BROWSER_POOL_EVENTS } from './events';
+import type { BrowserController } from './abstract-classes/browser-controller.js';
+import type { BrowserPlugin } from './abstract-classes/browser-plugin.js';
+import { BROWSER_POOL_EVENTS } from './events.js';
 import {
     createFingerprintPreLaunchHook,
     createPostPageCreateHook,
     createPrePageCreateHook,
-} from './fingerprinting/hooks';
-import type { FingerprintGeneratorOptions } from './fingerprinting/types';
-import type { LaunchContext } from './launch-context';
-import { log } from './logger';
-import type { InferBrowserPluginArray, UnwrapPromise } from './utils';
+} from './fingerprinting/hooks.js';
+import type { FingerprintGeneratorOptions } from './fingerprinting/types.js';
+import type { LaunchContext } from './launch-context.js';
+import type { InferBrowserPluginArray, UnwrapPromise } from './utils.js';
 
+const PAGE_CLOSE_TIMEOUT_MILLIS = 5000;
 const PAGE_CLOSE_KILL_TIMEOUT_MILLIS = 1000;
 const BROWSER_KILLER_INTERVAL_MILLIS = 10 * 1000;
+
+const browserPoolOptionsSchema = z.strictObject({
+    browserPlugins: schemas.anyArray.refine((value) => value.length >= 1, 'Expected a non-empty array'),
+    maxOpenPagesPerBrowser: schemas.anyNumber.default(20),
+    retireBrowserAfterPageCount: schemas.anyNumber.default(100),
+    operationTimeoutSecs: schemas.anyNumber.default(15),
+    closeInactiveBrowserAfterSecs: schemas.anyNumber.default(300),
+    retireInactiveBrowserAfterSecs: schemas.anyNumber.default(10),
+    preLaunchHooks: schemas.anyArray.default(() => []),
+    postLaunchHooks: schemas.anyArray.default(() => []),
+    prePageCreateHooks: schemas.anyArray.default(() => []),
+    postPageCreateHooks: schemas.anyArray.default(() => []),
+    prePageCloseHooks: schemas.anyArray.default(() => []),
+    postPageCloseHooks: schemas.anyArray.default(() => []),
+    useFingerprints: z.boolean().default(true),
+    fingerprintOptions: schemas.anyObject.default(() => ({})),
+});
 
 export interface BrowserPoolEvents<BC extends BrowserController, Page> {
     [BROWSER_POOL_EVENTS.PAGE_CREATED]: (page: Page) => void | Promise<void>;
@@ -301,9 +322,13 @@ export class BrowserPool<
     PageReturn extends UnwrapPromise<ReturnType<BrowserControllerReturn['newPage']>> = UnwrapPromise<
         ReturnType<BrowserControllerReturn['newPage']>
     >,
-> extends TypedEmitter<BrowserPoolEvents<BrowserControllerReturn, PageReturn>> {
+>
+    extends TypedEmitter<BrowserPoolEvents<BrowserControllerReturn, PageReturn>>
+    implements IBrowserPool<PageReturn>
+{
     browserPlugins: BrowserPlugins;
     maxOpenPagesPerBrowser: number;
+    maxOpenBrowsers: number;
     retireBrowserAfterPageCount: number;
     operationTimeoutMillis: number;
     closeInactiveBrowserAfterMillis: number;
@@ -326,56 +351,39 @@ export class BrowserPool<
     fingerprintGenerator?: FingerprintGenerator;
     fingerprintCache?: QuickLRU<string, BrowserFingerprintWithHeaders>;
 
+    // kept as TS-private: tests replace this interval through bracket access
     private browserKillerInterval? = setInterval(
-        async () => this._closeInactiveRetiredBrowsers(),
+        async () => this.closeInactiveRetiredBrowsers(),
         BROWSER_KILLER_INTERVAL_MILLIS,
     );
 
-    private browserRetireInterval?: NodeJS.Timeout;
+    #browserRetireInterval?: NodeJS.Timeout;
 
-    private limiter = pLimit(1);
+    #limiter = pLimit(1);
+    #log!: CrawleeLogger;
 
     constructor(options: Options & BrowserPoolHooks<BrowserControllerReturn, LaunchContextReturn, PageReturn>) {
         super();
+        this.#log = serviceLocator.getLogger().child({ prefix: 'BrowserPool' });
 
         this.browserKillerInterval!.unref();
 
-        ow(
-            options,
-            ow.object.exactShape({
-                browserPlugins: ow.array.minLength(1),
-                maxOpenPagesPerBrowser: ow.optional.number,
-                retireBrowserAfterPageCount: ow.optional.number,
-                operationTimeoutSecs: ow.optional.number,
-                closeInactiveBrowserAfterSecs: ow.optional.number,
-                retireInactiveBrowserAfterSecs: ow.optional.number,
-                preLaunchHooks: ow.optional.array,
-                postLaunchHooks: ow.optional.array,
-                prePageCreateHooks: ow.optional.array,
-                postPageCreateHooks: ow.optional.array,
-                prePageCloseHooks: ow.optional.array,
-                postPageCloseHooks: ow.optional.array,
-                useFingerprints: ow.optional.boolean,
-                fingerprintOptions: ow.optional.object,
-            }),
-        );
-
         const {
             browserPlugins,
-            maxOpenPagesPerBrowser = 20,
-            retireBrowserAfterPageCount = 100,
-            operationTimeoutSecs = 15,
-            closeInactiveBrowserAfterSecs = 300,
-            retireInactiveBrowserAfterSecs = 10,
-            preLaunchHooks = [],
-            postLaunchHooks = [],
-            prePageCreateHooks = [],
-            postPageCreateHooks = [],
-            prePageCloseHooks = [],
-            postPageCloseHooks = [],
-            useFingerprints = true,
-            fingerprintOptions = {},
-        } = options;
+            maxOpenPagesPerBrowser,
+            retireBrowserAfterPageCount,
+            operationTimeoutSecs,
+            closeInactiveBrowserAfterSecs,
+            retireInactiveBrowserAfterSecs,
+            preLaunchHooks,
+            postLaunchHooks,
+            prePageCreateHooks,
+            postPageCreateHooks,
+            prePageCloseHooks,
+            postPageCloseHooks,
+            useFingerprints,
+            fingerprintOptions,
+        } = parseArgument(options, browserPoolOptionsSchema);
 
         const firstPluginConstructor = browserPlugins[0].constructor as typeof BrowserPlugin;
 
@@ -394,13 +402,14 @@ export class BrowserPool<
 
         this.browserPlugins = browserPlugins as unknown as BrowserPlugins;
         this.maxOpenPagesPerBrowser = maxOpenPagesPerBrowser;
+        this.maxOpenBrowsers = Infinity;
         this.retireBrowserAfterPageCount = retireBrowserAfterPageCount;
         this.operationTimeoutMillis = operationTimeoutSecs * 1000;
         this.closeInactiveBrowserAfterMillis = closeInactiveBrowserAfterSecs * 1000;
         this.useFingerprints = useFingerprints;
         this.fingerprintOptions = fingerprintOptions;
 
-        this.browserRetireInterval = setInterval(
+        this.#browserRetireInterval = setInterval(
             async () =>
                 this.activeBrowserControllers.forEach((controller) => {
                     if (
@@ -413,7 +422,7 @@ export class BrowserPool<
             retireInactiveBrowserAfterSecs * 1000,
         );
 
-        this.browserRetireInterval!.unref();
+        this.#browserRetireInterval!.unref();
 
         // hooks
         this.preLaunchHooks = preLaunchHooks;
@@ -425,7 +434,7 @@ export class BrowserPool<
 
         // fingerprinting
         if (this.useFingerprints) {
-            this._initializeFingerprinting();
+            this.initializeFingerprinting();
         }
     }
 
@@ -433,9 +442,28 @@ export class BrowserPool<
      * Opens a new page in one of the running browsers or launches
      * a new browser and opens a page there, if no browsers are active,
      * or their page limits have been exceeded.
+     *
+     * **Session injection (best-effort):** When a {@apilink NewPageOptions.session|session} is
+     * provided, this implementation uses it as a cache key for browser fingerprints (when
+     * fingerprinting is enabled) and reads
+     * {@apilink ProxyInfo.url|session.proxyInfo.url} /
+     * {@apilink ProxyInfo.ignoreTlsErrors|session.proxyInfo.ignoreTlsErrors} as defaults
+     * for `proxyUrl` and `ignoreTlsErrors` respectively. Explicit `proxyUrl` /
+     * `ignoreTlsErrors` values in the options take precedence.
+     *
+     * Beyond fingerprint caching and proxy configuration, no other session
+     * properties are consumed — cookie and header injection remain the
+     * crawler's responsibility.
      */
     async newPage(options: BrowserPoolNewPageOptions<PageOptions, BrowserPlugins[number]> = {}): Promise<PageReturn> {
-        const { id = nanoid(), pageOptions, browserPlugin = this._pickBrowserPlugin(), proxyUrl, proxyTier } = options;
+        const {
+            id = nanoid(),
+            pageOptions,
+            browserPlugin = this.pickBrowserPlugin(),
+            session,
+            proxyUrl = session?.proxyInfo?.url,
+            ignoreTlsErrors = session?.proxyInfo?.ignoreTlsErrors,
+        } = options;
 
         if (this.pages.has(id)) {
             throw new Error(`Page with ID: ${id} already exists.`);
@@ -445,16 +473,32 @@ export class BrowserPool<
             throw new Error('Provided browserPlugin is not one of the plugins used by BrowserPool.');
         }
 
+        // Bind the limiter callback to the current async-hooks context. p-limit
+        // otherwise resumes queued callbacks in the previous task's
+        // AsyncLocalStorage context, leaking aborted cancelTasks across unrelated
+        // requests (https://github.com/apify/crawlee/issues/3670). Mirrors the
+        // fix p-limit landed upstream in v5 (sindresorhus/p-limit#71); v5 is an
+        // ESM-only rewrite, so we can't bump it in Crawlee v3.
+        // Besides the cancelTask leak, the wrapper also keeps the per-request *storage transaction*
+        // ALS-scoped: without it, a queued callback would resume in the previous request's async
+        // context and run request B's storage writes inside request A's transaction.
+        // TODO(crawlee@v4): bump p-limit to v5 and drop this AsyncResource.bind wrapper.
         // Limiter is necessary - https://github.com/apify/crawlee/issues/1126
-        return this.limiter(async () => {
-            let browserController = this._pickBrowserWithFreeCapacity(browserPlugin, { proxyTier, proxyUrl });
+        return this.#limiter(
+            AsyncResource.bind(async () => {
+                let browserController = this.pickBrowserWithFreeCapacity(browserPlugin, { proxyUrl });
 
-            if (!browserController)
-                browserController = await this._launchBrowser(id, { browserPlugin, proxyTier, proxyUrl });
-            tryCancel();
+                if (!browserController)
+                    browserController = await this.launchBrowser(id, {
+                        browserPlugin,
+                        proxyUrl,
+                        ignoreTlsErrors,
+                    });
+                tryCancel();
 
-            return await this._createPageForBrowser(id, browserController, pageOptions, proxyUrl);
-        });
+                return await this.createPageForBrowser(id, browserController, pageOptions, proxyUrl, ignoreTlsErrors);
+            }),
+        );
     }
 
     /**
@@ -465,15 +509,15 @@ export class BrowserPool<
     async newPageInNewBrowser(
         options: BrowserPoolNewPageInNewBrowserOptions<PageOptions, BrowserPlugins[number]> = {},
     ): Promise<PageReturn> {
-        const { id = nanoid(), pageOptions, launchOptions, browserPlugin = this._pickBrowserPlugin() } = options;
+        const { id = nanoid(), pageOptions, launchOptions, browserPlugin = this.pickBrowserPlugin() } = options;
 
         if (this.pages.has(id)) {
             throw new Error(`Page with ID: ${id} already exists.`);
         }
 
-        const browserController = await this._launchBrowser(id, { launchOptions, browserPlugin });
+        const browserController = await this.launchBrowser(id, { launchOptions, browserPlugin });
         tryCancel();
-        return await this._createPageForBrowser(id, browserController, pageOptions);
+        return await this.createPageForBrowser(id, browserController, pageOptions);
     }
 
     /**
@@ -546,28 +590,32 @@ export class BrowserPool<
         return this.pageIds.get(page);
     }
 
-    private async _createPageForBrowser(
+    private async createPageForBrowser(
         pageId: string,
         browserController: BrowserControllerReturn,
         pageOptions: PageOptions = {} as PageOptions,
         proxyUrl?: string,
+        ignoreTlsErrors?: boolean,
     ) {
         // This is needed for concurrent newPage calls to wait for the browser launch.
         // It's not ideal though, we need to come up with a better API.
-        // eslint-disable-next-line dot-notation -- accessing private property
-        await browserController['isActivePromise'];
+        await browserController.waitForActive();
         tryCancel();
 
-        const finalPageOptions =
-            browserController.launchContext.useIncognitoPages || browserController.launchContext.experimentalContainers
-                ? pageOptions
-                : undefined;
+        const finalPageOptions = browserController.launchContext.useIncognitoPages ? pageOptions : undefined;
 
         if (finalPageOptions) {
             Object.assign(finalPageOptions, browserController.normalizeProxyOptions(proxyUrl, pageOptions));
+
+            if (ignoreTlsErrors) {
+                Object.assign(finalPageOptions, {
+                    ignoreHTTPSErrors: true,
+                    acceptInsecureCerts: true,
+                });
+            }
         }
 
-        await this._executeHooks(this.prePageCreateHooks, pageId, browserController, finalPageOptions);
+        await this.executeHooks(this.prePageCreateHooks, pageId, browserController, finalPageOptions);
         tryCancel();
 
         let page: PageReturn;
@@ -589,7 +637,7 @@ export class BrowserPool<
                 this.retireBrowserController(browserController);
             }
 
-            this._overridePageClose(page);
+            this.overridePageClose(page);
         } catch (err) {
             this.retireBrowserController(browserController);
             throw new Error(
@@ -597,7 +645,7 @@ export class BrowserPool<
             );
         }
 
-        await this._executeHooks(this.postPageCreateHooks, page, browserController);
+        await this.executeHooks(this.postPageCreateHooks, page, browserController);
         tryCancel();
 
         this.emit(BROWSER_POOL_EVENTS.PAGE_CREATED, page);
@@ -633,6 +681,71 @@ export class BrowserPool<
     }
 
     /**
+     * Releases a page back to the pool. The page is closed and, if the
+     * optional `error` is a {@apilink SessionError}, the browser controller
+     * that served the page is retired so that its tainted state (cookies,
+     * storage, etc.) cannot leak into future sessions.
+     *
+     * This is the primary way the crawler should return pages to the pool.
+     *
+     * @param page The page to release.
+     * @param options.error The error that caused the page to be released, if any.
+     */
+    async closePage(page: PageReturn, options?: { error?: Error }): Promise<void> {
+        if (options?.error instanceof SessionError) {
+            this.retireBrowserByPage(page);
+        }
+
+        // Puppeteer 25+ can hang `page.close()` indefinitely when the page's navigation was aborted, don't let it block the crawler.
+        await addTimeoutToPromise(
+            async () => page.close(),
+            PAGE_CLOSE_TIMEOUT_MILLIS,
+            `page.close() timed out after ${PAGE_CLOSE_TIMEOUT_MILLIS / 1000} seconds`,
+        );
+    }
+
+    /**
+     * Extracts the relevant state (currently just cookies) from a page via its
+     * owning {@apilink BrowserController}. Returns empty state when the page is
+     * no longer associated with a controller.
+     *
+     * As with {@apilink BrowserPool.injectPageState}, cookies are isolated per
+     * page only when the pool is configured with `useIncognitoPages: true`.
+     * With the default `useIncognitoPages: false`, the extracted cookies
+     * include those set by any sibling page sharing the same browser.
+     */
+    async extractPageState(page: PageReturn): Promise<PageState> {
+        const controller = this.getBrowserControllerByPage(page);
+
+        if (!controller) {
+            return { cookies: [] };
+        }
+
+        return { cookies: await controller.getCookies(page) };
+    }
+
+    /**
+     * Injects state into a page via its owning {@apilink BrowserController}.
+     *
+     * No-op when the page is no longer associated with a controller.
+     *
+     * Note that cookies are isolated per page only when the pool is configured
+     * with `useIncognitoPages: true` — each page then gets its own browser
+     * context. With the default `useIncognitoPages: false`, all pages in a
+     * browser share a single context, so injected cookies are visible to every
+     * page served by that browser.
+     */
+    async injectPageState(page: PageReturn, state: PageState): Promise<void> {
+        const controller = this.getBrowserControllerByPage(page);
+
+        if (!controller) {
+            return;
+        }
+
+        await controller.setCookies(page, state.cookies);
+    }
+
+    /**
      * Removes all active browsers from the pool. The browsers will be
      * closed after all their pages are closed.
      */
@@ -647,7 +760,7 @@ export class BrowserPool<
      * @return {Promise<void>}
      */
     async closeAllBrowsers(): Promise<void> {
-        const controllers = this._getAllBrowserControllers();
+        const controllers = this.getAllBrowserControllers();
         const promises = [...controllers]
             .filter((controller) => controller.isActive)
             .map(async (controller) => controller.close());
@@ -655,21 +768,25 @@ export class BrowserPool<
         await Promise.all(promises);
     }
 
+    async [Symbol.asyncDispose](): Promise<void> {
+        await this.destroy();
+    }
+
     /**
      * Closes all managed browsers and tears down the pool.
      */
     async destroy(): Promise<void> {
         clearInterval(this.browserKillerInterval!);
-        clearInterval(this.browserRetireInterval!);
+        clearInterval(this.#browserRetireInterval!);
         this.browserKillerInterval = undefined;
-        this.browserRetireInterval = undefined;
+        this.#browserRetireInterval = undefined;
 
         await this.closeAllBrowsers();
 
-        this._teardown();
+        this.teardown();
     }
 
-    private _teardown() {
+    private teardown() {
         this.startingBrowserControllers.clear();
         this.activeBrowserControllers.clear();
         this.retiredBrowserControllers.clear();
@@ -677,7 +794,7 @@ export class BrowserPool<
         this.removeAllListeners();
     }
 
-    private _getAllBrowserControllers() {
+    private getAllBrowserControllers() {
         return new Set([
             ...this.startingBrowserControllers,
             ...this.activeBrowserControllers,
@@ -685,8 +802,8 @@ export class BrowserPool<
         ]);
     }
 
-    private async _launchBrowser(pageId: string, options: InternalLaunchBrowserOptions<BrowserPlugins[number]>) {
-        const { browserPlugin, launchOptions, proxyTier, proxyUrl } = options;
+    private async launchBrowser(pageId: string, options: InternalLaunchBrowserOptions<BrowserPlugins[number]>) {
+        const { browserPlugin, launchOptions, proxyUrl, ignoreTlsErrors } = options;
 
         const browserController = browserPlugin.createController() as BrowserControllerReturn;
         this.startingBrowserControllers.add(browserController);
@@ -694,14 +811,23 @@ export class BrowserPool<
         const launchContext = browserPlugin.createLaunchContext({
             id: pageId,
             launchOptions,
-            proxyTier,
             proxyUrl,
         });
+
+        // Disable SSL verification for MITM proxies
+        if (ignoreTlsErrors) {
+            /**
+             * @see https://playwright.dev/docs/api/class-browser/#browser-new-context
+             * @see https://github.com/puppeteer/puppeteer/blob/main/docs/api.md
+             */
+            (launchContext.launchOptions as Record<string, unknown>).ignoreHTTPSErrors = true;
+            (launchContext.launchOptions as Record<string, unknown>).acceptInsecureCerts = true;
+        }
 
         try {
             // If the hooks or the launch fails, we need to delete the controller,
             // because otherwise it would be stuck in limbo without a browser.
-            await this._executeHooks(this.preLaunchHooks, pageId, launchContext);
+            await this.executeHooks(this.preLaunchHooks, pageId, launchContext);
             tryCancel();
             const browser = await browserPlugin.launch(launchContext);
             tryCancel();
@@ -711,18 +837,17 @@ export class BrowserPool<
             throw err;
         }
 
-        log.debug('Launched new browser.', { id: browserController.id });
-        browserController.proxyTier = proxyTier;
+        this.#log.debug('Launched new browser.', { id: browserController.id });
         browserController.proxyUrl = proxyUrl;
 
         try {
             // If the launch fails on the post-launch hooks, we need to clean up
             // both the controller and the browser before throwing.
-            await this._executeHooks(this.postLaunchHooks, pageId, browserController);
+            await this.executeHooks(this.postLaunchHooks, pageId, browserController);
         } catch (err) {
             this.startingBrowserControllers.delete(browserController);
             browserController.close().catch((closeErr) => {
-                log.error(`Could not close browser whose post-launch hooks failed.\nCause:${closeErr.message}`, {
+                this.#log.error(`Could not close browser whose post-launch hooks failed.\nCause:${closeErr.message}`, {
                     id: browserController.id,
                 });
             });
@@ -742,32 +867,30 @@ export class BrowserPool<
      * Picks plugins round robin.
      * @private
      */
-    private _pickBrowserPlugin() {
+    private pickBrowserPlugin() {
         const pluginIndex = this.pageCounter % this.browserPlugins.length;
         this.pageCounter++;
 
         return this.browserPlugins[pluginIndex];
     }
 
-    private _pickBrowserWithFreeCapacity(browserPlugin: BrowserPlugin, options?: Partial<TieredProxy>) {
+    private pickBrowserWithFreeCapacity(browserPlugin: BrowserPlugin, options?: { proxyUrl?: string }) {
         return [...this.activeBrowserControllers].find((controller) => {
             const hasCapacity = controller.activePages < this.maxOpenPagesPerBrowser;
             const isCorrectPlugin = controller.browserPlugin === browserPlugin;
             const isSameProxyUrl = controller.proxyUrl === options?.proxyUrl;
-            const isCorrectProxyTier = controller.proxyTier === options?.proxyTier;
 
             return (
                 isCorrectPlugin &&
                 hasCapacity &&
-                ((!controller.launchContext.browserPerProxy && !options?.proxyTier) ||
-                    (options?.proxyTier && isCorrectProxyTier) ||
+                (!controller.launchContext.browserPerProxy ||
                     (options?.proxyUrl && isSameProxyUrl) ||
-                    (!options?.proxyUrl && !options?.proxyTier && !controller.proxyUrl && !controller.proxyTier))
+                    (!options?.proxyUrl && !controller.proxyUrl))
             );
         });
     }
 
-    private async _closeInactiveRetiredBrowsers() {
+    private async closeInactiveRetiredBrowsers() {
         const closedBrowserIds: string[] = [];
 
         for (const controller of this.retiredBrowserControllers) {
@@ -777,7 +900,7 @@ export class BrowserPool<
 
             if (isBrowserIdle || isBrowserEmpty) {
                 const { id } = controller;
-                log.debug('Closing retired browser.', { id });
+                this.#log.debug('Closing retired browser.', { id });
                 await controller.close();
                 this.retiredBrowserControllers.delete(controller);
                 closedBrowserIds.push(id);
@@ -785,46 +908,46 @@ export class BrowserPool<
         }
 
         if (closedBrowserIds.length) {
-            log.debug('Closed retired browsers.', {
+            this.#log.debug('Closed retired browsers.', {
                 count: closedBrowserIds.length,
                 closedBrowserIds,
             });
         }
     }
 
-    private _overridePageClose(page: PageReturn) {
+    private overridePageClose(page: PageReturn) {
         const originalPageClose = page.close;
         const browserController = this.pageToBrowserController.get(page)!;
         const pageId = this.getPageId(page)!;
 
         page.close = async (...args: unknown[]) => {
-            await this._executeHooks(this.prePageCloseHooks, page, browserController);
+            await this.executeHooks(this.prePageCloseHooks, page, browserController);
 
             await originalPageClose.apply(page, args).catch((err: Error) => {
-                log.debug(`Could not close page.\nCause:${err.message}`, { id: browserController.id });
+                this.#log.debug(`Could not close page.\nCause:${err.message}`, { id: browserController.id });
             });
 
-            await this._executeHooks(this.postPageCloseHooks, pageId, browserController);
+            await this.executeHooks(this.postPageCloseHooks, pageId, browserController);
 
             this.pages.delete(pageId);
-            this._closeRetiredBrowserWithNoPages(browserController);
+            this.closeRetiredBrowserWithNoPages(browserController);
 
             this.emit(BROWSER_POOL_EVENTS.PAGE_CLOSED, page);
         };
     }
 
-    private async _executeHooks(hooks: ((...args: any[]) => unknown)[], ...args: unknown[]) {
+    private async executeHooks(hooks: ((...args: any[]) => unknown)[], ...args: unknown[]) {
         for (const hook of hooks) {
             await hook(...args);
         }
     }
 
-    private _closeRetiredBrowserWithNoPages(browserController: BrowserControllerReturn) {
+    private closeRetiredBrowserWithNoPages(browserController: BrowserControllerReturn) {
         if (browserController.activePages === 0 && this.retiredBrowserControllers.has(browserController)) {
             // Run this with a delay, otherwise page.close()
             // might fail with "Protocol error (Target.closeTarget): Target closed."
             setTimeout(() => {
-                log.debug('Closing retired browser because it has no active pages', { id: browserController.id });
+                this.#log.debug('Closing retired browser because it has no active pages', { id: browserController.id });
                 void browserController.close().finally(() => {
                     this.retiredBrowserControllers.delete(browserController);
                 });
@@ -832,7 +955,29 @@ export class BrowserPool<
         }
     }
 
-    private _initializeFingerprinting(): void {
+    /**
+     * Returns `true` if the pool can accept a new browser launch without exceeding
+     * {@link BrowserPoolOptions.maxOpenBrowsers}. Counts starting, active, and retired browsers.
+     */
+    hasFreeBrowserSlot(): boolean {
+        const total =
+            this.startingBrowserControllers.size +
+            this.activeBrowserControllers.size +
+            this.retiredBrowserControllers.size;
+        return total < this.maxOpenBrowsers;
+    }
+
+    /**
+     * Returns `true` if any active browser has room for another page.
+     */
+    hasActiveBrowserWithFreeCapacity(): boolean {
+        for (const controller of this.activeBrowserControllers) {
+            if (controller.activePages < this.maxOpenPagesPerBrowser) return true;
+        }
+        return false;
+    }
+
+    private initializeFingerprinting(): void {
         const { useFingerprintCache = true, fingerprintCacheSize = 10_000 } = this.fingerprintOptions;
         this.fingerprintGenerator = new FingerprintGenerator(this.fingerprintOptions.fingerprintGeneratorOptions);
         this.fingerprintInjector = new FingerprintInjector();
@@ -841,10 +986,10 @@ export class BrowserPool<
             this.fingerprintCache = new QuickLRU({ maxSize: fingerprintCacheSize });
         }
 
-        this._addFingerprintHooks();
+        this.addFingerprintHooks();
     }
 
-    private _addFingerprintHooks() {
+    private addFingerprintHooks() {
         this.preLaunchHooks = [
             ...this.preLaunchHooks,
             // This is flipped because of the fingerprint cache.
@@ -856,12 +1001,33 @@ export class BrowserPool<
     }
 }
 
-export interface BrowserPoolNewPageOptions<PageOptions, BP extends BrowserPlugin> {
+export interface BrowserPoolNewPageOptions<PageOptions, BP extends BrowserPlugin> extends NewPageOptions {
     /**
-     * Assign a custom ID to the page. If you don't a random string ID
-     * will be generated.
+     * The proxy URL the pool uses internally to route the page: it keys browser
+     * reuse (with `browserPerProxy`, only a browser already on this proxy is
+     * reused), configures the launched browser, and is applied to incognito
+     * pages. When omitted, it is derived from the
+     * {@apilink NewPageOptions.session|session}'s `proxyInfo`; an explicit value
+     * here takes precedence.
+     *
+     * This is an implementation detail of the built-in `BrowserPool`'s proxy
+     * handling and is intentionally not part of the {@apilink IBrowserPool}
+     * contract — through that interface the proxy is supplied via the session.
      */
-    id?: string;
+    proxyUrl?: string;
+    /**
+     * Disable TLS certificate verification for MITM proxies. Applied both when
+     * launching a new browser and when creating a page in an existing one. When
+     * omitted, it is derived from the
+     * {@apilink NewPageOptions.session|session}'s `proxyInfo`; an explicit value
+     * here takes precedence.
+     *
+     * This is an implementation detail of the built-in `BrowserPool` and is
+     * intentionally not part of the {@apilink IBrowserPool} contract — through
+     * that interface, configure it via the session's `proxyInfo` or through the
+     * browser's `launchOptions`.
+     */
+    ignoreTlsErrors?: boolean;
     /**
      * Some libraries (Playwright) allow you to open new pages with specific
      * options. Use this property to set those options.
@@ -876,14 +1042,6 @@ export interface BrowserPoolNewPageOptions<PageOptions, BP extends BrowserPlugin
      * see the `newPageInNewBrowser` function.
      */
     browserPlugin?: BP;
-    /**
-     * Proxy URL.
-     */
-    proxyUrl?: string;
-    /**
-     * Proxy tier.
-     */
-    proxyTier?: number;
 }
 
 export interface BrowserPoolNewPageInNewBrowserOptions<PageOptions, BP extends BrowserPlugin> {
@@ -919,6 +1077,6 @@ export interface BrowserPoolNewPageInNewBrowserOptions<PageOptions, BP extends B
 interface InternalLaunchBrowserOptions<BP extends BrowserPlugin> {
     browserPlugin: BP;
     launchOptions?: BP['launchOptions'];
-    proxyTier?: number;
     proxyUrl?: string;
+    ignoreTlsErrors?: boolean;
 }

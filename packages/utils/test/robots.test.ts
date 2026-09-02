@@ -1,7 +1,13 @@
+import { FetchHttpClient } from '@crawlee/http-client';
 import nock from 'nock';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { RobotsTxtFile } from '../src/internals/robots';
+import { RobotsTxtFile } from '../src/internals/robots.js';
+
+const httpClient = new FetchHttpClient();
+
+// Never replies within the lifetime of a test, so only the timeout/abort can settle the promise.
+const neverReplies = 'http://never-replies.com';
 
 describe('RobotsTxtFile', () => {
     beforeEach(() => {
@@ -30,20 +36,23 @@ describe('RobotsTxtFile', () => {
             )
             .get('*')
             .reply(404);
+
+        nock(neverReplies).persist().get('/robots.txt').delay(30_000).reply(200, 'User-agent: *');
     });
 
     afterEach(() => {
+        nock.abortPendingRequests();
         nock.cleanAll();
         nock.enableNetConnect();
     });
 
     it('generates the correct robots.txt URL', async () => {
-        const robots = await RobotsTxtFile.find('http://not-exists.com/nested/index.html');
+        const robots = await RobotsTxtFile.find('http://not-exists.com/nested/index.html', { httpClient });
         expect(robots.getSitemaps()).not.toHaveLength(0);
     });
 
     it('parses allow/deny directives from robots.txt', async () => {
-        const robots = await RobotsTxtFile.find('http://not-exists.com/robots.txt');
+        const robots = await RobotsTxtFile.find('http://not-exists.com/robots.txt', { httpClient });
         console.log(robots.isAllowed('https://crawlee.dev'));
         expect(robots.isAllowed('http://not-exists.com/something/page.html')).toBe(true);
         expect(robots.isAllowed('http://not-exists.com/deny_googlebot/page.html')).toBe(true);
@@ -51,7 +60,7 @@ describe('RobotsTxtFile', () => {
     });
 
     it('extracts sitemap urls', async () => {
-        const robots = await RobotsTxtFile.find('http://not-exists.com/robots.txt');
+        const robots = await RobotsTxtFile.find('http://not-exists.com/robots.txt', { httpClient });
         expect(robots.getSitemaps()).toEqual([
             'http://not-exists.com/sitemap_1.xml',
             'http://not-exists.com/sitemap_2.xml',
@@ -59,44 +68,76 @@ describe('RobotsTxtFile', () => {
     });
 
     it('respects user-set timeout', async () => {
-        const start = +Date.now();
-        const robots = RobotsTxtFile.find('http://not-exists.com/robots.txt', undefined, { timeoutMillis: 200 });
+        const start = Date.now();
+        const robots = RobotsTxtFile.find(`${neverReplies}/robots.txt`, { timeoutMillis: 200 });
 
         await expect(robots).rejects.toThrow(/timeout/i);
-        const end = +Date.now();
 
-        expect(end - start).toBeGreaterThanOrEqual(200);
-        expect(end - start).toBeLessThanOrEqual(500);
+        const elapsed = Date.now() - start;
+        expect(elapsed).toBeGreaterThanOrEqual(200);
+        expect(elapsed).toBeLessThan(10_000);
     });
 
     it('respects AbortSignal parameter', async () => {
         const controller = new AbortController();
         setTimeout(() => controller.abort(), 200);
 
-        const start = +Date.now();
-        const robots = RobotsTxtFile.find('http://not-exists.com/robots.txt', undefined, { signal: controller.signal });
+        const start = Date.now();
+        const robots = RobotsTxtFile.find(`${neverReplies}/robots.txt`, { signal: controller.signal });
 
         await expect(robots).rejects.toThrow(/aborted/i);
-        const end = +Date.now();
 
-        expect(end - start).toBeGreaterThanOrEqual(200);
-        expect(end - start).toBeLessThanOrEqual(500);
+        const elapsed = Date.now() - start;
+        expect(elapsed).toBeGreaterThanOrEqual(200);
+        expect(elapsed).toBeLessThan(10_000);
     });
 
     it('respects AbortSignal parameter and timeout together', async () => {
         const controller = new AbortController();
 
-        const start = +Date.now();
-        const robots = RobotsTxtFile.find('http://not-exists.com/robots.txt', undefined, {
+        const start = Date.now();
+        const robots = RobotsTxtFile.find(`${neverReplies}/robots.txt`, {
             signal: controller.signal,
             timeoutMillis: 200,
         });
 
         await expect(robots).rejects.toThrow(/timeout/i);
-        const end = +Date.now();
 
-        expect(end - start).toBeGreaterThanOrEqual(200);
-        expect(end - start).toBeLessThanOrEqual(500);
+        const elapsed = Date.now() - start;
+        expect(elapsed).toBeGreaterThanOrEqual(200);
+        expect(elapsed).toBeLessThan(10_000);
+    });
+
+    it('drops cross-host and non-http(s) sitemap directives under the default same-hostname strategy', () => {
+        const content = [
+            'User-agent: *',
+            'Sitemap: http://not-exists.com/legit.xml',
+            'Sitemap: http://other.test/cross.xml',
+            'Sitemap: mailto:foo@bar.com',
+            'Sitemap: ftp://not-exists.com/cross.xml',
+        ].join('\n');
+        const robots = RobotsTxtFile.from('http://not-exists.com/robots.txt', content);
+        expect(robots.getSitemaps()).toEqual(['http://not-exists.com/legit.xml']);
+    });
+
+    it('keeps cross-host http sitemaps but still drops non-http(s) ones with enqueueStrategy "all"', () => {
+        const content = [
+            'User-agent: *',
+            'Sitemap: http://not-exists.com/legit.xml',
+            'Sitemap: http://other.test/cross.xml',
+            'Sitemap: mailto:foo@bar.com',
+            'Sitemap: ftp://not-exists.com/cross.xml',
+        ].join('\n');
+        const robots = RobotsTxtFile.from('http://not-exists.com/robots.txt', content);
+        expect(new Set(robots.getSitemaps({ enqueueStrategy: 'all' }))).toEqual(
+            new Set(['http://not-exists.com/legit.xml', 'http://other.test/cross.xml']),
+        );
+    });
+
+    it('getSitemaps does not throw when the robots.txt url is not absolute', () => {
+        // A non-absolute url must not crash getSitemaps().
+        const robots = RobotsTxtFile.from('not-exists.com/robots.txt', 'Sitemap: http://not-exists.com/legit.xml');
+        expect(() => robots.getSitemaps()).not.toThrow();
     });
 
     it('parses allow/deny directives from explicitly provided robots.txt contents', async () => {

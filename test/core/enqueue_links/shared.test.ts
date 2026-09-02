@@ -1,67 +1,54 @@
-import type { Request } from '@crawlee/core';
+import type { RequestOptions } from '@crawlee/core';
 import {
+    applyRequestTransform,
     constructGlobObjectsFromGlobs,
-    constructRegExpObjectsFromPseudoUrls,
     constructRegExpObjectsFromRegExps,
+    constructUrlPatternObjects,
     createRequestOptions,
-    createRequests,
+    filterRequestOptionsByPatterns,
     validateGlobPattern,
 } from '@crawlee/core';
 
 describe('Enqueue links shared functions', () => {
     describe('constructGlobObjectsFromGlobs()', () => {
         test('should work', () => {
-            const globs = [
-                'https://example.com/**/*',
-                { glob: '?(http|https)://cool.com/', userData: { foo: 'bar' }, label: 'foobar' },
-            ];
+            const globs = ['https://example.com/**/*', { glob: '?(http|https)://cool.com/' }];
             const globObjects = constructGlobObjectsFromGlobs(globs);
             expect(globObjects).toHaveLength(2);
             expect(globObjects[0].glob).toEqual('https://example.com/**/*');
-            expect(globObjects[0].userData).toBe(undefined);
             expect(globObjects[1].glob).toEqual('?(http|https)://cool.com/');
-            expect(globObjects[1].userData).toStrictEqual({ foo: 'bar' });
-            expect(globObjects[1].label).toBe('foobar');
         });
     });
 
     describe('constructRegExpObjectsFromRegExps()', () => {
         test('should work', () => {
-            const regexps = [
-                /^https:\/\/example\.com\/(\w|\/)+/,
-                { regexp: /^(http|https):\/\/cool\.com\//, userData: { foo: 'bar' } },
-            ];
+            const regexps = [/^https:\/\/example\.com\/(\w|\/)+/, { regexp: /^(http|https):\/\/cool\.com\// }];
             const regexpObjects = constructRegExpObjectsFromRegExps(regexps);
             expect(regexpObjects).toHaveLength(2);
             expect(regexpObjects[0].regexp.test('https://example.com/')).toBe(false);
-            expect(regexpObjects[0].userData).toBe(undefined);
             expect(regexpObjects[1].regexp.test('https://cool.com/')).toBe(true);
-            expect(regexpObjects[1].userData).toStrictEqual({ foo: 'bar' });
         });
     });
 
-    describe('constructRegExpObjectsFromPseudoUrls()', () => {
-        test('should work', () => {
-            const pseudoUrls = [
-                'http[s?]://example.com/',
-                { purl: 'http[s?]://example.com[.*]', userData: { foo: 'bar' } },
+    describe('constructUrlPatternObjects()', () => {
+        test('should handle mixed glob and regexp patterns', () => {
+            const patterns = [
+                'https://example.com/**/*',
+                { glob: 'https://cool.com/**' },
+                /^https:\/\/foo\.com/,
+                { regexp: /bar\.com/ },
             ];
-            const urlPatternObjects = constructRegExpObjectsFromPseudoUrls(pseudoUrls);
-            expect(urlPatternObjects).toHaveLength(2);
-            urlPatternObjects.forEach((urlPatternObject) => {
-                expect(urlPatternObject.regexp.test('https://example.com/')).toBe(true);
-            });
-            expect(urlPatternObjects[0].regexp.test('https://example.com/foo')).toBe(false);
-            expect(urlPatternObjects[0].userData).toBe(undefined);
-            expect(urlPatternObjects[1].regexp.test('https://example.com/foo')).toBe(true);
-            expect(urlPatternObjects[1].userData).toStrictEqual({ foo: 'bar' });
+            const objects = constructUrlPatternObjects(patterns);
+            expect(objects).toHaveLength(4);
+            expect(objects[0]).toHaveProperty('glob', 'https://example.com/**/*');
+            expect(objects[1]).toHaveProperty('glob', 'https://cool.com/**');
+            expect(objects[2]).toHaveProperty('regexp');
+            expect(objects[3]).toHaveProperty('regexp');
         });
+    });
 
+    describe('caching', () => {
         test('should cache items', () => {
-            const pseudoUrls0 = constructRegExpObjectsFromPseudoUrls(['http[s?]://example.com/[.*]']);
-            const pseudoUrls1 = constructRegExpObjectsFromPseudoUrls(['http[s?]://example.com/[.*]']);
-            expect(pseudoUrls0[0]).toEqual(pseudoUrls1[0]);
-
             const globs0 = constructGlobObjectsFromGlobs(['https://example.com/**/*']);
             const globs1 = constructGlobObjectsFromGlobs(['https://example.com/**/*']);
             expect(globs0[0]).toEqual(globs1[0]);
@@ -72,34 +59,31 @@ describe('Enqueue links shared functions', () => {
         });
     });
 
-    describe('createRequests()', () => {
-        test('should work', () => {
+    describe('filterRequestOptionsByPatterns() + applyRequestTransform()', () => {
+        test('should filter by patterns and apply transform', () => {
             const sources = [
                 'http://example.com/foo',
-                { url: 'https://example.com/bar', method: 'POST', label: 'POST-REQUEST' },
+                { url: 'https://example.com/bar', method: 'POST' as const, label: 'POST-REQUEST' },
                 'https://apify.com',
             ];
-            const pseudoUrls = [{ purl: 'http[s?]://example.com/[.*]', userData: { one: 1 } }];
-            const urlPatternObjects = constructRegExpObjectsFromPseudoUrls(pseudoUrls);
+            const urlPatternObjects = constructUrlPatternObjects([/^https?:\/\/example\.com\/.*/]);
 
-            const transformRequestFunction = (request: Request) => {
-                request.userData.foo = 'bar';
+            const transformRequestFunction = (request: RequestOptions) => {
+                request.userData = { ...request.userData, foo: 'bar' };
                 return request;
             };
 
             const requestOptions = createRequestOptions(sources);
-            const requests = createRequests(requestOptions, urlPatternObjects)
-                .map(transformRequestFunction)
-                .filter((r) => !!r);
+            const filtered = filterRequestOptionsByPatterns(requestOptions, urlPatternObjects);
+            const transformed = applyRequestTransform(filtered, transformRequestFunction);
 
-            expect(requests).toHaveLength(2);
-            requests.forEach((r) => {
+            expect(transformed).toHaveLength(2);
+            transformed.forEach((r) => {
                 expect(r.url).toMatch(/^https?:\/\/example\.com\//);
-                expect(r.userData).toMatchObject({ foo: 'bar', one: 1 });
+                expect(r.userData).toMatchObject({ foo: 'bar' });
             });
-            expect(requests[0].method).toBe('GET');
-            expect(requests[1].method).toBe('POST');
-            expect(requests[1].userData).toEqual({ foo: 'bar', one: 1, label: 'POST-REQUEST' });
+            expect(transformed[0].method).toBeUndefined(); // defaults to GET when Request is constructed
+            expect(transformed[1].method).toBe('POST');
         });
     });
 

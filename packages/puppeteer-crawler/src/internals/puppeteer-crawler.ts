@@ -2,58 +2,99 @@ import type {
     BrowserCrawlerOptions,
     BrowserCrawlingContext,
     BrowserHook,
-    BrowserRequestHandler,
+    ContextPipeline,
+    CrawlingContext,
     GetUserDataFromRequest,
-    LoadedContext,
+    RouterHandler,
     RouterRoutes,
+    RouteSchemas,
+    RoutesFromSchemas,
 } from '@crawlee/browser';
-import { BrowserCrawler, Configuration, Router } from '@crawlee/browser';
-import type { BrowserPoolOptions, PuppeteerController, PuppeteerPlugin } from '@crawlee/browser-pool';
+import { assertBrowserPoolNotConfigured, BrowserCrawler, RequestState, Router } from '@crawlee/browser';
+import { serviceLocator } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/types';
-import ow from 'ow';
+import { parseArgument } from '@crawlee/utils/internal';
+// @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
 import type { HTTPResponse, LaunchOptions, Page } from 'puppeteer';
+import { z } from 'zod';
 
-import type { PuppeteerLaunchContext } from './puppeteer-launcher';
-import { PuppeteerLauncher } from './puppeteer-launcher';
-import type { DirectNavigationOptions, PuppeteerContextUtils } from './utils/puppeteer_utils';
-import { gotoExtended, registerUtilsToContext } from './utils/puppeteer_utils';
+import type { EnqueueLinksByClickingElementsOptions } from './enqueue-links/click-elements.js';
+import { puppeteerBrowserPool, remotePuppeteerBrowserPool } from './puppeteer-browser-pool.js';
+import type { PuppeteerLaunchContext } from './puppeteer-launcher.js';
+import type { InterceptHandler } from './utils/puppeteer_request_interception.js';
+import type {
+    BlockRequestsOptions,
+    DirectNavigationOptions,
+    InfiniteScrollOptions,
+    InjectFileOptions,
+    PuppeteerContextUtils,
+    SaveSnapshotOptions,
+} from './utils/puppeteer_utils.js';
+import { gotoExtended, puppeteerUtils } from './utils/puppeteer_utils.js';
 
-export interface PuppeteerCrawlingContext<UserData extends Dictionary = Dictionary>
-    extends BrowserCrawlingContext<PuppeteerCrawler, Page, HTTPResponse, PuppeteerController, UserData>,
-        PuppeteerContextUtils {}
-export interface PuppeteerHook extends BrowserHook<PuppeteerCrawlingContext, PuppeteerGoToOptions> {}
-export interface PuppeteerRequestHandler extends BrowserRequestHandler<LoadedContext<PuppeteerCrawlingContext>> {}
-export type PuppeteerGoToOptions = Parameters<Page['goto']>[1];
+export type PuppeteerGoToOptions = NonNullable<Parameters<Page['goto']>[1]>;
 
-export interface PuppeteerCrawlerOptions
-    extends BrowserCrawlerOptions<PuppeteerCrawlingContext, { browserPlugins: [PuppeteerPlugin] }> {
+export interface PuppeteerCrawlingContext<
+    UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
+>
+    extends BrowserCrawlingContext<Page, HTTPResponse, UserData, PuppeteerGoToOptions>, PuppeteerContextUtils {}
+export type PuppeteerHook<
+    UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
+> = BrowserHook<PuppeteerCrawlingContext<UserData>>;
+
+export interface PuppeteerCrawlerOptions<
+    ContextExtension = Dictionary<never>,
+    ExtendedContext extends PuppeteerCrawlingContext = PuppeteerCrawlingContext & ContextExtension,
+    Routes extends Record<keyof Routes, Dictionary> = Record<
+        string,
+        GetUserDataFromRequest<PuppeteerCrawlingContext['request']>
+    >,
+    StatisticStateExtension extends object = {},
+> extends BrowserCrawlerOptions<
+    Page,
+    HTTPResponse,
+    PuppeteerCrawlingContext,
+    ContextExtension,
+    ExtendedContext,
+    Routes,
+    StatisticStateExtension
+> {
     /**
      * Options used by {@apilink launchPuppeteer} to start new Puppeteer instances.
      */
     launchContext?: PuppeteerLaunchContext;
 
     /**
+     * Whether to run browser in headless mode. Defaults to `true`.
+     * Can be also set via {@apilink Configuration}.
+     */
+    headless?: boolean | 'new' | 'old';
+
+    /**
      * Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies
-     * or browser properties before navigation. The function accepts two parameters, `crawlingContext` and `gotoOptions`,
-     * which are passed to the `page.goto()` function the crawler calls to navigate.
+     * or browser properties before navigation. The function receives the `crawlingContext`; the options object
+     * forwarded to `page.goto()` is available as `crawlingContext.gotoOptions` and can be mutated in place.
+     * A hook may optionally return a partial object whose properties are merged into the crawling context
+     * (e.g. to override context members for subsequent hooks and pipeline stages).
      * Example:
      * ```
      * preNavigationHooks: [
-     *     async (crawlingContext, gotoOptions) => {
-     *         const { page } = crawlingContext;
+     *     async ({ page, gotoOptions }) => {
      *         await page.evaluate((attr) => { window.foo = attr; }, 'bar');
+     *         gotoOptions.timeout = 60_000;
      *     },
      * ]
      * ```
-     *
-     * Modyfing `pageOptions` is supported only in Playwright incognito.
-     * See {@apilink PrePageCreateHook}
      */
-    preNavigationHooks?: PuppeteerHook[];
+    preNavigationHooks?: BrowserHook<
+        PuppeteerCrawlingContext<GetUserDataFromRequest<ExtendedContext['request']>>,
+        ContextExtension
+    >[];
 
     /**
      * Async functions that are sequentially evaluated after the navigation. Good for checking if the navigation was successful.
-     * The function accepts `crawlingContext` as the only parameter.
+     * The function accepts `crawlingContext` as the only parameter. A hook may optionally return a partial object
+     * whose properties are merged into the crawling context (e.g. to override `response` after solving a challenge).
      * Example:
      * ```
      * postNavigationHooks: [
@@ -66,7 +107,10 @@ export interface PuppeteerCrawlerOptions
      * ]
      * ```
      */
-    postNavigationHooks?: PuppeteerHook[];
+    postNavigationHooks?: BrowserHook<
+        PuppeteerCrawlingContext<GetUserDataFromRequest<ExtendedContext['request']>>,
+        ContextExtension
+    >[];
 }
 
 /**
@@ -80,24 +124,26 @@ export interface PuppeteerCrawlerOptions
  * If the target website doesn't need JavaScript, consider using {@apilink CheerioCrawler},
  * which downloads the pages using raw HTTP requests and is about 10x faster.
  *
- * The source URLs are represented using {@apilink Request} objects that are fed from
- * {@apilink RequestList} or {@apilink RequestQueue} instances provided by the {@apilink PuppeteerCrawlerOptions.requestList}
- * or {@apilink PuppeteerCrawlerOptions.requestQueue} constructor options, respectively.
+ * The source URLs are represented using {@apilink Request} objects that are fed from the
+ * {@apilink IRequestManager|request manager} provided via the {@apilink PuppeteerCrawlerOptions.requestManager|`requestManager`}
+ * constructor option (a {@apilink RequestQueue} is itself a request manager). To read from a read-only source such
+ * as a {@apilink RequestList} while still being able to enqueue new requests, combine it with a queue into a
+ * {@apilink RequestManagerTandem} via {@apilink IRequestLoader.toTandem|`requestLoader.toTandem()`} and pass the
+ * result as `requestManager`.
  *
- * If both {@apilink PuppeteerCrawlerOptions.requestList} and {@apilink PuppeteerCrawlerOptions.requestQueue} are used,
- * the instance first processes URLs from the {@apilink RequestList} and automatically enqueues all of them
- * to {@apilink RequestQueue} before it starts their processing. This ensures that a single URL is not crawled multiple times.
+ * > The {@apilink PuppeteerCrawlerOptions.requestList|`requestList`} and {@apilink PuppeteerCrawlerOptions.requestQueue|`requestQueue`}
+ * > options are deprecated; they are still accepted and folded into a single `requestManager` for back-compat.
  *
  * The crawler finishes when there are no more {@apilink Request} objects to crawl.
  *
  * `PuppeteerCrawler` opens a new Chrome page (i.e. tab) for each {@apilink Request} object to crawl
  * and then calls the function provided by user as the {@apilink PuppeteerCrawlerOptions.requestHandler} option.
  *
- * New pages are only opened when there is enough free CPU and memory available,
- * using the functionality provided by the {@apilink AutoscaledPool} class.
- * All {@apilink AutoscaledPool} configuration options can be passed to the {@apilink PuppeteerCrawlerOptions.autoscaledPoolOptions}
- * parameter of the `PuppeteerCrawler` constructor. For user convenience, the `minConcurrency` and `maxConcurrency`
- * {@apilink AutoscaledPoolOptions} are available directly in the `PuppeteerCrawler` constructor.
+ * New pages are only opened when there is enough free CPU and memory available, as judged by the crawler's
+ * {@apilink ConcurrencySystem}.
+ * Concurrency is tuned via the `minConcurrency`, `maxConcurrency` and `maxRequestsPerMinute` options of the
+ * `PuppeteerCrawler` constructor, or, for finer control, by injecting a pre-configured
+ * {@apilink ConcurrencySystem|`concurrencySystem`}.
  *
  * Note that the pool of Puppeteer instances is internally managed by the [BrowserPool](https://github.com/apify/browser-pool) class.
  *
@@ -132,30 +178,53 @@ export interface PuppeteerCrawlerOptions
  * ```
  * @category Crawlers
  */
-export class PuppeteerCrawler extends BrowserCrawler<
-    { browserPlugins: [PuppeteerPlugin] },
+export class PuppeteerCrawler<
+    ContextExtension = Dictionary<never>,
+    ExtendedContext extends PuppeteerCrawlingContext = PuppeteerCrawlingContext & ContextExtension,
+    Routes extends Record<keyof Routes, Dictionary> = Record<
+        string,
+        GetUserDataFromRequest<PuppeteerCrawlingContext['request']>
+    >,
+    StatisticStateExtension extends object = {},
+> extends BrowserCrawler<
+    Page,
+    HTTPResponse,
     LaunchOptions,
-    PuppeteerCrawlingContext
+    PuppeteerCrawlingContext,
+    ContextExtension,
+    ExtendedContext,
+    Routes,
+    StatisticStateExtension
 > {
+    /**
+     * @internal
+     */
     protected static override optionsShape = {
         ...BrowserCrawler.optionsShape,
-        browserPoolOptions: ow.optional.object,
+        // Deliberately looser than the declared type: Puppeteer's own accepted string values have moved over
+        // time (`'new'`/`'old'`, now `'shell'`), and the value is forwarded to it verbatim.
+        headless: z.union([z.boolean(), z.string()]).optional(),
     };
+
+    /** @internal */
+    protected static override optionsSchema = z.strictObject(PuppeteerCrawler.optionsShape);
 
     /**
      * All `PuppeteerCrawler` parameters are passed via an options object.
      */
     constructor(
-        private readonly options: PuppeteerCrawlerOptions = {},
-        override readonly config = Configuration.getGlobalConfig(),
+        options: PuppeteerCrawlerOptions<ContextExtension, ExtendedContext, Routes, StatisticStateExtension> = {},
     ) {
-        ow(options, 'PuppeteerCrawlerOptions', ow.object.exactShape(PuppeteerCrawler.optionsShape));
+        const parsedOptions = parseArgument(options, PuppeteerCrawler.optionsSchema, 'PuppeteerCrawlerOptions');
 
-        const { launchContext = {}, headless, proxyConfiguration, ...browserCrawlerOptions } = options;
-
-        const browserPoolOptions = {
-            ...options.browserPoolOptions,
-        } as BrowserPoolOptions;
+        const {
+            launchContext,
+            headless,
+            configuration,
+            proxyConfiguration,
+            contextPipelineBuilder,
+            ...browserCrawlerOptions
+        } = parsedOptions;
 
         if (launchContext.proxyUrl) {
             throw new Error(
@@ -164,30 +233,91 @@ export class PuppeteerCrawler extends BrowserCrawler<
             );
         }
 
-        // `browserPlugins` is working when it's not overridden by `launchContext`,
-        // which for crawlers it is always overridden. Hence the error to use the other option.
-        if (browserPoolOptions.browserPlugins) {
-            throw new Error('browserPoolOptions.browserPlugins is disallowed. Use launchContext.launcher instead.');
+        if (options.browserPool) {
+            // The raw options, not the parsed ones: `launchContext` has a default, so by now it is always set.
+            assertBrowserPoolNotConfigured(new.target.name, {
+                launchContext: options.launchContext,
+                headless: options.headless,
+            });
         }
 
-        if (headless != null) {
-            launchContext.launchOptions ??= {} as LaunchOptions;
-            launchContext.launchOptions.headless = headless as boolean;
-        }
-
-        const puppeteerLauncher = new PuppeteerLauncher(launchContext, config);
-
-        browserPoolOptions.browserPlugins = [puppeteerLauncher.createBrowserPlugin()];
-
-        super({ ...browserCrawlerOptions, launchContext, proxyConfiguration, browserPoolOptions }, config);
+        super({
+            ...(browserCrawlerOptions as BrowserCrawlerOptions<
+                Page,
+                HTTPResponse,
+                PuppeteerCrawlingContext,
+                ContextExtension,
+                ExtendedContext,
+                Routes,
+                StatisticStateExtension
+            >),
+            launchContext,
+            configuration,
+            proxyConfiguration,
+            browserPoolBuilder: (remoteBrowser) =>
+                remoteBrowser
+                    ? remotePuppeteerBrowserPool({ ...remoteBrowser, launchContext, headless, configuration })
+                    : puppeteerBrowserPool({ launchContext, headless, configuration }),
+            contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),
+        });
     }
 
-    protected override async _runRequestHandler(context: PuppeteerCrawlingContext) {
-        registerUtilsToContext(context, this.options);
-        await super._runRequestHandler(context);
+    protected override buildContextPipeline(): ContextPipeline<CrawlingContext, PuppeteerCrawlingContext> {
+        return super.buildContextPipeline().compose({ action: this.enhanceContext.bind(this) });
     }
 
-    protected override async _navigationHandler(
+    private async enhanceContext(context: BrowserCrawlingContext<Page, HTTPResponse>) {
+        const waitForSelector = async (selector: string, timeoutMs = 5_000) => {
+            await context.page.waitForSelector(selector, { timeout: timeoutMs });
+        };
+
+        return {
+            injectFile: async (filePath: string, options?: InjectFileOptions) =>
+                puppeteerUtils.injectFile(context.page, filePath, options),
+            injectJQuery: async () => {
+                if (context.request.state === RequestState.BEFORE_NAV) {
+                    context.log.warning(
+                        'Using injectJQuery() in preNavigationHooks leads to unstable results. Use it in a postNavigationHook or a requestHandler instead.',
+                    );
+                    await puppeteerUtils.injectJQuery(context.page);
+                    return;
+                }
+                await puppeteerUtils.injectJQuery(context.page, { surviveNavigations: false });
+            },
+            waitForSelector,
+            parseWithCheerio: async (selector?: string, timeoutMs = 5_000) => {
+                if (selector) {
+                    await waitForSelector(selector, timeoutMs);
+                }
+
+                return puppeteerUtils.parseWithCheerio(context.page, this.ignoreShadowRoots, this.ignoreIframes);
+            },
+            enqueueLinksByClickingElements: async (
+                options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestManager'>,
+            ) =>
+                puppeteerUtils.enqueueLinksByClickingElements({
+                    page: context.page,
+                    requestManager: this.requestManager!,
+                    ...options,
+                }),
+            blockRequests: async (options?: BlockRequestsOptions) =>
+                puppeteerUtils.blockRequests(context.page, options),
+            compileScript: (scriptString: string, ctx?: Dictionary) => puppeteerUtils.compileScript(scriptString, ctx),
+            addInterceptRequestHandler: async (handler: InterceptHandler) =>
+                puppeteerUtils.addInterceptRequestHandler(context.page, handler),
+            removeInterceptRequestHandler: async (handler: InterceptHandler) =>
+                puppeteerUtils.removeInterceptRequestHandler(context.page, handler),
+            infiniteScroll: async (options?: InfiniteScrollOptions) =>
+                puppeteerUtils.infiniteScroll(context.page, options),
+            saveSnapshot: async (options?: SaveSnapshotOptions) =>
+                puppeteerUtils.saveSnapshot(context.page, {
+                    ...options,
+                    configuration: serviceLocator.getConfiguration(),
+                }),
+        };
+    }
+
+    protected override async navigationHandler(
         crawlingContext: PuppeteerCrawlingContext,
         gotoOptions: DirectNavigationOptions,
     ) {
@@ -221,7 +351,16 @@ export class PuppeteerCrawler extends BrowserCrawler<
  */
 export function createPuppeteerRouter<
     Context extends PuppeteerCrawlingContext = PuppeteerCrawlingContext,
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
+>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
+export function createPuppeteerRouter<
+    Context extends PuppeteerCrawlingContext = PuppeteerCrawlingContext,
     UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
->(routes?: RouterRoutes<Context, UserData>) {
-    return Router.create<Context>(routes);
+>(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
+export function createPuppeteerRouter<
+    Context extends PuppeteerCrawlingContext = PuppeteerCrawlingContext,
+    const Schemas extends RouteSchemas = RouteSchemas,
+>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
+export function createPuppeteerRouter(routesOrSchemas?: any): any {
+    return Router.create(routesOrSchemas);
 }

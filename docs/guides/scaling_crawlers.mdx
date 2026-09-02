@@ -10,7 +10,10 @@ import CodeBlock from '@theme/CodeBlock';
 
 import MinMaxConcurrencySource from '!!raw-loader!./scaling_crawlers_minMaxConcurrency.ts';
 import MaxRequestsPerMinuteSource from '!!raw-loader!./scaling_crawlers_maxRequestsPerMinute.ts';
-import AutoscaledPoolOptionsSource from '!!raw-loader!./scaling_crawlers_autoscaledPoolOptions.ts';
+import ConcurrencySystemSource from '!!raw-loader!./scaling_crawlers_concurrencySystem.ts';
+import LoadSignalsOffSource from '!!raw-loader!./scaling_crawlers_loadSignalsOff.ts';
+import CustomLoadSignalSource from '!!raw-loader!./scaling_crawlers_customLoadSignal.ts';
+import WrapLoadSignalSource from '!!raw-loader!./scaling_crawlers_wrapLoadSignal.ts';
 
 As we build our crawler, we might want to control how many requests we do to the website at a time. Crawlee provides several options to fine tune how many parallel requests should be made at any time, how many requests should be done per minute, and how should scaling work based on the available system resources.
 
@@ -45,7 +48,7 @@ It's recommended to leave it at the default value that is provided and letting t
 
 ## Advanced options
 
-While the options above should be enough for most users, if we wanted to get super deep into the configuration of the autoscaling pool (the internal utility in Crawlee that helps us allow crawlers to scale up and down), we can do so through the <ApiLink to="cheerio-crawler/interface/CheerioCrawlerOptions#autoscaledPoolOptions">`autoscaledPoolOptions`</ApiLink> object available on crawler options.
+While the options above should be enough for most users, if we wanted to get super deep into the configuration of autoscaling (the internal machinery in Crawlee that helps us allow crawlers to scale up and down), we can do so by injecting a pre-configured <ApiLink to="core/class/ConcurrencySystem">`ConcurrencySystem`</ApiLink> through the <ApiLink to="cheerio-crawler/interface/CheerioCrawlerOptions#concurrencySystem">`concurrencySystem`</ApiLink> crawler option. All the fine-grained scaling configuration lives on that instance (see <ApiLink to="core/interface/ConcurrencySystemOptions">`ConcurrencySystemOptions`</ApiLink>).
 
 :::danger Complex options up ahead!
 
@@ -53,11 +56,25 @@ This section is super advanced and, unless you test the changes extensively and 
 
 :::
 
-With that warning aside, if we're feeling adventurous, this is how we would pass these options when using a crawler:
+With that warning aside, this is how we pass those options. One thing to watch: the `minConcurrency`/`maxConcurrency`/`maxRequestsPerMinute` shortcuts cannot be combined with an injected system — they configure the default one it replaces, so set those limits on the instance instead.
 
 <CodeBlock language="js">
-	{AutoscaledPoolOptionsSource}
+	{ConcurrencySystemSource}
 </CodeBlock>
+
+:::note Requires Node.js 24
+
+The `await using` syntax needs Node.js 24 or later. On Node.js 22 call <ApiLink to="core/class/ConcurrencySystem#stop">`stop()`</ApiLink> yourself in a `finally` block instead — it is what the disposal hook calls anyway.
+
+:::
+
+:::tip Capping the combined concurrency of several crawlers
+
+Injecting the *same* `ConcurrencySystem` instance into several crawlers makes them share a single concurrency budget, capping their combined parallelism instead of letting each crawler scale independently.
+
+The budget is shared, not divided: slots go to whoever asks first, so a crawler that fills it early keeps refilling it as its own requests finish, and one that starts later may get a much smaller share of it. If a crawler needs a guaranteed slice, give it its own instance — or implement <ApiLink to="core/interface/IConcurrencySystem">`IConcurrencySystem`</ApiLink>, whose allocation methods are told which crawler is asking, and allocate however we see fit.
+
+:::
 
 ### `desiredConcurrency`
 
@@ -65,35 +82,25 @@ This option specifies the amount of requests that should be running in parallel 
 
 ### `desiredConcurrencyRatio`
 
-The minimum ratio of concurrency to reach before more scaling up is allowed (a number between `0` and `1`). By default, it is set to `0.95`.
+The minimum ratio of concurrency to reach before more scaling up is allowed (a number between `0` and `1`). By default, it is set to `0.9`.
 
-We can think of this as the point where the autoscaling pool can attempt to scale up (or down), monitor if there's any changes, and correct them if necessary.
+We can think of this as the point where the concurrency system can attempt to scale up (or down), monitor if there's any changes, and correct them if necessary.
 
 ### `scaleUpStepRatio` and `scaleDownStepRatio`
 
-These values define the fractional amount of desired concurrency to be added or subtracted as the autoscaling pool scales up or down. Both of these values default to `0.05`.
+These values define the fractional amount of desired concurrency to be added or subtracted as the concurrency system scales up or down. Both of these values default to `0.05`.
 
-Every time the autoscaled pool attempts to scale up or down, this value will be added or subtracted from the current concurrency, and, based on the [`desiredConcurrencyRatio`](#desiredconcurrencyratio) and [`maxConcurrency`](#minconcurrency-and-maxconcurrency), determines how many requests can run concurrently.
-
-### `maybeRunIntervalSecs`
-
-Indicates how often the autoscaling pool should check if more requests can be started and, if that's true, starts a new request if there are any available. This value is represented in seconds, and defaults to `0.5`.
-
-:::info
-
-Changing this has no effect for requests that are fired immediately after the previous ones are finished. However, it will influence how fast new requests will be started after the autoscaled pool scales up.
-
-:::
+Every time the concurrency system attempts to scale up or down, this value will be added or subtracted from the current concurrency, and, based on the [`desiredConcurrencyRatio`](#desiredconcurrencyratio) and [`maxConcurrency`](#minconcurrency-and-maxconcurrency), determines how many requests can run concurrently.
 
 ### `loggingIntervalSecs`
 
-This option lets us control how often the autoscaled pool should log its current state (the current concurrency ratio, desired ratios, if the system is overloaded and so on).
+This option lets us control how often the concurrency system should log its current state (the current concurrency ratio, desired ratios, if the system is overloaded and so on).
 
 We can disable logging altogether by setting this to `null`. By default, it is set to `60` seconds.
 
 ### `autoscaleIntervalSecs`
 
-This option lets us control how often the autoscaling pool should check if it can and should scale up or down. This value is represented in seconds, and defaults to `10`.
+This option lets us control how often the concurrency system should check if it can and should scale up or down. This value is represented in seconds, and defaults to `10`.
 
 :::tip
 
@@ -118,3 +125,35 @@ This controls how many total requests can be made per minute. It counts the amou
 This option can be set by specifying [`maxRequestsPerMinute`](#maxrequestsperminute) in your crawler options too, as it is a shortcut for visibility and ease of access.
 
 :::
+
+## Load signals
+
+Whether the machine counts as overloaded is decided by *load signals*. Four are built in — memory, event loop, CPU and the storage backend's rate-limit errors — and each is configured by its own bag under <ApiLink to="core/interface/ConcurrencySystemOptions#loadSignals">`loadSignals`</ApiLink>, carrying both its limits and the `overloadedRatio` at which it fires. If any signal reports overload, the system is overloaded and concurrency is held down.
+
+A signal we don't want watched at all can be switched **off** with `false`, which stops it being collected as well as evaluated (its entry in the reported status then simply reads as not overloaded):
+
+<CodeBlock language="js">
+	{LoadSignalsOffSource}
+</CodeBlock>
+
+We can also watch resources of our own by implementing <ApiLink to="core/interface/LoadSignal">`LoadSignal`</ApiLink> — navigation timeouts or proxy health, say — and passing them in `loadSignals.custom`. The <ApiLink to="core/class/SnapshotStore">`SnapshotStore`</ApiLink> helper does the time-windowed bookkeeping for us:
+
+<CodeBlock language="js">
+	{CustomLoadSignalSource}
+</CodeBlock>
+
+Each built-in is a public class too — `MemoryLoadSignal`, `EventLoopLoadSignal`, `CpuLoadSignal`, `StorageBackendLoadSignal` — taking exactly the bag its `loadSignals` key accepts. Constructing one directly is how we *wrap* a built-in rather than reimplement it (to hold its overload verdict for a while after the resource recovers, say): switch the original off with `cpu: false`, and pass a signal that delegates to the instance we built in `custom`.
+
+<CodeBlock language="js">
+	{WrapLoadSignalSource}
+</CodeBlock>
+
+:::info Signal names are the keys of the reported status
+
+A signal's `name` is the key its verdict appears under in the reported status, so two signals cannot share one — a duplicate throws at construction time. That is why taking over a built-in name (`memInfo`, `eventLoopInfo`, `cpuInfo`, `storageBackendInfo`) requires switching that built-in off.
+
+:::
+
+### `snapshotHistorySecs` and `currentHistorySecs`
+
+Signals are not read as a single instantaneous measurement but averaged over a window, and there are two: `currentHistorySecs` (default `5`) is the short window that gates whether one more request may start, while `snapshotHistorySecs` (default `30`) is the longer window autoscaling decisions are based on. Dispatch therefore reacts to spikes quickly while scaling stays stable. Both apply to every signal alike, built-in or custom, and signals size their snapshot retention to the wider of the two — so raising `snapshotHistorySecs` is what costs memory.

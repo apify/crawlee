@@ -3,6 +3,7 @@ import { RecoverableState } from '@crawlee/core';
 import LogisticRegression from 'ml-logistic-regression';
 import { Matrix } from 'ml-matrix';
 import stringComparison from 'string-comparison';
+import { z } from 'zod';
 
 export type RenderingType = 'clientOnly' | 'static';
 
@@ -19,11 +20,20 @@ const calculateUrlSimilarity = (a: URLComponents, b: URLComponents): number | un
         return 0;
     }
 
-    for (let i = 1; i < Math.max(a.length, b.length); i++) {
+    const maxLength = Math.max(a.length, b.length);
+
+    // Only the hostname is present (no path components to compare) - the hosts already match.
+    if (maxLength <= 1) {
+        return 1;
+    }
+
+    for (let i = 1; i < maxLength; i++) {
         values.push(stringComparison.jaroWinkler.similarity(a[i] ?? '', b[i] ?? '') > 0.8 ? 1 : 0);
     }
 
-    return sum(values) / Math.max(a.length, b.length);
+    // The first component (index 0, the hostname) is excluded from the comparison above,
+    // so it must also be excluded from the denominator of the weighted average.
+    return sum(values) / (maxLength - 1);
 };
 
 const sum = (values: number[]) => values.reduce((acc, value) => acc + value);
@@ -38,50 +48,83 @@ export interface RenderingTypePredictorOptions {
 }
 
 /**
+ * Minimal contract that any object passed to {@apilink AdaptivePlaywrightCrawler} as its
+ * `renderingTypePredictor` option must satisfy.
+ *
+ * @experimental
+ */
+export interface IRenderingTypePredictor {
+    /** Predict the rendering type for a request, and how likely the crawler should be to verify it. */
+    predict(request: Request): {
+        renderingType: RenderingType;
+        detectionProbabilityRecommendation: number;
+    };
+
+    /** Report a detected rendering type, so that future predictions can take it into account. */
+    storeResult(requests: Request | Request[], renderingType: RenderingType): void;
+}
+
+const renderingType = z.enum(['clientOnly', 'static'] as const satisfies readonly RenderingType[]);
+
+const predictorState = z.object({
+    logreg: z.instanceof(LogisticRegression),
+    detectionResults: z.map(renderingType, z.map(z.string().optional(), z.array(z.array(z.string())))),
+});
+
+const persistedState = z.object({
+    logreg: z
+        .record(z.string(), z.unknown())
+        .prefault(() => new LogisticRegression({ numSteps: 1000, learningRate: 0.05 }).toJSON()),
+    detectionResults: z
+        .array(
+            z.object({
+                renderingType,
+                urlPartsByLabel: z.array(
+                    z.object({
+                        label: z.string().optional(),
+                        urlParts: z.array(z.array(z.string())),
+                    }),
+                ),
+            }),
+        )
+        .prefault([]),
+});
+
+const stateCodec = z.codec(persistedState, predictorState, {
+    decode: ({ logreg, detectionResults }) => ({
+        logreg: LogisticRegression.load(logreg),
+        detectionResults: new Map(
+            detectionResults.map(({ renderingType, urlPartsByLabel }) => [
+                renderingType,
+                new Map(urlPartsByLabel.map(({ label, urlParts }) => [label, urlParts])),
+            ]),
+        ),
+    }),
+    encode: ({ logreg, detectionResults }) => ({
+        logreg: logreg.toJSON(),
+        detectionResults: Array.from(detectionResults.entries()).map(([renderingType, urlPartsByLabel]) => ({
+            renderingType,
+            urlPartsByLabel: Array.from(urlPartsByLabel.entries()).map(([label, urlParts]) => ({ label, urlParts })),
+        })),
+    }),
+});
+
+/**
  * Stores rendering type information for previously crawled URLs and predicts the rendering type for URLs that have yet to be crawled and recommends when rendering type detection should be performed.
  *
  * @experimental
  */
-export class RenderingTypePredictor {
-    private detectionRatio: number;
-    private state: RecoverableState<{
-        logreg: LogisticRegression;
-        detectionResults: Map<RenderingType, Map<string | undefined, URLComponents[]>>;
-    }>;
+export class RenderingTypePredictor implements IRenderingTypePredictor {
+    #detectionRatio: number;
+    #state: RecoverableState<z.infer<typeof predictorState>, z.input<typeof persistedState>>;
 
     constructor({ detectionRatio, persistenceOptions }: RenderingTypePredictorOptions) {
-        this.detectionRatio = detectionRatio;
-        this.state = new RecoverableState({
-            defaultState: {
-                logreg: new LogisticRegression({ numSteps: 1000, learningRate: 0.05 }),
-                detectionResults: new Map<RenderingType, Map<string | undefined, URLComponents[]>>(),
-            },
-            serialize: (state) =>
-                JSON.stringify({
-                    logreg: state.logreg.toJSON(),
-                    detectionResults: Array.from(state.detectionResults.entries()).map(
-                        ([renderingType, urlPartsByLabel]) => ({
-                            renderingType,
-                            urlPartsByLabel: Array.from(urlPartsByLabel.entries()).map(([label, urlParts]) => ({
-                                label,
-                                urlParts,
-                            })),
-                        }),
-                    ),
-                }),
-            deserialize: (serializedState) => {
-                const { logreg, detectionResults = [] } = JSON.parse(serializedState);
-
-                return {
-                    logreg: LogisticRegression.load(logreg),
-                    detectionResults: new Map(
-                        detectionResults.map((serializedItem: any) => [
-                            serializedItem.renderingType,
-                            new Map(serializedItem.urlPartsByLabel.map((item: any) => [item.label, item.urlParts])),
-                        ]),
-                    ),
-                };
-            },
+        this.#detectionRatio = detectionRatio;
+        this.#state = new RecoverableState({
+            defaultState: () => stateCodec.decode({}),
+            // The codec validates in the decode direction, so it is a Standard Schema as-is; encoding needs a call.
+            deserialize: stateCodec,
+            serialize: (state) => stateCodec.encode(state),
             persistStateKey: 'rendering-type-predictor-state',
             persistenceEnabled: true,
             ...persistenceOptions,
@@ -92,7 +135,18 @@ export class RenderingTypePredictor {
      * Initialize the predictor by restoring persisted state.
      */
     async initialize(): Promise<void> {
-        await this.state.initialize();
+        await this.#state.initialize();
+    }
+
+    /**
+     * Stop persisting the model, writing it out one last time. `initialize()` reopens the persistence window.
+     */
+    async teardown(): Promise<void> {
+        await this.#state.teardown();
+    }
+
+    async [Symbol.asyncDispose](): Promise<void> {
+        await this.teardown();
     }
 
     /**
@@ -102,7 +156,7 @@ export class RenderingTypePredictor {
         renderingType: RenderingType;
         detectionProbabilityRecommendation: number;
     } {
-        const { logreg } = this.state.currentValue;
+        const { logreg } = this.#state.currentValue;
         if (logreg.classifiers.length === 0) {
             return { renderingType: 'clientOnly', detectionProbabilityRecommendation: 1 };
         }
@@ -118,7 +172,7 @@ export class RenderingTypePredictor {
             detectionProbabilityRecommendation:
                 Math.abs(scores[0] - scores[1]) < 0.1
                     ? 1
-                    : this.detectionRatio * Math.max(1, 5 - this.resultCount(label)),
+                    : this.#detectionRatio * Math.max(1, 5 - this.resultCount(label)),
         };
     }
 
@@ -126,7 +180,7 @@ export class RenderingTypePredictor {
      * Store the rendering type for a given URL and request label. This updates the underlying prediction model, which may be costly.
      */
     public storeResult(requests: Request | Request[], renderingType: RenderingType) {
-        const state = this.state.currentValue;
+        const state = this.#state.currentValue;
 
         for (const { url, loadedUrl, label } of Array.isArray(requests) ? requests : [requests]) {
             const resultUrl = new URL(loadedUrl ?? url);
@@ -146,34 +200,34 @@ export class RenderingTypePredictor {
     }
 
     private resultCount(label: string | undefined): number {
-        return Array.from(this.state.currentValue.detectionResults.values())
+        return Array.from(this.#state.currentValue.detectionResults.values())
             .map((results) => results.get(label)?.length ?? 0)
             .reduce((acc, value) => acc + value, 0);
     }
 
-    protected calculateFeatureVector(url: URLComponents, label: string | undefined): FeatureVector {
+    private calculateFeatureVector(url: URLComponents, label: string | undefined): FeatureVector {
         return [
             mean(
-                (this.state.currentValue.detectionResults.get('static')?.get(label) ?? []).map(
+                (this.#state.currentValue.detectionResults.get('static')?.get(label) ?? []).map(
                     (otherUrl) => calculateUrlSimilarity(url, otherUrl) ?? 0,
                 ),
             ) ?? 0,
             mean(
-                (this.state.currentValue.detectionResults.get('clientOnly')?.get(label) ?? []).map(
+                (this.#state.currentValue.detectionResults.get('clientOnly')?.get(label) ?? []).map(
                     (otherUrl) => calculateUrlSimilarity(url, otherUrl) ?? 0,
                 ),
             ) ?? 0,
         ];
     }
 
-    protected retrain(): void {
+    private retrain(): void {
         const X: FeatureVector[] = [
             [0, 1],
             [1, 0],
         ];
         const Y: number[] = [0, 1];
 
-        for (const [renderingType, urlsByLabel] of this.state.currentValue.detectionResults.entries()) {
+        for (const [renderingType, urlsByLabel] of this.#state.currentValue.detectionResults.entries()) {
             for (const [label, urls] of urlsByLabel) {
                 for (const url of urls) {
                     X.push(this.calculateFeatureVector(url, label));
@@ -182,6 +236,6 @@ export class RenderingTypePredictor {
             }
         }
 
-        this.state.currentValue.logreg.train(new Matrix(X), Matrix.columnVector(Y));
+        this.#state.currentValue.logreg.train(new Matrix(X), Matrix.columnVector(Y));
     }
 }

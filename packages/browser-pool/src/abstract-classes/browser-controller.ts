@@ -1,16 +1,86 @@
+import { type CrawleeLogger, serviceLocator } from '@crawlee/core';
 import type { Cookie, Dictionary } from '@crawlee/types';
 import { nanoid } from 'nanoid';
 import { TypedEmitter } from 'tiny-typed-emitter';
 
 import { tryCancel } from '@apify/timeout';
 
-import { BROWSER_CONTROLLER_EVENTS } from '../events';
-import type { LaunchContext } from '../launch-context';
-import { log } from '../logger';
-import type { UnwrapPromise } from '../utils';
-import type { BrowserPlugin, CommonBrowser, CommonLibrary } from './browser-plugin';
+import { BROWSER_CONTROLLER_EVENTS } from '../events.js';
+import type { LaunchContext } from '../launch-context.js';
+import type { UnwrapPromise } from '../utils.js';
+import type { BrowserPlugin, CommonBrowser, CommonLibrary } from './browser-plugin.js';
 
 const PROCESS_KILL_TIMEOUT_MILLIS = 5000;
+
+/**
+ * The subset of the browser-pool `LaunchContext` that {@apilink IBrowserController} exposes.
+ * Other fields are only available on the concrete `LaunchContext` class.
+ */
+export interface IBrowserLaunchContext {
+    /**
+     * The proxy URL the browser was launched with, if any.
+     */
+    proxyUrl?: string;
+    /**
+     * The fingerprint applied to the browser, if fingerprinting is enabled.
+     * Typed as `unknown` here; cast to the concrete `LaunchContext` if you
+     * need the structured shape.
+     */
+    fingerprint?: unknown;
+    /**
+     * `true` if each page in this browser uses its own context.
+     */
+    useIncognitoPages?: boolean;
+    /**
+     * The actual options the browser was launched with, after pre-launch hooks.
+     */
+    launchOptions?: Dictionary | undefined;
+}
+
+/**
+ * The minimal public contract of a browser controller.
+ *
+ * Coordination with the pool (page-counting, `activate`, `assignBrowser`, lifecycle
+ * promises, …) is intentionally **not** part of this contract.
+ *
+ * @category Browser management
+ */
+export interface IBrowserController<Page = unknown> {
+    /**
+     * A stable identifier for this controller instance. Useful for tracking
+     * which browser served which request.
+     */
+    readonly id: string;
+
+    /**
+     * The configuration the underlying browser was launched with — proxy URL,
+     * fingerprint, session, launcher-specific options, etc.
+     */
+    readonly launchContext: IBrowserLaunchContext;
+
+    /**
+     * The raw browser handle from the underlying automation library
+     * (Puppeteer `Browser`, Playwright `Browser`/`BrowserContext`, …).
+     * Escape hatch for things the controller does not expose directly.
+     */
+    readonly browser: unknown;
+
+    /**
+     * Reads cookies for the given page.
+     */
+    getCookies(page: Page): Promise<Cookie[]>;
+
+    /**
+     * Writes cookies for the given page.
+     */
+    setCookies(page: Page, cookies: Cookie[]): Promise<void>;
+
+    /**
+     * Gracefully closes the browser this controller owns. After this resolves,
+     * the controller is no longer usable.
+     */
+    close(): Promise<void>;
+}
 
 export interface BrowserControllerEvents<
     Library extends CommonLibrary,
@@ -38,13 +108,17 @@ export abstract class BrowserController<
     LaunchResult extends CommonBrowser = UnwrapPromise<ReturnType<Library['launch']>>,
     NewPageOptions = Parameters<LaunchResult['newPage']>[0],
     NewPageResult = UnwrapPromise<ReturnType<LaunchResult['newPage']>>,
-> extends TypedEmitter<BrowserControllerEvents<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>> {
-    id = nanoid();
+>
+    extends TypedEmitter<BrowserControllerEvents<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>>
+    implements IBrowserController<NewPageResult>
+{
+    readonly id = nanoid();
+    protected readonly log!: CrawleeLogger;
 
     /**
      * The `BrowserPlugin` instance used to launch the browser.
      */
-    browserPlugin: BrowserPlugin<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>;
+    readonly browserPlugin: BrowserPlugin<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>;
 
     /**
      * Browser representation of the underlying automation library.
@@ -57,13 +131,7 @@ export abstract class BrowserController<
     launchContext: LaunchContext<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult> = undefined!;
 
     /**
-     * The proxy tier tied to this browser controller.
-     * `undefined` if no tiered proxy is used.
-     */
-    proxyTier?: number;
-
-    /**
-     * The proxy URL used by the browser controller. This is set every time the browser controller uses proxy (even the tiered one).
+     * The proxy URL used by the browser controller.
      * `undefined` if no proxy is used
      */
     proxyUrl?: string;
@@ -76,20 +144,28 @@ export abstract class BrowserController<
 
     lastPageOpenedAt = Date.now();
 
-    private _activate!: () => void;
+    #activate!: () => void;
 
-    private isActivePromise = new Promise<void>((resolve) => {
-        this._activate = resolve;
+    #isActivePromise = new Promise<void>((resolve) => {
+        this.#activate = resolve;
     });
 
-    private commitBrowser!: () => void;
+    /**
+     * Returns a promise that resolves once the browser controller has been activated.
+     */
+    async waitForActive(): Promise<void> {
+        await this.#isActivePromise;
+    }
 
-    private hasBrowserPromise = new Promise<void>((resolve) => {
-        this.commitBrowser = resolve;
+    #commitBrowser!: () => void;
+
+    #hasBrowserPromise = new Promise<void>((resolve) => {
+        this.#commitBrowser = resolve;
     });
 
     constructor(browserPlugin: BrowserPlugin<Library, LibraryOptions, LaunchResult, NewPageOptions, NewPageResult>) {
         super();
+        this.log = serviceLocator.getLogger().child({ prefix: 'BrowserPool' });
         this.browserPlugin = browserPlugin;
     }
 
@@ -103,7 +179,7 @@ export abstract class BrowserController<
         if (!this.browser) {
             throw new Error('Cannot activate BrowserController without an assigned browser.');
         }
-        this._activate();
+        this.#activate();
         this.isActive = true;
     }
 
@@ -119,7 +195,7 @@ export abstract class BrowserController<
         }
         this.browser = browser;
         this.launchContext = launchContext;
-        this.commitBrowser();
+        this.#commitBrowser();
     }
 
     /**
@@ -129,23 +205,25 @@ export abstract class BrowserController<
      * Emits 'browserClosed' event.
      */
     async close(): Promise<void> {
-        await this.hasBrowserPromise;
+        await this.#hasBrowserPromise;
 
         try {
             await this._close();
             // TODO: shouldn't this go in a finally instead?
             this.isActive = false;
         } catch (error) {
-            log.debug(`Could not close browser.\nCause: ${(error as Error).message}`, { id: this.id });
+            this.log.debug(`Could not close browser.\nCause: ${(error as Error).message}`, { id: this.id });
         }
 
         this.emit(BROWSER_CONTROLLER_EVENTS.BROWSER_CLOSED, this);
 
-        setTimeout(() => {
+        const killTimer = setTimeout(() => {
             this._kill().catch((err) => {
-                log.debug(`Could not kill browser.\nCause: ${err.message}`, { id: this.id });
+                this.log.debug(`Could not kill browser.\nCause: ${err.message}`, { id: this.id });
             });
         }, PROCESS_KILL_TIMEOUT_MILLIS);
+
+        killTimer!.unref();
     }
 
     /**
@@ -154,7 +232,7 @@ export abstract class BrowserController<
      * Emits 'browserClosed' event.
      */
     async kill(): Promise<void> {
-        await this.hasBrowserPromise;
+        await this.#hasBrowserPromise;
         await this._kill();
         this.emit(BROWSER_CONTROLLER_EVENTS.BROWSER_CLOSED, this);
     }
@@ -166,7 +244,7 @@ export abstract class BrowserController<
     async newPage(pageOptions?: NewPageOptions): Promise<NewPageResult> {
         this.activePages++;
         this.totalPages++;
-        await this.isActivePromise;
+        await this.#isActivePromise;
         const page = await this._newPage(pageOptions);
         tryCancel();
         this.lastPageOpenedAt = Date.now();

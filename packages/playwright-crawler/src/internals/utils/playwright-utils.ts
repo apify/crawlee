@@ -19,37 +19,61 @@
  */
 
 import { readFile } from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import vm from 'node:vm';
 
-import {
-    Configuration,
-    KeyValueStore,
-    type Request,
-    RequestState,
-    type Session,
-    SessionError,
-    validators,
-} from '@crawlee/browser';
-import type { BatchAddRequestsResult } from '@crawlee/types';
-import { type CheerioRoot, type Dictionary, expandShadowRoots, sleep } from '@crawlee/utils';
-import * as cheerio from 'cheerio';
-import ow from 'ow';
+import { Configuration, KeyValueStore, type Request, serviceLocator, SessionError, validators } from '@crawlee/browser';
+import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
+import type { CheerioAPI } from 'cheerio';
+import { expandShadowRoots, sleep } from '@crawlee/utils';
+import { parseArgument, schemas } from '@crawlee/utils/internal';
 import type { Download, Page, Response, Route } from 'playwright';
+import { z } from 'zod';
 
 import { LruCache } from '@apify/datastructures';
-import log_ from '@apify/log';
 
-import type { EnqueueLinksByClickingElementsOptions } from '../enqueue-links/click-elements';
-import { enqueueLinksByClickingElements } from '../enqueue-links/click-elements';
-import type { PlaywrightCrawlerOptions, PlaywrightCrawlingContext } from '../playwright-crawler';
-import { RenderingTypePredictor } from './rendering-type-prediction';
+import type { EnqueueLinksByClickingElementsOptions } from '../enqueue-links/click-elements.js';
+import { enqueueLinksByClickingElements } from '../enqueue-links/click-elements.js';
+import { RenderingTypePredictor } from './rendering-type-prediction.js';
 
-const log = log_.child({ prefix: 'Playwright Utils' });
+const getLog = () => serviceLocator.getChildLog('Playwright Utils');
 
+const require = createRequire(import.meta.url);
 const jqueryPath = require.resolve('jquery');
 
 const MAX_INJECT_FILE_CACHE_SIZE = 10;
 const DEFAULT_BLOCK_REQUEST_URL_PATTERNS = ['.css', '.jpg', '.jpeg', '.png', '.svg', '.gif', '.woff', '.pdf', '.zip'];
+
+const filePathSchema = z.string();
+const injectFileOptionsSchema = z.strictObject({
+    surviveNavigations: z.boolean().optional(),
+});
+const gotoExtendedRequestSchema = z.looseObject({
+    url: z.url(),
+    method: z.string().optional(),
+    headers: schemas.anyObject.optional(),
+    payload: z.union([z.string(), z.instanceof(Uint8Array)]).optional(),
+});
+const blockRequestsOptionsSchema = z.strictObject({
+    urlPatterns: schemas.arrayOf(z.string(), 'strings').default(DEFAULT_BLOCK_REQUEST_URL_PATTERNS),
+    extraUrlPatterns: schemas.arrayOf(z.string(), 'strings').default(() => []),
+});
+const infiniteScrollOptionsSchema = z.strictObject({
+    timeoutSecs: schemas.anyNumber.default(0),
+    maxScrollHeight: schemas.anyNumber.default(0),
+    waitForSecs: schemas.anyNumber.default(4),
+    scrollDownAndUp: z.boolean().default(false),
+    buttonSelector: z.string().optional(),
+    stopScrollCallback: schemas.anyFunction.optional(),
+});
+const saveSnapshotOptionsSchema = z.strictObject({
+    key: z.string().min(1).default('SNAPSHOT'),
+    screenshotQuality: schemas.anyNumber.default(50),
+    saveScreenshot: z.boolean().default(true),
+    saveHtml: z.boolean().default(true),
+    keyValueStoreName: z.string().optional(),
+    configuration: schemas.anyObject.optional(),
+});
 
 export interface InjectFileOptions {
     /**
@@ -92,14 +116,9 @@ const injectedFilesCache = new LruCache({ maxLength: MAX_INJECT_FILE_CACHE_SIZE 
  * @param [options]
  */
 export async function injectFile(page: Page, filePath: string, options: InjectFileOptions = {}): Promise<unknown> {
-    ow(page, ow.object.validate(validators.browserPage));
-    ow(filePath, ow.string);
-    ow(
-        options,
-        ow.object.exactShape({
-            surviveNavigations: ow.optional.boolean,
-        }),
-    );
+    parseArgument(page, validators.browserPage);
+    parseArgument(filePath, filePathSchema);
+    const { surviveNavigations } = parseArgument(options, injectFileOptionsSchema);
 
     let contents = injectedFilesCache.get(filePath);
     if (!contents) {
@@ -108,11 +127,11 @@ export async function injectFile(page: Page, filePath: string, options: InjectFi
     }
     const evalP = page.evaluate(contents);
 
-    if (options.surviveNavigations) {
+    if (surviveNavigations) {
         page.on('framenavigated', async () =>
             page
                 .evaluate(contents)
-                .catch((error) => log.warning('An error occurred during the script injection!', { error })),
+                .catch((error) => getLog().warning('An error occurred during the script injection!', { error })),
         );
     }
 
@@ -146,7 +165,7 @@ export async function injectFile(page: Page, filePath: string, options: InjectFi
  * @param [options.surviveNavigations] Opt-out option to disable the JQuery reinjection after navigation.
  */
 export async function injectJQuery(page: Page, options?: { surviveNavigations?: boolean }): Promise<unknown> {
-    ow(page, ow.object.validate(validators.browserPage));
+    parseArgument(page, validators.browserPage);
     return injectFile(page, jqueryPath, { surviveNavigations: options?.surviveNavigations ?? true });
 }
 
@@ -190,24 +209,16 @@ export async function gotoExtended(
     request: Request,
     gotoOptions: DirectNavigationOptions = {},
 ): Promise<Response | null> {
-    ow(page, ow.object.validate(validators.browserPage));
-    ow(
-        request,
-        ow.object.partialShape({
-            url: ow.string.url,
-            method: ow.optional.string,
-            headers: ow.optional.object,
-            payload: ow.optional.any(ow.string, ow.uint8Array),
-        }),
-    );
-    ow(gotoOptions, ow.object);
+    parseArgument(page, validators.browserPage);
+    parseArgument(request, gotoExtendedRequestSchema);
+    parseArgument(gotoOptions, schemas.anyObject);
 
     const { url, method, headers, payload } = request;
     const isEmpty = (o?: object) => !o || Object.keys(o).length === 0;
 
-    if (method !== 'GET' || payload || !isEmpty(headers)) {
+    if (method !== 'GET' || payload) {
         // This is not deprecated, we use it to log only once.
-        log.deprecated(
+        getLog().deprecated(
             'Using other request methods than GET, rewriting headers and adding payloads has a high impact on performance ' +
                 'in recent versions of Playwright. Use only when necessary.',
         );
@@ -228,13 +239,15 @@ export async function gotoExtended(
                 if (!isEmpty(headers)) overrides.headers = headers;
                 await route.continue(overrides);
             } catch (error) {
-                log.debug('Error inside request interceptor', { error });
+                getLog().debug('Error inside request interceptor', { error });
             }
 
             return undefined;
         };
 
         await page.route('**/*', interceptRequestHandler);
+    } else if (!isEmpty(headers)) {
+        await page.setExtraHTTPHeaders(headers!);
     }
 
     return page.goto(url, gotoOptions);
@@ -288,16 +301,8 @@ export async function gotoExtended(
  * @param [options]
  */
 export async function blockRequests(page: Page, options: BlockRequestsOptions = {}): Promise<void> {
-    ow(page, ow.object.validate(validators.browserPage));
-    ow(
-        options,
-        ow.object.exactShape({
-            urlPatterns: ow.optional.array.ofType(ow.string),
-            extraUrlPatterns: ow.optional.array.ofType(ow.string),
-        }),
-    );
-
-    const { urlPatterns = DEFAULT_BLOCK_REQUEST_URL_PATTERNS, extraUrlPatterns = [] } = options;
+    parseArgument(page, validators.browserPage);
+    const { urlPatterns, extraUrlPatterns } = parseArgument(options, blockRequestsOptionsSchema);
 
     const patternsToBlock = [...urlPatterns, ...extraUrlPatterns];
 
@@ -307,7 +312,7 @@ export async function blockRequests(page: Page, options: BlockRequestsOptions = 
         await client.send('Network.enable');
         await client.send('Network.setBlockedURLs', { urls: patternsToBlock });
     } catch {
-        log.warning('blockRequests() helper is incompatible with non-Chromium browsers.');
+        getLog().warning('blockRequests() helper is incompatible with non-Chromium browsers.');
     }
 }
 
@@ -351,7 +356,7 @@ export function compileScript(scriptString: string, context: Dictionary = Object
     try {
         func = vm.runInNewContext(funcString, context); // "Secure" the context by removing prototypes, unless custom context is provided.
     } catch (err) {
-        log.exception(err as Error, 'Cannot compile script!');
+        getLog().exception(err as Error, 'Cannot compile script!');
         throw err;
     }
 
@@ -403,27 +408,9 @@ export interface InfiniteScrollOptions {
  * @param [options]
  */
 export async function infiniteScroll(page: Page, options: InfiniteScrollOptions = {}): Promise<void> {
-    ow(page, ow.object.validate(validators.browserPage));
-    ow(
-        options,
-        ow.object.exactShape({
-            timeoutSecs: ow.optional.number,
-            maxScrollHeight: ow.optional.number,
-            waitForSecs: ow.optional.number,
-            scrollDownAndUp: ow.optional.boolean,
-            buttonSelector: ow.optional.string,
-            stopScrollCallback: ow.optional.function,
-        }),
-    );
-
-    const {
-        timeoutSecs = 0,
-        maxScrollHeight = 0,
-        waitForSecs = 4,
-        scrollDownAndUp = false,
-        buttonSelector,
-        stopScrollCallback,
-    } = options;
+    parseArgument(page, validators.browserPage);
+    const { timeoutSecs, maxScrollHeight, waitForSecs, scrollDownAndUp, buttonSelector, stopScrollCallback } =
+        parseArgument(options, infiniteScrollOptionsSchema);
 
     let finished;
     const startTime = Date.now();
@@ -535,9 +522,9 @@ export interface SaveSnapshotOptions {
 
     /**
      * Configuration of the crawler that will be used to save the snapshot.
-     * @default Configuration.getGlobalConfig()
+     * @default Configuration.getGlobalConfiguration()
      */
-    config?: Configuration;
+    configuration?: Configuration;
 }
 
 /**
@@ -546,31 +533,15 @@ export interface SaveSnapshotOptions {
  * @param [options]
  */
 export async function saveSnapshot(page: Page, options: SaveSnapshotOptions = {}): Promise<void> {
-    ow(page, ow.object.validate(validators.browserPage));
-    ow(
+    parseArgument(page, validators.browserPage);
+    const { key, screenshotQuality, saveScreenshot, saveHtml, keyValueStoreName, configuration } = parseArgument(
         options,
-        ow.object.exactShape({
-            key: ow.optional.string.nonEmpty,
-            screenshotQuality: ow.optional.number,
-            saveScreenshot: ow.optional.boolean,
-            saveHtml: ow.optional.boolean,
-            keyValueStoreName: ow.optional.string,
-            config: ow.optional.object,
-        }),
+        saveSnapshotOptionsSchema,
     );
 
-    const {
-        key = 'SNAPSHOT',
-        screenshotQuality = 50,
-        saveScreenshot = true,
-        saveHtml = true,
-        keyValueStoreName,
-        config,
-    } = options;
-
     try {
-        const store = await KeyValueStore.open(keyValueStoreName, {
-            config: config ?? Configuration.getGlobalConfig(),
+        const store = await KeyValueStore.open(keyValueStoreName ? { name: keyValueStoreName } : null, {
+            configuration: configuration ?? Configuration.getGlobalConfiguration(),
         });
 
         if (saveScreenshot) {
@@ -610,23 +581,26 @@ export async function parseWithCheerio(
     page: Page,
     ignoreShadowRoots = false,
     ignoreIframes = false,
-): Promise<CheerioRoot> {
-    ow(page, ow.object.validate(validators.browserPage));
+): Promise<CheerioAPI> {
+    parseArgument(page, validators.browserPage);
 
     const html = ignoreShadowRoots
         ? null
         : ((await page.evaluate(`(${expandShadowRoots.toString()})(document)`)) as string);
     const pageContent = html || (await page.content());
-    const $ = cheerio.load(pageContent);
+    const { load } = await import('cheerio');
+    const $ = load(pageContent);
 
     if (page.frames().length > 1 && !ignoreIframes) {
         const frames = await page.$$('iframe');
         const cheerioIframes = $('iframe').toArray();
 
         if (frames.length !== cheerioIframes.length) {
-            log.warning(
-                `parseWithCheerio: iframe count mismatch between live DOM (${frames.length}) and page snapshot (${cheerioIframes.length}). Some iframes may not be expanded.`,
-            );
+            serviceLocator
+                .getLogger()
+                .warning(
+                    `parseWithCheerio: iframe count mismatch between live DOM (${frames.length}) and page snapshot (${cheerioIframes.length}). Some iframes may not be expanded.`,
+                );
         }
 
         await Promise.all(
@@ -649,7 +623,7 @@ export async function parseWithCheerio(
                         );
                     }
                 } catch (error) {
-                    log.warning(`Failed to extract iframe content: ${error}`);
+                    getLog().warning(`Failed to extract iframe content: ${error}`);
                 }
             }),
         );
@@ -658,38 +632,7 @@ export async function parseWithCheerio(
     return $;
 }
 
-let idcacPlaywright: null | { getInjectableScript: () => string } = null;
-async function getIdcacPlaywright() {
-    if (idcacPlaywright) return idcacPlaywright;
-
-    try {
-        idcacPlaywright = await import('idcac-playwright');
-    } catch (error: any) {
-        log.warning(`Failed to import 'idcac-playwright'.
-
-We recently made idcac-playwright an optional dependency due to licensing issues.
-To use this feature, please install it manually by running
-
-npm install idcac-playwright
-
-Original error message follows:
-
-${error.message}
-`);
-    }
-    return idcacPlaywright;
-}
-
-export async function closeCookieModals(page: Page): Promise<void> {
-    ow(page, ow.object.validate(validators.browserPage));
-    const idcac = await getIdcacPlaywright();
-
-    if (idcac?.getInjectableScript()) {
-        await page.evaluate(idcac.getInjectableScript());
-    }
-}
-
-interface HandleCloudflareChallengeOptions {
+export interface HandleCloudflareChallengeOptions {
     /** Logging defaults to the `debug` level, use this flag to log to `info` level instead. */
     verbose?: boolean;
     /** How long should we wait after the challenge is completed for the final page to load. */
@@ -713,37 +656,28 @@ interface HandleCloudflareChallengeOptions {
  * result in a SessionError which will be automatically retried, so only successful requests will get
  * into the `requestHandler`.
  *
+ * On a successfully solved challenge the page is reloaded and the new {@apilink Response} is returned, so
+ * it can be propagated back to the crawling context via a hook return value (see
+ * {@apilink handleCloudflareChallengeHook}).
+ *
  * Works best with camoufox.
  *
  * **Example usage**
  * ```ts
  * postNavigationHooks: [
- *     async ({ handleCloudflareChallenge }) => {
- *         await handleCloudflareChallenge();
- *     },
+ *     async (context) => ({ response: await context.handleCloudflareChallenge() }),
  * ],
  * ```
  *
  * @param page Playwright [`Page`](https://playwright.dev/docs/api/class-page) object
  * @param url current URL for request identification, only used for logging
- * @param [session] current session object
  * @param [options]
  */
 async function handleCloudflareChallenge(
     page: Page,
     url: string,
-    session?: Session,
     options: HandleCloudflareChallengeOptions = {},
-): Promise<void> {
-    // eslint-disable-next-line dot-notation
-    const blockedStatusCodes = session?.['sessionPool']['blockedStatusCodes'] as number[];
-
-    // Cloudflare pages are 403, which are blocked by default
-    if (blockedStatusCodes?.includes(403)) {
-        const idx = blockedStatusCodes.indexOf(403);
-        blockedStatusCodes.splice(idx, 1);
-    }
-
+): Promise<Response | undefined> {
     options.isBlockedCallback ??= async () => {
         const isBlocked = await page.evaluate(() => {
             return document.querySelector('h1')?.textContent?.trim().includes('Sorry, you have been blocked');
@@ -753,7 +687,9 @@ async function handleCloudflareChallenge(
 
     options.isChallengeCallback ??= async () => {
         return await page.evaluate(async () => {
-            return !!document.querySelector('.footer > .footer-inner > .diagnostic-wrapper > .ray-id');
+            // Cloudflare keeps reshuffling the wrapper elements between `.footer-inner` and `.ray-id`,
+            // so only the stable outer classes are matched.
+            return !!document.querySelector('.footer .footer-inner .ray-id');
         });
     };
 
@@ -772,23 +708,27 @@ async function handleCloudflareChallenge(
 
     if (!(await isChallenge())) {
         await retryBlocked();
-        return;
+        return undefined;
     }
 
     const logLevel = options.verbose ? 'info' : 'debug';
-    log[logLevel](
+    getLog()[logLevel](
         `Detected Cloudflare challenge at ${url}, trying to solve it. This can take up to ${10 + (options.sleepSecs ?? 10)} seconds.`,
     );
 
     const bb = await page
         .evaluate(() => {
-            const div = document.querySelector('.main-content div');
+            // Prefer the actual challenge widget (the box holding the Turnstile checkbox input);
+            // fall back to the first content div for older challenge layouts.
+            const div =
+                document.querySelector('.main-content div:has(input[id^="cf-chl-widget-"])') ??
+                document.querySelector('.main-content div');
             return div?.getBoundingClientRect();
         })
         .catch(() => undefined);
 
     if (!bb) {
-        return;
+        return undefined;
     }
 
     const randomOffset = (range: number) => {
@@ -824,7 +764,10 @@ async function handleCloudflareChallenge(
         const xRandomized = x + randomOffset(10);
         const yRandomized = y + randomOffset(10);
 
-        log[logLevel](`Trying to click on the Cloudflare checkbox at ${url}`, { x: xRandomized, y: yRandomized });
+        getLog()[logLevel](`Trying to click on the Cloudflare checkbox at ${url}`, {
+            x: xRandomized,
+            y: yRandomized,
+        });
         await page.mouse.click(xRandomized, yRandomized);
 
         // sometimes the checkbox is lower (could be caused by a lag when rendering the logo)
@@ -838,9 +781,12 @@ async function handleCloudflareChallenge(
     }
 
     await retryBlocked();
+
+    // Reload to obtain a fresh Response without the challenge interstitial, which the caller can
+    // propagate back into the crawling context so downstream status-code checks see the new value.
+    return (await page.reload()) ?? undefined;
 }
 
-/** @internal */
 export interface PlaywrightContextUtils {
     /**
      * Injects a JavaScript file into current `page`.
@@ -943,7 +889,7 @@ export interface PlaywrightContextUtils {
      * });
      * ```
      */
-    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioRoot>;
+    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioAPI>;
 
     /**
      * Scrolls to the bottom of a page, or until it times out.
@@ -966,8 +912,7 @@ export interface PlaywrightContextUtils {
      * in `href` elements, but rather navigations are triggered in click handlers.
      * If you're looking to find URLs in `href` attributes of the page, see {@apilink enqueueLinks}.
      *
-     * Optionally, the function allows you to filter the target links' URLs using an array of {@apilink PseudoUrl} objects
-     * and override settings of the enqueued {@apilink Request} objects.
+     * Optionally, the function allows you to filter the target links' URLs using an array of glob or regexp patterns.
      *
      * **IMPORTANT**: To be able to do this, this function uses various mutations on the page,
      * such as changing the Z-index of elements being clicked and their visibility. Therefore,
@@ -988,9 +933,9 @@ export interface PlaywrightContextUtils {
      * async requestHandler({ enqueueLinksByClickingElements }) {
      *     await enqueueLinksByClickingElements({
      *         selector: 'a.product-detail',
-     *         globs: [
-     *             'https://www.example.com/handbags/**'
-     *             'https://www.example.com/purses/**'
+     *         include: [
+     *             'https://www.example.com/handbags/**',
+     *             'https://www.example.com/purses/**',
      *         ],
      *     });
      * });
@@ -999,7 +944,7 @@ export interface PlaywrightContextUtils {
      * @returns Promise that resolves to {@apilink BatchAddRequestsResult} object.
      */
     enqueueLinksByClickingElements(
-        options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>,
+        options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestManager'>,
     ): Promise<BatchAddRequestsResult>;
 
     /**
@@ -1031,40 +976,26 @@ export interface PlaywrightContextUtils {
     compileScript(scriptString: string, ctx?: Dictionary): CompiledScriptFunction;
 
     /**
-     * Tries to close cookie consent modals on the page. Based on the I Don't Care About Cookies browser extension.
-     *
-     * Note that this method requires the idcac-playwright package to be installed.
-     * Crawlee does not include it by default due to licensing issues.
-     *
-     * To use this method, please install the package manually by running:
-     *
-     * ```bash
-     * npm install idcac-playwright
-     * ```
-     */
-    closeCookieModals(): Promise<void>;
-
-    /**
      * This helper tries to solve the Cloudflare challenge automatically by clicking on the checkbox.
      * It will try to detect the Cloudflare page, click on the checkbox, and wait for 10 seconds (configurable
      * via `sleepSecs` option) for the page to load. Use this in the `postNavigationHooks`, a failures will
      * result in a SessionError which will be automatically retried, so only successful requests will get
      * into the `requestHandler`.
      *
-     * Works best with camoufox.
+     * On a successfully solved challenge the page is reloaded and the new {@apilink Response} is returned,
+     * which can be returned from the hook to update the crawling context's `response`. For the common case,
+     * prefer the pre-wrapped {@apilink handleCloudflareChallengeHook} hook.
      *
      * **Example usage**
      * ```ts
      * postNavigationHooks: [
-     *     async ({ handleCloudflareChallenge }) => {
-     *         await handleCloudflareChallenge();
-     *     },
+     *     async (context) => ({ response: await context.handleCloudflareChallenge() }),
      * ],
      * ```
      *
      * @param [options]
      */
-    handleCloudflareChallenge(options?: HandleCloudflareChallengeOptions): Promise<void>;
+    handleCloudflareChallenge(options?: HandleCloudflareChallengeOptions): Promise<Response | undefined>;
 
     /**
      * Returns the list of {@link https://playwright.dev/docs/api/class-download | Download} objects
@@ -1091,52 +1022,6 @@ export interface PlaywrightContextUtils {
     listDownloads(): Promise<Download[]>;
 }
 
-export function registerUtilsToContext(
-    context: PlaywrightCrawlingContext,
-    crawlerOptions: PlaywrightCrawlerOptions,
-): void {
-    context.injectFile = async (filePath: string, options?: InjectFileOptions) =>
-        injectFile(context.page, filePath, options);
-    context.injectJQuery = async () => {
-        if (context.request.state === RequestState.BEFORE_NAV) {
-            log.warning(
-                'Using injectJQuery() in preNavigationHooks leads to unstable results. Use it in a postNavigationHook or a requestHandler instead.',
-            );
-            await injectJQuery(context.page);
-            return;
-        }
-        await injectJQuery(context.page, { surviveNavigations: false });
-    };
-    context.blockRequests = async (options?: BlockRequestsOptions) => blockRequests(context.page, options);
-    context.waitForSelector = async (selector: string, timeoutMs = 5_000) => {
-        const locator = context.page.locator(selector).first();
-        await locator.waitFor({ timeout: timeoutMs, state: 'attached' });
-    };
-    context.parseWithCheerio = async (selector?: string, timeoutMs = 5_000) => {
-        if (selector) {
-            await context.waitForSelector(selector, timeoutMs);
-        }
-
-        return parseWithCheerio(context.page, crawlerOptions.ignoreShadowRoots, crawlerOptions.ignoreIframes);
-    };
-    context.infiniteScroll = async (options?: InfiniteScrollOptions) => infiniteScroll(context.page, options);
-    context.saveSnapshot = async (options?: SaveSnapshotOptions) =>
-        saveSnapshot(context.page, { ...options, config: context.crawler.config });
-    context.enqueueLinksByClickingElements = async (
-        options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestQueue'>,
-    ) =>
-        enqueueLinksByClickingElements({
-            ...options,
-            page: context.page,
-            requestQueue: context.crawler.requestQueue!,
-        });
-    context.compileScript = (scriptString: string, ctx?: Dictionary) => compileScript(scriptString, ctx);
-    context.closeCookieModals = async () => closeCookieModals(context.page);
-    context.handleCloudflareChallenge = async (options?: HandleCloudflareChallengeOptions) => {
-        return handleCloudflareChallenge(context.page, context.request.url, context.session, options);
-    };
-}
-
 export { enqueueLinksByClickingElements };
 
 /** @internal */
@@ -1150,7 +1035,6 @@ export const playwrightUtils = {
     infiniteScroll,
     saveSnapshot,
     compileScript,
-    closeCookieModals,
     RenderingTypePredictor,
     handleCloudflareChallenge,
 };

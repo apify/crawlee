@@ -1,21 +1,152 @@
-import type { Dictionary } from '@crawlee/types';
+import type { Awaitable, Dictionary } from '@crawlee/types';
+import type { StandardSchemaV1 } from '@standard-schema/spec';
 
-import type { CrawlingContext, LoadedRequest, RestrictedCrawlingContext } from './crawlers/crawler_commons';
-import { MissingRouteError } from './errors';
-import type { Request } from './request';
-import type { Awaitable } from './typedefs';
+import type {
+    CrawlingContext,
+    LoadedRequest,
+    RestrictedCrawlingContext,
+    TypedContextAddRequests,
+    TypedContextEnqueueLinks,
+} from './crawlers/crawler_commons.js';
+import { MissingRouteError, RequestValidationError } from './errors.js';
+import type { Request } from './request.js';
 
-const defaultRoute = Symbol('default-route');
+/**
+ * The key of the default route — the fallback handler registered via {@apilink Router.addDefaultHandler}.
+ * Use it in a {@apilink RouteSchemas} map to register a schema that validates the `userData` of every request
+ * that falls through to the default handler (i.e. whose label has no route of its own).
+ */
+export const defaultRoute: unique symbol = Symbol('default-route');
 
-export interface RouterHandler<Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'> = CrawlingContext>
-    extends Router<Context> {
+/**
+ * The crawling context received by a route handler, with `request.userData` narrowed to `UserData`, and
+ * `addRequests`/`enqueueLinks` typed according to the router's route map (`Routes`) so that enqueuing a
+ * request under a declared label requires the matching `userData` shape.
+ */
+export type RouterHandlerContext<
+    Context,
+    UserData extends Dictionary,
+    Routes extends Record<keyof Routes, Dictionary>,
+> = Omit<Context, 'request' | 'addRequests' | 'enqueueLinks'> & {
+    request: LoadedRequest<Request<UserData>>;
+    addRequests: TypedContextAddRequests<Routes>;
+} & (Context extends { enqueueLinks: infer EnqueueLinks }
+        ? { enqueueLinks: TypedContextEnqueueLinks<EnqueueLinks, Routes> }
+        : {});
+
+/**
+ * A map of request labels to a [Standard Schema](https://standardschema.dev) (Zod, Valibot, ArkType, …)
+ * validating that label's `request.userData`. Pass it to {@apilink Router.create} or a `createXRouter`
+ * factory to derive the per-label `request.userData` types *and* validate them at runtime. The optional
+ * {@apilink defaultRoute} key registers a schema for requests handled by the default route.
+ */
+export type RouteSchemas = Record<string, StandardSchemaV1> & {
+    [defaultRoute]?: StandardSchemaV1;
+};
+
+/** Infers a label's `userData` type from its schema, falling back to a plain {@apilink Dictionary}. */
+type SchemaUserData<Schema extends StandardSchemaV1> =
+    StandardSchemaV1.InferOutput<Schema> extends Dictionary ? StandardSchemaV1.InferOutput<Schema> : Dictionary;
+
+/**
+ * Derives a route map (label → `userData` type) from a {@apilink RouteSchemas} map by inferring each schema's
+ * output type. Outputs that are not object-shaped fall back to a plain {@apilink Dictionary}. The
+ * {@apilink defaultRoute} schema is kept under its symbol key so {@apilink Router.addDefaultHandler} can pick it
+ * up; string labels (the ones {@apilink Router.addHandler} and the crawler-level typing accept) ignore it.
+ */
+export type RoutesFromSchemas<Schemas extends RouteSchemas> = {
+    [Label in Extract<keyof Schemas, string>]: SchemaUserData<Schemas[Label]>;
+} & (Schemas extends { [defaultRoute]: StandardSchemaV1 }
+    ? { [defaultRoute]: SchemaUserData<Schemas[typeof defaultRoute]> }
+    : {});
+
+/**
+ * The `userData` type of the default route: inferred from the {@apilink defaultRoute} schema when the route map
+ * carries one, otherwise the provided `Fallback`.
+ */
+export type DefaultRouteUserData<Routes, Fallback extends Dictionary> = Routes extends {
+    [defaultRoute]: infer DefaultUserData extends Dictionary;
+}
+    ? DefaultUserData
+    : Fallback;
+
+/** Whether a validation issue points at the top-level `label` key. */
+function isLabelIssue(issue: StandardSchemaV1.Issue): boolean {
+    if (issue.path?.length !== 1) {
+        return false;
+    }
+
+    const [segment] = issue.path;
+
+    return (typeof segment === 'object' ? segment.key : segment) === 'label';
+}
+
+/**
+ * Validates `userData` against a {@apilink RouteSchemas|Standard Schema}, returning the parsed (and coerced)
+ * value. Throws a {@apilink RequestValidationError} when validation fails.
+ * @internal
+ */
+export async function validateUserData(
+    label: string | symbol,
+    schema: StandardSchemaV1,
+    userData: unknown,
+): Promise<Dictionary> {
+    const { label: _label, ...rest } = (userData ?? {}) as Dictionary;
+
+    // `label` is a Crawlee-managed key that lives inside `userData`, so validating it is opt-in: we validate
+    // without it first, letting schemas that don't describe it pass (including `.strict()` ones). A schema that
+    // *does* declare `label` reports an issue for the now-missing key — so we re-validate with it included,
+    // honouring the declaration. Unlike `userData.__crawlee`, `label` is enumerable, so schemas do see it.
+    let result = await schema['~standard'].validate(rest);
+
+    if (result.issues?.some(isLabelIssue)) {
+        result = await schema['~standard'].validate({ ...rest, label });
+    }
+
+    if (result.issues) {
+        throw new RequestValidationError(label, result.issues);
+    }
+
+    // Restore the label so it survives schemas that strip undeclared keys.
+    return { ...(result.value as Dictionary), label };
+}
+
+/**
+ * The set of labels accepted by {@apilink Router.addHandler}. When the router declares a concrete
+ * route map (e.g. `{ PRODUCT: ...; CATEGORY: ... }`), only those labels (plus symbols) are
+ * allowed — unknown labels become a compile-time error. When the map is left open (the default
+ * `Record<string, ...>`), any string or symbol label is accepted, preserving the original behaviour.
+ */
+export type RouterLabel<Routes extends Record<keyof Routes, Dictionary>> = string extends keyof Routes
+    ? string | symbol
+    : (keyof Routes & string) | symbol;
+
+export interface RouterHandler<
+    Context extends RestrictedCrawlingContext = CrawlingContext,
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
+> extends Router<Context, Routes> {
     (ctx: Context): Awaitable<void>;
 }
 
 export type GetUserDataFromRequest<T> = T extends Request<infer Y> ? Y : never;
 
-export type RouterRoutes<Context, UserData extends Dictionary> = {
-    [label in string | symbol]: (ctx: Omit<Context, 'request'> & { request: Request<UserData> }) => Awaitable<void>;
+/**
+ * Per-route overrides, passed as the last argument of {@apilink Router.addHandler|`addHandler`} and
+ * {@apilink Router.addDefaultHandler|`addDefaultHandler`}.
+ */
+export interface RouteOptions {
+    /**
+     * Overrides the crawler's `requestHandlerTimeoutSecs` for this route only. Useful when one kind of page
+     * needs markedly more time than the rest - a listing page behind an infinite scroll, say - and you do not
+     * want to raise the timeout for every other page to accommodate it.
+     *
+     * Applies only to this route's handler. The navigation and the navigation hooks keep their own timeouts.
+     */
+    requestHandlerTimeoutSecs?: number;
+}
+
+export type RouterRoutes<Context, Routes extends Record<keyof Routes, Dictionary>> = {
+    [Label in keyof Routes]: (ctx: Omit<Context, 'request'> & { request: Request<Routes[Label]> }) => Awaitable<void>;
 };
 
 /**
@@ -82,36 +213,156 @@ export type RouterRoutes<Context, UserData extends Dictionary> = {
  *    ctx.log.info('...');
  * });
  * ```
+ *
+ * To get `request.userData` typed per label, declare a route map and pass it as the second
+ * type argument. The label passed to {@apilink Router.addHandler} then drives the type of
+ * `request.userData`, and unknown labels are rejected at compile time:
+ *
+ * ```ts
+ * import { createCheerioRouter, CheerioCrawlingContext } from 'crawlee';
+ *
+ * interface Routes {
+ *     PRODUCT: { sku: string; price: number };
+ *     CATEGORY: { categoryId: string };
+ * }
+ *
+ * const router = createCheerioRouter<CheerioCrawlingContext, Routes>();
+ *
+ * router.addHandler('PRODUCT', async ({ request }) => {
+ *     request.userData.sku;   // string
+ *     request.userData.price; // number
+ * });
+ *
+ * router.addHandler('TYPO', async () => {}); // compile error: not a known label
+ * ```
+ *
+ * Passing a [Standard Schema](https://standardschema.dev) per label instead of a plain type both infers the
+ * `request.userData` types *and* validates them at runtime — when the request is handled, and when it is
+ * added to the crawler (`crawler.addRequests`, `context.addRequests`, `enqueueLinks`). A failing request
+ * throws a {@apilink RequestValidationError}.
+ *
+ * ```ts
+ * import { z } from 'zod';
+ * import { createCheerioRouter } from 'crawlee';
+ *
+ * const router = createCheerioRouter({
+ *     PRODUCT: z.object({ sku: z.string(), price: z.number() }),
+ *     CATEGORY: z.object({ categoryId: z.string() }),
+ * });
+ *
+ * router.addHandler('PRODUCT', async ({ request }) => {
+ *     request.userData.price; // number, inferred from the schema and validated at runtime
+ * });
+ * ```
+ *
+ * A single route can take longer than the rest without raising the crawler-wide
+ * `requestHandlerTimeoutSecs` for everything - pass a per-route timeout as the last argument:
+ *
+ * ```ts
+ * // LIST pages scroll through a lot of content, DETAIL pages are quick
+ * router.addHandler('LIST', async (ctx) => { ... }, { requestHandlerTimeoutSecs: 120 });
+ * router.addHandler('DETAIL', async (ctx) => { ... }); // keeps the crawler's default
+ * ```
+ *
+ * When the time a route needs is only apparent once it is already running, call
+ * {@apilink CrawlingContext.extendTimeout|`context.extendTimeout`} from inside the handler:
+ *
+ * ```ts
+ * router.addHandler('LIST', async ({ page, extendTimeout }) => {
+ *     const pageCount = await countPages(page);
+ *     extendTimeout(pageCount * 10); // ask for 10 more seconds per page
+ *     await scrapeAllPages(page);
+ * });
+ * ```
  */
-export class Router<Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'>> {
-    private readonly routes: Map<string | symbol, (ctx: any) => Awaitable<void>> = new Map();
-    private readonly middlewares: ((ctx: Context) => Awaitable<void>)[] = [];
+export class Router<
+    Context extends RestrictedCrawlingContext,
+    Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
+> {
+    readonly #routes: Map<string | symbol, (ctx: any) => Awaitable<void>> = new Map();
+    readonly #schemas: Map<string | symbol, StandardSchemaV1> = new Map();
+    readonly #timeouts: Map<string | symbol, number> = new Map();
+    readonly #middlewares: ((ctx: Context) => Awaitable<void>)[] = [];
 
     /**
      * use Router.create() instead!
      * @ignore
      */
-    protected constructor() {}
+    private constructor() {}
 
     /**
-     * Registers new route handler for given label.
+     * Registers new route handler for given label. When the router declares a route map, the
+     * `label` is restricted to the declared labels and `request.userData` is typed accordingly. Pass
+     * {@apilink RouteOptions|`options`} to give this route its own `requestHandlerTimeoutSecs`,
+     * overriding the crawler's default for requests with this label.
+     */
+    addHandler<Label extends keyof Routes & string>(
+        label: Label,
+        handler: (ctx: RouterHandlerContext<Context, Routes[Label], Routes>) => Awaitable<void>,
+        options?: RouteOptions,
+    ): void;
+
+    /**
+     * Registers new route handler for given label, explicitly typing `request.userData` via the
+     * `UserData` type argument. Useful when the router has no declared route map (the open default)
+     * and you want to type a single handler, or to register a handler under a `symbol` label.
      */
     addHandler<UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(
-        label: string | symbol,
-        handler: (ctx: Omit<Context, 'request'> & { request: LoadedRequest<Request<UserData>> }) => Awaitable<void>,
-    ) {
+        label: RouterLabel<Routes>,
+        handler: (ctx: RouterHandlerContext<Context, UserData, Routes>) => Awaitable<void>,
+        options?: RouteOptions,
+    ): void;
+
+    addHandler(label: string | symbol, handler: (ctx: any) => Awaitable<void>, options: RouteOptions = {}): void {
         this.validate(label);
-        this.routes.set(label, handler);
+        this.#routes.set(label, handler);
+
+        if (options.requestHandlerTimeoutSecs !== undefined) {
+            this.#timeouts.set(label, options.requestHandlerTimeoutSecs);
+        }
     }
 
     /**
-     * Registers default route handler.
+     * Registers default route handler. As a fallback it can receive any request (including labels not
+     * declared in the route map). When the router was created with a {@apilink defaultRoute} schema,
+     * `request.userData` is typed from it; otherwise it defaults to the context's (loosely typed) `userData`.
+     * Pass an explicit `UserData` type argument to narrow it. Pass {@apilink RouteOptions|`options`} to give the
+     * default route its own `requestHandlerTimeoutSecs`, overriding the crawler's default for requests that fall
+     * through to it.
      */
-    addDefaultHandler<UserData extends Dictionary = GetUserDataFromRequest<Context['request']>>(
-        handler: (ctx: Omit<Context, 'request'> & { request: LoadedRequest<Request<UserData>> }) => Awaitable<void>,
-    ) {
+    addDefaultHandler<
+        UserData extends Dictionary = DefaultRouteUserData<Routes, GetUserDataFromRequest<Context['request']>>,
+    >(handler: (ctx: RouterHandlerContext<Context, UserData, Routes>) => Awaitable<void>, options: RouteOptions = {}) {
         this.validate(defaultRoute);
-        this.routes.set(defaultRoute, handler);
+        this.#routes.set(defaultRoute, handler);
+
+        if (options.requestHandlerTimeoutSecs !== undefined) {
+            this.#timeouts.set(defaultRoute, options.requestHandlerTimeoutSecs);
+        }
+    }
+
+    /**
+     * Returns the {@apilink RouteSchemas|Standard Schema} registered for a label, if any. Used by the crawler
+     * to validate `request.userData` when requests are added.
+     * @internal
+     */
+    getSchema(label?: string | symbol): StandardSchemaV1 | undefined {
+        if (label != null) {
+            const schema = this.#schemas.get(label);
+
+            if (schema) {
+                return schema;
+            }
+
+            // A label with its own route is fully specified; don't fall back to the default-route schema.
+            if (this.#routes.has(label)) {
+                return undefined;
+            }
+        }
+
+        // Requests with no route of their own fall through to the default handler, so validate their
+        // `userData` against the default-route schema, if one was registered.
+        return this.#schemas.get(defaultRoute);
     }
 
     /**
@@ -119,19 +370,41 @@ export class Router<Context extends Omit<RestrictedCrawlingContext, 'enqueueLink
      * Multiple middlewares can be registered, they will be fired in the same order.
      */
     use(middleware: (ctx: Context) => Awaitable<void>) {
-        this.middlewares.push(middleware);
+        this.#middlewares.push(middleware);
+    }
+
+    /**
+     * Returns the `requestHandlerTimeoutSecs` registered for a label, or `undefined` when the route did not
+     * override it and the crawler's own timeout should apply. Falls back to the default route the same way
+     * {@apilink Router.getHandler|`getHandler`} does, so a label with no route of its own inherits whatever
+     * the default route asked for. Used by the crawler; not meant to be called directly.
+     */
+    getTimeoutSecs(label?: string | symbol): number | undefined {
+        if (label && this.#routes.has(label)) {
+            return this.#timeouts.get(label);
+        }
+
+        return this.#timeouts.get(defaultRoute);
+    }
+
+    /**
+     * The longest `requestHandlerTimeoutSecs` any route asked for, or `undefined` when no route overrides it.
+     * The crawler needs an upper bound up front, before it knows which routes a run will actually hit.
+     */
+    getMaxTimeoutSecs(): number | undefined {
+        return this.#timeouts.size > 0 ? Math.max(...this.#timeouts.values()) : undefined;
     }
 
     /**
      * Returns route handler for given label. If no label is provided, the default request handler will be returned.
      */
     getHandler(label?: string | symbol): (ctx: Context) => Awaitable<void> {
-        if (label && this.routes.has(label)) {
-            return this.routes.get(label)!;
+        if (label && this.#routes.has(label)) {
+            return this.#routes.get(label)!;
         }
 
-        if (this.routes.has(defaultRoute)) {
-            return this.routes.get(defaultRoute)!;
+        if (this.#routes.has(defaultRoute)) {
+            return this.#routes.get(defaultRoute)!;
         }
 
         throw new MissingRouteError(
@@ -142,10 +415,27 @@ export class Router<Context extends Omit<RestrictedCrawlingContext, 'enqueueLink
     }
 
     /**
+     * Validates `request.userData` against the schema registered for its label (if any), replacing it with
+     * the parsed value. Throws a {@apilink RequestValidationError} when validation fails.
+     */
+    private async validateRequest(context: Context) {
+        const label = context.request.label;
+        const schema = this.getSchema(label);
+
+        if (schema) {
+            context.request.userData = (await validateUserData(
+                label!,
+                schema,
+                context.request.userData,
+            )) as GetUserDataFromRequest<Context['request']>;
+        }
+    }
+
+    /**
      * Throws when the label already exists in our registry.
      */
     private validate(label: string | symbol) {
-        if (this.routes.has(label)) {
+        if (this.#routes.has(label)) {
             const message =
                 label === defaultRoute
                     ? `Default route is already defined!`
@@ -174,27 +464,58 @@ export class Router<Context extends Omit<RestrictedCrawlingContext, 'enqueueLink
      * await crawler.run();
      * ```
      */
+    // The handler overloads keep the second type argument backwards compatible. When it is a route map (every
+    // value is a `Dictionary`) the first overload applies and labels are typed per route. Otherwise it fails
+    // the `Record<keyof Routes, Dictionary>` constraint and falls through to the second overload, where it is
+    // treated as the legacy flat `userData` shape shared by all handlers. The third overload accepts a
+    // Standard Schema per label, inferring the route map and validating `userData` at runtime.
     static create<
-        Context extends Omit<RestrictedCrawlingContext, 'enqueueLinks'> = CrawlingContext,
+        Context extends RestrictedCrawlingContext = CrawlingContext,
+        Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>,
+    >(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
+
+    static create<
+        Context extends RestrictedCrawlingContext = CrawlingContext,
         UserData extends Dictionary = GetUserDataFromRequest<Context['request']>,
-    >(routes?: RouterRoutes<Context, UserData>): RouterHandler<Context> {
-        const router = new Router<Context>();
+    >(routes?: RouterRoutes<Context, Record<string, UserData>>): RouterHandler<Context, Record<string, UserData>>;
+
+    static create<
+        Context extends RestrictedCrawlingContext = CrawlingContext,
+        const Schemas extends RouteSchemas = RouteSchemas,
+    >(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
+
+    static create<Context extends RestrictedCrawlingContext = CrawlingContext>(
+        routesOrSchemas?: Record<string | symbol, ((ctx: any) => Awaitable<void>) | StandardSchemaV1>,
+    ): RouterHandler<Context, any> {
+        const router = new Router<Context, any>();
         const obj = Object.create(Function.prototype);
 
         obj.addHandler = router.addHandler.bind(router);
         obj.addDefaultHandler = router.addDefaultHandler.bind(router);
+        obj.getSchema = router.getSchema.bind(router);
         obj.getHandler = router.getHandler.bind(router);
+        obj.getTimeoutSecs = router.getTimeoutSecs.bind(router);
+        obj.getMaxTimeoutSecs = router.getMaxTimeoutSecs.bind(router);
         obj.use = router.use.bind(router);
 
-        for (const [label, handler] of Object.entries(routes ?? {})) {
-            router.addHandler(label, handler);
+        // `Reflect.ownKeys` (unlike `Object.entries`) also yields the `defaultRoute` symbol key.
+        for (const label of Reflect.ownKeys(routesOrSchemas ?? {})) {
+            const value = routesOrSchemas![label];
+
+            if (typeof value === 'function') {
+                router.addHandler(label as string, value as (ctx: any) => Awaitable<void>);
+            } else {
+                router.#schemas.set(label, value);
+            }
         }
 
         const func = async function (context: Context) {
             const { url, loadedUrl, label } = context.request;
             context.log.debug('Page opened.', { label, url: loadedUrl ?? url });
 
-            for (const middleware of router.middlewares) {
+            await router.validateRequest(context);
+
+            for (const middleware of router.#middlewares) {
                 await middleware(context);
             }
 
@@ -203,6 +524,6 @@ export class Router<Context extends Omit<RestrictedCrawlingContext, 'enqueueLink
 
         Object.setPrototypeOf(func, obj);
 
-        return func as unknown as RouterHandler<Context>;
+        return func as unknown as RouterHandler<Context, any>;
     }
 }

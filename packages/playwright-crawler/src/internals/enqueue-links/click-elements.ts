@@ -1,31 +1,49 @@
 import { URL } from 'node:url';
 
 import type {
-    GlobInput,
-    PseudoUrlInput,
-    RegExpInput,
+    IRequestManager,
     RequestOptions,
-    RequestProvider,
     RequestTransform,
+    SkippedRequestCallback,
+    UrlPatternInput,
     UrlPatternObject,
 } from '@crawlee/browser';
 import {
-    constructGlobObjectsFromGlobs,
-    constructRegExpObjectsFromPseudoUrls,
-    constructRegExpObjectsFromRegExps,
+    applyRequestTransform,
+    constructUrlPatternObjects,
     createRequestOptions,
-    createRequests,
+    createSkippedRequestArgs,
+    filterRequestOptionsByPatterns,
+    urlPatternSchema,
+    Request as CrawleeRequest,
+    serviceLocator,
 } from '@crawlee/browser';
 import type { BatchAddRequestsResult, Dictionary } from '@crawlee/types';
-import ow from 'ow';
+import { parseArgument, schemas } from '@crawlee/utils/internal';
 import type { Frame, Page, Request, Route } from 'playwright';
-
-import log_ from '@apify/log';
+import { z } from 'zod';
 
 const STARTING_Z_INDEX = 2147400000;
-const log = log_.child({ prefix: 'Playwright Click Elements' });
+const getLog = () => serviceLocator.getChildLog('Playwright Click Elements');
 
 type ClickOptions = Parameters<Page['click']>[1];
+
+const enqueueLinksByClickingElementsOptionsSchema = z.strictObject({
+    page: schemas.objectWithKeys(['goto', 'evaluate']),
+    requestManager: schemas.objectWithKeys(['fetchNextRequest', 'addRequestsBatched']),
+    selector: z.string(),
+    userData: schemas.anyObject.optional(),
+    clickOptions: schemas.anyObject.optional(),
+    include: schemas.arrayOf(urlPatternSchema, 'URL patterns').optional(),
+    exclude: schemas.arrayOf(urlPatternSchema, 'URL patterns').optional(),
+    transformRequestFunction: schemas.anyFunction.optional(),
+    waitForPageIdleSecs: schemas.anyNumber.default(1),
+    maxWaitForPageIdleSecs: schemas.anyNumber.default(5),
+    label: z.string().optional(),
+    forefront: z.boolean().optional(),
+    skipNavigation: z.boolean().optional(),
+    onSkippedRequest: schemas.anyFunction.optional(),
+});
 
 export interface EnqueueLinksByClickingElementsOptions {
     /**
@@ -34,9 +52,9 @@ export interface EnqueueLinksByClickingElementsOptions {
     page: Page;
 
     /**
-     * A request queue to which the URLs will be enqueued.
+     * * A request manager to which the URLs will be enqueued.
      */
-    requestQueue: RequestProvider;
+    requestManager: IRequestManager;
 
     /**
      * A CSS selector matching elements to be clicked on. Unlike in {@apilink enqueueLinks}, there is no default
@@ -56,86 +74,52 @@ export interface EnqueueLinksByClickingElementsOptions {
     clickOptions?: ClickOptions;
 
     /**
-     * An array of glob pattern strings or plain objects
-     * containing glob pattern strings matching the URLs to be enqueued.
+     * An array of URL patterns that URLs must match to be enqueued.
      *
-     * The plain objects must include at least the `glob` property, which holds the glob pattern string.
-     * All remaining keys will be used as request options for the corresponding enqueued {@apilink Request} objects.
-     *
-     * The matching is always case-insensitive.
-     * If you need case-sensitive matching, use `regexps` property directly.
-     *
-     * If `globs` is an empty array or `undefined`, then the function
-     * enqueues all the intercepted navigation requests produced by the page
-     * after clicking on elements matching the provided CSS selector.
-     */
-    globs?: GlobInput[];
-
-    /**
-     * An array of glob pattern strings, regexp patterns or plain objects
-     * containing patterns matching URLs that will **never** be enqueued.
-     *
-     * The plain objects must include either the `glob` property or the `regexp` property.
+     * Accepts glob pattern strings, `{ glob: string }` objects, `RegExp` instances, or `{ regexp: RegExp }` objects.
      *
      * Glob matching is always case-insensitive.
-     * If you need case-sensitive matching, provide a regexp.
-     */
-    exclude?: readonly (GlobInput | RegExpInput)[];
-
-    /**
-     * An array of regular expressions or plain objects
-     * containing regular expressions matching the URLs to be enqueued.
+     * If you need case-sensitive matching, use a `RegExp`.
      *
-     * The plain objects must include at least the `regexp` property, which holds the regular expression.
-     * All remaining keys will be used as request options for the corresponding enqueued {@apilink Request} objects.
-     *
-     * If `regexps` is an empty array or `undefined`, then the function
+     * If `include` is an empty array or `undefined`, then the function
      * enqueues all the intercepted navigation requests produced by the page
      * after clicking on elements matching the provided CSS selector.
      */
-    regexps?: RegExpInput[];
+    include?: UrlPatternInput[];
 
     /**
-     * *NOTE:* In future versions of SDK the options will be removed.
-     * Please use `globs` or `regexps` instead.
+     * An array of URL patterns. Matching URLs will **not** be enqueued.
      *
-     * An array of {@apilink PseudoUrl} strings or plain objects
-     * containing {@apilink PseudoUrl} strings matching the URLs to be enqueued.
+     * Accepts glob pattern strings, `{ glob: string }` objects, `RegExp` instances, or `{ regexp: RegExp }` objects.
      *
-     * The plain objects must include at least the `purl` property, which holds the pseudo-URL pattern string.
-     * All remaining keys will be used as request options for the corresponding enqueued {@apilink Request} objects.
-     *
-     * With a pseudo-URL string, the matching is always case-insensitive.
-     * If you need case-sensitive matching, use `regexps` property directly.
-     *
-     * If `pseudoUrls` is an empty array or `undefined`, then the function
-     * enqueues all the intercepted navigation requests produced by the page
-     * after clicking on elements matching the provided CSS selector.
-     *
-     * @deprecated prefer using `globs` or `regexps` instead
+     * Glob matching is always case-insensitive.
+     * If you need case-sensitive matching, use a `RegExp`.
      */
-    pseudoUrls?: PseudoUrlInput[];
+    exclude?: readonly UrlPatternInput[];
 
     /**
-     * Just before a new {@apilink Request} is constructed and enqueued to the {@apilink RequestQueue}, this function can be used
-     * to remove it or modify its contents such as `userData`, `payload` or, most importantly `uniqueKey`. This is useful
-     * when you need to enqueue multiple `Requests` to the queue that share the same URL, but differ in methods or payloads,
-     * or to dynamically update or create `userData`.
-     *
-     * For example: by adding `useExtendedUniqueKey: true` to the `request` object, `uniqueKey` will be computed from
-     * a combination of `url`, `method` and `payload` which enables crawling of websites that navigate using form submits
-     * (POST requests).
+     * After request options are filtered by `include`/`exclude` patterns,
+     * this function can be used to remove them or modify their contents such as `userData`, `payload` or, most importantly
+     * `uniqueKey`. This is useful when you need to enqueue multiple `Requests` to the queue that share the same URL,
+     * but differ in methods or payloads, or to dynamically update or create `userData`.
      *
      * **Example:**
      * ```javascript
      * {
      *     transformRequestFunction: (request) => {
      *         request.userData.foo = 'bar';
-     *         request.useExtendedUniqueKey = true;
      *         return request;
      *     }
      * }
      * ```
+     *
+     * Note that `transformRequestFunction` has the highest priority and can overwrite
+     * the global `label` option.
+     *
+     * The function receives a {@apilink RequestOptions} object and can return either:
+     * - The modified {@apilink RequestOptions} object
+     * - `'unchanged'` to keep the original options as-is
+     * - A falsy value or `'skip'` to exclude the request from the queue
      */
     transformRequestFunction?: RequestTransform;
 
@@ -179,6 +163,13 @@ export interface EnqueueLinksByClickingElementsOptions {
      * @default false
      */
     skipNavigation?: boolean;
+
+    /**
+     * When a request is skipped for some reason, you can use this callback to act on it.
+     * This is fired for requests skipped because they don't match enqueueLinks filters
+     * or because they were removed by `transformRequestFunction`.
+     */
+    onSkippedRequest?: SkippedRequestCallback;
 }
 
 /**
@@ -190,8 +181,7 @@ export interface EnqueueLinksByClickingElementsOptions {
  * in `href` elements, but rather navigations are triggered in click handlers.
  * If you're looking to find URLs in `href` attributes of the page, see {@apilink enqueueLinks}.
  *
- * Optionally, the function allows you to filter the target links' URLs using an array of {@apilink PseudoUrl} objects
- * and override settings of the enqueued {@apilink Request} objects.
+ * Optionally, the function allows you to filter the target links' URLs using an array of glob or regexp patterns.
  *
  * **IMPORTANT**: To be able to do this, this function uses various mutations on the page,
  * such as changing the Z-index of elements being clicked and their visibility. Therefore,
@@ -211,11 +201,11 @@ export interface EnqueueLinksByClickingElementsOptions {
  * ```javascript
  * await playwrightUtils.enqueueLinksByClickingElements({
  *   page,
- *   requestQueue,
+ *   requestManager,
  *   selector: 'a.product-detail',
- *   pseudoUrls: [
- *       'https://www.example.com/handbags/[.*]'
- *       'https://www.example.com/purses/[.*]'
+ *   include: [
+ *       'https://www.example.com/handbags/*',
+ *       'https://www.example.com/purses/*',
  *   ],
  * });
  * ```
@@ -225,72 +215,32 @@ export interface EnqueueLinksByClickingElementsOptions {
 export async function enqueueLinksByClickingElements(
     options: EnqueueLinksByClickingElementsOptions,
 ): Promise<BatchAddRequestsResult> {
-    ow(
+    const parsedOptions = parseArgument(
         options,
-        ow.object.exactShape({
-            page: ow.object.hasKeys('goto', 'evaluate'),
-            requestQueue: ow.object.hasKeys('fetchNextRequest', 'addRequest'),
-            selector: ow.string,
-            userData: ow.optional.object,
-            clickOptions: ow.optional.object.hasKeys('clickCount', 'delay'),
-            pseudoUrls: ow.optional.array.ofType(ow.any(ow.string, ow.object.hasKeys('purl'))),
-            globs: ow.optional.array.ofType(ow.any(ow.string, ow.object.hasKeys('glob'))),
-            regexps: ow.optional.array.ofType(ow.any(ow.regExp, ow.object.hasKeys('regexp'))),
-            exclude: ow.optional.array.ofType(
-                ow.any(ow.string, ow.regExp, ow.object.hasKeys('glob'), ow.object.hasKeys('regexp')),
-            ),
-            transformRequestFunction: ow.optional.function,
-            waitForPageIdleSecs: ow.optional.number,
-            maxWaitForPageIdleSecs: ow.optional.number,
-            label: ow.optional.string,
-            forefront: ow.optional.boolean,
-            skipNavigation: ow.optional.boolean,
-        }),
+        enqueueLinksByClickingElementsOptionsSchema,
+        'EnqueueLinksByClickingElementsOptions',
     );
 
     const {
         page,
-        requestQueue,
+        requestManager,
         selector,
         clickOptions,
-        pseudoUrls,
-        globs,
-        regexps,
-        transformRequestFunction,
-        waitForPageIdleSecs = 1,
-        maxWaitForPageIdleSecs = 5,
-        forefront,
+        include,
         exclude,
-    } = options;
+        transformRequestFunction,
+        waitForPageIdleSecs,
+        maxWaitForPageIdleSecs,
+        forefront,
+        onSkippedRequest,
+    } = parsedOptions;
 
     const waitForPageIdleMillis = waitForPageIdleSecs * 1000;
     const maxWaitForPageIdleMillis = maxWaitForPageIdleSecs * 1000;
+    const hasOnSkippedRequest = onSkippedRequest !== undefined;
 
-    const urlExcludePatternObjects: UrlPatternObject[] = [];
-    const urlPatternObjects: UrlPatternObject[] = [];
-
-    if (exclude?.length) {
-        for (const excl of exclude) {
-            if (typeof excl === 'string' || 'glob' in excl) {
-                urlExcludePatternObjects.push(...constructGlobObjectsFromGlobs([excl]));
-            } else if (excl instanceof RegExp || 'regexp' in excl) {
-                urlExcludePatternObjects.push(...constructRegExpObjectsFromRegExps([excl]));
-            }
-        }
-    }
-
-    if (pseudoUrls?.length) {
-        log.deprecated('`pseudoUrls` option is deprecated, use `globs` or `regexps` instead');
-        urlPatternObjects.push(...constructRegExpObjectsFromPseudoUrls(pseudoUrls));
-    }
-
-    if (globs?.length) {
-        urlPatternObjects.push(...constructGlobObjectsFromGlobs(globs));
-    }
-
-    if (regexps?.length) {
-        urlPatternObjects.push(...constructRegExpObjectsFromRegExps(regexps));
-    }
+    const urlExcludePatternObjects: UrlPatternObject[] = exclude?.length ? constructUrlPatternObjects(exclude) : [];
+    const urlPatternObjects: UrlPatternObject[] = include?.length ? constructUrlPatternObjects(include) : [];
 
     const interceptedRequests = await clickElementsAndInterceptNavigationRequests({
         page,
@@ -299,12 +249,38 @@ export async function enqueueLinksByClickingElements(
         maxWaitForPageIdleMillis,
         clickOptions,
     });
-    let requestOptions = createRequestOptions(interceptedRequests, options);
-    if (transformRequestFunction) {
-        requestOptions = requestOptions.map(transformRequestFunction).filter((r) => !!r) as RequestOptions[];
+    const requestOptions = createRequestOptions(interceptedRequests, parsedOptions);
+    const skippedByFilters: RequestOptions[] = [];
+    let filteredOptions = filterRequestOptionsByPatterns(
+        requestOptions,
+        urlPatternObjects.length > 0 ? urlPatternObjects : undefined,
+        urlExcludePatternObjects,
+        undefined,
+        hasOnSkippedRequest ? (opts) => skippedByFilters.push(opts) : undefined,
+    );
+
+    if (onSkippedRequest && skippedByFilters.length > 0) {
+        await Promise.all(
+            skippedByFilters.map(async (opts) => onSkippedRequest(createSkippedRequestArgs(opts, 'filters'))),
+        );
     }
-    const requests = createRequests(requestOptions, urlPatternObjects, urlExcludePatternObjects);
-    const { addedRequests } = await requestQueue.addRequestsBatched(requests, { forefront });
+
+    if (transformRequestFunction) {
+        const skippedByTransform: RequestOptions[] = [];
+        filteredOptions = applyRequestTransform(
+            filteredOptions,
+            transformRequestFunction,
+            hasOnSkippedRequest ? (r) => skippedByTransform.push(r) : undefined,
+        );
+        if (onSkippedRequest && skippedByTransform.length > 0) {
+            await Promise.all(
+                skippedByTransform.map(async (r) => onSkippedRequest(createSkippedRequestArgs(r, 'transform'))),
+            );
+        }
+    }
+
+    const requests = filteredOptions.map((opts) => new CrawleeRequest(opts));
+    const { addedRequests } = await requestManager.addRequestsBatched(requests, { forefront });
 
     return { processedRequests: addedRequests, unprocessedRequests: [] };
 }
@@ -352,7 +328,7 @@ export async function clickElementsAndInterceptNavigationRequests(
 
     // browser.off(BrowserEmittedEvents.TargetCreated, onTargetCreated);
     page.off('framenavigated', onFrameNavigated);
-    await context.unroute('*', onInterceptedRequest);
+    await context.unroute('**', onInterceptedRequest);
 
     const serializedRequests = Array.from(uniqueRequests);
     return serializedRequests.map((r) => JSON.parse(r));
@@ -396,7 +372,9 @@ function createTargetCreatedHandler(requests: Set<string>): (popup: Page) => Pro
         try {
             await popup.close();
         } catch (err) {
-            log.debug('enqueueLinksByClickingElements: Could not close spawned page.', { error: (err as Error).stack });
+            getLog().debug('enqueueLinksByClickingElements: Could not close spawned page.', {
+                error: (err as Error).stack,
+            });
         }
     };
 }
@@ -405,7 +383,15 @@ function createTargetCreatedHandler(requests: Set<string>): (popup: Page) => Pro
  * @ignore
  */
 function isTopFrameNavigationRequest(page: Page, req: Request): boolean {
-    return req.isNavigationRequest() && req.frame() === page.mainFrame();
+    try {
+        return req.isNavigationRequest() && req.frame() === page.mainFrame();
+    } catch {
+        // `req.frame()` throws when the owning frame is unavailable - e.g. the request was
+        // issued by a service worker, or before/after its frame existed (see #3216). Such a
+        // request is not a top-frame navigation, so swallow the throw and let it pass through
+        // instead of crashing the route handler (which would leave the route unhandled).
+        return false;
+    }
 }
 
 /**
@@ -482,7 +468,7 @@ function updateElementCssToEnableMouseClick(el: Element, zIndex: number): void {
  */
 export async function clickElements(page: Page, selector: string, clickOptions?: ClickOptions): Promise<void> {
     const elementHandles = await page.$$(selector);
-    log.debug(`enqueueLinksByClickingElements: There are ${elementHandles.length} elements to click.`);
+    getLog().debug(`enqueueLinksByClickingElements: There are ${elementHandles.length} elements to click.`);
     let clickedElementsCount = 0;
     let zIndex = STARTING_Z_INDEX;
     let shouldLogWarning = true;
@@ -494,17 +480,17 @@ export async function clickElements(page: Page, selector: string, clickOptions?:
         } catch (err) {
             const e = err as Error;
             if (shouldLogWarning && e.stack!.includes('is detached from document')) {
-                log.warning(
+                getLog().warning(
                     `An element with selector ${selector} that you're trying to click has been removed from the page. ` +
                         'This was probably caused by an earlier click which triggered some JavaScript on the page that caused it to change. ' +
                         'If you\'re trying to enqueue pagination links, we suggest using the "next" button, if available and going one by one.',
                 );
                 shouldLogWarning = false;
             }
-            log.debug('enqueueLinksByClickingElements: Click failed.', { stack: e.stack });
+            getLog().debug('enqueueLinksByClickingElements: Click failed.', { stack: e.stack });
         }
     }
-    log.debug(
+    getLog().debug(
         `enqueueLinksByClickingElements: Successfully clicked ${clickedElementsCount} elements out of ${elementHandles.length}`,
     );
 }
@@ -530,9 +516,6 @@ async function waitForPageIdle({
 }: WaitForPageIdleOptions): Promise<void> {
     return new Promise<void>((resolve) => {
         let timeout: NodeJS.Timeout;
-        let maxTimeout: NodeJS.Timeout;
-
-        page.on('popup', activityHandler);
 
         function activityHandler() {
             clearTimeout(timeout);
@@ -543,7 +526,7 @@ async function waitForPageIdle({
         }
 
         function maxTimeoutHandler() {
-            log.debug(
+            getLog().debug(
                 `enqueueLinksByClickingElements: Page still showed activity after ${maxWaitForPageIdleMillis}ms. ` +
                     'This is probably due to the website itself dispatching requests, but some links may also have been missed.',
             );
@@ -555,7 +538,8 @@ async function waitForPageIdle({
             resolve();
         }
 
-        maxTimeout = setTimeout(maxTimeoutHandler, maxWaitForPageIdleMillis);
+        const maxTimeout = setTimeout(maxTimeoutHandler, maxWaitForPageIdleMillis);
+        page.on('popup', activityHandler);
         activityHandler(); // We call this once manually in case there would be no requests at all.
         page.on('request', activityHandler);
         page.on('framenavigated', activityHandler);
@@ -579,7 +563,7 @@ async function restoreHistoryNavigationAndSaveCapturedUrls(page: Page, requests:
             const url = new URL(stateUrl, page.url()).href;
             requests.add(JSON.stringify({ url }));
         } catch (err) {
-            log.debug('enqueueLinksByClickingElements: Failed to ', { error: (err as Error).stack });
+            getLog().debug('enqueueLinksByClickingElements: Failed to ', { error: (err as Error).stack });
         }
     });
 }

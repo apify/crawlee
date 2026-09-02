@@ -1,8 +1,10 @@
 import type { BrowserLaunchContext } from '@crawlee/browser';
 import { BrowserLauncher, Configuration } from '@crawlee/browser';
 import { PuppeteerPlugin } from '@crawlee/browser-pool';
-import ow from 'ow';
+import { parseArgument, schemas } from '@crawlee/utils/internal';
+// @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
 import type { Browser } from 'puppeteer';
+import { z } from 'zod';
 
 /**
  * Apify extends the launch options of Puppeteer.
@@ -72,38 +74,42 @@ export interface PuppeteerLaunchContext extends BrowserLaunchContext<PuppeteerPl
  * @ignore
  */
 export class PuppeteerLauncher extends BrowserLauncher<PuppeteerPlugin, unknown> {
+    /**
+     * @internal
+     */
     protected static override optionsShape = {
         ...BrowserLauncher.optionsShape,
-        launcher: ow.optional.object,
+        launcher: schemas.anyObject.optional(),
     };
+
+    /** @internal */
+    protected static override optionsSchema = z.strictObject(PuppeteerLauncher.optionsShape);
 
     /**
      * All `PuppeteerLauncher` parameters are passed via an launchContext object.
      */
     constructor(
         launchContext: PuppeteerLaunchContext = {},
-        override readonly config = Configuration.getGlobalConfig(),
+        override readonly configuration = Configuration.getGlobalConfiguration(),
     ) {
-        ow(launchContext, 'PuppeteerLauncher', ow.object.exactShape(PuppeteerLauncher.optionsShape));
-
         const {
             launcher = BrowserLauncher.requireLauncherOrThrow('puppeteer', 'apify/actor-node-puppeteer-chrome'),
             ...browserLauncherOptions
-        } = launchContext;
+        } = parseArgument(launchContext, PuppeteerLauncher.optionsSchema, 'PuppeteerLaunchContext');
 
         super(
             {
                 ...browserLauncherOptions,
                 launcher,
-            },
-            config,
+            } as BrowserLaunchContext<Partial<Parameters<PuppeteerPlugin['launch']>[0]>, unknown>,
+            configuration,
         );
 
         this.Plugin = PuppeteerPlugin;
     }
 
-    protected override _getDefaultHeadlessOption(): boolean {
-        const headless = super._getDefaultHeadlessOption();
+    protected override getDefaultHeadlessOption(): boolean {
+        const headless = super.getDefaultHeadlessOption();
         return headless ? ('new' as any) : headless;
     }
 }
@@ -136,15 +142,15 @@ export class PuppeteerLauncher extends BrowserLauncher<PuppeteerPlugin, unknown>
  * @param [launchContext]
  *   All `PuppeteerLauncher` parameters are passed via an launchContext object.
  *   If you want to pass custom `puppeteer.launch(options)` options you can use the `PuppeteerLaunchContext.launchOptions` property.
- * @param [config]
+ * @param [configuration]
  * @returns
  *   Promise that resolves to Puppeteer's `Browser` instance.
  */
 export async function launchPuppeteer(
     launchContext?: PuppeteerLaunchContext,
-    config = Configuration.getGlobalConfig(),
+    configuration = Configuration.getGlobalConfiguration(),
 ): Promise<Browser> {
-    const puppeteerLauncher = new PuppeteerLauncher(launchContext, config);
+    const puppeteerLauncher = new PuppeteerLauncher(launchContext, configuration);
 
     return puppeteerLauncher.launch();
 }

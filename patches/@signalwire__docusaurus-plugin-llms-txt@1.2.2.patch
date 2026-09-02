@@ -1,0 +1,13 @@
+diff --git a/lib/transformation/plugins/plugin-registry.js b/lib/transformation/plugins/plugin-registry.js
+index f35c2df0f30573c4457b2f1c48c42a506ade64df..4d8b9bdb6ee1204a86c2e72a4b6c45cd981a6628 100644
+--- a/lib/transformation/plugins/plugin-registry.js
++++ b/lib/transformation/plugins/plugin-registry.js
+@@ -73,7 +73,7 @@ export class PluginRegistry {
+         }
+         // Always last - converts HTML AST to Markdown AST
+         processor.use(rehypeRemark, {
+-            handlers: { br: () => ({ type: 'html', value: '<br />' }) },
++            handlers: { br: () => ({ type: 'break' }) },
+         });
+     }
+     /**

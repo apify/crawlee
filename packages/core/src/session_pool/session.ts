@@ -1,38 +1,32 @@
-import { EventEmitter } from 'node:events';
-
-import type { Cookie as CookieObject, Dictionary } from '@crawlee/types';
-import ow from 'ow';
-import type { Cookie, SerializedCookieJar } from 'tough-cookie';
+import type { Dictionary, ISession, ProxyInfo, SessionFingerprint, SessionState } from '@crawlee/types';
 import { CookieJar } from 'tough-cookie';
+import { z } from 'zod';
 
-import type { Log } from '@apify/log';
 import { cryptoRandomObjectId } from '@apify/utilities';
 
-import type { ResponseLike } from '../cookie_utils';
-import {
-    browserPoolCookieToToughCookie,
-    getCookiesFromResponse,
-    getDefaultCookieExpirationDate,
-    toughCookieToBrowserPoolCookie,
-} from '../cookie_utils';
-import { log as defaultLog } from '../log';
-import { EVENT_SESSION_RETIRED } from './events';
+import type { CrawleeLogger } from '../log.js';
+import { serviceLocator } from '../service_locator.js';
+import { parseArgument, schemas, validators } from '../validators.js';
 
-/**
- * Persistable {@apilink Session} state.
- */
-export interface SessionState {
-    id: string;
-    cookieJar: SerializedCookieJar;
-    userData: object;
-    errorScore: number;
-    maxErrorScore: number;
-    errorScoreDecrement: number;
-    usageCount: number;
-    maxUsageCount: number;
-    expiresAt: string;
-    createdAt: string;
-}
+// `schemas.anyObject` passes values through by reference (object schemas return a pruned plain
+// copy), so class instances like cookie jars and loggers keep their prototype.
+const sessionOptionsSchema = z.strictObject({
+    id: z.string().default(() => `session_${cryptoRandomObjectId(10)}`),
+    cookieJar: schemas.anyObject.default(() => new CookieJar()),
+    proxyInfo: schemas.anyObject.optional(),
+    maxAgeSecs: schemas.anyNumber.default(3000),
+    userData: schemas.anyObject.default(() => ({})),
+    maxErrorScore: schemas.anyNumber.default(3),
+    errorScoreDecrement: schemas.anyNumber.default(0.5),
+    createdAt: z.date().default(() => new Date()),
+    expiresAt: z.date().optional(),
+    usageCount: schemas.anyNumber.default(0),
+    errorScore: schemas.anyNumber.default(0),
+    maxUsageCount: schemas.anyNumber.default(50),
+    retired: z.boolean().default(false),
+    log: validators.logger.default(() => serviceLocator.getLogger()),
+    fingerprint: schemas.anyObject.optional(),
+});
 
 export interface SessionOptions {
     /** Id of session used for generating fingerprints. It is used as proxy session name. */
@@ -67,7 +61,10 @@ export interface SessionOptions {
     /** Date of creation. */
     createdAt?: Date;
 
-    /** Date of expiration. */
+    /**
+     * Date of expiration.
+     * @default createdAt + maxAgeSecs
+     */
     expiresAt?: Date;
 
     /**
@@ -83,12 +80,24 @@ export interface SessionOptions {
      */
     maxUsageCount?: number;
 
-    /** SessionPool instance. Session will emit the `sessionRetired` event on this instance. */
-    sessionPool?: import('./session_pool').SessionPool;
+    /**
+     * Marks the session as already retired. Used when restoring a previously persisted session
+     * so that `isUsable()` reflects the terminal state regardless of error score or usage count.
+     * @default false
+     */
+    retired?: boolean;
 
-    log?: Log;
+    log?: CrawleeLogger;
     errorScore?: number;
     cookieJar?: CookieJar;
+    proxyInfo?: ProxyInfo;
+
+    /**
+     * Browser / HTTP client fingerprint tied to this session. Backends use this to make
+     * repeated requests with the same session look consistent (same user-agent, headers,
+     * TLS profile). See {@apilink SessionFingerprint}.
+     */
+    fingerprint?: SessionFingerprint;
 }
 
 /**
@@ -97,109 +106,114 @@ export interface SessionOptions {
  * Session internal state can be enriched with custom user data for example some authorization tokens and specific headers in general.
  * @category Scaling
  */
-export class Session {
+export class Session implements ISession {
     readonly id: string;
-    private maxAgeSecs: number;
-    userData: Dictionary;
-    private _maxErrorScore: number;
-    private _errorScoreDecrement: number;
-    private _createdAt: Date;
-    private _expiresAt: Date;
-    private _usageCount: number;
-    private _maxUsageCount: number;
-    private sessionPool: import('./session_pool').SessionPool;
-    private _errorScore: number;
-    private _cookieJar: CookieJar;
-    private log: Log;
+    readonly userData: Dictionary;
+    #maxErrorScore: number;
+    #errorScoreDecrement: number;
+    #createdAt: Date;
+    #expiresAt: Date;
+    #usageCount: number;
+    #maxUsageCount: number;
+    #errorScore: number;
+    #retired = false;
+    #proxyInfo?: ProxyInfo;
+    #cookieJar: CookieJar;
+    #fingerprint?: SessionFingerprint;
+    #log: CrawleeLogger;
 
     get errorScore() {
-        return this._errorScore;
+        return this.#errorScore;
     }
 
     get usageCount() {
-        return this._usageCount;
+        return this.#usageCount;
     }
 
     get maxErrorScore() {
-        return this._maxErrorScore;
+        return this.#maxErrorScore;
     }
 
     get errorScoreDecrement() {
-        return this._errorScoreDecrement;
+        return this.#errorScoreDecrement;
     }
 
     get expiresAt() {
-        return this._expiresAt;
+        return this.#expiresAt;
     }
 
     get createdAt() {
-        return this._createdAt;
+        return this.#createdAt;
     }
 
     get maxUsageCount() {
-        return this._maxUsageCount;
+        return this.#maxUsageCount;
     }
 
     get cookieJar() {
-        return this._cookieJar;
+        return this.#cookieJar;
+    }
+
+    get proxyInfo() {
+        return this.#proxyInfo;
+    }
+
+    get fingerprint(): SessionFingerprint | undefined {
+        return this.#fingerprint;
+    }
+
+    set fingerprint(fingerprint: SessionFingerprint | undefined) {
+        this.#fingerprint = fingerprint;
+    }
+
+    /**
+     * `true` once {@apilink Session.retire|`retire()`} has been called. Retirement is terminal:
+     * a retired session is never picked by the pool and cannot be revived via `markGood()`.
+     */
+    get retired() {
+        return this.#retired;
     }
 
     /**
      * Session configuration.
      */
-    constructor(options: SessionOptions) {
-        ow(
-            options,
-            ow.object.exactShape({
-                sessionPool: ow.object.instanceOf(EventEmitter),
-                id: ow.optional.string,
-                cookieJar: ow.optional.object,
-                maxAgeSecs: ow.optional.number,
-                userData: ow.optional.object,
-                maxErrorScore: ow.optional.number,
-                errorScoreDecrement: ow.optional.number,
-                createdAt: ow.optional.date,
-                expiresAt: ow.optional.date,
-                usageCount: ow.optional.number,
-                errorScore: ow.optional.number,
-                maxUsageCount: ow.optional.number,
-                log: ow.optional.object,
-            }),
-        );
-
+    constructor(options: SessionOptions = {}) {
         const {
-            sessionPool,
-            id = `session_${cryptoRandomObjectId(10)}`,
-            cookieJar = new CookieJar(),
-            maxAgeSecs = 3000,
-            userData = {},
-            maxErrorScore = 3,
-            errorScoreDecrement = 0.5,
-            createdAt = new Date(),
-            usageCount = 0,
-            errorScore = 0,
-            maxUsageCount = 50,
-            log = defaultLog,
-        } = options;
+            id,
+            cookieJar,
+            proxyInfo,
+            maxAgeSecs,
+            userData,
+            maxErrorScore,
+            errorScoreDecrement,
+            createdAt,
+            usageCount,
+            errorScore,
+            maxUsageCount,
+            retired,
+            log,
+            fingerprint,
+            // Anchored to `createdAt` rather than to "now", so the documented `createdAt + maxAgeSecs` holds.
+            expiresAt = new Date(createdAt.getTime() + maxAgeSecs * 1000),
+        } = parseArgument(options, sessionOptionsSchema);
 
-        const { expiresAt = getDefaultCookieExpirationDate(maxAgeSecs) } = options;
+        this.#log = log.child({ prefix: 'Session' });
 
-        this.log = log.child({ prefix: 'Session' });
-
-        this._cookieJar = (cookieJar.setCookie as unknown) ? cookieJar : CookieJar.fromJSON(JSON.stringify(cookieJar));
+        this.#cookieJar = (cookieJar.setCookie as unknown) ? cookieJar : CookieJar.fromJSON(JSON.stringify(cookieJar));
+        this.#proxyInfo = proxyInfo;
+        this.#fingerprint = fingerprint;
         this.id = id;
-        this.maxAgeSecs = maxAgeSecs;
         this.userData = userData;
-        this._maxErrorScore = maxErrorScore;
-        this._errorScoreDecrement = errorScoreDecrement;
+        this.#maxErrorScore = maxErrorScore;
+        this.#errorScoreDecrement = errorScoreDecrement;
 
         // Internal
-        this._expiresAt = expiresAt;
-        this._createdAt = createdAt;
-        this._usageCount = usageCount; // indicates how many times the session has been used
-        this._errorScore = errorScore; // indicates number of markBaded request with the session
-        this._maxUsageCount = maxUsageCount;
-        this.sessionPool = sessionPool;
+        this.#expiresAt = expiresAt;
+        this.#createdAt = createdAt;
+        this.#usageCount = usageCount; // indicates how many times the session has been used
+        this.#errorScore = errorScore; // indicates number of markBaded request with the session
+        this.#maxUsageCount = maxUsageCount;
+        this.#retired = retired;
     }
 
     /**
@@ -229,10 +243,10 @@ export class Session {
 
     /**
      * Indicates whether the session can be used for next requests.
-     * Session is usable when it is not expired, not blocked and the maximum usage count has not be reached.
+     * Session is usable when it is not retired, not expired, not blocked and the maximum usage count has not be reached.
      */
     isUsable(): boolean {
-        return !this.isBlocked() && !this.isExpired() && !this.isMaxUsageCountReached();
+        return !this.#retired && !this.isBlocked() && !this.isExpired() && !this.isMaxUsageCountReached();
     }
 
     /**
@@ -240,13 +254,13 @@ export class Session {
      * It increases `usageCount` and potentially lowers the `errorScore` by the `errorScoreDecrement`.
      */
     markGood() {
-        this._usageCount += 1;
+        this.#usageCount += 1;
 
-        if (this._errorScore > 0) {
-            this._errorScore -= this._errorScoreDecrement;
+        if (this.#errorScore > 0) {
+            this.#errorScore -= this.#errorScoreDecrement;
         }
 
-        this._maybeSelfRetire();
+        this.maybeSelfRetire();
     }
 
     /**
@@ -257,7 +271,9 @@ export class Session {
         return {
             id: this.id,
             cookieJar: this.cookieJar.toJSON()!,
+            proxyInfo: this.#proxyInfo,
             userData: this.userData,
+            fingerprint: this.#fingerprint,
             maxErrorScore: this.maxErrorScore,
             errorScoreDecrement: this.errorScoreDecrement,
             expiresAt: this.expiresAt.toISOString(),
@@ -265,23 +281,22 @@ export class Session {
             usageCount: this.usageCount,
             maxUsageCount: this.maxUsageCount,
             errorScore: this.errorScore,
+            retired: this.#retired,
         };
     }
 
     /**
-     * Marks session as blocked and emits event on the `SessionPool`
-     * This method should be used if the session usage was unsuccessful
-     * and you are sure that it is because of the session configuration and not any external matters.
-     * For example when server returns 403 status code.
-     * If the session does not work due to some external factors as server error such as 5XX you probably want to use `markBad` method.
+     * Permanently retires the session — `isUsable()` will return `false` from here on,
+     * and no `markGood()` / `markBad()` can revive it. Calling `retire()` again is a no-op.
+     *
+     * Use this when you're confident the session itself is the problem (e.g. a `403` response).
+     * For transient external failures (such as `5XX` responses), use `markBad()` instead.
      */
     retire() {
-        // mark it as an invalid by increasing the error score count.
-        this._errorScore += this._maxErrorScore;
-        this._usageCount += 1;
-
-        // emit event so we can retire browser in puppeteer pool
-        this.sessionPool.emit(EVENT_SESSION_RETIRED, this);
+        if (this.#retired) return;
+        this.#errorScore += this.#maxErrorScore;
+        this.#usageCount += 1;
+        this.#retired = true;
     }
 
     /**
@@ -289,91 +304,10 @@ export class Session {
      * Should be used when the session has been used unsuccessfully. For example because of timeouts.
      */
     markBad() {
-        this._errorScore += 1;
-        this._usageCount += 1;
+        this.#errorScore += 1;
+        this.#usageCount += 1;
 
-        this._maybeSelfRetire();
-    }
-
-    /**
-     * With certain status codes: `401`, `403` or `429` we can be certain
-     * that the target website is blocking us. This function helps to do this conveniently
-     * by retiring the session when such code is received. Optionally the default status
-     * codes can be extended in the second parameter.
-     * @param statusCode HTTP status code.
-     * @returns Whether the session was retired.
-     */
-    retireOnBlockedStatusCodes(statusCode: number): boolean;
-
-    /**
-     * With certain status codes: `401`, `403` or `429` we can be certain
-     * that the target website is blocking us. This function helps to do this conveniently
-     * by retiring the session when such code is received. Optionally the default status
-     * codes can be extended in the second parameter.
-     * @param statusCode HTTP status code.
-     * @param [additionalBlockedStatusCodes]
-     *   Custom HTTP status codes that means blocking on particular website.
-     *
-     *   **This parameter is deprecated and will be removed in next major version.**
-     * @returns Whether the session was retired.
-     * @deprecated The parameter `additionalBlockedStatusCodes` is deprecated and will be removed in next major version.
-     */
-    retireOnBlockedStatusCodes(statusCode: number, additionalBlockedStatusCodes?: number[]): boolean;
-
-    retireOnBlockedStatusCodes(statusCode: number, additionalBlockedStatusCodes: number[] = []): boolean {
-        // eslint-disable-next-line dot-notation -- accessing private property
-        const isBlocked = this.sessionPool['blockedStatusCodes']
-            .concat(additionalBlockedStatusCodes)
-            .includes(statusCode);
-        if (isBlocked) {
-            this.retire();
-        }
-        return isBlocked;
-    }
-
-    /**
-     * Saves cookies from an HTTP response to be used with the session.
-     * It expects an object with a `headers` property that's either an `Object`
-     * (typical Node.js responses) or a `Function` (Puppeteer Response).
-     *
-     * It then parses and saves the cookies from the `set-cookie` header, if available.
-     */
-    setCookiesFromResponse(response: ResponseLike) {
-        try {
-            const cookies = getCookiesFromResponse(response).filter((c) => c);
-            this._setCookies(cookies, typeof response.url === 'function' ? response.url() : response.url!);
-        } catch (e) {
-            const err = e as Error;
-            // if invalid Cookie header is provided just log the exception.
-            this.log.exception(err, 'Could not get cookies from response');
-        }
-    }
-
-    /**
-     * Saves an array with cookie objects to be used with the session.
-     * The objects should be in the format that
-     * [Puppeteer uses](https://pptr.dev/#?product=Puppeteer&version=v2.0.0&show=api-pagecookiesurls),
-     * but you can also use this function to set cookies manually:
-     *
-     * ```
-     * [
-     *   { name: 'cookie1', value: 'my-cookie' },
-     *   { name: 'cookie2', value: 'your-cookie' }
-     * ]
-     * ```
-     */
-    setCookies(cookies: CookieObject[], url: string) {
-        const normalizedCookies = cookies.map((c) => browserPoolCookieToToughCookie(c, this.maxAgeSecs));
-        this._setCookies(normalizedCookies, url);
-    }
-
-    /**
-     * Returns cookies in a format compatible with puppeteer/playwright and ready to be used with `page.setCookie`.
-     * @param url website url. Only cookies stored for this url will be returned
-     */
-    getCookies(url: string): CookieObject[] {
-        const cookies = this.cookieJar.getCookiesSync(url);
-        return cookies.map((c) => toughCookieToBrowserPoolCookie(c));
+        this.maybeSelfRetire();
     }
 
     /**
@@ -382,42 +316,25 @@ export class Session {
      * a cookie header or elsewhere.
      * @returns Represents `Cookie` header.
      */
-    getCookieString(url: string): string {
-        return this.cookieJar.getCookieStringSync(url, {});
+    async getCookieString(url: string): Promise<string> {
+        return this.cookieJar.getCookieString(url, {});
     }
 
     /**
      * Sets a cookie within this session for the specific URL.
      */
-    setCookie(rawCookie: string, url: string): void {
-        this.cookieJar.setCookieSync(rawCookie, url);
-    }
-
-    /**
-     * Sets cookies.
-     */
-    protected _setCookies(cookies: Cookie[], url: string): void {
-        const errorMessages: string[] = [];
-
-        for (const cookie of cookies) {
-            try {
-                this.cookieJar.setCookieSync(cookie, url, { ignoreError: false });
-            } catch (e) {
-                const err = e as Error;
-                errorMessages.push(err.message);
-            }
-        }
-
-        // if invalid cookies are provided just log the exception. No need to retry the request automatically.
-        if (errorMessages.length) {
-            this.log.debug('Could not set cookies.', { errorMessages });
+    async setCookie(rawCookie: string, url: string): Promise<void> {
+        try {
+            await this.cookieJar.setCookie(rawCookie, url);
+        } catch (e) {
+            this.#log.warning('Could not set cookie.', { url, error: (e as Error).message });
         }
     }
 
     /**
      * Checks if session is not usable. if it is not retires the session.
      */
-    protected _maybeSelfRetire(): void {
+    private maybeSelfRetire(): void {
         if (!this.isUsable()) {
             this.retire();
         }

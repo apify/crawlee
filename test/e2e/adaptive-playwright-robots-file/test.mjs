@@ -1,14 +1,14 @@
-import { initialize, getActorTestDir, runActor, expect } from '../tools.mjs';
+import { expect, getActorTestDir, initialize, runActor } from '../tools.mjs';
 
 const testActorDirname = getActorTestDir(import.meta.url);
 await initialize(testActorDirname);
 
-const { datasetItems } = await runActor(testActorDirname, 16384);
+const { stats, datasetItems } = await runActor(testActorDirname, 16384);
 
-const cartRequest = datasetItems.find((item) => item.url === 'https://warehouse-theme-metal.myshopify.com/cart');
-const checkoutRequest = datasetItems.find(
-    (item) => item.url === 'https://warehouse-theme-metal.myshopify.com/checkout',
-);
+// Without this the two assertions below hold vacuously when the crawl never starts.
+await expect(stats.requestsFinished >= 1, 'All requests finished');
 
-await expect(!cartRequest, '/cart URL is not processed');
-await expect(!checkoutRequest, '/checkout URL is not processed');
+const paths = datasetItems.map((item) => new URL(item.url).pathname);
+
+await expect(!paths.includes('/cart'), '/cart URL is not processed');
+await expect(!paths.includes('/checkout'), '/checkout URL is not processed');
