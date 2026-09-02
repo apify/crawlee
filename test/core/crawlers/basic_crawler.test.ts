@@ -1070,6 +1070,41 @@ describe('BasicCrawler', () => {
         vitest.restoreAllMocks();
     });
 
+    test('notify() called from a stalled request handler does not abort the whole crawl (GH #4081)', async () => {
+        const processed: string[] = [];
+        const failed: string[] = [];
+
+        const crawler = new BasicCrawler({
+            keepAlive: true,
+            maxRequestRetries: 0,
+            requestHandlerTimeoutSecs: 1,
+            requestHandler: async ({ request, crawler: c }) => {
+                if (request.url.endsWith('/orphan')) {
+                    // Overrun requestHandlerTimeoutSecs, then reach for the pool from the
+                    // already-aborted `@apify/timeout` context, as described in the issue.
+                    await sleep(2000);
+                    await c.addRequests(['https://example.com/never-crawled']);
+                    await c.autoscaledPool!.notify();
+                    return;
+                }
+
+                processed.push(request.url);
+            },
+            failedRequestHandler: async ({ request }) => {
+                failed.push(request.url);
+            },
+        });
+
+        setTimeout(() => {
+            void crawler.teardown();
+        }, 4000);
+
+        await crawler.run(['https://example.com/orphan']);
+
+        expect(failed).toEqual(['https://example.com/orphan']);
+        expect(processed).toEqual(['https://example.com/never-crawled']);
+    }, 10_000);
+
     test('should support maxRequestsPerCrawl parameter', async () => {
         const sources = [
             { url: 'http://example.com/1' },
