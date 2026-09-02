@@ -98,6 +98,18 @@ function getNextVersion() {
     return `${version}-${preid}.${lastPrereleaseNumber + 1}`;
 }
 
+// optionalDependencies too, otherwise `workspace:^` on @crawlee/impit-client publishes as a floating `^` range
+function pinInternalDeps(pkgJson: any, version: string): void {
+    for (const deps of [pkgJson.dependencies, pkgJson.optionalDependencies]) {
+        for (const dep of Object.keys(deps ?? {})) {
+            if ((dep.startsWith('@crawlee/') && dep !== '@crawlee/fs-storage-native') || dep === 'crawlee') {
+                const prefix = deps[dep].startsWith('^') ? '^' : '';
+                deps[dep] = prefix + version;
+            }
+        }
+    }
+}
+
 // as we publish only the dist folder, we need to copy some meta files inside (readme/license/package.json)
 // also changes paths inside the copied `package.json` (`dist/index.js` -> `index.js`)
 const root = resolve(import.meta.dirname, '..');
@@ -109,12 +121,7 @@ if (options.canary) {
     const nextVersion = getNextVersion();
     pkgJson.version = nextVersion;
 
-    for (const dep of Object.keys(pkgJson.dependencies)) {
-        if ((dep.startsWith('@crawlee/') && dep !== '@crawlee/fs-storage-native') || dep === 'crawlee') {
-            const prefix = pkgJson.dependencies[dep].startsWith('^') ? '^' : '';
-            pkgJson.dependencies[dep] = prefix + nextVersion;
-        }
-    }
+    pinInternalDeps(pkgJson, nextVersion);
 
     console.info(`canary: setting version to ${nextVersion}`);
 
@@ -125,11 +132,7 @@ if (options['pin-versions']) {
     const pkgJson = require(pkgPath);
     const version = getRootVersion(false);
 
-    for (const dep of Object.keys(pkgJson.dependencies ?? {})) {
-        if ((dep.startsWith('@crawlee/') && dep !== '@crawlee/fs-storage-native') || dep === 'crawlee') {
-            pkgJson.dependencies[dep] = version;
-        }
-    }
+    pinInternalDeps(pkgJson, version);
 
     console.info(`pin-versions: version ${version}`, pkgJson.dependencies);
 

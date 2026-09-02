@@ -779,7 +779,9 @@ export class KeyValueStore {
     /**
      * Returns a file URL for the given key.
      *
-     * If the record does not exist or has no associated file path (i.e., it is not stored as a file), returns `undefined`.
+     * The URL is derived from the key, so it is also returned for a record that does not exist (yet) —
+     * including one written earlier in an uncommitted storage transaction. Returns `undefined` only when
+     * the storage has no file URLs at all (e.g. the in-memory storage).
      *
      * @param key The key of the record to generate the public URL for.
      */

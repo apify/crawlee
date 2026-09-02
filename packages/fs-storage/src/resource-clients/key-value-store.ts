@@ -181,20 +181,17 @@ export class KeyValueStoreBackend extends CachedIdClient implements storage.KeyV
     /**
      * Generates a public `file://` URL for accessing a specific record in the key-value store.
      *
-     * Returns `undefined` if the record does not exist.
+     * The native `getPublicUrl` derives the URL from the key without probing bare-file extensions, so
+     * an `INPUT` that lives on disk as a hand-placed `INPUT.json` is resolved first. Nothing on disk
+     * means nothing to resolve — the requested key is used as-is, and the URL is the one the record will
+     * have once written.
      * @param key The key of the record to generate the public URL for.
      */
     async getPublicUrl(key: string): Promise<string | undefined> {
         parseArgument(key, keySchema);
 
-        // The native `getPublicUrl` stats the encoded path but does not probe bare-file extensions,
-        // so we resolve the on-disk key first (handling e.g. `INPUT` -> `INPUT.json`) and normalize
-        // the native `null`-for-missing result to the historical `undefined` contract.
-        const resolvedKey = await this.resolveExistingKey(key);
-        if (resolvedKey === undefined) {
-            return undefined;
-        }
-        return (await this.#nativeBackend.getPublicUrl(resolvedKey)) ?? undefined;
+        const resolvedKey = (await this.resolveExistingKey(key)) ?? key;
+        return this.#nativeBackend.getPublicUrl(resolvedKey);
     }
 
     /**
