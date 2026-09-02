@@ -796,7 +796,7 @@ export class AdaptivePlaywrightCrawler<
                 })();
 
                 this.activeDetections.add(detectionPromise);
-                detectionPromise.finally(() => {
+                void detectionPromise.finally(() => {
                     this.activeDetections.delete(detectionPromise);
                 });
 

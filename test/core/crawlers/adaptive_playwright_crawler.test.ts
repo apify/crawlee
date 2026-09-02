@@ -1040,7 +1040,7 @@ describe('AdaptivePlaywrightCrawler', () => {
             // Cast to access protected activeDetections
             const activeDetections = (crawler as any).activeDetections as Set<Promise<unknown>>;
             activeDetections.add(detectionTask);
-            detectionTask.finally(() => {
+            void detectionTask.finally(() => {
                 activeDetections.delete(detectionTask);
             });
 
