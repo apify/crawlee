@@ -45,7 +45,12 @@ import { z } from 'zod';
 
 import { addTimeoutToPromise } from '@apify/timeout';
 
-import type { PlaywrightCrawlingContext, PlaywrightGotoOptions, PlaywrightHook } from './playwright-crawler.js';
+import type {
+    PlaywrightCrawlerOptions,
+    PlaywrightCrawlingContext,
+    PlaywrightGotoOptions,
+    PlaywrightHook,
+} from './playwright-crawler.js';
 import { PlaywrightCrawler } from './playwright-crawler.js';
 import {
     type IRenderingTypePredictor,
@@ -163,16 +168,19 @@ export interface AdaptivePlaywrightCrawlerOptions<
         GetUserDataFromRequest<AdaptivePlaywrightCrawlerContext['request']>
     >,
     StatisticStateExtension extends AdaptivePlaywrightCrawlerStatisticState = AdaptivePlaywrightCrawlerStatisticState,
-> extends Omit<
-    BasicCrawlerOptions<
-        AdaptivePlaywrightCrawlerContext,
-        ContextExtension,
-        ExtendedContext,
-        Routes,
-        StatisticStateExtension
-    >,
-    'preNavigationHooks' | 'postNavigationHooks'
-> {
+>
+    extends
+        Omit<
+            BasicCrawlerOptions<
+                AdaptivePlaywrightCrawlerContext,
+                ContextExtension,
+                ExtendedContext,
+                Routes,
+                StatisticStateExtension
+            >,
+            'preNavigationHooks' | 'postNavigationHooks'
+        >,
+        Pick<PlaywrightCrawlerOptions, 'launchContext' | 'headless' | 'browserPool' | 'remoteBrowser'> {
     /**
      * Async functions that are sequentially evaluated before the navigation. Good for setting additional cookies.
      * The function accepts a subset of the crawling context. If you attempt to access the `page` property during HTTP-only crawling,
@@ -340,6 +348,10 @@ export class AdaptivePlaywrightCrawler<
             extendContext,
             contextPipelineBuilder,
             transactionalStorage,
+            launchContext,
+            headless,
+            browserPool,
+            remoteBrowser,
             ...rest
         } = options;
 
@@ -452,6 +464,10 @@ export class AdaptivePlaywrightCrawler<
             preNavigationHooks: preNavigationHooks as unknown as PlaywrightHook[],
             postNavigationHooks: postNavigationHooks as unknown as PlaywrightHook[],
             extendContext,
+            launchContext,
+            headless,
+            browserPool,
+            remoteBrowser,
         });
 
         this.#teardownHooks.push(browserCrawler.teardown.bind(browserCrawler));

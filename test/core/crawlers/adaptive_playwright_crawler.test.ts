@@ -24,6 +24,7 @@ import {
     BasicCrawler,
     createAdaptivePlaywrightRouter,
     fullResultComparator,
+    playwrightBrowserPool,
     RenderingTypePredictor,
     RequestList,
     RequestQueue,
@@ -57,6 +58,7 @@ describe('AdaptivePlaywrightCrawler', () => {
     const HOSTNAME = '127.0.0.1';
     let port: number;
     let server: Server;
+    let lastDynamicRequestUserAgent: string | undefined;
 
     beforeAll(async () => {
         const app = express();
@@ -82,7 +84,8 @@ describe('AdaptivePlaywrightCrawler', () => {
              `);
         });
 
-        app.get('/dynamic', (_req, res) => {
+        app.get('/dynamic', (req, res) => {
+            lastDynamicRequestUserAgent = req.headers['user-agent'];
             res.status(200);
             res.send(`
                 <html>
@@ -145,6 +148,7 @@ describe('AdaptivePlaywrightCrawler', () => {
         // reset storage, and the crawler restores a stale handled-request count and processes nothing.
         // @ts-expect-error Reset private static instance counter for test isolation
         BasicCrawler.instanceCount = 0;
+        lastDynamicRequestUserAgent = undefined;
     });
 
     // Test setup helpers
@@ -988,5 +992,35 @@ describe('AdaptivePlaywrightCrawler', () => {
 
         await crawler.run();
         expect(warningCalled).toBe(true);
+    });
+
+    test('forwards browser options to the inner PlaywrightCrawler', () => {
+        // `headless` can only collide with `browserPool` in the strict-object validation of the inner
+        // `PlaywrightCrawler` if both options actually reached it - proving the options are wired through.
+        expect(() => new AdaptivePlaywrightCrawler({ browserPool: playwrightBrowserPool(), headless: false })).toThrow(
+            'PlaywrightCrawler: `headless` cannot be combined with `browserPool`',
+        );
+    });
+
+    test('launchContext reaches the browser launched for the browser-rendering path', async () => {
+        const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+            renderingType: 'clientOnly',
+            detectionProbabilityRecommendation: 0,
+        });
+
+        const distinctiveUserAgent = 'CrawleeAdaptiveBrowserOptionsTest/1.0';
+
+        const crawler = await makeOneshotCrawler(
+            {
+                requestHandler: async () => {},
+                renderingTypePredictor,
+                launchContext: { userAgent: distinctiveUserAgent },
+            },
+            [`http://${HOSTNAME}:${port}/dynamic`],
+        );
+
+        await crawler.run();
+
+        expect(lastDynamicRequestUserAgent).toBe(distinctiveUserAgent);
     });
 });
