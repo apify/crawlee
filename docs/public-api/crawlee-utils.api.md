@@ -66,6 +66,12 @@ export enum EnqueueStrategy {
 }
 
 // @public
+export function extractMicrodata(raw: string): Promise<MicrodataItem[]>;
+
+// @public (undocumented)
+export function extractMicrodata($: CheerioAPI): Promise<MicrodataItem[]>;
+
+// @public
 export function extractUrls(options: ExtractUrlsOptions): string[];
 
 // @public (undocumented)
@@ -94,6 +100,16 @@ const LINKEDIN_REGEX: RegExp;
 
 // @public
 const LINKEDIN_REGEX_GLOBAL: RegExp;
+
+// @public
+export interface MicrodataItem {
+    id?: string;
+    properties: Record<string, MicrodataValue | MicrodataValue[]>;
+    type?: string[];
+}
+
+// @public
+export type MicrodataValue = string | MicrodataItem;
 
 // Not exported by the entry point; reachable only as a referenced type.
 // @public (undocumented)

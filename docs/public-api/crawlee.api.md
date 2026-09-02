@@ -5,6 +5,7 @@
 ```ts
 
 import { downloadListOfUrls } from '@crawlee/utils';
+import { extractMicrodata } from '@crawlee/utils';
 import { Log } from '@apify/log';
 import { parseOpenGraph } from '@crawlee/utils';
 import { playwrightUtils } from '@crawlee/playwright';
@@ -21,6 +22,7 @@ export const utils: {
     sleep: typeof sleep;
     downloadListOfUrls: typeof downloadListOfUrls;
     parseOpenGraph: typeof parseOpenGraph;
+    extractMicrodata: typeof extractMicrodata;
 };
 
 
