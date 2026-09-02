@@ -1,7 +1,7 @@
 import ow from 'ow';
 
 import type { Log } from '@apify/log';
-import { addTimeoutToPromise } from '@apify/timeout';
+import { addTimeoutToPromise, storage as timeoutStorage } from '@apify/timeout';
 import type { BetterIntervalID } from '@apify/utilities';
 import { betterClearInterval, betterSetInterval } from '@apify/utilities';
 
@@ -469,7 +469,10 @@ export class AutoscaledPool {
      * every `maybeRunIntervalSecs` seconds. If you want to trigger the processing immediately, use this method.
      */
     async notify(): Promise<void> {
-        setImmediate(this._maybeRunTask);
+        // `notify()` can be called from within a running task (e.g. a request handler), in which case
+        // `@apify/timeout`'s AsyncLocalStorage context of that task - possibly already timed out - would
+        // otherwise leak into the deferred `_maybeRunTask()` call and abort unrelated tasks it starts.
+        timeoutStorage.exit(() => setImmediate(this._maybeRunTask));
     }
 
     /**
