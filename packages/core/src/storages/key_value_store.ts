@@ -619,6 +619,18 @@ export class KeyValueStore {
         serviceLocator.getStorageInstanceManager().removeFromCache(this);
     }
 
+    /**
+     * Removes all records from the store but keeps the store itself, along with its
+     * {@apilink KeyValueStore.id|`id`} and {@apilink KeyValueStore.name|`name`}.
+     */
+    async purge(): Promise<void> {
+        rejectOperationInTransaction('KeyValueStore.purge()');
+
+        await this.backend.purge();
+        // The auto-saved values this cache holds are no longer in the store.
+        this.#cache.clear();
+    }
+
     /** @internal */
     clearCache(): void {
         rejectOperationInTransaction('KeyValueStore.clearCache()');

@@ -721,3 +721,22 @@ describe('KeyValueStore', () => {
         });
     });
 });
+
+describe('KeyValueStore.purge', () => {
+    test('empties the store but keeps it usable, and forgets auto-saved values', async () => {
+        const store = await KeyValueStore.open();
+        await store.setValue('key-1', { foo: 'bar' });
+        const state = await store.getAutoSavedValue('STATE', { hits: 0 });
+        state.hits = 1;
+
+        await store.purge();
+
+        await expect(store.getValue('key-1')).resolves.toBeNull();
+
+        // The auto-save cache would otherwise keep serving a value the store no longer holds.
+        await expect(store.getAutoSavedValue('STATE', { hits: 0 })).resolves.toEqual({ hits: 0 });
+
+        await store.setValue('key-2', { foo: 'baz' });
+        await expect(store.getValue('key-2')).resolves.toEqual({ foo: 'baz' });
+    });
+});

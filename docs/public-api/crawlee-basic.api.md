@@ -73,8 +73,7 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
     getRequestQueue(): Promise<IRequestManager>;
     // (undocumented)
     protected getRobotsTxtFileForUrl(url: string): Promise<RobotsTxtFile | undefined>;
-    // (undocumented)
-    hasFinishedBefore: boolean;
+    get hasFinishedBefore(): boolean;
     // (undocumented)
     protected readonly httpClient: BaseHttpClient;
     protected init(): Promise<void>;
@@ -170,7 +169,6 @@ export interface CrawlerAddRequestsResult extends AddRequestsBatchedResult {
 
 // @public (undocumented)
 export interface CrawlerRunOptions extends CrawlerAddRequestsOptions {
-    purgeRequestQueue?: boolean;
 }
 
 // @public

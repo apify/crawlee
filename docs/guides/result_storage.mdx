@@ -172,7 +172,7 @@ The feature is escapable at three granularities:
 
 A few operations cannot be buffered, and silently letting them through would produce storage states that no rollback can undo. They throw inside a transaction, with an error pointing at `withDirectStorageAccess()`:
 
-- `Dataset.drop()`, `KeyValueStore.drop()`, `RequestQueue.drop()` and `RequestQueue.purge()`,
+- `drop()` and `purge()` on `Dataset`, `KeyValueStore` and `RequestQueue`,
 - the request queue processing internals (`fetchNextRequest()`, `markRequestAsHandled()`, `reclaimRequest()`),
 - `KeyValueStore.setValue()` with a **stream** value — a stream can only be consumed once, so it cannot serve both a read within the handler and the commit replay. Write streams under `withDirectStorageAccess()`.
 

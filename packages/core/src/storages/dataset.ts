@@ -784,6 +784,16 @@ export class Dataset<Data extends Dictionary = Dictionary> {
     }
 
     /**
+     * Removes all items from the dataset but keeps the dataset itself, along with its
+     * {@apilink Dataset.id|`id`} and {@apilink Dataset.name|`name`}.
+     */
+    async purge(): Promise<void> {
+        rejectOperationInTransaction('Dataset.purge()');
+
+        await this.backend.purge();
+    }
+
+    /**
      * Opens a dataset and returns a promise resolving to an instance of the {@apilink Dataset} class.
      *
      * Datasets are used to store structured data where each object stored has the same attributes,

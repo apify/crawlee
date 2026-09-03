@@ -4,6 +4,7 @@ export { EnqueueStrategy } from './internals/url.js';
 export type { DownloadListOfUrlsOptions, ExtractUrlsOptions } from './internals/extract-urls.js';
 export { sleep, expandShadowRoots } from './internals/general.js';
 export * as social from './internals/social.js';
+export * from './internals/extract-microdata.js';
 export * from './internals/open_graph_parser.js';
 export * from './internals/robots.js';
 export * from './internals/sitemap.js';

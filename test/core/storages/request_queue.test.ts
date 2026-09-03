@@ -790,3 +790,39 @@ describe('RequestQueue bookkeeping with a skipNavigation request', () => {
         expect(readBack!.userData).toEqual({ foo: 'baz' });
     });
 });
+
+describe('MemoryStorageBackend request queue', () => {
+    test('head operations do not scan already-handled requests', async () => {
+        const backend = new MemoryStorageBackend();
+        const queue = await backend.createRequestQueueBackend({ name: 'handled-scan' });
+
+        // Simulate a crawl nearing its end: a large number of handled requests and few pending ones.
+        const handledAt = new Date().toISOString();
+        const handledCount = 200_000;
+        for (let i = 0; i < handledCount; i += 1_000) {
+            await queue.addBatchOfRequests(
+                Array.from({ length: 1_000 }, (_, j) => ({
+                    url: `http://example.com/${i + j}`,
+                    uniqueKey: `handled-${i + j}`,
+                    handledAt,
+                })),
+            );
+        }
+        expect((await queue.getMetadata()).handledRequestCount).toBe(handledCount);
+
+        // Each call used to walk the whole map (O(handled)): ~8s for this loop vs ~5ms once only pending
+        // requests are scanned. The loose budget only separates those two regimes, well above CI noise.
+        const start = performance.now();
+        for (let i = 0; i < 200; i++) {
+            await queue.addBatchOfRequests([{ url: `http://example.com/new-${i}`, uniqueKey: `new-${i}` }]);
+            expect(await queue.isEmpty()).toBe(false);
+            const request = await queue.fetchNextRequest();
+            expect(request!.uniqueKey).toBe(`new-${i}`);
+            expect(await queue.isFinished()).toBe(false);
+            await queue.markRequestAsHandled({ ...request!, handledAt });
+        }
+        expect(await queue.isEmpty()).toBe(true);
+        expect(await queue.isFinished()).toBe(true);
+        expect(performance.now() - start).toBeLessThan(500);
+    }, 60_000);
+});

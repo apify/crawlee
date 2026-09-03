@@ -21,7 +21,7 @@ This page summarizes the breaking changes in Crawlee v4. There are many, so the 
 - **One concurrency budget for several crawlers.** The new [`ConcurrencySystem`](#autoscaling-moved-to-concurrencysystem) can be shared between crawlers, capping their combined concurrency instead of letting each one oversubscribe the host.
 - **Native `fetch` types.** HTTP clients and `context.response` now use the [standard `Response`](#crawlingcontextresponse-is-now-of-type-response), and `got-scraping` is an [opt-in dependency](#http-client-packages-and-basehttpclient-reshaped) instead of a mandatory one.
 - **The session is the rotation unit.** A session carries its proxy, cookies and error score, and is rotated as a whole when blocked — replacing [proxy tiers](#tieredproxyurls-is-removed-from-proxyconfiguration) and [session rotation counters](#maxsessionrotations-and-requestsessionrotationcount-are-removed).
-- **Crawlers stop stepping on each other.** Multiple crawlers in one process [no longer share the default request queue](#multiple-crawler-instances-use-separate-default-request-queues), and repeated `run()` calls purge the queue instead of dropping and recreating it.
+- **Crawlers stop stepping on each other.** Multiple crawlers in one process [no longer share the default request queue](#multiple-crawler-instances-use-separate-default-request-queues), and repeated `run()` calls [no longer empty it](#repeated-run-calls-no-longer-empty-the-request-queue) behind your back.
 - **Cookies behave.** `sendRequest` finally [respects your `Cookie` header](#cookie-handling-in-httpcrawler-and-sendrequest), and browser cookies set inside the handler are [persisted to the session](#browser-cookies-are-also-persisted-after-requesthandler).
 - **No half-written results.** Storage writes in a request handler are [transactional](#storage-writes-in-request-handlers-are-transactional) — a handler that throws leaves nothing behind, and its retry does not duplicate data.
 - **Simpler storage backend contract.** A custom storage backend is now [4 classes instead of 7](#storagebackend-interface-simplified).
@@ -603,45 +603,28 @@ In v4, only the **first** crawler instance uses the default request queue. Each 
 
 If you explicitly pass a `requestQueue` (or `requestManager`) to the crawler, that queue is used as-is regardless of instance order.
 
-### Repeated `run()` calls use `purge()` instead of `drop()` + recreate
+### Repeated `run()` calls no longer empty the request queue
 
-When calling `crawler.run()` multiple times on the same crawler instance, v3 would drop the default request queue and create a fresh one between runs. In v4, the crawler **purges** the queue instead — clearing all requests and resetting internal counters, but keeping the same queue object. This is more efficient and avoids edge cases around stale references.
+In v3, calling `crawler.run()` again on the same instance dropped the default request queue and created a fresh one, so the same URLs were crawled again — but only for a queue actually named `default`, which the Apify platform's default queue is not, so on the platform the second run silently crawled nothing.
 
-The new `purge()` method is available on `RequestQueue` and is also defined as an optional method on the `IRequestManager` interface.
+v4 does the same thing everywhere: nothing is emptied between runs. A repeated `run()` continues with the same request manager, and requests the previous run handled — a failed request counts as handled — are not processed again. Any crawl that ends up processing nothing while its request manager holds only handled requests warns and says why, instead of finishing silently; that also covers a second crawler sharing the queue, or a queue a previous process already worked through.
 
-By default, only queues that the crawler created itself (the "owned" queue) are purged between runs — a user-supplied queue is never touched unless you explicitly opt in. The `purgeRequestQueue` option in `CrawlerRunOptions` controls this behavior:
-
-| `purgeRequestQueue` value | Owned queue (auto-created) | User-supplied queue |
-|---|---|---|
-| omitted (default) | Purged | Not purged |
-| `true` | Purged | Purged |
-| `false` | Not purged | Not purged |
-
-One combination has no sensible default: `sameDomainDelaySecs` over a request manager you supplied that does not pace on its own. The per-domain queues that have to be emptied are the crawler's, the manager underneath them is yours, and a purge cannot respect both — so a repeated `run()` throws and asks you to pass `purgeRequestQueue` explicitly rather than guessing. A manager that takes the delay as a floor has nothing of ours underneath it, and is left alone like any other supplied manager.
+The `purgeRequestQueue` option of `crawler.run()` went away with the automatic purge. To crawl the same requests again, empty the queue yourself:
 
 ```typescript
-// The purge happens automatically between run() calls:
 const crawler = new BasicCrawler({ requestHandler: async ({ request }) => { /* ... */ } });
 await crawler.run(['https://example.com/a', 'https://example.com/b']);
-// Queue is purged here, so the same URLs can be processed again:
+
+const queue = await crawler.getRequestQueue();
+await queue.purge?.();
+
+// The same URLs are crawled again:
 await crawler.run(['https://example.com/a', 'https://example.com/c']);
 ```
 
-You can opt out of the automatic purge by passing `purgeRequestQueue: false`:
+`purge()` — empty the storage, keep its id and name — is new in v4 and available on `Dataset`, `KeyValueStore` and `RequestQueue`, as well as being an optional method on the `IRequestManager` interface.
 
-```typescript
-await crawler.run(urls, { purgeRequestQueue: false });
-```
-
-If you supplied your own `requestQueue` and want it purged between runs, pass `purgeRequestQueue: true` explicitly:
-
-```typescript
-const queue = await RequestQueue.open('my-queue');
-const crawler = new BasicCrawler({ requestQueue: queue, requestHandler: async () => { /* ... */ } });
-await crawler.run(['https://example.com/first']);
-// Explicitly purge the user-supplied queue before the second run:
-await crawler.run(['https://example.com/second'], { purgeRequestQueue: true });
-```
+This has nothing to do with `purgeOnStart` / `CRAWLEE_PURGE_ON_START`, which still wipes the default storages once per process before the first run.
 
 ### Storage `.open()` now also accepts `{ id?, name? }`
 
