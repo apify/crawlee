@@ -58,3 +58,17 @@ Now we need to glue the server and the crawler together using the mapping of Cra
 
 <CodeBlock language="js" title="src/web-server.mjs">{WebServerSource}</CodeBlock>
 
+## Keep the request queue in check
+
+Nothing empties a request queue on its own, and every incoming HTTP request gets a `uniqueKey` of its own, so the queue holds one handled request for every request the server has served. <ApiLink to="core/interface/IRequestManager#purge">Purge</ApiLink> it periodically if the server is meant to stay up:
+
+```javascript
+const requestManager = await crawler.getRequestManager();
+
+setInterval(async () => {
+    await requestManager.purge();
+}, 60 * 60 * 1000);
+```
+
+Requests already in progress still get their response. On the Apify platform there is nothing to do here: its API has no in-place empty, so `purge()` throws and the queue stays with the run.
+

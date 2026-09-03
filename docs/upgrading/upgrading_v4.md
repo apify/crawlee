@@ -615,16 +615,32 @@ The `purgeRequestQueue` option of `crawler.run()` went away with the automatic p
 const crawler = new BasicCrawler({ requestHandler: async ({ request }) => { /* ... */ } });
 await crawler.run(['https://example.com/a', 'https://example.com/b']);
 
-const queue = await crawler.getRequestQueue();
-await queue.purge?.();
+const requestManager = await crawler.getRequestManager();
+await requestManager.purge?.();
 
 // The same URLs are crawled again:
 await crawler.run(['https://example.com/a', 'https://example.com/c']);
 ```
 
-`purge()` — empty the storage, keep its id and name — is new in v4 and available on `Dataset`, `KeyValueStore` and `RequestQueue`, as well as being an optional method on the `IRequestManager` interface.
+`purge()` — empty the storage, keep its id and name — is new in v4 and available on `Dataset`, `KeyValueStore` and `RequestQueue`, as well as being an optional method on the `IRequestManager` interface. Not on the Apify platform, though: its API has no in-place empty, so all three throw there and tell you to `drop()` the storage or open a new one instead.
 
 This has nothing to do with `purgeOnStart` / `CRAWLEE_PURGE_ON_START`, which still wipes the default storages once per process before the first run.
+
+Most of the time you can avoid the purge entirely. Every crawler instance opens a request queue of its own (see the section above), so a crawler per crawl needs neither a purge nor any queue wiring — and `RequestQueue.open({ alias })` hands you that queue explicitly when you want to hold on to it:
+
+```typescript
+for (const [index, urls] of batches.entries()) {
+    const crawler = new BasicCrawler({
+        // Optional — a fresh crawler gets its own queue anyway. Pass one to decide which.
+        requestManager: await RequestQueue.open({ alias: `batch-${index}` }),
+        requestHandler: async ({ request }) => { /* ... */ },
+    });
+
+    await crawler.run(urls);
+}
+```
+
+An alias identifies a run-scoped queue — no persistent name, emptied on start along with the default storages — so reusing one hands back the same queue, with the same nothing left to crawl. Give each crawl an alias of its own; `purge()` is for when one crawler and one queue really do have to be reused.
 
 ### Storage `.open()` now also accepts `{ id?, name? }`
 
