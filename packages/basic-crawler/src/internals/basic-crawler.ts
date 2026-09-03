@@ -2228,6 +2228,10 @@ export class BasicCrawler<
         });
         // Keep callback failures observable to callers that await this promise without emitting an unhandled rejection
         // when callers intentionally leave background additions running, matching `drainRequestBatches` behavior.
+        // Silent by design, not an oversight: this `.then()` derives a new promise from `result
+        // .waitForAllRequestsToBeAdded` (the same `remainder` `drainRequestBatches` already attaches its own
+        // logging catch to), and Node tracks unhandled rejections per promise object - so this still needs a
+        // handler of its own to avoid a crash, but logging here too would double-report the same failure.
         void waitForAllRequestsToBeAdded.catch(() => {});
 
         return { ...result, waitForAllRequestsToBeAdded };
