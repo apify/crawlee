@@ -47,10 +47,10 @@ export class RequestQueueBackend extends BaseClient implements storage.RequestQu
     /**
      * Serializes every operation that reads-then-writes this backend's shared queue state — the
      * `requests` map, the `pendingRequestIds` set, the `forefrontRequestIds` array, the
-     * `inProgressRequestIds` set and the request counts. Those mutations span `await` points, so without this mutex a concurrent operation could
-     * interleave and corrupt them (e.g. a head scan pruning `forefrontRequestIds` while
-     * `addBatchOfRequests` pushes to it). Held by every mutating method as well as by `isEmpty`/
-     * `isFinished`, whose head scan also prunes `forefrontRequestIds`.
+     * `inProgressRequestIds` set and the request counts. Those mutations span `await` points, so
+     * without this mutex a concurrent operation could interleave and corrupt them (e.g. a head scan
+     * pruning `forefrontRequestIds` while `addBatchOfRequests` pushes to it). Held by every mutating
+     * method as well as by `isEmpty`/`isFinished`, whose head scan also prunes `forefrontRequestIds`.
      */
     readonly #queueStateMutex = new AsyncQueue();
     #forefrontRequestIds: string[] = [];

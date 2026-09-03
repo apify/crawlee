@@ -723,12 +723,10 @@ describe('MemoryStorageBackend request queue', () => {
         }
         expect((await queue.getMetadata()).handledRequestCount).toBe(handledCount);
 
-        // Each of these calls used to walk the whole map (O(handled)), which at this size took tens of
-        // milliseconds per call and over 10s for the whole loop. With only pending requests scanned it
-        // runs in a few milliseconds, so the budget below is deliberately loose: it only has to separate
-        // those two regimes, not measure anything, and stays far above CI timing noise.
+        // Each call used to walk the whole map (O(handled)): ~8s for this loop vs ~5ms once only pending
+        // requests are scanned. The loose budget only separates those two regimes, well above CI noise.
         const start = performance.now();
-        for (let i = 0; i < 50; i++) {
+        for (let i = 0; i < 200; i++) {
             await queue.addBatchOfRequests([{ url: `http://example.com/new-${i}`, uniqueKey: `new-${i}` }]);
             expect(await queue.isEmpty()).toBe(false);
             const request = await queue.fetchNextRequest();
@@ -738,6 +736,6 @@ describe('MemoryStorageBackend request queue', () => {
         }
         expect(await queue.isEmpty()).toBe(true);
         expect(await queue.isFinished()).toBe(true);
-        expect(performance.now() - start).toBeLessThan(2_000);
+        expect(performance.now() - start).toBeLessThan(500);
     }, 60_000);
 });
