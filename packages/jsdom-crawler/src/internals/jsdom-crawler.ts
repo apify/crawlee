@@ -1,13 +1,9 @@
 import type {
-    AddRequestsBatchedResult,
-    ContextPipeline,
     CrawlingContext,
-    EnqueueLinksOptions,
+    DomCrawlingContext,
     ErrorHandler,
-    ExtractLinksOptions,
     GetUserDataFromRequest,
     HttpCrawlerOptions,
-    InternalHttpCrawlingContext,
     InternalHttpHook,
     RequestHandler,
     RouterHandler,
@@ -15,22 +11,14 @@ import type {
     RouteSchemas,
     RoutesFromSchemas,
 } from '@crawlee/http';
-import {
-    EnqueueStrategy,
-    HttpCrawler,
-    NavigationSkippedError,
-    resolveBaseUrlForEnqueueLinksFiltering,
-    Router,
-} from '@crawlee/http';
+import { DomCrawler, HttpCrawler, Router } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
-import type { CheerioAPI } from 'cheerio';
-import { sleep } from '@crawlee/utils';
-import { parseArgument, tryAbsoluteURL } from '@crawlee/utils/internal';
-import type { DOMWindow } from 'jsdom';
-import { JSDOM, ResourceLoader, VirtualConsole } from 'jsdom';
+import { parseArgument } from '@crawlee/utils/internal';
+import { VirtualConsole } from 'jsdom';
 import { z } from 'zod';
 
-import { addTimeoutToPromise } from '@apify/timeout';
+import type { JSDOMParseResult } from './jsdom-parser.js';
+import { jsdomParser } from './jsdom-parser.js';
 
 export type JSDOMErrorHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -67,54 +55,10 @@ export type JSDOMHook<
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 > = InternalHttpHook<JSDOMCrawlingContext<UserData, JSONData>>;
 
-export interface JSDOMCrawlingContext<
+export type JSDOMCrawlingContext<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-> extends InternalHttpCrawlingContext<UserData, JSONData> {
-    window: DOMWindow;
-    document: Document;
-
-    body: string;
-
-    /**
-     * Wait for an element matching the selector to appear.
-     * Timeout defaults to 5s.
-     *
-     * **Example usage:**
-     * ```ts
-     * async requestHandler({ waitForSelector, parseWithCheerio }) {
-     *     await waitForSelector('article h1');
-     *     const $ = await parseWithCheerio();
-     *     const title = $('title').text();
-     * });
-     * ```
-     */
-    waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
-
-    /**
-     * Returns Cheerio handle, allowing to work with the data same way as with {@apilink CheerioCrawler}.
-     * When provided with the `selector` argument, it will first look for the selector with a 5s timeout.
-     *
-     * **Example usage:**
-     * ```javascript
-     * async requestHandler({ parseWithCheerio }) {
-     *     const $ = await parseWithCheerio();
-     *     const title = $('title').text();
-     * });
-     * ```
-     */
-    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioAPI>;
-
-    /**
-     * Extracts URLs from the parsed DOM, without adding them to the request queue.
-     */
-    extractLinks(options?: ExtractLinksOptions): Promise<string[]>;
-
-    /**
-     * Helper function for extracting URLs from the parsed DOM and adding them to the request queue.
-     */
-    enqueueLinks(options?: EnqueueLinksOptions): Promise<AddRequestsBatchedResult>;
-}
+> = DomCrawlingContext<JSDOMParseResult, UserData, JSONData>;
 
 export type JSDOMRequestHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -196,13 +140,6 @@ export type JSDOMRequestHandler<
  * ```
  * @category Crawlers
  */
-const resources = new ResourceLoader({
-    // Copy from /packages/browser-pool/src/abstract-classes/browser-plugin.ts:17
-    // in order not to include the entire package here
-    userAgent:
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36',
-});
-
 export class JSDOMCrawler<
     ContextExtension = Dictionary<never>,
     ExtendedContext extends JSDOMCrawlingContext = JSDOMCrawlingContext & ContextExtension,
@@ -211,7 +148,7 @@ export class JSDOMCrawler<
         GetUserDataFromRequest<JSDOMCrawlingContext['request']>
     >,
     StatisticStateExtension extends object = {},
-> extends HttpCrawler<JSDOMCrawlingContext, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
+> extends DomCrawler<JSDOMParseResult, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
     /**
      * @internal
      */
@@ -224,7 +161,6 @@ export class JSDOMCrawler<
     /** @internal */
     protected static override optionsSchema = z.strictObject(JSDOMCrawler.optionsShape);
 
-    #runScripts: boolean;
     #hideInternalConsole: boolean;
     #virtualConsole: VirtualConsole | null = null;
 
@@ -240,24 +176,15 @@ export class JSDOMCrawler<
 
         super({
             ...httpOptions,
-            contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),
+            contextPipelineBuilder,
+            parser: jsdomParser({
+                runScripts,
+                virtualConsole: () => this.getVirtualConsole(),
+                log: () => this.log,
+            }),
         });
 
-        this.#runScripts = runScripts;
         this.#hideInternalConsole = hideInternalConsole;
-    }
-
-    protected override buildContextPipeline(): ContextPipeline<CrawlingContext, JSDOMCrawlingContext> {
-        return super
-            .buildContextPipeline()
-            .compose({
-                action: async (context) => await this.parseContent(context),
-                cleanup: async (context) => {
-                    this.getVirtualConsole().off('jsdomError', this.jsdomErrorHandler);
-                    context.window?.close();
-                },
-            })
-            .compose({ action: async (context) => await this.addHelpers(context) });
     }
 
     /**
@@ -291,177 +218,6 @@ export class JSDOMCrawler<
     }
 
     private readonly jsdomErrorHandler = (error: Error) => this.log.debug('JSDOM error from console', { error });
-
-    private async parseContent(crawlingContext: InternalHttpCrawlingContext) {
-        try {
-            const isXml = crawlingContext.contentType.type.includes('xml');
-
-            // TODO handle non-string
-            const { window } = new JSDOM(crawlingContext.body.toString(), {
-                url: crawlingContext.response.url,
-                contentType: isXml ? 'text/xml' : 'text/html',
-                runScripts: this.#runScripts ? 'dangerously' : undefined,
-                resources,
-                virtualConsole: this.getVirtualConsole(),
-                pretendToBeVisual: true,
-            });
-
-            // add some stubs in place of missing API so processing won't fail
-            Object.defineProperty(window, 'matchMedia', {
-                writable: true,
-                value: (query: unknown): any => ({
-                    matches: false,
-                    media: query,
-                    onchange: null,
-                    addListener: () => {},
-                    removeListener: () => {},
-                    addEventListener: () => {},
-                    removeEventListener: () => {},
-                    dispatchEvent: () => {},
-                }),
-            });
-            window.document.createRange = () => {
-                const range = new window.Range();
-                range.getBoundingClientRect = () => ({}) as any;
-                range.getClientRects = () => ({ item: () => null as any, length: 0 }) as any;
-                return range;
-            };
-
-            if (this.#runScripts) {
-                try {
-                    await addTimeoutToPromise(
-                        async () => {
-                            return new Promise<void>((resolve) => {
-                                window.addEventListener(
-                                    'load',
-                                    () => {
-                                        resolve();
-                                    },
-                                    false,
-                                );
-                            }).catch();
-                        },
-                        10_000,
-                        'Window.load event not fired after 10 seconds.',
-                    ).catch();
-                } catch (e) {
-                    this.log.debug((e as Error).message);
-                }
-            }
-
-            return {
-                window,
-                get body() {
-                    return window.document.documentElement.outerHTML;
-                },
-                get document() {
-                    return window.document;
-                },
-            };
-        } catch (err) {
-            if (err instanceof NavigationSkippedError) {
-                return {
-                    get window(): DOMWindow {
-                        throw new NavigationSkippedError(
-                            'The `window` property is not available - `skipNavigation` was used',
-                            { cause: err },
-                        );
-                    },
-                    get body(): string {
-                        throw new NavigationSkippedError(
-                            'The `body` property is not available - `skipNavigation` was used',
-                            { cause: err },
-                        );
-                    },
-                    get document(): Document {
-                        throw new NavigationSkippedError(
-                            'The `document` property is not available - `skipNavigation` was used',
-                            { cause: err },
-                        );
-                    },
-                };
-            }
-
-            throw err;
-        }
-    }
-
-    private async addHelpers(crawlingContext: InternalHttpCrawlingContext & { body: string; window: DOMWindow }) {
-        const addRequests = crawlingContext.addRequests;
-
-        const extractLinks = async (options?: ExtractLinksOptions): Promise<string[]> => {
-            if (!crawlingContext.window) {
-                throw new Error('Cannot extract links because the JSDOM is not available.');
-            }
-
-            return extractUrlsFromWindow(
-                crawlingContext.window,
-                options?.selector ?? 'a',
-                options?.baseUrl ?? crawlingContext.request.loadedUrl ?? crawlingContext.request.url,
-            );
-        };
-
-        return {
-            extractLinks,
-            enqueueLinks: async (options: EnqueueLinksOptions = {}) => {
-                const baseUrl = resolveBaseUrlForEnqueueLinksFiltering({
-                    enqueueStrategy: options.strategy,
-                    finalRequestUrl: crawlingContext.request.loadedUrl,
-                    originalRequestUrl: crawlingContext.request.url,
-                    userProvidedBaseUrl: options.baseUrl,
-                });
-
-                const urls = await extractLinks(options);
-
-                return addRequests(urls, {
-                    ...options,
-                    baseUrl,
-                    strategy: options.strategy ?? EnqueueStrategy.SameHostname,
-                });
-            },
-            async waitForSelector(selector: string, timeoutMs = 5_000) {
-                const cheerio = await import('cheerio');
-                const $ = cheerio.load(crawlingContext.body);
-
-                if ($(selector).get().length === 0) {
-                    if (timeoutMs) {
-                        await sleep(50);
-                        await this.waitForSelector(selector, Math.max(timeoutMs - 50, 0));
-                        return;
-                    }
-
-                    throw new Error(`Selector '${selector}' not found.`);
-                }
-            },
-            async parseWithCheerio(selector?: string, _timeoutMs = 5_000) {
-                const cheerio = await import('cheerio');
-                const $ = cheerio.load(crawlingContext.body);
-
-                if (selector && $(selector).get().length === 0) {
-                    throw new Error(`Selector '${selector}' not found.`);
-                }
-
-                return $;
-            },
-        };
-    }
-}
-
-/**
- * Extracts URLs from a given Window object.
- * @ignore
- */
-function extractUrlsFromWindow(window: DOMWindow, selector: string, baseUrl: string): string[] {
-    return Array.from(window.document.querySelectorAll(selector))
-        .map((e: any) => e.href)
-        .filter((href) => href !== undefined && href !== '')
-        .map((href: string | undefined) => {
-            if (href === undefined) {
-                return undefined;
-            }
-            return tryAbsoluteURL(href, baseUrl);
-        })
-        .filter((href) => href !== undefined && href !== '') as string[];
 }
 
 /**
