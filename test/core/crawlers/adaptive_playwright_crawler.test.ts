@@ -1023,4 +1023,119 @@ describe('AdaptivePlaywrightCrawler', () => {
 
         expect(lastDynamicRequestUserAgent).toBe(distinctiveUserAgent);
     });
+
+    describe('in-flight rendering type detections', () => {
+        test('are counted while running and settled once the crawl ends', async () => {
+            const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                detectionProbabilityRecommendation: 1,
+                renderingType: 'clientOnly',
+            });
+
+            // A detection re-runs the user handler over plain HTTP, so the handler can observe whether
+            // it is itself running inside a detection.
+            const observedCounts: number[] = [];
+
+            const crawler = await makeOneshotCrawler(
+                {
+                    requestHandler: async () => {
+                        observedCounts.push(crawler.inFlightRenderingTypeDetectionCount);
+                    },
+                    renderingTypePredictor,
+                },
+                [`http://${HOSTNAME}:${port}/static`],
+            );
+
+            await crawler.run();
+
+            expect(observedCounts).toEqual([0, 1]);
+            expect(crawler.inFlightRenderingTypeDetectionCount).toBe(0);
+        });
+
+        // A crawler whose plain-HTTP detection attempt parks until released, so that a detection can be
+        // observed mid-flight.
+        const makeCrawlerWithBlockedDetection = async () => {
+            const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                detectionProbabilityRecommendation: 1,
+                renderingType: 'clientOnly',
+            });
+
+            let releaseDetection!: () => void;
+            const detectionReleased = new Promise<void>((resolve) => {
+                releaseDetection = resolve;
+            });
+            let announceDetection!: () => void;
+            const detectionStarted = new Promise<void>((resolve) => {
+                announceDetection = resolve;
+            });
+
+            let handlerCalls = 0;
+            const crawler = await makeOneshotCrawler(
+                {
+                    requestHandler: async () => {
+                        handlerCalls += 1;
+                        // The second call is the plain-HTTP detection attempt.
+                        if (handlerCalls === 2) {
+                            announceDetection();
+                            await detectionReleased;
+                        }
+                    },
+                    renderingTypePredictor,
+                },
+                [`http://${HOSTNAME}:${port}/static`],
+            );
+
+            return { crawler, renderingTypePredictor, detectionStarted, releaseDetection };
+        };
+
+        test('hold up drainRenderingDetections until their result is stored', async () => {
+            const { crawler, renderingTypePredictor, detectionStarted, releaseDetection } =
+                await makeCrawlerWithBlockedDetection();
+
+            const runPromise = crawler.run();
+            await detectionStarted;
+
+            expect(crawler.inFlightRenderingTypeDetectionCount).toBe(1);
+
+            let drained = false;
+            const drainPromise = crawler.drainRenderingDetections().then(() => {
+                drained = true;
+            });
+
+            await sleep(100);
+            expect(drained).toBe(false);
+            expect(renderingTypePredictor.storeResult).not.toHaveBeenCalled();
+
+            releaseDetection();
+            await drainPromise;
+
+            expect(drained).toBe(true);
+            expect(crawler.inFlightRenderingTypeDetectionCount).toBe(0);
+            expect(renderingTypePredictor.storeResult).toHaveBeenCalledOnce();
+
+            await runPromise;
+        });
+
+        test('hold up teardown until their result is stored', async () => {
+            const { crawler, renderingTypePredictor, detectionStarted, releaseDetection } =
+                await makeCrawlerWithBlockedDetection();
+
+            const runPromise = crawler.run();
+            await detectionStarted;
+
+            let tornDown = false;
+            const teardownPromise = crawler.teardown().then(() => {
+                tornDown = true;
+            });
+
+            await sleep(100);
+            expect(tornDown).toBe(false);
+
+            releaseDetection();
+            await teardownPromise;
+
+            expect(renderingTypePredictor.storeResult).toHaveBeenCalledOnce();
+
+            await runPromise;
+        });
+    });
 });
