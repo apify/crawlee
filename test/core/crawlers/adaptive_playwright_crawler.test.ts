@@ -1024,52 +1024,118 @@ describe('AdaptivePlaywrightCrawler', () => {
         expect(lastDynamicRequestUserAgent).toBe(distinctiveUserAgent);
     });
 
-    describe('rendering-type detection tracking and draining', () => {
-        test('tracks active detections and drains them', async () => {
-            const crawler = new AdaptivePlaywrightCrawler({
-                requestHandler: async () => {},
+    describe('in-flight rendering type detections', () => {
+        test('are counted while running and settled once the crawl ends', async () => {
+            const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                detectionProbabilityRecommendation: 1,
+                renderingType: 'clientOnly',
             });
 
-            expect(crawler.runningDetectionCount).toBe(0);
+            // A detection re-runs the user handler over plain HTTP, so the handler can observe whether
+            // it is itself running inside a detection.
+            const observedCounts: number[] = [];
 
-            let resolveDetection!: () => void;
-            const detectionTask = new Promise<void>((resolve) => {
-                resolveDetection = resolve;
+            const crawler = await makeOneshotCrawler(
+                {
+                    requestHandler: async () => {
+                        observedCounts.push(crawler.inFlightRenderingTypeDetectionCount);
+                    },
+                    renderingTypePredictor,
+                },
+                [`http://${HOSTNAME}:${port}/static`],
+            );
+
+            await crawler.run();
+
+            expect(observedCounts).toEqual([0, 1]);
+            expect(crawler.inFlightRenderingTypeDetectionCount).toBe(0);
+        });
+
+        // A crawler whose plain-HTTP detection attempt parks until released, so that a detection can be
+        // observed mid-flight.
+        const makeCrawlerWithBlockedDetection = async () => {
+            const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                detectionProbabilityRecommendation: 1,
+                renderingType: 'clientOnly',
             });
 
-            // Cast to access protected activeDetections
-            const activeDetections = (crawler as any).activeDetections as Set<Promise<unknown>>;
-            activeDetections.add(detectionTask);
-            void detectionTask.finally(() => {
-                activeDetections.delete(detectionTask);
+            let releaseDetection!: () => void;
+            const detectionReleased = new Promise<void>((resolve) => {
+                releaseDetection = resolve;
+            });
+            let announceDetection!: () => void;
+            const detectionStarted = new Promise<void>((resolve) => {
+                announceDetection = resolve;
             });
 
-            expect(crawler.runningDetectionCount).toBe(1);
+            let handlerCalls = 0;
+            const crawler = await makeOneshotCrawler(
+                {
+                    requestHandler: async () => {
+                        handlerCalls += 1;
+                        // The second call is the plain-HTTP detection attempt.
+                        if (handlerCalls === 2) {
+                            announceDetection();
+                            await detectionReleased;
+                        }
+                    },
+                    renderingTypePredictor,
+                },
+                [`http://${HOSTNAME}:${port}/static`],
+            );
+
+            return { crawler, renderingTypePredictor, detectionStarted, releaseDetection };
+        };
+
+        test('hold up drainRenderingDetections until their result is stored', async () => {
+            const { crawler, renderingTypePredictor, detectionStarted, releaseDetection } =
+                await makeCrawlerWithBlockedDetection();
+
+            const runPromise = crawler.run();
+            await detectionStarted;
+
+            expect(crawler.inFlightRenderingTypeDetectionCount).toBe(1);
 
             let drained = false;
             const drainPromise = crawler.drainRenderingDetections().then(() => {
                 drained = true;
             });
 
+            await sleep(100);
             expect(drained).toBe(false);
+            expect(renderingTypePredictor.storeResult).not.toHaveBeenCalled();
 
-            resolveDetection();
+            releaseDetection();
             await drainPromise;
 
             expect(drained).toBe(true);
-            expect(crawler.runningDetectionCount).toBe(0);
+            expect(crawler.inFlightRenderingTypeDetectionCount).toBe(0);
+            expect(renderingTypePredictor.storeResult).toHaveBeenCalledOnce();
+
+            await runPromise;
         });
 
-        test('automatically calls drainRenderingDetections on teardown', async () => {
-            const crawler = new AdaptivePlaywrightCrawler({
-                requestHandler: async () => {},
+        test('hold up teardown until their result is stored', async () => {
+            const { crawler, renderingTypePredictor, detectionStarted, releaseDetection } =
+                await makeCrawlerWithBlockedDetection();
+
+            const runPromise = crawler.run();
+            await detectionStarted;
+
+            let tornDown = false;
+            const teardownPromise = crawler.teardown().then(() => {
+                tornDown = true;
             });
 
-            const drainSpy = vi.spyOn(crawler, 'drainRenderingDetections');
+            await sleep(100);
+            expect(tornDown).toBe(false);
 
-            await crawler.teardown();
+            releaseDetection();
+            await teardownPromise;
 
-            expect(drainSpy).toHaveBeenCalledOnce();
+            expect(renderingTypePredictor.storeResult).toHaveBeenCalledOnce();
+
+            await runPromise;
         });
     });
 });

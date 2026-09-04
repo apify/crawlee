@@ -325,7 +325,7 @@ export class AdaptivePlaywrightCrawler<
     /**
      * Holds currently in-flight rendering detection promises.
      */
-    protected readonly activeDetections = new Set<Promise<unknown>>();
+    readonly #activeDetections = new Set<Promise<unknown>>();
 
     #teardownHooks: (() => Promise<unknown>)[] = [];
 
@@ -795,9 +795,9 @@ export class AdaptivePlaywrightCrawler<
                     }
                 })();
 
-                this.activeDetections.add(detectionPromise);
+                this.#activeDetections.add(detectionPromise);
                 void detectionPromise.finally(() => {
-                    this.activeDetections.delete(detectionPromise);
+                    this.#activeDetections.delete(detectionPromise);
                 });
 
                 await detectionPromise;
@@ -856,16 +856,16 @@ export class AdaptivePlaywrightCrawler<
     /**
      * Number of rendering-type detections currently running in the background.
      */
-    get runningDetectionCount(): number {
-        return this.activeDetections.size;
+    get inFlightRenderingTypeDetectionCount(): number {
+        return this.#activeDetections.size;
     }
 
     /**
      * Waits for all in-flight rendering-type detections to settle.
      */
     async drainRenderingDetections(): Promise<void> {
-        while (this.activeDetections.size > 0) {
-            await Promise.allSettled(Array.from(this.activeDetections));
+        while (this.#activeDetections.size > 0) {
+            await Promise.allSettled(Array.from(this.#activeDetections));
         }
     }
 
