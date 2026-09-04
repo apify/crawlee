@@ -43,6 +43,7 @@
     },
     "dependencies": {
         "@apify/ps-tree": "^1.2.0",
+        "@apify/validations": "^1.0.1",
         "@crawlee/http-client": "workspace:*",
         "@crawlee/types": "workspace:*",
         "@types/sax": "^1.2.7",
