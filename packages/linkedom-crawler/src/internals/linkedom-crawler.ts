@@ -1,13 +1,9 @@
 import type {
-    AddRequestsBatchedResult,
-    ContextPipeline,
     CrawlingContext,
-    EnqueueLinksOptions,
+    DomCrawlingContext,
     ErrorHandler,
-    ExtractLinksOptions,
     GetUserDataFromRequest,
     HttpCrawlerOptions,
-    InternalHttpCrawlingContext,
     InternalHttpHook,
     RequestHandler,
     RouterHandler,
@@ -15,19 +11,11 @@ import type {
     RouteSchemas,
     RoutesFromSchemas,
 } from '@crawlee/http';
-import {
-    EnqueueStrategy,
-    HttpCrawler,
-    NavigationSkippedError,
-    resolveBaseUrlForEnqueueLinksFiltering,
-    Router,
-} from '@crawlee/http';
+import { DomCrawler, Router } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
-import type { CheerioAPI } from 'cheerio';
-import { sleep } from '@crawlee/utils';
-import { tryAbsoluteURL } from '@crawlee/utils/internal';
-import * as cheerio from 'cheerio';
-import { DOMParser } from 'linkedom/cached';
+
+import type { LinkeDOMParseResult } from './linkedom-parser.js';
+import { linkedomParser } from './linkedom-parser.js';
 
 export type LinkeDOMErrorHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -58,54 +46,7 @@ export type LinkeDOMHook<
 export interface LinkeDOMCrawlingContext<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-> extends InternalHttpCrawlingContext<UserData, JSONData> {
-    window: Window;
-    // Technically the document is not of type Document but of type either HTMLDocument or XMLDocument
-    // from linkedom/types/{html/xml}/document, depending on the content type of the response
-    // Using union of the real types would make writing the crawlers inconvenient,
-    // so we specify the type as the native Document type from lib.dom.d.ts
-    // even though it's not technically 100% correct
-    document: Document;
-
-    /**
-     * Wait for an element matching the selector to appear.
-     * Timeout defaults to 5s.
-     *
-     * **Example usage:**
-     * ```ts
-     * async requestHandler({ waitForSelector, parseWithCheerio }) {
-     *     await waitForSelector('article h1');
-     *     const $ = await parseWithCheerio();
-     *     const title = $('title').text();
-     * });
-     * ```
-     */
-    waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
-
-    /**
-     * Returns Cheerio handle, allowing to work with the data same way as with {@apilink CheerioCrawler}.
-     * When provided with the `selector` argument, it will first look for the selector with a 5s timeout.
-     *
-     * **Example usage:**
-     * ```javascript
-     * async requestHandler({ parseWithCheerio }) {
-     *     const $ = await parseWithCheerio();
-     *     const title = $('title').text();
-     * });
-     * ```
-     */
-    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioAPI>;
-
-    /**
-     * Extracts URLs from the parsed DOM, without adding them to the request queue.
-     */
-    extractLinks(options?: ExtractLinksOptions): Promise<string[]>;
-
-    /**
-     * Helper function for extracting URLs from the parsed DOM and adding them to the request queue.
-     */
-    enqueueLinks(options?: EnqueueLinksOptions): Promise<AddRequestsBatchedResult>;
-}
+> extends DomCrawlingContext<LinkeDOMParseResult, UserData, JSONData> {}
 
 export type LinkeDOMRequestHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -193,9 +134,7 @@ export class LinkeDOMCrawler<
         GetUserDataFromRequest<LinkeDOMCrawlingContext['request']>
     >,
     StatisticStateExtension extends object = {},
-> extends HttpCrawler<LinkeDOMCrawlingContext, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
-    static #parser = new DOMParser();
-
+> extends DomCrawler<LinkeDOMParseResult, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
     constructor(
         options: LinkeDOMCrawlerOptions<
             ContextExtension,
@@ -206,143 +145,8 @@ export class LinkeDOMCrawler<
             StatisticStateExtension
         > = {},
     ) {
-        const { contextPipelineBuilder, ...rest } = options;
-
-        super({
-            ...rest,
-            contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),
-        });
+        super({ ...options, parser: linkedomParser() });
     }
-
-    protected override buildContextPipeline(): ContextPipeline<CrawlingContext, LinkeDOMCrawlingContext> {
-        return super
-            .buildContextPipeline()
-            .compose({
-                action: async (context) => this.parseContent(context),
-            })
-            .compose({ action: async (context) => this.addHelpers(context) });
-    }
-
-    private async parseContent(crawlingContext: InternalHttpCrawlingContext) {
-        try {
-            const isXml = crawlingContext.contentType.type.includes('xml');
-            const document = LinkeDOMCrawler.#parser.parseFromString(
-                crawlingContext.body.toString(),
-                isXml ? 'text/xml' : 'text/html',
-            );
-
-            return {
-                window: document.defaultView,
-                get body() {
-                    return document.documentElement.outerHTML;
-                },
-                get document() {
-                    // See comment about typing in LinkeDOMCrawlingContext definition
-                    return document as unknown as Document;
-                },
-            };
-        } catch (err) {
-            if (err instanceof NavigationSkippedError) {
-                return {
-                    get window(): Window {
-                        throw new NavigationSkippedError(
-                            'The `window` property is not available - `skipNavigation` was used',
-                            { cause: err },
-                        );
-                    },
-                    get body(): string {
-                        throw new NavigationSkippedError(
-                            'The `body` property is not available - `skipNavigation` was used',
-                            { cause: err },
-                        );
-                    },
-                    get document(): Document {
-                        throw new NavigationSkippedError(
-                            'The `document` property is not available - `skipNavigation` was used',
-                            { cause: err },
-                        );
-                    },
-                };
-            }
-
-            throw err;
-        }
-    }
-
-    private async addHelpers(crawlingContext: InternalHttpCrawlingContext & { body: string; window: Window }) {
-        const addRequests = crawlingContext.addRequests;
-
-        const extractLinks = async (options?: ExtractLinksOptions): Promise<string[]> => {
-            if (!crawlingContext.window) {
-                throw new Error('Cannot extract links because the DOM is not available.');
-            }
-
-            return extractUrlsFromWindow(
-                crawlingContext.window,
-                options?.selector ?? 'a',
-                options?.baseUrl ?? crawlingContext.request.loadedUrl ?? crawlingContext.request.url,
-            );
-        };
-
-        return {
-            extractLinks,
-            enqueueLinks: async (options: EnqueueLinksOptions = {}) => {
-                const baseUrl = resolveBaseUrlForEnqueueLinksFiltering({
-                    enqueueStrategy: options.strategy,
-                    finalRequestUrl: crawlingContext.request.loadedUrl,
-                    originalRequestUrl: crawlingContext.request.url,
-                    userProvidedBaseUrl: options.baseUrl,
-                });
-
-                const urls = await extractLinks(options);
-
-                return addRequests(urls, {
-                    ...options,
-                    baseUrl,
-                    strategy: options.strategy ?? EnqueueStrategy.SameHostname,
-                });
-            },
-            async waitForSelector(selector: string, timeoutMs = 5_000) {
-                const $ = cheerio.load(crawlingContext.body);
-
-                if ($(selector).get().length === 0) {
-                    if (timeoutMs) {
-                        await sleep(50);
-                        await this.waitForSelector(selector, Math.max(timeoutMs - 50, 0));
-                        return;
-                    }
-
-                    throw new Error(`Selector '${selector}' not found.`);
-                }
-            },
-            async parseWithCheerio(selector?: string, _timeoutMs = 5_000) {
-                const $ = cheerio.load(crawlingContext.body);
-
-                if (selector && $(selector).get().length === 0) {
-                    throw new Error(`Selector '${selector}' not found.`);
-                }
-
-                return $;
-            },
-        };
-    }
-}
-
-/**
- * Extracts URLs from a given Window object.
- * @ignore
- */
-function extractUrlsFromWindow(window: Window, selector: string, baseUrl: string): string[] {
-    return Array.from(window.document.querySelectorAll(selector))
-        .map((e: any) => e.href)
-        .filter((href) => href !== undefined && href !== '')
-        .map((href: string | undefined) => {
-            if (href === undefined) {
-                return undefined;
-            }
-            return tryAbsoluteURL(href, baseUrl);
-        })
-        .filter((href) => href !== undefined && href !== '') as string[];
 }
 
 /**
