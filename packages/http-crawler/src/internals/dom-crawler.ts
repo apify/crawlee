@@ -60,6 +60,20 @@ export interface DomParser<Parsed extends DomParseResult> {
     select(parsed: Parsed, selector: string): Awaitable<ArrayLike<unknown>>;
 
     /**
+     * Whether the parse result can change after {@apilink DomParser.parse|`parse`} returned - the case when the DOM
+     * implementation runs the page scripts. If it can, {@apilink DomCrawlingContext.waitForSelector|`waitForSelector`}
+     * polls until the timeout elapses; otherwise it fails as soon as the selector does not match.
+     */
+    readonly mutable?: boolean;
+
+    /**
+     * Returns a Cheerio handle over the parse result, for parsers that are backed by Cheerio anyway. Without it,
+     * {@apilink DomCrawlingContext.parseWithCheerio|`parseWithCheerio`} parses
+     * {@apilink DomParseResult.body|`body`} again.
+     */
+    toCheerio?(parsed: Parsed): Awaitable<CheerioAPI>;
+
+    /**
      * Releases whatever {@apilink DomParser.parse|`parse`} allocated. Called after the request handler finishes or
      * fails, and skipped entirely when navigation was skipped.
      */
@@ -223,7 +237,7 @@ export class DomCrawler<
             );
 
         const waitForSelector = async (selector: string, timeoutMs = 5_000): Promise<void> => {
-            let remaining = timeoutMs;
+            let remaining = parser.mutable ? timeoutMs : 0;
 
             while ((await parser.select(context, selector)).length === 0) {
                 if (remaining <= 0) {
@@ -255,8 +269,7 @@ export class DomCrawler<
                 });
             },
             async parseWithCheerio(selector?: string, _timeoutMs = 5_000) {
-                const cheerio = await import('cheerio');
-                const $ = cheerio.load(context.body);
+                const $ = (await parser.toCheerio?.(context)) ?? (await import('cheerio')).load(context.body);
 
                 if (selector && $(selector).get().length === 0) {
                     throw new Error(`Selector '${selector}' not found.`);

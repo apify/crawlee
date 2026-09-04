@@ -4,18 +4,14 @@
 
 ```ts
 
-import type { AddRequestsBatchedResult } from '@crawlee/http';
-import type { CheerioAPI } from 'cheerio';
-import type { ContextPipeline } from '@crawlee/http';
 import type { CrawlingContext } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
-import type { EnqueueLinksOptions } from '@crawlee/http';
+import { DomCrawler } from '@crawlee/http';
+import type { DomCrawlingContext } from '@crawlee/http';
+import { DomParser } from '@crawlee/http';
 import type { ErrorHandler } from '@crawlee/http';
-import type { ExtractLinksOptions } from '@crawlee/http';
 import type { GetUserDataFromRequest } from '@crawlee/http';
-import { HttpCrawler } from '@crawlee/http';
 import type { HttpCrawlerOptions } from '@crawlee/http';
-import type { InternalHttpCrawlingContext } from '@crawlee/http';
 import type { InternalHttpHook } from '@crawlee/http';
 import type { RequestHandler } from '@crawlee/http';
 import type { RouterHandler } from '@crawlee/http';
@@ -33,10 +29,8 @@ export function createLinkeDOMRouter<Context extends LinkeDOMCrawlingContext = L
 export function createLinkeDOMRouter<Context extends LinkeDOMCrawlingContext = LinkeDOMCrawlingContext, const Schemas extends RouteSchemas = RouteSchemas>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
 
 // @public
-export class LinkeDOMCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends LinkeDOMCrawlingContext = LinkeDOMCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<LinkeDOMCrawlingContext['request']>>, StatisticStateExtension extends object = {}> extends HttpCrawler<LinkeDOMCrawlingContext, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
+export class LinkeDOMCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends LinkeDOMCrawlingContext = LinkeDOMCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<LinkeDOMCrawlingContext['request']>>, StatisticStateExtension extends object = {}> extends DomCrawler<LinkeDOMParseResult, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
     constructor(options?: LinkeDOMCrawlerOptions<ContextExtension, ExtendedContext, any, any, Routes, StatisticStateExtension>);
-    // (undocumented)
-    protected buildContextPipeline(): ContextPipeline<CrawlingContext, LinkeDOMCrawlingContext>;
 }
 
 // @public (undocumented)
@@ -47,15 +41,7 @@ Routes extends Record<keyof Routes, Dictionary> = Record<string, UserData>, Stat
 
 // @public (undocumented)
 export interface LinkeDOMCrawlingContext<UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-JSONData extends Dictionary = any> extends InternalHttpCrawlingContext<UserData, JSONData> {
-    // (undocumented)
-    document: Document;
-    enqueueLinks(options?: EnqueueLinksOptions): Promise<AddRequestsBatchedResult>;
-    extractLinks(options?: ExtractLinksOptions): Promise<string[]>;
-    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioAPI>;
-    waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
-    // (undocumented)
-    window: Window;
+JSONData extends Dictionary = any> extends DomCrawlingContext<LinkeDOMParseResult, UserData, JSONData> {
 }
 
 // @public (undocumented)
@@ -66,6 +52,19 @@ ContextExtension = Dictionary<never>> = ErrorHandler<CrawlingContext, LinkeDOMCr
 // @public (undocumented)
 export type LinkeDOMHook<UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 JSONData extends Dictionary = any> = InternalHttpHook<LinkeDOMCrawlingContext<UserData, JSONData>>;
+
+// @public
+export function linkedomParser(): DomParser<LinkeDOMParseResult>;
+
+// @public (undocumented)
+export interface LinkeDOMParseResult {
+    // (undocumented)
+    body: string;
+    // (undocumented)
+    document: Document;
+    // (undocumented)
+    window: Window;
+}
 
 // @public (undocumented)
 export type LinkeDOMRequestHandler<UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler

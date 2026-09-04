@@ -4,19 +4,16 @@
 
 ```ts
 
-import type { AddRequestsBatchedResult } from '@crawlee/http';
-import type { CheerioAPI } from 'cheerio';
-import type { ContextPipeline } from '@crawlee/http';
+import type { CrawleeLogger } from '@crawlee/types';
 import type { CrawlingContext } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
+import { DomCrawler } from '@crawlee/http';
+import type { DomCrawlingContext } from '@crawlee/http';
+import { DomParser } from '@crawlee/http';
 import type { DOMWindow } from 'jsdom';
-import type { EnqueueLinksOptions } from '@crawlee/http';
 import type { ErrorHandler } from '@crawlee/http';
-import type { ExtractLinksOptions } from '@crawlee/http';
 import type { GetUserDataFromRequest } from '@crawlee/http';
-import { HttpCrawler } from '@crawlee/http';
 import type { HttpCrawlerOptions } from '@crawlee/http';
-import type { InternalHttpCrawlingContext } from '@crawlee/http';
 import type { InternalHttpHook } from '@crawlee/http';
 import type { RequestHandler } from '@crawlee/http';
 import type { RouterHandler } from '@crawlee/http';
@@ -34,11 +31,9 @@ export function createJSDOMRouter<Context extends JSDOMCrawlingContext = JSDOMCr
 // @public (undocumented)
 export function createJSDOMRouter<Context extends JSDOMCrawlingContext = JSDOMCrawlingContext, const Schemas extends RouteSchemas = RouteSchemas>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
 
-// @public (undocumented)
-export class JSDOMCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends JSDOMCrawlingContext = JSDOMCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<JSDOMCrawlingContext['request']>>, StatisticStateExtension extends object = {}> extends HttpCrawler<JSDOMCrawlingContext, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
+// @public
+export class JSDOMCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends JSDOMCrawlingContext = JSDOMCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<JSDOMCrawlingContext['request']>>, StatisticStateExtension extends object = {}> extends DomCrawler<JSDOMParseResult, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
     constructor(options?: JSDOMCrawlerOptions<ContextExtension, ExtendedContext, any, any, Routes, StatisticStateExtension>);
-    // (undocumented)
-    protected buildContextPipeline(): ContextPipeline<CrawlingContext, JSDOMCrawlingContext>;
     getVirtualConsole(): VirtualConsole;
 }
 
@@ -52,17 +47,7 @@ Routes extends Record<keyof Routes, Dictionary> = Record<string, UserData>, Stat
 
 // @public (undocumented)
 export interface JSDOMCrawlingContext<UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-JSONData extends Dictionary = any> extends InternalHttpCrawlingContext<UserData, JSONData> {
-    // (undocumented)
-    body: string;
-    // (undocumented)
-    document: Document;
-    enqueueLinks(options?: EnqueueLinksOptions): Promise<AddRequestsBatchedResult>;
-    extractLinks(options?: ExtractLinksOptions): Promise<string[]>;
-    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioAPI>;
-    waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
-    // (undocumented)
-    window: DOMWindow;
+JSONData extends Dictionary = any> extends DomCrawlingContext<JSDOMParseResult, UserData, JSONData> {
 }
 
 // @public (undocumented)
@@ -73,6 +58,26 @@ ContextExtension = Dictionary<never>> = ErrorHandler<CrawlingContext, JSDOMCrawl
 // @public (undocumented)
 export type JSDOMHook<UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 JSONData extends Dictionary = any> = InternalHttpHook<JSDOMCrawlingContext<UserData, JSONData>>;
+
+// @public
+export function jsdomParser(options?: JsdomParserOptions): DomParser<JSDOMParseResult>;
+
+// @public (undocumented)
+export interface JSDOMParseResult {
+    // (undocumented)
+    body: string;
+    // (undocumented)
+    document: Document;
+    // (undocumented)
+    window: DOMWindow;
+}
+
+// @public (undocumented)
+export interface JsdomParserOptions {
+    log?: () => CrawleeLogger;
+    runScripts?: boolean;
+    virtualConsole?: () => VirtualConsole;
+}
 
 // @public (undocumented)
 export type JSDOMRequestHandler<UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler

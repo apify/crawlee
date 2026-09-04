@@ -47,6 +47,7 @@ export function jsdomParser(options: JsdomParserOptions = {}): DomParser<JSDOMPa
 
     return {
         members: ['window', 'document', 'body'],
+        mutable: runScripts,
         async parse(context: InternalHttpCrawlingContext) {
             const isXml = context.contentType.type.includes('xml');
 

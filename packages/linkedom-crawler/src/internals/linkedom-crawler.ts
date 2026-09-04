@@ -43,10 +43,10 @@ export type LinkeDOMHook<
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 > = InternalHttpHook<LinkeDOMCrawlingContext<UserData, JSONData>>;
 
-export type LinkeDOMCrawlingContext<
+export interface LinkeDOMCrawlingContext<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-> = DomCrawlingContext<LinkeDOMParseResult, UserData, JSONData>;
+> extends DomCrawlingContext<LinkeDOMParseResult, UserData, JSONData> {}
 
 export type LinkeDOMRequestHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
