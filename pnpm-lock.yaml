@@ -1172,6 +1172,9 @@ importers:
       '@apify/ps-tree':
         specifier: ^1.2.0
         version: 1.2.0
+      '@apify/validations':
+        specifier: ^1.0.1
+        version: 1.0.1
       '@crawlee/http-client':
         specifier: workspace:*
         version: link:../http-client
@@ -1608,6 +1611,10 @@ packages:
 
   '@apify/utilities@3.0.1':
     resolution: {integrity: sha512-Py701iCY26eSLvdG45T9c9uJS2+xqI4j4rHwGqG84RUOmPD8T6Zua5MflSoWwZ+GM/+ABIJtsza/gqVvyJeESg==}
+    engines: {node: '>=22'}
+
+  '@apify/validations@1.0.1':
+    resolution: {integrity: sha512-ZOJD9XQtYb5CwXR3MG6PCAibzPzdBQnoPzR40ejzOzKG6tV8Z0DBEeQlcADX6DqoNFDf+jDoQKHCyy9whpB31Q==}
     engines: {node: '>=22'}
 
   '@asamuzakjp/css-color@3.2.0':
@@ -13891,6 +13898,10 @@ snapshots:
     dependencies:
       '@apify/consts': 3.0.1
       '@apify/log': 3.0.1
+
+  '@apify/validations@1.0.1':
+    dependencies:
+      zod: 4.4.3
 
   '@asamuzakjp/css-color@3.2.0':
     dependencies:

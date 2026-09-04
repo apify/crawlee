@@ -4,18 +4,14 @@
 
 ```ts
 
+import { ArgumentValidationError } from '@apify/validations';
 import type { BaseHttpClient } from '@crawlee/http-client';
 import type { CheerioAPI } from 'cheerio';
 import type { CrawleeLogger } from '@crawlee/types';
 import type { Dictionary } from '@crawlee/types';
-import type { z } from 'zod';
+import { parseArgument } from '@apify/validations';
 
-// @public
-export class ArgumentValidationError extends Error {
-    constructor(error: z.ZodError, value: unknown, label?: string);
-    readonly cause: z.ZodError;
-    readonly issues: z.ZodError['issues'];
-}
+export { ArgumentValidationError }
 
 // @public
 const DISCORD_REGEX: RegExp;
@@ -133,6 +129,8 @@ export interface OpenGraphProperty {
 // Not exported by the entry point; reachable only as a referenced type.
 // @public (undocumented)
 type OpenGraphResult = string | string[] | Dictionary<string | Dictionary>;
+
+export { parseArgument }
 
 // @public
 function parseHandlesFromHtml(html: string, data?: Record<string, unknown> | null): Promise<SocialHandles>;
