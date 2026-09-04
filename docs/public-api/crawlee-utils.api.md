@@ -9,7 +9,6 @@ import type { BaseHttpClient } from '@crawlee/http-client';
 import type { CheerioAPI } from 'cheerio';
 import type { CrawleeLogger } from '@crawlee/types';
 import type { Dictionary } from '@crawlee/types';
-import { parseArgument } from '@apify/validations';
 
 export { ArgumentValidationError }
 
@@ -129,8 +128,6 @@ export interface OpenGraphProperty {
 // Not exported by the entry point; reachable only as a referenced type.
 // @public (undocumented)
 type OpenGraphResult = string | string[] | Dictionary<string | Dictionary>;
-
-export { parseArgument }
 
 // @public
 function parseHandlesFromHtml(html: string, data?: Record<string, unknown> | null): Promise<SocialHandles>;
