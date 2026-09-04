@@ -622,11 +622,11 @@ await requestManager.purge?.();
 await crawler.run(['https://example.com/a', 'https://example.com/c']);
 ```
 
-`purge()` — empty the storage, keep its id and name — is new in v4 and available on `Dataset`, `KeyValueStore` and `RequestQueue`, as well as being an optional method on the `IRequestManager` interface. Not on the Apify platform, though: its API has no in-place empty, so all three throw there and tell you to `drop()` the storage or open a new one instead.
+`purge()` — empty the storage, keep its id and name — is new in v4 and available on `Dataset`, `KeyValueStore` and `RequestQueue`, as well as being an optional method on the `IRequestManager` interface. The Apify platform is the exception. Its API has no in-place empty, so all three throw there. The error points you at `drop()` or a fresh storage.
 
 This has nothing to do with `purgeOnStart` / `CRAWLEE_PURGE_ON_START`, which still wipes the default storages once per process before the first run.
 
-Most of the time you can avoid the purge entirely. Every crawler instance opens a request queue of its own (see the section above), so a crawler per crawl needs neither a purge nor any queue wiring — and `RequestQueue.open({ alias })` hands you that queue explicitly when you want to hold on to it:
+Most of the time you can avoid the purge entirely. Every crawler instance opens a request queue of its own (see the section above). A crawler per crawl therefore needs neither a purge nor any queue wiring. Pass `RequestQueue.open({ alias })` when you do want to hold on to that queue:
 
 ```typescript
 for (const [index, urls] of batches.entries()) {
@@ -640,7 +640,7 @@ for (const [index, urls] of batches.entries()) {
 }
 ```
 
-An alias identifies a run-scoped queue — no persistent name, emptied on start along with the default storages — so reusing one hands back the same queue, with the same nothing left to crawl. Give each crawl an alias of its own; `purge()` is for when one crawler and one queue really do have to be reused.
+An alias identifies a run-scoped queue. It has no persistent name, and is emptied on start along with the default storages. Reuse an alias and you get that same queue back, handled requests included. The next crawl then finds nothing to do. Give each crawl its own alias. `purge()` is for when one crawler and one queue must be reused.
 
 ### Storage `.open()` now also accepts `{ id?, name? }`
 

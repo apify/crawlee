@@ -58,17 +58,9 @@ Now we need to glue the server and the crawler together using the mapping of Cra
 
 <CodeBlock language="js" title="src/web-server.mjs">{WebServerSource}</CodeBlock>
 
-## Keep the request queue in check
+## The request queue keeps growing
 
-Nothing empties a request queue on its own, and every incoming HTTP request gets a `uniqueKey` of its own, so the queue holds one handled request for every request the server has served. <ApiLink to="core/interface/IRequestManager#purge">Purge</ApiLink> it periodically if the server is meant to stay up:
+Nothing empties a request queue on its own. Every incoming HTTP request gets its own `uniqueKey`, so none of them deduplicate either. The queue therefore holds one handled request for every request the server has served. The records are small, and on the Apify platform they live server-side. It only matters for a server staying up a very long time, where the answer is to recycle the process.
 
-```javascript
-const requestManager = await crawler.getRequestManager();
-
-setInterval(async () => {
-    await requestManager.purge();
-}, 60 * 60 * 1000);
-```
-
-Requests already in progress still get their response. On the Apify platform there is nothing to do here: its API has no in-place empty, so `purge()` throws and the queue stays with the run.
+Do not reach for `purge()` while the crawler is running. It empties the whole queue, including requests added but not yet picked up. Every HTTP request still waiting is dropped and never answered, and its entry in `requestsToResponses` leaks. The more `maxConcurrency` throttles the crawler, the more requests are sitting there to lose.
 
