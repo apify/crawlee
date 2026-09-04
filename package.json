@@ -58,7 +58,7 @@
         "prepare": "husky"
     },
     "devDependencies": {
-        "@apify/log": "^2.5.18",
+        "@apify/log": "^3.0.1",
         "@apify/oxlint-config": "^0.2.5",
         "@apify/tsconfig": "^0.2.0",
         "@commitlint/config-conventional": "^21.0.0",
