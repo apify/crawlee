@@ -1257,7 +1257,7 @@ export class BasicCrawler<
                                     crawlingContext,
                                     this.basicContextPipeline
                                         .chain(this.contextPipeline)
-                                        .call(crawlingContext, (ctx) => this.handleRequest(ctx, source, request)),
+                                        .call(crawlingContext, (ctx) => this.handleRequest(ctx, source)),
                                 ),
                         );
                     } catch (error) {
@@ -1266,7 +1266,7 @@ export class BasicCrawler<
                         if (error instanceof ContextPipelineInterruptedError) {
                             this.statistics.discardJob(request.id || request.uniqueKey);
                             await this.timeoutAndRetry(
-                                async () => this.requestManager?.markRequestAsHandled(request),
+                                async () => this.requestManager?.markRequestAsHandled(crawlingContext.request),
                                 this.internalTimeoutMillis,
                                 `Marking request ${crawlingContext.request.url} (${crawlingContext.request.id}) as handled timed out after ${
                                     this.internalTimeoutMillis / 1e3
@@ -1288,7 +1288,6 @@ export class BasicCrawler<
                             await this.requestFunctionErrorHandler(
                                 unwrappedError,
                                 crawlingContext as CrawlingContext,
-                                request,
                                 this.requestManager!,
                             );
                             // SessionError already retired the session in `requestFunctionErrorHandler`;
@@ -2624,13 +2623,15 @@ export class BasicCrawler<
     }
 
     /** Handles a single request - runs the request handler with retries, error handling, and lifecycle management. */
-    private async handleRequest(crawlingContext: ExtendedContext, requestSource: IRequestManager, request: Request) {
+    private async handleRequest(crawlingContext: ExtendedContext, requestSource: IRequestManager) {
         // An earlier phase we cannot cancel (e.g. a slow `extendContext`) may have run past the internal timeout,
         // which already failed the request in `runTaskFunction`. Bail before running the handler so it does not
         // execute (and re-report) on top of a request the crawler has already moved past.
         if ((crawlingContext as PendingCrawlingContext)[timeoutExpiredKey]?.()) {
             return;
         }
+
+        const { request } = crawlingContext;
 
         const statisticsId = request.id || request.uniqueKey;
 
@@ -2648,7 +2649,7 @@ export class BasicCrawler<
             await transaction?.commit();
 
             await this.timeoutAndRetry(
-                async () => requestSource.markRequestAsHandled(request!),
+                async () => requestSource.markRequestAsHandled(request),
                 this.internalTimeoutMillis,
                 `Marking request ${request.url} (${request.id}) as handled timed out after ${
                     this.internalTimeoutMillis / 1e3
@@ -2671,7 +2672,7 @@ export class BasicCrawler<
             try {
                 request.state = RequestState.ERROR_HANDLER;
                 await addTimeoutToPromise(
-                    async () => this.requestFunctionErrorHandler(err, crawlingContext, request, requestSource),
+                    async () => this.requestFunctionErrorHandler(err, crawlingContext, requestSource),
                     this.internalTimeoutMillis,
                     `Handling request failure of ${request.url} (${request.id}) timed out after ${
                         this.internalTimeoutMillis / 1e3
@@ -2829,15 +2830,14 @@ export class BasicCrawler<
 
     /**
      * Handles errors thrown by user provided requestHandler()
-     *
-     * @param request The request object, passed separately to circumvent potential dynamic logic in crawlingContext.request
      */
     private async requestFunctionErrorHandler(
         error: Error,
         crawlingContext: CrawlingContext,
-        request: Request,
         source: IRequestManager,
     ): Promise<void> {
+        const { request } = crawlingContext;
+
         if (error instanceof RequestThrottledError) {
             // The domain told us to come back later, so the request was never really attempted. Put it back
             // without recording a failure - it costs neither a retry nor session reputation.
