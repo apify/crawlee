@@ -453,7 +453,7 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
                 message = omitStack
                     ? errorOrMessage.message
                     : // .stack includes the message
-                      errorOrMessage.stack;
+                      (errorOrMessage.stack ?? errorOrMessage.message);
             } else if (Reflect.has(Object(errorOrMessage), 'message')) {
                 message = Reflect.get(Object(errorOrMessage), 'message');
             } else if ((errorOrMessage as string).toString() !== '[object Object]') {
