@@ -60,6 +60,8 @@ describe('log forwarding against the real Crawlee logger', () => {
 
     test('forwards a crawler status message', () => {
         coreModule.serviceLocator.setStorageBackend(new coreModule.MemoryStorageBackend());
+        // `setStatusMessage` also broadcasts through the event manager, and the locator logs when it has to create one.
+        coreModule.serviceLocator.getEventManager();
         const crawler = new BasicCrawler({ requestHandler: async () => {} });
         exporter.reset();
 
