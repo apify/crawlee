@@ -530,36 +530,6 @@ export interface SessionFingerprint {
 }
 
 // @public
-export interface SessionState {
-    // (undocumented)
-    cookieJar: SerializedCookieJar;
-    // (undocumented)
-    createdAt: string;
-    // (undocumented)
-    errorScore: number;
-    // (undocumented)
-    errorScoreDecrement: number;
-    // (undocumented)
-    expiresAt: string;
-    // (undocumented)
-    fingerprint?: SessionFingerprint;
-    // (undocumented)
-    id: string;
-    // (undocumented)
-    maxErrorScore: number;
-    // (undocumented)
-    maxUsageCount: number;
-    // (undocumented)
-    proxyInfo?: ProxyInfo;
-    // (undocumented)
-    retired: boolean;
-    // (undocumented)
-    usageCount: number;
-    // (undocumented)
-    userData: object;
-}
-
-// @public
 export interface SetStatusMessageOptions {
     isStatusMessageTerminal?: boolean;
     level?: 'DEBUG' | 'INFO' | 'WARNING' | 'ERROR';

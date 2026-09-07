@@ -165,6 +165,26 @@ describe('RecoverableState', () => {
         await recoverableState.teardown();
     });
 
+    test('should keep the in-memory state when initialized again after a teardown', async () => {
+        const store = await KeyValueStore.open();
+
+        const recoverableState = new RecoverableState({
+            defaultState,
+            persistStateKey: 'test-key',
+            persistenceEnabled: true,
+        });
+
+        await recoverableState.initialize();
+        recoverableState.currentValue.counter = 42;
+        await recoverableState.teardown();
+
+        // Something the deserialization would not bring back - here, a record changed behind our back.
+        await store.setValue('test-key', { ...defaultState, counter: 7 });
+
+        expect((await recoverableState.initialize()).counter).toBe(42);
+        await recoverableState.teardown();
+    });
+
     test('should warn rather than throw when a periodic persist fails', async () => {
         const store = await KeyValueStore.open();
         vi.spyOn(store, 'setValue').mockRejectedValue(new Error('store is on fire'));
@@ -563,14 +583,21 @@ describe('RecoverableState', () => {
             await expect(recoverableState.resetStore()).resolves.not.toThrow();
         });
 
-        test('resetStore should be a no-op without a store', async () => {
+        test('resetStore before the first initialize should clear the record in the default store', async () => {
+            const store = await KeyValueStore.open();
+            await store.setValue('test-key', { ...defaultState, counter: 42 });
+
             const recoverableState = new RecoverableState({
                 defaultState,
                 persistStateKey: 'test-key',
                 persistenceEnabled: true,
             });
 
-            await expect(recoverableState.resetStore()).resolves.not.toThrow();
+            await recoverableState.resetStore();
+
+            expect(await store.getValue('test-key')).toBeNull();
+            expect(await recoverableState.initialize()).toMatchObject({ counter: 0 });
+            await recoverableState.teardown();
         });
     });
 
@@ -642,6 +669,20 @@ describe('RecoverableState', () => {
 
             expect(await namedStore.getValue('test-key')).toMatchObject({ counter: 42 });
         });
+    });
+
+    test('should surface a rejected pending open() on first use, not as an unhandled rejection', async () => {
+        const recoverableState = new RecoverableState({
+            defaultState,
+            persistStateKey: 'test-key',
+            persistenceEnabled: true,
+            keyValueStore: Promise.reject(new Error('store exploded')),
+        });
+
+        // Give an unhandled rejection the chance to fire - vitest would fail the test if it did.
+        await sleep(10);
+
+        await expect(recoverableState.initialize()).rejects.toThrow('store exploded');
     });
 
     test('should time out a persistence call that takes too long', async () => {

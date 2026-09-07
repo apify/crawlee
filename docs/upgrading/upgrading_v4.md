@@ -384,21 +384,31 @@ const crawler = new BasicCrawler({
 
 `SessionPool.open()` static factory method is removed. Create instances with `new SessionPool(options)` instead — all public methods automatically initialize the pool on first use.
 
-`SessionPool.usableSessionsCount` and `SessionPool.retiredSessionsCount` are now async methods instead of synchronous getters. `SessionPool.getState()` is also async now.
+`SessionPool.usableSessionsCount` and `SessionPool.retiredSessionsCount` are now async methods instead of synchronous getters.
 
 **Before:**
 ```typescript
 const sessionPool = await SessionPool.open({ maxPoolSize: 100 });
 const count = sessionPool.usableSessionsCount;
-const state = sessionPool.getState();
 ```
 
 **After:**
 ```typescript
 const sessionPool = new SessionPool({ maxPoolSize: 100 });
 const count = await sessionPool.usableSessionsCount();
-const state = await sessionPool.getState();
 ```
+
+### `SessionPool.persistState()`, `resetStore()` and `teardown()` no longer take options
+
+The `PersistenceOptions` argument of `persistState()` and `resetStore()` and the `{ persistState }` argument of `teardown()` are removed. Neither had any effect, so there is nothing to replace them with.
+
+`resetStore()` now throws while the pool is running, since the next periodic write would put the record straight back. Call `teardown()` first, or use the new `reset()` to discard the in-memory sessions instead.
+
+### `RequestList` prefers the persisted record over the `state` option
+
+With both `state` and `persistStateKey` set, the record now wins. Previously `state` did. The option is also validated up front: `nextIndex` must be a non-negative integer and `inProgress` an array of unique keys. The `@internal` `isStatePersisted` flag is gone.
+
+Both `SessionPool` and `RequestList` now persist through `RecoverableState`, like `Statistics`. The persisted records keep their shape, so records written by v3 still load.
 
 ### `retireOnBlockedStatusCodes` is removed from `Session`
 

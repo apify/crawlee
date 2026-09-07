@@ -131,6 +131,7 @@ export class RecoverableState<TStateModel = Record<string, unknown>, TPersistedS
     readonly #defaultState: () => TStateModel;
     #state: TStateModel | null = null;
     #initialized = false;
+    #recordLoaded = false;
     #listening = false;
     readonly #persistenceEnabled: boolean;
     readonly #persistStateKey: string;
@@ -162,6 +163,13 @@ export class RecoverableState<TStateModel = Record<string, unknown>, TPersistedS
         this.#log = options.logger ?? serviceLocator.getLogger().child({ prefix: 'RecoverableState' });
         this.#serialize = this.#toConversion(options.serialize);
         this.#deserialize = this.#toConversion(options.deserialize);
+
+        // A pending open() may reject before anything here awaits it. Observe the rejection so it surfaces on
+        // first use rather than as an unhandled rejection - most immediately when persistence is disabled and
+        // nothing ever awaits the store.
+        if (this.#keyValueStore !== null) {
+            Promise.resolve(this.#keyValueStore).then(undefined, () => {});
+        }
 
         // The automatic persists, where a rejection has nowhere useful to go - the event manager does not catch
         // listener errors, and throwing from teardown would bury the outcome of the work it cleans up after.
@@ -200,7 +208,8 @@ export class RecoverableState<TStateModel = Record<string, unknown>, TPersistedS
      * is no record to restore.
      *
      * Calling this again after a {@apilink RecoverableState.teardown} starts a new persistence window - the
-     * listener is registered again and the record reloaded.
+     * listener is registered again. The record is not reloaded: the in-memory state is what the teardown wrote, and
+     * reloading it would only drop whatever the deserialization leaves out.
      *
      * @returns The loaded state object
      */
@@ -210,10 +219,7 @@ export class RecoverableState<TStateModel = Record<string, unknown>, TPersistedS
         }
 
         if (this.#persistenceEnabled) {
-            this.#keyValueStore ??= KeyValueStore.open(null, {
-                configuration: this.#configuration ?? serviceLocator.getConfiguration(),
-            });
-            await this.#resolveKeyValueStore();
+            await this.#openKeyValueStore();
             serviceLocator.getEventManager().on(EventType.PERSIST_STATE, this.#persistStateQuietly);
             this.#listening = true;
         }
@@ -223,7 +229,10 @@ export class RecoverableState<TStateModel = Record<string, unknown>, TPersistedS
         this.#initialized = true;
         this.#state ??= this.#defaultState();
 
-        await this.#loadSavedState();
+        if (!this.#recordLoaded) {
+            this.#recordLoaded = true;
+            await this.#loadSavedState();
+        }
 
         return this.currentValue;
     }
@@ -281,7 +290,7 @@ export class RecoverableState<TStateModel = Record<string, unknown>, TPersistedS
      * one would write the record straight back. Use {@apilink RecoverableState.reset} to reset the state itself,
      * or {@apilink RecoverableState.teardown} before clearing the record.
      *
-     * A no-op if persistence is disabled or no KeyValueStore is available yet.
+     * A no-op if persistence is disabled.
      */
     async resetStore(): Promise<void> {
         if (this.#listening) {
@@ -294,11 +303,7 @@ export class RecoverableState<TStateModel = Record<string, unknown>, TPersistedS
             return;
         }
 
-        const keyValueStore = await this.#resolveKeyValueStore();
-
-        if (keyValueStore === null) {
-            return;
-        }
+        const keyValueStore = await this.#openKeyValueStore();
 
         await this.#withTimeout(
             async () => keyValueStore.setValue(this.#persistStateKey, null),
@@ -334,6 +339,15 @@ export class RecoverableState<TStateModel = Record<string, unknown>, TPersistedS
             async () => keyValueStore.setValue(this.#persistStateKey, serializedState),
             'Persisting the state',
         );
+    }
+
+    /** Falls back to the default store when none was supplied - persistence has to write somewhere. */
+    async #openKeyValueStore(): Promise<KeyValueStore> {
+        this.#keyValueStore ??= KeyValueStore.open(null, {
+            configuration: this.#configuration ?? serviceLocator.getConfiguration(),
+        });
+
+        return (await this.#resolveKeyValueStore())!;
     }
 
     /** Awaits a store handed over as a pending `open()`, keeping the resolved instance for later calls. */

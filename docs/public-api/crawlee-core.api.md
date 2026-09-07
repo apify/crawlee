@@ -41,7 +41,6 @@ import type { RequestQueueBackend } from '@crawlee/types';
 import type { RequestQueueInfo } from '@crawlee/types';
 import type { SendRequestOptions } from '@crawlee/types';
 import type { SessionFingerprint } from '@crawlee/types';
-import { SessionState } from '@crawlee/types';
 import type { StandardSchemaV1 } from '@standard-schema/spec';
 import type * as storage from '@crawlee/types';
 import { StorageBackend } from '@crawlee/types';
@@ -1661,7 +1660,6 @@ export class Session implements ISession {
     get fingerprint(): SessionFingerprint | undefined;
     set fingerprint(fingerprint: SessionFingerprint | undefined);
     getCookieString(url: string): Promise<string>;
-    getState(): SessionState;
     // (undocumented)
     readonly id: string;
     isBlocked(): boolean;
@@ -1724,21 +1722,14 @@ export class SessionPool implements ISessionPool {
     constructor(options?: SessionPoolOptions);
     addSession(options?: Session | SessionOptions): Promise<void>;
     getSession(sessionId?: string): Promise<Session | undefined>;
-    getState(): Promise<{
-        usableSessionsCount: number;
-        retiredSessionsCount: number;
-        sessions: SessionState[];
-    }>;
     // (undocumented)
     readonly id: string;
     newSession(sessionOptions?: SessionOptions): Promise<Session>;
-    persistState(options?: PersistenceOptions): Promise<void>;
-    // (undocumented)
-    resetStore(options?: PersistenceOptions): Promise<void>;
+    persistState(): Promise<void>;
+    reset(): void;
+    resetStore(): Promise<void>;
     retiredSessionsCount(): Promise<number>;
-    teardown(input?: {
-        persistState?: boolean;
-    }): Promise<void>;
+    teardown(): Promise<void>;
     usableSessionsCount(): Promise<number>;
 }
 
