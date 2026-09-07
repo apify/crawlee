@@ -1472,6 +1472,19 @@ export class BasicCrawler<
             registerDeferredCleanup: (cleanup: () => Promise<unknown>) => {
                 deferredCleanup.push(cleanup);
             },
+            afterStorageCommit: (callback: (error?: Error) => Awaitable<void>) => {
+                const transaction = currentStorageTransaction();
+
+                if (transaction === undefined) {
+                    throw new Error(
+                        'afterStorageCommit() needs an active storage transaction, and there is none. ' +
+                            "With `transactionalStorage: false` the request's writes are applied as they are " +
+                            'made, so they throw at the call site instead of at commit time.',
+                    );
+                }
+
+                transaction.afterCommit(callback);
+            },
             extendTimeout: (secs: number) => {
                 const extraMillis = secs * 1000;
 

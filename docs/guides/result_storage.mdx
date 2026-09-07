@@ -148,6 +148,30 @@ This is **on by default** for every crawler and covers the whole request lifecyc
 
 - **Deferred cleanups.** Callbacks registered with `registerDeferredCleanup()` run after the transaction is closed, so their writes land immediately and are not rolled back. In <ApiLink to="playwright-crawler/class/AdaptivePlaywrightCrawler">`AdaptivePlaywrightCrawler`</ApiLink> they run once per request handler attempt, so a write there can land twice for one request — push your results from the request handler instead.
 
+### Reacting to a commit
+
+A write made inside a transaction cannot fail where it is made — `pushData()` only records it, and the failure, if any, happens at commit time. `afterStorageCommit()` is where you get it back: the callback runs once the request's writes have been committed, or once committing them has failed, and receives the error in the latter case.
+
+```typescript
+async function requestHandler({ pushData, afterStorageCommit, useState }) {
+    const state = await useState({ itemCount: 0 });
+
+    await pushData(item);
+    afterStorageCommit((error) => {
+        if (error) {
+            throw new NonRetryableError('The page is too big to store', { cause: error });
+        }
+        state.itemCount++;
+    });
+}
+```
+
+Both halves of that callback need the commit. Incrementing the counter in the handler would over-count, because `useState()` is not transactional: a request that pushes an item and then fails keeps the increment but loses the item. And a commit failure left alone is just an ordinary request error — retried to exhaustion, with nothing tying it to the write that caused it.
+
+Callbacks run in registration order, after the commit and before the request is marked as handled. The first one to throw propagates and the rest do not run; on a failed commit its error replaces the commit error, which is how the example above decides what the request fails with. They are *not* run when the request handler itself fails — nothing was written, and that is what `errorHandler` / `failedRequestHandler` are for.
+
+In <ApiLink to="playwright-crawler/class/AdaptivePlaywrightCrawler">`AdaptivePlaywrightCrawler`</ApiLink> a callback belongs to the request handler attempt that registered it, so it runs only for the attempt whose writes are the ones being committed. Under `transactionalStorage: false` there is no commit to react to — writes are applied as they are made and throw at the call site on their own — and `afterStorageCommit()` throws.
+
 ### Escape hatches
 
 The feature is escapable at three granularities:

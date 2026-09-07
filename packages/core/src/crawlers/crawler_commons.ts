@@ -1,4 +1,11 @@
-import type { Dictionary, HttpRequestOptions, ISession, ProxyInfo, SendRequestOptions } from '@crawlee/types';
+import type {
+    Awaitable,
+    Dictionary,
+    HttpRequestOptions,
+    ISession,
+    ProxyInfo,
+    SendRequestOptions,
+} from '@crawlee/types';
 import type { ReadonlyDeep } from 'type-fest';
 
 import type { EnqueueUrlsOptions } from '../enqueue_links/enqueue_links.js';
@@ -182,6 +189,43 @@ export interface CrawlingContext<UserData extends Dictionary = Dictionary> exten
      * here can land more than once for a single request. Push results from the request handler itself.
      */
     registerDeferredCleanup(cleanup: () => Promise<unknown>): void;
+
+    /**
+     * Registers `callback` to run once the request's storage writes have been committed, or once
+     * committing them has failed - the point where a write made in the handler can finally be reacted
+     * to where it was made. Two things belong here: side effects that must agree with what actually
+     * landed (result counters, progress reporting), and handling of a write that did not land at all.
+     *
+     * ```ts
+     * async requestHandler({ pushData, afterStorageCommit, useState }) {
+     *     const state = await useState({ itemCount: 0 });
+     *
+     *     await pushData(item);
+     *     afterStorageCommit((error) => {
+     *         if (error) {
+     *             throw new NonRetryableError('The page is too big to store', { cause: error });
+     *         }
+     *         state.itemCount++;
+     *     });
+     * }
+     * ```
+     *
+     * `useState()` is deliberately not transactional, which is what makes the counter case necessary:
+     * incrementing in the handler would keep the increment for a request that pushes an item and then
+     * fails, while the item itself is rolled back.
+     *
+     * Callbacks run in registration order, after the commit and before the request is marked as handled.
+     * The first one to throw propagates and the rest do not run; on a failed commit its error replaces
+     * the commit error, so a callback can decide what the request fails with. Callbacks are *not* run
+     * when the request handler itself fails - nothing was written, and `errorHandler` /
+     * `failedRequestHandler` cover that.
+     *
+     * Throws when storage is not transactional (`transactionalStorage: false`) - writes are then applied
+     * as they are made and throw at the call site on their own. In {@apilink AdaptivePlaywrightCrawler}
+     * the callback belongs to the current request handler attempt, so it runs only for the attempt whose
+     * writes are the ones being committed.
+     */
+    afterStorageCommit(callback: (error?: Error) => Awaitable<void>): void;
 
     /**
      * Gives the current request `secs` more seconds to finish, for when how long it needs is only apparent

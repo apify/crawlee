@@ -300,6 +300,7 @@ export { CrawleeLoggerOptions }
 
 // @public (undocumented)
 export interface CrawlingContext<UserData extends Dictionary = Dictionary> extends RestrictedCrawlingContext<UserData> {
+    afterStorageCommit(callback: (error?: Error) => Awaitable<void>): void;
     extendTimeout(secs: number): void;
     registerDeferredCleanup(cleanup: () => Promise<unknown>): void;
     sendRequest: (requestOverrides?: Partial<HttpRequestOptions>, optionsOverrides?: SendRequestOptions) => Promise<Response>;
@@ -2005,6 +2006,7 @@ export class StorageStatsTracker<T extends Record<keyof T, number>> {
 
 // @public
 export class StorageTransaction implements StorageTransactionView {
+    afterCommit(callback: (error?: Error) => Awaitable<void>): void;
     commit(): Promise<void>;
     // (undocumented)
     get datasetItems(): {

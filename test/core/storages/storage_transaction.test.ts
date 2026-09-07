@@ -6,6 +6,7 @@ import {
     getRequestId,
     KeyValueStore,
     MemoryStorageBackend,
+    NonRetryableError,
     Request,
     RequestQueue,
     serviceLocator,
@@ -107,6 +108,104 @@ describe('StorageTransaction', () => {
             transaction.dispose();
 
             await expect(store.getValue('key')).resolves.toEqual({ a: 1 });
+        });
+    });
+
+    describe('commit callbacks', () => {
+        test('are not run when the transaction is rolled back', async () => {
+            const callback = vitest.fn();
+
+            const transaction = createStorageTransaction();
+            await transaction.run(() => transaction.afterCommit(callback));
+            transaction.rollback();
+            transaction.dispose();
+
+            expect(callback).not.toHaveBeenCalled();
+        });
+
+        test('receive the error of a failed commit, which still propagates', async () => {
+            const dataset = await Dataset.open();
+            vitest.spyOn(dataset.backend, 'pushData').mockRejectedValueOnce(new Error('backend exploded'));
+            const callback = vitest.fn();
+
+            const transaction = createStorageTransaction();
+            await transaction.run(async () => {
+                await dataset.pushData({ a: 1 });
+                transaction.afterCommit(callback);
+            });
+
+            await expect(transaction.commit()).rejects.toThrow('backend exploded');
+            transaction.dispose();
+
+            expect(callback).toHaveBeenCalledWith(expect.objectContaining({ message: 'backend exploded' }));
+        });
+
+        test('an error thrown by a callback replaces the commit error', async () => {
+            const dataset = await Dataset.open();
+            vitest.spyOn(dataset.backend, 'pushData').mockRejectedValueOnce(new Error('Data item is too large'));
+
+            const transaction = createStorageTransaction();
+            await transaction.run(async () => {
+                await dataset.pushData({ a: 1 });
+                transaction.afterCommit((error) => {
+                    if (error?.message.includes('too large')) {
+                        throw new NonRetryableError('trim the item', { cause: error });
+                    }
+                });
+            });
+
+            await expect(transaction.commit()).rejects.toThrow(NonRetryableError);
+            transaction.dispose();
+        });
+
+        test('a throwing callback propagates, but the commit stays committed', async () => {
+            const store = await KeyValueStore.open();
+            const laterCallback = vitest.fn();
+
+            const transaction = createStorageTransaction();
+            await transaction.run(async () => {
+                await store.setValue('key', { a: 1 });
+                transaction.afterCommit(() => {
+                    throw new Error('callback exploded');
+                });
+                transaction.afterCommit(laterCallback);
+            });
+
+            await expect(transaction.commit()).rejects.toThrow('callback exploded');
+
+            expect(transaction.state).toBe('committed');
+            expect(laterCallback).not.toHaveBeenCalled();
+            await expect(store.getValue('key')).resolves.toEqual({ a: 1 });
+
+            transaction.dispose();
+        });
+
+        test('run even when the ambient cancellation context has already been aborted', async () => {
+            const store = await KeyValueStore.open();
+
+            const transaction = createStorageTransaction();
+            await transaction.run(() =>
+                transaction.afterCommit(async () => store.setValue('from-callback', { ok: true })),
+            );
+
+            const controller = new AbortController();
+            controller.abort();
+
+            // As for the flush itself: a request-handler timeout that fired before the commit must not
+            // cancel the storage operations of a handler that succeeded.
+            await timeoutStorage.run({ cancelTask: controller }, async () => transaction.commit());
+            transaction.dispose();
+
+            await expect(store.getValue('from-callback')).resolves.toEqual({ ok: true });
+        });
+
+        test('registering on a closed transaction throws', async () => {
+            const transaction = createStorageTransaction();
+            await transaction.commit();
+
+            expect(() => transaction.afterCommit(() => {})).toThrow(/'committed' state/);
+
+            transaction.dispose();
         });
     });
 
