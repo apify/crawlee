@@ -3,6 +3,7 @@ import type { AddressInfo } from 'node:net';
 
 import {
     BaseCrawleeLogger,
+    Configuration,
     type CrawleeLogger,
     type CrawleeLoggerOptions,
     Dataset,
@@ -1136,6 +1137,124 @@ describe('AdaptivePlaywrightCrawler', () => {
             expect(renderingTypePredictor.storeResult).toHaveBeenCalledOnce();
 
             await runPromise;
+        });
+
+        test('an asynchronous predict decides the rendering path', async () => {
+            const crawler = await makeOneshotCrawler(
+                {
+                    requestHandler: async () => {},
+                    renderingTypePredictor: {
+                        predict: async () => {
+                            await sleep(10);
+                            return { detectionProbabilityRecommendation: 0, renderingType: 'static' as const };
+                        },
+                        storeResult: () => {},
+                    },
+                },
+                [`http://${HOSTNAME}:${port}/static`],
+            );
+
+            await crawler.run();
+
+            // An unawaited prediction would read `undefined` off the promise and fall through to the browser.
+            expect(crawler.statistics.state.httpOnlyRequestHandlerRuns).toBe(1);
+            expect(crawler.statistics.state.browserRequestHandlerRuns).toBe(0);
+        });
+
+        test('a pending asynchronous storeResult holds up the crawl', async () => {
+            let resolveStore!: () => void;
+            const storeFinished = new Promise<void>((resolve) => {
+                resolveStore = resolve;
+            });
+            const storeResult = vi.fn(() => storeFinished);
+
+            const crawler = await makeOneshotCrawler(
+                {
+                    requestHandler: async () => {},
+                    renderingTypePredictor: {
+                        predict: () => ({
+                            detectionProbabilityRecommendation: 1,
+                            renderingType: 'clientOnly' as const,
+                        }),
+                        storeResult,
+                    },
+                },
+                [`http://${HOSTNAME}:${port}/static`],
+            );
+
+            let finished = false;
+            const runPromise = crawler.run().then(() => {
+                finished = true;
+            });
+
+            await vi.waitFor(() => expect(storeResult).toHaveBeenCalledOnce());
+            await sleep(100);
+
+            // The detection itself is long done - what the crawl is waiting on is the predictor's write.
+            expect(finished).toBe(false);
+            expect(crawler.inFlightRenderingTypeDetectionCount).toBe(1);
+
+            resolveStore();
+            await runPromise;
+
+            expect(finished).toBe(true);
+            expect(crawler.inFlightRenderingTypeDetectionCount).toBe(0);
+        });
+
+        test('a storeResult that never settles is abandoned after the internal timeout', async () => {
+            const messages: string[] = [];
+
+            serviceLocator.setConfiguration(new Configuration({ internalTimeoutMillis: 250 }));
+
+            const crawler = await makeOneshotCrawler(
+                {
+                    requestHandler: async () => {},
+                    renderingTypePredictor: {
+                        predict: () => ({
+                            detectionProbabilityRecommendation: 1,
+                            renderingType: 'clientOnly' as const,
+                        }),
+                        storeResult: () => new Promise<void>(() => {}),
+                    },
+                    logger: new RecordingLogger(messages),
+                },
+                [`http://${HOSTNAME}:${port}/static`],
+            );
+
+            await crawler.run();
+
+            // The bound comes from `internalTimeoutMillis`, not an option of its own.
+            expect(messages).toContainEqual(
+                expect.stringContaining('Timed out after 0.25 seconds waiting for 1 rendering type detection(s)'),
+            );
+        });
+
+        test('a rejected asynchronous storeResult is reported and does not fail the request', async () => {
+            const messages: string[] = [];
+
+            const crawler = await makeOneshotCrawler(
+                {
+                    requestHandler: async () => {},
+                    renderingTypePredictor: {
+                        predict: () => ({
+                            detectionProbabilityRecommendation: 1,
+                            renderingType: 'clientOnly' as const,
+                        }),
+                        storeResult: async () => {
+                            throw new Error('the write failed');
+                        },
+                    },
+                    logger: new RecordingLogger(messages),
+                },
+                [`http://${HOSTNAME}:${port}/static`],
+            );
+
+            const stats = await crawler.run();
+
+            expect(stats.requestsFailed).toBe(0);
+            expect(messages).toContainEqual(
+                expect.stringContaining('Failed to store the rendering type detection result'),
+            );
         });
     });
 });

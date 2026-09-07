@@ -6,6 +6,7 @@ import type {
     RouteSchemas,
     RoutesFromSchemas,
 } from '@crawlee/browser';
+import { setTimeout as delay } from 'node:timers/promises';
 import { isDeepStrictEqual } from 'node:util';
 
 import type { BasicCrawlerOptions } from '@crawlee/basic';
@@ -323,7 +324,7 @@ export class AdaptivePlaywrightCrawler<
     readonly #attemptWritePolicy: Partial<StorageWritePolicy>;
 
     /**
-     * Holds currently in-flight rendering detection promises.
+     * In-flight rendering type detections, plus the pending results of an asynchronous `storeResult`.
      */
     readonly #activeDetections = new Set<Promise<unknown>>();
 
@@ -661,7 +662,7 @@ export class AdaptivePlaywrightCrawler<
     }
 
     protected override async runRequestHandler(crawlingContext: CrawlingContext): Promise<void> {
-        const renderingTypePrediction = this.#renderingTypePredictor.value.predict(crawlingContext.request);
+        const renderingTypePrediction = await this.#renderingTypePredictor.value.predict(crawlingContext.request);
         const shouldDetectRenderingType = Math.random() < renderingTypePrediction.detectionProbabilityRecommendation;
 
         if (!shouldDetectRenderingType) {
@@ -791,16 +792,28 @@ export class AdaptivePlaywrightCrawler<
                     );
 
                     if (detectionResult !== undefined) {
-                        this.#renderingTypePredictor.value.storeResult(crawlingContext.request, detectionResult);
+                        // Deliberately not awaited: a predictor that persists asynchronously gets to keep
+                        // batching its writes, and the drain below catches whatever is still pending.
+                        const stored = this.#renderingTypePredictor.value.storeResult(
+                            crawlingContext.request,
+                            detectionResult,
+                        );
+
+                        if (stored !== undefined) {
+                            // Nothing downstream awaits this, so a failed write would otherwise be silent.
+                            void this.#trackDetection(
+                                Promise.resolve(stored).catch((error) =>
+                                    this.log.exception(
+                                        error as Error,
+                                        `Failed to store the rendering type detection result for ${crawlingContext.request.url}`,
+                                    ),
+                                ),
+                            );
+                        }
                     }
                 })();
 
-                this.#activeDetections.add(detectionPromise);
-                void detectionPromise.finally(() => {
-                    this.#activeDetections.delete(detectionPromise);
-                });
-
-                await detectionPromise;
+                await this.#trackDetection(detectionPromise);
             }
         } finally {
             // A still-open transaction here belongs to a discarded attempt - roll it back, then release.
@@ -853,19 +866,61 @@ export class AdaptivePlaywrightCrawler<
         });
     }
 
+    #trackDetection<T>(promise: Promise<T>): Promise<T> {
+        this.#activeDetections.add(promise);
+        // Not `finally()`: the promise it derives would reject on its own and go unhandled. A rejection here
+        // belongs to whoever awaits the original, or to `allSettled` in the drain.
+        void promise.catch(() => {}).then(() => this.#activeDetections.delete(promise));
+        return promise;
+    }
+
     /**
-     * Number of rendering-type detections currently running in the background.
+     * Number of rendering type detections that have not settled yet, including results the predictor is
+     * still persisting.
      */
     get inFlightRenderingTypeDetectionCount(): number {
         return this.#activeDetections.size;
     }
 
     /**
-     * Waits for all in-flight rendering-type detections to settle.
+     * Waits for in-flight rendering type detections to settle, bounded by `timeoutMillis` (defaults to the
+     * internal timeout).
      */
-    async drainRenderingDetections(): Promise<void> {
-        while (this.#activeDetections.size > 0) {
-            await Promise.allSettled(Array.from(this.#activeDetections));
+    async drainRenderingDetections({ timeoutMillis }: { timeoutMillis?: number } = {}): Promise<void> {
+        if (this.#activeDetections.size === 0) {
+            return;
+        }
+
+        const drained = (async () => {
+            while (this.#activeDetections.size > 0) {
+                await Promise.allSettled(Array.from(this.#activeDetections));
+            }
+        })();
+
+        const millis = timeoutMillis ?? this.internalTimeoutMillis;
+
+        // A caller opting out of the bound would otherwise get an immediate spurious timeout - `setTimeout`
+        // clamps a non-finite delay to 1ms.
+        if (!Number.isFinite(millis)) {
+            await drained;
+            return;
+        }
+
+        const abortTimer = new AbortController();
+
+        try {
+            const outcome = await Promise.race([
+                drained.then(() => 'drained' as const),
+                delay(millis, 'timedOut' as const, { signal: abortTimer.signal }).catch(() => 'aborted' as const),
+            ]);
+
+            if (outcome === 'timedOut') {
+                this.log.warning(
+                    `Timed out after ${millis / 1e3} seconds waiting for ${this.#activeDetections.size} rendering type detection(s) to settle - their results may be lost.`,
+                );
+            }
+        } finally {
+            abortTimer.abort();
         }
     }
 
