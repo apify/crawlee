@@ -4,7 +4,7 @@ packages:
   - website
 
 catalog:
-  zod: ^4.4.3
+  zod: ^4.5.4
 
 minimumReleaseAge: 1440
 minimumReleaseAgeExclude:
@@ -16,11 +16,6 @@ minimumReleaseAgeExclude:
   - "got-scraping"
 
 overrides:
-  # Dedup minimatch to v9 everywhere except inside lerna — lerna 9.x's bundled
-  # code (`__toESM(require('minimatch')).default(...)`) only works with v3,
-  # whose CJS export *is* the function. Pinning v9 there caused the publish
-  # step to silently report 0 changed packages.
-  minimatch: "^9.0.0"
   "@puppeteer/browsers": "^3.0.4"
   tar: "^7.5.16"
   "lerna>js-yaml": "^4.2.0"
@@ -50,6 +45,7 @@ overrides:
 # proceed when new build-requesting deps appear without a manual entry).
 allowBuilds:
   "@apify/ui-icons": true
+  '@google/genai': false
   "@playwright/browser-chromium": true
   "@playwright/browser-firefox": true
   "@playwright/browser-webkit": true
