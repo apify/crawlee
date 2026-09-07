@@ -75,6 +75,8 @@ export class AdaptivePlaywrightCrawler<ContextExtension = Dictionary<never>, Ext
     // (undocumented)
     protected buildContextPipeline(): ContextPipeline_2<CrawlingContext_2, AdaptivePlaywrightCrawlerContext>;
     // (undocumented)
+    destroy(): Promise<void>;
+    // (undocumented)
     protected init(): Promise<void>;
     // (undocumented)
     protected runRequestHandler(crawlingContext: CrawlingContext_2): Promise<void>;

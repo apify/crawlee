@@ -373,6 +373,41 @@ describe('BasicCrawler', () => {
         expect(secondSystem.desiredConcurrency).toBeLessThanOrEqual(2);
     });
 
+    test('running tracks the run in progress', async () => {
+        let runningInHandler: boolean | undefined;
+        const crawler = new BasicCrawler({
+            requestHandler: async () => {
+                runningInHandler = crawler.running;
+            },
+        });
+
+        expect(crawler.running).toBe(false);
+        await crawler.run(['https://example.com/1']);
+
+        expect(runningInHandler).toBe(true);
+        expect(crawler.running).toBe(false);
+    });
+
+    test('pause(), resume() and stop() warn once the run has finished', async () => {
+        const crawler = new BasicCrawler({
+            requestHandler: async () => {},
+        });
+
+        await crawler.run(['https://example.com/1']);
+
+        const warning = vitest.spyOn(crawler.log, 'warning');
+        await crawler.pause();
+        crawler.resume();
+        crawler.stop();
+
+        // The finished run's task loop is aborted, so driving it would do nothing while looking like it worked.
+        expect(warning.mock.calls.map(([message]) => message)).toEqual([
+            'Cannot pause a crawler that is not running.',
+            'Cannot resume a crawler that is not running.',
+            'Cannot stop a crawler that is not running.',
+        ]);
+    });
+
     test('stops the owned ConcurrencySystem when startup fails after it was started', async () => {
         const crawler = new BasicCrawler({
             requestHandler: async () => {},
@@ -3241,7 +3276,7 @@ describe('BasicCrawler', () => {
             expect(enqueueLimitMessages).toHaveLength(2);
         });
 
-        test('maxCrawlDepth limit log message should only be logged once per run', async () => {
+        test('maxCrawlDepth limit log message should only be logged once', async () => {
             const requestQueue = await RequestQueue.open();
 
             // Each handler will try to add URLs that exceed maxCrawlDepth
@@ -3264,15 +3299,16 @@ describe('BasicCrawler', () => {
                 },
             });
 
-            const infoSpy = vitest.spyOn(crawler.log, 'info');
+            // The `once` gate lives inside the logger, so `info()` is still called for every skipped request -
+            // what has to happen once is the message actually going out.
+            const logSpy = vitest.spyOn(crawler.log, 'logWithLevel');
 
             // Run with two initial requests
             // Each will enqueue children at depth 1, then those children will try to enqueue at depth 2 (blocked)
             await crawler.run(['http://example.com/first', 'http://example.com/second']);
 
-            // The maxCrawlDepth limit message should only appear once per run, even though multiple requests triggered it
-            const maxCrawlDepthMessages = infoSpy.mock.calls.filter(
-                (call) => typeof call[0] === 'string' && call[0].includes('maxCrawlDepth'),
+            const maxCrawlDepthMessages = logSpy.mock.calls.filter(
+                (call) => typeof call[1] === 'string' && call[1].includes('maxCrawlDepth'),
             );
             expect(maxCrawlDepthMessages).toHaveLength(1);
         });

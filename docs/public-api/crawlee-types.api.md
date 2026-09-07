@@ -96,17 +96,17 @@ export interface CookieJarSetCookieOptions {
 // @public
 export interface CrawleeLogger {
     child(options: Partial<CrawleeLoggerOptions>): CrawleeLogger;
-    debug(message: string, data?: Record<string, unknown>): void;
+    debug(message: string, data?: Record<string, unknown>, options?: LogOptions): void;
     deprecated(message: string): void;
-    error(message: string, data?: Record<string, unknown>): void;
+    error(message: string, data?: Record<string, unknown>, options?: LogOptions): void;
     exception(exception: Error, message: string, data?: Record<string, unknown>): void;
     getOptions(): CrawleeLoggerOptions;
-    info(message: string, data?: Record<string, unknown>): void;
+    info(message: string, data?: Record<string, unknown>, options?: LogOptions): void;
     logWithLevel(level: number, message: string, data?: Record<string, unknown>): void;
-    perf(message: string, data?: Record<string, unknown>): void;
+    perf(message: string, data?: Record<string, unknown>, options?: LogOptions): void;
     setOptions(options: Partial<CrawleeLoggerOptions>): void;
-    softFail(message: string, data?: Record<string, unknown>): void;
-    warning(message: string, data?: Record<string, unknown>): void;
+    softFail(message: string, data?: Record<string, unknown>, options?: LogOptions): void;
+    warning(message: string, data?: Record<string, unknown>, options?: LogOptions): void;
     warningOnce(message: string): void;
 }
 
@@ -308,6 +308,11 @@ export interface KeyValueStoreRecord {
 
 // @public
 export type KeyValueStoreRecordInputValue = Buffer | ArrayBuffer | ArrayBufferView | string | NodeJS.ReadableStream | ReadableStream;
+
+// @public
+export interface LogOptions {
+    once?: boolean;
+}
 
 // @public
 export interface NewPageOptions {

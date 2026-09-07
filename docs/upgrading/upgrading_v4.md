@@ -652,6 +652,29 @@ for (const [index, urls] of batches.entries()) {
 
 An alias identifies a run-scoped queue. It has no persistent name, and is emptied on start along with the default storages. Reuse an alias and you get that same queue back, handled requests included. The next crawl then finds nothing to do. Give each crawl its own alias. `purge()` is for when one crawler and one queue must be reused.
 
+### `teardown()` is per-run, disposing of the crawler is not
+
+`crawler.teardown()` ends the run in progress and releases only what that run owns — it is what `run()` calls on its way out. In v3 it also destroyed the browser pool a browser crawler had built for itself, and a destroyed `BrowserPool` cannot be used again: with its timers cleared and its listeners dropped, a second `run()` had nothing retiring idle browsers or reaping the retired ones. It now releases that run's browsers and leaves the pool usable.
+
+What outlives a run is released by `crawler.destroy()`, or by disposing of the crawler:
+
+```typescript
+await using crawler = new PlaywrightCrawler({ requestHandler: async ({ page }) => { /* ... */ } });
+
+await crawler.run(['https://example.com/a']);
+await crawler.run(['https://example.com/b']);
+```
+
+Disposing is optional — a finished run leaves no browsers open and no timer holding the process alive.
+
+:::info
+
+The `await using` syntax needs Node.js 24 or later. On Node.js 22 call <ApiLink to="basic-crawler/class/BasicCrawler#destroy">`destroy()`</ApiLink> yourself instead — it is what the disposal hook calls anyway, as with the [collaborators you own](#collaborators-you-own-are-disposable).
+
+:::
+
+`crawler.running` is now a read-only getter; in v3 it was an assignable field.
+
 ### Storage `.open()` now also accepts `{ id?, name? }`
 
 `Dataset.open()`, `KeyValueStore.open()`, and `RequestQueue.open()` previously accepted a single `idOrName?: string` parameter. This was ambiguous — callers couldn't express whether they were opening a storage by its ID or by name.
