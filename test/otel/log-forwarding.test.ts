@@ -60,8 +60,6 @@ describe('log forwarding against the real Crawlee logger', () => {
 
     test('forwards a crawler status message', () => {
         coreModule.serviceLocator.setStorageBackend(new coreModule.MemoryStorageBackend());
-        // `setStatusMessage` also broadcasts through the event manager, and the locator logs when it has to create one.
-        coreModule.serviceLocator.getEventManager();
         const crawler = new BasicCrawler({ requestHandler: async () => {} });
         exporter.reset();
 
@@ -70,9 +68,9 @@ describe('log forwarding against the real Crawlee logger', () => {
         // `setStatusMessage` is the one place in Crawlee that logs at a level chosen at runtime. It used to reach for
         // `logWithLevel`, which is abstract on `BaseCrawleeLogger` and so cannot be patched - the periodic status
         // messages never reached OpenTelemetry at all.
-        const record = exporter.getFinishedLogRecords().at(-1)!;
-        expect(record.body).toBe('Crawled 40/100 pages, 2 failed.');
-        expect(record.severityNumber).toBe(SeverityNumber.INFO);
+        const record = exporter.getFinishedLogRecords().find((r) => r.body === 'Crawled 40/100 pages, 2 failed.');
+        expect(record).toBeDefined();
+        expect(record!.severityNumber).toBe(SeverityNumber.INFO);
     });
 
     test('maps each level onto the matching severity', () => {
