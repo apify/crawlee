@@ -642,6 +642,14 @@ export abstract class BrowserCrawler<
                         }
                         return Reflect.get(target, propertyName, receiver);
                     },
+                    // Hide `loadedUrl` from enumeration so bookkeeping (spread/JSON/zod) skips it; direct reads still throw above.
+                    getOwnPropertyDescriptor(target, propertyName) {
+                        const descriptor = Reflect.getOwnPropertyDescriptor(target, propertyName);
+                        if (propertyName === 'loadedUrl' && descriptor) {
+                            return { ...descriptor, enumerable: false };
+                        }
+                        return descriptor;
+                    },
                 }) as LoadedRequest<Request>,
                 get response(): Response {
                     throw new NavigationSkippedError(
