@@ -384,31 +384,27 @@ const crawler = new BasicCrawler({
 
 `SessionPool.open()` static factory method is removed. Create instances with `new SessionPool(options)` instead — all public methods automatically initialize the pool on first use.
 
-`SessionPool.usableSessionsCount` and `SessionPool.retiredSessionsCount` are now async methods instead of synchronous getters. `SessionPool.getState()` is also async now.
+`SessionPool.usableSessionsCount` and `SessionPool.retiredSessionsCount` are now async methods instead of synchronous getters.
 
 **Before:**
 ```typescript
 const sessionPool = await SessionPool.open({ maxPoolSize: 100 });
 const count = sessionPool.usableSessionsCount;
-const state = sessionPool.getState();
 ```
 
 **After:**
 ```typescript
 const sessionPool = new SessionPool({ maxPoolSize: 100 });
 const count = await sessionPool.usableSessionsCount();
-const state = await sessionPool.getState();
 ```
 
-### `SessionPool` and `RequestList` persist through `RecoverableState`
+### `SessionPool.persistState()`, `resetStore()` and `teardown()` no longer take options
 
-Both now share the persistence machinery `Statistics` already uses: one `PERSIST_STATE` listener, a 60 second timeout on every load and save, and a warning instead of a crash when a periodic write fails. The persisted records keep their shape, so records written by v3 still load. A few method signatures changed along the way.
+`persistState()` and `resetStore()` lost their `PersistenceOptions` argument, and `teardown()` lost `{ persistState }`. The final state is always written once, on `teardown()`. The dropped `{ enable: true }` override never had an effect, so there is nothing to replace it with.
 
-`SessionPool.persistState()` and `SessionPool.resetStore()` no longer take a `PersistenceOptions` argument. The per-call `{ enable: true }` override never had an effect: with pool-level persistence disabled the pool never opened its store, so the forced write silently did nothing. Drop the argument.
+`resetStore()` now throws while the pool is running, because the next periodic write would put the record straight back. Call `teardown()` first. To discard the in-memory sessions instead, use the new `reset()`. `BasicCrawler` calls both on a re-run for a pool it created.
 
-`SessionPool.teardown()` no longer takes `{ persistState }`. It always writes the final state, once.
-
-`SessionPool.resetStore()` now throws while the pool is persisting periodically, because the next `PERSIST_STATE` event would write the record straight back. Previously it also initialized the pool first, which loaded the old sessions into memory only to persist them again. Call `teardown()` first, or use the new `reset()`, which discards the in-memory sessions and leaves the record alone. `BasicCrawler` calls both on a purged re-run for a pool it created.
+`SessionPool.getState()` and `Session.getState()` are `@internal` now. They exist for persistence, and the shape of what they return is not a stable API.
 
 **Before:**
 ```typescript
@@ -425,7 +421,11 @@ await sessionPool.teardown();
 await sessionPool.resetStore(); // clear the record, after teardown
 ```
 
-For `RequestList`, the `state` option is now the starting point when there is no persisted record. Previously, with both `state` and `persistStateKey` set, `state` won over the record; the record wins now. The option is also validated up front: `nextIndex` must be a non-negative integer and `inProgress` an array of unique keys. The `@internal` `isStatePersisted` flag is gone, and the state is written on every `PERSIST_STATE` event like the other components do.
+### `RequestList` prefers the persisted record over the `state` option
+
+With both `state` and `persistStateKey` set, the record now wins. Previously `state` did. The option is also validated up front: `nextIndex` must be a non-negative integer and `inProgress` an array of unique keys. The `@internal` `isStatePersisted` flag is gone.
+
+Both `SessionPool` and `RequestList` now persist through `RecoverableState`, like `Statistics`. The persisted records keep their shape, so records written by v3 still load.
 
 ### `retireOnBlockedStatusCodes` is removed from `Session`
 
