@@ -30,6 +30,16 @@ const persistedRequestListState = z.object({
     inProgress: z.array(z.string()),
 });
 
+const requestListInternalState = z.object({
+    /** Position of the next request to be processed. */
+    nextIndex: z.number().int().nonnegative(),
+    /** `uniqueKey`s of the requests being processed at the moment. */
+    inProgress: z.set(z.string()),
+});
+
+/** The live crawling position of a {@apilink RequestList}, as kept by its {@apilink RecoverableState}. */
+type RequestListInternalState = z.infer<typeof requestListInternalState>;
+
 const requestListOptionsSchema = z.strictObject({
     sources: schemas.anyArray.optional(), // check only for array and not subtypes to avoid iteration over the whole thing
     sourcesFunction: schemas.anyFunction.optional(),
@@ -52,7 +62,7 @@ function buildRequestListStateCodec(list: {
     indexOf: (uniqueKey: string) => number | undefined;
     log: CrawleeLogger;
 }) {
-    return z.codec(persistedRequestListState, z.custom<RequestListInternalState>(), {
+    return z.codec(persistedRequestListState, requestListInternalState, {
         decode: (record, ctx) => {
             const { requests } = list;
             const { nextIndex, nextUniqueKey } = record;
@@ -961,15 +971,6 @@ export interface RequestListState {
 
     /** Array of request keys representing those that being processed at the moment. */
     inProgress: string[];
-}
-
-/** The live crawling position of a {@apilink RequestList}, as kept by its {@apilink RecoverableState}. */
-interface RequestListInternalState {
-    /** Position of the next request to be processed. */
-    nextIndex: number;
-
-    /** `uniqueKey`s of the requests being processed at the moment. */
-    inProgress: Set<string>;
 }
 
 type RequestListSource = string | Source;

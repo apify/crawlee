@@ -49,6 +49,13 @@ const persistedSessionPoolState = z.object({
     sessions: z.array(persistedSessionState),
 });
 
+const sessionPoolInternalState = z.object({
+    sessions: z.array(z.instanceof(Session)),
+});
+
+/** The live state of a {@apilink SessionPool}, as kept by its {@apilink RecoverableState}. */
+type SessionPoolInternalState = z.infer<typeof sessionPoolInternalState>;
+
 /**
  * The conversion between the pool's sessions and its persisted record. Decoding recreates the sessions through
  * the pool's factory and keeps only the usable ones, which is why the codec is built per pool.
@@ -58,7 +65,7 @@ function buildSessionPoolStateCodec(pool: {
     toRecord: (sessions: Session[]) => SessionPoolPersistedState;
     log: CrawleeLogger;
 }) {
-    return z.codec(persistedSessionPoolState, z.custom<SessionPoolInternalState>(), {
+    return z.codec(persistedSessionPoolState, sessionPoolInternalState, {
         decode: async (record) => {
             const sessions: Session[] = [];
 
@@ -571,11 +578,6 @@ export class SessionPool implements ISessionPool {
             sessions: sessions.map((session) => session.getState()),
         };
     }
-}
-
-/** The live state of a {@apilink SessionPool}, as kept by its {@apilink RecoverableState}. */
-interface SessionPoolInternalState {
-    sessions: Session[];
 }
 
 /** The shape of the persisted {@apilink SessionPool} record, as returned by {@apilink SessionPool.getState}. */
