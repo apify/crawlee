@@ -41,7 +41,6 @@ import type { RequestQueueBackend } from '@crawlee/types';
 import type { RequestQueueInfo } from '@crawlee/types';
 import type { SendRequestOptions } from '@crawlee/types';
 import type { SessionFingerprint } from '@crawlee/types';
-import type { SessionState } from '@crawlee/types';
 import type { StandardSchemaV1 } from '@standard-schema/spec';
 import type * as storage from '@crawlee/types';
 import { StorageBackend } from '@crawlee/types';
@@ -1661,7 +1660,6 @@ export class Session implements ISession {
     get fingerprint(): SessionFingerprint | undefined;
     set fingerprint(fingerprint: SessionFingerprint | undefined);
     getCookieString(url: string): Promise<string>;
-    getState(): SessionState;
     // (undocumented)
     readonly id: string;
     isBlocked(): boolean;
@@ -1724,7 +1722,6 @@ export class SessionPool implements ISessionPool {
     constructor(options?: SessionPoolOptions);
     addSession(options?: Session | SessionOptions): Promise<void>;
     getSession(sessionId?: string): Promise<Session | undefined>;
-    getState(): Promise<SessionPoolPersistedState>;
     // (undocumented)
     readonly id: string;
     newSession(sessionOptions?: SessionOptions): Promise<Session>;
@@ -1746,16 +1743,6 @@ export interface SessionPoolOptions {
     persistStateKeyValueStoreId?: string;
     sessionOptions?: SessionOptions;
     sessionReuseStrategy?: SessionReuseStrategy;
-}
-
-// @public
-export interface SessionPoolPersistedState {
-    // (undocumented)
-    retiredSessionsCount: number;
-    // (undocumented)
-    sessions: SessionState[];
-    // (undocumented)
-    usableSessionsCount: number;
 }
 
 // @public (undocumented)

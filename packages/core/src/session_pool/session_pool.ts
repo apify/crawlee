@@ -57,6 +57,12 @@ const sessionPoolInternalState = z.object({
 type SessionPoolInternalState = z.infer<typeof sessionPoolInternalState>;
 
 /**
+ * The shape of the persisted {@apilink SessionPool} record, as returned by {@apilink SessionPool.getState}.
+ * @internal
+ */
+export type SessionPoolPersistedState = z.infer<typeof persistedSessionPoolState>;
+
+/**
  * The conversion between the pool's sessions and its persisted record. Decoding recreates the sessions through
  * the pool's factory and keeps only the usable ones, which is why the codec is built per pool.
  */
@@ -419,9 +425,9 @@ export class SessionPool implements ISessionPool {
 
     /**
      * Returns an object representing the internal state of the `SessionPool` instance.
-     * Note that the object's fields can change in future releases.
+     * @internal
      */
-    async getState() {
+    async getState(): Promise<SessionPoolPersistedState> {
         await this.ensureInitialized();
         return this.#buildPersistedState(this.#state.currentValue.sessions);
     }
@@ -578,11 +584,4 @@ export class SessionPool implements ISessionPool {
             sessions: sessions.map((session) => session.getState()),
         };
     }
-}
-
-/** The shape of the persisted {@apilink SessionPool} record, as returned by {@apilink SessionPool.getState}. */
-export interface SessionPoolPersistedState {
-    usableSessionsCount: number;
-    retiredSessionsCount: number;
-    sessions: SessionState[];
 }
