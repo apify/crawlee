@@ -74,11 +74,14 @@ export class AdaptivePlaywrightCrawler<ContextExtension = Dictionary<never>, Ext
     constructor(options?: AdaptivePlaywrightCrawlerOptions<ContextExtension, ExtendedContext, Routes, StatisticStateExtension>);
     // (undocumented)
     protected buildContextPipeline(): ContextPipeline_2<CrawlingContext_2, AdaptivePlaywrightCrawlerContext>;
+    drainRenderingDetections(input?: {
+        timeoutMillis?: number;
+    }): Promise<void>;
+    get inFlightRenderingTypeDetectionCount(): number;
     // (undocumented)
     protected init(): Promise<void>;
     // (undocumented)
     protected runRequestHandler(crawlingContext: CrawlingContext_2): Promise<void>;
-    // (undocumented)
     teardown(): Promise<void>;
 }
 
@@ -253,11 +256,11 @@ function injectJQuery(page: Page, options?: {
 
 // @public
 export interface IRenderingTypePredictor {
-    predict(request: Request_2): {
+    predict(request: Request_2): Awaitable<{
         renderingType: RenderingType;
         detectionProbabilityRecommendation: number;
-    };
-    storeResult(requests: Request_2 | Request_2[], renderingType: RenderingType): void;
+    }>;
+    storeResult(requests: Request_2 | Request_2[], renderingType: RenderingType): Awaitable<void>;
 }
 
 // @public

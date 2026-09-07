@@ -6,6 +6,7 @@ import type {
     RouteSchemas,
     RoutesFromSchemas,
 } from '@crawlee/browser';
+import { setTimeout as delay } from 'node:timers/promises';
 import { isDeepStrictEqual } from 'node:util';
 
 import type { BasicCrawlerOptions } from '@crawlee/basic';
@@ -322,6 +323,16 @@ export class AdaptivePlaywrightCrawler<
      */
     readonly #attemptWritePolicy: Partial<StorageWritePolicy>;
 
+    /**
+     * In-flight rendering type detections, plus the pending results of an asynchronous `storeResult`.
+     */
+    readonly #activeDetections = new Set<Promise<unknown>>();
+
+    /**
+     * Set once `teardown()` starts, so that requests still in the pool stop opening new detections.
+     */
+    #shutDown = false;
+
     #teardownHooks: (() => Promise<unknown>)[] = [];
 
     constructor(
@@ -482,6 +493,8 @@ export class AdaptivePlaywrightCrawler<
     }
 
     protected override async init(): Promise<void> {
+        // A crawler can be run again after a teardown.
+        this.#shutDown = false;
         // Only the predictor we built ourselves is ours to initialize - an injected one is borrowed, so its
         // lifecycle (including restoring persisted state) stays with whoever created it.
         await this.#renderingTypePredictor.ifOwned((predictor) => predictor.initialize());
@@ -656,8 +669,9 @@ export class AdaptivePlaywrightCrawler<
     }
 
     protected override async runRequestHandler(crawlingContext: CrawlingContext): Promise<void> {
-        const renderingTypePrediction = this.#renderingTypePredictor.value.predict(crawlingContext.request);
-        const shouldDetectRenderingType = Math.random() < renderingTypePrediction.detectionProbabilityRecommendation;
+        const renderingTypePrediction = await this.#renderingTypePredictor.value.predict(crawlingContext.request);
+        const shouldDetectRenderingType =
+            !this.#shutDown && Math.random() < renderingTypePrediction.detectionProbabilityRecommendation;
 
         if (!shouldDetectRenderingType) {
             crawlingContext.log.debug(
@@ -753,40 +767,61 @@ export class AdaptivePlaywrightCrawler<
             await browserRun.result.commit();
 
             if (shouldDetectRenderingType) {
-                crawlingContext.log.debug(`Detecting rendering type for ${crawlingContext.request.url}`);
-                // The detection attempt's transaction is never committed - its writes exist only for the
-                // result comparison.
-                const plainHTTPRun = await this.crawlOne(
-                    'static',
-                    crawlingContext,
-                    stateTracker.getStateCopy.bind(stateTracker),
-                    transactions,
-                );
+                const detectionPromise = (async () => {
+                    crawlingContext.log.debug(`Detecting rendering type for ${crawlingContext.request.url}`);
+                    // The detection attempt's transaction is never committed - its writes exist only for the
+                    // result comparison.
+                    const plainHTTPRun = await this.crawlOne(
+                        'static',
+                        crawlingContext,
+                        stateTracker.getStateCopy.bind(stateTracker),
+                        transactions,
+                    );
 
-                const detectionResult: RenderingType | undefined = (() => {
-                    if (!plainHTTPRun.ok) {
-                        return 'clientOnly';
+                    const detectionResult: RenderingType | undefined = (() => {
+                        if (!plainHTTPRun.ok) {
+                            return 'clientOnly';
+                        }
+
+                        const comparisonResult = this.#resultComparator(plainHTTPRun.result, browserRun.result);
+                        if (comparisonResult === true || comparisonResult === 'equal') {
+                            return 'static';
+                        }
+
+                        if (comparisonResult === false || comparisonResult === 'different') {
+                            return 'clientOnly';
+                        }
+
+                        return undefined;
+                    })();
+
+                    crawlingContext.log.debug(
+                        `Detected rendering type ${detectionResult} for ${crawlingContext.request.url}`,
+                    );
+
+                    if (detectionResult !== undefined) {
+                        // Deliberately not awaited: a predictor that persists asynchronously gets to keep
+                        // batching its writes, and the drain below catches whatever is still pending.
+                        const stored = this.#renderingTypePredictor.value.storeResult(
+                            crawlingContext.request,
+                            detectionResult,
+                        );
+
+                        if (stored !== undefined) {
+                            // Nothing downstream awaits this, so a failed write would otherwise be silent.
+                            void this.#trackDetection(
+                                Promise.resolve(stored).catch((error) =>
+                                    this.log.exception(
+                                        error as Error,
+                                        `Failed to store the rendering type detection result for ${crawlingContext.request.url}`,
+                                    ),
+                                ),
+                            );
+                        }
                     }
-
-                    const comparisonResult = this.#resultComparator(plainHTTPRun.result, browserRun.result);
-                    if (comparisonResult === true || comparisonResult === 'equal') {
-                        return 'static';
-                    }
-
-                    if (comparisonResult === false || comparisonResult === 'different') {
-                        return 'clientOnly';
-                    }
-
-                    return undefined;
                 })();
 
-                crawlingContext.log.debug(
-                    `Detected rendering type ${detectionResult} for ${crawlingContext.request.url}`,
-                );
-
-                if (detectionResult !== undefined) {
-                    this.#renderingTypePredictor.value.storeResult(crawlingContext.request, detectionResult);
-                }
+                await this.#trackDetection(detectionPromise);
             }
         } finally {
             // A still-open transaction here belongs to a discarded attempt - roll it back, then release.
@@ -839,7 +874,76 @@ export class AdaptivePlaywrightCrawler<
         });
     }
 
+    #trackDetection<T>(promise: Promise<T>): Promise<T> {
+        this.#activeDetections.add(promise);
+        // Not `finally()`: the promise it derives would reject on its own and go unhandled. A rejection here
+        // belongs to whoever awaits the original, or to `allSettled` in the drain.
+        void promise.catch(() => {}).then(() => this.#activeDetections.delete(promise));
+        return promise;
+    }
+
+    /**
+     * Number of rendering type detections that have not settled yet, including results the predictor is
+     * still persisting.
+     */
+    get inFlightRenderingTypeDetectionCount(): number {
+        return this.#activeDetections.size;
+    }
+
+    /**
+     * Waits for in-flight rendering type detections to settle, bounded by `timeoutMillis` (defaults to the
+     * internal timeout).
+     */
+    async drainRenderingDetections({ timeoutMillis }: { timeoutMillis?: number } = {}): Promise<void> {
+        if (this.#activeDetections.size === 0) {
+            return;
+        }
+
+        const drained = (async () => {
+            while (this.#activeDetections.size > 0) {
+                await Promise.allSettled(Array.from(this.#activeDetections));
+            }
+        })();
+
+        const millis = timeoutMillis ?? this.internalTimeoutMillis;
+
+        // A caller opting out of the bound would otherwise get an immediate spurious timeout - `setTimeout`
+        // clamps a non-finite delay to 1ms.
+        if (!Number.isFinite(millis)) {
+            await drained;
+            return;
+        }
+
+        const abortTimer = new AbortController();
+
+        try {
+            const outcome = await Promise.race([
+                drained.then(() => 'drained' as const),
+                delay(millis, 'timedOut' as const, { signal: abortTimer.signal }).catch(() => 'aborted' as const),
+            ]);
+
+            if (outcome === 'timedOut') {
+                this.log.warning(
+                    `Timed out after ${millis / 1e3} seconds waiting for ${this.#activeDetections.size} rendering type detection(s) to settle - their results may be lost.`,
+                );
+            }
+        } finally {
+            abortTimer.abort();
+        }
+    }
+
+    /**
+     * Stops the crawler immediately, but not before rendering type detections already under way (and results
+     * the predictor is still persisting) have settled - see
+     * {@apilink AdaptivePlaywrightCrawler.drainRenderingDetections|`drainRenderingDetections()`}. Requests
+     * that are still running are not waited for, unlike {@apilink BasicCrawler.stop|`stop()`}.
+     */
     override async teardown() {
+        // Called from outside `run()` - under `keepAlive`, say - the pool keeps dispatching until
+        // `super.teardown()` aborts it, and a request starting during the drain would open a detection the
+        // drain has already passed. Closing that first makes the drain a fence.
+        this.#shutDown = true;
+        await this.drainRenderingDetections();
         await super.teardown();
         // Mirrors the owned-only `initialize()` in `init()` - without this, the predictor we built keeps its
         // PERSIST_STATE listener registered after the crawl and never gets a final write.
