@@ -82,7 +82,6 @@ export class AdaptivePlaywrightCrawler<ContextExtension = Dictionary<never>, Ext
     protected init(): Promise<void>;
     // (undocumented)
     protected runRequestHandler(crawlingContext: CrawlingContext_2): Promise<void>;
-    // (undocumented)
     teardown(): Promise<void>;
 }
 

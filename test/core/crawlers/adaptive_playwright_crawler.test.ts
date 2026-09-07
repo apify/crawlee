@@ -1256,5 +1256,64 @@ describe('AdaptivePlaywrightCrawler', () => {
                 expect.stringContaining('Failed to store the rendering type detection result'),
             );
         });
+
+        // Under `keepAlive` the crawl is ended by an external `teardown()`, with the pool still dispatching.
+        test('teardown stops requests that start during the drain from opening new detections', async () => {
+            const firstUrl = `http://${HOSTNAME}:${port}/static?q=first`;
+            const secondUrl = `http://${HOSTNAME}:${port}/static?q=second`;
+
+            let releaseDetection!: () => void;
+            const detectionReleased = new Promise<void>((resolve) => {
+                releaseDetection = resolve;
+            });
+            let announceDetection!: () => void;
+            const detectionStarted = new Promise<void>((resolve) => {
+                announceDetection = resolve;
+            });
+
+            // Keeps the drain pending for as long as the test needs, so the pool is guaranteed to reach the
+            // second request while `teardown()` is still inside it.
+            let releaseStore!: () => void;
+            const storeFinished = new Promise<void>((resolve) => {
+                releaseStore = resolve;
+            });
+            const storeResult = vi.fn(() => storeFinished);
+
+            const handled: string[] = [];
+            const crawler = new AdaptivePlaywrightCrawler({
+                keepAlive: true,
+                maxConcurrency: 1,
+                maxRequestRetries: 0,
+                requestList: await RequestList.open({ sources: [firstUrl, secondUrl] }),
+                renderingTypePredictor: {
+                    predict: () => ({ detectionProbabilityRecommendation: 1, renderingType: 'clientOnly' }),
+                    storeResult,
+                },
+                requestHandler: async ({ request }) => {
+                    handled.push(request.url);
+
+                    // The second run of the first request is its detection attempt.
+                    if (request.url === firstUrl && handled.filter((url) => url === firstUrl).length === 2) {
+                        announceDetection();
+                        await detectionReleased;
+                    }
+                },
+            });
+
+            const runPromise = crawler.run();
+            await detectionStarted;
+
+            const teardownPromise = crawler.teardown();
+            releaseDetection();
+
+            await vi.waitFor(() => expect(handled).toContain(secondUrl));
+            expect(storeResult).toHaveBeenCalledOnce();
+
+            releaseStore();
+            await teardownPromise;
+            await runPromise;
+
+            expect(storeResult).toHaveBeenCalledOnce();
+        });
     });
 });

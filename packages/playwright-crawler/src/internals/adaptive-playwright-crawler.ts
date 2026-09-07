@@ -328,6 +328,11 @@ export class AdaptivePlaywrightCrawler<
      */
     readonly #activeDetections = new Set<Promise<unknown>>();
 
+    /**
+     * Set once `teardown()` starts, so that requests still in the pool stop opening new detections.
+     */
+    #shutDown = false;
+
     #teardownHooks: (() => Promise<unknown>)[] = [];
 
     constructor(
@@ -488,6 +493,8 @@ export class AdaptivePlaywrightCrawler<
     }
 
     protected override async init(): Promise<void> {
+        // A crawler can be run again after a teardown.
+        this.#shutDown = false;
         // Only the predictor we built ourselves is ours to initialize - an injected one is borrowed, so its
         // lifecycle (including restoring persisted state) stays with whoever created it.
         await this.#renderingTypePredictor.ifOwned((predictor) => predictor.initialize());
@@ -663,7 +670,8 @@ export class AdaptivePlaywrightCrawler<
 
     protected override async runRequestHandler(crawlingContext: CrawlingContext): Promise<void> {
         const renderingTypePrediction = await this.#renderingTypePredictor.value.predict(crawlingContext.request);
-        const shouldDetectRenderingType = Math.random() < renderingTypePrediction.detectionProbabilityRecommendation;
+        const shouldDetectRenderingType =
+            !this.#shutDown && Math.random() < renderingTypePrediction.detectionProbabilityRecommendation;
 
         if (!shouldDetectRenderingType) {
             crawlingContext.log.debug(
@@ -924,7 +932,17 @@ export class AdaptivePlaywrightCrawler<
         }
     }
 
+    /**
+     * Stops the crawler immediately, but not before rendering type detections already under way (and results
+     * the predictor is still persisting) have settled - see
+     * {@apilink AdaptivePlaywrightCrawler.drainRenderingDetections|`drainRenderingDetections()`}. Requests
+     * that are still running are not waited for, unlike {@apilink BasicCrawler.stop|`stop()`}.
+     */
     override async teardown() {
+        // Called from outside `run()` - under `keepAlive`, say - the pool keeps dispatching until
+        // `super.teardown()` aborts it, and a request starting during the drain would open a detection the
+        // drain has already passed. Closing that first makes the drain a fence.
+        this.#shutDown = true;
         await this.drainRenderingDetections();
         await super.teardown();
         // Mirrors the owned-only `initialize()` in `init()` - without this, the predictor we built keeps its

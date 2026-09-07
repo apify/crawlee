@@ -1237,6 +1237,8 @@ If you don't pass a predictor, nothing changes: the crawler builds one from `ren
 
 **Asynchronous predictors** — `predict()` is awaited before the crawler routes the request, so prefer loading whatever it needs up front over per-request I/O. `storeResult()` is *not* awaited per detection: the crawler tracks the promise it returns and drains everything still pending in `teardown()`, so a predictor that batches its writes can rely on them landing before the crawl ends. That wait is bounded by the internal timeout (`CRAWLEE_INTERNAL_TIMEOUT`), `crawler.drainRenderingDetections()` performs it on demand, and `crawler.inFlightRenderingTypeDetectionCount` reports what is still outstanding.
 
+`teardown()` stops new detections from starting before it drains, so ending a `keepAlive` crawl by tearing it down from outside `run()` cannot leave a detection unpersisted either.
+
 ### Remove `experimentalContainers` option
 
 This experimental option relied on an outdated manifest version for browser extensions, it is not possible to achieve this with the currently supported versions.
