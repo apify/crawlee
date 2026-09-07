@@ -38,7 +38,7 @@ Each image is tagged with up to 2 version tags, depending on the type of the ima
 
 ### Node.js versioning
 
-Our images are built with multiple Node.js versions to ensure backwards compatibility. Currently, Node.js **versions 20, 22, and 24 are supported** (legacy versions still exist, see DockerHub). To select the preferred version, use the appropriate number as the image tag.
+Our images are built with multiple Node.js versions to ensure backwards compatibility. Currently, Node.js **versions 22, 24, and 26 are supported** (legacy versions still exist, see DockerHub). To select the preferred version, use the appropriate number as the image tag.
 
 ```dockerfile
 # Use Node.js 24
@@ -66,6 +66,51 @@ FROM apify/actor-node:24-beta
 # With library version.
 FROM apify/actor-node-playwright-chrome:24-1.60.0-beta
 ```
+
+### Slim variants
+
+Every Node.js image is also published as a slim variant, with a `-slim` suffix appended to the tag (e.g. `24-slim`, `24-1.60.0-slim`, `24-beta-slim`). Slim images do not preinstall `apify`, `crawlee` or `typescript`. They only ship the browser automation library the image is built around (for example `puppeteer`, `playwright`, or `camoufox-js` with `impit`), and `apify/actor-node:24-slim` ships no npm packages at all. This makes them smaller and faster to pull, and your project's `package.json` is the single source of truth for dependency versions.
+
+```dockerfile
+# No preinstalled packages, bring your own dependencies.
+FROM apify/actor-node:24-slim
+```
+
+```dockerfile
+# Only Playwright (Chromium) is preinstalled, pinned to match the bundled browser.
+FROM apify/actor-node-playwright-chrome:24-1.60.0-slim
+```
+
+Since nothing but the automation library is preinstalled, make sure `crawlee` and any other runtime dependencies are listed in your `package.json` and installed in your `Dockerfile`. The [version matching](#recommended-approach-pin-both-versions) rules for the automation library still apply.
+
+## Package managers
+
+All Node.js images ship with npm, and [Corepack](https://github.com/nodejs/corepack) enabled with the latest pnpm preinstalled, so you can use npm, yarn or pnpm out of the box. Add a [`packageManager`](https://nodejs.org/api/packages.html#packagemanager) field to your `package.json` and Corepack will provision the exact version you pin.
+
+```json
+{
+    "packageManager": "pnpm@10.24.0"
+}
+```
+
+The images preconfigure the package managers so that:
+
+- pnpm and yarn install a flat, npm-style `node_modules` (`node-linker=hoisted` for pnpm, `nodeLinker: node-modules` for yarn) instead of a symlinked store or Plug'n'Play, so dependencies resolve without extra loaders.
+- All caches (`NPM_CONFIG_CACHE`, `YARN_CACHE_FOLDER`, pnpm store and cache, `COREPACK_HOME`) live under `/pkg-cache` instead of `$HOME`. The directory only holds throwaway data, so you can `rm -rf /pkg-cache/*` at the end of your `Dockerfile` to reclaim space without touching installed dependencies.
+
+:::note Overriding the linker
+
+These settings are applied through environment variables (`PNPM_CONFIG_NODE_LINKER`, `YARN_NODE_LINKER`), and both pnpm and yarn give environment variables precedence over `.npmrc` / `.yarnrc.yml`. To use a different linker, override the variable in your `Dockerfile` instead of the config file:
+
+```dockerfile
+# https://pnpm.io/settings#nodelinker
+ENV PNPM_CONFIG_NODE_LINKER=isolated
+# https://yarnpkg.com/configuration/yarnrc#nodeLinker
+ENV YARN_NODE_LINKER=pnp
+```
+
+:::
+
 
 ## Best practices
 
@@ -113,6 +158,16 @@ FROM apify/actor-node-playwright-chrome:24
 
 This makes sure the pre-installed version of Puppeteer or Playwright is not re-installed on build. However, this approach is less predictable because you'll get whatever version was latest when the Docker image was built.
 
+### Prefer slim images
+
+Use the [`-slim` variant](#slim-variants) unless you have a reason not to. Your `package.json` already lists the dependencies your crawler needs, so the preinstalled `apify`, `crawlee` and `typescript` in the full image are redundant and only make it larger and slower to pull.
+
+```dockerfile
+FROM apify/actor-node-playwright-chrome:24-1.60.0-slim
+```
+
+Reach for the full image when you want to run something quickly without maintaining a `package.json`, or when you rely on the exact preinstalled versions of `apify` and `crawlee`.
+
 ## Finding available tags
 
 To see all available tags for each image, you can visit Docker Hub directly:
@@ -132,7 +187,7 @@ curl -s "https://registry.hub.docker.com/v2/repositories/apify/actor-node-playwr
 
 ### Warning about image size
 
-Browsers are huge. If you don't need them all in your image, it's better to use a smaller image with only the one browser you need.
+Browsers are huge. If you don't need them all in your image, it's better to use a smaller image with only the one browser you need. If you don't need the preinstalled `apify` and `crawlee` packages either, use the [`-slim` variant](#slim-variants).
 
 You should also be careful when installing new dependencies. Nothing prevents you from installing Playwright into the`actor-node-puppeteer-chrome` image, but the resulting image will be about 3 times larger and extremely slow to download and build.
 
