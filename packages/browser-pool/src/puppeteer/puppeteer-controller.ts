@@ -88,7 +88,7 @@ export class PuppeteerController extends BrowserController<
                 */
 
                 page.once('close', async () => {
-                    this.activePages--;
+                    this.registerPageClosed(page);
 
                     try {
                         await context.close();
@@ -111,7 +111,7 @@ export class PuppeteerController extends BrowserController<
         tryCancel();
 
         page.once('close', () => {
-            this.activePages--;
+            this.registerPageClosed(page);
         });
 
         return page;

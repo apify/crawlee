@@ -78,7 +78,7 @@ export class PlaywrightController extends BrowserController<
             const page = await this.browser.newPage(contextOptions);
 
             page.once('close', async () => {
-                this.activePages--;
+                this.registerPageClosed(page);
 
                 await close();
             });
