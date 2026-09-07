@@ -1173,8 +1173,8 @@ importers:
         specifier: ^1.2.0
         version: 1.2.0
       '@apify/validations':
-        specifier: ^1.0.1
-        version: 1.0.1
+        specifier: ^1.1.0
+        version: 1.1.0
       '@crawlee/http-client':
         specifier: workspace:*
         version: link:../http-client
@@ -1613,8 +1613,8 @@ packages:
     resolution: {integrity: sha512-Py701iCY26eSLvdG45T9c9uJS2+xqI4j4rHwGqG84RUOmPD8T6Zua5MflSoWwZ+GM/+ABIJtsza/gqVvyJeESg==}
     engines: {node: '>=22'}
 
-  '@apify/validations@1.0.1':
-    resolution: {integrity: sha512-ZOJD9XQtYb5CwXR3MG6PCAibzPzdBQnoPzR40ejzOzKG6tV8Z0DBEeQlcADX6DqoNFDf+jDoQKHCyy9whpB31Q==}
+  '@apify/validations@1.1.0':
+    resolution: {integrity: sha512-1rXw3YOl1rGYRJurac9zLx0NrlrRktewxjVsTL3HxcaZTSJb4e2VTi1LA8QxonCFp1O323sCkNu6CbBisRfdeg==}
     engines: {node: '>=22'}
 
   '@asamuzakjp/css-color@3.2.0':
@@ -13531,6 +13531,9 @@ packages:
   zod@4.4.3:
     resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
 
+  zod@4.5.4:
+    resolution: {integrity: sha512-sC95tT5iHHH9gtpj6A81kh+NEaRAUFN+qlUPDUbRfOMvNf5QCBqsb3WgvnpVtK5Y+4UfA6KqufotuTvMGiTlsA==}
+
   zwitch@2.0.4:
     resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}
 
@@ -13899,9 +13902,9 @@ snapshots:
       '@apify/consts': 3.0.1
       '@apify/log': 3.0.1
 
-  '@apify/validations@1.0.1':
+  '@apify/validations@1.1.0':
     dependencies:
-      zod: 4.4.3
+      zod: 4.5.4
 
   '@asamuzakjp/css-color@3.2.0':
     dependencies:
@@ -28776,6 +28779,8 @@ snapshots:
   zod@3.25.76: {}
 
   zod@4.4.3: {}
+
+  zod@4.5.4: {}
 
   zwitch@2.0.4: {}
 
