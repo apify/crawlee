@@ -6,7 +6,7 @@
 
 import { downloadListOfUrls } from '@crawlee/utils';
 import { extractMicrodata } from '@crawlee/utils';
-import { Log } from '@apify/log';
+import { Log } from '@crawlee/core';
 import { parseOpenGraph } from '@crawlee/utils';
 import { playwrightUtils } from '@crawlee/playwright';
 import { puppeteerUtils } from '@crawlee/puppeteer';
