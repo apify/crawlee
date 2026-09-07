@@ -2360,7 +2360,7 @@ describe('BasicCrawler', () => {
 
             await crawler.run();
 
-            expect(stats.state.requestsFinished).toBe(1);
+            expect(stats.state.requestsSucceeded).toBe(1);
         });
 
         it('drives a foreign IStatistics implementation through the interface alone', async () => {
@@ -2369,15 +2369,15 @@ describe('BasicCrawler', () => {
             const customStats: IStatistics = {
                 errorTracker: new ErrorTracker(),
                 errorTrackerRetry: new ErrorTracker(),
-                state: { requestsFinished: 0 } as IStatistics['state'],
+                state: { requestsSucceeded: 0 } as IStatistics['state'],
                 requestRetryHistogram: [],
-                startJob: () => calls.push('startJob'),
-                finishJob: () => {
-                    customStats.state.requestsFinished += 1;
-                    calls.push('finishJob');
+                recordRequestProcessingStart: () => calls.push('recordRequestProcessingStart'),
+                recordRequestProcessingSuccess: () => {
+                    customStats.state.requestsSucceeded += 1;
+                    calls.push('recordRequestProcessingSuccess');
                 },
-                failJob: () => {},
-                discardJob: () => {},
+                recordRequestProcessingFailure: () => {},
+                discardRequestProcessingRecord: () => {},
                 registerStatusCode: () => {},
                 calculate: () => ({}) as CalculatedStatistics,
                 startCapturing: async () => void calls.push('startCapturing'),
@@ -2390,8 +2390,13 @@ describe('BasicCrawler', () => {
 
             await crawler.run([{ url: 'https://example.com' }]);
 
-            expect(calls).toEqual(['startCapturing', 'startJob', 'finishJob', 'stopCapturing']);
-            expect(customStats.state.requestsFinished).toBe(1);
+            expect(calls).toEqual([
+                'startCapturing',
+                'recordRequestProcessingStart',
+                'recordRequestProcessingSuccess',
+                'stopCapturing',
+            ]);
+            expect(customStats.state.requestsSucceeded).toBe(1);
         });
 
         it('exposes the custom state fields of a supplied instance on crawler.statistics', async () => {
@@ -2428,7 +2433,7 @@ describe('BasicCrawler', () => {
 
             // Two runs, one request each - the injected instance keeps accumulating instead of being wiped.
             expect(resetSpy).not.toHaveBeenCalled();
-            expect(stats.state.requestsFinished).toBe(2);
+            expect(stats.state.requestsSucceeded).toBe(2);
 
             const owningCrawler = new BasicCrawler({
                 requestHandler: async () => {},
@@ -2442,7 +2447,7 @@ describe('BasicCrawler', () => {
 
             // A crawler-owned default is wiped at the start of each run.
             expect(ownedResetSpy).toHaveBeenCalled();
-            expect(owningCrawler.statistics.state.requestsFinished).toBe(1);
+            expect(owningCrawler.statistics.state.requestsSucceeded).toBe(1);
         });
     });
 
@@ -2620,7 +2625,7 @@ describe('BasicCrawler', () => {
                 requestHandler: async () => {},
             });
 
-            crawler.statistics.state.requestsFinished = 2;
+            crawler.statistics.state.requestsSucceeded = 2;
 
             // Try to add 6 requests - should only add 3 due to limit
             const requestsToAdd = [
@@ -2653,7 +2658,7 @@ describe('BasicCrawler', () => {
                 requestHandler: async () => {},
             });
 
-            crawler.statistics.state.requestsFinished = 1;
+            crawler.statistics.state.requestsSucceeded = 1;
 
             // First call - should add 2 requests (2 more slots to go)
             await crawler.addRequests(['http://example.com/1', 'http://example.com/2']);
@@ -2702,7 +2707,7 @@ describe('BasicCrawler', () => {
                 requestHandler: async () => {},
             });
 
-            crawler.statistics.state.requestsFinished = 0;
+            crawler.statistics.state.requestsSucceeded = 0;
 
             // Mock robots.txt checking to disallow some URLs
             vitest.spyOn(crawler as any, 'isAllowedBasedOnRobotsTxtFile').mockImplementation(async (url) => {
@@ -3131,7 +3136,7 @@ describe('BasicCrawler', () => {
                         return;
                     }
 
-                    crawler.statistics.state.requestsFinished = 2;
+                    crawler.statistics.state.requestsSucceeded = 2;
 
                     await context.addRequests(requestsToAdd, { label: 'not-undefined' });
                 },
@@ -3384,7 +3389,7 @@ describe('BasicCrawler', () => {
                         return;
                     }
 
-                    crawler.statistics.state.requestsFinished = 2;
+                    crawler.statistics.state.requestsSucceeded = 2;
 
                     // e.g. `enqueueLinks({ urls, limit: config.limit })` where `config.limit` is not set
                     await context.addRequests(requestsToAdd, { limit: undefined, label: 'child' });
@@ -3423,7 +3428,7 @@ describe('BasicCrawler', () => {
                         return;
                     }
 
-                    crawler.statistics.state.requestsFinished = 2;
+                    crawler.statistics.state.requestsSucceeded = 2;
 
                     await context.addRequests(requestsToAdd, { limit: 4, label: 'child' });
                 },
@@ -3865,8 +3870,8 @@ describe('BasicCrawler', () => {
             await crawlerA.run([{ url: `http://${HOSTNAME}:${port}` }]);
             await crawlerB.run([{ url: `http://${HOSTNAME}:${port}` }]);
 
-            expect(crawlerA.statistics.state.requestsFinished).toBe(1);
-            expect(crawlerB.statistics.state.requestsFinished).toBe(1);
+            expect(crawlerA.statistics.state.requestsSucceeded).toBe(1);
+            expect(crawlerB.statistics.state.requestsSucceeded).toBe(1);
         });
     });
 

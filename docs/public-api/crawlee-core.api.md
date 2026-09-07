@@ -138,9 +138,9 @@ interface BrowserPage {
 export interface CalculatedStatistics {
     crawlerRuntimeMillis: number;
     requestAvgFailedDurationMillis: number;
-    requestAvgFinishedDurationMillis: number;
+    requestAvgSucceededDurationMillis: number;
     requestsFailedPerMinute: number;
-    requestsFinishedPerMinute: number;
+    requestsSucceededPerMinute: number;
     requestsTotal: number;
     requestTotalDurationMillis: number;
 }
@@ -681,15 +681,15 @@ export interface FinalStatistics {
     // (undocumented)
     requestAvgFailedDurationMillis: number;
     // (undocumented)
-    requestAvgFinishedDurationMillis: number;
+    requestAvgSucceededDurationMillis: number;
     // (undocumented)
     requestsFailed: number;
     // (undocumented)
     requestsFailedPerMinute: number;
     // (undocumented)
-    requestsFinished: number;
+    requestsSucceeded: number;
     // (undocumented)
-    requestsFinishedPerMinute: number;
+    requestsSucceededPerMinute: number;
     // (undocumented)
     requestsTotal: number;
     // (undocumented)
@@ -766,16 +766,16 @@ export interface IRequestManager extends IRequestLoader {
 // @public
 export interface IStatistics<StateExtension extends object = {}> {
     calculate(): CalculatedStatistics;
-    discardJob(id: number | string): void;
+    discardRequestProcessingRecord(id: number | string): void;
     readonly errorTracker: ErrorTracker;
     readonly errorTrackerRetry: ErrorTracker;
-    failJob(id: number | string, retryCount: number): void;
-    finishJob(id: number | string, retryCount: number): void;
     persistState?(): Promise<void>;
+    recordRequestProcessingFailure(id: number | string, retryCount: number): void;
+    recordRequestProcessingStart(id: number | string): void;
+    recordRequestProcessingSuccess(id: number | string, retryCount: number): void;
     registerStatusCode(code: number): void;
     readonly requestRetryHistogram: number[];
     startCapturing(): Promise<void>;
-    startJob(id: number | string): void;
     readonly state: StatisticState & StateExtension;
     stopCapturing(): Promise<void>;
 }
@@ -1851,7 +1851,7 @@ export class StateValidationError extends Error {
 }
 
 // @public
-export interface StatisticPersistedState extends Omit<StatisticState, 'statsPersistedAt' | 'crawlerStartedAt' | 'crawlerFinishedAt' | 'requestMinDurationMillis' | 'requestsFailedPerMinute' | 'requestsFinishedPerMinute' | 'requestRetryHistogram' | 'instanceStart'> {
+export interface StatisticPersistedState extends Omit<StatisticState, 'statsPersistedAt' | 'crawlerStartedAt' | 'crawlerFinishedAt' | 'requestMinDurationMillis' | 'requestsFailedPerMinute' | 'requestsSucceeded' | 'requestsSucceededPerMinute' | 'requestTotalSucceededDurationMillis' | 'requestRetryHistogram' | 'instanceStart'> {
     // (undocumented)
     crawlerFinishedAt: string | null;
     crawlerLastStartTimestamp: number;
@@ -1866,11 +1866,15 @@ export interface StatisticPersistedState extends Omit<StatisticState, 'statsPers
     // (undocumented)
     requestsFailedPerMinute: number | null;
     // (undocumented)
+    requestsFinished: number;
+    // (undocumented)
     requestsFinishedPerMinute: number | null;
     // (undocumented)
     requestsTotal: number;
     // (undocumented)
     requestTotalDurationMillis: number;
+    // (undocumented)
+    requestTotalFinishedDurationMillis: number;
     // (undocumented)
     statsId: string;
     // (undocumented)
@@ -1928,17 +1932,17 @@ export interface StatisticState {
     // (undocumented)
     requestsFailedPerMinute: number;
     // (undocumented)
-    requestsFinished: number;
-    // (undocumented)
-    requestsFinishedPerMinute: number;
-    // (undocumented)
     requestsRetries: number;
+    // (undocumented)
+    requestsSucceeded: number;
+    // (undocumented)
+    requestsSucceededPerMinute: number;
     // (undocumented)
     requestsWithStatusCode: Record<string, number>;
     // (undocumented)
     requestTotalFailedDurationMillis: number;
     // (undocumented)
-    requestTotalFinishedDurationMillis: number;
+    requestTotalSucceededDurationMillis: number;
     // (undocumented)
     retryErrors: Record<string, unknown>;
     // (undocumented)

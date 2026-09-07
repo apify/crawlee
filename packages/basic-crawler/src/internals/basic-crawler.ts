@@ -867,7 +867,7 @@ export class BasicCrawler<
     readonly #maxRequestsPerCrawl?: number;
 
     private get handledRequestsCount(): number {
-        return this.statistics.state.requestsFinished + this.statistics.state.requestsFailed;
+        return this.statistics.state.requestsSucceeded + this.statistics.state.requestsFailed;
     }
 
     #statusMessageLoggingInterval: number;
@@ -1241,8 +1241,9 @@ export class BasicCrawler<
 
                     // Started here, rather than in `handleRequest`, so that a failure during context pipeline
                     // initialization (e.g. a browser page timing out before the request handler ever runs) is
-                    // still accounted for by `failJob` below - which is a no-op without a matching `startJob`.
-                    this.statistics.startJob(request.id || request.uniqueKey);
+                    // still accounted for by `recordRequestProcessingFailure` below - which is a no-op without a
+                    // matching `recordRequestProcessingStart`.
+                    this.statistics.recordRequestProcessingStart(request.id || request.uniqueKey);
 
                     const crawlingContext = { request } as { request: Request } & Partial<CrawlingContext>;
                     try {
@@ -1264,7 +1265,7 @@ export class BasicCrawler<
                         // ContextPipelineInterruptedError means the request was intentionally skipped
                         // (e.g., doesn't match enqueue strategy after redirect). Just return gracefully.
                         if (error instanceof ContextPipelineInterruptedError) {
-                            this.statistics.discardJob(request.id || request.uniqueKey);
+                            this.statistics.discardRequestProcessingRecord(request.id || request.uniqueKey);
                             await this.timeoutAndRetry(
                                 async () => this.requestManager?.markRequestAsHandled(request),
                                 this.internalTimeoutMillis,
@@ -1652,7 +1653,7 @@ export class BasicCrawler<
                 message = `Experiencing problems, ${failedDelta} failed requests in the past ${this.#statusMessageLoggingInterval} seconds.`;
             } else {
                 const total = await this.requestManager?.getTotalCount();
-                message = `Crawled ${this.statistics.state.requestsFinished}${total ? `/${total}` : ''} pages, ${
+                message = `Crawled ${this.statistics.state.requestsSucceeded}${total ? `/${total}` : ''} pages, ${
                     this.statistics.state.requestsFailed
                 } failed requests, desired concurrency ${this.concurrencySystem?.desiredConcurrency ?? 0}.`;
             }
@@ -1771,7 +1772,7 @@ export class BasicCrawler<
 
                     const finalStats = this.statistics.calculate();
                     stats = {
-                        requestsFinished: this.statistics.state.requestsFinished,
+                        requestsSucceeded: this.statistics.state.requestsSucceeded,
                         requestsFailed: this.statistics.state.requestsFailed,
                         retryHistogram: this.statistics.requestRetryHistogram,
                         ...finalStats,
@@ -1781,7 +1782,7 @@ export class BasicCrawler<
                     // A crawl that did nothing while the manager holds only handled requests is a mistake whoever
                     // handled them - this run, another crawler on the same queue, or a previous process. Starting
                     // against handled requests is not: that is what resuming a crawl looks like.
-                    if (stats.requestsFinished + stats.requestsFailed === 0) {
+                    if (stats.requestsSucceeded + stats.requestsFailed === 0) {
                         // Never let the diagnostic itself break the run.
                         const alreadyHandled = (await this.requestManager?.getHandledCount().catch(() => 0)) ?? 0;
 
@@ -1824,8 +1825,8 @@ export class BasicCrawler<
 
                     periodicLogger.stop();
                     this.setStatusMessage(
-                        `Finished! Total ${this.statistics.state.requestsFinished + this.statistics.state.requestsFailed} requests: ${
-                            this.statistics.state.requestsFinished
+                        `Finished! Total ${this.statistics.state.requestsSucceeded + this.statistics.state.requestsFailed} requests: ${
+                            this.statistics.state.requestsSucceeded
                         } succeeded, ${this.statistics.state.requestsFailed} failed.`,
                         { isStatusMessageTerminal: true, level: 'INFO' },
                     );
@@ -2656,7 +2657,7 @@ export class BasicCrawler<
             );
             isRequestLocked = false; // markRequestAsHandled succeeded and unlocked the request
 
-            this.statistics.finishJob(statisticsId, request.retryCount);
+            this.statistics.recordRequestProcessingSuccess(statisticsId, request.retryCount);
 
             // reclaim session if request finishes successfully
             request.state = RequestState.DONE;
@@ -2905,7 +2906,7 @@ export class BasicCrawler<
         // or failed more than retryCount times and will not be retried anymore.
         // Mark the request as failed and do not retry.
         await source.markRequestAsHandled(request);
-        this.statistics.failJob(request.id || request.uniqueKey, request.retryCount);
+        this.statistics.recordRequestProcessingFailure(request.id || request.uniqueKey, request.retryCount);
 
         await this.handleFailedRequestHandler(crawlingContext, error); // This function prints an error message.
     }

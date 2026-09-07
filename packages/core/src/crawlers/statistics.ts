@@ -11,17 +11,15 @@ import { ErrorTracker } from './error_tracker.js';
 /**
  * @ignore
  */
-class Job {
+class RequestProcessingRecord {
     #lastRunAt: number | null = null;
-    #durationMillis?: number;
 
     run() {
         this.#lastRunAt = Date.now();
     }
 
     finish() {
-        this.#durationMillis = Date.now() - this.#lastRunAt!;
-        return this.#durationMillis;
+        return Date.now() - this.#lastRunAt!;
     }
 }
 
@@ -112,11 +110,11 @@ function buildStatisticStateCodec(statistics: {
     return z.codec(persistedStatisticState, z.custom<StatisticState>(), {
         decode: (record) => ({
             ...statistics.defaultState(),
-            requestsFinished: record.requestsFinished,
+            requestsSucceeded: record.requestsFinished,
             requestsFailed: record.requestsFailed,
             requestsRetries: record.requestsRetries,
             requestTotalFailedDurationMillis: record.requestTotalFailedDurationMillis,
-            requestTotalFinishedDurationMillis: record.requestTotalFinishedDurationMillis,
+            requestTotalSucceededDurationMillis: record.requestTotalFinishedDurationMillis,
             // Restoring the `null` as-is would make every later `duration < min` comparison fail, leaving the
             // minimum `null` for the rest of the run.
             requestMinDurationMillis: record.requestMinDurationMillis ?? Infinity,
@@ -133,20 +131,32 @@ function buildStatisticStateCodec(statistics: {
                 Date.now() - (new Date(record.statsPersistedAt).getTime() - record.crawlerLastStartTimestamp),
         }),
         encode: (state) => {
-            const { requestsWithStatusCode, errors, retryErrors, requestRetryHistogram, instanceStart, ...counters } =
-                state;
+            // The state's `requestsSucceededPerMinute` is not pulled out with its siblings - the name is bound
+            // below by `calculate()` - so it falls through into `counters`, where the schema drops it.
+            const {
+                requestsWithStatusCode,
+                errors,
+                retryErrors,
+                requestRetryHistogram,
+                instanceStart,
+                requestsSucceeded,
+                requestTotalSucceededDurationMillis,
+                ...counters
+            } = state;
             // Every rate and average `calculate()` derives is `Infinity` until the run is long enough, or until
-            // something has finished or failed, to divide by.
+            // something has succeeded or failed, to divide by.
             const {
                 requestAvgFailedDurationMillis,
-                requestAvgFinishedDurationMillis,
+                requestAvgSucceededDurationMillis,
                 requestsFailedPerMinute,
-                requestsFinishedPerMinute,
+                requestsSucceededPerMinute,
                 ...aggregates
             } = statistics.calculate();
 
             return {
                 ...counters,
+                requestsFinished: requestsSucceeded,
+                requestTotalFinishedDurationMillis: requestTotalSucceededDurationMillis,
                 requestMinDurationMillis: finiteOrNull(state.requestMinDurationMillis),
                 crawlerStartedAt: state.crawlerStartedAt ? new Date(state.crawlerStartedAt).toISOString() : null,
                 crawlerFinishedAt: state.crawlerFinishedAt ? new Date(state.crawlerFinishedAt).toISOString() : null,
@@ -158,9 +168,9 @@ function buildStatisticStateCodec(statistics: {
                 statsId: statistics.statsId,
                 ...aggregates,
                 requestAvgFailedDurationMillis: finiteOrNull(requestAvgFailedDurationMillis),
-                requestAvgFinishedDurationMillis: finiteOrNull(requestAvgFinishedDurationMillis),
+                requestAvgFinishedDurationMillis: finiteOrNull(requestAvgSucceededDurationMillis),
                 requestsFailedPerMinute: finiteOrNull(requestsFailedPerMinute),
-                requestsFinishedPerMinute: finiteOrNull(requestsFinishedPerMinute),
+                requestsFinishedPerMinute: finiteOrNull(requestsSucceededPerMinute),
                 requestsWithStatusCode,
                 errors,
                 retryErrors,
@@ -204,20 +214,20 @@ export interface IStatistics<StateExtension extends object = {}> {
     /** The live statistics state the crawler reads for status messages and the final summary. */
     readonly state: StatisticState & StateExtension;
 
-    /** Retries histogram - index `i` holds the number of requests that finished after `i` retries. */
+    /** Retries histogram - index `i` holds the number of requests that settled after `i` retries. */
     readonly requestRetryHistogram: number[];
 
-    /** Marks a request as started, so its duration can be measured on finish/fail. */
-    startJob(id: number | string): void;
+    /** Marks a request as started, so its duration can be measured on success/failure. */
+    recordRequestProcessingStart(id: number | string): void;
 
-    /** Marks a started request as finished, updating the finished counters and durations. */
-    finishJob(id: number | string, retryCount: number): void;
+    /** Marks a started request as succeeded, updating the succeeded counters and durations. */
+    recordRequestProcessingSuccess(id: number | string, retryCount: number): void;
 
     /** Marks a started request as failed, updating the failed counters and durations. */
-    failJob(id: number | string, retryCount: number): void;
+    recordRequestProcessingFailure(id: number | string, retryCount: number): void;
 
-    /** Drops a started request without counting it as finished or failed (e.g. skipped by robots.txt). */
-    discardJob(id: number | string): void;
+    /** Drops a started request without counting it as succeeded or failed (e.g. skipped by robots.txt). */
+    discardRequestProcessingRecord(id: number | string): void;
 
     /** Increments the counter for the given HTTP status code. */
     registerStatusCode(code: number): void;
@@ -243,19 +253,19 @@ export interface CalculatedStatistics {
     /** Mean duration of a failed request, in milliseconds; `Infinity` when nothing has failed. */
     requestAvgFailedDurationMillis: number;
 
-    /** Mean duration of a finished request, in milliseconds; `Infinity` when nothing has finished. */
-    requestAvgFinishedDurationMillis: number;
+    /** Mean duration of a succeeded request, in milliseconds; `Infinity` when nothing has succeeded. */
+    requestAvgSucceededDurationMillis: number;
 
-    /** Requests finished per minute over the run so far. */
-    requestsFinishedPerMinute: number;
+    /** Requests succeeded per minute over the run so far. */
+    requestsSucceededPerMinute: number;
 
     /** Requests failed per minute over the run so far. */
     requestsFailedPerMinute: number;
 
-    /** Combined duration of all finished and failed requests, in milliseconds. */
+    /** Combined duration of all succeeded and failed requests, in milliseconds. */
     requestTotalDurationMillis: number;
 
-    /** Total number of settled requests (finished plus failed). */
+    /** Total number of settled requests (succeeded plus failed). */
     requestsTotal: number;
 
     /** Wall-clock runtime since capturing started, in milliseconds. */
@@ -307,7 +317,7 @@ export class Statistics<
     readonly #stateExtensionKeys: readonly (keyof StateExtension)[];
     #logIntervalMillis: number;
     #logMessage: string;
-    #requestsInProgress = new Map<number | string, Job>();
+    #requestsInProgress = new Map<number | string, RequestProcessingRecord>();
     private readonly log: CrawleeLogger;
     #logInterval: unknown;
 
@@ -447,15 +457,15 @@ export class Statistics<
     /** The built-in half of {@apilink Statistics.defaultState}, before any custom fields are merged over it. */
     #builtInDefaultState(): StatisticState {
         return {
-            requestsFinished: 0,
+            requestsSucceeded: 0,
             requestsFailed: 0,
             requestsRetries: 0,
             requestsFailedPerMinute: 0,
-            requestsFinishedPerMinute: 0,
+            requestsSucceededPerMinute: 0,
             requestMinDurationMillis: Infinity,
             requestMaxDurationMillis: 0,
             requestTotalFailedDurationMillis: 0,
-            requestTotalFinishedDurationMillis: 0,
+            requestTotalSucceededDurationMillis: 0,
             crawlerStartedAt: null,
             crawlerFinishedAt: null,
             statsPersistedAt: null,
@@ -491,54 +501,44 @@ export class Statistics<
         this.state.requestsWithStatusCode[s]++;
     }
 
-    /**
-     * Starts a job
-     * @ignore
-     */
-    startJob(id: number | string) {
-        let job = this.#requestsInProgress.get(id);
-        if (!job) job = new Job();
-        job.run();
-        this.#requestsInProgress.set(id, job);
+    /** @ignore */
+    recordRequestProcessingStart(id: number | string) {
+        let record = this.#requestsInProgress.get(id);
+        if (!record) record = new RequestProcessingRecord();
+        record.run();
+        this.#requestsInProgress.set(id, record);
     }
 
-    /**
-     * Mark job as finished and sets the state
-     * @ignore
-     */
-    finishJob(id: number | string, retryCount: number) {
-        const job = this.#requestsInProgress.get(id);
-        if (!job) return;
-        const jobDurationMillis = job.finish();
-        this.state.requestsFinished++;
-        this.state.requestTotalFinishedDurationMillis += jobDurationMillis;
-        this.saveRetryCountForJob(retryCount);
-        if (jobDurationMillis < this.state.requestMinDurationMillis)
-            this.state.requestMinDurationMillis = jobDurationMillis;
-        if (jobDurationMillis > this.state.requestMaxDurationMillis)
-            this.state.requestMaxDurationMillis = jobDurationMillis;
+    /** @ignore */
+    recordRequestProcessingSuccess(id: number | string, retryCount: number) {
+        const record = this.#requestsInProgress.get(id);
+        if (!record) return;
+        const durationMillis = record.finish();
+        this.state.requestsSucceeded++;
+        this.state.requestTotalSucceededDurationMillis += durationMillis;
+        this.saveRetryCountForRequest(retryCount);
+        if (durationMillis < this.state.requestMinDurationMillis) this.state.requestMinDurationMillis = durationMillis;
+        if (durationMillis > this.state.requestMaxDurationMillis) this.state.requestMaxDurationMillis = durationMillis;
         this.#requestsInProgress.delete(id);
     }
 
-    /**
-     * Mark job as failed and sets the state
-     * @ignore
-     */
-    failJob(id: number | string, retryCount: number) {
-        const job = this.#requestsInProgress.get(id);
-        if (!job) return;
-        this.state.requestTotalFailedDurationMillis += job.finish();
+    /** @ignore */
+    recordRequestProcessingFailure(id: number | string, retryCount: number) {
+        const record = this.#requestsInProgress.get(id);
+        if (!record) return;
+        this.state.requestTotalFailedDurationMillis += record.finish();
         this.state.requestsFailed++;
-        this.saveRetryCountForJob(retryCount);
+        this.saveRetryCountForRequest(retryCount);
         this.#requestsInProgress.delete(id);
     }
 
     /**
-     * Discards a started job without affecting the finished/failed counters, e.g. when a request
-     * turns out to be skipped (robots.txt, enqueue strategy) after `startJob` was already called for it.
+     * Discards a started request without affecting the succeeded/failed counters, e.g. when a request
+     * turns out to be skipped (robots.txt, enqueue strategy) after `recordRequestProcessingStart` was already
+     * called for it.
      * @ignore
      */
-    discardJob(id: number | string) {
+    discardRequestProcessingRecord(id: number | string) {
         this.#requestsInProgress.delete(id);
     }
 
@@ -548,21 +548,21 @@ export class Statistics<
     calculate(): CalculatedStatistics {
         const {
             requestsFailed,
-            requestsFinished,
+            requestsSucceeded,
             requestTotalFailedDurationMillis,
-            requestTotalFinishedDurationMillis,
+            requestTotalSucceededDurationMillis,
         } = this.state;
         const totalMillis = Date.now() - this.state.instanceStart;
         const totalMinutes = totalMillis / 1000 / 60;
 
         return {
             requestAvgFailedDurationMillis: Math.round(requestTotalFailedDurationMillis / requestsFailed) || Infinity,
-            requestAvgFinishedDurationMillis:
-                Math.round(requestTotalFinishedDurationMillis / requestsFinished) || Infinity,
-            requestsFinishedPerMinute: Math.round(requestsFinished / totalMinutes) || 0,
+            requestAvgSucceededDurationMillis:
+                Math.round(requestTotalSucceededDurationMillis / requestsSucceeded) || Infinity,
+            requestsSucceededPerMinute: Math.round(requestsSucceeded / totalMinutes) || 0,
             requestsFailedPerMinute: Math.floor(requestsFailed / totalMinutes) || 0,
-            requestTotalDurationMillis: requestTotalFinishedDurationMillis + requestTotalFailedDurationMillis,
-            requestsTotal: requestsFailed + requestsFinished,
+            requestTotalDurationMillis: requestTotalSucceededDurationMillis + requestTotalFailedDurationMillis,
+            requestsTotal: requestsFailed + requestsSucceeded,
             crawlerRuntimeMillis: totalMillis,
         };
     }
@@ -604,7 +604,7 @@ export class Statistics<
         await this.#recoverableState.teardown();
     }
 
-    private saveRetryCountForJob(retryCount: number) {
+    private saveRetryCountForRequest(retryCount: number) {
         if (retryCount > 0) this.state.requestsRetries++;
         this.requestRetryHistogram[retryCount] ??= 0;
         this.requestRetryHistogram[retryCount]++;
@@ -864,7 +864,10 @@ export interface StatisticStateExtensionOptions<
  * Format of the persisted stats.
  *
  * The `null`s are `Infinity` on the way out - JSON has no infinity, so a record written before anything
- * finished or failed carries a `null` in its place.
+ * succeeded or failed carries a `null` in its place.
+ *
+ * The field names are the record's own: the state's `*Succeeded*` counters are written under the `*Finished*`
+ * names v3 wrote them with, because the record is read by tooling outside Crawlee.
  */
 export interface StatisticPersistedState extends Omit<
     StatisticState,
@@ -873,11 +876,15 @@ export interface StatisticPersistedState extends Omit<
     | 'crawlerFinishedAt'
     | 'requestMinDurationMillis'
     | 'requestsFailedPerMinute'
-    | 'requestsFinishedPerMinute'
+    | 'requestsSucceeded'
+    | 'requestsSucceededPerMinute'
+    | 'requestTotalSucceededDurationMillis'
     | 'requestRetryHistogram'
     | 'instanceStart'
 > {
     statsId: string;
+    requestsFinished: number;
+    requestTotalFinishedDurationMillis: number;
     requestsFailedPerMinute: number | null;
     requestsFinishedPerMinute: number | null;
     /** ISO strings - the live state keeps these as `Date`s. */
@@ -899,15 +906,15 @@ export interface StatisticPersistedState extends Omit<
  * Contains the statistics state
  */
 export interface StatisticState {
-    requestsFinished: number;
+    requestsSucceeded: number;
     requestsFailed: number;
     requestsRetries: number;
     requestsFailedPerMinute: number;
-    requestsFinishedPerMinute: number;
+    requestsSucceededPerMinute: number;
     requestMinDurationMillis: number;
     requestMaxDurationMillis: number;
     requestTotalFailedDurationMillis: number;
-    requestTotalFinishedDurationMillis: number;
+    requestTotalSucceededDurationMillis: number;
     crawlerStartedAt: Date | string | null;
     crawlerFinishedAt: Date | string | null;
     crawlerRuntimeMillis: number;
@@ -916,7 +923,7 @@ export interface StatisticState {
     retryErrors: Record<string, unknown>;
     requestsWithStatusCode: Record<string, number>;
 
-    /** Retries histogram - index `i` holds the number of requests that finished after `i` retries. */
+    /** Retries histogram - index `i` holds the number of requests that settled after `i` retries. */
     requestRetryHistogram: number[];
 
     /**

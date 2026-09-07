@@ -163,7 +163,7 @@ describe('PlaywrightCrawler', () => {
         // Every request must be accounted for by either requestHandler or failedRequestHandler.
         expect(success.length + failure.length).toBe(urls.length);
         // With operationTimeoutSecs=0.001, no request can actually succeed, so every one must fail.
-        expect(stats.requestsFinished).toBe(0);
+        expect(stats.requestsSucceeded).toBe(0);
         expect(stats.requestsFailed).toBe(urls.length);
     });
 
