@@ -217,14 +217,6 @@ export class SessionPool implements ISessionPool {
     readonly #state: RecoverableState<SessionPoolInternalState, SessionPoolPersistedState>;
     readonly #stateCodec: ReturnType<typeof buildSessionPoolStateCodec>;
 
-    get #sessions(): Session[] {
-        return this.#state.currentValue.sessions;
-    }
-
-    set #sessions(sessions: Session[]) {
-        this.#state.currentValue.sessions = sessions;
-    }
-
     #initPromise?: Promise<void>;
     #queue = new AsyncQueue();
     #roundRobinIndex = 0;
@@ -293,7 +285,7 @@ export class SessionPool implements ISessionPool {
      */
     async usableSessionsCount(): Promise<number> {
         await this.ensureInitialized();
-        return this.#sessions.filter((session) => session.isUsable()).length;
+        return this.#state.currentValue.sessions.filter((session) => session.isUsable()).length;
     }
 
     /**
@@ -301,7 +293,7 @@ export class SessionPool implements ISessionPool {
      */
     async retiredSessionsCount(): Promise<number> {
         await this.ensureInitialized();
-        return this.#sessions.filter((session) => !session.isUsable()).length;
+        return this.#state.currentValue.sessions.filter((session) => !session.isUsable()).length;
     }
 
     /**
@@ -318,7 +310,7 @@ export class SessionPool implements ISessionPool {
     private async setupPool(): Promise<void> {
         await this.#state.initialize();
 
-        for (const session of this.#sessions) {
+        for (const session of this.#state.currentValue.sessions) {
             this.#sessionMap.set(session.id, session);
         }
     }
@@ -424,7 +416,7 @@ export class SessionPool implements ISessionPool {
      */
     async getState() {
         await this.ensureInitialized();
-        return this.#buildPersistedState(this.#sessions);
+        return this.#buildPersistedState(this.#state.currentValue.sessions);
     }
 
     /**
@@ -472,7 +464,7 @@ export class SessionPool implements ISessionPool {
      * Removes retired `Session` instances from `SessionPool`.
      */
     private removeRetiredSessions() {
-        this.#sessions = this.#sessions.filter((storedSession) => {
+        this.#state.currentValue.sessions = this.#state.currentValue.sessions.filter((storedSession) => {
             if (storedSession.isUsable()) return true;
 
             this.#sessionMap.delete(storedSession.id);
@@ -487,7 +479,7 @@ export class SessionPool implements ISessionPool {
      * @param newSession `Session` instance to be added.
      */
     private registerSession(newSession: Session) {
-        this.#sessions.push(newSession);
+        this.#state.currentValue.sessions.push(newSession);
         this.#sessionMap.set(newSession.id, newSession);
     }
 
@@ -495,7 +487,7 @@ export class SessionPool implements ISessionPool {
      * Gets random index.
      */
     private getRandomIndex(): number {
-        return Math.floor(Math.random() * this.#sessions.length);
+        return Math.floor(Math.random() * this.#state.currentValue.sessions.length);
     }
 
     /**
@@ -545,7 +537,7 @@ export class SessionPool implements ISessionPool {
      * Decides whether there is enough space for creating new session.
      */
     private hasSpaceForSession(): boolean {
-        return this.#sessions.length < this.#maxPoolSize;
+        return this.#state.currentValue.sessions.length < this.#maxPoolSize;
     }
 
     /**
@@ -556,16 +548,16 @@ export class SessionPool implements ISessionPool {
         if (this.#sessionReuseStrategy !== 'use-until-failure' && this.hasSpaceForSession()) return undefined;
 
         if (this.#sessionReuseStrategy === 'use-until-failure') {
-            return this.#sessions.find((session) => session.isUsable());
+            return this.#state.currentValue.sessions.find((session) => session.isUsable());
         }
 
         let picked: Session;
         if (this.#sessionReuseStrategy === 'round-robin') {
-            const index = this.#roundRobinIndex % this.#sessions.length;
+            const index = this.#roundRobinIndex % this.#state.currentValue.sessions.length;
             this.#roundRobinIndex = index + 1;
-            picked = this.#sessions[index];
+            picked = this.#state.currentValue.sessions[index];
         } else {
-            picked = this.#sessions[this.getRandomIndex()];
+            picked = this.#state.currentValue.sessions[this.getRandomIndex()];
         }
 
         return picked.isUsable() ? picked : undefined;
