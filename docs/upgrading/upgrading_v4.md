@@ -400,26 +400,9 @@ const count = await sessionPool.usableSessionsCount();
 
 ### `SessionPool.persistState()`, `resetStore()` and `teardown()` no longer take options
 
-`persistState()` and `resetStore()` lost their `PersistenceOptions` argument, and `teardown()` lost `{ persistState }`. The final state is always written once, on `teardown()`. The dropped `{ enable: true }` override never had an effect, so there is nothing to replace it with.
+The `PersistenceOptions` argument of `persistState()` and `resetStore()` and the `{ persistState }` argument of `teardown()` are removed. Neither had any effect, so there is nothing to replace them with.
 
-`resetStore()` now throws while the pool is running, because the next periodic write would put the record straight back. Call `teardown()` first. To discard the in-memory sessions instead, use the new `reset()`. `BasicCrawler` calls both on a re-run for a pool it created.
-
-`SessionPool.getState()` and `Session.getState()` are `@internal` now. They exist for persistence, and the shape of what they return is not a stable API.
-
-**Before:**
-```typescript
-await sessionPool.persistState({ enable: true });
-await sessionPool.resetStore(); // mid-run: cleared nothing durable
-await sessionPool.teardown({ persistState: false });
-```
-
-**After:**
-```typescript
-await sessionPool.persistState();
-sessionPool.reset(); // drop the sessions
-await sessionPool.teardown();
-await sessionPool.resetStore(); // clear the record, after teardown
-```
+`resetStore()` now throws while the pool is running, since the next periodic write would put the record straight back. Call `teardown()` first, or use the new `reset()` to discard the in-memory sessions instead.
 
 ### `RequestList` prefers the persisted record over the `state` option
 
