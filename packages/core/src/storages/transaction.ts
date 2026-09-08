@@ -5,6 +5,7 @@ import type { Awaitable, Dictionary } from '@crawlee/types';
 import { addTimeoutToPromise, storage as timeoutStorage, tryCancel } from '@apify/timeout';
 
 import { serviceLocator } from '../service_locator.js';
+import { AfterCommitError, NonRetryableError } from '../errors.js';
 import type { RecordOptions } from './key_value_store.js';
 
 /**
@@ -266,7 +267,12 @@ export class StorageTransaction implements StorageTransactionView {
         }
 
         this.#state = 'committed';
-        await this.#runAfterCommitCallbacks();
+
+        try {
+            await this.#runAfterCommitCallbacks();
+        } catch (error) {
+            throw error instanceof NonRetryableError ? error : new AfterCommitError(error);
+        }
     }
 
     /** Fresh timeout context for the same reason as the flush. */

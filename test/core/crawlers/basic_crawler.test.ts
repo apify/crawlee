@@ -13,6 +13,7 @@ import type {
 } from '@crawlee/basic';
 import type { Session } from '@crawlee/basic';
 import {
+    AfterCommitError,
     BasicCrawler,
     Configuration,
     CriticalError,
@@ -3599,6 +3600,41 @@ describe('BasicCrawler', () => {
 
             // The rolled-back attempt registered a callback as well; only the committed one ran it.
             expect(committedAttempts).toEqual([1]);
+        });
+
+        test('a callback that throws after a successful commit does not retry the request', async () => {
+            const failures: Error[] = [];
+            const retried: Error[] = [];
+            let handlerRuns = 0;
+
+            const crawler = new BasicCrawler({
+                maxRequestRetries: 3,
+                requestHandler: async ({ pushData, afterStorageCommit }) => {
+                    handlerRuns++;
+                    await pushData({ item: true });
+                    // A plain, ordinarily retryable error: the retry is suppressed because the item is
+                    // already committed and re-running the handler would push it a second time.
+                    afterStorageCommit(() => {
+                        throw new Error('bookkeeping failed');
+                    });
+                },
+                errorHandler: async (_context, error) => {
+                    retried.push(error);
+                },
+                failedRequestHandler: async (_context, error) => {
+                    failures.push(error);
+                },
+            });
+
+            await crawler.run([`http://${HOSTNAME}:${port}/`]);
+
+            // Reaches `failedRequestHandler` with the wrapper intact, so a handler can tell that the
+            // items did land. `errorHandler` only runs for retried requests, so it is skipped.
+            expect(failures).toEqual([expect.any(AfterCommitError)]);
+            expect(failures[0].cause).toMatchObject({ message: 'bookkeeping failed' });
+            expect(retried).toEqual([]);
+            expect(handlerRuns).toBe(1);
+            await expect(Dataset.getData()).resolves.toMatchObject({ total: 1 });
         });
 
         test('afterStorageCommit turns a rejected write into a non-retryable request failure', async () => {

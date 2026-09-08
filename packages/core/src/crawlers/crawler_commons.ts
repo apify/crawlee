@@ -216,9 +216,13 @@ export interface CrawlingContext<UserData extends Dictionary = Dictionary> exten
      *
      * Callbacks run in registration order, after the commit and before the request is marked as handled.
      * The first one to throw propagates and the rest do not run; on a failed commit its error replaces
-     * the commit error, so a callback can decide what the request fails with. Callbacks are *not* run
-     * when the request handler itself fails - nothing was written, and `errorHandler` /
-     * `failedRequestHandler` cover that.
+     * the commit error, so a callback can decide what the request fails with. After a *successful*
+     * commit, a callback that throws fails the request **without a retry** whatever it throws - the
+     * writes are already durable and retrying would duplicate them, so anything that is not already a
+     * {@apilink NonRetryableError} is wrapped in an {@apilink AfterCommitError}.
+     *
+     * Callbacks are *not* run when the request handler itself fails - nothing was written, and
+     * `errorHandler` / `failedRequestHandler` cover that.
      *
      * Throws when storage is not transactional (`transactionalStorage: false`) - writes are then applied
      * as they are made and throw at the call site on their own. In {@apilink AdaptivePlaywrightCrawler}

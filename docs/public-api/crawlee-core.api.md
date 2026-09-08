@@ -66,6 +66,11 @@ export interface AddRequestsBatchedResult {
 }
 
 // @public
+export class AfterCommitError extends NonRetryableError {
+    constructor(cause: unknown);
+}
+
+// @public
 export class ApifyLogAdapter extends BaseCrawleeLogger {
     constructor(apifyLog: Log, options?: Partial<CrawleeLoggerOptions>);
     // (undocumented)

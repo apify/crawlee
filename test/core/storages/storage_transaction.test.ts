@@ -1,6 +1,7 @@
 import { Readable } from 'node:stream';
 
 import {
+    AfterCommitError,
     createStorageTransaction,
     Dataset,
     getRequestId,
@@ -158,7 +159,7 @@ describe('StorageTransaction', () => {
             transaction.dispose();
         });
 
-        test('a throwing callback propagates, but the commit stays committed', async () => {
+        test('a throwing callback fails a successful commit non-retryably', async () => {
             const store = await KeyValueStore.open();
             const laterCallback = vitest.fn();
 
@@ -171,11 +172,28 @@ describe('StorageTransaction', () => {
                 transaction.afterCommit(laterCallback);
             });
 
-            await expect(transaction.commit()).rejects.toThrow('callback exploded');
+            // The write is durable, so the crawler must not retry the request and duplicate it.
+            const error = await transaction.commit().catch((thrown) => thrown);
+            expect(error).toBeInstanceOf(AfterCommitError);
+            expect(error).toMatchObject({ message: 'callback exploded', cause: { message: 'callback exploded' } });
 
             expect(transaction.state).toBe('committed');
             expect(laterCallback).not.toHaveBeenCalled();
             await expect(store.getValue('key')).resolves.toEqual({ a: 1 });
+
+            transaction.dispose();
+        });
+
+        test('a callback that raises a non-retryable error of its own is left unwrapped', async () => {
+            const transaction = createStorageTransaction();
+            const raised = new NonRetryableError('give up');
+            await transaction.run(() =>
+                transaction.afterCommit(() => {
+                    throw raised;
+                }),
+            );
+
+            await expect(transaction.commit()).rejects.toBe(raised);
 
             transaction.dispose();
         });

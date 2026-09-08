@@ -871,6 +871,44 @@ describe('AdaptivePlaywrightCrawler', () => {
         expect((await Dataset.getData()).items).toEqual([{ run: 1 }]);
     });
 
+    test('should not retry a request whose afterStorageCommit callback threw after a commit', async () => {
+        const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+            detectionProbabilityRecommendation: 0,
+            renderingType: 'static',
+        });
+
+        let handlerRuns = 0;
+        const failedRequestHandler = vi.fn();
+
+        const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = async ({
+            pushData,
+            afterStorageCommit,
+        }) => {
+            handlerRuns++;
+            await pushData({ run: handlerRuns });
+            afterStorageCommit(() => {
+                throw new Error('bookkeeping failed');
+            });
+        };
+
+        const crawler = await makeOneshotCrawler(
+            {
+                requestHandler,
+                renderingTypePredictor,
+                maxRequestsPerCrawl: 1,
+                maxRequestRetries: 3,
+                failedRequestHandler,
+            },
+            [`http://${HOSTNAME}:${port}/static`],
+        );
+
+        await crawler.run();
+
+        expect(handlerRuns).toBe(1);
+        expect(failedRequestHandler).toHaveBeenCalledTimes(1);
+        expect((await Dataset.getData()).items).toEqual([{ run: 1 }]);
+    });
+
     test('should persist RenderingTypePredictor state on PERSIST_STATE events', async () => {
         const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(async ({ pushData }) => {
             await pushData({ content: 'test data' });
