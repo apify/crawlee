@@ -1723,19 +1723,19 @@ export class BasicCrawler<
 
                 this.#run = run;
 
-                await purgeDefaultStorages({
-                    onlyPurgeOnce: true,
-                    storageBackend: serviceLocator.getStorageBackend(),
-                    configuration: serviceLocator.getConfiguration(),
-                });
-
-                if (requests) {
-                    await this.addRequests(requests, options);
-                }
-
                 try {
-                    // Inside the try: from here on, a failed startup has something to stop again. An injected
-                    // governor is the caller's to run, and the task loop rejects an unstarted one.
+                    await purgeDefaultStorages({
+                        onlyPurgeOnce: true,
+                        storageBackend: serviceLocator.getStorageBackend(),
+                        configuration: serviceLocator.getConfiguration(),
+                    });
+
+                    if (requests) {
+                        await this.addRequests(requests, options);
+                    }
+
+                    // An injected governor is the caller's to run; an owned one is started here and stopped again
+                    // below if the startup fails. Either way the task loop rejects one that is not running.
                     await this.#concurrencySystem.ifOwned((system) => system.start());
                     await this.init();
                     await this.statistics.startCapturing();

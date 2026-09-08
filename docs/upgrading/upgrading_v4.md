@@ -659,10 +659,12 @@ An alias identifies a run-scoped queue. It has no persistent name, and is emptie
 What outlives a run is released by `crawler.destroy()`, or by disposing of the crawler:
 
 ```typescript
-await using crawler = new PlaywrightCrawler({ requestHandler: async ({ page }) => { /* ... */ } });
+{
+    await using crawler = new PlaywrightCrawler({ requestHandler: async ({ page }) => { /* ... */ } });
 
-await crawler.run(['https://example.com/a']);
-await crawler.run(['https://example.com/b']);
+    await crawler.run(['https://example.com/a']);
+    await crawler.run(['https://example.com/b']);
+} // the browser pool is destroyed here, as the crawler goes out of scope
 ```
 
 Disposing is optional — a finished run leaves no browsers open and no timer holding the process alive.

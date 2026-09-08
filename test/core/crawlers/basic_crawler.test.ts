@@ -431,6 +431,28 @@ describe('BasicCrawler', () => {
         await crawler.run(['https://example.com/2']);
     });
 
+    test('a startup that fails before the crawl leaves the instance runnable', async () => {
+        const processed: string[] = [];
+        const crawler = new BasicCrawler({
+            requestHandler: async ({ request }) => {
+                processed.push(request.url);
+            },
+        });
+
+        const failure = new Error('Could not add the initial requests');
+        // Enqueueing the initial requests happens before the crawl starts, and used to happen outside the
+        // startup's failure handling - leaving the instance wedged as `running` for good.
+        const addRequests = vitest.spyOn(crawler, 'addRequests').mockRejectedValue(failure);
+
+        await expect(crawler.run(['https://example.com/1'])).rejects.toThrow(failure);
+        expect(crawler.running).toBe(false);
+
+        addRequests.mockRestore();
+        await crawler.run(['https://example.com/2']);
+
+        expect(processed).toEqual(['https://example.com/2']);
+    });
+
     test('should process 4 requests total when calling run() twice with maxRequestsPerCrawl: 2', async () => {
         const processed: { url: string }[] = [];
 
