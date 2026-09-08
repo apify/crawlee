@@ -663,7 +663,9 @@ export async function parseHandlesFromHtml(
     html: string,
     data: Record<string, unknown> | null = null,
 ): Promise<SocialHandles> {
-    const cheerio = await import('cheerio');
+    // `load()` below runs in xml mode, which uses htmlparser2 rather than parse5, so the slim
+    // entrypoint (which skips cheerio's parse5 + undici imports) parses and serializes identically.
+    const cheerio = await import('cheerio/slim');
 
     const result: SocialHandles = {
         emails: [],
