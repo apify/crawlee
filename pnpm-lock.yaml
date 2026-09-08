@@ -334,9 +334,6 @@ importers:
       '@types/inquirer':
         specifier: ^9.0.8
         version: 9.0.9
-      '@types/is-ci':
-        specifier: ^3.0.4
-        version: 3.0.4
       '@types/lodash.isequal':
         specifier: ^4.5.8
         version: 4.5.8
@@ -424,9 +421,6 @@ importers:
       iconv-lite:
         specifier: ^0.7.2
         version: 0.7.2
-      is-ci:
-        specifier: ^4.1.0
-        version: 4.1.0
       lerna:
         specifier: ^9.0.0
         version: 9.0.7(@swc/core@1.15.43)(@types/node@24.12.2)(supports-color@7.2.0)
@@ -5296,9 +5290,6 @@ packages:
   '@types/inquirer@9.0.9':
     resolution: {integrity: sha512-/mWx5136gts2Z2e5izdoRCo46lPp5TMs9R15GTSsgg/XnZyxDWVqoVU3R9lWnccKpqwsJLvRoxbCjoJtZB7DSw==}
 
-  '@types/is-ci@3.0.4':
-    resolution: {integrity: sha512-AkCYCmwlXeuH89DagDCzvCAyltI2v9lh3U3DqSg/GrBYoReAaWwxfXCqMx9UV5MajLZ4ZFwZzV4cABGIxk2XRw==}
-
   '@types/istanbul-lib-coverage@2.0.6':
     resolution: {integrity: sha512-2QF/t/auWm0lsy8XtKVPG19v3sSOQlJe/YHZgfjb/KBBHOGSV+J2q/S671rcq9uTBrLAXmZpqJiaQbMT+zNU1w==}
 
@@ -8975,10 +8966,6 @@ packages:
 
   is-ci@3.0.1:
     resolution: {integrity: sha512-ZYvCgrefwqoQ6yTyYUbQu64HsITZ3NfKX1lzaEYdkTDcfKzzCI/wthRRYKkdjHKFVgNiXKAKm65Zo1pk2as/QQ==}
-    hasBin: true
-
-  is-ci@4.1.0:
-    resolution: {integrity: sha512-Ab9bQDQ11lWootZUI5qxgN2ZXwxNI5hTwnsvOc1wyxQ7zQ8OkEDw79mI0+9jI3x432NfwbVRru+3noJfXF6lSQ==}
     hasBin: true
 
   is-core-module@2.16.1:
@@ -18527,10 +18514,6 @@ snapshots:
       '@types/through': 0.0.33
       rxjs: 7.8.2
 
-  '@types/is-ci@3.0.4':
-    dependencies:
-      ci-info: 3.9.0
-
   '@types/istanbul-lib-coverage@2.0.6': {}
 
   '@types/istanbul-lib-report@3.0.3':
@@ -23087,10 +23070,6 @@ snapshots:
   is-ci@3.0.1:
     dependencies:
       ci-info: 3.9.0
-
-  is-ci@4.1.0:
-    dependencies:
-      ci-info: 4.4.0
 
   is-core-module@2.16.1:
     dependencies:
@@ -28441,7 +28420,7 @@ snapshots:
       browserslist: 4.28.8
       chrome-trace-event: 1.0.4
       enhanced-resolve: 5.20.1
-      es-module-lexer: 2.0.0
+      es-module-lexer: 2.3.2
       eslint-scope: 5.1.1
       events: 3.3.0
       glob-to-regexp: 0.4.1
