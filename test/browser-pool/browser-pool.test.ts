@@ -567,222 +567,6 @@ describe.each([
                     );
                 });
             });
-
-            describe('default browser automation masking', () => {
-                describe.each(fingerprintingMatrix)('%s', (_name, fingerprintPlugin) => {
-                    let browserPoolWithDefaults: BrowserPool;
-                    let page: any;
-
-                    beforeEach(async () => {
-                        browserPoolWithDefaults = new BrowserPool({
-                            browserPlugins: [fingerprintPlugin],
-                            closeInactiveBrowserAfterSecs: 2,
-                        });
-                        page = await browserPoolWithDefaults.newPage();
-                    });
-
-                    afterEach(async () => {
-                        if (page) await page.close();
-
-                        await browserPoolWithDefaults.destroy();
-                    });
-
-                    test('should hide webdriver', async () => {
-                        await page.goto(`file://${import.meta.dirname}/test.html`);
-                        const webdriver = await page.evaluate(() => {
-                            return navigator.webdriver;
-                        });
-                        // Can be undefined or false, depending on the chrome version.
-                        expect(webdriver).toBeFalsy();
-                    });
-                });
-            });
-
-            describe('fingerprinting', () => {
-                describe.each(fingerprintingMatrix)('%s', (_name, fingerprintPlugin) => {
-                    let browserPoolWithFP: BrowserPool;
-                    let page: any;
-
-                    beforeEach(async () => {
-                        browserPoolWithFP = new BrowserPool({
-                            browserPlugins: [fingerprintPlugin],
-                            closeInactiveBrowserAfterSecs: 2,
-                            useFingerprints: true,
-                        });
-                        page = await browserPoolWithFP.newPage();
-                    });
-
-                    afterEach(async () => {
-                        if (page) await page.close();
-
-                        await browserPoolWithFP.destroy();
-                    });
-
-                    test('should override fingerprint', async () => {
-                        await page.goto(`file://${import.meta.dirname}/test.html`);
-                        // @ts-expect-error mistypings
-                        const browserController = browserPoolWithFP.getBrowserControllerByPage(page);
-
-                        const data: { hardwareConcurrency: number; userAgent: string } = await page.evaluate(() => {
-                            return {
-                                hardwareConcurrency: navigator.hardwareConcurrency,
-                                userAgent: navigator.userAgent,
-                            };
-                        });
-                        // @ts-expect-error mistypings
-                        const { fingerprint } = browserController!.launchContext!
-                            .fingerprint as BrowserFingerprintWithHeaders;
-
-                        expect(data.hardwareConcurrency).toBe(fingerprint?.navigator.hardwareConcurrency);
-                        expect(data.userAgent).toBe(fingerprint?.navigator.userAgent);
-                    });
-
-                    test('should hide webdriver', async () => {
-                        await page.goto(`file://${import.meta.dirname}/test.html`);
-                        const webdriver = await page.evaluate(() => {
-                            return navigator.webdriver;
-                        });
-                        // Can be undefined or false, depending on the chrome version.
-                        expect(webdriver).toBeFalsy();
-                    });
-                });
-
-                describe('caching', () => {
-                    const commonOptions = {
-                        browserPlugins: [
-                            new PlaywrightPlugin(playwright.chromium, {
-                                useIncognitoPages: true,
-                            }),
-                        ],
-                    };
-                    let browserPoolCache: BrowserPool;
-
-                    afterEach(async () => {
-                        await browserPoolCache.destroy();
-                    });
-                    test('should use fingerprint cache by default', async () => {
-                        browserPoolCache = new BrowserPool({
-                            ...commonOptions,
-                            useFingerprints: true,
-                        });
-
-                        expect(browserPoolCache.fingerprintCache).toBeDefined();
-                    });
-
-                    test('should turn off cache', async () => {
-                        browserPoolCache = new BrowserPool({
-                            ...commonOptions,
-                            useFingerprints: true,
-                            fingerprintOptions: {
-                                useFingerprintCache: false,
-                            },
-                        });
-
-                        expect(browserPoolCache.fingerprintCache).toBeUndefined();
-                    });
-
-                    test('should limit cache size', async () => {
-                        browserPoolCache = new BrowserPool({
-                            ...commonOptions,
-                            useFingerprints: true,
-                            fingerprintOptions: {
-                                fingerprintCacheSize: 1,
-                            },
-                        });
-                        // cast to any type in order to access the maxSize property for testing purposes.
-                        const cache: any = browserPoolCache!.fingerprintCache!;
-                        expect(cache.maxSize).toBe(1);
-                    });
-
-                    test('should cache fingerprints', async () => {
-                        browserPoolCache = new BrowserPool({
-                            ...commonOptions,
-                            useFingerprints: true,
-                            preLaunchHooks: [
-                                (_pageId, launchContext) => {
-                                    // @ts-expect-error issue caused by generics
-                                    launchContext.extend({ session: { id: '123' } });
-                                },
-                            ],
-                        });
-                        const mock = vitest.fn();
-                        browserPoolCache.fingerprintInjector!.attachFingerprintToPlaywright = mock;
-                        const page: Page = await browserPoolCache.newPageInNewBrowser();
-                        expect(mock.mock.calls[0][1]).toBeDefined();
-                        const page2: Page = await browserPoolCache.newPageInNewBrowser();
-                        await page.close();
-                        await page2.close();
-                        // expect fingerprint parameter of the first call to equal fingerprint parameter of the second call
-                        expect(mock.mock.calls[0][1]).toBe(mock.mock.calls[1][1]);
-                    });
-                });
-            });
-            describe('generator configuration', () => {
-                const commonOptions = {
-                    browserPlugins: [
-                        new PlaywrightPlugin(playwright.firefox, {
-                            useIncognitoPages: true,
-                        }),
-                    ],
-                };
-                let browserPoolConfig: BrowserPool;
-                afterEach(async () => {
-                    await browserPoolConfig.destroy();
-                });
-                test('should use native os and browser', async () => {
-                    browserPoolConfig = new BrowserPool({
-                        ...commonOptions,
-                        useFingerprints: true,
-                    });
-                    const oldGet = browserPoolConfig.fingerprintGenerator!.getFingerprint;
-                    const mock = vitest.fn((options) => {
-                        return oldGet.bind(browserPoolConfig.fingerprintGenerator)(options);
-                    });
-                    browserPoolConfig.fingerprintGenerator!.getFingerprint = mock;
-
-                    const page: Page = await browserPoolConfig.newPage();
-                    await page.close();
-                    const defaultOptions = mock.mock.calls[0][0];
-
-                    expect(defaultOptions.browsers.includes('firefox')).toBe(true);
-
-                    let os: string;
-                    switch (process.platform) {
-                        case 'darwin':
-                            os = 'macos';
-                            break;
-                        case 'win32':
-                            os = 'windows';
-                            break;
-                        default:
-                            os = 'linux';
-                    }
-                    expect(defaultOptions.operatingSystems.includes(os)).toBe(true);
-                });
-
-                test('should allow changing options', async () => {
-                    browserPoolConfig = new BrowserPool({
-                        ...commonOptions,
-                        useFingerprints: true,
-                        fingerprintOptions: {
-                            fingerprintGeneratorOptions: {
-                                operatingSystems: [OperatingSystemsName.windows],
-                                browsers: [BrowserName.chrome],
-                            },
-                        },
-                    });
-                    const oldGet = browserPoolConfig.fingerprintGenerator!.getFingerprint;
-                    const mock = vitest.fn((options) => {
-                        return oldGet.bind(browserPoolConfig.fingerprintGenerator)(options);
-                    });
-                    browserPoolConfig.fingerprintGenerator!.getFingerprint = mock;
-                    const page: Page = await browserPoolConfig.newPageInNewBrowser();
-                    await page.close();
-                    const [options] = mock.mock.calls[0];
-                    expect(options.operatingSystems.includes('windows')).toBe(true);
-                    expect(options.browsers.includes('chrome')).toBe(true);
-                });
-            });
         });
 
         describe('events', () => {
@@ -849,6 +633,225 @@ describe.each([
                 expect(calls).toEqual(2);
                 expect(argument).toEqual(page2);
             });
+        });
+    });
+});
+
+// These suites bring their own plugins, so they are independent of the plugin parametrization
+// above - nesting them inside it ran every one of them twice with identical inputs.
+describe('BrowserPool - fingerprints', () => {
+    describe('default browser automation masking', () => {
+        describe.each(fingerprintingMatrix)('%s', (_name, fingerprintPlugin) => {
+            let browserPoolWithDefaults: BrowserPool;
+            let page: any;
+
+            beforeEach(async () => {
+                browserPoolWithDefaults = new BrowserPool({
+                    browserPlugins: [fingerprintPlugin],
+                    closeInactiveBrowserAfterSecs: 2,
+                });
+                page = await browserPoolWithDefaults.newPage();
+            });
+
+            afterEach(async () => {
+                if (page) await page.close();
+
+                await browserPoolWithDefaults.destroy();
+            });
+
+            test('should hide webdriver', async () => {
+                await page.goto(`file://${import.meta.dirname}/test.html`);
+                const webdriver = await page.evaluate(() => {
+                    return navigator.webdriver;
+                });
+                // Can be undefined or false, depending on the chrome version.
+                expect(webdriver).toBeFalsy();
+            });
+        });
+    });
+
+    describe('fingerprinting', () => {
+        describe.each(fingerprintingMatrix)('%s', (_name, fingerprintPlugin) => {
+            let browserPoolWithFP: BrowserPool;
+            let page: any;
+
+            beforeEach(async () => {
+                browserPoolWithFP = new BrowserPool({
+                    browserPlugins: [fingerprintPlugin],
+                    closeInactiveBrowserAfterSecs: 2,
+                    useFingerprints: true,
+                });
+                page = await browserPoolWithFP.newPage();
+            });
+
+            afterEach(async () => {
+                if (page) await page.close();
+
+                await browserPoolWithFP.destroy();
+            });
+
+            test('should override fingerprint', async () => {
+                await page.goto(`file://${import.meta.dirname}/test.html`);
+                // @ts-expect-error mistypings
+                const browserController = browserPoolWithFP.getBrowserControllerByPage(page);
+
+                const data: { hardwareConcurrency: number; userAgent: string } = await page.evaluate(() => {
+                    return {
+                        hardwareConcurrency: navigator.hardwareConcurrency,
+                        userAgent: navigator.userAgent,
+                    };
+                });
+                // @ts-expect-error mistypings
+                const { fingerprint } = browserController!.launchContext!.fingerprint as BrowserFingerprintWithHeaders;
+
+                expect(data.hardwareConcurrency).toBe(fingerprint?.navigator.hardwareConcurrency);
+                expect(data.userAgent).toBe(fingerprint?.navigator.userAgent);
+            });
+
+            test('should hide webdriver', async () => {
+                await page.goto(`file://${import.meta.dirname}/test.html`);
+                const webdriver = await page.evaluate(() => {
+                    return navigator.webdriver;
+                });
+                // Can be undefined or false, depending on the chrome version.
+                expect(webdriver).toBeFalsy();
+            });
+        });
+
+        describe('caching', () => {
+            const commonOptions = {
+                browserPlugins: [
+                    new PlaywrightPlugin(playwright.chromium, {
+                        useIncognitoPages: true,
+                    }),
+                ],
+            };
+            let browserPoolCache: BrowserPool;
+
+            afterEach(async () => {
+                await browserPoolCache.destroy();
+            });
+            test('should use fingerprint cache by default', async () => {
+                browserPoolCache = new BrowserPool({
+                    ...commonOptions,
+                    useFingerprints: true,
+                });
+
+                expect(browserPoolCache.fingerprintCache).toBeDefined();
+            });
+
+            test('should turn off cache', async () => {
+                browserPoolCache = new BrowserPool({
+                    ...commonOptions,
+                    useFingerprints: true,
+                    fingerprintOptions: {
+                        useFingerprintCache: false,
+                    },
+                });
+
+                expect(browserPoolCache.fingerprintCache).toBeUndefined();
+            });
+
+            test('should limit cache size', async () => {
+                browserPoolCache = new BrowserPool({
+                    ...commonOptions,
+                    useFingerprints: true,
+                    fingerprintOptions: {
+                        fingerprintCacheSize: 1,
+                    },
+                });
+                // cast to any type in order to access the maxSize property for testing purposes.
+                const cache: any = browserPoolCache!.fingerprintCache!;
+                expect(cache.maxSize).toBe(1);
+            });
+
+            test('should cache fingerprints', async () => {
+                browserPoolCache = new BrowserPool({
+                    ...commonOptions,
+                    useFingerprints: true,
+                    preLaunchHooks: [
+                        (_pageId, launchContext) => {
+                            // @ts-expect-error issue caused by generics
+                            launchContext.extend({ session: { id: '123' } });
+                        },
+                    ],
+                });
+                const mock = vitest.fn();
+                browserPoolCache.fingerprintInjector!.attachFingerprintToPlaywright = mock;
+                const page: Page = await browserPoolCache.newPageInNewBrowser();
+                expect(mock.mock.calls[0][1]).toBeDefined();
+                const page2: Page = await browserPoolCache.newPageInNewBrowser();
+                await page.close();
+                await page2.close();
+                // expect fingerprint parameter of the first call to equal fingerprint parameter of the second call
+                expect(mock.mock.calls[0][1]).toBe(mock.mock.calls[1][1]);
+            });
+        });
+    });
+    describe('generator configuration', () => {
+        const commonOptions = {
+            browserPlugins: [
+                new PlaywrightPlugin(playwright.firefox, {
+                    useIncognitoPages: true,
+                }),
+            ],
+        };
+        let browserPoolConfig: BrowserPool;
+        afterEach(async () => {
+            await browserPoolConfig.destroy();
+        });
+        test('should use native os and browser', async () => {
+            browserPoolConfig = new BrowserPool({
+                ...commonOptions,
+                useFingerprints: true,
+            });
+            const oldGet = browserPoolConfig.fingerprintGenerator!.getFingerprint;
+            const mock = vitest.fn((options) => {
+                return oldGet.bind(browserPoolConfig.fingerprintGenerator)(options);
+            });
+            browserPoolConfig.fingerprintGenerator!.getFingerprint = mock;
+
+            const page: Page = await browserPoolConfig.newPage();
+            await page.close();
+            const defaultOptions = mock.mock.calls[0][0];
+
+            expect(defaultOptions.browsers.includes('firefox')).toBe(true);
+
+            let os: string;
+            switch (process.platform) {
+                case 'darwin':
+                    os = 'macos';
+                    break;
+                case 'win32':
+                    os = 'windows';
+                    break;
+                default:
+                    os = 'linux';
+            }
+            expect(defaultOptions.operatingSystems.includes(os)).toBe(true);
+        });
+
+        test('should allow changing options', async () => {
+            browserPoolConfig = new BrowserPool({
+                ...commonOptions,
+                useFingerprints: true,
+                fingerprintOptions: {
+                    fingerprintGeneratorOptions: {
+                        operatingSystems: [OperatingSystemsName.windows],
+                        browsers: [BrowserName.chrome],
+                    },
+                },
+            });
+            const oldGet = browserPoolConfig.fingerprintGenerator!.getFingerprint;
+            const mock = vitest.fn((options) => {
+                return oldGet.bind(browserPoolConfig.fingerprintGenerator)(options);
+            });
+            browserPoolConfig.fingerprintGenerator!.getFingerprint = mock;
+            const page: Page = await browserPoolConfig.newPageInNewBrowser();
+            await page.close();
+            const [options] = mock.mock.calls[0];
+            expect(options.operatingSystems.includes('windows')).toBe(true);
+            expect(options.browsers.includes('chrome')).toBe(true);
         });
     });
 });
