@@ -25,7 +25,10 @@ import {
 import type { Dictionary } from '@crawlee/types';
 import { extractUrlsFromCheerio } from '@crawlee/utils/internal';
 import type { CheerioAPI, CheerioOptions } from 'cheerio';
-import * as cheerio from 'cheerio';
+// The slim entrypoint skips cheerio's parse5 + undici imports (only needed for `cheerio.load(string)`
+// and `cheerio.fromURL()`). We always hand `load()` a pre-parsed htmlparser2 document, so none of that
+// code is reachable - importing it just costs ~100 ms of module loading on every start.
+import * as cheerio from 'cheerio/slim';
 import { parseDocument } from 'htmlparser2';
 
 export type CheerioErrorHandler<
