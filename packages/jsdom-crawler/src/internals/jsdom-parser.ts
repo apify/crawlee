@@ -1,4 +1,4 @@
-import type { DomParser, InternalHttpCrawlingContext } from '@crawlee/http';
+import type { DOMParser, InternalHttpCrawlingContext } from '@crawlee/http';
 import type { CrawleeLogger } from '@crawlee/types';
 import { tryAbsoluteURL } from '@crawlee/utils/internal';
 import type { DOMWindow, VirtualConsole } from 'jsdom';
@@ -39,14 +39,14 @@ export interface JsdomParserOptions {
 }
 
 /**
- * A {@apilink DomParser} backed by [jsdom](https://www.npmjs.com/package/jsdom). Pass it to a
- * {@apilink DomCrawler} to get the crawling context {@apilink JSDOMCrawler} provides.
+ * A {@apilink DOMParser} backed by [jsdom](https://www.npmjs.com/package/jsdom). Pass it to a
+ * {@apilink DOMCrawler} to get the crawling context {@apilink JSDOMCrawler} provides.
  */
-export function jsdomParser(options: JsdomParserOptions = {}): DomParser<JSDOMParseResult> {
+export function jsdomParser(options: JsdomParserOptions = {}): DOMParser<JSDOMParseResult> {
     const { runScripts = false, virtualConsole, log } = options;
 
     return {
-        members: ['window', 'document', 'body'],
+        placeholderMembers: ['window', 'document', 'body'],
         mutable: runScripts,
         async parse(context: InternalHttpCrawlingContext) {
             const isXml = context.contentType.type.includes('xml');

@@ -15,36 +15,41 @@ import type { HttpCrawlerOptions, InternalHttpCrawlingContext } from './http-cra
 import { HttpCrawler } from './http-crawler.js';
 
 /**
- * The minimum a {@apilink DomParser} has to contribute to the crawling context - the serialized document, used by
- * the {@apilink DomCrawlingContext.parseWithCheerio|`parseWithCheerio`} helper.
+ * The minimum a {@apilink DOMParser} has to contribute to the crawling context - the serialized document, used by
+ * the {@apilink DOMCrawlingContext.parseWithCheerio|`parseWithCheerio`} helper.
  */
-export interface DomParseResult {
+export interface DOMParseResult {
     body: string;
 }
 
 /**
- * Turns a response body into a DOM representation and knows how to query it. Passing one to {@apilink DomCrawler}
+ * Turns a response body into a DOM representation and knows how to query it. Passing one to {@apilink DOMCrawler}
  * is what makes the crawler jsdom-based, linkedom-based, or based on a DOM implementation of your own.
  *
  * **Example usage:**
  * ```ts
- * import { DomCrawler } from 'crawlee';
- * import { linkedomParser } from '@crawlee/linkedom';
+ * import { DOMCrawler } from 'crawlee';
+ * import type { DOMParser } from 'crawlee';
  *
- * const crawler = new DomCrawler({
- *     parser: linkedomParser(),
- *     async requestHandler({ window }) {
+ * const myParser: DOMParser<{ body: string }> = {
+ *     // ...
+ * };
+ *
+ * const crawler = new DOMCrawler({
+ *     parser: myParser,
+ *     async requestHandler({ body }) {
  *         // ...
  *     },
  * });
  * ```
  */
-export interface DomParser<Parsed extends DomParseResult> {
+export interface DOMParser<Parsed extends DOMParseResult> {
     /**
-     * The context members {@apilink DomParser.parse|`parse`} contributes. Used to build the placeholders that
-     * report a helpful error when the members are accessed after `skipNavigation`.
+     * The context members {@apilink DOMParser.parse|`parse`} contributes. Used to build the placeholders that
+     * report a helpful error when the members are accessed after `skipNavigation`. Must list every key of
+     * `Parsed` - omitting one means accessing it after `skipNavigation` yields `undefined` instead of throwing.
      */
-    readonly members: readonly (keyof Parsed & string)[];
+    readonly placeholderMembers: readonly (keyof Parsed & string)[];
 
     parse(context: InternalHttpCrawlingContext): Awaitable<Parsed>;
 
@@ -55,32 +60,32 @@ export interface DomParser<Parsed extends DomParseResult> {
 
     /**
      * Returns the current matches of `selector`. Only the count is used, by
-     * {@apilink DomCrawlingContext.waitForSelector|`waitForSelector`}.
+     * {@apilink DOMCrawlingContext.waitForSelector|`waitForSelector`}.
      */
     select(parsed: Parsed, selector: string): Awaitable<ArrayLike<unknown>>;
 
     /**
-     * Whether the parse result can change after {@apilink DomParser.parse|`parse`} returned - the case when the DOM
-     * implementation runs the page scripts. If it can, {@apilink DomCrawlingContext.waitForSelector|`waitForSelector`}
+     * Whether the parse result can change after {@apilink DOMParser.parse|`parse`} returned - the case when the DOM
+     * implementation runs the page scripts. If it can, {@apilink DOMCrawlingContext.waitForSelector|`waitForSelector`}
      * polls until the timeout elapses; otherwise it fails as soon as the selector does not match.
      */
     readonly mutable?: boolean;
 
     /**
      * Returns a Cheerio handle over the parse result, for parsers that are backed by Cheerio anyway. Without it,
-     * {@apilink DomCrawlingContext.parseWithCheerio|`parseWithCheerio`} parses
-     * {@apilink DomParseResult.body|`body`} again.
+     * {@apilink DOMCrawlingContext.parseWithCheerio|`parseWithCheerio`} parses
+     * {@apilink DOMParseResult.body|`body`} again.
      */
     toCheerio?(parsed: Parsed): Awaitable<CheerioAPI>;
 
     /**
-     * Releases whatever {@apilink DomParser.parse|`parse`} allocated. Called after the request handler finishes or
+     * Releases whatever {@apilink DOMParser.parse|`parse`} allocated. Called after the request handler finishes or
      * fails, and skipped entirely when navigation was skipped.
      */
     cleanup?(parsed: Parsed): Awaitable<void>;
 }
 
-export interface DomCrawlingHelpers {
+export interface DOMCrawlingHelpers {
     /**
      * Extracts URLs from the parsed DOM, without adding them to the request queue.
      */
@@ -92,7 +97,9 @@ export interface DomCrawlingHelpers {
     enqueueLinks(options?: EnqueueLinksOptions): Promise<AddRequestsBatchedResult>;
 
     /**
-     * Wait for an element matching the selector to appear.
+     * Wait for an element matching the selector to appear. The `timeoutMs` only has an effect when the parser is
+     * {@apilink DOMParser.mutable|`mutable`} (e.g. {@apilink JSDOMCrawler} with `runScripts: true`); otherwise the
+     * selector is checked once and the call resolves or throws immediately.
      * Timeout defaults to 5s.
      *
      * **Example usage:**
@@ -121,20 +128,20 @@ export interface DomCrawlingHelpers {
     parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioAPI>;
 }
 
-export type DomCrawlingContext<
-    Parsed extends DomParseResult = DomParseResult,
+export type DOMCrawlingContext<
+    Parsed extends DOMParseResult = DOMParseResult,
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-> = InternalHttpCrawlingContext<UserData, JSONData> & Parsed & DomCrawlingHelpers;
+> = InternalHttpCrawlingContext<UserData, JSONData> & Parsed & DOMCrawlingHelpers;
 
-export interface DomCrawlerOptions<
-    Parsed extends DomParseResult = DomParseResult,
+export interface DOMCrawlerOptions<
+    Parsed extends DOMParseResult = DOMParseResult,
     ContextExtension = Dictionary<never>,
-    ExtendedContext extends DomCrawlingContext<Parsed> = DomCrawlingContext<Parsed> & ContextExtension,
+    ExtendedContext extends DOMCrawlingContext<Parsed> = DOMCrawlingContext<Parsed> & ContextExtension,
     Routes extends Record<keyof Routes, Dictionary> = Record<string, any>,
     StatisticStateExtension extends object = {},
 > extends HttpCrawlerOptions<
-    DomCrawlingContext<Parsed>,
+    DOMCrawlingContext<Parsed>,
     ContextExtension,
     ExtendedContext,
     Routes,
@@ -144,32 +151,32 @@ export interface DomCrawlerOptions<
      * The DOM implementation to parse the response bodies with. Its parse result becomes part of the crawling
      * context, so the members the request handler receives follow from the parser you pass.
      */
-    parser: DomParser<Parsed>;
+    parser: DOMParser<Parsed>;
 }
 
 /**
- * An {@apilink HttpCrawler} that parses each response into a DOM using the {@apilink DomCrawlerOptions.parser|`parser`}
- * it is given, and exposes the parse result plus the {@apilink DomCrawlingContext.enqueueLinks|`enqueueLinks`} and
- * {@apilink DomCrawlingContext.extractLinks|`extractLinks`} helpers on the crawling context.
+ * An {@apilink HttpCrawler} that parses each response into a DOM using the {@apilink DOMCrawlerOptions.parser|`parser`}
+ * it is given, and exposes the parse result plus the {@apilink DOMCrawlingContext.enqueueLinks|`enqueueLinks`} and
+ * {@apilink DOMCrawlingContext.extractLinks|`extractLinks`} helpers on the crawling context.
  *
  * {@apilink JSDOMCrawler} and {@apilink LinkeDOMCrawler} are this crawler with a parser already chosen.
  *
  * @category Crawlers
  */
-export class DomCrawler<
-    Parsed extends DomParseResult = DomParseResult,
+export class DOMCrawler<
+    Parsed extends DOMParseResult = DOMParseResult,
     ContextExtension = Dictionary<never>,
-    ExtendedContext extends DomCrawlingContext<Parsed> = DomCrawlingContext<Parsed> & ContextExtension,
+    ExtendedContext extends DOMCrawlingContext<Parsed> = DOMCrawlingContext<Parsed> & ContextExtension,
     Routes extends Record<keyof Routes, Dictionary> = Record<
         string,
-        GetUserDataFromRequest<DomCrawlingContext<Parsed>['request']>
+        GetUserDataFromRequest<DOMCrawlingContext<Parsed>['request']>
     >,
     StatisticStateExtension extends object = {},
-> extends HttpCrawler<DomCrawlingContext<Parsed>, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
-    readonly #parser: DomParser<Parsed>;
+> extends HttpCrawler<DOMCrawlingContext<Parsed>, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
+    readonly #parser: DOMParser<Parsed>;
 
     constructor(
-        options: DomCrawlerOptions<Parsed, ContextExtension, ExtendedContext, Routes, StatisticStateExtension>,
+        options: DOMCrawlerOptions<Parsed, ContextExtension, ExtendedContext, Routes, StatisticStateExtension>,
     ) {
         const { parser, contextPipelineBuilder, ...rest } = options;
 
@@ -181,7 +188,7 @@ export class DomCrawler<
         this.#parser = parser;
     }
 
-    protected override buildContextPipeline(): ContextPipeline<CrawlingContext, DomCrawlingContext<Parsed>> {
+    protected override buildContextPipeline(): ContextPipeline<CrawlingContext, DOMCrawlingContext<Parsed>> {
         return super
             .buildContextPipeline()
             .compose({
@@ -204,7 +211,7 @@ export class DomCrawler<
                 return Object.defineProperties(
                     {},
                     Object.fromEntries(
-                        this.#parser.members.map((member) => [
+                        this.#parser.placeholderMembers.map((member) => [
                             member,
                             {
                                 configurable: true,

@@ -1,4 +1,4 @@
-import type { DomParser, InternalHttpCrawlingContext } from '@crawlee/http';
+import type { DOMParser, InternalHttpCrawlingContext } from '@crawlee/http';
 import { extractUrlsFromCheerio } from '@crawlee/utils/internal';
 import type { CheerioAPI, CheerioOptions } from 'cheerio';
 import * as cheerio from 'cheerio';
@@ -10,12 +10,12 @@ export interface CheerioParseResult {
 }
 
 /**
- * A {@apilink DomParser} backed by [cheerio](https://www.npmjs.com/package/cheerio). Pass it to a
- * {@apilink DomCrawler} to get the crawling context {@apilink CheerioCrawler} provides.
+ * A {@apilink DOMParser} backed by [cheerio](https://www.npmjs.com/package/cheerio). Pass it to a
+ * {@apilink DOMCrawler} to get the crawling context {@apilink CheerioCrawler} provides.
  */
-export function cheerioParser(): DomParser<CheerioParseResult> {
+export function cheerioParser(): DOMParser<CheerioParseResult> {
     return {
-        members: ['$', 'body'],
+        placeholderMembers: ['$', 'body'],
         parse(context: InternalHttpCrawlingContext) {
             const isXml = context.contentType.type.includes('xml');
             const body = Buffer.isBuffer(context.body)

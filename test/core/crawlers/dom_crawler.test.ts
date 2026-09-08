@@ -2,9 +2,28 @@ import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 
 import { MemoryStorageBackend, serviceLocator } from '@crawlee/core';
-import { DomCrawler } from '@crawlee/http';
+import type { DOMParser } from '@crawlee/http';
+import { DOMCrawler } from '@crawlee/http';
 import { JSDOMCrawler } from '@crawlee/jsdom';
-import { LinkeDOMCrawler, linkedomParser } from '@crawlee/linkedom';
+import { LinkeDOMCrawler } from '@crawlee/linkedom';
+
+interface FakeParseResult {
+    title: string;
+    body: string;
+}
+
+function fakeParser(): DOMParser<FakeParseResult> {
+    return {
+        placeholderMembers: ['title', 'body'],
+        parse: (context) => {
+            const body = context.body.toString();
+            return { title: /<title>(.*?)<\/title>/.exec(body)?.[1] ?? '', body };
+        },
+        extractLinks: (parsed, _selector, baseUrl) =>
+            [...parsed.body.matchAll(/<a href="([^"]+)"/g)].map(([, href]) => new URL(href, baseUrl).href),
+        select: (parsed, selector) => (selector === 'title' && parsed.title ? [parsed.title] : []),
+    };
+}
 
 const router = new Map<string, http.RequestListener>();
 router.set('/', (req, res) => {
@@ -99,18 +118,19 @@ test('LinkeDOMCrawler enqueueLinks should respect maxCrawlDepth', async () => {
     expect(titles).toEqual(['Depth 0', 'Depth 1']);
 });
 
-test('JSDOMCrawler works with skipNavigation', async () => {
+test('DOMCrawler works with skipNavigation', async () => {
     const errors: string[] = [];
     const failed: string[] = [];
 
-    const crawler = new JSDOMCrawler({
+    const crawler = new DOMCrawler({
+        parser: fakeParser(),
         maxRequestRetries: 0,
         failedRequestHandler: ({ request }, error) => {
             failed.push(`${request.url}: ${error.message}`);
         },
         requestHandler: (context) => {
             try {
-                void context.window.document.title;
+                void context.title;
             } catch (error) {
                 errors.push((error as Error).message);
             }
@@ -120,38 +140,14 @@ test('JSDOMCrawler works with skipNavigation', async () => {
     await crawler.run([{ url, skipNavigation: true }]);
 
     expect(failed).toStrictEqual([]);
-    expect(errors).toStrictEqual(['The `window` property is not available - `skipNavigation` was used']);
+    expect(errors).toStrictEqual(['The `title` property is not available - `skipNavigation` was used']);
 });
 
-test('LinkeDOMCrawler works with skipNavigation', async () => {
-    const errors: string[] = [];
-    const failed: string[] = [];
-
-    const crawler = new LinkeDOMCrawler({
-        maxRequestRetries: 0,
-        failedRequestHandler: ({ request }, error) => {
-            failed.push(`${request.url}: ${error.message}`);
-        },
-        requestHandler: (context) => {
-            try {
-                void context.window.document.title;
-            } catch (error) {
-                errors.push((error as Error).message);
-            }
-        },
-    });
-
-    await crawler.run([{ url, skipNavigation: true }]);
-
-    expect(failed).toStrictEqual([]);
-    expect(errors).toStrictEqual(['The `window` property is not available - `skipNavigation` was used']);
-});
-
-test('DomCrawler exposes the members of the parser it is given', async () => {
+test('DOMCrawler exposes the members of the parser it is given', async () => {
     const titles: string[] = [];
 
-    const crawler = new DomCrawler({
-        parser: linkedomParser(),
+    const crawler = new DOMCrawler({
+        parser: fakeParser(),
         maxCrawlDepth: 1,
         maxRequestsPerCrawl: 10, // to avoid accidental runaway
         requestHandler: async ({ waitForSelector, parseWithCheerio, enqueueLinks }) => {

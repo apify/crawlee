@@ -1,6 +1,6 @@
-import type { DomParser, InternalHttpCrawlingContext } from '@crawlee/http';
+import type { DOMParser, InternalHttpCrawlingContext } from '@crawlee/http';
 import { tryAbsoluteURL } from '@crawlee/utils/internal';
-import { DOMParser } from 'linkedom/cached';
+import { DOMParser as LinkeDOMParser } from 'linkedom/cached';
 
 export interface LinkeDOMParseResult {
     window: Window;
@@ -14,14 +14,14 @@ export interface LinkeDOMParseResult {
 }
 
 /**
- * A {@apilink DomParser} backed by [linkedom](https://www.npmjs.com/package/linkedom). Pass it to a
- * {@apilink DomCrawler} to get the crawling context {@apilink LinkeDOMCrawler} provides.
+ * A {@apilink DOMParser} backed by [linkedom](https://www.npmjs.com/package/linkedom). Pass it to a
+ * {@apilink DOMCrawler} to get the crawling context {@apilink LinkeDOMCrawler} provides.
  */
-export function linkedomParser(): DomParser<LinkeDOMParseResult> {
-    const parser = new DOMParser();
+export function linkedomParser(): DOMParser<LinkeDOMParseResult> {
+    const parser = new LinkeDOMParser();
 
     return {
-        members: ['window', 'document', 'body'],
+        placeholderMembers: ['window', 'document', 'body'],
         parse(context: InternalHttpCrawlingContext) {
             const isXml = context.contentType.type.includes('xml');
             const document = parser.parseFromString(context.body.toString(), isXml ? 'text/xml' : 'text/html');

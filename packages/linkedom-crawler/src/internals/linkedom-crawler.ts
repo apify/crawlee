@@ -1,6 +1,6 @@
 import type {
     CrawlingContext,
-    DomCrawlingContext,
+    DOMCrawlingContext,
     ErrorHandler,
     GetUserDataFromRequest,
     HttpCrawlerOptions,
@@ -11,7 +11,7 @@ import type {
     RouteSchemas,
     RoutesFromSchemas,
 } from '@crawlee/http';
-import { DomCrawler, Router } from '@crawlee/http';
+import { DOMCrawler, Router } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
 
 import type { LinkeDOMParseResult } from './linkedom-parser.js';
@@ -46,7 +46,7 @@ export type LinkeDOMHook<
 export interface LinkeDOMCrawlingContext<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-> extends DomCrawlingContext<LinkeDOMParseResult, UserData, JSONData> {}
+> extends DOMCrawlingContext<LinkeDOMParseResult, UserData, JSONData> {}
 
 export type LinkeDOMRequestHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -134,7 +134,7 @@ export class LinkeDOMCrawler<
         GetUserDataFromRequest<LinkeDOMCrawlingContext['request']>
     >,
     StatisticStateExtension extends object = {},
-> extends DomCrawler<LinkeDOMParseResult, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
+> extends DOMCrawler<LinkeDOMParseResult, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
     constructor(
         options: LinkeDOMCrawlerOptions<
             ContextExtension,

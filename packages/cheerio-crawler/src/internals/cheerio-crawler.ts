@@ -1,6 +1,6 @@
 import type {
     CrawlingContext,
-    DomCrawlingContext,
+    DOMCrawlingContext,
     ErrorHandler,
     GetUserDataFromRequest,
     HttpCrawlerOptions,
@@ -11,7 +11,7 @@ import type {
     RouteSchemas,
     RoutesFromSchemas,
 } from '@crawlee/http';
-import { DomCrawler, Router } from '@crawlee/http';
+import { DOMCrawler, Router } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
 
 import type { CheerioParseResult } from './cheerio-parser.js';
@@ -46,7 +46,7 @@ export type CheerioHook<
 export interface CheerioCrawlingContext<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-> extends DomCrawlingContext<CheerioParseResult, UserData, JSONData> {}
+> extends DOMCrawlingContext<CheerioParseResult, UserData, JSONData> {}
 
 export type CheerioRequestHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -140,7 +140,7 @@ export class CheerioCrawler<
         GetUserDataFromRequest<CheerioCrawlingContext['request']>
     >,
     StatisticStateExtension extends object = {},
-> extends DomCrawler<CheerioParseResult, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
+> extends DOMCrawler<CheerioParseResult, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
     /**
      * All `CheerioCrawler` parameters are passed via an options object.
      */

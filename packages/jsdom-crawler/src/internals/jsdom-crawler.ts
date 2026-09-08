@@ -1,6 +1,6 @@
 import type {
     CrawlingContext,
-    DomCrawlingContext,
+    DOMCrawlingContext,
     ErrorHandler,
     GetUserDataFromRequest,
     HttpCrawlerOptions,
@@ -11,7 +11,7 @@ import type {
     RouteSchemas,
     RoutesFromSchemas,
 } from '@crawlee/http';
-import { DomCrawler, HttpCrawler, Router } from '@crawlee/http';
+import { DOMCrawler, HttpCrawler, Router } from '@crawlee/http';
 import type { Dictionary } from '@crawlee/types';
 import { parseArgument } from '@crawlee/utils/internal';
 import { VirtualConsole } from 'jsdom';
@@ -58,7 +58,7 @@ export type JSDOMHook<
 export interface JSDOMCrawlingContext<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     JSONData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-> extends DomCrawlingContext<JSDOMParseResult, UserData, JSONData> {}
+> extends DOMCrawlingContext<JSDOMParseResult, UserData, JSONData> {}
 
 export type JSDOMRequestHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -148,7 +148,7 @@ export class JSDOMCrawler<
         GetUserDataFromRequest<JSDOMCrawlingContext['request']>
     >,
     StatisticStateExtension extends object = {},
-> extends DomCrawler<JSDOMParseResult, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
+> extends DOMCrawler<JSDOMParseResult, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
     /**
      * @internal
      */

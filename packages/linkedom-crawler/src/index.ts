@@ -1,3 +1,3 @@
 export * from '@crawlee/http';
 export * from './internals/linkedom-crawler.js';
-export * from './internals/linkedom-parser.js';
+export type { LinkeDOMParseResult } from './internals/linkedom-parser.js';
