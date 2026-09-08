@@ -324,6 +324,19 @@ describe.each([
             });
 
             test('browser lifecycle works correctly', async () => {
+                // A browser whose launch hooks have not resolved yet must survive both inactivity
+                // sweeps. Sub-second windows plus a fast killer interval let each sweep run several
+                // times during the wait, instead of sleeping past the 2s defaults from beforeEach.
+                // The waits stay real: a live browser is launching underneath, and faking the clock
+                // would stall the driver's own timeouts along with the pool's.
+                const pool = new BrowserPool({
+                    browserPlugins: [plugin],
+                    closeInactiveBrowserAfterSecs: 0.5,
+                    retireInactiveBrowserAfterSecs: 0.5,
+                });
+                clearInterval(pool['browserKillerInterval']!);
+                pool['browserKillerInterval'] = setInterval(async () => pool['closeInactiveRetiredBrowsers'](), 100);
+
                 let resolvePreLaunchHook: (() => void) | null = null;
                 let resolvePostLaunchHook: (() => void) | null = null;
 
@@ -334,31 +347,37 @@ describe.each([
                     resolvePostLaunchHook = resolve;
                 });
 
-                browserPool.preLaunchHooks = [...browserPool.preLaunchHooks, async () => preLaunchPromise];
+                pool.preLaunchHooks = [...pool.preLaunchHooks, async () => preLaunchPromise];
 
-                browserPool.postLaunchHooks = [...browserPool.postLaunchHooks, async () => postLaunchPromise];
+                pool.postLaunchHooks = [...pool.postLaunchHooks, async () => postLaunchPromise];
 
-                const newPagePromise = browserPool.newPage();
+                try {
+                    const newPagePromise = pool.newPage();
 
-                await sleep(200);
+                    await sleep(200);
 
-                expect(browserPool.startingBrowserControllers.size).toBe(1);
-                expect(browserPool.activeBrowserControllers.size).toBe(0);
-                expect(browserPool.retiredBrowserControllers.size).toBe(0);
+                    expect(pool.startingBrowserControllers.size).toBe(1);
+                    expect(pool.activeBrowserControllers.size).toBe(0);
+                    expect(pool.retiredBrowserControllers.size).toBe(0);
 
-                await sleep(5e3); // Make the wait longer than the browser pool's retireInactiveBrowserAfterSecs + closeInactiveBrowserAfterSecs
+                    await sleep(1200);
 
-                resolvePreLaunchHook!();
-                resolvePostLaunchHook!();
+                    resolvePreLaunchHook!();
+                    resolvePostLaunchHook!();
 
-                const page = await newPagePromise;
+                    const page = await newPagePromise;
 
-                expect(browserPool.startingBrowserControllers.size).toBe(0);
-                expect(browserPool.activeBrowserControllers.size).toBe(1);
-                expect(browserPool.retiredBrowserControllers.size).toBe(0);
+                    expect(pool.startingBrowserControllers.size).toBe(0);
+                    expect(pool.activeBrowserControllers.size).toBe(1);
+                    expect(pool.retiredBrowserControllers.size).toBe(0);
 
-                await (page.evaluate as any)('() => {}'); // Make sure the page is usable
-                await page.close();
+                    // Make sure the page is usable. The Puppeteer and Playwright `evaluate`
+                    // overloads have no compatible signature, so the union is not callable as-is.
+                    await (page.evaluate as unknown as (script: string) => Promise<void>)('() => {}');
+                    await page.close();
+                } finally {
+                    await pool.destroy();
+                }
             });
 
             describe('preLaunchHooks', () => {
