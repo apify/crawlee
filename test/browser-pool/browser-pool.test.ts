@@ -226,6 +226,104 @@ describe.each([
             expect(controller.totalPages).toEqual(1);
         });
 
+        test('should release a page whose close never settles and retire its browser', async () => {
+            const page = await browserPool.newPage();
+            const pageId = browserPool.getPageId(page)!;
+            const controller = browserPool.getBrowserControllerByPage(page)!;
+
+            expect(controller.activePages).toEqual(1);
+
+            // A browser can acknowledge the close and then never destroy the target, so neither
+            // the promise nor the page's own `close` event ever arrives.
+            (page as { close: () => Promise<void> }).close = () => new Promise<void>(() => {});
+            browserPool['_overridePageClose'](page);
+
+            await page.close();
+
+            expect(controller.activePages).toEqual(0);
+            expect(browserPool['pages'].has(pageId)).toBe(false);
+            expect(browserPool.activeBrowserControllers.has(controller)).toBe(false);
+            expect(browserPool.retiredBrowserControllers.has(controller)).toBe(true);
+        });
+
+        test('should not retire the browser when only a post-close hook hangs', async () => {
+            // The page closes right away, so the unrelated idle-browser retirement would fire
+            // while we wait out the hook.
+            clearInterval(browserPool['browserRetireInterval']);
+
+            let hookStarted = false;
+            let hookFinished = false;
+            let releaseHook!: () => void;
+
+            browserPool.postPageCloseHooks = [
+                () =>
+                    new Promise<void>((resolve) => {
+                        hookStarted = true;
+                        releaseHook = () => {
+                            hookFinished = true;
+                            resolve();
+                        };
+                    }),
+            ];
+
+            const page = await browserPool.newPage();
+            const pageId = browserPool.getPageId(page)!;
+            const controller = browserPool.getBrowserControllerByPage(page)!;
+
+            await page.close();
+
+            expect(hookStarted).toBe(true);
+            expect(hookFinished).toBe(false);
+            expect(controller.activePages).toEqual(0);
+            expect(browserPool['pages'].has(pageId)).toBe(false);
+            // The page itself closed, so the browser is healthy and stays in rotation.
+            expect(browserPool.activeBrowserControllers.has(controller)).toBe(true);
+            expect(browserPool.retiredBrowserControllers.has(controller)).toBe(false);
+
+            releaseHook();
+        });
+
+        test('should only count a page as closed once', async () => {
+            // `any` because the two-plugin matrix makes `page` a union, while the controller it
+            // came from is a union too, so its parameter is the corresponding intersection.
+            const page: any = await browserPool.newPage();
+            const controller = browserPool.getBrowserControllerByPage(page)!;
+
+            expect(controller.activePages).toEqual(1);
+
+            controller.registerPageClosed(page);
+            controller.registerPageClosed(page);
+
+            expect(controller.activePages).toEqual(0);
+        });
+
+        test('should run a page teardown even when the close event never arrives', async () => {
+            const page: any = await browserPool.newPage();
+            const controller = browserPool.getBrowserControllerByPage(page)!;
+
+            // Stands in for the cleanup the controllers register per page: an anonymizing proxy
+            // server, an incognito context. It hangs off the page being gone rather than off the
+            // browser's `close` event, which does not arrive for a page that would not close.
+            let tornDown = 0;
+            (controller as any).registerPageTeardown(page, async () => {
+                tornDown++;
+            });
+
+            page.close = () => new Promise<void>(() => {});
+            browserPool['_overridePageClose'](page);
+
+            await page.close();
+            await new Promise((resolve) => setImmediate(resolve));
+
+            expect(tornDown).toEqual(1);
+
+            // the browser closing delivers the `close` event late, which must not run it again
+            controller.registerPageClosed(page);
+            await new Promise((resolve) => setImmediate(resolve));
+
+            expect(tornDown).toEqual(1);
+        });
+
         test('should retire browser after page count', async () => {
             browserPool.retireBrowserAfterPageCount = 2;
 

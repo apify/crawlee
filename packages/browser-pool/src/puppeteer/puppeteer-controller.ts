@@ -87,16 +87,20 @@ export class PuppeteerController extends BrowserController<
                 }
                 */
 
-                page.once('close', async () => {
-                    this.registerPageClosed(page);
-
-                    try {
-                        await context.close();
-                    } catch (error: any) {
+                this.registerPageTeardown(page, async () => {
+                    // The proxy server is not chained behind the context close: that can hang on
+                    // the same target the page hung on, and the proxy runs in this process, so it
+                    // has to be reclaimed either way.
+                    const contextClosed = context.close().catch((error: any) => {
                         log.exception(error, 'Failed to close context.');
-                    } finally {
-                        await close();
-                    }
+                    });
+
+                    await close();
+                    await contextClosed;
+                });
+
+                page.once('close', () => {
+                    this.registerPageClosed(page);
                 });
 
                 return page;

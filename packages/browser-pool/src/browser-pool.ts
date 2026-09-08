@@ -838,7 +838,7 @@ export class BrowserPool<
                 closing.then(
                     () => true,
                     (err: Error) => {
-                        log.warning(`Page close hook failed.\nCause:${err.message}`, {
+                        log.warning(`Closing a page failed, releasing it from the pool anyway.\nCause:${err.message}`, {
                             id: browserController.id,
                             pageId,
                         });
