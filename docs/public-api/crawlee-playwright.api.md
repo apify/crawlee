@@ -74,12 +74,12 @@ export class AdaptivePlaywrightCrawler<ContextExtension = Dictionary<never>, Ext
     constructor(options?: AdaptivePlaywrightCrawlerOptions<ContextExtension, ExtendedContext, Routes, StatisticStateExtension>);
     // (undocumented)
     protected buildContextPipeline(): ContextPipeline_2<CrawlingContext_2, AdaptivePlaywrightCrawlerContext>;
+    // (undocumented)
+    destroy(): Promise<void>;
     drainRenderingDetections(input?: {
         timeoutMillis?: number;
     }): Promise<void>;
     get inFlightRenderingTypeDetectionCount(): number;
-    // (undocumented)
-    destroy(): Promise<void>;
     // (undocumented)
     protected init(): Promise<void>;
     // (undocumented)
