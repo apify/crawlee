@@ -835,6 +835,81 @@ describe('AdaptivePlaywrightCrawler', () => {
         expect(await store.getValue('1')).toEqual({ content: 42 });
     });
 
+    test('should run afterStorageCommit callbacks only for the committed attempt', async () => {
+        // Always detect: the browser attempt is committed, then a static attempt runs purely for the
+        // comparison and is discarded. So the handler runs twice for one request.
+        const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+            detectionProbabilityRecommendation: 1,
+            renderingType: 'clientOnly',
+        });
+
+        let handlerRuns = 0;
+        const committed: number[] = [];
+
+        const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = async ({
+            pushData,
+            afterStorageCommit,
+        }) => {
+            const run = ++handlerRuns;
+            await pushData({ run });
+            afterStorageCommit(() => void committed.push(run));
+        };
+
+        const crawler = await makeOneshotCrawler(
+            {
+                requestHandler,
+                renderingTypePredictor,
+                maxRequestsPerCrawl: 1,
+                maxRequestRetries: 0,
+            },
+            [`http://${HOSTNAME}:${port}/static`],
+        );
+
+        await crawler.run();
+
+        expect(handlerRuns).toBe(2);
+        expect(committed).toEqual([1]);
+        expect((await Dataset.getData()).items).toEqual([{ run: 1 }]);
+    });
+
+    test('should not retry a request whose afterStorageCommit callback threw after a commit', async () => {
+        const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+            detectionProbabilityRecommendation: 0,
+            renderingType: 'static',
+        });
+
+        let handlerRuns = 0;
+        const failedRequestHandler = vi.fn();
+
+        const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = async ({
+            pushData,
+            afterStorageCommit,
+        }) => {
+            handlerRuns++;
+            await pushData({ run: handlerRuns });
+            afterStorageCommit(() => {
+                throw new Error('bookkeeping failed');
+            });
+        };
+
+        const crawler = await makeOneshotCrawler(
+            {
+                requestHandler,
+                renderingTypePredictor,
+                maxRequestsPerCrawl: 1,
+                maxRequestRetries: 3,
+                failedRequestHandler,
+            },
+            [`http://${HOSTNAME}:${port}/static`],
+        );
+
+        await crawler.run();
+
+        expect(handlerRuns).toBe(1);
+        expect(failedRequestHandler).toHaveBeenCalledTimes(1);
+        expect((await Dataset.getData()).items).toEqual([{ run: 1 }]);
+    });
+
     test('should persist RenderingTypePredictor state on PERSIST_STATE events', async () => {
         const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(async ({ pushData }) => {
             await pushData({ content: 'test data' });

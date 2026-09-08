@@ -13,6 +13,7 @@ import type {
 } from '@crawlee/basic';
 import type { Session } from '@crawlee/basic';
 import {
+    AfterCommitError,
     BasicCrawler,
     Configuration,
     CriticalError,
@@ -3640,6 +3641,113 @@ describe('BasicCrawler', () => {
             // Without transactions, the write of the failing handler lands immediately and stays.
             const dataset = await Dataset.open();
             await expect(dataset.getData()).resolves.toMatchObject({ items: [{ from: 'failing-handler' }] });
+        });
+
+        test('afterStorageCommit runs for the attempt whose writes were committed', async () => {
+            const committedAttempts: number[] = [];
+
+            const crawler = new BasicCrawler({
+                maxRequestRetries: 1,
+                requestHandler: async ({ request, pushData, afterStorageCommit }) => {
+                    await pushData({ attempt: request.retryCount });
+                    afterStorageCommit(() => void committedAttempts.push(request.retryCount));
+
+                    if (request.retryCount === 0) {
+                        throw new Error('first attempt fails');
+                    }
+                },
+            });
+
+            await crawler.run([`http://${HOSTNAME}:${port}/`]);
+
+            // The rolled-back attempt registered a callback as well; only the committed one ran it.
+            expect(committedAttempts).toEqual([1]);
+        });
+
+        test('a callback that throws after a successful commit does not retry the request', async () => {
+            const failures: Error[] = [];
+            const retried: Error[] = [];
+            let handlerRuns = 0;
+
+            const crawler = new BasicCrawler({
+                maxRequestRetries: 3,
+                requestHandler: async ({ pushData, afterStorageCommit }) => {
+                    handlerRuns++;
+                    await pushData({ item: true });
+                    // A plain, ordinarily retryable error: the retry is suppressed because the item is
+                    // already committed and re-running the handler would push it a second time.
+                    afterStorageCommit(() => {
+                        throw new Error('bookkeeping failed');
+                    });
+                },
+                errorHandler: async (_context, error) => {
+                    retried.push(error);
+                },
+                failedRequestHandler: async (_context, error) => {
+                    failures.push(error);
+                },
+            });
+
+            await crawler.run([`http://${HOSTNAME}:${port}/`]);
+
+            // Reaches `failedRequestHandler` with the wrapper intact, so a handler can tell that the
+            // items did land. `errorHandler` only runs for retried requests, so it is skipped.
+            expect(failures).toEqual([expect.any(AfterCommitError)]);
+            expect(failures[0].cause).toMatchObject({ message: 'bookkeeping failed' });
+            expect(retried).toEqual([]);
+            expect(handlerRuns).toBe(1);
+            await expect(Dataset.getData()).resolves.toMatchObject({ total: 1 });
+        });
+
+        test('afterStorageCommit turns a rejected write into a non-retryable request failure', async () => {
+            const dataset = await Dataset.open();
+            vitest
+                .spyOn(dataset.backend, 'pushData')
+                .mockRejectedValue(new Error('Data item is too large (size: 10000000 bytes)'));
+
+            const failures: string[] = [];
+            let handlerRuns = 0;
+
+            const crawler = new BasicCrawler({
+                maxRequestRetries: 3,
+                requestHandler: async ({ pushData, afterStorageCommit }) => {
+                    handlerRuns++;
+                    await pushData({ huge: true });
+                    afterStorageCommit((error) => {
+                        if (error?.message.includes('too large')) {
+                            throw new NonRetryableError('Enable `saveHtmlAsFile`', { cause: error });
+                        }
+                    });
+                },
+                failedRequestHandler: async (_context, error) => {
+                    failures.push(error.message);
+                },
+            });
+
+            await crawler.run([`http://${HOSTNAME}:${port}/`]);
+
+            // Left alone, the commit failure is an ordinary request error and gets retried to exhaustion.
+            expect(failures).toEqual(['Enable `saveHtmlAsFile`']);
+            expect(handlerRuns).toBe(1);
+        });
+
+        test('afterStorageCommit throws when transactional storage is disabled', async () => {
+            const errors: string[] = [];
+
+            const crawler = new BasicCrawler({
+                maxRequestRetries: 0,
+                transactionalStorage: false,
+                requestHandler: async ({ afterStorageCommit }) => {
+                    afterStorageCommit(() => {});
+                },
+                failedRequestHandler: async (_context, error) => {
+                    errors.push(error.message);
+                },
+            });
+
+            await crawler.run([`http://${HOSTNAME}:${port}/`]);
+
+            expect(errors).toEqual([expect.stringMatching(/needs an active storage transaction/)]);
         });
 
         test('an unclosed transaction on a normal pipeline return is discarded and logged', async () => {
