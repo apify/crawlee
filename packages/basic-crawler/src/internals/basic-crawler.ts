@@ -34,7 +34,6 @@ import type {
 } from '@crawlee/core';
 import {
     applyRequestTransform,
-    AutoscaledPool,
     bindMethodsToServiceLocator,
     BLOCKED_STATUS_CODES,
     buildEnqueueStrategyPatterns,
@@ -105,6 +104,7 @@ import { LruCache } from '@apify/datastructures';
 import { addTimeoutToPromise, extendTimeout, storage as timeoutStorage, TimeoutError, tryCancel } from '@apify/timeout';
 import { cryptoRandomObjectId } from '@apify/utilities';
 
+import { CrawlerRun } from './crawler-run.js';
 import {
     extendTimeoutKey,
     navigationDeadlineKey,
@@ -765,39 +765,41 @@ export class BasicCrawler<
      */
     readonly #resolveConcurrencySystem: () => OwnedOrInjected<IConcurrencySystem, ConcurrencySystem>;
 
-    /** As resolved by `init()`. Absent until the first run, so a `teardown()` before it is a no-op. */
-    #concurrencySystemDep?: OwnedOrInjected<IConcurrencySystem, ConcurrencySystem>;
+    /** The last run started on this instance. It outlives the run, so anything that drives one goes through `#liveRun`. */
+    #run?: CrawlerRun;
+
+    #concurrencySystem: OwnedOrInjected<IConcurrencySystem, ConcurrencySystem> | undefined;
+
+    /** The run in progress, if any — a finished run is history and cannot be driven. */
+    get #liveRun(): CrawlerRun | undefined {
+        return this.#run?.isLive === true ? this.#run : undefined;
+    }
+
+    /** The run whose task loop is dispatching, if any — only that one can be paused and resumed. */
+    get #dispatchingRun(): CrawlerRun | undefined {
+        return this.#liveRun?.isDispatching === true ? this.#liveRun : undefined;
+    }
+
+    /** Whether a {@apilink BasicCrawler.run|`run()`} is in progress on this instance. */
+    get running(): boolean {
+        return this.#liveRun !== undefined;
+    }
 
     /**
-     * The concurrency governor this run is booking its requests against — either the
+     * The concurrency governor the run in progress is booking its requests against — either the
      * {@apilink BasicCrawlerOptions.concurrencySystem|`concurrencySystem`} that was injected, or the default the
      * crawler built for itself. Read it for telemetry: `desiredConcurrency`, `currentConcurrency`, `isRunning`.
      *
-     * > *NOTE:* `undefined` until {@apilink BasicCrawler.run|`crawler.run()`} has resolved it. A crawler-owned default
-     * is also rebuilt for every run, so the instance is not stable across runs.
+     * > *NOTE:* `undefined` outside a run, and a crawler-owned default is rebuilt for every run — so read it
+     * during a run rather than caching it across runs.
      *
      * {@apilink IConcurrencySystem} is deliberately read-only. Tuning concurrency *while a crawl is running* means
      * owning the instance: build a {@apilink ConcurrencySystem} yourself and inject it, then set
      * `minConcurrency`/`maxConcurrency`/`desiredConcurrency` on your own reference.
      */
     get concurrencySystem(): IConcurrencySystem | undefined {
-        return this.#concurrencySystemDep?.maybeValue;
+        return this.#concurrencySystem?.value;
     }
-
-    /**
-     * The task loop that dispatches this run's requests. Private on purpose — it is a bare parallel task runner with
-     * no configuration left of its own (see {@apilink ConcurrencySystem}), and everything a caller legitimately did
-     * with it now has a crawler-level counterpart: {@apilink BasicCrawler.pause|`pause()`},
-     * {@apilink BasicCrawler.resume|`resume()`}, {@apilink BasicCrawler.teardown|`teardown()`} and
-     * {@apilink BasicCrawler.concurrencySystem|`concurrencySystem`}.
-     */
-    #autoscaledPool?: AutoscaledPool;
-
-    /** A pending nudge of the task loop, armed when the request manager announces when it will have work again. */
-    #taskLoopWakeTimer?: NodeJS.Timeout;
-
-    /** When the pending wake-up is due, so an earlier one can replace a later one. */
-    #taskLoopWakeAt = 0;
 
     /**
      * A reference to the underlying {@apilink IProxyConfiguration} instance that manages the crawler's proxies.
@@ -842,9 +844,7 @@ export class BasicCrawler<
         return this.#contextPipeline;
     }
 
-    running = false;
     #hasFinishedBefore = false;
-    #unexpectedStop = false;
 
     /** Whether a `run()` on this instance has already finished - a repeated one continues where it left off. */
     get hasFinishedBefore(): boolean {
@@ -890,8 +890,6 @@ export class BasicCrawler<
     /** The resolved per-storage-type write policy overrides forwarded to each request's transaction. */
     readonly #storageWritePolicy: Partial<StorageWritePolicy>;
     readonly #onSkippedRequest?: SkippedRequestCallback;
-    #closeEvents?: boolean;
-    #loggedPerRun = new Set<string>();
     readonly #robotsTxtFileCache: LruCache<RobotsTxtFile>;
     readonly #identity: CrawlerIdentity;
     readonly #contextPipelineOptions: {
@@ -1316,7 +1314,7 @@ export class BasicCrawler<
                 },
                 isTaskReadyFunction: async () => {
                     if (isMaxPagesExceeded()) {
-                        this.logOncePerRun(
+                        this.#liveRun?.logOnce(
                             'shuttingDown',
                             'Crawler reached the maxRequestsPerCrawl limit of ' +
                                 `${this.#maxRequestsPerCrawl} requests and will shut down soon. Requests that are in progress will be allowed to finish.`,
@@ -1324,8 +1322,8 @@ export class BasicCrawler<
                         return false;
                     }
 
-                    if (this.#unexpectedStop) {
-                        this.logOncePerRun(
+                    if (this.#run?.stopRequested) {
+                        this.#liveRun?.logOnce(
                             'shuttingDown',
                             'No new requests are allowed because the `stop()` method has been called. ' +
                                 'Ongoing requests will be allowed to complete.',
@@ -1345,7 +1343,7 @@ export class BasicCrawler<
                         return true;
                     }
 
-                    if (this.#unexpectedStop) {
+                    if (this.#run?.stopRequested) {
                         this.log.info(
                             'The crawler has finished all the remaining ongoing requests and will shut down now.',
                         );
@@ -1712,21 +1710,33 @@ export class BasicCrawler<
                     });
                 }
 
-                this.#unexpectedStop = false;
-                this.running = true;
-                this.#loggedPerRun.clear();
-
-                await purgeDefaultStorages({
-                    onlyPurgeOnce: true,
-                    storageBackend: serviceLocator.getStorageBackend(),
-                    configuration: serviceLocator.getConfiguration(),
+                // An owned governor is rebuilt for every run, so it always starts from a clean slate — stale
+                // resource snapshots or a previous run's scaled desired concurrency would otherwise distort this
+                // run's scaling. An injected one is long-lived and its lifecycle belongs to the caller.
+                this.#concurrencySystem = this.#resolveConcurrencySystem();
+                const run = new CrawlerRun({
+                    log: this.log,
+                    concurrencySystem: this.#concurrencySystem.value,
+                    taskLoopOptions: this.#taskLoopOptions,
+                    consumer: this.#identity,
                 });
 
-                if (requests) {
-                    await this.addRequests(requests, options);
-                }
+                this.#run = run;
 
                 try {
+                    await purgeDefaultStorages({
+                        onlyPurgeOnce: true,
+                        storageBackend: serviceLocator.getStorageBackend(),
+                        configuration: serviceLocator.getConfiguration(),
+                    });
+
+                    if (requests) {
+                        await this.addRequests(requests, options);
+                    }
+
+                    // An injected governor is the caller's to run; an owned one is started here and stopped again
+                    // below if the startup fails. Either way the task loop rejects one that is not running.
+                    await this.#concurrencySystem.ifOwned((system) => system.start());
                     await this.init();
                     await this.statistics.startCapturing();
                 } catch (error) {
@@ -1739,7 +1749,8 @@ export class BasicCrawler<
                     });
 
                     // The run never began, so let the instance be run again instead of leaving it wedged as `running`.
-                    this.running = false;
+                    await run.finish();
+                    await this.#concurrencySystem.ifOwned((system) => system.stop());
                     throw error;
                 }
 
@@ -1751,7 +1762,7 @@ export class BasicCrawler<
                         'Pausing... Press CTRL+C again to force exit. To resume, do: CRAWLEE_PURGE_ON_START=0 npm start',
                     );
                     await this.pauseOnMigration();
-                    await this.#autoscaledPool!.abort();
+                    await run.abort();
                 };
 
                 // Attach a listener to handle migration and aborting events gracefully.
@@ -1764,7 +1775,7 @@ export class BasicCrawler<
                 let stats = {} as FinalStatistics;
 
                 try {
-                    await this.#autoscaledPool!.run();
+                    await run.dispatchRequests();
                 } finally {
                     await this.statistics.stopCapturing();
                     await this.teardown();
@@ -1834,7 +1845,8 @@ export class BasicCrawler<
                         { isStatusMessageTerminal: true, level: 'INFO' },
                     );
 
-                    this.running = false;
+                    await run.finish();
+                    await this.#concurrencySystem.ifOwned((system) => system.stop());
                     this.#hasFinishedBefore = true;
                 }
 
@@ -1851,11 +1863,14 @@ export class BasicCrawler<
      * To stop the crawler immediately, use {@apilink BasicCrawler.teardown|`crawler.teardown()`} instead.
      */
     stop(reason = 'The crawler has been gracefully stopped.'): void {
-        if (this.#unexpectedStop) {
+        const run = this.#liveRun;
+
+        if (run === undefined) {
+            this.log.warning('Cannot stop a crawler that is not running.');
             return;
         }
-        this.log.info(reason);
-        this.#unexpectedStop = true;
+
+        run.stop(reason);
     }
 
     /**
@@ -1867,12 +1882,14 @@ export class BasicCrawler<
      * throughout, since a shared one may still be serving other crawlers.
      */
     async pause(timeoutSecs?: number): Promise<void> {
-        if (!this.#autoscaledPool) {
+        const run = this.#dispatchingRun;
+
+        if (run === undefined) {
             this.log.warning('Cannot pause a crawler that is not running.');
             return;
         }
 
-        await this.#autoscaledPool.pause(timeoutSecs);
+        await run.pause(timeoutSecs);
     }
 
     /**
@@ -1880,12 +1897,14 @@ export class BasicCrawler<
      * again. A no-op on a crawler that is not paused.
      */
     resume(): void {
-        if (!this.#autoscaledPool) {
+        const run = this.#dispatchingRun;
+
+        if (run === undefined) {
             this.log.warning('Cannot resume a crawler that is not running.');
             return;
         }
 
-        this.#autoscaledPool.resume();
+        run.resume();
     }
 
     /**
@@ -2022,30 +2041,27 @@ export class BasicCrawler<
         // A skipped request is a *successful* outcome, but the interrupt still unwinds through the
         // transaction scope, which rolls back - so the skip bookkeeping must write directly.
         await withDirectStorageAccess(async () => {
+            // Enqueueing happens outside a run too - `addRequests()` before the first `run()` - so these dedupe
+            // against the logger for the crawler's lifetime rather than per run.
             if (options.reason === 'limit') {
-                this.logOncePerRun(
-                    'maxRequestsPerCrawl',
+                this.log.info(
                     'The number of requests enqueued by the crawler reached the maxRequestsPerCrawl limit of ' +
                         `${this.#maxRequestsPerCrawl} requests and no further requests will be added.`,
+                    undefined,
+                    { once: true },
                 );
             }
 
             if (options.reason === 'depth') {
-                this.logOncePerRun(
-                    'maxCrawlDepth',
+                this.log.info(
                     `The crawler reached the maxCrawlDepth limit of ${this.#maxCrawlDepth} and no further requests will be enqueued.`,
+                    undefined,
+                    { once: true },
                 );
             }
 
             await this.#onSkippedRequest?.(options);
         });
-    }
-
-    private logOncePerRun(key: string, message: string, level: 'info' | 'warning' = 'info'): void {
-        if (!this.#loggedPerRun.has(key)) {
-            this.log[level](message);
-            this.#loggedPerRun.add(key);
-        }
     }
 
     /**
@@ -2328,11 +2344,17 @@ export class BasicCrawler<
      * Initializes the crawler.
      */
     protected async init(): Promise<void> {
+        const run = this.#liveRun;
+
+        if (run === undefined) {
+            throw new Error('There is no crawl in progress - `run()` is the only thing that starts one.');
+        }
+
         const eventManager = serviceLocator.getEventManager();
 
         if (!eventManager.isInitialized()) {
             await eventManager.init();
-            this.#closeEvents = true;
+            run.ownsEventManager = true;
         }
 
         // Warn once at startup if the internal timeout is shorter than the phases it is meant to outlast. It is
@@ -2347,18 +2369,6 @@ export class BasicCrawler<
                     `so it does not cut them short.`,
             );
         }
-
-        // An owned governor is rebuilt (and started) for every run, so it always starts from a clean slate — stale
-        // resource snapshots or a previous run's scaled desired concurrency would otherwise distort this run's
-        // scaling. An injected one is long-lived and its lifecycle belongs to the caller.
-        this.#concurrencySystemDep = this.#resolveConcurrencySystem();
-        await this.#concurrencySystemDep.ifOwned((system) => system.start());
-
-        this.#autoscaledPool = new AutoscaledPool({
-            ...this.#taskLoopOptions,
-            concurrencySystem: this.#concurrencySystemDep.value,
-            consumer: this.#identity,
-        });
 
         await this.getRequestManager();
     }
@@ -2514,13 +2524,11 @@ export class BasicCrawler<
         }
 
         const domain = hostnameOrUrl(url);
-        this.logOncePerRun(
-            `rateLimitNotThrottled:${domain}`,
+        this.log.warningOnce(
             `"${domain}" responded with HTTP 429 (Too Many Requests), but the crawler's request manager does not ` +
                 'pace that domain, so the response is handled like any other, with no per-domain delay. Set ' +
                 `\`sameDomainDelaySecs\`, or pass a \`ThrottlingRequestManager\` covering "${domain}" as ` +
                 '`requestManager`, to honour `Retry-After` and apply exponential backoff instead.',
-            'warning',
         );
 
         return false;
@@ -2542,13 +2550,11 @@ export class BasicCrawler<
         }
 
         const domain = hostnameOrUrl(url);
-        this.logOncePerRun(
-            `crawlDelayIgnored:${domain}`,
+        this.log.warningOnce(
             `robots.txt for "${domain}" defines a crawl-delay of ${delaySeconds}s, but the crawler's request ` +
                 'manager does not pace that domain, so its requests will not be paced. Set ' +
                 `\`sameDomainDelaySecs\`, or pass a \`ThrottlingRequestManager\` covering "${domain}" as ` +
                 '`requestManager`.',
-            'warning',
         );
     }
 
@@ -2576,9 +2582,10 @@ export class BasicCrawler<
     }
 
     private async pauseOnMigration() {
-        if (this.#autoscaledPool) {
-            // if run wasn't called, this is going to crash
-            await this.#autoscaledPool.pause(SAFE_MIGRATION_WAIT_MILLIS).catch((err) => {
+        const run = this.#dispatchingRun;
+
+        if (run) {
+            await run.pause(SAFE_MIGRATION_WAIT_MILLIS).catch((err) => {
                 if (err.message.includes('running tasks did not finish')) {
                     this.log.error(
                         'The crawler was paused due to migration to another host, ' +
@@ -2778,42 +2785,10 @@ export class BasicCrawler<
         const state = await this.requestManager.checkReadiness();
 
         if (state.status === 'waiting' && state.readyAt !== undefined) {
-            this.#scheduleTaskLoopWake(state.readyAt);
+            this.#run?.scheduleWake(state.readyAt);
         }
 
         return state.status === 'ready';
-    }
-
-    /**
-     * Nudges the task loop at `readyAt`, on a single timer that only an earlier one replaces. The pool polls anyway
-     * every `maybeRunIntervalSecs` (0.5s by default), so this only shortens the wait - hence one timer rather than
-     * one per probe, and `unref`'d so it never keeps the process alive.
-     */
-    #scheduleTaskLoopWake(readyAt: number): void {
-        if (this.#taskLoopWakeTimer !== undefined) {
-            if (this.#taskLoopWakeAt <= readyAt) {
-                return;
-            }
-            clearTimeout(this.#taskLoopWakeTimer);
-        }
-
-        this.#taskLoopWakeAt = readyAt;
-        this.#taskLoopWakeTimer = setTimeout(
-            () => {
-                this.#taskLoopWakeTimer = undefined;
-                void this.#autoscaledPool?.notify();
-            },
-            Math.max(0, readyAt - Date.now()),
-        );
-        this.#taskLoopWakeTimer.unref();
-    }
-
-    /** Drops a pending task-loop wake-up, so a finished run leaves no timer behind. */
-    #clearTaskLoopWake(): void {
-        if (this.#taskLoopWakeTimer !== undefined) {
-            clearTimeout(this.#taskLoopWakeTimer);
-            this.#taskLoopWakeTimer = undefined;
-        }
     }
 
     /**
@@ -2978,13 +2953,18 @@ export class BasicCrawler<
     }
 
     /**
-     * Stops the crawler immediately.
+     * Ends the run in progress immediately, without waiting for the requests already in flight.
      *
-     * This method doesn't wait for currently active requests to finish.
+     * This runs at the end of every {@apilink BasicCrawler.run|`run()`}, so what it releases is per-run only, and
+     * a repeated `run()` has to find everything it needs either intact or re-establishable. What outlives a run is
+     * released by {@apilink BasicCrawler.destroy|`destroy()`} instead.
      *
      * To stop the crawler gracefully (waiting for all running requests to finish), use {@apilink BasicCrawler.stop|`crawler.stop()`} instead.
      */
     async teardown(): Promise<void> {
+        const eventManager = serviceLocator.getEventManager();
+        const ownsEventManager = this.#run?.ownsEventManager === true;
+
         // First, so that the pool writes its final state once - its teardown stops it listening before the
         // persistence event below goes out.
         await this.#sessionPoolDep.ifOwned(async (pool) => pool.teardown());
@@ -2992,17 +2972,29 @@ export class BasicCrawler<
         // When this crawler initialized the event manager, its close() call emits
         // the final persistence event after the crawler-specific state has been
         // saved. External event managers still need an explicit event here.
-        if (!this.#closeEvents) {
-            serviceLocator.getEventManager().emit(EventType.PERSIST_STATE, { isMigrating: false });
+        if (!ownsEventManager) {
+            eventManager.emit(EventType.PERSIST_STATE, { isMigrating: false });
         }
 
-        if (this.#closeEvents) {
-            await serviceLocator.getEventManager().close();
+        if (ownsEventManager) {
+            await eventManager.close();
         }
 
-        this.#clearTaskLoopWake();
-        await this.#autoscaledPool?.abort();
-        await this.#concurrencySystemDep?.ifOwned((system) => system.stop());
+        await this.#run?.end();
+    }
+
+    /**
+     * Releases what the crawler owns beyond a single run — in the browser crawlers, the browser pool. A finished
+     * `run()` has already released everything a run owns, so this is only needed before dropping a crawler you
+     * could otherwise have run again.
+     */
+    async destroy(): Promise<void> {
+        // An abandoned run - one whose `run()` never returned - would otherwise keep dispatching requests.
+        await this.#run?.end();
+    }
+
+    async [Symbol.asyncDispose](): Promise<void> {
+        await this.destroy();
     }
 
     protected getCookieHeaderFromRequest(request: Request) {

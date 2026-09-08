@@ -118,33 +118,63 @@ describe('BrowserCrawler', () => {
         });
     });
 
-    test.concurrent('should teardown browser pool', async () => {
+    test.concurrent('a run releases the browsers of an owned pool instead of destroying it', async () => {
         const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
 
-        const requestList = await RequestList.open({
-            sources: [{ url: 'http://example.com/?q=1' }],
-        });
         const browserCrawler = new BrowserCrawlerTest({
             browserPoolOptions: {
                 browserPlugins: [puppeteerPlugin],
             },
-            requestList,
-
+            maxConcurrency: 1,
             requestHandler: async () => {},
             maxRequestRetries: 1,
         });
 
-        // Spy on destroy and track if it was called
-        let destroyCalled = false;
         const ownedPool = browserCrawler.browserPool as BrowserPool;
-        const originalDestroy = ownedPool.destroy.bind(ownedPool);
-        ownedPool.destroy = async () => {
-            destroyCalled = true;
-            return originalDestroy();
-        };
+        const releaseSpy = vitest.spyOn(ownedPool, 'releaseAllBrowsers');
+        const destroySpy = vitest.spyOn(ownedPool, 'destroy');
+        ownedPool.on(BROWSER_POOL_EVENTS.BROWSER_LAUNCHED, () => {});
 
-        await browserCrawler.run();
-        expect(destroyCalled).toBe(true);
+        await browserCrawler.run([`${serverAddress}/?q=1`]);
+
+        expect(releaseSpy).toHaveBeenCalled();
+        expect(destroySpy).not.toHaveBeenCalled();
+        // What a destroyed pool loses for good, since nothing re-arms either: its listeners, and the timers that
+        // retire idle browsers and reap the retired ones.
+        expect(ownedPool.listenerCount(BROWSER_POOL_EVENTS.BROWSER_LAUNCHED)).toBe(1);
+        // eslint-disable-next-line dot-notation -- TS-private on the pool
+        expect(ownedPool['browserKillerInterval']).toBeDefined();
+
+        await browserCrawler.destroy();
+        expect(destroySpy).toHaveBeenCalledTimes(1);
+    });
+
+    test.concurrent('a repeated run() crawls with the same browser pool', async () => {
+        const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
+
+        const processed: string[] = [];
+        const browserCrawler = new BrowserCrawlerTest({
+            browserPoolOptions: {
+                browserPlugins: [puppeteerPlugin],
+            },
+            maxConcurrency: 1,
+            requestHandler: async ({ request }) => {
+                processed.push(request.url);
+            },
+        });
+
+        const launched: unknown[] = [];
+        (browserCrawler.browserPool as BrowserPool).on(BROWSER_POOL_EVENTS.BROWSER_LAUNCHED, (controller) => {
+            launched.push(controller);
+        });
+
+        await browserCrawler.run([`${serverAddress}/?q=1`]);
+        await browserCrawler.run([`${serverAddress}/?q=2`]);
+
+        expect(processed).toEqual([`${serverAddress}/?q=1`, `${serverAddress}/?q=2`]);
+        // Each run launches its own browser, because the previous one released its browsers on the way out - and
+        // the pool is still the crawler's, so it still reports the launch.
+        expect(launched).toHaveLength(2);
     });
 
     test.concurrent('should not tear down a user-supplied browser pool', async () => {

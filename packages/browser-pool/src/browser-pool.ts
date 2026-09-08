@@ -773,7 +773,20 @@ export class BrowserPool<
     }
 
     /**
-     * Closes all managed browsers and tears down the pool.
+     * Closes every managed browser and empties the pool, which stays usable afterwards — a crawler releases its
+     * browsers when a run ends and may start another run on the same pool.
+     */
+    async releaseAllBrowsers(): Promise<void> {
+        await this.closeAllBrowsers();
+
+        this.startingBrowserControllers.clear();
+        this.activeBrowserControllers.clear();
+        this.retiredBrowserControllers.clear();
+    }
+
+    /**
+     * Closes all managed browsers and tears the pool down for good: its intervals are cleared without being
+     * re-armed and its listeners are dropped, so it cannot be used again.
      */
     async destroy(): Promise<void> {
         clearInterval(this.browserKillerInterval!);
@@ -781,15 +794,7 @@ export class BrowserPool<
         this.browserKillerInterval = undefined;
         this.#browserRetireInterval = undefined;
 
-        await this.closeAllBrowsers();
-
-        this.teardown();
-    }
-
-    private teardown() {
-        this.startingBrowserControllers.clear();
-        this.activeBrowserControllers.clear();
-        this.retiredBrowserControllers.clear();
+        await this.releaseAllBrowsers();
 
         this.removeAllListeners();
     }
