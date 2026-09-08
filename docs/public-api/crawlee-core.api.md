@@ -146,10 +146,10 @@ export interface CalculatedStatistics {
 }
 
 // @public
-export const coerceBoolean: z.ZodPreprocess<z.ZodBoolean>;
+export const coerceBoolean: z.ZodPreprocess<z.ZodBoolean, unknown>;
 
 // @public (undocumented)
-export const coerceNumber: z.ZodPreprocess<z.ZodNumber>;
+export const coerceNumber: z.ZodPreprocess<z.ZodNumber, unknown>;
 
 // @public
 export interface ConcurrencyConsumer {
@@ -273,25 +273,25 @@ export interface CpuLoadSignalOptions {
 // @public (undocumented)
 export const crawleeConfigFields: {
     defaultDatasetId: ConfigField<z.ZodDefault<z.ZodString>>;
-    purgeOnStart: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>>;
+    purgeOnStart: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodBoolean, unknown>>>;
     defaultKeyValueStoreId: ConfigField<z.ZodDefault<z.ZodString>>;
     defaultRequestQueueId: ConfigField<z.ZodDefault<z.ZodString>>;
-    maxUsedCpuRatio: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodNumber>>>;
-    availableMemoryRatio: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodNumber>>>;
-    memoryMbytes: ConfigField<z.ZodOptional<z.ZodPreprocess<z.ZodNumber>>>;
-    persistStateIntervalMillis: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodNumber>>>;
-    internalTimeoutMillis: ConfigField<z.ZodOptional<z.ZodPreprocess<z.ZodNumber>>>;
-    systemInfoIntervalMillis: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodNumber>>>;
+    maxUsedCpuRatio: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodNumber, unknown>>>;
+    availableMemoryRatio: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodNumber, unknown>>>;
+    memoryMbytes: ConfigField<z.ZodOptional<z.ZodPreprocess<z.ZodNumber, unknown>>>;
+    persistStateIntervalMillis: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodNumber, unknown>>>;
+    internalTimeoutMillis: ConfigField<z.ZodOptional<z.ZodPreprocess<z.ZodNumber, unknown>>>;
+    systemInfoIntervalMillis: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodNumber, unknown>>>;
     inputKey: ConfigField<z.ZodDefault<z.ZodString>>;
-    headless: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>>;
-    xvfb: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>>;
+    headless: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodBoolean, unknown>>>;
+    xvfb: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodBoolean, unknown>>>;
     chromeExecutablePath: ConfigField<z.ZodOptional<z.ZodString>>;
     defaultBrowserPath: ConfigField<z.ZodOptional<z.ZodString>>;
-    disableBrowserSandbox: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>>;
-    logLevel: ConfigField<z.ZodOptional<z.ZodPreprocess<z.ZodEnum<typeof LogLevel>>>>;
-    persistStorage: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>>;
+    disableBrowserSandbox: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodBoolean, unknown>>>;
+    logLevel: ConfigField<z.ZodOptional<z.ZodPreprocess<z.ZodEnum<typeof LogLevel>, unknown>>>;
+    persistStorage: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodBoolean, unknown>>>;
     storageDir: ConfigField<z.ZodDefault<z.ZodString>>;
-    containerized: ConfigField<z.ZodOptional<z.ZodPreprocess<z.ZodBoolean>>>;
+    containerized: ConfigField<z.ZodOptional<z.ZodPreprocess<z.ZodBoolean, unknown>>>;
 };
 
 export { CrawleeLogger }

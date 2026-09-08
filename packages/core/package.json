@@ -47,11 +47,11 @@
         "access": "public"
     },
     "dependencies": {
-        "@apify/consts": "^2.41.0",
-        "@apify/datastructures": "^2.0.3",
-        "@apify/log": "^2.5.18",
-        "@apify/timeout": "^0.4.4",
-        "@apify/utilities": "^2.15.5",
+        "@apify/consts": "^3.0.1",
+        "@apify/datastructures": "^3.0.1",
+        "@apify/log": "^3.0.1",
+        "@apify/timeout": "^1.0.1",
+        "@apify/utilities": "^3.0.1",
         "@crawlee/fs-storage": "workspace:*",
         "@crawlee/http-client": "workspace:*",
         "@crawlee/types": "workspace:*",
