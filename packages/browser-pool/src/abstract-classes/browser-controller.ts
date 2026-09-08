@@ -184,7 +184,7 @@ export abstract class BrowserController<
      * Accounts for a page no longer being open. Callable from either side and safe to call twice:
      * the page's own `close` event, or the pool when it gives up on a close that never settles.
      * Tracked in a `WeakSet` rather than via `isClosed()`, because that reports the same event.
-     * @ignore
+     * @internal
      */
     registerPageClosed(page: NewPageResult): void {
         if (this.closedPages.has(page as object)) return;
