@@ -34,12 +34,9 @@ interface ExtractionContext {
 export async function extractMicrodata(raw: string): Promise<MicrodataItem[]>;
 export async function extractMicrodata($: CheerioAPI): Promise<MicrodataItem[]>;
 export async function extractMicrodata(htmlOrCheerioElement: string | CheerioAPI): Promise<MicrodataItem[]> {
-    // Dynamic so that importing `@crawlee/utils` does not pull in cheerio - see #3836. Kept inside the
-    // string branch so that callers passing an existing `CheerioAPI` do not load the module graph at all.
-    const $ =
-        typeof htmlOrCheerioElement === 'string'
-            ? (await import('cheerio')).load(htmlOrCheerioElement)
-            : htmlOrCheerioElement;
+    // Dynamic so that importing `@crawlee/utils` does not pull in cheerio - see #3836.
+    const { load } = await import('cheerio');
+    const $ = typeof htmlOrCheerioElement === 'string' ? load(htmlOrCheerioElement) : htmlOrCheerioElement;
     const context: ExtractionContext = { $ };
 
     return $('[itemscope]')

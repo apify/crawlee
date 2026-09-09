@@ -39,14 +39,11 @@ const BLOCK_TAGS_REGEX =
  * @return Plain text
  */
 export async function htmlToText(htmlOrCheerioElement: string | CheerioAPI): Promise<string> {
+    const { load } = await import('cheerio');
+
     if (!htmlOrCheerioElement) return '';
 
-    // Only import cheerio when there is a string to parse - callers that already have a `CheerioAPI`
-    // (e.g. `CheerioCrawler`'s `$`) would otherwise pay for loading the whole cheerio module graph.
-    const $ =
-        typeof htmlOrCheerioElement === 'function'
-            ? htmlOrCheerioElement
-            : (await import('cheerio')).load(htmlOrCheerioElement);
+    const $ = typeof htmlOrCheerioElement === 'function' ? htmlOrCheerioElement : load(htmlOrCheerioElement);
     let text = '';
 
     const process = (elems: Dictionary) => {
