@@ -48,7 +48,7 @@ It's recommended to leave it at the default value that is provided and letting t
 
 ## Advanced options
 
-While the options above should be enough for most users, if we wanted to get super deep into the configuration of autoscaling (the internal machinery in Crawlee that helps us allow crawlers to scale up and down), we can do so by injecting a pre-configured <ApiLink to="basic/class/ConcurrencySystem">`ConcurrencySystem`</ApiLink> through the <ApiLink to="cheerio-crawler/interface/CheerioCrawlerOptions#concurrencySystem">`concurrencySystem`</ApiLink> crawler option. All the fine-grained scaling configuration lives on that instance (see <ApiLink to="basic/interface/ConcurrencySystemOptions">`ConcurrencySystemOptions`</ApiLink>).
+While the options above should be enough for most users, if we wanted to get super deep into the configuration of autoscaling (the internal machinery in Crawlee that helps us allow crawlers to scale up and down), we can do so by injecting a pre-configured <ApiLink to="basic-crawler/class/ConcurrencySystem">`ConcurrencySystem`</ApiLink> through the <ApiLink to="cheerio-crawler/interface/CheerioCrawlerOptions#concurrencySystem">`concurrencySystem`</ApiLink> crawler option. All the fine-grained scaling configuration lives on that instance (see <ApiLink to="basic-crawler/interface/ConcurrencySystemOptions">`ConcurrencySystemOptions`</ApiLink>).
 
 :::danger Complex options up ahead!
 
@@ -64,7 +64,7 @@ With that warning aside, this is how we pass those options. One thing to watch: 
 
 :::note Requires Node.js 24
 
-The `await using` syntax needs Node.js 24 or later. On Node.js 22 call <ApiLink to="basic/class/ConcurrencySystem#stop">`stop()`</ApiLink> yourself in a `finally` block instead — it is what the disposal hook calls anyway.
+The `await using` syntax needs Node.js 24 or later. On Node.js 22 call <ApiLink to="basic-crawler/class/ConcurrencySystem#stop">`stop()`</ApiLink> yourself in a `finally` block instead — it is what the disposal hook calls anyway.
 
 :::
 
@@ -72,7 +72,7 @@ The `await using` syntax needs Node.js 24 or later. On Node.js 22 call <ApiLink 
 
 Injecting the *same* `ConcurrencySystem` instance into several crawlers makes them share a single concurrency budget, capping their combined parallelism instead of letting each crawler scale independently.
 
-The budget is shared, not divided: slots go to whoever asks first, so a crawler that fills it early keeps refilling it as its own requests finish, and one that starts later may get a much smaller share of it. If a crawler needs a guaranteed slice, give it its own instance — or implement <ApiLink to="basic/interface/IConcurrencySystem">`IConcurrencySystem`</ApiLink>, whose allocation methods are told which crawler is asking, and allocate however we see fit.
+The budget is shared, not divided: slots go to whoever asks first, so a crawler that fills it early keeps refilling it as its own requests finish, and one that starts later may get a much smaller share of it. If a crawler needs a guaranteed slice, give it its own instance — or implement <ApiLink to="basic-crawler/interface/IConcurrencySystem">`IConcurrencySystem`</ApiLink>, whose allocation methods are told which crawler is asking, and allocate however we see fit.
 
 :::
 
@@ -128,7 +128,7 @@ This option can be set by specifying [`maxRequestsPerMinute`](#maxrequestspermin
 
 ## Load signals
 
-Whether the machine counts as overloaded is decided by *load signals*. Four are built in — memory, event loop, CPU and the storage backend's rate-limit errors — and each is configured by its own bag under <ApiLink to="basic/interface/ConcurrencySystemOptions#loadSignals">`loadSignals`</ApiLink>, carrying both its limits and the `overloadedRatio` at which it fires. If any signal reports overload, the system is overloaded and concurrency is held down.
+Whether the machine counts as overloaded is decided by *load signals*. Four are built in — memory, event loop, CPU and the storage backend's rate-limit errors — and each is configured by its own bag under <ApiLink to="basic-crawler/interface/ConcurrencySystemOptions#loadSignals">`loadSignals`</ApiLink>, carrying both its limits and the `overloadedRatio` at which it fires. If any signal reports overload, the system is overloaded and concurrency is held down.
 
 A signal we don't want watched at all can be switched **off** with `false`, which stops it being collected as well as evaluated (its entry in the reported status then simply reads as not overloaded):
 
@@ -136,7 +136,7 @@ A signal we don't want watched at all can be switched **off** with `false`, whic
 	{LoadSignalsOffSource}
 </CodeBlock>
 
-We can also watch resources of our own by implementing <ApiLink to="basic/interface/LoadSignal">`LoadSignal`</ApiLink> — navigation timeouts or proxy health, say — and passing them in `loadSignals.custom`. The <ApiLink to="basic/class/SnapshotStore">`SnapshotStore`</ApiLink> helper does the time-windowed bookkeeping for us:
+We can also watch resources of our own by implementing <ApiLink to="basic-crawler/interface/LoadSignal">`LoadSignal`</ApiLink> — navigation timeouts or proxy health, say — and passing them in `loadSignals.custom`. The <ApiLink to="basic-crawler/class/SnapshotStore">`SnapshotStore`</ApiLink> helper does the time-windowed bookkeeping for us:
 
 <CodeBlock language="js">
 	{CustomLoadSignalSource}

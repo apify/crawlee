@@ -18,7 +18,7 @@ import PlaywrightSource from '!!raw-loader!./session_management_playwright.ts';
 import PuppeteerSource from '!!raw-loader!./session_management_puppeteer.ts';
 import StandaloneSource from '!!raw-loader!./session_management_standalone.ts';
 
-&#8203;<ApiLink to="basic/class/SessionPool">`SessionPool`</ApiLink> manages the rotation of proxy IP addresses, cookies, and browser fingerprints in Crawlee. A single <ApiLink to="basic/class/Session">`Session`</ApiLink> bundles all the identifying state of one "virtual user" — its cookie jar, its proxy (and therefore its IP), and a fingerprint hint — so that everything that makes a series of requests look like it comes from one person rotates together. When a session gets blocked, the whole bundle is thrown away at once and a fresh identity takes over, rather than reusing a burnt IP with new cookies (or vice versa).
+&#8203;<ApiLink to="basic-crawler/class/SessionPool">`SessionPool`</ApiLink> manages the rotation of proxy IP addresses, cookies, and browser fingerprints in Crawlee. A single <ApiLink to="basic-crawler/class/Session">`Session`</ApiLink> bundles all the identifying state of one "virtual user" — its cookie jar, its proxy (and therefore its IP), and a fingerprint hint — so that everything that makes a series of requests look like it comes from one person rotates together. When a session gets blocked, the whole bundle is thrown away at once and a fresh identity takes over, rather than reusing a burnt IP with new cookies (or vice versa).
 
 The main benefits of the session pool are that it filters out blocked or non-working proxies so the crawler does not keep retrying over them, it keeps identity-bound state (cookies, auth tokens, headers) tied to the IP that obtained it, and it spreads requests across IPs to avoid burning a small pool. The selection strategy is configurable — see [Choosing a rotation strategy](#choosing-a-rotation-strategy) below.
 
@@ -77,14 +77,14 @@ These are the basics of configuring the session pool. The rest of this guide cov
 
 ## How a session is retired
 
-A session stays in the pool and keeps being handed out as long as <ApiLink to="basic/class/Session#isUsable">`isUsable()`</ApiLink> returns `true`. It stops being usable — and is dropped from rotation — as soon as any of the following happens:
+A session stays in the pool and keeps being handed out as long as <ApiLink to="basic-crawler/class/Session#isUsable">`isUsable()`</ApiLink> returns `true`. It stops being usable — and is dropped from rotation — as soon as any of the following happens:
 
 - its **error score** reaches `maxErrorScore` (default `3`),
 - its **usage count** reaches `maxUsageCount` (default `50`),
 - it is older than `maxAgeSecs` (default `3000` seconds), or
 - it has been explicitly **retired**.
 
-You influence this with three methods on the session. <ApiLink to="basic/class/Session#markGood">`markGood()`</ApiLink> records a successful use — it increments the usage count and heals the error score a little (by `errorScoreDecrement`, default `0.5`). <ApiLink to="basic/class/Session#markBad">`markBad()`</ApiLink> records a failure that *might* be the session's fault and *might* just be bad luck — it raises the error score by one, so a session needs to fail repeatedly before it is dropped. <ApiLink to="basic/class/Session#retire">`retire()`</ApiLink> drops the session immediately and permanently; this is what you call when you are certain the identity itself is burnt (for example, a `403` response).
+You influence this with three methods on the session. <ApiLink to="basic-crawler/class/Session#markGood">`markGood()`</ApiLink> records a successful use — it increments the usage count and heals the error score a little (by `errorScoreDecrement`, default `0.5`). <ApiLink to="basic-crawler/class/Session#markBad">`markBad()`</ApiLink> records a failure that *might* be the session's fault and *might* just be bad luck — it raises the error score by one, so a session needs to fail repeatedly before it is dropped. <ApiLink to="basic-crawler/class/Session#retire">`retire()`</ApiLink> drops the session immediately and permanently; this is what you call when you are certain the identity itself is burnt (for example, a `403` response).
 
 The distinction between `markBad()` and `retire()` matters. Use `markBad()` for transient, external problems such as a timeout or a `5XX` response — the IP is probably fine and a couple of retries should not throw it away. Use `retire()` for problems that prove the session is blocked, where reusing it is pointless. Retirement is terminal: once a session is retired, a later `markGood()` will not bring it back.
 
@@ -94,7 +94,7 @@ When using a crawler you rarely call `markGood()` yourself — the crawler calls
 
 Every session owns a [`tough-cookie`](https://github.com/salesforce/tough-cookie) cookie jar, reachable as `session.cookieJar`. Cookies arriving in `Set-Cookie` response headers are stored in it automatically — this is controlled by the `saveResponseCookies` crawler option (default `true`) — so they are replayed on every later request that reuses the same session. Set `saveResponseCookies: false` to keep response cookies out of the session jar.
 
-You can also seed or read cookies yourself. <ApiLink to="basic/class/Session#setCookie">`session.setCookie('name=value', url)`</ApiLink> adds a single cookie, <ApiLink to="basic/class/Session#getCookieString">`session.getCookieString(url)`</ApiLink> returns the `Cookie` header value the session would send for that URL, and `session.cookieJar` gives you the full jar for anything more involved.
+You can also seed or read cookies yourself. <ApiLink to="basic-crawler/class/Session#setCookie">`session.setCookie('name=value', url)`</ApiLink> adds a single cookie, <ApiLink to="basic-crawler/class/Session#getCookieString">`session.getCookieString(url)`</ApiLink> returns the `Cookie` header value the session would send for that URL, and `session.cookieJar` gives you the full jar for anything more involved.
 
 ```js
 const crawler = new CheerioCrawler({
@@ -248,7 +248,7 @@ await crawler.run(['https://crawlee.dev']);
 
 :::note Requires Node.js 24
 
-The `await using` syntax needs Node.js 24 or later. On Node.js 22 call <ApiLink to="basic/class/SessionPool#teardown">`teardown()`</ApiLink> yourself instead — it is what the disposal hook calls anyway.
+The `await using` syntax needs Node.js 24 or later. On Node.js 22 call <ApiLink to="basic-crawler/class/SessionPool#teardown">`teardown()`</ApiLink> yourself instead — it is what the disposal hook calls anyway.
 
 :::
 
@@ -289,7 +289,7 @@ The returned objects just need to implement <ApiLink to="types/interface/ISessio
 
 ## Pinning a request to a specific session
 
-By default the pool decides which session a request gets. Setting `request.sessionId` overrides that and forces the request — and all of its retries — onto the session with that id. You can create a custom named session with <ApiLink to="basic/class/SessionPool#addSession">`addSession()`</ApiLink>, giving each its own proxy, cookies, or fingerprint. Because a session bundles a proxy, this is how you bind specific requests to specific proxies.
+By default the pool decides which session a request gets. Setting `request.sessionId` overrides that and forces the request — and all of its retries — onto the session with that id. You can create a custom named session with <ApiLink to="basic-crawler/class/SessionPool#addSession">`addSession()`</ApiLink>, giving each its own proxy, cookies, or fingerprint. Because a session bundles a proxy, this is how you bind specific requests to specific proxies.
 
 One important consequence: if a named session is retired — whether through accumulated `markBad()` calls, hitting `maxUsageCount`, or an explicit `retire()` — any subsequent `getSession(id)` call for that id returns `undefined`.
 The crawler treats that as a `MissingSessionError`, counts it as a regular request error, and retries the request with the same `sessionId`. If the session stays retired, retries keep failing and the request eventually exhausts `maxRequestRetries`.

@@ -42,7 +42,7 @@ const FeatureList = [
         Svg: require('../../static/img/features/auto-scaling.svg').default,
         description: (
             <>
-                Crawlee automatically manages concurrency based on <a href="https://crawlee.dev/js/api/basic/class/AutoscaledPool">available system resources</a> and&nbsp;
+                Crawlee automatically manages concurrency based on <a href="https://crawlee.dev/js/api/core/class/AutoscaledPool">available system resources</a> and&nbsp;
                 <a href="https://crawlee.dev/js/docs/guides/proxy-management">smartly rotates proxies</a>.
                 Proxies that often time-out, return network errors or bad HTTP codes like 401 or 403 are discarded.
             </>

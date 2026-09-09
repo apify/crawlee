@@ -27,7 +27,7 @@ The enhanced page object provides four AI methods:
 - **`page.observe()`** — discover available actions on the current page
 - **`page.agent(config)`** — create an autonomous agent for complex multi-step workflows
 
-Since [`StagehandCrawler`](https://crawlee.dev/js/api/stagehand-crawler/class/StagehandCrawler) extends [`BrowserCrawler`](https://crawlee.dev/js/api/browser-crawler/class/BrowserCrawler), you get all the standard Crawlee features out of the box — [request queues](https://crawlee.dev/js/docs/guides/request-storage), [proxy rotation](https://crawlee.dev/js/docs/guides/proxy-management), [autoscaling](https://crawlee.dev/js/api/basic/class/AutoscaledPool), [session management](https://crawlee.dev/js/docs/guides/session-management), and [browser fingerprinting](https://crawlee.dev/js/docs/guides/avoid-blocking). It's not a separate tool you have to wire up manually; it's a full Crawlee crawler with AI superpowers.
+Since [`StagehandCrawler`](https://crawlee.dev/js/api/stagehand-crawler/class/StagehandCrawler) extends [`BrowserCrawler`](https://crawlee.dev/js/api/browser-crawler/class/BrowserCrawler), you get all the standard Crawlee features out of the box — [request queues](https://crawlee.dev/js/docs/guides/request-storage), [proxy rotation](https://crawlee.dev/js/docs/guides/proxy-management), [autoscaling](https://crawlee.dev/js/api/core/class/AutoscaledPool), [session management](https://crawlee.dev/js/docs/guides/session-management), and [browser fingerprinting](https://crawlee.dev/js/docs/guides/avoid-blocking). It's not a separate tool you have to wire up manually; it's a full Crawlee crawler with AI superpowers.
 
 Here's a basic example showing how to interact with a page and extract structured data:
 

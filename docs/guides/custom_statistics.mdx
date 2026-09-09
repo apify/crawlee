@@ -11,29 +11,29 @@ import BasicSource from '!!raw-loader!./custom_statistics_basic.ts';
 import ValidatedSource from '!!raw-loader!./custom_statistics_validated.ts';
 import AdaptiveSource from '!!raw-loader!./custom_statistics_adaptive.ts';
 
-Every crawler collects run statistics — requests finished, failures, retries, durations — into a <ApiLink to="basic/class/Statistics">`Statistics`</ApiLink> instance exposed as `crawler.statistics`. You can track your own counters in the same place, and get the persistence, logging and lifecycle handling that the built-in fields already have.
+Every crawler collects run statistics — requests finished, failures, retries, durations — into a <ApiLink to="basic-crawler/class/Statistics">`Statistics`</ApiLink> instance exposed as `crawler.statistics`. You can track your own counters in the same place, and get the persistence, logging and lifecycle handling that the built-in fields already have.
 
 Keeping a counter in a plain variable works right up until the run is interrupted. Statistics state is written to the key-value store and restored on migration or resurrect, so a counter that lives in `statistics.state` survives a run that a plain variable would not.
 
 ## Declaring custom fields
 
-Pass <ApiLink to="basic/interface/StatisticsOptions#stateExtension">`stateExtension`</ApiLink> when constructing a <ApiLink to="basic/class/Statistics">`Statistics`</ApiLink> instance, and inject it into the crawler via the `statistics` option. The fields become part of `state`, typed exactly as you declared them:
+Pass <ApiLink to="basic-crawler/interface/StatisticsOptions#stateExtension">`stateExtension`</ApiLink> when constructing a <ApiLink to="basic-crawler/class/Statistics">`Statistics`</ApiLink> instance, and inject it into the crawler via the `statistics` option. The fields become part of `state`, typed exactly as you declared them:
 
 <CodeBlock className="language-typescript">{BasicSource}</CodeBlock>
 
 The field types flow through to `crawler.statistics.state`, so they are available anywhere you hold the crawler, not just where you hold the statistics instance. Reading an undeclared field is a compile-time error.
 
-<ApiLink to="basic/interface/StatisticStateExtensionOptions#defaultState">`defaultState`</ApiLink> is also what `reset()` restores, and it determines which keys are read back from a persisted record. A field you add later simply keeps its default when an older record is restored, so growing the state between runs does not need a migration.
+<ApiLink to="basic-crawler/interface/StatisticStateExtensionOptions#defaultState">`defaultState`</ApiLink> is also what `reset()` restores, and it determines which keys are read back from a persisted record. A field you add later simply keeps its default when an older record is restored, so growing the state between runs does not need a migration.
 
 ## Validating the fields on the way back
 
-Declaring `defaultState` alone means a restored record is taken at its word: whatever `productsFound` holds in the key-value store becomes the state, and an increment on a string that says it is a number poisons every later one. Pass a <ApiLink to="basic/interface/StatisticStateExtensionOptions#deserialize">`deserialize`</ApiLink> conversion to check the record before trusting it — either a plain function or, as here, a [Standard Schema](https://standardschema.dev):
+Declaring `defaultState` alone means a restored record is taken at its word: whatever `productsFound` holds in the key-value store becomes the state, and an increment on a string that says it is a number poisons every later one. Pass a <ApiLink to="basic-crawler/interface/StatisticStateExtensionOptions#deserialize">`deserialize`</ApiLink> conversion to check the record before trusting it — either a plain function or, as here, a [Standard Schema](https://standardschema.dev):
 
 <CodeBlock className="language-typescript">{ValidatedSource}</CodeBlock>
 
 A schema that gives every field a default doubles as the declaration of the fields, so `defaultState` can be omitted — one place to add a field, and the defaults cannot drift from the conversion that has to accept them back. If the record fails to validate, the custom fields start from their defaults with a warning; the built-in statistics are unaffected.
 
-The fields have to be JSON-serializable, because the state round-trips through the key-value store. A `Date` or a `Set` comes back from that trip as a string or a plain object, so either keep to numbers, strings, booleans, `null`, and plain arrays and objects of those, or pair `deserialize` with a <ApiLink to="basic/interface/StatisticStateExtensionOptions#serialize">`serialize`</ApiLink> that converts them, as `lastSeenAt` does above.
+The fields have to be JSON-serializable, because the state round-trips through the key-value store. A `Date` or a `Set` comes back from that trip as a string or a plain object, so either keep to numbers, strings, booleans, `null`, and plain arrays and objects of those, or pair `deserialize` with a <ApiLink to="basic-crawler/interface/StatisticStateExtensionOptions#serialize">`serialize`</ApiLink> that converts them, as `lastSeenAt` does above.
 
 :::note Injected instances are not reset
 
@@ -49,4 +49,4 @@ A crawler resets the statistics it built itself at the start of every `run()`, b
 
 ## Custom statistics implementations
 
-If you need something more than extra fields — reporting to an external metrics backend, for example — the `statistics` option accepts any object implementing <ApiLink to="basic/interface/IStatistics">`IStatistics`</ApiLink>, not just the built-in class. The crawler drives it purely through that interface.
+If you need something more than extra fields — reporting to an external metrics backend, for example — the `statistics` option accepts any object implementing <ApiLink to="basic-crawler/interface/IStatistics">`IStatistics`</ApiLink>, not just the built-in class. The crawler drives it purely through that interface.

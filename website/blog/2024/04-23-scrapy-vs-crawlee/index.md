@@ -126,7 +126,7 @@ Autoscaling refers to the capability of a library to automatically adjusting the
 
 Scrapy does not have built-in autoscaling capabilities, but it can be done using external services like [Scrapyd](https://scrapyd.readthedocs.io/en/latest/) or deployed in a distributed manner with Scrapy Cluster.
 
-Crawlee has [built-in autoscaling](https://crawlee.dev/js/api/basic/class/AutoscaledPool) with `AutoscaledPool`. It increases the number of requests that are processed concurrently within one crawler.
+Crawlee has [built-in autoscaling](https://crawlee.dev/js/api/core/class/AutoscaledPool) with `AutoscaledPool`. It increases the number of requests that are processed concurrently within one crawler.
 
 ### Queue management
 
@@ -200,7 +200,7 @@ const crawler = new CheerioCrawler({
 });
 ```
 
-Crawlee also has [`SessionPool`](https://crawlee.dev/js/api/basic/class/SessionPool), a built-in allocation system for proxies. It handles the rotation, creation, and persistence of user-like sessions. It creates a pool of session instances that are randomly rotated.
+Crawlee also has [`SessionPool`](https://crawlee.dev/js/api/core/class/SessionPool), a built-in allocation system for proxies. It handles the rotation, creation, and persistence of user-like sessions. It creates a pool of session instances that are randomly rotated.
 
 ### Data storage
 

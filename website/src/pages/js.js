@@ -230,7 +230,7 @@ function OtherFeaturesSection() {
                             title: 'Routing & middleware',
                             description:
                                 'Keep your code clean and organized while managing complex crawls with a built-in router that streamlines the process.',
-                            to: '/js/api/basic/class/Router',
+                            to: '/js/api/core/class/Router',
                         },
                     ]}
                 />
