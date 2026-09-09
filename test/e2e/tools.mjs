@@ -237,7 +237,7 @@ export async function runActor(dirName, memory = 4096) {
 
         // The statistics record is persisted during the crawler teardown and the platform KVS is
         // eventually consistent, so a single lookup right after the run can race the write and crash
-        // the whole test on `stats.requestsFinished`. Retry briefly and fall back to an empty object,
+        // the whole test on `stats.requestsSucceeded`. Retry briefly and fall back to an empty object,
         // so a genuinely missing record fails the assertions instead of throwing a TypeError.
         let statsRecord;
         for (let attempt = 0; attempt < 10 && !statsRecord; attempt++) {
