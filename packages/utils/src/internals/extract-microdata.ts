@@ -35,7 +35,7 @@ export async function extractMicrodata(raw: string): Promise<MicrodataItem[]>;
 export async function extractMicrodata($: CheerioAPI): Promise<MicrodataItem[]>;
 export async function extractMicrodata(htmlOrCheerioElement: string | CheerioAPI): Promise<MicrodataItem[]> {
     // Dynamic so that importing `@crawlee/utils` does not pull in cheerio - see #3836.
-    const { load } = await import('cheerio');
+    const { load } = await import('cheerio/slim');
     const $ = typeof htmlOrCheerioElement === 'string' ? load(htmlOrCheerioElement) : htmlOrCheerioElement;
     const context: ExtractionContext = { $ };
 

@@ -25,9 +25,12 @@ import {
 import type { Dictionary } from '@crawlee/types';
 import { extractUrlsFromCheerio } from '@crawlee/utils/internal';
 import type { CheerioAPI, CheerioOptions } from 'cheerio';
-// The slim entrypoint skips cheerio's parse5 + undici imports (only needed for `cheerio.load(string)`
-// and `cheerio.fromURL()`). We always hand `load()` a pre-parsed htmlparser2 document, so none of that
-// code is reachable - importing it just costs ~100 ms of module loading on every start.
+// We parse with htmlparser2, not with cheerio's default parse5: parse5 is a strict HTML5 parser with no
+// XML mode, so it mangles the XML/RSS/Atom feeds this crawler also serves (`<link>` is a void element in
+// HTML, CDATA is not recognised, self-closing unknown tags swallow their siblings). It is also stricter
+// than htmlparser2 on broken markup, which is the norm when scraping.
+// The slim entrypoint is the htmlparser2-only build, so it additionally keeps `parse5` and - because
+// cheerio declares `undici` for its unused `fromURL()` helper - ~1 MB of `undici` out of the module graph.
 import * as cheerio from 'cheerio/slim';
 import { parseDocument } from 'htmlparser2';
 

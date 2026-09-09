@@ -420,6 +420,9 @@ export class JSDOMCrawler<
                 });
             },
             async waitForSelector(selector: string, timeoutMs = 5_000) {
+                // Full cheerio (parse5) on purpose: this crawler's own DOM comes from jsdom, which is
+                // spec-compliant, so parse5 gives a `$` that agrees with it. See `CheerioCrawler` for
+                // why the HTTP crawlers use htmlparser2 instead.
                 const cheerio = await import('cheerio');
                 const $ = cheerio.load(crawlingContext.body);
 
@@ -434,6 +437,9 @@ export class JSDOMCrawler<
                 }
             },
             async parseWithCheerio(selector?: string, _timeoutMs = 5_000) {
+                // Full cheerio (parse5) on purpose: this crawler's own DOM comes from jsdom, which is
+                // spec-compliant, so parse5 gives a `$` that agrees with it. See `CheerioCrawler` for
+                // why the HTTP crawlers use htmlparser2 instead.
                 const cheerio = await import('cheerio');
                 const $ = cheerio.load(crawlingContext.body);
 

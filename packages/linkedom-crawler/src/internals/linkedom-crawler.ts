@@ -26,7 +26,6 @@ import type { Dictionary } from '@crawlee/types';
 import type { CheerioAPI } from 'cheerio';
 import { sleep } from '@crawlee/utils';
 import { tryAbsoluteURL } from '@crawlee/utils/internal';
-import * as cheerio from 'cheerio';
 import { DOMParser } from 'linkedom/cached';
 
 export type LinkeDOMErrorHandler<
@@ -272,6 +271,11 @@ export class LinkeDOMCrawler<
     private async addHelpers(crawlingContext: InternalHttpCrawlingContext & { body: string; window: Window }) {
         const addRequests = crawlingContext.addRequests;
 
+        // Full cheerio (parse5) on purpose: this crawler's own DOM comes from linkedom, so parse5 gives
+        // a `$` that agrees with it. Imported dynamically so that merely importing `@crawlee/linkedom`
+        // does not load parse5 and undici. See `CheerioCrawler` for why the HTTP crawlers use htmlparser2.
+        const loadWithCheerio = async () => (await import('cheerio')).load(crawlingContext.body);
+
         const extractLinks = async (options?: ExtractLinksOptions): Promise<string[]> => {
             if (!crawlingContext.window) {
                 throw new Error('Cannot extract links because the DOM is not available.');
@@ -303,7 +307,7 @@ export class LinkeDOMCrawler<
                 });
             },
             async waitForSelector(selector: string, timeoutMs = 5_000) {
-                const $ = cheerio.load(crawlingContext.body);
+                const $ = await loadWithCheerio();
 
                 if ($(selector).get().length === 0) {
                     if (timeoutMs) {
@@ -316,7 +320,7 @@ export class LinkeDOMCrawler<
                 }
             },
             async parseWithCheerio(selector?: string, _timeoutMs = 5_000) {
-                const $ = cheerio.load(crawlingContext.body);
+                const $ = await loadWithCheerio();
 
                 if (selector && $(selector).get().length === 0) {
                     throw new Error(`Selector '${selector}' not found.`);

@@ -663,7 +663,7 @@ export async function parseHandlesFromHtml(
     html: string,
     data: Record<string, unknown> | null = null,
 ): Promise<SocialHandles> {
-    const cheerio = await import('cheerio');
+    const cheerio = await import('cheerio/slim');
 
     const result: SocialHandles = {
         emails: [],

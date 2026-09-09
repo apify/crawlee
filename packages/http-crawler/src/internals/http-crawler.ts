@@ -611,17 +611,23 @@ export class HttpCrawler<
         const response = parsed.response!;
         const contentType = parsed.contentType!;
 
+        // The slim entrypoint always parses with htmlparser2, which is what `CheerioCrawler` uses as
+        // well - parse5 is an HTML5 parser with no XML mode, so it mangles the XML feeds that arrive
+        // here just as often as HTML does. It also keeps `undici` and `parse5` out of the module graph.
+        const loadBody = async () => {
+            const { load } = await import('cheerio/slim');
+
+            return load(parsed.body!.toString(), { xmlMode: contentType.type.includes('xml') });
+        };
         const waitForSelector = async (selector: string, _timeoutMs?: number) => {
-            const cheerio = await import('cheerio');
-            const $ = cheerio.load(parsed.body!.toString());
+            const $ = await loadBody();
 
             if ($(selector).get().length === 0) {
                 throw new Error(`Selector '${selector}' not found.`);
             }
         };
         const parseWithCheerio = async (selector?: string, timeoutMs?: number) => {
-            const cheerio = await import('cheerio');
-            const $ = cheerio.load(parsed.body!.toString());
+            const $ = await loadBody();
 
             if (selector) {
                 await (crawlingContext as InternalHttpCrawlingContext).waitForSelector(selector, timeoutMs);
