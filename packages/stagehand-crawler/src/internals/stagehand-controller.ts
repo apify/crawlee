@@ -60,7 +60,7 @@ export class StagehandController extends BrowserController<BrowserType, LaunchOp
 
             // Track active pages
             page.once('close', () => {
-                this.activePages--;
+                this.registerPageClosed(page);
             });
 
             try {
