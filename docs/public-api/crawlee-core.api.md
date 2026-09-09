@@ -1866,15 +1866,11 @@ export interface StatisticPersistedState extends Omit<StatisticState, 'statsPers
     // (undocumented)
     requestsFailedPerMinute: number | null;
     // (undocumented)
-    requestsSucceeded: number;
-    // (undocumented)
     requestsSucceededPerMinute: number | null;
     // (undocumented)
     requestsTotal: number;
     // (undocumented)
     requestTotalDurationMillis: number;
-    // (undocumented)
-    requestTotalSucceededDurationMillis: number;
     // (undocumented)
     statsId: string;
     // (undocumented)
