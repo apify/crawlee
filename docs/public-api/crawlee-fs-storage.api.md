@@ -20,6 +20,8 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
     readonly datasetsDirectory: string;
     getStorageBackendCacheKey(): string;
     // (undocumented)
+    readonly inputKey: string;
+    // (undocumented)
     readonly keyValueStoresDirectory: string;
     // (undocumented)
     readonly localDataDirectory: string;
@@ -37,6 +39,7 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
 
 // @public (undocumented)
 export interface FileSystemStorageOptions {
+    inputKey?: string;
     localDataDirectory: string;
     logger?: CrawleeLogger;
     requestQueueAccess?: 'single' | 'shared';
