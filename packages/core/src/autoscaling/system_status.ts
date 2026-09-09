@@ -91,12 +91,12 @@ export interface LoadSignalInfo {
 }
 
 export interface FinalStatistics {
-    requestsFinished: number;
+    requestsSucceeded: number;
     requestsFailed: number;
     retryHistogram: number[];
     requestAvgFailedDurationMillis: number;
-    requestAvgFinishedDurationMillis: number;
-    requestsFinishedPerMinute: number;
+    requestAvgSucceededDurationMillis: number;
+    requestsSucceededPerMinute: number;
     requestsFailedPerMinute: number;
     requestTotalDurationMillis: number;
     requestsTotal: number;
