@@ -51,81 +51,6 @@ const inputRecordShape = z.object({
     contentType: z.string().min(1).optional(),
 });
 
-/**
- * Everything the backend needs to know about the run-input keys that may live on disk as bare files,
- * derived once from the set of logical input keys (`INPUT` plus the configured `inputKey`).
- */
-class BareFileRegistry {
-    /** The logical run-input keys that probe the full extension ladder. */
-    readonly logicalKeys: readonly string[];
-
-    /**
-     * The out-of-band ("bare") files to surface from the native `listKeys`, i.e. logical keys ×
-     * {@link BARE_FILE_FALLBACKS}. Each native {@link ListBareFallback} `name` is the literal on-disk
-     * filename to probe (e.g. `INPUT.json`), and the native lists a match under that same `name` — which
-     * is exactly the key we return, so a listed bare file round-trips through `getValue`/`recordExists`
-     * (see {@link contentTypes}).
-     */
-    readonly listFallbacks: ListBareFallback[];
-
-    /**
-     * Lookup from a bare file's literal on-disk name (e.g. `INPUT.json`) to the content type to report
-     * for it, used to read a listed bare key back directly (`getValue('INPUT.json')`). The
-     * empty-extension entry (`INPUT`) is intentionally excluded: an extensionless lookup goes through
-     * the `resolveValue` fallback probing instead, which already covers the extensionless file.
-     */
-    readonly contentTypes: Map<string, string>;
-
-    /** Maps a bare file's on-disk name (e.g. `INPUT.json`) to its logical key (e.g. `INPUT`), for dedup. */
-    readonly logicalKeyByFilename: Map<string, string>;
-
-    /** Every on-disk filename a run input may live under, for the purge keep-list. */
-    readonly filenames: string[];
-
-    constructor(logicalKeys: Iterable<string>) {
-        this.logicalKeys = [...new Set(logicalKeys)];
-        this.listFallbacks = this.logicalKeys.flatMap((key) =>
-            BARE_FILE_FALLBACKS.map(({ extension, contentType }) => ({ name: `${key}${extension}`, contentType })),
-        );
-        this.contentTypes = new Map(
-            this.logicalKeys.flatMap((key) =>
-                BARE_FILE_FALLBACKS.filter(({ extension }) => extension !== '').map(
-                    ({ extension, contentType }) => [`${key}${extension}`, contentType] as const,
-                ),
-            ),
-        );
-        this.logicalKeyByFilename = new Map(
-            this.logicalKeys.flatMap((key) =>
-                BARE_FILE_FALLBACKS.map(({ extension }) => [`${key}${extension}`, key] as const),
-            ),
-        );
-        this.filenames = this.logicalKeys.flatMap((key) =>
-            BARE_FILE_FALLBACKS.map(({ extension }) => `${key}${extension}`),
-        );
-    }
-
-    /**
-     * The native `resolveValue`/`resolveExistingKey` bare-file fallbacks to use for `key`, or
-     * `undefined` if `key` is a plain tracked-record lookup with no bare-file probing.
-     *
-     * - A logical run-input key (`INPUT`, or the configured `inputKey`) probes the full extension ladder
-     *   (`INPUT`, `INPUT.json`, `INPUT.txt`, `INPUT.bin`), matching how Crawlee reads run input.
-     * - A literal bare filename as surfaced by `listKeys` (`INPUT.json`/`.txt`/`.bin`) resolves itself:
-     *   the tracked record first, then the bare file at that exact name (a single empty-extension
-     *   fallback), so a listed key round-trips through `getValue`/`recordExists`.
-     */
-    fallbacksFor(key: string): { extension: string; contentType: string }[] | undefined {
-        if (this.logicalKeys.includes(key)) {
-            return BARE_FILE_FALLBACKS;
-        }
-        const contentType = this.contentTypes.get(key);
-        if (contentType !== undefined) {
-            return [{ extension: '', contentType }];
-        }
-        return undefined;
-    }
-}
-
 export interface KeyValueStoreBackendOptions {
     /** The user-facing storage name, or `undefined` for unnamed (alias / default) storages. */
     name?: string;
@@ -160,14 +85,36 @@ export class KeyValueStoreBackend extends CachedIdClient implements storage.KeyV
     readonly cacheKey: string;
 
     readonly #nativeBackend: NativeFileSystemKeyValueStoreBackend;
-    readonly #bareFiles: BareFileRegistry;
+
+    /** The logical run-input keys: `INPUT` plus the configured `inputKey` (deduplicated). */
+    readonly #inputKeys: string[];
+
+    /**
+     * The out-of-band ("bare") files to surface from the native `listKeys`, i.e. {@link #inputKeys} ×
+     * {@link BARE_FILE_FALLBACKS}. Each native {@link ListBareFallback} `name` is the literal on-disk
+     * filename to probe (e.g. `INPUT.json`), and the native lists a match under that same `name` — which
+     * is exactly the key we return, so a listed bare file round-trips through `getValue`/`recordExists`
+     * (see {@link #bareFallbacksFor}).
+     */
+    readonly #listBareFallbacks: ListBareFallback[];
+
+    /** Maps a bare file's on-disk name (e.g. `INPUT.json`) to its logical key (e.g. `INPUT`), for dedup. */
+    readonly #bareFileLogicalKeys: Map<string, string>;
 
     constructor(options: KeyValueStoreBackendOptions) {
         super();
         this.name = options.name;
         this.cacheKey = options.cacheKey;
         this.#nativeBackend = options.nativeBackend;
-        this.#bareFiles = new BareFileRegistry([DEFAULT_INPUT_KEY, options.inputKey ?? DEFAULT_INPUT_KEY]);
+        this.#inputKeys = [...new Set([DEFAULT_INPUT_KEY, options.inputKey ?? DEFAULT_INPUT_KEY])];
+        this.#listBareFallbacks = this.#inputKeys.flatMap((key) =>
+            BARE_FILE_FALLBACKS.map(({ extension, contentType }) => ({ name: `${key}${extension}`, contentType })),
+        );
+        this.#bareFileLogicalKeys = new Map(
+            this.#inputKeys.flatMap((key) =>
+                BARE_FILE_FALLBACKS.map(({ extension }) => [`${key}${extension}`, key] as const),
+            ),
+        );
     }
 
     get keyValueStoreDirectory(): string {
@@ -202,7 +149,8 @@ export class KeyValueStoreBackend extends CachedIdClient implements storage.KeyV
      * ladder for the configured `inputKey`).
      */
     async purgeExceptInput(): Promise<void> {
-        await this.#nativeBackend.purge(this.#bareFiles.filenames);
+        const keep = this.#inputKeys.flatMap((key) => BARE_FILE_FALLBACKS.map(({ extension }) => `${key}${extension}`));
+        await this.#nativeBackend.purge(keep);
     }
 
     async listKeys(options: storage.KeyValueStoreListKeysOptions = {}): Promise<storage.KeyValueStoreListKeysResult> {
@@ -213,12 +161,7 @@ export class KeyValueStoreBackend extends CachedIdClient implements storage.KeyV
         // everything it needs off the filesystem index — no per-file reads — so this stays cheap.
         // The native `listKeys` already returns a self-describing page (items + pagination cursors)
         // matching the `KeyValueStoreListKeysResult` contract, so we only post-process the items.
-        const page = await this.#nativeBackend.listKeys(
-            exclusiveStartKey,
-            limit,
-            prefix,
-            this.#bareFiles.listFallbacks,
-        );
+        const page = await this.#nativeBackend.listKeys(exclusiveStartKey, limit, prefix, this.#listBareFallbacks);
 
         const presentKeys = new Set(page.items.map((record) => record.key));
 
@@ -228,7 +171,7 @@ export class KeyValueStoreBackend extends CachedIdClient implements storage.KeyV
         // etc.) for the same logical key, so drop those. The extensionless bare file *is* the logical
         // key, so it is never a separate duplicate.
         const items = page.items.filter((record) => {
-            const logicalKey = this.#bareFiles.logicalKeyByFilename.get(record.key);
+            const logicalKey = this.#bareFileLogicalKeys.get(record.key);
             const isExtensionBearingBareFile = logicalKey !== undefined && logicalKey !== record.key;
             return !(isExtensionBearingBareFile && presentKeys.has(logicalKey));
         });
@@ -273,7 +216,7 @@ export class KeyValueStoreBackend extends CachedIdClient implements storage.KeyV
     async getValue(key: string): Promise<storage.KeyValueStoreRecord | undefined> {
         parseArgument(key, keySchema);
 
-        const fallbacks = this.#bareFiles.fallbacksFor(key);
+        const fallbacks = this.#bareFallbacksFor(key);
         const record = fallbacks
             ? await this.#nativeBackend.resolveValue(key, fallbacks)
             : await this.#nativeBackend.getValue(key);
@@ -331,11 +274,11 @@ export class KeyValueStoreBackend extends CachedIdClient implements storage.KeyV
      * key is checked against its tracked record; the run-input keys additionally fall back to
      * out-of-band bare files, in which case the matched on-disk key is returned so callers like
      * `getPublicUrl` point at the file that exists. Two run-input shapes are handled (see
-     * {@link BareFileRegistry.fallbacksFor}): a logical input key such as `INPUT`, which probes the conventional extensions,
+     * {@link #bareFallbacksFor}): a logical input key such as `INPUT`, which probes the conventional extensions,
      * and a literal bare filename such as `INPUT.json` as listed by `listKeys`, which resolves itself.
      */
     private async resolveExistingKey(key: string): Promise<string | undefined> {
-        const fallbacks = this.#bareFiles.fallbacksFor(key);
+        const fallbacks = this.#bareFallbacksFor(key);
         if (fallbacks) {
             return (
                 (await this.#nativeBackend.resolveExistingKey(
@@ -345,5 +288,28 @@ export class KeyValueStoreBackend extends CachedIdClient implements storage.KeyV
             );
         }
         return (await this.#nativeBackend.recordExists(key)) ? key : undefined;
+    }
+
+    /**
+     * The native `resolveValue`/`resolveExistingKey` bare-file fallbacks to use for `key`, or
+     * `undefined` if `key` is a plain tracked-record lookup with no bare-file probing.
+     *
+     * - A logical run-input key (`INPUT`, or the configured `inputKey`) probes the full extension ladder
+     *   (`INPUT`, `INPUT.json`, `INPUT.txt`, `INPUT.bin`), matching how Crawlee reads run input.
+     * - A literal bare filename as surfaced by `listKeys` (`INPUT.json`/`.txt`/`.bin`) resolves itself:
+     *   the tracked record first, then the bare file at that exact name (a single empty-extension
+     *   fallback), so a listed key round-trips through `getValue`/`recordExists`. The extensionless
+     *   name is the logical key itself and is covered by the first case.
+     */
+    #bareFallbacksFor(key: string): { extension: string; contentType: string }[] | undefined {
+        if (this.#inputKeys.includes(key)) {
+            return BARE_FILE_FALLBACKS;
+        }
+        const logicalKey = this.#bareFileLogicalKeys.get(key);
+        if (logicalKey === undefined) {
+            return undefined;
+        }
+        const { contentType } = BARE_FILE_FALLBACKS.find(({ extension }) => `${logicalKey}${extension}` === key)!;
+        return [{ extension: '', contentType }];
     }
 }
