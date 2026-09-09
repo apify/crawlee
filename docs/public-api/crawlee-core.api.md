@@ -766,13 +766,13 @@ export interface IRequestManager extends IRequestLoader {
 // @public
 export interface IStatistics<StateExtension extends object = {}> {
     calculate(): CalculatedStatistics;
-    discardRequestProcessingRecord(id: number | string): void;
+    discardRequestRecord(id: number | string): void;
     readonly errorTracker: ErrorTracker;
     readonly errorTrackerRetry: ErrorTracker;
     persistState?(): Promise<void>;
-    recordRequestProcessingFailure(id: number | string, retryCount: number): void;
-    recordRequestProcessingStart(id: number | string): void;
-    recordRequestProcessingSuccess(id: number | string, retryCount: number): void;
+    recordRequestFailure(id: number | string, retryCount: number): void;
+    recordRequestStart(id: number | string): void;
+    recordRequestSuccess(id: number | string, retryCount: number): void;
     registerStatusCode(code: number): void;
     readonly requestRetryHistogram: number[];
     startCapturing(): Promise<void>;
@@ -1851,7 +1851,7 @@ export class StateValidationError extends Error {
 }
 
 // @public
-export interface StatisticPersistedState extends Omit<StatisticState, 'statsPersistedAt' | 'crawlerStartedAt' | 'crawlerFinishedAt' | 'requestMinDurationMillis' | 'requestsFailedPerMinute' | 'requestsSucceeded' | 'requestsSucceededPerMinute' | 'requestTotalSucceededDurationMillis' | 'requestRetryHistogram' | 'instanceStart'> {
+export interface StatisticPersistedState extends Omit<StatisticState, 'statsPersistedAt' | 'crawlerStartedAt' | 'crawlerFinishedAt' | 'requestMinDurationMillis' | 'requestsFailedPerMinute' | 'requestsSucceededPerMinute' | 'requestRetryHistogram' | 'instanceStart'> {
     // (undocumented)
     crawlerFinishedAt: string | null;
     crawlerLastStartTimestamp: number;
@@ -1859,22 +1859,22 @@ export interface StatisticPersistedState extends Omit<StatisticState, 'statsPers
     // (undocumented)
     requestAvgFailedDurationMillis: number | null;
     // (undocumented)
-    requestAvgFinishedDurationMillis: number | null;
+    requestAvgSucceededDurationMillis: number | null;
     // (undocumented)
     requestMinDurationMillis: number | null;
     requestRetryHistogram: (number | null)[];
     // (undocumented)
     requestsFailedPerMinute: number | null;
     // (undocumented)
-    requestsFinished: number;
+    requestsSucceeded: number;
     // (undocumented)
-    requestsFinishedPerMinute: number | null;
+    requestsSucceededPerMinute: number | null;
     // (undocumented)
     requestsTotal: number;
     // (undocumented)
     requestTotalDurationMillis: number;
     // (undocumented)
-    requestTotalFinishedDurationMillis: number;
+    requestTotalSucceededDurationMillis: number;
     // (undocumented)
     statsId: string;
     // (undocumented)

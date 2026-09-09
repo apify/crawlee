@@ -2371,13 +2371,13 @@ describe('BasicCrawler', () => {
                 errorTrackerRetry: new ErrorTracker(),
                 state: { requestsSucceeded: 0 } as IStatistics['state'],
                 requestRetryHistogram: [],
-                recordRequestProcessingStart: () => calls.push('recordRequestProcessingStart'),
-                recordRequestProcessingSuccess: () => {
+                recordRequestStart: () => calls.push('recordRequestStart'),
+                recordRequestSuccess: () => {
                     customStats.state.requestsSucceeded += 1;
-                    calls.push('recordRequestProcessingSuccess');
+                    calls.push('recordRequestSuccess');
                 },
-                recordRequestProcessingFailure: () => {},
-                discardRequestProcessingRecord: () => {},
+                recordRequestFailure: () => {},
+                discardRequestRecord: () => {},
                 registerStatusCode: () => {},
                 calculate: () => ({}) as CalculatedStatistics,
                 startCapturing: async () => void calls.push('startCapturing'),
@@ -2390,12 +2390,7 @@ describe('BasicCrawler', () => {
 
             await crawler.run([{ url: 'https://example.com' }]);
 
-            expect(calls).toEqual([
-                'startCapturing',
-                'recordRequestProcessingStart',
-                'recordRequestProcessingSuccess',
-                'stopCapturing',
-            ]);
+            expect(calls).toEqual(['startCapturing', 'recordRequestStart', 'recordRequestSuccess', 'stopCapturing']);
             expect(customStats.state.requestsSucceeded).toBe(1);
         });
 

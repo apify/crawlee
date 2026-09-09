@@ -1241,9 +1241,9 @@ export class BasicCrawler<
 
                     // Started here, rather than in `handleRequest`, so that a failure during context pipeline
                     // initialization (e.g. a browser page timing out before the request handler ever runs) is
-                    // still accounted for by `recordRequestProcessingFailure` below - which is a no-op without a
-                    // matching `recordRequestProcessingStart`.
-                    this.statistics.recordRequestProcessingStart(request.id || request.uniqueKey);
+                    // still accounted for by `recordRequestFailure` below - which is a no-op without a
+                    // matching `recordRequestStart`.
+                    this.statistics.recordRequestStart(request.id || request.uniqueKey);
 
                     const crawlingContext = { request } as { request: Request } & Partial<CrawlingContext>;
                     try {
@@ -1265,7 +1265,7 @@ export class BasicCrawler<
                         // ContextPipelineInterruptedError means the request was intentionally skipped
                         // (e.g., doesn't match enqueue strategy after redirect). Just return gracefully.
                         if (error instanceof ContextPipelineInterruptedError) {
-                            this.statistics.discardRequestProcessingRecord(request.id || request.uniqueKey);
+                            this.statistics.discardRequestRecord(request.id || request.uniqueKey);
                             await this.timeoutAndRetry(
                                 async () => this.requestManager?.markRequestAsHandled(request),
                                 this.internalTimeoutMillis,
@@ -2657,7 +2657,7 @@ export class BasicCrawler<
             );
             isRequestLocked = false; // markRequestAsHandled succeeded and unlocked the request
 
-            this.statistics.recordRequestProcessingSuccess(statisticsId, request.retryCount);
+            this.statistics.recordRequestSuccess(statisticsId, request.retryCount);
 
             // reclaim session if request finishes successfully
             request.state = RequestState.DONE;
@@ -2906,7 +2906,7 @@ export class BasicCrawler<
         // or failed more than retryCount times and will not be retried anymore.
         // Mark the request as failed and do not retry.
         await source.markRequestAsHandled(request);
-        this.statistics.recordRequestProcessingFailure(request.id || request.uniqueKey, request.retryCount);
+        this.statistics.recordRequestFailure(request.id || request.uniqueKey, request.retryCount);
 
         await this.handleFailedRequestHandler(crawlingContext, error); // This function prints an error message.
     }

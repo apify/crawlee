@@ -56,7 +56,7 @@ The purely mechanical renames, collected in one place. Where a row links to a se
 | `autoscaledPoolOptions` | `taskLoopOptions` ([narrowed](#autoscaledpooloptions-is-now-taskloopoptions-and-no-longer-carries-concurrency-config)) |
 | `crawler.stats` | `crawler.statistics` ([retyped](#statisticsoptions-is-replaced-by-a-statistics-instance)) |
 | `statistics.state.requestsFinished` (and the other `*Finished*` counters) | `requestsSucceeded` ([details](#finished-request-counters-are-renamed-to-succeeded)) |
-| `statistics.startJob()` / `finishJob()` / `failJob()` / `discardJob()` | `recordRequestProcessingStart()` / `recordRequestProcessingSuccess()` / `recordRequestProcessingFailure()` / `discardRequestProcessingRecord()` ([details](#the-request-recording-methods-are-renamed)) |
+| `statistics.startJob()` / `finishJob()` / `failJob()` / `discardJob()` | `recordRequestStart()` / `recordRequestSuccess()` / `recordRequestFailure()` / `discardRequestRecord()` ([details](#the-request-recording-methods-are-renamed)) |
 | `browserPoolOptions` | `browserPool` + a `*BrowserPool()` factory ([details](#browserpooloptions-is-removed)) |
 | `gotScraping` (from `@crawlee/utils`) | `GotScrapingHttpClient` (`@crawlee/got-scraping-client`) |
 | `SDK_`-prefixed internal KVS keys | `CRAWLEE_`-prefixed ([details](#internal-kvs-keys-renamed)) |
@@ -152,14 +152,14 @@ The crawler following options are removed:
 
 ### `*Finished*` request counters are renamed to `*Succeeded*`
 
-A failed request is also finished, so counters that only ever counted the successful ones were misleading. The rename covers `StatisticState` (`crawler.statistics.state`), the `CalculatedStatistics` returned by `crawler.statistics.calculate()` - which is also what the periodic statistics log line reports - and the `FinalStatistics` returned by `crawler.run()`:
+A failed request is also finished, so counters that only ever counted the successful ones were misleading. The rename covers `StatisticState` (`crawler.statistics.state`), the `CalculatedStatistics` returned by `crawler.statistics.calculate()` - which is also what the periodic statistics log line reports - the `FinalStatistics` returned by `crawler.run()`, and the record persisted under `CRAWLEE_CRAWLER_STATISTICS_*`:
 
 - `requestsFinished` -> `requestsSucceeded`
 - `requestsFinishedPerMinute` -> `requestsSucceededPerMinute`
 - `requestTotalFinishedDurationMillis` -> `requestTotalSucceededDurationMillis`
 - `requestAvgFinishedDurationMillis` -> `requestAvgSucceededDurationMillis`
 
-The record persisted under `CRAWLEE_CRAWLER_STATISTICS_*` keeps the old field names, so tooling reading it needs no changes. `crawlerFinishedAt` is unchanged - the crawler really does finish.
+Tooling that reads the persisted record needs the same rename applied. `crawlerFinishedAt` is unchanged - the crawler really does finish.
 
 ### Crawler constructors no longer take a `Configuration` argument
 
@@ -1295,10 +1295,10 @@ The option accepts the built-in `Statistics` or any object implementing the new 
 
 A crawler processes requests, not jobs, so the four methods `IStatistics` exposes for recording them dropped the borrowed vocabulary. Signatures are unchanged, so a custom implementation only needs renaming:
 
-- `startJob()` -> `recordRequestProcessingStart()`
-- `finishJob()` -> `recordRequestProcessingSuccess()`
-- `failJob()` -> `recordRequestProcessingFailure()`
-- `discardJob()` -> `discardRequestProcessingRecord()`
+- `startJob()` -> `recordRequestStart()`
+- `finishJob()` -> `recordRequestSuccess()`
+- `failJob()` -> `recordRequestFailure()`
+- `discardJob()` -> `discardRequestRecord()`
 
 ### The `Statistics` persistence lifecycle is stricter
 

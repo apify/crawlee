@@ -60,15 +60,15 @@ const errorTrackerConfig = {
  * validated by their own conversion on the way back, so the keys it does not know about are simply dropped here.
  */
 const persistedStatisticState = z.object({
-    requestsFinished: z.number(),
+    requestsSucceeded: z.number(),
     requestsFailed: z.number(),
     requestsRetries: z.number(),
     requestsFailedPerMinute: z.number().nullable(),
-    requestsFinishedPerMinute: z.number().nullable(),
+    requestsSucceededPerMinute: z.number().nullable(),
     requestMinDurationMillis: z.number().nullable(),
     requestMaxDurationMillis: z.number(),
     requestTotalFailedDurationMillis: z.number(),
-    requestTotalFinishedDurationMillis: z.number(),
+    requestTotalSucceededDurationMillis: z.number(),
     crawlerStartedAt: z.string().nullable(),
     crawlerFinishedAt: z.string().nullable(),
     statsPersistedAt: z.string(),
@@ -79,7 +79,7 @@ const persistedStatisticState = z.object({
     requestRetryHistogram: z.array(z.number().nullable()),
     statsId: z.string(),
     requestAvgFailedDurationMillis: z.number().nullable(),
-    requestAvgFinishedDurationMillis: z.number().nullable(),
+    requestAvgSucceededDurationMillis: z.number().nullable(),
     requestTotalDurationMillis: z.number(),
     requestsTotal: z.number(),
     requestsWithStatusCode: z.record(z.string(), z.number()),
@@ -110,11 +110,11 @@ function buildStatisticStateCodec(statistics: {
     return z.codec(persistedStatisticState, z.custom<StatisticState>(), {
         decode: (record) => ({
             ...statistics.defaultState(),
-            requestsSucceeded: record.requestsFinished,
+            requestsSucceeded: record.requestsSucceeded,
             requestsFailed: record.requestsFailed,
             requestsRetries: record.requestsRetries,
             requestTotalFailedDurationMillis: record.requestTotalFailedDurationMillis,
-            requestTotalSucceededDurationMillis: record.requestTotalFinishedDurationMillis,
+            requestTotalSucceededDurationMillis: record.requestTotalSucceededDurationMillis,
             // Restoring the `null` as-is would make every later `duration < min` comparison fail, leaving the
             // minimum `null` for the rest of the run.
             requestMinDurationMillis: record.requestMinDurationMillis ?? Infinity,
@@ -131,18 +131,10 @@ function buildStatisticStateCodec(statistics: {
                 Date.now() - (new Date(record.statsPersistedAt).getTime() - record.crawlerLastStartTimestamp),
         }),
         encode: (state) => {
-            // The state's `requestsSucceededPerMinute` is not pulled out with its siblings - the name is bound
-            // below by `calculate()` - so it falls through into `counters`, where the schema drops it.
-            const {
-                requestsWithStatusCode,
-                errors,
-                retryErrors,
-                requestRetryHistogram,
-                instanceStart,
-                requestsSucceeded,
-                requestTotalSucceededDurationMillis,
-                ...counters
-            } = state;
+            // The per-minute rates fall through into `counters` and are overwritten below by `calculate()`'s,
+            // which are the ones the record carries.
+            const { requestsWithStatusCode, errors, retryErrors, requestRetryHistogram, instanceStart, ...counters } =
+                state;
             // Every rate and average `calculate()` derives is `Infinity` until the run is long enough, or until
             // something has succeeded or failed, to divide by.
             const {
@@ -155,8 +147,6 @@ function buildStatisticStateCodec(statistics: {
 
             return {
                 ...counters,
-                requestsFinished: requestsSucceeded,
-                requestTotalFinishedDurationMillis: requestTotalSucceededDurationMillis,
                 requestMinDurationMillis: finiteOrNull(state.requestMinDurationMillis),
                 crawlerStartedAt: state.crawlerStartedAt ? new Date(state.crawlerStartedAt).toISOString() : null,
                 crawlerFinishedAt: state.crawlerFinishedAt ? new Date(state.crawlerFinishedAt).toISOString() : null,
@@ -168,9 +158,9 @@ function buildStatisticStateCodec(statistics: {
                 statsId: statistics.statsId,
                 ...aggregates,
                 requestAvgFailedDurationMillis: finiteOrNull(requestAvgFailedDurationMillis),
-                requestAvgFinishedDurationMillis: finiteOrNull(requestAvgSucceededDurationMillis),
+                requestAvgSucceededDurationMillis: finiteOrNull(requestAvgSucceededDurationMillis),
                 requestsFailedPerMinute: finiteOrNull(requestsFailedPerMinute),
-                requestsFinishedPerMinute: finiteOrNull(requestsSucceededPerMinute),
+                requestsSucceededPerMinute: finiteOrNull(requestsSucceededPerMinute),
                 requestsWithStatusCode,
                 errors,
                 retryErrors,
@@ -218,16 +208,16 @@ export interface IStatistics<StateExtension extends object = {}> {
     readonly requestRetryHistogram: number[];
 
     /** Marks a request as started, so its duration can be measured on success/failure. */
-    recordRequestProcessingStart(id: number | string): void;
+    recordRequestStart(id: number | string): void;
 
     /** Marks a started request as succeeded, updating the succeeded counters and durations. */
-    recordRequestProcessingSuccess(id: number | string, retryCount: number): void;
+    recordRequestSuccess(id: number | string, retryCount: number): void;
 
     /** Marks a started request as failed, updating the failed counters and durations. */
-    recordRequestProcessingFailure(id: number | string, retryCount: number): void;
+    recordRequestFailure(id: number | string, retryCount: number): void;
 
     /** Drops a started request without counting it as succeeded or failed (e.g. skipped by robots.txt). */
-    discardRequestProcessingRecord(id: number | string): void;
+    discardRequestRecord(id: number | string): void;
 
     /** Increments the counter for the given HTTP status code. */
     registerStatusCode(code: number): void;
@@ -502,7 +492,7 @@ export class Statistics<
     }
 
     /** @ignore */
-    recordRequestProcessingStart(id: number | string) {
+    recordRequestStart(id: number | string) {
         let record = this.#requestsInProgress.get(id);
         if (!record) record = new RequestProcessingRecord();
         record.run();
@@ -510,7 +500,7 @@ export class Statistics<
     }
 
     /** @ignore */
-    recordRequestProcessingSuccess(id: number | string, retryCount: number) {
+    recordRequestSuccess(id: number | string, retryCount: number) {
         const record = this.#requestsInProgress.get(id);
         if (!record) return;
         const durationMillis = record.finish();
@@ -523,7 +513,7 @@ export class Statistics<
     }
 
     /** @ignore */
-    recordRequestProcessingFailure(id: number | string, retryCount: number) {
+    recordRequestFailure(id: number | string, retryCount: number) {
         const record = this.#requestsInProgress.get(id);
         if (!record) return;
         this.state.requestTotalFailedDurationMillis += record.finish();
@@ -534,11 +524,11 @@ export class Statistics<
 
     /**
      * Discards a started request without affecting the succeeded/failed counters, e.g. when a request
-     * turns out to be skipped (robots.txt, enqueue strategy) after `recordRequestProcessingStart` was already
+     * turns out to be skipped (robots.txt, enqueue strategy) after `recordRequestStart` was already
      * called for it.
      * @ignore
      */
-    discardRequestProcessingRecord(id: number | string) {
+    discardRequestRecord(id: number | string) {
         this.#requestsInProgress.delete(id);
     }
 
@@ -865,9 +855,6 @@ export interface StatisticStateExtensionOptions<
  *
  * The `null`s are `Infinity` on the way out - JSON has no infinity, so a record written before anything
  * succeeded or failed carries a `null` in its place.
- *
- * The field names are the record's own: the state's `*Succeeded*` counters are written under the `*Finished*`
- * names v3 wrote them with, because the record is read by tooling outside Crawlee.
  */
 export interface StatisticPersistedState extends Omit<
     StatisticState,
@@ -876,17 +863,13 @@ export interface StatisticPersistedState extends Omit<
     | 'crawlerFinishedAt'
     | 'requestMinDurationMillis'
     | 'requestsFailedPerMinute'
-    | 'requestsSucceeded'
     | 'requestsSucceededPerMinute'
-    | 'requestTotalSucceededDurationMillis'
     | 'requestRetryHistogram'
     | 'instanceStart'
 > {
     statsId: string;
-    requestsFinished: number;
-    requestTotalFinishedDurationMillis: number;
     requestsFailedPerMinute: number | null;
-    requestsFinishedPerMinute: number | null;
+    requestsSucceededPerMinute: number | null;
     /** ISO strings - the live state keeps these as `Date`s. */
     crawlerStartedAt: string | null;
     crawlerFinishedAt: string | null;
@@ -895,7 +878,7 @@ export interface StatisticPersistedState extends Omit<
     /** A retry count that no request ever reached leaves a `null` here. */
     requestRetryHistogram: (number | null)[];
     requestAvgFailedDurationMillis: number | null;
-    requestAvgFinishedDurationMillis: number | null;
+    requestAvgSucceededDurationMillis: number | null;
     requestTotalDurationMillis: number;
     requestsTotal: number;
     /** {@apilink StatisticState.instanceStart} of the run that wrote the record. */
