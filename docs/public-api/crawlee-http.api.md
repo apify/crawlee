@@ -12,16 +12,14 @@ import type { CheerioAPI } from 'cheerio';
 import { ConcurrencySystem } from '@crawlee/basic';
 import type { ConcurrencySystemOptions } from '@crawlee/basic';
 import { ContextPipeline } from '@crawlee/basic';
-import type { ContextPipeline as ContextPipeline_2 } from '@crawlee/core';
 import type { CrawlingContext } from '@crawlee/basic';
-import type { CrawlingContext as CrawlingContext_2 } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/types';
 import type { EnqueueLinksOptions } from '@crawlee/basic';
 import { ErrorHandler } from '@crawlee/basic';
 import type { ExtractLinksOptions } from '@crawlee/basic';
 import { GetUserDataFromRequest } from '@crawlee/basic';
 import type { JsonValue } from 'type-fest';
-import { LoadedRequest } from '@crawlee/core';
+import type { LoadedRequest } from '@crawlee/basic';
 import { Request as Request_2 } from '@crawlee/basic';
 import type { Request as Request_3 } from '@crawlee/core';
 import { RequestHandler } from '@crawlee/basic';
@@ -110,11 +108,11 @@ export interface DOMParseResult {
 export class FileDownload extends BasicCrawler<FileDownloadCrawlingContext> {
     constructor(options?: BasicCrawlerOptions<FileDownloadCrawlingContext>);
     // (undocumented)
-    protected buildContextPipeline(): ContextPipeline_2<CrawlingContext_2, FileDownloadCrawlingContext>;
+    protected buildContextPipeline(): ContextPipeline<CrawlingContext, FileDownloadCrawlingContext>;
 }
 
 // @public (undocumented)
-export interface FileDownloadCrawlingContext<UserData extends Dictionary = any> extends CrawlingContext_2<UserData> {
+export interface FileDownloadCrawlingContext<UserData extends Dictionary = any> extends CrawlingContext<UserData> {
     // (undocumented)
     contentType: {
         type: string;
@@ -128,7 +126,7 @@ export interface FileDownloadCrawlingContext<UserData extends Dictionary = any> 
 
 // @public (undocumented)
 export type FileDownloadErrorHandler<UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
-ContextExtension = Dictionary<never>> = ErrorHandler<CrawlingContext_2, FileDownloadCrawlingContext<UserData> & ContextExtension>;
+ContextExtension = Dictionary<never>> = ErrorHandler<CrawlingContext, FileDownloadCrawlingContext<UserData> & ContextExtension>;
 
 // @public (undocumented)
 export type FileDownloadHook<UserData extends Dictionary = any> = InternalHttpHook<FileDownloadCrawlingContext<UserData>>;

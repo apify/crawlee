@@ -4,7 +4,7 @@ import {
     ContextPipelineInitializationError,
     ContextPipelineInterruptedError,
     RequestHandlerError,
-} from '@crawlee/core';
+} from '@crawlee/basic';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('ContextPipeline', () => {

@@ -4,48 +4,22 @@ import { dirname } from 'node:path';
 import type {
     AddRequestsBatchedOptions,
     AddRequestsBatchedResult,
-    AutoscaledPoolOptions,
-    ConcurrencySystemOptions,
     CrawleeLogger,
-    CrawlingContext,
     DatasetExportOptions,
-    EnqueueUrlsOptions,
     EventStatusMessageData,
-    FinalStatistics,
-    GetUserDataFromRequest,
-    IConcurrencySystem,
     IProxyConfiguration,
     IRequestLoader,
     IRequestManager,
-    IStatistics,
     RequestOptions,
     RequestsLike,
-    RouterHandler,
-    RouterRoutes,
-    SkippedRequestCallback,
     SkippedRequestReason,
     Source,
-    StatisticState,
     StorageIdentifier,
     StorageWritePolicy,
-    TaskLoopOptions,
-    TypedRequestsLike,
-    UrlPatternObject,
 } from '@crawlee/core';
 import {
-    applyRequestTransform,
     bindMethodsToServiceLocator,
-    BLOCKED_STATUS_CODES,
-    buildEnqueueStrategyPatterns,
-    ConcurrencySystem,
     Configuration,
-    constructUrlPatternObjects,
-    ContextPipeline,
-    ContextPipelineCleanupError,
-    ContextPipelineInitializationError,
-    ContextPipelineInterruptedError,
-    createRequestOptions,
-    createSkippedRequestArgs,
     createStorageTransaction,
     Request,
     CriticalError,
@@ -54,33 +28,18 @@ import {
     EnqueueStrategy,
     EventManager,
     EventType,
-    filterRequestOptionsByPatterns,
     getObjectType,
     KeyValueStore,
     log,
-    mergeCookies,
-    MissingSessionError,
-    NavigationSkippedError,
     NonRetryableError,
     OwnedOrInjected,
-    PersistentRateLimitError,
     purgeDefaultStorages,
-    RequestHandlerError,
-    parseRetryAfterHeader,
-    RequestThrottledError,
     RequestManagerTandem,
     RequestQueue,
     RequestState,
-    RetryRequestError,
-    Router,
     ServiceLocator,
     serviceLocator,
-    Session,
     SessionError,
-    SessionPool,
-    Statistics,
-    ThrottlingRequestManager,
-    validateUserData,
     validators,
     withDirectStorageAccess,
 } from '@crawlee/core';
@@ -104,6 +63,36 @@ import { LruCache } from '@apify/datastructures';
 import { addTimeoutToPromise, extendTimeout, storage as timeoutStorage, TimeoutError, tryCancel } from '@apify/timeout';
 import { cryptoRandomObjectId } from '@apify/utilities';
 
+import type { AutoscaledPoolOptions, TaskLoopOptions } from './autoscaling/autoscaled_pool.js';
+import type { ConcurrencySystemOptions, IConcurrencySystem } from './autoscaling/concurrency_system.js';
+import { ConcurrencySystem } from './autoscaling/concurrency_system.js';
+import type { FinalStatistics } from './autoscaling/system_status.js';
+import { mergeCookies } from './cookie_utils.js';
+import { ContextPipeline } from './crawlers/context_pipeline.js';
+import type { CrawlingContext, TypedRequestsLike } from './crawlers/crawler_commons.js';
+import {
+    ContextPipelineCleanupError,
+    ContextPipelineInitializationError,
+    ContextPipelineInterruptedError,
+    MissingSessionError,
+    NavigationSkippedError,
+    PersistentRateLimitError,
+    RequestHandlerError,
+    RequestThrottledError,
+    RetryRequestError,
+} from './errors.js';
+import type { IStatistics, StatisticState } from './crawlers/statistics.js';
+import { Statistics } from './crawlers/statistics.js';
+import type { EnqueueUrlsOptions, SkippedRequestCallback, UrlPatternObject } from './enqueue_links/index.js';
+import {
+    applyRequestTransform,
+    buildEnqueueStrategyPatterns,
+    constructUrlPatternObjects,
+    createRequestOptions,
+    createSkippedRequestArgs,
+    filterRequestOptionsByPatterns,
+} from './enqueue_links/index.js';
+import { parseRetryAfterHeader } from './http.js';
 import { CrawlerRun } from './crawler-run.js';
 import {
     extendTimeoutKey,
@@ -113,6 +102,12 @@ import {
     timeoutExpiredKey,
 } from './request-timeout.js';
 import { createSendRequest } from './send-request.js';
+import type { GetUserDataFromRequest, RouterHandler, RouterRoutes } from './router.js';
+import { Router, validateUserData } from './router.js';
+import { BLOCKED_STATUS_CODES } from './session_pool/consts.js';
+import { Session } from './session_pool/session.js';
+import { SessionPool } from './session_pool/session_pool.js';
+import { ThrottlingRequestManager } from './throttling_request_manager.js';
 
 class LazyDefaultHttpClient extends BaseHttpClient {
     readonly #delegatePromise: Promise<BaseHttpClient>;

@@ -1,3 +1,6 @@
+import type { CrawleeLogger } from '@crawlee/core';
+import { CriticalError, serviceLocator, validators } from '@crawlee/core';
+import { parseArgument, schemas } from '@crawlee/utils/internal';
 import { z } from 'zod';
 
 import { addTimeoutToPromise } from '@apify/timeout';
@@ -5,10 +8,6 @@ import type { BetterIntervalID } from '@apify/utilities';
 import { betterClearInterval, betterSetInterval } from '@apify/utilities';
 
 import type { ConcurrencyConsumer, IConcurrencySystem } from './concurrency_system.js';
-import { CriticalError } from '../errors.js';
-import type { CrawleeLogger } from '../log.js';
-import { serviceLocator } from '../service_locator.js';
-import { parseArgument, schemas, validators } from '../validators.js';
 
 // `schemas.anyObject` and `objectWithKeys`-based validators pass values through by reference
 // (object schemas return a pruned plain copy), so class instances like loggers and the

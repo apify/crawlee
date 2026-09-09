@@ -8,15 +8,8 @@ import {
     PuppeteerPlugin,
     RemoteBrowserPool,
 } from '@crawlee/browser-pool';
-import {
-    bindMethodsToServiceLocator,
-    BLOCKED_STATUS_CODES,
-    type ConcurrencySystem,
-    MemoryStorageBackend,
-    serviceLocator,
-    ServiceLocator,
-    SessionPool,
-} from '@crawlee/core';
+import { BLOCKED_STATUS_CODES, type ConcurrencySystem, SessionPool } from '@crawlee/basic';
+import { bindMethodsToServiceLocator, MemoryStorageBackend, serviceLocator, ServiceLocator } from '@crawlee/core';
 import type { PuppeteerGoToOptions } from '@crawlee/puppeteer';
 import { EnqueueStrategy, ProxyConfiguration, Request, RequestList, RequestState, Session } from '@crawlee/puppeteer';
 import { sleep } from '@crawlee/utils';

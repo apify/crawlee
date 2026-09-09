@@ -9,34 +9,34 @@ import type {
 import { setTimeout as delay } from 'node:timers/promises';
 import { isDeepStrictEqual } from 'node:util';
 
-import type { BasicCrawlerOptions } from '@crawlee/basic';
-import { BasicCrawler } from '@crawlee/basic';
-import { extractUrlsFromPage } from '@crawlee/browser';
-import type { CheerioCrawlingContext } from '@crawlee/cheerio';
-import { CheerioCrawler } from '@crawlee/cheerio';
 import type {
-    AddRequestsBatchedResult,
+    BasicCrawlerOptions,
     ContextPipeline,
-    CrawleeLogger,
     CrawlingContext,
     EnqueueLinksOptions,
     GetUserDataFromRequest,
     RestrictedCrawlingContext,
     RouterRoutes,
     StatisticStateExtensionOptions,
-    StorageTransaction,
-    StorageTransactionView,
-    StorageWritePolicy,
-} from '@crawlee/core';
+} from '@crawlee/basic';
 import {
-    createStorageTransaction,
-    EnqueueStrategy,
-    OwnedOrInjected,
+    BasicCrawler,
     RequestHandlerError,
     resolveBaseUrlForEnqueueLinksFiltering,
     Router,
     Statistics,
+} from '@crawlee/basic';
+import { extractUrlsFromPage } from '@crawlee/browser';
+import type { CheerioCrawlingContext } from '@crawlee/cheerio';
+import { CheerioCrawler } from '@crawlee/cheerio';
+import type {
+    AddRequestsBatchedResult,
+    CrawleeLogger,
+    StorageTransaction,
+    StorageTransactionView,
+    StorageWritePolicy,
 } from '@crawlee/core';
+import { createStorageTransaction, EnqueueStrategy, OwnedOrInjected } from '@crawlee/core';
 import type { Dictionary, Awaitable } from '@crawlee/types';
 import { extractUrlsFromCheerio, parseArgument } from '@crawlee/utils/internal';
 import { type Cheerio, type CheerioAPI } from 'cheerio';

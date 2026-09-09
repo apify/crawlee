@@ -1,4 +1,4 @@
-import { getCookiesFromResponse } from '@crawlee/core';
+import { getCookiesFromResponse } from '@crawlee/basic';
 import { Cookie } from 'tough-cookie';
 
 describe('getCookiesFromResponse', () => {

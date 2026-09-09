@@ -1,13 +1,9 @@
-import type { Configuration } from '../configuration.js';
-import type { EventManager } from '../events/event_manager.js';
-import { EventType } from '../events/event_manager.js';
-import type { CrawleeLogger } from '../log.js';
-import { serviceLocator } from '../service_locator.js';
-import { getMemoryInfo } from '../system-info/memory-info.js';
-import { isContainerized } from '../system-info/runtime.js';
+import type { Configuration, CrawleeLogger, EventManager, SystemInfo } from '@crawlee/core';
+import { EventType, serviceLocator } from '@crawlee/core';
+import { getMemoryInfo, isContainerized } from '@crawlee/core/internal';
+
 import type { LoadSignal, LoadSignalStartContext, LoadSnapshot } from './load_signal.js';
 import { SnapshotStore } from './load_signal.js';
-import type { SystemInfo } from './system_status.js';
 
 const RESERVE_MEMORY_RATIO = 0.5;
 const CRITICAL_OVERLOAD_RATE_LIMIT_MILLIS = 10_000;

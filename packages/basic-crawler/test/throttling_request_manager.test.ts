@@ -1,10 +1,11 @@
-import type { AddRequestsBatchedResult, StorageIdentifier, ThrottlingRequestManagerOptions } from '@crawlee/core';
+import type { ThrottlingRequestManagerOptions } from '@crawlee/basic';
+import { ThrottlingRequestManager } from '@crawlee/basic';
+import type { AddRequestsBatchedResult, StorageIdentifier } from '@crawlee/core';
 import {
     KeyValueStore,
     MemoryStorageBackend,
     RequestQueue,
     serviceLocator,
-    ThrottlingRequestManager,
     withStorageTransaction,
 } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';

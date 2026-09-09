@@ -381,7 +381,7 @@ router.addHandler('LIST', async ({ page, extendTimeout }) => {
 The `useSessionPool` and `sessionPoolOptions` options have been removed from the `BasicCrawler` constructor. Every crawler now uses a `SessionPool` by default. Instead of passing `sessionPoolOptions`, create a `SessionPool` instance directly and pass it via the `sessionPool` option.
 
 ```typescript
-import { SessionPool } from '@crawlee/core';
+import { SessionPool } from '@crawlee/basic';
 
 const crawler = new BasicCrawler({
     // The old parameters won't work anymore
@@ -1031,7 +1031,7 @@ Crawlers now accept any object implementing the new `ISessionPool` interface as 
 `ISessionPool` and `ISession` live in `@crawlee/types`; they are not re-exported from `@crawlee/core` (see [`@crawlee/types` symbols are no longer re-exported](#crawleetypes-symbols-are-no-longer-re-exported)).
 
 ```typescript
-import { BasicCrawler, Session } from '@crawlee/core';
+import { BasicCrawler, Session } from '@crawlee/basic';
 import type { ISession, ISessionPool } from '@crawlee/types';
 
 class MySessionPool implements ISessionPool {
@@ -1123,7 +1123,7 @@ The `tieredProxyUrls` option has been removed, together with the `proxyTier` fie
 If you used tiers to escalate from a cheap proxy pool to a pricier one on blocks, you can achieve the same behavior by pre-populating a `SessionPool` with named sessions — one per proxy tier — and flipping `request.sessionId` in an `errorHandler` to reassign the retry to the next tier. Skip the `proxyConfiguration` option on the crawler — the session already carries its own proxy.
 
 ```typescript
-import { BasicCrawler, SessionPool } from '@crawlee/core';
+import { BasicCrawler, SessionPool } from '@crawlee/basic';
 
 const proxyInfoFromUrl = (proxyUrl: string) => {
     const { username, password, hostname, port } = new URL(proxyUrl);
@@ -1334,7 +1334,7 @@ Applies when you passed `statisticsOptions` to a crawler, subclassed `Statistics
 The `statisticsOptions` option has been removed from the crawler constructor. Instead of passing options for the crawler to build its `Statistics` from, construct a `Statistics` instance yourself and pass it via the new `statistics` option — the same inject-or-default idiom as `sessionPool` and `browserPool`.
 
 ```typescript
-import { Statistics } from '@crawlee/core';
+import { Statistics } from '@crawlee/basic';
 
 const crawler = new BasicCrawler({
     // The old parameter won't work anymore
@@ -1911,7 +1911,7 @@ On Node.js 24, `await using` replaces the `try`/`finally` — see [collaborators
 
 #### `AutoscaledPool` is no longer public API
 
-`AutoscaledPool` is `@internal` in v4, along with `AutoscaledPoolOptions`. It is still exported from `@crawlee/core` (and re-exported by `crawlee`), so nothing breaks at import time — but with all the configuration moved to the `ConcurrencySystem`, what remains is a bare parallel task runner. It can change without a major bump, so avoid depending on it; if you only wanted bounded parallelism, a `p-limit`-style helper is a better fit than an internal Crawlee class.
+`AutoscaledPool` is `@internal` in v4, along with `AutoscaledPoolOptions`. It is still exported from `@crawlee/basic` (and re-exported by `crawlee`), so nothing breaks at import time — but with all the configuration moved to the `ConcurrencySystem`, what remains is a bare parallel task runner. It can change without a major bump, so avoid depending on it; if you only wanted bounded parallelism, a `p-limit`-style helper is a better fit than an internal Crawlee class.
 
 The crawler's `autoscaledPool` property is **private** as a result. Everything it was reached for has a crawler-level counterpart:
 
@@ -1969,7 +1969,7 @@ await pool.run();
 
 **After:**
 ```typescript
-import { AutoscaledPool, ConcurrencySystem } from '@crawlee/core';
+import { AutoscaledPool, ConcurrencySystem } from '@crawlee/basic';
 
 const concurrencySystem = new ConcurrencySystem({
     minConcurrency: 5,
@@ -2157,6 +2157,21 @@ Relatedly, `RobotsTxtFile.getSitemaps()`, `parseSitemaps()`, and `parseUrlsFromS
 ### HTML-parsing helper functions are now asynchronous
 
 The HTML-parsing helper functions `htmlToText`, `parseHandlesFromHtml` and `parseOpenGraph` are now asynchronous and return promises.
+
+## Only if you import from `@crawlee/core` directly
+
+The crawler-only parts of `@crawlee/core` moved to `@crawlee/basic`, so that `@crawlee/core` carries just the storage, request and configuration layer. The moved exports are:
+
+- autoscaling: `ConcurrencySystem`, `AutoscaledPool`, `Snapshotter`, `SystemStatus`, the `LoadSignal` implementations and their option/snapshot types
+- crawler internals: `Statistics`, `ErrorTracker`, `ErrorSnapshotter`, `ContextPipeline`, and the crawling-context types (`CrawlingContext`, `RestrictedCrawlingContext`, `LoadedRequest`, …)
+- `SessionPool`, `Session` and the session-pool constants
+- `Router` (with `RouterHandler`, `RouterRoutes` and `defaultRoute`)
+- the cookie helpers (`mergeCookies`, `getCookiesFromResponse`, …) and `parseRetryAfterHeader`
+- `SitemapRequestLoader` (with `SitemapRequestLoaderOptions`) and `ThrottlingRequestManager` (with `ThrottlingRequestManagerOptions` and `RequestManagerOpener`)
+- the `enqueueLinks()` option types (`EnqueueLinksOptions`, `ExtractLinksOptions`, `EnqueueUrlsOptions`, `RequestTransform`, `SkippedRequestCallback`) and the URL pattern types and helpers (`GlobInput`, `RegExpInput`, `UrlPatternInput`, `UrlPatternObject`, `constructUrlPatternObjects`, …)
+- the crawler-only error classes: `RetryRequestError`, `RequestThrottledError`, `PersistentRateLimitError`, `NavigationSkippedError`, `MissingSessionError`, `MissingRouteError`, `RequestHandlerError` and the `ContextPipeline*Error` types
+
+`@crawlee/basic` re-exports everything from `@crawlee/core`, so `import { SessionPool } from '@crawlee/basic'` (or from `crawlee`, `@crawlee/http`, `@crawlee/playwright`, …) keeps working unchanged. Only imports written against `@crawlee/core` itself need to be pointed at `@crawlee/basic`.
 
 ## Only if you use `StagehandCrawler`
 

@@ -1,13 +1,11 @@
+import type { CrawleeLogger } from '@crawlee/core';
+import { KeyValueStore, RecoverableState, serviceLocator, validators } from '@crawlee/core';
 import type { Dictionary, ISessionPool, SessionState } from '@crawlee/types';
+import { parseArgument, schemas } from '@crawlee/utils/internal';
 import { AsyncQueue } from '@sapphire/async-queue';
 import { z } from 'zod';
 
 import type { PersistenceOptions } from '../crawlers/statistics.js';
-import type { CrawleeLogger } from '../log.js';
-import { RecoverableState } from '../recoverable_state.js';
-import { serviceLocator } from '../service_locator.js';
-import { KeyValueStore } from '../storages/key_value_store.js';
-import { parseArgument, schemas, validators } from '../validators.js';
 import { MAX_POOL_SIZE, PERSIST_STATE_KEY } from './consts.js';
 import { createDefaultSessionFingerprint } from './fingerprint.js';
 import type { SessionOptions } from './session.js';

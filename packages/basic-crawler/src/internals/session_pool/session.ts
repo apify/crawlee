@@ -1,12 +1,11 @@
+import type { CrawleeLogger } from '@crawlee/core';
+import { serviceLocator, validators } from '@crawlee/core';
 import type { Dictionary, ISession, ProxyInfo, SessionFingerprint, SessionState } from '@crawlee/types';
+import { parseArgument, schemas } from '@crawlee/utils/internal';
 import { CookieJar } from 'tough-cookie';
 import { z } from 'zod';
 
 import { cryptoRandomObjectId } from '@apify/utilities';
-
-import type { CrawleeLogger } from '../log.js';
-import { serviceLocator } from '../service_locator.js';
-import { parseArgument, schemas, validators } from '../validators.js';
 
 // `schemas.anyObject` passes values through by reference (object schemas return a pruned plain
 // copy), so class instances like cookie jars and loggers keep their prototype.

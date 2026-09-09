@@ -1,4 +1,4 @@
-import { Session } from '@crawlee/core';
+import { Session } from '@crawlee/basic';
 import { sleep } from '@crawlee/utils';
 
 import { entries } from '../../shared/typedefs.js';

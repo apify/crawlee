@@ -1,6 +1,6 @@
-import { BasicCrawler } from '@crawlee/basic';
-import type { CrawlingContext } from '@crawlee/core';
-import { defaultRoute, MissingRouteError, Request, RequestValidationError, Router } from '@crawlee/core';
+import type { CrawlingContext } from '@crawlee/basic';
+import { BasicCrawler, defaultRoute, MissingRouteError, Router } from '@crawlee/basic';
+import { Request, RequestValidationError } from '@crawlee/core';
 import {
     CheerioCrawler,
     type CheerioCrawlingContext,

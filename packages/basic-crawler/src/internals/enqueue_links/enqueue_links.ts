@@ -2,7 +2,8 @@ import type { Dictionary } from '@crawlee/types';
 import { EnqueueStrategy } from '@crawlee/utils';
 import { getDomain } from 'tldts';
 
-import type { RequestQueueOperationOptions } from '../storages/request_queue.js';
+import type { EnqueueStrategyOption, RequestQueueOperationOptions } from '@crawlee/core';
+
 import type { RequestTransform, SkippedRequestCallback, UrlPatternInput, UrlPatternObject } from './shared.js';
 
 /**
@@ -145,11 +146,6 @@ export interface EnqueueUrlsOptions extends RequestQueueOperationOptions {
 
 /** The combined options accepted by a crawler context's `enqueueLinks()` helper: `extractLinks()` + `enqueueUrls()`. */
 export type EnqueueLinksOptions = ExtractLinksOptions & EnqueueUrlsOptions;
-
-export { EnqueueStrategy };
-
-/** The `strategy` option accepted by {@apilink ExtractLinksOptions} and {@apilink EnqueueUrlsOptions}. */
-export type EnqueueStrategyOption = EnqueueStrategy | 'all' | 'same-domain' | 'same-hostname' | 'same-origin';
 
 /**
  * @internal

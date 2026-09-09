@@ -1,13 +1,6 @@
-import {
-    EventType,
-    KeyValueStore,
-    MemoryStorageBackend,
-    serviceLocator,
-    Session,
-    SessionPool,
-    StateValidationError,
-} from '@crawlee/core';
-import type { SessionOptions } from '@crawlee/core';
+import type { SessionOptions } from '@crawlee/basic';
+import { Session, SessionPool } from '@crawlee/basic';
+import { EventType, KeyValueStore, MemoryStorageBackend, serviceLocator, StateValidationError } from '@crawlee/core';
 
 describe('SessionPool - testing session pool', () => {
     let sessionPool: SessionPool;
