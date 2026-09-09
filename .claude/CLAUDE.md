@@ -39,8 +39,8 @@ yarn install
 yarn build                    # Build all packages (Turbo + TypeScript)
 
 # Test
-yarn test                     # Run all tests (vitest)
-yarn test:full                # Include difficult tests (CRAWLEE_DIFFICULT_TESTS=1)
+yarn test                     # Run all tests (vitest), fast config
+yarn test:full                # Difficult tests + full firefox/webkit plugin matrix
 yarn vitest run path/to/test.ts    # Run specific test file
 
 # Code Quality

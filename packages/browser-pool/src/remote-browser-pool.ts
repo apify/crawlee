@@ -289,6 +289,14 @@ export class RemoteBrowserPool<Page = unknown> implements IBrowserPool<Page> {
         return this.#pool.injectPageState(page, state);
     }
 
+    /**
+     * Closes all browsers and releases their remote sessions, leaving the pool usable. Closing a browser is what
+     * releases its session (see the constructor), so this needs no separate release pass.
+     */
+    async releaseAllBrowsers(): Promise<void> {
+        await this.browserPool.releaseAllBrowsers();
+    }
+
     async [Symbol.asyncDispose](): Promise<void> {
         await this.destroy();
     }

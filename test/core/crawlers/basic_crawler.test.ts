@@ -16,6 +16,7 @@ import type {
     Source,
 } from '@crawlee/basic';
 import {
+    AfterCommitError,
     BasicCrawler,
     ConcurrencySystem,
     Configuration,
@@ -376,6 +377,41 @@ describe('BasicCrawler', () => {
         expect(secondSystem.desiredConcurrency).toBeLessThanOrEqual(2);
     });
 
+    test('running tracks the run in progress', async () => {
+        let runningInHandler: boolean | undefined;
+        const crawler = new BasicCrawler({
+            requestHandler: async () => {
+                runningInHandler = crawler.running;
+            },
+        });
+
+        expect(crawler.running).toBe(false);
+        await crawler.run(['https://example.com/1']);
+
+        expect(runningInHandler).toBe(true);
+        expect(crawler.running).toBe(false);
+    });
+
+    test('pause(), resume() and stop() warn once the run has finished', async () => {
+        const crawler = new BasicCrawler({
+            requestHandler: async () => {},
+        });
+
+        await crawler.run(['https://example.com/1']);
+
+        const warning = vitest.spyOn(crawler.log, 'warning');
+        await crawler.pause();
+        crawler.resume();
+        crawler.stop();
+
+        // The finished run's task loop is aborted, so driving it would do nothing while looking like it worked.
+        expect(warning.mock.calls.map(([message]) => message)).toEqual([
+            'Cannot pause a crawler that is not running.',
+            'Cannot resume a crawler that is not running.',
+            'Cannot stop a crawler that is not running.',
+        ]);
+    });
+
     test('stops the owned ConcurrencySystem when startup fails after it was started', async () => {
         const crawler = new BasicCrawler({
             requestHandler: async () => {},
@@ -397,6 +433,28 @@ describe('BasicCrawler', () => {
         // A failed startup is not a run, so the crawler must not stay wedged as `running`.
         getRequestManager.mockRestore();
         await crawler.run(['https://example.com/2']);
+    });
+
+    test('a startup that fails before the crawl leaves the instance runnable', async () => {
+        const processed: string[] = [];
+        const crawler = new BasicCrawler({
+            requestHandler: async ({ request }) => {
+                processed.push(request.url);
+            },
+        });
+
+        const failure = new Error('Could not add the initial requests');
+        // Enqueueing the initial requests happens before the crawl starts, and used to happen outside the
+        // startup's failure handling - leaving the instance wedged as `running` for good.
+        const addRequests = vitest.spyOn(crawler, 'addRequests').mockRejectedValue(failure);
+
+        await expect(crawler.run(['https://example.com/1'])).rejects.toThrow(failure);
+        expect(crawler.running).toBe(false);
+
+        addRequests.mockRestore();
+        await crawler.run(['https://example.com/2']);
+
+        expect(processed).toEqual(['https://example.com/2']);
     });
 
     test('should process 4 requests total when calling run() twice with maxRequestsPerCrawl: 2', async () => {
@@ -3244,7 +3302,7 @@ describe('BasicCrawler', () => {
             expect(enqueueLimitMessages).toHaveLength(2);
         });
 
-        test('maxCrawlDepth limit log message should only be logged once per run', async () => {
+        test('maxCrawlDepth limit log message should only be logged once', async () => {
             const requestQueue = await RequestQueue.open();
 
             // Each handler will try to add URLs that exceed maxCrawlDepth
@@ -3267,15 +3325,16 @@ describe('BasicCrawler', () => {
                 },
             });
 
-            const infoSpy = vitest.spyOn(crawler.log, 'info');
+            // The `once` gate lives inside the logger, so `info()` is still called for every skipped request -
+            // what has to happen once is the message actually going out.
+            const logSpy = vitest.spyOn(crawler.log, 'logWithLevel');
 
             // Run with two initial requests
             // Each will enqueue children at depth 1, then those children will try to enqueue at depth 2 (blocked)
             await crawler.run(['http://example.com/first', 'http://example.com/second']);
 
-            // The maxCrawlDepth limit message should only appear once per run, even though multiple requests triggered it
-            const maxCrawlDepthMessages = infoSpy.mock.calls.filter(
-                (call) => typeof call[0] === 'string' && call[0].includes('maxCrawlDepth'),
+            const maxCrawlDepthMessages = logSpy.mock.calls.filter(
+                (call) => typeof call[1] === 'string' && call[1].includes('maxCrawlDepth'),
             );
             expect(maxCrawlDepthMessages).toHaveLength(1);
         });
@@ -3585,6 +3644,113 @@ describe('BasicCrawler', () => {
             // Without transactions, the write of the failing handler lands immediately and stays.
             const dataset = await Dataset.open();
             await expect(dataset.getData()).resolves.toMatchObject({ items: [{ from: 'failing-handler' }] });
+        });
+
+        test('afterStorageCommit runs for the attempt whose writes were committed', async () => {
+            const committedAttempts: number[] = [];
+
+            const crawler = new BasicCrawler({
+                maxRequestRetries: 1,
+                requestHandler: async ({ request, pushData, afterStorageCommit }) => {
+                    await pushData({ attempt: request.retryCount });
+                    afterStorageCommit(() => void committedAttempts.push(request.retryCount));
+
+                    if (request.retryCount === 0) {
+                        throw new Error('first attempt fails');
+                    }
+                },
+            });
+
+            await crawler.run([`http://${HOSTNAME}:${port}/`]);
+
+            // The rolled-back attempt registered a callback as well; only the committed one ran it.
+            expect(committedAttempts).toEqual([1]);
+        });
+
+        test('a callback that throws after a successful commit does not retry the request', async () => {
+            const failures: Error[] = [];
+            const retried: Error[] = [];
+            let handlerRuns = 0;
+
+            const crawler = new BasicCrawler({
+                maxRequestRetries: 3,
+                requestHandler: async ({ pushData, afterStorageCommit }) => {
+                    handlerRuns++;
+                    await pushData({ item: true });
+                    // A plain, ordinarily retryable error: the retry is suppressed because the item is
+                    // already committed and re-running the handler would push it a second time.
+                    afterStorageCommit(() => {
+                        throw new Error('bookkeeping failed');
+                    });
+                },
+                errorHandler: async (_context, error) => {
+                    retried.push(error);
+                },
+                failedRequestHandler: async (_context, error) => {
+                    failures.push(error);
+                },
+            });
+
+            await crawler.run([`http://${HOSTNAME}:${port}/`]);
+
+            // Reaches `failedRequestHandler` with the wrapper intact, so a handler can tell that the
+            // items did land. `errorHandler` only runs for retried requests, so it is skipped.
+            expect(failures).toEqual([expect.any(AfterCommitError)]);
+            expect(failures[0].cause).toMatchObject({ message: 'bookkeeping failed' });
+            expect(retried).toEqual([]);
+            expect(handlerRuns).toBe(1);
+            await expect(Dataset.getData()).resolves.toMatchObject({ total: 1 });
+        });
+
+        test('afterStorageCommit turns a rejected write into a non-retryable request failure', async () => {
+            const dataset = await Dataset.open();
+            vitest
+                .spyOn(dataset.backend, 'pushData')
+                .mockRejectedValue(new Error('Data item is too large (size: 10000000 bytes)'));
+
+            const failures: string[] = [];
+            let handlerRuns = 0;
+
+            const crawler = new BasicCrawler({
+                maxRequestRetries: 3,
+                requestHandler: async ({ pushData, afterStorageCommit }) => {
+                    handlerRuns++;
+                    await pushData({ huge: true });
+                    afterStorageCommit((error) => {
+                        if (error?.message.includes('too large')) {
+                            throw new NonRetryableError('Enable `saveHtmlAsFile`', { cause: error });
+                        }
+                    });
+                },
+                failedRequestHandler: async (_context, error) => {
+                    failures.push(error.message);
+                },
+            });
+
+            await crawler.run([`http://${HOSTNAME}:${port}/`]);
+
+            // Left alone, the commit failure is an ordinary request error and gets retried to exhaustion.
+            expect(failures).toEqual(['Enable `saveHtmlAsFile`']);
+            expect(handlerRuns).toBe(1);
+        });
+
+        test('afterStorageCommit throws when transactional storage is disabled', async () => {
+            const errors: string[] = [];
+
+            const crawler = new BasicCrawler({
+                maxRequestRetries: 0,
+                transactionalStorage: false,
+                requestHandler: async ({ afterStorageCommit }) => {
+                    afterStorageCommit(() => {});
+                },
+                failedRequestHandler: async (_context, error) => {
+                    errors.push(error.message);
+                },
+            });
+
+            await crawler.run([`http://${HOSTNAME}:${port}/`]);
+
+            expect(errors).toEqual([expect.stringMatching(/needs an active storage transaction/)]);
         });
 
         test('an unclosed transaction on a normal pipeline return is discarded and logged', async () => {

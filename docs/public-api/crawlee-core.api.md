@@ -28,6 +28,7 @@ import { LoggerJson } from '@apify/log';
 import type { LoggerOptions } from '@apify/log';
 import { LoggerText } from '@apify/log';
 import { LogLevel } from '@apify/log';
+import type { LogOptions } from '@crawlee/types';
 import { ParseSitemapOptions } from '@crawlee/utils';
 import type { ProcessedRequest } from '@crawlee/types';
 import type { ProxyInfo } from '@crawlee/types';
@@ -59,6 +60,11 @@ export interface AddRequestsBatchedResult {
 }
 
 // @public
+export class AfterCommitError extends NonRetryableError {
+    constructor(cause: unknown);
+}
+
+// @public
 export class ApifyLogAdapter extends BaseCrawleeLogger {
     constructor(apifyLog: Log, options?: Partial<CrawleeLoggerOptions>);
     // (undocumented)
@@ -84,26 +90,26 @@ export abstract class BaseCrawleeLogger implements CrawleeLogger {
     child(options: Partial<CrawleeLoggerOptions>): CrawleeLogger;
     protected abstract createChild(options: Partial<CrawleeLoggerOptions>): CrawleeLogger;
     // (undocumented)
-    debug(message: string, data?: Record<string, unknown>): void;
+    debug(message: string, data?: Record<string, unknown>, options?: LogOptions): void;
     // (undocumented)
     deprecated(message: string): void;
     // (undocumented)
-    error(message: string, data?: Record<string, unknown>): void;
+    error(message: string, data?: Record<string, unknown>, options?: LogOptions): void;
     // (undocumented)
     exception(exception: Error, message: string, data?: Record<string, unknown>): void;
     // (undocumented)
     getOptions(): CrawleeLoggerOptions;
     // (undocumented)
-    info(message: string, data?: Record<string, unknown>): void;
+    info(message: string, data?: Record<string, unknown>, options?: LogOptions): void;
     abstract logWithLevel(level: number, message: string, data?: Record<string, unknown>): void;
     // (undocumented)
-    perf(message: string, data?: Record<string, unknown>): void;
+    perf(message: string, data?: Record<string, unknown>, options?: LogOptions): void;
     // (undocumented)
     setOptions(options: Partial<CrawleeLoggerOptions>): void;
     // (undocumented)
-    softFail(message: string, data?: Record<string, unknown>): void;
+    softFail(message: string, data?: Record<string, unknown>, options?: LogOptions): void;
     // (undocumented)
-    warning(message: string, data?: Record<string, unknown>): void;
+    warning(message: string, data?: Record<string, unknown>, options?: LogOptions): void;
     // (undocumented)
     warningOnce(message: string): void;
 }
@@ -620,6 +626,8 @@ export { LoggerOptions }
 export { LoggerText }
 
 export { LogLevel }
+
+export { LogOptions }
 
 // @public (undocumented)
 export class MemoryStorageBackend implements storage.StorageBackend {
@@ -1278,6 +1286,7 @@ export class StorageStatsTracker<T extends Record<keyof T, number>> {
 
 // @public
 export class StorageTransaction implements StorageTransactionView {
+    afterCommit(callback: (error?: Error) => Awaitable<void>): void;
     commit(): Promise<void>;
     // (undocumented)
     get datasetItems(): {
