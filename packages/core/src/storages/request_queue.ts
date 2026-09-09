@@ -632,6 +632,7 @@ export class RequestQueue implements IStorage, IRequestManager {
             waitBetweenBatchesMillis,
             waitForAllRequestsToBeAdded,
             maxNewRequests,
+            log: this.log,
 
             /**
              * Requests the backend reports as unprocessed are warned about and skipped rather than retried:

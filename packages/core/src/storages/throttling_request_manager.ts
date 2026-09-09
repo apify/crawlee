@@ -807,6 +807,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
             waitBetweenBatchesMillis: options.waitBetweenBatchesMillis ?? 1000,
             waitForAllRequestsToBeAdded: options.waitForAllRequestsToBeAdded ?? false,
             maxNewRequests: options.maxNewRequests,
+            log: this.log,
 
             // Routing is the only thing this manager adds; the targets do the batching, validation and
             // deduplication themselves.
