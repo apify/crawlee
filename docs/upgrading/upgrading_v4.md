@@ -2136,6 +2136,16 @@ Relatedly, `RobotsTxtFile.getSitemaps()`, `parseSitemaps()`, and `parseUrlsFromS
 
 The HTML-parsing helper functions `htmlToText`, `parseHandlesFromHtml` and `parseOpenGraph` are now asynchronous and return promises.
 
+## Only if you use `JSDOMCrawler` or `LinkeDOMCrawler`
+
+They moved out of this repository into their own packages, so install them explicitly:
+
+```bash
+npm install @crawlee/jsdom @crawlee/linkedom
+```
+
+The `crawlee` meta-package no longer re-exports them.
+
 ## Only if you use `StagehandCrawler`
 
 ### Stagehand type narrowings

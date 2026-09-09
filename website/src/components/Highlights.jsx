@@ -21,9 +21,8 @@ const FeatureList = [
         description: (
             <>
                 Crawlee makes HTTP requests that <a href="https://crawlee.dev/js/docs/guides/avoid-blocking"><b>mimic browser headers and TLS fingerprints</b></a>.
-                It also rotates them automatically based on data about real-world traffic. Popular HTML
-                parsers <b><a href="https://crawlee.dev/js/docs/guides/cheerio-crawler-guide">Cheerio</a>&nbsp;
-                and <a href="https://crawlee.dev/js/docs/guides/jsdom-crawler-guide">JSDOM</a></b> are included.
+                It also rotates them automatically based on data about real-world traffic. The popular HTML
+                parser <b><a href="https://crawlee.dev/js/docs/guides/cheerio-crawler-guide">Cheerio</a></b> is included.
             </>
         ),
     },

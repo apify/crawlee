@@ -50,8 +50,6 @@ const baseConfig = defineConfig({
             { find: '@crawlee/basic', replacement: resolve(__dirname, './packages/basic-crawler/src') },
             { find: '@crawlee/browser', replacement: resolve(__dirname, './packages/browser-crawler/src') },
             { find: '@crawlee/http', replacement: resolve(__dirname, './packages/http-crawler/src') },
-            { find: '@crawlee/linkedom', replacement: resolve(__dirname, './packages/linkedom-crawler/src') },
-            { find: '@crawlee/jsdom', replacement: resolve(__dirname, './packages/jsdom-crawler/src') },
             { find: '@crawlee/cheerio', replacement: resolve(__dirname, './packages/cheerio-crawler/src') },
             { find: '@crawlee/playwright', replacement: resolve(__dirname, './packages/playwright-crawler/src') },
             { find: '@crawlee/puppeteer', replacement: resolve(__dirname, './packages/puppeteer-crawler/src') },
