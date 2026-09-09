@@ -146,6 +146,19 @@ export class RequestHandlerError extends Error {
 }
 
 /**
+ * Wraps the failure of a callback registered with {@apilink StorageTransaction.afterCommit|`afterCommit`}
+ * that ran after the request's writes had already been committed.
+ *
+ * Non-retryable by nature: the writes are durable, so re-running the request handler would duplicate
+ * them. A callback that throws a `NonRetryableError` of its own is left alone.
+ */
+export class AfterCommitError extends NonRetryableError {
+    constructor(cause: unknown) {
+        super(cause instanceof Error ? cause.message : String(cause), { cause });
+    }
+}
+
+/**
  * Thrown when attempting to set a different service instance after one has already been retrieved.
  */
 export class ServiceConflictError extends Error {

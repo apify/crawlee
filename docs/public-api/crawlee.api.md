@@ -5,7 +5,8 @@
 ```ts
 
 import { downloadListOfUrls } from '@crawlee/utils';
-import { Log } from '@apify/log';
+import { extractMicrodata } from '@crawlee/utils';
+import { Log } from '@crawlee/core';
 import { parseOpenGraph } from '@crawlee/utils';
 import { playwrightUtils } from '@crawlee/playwright';
 import { puppeteerUtils } from '@crawlee/puppeteer';
@@ -21,6 +22,7 @@ export const utils: {
     sleep: typeof sleep;
     downloadListOfUrls: typeof downloadListOfUrls;
     parseOpenGraph: typeof parseOpenGraph;
+    extractMicrodata: typeof extractMicrodata;
 };
 
 

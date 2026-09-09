@@ -32,6 +32,7 @@ import { LoggerJson } from '@apify/log';
 import type { LoggerOptions } from '@apify/log';
 import { LoggerText } from '@apify/log';
 import { LogLevel } from '@apify/log';
+import type { LogOptions } from '@crawlee/types';
 import { ParseSitemapOptions } from '@crawlee/utils';
 import type { ProcessedRequest } from '@crawlee/types';
 import type { ProxyInfo } from '@crawlee/types';
@@ -41,7 +42,6 @@ import type { RequestQueueBackend } from '@crawlee/types';
 import type { RequestQueueInfo } from '@crawlee/types';
 import type { SendRequestOptions } from '@crawlee/types';
 import type { SessionFingerprint } from '@crawlee/types';
-import { SessionState } from '@crawlee/types';
 import type { StandardSchemaV1 } from '@standard-schema/spec';
 import type * as storage from '@crawlee/types';
 import { StorageBackend } from '@crawlee/types';
@@ -63,6 +63,11 @@ export interface AddRequestsBatchedResult {
     addedRequests: ProcessedRequest[];
     requestsOverLimit?: Source[];
     waitForAllRequestsToBeAdded: Promise<ProcessedRequest[]>;
+}
+
+// @public
+export class AfterCommitError extends NonRetryableError {
+    constructor(cause: unknown);
 }
 
 // @public
@@ -91,26 +96,26 @@ export abstract class BaseCrawleeLogger implements CrawleeLogger {
     child(options: Partial<CrawleeLoggerOptions>): CrawleeLogger;
     protected abstract createChild(options: Partial<CrawleeLoggerOptions>): CrawleeLogger;
     // (undocumented)
-    debug(message: string, data?: Record<string, unknown>): void;
+    debug(message: string, data?: Record<string, unknown>, options?: LogOptions): void;
     // (undocumented)
     deprecated(message: string): void;
     // (undocumented)
-    error(message: string, data?: Record<string, unknown>): void;
+    error(message: string, data?: Record<string, unknown>, options?: LogOptions): void;
     // (undocumented)
     exception(exception: Error, message: string, data?: Record<string, unknown>): void;
     // (undocumented)
     getOptions(): CrawleeLoggerOptions;
     // (undocumented)
-    info(message: string, data?: Record<string, unknown>): void;
+    info(message: string, data?: Record<string, unknown>, options?: LogOptions): void;
     abstract logWithLevel(level: number, message: string, data?: Record<string, unknown>): void;
     // (undocumented)
-    perf(message: string, data?: Record<string, unknown>): void;
+    perf(message: string, data?: Record<string, unknown>, options?: LogOptions): void;
     // (undocumented)
     setOptions(options: Partial<CrawleeLoggerOptions>): void;
     // (undocumented)
-    softFail(message: string, data?: Record<string, unknown>): void;
+    softFail(message: string, data?: Record<string, unknown>, options?: LogOptions): void;
     // (undocumented)
-    warning(message: string, data?: Record<string, unknown>): void;
+    warning(message: string, data?: Record<string, unknown>, options?: LogOptions): void;
     // (undocumented)
     warningOnce(message: string): void;
 }
@@ -146,10 +151,10 @@ export interface CalculatedStatistics {
 }
 
 // @public
-export const coerceBoolean: z.ZodPreprocess<z.ZodBoolean>;
+export const coerceBoolean: z.ZodPreprocess<z.ZodBoolean, unknown>;
 
 // @public (undocumented)
-export const coerceNumber: z.ZodPreprocess<z.ZodNumber>;
+export const coerceNumber: z.ZodPreprocess<z.ZodNumber, unknown>;
 
 // @public
 export interface ConcurrencyConsumer {
@@ -273,25 +278,25 @@ export interface CpuLoadSignalOptions {
 // @public (undocumented)
 export const crawleeConfigFields: {
     defaultDatasetId: ConfigField<z.ZodDefault<z.ZodString>>;
-    purgeOnStart: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>>;
+    purgeOnStart: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodBoolean, unknown>>>;
     defaultKeyValueStoreId: ConfigField<z.ZodDefault<z.ZodString>>;
     defaultRequestQueueId: ConfigField<z.ZodDefault<z.ZodString>>;
-    maxUsedCpuRatio: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodNumber>>>;
-    availableMemoryRatio: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodNumber>>>;
-    memoryMbytes: ConfigField<z.ZodOptional<z.ZodPreprocess<z.ZodNumber>>>;
-    persistStateIntervalMillis: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodNumber>>>;
-    internalTimeoutMillis: ConfigField<z.ZodOptional<z.ZodPreprocess<z.ZodNumber>>>;
-    systemInfoIntervalMillis: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodNumber>>>;
+    maxUsedCpuRatio: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodNumber, unknown>>>;
+    availableMemoryRatio: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodNumber, unknown>>>;
+    memoryMbytes: ConfigField<z.ZodOptional<z.ZodPreprocess<z.ZodNumber, unknown>>>;
+    persistStateIntervalMillis: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodNumber, unknown>>>;
+    internalTimeoutMillis: ConfigField<z.ZodOptional<z.ZodPreprocess<z.ZodNumber, unknown>>>;
+    systemInfoIntervalMillis: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodNumber, unknown>>>;
     inputKey: ConfigField<z.ZodDefault<z.ZodString>>;
-    headless: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>>;
-    xvfb: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>>;
+    headless: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodBoolean, unknown>>>;
+    xvfb: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodBoolean, unknown>>>;
     chromeExecutablePath: ConfigField<z.ZodOptional<z.ZodString>>;
     defaultBrowserPath: ConfigField<z.ZodOptional<z.ZodString>>;
-    disableBrowserSandbox: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>>;
-    logLevel: ConfigField<z.ZodOptional<z.ZodPreprocess<z.ZodEnum<typeof LogLevel>>>>;
-    persistStorage: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodBoolean>>>;
+    disableBrowserSandbox: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodBoolean, unknown>>>;
+    logLevel: ConfigField<z.ZodOptional<z.ZodPreprocess<z.ZodEnum<typeof LogLevel>, unknown>>>;
+    persistStorage: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodBoolean, unknown>>>;
     storageDir: ConfigField<z.ZodDefault<z.ZodString>>;
-    containerized: ConfigField<z.ZodOptional<z.ZodPreprocess<z.ZodBoolean>>>;
+    containerized: ConfigField<z.ZodOptional<z.ZodPreprocess<z.ZodBoolean, unknown>>>;
 };
 
 export { CrawleeLogger }
@@ -300,6 +305,7 @@ export { CrawleeLoggerOptions }
 
 // @public (undocumented)
 export interface CrawlingContext<UserData extends Dictionary = Dictionary> extends RestrictedCrawlingContext<UserData> {
+    afterStorageCommit(callback: (error?: Error) => Awaitable<void>): void;
     extendTimeout(secs: number): void;
     registerDeferredCleanup(cleanup: () => Promise<unknown>): void;
     sendRequest: (requestOverrides?: Partial<HttpRequestOptions>, optionsOverrides?: SendRequestOptions) => Promise<Response>;
@@ -966,6 +972,8 @@ export { LoggerOptions }
 export { LoggerText }
 
 export { LogLevel }
+
+export { LogOptions }
 
 // @public (undocumented)
 export const MAX_POOL_SIZE = 1000;
@@ -1661,7 +1669,6 @@ export class Session implements ISession {
     get fingerprint(): SessionFingerprint | undefined;
     set fingerprint(fingerprint: SessionFingerprint | undefined);
     getCookieString(url: string): Promise<string>;
-    getState(): SessionState;
     // (undocumented)
     readonly id: string;
     isBlocked(): boolean;
@@ -1724,21 +1731,14 @@ export class SessionPool implements ISessionPool {
     constructor(options?: SessionPoolOptions);
     addSession(options?: Session | SessionOptions): Promise<void>;
     getSession(sessionId?: string): Promise<Session | undefined>;
-    getState(): Promise<{
-        usableSessionsCount: number;
-        retiredSessionsCount: number;
-        sessions: SessionState[];
-    }>;
     // (undocumented)
     readonly id: string;
     newSession(sessionOptions?: SessionOptions): Promise<Session>;
-    persistState(options?: PersistenceOptions): Promise<void>;
-    // (undocumented)
-    resetStore(options?: PersistenceOptions): Promise<void>;
+    persistState(): Promise<void>;
+    reset(): void;
+    resetStore(): Promise<void>;
     retiredSessionsCount(): Promise<number>;
-    teardown(input?: {
-        persistState?: boolean;
-    }): Promise<void>;
+    teardown(): Promise<void>;
     usableSessionsCount(): Promise<number>;
 }
 
@@ -2009,6 +2009,7 @@ export class StorageStatsTracker<T extends Record<keyof T, number>> {
 
 // @public
 export class StorageTransaction implements StorageTransactionView {
+    afterCommit(callback: (error?: Error) => Awaitable<void>): void;
     commit(): Promise<void>;
     // (undocumented)
     get datasetItems(): {

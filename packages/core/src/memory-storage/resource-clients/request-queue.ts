@@ -46,11 +46,11 @@ export class RequestQueueBackend extends BaseClient implements storage.RequestQu
     pendingRequestCount = 0;
     /**
      * Serializes every operation that reads-then-writes this backend's shared queue state — the
-     * `requests` map, the `forefrontRequestIds` array, the `inProgressRequestIds` set and the request
-     * counts. Those mutations span `await` points, so without this mutex a concurrent operation could
-     * interleave and corrupt them (e.g. a head scan pruning `forefrontRequestIds` while
-     * `addBatchOfRequests` pushes to it). Held by every mutating method as well as by `isEmpty`/
-     * `isFinished`, whose head scan also prunes `forefrontRequestIds`.
+     * `requests` map, the `pendingRequestIds` set, the `forefrontRequestIds` array, the
+     * `inProgressRequestIds` set and the request counts. Those mutations span `await` points, so
+     * without this mutex a concurrent operation could interleave and corrupt them (e.g. a head scan
+     * pruning `forefrontRequestIds` while `addBatchOfRequests` pushes to it). Held by every mutating
+     * method as well as by `isEmpty`/`isFinished`, whose head scan also prunes `forefrontRequestIds`.
      */
     readonly #queueStateMutex = new AsyncQueue();
     #forefrontRequestIds: string[] = [];
@@ -66,6 +66,13 @@ export class RequestQueueBackend extends BaseClient implements storage.RequestQu
     readonly #inProgressRequestIds = new Set<string>();
 
     readonly #requests = new Map<string, InternalRequest>();
+
+    /**
+     * IDs of requests that are not yet handled (pending or in progress), in insertion order. Handled
+     * requests stay in `requests` for deduplication but are removed from here, so head scans only
+     * ever walk the unhandled tail instead of every request the queue has ever seen.
+     */
+    readonly #pendingRequestIds = new Set<string>();
     // kept as TS-private: storage-backend tests read this field at runtime
     private readonly storageBackend: MemoryStorageBackend;
 
@@ -94,6 +101,7 @@ export class RequestQueueBackend extends BaseClient implements storage.RequestQu
                 // leave dangling ids in `forefrontRequestIds`/`inProgressRequestIds`, which a later head
                 // scan would resolve to a missing request and dereference.
                 this.#requests.clear();
+                this.#pendingRequestIds.clear();
                 this.#forefrontRequestIds = [];
                 this.#inProgressRequestIds.clear();
             }
@@ -110,6 +118,7 @@ export class RequestQueueBackend extends BaseClient implements storage.RequestQu
         try {
             // Clear all in-memory state
             this.#requests.clear();
+            this.#pendingRequestIds.clear();
             this.#forefrontRequestIds = [];
             this.#inProgressRequestIds.clear();
             this.handledRequestCount = 0;
@@ -126,9 +135,7 @@ export class RequestQueueBackend extends BaseClient implements storage.RequestQu
             yield this.#forefrontRequestIds[i];
         }
 
-        for (const key of this.#requests.keys()) {
-            yield key;
-        }
+        yield* this.#pendingRequestIds;
     }
 
     /**
@@ -144,7 +151,7 @@ export class RequestQueueBackend extends BaseClient implements storage.RequestQu
      * Computing the flag is expensive: because an in-progress request may sit anywhere in the queue, it
      * forces a scan of every pending entry even when only `limit` items are wanted. Callers that only
      * need the head (e.g. {@link fetchNextRequest}, {@link isEmpty}) leave it off so the scan can stop as
-     * soon as the page is filled, keeping those calls O(head) instead of O(N).
+     * soon as the page is filled, keeping those calls O(head) instead of O(pending).
      */
     private async listPendingHead(
         limit: number,
@@ -173,11 +180,10 @@ export class RequestQueueBackend extends BaseClient implements storage.RequestQu
 
             const request = this.#requests.get(requestId)!;
 
-            // Permanently-handled requests (`orderNo === null`) are in a terminal state and can be skipped.
+            // Only `forefrontRequestIds` can still reference a handled request (`orderNo === null`);
+            // `pendingRequestIds` drops them on handling. Remember the id so the list gets pruned below.
             if (request.orderNo === null) {
-                if (this.#forefrontRequestIds.includes(requestId)) {
-                    handledForefrontIds.add(requestId);
-                }
+                handledForefrontIds.add(requestId);
                 continue;
             }
 
@@ -262,6 +268,7 @@ export class RequestQueueBackend extends BaseClient implements storage.RequestQu
                 this.#requests.set(requestModel.id, requestModel);
 
                 if (requestModel.orderNo) {
+                    this.#pendingRequestIds.add(requestModel.id);
                     this.pendingRequestCount += 1;
                 } else {
                     this.handledRequestCount += 1;
@@ -325,6 +332,7 @@ export class RequestQueueBackend extends BaseClient implements storage.RequestQu
             const requestModel = this.createInternalRequest({ ...request, handledAt }, false);
 
             this.#requests.set(id, requestModel);
+            this.#pendingRequestIds.delete(id);
 
             // The request is no longer in progress for this client.
             this.#inProgressRequestIds.delete(id);

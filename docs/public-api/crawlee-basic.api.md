@@ -47,6 +47,8 @@ import type { TypedRequestsLike } from '@crawlee/core';
 
 // @public (undocumented)
 export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>, StatisticStateExtension extends object = {}> {
+    // (undocumented)
+    [Symbol.asyncDispose](): Promise<void>;
     constructor(options?: BasicCrawlerOptions<Context, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> & RequireContextPipeline<CrawlingContext, Context>);
     // (undocumented)
     protected readonly additionalHttpErrorStatusCodes: Set<number>;
@@ -61,6 +63,7 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
     // (undocumented)
     get contextPipeline(): ContextPipeline<CrawlingContext, ExtendedContext>;
     protected createDefaultConcurrencySystem(options: ConcurrencySystemOptions): ConcurrencySystem;
+    destroy(): Promise<void>;
     exportData<Data>(path: string, format?: 'json' | 'csv', options?: DatasetExportOptions): Promise<Data[]>;
     // (undocumented)
     protected getCookieHeaderFromRequest(request: Request_2): string;
@@ -95,8 +98,7 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
     protected readonly retryOnBlocked: boolean;
     readonly router: RouterHandler<Context, Routes>;
     run(requests?: TypedRequestsLike<Routes>, options?: CrawlerRunOptions): Promise<FinalStatistics>;
-    // (undocumented)
-    running: boolean;
+    get running(): boolean;
     // (undocumented)
     protected runRequestHandler(crawlingContext: ExtendedContext): Promise<void>;
     get sessionPool(): ISessionPool;

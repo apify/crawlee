@@ -397,21 +397,31 @@ const crawler = new BasicCrawler({
 
 `SessionPool.open()` static factory method is removed. Create instances with `new SessionPool(options)` instead — all public methods automatically initialize the pool on first use.
 
-`SessionPool.usableSessionsCount` and `SessionPool.retiredSessionsCount` are now async methods instead of synchronous getters. `SessionPool.getState()` is also async now.
+`SessionPool.usableSessionsCount` and `SessionPool.retiredSessionsCount` are now async methods instead of synchronous getters.
 
 **Before:**
 ```typescript
 const sessionPool = await SessionPool.open({ maxPoolSize: 100 });
 const count = sessionPool.usableSessionsCount;
-const state = sessionPool.getState();
 ```
 
 **After:**
 ```typescript
 const sessionPool = new SessionPool({ maxPoolSize: 100 });
 const count = await sessionPool.usableSessionsCount();
-const state = await sessionPool.getState();
 ```
+
+### `SessionPool.persistState()`, `resetStore()` and `teardown()` no longer take options
+
+The `PersistenceOptions` argument of `persistState()` and `resetStore()` and the `{ persistState }` argument of `teardown()` are removed. Neither had any effect, so there is nothing to replace them with.
+
+`resetStore()` now throws while the pool is running, since the next periodic write would put the record straight back. Call `teardown()` first, or use the new `reset()` to discard the in-memory sessions instead.
+
+### `RequestList` prefers the persisted record over the `state` option
+
+With both `state` and `persistStateKey` set, the record now wins. Previously `state` did. The option is also validated up front: `nextIndex` must be a non-negative integer and `inProgress` an array of unique keys. The `@internal` `isStatePersisted` flag is gone.
+
+Both `SessionPool` and `RequestList` now persist through `RecoverableState`, like `Statistics`. The persisted records keep their shape, so records written by v3 still load.
 
 ### `retireOnBlockedStatusCodes` is removed from `Session`
 
@@ -628,16 +638,57 @@ The `purgeRequestQueue` option of `crawler.run()` went away with the automatic p
 const crawler = new BasicCrawler({ requestHandler: async ({ request }) => { /* ... */ } });
 await crawler.run(['https://example.com/a', 'https://example.com/b']);
 
-const queue = await crawler.getRequestQueue();
-await queue.purge?.();
+const requestManager = await crawler.getRequestManager();
+await requestManager.purge?.();
 
 // The same URLs are crawled again:
 await crawler.run(['https://example.com/a', 'https://example.com/c']);
 ```
 
-`purge()` — empty the storage, keep its id and name — is new in v4 and available on `Dataset`, `KeyValueStore` and `RequestQueue`, as well as being an optional method on the `IRequestManager` interface.
+`purge()` — empty the storage, keep its id and name — is new in v4 and available on `Dataset`, `KeyValueStore` and `RequestQueue`, as well as being an optional method on the `IRequestManager` interface. The Apify platform is the exception. Its API has no in-place empty, so all three throw there. The error points you at `drop()` or a fresh storage.
 
 This has nothing to do with `purgeOnStart` / `CRAWLEE_PURGE_ON_START`, which still wipes the default storages once per process before the first run.
+
+Most of the time you can avoid the purge entirely. Every crawler instance opens a request queue of its own (see the section above). A crawler per crawl therefore needs neither a purge nor any queue wiring. Pass `RequestQueue.open({ alias })` when you do want to hold on to that queue:
+
+```typescript
+for (const [index, urls] of batches.entries()) {
+    const crawler = new BasicCrawler({
+        // Optional — a fresh crawler gets its own queue anyway. Pass one to decide which.
+        requestManager: await RequestQueue.open({ alias: `batch-${index}` }),
+        requestHandler: async ({ request }) => { /* ... */ },
+    });
+
+    await crawler.run(urls);
+}
+```
+
+An alias identifies a run-scoped queue. It has no persistent name, and is emptied on start along with the default storages. Reuse an alias and you get that same queue back, handled requests included. The next crawl then finds nothing to do. Give each crawl its own alias. `purge()` is for when one crawler and one queue must be reused.
+
+### `teardown()` is per-run, disposing of the crawler is not
+
+`crawler.teardown()` ends the run in progress and releases only what that run owns — it is what `run()` calls on its way out. In v3 it also destroyed the browser pool a browser crawler had built for itself, and a destroyed `BrowserPool` cannot be used again: with its timers cleared and its listeners dropped, a second `run()` had nothing retiring idle browsers or reaping the retired ones. It now releases that run's browsers and leaves the pool usable.
+
+What outlives a run is released by `crawler.destroy()`, or by disposing of the crawler:
+
+```typescript
+{
+    await using crawler = new PlaywrightCrawler({ requestHandler: async ({ page }) => { /* ... */ } });
+
+    await crawler.run(['https://example.com/a']);
+    await crawler.run(['https://example.com/b']);
+} // the browser pool is destroyed here, as the crawler goes out of scope
+```
+
+Disposing is optional — a finished run leaves no browsers open and no timer holding the process alive.
+
+:::info
+
+The `await using` syntax needs Node.js 24 or later. On Node.js 22 call <ApiLink to="basic-crawler/class/BasicCrawler#destroy">`destroy()`</ApiLink> yourself instead — it is what the disposal hook calls anyway, as with the [collaborators you own](#collaborators-you-own-are-disposable).
+
+:::
+
+`crawler.running` is now a read-only getter; in v3 it was an assignable field.
 
 ### Storage `.open()` now also accepts `{ id?, name? }`
 
@@ -684,9 +735,10 @@ Every crawler now wraps each request in a **storage transaction** (see the [Tran
 The observable behavior of a *successful* handler is unchanged (reads within a handler see its own writes), but several things differ on the failure path and around handler boundaries:
 
 - **Uncommitted writes are invisible to other handlers.** Using the key-value store as a live channel between concurrently running handlers no longer works — one handler's `setValue()` only becomes visible to others once its request succeeds. Use `useState()` for cross-handler communication.
-- **`useState()` / `getAutoSavedValue()` are *not* transactional.** The shared state object stays live; mutations of it are not rolled back when a handler fails.
+- **`useState()` / `getAutoSavedValue()` are *not* transactional.** The shared state object stays live; mutations of it are not rolled back when a handler fails. Side effects that have to match the writes that actually landed — result counters above all — belong in a callback registered with the new `afterStorageCommit()` context helper.
 - **Request queue additions are applied immediately by default** (the `writeThrough` policy) and are not rolled back — deduplication by `uniqueKey` keeps retries idempotent. Pass `transactionalStorage: { requestQueue: 'deferred' }` for strict all-or-nothing enqueues.
 - **Commit is at-least-once.** It spans multiple storages, so a commit that fails partway fails the request; the retry may re-apply writes that already landed.
+- **A write cannot fail where it is made.** `pushData()` records the item and returns; if the storage backend rejects it, that happens at commit time, and a `try`/`catch` around the call never sees it. Register an `afterStorageCommit()` callback next to the write instead — it receives the commit error, and an error it throws replaces it, so a rejected write can still be turned into a `NonRetryableError` of your own.
 - **`KeyValueStore.setValue()` with a stream value throws inside a request handler.** A stream can only be consumed once, so it cannot be buffered. Wrap the call in `withDirectStorageAccess()` to write it immediately:
 
   ```typescript
@@ -703,7 +755,7 @@ The mechanism can be disabled entirely with `transactionalStorage: false` on any
 #### Removed symbols and options
 
 - `checkStorageAccess` and `withCheckedStorageAccess` are superseded by the transaction mechanism; the per-call-site helper is now `withDirectStorageAccess()`.
-- The experimental `AdaptivePlaywrightCrawler` no longer needs its bespoke write-buffering machinery: the `preventDirectStorageAccess` option is gone (direct storage calls are now captured by the per-attempt transaction instead of throwing), and `RequestHandlerResult` is replaced by the read-only `StorageTransactionView`, which the `resultChecker` / `resultComparator` callbacks (and `fullResultComparator`) now receive. The view keeps the familiar accessors (`datasetItems`, `enqueuedUrls`, `keyValueStoreChanges`), so most callbacks only need a type change. The `calls` and `enqueuedUrlLists` accessors are gone — `requestsFromUrl` sources are now expanded when added, so the fetched URLs appear in `enqueuedUrls` (and are what `fullResultComparator` compares).
+- The experimental `AdaptivePlaywrightCrawler` no longer needs its bespoke write-buffering machinery: the `preventDirectStorageAccess` option is gone (direct storage calls are now captured by the per-attempt transaction instead of throwing), and `RequestHandlerResult` is replaced by the read-only `StorageTransactionView`, which the `resultChecker` / `resultComparator` callbacks (and `fullResultComparator`) now receive. The view keeps the familiar accessors (`datasetItems`, `enqueuedUrls`, `keyValueStoreChanges`), so most callbacks only need a type change. The `calls` and `enqueuedUrlLists` accessors are gone — `requestsFromUrl` sources are now expanded when added, so the fetched URLs appear in `enqueuedUrls` (and are what `fullResultComparator` compares). The `commitResult` override point is gone too; use an `afterStorageCommit()` callback to run logic once the winning attempt's writes have landed (or failed to).
 
 ### `storageObject` is removed from storage classes
 
@@ -1210,7 +1262,7 @@ If you rely on Crawlee's default configuration (one browser context per session,
 
 ### Custom rendering type predictors via the `IRenderingTypePredictor` interface
 
-The `renderingTypePredictor` option of `AdaptivePlaywrightCrawler` is now typed as the new `IRenderingTypePredictor` interface — `predict(request)` and `storeResult(requests, renderingType)`, nothing else. The built-in `RenderingTypePredictor` implements it, so passing one still works.
+The `renderingTypePredictor` option of `AdaptivePlaywrightCrawler` is now typed as the new `IRenderingTypePredictor` interface — `predict(request)` and `storeResult(requests, renderingType)`, nothing else, either of which may return a promise. The built-in `RenderingTypePredictor` implements it, so passing one still works.
 
 What changed is the lifecycle: the crawler used to call `initialize()` on the predictor it was given, even though it did not create it. It now follows the same own-only-what-you-built rule as the session and browser pools — a predictor you pass in is *borrowed*, so setting it up is your job, and `initialize` is not part of the interface at all. The built-in predictor restores its persisted state in `initialize()` and will throw `Recoverable state has not yet been loaded` from `predict()` if it is never called:
 
@@ -1230,6 +1282,10 @@ const crawler = new AdaptivePlaywrightCrawler({
 ```
 
 If you don't pass a predictor, nothing changes: the crawler builds one from `renderingTypeDetectionRatio` and, since it owns that one, initializes it for you.
+
+**Asynchronous predictors** — `predict()` is awaited before the crawler routes the request, so prefer loading whatever it needs up front over per-request I/O. `storeResult()` is *not* awaited per detection: the crawler tracks the promise it returns and drains everything still pending in `teardown()`, so a predictor that batches its writes can rely on them landing before the crawl ends. That wait is bounded by the internal timeout (`CRAWLEE_INTERNAL_TIMEOUT`), `crawler.drainRenderingDetections()` performs it on demand, and `crawler.inFlightRenderingTypeDetectionCount` reports what is still outstanding.
+
+`teardown()` stops new detections from starting before it drains, so ending a `keepAlive` crawl by tearing it down from outside `run()` cannot leave a detection unpersisted either.
 
 ### Remove `experimentalContainers` option
 

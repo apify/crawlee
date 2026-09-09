@@ -3,6 +3,7 @@ import type { AddressInfo } from 'node:net';
 
 import {
     BaseCrawleeLogger,
+    Configuration,
     type CrawleeLogger,
     type CrawleeLoggerOptions,
     Dataset,
@@ -834,6 +835,81 @@ describe('AdaptivePlaywrightCrawler', () => {
         expect(await store.getValue('1')).toEqual({ content: 42 });
     });
 
+    test('should run afterStorageCommit callbacks only for the committed attempt', async () => {
+        // Always detect: the browser attempt is committed, then a static attempt runs purely for the
+        // comparison and is discarded. So the handler runs twice for one request.
+        const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+            detectionProbabilityRecommendation: 1,
+            renderingType: 'clientOnly',
+        });
+
+        let handlerRuns = 0;
+        const committed: number[] = [];
+
+        const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = async ({
+            pushData,
+            afterStorageCommit,
+        }) => {
+            const run = ++handlerRuns;
+            await pushData({ run });
+            afterStorageCommit(() => void committed.push(run));
+        };
+
+        const crawler = await makeOneshotCrawler(
+            {
+                requestHandler,
+                renderingTypePredictor,
+                maxRequestsPerCrawl: 1,
+                maxRequestRetries: 0,
+            },
+            [`http://${HOSTNAME}:${port}/static`],
+        );
+
+        await crawler.run();
+
+        expect(handlerRuns).toBe(2);
+        expect(committed).toEqual([1]);
+        expect((await Dataset.getData()).items).toEqual([{ run: 1 }]);
+    });
+
+    test('should not retry a request whose afterStorageCommit callback threw after a commit', async () => {
+        const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+            detectionProbabilityRecommendation: 0,
+            renderingType: 'static',
+        });
+
+        let handlerRuns = 0;
+        const failedRequestHandler = vi.fn();
+
+        const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = async ({
+            pushData,
+            afterStorageCommit,
+        }) => {
+            handlerRuns++;
+            await pushData({ run: handlerRuns });
+            afterStorageCommit(() => {
+                throw new Error('bookkeeping failed');
+            });
+        };
+
+        const crawler = await makeOneshotCrawler(
+            {
+                requestHandler,
+                renderingTypePredictor,
+                maxRequestsPerCrawl: 1,
+                maxRequestRetries: 3,
+                failedRequestHandler,
+            },
+            [`http://${HOSTNAME}:${port}/static`],
+        );
+
+        await crawler.run();
+
+        expect(handlerRuns).toBe(1);
+        expect(failedRequestHandler).toHaveBeenCalledTimes(1);
+        expect((await Dataset.getData()).items).toEqual([{ run: 1 }]);
+    });
+
     test('should persist RenderingTypePredictor state on PERSIST_STATE events', async () => {
         const requestHandler: AdaptivePlaywrightCrawlerOptions['requestHandler'] = vi.fn(async ({ pushData }) => {
             await pushData({ content: 'test data' });
@@ -1022,5 +1098,297 @@ describe('AdaptivePlaywrightCrawler', () => {
         await crawler.run();
 
         expect(lastDynamicRequestUserAgent).toBe(distinctiveUserAgent);
+    });
+
+    describe('in-flight rendering type detections', () => {
+        test('are counted while running and settled once the crawl ends', async () => {
+            const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                detectionProbabilityRecommendation: 1,
+                renderingType: 'clientOnly',
+            });
+
+            // A detection re-runs the user handler over plain HTTP, so the handler can observe whether
+            // it is itself running inside a detection.
+            const observedCounts: number[] = [];
+
+            const crawler = await makeOneshotCrawler(
+                {
+                    requestHandler: async () => {
+                        observedCounts.push(crawler.inFlightRenderingTypeDetectionCount);
+                    },
+                    renderingTypePredictor,
+                },
+                [`http://${HOSTNAME}:${port}/static`],
+            );
+
+            await crawler.run();
+
+            expect(observedCounts).toEqual([0, 1]);
+            expect(crawler.inFlightRenderingTypeDetectionCount).toBe(0);
+        });
+
+        // A crawler whose plain-HTTP detection attempt parks until released, so that a detection can be
+        // observed mid-flight.
+        const makeCrawlerWithBlockedDetection = async () => {
+            const renderingTypePredictor = makeRiggedRenderingTypePredictor({
+                detectionProbabilityRecommendation: 1,
+                renderingType: 'clientOnly',
+            });
+
+            let releaseDetection!: () => void;
+            const detectionReleased = new Promise<void>((resolve) => {
+                releaseDetection = resolve;
+            });
+            let announceDetection!: () => void;
+            const detectionStarted = new Promise<void>((resolve) => {
+                announceDetection = resolve;
+            });
+
+            let handlerCalls = 0;
+            const crawler = await makeOneshotCrawler(
+                {
+                    requestHandler: async () => {
+                        handlerCalls += 1;
+                        // The second call is the plain-HTTP detection attempt.
+                        if (handlerCalls === 2) {
+                            announceDetection();
+                            await detectionReleased;
+                        }
+                    },
+                    renderingTypePredictor,
+                },
+                [`http://${HOSTNAME}:${port}/static`],
+            );
+
+            return { crawler, renderingTypePredictor, detectionStarted, releaseDetection };
+        };
+
+        test('hold up drainRenderingDetections until their result is stored', async () => {
+            const { crawler, renderingTypePredictor, detectionStarted, releaseDetection } =
+                await makeCrawlerWithBlockedDetection();
+
+            const runPromise = crawler.run();
+            await detectionStarted;
+
+            expect(crawler.inFlightRenderingTypeDetectionCount).toBe(1);
+
+            let drained = false;
+            const drainPromise = crawler.drainRenderingDetections().then(() => {
+                drained = true;
+            });
+
+            await sleep(100);
+            expect(drained).toBe(false);
+            expect(renderingTypePredictor.storeResult).not.toHaveBeenCalled();
+
+            releaseDetection();
+            await drainPromise;
+
+            expect(drained).toBe(true);
+            expect(crawler.inFlightRenderingTypeDetectionCount).toBe(0);
+            expect(renderingTypePredictor.storeResult).toHaveBeenCalledOnce();
+
+            await runPromise;
+        });
+
+        test('hold up teardown until their result is stored', async () => {
+            const { crawler, renderingTypePredictor, detectionStarted, releaseDetection } =
+                await makeCrawlerWithBlockedDetection();
+
+            const runPromise = crawler.run();
+            await detectionStarted;
+
+            let tornDown = false;
+            const teardownPromise = crawler.teardown().then(() => {
+                tornDown = true;
+            });
+
+            await sleep(100);
+            expect(tornDown).toBe(false);
+
+            releaseDetection();
+            await teardownPromise;
+
+            expect(renderingTypePredictor.storeResult).toHaveBeenCalledOnce();
+
+            await runPromise;
+        });
+
+        test('an asynchronous predict decides the rendering path', async () => {
+            const crawler = await makeOneshotCrawler(
+                {
+                    requestHandler: async () => {},
+                    renderingTypePredictor: {
+                        predict: async () => {
+                            await sleep(10);
+                            return { detectionProbabilityRecommendation: 0, renderingType: 'static' as const };
+                        },
+                        storeResult: () => {},
+                    },
+                },
+                [`http://${HOSTNAME}:${port}/static`],
+            );
+
+            await crawler.run();
+
+            // An unawaited prediction would read `undefined` off the promise and fall through to the browser.
+            expect(crawler.statistics.state.httpOnlyRequestHandlerRuns).toBe(1);
+            expect(crawler.statistics.state.browserRequestHandlerRuns).toBe(0);
+        });
+
+        test('a pending asynchronous storeResult holds up the crawl', async () => {
+            let resolveStore!: () => void;
+            const storeFinished = new Promise<void>((resolve) => {
+                resolveStore = resolve;
+            });
+            const storeResult = vi.fn(() => storeFinished);
+
+            const crawler = await makeOneshotCrawler(
+                {
+                    requestHandler: async () => {},
+                    renderingTypePredictor: {
+                        predict: () => ({
+                            detectionProbabilityRecommendation: 1,
+                            renderingType: 'clientOnly' as const,
+                        }),
+                        storeResult,
+                    },
+                },
+                [`http://${HOSTNAME}:${port}/static`],
+            );
+
+            let finished = false;
+            const runPromise = crawler.run().then(() => {
+                finished = true;
+            });
+
+            await vi.waitFor(() => expect(storeResult).toHaveBeenCalledOnce());
+            await sleep(100);
+
+            // The detection itself is long done - what the crawl is waiting on is the predictor's write.
+            expect(finished).toBe(false);
+            expect(crawler.inFlightRenderingTypeDetectionCount).toBe(1);
+
+            resolveStore();
+            await runPromise;
+
+            expect(finished).toBe(true);
+            expect(crawler.inFlightRenderingTypeDetectionCount).toBe(0);
+        });
+
+        test('a storeResult that never settles is abandoned after the internal timeout', async () => {
+            const messages: string[] = [];
+
+            serviceLocator.setConfiguration(new Configuration({ internalTimeoutMillis: 250 }));
+
+            const crawler = await makeOneshotCrawler(
+                {
+                    requestHandler: async () => {},
+                    renderingTypePredictor: {
+                        predict: () => ({
+                            detectionProbabilityRecommendation: 1,
+                            renderingType: 'clientOnly' as const,
+                        }),
+                        storeResult: () => new Promise<void>(() => {}),
+                    },
+                    logger: new RecordingLogger(messages),
+                },
+                [`http://${HOSTNAME}:${port}/static`],
+            );
+
+            await crawler.run();
+
+            // The bound comes from `internalTimeoutMillis`, not an option of its own.
+            expect(messages).toContainEqual(
+                expect.stringContaining('Timed out after 0.25 seconds waiting for 1 rendering type detection(s)'),
+            );
+        });
+
+        test('a rejected asynchronous storeResult is reported and does not fail the request', async () => {
+            const messages: string[] = [];
+
+            const crawler = await makeOneshotCrawler(
+                {
+                    requestHandler: async () => {},
+                    renderingTypePredictor: {
+                        predict: () => ({
+                            detectionProbabilityRecommendation: 1,
+                            renderingType: 'clientOnly' as const,
+                        }),
+                        storeResult: async () => {
+                            throw new Error('the write failed');
+                        },
+                    },
+                    logger: new RecordingLogger(messages),
+                },
+                [`http://${HOSTNAME}:${port}/static`],
+            );
+
+            const stats = await crawler.run();
+
+            expect(stats.requestsFailed).toBe(0);
+            expect(messages).toContainEqual(
+                expect.stringContaining('Failed to store the rendering type detection result'),
+            );
+        });
+
+        // Under `keepAlive` the crawl is ended by an external `teardown()`, with the pool still dispatching.
+        test('teardown stops requests that start during the drain from opening new detections', async () => {
+            const firstUrl = `http://${HOSTNAME}:${port}/static?q=first`;
+            const secondUrl = `http://${HOSTNAME}:${port}/static?q=second`;
+
+            let releaseDetection!: () => void;
+            const detectionReleased = new Promise<void>((resolve) => {
+                releaseDetection = resolve;
+            });
+            let announceDetection!: () => void;
+            const detectionStarted = new Promise<void>((resolve) => {
+                announceDetection = resolve;
+            });
+
+            // Keeps the drain pending for as long as the test needs, so the pool is guaranteed to reach the
+            // second request while `teardown()` is still inside it.
+            let releaseStore!: () => void;
+            const storeFinished = new Promise<void>((resolve) => {
+                releaseStore = resolve;
+            });
+            const storeResult = vi.fn(() => storeFinished);
+
+            const handled: string[] = [];
+            const crawler = new AdaptivePlaywrightCrawler({
+                keepAlive: true,
+                maxConcurrency: 1,
+                maxRequestRetries: 0,
+                requestList: await RequestList.open({ sources: [firstUrl, secondUrl] }),
+                renderingTypePredictor: {
+                    predict: () => ({ detectionProbabilityRecommendation: 1, renderingType: 'clientOnly' }),
+                    storeResult,
+                },
+                requestHandler: async ({ request }) => {
+                    handled.push(request.url);
+
+                    // The second run of the first request is its detection attempt.
+                    if (request.url === firstUrl && handled.filter((url) => url === firstUrl).length === 2) {
+                        announceDetection();
+                        await detectionReleased;
+                    }
+                },
+            });
+
+            const runPromise = crawler.run();
+            await detectionStarted;
+
+            const teardownPromise = crawler.teardown();
+            releaseDetection();
+
+            await vi.waitFor(() => expect(handled).toContain(secondUrl));
+            expect(storeResult).toHaveBeenCalledOnce();
+
+            releaseStore();
+            await teardownPromise;
+            await runPromise;
+
+            expect(storeResult).toHaveBeenCalledOnce();
+        });
     });
 });

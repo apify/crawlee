@@ -47,7 +47,7 @@
         "access": "public"
     },
     "dependencies": {
-        "@apify/datastructures": "^2.0.3",
+        "@apify/datastructures": "^3.0.1",
         "@crawlee/http-client": "workspace:*",
         "@crawlee/types": "workspace:*",
         "impit": "^0.14.2",
