@@ -4,6 +4,7 @@
 
 ```ts
 
+import type { AddRequestsBatchedResult } from '@crawlee/basic';
 import type { Awaitable } from '@crawlee/types';
 import { BasicCrawler } from '@crawlee/basic';
 import { BasicCrawlerOptions } from '@crawlee/basic';
@@ -15,7 +16,9 @@ import type { ContextPipeline as ContextPipeline_2 } from '@crawlee/core';
 import type { CrawlingContext } from '@crawlee/basic';
 import type { CrawlingContext as CrawlingContext_2 } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/types';
+import type { EnqueueLinksOptions } from '@crawlee/basic';
 import { ErrorHandler } from '@crawlee/basic';
+import type { ExtractLinksOptions } from '@crawlee/basic';
 import { GetUserDataFromRequest } from '@crawlee/basic';
 import type { JsonValue } from 'type-fest';
 import { LoadedRequest } from '@crawlee/core';
@@ -59,6 +62,49 @@ export function createHttpRouter<Context extends HttpCrawlingContext = HttpCrawl
 
 // @public (undocumented)
 export function createHttpRouter<Context extends HttpCrawlingContext = HttpCrawlingContext, const Schemas extends RouteSchemas = RouteSchemas>(schemas: Schemas): RouterHandler<Context, RoutesFromSchemas<Schemas>>;
+
+// @public
+export class DOMCrawler<Parsed extends DOMParseResult = DOMParseResult, ContextExtension = Dictionary<never>, ExtendedContext extends DOMCrawlingContext<Parsed> = DOMCrawlingContext<Parsed> & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<DOMCrawlingContext<Parsed>['request']>>, StatisticStateExtension extends object = {}> extends HttpCrawler<DOMCrawlingContext<Parsed>, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
+    constructor(options: DOMCrawlerOptions<Parsed, ContextExtension, ExtendedContext, Routes, StatisticStateExtension>);
+    // (undocumented)
+    protected buildContextPipeline(): ContextPipeline<CrawlingContext, DOMCrawlingContext<Parsed>>;
+}
+
+// @public (undocumented)
+export interface DOMCrawlerOptions<Parsed extends DOMParseResult = DOMParseResult, ContextExtension = Dictionary<never>, ExtendedContext extends DOMCrawlingContext<Parsed> = DOMCrawlingContext<Parsed> & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, any>, StatisticStateExtension extends object = {}> extends HttpCrawlerOptions<DOMCrawlingContext<Parsed>, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
+    parser: DOMParser_2<Parsed>;
+}
+
+// @public (undocumented)
+export type DOMCrawlingContext<Parsed extends DOMParseResult = DOMParseResult, UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
+JSONData extends Dictionary = any> = InternalHttpCrawlingContext<UserData, JSONData> & Parsed & DOMCrawlingHelpers;
+
+// @public (undocumented)
+export interface DOMCrawlingHelpers {
+    enqueueLinks(options?: EnqueueLinksOptions): Promise<AddRequestsBatchedResult>;
+    extractLinks(options?: ExtractLinksOptions): Promise<string[]>;
+    parseWithCheerio(selector?: string, timeoutMs?: number): Promise<CheerioAPI>;
+    waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
+}
+
+// @public
+interface DOMParser_2<Parsed extends DOMParseResult> {
+    cleanup?(parsed: Parsed): Awaitable<void>;
+    extractLinks(parsed: Parsed, selector: string, baseUrl: string): Awaitable<string[]>;
+    readonly mutable?: boolean;
+    // (undocumented)
+    parse(context: InternalHttpCrawlingContext): Awaitable<Parsed>;
+    readonly placeholderMembers: Record<keyof Parsed & string, true>;
+    select(parsed: Parsed, selector: string): Awaitable<ArrayLike<unknown>>;
+    toCheerio?(parsed: Parsed): Awaitable<CheerioAPI>;
+}
+export { DOMParser_2 as DOMParser }
+
+// @public
+export interface DOMParseResult {
+    // (undocumented)
+    body: string;
+}
 
 // @public
 export class FileDownload extends BasicCrawler<FileDownloadCrawlingContext> {
