@@ -248,6 +248,7 @@ export class ServiceLocator implements ServiceLocatorInterface {
             this.#storageBackend = configuration.persistStorage
                 ? new FileSystemStorageBackend({
                       localDataDirectory: configuration.storageDir,
+                      inputKey: configuration.inputKey,
                       logger: this.getLogger().child({ prefix: 'FileSystemStorageBackend' }),
                   })
                 : new MemoryStorageBackend({
