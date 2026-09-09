@@ -7,7 +7,7 @@ import { SitemapRequestLoader } from '@crawlee/basic';
 import { MemoryStorageBackend, type Request, serviceLocator } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
 import express from 'express';
-import { startExpressAppPromise } from '../shared/_helper.js';
+import { startExpressAppPromise } from '../../../test/shared/_helper.js';
 
 // Express server for serving sitemaps
 let url = 'http://localhost';
