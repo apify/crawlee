@@ -45,11 +45,12 @@ export interface DOMParseResult {
  */
 export interface DOMParser<Parsed extends DOMParseResult> {
     /**
-     * The context members {@apilink DOMParser.parse|`parse`} contributes. Used to build the placeholders that
-     * report a helpful error when the members are accessed after `skipNavigation`. Must list every key of
-     * `Parsed` - omitting one means accessing it after `skipNavigation` yields `undefined` instead of throwing.
+     * The context members {@apilink DOMParser.parse|`parse`} contributes, mapped to `true`. Used to build the
+     * placeholders that report a helpful error when the members are accessed after `skipNavigation` - the `Record`
+     * type forces every key of `Parsed` to be listed, so the compiler catches an omission that would otherwise
+     * yield `undefined` (rather than throwing) after `skipNavigation`.
      */
-    readonly placeholderMembers: readonly (keyof Parsed & string)[];
+    readonly placeholderMembers: Record<keyof Parsed & string, true>;
 
     parse(context: InternalHttpCrawlingContext): Awaitable<Parsed>;
 
@@ -211,7 +212,7 @@ export class DOMCrawler<
                 return Object.defineProperties(
                     {},
                     Object.fromEntries(
-                        this.#parser.placeholderMembers.map((member) => [
+                        (Object.keys(this.#parser.placeholderMembers) as (keyof Parsed & string)[]).map((member) => [
                             member,
                             {
                                 configurable: true,

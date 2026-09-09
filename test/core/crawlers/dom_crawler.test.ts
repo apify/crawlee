@@ -14,7 +14,7 @@ interface FakeParseResult {
 
 function fakeParser(): DOMParser<FakeParseResult> {
     return {
-        placeholderMembers: ['title', 'body'],
+        placeholderMembers: { title: true, body: true },
         parse: (context) => {
             const body = context.body.toString();
             return { title: /<title>(.*?)<\/title>/.exec(body)?.[1] ?? '', body };

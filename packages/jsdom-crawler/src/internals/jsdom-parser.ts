@@ -46,7 +46,7 @@ export function jsdomParser(options: JsdomParserOptions = {}): DOMParser<JSDOMPa
     const { runScripts = false, virtualConsole, log } = options;
 
     return {
-        placeholderMembers: ['window', 'document', 'body'],
+        placeholderMembers: { window: true, document: true, body: true },
         mutable: runScripts,
         async parse(context: InternalHttpCrawlingContext) {
             const isXml = context.contentType.type.includes('xml');

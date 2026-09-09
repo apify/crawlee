@@ -21,7 +21,7 @@ export function linkedomParser(): DOMParser<LinkeDOMParseResult> {
     const parser = new LinkeDOMParser();
 
     return {
-        placeholderMembers: ['window', 'document', 'body'],
+        placeholderMembers: { window: true, document: true, body: true },
         parse(context: InternalHttpCrawlingContext) {
             const isXml = context.contentType.type.includes('xml');
             const document = parser.parseFromString(context.body.toString(), isXml ? 'text/xml' : 'text/html');

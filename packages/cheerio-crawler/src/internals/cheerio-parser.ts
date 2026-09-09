@@ -15,7 +15,7 @@ export interface CheerioParseResult {
  */
 export function cheerioParser(): DOMParser<CheerioParseResult> {
     return {
-        placeholderMembers: ['$', 'body'],
+        placeholderMembers: { $: true, body: true },
         parse(context: InternalHttpCrawlingContext) {
             const isXml = context.contentType.type.includes('xml');
             const body = Buffer.isBuffer(context.body)

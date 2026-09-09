@@ -94,7 +94,7 @@ interface DOMParser_2<Parsed extends DOMParseResult> {
     readonly mutable?: boolean;
     // (undocumented)
     parse(context: InternalHttpCrawlingContext): Awaitable<Parsed>;
-    readonly placeholderMembers: readonly (keyof Parsed & string)[];
+    readonly placeholderMembers: Record<keyof Parsed & string, true>;
     select(parsed: Parsed, selector: string): Awaitable<ArrayLike<unknown>>;
     toCheerio?(parsed: Parsed): Awaitable<CheerioAPI>;
 }
