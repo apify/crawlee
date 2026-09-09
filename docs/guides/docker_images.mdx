@@ -85,7 +85,7 @@ Since nothing but the automation library is preinstalled, make sure `crawlee` an
 
 ## Package managers
 
-All Node.js images ship with npm, and [Corepack](https://github.com/nodejs/corepack) enabled with the latest pnpm preinstalled, so you can use npm, yarn or pnpm out of the box. Add a [`packageManager`](https://nodejs.org/api/packages.html#packagemanager) field to your `package.json` and Corepack will provision the exact version you pin.
+All Node.js images ship with npm and have [Corepack](https://github.com/nodejs/corepack) enabled, so you can use yarn or pnpm as well. Neither is preinstalled: add a [`packageManager`](https://nodejs.org/api/packages.html#packagemanager) field to your `package.json` and Corepack downloads and uses the exact version you pin.
 
 ```json
 {
