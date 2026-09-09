@@ -32,6 +32,7 @@ import { LoggerJson } from '@apify/log';
 import type { LoggerOptions } from '@apify/log';
 import { LoggerText } from '@apify/log';
 import { LogLevel } from '@apify/log';
+import type { LogOptions } from '@crawlee/types';
 import { ParseSitemapOptions } from '@crawlee/utils';
 import type { ProcessedRequest } from '@crawlee/types';
 import type { ProxyInfo } from '@crawlee/types';
@@ -65,6 +66,11 @@ export interface AddRequestsBatchedResult {
 }
 
 // @public
+export class AfterCommitError extends NonRetryableError {
+    constructor(cause: unknown);
+}
+
+// @public
 export class ApifyLogAdapter extends BaseCrawleeLogger {
     constructor(apifyLog: Log, options?: Partial<CrawleeLoggerOptions>);
     // (undocumented)
@@ -90,26 +96,26 @@ export abstract class BaseCrawleeLogger implements CrawleeLogger {
     child(options: Partial<CrawleeLoggerOptions>): CrawleeLogger;
     protected abstract createChild(options: Partial<CrawleeLoggerOptions>): CrawleeLogger;
     // (undocumented)
-    debug(message: string, data?: Record<string, unknown>): void;
+    debug(message: string, data?: Record<string, unknown>, options?: LogOptions): void;
     // (undocumented)
     deprecated(message: string): void;
     // (undocumented)
-    error(message: string, data?: Record<string, unknown>): void;
+    error(message: string, data?: Record<string, unknown>, options?: LogOptions): void;
     // (undocumented)
     exception(exception: Error, message: string, data?: Record<string, unknown>): void;
     // (undocumented)
     getOptions(): CrawleeLoggerOptions;
     // (undocumented)
-    info(message: string, data?: Record<string, unknown>): void;
+    info(message: string, data?: Record<string, unknown>, options?: LogOptions): void;
     abstract logWithLevel(level: number, message: string, data?: Record<string, unknown>): void;
     // (undocumented)
-    perf(message: string, data?: Record<string, unknown>): void;
+    perf(message: string, data?: Record<string, unknown>, options?: LogOptions): void;
     // (undocumented)
     setOptions(options: Partial<CrawleeLoggerOptions>): void;
     // (undocumented)
-    softFail(message: string, data?: Record<string, unknown>): void;
+    softFail(message: string, data?: Record<string, unknown>, options?: LogOptions): void;
     // (undocumented)
-    warning(message: string, data?: Record<string, unknown>): void;
+    warning(message: string, data?: Record<string, unknown>, options?: LogOptions): void;
     // (undocumented)
     warningOnce(message: string): void;
 }
@@ -137,9 +143,9 @@ interface BrowserPage {
 export interface CalculatedStatistics {
     crawlerRuntimeMillis: number;
     requestAvgFailedDurationMillis: number;
-    requestAvgFinishedDurationMillis: number;
+    requestAvgSucceededDurationMillis: number;
     requestsFailedPerMinute: number;
-    requestsFinishedPerMinute: number;
+    requestsSucceededPerMinute: number;
     requestsTotal: number;
     requestTotalDurationMillis: number;
 }
@@ -299,6 +305,7 @@ export { CrawleeLoggerOptions }
 
 // @public (undocumented)
 export interface CrawlingContext<UserData extends Dictionary = Dictionary> extends RestrictedCrawlingContext<UserData> {
+    afterStorageCommit(callback: (error?: Error) => Awaitable<void>): void;
     extendTimeout(secs: number): void;
     registerDeferredCleanup(cleanup: () => Promise<unknown>): void;
     sendRequest: (requestOverrides?: Partial<HttpRequestOptions>, optionsOverrides?: SendRequestOptions) => Promise<Response>;
@@ -680,15 +687,15 @@ export interface FinalStatistics {
     // (undocumented)
     requestAvgFailedDurationMillis: number;
     // (undocumented)
-    requestAvgFinishedDurationMillis: number;
+    requestAvgSucceededDurationMillis: number;
     // (undocumented)
     requestsFailed: number;
     // (undocumented)
     requestsFailedPerMinute: number;
     // (undocumented)
-    requestsFinished: number;
+    requestsSucceeded: number;
     // (undocumented)
-    requestsFinishedPerMinute: number;
+    requestsSucceededPerMinute: number;
     // (undocumented)
     requestsTotal: number;
     // (undocumented)
@@ -765,16 +772,16 @@ export interface IRequestManager extends IRequestLoader {
 // @public
 export interface IStatistics<StateExtension extends object = {}> {
     calculate(): CalculatedStatistics;
-    discardJob(id: number | string): void;
+    discardRequestRecord(id: number | string): void;
     readonly errorTracker: ErrorTracker;
     readonly errorTrackerRetry: ErrorTracker;
-    failJob(id: number | string, retryCount: number): void;
-    finishJob(id: number | string, retryCount: number): void;
     persistState?(): Promise<void>;
+    recordRequestFailure(id: number | string, retryCount: number): void;
+    recordRequestStart(id: number | string): void;
+    recordRequestSuccess(id: number | string, retryCount: number): void;
     registerStatusCode(code: number): void;
     readonly requestRetryHistogram: number[];
     startCapturing(): Promise<void>;
-    startJob(id: number | string): void;
     readonly state: StatisticState & StateExtension;
     stopCapturing(): Promise<void>;
 }
@@ -965,6 +972,8 @@ export { LoggerOptions }
 export { LoggerText }
 
 export { LogLevel }
+
+export { LogOptions }
 
 // @public (undocumented)
 export const MAX_POOL_SIZE = 1000;
@@ -1842,7 +1851,7 @@ export class StateValidationError extends Error {
 }
 
 // @public
-export interface StatisticPersistedState extends Omit<StatisticState, 'statsPersistedAt' | 'crawlerStartedAt' | 'crawlerFinishedAt' | 'requestMinDurationMillis' | 'requestsFailedPerMinute' | 'requestsFinishedPerMinute' | 'requestRetryHistogram' | 'instanceStart'> {
+export interface StatisticPersistedState extends Omit<StatisticState, 'statsPersistedAt' | 'crawlerStartedAt' | 'crawlerFinishedAt' | 'requestMinDurationMillis' | 'requestsFailedPerMinute' | 'requestsSucceededPerMinute' | 'requestRetryHistogram' | 'instanceStart'> {
     // (undocumented)
     crawlerFinishedAt: string | null;
     crawlerLastStartTimestamp: number;
@@ -1850,14 +1859,14 @@ export interface StatisticPersistedState extends Omit<StatisticState, 'statsPers
     // (undocumented)
     requestAvgFailedDurationMillis: number | null;
     // (undocumented)
-    requestAvgFinishedDurationMillis: number | null;
+    requestAvgSucceededDurationMillis: number | null;
     // (undocumented)
     requestMinDurationMillis: number | null;
     requestRetryHistogram: (number | null)[];
     // (undocumented)
     requestsFailedPerMinute: number | null;
     // (undocumented)
-    requestsFinishedPerMinute: number | null;
+    requestsSucceededPerMinute: number | null;
     // (undocumented)
     requestsTotal: number;
     // (undocumented)
@@ -1919,17 +1928,17 @@ export interface StatisticState {
     // (undocumented)
     requestsFailedPerMinute: number;
     // (undocumented)
-    requestsFinished: number;
-    // (undocumented)
-    requestsFinishedPerMinute: number;
-    // (undocumented)
     requestsRetries: number;
+    // (undocumented)
+    requestsSucceeded: number;
+    // (undocumented)
+    requestsSucceededPerMinute: number;
     // (undocumented)
     requestsWithStatusCode: Record<string, number>;
     // (undocumented)
     requestTotalFailedDurationMillis: number;
     // (undocumented)
-    requestTotalFinishedDurationMillis: number;
+    requestTotalSucceededDurationMillis: number;
     // (undocumented)
     retryErrors: Record<string, unknown>;
     // (undocumented)
@@ -1996,6 +2005,7 @@ export class StorageStatsTracker<T extends Record<keyof T, number>> {
 
 // @public
 export class StorageTransaction implements StorageTransactionView {
+    afterCommit(callback: (error?: Error) => Awaitable<void>): void;
     commit(): Promise<void>;
     // (undocumented)
     get datasetItems(): {

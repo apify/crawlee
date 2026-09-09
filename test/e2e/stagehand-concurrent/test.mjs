@@ -5,7 +5,7 @@ await initialize(testActorDirname);
 
 const { stats, datasetItems } = await runActor(testActorDirname, 16384);
 
-await expect(stats.requestsFinished === 3, 'All 3 requests finished');
+await expect(stats.requestsSucceeded === 3, 'All 3 requests finished');
 await expect(stats.requestsFailed === 0, 'No requests failed');
 await expect(datasetItems.length === 3, 'Three dataset items');
 await expect(validateDataset(datasetItems, ['url', 'title', 'browserId']), 'Dataset items validation');

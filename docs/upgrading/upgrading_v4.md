@@ -55,6 +55,8 @@ The purely mechanical renames, collected in one place. Where a row links to a se
 | `(await enqueueLinks()).processedRequests` | `(await enqueueLinks()).addedRequests` ([details](#enqueuelinks-return-value-reshaped-addrequestsbatchedresult-instead-of-batchaddrequestsresult)) |
 | `autoscaledPoolOptions` | `taskLoopOptions` ([narrowed](#autoscaledpooloptions-is-now-taskloopoptions-and-no-longer-carries-concurrency-config)) |
 | `crawler.stats` | `crawler.statistics` ([retyped](#statisticsoptions-is-replaced-by-a-statistics-instance)) |
+| `statistics.state.requestsFinished` (and the other `*Finished*` counters) | `requestsSucceeded` ([details](#finished-request-counters-are-renamed-to-succeeded)) |
+| `statistics.startJob()` / `finishJob()` / `failJob()` / `discardJob()` | `recordRequestStart()` / `recordRequestSuccess()` / `recordRequestFailure()` / `discardRequestRecord()` ([details](#the-request-recording-methods-are-renamed)) |
 | `browserPoolOptions` | `browserPool` + a `*BrowserPool()` factory ([details](#browserpooloptions-is-removed)) |
 | `gotScraping` (from `@crawlee/utils`) | `GotScrapingHttpClient` (`@crawlee/got-scraping-client`) |
 | `SDK_`-prefixed internal KVS keys | `CRAWLEE_`-prefixed ([details](#internal-kvs-keys-renamed)) |
@@ -147,6 +149,17 @@ The crawler following options are removed:
 - `handlePageFunction` -> `requestHandler`
 - `handleRequestTimeoutSecs` -> `requestHandlerTimeoutSecs`
 - `handleFailedRequestFunction` -> `failedRequestHandler`
+
+### `*Finished*` request counters are renamed to `*Succeeded*`
+
+A failed request is also finished, so counters that only ever counted the successful ones were misleading. The rename covers `StatisticState` (`crawler.statistics.state`), the `CalculatedStatistics` returned by `crawler.statistics.calculate()` - which is also what the periodic statistics log line reports - the `FinalStatistics` returned by `crawler.run()`, and the record persisted under `CRAWLEE_CRAWLER_STATISTICS_*`:
+
+- `requestsFinished` -> `requestsSucceeded`
+- `requestsFinishedPerMinute` -> `requestsSucceededPerMinute`
+- `requestTotalFinishedDurationMillis` -> `requestTotalSucceededDurationMillis`
+- `requestAvgFinishedDurationMillis` -> `requestAvgSucceededDurationMillis`
+
+Tooling that reads the persisted record needs the same rename applied. `crawlerFinishedAt` is unchanged - the crawler really does finish.
 
 ### Crawler constructors no longer take a `Configuration` argument
 
@@ -652,6 +665,31 @@ for (const [index, urls] of batches.entries()) {
 
 An alias identifies a run-scoped queue. It has no persistent name, and is emptied on start along with the default storages. Reuse an alias and you get that same queue back, handled requests included. The next crawl then finds nothing to do. Give each crawl its own alias. `purge()` is for when one crawler and one queue must be reused.
 
+### `teardown()` is per-run, disposing of the crawler is not
+
+`crawler.teardown()` ends the run in progress and releases only what that run owns — it is what `run()` calls on its way out. In v3 it also destroyed the browser pool a browser crawler had built for itself, and a destroyed `BrowserPool` cannot be used again: with its timers cleared and its listeners dropped, a second `run()` had nothing retiring idle browsers or reaping the retired ones. It now releases that run's browsers and leaves the pool usable.
+
+What outlives a run is released by `crawler.destroy()`, or by disposing of the crawler:
+
+```typescript
+{
+    await using crawler = new PlaywrightCrawler({ requestHandler: async ({ page }) => { /* ... */ } });
+
+    await crawler.run(['https://example.com/a']);
+    await crawler.run(['https://example.com/b']);
+} // the browser pool is destroyed here, as the crawler goes out of scope
+```
+
+Disposing is optional — a finished run leaves no browsers open and no timer holding the process alive.
+
+:::info
+
+The `await using` syntax needs Node.js 24 or later. On Node.js 22 call <ApiLink to="basic-crawler/class/BasicCrawler#destroy">`destroy()`</ApiLink> yourself instead — it is what the disposal hook calls anyway, as with the [collaborators you own](#collaborators-you-own-are-disposable).
+
+:::
+
+`crawler.running` is now a read-only getter; in v3 it was an assignable field.
+
 ### Storage `.open()` now also accepts `{ id?, name? }`
 
 `Dataset.open()`, `KeyValueStore.open()`, and `RequestQueue.open()` previously accepted a single `idOrName?: string` parameter. This was ambiguous — callers couldn't express whether they were opening a storage by its ID or by name.
@@ -697,9 +735,10 @@ Every crawler now wraps each request in a **storage transaction** (see the [Tran
 The observable behavior of a *successful* handler is unchanged (reads within a handler see its own writes), but several things differ on the failure path and around handler boundaries:
 
 - **Uncommitted writes are invisible to other handlers.** Using the key-value store as a live channel between concurrently running handlers no longer works — one handler's `setValue()` only becomes visible to others once its request succeeds. Use `useState()` for cross-handler communication.
-- **`useState()` / `getAutoSavedValue()` are *not* transactional.** The shared state object stays live; mutations of it are not rolled back when a handler fails.
+- **`useState()` / `getAutoSavedValue()` are *not* transactional.** The shared state object stays live; mutations of it are not rolled back when a handler fails. Side effects that have to match the writes that actually landed — result counters above all — belong in a callback registered with the new `afterStorageCommit()` context helper.
 - **Request queue additions are applied immediately by default** (the `writeThrough` policy) and are not rolled back — deduplication by `uniqueKey` keeps retries idempotent. Pass `transactionalStorage: { requestQueue: 'deferred' }` for strict all-or-nothing enqueues.
 - **Commit is at-least-once.** It spans multiple storages, so a commit that fails partway fails the request; the retry may re-apply writes that already landed.
+- **A write cannot fail where it is made.** `pushData()` records the item and returns; if the storage backend rejects it, that happens at commit time, and a `try`/`catch` around the call never sees it. Register an `afterStorageCommit()` callback next to the write instead — it receives the commit error, and an error it throws replaces it, so a rejected write can still be turned into a `NonRetryableError` of your own.
 - **`KeyValueStore.setValue()` with a stream value throws inside a request handler.** A stream can only be consumed once, so it cannot be buffered. Wrap the call in `withDirectStorageAccess()` to write it immediately:
 
   ```typescript
@@ -716,7 +755,7 @@ The mechanism can be disabled entirely with `transactionalStorage: false` on any
 #### Removed symbols and options
 
 - `checkStorageAccess` and `withCheckedStorageAccess` are superseded by the transaction mechanism; the per-call-site helper is now `withDirectStorageAccess()`.
-- The experimental `AdaptivePlaywrightCrawler` no longer needs its bespoke write-buffering machinery: the `preventDirectStorageAccess` option is gone (direct storage calls are now captured by the per-attempt transaction instead of throwing), and `RequestHandlerResult` is replaced by the read-only `StorageTransactionView`, which the `resultChecker` / `resultComparator` callbacks (and `fullResultComparator`) now receive. The view keeps the familiar accessors (`datasetItems`, `enqueuedUrls`, `keyValueStoreChanges`), so most callbacks only need a type change. The `calls` and `enqueuedUrlLists` accessors are gone — `requestsFromUrl` sources are now expanded when added, so the fetched URLs appear in `enqueuedUrls` (and are what `fullResultComparator` compares).
+- The experimental `AdaptivePlaywrightCrawler` no longer needs its bespoke write-buffering machinery: the `preventDirectStorageAccess` option is gone (direct storage calls are now captured by the per-attempt transaction instead of throwing), and `RequestHandlerResult` is replaced by the read-only `StorageTransactionView`, which the `resultChecker` / `resultComparator` callbacks (and `fullResultComparator`) now receive. The view keeps the familiar accessors (`datasetItems`, `enqueuedUrls`, `keyValueStoreChanges`), so most callbacks only need a type change. The `calls` and `enqueuedUrlLists` accessors are gone — `requestsFromUrl` sources are now expanded when added, so the fetched URLs appear in `enqueuedUrls` (and are what `fullResultComparator` compares). The `commitResult` override point is gone too; use an `afterStorageCommit()` callback to run logic once the winning attempt's writes have landed (or failed to).
 
 ### `storageObject` is removed from storage classes
 
@@ -916,7 +955,7 @@ The change spans, among others:
 - **`RequestList`** — all `_`-prefixed helpers (`addFetchedRequests`, `addPersistedRequests`, `addRequest`, `addRequestsFromSources`, `ensureInProgress`, `ensureIsInitialized`, `ensureUniqueKeyValid`, `fetchRequestsFromUrl`, `getPersistedState`, `loadStateAndPersistedRequests`, `persistRequests`, `restoreState`)
 - **`RequestQueue`** — `proxyConfiguration`, `requestCache`, `requestSeenCache`, `queuePausedForMigration`, `inProgressRequestBatchCount`, `expectedRequestProcessingSecs`, `httpClient`, `events`, and the helpers `cacheRequest`, `fetchRequestsFromUrl`, `addFetchedRequests` (`id`, `name`, `backend`, `log` are now `readonly`)
 - **`ProxyConfiguration`** — `nextCustomUrlIndex`, `proxyUrls`, `newUrlFunction`, and the helpers `handleProxyUrlsList`, `callNewUrlFunction`, `throwCannotCombineCustomMethods`, `throwNoOptionsProvided` (the internal `log` field and `usedProxyUrls` map are removed; `isManInTheMiddle` is now `readonly`)
-- **`Statistics`** — `saveRetryCountForJob`, `teardown`, `keyValueStore` (`errorTracker`, `errorTrackerRetry` are now `readonly`, and `state` / `requestRetryHistogram` are getters)
+- **`Statistics`** — `saveRetryCountForRequest` (was `saveRetryCountForJob`), `teardown`, `keyValueStore` (`errorTracker`, `errorTrackerRetry` are now `readonly`, and `state` / `requestRetryHistogram` are getters)
 - **`SystemStatus`** — `isSystemIdle`
 - **`Router`** — the constructor is now `private`; use the static `Router.create()` factory
 - **`BaseHttpClient`** — `log` (subclasses receive it via the constructor `logger` option instead of reading `this.log`)
@@ -1307,6 +1346,15 @@ const crawler = new BasicCrawler({
 Omit the option and the crawler builds its own default, exactly as before. A supplied instance is treated as borrowed: the crawler records into it and drives its capture lifecycle for the run, but never `reset()`s it between `run()` calls — so a preconfigured instance keeps whatever state it was handed.
 
 The option accepts the built-in `Statistics` or any object implementing the new `IStatistics` interface, so a fully custom statistics backend can be plugged in without subclassing. The crawler exposes it as `crawler.statistics` (renamed from `crawler.stats`) typed as `IStatistics`.
+
+### The request-recording methods are renamed
+
+A crawler processes requests, not jobs, so the four methods `IStatistics` exposes for recording them dropped the borrowed vocabulary. Signatures are unchanged, so a custom implementation only needs renaming:
+
+- `startJob()` -> `recordRequestStart()`
+- `finishJob()` -> `recordRequestSuccess()`
+- `failJob()` -> `recordRequestFailure()`
+- `discardJob()` -> `discardRequestRecord()`
 
 ### The `Statistics` persistence lifecycle is stricter
 

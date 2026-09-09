@@ -265,6 +265,12 @@ const proxyLogMethods = [
 
 type LogProxyCall = [log: CrawleeLogger, method: (typeof proxyLogMethods)[number], ...args: unknown[]];
 
+/** The lifecycle {@apilink AdaptivePlaywrightCrawler} drives on the crawlers backing its context pipelines. */
+interface InnerCrawlerLifecycle {
+    teardown: () => Promise<void>;
+    destroy: () => Promise<void>;
+}
+
 /**
  * An extension of {@apilink PlaywrightCrawler} that uses a more limited request handler interface so that it is able to switch to HTTP-only crawling when it detects it may be possible.
  *
@@ -323,6 +329,12 @@ export class AdaptivePlaywrightCrawler<
      */
     readonly #attemptWritePolicy: Partial<StorageWritePolicy>;
 
+    /** Owns the browser pool this crawler's runs use, so its per-run resources are released with ours. */
+    readonly #browserCrawler: InnerCrawlerLifecycle;
+
+    /** Nothing of its state is per-run, but it owns a session pool that outlives one. */
+    readonly #staticCrawler: InnerCrawlerLifecycle;
+
     /**
      * In-flight rendering type detections, plus the pending results of an asynchronous `storeResult`.
      */
@@ -332,8 +344,6 @@ export class AdaptivePlaywrightCrawler<
      * Set once `teardown()` starts, so that requests still in the pool stop opening new detections.
      */
     #shutDown = false;
-
-    #teardownHooks: (() => Promise<unknown>)[] = [];
 
     constructor(
         options: AdaptivePlaywrightCrawlerOptions<
@@ -481,7 +491,8 @@ export class AdaptivePlaywrightCrawler<
             remoteBrowser,
         });
 
-        this.#teardownHooks.push(browserCrawler.teardown.bind(browserCrawler));
+        this.#staticCrawler = staticCrawler;
+        this.#browserCrawler = browserCrawler;
 
         this.#staticContextPipeline = staticCrawler.contextPipeline.compose({
             action: this.adaptCheerioContext.bind(this),
@@ -948,9 +959,13 @@ export class AdaptivePlaywrightCrawler<
         // Mirrors the owned-only `initialize()` in `init()` - without this, the predictor we built keeps its
         // PERSIST_STATE listener registered after the crawl and never gets a final write.
         await this.#renderingTypePredictor.ifOwned((predictor) => predictor.teardown());
-        for (const hook of this.#teardownHooks) {
-            await hook();
-        }
+        await this.#browserCrawler.teardown();
+    }
+
+    override async destroy(): Promise<void> {
+        await super.destroy();
+        await this.#staticCrawler.destroy();
+        await this.#browserCrawler.destroy();
     }
 }
 

@@ -696,12 +696,10 @@ export class BrowserPool<
             this.retireBrowserByPage(page);
         }
 
-        // Puppeteer 25+ can hang `page.close()` indefinitely when the page's navigation was aborted, don't let it block the crawler.
-        await addTimeoutToPromise(
-            async () => page.close(),
-            PAGE_CLOSE_TIMEOUT_MILLIS,
-            `page.close() timed out after ${PAGE_CLOSE_TIMEOUT_MILLIS / 1000} seconds`,
-        );
+        // The bound on this lives in `overridePageClose`, where it covers the pool's own
+        // bookkeeping as well. Wrapping it here instead would time out the override and abandon
+        // that bookkeeping, leaving the browser holding a slot it can never get back.
+        await page.close();
     }
 
     /**
@@ -773,7 +771,20 @@ export class BrowserPool<
     }
 
     /**
-     * Closes all managed browsers and tears down the pool.
+     * Closes every managed browser and empties the pool, which stays usable afterwards — a crawler releases its
+     * browsers when a run ends and may start another run on the same pool.
+     */
+    async releaseAllBrowsers(): Promise<void> {
+        await this.closeAllBrowsers();
+
+        this.startingBrowserControllers.clear();
+        this.activeBrowserControllers.clear();
+        this.retiredBrowserControllers.clear();
+    }
+
+    /**
+     * Closes all managed browsers and tears the pool down for good: its intervals are cleared without being
+     * re-armed and its listeners are dropped, so it cannot be used again.
      */
     async destroy(): Promise<void> {
         clearInterval(this.browserKillerInterval!);
@@ -781,15 +792,7 @@ export class BrowserPool<
         this.browserKillerInterval = undefined;
         this.#browserRetireInterval = undefined;
 
-        await this.closeAllBrowsers();
-
-        this.teardown();
-    }
-
-    private teardown() {
-        this.startingBrowserControllers.clear();
-        this.activeBrowserControllers.clear();
-        this.retiredBrowserControllers.clear();
+        await this.releaseAllBrowsers();
 
         this.removeAllListeners();
     }
@@ -921,13 +924,62 @@ export class BrowserPool<
         const pageId = this.getPageId(page)!;
 
         page.close = async (...args: unknown[]) => {
-            await this.executeHooks(this.prePageCloseHooks, page, browserController);
+            // A browser can acknowledge the close and then never destroy the target, in which case
+            // this never settles and the page's own `close` event never fires either (Chromium
+            // 536385539). Bound the whole sequence so nothing here can hang the caller, then
+            // reconcile the pool regardless of the outcome, so a page that refuses to close cannot
+            // leave the pool believing it is still open. `Promise.race` rather than
+            // `addTimeoutToPromise`: the latter inherits its AbortController from the calling frame,
+            // so a timeout here would cancel the task of whoever awaited `page.close()`.
+            let pageClosed = false;
 
-            await originalPageClose.apply(page, args).catch((err: Error) => {
-                this.#log.debug(`Could not close page.\nCause:${err.message}`, { id: browserController.id });
-            });
+            const closing = (async () => {
+                await this.executeHooks(this.prePageCloseHooks, page, browserController);
 
-            await this.executeHooks(this.postPageCloseHooks, pageId, browserController);
+                await originalPageClose.apply(page, args).catch((err: Error) => {
+                    this.#log.debug(`Could not close page.\nCause:${err.message}`, { id: browserController.id });
+                });
+
+                // Whether the page itself is gone. Tracked separately from the sequence finishing,
+                // so that a slow hook does not get the browser retired.
+                pageClosed = true;
+
+                await this.executeHooks(this.postPageCloseHooks, pageId, browserController);
+            })();
+
+            let timeout: NodeJS.Timeout | undefined;
+            const finished = await Promise.race([
+                closing.then(
+                    () => true,
+                    (err: Error) => {
+                        this.#log.warning(
+                            `Closing a page failed, releasing it from the pool anyway.\nCause:${err.message}`,
+                            { id: browserController.id, pageId },
+                        );
+                        return true;
+                    },
+                ),
+                new Promise<boolean>((resolve) => {
+                    timeout = setTimeout(() => resolve(false), PAGE_CLOSE_TIMEOUT_MILLIS);
+                }),
+            ]);
+            clearTimeout(timeout);
+
+            if (!finished) {
+                this.#log.warning(
+                    `Closing a page did not finish within ${PAGE_CLOSE_TIMEOUT_MILLIS / 1000} seconds, ` +
+                        'releasing it from the pool anyway.',
+                    { id: browserController.id, pageId },
+                );
+            }
+
+            if (!pageClosed) {
+                // The page is still attached, so this browser cannot be trusted with more work.
+                // Retiring it lets the reclamation below close the process once its pages drain.
+                this.retireBrowserController(browserController);
+            }
+
+            browserController.registerPageClosed(page);
 
             this.pages.delete(pageId);
             this.closeRetiredBrowserWithNoPages(browserController);
