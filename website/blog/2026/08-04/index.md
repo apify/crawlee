@@ -99,11 +99,11 @@ We didn't write a blog post for v3.17 (released in June), so here's a quick reca
 
 ### Dynamic memory snapshots
 
-The [`Snapshotter`](https://crawlee.dev/js/api/core/class/Snapshotter) previously measured the available memory once at startup and stuck with that number for the whole crawl. In environments where the memory limit can change while the crawler runs, for example a container that gets resized, the autoscaling either under-used the available memory or pushed past it. When no fixed `memoryMbytes` is configured, the snapshotter now follows the total memory reported by the event manager and scales with it.
+The [`Snapshotter`](https://crawlee.dev/js/api/basic/class/Snapshotter) previously measured the available memory once at startup and stuck with that number for the whole crawl. In environments where the memory limit can change while the crawler runs, for example a container that gets resized, the autoscaling either under-used the available memory or pushed past it. When no fixed `memoryMbytes` is configured, the snapshotter now follows the total memory reported by the event manager and scales with it.
 
 ### Custom load signals for autoscaling
 
-The autoscaling internals were refactored around a new `LoadSignal` interface. `SystemStatus` aggregates a set of load signals to decide whether the system is overloaded, and the built-in ones (memory, CPU, event loop, and API client rate limits) are now separate composable classes. You can implement the interface yourself and pass extra signals to the [`AutoscaledPool`](https://crawlee.dev/js/api/core/class/AutoscaledPool) via `loadSignals`, so the crawler can react to overload conditions that Crawlee doesn't know about, such as navigation timeouts or proxy health.
+The autoscaling internals were refactored around a new `LoadSignal` interface. `SystemStatus` aggregates a set of load signals to decide whether the system is overloaded, and the built-in ones (memory, CPU, event loop, and API client rate limits) are now separate composable classes. You can implement the interface yourself and pass extra signals to the [`AutoscaledPool`](https://crawlee.dev/js/api/basic/class/AutoscaledPool) via `loadSignals`, so the crawler can react to overload conditions that Crawlee doesn't know about, such as navigation timeouts or proxy health.
 
 ---
 

@@ -30,7 +30,7 @@ The requests are stored in a <ApiLink to="core/class/RequestQueue">`RequestQueue
 
 In the `requestHandler` you tell the crawler what to do at each and every page it visits. You can use it to handle extraction of data from the page, processing the data, saving it, calling APIs, doing calculations and so on.
 
-The `requestHandler` is a user-defined function, invoked automatically by the crawler for each `Request` from the `RequestQueue`. It always receives a single argument - a <ApiLink to="core/interface/CrawlingContext">`CrawlingContext`</ApiLink>. Its properties change depending on the crawler class used, but it always includes the `request` property, which represents the currently crawled URL and related metadata.
+The `requestHandler` is a user-defined function, invoked automatically by the crawler for each `Request` from the `RequestQueue`. It always receives a single argument - a <ApiLink to="basic/interface/CrawlingContext">`CrawlingContext`</ApiLink>. Its properties change depending on the crawler class used, but it always includes the `request` property, which represents the currently crawled URL and related metadata.
 
 ## Building a crawler
 

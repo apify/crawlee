@@ -38,7 +38,7 @@ const crawler = new PlaywrightCrawler({
 await crawler.run(['https://example.com']);
 ```
 
-<ApiLink to="core/class/Session#setCookie">`session.setCookie`</ApiLink> writes into the session's <ApiLink to="core/class/Session#cookieJar">`cookieJar`</ApiLink>. The crawler copies that jar into the browser just before navigating, so a call inside a <ApiLink to="playwright-crawler/interface/PlaywrightCrawlerOptions#preNavigationHooks">`preNavigationHook`</ApiLink> arrives in time.
+<ApiLink to="basic/class/Session#setCookie">`session.setCookie`</ApiLink> writes into the session's <ApiLink to="basic/class/Session#cookieJar">`cookieJar`</ApiLink>. The crawler copies that jar into the browser just before navigating, so a call inside a <ApiLink to="playwright-crawler/interface/PlaywrightCrawlerOptions#preNavigationHooks">`preNavigationHook`</ApiLink> arrives in time.
 
 The same hook works unchanged in <ApiLink to="cheerio-crawler/class/CheerioCrawler">`CheerioCrawler`</ApiLink> and the other <ApiLink to="http-crawler/class/HttpCrawler">`HttpCrawler`</ApiLink> variants. There the jar is serialized into the `Cookie` header instead.
 

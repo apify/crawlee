@@ -133,7 +133,7 @@ Our crawlers will now use the selected proxies for all connections.
 
 ## IP Rotation and session management
 
-Each call to <ApiLink to="core/class/ProxyConfiguration#newUrl">`proxyConfiguration.newUrl()`</ApiLink> generates a new proxy URL. Crawler instances pair these URLs with `Session` instances and rotate those together with browser fingerprints, impersonated headers, and more. This is extremely useful in scraping, because we want to create the impression of a real user. See the [session management guide](../guides/session-management) and <ApiLink to="core/class/SessionPool">`SessionPool`</ApiLink> class for more information on how keeping a real session helps us avoid blocking.
+Each call to <ApiLink to="core/class/ProxyConfiguration#newUrl">`proxyConfiguration.newUrl()`</ApiLink> generates a new proxy URL. Crawler instances pair these URLs with `Session` instances and rotate those together with browser fingerprints, impersonated headers, and more. This is extremely useful in scraping, because we want to create the impression of a real user. See the [session management guide](../guides/session-management) and <ApiLink to="basic/class/SessionPool">`SessionPool`</ApiLink> class for more information on how keeping a real session helps us avoid blocking.
 
 <Tabs groupId="proxy_session_management">
     <TabItem value="http" label="HttpCrawler">

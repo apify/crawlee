@@ -20,7 +20,7 @@ A scraper might get blocked for numerous reasons. Let's narrow it down to the tw
 
 Browser fingerprint is a collection of browser attributes and significant features that can show if our browser is a bot or a real user. Moreover, most browsers have these unique features that allow the website to track the browser even within different IP addresses. This is the main reason why scrapers should change browser fingerprints while doing browser-based scraping. In return, it should significantly reduce the blocking.
 
-The two are not handled separately. In Crawlee a <ApiLink to="core/class/Session">`Session`</ApiLink> ties an IP, a cookie jar, and a fingerprint together into one consistent identity, and the <ApiLink to="core/class/SessionPool">`SessionPool`</ApiLink> rotates those identities as a unit — so a fresh fingerprint always arrives with a fresh IP. This guide covers the fingerprint half; see the [session management guide](./session-management) for how to control the rotation, and the [proxy management guide](./proxy-management) for the IP half.
+The two are not handled separately. In Crawlee a <ApiLink to="basic/class/Session">`Session`</ApiLink> ties an IP, a cookie jar, and a fingerprint together into one consistent identity, and the <ApiLink to="basic/class/SessionPool">`SessionPool`</ApiLink> rotates those identities as a unit — so a fresh fingerprint always arrives with a fresh IP. This guide covers the fingerprint half; see the [session management guide](./session-management) for how to control the rotation, and the [proxy management guide](./proxy-management) for the IP half.
 
 ## Using browser fingerprints
 
