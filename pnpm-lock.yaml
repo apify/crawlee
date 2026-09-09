@@ -774,15 +774,9 @@ importers:
       mime-types:
         specifier: ^3.0.1
         version: 3.0.2
-      minimatch:
-        specifier: ^9.0.0
-        version: 9.0.9
       stream-json:
         specifier: ^1.9.1
         version: 1.9.1
-      tldts:
-        specifier: ^7.0.6
-        version: 7.0.28
       tslib:
         specifier: ^2.8.1
         version: 2.8.1

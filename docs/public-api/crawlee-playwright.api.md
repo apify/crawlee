@@ -28,7 +28,7 @@ import type { CrawlingContext } from '@crawlee/browser';
 import type { CrawlingContext as CrawlingContext_2 } from '@crawlee/basic';
 import { Dictionary } from '@crawlee/types';
 import type { Download } from 'playwright';
-import type { EnqueueLinksOptions } from '@crawlee/core';
+import type { EnqueueLinksOptions } from '@crawlee/basic';
 import type { GetUserDataFromRequest } from '@crawlee/browser';
 import type { GetUserDataFromRequest as GetUserDataFromRequest_2 } from '@crawlee/basic';
 import { IRequestManager } from '@crawlee/browser';

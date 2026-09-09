@@ -6,17 +6,8 @@ import { minimatch } from 'minimatch';
 import type { RequiredDeep } from 'type-fest';
 import { z } from 'zod';
 
-import type {
-    CrawleeLogger,
-    EventManager,
-    IRequestLoader,
-    IRequestManager,
-    RequestLoaderStatus,
-    UrlPatternInput,
-    UrlPatternObject,
-} from '@crawlee/core';
+import type { CrawleeLogger, EventManager, IRequestLoader, IRequestManager, RequestLoaderStatus } from '@crawlee/core';
 import {
-    constructUrlPatternObjects,
     EventType,
     KeyValueStore,
     purgeDefaultStorages,
@@ -24,9 +15,11 @@ import {
     RequestManagerTandem,
     RequestQueue,
     serviceLocator,
-    urlPatternSchema,
 } from '@crawlee/core';
 import { parseArgument, schemas } from '@crawlee/utils/internal';
+
+import type { UrlPatternInput, UrlPatternObject } from './enqueue_links/index.js';
+import { constructUrlPatternObjects, urlPatternSchema } from './enqueue_links/index.js';
 
 const sitemapRequestLoaderOptionsSchema = z.strictObject({
     sitemapUrls: schemas.arrayOf(z.string(), 'strings'),

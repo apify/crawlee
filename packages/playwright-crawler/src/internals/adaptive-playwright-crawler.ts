@@ -13,29 +13,30 @@ import type {
     BasicCrawlerOptions,
     ContextPipeline,
     CrawlingContext,
+    EnqueueLinksOptions,
     GetUserDataFromRequest,
     RestrictedCrawlingContext,
     RouterRoutes,
     StatisticStateExtensionOptions,
 } from '@crawlee/basic';
-import { BasicCrawler, RequestHandlerError, Router, Statistics } from '@crawlee/basic';
+import {
+    BasicCrawler,
+    RequestHandlerError,
+    resolveBaseUrlForEnqueueLinksFiltering,
+    Router,
+    Statistics,
+} from '@crawlee/basic';
 import { extractUrlsFromPage } from '@crawlee/browser';
 import type { CheerioCrawlingContext } from '@crawlee/cheerio';
 import { CheerioCrawler } from '@crawlee/cheerio';
 import type {
     AddRequestsBatchedResult,
     CrawleeLogger,
-    EnqueueLinksOptions,
     StorageTransaction,
     StorageTransactionView,
     StorageWritePolicy,
 } from '@crawlee/core';
-import {
-    createStorageTransaction,
-    EnqueueStrategy,
-    OwnedOrInjected,
-    resolveBaseUrlForEnqueueLinksFiltering,
-} from '@crawlee/core';
+import { createStorageTransaction, EnqueueStrategy, OwnedOrInjected } from '@crawlee/core';
 import type { Dictionary, Awaitable } from '@crawlee/types';
 import { extractUrlsFromCheerio, parseArgument } from '@crawlee/utils/internal';
 import { type Cheerio, type CheerioAPI } from 'cheerio';

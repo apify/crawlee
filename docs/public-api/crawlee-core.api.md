@@ -305,29 +305,10 @@ export interface DefaultStorageIdentifier {
     name?: never;
 }
 
-// @public
-export type EnqueueLinksOptions = ExtractLinksOptions & EnqueueUrlsOptions;
-
 export { EnqueueStrategy }
 
 // @public
 export type EnqueueStrategyOption = EnqueueStrategy | 'all' | 'same-domain' | 'same-hostname' | 'same-origin';
-
-// @public
-export interface EnqueueUrlsOptions extends RequestQueueOperationOptions {
-    baseUrl?: string;
-    exclude?: readonly UrlPatternInput[];
-    include?: readonly UrlPatternInput[];
-    label?: string;
-    limit?: number;
-    onSkippedRequest?: SkippedRequestCallback;
-    sessionId?: string;
-    skipNavigation?: boolean;
-    strategy?: EnqueueStrategyOption;
-    transformRequestFunction?: RequestTransform;
-    userData?: Dictionary;
-    waitForAllRequestsToBeAdded?: boolean;
-}
 
 // @public (undocumented)
 export abstract class EventManager {
@@ -399,12 +380,6 @@ export type ExplicitStorageIdentifier = {
     alias: string;
 };
 
-// @public
-export interface ExtractLinksOptions {
-    baseUrl?: string;
-    selector?: string;
-}
-
 // @public (undocumented)
 export function field<T extends z.ZodType>(schema: T, envVar?: string | string[]): ConfigField<T>;
 
@@ -417,15 +392,6 @@ export type FieldsInput<F extends Record<string, ConfigField>> = {
 export type FieldsOutput<F extends Record<string, ConfigField>> = {
     [K in keyof F]: z.output<F[K]['schema']>;
 };
-
-// @public (undocumented)
-export type GlobInput = string | GlobObject;
-
-// @public (undocumented)
-export interface GlobObject {
-    // (undocumented)
-    glob: string;
-}
 
 // Not exported by the entry point; reachable only as a referenced type.
 // @public (undocumented)
@@ -747,15 +713,6 @@ export interface RecoverableStatePersistenceOptions {
     persistStateKey: string;
 }
 
-// @public (undocumented)
-export type RegExpInput = RegExp | RegExpObject;
-
-// @public (undocumented)
-export interface RegExpObject {
-    // (undocumented)
-    regexp: RegExp;
-}
-
 // @public
 class Request_2<UserData extends Dictionary = Dictionary> {
     constructor(options: RequestOptions<UserData>);
@@ -1050,12 +1007,6 @@ export enum RequestState {
 }
 
 // @public
-export interface RequestTransform {
-    // (undocumented)
-    (original: RequestOptions): RequestOptions | false | undefined | null | 'skip' | 'unchanged';
-}
-
-// @public
 export class RequestValidationError extends NonRetryableError {
     constructor(label: string | symbol, issues: readonly SchemaIssue[]);
     // (undocumented)
@@ -1140,12 +1091,6 @@ interface ServiceLocatorInterface {
 export class SessionError extends Error {
     constructor(message?: string);
 }
-
-// @public (undocumented)
-export type SkippedRequestCallback = (args: {
-    request: Request_2;
-    reason: SkippedRequestReason;
-}) => Awaitable<void>;
 
 // @public (undocumented)
 export type SkippedRequestReason = 'robotsTxt' | 'limit' | 'enqueueLimit' | 'filters' | 'transform' | 'redirect' | 'depth';
@@ -1285,17 +1230,6 @@ export interface SystemInfo {
 // Not exported by the entry point; reachable only as a referenced type.
 // @public (undocumented)
 type UrlList = (string | null)[];
-
-// @public
-export type UrlPatternInput = GlobInput | RegExpInput;
-
-// @public (undocumented)
-export interface UrlPatternObject {
-    // (undocumented)
-    glob?: string;
-    // (undocumented)
-    regexp?: RegExp;
-}
 
 // @public
 export function useState<State extends Dictionary = Dictionary>(name?: string, defaultValue?: State, options?: UseStateOptions): Promise<State>;

@@ -12,13 +12,14 @@ import type {
     AddRequestsBatchedResult,
     CrawleeLogger,
     Dataset,
-    EnqueueUrlsOptions,
     KeyValueStore,
     Request,
     RequestOptions,
     Source,
     StorageIdentifier,
 } from '@crawlee/core';
+
+import type { EnqueueUrlsOptions } from '../enqueue_links/index.js';
 
 /** @internal */
 export type IsAny<T> = 0 extends 1 & T ? true : false;

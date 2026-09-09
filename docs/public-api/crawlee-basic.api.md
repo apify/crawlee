@@ -16,7 +16,7 @@ import { Dataset } from '@crawlee/core';
 import type { DatasetExportOptions } from '@crawlee/core';
 import { Dictionary } from '@crawlee/types';
 import { EnqueueStrategy } from '@crawlee/utils';
-import type { EnqueueUrlsOptions } from '@crawlee/core';
+import type { EnqueueStrategyOption } from '@crawlee/core';
 import { EventManager } from '@crawlee/core';
 import type { HttpRequestOptions } from '@crawlee/types';
 import { IProxyConfiguration } from '@crawlee/core';
@@ -32,7 +32,7 @@ import type { ProxyInfo } from '@crawlee/types';
 import type { ReadonlyDeep } from 'type-fest';
 import { Request as Request_2 } from '@crawlee/core';
 import type { RequestLoaderStatus } from '@crawlee/core';
-import type { RequestOptions } from '@crawlee/core';
+import { RequestOptions } from '@crawlee/core';
 import { RequestQueue } from '@crawlee/core';
 import type { RequestQueueOperationInfo } from '@crawlee/core';
 import type { RequestQueueOperationOptions } from '@crawlee/core';
@@ -42,7 +42,7 @@ import { RobotsTxtFile } from '@crawlee/utils';
 import type { SendRequestOptions } from '@crawlee/types';
 import type { SessionFingerprint } from '@crawlee/types';
 import type { SetStatusMessageOptions } from '@crawlee/types';
-import type { SkippedRequestCallback } from '@crawlee/core';
+import type { SkippedRequestReason } from '@crawlee/core';
 import { Source } from '@crawlee/core';
 import type { StandardSchemaV1 } from '@standard-schema/spec';
 import type { StorageBackend } from '@crawlee/types';
@@ -52,7 +52,6 @@ import { StorageWritePolicy } from '@crawlee/core';
 import type { SyncStateConversion } from '@crawlee/core';
 import { SystemInfo } from '@crawlee/core';
 import { TimeoutError } from '@apify/timeout';
-import type { UrlPatternInput } from '@crawlee/core';
 
 // @public (undocumented)
 export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>, StatisticStateExtension extends object = {}> {
@@ -347,6 +346,25 @@ export type DefaultRouteUserData<Routes, Fallback extends Dictionary> = Routes e
 } ? DefaultUserData : Fallback;
 
 // @public
+export type EnqueueLinksOptions = ExtractLinksOptions & EnqueueUrlsOptions;
+
+// @public
+export interface EnqueueUrlsOptions extends RequestQueueOperationOptions {
+    baseUrl?: string;
+    exclude?: readonly UrlPatternInput[];
+    include?: readonly UrlPatternInput[];
+    label?: string;
+    limit?: number;
+    onSkippedRequest?: SkippedRequestCallback;
+    sessionId?: string;
+    skipNavigation?: boolean;
+    strategy?: EnqueueStrategyOption;
+    transformRequestFunction?: RequestTransform;
+    userData?: Dictionary;
+    waitForAllRequestsToBeAdded?: boolean;
+}
+
+// @public
 export interface ErrnoException extends Error {
     // (undocumented)
     cause?: any;
@@ -456,6 +474,12 @@ export interface EventLoopLoadSignalOptions {
     snapshotIntervalSecs?: number;
 }
 
+// @public
+export interface ExtractLinksOptions {
+    baseUrl?: string;
+    selector?: string;
+}
+
 // @public (undocumented)
 export interface FinalStatistics {
     // (undocumented)
@@ -482,6 +506,15 @@ export interface FinalStatistics {
 
 // @public (undocumented)
 export type GetUserDataFromRequest<T> = T extends Request_2<infer Y> ? Y : never;
+
+// @public (undocumented)
+export type GlobInput = string | GlobObject;
+
+// @public (undocumented)
+export interface GlobObject {
+    // (undocumented)
+    glob: string;
+}
 
 // @public
 export interface IConcurrencySystem {
@@ -605,6 +638,15 @@ export class PersistentRateLimitError extends CriticalError {
 }
 
 // @public (undocumented)
+export type RegExpInput = RegExp | RegExpObject;
+
+// @public (undocumented)
+export interface RegExpObject {
+    // (undocumented)
+    regexp: RegExp;
+}
+
+// @public (undocumented)
 export type RequestHandler<Context extends CrawlingContext = CrawlingContext> = (inputs: Context) => Awaitable<void>;
 
 // @public (undocumented)
@@ -618,6 +660,12 @@ export type RequestManagerOpener<T extends IRequestManager = IRequestManager> = 
 // @public
 export class RequestThrottledError extends RetryRequestError {
     constructor(message?: string);
+}
+
+// @public
+export interface RequestTransform {
+    // (undocumented)
+    (original: RequestOptions): RequestOptions | false | undefined | null | 'skip' | 'unchanged';
 }
 
 // @public (undocumented)
@@ -857,6 +905,12 @@ export interface SitemapRequestLoaderOptions extends UrlConstraints {
     sitemapUrls: string[];
     timeoutMillis?: number;
 }
+
+// @public (undocumented)
+export type SkippedRequestCallback = (args: {
+    request: Request_2;
+    reason: SkippedRequestReason;
+}) => Awaitable<void>;
 
 // @public (undocumented)
 export interface SnapshotResult {
@@ -1105,6 +1159,17 @@ export type TypedRequestsLike<Routes extends Record<keyof Routes, Dictionary>> =
 interface UrlConstraints {
     exclude?: readonly UrlPatternInput[];
     include?: readonly UrlPatternInput[];
+}
+
+// @public
+export type UrlPatternInput = GlobInput | RegExpInput;
+
+// @public (undocumented)
+export interface UrlPatternObject {
+    // (undocumented)
+    glob?: string;
+    // (undocumented)
+    regexp?: RegExp;
 }
 
 // @public (undocumented)

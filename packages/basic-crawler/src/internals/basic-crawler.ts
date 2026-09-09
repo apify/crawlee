@@ -6,28 +6,20 @@ import type {
     AddRequestsBatchedResult,
     CrawleeLogger,
     DatasetExportOptions,
-    EnqueueUrlsOptions,
     EventStatusMessageData,
     IProxyConfiguration,
     IRequestLoader,
     IRequestManager,
     RequestOptions,
     RequestsLike,
-    SkippedRequestCallback,
     SkippedRequestReason,
     Source,
     StorageIdentifier,
     StorageWritePolicy,
-    UrlPatternObject,
 } from '@crawlee/core';
 import {
-    applyRequestTransform,
     bindMethodsToServiceLocator,
-    buildEnqueueStrategyPatterns,
     Configuration,
-    constructUrlPatternObjects,
-    createRequestOptions,
-    createSkippedRequestArgs,
     createStorageTransaction,
     Request,
     CriticalError,
@@ -36,7 +28,6 @@ import {
     EnqueueStrategy,
     EventManager,
     EventType,
-    filterRequestOptionsByPatterns,
     getObjectType,
     KeyValueStore,
     log,
@@ -93,6 +84,15 @@ import { ContextPipeline } from './crawlers/context_pipeline.js';
 import type { CrawlingContext, TypedRequestsLike } from './crawlers/crawler_commons.js';
 import type { IStatistics, StatisticState } from './crawlers/statistics.js';
 import { Statistics } from './crawlers/statistics.js';
+import type { EnqueueUrlsOptions, SkippedRequestCallback, UrlPatternObject } from './enqueue_links/index.js';
+import {
+    applyRequestTransform,
+    buildEnqueueStrategyPatterns,
+    constructUrlPatternObjects,
+    createRequestOptions,
+    createSkippedRequestArgs,
+    filterRequestOptionsByPatterns,
+} from './enqueue_links/index.js';
 import { parseRetryAfterHeader } from './http.js';
 import { CrawlerRun } from './crawler-run.js';
 import {
