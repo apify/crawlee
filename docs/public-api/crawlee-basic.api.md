@@ -37,7 +37,7 @@ import { RequestQueue } from '@crawlee/core';
 import type { RequestQueueOperationInfo } from '@crawlee/core';
 import type { RequestQueueOperationOptions } from '@crawlee/core';
 import type { RequestsLike } from '@crawlee/core';
-import type { RequestSourceStatus } from '@crawlee/core/internal';
+import type { RequestSourceStatus } from '@crawlee/core';
 import { RobotsTxtFile } from '@crawlee/utils';
 import type { SendRequestOptions } from '@crawlee/types';
 import type { SessionFingerprint } from '@crawlee/types';
