@@ -1,5 +1,6 @@
 import { serviceLocator, SessionError } from '@crawlee/core';
 import type { Awaitable } from '@crawlee/types';
+
 import {
     ContextPipelineCleanupError,
     ContextPipelineInitializationError,

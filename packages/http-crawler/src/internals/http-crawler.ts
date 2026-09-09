@@ -21,11 +21,11 @@ import type {
 import {
     BasicCrawler,
     ContextPipeline,
+    getCookiesFromResponse,
     NavigationSkippedError,
     remainingNavigationWindowMillis,
     RequestState,
     RequestThrottledError,
-    getCookiesFromResponse,
     Router,
     SessionError,
 } from '@crawlee/basic';

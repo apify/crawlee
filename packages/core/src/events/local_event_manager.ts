@@ -1,9 +1,9 @@
 import { betterClearInterval, betterSetInterval } from '@apify/utilities';
 
-import type { SystemInfo } from './system_info.js';
 import type { Configuration } from '../configuration.js';
 import { serviceLocator } from '../service_locator.js';
 import { EventManager, type EventManagerOptions, EventType } from './event_manager.js';
+import type { SystemInfo } from './system_info.js';
 
 export interface LocalEventManagerOptions extends EventManagerOptions {
     /** Interval between emitted `systemInfo` events in milliseconds. */

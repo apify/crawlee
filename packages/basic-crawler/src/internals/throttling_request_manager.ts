@@ -16,10 +16,10 @@ import type {
     RequestsLike,
     Source,
     StorageIdentifier,
+    RequestSourceStatus,
     StorageOpenOptions,
 } from '@crawlee/core';
 import { KeyValueStore, Request, RequestQueue, serviceLocator } from '@crawlee/core';
-import type { RequestSourceStatus } from '@crawlee/core/internal';
 import {
     asyncifyIterable,
     drainRequestBatches,

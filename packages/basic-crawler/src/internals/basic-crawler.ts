@@ -44,18 +44,6 @@ import {
     withDirectStorageAccess,
 } from '@crawlee/core';
 import { BaseHttpClient, FetchHttpClient } from '@crawlee/http-client';
-import {
-    ContextPipelineCleanupError,
-    ContextPipelineInitializationError,
-    ContextPipelineInterruptedError,
-    MissingSessionError,
-    NavigationSkippedError,
-    PersistentRateLimitError,
-    RequestHandlerError,
-    RequestThrottledError,
-    RetryRequestError,
-} from './errors.js';
-import { ThrottlingRequestManager } from './throttling_request_manager.js';
 import type {
     Awaitable,
     Dictionary,
@@ -82,6 +70,17 @@ import type { FinalStatistics } from './autoscaling/system_status.js';
 import { mergeCookies } from './cookie_utils.js';
 import { ContextPipeline } from './crawlers/context_pipeline.js';
 import type { CrawlingContext, TypedRequestsLike } from './crawlers/crawler_commons.js';
+import {
+    ContextPipelineCleanupError,
+    ContextPipelineInitializationError,
+    ContextPipelineInterruptedError,
+    MissingSessionError,
+    NavigationSkippedError,
+    PersistentRateLimitError,
+    RequestHandlerError,
+    RequestThrottledError,
+    RetryRequestError,
+} from './errors.js';
 import type { IStatistics, StatisticState } from './crawlers/statistics.js';
 import { Statistics } from './crawlers/statistics.js';
 import type { EnqueueUrlsOptions, SkippedRequestCallback, UrlPatternObject } from './enqueue_links/index.js';
@@ -108,6 +107,7 @@ import { Router, validateUserData } from './router.js';
 import { BLOCKED_STATUS_CODES } from './session_pool/consts.js';
 import { Session } from './session_pool/session.js';
 import { SessionPool } from './session_pool/session_pool.js';
+import { ThrottlingRequestManager } from './throttling_request_manager.js';
 
 class LazyDefaultHttpClient extends BaseHttpClient {
     readonly #delegatePromise: Promise<BaseHttpClient>;
