@@ -36,7 +36,7 @@ The first layer is the **automation driver** - the browser is being driven, and 
 
 The second layer is the **fingerprint** - the machine underneath, described in values any page can read without asking: the WebGL vendor and renderer strings, `hardwareConcurrency`, `deviceMemory`, the timezone and language list, the installed fonts as measured through text metrics, the pixels a canvas draw produces, the frequency data of an offline audio graph. Hash those together and you have an id that outlives cookie deletion.
 
-On the bench, default Playwright fails every open detector we ran. BotD returns **bot**. CreepJS reads it **100% headless**. sannysoft passes only **4 of its 11 colour-graded rows**, failing the other seven - `WebDriver (New)`, `Chrome (New)`, `Permissions (New)`, `Plugins Length (Old)`, `Plugins is of type PluginArray`, `User Agent (Old)` and `WebGL Renderer`. (sannysoft colours 11 rows and renders 46 more neutral; "4/11" counts the graded ones, not a pass rate over everything the page probes.)
+On the bench, default Playwright fails every open detector we ran. BotD returns **bot**. CreepJS reads it **100% headless**. sannysoft passes only **4 of its 11 color-graded rows**, failing the other seven - `WebDriver (New)`, `Chrome (New)`, `Permissions (New)`, `Plugins Length (Old)`, `Plugins is of type PluginArray`, `User Agent (Old)` and `WebGL Renderer`. (sannysoft colors 11 rows and renders 46 more neutral; "4/11" counts the graded ones, not a pass rate over everything the page probes.)
 
 Two layers, both leaking, and the first request is enough.
 
@@ -91,9 +91,13 @@ I ran into this from the other direction, and it is worth telling because it is 
 
 I deliberately did **not** pin the timezone. Forcing an American zone onto a European exit address would have manufactured exactly the contradiction this article is about, inside the measurement itself. Each run records what it presented: `navigator.language` en-US, timezone Europe/Rome.
 
-*(Labelling, because it matters: the locale behaviour above is measured. The proxy half - egress discovery through the proxy, the WebRTC override, the loud failure - is read from the shipped code, not measured here, because this bench ran without a proxy.)*
+*(Labeling, because it matters: the locale behavior above is measured. The proxy half - egress discovery through the proxy, the WebRTC override, the loud failure - is read from the shipped code, not measured here, because this bench ran without a proxy.)*
 
 One boundary, since this whole section is about layers. Everything measured in this article is the JavaScript layer. The transport underneath it - the TLS handshake a site can fingerprint as JA3 or JA4, HTTP/2 frame ordering, the reputation of the address itself - is a separate surface that this bench does not read at all. It is not a footnote so much as the same argument one floor down: a browser whose JavaScript story is flawless and whose TLS signature matches no shipping browser has not solved the contradiction, it has moved it somewhere the page cannot see but the server can.
+
+One practical note before the code, and it belongs to the same argument. `headless=True` here does not mean what it means in Chromium. Headless Chromium renders through a different path, and on this bench that path is what reported `SwiftShader` in the table above. This engine does not take it: it keeps the ordinary rendering pipeline and hides the window instead, on a virtual display. The GPU string stays a real one because the rendering that produces it is real.
+
+That costs one package on Linux, where the virtual display is `Xvfb`. Without it the launch stops and tells you: `invisible_playwright headless=True requires Xvfb. Install it: sudo apt install xvfb`. On Windows the browser hides its own window and nothing extra is needed.
 
 It stays an ordinary Playwright `Browser`, so it drops into a Crawlee run through the same plugin seam the docs already show for other engines:
 
@@ -108,6 +112,8 @@ class InvisiblePlaywrightPlugin(PlaywrightBrowserPlugin):
         self._seed, self._headless, self._wrappers = seed, headless, []
 
     async def new_browser(self) -> PlaywrightBrowserController:
+        # headless=True hides a real window on a virtual display, so on Linux
+        # this needs Xvfb: sudo apt install xvfb. Nothing extra on Windows.
         wrapper = InvisiblePlaywright(seed=self._seed, headless=self._headless)
         browser = await wrapper.__aenter__()          # a real Playwright Browser
         self._wrappers.append(wrapper)
