@@ -1,5 +1,5 @@
-import type { ConcurrencyConsumer, IConcurrencySystem, LoadSignal, LoadSignalStartContext } from '@crawlee/core';
-import { AutoscaledPool, ConcurrencySystem, EventLoopLoadSignal, SnapshotStore } from '@crawlee/core';
+import type { ConcurrencyConsumer, IConcurrencySystem, LoadSignal, LoadSignalStartContext } from '@crawlee/basic';
+import { AutoscaledPool, ConcurrencySystem, EventLoopLoadSignal, SnapshotStore } from '@crawlee/basic';
 import { sleep } from '@crawlee/utils';
 
 import log from '@apify/log';

@@ -1,5 +1,5 @@
+import { ContextPipeline } from '@crawlee/basic';
 import {
-    ContextPipeline,
     ContextPipelineCleanupError,
     ContextPipelineInitializationError,
     ContextPipelineInterruptedError,

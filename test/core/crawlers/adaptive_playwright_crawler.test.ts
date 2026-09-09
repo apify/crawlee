@@ -1,6 +1,7 @@
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
+import { Statistics } from '@crawlee/basic';
 import {
     BaseCrawleeLogger,
     Configuration,
@@ -11,7 +12,6 @@ import {
     KeyValueStore,
     MemoryStorageBackend,
     serviceLocator,
-    Statistics,
 } from '@crawlee/core';
 import type {
     AdaptivePlaywrightCrawlerContext,

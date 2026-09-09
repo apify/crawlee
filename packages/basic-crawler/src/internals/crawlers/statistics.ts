@@ -1,11 +1,8 @@
+import type { CrawleeLogger, SyncStateConversion } from '@crawlee/core';
+import { convertStateSync, KeyValueStore, RecoverableState, serviceLocator, validators } from '@crawlee/core';
+import { parseArgument, schemas } from '@crawlee/utils/internal';
 import { z } from 'zod';
 
-import type { CrawleeLogger } from '../log.js';
-import type { SyncStateConversion } from '../recoverable_state.js';
-import { convertStateSync, RecoverableState } from '../recoverable_state.js';
-import { serviceLocator } from '../service_locator.js';
-import { KeyValueStore } from '../storages/key_value_store.js';
-import { parseArgument, schemas, validators } from '../validators.js';
 import { ErrorTracker } from './error_tracker.js';
 
 /**

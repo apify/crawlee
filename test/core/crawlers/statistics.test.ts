@@ -1,6 +1,6 @@
-import type { StatisticsOptions } from '@crawlee/core';
-import type { StatisticPersistedState } from '@crawlee/core';
-import { EventType, KeyValueStore, MemoryStorageBackend, serviceLocator, Statistics } from '@crawlee/core';
+import type { StatisticPersistedState, StatisticsOptions } from '@crawlee/basic';
+import { Statistics } from '@crawlee/basic';
+import { EventType, KeyValueStore, MemoryStorageBackend, serviceLocator } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/types';
 import { z } from 'zod';
 

@@ -1,13 +1,17 @@
 import type { Dictionary, HttpRequestOptions, ISession, ProxyInfo, SendRequestOptions } from '@crawlee/types';
 import type { ReadonlyDeep } from 'type-fest';
 
-import type { EnqueueUrlsOptions } from '../enqueue_links/enqueue_links.js';
-import type { CrawleeLogger } from '../log.js';
-import type { Request, RequestOptions, Source } from '../request.js';
-import type { StorageIdentifier } from '../storages/storage_instance_manager.js';
-import type { Dataset } from '../storages/dataset.js';
-import type { KeyValueStore } from '../storages/key_value_store.js';
-import type { AddRequestsBatchedResult } from '../storages/request_queue.js';
+import type {
+    AddRequestsBatchedResult,
+    CrawleeLogger,
+    Dataset,
+    EnqueueUrlsOptions,
+    KeyValueStore,
+    Request,
+    RequestOptions,
+    Source,
+    StorageIdentifier,
+} from '@crawlee/core';
 
 /** @internal */
 export type IsAny<T> = 0 extends 1 & T ? true : false;
@@ -37,7 +41,6 @@ export type LabeledSource<Routes extends Record<keyof Routes, Dictionary>> = str
 /**
  * The iterable/array of {@apilink LabeledSource} inputs accepted by the label-aware `addRequests`/`run`
  * methods of a crawler bound to a typed router.
- * @internal
  */
 export type TypedRequestsLike<Routes extends Record<keyof Routes, Dictionary>> =
     | AsyncIterable<LabeledSource<Routes>>

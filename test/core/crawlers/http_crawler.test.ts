@@ -2,7 +2,7 @@ import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { Readable } from 'node:stream';
 
-import type { ConcurrencySystemOptions } from '@crawlee/core';
+import type { ConcurrencySystemOptions } from '@crawlee/basic';
 import { MemoryStorageBackend, serviceLocator } from '@crawlee/core';
 import {
     ConcurrencySystem,

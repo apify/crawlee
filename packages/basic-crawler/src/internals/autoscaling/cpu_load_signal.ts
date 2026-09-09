@@ -1,9 +1,8 @@
-import type { EventManager } from '../events/event_manager.js';
-import { EventType } from '../events/event_manager.js';
-import { serviceLocator } from '../service_locator.js';
+import type { EventManager, SystemInfo } from '@crawlee/core';
+import { EventType, serviceLocator } from '@crawlee/core';
+
 import type { LoadSignal, LoadSignalStartContext, LoadSnapshot } from './load_signal.js';
 import { SnapshotStore } from './load_signal.js';
-import type { SystemInfo } from './system_status.js';
 
 /**
  * A snapshot produced by the built-in CPU signal.

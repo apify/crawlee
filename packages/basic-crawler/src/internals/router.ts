@@ -1,3 +1,5 @@
+import type { Request } from '@crawlee/core';
+import { MissingRouteError, RequestValidationError } from '@crawlee/core';
 import type { Awaitable, Dictionary } from '@crawlee/types';
 import type { StandardSchemaV1 } from '@standard-schema/spec';
 
@@ -8,8 +10,6 @@ import type {
     TypedContextAddRequests,
     TypedContextEnqueueLinks,
 } from './crawlers/crawler_commons.js';
-import { MissingRouteError, RequestValidationError } from './errors.js';
-import type { Request } from './request.js';
 
 /**
  * The key of the default route — the fallback handler registered via {@apilink Router.addDefaultHandler}.

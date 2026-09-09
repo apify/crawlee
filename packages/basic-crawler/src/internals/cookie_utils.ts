@@ -1,7 +1,7 @@
+import { serviceLocator } from '@crawlee/core';
 import type { Cookie as CookieObject } from '@crawlee/types';
 import { Cookie, CookieJar } from 'tough-cookie';
 
-import { serviceLocator } from './service_locator.js';
 import { CookieParseError } from './session_pool/errors.js';
 
 export interface ResponseLike {

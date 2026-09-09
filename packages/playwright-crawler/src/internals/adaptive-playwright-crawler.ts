@@ -9,21 +9,23 @@ import type {
 import { setTimeout as delay } from 'node:timers/promises';
 import { isDeepStrictEqual } from 'node:util';
 
-import type { BasicCrawlerOptions } from '@crawlee/basic';
-import { BasicCrawler } from '@crawlee/basic';
+import type {
+    BasicCrawlerOptions,
+    ContextPipeline,
+    CrawlingContext,
+    GetUserDataFromRequest,
+    RestrictedCrawlingContext,
+    RouterRoutes,
+    StatisticStateExtensionOptions,
+} from '@crawlee/basic';
+import { BasicCrawler, Router, Statistics } from '@crawlee/basic';
 import { extractUrlsFromPage } from '@crawlee/browser';
 import type { CheerioCrawlingContext } from '@crawlee/cheerio';
 import { CheerioCrawler } from '@crawlee/cheerio';
 import type {
     AddRequestsBatchedResult,
-    ContextPipeline,
     CrawleeLogger,
-    CrawlingContext,
     EnqueueLinksOptions,
-    GetUserDataFromRequest,
-    RestrictedCrawlingContext,
-    RouterRoutes,
-    StatisticStateExtensionOptions,
     StorageTransaction,
     StorageTransactionView,
     StorageWritePolicy,
@@ -34,8 +36,6 @@ import {
     OwnedOrInjected,
     RequestHandlerError,
     resolveBaseUrlForEnqueueLinksFiltering,
-    Router,
-    Statistics,
 } from '@crawlee/core';
 import type { Dictionary, Awaitable } from '@crawlee/types';
 import { extractUrlsFromCheerio, parseArgument } from '@crawlee/utils/internal';

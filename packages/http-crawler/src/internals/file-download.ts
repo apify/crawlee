@@ -1,8 +1,8 @@
 import { Transform } from 'node:stream';
 
-import type { BasicCrawlerOptions } from '@crawlee/basic';
+import type { BasicCrawlerOptions, ContextPipeline, CrawlingContext, LoadedRequest } from '@crawlee/basic';
 import { BasicCrawler } from '@crawlee/basic';
-import type { ContextPipeline, CrawlingContext, LoadedRequest, Request } from '@crawlee/core';
+import type { Request } from '@crawlee/core';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import type { Dictionary } from '@crawlee/types';
 

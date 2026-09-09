@@ -1,41 +1,8 @@
+import type { LoadSignalInfo, SystemInfo } from '@crawlee/core';
+
 import type { LoadSignal } from './load_signal.js';
 import { evaluateLoadSignalSample } from './load_signal.js';
 import type { LoadSignalsOptions, Snapshotter } from './snapshotter.js';
-
-/**
- * Represents the current status of the system.
- */
-export interface SystemInfo {
-    /** If false, system is being overloaded. */
-    isSystemIdle: boolean;
-    memInfo: LoadSignalInfo;
-    eventLoopInfo: LoadSignalInfo;
-    cpuInfo: LoadSignalInfo;
-    storageBackendInfo: LoadSignalInfo;
-    memTotalBytes?: number;
-    memCurrentBytes?: number;
-    /**
-     * Platform only property
-     * @internal
-     */
-    cpuCurrentUsage?: number;
-    /**
-     * Platform only property
-     * @internal
-     */
-    isCpuOverloaded?: boolean;
-    /**
-     * Platform only property
-     * @internal
-     */
-    createdAt?: Date;
-
-    /**
-     * Status of additional load signals beyond the built-in four.
-     * Keys are `LoadSignal.name` values, values are overload info.
-     */
-    loadSignalInfo?: Record<string, LoadSignalInfo>;
-}
 
 /**
  * How far back the *current* system status looks by default — the window that gates task dispatch.
@@ -82,12 +49,6 @@ export interface SystemStatusOptions {
      * is considered overloaded. Each signal carries its own overload ratio.
      */
     loadSignals?: LoadSignal[];
-}
-
-export interface LoadSignalInfo {
-    isOverloaded: boolean;
-    limitRatio: number;
-    actualRatio: number;
 }
 
 export interface FinalStatistics {

@@ -1,5 +1,5 @@
 import type { KeyValueStore } from '@crawlee/core';
-import { ErrorSnapshotter } from '@crawlee/core';
+import { ErrorSnapshotter } from '@crawlee/basic';
 import { describe, expect, test, vitest } from 'vitest';
 
 describe('ErrorSnapshotter', () => {

@@ -1,9 +1,9 @@
+import { serviceLocator } from '@crawlee/core';
 import type { StorageBackend } from '@crawlee/types';
 
 import type { BetterIntervalID } from '@apify/utilities';
 import { betterClearInterval, betterSetInterval } from '@apify/utilities';
 
-import { serviceLocator } from '../service_locator.js';
 import type { LoadSignal, LoadSignalStartContext, LoadSnapshot } from './load_signal.js';
 import { SnapshotStore } from './load_signal.js';
 
