@@ -29,7 +29,6 @@ import type { LoggerOptions } from '@apify/log';
 import { LoggerText } from '@apify/log';
 import { LogLevel } from '@apify/log';
 import type { LogOptions } from '@crawlee/types';
-import { ParseSitemapOptions } from '@crawlee/utils';
 import type { ProcessedRequest } from '@crawlee/types';
 import type { ProxyInfo } from '@crawlee/types';
 import type { QueueOperationInfo } from '@crawlee/types';
@@ -144,21 +143,6 @@ export type ConfigurationInput = FieldsInput<typeof crawleeConfigFields>;
 
 // @public @deprecated (undocumented)
 export type ConfigurationOptions = ConfigurationInput;
-
-// @public (undocumented)
-export class ContextPipelineCleanupError extends CriticalError {
-    constructor(error: unknown, options?: ErrorOptions);
-}
-
-// @public (undocumented)
-export class ContextPipelineInitializationError extends Error {
-    constructor(error: unknown, options?: ErrorOptions);
-}
-
-// @public (undocumented)
-export class ContextPipelineInterruptedError extends Error {
-    constructor(message?: string);
-}
 
 // @public (undocumented)
 export const crawleeConfigFields: {
@@ -652,15 +636,6 @@ export interface MemoryStorageOptions {
     logger?: CrawleeLogger;
 }
 
-// @public
-export class MissingSessionError extends Error {
-    constructor(sessionId?: string);
-}
-
-// @public
-export class NavigationSkippedError extends NonRetryableError {
-}
-
 // Not exported by the entry point; reachable only as a referenced type.
 // @public (undocumented)
 interface NewUrlOptions {
@@ -694,10 +669,6 @@ export type PacingSignal = {
 
 // @public
 export function parseValue(body: Buffer | ArrayBuffer | string, contentTypeHeader: string | null): string | Buffer | ArrayBuffer | Record<string, unknown>;
-
-// @public
-export class PersistentRateLimitError extends CriticalError {
-}
 
 // @public
 export class ProxyConfiguration implements IProxyConfiguration {
@@ -819,11 +790,6 @@ class Request_2<UserData extends Dictionary = Dictionary> {
 }
 export { Request_2 as Request }
 
-// @public (undocumented)
-export class RequestHandlerError extends Error {
-    constructor(error: unknown, options?: ErrorOptions);
-}
-
 // @public
 export class RequestList implements IRequestLoader {
     // (undocumented)
@@ -876,9 +842,6 @@ export interface RequestListState {
 export type RequestLoaderStatus = Exclude<RequestSourceStatus, {
     status: 'stalled';
 }>;
-
-// @public
-export type RequestManagerOpener<T extends IRequestManager = IRequestManager> = (identifier?: string | StorageIdentifier | null, options?: StorageOpenOptions) => Promise<T>;
 
 // @public
 export class RequestManagerTandem implements IRequestManager {
@@ -1087,11 +1050,6 @@ export enum RequestState {
 }
 
 // @public
-export class RequestThrottledError extends RetryRequestError {
-    constructor(message?: string);
-}
-
-// @public
 export interface RequestTransform {
     // (undocumented)
     (original: RequestOptions): RequestOptions | false | undefined | null | 'skip' | 'unchanged';
@@ -1111,11 +1069,6 @@ export type ResolvedConfigValues = FieldsOutput<typeof crawleeConfigFields>;
 
 // @public
 export function resolveStorageIdentifier(identifier: string | StorageIdentifier | null | undefined, storageBackend: StorageBackend, storageType: 'Dataset' | 'KeyValueStore' | 'RequestQueue'): Promise<ExplicitStorageIdentifier>;
-
-// @public
-export class RetryRequestError extends Error {
-    constructor(message?: string);
-}
 
 // @public
 export interface SchemaIssue {
@@ -1186,46 +1139,6 @@ interface ServiceLocatorInterface {
 // @public
 export class SessionError extends Error {
     constructor(message?: string);
-}
-
-// @public
-export class SitemapRequestLoader implements IRequestLoader {
-    // (undocumented)
-    [Symbol.asyncIterator](): AsyncGenerator<Request_2<Dictionary>, void, unknown>;
-    // (undocumented)
-    checkReadiness(): Promise<RequestLoaderStatus>;
-    // (undocumented)
-    fetchNextRequest(): Promise<Request_2 | null>;
-    // (undocumented)
-    getHandledCount(): Promise<number>;
-    // (undocumented)
-    getPendingCount(): Promise<number>;
-    // (undocumented)
-    getTotalCount(): Promise<number>;
-    isSitemapFullyLoaded(): boolean;
-    // (undocumented)
-    markRequestAsHandled(request: Request_2): Promise<void>;
-    static open(options: SitemapRequestLoaderOptions): Promise<SitemapRequestLoader>;
-    // (undocumented)
-    persistState(): Promise<void>;
-    teardown(): Promise<void>;
-    toTandem(requestManager?: IRequestManager): Promise<IRequestManager>;
-}
-
-// @public (undocumented)
-export interface SitemapRequestLoaderOptions extends UrlConstraints {
-    enqueueStrategy?: EnqueueStrategy | `${EnqueueStrategy}`;
-    httpClient?: BaseHttpClient;
-    maxBufferSize?: number;
-    parseSitemapOptions?: Omit<ParseSitemapOptions, 'emitNestedSitemaps' | 'maxDepth'>;
-    persistenceOptions?: {
-        enable?: boolean;
-    };
-    persistStateKey?: string;
-    proxyUrl?: string;
-    signal?: AbortSignal;
-    sitemapUrls: string[];
-    timeoutMillis?: number;
 }
 
 // @public (undocumented)
@@ -1367,58 +1280,6 @@ export interface SystemInfo {
     memTotalBytes?: number;
     // (undocumented)
     storageBackendInfo: LoadSignalInfo;
-}
-
-// @public
-export class ThrottlingRequestManager<T extends IRequestManager = IRequestManager> implements IRequestManager {
-    // (undocumented)
-    [Symbol.asyncIterator](): AsyncGenerator<Request_2<Dictionary>, void, unknown>;
-    constructor(options: ThrottlingRequestManagerOptions<T>, config?: Configuration);
-    // (undocumented)
-    addRequest(requestLike: Source, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo>;
-    addRequestsBatched(requests: RequestsLike, options?: AddRequestsBatchedOptions): Promise<AddRequestsBatchedResult>;
-    checkReadiness(): Promise<RequestSourceStatus>;
-    // (undocumented)
-    drop(): Promise<void>;
-    fetchNextRequest<R extends Dictionary = Dictionary>(): Promise<Request_2<R> | null>;
-    // (undocumented)
-    getHandledCount(): Promise<number>;
-    // (undocumented)
-    getPendingCount(): Promise<number>;
-    // (undocumented)
-    getTotalCount(): Promise<number>;
-    get innerManager(): T | undefined;
-    // (undocumented)
-    markRequestAsHandled(request: Request_2): Promise<RequestQueueOperationInfo | void | null>;
-    // (undocumented)
-    persistState(): Promise<void>;
-    purge(): Promise<void>;
-    // (undocumented)
-    reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
-    recordPacingSignal(signal: PacingSignal): boolean;
-    // (undocumented)
-    setExpectedRequestProcessingTimeSecs(secs: number): Promise<void>;
-}
-
-// @public
-export interface ThrottlingRequestManagerOptions<T extends IRequestManager = IRequestManager> {
-    baseDelaySecs?: number;
-    domains: string[] | 'all';
-    inner?: T | (() => T | Promise<T>);
-    maxDelaySecs?: number;
-    maxDomainStallSecs?: number;
-    maxThrottledDomains?: number;
-    minCrawlDelaySecs?: number;
-    persistStateKey?: string;
-    requestManagerOpener?: RequestManagerOpener<T>;
-    throttleBy?: 'hostname' | 'registrableDomain';
-}
-
-// Not exported by the entry point; reachable only as a referenced type.
-// @public (undocumented)
-interface UrlConstraints {
-    exclude?: readonly UrlPatternInput[];
-    include?: readonly UrlPatternInput[];
 }
 
 // Not exported by the entry point; reachable only as a referenced type.

@@ -578,6 +578,9 @@ importers:
       csv-stringify:
         specifier: ^6.5.2
         version: 6.7.0
+      minimatch:
+        specifier: ^9.0.0
+        version: 9.0.9
       tldts:
         specifier: ^7.0.6
         version: 7.0.28

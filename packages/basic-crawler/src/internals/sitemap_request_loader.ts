@@ -6,17 +6,27 @@ import { minimatch } from 'minimatch';
 import type { RequiredDeep } from 'type-fest';
 import { z } from 'zod';
 
-import type { UrlPatternInput, UrlPatternObject } from '../enqueue_links/shared.js';
-import { constructUrlPatternObjects, urlPatternSchema } from '../enqueue_links/shared.js';
-import { type EventManager, EventType } from '../events/event_manager.js';
-import type { CrawleeLogger } from '../log.js';
-import { Request } from '../request.js';
-import { serviceLocator } from '../service_locator.js';
-import { parseArgument, schemas } from '../validators.js';
-import { KeyValueStore } from './key_value_store.js';
-import type { IRequestLoader, RequestLoaderStatus } from './request_loader.js';
-import type { IRequestManager } from './request_manager.js';
-import { purgeDefaultStorages } from './utils.js';
+import type {
+    CrawleeLogger,
+    EventManager,
+    IRequestLoader,
+    IRequestManager,
+    RequestLoaderStatus,
+    UrlPatternInput,
+    UrlPatternObject,
+} from '@crawlee/core';
+import {
+    constructUrlPatternObjects,
+    EventType,
+    KeyValueStore,
+    purgeDefaultStorages,
+    Request,
+    RequestManagerTandem,
+    RequestQueue,
+    serviceLocator,
+    urlPatternSchema,
+} from '@crawlee/core';
+import { parseArgument, schemas } from '@crawlee/utils/internal';
 
 const sitemapRequestLoaderOptionsSchema = z.strictObject({
     sitemapUrls: schemas.arrayOf(z.string(), 'strings'),
@@ -460,10 +470,6 @@ export class SitemapRequestLoader implements IRequestLoader {
      * being read from this list first.
      */
     async toTandem(requestManager?: IRequestManager): Promise<IRequestManager> {
-        // Import here to avoid circular imports.
-        const { RequestManagerTandem } = await import('./request_manager_tandem.js');
-        const { RequestQueue } = await import('./request_queue.js');
-
         return new RequestManagerTandem(this, requestManager ?? (await RequestQueue.open()));
     }
 

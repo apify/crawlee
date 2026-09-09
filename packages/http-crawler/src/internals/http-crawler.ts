@@ -24,11 +24,11 @@ import {
     NavigationSkippedError,
     remainingNavigationWindowMillis,
     RequestState,
+    RequestThrottledError,
     getCookiesFromResponse,
     Router,
     SessionError,
 } from '@crawlee/basic';
-import { RequestThrottledError } from '@crawlee/core';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import type { Awaitable, Dictionary, ISession } from '@crawlee/types';
 import { parseArgument, RETRY_CSS_SELECTORS, schemas } from '@crawlee/utils/internal';

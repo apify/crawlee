@@ -3,28 +3,30 @@ import type { Dictionary } from '@crawlee/types';
 import { getDomain } from 'tldts';
 import { z } from 'zod';
 
-import type { Configuration } from '../configuration.js';
-import { asyncifyIterable } from '../iterables.js';
-import type { CrawleeLogger } from '../log.js';
-import type { Source } from '../request.js';
-import { Request } from '../request.js';
-import { serviceLocator } from '../service_locator.js';
-import { normalizeHostname } from '../url.js';
-import { parseArgument, schemas } from '../validators.js';
-import { drainRequestBatches } from './batched_adds.js';
-import { KeyValueStore } from './key_value_store.js';
-import type { RequestSourceStatus } from './request_loader.js';
-import { joinRequestSourceStatuses } from './request_loader.js';
-import type { IRequestManager, PacingScope, PacingSignal, RequestsLike } from './request_manager.js';
 import type {
     AddRequestsBatchedOptions,
     AddRequestsBatchedResult,
+    Configuration,
+    CrawleeLogger,
+    IRequestManager,
+    PacingScope,
+    PacingSignal,
     RequestQueueOperationInfo,
     RequestQueueOperationOptions,
-} from './request_queue.js';
-import { RequestQueue } from './request_queue.js';
-import type { StorageIdentifier } from './storage_instance_manager.js';
-import type { StorageOpenOptions } from './utils.js';
+    RequestsLike,
+    Source,
+    StorageIdentifier,
+    StorageOpenOptions,
+} from '@crawlee/core';
+import { KeyValueStore, Request, RequestQueue, serviceLocator } from '@crawlee/core';
+import type { RequestSourceStatus } from '@crawlee/core/internal';
+import {
+    asyncifyIterable,
+    drainRequestBatches,
+    joinRequestSourceStatuses,
+    normalizeHostname,
+} from '@crawlee/core/internal';
+import { parseArgument, schemas } from '@crawlee/utils/internal';
 
 const throttlingRequestManagerOptionsSchema = z.strictObject({
     inner: z.union([schemas.anyObject, schemas.anyFunction]).optional(),

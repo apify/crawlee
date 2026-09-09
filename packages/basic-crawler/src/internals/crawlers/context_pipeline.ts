@@ -1,12 +1,11 @@
+import { serviceLocator, SessionError } from '@crawlee/core';
+import type { Awaitable } from '@crawlee/types';
 import {
     ContextPipelineCleanupError,
     ContextPipelineInitializationError,
     ContextPipelineInterruptedError,
     RequestHandlerError,
-    serviceLocator,
-    SessionError,
-} from '@crawlee/core';
-import type { Awaitable } from '@crawlee/types';
+} from '../errors.js';
 
 /**
  * Represents a middleware step in the context pipeline.

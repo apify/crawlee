@@ -18,7 +18,7 @@ import type {
     RouterRoutes,
     StatisticStateExtensionOptions,
 } from '@crawlee/basic';
-import { BasicCrawler, Router, Statistics } from '@crawlee/basic';
+import { BasicCrawler, RequestHandlerError, Router, Statistics } from '@crawlee/basic';
 import { extractUrlsFromPage } from '@crawlee/browser';
 import type { CheerioCrawlingContext } from '@crawlee/cheerio';
 import { CheerioCrawler } from '@crawlee/cheerio';
@@ -34,7 +34,6 @@ import {
     createStorageTransaction,
     EnqueueStrategy,
     OwnedOrInjected,
-    RequestHandlerError,
     resolveBaseUrlForEnqueueLinksFiltering,
 } from '@crawlee/core';
 import type { Dictionary, Awaitable } from '@crawlee/types';

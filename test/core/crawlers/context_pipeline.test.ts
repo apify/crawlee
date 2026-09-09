@@ -1,10 +1,10 @@
-import { ContextPipeline } from '@crawlee/basic';
 import {
+    ContextPipeline,
     ContextPipelineCleanupError,
     ContextPipelineInitializationError,
     ContextPipelineInterruptedError,
     RequestHandlerError,
-} from '@crawlee/core';
+} from '@crawlee/basic';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('ContextPipeline', () => {

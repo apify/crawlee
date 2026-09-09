@@ -26,12 +26,12 @@ The request loader abstractions are built around two interfaces and a couple of 
 - <ApiLink to="core/interface/IRequestLoader">`IRequestLoader`</ApiLink>: The base interface for reading requests in a crawl.
 - <ApiLink to="core/interface/IRequestManager">`IRequestManager`</ApiLink>: Extends `IRequestLoader` with write capabilities (adding and reclaiming requests), and with the pacing signals a crawler reports back.
 - <ApiLink to="core/class/RequestManagerTandem">`RequestManagerTandem`</ApiLink>: Combines a read-only `IRequestLoader` with a writable `IRequestManager`.
-- <ApiLink to="core/class/ThrottlingRequestManager">`ThrottlingRequestManager`</ApiLink>: Wraps a writable `IRequestManager` and paces requests per domain.
+- <ApiLink to="basic-crawler/class/ThrottlingRequestManager">`ThrottlingRequestManager`</ApiLink>: Wraps a writable `IRequestManager` and paces requests per domain.
 
 And the concrete request loader implementations:
 
 - <ApiLink to="core/class/RequestList">`RequestList`</ApiLink>: A lightweight implementation for managing a static list of URLs.
-- <ApiLink to="core/class/SitemapRequestLoader">`SitemapRequestLoader`</ApiLink>: A specialized loader that reads URLs from XML and plain-text sitemaps following the [Sitemaps protocol](https://www.sitemaps.org/protocol.html), with filtering capabilities.
+- <ApiLink to="basic-crawler/class/SitemapRequestLoader">`SitemapRequestLoader`</ApiLink>: A specialized loader that reads URLs from XML and plain-text sitemaps following the [Sitemaps protocol](https://www.sitemaps.org/protocol.html), with filtering capabilities.
 
 Below is a class diagram that illustrates the relationships between these components and the <ApiLink to="core/class/RequestQueue">`RequestQueue`</ApiLink>:
 
@@ -116,7 +116,7 @@ Here is a basic example of working with the <ApiLink to="core/class/RequestList"
 
 ### Sitemap request loader
 
-The <ApiLink to="core/class/SitemapRequestLoader">`SitemapRequestLoader`</ApiLink> is a specialized request loader that reads URLs from sitemaps following the [Sitemaps protocol](https://www.sitemaps.org/protocol.html). It supports both XML and plain-text sitemap formats and is particularly useful when you want to crawl a website systematically by following its sitemap structure. Loading happens in the background, so crawling can start before the sitemap is fully parsed.
+The <ApiLink to="basic-crawler/class/SitemapRequestLoader">`SitemapRequestLoader`</ApiLink> is a specialized request loader that reads URLs from sitemaps following the [Sitemaps protocol](https://www.sitemaps.org/protocol.html). It supports both XML and plain-text sitemap formats and is particularly useful when you want to crawl a website systematically by following its sitemap structure. Loading happens in the background, so crawling can start before the sitemap is fully parsed.
 
 :::note
 
@@ -148,7 +148,7 @@ Two things follow for implementors. The method is required, so reporting is neve
 
 Some sites answer bursts of traffic with HTTP 429 (Too Many Requests) rather than an outright block. By default a 429 is treated as a blocked session: the session is retired and the request is retried straight away on a fresh one, which churns through proxies without actually slowing down.
 
-The <ApiLink to="core/class/ThrottlingRequestManager">`ThrottlingRequestManager`</ApiLink> handles it at the scheduling layer instead. List the domains you want paced:
+The <ApiLink to="basic-crawler/class/ThrottlingRequestManager">`ThrottlingRequestManager`</ApiLink> handles it at the scheduling layer instead. List the domains you want paced:
 
 ```ts
 import { CheerioCrawler, ThrottlingRequestManager } from 'crawlee';
@@ -232,7 +232,7 @@ This setup is useful when you have a static list of URLs to crawl, but also need
 
 ### Sitemap request loader with request queue
 
-Similarly, you can combine a <ApiLink to="core/class/SitemapRequestLoader">`SitemapRequestLoader`</ApiLink> with a <ApiLink to="core/class/RequestQueue">`RequestQueue`</ApiLink>. This is particularly useful when you want to crawl URLs from a sitemap while also handling dynamic requests discovered during the crawl. URLs from the sitemap are processed first by being enqueued into the queue, which handles persistence and retries.
+Similarly, you can combine a <ApiLink to="basic-crawler/class/SitemapRequestLoader">`SitemapRequestLoader`</ApiLink> with a <ApiLink to="core/class/RequestQueue">`RequestQueue`</ApiLink>. This is particularly useful when you want to crawl URLs from a sitemap while also handling dynamic requests discovered during the crawl. URLs from the sitemap are processed first by being enqueued into the queue, which handles persistence and retries.
 
 <Tabs groupId="sitemap_request_manager_tandem">
     <TabItem value="sitemap_request_manager_tandem_helper" label="Using toTandem helper" default>
@@ -249,6 +249,6 @@ Similarly, you can combine a <ApiLink to="core/class/SitemapRequestLoader">`Site
 
 ## Conclusion
 
-This guide introduced the request loader abstractions: the read-only <ApiLink to="core/interface/IRequestLoader">`IRequestLoader`</ApiLink>, the writable <ApiLink to="core/interface/IRequestManager">`IRequestManager`</ApiLink>, and the <ApiLink to="core/class/RequestManagerTandem">`RequestManagerTandem`</ApiLink> that combines them, along with the <ApiLink to="core/class/RequestList">`RequestList`</ApiLink> and <ApiLink to="core/class/SitemapRequestLoader">`SitemapRequestLoader`</ApiLink> implementations. You also saw how to pair a loader with a queue using the `toTandem()` helper to handle both static and dynamically discovered requests, and how <ApiLink to="core/class/ThrottlingRequestManager">`ThrottlingRequestManager`</ApiLink> paces requests to individual domains.
+This guide introduced the request loader abstractions: the read-only <ApiLink to="core/interface/IRequestLoader">`IRequestLoader`</ApiLink>, the writable <ApiLink to="core/interface/IRequestManager">`IRequestManager`</ApiLink>, and the <ApiLink to="core/class/RequestManagerTandem">`RequestManagerTandem`</ApiLink> that combines them, along with the <ApiLink to="core/class/RequestList">`RequestList`</ApiLink> and <ApiLink to="basic-crawler/class/SitemapRequestLoader">`SitemapRequestLoader`</ApiLink> implementations. You also saw how to pair a loader with a queue using the `toTandem()` helper to handle both static and dynamically discovered requests, and how <ApiLink to="basic-crawler/class/ThrottlingRequestManager">`ThrottlingRequestManager`</ApiLink> paces requests to individual domains.
 
 If you have questions or need assistance, feel free to reach out on our [GitHub](https://github.com/apify/crawlee) or join our [Discord community](https://discord.com/invite/jyEM2PRvMU). Happy scraping!

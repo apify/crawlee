@@ -11,9 +11,11 @@ import { BaseHttpClient } from '@crawlee/http-client';
 import { Configuration } from '@crawlee/core';
 import { CookieJar } from 'tough-cookie';
 import type { CrawleeLogger } from '@crawlee/core';
+import { CriticalError } from '@crawlee/core';
 import { Dataset } from '@crawlee/core';
 import type { DatasetExportOptions } from '@crawlee/core';
-import type { Dictionary } from '@crawlee/types';
+import { Dictionary } from '@crawlee/types';
+import { EnqueueStrategy } from '@crawlee/utils';
 import type { EnqueueUrlsOptions } from '@crawlee/core';
 import { EventManager } from '@crawlee/core';
 import type { HttpRequestOptions } from '@crawlee/types';
@@ -23,11 +25,19 @@ import { IRequestManager } from '@crawlee/core';
 import type { ISession } from '@crawlee/types';
 import type { ISessionPool } from '@crawlee/types';
 import { KeyValueStore } from '@crawlee/core';
+import { NonRetryableError } from '@crawlee/core';
+import { PacingSignal } from '@crawlee/core';
+import { ParseSitemapOptions } from '@crawlee/utils';
 import type { ProxyInfo } from '@crawlee/types';
 import type { ReadonlyDeep } from 'type-fest';
 import { Request as Request_2 } from '@crawlee/core';
+import type { RequestLoaderStatus } from '@crawlee/core';
 import type { RequestOptions } from '@crawlee/core';
 import { RequestQueue } from '@crawlee/core';
+import type { RequestQueueOperationInfo } from '@crawlee/core';
+import type { RequestQueueOperationOptions } from '@crawlee/core';
+import type { RequestsLike } from '@crawlee/core';
+import type { RequestSourceStatus } from '@crawlee/core/internal';
 import { RobotsTxtFile } from '@crawlee/utils';
 import type { SendRequestOptions } from '@crawlee/types';
 import type { SessionFingerprint } from '@crawlee/types';
@@ -37,10 +47,12 @@ import { Source } from '@crawlee/core';
 import type { StandardSchemaV1 } from '@standard-schema/spec';
 import type { StorageBackend } from '@crawlee/types';
 import type { StorageIdentifier } from '@crawlee/core';
+import type { StorageOpenOptions } from '@crawlee/core';
 import { StorageWritePolicy } from '@crawlee/core';
 import type { SyncStateConversion } from '@crawlee/core';
 import { SystemInfo } from '@crawlee/core';
 import { TimeoutError } from '@apify/timeout';
+import type { UrlPatternInput } from '@crawlee/core';
 
 // @public (undocumented)
 export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, ContextExtension = Dictionary<never>, ExtendedContext extends Context = Context & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>, StatisticStateExtension extends object = {}> {
@@ -245,6 +257,21 @@ export abstract class ContextPipeline<TContextBase, TCrawlingContext extends TCo
     abstract chain<TFinalContext extends TCrawlingContext>(other: ContextPipeline<TCrawlingContext, TFinalContext>): ContextPipeline<TContextBase, TFinalContext>;
     abstract compose<TCrawlingContextExtension>(middleware: ContextMiddleware<TCrawlingContext, TCrawlingContextExtension>): ContextPipeline<TContextBase, TCrawlingContext & TCrawlingContextExtension>;
     static create<TContextBase>(): ContextPipeline<TContextBase, TContextBase>;
+}
+
+// @public (undocumented)
+export class ContextPipelineCleanupError extends CriticalError {
+    constructor(error: unknown, options?: ErrorOptions);
+}
+
+// @public (undocumented)
+export class ContextPipelineInitializationError extends Error {
+    constructor(error: unknown, options?: ErrorOptions);
+}
+
+// @public (undocumented)
+export class ContextPipelineInterruptedError extends Error {
+    constructor(message?: string);
 }
 
 // @public
@@ -554,6 +581,15 @@ export interface MemoryLoadSignalOptions {
 }
 
 // @public
+export class MissingSessionError extends Error {
+    constructor(sessionId?: string);
+}
+
+// @public
+export class NavigationSkippedError extends NonRetryableError {
+}
+
+// @public
 export function parseRetryAfterHeader(value?: string | null): number | null;
 
 // @public (undocumented)
@@ -564,8 +600,25 @@ export interface PersistenceOptions {
     enable?: boolean;
 }
 
+// @public
+export class PersistentRateLimitError extends CriticalError {
+}
+
 // @public (undocumented)
 export type RequestHandler<Context extends CrawlingContext = CrawlingContext> = (inputs: Context) => Awaitable<void>;
+
+// @public (undocumented)
+export class RequestHandlerError extends Error {
+    constructor(error: unknown, options?: ErrorOptions);
+}
+
+// @public
+export type RequestManagerOpener<T extends IRequestManager = IRequestManager> = (identifier?: string | StorageIdentifier | null, options?: StorageOpenOptions) => Promise<T>;
+
+// @public
+export class RequestThrottledError extends RetryRequestError {
+    constructor(message?: string);
+}
 
 // @public (undocumented)
 export type RequireContextPipeline<DefaultContextType extends CrawlingContext, FinalContextType extends DefaultContextType> = DefaultContextType extends FinalContextType ? {} : {
@@ -593,6 +646,11 @@ export interface RestrictedCrawlingContext<UserData extends Dictionary = Diction
     // (undocumented)
     session: ISession;
     useState: <State extends Dictionary = Dictionary>(defaultValue?: State) => Promise<State>;
+}
+
+// @public
+export class RetryRequestError extends Error {
+    constructor(message?: string);
 }
 
 // @public
@@ -759,6 +817,46 @@ export interface SessionPoolOptions {
 
 // @public (undocumented)
 export type SessionReuseStrategy = (typeof SESSION_REUSE_STRATEGIES)[number];
+
+// @public
+export class SitemapRequestLoader implements IRequestLoader {
+    // (undocumented)
+    [Symbol.asyncIterator](): AsyncGenerator<Request_2<Dictionary>, void, unknown>;
+    // (undocumented)
+    checkReadiness(): Promise<RequestLoaderStatus>;
+    // (undocumented)
+    fetchNextRequest(): Promise<Request_2 | null>;
+    // (undocumented)
+    getHandledCount(): Promise<number>;
+    // (undocumented)
+    getPendingCount(): Promise<number>;
+    // (undocumented)
+    getTotalCount(): Promise<number>;
+    isSitemapFullyLoaded(): boolean;
+    // (undocumented)
+    markRequestAsHandled(request: Request_2): Promise<void>;
+    static open(options: SitemapRequestLoaderOptions): Promise<SitemapRequestLoader>;
+    // (undocumented)
+    persistState(): Promise<void>;
+    teardown(): Promise<void>;
+    toTandem(requestManager?: IRequestManager): Promise<IRequestManager>;
+}
+
+// @public (undocumented)
+export interface SitemapRequestLoaderOptions extends UrlConstraints {
+    enqueueStrategy?: EnqueueStrategy | `${EnqueueStrategy}`;
+    httpClient?: BaseHttpClient;
+    maxBufferSize?: number;
+    parseSitemapOptions?: Omit<ParseSitemapOptions, 'emitNestedSitemaps' | 'maxDepth'>;
+    persistenceOptions?: {
+        enable?: boolean;
+    };
+    persistStateKey?: string;
+    proxyUrl?: string;
+    signal?: AbortSignal;
+    sitemapUrls: string[];
+    timeoutMillis?: number;
+}
 
 // @public (undocumented)
 export interface SnapshotResult {
@@ -937,6 +1035,51 @@ export interface TaskLoopPredicates {
 }
 
 // @public
+export class ThrottlingRequestManager<T extends IRequestManager = IRequestManager> implements IRequestManager {
+    // (undocumented)
+    [Symbol.asyncIterator](): AsyncGenerator<Request_2<Dictionary>, void, unknown>;
+    constructor(options: ThrottlingRequestManagerOptions<T>, config?: Configuration);
+    // (undocumented)
+    addRequest(requestLike: Source, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo>;
+    addRequestsBatched(requests: RequestsLike, options?: AddRequestsBatchedOptions): Promise<AddRequestsBatchedResult>;
+    checkReadiness(): Promise<RequestSourceStatus>;
+    // (undocumented)
+    drop(): Promise<void>;
+    fetchNextRequest<R extends Dictionary = Dictionary>(): Promise<Request_2<R> | null>;
+    // (undocumented)
+    getHandledCount(): Promise<number>;
+    // (undocumented)
+    getPendingCount(): Promise<number>;
+    // (undocumented)
+    getTotalCount(): Promise<number>;
+    get innerManager(): T | undefined;
+    // (undocumented)
+    markRequestAsHandled(request: Request_2): Promise<RequestQueueOperationInfo | void | null>;
+    // (undocumented)
+    persistState(): Promise<void>;
+    purge(): Promise<void>;
+    // (undocumented)
+    reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
+    recordPacingSignal(signal: PacingSignal): boolean;
+    // (undocumented)
+    setExpectedRequestProcessingTimeSecs(secs: number): Promise<void>;
+}
+
+// @public
+export interface ThrottlingRequestManagerOptions<T extends IRequestManager = IRequestManager> {
+    baseDelaySecs?: number;
+    domains: string[] | 'all';
+    inner?: T | (() => T | Promise<T>);
+    maxDelaySecs?: number;
+    maxDomainStallSecs?: number;
+    maxThrottledDomains?: number;
+    minCrawlDelaySecs?: number;
+    persistStateKey?: string;
+    requestManagerOpener?: RequestManagerOpener<T>;
+    throttleBy?: 'hostname' | 'registrableDomain';
+}
+
+// @public
 export type TypedContextAddRequests<Routes extends Record<keyof Routes, Dictionary>> = (requestsLike: ReadonlyDeep<LabeledSource<Routes>[]>, options?: ReadonlyDeep<EnqueueUrlsOptions>) => Promise<AddRequestsBatchedResult>;
 
 // @public
@@ -956,6 +1099,13 @@ type TypedEnqueueLinksOptions<Options, Routes extends Record<keyof Routes, Dicti
 
 // @public
 export type TypedRequestsLike<Routes extends Record<keyof Routes, Dictionary>> = AsyncIterable<LabeledSource<Routes>> | Iterable<LabeledSource<Routes>> | LabeledSource<Routes>[];
+
+// Not exported by the entry point; reachable only as a referenced type.
+// @public (undocumented)
+interface UrlConstraints {
+    exclude?: readonly UrlPatternInput[];
+    include?: readonly UrlPatternInput[];
+}
 
 // @public (undocumented)
 export type WithRequired<T, K extends keyof T> = T & {

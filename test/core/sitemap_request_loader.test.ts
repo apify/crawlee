@@ -3,7 +3,8 @@ import type { AddressInfo } from 'node:net';
 import { Readable } from 'node:stream';
 import { finished } from 'node:stream/promises';
 
-import { MemoryStorageBackend, type Request, serviceLocator, SitemapRequestLoader } from '@crawlee/core';
+import { SitemapRequestLoader } from '@crawlee/basic';
+import { MemoryStorageBackend, type Request, serviceLocator } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
 import express from 'express';
 import { startExpressAppPromise } from '../shared/_helper.js';

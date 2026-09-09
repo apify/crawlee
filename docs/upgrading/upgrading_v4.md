@@ -2145,6 +2145,8 @@ The crawler-only parts of `@crawlee/core` moved to `@crawlee/basic`, so that `@c
 - `SessionPool`, `Session` and the session-pool constants
 - `Router` (with `RouterHandler`, `RouterRoutes` and `defaultRoute`)
 - the cookie helpers (`mergeCookies`, `getCookiesFromResponse`, …) and `parseRetryAfterHeader`
+- `SitemapRequestLoader` (with `SitemapRequestLoaderOptions`) and `ThrottlingRequestManager` (with `ThrottlingRequestManagerOptions` and `RequestManagerOpener`)
+- the crawler-only error classes: `RetryRequestError`, `RequestThrottledError`, `PersistentRateLimitError`, `NavigationSkippedError`, `MissingSessionError`, `MissingRouteError`, `RequestHandlerError` and the `ContextPipeline*Error` types
 
 `@crawlee/basic` re-exports everything from `@crawlee/core`, so `import { SessionPool } from '@crawlee/basic'` (or from `crawlee`, `@crawlee/http`, `@crawlee/playwright`, …) keeps working unchanged. Only imports written against `@crawlee/core` itself need to be pointed at `@crawlee/basic`.
 

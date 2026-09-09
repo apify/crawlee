@@ -49,6 +49,7 @@
         "@sapphire/async-queue": "^1.5.5",
         "@standard-schema/spec": "^1.0.0",
         "csv-stringify": "^6.5.2",
+        "minimatch": "^10.0.1",
         "tldts": "^7.0.6",
         "tough-cookie": "^6.0.0",
         "tslib": "^2.8.1",
