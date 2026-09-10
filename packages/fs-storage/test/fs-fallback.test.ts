@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, rm, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 import { FileSystemStorageBackend } from '@crawlee/fs-storage';
@@ -206,19 +206,17 @@ describe('fallback to fs for reading', () => {
 });
 
 // For each run-input bare file: the on-disk filename, the literal key that reads it directly, the
-// content type the client reports (`.json`/`.txt` infer from the extension; the extensionless `INPUT`
-// and `.bin` report the synthesized `application/octet-stream`), and a unique payload so a read can be
-// proven to have returned *this* file and not a sibling.
+// content type the client reports (`.json` infers from the extension; the extensionless `INPUT`
+// reports the synthesized `application/octet-stream`), and a unique payload so a read can be proven to
+// have returned *this* file and not a sibling.
 const BARE_VARIANTS = [
     { file: 'INPUT', literalKey: 'INPUT', contentType: 'application/octet-stream' },
     { file: 'INPUT.json', literalKey: 'INPUT.json', contentType: 'application/json; charset=utf-8' },
-    { file: 'INPUT.txt', literalKey: 'INPUT.txt', contentType: 'text/plain; charset=utf-8' },
-    { file: 'INPUT.bin', literalKey: 'INPUT.bin', contentType: 'application/octet-stream' },
 ].map((variant) => ({ ...variant, payload: `payload of ${variant.file}` }));
 
 // Each run-input bare file must be reachable by exactly two keys — the logical `INPUT` (which probes
-// the `['', '.json', '.txt', '.bin']` ladder, first match wins) and its own literal on-disk name — and
-// NOT via a *different* extension's literal name (a bare `INPUT.txt` is not `INPUT.json`). Here each
+// the `['', '.json']` ladder, first match wins) and its own literal on-disk name — and NOT via a
+// *different* extension's literal name (a bare `INPUT` is not `INPUT.json`). Here each
 // variant lives in its own store so the logical-`INPUT` lookup resolves it unambiguously.
 describe('run-input bare-file reachability (one variant per store)', () => {
     const tmpLocation = resolve(import.meta.dirname, './tmp/fs-reachability-isolated');
@@ -271,7 +269,7 @@ describe('run-input bare-file reachability (one variant per store)', () => {
     });
 });
 
-// The sharper cross-talk check: with *all four* variants in one store, each literal key must read back
+// The sharper cross-talk check: with *both* variants in one store, each literal key must read back
 // its own bytes (never a sibling's), and the logical `INPUT` must resolve the first ladder match — the
 // extensionless `INPUT`. This is what fails if literal-name probing ever widens to other extensions.
 describe('run-input bare-file reachability (all variants in one store)', () => {
@@ -312,5 +310,47 @@ describe('run-input bare-file reachability (all variants in one store)', () => {
             value: Buffer.from(extensionless.payload),
             contentType: extensionless.contentType,
         });
+    });
+});
+
+// v3 also probed `INPUT.txt` and `INPUT.bin`. The ladder is now `''`/`.json` only: those files are
+// neither resolved by the logical `INPUT` nor by their literal name, are not listed, and are not exempt
+// from the default-store purge.
+describe('legacy INPUT.txt / INPUT.bin bare files', () => {
+    const tmpLocation = resolve(import.meta.dirname, './tmp/fs-legacy-input-variants');
+    const legacyFiles = ['INPUT.txt', 'INPUT.bin'];
+
+    afterEach(async () => {
+        await rm(tmpLocation, { force: true, recursive: true });
+    });
+
+    test.each(legacyFiles)('a bare %s is not readable', async (file) => {
+        const storage = new FileSystemStorageBackend({ localDataDirectory: tmpLocation });
+        const dir = resolve(storage.keyValueStoresDirectory, 'default');
+        await mkdir(dir, { recursive: true });
+        await writeFile(resolve(dir, file), `payload of ${file}`);
+
+        const store = await storage.createKeyValueStoreBackend();
+
+        expect(await store.getValue('INPUT')).toBeUndefined();
+        expect(await store.recordExists('INPUT')).toBe(false);
+        expect(await store.getValue(file)).toBeUndefined();
+        expect(await store.recordExists(file)).toBe(false);
+        expect((await store.listKeys()).items).toEqual([]);
+    });
+
+    test('purge removes them from the default store', async () => {
+        const storage = new FileSystemStorageBackend({ localDataDirectory: tmpLocation });
+        const dir = resolve(storage.keyValueStoresDirectory, 'default');
+        await mkdir(dir, { recursive: true });
+        await writeFile(resolve(dir, 'INPUT.json'), '{}');
+        for (const file of legacyFiles) {
+            await writeFile(resolve(dir, file), `payload of ${file}`);
+        }
+
+        await storage.purge();
+
+        const remaining = await readdir(dir);
+        expect(remaining.filter((file) => !file.startsWith('__metadata__'))).toEqual(['INPUT.json']);
     });
 });
