@@ -29,6 +29,7 @@ Browsers are pretty big, so we try to provide a wide variety of images to suit t
 - [`apify/actor-node-playwright-chrome`](#actor-node-playwright-chrome)
 - [`apify/actor-node-playwright-firefox`](#actor-node-playwright-firefox)
 - [`apify/actor-node-playwright-webkit`](#actor-node-playwright-webkit)
+- [`apify/actor-node-playwright-camoufox`](#actor-node-playwright-camoufox)
 
 Every image is published in two flavours. The full image preinstalls `apify`, `crawlee` and `typescript`. The `-slim` variant (e.g. `24-slim`, `24-1.60.0-slim`, `24-beta-slim`) only ships the browser automation library the image is built around (for example `puppeteer`, `playwright`, or `camoufox-js` with `impit`), and `apify/actor-node:24-slim` ships no npm packages at all. Slim images are smaller and faster to pull, and your `package.json` is the single source of truth for dependency versions.
 
@@ -241,6 +242,14 @@ pre-installed.
 
 ```dockerfile
 FROM apify/actor-node-playwright-webkit:24
+```
+
+### actor-node-playwright-camoufox
+
+Same idea as [`actor-node-playwright-firefox`](#actor-node-playwright-firefox), but with [Camoufox](https://camoufox.com/), a Firefox fork hardened against bot detection, pre-installed instead of Firefox. The image also ships the [`camoufox-js`](https://github.com/apify/camoufox-js) and [`impit`](https://github.com/apify/impit) packages.
+
+```dockerfile
+FROM apify/actor-node-playwright-camoufox:24
 ```
 
 ## Example Dockerfile
