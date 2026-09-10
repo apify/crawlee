@@ -16,11 +16,6 @@ await Actor.main(async () => {
         // The target hard-blocks datacenter IP ranges outright (block page, not a solvable
         // challenge), so this test needs residential exit nodes.
         proxyConfiguration: await Actor.createProxyConfiguration({ groups: ['RESIDENTIAL'] }),
-        // Cloudflare serves its challenge with a 403 status. v3's handleCloudflareChallenge removed
-        // 403 from the session pool's blocked status codes itself; in v4 that is an explicit crawler
-        // option, and keeping 403 in the default set would fail challenged requests before the hook
-        // below gets a chance to solve them on retries.
-        blockedStatusCodes: [401, 429],
         browserPool: playwrightBrowserPool({
             // Camoufox ships its own anti-detection; Crawlee's fingerprint injection conflicts with it
             // and keeps Cloudflare from ever clearing the challenge.

@@ -658,7 +658,9 @@ export interface HandleCloudflareChallengeOptions {
  *
  * On a successfully solved challenge the page is reloaded and the new {@apilink Response} is returned, so
  * it can be propagated back to the crawling context via a hook return value (see
- * {@apilink handleCloudflareChallengeHook}).
+ * {@apilink handleCloudflareChallengeHook}). Thanks to that, the 403 status of the challenge page does not
+ * need to be removed from `blockedStatusCodes` - a solved challenge replaces the response before the
+ * blocked-status check runs, and an unsolved one is retried with a fresh session.
  *
  * Works best with camoufox.
  *
@@ -672,29 +674,38 @@ export interface HandleCloudflareChallengeOptions {
  * @param page Playwright [`Page`](https://playwright.dev/docs/api/class-page) object
  * @param url current URL for request identification, only used for logging
  * @param [options]
+ * @param [response] navigation response, used to poll for late-rendered challenge markup when it signals a likely challenge
  */
 async function handleCloudflareChallenge(
     page: Page,
     url: string,
     options: HandleCloudflareChallengeOptions = {},
+    response?: Response,
 ): Promise<Response | undefined> {
-    options.isBlockedCallback ??= async () => {
-        const isBlocked = await page.evaluate(() => {
-            return document.querySelector('h1')?.textContent?.trim().includes('Sorry, you have been blocked');
+    // The options object may outlive this call (the pre-wrapped hook reuses one instance for all
+    // requests and retries), so the defaults are kept local instead of being memoized on `options` -
+    // memoizing them would pin the closed-over `page` of the first call forever.
+    const isBlockedCallback =
+        options.isBlockedCallback ??
+        (async (p: Page) => {
+            const isBlocked = await p.evaluate(() => {
+                return document.querySelector('h1')?.textContent?.trim().includes('Sorry, you have been blocked');
+            });
+            return !!isBlocked;
         });
-        return !!isBlocked;
-    };
 
-    options.isChallengeCallback ??= async () => {
-        return await page.evaluate(async () => {
-            // Cloudflare keeps reshuffling the wrapper elements between `.footer-inner` and `.ray-id`,
-            // so only the stable outer classes are matched.
-            return !!document.querySelector('.footer .footer-inner .ray-id');
+    const isChallengeCallback =
+        options.isChallengeCallback ??
+        (async (p: Page) => {
+            return await p.evaluate(async () => {
+                // Cloudflare keeps reshuffling the wrapper elements between `.footer-inner` and `.ray-id`,
+                // so only the stable outer classes are matched.
+                return !!document.querySelector('.footer .footer-inner .ray-id');
+            });
         });
-    };
 
     const retryBlocked = async () => {
-        const isBlocked = await options.isBlockedCallback!(page).catch(() => false);
+        const isBlocked = await isBlockedCallback(page).catch(() => false);
 
         if (isBlocked) {
             throw new SessionError(`Blocked by Cloudflare when processing ${url}`);
@@ -703,10 +714,23 @@ async function handleCloudflareChallenge(
 
     // check if we ended up on the CF challenge page
     const isChallenge = async () => {
-        return options.isChallengeCallback!(page).catch(() => false);
+        return isChallengeCallback(page).catch(() => false);
     };
 
-    if (!(await isChallenge())) {
+    // The challenge markup can finish rendering only after the `load` event, so when the response signals
+    // a likely challenge (403 status or the `cf-mitigated` header), poll for it instead of checking once.
+    const likelyChallenge = response?.status() === 403 || response?.headers()['cf-mitigated'] === 'challenge';
+
+    let detected = await isChallenge();
+
+    for (let i = 0; !detected && likelyChallenge && i < 10; i++) {
+        // a hard-blocked page never turns into a challenge, so fail fast instead of finishing the poll
+        await retryBlocked();
+        await sleep(500);
+        detected = await isChallenge();
+    }
+
+    if (!detected) {
         await retryBlocked();
         return undefined;
     }
