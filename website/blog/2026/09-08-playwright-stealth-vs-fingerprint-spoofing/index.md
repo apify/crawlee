@@ -7,13 +7,13 @@ image: ./img/stealth-comparison.png
 authors: [FederCr]
 ---
 
-> 👉 This article was written by [feder-cr](https://github.com/feder-cr) as part of [Write for Apify](https://apify.com/resources/write-for-apify) - a program for developers sharing original articles about what they built with Crawlee. I maintain invisible_playwright, one of the tools measured below, so every number here comes from an open detector you can re-run yourself.
+> 👉 This article was written by [feder-cr](https://github.com/feder-cr) as part of [Write for Apify](https://apify.com/resources/write-for-apify) - a program for developers sharing original articles about what they built with Crawlee.
 
 You open the page by hand and it loads. You open the same page with a Playwright script and it does not - a challenge, a block, a polite empty room where the content should be. Same laptop, same network, same URL, one second apart. The only thing that changed is who is holding the browser, and the site could tell.
 
 That gap is the subject here, and the useful way to think about it is not the one most people start with. The question is not *which field did I get wrong*. It is *do all my fields describe one machine*.
 
-Everything below is measured against detectors you can open in a tab right now - [CreepJS](https://abrahamjuliot.github.io/creepjs/), [BotD](https://github.com/fingerprintjs/BotD), the open-source [FingerprintJS](https://github.com/fingerprintjs/fingerprintjs) agent, and [bot.sannysoft.com](https://bot.sannysoft.com/) - so you can re-run any of it against me. No commercial protection service is named or targeted: this is a fingerprinting story, and the fingerprint is the more interesting subject anyway.
+Everything below is measured against detectors you can open in a tab right now - [CreepJS](https://abrahamjuliot.github.io/creepjs/), [BotD](https://github.com/fingerprintjs/BotD), the open-source [FingerprintJS](https://github.com/fingerprintjs/fingerprintjs) agent, and [bot.sannysoft.com](https://bot.sannysoft.com/). I maintain invisible_playwright, one of the three tools measured, so every number here comes from a detector you can re-run against me. No commercial protection service is named or targeted: this is a fingerprinting story, and the fingerprint is the more interesting subject anyway.
 
 ![Three setups through one Crawlee seam, so the browser is the only thing that changes.](./img/stealth-comparison.svg)
 
@@ -36,13 +36,13 @@ The first layer is the **automation driver** - the browser is being driven, and 
 
 The second layer is the **fingerprint** - the machine underneath, described in values any page can read without asking: the WebGL vendor and renderer strings, `hardwareConcurrency`, `deviceMemory`, the timezone and language list, the installed fonts as measured through text metrics, the pixels a canvas draw produces, the frequency data of an offline audio graph. Hash those together and you have an id that outlives cookie deletion.
 
-On the bench, default Playwright fails every open detector we ran. BotD returns **bot**. CreepJS reads it **100% headless**. sannysoft passes only **4 of its 11 color-graded rows**, failing the other seven - `WebDriver (New)`, `Chrome (New)`, `Permissions (New)`, `Plugins Length (Old)`, `Plugins is of type PluginArray`, `User Agent (Old)` and `WebGL Renderer`. (sannysoft colors 11 rows and renders 46 more neutral; "4/11" counts the graded ones, not a pass rate over everything the page probes.)
+On the bench, default Playwright fails every open detector we ran. BotD returns bot. CreepJS reads it 100% headless. sannysoft passes only 4 of its 11 color-graded rows, failing the other seven - `WebDriver (New)`, `Chrome (New)`, `Permissions (New)`, `Plugins Length (Old)`, `Plugins is of type PluginArray`, `User Agent (Old)` and `WebGL Renderer`. (sannysoft colors 11 rows and renders 46 more neutral; "4/11" counts the graded ones, not a pass rate over everything the page probes.)
 
 Two layers, both leaking, and the first request is enough.
 
 ## The driver patch, and the contradiction it introduces
 
-The first layer has a clean, popular fix. **patchright** is a drop-in replacement for the Playwright driver on Chromium: you change an import, not your crawler. It targets the automation tells directly - it avoids the `Runtime.enable` leak, drops `--enable-automation`, corrects `navigator.webdriver` and the `window.chrome` gap - and it rides upstream Playwright's own release line, so you are not stuck on an old browser.
+The first layer has a clean, popular fix. patchright is a drop-in replacement for the Playwright driver on Chromium: you change an import, not your crawler. It targets the automation tells directly - it avoids the `Runtime.enable` leak, drops `--enable-automation`, corrects `navigator.webdriver` and the `window.chrome` gap - and it rides upstream Playwright's own release line, so you are not stuck on an old browser.
 
 It does that job, measurably. patchright moves sannysoft from **4/11 to 5/11**, and the row it fixes is exactly `WebDriver (New)`, the one default Playwright fails. CreepJS "headless" drops from **100% to 67%**. The driver layer is quieter.
 
@@ -69,7 +69,7 @@ The fingerprint says the same thing a second way. I expected patchright to move 
 | FingerprintJS visitor id | `8a40e307...` | `8a40e307...` |
 | Canvas signature | `5DF90EE5...` | `5DF90EE5...` |
 
-The driver had gone quiet, and the machine underneath had not moved a pixel. BotD, which weighs the fingerprint rather than just the driver, still returned **bot**.
+The driver had gone quiet, and the machine underneath had not moved a pixel. BotD, which weighs the fingerprint rather than just the driver, still returned bot.
 
 *(One honest caveat from the dataset: whether that identical fingerprint is a property of patchright or an artifact of how this bench launches it is not determinable from these runs. Treat the collision as a caveat, not a verdict. The SwiftShader row does not depend on it.)*
 
@@ -81,15 +81,15 @@ If the target is a machine whose fields agree, then the fields cannot be written
 
 **Inside the process, one value per fact.** Take `hardwareConcurrency`. There is the property, the same property inside a Web Worker on another thread, and inside an iframe with its own realm. A page-script shim has to find and override every route before the page's own script runs, and make each overridden getter's `toString()` read native. Miss one and you have not published a wrong value - you have published *two different values for the same fact in one process*, which is a far stronger signal than any single odd field. Changing it below JavaScript, in the browser's own source, means every route reads the same variable. The value cannot disagree with itself, and that is not discipline, it is arithmetic.
 
-That is what invisible_playwright does: a Firefox build patched at the C++ level so that a few hundred fingerprint fields are derived from an integer **seed** and delivered through preferences - GPU and WebGL strings, canvas and audio, fonts, screen, hardware.
+That is what invisible_playwright does: a Firefox build patched at the C++ level so that a few hundred fingerprint fields are derived from an integer seed and delivered through preferences - GPU and WebGL strings, canvas and audio, fonts, screen, hardware.
 
 **Outside the process, the declarations follow the egress.** This is the half a proxy alone gets wrong. The session discovers the address the connection actually leaves from - through the proxy when one is set - in a single round-trip, and reuses that one fact for the timezone (mapped to an IANA zone from an offline database), for the locale, and for the public address WebRTC will report. The network stops being a separate layer with its own opinion, because nothing is invented: it is all read off the same exit point.
 
-The most telling part is the failure path, and you can read it in the shipped code. Behind a proxy, if the timezone lookup fails, the launch **raises** rather than falling back to the host's zone, on the stated grounds that a foreign proxy paired with the host timezone is precisely the mismatch signal. If the locale lookup fails behind a proxy it returns a neutral `en-US` rather than the home country's language, because the home language next to the proxy's timezone would be, in the comment's own words, a contradiction between two fields. A system built this way would rather not start than start incoherent.
+The most telling part is the failure path, and you can read it in the shipped code. Behind a proxy, if the timezone lookup fails, the launch raises rather than falling back to the host's zone, on the stated grounds that a foreign proxy paired with the host timezone is precisely the mismatch signal. If the locale lookup fails behind a proxy it returns a neutral `en-US` rather than the home country's language, because the home language next to the proxy's timezone would be, in the comment's own words, a contradiction between two fields. A system built this way would rather not start than start incoherent.
 
-I ran into this from the other direction, and it is worth telling because it is the principle showing up uninvited. This bench runs without a proxy, from a home connection in Italy. With its default `locale="auto"`, invisible_playwright declared **it-IT**: it had followed the egress, correctly. Plain Playwright and patchright declared **en-US**, as they do wherever the connection leaves from, because nothing connects the two layers for them. To compare the three fairly I had to pin all of them to `en-US`.
+I ran into this from the other direction, and it is worth telling because it is the principle showing up uninvited. This bench runs without a proxy, from a home connection in Italy. With its default `locale="auto"`, invisible_playwright declared it-IT: it had followed the egress, correctly. Plain Playwright and patchright declared en-US, as they do wherever the connection leaves from, because nothing connects the two layers for them. To compare the three fairly I had to pin all of them to `en-US`.
 
-I deliberately did **not** pin the timezone. Forcing an American zone onto a European exit address would have manufactured exactly the contradiction this article is about, inside the measurement itself. Each run records what it presented: `navigator.language` en-US, timezone Europe/Rome.
+I deliberately did not pin the timezone. Forcing an American zone onto a European exit address would have manufactured exactly the contradiction this article is about, inside the measurement itself. Each run records what it presented: `navigator.language` en-US, timezone Europe/Rome.
 
 *(Labeling, because it matters: the locale behavior above is measured. The proxy half - egress discovery through the proxy, the WebRTC override, the loud failure - is read from the shipped code, not measured here, because this bench ran without a proxy.)*
 
@@ -130,7 +130,7 @@ class InvisiblePlaywrightPlugin(PlaywrightBrowserPlugin):
 
 Some of what a detector asks, you answer. The rest you have to measure, and the instrument matters more than it looks.
 
-A pass/fail verdict is the wrong instrument, and the clearest proof is a row that reads as a failure. invisible_playwright scores **10 of 11** on sannysoft. The single red row is `Chrome (New)`, which tests for the `window.chrome` object. A real Firefox does not carry that object either. Scored, it is a failure; read, it is the browser being correct about what it is.
+A pass/fail verdict is the wrong instrument, and the clearest proof is a row that reads as a failure. invisible_playwright scores 10 of 11 on sannysoft. The single red row is `Chrome (New)`, which tests for the `window.chrome` object. A real Firefox does not carry that object either. Scored, it is a failure; read, it is the browser being correct about what it is.
 
 The same trap runs the other way, and it flatters the tool I maintain. Parts of BotD and CreepJS are gated to Chrome and never execute against a Firefox engine at all. So a clean verdict on Firefox and a clean verdict on Chromium were graded on different exams, and comparing the two scores compares the exams as much as the browsers. Before trusting a green row on any tool, open the detector's source, find the checks gated to a browser family you are not running, subtract them, and read what is left.
 
