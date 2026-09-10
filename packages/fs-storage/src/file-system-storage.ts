@@ -90,7 +90,7 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
     readonly requestQueuesDirectory: string;
     readonly logger?: CrawleeLogger;
     readonly requestQueueAccess: 'single' | 'shared';
-    readonly inputKey: string;
+    readonly #inputKey: string;
 
     readonly #keyValueStoreBackendCache: KeyValueStoreBackend[] = [];
     readonly #datasetBackendCache: DatasetBackend[] = [];
@@ -104,7 +104,7 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
 
         this.logger = logger;
         this.requestQueueAccess = requestQueueAccess;
-        this.inputKey = inputKey;
+        this.#inputKey = inputKey;
 
         this.localDataDirectory = localDataDirectory;
         this.datasetsDirectory = resolve(this.localDataDirectory, 'datasets');
@@ -188,7 +188,7 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
             cacheKey,
             nativeBackend,
             logger: this.logger,
-            inputKey: this.inputKey,
+            inputKey: this.#inputKey,
         });
         this.#keyValueStoreBackendCache.push(newStore);
 
