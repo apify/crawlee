@@ -28,11 +28,7 @@ const BARE_FILE_FALLBACKS: { extension: string; contentType: string }[] = [
     { extension: '.bin', contentType: '' },
 ];
 
-/**
- * The conventional run-input key. Always treated as a run-input key (readable from a bare file and
- * preserved on purge) alongside the configured {@link KeyValueStoreBackendOptions.inputKey}, so that
- * pointing the run at a different key never makes an existing `INPUT.json` unreadable or purgeable.
- */
+/** The conventional run-input key, always treated as one alongside the configured `inputKey`. */
 const DEFAULT_INPUT_KEY = 'INPUT';
 
 const keySchema = z.string();
@@ -61,14 +57,7 @@ export interface KeyValueStoreBackendOptions {
     cacheKey: string;
     nativeBackend: NativeFileSystemKeyValueStoreBackend;
     logger?: CrawleeLogger;
-    /**
-     * The key the run input is read from (Crawlee's `inputKey` / `CRAWLEE_INPUT_KEY`). Like `INPUT`, it
-     * may live on disk as a bare value file with no metadata sidecar (e.g. the Apify CLI writes the
-     * effective input to `__CLI_INPUT.json` and points the run at it), so it gets the same
-     * out-of-band read fallback and is preserved when the default store is purged.
-     *
-     * @default 'INPUT'
-     */
+    /** The configured run-input key, see `FileSystemStorageOptions.inputKey`. Treated like `INPUT`. */
     inputKey?: string;
 }
 
@@ -86,19 +75,13 @@ export class KeyValueStoreBackend extends CachedIdClient implements storage.KeyV
 
     readonly #nativeBackend: NativeFileSystemKeyValueStoreBackend;
 
-    /** The logical run-input keys: `INPUT` plus the configured `inputKey` (deduplicated). */
+    /** `INPUT` plus the configured `inputKey`, deduplicated. */
     readonly #inputKeys: string[];
 
-    /**
-     * The out-of-band ("bare") files to surface from the native `listKeys`, i.e. {@link #inputKeys} ×
-     * {@link BARE_FILE_FALLBACKS}. Each native {@link ListBareFallback} `name` is the literal on-disk
-     * filename to probe (e.g. `INPUT.json`), and the native lists a match under that same `name` — which
-     * is exactly the key we return, so a listed bare file round-trips through `getValue`/`recordExists`
-     * (see {@link #bareFallbacksFor}).
-     */
+    /** Bare files the native `listKeys` should surface, under their on-disk name (e.g. `INPUT.json`). */
     readonly #listBareFallbacks: ListBareFallback[];
 
-    /** Maps a bare file's on-disk name (e.g. `INPUT.json`) to its logical key (e.g. `INPUT`), for dedup. */
+    /** Bare-file on-disk name (`INPUT.json`) to logical key (`INPUT`). */
     readonly #bareFileLogicalKeys: Map<string, string>;
 
     constructor(options: KeyValueStoreBackendOptions) {
@@ -142,11 +125,8 @@ export class KeyValueStoreBackend extends CachedIdClient implements storage.KeyV
     /**
      * Remove every record from the store except the run input. Used by
      * {@link FileSystemStorageBackend.purge} to clean the default key-value store at the start of a run
-     * while preserving the run's input, matching the historical file-system storage behavior.
-     *
-     * The native `purge` keep-list matches by exact key with no extension globbing, so we pass every
-     * filename the input might live under (`INPUT`, `INPUT.json`, `INPUT.txt`, `INPUT.bin`, and the same
-     * ladder for the configured `inputKey`).
+     * while preserving the run's input. The native keep-list matches exact filenames, so every extension
+     * variant of every input key is listed.
      */
     async purgeExceptInput(): Promise<void> {
         const keep = this.#inputKeys.flatMap((key) => BARE_FILE_FALLBACKS.map(({ extension }) => `${key}${extension}`));
@@ -270,12 +250,9 @@ export class KeyValueStoreBackend extends CachedIdClient implements storage.KeyV
     }
 
     /**
-     * Resolve `key` to the on-disk key that actually exists, or `undefined` if nothing does. Every
-     * key is checked against its tracked record; the run-input keys additionally fall back to
-     * out-of-band bare files, in which case the matched on-disk key is returned so callers like
-     * `getPublicUrl` point at the file that exists. Two run-input shapes are handled (see
-     * {@link #bareFallbacksFor}): a logical input key such as `INPUT`, which probes the conventional extensions,
-     * and a literal bare filename such as `INPUT.json` as listed by `listKeys`, which resolves itself.
+     * Resolve `key` to the on-disk key that actually exists, or `undefined` if nothing does. Run-input
+     * keys fall back to bare files, in which case the matched on-disk key is returned so callers like
+     * `getPublicUrl` point at the file that exists.
      */
     private async resolveExistingKey(key: string): Promise<string | undefined> {
         const fallbacks = this.#bareFallbacksFor(key);
@@ -291,15 +268,9 @@ export class KeyValueStoreBackend extends CachedIdClient implements storage.KeyV
     }
 
     /**
-     * The native `resolveValue`/`resolveExistingKey` bare-file fallbacks to use for `key`, or
-     * `undefined` if `key` is a plain tracked-record lookup with no bare-file probing.
-     *
-     * - A logical run-input key (`INPUT`, or the configured `inputKey`) probes the full extension ladder
-     *   (`INPUT`, `INPUT.json`, `INPUT.txt`, `INPUT.bin`), matching how Crawlee reads run input.
-     * - A literal bare filename as surfaced by `listKeys` (`INPUT.json`/`.txt`/`.bin`) resolves itself:
-     *   the tracked record first, then the bare file at that exact name (a single empty-extension
-     *   fallback), so a listed key round-trips through `getValue`/`recordExists`. The extensionless
-     *   name is the logical key itself and is covered by the first case.
+     * Bare-file fallbacks for `key`, or `undefined` for a plain tracked-record lookup. A logical input
+     * key (`INPUT`) probes the whole extension ladder; a literal bare filename (`INPUT.json`, as listed
+     * by `listKeys`) probes only itself, so a listed key reads back under its own name.
      */
     #bareFallbacksFor(key: string): { extension: string; contentType: string }[] | undefined {
         if (this.#inputKeys.includes(key)) {
