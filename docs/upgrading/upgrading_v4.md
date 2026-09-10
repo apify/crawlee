@@ -1866,7 +1866,9 @@ Because the in-memory queue lives entirely within a single process and is never 
 
 #### Out-of-band key-value files (e.g. a hand-placed `INPUT.json`)
 
-`FileSystemStorageBackend` only fully tracks records it wrote itself (those have a `<key>.__metadata__.json` sidecar). It still reads a value file placed in the store directory out-of-band — such as a hand-written or platform-provided `INPUT.json` — by probing the requested key plus the `.json` extension. A few behaviors around these "bare" files changed in v4:
+Keys are literal. `aaa` and `aaa.json` are two distinct keys, and `FileSystemStorageBackend` never infers a key from a file's extension. In v3 a hand-placed `aaa.json` in the store directory was readable as `aaa`; in v4 it is not read, not listed, and gets deleted by the purge of the default store on start like any other untracked file.
+
+The one exception is the run input. `FileSystemStorageBackend` only fully tracks records it wrote itself (those have a `<key>.__metadata__.json` sidecar), but for the `INPUT` key (and the configured `inputKey`) it still reads a value file placed in the store directory out-of-band — such as a hand-written or platform-provided `INPUT.json` — by probing the requested key plus the `.json` extension. A few behaviors around these "bare" files changed in v4:
 
 - **Only `INPUT` and `INPUT.json` are probed.** v3 also fell back to `INPUT.txt` and `INPUT.bin`. In v4 those files are not read (`getValue('INPUT')` returns `undefined`), are not listed, and are no longer exempt from the purge of the default store on start, so they get deleted like any other untracked file. Rename a `.txt`/`.bin` input to `INPUT.json` (or drop the extension) before upgrading.
 - **Extensionless bare files report `application/octet-stream`.** In v3 a bare value file with no extension was read as `text/plain`. In v4 the client is a plain byte transport and only infers a content type from a real extension, so an extensionless file now comes back as `application/octet-stream`. Give the file a `.json` extension if you need a more specific type.
