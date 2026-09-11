@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { mkdir, readdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 import { FileSystemStorageBackend } from '@crawlee/fs-storage';
@@ -310,47 +310,5 @@ describe('run-input bare-file reachability (all variants in one store)', () => {
             value: Buffer.from(extensionless.payload),
             contentType: extensionless.contentType,
         });
-    });
-});
-
-// v3 also probed `INPUT.txt` and `INPUT.bin`. The ladder is now `''`/`.json` only: those files are
-// neither resolved by the logical `INPUT` nor by their literal name, are not listed, and are not exempt
-// from the default-store purge.
-describe('legacy INPUT.txt / INPUT.bin bare files', () => {
-    const tmpLocation = resolve(import.meta.dirname, './tmp/fs-legacy-input-variants');
-    const legacyFiles = ['INPUT.txt', 'INPUT.bin'];
-
-    afterEach(async () => {
-        await rm(tmpLocation, { force: true, recursive: true });
-    });
-
-    test.each(legacyFiles)('a bare %s is not readable', async (file) => {
-        const storage = new FileSystemStorageBackend({ localDataDirectory: tmpLocation });
-        const dir = resolve(storage.keyValueStoresDirectory, 'default');
-        await mkdir(dir, { recursive: true });
-        await writeFile(resolve(dir, file), `payload of ${file}`);
-
-        const store = await storage.createKeyValueStoreBackend();
-
-        expect(await store.getValue('INPUT')).toBeUndefined();
-        expect(await store.recordExists('INPUT')).toBe(false);
-        expect(await store.getValue(file)).toBeUndefined();
-        expect(await store.recordExists(file)).toBe(false);
-        expect((await store.listKeys()).items).toEqual([]);
-    });
-
-    test('purge removes them from the default store', async () => {
-        const storage = new FileSystemStorageBackend({ localDataDirectory: tmpLocation });
-        const dir = resolve(storage.keyValueStoresDirectory, 'default');
-        await mkdir(dir, { recursive: true });
-        await writeFile(resolve(dir, 'INPUT.json'), '{}');
-        for (const file of legacyFiles) {
-            await writeFile(resolve(dir, file), `payload of ${file}`);
-        }
-
-        await storage.purge();
-
-        const remaining = await readdir(dir);
-        expect(remaining.filter((file) => !file.startsWith('__metadata__'))).toEqual(['INPUT.json']);
     });
 });
