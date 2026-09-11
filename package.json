@@ -67,8 +67,6 @@
         "@crawlee/core": "workspace:*",
         "@crawlee/http-client": "workspace:*",
         "@crawlee/impit-client": "workspace:*",
-        "@crawlee/jsdom": "workspace:*",
-        "@crawlee/linkedom": "workspace:*",
         "@crawlee/otel": "workspace:*",
         "@crawlee/playwright": "workspace:*",
         "@crawlee/puppeteer": "workspace:*",

@@ -15,7 +15,6 @@ body:
       options:
         - "@crawlee/core"
         - "@crawlee/cheerio (CheerioCrawler)"
-        - "@crawlee/jsdom (JSDOMCrawler)"
         - "@crawlee/playwright (PlaywrightCrawler)"
         - "@crawlee/puppeteer (PuppeteerCrawler)"
         - "@crawlee/basic (BasicCrawler)"

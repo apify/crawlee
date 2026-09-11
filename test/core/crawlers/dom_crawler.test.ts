@@ -4,8 +4,6 @@ import type { AddressInfo } from 'node:net';
 import { MemoryStorageBackend, serviceLocator } from '@crawlee/core';
 import type { DOMParser } from '@crawlee/http';
 import { DOMCrawler } from '@crawlee/http';
-import { JSDOMCrawler } from '@crawlee/jsdom';
-import { LinkeDOMCrawler } from '@crawlee/linkedom';
 
 interface FakeParseResult {
     title: string;
@@ -67,55 +65,6 @@ afterAll(async () => {
 
 beforeEach(async () => {
     serviceLocator.setStorageBackend(new MemoryStorageBackend());
-});
-
-test('works', async () => {
-    const results: string[] = [];
-
-    const crawler = new JSDOMCrawler({
-        maxRequestRetries: 0,
-        requestHandler: ({ window }) => {
-            results.push(window.document.title, window.document.querySelector('p')!.textContent!);
-        },
-    });
-
-    await crawler.run([url]);
-
-    expect(results).toStrictEqual(['Example Domain', 'Hello, world!']);
-});
-
-test('JSDOMCrawler enqueueLinks should respect maxCrawlDepth', async () => {
-    const titles: string[] = [];
-
-    const crawler = new JSDOMCrawler({
-        maxCrawlDepth: 1,
-        maxRequestsPerCrawl: 10, // to avoid accidental runaway
-        requestHandler: async ({ window, enqueueLinks }) => {
-            titles.push(window.document.title);
-            await enqueueLinks();
-        },
-    });
-
-    await crawler.run([`${url}/depth-0`]);
-
-    expect(titles).toEqual(['Depth 0', 'Depth 1']);
-});
-
-test('LinkeDOMCrawler enqueueLinks should respect maxCrawlDepth', async () => {
-    const titles: string[] = [];
-
-    const crawler = new LinkeDOMCrawler({
-        maxCrawlDepth: 1,
-        maxRequestsPerCrawl: 10, // to avoid accidental runaway
-        requestHandler: async ({ document, enqueueLinks }) => {
-            titles.push(document.title);
-            await enqueueLinks();
-        },
-    });
-
-    await crawler.run([`${url}/depth-0`]);
-
-    expect(titles).toEqual(['Depth 0', 'Depth 1']);
 });
 
 test('DOMCrawler works with skipNavigation', async () => {

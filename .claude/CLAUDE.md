@@ -67,10 +67,9 @@ Crawlee is a **Yarn workspaces monorepo** with Turbo build orchestration. All pa
        ↓
 @crawlee/http           # HttpCrawler
        ↓
-┌──────┴──────┬─────────────┐
-↓             ↓             ↓
-@crawlee/cheerio  @crawlee/jsdom  @crawlee/linkedom
-(HTML parsing variants)
+↓
+@crawlee/cheerio
+(@crawlee/jsdom and @crawlee/linkedom moved to their own repositories)
 
 @crawlee/browser-pool   # Browser instance management
        ↓
