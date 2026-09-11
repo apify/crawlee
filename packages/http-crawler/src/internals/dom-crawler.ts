@@ -277,7 +277,16 @@ export class DOMCrawler<
                 });
             },
             async parseWithCheerio(selector?: string, _timeoutMs = 5_000) {
-                const $ = (await parser.toCheerio?.(context)) ?? (await import('cheerio')).load(context.body);
+                // Parsers that do not build a cheerio tree themselves fall back to the full cheerio
+                // entrypoint (parse5). That is deliberate for the DOM-backed parsers - jsdom and linkedom
+                // are spec-compliant, so a spec-compliant HTML parser gives a `$` that agrees with them.
+                // `xmlMode` still has to follow the response: `<link>` is a void element in HTML, so
+                // without it every `<link>` in an XML feed reads back empty.
+                const $ =
+                    (await parser.toCheerio?.(context)) ??
+                    (await import('cheerio')).load(context.body, {
+                        xmlMode: context.contentType.type.includes('xml'),
+                    });
 
                 if (selector && $(selector).get().length === 0) {
                     throw new Error(`Selector '${selector}' not found.`);

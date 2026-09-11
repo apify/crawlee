@@ -403,7 +403,7 @@ export async function parseOpenGraph(
     additionalProperties?: OpenGraphProperty[],
 ): Promise<Dictionary<OpenGraphResult>>;
 export async function parseOpenGraph(item: CheerioAPI | string, additionalProperties?: OpenGraphProperty[]) {
-    const { load } = await import('cheerio');
+    const { load } = await import('cheerio/slim');
     const $ = typeof item === 'string' ? load(item) : item;
 
     return [...(additionalProperties || []), ...OPEN_GRAPH_PROPERTIES].reduce((acc, curr) => {

@@ -31,6 +31,16 @@ router.set('/noext', (req, res) => {
     res.end(`<html><head><title>Example Domain</title></head></html>`);
 });
 
+router.set('/feed.xml', (req, res) => {
+    res.setHeader('content-type', 'application/rss+xml; charset=utf-8');
+    res.end(
+        `<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel>` +
+            `<item><title>Post one</title><link>https://example.com/one</link></item>` +
+            `<item><title>Post two</title><link>https://example.com/two</link></item>` +
+            `</channel></rss>`,
+    );
+});
+
 router.set('/invalidContentType', (req, res) => {
     res.setHeader('content-type', 'crazy-stuff; charset=utf-8');
     res.end(`<html><head><title>Example Domain</title></head></html>`);
@@ -220,6 +230,29 @@ test('parseWithCheerio works', async () => {
     await crawler.run([`${url}/hello.html`]);
 
     expect(results).toStrictEqual(['Example Domain']);
+});
+
+// `<link>` is a void element in HTML, so an HTML parser drops its content - the XML feeds that
+// `HttpCrawler` also serves have to be parsed in xml mode to survive.
+test('parseWithCheerio parses XML responses as XML', async () => {
+    const results: string[][] = [];
+
+    const crawler = new HttpCrawler({
+        maxRequestRetries: 0,
+        additionalMimeTypes: ['application/rss+xml'],
+        requestHandler: async ({ parseWithCheerio }) => {
+            const $ = await parseWithCheerio();
+            results.push(
+                $('item > link')
+                    .map((_i, el) => $(el).text())
+                    .get(),
+            );
+        },
+    });
+
+    await crawler.run([`${url}/feed.xml`]);
+
+    expect(results).toStrictEqual([['https://example.com/one', 'https://example.com/two']]);
 });
 
 test('should parse content type from header', async () => {

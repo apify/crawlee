@@ -39,7 +39,7 @@ const BLOCK_TAGS_REGEX =
  * @return Plain text
  */
 export async function htmlToText(htmlOrCheerioElement: string | CheerioAPI): Promise<string> {
-    const { load } = await import('cheerio');
+    const { load } = await import('cheerio/slim');
 
     if (!htmlOrCheerioElement) return '';
 
@@ -53,8 +53,12 @@ export async function htmlToText(htmlOrCheerioElement: string | CheerioAPI): Pro
             if (elem.type === 'text') {
                 // Compress spaces, unless we're inside <pre> element
                 let compr;
-                if (elem.parent?.tagName === 'pre') compr = elem.data;
-                else compr = elem.data.replace(/\s+/g, ' ');
+                if (elem.parent?.tagName === 'pre') {
+                    // A single newline right after `<pre>` is markup, not content - the HTML spec has
+                    // the parser drop it. htmlparser2 keeps it, so strip it here instead; that way the
+                    // output does not depend on which parser produced the tree.
+                    compr = elem.parent.children?.[0] === elem ? elem.data.replace(/^\r?\n/, '') : elem.data;
+                } else compr = elem.data.replace(/\s+/g, ' ');
                 // If text is empty or ends with a whitespace, don't add the leading whitespace
                 if (compr.startsWith(' ') && /(^|\s)$/.test(text)) compr = compr.substring(1);
                 text += compr;
