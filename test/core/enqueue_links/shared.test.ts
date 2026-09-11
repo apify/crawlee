@@ -1,4 +1,3 @@
-import type { RequestOptions } from '@crawlee/core';
 import {
     applyRequestTransform,
     constructGlobObjectsFromGlobs,
@@ -7,7 +6,8 @@ import {
     createRequestOptions,
     filterRequestOptionsByPatterns,
     validateGlobPattern,
-} from '@crawlee/core';
+} from '@crawlee/basic';
+import type { RequestOptions } from '@crawlee/core';
 
 describe('Enqueue links shared functions', () => {
     describe('constructGlobObjectsFromGlobs()', () => {

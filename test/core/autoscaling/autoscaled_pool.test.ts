@@ -4,8 +4,9 @@ import type {
     ConcurrencySystemOptions,
     LoadSignal,
     LoadSnapshot,
-} from '@crawlee/core';
-import { AutoscaledPool, ConcurrencySystem, CriticalError } from '@crawlee/core';
+} from '@crawlee/basic';
+import { AutoscaledPool, ConcurrencySystem } from '@crawlee/basic';
+import { CriticalError } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
 
 import log from '@apify/log';

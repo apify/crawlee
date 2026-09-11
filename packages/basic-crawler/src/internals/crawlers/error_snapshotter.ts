@@ -1,7 +1,8 @@
 import crypto from 'node:crypto';
 
+import type { KeyValueStore } from '@crawlee/core';
+
 import type { CrawlingContext } from '../crawlers/crawler_commons.js';
-import type { KeyValueStore } from '../storages/key_value_store.js';
 import type { ErrnoException } from './error_tracker.js';
 import type { SnapshottableProperties } from './internals/types.js';
 

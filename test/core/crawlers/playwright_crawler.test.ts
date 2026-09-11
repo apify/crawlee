@@ -3,7 +3,8 @@ import type { AddressInfo } from 'node:net';
 import os from 'node:os';
 
 import type { PlaywrightCrawlingContext, Request } from '@crawlee/playwright';
-import { type ConcurrencySystem, MemoryStorageBackend, serviceLocator } from '@crawlee/core';
+import { type ConcurrencySystem } from '@crawlee/basic';
+import { MemoryStorageBackend, serviceLocator } from '@crawlee/core';
 import {
     createPlaywrightRouter,
     PlaywrightCrawler,

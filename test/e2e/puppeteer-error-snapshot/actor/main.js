@@ -1,4 +1,4 @@
-import { Statistics } from '@crawlee/core';
+import { Statistics } from '@crawlee/basic';
 import { PuppeteerCrawler } from '@crawlee/puppeteer';
 import { sleep } from '@crawlee/utils';
 import { Actor } from 'apify';

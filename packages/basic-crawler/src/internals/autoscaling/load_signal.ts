@@ -1,4 +1,5 @@
-import type { LoadSignalInfo } from './system_status.js';
+import type { LoadSignalInfo } from '@crawlee/core';
+
 import { weightedAvg } from './weighted_avg.js';
 
 /**

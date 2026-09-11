@@ -13,6 +13,7 @@ import { RequestQueueBackend } from './resource-clients/request-queue.js';
 const fileSystemStorageOptionsSchema = z.object({
     localDataDirectory: z.string(),
     requestQueueAccess: z.enum(['single', 'shared']).default('single'),
+    inputKey: z.string().min(1).default('INPUT'),
     logger: schemas.logger.optional(),
 });
 
@@ -59,6 +60,19 @@ export interface FileSystemStorageOptions {
      * @default 'single'
      */
     requestQueueAccess?: 'single' | 'shared';
+
+    /**
+     * The key the run input is read from — Crawlee's `inputKey` (`CRAWLEE_INPUT_KEY`).
+     *
+     * Like the conventional `INPUT`, this key may live in the default key-value store as a bare value
+     * file with no metadata sidecar (e.g. the Apify CLI writes the effective input to `__CLI_INPUT.json`
+     * and points the run at that key). It is therefore readable out-of-band (`<key>`, `<key>.json`,
+     * `<key>.txt`, `<key>.bin`) and preserved when the default store is purged, exactly like `INPUT`,
+     * which is always kept regardless of this setting.
+     *
+     * @default 'INPUT'
+     */
+    inputKey?: string;
 }
 
 /**
@@ -76,19 +90,21 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
     readonly requestQueuesDirectory: string;
     readonly logger?: CrawleeLogger;
     readonly requestQueueAccess: 'single' | 'shared';
+    readonly #inputKey: string;
 
     readonly #keyValueStoreBackendCache: KeyValueStoreBackend[] = [];
     readonly #datasetBackendCache: DatasetBackend[] = [];
     readonly #requestQueueBackendCache: RequestQueueBackend[] = [];
 
     constructor(options: FileSystemStorageOptions) {
-        const { logger, requestQueueAccess, localDataDirectory } = parseArgument(
+        const { logger, requestQueueAccess, inputKey, localDataDirectory } = parseArgument(
             options,
             fileSystemStorageOptionsSchema,
         );
 
         this.logger = logger;
         this.requestQueueAccess = requestQueueAccess;
+        this.#inputKey = inputKey;
 
         this.localDataDirectory = localDataDirectory;
         this.datasetsDirectory = resolve(this.localDataDirectory, 'datasets');
@@ -172,6 +188,7 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
             cacheKey,
             nativeBackend,
             logger: this.logger,
+            inputKey: this.#inputKey,
         });
         this.#keyValueStoreBackendCache.push(newStore);
 

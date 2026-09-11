@@ -9,6 +9,7 @@ import type {
     CrawlingContext,
     ErrorHandler,
     GetUserDataFromRequest,
+    LoadedRequest,
     Request as CrawleeRequest,
     RequestHandler,
     RequireContextPipeline,
@@ -20,13 +21,14 @@ import type {
 import {
     BasicCrawler,
     ContextPipeline,
+    getCookiesFromResponse,
     NavigationSkippedError,
     remainingNavigationWindowMillis,
     RequestState,
+    RequestThrottledError,
     Router,
     SessionError,
 } from '@crawlee/basic';
-import { type LoadedRequest, RequestThrottledError, getCookiesFromResponse } from '@crawlee/core';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import type { Awaitable, Dictionary, ISession } from '@crawlee/types';
 import { parseArgument, RETRY_CSS_SELECTORS, schemas } from '@crawlee/utils/internal';

@@ -5,16 +5,20 @@ import type { AddressInfo } from 'node:net';
 
 import type {
     BasicCrawlerOptions,
+    CalculatedStatistics,
     EnqueueLinksOptions,
     ErrorHandler,
+    IConcurrencySystem,
+    IStatistics,
     RequestHandler,
     RequestOptions,
+    Session,
     Source,
 } from '@crawlee/basic';
-import type { Session } from '@crawlee/basic';
 import {
     AfterCommitError,
     BasicCrawler,
+    ConcurrencySystem,
     Configuration,
     CriticalError,
     Dataset,
@@ -37,8 +41,7 @@ import {
     Statistics,
     ThrottlingRequestManager,
 } from '@crawlee/basic';
-import type { CalculatedStatistics, IConcurrencySystem, IStatistics } from '@crawlee/core';
-import { ConcurrencySystem, MemoryStorageBackend, RequestState } from '@crawlee/core';
+import { MemoryStorageBackend, RequestState } from '@crawlee/core';
 import { BaseHttpClient } from '@crawlee/http-client';
 import type { Dictionary, ISession, ProxyInfo } from '@crawlee/types';
 import { RobotsTxtFile, sleep } from '@crawlee/utils';

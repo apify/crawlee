@@ -1,3 +1,4 @@
+import { ThrottlingRequestManager } from '@crawlee/basic';
 import type { RequestLoaderStatus } from '@crawlee/core';
 import {
     log,
@@ -7,7 +8,6 @@ import {
     RequestManagerTandem,
     RequestQueue,
     serviceLocator,
-    ThrottlingRequestManager,
 } from '@crawlee/core';
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from 'vitest';
 

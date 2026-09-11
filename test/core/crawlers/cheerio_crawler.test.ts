@@ -12,13 +12,8 @@ import {
     RequestList,
     Session,
 } from '@crawlee/cheerio';
-import {
-    BaseCrawleeLogger,
-    type ConcurrencySystem,
-    MemoryStorageBackend,
-    serviceLocator,
-    SessionPool,
-} from '@crawlee/core';
+import { type ConcurrencySystem, SessionPool } from '@crawlee/basic';
+import { BaseCrawleeLogger, MemoryStorageBackend, serviceLocator } from '@crawlee/core';
 import { BaseHttpClient } from '@crawlee/http-client';
 import { ImpitHttpClient } from '@crawlee/impit-client';
 import type { Dictionary, ISession, ProxyInfo, SendRequestOptions } from '@crawlee/types';

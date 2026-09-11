@@ -4,10 +4,9 @@ import type { Awaitable, Dictionary } from '@crawlee/types';
 import { Minimatch } from 'minimatch';
 import { z } from 'zod';
 
-import type { RequestOptions, Source } from '../request.js';
-import { Request } from '../request.js';
-import { schemas } from '../validators.js';
-import type { EnqueueStrategyOption } from './enqueue_links.js';
+import type { EnqueueStrategyOption, RequestOptions, SkippedRequestReason, Source } from '@crawlee/core';
+import { Request } from '@crawlee/core';
+import { schemas } from '@crawlee/utils/internal';
 
 const MAX_ENQUEUE_LINKS_CACHE_SIZE = 1000;
 
@@ -48,15 +47,6 @@ export const urlPatternSchema = z.union([
     schemas.objectWithKeys(['glob']),
     schemas.objectWithKeys(['regexp']),
 ]) as z.ZodType<UrlPatternInput>;
-
-export type SkippedRequestReason =
-    | 'robotsTxt'
-    | 'limit'
-    | 'enqueueLimit'
-    | 'filters'
-    | 'transform'
-    | 'redirect'
-    | 'depth';
 
 export type SkippedRequestCallback = (args: { request: Request; reason: SkippedRequestReason }) => Awaitable<void>;
 

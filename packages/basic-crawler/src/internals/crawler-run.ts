@@ -1,5 +1,8 @@
-import type { AutoscaledPoolOptions, CrawleeLogger, IConcurrencySystem } from '@crawlee/core';
-import { AutoscaledPool } from '@crawlee/core';
+import type { CrawleeLogger } from '@crawlee/core';
+
+import type { AutoscaledPoolOptions } from './autoscaling/autoscaled_pool.js';
+import { AutoscaledPool } from './autoscaling/autoscaled_pool.js';
+import type { IConcurrencySystem } from './autoscaling/concurrency_system.js';
 
 /** Everything a run needs to exist. Whatever a crawler resolves per run is resolved before the run is built. */
 export interface CrawlerRunSetup {
