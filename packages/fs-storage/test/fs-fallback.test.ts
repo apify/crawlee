@@ -206,19 +206,17 @@ describe('fallback to fs for reading', () => {
 });
 
 // For each run-input bare file: the on-disk filename, the literal key that reads it directly, the
-// content type the client reports (`.json`/`.txt` infer from the extension; the extensionless `INPUT`
-// and `.bin` report the synthesized `application/octet-stream`), and a unique payload so a read can be
-// proven to have returned *this* file and not a sibling.
+// content type the client reports (`.json` infers from the extension; the extensionless `INPUT`
+// reports the synthesized `application/octet-stream`), and a unique payload so a read can be proven to
+// have returned *this* file and not a sibling.
 const BARE_VARIANTS = [
     { file: 'INPUT', literalKey: 'INPUT', contentType: 'application/octet-stream' },
     { file: 'INPUT.json', literalKey: 'INPUT.json', contentType: 'application/json; charset=utf-8' },
-    { file: 'INPUT.txt', literalKey: 'INPUT.txt', contentType: 'text/plain; charset=utf-8' },
-    { file: 'INPUT.bin', literalKey: 'INPUT.bin', contentType: 'application/octet-stream' },
 ].map((variant) => ({ ...variant, payload: `payload of ${variant.file}` }));
 
 // Each run-input bare file must be reachable by exactly two keys — the logical `INPUT` (which probes
-// the `['', '.json', '.txt', '.bin']` ladder, first match wins) and its own literal on-disk name — and
-// NOT via a *different* extension's literal name (a bare `INPUT.txt` is not `INPUT.json`). Here each
+// the `['', '.json']` ladder, first match wins) and its own literal on-disk name — and NOT via a
+// *different* extension's literal name (a bare `INPUT` is not `INPUT.json`). Here each
 // variant lives in its own store so the logical-`INPUT` lookup resolves it unambiguously.
 describe('run-input bare-file reachability (one variant per store)', () => {
     const tmpLocation = resolve(import.meta.dirname, './tmp/fs-reachability-isolated');
@@ -271,7 +269,7 @@ describe('run-input bare-file reachability (one variant per store)', () => {
     });
 });
 
-// The sharper cross-talk check: with *all four* variants in one store, each literal key must read back
+// The sharper cross-talk check: with *both* variants in one store, each literal key must read back
 // its own bytes (never a sibling's), and the logical `INPUT` must resolve the first ladder match — the
 // extensionless `INPUT`. This is what fails if literal-name probing ever widens to other extensions.
 describe('run-input bare-file reachability (all variants in one store)', () => {

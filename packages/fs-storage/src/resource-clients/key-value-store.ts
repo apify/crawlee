@@ -14,18 +14,16 @@ import { CachedIdClient } from './cached-id-client.js';
 
 /**
  * Out-of-band ("bare") value-file fallbacks tried when a run-input lookup misses the tracked record, so a
- * lookup for `INPUT` also matches a hand-placed `INPUT.json`/`.txt`/`.bin`. Passed to the native
+ * lookup for `INPUT` also matches a hand-placed `INPUT.json`. Passed to the native
  * `resolveValue`/`resolveExistingKey`, which do the probing and re-keying.
  *
  * Each entry declares the content type to report on a match — the native client does no MIME
  * inference. An empty `contentType` is its sentinel for "keep the synthesized
- * `application/octet-stream`", used for the extensionless key and `.bin`.
+ * `application/octet-stream`", used for the extensionless key.
  */
 const BARE_FILE_FALLBACKS: { extension: string; contentType: string }[] = [
     { extension: '', contentType: '' },
     { extension: '.json', contentType: 'application/json; charset=utf-8' },
-    { extension: '.txt', contentType: 'text/plain; charset=utf-8' },
-    { extension: '.bin', contentType: '' },
 ];
 
 /** The conventional run-input key, always treated as one alongside the configured `inputKey`. */

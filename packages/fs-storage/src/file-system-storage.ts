@@ -66,8 +66,8 @@ export interface FileSystemStorageOptions {
      *
      * Like the conventional `INPUT`, this key may live in the default key-value store as a bare value
      * file with no metadata sidecar (e.g. the Apify CLI writes the effective input to `__CLI_INPUT.json`
-     * and points the run at that key). It is therefore readable out-of-band (`<key>`, `<key>.json`,
-     * `<key>.txt`, `<key>.bin`) and preserved when the default store is purged, exactly like `INPUT`,
+     * and points the run at that key). It is therefore readable out-of-band (`<key>`, `<key>.json`) and
+     * preserved when the default store is purged, exactly like `INPUT`,
      * which is always kept regardless of this setting.
      *
      * @default 'INPUT'
