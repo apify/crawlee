@@ -52,14 +52,8 @@ const logLevelSchema = z.preprocess((val) => {
 // --- Crawlee config field definitions ---
 
 export const crawleeConfigFields = {
-    /** @default 'default' */
-    defaultDatasetId: field(z.string().default('default'), 'CRAWLEE_DEFAULT_DATASET_ID'),
     /** @default true */
     purgeOnStart: field(coerceBoolean.default(true), 'CRAWLEE_PURGE_ON_START'),
-    /** @default 'default' */
-    defaultKeyValueStoreId: field(z.string().default('default'), 'CRAWLEE_DEFAULT_KEY_VALUE_STORE_ID'),
-    /** @default 'default' */
-    defaultRequestQueueId: field(z.string().default('default'), 'CRAWLEE_DEFAULT_REQUEST_QUEUE_ID'),
     /** @default 0.95 */
     maxUsedCpuRatio: field(coerceNumber.default(0.95)),
     /** @default 0.25 */
@@ -156,9 +150,6 @@ export interface Configuration extends ResolvedConfigValues {}
  * `memoryMbytes` | `CRAWLEE_MEMORY_MBYTES` | -
  * `logLevel` | `CRAWLEE_LOG_LEVEL` | -
  * `headless` | `CRAWLEE_HEADLESS` | `true`
- * `defaultDatasetId` | `CRAWLEE_DEFAULT_DATASET_ID` | `'default'`
- * `defaultKeyValueStoreId` | `CRAWLEE_DEFAULT_KEY_VALUE_STORE_ID` | `'default'`
- * `defaultRequestQueueId` | `CRAWLEE_DEFAULT_REQUEST_QUEUE_ID` | `'default'`
  * `persistStateIntervalMillis` | `CRAWLEE_PERSIST_STATE_INTERVAL_MILLIS` | `60_000`
  * `internalTimeoutMillis` | `CRAWLEE_INTERNAL_TIMEOUT` | -
  * `purgeOnStart` | `CRAWLEE_PURGE_ON_START` | `true`

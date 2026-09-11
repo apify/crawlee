@@ -146,10 +146,7 @@ export type ConfigurationOptions = ConfigurationInput;
 
 // @public (undocumented)
 export const crawleeConfigFields: {
-    defaultDatasetId: ConfigField<z.ZodDefault<z.ZodString>>;
     purgeOnStart: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodBoolean, unknown>>>;
-    defaultKeyValueStoreId: ConfigField<z.ZodDefault<z.ZodString>>;
-    defaultRequestQueueId: ConfigField<z.ZodDefault<z.ZodString>>;
     maxUsedCpuRatio: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodNumber, unknown>>>;
     availableMemoryRatio: ConfigField<z.ZodDefault<z.ZodPreprocess<z.ZodNumber, unknown>>>;
     memoryMbytes: ConfigField<z.ZodOptional<z.ZodPreprocess<z.ZodNumber, unknown>>>;
