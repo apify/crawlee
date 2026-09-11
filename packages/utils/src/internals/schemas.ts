@@ -82,11 +82,7 @@ export const plainObject = z.custom<Record<string, unknown>>(
     { message: 'Invalid input: expected an object' },
 );
 
-/**
- * Shape of a request stored in a request queue.
- * @internal
- */
-export const storageRequest = z.looseObject({
+const storageRequestShape = z.looseObject({
     id: z.string(),
     url: z.url({ protocol: /^https?$/ }),
     uniqueKey: z.string(),
@@ -96,10 +92,16 @@ export const storageRequest = z.looseObject({
 });
 
 /**
+ * Shape of a request stored in a request queue. Compiled: storage clients validate every request with it.
+ * @internal
+ */
+export const storageRequest = z.compile(storageRequestShape);
+
+/**
  * {@link storageRequest} before an id is assigned.
  * @internal
  */
-export const storageRequestWithoutId = storageRequest.omit({ id: true });
+export const storageRequestWithoutId = storageRequestShape.omit({ id: true });
 
 /**
  * `z.array(item)` whose top-level type error names the element type — ``expected an array of numbers`` —
@@ -118,7 +120,7 @@ export function arrayOf<TItem extends z.ZodType>(item: TItem, elements: string):
  * Batch of {@link storageRequestWithoutId}.
  * @internal
  */
-export const storageRequestBatch = arrayOf(storageRequestWithoutId, 'requests');
+export const storageRequestBatch = z.compile(arrayOf(storageRequestWithoutId, 'requests'));
 
 /**
  * Options of request queue add/update operations.
