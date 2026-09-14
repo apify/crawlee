@@ -588,6 +588,7 @@ export async function parseWithCheerio(
         ? null
         : ((await page.evaluate(`(${expandShadowRoots.toString()})(document)`)) as string);
     const pageContent = html || (await page.content());
+    // Full cheerio (parse5) import for browser compliant parser
     const { load } = await import('cheerio');
     const $ = load(pageContent);
 

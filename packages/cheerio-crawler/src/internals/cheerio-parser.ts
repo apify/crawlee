@@ -1,7 +1,8 @@
 import type { DOMParser, InternalHttpCrawlingContext } from '@crawlee/http';
 import { extractUrlsFromCheerio } from '@crawlee/utils/internal';
 import type { CheerioAPI, CheerioOptions } from 'cheerio';
-import * as cheerio from 'cheerio';
+// slim uses faster htmlparser2 parser and doesn't load extra libs like undici
+import * as cheerio from 'cheerio/slim';
 import { parseDocument } from 'htmlparser2';
 
 export interface CheerioParseResult {

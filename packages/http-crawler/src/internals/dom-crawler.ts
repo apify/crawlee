@@ -277,7 +277,12 @@ export class DOMCrawler<
                 });
             },
             async parseWithCheerio(selector?: string, _timeoutMs = 5_000) {
-                const $ = (await parser.toCheerio?.(context)) ?? (await import('cheerio')).load(context.body);
+                // Import full cheerio (not cheerio/slim) to be browser-compliant for DOM Crawlers (not CheerioCrawler).
+                const $ =
+                    (await parser.toCheerio?.(context)) ??
+                    (await import('cheerio')).load(context.body, {
+                        xmlMode: context.contentType.type.includes('xml'),
+                    });
 
                 if (selector && $(selector).get().length === 0) {
                     throw new Error(`Selector '${selector}' not found.`);
