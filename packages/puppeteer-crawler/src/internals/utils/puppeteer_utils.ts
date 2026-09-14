@@ -263,9 +263,7 @@ export async function parseWithCheerio(
         : ((await page.evaluate(`(${expandShadowRoots.toString()})(document)`)) as string);
     const pageContent = html || (await page.content());
 
-    // Full cheerio (parse5) on purpose: `pageContent` is the browser's own serialization of its DOM,
-    // and only a spec-compliant HTML5 parser reproduces the tree the browser had - so selectors copied
-    // out of devtools keep working. See `CheerioCrawler` for why the HTTP crawlers use htmlparser2.
+    // Full cheerio (parse5) import for browser compliant parser
     const { load } = await import('cheerio');
     return load(pageContent);
 }

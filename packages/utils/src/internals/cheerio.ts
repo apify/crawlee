@@ -54,9 +54,7 @@ export async function htmlToText(htmlOrCheerioElement: string | CheerioAPI): Pro
                 // Compress spaces, unless we're inside <pre> element
                 let compr;
                 if (elem.parent?.tagName === 'pre') {
-                    // A single newline right after `<pre>` is markup, not content - the HTML spec has
-                    // the parser drop it. htmlparser2 keeps it, so strip it here instead; that way the
-                    // output does not depend on which parser produced the tree.
+                    // Strip single newline right after `<pre>` that htmlparser2 keeps
                     compr = elem.parent.children?.[0] === elem ? elem.data.replace(/^\r?\n/, '') : elem.data;
                 } else compr = elem.data.replace(/\s+/g, ' ');
                 // If text is empty or ends with a whitespace, don't add the leading whitespace
