@@ -35,9 +35,6 @@ describe('Configuration', () => {
     describe('defaults', () => {
         it('returns schema defaults when nothing is set', () => {
             const config = new Configuration();
-            expect(config.defaultDatasetId).toBe('default');
-            expect(config.defaultKeyValueStoreId).toBe('default');
-            expect(config.defaultRequestQueueId).toBe('default');
             expect(config.inputKey).toBe('INPUT');
             expect(config.headless).toBe(true);
             expect(config.xvfb).toBe(false);
@@ -85,9 +82,9 @@ describe('Configuration', () => {
         });
 
         it('constructor options override env vars for string fields', () => {
-            setEnv('CRAWLEE_DEFAULT_DATASET_ID', 'from-env');
-            const config = new Configuration({ defaultDatasetId: 'from-constructor' });
-            expect(config.defaultDatasetId).toBe('from-constructor');
+            setEnv('CRAWLEE_INPUT_KEY', 'from-env');
+            const config = new Configuration({ inputKey: 'from-constructor' });
+            expect(config.inputKey).toBe('from-constructor');
         });
 
         it('constructor options override env vars for number fields', () => {
@@ -151,9 +148,9 @@ describe('Configuration', () => {
             setEnv('CRAWLEE_PERSIST_STATE_INTERVAL_MILLIS', '');
             expect(new Configuration().persistStateIntervalMillis).toBe(60_000);
 
-            // Empty string env var falls through to default ('default'), not coerced to ''
-            setEnv('CRAWLEE_DEFAULT_DATASET_ID', '');
-            expect(new Configuration().defaultDatasetId).toBe('default');
+            // Empty string env var falls through to default ('INPUT'), not coerced to ''
+            setEnv('CRAWLEE_INPUT_KEY', '');
+            expect(new Configuration().inputKey).toBe('INPUT');
 
             // Optional fields with no default stay undefined
             setEnv('CRAWLEE_MEMORY_MBYTES', '');
@@ -188,11 +185,11 @@ describe('Configuration', () => {
         it('exposes resolved values as instance properties', () => {
             const config = new Configuration({
                 headless: false,
-                defaultDatasetId: 'my-dataset',
+                inputKey: 'my-input-key',
                 persistStateIntervalMillis: 5_000,
             });
             expect(config.headless).toBe(false);
-            expect(config.defaultDatasetId).toBe('my-dataset');
+            expect(config.inputKey).toBe('my-input-key');
             expect(config.persistStateIntervalMillis).toBe(5_000);
         });
     });
@@ -249,19 +246,19 @@ describe('Configuration', () => {
         });
 
         it('loads values from crawlee.json', () => {
-            writeFileSync(crawleeJsonPath, JSON.stringify({ defaultDatasetId: 'from-file' }));
+            writeFileSync(crawleeJsonPath, JSON.stringify({ inputKey: 'from-file' }));
             fileCreated = true;
 
             const config = new Configuration();
-            expect(config.defaultDatasetId).toBe('from-file');
+            expect(config.inputKey).toBe('from-file');
         });
 
         it('constructor options override crawlee.json', () => {
-            writeFileSync(crawleeJsonPath, JSON.stringify({ defaultDatasetId: 'from-file' }));
+            writeFileSync(crawleeJsonPath, JSON.stringify({ inputKey: 'from-file' }));
             fileCreated = true;
 
-            const config = new Configuration({ defaultDatasetId: 'from-constructor' });
-            expect(config.defaultDatasetId).toBe('from-constructor');
+            const config = new Configuration({ inputKey: 'from-constructor' });
+            expect(config.inputKey).toBe('from-constructor');
         });
 
         it('env vars override crawlee.json', () => {
@@ -286,7 +283,7 @@ describe('Configuration', () => {
         it('handles missing crawlee.json gracefully', () => {
             // No file created — should fall through to defaults
             const config = new Configuration();
-            expect(config.defaultDatasetId).toBe('default');
+            expect(config.inputKey).toBe('INPUT');
         });
 
         it('handles malformed crawlee.json gracefully', () => {
@@ -294,7 +291,7 @@ describe('Configuration', () => {
             fileCreated = true;
 
             const config = new Configuration();
-            expect(config.defaultDatasetId).toBe('default');
+            expect(config.inputKey).toBe('INPUT');
         });
     });
 

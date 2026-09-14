@@ -73,8 +73,7 @@ const openOptionsSchema = z.strictObject({
  * ```
  * {CRAWLEE_STORAGE_DIR}/key_value_stores/{STORE_ID}/{INDEX}.{EXT}
  * ```
- * Note that `{STORE_ID}` is the name or ID of the key-value store. The default key-value store has ID: `default`,
- * unless you override it by setting the `CRAWLEE_DEFAULT_KEY_VALUE_STORE_ID` environment variable.
+ * Note that `{STORE_ID}` is the name or ID of the key-value store. The default key-value store has ID: `default`.
  * The `{KEY}` is the key of the record and `{EXT}` corresponds to the MIME content type of the data value.
  *
  * **Example usage:**
