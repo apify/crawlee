@@ -215,7 +215,7 @@ overrides:
   tar: ^7.5.16
   lerna>js-yaml: ^4.2.0
   lerna>minimatch: ^3.1.4
-  apify: ^4.0.0-beta.24
+  apify: ^4.0.0-beta.35
   apify>@crawlee/core: workspace:*
   apify>@crawlee/types: workspace:*
   apify>@crawlee/utils: workspace:*
@@ -368,8 +368,8 @@ importers:
         specifier: ^4.0.16
         version: 4.1.4(vitest@4.1.4)
       apify:
-        specifier: ^4.0.0-beta.24
-        version: 4.0.0-beta.24(bufferutil@4.1.0)(debug@4.4.3(supports-color@7.2.0))(supports-color@7.2.0)
+        specifier: ^4.0.0-beta.35
+        version: 4.0.0-beta.35(bufferutil@4.1.0)(debug@4.4.3(supports-color@7.2.0))(supports-color@7.2.0)
       apify-node-curl-impersonate:
         specifier: ^1.0.23
         version: 1.0.29
@@ -512,8 +512,8 @@ importers:
         specifier: ^1.39.0
         version: 1.43.0
       apify:
-        specifier: ^4.0.0-beta.24
-        version: 4.0.0-beta.24(bufferutil@4.1.0)(debug@4.4.3(supports-color@7.2.0))(supports-color@8.1.1)
+        specifier: ^4.0.0-beta.35
+        version: 4.0.0-beta.35(bufferutil@4.1.0)(debug@4.4.3(supports-color@7.2.0))(supports-color@8.1.1)
       crawlee:
         specifier: workspace:*
         version: link:../packages/crawlee
@@ -1459,9 +1459,6 @@ packages:
     resolution: {integrity: sha512-ZPmfdb4qt143R+6/jFYVCQDoHGInl24Ntz8ltEAMW7tFHSdiXnQoZtDgydZYT06vw6gOtPa/jEXgSneq8FM+uA==}
     engines: {node: '>=22'}
 
-  '@apify/datastructures@2.0.4':
-    resolution: {integrity: sha512-O/evwowHyN3HvP4oZxIzTFfrhOEynw9uvPk7qXquTU1yLB2WQxEWhoJdvGwVTXGuYm9Qd/0HOycPjk5m1NGDhQ==}
-
   '@apify/datastructures@3.0.1':
     resolution: {integrity: sha512-ZrKNzcysQZZjvcSRrykzfnUxfw+RIH5hZ40qnI1+yK9eOX1hYedfC3WPa9e1N/LQk7bcSeADi8OlNjLMH6ElFA==}
     engines: {node: '>=22'}
@@ -1495,8 +1492,9 @@ packages:
     peerDependencies:
       eslint: '*'
 
-  '@apify/input_secrets@1.2.30':
-    resolution: {integrity: sha512-8sAHjOtLrjFm3DLKxKvpNQwzWTse7YyUQqHqNxpfZ2HDvYc6cJDB3o+0s/AlJTQrB+FdX+eki/4V0c4gcjXkUw==}
+  '@apify/input_secrets@2.0.4':
+    resolution: {integrity: sha512-0NdtMlNIWGsSWxBTCuFql2JcVyEN7S6UdGZtKk/tU0f07vLx1f/VoE4fEl3cK5iTabjunqnEYK90JrgWB6NtCA==}
+    engines: {node: '>=22'}
 
   '@apify/log@2.5.35':
     resolution: {integrity: sha512-dJM9RkA9yD7kew5oU3qxLaoB4hFHB7FF47TI0STJVmz0cUa8cXWer4DpJkvUA52lrVNQGsOurCo3kGQWzfg/9w==}
@@ -1515,8 +1513,9 @@ packages:
     engines: {node: '>= 0.10'}
     hasBin: true
 
-  '@apify/timeout@0.4.4':
-    resolution: {integrity: sha512-WOjdkuNRSo09ikse47t6jIW4R55FEmZdOaoUTbSmpwfmNNHVht+iTgoqeHIVr7vvI9s+mtTmvzPoesoZa0cjVA==}
+  '@apify/pseudo_url@3.0.1':
+    resolution: {integrity: sha512-CNyWSYsOxDpuEerSRVbjUnRvj3zbLHNcoe6M07BhYJ3w9dSKKjPIL95ul5U9jQuSe35QBT24Sj5fEquIEwyASw==}
+    engines: {node: '>=22'}
 
   '@apify/timeout@1.0.1':
     resolution: {integrity: sha512-sYAFPS26o4nOJ62J/VKczQOqEIbAxWkYC6qEcIr7zWoYPNkWCeD4tA2+6dwr8RSfDF3HVkhgW+95Vuk+B6lQYQ==}
@@ -1540,6 +1539,10 @@ packages:
 
   '@apify/validations@1.1.0':
     resolution: {integrity: sha512-1rXw3YOl1rGYRJurac9zLx0NrlrRktewxjVsTL3HxcaZTSJb4e2VTi1LA8QxonCFp1O323sCkNu6CbBisRfdeg==}
+    engines: {node: '>=22'}
+
+  '@apify/validations@1.1.1':
+    resolution: {integrity: sha512-TMp7jnxDEdcuKspiCc6mhQBqS3z94VBM7MMuoxeQjvKy1fFJYP7YqOPOnci2aMv4jgwWO60vaziubYmnzmtHRA==}
     engines: {node: '>=22'}
 
   '@asamuzakjp/css-color@3.2.0':
@@ -5924,14 +5927,14 @@ packages:
     resolution: {integrity: sha512-KMReFUr0B4t+D+OBkjR3KYqvocp2XaSzO55UcB6mgQMd3KbcE+mWTyvVV7D/zsdEbNnV6acZUutkiHQXvTr1Rw==}
     engines: {node: '>= 8'}
 
-  apify-client@2.23.4:
-    resolution: {integrity: sha512-Uw2cZXfR9iQw1jyQBonSqL/QJhp154YTB070m6A6aCYAIrklOqKfNnqXIIWKCkyTWqEqwNJ1784OJL5ZnB8tTQ==}
+  apify-client@2.25.0:
+    resolution: {integrity: sha512-g6ttHJ4Au/Gg0iDHIevN3CvTbJfey9DUXUXJxe0ORF6JIYaVVfKdyJjINGb6/49gOpt/62ZFPw+HSEVIzrwR5w==}
 
   apify-node-curl-impersonate@1.0.29:
     resolution: {integrity: sha512-5Oa9VE5rpDBdRgg71Vl09bqraw5RV0nyL6+rnOzIrVe+YCFCOyjj1KwsCz92gPNjGXGQG53w005la3dCTTrgdw==}
 
-  apify@4.0.0-beta.24:
-    resolution: {integrity: sha512-CPoMf/o8SJ0rq/yPtHXIabT0ldcKD59q0r9Tgs+AN47txC4JlskyG0S1ck1HNGbuhPuGyX4blWR6yib7TugYOw==}
+  apify@4.0.0-beta.35:
+    resolution: {integrity: sha512-rBNdBGEOFLWNNDSTNNVhyqZ4pSIs2Wc94IScAdmIqEd7ZB3UbwGaiKgnwRu2Hv0lqQLihkODIFfxjvPhCQ3nWg==}
     engines: {node: '>=22.0.0'}
 
   aproba@2.0.0:
@@ -11842,6 +11845,11 @@ packages:
     engines: {node: '>=10'}
     hasBin: true
 
+  semver@7.8.5:
+    resolution: {integrity: sha512-Y7/KDsb8LjooZpwaqGyulO6DQlksgCncchHGk+sZIY4SBvUocMBEFH5Ur1fI4dV+Jvl0w6cjvucaIi40puRioA==}
+    engines: {node: '>=10'}
+    hasBin: true
+
   send@0.19.2:
     resolution: {integrity: sha512-VMbMxbDeehAxpOtWJXlcUS5E8iXh6QmN+BkRX1GARS3wRaXEEgzCcB10gTQazO42tpNIya8xIyNx8fll1OFPrg==}
     engines: {node: '>= 0.8.0'}
@@ -13247,6 +13255,9 @@ packages:
   zod@4.5.4:
     resolution: {integrity: sha512-sC95tT5iHHH9gtpj6A81kh+NEaRAUFN+qlUPDUbRfOMvNf5QCBqsb3WgvnpVtK5Y+4UfA6KqufotuTvMGiTlsA==}
 
+  zod@4.6.5:
+    resolution: {integrity: sha512-v5l/aFXZQeai4awLbOpSoHecE9UiMrnfx75tEXLjNonXVARxQ5mOeipTjROUchszUNCqnE+hqAMujRsRHsut2Q==}
+
   zwitch@2.0.4:
     resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}
 
@@ -13512,8 +13523,6 @@ snapshots:
 
   '@apify/consts@3.0.1': {}
 
-  '@apify/datastructures@2.0.4': {}
-
   '@apify/datastructures@3.0.1': {}
 
   '@apify/docusaurus-plugin-typedoc-api@5.1.16(7a9803b22b375410b54dc7fc5d3b5ce0)':
@@ -13569,11 +13578,12 @@ snapshots:
       - eslint-import-resolver-webpack
       - supports-color
 
-  '@apify/input_secrets@1.2.30':
+  '@apify/input_secrets@2.0.4':
     dependencies:
-      '@apify/log': 2.5.35
-      '@apify/utilities': 2.27.0
-      ow: 0.28.2
+      '@apify/log': 3.0.1
+      '@apify/utilities': 3.0.1
+      '@apify/validations': 1.1.1
+      zod: 4.6.5
 
   '@apify/log@2.5.35':
     dependencies:
@@ -13593,7 +13603,9 @@ snapshots:
     dependencies:
       event-stream: 3.3.4
 
-  '@apify/timeout@0.4.4': {}
+  '@apify/pseudo_url@3.0.1':
+    dependencies:
+      '@apify/log': 3.0.1
 
   '@apify/timeout@1.0.1': {}
 
@@ -13618,6 +13630,10 @@ snapshots:
   '@apify/validations@1.1.0':
     dependencies:
       zod: 4.5.4
+
+  '@apify/validations@1.1.1':
+    dependencies:
+      zod: 4.6.5
 
   '@asamuzakjp/css-color@3.2.0':
     dependencies:
@@ -18895,7 +18911,7 @@ snapshots:
       normalize-path: 3.0.0
       picomatch: 2.3.2
 
-  apify-client@2.23.4(debug@4.4.3(supports-color@7.2.0))(supports-color@7.2.0):
+  apify-client@2.25.0(debug@4.4.3(supports-color@7.2.0))(supports-color@7.2.0):
     dependencies:
       '@apify/consts': 2.52.1
       '@apify/log': 2.5.35
@@ -18913,7 +18929,7 @@ snapshots:
       - debug
       - supports-color
 
-  apify-client@2.23.4(debug@4.4.3(supports-color@7.2.0))(supports-color@8.1.1):
+  apify-client@2.25.0(debug@4.4.3(supports-color@7.2.0))(supports-color@8.1.1):
     dependencies:
       '@apify/consts': 2.52.1
       '@apify/log': 2.5.35
@@ -18933,19 +18949,22 @@ snapshots:
 
   apify-node-curl-impersonate@1.0.29: {}
 
-  apify@4.0.0-beta.24(bufferutil@4.1.0)(debug@4.4.3(supports-color@7.2.0))(supports-color@7.2.0):
+  apify@4.0.0-beta.35(bufferutil@4.1.0)(debug@4.4.3(supports-color@7.2.0))(supports-color@7.2.0):
     dependencies:
-      '@apify/consts': 2.52.1
-      '@apify/datastructures': 2.0.4
-      '@apify/input_secrets': 1.2.30
-      '@apify/log': 2.5.35
-      '@apify/timeout': 0.4.4
-      '@apify/utilities': 2.27.0
+      '@apify/consts': 3.0.1
+      '@apify/datastructures': 3.0.1
+      '@apify/input_secrets': 2.0.4
+      '@apify/log': 3.0.1
+      '@apify/pseudo_url': 3.0.1
+      '@apify/timeout': 1.0.1
+      '@apify/utilities': 3.0.1
+      '@apify/validations': 1.1.0
       '@crawlee/core': link:packages/core
       '@crawlee/types': link:packages/types
       '@crawlee/utils': link:packages/utils
-      apify-client: 2.23.4(debug@4.4.3(supports-color@7.2.0))(supports-color@7.2.0)
-      semver: 7.7.4
+      apify-client: 2.25.0(debug@4.4.3(supports-color@7.2.0))(supports-color@7.2.0)
+      minimatch: 9.0.9
+      semver: 7.8.5
       tslib: 2.8.1
       ws: 8.21.3(bufferutil@4.1.0)
       zod: 4.5.4
@@ -18955,19 +18974,22 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  apify@4.0.0-beta.24(bufferutil@4.1.0)(debug@4.4.3(supports-color@7.2.0))(supports-color@8.1.1):
+  apify@4.0.0-beta.35(bufferutil@4.1.0)(debug@4.4.3(supports-color@7.2.0))(supports-color@8.1.1):
     dependencies:
-      '@apify/consts': 2.52.1
-      '@apify/datastructures': 2.0.4
-      '@apify/input_secrets': 1.2.30
-      '@apify/log': 2.5.35
-      '@apify/timeout': 0.4.4
-      '@apify/utilities': 2.27.0
+      '@apify/consts': 3.0.1
+      '@apify/datastructures': 3.0.1
+      '@apify/input_secrets': 2.0.4
+      '@apify/log': 3.0.1
+      '@apify/pseudo_url': 3.0.1
+      '@apify/timeout': 1.0.1
+      '@apify/utilities': 3.0.1
+      '@apify/validations': 1.1.0
       '@crawlee/core': link:packages/core
       '@crawlee/types': link:packages/types
       '@crawlee/utils': link:packages/utils
-      apify-client: 2.23.4(debug@4.4.3(supports-color@7.2.0))(supports-color@8.1.1)
-      semver: 7.7.4
+      apify-client: 2.25.0(debug@4.4.3(supports-color@7.2.0))(supports-color@8.1.1)
+      minimatch: 9.0.9
+      semver: 7.8.5
       tslib: 2.8.1
       ws: 8.21.3(bufferutil@4.1.0)
       zod: 4.5.4
@@ -26635,6 +26657,8 @@ snapshots:
 
   semver@7.7.4: {}
 
+  semver@7.8.5: {}
+
   send@0.19.2(supports-color@8.1.1):
     dependencies:
       debug: 2.6.9(supports-color@8.1.1)
@@ -28240,6 +28264,8 @@ snapshots:
   zod@3.25.76: {}
 
   zod@4.5.4: {}
+
+  zod@4.6.5: {}
 
   zwitch@2.0.4: {}
 
