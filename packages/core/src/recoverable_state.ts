@@ -363,7 +363,11 @@ export class RecoverableState<TStateModel = Record<string, unknown>, TPersistedS
 
         await this.#withTimeout(
             async () =>
-                keyValueStore.setValue(this.#persistStateKey, serializedState, { contentType: this.#contentType }),
+                this.#contentType === undefined
+                    ? keyValueStore.setValue(this.#persistStateKey, serializedState)
+                    : keyValueStore.setValue(this.#persistStateKey, serializedState, {
+                          contentType: this.#contentType,
+                      }),
             'Persisting the state',
         );
     }
