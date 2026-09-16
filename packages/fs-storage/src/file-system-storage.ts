@@ -6,6 +6,7 @@ import type { CrawleeLogger } from '@crawlee/types';
 import { parseArgument, schemas } from '@crawlee/utils/internal';
 import { z } from 'zod';
 
+import type { AdoptionCandidate } from '@crawlee/fs-storage-native';
 import { DatasetBackend } from './resource-clients/dataset.js';
 import { KeyValueStoreBackend } from './resource-clients/key-value-store.js';
 import { RequestQueueBackend } from './resource-clients/request-queue.js';
@@ -32,6 +33,17 @@ const DEFAULT_STORAGE_ALIAS = '__default__';
 
 /** The directory the default storage lives in, one level below `datasets` / `key_value_stores` / etc. */
 const DEFAULT_STORAGE_DIRECTORY = 'default';
+
+/** The conventional run-input key, always treated as one alongside the configured `inputKey`. */
+const DEFAULT_INPUT_KEY = 'INPUT';
+
+/**
+ * Content types declared for adopted files. The native client infers nothing from extensions, and
+ * neither do we beyond this: a `.json` file is JSON, anything else is bytes for the
+ * {@apilink KeyValueStore} frontend to make sense of.
+ */
+const ADOPTED_JSON_CONTENT_TYPE = 'application/json; charset=utf-8';
+const ADOPTED_BINARY_CONTENT_TYPE = 'application/octet-stream';
 
 export interface FileSystemStorageOptions {
     /**
@@ -64,11 +76,11 @@ export interface FileSystemStorageOptions {
     /**
      * The key the run input is read from — Crawlee's `inputKey` (`CRAWLEE_INPUT_KEY`).
      *
-     * Like the conventional `INPUT`, this key may live in the default key-value store as a bare value
+     * Like the conventional `INPUT`, this key may arrive in the default key-value store as a bare value
      * file with no metadata sidecar (e.g. the Apify CLI writes the effective input to `__CLI_INPUT.json`
-     * and points the run at that key). It is therefore readable out-of-band (`<key>`, `<key>.json`) and
-     * preserved when the default store is purged, exactly like `INPUT`,
-     * which is always kept regardless of this setting.
+     * and points the run at that key). Such a file is adopted into a record under this key when the
+     * store is opened, and the key is preserved when the default store is purged — exactly like
+     * `INPUT`, which is always treated as an input key regardless of this setting.
      *
      * @default 'INPUT'
      */
@@ -90,7 +102,8 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
     readonly requestQueuesDirectory: string;
     readonly logger?: CrawleeLogger;
     readonly requestQueueAccess: 'single' | 'shared';
-    readonly #inputKey: string;
+    /** `INPUT` plus the configured `inputKey`, deduplicated. */
+    readonly #inputKeys: string[];
 
     readonly #keyValueStoreBackendCache: KeyValueStoreBackend[] = [];
     readonly #datasetBackendCache: DatasetBackend[] = [];
@@ -104,7 +117,7 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
 
         this.logger = logger;
         this.requestQueueAccess = requestQueueAccess;
-        this.#inputKey = inputKey;
+        this.#inputKeys = [...new Set([DEFAULT_INPUT_KEY, inputKey])];
 
         this.localDataDirectory = localDataDirectory;
         this.datasetsDirectory = resolve(this.localDataDirectory, 'datasets');
@@ -182,13 +195,21 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
 
         const nativeBackend = await (
             await importNativeModule()
-        ).FileSystemKeyValueStoreClient.open(id, name, alias, this.localDataDirectory);
+        ).FileSystemKeyValueStoreClient.open(
+            id,
+            name,
+            alias,
+            this.localDataDirectory,
+            // useTestClock — always real wall-clock outside of native tests.
+            undefined,
+            this.#adoptionCandidates(cacheKey === DEFAULT_STORAGE_DIRECTORY),
+        );
         const newStore = await KeyValueStoreBackend.create({
             name: alias ? undefined : (name ?? cacheKey),
             cacheKey,
             nativeBackend,
             logger: this.logger,
-            inputKey: this.#inputKey,
+            inputKeys: this.#inputKeys,
         });
         this.#keyValueStoreBackendCache.push(newStore);
 
@@ -228,6 +249,40 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
         this.#requestQueueBackendCache.push(newStore);
 
         return newStore;
+    }
+
+    /**
+     * What the native `open` may turn into records: value files sitting in the store directory with no
+     * metadata sidecar, written out-of-band by a CLI, a project template, a v3 Crawlee or a text editor.
+     *
+     * Each run-input key claims a bare `<key>` or `<key>.json` first — that is the layout the Apify CLI
+     * and the templates produce, and the key must end up being `INPUT` rather than `INPUT.json`. Only
+     * the default store holds the run input, so elsewhere an `INPUT.json` is just a file named
+     * `INPUT.json`, adopted by the trailing sweep like every other one.
+     *
+     * Once adopted, the file is an ordinary record: readable, listed, deletable, and — in a run-scoped
+     * store — purged on start unless its key is a run-input key.
+     */
+    #adoptionCandidates(isDefaultStore: boolean): AdoptionCandidate[] {
+        const inputCandidates: AdoptionCandidate[] = isDefaultStore
+            ? this.#inputKeys.map((key) => ({
+                  key,
+                  files: [
+                      { filename: key, contentType: ADOPTED_BINARY_CONTENT_TYPE },
+                      { filename: `${key}.json`, contentType: ADOPTED_JSON_CONTENT_TYPE },
+                  ],
+              }))
+            : [];
+
+        return [
+            ...inputCandidates,
+            {
+                files: [
+                    { filename: '*.json', contentType: ADOPTED_JSON_CONTENT_TYPE },
+                    { filename: '*', contentType: ADOPTED_BINARY_CONTENT_TYPE },
+                ],
+            },
+        ];
     }
 
     async storageExists(id: string, type: 'Dataset' | 'KeyValueStore' | 'RequestQueue'): Promise<boolean> {

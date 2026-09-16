@@ -1866,14 +1866,20 @@ Because the in-memory queue lives entirely within a single process and is never 
 
 #### Out-of-band key-value files (e.g. a hand-placed `INPUT.json`)
 
-Keys are literal. `aaa` and `aaa.json` are two distinct keys, and `FileSystemStorageBackend` never infers a key from a file's extension. In v3 a hand-placed `aaa.json` in the store directory was readable as `aaa`; in v4 it is not read, not listed, and gets deleted by the purge of the default store on start like any other untracked file.
+Keys are literal. `aaa` and `aaa.json` are two distinct keys, and `FileSystemStorageBackend` never infers a key from a file's extension — in v3 a hand-placed `aaa.json` was readable as `aaa`, in v4 it is not.
 
-The one exception is the run input. `FileSystemStorageBackend` only fully tracks records it wrote itself (those have a `<key>.__metadata__.json` sidecar), but for the `INPUT` key (and the configured `inputKey`) it still reads a value file placed in the store directory out-of-band — such as a hand-written or platform-provided `INPUT.json` — by probing the requested key plus the `.json` extension. A few behaviors around these "bare" files changed in v4:
+What v4 does instead is *adopt* value files that turn up in a store directory without the `<key>.__metadata__.json` sidecar that marks a record — the Apify CLI's input, a project template, a v3 store directory, a file you dropped in with an editor. Opening the store writes the missing sidecar (the value bytes are never touched), and from then on the file is an ordinary record: read by `getValue`, enumerated by `listKeys`, removed by `deleteValue`. Two rules decide the key:
 
-- **Only `INPUT` and `INPUT.json` are probed.** v3 also fell back to `INPUT.txt` and `INPUT.bin`. In v4 those files are not read (`getValue('INPUT')` returns `undefined`), are not listed, and are no longer exempt from the purge of the default store on start, so they get deleted like any other untracked file. Rename a `.txt`/`.bin` input to `INPUT.json` (or drop the extension) before upgrading.
-- **Extensionless bare files report `application/octet-stream`.** In v3 a bare value file with no extension was read as `text/plain`. In v4 the client is a plain byte transport and only infers a content type from a real extension, so an extensionless file now comes back as `application/octet-stream`. Give the file a `.json` extension if you need a more specific type.
-- **Malformed bare files are no longer silently swallowed.** In v3 a bare `INPUT.json` containing invalid JSON was treated as a missing record (`getValue` returned `undefined`). In v4 the raw bytes are returned verbatim and parsing happens in the `KeyValueStore` frontend, so a malformed value now surfaces a parse error at read time instead of looking absent.
-- **Bare files are enumerated by `listKeys` under their actual on-disk name.** A bare `INPUT.json` shows up in `listKeys` as `INPUT.json` and reads back cleanly under that key via `getValue` / `recordExists` / `getPublicUrl`; the logical `INPUT` lookup keeps resolving the same file as well. An extensionless bare file is listed as `INPUT`. If both a tracked `INPUT` record and a bare `INPUT.json` exist, the tracked record wins and the bare variant is not listed. Everything `listKeys` needs is read from the filesystem index, so this no longer triggers the per-read O(n) directory scans the v3 fallback performed.
+- In the **default** store, the run-input keys (`INPUT` and the configured `inputKey`) claim a bare `INPUT` or `INPUT.json`. The key is `INPUT` while the file keeps its name, so `listKeys` reports `INPUT`, `getValue('INPUT.json')` is `undefined`, and `getPublicUrl('INPUT')` points at `INPUT.json`. If both files are present, opening the store fails instead of guessing which one is the input.
+- Every other sidecar-less file becomes a record **keyed by its filename**, in every store: a hand-placed `some-key.json` is the key `some-key.json`, and so is an `INPUT.json` in a store other than the default one. Dotfiles are skipped.
+
+A `.json` file is adopted as `application/json; charset=utf-8` and anything else as `application/octet-stream`; there is no content sniffing. Adopted records are subject to the purge of the default store on start like any other record — only the run-input keys are spared.
+
+Beyond the literal keys, three v3 behaviors are gone:
+
+- **`INPUT.txt` and `INPUT.bin` are no longer the input.** v3 probed those extensions too. In v4 they are adopted under their own names, so `getValue('INPUT')` returns `undefined` and the purge on start deletes them. Rename such an input to `INPUT.json` (or drop the extension) before upgrading.
+- **Extensionless input files report `application/octet-stream`.** In v3 a bare value file with no extension was read as `text/plain`. Give the file a `.json` extension if you need a more specific type.
+- **Malformed input files are no longer silently swallowed.** In v3 an `INPUT.json` containing invalid JSON was treated as a missing record (`getValue` returned `undefined`). In v4 the raw bytes are returned verbatim and parsing happens in the `KeyValueStore` frontend, so a malformed value surfaces a parse error at read time instead of looking absent.
 
 ## Only if you tuned autoscaling
 
