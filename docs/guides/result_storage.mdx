@@ -21,12 +21,15 @@ In Crawlee, the key-value store is represented by the <ApiLink to="core/class/Ke
 The data is stored in the directory specified by the `CRAWLEE_STORAGE_DIR` environment variable as follows:
 
 ```
-{CRAWLEE_STORAGE_DIR}/key_value_stores/{STORE_ID}/{KEY}.{EXT}
+{CRAWLEE_STORAGE_DIR}/key_value_stores/{STORE_ID}/{KEY}
+{CRAWLEE_STORAGE_DIR}/key_value_stores/{STORE_ID}/{KEY}.__metadata__.json
 ```
 
 :::note
 
-`{STORE_ID}` is the name or the ID of the key-value store. The default key-value store has ID `default`. The `{KEY}` is the key of the record and `{EXT}` corresponds to the MIME content type of the data value.
+`{STORE_ID}` is the name or the ID of the key-value store. The default key-value store has ID `default`. The `{KEY}` is the key of the record, used as the filename verbatim — no extension is derived from the content type, which is recorded in the `{KEY}.__metadata__.json` sidecar instead.
+
+A file you drop into the directory by hand is adopted as a record when the store is opened, keyed by its filename (see the [v4 upgrading guide](../upgrading/upgrading-to-v4#out-of-band-key-value-files-eg-a-hand-placed-inputjson) for the run-input exception). Files added while the crawler is running are not picked up — write those with `setValue()`.
 
 :::
 
