@@ -686,6 +686,60 @@ describe('ConcurrencySystem', () => {
             }
         });
 
+        test('a task, its booking and its release all carry the same id', async () => {
+            const inFlight = new Set<string>();
+            const bookings: string[] = [];
+            const unmatchedReleases: string[] = [];
+            const unbookedTasks: string[] = [];
+            let peakInFlight = 0;
+
+            const governor: IConcurrencySystem = {
+                desiredConcurrency: 2,
+                currentConcurrency: 0,
+                isRunning: true,
+                hasCapacityForTask: () => inFlight.size < 2,
+                tryRegisterTaskStart: (_consumer, taskId) => {
+                    if (inFlight.size >= 2) return false;
+                    bookings.push(taskId);
+                    inFlight.add(taskId);
+                    peakInFlight = Math.max(peakInFlight, inFlight.size);
+                    return true;
+                },
+                registerTaskEnd: (_consumer, taskId) => {
+                    if (!inFlight.delete(taskId)) {
+                        unmatchedReleases.push(taskId);
+                    }
+                },
+            };
+
+            let done = 0;
+            const pool = new AutoscaledPool({
+                concurrencySystem: governor,
+                consumer: { id: 'pool' },
+                runTaskFunction: async (taskId) => {
+                    if (!inFlight.has(taskId)) {
+                        unbookedTasks.push(taskId);
+                    }
+                    await sleep(20);
+                    done++;
+                },
+                isFinishedFunction: async () => done >= 6,
+                isTaskReadyFunction: async () => done < 6,
+            });
+
+            await pool.run();
+
+            // The point of the ids: every release can be matched to the booking it settles, so a governor can time
+            // its tasks and know which ones are still running.
+            expect(unmatchedReleases).toEqual([]);
+            // The task runs under the id its own slot was booked with, so it can attribute its work to that booking.
+            expect(unbookedTasks).toEqual([]);
+            expect(inFlight.size).toBe(0);
+            // Ids are never recycled while their task runs, or the two concurrent bookings would collide.
+            expect(peakInFlight).toBe(2);
+            expect(new Set(bookings).size).toBe(bookings.length);
+        });
+
         test('tuning a shared governor is reflected by every borrowing pool', () => {
             const system = new ConcurrencySystem();
 

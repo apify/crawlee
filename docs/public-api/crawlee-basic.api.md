@@ -522,8 +522,8 @@ export interface IConcurrencySystem {
     readonly desiredConcurrency: number;
     hasCapacityForTask(consumer: ConcurrencyConsumer): boolean;
     readonly isRunning: boolean;
-    registerTaskEnd(consumer: ConcurrencyConsumer): void;
-    tryRegisterTaskStart(consumer: ConcurrencyConsumer): boolean;
+    registerTaskEnd(consumer: ConcurrencyConsumer, taskId: string): void;
+    tryRegisterTaskStart(consumer: ConcurrencyConsumer, taskId: string): boolean;
 }
 
 // @public
