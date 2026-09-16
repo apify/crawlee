@@ -696,6 +696,7 @@ export class RecoverableState<TStateModel = Record<string, unknown>, TPersistedS
 // @public
 export interface RecoverableStateOptions<TStateModel = Record<string, unknown>, TPersistedState = TStateModel> extends RecoverableStatePersistenceOptions {
     configuration?: Configuration;
+    contentType?: string;
     defaultState: TStateModel | (() => TStateModel);
     deserialize?: StateConversion<TPersistedState, TStateModel>;
     logger?: CrawleeLogger;

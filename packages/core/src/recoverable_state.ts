@@ -1,3 +1,5 @@
+import { Readable } from 'node:stream';
+
 import { addTimeoutToPromise, storage as timeoutStorage } from '@apify/timeout';
 import type { Configuration, CrawleeLogger } from '@crawlee/core';
 import { EventType, KeyValueStore, serviceLocator, StateValidationError } from '@crawlee/core';
@@ -107,14 +109,29 @@ export interface RecoverableStateOptions<
     /**
      * Optional conversion of the state to a plain JSON-serializable value before it is persisted.
      * If not provided, the state is persisted as is.
+     *
+     * With {@apilink RecoverableStateOptions.contentType} set, it has to produce what
+     * {@apilink KeyValueStore.setValue} accepts alongside an explicit content type - a `string`, a `Buffer` or a
+     * stream.
      */
     serialize?: StateConversion<TStateModel, TPersistedState>;
 
     /**
      * Optional conversion of a persisted value back to the state model, and the place to validate a record before
      * trusting it. If not provided, the persisted value is used as is.
+     *
+     * With {@apilink RecoverableStateOptions.contentType} set, it receives a `Readable` of the record bytes
+     * instead of a parsed value.
      */
     deserialize?: StateConversion<TPersistedState, TStateModel>;
+
+    /**
+     * Content type of the persisted record. Setting it hands the record encoding over to
+     * {@apilink RecoverableStateOptions.serialize} and {@apilink RecoverableStateOptions.deserialize}, both of
+     * which are then required - the default JSON codec is bypassed in both directions. Meant for a state too large
+     * for `JSON.stringify`, which `serialize` can then stream out instead.
+     */
+    contentType?: string;
 }
 
 /**
@@ -141,6 +158,7 @@ export class RecoverableState<TStateModel = Record<string, unknown>, TPersistedS
     readonly #log: CrawleeLogger;
     readonly #serialize: (state: TStateModel) => Promise<TPersistedState>;
     readonly #deserialize: (persistedState: TPersistedState) => Promise<TStateModel>;
+    readonly #contentType?: string;
     readonly #persistStateQuietly: (eventData?: Record<string, unknown>) => Promise<void>;
 
     /**
@@ -161,6 +179,14 @@ export class RecoverableState<TStateModel = Record<string, unknown>, TPersistedS
         this.#configuration = options.configuration;
         this.#keyValueStore = options.keyValueStore ?? null;
         this.#log = options.logger ?? serviceLocator.getLogger().child({ prefix: 'RecoverableState' });
+        this.#contentType = options.contentType;
+
+        if (this.#contentType !== undefined && (options.serialize === undefined || options.deserialize === undefined)) {
+            throw new Error(
+                `A 'contentType' for the state persisted under key '${this.#persistStateKey}' requires both 'serialize' and 'deserialize' - the record is no longer JSON the default codec can handle.`,
+            );
+        }
+
         this.#serialize = this.#toConversion(options.serialize);
         this.#deserialize = this.#toConversion(options.deserialize);
 
@@ -336,7 +362,8 @@ export class RecoverableState<TStateModel = Record<string, unknown>, TPersistedS
         const serializedState = await this.#serialize(this.currentValue);
 
         await this.#withTimeout(
-            async () => keyValueStore.setValue(this.#persistStateKey, serializedState),
+            async () =>
+                keyValueStore.setValue(this.#persistStateKey, serializedState, { contentType: this.#contentType }),
             'Persisting the state',
         );
     }
@@ -375,10 +402,21 @@ export class RecoverableState<TStateModel = Record<string, unknown>, TPersistedS
             return;
         }
 
-        const storedState = await this.#withTimeout(
-            async () => keyValueStore.getValue(this.#persistStateKey),
-            'Loading the persisted state',
-        );
+        // With a content type, the record is whatever `serialize` produced, so the codec's parse is skipped and
+        // `deserialize` gets the bytes as a stream - the shape a streaming parser wants.
+        // TODO: read the record as a stream instead of buffering it and wrapping (https://github.com/apify/crawlee/issues/2929).
+        const storedState = await this.#withTimeout(async () => {
+            if (this.#contentType === undefined) {
+                return keyValueStore.getValue(this.#persistStateKey);
+            }
+
+            const record = await keyValueStore.getRecord(this.#persistStateKey);
+            if (record === null) {
+                return null;
+            }
+
+            return Readable.from(Buffer.isBuffer(record.value) ? record.value : Buffer.from(record.value));
+        }, 'Loading the persisted state');
 
         if (storedState === null || storedState === undefined) {
             return;
