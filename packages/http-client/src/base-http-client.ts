@@ -176,7 +176,9 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
             body: nextBody,
             credentials: (currentRequest as any).credentials,
             redirect: 'manual',
-        });
+            // Node-specific option required for a stream body, which the replayed body always is
+            duplex: 'half',
+        } as RequestInit);
     }
 
     /**
