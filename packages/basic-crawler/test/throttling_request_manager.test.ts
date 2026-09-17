@@ -383,7 +383,6 @@ describe('ThrottlingRequestManager', () => {
             const manager = new ThrottlingRequestManager({ ...throttling, inner: factory });
 
             await manager.purge();
-            await manager.persistState();
             await manager.setExpectedRequestProcessingTimeSecs(600);
             await manager.drop();
 
