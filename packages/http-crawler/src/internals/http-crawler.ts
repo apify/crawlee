@@ -9,6 +9,7 @@ import type {
     CrawlingContext,
     ErrorHandler,
     GetUserDataFromRequest,
+    LoadedRequest,
     Request as CrawleeRequest,
     RequestHandler,
     RequireContextPipeline,
@@ -20,13 +21,14 @@ import type {
 import {
     BasicCrawler,
     ContextPipeline,
+    getCookiesFromResponse,
     NavigationSkippedError,
     remainingNavigationWindowMillis,
     RequestState,
+    RequestThrottledError,
     Router,
     SessionError,
 } from '@crawlee/basic';
-import { type LoadedRequest, RequestThrottledError, getCookiesFromResponse } from '@crawlee/core';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import type { Awaitable, Dictionary, ISession } from '@crawlee/types';
 import { parseArgument, RETRY_CSS_SELECTORS, schemas } from '@crawlee/utils/internal';
@@ -611,17 +613,20 @@ export class HttpCrawler<
         const response = parsed.response!;
         const contentType = parsed.contentType!;
 
+        const loadBody = async () => {
+            const { load } = await import('cheerio/slim');
+
+            return load(parsed.body!.toString(), { xmlMode: contentType.type.includes('xml') });
+        };
         const waitForSelector = async (selector: string, _timeoutMs?: number) => {
-            const cheerio = await import('cheerio');
-            const $ = cheerio.load(parsed.body!.toString());
+            const $ = await loadBody();
 
             if ($(selector).get().length === 0) {
                 throw new Error(`Selector '${selector}' not found.`);
             }
         };
         const parseWithCheerio = async (selector?: string, timeoutMs?: number) => {
-            const cheerio = await import('cheerio');
-            const $ = cheerio.load(parsed.body!.toString());
+            const $ = await loadBody();
 
             if (selector) {
                 await (crawlingContext as InternalHttpCrawlingContext).waitForSelector(selector, timeoutMs);

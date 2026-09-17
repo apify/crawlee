@@ -334,7 +334,6 @@ export class PlaywrightCrawler<
                     requestManager: this.requestManager!,
                 }),
             compileScript: (scriptString: string, ctx?: Dictionary) => playwrightUtils.compileScript(scriptString, ctx),
-            closeCookieModals: async () => playwrightUtils.closeCookieModals(context.page),
             handleCloudflareChallenge: async (options?: HandleCloudflareChallengeOptions) => {
                 return playwrightUtils.handleCloudflareChallenge(context.page, context.request.url, options);
             },

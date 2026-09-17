@@ -8,15 +8,8 @@ import {
     PuppeteerPlugin,
     RemoteBrowserPool,
 } from '@crawlee/browser-pool';
-import {
-    bindMethodsToServiceLocator,
-    BLOCKED_STATUS_CODES,
-    type ConcurrencySystem,
-    MemoryStorageBackend,
-    serviceLocator,
-    ServiceLocator,
-    SessionPool,
-} from '@crawlee/core';
+import { BLOCKED_STATUS_CODES, type ConcurrencySystem, SessionPool } from '@crawlee/basic';
+import { bindMethodsToServiceLocator, MemoryStorageBackend, serviceLocator, ServiceLocator } from '@crawlee/core';
 import type { PuppeteerGoToOptions } from '@crawlee/puppeteer';
 import { EnqueueStrategy, ProxyConfiguration, Request, RequestList, RequestState, Session } from '@crawlee/puppeteer';
 import { sleep } from '@crawlee/utils';
@@ -118,33 +111,63 @@ describe('BrowserCrawler', () => {
         });
     });
 
-    test.concurrent('should teardown browser pool', async () => {
+    test.concurrent('a run releases the browsers of an owned pool instead of destroying it', async () => {
         const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
 
-        const requestList = await RequestList.open({
-            sources: [{ url: 'http://example.com/?q=1' }],
-        });
         const browserCrawler = new BrowserCrawlerTest({
             browserPoolOptions: {
                 browserPlugins: [puppeteerPlugin],
             },
-            requestList,
-
+            maxConcurrency: 1,
             requestHandler: async () => {},
             maxRequestRetries: 1,
         });
 
-        // Spy on destroy and track if it was called
-        let destroyCalled = false;
         const ownedPool = browserCrawler.browserPool as BrowserPool;
-        const originalDestroy = ownedPool.destroy.bind(ownedPool);
-        ownedPool.destroy = async () => {
-            destroyCalled = true;
-            return originalDestroy();
-        };
+        const releaseSpy = vitest.spyOn(ownedPool, 'releaseAllBrowsers');
+        const destroySpy = vitest.spyOn(ownedPool, 'destroy');
+        ownedPool.on(BROWSER_POOL_EVENTS.BROWSER_LAUNCHED, () => {});
 
-        await browserCrawler.run();
-        expect(destroyCalled).toBe(true);
+        await browserCrawler.run([`${serverAddress}/?q=1`]);
+
+        expect(releaseSpy).toHaveBeenCalled();
+        expect(destroySpy).not.toHaveBeenCalled();
+        // What a destroyed pool loses for good, since nothing re-arms either: its listeners, and the timers that
+        // retire idle browsers and reap the retired ones.
+        expect(ownedPool.listenerCount(BROWSER_POOL_EVENTS.BROWSER_LAUNCHED)).toBe(1);
+        // eslint-disable-next-line dot-notation -- TS-private on the pool
+        expect(ownedPool['browserKillerInterval']).toBeDefined();
+
+        await browserCrawler.destroy();
+        expect(destroySpy).toHaveBeenCalledTimes(1);
+    });
+
+    test.concurrent('a repeated run() crawls with the same browser pool', async () => {
+        const puppeteerPlugin = new PuppeteerPlugin(puppeteer);
+
+        const processed: string[] = [];
+        const browserCrawler = new BrowserCrawlerTest({
+            browserPoolOptions: {
+                browserPlugins: [puppeteerPlugin],
+            },
+            maxConcurrency: 1,
+            requestHandler: async ({ request }) => {
+                processed.push(request.url);
+            },
+        });
+
+        const launched: unknown[] = [];
+        (browserCrawler.browserPool as BrowserPool).on(BROWSER_POOL_EVENTS.BROWSER_LAUNCHED, (controller) => {
+            launched.push(controller);
+        });
+
+        await browserCrawler.run([`${serverAddress}/?q=1`]);
+        await browserCrawler.run([`${serverAddress}/?q=2`]);
+
+        expect(processed).toEqual([`${serverAddress}/?q=1`, `${serverAddress}/?q=2`]);
+        // Each run launches its own browser, because the previous one released its browsers on the way out - and
+        // the pool is still the crawler's, so it still reports the launch.
+        expect(launched).toHaveLength(2);
     });
 
     test.concurrent('should not tear down a user-supplied browser pool', async () => {
@@ -601,26 +624,28 @@ describe('BrowserCrawler', () => {
             sources: [{ url: 'http://example.com/?q=1' }],
         });
 
+        const sessionPool = new SessionPool({
+            sessionOptions: {
+                maxUsageCount: 1,
+            },
+            persistStateKeyValueStoreId: 'abc',
+        });
+
         const crawler = new BrowserCrawlerTest({
             requestList,
             browserPoolOptions: {
                 browserPlugins: [puppeteerPlugin],
             },
-
             saveResponseCookies: false,
-            sessionPool: new SessionPool({
-                sessionOptions: {
-                    maxUsageCount: 1,
-                },
-                persistStateKeyValueStoreId: 'abc',
-            }),
+            sessionPool,
             requestHandler: async () => {},
         });
 
-        // @ts-expect-error Accessing private prop
-        expect(crawler.sessionPool.sessionOptions.maxUsageCount).toBe(1);
-        // @ts-expect-error Accessing private prop
-        expect(crawler.sessionPool.persistStateKeyValueStoreId).toBe('abc');
+        expect(crawler.sessionPool).toBe(sessionPool);
+        const session = await sessionPool.getSession();
+        expect(session).toBeDefined();
+        const state = await sessionPool.getState();
+        expect(state.sessions[0].maxUsageCount).toBe(1);
     });
 
     test.skip('should persist cookies per session', async () => {
@@ -692,6 +717,9 @@ describe('BrowserCrawler', () => {
             },
             requestList,
             saveResponseCookies: true,
+            // The handoff only happens between requests: cookies set in a handler are flushed to the
+            // session jar after it returns, so cookie-2 must not start before cookie-1 has finished.
+            maxConcurrency: 1,
             sessionPool: new SessionPool({
                 maxPoolSize: 1,
             }),
@@ -921,6 +949,9 @@ describe('BrowserCrawler', () => {
             sessionPool: new SessionPool({
                 maxPoolSize: 1,
             }),
+            // A strictly serial [0..5] is only well-defined one request at a time: two handlers running
+            // together read the same `usageCount` before either marks the session good.
+            maxConcurrency: 1,
             requestHandler: async ({ session }) => {
                 sessionUsageHistory.push((session as Session).usageCount);
             },

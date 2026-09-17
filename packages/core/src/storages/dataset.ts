@@ -235,6 +235,8 @@ export class Dataset<Data extends Dictionary = Dictionary> {
      *   The objects must be serializable to JSON.
      */
     async pushData(data: Data | Data[]): Promise<void> {
+        tryCancel();
+
         const transaction = activeStorageTransaction();
 
         parseArgument(data, schemas.anyObject);
@@ -779,6 +781,16 @@ export class Dataset<Data extends Dictionary = Dictionary> {
 
         await this.backend.drop();
         serviceLocator.getStorageInstanceManager().removeFromCache(this);
+    }
+
+    /**
+     * Removes all items from the dataset but keeps the dataset itself, along with its
+     * {@apilink Dataset.id|`id`} and {@apilink Dataset.name|`name`}.
+     */
+    async purge(): Promise<void> {
+        rejectOperationInTransaction('Dataset.purge()');
+
+        await this.backend.purge();
     }
 
     /**

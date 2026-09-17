@@ -5,7 +5,7 @@ await initialize(testActorDirname);
 
 const { stats, datasetItems } = await runActor(testActorDirname, 16384);
 
-await expect(stats.requestsFinished === 1, 'All requests finished');
+await expect(stats.requestsSucceeded === 1, 'All requests finished');
 await expect(datasetItems[0].numberOfMatchingCookies === 3, 'Number of page cookies');
 await expect(
     datasetItems[0].numberOfMatchingCookies === datasetItems[0].initialCookiesLength,

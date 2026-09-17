@@ -59,9 +59,6 @@ const blockResources: (page: Page, resourceTypes?: string[]) => Promise<void>;
 function cacheResponses(page: Page, cache: Dictionary<Partial<ResponseForRequest>>, responseUrlRules: (string | RegExp)[]): Promise<void>;
 
 // @public (undocumented)
-function closeCookieModals(page: Page): Promise<void>;
-
-// @public (undocumented)
 export type CompiledScriptFunction = (params: CompiledScriptParams) => Promise<unknown>;
 
 // @public (undocumented)
@@ -175,7 +172,6 @@ declare namespace puppeteerClickElements {
 interface PuppeteerContextUtils {
     addInterceptRequestHandler(handler: InterceptHandler): Promise<void>;
     blockRequests(options?: BlockRequestsOptions): Promise<void>;
-    closeCookieModals(): Promise<void>;
     compileScript(scriptString: string, ctx?: Dictionary): CompiledScriptFunction;
     enqueueLinksByClickingElements(options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestManager'>): Promise<BatchAddRequestsResult>;
     infiniteScroll(options?: InfiniteScrollOptions): Promise<void>;
@@ -250,7 +246,6 @@ declare namespace puppeteerUtils {
         gotoExtended,
         infiniteScroll,
         saveSnapshot,
-        closeCookieModals,
         PuppeteerDirectNavigationOptions as DirectNavigationOptions,
         InjectFileOptions,
         BlockRequestsOptions,

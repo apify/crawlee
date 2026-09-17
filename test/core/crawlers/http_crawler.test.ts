@@ -2,12 +2,13 @@ import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { Readable } from 'node:stream';
 
-import type { ConcurrencySystemOptions } from '@crawlee/core';
+import type { ConcurrencySystemOptions } from '@crawlee/basic';
 import { MemoryStorageBackend, serviceLocator } from '@crawlee/core';
 import {
     ConcurrencySystem,
     HttpCrawler,
     PersistentRateLimitError,
+    RequestList,
     RequestQueue,
     SessionPool,
     ThrottlingRequestManager,
@@ -28,6 +29,16 @@ router.set('/hello.html', (req, res) => {
 
 router.set('/noext', (req, res) => {
     res.end(`<html><head><title>Example Domain</title></head></html>`);
+});
+
+router.set('/feed.xml', (req, res) => {
+    res.setHeader('content-type', 'application/rss+xml; charset=utf-8');
+    res.end(
+        `<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel>` +
+            `<item><title>Post one</title><link>https://example.com/one</link></item>` +
+            `<item><title>Post two</title><link>https://example.com/two</link></item>` +
+            `</channel></rss>`,
+    );
 });
 
 router.set('/invalidContentType', (req, res) => {
@@ -193,6 +204,18 @@ test('concurrency shortcuts coexist with the HTTP-optimized defaults', async () 
     expect(crawler.asConfigured!.desiredConcurrency).toBe(5);
 });
 
+test('initialConcurrency overrides the HTTP-optimized starting concurrency', async () => {
+    const crawler = new ObservableHttpCrawler({
+        initialConcurrency: 3,
+        maxRequestRetries: 0,
+        requestHandler: () => {},
+    });
+
+    await crawler.run([url]);
+
+    expect(crawler.asConfigured!.desiredConcurrency).toBe(3);
+});
+
 test('parseWithCheerio works', async () => {
     const results: string[] = [];
 
@@ -207,6 +230,29 @@ test('parseWithCheerio works', async () => {
     await crawler.run([`${url}/hello.html`]);
 
     expect(results).toStrictEqual(['Example Domain']);
+});
+
+// `<link>` is a void element in HTML, so an HTML parser drops its content - the XML feeds that
+// `HttpCrawler` also serves have to be parsed in xml mode to survive.
+test('parseWithCheerio parses XML responses as XML', async () => {
+    const results: string[][] = [];
+
+    const crawler = new HttpCrawler({
+        maxRequestRetries: 0,
+        additionalMimeTypes: ['application/rss+xml'],
+        requestHandler: async ({ parseWithCheerio }) => {
+            const $ = await parseWithCheerio();
+            results.push(
+                $('item > link')
+                    .map((_i, el) => $(el).text())
+                    .get(),
+            );
+        },
+    });
+
+    await crawler.run([`${url}/feed.xml`]);
+
+    expect(results).toStrictEqual([['https://example.com/one', 'https://example.com/two']]);
 });
 
 test('should parse content type from header', async () => {
@@ -680,6 +726,34 @@ test('a domain that never stops rate-limiting shuts the crawl down instead of ha
     expect(await crawler.getRequestManager().then((manager) => manager.getPendingCount())).toBe(1);
 }, 30_000);
 
+test('a domain is paced even when its requests come from the wrapped manager', async () => {
+    let hits = 0;
+    router.set('/from-a-list', (req, res) => {
+        hits++;
+        res.statusCode = 429;
+        res.end();
+    });
+
+    const requestList = await RequestList.open(null, [`${url}/from-a-list`]);
+
+    const crawler = new HttpCrawler({
+        requestManager: new ThrottlingRequestManager({
+            inner: await requestList.toTandem(await RequestQueue.open()),
+            domains: ['127.0.0.1'],
+            baseDelaySecs: 0.5,
+            maxDelaySecs: 1,
+            maxDomainStallSecs: 1,
+        }),
+        maxRequestRetries: 0,
+        requestHandler: async () => {},
+    });
+
+    await expect(crawler.run()).rejects.toThrow(PersistentRateLimitError);
+
+    // A handful of paced attempts, rather than one per turn of the task loop for as long as the crawl lives.
+    expect(hits).toBeLessThan(10);
+}, 30_000);
+
 test('`keepAlive` outlives a domain that never stops rate-limiting', async () => {
     router.set('/always-429-keep-alive', (req, res) => {
         res.statusCode = 429;
@@ -714,4 +788,71 @@ test('`keepAlive` outlives a domain that never stops rate-limiting', async () =>
 
     await crawler.teardown();
     await running;
+}, 30_000);
+
+test('a 429 on a request taken from a `requestList` is paced too', async () => {
+    const hits: number[] = [];
+    router.set('/429-then-ok-from-list', (req, res) => {
+        hits.push(Date.now());
+        if (hits.length === 1) {
+            res.statusCode = 429;
+            res.setHeader('retry-after', '1');
+            res.end();
+            return;
+        }
+        res.setHeader('content-type', 'text/html');
+        res.end('<html><body>ok</body></html>');
+    });
+
+    const handled: string[] = [];
+    const requestList = await RequestList.open(null, [`${url}/429-then-ok-from-list`]);
+    const throttler = new ThrottlingRequestManager({
+        inner: await RequestQueue.open(),
+        domains: ['127.0.0.1'],
+    });
+
+    const crawler = new HttpCrawler({
+        // The tandem forwards the 429 to the pacer nested inside it, so a request transferred out of the
+        // list is backed off rather than handed straight back to the handler.
+        requestManager: await requestList.toTandem(throttler),
+        maxRequestRetries: 0,
+        requestHandler: async ({ request }) => {
+            handled.push(request.url);
+        },
+    });
+
+    const stats = await crawler.run();
+
+    // `maxRequestRetries: 0` would have failed the request outright had the 429 been charged as a retry.
+    expect(handled).toEqual([`${url}/429-then-ok-from-list`]);
+    expect(stats.requestsFailed).toBe(0);
+
+    expect(hits).toHaveLength(2);
+    expect(hits[1] - hits[0]).toBeGreaterThanOrEqual(1000);
+}, 30_000);
+
+test('an unthrottled 429 is handled like any other response, with a single warning', async () => {
+    let hits = 0;
+    router.set('/429-unthrottled', (req, res) => {
+        hits++;
+        res.statusCode = 429;
+        res.end();
+    });
+
+    const crawler = new HttpCrawler({
+        maxRequestRetries: 0,
+        requestHandler: async () => {},
+    });
+
+    const warning = vitest.spyOn(crawler.log, 'warning').mockImplementation(() => {});
+
+    const stats = await crawler.run([`${url}/429-unthrottled`]);
+
+    // No pacer, so the 429 stays a plain blocked response and costs the request its only retry.
+    expect(stats.requestsFailed).toBe(1);
+    expect(hits).toBe(1);
+
+    const rateLimitWarnings = warning.mock.calls.filter(([message]) => message.includes('HTTP 429'));
+    expect(rateLimitWarnings).toHaveLength(1);
+    expect(rateLimitWarnings[0][0]).toMatch(/`sameDomainDelaySecs`.*`ThrottlingRequestManager`/s);
 }, 30_000);

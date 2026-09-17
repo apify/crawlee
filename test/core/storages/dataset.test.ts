@@ -719,3 +719,17 @@ describe('dataset', () => {
         });
     });
 });
+
+describe('Dataset.purge', () => {
+    test('empties the dataset but keeps it usable', async () => {
+        const dataset = await Dataset.open();
+        await dataset.pushData([{ n: 1 }, { n: 2 }]);
+
+        await dataset.purge();
+
+        await expect(dataset.getData()).resolves.toMatchObject({ items: [], total: 0 });
+
+        await dataset.pushData({ n: 3 });
+        await expect(dataset.getData()).resolves.toMatchObject({ items: [{ n: 3 }] });
+    });
+});

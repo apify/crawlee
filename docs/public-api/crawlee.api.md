@@ -5,7 +5,8 @@
 ```ts
 
 import { downloadListOfUrls } from '@crawlee/utils';
-import { Log } from '@apify/log';
+import { extractMicrodata } from '@crawlee/utils';
+import { Log } from '@crawlee/core';
 import { parseOpenGraph } from '@crawlee/utils';
 import { playwrightUtils } from '@crawlee/playwright';
 import { puppeteerUtils } from '@crawlee/puppeteer';
@@ -21,6 +22,7 @@ export const utils: {
     sleep: typeof sleep;
     downloadListOfUrls: typeof downloadListOfUrls;
     parseOpenGraph: typeof parseOpenGraph;
+    extractMicrodata: typeof extractMicrodata;
 };
 
 
@@ -31,8 +33,6 @@ export * from "@crawlee/cheerio";
 export * from "@crawlee/core";
 export * from "@crawlee/fs-storage";
 export * from "@crawlee/http";
-export * from "@crawlee/jsdom";
-export * from "@crawlee/linkedom";
 export * from "@crawlee/playwright";
 export * from "@crawlee/puppeteer";
 export * from "@crawlee/utils";

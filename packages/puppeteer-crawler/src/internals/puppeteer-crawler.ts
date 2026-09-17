@@ -314,7 +314,6 @@ export class PuppeteerCrawler<
                     ...options,
                     configuration: serviceLocator.getConfiguration(),
                 }),
-            closeCookieModals: async () => puppeteerUtils.closeCookieModals(context.page),
         };
     }
 

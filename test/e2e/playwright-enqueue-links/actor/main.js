@@ -14,13 +14,11 @@ const mainOptions = {
 await Actor.main(async () => {
     const crawler = new PlaywrightCrawler({
         maxRequestsPerCrawl: 30,
-        requestHandler: async ({ page, request, enqueueLinks, closeCookieModals }) => {
+        requestHandler: async ({ page, request, enqueueLinks }) => {
             const { url, loadedUrl } = request;
 
             const pageTitle = await page.title();
             log.info(`URL: ${url}; LOADED_URL: ${loadedUrl}; TITLE: ${pageTitle}`);
-
-            await closeCookieModals();
 
             const results = await enqueueLinks();
 

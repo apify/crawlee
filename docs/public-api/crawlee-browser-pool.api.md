@@ -88,6 +88,7 @@ export abstract class BrowserController<Library extends CommonLibrary = CommonLi
     protected abstract _setCookies(page: NewPageResult, cookies: Cookie[]): Promise<void>;
     // (undocumented)
     totalPages: number;
+    waitForActive(): Promise<void>;
 }
 
 // @public (undocumented)
@@ -228,6 +229,7 @@ export class BrowserPool<Options extends BrowserPoolOptions = BrowserPoolOptions
     prePageCloseHooks: PrePageCloseHook<BrowserControllerReturn, PageReturn>[];
     // (undocumented)
     prePageCreateHooks: PrePageCreateHook<BrowserControllerReturn, PageOptions>[];
+    releaseAllBrowsers(): Promise<void>;
     retireAllBrowsers(): void;
     // (undocumented)
     retireBrowserAfterPageCount: number;
@@ -586,6 +588,7 @@ export class RemoteBrowserPool<Page = unknown> implements IBrowserPool<Page> {
     get maxOpenBrowsers(): number;
     set maxOpenBrowsers(value: number);
     newPage(options?: NewPageOptions): Promise<Page>;
+    releaseAllBrowsers(): Promise<void>;
 }
 
 // @public (undocumented)
@@ -646,7 +649,7 @@ type SafeParameters<T extends (...args: any) => any> = unknown[] extends Paramet
 
 // Not exported by the entry point; reachable only as a referenced type.
 // @public (undocumented)
-const SUPPORTED_HTTP_VERSIONS: readonly ["1", "2"];
+const SUPPORTED_HTTP_VERSIONS: readonly ['1', '2'];
 
 // @public (undocumented)
 export type UnwrapPromise<T> = T extends PromiseLike<infer R> ? UnwrapPromise<R> : T;

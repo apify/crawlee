@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 566" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" role="img" aria-label="Plain Playwright, patchright and invisible_playwright compared field by field across four open detectors">
+  <!-- self-contained light card so it reads on any page theme -->
+  <rect x="0" y="0" width="900" height="566" rx="18" fill="#ffffff"/>
+  <rect x="0.5" y="0.5" width="899" height="565" rx="18" fill="none" stroke="#e3e6ea" stroke-width="1"/>
+
+  <!-- header -->
+  <text x="40" y="52" font-size="26" font-weight="700" fill="#14181f">Do all the fields describe one machine?</text>
+  <text x="40" y="80" font-size="14.5" fill="#5b6470">Four open detectors, one path, headless, locale pinned. Six runs each; every value identical across all six.</text>
+
+  <!-- column headers -->
+  <g font-size="15.5" font-weight="700" text-anchor="middle">
+    <text x="415" y="128" fill="#333a44">Plain Playwright</text>
+    <text x="600" y="128" fill="#333a44">patchright</text>
+    <text x="785" y="128" fill="#166a49">invisible_playwright</text>
+  </g>
+  <g font-size="11.5" text-anchor="middle" fill="#8b95a1">
+    <text x="415" y="146">nothing added</text>
+    <text x="600" y="146">driver patch</text>
+    <text x="785" y="146">engine patch</text>
+  </g>
+  <line x1="40" y1="158" x2="860" y2="158" stroke="#e3e6ea" stroke-width="1"/>
+
+  <!-- Row 1: sannysoft -->
+  <text x="40" y="197" font-size="14" font-weight="600" fill="#333a44">sannysoft</text>
+  <text x="40" y="214" font-size="11" fill="#8b95a1">graded rows passed</text>
+  <g text-anchor="middle" font-size="15" font-weight="700">
+    <rect x="352" y="182" width="126" height="34" rx="8" fill="#fbe9e7"/><text x="415" y="204" fill="#b23227">4 / 11</text>
+    <rect x="537" y="182" width="126" height="34" rx="8" fill="#fdf0e3"/><text x="600" y="204" fill="#a9611b">5 / 11</text>
+    <rect x="722" y="182" width="126" height="34" rx="8" fill="#e4f5ec"/><text x="785" y="204" fill="#12764f">10 / 11</text>
+  </g>
+
+  <!-- Row 2: CreepJS -->
+  <text x="40" y="255" font-size="14" font-weight="600" fill="#333a44">CreepJS</text>
+  <text x="40" y="272" font-size="11" fill="#8b95a1">"headless" score</text>
+  <g text-anchor="middle" font-size="15" font-weight="700">
+    <rect x="352" y="240" width="126" height="34" rx="8" fill="#fbe9e7"/><text x="415" y="262" fill="#b23227">100%</text>
+    <rect x="537" y="240" width="126" height="34" rx="8" fill="#fdf0e3"/><text x="600" y="262" fill="#a9611b">67%</text>
+    <rect x="722" y="240" width="126" height="34" rx="8" fill="#e4f5ec"/><text x="785" y="262" fill="#12764f">0%</text>
+  </g>
+
+  <!-- Row 3: BotD -->
+  <text x="40" y="313" font-size="14" font-weight="600" fill="#333a44">BotD</text>
+  <text x="40" y="330" font-size="11" fill="#8b95a1">verdict</text>
+  <g text-anchor="middle" font-size="14" font-weight="700">
+    <rect x="352" y="298" width="126" height="34" rx="8" fill="#fbe9e7"/><text x="415" y="320" fill="#b23227">bot</text>
+    <rect x="537" y="298" width="126" height="34" rx="8" fill="#fbe9e7"/><text x="600" y="320" fill="#b23227">bot</text>
+    <rect x="722" y="298" width="126" height="34" rx="8" fill="#e4f5ec"/><text x="785" y="320" fill="#12764f">not a bot</text>
+  </g>
+
+  <!-- Row 4: WebGL renderer - the contradiction -->
+  <text x="40" y="371" font-size="14" font-weight="600" fill="#333a44">WebGL renderer</text>
+  <text x="40" y="388" font-size="11" fill="#8b95a1">the GPU it claims to have</text>
+  <g text-anchor="middle" font-size="13" font-weight="700">
+    <rect x="352" y="356" width="126" height="34" rx="8" fill="#fbe9e7"/><text x="415" y="378" fill="#b23227">SwiftShader</text>
+    <rect x="537" y="356" width="126" height="34" rx="8" fill="#fbe9e7"/><text x="600" y="378" fill="#b23227">SwiftShader</text>
+    <rect x="722" y="356" width="126" height="34" rx="8" fill="#e4f5ec"/><text x="785" y="378" fill="#12764f">AMD Radeon</text>
+  </g>
+  <text x="600" y="404" text-anchor="middle" font-size="11.5" font-weight="700" fill="#b23227">a desktop Chrome with no graphics card</text>
+
+  <!-- Row 5: identity -->
+  <text x="40" y="435" font-size="14" font-weight="600" fill="#333a44">Identity</text>
+  <text x="40" y="452" font-size="11" fill="#8b95a1">FingerprintJS visitor id</text>
+  <g text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13.5" font-weight="700">
+    <rect x="352" y="420" width="126" height="34" rx="8" fill="#fbe9e7"/><text x="415" y="442" fill="#b23227">8a40e307</text>
+    <rect x="537" y="420" width="126" height="34" rx="8" fill="#fbe9e7"/><text x="600" y="442" fill="#b23227">8a40e307</text>
+    <rect x="722" y="420" width="126" height="34" rx="8" fill="#e4f5ec"/><text x="785" y="442" fill="#12764f">dafa1374</text>
+  </g>
+  <path d="M415 462 L415 472 L600 472 L600 462" fill="none" stroke="#b23227" stroke-width="1.4"/>
+  <text x="507" y="489" text-anchor="middle" font-size="12" font-weight="700" fill="#b23227">byte-identical: the same machine twice</text>
+  <text x="785" y="476" text-anchor="middle" font-size="12" font-weight="700" fill="#12764f">one identity per seed</text>
+
+  <!-- footer takeaway -->
+  <line x1="40" y1="508" x2="860" y2="508" stroke="#e3e6ea" stroke-width="1"/>
+  <text x="40" y="532" font-size="13.5" fill="#5b6470">A driver patch quiets the automation tells without touching the machine underneath: patchright claims to be an ordinary</text>
+  <text x="40" y="550" font-size="13.5" fill="#5b6470">desktop Chrome that has no GPU, carrying the identity of the unpatched one. Not a wrong value - two that disagree.</text>
+</svg>

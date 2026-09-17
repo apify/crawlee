@@ -5,4 +5,4 @@ await initialize(testActorDirname);
 
 const { stats } = await runActor(testActorDirname, 16384);
 
-await expect(stats.requestsFinished >= 10, 'All requests finished');
+await expect(stats.requestsSucceeded >= 10, 'All requests finished');

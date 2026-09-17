@@ -1,15 +1,7 @@
 import os from 'node:os';
 
-import {
-    Configuration,
-    type EventLoopLoadSignal,
-    EventType,
-    LocalEventManager,
-    MemoryLoadSignal,
-    serviceLocator,
-    Snapshotter,
-    StorageBackendLoadSignal,
-} from '@crawlee/core';
+import { type EventLoopLoadSignal, MemoryLoadSignal, Snapshotter, StorageBackendLoadSignal } from '@crawlee/basic';
+import { Configuration, EventType, LocalEventManager, serviceLocator } from '@crawlee/core';
 import type { MemoryInfo } from '../../../packages/core/src/system-info/memory-info.js';
 import * as utils from '../../../packages/core/src/system-info/memory-info.js';
 import { sleep } from '@crawlee/utils';

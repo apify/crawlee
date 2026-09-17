@@ -5,15 +5,20 @@ import type { AddressInfo } from 'node:net';
 
 import type {
     BasicCrawlerOptions,
+    CalculatedStatistics,
     EnqueueLinksOptions,
     ErrorHandler,
+    IConcurrencySystem,
+    IStatistics,
     RequestHandler,
     RequestOptions,
+    Session,
     Source,
 } from '@crawlee/basic';
-import type { Session } from '@crawlee/basic';
 import {
+    AfterCommitError,
     BasicCrawler,
+    ConcurrencySystem,
     Configuration,
     CriticalError,
     Dataset,
@@ -26,6 +31,8 @@ import {
     ProxyConfiguration,
     Request,
     RequestList,
+    RequestManagerTandem,
+    STATE_PERSISTENCE_KEY,
     RequestQueue,
     RequestValidationError,
     Router,
@@ -34,8 +41,7 @@ import {
     Statistics,
     ThrottlingRequestManager,
 } from '@crawlee/basic';
-import type { CalculatedStatistics, IConcurrencySystem, IStatistics } from '@crawlee/core';
-import { ConcurrencySystem, MemoryStorageBackend, RequestState } from '@crawlee/core';
+import { MemoryStorageBackend, RequestState } from '@crawlee/core';
 import { BaseHttpClient } from '@crawlee/http-client';
 import type { Dictionary, ISession, ProxyInfo } from '@crawlee/types';
 import { RobotsTxtFile, sleep } from '@crawlee/utils';
@@ -199,8 +205,7 @@ describe('BasicCrawler', () => {
 
         expect((basicCrawler.concurrencySystem! as ConcurrencySystem).minConcurrency).toBe(25);
         expect(processed).toEqual(sourcesCopy);
-        expect(await requestList.isFinished()).toBe(true);
-        expect(await requestList.isEmpty()).toBe(true);
+        expect((await requestList.checkReadiness()).status).toBe('finished');
     });
 
     test('accepts a `requestManager` and crawls from it', async () => {
@@ -276,7 +281,7 @@ describe('BasicCrawler', () => {
         expect(bookedFor).toEqual(new Set(['crawler-a', 'crawler-b']));
     });
 
-    test.each(['minConcurrency', 'maxConcurrency', 'maxRequestsPerMinute'] as const)(
+    test.each(['minConcurrency', 'maxConcurrency', 'initialConcurrency', 'maxRequestsPerMinute'] as const)(
         'throws when %s is combined with a supplied concurrencySystem',
         (shortcut) => {
             expect(
@@ -339,8 +344,13 @@ describe('BasicCrawler', () => {
             requestHandler,
         });
 
+        const queue = await basicCrawler.getRequestQueue();
+
+        // Nothing is emptied between runs, so the same sources are only re-crawled after a purge.
         await basicCrawler.run(sources);
+        await queue.purge?.();
         await basicCrawler.run(sources);
+        await queue.purge?.();
         await basicCrawler.run(sources);
 
         expect(processed).toHaveLength(sourcesCopy.length * 3);
@@ -367,6 +377,41 @@ describe('BasicCrawler', () => {
         expect(secondSystem.desiredConcurrency).toBeLessThanOrEqual(2);
     });
 
+    test('running tracks the run in progress', async () => {
+        let runningInHandler: boolean | undefined;
+        const crawler = new BasicCrawler({
+            requestHandler: async () => {
+                runningInHandler = crawler.running;
+            },
+        });
+
+        expect(crawler.running).toBe(false);
+        await crawler.run(['https://example.com/1']);
+
+        expect(runningInHandler).toBe(true);
+        expect(crawler.running).toBe(false);
+    });
+
+    test('pause(), resume() and stop() warn once the run has finished', async () => {
+        const crawler = new BasicCrawler({
+            requestHandler: async () => {},
+        });
+
+        await crawler.run(['https://example.com/1']);
+
+        const warning = vitest.spyOn(crawler.log, 'warning');
+        await crawler.pause();
+        crawler.resume();
+        crawler.stop();
+
+        // The finished run's task loop is aborted, so driving it would do nothing while looking like it worked.
+        expect(warning.mock.calls.map(([message]) => message)).toEqual([
+            'Cannot pause a crawler that is not running.',
+            'Cannot resume a crawler that is not running.',
+            'Cannot stop a crawler that is not running.',
+        ]);
+    });
+
     test('stops the owned ConcurrencySystem when startup fails after it was started', async () => {
         const crawler = new BasicCrawler({
             requestHandler: async () => {},
@@ -388,6 +433,28 @@ describe('BasicCrawler', () => {
         // A failed startup is not a run, so the crawler must not stay wedged as `running`.
         getRequestManager.mockRestore();
         await crawler.run(['https://example.com/2']);
+    });
+
+    test('a startup that fails before the crawl leaves the instance runnable', async () => {
+        const processed: string[] = [];
+        const crawler = new BasicCrawler({
+            requestHandler: async ({ request }) => {
+                processed.push(request.url);
+            },
+        });
+
+        const failure = new Error('Could not add the initial requests');
+        // Enqueueing the initial requests happens before the crawl starts, and used to happen outside the
+        // startup's failure handling - leaving the instance wedged as `running` for good.
+        const addRequests = vitest.spyOn(crawler, 'addRequests').mockRejectedValue(failure);
+
+        await expect(crawler.run(['https://example.com/1'])).rejects.toThrow(failure);
+        expect(crawler.running).toBe(false);
+
+        addRequests.mockRestore();
+        await crawler.run(['https://example.com/2']);
+
+        expect(processed).toEqual(['https://example.com/2']);
     });
 
     test('should process 4 requests total when calling run() twice with maxRequestsPerCrawl: 2', async () => {
@@ -427,6 +494,63 @@ describe('BasicCrawler', () => {
             'https://example.com/second/0',
             'https://example.com/second/1',
         ]);
+    });
+
+    describe('a crawl that processes nothing', () => {
+        const crawlTwice = async (betweenRuns?: (crawler: BasicCrawler) => Promise<void>) => {
+            const processed: string[] = [];
+            const crawler = new BasicCrawler({
+                requestHandler: async ({ request }) => {
+                    processed.push(request.url);
+                },
+            });
+            const warning = vitest.spyOn(crawler.log, 'warning');
+
+            await crawler.run(['https://example.com/only']);
+            await betweenRuns?.(crawler);
+            await crawler.run(['https://example.com/only']);
+
+            return { processed, warning };
+        };
+
+        test('leaves already handled requests alone and says so', async () => {
+            const { processed, warning } = await crawlTwice();
+
+            expect(processed).toEqual(['https://example.com/only']);
+            expect(warning).toHaveBeenCalledWith(expect.stringMatching(/processed no requests/));
+        });
+
+        test('re-crawls the requests when the queue is purged in between', async () => {
+            const { processed, warning } = await crawlTwice(async (crawler) => {
+                await (await crawler.getRequestQueue()).purge?.();
+            });
+
+            expect(processed).toEqual(['https://example.com/only', 'https://example.com/only']);
+            expect(warning).not.toHaveBeenCalledWith(expect.stringMatching(/processed no requests/));
+        });
+
+        test('warns a crawler on its first run, over a queue another crawler exhausted', async () => {
+            const requestQueue = await RequestQueue.open();
+            const first = new BasicCrawler({ requestQueue, requestHandler: async () => {} });
+            await first.run(['https://example.com/only']);
+
+            const second = new BasicCrawler({ requestQueue, requestHandler: async () => {} });
+            const warning = vitest.spyOn(second.log, 'warning');
+
+            await second.run(['https://example.com/only']);
+
+            expect(warning).toHaveBeenCalledWith(expect.stringMatching(/processed no requests/));
+        });
+
+        test('says nothing when there was nothing to crawl in the first place', async () => {
+            // An empty queue is not evidence of a mistake - only requests that turn out to be handled are.
+            const crawler = new BasicCrawler({ requestHandler: async () => {} });
+            const warning = vitest.spyOn(crawler.log, 'warning');
+
+            await crawler.run();
+
+            expect(warning).not.toHaveBeenCalledWith(expect.stringMatching(/processed no requests/));
+        });
     });
 
     test('addRequests should respect maxCrawlDepth', async () => {
@@ -535,8 +659,12 @@ describe('BasicCrawler', () => {
 
             const skippedRequests = onSkippedRequestMock.mock.calls.map((call) => call[0]);
             expect(skippedRequests).toHaveLength(2);
-            expect(skippedRequests[0]).toStrictEqual({ url: 'https://example.com/1/', reason: 'depth' });
-            expect(skippedRequests[1]).toStrictEqual({ url: 'https://example.com/2/', reason: 'depth' });
+            expect(skippedRequests[0].reason).toBe('depth');
+            expect(skippedRequests[0].request).toBeInstanceOf(Request);
+            expect(skippedRequests[0].request.url).toBe('https://example.com/1/');
+            expect(skippedRequests[1].reason).toBe('depth');
+            expect(skippedRequests[1].request).toBeInstanceOf(Request);
+            expect(skippedRequests[1].request.url).toBe('https://example.com/2/');
         });
 
         it('should respect user provided transformRequestFunction', async () => {
@@ -565,8 +693,10 @@ describe('BasicCrawler', () => {
 
                 const skippedRequests = onSkippedRequestMock.mock.calls.map((call) => call[0]);
                 expect(skippedRequests).toHaveLength(2);
-                expect(skippedRequests[0]).toStrictEqual({ url: 'https://example.com/1/', reason: 'transform' });
-                expect(skippedRequests[1]).toStrictEqual({ url: 'https://example.com/2/', reason: 'transform' });
+                expect(skippedRequests[0].reason).toBe('transform');
+                expect(skippedRequests[0].request.url).toBe('https://example.com/1/');
+                expect(skippedRequests[1].reason).toBe('transform');
+                expect(skippedRequests[1].request.url).toBe('https://example.com/2/');
             },
         );
 
@@ -585,8 +715,148 @@ describe('BasicCrawler', () => {
             // The skipped reason should be 'depth', not 'transform'
             const skippedRequests = onSkippedRequestMock.mock.calls.map((call) => call[0]);
             expect(skippedRequests).toHaveLength(2);
-            expect(skippedRequests[0]).toStrictEqual({ url: 'https://example.com/1/', reason: 'depth' });
-            expect(skippedRequests[1]).toStrictEqual({ url: 'https://example.com/2/', reason: 'depth' });
+            expect(skippedRequests[0].reason).toBe('depth');
+            expect(skippedRequests[0].request).toBeInstanceOf(Request);
+            expect(skippedRequests[0].request.url).toBe('https://example.com/1/');
+            expect(skippedRequests[1].reason).toBe('depth');
+            expect(skippedRequests[1].request).toBeInstanceOf(Request);
+            expect(skippedRequests[1].request.url).toBe('https://example.com/2/');
+        });
+    });
+
+    describe('addRequests() background skip reporting', () => {
+        test('reports filtered requests discovered in background batches', async () => {
+            const onSkippedRequest = vitest.fn();
+            const crawler = new BasicCrawler({
+                requestHandler: async () => {},
+                onSkippedRequest,
+            });
+
+            const inScope = Array.from({ length: 2_000 }, (_, i) => `https://example.com/ok/${i}`);
+            const outOfScope = Array.from({ length: 50 }, (_, i) => `https://other.com/no/${i}`);
+
+            const { addedRequests, waitForAllRequestsToBeAdded } = await crawler.addRequests(
+                [...inScope, ...outOfScope],
+                {
+                    waitBetweenBatchesMillis: 0,
+                    include: ['https://example.com/**'],
+                },
+            );
+            const backgroundAddedRequests = await waitForAllRequestsToBeAdded;
+
+            expect(addedRequests).toHaveLength(1_000);
+            expect(backgroundAddedRequests).toHaveLength(1_000);
+            expect(onSkippedRequest.mock.calls.map(([{ request, reason }]) => ({ url: request.url, reason }))).toEqual(
+                outOfScope.map((url) => ({ url, reason: 'filters' })),
+            );
+        });
+
+        test('background onSkippedRequest rejection rejects the background completion promise', async () => {
+            const crawler = new BasicCrawler({
+                requestHandler: async () => {},
+                onSkippedRequest: async () => {
+                    throw new Error('onSkippedRequest failed');
+                },
+            });
+
+            const { addedRequests, waitForAllRequestsToBeAdded } = await crawler.addRequests(
+                [
+                    'https://example.com/1',
+                    'https://example.com/2',
+                    'https://example.com/3',
+                    'https://example.com/4',
+                    'https://other.com/no',
+                ],
+                {
+                    batchSize: 2,
+                    waitBetweenBatchesMillis: 0,
+                    include: ['https://example.com/**'],
+                },
+            );
+
+            expect(addedRequests).toHaveLength(2);
+            await expect(waitForAllRequestsToBeAdded).rejects.toThrow('onSkippedRequest failed');
+        });
+
+        test('a background onSkippedRequest rejection stays handled when nobody awaits the addition', async () => {
+            const reportStarted = Promise.withResolvers<void>();
+            const crawler = new BasicCrawler({
+                requestHandler: async () => {},
+                onSkippedRequest: async () => {
+                    reportStarted.resolve();
+                    throw new Error('onSkippedRequest failed');
+                },
+            });
+
+            const unhandled: unknown[] = [];
+            const collectUnhandled = (reason: unknown) => unhandled.push(reason);
+            process.on('unhandledRejection', collectUnhandled);
+
+            try {
+                // Deliberately dropping `waitForAllRequestsToBeAdded`: that is the default way to call
+                // `addRequests`, and the background skip report rejecting there must not take the process down.
+                await crawler.addRequests(
+                    [
+                        'https://example.com/1',
+                        'https://example.com/2',
+                        'https://example.com/3',
+                        'https://example.com/4',
+                        'https://other.com/no',
+                    ],
+                    {
+                        batchSize: 2,
+                        waitBetweenBatchesMillis: 0,
+                        include: ['https://example.com/**'],
+                    },
+                );
+
+                await reportStarted.promise;
+                // Node only flags a rejection as unhandled once the tick's microtasks have drained.
+                const nextTick = Promise.withResolvers<void>();
+                setImmediate(nextTick.resolve);
+                await nextTick.promise;
+            } finally {
+                process.off('unhandledRejection', collectUnhandled);
+            }
+
+            expect(unhandled).toEqual([]);
+        });
+
+        test('drains foreground and background robots.txt skips exactly once', async () => {
+            const onSkippedRequest = vitest.fn();
+            const crawler = new BasicCrawler({
+                requestHandler: async () => {},
+                onSkippedRequest,
+            });
+            vitest
+                .spyOn(crawler as any, 'isAllowedBasedOnRobotsTxtFile')
+                .mockImplementation(async (url: unknown) => !String(url).includes('/denied'));
+            const warningSpy = vitest.spyOn(crawler.log, 'warning');
+
+            const foregroundDenied = 'https://example.com/denied/foreground';
+            const backgroundDenied = 'https://example.com/denied/background';
+            const { waitForAllRequestsToBeAdded } = await crawler.addRequests(
+                [
+                    foregroundDenied,
+                    'https://example.com/1',
+                    'https://example.com/2',
+                    'https://example.com/3',
+                    'https://example.com/4',
+                    backgroundDenied,
+                ],
+                { batchSize: 2, waitBetweenBatchesMillis: 0 },
+            );
+            await waitForAllRequestsToBeAdded;
+
+            expect(onSkippedRequest.mock.calls.map(([{ request, reason }]) => ({ url: request.url, reason }))).toEqual([
+                { url: foregroundDenied, reason: 'robotsTxt' },
+                { url: backgroundDenied, reason: 'robotsTxt' },
+            ]);
+            expect(
+                warningSpy.mock.calls
+                    .filter(([message]) => message.includes('robots.txt'))
+                    .map(([, details]) => details),
+            ).toEqual([{ skipped: [foregroundDenied] }, { skipped: [backgroundDenied] }]);
         });
     });
 
@@ -624,6 +894,7 @@ describe('BasicCrawler', () => {
         const collect = (crawler: BasicCrawler) => ({
             minConcurrency: (crawler.concurrencySystem! as ConcurrencySystem).minConcurrency,
             maxConcurrency: (crawler.concurrencySystem! as ConcurrencySystem).maxConcurrency,
+            desiredConcurrency: (crawler.concurrencySystem! as ConcurrencySystem).desiredConcurrency,
             // eslint-disable-next-line dot-notation -- private member on the governor
             maxTasksPerMinute: (crawler.concurrencySystem! as ConcurrencySystem)['maxTasksPerMinute'],
         });
@@ -634,11 +905,17 @@ describe('BasicCrawler', () => {
             requestHandler,
             minConcurrency: 123,
             maxConcurrency: 456,
+            initialConcurrency: 234,
             maxRequestsPerMinute: 789,
         });
 
         // An injected system carries its own config (the shortcuts are rejected alongside one, see above).
-        const injectedSystem = new ConcurrencySystem({ minConcurrency: 16, maxConcurrency: 32, maxTasksPerMinute: 64 });
+        const injectedSystem = new ConcurrencySystem({
+            minConcurrency: 16,
+            maxConcurrency: 32,
+            desiredConcurrency: 24,
+            maxTasksPerMinute: 64,
+        });
         const injected = new BasicCrawler({
             requestList,
             requestHandler,
@@ -650,8 +927,18 @@ describe('BasicCrawler', () => {
         await Promise.all([shortcuts.run(), injected.run()]);
         await injectedSystem.stop();
 
-        expect(collect(shortcuts)).toEqual({ minConcurrency: 123, maxConcurrency: 456, maxTasksPerMinute: 789 });
-        expect(collect(injected)).toEqual({ minConcurrency: 16, maxConcurrency: 32, maxTasksPerMinute: 64 });
+        expect(collect(shortcuts)).toEqual({
+            minConcurrency: 123,
+            maxConcurrency: 456,
+            desiredConcurrency: 234,
+            maxTasksPerMinute: 789,
+        });
+        expect(collect(injected)).toEqual({
+            minConcurrency: 16,
+            maxConcurrency: 32,
+            desiredConcurrency: 24,
+            maxTasksPerMinute: 64,
+        });
         // The injected system is the very instance the pool uses.
         expect(injected.concurrencySystem!).toBe(injectedSystem);
     });
@@ -680,8 +967,7 @@ describe('BasicCrawler', () => {
         expect(state.processed).toEqual(sourcesCopy);
         expect(state.processed).toBe(processed);
         expect(state.processed).toEqual(sourcesCopy);
-        expect(await requestList.isFinished()).toBe(true);
-        expect(await requestList.isEmpty()).toBe(true);
+        expect((await requestList.checkReadiness()).status).toBe('finished');
     });
 
     test('print a warning on sharing state between two crawlers', async () => {
@@ -810,8 +1096,11 @@ describe('BasicCrawler', () => {
             });
 
             let finished = false;
-            // Mock the call to persist state.
-            setValueSpy.mockImplementationOnce(persistResolve as any);
+            // Resolve on the RequestList's state write triggered by the event - the periodic persistence also
+            // writes it once at run start, before anything was processed.
+            setValueSpy.mockImplementation(async (key) => {
+                if (key.endsWith(STATE_PERSISTENCE_KEY) && processed.length > 0) persistResolve();
+            });
             // The crawler will pause after 200 requests
             const runPromise = basicCrawler.run();
             void runPromise.then(() => {
@@ -823,8 +1112,7 @@ describe('BasicCrawler', () => {
             await persistPromise;
 
             expect(finished).toBe(false);
-            expect(await requestList.isFinished()).toBe(false);
-            expect(await requestList.isEmpty()).toBe(false);
+            expect((await requestList.checkReadiness()).status).toBe('ready');
             expect(processed.length).toBe(200);
 
             expect(getValueSpy).toBeCalled();
@@ -876,8 +1164,7 @@ describe('BasicCrawler', () => {
         expect(processed['http://example.com/2'].errorMessages).toHaveLength(11);
         expect(processed['http://example.com/2'].retryCount).toBe(10);
 
-        expect(await requestList.isFinished()).toBe(true);
-        expect(await requestList.isEmpty()).toBe(true);
+        expect((await requestList.checkReadiness()).status).toBe('finished');
     });
 
     test('should retry failed requests based on `request.maxRetries`', async () => {
@@ -911,8 +1198,7 @@ describe('BasicCrawler', () => {
         expect(processed['http://example.com/3'].errorMessages).toHaveLength(2);
         expect(processed['http://example.com/3'].retryCount).toBe(1);
 
-        expect(await requestList.isFinished()).toBe(true);
-        expect(await requestList.isEmpty()).toBe(true);
+        expect((await requestList.checkReadiness()).status).toBe('finished');
     });
 
     test('should not retry requests with noRetry set to true', async () => {
@@ -963,8 +1249,7 @@ describe('BasicCrawler', () => {
 
         expect(failedRequestHandlerCalls).toBe(3);
 
-        expect(await requestList.isFinished()).toBe(true);
-        expect(await requestList.isEmpty()).toBe(true);
+        expect((await requestList.checkReadiness()).status).toBe('finished');
     });
 
     test('should correctly track request.state', async () => {
@@ -1077,8 +1362,7 @@ describe('BasicCrawler', () => {
         expect(failed['http://example.com/3'].retryCount).toBe(3);
         expect(Object.values(failed)).toHaveLength(3);
         expect(Object.values(processed)).toHaveLength(0);
-        expect(await requestList.isFinished()).toBe(true);
-        expect(await requestList.isEmpty()).toBe(true);
+        expect((await requestList.checkReadiness()).status).toBe('finished');
         errors.forEach((error) => expect(error).toBeInstanceOf(Error));
     });
 
@@ -1116,8 +1400,7 @@ describe('BasicCrawler', () => {
         expect(failed['http://example.com/3'].errorMessages).toHaveLength(1);
         expect(failed['http://example.com/3'].retryCount).toBe(0);
         expect(Object.values(failed)).toHaveLength(3);
-        expect(await requestList.isFinished()).toBe(true);
-        expect(await requestList.isEmpty()).toBe(true);
+        expect((await requestList.checkReadiness()).status).toBe('finished');
         errors.forEach((error) => expect(error).toBeInstanceOf(NonRetryableError));
     });
 
@@ -1167,7 +1450,7 @@ describe('BasicCrawler', () => {
         await expect(basicCrawler.run()).rejects.toThrow(CriticalError);
 
         expect(failedRequestHandler).not.toBeCalled();
-        expect(await requestList.isFinished()).toBe(false);
+        expect((await requestList.checkReadiness()).status).toBe('ready');
     });
 
     test('should crash on MissingRouteError', async () => {
@@ -1247,8 +1530,12 @@ describe('BasicCrawler', () => {
             .mockReturnValue(Promise.resolve() as any);
         const reclaimReq = vitest.spyOn(requestQueue, 'reclaimRequest').mockReturnValue(Promise.resolve() as any);
 
-        vitest.spyOn(requestQueue, 'isEmpty').mockImplementation(async () => queueContent.length <= 0);
-        vitest.spyOn(requestQueue, 'isFinished').mockResolvedValueOnce(true);
+        // The first probe reporting `finished` is masked by the request list, which still has requests to
+        // transfer into the queue at that point.
+        vitest
+            .spyOn(requestQueue, 'checkReadiness')
+            .mockImplementation(async () => (queueContent.length > 0 ? { status: 'ready' } : { status: 'finished' }))
+            .mockResolvedValueOnce({ status: 'finished' });
 
         await basicCrawler.run();
 
@@ -1268,15 +1555,14 @@ describe('BasicCrawler', () => {
         expect(processed['http://example.com/1'].errorMessages).toHaveLength(4);
         expect(processed['http://example.com/1'].retryCount).toBe(3);
 
-        expect(await requestList.isFinished()).toBe(true);
-        expect(await requestList.isEmpty()).toBe(true);
+        expect((await requestList.checkReadiness()).status).toBe('finished');
 
         vitest.restoreAllMocks();
     });
 
     test('should say that task is not ready requestList is not set and requestQueue is empty', async () => {
         const requestQueue = await RequestQueue.open({ id: 'xxx' });
-        requestQueue.isEmpty = async () => Promise.resolve(true);
+        requestQueue.checkReadiness = async () => Promise.resolve({ status: 'waiting' });
 
         const crawler = new BasicCrawler({
             requestQueue,
@@ -1308,16 +1594,13 @@ describe('BasicCrawler', () => {
                     isTaskReadyFunctionCalled = true;
                     return Promise.resolve(!isFinished);
                 },
+                maybeRunIntervalSecs: 0.05,
             },
             requestHandler: async ({ request }) => {
                 await sleep(10);
                 processed.push(request);
             },
         });
-
-        // Speed up the test
-        // @ts-expect-error Accessing private prop
-        basicCrawler.taskLoopOptions.maybeRunIntervalSecs = 0.05;
 
         const request0 = new Request({ url: 'http://example.com/0' });
         const request1 = new Request({ url: 'http://example.com/1' });
@@ -1337,10 +1620,10 @@ describe('BasicCrawler', () => {
             return Promise.resolve() as any;
         });
 
-        const isFinishedOrig = vitest.spyOn(requestQueue, 'isFinished');
-
+        // The stub reports `finished` as soon as the queue runs dry; the crawl carries on because the task loop
+        // defers to the custom `isFinishedFunction`.
         requestQueue.fetchNextRequest = async () => queue.pop()!;
-        requestQueue.isEmpty = async () => Promise.resolve(!queue.length);
+        requestQueue.checkReadiness = async () => (queue.length ? { status: 'ready' } : { status: 'finished' });
 
         // Add requests with buffer time for crawler startup.
         // Use longer delays to avoid flakiness under CPU load from parallel tests.
@@ -1351,7 +1634,6 @@ describe('BasicCrawler', () => {
 
         expect(markRequestAsHandled).toBeCalledWith(request0);
         expect(markRequestAsHandled).toBeCalledWith(request1);
-        expect(isFinishedOrig).not.toBeCalled();
         expect(isFinishedFunctionCalled).toBe(true);
         expect(isTaskReadyFunctionCalled).toBe(true);
 
@@ -1369,15 +1651,14 @@ describe('BasicCrawler', () => {
         const basicCrawler = new BasicCrawler({
             requestQueue,
             keepAlive: true,
+            taskLoopOptions: {
+                maybeRunIntervalSecs: 0.05,
+            },
             requestHandler: async ({ request }) => {
                 await sleep(10);
                 processed.push(request);
             },
         });
-
-        // Speed up the test
-        // @ts-expect-error Accessing private prop
-        basicCrawler.taskLoopOptions.maybeRunIntervalSecs = 0.05;
 
         const request0 = new Request({ url: 'http://example.com/0' });
         const request1 = new Request({ url: 'http://example.com/1' });
@@ -1387,10 +1668,10 @@ describe('BasicCrawler', () => {
             .spyOn(requestQueue, 'markRequestAsHandled')
             .mockReturnValue(Promise.resolve() as any);
 
-        const isFinishedOrig = vitest.spyOn(requestQueue, 'isFinished');
-
+        // The stub reports `finished` whenever the queue runs dry - `keepAlive` is what carries the crawler
+        // through those gaps, until `teardown()` ends the run.
         requestQueue.fetchNextRequest = async () => Promise.resolve(queue.pop()!);
-        requestQueue.isEmpty = async () => Promise.resolve(!queue.length);
+        requestQueue.checkReadiness = async () => (queue.length ? { status: 'ready' } : { status: 'finished' });
 
         // Use longer delays to avoid flakiness under CPU load from parallel tests.
         setTimeout(() => queue.push(request0), 500);
@@ -1403,7 +1684,6 @@ describe('BasicCrawler', () => {
 
         expect(markRequestAsHandled).toBeCalledWith(request0);
         expect(markRequestAsHandled).toBeCalledWith(request1);
-        expect(isFinishedOrig).not.toBeCalled();
 
         // TODO: see why the request1 was passed as a second parameter to includes
         expect(processed.includes(request0)).toBe(true);
@@ -1803,8 +2083,7 @@ describe('BasicCrawler', () => {
         });
 
         const maxSignedInteger = 2 ** 31 - 1;
-        // @ts-expect-error Accessing private prop
-        expect(crawler.requestHandlerTimeoutMillis).toBe(maxSignedInteger);
+        expect(crawler['resolveRequestHandlerTimeoutMillis'](undefined)).toBe(maxSignedInteger);
         // @ts-expect-error Accessing private prop
         expect(crawler.internalTimeoutMillis).toBe(maxSignedInteger);
     });
@@ -2034,21 +2313,23 @@ describe('BasicCrawler', () => {
             const url = 'https://example.com';
             const requestList = await RequestList.open({ sources: [{ url }] });
 
+            const sessionPool = new SessionPool({
+                maxPoolSize: 10,
+                persistStateKey: 'POOL',
+            });
+
             const crawler = new BasicCrawler({
                 requestList,
                 requestHandlerTimeoutSecs: 0.01,
                 maxRequestRetries: 1,
-                sessionPool: new SessionPool({
-                    maxPoolSize: 10,
-                    persistStateKey: 'POOL',
-                }),
+                sessionPool,
                 requestHandler: async () => {},
                 failedRequestHandler: async () => {},
             });
             await crawler.run();
 
-            // @ts-expect-error private symbol
-            expect(crawler.sessionPool.maxPoolSize).toEqual(10);
+            expect(crawler.sessionPool).toBeDefined();
+            expect((await sessionPool.getState()).sessions).toHaveLength(1);
         });
 
         it('should accept a pre-initialized SessionPool instance', async () => {
@@ -2147,7 +2428,7 @@ describe('BasicCrawler', () => {
 
             await crawler.run();
 
-            expect(stats.state.requestsFinished).toBe(1);
+            expect(stats.state.requestsSucceeded).toBe(1);
         });
 
         it('drives a foreign IStatistics implementation through the interface alone', async () => {
@@ -2156,15 +2437,15 @@ describe('BasicCrawler', () => {
             const customStats: IStatistics = {
                 errorTracker: new ErrorTracker(),
                 errorTrackerRetry: new ErrorTracker(),
-                state: { requestsFinished: 0 } as IStatistics['state'],
+                state: { requestsSucceeded: 0 } as IStatistics['state'],
                 requestRetryHistogram: [],
-                startJob: () => calls.push('startJob'),
-                finishJob: () => {
-                    customStats.state.requestsFinished += 1;
-                    calls.push('finishJob');
+                recordRequestStart: () => calls.push('recordRequestStart'),
+                recordRequestSuccess: () => {
+                    customStats.state.requestsSucceeded += 1;
+                    calls.push('recordRequestSuccess');
                 },
-                failJob: () => {},
-                discardJob: () => {},
+                recordRequestFailure: () => {},
+                discardRequestRecord: () => {},
                 registerStatusCode: () => {},
                 calculate: () => ({}) as CalculatedStatistics,
                 startCapturing: async () => void calls.push('startCapturing'),
@@ -2177,8 +2458,8 @@ describe('BasicCrawler', () => {
 
             await crawler.run([{ url: 'https://example.com' }]);
 
-            expect(calls).toEqual(['startCapturing', 'startJob', 'finishJob', 'stopCapturing']);
-            expect(customStats.state.requestsFinished).toBe(1);
+            expect(calls).toEqual(['startCapturing', 'recordRequestStart', 'recordRequestSuccess', 'stopCapturing']);
+            expect(customStats.state.requestsSucceeded).toBe(1);
         });
 
         it('exposes the custom state fields of a supplied instance on crawler.statistics', async () => {
@@ -2215,7 +2496,7 @@ describe('BasicCrawler', () => {
 
             // Two runs, one request each - the injected instance keeps accumulating instead of being wiped.
             expect(resetSpy).not.toHaveBeenCalled();
-            expect(stats.state.requestsFinished).toBe(2);
+            expect(stats.state.requestsSucceeded).toBe(2);
 
             const owningCrawler = new BasicCrawler({
                 requestHandler: async () => {},
@@ -2229,7 +2510,7 @@ describe('BasicCrawler', () => {
 
             // A crawler-owned default is wiped at the start of each run.
             expect(ownedResetSpy).toHaveBeenCalled();
-            expect(owningCrawler.statistics.state.requestsFinished).toBe(1);
+            expect(owningCrawler.statistics.state.requestsSucceeded).toBe(1);
         });
     });
 
@@ -2407,7 +2688,7 @@ describe('BasicCrawler', () => {
                 requestHandler: async () => {},
             });
 
-            crawler.statistics.state.requestsFinished = 2;
+            crawler.statistics.state.requestsSucceeded = 2;
 
             // Try to add 6 requests - should only add 3 due to limit
             const requestsToAdd = [
@@ -2440,7 +2721,7 @@ describe('BasicCrawler', () => {
                 requestHandler: async () => {},
             });
 
-            crawler.statistics.state.requestsFinished = 1;
+            crawler.statistics.state.requestsSucceeded = 1;
 
             // First call - should add 2 requests (2 more slots to go)
             await crawler.addRequests(['http://example.com/1', 'http://example.com/2']);
@@ -2489,7 +2770,7 @@ describe('BasicCrawler', () => {
                 requestHandler: async () => {},
             });
 
-            crawler.statistics.state.requestsFinished = 0;
+            crawler.statistics.state.requestsSucceeded = 0;
 
             // Mock robots.txt checking to disallow some URLs
             vitest.spyOn(crawler as any, 'isAllowedBasedOnRobotsTxtFile').mockImplementation(async (url) => {
@@ -2593,15 +2874,23 @@ describe('BasicCrawler', () => {
 
                 // The robots.txt `Crawl-delay: 5` must have reached the manager, not merely been survivable.
                 await requestManager.fetchNextRequest();
-                const state = (requestManager as any).domainStates.get('example.com');
+                // `domainStates` is TS-private, and deliberately not `#private`, so that tests can read it.
+                const { domainStates } = requestManager as unknown as {
+                    domainStates: Map<string, { declaredCrawlDelayMs: number; crawlDelayUntil: number }>;
+                };
+                const state = domainStates.get('example.com')!;
                 expect(state.declaredCrawlDelayMs).toBe(5_000);
 
                 // ...and it paces dispatch: the next request is held back rather than served immediately.
                 expect(state.crawlDelayUntil).toBeGreaterThan(Date.now() + 4_000);
                 expect(await requestManager.fetchNextRequest()).toBeNull();
+
+                const readiness = await requestManager.checkReadiness();
+                expect(readiness).toMatchObject({ status: 'waiting' });
+                expect(readiness.status === 'waiting' && readiness.readyAt).toBeGreaterThan(Date.now() + 4_000);
             });
 
-            test('warns when the request manager cannot honour it', async () => {
+            test('warns naming the options that would honour it when nothing paces the domain', async () => {
                 const crawler = crawlerWithCrawlDelay({ requestQueue: await RequestQueue.open() });
                 const warning = vitest.spyOn(crawler.log, 'warning').mockImplementation(() => {});
 
@@ -2609,9 +2898,10 @@ describe('BasicCrawler', () => {
 
                 expect(warning).toHaveBeenCalledTimes(1);
                 expect(warning.mock.calls[0][0]).toMatch(/crawl-delay of 5s/);
+                expect(warning.mock.calls[0][0]).toMatch(/`sameDomainDelaySecs`.*`ThrottlingRequestManager`/s);
             });
 
-            test('warns when the domain is missing from the manager `domains` list', async () => {
+            test('warns naming the domain when it is missing from the manager `domains` list', async () => {
                 const requestManager = new ThrottlingRequestManager({
                     inner: await RequestQueue.open(),
                     domains: ['some-other-domain.com'],
@@ -2621,8 +2911,38 @@ describe('BasicCrawler', () => {
 
                 await crawler.addRequests(['http://example.com/1']);
 
+                // Same warning as when nothing paces at all - the fix it names covers either case.
                 expect(warning).toHaveBeenCalledTimes(1);
+                expect(warning.mock.calls[0][0]).toMatch(/does not pace that domain/);
                 expect(warning.mock.calls[0][0]).toMatch(/example\.com/);
+            });
+
+            test('is honoured for requests that started life in a `requestList`', async () => {
+                const visits: number[] = [];
+                const crawler = new (class MockedRobotsTxtCrawler extends BasicCrawler {
+                    override async getRobotsTxtFileForUrl(_: string) {
+                        return RobotsTxtFile.from('http://example.com/robots.txt', 'User-agent: *\nCrawl-delay: 0.5\n');
+                    }
+                })({
+                    respectRobotsTxtFile: true,
+                    requestList: await RequestList.open(null, [
+                        'http://example.com/1',
+                        'http://example.com/2',
+                        'http://example.com/3',
+                    ]),
+                    // Negligible on its own, so the delay observed below can only come from robots.txt.
+                    sameDomainDelaySecs: 0.01,
+                    requestHandler: async () => {
+                        visits.push(Date.now());
+                    },
+                });
+
+                await crawler.run();
+
+                // robots.txt is only read while the first request is in flight, so the delay it declares first
+                // bites between the second and the third.
+                expect(visits).toHaveLength(3);
+                expect(visits[2] - visits[1]).toBeGreaterThanOrEqual(400);
             });
         });
 
@@ -2680,31 +3000,94 @@ describe('BasicCrawler', () => {
                 expect(reclaimed).toEqual([]);
             });
 
-            test('a crawl fed by a requestList still finishes', async () => {
-                // Those requests are transferred straight into the wrapped manager, so they are never routed by
-                // domain - and have to be handed back to it rather than to the queue their domain would own.
+            test('paces requests that came from a `requestList`, and still finishes the crawl', async () => {
+                // The tandem is the only position from which a list's requests reach a per-domain queue, and
+                // once there they have to be handed back to it, or the crawl would never finish.
                 const requestList = await RequestList.open(null, ['http://example.com/1', 'http://example.com/2']);
-                const { visits } = await crawlerVisiting([], { requestList, sameDomainDelaySecs: 0.1 });
+                const { visits } = await crawlerVisiting([], { requestList, sameDomainDelaySecs: 0.5 });
 
                 expect(visits.map(({ url }) => url).sort()).toEqual(['http://example.com/1', 'http://example.com/2']);
+                expect(visits[1].at - visits[0].at).toBeGreaterThanOrEqual(400);
             });
 
-            test('a second run() crawls the same requests again', async () => {
+            test('a second run() does not crawl the same requests again', async () => {
+                // The per-domain queues the pacer opened are not emptied between runs either.
+                let visits = 0;
                 const crawler = new BasicCrawler({
                     sameDomainDelaySecs: 0.05,
-                    requestHandler: async () => {},
+                    requestHandler: async () => {
+                        visits += 1;
+                    },
                 });
 
                 await crawler.run(['http://example.com/1']);
                 await crawler.run(['http://example.com/1']);
 
-                expect(crawler.statistics.state.requestsFinished).toBe(1);
+                expect(visits).toBe(1);
             });
 
-            test('refuses to be combined with a request manager that throttles on its own', async () => {
+            test('wraps a user `requestManager` rather than replacing it', async () => {
+                const requestManager = await RequestQueue.open();
+
+                const { crawler, visits } = await crawlerVisiting(['http://example.com/1', 'http://example.com/2'], {
+                    requestManager,
+                    sameDomainDelaySecs: 0.5,
+                });
+
+                const active = await crawler.getRequestManager();
+                expect(active).toBeInstanceOf(ThrottlingRequestManager);
+                expect((active as ThrottlingRequestManager<RequestQueue>).innerManager).toBe(requestManager);
+
+                expect(visits).toHaveLength(2);
+                expect(visits[1].at - visits[0].at).toBeGreaterThanOrEqual(400);
+            });
+
+            test('hands the delay to a manager that paces requests itself', async () => {
+                const requestManager = new ThrottlingRequestManager({
+                    inner: await RequestQueue.open(),
+                    domains: 'all',
+                    throttleBy: 'registrableDomain',
+                });
+
+                const { crawler, visits } = await crawlerVisiting(['http://example.com/1', 'http://example.com/2'], {
+                    requestManager,
+                    sameDomainDelaySecs: 0.5,
+                });
+
+                // Nothing was built around it, so the caller's manager is still the only thing pacing.
+                await expect(crawler.getRequestManager()).resolves.toBe(requestManager);
+
+                expect(visits).toHaveLength(2);
+                expect(visits[1].at - visits[0].at).toBeGreaterThanOrEqual(400);
+            });
+
+            test('reaches a pacing manager through a wrapper', async () => {
+                // A tandem is not a pacer but forwards signals, so the throttler behind it takes the floor -
+                // no wrapper type is inspected on the way.
+                const throttler = new ThrottlingRequestManager({
+                    inner: await RequestQueue.open(),
+                    domains: 'all',
+                    throttleBy: 'registrableDomain',
+                });
+                const requestManager = new RequestManagerTandem(
+                    await RequestList.open(null, ['http://example.com/1', 'http://example.com/2']),
+                    throttler,
+                );
+
+                const { crawler, visits } = await crawlerVisiting([], { requestManager, sameDomainDelaySecs: 0.5 });
+
+                await expect(crawler.getRequestManager()).resolves.toBe(requestManager);
+
+                expect(visits).toHaveLength(2);
+                expect(visits[1].at - visits[0].at).toBeGreaterThanOrEqual(400);
+            });
+
+            test('refuses a manager that paces only some of the domains it holds', async () => {
+                // Taking a floor that covers every domain would leave everything but `example.com` unpaced.
                 const requestManager = new ThrottlingRequestManager({
                     inner: await RequestQueue.open(),
                     domains: ['example.com'],
+                    throttleBy: 'registrableDomain',
                 });
 
                 expect(
@@ -2714,7 +3097,7 @@ describe('BasicCrawler', () => {
                             sameDomainDelaySecs: 1,
                             requestHandler: async () => {},
                         }),
-                ).toThrow(/ThrottlingRequestManager/);
+                ).toThrow(/domains: 'all'/);
             });
         });
 
@@ -2816,7 +3199,7 @@ describe('BasicCrawler', () => {
                         return;
                     }
 
-                    crawler.statistics.state.requestsFinished = 2;
+                    crawler.statistics.state.requestsSucceeded = 2;
 
                     await context.addRequests(requestsToAdd, { label: 'not-undefined' });
                 },
@@ -2922,7 +3305,7 @@ describe('BasicCrawler', () => {
             expect(enqueueLimitMessages).toHaveLength(2);
         });
 
-        test('maxCrawlDepth limit log message should only be logged once per run', async () => {
+        test('maxCrawlDepth limit log message should only be logged once', async () => {
             const requestQueue = await RequestQueue.open();
 
             // Each handler will try to add URLs that exceed maxCrawlDepth
@@ -2945,15 +3328,16 @@ describe('BasicCrawler', () => {
                 },
             });
 
-            const infoSpy = vitest.spyOn(crawler.log, 'info');
+            // The `once` gate lives inside the logger, so `info()` is still called for every skipped request -
+            // what has to happen once is the message actually going out.
+            const logSpy = vitest.spyOn(crawler.log, 'logWithLevel');
 
             // Run with two initial requests
             // Each will enqueue children at depth 1, then those children will try to enqueue at depth 2 (blocked)
             await crawler.run(['http://example.com/first', 'http://example.com/second']);
 
-            // The maxCrawlDepth limit message should only appear once per run, even though multiple requests triggered it
-            const maxCrawlDepthMessages = infoSpy.mock.calls.filter(
-                (call) => typeof call[0] === 'string' && call[0].includes('maxCrawlDepth'),
+            const maxCrawlDepthMessages = logSpy.mock.calls.filter(
+                (call) => typeof call[1] === 'string' && call[1].includes('maxCrawlDepth'),
             );
             expect(maxCrawlDepthMessages).toHaveLength(1);
         });
@@ -3069,7 +3453,7 @@ describe('BasicCrawler', () => {
                         return;
                     }
 
-                    crawler.statistics.state.requestsFinished = 2;
+                    crawler.statistics.state.requestsSucceeded = 2;
 
                     // e.g. `enqueueLinks({ urls, limit: config.limit })` where `config.limit` is not set
                     await context.addRequests(requestsToAdd, { limit: undefined, label: 'child' });
@@ -3084,7 +3468,7 @@ describe('BasicCrawler', () => {
             const skippedUrls = onSkippedRequest.mock.calls
                 .map((call) => call[0])
                 .filter(({ reason }) => reason === 'limit')
-                .map(({ url }) => url)
+                .map(({ request }) => request.url)
                 .sort();
 
             expect(skippedUrls).toEqual([
@@ -3108,7 +3492,7 @@ describe('BasicCrawler', () => {
                         return;
                     }
 
-                    crawler.statistics.state.requestsFinished = 2;
+                    crawler.statistics.state.requestsSucceeded = 2;
 
                     await context.addRequests(requestsToAdd, { limit: 4, label: 'child' });
                 },
@@ -3152,15 +3536,15 @@ describe('BasicCrawler', () => {
 
             await crawler.run(['http://example.com']);
 
-            const skipped = [
-                { url: 'http://example.com/2', reason: 'limit' },
-                { url: 'http://example.com/3', reason: 'limit' },
-            ];
-
             for (const mock of [crawlerOnSkippedRequest, userOnSkippedRequest]) {
-                expect(mock.mock.calls.map((call) => call[0]).sort((a, b) => a.url.localeCompare(b.url))).toEqual(
-                    skipped,
-                );
+                const skipped = mock.mock.calls
+                    .map((call) => ({ url: call[0].request.url, reason: call[0].reason }))
+                    .sort((a, b) => a.url.localeCompare(b.url));
+
+                expect(skipped).toEqual([
+                    { url: 'http://example.com/2', reason: 'limit' },
+                    { url: 'http://example.com/3', reason: 'limit' },
+                ]);
             }
         });
     });
@@ -3265,6 +3649,113 @@ describe('BasicCrawler', () => {
             await expect(dataset.getData()).resolves.toMatchObject({ items: [{ from: 'failing-handler' }] });
         });
 
+        test('afterStorageCommit runs for the attempt whose writes were committed', async () => {
+            const committedAttempts: number[] = [];
+
+            const crawler = new BasicCrawler({
+                maxRequestRetries: 1,
+                requestHandler: async ({ request, pushData, afterStorageCommit }) => {
+                    await pushData({ attempt: request.retryCount });
+                    afterStorageCommit(() => void committedAttempts.push(request.retryCount));
+
+                    if (request.retryCount === 0) {
+                        throw new Error('first attempt fails');
+                    }
+                },
+            });
+
+            await crawler.run([`http://${HOSTNAME}:${port}/`]);
+
+            // The rolled-back attempt registered a callback as well; only the committed one ran it.
+            expect(committedAttempts).toEqual([1]);
+        });
+
+        test('a callback that throws after a successful commit does not retry the request', async () => {
+            const failures: Error[] = [];
+            const retried: Error[] = [];
+            let handlerRuns = 0;
+
+            const crawler = new BasicCrawler({
+                maxRequestRetries: 3,
+                requestHandler: async ({ pushData, afterStorageCommit }) => {
+                    handlerRuns++;
+                    await pushData({ item: true });
+                    // A plain, ordinarily retryable error: the retry is suppressed because the item is
+                    // already committed and re-running the handler would push it a second time.
+                    afterStorageCommit(() => {
+                        throw new Error('bookkeeping failed');
+                    });
+                },
+                errorHandler: async (_context, error) => {
+                    retried.push(error);
+                },
+                failedRequestHandler: async (_context, error) => {
+                    failures.push(error);
+                },
+            });
+
+            await crawler.run([`http://${HOSTNAME}:${port}/`]);
+
+            // Reaches `failedRequestHandler` with the wrapper intact, so a handler can tell that the
+            // items did land. `errorHandler` only runs for retried requests, so it is skipped.
+            expect(failures).toEqual([expect.any(AfterCommitError)]);
+            expect(failures[0].cause).toMatchObject({ message: 'bookkeeping failed' });
+            expect(retried).toEqual([]);
+            expect(handlerRuns).toBe(1);
+            await expect(Dataset.getData()).resolves.toMatchObject({ total: 1 });
+        });
+
+        test('afterStorageCommit turns a rejected write into a non-retryable request failure', async () => {
+            const dataset = await Dataset.open();
+            vitest
+                .spyOn(dataset.backend, 'pushData')
+                .mockRejectedValue(new Error('Data item is too large (size: 10000000 bytes)'));
+
+            const failures: string[] = [];
+            let handlerRuns = 0;
+
+            const crawler = new BasicCrawler({
+                maxRequestRetries: 3,
+                requestHandler: async ({ pushData, afterStorageCommit }) => {
+                    handlerRuns++;
+                    await pushData({ huge: true });
+                    afterStorageCommit((error) => {
+                        if (error?.message.includes('too large')) {
+                            throw new NonRetryableError('Enable `saveHtmlAsFile`', { cause: error });
+                        }
+                    });
+                },
+                failedRequestHandler: async (_context, error) => {
+                    failures.push(error.message);
+                },
+            });
+
+            await crawler.run([`http://${HOSTNAME}:${port}/`]);
+
+            // Left alone, the commit failure is an ordinary request error and gets retried to exhaustion.
+            expect(failures).toEqual(['Enable `saveHtmlAsFile`']);
+            expect(handlerRuns).toBe(1);
+        });
+
+        test('afterStorageCommit throws when transactional storage is disabled', async () => {
+            const errors: string[] = [];
+
+            const crawler = new BasicCrawler({
+                maxRequestRetries: 0,
+                transactionalStorage: false,
+                requestHandler: async ({ afterStorageCommit }) => {
+                    afterStorageCommit(() => {});
+                },
+                failedRequestHandler: async (_context, error) => {
+                    errors.push(error.message);
+                },
+            });
+
+            await crawler.run([`http://${HOSTNAME}:${port}/`]);
+
+            expect(errors).toEqual([expect.stringMatching(/needs an active storage transaction/)]);
+        });
+
         test('an unclosed transaction on a normal pipeline return is discarded and logged', async () => {
             const crawler = new BasicCrawler({ requestHandler: async () => {} });
             const errorSpy = vitest.spyOn((crawler as any).log, 'error').mockImplementation(() => {});
@@ -3332,8 +3823,8 @@ describe('BasicCrawler', () => {
                 maxRequestRetries: 0,
                 respectRobotsTxtFile: true,
                 requestHandler: async () => {},
-                onSkippedRequest: async ({ url, reason }) => {
-                    await (await KeyValueStore.open()).setValue('skipped', { url, reason });
+                onSkippedRequest: async ({ request, reason }) => {
+                    await (await KeyValueStore.open()).setValue('skipped', { url: request.url, reason });
                 },
             });
 
@@ -3346,6 +3837,53 @@ describe('BasicCrawler', () => {
             await crawler.run();
 
             await expect(KeyValueStore.getValue('skipped')).resolves.toMatchObject({ reason: 'robotsTxt' });
+        });
+
+        test('a crawler started from inside a request handler runs outside the caller transaction', async () => {
+            const handled: string[] = [];
+
+            const inner = new BasicCrawler({
+                requestHandler: async ({ request }) => {
+                    handled.push(request.url);
+                },
+            });
+
+            const outer = new BasicCrawler({
+                maxRequestRetries: 0,
+                requestHandler: async () => {
+                    const run = inner.run([`http://${HOSTNAME}:${port}/inner`]);
+                    await new Promise((resolve) => setTimeout(resolve, 200));
+                    await run;
+                },
+            });
+
+            await outer.run([`http://${HOSTNAME}:${port}/outer`]);
+
+            expect(handled).toEqual([`http://${HOSTNAME}:${port}/inner`]);
+        });
+
+        test('a nested crawl is not cancelled by the calling request handler timing out', async () => {
+            const handled: string[] = [];
+
+            const inner = new BasicCrawler({
+                maxRequestRetries: 0,
+                requestHandler: async ({ request }) => {
+                    await new Promise((resolve) => setTimeout(resolve, 1500));
+                    handled.push(request.url);
+                },
+            });
+
+            const outer = new BasicCrawler({
+                maxRequestRetries: 0,
+                requestHandlerTimeoutSecs: 1,
+                requestHandler: async () => {
+                    void inner.run([`http://${HOSTNAME}:${port}/inner`]);
+                    await new Promise((resolve) => setTimeout(resolve, 5000));
+                },
+            });
+
+            await outer.run([`http://${HOSTNAME}:${port}/outer`]);
+            await expect.poll(() => handled).toEqual([`http://${HOSTNAME}:${port}/inner`]);
         });
 
         test('an unrecognized write policy is rejected instead of falling back to the default', () => {
@@ -3503,8 +4041,8 @@ describe('BasicCrawler', () => {
             await crawlerA.run([{ url: `http://${HOSTNAME}:${port}` }]);
             await crawlerB.run([{ url: `http://${HOSTNAME}:${port}` }]);
 
-            expect(crawlerA.statistics.state.requestsFinished).toBe(1);
-            expect(crawlerB.statistics.state.requestsFinished).toBe(1);
+            expect(crawlerA.statistics.state.requestsSucceeded).toBe(1);
+            expect(crawlerB.statistics.state.requestsSucceeded).toBe(1);
         });
     });
 
@@ -3542,7 +4080,7 @@ describe('BasicCrawler', () => {
             await crawler.addRequests([{ url: 'https://example.com/b', label: 'DETAIL', userData: { id: 'ok' } }]);
 
             const queue = await crawler.getRequestQueue();
-            expect(await queue.isEmpty()).toBe(false);
+            expect((await queue.checkReadiness()).status).toBe('ready');
         });
 
         test('crawler.addRequests excludes the Crawlee-managed label when validating (strict schemas)', async () => {
@@ -3556,7 +4094,7 @@ describe('BasicCrawler', () => {
             ]);
 
             const queue = await crawler.getRequestQueue();
-            expect(await queue.isEmpty()).toBe(false);
+            expect((await queue.checkReadiness()).status).toBe('ready');
         });
 
         test('a schema that declares the label opts into validating it', async () => {
@@ -3632,7 +4170,7 @@ describe('BasicCrawler', () => {
                 { url: 'https://example.com/p', label: 'LIST', userData: { page: 2 } },
             ] as never);
             const queue = await crawler.getRequestQueue();
-            expect(await queue.isEmpty()).toBe(false);
+            expect((await queue.checkReadiness()).status).toBe('ready');
         });
 
         test('context.addRequests validates userData against the label schema', async () => {
@@ -3663,7 +4201,7 @@ describe('BasicCrawler', () => {
             ] as never);
 
             const queue = await crawler.getRequestQueue();
-            expect(await queue.isEmpty()).toBe(false);
+            expect((await queue.checkReadiness()).status).toBe('ready');
         });
 
         test('a plain (non-router) requestHandler skips validation entirely', async () => {
@@ -3672,7 +4210,7 @@ describe('BasicCrawler', () => {
             await crawler.addRequests([{ url: 'https://example.com/e', label: 'DETAIL', userData: { id: 123 } }]);
 
             const queue = await crawler.getRequestQueue();
-            expect(await queue.isEmpty()).toBe(false);
+            expect((await queue.checkReadiness()).status).toBe('ready');
         });
 
         test('validation runs at the crawler level; direct requestQueue calls bypass it', async () => {

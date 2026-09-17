@@ -2,8 +2,9 @@ import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import os from 'node:os';
 
-import type { PlaywrightCrawlingContext, PlaywrightGotoOptions, Request } from '@crawlee/playwright';
-import { type ConcurrencySystem, MemoryStorageBackend, serviceLocator } from '@crawlee/core';
+import type { PlaywrightCrawlingContext, Request } from '@crawlee/playwright';
+import { type ConcurrencySystem } from '@crawlee/basic';
+import { MemoryStorageBackend, serviceLocator } from '@crawlee/core';
 import {
     createPlaywrightRouter,
     PlaywrightCrawler,
@@ -163,13 +164,14 @@ describe('PlaywrightCrawler', () => {
         // Every request must be accounted for by either requestHandler or failedRequestHandler.
         expect(success.length + failure.length).toBe(urls.length);
         // With operationTimeoutSecs=0.001, no request can actually succeed, so every one must fail.
-        expect(stats.requestsFinished).toBe(0);
+        expect(stats.requestsSucceeded).toBe(0);
         expect(stats.requestsFailed).toBe(urls.length);
     });
 
     test('should override goto timeout with navigationTimeoutSecs', async () => {
         const timeoutSecs = 10;
-        let options: PlaywrightGotoOptions;
+        // Captured by value: `navigate()` narrows the live `gotoOptions` down to the remaining navigation window.
+        let gotoTimeout: number | undefined;
         const playwrightCrawler = new PlaywrightCrawler({
             requestList,
             maxRequestRetries: 0,
@@ -177,14 +179,14 @@ describe('PlaywrightCrawler', () => {
             requestHandler: () => {},
             preNavigationHooks: [
                 ({ gotoOptions }) => {
-                    options = gotoOptions;
+                    gotoTimeout = gotoOptions.timeout;
                 },
             ],
             navigationTimeoutSecs: timeoutSecs,
         });
 
         await playwrightCrawler.run();
-        expect(options!.timeout).toEqual(timeoutSecs * 1000);
+        expect(gotoTimeout).toEqual(timeoutSecs * 1000);
     });
 
     test('does not mutate the launchContext it was given', () => {

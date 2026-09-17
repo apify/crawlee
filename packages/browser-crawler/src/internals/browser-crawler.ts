@@ -53,10 +53,14 @@ interface BaseResponse {
 
 /**
  * The type of a browser pool the crawler builds (and therefore owns) for itself. It's an {@apilink IBrowserPool} that
- * additionally exposes `destroy()` — the crawler only ever tears down pools it created, which is why {@apilink IBrowserPool}
- * itself intentionally omits `destroy`.
+ * additionally exposes the lifecycle hooks a crawler only ever calls on a pool it created — which is why
+ * {@apilink IBrowserPool} itself intentionally omits them: `releaseAllBrowsers()` at the end of every run, and
+ * `destroy()` once the crawler itself is destroyed.
  */
-export type OwnedBrowserPool<Page> = IBrowserPool<Page> & { destroy: () => Promise<void> };
+export type OwnedBrowserPool<Page> = IBrowserPool<Page> & {
+    releaseAllBrowsers: () => Promise<void>;
+    destroy: () => Promise<void>;
+};
 
 /**
  * Rejects options that exist only to configure the browser pool the crawler would have built for itself.
@@ -869,12 +873,17 @@ export abstract class BrowserCrawler<
     }
 
     /**
-     * Function for cleaning up after all requests are processed.
-     * @ignore
+     * Closes the browsers of a pool the crawler owns, so a finished run leaves none behind. The pool itself is
+     * crawler-lifetime and survives — destroying it here would hand a repeated `run()` a dead pool.
      */
     override async teardown(): Promise<void> {
-        await this.#browserPoolDep.ifOwned((pool) => pool.destroy());
+        await this.#browserPoolDep.ifOwned((pool) => pool.releaseAllBrowsers());
         await super.teardown();
+    }
+
+    override async destroy(): Promise<void> {
+        await super.destroy();
+        await this.#browserPoolDep.ifOwned((pool) => pool.destroy());
     }
 }
 

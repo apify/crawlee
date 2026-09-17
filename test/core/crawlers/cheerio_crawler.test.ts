@@ -12,13 +12,8 @@ import {
     RequestList,
     Session,
 } from '@crawlee/cheerio';
-import {
-    BaseCrawleeLogger,
-    type ConcurrencySystem,
-    MemoryStorageBackend,
-    serviceLocator,
-    SessionPool,
-} from '@crawlee/core';
+import { type ConcurrencySystem, SessionPool } from '@crawlee/basic';
+import { BaseCrawleeLogger, MemoryStorageBackend, serviceLocator } from '@crawlee/core';
 import { BaseHttpClient } from '@crawlee/http-client';
 import { ImpitHttpClient } from '@crawlee/impit-client';
 import type { Dictionary, ISession, ProxyInfo, SendRequestOptions } from '@crawlee/types';
@@ -1124,22 +1119,25 @@ describe('CheerioCrawler', () => {
         });
 
         test('should correctly set session pool options', async () => {
+            const sessionPool = new SessionPool({
+                sessionOptions: {
+                    maxUsageCount: 1,
+                },
+                persistStateKeyValueStoreId: 'abc',
+            });
+
             const crawler = new CheerioCrawler({
                 requestList,
-
                 saveResponseCookies: false,
-                sessionPool: new SessionPool({
-                    sessionOptions: {
-                        maxUsageCount: 1,
-                    },
-                    persistStateKeyValueStoreId: 'abc',
-                }),
+                sessionPool,
                 requestHandler: () => {},
             });
-            // @ts-expect-error Accessing private prop
-            expect(crawler.sessionPool.sessionOptions.maxUsageCount).toBe(1);
-            // @ts-expect-error Accessing private prop
-            expect(crawler.sessionPool.persistStateKeyValueStoreId).toBe('abc');
+
+            expect(crawler.sessionPool).toBe(sessionPool);
+            const session = await sessionPool.getSession();
+            expect(session).toBeDefined();
+            const state = await sessionPool.getState();
+            expect(state.sessions[0].maxUsageCount).toBe(1);
         });
 
         test('should markBad sessions after request timeout', async () => {

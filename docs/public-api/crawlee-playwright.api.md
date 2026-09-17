@@ -23,14 +23,14 @@ import { Cheerio } from 'cheerio';
 import { CheerioAPI } from 'cheerio';
 import { Configuration } from '@crawlee/browser';
 import type { ContextPipeline } from '@crawlee/browser';
-import type { ContextPipeline as ContextPipeline_2 } from '@crawlee/core';
+import type { ContextPipeline as ContextPipeline_2 } from '@crawlee/basic';
 import type { CrawlingContext } from '@crawlee/browser';
-import type { CrawlingContext as CrawlingContext_2 } from '@crawlee/core';
+import type { CrawlingContext as CrawlingContext_2 } from '@crawlee/basic';
 import { Dictionary } from '@crawlee/types';
 import type { Download } from 'playwright';
-import type { EnqueueLinksOptions } from '@crawlee/core';
+import type { EnqueueLinksOptions } from '@crawlee/basic';
 import type { GetUserDataFromRequest } from '@crawlee/browser';
-import type { GetUserDataFromRequest as GetUserDataFromRequest_2 } from '@crawlee/core';
+import type { GetUserDataFromRequest as GetUserDataFromRequest_2 } from '@crawlee/basic';
 import { IRequestManager } from '@crawlee/browser';
 import type { LaunchOptions } from 'playwright';
 import type { LoadedRequest } from '@crawlee/browser';
@@ -46,7 +46,7 @@ import type { RequestTransform } from '@crawlee/browser';
 import type { Response as Response_2 } from 'playwright';
 import type { RouterHandler } from '@crawlee/browser';
 import type { RouterRoutes } from '@crawlee/browser';
-import type { RouterRoutes as RouterRoutes_2 } from '@crawlee/core';
+import type { RouterRoutes as RouterRoutes_2 } from '@crawlee/basic';
 import type { RouteSchemas } from '@crawlee/browser';
 import type { RoutesFromSchemas } from '@crawlee/browser';
 import type { SkippedRequestCallback } from '@crawlee/browser';
@@ -75,10 +75,15 @@ export class AdaptivePlaywrightCrawler<ContextExtension = Dictionary<never>, Ext
     // (undocumented)
     protected buildContextPipeline(): ContextPipeline_2<CrawlingContext_2, AdaptivePlaywrightCrawlerContext>;
     // (undocumented)
+    destroy(): Promise<void>;
+    drainRenderingDetections(input?: {
+        timeoutMillis?: number;
+    }): Promise<void>;
+    get inFlightRenderingTypeDetectionCount(): number;
+    // (undocumented)
     protected init(): Promise<void>;
     // (undocumented)
     protected runRequestHandler(crawlingContext: CrawlingContext_2): Promise<void>;
-    // (undocumented)
     teardown(): Promise<void>;
 }
 
@@ -97,7 +102,7 @@ export interface AdaptivePlaywrightCrawlerContext<UserData extends Dictionary = 
 }
 
 // @public (undocumented)
-export interface AdaptivePlaywrightCrawlerOptions<ContextExtension = Dictionary<never>, ExtendedContext extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest_2<AdaptivePlaywrightCrawlerContext['request']>>, StatisticStateExtension extends AdaptivePlaywrightCrawlerStatisticState = AdaptivePlaywrightCrawlerStatisticState> extends Omit<BasicCrawlerOptions<AdaptivePlaywrightCrawlerContext, ContextExtension, ExtendedContext, Routes, StatisticStateExtension>, 'preNavigationHooks' | 'postNavigationHooks'> {
+export interface AdaptivePlaywrightCrawlerOptions<ContextExtension = Dictionary<never>, ExtendedContext extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest_2<AdaptivePlaywrightCrawlerContext['request']>>, StatisticStateExtension extends AdaptivePlaywrightCrawlerStatisticState = AdaptivePlaywrightCrawlerStatisticState> extends Omit<BasicCrawlerOptions<AdaptivePlaywrightCrawlerContext, ContextExtension, ExtendedContext, Routes, StatisticStateExtension>, 'preNavigationHooks' | 'postNavigationHooks'>, Pick<PlaywrightCrawlerOptions, 'launchContext' | 'headless' | 'browserPool' | 'remoteBrowser'> {
     postNavigationHooks?: AdaptivePostNavigationHook<ContextExtension>[];
     preNavigationHooks?: AdaptiveHook<ContextExtension>[];
     renderingTypeDetectionRatio?: number;
@@ -145,9 +150,6 @@ interface BlockRequestsOptions {
 // Not exported by the entry point; reachable only as a referenced type.
 // @public (undocumented)
 type ClickOptions = Parameters<Page['click']>[1];
-
-// @public (undocumented)
-function closeCookieModals(page: Page): Promise<void>;
 
 // @public (undocumented)
 type CompiledScriptFunction = (params: CompiledScriptParams) => Promise<unknown>;
@@ -256,11 +258,11 @@ function injectJQuery(page: Page, options?: {
 
 // @public
 export interface IRenderingTypePredictor {
-    predict(request: Request_2): {
+    predict(request: Request_2): Awaitable<{
         renderingType: RenderingType;
         detectionProbabilityRecommendation: number;
-    };
-    storeResult(requests: Request_2 | Request_2[], renderingType: RenderingType): void;
+    }>;
+    storeResult(requests: Request_2 | Request_2[], renderingType: RenderingType): Awaitable<void>;
 }
 
 // @public
@@ -296,7 +298,6 @@ declare namespace playwrightClickElements {
 // @public (undocumented)
 interface PlaywrightContextUtils {
     blockRequests(options?: BlockRequestsOptions): Promise<void>;
-    closeCookieModals(): Promise<void>;
     compileScript(scriptString: string, ctx?: Dictionary): CompiledScriptFunction;
     enqueueLinksByClickingElements(options: Omit<EnqueueLinksByClickingElementsOptions, 'page' | 'requestManager'>): Promise<BatchAddRequestsResult>;
     handleCloudflareChallenge(options?: HandleCloudflareChallengeOptions): Promise<Response_2 | undefined>;
@@ -364,7 +365,6 @@ declare namespace playwrightUtils {
         infiniteScroll,
         saveSnapshot,
         parseWithCheerio,
-        closeCookieModals,
         InjectFileOptions,
         BlockRequestsOptions,
         PlaywrightDirectNavigationOptions as DirectNavigationOptions,

@@ -53,7 +53,8 @@ await Actor.init({
 const crawler = new AdaptivePlaywrightCrawler({
     maxRequestsPerCrawl: 10,
     respectRobotsTxtFile: true,
-    onSkippedRequest: (args) => crawler.log.warningOnce(`Request ${args.url} was skipped, reason: ${args.reason}`),
+    onSkippedRequest: (args) =>
+        crawler.log.warningOnce(`Request ${args.request.url} was skipped, reason: ${args.reason}`),
 });
 
 crawler.router.addDefaultHandler(async ({ log, request, enqueueLinks, pushData }) => {

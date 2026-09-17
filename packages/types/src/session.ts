@@ -85,6 +85,7 @@ export interface SessionFingerprint {
 
 /**
  * Persistable {@apilink Session} state.
+ * @internal
  */
 export interface SessionState {
     id: string;

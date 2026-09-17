@@ -15,8 +15,6 @@ import type { BrowserController } from './browser-controller.js';
  *  - without using a fingerprint,
  *  - without specifying a user agent.
  * Last updated on 2022-05-05.
- *
- * After you update it here, please update it also in jsdom-crawler.ts
  */
 export const DEFAULT_USER_AGENT =
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36';

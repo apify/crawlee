@@ -12,13 +12,11 @@ const mainOptions = {
 await Actor.main(async () => {
     const crawler = new PuppeteerCrawler({
         maxRequestsPerCrawl: 30,
-        async requestHandler({ page, enqueueLinks, request, log, closeCookieModals }) {
+        async requestHandler({ page, enqueueLinks, request, log }) {
             const { url, loadedUrl } = request;
 
             const pageTitle = await page.title();
             log.info(`URL: ${url}; LOADED_URL: ${loadedUrl}; TITLE: ${pageTitle}`);
-
-            await closeCookieModals();
 
             const results = await enqueueLinks();
 

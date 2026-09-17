@@ -11,6 +11,7 @@ import {
     REQUESTS_PERSISTENCE_KEY,
     serviceLocator,
     STATE_PERSISTENCE_KEY,
+    StateValidationError,
 } from '@crawlee/core';
 import { BaseHttpClient } from '@crawlee/http-client';
 import { sleep } from '@crawlee/utils';
@@ -66,19 +67,17 @@ describe('RequestList', () => {
             { url: 'https://example.com/1#same' },
         ]);
 
-        expect(await requestList.isEmpty()).toBe(false);
+        expect((await requestList.checkReadiness()).status).toBe('ready');
 
         const req = await requestList.fetchNextRequest();
 
         expect(req!.url).toBe('https://example.com/1');
-        expect(await requestList.isEmpty()).toBe(true);
-        expect(await requestList.isFinished()).toBe(false);
+        expect((await requestList.checkReadiness()).status).toBe('waiting');
         expect(await requestList.fetchNextRequest()).toBe(null);
 
         await requestList.markRequestAsHandled(req!);
 
-        expect(await requestList.isEmpty()).toBe(true);
-        expect(await requestList.isFinished()).toBe(true);
+        expect((await requestList.checkReadiness()).status).toBe('finished');
     });
 
     test('must be initialized before using any of the methods', async () => {
@@ -86,16 +85,15 @@ describe('RequestList', () => {
         const requestList = new RequestList({ sources: [{ url: 'https://example.com' }] });
         const requestObj = new Request({ url: 'https://example.com' });
 
-        await expect(requestList.isEmpty()).rejects.toThrow();
-        await expect(requestList.isFinished()).rejects.toThrow();
+        await expect(requestList.checkReadiness()).rejects.toThrow();
         expect(() => requestList.getState()).toThrowError();
         await expect(requestList.markRequestAsHandled(requestObj)).rejects.toThrow();
         await expect(requestList.fetchNextRequest()).rejects.toThrow();
 
+        // @ts-expect-error private method
         await requestList.initialize();
 
-        await expect(requestList.isEmpty()).resolves.not.toThrow();
-        await expect(requestList.isFinished()).resolves.not.toThrow();
+        await expect(requestList.checkReadiness()).resolves.not.toThrow();
         expect(() => requestList.getState()).not.toThrowError();
         await expect(requestList.fetchNextRequest()).resolves.not.toThrow();
         await expect(requestList.markRequestAsHandled(requestObj)).resolves.not.toThrow();
@@ -134,13 +132,14 @@ describe('RequestList', () => {
             state: originalList.getState(),
         });
 
-        expect(await newList.isEmpty()).toBe(false);
+        expect((await newList.checkReadiness()).status).toBe('ready');
         expect((await newList.fetchNextRequest())!.url).toBe('https://example.com/3');
         expect((await newList.fetchNextRequest())!.url).toBe('https://example.com/5');
         expect((await newList.fetchNextRequest())!.url).toBe('https://example.com/6');
         expect((await newList.fetchNextRequest())!.url).toBe('https://example.com/7');
         expect((await newList.fetchNextRequest())!.url).toBe('https://example.com/8');
-        expect(await newList.isEmpty()).toBe(true);
+        // None of the five re-served requests was handled, so they are all still in progress.
+        expect((await newList.checkReadiness()).status).toBe('waiting');
     });
 
     test('`RequestList` is `for .. await` iterable', async () => {
@@ -299,8 +298,7 @@ describe('RequestList', () => {
             nextIndex: 2,
             nextUniqueKey: 'https://example.com/3',
         });
-        expect(await requestList.isEmpty()).toBe(false);
-        expect(await requestList.isFinished()).toBe(false);
+        expect((await requestList.checkReadiness()).status).toBe('ready');
         expect(requestList.inProgress.size).toBe(2);
 
         await requestList.markRequestAsHandled(request1!);
@@ -315,11 +313,10 @@ describe('RequestList', () => {
         const request3 = await requestList.fetchNextRequest();
         expect(request3!.url).toBe('https://example.com/3');
         expect(await requestList.fetchNextRequest()).toBe(null);
-        expect(await requestList.isEmpty()).toBe(true);
-        expect(await requestList.isFinished()).toBe(false);
+        expect((await requestList.checkReadiness()).status).toBe('waiting');
 
         await requestList.markRequestAsHandled(request3!);
-        expect(await requestList.isFinished()).toBe(true);
+        expect((await requestList.checkReadiness()).status).toBe('finished');
     });
 
     test('should correctly persist its state when persistStateKey is set', async () => {
@@ -340,33 +337,60 @@ describe('RequestList', () => {
         const optsCopy = JSON.parse(JSON.stringify(opts));
 
         const requestList = await RequestList.open(opts);
-        expect(requestList.isStatePersisted).toBe(true);
-
-        // Fetch one request and check that state is not persisted.
         await requestList.fetchNextRequest();
-        expect(requestList.isStatePersisted).toBe(false);
 
         // Persist state.
         setValueSpy.mockResolvedValueOnce();
         serviceLocator.getEventManager().emit(EventType.PERSIST_STATE);
         await sleep(20);
-        expect(requestList.isStatePersisted).toBe(true);
+        expect(setValueSpy).toHaveBeenCalledTimes(1);
+        expect(setValueSpy).toHaveBeenLastCalledWith(`CRAWLEE_${PERSIST_STATE_KEY}`, requestList.getState());
 
         // Do some other changes and persist it again.
         const request2 = await requestList.fetchNextRequest();
-        expect(requestList.isStatePersisted).toBe(false);
         await requestList.markRequestAsHandled(request2!);
-        expect(requestList.isStatePersisted).toBe(false);
         setValueSpy.mockResolvedValueOnce();
         serviceLocator.getEventManager().emit(EventType.PERSIST_STATE);
         await sleep(20);
-        expect(requestList.isStatePersisted).toBe(true);
+        expect(setValueSpy).toHaveBeenCalledTimes(2);
+        expect(setValueSpy).toHaveBeenLastCalledWith(`CRAWLEE_${PERSIST_STATE_KEY}`, requestList.getState());
 
         // Now initiate new request list from saved state and check that it's same as state
         // of original request list.
         getValueSpy.mockResolvedValueOnce(requestList.getState());
         const requestList2 = await RequestList.open(optsCopy);
         expect(requestList2.getState()).toEqual(requestList.getState());
+    });
+
+    test('a persisted record that does not match the sources fails validation', async () => {
+        const sources = [1, 2, 3].map((i) => ({ url: `https://example.com/${i}` }));
+        const store = await KeyValueStore.open();
+        await store.setValue('CRAWLEE_state-key', {
+            nextIndex: 1,
+            nextUniqueKey: 'https://example.com/3',
+            inProgress: [],
+        });
+
+        await expect(RequestList.open({ sources, persistStateKey: 'state-key' })).rejects.toThrow(StateValidationError);
+    });
+
+    test('a persisted record takes precedence over the state option', async () => {
+        const sources = [1, 2, 3].map((i) => ({ url: `https://example.com/${i}` }));
+        const store = await KeyValueStore.open();
+        await store.setValue('CRAWLEE_state-key', {
+            nextIndex: 2,
+            nextUniqueKey: 'https://example.com/3',
+            inProgress: [],
+        });
+
+        const requestList = await RequestList.open({
+            sources,
+            persistStateKey: 'state-key',
+            state: { nextIndex: 1, nextUniqueKey: 'https://example.com/2', inProgress: [] },
+        });
+
+        expect(requestList.getState().nextIndex).toBe(2);
+        await requestList.teardown();
     });
 
     test('teardown removes the persist state listener when persistStateKey is set', async () => {
@@ -586,15 +610,13 @@ describe('RequestList', () => {
 
             const rl = await RequestList.open(name, sources);
             expect(rl).toBeInstanceOf(RequestList);
-            // @ts-expect-error accessing private var
-            expect(rl.sources).toEqual([]);
             // An uninitialized list throws here, so this is the observable form of "open() initialized it".
-            await expect(rl.isEmpty()).resolves.toBe(false);
+            await expect(rl.checkReadiness()).resolves.toEqual({ status: 'ready' });
 
             // The persistence keys are derived from the list name, which shows in the keys it reads and writes.
             expect(keysPassedTo(getValueSpy)).toEqual([
-                `${CRAWLEE_KEY}-${STATE_PERSISTENCE_KEY}`,
                 `${CRAWLEE_KEY}-${REQUESTS_PERSISTENCE_KEY}`,
+                `${CRAWLEE_KEY}-${STATE_PERSISTENCE_KEY}`,
             ]);
             expect(keysPassedTo(setValueSpy)).toEqual([`${CRAWLEE_KEY}-${REQUESTS_PERSISTENCE_KEY}`]);
         });
@@ -611,11 +633,11 @@ describe('RequestList', () => {
             const rl = await RequestList.open(name, sources);
             expect(rl).toBeInstanceOf(RequestList);
             expect(rl.requests).toEqual(requests);
-            await expect(rl.isEmpty()).resolves.toBe(false);
+            await expect(rl.checkReadiness()).resolves.toEqual({ status: 'ready' });
 
             expect(keysPassedTo(getValueSpy)).toEqual([
-                `${CRAWLEE_KEY}-${STATE_PERSISTENCE_KEY}`,
                 `${CRAWLEE_KEY}-${REQUESTS_PERSISTENCE_KEY}`,
+                `${CRAWLEE_KEY}-${STATE_PERSISTENCE_KEY}`,
             ]);
             expect(keysPassedTo(setValueSpy)).toEqual([`${CRAWLEE_KEY}-${REQUESTS_PERSISTENCE_KEY}`]);
         });
@@ -638,12 +660,12 @@ describe('RequestList', () => {
             expect(rl).toBeInstanceOf(RequestList);
             // The counter suffix on the unique key is what `keepDuplicateUrls: true` does.
             expect(rl.requests).toEqual(requests);
-            await expect(rl.isEmpty()).resolves.toBe(false);
+            await expect(rl.checkReadiness()).resolves.toEqual({ status: 'ready' });
 
             // The list name wins over the `persistStateKey` option.
             expect(keysPassedTo(getValueSpy)).toEqual([
-                `${CRAWLEE_KEY}-${STATE_PERSISTENCE_KEY}`,
                 `${CRAWLEE_KEY}-${REQUESTS_PERSISTENCE_KEY}`,
+                `${CRAWLEE_KEY}-${STATE_PERSISTENCE_KEY}`,
             ]);
             expect(keysPassedTo(setValueSpy)).toEqual([`${CRAWLEE_KEY}-${REQUESTS_PERSISTENCE_KEY}`]);
         });
@@ -659,7 +681,7 @@ describe('RequestList', () => {
             const rl = await RequestList.open(name, sources);
             expect(rl).toBeInstanceOf(RequestList);
             expect(rl.requests).toEqual(requests);
-            await expect(rl.isEmpty()).resolves.toBe(false);
+            await expect(rl.checkReadiness()).resolves.toEqual({ status: 'ready' });
 
             // A nameless list has no persistence keys, so it never touches the store.
             expect(getValueSpy).not.toBeCalled();

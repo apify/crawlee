@@ -47,8 +47,8 @@
         "access": "public"
     },
     "dependencies": {
-        "@apify/datastructures": "^2.0.3",
-        "@apify/timeout": "^0.4.4",
+        "@apify/datastructures": "^3.0.1",
+        "@apify/timeout": "^1.0.1",
         "@crawlee/basic": "workspace:*",
         "@crawlee/browser": "workspace:*",
         "@crawlee/browser-pool": "workspace:*",
@@ -66,13 +66,9 @@
         "zod": "catalog:"
     },
     "peerDependencies": {
-        "idcac-playwright": "^0.2.0",
         "playwright": "*"
     },
     "peerDependenciesMeta": {
-        "idcac-playwright": {
-            "optional": true
-        },
         "playwright": {
             "optional": true
         }

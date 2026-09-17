@@ -48,6 +48,8 @@ export abstract class BrowserCrawler<Page extends CommonPage = CommonPage, Respo
     // (undocumented)
     protected buildContextPipeline(): ContextPipeline<CrawlingContext, BrowserCrawlingContext<Page, Response, Dictionary>>;
     // (undocumented)
+    destroy(): Promise<void>;
+    // (undocumented)
     protected getNavigationTimeoutMillis(): number;
     // (undocumented)
     protected readonly ignoreIframes: boolean;
@@ -58,6 +60,7 @@ export abstract class BrowserCrawler<Page extends CommonPage = CommonPage, Respo
     // (undocumented)
     protected abstract navigationHandler(crawlingContext: BrowserCrawlingContext<Page, Response>, gotoOptions: GoToOptions): Promise<Context['response'] | null | undefined>;
     protected runRequestHandler(crawlingContext: ExtendedContext): Promise<void>;
+    teardown(): Promise<void>;
 }
 
 // @public (undocumented)
@@ -113,6 +116,7 @@ export type LauncherRemoteBrowserPoolOptions = Omit<RemoteBrowserPoolOptions, 'b
 
 // @public
 export type OwnedBrowserPool<Page> = IBrowserPool<Page> & {
+    releaseAllBrowsers: () => Promise<void>;
     destroy: () => Promise<void>;
 };
 

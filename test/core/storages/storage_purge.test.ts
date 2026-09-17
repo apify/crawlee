@@ -127,8 +127,9 @@ describe('FileSystemStorageBackend.purge over a pre-existing storage directory',
 
         await backend.purge();
 
+        // Not the default store, so the file is adopted under its own name rather than as `INPUT`.
         const store = await backend.createKeyValueStoreBackend({ name: 'hand-placed' });
-        expect(await readInput(store)).toBe('{"hand":"placed"}');
+        expect((await store.getValue('INPUT.json'))?.value.toString()).toBe('{"hand":"placed"}');
     });
 
     // An unnamed storage whose directory is named after its own id can only be reached through
@@ -170,7 +171,7 @@ describe('purgeDefaultStorages', () => {
         await defaultQueue.addRequest({ url: 'https://example.com/stale' });
         await purgeDefaultStorages();
 
-        expect(await defaultQueue.isEmpty()).toBe(true);
+        expect((await defaultQueue.checkReadiness()).status).toBe('finished');
     });
 
     test('clears a crawler-owned alias queue left behind by a previous run', async () => {
@@ -185,6 +186,6 @@ describe('purgeDefaultStorages', () => {
         await purgeDefaultStorages();
 
         const secondRun = await RequestQueue.open({ alias: '__default_1__' });
-        expect(await secondRun.isEmpty()).toBe(true);
+        expect((await secondRun.checkReadiness()).status).toBe('finished');
     });
 });
