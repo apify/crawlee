@@ -1109,8 +1109,6 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     get innerManager(): T | undefined;
     // (undocumented)
     markRequestAsHandled(request: Request_2): Promise<RequestQueueOperationInfo | void | null>;
-    // (undocumented)
-    persistState(): Promise<void>;
     purge(): Promise<void>;
     // (undocumented)
     reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
