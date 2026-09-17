@@ -2605,6 +2605,8 @@ export class BasicCrawler<
             });
         }
 
+        // Captures the statistics changed while draining above. No PERSIST_STATE event is tied to the drain:
+        // the periodic one is unrelated, and the one the platform emits on migration arrives before any of this.
         await this.statistics.persistState?.();
     }
 
