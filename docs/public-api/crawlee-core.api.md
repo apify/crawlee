@@ -426,6 +426,7 @@ export interface IRequestManager extends IRequestLoader {
     addRequest(requestLike: Source, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo>;
     // (undocumented)
     addRequestsBatched(requests: RequestsLike, options?: AddRequestsBatchedOptions): Promise<AddRequestsBatchedResult>;
+    prolongRequestLock?(request: Request_2, secs: number): Promise<boolean>;
     purge?(): Promise<void>;
     reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
     recordPacingSignal(signal: PacingSignal): boolean;
@@ -815,6 +816,7 @@ export class RequestManagerTandem implements IRequestManager {
     getTotalCount(): Promise<number>;
     // (undocumented)
     markRequestAsHandled(request: Request_2): Promise<RequestQueueOperationInfo | void | null>;
+    prolongRequestLock(request: Request_2, secs: number): Promise<boolean>;
     purge(): Promise<void>;
     // (undocumented)
     reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
@@ -866,6 +868,7 @@ export class RequestQueue implements IStorage, IRequestManager {
     // (undocumented)
     readonly name?: string;
     static open(identifier?: string | StorageIdentifier | null, options?: StorageOpenOptions): Promise<RequestQueue>;
+    prolongRequestLock(request: Request_2, secs: number): Promise<boolean>;
     purge(): Promise<void>;
     reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
     recordPacingSignal(_signal: PacingSignal): boolean;

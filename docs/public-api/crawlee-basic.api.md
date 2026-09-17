@@ -1111,6 +1111,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     markRequestAsHandled(request: Request_2): Promise<RequestQueueOperationInfo | void | null>;
     // (undocumented)
     persistState(): Promise<void>;
+    prolongRequestLock(request: Request_2, secs: number): Promise<boolean>;
     purge(): Promise<void>;
     // (undocumented)
     reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;

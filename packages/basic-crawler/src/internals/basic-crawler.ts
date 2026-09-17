@@ -1490,6 +1490,12 @@ export class BasicCrawler<
                 if (context[navigationDeadlineKey] !== undefined) {
                     context[navigationDeadlineKey] += extraMillis;
                 }
+
+                // Best-effort: a locking backend extends the request's reservation; failures
+                // here must not fail the request that asked for more time.
+                this.requestManager?.prolongRequestLock?.(context.request, secs)?.catch((error) => {
+                    this.log.debug('Prolonging the request lock failed', { url: context.request.url, error });
+                });
             },
             [deferredCleanupKey]: deferredCleanup,
         };
