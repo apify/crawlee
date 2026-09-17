@@ -144,6 +144,80 @@ describe('BaseHttpClient cookie handling', () => {
     });
 });
 
+describe('BaseHttpClient credentials on redirects', () => {
+    const credentials = {
+        'authorization': 'Bearer secret',
+        'proxy-authorization': 'Basic secret',
+        'cookie': 'token=secret',
+    };
+
+    const echoCredentials = (req: http.IncomingMessage, res: http.ServerResponse) => {
+        res.setHeader('content-type', 'application/json');
+        res.end(
+            JSON.stringify({
+                'authorization': req.headers.authorization ?? null,
+                'proxy-authorization': req.headers['proxy-authorization'] ?? null,
+                'cookie': req.headers.cookie ?? null,
+            }),
+        );
+    };
+
+    let target: http.Server;
+    let redirector: http.Server;
+    let redirectorUrl: string;
+
+    beforeAll(async () => {
+        target = http.createServer(echoCredentials);
+        await new Promise<void>((resolve) => target.listen(resolve));
+        // A different host, so that the cookie jar does not match it either
+        const targetUrl = `http://localhost:${(target.address() as AddressInfo).port}`;
+
+        redirector = http.createServer((req, res) => {
+            const { pathname } = new URL(req.url!, 'http://localhost');
+
+            if (pathname === '/cross-origin') {
+                res.writeHead(302, { location: `${targetUrl}/echo` }).end();
+            } else if (pathname === '/same-origin') {
+                res.writeHead(302, { location: '/echo' }).end();
+            } else {
+                echoCredentials(req, res);
+            }
+        });
+        await new Promise<void>((resolve) => redirector.listen(resolve));
+        redirectorUrl = `http://127.0.0.1:${(redirector.address() as AddressInfo).port}`;
+    });
+
+    afterAll(async () => {
+        await new Promise((resolve) => redirector.close(resolve));
+        await new Promise((resolve) => target.close(resolve));
+    });
+
+    test('does not forward credential headers to a different origin', async () => {
+        const response = await httpClient.sendRequest(
+            new Request(`${redirectorUrl}/cross-origin`, { headers: credentials }),
+        );
+
+        expect(await response.json()).toEqual({ 'authorization': null, 'proxy-authorization': null, 'cookie': null });
+    });
+
+    test('does not send cookies of the previous origin to a different origin', async () => {
+        const cookieJar = new CookieJar();
+        await cookieJar.setCookie('session=secret', redirectorUrl);
+
+        const response = await httpClient.sendRequest(new Request(`${redirectorUrl}/cross-origin`), { cookieJar });
+
+        expect(await response.json()).toMatchObject({ cookie: null });
+    });
+
+    test('keeps credential headers on a same-origin redirect', async () => {
+        const response = await httpClient.sendRequest(
+            new Request(`${redirectorUrl}/same-origin`, { headers: credentials }),
+        );
+
+        expect(await response.json()).toEqual(credentials);
+    });
+});
+
 describe('BaseHttpClient TLS error handling', () => {
     class CapturingHttpClient extends BaseHttpClient {
         lastFetchOptions?: RequestInit & CustomFetchOptions;
