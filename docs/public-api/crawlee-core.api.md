@@ -417,7 +417,6 @@ export interface IRequestLoader {
     getPendingCount(): Promise<number>;
     getTotalCount(): Promise<number>;
     markRequestAsHandled(request: Request_2): Promise<RequestQueueOperationInfo | void | null>;
-    persistState?(): Promise<void>;
     toTandem?(requestManager?: IRequestManager): Promise<IRequestManager>;
 }
 
@@ -816,7 +815,6 @@ export class RequestManagerTandem implements IRequestManager {
     getTotalCount(): Promise<number>;
     // (undocumented)
     markRequestAsHandled(request: Request_2): Promise<RequestQueueOperationInfo | void | null>;
-    persistState(): Promise<void>;
     purge(): Promise<void>;
     // (undocumented)
     reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;

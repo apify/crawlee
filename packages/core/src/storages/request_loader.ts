@@ -89,7 +89,7 @@ export function joinRequestSourceStatuses(a: RequestSourceStatus, b: RequestSour
  * "finished with this request", whether processing succeeded or was abandoned after exhausting retries.
  *
  * Honoring this contract matters for three reasons:
- * - **Restarts and migrations:** loaders that persist their state (see {@apilink IRequestLoader.persistState})
+ * - **Restarts and migrations:** loaders that persist their state (such as {@apilink RequestList})
  *   treat in-progress requests as interrupted and re-serve them after a restart. A request that is fetched
  *   but never marked handled will be crawled again.
  * - **Termination detection:** {@apilink IRequestLoader.checkReadiness} only reports `finished` once nothing is
@@ -153,13 +153,6 @@ export interface IRequestLoader {
      * {@apilink IRequestLoader}.
      */
     markRequestAsHandled(request: Request): Promise<RequestQueueOperationInfo | void | null>;
-
-    /**
-     * Persists the current state of the loader into the default {@apilink KeyValueStore}.
-     *
-     * Not all loaders support persistence; implementations that do not should leave this `undefined`.
-     */
-    persistState?(): Promise<void>;
 
     /**
      * Combines the loader with a request manager to support adding and reclaiming requests.

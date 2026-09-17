@@ -1466,7 +1466,7 @@ The harmonized loader interface differs from the old `IRequestList` in a few way
 | `isEmpty(): Promise<boolean>` and `isFinished(): Promise<boolean>` | `checkReadiness(): Promise<RequestSourceStatus>` ([details](#isempty--isfinished-replaced-by-checkreadiness)) |
 | `reclaimRequest()` on the interface | Removed from the read-only loaders entirely; reclaiming is a write operation that lives only on `IRequestManager` (e.g. `RequestQueue`, `RequestManagerTandem`) |
 | `inProgress: Set<string>` on the interface | Removed from the interface |
-| `persistState(): Promise<void>` (required) | `persistState?(): Promise<void>` (optional) |
+| `persistState(): Promise<void>` (required) | Removed from the interface; loaders that have state persist it themselves on the `persistState` event, and `RequestList`/`SitemapRequestLoader` still expose the method as a class member |
 | _(n/a)_ | `toTandem?(requestManager?)` (new) |
 
 `RequestList.length()` and `RequestList.handledCount()` (and their `SitemapRequestLoader` counterparts) were renamed to `getTotalCount()` and `getHandledCount()` and are now `async` — `await` them.
