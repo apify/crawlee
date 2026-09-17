@@ -767,6 +767,25 @@ describe('discoverValidSitemaps', () => {
         expect(urls).toEqual(['http://sitemap-discovery.com/sitemap.xml']);
     });
 
+    it('probes well-known paths without the query string and fragment of the input url', async () => {
+        nock('http://sitemap-discovery.com')
+            .get('/robots.txt')
+            .reply(404)
+            .head('/sitemap.xml')
+            .reply(200, '')
+            .head('/sitemap.txt')
+            .reply(404, '')
+            .head('/sitemap_index.xml')
+            .reply(404, '');
+
+        const urls = [];
+        for await (const url of discoverValidSitemaps(['http://sitemap-discovery.com/products?page=2#top'])) {
+            urls.push(url);
+        }
+
+        expect(urls).toEqual(['http://sitemap-discovery.com/sitemap.xml']);
+    });
+
     it('extracts sitemaps from multiple domains with mixed order', async () => {
         nock('http://domain-a.com')
             .get('/robots.txt')
