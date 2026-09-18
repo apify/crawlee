@@ -1517,9 +1517,9 @@ describe('BasicCrawler', () => {
             .mockResolvedValueOnce({ requestId: 'id-1' } as any)
             .mockResolvedValueOnce({ requestId: 'id-2' } as any);
 
-        const request0 = new Request({ id: 'id-0', ...sources[0] });
-        const request1 = new Request({ id: 'id-1', ...sources[1] });
-        const request2 = new Request({ id: 'id-2', ...sources[2] });
+        const request0 = Object.assign(new Request(sources[0]), { id: 'id-0' });
+        const request1 = Object.assign(new Request(sources[1]), { id: 'id-1' });
+        const request2 = Object.assign(new Request(sources[2]), { id: 'id-2' });
 
         const queueContent = [request0, request1, request2, request1, request1, request1];
 

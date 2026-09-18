@@ -2,7 +2,7 @@ import type { BinaryLike } from 'node:crypto';
 import crypto from 'node:crypto';
 import util from 'node:util';
 
-import type { AllowedHttpMethods, Dictionary } from '@crawlee/types';
+import type { AllowedHttpMethods, Dictionary, RequestSchema } from '@crawlee/types';
 import type { EnqueueStrategy } from '@crawlee/utils';
 import { z } from 'zod';
 
@@ -24,10 +24,6 @@ export type SkippedRequestReason =
     | 'redirect'
     | 'depth';
 
-const dateString = z.string().refine((value) => !Number.isNaN(Date.parse(value)), {
-    message: 'Invalid input: expected a date string',
-});
-
 export enum RequestState {
     UNPROCESSED,
     BEFORE_NAV,
@@ -39,24 +35,30 @@ export enum RequestState {
     SKIPPED,
 }
 
+/** Crawlee's own per-request state. Lives in `userData.__crawlee` so every storage persists it as plain user data. */
+interface CrawleeRequestData {
+    skipNavigation?: boolean;
+    crawlDepth?: number;
+    sessionId?: string;
+    maxRetries?: number;
+    state?: RequestState;
+    skippedReason?: SkippedRequestReason;
+    enqueueStrategy?: EnqueueStrategyOption;
+}
+
 const requestUrlSchema = z.object({ url: z.string() });
 
 // new properties on the Request object breaks serialization
 const requestOptionalSchemaShapes: Record<string, z.ZodType> = {
-    id: z.string().optional(),
-    loadedUrl: z.url().optional(),
     uniqueKey: z.string().optional(),
     method: z.string().optional(),
     payload: z.union([z.string(), z.instanceof(Uint8Array)]).optional(),
     noRetry: z.boolean().optional(),
-    retryCount: schemas.anyNumber.optional(),
     sessionId: z.string().optional(),
     maxRetries: schemas.anyNumber.optional(),
-    errorMessages: schemas.arrayOf(z.string(), 'strings').optional(),
     headers: z.looseObject({}).optional(),
     userData: z.looseObject({}).optional(),
     label: z.string().optional(),
-    handledAt: z.union([dateString, z.date()]).optional(),
     keepUrlFragment: z.boolean().optional(),
     useExtendedUniqueKey: z.boolean().optional(),
     alwaysEnqueue: z.boolean().optional(),
@@ -64,7 +66,6 @@ const requestOptionalSchemaShapes: Record<string, z.ZodType> = {
     crawlDepth: schemas.anyNumber
         .refine((value) => value >= 0, 'Expected a number greater than or equal to 0')
         .optional(),
-    state: z.enum(RequestState).optional(),
 };
 
 // Each schema is wrapped in a single-key object so validation errors carry the property name.
@@ -104,7 +105,7 @@ const requestOptionalSchemas: Partial<Record<string, z.ZodType>> = Object.fromEn
  * @category Sources
  */
 class CrawleeRequest<UserData extends Dictionary = Dictionary> {
-    /** Request ID */
+    /** Storage-assigned request ID. Only present on requests that went through a {@apilink RequestQueue}. */
     id?: string;
 
     /** URL of the web page to crawl. */
@@ -163,6 +164,9 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
 
     /**
      * `Request` parameters including the URL, HTTP method and headers, and others.
+     *
+     * Processing state (`retryCount`, `errorMessages`, `handledAt`, `loadedUrl`, `id`) is not an option;
+     * requests coming back from a storage are rebuilt with {@apilink Request.fromSchema}.
      */
     constructor(options: RequestOptions<UserData>) {
         // A bare URL is a common slip — point at the object form instead of a generic type error.
@@ -193,33 +197,22 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
         });
 
         const {
-            id,
             url,
-            loadedUrl,
             uniqueKey,
             payload,
             noRetry = false,
-            retryCount = 0,
             sessionId,
             maxRetries,
-            errorMessages = [],
             headers = {},
-            userData = {},
+            userData = {} as UserData,
             label,
-            handledAt,
             keepUrlFragment = false,
             useExtendedUniqueKey = false,
             alwaysEnqueue = false,
             skipNavigation,
             enqueueStrategy,
             crawlDepth,
-        } = options as RequestOptions & {
-            loadedUrl?: string;
-            retryCount?: number;
-            sessionId?: string;
-            errorMessages?: string[];
-            handledAt?: string | Date;
-        };
+        } = options;
 
         let { method = 'GET' } = options;
 
@@ -231,9 +224,7 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
             throw new Error('`alwaysEnqueue` cannot be used together with a custom `uniqueKey`.');
         }
 
-        this.id = id;
         this.url = url;
-        this.loadedUrl = loadedUrl;
         this.uniqueKey =
             uniqueKey ||
             CrawleeRequest.computeUniqueKey({
@@ -247,13 +238,12 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
         this.method = method;
         this.payload = payload;
         this.noRetry = noRetry;
-        this.retryCount = retryCount;
-        this.errorMessages = [...errorMessages];
+        this.retryCount = 0;
+        this.errorMessages = [];
         this.headers = { ...headers };
-        this.handledAt = (handledAt as unknown) instanceof Date ? (handledAt as Date).toISOString() : handledAt!;
 
         if (label) {
-            userData.label = label;
+            (userData as Dictionary).label = label;
         }
 
         // Read `__crawlee` explicitly - on a `userData` coming from another Request instance the
@@ -298,13 +288,30 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
 
         if (skipNavigation != null) this.skipNavigation = skipNavigation;
         if (maxRetries != null) this.maxRetries = maxRetries;
-        if (crawlDepth != null) this.userData.__crawlee.crawlDepth ??= crawlDepth;
+        if (crawlDepth != null) this.crawleeData.crawlDepth ??= crawlDepth;
         if (sessionId) this.sessionId = sessionId;
 
         // If it's already set, don't override it (for instance when fetching from storage)
         if (enqueueStrategy) {
             this.enqueueStrategy ??= enqueueStrategy;
         }
+    }
+
+    /**
+     * Rebuilds a request from its stored form, including the processing state a
+     * {@apilink RequestOptions} object cannot carry.
+     */
+    static fromSchema<UserData extends Dictionary = Dictionary>(schema: RequestSchema): CrawleeRequest<UserData> {
+        const { id, retryCount = 0, errorMessages = [], handledAt, loadedUrl, ...options } = schema;
+        const request = new CrawleeRequest<UserData>(options as RequestOptions<UserData>);
+        request.id = id;
+        request.retryCount = retryCount;
+        request.errorMessages = [...errorMessages];
+        request.loadedUrl = loadedUrl;
+        // `apify-client` parses `*At` fields into `Date`s, whatever the schema says.
+        request.handledAt =
+            (handledAt as unknown) instanceof Date ? (handledAt as unknown as Date).toISOString() : handledAt;
+        return request;
     }
 
     /**
@@ -319,6 +326,11 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
         });
     }
 
+    /** Crawlee's own state on this request; see {@link CrawleeRequestData}. */
+    private get crawleeData(): CrawleeRequestData {
+        return ((this.userData as Dictionary).__crawlee ??= {});
+    }
+
     /**
      * Tells the crawler processing this request to skip the navigation and process the request directly.
      *
@@ -327,22 +339,11 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
      * Accessing these properties will throw a {@apilink NavigationSkippedError} at runtime.
      */
     get skipNavigation(): boolean {
-        return this.userData.__crawlee?.skipNavigation ?? false;
+        return this.crawleeData.skipNavigation ?? false;
     }
 
-    /**
-     * Tells the crawler processing this request to skip the navigation and process the request directly.
-     *
-     * When this is set to `true`, the crawling context will not contain the results of the navigation
-     * (e.g. `response`, `body`, `contentType`, `$` or `request.loadedUrl`).
-     * Accessing these properties will throw a {@apilink NavigationSkippedError} at runtime.
-     */
     set skipNavigation(value: boolean) {
-        if (!this.userData.__crawlee) {
-            (this.userData as Dictionary).__crawlee = { skipNavigation: value };
-        } else {
-            this.userData.__crawlee.skipNavigation = value;
-        }
+        this.crawleeData.skipNavigation = value;
     }
 
     /**
@@ -350,26 +351,20 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
      * Note that this is dependent on the crawler setup and might produce unexpected results when used with multiple crawlers.
      */
     get crawlDepth(): number {
-        return this.userData.__crawlee?.crawlDepth ?? 0;
+        return this.crawleeData.crawlDepth ?? 0;
     }
 
-    /**
-     * Depth of the request in the current crawl tree.
-     * Note that this is dependent on the crawler setup and might produce unexpected results when used with multiple crawlers.
-     */
     set crawlDepth(value: number) {
-        (this.userData as Dictionary).__crawlee ??= {};
-        this.userData.__crawlee.crawlDepth = value;
+        this.crawleeData.crawlDepth = value;
     }
 
     /** ID of a session to use for this request. When set, the crawler will fetch this session from the session pool instead of creating a new one. */
     get sessionId(): string | undefined {
-        return this.userData.__crawlee?.sessionId;
+        return this.crawleeData.sessionId;
     }
 
     set sessionId(value: string | undefined) {
-        (this.userData as Dictionary).__crawlee ??= {};
-        this.userData.__crawlee.sessionId = value;
+        this.crawleeData.sessionId = value;
     }
 
     /** shortcut for getting `request.userData.label` */
@@ -384,60 +379,37 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
 
     /** Maximum number of retries for this request. Allows to override the global `maxRequestRetries` option of `BasicCrawler`. */
     get maxRetries(): number | undefined {
-        return this.userData.__crawlee?.maxRetries;
+        return this.crawleeData.maxRetries;
     }
 
-    /** Maximum number of retries for this request. Allows to override the global `maxRequestRetries` option of `BasicCrawler`. */
     set maxRetries(value: number | undefined) {
-        if (!this.userData.__crawlee) {
-            (this.userData as Dictionary).__crawlee = { maxRetries: value };
-        } else {
-            this.userData.__crawlee.maxRetries = value;
-        }
+        this.crawleeData.maxRetries = value;
     }
 
     /** Describes the request's current lifecycle state. */
     get state(): RequestState {
-        return this.userData.__crawlee?.state ?? RequestState.UNPROCESSED;
+        return this.crawleeData.state ?? RequestState.UNPROCESSED;
     }
 
-    /** Describes the request's current lifecycle state. */
     set state(value: RequestState) {
-        if (!this.userData.__crawlee) {
-            (this.userData as Dictionary).__crawlee = { state: value };
-        } else {
-            this.userData.__crawlee.state = value;
-        }
+        this.crawleeData.state = value;
     }
 
-    /**
-     * Reason for skipping this request.
-     */
+    /** Reason for skipping this request. */
     get skippedReason(): SkippedRequestReason | undefined {
-        return this.userData.__crawlee?.skippedReason;
+        return this.crawleeData.skippedReason;
     }
 
-    /**
-     * Reason for skipping this request.
-     */
     set skippedReason(value: SkippedRequestReason | undefined) {
-        if (!this.userData.__crawlee) {
-            (this.userData as Dictionary).__crawlee = { skippedReason: value };
-        } else {
-            this.userData.__crawlee.skippedReason = value;
-        }
+        this.crawleeData.skippedReason = value;
     }
 
     private get enqueueStrategy(): EnqueueStrategyOption | undefined {
-        return this.userData.__crawlee?.enqueueStrategy;
+        return this.crawleeData.enqueueStrategy;
     }
 
     private set enqueueStrategy(value: EnqueueStrategyOption | undefined) {
-        if (!this.userData.__crawlee) {
-            (this.userData as Dictionary).__crawlee = { enqueueStrategy: value };
-        } else {
-            this.userData.__crawlee.enqueueStrategy = value;
-        }
+        this.crawleeData.enqueueStrategy = value;
     }
 
     /**
@@ -651,15 +623,6 @@ export interface RequestOptions<UserData extends Dictionary = Dictionary> {
      * Maximum number of retries for this request. Allows to override the global `maxRequestRetries` option of `BasicCrawler`.
      */
     maxRetries?: number;
-
-    /** @internal */
-    id?: string;
-
-    /** @internal */
-    handledAt?: string;
-
-    /** @internal */
-    lockExpiresAt?: Date;
 
     /** @internal */
     enqueueStrategy?: EnqueueStrategyOption;
