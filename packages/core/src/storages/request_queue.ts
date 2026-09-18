@@ -64,19 +64,26 @@ const addRequestsBatchedOptionsSchema = z.strictObject({
     waitBetweenBatchesMillis: schemas.anyNumber.default(1000),
     maxNewRequests: schemas.anyNumber.optional(),
 });
-const newRequestLikeSchema = z.looseObject({
-    url: z.string(),
-    id: z.undefined().optional(),
-});
-const handledRequestSchema = z.looseObject({
-    id: z.string(),
-    uniqueKey: z.string(),
-    handledAt: z.string().optional(),
-});
-const reclaimedRequestSchema = z.looseObject({
-    id: z.string(),
-    uniqueKey: z.string(),
-});
+// Compiled: these run once per request.
+const newRequestLikeSchema = z.compile(
+    z.looseObject({
+        url: z.string(),
+        id: z.undefined().optional(),
+    }),
+);
+const handledRequestSchema = z.compile(
+    z.looseObject({
+        id: z.string(),
+        uniqueKey: z.string(),
+        handledAt: z.string().optional(),
+    }),
+);
+const reclaimedRequestSchema = z.compile(
+    z.looseObject({
+        id: z.string(),
+        uniqueKey: z.string(),
+    }),
+);
 const uniqueKeySchema = z.string();
 const openOptionsSchema = z.strictObject({
     configuration: z.instanceof(Configuration).optional(),

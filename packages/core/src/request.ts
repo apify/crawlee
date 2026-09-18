@@ -9,7 +9,6 @@ import { z } from 'zod';
 import { cryptoRandomObjectId, normalizeUrl } from '@apify/utilities';
 
 import { serviceLocator } from './service_locator.js';
-import { keys } from './typedefs.js';
 import { parseArgument, schemas } from './validators.js';
 
 /** The `strategy` option accepted by {@apilink ExtractLinksOptions} and {@apilink EnqueueUrlsOptions}. */
@@ -39,37 +38,34 @@ export enum RequestState {
     SKIPPED,
 }
 
-const requestUrlSchema = z.object({ url: z.string() });
-
 // new properties on the Request object breaks serialization
-const requestOptionalSchemaShapes: Record<string, z.ZodType> = {
-    id: z.string().optional(),
-    loadedUrl: z.url().optional(),
-    uniqueKey: z.string().optional(),
-    method: z.string().optional(),
-    payload: z.union([z.string(), z.instanceof(Uint8Array)]).optional(),
-    noRetry: z.boolean().optional(),
-    retryCount: schemas.anyNumber.optional(),
-    sessionId: z.string().optional(),
-    maxRetries: schemas.anyNumber.optional(),
-    errorMessages: schemas.arrayOf(z.string(), 'strings').optional(),
-    headers: z.looseObject({}).optional(),
-    userData: z.looseObject({}).optional(),
-    label: z.string().optional(),
-    handledAt: z.union([dateString, z.date()]).optional(),
-    keepUrlFragment: z.boolean().optional(),
-    useExtendedUniqueKey: z.boolean().optional(),
-    alwaysEnqueue: z.boolean().optional(),
-    skipNavigation: z.boolean().optional(),
-    crawlDepth: schemas.anyNumber
-        .refine((value) => value >= 0, 'Expected a number greater than or equal to 0')
-        .optional(),
-    state: z.enum(RequestState).optional(),
-};
-
-// Each schema is wrapped in a single-key object so validation errors carry the property name.
-const requestOptionalSchemas: Partial<Record<string, z.ZodType>> = Object.fromEntries(
-    Object.entries(requestOptionalSchemaShapes).map(([key, schema]) => [key, z.object({ [key]: schema })]),
+// Compiled once: every `Request` runs it, and the generated fast path skips zod's interpreter.
+const requestOptionsSchema = z.compile(
+    z.looseObject({
+        url: z.string(),
+        id: z.string().optional(),
+        loadedUrl: z.url().optional(),
+        uniqueKey: z.string().optional(),
+        method: z.string().optional(),
+        payload: z.union([z.string(), z.instanceof(Uint8Array)]).optional(),
+        noRetry: z.boolean().optional(),
+        retryCount: schemas.anyNumber.optional(),
+        sessionId: z.string().optional(),
+        maxRetries: schemas.anyNumber.optional(),
+        errorMessages: schemas.arrayOf(z.string(), 'strings').optional(),
+        headers: z.looseObject({}).optional(),
+        userData: z.looseObject({}).optional(),
+        label: z.string().optional(),
+        handledAt: z.union([dateString, z.date()]).optional(),
+        keepUrlFragment: z.boolean().optional(),
+        useExtendedUniqueKey: z.boolean().optional(),
+        alwaysEnqueue: z.boolean().optional(),
+        skipNavigation: z.boolean().optional(),
+        crawlDepth: schemas.anyNumber
+            .refine((value) => value >= 0, 'Expected a number greater than or equal to 0')
+            .optional(),
+        state: z.enum(RequestState).optional(),
+    }),
 );
 
 /**
@@ -174,23 +170,7 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
         }
 
         parseArgument(options, schemas.anyObject, 'RequestOptions');
-        parseArgument(options, requestUrlSchema, 'RequestOptions');
-        // Full-shape validation is slow, because it checks all predicates
-        // even if the validated object has only 1 property.
-        // This custom validation loop iterates only over existing
-        // properties and speeds up the validation cca 3-fold.
-        keys(options).forEach((prop) => {
-            // skip url, because it is validated above
-            if (prop === 'url') {
-                return;
-            }
-
-            const schema = requestOptionalSchemas[prop as string];
-            const value = options[prop];
-            if (schema) {
-                parseArgument({ [prop]: value }, schema, 'RequestOptions');
-            }
-        });
+        parseArgument(options, requestOptionsSchema, 'RequestOptions');
 
         const {
             id,
