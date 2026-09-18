@@ -2883,6 +2883,7 @@ export class BasicCrawler<
 
             if (!request.noRetry) {
                 request.retryCount++;
+                this.statistics.registerRetry?.(request.retryCount);
 
                 const { url, retryCount, id } = request;
 
