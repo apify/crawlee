@@ -187,11 +187,18 @@ export interface IConcurrencySystem {
      *
      * Must be an *atomic* (synchronous) check-and-book: several pools may share one governor, and a check separated
      * from the booking by an `await` lets two of them claim the last free slot at once.
+     * @param taskId Identifies the booked task among the ones `consumer` has in flight, and is repeated by the
+     * {@apilink IConcurrencySystem.registerTaskEnd|release} — pairing the two is what lets an implementation time a
+     * task or tell which ones are still running. Nothing beyond that is promised: another consumer may be using the
+     * same id at the same time, and an id may come back around once its task has ended.
      */
-    tryRegisterTaskStart(consumer: ConcurrencyConsumer): boolean;
+    tryRegisterTaskStart(consumer: ConcurrencyConsumer, taskId: string): boolean;
 
-    /** Returns a task's slot to `consumer`'s budget. Called once the task settles (resolve or reject). */
-    registerTaskEnd(consumer: ConcurrencyConsumer): void;
+    /**
+     * Returns a task's slot to `consumer`'s budget. Called once the task settles (resolve or reject).
+     * @param taskId The id the task was {@apilink IConcurrencySystem.tryRegisterTaskStart|booked} under.
+     */
+    registerTaskEnd(consumer: ConcurrencyConsumer, taskId: string): void;
 }
 
 /**
