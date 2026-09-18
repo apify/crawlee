@@ -7,14 +7,16 @@ import {
     MemoryStorageBackend,
     playwrightClickElements,
     playwrightUtils,
-    puppeteerClickElements,
     puppeteerUtils,
     RequestQueue,
     serviceLocator,
 } from 'crawlee';
 import type { Browser as PWBrowser, Page as PWPage } from 'playwright';
 // @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
-import type { Browser as PPBrowser, Target } from 'puppeteer';
+import type { Browser as PPBrowser, Page as PPPage, Target } from 'puppeteer';
+// `clickElements` and `clickElementsAndInterceptNavigationRequests` are internals of @crawlee/puppeteer
+// and are deliberately not part of its public surface, so reach them through the source module.
+import * as puppeteerClickElements from '../../../packages/puppeteer-crawler/src/internals/enqueue-links/click-elements.js';
 import { runExampleComServer } from '../../shared/_helper.js';
 
 function isPuppeteerBrowser(browser: PPBrowser | PWBrowser): browser is PPBrowser {
@@ -23,6 +25,12 @@ function isPuppeteerBrowser(browser: PPBrowser | PWBrowser): browser is PPBrowse
 
 function isPlaywrightBrowser(browser: PPBrowser | PWBrowser): browser is PWBrowser {
     return (browser as PWBrowser).browserType !== undefined;
+}
+
+// Mirrors the module-local `isTargetRelevant` predicate in @crawlee/puppeteer's click-elements internals.
+function isPuppeteerTargetRelevant(page: PPPage, target: Target): boolean {
+    // oxlint-disable-next-line typescript/no-deprecated -- the non-deprecated replacement (opener.page()) is async and cannot be awaited in this event callback
+    return target.type() === 'page' && page.target() === target.opener();
 }
 
 async function createRequestQueueMock() {
@@ -504,8 +512,7 @@ testCases.forEach(({ caseName, launchBrowser, clickElements, utils }) => {
                         };
                         (browser as PPBrowser).on('targetcreated', (target) => {
                             counts.create++;
-                            if ((clickElements as typeof puppeteerClickElements).isTargetRelevant(page, target))
-                                spawnedTarget = target;
+                            if (isPuppeteerTargetRelevant(page, target)) spawnedTarget = target;
                         });
                         browser.on('targetdestroyed', (target) => {
                             counts.destroy++;

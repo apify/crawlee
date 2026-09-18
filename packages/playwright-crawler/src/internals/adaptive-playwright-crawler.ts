@@ -11,7 +11,6 @@ import { isDeepStrictEqual } from 'node:util';
 
 import type {
     BasicCrawlerOptions,
-    ContextPipeline,
     CrawlingContext,
     EnqueueLinksOptions,
     GetUserDataFromRequest,
@@ -21,6 +20,7 @@ import type {
 } from '@crawlee/basic';
 import {
     BasicCrawler,
+    ContextPipeline,
     RequestHandlerError,
     resolveBaseUrlForEnqueueLinksFiltering,
     Router,
@@ -426,7 +426,7 @@ export class AdaptivePlaywrightCrawler<
                     stateExtension:
                         adaptivePlaywrightCrawlerStatisticState as StatisticStateExtensionOptions<StatisticStateExtension>,
                 }),
-            contextPipelineBuilder: contextPipelineBuilder ?? (() => this.buildContextPipeline()),
+            contextPipelineBuilder: contextPipelineBuilder ?? (() => this.#buildContextPipeline()),
             // The base crawler must not wrap requests in a transaction of its own - this crawler opens
             // one per request handler attempt in `crawlOne` instead, forwarding the write policy of the
             // user-facing option (validated above) to those.
@@ -512,11 +512,11 @@ export class AdaptivePlaywrightCrawler<
         return await super.init();
     }
 
-    protected override buildContextPipeline(): ContextPipeline<CrawlingContext, AdaptivePlaywrightCrawlerContext> {
+    #buildContextPipeline(): ContextPipeline<CrawlingContext, AdaptivePlaywrightCrawlerContext> {
         const errorMessage = (prop: string) =>
             `The \`${prop}\` property is not available on the outer context pipeline of AdaptivePlaywrightCrawler - it is provided by the inner (static/browser) pipelines`;
 
-        return super.buildContextPipeline().compose({
+        return ContextPipeline.create<CrawlingContext>().compose({
             action: async ({ request }) => ({
                 get request(): LoadedRequest<Request<Dictionary>> {
                     return request as LoadedRequest<Request<Dictionary>>;

@@ -1,7 +1,8 @@
 import { Transform } from 'node:stream';
 
 import type { BaseHttpClient } from '@crawlee/http-client';
-import { EnqueueStrategy, parseSitemap, type ParseSitemapOptions } from '@crawlee/utils';
+import type { ParseSitemapOptions } from '@crawlee/utils';
+import { EnqueueStrategy, parseArgument, parseSitemap, schemas } from '@crawlee/utils/internal';
 import { minimatch } from 'minimatch';
 import type { RequiredDeep } from 'type-fest';
 import { z } from 'zod';
@@ -16,9 +17,9 @@ import {
     RequestQueue,
     serviceLocator,
 } from '@crawlee/core';
-import { parseArgument, schemas } from '@crawlee/utils/internal';
 
-import type { UrlPatternInput, UrlPatternObject } from './enqueue_links/index.js';
+import type { UrlPatternInput } from './enqueue_links/index.js';
+import type { UrlPatternObject } from './enqueue_links/shared.js';
 import { constructUrlPatternObjects, urlPatternSchema } from './enqueue_links/index.js';
 
 const sitemapRequestLoaderOptionsSchema = z.strictObject({

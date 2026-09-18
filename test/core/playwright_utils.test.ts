@@ -439,8 +439,7 @@ describe('playwrightUtils', () => {
     });
 
     describe('handleCloudflareChallenge() challenge detection', () => {
-        // not a named export, only reachable via the internal `playwrightUtils` object
-        const { handleCloudflareChallenge } = playwrightUtils.playwrightUtils;
+        const { handleCloudflareChallenge } = playwrightUtils;
         let browser: Browser;
         let page: Page;
 

@@ -1,0 +1,58 @@
+---
+id: public-api
+title: Public API
+description: What Crawlee promises not to break, and what it doesn't
+---
+
+Crawlee ships its type definitions, and those definitions contain more than its supported API.
+Some of what you can import is a deliberate promise; some of it is machinery that happens to be
+reachable. This page explains how to tell, so you can decide what to depend on.
+
+## Supported by default
+
+Anything Crawlee exports is supported unless it says otherwise. If you can import it and its
+documentation does not mark it as internal, it is covered by backwards compatibility: it will
+not change shape or disappear outside a major release, and if it ever does, the change is
+recorded in the upgrading guide.
+
+## Marked internal
+
+Some members carry an `@internal` tag in their documentation comment. Your editor shows it when
+you hover the symbol, and it means exactly one thing: **we do not promise anything about it.**
+It can change signature, behaviour or disappear entirely in any release, including a patch, and
+it will not appear in the upgrading guide when it does.
+
+It is still exported, still typed, and auto-completion still works. That is on purpose. We
+would rather leave you a way to unblock yourself — knowingly — than take it away and have you
+patch the package or give up. So the tag is a statement about support, not about access:
+
+```ts
+// Fine. Supported, and it will keep working.
+import { CheerioCrawler, Dataset } from 'crawlee';
+
+// Allowed, but you are on your own. Pin your Crawlee version
+// and expect to revisit this on every upgrade.
+import { someInternalHelper } from 'crawlee';
+```
+
+If you find yourself reaching for an internal member to get something done, that is worth
+telling us about — [open an issue](https://github.com/apify/crawlee/issues). Those reports are
+what we use to decide which extension points deserve a real, supported API.
+
+## Things that are not types
+
+Not every promise is expressible in TypeScript, and a few things are contracts even though
+nothing checks them:
+
+- **Persisted state.** The layout of what Crawlee writes into a key-value store or request
+  queue is an implementation detail. Read it for debugging, do not build on it.
+- **Log message text.** Messages change freely; never match on them.
+- **Subclass hook ordering.** When you override a documented extension point, call `super`
+  where the base class expects it. Skipping it usually compiles and then misbehaves at runtime.
+
+## Where to check
+
+For anything beyond the obvious, the per-package surface maps under
+[`docs/public-api/`](https://github.com/apify/crawlee/tree/master/docs/public-api) in the
+repository are the authoritative inventory of what we promise. If a symbol is in there, it is
+supported; if not, it is not.
