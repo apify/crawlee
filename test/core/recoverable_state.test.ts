@@ -1,3 +1,5 @@
+import { Readable } from 'node:stream';
+import { text } from 'node:stream/consumers';
 import { setTimeout as sleep } from 'node:timers/promises';
 
 import { beforeEach, describe, expect, test, vi } from 'vitest';
@@ -342,6 +344,48 @@ describe('RecoverableState', () => {
         expect(deserialize).toHaveBeenCalled();
         expect(restored.currentValue.data).toBeInstanceOf(CustomData);
         expect(restored.currentValue.data.value).toBe('updated');
+    });
+
+    test('should hand the record encoding over to the conversions when a contentType is set', async () => {
+        // Streams both ways: the point of the option is a state too large for a single string.
+        const serialize = vi.fn((state: TestState) => Readable.from([Buffer.from(JSON.stringify(state))]));
+        const deserialize = vi.fn(async (bytes: Readable): Promise<TestState> => JSON.parse(await text(bytes)));
+
+        const build = () =>
+            new RecoverableState<TestState, Readable>({
+                defaultState,
+                persistStateKey: 'test-key',
+                persistenceEnabled: true,
+                contentType: 'application/json; charset=utf-8',
+                serialize,
+                deserialize,
+            });
+
+        const recoverableState = build();
+        await recoverableState.initialize();
+        recoverableState.currentValue.counter = 42;
+        await recoverableState.persistState();
+
+        const record = await (await KeyValueStore.open()).getRecord('test-key');
+        expect(record?.contentType).toBe('application/json; charset=utf-8');
+
+        const restored = build();
+        await restored.initialize();
+
+        expect(deserialize).toHaveBeenCalledWith(expect.any(Readable));
+        expect(restored.currentValue).toEqual({ ...defaultState, counter: 42 });
+    });
+
+    test('should refuse a contentType without both conversions', () => {
+        const options = {
+            defaultState,
+            persistStateKey: 'test-key',
+            persistenceEnabled: true,
+            contentType: 'text/plain',
+        };
+
+        expect(() => new RecoverableState({ ...options, serialize: JSON.stringify })).toThrow(/'deserialize'/);
+        expect(() => new RecoverableState({ ...options, deserialize: JSON.parse })).toThrow(/'serialize'/);
     });
 
     test('should call a defaultState factory afresh for every reset', async () => {
