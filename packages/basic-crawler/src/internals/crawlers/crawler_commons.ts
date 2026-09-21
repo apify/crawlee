@@ -20,6 +20,7 @@ import type {
 } from '@crawlee/core';
 
 import type { EnqueueUrlsOptions } from '../enqueue_links/index.js';
+import type { CrawlingRequest } from '../crawling_request.js';
 
 /** @internal */
 export type IsAny<T> = 0 extends 1 & T ? true : false;
@@ -114,9 +115,9 @@ export interface RestrictedCrawlingContext<UserData extends Dictionary = Diction
     proxyInfo?: ProxyInfo;
 
     /**
-     * The original {@apilink Request} object.
+     * The request being processed.
      */
-    request: Request<UserData>;
+    request: CrawlingRequest<UserData>;
 
     /**
      * This function allows you to push data to a {@apilink Dataset} specified by name, or the one currently used by the crawler.

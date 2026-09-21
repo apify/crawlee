@@ -1,4 +1,4 @@
-import type { Request } from '@crawlee/core';
+import type { CrawlingRequest } from './crawling_request.js';
 import { RequestValidationError } from '@crawlee/core';
 import type { Awaitable, Dictionary } from '@crawlee/types';
 import type { StandardSchemaV1 } from '@standard-schema/spec';
@@ -29,7 +29,7 @@ export type RouterHandlerContext<
     UserData extends Dictionary,
     Routes extends Record<keyof Routes, Dictionary>,
 > = Omit<Context, 'request' | 'addRequests' | 'enqueueLinks'> & {
-    request: LoadedRequest<Request<UserData>>;
+    request: LoadedRequest<CrawlingRequest<UserData>>;
     addRequests: TypedContextAddRequests<Routes>;
 } & (Context extends { enqueueLinks: infer EnqueueLinks }
         ? { enqueueLinks: TypedContextEnqueueLinks<EnqueueLinks, Routes> }
@@ -129,7 +129,7 @@ export interface RouterHandler<
     (ctx: Context): Awaitable<void>;
 }
 
-export type GetUserDataFromRequest<T> = T extends Request<infer Y> ? Y : never;
+export type GetUserDataFromRequest<T> = T extends CrawlingRequest<infer Y> ? Y : never;
 
 /**
  * Per-route overrides, passed as the last argument of {@apilink Router.addHandler|`addHandler`} and
@@ -147,7 +147,9 @@ export interface RouteOptions {
 }
 
 export type RouterRoutes<Context, Routes extends Record<keyof Routes, Dictionary>> = {
-    [Label in keyof Routes]: (ctx: Omit<Context, 'request'> & { request: Request<Routes[Label]> }) => Awaitable<void>;
+    [Label in keyof Routes]: (
+        ctx: Omit<Context, 'request'> & { request: CrawlingRequest<Routes[Label]> },
+    ) => Awaitable<void>;
 };
 
 /**

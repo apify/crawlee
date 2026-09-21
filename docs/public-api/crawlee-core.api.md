@@ -35,6 +35,7 @@ import type { QueueOperationInfo } from '@crawlee/types';
 import type { ReadonlyDeep } from 'type-fest';
 import type { RequestQueueBackend } from '@crawlee/types';
 import type { RequestQueueInfo } from '@crawlee/types';
+import type { RequestSchema } from '@crawlee/types';
 import type { StandardSchemaV1 } from '@standard-schema/spec';
 import type * as storage from '@crawlee/types';
 import { StorageBackend } from '@crawlee/types';
@@ -444,7 +445,7 @@ export interface IStorage {
 export interface JournaledRequest {
     // (undocumented)
     label?: string;
-    snapshot?: Dictionary;
+    snapshot?: RequestSchema;
     // (undocumented)
     uniqueKey: string;
     // (undocumented)
@@ -672,11 +673,6 @@ export function purgeDefaultStorages(options?: PurgeDefaultStorageOptions): Prom
 export function purgeDefaultStorages(configuration?: Configuration, storageBackend?: StorageBackend): Promise<void>;
 
 // @public (undocumented)
-export interface PushErrorMessageOptions {
-    omitStack?: boolean;
-}
-
-// @public (undocumented)
 export interface RecordOptions {
     contentType?: string;
 }
@@ -712,9 +708,8 @@ export interface RecoverableStatePersistenceOptions {
 // @public
 class Request_2<UserData extends Dictionary = Dictionary> {
     constructor(options: RequestOptions<UserData>);
-    get crawlDepth(): number;
-    set crawlDepth(value: number);
     errorMessages: string[];
+    static fromSchema<UserData extends Dictionary = Dictionary>(schema: RequestSchema): Request_2<UserData>;
     handledAt?: string;
     headers?: Record<string, string>;
     id?: string;
@@ -722,21 +717,10 @@ class Request_2<UserData extends Dictionary = Dictionary> {
     get label(): string | undefined;
     set label(value: string | undefined);
     loadedUrl?: string;
-    get maxRetries(): number | undefined;
-    set maxRetries(value: number | undefined);
     method: AllowedHttpMethods;
     noRetry: boolean;
     payload?: string;
-    pushErrorMessage(errorOrMessage: unknown, options?: PushErrorMessageOptions): void;
     retryCount: number;
-    get sessionId(): string | undefined;
-    set sessionId(value: string | undefined);
-    get skipNavigation(): boolean;
-    set skipNavigation(value: boolean);
-    get skippedReason(): SkippedRequestReason | undefined;
-    set skippedReason(value: SkippedRequestReason | undefined);
-    get state(): RequestState;
-    set state(value: RequestState);
     uniqueKey: string;
     url: string;
     userData: UserData;
@@ -981,26 +965,6 @@ export type RequestSourceStatus = {
     status: 'finished';
 };
 
-// @public (undocumented)
-export enum RequestState {
-    // (undocumented)
-    AFTER_NAV = 2,
-    // (undocumented)
-    BEFORE_NAV = 1,
-    // (undocumented)
-    DONE = 4,
-    // (undocumented)
-    ERROR = 6,
-    // (undocumented)
-    ERROR_HANDLER = 5,
-    // (undocumented)
-    REQUEST_HANDLER = 3,
-    // (undocumented)
-    SKIPPED = 7,
-    // (undocumented)
-    UNPROCESSED = 0
-}
-
 // @public
 export class RequestValidationError extends NonRetryableError {
     constructor(label: string | symbol, issues: readonly SchemaIssue[]);
@@ -1086,9 +1050,6 @@ interface ServiceLocatorInterface {
 export class SessionError extends Error {
     constructor(message?: string);
 }
-
-// @public (undocumented)
-export type SkippedRequestReason = 'robotsTxt' | 'limit' | 'enqueueLimit' | 'filters' | 'transform' | 'redirect' | 'depth';
 
 // @public (undocumented)
 export type Source = (Partial<RequestOptions> & {

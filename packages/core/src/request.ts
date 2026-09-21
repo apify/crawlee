@@ -1,6 +1,5 @@
 import type { BinaryLike } from 'node:crypto';
 import crypto from 'node:crypto';
-import util from 'node:util';
 
 import type { AllowedHttpMethods, Dictionary, RequestSchema } from '@crawlee/types';
 import type { EnqueueStrategy } from '@crawlee/utils';
@@ -15,34 +14,15 @@ import { parseArgument, schemas } from './validators.js';
 /** The `strategy` option accepted by {@apilink ExtractLinksOptions} and {@apilink EnqueueUrlsOptions}. */
 export type EnqueueStrategyOption = EnqueueStrategy | 'all' | 'same-domain' | 'same-hostname' | 'same-origin';
 
-export type SkippedRequestReason =
-    | 'robotsTxt'
-    | 'limit'
-    | 'enqueueLimit'
-    | 'filters'
-    | 'transform'
-    | 'redirect'
-    | 'depth';
-
-export enum RequestState {
-    UNPROCESSED,
-    BEFORE_NAV,
-    AFTER_NAV,
-    REQUEST_HANDLER,
-    DONE,
-    ERROR_HANDLER,
-    ERROR,
-    SKIPPED,
-}
-
-/** Crawlee's own per-request state. Lives in `userData.__crawlee` so every storage persists it as plain user data. */
+/**
+ * What the constructor writes into `userData.__crawlee` from {@apilink RequestOptions}. The crawler layer owns
+ * the full shape (`CrawlingRequestData` in `@crawlee/basic`); this only types the writes made here.
+ */
 interface CrawleeRequestData {
     skipNavigation?: boolean;
     crawlDepth?: number;
     sessionId?: string;
     maxRetries?: number;
-    state?: RequestState;
-    skippedReason?: SkippedRequestReason;
     enqueueStrategy?: EnqueueStrategyOption;
 }
 
@@ -74,8 +54,9 @@ const requestOptionalSchemas: Partial<Record<string, z.ZodType>> = Object.fromEn
 );
 
 /**
- * Represents a URL to be crawled, optionally including HTTP method, headers, payload and other metadata.
- * The `Request` object also stores information about errors that occurred during processing of the request.
+ * Represents a URL to be crawled, optionally including HTTP method, headers, payload and other metadata, together
+ * with the processing state a request queue keeps about it (`retryCount`, `errorMessages`, `handledAt`, ...).
+ * Inside a crawler, requests are {@apilink CrawlingRequest}s, which add the crawler's own per-request settings.
  *
  * Each `Request` instance has the `uniqueKey` property, which can be either specified
  * manually in the constructor or generated automatically from the URL. Two requests with the same `uniqueKey`
@@ -91,16 +72,10 @@ const requestOptionalSchemas: Partial<Record<string, z.ZodType>> = Object.fromEn
  * const request = new Request({
  *     url: 'http://www.example.com',
  *     headers: { Accept: 'application/json' },
+ *     userData: { foo: 'bar' },
  * });
  *
- * ...
- *
- * request.userData.foo = 'bar';
- * request.pushErrorMessage(new Error('Request failed!'));
- *
- * ...
- *
- * const foo = request.userData.foo;
+ * await requestQueue.addRequest(request);
  * ```
  * @category Sources
  */
@@ -286,24 +261,22 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
         // reassign userData to ensure internal `__crawlee` object is non-enumerable
         this.userData = userData;
 
-        if (skipNavigation != null) this.skipNavigation = skipNavigation;
-        if (maxRetries != null) this.maxRetries = maxRetries;
-        if (crawlDepth != null) this.crawleeData.crawlDepth ??= crawlDepth;
-        if (sessionId) this.sessionId = sessionId;
-
-        // If it's already set, don't override it (for instance when fetching from storage)
-        if (enqueueStrategy) {
-            this.enqueueStrategy ??= enqueueStrategy;
-        }
+        const crawlee: CrawleeRequestData = ((this.userData as Dictionary).__crawlee ??= {});
+        if (skipNavigation != null) crawlee.skipNavigation = skipNavigation;
+        if (maxRetries != null) crawlee.maxRetries = maxRetries;
+        if (crawlDepth != null) crawlee.crawlDepth ??= crawlDepth;
+        if (sessionId) crawlee.sessionId = sessionId;
+        // A stored request keeps the strategy it was enqueued under.
+        if (enqueueStrategy) crawlee.enqueueStrategy ??= enqueueStrategy;
     }
 
     /**
      * Rebuilds a request from its stored form, including the processing state a
-     * {@apilink RequestOptions} object cannot carry.
+     * {@apilink RequestOptions} object cannot carry. Subclasses get instances of themselves.
      */
     static fromSchema<UserData extends Dictionary = Dictionary>(schema: RequestSchema): CrawleeRequest<UserData> {
         const { id, retryCount = 0, errorMessages = [], handledAt, loadedUrl, ...options } = schema;
-        const request = new CrawleeRequest<UserData>(options as RequestOptions<UserData>);
+        const request = new this(options as RequestOptions<UserData>);
         request.id = id;
         request.retryCount = retryCount;
         request.errorMessages = [...errorMessages];
@@ -326,47 +299,6 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
         });
     }
 
-    /** Crawlee's own state on this request; see {@link CrawleeRequestData}. */
-    private get crawleeData(): CrawleeRequestData {
-        return ((this.userData as Dictionary).__crawlee ??= {});
-    }
-
-    /**
-     * Tells the crawler processing this request to skip the navigation and process the request directly.
-     *
-     * When this is set to `true`, the crawling context will not contain the results of the navigation
-     * (e.g. `response`, `body`, `contentType`, `$` or `request.loadedUrl`).
-     * Accessing these properties will throw a {@apilink NavigationSkippedError} at runtime.
-     */
-    get skipNavigation(): boolean {
-        return this.crawleeData.skipNavigation ?? false;
-    }
-
-    set skipNavigation(value: boolean) {
-        this.crawleeData.skipNavigation = value;
-    }
-
-    /**
-     * Depth of the request in the current crawl tree.
-     * Note that this is dependent on the crawler setup and might produce unexpected results when used with multiple crawlers.
-     */
-    get crawlDepth(): number {
-        return this.crawleeData.crawlDepth ?? 0;
-    }
-
-    set crawlDepth(value: number) {
-        this.crawleeData.crawlDepth = value;
-    }
-
-    /** ID of a session to use for this request. When set, the crawler will fetch this session from the session pool instead of creating a new one. */
-    get sessionId(): string | undefined {
-        return this.crawleeData.sessionId;
-    }
-
-    set sessionId(value: string | undefined) {
-        this.crawleeData.sessionId = value;
-    }
-
     /** shortcut for getting `request.userData.label` */
     get label(): string | undefined {
         return this.userData.label;
@@ -375,86 +307,6 @@ class CrawleeRequest<UserData extends Dictionary = Dictionary> {
     /** shortcut for setting `request.userData.label` */
     set label(value: string | undefined) {
         (this.userData as Dictionary).label = value;
-    }
-
-    /** Maximum number of retries for this request. Allows to override the global `maxRequestRetries` option of `BasicCrawler`. */
-    get maxRetries(): number | undefined {
-        return this.crawleeData.maxRetries;
-    }
-
-    set maxRetries(value: number | undefined) {
-        this.crawleeData.maxRetries = value;
-    }
-
-    /** Describes the request's current lifecycle state. */
-    get state(): RequestState {
-        return this.crawleeData.state ?? RequestState.UNPROCESSED;
-    }
-
-    set state(value: RequestState) {
-        this.crawleeData.state = value;
-    }
-
-    /** Reason for skipping this request. */
-    get skippedReason(): SkippedRequestReason | undefined {
-        return this.crawleeData.skippedReason;
-    }
-
-    set skippedReason(value: SkippedRequestReason | undefined) {
-        this.crawleeData.skippedReason = value;
-    }
-
-    private get enqueueStrategy(): EnqueueStrategyOption | undefined {
-        return this.crawleeData.enqueueStrategy;
-    }
-
-    private set enqueueStrategy(value: EnqueueStrategyOption | undefined) {
-        this.crawleeData.enqueueStrategy = value;
-    }
-
-    /**
-     * Stores information about an error that occurred during processing of this request.
-     *
-     * You should always use Error instances when throwing errors in JavaScript.
-     *
-     * Nevertheless, to improve the debugging experience when using third party libraries
-     * that may not always throw an Error instance, the function performs a type
-     * inspection of the passed argument and attempts to extract as much information
-     * as possible, since just throwing a bad type error makes any debugging rather difficult.
-     *
-     * @param errorOrMessage Error object or error message to be stored in the request.
-     * @param [options]
-     */
-    pushErrorMessage(errorOrMessage: unknown, options: PushErrorMessageOptions = {}): void {
-        const { omitStack } = options;
-        let message;
-        const type = typeof errorOrMessage;
-        if (type === 'object') {
-            if (!errorOrMessage) {
-                message = 'null';
-            } else if (errorOrMessage instanceof Error) {
-                message = omitStack
-                    ? errorOrMessage.message
-                    : // .stack includes the message
-                      errorOrMessage.stack;
-            } else if (Reflect.has(Object(errorOrMessage), 'message')) {
-                message = Reflect.get(Object(errorOrMessage), 'message');
-            } else if ((errorOrMessage as string).toString() !== '[object Object]') {
-                message = (errorOrMessage as string).toString();
-            } else {
-                try {
-                    message = util.inspect(errorOrMessage);
-                } catch (err) {
-                    message = 'Unable to extract any message from the received object.';
-                }
-            }
-        } else if (type === 'undefined') {
-            message = 'undefined';
-        } else {
-            message = (errorOrMessage as string).toString();
-        }
-
-        this.errorMessages.push(message);
     }
 
     /** @internal */
@@ -613,27 +465,12 @@ export interface RequestOptions<UserData extends Dictionary = Dictionary> {
     crawlDepth?: number;
 
     /**
-     * Reason for skipping this request.
-     * This is used to provide more information about why the request was skipped.
-     * @internal
-     */
-    skippedReason?: SkippedRequestReason;
-
-    /**
      * Maximum number of retries for this request. Allows to override the global `maxRequestRetries` option of `BasicCrawler`.
      */
     maxRetries?: number;
 
     /** @internal */
     enqueueStrategy?: EnqueueStrategyOption;
-}
-
-export interface PushErrorMessageOptions {
-    /**
-     * Only push the error message without stack trace when true.
-     * @default false
-     */
-    omitStack?: boolean;
 }
 
 interface ComputeUniqueKeyOptions {

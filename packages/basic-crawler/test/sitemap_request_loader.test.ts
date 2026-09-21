@@ -3,7 +3,7 @@ import type { AddressInfo } from 'node:net';
 import { Readable } from 'node:stream';
 import { finished } from 'node:stream/promises';
 
-import { SitemapRequestLoader } from '@crawlee/basic';
+import { CrawlingRequest, SitemapRequestLoader } from '@crawlee/basic';
 import { MemoryStorageBackend, type Request, serviceLocator } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
 import express from 'express';
@@ -671,7 +671,7 @@ describe('SitemapRequestLoader', () => {
 
         expect(request).not.toBe(null);
         // The strategy is persisted on the request so it keeps being enforced after navigation.
-        expect((request as any).enqueueStrategy).toBe('same-hostname');
+        expect(CrawlingRequest.fromSchema(request!).enqueueStrategy).toBe('same-hostname');
     });
 
     test('persistState does not deadlock a backpressured sitemap load', async () => {

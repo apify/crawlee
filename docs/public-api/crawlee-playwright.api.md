@@ -26,6 +26,7 @@ import type { ContextPipeline } from '@crawlee/browser';
 import type { ContextPipeline as ContextPipeline_2 } from '@crawlee/basic';
 import type { CrawlingContext } from '@crawlee/browser';
 import type { CrawlingContext as CrawlingContext_2 } from '@crawlee/basic';
+import type { CrawlingRequest } from '@crawlee/browser';
 import { Dictionary } from '@crawlee/types';
 import type { Download } from 'playwright';
 import type { EnqueueLinksOptions } from '@crawlee/basic';
@@ -66,7 +67,7 @@ interface AdaptiveHookContext extends Pick<AdaptivePlaywrightCrawlerContext, 'id
     // (undocumented)
     page?: Page;
     // (undocumented)
-    request: Request_3;
+    request: CrawlingRequest;
 }
 
 // @public
@@ -96,7 +97,7 @@ export interface AdaptivePlaywrightCrawlerContext<UserData extends Dictionary = 
     querySelector(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
     querySelectorAll(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
     // (undocumented)
-    request: LoadedRequest<Request_3<UserData>>;
+    request: LoadedRequest<CrawlingRequest<UserData>>;
     response: Response;
     waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
 }
@@ -127,7 +128,7 @@ export const adaptivePlaywrightCrawlerStatisticState: {
 // Not exported by the entry point; reachable only as a referenced type.
 // @public (undocumented)
 type AdaptivePostNavigationHook<ContextExtension = Dictionary<never>> = BrowserHook<Omit<AdaptiveHookContext, 'request'> & {
-    request: LoadedRequest<Request_3>;
+    request: LoadedRequest<CrawlingRequest>;
 }, ContextExtension>;
 
 // Not exported by the entry point; reachable only as a referenced type.

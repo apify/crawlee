@@ -9,7 +9,7 @@ import type {
     ExtractLinksOptions,
     GetUserDataFromRequest,
     LoadedRequest,
-    Request,
+    CrawlingRequest,
     RequestHandler,
     RouterHandler,
 } from '@crawlee/basic';
@@ -97,7 +97,7 @@ export interface BrowserCrawlingContext<
     /**
      * The request object that was successfully loaded and navigated to, including the {@apilink Request.loadedUrl|`loadedUrl`} property.
      */
-    request: LoadedRequest<Request<UserData>>;
+    request: LoadedRequest<CrawlingRequest<UserData>>;
 
     /**
      * The HTTP response object returned by the browser's navigation.
@@ -197,7 +197,7 @@ export interface BrowserCrawlerOptions<
      * To make this work, we should **always**
      * let our function throw exceptions rather than catch them.
      * The exceptions are logged to the request using the
-     * {@apilink Request.pushErrorMessage|`Request.pushErrorMessage()`} function.
+     * {@apilink CrawlingRequest.pushErrorMessage|`request.pushErrorMessage()`} function.
      */
     requestHandler?: RouterHandler<ExtendedContext, Routes> | RequestHandler<ExtendedContext>;
 
@@ -646,7 +646,7 @@ export abstract class BrowserCrawler<
                         }
                         return Reflect.get(target, propertyName, receiver);
                     },
-                }) as LoadedRequest<Request>,
+                }) as LoadedRequest<CrawlingRequest>,
                 get response(): Response {
                     throw new NavigationSkippedError(
                         'The `response` property is not available - `skipNavigation` was used',
@@ -720,7 +720,7 @@ export abstract class BrowserCrawler<
         // Cookies set during `requestHandler` are saved again afterwards.
         await this.persistCookiesFromPage(crawlingContext);
 
-        return { request: crawlingContext.request as LoadedRequest<Request> } as Partial<Context>;
+        return { request: crawlingContext.request as LoadedRequest<CrawlingRequest> } as Partial<Context>;
     }
 
     /**

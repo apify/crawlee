@@ -36,13 +36,13 @@ import { RequestOptions } from '@crawlee/core';
 import { RequestQueue } from '@crawlee/core';
 import type { RequestQueueOperationInfo } from '@crawlee/core';
 import type { RequestQueueOperationOptions } from '@crawlee/core';
+import type { RequestSchema } from '@crawlee/types';
 import type { RequestsLike } from '@crawlee/core';
 import type { RequestSourceStatus } from '@crawlee/core';
 import { RobotsTxtFile } from '@crawlee/utils';
 import type { SendRequestOptions } from '@crawlee/types';
 import type { SessionFingerprint } from '@crawlee/types';
 import type { SetStatusMessageOptions } from '@crawlee/types';
-import type { SkippedRequestReason } from '@crawlee/core';
 import { Source } from '@crawlee/core';
 import type { StandardSchemaV1 } from '@standard-schema/spec';
 import type { StorageBackend } from '@crawlee/types';
@@ -62,7 +62,7 @@ export class BasicCrawler<Context extends CrawlingContext = CrawlingContext, Con
     protected readonly additionalHttpErrorStatusCodes: Set<number>;
     addRequests(requests: ReadonlyDeep<TypedRequestsLike<Routes>>, options?: CrawlerAddRequestsOptions): Promise<CrawlerAddRequestsResult>;
     get basicContextPipeline(): ContextPipeline<{
-        request: Request_2;
+        request: CrawlingRequest;
     }, CrawlingContext>;
     // (undocumented)
     protected blockedStatusCodes: Set<number>;
@@ -314,6 +314,23 @@ export interface CrawlingContext<UserData extends Dictionary = Dictionary> exten
 }
 
 // @public
+export class CrawlingRequest<UserData extends Dictionary = Dictionary> extends Request_2<UserData> {
+    get crawlDepth(): number;
+    set crawlDepth(value: number);
+    // (undocumented)
+    static fromSchema<UserData extends Dictionary = Dictionary>(schema: RequestSchema): CrawlingRequest<UserData>;
+    get maxRetries(): number | undefined;
+    set maxRetries(value: number | undefined);
+    pushErrorMessage(errorOrMessage: unknown, options?: PushErrorMessageOptions): void;
+    get sessionId(): string | undefined;
+    set sessionId(value: string | undefined);
+    get skipNavigation(): boolean;
+    set skipNavigation(value: boolean);
+    get state(): RequestState;
+    set state(value: RequestState);
+}
+
+// @public
 export function createBasicRouter<Context extends BasicCrawlingContext = BasicCrawlingContext, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<Context['request']>>>(routes?: RouterRoutes<Context, Routes>): RouterHandler<Context, Routes>;
 
 // @public (undocumented)
@@ -324,7 +341,7 @@ export interface CreateContextOptions {
     // (undocumented)
     proxyInfo?: ProxyInfo;
     // (undocumented)
-    request: Request_2;
+    request: CrawlingRequest;
     // (undocumented)
     session: ISession;
 }
@@ -505,7 +522,7 @@ export interface FinalStatistics {
 }
 
 // @public (undocumented)
-export type GetUserDataFromRequest<T> = T extends Request_2<infer Y> ? Y : never;
+export type GetUserDataFromRequest<T> = T extends CrawlingRequest<infer Y> ? Y : never;
 
 // @public (undocumented)
 export type GlobInput = string | GlobObject;
@@ -638,6 +655,11 @@ export class PersistentRateLimitError extends CriticalError {
 }
 
 // @public (undocumented)
+export interface PushErrorMessageOptions {
+    omitStack?: boolean;
+}
+
+// @public (undocumented)
 export type RegExpInput = RegExp | RegExpObject;
 
 // @public (undocumented)
@@ -656,6 +678,26 @@ export class RequestHandlerError extends Error {
 
 // @public
 export type RequestManagerOpener<T extends IRequestManager = IRequestManager> = (identifier?: string | StorageIdentifier | null, options?: StorageOpenOptions) => Promise<T>;
+
+// @public (undocumented)
+export enum RequestState {
+    // (undocumented)
+    AFTER_NAV = 2,
+    // (undocumented)
+    BEFORE_NAV = 1,
+    // (undocumented)
+    DONE = 4,
+    // (undocumented)
+    ERROR = 6,
+    // (undocumented)
+    ERROR_HANDLER = 5,
+    // (undocumented)
+    REQUEST_HANDLER = 3,
+    // (undocumented)
+    SKIPPED = 7,
+    // (undocumented)
+    UNPROCESSED = 0
+}
 
 // @public
 export class RequestThrottledError extends RetryRequestError {
@@ -690,7 +732,7 @@ export interface RestrictedCrawlingContext<UserData extends Dictionary = Diction
     log: CrawleeLogger;
     proxyInfo?: ProxyInfo;
     pushData(data: ReadonlyDeep<Parameters<Dataset['pushData']>[0]>, datasetIdentifier?: string | StorageIdentifier): Promise<void>;
-    request: Request_2<UserData>;
+    request: CrawlingRequest<UserData>;
     // (undocumented)
     session: ISession;
     useState: <State extends Dictionary = Dictionary>(defaultValue?: State) => Promise<State>;
@@ -730,7 +772,7 @@ export interface RouterHandler<Context extends RestrictedCrawlingContext = Crawl
 
 // @public
 export type RouterHandlerContext<Context, UserData extends Dictionary, Routes extends Record<keyof Routes, Dictionary>> = Omit<Context, 'request' | 'addRequests' | 'enqueueLinks'> & {
-    request: LoadedRequest<Request_2<UserData>>;
+    request: LoadedRequest<CrawlingRequest<UserData>>;
     addRequests: TypedContextAddRequests<Routes>;
 } & (Context extends {
     enqueueLinks: infer EnqueueLinks;
@@ -744,7 +786,7 @@ export type RouterLabel<Routes extends Record<keyof Routes, Dictionary>> = strin
 // @public (undocumented)
 export type RouterRoutes<Context, Routes extends Record<keyof Routes, Dictionary>> = {
     [Label in keyof Routes]: (ctx: Omit<Context, 'request'> & {
-        request: Request_2<Routes[Label]>;
+        request: CrawlingRequest<Routes[Label]>;
     }) => Awaitable<void>;
 };
 
@@ -911,6 +953,9 @@ export type SkippedRequestCallback = (args: {
     request: Request_2;
     reason: SkippedRequestReason;
 }) => Awaitable<void>;
+
+// @public (undocumented)
+export type SkippedRequestReason = 'robotsTxt' | 'limit' | 'enqueueLimit' | 'filters' | 'transform' | 'redirect' | 'depth';
 
 // @public (undocumented)
 export interface SnapshotResult {
@@ -1109,8 +1154,6 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     get innerManager(): T | undefined;
     // (undocumented)
     markRequestAsHandled(request: Request_2): Promise<RequestQueueOperationInfo | void | null>;
-    // (undocumented)
-    persistState(): Promise<void>;
     purge(): Promise<void>;
     // (undocumented)
     reclaimRequest(request: Request_2, options?: RequestQueueOperationOptions): Promise<RequestQueueOperationInfo | null>;
