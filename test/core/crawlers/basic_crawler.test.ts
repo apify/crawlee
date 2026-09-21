@@ -2592,6 +2592,29 @@ describe('BasicCrawler', () => {
         expect(requestHandlerImplementation.mock.calls[0][0]).toMatchObject({ hello: 'world' });
     });
 
+    test('registerDeferredCleanup runs after the error handler, even when the context pipeline itself fails', async () => {
+        const order: string[] = [];
+
+        const crawler = new BasicCrawler({
+            maxRequestRetries: 0,
+            extendContext: ({ registerDeferredCleanup }) => {
+                registerDeferredCleanup(async () => {
+                    order.push('cleanup');
+                });
+                throw new Error('extendContext failed');
+            },
+            requestHandler: async () => {
+                order.push('requestHandler');
+            },
+            failedRequestHandler: async () => {
+                order.push('failedRequestHandler');
+            },
+        });
+
+        await crawler.run(['https://example.com']);
+        expect(order).toEqual(['failedRequestHandler', 'cleanup']);
+    });
+
     describe('sendRequest', () => {
         const html = `<!DOCTYPE html><html><head><title>foobar</title></head><body><p>Hello, world!</p></body></html>`;
 

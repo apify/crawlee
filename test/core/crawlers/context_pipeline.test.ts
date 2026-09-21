@@ -1,119 +1,84 @@
-import {
-    ContextPipeline,
-    ContextPipelineCleanupError,
-    ContextPipelineInitializationError,
-    ContextPipelineInterruptedError,
-    RequestHandlerError,
-} from '@crawlee/basic';
+import { ContextPipeline, ContextPipelineCleanupError, RequestHandlerError } from '@crawlee/basic';
 import { describe, expect, it, vi } from 'vitest';
+
+const rethrow = (error: unknown) => {
+    throw error;
+};
 
 describe('ContextPipeline', () => {
     it('should call middlewares in a sequence', async () => {
         const pipeline = ContextPipeline.create()
-            .compose({
-                action: async () => ({ a: 2, b: 1, c: [1] }),
-            })
-            .compose({
-                action: async (context) => ({ a: context.a * 2, c: [...context.c, 2] }),
-            });
+            .compose(async () => ({ a: 2, b: 1, c: [1] }))
+            .compose(async (context) => ({ a: context.a * 2, c: [...context.c, 2] }));
 
         const consumer = vi.fn();
-        await pipeline.call({}, consumer);
+        await pipeline.call({}, consumer, rethrow);
 
         expect(consumer).toHaveBeenCalledWith({ a: 4, b: 1, c: [1, 2] });
     });
 
-    it('should call cleanup routines', async () => {
+    it('should call cleanup routines in reverse order, with access to the middleware closure', async () => {
         const pipeline = ContextPipeline.create()
-            .compose({
-                action: async () => ({ c: [] as number[] }),
-                cleanup: async (context) => {
-                    context.c.push(1);
-                },
+            .compose(async (_, onCleanup) => {
+                const c: number[] = [];
+                onCleanup(() => {
+                    c.push(1);
+                });
+                return { c };
             })
-            .compose({
-                action: async () => ({}),
-                cleanup: async (context) => {
+            .compose(async (context, onCleanup) => {
+                onCleanup(() => {
                     context.c.push(2);
-                },
+                });
+                return {};
             });
 
         const consumer = vi.fn();
-        await pipeline.call({}, consumer);
+        await pipeline.call({}, consumer, rethrow);
 
         expect(consumer).toHaveBeenCalledWith({ c: [2, 1] });
     });
 
-    it('should allow interrupting the pipeline in middlewares', async () => {
-        const context = { a: 3 };
-
-        const firstAction = vi.fn().mockResolvedValue({});
-        const firstCleanup = vi.fn();
-        const secondAction = vi.fn().mockRejectedValue(new ContextPipelineInterruptedError());
-        const secondCleanup = vi.fn();
-        const thirdAction = vi.fn().mockResolvedValue({});
-        const thirdCleanup = vi.fn();
-
-        const pipeline = ContextPipeline.create()
-            .compose({ action: firstAction, cleanup: firstCleanup })
-            .compose({
-                action: secondAction,
-                cleanup: secondCleanup,
-            })
-            .compose({ action: thirdAction, cleanup: thirdCleanup });
-
-        const consumer = vi.fn();
-
-        await expect(pipeline.call(context, consumer)).rejects.toThrow(ContextPipelineInterruptedError);
-
-        expect(firstAction).toHaveBeenCalled();
-        expect(firstCleanup).toHaveBeenCalled();
-        expect(secondAction).toHaveBeenCalled();
-        expect(secondCleanup).not.toHaveBeenCalled();
-        expect(thirdAction).not.toHaveBeenCalled();
-        expect(thirdCleanup).not.toHaveBeenCalled();
-        expect(consumer).not.toHaveBeenCalled();
-    });
-
-    it('should wrap pipeline initialization errors', async () => {
+    it('should hand initialization errors to onInitializationError before running cleanups', async () => {
         const initializationError = new Error('Pipeline initialization failed');
-        const context = { a: 3 };
-        const secondMiddleware = vi.fn();
+        const order: string[] = [];
+        const thirdMiddleware = vi.fn();
 
         const pipeline = ContextPipeline.create()
-            .compose({
-                action: async () => {
-                    throw initializationError;
-                },
+            .compose(async (_, onCleanup) => {
+                onCleanup(() => {
+                    order.push('cleanup');
+                });
+                return {};
             })
-            .compose({ action: secondMiddleware });
+            .compose(async () => {
+                throw initializationError;
+            })
+            .compose(thirdMiddleware);
 
         const consumer = vi.fn();
+        const onInitializationError = vi.fn(async (error: unknown) => {
+            order.push('onInitializationError');
+            expect(error).toBe(initializationError);
+        });
 
-        await expect(pipeline.call(context, consumer)).rejects.toThrow(
-            expect.objectContaining({
-                cause: initializationError,
-                constructor: ContextPipelineInitializationError,
-            }),
-        );
+        await pipeline.call({}, consumer, onInitializationError);
 
+        expect(onInitializationError).toHaveBeenCalledOnce();
+        expect(thirdMiddleware).not.toHaveBeenCalled();
         expect(consumer).not.toHaveBeenCalled();
-        expect(secondMiddleware).not.toHaveBeenCalled();
+        expect(order).toEqual(['onInitializationError', 'cleanup']);
     });
 
     it('should wrap errors in the final consumer', async () => {
         const consumerError = new Error('Request handler failed');
         const context = { a: 3 };
 
-        const pipeline = ContextPipeline.create().compose({
-            action: async () => ({
-                b: 4,
-            }),
-        });
+        const pipeline = ContextPipeline.create().compose(async () => ({ b: 4 }));
 
         const consumer = vi.fn().mockRejectedValue(consumerError);
 
-        await expect(pipeline.call(context, consumer)).rejects.toThrow(
+        await expect(pipeline.call(context, consumer, rethrow)).rejects.toThrow(
             expect.objectContaining({
                 cause: consumerError,
                 constructor: RequestHandlerError,
@@ -123,39 +88,48 @@ describe('ContextPipeline', () => {
         expect(consumer).toHaveBeenCalledWith({ a: 3, b: 4 });
     });
 
-    it('should call cleanup routines even if the final consumer fails', async () => {
+    it('should pass the consumer error to cleanup routines', async () => {
         const consumerError = new Error('Request handler failed');
         const context = { a: 3 };
         const cleanup = vi.fn();
 
-        const pipeline = ContextPipeline.create().compose({
-            action: async () => ({
-                b: 4,
-            }),
-            cleanup,
+        const pipeline = ContextPipeline.create().compose(async (_, onCleanup) => {
+            onCleanup(cleanup);
+            return { b: 4 };
         });
 
-        await expect(pipeline.call(context, vi.fn().mockRejectedValue(consumerError))).rejects.toThrow();
+        await expect(pipeline.call(context, vi.fn().mockRejectedValue(consumerError), rethrow)).rejects.toThrow();
 
-        expect(cleanup).toHaveBeenCalledWith({ a: 3, b: 4 }, consumerError);
+        expect(cleanup).toHaveBeenCalledWith(consumerError);
+    });
+
+    it('should call cleanup routines without an error if the consumer succeeds', async () => {
+        const cleanup = vi.fn();
+
+        const pipeline = ContextPipeline.create().compose(async (_, onCleanup) => {
+            onCleanup(cleanup);
+            return {};
+        });
+
+        await pipeline.call({}, vi.fn(), rethrow);
+
+        expect(cleanup).toHaveBeenCalledWith(undefined);
     });
 
     it('should wrap cleanup errors', async () => {
         const cleanupError = new Error('Pipeline cleanup failed');
         const context = { a: 3 };
 
-        const pipeline = ContextPipeline.create().compose({
-            action: async () => ({
-                b: 4,
-            }),
-            cleanup: async () => {
+        const pipeline = ContextPipeline.create().compose(async (_, onCleanup) => {
+            onCleanup(async () => {
                 throw cleanupError;
-            },
+            });
+            return { b: 4 };
         });
 
         const consumer = vi.fn();
 
-        await expect(pipeline.call(context, consumer)).rejects.toThrow(
+        await expect(pipeline.call(context, consumer, rethrow)).rejects.toThrow(
             expect.objectContaining({
                 cause: cleanupError,
                 constructor: ContextPipelineCleanupError,
@@ -169,27 +143,26 @@ describe('ContextPipeline', () => {
         const context = {} as Record<string, unknown>;
         Object.defineProperty(context, 'frozen', { value: 'original', configurable: false });
 
-        const pipeline = ContextPipeline.create<typeof context>().compose({
-            action: async () => ({ frozen: 'overridden', other: 'new' }),
-        });
+        const pipeline = ContextPipeline.create<typeof context>().compose(async () => ({
+            frozen: 'overridden',
+            other: 'new',
+        }));
 
         const consumer = vi.fn();
-        await pipeline.call(context, consumer);
+        await pipeline.call(context, consumer, rethrow);
 
         expect(consumer).toHaveBeenCalledWith(expect.objectContaining({ frozen: 'original', other: 'new' }));
     });
 
     describe('chain', () => {
         it('should run middlewares from both pipelines in order', async () => {
-            const first = ContextPipeline.create<{ a: number }>().compose({
-                action: async (ctx) => ({ b: ctx.a + 1 }),
-            });
-            const second = ContextPipeline.create<{ a: number; b: number }>().compose({
-                action: async (ctx) => ({ c: ctx.b * 2 }),
-            });
+            const first = ContextPipeline.create<{ a: number }>().compose(async (ctx) => ({ b: ctx.a + 1 }));
+            const second = ContextPipeline.create<{ a: number; b: number }>().compose(async (ctx) => ({
+                c: ctx.b * 2,
+            }));
 
             const consumer = vi.fn();
-            await first.chain(second).call({ a: 1 }, consumer);
+            await first.chain(second).call({ a: 1 }, consumer, rethrow);
 
             expect(consumer).toHaveBeenCalledWith({ a: 1, b: 2, c: 4 });
         });
@@ -197,20 +170,20 @@ describe('ContextPipeline', () => {
         it('should call cleanup routines from both pipelines', async () => {
             const order: string[] = [];
 
-            const first = ContextPipeline.create<object>().compose({
-                action: async () => ({}),
-                cleanup: async () => {
+            const first = ContextPipeline.create<object>().compose(async (_, onCleanup) => {
+                onCleanup(() => {
                     order.push('first');
-                },
+                });
+                return {};
             });
-            const second = ContextPipeline.create<object>().compose({
-                action: async () => ({}),
-                cleanup: async () => {
+            const second = ContextPipeline.create<object>().compose(async (_, onCleanup) => {
+                onCleanup(() => {
                     order.push('second');
-                },
+                });
+                return {};
             });
 
-            await first.chain(second).call({}, vi.fn());
+            await first.chain(second).call({}, vi.fn(), rethrow);
 
             expect(order).toEqual(['second', 'first']);
         });

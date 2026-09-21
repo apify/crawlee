@@ -56,12 +56,6 @@ export class ContextPipelineInterruptedError extends Error {
     }
 }
 
-export class ContextPipelineInitializationError extends Error {
-    constructor(error: unknown, options?: ErrorOptions) {
-        super(undefined, { cause: error, ...options });
-    }
-}
-
 export class ContextPipelineCleanupError extends CriticalError {
     constructor(error: unknown, options?: ErrorOptions) {
         super(undefined, { cause: error, ...options });
