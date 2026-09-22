@@ -523,6 +523,7 @@ export class HttpCrawler<
         return {};
     }
 
+    // oxlint-disable-next-line crawlee/prefer-private-fields -- patched by @crawlee/otel
     private async makeHttpRequest(
         crawlingContext: CrawlingContext,
     ): Promise<Omit<CrawlingContextWithResponse, keyof CrawlingContext> & Partial<CrawlingContextWithResponse>> {

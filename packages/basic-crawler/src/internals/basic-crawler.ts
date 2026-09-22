@@ -2637,6 +2637,7 @@ export class BasicCrawler<
     }
 
     /** Handles a single request - runs the request handler with retries, error handling, and lifecycle management. */
+    // oxlint-disable-next-line crawlee/prefer-private-fields -- patched by @crawlee/otel
     private async handleRequest(
         crawlingContext: ExtendedContext,
         requestSource: IRequestManager,
@@ -2817,6 +2818,7 @@ export class BasicCrawler<
      *
      * @param request The request object, passed separately to circumvent potential dynamic logic in crawlingContext.request
      */
+    // oxlint-disable-next-line crawlee/prefer-private-fields -- patched by @crawlee/otel
     private async requestFunctionErrorHandler(
         error: Error,
         crawlingContext: CrawlingContext,
@@ -2895,6 +2897,7 @@ export class BasicCrawler<
         await this.handleFailedRequestHandler(crawlingContext, error); // This function prints an error message.
     }
 
+    // oxlint-disable-next-line crawlee/prefer-private-fields -- patched by @crawlee/otel
     private async handleFailedRequestHandler(crawlingContext: CrawlingContext, error: Error): Promise<void> {
         // Always log the last error regardless if the user provided a failedRequestHandler
         const { id, url, method, uniqueKey } = crawlingContext.request;

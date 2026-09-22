@@ -660,6 +660,7 @@ export abstract class BrowserCrawler<
         } as unknown as Partial<Context>;
     }
 
+    // oxlint-disable-next-line crawlee/prefer-private-fields -- patched by @crawlee/otel
     private async navigate(crawlingContext: Context): Promise<Partial<Context>> {
         tryCancel();
 
