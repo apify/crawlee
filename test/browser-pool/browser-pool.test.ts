@@ -432,35 +432,26 @@ describe.each([
         });
 
         test('should close retired browsers', async () => {
-            browserPool.retireBrowserAfterPageCount = 1;
+            // Own pool: the reaper sweeps once per `closeInactiveBrowserAfterSecs`, and the 2s
+            // default from `beforeEach` would make this test wait for it.
+            const pool = new BrowserPool({ browserPlugins: [plugin], closeInactiveBrowserAfterSecs: 0.1 });
+            pool.retireBrowserAfterPageCount = 1;
 
-            clearInterval(browserPool['browserKillerInterval']!);
+            try {
+                expect(pool.retiredBrowserControllers.size).toBe(0);
 
-            browserPool['browserKillerInterval'] = setInterval(
-                async () => browserPool['closeInactiveRetiredBrowsers'](),
-                100,
-            );
+                const page = await pool.newPage();
+                const controller = pool.getBrowserControllerByPage(page)!;
+                vitest.spyOn(controller, 'close');
 
-            // @ts-expect-error Private function
-            vitest.spyOn(browserPool!, 'closeRetiredBrowserWithNoPages');
-            expect(browserPool.retiredBrowserControllers.size).toBe(0);
+                expect(pool.retiredBrowserControllers.size).toBe(1);
+                await page.close();
 
-            const page = await browserPool.newPage();
-            const controller = browserPool.getBrowserControllerByPage(page)!;
-            vitest.spyOn(controller, 'close');
-
-            expect(browserPool.retiredBrowserControllers.size).toBe(1);
-            await page.close();
-
-            await new Promise<void>((resolve) =>
-                setTimeout(() => {
-                    resolve();
-                }, 1000),
-            );
-
-            expect(browserPool['closeRetiredBrowserWithNoPages']).toHaveBeenCalled();
-            expect(controller.close).toHaveBeenCalled();
-            expect(browserPool.retiredBrowserControllers.size).toBe(0);
+                await vitest.waitFor(() => expect(pool.retiredBrowserControllers.size).toBe(0), { timeout: 10_000 });
+                expect(controller.close).toHaveBeenCalled();
+            } finally {
+                await pool.destroy();
+            }
         });
 
         describe('hooks', () => {
@@ -483,7 +474,7 @@ describe.each([
 
             test('browser lifecycle works correctly', async () => {
                 // A browser whose launch hooks have not resolved yet must survive both inactivity
-                // sweeps. Sub-second windows plus a fast killer interval let each sweep run several
+                // sweeps. Sub-second windows let each sweep run several
                 // times during the wait, instead of sleeping past the 2s defaults from beforeEach.
                 // The waits stay real: a live browser is launching underneath, and faking the clock
                 // would stall the driver's own timeouts along with the pool's.
@@ -492,8 +483,6 @@ describe.each([
                     closeInactiveBrowserAfterSecs: 0.5,
                     retireInactiveBrowserAfterSecs: 0.5,
                 });
-                clearInterval(pool['browserKillerInterval']!);
-                pool['browserKillerInterval'] = setInterval(async () => pool['closeInactiveRetiredBrowsers'](), 100);
 
                 let resolvePreLaunchHook: (() => void) | null = null;
                 let resolvePostLaunchHook: (() => void) | null = null;
