@@ -223,7 +223,8 @@ export class ConcurrencySystem implements IConcurrencySystem {
     private readonly scaleDownStepRatio: number;
     readonly #loggingIntervalMillis: number;
     readonly #autoscaleIntervalMillis: number;
-    private readonly maxTasksPerMinute: number;
+    /** The cap on tasks started per minute, or `Infinity` when uncapped. */
+    readonly maxTasksPerMinute: number;
 
     #minConcurrency: number;
     #maxConcurrency: number;
