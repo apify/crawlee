@@ -21,6 +21,10 @@ export const preferPrivateFields = {
             'PropertyDefinition[accessibility="private"], MethodDefinition[accessibility="private"], TSAbstractPropertyDefinition[accessibility="private"], TSAbstractMethodDefinition[accessibility="private"], TSParameterProperty[accessibility="private"]'(
                 node: PrivateMember,
             ) {
+                // `private constructor` has no native counterpart - it is the only way to keep a
+                // class buildable only through its own factories.
+                if ('kind' in node && node.kind === 'constructor') return;
+
                 context.report({ node: 'key' in node ? node.key : node, messageId: 'preferHash' });
             },
         };
