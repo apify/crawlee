@@ -783,8 +783,9 @@ describe('RequestQueue in a transaction', () => {
         const addBatchSpy = vitest.spyOn(queue.backend, 'addBatchOfRequests');
 
         // Looks like it came from a backend: foreign id, already handled.
-        const reenqueued = new Request({
+        const reenqueued = Request.fromSchema({
             url: 'https://example.com/old',
+            uniqueKey: 'https://example.com/old',
             id: 'foreign-backend-id',
             handledAt: new Date().toISOString(),
         });

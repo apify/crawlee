@@ -4,9 +4,11 @@ import type { Awaitable, Dictionary } from '@crawlee/types';
 import { Minimatch } from 'minimatch';
 import { z } from 'zod';
 
-import type { EnqueueStrategyOption, RequestOptions, SkippedRequestReason, Source } from '@crawlee/core';
+import type { EnqueueStrategyOption, RequestOptions, Source } from '@crawlee/core';
 import { Request } from '@crawlee/core';
 import { schemas } from '@crawlee/utils/internal';
+
+import type { SkippedRequestReason } from '../crawling_request.js';
 
 const MAX_ENQUEUE_LINKS_CACHE_SIZE = 1000;
 
@@ -60,11 +62,10 @@ export function createSkippedRequestArgs(
     source: string | Source,
     reason: SkippedRequestReason,
 ): Parameters<SkippedRequestCallback>[0] {
-    const sourceReason = typeof source === 'string' ? undefined : source.skippedReason;
     let request: Request | undefined;
 
     return {
-        reason: sourceReason ?? reason,
+        reason,
         get request() {
             request ??=
                 source instanceof Request

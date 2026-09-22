@@ -1,6 +1,6 @@
 import type { CrawlingContext } from '@crawlee/basic';
-import { BasicCrawler, defaultRoute, MissingRouteError, Router } from '@crawlee/basic';
-import { Request, RequestValidationError } from '@crawlee/core';
+import { BasicCrawler, CrawlingRequest, defaultRoute, MissingRouteError, Router } from '@crawlee/basic';
+import { RequestValidationError } from '@crawlee/core';
 import {
     CheerioCrawler,
     type CheerioCrawlingContext,
@@ -339,7 +339,11 @@ describe('Router', () => {
 
         // a real Request keeps `label` inside `userData` and `crawlDepth` inside the non-enumerable `__crawlee`;
         // both must survive the schema replacing `userData` with the parsed (label-less) value.
-        const request = new Request({ url: 'https://example.com/p', label: 'PRODUCT', userData: { sku: 'A1' } });
+        const request = new CrawlingRequest({
+            url: 'https://example.com/p',
+            label: 'PRODUCT',
+            userData: { sku: 'A1' },
+        });
         request.crawlDepth = 3;
 
         await router({ request, log } as any);

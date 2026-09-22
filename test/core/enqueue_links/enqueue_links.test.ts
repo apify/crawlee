@@ -1,5 +1,6 @@
 import {
     CheerioCrawler,
+    CrawlingRequest,
     EnqueueStrategy,
     MemoryStorageBackend,
     Request,
@@ -384,7 +385,7 @@ describe('enqueueLinks()', () => {
 
             expect(enqueued).toHaveLength(2);
             for (const request of enqueued) {
-                expect(request.skipNavigation).toBe(true);
+                expect(CrawlingRequest.fromSchema(request as Request).skipNavigation).toBe(true);
             }
         });
 

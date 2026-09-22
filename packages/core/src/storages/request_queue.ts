@@ -9,6 +9,7 @@ import type {
     QueueOperationInfo,
     RequestQueueBackend,
     RequestQueueInfo,
+    RequestSchema,
 } from '@crawlee/types';
 import { isAsyncIterable, isIterable } from '@crawlee/utils/internal';
 import { downloadListOfUrls } from '@crawlee/utils';
@@ -303,8 +304,8 @@ export class RequestQueue implements IStorage, IRequestManager {
      * The requests buffered by the given transaction for this queue, keyed by `uniqueKey` — a dedup
      * index derived from the transaction journal.
      */
-    private bufferedRequests(transaction: StorageTransaction): Map<string, Dictionary> {
-        const buffered = new Map<string, Dictionary>();
+    private bufferedRequests(transaction: StorageTransaction): Map<string, RequestSchema> {
+        const buffered = new Map<string, RequestSchema>();
 
         // Only `deferred` records snapshots, so scanning the journal under `writeThrough` never finds any.
         if (transaction.policy.requestQueue !== 'deferred') return buffered;
@@ -381,7 +382,7 @@ export class RequestQueue implements IStorage, IRequestManager {
             return await this.addRequest(request, { forefront });
         }
 
-        const snapshot = JSON.parse(JSON.stringify(request)) as Dictionary;
+        const snapshot = JSON.parse(JSON.stringify(request)) as RequestSchema;
 
         // Strip-list, not allow-list: every user-facing field flows through, including ones added to
         // `Request` in the future. The exceptions are `id` and `handledAt`, the two backend-owned
@@ -418,7 +419,7 @@ export class RequestQueue implements IStorage, IRequestManager {
                     ? // Requests without a snapshot were deduplicated or written through; nothing to replay.
                       entry.requests
                           .filter((journaled) => journaled.snapshot !== undefined)
-                          .map((journaled) => new Request(journaled.snapshot as unknown as RequestOptions))
+                          .map((journaled) => Request.fromSchema(journaled.snapshot!))
                     : [],
             );
 
@@ -600,7 +601,7 @@ export class RequestQueue implements IStorage, IRequestManager {
                         );
                     }
 
-                    if (opts.id !== undefined) {
+                    if ('id' in opts && opts.id !== undefined) {
                         throw new Error(
                             `Request options are not valid, the 'id' property must not be present. Input: ${inspect(opts)}`,
                         );
@@ -679,13 +680,13 @@ export class RequestQueue implements IStorage, IRequestManager {
         // Requests buffered by the active transaction (under the `deferred` write policy) are visible to it.
         const buffered = transaction && this.bufferedRequests(transaction).get(uniqueKey);
         if (buffered) {
-            return new Request(buffered as unknown as RequestOptions);
+            return Request.fromSchema<T>(buffered);
         }
 
-        const requestOptions = await this.backend.getRequest(uniqueKey);
-        if (!requestOptions) return null;
+        const schema = await this.backend.getRequest(uniqueKey);
+        if (!schema) return null;
 
-        return new Request(requestOptions as unknown as RequestOptions);
+        return Request.fromSchema<T>(schema);
     }
 
     /**
@@ -716,10 +717,10 @@ export class RequestQueue implements IStorage, IRequestManager {
         }
 
         this.#statsTracker.add('headItemReadCount');
-        const requestOptions = await this.backend.fetchNextRequest();
-        if (!requestOptions) return null;
+        const schema = await this.backend.fetchNextRequest();
+        if (!schema) return null;
 
-        return new Request(requestOptions as unknown as RequestOptions);
+        return Request.fromSchema<T>(schema);
     }
 
     /**
@@ -871,7 +872,6 @@ export class RequestQueue implements IStorage, IRequestManager {
             isHandled: queueOperationInfo.wasAlreadyHandled,
             uniqueKey: queueOperationInfo.uniqueKey,
             hydrated: null,
-            lockExpiresAt: null,
             forefront: queueOperationInfo.forefront,
         });
     }
@@ -1085,7 +1085,6 @@ interface RequestLruItem {
     isHandled: boolean;
     id: string;
     hydrated: Request | null;
-    lockExpiresAt: number | null;
     forefront: boolean;
 }
 
