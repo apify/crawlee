@@ -1,4 +1,5 @@
 import { createServer, type Server } from 'node:http';
+import type { AddressInfo } from 'node:net';
 
 import type { BasicCrawlingContext, CheerioCrawlingContext, CheerioRequestHandler, Source } from '@crawlee/cheerio';
 import { FetchHttpClient } from '@crawlee/http-client';
@@ -336,8 +337,20 @@ describe('CheerioCrawler', () => {
                 processed.push(request);
             };
 
+            // a client that always outlives the navigation window; carries the BaseHttpClient prototype so
+            // the crawler's `z.instanceof` validation accepts it
+            const slowClient = Object.assign(Object.create(BaseHttpClient.prototype) as BaseHttpClient, {
+                sendRequest: async () => {
+                    await sleep(300);
+                    return new Response('<html><head></head><body>Body</body></html>', {
+                        headers: { 'content-type': 'text/html' },
+                    });
+                },
+            });
+
             const cheerioCrawler = new CheerioCrawler({
                 requestList,
+                httpClient: slowClient,
                 navigationTimeoutSecs: 5 / 1000,
                 maxRequestRetries: 1,
                 minConcurrency: 2,
@@ -347,12 +360,6 @@ describe('CheerioCrawler', () => {
                     failed.push(request);
                 },
             });
-
-            // @ts-expect-error Overriding private method
-            cheerioCrawler.requestFunction = async () => {
-                await sleep(300);
-                return '<html><head></head><body>Body</body></html>';
-            };
 
             await cheerioCrawler.run();
 
@@ -862,47 +869,59 @@ describe('CheerioCrawler', () => {
 
     describe('should use response encoding', () => {
         const html = '<html>Žluťoučký kůň</html>';
+        // serves the very same windows-1250 bytes, with the charset in the content-type header only when asked
+        let encodingServer: Server;
+        let encodingServerUrl: string;
+
+        beforeAll(async () => {
+            encodingServer = createServer((req, res) => {
+                const charset = new URL(req.url!, 'http://localhost').searchParams.get('charset');
+                res.writeHead(200, { 'content-type': `text/html${charset ? `; charset=${charset}` : ''}` });
+                res.end(iconv.encode(html, 'windows-1250'));
+            });
+            await new Promise<void>((resolve) => encodingServer.listen(0, resolve));
+            const { port: encodingPort } = encodingServer.address() as AddressInfo;
+            encodingServerUrl = `http://localhost:${encodingPort}`;
+        });
+
+        afterAll(() => {
+            encodingServer.close();
+        });
 
         test('as a fallback', async () => {
-            const requestList = await RequestList.open({
-                sources: ['http://useless.x'],
-            });
-            const suggestResponseEncoding = 'windows-1250';
-            const buf = iconv.encode(html, suggestResponseEncoding);
             // Ensure it's really encoded.
-            expect(buf.toString('utf8')).not.toBe(html);
+            expect(iconv.encode(html, 'windows-1250').toString('utf8')).not.toBe(html);
 
+            let context: CheerioCrawlingContext | null = null;
             const crawler = new CheerioCrawler({
-                requestList,
-                requestHandler: () => {},
-                suggestResponseEncoding,
+                requestHandler: (ctx) => {
+                    context = ctx;
+                },
+                suggestResponseEncoding: 'windows-1250',
             });
 
-            // @ts-expect-error Using private method
-            const { response, encoding } = crawler.encodeResponse({}, new Response(new Uint8Array(buf)));
-            expect(encoding).toBe('utf8');
-            expect(await response.text()).toBe(html);
+            await crawler.run([encodingServerUrl]);
+
+            context = context as unknown as CheerioCrawlingContext;
+            expect(context.body).toBe(html);
+            expect(context.$('html').text()).toBe('Žluťoučký kůň');
         });
 
         test('always when forced', async () => {
-            const requestList = await RequestList.open({
-                sources: ['http://useless.x'],
-            });
-            const forceResponseEncoding = 'win1250';
-            const buf = iconv.encode(html, forceResponseEncoding);
-            // Ensure it's really encoded.
-            expect(buf.toString('utf8')).not.toBe(html);
-
+            let context: CheerioCrawlingContext | null = null;
             const crawler = new CheerioCrawler({
-                requestList,
-                requestHandler: () => {},
-                forceResponseEncoding,
+                requestHandler: (ctx) => {
+                    context = ctx;
+                },
+                forceResponseEncoding: 'win1250',
             });
 
-            // @ts-expect-error Using private method
-            const { response, encoding } = crawler.encodeResponse({}, new Response(new Uint8Array(buf)), 'ascii');
-            expect(encoding).toBe('utf8');
-            expect(await response.text()).toBe(html);
+            // the header says ascii, the bytes are windows-1250 - the forced encoding must win
+            await crawler.run([`${encodingServerUrl}/?charset=ascii`]);
+
+            context = context as unknown as CheerioCrawlingContext;
+            expect(context.contentType.encoding).toBe('utf8');
+            expect(context.body).toBe(html);
         });
 
         test('via http-equiv meta tag when no charset in HTTP header', async () => {

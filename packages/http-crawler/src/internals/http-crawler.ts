@@ -723,15 +723,14 @@ export class HttpCrawler<
     private async parseResponse(request: CrawlingRequest, response: Response) {
         const { status } = response;
         const { type, charset } = parseContentTypeFromResponse(response);
-        const { response: reencodedResponse, encoding } = this.encodeResponse(request, response, charset);
-        const contentType = { type, encoding };
 
         if (status >= 400 && status <= 599) {
             this.statistics.registerStatusCode(status);
         }
 
         if (this.isErrorStatusCode(status)) {
-            const body = await reencodedResponse.text(); // TODO - this always uses UTF-8 (see https://developer.mozilla.org/en-US/docs/Web/API/Request/text)
+            const { response: decoded } = this.encodeResponse(request, response, charset);
+            const body = await decoded.text(); // TODO - this always uses UTF-8 (see https://developer.mozilla.org/en-US/docs/Web/API/Request/text)
 
             // Errors are often sent as JSON, so attempt to parse them,
             // despite Accept header being set to text/html.
@@ -748,25 +747,32 @@ export class HttpCrawler<
 
             // It's not a JSON, so it's probably some text. Get the first 100 chars of it.
             throw new Error(`${status} - Internal Server Error: ${body.slice(0, 100)}`);
-        } else if (HTML_AND_XML_MIME_TYPES.includes(type)) {
-            if (!charset && !this.#forceResponseEncoding) {
-                const rawBytes = Buffer.from(await response.arrayBuffer());
-                const metaCharset = extractCharsetFromHtmlBytes(rawBytes);
-                const charsetToUse = metaCharset ?? this.#suggestResponseEncoding ?? 'utf-8';
-                const body = iconv.encodingExists(charsetToUse)
-                    ? iconv.decode(rawBytes, charsetToUse)
-                    : rawBytes.toString('utf8');
-                return { response, contentType: { type, encoding: 'utf-8' as BufferEncoding }, body };
-            }
-            return { response, contentType, body: await reencodedResponse.text() };
-        } else {
-            const body = Buffer.from(await reencodedResponse.bytes());
-            return {
-                body,
-                response,
-                contentType,
-            };
         }
+
+        if (HTML_AND_XML_MIME_TYPES.includes(type) && !charset && !this.#forceResponseEncoding) {
+            // The charset comes from the document itself, so the raw bytes are what we need -
+            // decoding them through `encodeResponse` first would consume the body for nothing.
+            const rawBytes = Buffer.from(await response.arrayBuffer());
+            const metaCharset = extractCharsetFromHtmlBytes(rawBytes);
+            const charsetToUse = metaCharset ?? this.#suggestResponseEncoding ?? 'utf-8';
+            const body = iconv.encodingExists(charsetToUse)
+                ? iconv.decode(rawBytes, charsetToUse)
+                : rawBytes.toString('utf8');
+            return { response, contentType: { type, encoding: 'utf-8' as BufferEncoding }, body };
+        }
+
+        const { response: reencodedResponse, encoding } = this.encodeResponse(request, response, charset);
+        const contentType = { type, encoding };
+
+        if (HTML_AND_XML_MIME_TYPES.includes(type)) {
+            return { response, contentType, body: await reencodedResponse.text() };
+        }
+
+        return {
+            body: Buffer.from(await reencodedResponse.bytes()),
+            response,
+            contentType,
+        };
     }
 
     /**
