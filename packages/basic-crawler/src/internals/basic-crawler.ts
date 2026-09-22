@@ -706,8 +706,7 @@ export class BasicCrawler<
      * request queue; subsequent ones get their own queue via a unique alias so they don't
      * collide.
      */
-    // kept as TS-private: tests reset the counter at runtime
-    private static instanceCount = 0;
+    static #instanceCount = 0;
 
     /**
      * Tracks crawler instances that accessed shared state without having an explicit id.
@@ -1066,7 +1065,7 @@ export class BasicCrawler<
             // Initialize the Configuration instance to avoid lazy loading in the components
             serviceLocator.getConfiguration();
 
-            const instanceIndex = BasicCrawler.instanceCount++;
+            const instanceIndex = BasicCrawler.#instanceCount++;
             this.#identity = { instanceIndex, hasExplicitId: id !== undefined, id: id ?? String(instanceIndex) };
 
             if (requestManager !== undefined && (requestList !== undefined || requestQueue !== undefined)) {
