@@ -1,7 +1,7 @@
 import type {
     AddRequestsBatchedResult,
     BasicCrawlerOptions,
-    BasicCrawlingContext,
+    CleanupRegistrar,
     ContextMiddleware,
     CrawlingContext,
     EnqueueLinksOptions,
@@ -9,7 +9,7 @@ import type {
     ExtractLinksOptions,
     GetUserDataFromRequest,
     LoadedRequest,
-    Request,
+    CrawlingRequest,
     RequestHandler,
     RouterHandler,
 } from '@crawlee/basic';
@@ -30,7 +30,7 @@ import {
     validators,
 } from '@crawlee/basic';
 import type { CommonPage, CrawlerRemoteBrowserOptions } from '@crawlee/browser-pool';
-import type { Awaitable, Cookie as CookieObject, Dictionary, IBrowserPool, ISession } from '@crawlee/types';
+import type { Awaitable, Cookie as CookieObject, Dictionary, IBrowserPool } from '@crawlee/types';
 import {
     assertBrowserPoolNotConfigured,
     CLOUDFLARE_RETRY_CSS_SELECTORS,
@@ -77,7 +77,7 @@ export interface BrowserCrawlingContext<
     /**
      * The request object that was successfully loaded and navigated to, including the {@apilink Request.loadedUrl|`loadedUrl`} property.
      */
-    request: LoadedRequest<Request<UserData>>;
+    request: LoadedRequest<CrawlingRequest<UserData>>;
 
     /**
      * The HTTP response object returned by the browser's navigation.
@@ -175,7 +175,7 @@ export interface BrowserCrawlerOptions<
      * To make this work, we should **always**
      * let our function throw exceptions rather than catch them.
      * The exceptions are logged to the request using the
-     * {@apilink Request.pushErrorMessage|`Request.pushErrorMessage()`} function.
+     * {@apilink CrawlingRequest.pushErrorMessage|`request.pushErrorMessage()`} function.
      */
     requestHandler?: RouterHandler<ExtendedContext, Routes> | RequestHandler<ExtendedContext>;
 
@@ -432,11 +432,12 @@ export abstract class BrowserCrawler<
             assertBrowserPoolNotConfigured(new.target.name, { remoteBrowser });
         }
 
-        const skipGuard = <Ctx extends Context>(
-            action: (ctx: Ctx) => Awaitable<void | Partial<Ctx>>,
-        ): ContextMiddleware<Ctx, Partial<Ctx>> => ({
-            action: async (ctx) => (ctx.request.skipNavigation ? {} : ((await action(ctx)) ?? {})),
-        });
+        const skipGuard =
+            <Ctx extends Context>(
+                action: (ctx: Ctx) => Awaitable<void | Partial<Ctx>>,
+            ): ContextMiddleware<Ctx, Partial<Ctx>> =>
+            async (ctx) =>
+                ctx.request.skipNavigation ? {} : ((await action(ctx)) ?? {});
 
         super({
             ...basicCrawlerOptions,
@@ -462,7 +463,7 @@ export abstract class BrowserCrawler<
                         );
                     });
 
-                let pipeline = contextPipelineBuilder().compose({ action: this.prepareNavigation.bind(this) });
+                let pipeline = contextPipelineBuilder().compose(this.prepareNavigation.bind(this));
 
                 for (const hook of this.#preNavigationHooks) {
                     pipeline = pipeline.compose(windowGuard(hook));
@@ -476,8 +477,8 @@ export abstract class BrowserCrawler<
 
                 return pipeline
                     .compose(skipGuard(this.finalizeNavigation.bind(this)))
-                    .compose({ action: this.handleBlockedRequestByContent.bind(this) })
-                    .compose({ action: this.restoreRequestState.bind(this) });
+                    .compose(this.handleBlockedRequestByContent.bind(this))
+                    .compose(this.restoreRequestState.bind(this));
             },
             extendContext,
         });
@@ -505,26 +506,7 @@ export abstract class BrowserCrawler<
         CrawlingContext,
         BrowserCrawlingContext<Page, Response, Dictionary>
     > {
-        return ContextPipeline.create<CrawlingContext>().compose({
-            action: this.preparePage.bind(this),
-            cleanup: async (context: {
-                page: Page;
-                session: ISession;
-                registerDeferredCleanup: BasicCrawlingContext['registerDeferredCleanup'];
-            }) => {
-                context.registerDeferredCleanup(async () => {
-                    const error = !context.session.isUsable()
-                        ? new SessionError('Session is no longer usable')
-                        : undefined;
-
-                    await this.browserPool
-                        .closePage(context.page, { error })
-                        .catch((closeError: Error) =>
-                            this.log.debug('Error while closing page', { error: closeError }),
-                        );
-                });
-            },
-        });
+        return ContextPipeline.create<CrawlingContext>().compose(this.preparePage.bind(this));
     }
 
     private async containsSelectors(page: CommonPage, selectors: string[]): Promise<string[] | null> {
@@ -561,12 +543,25 @@ export abstract class BrowserCrawler<
 
     private async preparePage(
         crawlingContext: CrawlingContext,
+        onCleanup: CleanupRegistrar,
     ): Promise<ContextDifference<CrawlingContext, BrowserCrawlingContext<Page, Response, Dictionary>>> {
         const page = await this.browserPool.newPage({
             id: crawlingContext.id,
             session: crawlingContext.session,
         });
         tryCancel();
+
+        onCleanup(() => {
+            crawlingContext.registerDeferredCleanup(async () => {
+                const error = !crawlingContext.session.isUsable()
+                    ? new SessionError('Session is no longer usable')
+                    : undefined;
+
+                await this.browserPool
+                    .closePage(page, { error })
+                    .catch((closeError: Error) => this.log.debug('Error while closing page', { error: closeError }));
+            });
+        });
 
         const addRequests = crawlingContext.addRequests;
 
@@ -620,7 +615,7 @@ export abstract class BrowserCrawler<
                         }
                         return Reflect.get(target, propertyName, receiver);
                     },
-                }) as LoadedRequest<Request>,
+                }) as LoadedRequest<CrawlingRequest>,
                 get response(): Response {
                     throw new NavigationSkippedError(
                         'The `response` property is not available - `skipNavigation` was used',
@@ -694,7 +689,7 @@ export abstract class BrowserCrawler<
         // Cookies set during `requestHandler` are saved again afterwards.
         await this.persistCookiesFromPage(crawlingContext);
 
-        return { request: crawlingContext.request as LoadedRequest<Request> } as Partial<Context>;
+        return { request: crawlingContext.request as LoadedRequest<CrawlingRequest> } as Partial<Context>;
     }
 
     /**

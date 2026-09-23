@@ -1,5 +1,6 @@
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
+import { Readable } from 'node:stream';
 
 import type { CustomFetchOptions } from '@crawlee/http-client';
 import { BaseHttpClient, FetchHttpClient } from '@crawlee/http-client';
@@ -144,6 +145,80 @@ describe('BaseHttpClient cookie handling', () => {
     });
 });
 
+describe('BaseHttpClient credentials on redirects', () => {
+    const credentials = {
+        'authorization': 'Bearer secret',
+        'proxy-authorization': 'Basic secret',
+        'cookie': 'token=secret',
+    };
+
+    const echoCredentials = (req: http.IncomingMessage, res: http.ServerResponse) => {
+        res.setHeader('content-type', 'application/json');
+        res.end(
+            JSON.stringify({
+                'authorization': req.headers.authorization ?? null,
+                'proxy-authorization': req.headers['proxy-authorization'] ?? null,
+                'cookie': req.headers.cookie ?? null,
+            }),
+        );
+    };
+
+    let target: http.Server;
+    let redirector: http.Server;
+    let redirectorUrl: string;
+
+    beforeAll(async () => {
+        target = http.createServer(echoCredentials);
+        await new Promise<void>((resolve) => target.listen(resolve));
+        // A different host, so that the cookie jar does not match it either
+        const targetUrl = `http://localhost:${(target.address() as AddressInfo).port}`;
+
+        redirector = http.createServer((req, res) => {
+            const { pathname } = new URL(req.url!, 'http://localhost');
+
+            if (pathname === '/cross-origin') {
+                res.writeHead(302, { location: `${targetUrl}/echo` }).end();
+            } else if (pathname === '/same-origin') {
+                res.writeHead(302, { location: '/echo' }).end();
+            } else {
+                echoCredentials(req, res);
+            }
+        });
+        await new Promise<void>((resolve) => redirector.listen(resolve));
+        redirectorUrl = `http://127.0.0.1:${(redirector.address() as AddressInfo).port}`;
+    });
+
+    afterAll(async () => {
+        await new Promise((resolve) => redirector.close(resolve));
+        await new Promise((resolve) => target.close(resolve));
+    });
+
+    test('does not forward credential headers to a different origin', async () => {
+        const response = await httpClient.sendRequest(
+            new Request(`${redirectorUrl}/cross-origin`, { headers: credentials }),
+        );
+
+        expect(await response.json()).toEqual({ 'authorization': null, 'proxy-authorization': null, 'cookie': null });
+    });
+
+    test('does not send cookies of the previous origin to a different origin', async () => {
+        const cookieJar = new CookieJar();
+        await cookieJar.setCookie('session=secret', redirectorUrl);
+
+        const response = await httpClient.sendRequest(new Request(`${redirectorUrl}/cross-origin`), { cookieJar });
+
+        expect(await response.json()).toMatchObject({ cookie: null });
+    });
+
+    test('keeps credential headers on a same-origin redirect', async () => {
+        const response = await httpClient.sendRequest(
+            new Request(`${redirectorUrl}/same-origin`, { headers: credentials }),
+        );
+
+        expect(await response.json()).toEqual(credentials);
+    });
+});
+
 describe('BaseHttpClient TLS error handling', () => {
     class CapturingHttpClient extends BaseHttpClient {
         lastFetchOptions?: RequestInit & CustomFetchOptions;
@@ -198,5 +273,62 @@ describe('BaseHttpClient TLS error handling', () => {
         warningOnce.mockClear();
         await client.sendRequest(new Request(url));
         expect(warningOnce).not.toHaveBeenCalled();
+    });
+});
+
+describe('BaseHttpClient redirects that keep the request body', () => {
+    let redirectServer: http.Server;
+    let redirectUrl: string;
+
+    beforeAll(async () => {
+        redirectServer = http.createServer(async (req, res) => {
+            const { pathname, searchParams } = new URL(req.url!, 'http://localhost');
+
+            if (pathname === '/redirect') {
+                req.resume();
+                res.writeHead(Number(searchParams.get('status')), { location: '/echo' });
+                res.end();
+                return;
+            }
+
+            let body = '';
+            for await (const chunk of req) body += chunk;
+
+            res.setHeader('content-type', 'application/json');
+            res.end(JSON.stringify({ method: req.method, body }));
+        });
+
+        await new Promise<void>((resolve) => redirectServer.listen(resolve));
+        redirectUrl = `http://127.0.0.1:${(redirectServer.address() as AddressInfo).port}`;
+    });
+
+    afterAll(async () => {
+        await new Promise((resolve) => redirectServer.close(resolve));
+    });
+
+    test.each([
+        [307, 'POST'],
+        [308, 'POST'],
+        [301, 'PUT'],
+        [302, 'PATCH'],
+    ])('resends the body after a %i redirect of a %s request', async (status, method) => {
+        const init: RequestInit = { method, body: 'hello' };
+        const response = await httpClient.sendRequest(new Request(`${redirectUrl}/redirect?status=${status}`, init));
+
+        expect(response.status).toBe(200);
+        expect(await response.json()).toEqual({ method, body: 'hello' });
+    });
+
+    test('resends a streamed body after a 307 redirect', async () => {
+        const response = await httpClient.sendRequest(
+            new Request(`${redirectUrl}/redirect?status=307`, {
+                method: 'POST',
+                body: Readable.toWeb(Readable.from(['hel', 'lo'])) as ReadableStream,
+                duplex: 'half',
+            } as RequestInit),
+        );
+
+        expect(response.status).toBe(200);
+        expect(await response.json()).toEqual({ method: 'POST', body: 'hello' });
     });
 });

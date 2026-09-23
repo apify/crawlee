@@ -1,6 +1,6 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 
-import type { Awaitable, Dictionary } from '@crawlee/types';
+import type { Awaitable, Dictionary, RequestSchema } from '@crawlee/types';
 
 import { addTimeoutToPromise, storage as timeoutStorage, tryCancel } from '@apify/timeout';
 
@@ -93,7 +93,7 @@ export interface JournaledRequest {
      * A full JSON snapshot of the request for the commit replay. Only present for buffered additions —
      * deduplicated and write-through ones are journaled for introspection only.
      */
-    snapshot?: Dictionary;
+    snapshot?: RequestSchema;
 }
 
 /**

@@ -1,5 +1,6 @@
 import type {
     AddRequestsBatchedResult,
+    CleanupRegistrar,
     ContextPipeline,
     CrawlingContext,
     EnqueueLinksOptions,
@@ -192,22 +193,17 @@ export class DOMCrawler<
     protected override buildContextPipeline(): ContextPipeline<CrawlingContext, DOMCrawlingContext<Parsed>> {
         return super
             .buildContextPipeline()
-            .compose({
-                action: async (context) => this.#parseContent(context),
-                cleanup: async (context) => {
-                    // The `skipNavigation` placeholders below throw on access, so there is nothing to clean up.
-                    if (!context.request.skipNavigation) {
-                        await this.#parser.cleanup?.(context as unknown as Parsed);
-                    }
-                },
-            })
-            .compose({ action: async (context) => this.#addHelpers(context) });
+            .compose(this.#parseContent.bind(this))
+            .compose(async (context) => this.#addHelpers(context));
     }
 
-    async #parseContent(context: InternalHttpCrawlingContext): Promise<Parsed> {
+    async #parseContent(context: InternalHttpCrawlingContext, onCleanup: CleanupRegistrar): Promise<Parsed> {
         try {
-            return await this.#parser.parse(context);
+            const parsed = await this.#parser.parse(context);
+            onCleanup(() => this.#parser.cleanup?.(parsed));
+            return parsed;
         } catch (err) {
+            // The `skipNavigation` placeholders below throw on access, so there is nothing to clean up.
             if (err instanceof NavigationSkippedError) {
                 return Object.defineProperties(
                     {},

@@ -80,19 +80,14 @@ The `ProxyConfiguration` class allows you to provide a custom function to pick a
 
 ```javascript
 const proxyConfiguration = new ProxyConfiguration({
-    newUrlFunction: ({ request } = {}) => {
-        if (request?.url.includes('crawlee.dev')) {
-            return null; // for crawlee.dev, we don't use a proxy
-        }
-
-        return 'http://proxy-1.com'; // for all other URLs, we use this proxy
+    newUrlFunction: async () => {
+        const { proxyUrl } = await myProxyProvider.getProxy();
+        return proxyUrl; // or return null to skip the proxy
     }
 });
 ```
 
-The `newUrlFunction` receives a single optional `options` parameter and returns a string with the proxy URL (or `null` to skip the proxy for the current request).
-
-The `options` parameter is an object containing a <ApiLink to="core/class/Request">`Request`</ApiLink>, which is the request that will be made. Note that this object is not always available, for example when we are using the `newUrl` function directly. Your custom function should therefore not rely on the `request` object being present and provide a default behavior when it is not.
+The `newUrlFunction` takes no arguments and returns a string with the proxy URL (or `null` to skip the proxy). Crawlers call it once for every new session, so it cannot route individual requests. To send specific requests through specific proxies, create named sessions with their own proxies and pin requests to them, as shown in the [session management guide](../guides/session-management#pinning-a-request-to-a-specific-session).
 
 ## Crawler integration
 

@@ -1,25 +1,25 @@
 import { serviceLocator, SessionError } from '@crawlee/core';
 import type { Awaitable } from '@crawlee/types';
 
-import {
-    ContextPipelineCleanupError,
-    ContextPipelineInitializationError,
-    ContextPipelineInterruptedError,
-    RequestHandlerError,
-} from '../errors.js';
+import { ContextPipelineCleanupError, RequestHandlerError } from '../errors.js';
 
 /**
- * Represents a middleware step in the context pipeline.
+ * Registers a callback that runs after the final context consumer finishes. `error` is the consumer's failure, if any;
+ * failures of downstream middlewares are not reported. Cleanups run in reverse registration order.
+ */
+export type CleanupRegistrar = (cleanup: (error?: unknown) => Awaitable<void>) => void;
+
+/**
+ * A middleware step in the context pipeline: receives the context built so far and returns an extension that gets
+ * merged into it. Anything that needs tearing down is registered via `onCleanup`.
  *
  * @template TCrawlingContext - The input context type for this middleware
  * @template TCrawlingContextExtension - The enhanced output context type
  */
-export interface ContextMiddleware<TCrawlingContext, TCrawlingContextExtension> {
-    /** The main middleware function that enhances the context */
-    action: (context: TCrawlingContext) => Awaitable<TCrawlingContextExtension>;
-    /** Optional cleanup function called after the consumer finishes or fails */
-    cleanup?: (context: TCrawlingContext & TCrawlingContextExtension, error?: unknown) => Awaitable<void>;
-}
+export type ContextMiddleware<TCrawlingContext, TCrawlingContextExtension> = (
+    context: TCrawlingContext,
+    onCleanup: CleanupRegistrar,
+) => Awaitable<TCrawlingContextExtension>;
 
 /**
  * Encapsulates the logic of gradually enhancing the crawling context with additional information and utilities.
@@ -39,7 +39,7 @@ export abstract class ContextPipeline<TContextBase, TCrawlingContext extends TCo
      * @returns A new ContextPipeline instance with no transformations
      */
     static create<TContextBase>(): ContextPipeline<TContextBase, TContextBase> {
-        return new ContextPipelineImpl<TContextBase, TContextBase>({ action: async (context) => context });
+        return new ContextPipelineImpl<TContextBase, TContextBase>(async (context) => context);
     }
 
     /**
@@ -78,9 +78,9 @@ export abstract class ContextPipeline<TContextBase, TCrawlingContext extends TCo
      *
      * @param crawlingContext - The initial context to process through the pipeline
      * @param finalContextConsumer - The function that will receive the final enhanced context
+     * @param onInitializationError - Receives a middleware failure as-is; the consumer is then skipped. Runs before
+     *   the cleanups, so it still sees whatever the failed middleware's predecessors set up.
      *
-     * @throws {ContextPipelineInitializationError} When a middleware fails during initialization
-     * @throws {ContextPipelineInterruptedError} When the pipeline is intentionally interrupted during initialization
      * @throws {RequestHandlerError} When the final context consumer throws an exception
      * @throws {ContextPipelineCleanupError} When cleanup operations fail
      * @throws {SessionError} Session errors are re-thrown as-is for special handling
@@ -88,6 +88,7 @@ export abstract class ContextPipeline<TContextBase, TCrawlingContext extends TCo
     abstract call(
         crawlingContext: TContextBase,
         finalContextConsumer: (finalContext: TCrawlingContext) => Awaitable<unknown>,
+        onInitializationError: (error: unknown) => Awaitable<void>,
     ): Promise<void>;
 }
 
@@ -153,15 +154,19 @@ class ContextPipelineImpl<TContextBase, TCrawlingContext extends TContextBase> e
     async call(
         crawlingContext: TContextBase,
         finalContextConsumer: (finalContext: TCrawlingContext) => Promise<unknown>,
+        onInitializationError: (error: unknown) => Awaitable<void>,
     ): Promise<void> {
         const middlewares = Array.from(this.middlewareChain()).reverse();
-        const cleanupStack = [];
+        const cleanupStack: Parameters<CleanupRegistrar>[0][] = [];
+        const onCleanup: CleanupRegistrar = (cleanup) => {
+            cleanupStack.push(cleanup);
+        };
         let consumerException: unknown | undefined;
 
         try {
-            for (const { action, cleanup } of middlewares) {
+            for (const middleware of middlewares) {
                 try {
-                    const contextExtension = await action(crawlingContext);
+                    const contextExtension = await middleware(crawlingContext, onCleanup);
 
                     const extensionNames = [
                         ...Object.getOwnPropertyNames(contextExtension),
@@ -183,19 +188,9 @@ class ContextPipelineImpl<TContextBase, TCrawlingContext extends TContextBase> e
                                 .debug(`Context pipeline failed to define property ${key.toString()}:`, error);
                         }
                     }
-
-                    if (cleanup) {
-                        cleanupStack.push(cleanup);
-                    }
                 } catch (exception: unknown) {
-                    if (exception instanceof SessionError) {
-                        throw exception; // Session errors are re-thrown as-is
-                    }
-                    if (exception instanceof ContextPipelineInterruptedError) {
-                        throw exception;
-                    }
-
-                    throw new ContextPipelineInitializationError(exception);
+                    await onInitializationError(exception);
+                    return;
                 }
             }
 
@@ -212,7 +207,7 @@ class ContextPipelineImpl<TContextBase, TCrawlingContext extends TContextBase> e
         } finally {
             try {
                 for (const cleanup of cleanupStack.reverse()) {
-                    await cleanup(crawlingContext, consumerException);
+                    await cleanup(consumerException);
                 }
             } catch (exception: unknown) {
                 // eslint-disable-next-line no-unsafe-finally

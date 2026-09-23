@@ -1,6 +1,11 @@
-import type { BasicCrawlerOptions, CrawlingContext, LoadedRequest } from '@crawlee/basic';
+import type {
+    BasicCrawlerOptions,
+    CleanupRegistrar,
+    CrawlingContext,
+    CrawlingRequest,
+    LoadedRequest,
+} from '@crawlee/basic';
 import { BasicCrawler, ContextPipeline } from '@crawlee/basic';
-import type { Request } from '@crawlee/core';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import type { Dictionary } from '@crawlee/types';
 
@@ -16,8 +21,6 @@ import type {
 import { Router } from '../index.js';
 import { parseContentTypeFromResponse } from './utils.js';
 
-const kBodyDrained = Symbol('bodyDrained');
-
 export type FileDownloadErrorHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
     ContextExtension = Dictionary<never>,
@@ -26,7 +29,7 @@ export type FileDownloadErrorHandler<
 export interface FileDownloadCrawlingContext<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 > extends CrawlingContext<UserData> {
-    request: LoadedRequest<Request<UserData>>;
+    request: LoadedRequest<CrawlingRequest<UserData>>;
     response: Response;
     contentType: { type: string; encoding: BufferEncoding };
 }
@@ -56,9 +59,7 @@ export type FileDownloadRequestHandler<
  * ```ts
  * const crawler = new FileDownload({
  *     contextPipelineBuilder: () =>
- *         ContextPipeline.create<CrawlingContext>().compose({
- *             action: async (context) => ({ ...context, myField: 123 }),
- *         }),
+ *         ContextPipeline.create<CrawlingContext>().compose(async () => ({ myField: 123 })),
  *     requestHandler({ myField }) {
  *         // ...
  *     },
@@ -93,21 +94,10 @@ export class FileDownload extends BasicCrawler<FileDownloadCrawlingContext> {
     }
 
     #buildContextPipeline(): ContextPipeline<CrawlingContext, FileDownloadCrawlingContext> {
-        return ContextPipeline.create<CrawlingContext>().compose({
-            action: async (context) => this.initiateDownload(context),
-            cleanup: async (context) => {
-                if (!context.response.bodyUsed) {
-                    // Nobody consumed the body — cancel it so the
-                    // underlying connection can be released.
-                    await context.response.body?.cancel();
-                }
-
-                await (context as { [kBodyDrained]: Promise<void> })[kBodyDrained];
-            },
-        });
+        return ContextPipeline.create<CrawlingContext>().compose(this.initiateDownload.bind(this));
     }
 
-    private async initiateDownload(context: CrawlingContext) {
+    private async initiateDownload(context: CrawlingContext, onCleanup: CleanupRegistrar) {
         const response = await this.httpClient.sendRequest(context.request.intoFetchAPIRequest(), {
             session: context.session,
         });
@@ -118,14 +108,21 @@ export class FileDownload extends BasicCrawler<FileDownloadCrawlingContext> {
 
         const { response: trackedResponse, bodyDrained } = trackBodyConsumption(response);
 
-        const contextExtension = {
-            request: context.request as LoadedRequest<Request>,
+        onCleanup(async () => {
+            if (!trackedResponse.bodyUsed) {
+                // Nobody consumed the body — cancel it so the
+                // underlying connection can be released.
+                await trackedResponse.body?.cancel();
+            }
+
+            await bodyDrained;
+        });
+
+        return {
+            request: context.request as LoadedRequest<CrawlingRequest>,
             response: trackedResponse,
             contentType: { type, encoding },
-            [kBodyDrained]: bodyDrained,
         };
-
-        return contextExtension;
     }
 }
 

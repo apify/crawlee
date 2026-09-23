@@ -259,7 +259,7 @@ export class PlaywrightCrawler<
     }
 
     #buildContextPipeline(): ContextPipeline<CrawlingContext, PlaywrightCrawlingContext> {
-        return super.buildContextPipeline().compose({ action: this.enhanceContext.bind(this) });
+        return super.buildContextPipeline().compose(this.enhanceContext.bind(this));
     }
 
     protected override async navigationHandler(

@@ -5,7 +5,7 @@ import { pipeline } from 'node:stream/promises';
 import { ReadableStream } from 'node:stream/web';
 import { setTimeout } from 'node:timers/promises';
 
-import type { CrawlingContext, LoadedRequest, Request } from '@crawlee/http';
+import type { CrawlingContext, CrawlingRequest, LoadedRequest } from '@crawlee/http';
 import { ContextPipeline, FileDownload } from '@crawlee/http';
 import { FetchHttpClient } from '@crawlee/http-client';
 import express from 'express';
@@ -211,13 +211,11 @@ test('honours a user-supplied contextPipelineBuilder', async () => {
         contextPipelineBuilder: () => {
             builderCalls++;
 
-            return ContextPipeline.create<CrawlingContext>().compose({
-                action: async (context) => ({
-                    request: context.request as LoadedRequest<Request>,
-                    response: new Response('stubbed'),
-                    contentType: { type: 'text/plain', encoding: 'utf8' as BufferEncoding },
-                }),
-            });
+            return ContextPipeline.create<CrawlingContext>().compose(async (context) => ({
+                request: context.request as LoadedRequest<CrawlingRequest>,
+                response: new Response('stubbed'),
+                contentType: { type: 'text/plain', encoding: 'utf8' as BufferEncoding },
+            }));
         },
         requestHandler: async ({ response }) => {
             bodies.push(await response.text());

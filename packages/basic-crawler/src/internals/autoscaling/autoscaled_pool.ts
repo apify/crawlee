@@ -81,8 +81,10 @@ export interface AutoscaledPoolOptions extends TaskLoopOptions {
     /**
      * A function that performs an asynchronous resource-intensive task.
      * The function must either be labeled `async` or return a promise.
+     * @param taskId The id the task is {@apilink IConcurrencySystem.tryRegisterTaskStart|booked} under, so work done
+     * inside can be correlated with what the governor sees.
      */
-    runTaskFunction?: () => Promise<unknown>;
+    runTaskFunction?: (taskId: string) => Promise<unknown>;
 
     /**
      * Timeout in which the `runTaskFunction` needs to finish, given in seconds.
@@ -151,7 +153,7 @@ export class AutoscaledPool {
     // Configurable properties.
     readonly #maybeRunIntervalMillis: number;
     readonly #taskTimeoutMillis: number;
-    readonly #runTaskFunction: () => Promise<unknown>;
+    readonly #runTaskFunction: (taskId: string) => Promise<unknown>;
     readonly #isFinishedFunction: () => Promise<boolean>;
     readonly #isTaskReadyFunction: () => Promise<boolean>;
 
@@ -171,6 +173,9 @@ export class AutoscaledPool {
      * (possibly shared) governor's total. `pause()` and `maybeFinish()` care only about this pool draining.
      */
     #ownConcurrency = 0;
+
+    /** Source of the ids that pair a booking with the release of the same task. */
+    #nextTaskId = 0;
 
     constructor(options: AutoscaledPoolOptions) {
         const {
@@ -403,9 +408,11 @@ export class AutoscaledPool {
             return this.maybeFinish();
         }
 
+        const taskId = String(this.#nextTaskId++);
+
         // - the budget still has room. Re-checked atomically, because another pool sharing the governor may have taken
         // the last free slot while we awaited `isTaskReadyFunction` above.
-        if (!this.#concurrencySystem.tryRegisterTaskStart(this.#consumer)) {
+        if (!this.#concurrencySystem.tryRegisterTaskStart(this.#consumer, taskId)) {
             return done();
         }
 
@@ -425,12 +432,12 @@ export class AutoscaledPool {
 
             if (this.#taskTimeoutMillis > 0) {
                 await addTimeoutToPromise(
-                    async () => this.#runTaskFunction(),
+                    async () => this.#runTaskFunction(taskId),
                     this.#taskTimeoutMillis,
                     `runTaskFunction timed out after ${this.#taskTimeoutMillis / 1000} seconds.`,
                 );
             } else {
-                await this.#runTaskFunction();
+                await this.#runTaskFunction(taskId);
             }
 
             this.#log.perf('Task finished.');
@@ -452,7 +459,7 @@ export class AutoscaledPool {
                 this.#reject(err);
             }
         } finally {
-            this.#concurrencySystem.registerTaskEnd(this.#consumer);
+            this.#concurrencySystem.registerTaskEnd(this.#consumer, taskId);
             this.#ownConcurrency--;
         }
 

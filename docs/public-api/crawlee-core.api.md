@@ -34,6 +34,7 @@ import type { QueueOperationInfo } from '@crawlee/types';
 import type { ReadonlyDeep } from 'type-fest';
 import type { RequestQueueBackend } from '@crawlee/types';
 import type { RequestQueueInfo } from '@crawlee/types';
+import type { RequestSchema } from '@crawlee/types';
 import type { StandardSchemaV1 } from '@standard-schema/spec';
 import type * as storage from '@crawlee/types';
 import { StorageBackend } from '@crawlee/types';
@@ -370,9 +371,7 @@ interface Intervals {
 
 // @public
 export interface IProxyConfiguration {
-    newProxyInfo(options?: {
-        request?: Request_2;
-    }): Promise<ProxyInfo | undefined>;
+    newProxyInfo(): Promise<ProxyInfo | undefined>;
 }
 
 // @public
@@ -563,20 +562,14 @@ export class ProxyConfiguration implements IProxyConfiguration {
     constructor(options?: ProxyConfigurationOptions);
     // (undocumented)
     readonly isManInTheMiddle = false;
-    newProxyInfo(options?: {
-        request?: Request_2;
-    }): Promise<ProxyInfo | undefined>;
-    newUrl(options?: {
-        request?: Request_2;
-    }): Promise<string | undefined>;
+    newProxyInfo(): Promise<ProxyInfo | undefined>;
+    newUrl(): Promise<string | undefined>;
 }
 
 // @public (undocumented)
 export interface ProxyConfigurationFunction {
     // (undocumented)
-    (options?: {
-        request?: Request_2;
-    }): string | null | Promise<string | null>;
+    (): string | null | Promise<string | null>;
 }
 
 // @public (undocumented)
@@ -600,11 +593,6 @@ export function purgeDefaultStorages(options?: PurgeDefaultStorageOptions): Prom
 
 // @public
 export function purgeDefaultStorages(configuration?: Configuration, storageBackend?: StorageBackend): Promise<void>;
-
-// @public (undocumented)
-export interface PushErrorMessageOptions {
-    omitStack?: boolean;
-}
 
 // @public (undocumented)
 export interface RecordOptions {
@@ -642,9 +630,8 @@ export interface RecoverableStatePersistenceOptions {
 // @public
 class Request_2<UserData extends Dictionary = Dictionary> {
     constructor(options: RequestOptions<UserData>);
-    get crawlDepth(): number;
-    set crawlDepth(value: number);
     errorMessages: string[];
+    static fromSchema<UserData extends Dictionary = Dictionary>(schema: RequestSchema): Request_2<UserData>;
     handledAt?: string;
     headers?: Record<string, string>;
     id?: string;
@@ -652,19 +639,10 @@ class Request_2<UserData extends Dictionary = Dictionary> {
     get label(): string | undefined;
     set label(value: string | undefined);
     loadedUrl?: string;
-    get maxRetries(): number | undefined;
-    set maxRetries(value: number | undefined);
     method: AllowedHttpMethods;
     noRetry: boolean;
     payload?: string;
-    pushErrorMessage(errorOrMessage: unknown, options?: PushErrorMessageOptions): void;
     retryCount: number;
-    get sessionId(): string | undefined;
-    set sessionId(value: string | undefined);
-    get skipNavigation(): boolean;
-    set skipNavigation(value: boolean);
-    get state(): RequestState;
-    set state(value: RequestState);
     uniqueKey: string;
     url: string;
     userData: UserData;
@@ -832,26 +810,6 @@ export type RequestSourceStatus = {
     status: 'finished';
 };
 
-// @public (undocumented)
-export enum RequestState {
-    // (undocumented)
-    AFTER_NAV = 2,
-    // (undocumented)
-    BEFORE_NAV = 1,
-    // (undocumented)
-    DONE = 4,
-    // (undocumented)
-    ERROR = 6,
-    // (undocumented)
-    ERROR_HANDLER = 5,
-    // (undocumented)
-    REQUEST_HANDLER = 3,
-    // (undocumented)
-    SKIPPED = 7,
-    // (undocumented)
-    UNPROCESSED = 0
-}
-
 // @public
 export class RequestValidationError extends NonRetryableError {
     constructor(label: string | symbol, issues: readonly SchemaIssue[]);
@@ -929,9 +887,6 @@ interface ServiceLocatorInterface {
 export class SessionError extends Error {
     constructor(message?: string);
 }
-
-// @public (undocumented)
-export type SkippedRequestReason = 'robotsTxt' | 'limit' | 'enqueueLimit' | 'filters' | 'transform' | 'redirect' | 'depth';
 
 // @public (undocumented)
 export type Source = (Partial<RequestOptions> & {

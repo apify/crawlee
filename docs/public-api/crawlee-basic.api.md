@@ -36,12 +36,12 @@ import { RequestOptions } from '@crawlee/core';
 import { RequestQueue } from '@crawlee/core';
 import type { RequestQueueOperationInfo } from '@crawlee/core';
 import type { RequestQueueOperationOptions } from '@crawlee/core';
+import type { RequestSchema } from '@crawlee/types';
 import type { RequestsLike } from '@crawlee/core';
 import type { RequestSourceStatus } from '@crawlee/core';
 import type { SendRequestOptions } from '@crawlee/types';
 import type { SessionFingerprint } from '@crawlee/types';
 import type { SetStatusMessageOptions } from '@crawlee/types';
-import type { SkippedRequestReason } from '@crawlee/core';
 import { Source } from '@crawlee/core';
 import type { StandardSchemaV1 } from '@standard-schema/spec';
 import type { StorageBackend } from '@crawlee/types';
@@ -173,6 +173,9 @@ export interface CalculatedStatistics {
 }
 
 // @public
+export type CleanupRegistrar = (cleanup: (error?: unknown) => Awaitable<void>) => void;
+
+// @public
 export interface ConcurrencyConsumer {
     readonly id: string;
 }
@@ -217,14 +220,11 @@ export interface ConcurrencySystemOptions {
 }
 
 // @public
-export interface ContextMiddleware<TCrawlingContext, TCrawlingContextExtension> {
-    action: (context: TCrawlingContext) => Awaitable<TCrawlingContextExtension>;
-    cleanup?: (context: TCrawlingContext & TCrawlingContextExtension, error?: unknown) => Awaitable<void>;
-}
+export type ContextMiddleware<TCrawlingContext, TCrawlingContextExtension> = (context: TCrawlingContext, onCleanup: CleanupRegistrar) => Awaitable<TCrawlingContextExtension>;
 
 // @public
 export abstract class ContextPipeline<TContextBase, TCrawlingContext extends TContextBase> {
-    abstract call(crawlingContext: TContextBase, finalContextConsumer: (finalContext: TCrawlingContext) => Awaitable<unknown>): Promise<void>;
+    abstract call(crawlingContext: TContextBase, finalContextConsumer: (finalContext: TCrawlingContext) => Awaitable<unknown>, onInitializationError: (error: unknown) => Awaitable<void>): Promise<void>;
     abstract chain<TFinalContext extends TCrawlingContext>(other: ContextPipeline<TCrawlingContext, TFinalContext>): ContextPipeline<TContextBase, TFinalContext>;
     abstract compose<TCrawlingContextExtension>(middleware: ContextMiddleware<TCrawlingContext, TCrawlingContextExtension>): ContextPipeline<TContextBase, TCrawlingContext & TCrawlingContextExtension>;
     static create<TContextBase>(): ContextPipeline<TContextBase, TContextBase>;
@@ -232,11 +232,6 @@ export abstract class ContextPipeline<TContextBase, TCrawlingContext extends TCo
 
 // @public (undocumented)
 export class ContextPipelineCleanupError extends CriticalError {
-    constructor(error: unknown, options?: ErrorOptions);
-}
-
-// @public (undocumented)
-export class ContextPipelineInitializationError extends Error {
     constructor(error: unknown, options?: ErrorOptions);
 }
 
@@ -283,6 +278,23 @@ export interface CrawlingContext<UserData extends Dictionary = Dictionary> exten
     extendTimeout(secs: number): void;
     registerDeferredCleanup(cleanup: () => Promise<unknown>): void;
     sendRequest: (requestOverrides?: Partial<HttpRequestOptions>, optionsOverrides?: SendRequestOptions) => Promise<Response>;
+}
+
+// @public
+export class CrawlingRequest<UserData extends Dictionary = Dictionary> extends Request_2<UserData> {
+    get crawlDepth(): number;
+    set crawlDepth(value: number);
+    // (undocumented)
+    static fromSchema<UserData extends Dictionary = Dictionary>(schema: RequestSchema): CrawlingRequest<UserData>;
+    get maxRetries(): number | undefined;
+    set maxRetries(value: number | undefined);
+    pushErrorMessage(errorOrMessage: unknown, options?: PushErrorMessageOptions): void;
+    get sessionId(): string | undefined;
+    set sessionId(value: string | undefined);
+    get skipNavigation(): boolean;
+    set skipNavigation(value: boolean);
+    get state(): RequestState;
+    set state(value: RequestState);
 }
 
 // @public
@@ -430,7 +442,7 @@ export interface FinalStatistics {
 }
 
 // @public (undocumented)
-export type GetUserDataFromRequest<T> = T extends Request_2<infer Y> ? Y : never;
+export type GetUserDataFromRequest<T> = T extends CrawlingRequest<infer Y> ? Y : never;
 
 // @public (undocumented)
 export type GlobInput = string | GlobObject;
@@ -447,8 +459,8 @@ export interface IConcurrencySystem {
     readonly desiredConcurrency: number;
     hasCapacityForTask(consumer: ConcurrencyConsumer): boolean;
     readonly isRunning: boolean;
-    registerTaskEnd(consumer: ConcurrencyConsumer): void;
-    tryRegisterTaskStart(consumer: ConcurrencyConsumer): boolean;
+    registerTaskEnd(consumer: ConcurrencyConsumer, taskId: string): void;
+    tryRegisterTaskStart(consumer: ConcurrencyConsumer, taskId: string): boolean;
 }
 
 // @public
@@ -557,6 +569,11 @@ export class PersistentRateLimitError extends CriticalError {
 }
 
 // @public (undocumented)
+export interface PushErrorMessageOptions {
+    omitStack?: boolean;
+}
+
+// @public (undocumented)
 export type RegExpInput = RegExp | RegExpObject;
 
 // @public (undocumented)
@@ -571,6 +588,26 @@ export type RequestHandler<Context extends CrawlingContext = CrawlingContext> = 
 // @public (undocumented)
 export class RequestHandlerError extends Error {
     constructor(error: unknown, options?: ErrorOptions);
+}
+
+// @public (undocumented)
+export enum RequestState {
+    // (undocumented)
+    AFTER_NAV = 2,
+    // (undocumented)
+    BEFORE_NAV = 1,
+    // (undocumented)
+    DONE = 4,
+    // (undocumented)
+    ERROR = 6,
+    // (undocumented)
+    ERROR_HANDLER = 5,
+    // (undocumented)
+    REQUEST_HANDLER = 3,
+    // (undocumented)
+    SKIPPED = 7,
+    // (undocumented)
+    UNPROCESSED = 0
 }
 
 // @public
@@ -596,7 +633,7 @@ export interface RestrictedCrawlingContext<UserData extends Dictionary = Diction
     log: CrawleeLogger;
     proxyInfo?: ProxyInfo;
     pushData(data: ReadonlyDeep<Parameters<Dataset['pushData']>[0]>, datasetIdentifier?: string | StorageIdentifier): Promise<void>;
-    request: Request_2<UserData>;
+    request: CrawlingRequest<UserData>;
     // (undocumented)
     session: ISession;
     useState: <State extends Dictionary = Dictionary>(defaultValue?: State) => Promise<State>;
@@ -634,7 +671,7 @@ export interface RouterHandler<Context extends RestrictedCrawlingContext = Crawl
 
 // @public
 export type RouterHandlerContext<Context, UserData extends Dictionary, Routes extends Record<keyof Routes, Dictionary>> = Omit<Context, 'request' | 'addRequests' | 'enqueueLinks'> & {
-    request: LoadedRequest<Request_2<UserData>>;
+    request: LoadedRequest<CrawlingRequest<UserData>>;
     addRequests: TypedContextAddRequests<Routes>;
 } & (Context extends {
     enqueueLinks: infer EnqueueLinks;
@@ -648,7 +685,7 @@ export type RouterLabel<Routes extends Record<keyof Routes, Dictionary>> = strin
 // @public (undocumented)
 export type RouterRoutes<Context, Routes extends Record<keyof Routes, Dictionary>> = {
     [Label in keyof Routes]: (ctx: Omit<Context, 'request'> & {
-        request: Request_2<Routes[Label]>;
+        request: CrawlingRequest<Routes[Label]>;
     }) => Awaitable<void>;
 };
 
@@ -809,6 +846,9 @@ export type SkippedRequestCallback = (args: {
     request: Request_2;
     reason: SkippedRequestReason;
 }) => Awaitable<void>;
+
+// @public (undocumented)
+export type SkippedRequestReason = 'robotsTxt' | 'limit' | 'enqueueLimit' | 'filters' | 'transform' | 'redirect' | 'depth';
 
 // @public
 export class SnapshotStore<T extends LoadSnapshot = LoadSnapshot> {

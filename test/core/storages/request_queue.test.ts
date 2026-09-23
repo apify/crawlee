@@ -1,5 +1,6 @@
 /* eslint-disable dot-notation */
 
+import { CrawlingRequest } from '@crawlee/basic';
 import { MemoryStorageBackend, ProxyConfiguration, Request, RequestQueue, serviceLocator } from '@crawlee/core';
 import { BaseHttpClient } from '@crawlee/http-client';
 import { sleep } from '@crawlee/utils';
@@ -326,17 +327,17 @@ describe('RequestQueue remote', () => {
     test('Request.userData.__crawlee internal object is non-enumerable and always defined', async () => {
         const url = 'http://example.com';
         const method = 'POST';
-        const r1 = new Request({
+        const r1 = new CrawlingRequest({
             url,
             method,
             userData: { __crawlee: { skipNavigation: true, maxRetries: 10, foo: 123, bar: true, crawlDepth: 10 } },
         });
-        const r2 = new Request({
+        const r2 = new CrawlingRequest({
             url,
             method,
             userData: {} as any,
         });
-        const r3 = new Request({
+        const r3 = new CrawlingRequest({
             url,
             method,
         });
@@ -355,7 +356,7 @@ describe('RequestQueue remote', () => {
         });
         // Re-wrapping userData that comes from another Request instance (where `__crawlee` is
         // non-enumerable) must preserve the internal state instead of dropping it via the spread.
-        const r4 = new Request({ url, method, userData: r1.userData });
+        const r4 = new CrawlingRequest({ url, method, userData: r1.userData });
         expect(r4.skipNavigation).toBe(true);
         expect(r4.maxRetries).toBe(5);
         expect(r4.crawlDepth).toBe(10);

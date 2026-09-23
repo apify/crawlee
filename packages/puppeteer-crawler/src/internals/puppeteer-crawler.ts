@@ -262,7 +262,7 @@ export class PuppeteerCrawler<
     }
 
     #buildContextPipeline(): ContextPipeline<CrawlingContext, PuppeteerCrawlingContext> {
-        return super.buildContextPipeline().compose({ action: this.enhanceContext.bind(this) });
+        return super.buildContextPipeline().compose(this.enhanceContext.bind(this));
     }
 
     private async enhanceContext(context: BrowserCrawlingContext<Page, HTTPResponse>) {

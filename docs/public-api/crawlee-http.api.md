@@ -12,6 +12,7 @@ import type { CheerioAPI } from 'cheerio';
 import type { ConcurrencySystemOptions } from '@crawlee/basic';
 import { ContextPipeline } from '@crawlee/basic';
 import type { CrawlingContext } from '@crawlee/basic';
+import type { CrawlingRequest } from '@crawlee/basic';
 import type { Dictionary } from '@crawlee/types';
 import type { EnqueueLinksOptions } from '@crawlee/basic';
 import { ErrorHandler } from '@crawlee/basic';
@@ -19,8 +20,6 @@ import type { ExtractLinksOptions } from '@crawlee/basic';
 import { GetUserDataFromRequest } from '@crawlee/basic';
 import type { JsonValue } from 'type-fest';
 import type { LoadedRequest } from '@crawlee/basic';
-import { Request as Request_2 } from '@crawlee/basic';
-import type { Request as Request_3 } from '@crawlee/core';
 import { RequestHandler } from '@crawlee/basic';
 import type { RequireContextPipeline } from '@crawlee/basic';
 import { RouterHandler } from '@crawlee/basic';
@@ -31,7 +30,7 @@ import { RoutesFromSchemas } from '@crawlee/basic';
 // Not exported by the entry point; reachable only as a referenced type.
 // @public (undocumented)
 interface CrawlingContextWithResponse<UserData extends Dictionary = any> extends CrawlingContext<UserData> {
-    request: LoadedRequest<Request_2<UserData>>;
+    request: LoadedRequest<CrawlingRequest<UserData>>;
     response: Response;
 }
 
@@ -109,7 +108,7 @@ export interface FileDownloadCrawlingContext<UserData extends Dictionary = any> 
         encoding: BufferEncoding;
     };
     // (undocumented)
-    request: LoadedRequest<Request_3<UserData>>;
+    request: LoadedRequest<CrawlingRequest<UserData>>;
     // (undocumented)
     response: Response;
 }
