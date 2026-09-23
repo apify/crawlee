@@ -14,6 +14,7 @@ import {
     ThrottlingRequestManager,
 } from '@crawlee/http';
 import { BaseHttpClient, ResponseWithUrl } from '@crawlee/http-client';
+import type { ProxyInfo, SendRequestOptions } from '@crawlee/types';
 import { sleep } from '@crawlee/utils';
 import iconv from 'iconv-lite';
 
@@ -641,6 +642,34 @@ test('works with a custom HttpClient', async () => {
 
     expect(results[0].includes('Schmexample Domain')).toBeTruthy();
     expect(results[1].includes('Schmexample Domain')).toBeTruthy();
+});
+
+test('forwards the context proxyInfo url to the HttpClient', async () => {
+    const proxyUrls: (string | undefined)[] = [];
+
+    const crawler = new HttpCrawler({
+        maxRequestRetries: 0,
+        preNavigationHooks: [
+            async (context) => {
+                context.proxyInfo = { url: 'http://proxy.example.com:8000' } as ProxyInfo;
+            },
+        ],
+        requestHandler: async () => {},
+        httpClient: Object.assign(Object.create(BaseHttpClient.prototype) as BaseHttpClient, {
+            async sendRequest(request: Request, options?: SendRequestOptions) {
+                proxyUrls.push(options?.proxyUrl);
+                return new ResponseWithUrl('<html></html>', {
+                    url: request.url.toString(),
+                    status: 200,
+                    headers: { 'content-type': 'text/html; charset=utf-8' },
+                });
+            },
+        }),
+    });
+
+    await crawler.run([url]);
+
+    expect(proxyUrls).toEqual(['http://proxy.example.com:8000']);
 });
 
 test('a 429 on a throttled domain paces the retry without spending it or the session', async () => {
