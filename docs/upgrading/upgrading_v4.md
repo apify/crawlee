@@ -1167,7 +1167,7 @@ More complex routing (more tiers, weighted draws, sticky assignment, cooldowns) 
 
 #### `ProxyConfiguration.newUrl` / `newProxyInfo` signatures changed
 
-Because proxy tiers are gone, the leading `sessionId` positional argument was dropped from `ProxyConfiguration.newUrl()` and `ProxyConfiguration.newProxyInfo()`. Both now take a single optional options object instead of `(sessionId?, options?)`. The `ProxyConfigurationFunction` callback (the `newUrlFunction` option) was likewise simplified — it no longer receives a `sessionId` as its first argument; it now receives an optional `{ request }` object. The `TieredProxy` interface and the `TieredProxyOptions` type have been removed.
+Because proxy tiers are gone, the leading `sessionId` positional argument was dropped from `ProxyConfiguration.newUrl()` and `ProxyConfiguration.newProxyInfo()`. Both now take no arguments instead of `(sessionId?, options?)`. The `ProxyConfigurationFunction` callback (the `newUrlFunction` option) was likewise simplified — it no longer receives any arguments, neither a `sessionId` nor a `{ request }` object. The proxy is resolved once per session, so to route specific requests through specific proxies, pin them to named sessions (see [Pinning a request to a specific session](../guides/session-management#pinning-a-request-to-a-specific-session)). The `TieredProxy` interface and the `TieredProxyOptions` type have been removed.
 
 **Before:**
 ```typescript
@@ -1180,7 +1180,7 @@ const url = await proxyConfiguration.newUrl(sessionId);
 **After:**
 ```typescript
 const proxyConfiguration = new ProxyConfiguration({
-    newUrlFunction: ({ request } = {}) => pickProxyFor(request),
+    newUrlFunction: () => pickProxy(),
 });
 const url = await proxyConfiguration.newUrl();
 ```
