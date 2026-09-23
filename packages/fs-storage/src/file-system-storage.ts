@@ -74,7 +74,8 @@ export interface FileSystemStorageOptions {
     requestQueueAccess?: 'single' | 'shared';
 
     /**
-     * The key the run input is read from — Crawlee's `inputKey` (`CRAWLEE_INPUT_KEY`).
+     * The key the run input is read from. Crawlee itself has no notion of a run input; the Apify SDK
+     * passes its configured input key (`ACTOR_INPUT_KEY`) here.
      *
      * Like the conventional `INPUT`, this key may arrive in the default key-value store as a bare value
      * file with no metadata sidecar (e.g. the Apify CLI writes the effective input to `__CLI_INPUT.json`

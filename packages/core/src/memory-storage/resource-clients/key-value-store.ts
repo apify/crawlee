@@ -28,8 +28,8 @@ const inputRecordSchema = z.object({
 });
 
 /**
- * Key under which a run's input is stored in the default key-value store. Matches Crawlee's default
- * `inputKey` (`CRAWLEE_INPUT_KEY`) and the `INPUT` files `FileSystemStorageBackend` preserves on purge.
+ * Key under which a run's input is stored in the default key-value store. Matches the `INPUT` files
+ * `FileSystemStorageBackend` preserves on purge.
  */
 const KEY_VALUE_STORE_INPUT_KEY = 'INPUT';
 

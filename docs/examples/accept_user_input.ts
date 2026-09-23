@@ -1,4 +1,4 @@
 import { KeyValueStore } from 'crawlee';
 
-const input = await KeyValueStore.getInput();
+const input = await KeyValueStore.getValue('INPUT');
 console.log(input);

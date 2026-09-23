@@ -39,7 +39,7 @@ The following code demonstrates basic operations of key-value stores:
 import { KeyValueStore } from 'crawlee';
 
 // Get the INPUT from the default key-value store
-const input = await KeyValueStore.getInput();
+const input = await KeyValueStore.getValue('INPUT');
 
 // Write the OUTPUT to the default key-value store
 await KeyValueStore.setValue('OUTPUT', { myResult: 123 });

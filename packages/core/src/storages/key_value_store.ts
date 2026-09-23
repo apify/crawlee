@@ -64,8 +64,6 @@ const openOptionsSchema = z.strictObject({
  * To access the default key-value store directly, you can use the
  * {@apilink KeyValueStore.getValue} and {@apilink KeyValueStore.setValue} convenience functions.
  *
- * To access the input, you can also use the {@apilink KeyValueStore.getInput} convenience function.
- *
  * `KeyValueStore` stores its data on a local disk.
  *
  * If the `CRAWLEE_STORAGE_DIR` environment variable is set, the data is stored in
@@ -80,7 +78,7 @@ const openOptionsSchema = z.strictObject({
  *
  * ```javascript
  * // Get crawler input from the default key-value store.
- * const input = await KeyValueStore.getInput();
+ * const input = await KeyValueStore.getValue('INPUT');
  * // Get some value from the default key-value store.
  * const otherValue = await KeyValueStore.getValue('my-key');
  *
@@ -995,31 +993,6 @@ export class KeyValueStore {
     static async setValue<T>(key: string, value: T | null, options: RecordOptions = {}): Promise<void> {
         const store = await this.open();
         return store.setValue(key, value, options);
-    }
-
-    /**
-     * Gets the crawler input value from the default {@apilink KeyValueStore} associated with the current crawler run.
-     *
-     * The input is read from the default {@apilink KeyValueStore} under the configured input key
-     * (`CRAWLEE_INPUT_KEY`, default `INPUT`).
-     *
-     * Note that the `getInput()` function does not cache the value read from the key-value store.
-     * If you need to use the input multiple times in your crawler,
-     * it is far more efficient to read it once and store it locally.
-     *
-     * For more information, see {@apilink KeyValueStore.open}
-     * and {@apilink KeyValueStore.getValue}.
-     *
-     * @returns
-     *   Returns a promise that resolves to an object, string
-     *   or [`Buffer`](https://nodejs.org/api/buffer.html), depending
-     *   on the MIME content type of the record, or `null`
-     *   if the record is missing.
-     * @ignore
-     */
-    static async getInput<T = Dictionary | string | Buffer>(): Promise<T | null> {
-        const store = await this.open();
-        return store.getValue<T>(store.configuration.inputKey);
     }
 }
 

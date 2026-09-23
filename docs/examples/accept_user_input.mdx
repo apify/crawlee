@@ -20,4 +20,6 @@ To provide the actor with input, create a `INPUT.json` file inside the "default"
 
 Anything in this file will be available to the actor when it runs.
 
+On the Apify platform, read the input with [`Actor.getInput()`](https://docs.apify.com/sdk/js/reference/class/Actor#getInput) from the `apify` package instead. It reads the same record, and also handles the input key configured by the platform, encrypted secret fields and input schema defaults.
+
 To learn about other ways to provide an actor with input, refer to the [Apify Platform Documentation](https://apify.com/docs/actor#run).

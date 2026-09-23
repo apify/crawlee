@@ -35,7 +35,7 @@ describe('Configuration', () => {
     describe('defaults', () => {
         it('returns schema defaults when nothing is set', () => {
             const config = new Configuration();
-            expect(config.inputKey).toBe('INPUT');
+            expect(config.chromeExecutablePath).toBeUndefined();
             expect(config.headless).toBe(true);
             expect(config.xvfb).toBe(false);
             expect(config.disableBrowserSandbox).toBe(false);
@@ -82,9 +82,9 @@ describe('Configuration', () => {
         });
 
         it('constructor options override env vars for string fields', () => {
-            setEnv('CRAWLEE_INPUT_KEY', 'from-env');
-            const config = new Configuration({ inputKey: 'from-constructor' });
-            expect(config.inputKey).toBe('from-constructor');
+            setEnv('CRAWLEE_CHROME_EXECUTABLE_PATH', 'from-env');
+            const config = new Configuration({ chromeExecutablePath: 'from-constructor' });
+            expect(config.chromeExecutablePath).toBe('from-constructor');
         });
 
         it('constructor options override env vars for number fields', () => {
@@ -148,9 +148,9 @@ describe('Configuration', () => {
             setEnv('CRAWLEE_PERSIST_STATE_INTERVAL_MILLIS', '');
             expect(new Configuration().persistStateIntervalMillis).toBe(60_000);
 
-            // Empty string env var falls through to default ('INPUT'), not coerced to ''
-            setEnv('CRAWLEE_INPUT_KEY', '');
-            expect(new Configuration().inputKey).toBe('INPUT');
+            // Empty string env var falls through to default ('./storage'), not coerced to ''
+            setEnv('CRAWLEE_STORAGE_DIR', '');
+            expect(new Configuration().storageDir).toBe('./storage');
 
             // Optional fields with no default stay undefined
             setEnv('CRAWLEE_MEMORY_MBYTES', '');
@@ -185,11 +185,11 @@ describe('Configuration', () => {
         it('exposes resolved values as instance properties', () => {
             const config = new Configuration({
                 headless: false,
-                inputKey: 'my-input-key',
+                chromeExecutablePath: '/usr/bin/chromium',
                 persistStateIntervalMillis: 5_000,
             });
             expect(config.headless).toBe(false);
-            expect(config.inputKey).toBe('my-input-key');
+            expect(config.chromeExecutablePath).toBe('/usr/bin/chromium');
             expect(config.persistStateIntervalMillis).toBe(5_000);
         });
     });
@@ -246,19 +246,19 @@ describe('Configuration', () => {
         });
 
         it('loads values from crawlee.json', () => {
-            writeFileSync(crawleeJsonPath, JSON.stringify({ inputKey: 'from-file' }));
+            writeFileSync(crawleeJsonPath, JSON.stringify({ chromeExecutablePath: 'from-file' }));
             fileCreated = true;
 
             const config = new Configuration();
-            expect(config.inputKey).toBe('from-file');
+            expect(config.chromeExecutablePath).toBe('from-file');
         });
 
         it('constructor options override crawlee.json', () => {
-            writeFileSync(crawleeJsonPath, JSON.stringify({ inputKey: 'from-file' }));
+            writeFileSync(crawleeJsonPath, JSON.stringify({ chromeExecutablePath: 'from-file' }));
             fileCreated = true;
 
-            const config = new Configuration({ inputKey: 'from-constructor' });
-            expect(config.inputKey).toBe('from-constructor');
+            const config = new Configuration({ chromeExecutablePath: 'from-constructor' });
+            expect(config.chromeExecutablePath).toBe('from-constructor');
         });
 
         it('env vars override crawlee.json', () => {
@@ -283,7 +283,7 @@ describe('Configuration', () => {
         it('handles missing crawlee.json gracefully', () => {
             // No file created — should fall through to defaults
             const config = new Configuration();
-            expect(config.inputKey).toBe('INPUT');
+            expect(config.storageDir).toBe('./storage');
         });
 
         it('handles malformed crawlee.json gracefully', () => {
@@ -291,7 +291,7 @@ describe('Configuration', () => {
             fileCreated = true;
 
             const config = new Configuration();
-            expect(config.inputKey).toBe('INPUT');
+            expect(config.storageDir).toBe('./storage');
         });
     });
 
