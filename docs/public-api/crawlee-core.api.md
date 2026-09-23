@@ -406,7 +406,7 @@ interface Intervals {
 
 // @public
 export interface IProxyConfiguration {
-    newProxyInfo(options?: NewUrlOptions): Promise<ProxyInfo | undefined>;
+    newProxyInfo(): Promise<ProxyInfo | undefined>;
 }
 
 // @public
@@ -599,13 +599,6 @@ export interface MemoryStorageOptions {
     logger?: CrawleeLogger;
 }
 
-// Not exported by the entry point; reachable only as a referenced type.
-// @public (undocumented)
-interface NewUrlOptions {
-    // (undocumented)
-    request?: Request_2;
-}
-
 // @public
 export class NonRetryableError extends Error {
 }
@@ -638,16 +631,14 @@ export class ProxyConfiguration implements IProxyConfiguration {
     constructor(options?: ProxyConfigurationOptions);
     // (undocumented)
     readonly isManInTheMiddle = false;
-    newProxyInfo(options?: NewUrlOptions): Promise<ProxyInfo | undefined>;
-    newUrl(options?: NewUrlOptions): Promise<string | undefined>;
+    newProxyInfo(): Promise<ProxyInfo | undefined>;
+    newUrl(): Promise<string | undefined>;
 }
 
 // @public (undocumented)
 export interface ProxyConfigurationFunction {
     // (undocumented)
-    (options?: {
-        request?: Request_2;
-    }): string | null | Promise<string | null>;
+    (): string | null | Promise<string | null>;
 }
 
 // @public (undocumented)

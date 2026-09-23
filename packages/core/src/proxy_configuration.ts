@@ -1,7 +1,6 @@
 import type { Dictionary, ProxyInfo } from '@crawlee/types';
 import { z } from 'zod';
 
-import type { Request } from './request.js';
 import { parseArgument, schemas } from './validators.js';
 
 const proxyConfigurationOptionsSchema = z.strictObject({
@@ -13,7 +12,7 @@ const proxyConfigurationOptionsSchema = z.strictObject({
 });
 
 export interface ProxyConfigurationFunction {
-    (options?: { request?: Request }): string | null | Promise<string | null>;
+    (): string | null | Promise<string | null>;
 }
 
 type UrlList = (string | null)[];
@@ -27,16 +26,12 @@ export interface ProxyConfigurationOptions {
     proxyUrls?: UrlList;
 
     /**
-     * Custom function that allows you to generate the new proxy URL dynamically. It gets an optional parameter with the `Request` object when applicable.
+     * Custom function that allows you to generate the new proxy URL dynamically.
      * Can return either stringified proxy URL or `null` if the proxy should not be used. Can be asynchronous.
      *
      * This function is used to generate the URL when {@apilink ProxyConfiguration.newUrl} or {@apilink ProxyConfiguration.newProxyInfo} is called.
      */
     newUrlFunction?: ProxyConfigurationFunction;
-}
-
-interface NewUrlOptions {
-    request?: Request;
 }
 
 /**
@@ -51,10 +46,10 @@ interface NewUrlOptions {
  */
 export interface IProxyConfiguration {
     /**
-     * Creates a new {@apilink ProxyInfo} object describing the proxy to use for the given
-     * request. Returns `undefined` when no proxy should be used.
+     * Creates a new {@apilink ProxyInfo} object describing the proxy to use.
+     * Returns `undefined` when no proxy should be used.
      */
-    newProxyInfo(options?: NewUrlOptions): Promise<ProxyInfo | undefined>;
+    newProxyInfo(): Promise<ProxyInfo | undefined>;
 }
 
 /**
@@ -142,8 +137,8 @@ export class ProxyConfiguration implements IProxyConfiguration {
      *
      * @return Represents information about used proxy and its configuration.
      */
-    async newProxyInfo(options?: NewUrlOptions): Promise<ProxyInfo | undefined> {
-        const url = await this.newUrl(options);
+    async newProxyInfo(): Promise<ProxyInfo | undefined> {
+        const url = await this.newUrl();
         if (!url) return undefined;
 
         const { username, password, port, hostname } = new URL(url);
@@ -163,9 +158,9 @@ export class ProxyConfiguration implements IProxyConfiguration {
      * @return A string with a proxy URL, including authentication credentials and port number.
      *  For example, `http://bob:password123@proxy.example.com:8000`
      */
-    async newUrl(options?: NewUrlOptions): Promise<string | undefined> {
+    async newUrl(): Promise<string | undefined> {
         if (this.#newUrlFunction) {
-            return (await this.callNewUrlFunction({ request: options?.request })) ?? undefined;
+            return (await this.callNewUrlFunction()) ?? undefined;
         }
 
         return this.handleProxyUrlsList() ?? undefined;
@@ -178,8 +173,8 @@ export class ProxyConfiguration implements IProxyConfiguration {
     /**
      * Calls the custom newUrlFunction and checks format of its return value
      */
-    private async callNewUrlFunction(options?: { request?: Request }) {
-        const proxyUrl = await this.#newUrlFunction!(options);
+    private async callNewUrlFunction() {
+        const proxyUrl = await this.#newUrlFunction!();
         try {
             if (proxyUrl) {
                 new URL(proxyUrl); // eslint-disable-line no-new
