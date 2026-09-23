@@ -200,6 +200,9 @@ export interface CalculatedStatistics {
 }
 
 // @public
+export type CleanupRegistrar = (cleanup: (error?: unknown) => Awaitable<void>) => void;
+
+// @public
 export interface ConcurrencyConsumer {
     readonly id: string;
 }
@@ -245,14 +248,11 @@ export interface ConcurrencySystemOptions {
 }
 
 // @public
-export interface ContextMiddleware<TCrawlingContext, TCrawlingContextExtension> {
-    action: (context: TCrawlingContext) => Awaitable<TCrawlingContextExtension>;
-    cleanup?: (context: TCrawlingContext & TCrawlingContextExtension, error?: unknown) => Awaitable<void>;
-}
+export type ContextMiddleware<TCrawlingContext, TCrawlingContextExtension> = (context: TCrawlingContext, onCleanup: CleanupRegistrar) => Awaitable<TCrawlingContextExtension>;
 
 // @public
 export abstract class ContextPipeline<TContextBase, TCrawlingContext extends TContextBase> {
-    abstract call(crawlingContext: TContextBase, finalContextConsumer: (finalContext: TCrawlingContext) => Awaitable<unknown>): Promise<void>;
+    abstract call(crawlingContext: TContextBase, finalContextConsumer: (finalContext: TCrawlingContext) => Awaitable<unknown>, onInitializationError: (error: unknown) => Awaitable<void>): Promise<void>;
     abstract chain<TFinalContext extends TCrawlingContext>(other: ContextPipeline<TCrawlingContext, TFinalContext>): ContextPipeline<TContextBase, TFinalContext>;
     abstract compose<TCrawlingContextExtension>(middleware: ContextMiddleware<TCrawlingContext, TCrawlingContextExtension>): ContextPipeline<TContextBase, TCrawlingContext & TCrawlingContextExtension>;
     static create<TContextBase>(): ContextPipeline<TContextBase, TContextBase>;
@@ -260,11 +260,6 @@ export abstract class ContextPipeline<TContextBase, TCrawlingContext extends TCo
 
 // @public (undocumented)
 export class ContextPipelineCleanupError extends CriticalError {
-    constructor(error: unknown, options?: ErrorOptions);
-}
-
-// @public (undocumented)
-export class ContextPipelineInitializationError extends Error {
     constructor(error: unknown, options?: ErrorOptions);
 }
 

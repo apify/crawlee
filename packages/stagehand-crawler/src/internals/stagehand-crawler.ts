@@ -484,7 +484,7 @@ export class StagehandCrawler<
     }
 
     protected override buildContextPipeline(): ContextPipeline<CrawlingContext, StagehandCrawlingContext> {
-        return super.buildContextPipeline().compose({ action: this.setUpStagehand.bind(this) });
+        return super.buildContextPipeline().compose(this.setUpStagehand.bind(this));
     }
 
     /**

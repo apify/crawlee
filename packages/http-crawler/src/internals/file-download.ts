@@ -2,6 +2,7 @@ import { Transform } from 'node:stream';
 
 import type {
     BasicCrawlerOptions,
+    CleanupRegistrar,
     ContextPipeline,
     CrawlingContext,
     CrawlingRequest,
@@ -23,8 +24,6 @@ import type {
 } from '../index.js';
 import { Router } from '../index.js';
 import { parseContentTypeFromResponse } from './utils.js';
-
-const kBodyDrained = Symbol('bodyDrained');
 
 export type FileDownloadErrorHandler<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
@@ -182,21 +181,10 @@ export class FileDownload extends BasicCrawler<FileDownloadCrawlingContext> {
     }
 
     protected override buildContextPipeline(): ContextPipeline<CrawlingContext, FileDownloadCrawlingContext> {
-        return super.buildContextPipeline().compose({
-            action: async (context) => this.initiateDownload(context),
-            cleanup: async (context) => {
-                if (!context.response.bodyUsed) {
-                    // Nobody consumed the body — cancel it so the
-                    // underlying connection can be released.
-                    await context.response.body?.cancel();
-                }
-
-                await (context as { [kBodyDrained]: Promise<void> })[kBodyDrained];
-            },
-        });
+        return super.buildContextPipeline().compose(this.initiateDownload.bind(this));
     }
 
-    private async initiateDownload(context: CrawlingContext) {
+    private async initiateDownload(context: CrawlingContext, onCleanup: CleanupRegistrar) {
         const response = await this.httpClient.sendRequest(context.request.intoFetchAPIRequest(), {
             session: context.session,
         });
@@ -207,14 +195,21 @@ export class FileDownload extends BasicCrawler<FileDownloadCrawlingContext> {
 
         const { response: trackedResponse, bodyDrained } = trackBodyConsumption(response);
 
-        const contextExtension = {
+        onCleanup(async () => {
+            if (!trackedResponse.bodyUsed) {
+                // Nobody consumed the body — cancel it so the
+                // underlying connection can be released.
+                await trackedResponse.body?.cancel();
+            }
+
+            await bodyDrained;
+        });
+
+        return {
             request: context.request as LoadedRequest<CrawlingRequest>,
             response: trackedResponse,
             contentType: { type, encoding },
-            [kBodyDrained]: bodyDrained,
         };
-
-        return contextExtension;
     }
 }
 
