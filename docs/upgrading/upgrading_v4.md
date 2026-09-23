@@ -2385,6 +2385,7 @@ The crawler-only parts of `@crawlee/core` moved to `@crawlee/basic`, so that `@c
 - the crawler-only error classes: `RetryRequestError`, `RequestThrottledError`, `PersistentRateLimitError`, `NavigationSkippedError`, `MissingSessionError`, `MissingRouteError`, `RequestHandlerError` and the `ContextPipeline*Error` types
 
 `@crawlee/basic` re-exports everything from `@crawlee/core`, so `import { SessionPool } from '@crawlee/basic'` (or from `crawlee`, `@crawlee/http`, `@crawlee/playwright`, …) keeps working unchanged. Only imports written against `@crawlee/core` itself need to be pointed at `@crawlee/basic`.
+
 ### The `utils` bag is removed from the `crawlee` meta-package
 
 The `crawlee` meta-package exported a `utils` object — the last remnant of v2's `Apify.utils` namespace — bundling `utils.puppeteer`, `utils.playwright`, `utils.log`, `utils.social`, `utils.sleep`, `utils.downloadListOfUrls` and `utils.parseOpenGraph`. It is gone. Every member was already exported from `crawlee` under its own name, so the fix is to import that name directly:

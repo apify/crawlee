@@ -93,9 +93,7 @@ export type TypedContextEnqueueLinks<
       : EnqueueLinks;
 
 /** A {@apilink Request} that has been dispatched, so its `id` and `loadedUrl` are guaranteed to be present. */
-// `Required<Pick<…>>` rather than an inline `{ [P in 'id' | 'loadedUrl']-?: R[P] }`: only a homomorphic
-// mapped type (one keyed by `keyof X`, as `Required` is) strips `undefined` from the property type. Keyed
-// by a literal union it would merely drop the `?`, leaving `string | undefined`.
+// `Required` (homomorphic) strips `undefined`; an inline mapped type over a literal union would only drop the `?`.
 export type LoadedRequest<R extends Request> = R & Required<Pick<R, 'id' | 'loadedUrl'>>;
 
 /** @internal */
