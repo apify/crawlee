@@ -15,6 +15,7 @@ import type { CommonPage } from '@crawlee/browser-pool';
 import { ContextPipeline } from '@crawlee/basic';
 import type { CrawlerRemoteBrowserOptions } from '@crawlee/browser-pool';
 import type { CrawlingContext } from '@crawlee/basic';
+import { CrawlingRequest } from '@crawlee/basic';
 import type { Dictionary } from '@crawlee/types';
 import type { EnqueueLinksOptions } from '@crawlee/basic';
 import type { ErrorHandler } from '@crawlee/basic';
@@ -23,7 +24,6 @@ import type { GetUserDataFromRequest } from '@crawlee/basic';
 import type { IBrowserPool } from '@crawlee/types';
 import type { LoadedRequest } from '@crawlee/basic';
 import type { RemoteBrowserPoolOptions } from '@crawlee/browser-pool';
-import { Request as Request_2 } from '@crawlee/basic';
 import type { RequestHandler } from '@crawlee/basic';
 import type { RouterHandler } from '@crawlee/basic';
 
@@ -87,7 +87,7 @@ GoToOptions extends Dictionary = Dictionary> extends CrawlingContext<UserData> {
     extractLinks: (options?: ExtractLinksOptions) => Promise<string[]>;
     gotoOptions: GoToOptions;
     page: Page;
-    request: LoadedRequest<Request_2<UserData>>;
+    request: LoadedRequest<CrawlingRequest<UserData>>;
     response: Response;
 }
 

@@ -10,7 +10,7 @@ import type {
     ErrorHandler,
     GetUserDataFromRequest,
     LoadedRequest,
-    Request as CrawleeRequest,
+    CrawlingRequest,
     RequestHandler,
     RequireContextPipeline,
     RouterHandler,
@@ -201,7 +201,7 @@ interface CrawlingContextWithResponse<
     /**
      * The request object that was successfully loaded and navigated to, including the {@apilink Request.loadedUrl|`loadedUrl`} property.
      */
-    request: LoadedRequest<CrawleeRequest<UserData>>;
+    request: LoadedRequest<CrawlingRequest<UserData>>;
 
     /**
      * The HTTP response object containing status code, headers, and other response metadata.
@@ -510,7 +510,7 @@ export class HttpCrawler<
                         }
                         return Reflect.get(target, propertyName, receiver);
                     },
-                }) as LoadedRequest<CrawleeRequest>,
+                }) as LoadedRequest<CrawlingRequest>,
                 get response(): InternalHttpCrawlingContext['response'] {
                     throw new NavigationSkippedError(
                         'The `response` property is not available - `skipNavigation` was used',
@@ -544,7 +544,7 @@ export class HttpCrawler<
         request.loadedUrl = httpResponse?.url;
         request.state = RequestState.AFTER_NAV;
 
-        return { request: request as LoadedRequest<CrawleeRequest>, response: httpResponse };
+        return { request: request as LoadedRequest<CrawlingRequest>, response: httpResponse };
     }
 
     private async processHttpResponse(
@@ -719,7 +719,7 @@ export class HttpCrawler<
     /**
      * Encodes and parses response according to the provided content type
      */
-    private async parseResponse(request: CrawleeRequest, response: Response) {
+    private async parseResponse(request: CrawlingRequest, response: Response) {
         const { status } = response;
         const { type, charset } = parseContentTypeFromResponse(response);
         const { response: reencodedResponse, encoding } = this.encodeResponse(request, response, charset);
@@ -771,7 +771,7 @@ export class HttpCrawler<
     /**
      * Combines the provided `requestOptions` with mandatory (non-overridable) values.
      */
-    private getRequestOptions(request: CrawleeRequest, session: ISession, proxyUrl?: string) {
+    private getRequestOptions(request: CrawlingRequest, session: ISession, proxyUrl?: string) {
         const requestOptions = {
             url: request.url,
             method: request.method,
@@ -793,7 +793,7 @@ export class HttpCrawler<
     }
 
     private encodeResponse(
-        request: CrawleeRequest,
+        request: CrawlingRequest,
         response: Response,
         encoding: BufferEncoding,
     ): {
@@ -866,7 +866,7 @@ export class HttpCrawler<
         throw new Error(`Request timed out after ${this.#navigationTimeoutMillis / 1000} seconds.`);
     }
 
-    private abortDownloadOfBody(request: CrawleeRequest, response: Response) {
+    private abortDownloadOfBody(request: CrawlingRequest, response: Response) {
         const { status } = response;
         const { type } = parseContentTypeFromResponse(response);
 
@@ -924,7 +924,7 @@ export class HttpCrawler<
 }
 
 interface RequestFunctionOptions {
-    request: CrawleeRequest;
+    request: CrawlingRequest;
     session: ISession;
     proxyUrl?: string;
 }

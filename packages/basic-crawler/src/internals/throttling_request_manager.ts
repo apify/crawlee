@@ -1160,7 +1160,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     async #migrateToSubQueue(request: Request, inner: T): Promise<void> {
         try {
             const subManager = await this.#selectManagerOrThrow(request.url);
-            await subManager.addRequest(new Request({ ...request, id: undefined }));
+            await subManager.addRequest(Request.fromSchema({ ...request, id: undefined }));
         } catch (error) {
             // Whatever the reason, the request is out of the wrapped manager and in nobody's hands, so it
             // goes back before the failure is raised.

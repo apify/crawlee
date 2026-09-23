@@ -1,7 +1,7 @@
 import type {
     BrowserHook,
     LoadedRequest,
-    Request,
+    CrawlingRequest,
     RouterHandler,
     RouteSchemas,
     RoutesFromSchemas,
@@ -93,7 +93,7 @@ export const adaptivePlaywrightCrawlerStatisticState = {
 export interface AdaptivePlaywrightCrawlerContext<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 > extends CrawlingContext<UserData> {
-    request: LoadedRequest<Request<UserData>>;
+    request: LoadedRequest<CrawlingRequest<UserData>>;
     /**
      * The HTTP response, either from the HTTP client or from the initial request from playwright's navigation.
      */
@@ -150,14 +150,14 @@ export interface AdaptivePlaywrightCrawlerContext<
 
 interface AdaptiveHookContext extends Pick<AdaptivePlaywrightCrawlerContext, 'id' | 'session' | 'proxyInfo' | 'log'> {
     page?: Page;
-    request: Request;
+    request: CrawlingRequest;
     gotoOptions?: PlaywrightGotoOptions;
 }
 
 type AdaptiveHook<ContextExtension = Dictionary<never>> = BrowserHook<AdaptiveHookContext, ContextExtension>;
 
 type AdaptivePostNavigationHook<ContextExtension = Dictionary<never>> = BrowserHook<
-    Omit<AdaptiveHookContext, 'request'> & { request: LoadedRequest<Request> },
+    Omit<AdaptiveHookContext, 'request'> & { request: LoadedRequest<CrawlingRequest> },
     ContextExtension
 >;
 
@@ -517,8 +517,8 @@ export class AdaptivePlaywrightCrawler<
             `The \`${prop}\` property is not available on the outer context pipeline of AdaptivePlaywrightCrawler - it is provided by the inner (static/browser) pipelines`;
 
         return super.buildContextPipeline().compose(async ({ request }) => ({
-            get request(): LoadedRequest<Request<Dictionary>> {
-                return request as LoadedRequest<Request<Dictionary>>;
+            get request(): LoadedRequest<CrawlingRequest<Dictionary>> {
+                return request as LoadedRequest<CrawlingRequest<Dictionary>>;
             },
             get response(): Response {
                 throw new Error(errorMessage('response'));

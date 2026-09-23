@@ -5,10 +5,10 @@ import type {
     CleanupRegistrar,
     ContextPipeline,
     CrawlingContext,
+    CrawlingRequest,
     LoadedRequest,
 } from '@crawlee/basic';
 import { BasicCrawler } from '@crawlee/basic';
-import type { Request } from '@crawlee/core';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import type { Dictionary } from '@crawlee/types';
 
@@ -37,7 +37,7 @@ export type FileDownloadHook<
 export interface FileDownloadCrawlingContext<
     UserData extends Dictionary = any, // with default to Dictionary we cant use a typed router in untyped crawler
 > extends CrawlingContext<UserData> {
-    request: LoadedRequest<Request<UserData>>;
+    request: LoadedRequest<CrawlingRequest<UserData>>;
     response: Response;
     contentType: { type: string; encoding: BufferEncoding };
 }
@@ -206,7 +206,7 @@ export class FileDownload extends BasicCrawler<FileDownloadCrawlingContext> {
         });
 
         return {
-            request: context.request as LoadedRequest<Request>,
+            request: context.request as LoadedRequest<CrawlingRequest>,
             response: trackedResponse,
             contentType: { type, encoding },
         };

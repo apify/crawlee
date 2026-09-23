@@ -13,11 +13,11 @@ import type {
     RequestHandler,
     RequestOptions,
     Session,
-    Source,
 } from '@crawlee/basic';
 import {
     AfterCommitError,
     BasicCrawler,
+    CrawlingRequest,
     ConcurrencySystem,
     Configuration,
     CriticalError,
@@ -34,6 +34,7 @@ import {
     RequestManagerTandem,
     STATE_PERSISTENCE_KEY,
     RequestQueue,
+    RequestState,
     RequestValidationError,
     Router,
     serviceLocator,
@@ -41,7 +42,7 @@ import {
     Statistics,
     ThrottlingRequestManager,
 } from '@crawlee/basic';
-import { MemoryStorageBackend, RequestState } from '@crawlee/core';
+import { MemoryStorageBackend } from '@crawlee/core';
 import { BaseHttpClient } from '@crawlee/http-client';
 import type { Dictionary, ISession, ProxyInfo } from '@crawlee/types';
 import { RobotsTxtFile, sleep } from '@crawlee/utils';
@@ -645,8 +646,8 @@ describe('BasicCrawler', () => {
             await crawler.addRequests(urls, options);
 
             expect(drainedRequests).toHaveLength(2);
-            expect(drainedRequests[0]).toMatchObject({ url: 'https://example.com/1/', crawlDepth: 3 });
-            expect(drainedRequests[1]).toMatchObject({ url: 'https://example.com/2/', crawlDepth: 3 });
+            expect(drainedRequests.map((r) => r.url)).toEqual(['https://example.com/1/', 'https://example.com/2/']);
+            expect(drainedRequests.map((r) => CrawlingRequest.fromSchema(r).crawlDepth)).toEqual([3, 3]);
 
             expect(onSkippedRequestMock).not.toBeCalled();
         });
@@ -676,8 +677,8 @@ describe('BasicCrawler', () => {
 
             expect(transformRequestFunction).toHaveBeenCalled();
 
-            expect(drainedRequests).toHaveLength(2);
-            expect(drainedRequests[0]).toMatchObject({ url: 'https://example.com/1/', crawlDepth: 3 });
+            expect(drainedRequests.map((r) => r.url)).toEqual(['https://example.com/1/', 'https://example.com/2/']);
+            expect(CrawlingRequest.fromSchema(drainedRequests[0]).crawlDepth).toBe(3);
         });
 
         it.each([null, undefined, false] as const)(
@@ -874,9 +875,9 @@ describe('BasicCrawler', () => {
         const newCrawlDepth = 4;
         const addRequestsGenerator = crawler.exposedAddCrawlDepthRequestGenerator(requests, newCrawlDepth);
 
-        const generatedRequests: Source[] = [];
+        const generatedRequests: RequestOptions[] = [];
         for await (const generatedRequest of addRequestsGenerator) {
-            generatedRequests.push(generatedRequest);
+            generatedRequests.push(generatedRequest as RequestOptions);
         }
 
         expect(generatedRequests).toHaveLength(2);
@@ -1517,18 +1518,22 @@ describe('BasicCrawler', () => {
             .mockResolvedValueOnce({ requestId: 'id-1' } as any)
             .mockResolvedValueOnce({ requestId: 'id-2' } as any);
 
-        const request0 = new Request({ id: 'id-0', ...sources[0] });
-        const request1 = new Request({ id: 'id-1', ...sources[1] });
-        const request2 = new Request({ id: 'id-2', ...sources[2] });
+        const request0 = Object.assign(new Request(sources[0]), { id: 'id-0' });
+        const request1 = Object.assign(new Request(sources[1]), { id: 'id-1' });
+        const request2 = Object.assign(new Request(sources[2]), { id: 'id-2' });
 
-        const queueContent = [request0, request1, request2, request1, request1, request1];
+        // A queue re-serves whatever was reclaimed into it, so the mock has to do the same for retries to accumulate.
+        const queueContent: Request[] = [request0, request1, request2];
 
         vitest.spyOn(requestQueue, 'fetchNextRequest').mockImplementation(async () => queueContent.shift() ?? null);
 
         const markReqHandled = vitest
             .spyOn(requestQueue, 'markRequestAsHandled')
             .mockReturnValue(Promise.resolve() as any);
-        const reclaimReq = vitest.spyOn(requestQueue, 'reclaimRequest').mockReturnValue(Promise.resolve() as any);
+        const reclaimReq = vitest.spyOn(requestQueue, 'reclaimRequest').mockImplementation(async (request) => {
+            queueContent.push(request);
+            return Promise.resolve() as any;
+        });
 
         // The first probe reporting `finished` is masked by the request list, which still has requests to
         // transfer into the queue at that point.
@@ -1539,10 +1544,7 @@ describe('BasicCrawler', () => {
 
         await basicCrawler.run();
 
-        // 1st try
-
-        expect(reclaimReq).toBeCalledWith(request1, expect.objectContaining({}));
-        expect(reclaimReq).toBeCalledTimes(3);
+        expect(reclaimReq.mock.calls.map(([request]) => request.url)).toEqual(Array(3).fill('http://example.com/1'));
 
         expect(processed['http://example.com/0'].userData.foo).toBe('bar');
         expect(processed['http://example.com/0'].errorMessages).toEqual([]);
@@ -1637,8 +1639,7 @@ describe('BasicCrawler', () => {
         expect(isFinishedFunctionCalled).toBe(true);
         expect(isTaskReadyFunctionCalled).toBe(true);
 
-        // TODO: see why the request1 was passed as a second parameter to includes
-        expect(processed.includes(request0)).toBe(true);
+        expect(processed.map((request) => request.url)).toContain(request0.url);
 
         vitest.restoreAllMocks();
     });
@@ -1685,8 +1686,7 @@ describe('BasicCrawler', () => {
         expect(markRequestAsHandled).toBeCalledWith(request0);
         expect(markRequestAsHandled).toBeCalledWith(request1);
 
-        // TODO: see why the request1 was passed as a second parameter to includes
-        expect(processed.includes(request0)).toBe(true);
+        expect(processed.map((request) => request.url)).toContain(request0.url);
 
         vitest.restoreAllMocks();
     });

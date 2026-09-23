@@ -282,13 +282,13 @@ describe('AutoscaledPool', () => {
 
             const origStart = pool.system.tryRegisterTaskStart.bind(pool.system);
             const origEnd = pool.system.registerTaskEnd.bind(pool.system);
-            vitest.spyOn(pool.system, 'tryRegisterTaskStart').mockImplementation((consumer) => {
-                const res = origStart(consumer);
+            vitest.spyOn(pool.system, 'tryRegisterTaskStart').mockImplementation((consumer, taskId) => {
+                const res = origStart(consumer, taskId);
                 concurrencyLog.push(pool.system.currentConcurrency);
                 return res;
             });
-            vitest.spyOn(pool.system, 'registerTaskEnd').mockImplementation((consumer) => {
-                origEnd(consumer);
+            vitest.spyOn(pool.system, 'registerTaskEnd').mockImplementation((consumer, taskId) => {
+                origEnd(consumer, taskId);
                 concurrencyLog.push(pool.system.currentConcurrency);
             });
 
