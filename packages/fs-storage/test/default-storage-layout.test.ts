@@ -24,10 +24,11 @@ describe('the default storage on disk', () => {
         expect(await readdir(storage.requestQueuesDirectory)).toEqual(['default']);
     });
 
-    // The documented way to supply input to a local run: drop a file into the default key-value store
-    // directory by hand. It only works if that directory is the one the default store actually opens.
+    // How the Apify SDK supplies input to a local run: a file dropped into the default key-value store
+    // directory by hand, with the key preserved. It only works if that directory is the one the default
+    // store actually opens.
     test('reads an INPUT.json placed in the default key-value store directory by hand', async () => {
-        const storage = new FileSystemStorageBackend({ localDataDirectory: tmpLocation });
+        const storage = new FileSystemStorageBackend({ localDataDirectory: tmpLocation, preservedKeys: ['INPUT'] });
         await mkdir(resolve(storage.keyValueStoresDirectory, 'default'), { recursive: true });
         await writeFile(
             resolve(storage.keyValueStoresDirectory, 'default', 'INPUT.json'),
@@ -40,7 +41,7 @@ describe('the default storage on disk', () => {
     });
 
     test('keeps a hand-placed INPUT.json across a purge', async () => {
-        const storage = new FileSystemStorageBackend({ localDataDirectory: tmpLocation });
+        const storage = new FileSystemStorageBackend({ localDataDirectory: tmpLocation, preservedKeys: ['INPUT'] });
         await mkdir(resolve(storage.keyValueStoresDirectory, 'default'), { recursive: true });
         await writeFile(
             resolve(storage.keyValueStoresDirectory, 'default', 'INPUT.json'),

@@ -216,31 +216,11 @@ works even when `CRAWLEE_HEADLESS=true` is set.
 
 ### `KeyValueStore.getInput()` and `Configuration.inputKey` moved to the Apify SDK
 
-Reading the run input is an Apify platform concern, so it now lives in the `apify` package only. Two things are gone from Crawlee:
+Reading the run input is an Apify platform concern, so Crawlee no longer has any notion of it:
 
-- **`KeyValueStore.getInput()` is removed.** In v3 it read the default store under the configured input key and, before that, probed `INPUT`, `INPUT.json` and `INPUT.txt` in the working directory. Use `KeyValueStore.getValue('INPUT')` for a plain Crawlee project, or `Actor.getInput()` from `apify` when you run on the Apify platform — that one also handles the platform-assigned input key, encrypted secrets and input schema defaults.
-- **`Configuration.inputKey` and the `CRAWLEE_INPUT_KEY` environment variable are removed.** Crawlee no longer has a configurable input key. The Apify SDK's `Configuration` defines `inputKey` itself, reading `ACTOR_INPUT_KEY`, `APIFY_INPUT_KEY` and, for compatibility with the Apify CLI, still `CRAWLEE_INPUT_KEY`.
-
-`FileSystemStorageBackend` keeps its `inputKey` option: it decides which bare file is adopted as the run input and which key is spared by the purge on start (see [Out-of-band key-value files](#out-of-band-key-value-files-eg-a-hand-placed-inputjson)). The implicit default backend no longer receives a key from `Configuration`, so it treats `INPUT` as the only input key. Pass the option yourself if you construct the backend and need a different one.
-
-**Before:**
-```typescript
-import { KeyValueStore } from 'crawlee';
-
-const input = await KeyValueStore.getInput();
-```
-
-**After:**
-```typescript
-import { KeyValueStore } from 'crawlee';
-
-const input = await KeyValueStore.getValue('INPUT');
-
-// or, on the Apify platform
-import { Actor } from 'apify';
-
-const input = await Actor.getInput();
-```
+- **`KeyValueStore.getInput()` is removed.** Use `Actor.getInput()` from `apify`, which also handles the platform-assigned input key, encrypted secrets and input schema defaults.
+- **`Configuration.inputKey` and the `CRAWLEE_INPUT_KEY` environment variable are removed.** The Apify SDK's `Configuration` defines `inputKey` itself.
+- **The default key-value store is purged in full**, `INPUT` included. `FileSystemStorageBackend` takes a `preservedKeys` option — keys of the default store that the purge on start keeps and whose bare `<key>` / `<key>.json` files are adopted under `<key>` (see [Out-of-band key-value files](#out-of-band-key-value-files-eg-a-hand-placed-inputjson)). It is empty by default; the Apify SDK passes its run-input keys. Pass it yourself if you construct the backend and place files in the default store by hand.
 
 ### Service management moved from `Configuration` to `ServiceLocator`
 
@@ -1907,10 +1887,10 @@ Keys are literal. `aaa` and `aaa.json` are two distinct keys, and `FileSystemSto
 
 What v4 does instead is *adopt* value files that turn up in a store directory without the `<key>.__metadata__.json` sidecar that marks a record — the Apify CLI's input, a project template, a v3 store directory, a file you dropped in with an editor. Opening the store writes the missing sidecar (the value bytes are never touched), and from then on the file is an ordinary record: read by `getValue`, enumerated by `listKeys`, removed by `deleteValue`. Two rules decide the key:
 
-- In the **default** store, the run-input keys (`INPUT` and the `inputKey` option of `FileSystemStorageBackend`, which the Apify SDK sets from `ACTOR_INPUT_KEY`) claim a bare `INPUT` or `INPUT.json`. The key is `INPUT` while the file keeps its name, so `listKeys` reports `INPUT`, `getValue('INPUT.json')` is `undefined`, and `getPublicUrl('INPUT')` points at `INPUT.json`. If both files are present, opening the store fails instead of guessing which one is the input.
+- In the **default** store, each key listed in the `preservedKeys` option of `FileSystemStorageBackend` claims a bare `<key>` or `<key>.json`. The Apify SDK passes its run-input keys (`INPUT` and the configured `ACTOR_INPUT_KEY`), so under the SDK a bare `INPUT.json` becomes the record `INPUT`: the file keeps its name, `listKeys` reports `INPUT`, `getValue('INPUT.json')` is `undefined`, and `getPublicUrl('INPUT')` points at `INPUT.json`. If both files are present, opening the store fails instead of guessing which one is the input. Plain Crawlee preserves no keys, so there a bare `INPUT.json` is just a file named `INPUT.json`.
 - Every other sidecar-less file becomes a record **keyed by its filename**, in every store: a hand-placed `some-key.json` is the key `some-key.json`, and so is an `INPUT.json` in a store other than the default one. Dotfiles are skipped.
 
-A `.json` file is adopted as `application/json; charset=utf-8` and anything else as `application/octet-stream`; there is no content sniffing. Adopted records are subject to the purge of the default store on start like any other record — only the run-input keys are spared.
+A `.json` file is adopted as `application/json; charset=utf-8` and anything else as `application/octet-stream`; there is no content sniffing. Adopted records are subject to the purge of the default store on start like any other record — only the preserved keys are spared.
 
 Beyond the literal keys, three v3 behaviors are gone:
 

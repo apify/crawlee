@@ -37,9 +37,9 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
 
 // @public (undocumented)
 export interface FileSystemStorageOptions {
-    inputKey?: string;
     localDataDirectory: string;
     logger?: CrawleeLogger;
+    preservedKeys?: string[];
     requestQueueAccess?: 'single' | 'shared';
 }
 

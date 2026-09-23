@@ -35,11 +35,8 @@ export interface KeyValueStoreBackendOptions {
     cacheKey: string;
     nativeBackend: NativeFileSystemKeyValueStoreBackend;
     logger?: CrawleeLogger;
-    /**
-     * The run-input keys of this store, deduplicated — `INPUT` plus `FileSystemStorageOptions.inputKey`.
-     * All that is left of the run-input special case: the keys {@link purgeExceptInput} spares.
-     */
-    inputKeys: string[];
+    /** The keys {@link purgeExceptPreserved} spares — `FileSystemStorageOptions.preservedKeys`, deduplicated. */
+    preservedKeys: string[];
 }
 
 /**
@@ -56,15 +53,15 @@ export class KeyValueStoreBackend extends CachedIdClient implements storage.KeyV
 
     readonly #nativeBackend: NativeFileSystemKeyValueStoreBackend;
 
-    /** See {@link KeyValueStoreBackendOptions.inputKeys}. */
-    readonly #inputKeys: string[];
+    /** See {@link KeyValueStoreBackendOptions.preservedKeys}. */
+    readonly #preservedKeys: string[];
 
     constructor(options: KeyValueStoreBackendOptions) {
         super();
         this.name = options.name;
         this.cacheKey = options.cacheKey;
         this.#nativeBackend = options.nativeBackend;
-        this.#inputKeys = options.inputKeys;
+        this.#preservedKeys = options.preservedKeys;
     }
 
     get keyValueStoreDirectory(): string {
@@ -90,12 +87,11 @@ export class KeyValueStoreBackend extends CachedIdClient implements storage.KeyV
     }
 
     /**
-     * Remove every record from the store except the run input. Used by
-     * {@link FileSystemStorageBackend.purge} to clean the default key-value store at the start of a run
-     * while preserving the run's input.
+     * Remove every record from the store except the preserved keys. Used by
+     * {@link FileSystemStorageBackend.purge} to clean the default key-value store at the start of a run.
      */
-    async purgeExceptInput(): Promise<void> {
-        await this.#nativeBackend.purge(this.#inputKeys);
+    async purgeExceptPreserved(): Promise<void> {
+        await this.#nativeBackend.purge(this.#preservedKeys);
     }
 
     async listKeys(options: storage.KeyValueStoreListKeysOptions = {}): Promise<storage.KeyValueStoreListKeysResult> {

@@ -68,9 +68,8 @@ describe.each([
         await expect(namedDataset.getData()).resolves.toMatchObject({ items: [{ from: 'named' }] });
     });
 
-    // The run input lives in the default key-value store, so that one store keeps its `INPUT` key.
-    // An alias-keyed store is just another run-scoped storage — nothing there is the run input.
-    test('keeps INPUT in the default key-value store but not in an alias-keyed one', async () => {
+    // Crawlee has no notion of a run input: nothing in the default key-value store is special.
+    test('empties the default key-value store like any other run-scoped one', async () => {
         const backend = createBackend();
 
         const defaultStore = await backend.createKeyValueStoreBackend();
@@ -81,9 +80,29 @@ describe.each([
 
         await backend.purge!();
 
-        expect(await readInput(defaultStore)).toBe(input.value);
+        expect(await readInput(defaultStore)).toBeUndefined();
         expect(await readInput(aliasStore)).toBeUndefined();
     });
+});
+
+// The Apify SDK passes its run-input keys as `preservedKeys`; they survive in the default store only.
+// An alias-keyed store is just another run-scoped storage — nothing there is the run input.
+test('FileSystemStorageBackend.purge keeps preserved keys in the default key-value store but not in an alias-keyed one', async () => {
+    const backend = new FileSystemStorageBackend({
+        localDataDirectory: temporaryDirectory(),
+        preservedKeys: ['INPUT'],
+    });
+
+    const defaultStore = await backend.createKeyValueStoreBackend();
+    const aliasStore = await backend.createKeyValueStoreBackend({ alias: 'run-scoped' });
+
+    await defaultStore.setValue(input);
+    await aliasStore.setValue(input);
+
+    await backend.purge();
+
+    expect(await readInput(defaultStore)).toBe(input.value);
+    expect(await readInput(aliasStore)).toBeUndefined();
 });
 
 // The file system backend has to find leftovers on disk, since a fresh process starts with an empty
