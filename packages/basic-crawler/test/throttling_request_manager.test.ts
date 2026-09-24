@@ -487,8 +487,7 @@ describe('ThrottlingRequestManager', () => {
         // The file-system backend actually locks fetched requests, so the spies observe
         // the real forwarding without replacing it.
         const tmpLocation = resolve(import.meta.dirname, './tmp/extend-routing');
-        serviceLocator.reset();
-        serviceLocator.setStorageBackend(new FileSystemStorageBackend({ localDataDirectory: tmpLocation }));
+        const storageBackend = new FileSystemStorageBackend({ localDataDirectory: tmpLocation });
         try {
             await withLockingRoutingTest();
         } finally {
@@ -496,8 +495,13 @@ describe('ThrottlingRequestManager', () => {
         }
 
         async function withLockingRoutingTest() {
-            const inner = await createQueue();
-            const manager = new ThrottlingRequestManager({ inner, domains: ['example.com'] });
+            const inner = await RequestQueue.open({ name: 'inner-queue' }, { storageBackend });
+            const manager = new ThrottlingRequestManager({
+                inner,
+                domains: ['example.com'],
+                requestManagerOpener: async (identifier, options) =>
+                    RequestQueue.open(identifier, { ...options, storageBackend }),
+            });
 
             await manager.addRequest({ url: 'https://example.com/routed' });
             await inner.addRequest({ url: 'https://example.com/inner' });
@@ -508,7 +512,7 @@ describe('ThrottlingRequestManager', () => {
             expect(fromInner.url).toBe('https://example.com/inner');
 
             // Re-opening the deterministic alias yields the same cached frontend the manager routes to.
-            const subQueue = await RequestQueue.open({ alias: 'throttled-example.com' });
+            const subQueue = await RequestQueue.open({ alias: 'throttled-example.com' }, { storageBackend });
             const innerSpy = vi.spyOn(inner.backend, 'extendRequestProcessingTimeSecs');
             const subSpy = vi.spyOn(subQueue.backend, 'extendRequestProcessingTimeSecs');
 

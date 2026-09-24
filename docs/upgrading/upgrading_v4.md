@@ -1717,7 +1717,7 @@ The sub-backend interfaces (`DatasetBackend`, `KeyValueStoreBackend`, `RequestQu
 
 **`RequestQueueBackend`:**
 
-The request queue backend's surface was reshaped. The frontend-owned distributed-locking protocol (`listAndLockHead` → `prolongRequestLock` → `deleteRequestLock`) was removed; only an optional per-request `extendRequestProcessingTimeSecs` hook remains for locking backends. Queue-head and consistency bookkeeping are now internal concerns of the backend implementation.
+The request queue backend's surface was reshaped. The frontend-owned distributed-locking protocol (`listAndLockHead` → `prolongRequestLock` → `deleteRequestLock`) was removed. Queue-head and consistency bookkeeping are now internal concerns of the backend implementation.
 
 | Before (v3) | After (v4) |
 |---|---|

@@ -1901,13 +1901,12 @@ describe('BasicCrawler', () => {
     });
 
     test('context.extendTimeout prolongs the request lock on a locking request manager', async () => {
-        serviceLocator.reset();
         // The file-system backend is the real locking one: its queue takes actual locks,
         // so the whole crawler -> queue -> backend -> native lock handoff runs.
         const tmpLocation = resolve(import.meta.dirname, './tmp/extend-timeout-lock');
-        serviceLocator.setStorageBackend(new FileSystemStorageBackend({ localDataDirectory: tmpLocation }));
-
-        const requestQueue = await RequestQueue.open();
+        const requestQueue = await RequestQueue.open(null, {
+            storageBackend: new FileSystemStorageBackend({ localDataDirectory: tmpLocation }),
+        });
         const extendSpy = vitest.spyOn(requestQueue.backend, 'extendRequestProcessingTimeSecs');
 
         try {

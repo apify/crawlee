@@ -404,10 +404,10 @@ describe('RequestQueue remote', () => {
             // The file-system backend actually locks fetched requests; the spy observes
             // the real forwarding and the real lock extension.
             const tmpLocation = resolve(import.meta.dirname, './tmp/extend-forwarding');
-            serviceLocator.reset();
-            serviceLocator.setStorageBackend(new FileSystemStorageBackend({ localDataDirectory: tmpLocation }));
             try {
-                const queue = await RequestQueue.open();
+                const queue = await RequestQueue.open(null, {
+                    storageBackend: new FileSystemStorageBackend({ localDataDirectory: tmpLocation }),
+                });
                 await queue.addRequest({ url: 'http://example.com/a' });
                 const fetched = await queue.fetchNextRequest();
                 expect(fetched).not.toBeNull();
