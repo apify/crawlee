@@ -1499,6 +1499,11 @@ export class BasicCrawler<
                 if (context[navigationDeadlineKey] !== undefined) {
                     context[navigationDeadlineKey] += extraMillis;
                 }
+
+                // Extension failure must not fail the request that asked for more time.
+                this.requestManager?.extendRequestProcessingTimeSecs?.(context.request, secs)?.catch((error) => {
+                    this.log.debug('Extending the request processing time failed', { url: context.request.url, error });
+                });
             },
         };
     }

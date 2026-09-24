@@ -1140,6 +1140,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     checkReadiness(): Promise<RequestSourceStatus>;
     // (undocumented)
     drop(): Promise<void>;
+    extendRequestProcessingTimeSecs(request: Request_2, secs: number): Promise<boolean>;
     fetchNextRequest<R extends Dictionary = Dictionary>(): Promise<Request_2<R> | null>;
     // (undocumented)
     getHandledCount(): Promise<number>;

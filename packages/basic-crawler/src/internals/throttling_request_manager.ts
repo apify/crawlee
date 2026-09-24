@@ -1043,6 +1043,21 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     }
 
     /**
+     * @inheritdoc
+     * Extending a lock must not consume the in-flight marker that later routes
+     * {@link ThrottlingRequestManager.markRequestAsHandled} / {@link ThrottlingRequestManager.reclaimRequest}.
+     */
+    async extendRequestProcessingTimeSecs(request: Request, secs: number): Promise<boolean> {
+        const key = request.id ?? request.uniqueKey;
+
+        const manager = this.#inFlightFromInner.has(key)
+            ? this.#resolvedInner!
+            : await this.#selectManagerOrThrow(request.url);
+
+        return (await manager.extendRequestProcessingTimeSecs?.(request, secs)) ?? false;
+    }
+
+    /**
      * Runs `fn` over the sub-queues and, if it has been resolved, the wrapped manager - bookkeeping never forces
      * a lazily-opened `inner`, since there is no point opening a queue purely to tell it something.
      */

@@ -393,6 +393,16 @@ export interface RequestQueueBackend {
      * still being processed. Clients that do not lock may ignore it.
      */
     setExpectedRequestProcessingTimeSecs?(secs: number): Promise<void>;
+
+    /**
+     * Extends the lock on a request previously handed out by {@link fetchNextRequest}, for a consumer
+     * that needs more time than the sizing hint reserved.
+     *
+     * @returns `true` when prolonged, `false` when this client does not hold the request locked (or
+     * does not lock at all). `false` is information, not an error: the request may be processed twice.
+     * Non-locking backends leave this unimplemented.
+     */
+    extendRequestProcessingTimeSecs?(requestId: string, secs: number): Promise<boolean>;
 }
 
 /**

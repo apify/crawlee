@@ -251,8 +251,9 @@ export interface CrawlingContext<UserData extends Dictionary = Dictionary> exten
      * ```
      *
      * Extends the request handler's own timeout and the crawler's internal one together, so the extension
-     * is not immediately undone by the latter. Calling it from a handler that has already timed out does
-     * nothing.
+     * is not immediately undone by the latter. On a locking storage backend the request's lock is
+     * extended by the same amount, so the extra time is not spent while the queue considers the request
+     * free to hand out again. Calling it from a handler that has already timed out does nothing.
      */
     extendTimeout(secs: number): void;
 }

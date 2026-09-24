@@ -1,6 +1,11 @@
+import { rm } from 'node:fs/promises';
+import { resolve } from 'node:path';
+
 import type { ThrottlingRequestManagerOptions } from '@crawlee/basic';
 import { ThrottlingRequestManager } from '@crawlee/basic';
 import type { AddRequestsBatchedResult, StorageIdentifier } from '@crawlee/core';
+
+import { vi } from 'vitest';
 import {
     KeyValueStore,
     MemoryStorageBackend,
@@ -9,6 +14,7 @@ import {
     withStorageTransaction,
 } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
+import { FileSystemStorageBackend } from '@crawlee/fs-storage';
 
 describe('ThrottlingRequestManager', () => {
     beforeEach(() => {
@@ -497,6 +503,52 @@ describe('ThrottlingRequestManager', () => {
                 expect(manager.innerManager!.name).toBe('substituted-default');
             });
         });
+    });
+
+    test('extendRequestProcessingTimeSecs reaches the manager holding the request without disturbing its routing', async () => {
+        // The file-system backend actually locks fetched requests, so the spies observe
+        // the real forwarding without replacing it.
+        const tmpLocation = resolve(import.meta.dirname, './tmp/extend-routing');
+        const storageBackend = new FileSystemStorageBackend({ localDataDirectory: tmpLocation });
+        try {
+            await withLockingRoutingTest();
+        } finally {
+            await rm(tmpLocation, { force: true, recursive: true });
+        }
+
+        async function withLockingRoutingTest() {
+            const inner = await RequestQueue.open({ name: 'inner-queue' }, { storageBackend });
+            const manager = new ThrottlingRequestManager({
+                inner,
+                domains: ['example.com'],
+                requestManagerOpener: async (identifier, options) =>
+                    RequestQueue.open(identifier, { ...options, storageBackend }),
+            });
+
+            await manager.addRequest({ url: 'https://example.com/routed' });
+            await inner.addRequest({ url: 'https://example.com/inner' });
+
+            const routed = (await manager.fetchNextRequest())!;
+            expect(routed.url).toBe('https://example.com/routed');
+            const fromInner = (await manager.fetchNextRequest())!;
+            expect(fromInner.url).toBe('https://example.com/inner');
+
+            // Re-opening the deterministic alias yields the same cached frontend the manager routes to.
+            const subQueue = await RequestQueue.open({ alias: 'throttled-example.com' }, { storageBackend });
+            const innerSpy = vi.spyOn(inner.backend, 'extendRequestProcessingTimeSecs');
+            const subSpy = vi.spyOn(subQueue.backend, 'extendRequestProcessingTimeSecs');
+
+            await expect(manager.extendRequestProcessingTimeSecs(routed, 30)).resolves.toBe(true);
+            expect(subSpy).toHaveBeenCalledExactlyOnceWith(routed.id, 30);
+            expect(innerSpy).not.toHaveBeenCalled();
+
+            await expect(manager.extendRequestProcessingTimeSecs(fromInner, 30)).resolves.toBe(true);
+            expect(innerSpy).toHaveBeenCalledExactlyOnceWith(fromInner.id, 30);
+            expect(subSpy).toHaveBeenCalledTimes(1);
+
+            await manager.markRequestAsHandled(fromInner);
+            expect(await inner.getPendingCount()).toBe(0);
+        }
     });
 
     test('recordPacingSignal enforces throttling and fair scheduling', async () => {
