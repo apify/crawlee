@@ -651,6 +651,7 @@ test('forwards the context proxyInfo url to the HttpClient', async () => {
         maxRequestRetries: 0,
         preNavigationHooks: [
             async (context) => {
+                // You probably don't want this in real code - let `ProxyConfiguration` assign proxies via sessions.
                 context.proxyInfo = { url: 'http://proxy.example.com:8000' } as ProxyInfo;
             },
         ],
