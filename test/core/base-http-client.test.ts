@@ -180,6 +180,8 @@ describe('BaseHttpClient credentials on redirects', () => {
                 res.writeHead(302, { location: `${targetUrl}/echo` }).end();
             } else if (pathname === '/same-origin') {
                 res.writeHead(302, { location: '/echo' }).end();
+            } else if (pathname === '/set-cookie') {
+                res.writeHead(302, { 'location': '/echo', 'set-cookie': 'session=new' }).end();
             } else {
                 echoCredentials(req, res);
             }
@@ -216,6 +218,24 @@ describe('BaseHttpClient credentials on redirects', () => {
         );
 
         expect(await response.json()).toEqual(credentials);
+    });
+
+    test('sends cookies updated by a same-origin redirect', async () => {
+        const cookieJar = new CookieJar();
+        await cookieJar.setCookie('session=old', redirectorUrl);
+
+        const response = await httpClient.sendRequest(new Request(`${redirectorUrl}/set-cookie`), { cookieJar });
+
+        expect(await response.json()).toMatchObject({ cookie: 'session=new' });
+    });
+
+    test('does not send cookies scoped to the path of the previous request on a same-origin redirect', async () => {
+        const cookieJar = new CookieJar();
+        await cookieJar.setCookie('session=secret; Path=/same-origin', redirectorUrl);
+
+        const response = await httpClient.sendRequest(new Request(`${redirectorUrl}/same-origin`), { cookieJar });
+
+        expect(await response.json()).toMatchObject({ cookie: null });
     });
 });
 
