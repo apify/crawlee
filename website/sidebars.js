@@ -39,7 +39,6 @@ module.exports = {
                 'guides/cheerio-crawler-guide',
                 'guides/javascript-rendering',
                 'guides/remote-browser',
-                'guides/lightpanda',
                 'guides/proxy-management',
                 'guides/session-management',
                 'guides/scaling-crawlers',
