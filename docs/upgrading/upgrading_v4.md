@@ -220,7 +220,7 @@ Reading the run input is an Apify platform concern, so Crawlee no longer has any
 
 - **`KeyValueStore.getInput()` is removed.** Use `Actor.getInput()` from `apify`, which also handles the platform-assigned input key, encrypted secrets and input schema defaults.
 - **`Configuration.inputKey` and the `CRAWLEE_INPUT_KEY` environment variable are removed.** The Apify SDK's `Configuration` defines `inputKey` itself.
-- **The default key-value store is purged in full**, `INPUT` included. `FileSystemStorageBackend` takes a `preservedKeys` option — keys of the default store that the purge on start keeps and whose bare `<key>` / `<key>.json` files are adopted under `<key>` (see [Out-of-band key-value files](#out-of-band-key-value-files-eg-a-hand-placed-inputjson)). It is empty by default; the Apify SDK passes its run-input keys. Pass it yourself if you construct the backend and place files in the default store by hand.
+- **The default key-value store is purged in full**, `INPUT` included. Sparing a key, and claiming a bare `<key>` / `<key>.json` file as the record `<key>` (see [Out-of-band key-value files](#out-of-band-key-value-files-eg-a-hand-placed-inputjson)), is left to subclasses of `FileSystemStorageBackend` through its two protected hooks, `keyValueStoreAdoptionCandidates` and `purgeKeyValueStore`. The Apify SDK's `ApifyFileSystemStorageBackend` does this for its run input; plain Crawlee treats a hand-placed `INPUT.json` as any other file.
 
 ### Service management moved from `Configuration` to `ServiceLocator`
 
@@ -1887,10 +1887,10 @@ Keys are literal. `aaa` and `aaa.json` are two distinct keys, and `FileSystemSto
 
 What v4 does instead is *adopt* value files that turn up in a store directory without the `<key>.__metadata__.json` sidecar that marks a record — the Apify CLI's input, a project template, a v3 store directory, a file you dropped in with an editor. Opening the store writes the missing sidecar (the value bytes are never touched), and from then on the file is an ordinary record: read by `getValue`, enumerated by `listKeys`, removed by `deleteValue`. Two rules decide the key:
 
-- In the **default** store, each key listed in the `preservedKeys` option of `FileSystemStorageBackend` claims a bare `<key>` or `<key>.json`. The Apify SDK passes its run-input keys (`INPUT` and the configured `ACTOR_INPUT_KEY`), so under the SDK a bare `INPUT.json` becomes the record `INPUT`: the file keeps its name, `listKeys` reports `INPUT`, `getValue('INPUT.json')` is `undefined`, and `getPublicUrl('INPUT')` points at `INPUT.json`. If both files are present, opening the store fails instead of guessing which one is the input. Plain Crawlee preserves no keys, so there a bare `INPUT.json` is just a file named `INPUT.json`.
+- A subclass of `FileSystemStorageBackend` may claim specific files under a key of its own by overriding `keyValueStoreAdoptionCandidates`. The Apify SDK's `ApifyFileSystemStorageBackend` claims a bare `INPUT` or `INPUT.json` in the **default** store (and the same for the configured `ACTOR_INPUT_KEY`) as the record `INPUT`: the file keeps its name, `listKeys` reports `INPUT`, `getValue('INPUT.json')` is `undefined`, and `getPublicUrl('INPUT')` points at `INPUT.json`. If both files are present, opening the store fails instead of guessing which one is the input. Plain Crawlee claims nothing, so there a bare `INPUT.json` is just a file named `INPUT.json`.
 - Every other sidecar-less file becomes a record **keyed by its filename**, in every store: a hand-placed `some-key.json` is the key `some-key.json`, and so is an `INPUT.json` in a store other than the default one. Dotfiles are skipped.
 
-A `.json` file is adopted as `application/json; charset=utf-8` and anything else as `application/octet-stream`; there is no content sniffing. Adopted records are subject to the purge of the default store on start like any other record — only the preserved keys are spared.
+A `.json` file is adopted as `application/json; charset=utf-8` and anything else as `application/octet-stream`; there is no content sniffing. Adopted records are subject to the purge of the default store on start like any other record, unless a subclass spares them through `purgeKeyValueStore` — the Apify SDK keeps its run input this way.
 
 Beyond the literal keys, three v3 behaviors are gone:
 

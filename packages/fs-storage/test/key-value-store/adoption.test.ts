@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { mkdir, readdir, rm, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
+import type { AdoptionCandidate, KeyValueStoreBackend } from '@crawlee/fs-storage';
 import { FileSystemStorageBackend } from '@crawlee/fs-storage';
 import type { KeyValueStoreRecord } from '@crawlee/types';
 
@@ -11,20 +12,21 @@ import type { KeyValueStoreRecord } from '@crawlee/types';
 // candidates when it opens a store, so the native client writes the missing sidecar once and
 // everything afterwards — reads, listings, deletes, purge — deals in ordinary records.
 //
-// The preserved keys (the Apify SDK passes its run-input keys) claim a bare `<key>` or `<key>.json` in
-// the default store; every other file is adopted under its own filename as the key. Content types come from the extension alone: `.json` is
-// JSON, anything else is bytes for the `KeyValueStore` frontend to make sense of.
+// Every file is adopted under its own filename as the key. Content types come from the extension
+// alone: `.json` is JSON, anything else is bytes for the `KeyValueStore` frontend to make sense of.
+// Claiming a file under a different key, and sparing it on purge, is left to subclasses (the Apify
+// SDK does both for its run input).
 
 const payload = JSON.stringify({ hello: 'from disk' });
 
 /** A fresh backend over `directory`, seeded with sidecar-less files in one key-value store. */
-async function seedStore(
+async function seedStore<T extends FileSystemStorageBackend>(
     directory: string,
     store: string,
     files: Record<string, string>,
-    options: { preservedKeys?: string[] } = {},
-): Promise<FileSystemStorageBackend> {
-    const storage = new FileSystemStorageBackend({ localDataDirectory: directory, ...options });
+    Backend: new (options: { localDataDirectory: string }) => T = FileSystemStorageBackend as never,
+): Promise<T> {
+    const storage = new Backend({ localDataDirectory: directory });
     const storeDirectory = resolve(storage.keyValueStoresDirectory, store);
     await mkdir(storeDirectory, { recursive: true });
     for (const [file, content] of Object.entries(files)) {
@@ -33,128 +35,7 @@ async function seedStore(
     return storage;
 }
 
-describe('a sidecar-less file of a preserved key in the default store', () => {
-    const tmpLocation = resolve(import.meta.dirname, './tmp/adoption-input');
-
-    afterEach(async () => {
-        await rm(tmpLocation, { force: true, recursive: true });
-    });
-
-    const preserveInput = { preservedKeys: ['INPUT'] };
-
-    test('is a record under the preserved key, not under its filename', async () => {
-        const storage = await seedStore(tmpLocation, 'default', { 'INPUT.json': payload }, preserveInput);
-        const store = await storage.createKeyValueStoreBackend();
-
-        expect(await store.getValue('INPUT')).toStrictEqual<KeyValueStoreRecord>({
-            key: 'INPUT',
-            value: Buffer.from(payload),
-            contentType: 'application/json; charset=utf-8',
-        });
-        expect((await store.listKeys()).items.map((item) => item.key)).toEqual(['INPUT']);
-        expect(await store.recordExists('INPUT')).toBe(true);
-        expect(await store.getPublicUrl('INPUT')).toMatch(/\/INPUT\.json$/);
-
-        // The extension is the file's, not the key's.
-        expect(await store.getValue('INPUT.json')).toBeUndefined();
-        expect(await store.recordExists('INPUT.json')).toBe(false);
-    });
-
-    test('is deleted by deleteValue instead of resurrecting the key', async () => {
-        const storage = await seedStore(tmpLocation, 'default', { 'INPUT.json': payload }, preserveInput);
-        const store = await storage.createKeyValueStoreBackend();
-
-        await store.deleteValue('INPUT');
-
-        expect(await store.getValue('INPUT')).toBeUndefined();
-        expect(await readdir(resolve(storage.keyValueStoresDirectory, 'default'))).not.toContain('INPUT.json');
-    });
-
-    test('reads as bytes when it has no extension', async () => {
-        const storage = await seedStore(tmpLocation, 'default', { INPUT: payload }, preserveInput);
-        const store = await storage.createKeyValueStoreBackend();
-
-        // No sniffing: the extension is the only thing that makes a file JSON, so an extensionless
-        // one is bytes. Turning those into a parsed input is the caller's job.
-        expect(await store.getValue('INPUT')).toStrictEqual<KeyValueStoreRecord>({
-            key: 'INPUT',
-            value: Buffer.from(payload),
-            contentType: 'application/octet-stream',
-        });
-    });
-
-    test('is adopted verbatim even when it is malformed JSON', async () => {
-        const storage = await seedStore(tmpLocation, 'default', { 'INPUT.json': '{' }, preserveInput);
-        const store = await storage.createKeyValueStoreBackend();
-
-        // The backend is a byte transport — parsing, and any error from it, belongs to the frontend.
-        expect(await store.getValue('INPUT')).toStrictEqual<KeyValueStoreRecord>({
-            key: 'INPUT',
-            value: Buffer.from('{'),
-            contentType: 'application/json; charset=utf-8',
-        });
-    });
-
-    test('fails the open when both candidate files are present', async () => {
-        const storage = await seedStore(
-            tmpLocation,
-            'default',
-            { INPUT: 'bytes', 'INPUT.json': payload },
-            preserveInput,
-        );
-
-        // Picking one would silently ignore the other, and there is no way to guess which one the
-        // user means.
-        await expect(storage.createKeyValueStoreBackend()).rejects.toThrow(/Multiple candidate files for key 'INPUT'/);
-    });
-
-    test('is left alone when the preserved key already has a record', async () => {
-        const storage = await seedStore(tmpLocation, 'default', {}, preserveInput);
-        const store = await storage.createKeyValueStoreBackend();
-        await store.setValue({ key: 'INPUT', value: 'tracked', contentType: 'text/plain; charset=utf-8' });
-        await writeFile(resolve(storage.keyValueStoresDirectory, 'default', 'INPUT.json'), payload);
-
-        // Reopening must not rebind the key: a stray file is not allowed to take over a record the
-        // run wrote itself, and adopting it under its own filename would make `INPUT.json` a second
-        // key for what the user thinks is the input.
-        const reopened = await new FileSystemStorageBackend({
-            localDataDirectory: tmpLocation,
-            ...preserveInput,
-        }).createKeyValueStoreBackend();
-
-        expect((await reopened.getValue('INPUT'))?.value.toString()).toBe('tracked');
-        expect((await reopened.listKeys()).items.map((item) => item.key)).toEqual(['INPUT']);
-    });
-
-    test('is adopted under any preserved key', async () => {
-        const inputKey = '__CLI_INPUT';
-        const storage = await seedStore(
-            tmpLocation,
-            'default',
-            { [`${inputKey}.json`]: payload },
-            { preservedKeys: [inputKey] },
-        );
-        const store = await storage.createKeyValueStoreBackend();
-
-        expect(await store.getValue(inputKey)).toStrictEqual<KeyValueStoreRecord>({
-            key: inputKey,
-            value: Buffer.from(payload),
-            contentType: 'application/json; charset=utf-8',
-        });
-        expect((await store.listKeys()).items.map((item) => item.key)).toEqual([inputKey]);
-    });
-
-    test('is adopted under its filename when the key is not preserved', async () => {
-        const storage = await seedStore(tmpLocation, 'default', { '__CLI_INPUT.json': payload }, preserveInput);
-        const store = await storage.createKeyValueStoreBackend();
-
-        // Not a preserved key, so it is an ordinary file: a record named after itself.
-        expect(await store.getValue('__CLI_INPUT')).toBeUndefined();
-        expect((await store.getValue('__CLI_INPUT.json'))?.value.toString()).toBe(payload);
-    });
-});
-
-describe('sidecar-less files outside the preserved keys', () => {
+describe('sidecar-less files', () => {
     const tmpLocation = resolve(import.meta.dirname, './tmp/adoption-sweep');
 
     afterEach(async () => {
@@ -180,35 +61,34 @@ describe('sidecar-less files outside the preserved keys', () => {
         expect(await store.getValue('.hidden')).toBeUndefined();
     });
 
-    test('include an INPUT.json in a store that is not the default one', async () => {
-        const storage = await seedStore(
-            tmpLocation,
-            'named-store',
-            { 'INPUT.json': payload },
-            { preservedKeys: ['INPUT'] },
-        );
-        const store = await storage.createKeyValueStoreBackend({ name: 'named-store' });
-
-        // Preserved keys apply to the default store only, so here `INPUT.json` is just a file that
-        // happens to be called that.
-        expect(await store.getValue('INPUT')).toBeUndefined();
-        expect((await store.getValue('INPUT.json'))?.value.toString()).toBe(payload);
-    });
-
-    test('are adopted in the default store too', async () => {
-        const storage = await seedStore(tmpLocation, 'default', { 'leftover.json': payload });
-        const store = await storage.createKeyValueStoreBackend();
-
-        expect((await store.getValue('leftover.json'))?.value.toString()).toBe(payload);
-    });
-
-    test('include an INPUT.json in the default store when no key is preserved', async () => {
+    test('include an INPUT.json in the default store, keyed by its filename like any other', async () => {
         const storage = await seedStore(tmpLocation, 'default', { 'INPUT.json': payload });
         const store = await storage.createKeyValueStoreBackend();
 
-        // Plain Crawlee preserves nothing, so the file is a record named after itself, like any other.
+        // Crawlee has no notion of a run input, so the file is a record named after itself.
         expect(await store.getValue('INPUT')).toBeUndefined();
         expect((await store.getValue('INPUT.json'))?.value.toString()).toBe(payload);
+    });
+
+    test('are adopted verbatim even when they are malformed JSON', async () => {
+        const storage = await seedStore(tmpLocation, 'default', { 'broken.json': '{' });
+        const store = await storage.createKeyValueStoreBackend();
+
+        // The backend is a byte transport — parsing, and any error from it, belongs to the frontend.
+        expect(await store.getValue('broken.json')).toStrictEqual<KeyValueStoreRecord>({
+            key: 'broken.json',
+            value: Buffer.from('{'),
+            contentType: 'application/json; charset=utf-8',
+        });
+    });
+
+    test('are purged from a run-scoped store on start', async () => {
+        const storage = await seedStore(tmpLocation, 'default', { 'INPUT.json': payload, 'leftover.json': '{}' });
+
+        await storage.purge();
+
+        expect(await readdir(resolve(storage.keyValueStoresDirectory, 'default'))).not.toContain('INPUT.json');
+        expect(await readdir(resolve(storage.keyValueStoresDirectory, 'default'))).not.toContain('leftover.json');
     });
 });
 
@@ -250,24 +130,76 @@ describe('a hand-written store directory', () => {
     });
 });
 
-describe('purging a store with adopted records', () => {
-    const tmpLocation = resolve(import.meta.dirname, './tmp/adoption-purge');
+// What the Apify SDK does for its run input: claim a bare `INPUT` / `INPUT.json` in the default store
+// as the record `INPUT`, and keep that record when the store is purged on start.
+class InputAwareBackend extends FileSystemStorageBackend {
+    protected override keyValueStoreAdoptionCandidates(isDefaultStore: boolean): AdoptionCandidate[] {
+        const inputCandidate: AdoptionCandidate = {
+            key: 'INPUT',
+            files: [
+                { filename: 'INPUT', contentType: 'application/octet-stream' },
+                { filename: 'INPUT.json', contentType: 'application/json; charset=utf-8' },
+            ],
+        };
+
+        return [...(isDefaultStore ? [inputCandidate] : []), ...super.keyValueStoreAdoptionCandidates(isDefaultStore)];
+    }
+
+    protected override async purgeKeyValueStore(store: KeyValueStoreBackend, isDefaultStore: boolean): Promise<void> {
+        await (isDefaultStore ? store.purgeExcept(['INPUT']) : store.purge());
+    }
+}
+
+describe('a subclass claiming keys through the hooks', () => {
+    const tmpLocation = resolve(import.meta.dirname, './tmp/adoption-hooks');
 
     afterEach(async () => {
         await rm(tmpLocation, { force: true, recursive: true });
     });
 
-    test('keeps the preserved keys and drops everything else', async () => {
-        const inputKey = '__CLI_INPUT';
+    test('adopts the file under the claimed key, not under its filename', async () => {
+        const storage = await seedStore(tmpLocation, 'default', { 'INPUT.json': payload }, InputAwareBackend);
+        const store = await storage.createKeyValueStoreBackend();
+
+        expect(await store.getValue('INPUT')).toStrictEqual<KeyValueStoreRecord>({
+            key: 'INPUT',
+            value: Buffer.from(payload),
+            contentType: 'application/json; charset=utf-8',
+        });
+        expect((await store.listKeys()).items.map((item) => item.key)).toEqual(['INPUT']);
+        expect(await store.getPublicUrl('INPUT')).toMatch(/\/INPUT\.json$/);
+
+        // The extension is the file's, not the key's.
+        expect(await store.getValue('INPUT.json')).toBeUndefined();
+    });
+
+    test('fails the open when both candidate files are present', async () => {
         const storage = await seedStore(
             tmpLocation,
             'default',
-            {
-                'INPUT.json': payload,
-                [`${inputKey}.json`]: JSON.stringify({ hello: 'from the cli' }),
-                'leftover.json': JSON.stringify({ leftover: true }),
-            },
-            { preservedKeys: ['INPUT', inputKey] },
+            { INPUT: 'bytes', 'INPUT.json': payload },
+            InputAwareBackend,
+        );
+
+        // Picking one would silently ignore the other, and there is no way to guess which one the
+        // user means.
+        await expect(storage.createKeyValueStoreBackend()).rejects.toThrow(/Multiple candidate files for key 'INPUT'/);
+    });
+
+    test('only receives isDefaultStore for the default store', async () => {
+        const storage = await seedStore(tmpLocation, 'named-store', { 'INPUT.json': payload }, InputAwareBackend);
+        const store = await storage.createKeyValueStoreBackend({ name: 'named-store' });
+
+        expect(await store.getValue('INPUT')).toBeUndefined();
+        expect((await store.getValue('INPUT.json'))?.value.toString()).toBe(payload);
+    });
+
+    test('spares the claimed key on purge and drops everything else', async () => {
+        const storage = await seedStore(
+            tmpLocation,
+            'default',
+            { 'INPUT.json': payload, 'leftover.json': '{}' },
+            InputAwareBackend,
         );
 
         // Purge-on-start opens the store, so adoption runs first and the input survives as a record —
@@ -275,25 +207,17 @@ describe('purging a store with adopted records', () => {
         await storage.purge();
 
         const store = await storage.createKeyValueStoreBackend();
-        expect((await store.listKeys()).items.map((item) => item.key)).toEqual(['INPUT', inputKey]);
+        expect((await store.listKeys()).items.map((item) => item.key)).toEqual(['INPUT']);
         expect((await store.getValue('INPUT'))?.value.toString()).toBe(payload);
         expect(await readdir(resolve(storage.keyValueStoresDirectory, 'default'))).not.toContain('leftover.json');
     });
 
-    test('drops a preserved key from a non-default store', async () => {
-        const storage = await seedStore(tmpLocation, 'other', { 'INPUT.json': payload }, { preservedKeys: ['INPUT'] });
+    test('purges a non-default store in full', async () => {
+        const storage = await seedStore(tmpLocation, 'other', { 'INPUT.json': payload }, InputAwareBackend);
         await storage.createKeyValueStoreBackend({ alias: 'other' });
 
         await storage.purge();
 
         expect(await readdir(resolve(storage.keyValueStoresDirectory, 'other'))).not.toContain('INPUT.json');
-    });
-
-    test('drops an INPUT.json from the default store when no key is preserved', async () => {
-        const storage = await seedStore(tmpLocation, 'default', { 'INPUT.json': payload });
-
-        await storage.purge();
-
-        expect(await readdir(resolve(storage.keyValueStoresDirectory, 'default'))).not.toContain('INPUT.json');
     });
 });

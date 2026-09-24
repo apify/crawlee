@@ -14,7 +14,6 @@ import { RequestQueueBackend } from './resource-clients/request-queue.js';
 const fileSystemStorageOptionsSchema = z.object({
     localDataDirectory: z.string(),
     requestQueueAccess: z.enum(['single', 'shared']).default('single'),
-    preservedKeys: z.array(z.string().min(1)).default([]),
     logger: schemas.logger.optional(),
 });
 
@@ -69,19 +68,6 @@ export interface FileSystemStorageOptions {
      * @default 'single'
      */
     requestQueueAccess?: 'single' | 'shared';
-
-    /**
-     * Keys of the default key-value store that belong to whoever starts the run rather than to the run
-     * itself. Purging the default store on start keeps them, and a bare `<key>` or `<key>.json` value
-     * file with no metadata sidecar found in the store directory is adopted into a record under `<key>`
-     * when the store is opened (both files present fails the open).
-     *
-     * Crawlee itself has no use for this; the Apify SDK passes its run-input keys (`INPUT` and the
-     * configured `ACTOR_INPUT_KEY`), which the Apify CLI and the project templates write as bare files.
-     *
-     * @default []
-     */
-    preservedKeys?: string[];
 }
 
 /**
@@ -99,22 +85,18 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
     readonly requestQueuesDirectory: string;
     readonly logger?: CrawleeLogger;
     readonly requestQueueAccess: 'single' | 'shared';
-    /** See {@link FileSystemStorageOptions.preservedKeys}, deduplicated. */
-    readonly #preservedKeys: string[];
-
     readonly #keyValueStoreBackendCache: KeyValueStoreBackend[] = [];
     readonly #datasetBackendCache: DatasetBackend[] = [];
     readonly #requestQueueBackendCache: RequestQueueBackend[] = [];
 
     constructor(options: FileSystemStorageOptions) {
-        const { logger, requestQueueAccess, preservedKeys, localDataDirectory } = parseArgument(
+        const { logger, requestQueueAccess, localDataDirectory } = parseArgument(
             options,
             fileSystemStorageOptionsSchema,
         );
 
         this.logger = logger;
         this.requestQueueAccess = requestQueueAccess;
-        this.#preservedKeys = [...new Set(preservedKeys)];
 
         this.localDataDirectory = localDataDirectory;
         this.datasetsDirectory = resolve(this.localDataDirectory, 'datasets');
@@ -199,14 +181,13 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
             this.localDataDirectory,
             // useTestClock — always real wall-clock outside of native tests.
             undefined,
-            this.#adoptionCandidates(cacheKey === DEFAULT_STORAGE_DIRECTORY),
+            this.keyValueStoreAdoptionCandidates(cacheKey === DEFAULT_STORAGE_DIRECTORY),
         );
         const newStore = await KeyValueStoreBackend.create({
             name: alias ? undefined : (name ?? cacheKey),
             cacheKey,
             nativeBackend,
             logger: this.logger,
-            preservedKeys: this.#preservedKeys,
         });
         this.#keyValueStoreBackendCache.push(newStore);
 
@@ -251,28 +232,18 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
     /**
      * What the native `open` may turn into records: value files sitting in the store directory with no
      * metadata sidecar, written out-of-band by a CLI, a project template, a v3 Crawlee or a text editor.
+     * Each becomes a record keyed by its filename, with the content type derived from the extension alone.
      *
-     * In the default store, each preserved key claims a bare `<key>` or `<key>.json` first — that is the
-     * layout the Apify CLI and the templates produce for the run input, and the key must end up being
-     * `INPUT` rather than `INPUT.json`. Elsewhere such a file is just a file named `INPUT.json`, adopted
-     * by the trailing sweep like every other one.
+     * Subclasses may claim specific files under a key of their own by prepending candidates — the Apify
+     * SDK adopts a bare `INPUT` or `INPUT.json` in the default store as the record `INPUT` this way.
      *
      * Once adopted, the file is an ordinary record: readable, listed, deletable, and — in a run-scoped
-     * store — purged on start unless its key is preserved.
+     * store — purged on start unless {@link purgeKeyValueStore} spares it.
+     *
+     * @param _isDefaultStore Whether the store being opened is the run's default key-value store.
      */
-    #adoptionCandidates(isDefaultStore: boolean): AdoptionCandidate[] {
-        const preservedCandidates: AdoptionCandidate[] = isDefaultStore
-            ? this.#preservedKeys.map((key) => ({
-                  key,
-                  files: [
-                      { filename: key, contentType: ADOPTED_BINARY_CONTENT_TYPE },
-                      { filename: `${key}.json`, contentType: ADOPTED_JSON_CONTENT_TYPE },
-                  ],
-              }))
-            : [];
-
+    protected keyValueStoreAdoptionCandidates(_isDefaultStore: boolean): AdoptionCandidate[] {
         return [
-            ...preservedCandidates,
             {
                 files: [
                     { filename: '*.json', contentType: ADOPTED_JSON_CONTENT_TYPE },
@@ -280,6 +251,14 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
                 ],
             },
         ];
+    }
+
+    /**
+     * Empties one run-scoped key-value store during {@link purge}. Subclasses may spare some keys of the
+     * default store with {@link KeyValueStoreBackend.purgeExcept} — the Apify SDK keeps its run input.
+     */
+    protected async purgeKeyValueStore(store: KeyValueStoreBackend, _isDefaultStore: boolean): Promise<void> {
+        await store.purge();
     }
 
     async storageExists(id: string, type: 'Dataset' | 'KeyValueStore' | 'RequestQueue'): Promise<boolean> {
@@ -380,8 +359,7 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
             this.#purgeRunScopedStorages(
                 this.keyValueStoresDirectory,
                 async (alias) => this.createKeyValueStoreBackend({ alias }) as Promise<KeyValueStoreBackend>,
-                // Only the default store holds preserved keys.
-                async (store, isDefault) => (isDefault ? store.purgeExceptPreserved() : store.purge()),
+                async (store, isDefault) => this.purgeKeyValueStore(store, isDefault),
             ),
             this.#purgeRunScopedStorages(
                 this.datasetsDirectory,

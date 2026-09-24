@@ -35,8 +35,6 @@ export interface KeyValueStoreBackendOptions {
     cacheKey: string;
     nativeBackend: NativeFileSystemKeyValueStoreBackend;
     logger?: CrawleeLogger;
-    /** The keys {@link purgeExceptPreserved} spares — `FileSystemStorageOptions.preservedKeys`, deduplicated. */
-    preservedKeys: string[];
 }
 
 /**
@@ -53,15 +51,11 @@ export class KeyValueStoreBackend extends CachedIdClient implements storage.KeyV
 
     readonly #nativeBackend: NativeFileSystemKeyValueStoreBackend;
 
-    /** See {@link KeyValueStoreBackendOptions.preservedKeys}. */
-    readonly #preservedKeys: string[];
-
     constructor(options: KeyValueStoreBackendOptions) {
         super();
         this.name = options.name;
         this.cacheKey = options.cacheKey;
         this.#nativeBackend = options.nativeBackend;
-        this.#preservedKeys = options.preservedKeys;
     }
 
     get keyValueStoreDirectory(): string {
@@ -87,11 +81,11 @@ export class KeyValueStoreBackend extends CachedIdClient implements storage.KeyV
     }
 
     /**
-     * Remove every record from the store except the preserved keys. Used by
-     * {@link FileSystemStorageBackend.purge} to clean the default key-value store at the start of a run.
+     * Remove every record from the store except the given keys. For {@link FileSystemStorageBackend}
+     * subclasses that keep some of the default store's records across the purge on start.
      */
-    async purgeExceptPreserved(): Promise<void> {
-        await this.#nativeBackend.purge(this.#preservedKeys);
+    async purgeExcept(keys: string[]): Promise<void> {
+        await this.#nativeBackend.purge(keys);
     }
 
     async listKeys(options: storage.KeyValueStoreListKeysOptions = {}): Promise<storage.KeyValueStoreListKeysResult> {

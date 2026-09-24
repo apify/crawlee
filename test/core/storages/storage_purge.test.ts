@@ -1,6 +1,7 @@
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
+import type { KeyValueStoreBackend as FileSystemKeyValueStoreBackend } from '@crawlee/fs-storage';
 import { FileSystemStorageBackend } from '@crawlee/fs-storage';
 import { MemoryStorageBackend, RequestQueue, purgeDefaultStorages, serviceLocator } from '@crawlee/core';
 import type { KeyValueStoreBackend, RequestQueueBackend, StorageBackend } from '@crawlee/types';
@@ -85,13 +86,19 @@ describe.each([
     });
 });
 
-// The Apify SDK passes its run-input keys as `preservedKeys`; they survive in the default store only.
+// The Apify SDK spares its run input through the `purgeKeyValueStore` hook, in the default store only.
 // An alias-keyed store is just another run-scoped storage — nothing there is the run input.
-test('FileSystemStorageBackend.purge keeps preserved keys in the default key-value store but not in an alias-keyed one', async () => {
-    const backend = new FileSystemStorageBackend({
-        localDataDirectory: temporaryDirectory(),
-        preservedKeys: ['INPUT'],
-    });
+test('a FileSystemStorageBackend subclass can spare keys of the default key-value store on purge', async () => {
+    class InputAwareBackend extends FileSystemStorageBackend {
+        protected override async purgeKeyValueStore(
+            store: FileSystemKeyValueStoreBackend,
+            isDefaultStore: boolean,
+        ): Promise<void> {
+            await (isDefaultStore ? store.purgeExcept(['INPUT']) : store.purge());
+        }
+    }
+
+    const backend = new InputAwareBackend({ localDataDirectory: temporaryDirectory() });
 
     const defaultStore = await backend.createKeyValueStoreBackend();
     const aliasStore = await backend.createKeyValueStoreBackend({ alias: 'run-scoped' });

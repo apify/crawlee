@@ -4,8 +4,19 @@
 
 ```ts
 
+import { AdoptionCandidate } from '@crawlee/fs-storage-native';
 import type { CrawleeLogger } from '@crawlee/types';
+import type { FileSystemKeyValueStoreClient } from '@crawlee/fs-storage-native';
 import type * as storage from '@crawlee/types';
+
+export { AdoptionCandidate }
+
+// Not exported by the entry point; reachable only as a referenced type.
+// @public
+abstract class CachedIdClient {
+    protected cachedId: string;
+    get id(): string;
+}
 
 // @public
 export class FileSystemStorageBackend implements storage.StorageBackend {
@@ -19,6 +30,7 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
     // (undocumented)
     readonly datasetsDirectory: string;
     getStorageBackendCacheKey(): string;
+    protected keyValueStoreAdoptionCandidates(_isDefaultStore: boolean): AdoptionCandidate[];
     // (undocumented)
     readonly keyValueStoresDirectory: string;
     // (undocumented)
@@ -26,6 +38,7 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
     // (undocumented)
     readonly logger?: CrawleeLogger;
     purge(): Promise<void>;
+    protected purgeKeyValueStore(store: KeyValueStoreBackend, _isDefaultStore: boolean): Promise<void>;
     // (undocumented)
     readonly requestQueueAccess: 'single' | 'shared';
     // (undocumented)
@@ -39,8 +52,48 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
 export interface FileSystemStorageOptions {
     localDataDirectory: string;
     logger?: CrawleeLogger;
-    preservedKeys?: string[];
     requestQueueAccess?: 'single' | 'shared';
+}
+
+// @public
+export class KeyValueStoreBackend extends CachedIdClient implements storage.KeyValueStoreBackend {
+    constructor(options: KeyValueStoreBackendOptions);
+    // (undocumented)
+    readonly cacheKey: string;
+    // (undocumented)
+    static create(options: KeyValueStoreBackendOptions): Promise<KeyValueStoreBackend>;
+    // (undocumented)
+    deleteValue(key: string): Promise<void>;
+    // (undocumented)
+    drop(): Promise<void>;
+    // (undocumented)
+    getMetadata(): Promise<storage.KeyValueStoreInfo>;
+    getPublicUrl(key: string): Promise<string | undefined>;
+    // (undocumented)
+    getValue(key: string): Promise<storage.KeyValueStoreRecord | undefined>;
+    // (undocumented)
+    get keyValueStoreDirectory(): string;
+    // (undocumented)
+    listKeys(options?: storage.KeyValueStoreListKeysOptions): Promise<storage.KeyValueStoreListKeysResult>;
+    // (undocumented)
+    readonly name?: string;
+    // (undocumented)
+    purge(): Promise<void>;
+    purgeExcept(keys: string[]): Promise<void>;
+    recordExists(key: string): Promise<boolean>;
+    // (undocumented)
+    setValue(record: storage.KeyValueStoreInputRecord): Promise<void>;
+}
+
+// Not exported by the entry point; reachable only as a referenced type.
+// @public (undocumented)
+interface KeyValueStoreBackendOptions {
+    cacheKey: string;
+    // (undocumented)
+    logger?: CrawleeLogger;
+    name?: string;
+    // (undocumented)
+    nativeBackend: FileSystemKeyValueStoreClient;
 }
 
 // (No @packageDocumentation comment for this package)
