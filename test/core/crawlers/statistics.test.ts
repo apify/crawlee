@@ -108,9 +108,13 @@ describe('Statistics', () => {
             const record = (await store.getValue<StatisticPersistedState>(persistStateKey(stats)))!;
             await store.setValue(persistStateKey(stats), { ...record, requestsSucceeded: 'plenty' });
 
+            // The statistics log through a child of the registered logger; collapsing `child()` onto its
+            // parent lets the spy below observe it.
+            const logger = serviceLocator.getLogger();
+            vitest.spyOn(logger, 'child').mockReturnValue(logger);
+            const warningSpy = vitest.spyOn(logger, 'warning').mockImplementation(() => {});
+
             const restored = new Statistics({ id: stats.id });
-            // @ts-expect-error Accessing private prop
-            const warningSpy = vitest.spyOn(restored.log, 'warning').mockImplementation(() => {});
 
             // A corrupt counter must not take the crawl down with it, and must not be trusted either - an
             // increment on a string would poison every later one.
@@ -353,11 +357,15 @@ describe('Statistics', () => {
 
     test('should regularly log stats', async () => {
         const logged: [string, Dictionary | undefined | null][] = [];
-        // @ts-expect-error Accessing private prop
-        const infoSpy = vitest.spyOn(stats.log, 'info');
-        infoSpy.mockImplementation((message: string, data?: Record<string, any> | null) => {
+        // The statistics log through a child of the registered logger; collapsing `child()` onto its parent
+        // lets the spy below observe it.
+        const logger = serviceLocator.getLogger();
+        vitest.spyOn(logger, 'child').mockReturnValue(logger);
+        vitest.spyOn(logger, 'info').mockImplementation((message: string, data?: Record<string, any> | null) => {
             logged.push([message, data]);
         });
+
+        const stats = new Statistics();
 
         stats.recordRequestStart(0);
         vitest.advanceTimersByTime(1);
@@ -529,12 +537,16 @@ describe('Statistics', () => {
                     productsFound: 'plenty',
                 });
 
+                // The statistics log through a child of the registered logger; collapsing `child()` onto its
+                // parent lets the spy below observe it.
+                const logger = serviceLocator.getLogger();
+                vitest.spyOn(logger, 'child').mockReturnValue(logger);
+                const warningSpy = vitest.spyOn(logger, 'warning').mockImplementation(() => {});
+
                 const stats = new Statistics({
                     id: 'corrupt-custom-stats',
                     stateExtension: { deserialize: productsFound },
                 });
-                // @ts-expect-error Accessing private prop
-                const warningSpy = vitest.spyOn(stats.log, 'warning').mockImplementation(() => {});
 
                 await stats.startCapturing();
 

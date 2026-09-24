@@ -22,7 +22,6 @@ import type {
 import {
     AdaptivePlaywrightCrawler,
     adaptivePlaywrightCrawlerStatisticState,
-    BasicCrawler,
     createAdaptivePlaywrightRouter,
     fullResultComparator,
     playwrightBrowserPool,
@@ -41,16 +40,19 @@ import { startExpressAppPromise } from '../../shared/_helper.js';
 // A minimal logger that records every message into a shared array. Child loggers share the same
 // array, so messages emitted by the crawler's prefixed child logger are captured as well.
 class RecordingLogger extends BaseCrawleeLogger {
-    constructor(private readonly messages: string[]) {
+    readonly #messages: string[];
+
+    constructor(messages: string[]) {
         super();
+        this.#messages = messages;
     }
 
     logWithLevel(_level: number, message: string): void {
-        this.messages.push(message);
+        this.#messages.push(message);
     }
 
     protected createChild(_options: Partial<CrawleeLoggerOptions>): CrawleeLogger {
-        return new RecordingLogger(this.messages);
+        return new RecordingLogger(this.#messages);
     }
 }
 
@@ -142,13 +144,6 @@ describe('AdaptivePlaywrightCrawler', () => {
         // each test, which clears the storage-instance cache; here we just install a fresh in-memory
         // storage backend for this suite.
         serviceLocator.setStorageBackend(new MemoryStorageBackend());
-        // `BasicCrawler` keeps a process-global instance counter that assigns each crawler a distinct
-        // default request queue (the first one uses the shared default queue, later ones get their own
-        // `__default_<n>__` alias). Since every test wipes storage and starts fresh, the counter must be
-        // reset too — otherwise later crawlers open aliased queues that are out of sync with the freshly
-        // reset storage, and the crawler restores a stale handled-request count and processes nothing.
-        // @ts-expect-error Reset private static instance counter for test isolation
-        BasicCrawler.instanceCount = 0;
         lastDynamicRequestUserAgent = undefined;
     });
 

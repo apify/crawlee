@@ -556,20 +556,29 @@ describe('KeyValueStore in a transaction', () => {
                 await store.setValue(`buffered-${i}`, { i });
             }
 
-            // `bufferedJournalEntries()` is the O(journal) reduction. Reading 40 keys' values must not
-            // call it 40 times - the listing path builds one map and threads it through every per-key
-            // read. A regression to per-key derivation makes this scale with the key count.
-            const reduceSpy = vitest.spyOn(store as any, 'bufferedJournalEntries');
+            // Deriving the buffered writes means one full scan of the journal. Reading 40 keys' values
+            // must not scan it 40 times - the listing path builds one map and threads it through every
+            // per-key read. A regression to per-key derivation makes this scale with the key count.
+            let journalScans = 0;
+            const { journal } = transaction;
+            const iterate = journal[Symbol.iterator].bind(journal);
+            Object.defineProperty(journal, Symbol.iterator, {
+                configurable: true,
+                value: () => {
+                    journalScans++;
+                    return iterate();
+                },
+            });
 
             const values = await store.values();
             expect(values).toHaveLength(40);
 
             // One reduction for the page listing, one shared across every record read: two, not forty.
-            // The lower bound matters too - zero calls would mean the buffered reads were skipped entirely.
-            expect(reduceSpy.mock.calls.length).toBeGreaterThanOrEqual(1);
-            expect(reduceSpy.mock.calls.length).toBeLessThanOrEqual(2);
+            // The lower bound matters too - zero scans would mean the buffered reads were skipped entirely.
+            expect(journalScans).toBeGreaterThanOrEqual(1);
+            expect(journalScans).toBeLessThanOrEqual(2);
 
-            reduceSpy.mockRestore();
+            Reflect.deleteProperty(journal, Symbol.iterator);
             transaction.rollback();
         });
     });

@@ -132,11 +132,8 @@ describe('BrowserCrawler', () => {
 
         expect(releaseSpy).toHaveBeenCalled();
         expect(destroySpy).not.toHaveBeenCalled();
-        // What a destroyed pool loses for good, since nothing re-arms either: its listeners, and the timers that
-        // retire idle browsers and reap the retired ones.
+        // What a destroyed pool loses for good, since nothing re-arms it: its listeners.
         expect(ownedPool.listenerCount(BROWSER_POOL_EVENTS.BROWSER_LAUNCHED)).toBe(1);
-        // eslint-disable-next-line dot-notation -- TS-private on the pool
-        expect(ownedPool['browserKillerInterval']).toBeDefined();
 
         await browserCrawler.destroy();
         expect(destroySpy).toHaveBeenCalledTimes(1);

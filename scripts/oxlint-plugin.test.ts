@@ -19,6 +19,8 @@ ruleTester.run('prefer-private-fields', preferPrivateFields, {
         'class A { public a = 1; }',
         'class A { constructor(readonly a: number) {} }',
         'abstract class A { protected abstract a(): void; }',
+        // No native equivalent, so the rule has to let it through.
+        'class A { private constructor() {} }',
     ],
     invalid: [
         { name: 'field', code: 'class A { private a = 1; }', errors: [{ messageId: 'preferHash' }] },
