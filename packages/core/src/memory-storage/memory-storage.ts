@@ -139,7 +139,7 @@ export class MemoryStorageBackend implements storage.StorageBackend {
         return newStore;
     }
 
-    async createRequestQueueBackend(options: storage.StorageIdentifier = {}): Promise<RequestQueueBackend> {
+    async createRequestQueueBackend(options: storage.StorageIdentifier = {}): Promise<storage.RequestQueueBackend> {
         const { isAlias, cacheKey } = MemoryStorageBackend.#resolveStorageKey(options);
 
         const found = this.#requestQueueBackendCache.find(

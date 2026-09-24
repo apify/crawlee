@@ -973,5 +973,5 @@ export interface RequestListState {
     inProgress: string[];
 }
 
-type RequestListSource = string | Source;
+export type RequestListSource = string | Source;
 export type RequestListSourcesFunction = () => Promise<RequestListSource[]>;

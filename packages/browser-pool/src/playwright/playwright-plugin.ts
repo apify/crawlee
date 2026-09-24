@@ -21,6 +21,8 @@ export class PlaywrightPlugin extends BrowserPlugin<
     /**
      * Playwright remote connections only support incognito pages — `connect()` / `connectOverCDP()` don't
      * accept persistent contexts. Force it on (and inform the user) when wired for a remote connection.
+     *
+     * @internal
      */
     override useRemoteConnection(connection: RemoteConnection, parameters: RemoteConnectionParameters = {}): void {
         super.useRemoteConnection(connection, parameters);

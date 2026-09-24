@@ -63,6 +63,19 @@ yay -S libffi7 icu66 libwebp052 flite-unpatched
 sudo ln -s /usr/lib/libpcre.so /usr/lib/libpcre.so.3
 ```
 
+## Public API reports
+
+`docs/public-api/*.api.md` map what each package promises not to break (see [its README](docs/public-api/README.md)). After changing any package's public surface, regenerate and commit them:
+
+```sh
+pnpm build        # reports are generated from dist/
+pnpm api:extract
+```
+
+CI runs `pnpm api:check`, which fails when a committed report is out of date. Either the surface change is intended (commit the updated report so reviewers see the diff) or it is accidental (fix it).
+
+It also fails when an untagged signature references an `@internal` type, since the report would then use a type it never declares. Regenerating won't fix that: either drop the tag from the referenced type or keep it out of the public signature.
+
 ## Testing in Crawlee with vitest
 
 There are a few small differences between how testing in jest and vitest works. Mostly, they relate to what to do, and not do anymore.

@@ -9,7 +9,7 @@ import type {
 import { BrowserCrawler } from '@crawlee/puppeteer';
 import type { Dictionary } from '@crawlee/types';
 // @ts-ignore This only throws when compiled against puppeteer 25+ (ESM only), we only import types, so its alllll gooooood
-import type { HTTPResponse, LaunchOptions, Page } from 'puppeteer';
+import type { HTTPResponse, Page } from 'puppeteer';
 
 export type TestCrawlingContext = BrowserCrawlingContext<Page, HTTPResponse, Dictionary>;
 
@@ -20,7 +20,7 @@ type TestBrowserPoolOptions = BrowserPoolOptions<PuppeteerPlugin> &
         Page
     >;
 
-export class BrowserCrawlerTest extends BrowserCrawler<Page, HTTPResponse, LaunchOptions, TestCrawlingContext> {
+export class BrowserCrawlerTest extends BrowserCrawler<Page, HTTPResponse, TestCrawlingContext> {
     constructor(
         options: Partial<BrowserCrawlerOptions<Page, HTTPResponse, TestCrawlingContext>> & {
             /**

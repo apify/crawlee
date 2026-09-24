@@ -1088,6 +1088,7 @@ interface RequestLruItem {
     forefront: boolean;
 }
 
+/** @internal */
 export interface RequestQueueOptions {
     /** Resolved metadata for the request queue, as returned by the backend's `getMetadata()`. */
     metadata: RequestQueueInfo;

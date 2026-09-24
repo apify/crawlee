@@ -53,6 +53,8 @@ export interface FileSystemStorageOptions {
 
     /**
      * Optional logger for FileSystemStorageBackend warnings.
+     *
+     * @internal
      */
     logger?: CrawleeLogger;
 
@@ -96,12 +98,12 @@ export interface FileSystemStorageOptions {
  * `teardown` can operate over them), and exposing them through the `@crawlee/types` interfaces.
  */
 export class FileSystemStorageBackend implements storage.StorageBackend {
-    readonly localDataDirectory: string;
-    readonly datasetsDirectory: string;
-    readonly keyValueStoresDirectory: string;
-    readonly requestQueuesDirectory: string;
-    readonly logger?: CrawleeLogger;
-    readonly requestQueueAccess: 'single' | 'shared';
+    readonly #localDataDirectory: string;
+    readonly #datasetsDirectory: string;
+    readonly #keyValueStoresDirectory: string;
+    readonly #requestQueuesDirectory: string;
+    readonly #logger?: CrawleeLogger;
+    readonly #requestQueueAccess: 'single' | 'shared';
     /** `INPUT` plus the configured `inputKey`, deduplicated. */
     readonly #inputKeys: string[];
 
@@ -115,14 +117,14 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
             fileSystemStorageOptionsSchema,
         );
 
-        this.logger = logger;
-        this.requestQueueAccess = requestQueueAccess;
+        this.#logger = logger;
+        this.#requestQueueAccess = requestQueueAccess;
         this.#inputKeys = [...new Set([DEFAULT_INPUT_KEY, inputKey])];
 
-        this.localDataDirectory = localDataDirectory;
-        this.datasetsDirectory = resolve(this.localDataDirectory, 'datasets');
-        this.keyValueStoresDirectory = resolve(this.localDataDirectory, 'key_value_stores');
-        this.requestQueuesDirectory = resolve(this.localDataDirectory, 'request_queues');
+        this.#localDataDirectory = localDataDirectory;
+        this.#datasetsDirectory = resolve(this.#localDataDirectory, 'datasets');
+        this.#keyValueStoresDirectory = resolve(this.#localDataDirectory, 'key_value_stores');
+        this.#requestQueuesDirectory = resolve(this.#localDataDirectory, 'request_queues');
     }
 
     /**
@@ -131,7 +133,7 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
      * partitions, by including the storage directory in the cache key.
      */
     getStorageBackendCacheKey(): string {
-        return `FileSystemStorageBackend:${resolve(this.localDataDirectory)}`;
+        return `FileSystemStorageBackend:${resolve(this.#localDataDirectory)}`;
     }
 
     static #resolveStorageKey(options: { id?: string; name?: string; alias?: string }): {
@@ -168,12 +170,12 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
 
         const nativeBackend = await (
             await importNativeModule()
-        ).FileSystemDatasetClient.open(id, name, alias, this.localDataDirectory);
+        ).FileSystemDatasetClient.open(id, name, alias, this.#localDataDirectory);
         const newStore = await DatasetBackend.create({
             name: alias ? undefined : (name ?? cacheKey),
             cacheKey,
             nativeBackend,
-            logger: this.logger,
+            logger: this.#logger,
         });
         this.#datasetBackendCache.push(newStore);
 
@@ -199,7 +201,7 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
             id,
             name,
             alias,
-            this.localDataDirectory,
+            this.#localDataDirectory,
             // useTestClock — always real wall-clock outside of native tests.
             undefined,
             this.#adoptionCandidates(cacheKey === DEFAULT_STORAGE_DIRECTORY),
@@ -208,7 +210,7 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
             name: alias ? undefined : (name ?? cacheKey),
             cacheKey,
             nativeBackend,
-            logger: this.logger,
+            logger: this.#logger,
             inputKeys: this.#inputKeys,
         });
         this.#keyValueStoreBackendCache.push(newStore);
@@ -235,16 +237,16 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
             id,
             name,
             alias,
-            this.localDataDirectory,
+            this.#localDataDirectory,
             // useTestClock — always real wall-clock outside of native tests.
             undefined,
-            this.requestQueueAccess,
+            this.#requestQueueAccess,
         );
         const newStore = await RequestQueueBackend.create({
             name: alias ? undefined : (name ?? cacheKey),
             cacheKey,
             nativeBackend,
-            logger: this.logger,
+            logger: this.#logger,
         });
         this.#requestQueueBackendCache.push(newStore);
 
@@ -292,15 +294,15 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
         switch (type) {
             case 'Dataset':
                 backends = this.#datasetBackendCache;
-                baseDir = this.datasetsDirectory;
+                baseDir = this.#datasetsDirectory;
                 break;
             case 'KeyValueStore':
                 backends = this.#keyValueStoreBackendCache;
-                baseDir = this.keyValueStoresDirectory;
+                baseDir = this.#keyValueStoresDirectory;
                 break;
             case 'RequestQueue':
                 backends = this.#requestQueueBackendCache;
-                baseDir = this.requestQueuesDirectory;
+                baseDir = this.#requestQueuesDirectory;
                 break;
             default:
                 return false;
@@ -381,18 +383,18 @@ export class FileSystemStorageBackend implements storage.StorageBackend {
     async purge(): Promise<void> {
         await Promise.all([
             this.#purgeRunScopedStorages(
-                this.keyValueStoresDirectory,
+                this.#keyValueStoresDirectory,
                 async (alias) => this.createKeyValueStoreBackend({ alias }) as Promise<KeyValueStoreBackend>,
                 // Only the default store holds the run input, so it is the only one that keeps `INPUT`.
                 async (store, isDefault) => (isDefault ? store.purgeExceptInput() : store.purge()),
             ),
             this.#purgeRunScopedStorages(
-                this.datasetsDirectory,
+                this.#datasetsDirectory,
                 async (alias) => this.createDatasetBackend({ alias }) as Promise<DatasetBackend>,
                 async (store) => store.purge(),
             ),
             this.#purgeRunScopedStorages(
-                this.requestQueuesDirectory,
+                this.#requestQueuesDirectory,
                 async (alias) => this.createRequestQueueBackend({ alias }) as Promise<RequestQueueBackend>,
                 async (store) => store.purge(),
             ),

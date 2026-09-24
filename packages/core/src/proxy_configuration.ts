@@ -15,15 +15,13 @@ export interface ProxyConfigurationFunction {
     (): string | null | Promise<string | null>;
 }
 
-type UrlList = (string | null)[];
-
 export interface ProxyConfigurationOptions {
     /**
      * An array of custom proxy URLs to be rotated.
      * Custom proxies are not compatible with Apify Proxy and an attempt to use both
      * configuration options will cause an error to be thrown on initialize.
      */
-    proxyUrls?: UrlList;
+    proxyUrls?: (string | null)[];
 
     /**
      * Custom function that allows you to generate the new proxy URL dynamically.
@@ -32,8 +30,15 @@ export interface ProxyConfigurationOptions {
      * This function is used to generate the URL when {@apilink ProxyConfiguration.newUrl} or {@apilink ProxyConfiguration.newProxyInfo} is called.
      */
     newUrlFunction?: ProxyConfigurationFunction;
-}
 
+    /**
+     * When truthy, the constructor throws unless one of `proxyUrls` / `newUrlFunction` was given. Falsy by
+     * default, so a bare `ProxyConfiguration` can be constructed. Set by the Apify SDK, which builds the options
+     * object itself; declared here only so that it stays type-checkable.
+     * @internal
+     */
+    validateRequired?: boolean;
+}
 /**
  * Minimal contract that any object passed to a crawler as its `proxyConfiguration`
  * option must satisfy.
@@ -83,7 +88,7 @@ export interface IProxyConfiguration {
 export class ProxyConfiguration implements IProxyConfiguration {
     readonly isManInTheMiddle = false;
     #nextCustomUrlIndex = 0;
-    #proxyUrls?: UrlList;
+    #proxyUrls?: (string | null)[];
     #newUrlFunction?: ProxyConfigurationFunction;
 
     /**
@@ -107,6 +112,9 @@ export class ProxyConfiguration implements IProxyConfiguration {
      * ```
      */
     constructor(options: ProxyConfigurationOptions = {}) {
+        // `validateRequired` is destructured off before the strict-object parse on purpose: the Apify SDK passes it
+        // through a computed key (`['validateRequired' as string]: false`), and leaving it in `rest` would make
+        // `Actor.createProxyConfiguration()` fail the `z.strictObject` check with a `ZodError`.
         const { validateRequired, ...rest } = options as Dictionary;
 
         if ('tieredProxyUrls' in rest) {

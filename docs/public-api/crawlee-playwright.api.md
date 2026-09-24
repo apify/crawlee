@@ -22,12 +22,9 @@ import type { BrowserType } from 'playwright';
 import { Cheerio } from 'cheerio';
 import { CheerioAPI } from 'cheerio';
 import { Configuration } from '@crawlee/browser';
-import type { ContextPipeline } from '@crawlee/browser';
-import type { ContextPipeline as ContextPipeline_2 } from '@crawlee/basic';
-import type { CrawlingContext } from '@crawlee/browser';
-import type { CrawlingContext as CrawlingContext_2 } from '@crawlee/basic';
+import type { CrawlingContext } from '@crawlee/basic';
 import type { CrawlingRequest } from '@crawlee/browser';
-import { Dictionary } from '@crawlee/types';
+import type { Dictionary } from '@crawlee/types';
 import type { Download } from 'playwright';
 import type { EnqueueLinksOptions } from '@crawlee/basic';
 import type { GetUserDataFromRequest } from '@crawlee/browser';
@@ -36,13 +33,12 @@ import { IRequestManager } from '@crawlee/browser';
 import type { LaunchOptions } from 'playwright';
 import type { LoadedRequest } from '@crawlee/browser';
 import type { Page } from 'playwright';
-import { PlaywrightPlugin } from '@crawlee/browser-pool';
+import type { PlaywrightPlugin } from '@crawlee/browser-pool';
 import type { RecoverableStatePersistenceOptions } from '@crawlee/core';
 import type { RemoteBrowserPool } from '@crawlee/browser-pool';
 import type { RemoteBrowserPoolOptions } from '@crawlee/browser-pool';
 import type { Request as Request_2 } from '@crawlee/core';
 import { Request as Request_3 } from '@crawlee/browser';
-import type { RequestHandler } from '@crawlee/browser';
 import type { RequestTransform } from '@crawlee/browser';
 import type { Response as Response_2 } from 'playwright';
 import type { RouterHandler } from '@crawlee/browser';
@@ -74,8 +70,6 @@ interface AdaptiveHookContext extends Pick<AdaptivePlaywrightCrawlerContext, 'id
 export class AdaptivePlaywrightCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends AdaptivePlaywrightCrawlerContext = AdaptivePlaywrightCrawlerContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest_2<AdaptivePlaywrightCrawlerContext['request']>>, StatisticStateExtension extends AdaptivePlaywrightCrawlerStatisticState = AdaptivePlaywrightCrawlerStatisticState> extends BasicCrawler<AdaptivePlaywrightCrawlerContext, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
     constructor(options?: AdaptivePlaywrightCrawlerOptions<ContextExtension, ExtendedContext, Routes, StatisticStateExtension>);
     // (undocumented)
-    protected buildContextPipeline(): ContextPipeline_2<CrawlingContext_2, AdaptivePlaywrightCrawlerContext>;
-    // (undocumented)
     destroy(): Promise<void>;
     drainRenderingDetections(input?: {
         timeoutMillis?: number;
@@ -84,12 +78,12 @@ export class AdaptivePlaywrightCrawler<ContextExtension = Dictionary<never>, Ext
     // (undocumented)
     protected init(): Promise<void>;
     // (undocumented)
-    protected runRequestHandler(crawlingContext: CrawlingContext_2): Promise<void>;
+    protected runRequestHandler(crawlingContext: CrawlingContext): Promise<void>;
     teardown(): Promise<void>;
 }
 
 // @public (undocumented)
-export interface AdaptivePlaywrightCrawlerContext<UserData extends Dictionary = any> extends CrawlingContext_2<UserData> {
+export interface AdaptivePlaywrightCrawlerContext<UserData extends Dictionary = any> extends CrawlingContext<UserData> {
     // (undocumented)
     enqueueLinks(options?: EnqueueLinksOptions): Promise<unknown>;
     page: Page;
@@ -212,6 +206,9 @@ export function fullResultComparator(resultA: StorageTransactionView, resultB: S
 function gotoExtended(page: Page, request: Request_3, gotoOptions?: PlaywrightDirectNavigationOptions): Promise<Response_2 | null>;
 
 // @public
+function handleCloudflareChallenge(page: Page, url: string, options?: HandleCloudflareChallengeOptions): Promise<Response_2 | undefined>;
+
+// @public
 export function handleCloudflareChallengeHook(options?: HandleCloudflareChallengeOptions): PlaywrightHook;
 
 // @public (undocumented)
@@ -312,10 +309,8 @@ interface PlaywrightContextUtils {
 }
 
 // @public
-export class PlaywrightCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends PlaywrightCrawlingContext = PlaywrightCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<PlaywrightCrawlingContext['request']>>, StatisticStateExtension extends object = {}> extends BrowserCrawler<Page, Response_2, LaunchOptions, PlaywrightCrawlingContext, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
+export class PlaywrightCrawler<ContextExtension = Dictionary<never>, ExtendedContext extends PlaywrightCrawlingContext = PlaywrightCrawlingContext & ContextExtension, Routes extends Record<keyof Routes, Dictionary> = Record<string, GetUserDataFromRequest<PlaywrightCrawlingContext['request']>>, StatisticStateExtension extends object = {}> extends BrowserCrawler<Page, Response_2, PlaywrightCrawlingContext, ContextExtension, ExtendedContext, Routes, StatisticStateExtension> {
     constructor(options?: PlaywrightCrawlerOptions<ContextExtension, ExtendedContext, Routes, StatisticStateExtension>);
-    // (undocumented)
-    protected buildContextPipeline(): ContextPipeline<CrawlingContext, PlaywrightCrawlingContext>;
     // (undocumented)
     protected navigationHandler(crawlingContext: PlaywrightCrawlingContext, gotoOptions: PlaywrightDirectNavigationOptions): Promise<Response_2 | null>;
 }
@@ -326,7 +321,6 @@ export interface PlaywrightCrawlerOptions<ContextExtension = Dictionary<never>, 
     launchContext?: PlaywrightLaunchContext;
     postNavigationHooks?: BrowserHook<PlaywrightCrawlingContext<GetUserDataFromRequest<ExtendedContext['request']>>, ContextExtension>[];
     preNavigationHooks?: BrowserHook<PlaywrightCrawlingContext<GetUserDataFromRequest<ExtendedContext['request']>>, ContextExtension>[];
-    requestHandler?: RouterHandler<ExtendedContext, Routes> | RequestHandler<ExtendedContext>;
 }
 
 // @public (undocumented)
@@ -366,6 +360,7 @@ declare namespace playwrightUtils {
         infiniteScroll,
         saveSnapshot,
         parseWithCheerio,
+        handleCloudflareChallenge,
         InjectFileOptions,
         BlockRequestsOptions,
         PlaywrightDirectNavigationOptions as DirectNavigationOptions,
@@ -375,8 +370,7 @@ declare namespace playwrightUtils {
         SaveSnapshotOptions,
         HandleCloudflareChallengeOptions,
         PlaywrightContextUtils,
-        enqueueLinksByClickingElements,
-        playwrightUtils_2 as playwrightUtils
+        enqueueLinksByClickingElements
     }
 }
 

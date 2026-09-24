@@ -53,10 +53,11 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test, vitest } from 
 import { z } from 'zod';
 
 import { startExpressAppPromise } from '../../shared/_helper.js';
+// `createRequestQueueBackend` is typed with the `@crawlee/types` interface, so the memory-specific
+// `listItems()` helper these tests use has to come from the implementation class itself.
+import type { RequestQueueBackend as MemoryRequestQueueBackend } from '../../../packages/core/src/memory-storage/resource-clients/request-queue.js';
 
 import log from '@apify/log';
-
-type MemoryRequestQueueBackend = Awaited<ReturnType<MemoryStorageBackend['createRequestQueueBackend']>>;
 
 describe('BasicCrawler', () => {
     let logLevel: number;
@@ -365,8 +366,9 @@ describe('BasicCrawler', () => {
 
         await crawler.run(['https://example.com/1']);
         const firstSystem = crawler.concurrencySystem! as ConcurrencySystem;
-        // Simulate scaling state left behind by the first run.
-        firstSystem.desiredConcurrency = 42;
+        // Simulate scaling state left behind by the first run - `desiredConcurrency` is autoscaler-owned, so it is
+        // pushed up indirectly, by raising the floor it is clamped against.
+        firstSystem.minConcurrency = 42;
 
         await crawler.run(['https://example.com/2']);
         const secondSystem = crawler.concurrencySystem!;
@@ -613,8 +615,7 @@ describe('BasicCrawler', () => {
         let drainedRequests: any[];
         let options: EnqueueLinksOptions;
         let requestQueue: RequestQueue;
-
-        const crawler = new BasicCrawler({ maxCrawlDepth: 3 });
+        let crawler: BasicCrawler;
 
         // Mimics what `context.addRequests()` would have tagged the URLs with, based on the current
         // request's `crawlDepth`.
@@ -637,9 +638,12 @@ describe('BasicCrawler', () => {
             };
             requestQueue = {
                 addRequestsBatched: addRequestsBatchedMock as RequestQueue['addRequestsBatched'],
+                // Only `addRequestsBatched` is exercised here; the other two exist because the
+                // `requestManager` option is validated structurally.
+                fetchNextRequest: (async () => null) as unknown as RequestQueue['fetchNextRequest'],
+                addRequest: (async () => ({})) as unknown as RequestQueue['addRequest'],
             } as RequestQueue;
-            // eslint-disable-next-line dot-notation -- private field on the crawler, injected for the mock
-            crawler['requestManager'] = requestQueue;
+            crawler = new BasicCrawler({ maxCrawlDepth: 3, requestManager: requestQueue });
         });
 
         it('should generate requests with maxCrawlDepth', async () => {
@@ -3746,6 +3750,7 @@ describe('BasicCrawler', () => {
         test('afterStorageCommit turns a rejected write into a non-retryable request failure', async () => {
             const dataset = await Dataset.open();
             vitest
+                // @ts-expect-error Accessing private property
                 .spyOn(dataset.backend, 'pushData')
                 .mockRejectedValue(new Error('Data item is too large (size: 10000000 bytes)'));
 
@@ -3795,33 +3800,15 @@ describe('BasicCrawler', () => {
         });
 
         test('an unclosed transaction on a normal pipeline return is discarded and logged', async () => {
-            let leaked: StorageTransaction | undefined;
-            // Simulate the wiring bug the guard exists for: the pipeline callback returns normally while
-            // its transaction is still open (handleRequest failed to commit or roll it back). Injected
-            // through the public `basicContextPipeline` seam, so the crawler still runs for real.
-            const crawler = new (class LeakyPipelineCrawler extends BasicCrawler {
-                // A pipeline that returns without ever invoking the crawler's action; `ContextPipeline`
-                // has no way to express that, hence the cast at this one seam.
-                override get basicContextPipeline() {
-                    return {
-                        chain: () => ({
-                            call: async () => {
-                                leaked = currentStorageTransaction();
-                            },
-                        }),
-                    } as unknown as BasicCrawler['basicContextPipeline'];
-                }
-            })({
-                requestHandler: async () => {},
-                // Nothing ever marks the request as handled, so end the run after that single task.
-                taskLoopOptions: {
-                    isTaskReadyFunction: async () => leaked === undefined,
-                    isFinishedFunction: async () => leaked !== undefined,
-                },
-            });
+            const crawler = new BasicCrawler({ requestHandler: async () => {} });
             const errorSpy = vitest.spyOn(crawler.log, 'error').mockImplementation(() => {});
 
-            await crawler.run([`http://${HOSTNAME}:${port}/`]);
+            // Simulate the wiring bug the guard exists for: the pipeline callback returns normally while
+            // its transaction is still open (handleRequest failed to commit or roll it back).
+            let leaked: StorageTransaction | undefined;
+            await crawler['runInStorageTransaction'](async () => {
+                leaked = currentStorageTransaction();
+            });
 
             expect(leaked!.state).toBe('rolledBack'); // discarded, not left open
             expect(errorSpy).toHaveBeenCalledWith(expect.stringMatching(/still open after the request pipeline/));
