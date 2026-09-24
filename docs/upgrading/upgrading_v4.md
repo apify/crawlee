@@ -1802,7 +1802,7 @@ await enqueueLinks({ urls, requestManager });
 
 #### Removed loader and manager type aliases
 
-- `RequestListSource`, `UrlList` and `NewUrlOptions` are gone; the signatures that used them now spell their types out inline (`(string | Source)[]`, `(string | null)[]` and `{ request?: Request }` respectively). No behavioral change — replace the alias with the expansion if you referenced it.
+- `UrlList` and `NewUrlOptions` are gone; the signatures that used them now spell their types out inline (`(string | null)[]` and `{ request?: Request }` respectively). No behavioral change — replace the alias with the expansion if you referenced it.
 - `RequestManagerOpener` is no longer exported, along with the `ThrottlingRequestManagerOptions.requestManagerOpener` option that took one.
 
 ## Only if you configure or implement storage backends

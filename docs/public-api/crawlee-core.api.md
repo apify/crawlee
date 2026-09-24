@@ -670,7 +670,7 @@ export class RequestList implements IRequestLoader {
     getTotalCount(): Promise<number>;
     // (undocumented)
     markRequestAsHandled(request: Request_2): Promise<void>;
-    static open(listNameOrOptions: string | null | RequestListOptions, sources?: (string | Source)[], options?: RequestListOptions): Promise<RequestList>;
+    static open(listNameOrOptions: string | null | RequestListOptions, sources?: RequestListSource[], options?: RequestListOptions): Promise<RequestList>;
     // (undocumented)
     persistState(): Promise<void>;
     teardown(): Promise<void>;
@@ -684,13 +684,16 @@ export interface RequestListOptions {
     persistRequestsKey?: string;
     persistStateKey?: string;
     proxyConfiguration?: IProxyConfiguration;
-    sources?: (string | Source)[];
+    sources?: RequestListSource[];
     sourcesFunction?: RequestListSourcesFunction;
     state?: RequestListState;
 }
 
 // @public (undocumented)
-export type RequestListSourcesFunction = () => Promise<(string | Source)[]>;
+export type RequestListSource = string | Source;
+
+// @public (undocumented)
+export type RequestListSourcesFunction = () => Promise<RequestListSource[]>;
 
 // @public
 export interface RequestListState {
