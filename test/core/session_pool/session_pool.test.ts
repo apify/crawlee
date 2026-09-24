@@ -214,13 +214,10 @@ describe('SessionPool - testing session pool', () => {
     });
 
     test('should create session', async () => {
-        // @ts-expect-error Accessing protected method
-        await sessionPool.ensureInitialized();
-        // @ts-expect-error private symbol
-        await sessionPool.createSession();
+        const created = await sessionPool.newSession();
         const { sessions } = await sessionPool.getState();
         expect(sessions).toHaveLength(1);
-        expect(sessions[0].id).toBeDefined();
+        expect(sessions[0].id).toBe(created.id);
     });
 
     describe('should persist state', () => {
@@ -326,8 +323,8 @@ describe('SessionPool - testing session pool', () => {
             persistStateKeyValueStoreId,
             persistStateKey,
         });
-        // @ts-expect-error Accessing protected method
-        await newSessionPool.ensureInitialized();
+        // Any public use initializes the pool, which is what teardown then persists.
+        await newSessionPool.getState();
 
         await newSessionPool.teardown();
 
@@ -358,8 +355,7 @@ describe('SessionPool - testing session pool', () => {
 
     it('should remove persist state event listener', async () => {
         const events = serviceLocator.getEventManager();
-        // @ts-expect-error Accessing protected method
-        await sessionPool.ensureInitialized();
+        await sessionPool.getState();
         expect(events.listenerCount(EventType.PERSIST_STATE)).toEqual(1);
         await sessionPool.teardown();
         expect(events.listenerCount(EventType.PERSIST_STATE)).toEqual(0);

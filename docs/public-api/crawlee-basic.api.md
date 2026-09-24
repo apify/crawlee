@@ -193,6 +193,7 @@ export class ConcurrencySystem implements IConcurrencySystem {
     get isRunning(): boolean;
     get maxConcurrency(): number;
     set maxConcurrency(value: number);
+    readonly maxTasksPerMinute: number;
     get minConcurrency(): number;
     set minConcurrency(value: number);
     registerTaskEnd(_consumer?: ConcurrencyConsumer): void;

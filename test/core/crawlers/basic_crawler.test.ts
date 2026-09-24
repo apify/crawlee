@@ -42,7 +42,8 @@ import {
     Statistics,
     ThrottlingRequestManager,
 } from '@crawlee/basic';
-import { MemoryStorageBackend } from '@crawlee/core';
+import type { StorageTransaction } from '@crawlee/core';
+import { currentStorageTransaction, MemoryStorageBackend } from '@crawlee/core';
 import { BaseHttpClient } from '@crawlee/http-client';
 import type { Dictionary, ISession, ProxyInfo } from '@crawlee/types';
 import { RobotsTxtFile, sleep } from '@crawlee/utils';
@@ -829,13 +830,15 @@ describe('BasicCrawler', () => {
 
         test('drains foreground and background robots.txt skips exactly once', async () => {
             const onSkippedRequest = vitest.fn();
-            const crawler = new BasicCrawler({
+            const crawler = new (class MockedRobotsTxtCrawler extends BasicCrawler {
+                override async getRobotsTxtFileForUrl(_: string) {
+                    return RobotsTxtFile.from('https://example.com/robots.txt', 'User-agent: *\nDisallow: /denied\n');
+                }
+            })({
+                respectRobotsTxtFile: true,
                 requestHandler: async () => {},
                 onSkippedRequest,
             });
-            vitest
-                .spyOn(crawler as any, 'isAllowedBasedOnRobotsTxtFile')
-                .mockImplementation(async (url: unknown) => !String(url).includes('/denied'));
             const warningSpy = vitest.spyOn(crawler.log, 'warning');
 
             const foregroundDenied = 'https://example.com/denied/foreground';
@@ -900,8 +903,7 @@ describe('BasicCrawler', () => {
             minConcurrency: (crawler.concurrencySystem! as ConcurrencySystem).minConcurrency,
             maxConcurrency: (crawler.concurrencySystem! as ConcurrencySystem).maxConcurrency,
             desiredConcurrency: (crawler.concurrencySystem! as ConcurrencySystem).desiredConcurrency,
-            // eslint-disable-next-line dot-notation -- private member on the governor
-            maxTasksPerMinute: (crawler.concurrencySystem! as ConcurrencySystem)['maxTasksPerMinute'],
+            maxTasksPerMinute: (crawler.concurrencySystem! as ConcurrencySystem).maxTasksPerMinute,
         });
 
         // Shortcuts feed the default ConcurrencySystem the crawler builds.
@@ -1566,17 +1568,31 @@ describe('BasicCrawler', () => {
         vitest.restoreAllMocks();
     });
 
-    test('should say that task is not ready requestList is not set and requestQueue is empty', async () => {
+    test('does not start a task while the request manager is not ready', async () => {
         const requestQueue = await RequestQueue.open({ id: 'xxx' });
-        requestQueue.checkReadiness = async () => Promise.resolve({ status: 'waiting' });
+        await requestQueue.addRequest({ url: 'https://example.com' });
 
+        // The queue reports readiness only once we let it - until then the crawler must not fetch anything.
+        const checkReadiness = requestQueue.checkReadiness.bind(requestQueue);
+        let ready = false;
+        requestQueue.checkReadiness = async () => (ready ? checkReadiness() : { status: 'waiting' });
+
+        const handled: string[] = [];
         const crawler = new BasicCrawler({
             requestQueue,
-            requestHandler: async () => {},
+            requestHandler: async ({ request }) => {
+                handled.push(request.url);
+            },
+            taskLoopOptions: { maybeRunIntervalSecs: 0.05 },
         });
 
-        // @ts-expect-error Accessing private prop
-        expect(await crawler.isTaskReadyFunction()).toBe(false);
+        const run = crawler.run();
+        await sleep(300);
+        expect(handled).toEqual([]);
+
+        ready = true;
+        await run;
+        expect(handled).toEqual(['https://example.com']);
     });
 
     test('should be possible to override isFinishedFunction and isTaskReadyFunction via taskLoopOptions', async () => {
@@ -2075,21 +2091,29 @@ describe('BasicCrawler', () => {
         const url = 'https://example.com';
         const requestList = await RequestList.open({ sources: [{ url }] });
 
-        const results = [];
+        const handled: string[] = [];
+        const failures: string[] = [];
         const crawler = new BasicCrawler({
             requestList,
             requestHandlerTimeoutSecs: Infinity,
-            maxRequestRetries: 1,
-            requestHandler: async () => sleep(1000),
-            failedRequestHandler: async ({ request }) => {
-                results.push(request);
+            maxRequestRetries: 0,
+            requestHandler: async ({ request }) => {
+                // An unclamped `Infinity` overflows `setTimeout`, which then fires on the next tick and
+                // kills the handler immediately instead of never (see #4043).
+                await sleep(50);
+                handled.push(request.url);
+            },
+            failedRequestHandler: async (_context, error) => {
+                failures.push(error.message);
             },
         });
 
-        const maxSignedInteger = 2 ** 31 - 1;
-        expect(crawler['resolveRequestHandlerTimeoutMillis'](undefined)).toBe(maxSignedInteger);
-        // @ts-expect-error Accessing private prop
-        expect(crawler.internalTimeoutMillis).toBe(maxSignedInteger);
+        await crawler.run();
+
+        expect(handled).toEqual([url]);
+        expect(failures).toEqual([]);
+        // @ts-expect-error Accessing protected prop
+        expect(crawler.internalTimeoutMillis).toBe(2 ** 31 - 1);
     });
 
     test('should not log stack trace for timeout errors by default', async () => {
@@ -2790,7 +2814,11 @@ describe('BasicCrawler', () => {
             const requestQueue = await RequestQueue.open();
             const addRequestsBatchedSpy = vitest.spyOn(requestQueue, 'addRequestsBatched');
 
-            const crawler = new BasicCrawler({
+            const crawler = new (class MockedRobotsTxtCrawler extends BasicCrawler {
+                override async getRobotsTxtFileForUrl(_: string) {
+                    return RobotsTxtFile.from('http://example.com/robots.txt', 'User-agent: *\nDisallow: /2\n');
+                }
+            })({
                 requestQueue,
                 maxRequestsPerCrawl: 2,
                 respectRobotsTxtFile: true,
@@ -2798,11 +2826,6 @@ describe('BasicCrawler', () => {
             });
 
             crawler.statistics.state.requestsSucceeded = 0;
-
-            // Mock robots.txt checking to disallow some URLs
-            vitest.spyOn(crawler as any, 'isAllowedBasedOnRobotsTxtFile').mockImplementation(async (url) => {
-                return url !== 'http://example.com/2';
-            });
 
             await crawler.addRequests([
                 'http://example.com/1', // Allowed by robots.txt
@@ -2899,17 +2922,9 @@ describe('BasicCrawler', () => {
 
                 expect(warning).not.toHaveBeenCalled();
 
-                // The robots.txt `Crawl-delay: 5` must have reached the manager, not merely been survivable.
+                // The robots.txt `Crawl-delay: 5` must have reached the manager, not merely been survivable:
+                // after the first fetch it paces dispatch, holding the next request back instead of serving it.
                 await requestManager.fetchNextRequest();
-                // `domainStates` is TS-private, and deliberately not `#private`, so that tests can read it.
-                const { domainStates } = requestManager as unknown as {
-                    domainStates: Map<string, { declaredCrawlDelayMs: number; crawlDelayUntil: number }>;
-                };
-                const state = domainStates.get('example.com')!;
-                expect(state.declaredCrawlDelayMs).toBe(5_000);
-
-                // ...and it paces dispatch: the next request is held back rather than served immediately.
-                expect(state.crawlDelayUntil).toBeGreaterThan(Date.now() + 4_000);
                 expect(await requestManager.fetchNextRequest()).toBeNull();
 
                 const readiness = await requestManager.checkReadiness();
@@ -3786,16 +3801,16 @@ describe('BasicCrawler', () => {
 
         test('an unclosed transaction on a normal pipeline return is discarded and logged', async () => {
             const crawler = new BasicCrawler({ requestHandler: async () => {} });
-            const errorSpy = vitest.spyOn((crawler as any).log, 'error').mockImplementation(() => {});
+            const errorSpy = vitest.spyOn(crawler.log, 'error').mockImplementation(() => {});
 
             // Simulate the wiring bug the guard exists for: the pipeline callback returns normally while
             // its transaction is still open (handleRequest failed to commit or roll it back).
-            let leaked: any;
-            await (crawler as any).runInStorageTransaction(async () => {
-                leaked = (await import('@crawlee/core')).currentStorageTransaction();
+            let leaked: StorageTransaction | undefined;
+            await crawler['runInStorageTransaction'](async () => {
+                leaked = currentStorageTransaction();
             });
 
-            expect(leaked.state).toBe('rolledBack'); // discarded, not left open
+            expect(leaked!.state).toBe('rolledBack'); // discarded, not left open
             expect(errorSpy).toHaveBeenCalledWith(expect.stringMatching(/still open after the request pipeline/));
 
             errorSpy.mockRestore();
@@ -3847,7 +3862,14 @@ describe('BasicCrawler', () => {
         });
 
         test('onSkippedRequest bookkeeping survives an in-pipeline robots.txt skip', async () => {
-            const crawler = new BasicCrawler({
+            const crawler = new (class MockedRobotsTxtCrawler extends BasicCrawler {
+                override async getRobotsTxtFileForUrl(_: string) {
+                    return RobotsTxtFile.from(
+                        `http://${HOSTNAME}:${port}/robots.txt`,
+                        'User-agent: *\nDisallow: /disallowed\n',
+                    );
+                }
+            })({
                 maxRequestRetries: 0,
                 respectRobotsTxtFile: true,
                 requestHandler: async () => {},
@@ -3856,11 +3878,10 @@ describe('BasicCrawler', () => {
                 },
             });
 
-            // Let the request into the crawler's queue, then disallow it during processing, so the skip
-            // happens inside the request's transaction scope.
+            // Let the request into the crawler's queue - a direct queue add skips the robots.txt check -
+            // so the skip happens during processing, inside the request's transaction scope.
             const queue = await crawler.getRequestQueue();
             await queue.addRequest({ url: `http://${HOSTNAME}:${port}/disallowed` });
-            vitest.spyOn(crawler as any, 'isAllowedBasedOnRobotsTxtFile').mockResolvedValue(false);
 
             await crawler.run();
 

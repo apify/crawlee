@@ -165,108 +165,121 @@ describe('AutoscaledPool', () => {
     });
 
     describe('should scale correctly', () => {
-        class MockSystemStatus {
-            okNow: boolean;
-            okLately: boolean;
-            getCurrentStatus: () => { isSystemIdle: boolean };
-            getHistoricalStatus: () => { isSystemIdle: boolean };
+        const CURRENT_HISTORY_SECS = 5;
+        const SNAPSHOT_HISTORY_SECS = 30;
+        const AUTOSCALE_INTERVAL_SECS = 10;
 
-            constructor(okNow: boolean, okLately: boolean) {
-                this.okNow = okNow;
-                this.okLately = okLately;
-                this.getCurrentStatus = () => ({ isSystemIdle: this.okNow });
-                this.getHistoricalStatus = () => ({ isSystemIdle: this.okLately });
-            }
-        }
+        /** `okNow` drives the task-gating status; `okLately` the one autoscaling decisions are made on. */
+        const load = { okNow: true, okLately: true };
 
-        let pool: AutoscaledPool;
-        let systemStatus: MockSystemStatus;
-        const cb = () => {};
-        beforeEach(async () => {
-            systemStatus = new MockSystemStatus(true, true);
-            pool = await makePool(
+        /**
+         * The system's only load signal, so its verdict *is* the system status. The two status windows are
+         * configured far apart, so the requested sample window identifies which of the two is asking.
+         */
+        const mockLoadSignal: LoadSignal = {
+            name: 'mock',
+            overloadedRatio: 0.5,
+            async start() {},
+            async stop() {},
+            getSample: (sampleDurationMillis) => [
                 {
-                    runTaskFunction: async () => {},
-                    isFinishedFunction: async () => false,
-                    isTaskReadyFunction: async () => true,
+                    createdAt: new Date(),
+                    isOverloaded: sampleDurationMillis === CURRENT_HISTORY_SECS * 1000 ? !load.okNow : !load.okLately,
                 },
-                { minConcurrency: 1, maxConcurrency: 100 },
-            );
-            // Autoscaling now lives on the shared governor; mock its system status.
-            // @ts-expect-error Mock
-            pool.system.systemStatus = systemStatus;
+            ],
+        };
+
+        const concurrencyOptions: ConcurrencySystemOptions = {
+            minConcurrency: 1,
+            maxConcurrency: 100,
+            desiredConcurrencyRatio: 0.9,
+            scaleUpStepRatio: 0.05,
+            scaleDownStepRatio: 0.05,
+            currentHistorySecs: CURRENT_HISTORY_SECS,
+            snapshotHistorySecs: SNAPSHOT_HISTORY_SECS,
+            autoscaleIntervalSecs: AUTOSCALE_INTERVAL_SECS,
+            loadSignals: {
+                memory: false,
+                eventLoop: false,
+                cpu: false,
+                storageBackend: false,
+                custom: [mockLoadSignal],
+            },
+        };
+
+        const taskOptions = {
+            runTaskFunction: async () => {},
+            isFinishedFunction: async () => false,
+            isTaskReadyFunction: async () => true,
+        };
+
+        beforeEach(() => {
+            load.okNow = true;
+            load.okLately = true;
         });
 
-        test('works with low values', () => {
-            // @ts-expect-error Calling private method on the governor
-            pool.system.autoscale(cb);
+        /**
+         * Autoscaling is driven by an interval that `ConcurrencySystem.start()` sets up, so the loop is stepped by
+         * advancing that interval. Only the timer functions the interval itself uses are faked, leaving sleeps and
+         * the snapshotter's teardown on real ones.
+         */
+        function useAutoscaleTimer() {
+            vitest.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+            onTestFinished(() => {
+                vitest.useRealTimers();
+            });
+        }
+
+        const tick = async () => vitest.advanceTimersByTimeAsync(AUTOSCALE_INTERVAL_SECS * 1000);
+
+        test('works with low values', async () => {
+            useAutoscaleTimer();
+            // Starts at the default of `minConcurrency`; the loop's first turn during `start()` already takes it to 2.
+            const pool = await makePool(taskOptions, concurrencyOptions);
+
+            await tick();
             expect(pool.desiredConcurrency).toBe(2);
 
-            // @ts-expect-error Calling private method on the governor
-            pool.system.autoscale(cb);
-            expect(pool.desiredConcurrency).toBe(2); // because currentConcurrency is not high enough;
+            await tick();
+            expect(pool.desiredConcurrency).toBe(2); // because currentConcurrency is not high enough
 
             systemOf(pool).tryRegisterTaskStart();
             systemOf(pool).tryRegisterTaskStart();
-            // @ts-expect-error Calling private method on the governor
-            pool.system.autoscale(cb);
+            await tick();
             expect(pool.desiredConcurrency).toBe(3);
 
-            systemStatus.okNow = false; // this should have no effect
+            load.okNow = false; // this should have no effect
             systemOf(pool).tryRegisterTaskStart();
-            // @ts-expect-error Calling private method on the governor
-            pool.system.autoscale(cb);
+            await tick();
             expect(pool.desiredConcurrency).toBe(4);
 
-            systemStatus.okLately = false;
-            // @ts-expect-error Calling private method on the governor
-            pool.system.autoscale(cb);
+            load.okLately = false;
+            await tick();
             expect(pool.desiredConcurrency).toBe(3);
         });
 
         test('works with high values', async () => {
+            useAutoscaleTimer();
             // A starting budget of 50 has to be configured, since `desiredConcurrency` is autoscaler-owned.
-            pool = await makePool(
-                {
-                    runTaskFunction: async () => {},
-                    isFinishedFunction: async () => false,
-                    isTaskReadyFunction: async () => true,
-                },
-                { minConcurrency: 1, maxConcurrency: 100, desiredConcurrency: 50 },
-            );
-            // @ts-expect-error Mock
-            pool.system.systemStatus = systemStatus;
+            const pool = await makePool(taskOptions, { ...concurrencyOptions, desiredConcurrency: 50 });
 
-            // Should not scale because current concurrency is too low.
-            const targetConcurrency = Math.floor(
-                // @ts-expect-error Accessing private prop on the governor
-                pool.desiredConcurrency * pool.system.desiredConcurrencyRatio,
-            );
-            for (let i = 0; i < targetConcurrency - 1; i++) {
+            // Should not scale because current concurrency is too low - one short of the 90% of 50 that scaling up
+            // asks for.
+            for (let i = 0; i < 44; i++) {
                 systemOf(pool).tryRegisterTaskStart();
             }
-            systemStatus.okLately = true;
-            // @ts-expect-error Calling private method on the governor
-            pool.system.autoscale(cb);
+            await tick();
             expect(pool.desiredConcurrency).toBe(50);
 
-            // Should scale because we bumped up current concurrency.
+            // Should scale because we bumped up current concurrency, by ceil(50 * 0.05).
             systemOf(pool).tryRegisterTaskStart();
-            let newConcurrency =
-                // @ts-expect-error Accessing private prop on the governor
-                pool.desiredConcurrency + Math.ceil(pool.desiredConcurrency * pool.system.scaleUpStepRatio);
-            // @ts-expect-error Calling private method on the governor
-            pool.system.autoscale(cb);
-            expect(pool.desiredConcurrency).toEqual(newConcurrency);
+            await tick();
+            expect(pool.desiredConcurrency).toBe(53);
 
-            // Should scale down.
-            systemStatus.okLately = false;
-            newConcurrency =
-                // @ts-expect-error Accessing private prop on the governor
-                pool.desiredConcurrency - Math.ceil(pool.desiredConcurrency * pool.system.scaleDownStepRatio);
-            // @ts-expect-error Calling private method on the governor
-            pool.system.autoscale(cb);
-            expect(pool.desiredConcurrency).toEqual(newConcurrency);
+            // Should scale down, by ceil(53 * 0.05).
+            load.okLately = false;
+            await tick();
+            expect(pool.desiredConcurrency).toBe(50);
         });
 
         test('works at minConcurrency when currently overloaded', async () => {
@@ -274,8 +287,7 @@ describe('AutoscaledPool', () => {
             let concurrencyLog: number[] = [];
             let count = 0;
 
-            // The task loop is configuration, so this test builds its own pool instead of reusing the shared one.
-            pool = await makePool(
+            const pool = await makePool(
                 {
                     runTaskFunction: async () => {
                         await sleep(10);
@@ -284,11 +296,9 @@ describe('AutoscaledPool', () => {
                     isFinishedFunction: async () => count >= limit,
                     isTaskReadyFunction: async () => count < limit,
                 },
-                { minConcurrency: 1, maxConcurrency: 100, desiredConcurrency: 10 },
+                { ...concurrencyOptions, desiredConcurrency: 10 },
             );
-            // @ts-expect-error Mock
-            pool.system.systemStatus = systemStatus;
-            systemStatus.okNow = false;
+            load.okNow = false;
 
             const origStart = pool.system.tryRegisterTaskStart.bind(pool.system);
             const origEnd = pool.system.registerTaskEnd.bind(pool.system);
@@ -570,6 +580,8 @@ describe('AutoscaledPool', () => {
     });
 
     test('should work with loggingIntervalSecs = null', async () => {
+        // The autoscaling loop turns once during `start()`; a throw there surfaces as an unhandled rejection,
+        // which fails the run rather than this test.
         const pool = await makePool(
             {
                 runTaskFunction: async () => Promise.resolve(),
@@ -578,8 +590,6 @@ describe('AutoscaledPool', () => {
             },
             { minConcurrency: 1, maxConcurrency: 100, loggingIntervalSecs: null },
         );
-        // @ts-expect-error Calling private method on the governor
-        pool.system.autoscale(() => {});
         expect(pool.desiredConcurrency).toBe(2);
     });
 

@@ -282,9 +282,8 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
 
     readonly #subManagers = new Map<string, Promise<T>>();
 
-    // Not `#private`, unlike the rest: the tests reach for these two.
-    private readonly domainStates = new Map<string, DomainState>();
-    private readonly log: CrawleeLogger;
+    readonly #domainStates = new Map<string, DomainState>();
+    readonly #log: CrawleeLogger;
 
     /** Domains from the `domains` option, which are throttled whether or not the crawl ever visits them. */
     readonly #listedDomains = new Set<string>();
@@ -358,7 +357,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         this.#throttleBy = options.throttleBy ?? 'hostname';
         this.#maxThrottledDomains = options.maxThrottledDomains ?? 100;
         this.#persistStateKey = options.persistStateKey ?? DEFAULT_PERSIST_STATE_KEY;
-        this.log = serviceLocator.getLogger().child({ prefix: 'ThrottlingRequestManager' });
+        this.#log = serviceLocator.getLogger().child({ prefix: 'ThrottlingRequestManager' });
 
         for (const domain of Array.isArray(options.domains) ? options.domains : []) {
             let hostname: string;
@@ -374,7 +373,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
 
             const key = this.#domainKey(hostname);
             this.#listedDomains.add(key);
-            this.domainStates.set(key, newDomainState(key));
+            this.#domainStates.set(key, newDomainState(key));
         }
     }
 
@@ -445,7 +444,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
             return;
         }
         this.#warnedAbout.add(key);
-        this.log.warning(message);
+        this.#log.warning(message);
     }
 
     #extractDomain(url: string): string {
@@ -458,7 +457,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
 
     #getDomainState(url: string): DomainState | null {
         const domain = this.#extractDomain(url);
-        return this.domainStates.get(domain) ?? null;
+        return this.#domainStates.get(domain) ?? null;
     }
 
     /**
@@ -534,11 +533,11 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
     }
 
     #ensureDomainState(domain: string): DomainState {
-        let state = this.domainStates.get(domain);
+        let state = this.#domainStates.get(domain);
 
         if (!state) {
             state = newDomainState(domain);
-            this.domainStates.set(domain, state);
+            this.#domainStates.set(domain, state);
         }
 
         return state;
@@ -594,7 +593,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
      */
     #fetchableDomains(): string[] {
         const now = Date.now();
-        return Array.from(this.domainStates.values())
+        return Array.from(this.#domainStates.values())
             .filter((state) => now >= throttledUntil(state) && this.#subManagers.has(state.domain))
             .sort((a, b) => throttledUntil(a) - throttledUntil(b))
             .map((state) => state.domain);
@@ -647,7 +646,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         }
 
         this.#minCrawlDelayMs = Math.max(this.#minCrawlDelayMs, intervalMs);
-        this.log.debug(`Crawl-delay floor for every domain set to ${(this.#minCrawlDelayMs / 1000).toFixed(1)}s`);
+        this.#log.debug(`Crawl-delay floor for every domain set to ${(this.#minCrawlDelayMs / 1000).toFixed(1)}s`);
 
         return true;
     }
@@ -669,7 +668,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
 
         if (scope === 'hostname' && this.#throttleBy === 'registrableDomain') {
             // Only debug: grouping by registrable domain deliberately paces whole sites, subdomains included.
-            this.log.debug(
+            this.#log.debug(
                 `Applying a pacing signal scoped to "hostname" across the whole registrable domain, because that ` +
                     `is how this manager groups requests (\`throttleBy\`). Sibling subdomains are paced with it.`,
             );
@@ -724,7 +723,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
 
         if (delayMs > this.#maxDelayMs) {
             const source = waitGiven ? 'requested wait' : 'exponential backoff';
-            this.log.warning(
+            this.#log.warning(
                 `Capping ${source} delay of ${(delayMs / 1000).toFixed(1)}s for domain "${state.domain}" ` +
                     `to maxDelaySecs (${(this.#maxDelayMs / 1000).toFixed(1)}s); the domain may continue to rate-limit. ` +
                     `Consider increasing maxDelaySecs if this recurs.`,
@@ -735,7 +734,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         state.backoffUntil = now + delayMs;
         state.backoffDecaysAt = state.backoffUntil + delayMs;
 
-        this.log.info(
+        this.#log.info(
             `Rate limit (429) detected for domain "${state.domain}" ` +
                 `(consecutive: ${state.consecutive429Count}, delay: ${(delayMs / 1000).toFixed(1)}s)`,
         );
@@ -764,7 +763,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
 
         if (state.declaredCrawlDelayMs === null) {
             state.declaredCrawlDelayMs = intervalMs;
-            this.log.debug(`Set crawl-delay for domain "${state.domain}" to ${(intervalMs / 1000).toFixed(1)}s`);
+            this.#log.debug(`Set crawl-delay for domain "${state.domain}" to ${(intervalMs / 1000).toFixed(1)}s`);
         }
 
         return true;
@@ -931,7 +930,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         let readyAt: number | undefined;
         let stallCandidates: DomainState[] | undefined;
 
-        for (const state of this.domainStates.values()) {
+        for (const state of this.#domainStates.values()) {
             // A `Crawl-delay` can give a domain a clock before its first request gives it a queue - nothing
             // to fetch from and nothing to wait for until then.
             if (!this.#subManagers.has(state.domain)) {
@@ -1032,7 +1031,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
 
         this.#migratedFromInner = 0;
 
-        for (const state of this.domainStates.values()) {
+        for (const state of this.#domainStates.values()) {
             state.consecutive429Count = 0;
             state.backoffUntil = 0;
             state.crawlDelayUntil = 0;
@@ -1082,7 +1081,7 @@ export class ThrottlingRequestManager<T extends IRequestManager = IRequestManage
         await this.#ensureSubManagers();
 
         for (const domain of this.#fetchableDomains()) {
-            const state = this.domainStates.get(domain)!;
+            const state = this.#domainStates.get(domain)!;
 
             // Armed while the fetch below is still suspended, so that a concurrent `fetchNextRequest` cannot
             // find the domain fetchable and dispatch into the same window - which would pace each task

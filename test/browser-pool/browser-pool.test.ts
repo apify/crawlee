@@ -1,4 +1,3 @@
-/* eslint-disable dot-notation -- Accessing private properties */
 import http from 'node:http';
 import { promisify } from 'node:util';
 
@@ -66,6 +65,34 @@ describe.each([
     afterEach(async () => {
         await browserPool?.destroy();
     });
+
+    /**
+     * Makes the browser's own `page.close()` never settle, before the pool wraps it - a browser that
+     * acknowledges the close and then never destroys the target. Patching the page afterwards would
+     * replace the pool's wrapper instead of the close it wraps.
+     */
+    const hangEveryPageClose = () => {
+        const createController = plugin.createController.bind(plugin);
+        // The two-plugin matrix makes the controller a union, so its own `newPage` signature is the
+        // corresponding intersection and nothing satisfies it. Only `close` matters here.
+        interface AnyController {
+            newPage: (...args: never[]) => Promise<{ close: () => Promise<void> }>;
+        }
+
+        const patched = (() => {
+            const controller = createController();
+            const view = controller as unknown as AnyController;
+            const newPage = view.newPage.bind(controller);
+            view.newPage = async (...args: never[]) => {
+                const page = await newPage(...args);
+                page.close = async () => new Promise<void>(() => {});
+                return page;
+            };
+            return controller;
+        }) as unknown as typeof createController;
+
+        vitest.spyOn(plugin, 'createController').mockImplementation(patched);
+    };
 
     let target: http.Server;
     let unprotectedProxy: ProxyChainServer;
@@ -167,19 +194,24 @@ describe.each([
 
         // TODO: this test is very flaky in the CI
         test.skip('should allow early aborting in case of outer timeout', async () => {
+            // One counter across all four launch/page-creation hook phases, standing in for the
+            // pool's own hook dispatch.
+            const hook = vitest.fn(async () => {});
             await browserPool.destroy();
             browserPool = new BrowserPool({
                 browserPlugins: [plugin],
                 closeInactiveBrowserAfterSecs: 2,
                 retireInactiveBrowserAfterSecs: 2,
                 operationTimeoutSecs: 0.5,
+                preLaunchHooks: [hook],
+                postLaunchHooks: [hook],
+                prePageCreateHooks: [hook],
+                postPageCreateHooks: [hook],
             });
-            // @ts-expect-error mocking private method
-            const spy = vitest.spyOn(BrowserPool.prototype, 'executeHooks');
 
             await browserPool.newPage();
-            expect(spy).toBeCalledTimes(4);
-            spy.mockReset();
+            expect(hook).toBeCalledTimes(4);
+            hook.mockClear();
 
             await expect(
                 addTimeoutToPromise(async () => browserPool.newPage(), 10, 'opening new page timed out'),
@@ -189,7 +221,7 @@ describe.each([
             // thanks to `tryCancel()` calls after each await. If we did not run
             // inside `addTimeoutToPromise()`, this would not work and we would get
             // 4 calls instead of just one.
-            expect(spy).toBeCalledTimes(1);
+            expect(hook).toBeCalledTimes(1);
 
             browserPool.retireAllBrowsers();
         });
@@ -218,12 +250,7 @@ describe.each([
         });
 
         test('should correctly override page close', async () => {
-            // @ts-expect-error Private function
-            vitest.spyOn(browserPool!, 'overridePageClose');
-
             const page = await browserPool.newPage();
-
-            expect(browserPool['overridePageClose']).toBeCalled();
 
             const controller = browserPool.getBrowserControllerByPage(page)!;
 
@@ -237,6 +264,8 @@ describe.each([
         });
 
         test("should do the pool's bookkeeping for a page whose close never settles", async () => {
+            hangEveryPageClose();
+
             const page = await browserPool.newPage();
             const pageId = browserPool.getPageId(page)!;
             const controller = browserPool.getBrowserControllerByPage(page)!;
@@ -244,11 +273,6 @@ describe.each([
             browserPool.on(BROWSER_POOL_EVENTS.PAGE_CLOSED, pageClosed);
 
             expect(controller.activePages).toEqual(1);
-
-            // A browser can acknowledge the close and then never destroy the target, so neither
-            // the promise nor the page's own `close` event ever arrives.
-            (page as { close: () => Promise<void> }).close = () => new Promise<void>(() => {});
-            browserPool['overridePageClose'](page);
 
             await page.close();
 
@@ -310,13 +334,12 @@ describe.each([
         }, 30_000);
 
         test('should not count the page twice when its close event arrives later', async () => {
+            hangEveryPageClose();
+
             // `any` because the two-plugin matrix makes `page` a union, while the controller it
             // came from is a union too, so its parameter is the corresponding intersection.
             const page: any = await browserPool.newPage();
             const controller = browserPool.getBrowserControllerByPage(page)!;
-
-            page.close = () => new Promise<void>(() => {});
-            browserPool['overridePageClose'](page);
 
             await page.close();
             expect(controller.activePages).toEqual(0);
@@ -329,6 +352,8 @@ describe.each([
         });
 
         test('should run a page teardown even when the close event never arrives', async () => {
+            hangEveryPageClose();
+
             const page: any = await browserPool.newPage();
             const controller = browserPool.getBrowserControllerByPage(page)!;
 
@@ -339,9 +364,6 @@ describe.each([
             (controller as any).registerPageTeardown(page, async () => {
                 tornDown++;
             });
-
-            page.close = () => new Promise<void>(() => {});
-            browserPool['overridePageClose'](page);
 
             await page.close();
             await new Promise((resolve) => setImmediate(resolve));
@@ -355,12 +377,11 @@ describe.each([
         });
 
         test('should let closePage() return on a page whose close never settles', async () => {
+            hangEveryPageClose();
+
             const page = await browserPool.newPage();
             const pageId = browserPool.getPageId(page)!;
             const controller = browserPool.getBrowserControllerByPage(page)!;
-
-            (page as { close: () => Promise<void> }).close = () => new Promise<void>(() => {});
-            browserPool['overridePageClose'](page);
 
             // `closePage` is the documented way a crawler returns a page, and the bound it needs
             // lives in the override it calls. Bounding it here as well used to time that override
@@ -373,13 +394,12 @@ describe.each([
         }, 30_000);
 
         test("should not cancel the caller's task when it gives up on a close", async () => {
-            const page = await browserPool.newPage();
-
             // The bound on the close is a `Promise.race`, not `addTimeoutToPromise`: the latter
             // takes its AbortController from the calling frame, so firing it here would cancel
             // the request handler that closed the page.
-            (page as { close: () => Promise<void> }).close = () => new Promise<void>(() => {});
-            browserPool['overridePageClose'](page);
+            hangEveryPageClose();
+
+            const page = await browserPool.newPage();
 
             await expect(
                 addTimeoutToPromise(
@@ -420,14 +440,13 @@ describe.each([
                 retireInactiveBrowserAfterSecs: 2,
                 maxOpenPagesPerBrowser: 1,
             });
-            // @ts-expect-error Private function
-            vitest.spyOn(browserPool!, 'launchBrowser');
+            vitest.spyOn(plugin, 'launch');
 
             await browserPool.newPage();
             await browserPool.newPage();
             await browserPool.newPage();
 
-            expect(browserPool['launchBrowser']).toBeCalledTimes(3);
+            expect(plugin.launch).toBeCalledTimes(3);
         });
 
         test('should allow max pages per browser - no race condition', async () => {
@@ -438,8 +457,7 @@ describe.each([
                 retireInactiveBrowserAfterSecs: 2,
                 maxOpenPagesPerBrowser: 1,
             });
-            // @ts-expect-error Private function
-            vitest.spyOn(browserPool, 'launchBrowser');
+            vitest.spyOn(plugin, 'launch');
 
             const usePlugin = {
                 browserPlugin: plugin,
@@ -447,49 +465,37 @@ describe.each([
 
             await Promise.all([browserPool.newPage(usePlugin), browserPool.newPage(usePlugin)]);
 
-            expect(browserPool['launchBrowser']).toBeCalledTimes(2);
+            expect(browserPool['activeBrowserControllers'].size).toBe(2);
+
+            expect(plugin.launch).toBeCalledTimes(2);
         });
 
         test('should close retired browsers', async () => {
-            await browserPool.destroy();
-            browserPool = new BrowserPool({
+            // Own pool: the reaper sweeps once per `closeInactiveBrowserAfterSecs`, and the 2s
+            // default from `beforeEach` would make this test wait for it.
+            const pool = new BrowserPool({
                 browserPlugins: [plugin],
-                closeInactiveBrowserAfterSecs: 2,
-                retireInactiveBrowserAfterSecs: 2,
+                closeInactiveBrowserAfterSecs: 0.1,
                 retireBrowserAfterPageCount: 1,
             });
 
-            let retiredBrowsers = 0;
-            browserPool.on(BROWSER_POOL_EVENTS.BROWSER_RETIRED, () => {
-                retiredBrowsers++;
-            });
+            try {
+                expect(pool['retiredBrowserControllers'].size).toBe(0);
 
-            clearInterval(browserPool['browserKillerInterval']!);
+                const page = await pool.newPage();
+                const controller = pool.getBrowserControllerByPage(page)!;
+                vitest.spyOn(controller, 'close');
 
-            browserPool['browserKillerInterval'] = setInterval(
-                async () => browserPool['closeInactiveRetiredBrowsers'](),
-                100,
-            );
+                expect(pool['retiredBrowserControllers'].size).toBe(1);
+                await page.close();
 
-            // @ts-expect-error Private function
-            vitest.spyOn(browserPool!, 'closeRetiredBrowserWithNoPages');
-            expect(retiredBrowsers).toBe(0);
-
-            const page = await browserPool.newPage();
-            const controller = browserPool.getBrowserControllerByPage(page)!;
-            vitest.spyOn(controller, 'close');
-
-            expect(retiredBrowsers).toBe(1);
-            await page.close();
-
-            await new Promise<void>((resolve) =>
-                setTimeout(() => {
-                    resolve();
-                }, 1000),
-            );
-
-            expect(browserPool['closeRetiredBrowserWithNoPages']).toHaveBeenCalled();
-            expect(controller.close).toHaveBeenCalled();
+                await vitest.waitFor(() => expect(pool['retiredBrowserControllers'].size).toBe(0), {
+                    timeout: 10_000,
+                });
+                expect(controller.close).toHaveBeenCalled();
+            } finally {
+                await pool.destroy();
+            }
         });
 
         describe('hooks', () => {
@@ -500,22 +506,26 @@ describe.each([
                     indexArray.push(index);
                 };
 
-                const hooks = new Array(10);
-                for (let i = 0; i < hooks.length; i++) {
-                    hooks[i] = createAsyncHookReturningIndex(i);
-                }
+                await browserPool.destroy();
+                browserPool = new BrowserPool({
+                    browserPlugins: [plugin],
+                    closeInactiveBrowserAfterSecs: 2,
+                    retireInactiveBrowserAfterSecs: 2,
+                    preLaunchHooks: Array.from({ length: 10 }, (_, i) => createAsyncHookReturningIndex(i)),
+                });
 
-                await browserPool['executeHooks'](hooks);
+                await browserPool.newPage();
                 expect(indexArray).toHaveLength(10);
                 indexArray.forEach((v, index) => expect(v).toEqual(index));
             });
 
             test('browser lifecycle works correctly', async () => {
                 // A browser whose launch hooks have not resolved yet must survive both inactivity
-                // sweeps. Sub-second windows plus a fast killer interval let each sweep run several
+                // sweeps. Sub-second windows let each sweep run several
                 // times during the wait, instead of sleeping past the 2s defaults from beforeEach.
                 // The waits stay real: a live browser is launching underneath, and faking the clock
                 // would stall the driver's own timeouts along with the pool's.
+
                 let resolvePreLaunchHook: (() => void) | null = null;
                 let resolvePostLaunchHook: (() => void) | null = null;
 
@@ -577,7 +587,7 @@ describe.each([
 
             describe('preLaunchHooks', () => {
                 test('should evaluate hook before launching browser with correct args', async () => {
-                    const myAsyncHook = async () => Promise.resolve();
+                    const myAsyncHook = vitest.fn(async () => {});
                     await browserPool.destroy();
                     browserPool = new BrowserPool({
                         browserPlugins: [plugin],
@@ -586,18 +596,11 @@ describe.each([
                         preLaunchHooks: [myAsyncHook],
                     });
 
-                    // @ts-expect-error Private function
-                    vitest.spyOn(browserPool!, 'executeHooks');
-
                     const page = await browserPool.newPage();
                     const pageId = browserPool.getPageId(page)!;
                     const { launchContext } = browserPool.getBrowserControllerByPage(page)!;
-                    expect(browserPool['executeHooks']).toHaveBeenNthCalledWith(
-                        1,
-                        expect.arrayContaining([myAsyncHook]),
-                        pageId,
-                        launchContext,
-                    );
+
+                    expect(myAsyncHook).toHaveBeenCalledWith(pageId, launchContext);
                 });
 
                 // We had a problem where if the first newPage() call, which launches
@@ -638,7 +641,7 @@ describe.each([
 
             describe('postLaunchHooks', () => {
                 test('should evaluate hook after launching browser with correct args', async () => {
-                    const myAsyncHook = async () => Promise.resolve();
+                    const myAsyncHook = vitest.fn(async () => {});
                     await browserPool.destroy();
                     browserPool = new BrowserPool({
                         browserPlugins: [plugin],
@@ -647,19 +650,11 @@ describe.each([
                         postLaunchHooks: [myAsyncHook],
                     });
 
-                    // @ts-expect-error Private function
-                    vitest.spyOn(browserPool, 'executeHooks');
-
                     const page = await browserPool.newPage();
                     const pageId = browserPool.getPageId(page)!;
                     const browserController = browserPool.getBrowserControllerByPage(page)!;
 
-                    expect(browserPool['executeHooks']).toHaveBeenNthCalledWith(
-                        2,
-                        [myAsyncHook],
-                        pageId,
-                        browserController,
-                    );
+                    expect(myAsyncHook).toHaveBeenCalledWith(pageId, browserController);
                 });
 
                 // We had a problem where if the first newPage() call, which launches
@@ -714,7 +709,7 @@ describe.each([
 
             describe('prePageCreateHooks', () => {
                 test('should evaluate hook after launching browser with correct args', async () => {
-                    const myAsyncHook = async () => Promise.resolve();
+                    const myAsyncHook = vitest.fn(async () => {});
                     await browserPool.destroy();
                     browserPool = new BrowserPool({
                         browserPlugins: [plugin],
@@ -723,16 +718,11 @@ describe.each([
                         prePageCreateHooks: [myAsyncHook],
                     });
 
-                    // @ts-expect-error Private function
-                    vitest.spyOn(browserPool, 'executeHooks');
-
                     const page = await browserPool.newPage();
                     const pageId = browserPool.getPageId(page)!;
                     const browserController = browserPool.getBrowserControllerByPage(page)!;
 
-                    expect(browserPool['executeHooks']).toHaveBeenNthCalledWith(
-                        3,
-                        expect.arrayContaining([myAsyncHook]),
+                    expect(myAsyncHook).toHaveBeenCalledWith(
                         pageId,
                         browserController,
                         browserController.launchContext.useIncognitoPages ? {} : undefined,
@@ -742,7 +732,7 @@ describe.each([
 
             describe('postPageCreateHooks', () => {
                 test('should evaluate hook after launching browser with correct args', async () => {
-                    const myAsyncHook = async () => Promise.resolve();
+                    const myAsyncHook = vitest.fn(async () => {});
                     await browserPool.destroy();
                     browserPool = new BrowserPool({
                         browserPlugins: [plugin],
@@ -751,24 +741,16 @@ describe.each([
                         postPageCreateHooks: [myAsyncHook],
                     });
 
-                    // @ts-expect-error Private function
-                    vitest.spyOn(browserPool, 'executeHooks');
-
                     const page = await browserPool.newPage();
                     const browserController = browserPool.getBrowserControllerByPage(page);
 
-                    expect(browserPool['executeHooks']).toHaveBeenNthCalledWith(
-                        4,
-                        expect.arrayContaining([myAsyncHook]),
-                        page,
-                        browserController,
-                    );
+                    expect(myAsyncHook).toHaveBeenCalledWith(page, browserController);
                 });
             });
 
             describe('prePageCloseHooks', () => {
                 test('should evaluate hook after launching browser with correct args', async () => {
-                    const myAsyncHook = async () => Promise.resolve();
+                    const myAsyncHook = vitest.fn(async () => {});
                     await browserPool.destroy();
                     browserPool = new BrowserPool({
                         browserPlugins: [plugin],
@@ -777,25 +759,17 @@ describe.each([
                         prePageCloseHooks: [myAsyncHook],
                     });
 
-                    // @ts-expect-error Private function
-                    vitest.spyOn(browserPool, 'executeHooks');
-
                     const page = await browserPool.newPage();
                     await page.close();
 
                     const browserController = browserPool.getBrowserControllerByPage(page);
-                    expect(browserPool['executeHooks']).toHaveBeenNthCalledWith(
-                        5,
-                        [myAsyncHook],
-                        page,
-                        browserController,
-                    );
+                    expect(myAsyncHook).toHaveBeenCalledWith(page, browserController);
                 });
             });
 
             describe('postPageCloseHooks', () => {
                 test('should evaluate hook after launching browser with correct args', async () => {
-                    const myAsyncHook = async () => Promise.resolve();
+                    const myAsyncHook = vitest.fn(async () => {});
                     await browserPool.destroy();
                     browserPool = new BrowserPool({
                         browserPlugins: [plugin],
@@ -804,20 +778,12 @@ describe.each([
                         postPageCloseHooks: [myAsyncHook],
                     });
 
-                    // @ts-expect-error Private function
-                    vitest.spyOn(browserPool, 'executeHooks');
-
                     const page = await browserPool.newPage();
                     const pageId = browserPool.getPageId(page);
                     await page.close();
 
                     const browserController = browserPool.getBrowserControllerByPage(page);
-                    expect(browserPool['executeHooks']).toHaveBeenNthCalledWith(
-                        6,
-                        [myAsyncHook],
-                        pageId,
-                        browserController,
-                    );
+                    expect(myAsyncHook).toHaveBeenCalledWith(pageId, browserController);
                 });
             });
         });

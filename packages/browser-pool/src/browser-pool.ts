@@ -365,10 +365,7 @@ export class BrowserPool<
     #pageToBrowserController = new WeakMap<PageReturn, BrowserControllerReturn>();
 
     // kept as TS-private: tests replace this interval through bracket access
-    private browserKillerInterval? = setInterval(
-        async () => this.closeInactiveRetiredBrowsers(),
-        BROWSER_KILLER_INTERVAL_MILLIS,
-    );
+    private browserKillerInterval?: NodeJS.Timeout;
 
     #browserRetireInterval?: NodeJS.Timeout;
 
@@ -378,8 +375,6 @@ export class BrowserPool<
     constructor(options: Options & BrowserPoolHooks<BrowserControllerReturn, LaunchContextReturn, PageReturn>) {
         super();
         this.#log = serviceLocator.getLogger().child({ prefix: 'BrowserPool' });
-
-        this.browserKillerInterval!.unref();
 
         const {
             browserPlugins,
@@ -420,6 +415,14 @@ export class BrowserPool<
         this.#retireBrowserAfterPageCount = retireBrowserAfterPageCount;
         this.#operationTimeoutMillis = operationTimeoutSecs * 1000;
         this.#closeInactiveBrowserAfterMillis = closeInactiveBrowserAfterSecs * 1000;
+
+        // Sweeping slower than the window it enforces would round any sub-10s
+        // `closeInactiveBrowserAfterSecs` up to the sweep period.
+        this.browserKillerInterval = setInterval(
+            async () => this.closeInactiveRetiredBrowsers(),
+            Math.min(BROWSER_KILLER_INTERVAL_MILLIS, this.#closeInactiveBrowserAfterMillis),
+        );
+        this.browserKillerInterval.unref();
 
         this.#browserRetireInterval = setInterval(
             async () =>

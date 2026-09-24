@@ -5,7 +5,7 @@ import type { AddressInfo } from 'node:net';
 import path from 'node:path';
 import util from 'node:util';
 
-import { BrowserLauncher, Configuration, launchPlaywright, serviceLocator } from '@crawlee/playwright';
+import { Configuration, launchPlaywright, serviceLocator } from '@crawlee/playwright';
 // `PlaywrightLauncher` is intentionally not part of the package's public exports; these tests need the
 // class itself to inspect `createBrowserPlugin()` without launching a browser.
 import { PlaywrightLauncher } from '../../../packages/playwright-crawler/src/internals/playwright-launcher.js';
@@ -144,7 +144,6 @@ describe('launchPlaywright()', () => {
     });
 
     test('supports useChrome option', async () => {
-        const spy = vitest.spyOn(BrowserLauncher.prototype as any, 'getTypicalChromeExecutablePath');
         let browser;
         const opts = {
             useChrome: true,
@@ -163,7 +162,6 @@ describe('launchPlaywright()', () => {
 
             expect(title).toBe('Example Domain');
             expect(version).not.toMatch('Chromium');
-            expect(spy).toBeCalledTimes(1);
         } finally {
             if (browser) await browser.close();
         }
@@ -190,14 +188,19 @@ describe('launchPlaywright()', () => {
         });
 
         test('does not use default when using chrome', () => {
-            const launcher = new PlaywrightLauncher({
-                useChrome: true,
-                launcher: {} as BrowserType,
-            });
+            const chromeExecutablePath = 'chromeExecutablePath';
+            const launcher = new PlaywrightLauncher(
+                {
+                    useChrome: true,
+                    launcher: {} as BrowserType,
+                },
+                // `CRAWLEE_DEFAULT_BROWSER_PATH` is still set by this describe's `beforeAll`; the Chrome
+                // path is configured explicitly so the expected value doesn't depend on the current OS.
+                new Configuration({ chromeExecutablePath }),
+            );
             const plugin = launcher.createBrowserPlugin();
 
-            // @ts-expect-error private method
-            expect(plugin.launchOptions.executablePath).toBe(launcher.getTypicalChromeExecutablePath());
+            expect(plugin.launchOptions!.executablePath).toBe(chromeExecutablePath);
         }, 60e3);
 
         test('allows to be overridden', () => {

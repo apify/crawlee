@@ -392,7 +392,7 @@ describe('Snapshotter', () => {
             };
 
             // Mock memory info to be able to inject custom memory measurement data.
-            vitest.spyOn(LocalEventManager.prototype as any, 'getMemoryInfo').mockResolvedValue(memoryData);
+            vitest.spyOn(utils, 'getMemoryInfo').mockResolvedValue(memoryData);
 
             let configuration: Configuration;
             if (dynamic) {
