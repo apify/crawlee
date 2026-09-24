@@ -694,7 +694,7 @@ export class RecoverableState<TStateModel = Record<string, unknown>, TPersistedS
 }
 
 // @public
-export interface RecoverableStateOptions<TStateModel = Record<string, unknown>, TPersistedState = TStateModel> extends RecoverableStatePersistenceOptions {
+export interface RecoverableStateBaseOptions<TStateModel = Record<string, unknown>, TPersistedState = TStateModel> extends RecoverableStatePersistenceOptions {
     configuration?: Configuration;
     contentType?: string;
     defaultState: TStateModel | (() => TStateModel);
@@ -702,6 +702,11 @@ export interface RecoverableStateOptions<TStateModel = Record<string, unknown>, 
     logger?: CrawleeLogger;
     serialize?: StateConversion<TStateModel, TPersistedState>;
 }
+
+// @public
+export type RecoverableStateOptions<TStateModel = Record<string, unknown>, TPersistedState = TStateModel> = RecoverableStateBaseOptions<TStateModel, TPersistedState> & ({
+    contentType?: undefined;
+} | Required<Pick<RecoverableStateBaseOptions<TStateModel, TPersistedState>, 'serialize' | 'deserialize' | 'contentType'>>);
 
 // @public (undocumented)
 export interface RecoverableStatePersistenceOptions {

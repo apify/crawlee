@@ -384,7 +384,10 @@ describe('RecoverableState', () => {
             contentType: 'text/plain',
         };
 
+        // The types reject both; the runtime check is for callers that get past them.
+        // @ts-expect-error
         expect(() => new RecoverableState({ ...options, serialize: JSON.stringify })).toThrow(/'deserialize'/);
+        // @ts-expect-error
         expect(() => new RecoverableState({ ...options, deserialize: JSON.parse })).toThrow(/'serialize'/);
     });
 

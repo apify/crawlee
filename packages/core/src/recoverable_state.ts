@@ -82,9 +82,9 @@ export interface RecoverableStatePersistenceOptions {
 }
 
 /**
- * Options for configuring the RecoverableState
+ * The fields of {@apilink RecoverableStateOptions}, without the constraint tying `contentType` to the conversions.
  */
-export interface RecoverableStateOptions<
+export interface RecoverableStateBaseOptions<
     TStateModel = Record<string, unknown>,
     TPersistedState = TStateModel,
 > extends RecoverableStatePersistenceOptions {
@@ -110,7 +110,7 @@ export interface RecoverableStateOptions<
      * Optional conversion of the state to a plain JSON-serializable value before it is persisted.
      * If not provided, the state is persisted as is.
      *
-     * With {@apilink RecoverableStateOptions.contentType} set, it has to produce what
+     * With {@apilink RecoverableStateBaseOptions.contentType} set, it has to produce what
      * {@apilink KeyValueStore.setValue} accepts alongside an explicit content type - a `string`, a `Buffer` or a
      * stream.
      */
@@ -120,19 +120,36 @@ export interface RecoverableStateOptions<
      * Optional conversion of a persisted value back to the state model, and the place to validate a record before
      * trusting it. If not provided, the persisted value is used as is.
      *
-     * With {@apilink RecoverableStateOptions.contentType} set, it receives a `Readable` of the record bytes
+     * With {@apilink RecoverableStateBaseOptions.contentType} set, it receives a `Readable` of the record bytes
      * instead of a parsed value.
      */
     deserialize?: StateConversion<TPersistedState, TStateModel>;
 
     /**
      * Content type of the persisted record. Setting it hands the record encoding over to
-     * {@apilink RecoverableStateOptions.serialize} and {@apilink RecoverableStateOptions.deserialize}, both of
+     * {@apilink RecoverableStateBaseOptions.serialize} and {@apilink RecoverableStateBaseOptions.deserialize}, both of
      * which are then required - the default JSON codec is bypassed in both directions. Meant for a state too large
      * for `JSON.stringify`, which `serialize` can then stream out instead.
      */
     contentType?: string;
 }
+
+/**
+ * Options for configuring the RecoverableState
+ */
+export type RecoverableStateOptions<
+    TStateModel = Record<string, unknown>,
+    TPersistedState = TStateModel,
+> = RecoverableStateBaseOptions<TStateModel, TPersistedState> &
+    (
+        | { contentType?: undefined }
+        | Required<
+              Pick<
+                  RecoverableStateBaseOptions<TStateModel, TPersistedState>,
+                  'serialize' | 'deserialize' | 'contentType'
+              >
+          >
+    );
 
 /**
  * A class for managing persistent recoverable state using a plain JavaScript object.
