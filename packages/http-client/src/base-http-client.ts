@@ -201,7 +201,8 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
         currentRequest = initialRequest.clone();
 
         while (true) {
-            await this.#applyCookies(currentRequest, cookieJar);
+            // Like `fetch`, set the jar cookies on a copy, so that the next redirect hop does not inherit them
+            await this.#applyCookies(new Request(currentRequest), cookieJar);
 
             const response = await this.fetch(currentRequest, {
                 signal,
