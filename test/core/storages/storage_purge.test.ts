@@ -127,8 +127,9 @@ describe('FileSystemStorageBackend.purge over a pre-existing storage directory',
 
         await backend.purge();
 
+        // Not the default store, so the file is adopted under its own name rather than as `INPUT`.
         const store = await backend.createKeyValueStoreBackend({ name: 'hand-placed' });
-        expect(await readInput(store)).toBe('{"hand":"placed"}');
+        expect((await store.getValue('INPUT.json'))?.value.toString()).toBe('{"hand":"placed"}');
     });
 
     // An unnamed storage whose directory is named after its own id can only be reached through

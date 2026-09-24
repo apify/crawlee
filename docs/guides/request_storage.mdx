@@ -34,7 +34,7 @@ By default, the request queue is managed by the <ApiLink to="fs-storage/class/Fi
 
 :::note
 
-`{QUEUE_ID}` is the name or ID of the request queue. The default queue has ID `default`, unless we override it by setting the `CRAWLEE_DEFAULT_REQUEST_QUEUE_ID` environment variable.
+`{QUEUE_ID}` is the name or ID of the request queue. The default queue has ID `default`.
 
 :::
 
@@ -74,7 +74,7 @@ The request queue is not optimized for adding numerous URLs in a single batch �
 
 ## Reading requests from other sources
 
-Sometimes you don't want to start from a dynamic queue, but from a static list of URLs (for example, parsed from a file) or from a website's sitemap. Crawlee provides **request loaders** for these read-only sources — <ApiLink to="core/class/RequestList">`RequestList`</ApiLink> and <ApiLink to="core/class/SitemapRequestLoader">`SitemapRequestLoader`</ApiLink> — which can be combined with a request queue when you also need to enqueue requests discovered during the crawl.
+Sometimes you don't want to start from a dynamic queue, but from a static list of URLs (for example, parsed from a file) or from a website's sitemap. Crawlee provides **request loaders** for these read-only sources — <ApiLink to="core/class/RequestList">`RequestList`</ApiLink> and <ApiLink to="basic-crawler/class/SitemapRequestLoader">`SitemapRequestLoader`</ApiLink> — which can be combined with a request queue when you also need to enqueue requests discovered during the crawl.
 
 See the dedicated [Request loaders](./request-loaders) guide for details on loaders, request managers, and how to combine them with a queue into a <ApiLink to="core/class/RequestManagerTandem">`RequestManagerTandem`</ApiLink>.
 

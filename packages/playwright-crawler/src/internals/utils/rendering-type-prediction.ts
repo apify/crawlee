@@ -1,5 +1,6 @@
 import type { RecoverableStatePersistenceOptions, Request } from '@crawlee/core';
 import { RecoverableState } from '@crawlee/core';
+import type { Awaitable } from '@crawlee/types';
 import LogisticRegression from 'ml-logistic-regression';
 import { Matrix } from 'ml-matrix';
 import stringComparison from 'string-comparison';
@@ -54,14 +55,25 @@ export interface RenderingTypePredictorOptions {
  * @experimental
  */
 export interface IRenderingTypePredictor {
-    /** Predict the rendering type for a request, and how likely the crawler should be to verify it. */
-    predict(request: Request): {
+    /**
+     * Predict the rendering type for a request, and how likely the crawler should be to verify it.
+     *
+     * Called once per request, before navigation - the crawler awaits it, so prefer loading whatever the
+     * prediction needs up front over per-request I/O.
+     */
+    predict(request: Request): Awaitable<{
         renderingType: RenderingType;
         detectionProbabilityRecommendation: number;
-    };
+    }>;
 
-    /** Report a detected rendering type, so that future predictions can take it into account. */
-    storeResult(requests: Request | Request[], renderingType: RenderingType): void;
+    /**
+     * Report a detected rendering type, so that future predictions can take it into account.
+     *
+     * The crawler does not await this per detection - it collects the returned promises and drains them in
+     * `teardown()`, so an implementation that persists results asynchronously can keep batching its writes
+     * and still be sure they land before the crawl ends.
+     */
+    storeResult(requests: Request | Request[], renderingType: RenderingType): Awaitable<void>;
 }
 
 const renderingType = z.enum(['clientOnly', 'static'] as const satisfies readonly RenderingType[]);

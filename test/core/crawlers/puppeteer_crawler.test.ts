@@ -19,7 +19,8 @@ import {
     Session,
     SessionPool,
 } from '@crawlee/puppeteer';
-import { type ConcurrencySystem, MemoryStorageBackend, serviceLocator } from '@crawlee/core';
+import { type ConcurrencySystem } from '@crawlee/basic';
+import { MemoryStorageBackend, serviceLocator } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
 import type { Server as ProxyChainServer } from 'proxy-chain';
 import { z } from 'zod';

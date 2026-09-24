@@ -170,13 +170,22 @@ export abstract class BaseHttpClient implements BaseHttpClientInterface {
         const nextHeaders = new Headers();
         currentRequest.headers.forEach((value, key) => nextHeaders.set(key, value));
 
+        // Like native `fetch`, do not forward credentials to a different origin
+        if (nextUrl.origin !== new URL(currentRequest.url).origin) {
+            for (const header of ['authorization', 'proxy-authorization', 'cookie']) {
+                nextHeaders.delete(header);
+            }
+        }
+
         return new Request(nextUrl.toString(), {
             method: nextMethod,
             headers: nextHeaders,
             body: nextBody,
             credentials: (currentRequest as any).credentials,
             redirect: 'manual',
-        });
+            // Node-specific option required for a stream body, which the replayed body always is
+            duplex: 'half',
+        } as RequestInit);
     }
 
     /**

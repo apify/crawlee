@@ -6,7 +6,7 @@ await initialize(testActorDirname);
 const { stats, datasetItems } = await runActor(testActorDirname, 16384);
 
 // Without this the two assertions below hold vacuously when the crawl never starts.
-await expect(stats.requestsFinished >= 1, 'All requests finished');
+await expect(stats.requestsSucceeded >= 1, 'All requests finished');
 
 const paths = datasetItems.map((item) => new URL(item.url).pathname);
 

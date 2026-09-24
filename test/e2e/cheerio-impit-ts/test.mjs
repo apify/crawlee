@@ -5,7 +5,7 @@ await initialize(testActorDirname);
 
 const { stats, datasetItems } = await runActor(testActorDirname);
 
-await expect(stats.requestsFinished > 0, 'All requests finished');
+await expect(stats.requestsSucceeded > 0, 'All requests finished');
 await expect(datasetItems.length === 1, 'A dataset item was pushed');
 
 const result = datasetItems[0];

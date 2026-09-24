@@ -1,7 +1,7 @@
 import type {
     AddRequestsBatchedResult,
     BasicCrawlerOptions,
-    BasicCrawlingContext,
+    CleanupRegistrar,
     ContextMiddleware,
     CrawlingContext,
     EnqueueLinksOptions,
@@ -9,7 +9,7 @@ import type {
     ExtractLinksOptions,
     GetUserDataFromRequest,
     LoadedRequest,
-    Request,
+    CrawlingRequest,
     RequestHandler,
     RouterHandler,
 } from '@crawlee/basic';
@@ -30,7 +30,7 @@ import {
     validators,
 } from '@crawlee/basic';
 import type { CommonPage, CrawlerRemoteBrowserOptions } from '@crawlee/browser-pool';
-import type { Awaitable, Cookie as CookieObject, Dictionary, IBrowserPool, ISession } from '@crawlee/types';
+import type { Awaitable, Cookie as CookieObject, Dictionary, IBrowserPool } from '@crawlee/types';
 import {
     CLOUDFLARE_RETRY_CSS_SELECTORS,
     parseArgument,
@@ -53,10 +53,14 @@ interface BaseResponse {
 
 /**
  * The type of a browser pool the crawler builds (and therefore owns) for itself. It's an {@apilink IBrowserPool} that
- * additionally exposes `destroy()` — the crawler only ever tears down pools it created, which is why {@apilink IBrowserPool}
- * itself intentionally omits `destroy`.
+ * additionally exposes the lifecycle hooks a crawler only ever calls on a pool it created — which is why
+ * {@apilink IBrowserPool} itself intentionally omits them: `releaseAllBrowsers()` at the end of every run, and
+ * `destroy()` once the crawler itself is destroyed.
  */
-export type OwnedBrowserPool<Page> = IBrowserPool<Page> & { destroy: () => Promise<void> };
+export type OwnedBrowserPool<Page> = IBrowserPool<Page> & {
+    releaseAllBrowsers: () => Promise<void>;
+    destroy: () => Promise<void>;
+};
 
 /**
  * Rejects options that exist only to configure the browser pool the crawler would have built for itself.
@@ -93,7 +97,7 @@ export interface BrowserCrawlingContext<
     /**
      * The request object that was successfully loaded and navigated to, including the {@apilink Request.loadedUrl|`loadedUrl`} property.
      */
-    request: LoadedRequest<Request<UserData>>;
+    request: LoadedRequest<CrawlingRequest<UserData>>;
 
     /**
      * The HTTP response object returned by the browser's navigation.
@@ -193,7 +197,7 @@ export interface BrowserCrawlerOptions<
      * To make this work, we should **always**
      * let our function throw exceptions rather than catch them.
      * The exceptions are logged to the request using the
-     * {@apilink Request.pushErrorMessage|`Request.pushErrorMessage()`} function.
+     * {@apilink CrawlingRequest.pushErrorMessage|`request.pushErrorMessage()`} function.
      */
     requestHandler?: RouterHandler<ExtendedContext, Routes> | RequestHandler<ExtendedContext>;
 
@@ -454,11 +458,12 @@ export abstract class BrowserCrawler<
             assertBrowserPoolNotConfigured(new.target.name, { remoteBrowser });
         }
 
-        const skipGuard = <Ctx extends Context>(
-            action: (ctx: Ctx) => Awaitable<void | Partial<Ctx>>,
-        ): ContextMiddleware<Ctx, Partial<Ctx>> => ({
-            action: async (ctx) => (ctx.request.skipNavigation ? {} : ((await action(ctx)) ?? {})),
-        });
+        const skipGuard =
+            <Ctx extends Context>(
+                action: (ctx: Ctx) => Awaitable<void | Partial<Ctx>>,
+            ): ContextMiddleware<Ctx, Partial<Ctx>> =>
+            async (ctx) =>
+                ctx.request.skipNavigation ? {} : ((await action(ctx)) ?? {});
 
         super({
             ...basicCrawlerOptions,
@@ -484,7 +489,7 @@ export abstract class BrowserCrawler<
                         );
                     });
 
-                let pipeline = contextPipelineBuilder().compose({ action: this.prepareNavigation.bind(this) });
+                let pipeline = contextPipelineBuilder().compose(this.prepareNavigation.bind(this));
 
                 for (const hook of this.#preNavigationHooks) {
                     pipeline = pipeline.compose(windowGuard(hook));
@@ -498,8 +503,8 @@ export abstract class BrowserCrawler<
 
                 return pipeline
                     .compose(skipGuard(this.finalizeNavigation.bind(this)))
-                    .compose({ action: this.handleBlockedRequestByContent.bind(this) })
-                    .compose({ action: this.restoreRequestState.bind(this) });
+                    .compose(this.handleBlockedRequestByContent.bind(this))
+                    .compose(this.restoreRequestState.bind(this));
             },
             extendContext,
         });
@@ -527,26 +532,7 @@ export abstract class BrowserCrawler<
         CrawlingContext,
         BrowserCrawlingContext<Page, Response, Dictionary>
     > {
-        return ContextPipeline.create<CrawlingContext>().compose({
-            action: this.preparePage.bind(this),
-            cleanup: async (context: {
-                page: Page;
-                session: ISession;
-                registerDeferredCleanup: BasicCrawlingContext['registerDeferredCleanup'];
-            }) => {
-                context.registerDeferredCleanup(async () => {
-                    const error = !context.session.isUsable()
-                        ? new SessionError('Session is no longer usable')
-                        : undefined;
-
-                    await this.browserPool
-                        .closePage(context.page, { error })
-                        .catch((closeError: Error) =>
-                            this.log.debug('Error while closing page', { error: closeError }),
-                        );
-                });
-            },
-        });
+        return ContextPipeline.create<CrawlingContext>().compose(this.preparePage.bind(this));
     }
 
     private async containsSelectors(page: CommonPage, selectors: string[]): Promise<string[] | null> {
@@ -583,12 +569,25 @@ export abstract class BrowserCrawler<
 
     private async preparePage(
         crawlingContext: CrawlingContext,
+        onCleanup: CleanupRegistrar,
     ): Promise<ContextDifference<CrawlingContext, BrowserCrawlingContext<Page, Response, Dictionary>>> {
         const page = await this.browserPool.newPage({
             id: crawlingContext.id,
             session: crawlingContext.session,
         });
         tryCancel();
+
+        onCleanup(() => {
+            crawlingContext.registerDeferredCleanup(async () => {
+                const error = !crawlingContext.session.isUsable()
+                    ? new SessionError('Session is no longer usable')
+                    : undefined;
+
+                await this.browserPool
+                    .closePage(page, { error })
+                    .catch((closeError: Error) => this.log.debug('Error while closing page', { error: closeError }));
+            });
+        });
 
         const addRequests = crawlingContext.addRequests;
 
@@ -642,7 +641,7 @@ export abstract class BrowserCrawler<
                         }
                         return Reflect.get(target, propertyName, receiver);
                     },
-                }) as LoadedRequest<Request>,
+                }) as LoadedRequest<CrawlingRequest>,
                 get response(): Response {
                     throw new NavigationSkippedError(
                         'The `response` property is not available - `skipNavigation` was used',
@@ -661,6 +660,7 @@ export abstract class BrowserCrawler<
         } as unknown as Partial<Context>;
     }
 
+    // oxlint-disable-next-line crawlee/prefer-private-fields -- patched by @crawlee/otel
     private async navigate(crawlingContext: Context): Promise<Partial<Context>> {
         tryCancel();
 
@@ -716,7 +716,7 @@ export abstract class BrowserCrawler<
         // Cookies set during `requestHandler` are saved again afterwards.
         await this.persistCookiesFromPage(crawlingContext);
 
-        return { request: crawlingContext.request as LoadedRequest<Request> } as Partial<Context>;
+        return { request: crawlingContext.request as LoadedRequest<CrawlingRequest> } as Partial<Context>;
     }
 
     /**
@@ -869,12 +869,17 @@ export abstract class BrowserCrawler<
     }
 
     /**
-     * Function for cleaning up after all requests are processed.
-     * @ignore
+     * Closes the browsers of a pool the crawler owns, so a finished run leaves none behind. The pool itself is
+     * crawler-lifetime and survives — destroying it here would hand a repeated `run()` a dead pool.
      */
     override async teardown(): Promise<void> {
-        await this.#browserPoolDep.ifOwned((pool) => pool.destroy());
+        await this.#browserPoolDep.ifOwned((pool) => pool.releaseAllBrowsers());
         await super.teardown();
+    }
+
+    override async destroy(): Promise<void> {
+        await super.destroy();
+        await this.#browserPoolDep.ifOwned((pool) => pool.destroy());
     }
 }
 

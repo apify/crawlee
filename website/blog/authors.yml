@@ -98,9 +98,18 @@ ShaheerS:
     socials:
         github: dakheera47
 
+FederCr:
+    name: Federico
+    title: Community Member of Crawlee
+    url: https://github.com/feder-cr
+    image_url: https://avatars.githubusercontent.com/u/85809106?v=4
+    socials:
+        x: FederCr
+        github: feder-cr
+        
 JindrichB:
     name: Jindřich Bär
-    title: Web Automation Engineer
+    title: Crawlee Maintainer
     url: https://github.com/barjin
     image_url: https://avatars.githubusercontent.com/u/61918049?v=4
     socials:

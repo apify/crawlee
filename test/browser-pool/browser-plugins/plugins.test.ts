@@ -22,6 +22,11 @@ import { runExampleComServer } from '../../shared/_helper.js';
 
 import { createProxyServer } from './create-proxy-server.js';
 
+// Chromium goes through the tests faster than Firefox and the results are more useful than with
+// webkit. CI and `pnpm test:full` set CRAWLEE_TEST_BROWSERS to the full list.
+const requestedBrowsers = (process.env.CRAWLEE_TEST_BROWSERS ?? 'chromium').split(',');
+const testedBrowsers = (['chromium', 'firefox', 'webkit'] as const).filter((name) => requestedBrowsers.includes(name));
+
 // Firefox browser launch is significantly slower than Chromium/WebKit (~12s vs <1s).
 // Under CPU load from parallel tests, it can exceed 2 minutes. Use 5 minute timeout.
 vitest.setConfig({ testTimeout: 300_000 });
@@ -420,7 +425,7 @@ describe('Plugins', () => {
             await browser.close();
         });
 
-        describe.each(['chromium', 'firefox', 'webkit'] as const)('with %s', (browserName) => {
+        describe.each(testedBrowsers)('with %s', (browserName) => {
             test('should work with non authenticated proxyUrl', async () => {
                 const proxyUrl = `http://127.0.0.2:${unprotectedProxy.port}`;
                 const plugin = new PlaywrightPlugin(playwright[browserName]);
@@ -698,7 +703,7 @@ describe('Plugins', () => {
         });
     });
 
-    runPluginTest(PlaywrightPlugin, PlaywrightController, playwright.chromium);
-    runPluginTest(PlaywrightPlugin, PlaywrightController, playwright.firefox);
-    runPluginTest(PlaywrightPlugin, PlaywrightController, playwright.webkit);
+    for (const browserName of testedBrowsers) {
+        runPluginTest(PlaywrightPlugin, PlaywrightController, playwright[browserName]);
+    }
 });

@@ -1,6 +1,5 @@
-import { BasicCrawler } from '@crawlee/basic';
-
-import { MemoryStorageBackend, serviceLocator, SessionPool } from '@crawlee/core';
+import { BasicCrawler, SessionPool } from '@crawlee/basic';
+import { MemoryStorageBackend, serviceLocator } from '@crawlee/core';
 
 describe('BasicCrawler#addRequests with big batch sizes', () => {
     beforeEach(async () => {

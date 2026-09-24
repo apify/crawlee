@@ -1,12 +1,12 @@
-import type { StatisticsOptions } from '@crawlee/core';
-import type { StatisticPersistedState } from '@crawlee/core';
-import { EventType, KeyValueStore, MemoryStorageBackend, serviceLocator, Statistics } from '@crawlee/core';
+import type { StatisticPersistedState, StatisticsOptions } from '@crawlee/basic';
+import { Statistics } from '@crawlee/basic';
+import { EventType, KeyValueStore, MemoryStorageBackend, serviceLocator } from '@crawlee/core';
 import type { Dictionary } from '@crawlee/types';
 import { z } from 'zod';
 
 describe('Statistics', () => {
-    const getPerMinute = (jobCount: number, totalTickMillis: number) => {
-        return Math.round(jobCount / (totalTickMillis / 1000 / 60));
+    const getPerMinute = (requestCount: number, totalTickMillis: number) => {
+        return Math.round(requestCount / (totalTickMillis / 1000 / 60));
     };
 
     const persistStateKey = (statistics: Statistics) => `CRAWLEE_CRAWLER_STATISTICS_${statistics.id}`;
@@ -48,9 +48,9 @@ describe('Statistics', () => {
 
         test('should persist the state to KV and load again', async () => {
             vitest.advanceTimersByTime(1000);
-            stats.startJob(0);
+            stats.recordRequestStart(0);
             vitest.advanceTimersByTime(100);
-            stats.finishJob(0, 1);
+            stats.recordRequestSuccess(0, 1);
             stats.registerStatusCode(200);
 
             await stats.startCapturing();
@@ -61,9 +61,9 @@ describe('Statistics', () => {
             await restored.startCapturing();
 
             expect(restored.state).toMatchObject({
-                requestsFinished: 1,
+                requestsSucceeded: 1,
                 requestsRetries: 1,
-                requestTotalFinishedDurationMillis: 100,
+                requestTotalSucceededDurationMillis: 100,
                 requestMinDurationMillis: 100,
                 requestMaxDurationMillis: 100,
                 crawlerStartedAt: stats.state.crawlerStartedAt,
@@ -90,9 +90,9 @@ describe('Statistics', () => {
             expect(restored.state.requestMinDurationMillis).toEqual(Infinity);
 
             // The whole point of the minimum - a `duration < null` comparison would never win.
-            restored.startJob(0);
+            restored.recordRequestStart(0);
             vitest.advanceTimersByTime(100);
-            restored.finishJob(0, 0);
+            restored.recordRequestSuccess(0, 0);
             expect(restored.state.requestMinDurationMillis).toEqual(100);
 
             await restored.stopCapturing();
@@ -100,17 +100,21 @@ describe('Statistics', () => {
 
         test('should start from scratch on a record it cannot make sense of', async () => {
             await stats.startCapturing();
-            stats.startJob(0);
+            stats.recordRequestStart(0);
             vitest.advanceTimersByTime(100);
-            stats.finishJob(0, 0);
+            stats.recordRequestSuccess(0, 0);
             await stats.stopCapturing();
 
             const record = (await store.getValue<StatisticPersistedState>(persistStateKey(stats)))!;
-            await store.setValue(persistStateKey(stats), { ...record, requestsFinished: 'plenty' });
+            await store.setValue(persistStateKey(stats), { ...record, requestsSucceeded: 'plenty' });
+
+            // The statistics log through a child of the registered logger; collapsing `child()` onto its
+            // parent lets the spy below observe it.
+            const logger = serviceLocator.getLogger();
+            vitest.spyOn(logger, 'child').mockReturnValue(logger);
+            const warningSpy = vitest.spyOn(logger, 'warning').mockImplementation(() => {});
 
             const restored = new Statistics({ id: stats.id });
-            // @ts-expect-error Accessing private prop
-            const warningSpy = vitest.spyOn(restored.log, 'warning').mockImplementation(() => {});
 
             // A corrupt counter must not take the crawl down with it, and must not be trusted either - an
             // increment on a string would poison every later one.
@@ -120,8 +124,8 @@ describe('Statistics', () => {
                 expect.stringContaining('starting the statistics from scratch'),
                 expect.objectContaining({ persistStateKey: persistStateKey(stats) }),
             );
-            expect(restored.state.requestsFinished).toEqual(0);
-            expect(restored.state.requestTotalFinishedDurationMillis).toEqual(0);
+            expect(restored.state.requestsSucceeded).toEqual(0);
+            expect(restored.state.requestTotalSucceededDurationMillis).toEqual(0);
 
             await restored.stopCapturing();
         });
@@ -129,18 +133,18 @@ describe('Statistics', () => {
         test('should write the record when the run is too short to have a rate', async () => {
             // Everything inside one millisecond: `calculate()` divides by a zero-length run and reports the
             // per-minute rates as `Infinity`, which the record can only carry as `null`.
-            stats.startJob(0);
-            stats.finishJob(0, 0);
-            stats.startJob(1);
-            stats.failJob(1, 0);
+            stats.recordRequestStart(0);
+            stats.recordRequestSuccess(0, 0);
+            stats.recordRequestStart(1);
+            stats.recordRequestFailure(1, 0);
 
             await stats.startCapturing();
             await stats.persistState();
 
             expect(await store.getValue<StatisticPersistedState>(persistStateKey(stats))).toMatchObject({
-                requestsFinished: 1,
+                requestsSucceeded: 1,
                 requestsFailed: 1,
-                requestsFinishedPerMinute: null,
+                requestsSucceededPerMinute: null,
                 requestsFailedPerMinute: null,
             });
 
@@ -148,9 +152,9 @@ describe('Statistics', () => {
         });
 
         test('should keep the shape of the persisted record', async () => {
-            stats.startJob(0);
+            stats.recordRequestStart(0);
             vitest.advanceTimersByTime(100);
-            stats.finishJob(0, 0);
+            stats.recordRequestSuccess(0, 0);
             stats.registerStatusCode(200);
 
             await stats.startCapturing();
@@ -159,15 +163,15 @@ describe('Statistics', () => {
             const record = (await store.getValue<StatisticPersistedState>(persistStateKey(stats)))!;
 
             expect(record).toEqual({
-                requestsFinished: 1,
+                requestsSucceeded: 1,
                 requestsFailed: 0,
                 requestsRetries: 0,
                 requestsFailedPerMinute: 0,
-                requestsFinishedPerMinute: 600,
+                requestsSucceededPerMinute: 600,
                 requestMinDurationMillis: 100,
                 requestMaxDurationMillis: 100,
                 requestTotalFailedDurationMillis: 0,
-                requestTotalFinishedDurationMillis: 100,
+                requestTotalSucceededDurationMillis: 100,
                 crawlerStartedAt: '1970-01-01T00:00:00.100Z',
                 crawlerFinishedAt: null,
                 statsPersistedAt: '1970-01-01T00:00:00.100Z',
@@ -176,7 +180,7 @@ describe('Statistics', () => {
                 requestRetryHistogram: [1],
                 statsId: stats.id,
                 requestAvgFailedDurationMillis: null,
-                requestAvgFinishedDurationMillis: 100,
+                requestAvgSucceededDurationMillis: 100,
                 requestTotalDurationMillis: 100,
                 requestsTotal: 1,
                 requestsWithStatusCode: { 200: 1 },
@@ -186,15 +190,15 @@ describe('Statistics', () => {
 
             // The record is read by tooling outside Crawlee - the key order is part of its shape.
             expect(Object.keys(record)).toEqual([
-                'requestsFinished',
+                'requestsSucceeded',
                 'requestsFailed',
                 'requestsRetries',
                 'requestsFailedPerMinute',
-                'requestsFinishedPerMinute',
+                'requestsSucceededPerMinute',
                 'requestMinDurationMillis',
                 'requestMaxDurationMillis',
                 'requestTotalFailedDurationMillis',
-                'requestTotalFinishedDurationMillis',
+                'requestTotalSucceededDurationMillis',
                 'crawlerStartedAt',
                 'crawlerFinishedAt',
                 'statsPersistedAt',
@@ -203,7 +207,7 @@ describe('Statistics', () => {
                 'requestRetryHistogram',
                 'statsId',
                 'requestAvgFailedDurationMillis',
-                'requestAvgFinishedDurationMillis',
+                'requestAvgSucceededDurationMillis',
                 'requestTotalDurationMillis',
                 'requestsTotal',
                 'requestsWithStatusCode',
@@ -229,9 +233,9 @@ describe('Statistics', () => {
         });
 
         test('on persistState event', async () => {
-            stats.startJob(0);
+            stats.recordRequestStart(0);
             vitest.advanceTimersByTime(100);
-            stats.finishJob(0, 0);
+            stats.recordRequestSuccess(0, 0);
 
             await stats.startCapturing();
 
@@ -248,9 +252,9 @@ describe('Statistics', () => {
 
         test('an explicit id restores state across instances under a stable key', async () => {
             const stats1 = new Statistics({ id: 'shared-stats' });
-            stats1.startJob(0);
+            stats1.recordRequestStart(0);
             vitest.advanceTimersByTime(100);
-            stats1.finishJob(0, 0);
+            stats1.recordRequestSuccess(0, 0);
 
             await stats1.startCapturing();
             await stats1.persistState();
@@ -259,109 +263,113 @@ describe('Statistics', () => {
             const stats2 = new Statistics({ id: 'shared-stats' });
             await stats2.startCapturing();
 
-            expect(stats2.state.requestsFinished).toEqual(1);
+            expect(stats2.state.requestsSucceeded).toEqual(1);
 
             await stats2.stopCapturing();
         });
     });
 
-    test('should finish a job', () => {
-        stats.startJob(0);
+    test('should record a successful request', () => {
+        stats.recordRequestStart(0);
         vitest.advanceTimersByTime(1);
-        stats.finishJob(0, 0);
+        stats.recordRequestSuccess(0, 0);
         vitest.advanceTimersByTime(1);
         const current = stats.calculate();
         expect(current).toEqual({
             crawlerRuntimeMillis: 2,
             requestAvgFailedDurationMillis: Infinity,
-            requestAvgFinishedDurationMillis: 1,
+            requestAvgSucceededDurationMillis: 1,
             requestTotalDurationMillis: 1,
             requestsFailedPerMinute: 0,
-            requestsFinishedPerMinute: getPerMinute(1, 2),
+            requestsSucceededPerMinute: getPerMinute(1, 2),
             requestsTotal: 1,
         });
     });
 
-    test('should fail a job', () => {
-        stats.startJob(0);
+    test('should record a failed request', () => {
+        stats.recordRequestStart(0);
         vitest.advanceTimersByTime(0);
-        stats.failJob(0, 0);
+        stats.recordRequestFailure(0, 0);
         vitest.advanceTimersByTime(1);
         const current = stats.calculate();
         expect(current).toEqual({
             crawlerRuntimeMillis: 1,
             requestAvgFailedDurationMillis: Infinity,
-            requestAvgFinishedDurationMillis: Infinity,
+            requestAvgSucceededDurationMillis: Infinity,
             requestTotalDurationMillis: 0,
             requestsFailedPerMinute: 60000,
-            requestsFinishedPerMinute: 0,
+            requestsSucceededPerMinute: 0,
             requestsTotal: 1,
         });
         expect(stats.requestRetryHistogram).toEqual([1]);
     });
 
     test('should collect retries', () => {
-        stats.startJob(0);
-        stats.startJob(1);
-        stats.startJob(2);
-        stats.finishJob(0, 0);
-        stats.finishJob(1, 1);
-        stats.finishJob(2, 2);
+        stats.recordRequestStart(0);
+        stats.recordRequestStart(1);
+        stats.recordRequestStart(2);
+        stats.recordRequestSuccess(0, 0);
+        stats.recordRequestSuccess(1, 1);
+        stats.recordRequestSuccess(2, 2);
         const current = stats.calculate();
         expect(current).toEqual({
             crawlerRuntimeMillis: 0,
             requestAvgFailedDurationMillis: Infinity,
-            requestAvgFinishedDurationMillis: Infinity,
+            requestAvgSucceededDurationMillis: Infinity,
             requestTotalDurationMillis: 0,
             requestsFailedPerMinute: 0,
-            requestsFinishedPerMinute: Infinity,
+            requestsSucceededPerMinute: Infinity,
             requestsTotal: 3,
         });
         expect(stats.requestRetryHistogram).toEqual([1, 1, 1]);
     });
 
-    test('should return correct stats for multiple parallel jobs', () => {
-        stats.startJob(0);
+    test('should return correct stats for multiple parallel requests', () => {
+        stats.recordRequestStart(0);
         vitest.advanceTimersByTime(1);
-        stats.startJob(1);
+        stats.recordRequestStart(1);
         vitest.advanceTimersByTime(1);
-        stats.startJob(2);
+        stats.recordRequestStart(2);
         vitest.advanceTimersByTime(2);
-        stats.finishJob(1, 0); // runtime: 3ms
+        stats.recordRequestSuccess(1, 0); // runtime: 3ms
         vitest.advanceTimersByTime(1); // since startedAt: 5ms
-        stats.failJob(0, 0); // runtime: irrelevant
+        stats.recordRequestFailure(0, 0); // runtime: irrelevant
         vitest.advanceTimersByTime(10);
-        stats.finishJob(2, 0); // runtime: 13ms
+        stats.recordRequestSuccess(2, 0); // runtime: 13ms
         vitest.advanceTimersByTime(10); // since startedAt: 25ms
 
         const current = stats.calculate();
         expect(current).toEqual({
             crawlerRuntimeMillis: 25,
             requestAvgFailedDurationMillis: 5,
-            requestAvgFinishedDurationMillis: (13 + 3) / 2,
+            requestAvgSucceededDurationMillis: (13 + 3) / 2,
             requestTotalDurationMillis: 21,
             requestsFailedPerMinute: 2400,
-            requestsFinishedPerMinute: getPerMinute(2, 25),
+            requestsSucceededPerMinute: getPerMinute(2, 25),
             requestsTotal: 3,
         });
         expect(stats.state).toMatchObject({
             requestsFailed: 1,
-            requestsFinished: 2,
+            requestsSucceeded: 2,
         });
         expect(stats.requestRetryHistogram).toEqual([3]);
     });
 
     test('should regularly log stats', async () => {
         const logged: [string, Dictionary | undefined | null][] = [];
-        // @ts-expect-error Accessing private prop
-        const infoSpy = vitest.spyOn(stats.log, 'info');
-        infoSpy.mockImplementation((message: string, data?: Record<string, any> | null) => {
+        // The statistics log through a child of the registered logger; collapsing `child()` onto its parent
+        // lets the spy below observe it.
+        const logger = serviceLocator.getLogger();
+        vitest.spyOn(logger, 'child').mockReturnValue(logger);
+        vitest.spyOn(logger, 'info').mockImplementation((message: string, data?: Record<string, any> | null) => {
             logged.push([message, data]);
         });
 
-        stats.startJob(0);
+        const stats = new Statistics();
+
+        stats.recordRequestStart(0);
         vitest.advanceTimersByTime(1);
-        stats.finishJob(0, 0);
+        stats.recordRequestSuccess(0, 0);
         await stats.startCapturing();
         vitest.advanceTimersByTime(50000);
         expect(logged).toHaveLength(0);
@@ -371,10 +379,10 @@ describe('Statistics', () => {
         expect(logged[0][1]).toEqual({
             crawlerRuntimeMillis: 60001,
             requestAvgFailedDurationMillis: Infinity,
-            requestAvgFinishedDurationMillis: 1,
+            requestAvgSucceededDurationMillis: 1,
             requestTotalDurationMillis: 1,
             requestsFailedPerMinute: 0,
-            requestsFinishedPerMinute: 1,
+            requestsSucceededPerMinute: 1,
             requestsTotal: 1,
             retryHistogram: [1],
         });
@@ -385,10 +393,10 @@ describe('Statistics', () => {
         expect(logged[0][1]).toEqual({
             crawlerRuntimeMillis: 60001,
             requestAvgFailedDurationMillis: Infinity,
-            requestAvgFinishedDurationMillis: 1,
+            requestAvgSucceededDurationMillis: 1,
             requestTotalDurationMillis: 1,
             requestsFailedPerMinute: 0,
-            requestsFinishedPerMinute: 1,
+            requestsSucceededPerMinute: 1,
             requestsTotal: 1,
             retryHistogram: [1],
         });
@@ -396,13 +404,13 @@ describe('Statistics', () => {
 
     test('should reset stats', async () => {
         await stats.startCapturing();
-        stats.startJob(1);
+        stats.recordRequestStart(1);
         vitest.advanceTimersByTime(3);
-        stats.finishJob(1, 0);
-        expect(stats.state.requestsFinished).toEqual(1);
+        stats.recordRequestSuccess(1, 0);
+        expect(stats.state.requestsSucceeded).toEqual(1);
         expect(stats.requestRetryHistogram).toEqual([1]);
         stats.reset();
-        expect(stats.state.requestsFinished).toEqual(0);
+        expect(stats.state.requestsSucceeded).toEqual(0);
         expect(stats.requestRetryHistogram).toEqual([]);
 
         // Resetting the counters does not end the capture - stopCapturing() is what does.
@@ -427,8 +435,8 @@ describe('Statistics', () => {
             const stats = new Statistics({ id, stateExtension: { defaultState: { productsFound: 0 } } });
 
             await stats.startCapturing();
-            stats.startJob(0);
-            stats.finishJob(0, 0);
+            stats.recordRequestStart(0);
+            stats.recordRequestSuccess(0, 0);
             stats.state.productsFound = 7;
             await stats.stopCapturing();
         };
@@ -474,8 +482,8 @@ describe('Statistics', () => {
         });
 
         test('should reject a custom field that collides with a built-in one', () => {
-            expect(() => new Statistics({ stateExtension: { defaultState: { requestsFinished: 999 } } })).toThrow(
-                /`requestsFinished` collides with a built-in one/,
+            expect(() => new Statistics({ stateExtension: { defaultState: { requestsSucceeded: 999 } } })).toThrow(
+                /`requestsSucceeded` collides with a built-in one/,
             );
         });
 
@@ -529,12 +537,16 @@ describe('Statistics', () => {
                     productsFound: 'plenty',
                 });
 
+                // The statistics log through a child of the registered logger; collapsing `child()` onto its
+                // parent lets the spy below observe it.
+                const logger = serviceLocator.getLogger();
+                vitest.spyOn(logger, 'child').mockReturnValue(logger);
+                const warningSpy = vitest.spyOn(logger, 'warning').mockImplementation(() => {});
+
                 const stats = new Statistics({
                     id: 'corrupt-custom-stats',
                     stateExtension: { deserialize: productsFound },
                 });
-                // @ts-expect-error Accessing private prop
-                const warningSpy = vitest.spyOn(stats.log, 'warning').mockImplementation(() => {});
 
                 await stats.startCapturing();
 
@@ -544,7 +556,7 @@ describe('Statistics', () => {
                 );
                 // the custom field lost its value, the crawler's own counters did not
                 expect(stats.state.productsFound).toEqual(0);
-                expect(stats.state.requestsFinished).toEqual(1);
+                expect(stats.state.requestsSucceeded).toEqual(1);
 
                 await stats.stopCapturing();
             });
@@ -592,9 +604,9 @@ describe('Statistics', () => {
     describe('explicit id option', () => {
         test('statistics with same explicit id should share persisted state', async () => {
             const stats1 = new Statistics({ id: 'shared-stats' });
-            stats1.startJob(0);
+            stats1.recordRequestStart(0);
             vitest.advanceTimersByTime(100);
-            stats1.finishJob(0, 0);
+            stats1.recordRequestSuccess(0, 0);
 
             await stats1.startCapturing();
             await stats1.persistState();
@@ -603,16 +615,16 @@ describe('Statistics', () => {
             const stats2 = new Statistics({ id: 'shared-stats' });
             await stats2.startCapturing();
 
-            expect(stats2.state.requestsFinished).toEqual(1);
+            expect(stats2.state.requestsSucceeded).toEqual(1);
 
             await stats2.stopCapturing();
         });
 
         test('statistics with different explicit ids should have isolated state', async () => {
             const statsA = new Statistics({ id: 'stats-a' });
-            statsA.startJob(0);
+            statsA.recordRequestStart(0);
             vitest.advanceTimersByTime(100);
-            statsA.finishJob(0, 0);
+            statsA.recordRequestSuccess(0, 0);
 
             await statsA.startCapturing();
             await statsA.persistState();
@@ -621,7 +633,7 @@ describe('Statistics', () => {
             const statsB = new Statistics({ id: 'stats-b' });
             await statsB.startCapturing();
 
-            expect(statsB.state.requestsFinished).toEqual(0);
+            expect(statsB.state.requestsSucceeded).toEqual(0);
 
             await statsB.stopCapturing();
         });

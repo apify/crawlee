@@ -23,14 +23,15 @@ import { Cheerio } from 'cheerio';
 import { CheerioAPI } from 'cheerio';
 import { Configuration } from '@crawlee/browser';
 import type { ContextPipeline } from '@crawlee/browser';
-import type { ContextPipeline as ContextPipeline_2 } from '@crawlee/core';
+import type { ContextPipeline as ContextPipeline_2 } from '@crawlee/basic';
 import type { CrawlingContext } from '@crawlee/browser';
-import type { CrawlingContext as CrawlingContext_2 } from '@crawlee/core';
+import type { CrawlingContext as CrawlingContext_2 } from '@crawlee/basic';
+import type { CrawlingRequest } from '@crawlee/browser';
 import { Dictionary } from '@crawlee/types';
 import type { Download } from 'playwright';
-import type { EnqueueLinksOptions } from '@crawlee/core';
+import type { EnqueueLinksOptions } from '@crawlee/basic';
 import type { GetUserDataFromRequest } from '@crawlee/browser';
-import type { GetUserDataFromRequest as GetUserDataFromRequest_2 } from '@crawlee/core';
+import type { GetUserDataFromRequest as GetUserDataFromRequest_2 } from '@crawlee/basic';
 import { IRequestManager } from '@crawlee/browser';
 import type { LaunchOptions } from 'playwright';
 import type { LoadedRequest } from '@crawlee/browser';
@@ -46,7 +47,7 @@ import type { RequestTransform } from '@crawlee/browser';
 import type { Response as Response_2 } from 'playwright';
 import type { RouterHandler } from '@crawlee/browser';
 import type { RouterRoutes } from '@crawlee/browser';
-import type { RouterRoutes as RouterRoutes_2 } from '@crawlee/core';
+import type { RouterRoutes as RouterRoutes_2 } from '@crawlee/basic';
 import type { RouteSchemas } from '@crawlee/browser';
 import type { RoutesFromSchemas } from '@crawlee/browser';
 import type { SkippedRequestCallback } from '@crawlee/browser';
@@ -66,7 +67,7 @@ interface AdaptiveHookContext extends Pick<AdaptivePlaywrightCrawlerContext, 'id
     // (undocumented)
     page?: Page;
     // (undocumented)
-    request: Request_3;
+    request: CrawlingRequest;
 }
 
 // @public
@@ -75,10 +76,15 @@ export class AdaptivePlaywrightCrawler<ContextExtension = Dictionary<never>, Ext
     // (undocumented)
     protected buildContextPipeline(): ContextPipeline_2<CrawlingContext_2, AdaptivePlaywrightCrawlerContext>;
     // (undocumented)
+    destroy(): Promise<void>;
+    drainRenderingDetections(input?: {
+        timeoutMillis?: number;
+    }): Promise<void>;
+    get inFlightRenderingTypeDetectionCount(): number;
+    // (undocumented)
     protected init(): Promise<void>;
     // (undocumented)
     protected runRequestHandler(crawlingContext: CrawlingContext_2): Promise<void>;
-    // (undocumented)
     teardown(): Promise<void>;
 }
 
@@ -91,7 +97,7 @@ export interface AdaptivePlaywrightCrawlerContext<UserData extends Dictionary = 
     querySelector(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
     querySelectorAll(selector: string, timeoutMs?: number): Promise<Cheerio<AnyNode>>;
     // (undocumented)
-    request: LoadedRequest<Request_3<UserData>>;
+    request: LoadedRequest<CrawlingRequest<UserData>>;
     response: Response;
     waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
 }
@@ -122,7 +128,7 @@ export const adaptivePlaywrightCrawlerStatisticState: {
 // Not exported by the entry point; reachable only as a referenced type.
 // @public (undocumented)
 type AdaptivePostNavigationHook<ContextExtension = Dictionary<never>> = BrowserHook<Omit<AdaptiveHookContext, 'request'> & {
-    request: LoadedRequest<Request_3>;
+    request: LoadedRequest<CrawlingRequest>;
 }, ContextExtension>;
 
 // Not exported by the entry point; reachable only as a referenced type.
@@ -253,11 +259,11 @@ function injectJQuery(page: Page, options?: {
 
 // @public
 export interface IRenderingTypePredictor {
-    predict(request: Request_2): {
+    predict(request: Request_2): Awaitable<{
         renderingType: RenderingType;
         detectionProbabilityRecommendation: number;
-    };
-    storeResult(requests: Request_2 | Request_2[], renderingType: RenderingType): void;
+    }>;
+    storeResult(requests: Request_2 | Request_2[], renderingType: RenderingType): Awaitable<void>;
 }
 
 // @public

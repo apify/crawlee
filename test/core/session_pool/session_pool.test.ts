@@ -1,5 +1,6 @@
-import { EventType, KeyValueStore, MemoryStorageBackend, serviceLocator, Session, SessionPool } from '@crawlee/core';
-import type { SessionOptions } from '@crawlee/core';
+import type { SessionOptions } from '@crawlee/basic';
+import { Session, SessionPool } from '@crawlee/basic';
+import { EventType, KeyValueStore, MemoryStorageBackend, serviceLocator, StateValidationError } from '@crawlee/core';
 
 describe('SessionPool - testing session pool', () => {
     let sessionPool: SessionPool;
@@ -16,6 +17,87 @@ describe('SessionPool - testing session pool', () => {
     test('should initialize with default values for first time', async () => {
         expect((await sessionPool.getState()).sessions).toEqual([]);
         expect(sessionPool.id).toBeDefined();
+    });
+
+    test('a corrupt persisted record fails validation instead of crashing the recreation', async () => {
+        const persistStateKey = 'CORRUPT_TEST';
+        const kvStore = await KeyValueStore.open();
+        await kvStore.setValue(persistStateKey, { sessions: [{ id: 'no-timestamps' }] });
+
+        sessionPool = new SessionPool({ persistStateKey });
+
+        await expect(sessionPool.getSession()).rejects.toThrow(StateValidationError);
+    });
+
+    test('should initialize again on use after teardown, resuming the periodic persistence', async () => {
+        const events = serviceLocator.getEventManager();
+        sessionPool = new SessionPool({ persistStateKey: 'REINIT_TEST' });
+
+        await sessionPool.getSession();
+        const listenersWhileRunning = events.listenerCount(EventType.PERSIST_STATE);
+
+        await sessionPool.teardown();
+        expect(events.listenerCount(EventType.PERSIST_STATE)).toBe(listenersWhileRunning - 1);
+
+        expect((await sessionPool.getState()).sessions).toHaveLength(1);
+        expect(events.listenerCount(EventType.PERSIST_STATE)).toBe(listenersWhileRunning);
+
+        await sessionPool.teardown();
+    });
+
+    test('reset should discard the sessions but leave the persisted record alone', async () => {
+        const persistStateKey = 'RESET_TEST';
+        sessionPool = new SessionPool({ persistStateKey });
+
+        const session = await sessionPool.getSession();
+        await sessionPool.persistState();
+
+        sessionPool.reset();
+
+        expect((await sessionPool.getState()).sessions).toEqual([]);
+        expect(await sessionPool.getSession(session!.id)).toBeUndefined();
+
+        const kvStore = await KeyValueStore.open();
+        expect(await kvStore.getValue(persistStateKey)).toBeDefined();
+
+        await sessionPool.teardown();
+    });
+
+    test('resetStore should throw while persisting periodically and clear the record after teardown', async () => {
+        const persistStateKey = 'RESET_STORE_TEST';
+        sessionPool = new SessionPool({ persistStateKey });
+
+        await sessionPool.getSession();
+        await sessionPool.persistState();
+
+        await expect(sessionPool.resetStore()).rejects.toThrow('Use reset() to reset the state itself');
+
+        await sessionPool.teardown();
+        const kvStore = await KeyValueStore.open();
+        expect(await kvStore.getValue(persistStateKey)).toBeDefined();
+
+        await sessionPool.resetStore();
+        expect(await kvStore.getValue(persistStateKey)).toBeNull();
+    });
+
+    test('resetStore before first use should clear the record without restoring old sessions', async () => {
+        const persistStateKey = 'RESET_STORE_FRESH_TEST';
+
+        const firstPool = new SessionPool({ persistStateKey });
+        await firstPool.getSession();
+        await firstPool.teardown();
+
+        const kvStore = await KeyValueStore.open();
+        expect(await kvStore.getValue(persistStateKey)).toBeDefined();
+
+        // A custom store id makes the record reachable before the pool initializes.
+        const secondPool = new SessionPool({ persistStateKey, persistStateKeyValueStoreId: kvStore.id });
+        await secondPool.resetStore();
+
+        expect(await kvStore.getValue(persistStateKey)).toBeNull();
+        expect((await secondPool.getState()).sessions).toEqual([]);
+
+        await secondPool.teardown();
     });
 
     test('should override default values', async () => {
@@ -132,13 +214,10 @@ describe('SessionPool - testing session pool', () => {
     });
 
     test('should create session', async () => {
-        // @ts-expect-error Accessing protected method
-        await sessionPool.ensureInitialized();
-        // @ts-expect-error private symbol
-        await sessionPool.createSession();
+        const created = await sessionPool.newSession();
         const { sessions } = await sessionPool.getState();
         expect(sessions).toHaveLength(1);
-        expect(sessions[0].id).toBeDefined();
+        expect(sessions[0].id).toBe(created.id);
     });
 
     describe('should persist state', () => {
@@ -244,8 +323,8 @@ describe('SessionPool - testing session pool', () => {
             persistStateKeyValueStoreId,
             persistStateKey,
         });
-        // @ts-expect-error Accessing protected method
-        await newSessionPool.ensureInitialized();
+        // Any public use initializes the pool, which is what teardown then persists.
+        await newSessionPool.getState();
 
         await newSessionPool.teardown();
 
@@ -276,8 +355,7 @@ describe('SessionPool - testing session pool', () => {
 
     it('should remove persist state event listener', async () => {
         const events = serviceLocator.getEventManager();
-        // @ts-expect-error Accessing protected method
-        await sessionPool.ensureInitialized();
+        await sessionPool.getState();
         expect(events.listenerCount(EventType.PERSIST_STATE)).toEqual(1);
         await sessionPool.teardown();
         expect(events.listenerCount(EventType.PERSIST_STATE)).toEqual(0);

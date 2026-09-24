@@ -3,7 +3,8 @@ import type { AddressInfo } from 'node:net';
 import os from 'node:os';
 
 import type { PlaywrightCrawlingContext, Request } from '@crawlee/playwright';
-import { type ConcurrencySystem, MemoryStorageBackend, serviceLocator } from '@crawlee/core';
+import { type ConcurrencySystem } from '@crawlee/basic';
+import { MemoryStorageBackend, serviceLocator } from '@crawlee/core';
 import {
     createPlaywrightRouter,
     PlaywrightCrawler,
@@ -163,7 +164,7 @@ describe('PlaywrightCrawler', () => {
         // Every request must be accounted for by either requestHandler or failedRequestHandler.
         expect(success.length + failure.length).toBe(urls.length);
         // With operationTimeoutSecs=0.001, no request can actually succeed, so every one must fail.
-        expect(stats.requestsFinished).toBe(0);
+        expect(stats.requestsSucceeded).toBe(0);
         expect(stats.requestsFailed).toBe(urls.length);
     });
 

@@ -1,11 +1,13 @@
 import { Readable } from 'node:stream';
 
 import {
+    AfterCommitError,
     createStorageTransaction,
     Dataset,
     getRequestId,
     KeyValueStore,
     MemoryStorageBackend,
+    NonRetryableError,
     Request,
     RequestQueue,
     serviceLocator,
@@ -107,6 +109,121 @@ describe('StorageTransaction', () => {
             transaction.dispose();
 
             await expect(store.getValue('key')).resolves.toEqual({ a: 1 });
+        });
+    });
+
+    describe('commit callbacks', () => {
+        test('are not run when the transaction is rolled back', async () => {
+            const callback = vitest.fn();
+
+            const transaction = createStorageTransaction();
+            await transaction.run(() => transaction.afterCommit(callback));
+            transaction.rollback();
+            transaction.dispose();
+
+            expect(callback).not.toHaveBeenCalled();
+        });
+
+        test('receive the error of a failed commit, which still propagates', async () => {
+            const dataset = await Dataset.open();
+            vitest.spyOn(dataset.backend, 'pushData').mockRejectedValueOnce(new Error('backend exploded'));
+            const callback = vitest.fn();
+
+            const transaction = createStorageTransaction();
+            await transaction.run(async () => {
+                await dataset.pushData({ a: 1 });
+                transaction.afterCommit(callback);
+            });
+
+            await expect(transaction.commit()).rejects.toThrow('backend exploded');
+            transaction.dispose();
+
+            expect(callback).toHaveBeenCalledWith(expect.objectContaining({ message: 'backend exploded' }));
+        });
+
+        test('an error thrown by a callback replaces the commit error', async () => {
+            const dataset = await Dataset.open();
+            vitest.spyOn(dataset.backend, 'pushData').mockRejectedValueOnce(new Error('Data item is too large'));
+
+            const transaction = createStorageTransaction();
+            await transaction.run(async () => {
+                await dataset.pushData({ a: 1 });
+                transaction.afterCommit((error) => {
+                    if (error?.message.includes('too large')) {
+                        throw new NonRetryableError('trim the item', { cause: error });
+                    }
+                });
+            });
+
+            await expect(transaction.commit()).rejects.toThrow(NonRetryableError);
+            transaction.dispose();
+        });
+
+        test('a throwing callback fails a successful commit non-retryably', async () => {
+            const store = await KeyValueStore.open();
+            const laterCallback = vitest.fn();
+
+            const transaction = createStorageTransaction();
+            await transaction.run(async () => {
+                await store.setValue('key', { a: 1 });
+                transaction.afterCommit(() => {
+                    throw new Error('callback exploded');
+                });
+                transaction.afterCommit(laterCallback);
+            });
+
+            // The write is durable, so the crawler must not retry the request and duplicate it.
+            const error = await transaction.commit().catch((thrown) => thrown);
+            expect(error).toBeInstanceOf(AfterCommitError);
+            expect(error).toMatchObject({ message: 'callback exploded', cause: { message: 'callback exploded' } });
+
+            expect(transaction.state).toBe('committed');
+            expect(laterCallback).not.toHaveBeenCalled();
+            await expect(store.getValue('key')).resolves.toEqual({ a: 1 });
+
+            transaction.dispose();
+        });
+
+        test('a callback that raises a non-retryable error of its own is left unwrapped', async () => {
+            const transaction = createStorageTransaction();
+            const raised = new NonRetryableError('give up');
+            await transaction.run(() =>
+                transaction.afterCommit(() => {
+                    throw raised;
+                }),
+            );
+
+            await expect(transaction.commit()).rejects.toBe(raised);
+
+            transaction.dispose();
+        });
+
+        test('run even when the ambient cancellation context has already been aborted', async () => {
+            const store = await KeyValueStore.open();
+
+            const transaction = createStorageTransaction();
+            await transaction.run(() =>
+                transaction.afterCommit(async () => store.setValue('from-callback', { ok: true })),
+            );
+
+            const controller = new AbortController();
+            controller.abort();
+
+            // As for the flush itself: a request-handler timeout that fired before the commit must not
+            // cancel the storage operations of a handler that succeeded.
+            await timeoutStorage.run({ cancelTask: controller }, async () => transaction.commit());
+            transaction.dispose();
+
+            await expect(store.getValue('from-callback')).resolves.toEqual({ ok: true });
+        });
+
+        test('registering on a closed transaction throws', async () => {
+            const transaction = createStorageTransaction();
+            await transaction.commit();
+
+            expect(() => transaction.afterCommit(() => {})).toThrow(/'committed' state/);
+
+            transaction.dispose();
         });
     });
 
@@ -439,20 +556,29 @@ describe('KeyValueStore in a transaction', () => {
                 await store.setValue(`buffered-${i}`, { i });
             }
 
-            // `bufferedJournalEntries()` is the O(journal) reduction. Reading 40 keys' values must not
-            // call it 40 times - the listing path builds one map and threads it through every per-key
-            // read. A regression to per-key derivation makes this scale with the key count.
-            const reduceSpy = vitest.spyOn(store as any, 'bufferedJournalEntries');
+            // Deriving the buffered writes means one full scan of the journal. Reading 40 keys' values
+            // must not scan it 40 times - the listing path builds one map and threads it through every
+            // per-key read. A regression to per-key derivation makes this scale with the key count.
+            let journalScans = 0;
+            const { journal } = transaction;
+            const iterate = journal[Symbol.iterator].bind(journal);
+            Object.defineProperty(journal, Symbol.iterator, {
+                configurable: true,
+                value: () => {
+                    journalScans++;
+                    return iterate();
+                },
+            });
 
             const values = await store.values();
             expect(values).toHaveLength(40);
 
             // One reduction for the page listing, one shared across every record read: two, not forty.
-            // The lower bound matters too - zero calls would mean the buffered reads were skipped entirely.
-            expect(reduceSpy.mock.calls.length).toBeGreaterThanOrEqual(1);
-            expect(reduceSpy.mock.calls.length).toBeLessThanOrEqual(2);
+            // The lower bound matters too - zero scans would mean the buffered reads were skipped entirely.
+            expect(journalScans).toBeGreaterThanOrEqual(1);
+            expect(journalScans).toBeLessThanOrEqual(2);
 
-            reduceSpy.mockRestore();
+            Reflect.deleteProperty(journal, Symbol.iterator);
             transaction.rollback();
         });
     });
@@ -666,8 +792,9 @@ describe('RequestQueue in a transaction', () => {
         const addBatchSpy = vitest.spyOn(queue.backend, 'addBatchOfRequests');
 
         // Looks like it came from a backend: foreign id, already handled.
-        const reenqueued = new Request({
+        const reenqueued = Request.fromSchema({
             url: 'https://example.com/old',
+            uniqueKey: 'https://example.com/old',
             id: 'foreign-backend-id',
             handledAt: new Date().toISOString(),
         });

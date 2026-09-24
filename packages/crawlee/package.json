@@ -57,8 +57,6 @@
         "@crawlee/core": "workspace:*",
         "@crawlee/fs-storage": "workspace:*",
         "@crawlee/http": "workspace:*",
-        "@crawlee/jsdom": "workspace:*",
-        "@crawlee/linkedom": "workspace:*",
         "@crawlee/playwright": "workspace:*",
         "@crawlee/puppeteer": "workspace:*",
         "@crawlee/utils": "workspace:*",

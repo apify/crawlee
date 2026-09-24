@@ -45,7 +45,6 @@ module.exports = {
                 'guides/trace-and-monitor-crawlers',
                 'guides/avoid-blocking',
                 'guides/cookie-modals',
-                'guides/jsdom-crawler-guide',
                 'guides/impit-http-client/impit-http-client',
                 'guides/got-scraping',
                 'guides/typescript-project',

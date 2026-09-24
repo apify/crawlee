@@ -229,6 +229,7 @@ export class BrowserPool<Options extends BrowserPoolOptions = BrowserPoolOptions
     prePageCloseHooks: PrePageCloseHook<BrowserControllerReturn, PageReturn>[];
     // (undocumented)
     prePageCreateHooks: PrePageCreateHook<BrowserControllerReturn, PageOptions>[];
+    releaseAllBrowsers(): Promise<void>;
     retireAllBrowsers(): void;
     // (undocumented)
     retireBrowserAfterPageCount: number;
@@ -587,6 +588,7 @@ export class RemoteBrowserPool<Page = unknown> implements IBrowserPool<Page> {
     get maxOpenBrowsers(): number;
     set maxOpenBrowsers(value: number);
     newPage(options?: NewPageOptions): Promise<Page>;
+    releaseAllBrowsers(): Promise<void>;
 }
 
 // @public (undocumented)

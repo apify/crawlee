@@ -4,7 +4,7 @@ packages:
   - website
 
 catalog:
-  zod: ^4.4.3
+  zod: ^4.5.4
 
 minimumReleaseAge: 1440
 minimumReleaseAgeExclude:
@@ -30,7 +30,7 @@ overrides:
   # compatible with `@crawlee/core@4` (e.g. `Configuration.INTEGER_VARS` was
   # removed), so keep the SDK on the latest v4 beta and force it to use the workspace `@crawlee/*`
   # packages (mirroring the per-actor `overrides.apify` used for PLATFORM tests).
-  apify: "^4.0.0-beta.24"
+  apify: "^4.0.0-beta.35"
   "apify>@crawlee/core": "workspace:*"
   "apify>@crawlee/types": "workspace:*"
   "apify>@crawlee/utils": "workspace:*"

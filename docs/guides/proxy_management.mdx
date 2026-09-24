@@ -11,18 +11,15 @@ import TabItem from '@theme/TabItem';
 import CodeBlock from '@theme/CodeBlock';
 
 import HttpSource from '!!raw-loader!./proxy_management_integration_http.ts';
-import JSDOMSource from '!!raw-loader!./proxy_management_integration_jsdom.ts';
 import CheerioSource from '!!raw-loader!./proxy_management_integration_cheerio.ts';
 import PlaywrightSource from '!!raw-loader!./proxy_management_integration_playwright.ts';
 import PuppeteerSource from '!!raw-loader!./proxy_management_integration_puppeteer.ts';
 import SessionStandaloneSource from '!!raw-loader!./proxy_management_session_standalone.ts';
 import SessionHttpSource from '!!raw-loader!./proxy_management_session_http.ts';
-import SessionJSDOMSource from '!!raw-loader!./proxy_management_session_jsdom.ts';
 import SessionCheerioSource from '!!raw-loader!./proxy_management_session_cheerio.ts';
 import SessionPlaywrightSource from '!!raw-loader!./proxy_management_session_playwright.ts';
 import SessionPuppeteerSource from '!!raw-loader!./proxy_management_session_puppeteer.ts';
 import InspectionHttpSource from '!!raw-loader!./proxy_management_inspection_http.ts';
-import InspectionJSDOMSource from '!!raw-loader!./proxy_management_inspection_jsdom.ts';
 import InspectionCheerioSource from '!!raw-loader!./proxy_management_inspection_cheerio.ts';
 import InspectionPlaywrightSource from '!!raw-loader!./proxy_management_inspection_playwright.ts';
 import InspectionPuppeteerSource from '!!raw-loader!./proxy_management_inspection_puppeteer.ts';
@@ -83,23 +80,18 @@ The `ProxyConfiguration` class allows you to provide a custom function to pick a
 
 ```javascript
 const proxyConfiguration = new ProxyConfiguration({
-    newUrlFunction: ({ request } = {}) => {
-        if (request?.url.includes('crawlee.dev')) {
-            return null; // for crawlee.dev, we don't use a proxy
-        }
-
-        return 'http://proxy-1.com'; // for all other URLs, we use this proxy
+    newUrlFunction: async () => {
+        const { proxyUrl } = await myProxyProvider.getProxy();
+        return proxyUrl; // or return null to skip the proxy
     }
 });
 ```
 
-The `newUrlFunction` receives a single optional `options` parameter and returns a string with the proxy URL (or `null` to skip the proxy for the current request).
-
-The `options` parameter is an object containing a <ApiLink to="core/class/Request">`Request`</ApiLink>, which is the request that will be made. Note that this object is not always available, for example when we are using the `newUrl` function directly. Your custom function should therefore not rely on the `request` object being present and provide a default behavior when it is not.
+The `newUrlFunction` takes no arguments and returns a string with the proxy URL (or `null` to skip the proxy). Crawlers call it once for every new session, so it cannot route individual requests. To send specific requests through specific proxies, create named sessions with their own proxies and pin requests to them, as shown in the [session management guide](../guides/session-management#pinning-a-request-to-a-specific-session).
 
 ## Crawler integration
 
-`ProxyConfiguration` integrates seamlessly into <ApiLink to="http-crawler/class/HttpCrawler">`HttpCrawler`</ApiLink>, <ApiLink to="cheerio-crawler/class/CheerioCrawler">`CheerioCrawler`</ApiLink>, <ApiLink to="jsdom-crawler/class/JSDOMCrawler">`JSDOMCrawler`</ApiLink>, <ApiLink to="playwright-crawler/class/PlaywrightCrawler">`PlaywrightCrawler`</ApiLink> and <ApiLink to="puppeteer-crawler/class/PuppeteerCrawler">`PuppeteerCrawler`</ApiLink>.
+`ProxyConfiguration` integrates seamlessly into <ApiLink to="http-crawler/class/HttpCrawler">`HttpCrawler`</ApiLink>, <ApiLink to="cheerio-crawler/class/CheerioCrawler">`CheerioCrawler`</ApiLink>, <ApiLink to="playwright-crawler/class/PlaywrightCrawler">`PlaywrightCrawler`</ApiLink> and <ApiLink to="puppeteer-crawler/class/PuppeteerCrawler">`PuppeteerCrawler`</ApiLink>.
 
 <Tabs groupId="proxy_session_management">
     <TabItem value="http" label="HttpCrawler">
@@ -110,11 +102,6 @@ The `options` parameter is an object containing a <ApiLink to="core/class/Reques
     <TabItem value="cheerio" label="CheerioCrawler" default>
         <CodeBlock language="js">
             {CheerioSource}
-        </CodeBlock>
-    </TabItem>
-    <TabItem value="jsdom" label="JSDOMCrawler">
-        <CodeBlock language="js">
-            {JSDOMSource}
         </CodeBlock>
     </TabItem>
     <TabItem value="playwright" label="PlaywrightCrawler">
@@ -133,7 +120,7 @@ Our crawlers will now use the selected proxies for all connections.
 
 ## IP Rotation and session management
 
-Each call to <ApiLink to="core/class/ProxyConfiguration#newUrl">`proxyConfiguration.newUrl()`</ApiLink> generates a new proxy URL. Crawler instances pair these URLs with `Session` instances and rotate those together with browser fingerprints, impersonated headers, and more. This is extremely useful in scraping, because we want to create the impression of a real user. See the [session management guide](../guides/session-management) and <ApiLink to="core/class/SessionPool">`SessionPool`</ApiLink> class for more information on how keeping a real session helps us avoid blocking.
+Each call to <ApiLink to="core/class/ProxyConfiguration#newUrl">`proxyConfiguration.newUrl()`</ApiLink> generates a new proxy URL. Crawler instances pair these URLs with `Session` instances and rotate those together with browser fingerprints, impersonated headers, and more. This is extremely useful in scraping, because we want to create the impression of a real user. See the [session management guide](../guides/session-management) and <ApiLink to="basic-crawler/class/SessionPool">`SessionPool`</ApiLink> class for more information on how keeping a real session helps us avoid blocking.
 
 <Tabs groupId="proxy_session_management">
     <TabItem value="http" label="HttpCrawler">
@@ -144,11 +131,6 @@ Each call to <ApiLink to="core/class/ProxyConfiguration#newUrl">`proxyConfigurat
     <TabItem value="cheerio" label="CheerioCrawler" default>
         <CodeBlock language="js">
             {SessionCheerioSource}
-        </CodeBlock>
-    </TabItem>
-    <TabItem value="jsdom" label="JSDOMCrawler">
-        <CodeBlock language="js">
-            {SessionJSDOMSource}
         </CodeBlock>
     </TabItem>
     <TabItem value="playwright" label="PlaywrightCrawler">
@@ -170,7 +152,7 @@ Each call to <ApiLink to="core/class/ProxyConfiguration#newUrl">`proxyConfigurat
 
 ## Inspecting current proxy in Crawlers
 
-`HttpCrawler`, `CheerioCrawler`, `JSDOMCrawler`, `PlaywrightCrawler` and `PuppeteerCrawler` grant access to information about the currently used proxy
+`HttpCrawler`, `CheerioCrawler`, `PlaywrightCrawler` and `PuppeteerCrawler` grant access to information about the currently used proxy
 in their `requestHandler` using a <ApiLink to="types/interface/ProxyInfo">`proxyInfo`</ApiLink> object.
 With the `proxyInfo` object, we can easily access the proxy URL.
 
@@ -183,11 +165,6 @@ With the `proxyInfo` object, we can easily access the proxy URL.
     <TabItem value="cheerio" label="CheerioCrawler" default>
         <CodeBlock language="js">
             {InspectionCheerioSource}
-        </CodeBlock>
-    </TabItem>
-    <TabItem value="jsdom" label="JSDOMCrawler">
-        <CodeBlock language="js">
-            {InspectionJSDOMSource}
         </CodeBlock>
     </TabItem>
     <TabItem value="playwright" label="PlaywrightCrawler">

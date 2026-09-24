@@ -4,18 +4,13 @@
 
 ```ts
 
+import { ArgumentValidationError } from '@apify/validations';
 import type { BaseHttpClient } from '@crawlee/http-client';
 import type { CheerioAPI } from 'cheerio';
 import type { CrawleeLogger } from '@crawlee/types';
 import type { Dictionary } from '@crawlee/types';
-import type { z } from 'zod';
 
-// @public
-export class ArgumentValidationError extends Error {
-    constructor(error: z.ZodError, value: unknown, label?: string);
-    readonly cause: z.ZodError;
-    readonly issues: z.ZodError['issues'];
-}
+export { ArgumentValidationError }
 
 // @public
 const DISCORD_REGEX: RegExp;

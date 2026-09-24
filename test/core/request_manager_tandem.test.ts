@@ -1,3 +1,4 @@
+import { ThrottlingRequestManager } from '@crawlee/basic';
 import type { RequestLoaderStatus } from '@crawlee/core';
 import {
     log,
@@ -7,7 +8,6 @@ import {
     RequestManagerTandem,
     RequestQueue,
     serviceLocator,
-    ThrottlingRequestManager,
 } from '@crawlee/core';
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from 'vitest';
 
@@ -329,18 +329,6 @@ describe('RequestManagerTandem', () => {
                 scope: 'registrableDomain',
             }),
         ).toBe(false);
-    });
-
-    test('persistState forwards to the read-only loader', async () => {
-        const requestList = await RequestList.open(null, [{ url: 'https://example.com/1' }]);
-        const requestQueue = await RequestQueue.open();
-
-        const persistSpy = vi.spyOn(requestList, 'persistState').mockResolvedValue();
-
-        const tandem = new RequestManagerTandem(requestList, requestQueue);
-        await tandem.persistState();
-
-        expect(persistSpy).toHaveBeenCalledTimes(1);
     });
 
     test('setExpectedRequestProcessingTimeSecs forwards to an already-resolved manager', async () => {

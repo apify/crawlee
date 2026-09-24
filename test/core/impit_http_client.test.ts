@@ -14,20 +14,20 @@ describe('ImpitHttpClient', () => {
         vi.mocked(Impit).mockClear();
     });
 
-    test('reuses cached clients by default', () => {
+    test('reuses cached clients by default', async () => {
         const httpClient = new ImpitHttpClient();
 
-        (httpClient as any).getClient({ proxyUrl: 'http://proxy.example' });
-        (httpClient as any).getClient({ proxyUrl: 'http://proxy.example' });
+        await httpClient.fetch(new Request('http://example.com'), { proxyUrl: 'http://proxy.example' });
+        await httpClient.fetch(new Request('http://example.com'), { proxyUrl: 'http://proxy.example' });
 
         expect(Impit).toHaveBeenCalledTimes(1);
     });
 
-    test('creates a new client for each request when cacheClients is false', () => {
+    test('creates a new client for each request when cacheClients is false', async () => {
         const httpClient = new ImpitHttpClient({ cacheClients: false });
 
-        (httpClient as any).getClient({ proxyUrl: 'http://proxy.example' });
-        (httpClient as any).getClient({ proxyUrl: 'http://proxy.example' });
+        await httpClient.fetch(new Request('http://example.com'), { proxyUrl: 'http://proxy.example' });
+        await httpClient.fetch(new Request('http://example.com'), { proxyUrl: 'http://proxy.example' });
 
         expect(Impit).toHaveBeenCalledTimes(2);
     });

@@ -1,8 +1,21 @@
-import type { ConcurrencyConsumer, IConcurrencySystem, LoadSignal, LoadSignalStartContext } from '@crawlee/core';
-import { AutoscaledPool, ConcurrencySystem, EventLoopLoadSignal, SnapshotStore } from '@crawlee/core';
+import type { ConcurrencyConsumer, IConcurrencySystem, LoadSignal, LoadSignalStartContext } from '@crawlee/basic';
+import { AutoscaledPool, ConcurrencySystem, EventLoopLoadSignal, SnapshotStore } from '@crawlee/basic';
+import { serviceLocator } from '@crawlee/core';
 import { sleep } from '@crawlee/utils';
 
 import log from '@apify/log';
+
+/**
+ * A custom load signal with observable lifecycle hooks. Custom signals are started and stopped on exactly the same
+ * path as the built-in ones, so this is how a system's lifecycle is watched from the outside.
+ */
+const spySignal = (name = 'spySignal') => ({
+    name,
+    overloadedRatio: 0.5,
+    start: vitest.fn(async (_context: LoadSignalStartContext) => {}),
+    stop: vitest.fn(async () => {}),
+    getSample: () => [],
+});
 
 describe('ConcurrencySystem', () => {
     let logLevel: number;
@@ -221,12 +234,19 @@ describe('ConcurrencySystem', () => {
                 loadSignals: { memory: false, eventLoop: false, cpu: false, storageBackend: false },
             });
 
-            // @ts-expect-error Accessing private prop
-            expect(system.snapshotter.getLoadSignals()).toEqual([]);
-
             await system.start();
             try {
-                expect(system.getCurrentStatus().isSystemIdle).toBe(true);
+                // Nothing is left to report on, so every built-in field is the disabled placeholder rather than a
+                // real verdict - a signal still running would report its own `overloadedRatio` as `limitRatio`.
+                const idle = { isOverloaded: false, limitRatio: 0, actualRatio: 0 };
+                const status = system.getCurrentStatus();
+                expect(status.memInfo).toEqual(idle);
+                expect(status.eventLoopInfo).toEqual(idle);
+                expect(status.cpuInfo).toEqual(idle);
+                expect(status.storageBackendInfo).toEqual(idle);
+                expect(status.loadSignalInfo).toBeUndefined();
+
+                expect(status.isSystemIdle).toBe(true);
                 expect(system.hasCapacityForTask()).toBe(true);
             } finally {
                 await system.stop();
@@ -297,29 +317,25 @@ describe('ConcurrencySystem', () => {
 
     describe('lifecycle', () => {
         test('start()/stop() are idempotent', async () => {
-            const system = new ConcurrencySystem();
-            // @ts-expect-error Accessing private prop
-            const snapshotter = system.snapshotter;
-            const startSpy = vitest.spyOn(snapshotter, 'start');
-            const stopSpy = vitest.spyOn(snapshotter, 'stop');
+            const signal = spySignal();
+            const system = new ConcurrencySystem({ loadSignals: { custom: [signal] } });
 
             // A second start() on an already-running system is a no-op...
             await system.start();
             await system.start();
-            expect(startSpy).toHaveBeenCalledTimes(1);
+            expect(signal.start).toHaveBeenCalledTimes(1);
 
             // ...and so is a second stop().
             await system.stop();
             await system.stop();
-            expect(stopSpy).toHaveBeenCalledTimes(1);
+            expect(signal.stop).toHaveBeenCalledTimes(1);
         });
 
         test('stop() is a no-op when never started', async () => {
-            const system = new ConcurrencySystem();
-            // @ts-expect-error Accessing private prop
-            const stopSpy = vitest.spyOn(system.snapshotter, 'stop');
+            const signal = spySignal();
+            const system = new ConcurrencySystem({ loadSignals: { custom: [signal] } });
             await system.stop();
-            expect(stopSpy).not.toHaveBeenCalled();
+            expect(signal.stop).not.toHaveBeenCalled();
         });
 
         test('isRunning reflects the lifecycle', async () => {
@@ -382,15 +398,14 @@ describe('ConcurrencySystem', () => {
                 getSample: () => [],
             };
 
-            const system = new ConcurrencySystem({ loadSignals: { custom: [signal] } });
-            // @ts-expect-error Accessing private prop
-            const snapshotterStop = vitest.spyOn(system.snapshotter, 'stop');
+            const healthy = spySignal('healthySignal');
+            const system = new ConcurrencySystem({ loadSignals: { custom: [signal, healthy] } });
 
             await expect(system.start()).rejects.toThrow('signal boot failed');
 
-            // The built-in signals started before the custom one blew up, so the failed attempt has to unwind them
-            // instead of leaving their intervals behind - and must not report a system that is up.
-            expect(snapshotterStop).toHaveBeenCalledTimes(1);
+            // The signals that did start before the other one blew up have to be unwound instead of leaving their
+            // collection running - and the failed attempt must not report a system that is up.
+            expect(healthy.stop).toHaveBeenCalledTimes(1);
             expect(system.isRunning).toBe(false);
 
             // A retry has to actually retry, rather than resolving instantly against the memoized failure.
@@ -402,15 +417,14 @@ describe('ConcurrencySystem', () => {
         });
 
         test('start() after stop() restarts the system', async () => {
-            const system = new ConcurrencySystem();
-            // @ts-expect-error Accessing private prop
-            const snapshotterStart = vitest.spyOn(system.snapshotter, 'start');
+            const signal = spySignal();
+            const system = new ConcurrencySystem({ loadSignals: { custom: [signal] } });
 
             await system.start();
             await system.stop();
             await system.start();
 
-            expect(snapshotterStart).toHaveBeenCalledTimes(2);
+            expect(signal.start).toHaveBeenCalledTimes(2);
             expect(system.isRunning).toBe(true);
 
             await system.stop();
@@ -438,9 +452,13 @@ describe('ConcurrencySystem', () => {
         });
 
         test('capacity queried on a stopped system warns once per session', async () => {
+            // The system logs through a child of the registered logger; collapsing `child()` onto its parent lets
+            // the spy below observe it.
+            const logger = serviceLocator.getLogger();
+            vitest.spyOn(logger, 'child').mockReturnValue(logger);
+            const warning = vitest.spyOn(logger, 'warning').mockImplementation(() => {});
+
             const system = new ConcurrencySystem();
-            // @ts-expect-error Accessing private prop
-            const warning = vitest.spyOn(system.log, 'warning');
 
             await system.start();
             system.hasCapacityForTask();
@@ -684,6 +702,60 @@ describe('ConcurrencySystem', () => {
                 expect(calls).toContainEqual({ method: 'tryRegisterTaskStart', consumerId: id });
                 expect(calls).toContainEqual({ method: 'registerTaskEnd', consumerId: id });
             }
+        });
+
+        test('a task, its booking and its release all carry the same id', async () => {
+            const inFlight = new Set<string>();
+            const bookings: string[] = [];
+            const unmatchedReleases: string[] = [];
+            const unbookedTasks: string[] = [];
+            let peakInFlight = 0;
+
+            const governor: IConcurrencySystem = {
+                desiredConcurrency: 2,
+                currentConcurrency: 0,
+                isRunning: true,
+                hasCapacityForTask: () => inFlight.size < 2,
+                tryRegisterTaskStart: (_consumer, taskId) => {
+                    if (inFlight.size >= 2) return false;
+                    bookings.push(taskId);
+                    inFlight.add(taskId);
+                    peakInFlight = Math.max(peakInFlight, inFlight.size);
+                    return true;
+                },
+                registerTaskEnd: (_consumer, taskId) => {
+                    if (!inFlight.delete(taskId)) {
+                        unmatchedReleases.push(taskId);
+                    }
+                },
+            };
+
+            let done = 0;
+            const pool = new AutoscaledPool({
+                concurrencySystem: governor,
+                consumer: { id: 'pool' },
+                runTaskFunction: async (taskId) => {
+                    if (!inFlight.has(taskId)) {
+                        unbookedTasks.push(taskId);
+                    }
+                    await sleep(20);
+                    done++;
+                },
+                isFinishedFunction: async () => done >= 6,
+                isTaskReadyFunction: async () => done < 6,
+            });
+
+            await pool.run();
+
+            // The point of the ids: every release can be matched to the booking it settles, so a governor can time
+            // its tasks and know which ones are still running.
+            expect(unmatchedReleases).toEqual([]);
+            // The task runs under the id its own slot was booked with, so it can attribute its work to that booking.
+            expect(unbookedTasks).toEqual([]);
+            expect(inFlight.size).toBe(0);
+            // Ids are never recycled while their task runs, or the two concurrent bookings would collide.
+            expect(peakInFlight).toBe(2);
+            expect(new Set(bookings).size).toBe(bookings.length);
         });
 
         test('tuning a shared governor is reflected by every borrowing pool', () => {

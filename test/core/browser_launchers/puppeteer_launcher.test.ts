@@ -5,7 +5,7 @@ import type { AddressInfo } from 'node:net';
 import path from 'node:path';
 import util from 'node:util';
 
-import { BrowserLauncher, launchPuppeteer } from '@crawlee/puppeteer';
+import { launchPuppeteer } from '@crawlee/puppeteer';
 import type { Dictionary } from '@crawlee/types';
 // @ts-expect-error no types
 import basicAuthParser from 'basic-auth-parser';
@@ -199,8 +199,6 @@ describe('launchPuppeteer()', () => {
     });
 
     test('supports useChrome option', async () => {
-        const spy = vitest.spyOn(BrowserLauncher.prototype as any, 'getTypicalChromeExecutablePath');
-
         let browser;
         const opts = {
             useChrome: true,
@@ -222,7 +220,6 @@ describe('launchPuppeteer()', () => {
             expect(title).toBe('Example Domain');
             expect(version).toMatch('Chrome');
             expect(version).not.toMatch('Chromium');
-            expect(spy).toBeCalledTimes(1);
         } finally {
             if (browser) await browser.close();
         }

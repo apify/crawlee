@@ -1,4 +1,4 @@
-import { weightedAvg } from '../../../packages/core/src/autoscaling/weighted_avg.js';
+import { weightedAvg } from '../../../packages/basic-crawler/src/internals/autoscaling/weighted_avg.js';
 
 describe('weightedAvg()', () => {
     test('works', () => {

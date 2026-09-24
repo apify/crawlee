@@ -67,6 +67,10 @@ sudo ln -s /usr/lib/libpcre.so /usr/lib/libpcre.so.3
 
 There are a few small differences between how testing in jest and vitest works. Mostly, they relate to what to do, and not do anymore.
 
+### Running the suite
+
+`pnpm test` runs the fast configuration: two vitest projects one after the other - `unit`, then `browser` for the files that drive real browsers - with capped workers and the Playwright plugin matrix limited to Chromium. `pnpm test:full` runs the lot, as CI does.
+
 ### Configuration file for tests created in the package they are for
 
 You will need to use this tsconfig.json in the `test` folder in the package (say, if you were adding a test to `packages/core` and there wasn't a `tsconfig.json` file already there)

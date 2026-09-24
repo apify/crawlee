@@ -1,9 +1,9 @@
-import type { CrawleeLogger, CrawleeLoggerOptions } from '@crawlee/types';
+import type { CrawleeLogger, CrawleeLoggerOptions, LogOptions } from '@crawlee/types';
 
 import type { LoggerOptions } from '@apify/log';
 import log, { Log, Logger, LoggerJson, LoggerText, LogLevel } from '@apify/log';
 
-export type { CrawleeLogger, CrawleeLoggerOptions };
+export type { CrawleeLogger, CrawleeLoggerOptions, LogOptions };
 
 /**
  * Abstract base class for custom Crawlee logger implementations.
@@ -39,7 +39,7 @@ export abstract class BaseCrawleeLogger implements CrawleeLogger {
     // Note: If wrapping logger in a Proxy, unbound methods calling #-fields throw TypeError
     // unless bound to the target (see createLogProxy in adaptive-playwright-crawler.ts).
     #options: CrawleeLoggerOptions;
-    readonly #warningsLogged = new Set<string>();
+    readonly #loggedOnce = new Set<string>();
 
     constructor(options: Partial<CrawleeLoggerOptions> = {}) {
         this.#options = options;
@@ -76,7 +76,30 @@ export abstract class BaseCrawleeLogger implements CrawleeLogger {
         return this.createChild(options);
     }
 
-    error(message: string, data?: Record<string, unknown>): void {
+    /**
+     * Whether `once` suppresses this message. Keyed by level as well as text, so that a message logged once as
+     * `info` does not swallow the same text logged as a `warning`.
+     *
+     * Handled here rather than in {@apilink BaseCrawleeLogger.logWithLevel} so that every logger gets it, instead
+     * of each implementation having to dedupe for itself.
+     */
+    #suppressedAsRepeat(level: number, message: string, options?: LogOptions): boolean {
+        if (!options?.once) {
+            return false;
+        }
+
+        const key = `${level}:${message}`;
+
+        if (this.#loggedOnce.has(key)) {
+            return true;
+        }
+
+        this.#loggedOnce.add(key);
+        return false;
+    }
+
+    error(message: string, data?: Record<string, unknown>, options?: LogOptions): void {
+        if (this.#suppressedAsRepeat(LogLevel.ERROR, message, options)) return;
         this.logWithLevel(LogLevel.ERROR, message, data);
     }
 
@@ -88,30 +111,34 @@ export abstract class BaseCrawleeLogger implements CrawleeLogger {
         });
     }
 
-    softFail(message: string, data?: Record<string, unknown>): void {
+    softFail(message: string, data?: Record<string, unknown>, options?: LogOptions): void {
+        if (this.#suppressedAsRepeat(LogLevel.SOFT_FAIL, message, options)) return;
         this.logWithLevel(LogLevel.SOFT_FAIL, message, data);
     }
 
-    warning(message: string, data?: Record<string, unknown>): void {
+    warning(message: string, data?: Record<string, unknown>, options?: LogOptions): void {
+        if (this.#suppressedAsRepeat(LogLevel.WARNING, message, options)) return;
         this.logWithLevel(LogLevel.WARNING, message, data);
     }
 
     warningOnce(message: string): void {
-        if (!this.#warningsLogged.has(message)) {
-            this.#warningsLogged.add(message);
-            this.warning(message);
-        }
+        // Gates before delegating, so that a suppressed repeat is not even a `warning()` call.
+        if (this.#suppressedAsRepeat(LogLevel.WARNING, message, { once: true })) return;
+        this.warning(message);
     }
 
-    info(message: string, data?: Record<string, unknown>): void {
+    info(message: string, data?: Record<string, unknown>, options?: LogOptions): void {
+        if (this.#suppressedAsRepeat(LogLevel.INFO, message, options)) return;
         this.logWithLevel(LogLevel.INFO, message, data);
     }
 
-    debug(message: string, data?: Record<string, unknown>): void {
+    debug(message: string, data?: Record<string, unknown>, options?: LogOptions): void {
+        if (this.#suppressedAsRepeat(LogLevel.DEBUG, message, options)) return;
         this.logWithLevel(LogLevel.DEBUG, message, data);
     }
 
-    perf(message: string, data?: Record<string, unknown>): void {
+    perf(message: string, data?: Record<string, unknown>, options?: LogOptions): void {
+        if (this.#suppressedAsRepeat(LogLevel.PERF, message, options)) return;
         this.logWithLevel(LogLevel.PERF, `[PERF] ${message}`, data);
     }
 

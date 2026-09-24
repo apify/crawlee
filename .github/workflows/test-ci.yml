@@ -8,6 +8,8 @@ on:
 
 env:
     RETRY_TESTS: 1
+    # Local runs only exercise the Chromium plugin matrix, see plugins.test.ts.
+    CRAWLEE_TEST_BROWSERS: chromium,firefox,webkit
 
 concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}

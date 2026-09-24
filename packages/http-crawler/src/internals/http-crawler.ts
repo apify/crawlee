@@ -9,7 +9,8 @@ import type {
     CrawlingContext,
     ErrorHandler,
     GetUserDataFromRequest,
-    Request as CrawleeRequest,
+    LoadedRequest,
+    CrawlingRequest,
     RequestHandler,
     RequireContextPipeline,
     RouterHandler,
@@ -20,13 +21,14 @@ import type {
 import {
     BasicCrawler,
     ContextPipeline,
+    getCookiesFromResponse,
     NavigationSkippedError,
     remainingNavigationWindowMillis,
     RequestState,
+    RequestThrottledError,
     Router,
     SessionError,
 } from '@crawlee/basic';
-import { type LoadedRequest, RequestThrottledError, getCookiesFromResponse } from '@crawlee/core';
 import { ResponseWithUrl } from '@crawlee/http-client';
 import type { Awaitable, Dictionary, ISession } from '@crawlee/types';
 import { parseArgument, RETRY_CSS_SELECTORS, schemas } from '@crawlee/utils/internal';
@@ -199,7 +201,7 @@ interface CrawlingContextWithResponse<
     /**
      * The request object that was successfully loaded and navigated to, including the {@apilink Request.loadedUrl|`loadedUrl`} property.
      */
-    request: LoadedRequest<CrawleeRequest<UserData>>;
+    request: LoadedRequest<CrawlingRequest<UserData>>;
 
     /**
      * The HTTP response object containing status code, headers, and other response metadata.
@@ -455,11 +457,12 @@ export class HttpCrawler<
     protected override buildContextPipeline(): ContextPipeline<CrawlingContext, InternalHttpCrawlingContext> {
         // When navigation is skipped, `prepareHttpRequest` has already installed throwing getters for
         // the response-derived members, so the guarded action is bypassed and the context left untouched.
-        const skipGuard = <Ctx extends CrawlingContext, Ext>(
-            action: (ctx: Ctx) => Awaitable<void | Ext>,
-        ): ContextMiddleware<Ctx, Ext> => ({
-            action: async (ctx) => (ctx.request.skipNavigation ? {} : ((await action(ctx)) ?? {})) as Ext,
-        });
+        const skipGuard =
+            <Ctx extends CrawlingContext, Ext>(
+                action: (ctx: Ctx) => Awaitable<void | Ext>,
+            ): ContextMiddleware<Ctx, Ext> =>
+            async (ctx) =>
+                (ctx.request.skipNavigation ? {} : ((await action(ctx)) ?? {})) as Ext;
 
         // A single navigation window covers the pre-navigation hooks, the navigation, and the post-navigation
         // hooks: the whole phase shares one `navigationTimeoutSecs` budget, so a slow hook eats into the same
@@ -476,9 +479,7 @@ export class HttpCrawler<
                 return addTimeoutToPromise(async () => step(ctx), remaining, navigationTimedOut);
             });
 
-        let pipeline = ContextPipeline.create<CrawlingContext>().compose({
-            action: this.prepareHttpRequest.bind(this),
-        });
+        let pipeline = ContextPipeline.create<CrawlingContext>().compose(this.prepareHttpRequest.bind(this));
 
         for (const hook of this.#preNavigationHooks) {
             pipeline = pipeline.compose(windowGuard(hook));
@@ -491,8 +492,8 @@ export class HttpCrawler<
         }
 
         return pipelineWithNavigation
-            .compose({ action: this.processHttpResponse.bind(this) })
-            .compose({ action: this.handleBlockedRequestByContent.bind(this) });
+            .compose(this.processHttpResponse.bind(this))
+            .compose(this.handleBlockedRequestByContent.bind(this));
     }
 
     private async prepareHttpRequest(crawlingContext: CrawlingContext): Promise<Partial<CrawlingContextWithResponse>> {
@@ -509,7 +510,7 @@ export class HttpCrawler<
                         }
                         return Reflect.get(target, propertyName, receiver);
                     },
-                }) as LoadedRequest<CrawleeRequest>,
+                }) as LoadedRequest<CrawlingRequest>,
                 get response(): InternalHttpCrawlingContext['response'] {
                     throw new NavigationSkippedError(
                         'The `response` property is not available - `skipNavigation` was used',
@@ -522,6 +523,7 @@ export class HttpCrawler<
         return {};
     }
 
+    // oxlint-disable-next-line crawlee/prefer-private-fields -- patched by @crawlee/otel
     private async makeHttpRequest(
         crawlingContext: CrawlingContext,
     ): Promise<Omit<CrawlingContextWithResponse, keyof CrawlingContext> & Partial<CrawlingContextWithResponse>> {
@@ -543,7 +545,7 @@ export class HttpCrawler<
         request.loadedUrl = httpResponse?.url;
         request.state = RequestState.AFTER_NAV;
 
-        return { request: request as LoadedRequest<CrawleeRequest>, response: httpResponse };
+        return { request: request as LoadedRequest<CrawlingRequest>, response: httpResponse };
     }
 
     private async processHttpResponse(
@@ -611,17 +613,20 @@ export class HttpCrawler<
         const response = parsed.response!;
         const contentType = parsed.contentType!;
 
+        const loadBody = async () => {
+            const { load } = await import('cheerio/slim');
+
+            return load(parsed.body!.toString(), { xmlMode: contentType.type.includes('xml') });
+        };
         const waitForSelector = async (selector: string, _timeoutMs?: number) => {
-            const cheerio = await import('cheerio');
-            const $ = cheerio.load(parsed.body!.toString());
+            const $ = await loadBody();
 
             if ($(selector).get().length === 0) {
                 throw new Error(`Selector '${selector}' not found.`);
             }
         };
         const parseWithCheerio = async (selector?: string, timeoutMs?: number) => {
-            const cheerio = await import('cheerio');
-            const $ = cheerio.load(parsed.body!.toString());
+            const $ = await loadBody();
 
             if (selector) {
                 await (crawlingContext as InternalHttpCrawlingContext).waitForSelector(selector, timeoutMs);
@@ -715,18 +720,17 @@ export class HttpCrawler<
     /**
      * Encodes and parses response according to the provided content type
      */
-    private async parseResponse(request: CrawleeRequest, response: Response) {
+    private async parseResponse(request: CrawlingRequest, response: Response) {
         const { status } = response;
         const { type, charset } = parseContentTypeFromResponse(response);
-        const { response: reencodedResponse, encoding } = this.encodeResponse(request, response, charset);
-        const contentType = { type, encoding };
 
         if (status >= 400 && status <= 599) {
             this.statistics.registerStatusCode(status);
         }
 
         if (this.isErrorStatusCode(status)) {
-            const body = await reencodedResponse.text(); // TODO - this always uses UTF-8 (see https://developer.mozilla.org/en-US/docs/Web/API/Request/text)
+            const { response: decoded } = this.encodeResponse(request, response, charset);
+            const body = await decoded.text(); // TODO - this always uses UTF-8 (see https://developer.mozilla.org/en-US/docs/Web/API/Request/text)
 
             // Errors are often sent as JSON, so attempt to parse them,
             // despite Accept header being set to text/html.
@@ -743,31 +747,38 @@ export class HttpCrawler<
 
             // It's not a JSON, so it's probably some text. Get the first 100 chars of it.
             throw new Error(`${status} - Internal Server Error: ${body.slice(0, 100)}`);
-        } else if (HTML_AND_XML_MIME_TYPES.includes(type)) {
-            if (!charset && !this.#forceResponseEncoding) {
-                const rawBytes = Buffer.from(await response.arrayBuffer());
-                const metaCharset = extractCharsetFromHtmlBytes(rawBytes);
-                const charsetToUse = metaCharset ?? this.#suggestResponseEncoding ?? 'utf-8';
-                const body = iconv.encodingExists(charsetToUse)
-                    ? iconv.decode(rawBytes, charsetToUse)
-                    : rawBytes.toString('utf8');
-                return { response, contentType: { type, encoding: 'utf-8' as BufferEncoding }, body };
-            }
-            return { response, contentType, body: await reencodedResponse.text() };
-        } else {
-            const body = Buffer.from(await reencodedResponse.bytes());
-            return {
-                body,
-                response,
-                contentType,
-            };
         }
+
+        if (HTML_AND_XML_MIME_TYPES.includes(type) && !charset && !this.#forceResponseEncoding) {
+            // The charset comes from the document itself, so the raw bytes are what we need -
+            // decoding them through `encodeResponse` first would consume the body for nothing.
+            const rawBytes = Buffer.from(await response.arrayBuffer());
+            const metaCharset = extractCharsetFromHtmlBytes(rawBytes);
+            const charsetToUse = metaCharset ?? this.#suggestResponseEncoding ?? 'utf-8';
+            const body = iconv.encodingExists(charsetToUse)
+                ? iconv.decode(rawBytes, charsetToUse)
+                : rawBytes.toString('utf8');
+            return { response, contentType: { type, encoding: 'utf-8' as BufferEncoding }, body };
+        }
+
+        const { response: reencodedResponse, encoding } = this.encodeResponse(request, response, charset);
+        const contentType = { type, encoding };
+
+        if (HTML_AND_XML_MIME_TYPES.includes(type)) {
+            return { response, contentType, body: await reencodedResponse.text() };
+        }
+
+        return {
+            body: Buffer.from(await reencodedResponse.bytes()),
+            response,
+            contentType,
+        };
     }
 
     /**
      * Combines the provided `requestOptions` with mandatory (non-overridable) values.
      */
-    private getRequestOptions(request: CrawleeRequest, session: ISession, proxyUrl?: string) {
+    private getRequestOptions(request: CrawlingRequest, session: ISession, proxyUrl?: string) {
         const requestOptions = {
             url: request.url,
             method: request.method,
@@ -789,7 +800,7 @@ export class HttpCrawler<
     }
 
     private encodeResponse(
-        request: CrawleeRequest,
+        request: CrawlingRequest,
         response: Response,
         encoding: BufferEncoding,
     ): {
@@ -862,7 +873,7 @@ export class HttpCrawler<
         throw new Error(`Request timed out after ${this.#navigationTimeoutMillis / 1000} seconds.`);
     }
 
-    private abortDownloadOfBody(request: CrawleeRequest, response: Response) {
+    private abortDownloadOfBody(request: CrawlingRequest, response: Response) {
         const { status } = response;
         const { type } = parseContentTypeFromResponse(response);
 
@@ -920,7 +931,7 @@ export class HttpCrawler<
 }
 
 interface RequestFunctionOptions {
-    request: CrawleeRequest;
+    request: CrawlingRequest;
     session: ISession;
     proxyUrl?: string;
 }

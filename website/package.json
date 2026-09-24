@@ -36,7 +36,7 @@
     "dependencies": {
         "@apify/docusaurus-plugin-typedoc-api": "5.1.16",
         "@apify/ui-icons": "^1.23.0",
-        "@apify/utilities": "^2.8.0",
+        "@apify/utilities": "^3.0.1",
         "@docusaurus/core": "3.10.2",
         "@docusaurus/faster": "3.10.2",
         "@docusaurus/mdx-loader": "3.10.2",

@@ -1,5 +1,6 @@
 /* eslint-disable dot-notation */
 
+import { CrawlingRequest } from '@crawlee/basic';
 import { MemoryStorageBackend, ProxyConfiguration, Request, RequestQueue, serviceLocator } from '@crawlee/core';
 import { BaseHttpClient } from '@crawlee/http-client';
 import { sleep } from '@crawlee/utils';
@@ -326,17 +327,17 @@ describe('RequestQueue remote', () => {
     test('Request.userData.__crawlee internal object is non-enumerable and always defined', async () => {
         const url = 'http://example.com';
         const method = 'POST';
-        const r1 = new Request({
+        const r1 = new CrawlingRequest({
             url,
             method,
             userData: { __crawlee: { skipNavigation: true, maxRetries: 10, foo: 123, bar: true, crawlDepth: 10 } },
         });
-        const r2 = new Request({
+        const r2 = new CrawlingRequest({
             url,
             method,
             userData: {} as any,
         });
-        const r3 = new Request({
+        const r3 = new CrawlingRequest({
             url,
             method,
         });
@@ -355,7 +356,7 @@ describe('RequestQueue remote', () => {
         });
         // Re-wrapping userData that comes from another Request instance (where `__crawlee` is
         // non-enumerable) must preserve the internal state instead of dropping it via the spread.
-        const r4 = new Request({ url, method, userData: r1.userData });
+        const r4 = new CrawlingRequest({ url, method, userData: r1.userData });
         expect(r4.skipNavigation).toBe(true);
         expect(r4.maxRetries).toBe(5);
         expect(r4.crawlDepth).toBe(10);
@@ -433,13 +434,16 @@ describe('RequestQueue with requestsFromUrl', () => {
     });
 
     test('should correctly load list from hosted files in correct order', async () => {
-        const spy = vitest.spyOn(RequestQueue.prototype as any, 'downloadListOfUrls');
         const list1 = ['https://example.com', 'https://google.com', 'https://wired.com'];
         const list2 = ['https://another.com', 'https://page.com'];
-        spy.mockImplementationOnce(() => new Promise((resolve) => setTimeout(() => resolve(list1) as any, 100)) as any);
-        spy.mockResolvedValueOnce(list2);
+        mockHttpClient.sendRequest
+            .mockImplementationOnce(async () => {
+                await sleep(100);
+                return new Response(list1.join('\n'));
+            })
+            .mockResolvedValueOnce(new Response(list2.join('\n')));
 
-        const queue = await RequestQueue.open();
+        const queue = await RequestQueue.open(null, { httpClient: mockHttpClient });
         await queue.addRequests([
             { method: 'GET', requestsFromUrl: 'http://example.com/list-1' },
             { method: 'POST', requestsFromUrl: 'http://example.com/list-2' },
@@ -451,9 +455,11 @@ describe('RequestQueue with requestsFromUrl', () => {
         expect(await queue.fetchNextRequest()).toMatchObject({ method: 'POST', url: list2[0] });
         expect(await queue.fetchNextRequest()).toMatchObject({ method: 'POST', url: list2[1] });
 
-        expect(spy).toHaveBeenCalledTimes(2);
-        expect(spy).toHaveBeenCalledWith({ url: 'http://example.com/list-1', urlRegExp: undefined });
-        expect(spy).toHaveBeenCalledWith({ url: 'http://example.com/list-2', urlRegExp: undefined });
+        expect(mockHttpClient.sendRequest).toHaveBeenCalledTimes(2);
+        expect(mockHttpClient.sendRequest.mock.calls.map(([request]) => request.url)).toEqual([
+            'http://example.com/list-1',
+            'http://example.com/list-2',
+        ]);
     });
 
     test('should use regex parameter to parse urls', async () => {
@@ -509,10 +515,9 @@ describe('RequestQueue with requestsFromUrl', () => {
     });
 
     test('should handle requestsFromUrl with no URLs', async () => {
-        const spy = vitest.spyOn(RequestQueue.prototype as any, 'downloadListOfUrls');
-        spy.mockResolvedValueOnce([]);
+        mockHttpClient.sendRequest.mockResolvedValueOnce(new Response(''));
 
-        const queue = await RequestQueue.open();
+        const queue = await RequestQueue.open(null, { httpClient: mockHttpClient });
         await queue.addRequest({
             method: 'GET',
             requestsFromUrl: 'http://example.com/list-1',
@@ -520,28 +525,28 @@ describe('RequestQueue with requestsFromUrl', () => {
 
         expect(await queue.fetchNextRequest()).toBe(null);
 
-        expect(spy).toHaveBeenCalledTimes(1);
-        expect(spy).toHaveBeenCalledWith({ url: 'http://example.com/list-1', urlRegExp: undefined });
+        expect(mockHttpClient.sendRequest).toHaveBeenCalledTimes(1);
+        expect(mockHttpClient.sendRequest.mock.calls[0][0].url).toBe('http://example.com/list-1');
     });
 
     test('should use the defined proxy server when using `requestsFromUrl`', async () => {
         const proxyUrls = ['http://proxyurl.usedforthe.download', 'http://another.proxy.url'];
 
-        const spy = vitest.spyOn(RequestQueue.prototype as any, 'downloadListOfUrls');
-        spy.mockResolvedValue([]);
-
         const proxyConfiguration = new ProxyConfiguration({
             proxyUrls,
         });
 
-        const queue = await RequestQueue.open(null, { proxyConfiguration });
+        const queue = await RequestQueue.open(null, { proxyConfiguration, httpClient: mockHttpClient });
         await queue.addRequests([
             { requestsFromUrl: 'http://example.com/list-1' },
             { requestsFromUrl: 'http://example.com/list-2' },
             { requestsFromUrl: 'http://example.com/list-3' },
         ]);
 
-        expect(spy).not.toHaveBeenCalledWith(expect.not.objectContaining({ proxyUrl: expect.any(String) }));
+        expect(mockHttpClient.sendRequest).toHaveBeenCalledTimes(3);
+        for (const [, options] of mockHttpClient.sendRequest.mock.calls) {
+            expect(proxyUrls).toContain(options.proxyUrl);
+        }
     });
 });
 

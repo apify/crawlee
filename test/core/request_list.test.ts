@@ -11,6 +11,7 @@ import {
     REQUESTS_PERSISTENCE_KEY,
     serviceLocator,
     STATE_PERSISTENCE_KEY,
+    StateValidationError,
 } from '@crawlee/core';
 import { BaseHttpClient } from '@crawlee/http-client';
 import { sleep } from '@crawlee/utils';
@@ -89,13 +90,12 @@ describe('RequestList', () => {
         await expect(requestList.markRequestAsHandled(requestObj)).rejects.toThrow();
         await expect(requestList.fetchNextRequest()).rejects.toThrow();
 
-        // @ts-expect-error private method
-        await requestList.initialize();
+        const openedList = await RequestList.open(null, [{ url: 'https://example.com' }]);
 
-        await expect(requestList.checkReadiness()).resolves.not.toThrow();
-        expect(() => requestList.getState()).not.toThrowError();
-        await expect(requestList.fetchNextRequest()).resolves.not.toThrow();
-        await expect(requestList.markRequestAsHandled(requestObj)).resolves.not.toThrow();
+        await expect(openedList.checkReadiness()).resolves.not.toThrow();
+        expect(() => openedList.getState()).not.toThrowError();
+        await expect(openedList.fetchNextRequest()).resolves.not.toThrow();
+        await expect(openedList.markRequestAsHandled(requestObj)).resolves.not.toThrow();
     });
 
     test('should correctly initialize itself', async () => {
@@ -160,17 +160,21 @@ describe('RequestList', () => {
     });
 
     test('should correctly load list from hosted files in correct order', async () => {
-        const spy = vitest.spyOn(RequestList.prototype as any, 'downloadListOfUrls');
         const list1 = ['https://example.com', 'https://google.com', 'https://wired.com'];
         const list2 = ['https://another.com', 'https://page.com'];
-        spy.mockImplementationOnce(() => new Promise((resolve) => setTimeout(() => resolve(list1) as any, 100)) as any);
-        spy.mockResolvedValueOnce(list2);
+        mockHttpClient.sendRequest
+            .mockImplementationOnce(async () => {
+                await sleep(100);
+                return new Response(list1.join('\n'));
+            })
+            .mockResolvedValueOnce(new Response(list2.join('\n')));
 
         const requestList = await RequestList.open({
             sources: [
                 { method: 'GET', requestsFromUrl: 'http://example.com/list-1' },
                 { method: 'POST', requestsFromUrl: 'http://example.com/list-2' },
             ],
+            httpClient: mockHttpClient,
         });
 
         expect(await requestList.fetchNextRequest()).toMatchObject({ method: 'GET', url: list1[0] });
@@ -179,9 +183,11 @@ describe('RequestList', () => {
         expect(await requestList.fetchNextRequest()).toMatchObject({ method: 'POST', url: list2[0] });
         expect(await requestList.fetchNextRequest()).toMatchObject({ method: 'POST', url: list2[1] });
 
-        expect(spy).toBeCalledTimes(2);
-        expect(spy).toBeCalledWith({ url: 'http://example.com/list-1', urlRegExp: undefined });
-        expect(spy).toBeCalledWith({ url: 'http://example.com/list-2', urlRegExp: undefined });
+        expect(mockHttpClient.sendRequest).toBeCalledTimes(2);
+        expect(mockHttpClient.sendRequest.mock.calls.map(([request]) => request.url)).toEqual([
+            'http://example.com/list-1',
+            'http://example.com/list-2',
+        ]);
     });
 
     test('should use regex parameter to parse urls', async () => {
@@ -238,8 +244,7 @@ describe('RequestList', () => {
     });
 
     test('should handle requestsFromUrl with no URLs', async () => {
-        const spy = vitest.spyOn(RequestList.prototype as any, 'downloadListOfUrls');
-        spy.mockResolvedValueOnce([]);
+        mockHttpClient.sendRequest.mockResolvedValueOnce(new Response(''));
 
         const requestList = await RequestList.open({
             sources: [
@@ -248,34 +253,36 @@ describe('RequestList', () => {
                     requestsFromUrl: 'http://example.com/list-1',
                 },
             ],
+            httpClient: mockHttpClient,
         });
 
         expect(await requestList.fetchNextRequest()).toBe(null);
 
-        expect(spy).toBeCalledTimes(1);
-        expect(spy).toBeCalledWith({ url: 'http://example.com/list-1', urlRegExp: undefined });
+        expect(mockHttpClient.sendRequest).toBeCalledTimes(1);
+        expect(mockHttpClient.sendRequest.mock.calls[0][0].url).toBe('http://example.com/list-1');
     });
 
     test('should use the defined proxy server when using `requestsFromUrl`', async () => {
         const proxyUrls = ['http://proxyurl.usedforthe.download', 'http://another.proxy.url'];
 
-        const spy = vitest.spyOn(RequestList.prototype as any, 'downloadListOfUrls');
-        spy.mockResolvedValue([]);
-
         const proxyConfiguration = new ProxyConfiguration({
             proxyUrls,
         });
 
-        const requestList = await RequestList.open({
+        await RequestList.open({
             sources: [
                 { requestsFromUrl: 'http://example.com/list-1' },
                 { requestsFromUrl: 'http://example.com/list-2' },
                 { requestsFromUrl: 'http://example.com/list-3' },
             ],
             proxyConfiguration,
+            httpClient: mockHttpClient,
         });
 
-        expect(spy).not.toBeCalledWith(expect.not.objectContaining({ proxyUrl: expect.any(String) }));
+        expect(mockHttpClient.sendRequest).toBeCalledTimes(3);
+        for (const [, options] of mockHttpClient.sendRequest.mock.calls) {
+            expect(proxyUrls).toContain(options.proxyUrl);
+        }
     });
 
     test('tracks in-progress requests through the crawl lifecycle', async () => {
@@ -336,33 +343,60 @@ describe('RequestList', () => {
         const optsCopy = JSON.parse(JSON.stringify(opts));
 
         const requestList = await RequestList.open(opts);
-        expect(requestList.isStatePersisted).toBe(true);
-
-        // Fetch one request and check that state is not persisted.
         await requestList.fetchNextRequest();
-        expect(requestList.isStatePersisted).toBe(false);
 
         // Persist state.
         setValueSpy.mockResolvedValueOnce();
         serviceLocator.getEventManager().emit(EventType.PERSIST_STATE);
         await sleep(20);
-        expect(requestList.isStatePersisted).toBe(true);
+        expect(setValueSpy).toHaveBeenCalledTimes(1);
+        expect(setValueSpy).toHaveBeenLastCalledWith(`CRAWLEE_${PERSIST_STATE_KEY}`, requestList.getState());
 
         // Do some other changes and persist it again.
         const request2 = await requestList.fetchNextRequest();
-        expect(requestList.isStatePersisted).toBe(false);
         await requestList.markRequestAsHandled(request2!);
-        expect(requestList.isStatePersisted).toBe(false);
         setValueSpy.mockResolvedValueOnce();
         serviceLocator.getEventManager().emit(EventType.PERSIST_STATE);
         await sleep(20);
-        expect(requestList.isStatePersisted).toBe(true);
+        expect(setValueSpy).toHaveBeenCalledTimes(2);
+        expect(setValueSpy).toHaveBeenLastCalledWith(`CRAWLEE_${PERSIST_STATE_KEY}`, requestList.getState());
 
         // Now initiate new request list from saved state and check that it's same as state
         // of original request list.
         getValueSpy.mockResolvedValueOnce(requestList.getState());
         const requestList2 = await RequestList.open(optsCopy);
         expect(requestList2.getState()).toEqual(requestList.getState());
+    });
+
+    test('a persisted record that does not match the sources fails validation', async () => {
+        const sources = [1, 2, 3].map((i) => ({ url: `https://example.com/${i}` }));
+        const store = await KeyValueStore.open();
+        await store.setValue('CRAWLEE_state-key', {
+            nextIndex: 1,
+            nextUniqueKey: 'https://example.com/3',
+            inProgress: [],
+        });
+
+        await expect(RequestList.open({ sources, persistStateKey: 'state-key' })).rejects.toThrow(StateValidationError);
+    });
+
+    test('a persisted record takes precedence over the state option', async () => {
+        const sources = [1, 2, 3].map((i) => ({ url: `https://example.com/${i}` }));
+        const store = await KeyValueStore.open();
+        await store.setValue('CRAWLEE_state-key', {
+            nextIndex: 2,
+            nextUniqueKey: 'https://example.com/3',
+            inProgress: [],
+        });
+
+        const requestList = await RequestList.open({
+            sources,
+            persistStateKey: 'state-key',
+            state: { nextIndex: 1, nextUniqueKey: 'https://example.com/2', inProgress: [] },
+        });
+
+        expect(requestList.getState().nextIndex).toBe(2);
+        await requestList.teardown();
     });
 
     test('teardown removes the persist state listener when persistStateKey is set', async () => {
@@ -424,7 +458,6 @@ describe('RequestList', () => {
         const PERSIST_REQUESTS_KEY = 'some-key';
         const getValueSpy = vitest.spyOn(KeyValueStore.prototype, 'getValue');
         const setValueSpy = vitest.spyOn(KeyValueStore.prototype, 'setValue');
-        const spy = vitest.spyOn(RequestList.prototype as any, 'downloadListOfUrls');
         let persistedRequests: any;
 
         const opts = {
@@ -435,10 +468,11 @@ describe('RequestList', () => {
                 { url: 'https://example.com/5' },
             ],
             persistRequestsKey: PERSIST_REQUESTS_KEY,
+            httpClient: mockHttpClient,
         };
 
         const urlsFromTxt = ['http://example.com/3', 'http://example.com/4'];
-        spy.mockResolvedValueOnce(urlsFromTxt);
+        mockHttpClient.sendRequest.mockResolvedValueOnce(new Response(urlsFromTxt.join('\n')));
 
         getValueSpy.mockResolvedValueOnce(null);
         setValueSpy.mockImplementationOnce(async (_key, value) => {
@@ -451,8 +485,8 @@ describe('RequestList', () => {
         expect(requestList.requests).toHaveLength(5);
         expect(requests).toEqual(requestList.requests);
 
-        expect(spy).toBeCalledTimes(1);
-        expect(spy).toBeCalledWith({ url: 'http://example.com/list-urls.txt', urlRegExp: undefined });
+        expect(mockHttpClient.sendRequest).toBeCalledTimes(1);
+        expect(mockHttpClient.sendRequest.mock.calls[0][0].url).toBe('http://example.com/list-urls.txt');
     });
 
     test('handles correctly inconsistent inProgress fields in state', async () => {
@@ -587,8 +621,8 @@ describe('RequestList', () => {
 
             // The persistence keys are derived from the list name, which shows in the keys it reads and writes.
             expect(keysPassedTo(getValueSpy)).toEqual([
-                `${CRAWLEE_KEY}-${STATE_PERSISTENCE_KEY}`,
                 `${CRAWLEE_KEY}-${REQUESTS_PERSISTENCE_KEY}`,
+                `${CRAWLEE_KEY}-${STATE_PERSISTENCE_KEY}`,
             ]);
             expect(keysPassedTo(setValueSpy)).toEqual([`${CRAWLEE_KEY}-${REQUESTS_PERSISTENCE_KEY}`]);
         });
@@ -608,8 +642,8 @@ describe('RequestList', () => {
             await expect(rl.checkReadiness()).resolves.toEqual({ status: 'ready' });
 
             expect(keysPassedTo(getValueSpy)).toEqual([
-                `${CRAWLEE_KEY}-${STATE_PERSISTENCE_KEY}`,
                 `${CRAWLEE_KEY}-${REQUESTS_PERSISTENCE_KEY}`,
+                `${CRAWLEE_KEY}-${STATE_PERSISTENCE_KEY}`,
             ]);
             expect(keysPassedTo(setValueSpy)).toEqual([`${CRAWLEE_KEY}-${REQUESTS_PERSISTENCE_KEY}`]);
         });
@@ -636,8 +670,8 @@ describe('RequestList', () => {
 
             // The list name wins over the `persistStateKey` option.
             expect(keysPassedTo(getValueSpy)).toEqual([
-                `${CRAWLEE_KEY}-${STATE_PERSISTENCE_KEY}`,
                 `${CRAWLEE_KEY}-${REQUESTS_PERSISTENCE_KEY}`,
+                `${CRAWLEE_KEY}-${STATE_PERSISTENCE_KEY}`,
             ]);
             expect(keysPassedTo(setValueSpy)).toEqual([`${CRAWLEE_KEY}-${REQUESTS_PERSISTENCE_KEY}`]);
         });

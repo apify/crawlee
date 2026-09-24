@@ -1,5 +1,5 @@
-import type { LoadSignal, LoadSnapshot } from '@crawlee/core';
-import { SystemStatus } from '@crawlee/core';
+import type { LoadSignal, LoadSnapshot } from '@crawlee/basic';
+import { SystemStatus } from '@crawlee/basic';
 
 import log from '@apify/log';
 

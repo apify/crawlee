@@ -1,4 +1,4 @@
-import { ErrorTracker } from '../../packages/core/src/crawlers/error_tracker.js';
+import { ErrorTracker } from '../../packages/basic-crawler/src/internals/crawlers/error_tracker.js';
 
 const random = () => Math.random().toString(36).slice(2);
 
