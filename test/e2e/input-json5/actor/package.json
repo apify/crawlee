@@ -3,7 +3,7 @@
     "version": "0.0.1",
     "description": "JSON5 input test",
     "dependencies": {
-        "apify": "^4.0.0-beta.24",
+        "apify": "^4.0.0-beta.39",
         "@crawlee/core": "file:./packages/core",
         "@crawlee/utils": "file:./packages/utils"
     },
