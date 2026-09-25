@@ -1052,6 +1052,10 @@ export class SessionError extends Error {
     constructor(message?: string);
 }
 
+// @public
+export class SessionRetiredError extends SessionError {
+}
+
 // @public (undocumented)
 export type Source = (Partial<RequestOptions> & {
     requestsFromUrl?: string;

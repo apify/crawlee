@@ -23,9 +23,12 @@ import {
     OwnedOrInjected,
     remainingNavigationWindowMillis,
     RequestState,
+    ContextPipelineInitializationError,
+    RequestHandlerError,
     RequestThrottledError,
     resolveBaseUrlForEnqueueLinksFiltering,
     SessionError,
+    SessionRetiredError,
     toughCookieToBrowserPoolCookie,
     validators,
 } from '@crawlee/basic';
@@ -577,14 +580,25 @@ export abstract class BrowserCrawler<
         });
         tryCancel();
 
-        onCleanup(() => {
+        onCleanup((failure) => {
             crawlingContext.registerDeferredCleanup(async () => {
-                const error = !crawlingContext.session.isUsable()
-                    ? new SessionError('Session is no longer usable')
-                    : undefined;
+                const cause =
+                    failure instanceof RequestHandlerError || failure instanceof ContextPipelineInitializationError
+                        ? failure.cause
+                        : failure;
+
+                // Only tells the pool what to do with the page's browser state - the request's failure, if any, has
+                // already been handled. A thrown `SessionError` counts as a block; a session unusable for any other
+                // reason is reported as retired.
+                const closeReason =
+                    cause instanceof SessionError
+                        ? cause
+                        : crawlingContext.session.isUsable()
+                          ? undefined
+                          : new SessionRetiredError();
 
                 await this.browserPool
-                    .closePage(page, { error })
+                    .closePage(page, { error: closeReason })
                     .catch((closeError: Error) => this.log.debug('Error while closing page', { error: closeError }));
             });
         });

@@ -684,8 +684,9 @@ export class BrowserPool<
 
     /**
      * Releases a page back to the pool. The page is closed and, if the
-     * optional `error` is a {@apilink SessionError}, the browser controller
-     * that served the page is retired so that its tainted state (cookies,
+     * optional `error` is a {@apilink SessionError} (including
+     * {@apilink SessionRetiredError}), the browser controller that served
+     * the page is retired so that the finished session's state (cookies,
      * storage, etc.) cannot leak into future sessions.
      *
      * This is the primary way the crawler should return pages to the pool.
