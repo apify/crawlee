@@ -1,11 +1,14 @@
-import { serviceLocator, SessionError } from '@crawlee/core';
+import { serviceLocator } from '@crawlee/core';
 import type { Awaitable } from '@crawlee/types';
 
-import { ContextPipelineCleanupError, RequestHandlerError } from '../errors.js';
+import { ContextPipelineCleanupError, ContextPipelineInitializationError, RequestHandlerError } from '../errors.js';
 
 /**
- * Registers a callback that runs after the final context consumer finishes. `error` is the consumer's failure, if any;
- * failures of downstream middlewares are not reported. Cleanups run in reverse registration order.
+ * Registers a callback that runs after the final context consumer finishes. Cleanups run in reverse registration
+ * order and receive the same `error` as the `onError` parameter of {@apilink ContextPipeline.call}: `undefined` on
+ * success, otherwise a {@apilink ContextPipelineInitializationError} (a middleware failed) or a
+ * {@apilink RequestHandlerError} (the consumer failed), with the original in `cause`. A cleanup that throws fails the
+ * whole call with a {@apilink ContextPipelineCleanupError}, which is critical.
  */
 export type CleanupRegistrar = (cleanup: (error?: unknown) => Awaitable<void>) => void;
 
@@ -78,17 +81,18 @@ export abstract class ContextPipeline<TContextBase, TCrawlingContext extends TCo
      *
      * @param crawlingContext - The initial context to process through the pipeline
      * @param finalContextConsumer - The function that will receive the final enhanced context
-     * @param onInitializationError - Receives a middleware failure as-is; the consumer is then skipped. Runs before
-     *   the cleanups, so it still sees whatever the failed middleware's predecessors set up.
+     * @param onError - Receives a middleware failure wrapped in a {@apilink ContextPipelineInitializationError}, or a
+     *   consumer failure wrapped in a {@apilink RequestHandlerError}, with the original in `cause`. After a middleware
+     *   failure, the rest of the chain and the consumer are skipped. Runs before the cleanups, so it still sees
+     *   whatever the middlewares set up.
      *
-     * @throws {RequestHandlerError} When the final context consumer throws an exception
      * @throws {ContextPipelineCleanupError} When cleanup operations fail
-     * @throws {SessionError} Session errors are re-thrown as-is for special handling
+     * @throws Whatever `onError` throws
      */
     abstract call(
         crawlingContext: TContextBase,
         finalContextConsumer: (finalContext: TCrawlingContext) => Awaitable<unknown>,
-        onInitializationError: (error: unknown) => Awaitable<void>,
+        onError: (error: unknown) => Awaitable<void>,
     ): Promise<void>;
 }
 
@@ -154,18 +158,19 @@ class ContextPipelineImpl<TContextBase, TCrawlingContext extends TContextBase> e
     async call(
         crawlingContext: TContextBase,
         finalContextConsumer: (finalContext: TCrawlingContext) => Promise<unknown>,
-        onInitializationError: (error: unknown) => Awaitable<void>,
+        onError: (error: unknown) => Awaitable<void>,
     ): Promise<void> {
         const middlewares = Array.from(this.middlewareChain()).reverse();
         const cleanupStack: Parameters<CleanupRegistrar>[0][] = [];
         const onCleanup: CleanupRegistrar = (cleanup) => {
             cleanupStack.push(cleanup);
         };
-        let consumerException: unknown | undefined;
+        let failure: unknown;
+        let consumerStarted = false;
 
         try {
-            for (const middleware of middlewares) {
-                try {
+            try {
+                for (const middleware of middlewares) {
                     const contextExtension = await middleware(crawlingContext, onCleanup);
 
                     const extensionNames = [
@@ -188,26 +193,20 @@ class ContextPipelineImpl<TContextBase, TCrawlingContext extends TContextBase> e
                                 .debug(`Context pipeline failed to define property ${key.toString()}:`, error);
                         }
                     }
-                } catch (exception: unknown) {
-                    await onInitializationError(exception);
-                    return;
                 }
-            }
 
-            try {
+                consumerStarted = true;
                 await finalContextConsumer(crawlingContext as TCrawlingContext);
             } catch (exception: unknown) {
-                if (exception instanceof SessionError) {
-                    consumerException = exception;
-                    throw exception; // Session errors are re-thrown as-is
-                }
-                consumerException = exception;
-                throw new RequestHandlerError(exception);
+                failure = consumerStarted
+                    ? new RequestHandlerError(exception)
+                    : new ContextPipelineInitializationError(exception);
+                await onError(failure);
             }
         } finally {
             try {
                 for (const cleanup of cleanupStack.reverse()) {
-                    await cleanup(consumerException);
+                    await cleanup(failure);
                 }
             } catch (exception: unknown) {
                 // eslint-disable-next-line no-unsafe-finally
