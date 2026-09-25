@@ -8,7 +8,13 @@ import {
     PuppeteerPlugin,
     RemoteBrowserPool,
 } from '@crawlee/browser-pool';
-import { BLOCKED_STATUS_CODES, type ConcurrencySystem, SessionPool } from '@crawlee/basic';
+import {
+    BLOCKED_STATUS_CODES,
+    type ConcurrencySystem,
+    SessionError,
+    SessionPool,
+    SessionRetiredError,
+} from '@crawlee/basic';
 import { bindMethodsToServiceLocator, MemoryStorageBackend, serviceLocator, ServiceLocator } from '@crawlee/core';
 import type { PuppeteerGoToOptions } from '@crawlee/puppeteer';
 import { EnqueueStrategy, ProxyConfiguration, Request, RequestList, RequestState, Session } from '@crawlee/puppeteer';
@@ -643,6 +649,38 @@ describe('BrowserCrawler', () => {
         expect(session).toBeDefined();
         const state = await sessionPool.getState();
         expect(state.sessions[0].maxUsageCount).toBe(1);
+    });
+
+    test('tells closePage whether the session was blocked or just used up', async () => {
+        const externalPool = new BrowserPoolClass({ browserPlugins: [new PuppeteerPlugin(puppeteer)] });
+        const closeErrors: (Error | undefined)[] = [];
+        const originalClosePage = externalPool.closePage.bind(externalPool);
+        externalPool.closePage = async (page, options) => {
+            closeErrors.push(options?.error);
+            return originalClosePage(page, options);
+        };
+        const blockError = new SessionError('blocked');
+
+        try {
+            const crawler = new BrowserCrawlerTest({
+                browserPool: externalPool,
+                requestList: await RequestList.open(null, [`${serverAddress}/?q=blocked`, `${serverAddress}/?q=ok`]),
+                sessionPool: new SessionPool({ sessionOptions: { maxUsageCount: 1 } }),
+                maxConcurrency: 1,
+                maxRequestRetries: 0,
+                requestHandler: async ({ request }) => {
+                    if (request.url.endsWith('blocked')) throw blockError;
+                },
+            });
+
+            await crawler.run();
+
+            expect(closeErrors).toHaveLength(2);
+            expect(closeErrors[0]).toBe(blockError);
+            expect(closeErrors[1]).toBeInstanceOf(SessionRetiredError);
+        } finally {
+            await externalPool.destroy();
+        }
     });
 
     test.skip('should persist cookies per session', async () => {
